@@ -14,6 +14,7 @@
     let lastScrollY = $state(0);
     let isDrawerOpen = $state(false);
     let isDarkMode = $state(false);
+    let isScrolled = $state(false);
 
     // 스크롤 이벤트 핸들러
     function handleScroll() {
@@ -27,6 +28,9 @@
             // 위로 스크롤 시 헤더 표시
             isHeaderVisible = true;
         }
+
+        // 스크롤 여부에 따라 isScrolled 상태 업데이트
+        isScrolled = currentScrollY > 0;
 
         lastScrollY = currentScrollY;
     }
@@ -50,20 +54,24 @@
             window.removeEventListener('scroll', handleScroll);
         };
     });
+
+    
 </script>
 
 <header
-    class="fixed left-0 right-0 top-0 z-50 border-b border-gray-200 bg-white/95 backdrop-blur-sm transition-transform duration-300 ease-in-out dark:border-gray-700 dark:bg-gray-900/95"
+    class="fixed left-0 right-0 top-0 z-50 bg-background transition-transform duration-300 ease-in-out"
     class:translate-y-0={isHeaderVisible}
     class:-translate-y-full={!isHeaderVisible}
+    class:shadow-sm={isScrolled}
+    class:border-b={isScrolled}
 >
-    <div class="mx-auto flex h-16 max-w-[1200px] items-center justify-between px-4">
+    <div class="mx-auto container flex h-12 md:h-16 items-center justify-between">
         <!-- 로고 -->
         <div class="flex items-center">
             <a href="/" class="flex items-center">
                 <img
-                    src="https://cdn.damoang.net/data/editor/64abd-66bd1f5106437-1c11615bec24fe4cc58fee1f83353fb0a939fa9c.svg"
-                    alt="다모앙"
+                    src="https://dummy.net/assets/logo.png"
+                    alt="logo"
                     class="h-12"
                 />
             </a>

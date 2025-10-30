@@ -2,6 +2,12 @@
 
 @import 'tw-animate-css';
 
+@import url("https://cdn.jsdelivr.net/gh/wanteddev/wanted-sans@v1.0.3/packages/wanted-sans/fonts/webfonts/static/split/WantedSans.min.css");
+@import './styles/base.css';
+@import './styles/layout.css';
+@import './styles/components.css';
+@import './styles/utilities.css';
+
 @custom-variant dark (&:is(.dark *));
 
 :root {
@@ -21,7 +27,7 @@
     --accent: oklch(0.968 0.007 247.896);
     --accent-foreground: oklch(0.208 0.042 265.755);
     --destructive: oklch(0.577 0.245 27.325);
-    --border: oklch(0.929 0.013 255.508);
+    --border: oklch(0.9 0.02 250);
     --input: oklch(0.929 0.013 255.508);
     --ring: oklch(0.704 0.04 256.788);
     --chart-1: oklch(0.646 0.222 41.116);
@@ -73,12 +79,39 @@
     --sidebar-ring: oklch(0.551 0.027 264.364);
 }
 
+@theme {
+    /* Dusty 색상 팔레트 */
+    --color-dusty-50: hsl(200 8% 98%);
+    --color-dusty-100: hsl(195 6% 95%);
+    --color-dusty-200: hsl(190 5% 90%);
+    --color-dusty-300: hsl(185 5% 82%);
+    --color-dusty-400: hsl(180 5% 66%);
+    --color-dusty-500: hsl(180 5% 50%);
+    --color-dusty-600: hsl(180 6% 38%);
+    --color-dusty-700: hsl(180 6% 28%);
+    --color-dusty-800: hsl(180 7% 18%);
+    --color-dusty-900: hsl(180 7% 11%);
+
+    /* 스크린 브레이크포인트 */
+    --breakpoint-2xl: 1440px;
+
+    /* 폰트 스택 */
+    --font-sans: "Wanted Sans Variable", "Wanted Sans",
+        -apple-system, BlinkMacSystemFont, system-ui, "Segoe UI",
+        "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic",
+        "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol",
+        sans-serif;
+}
+
+
 @theme inline {
     --radius-sm: calc(var(--radius) - 4px);
     --radius-md: calc(var(--radius) - 2px);
     --radius-lg: var(--radius);
     --radius-xl: calc(var(--radius) + 4px);
     --color-background: var(--background);
+    --color-canvas: var(--color-dusty-100);
+    --color-subtle: var(--color-dusty-200);
     --color-foreground: var(--foreground);
     --color-card: var(--card);
     --color-card-foreground: var(--card-foreground);
@@ -115,7 +148,64 @@
     * {
         @apply border-border outline-ring/50;
     }
+
+    /* 1) 기본 폰트 적용 + 스무딩(맥), 커닝/리거처 통일 */
+    html {
+        font-family: var(--font-sans);
+        -webkit-font-smoothing: antialiased;
+        /* macOS */
+        -moz-osx-font-smoothing: grayscale;
+        /* macOS */
+        text-rendering: optimizeLegibility;
+        font-kerning: normal;
+        font-feature-settings: "kern", "liga";
+        font-optical-sizing: none;
+        /* 가변폰트 옵티컬 보정 끔 */
+        font-synthesis-weight: none;
+        /* 합성 볼드 끔 */
+        font-synthesis-style: none;
+    }
+
     body {
-        @apply bg-background text-foreground;
+        @apply text-base leading-relaxed bg-background text-foreground;
+    }
+
+    /* 2) 모든 요소가 html의 폰트/옵션을 ‘상속’하도록 고정 */
+    *,
+    ::before,
+    ::after {
+        font-family: inherit;
+        font-kerning: inherit;
+        font-feature-settings: inherit;
+        font-optical-sizing: inherit;
+        font-synthesis-weight: inherit;
+        font-synthesis-style: inherit;
+    }
+
+    /* 3) 기본 가중치 강제(가변폰트일 때 wght 축도 고정) */
+    body {
+        @apply text-base leading-relaxed;
+        font-weight: 400;
+        /* == font-normal */
+        font-variation-settings: "wght" 400;
+        /* 가변축 직접 고정 */
+    }
+
+    /* 4) 제목 두께도 명시(브라우저 합성볼드 방지용) */
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6 {
+        font-weight: 700;
+        font-variation-settings: "wght" 700;
+    }
+}
+
+@layer utilities {
+    .container {
+        @apply mx-auto px-0 md:px-8;
+        max-width: 90rem;
     }
 }

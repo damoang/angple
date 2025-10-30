@@ -1,0 +1,32 @@
+@layer components {
+
+  .snb-backdrop-left,
+  .snb-backdrop-right {
+    @apply absolute -z-10 border-t border-border bg-canvas;
+    top: 4rem;
+    height: calc(100% - 4rem);
+    left: 0;
+    right: 0;
+  }
+
+  @media (min-width: 1440px) {
+    .snb-backdrop-left {
+      @apply border-l rounded-tl-xl;
+      left: calc(50% - 720px + 14.5rem + 2rem);
+      right: 0;
+    }
+
+    .snb-backdrop-right {
+      @apply border-r rounded-tr-xl;
+      left: 0;
+      right: calc(50% - 720px + 14.5rem + 2rem);
+    }
+  }
+
+  @media (max-width: 767px) {
+    .snb-backdrop-left,
+    .snb-backdrop-right {
+      top: 3rem;
+    }
+  }
+}

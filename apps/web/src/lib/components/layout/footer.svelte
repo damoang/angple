@@ -3,51 +3,51 @@
     const currentYear = new Date().getFullYear();
 
     // 앙포털 메뉴
-    const angportalLinks = [
-        { name: '다모앙 지도 - 앙지도', href: 'https://damoang.net/angmap' },
-        { name: '다모앙 평점 - 앙티티', href: 'https://damoang.net/angtt' },
-        { name: '다모앙 음악 - 앙뮤직', href: 'https://damoang.net/music' },
-        { name: '다모앙 상점 - 앙상점', href: 'http://damoang.shop', external: true },
-        { name: '다모앙 영상 - 앙팡팡', href: 'http://youtube.com/@AngPangPang', external: true },
-        { name: 'X (구 트위터)', href: 'https://x.com/@damoang_net', external: true }
+    const dummyPortalLinks = [
+        { name: 'Dummy Map - Map', href: 'https://dummy.net/map' },
+        { name: 'Dummy Reviews - Reviews', href: 'https://dummy.net/reviews' },
+        { name: 'Dummy Music - Music', href: 'https://dummy.net/music' },
+        { name: 'Dummy Shop - Shop', href: 'http://dummy.shop', external: true },
+        { name: 'Dummy Videos - Videos', href: 'http://youtube.com/@DummyVideos', external: true },
+        { name: 'X (구 트위터)', href: 'https://x.com/@dummy', external: true }
     ];
 
     // 함께만들어가요 메뉴
-    const togetherLinks = [
-        { name: '공지사항', href: 'https://damoang.net/notice' },
-        { name: '유지관리(버그제보)', href: 'https://damoang.net/bug' },
-        { name: '다모앙 만들기', href: 'https://damoang.net/makeang' },
-        { name: '이벤트 제안', href: 'https://damoang.net/event' },
-        { name: '다모앙 개발지원 신청', href: 'https://damoang.net/discord' },
-        { name: '광고앙', href: 'https://damoang.net/content/advertisement', external: true }
+    const dummyTogetherLinks = [
+        { name: 'Notices', href: 'https://dummy.net/notice' },
+        { name: 'Maintenance (Bug Report)', href: 'https://dummy.net/bug' },
+        { name: 'Create Dummy', href: 'https://dummy.net/create' },
+        { name: 'Event Suggestions', href: 'https://dummy.net/event' },
+        { name: 'Dummy Dev Support', href: 'https://dummy.net/discord' },
+        { name: 'Dummy Ads', href: 'https://damoang.net/content/advertisement', external: true }
     ];
 
     // 시스템 메뉴
-    const systemLinks = [
-        { name: '포인트 안내', href: 'https://damoang.net/content/info' },
-        { name: '레벨 안내', href: 'https://damoang.net/content/level' },
-        { name: '새글모음', href: 'https://damoang.net/bbs/new.php', external: true }
+    const dummySystemLinks = [
+        { name: 'Point Info', href: 'https://dummy.net/content/info' },
+        { name: 'Level Info', href: 'https://dummy.net/content/level' },
+        { name: 'New Posts', href: 'https://dummy.net/bbs/new.php', external: true }
     ];
 
     // 🚨삐앙삐앙🚨 메뉴
-    const emergencyLinks = [
-        { name: '앙리포트', href: 'https://damoang.net/report' },
-        { name: '소명게시판', href: 'https://damoang.net/claim' },
-        { name: '회원 신고 (누적 진실의 방)', href: 'https://damoang.net/truthroom' },
-        { name: '바이럴 신고 기록 (광고 앙대앙)', href: 'https://damoang.net/nope' },
-        { name: '회원 이용제한 기록', href: 'https://damoang.net/disciplinelog' }
+    const dummyEmergencyLinks = [
+        { name: 'Dummy Report', href: 'https://dummy.net/report' },
+        { name: 'Appeal Board', href: 'https://dummy.net/claim' },
+        { name: 'User Report (Truth Room)', href: 'https://dummy.net/truthroom' },
+        { name: 'Viral Report Log (No Ads)', href: 'https://dummy.net/nope' },
+        { name: 'User Restriction Log', href: 'https://dummy.net/disciplinelog' }
     ];
 </script>
 
-<footer class="mt-16 border-t border-gray-200 bg-gray-100 text-gray-800">
+<footer class="w-full border-t border-dusty-200 bg-dusty-50 text-gray-800">
     <!-- 상단 섹션 -->
-    <div class="mx-auto max-w-[1200px] px-4 py-8">
+    <div class="mx-auto container px-4 py-8">
         <div class="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-4">
-            <!-- 앙포털 -->
+            <!-- Portal -->
             <div>
-                <h3 class="mb-4 text-lg font-semibold text-gray-900">앙포털</h3>
+                <h3 class="mb-4 text-lg font-semibold text-gray-900">Portal</h3>
                 <ul class="space-y-2">
-                    {#each angportalLinks as link}
+                    {#each dummyPortalLinks as link}
                         <li>
                             <a
                                 href={link.href}
@@ -66,7 +66,7 @@
             <div>
                 <h3 class="mb-4 text-lg font-semibold text-gray-900">함께만들어가요</h3>
                 <ul class="space-y-2">
-                    {#each togetherLinks as link}
+                    {#each dummyTogetherLinks as link}
                         <li>
                             <a
                                 href={link.href}
@@ -85,7 +85,7 @@
             <div>
                 <h3 class="mb-4 text-lg font-semibold text-gray-900">시스템</h3>
                 <ul class="space-y-2">
-                    {#each systemLinks as link}
+                    {#each dummySystemLinks as link}
                         <li>
                             <a
                                 href={link.href}
@@ -100,11 +100,11 @@
                 </ul>
             </div>
 
-            <!-- 🚨삐앙삐앙🚨 -->
+            <!-- 🚨Alert🚨 -->
             <div>
-                <h3 class="mb-4 text-lg font-semibold text-red-600">🚨삐앙삐앙🚨</h3>
+                <h3 class="mb-4 text-lg font-semibold text-red-600">🚨Alert🚨</h3>
                 <ul class="space-y-2">
-                    {#each emergencyLinks as link}
+                    {#each dummyEmergencyLinks as link}
                         <li>
                             <a
                                 href={link.href}
@@ -120,19 +120,19 @@
     </div>
 
     <!-- 저작권 및 연락처 섹션 -->
-    <div class=" bg-gray-100">
+    <div class=" bg-dusty-50">
         <div class="mx-auto max-w-[1200px] px-4 py-6 text-center">
             <div class="space-y-2 text-sm text-gray-700">
-                <p>© SDK Co., Ltd. All rights reserved.</p>
+                <p>© All rights reserved.</p>
                 <p>
-                    제보/신고 : jebo@damoang.net, 문의(광고 그리고 모든 문의) : contact@damoang.net
+                    Report/Inquiry : report@dummy.net, Contact (Ads and all inquiries) : contact@dummy.net
                 </p>
             </div>
 
             <!-- 유튜브 아이콘 -->
             <div class="mt-4 flex justify-center">
                 <a
-                    href="http://youtube.com/@AngPangPang"
+                    href="http://youtube.com/@DummyVideos"
                     class="inline-block"
                     aria-label="유튜브 채널"
                 >
