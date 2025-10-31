@@ -1,5 +1,6 @@
 <script lang="ts">
     import '../app.css';
+    import { onMount } from 'svelte';
     import Header from '$lib/components/layout/header.svelte';
     import Sidebar from '$lib/components/layout/sidebar.svelte';
     import Panel from '$lib/components/layout/panel.svelte';
@@ -9,6 +10,29 @@
 
     const { children } = $props(); // Svelte 5
     let snbPosition: 'left' | 'right' = 'left'; // 기본값
+
+    let isBannerUp = $state(false);
+    let lastScrollY = $state(0);
+
+    function handleScroll() {
+        const currentScrollY = window.scrollY;
+
+        if (currentScrollY > lastScrollY && currentScrollY > 80) {
+            isBannerUp = true; // 아래로 스크롤 시 배너 올림
+        } else if (currentScrollY < lastScrollY) {
+            isBannerUp = false; // 위로 스크롤 시 배너 내림
+        }
+
+        lastScrollY = currentScrollY;
+    }
+
+    onMount(() => {
+        window.addEventListener('scroll', handleScroll, { passive: true });
+
+        return () => {
+            window.removeEventListener('scroll', handleScroll);
+        };
+    });
 </script>
 
 <svelte:head>
@@ -57,12 +81,20 @@
             {/if}
         </div>
     </div>
-    <!-- 왼쪽 배너 - 절대 위치, 1200px 밖에 배치 -->
-    <aside class="top-21 fixed left-4 hidden min-[1764px]:block">
+    <!-- 왼쪽 배너 - 절대 위치, 컨테이너 밖에 배치 -->
+    <aside
+        class="fixed left-4 hidden min-[1780px]:block transition-all duration-300"
+        class:top-21={!isBannerUp}
+        class:top-6={isBannerUp}
+    >
         <LeftBanner />
     </aside>
-    <!-- 오른쪽 배너 - 절대 위치, 1200px 밖에 배치 -->
-    <aside class="top-21 fixed right-4 hidden min-[1764px]:block">
+    <!-- 오른쪽 배너 - 절대 위치, 컨테이너 밖에 배치 -->
+    <aside
+        class="fixed right-4 hidden min-[1780px]:block transition-all duration-300"
+        class:top-21={!isBannerUp}
+        class:top-6={isBannerUp}
+    >
         <RightBanner />
     </aside>
 

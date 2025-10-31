@@ -8,7 +8,7 @@
 @import './styles/components.css';
 @import './styles/utilities.css';
 
-@custom-variant dark (&:is(.dark *));
+@custom-variant dark (&:where(.dark, .dark *));
 
 :root {
     --radius: 0.625rem;
@@ -27,7 +27,7 @@
     --accent: oklch(0.968 0.007 247.896);
     --accent-foreground: oklch(0.208 0.042 265.755);
     --destructive: oklch(0.577 0.245 27.325);
-    --border: oklch(0.9 0.02 250);
+    --border: oklch(0.889 0.005 203.53);
     --input: oklch(0.929 0.013 255.508);
     --ring: oklch(0.704 0.04 256.788);
     --chart-1: oklch(0.646 0.222 41.116);
@@ -43,10 +43,12 @@
     --sidebar-accent-foreground: oklch(0.208 0.042 265.755);
     --sidebar-border: oklch(0.929 0.013 255.508);
     --sidebar-ring: oklch(0.704 0.04 256.788);
+    --canvas-color: oklch(0.9623 0.001334 219.5175);
+    --subtle-color: oklch(0.9245 0.0024 211.04);
 }
 
 .dark {
-    --background: oklch(0.129 0.042 264.695);
+    --background: oklch(0.231 0.006 196.75);
     --foreground: oklch(0.984 0.003 247.858);
     --card: oklch(0.208 0.042 265.755);
     --card-foreground: oklch(0.984 0.003 247.858);
@@ -61,7 +63,7 @@
     --accent: oklch(0.279 0.041 260.031);
     --accent-foreground: oklch(0.984 0.003 247.858);
     --destructive: oklch(0.704 0.191 22.216);
-    --border: oklch(1 0 0 / 10%);
+    --border: oklch(0.408 0.011 196.73);
     --input: oklch(1 0 0 / 15%);
     --ring: oklch(0.551 0.027 264.364);
     --chart-1: oklch(0.488 0.243 264.376);
@@ -77,6 +79,8 @@
     --sidebar-accent-foreground: oklch(0.984 0.003 247.858);
     --sidebar-border: oklch(1 0 0 / 10%);
     --sidebar-ring: oklch(0.551 0.027 264.364);
+    --canvas-color: oklch(0.269 0.008 196.73);
+    --subtle-color: oklch(0.307 0.009 196.7);
 }
 
 @theme {
@@ -110,8 +114,8 @@
     --radius-lg: var(--radius);
     --radius-xl: calc(var(--radius) + 4px);
     --color-background: var(--background);
-    --color-canvas: var(--color-dusty-100);
-    --color-subtle: var(--color-dusty-200);
+    --color-canvas: var(--canvas-color);
+    --color-subtle: var(--subtle-color);
     --color-foreground: var(--foreground);
     --color-card: var(--card);
     --color-card-foreground: var(--card-foreground);
@@ -142,6 +146,13 @@
     --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
     --color-sidebar-border: var(--sidebar-border);
     --color-sidebar-ring: var(--sidebar-ring);
+}
+
+.dark {
+    --color-background: oklch(0.231 0.006 196.75);
+    --color-canvas: oklch(0.269 0.008 196.73);
+    --color-subtle: oklch(0.307 0.009 196.7);
+    --color-border: oklch(0.408 0.011 196.73);
 }
 
 @layer base {
@@ -184,6 +195,7 @@
 
     /* 3) 기본 가중치 강제(가변폰트일 때 wght 축도 고정) */
     body {
+        @apply bg-background text-foreground;
         @apply text-base leading-relaxed;
         font-weight: 400;
         /* == font-normal */
@@ -205,7 +217,7 @@
 
 @layer utilities {
     .container {
-        @apply mx-auto px-0 md:px-8;
-        max-width: 90rem;
+        @apply mx-auto px-0 md:px-6;
+        max-width: 1440px;
     }
 }

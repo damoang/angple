@@ -12,14 +12,14 @@
   @media (min-width: 1440px) {
     .snb-backdrop-left {
       @apply border-l rounded-tl-xl;
-      left: calc(50% - 720px + 14.5rem + 2rem);
+      left: calc(50% - 720px + 14.5rem + 1.5rem);
       right: 0;
     }
 
     .snb-backdrop-right {
       @apply border-r rounded-tr-xl;
       left: 0;
-      right: calc(50% - 720px + 14.5rem + 2rem);
+      right: calc(50% - 720px + 14.5rem + 1.5rem);
     }
   }
 
@@ -27,6 +27,7 @@
     .snb-backdrop-left,
     .snb-backdrop-right {
       top: 3rem;
+      height: calc(100% - 3rem);
     }
   }
 }

@@ -54,26 +54,20 @@
             window.removeEventListener('scroll', handleScroll);
         };
     });
-
-    
 </script>
 
 <header
-    class="fixed left-0 right-0 top-0 z-50 bg-background transition-transform duration-300 ease-in-out"
+    class="bg-background border-dusty-300 fixed left-0 right-0 top-0 z-50 transition-transform duration-300 ease-in-out"
     class:translate-y-0={isHeaderVisible}
     class:-translate-y-full={!isHeaderVisible}
     class:shadow-sm={isScrolled}
     class:border-b={isScrolled}
 >
-    <div class="mx-auto container flex h-12 md:h-16 items-center justify-between">
+    <div class="container mx-auto flex h-12 items-center justify-between md:h-16">
         <!-- 로고 -->
         <div class="flex items-center">
             <a href="/" class="flex items-center">
-                <img
-                    src="https://dummy.net/assets/logo.png"
-                    alt="logo"
-                    class="h-12"
-                />
+                <img src="https://dummy.net/assets/logo.png" alt="logo" class="h-12" />
             </a>
         </div>
 
@@ -204,4 +198,4 @@
 </div>
 
 <!-- 헤더 높이만큼 상단 패딩 추가 -->
-<div class="h-16"></div>
+<div class="sm:h-16 h-12"></div>
