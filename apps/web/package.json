@@ -52,5 +52,8 @@
         "onlyBuiltDependencies": [
             "esbuild"
         ]
+    },
+    "dependencies": {
+        "bits-ui": "^2.14.2"
     }
 }
