@@ -1,51 +1,26 @@
 <script lang="ts">
-    // 스크롤 테스트용 아이템 배열 생성
-    let items = $state(Array.from({ length: 10 }, (_, i) => i + 1));
+    import { RecommendedPosts } from '$lib/components/features/recommended';
+    import { NewBoard } from '$lib/components/features/new-board';
+    import { EconomyTabs } from '$lib/components/features/economy';
+    import { GalleryGrid } from '$lib/components/features/gallery';
+    import { GroupTabs } from '$lib/components/features/group';
 </script>
 
-<div class="flex flex-col gap-4">
-    <div
-        class="bg-background border-border flex-col items-center justify-center rounded-md border p-6"
-    >
-        <h1 class="mb-4 text-2xl font-bold">스크롤 테스트</h1>
-        {#each items as item}
-            <p class="py-2">스크롤 테스트 중입니다. #{item}</p>
-        {/each}
-    </div>
+<div class="container mx-auto max-w-4xl px-4 py-6">
+    <div class="space-y-4">
+        <!-- 추천 글 위젯 -->
+        <RecommendedPosts />
 
-    <div
-        class="bg-background border-border flex-col items-center justify-center rounded-md border p-6"
-    >
-        <h1 class="mb-4 text-2xl font-bold">스크롤 테스트</h1>
-        {#each items as item}
-            <p class="py-2">스크롤 테스트 중입니다. #{item}</p>
-        {/each}
-    </div>
+        <!-- 새로운 소식 & 알뜰구매 (2열 그리드) -->
+        <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <NewBoard />
+            <EconomyTabs />
+        </div>
 
-    <div
-        class="bg-background border-border flex-col items-center justify-center rounded-md border p-6"
-    >
-        <h1 class="mb-4 text-2xl font-bold">스크롤 테스트</h1>
-        {#each items as item}
-            <p class="py-2">스크롤 테스트 중입니다. #{item}</p>
-        {/each}
-    </div>
+        <!-- 갤러리 -->
+        <GalleryGrid />
 
-    <div
-        class="bg-background border-border flex-col items-center justify-center rounded-md border p-6"
-    >
-        <h1 class="mb-4 text-2xl font-bold">스크롤 테스트</h1>
-        {#each items as item}
-            <p class="py-2">스크롤 테스트 중입니다. #{item}</p>
-        {/each}
-    </div>
-
-    <div
-        class="bg-background border-border flex-col items-center justify-center rounded-md border p-6"
-    >
-        <h1 class="mb-4 text-2xl font-bold">스크롤 테스트</h1>
-        {#each items as item}
-            <p class="py-2">스크롤 테스트 중입니다. #{item}</p>
-        {/each}
+        <!-- 소모임 추천글 -->
+        <GroupTabs />
     </div>
 </div>

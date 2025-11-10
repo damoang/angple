@@ -1,0 +1,30 @@
+<script lang="ts">
+    import type { NewsPost } from '$lib/api/types.js';
+
+    type Props = {
+        posts: NewsPost[];
+    };
+
+    let { posts }: Props = $props();
+</script>
+
+{#if posts.length > 0}
+    <ul class="grid grid-cols-2 gap-x-4 gap-y-0">
+        {#each posts as post (post.id)}
+            <li class="border-b border-gray-200 last:border-b-0 dark:border-gray-700">
+                <a
+                    href={post.url}
+                    class="block rounded px-2 py-0.5 transition-colors hover:bg-gray-50 dark:hover:bg-gray-800"
+                >
+                    <div class="flex items-center gap-2">
+                        <div class="min-w-0 flex-1 truncate text-xs font-medium text-foreground">
+                            {post.title}
+                        </div>
+                    </div>
+                </a>
+            </li>
+        {/each}
+    </ul>
+{:else}
+    <div class="py-8 text-center text-sm text-muted-foreground">게시물이 없습니다.</div>
+{/if}

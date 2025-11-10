@@ -5,7 +5,9 @@ import type {
     RegisterApiKeyRequest,
     ApiKeyResponse,
     RefreshTokenRequest,
-    ApiError
+    ApiError,
+    RecommendedDataWithAI,
+    RecommendedPeriod
 } from './types.js';
 import { getMockFreePosts, getMockFreePost } from './mock-data.js';
 
@@ -112,9 +114,9 @@ class ApiClient {
         options: RequestInit = {}
     ): Promise<ApiResponse<T>> {
         const url = `${API_BASE_URL}${endpoint}`;
-        const headers: HeadersInit = {
+        const headers: Record<string, string> = {
             'Content-Type': 'application/json',
-            ...options.headers
+            ...(options.headers as Record<string, string>)
         };
 
         // 인증 토큰 추가
@@ -213,6 +215,35 @@ class ApiClient {
     // 로그아웃
     logout(): void {
         this.clearToken();
+    }
+
+    // 추천 글 데이터 가져오기 (AI 분석 포함)
+    async getRecommendedPostsWithAI(
+        period: RecommendedPeriod
+    ): Promise<RecommendedDataWithAI> {
+        // Mock 모드: static 폴더에서 JSON 직접 로드
+        if (this.useMock) {
+            await new Promise((resolve) => setTimeout(resolve, 200));
+            // period 매핑: 1h → 1hour, 3h → 3hours 등
+            const periodMap: Record<RecommendedPeriod, string> = {
+                '1h': '1hour',
+                '3h': '3hours',
+                '6h': '6hours',
+                '12h': '12hours',
+                '24h': '24hours',
+                '48h': '48hours'
+            };
+            const fileName = periodMap[period] || period;
+            const response = await fetch(`/data/cache/recommended/ai_${fileName}.json`);
+            if (!response.ok) {
+                throw new Error(`AI 추천 글 데이터 로드 실패: ${period}`);
+            }
+            return await response.json();
+        }
+
+        // 실제 API 모드 (나중에 구현)
+        const response = await this.request<RecommendedDataWithAI>(`/recommended/ai/${period}`);
+        return response.data;
     }
 }
 
