@@ -75,7 +75,8 @@ jobs:
               run: uv run scripts/deploy-web.py
 
             - name: Send deploy result to Discord
-              if: ${{ always() && secrets.DISCORD_WEBHOOK != '' }}
+              if: always()
+              continue-on-error: true
               env:
                   EMBED_TITLE: ${{ steps.deploy-aws.conclusion == 'success' && 'Deploy success image digest' || 'Deploy failed image digest' }}
                   EMBED_COLOR: ${{ steps.deploy-aws.conclusion == 'success' && 8900331 || 16711680 }}
