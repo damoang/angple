@@ -75,7 +75,7 @@ jobs:
               run: uv run scripts/deploy-web.py
 
             - name: Send deploy result to Discord
-              if: always()
+              if: always() && github.ref == 'refs/heads/main'
               continue-on-error: true
               env:
                   EMBED_TITLE: ${{ steps.deploy-aws.conclusion == 'success' && 'Deploy success image digest' || 'Deploy failed image digest' }}
