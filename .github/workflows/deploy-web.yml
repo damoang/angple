@@ -4,6 +4,7 @@ on:
     push:
         branches:
             - main
+            - gitaction # gitaction branch 에서 테스트로 사용. merge 하기 전에 삭제할 것!
         paths:
             - 'apps/web/**'
             - '.github/workflows/deploy-web.yml'
