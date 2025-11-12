@@ -1,0 +1,33 @@
+services:
+  # Web Application
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      target: production
+    container_name: angple-web
+    ports:
+      - "5173:80"
+    restart: unless-stopped
+    networks:
+      - angple-network
+
+  # Admin Dashboard
+  admin:
+    build:
+      context: .
+      dockerfile: apps/admin/Dockerfile
+      target: production
+    container_name: angple-admin
+    ports:
+      - "5174:5174"
+    environment:
+      - NODE_ENV=production
+      - VITE_DEV_SERVER_HOSTNAME=0.0.0.0
+    restart: unless-stopped
+    networks:
+      - angple-network
+
+networks:
+  angple-network:
+    driver: bridge

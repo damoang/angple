@@ -1,5 +1,5 @@
 # Build stage
-FROM node:24.11.0-trixie AS builder
+FROM node:lts-alpine3.22 AS builder
 
 # Set working directory
 WORKDIR /app
@@ -9,21 +9,27 @@ COPY package*.json ./
 COPY apps/admin/package*.json ./apps/admin/
 
 # Install all dependencies
-RUN npm ci
+COPY apps/web/package.json apps/web/pnpm-lock.yaml ./
+RUN npm install -g pnpm
+RUN pnpm install --frozen-lockfile
 
 # Copy application source
 COPY apps/admin ./apps/admin
 
 # Build the application
-WORKDIR /app/apps/admin
 RUN npm run build
 
+COPY . .
+WORKDIR /app/apps/web
+RUN pnpm install --frozen-lockfile
+RUN pnpm add -D @sveltejs/adapter-static
+RUN pnpm build
+
 # Production stage
-FROM node:24.11.0-trixie-slim AS production
+FROM node:lts-alpine3.22 AS production
 
 # Install dumb-init for proper signal handling
-RUN apt-get update && apt-get install -y --no-install-recommends dumb-init \
-    && rm -rf /var/lib/apt/lists/*
+RUN apk update && apk add dumb-init
 
 # Create non-root user
 RUN useradd -m -u 1001 -s /bin/bash nodeuser
@@ -60,7 +66,7 @@ ENTRYPOINT ["dumb-init", "--"]
 CMD ["node", "build"]
 
 # Development stage (optional)
-FROM node:24.11.0-trixie AS development
+FROM node:lts-alpine3.22 AS development
 
 WORKDIR /app
 
@@ -81,4 +87,4 @@ EXPOSE 5174
 WORKDIR /app/apps/admin
 
 # Start development server
-CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "5174"]
+CMD ["pnpm", "dev", "--host", "0.0.0.0", "--port", "5174"]

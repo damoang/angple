@@ -15,7 +15,11 @@ const config = {
             fallback: 'index.html',
             precompress: false,
             strict: false
-        })
+        }),
+        // https://svelte.dev/docs/kit/configuration#prerender
+        prerender: {
+            handleUnseenRoutes: 'warn'
+        }
     },
     compilerOptions: {
         runes: true //룬 모드 강제 적용

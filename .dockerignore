@@ -49,7 +49,7 @@ yarn-debug.log*
 yarn-error.log*
 
 # Docker files
-Dockerfile*
+**/Dockerfile*
 docker-compose*.yml
 .dockerignore
 
@@ -57,3 +57,12 @@ docker-compose*.yml
 *.tmp
 .cache/
 tmp/
+
+# sub directory
+**/README.md
+**/.gitignore
+**/.npmrc
+**/.prettier*
+**/eslint*
+**/playwright*
+**/e2e/
