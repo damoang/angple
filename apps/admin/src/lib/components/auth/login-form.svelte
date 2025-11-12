@@ -39,7 +39,7 @@
             </form>
             <div class="bg-muted relative hidden items-center justify-center md:flex">
                 <img
-                    src="https://cdn.damoang.net/data/editor/64abd-66bd1f5106437-1c11615bec24fe4cc58fee1f83353fb0a939fa9c.svg"
+                    src="/logo/damoang-origin-ko.svg"
                     alt="다모앙"
                     class="w-full object-cover dark:brightness-[0.2] dark:grayscale"
                 />

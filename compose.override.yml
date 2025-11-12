@@ -2,12 +2,9 @@ services:
   web:
     build:
       target: development
-    # volumes:
-    #   - ./apps/web:/app/apps/web
-    #   - ./package.json:/app/package.json
-    #   - ./package-lock.json:/app/package-lock.json
-    #   - /app/node_modules
-    #   - /app/apps/web/node_modules
+    volumes:
+      - ./apps/web:/app/apps/web:cache
+      - /app/apps/web/node_modules
     environment:
       - NODE_ENV=development
 
@@ -15,10 +12,7 @@ services:
     build:
       target: development
     volumes:
-      - ./apps/admin:/app/apps/admin
-      - ./package.json:/app/package.json
-      - ./package-lock.json:/app/package-lock.json
-      - /app/node_modules
+      - ./apps/admin:/app/apps/admin:cache
       - /app/apps/admin/node_modules
     environment:
       - NODE_ENV=development

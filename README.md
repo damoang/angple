@@ -36,6 +36,8 @@ The [admin dashboard](./apps/admin/README.md) is located in `apps/admin/`. To wo
 docker compose up -d admin
 ```
 
+Access at: http://localhost:5174
+
 ## Production
 
 ```bash

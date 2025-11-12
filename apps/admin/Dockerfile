@@ -1,90 +1,64 @@
+FROM node:lts-alpine3.22 AS base
+
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
+RUN corepack enable
+
+# Development stage
+FROM base AS development
+
+# Set working directory to admin app
+WORKDIR /app/apps/admin
+
+# Copy source code
+COPY apps/web .
+
+# Install dependencies
+RUN pnpm install
+
+# Start development server
+CMD ["pnpm", "dev", "--host", "0.0.0.0", "--port", "80"]
+
 # Build stage
-FROM node:lts-alpine3.22 AS builder
+FROM base AS builder
 
 # Set working directory
 WORKDIR /app
 
-# Copy package files from root and admin app
-COPY package*.json ./
-COPY apps/admin/package*.json ./apps/admin/
-
-# Install all dependencies
-COPY apps/web/package.json apps/web/pnpm-lock.yaml ./
-RUN npm install -g pnpm
-RUN pnpm install --frozen-lockfile
-
 # Copy application source
-COPY apps/admin ./apps/admin
+COPY apps/admin .
 
 # Build the application
-RUN npm run build
-
-COPY . .
-WORKDIR /app/apps/web
 RUN pnpm install --frozen-lockfile
-RUN pnpm add -D @sveltejs/adapter-static
-RUN pnpm build
+RUN pnpm run build
 
 # Production stage
-FROM node:lts-alpine3.22 AS production
+FROM caddy:2.10-alpine AS production
 
 # Install dumb-init for proper signal handling
 RUN apk update && apk add dumb-init
 
 # Create non-root user
-RUN useradd -m -u 1001 -s /bin/bash nodeuser
+RUN adduser -D -u 1001 -s /bin/sh caddyadmin
+RUN chown -R caddyadmin:caddyadmin /config/caddy /data/caddy
 
 # Set working directory
 WORKDIR /app
 
-# Copy built application from builder
-COPY --from=builder --chown=nodeuser:nodeuser /app/apps/admin/build ./build
-COPY --from=builder --chown=nodeuser:nodeuser /app/apps/admin/package*.json ./
+COPY --chown=caddyadmin:caddyadmin apps/web/Caddyfile /etc/caddy/Caddyfile
 
-# Install production dependencies only
-RUN npm ci --omit=dev && npm cache clean --force
+# Copy built application from builder
+COPY --from=builder --chown=caddyadmin:caddyadmin /app/build ./build
 
 # Switch to non-root user
-USER nodeuser
-
-# Expose port (different from web app)
-EXPOSE 3001
-
-# Set environment to production
-ENV NODE_ENV=production
-ENV PORT=3001
-ENV HOST=0.0.0.0
+USER caddyadmin
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD node -e "require('http').get('http://localhost:3001', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
+    CMD wget -q -O /dev/null http://127.0.0.1:80/health || exit 1
 
 # Use dumb-init to handle signals properly
 ENTRYPOINT ["dumb-init", "--"]
 
 # Start the application
-CMD ["node", "build"]
-
-# Development stage (optional)
-FROM node:lts-alpine3.22 AS development
-
-WORKDIR /app
-
-# Copy package files
-COPY package*.json ./
-COPY apps/admin/package*.json ./apps/admin/
-
-# Install dependencies
-RUN npm ci
-
-# Copy source code
-COPY . .
-
-# Expose development port (different from web app)
-EXPOSE 5174
-
-# Set working directory to admin app
-WORKDIR /app/apps/admin
-
-# Start development server
-CMD ["pnpm", "dev", "--host", "0.0.0.0", "--port", "5174"]
+CMD ["caddy", "run", "--config", "/etc/caddy/Caddyfile", "--adapter", "caddyfile"]

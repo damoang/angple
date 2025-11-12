@@ -20,10 +20,7 @@ services:
       target: production
     container_name: angple-admin
     ports:
-      - "5174:5174"
-    environment:
-      - NODE_ENV=production
-      - VITE_DEV_SERVER_HOSTNAME=0.0.0.0
+      - "5174:80"
     restart: unless-stopped
     networks:
       - angple-network
