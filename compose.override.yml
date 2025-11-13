@@ -4,7 +4,7 @@ services:
       target: development
     volumes:
       - ./apps/web:/app/apps/web:cache
-      - /app/apps/web/node_modules
+      - web-node-modules:/app/apps/web/node_modules
     environment:
       - NODE_ENV=development
 
@@ -13,6 +13,10 @@ services:
       target: development
     volumes:
       - ./apps/admin:/app/apps/admin:cache
-      - /app/apps/admin/node_modules
+      - admin-node-modules:/app/apps/admin/node_modules
     environment:
       - NODE_ENV=development
+
+volumes:
+  web-node-modules:
+  admin-node-modules:
