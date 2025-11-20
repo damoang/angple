@@ -47,20 +47,22 @@ jobs:
                   IMAGE_TAG: ${{ github.sha }}
               run: |
                   cd apps/web
-
-                  # 이미지 빌드 및 푸시
+                  
+                  # Build and push
                   docker buildx build \
                     --platform linux/amd64 \
                     --push \
                     -t $ECR_REGISTRY/${{ env.ECR_REPOSITORY }}:$IMAGE_TAG \
                     -t $ECR_REGISTRY/${{ env.ECR_REPOSITORY }}:latest \
                     .
-
-                  # Manifest digest 가져오기
-                  DIGEST=$(docker buildx imagetools inspect --format='{{ json .Manifest.Digest }}' $ECR_REGISTRY/${{ env.ECR_REPOSITORY }}:latest)
-                  echo "ECR_MANIFEST_DIGEST=$DIGEST" >> $GITHUB_ENV
+                  
+                  # Export variables for next steps
                   echo "ECR_REGISTRY_HOST=$ECR_REGISTRY" >> $GITHUB_ENV
                   echo "ECR_IMAGE_NAME=$ECR_REGISTRY/${{ env.ECR_REPOSITORY }}:latest" >> $GITHUB_ENV
+                  
+                  # Get digest for notification (optional, but keeping it simple)
+                  DIGEST=$(docker buildx imagetools inspect --format='{{ json .Manifest.Digest }}' $ECR_REGISTRY/${{ env.ECR_REPOSITORY }}:latest)
+                  echo "ECR_MANIFEST_DIGEST=$DIGEST" >> $GITHUB_ENV
 
             - name: Install uv
               uses: astral-sh/setup-uv@v6
@@ -76,7 +78,7 @@ jobs:
               run: uv run scripts/deploy-web.py
 
             - name: Send deploy result to Discord
-              if: always() && github.ref == 'refs/heads/main'
+              if: always() && secrets.DISCORD_WEBHOOK != '' && github.ref == 'refs/heads/main'
               continue-on-error: true
               env:
                   EMBED_TITLE: ${{ steps.deploy-aws.conclusion == 'success' && 'Deploy success image digest' || 'Deploy failed image digest' }}
