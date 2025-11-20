@@ -1,0 +1,15 @@
+services:
+  web:
+    image: ${ECR_IMAGE_NAME:-angple-web:latest}
+    container_name: angple-web
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+    restart: unless-stopped
+    networks:
+      - angple-network
+
+networks:
+  angple-network:
+    driver: bridge
