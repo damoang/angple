@@ -11,14 +11,7 @@ import boto3
 
 EC2_INSTANCE_ID = os.getenv("EC2_INSTANCE_ID")
 STEP_SUMMARY = os.getenv("GITHUB_STEP_SUMMARY")
-AWS_REGION = os.getenv("AWS_REGION")
-ECR_REGISTRY_HOST = os.getenv("ECR_REGISTRY_HOST")
-ECR_IMAGE_NAME = os.getenv("ECR_IMAGE_NAME")
-ECR_MANIFEST_DIGEST = os.getenv("ECR_MANIFEST_DIGEST")
-APP_DIR = os.getenv("APP_DIR", "/app")
-DEPLOY_DIRNAME = os.getenv("DEPLOY_DIRNAME", "angple")
-CONTAINER_NAME = os.getenv("CONTAINER_NAME", "angple-web")
-CONTAINER_PORT = os.getenv("CONTAINER_PORT", "3000")
+
 
 scripts_template = """
 #!/bin/bash
