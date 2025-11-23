@@ -5,8 +5,10 @@ import type { PageLoad } from './$types.js';
 export const load: PageLoad = async ({ params }) => {
     try {
         const post = await apiClient.getFreePost(params.id);
+        const comments = await apiClient.getFreeComments(params.id);
         return {
-            post
+            post,
+            comments
         };
     } catch (err) {
         console.error('게시글 로딩 에러:', err);

@@ -46,6 +46,10 @@
     }
 </script>
 
+<svelte:head>
+    <title>자유게시판 | 다모앙</title>
+</svelte:head>
+
 <div class="mx-auto pt-4">
     <!-- 헤더 -->
     <div class="mb-8">
@@ -72,12 +76,19 @@
             </Card>
         {:else}
             {#each data.posts as post}
-                <Card class="bg-background hover:shadow-md transition-shadow cursor-pointer" onclick={() => goToPost(post.id)}>
+                <Card
+                    class="bg-background hover:shadow-md transition-shadow cursor-pointer"
+                    onclick={() => goToPost(post.id)}
+                >
                     <CardHeader>
                         <div class="flex items-start justify-between gap-4">
                             <div class="flex-1 min-w-0">
-                                <CardTitle class="text-foreground mb-2 truncate">{post.title}</CardTitle>
-                                <div class="text-secondary-foreground flex flex-wrap items-center gap-2 text-sm">
+                                <CardTitle class="text-foreground mb-2 truncate"
+                                    >{post.title}</CardTitle
+                                >
+                                <div
+                                    class="text-secondary-foreground flex flex-wrap items-center gap-2 text-sm"
+                                >
                                     <span>{post.author}</span>
                                     <span>•</span>
                                     <span>{formatDate(post.created_at)}</span>
@@ -146,7 +157,8 @@
         </div>
 
         <p class="text-secondary-foreground mt-4 text-center text-sm">
-            전체 {data.pagination.total.toLocaleString()}개 중 {data.pagination.page} / {data.pagination.totalPages} 페이지
+            전체 {data.pagination.total.toLocaleString()}개 중 {data.pagination.page} / {data
+                .pagination.totalPages} 페이지
         </p>
     {/if}
 </div>

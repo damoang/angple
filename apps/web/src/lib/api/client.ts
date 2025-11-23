@@ -7,9 +7,10 @@ import type {
     RefreshTokenRequest,
     ApiError,
     RecommendedDataWithAI,
-    RecommendedPeriod
+    RecommendedPeriod,
+    FreeComment
 } from './types.js';
-import { getMockFreePosts, getMockFreePost } from './mock-data.js';
+import { getMockFreePosts, getMockFreePost, getMockFreeComments } from './mock-data.js';
 
 const API_BASE_URL = 'https://api.ang.dev/api/v1';
 
@@ -195,6 +196,21 @@ class ApiClient {
         }
 
         const response = await this.request<FreePost>(`/free/${id}`);
+        return response.data;
+    }
+
+    // 자유게시판 글 댓글 조회
+    async getFreeComments(id: string, page = 1, limit = 10): Promise<PaginatedResponse<FreeComment>> {
+        // Mock 모드일 경우 가짜 데이터 반환
+        if (this.useMock) {
+            // 실제 API 호출처럼 약간의 지연 추가
+            await new Promise((resolve) => setTimeout(resolve, 300));
+            return getMockFreeComments(page, limit);
+        }
+
+        const response = await this.request<PaginatedResponse<FreeComment>>(
+            `/free/${id}/comments?page=${page}&limit=${limit}`
+        );
         return response.data;
     }
 

@@ -1,4 +1,4 @@
-import type { FreePost, PaginatedResponse } from './types.js';
+import type { FreePost, FreeComment, PaginatedResponse } from './types.js';
 
 // Mock 게시글 데이터 생성
 function generateMockPost(id: number): FreePost {
@@ -133,4 +133,106 @@ export function getMockFreePost(id: string): FreePost {
 감사합니다. 😊`;
 
     return post;
+}
+
+// Mock 댓글 데이터 생성
+function generateMockComment(id: number, depth: number): FreeComment {
+    const contents = [
+        '와, SvelteKit 5를 쓰셨다니 대단합니다! 특히 ‘프리렌더링’ 기능이 실제로 얼마나 빠른지 궁금하네요.\n\n혹시 첫 번째 페이지 로딩 시간이 30% 감소한 사례가 있나요?',
+        '저도 비슷한 프로젝트를 진행 중인데, ‘타이핑 시 자동완성’ 구현이 어려웠어요. 혹시 어떤 UI 라이브러리를 쓰셨나요?',
+        '혹시 비동기 데이터 fetching을 위해 SvelteKit의 load 함수 대신 store를 사용한 경험이 있으신가요?',
+        '사용자 경험을 개선했다고 하셨는데, A/B 테스트를 진행하신 적이 있나요? 혹은 사용자 피드백을 수집하기 위해 설계한 설문 도구가 있나요?',
+        '새로운 기술을 배우는 과정이 즐거웠다니 다행이에요. 혹시 SvelteKit 5에서 가장 인상 깊었던 기능은 무엇이었나요?'
+    ];
+
+    const authors = [
+        '개발자김철수',
+        '코딩좋아',
+        '프론트엔드마스터',
+        '백엔드전문가',
+        '풀스택개발자',
+        '주니어개발자',
+        '시니어개발자',
+        '디자이너이영희',
+        '기획자박민수',
+        '운영자최영수'
+    ];
+
+    const randomContent = contents[id % contents.length];
+    const randomAuthor = authors[id % authors.length];
+
+    const createdDate = new Date();
+    createdDate.setHours(createdDate.getHours() - (id * 2));
+
+    return {
+        id: String(id + 1),
+        content: randomContent,
+        author: randomAuthor,
+        author_id: `user_${id % 10}`,
+        likes: Math.floor(Math.random() * 100),
+        depth: depth,
+        created_at: createdDate.toISOString(),
+        updated_at: createdDate.toISOString(),
+    };
+}
+
+// 페이지네이션된 Mock 댓글 데이터 생성
+export function getMockFreeComments(page = 1, limit = 50): PaginatedResponse<FreeComment> {
+    const total = 100; // 전체 게시글 수
+    const totalPages = Math.ceil(total / limit);
+    const startIndex = (page - 1) * limit;
+
+    const commentReplies = [
+        {
+            author: 1,
+            content: '첫 페이지 로딩 시간은 약 2.8초에서 1.9초로 감소했어요. prerender와 endpoint 최적화 덕분이죠.'
+        },
+        {
+            author: 0,
+            content: '아주 인상적인 수치네요. 혹시 prerender를 활용한 특정 페이지가 가장 크게 개선되었다면 그 예시를 공유해 주실 수 있을까요?\n\n또한, endpoint 최적화에서 가장 효과적이었던 기법은 무엇인지 궁금합니다.'
+        },
+        {
+            author: 1,
+            content: '정적 페이지를 prerender하면 서버 부하가 0이 되고, CDN에서 바로 서빙되므로 사용자에게는 눈에 띄는 차이가 생깁니다.\n\n그리고, endpoint 최적화에서 가장 먼저 적용할 것은 ‘캐시 헤더’와 ‘데이터 최소화’입니다. 두 가지만으로도 30–40 %의 로딩 속도 향상을 기대할 수 있어요.'
+        },
+        {
+            author: 0,
+            content: '와, 놀랍군요. 좋은 정보 감사합니다!'
+        }
+    ];
+
+    const comments: FreeComment[] = [];
+    for (let i = 0; i < limit && startIndex + i < total; i++) {
+        const comment = generateMockComment(startIndex + i, 0);
+        comments.push(comment);
+
+        // 0번째 댓글에 대댓글 생성
+        if (startIndex + i === 0) {
+            for (let j = 0; j < commentReplies.length; j++) {
+                const author = commentReplies[j].author ? '풀스택개발자' : comment.author;
+                const authorId = commentReplies[j].author ? 'user_1000' : comment.author_id;
+
+                const createdDate = new Date();
+                createdDate.setHours(createdDate.getHours() + ((i + j) * 2) + 1);
+                comments.push({
+                    id: String(i + j),
+                    content: commentReplies[j].content,
+                    author: author,
+                    author_id: authorId,
+                    likes: Math.floor(Math.random() * 100),
+                    depth: j + 1,
+                    created_at: createdDate.toISOString(),
+                    updated_at: createdDate.toISOString(),
+                });
+            }
+        }
+    }
+
+    return {
+        items: comments,
+        total,
+        page,
+        limit,
+        total_pages: totalPages
+    };
 }

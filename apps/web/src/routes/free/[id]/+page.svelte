@@ -41,7 +41,7 @@
     </div>
 
     <!-- 게시글 헤더 -->
-    <Card class="bg-background ">
+    <Card class="bg-background mb-6">
         <CardHeader class="space-y-3">
             <div>
                 {#if data.post.tags && data.post.tags.length > 0}
@@ -136,6 +136,43 @@
             마지막 수정: {formatDate(data.post.updated_at)}
         </p>
     {/if}
+
+    <Card class="bg-background ">
+        <CardHeader>
+            <p>댓글</p>
+            <ul>
+                {#each data.comments.items as comment}
+                    <li
+                        style="margin-left: {comment.depth * 1.25}rem"
+                        class="{comment.depth
+                            ? 'reply'
+                            : 'parent'} border-border border-b pt-2 pb-2 last:border-none"
+                    >
+                        <div class="flex flex-wrap items-center gap-4 mb-2">
+                            <div class="flex items-center gap-2">
+                                <div
+                                    class="bg-primary text-primary-foreground flex size-10 items-center justify-center rounded-full"
+                                >
+                                    {comment.author.charAt(0).toUpperCase()}
+                                </div>
+                                <div>
+                                    <p class="text-foreground font-medium">{comment.author}</p>
+                                    <p class="text-secondary-foreground text-sm">
+                                        {formatDate(comment.created_at)}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div class="text-secondary-foreground ml-auto flex gap-4 text-sm">
+                                <span>👍 {comment.likes.toLocaleString()}</span>
+                            </div>
+                        </div>
+                        <div>{comment.content}</div>
+                    </li>
+                {/each}
+            </ul>
+        </CardHeader>
+    </Card>
 </div>
 
 <style>
