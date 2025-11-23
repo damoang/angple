@@ -38,6 +38,7 @@ export interface FreeComment {
     author_id: string;
     likes: number;
     depth: number;
+    parent_id: string;
     created_at: string;
     updated_at: string;
     images?: string[];

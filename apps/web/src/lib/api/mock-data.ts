@@ -171,6 +171,7 @@ function generateMockComment(id: number, depth: number): FreeComment {
         author_id: `user_${id % 10}`,
         likes: Math.floor(Math.random() * 100),
         depth: depth,
+        parent_id: '',
         created_at: createdDate.toISOString(),
         updated_at: createdDate.toISOString(),
     };
@@ -221,6 +222,7 @@ export function getMockFreeComments(page = 1, limit = 50): PaginatedResponse<Fre
                     author_id: authorId,
                     likes: Math.floor(Math.random() * 100),
                     depth: j + 1,
+                    parent_id: comment.id,
                     created_at: createdDate.toISOString(),
                     updated_at: createdDate.toISOString(),
                 });
