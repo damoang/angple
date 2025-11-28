@@ -11,7 +11,7 @@ FROM base AS development
 WORKDIR /app/apps/admin
 
 # Copy source code
-COPY apps/web .
+COPY apps/admin .
 
 # Install dependencies
 RUN pnpm install
@@ -45,7 +45,7 @@ RUN chown -R caddyadmin:caddyadmin /config/caddy /data/caddy
 # Set working directory
 WORKDIR /app
 
-COPY --chown=caddyadmin:caddyadmin apps/web/Caddyfile /etc/caddy/Caddyfile
+COPY --chown=caddyadmin:caddyadmin apps/admin/Caddyfile /etc/caddy/Caddyfile
 
 # Copy built application from builder
 COPY --from=builder --chown=caddyadmin:caddyadmin /app/build ./build

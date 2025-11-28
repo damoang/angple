@@ -12,6 +12,9 @@
         # Set this path to your site's directory.
         root * /app/build
 
+        # SPA routing - fallback to index.html
+        try_files {path} /index.html
+
         # Enable the static file server.
         file_server
 

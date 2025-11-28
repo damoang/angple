@@ -7,7 +7,7 @@ services:
       target: production
     container_name: angple-web
     ports:
-      - "5173:80"
+      - "3010:80"
     restart: unless-stopped
     networks:
       - angple-network
@@ -20,7 +20,7 @@ services:
       target: production
     container_name: angple-admin
     ports:
-      - "5174:80"
+      - "3011:80"
     restart: unless-stopped
     networks:
       - angple-network
