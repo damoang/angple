@@ -27,7 +27,7 @@ pnpm install
 # 개발 서버 시작
 pnpm dev
 
-# 브라우저에서 http://localhost:5173 접속
+# 브라우저에서 http://localhost:3010 접속
 ```
 
 ## 주요 스크립트
@@ -168,7 +168,7 @@ pnpm preview
 
 ### 개발 환경 포트
 
-- 개발 서버: http://localhost:5173
+- 개발 서버: http://localhost:3010
 - 미리보기 서버: http://localhost:4173
 
 ### 환경 변수

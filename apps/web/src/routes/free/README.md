@@ -10,7 +10,7 @@ cd apps/web
 npm run dev
 ```
 
-브라우저에서 http://localhost:5173/free 접속
+브라우저에서 http://localhost:3010/free 접속
 
 ---
 

@@ -26,7 +26,7 @@ The main [web application](./apps/web/README.md) is located in `apps/web/`. To w
 docker compose up -d web
 ```
 
-Access at: http://localhost:5173
+Access at: http://localhost:3010
 
 ### Admin Dashboard
 
@@ -36,7 +36,7 @@ The [admin dashboard](./apps/admin/README.md) is located in `apps/admin/`. To wo
 docker compose up -d admin
 ```
 
-Access at: http://localhost:5174
+Access at: http://localhost:3011
 
 ## Production
 
