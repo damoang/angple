@@ -5,22 +5,20 @@
     let { data }: { data: RecommendedDataWithAI } = $props();
 
     // $derived 최적화: 섹션별로 포스트에 고유 키 부여
-    const allPosts = $derived(
-        [
-            ...(data.sections.community.posts ?? []).map((post, idx) => ({
-                ...post,
-                uniqueKey: `community-${idx}-${post.id}`
-            })),
-            ...(data.sections.group.posts ?? []).map((post, idx) => ({
-                ...post,
-                uniqueKey: `group-${idx}-${post.id}`
-            })),
-            ...(data.sections.info.posts ?? []).map((post, idx) => ({
-                ...post,
-                uniqueKey: `info-${idx}-${post.id}`
-            }))
-        ] as (RecommendedPost & { uniqueKey: string })[]
-    );
+    const allPosts = $derived([
+        ...(data.sections.community.posts ?? []).map((post, idx) => ({
+            ...post,
+            uniqueKey: `community-${idx}-${post.id}`
+        })),
+        ...(data.sections.group.posts ?? []).map((post, idx) => ({
+            ...post,
+            uniqueKey: `group-${idx}-${post.id}`
+        })),
+        ...(data.sections.info.posts ?? []).map((post, idx) => ({
+            ...post,
+            uniqueKey: `info-${idx}-${post.id}`
+        }))
+    ] as (RecommendedPost & { uniqueKey: string })[]);
 </script>
 
 {#if allPosts.length > 0}
@@ -31,5 +29,5 @@
         {/each}
     </ul>
 {:else}
-    <div class="py-8 text-center text-sm text-muted-foreground">게시물이 없습니다.</div>
+    <div class="text-muted-foreground py-8 text-center text-sm">게시물이 없습니다.</div>
 {/if}

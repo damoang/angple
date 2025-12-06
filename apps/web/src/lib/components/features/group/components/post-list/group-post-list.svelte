@@ -25,7 +25,7 @@
                         >
                             {formatNumber(post.recommend_count)}
                         </span>
-                        <div class="min-w-0 flex-1 truncate text-sm font-medium text-foreground">
+                        <div class="text-foreground min-w-0 flex-1 truncate text-sm font-medium">
                             {post.title}
                         </div>
                     </div>
@@ -34,5 +34,5 @@
         {/each}
     </ul>
 {:else}
-    <div class="py-8 text-center text-sm text-muted-foreground">게시물이 없습니다.</div>
+    <div class="text-muted-foreground py-8 text-center text-sm">게시물이 없습니다.</div>
 {/if}

@@ -61,7 +61,7 @@
                             {#each communityLinks as link}
                                 <Button
                                     variant="ghost"
-                                    class="w-full justify-start gap-2 hover:bg-dusty-100 dark:hover:bg-dusty-800"
+                                    class="hover:bg-dusty-100 dark:hover:bg-dusty-800 w-full justify-start gap-2"
                                     href={link.href}
                                 >
                                     {link.label}
@@ -90,7 +90,7 @@
                             {#each gatheringLinks as link}
                                 <Button
                                     variant="ghost"
-                                    class="w-full justify-start gap-2 hover:bg-dusty-100 dark:hover:bg-dusty-800"
+                                    class="hover:bg-dusty-100 dark:hover:bg-dusty-800 w-full justify-start gap-2"
                                     href={link.href}
                                 >
                                     {link.label}

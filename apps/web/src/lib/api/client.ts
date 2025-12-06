@@ -110,10 +110,7 @@ class ApiClient {
     }
 
     // HTTP 요청 헬퍼
-    private async request<T>(
-        endpoint: string,
-        options: RequestInit = {}
-    ): Promise<ApiResponse<T>> {
+    private async request<T>(endpoint: string, options: RequestInit = {}): Promise<ApiResponse<T>> {
         const url = `${API_BASE_URL}${endpoint}`;
         const headers: Record<string, string> = {
             'Content-Type': 'application/json',
@@ -200,7 +197,11 @@ class ApiClient {
     }
 
     // 자유게시판 글 댓글 조회
-    async getFreeComments(id: string, page = 1, limit = 10): Promise<PaginatedResponse<FreeComment>> {
+    async getFreeComments(
+        id: string,
+        page = 1,
+        limit = 10
+    ): Promise<PaginatedResponse<FreeComment>> {
         // Mock 모드일 경우 가짜 데이터 반환
         if (this.useMock) {
             // 실제 API 호출처럼 약간의 지연 추가
@@ -234,9 +235,7 @@ class ApiClient {
     }
 
     // 추천 글 데이터 가져오기 (AI 분석 포함)
-    async getRecommendedPostsWithAI(
-        period: RecommendedPeriod
-    ): Promise<RecommendedDataWithAI> {
+    async getRecommendedPostsWithAI(period: RecommendedPeriod): Promise<RecommendedDataWithAI> {
         // Mock 모드: static 폴더에서 JSON 직접 로드
         if (this.useMock) {
             await new Promise((resolve) => setTimeout(resolve, 200));

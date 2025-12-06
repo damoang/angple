@@ -69,13 +69,13 @@
     <div class="container mx-auto flex h-12 items-center justify-between md:h-16">
         <!-- 로고 -->
         <div class="flex items-center">
-                        <!-- 햄버거 메뉴 (추가 메뉴) - 2xl 미만에서 보임 -->
+            <!-- 햄버거 메뉴 (추가 메뉴) - 2xl 미만에서 보임 -->
             <button
                 onclick={toggleDrawer}
-                class="rounded-lg ps-4 pe-2 md:ps-0 md:-ml-1 transition-colors hover:bg-dusty-100 dark:hover:bg-dusty-800 2xl:hidden block mr-3"
+                class="hover:bg-dusty-100 dark:hover:bg-dusty-800 mr-3 block rounded-lg pe-2 ps-4 transition-colors md:-ml-1 md:ps-0 2xl:hidden"
                 aria-label="추가 메뉴"
             >
-                <AlignJustify class="h-6 w-6 text-dusty-600 dark:text-dusty-400" />
+                <AlignJustify class="text-dusty-600 dark:text-dusty-400 h-6 w-6" />
             </button>
             <a href="/" class="flex items-center">
                 <img src={Logo} alt="damoang" class="h-12" />
@@ -86,14 +86,14 @@
         <nav class="hidden items-center space-x-8 md:flex">
             <a
                 href="/"
-                class="flex items-center text-dusty-700 transition-colors hover:text-blue-600 dark:text-dusty-300"
+                class="text-dusty-700 dark:text-dusty-300 flex items-center transition-colors hover:text-blue-600"
             >
                 <Home class="mr-2 h-5 w-5" />
                 홈
             </a>
             <a
                 href="/free"
-                class="flex items-center text-dusty-700 transition-colors hover:text-blue-600 dark:text-dusty-300"
+                class="text-dusty-700 dark:text-dusty-300 flex items-center transition-colors hover:text-blue-600"
             >
                 <Rss class="mr-2 h-5 w-5" />
                 피드
@@ -105,27 +105,27 @@
             <!-- 다크모드 토글 -->
             <button
                 onclick={toggleDarkMode}
-                class="rounded-lg p-2 transition-colors hover:bg-dusty-100 dark:hover:bg-dusty-800"
+                class="hover:bg-dusty-100 dark:hover:bg-dusty-800 rounded-lg p-2 transition-colors"
                 aria-label="다크모드 전환"
             >
                 {#if isDarkMode}
                     <Sun class="h-5 w-5 text-yellow-500" />
                 {:else}
-                    <Moon class="h-5 w-5 text-dusty-600 dark:text-dusty-400" />
+                    <Moon class="text-dusty-600 dark:text-dusty-400 h-5 w-5" />
                 {/if}
             </button>
 
             <!-- 검색 아이콘 -->
             <button
-                class="rounded-lg p-2 transition-colors hover:bg-dusty-100 dark:hover:bg-dusty-800"
+                class="hover:bg-dusty-100 dark:hover:bg-dusty-800 rounded-lg p-2 transition-colors"
                 aria-label="검색"
             >
-                <Search class="h-5 w-5 text-dusty-600 dark:text-dusty-400" />
+                <Search class="text-dusty-600 dark:text-dusty-400 h-5 w-5" />
             </button>
 
             <!-- 사용자 아이콘 (로그인/프로필) -->
             <button
-                class="rounded-lg p-2 transition-colors hover:bg-dusty-100 dark:hover:bg-dusty-800"
+                class="hover:bg-dusty-100 dark:hover:bg-dusty-800 rounded-lg p-2 transition-colors"
                 aria-label="사용자 메뉴"
             >
                 <User class="h-5 w-5 text-blue-600 dark:text-blue-400" />
@@ -133,19 +133,19 @@
 
             <!-- 알림 아이콘 -->
             <button
-                class="rounded-lg p-2 transition-colors hover:bg-dusty-100 dark:hover:bg-dusty-800"
+                class="hover:bg-dusty-100 dark:hover:bg-dusty-800 rounded-lg p-2 transition-colors"
                 aria-label="알림"
             >
-                <Bell class="h-5 w-5 text-dusty-600 dark:text-dusty-400" />
+                <Bell class="text-dusty-600 dark:text-dusty-400 h-5 w-5" />
             </button>
 
             <!-- 햄버거 메뉴 (추가 메뉴) -->
             <button
                 onclick={toggleDrawer}
-                class="rounded-lg p-2 transition-colors hover:bg-dusty-100 dark:hover:bg-dusty-800 2xl:block hidden "
+                class="hover:bg-dusty-100 dark:hover:bg-dusty-800 hidden rounded-lg p-2 transition-colors 2xl:block"
                 aria-label="추가 메뉴"
             >
-                <Menu class="h-5 w-5 text-dusty-600 dark:text-dusty-400" />
+                <Menu class="text-dusty-600 dark:text-dusty-400 h-5 w-5" />
             </button>
         </div>
     </div>
@@ -164,24 +164,24 @@
 
 <!-- 드로워 메뉴 (항상 DOM에 존재, 위치만 변경) -->
 <div
-    class="fixed bottom-0 right-0 top-0 z-50 w-80 transform bg-white shadow-xl transition-transform duration-300 ease-in-out dark:bg-dusty-900"
+    class="dark:bg-dusty-900 fixed bottom-0 right-0 top-0 z-50 w-80 transform bg-white shadow-xl transition-transform duration-300 ease-in-out"
     class:translate-x-full={!isDrawerOpen}
     class:translate-x-0={isDrawerOpen}
 >
     <div class="p-6">
         <div class="mb-8 flex items-center justify-between">
-            <h2 class="text-xl font-bold text-dusty-900 dark:text-white">추가 메뉴</h2>
+            <h2 class="text-dusty-900 text-xl font-bold dark:text-white">추가 메뉴</h2>
             <button
                 onclick={toggleDrawer}
-                class="rounded-lg p-2 transition-colors hover:bg-dusty-100 dark:hover:bg-dusty-800"
+                class="hover:bg-dusty-100 dark:hover:bg-dusty-800 rounded-lg p-2 transition-colors"
                 aria-label="메뉴 닫기"
             >
-                <X class="h-6 w-6 text-dusty-600 dark:text-dusty-400" />
+                <X class="text-dusty-600 dark:text-dusty-400 h-6 w-6" />
             </button>
         </div>
 
         <!-- 빈 메뉴 영역 -->
-        <div class="flex h-64 items-center justify-center text-dusty-500 dark:text-dusty-400">
+        <div class="text-dusty-500 dark:text-dusty-400 flex h-64 items-center justify-center">
             <p class="text-center">
                 추가 메뉴<br />
                 <span class="text-sm">곧 추가될 예정입니다.</span>

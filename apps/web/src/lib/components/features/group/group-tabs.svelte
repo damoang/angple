@@ -14,7 +14,7 @@
     const groupUrl = '/bbs/group.php?gr_id=group';
 
     // 탭별 포스트 필터링
-    const currentPosts = $derived(data ? (data[activeTab] || []) : []);
+    const currentPosts = $derived(data ? data[activeTab] || [] : []);
 
     async function loadData() {
         loading = true;
@@ -50,7 +50,10 @@
             <!-- 탭 네비게이션 -->
             <GroupTabs bind:activeTab onTabChange={handleTabChange} />
 
-            <a href={groupUrl} class="text-muted-foreground transition-colors hover:text-foreground">
+            <a
+                href={groupUrl}
+                class="text-muted-foreground hover:text-foreground transition-colors"
+            >
                 <svg
                     xmlns="http://www.w3.org/2000/svg"
                     width="20"
@@ -69,7 +72,7 @@
     <CardContent class="px-3">
         {#if loading}
             <div class="flex items-center justify-center py-8">
-                <div class="text-sm text-muted-foreground">로딩 중...</div>
+                <div class="text-muted-foreground text-sm">로딩 중...</div>
             </div>
         {:else if error}
             <div class="flex items-center justify-center py-8">

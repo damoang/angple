@@ -94,17 +94,17 @@
                     {/each}
                 </div>
             {/if}
-            <div class="mt-8 mb-3">
-                <div class="border border-border flex w-fit items-center rounded-[7px]">
+            <div class="mb-3 mt-8">
+                <div class="border-border flex w-fit items-center rounded-[7px] border">
                     <NeoKeyButton
                         bind:liked={isLiked}
                         size="sm"
                         class="text-dusty-700 justify-start"
                     >
                         {#if isLiked}
-                            <Heart class="fill-red-500 text-red-500 !h-6 !w-6" />
+                            <Heart class="!h-6 !w-6 fill-red-500 text-red-500" />
                         {:else}
-                            <Heart class="!h-6 !w-6 dark:text-dusty-400" />
+                            <Heart class="dark:text-dusty-400 !h-6 !w-6" />
                         {/if}
                     </NeoKeyButton>
                     <!-- 좋아요 개수 -->
@@ -146,9 +146,9 @@
                         style="margin-left: {comment.depth * 1.25}rem"
                         class="{comment.depth
                             ? 'reply'
-                            : 'parent'} border-border border-b pt-2 pb-2 last:border-none"
+                            : 'parent'} border-border border-b pb-2 pt-2 last:border-none"
                     >
-                        <div class="flex flex-wrap items-center gap-4 mb-2">
+                        <div class="mb-2 flex flex-wrap items-center gap-4">
                             <div class="flex items-center gap-2">
                                 <div
                                     class="bg-primary text-primary-foreground flex size-10 items-center justify-center rounded-full"

@@ -26,9 +26,9 @@
             </div>
 
             <!-- 상세 설명 (ambient_whisper) -->
-<!--            <p class="mt-2 text-xs text-gray-700 dark:text-gray-300">-->
-<!--                {analysis.ambient_whisper.join(' · ')}-->
-<!--            </p>-->
+            <!--            <p class="mt-2 text-xs text-gray-700 dark:text-gray-300">-->
+            <!--                {analysis.ambient_whisper.join(' · ')}-->
+            <!--            </p>-->
         </div>
     </div>
 </div>

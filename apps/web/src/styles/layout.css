@@ -1,40 +1,38 @@
 @layer components {
-
-  .snb-backdrop-left,
-  .snb-backdrop-right {
-    @apply absolute -z-10 border-t border-border bg-canvas;
-    top: 4rem;
-    height: calc(100% - 4rem);
-    left: 0;
-    right: 0;
-  }
-
-  @media (min-width: 1440px) {
-    .snb-backdrop-left {
-      @apply border-l rounded-tl-xl;
-      left: calc(50% - 720px + 230px + 1.5rem);
-      right: 0;
-      box-shadow:
-        inset 2px 2px 4px rgb(0 0 0 / 0.06),
-        inset -2px -2px 4px rgb(255 255 255 / 0.1);
-    }
-
-    .snb-backdrop-right {
-      @apply border-r rounded-tr-xl;
-      left: 0;
-      right: calc(50% - 720px + 230px + 1.5rem);
-      box-shadow:
-        inset -2px 2px 4px rgb(0 0 0 / 0.06),
-        inset 2px -2px 4px rgb(255 255 255 / 0.1);
-    }
-  }
-
-  @media (max-width: 767px) {
-
     .snb-backdrop-left,
     .snb-backdrop-right {
-      top: 3rem;
-      height: calc(100% - 3rem);
+        @apply border-border bg-canvas absolute -z-10 border-t;
+        top: 4rem;
+        height: calc(100% - 4rem);
+        left: 0;
+        right: 0;
     }
-  }
+
+    @media (min-width: 1440px) {
+        .snb-backdrop-left {
+            @apply rounded-tl-xl border-l;
+            left: calc(50% - 720px + 230px + 1.5rem);
+            right: 0;
+            box-shadow:
+                inset 2px 2px 4px rgb(0 0 0 / 0.06),
+                inset -2px -2px 4px rgb(255 255 255 / 0.1);
+        }
+
+        .snb-backdrop-right {
+            @apply rounded-tr-xl border-r;
+            left: 0;
+            right: calc(50% - 720px + 230px + 1.5rem);
+            box-shadow:
+                inset -2px 2px 4px rgb(0 0 0 / 0.06),
+                inset 2px -2px 4px rgb(255 255 255 / 0.1);
+        }
+    }
+
+    @media (max-width: 767px) {
+        .snb-backdrop-left,
+        .snb-backdrop-right {
+            top: 3rem;
+            height: calc(100% - 3rem);
+        }
+    }
 }

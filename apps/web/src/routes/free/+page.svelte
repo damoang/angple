@@ -77,12 +77,12 @@
         {:else}
             {#each data.posts as post}
                 <Card
-                    class="bg-background hover:shadow-md transition-shadow cursor-pointer"
+                    class="bg-background cursor-pointer transition-shadow hover:shadow-md"
                     onclick={() => goToPost(post.id)}
                 >
                     <CardHeader>
                         <div class="flex items-start justify-between gap-4">
-                            <div class="flex-1 min-w-0">
+                            <div class="min-w-0 flex-1">
                                 <CardTitle class="text-foreground mb-2 truncate"
                                     >{post.title}</CardTitle
                                 >
