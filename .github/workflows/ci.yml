@@ -26,7 +26,6 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Install dependencies
-        working-directory: apps/web
         run: npm ci --no-fund
 
       - name: Run lint
@@ -47,7 +46,6 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Install dependencies
-        working-directory: apps/admin
         run: npm ci --no-fund
 
       - name: Run lint
@@ -68,7 +66,6 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Install dependencies
-        working-directory: apps/web
         run: npm ci --no-fund
 
       - name: Run type check
@@ -93,7 +90,6 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Install dependencies
-        working-directory: apps/admin
         run: npm ci --no-fund
 
       - name: Run type check
@@ -118,7 +114,6 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Install dependencies
-        working-directory: apps/web
         run: npm ci --no-fund
 
       - name: Run security audit
@@ -139,7 +134,6 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Install dependencies
-        working-directory: apps/admin
         run: npm ci --no-fund
 
       - name: Run security audit
@@ -160,7 +154,6 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Install dependencies
-        working-directory: apps/web
         run: npm ci --no-fund
 
       - name: Install Playwright browsers
@@ -193,7 +186,6 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Install dependencies
-        working-directory: apps/admin
         run: npm ci --no-fund
 
       - name: Install Playwright browsers

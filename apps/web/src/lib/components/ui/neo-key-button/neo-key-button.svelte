@@ -29,16 +29,16 @@
   
   const currentSize = sizes[size];
   
-  function handleClick(event: MouseEvent) {
+  function handleClick(event: MouseEvent & { currentTarget: EventTarget & HTMLButtonElement }) {
     if (!disabled) {
       liked = !liked;
       pressed = true;
-      
+
       // 애니메이션 후 pressed 상태 초기화
       setTimeout(() => {
         pressed = false;
       }, 200);
-      
+
       // 사용자 정의 onclick 핸들러 실행
       onclick?.(event);
     }

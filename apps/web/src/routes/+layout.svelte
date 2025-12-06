@@ -10,7 +10,7 @@
     import RightBanner from '$lib/components/layout/right-banner.svelte';
 
     const { children } = $props(); // Svelte 5
-    let snbPosition: 'left' | 'right' = 'left'; // 기본값
+    let snbPosition = $state<'left' | 'right'>('left'); // 기본값
 
     let isBannerUp = $state(false);
     let lastScrollY = $state(0);

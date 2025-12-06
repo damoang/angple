@@ -1,7 +1,5 @@
 @import 'tailwindcss';
-
 @import 'tw-animate-css';
-
 @import url("https://cdn.jsdelivr.net/gh/wanteddev/wanted-sans@v1.0.3/packages/wanted-sans/fonts/webfonts/static/split/WantedSans.min.css");
 @import './styles/base.css';
 @import './styles/layout.css';
