@@ -1,6 +1,9 @@
 <script lang="ts">
     import type { RecommendedPost } from '$lib/api/types.js';
-    import { formatNumber, getRecommendBadgeClass } from '../../features/recommended/utils/index.js';
+    import {
+        formatNumber,
+        getRecommendBadgeClass
+    } from '../../features/recommended/utils/index.js';
 
     let { post }: { post: RecommendedPost } = $props();
 </script>
@@ -21,7 +24,7 @@
                 {formatNumber(post.recommend_count)}
             </span>
             <!-- text-truncate -->
-            <div class="min-w-0 flex-1 truncate text-sm font-medium text-foreground">
+            <div class="text-foreground min-w-0 flex-1 truncate text-sm font-medium">
                 {post.title}
             </div>
         </div>

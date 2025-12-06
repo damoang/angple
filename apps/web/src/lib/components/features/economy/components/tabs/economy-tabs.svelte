@@ -30,7 +30,7 @@
                 aria-selected={activeTab === tab.id}
                 class="rounded-t-md px-3 py-1.5 text-sm font-medium transition-colors
                     {activeTab === tab.id
-                    ? 'border-b-2 border-primary text-foreground'
+                    ? 'border-primary text-foreground border-b-2'
                     : 'text-muted-foreground hover:text-foreground'}"
                 onclick={() => handleTabClick(tab.id)}
             >

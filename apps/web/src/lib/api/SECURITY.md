@@ -5,12 +5,14 @@
 ### localStorage 토큰 저장의 취약점
 
 **문제점:**
+
 ```javascript
 // ❌ 현재 구현 - XSS 공격에 취약
 localStorage.setItem('damoang_api_token', token);
 ```
 
 **취약점:**
+
 1. **XSS 공격**: JavaScript로 `localStorage` 접근 가능
 2. **세션 탈취**: 악의적인 스크립트가 토큰 복사 가능
 3. **영구 저장**: 브라우저를 닫아도 토큰이 남아있음
@@ -45,6 +47,7 @@ localStorage.setItem('damoang_api_token', token);
 ### 2. 백엔드 API 스펙 (권장)
 
 #### 로그인
+
 ```typescript
 POST /api/v1/auth/login
 Request: { email, password }
@@ -54,6 +57,7 @@ Response:
 ```
 
 #### 토큰 갱신
+
 ```typescript
 POST /api/v1/auth/token/refresh
 Request: (Cookie에서 refreshToken 자동 전송)
@@ -62,6 +66,7 @@ Response:
 ```
 
 #### 로그아웃
+
 ```typescript
 POST /api/v1/auth/logout
 Response:
@@ -117,7 +122,7 @@ class SecureApiClient {
     async request(url: string, options: RequestInit = {}): Promise<Response> {
         const headers = {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${this.accessToken}`,
+            Authorization: `Bearer ${this.accessToken}`,
             ...options.headers
         };
 
@@ -135,11 +140,13 @@ class SecureApiClient {
 ## 📋 마이그레이션 단계
 
 ### Phase 1: 현재 (Mock 개발)
+
 - ✅ Mock 데이터로 UI/UX 개발
 - ✅ localStorage 사용 (개발 편의성)
 - ⚠️ 보안 경고 코멘트 추가
 
 ### Phase 2: 백엔드 API 개선
+
 ```bash
 # 백엔드 이슈 생성
 - [ ] refreshToken httpOnly cookie 구현
@@ -149,6 +156,7 @@ class SecureApiClient {
 ```
 
 ### Phase 3: 프론트엔드 리팩토링
+
 ```bash
 - [ ] ApiClient 클래스 리팩토링
 - [ ] localStorage 제거
@@ -158,6 +166,7 @@ class SecureApiClient {
 ```
 
 ### Phase 4: 보안 테스트
+
 ```bash
 - [ ] XSS 공격 시뮬레이션
 - [ ] CSRF 공격 테스트
@@ -170,26 +179,29 @@ class SecureApiClient {
 ## 🛡️ 추가 보안 권장사항
 
 ### 1. Content Security Policy (CSP)
+
 ```html
 <!-- apps/web/src/app.html -->
-<meta http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self';">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self';" />
 ```
 
 ### 2. XSS 방지
+
 - ✅ Svelte의 자동 이스케이프 활용
 - ❌ `@html` 사용 최소화
 - ✅ 사용자 입력 검증
 
 ### 3. HTTPS 강제
+
 ```javascript
 // Vite 설정
 server: {
-    https: true
+    https: true;
 }
 ```
 
 ### 4. Rate Limiting
+
 ```typescript
 // 백엔드에서 구현
 - 로그인: 5회/15분

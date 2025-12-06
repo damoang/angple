@@ -65,7 +65,7 @@ function generateMockPost(id: number): FreePost {
     const randomTags = tags[id % tags.length];
 
     const createdDate = new Date();
-    createdDate.setHours(createdDate.getHours() - (id * 2));
+    createdDate.setHours(createdDate.getHours() - id * 2);
 
     return {
         id: String(id),
@@ -162,7 +162,7 @@ function generateMockComment(id: number, depth: number): FreeComment {
     const randomAuthor = authors[id % authors.length];
 
     const createdDate = new Date();
-    createdDate.setHours(createdDate.getHours() - (id * 2));
+    createdDate.setHours(createdDate.getHours() - id * 2);
 
     return {
         id: String(id + 1),
@@ -173,7 +173,7 @@ function generateMockComment(id: number, depth: number): FreeComment {
         depth: depth,
         parent_id: '',
         created_at: createdDate.toISOString(),
-        updated_at: createdDate.toISOString(),
+        updated_at: createdDate.toISOString()
     };
 }
 
@@ -186,15 +186,18 @@ export function getMockFreeComments(page = 1, limit = 50): PaginatedResponse<Fre
     const commentReplies = [
         {
             author: 1,
-            content: '첫 페이지 로딩 시간은 약 2.8초에서 1.9초로 감소했어요. prerender와 endpoint 최적화 덕분이죠.'
+            content:
+                '첫 페이지 로딩 시간은 약 2.8초에서 1.9초로 감소했어요. prerender와 endpoint 최적화 덕분이죠.'
         },
         {
             author: 0,
-            content: '아주 인상적인 수치네요. 혹시 prerender를 활용한 특정 페이지가 가장 크게 개선되었다면 그 예시를 공유해 주실 수 있을까요?\n\n또한, endpoint 최적화에서 가장 효과적이었던 기법은 무엇인지 궁금합니다.'
+            content:
+                '아주 인상적인 수치네요. 혹시 prerender를 활용한 특정 페이지가 가장 크게 개선되었다면 그 예시를 공유해 주실 수 있을까요?\n\n또한, endpoint 최적화에서 가장 효과적이었던 기법은 무엇인지 궁금합니다.'
         },
         {
             author: 1,
-            content: '정적 페이지를 prerender하면 서버 부하가 0이 되고, CDN에서 바로 서빙되므로 사용자에게는 눈에 띄는 차이가 생깁니다.\n\n그리고, endpoint 최적화에서 가장 먼저 적용할 것은 ‘캐시 헤더’와 ‘데이터 최소화’입니다. 두 가지만으로도 30–40 %의 로딩 속도 향상을 기대할 수 있어요.'
+            content:
+                '정적 페이지를 prerender하면 서버 부하가 0이 되고, CDN에서 바로 서빙되므로 사용자에게는 눈에 띄는 차이가 생깁니다.\n\n그리고, endpoint 최적화에서 가장 먼저 적용할 것은 ‘캐시 헤더’와 ‘데이터 최소화’입니다. 두 가지만으로도 30–40 %의 로딩 속도 향상을 기대할 수 있어요.'
         },
         {
             author: 0,
@@ -214,7 +217,7 @@ export function getMockFreeComments(page = 1, limit = 50): PaginatedResponse<Fre
                 const authorId = commentReplies[j].author ? 'user_1000' : comment.author_id;
 
                 const createdDate = new Date();
-                createdDate.setHours(createdDate.getHours() + ((i + j) * 2) + 1);
+                createdDate.setHours(createdDate.getHours() + (i + j) * 2 + 1);
                 comments.push({
                     id: String(i + j),
                     content: commentReplies[j].content,
@@ -224,7 +227,7 @@ export function getMockFreeComments(page = 1, limit = 50): PaginatedResponse<Fre
                     depth: j + 1,
                     parent_id: comment.id,
                     created_at: createdDate.toISOString(),
-                    updated_at: createdDate.toISOString(),
+                    updated_at: createdDate.toISOString()
                 });
             }
         }

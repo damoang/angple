@@ -18,7 +18,9 @@
     });
 </script>
 
-<div class="flex h-full flex-col overflow-hidden rounded-lg border border-gray-200 bg-card dark:border-gray-700">
+<div
+    class="bg-card flex h-full flex-col overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700"
+>
     <!-- 16:9 이미지 -->
     <a href={post.url} class="relative overflow-hidden">
         <div class="relative aspect-video w-full">
@@ -30,7 +32,9 @@
                     alt={post.title}
                 />
             {:else}
-                <div class="flex h-full w-full items-center justify-center bg-gray-100 dark:bg-gray-800">
+                <div
+                    class="flex h-full w-full items-center justify-center bg-gray-100 dark:bg-gray-800"
+                >
                     <svg
                         xmlns="http://www.w3.org/2000/svg"
                         width="48"
@@ -39,9 +43,7 @@
                         class="text-gray-400"
                         viewBox="0 0 16 16"
                     >
-                        <path
-                            d="M6.002 5.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z"
-                        />
+                        <path d="M6.002 5.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z" />
                         <path
                             d="M2.002 1a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V3a2 2 0 0 0-2-2h-12zm12 1a1 1 0 0 1 1 1v6.5l-3.777-1.947a.5.5 0 0 0-.577.093l-3.71 3.71-2.66-1.772a.5.5 0 0 0-.63.062L1.002 12V3a1 1 0 0 1 1-1h12z"
                         />
@@ -60,7 +62,7 @@
         </div>
 
         <div class="mt-auto">
-            <div class="flex items-center justify-between text-xs text-muted-foreground">
+            <div class="text-muted-foreground flex items-center justify-between text-xs">
                 <div class="flex items-center gap-2">
                     {#if post.comment_count > 0}
                         <span class="flex items-center gap-1">
@@ -88,8 +90,12 @@
                             fill="currentColor"
                             viewBox="0 0 16 16"
                         >
-                            <path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8zM1.173 8a13.133 13.133 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.133 13.133 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5c-2.12 0-3.879-1.168-5.168-2.457A13.134 13.134 0 0 1 1.172 8z" />
-                            <path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0z" />
+                            <path
+                                d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8zM1.173 8a13.133 13.133 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.133 13.133 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5c-2.12 0-3.879-1.168-5.168-2.457A13.134 13.134 0 0 1 1.172 8z"
+                            />
+                            <path
+                                d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0z"
+                            />
                         </svg>
                         {post.view_count}
                     </span>
@@ -111,7 +117,7 @@
                     {/if}
                 </div>
             </div>
-            <div class="mt-1 text-xs text-muted-foreground">
+            <div class="text-muted-foreground mt-1 text-xs">
                 {formattedDate} 등록
             </div>
         </div>

@@ -34,7 +34,7 @@
     <CardContent class="p-3">
         {#if loading}
             <div class="flex items-center justify-center py-8">
-                <div class="text-sm text-muted-foreground">로딩 중...</div>
+                <div class="text-muted-foreground text-sm">로딩 중...</div>
             </div>
         {:else if error}
             <div class="flex items-center justify-center py-8">
@@ -49,7 +49,7 @@
                 {/each}
             </div>
         {:else}
-            <div class="py-8 text-center text-sm text-muted-foreground">게시물이 없습니다.</div>
+            <div class="text-muted-foreground py-8 text-center text-sm">게시물이 없습니다.</div>
         {/if}
     </CardContent>
 </Card>

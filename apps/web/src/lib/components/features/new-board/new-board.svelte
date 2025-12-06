@@ -48,7 +48,7 @@
     <CardContent class="px-3">
         {#if loading}
             <div class="flex items-center justify-center py-8">
-                <div class="text-sm text-muted-foreground">로딩 중...</div>
+                <div class="text-muted-foreground text-sm">로딩 중...</div>
             </div>
         {:else if error}
             <div class="flex items-center justify-center py-8">

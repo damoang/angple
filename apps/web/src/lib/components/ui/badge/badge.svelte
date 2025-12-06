@@ -7,7 +7,8 @@
         base: 'inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2',
         variants: {
             variant: {
-                default: 'bg-primary text-primary-foreground border-transparent shadow hover:bg-primary/80',
+                default:
+                    'bg-primary text-primary-foreground border-transparent shadow hover:bg-primary/80',
                 secondary:
                     'bg-subtle text-secondary-foreground border-transparent hover:bg-secondary/80',
                 destructive:
@@ -37,10 +38,6 @@
     }: BadgeProps = $props();
 </script>
 
-<div
-    bind:this={ref}
-    class={cn(badgeVariants({ variant }), className)}
-    {...restProps}
->
+<div bind:this={ref} class={cn(badgeVariants({ variant }), className)} {...restProps}>
     {@render children?.()}
 </div>

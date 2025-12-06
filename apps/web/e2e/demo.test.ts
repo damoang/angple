@@ -1,8 +1,9 @@
 import { expect, test } from '@playwright/test';
 
-test('홈페이지 제목이 올바르게 표시된다', async ({ page }) => {
+test('홈페이지가 올바르게 로드된다', async ({ page }) => {
     await page.goto('/');
-    await expect(page.locator('h1')).toBeVisible();
+    // 로고가 보이는지 확인
+    await expect(page.getByAltText('damoang')).toBeVisible();
 });
 
 test('다크모드 토글이 올바르게 작동한다', async ({ page }) => {
@@ -34,23 +35,16 @@ test('헤더 네비게이션 메뉴가 올바르게 작동한다', async ({ page
     await page.getByRole('link', { name: '홈' }).click();
     await expect(page).toHaveURL('/');
 
-    // 메뉴1 클릭 (실제로는 404가 될 수 있지만 URL 변경 확인)
-    await page.getByRole('link', { name: '메뉴1' }).click();
-    await expect(page).toHaveURL('/community');
-
-    // 다시 홈으로 돌아가기
-    await page.goto('/');
-
-    // 메뉴2 클릭
-    await page.getByRole('link', { name: '메뉴2' }).click();
-    await expect(page).toHaveURL('/marketplace');
+    // 피드 메뉴 클릭
+    await page.getByRole('link', { name: '피드' }).click();
+    await expect(page).toHaveURL('/free');
 });
 
 test('햄버거 메뉴 드로워가 올바르게 작동한다', async ({ page }) => {
     await page.goto('/');
 
     // 햄버거 메뉴 버튼이 보이는지 확인
-    const menuButton = page.getByRole('button', { name: '추가 메뉴' });
+    const menuButton = page.getByRole('button', { name: '추가 메뉴' }).first();
     await expect(menuButton).toBeVisible();
 
     // 초기 상태에서 드로워가 숨겨져 있는지 확인
@@ -64,8 +58,8 @@ test('햄버거 메뉴 드로워가 올바르게 작동한다', async ({ page })
     await expect(drawer).toHaveClass(/translate-x-0/);
     await expect(drawer).not.toHaveClass(/translate-x-full/);
 
-    // 드로워 내부 제목 확인
-    await expect(page.getByText('추가 메뉴')).toBeVisible();
+    // 드로워 내부 제목 확인 (heading role로 찾기)
+    await expect(page.getByRole('heading', { name: '추가 메뉴' })).toBeVisible();
 
     // X 버튼으로 드로워 닫기
     const closeButton = page.getByRole('button', { name: '메뉴 닫기' });
@@ -94,7 +88,7 @@ test('모바일 뷰포트에서 레이아웃이 올바르게 동작한다', asyn
     await expect(desktopNav).toBeHidden();
 
     // 햄버거 메뉴는 여전히 보이는지 확인
-    const menuButton = page.getByRole('button', { name: '추가 메뉴' });
+    const menuButton = page.getByRole('button', { name: '추가 메뉴' }).first();
     await expect(menuButton).toBeVisible();
 
     // 모바일에서도 햄버거 메뉴가 작동하는지 확인

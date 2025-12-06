@@ -17,7 +17,7 @@
                     class="block rounded px-2 py-0.5 transition-colors hover:bg-gray-50 dark:hover:bg-gray-800"
                 >
                     <div class="flex items-center gap-2">
-                        <div class="min-w-0 flex-1 truncate text-xs font-medium text-foreground">
+                        <div class="text-foreground min-w-0 flex-1 truncate text-xs font-medium">
                             {post.title}
                         </div>
                     </div>
@@ -26,5 +26,5 @@
         {/each}
     </ul>
 {:else}
-    <div class="py-8 text-center text-sm text-muted-foreground">게시물이 없습니다.</div>
+    <div class="text-muted-foreground py-8 text-center text-sm">게시물이 없습니다.</div>
 {/if}

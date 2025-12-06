@@ -1,8 +1,6 @@
 @import 'tailwindcss';
-
 @import 'tw-animate-css';
-
-@import url("https://cdn.jsdelivr.net/gh/wanteddev/wanted-sans@v1.0.3/packages/wanted-sans/fonts/webfonts/static/split/WantedSans.min.css");
+@import url('https://cdn.jsdelivr.net/gh/wanteddev/wanted-sans@v1.0.3/packages/wanted-sans/fonts/webfonts/static/split/WantedSans.min.css');
 @import './styles/base.css';
 @import './styles/layout.css';
 @import './styles/components.css';
@@ -59,7 +57,7 @@
     --secondary: oklch(0.358 0.0094 196.74);
     --secondary-foreground: oklch(0.8019 0.007 200.78);
     --muted: oklch(0.357 0.001 196.74);
-    --muted-foreground: oklch(0.770 0.008 196.99);
+    --muted-foreground: oklch(0.77 0.008 196.99);
     --accent: oklch(0.279 0.041 260.031);
     --accent-foreground: oklch(0.984 0.003 247.858);
     --destructive: oklch(0.704 0.191 22.216);
@@ -100,13 +98,11 @@
     --breakpoint-2xl: 1440px;
 
     /* 폰트 스택 */
-    --font-sans: "Wanted Sans Variable", "Wanted Sans",
-        -apple-system, BlinkMacSystemFont, system-ui, "Segoe UI",
-        "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic",
-        "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol",
-        sans-serif;
+    --font-sans:
+        'Wanted Sans Variable', 'Wanted Sans', -apple-system, BlinkMacSystemFont, system-ui,
+        'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', 'Apple Color Emoji',
+        'Segoe UI Emoji', 'Segoe UI Symbol', sans-serif;
 }
-
 
 @theme inline {
     --radius-sm: calc(var(--radius) - 4px);
@@ -169,7 +165,7 @@
         /* macOS */
         text-rendering: optimizeLegibility;
         font-kerning: normal;
-        font-feature-settings: "kern", "liga";
+        font-feature-settings: 'kern', 'liga';
         font-optical-sizing: none;
         /* 가변폰트 옵티컬 보정 끔 */
         font-synthesis-weight: none;
@@ -178,7 +174,7 @@
     }
 
     body {
-        @apply text-base leading-relaxed bg-background text-foreground;
+        @apply bg-background text-foreground text-base leading-relaxed;
     }
 
     /* 2) 모든 요소가 html의 폰트/옵션을 ‘상속’하도록 고정 */
@@ -199,7 +195,7 @@
         @apply text-base leading-relaxed;
         font-weight: 400;
         /* == font-normal */
-        font-variation-settings: "wght" 400;
+        font-variation-settings: 'wght' 400;
         /* 가변축 직접 고정 */
     }
 
@@ -211,7 +207,7 @@
     h5,
     h6 {
         font-weight: 700;
-        font-variation-settings: "wght" 700;
+        font-variation-settings: 'wght' 700;
     }
 }
 
