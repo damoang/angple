@@ -1,0 +1,231 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+      - develop
+
+env:
+  NODE_VERSION: "24.11.1"
+
+jobs:
+  # Web Lint 검사
+  lint-web:
+    name: Lint Web
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: 'apps/web/package-lock.json'
+
+      - name: Install dependencies
+        working-directory: apps/web
+        run: npm ci --no-fund
+
+      - name: Run lint
+        working-directory: apps/web
+        run: npm run lint
+
+  # Admin Lint 검사
+  lint-admin:
+    name: Lint Admin
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: 'apps/admin/package-lock.json'
+
+      - name: Install dependencies
+        working-directory: apps/admin
+        run: npm ci --no-fund
+
+      - name: Run lint
+        working-directory: apps/admin
+        run: npm run lint
+
+  # Web 빌드 및 타입 체크
+  build-web:
+    name: Build Web
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: 'apps/web/package-lock.json'
+
+      - name: Install dependencies
+        working-directory: apps/web
+        run: npm ci --no-fund
+
+      - name: Run type check
+        working-directory: apps/web
+        run: npx svelte-check --tsconfig ./tsconfig.json
+
+      - name: Build
+        working-directory: apps/web
+        run: npm run build
+
+  # Admin 빌드 및 타입 체크
+  build-admin:
+    name: Build Admin
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: 'apps/admin/package-lock.json'
+
+      - name: Install dependencies
+        working-directory: apps/admin
+        run: npm ci --no-fund
+
+      - name: Run type check
+        working-directory: apps/admin
+        run: npx svelte-check --tsconfig ./tsconfig.json
+
+      - name: Build
+        working-directory: apps/admin
+        run: npm run build
+
+  # Web 보안 취약점 스캔 (HIGH 이상만 실패 처리)
+  security-web:
+    name: Security Audit Web
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: 'apps/web/package-lock.json'
+
+      - name: Install dependencies
+        working-directory: apps/web
+        run: npm ci --no-fund
+
+      - name: Run security audit
+        working-directory: apps/web
+        run: npm audit --audit-level=high
+
+  # Admin 보안 취약점 스캔 (HIGH 이상만 실패 처리)
+  security-admin:
+    name: Security Audit Admin
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: 'apps/admin/package-lock.json'
+
+      - name: Install dependencies
+        working-directory: apps/admin
+        run: npm ci --no-fund
+
+      - name: Run security audit
+        working-directory: apps/admin
+        run: npm audit --audit-level=high
+
+  # Web 테스트 (unit + e2e)
+  test-web:
+    name: Test Web
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: 'apps/web/package-lock.json'
+
+      - name: Install dependencies
+        working-directory: apps/web
+        run: npm ci --no-fund
+
+      - name: Install Playwright browsers
+        working-directory: apps/web
+        run: npx playwright install --with-deps
+
+      - name: Run tests
+        working-directory: apps/web
+        run: npm run test
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-web
+          path: apps/web/playwright-report/
+          retention-days: 7
+
+  # Admin 테스트 (unit + e2e)
+  test-admin:
+    name: Test Admin
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: 'apps/admin/package-lock.json'
+
+      - name: Install dependencies
+        working-directory: apps/admin
+        run: npm ci --no-fund
+
+      - name: Install Playwright browsers
+        working-directory: apps/admin
+        run: npx playwright install --with-deps
+
+      - name: Run tests
+        working-directory: apps/admin
+        run: npm run test
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-admin
+          path: apps/admin/playwright-report/
+          retention-days: 7
