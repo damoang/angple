@@ -7,6 +7,9 @@ RUN corepack enable
 # Development stage
 FROM base AS development
 
+# Create non-root user for development
+RUN adduser -D -u 1001 -s /bin/sh devuser
+
 # Set working directory to web app
 WORKDIR /app/apps/web
 
@@ -15,6 +18,12 @@ COPY apps/web .
 
 # Install dependencies
 RUN pnpm install
+
+# Change ownership to non-root user
+RUN chown -R devuser:devuser /app
+
+# Switch to non-root user
+USER devuser
 
 # Start development server
 CMD ["pnpm", "dev", "--host", "0.0.0.0", "--port", "80"]

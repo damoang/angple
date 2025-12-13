@@ -64,8 +64,7 @@ jobs:
         run: npm ci --no-fund
 
       - name: Build Docker image
-        working-directory: apps/web
-        run: docker build -t angple-web:scan .
+        run: docker build -f apps/web/Dockerfile -t angple-web:scan .
 
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
