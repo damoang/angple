@@ -249,7 +249,7 @@ class ApiClient {
                 '48h': '48hours'
             };
             const fileName = periodMap[period] || period;
-            const response = await fetch(`/data/cache/recommended/ai_${fileName}.json`);
+            const response = await fetch(`/api/v2/recommended/${fileName}`);
             if (!response.ok) {
                 throw new Error(`AI 추천 글 데이터 로드 실패: ${period}`);
             }

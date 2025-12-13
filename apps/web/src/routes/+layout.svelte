@@ -8,6 +8,7 @@
     import Footer from '$lib/components/layout/footer.svelte';
     import LeftBanner from '$lib/components/layout/left-banner.svelte';
     import RightBanner from '$lib/components/layout/right-banner.svelte';
+    import { authActions } from '$lib/stores/auth.svelte';
 
     const { children } = $props(); // Svelte 5
     let snbPosition = $state<'left' | 'right'>('left'); // 기본값
@@ -28,6 +29,9 @@
     }
 
     onMount(() => {
+        // 인증 상태 초기화
+        authActions.initAuth();
+
         window.addEventListener('scroll', handleScroll, { passive: true });
 
         return () => {

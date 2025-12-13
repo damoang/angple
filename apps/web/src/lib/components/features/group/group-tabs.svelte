@@ -20,7 +20,7 @@
         loading = true;
         error = null;
         try {
-            const response = await fetch('/data/cache/recommended/index-widgets.json');
+            const response = await fetch('/api/v2/recommended/index-widgets');
             if (!response.ok) throw new Error('데이터 로드 실패');
 
             const jsonData = await response.json();

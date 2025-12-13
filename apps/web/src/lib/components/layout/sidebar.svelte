@@ -11,6 +11,7 @@
     import Users from '@lucide/svelte/icons/users';
     import CircleStar from '@lucide/svelte/icons/circle-star';
     import Circle from '@lucide/svelte/icons/circle';
+    import UserWidget from './user-widget.svelte';
 
     let isCollapsed = $state(false);
 
@@ -33,6 +34,11 @@
     data-collapsed={isCollapsed}
     class="group flex h-full flex-col gap-4 overflow-y-auto py-2 pe-3 data-[collapsed=true]:py-2"
 >
+    <!-- 로그인 위젯 -->
+    <div class="px-2">
+        <UserWidget />
+    </div>
+
     <nav
         class="grid gap-1 px-2 group-[[data-collapsed=true]]:justify-center group-[[data-collapsed=true]]:px-2"
     >

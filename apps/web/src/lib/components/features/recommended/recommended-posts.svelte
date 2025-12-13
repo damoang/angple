@@ -56,7 +56,9 @@
                 </div>
             </div>
         {:else if data}
-            <AITrendCard analysis={data.ai_analysis} />
+            {#if data.ai_analysis}
+                <AITrendCard analysis={data.ai_analysis} />
+            {/if}
             <PostList {data} />
         {/if}
     </CardContent>

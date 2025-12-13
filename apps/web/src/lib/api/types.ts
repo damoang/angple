@@ -125,7 +125,7 @@ export interface AIAnalysis {
 }
 
 export interface RecommendedDataWithAI extends RecommendedData {
-    ai_analysis: AIAnalysis;
+    ai_analysis?: AIAnalysis; // Optional - Gemini API 할당량 초과 시 없을 수 있음
 }
 
 // 새로운 소식 탭 타입
