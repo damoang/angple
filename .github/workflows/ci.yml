@@ -12,10 +12,13 @@ env:
   NODE_VERSION: "24.11.1"
 
 jobs:
-  # Web Lint 검사
-  lint-web:
-    name: Lint Web
+  # Lint 검사
+  lint:
+    name: Lint (${{ matrix.app }})
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        app: [web, admin]
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
@@ -29,7 +32,7 @@ jobs:
         run: npm ci --no-fund
 
       - name: Run lint
-        working-directory: apps/web
+        working-directory: apps/${{ matrix.app }}
         run: |
             if ! npm run lint; then
                 echo "❌ Formatting issues found. Showing diff:"
@@ -39,37 +42,13 @@ jobs:
                 exit 1
             fi
 
-  # Admin Lint 검사
-  lint-admin:
-    name: Lint Admin
+  # 빌드 및 타입 체크
+  build:
+    name: Build (${{ matrix.app }})
     runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-
-      - name: Install dependencies
-        run: npm ci --no-fund
-
-      - name: Run lint
-        working-directory: apps/admin
-        run: |
-            if ! npm run lint; then
-                echo "❌ Formatting issues found. Showing diff:"
-                npx prettier --write .
-                git --no-pager diff --color
-                git restore .
-                exit 1
-            fi
-
-  # Web 빌드 및 타입 체크
-  build-web:
-    name: Build Web
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        app: [web, admin]
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
@@ -83,41 +62,20 @@ jobs:
         run: npm ci --no-fund
 
       - name: Run type check
-        working-directory: apps/web
+        working-directory: apps/${{ matrix.app }}
         run: npx svelte-check --tsconfig ./tsconfig.json
 
       - name: Build
-        working-directory: apps/web
+        working-directory: apps/${{ matrix.app }}
         run: npm run build
 
-  # Admin 빌드 및 타입 체크
-  build-admin:
-    name: Build Admin
+  # 보안 취약점 스캔 (HIGH 이상만 실패 처리)
+  security:
+    name: Security Audit (${{ matrix.app }})
     runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-
-      - name: Install dependencies
-        run: npm ci --no-fund
-
-      - name: Run type check
-        working-directory: apps/admin
-        run: npx svelte-check --tsconfig ./tsconfig.json
-
-      - name: Build
-        working-directory: apps/admin
-        run: npm run build
-
-  # Web 보안 취약점 스캔 (HIGH 이상만 실패 처리)
-  security-web:
-    name: Security Audit Web
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        app: [web, admin]
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
@@ -131,33 +89,16 @@ jobs:
         run: npm ci --no-fund
 
       - name: Run security audit
-        working-directory: apps/web
+        working-directory: apps/${{ matrix.app }}
         run: npm audit --audit-level=high
 
-  # Admin 보안 취약점 스캔 (HIGH 이상만 실패 처리)
-  security-admin:
-    name: Security Audit Admin
+  # 테스트 (unit + e2e)
+  test:
+    name: Test (${{ matrix.app }})
     runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-
-      - name: Install dependencies
-        run: npm ci --no-fund
-
-      - name: Run security audit
-        working-directory: apps/admin
-        run: npm audit --audit-level=high
-
-  # Web 테스트 (unit + e2e)
-  test-web:
-    name: Test Web
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        app: [web, admin]
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
@@ -171,51 +112,19 @@ jobs:
         run: npm ci --no-fund
 
       - name: Install Playwright browsers
-        working-directory: apps/web
+        working-directory: apps/${{ matrix.app }}
         run: npx playwright install --with-deps
 
       - name: Run tests
-        working-directory: apps/web
+        working-directory: apps/${{ matrix.app }}
         run: npm run test
 
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v5
         with:
-          name: playwright-report-web
-          path: apps/web/playwright-report/
-          retention-days: 7
-
-  # Admin 테스트 (unit + e2e)
-  test-admin:
-    name: Test Admin
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-
-      - name: Install dependencies
-        run: npm ci --no-fund
-
-      - name: Install Playwright browsers
-        working-directory: apps/admin
-        run: npx playwright install --with-deps
-
-      - name: Run tests
-        working-directory: apps/admin
-        run: npm run test
-
-      - name: Upload test results
-        if: always()
-        uses: actions/upload-artifact@v5
-        with:
-          name: playwright-report-admin
-          path: apps/admin/playwright-report/
+          name: playwright-report-${{ matrix.app }}
+          path: apps/${{ matrix.app }}/playwright-report/
           retention-days: 7
 
   # Prettier 포맷팅 제안 (PR only)
@@ -248,11 +157,14 @@ jobs:
           tool_name: prettier
           fail_on_error: false
 
-  # ESLint 리뷰 (Web, PR only)
-  eslint-review-web:
-    name: ESLint Review (Web)
+  # ESLint 리뷰 (PR only)
+  eslint-review:
+    name: ESLint Review (${{ matrix.app }})
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        app: [web, admin]
     permissions:
       contents: read
       pull-requests: write
@@ -274,43 +186,17 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           reporter: github-pr-review
-          workdir: apps/web
+          workdir: apps/${{ matrix.app }}
           eslint_flags: '.'
 
-  # ESLint 리뷰 (Admin, PR only)
-  eslint-review-admin:
-    name: ESLint Review (Admin)
+  # TypeScript/Svelte 타입 체크 리뷰 (PR only)
+  typecheck-review:
+    name: TypeScript Review (${{ matrix.app }})
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      pull-requests: write
-      checks: write
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-
-      - name: Install dependencies
-        run: npm ci --no-fund
-
-      - name: ESLint Review
-        uses: reviewdog/action-eslint@v1
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          reporter: github-pr-review
-          workdir: apps/admin
-          eslint_flags: '.'
-
-  # TypeScript/Svelte 타입 체크 리뷰 (Web, PR only)
-  typecheck-review-web:
-    name: TypeScript Review (Web)
-    if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        app: [web, admin]
     permissions:
       contents: read
       pull-requests: write
@@ -331,39 +217,7 @@ jobs:
         uses: reviewdog/action-setup@v1
 
       - name: Run svelte-check with reviewdog
-        working-directory: apps/web
-        env:
-          REVIEWDOG_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          npx svelte-check --tsconfig ./tsconfig.json --output machine 2>&1 | \
-          reviewdog -f=tsc -reporter=github-pr-review -filter-mode=nofilter -fail-on-error=false
-
-  # TypeScript/Svelte 타입 체크 리뷰 (Admin, PR only)
-  typecheck-review-admin:
-    name: TypeScript Review (Admin)
-    if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      pull-requests: write
-      checks: write
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-
-      - name: Install dependencies
-        run: npm ci --no-fund
-
-      - name: Setup reviewdog
-        uses: reviewdog/action-setup@v1
-
-      - name: Run svelte-check with reviewdog
-        working-directory: apps/admin
+        working-directory: apps/${{ matrix.app }}
         env:
           REVIEWDOG_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
