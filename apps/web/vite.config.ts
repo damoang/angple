@@ -5,7 +5,14 @@ import { defineConfig } from 'vite';
 export default defineConfig({
     plugins: [tailwindcss(), sveltekit()],
     server: {
-        allowedHosts: ['web.damoang.net', 'localhost']
+        allowedHosts: ['web.damoang.net', 'localhost'],
+        proxy: {
+            '/api': {
+                target: 'http://localhost:8081',
+                changeOrigin: true,
+                secure: false
+            }
+        }
     },
     test: {
         expect: { requireAssertions: true },

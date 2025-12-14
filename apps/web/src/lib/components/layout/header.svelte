@@ -11,6 +11,7 @@
     import Moon from '@lucide/svelte/icons/moon';
     import Logo from '$lib/assets/logo.svg';
     import AlignJustify from '@lucide/svelte/icons/align-justify';
+    import Sidebar from './sidebar.svelte';
 
     // 스크롤 상태 관리
     let isHeaderVisible = $state(true);
@@ -180,12 +181,9 @@
             </button>
         </div>
 
-        <!-- 빈 메뉴 영역 -->
-        <div class="text-dusty-500 dark:text-dusty-400 flex h-64 items-center justify-center">
-            <p class="text-center">
-                추가 메뉴<br />
-                <span class="text-sm">곧 추가될 예정입니다.</span>
-            </p>
+        <!-- 사이드바 메뉴 -->
+        <div class="overflow-y-auto">
+            <Sidebar />
         </div>
     </div>
 </div>

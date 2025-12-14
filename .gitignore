@@ -62,3 +62,4 @@ go.work
 *.temp
 *~
 /data/
+apps/backend/

@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { onMount } from 'svelte';
     import {
         Accordion,
         AccordionItem,
@@ -7,27 +8,113 @@
     } from '$lib/components/ui/accordion';
     import { Button } from '$lib/components/ui/button';
     import { cn } from '$lib/utils';
+
+    // Import all needed Lucide icons
     import MessageSquare from '@lucide/svelte/icons/message-square';
     import Users from '@lucide/svelte/icons/users';
     import CircleStar from '@lucide/svelte/icons/circle-star';
+    import CircleHelp from '@lucide/svelte/icons/circle-help';
+    import Images from '@lucide/svelte/icons/images';
+    import Newspaper from '@lucide/svelte/icons/newspaper';
+    import PenTool from '@lucide/svelte/icons/pen-tool';
+    import Lightbulb from '@lucide/svelte/icons/lightbulb';
+    import FolderOpen from '@lucide/svelte/icons/folder-open';
+    import Gift from '@lucide/svelte/icons/gift';
+    import MapPin from '@lucide/svelte/icons/map-pin';
+    import Star from '@lucide/svelte/icons/star';
+    import TrendingUp from '@lucide/svelte/icons/trending-up';
+    import ShoppingCart from '@lucide/svelte/icons/shopping-cart';
+    import Megaphone from '@lucide/svelte/icons/megaphone';
+    import Sparkles from '@lucide/svelte/icons/sparkles';
+    import Coffee from '@lucide/svelte/icons/coffee';
+    import UserCheck from '@lucide/svelte/icons/user-check';
+    import Music from '@lucide/svelte/icons/music';
+    import Info from '@lucide/svelte/icons/info';
+    import HelpCircle from '@lucide/svelte/icons/help-circle';
+    import BookText from '@lucide/svelte/icons/book-text';
     import Circle from '@lucide/svelte/icons/circle';
+    import Cpu from '@lucide/svelte/icons/cpu';
+    import Code from '@lucide/svelte/icons/code';
+    import Gamepad2 from '@lucide/svelte/icons/gamepad-2';
+    import BookOpen from '@lucide/svelte/icons/book-open';
+    import Apple from '@lucide/svelte/icons/apple';
+
     import UserWidget from './user-widget.svelte';
 
-    let isCollapsed = $state(false);
+    interface MenuItem {
+        id: number;
+        parent_id?: number | null;
+        title: string;
+        url: string;
+        icon?: string;
+        shortcut?: string;
+        description?: string;
+        depth: number;
+        order_num: number;
+        target: string;
+        show_in_header: boolean;
+        show_in_sidebar: boolean;
+        children?: MenuItem[];
+    }
 
-    const communityLinks = [
-        { href: '/free', label: '자유게시판', icon: CircleStar },
-        { href: '/free', label: '자유게시판', icon: CircleStar },
-        { href: '/free', label: '자유게시판', icon: CircleStar },
-        { href: '/free', label: '자유게시판', icon: CircleStar }
-    ];
-    const gatheringLinks = [
-        { href: '/gathering/1', label: '모임1', icon: Circle },
-        { href: '/gathering/2', label: '모임2', icon: Circle },
-        { href: '/gathering/3', label: '모임3', icon: Circle },
-        { href: '/gathering/4', label: '모임4', icon: Circle },
-        { href: '/gathering/5', label: '모임5', icon: Circle }
-    ];
+    // Icon mapping object
+    const iconMap: Record<string, any> = {
+        MessageSquare,
+        Users,
+        CircleStar,
+        CircleHelp,
+        Images,
+        Newspaper,
+        PenTool,
+        Lightbulb,
+        FolderOpen,
+        Gift,
+        MapPin,
+        Star,
+        TrendingUp,
+        ShoppingCart,
+        Megaphone,
+        Sparkles,
+        Coffee,
+        UserCheck,
+        Music,
+        Info,
+        HelpCircle,
+        BookText,
+        Circle,
+        Cpu,
+        Code,
+        Gamepad2,
+        BookOpen,
+        Apple
+    };
+
+    let isCollapsed = $state(false);
+    let menuData = $state<MenuItem[]>([]);
+    let loading = $state(true);
+    let error = $state<string | null>(null);
+
+    // Get icon component from icon name
+    function getIcon(iconName?: string) {
+        if (!iconName) return Circle;
+        return iconMap[iconName] || Circle;
+    }
+
+    onMount(async () => {
+        try {
+            const response = await fetch('http://localhost:8081/api/v2/menus/sidebar');
+            if (!response.ok) {
+                throw new Error('메뉴 데이터를 불러올 수 없습니다');
+            }
+            const data = await response.json();
+            menuData = data.data || [];
+            loading = false;
+        } catch (err) {
+            console.error('Failed to load menu data:', err);
+            error = err instanceof Error ? err.message : '메뉴 로드 실패';
+            loading = false;
+        }
+    });
 </script>
 
 <div
@@ -42,71 +129,75 @@
     <nav
         class="grid gap-1 px-2 group-[[data-collapsed=true]]:justify-center group-[[data-collapsed=true]]:px-2"
     >
-        <Accordion type="multiple" value={['item-1']} class="w-full">
-            <!-- 커뮤니티 -->
-            <AccordionItem value="item-1" class="border-none">
-                <AccordionTrigger
-                    class={cn(
-                        'cursor-pointer',
-                        'hover:no-underline',
-                        isCollapsed &&
-                            'flex justify-center [&[data-state=open]>div>svg.lucide-chevron-down]:hidden'
-                    )}
-                >
-                    <div class=" flex items-center gap-2">
-                        <MessageSquare class="text-dusty-400 size-5" />
-                        <span class={cn('font-semibold', isCollapsed && 'hidden')}>커뮤니티</span>
-                    </div>
-                </AccordionTrigger>
-                <AccordionContent class="pb-1">
-                    <div class="relative ms-2 overflow-hidden rounded-lg p-[1px]">
-                        <div
-                            class="from-border absolute inset-0 rounded-lg bg-gradient-to-r to-transparent to-[4%]"
-                        ></div>
-                        <div class="bg-background relative space-y-1 rounded-lg py-1 ps-1">
-                            {#each communityLinks as link}
-                                <Button
-                                    variant="ghost"
-                                    class="hover:bg-dusty-100 dark:hover:bg-dusty-800 w-full justify-start gap-2"
-                                    href={link.href}
-                                >
-                                    {link.label}
-                                    <!-- <svelte:component this={link.icon} class="size-4" /> -->
-                                </Button>
-                            {/each}
-                        </div>
-                    </div>
-                </AccordionContent>
-            </AccordionItem>
-
-            <!-- 모임 -->
-            <AccordionItem value="item-2" class="border-none">
-                <AccordionTrigger class="cursor-pointer hover:no-underline">
-                    <div class=" flex items-center gap-2">
-                        <Users class="text-dusty-400 size-5" />
-                        <span class={cn('font-semibold', isCollapsed && 'hidden')}>모임</span>
-                    </div>
-                </AccordionTrigger>
-                <AccordionContent class="space-y-1 pb-1">
-                    <div class="relative ms-2 overflow-hidden rounded-lg p-[1px]">
-                        <div
-                            class="from-border absolute inset-0 rounded-lg bg-gradient-to-r to-transparent to-[4%]"
-                        ></div>
-                        <div class="bg-background relative space-y-1 rounded-lg py-1 ps-1">
-                            {#each gatheringLinks as link}
-                                <Button
-                                    variant="ghost"
-                                    class="hover:bg-dusty-100 dark:hover:bg-dusty-800 w-full justify-start gap-2"
-                                    href={link.href}
-                                >
-                                    {link.label}
-                                    <!-- <svelte:component this={link.icon} class="size-4" /> -->
-                                </Button>
-                            {/each}
-                        </div>
-                    </div>
-                </AccordionContent>
-            </AccordionItem>
-        </Accordion>
+        {#if loading}
+            <div class="text-muted-foreground text-center text-sm">메뉴 로딩 중...</div>
+        {:else if error}
+            <div class="text-center text-sm text-red-500">{error}</div>
+        {:else}
+            <Accordion
+                type="single"
+                collapsible
+                class="w-full"
+            >
+                {#each menuData as menu, index (menu.id)}
+                    {@const IconComponent = getIcon(menu.icon)}
+                    {#if menu.children && menu.children.length > 0}
+                        <!-- 하위 메뉴가 있는 경우 -->
+                        <AccordionItem value={`item-${menu.id}`} class="border-none">
+                            <AccordionTrigger
+                                class={cn(
+                                    'cursor-pointer',
+                                    'hover:no-underline',
+                                    isCollapsed &&
+                                        'flex justify-center [&[data-state=open]>div>svg.lucide-chevron-down]:hidden'
+                                )}
+                            >
+                                <div class="flex items-center gap-2">
+                                    <IconComponent class="text-dusty-400 size-5" />
+                                    <span class={cn('font-semibold', isCollapsed && 'hidden')}
+                                        >{menu.title}</span
+                                    >
+                                </div>
+                            </AccordionTrigger>
+                            <AccordionContent class="pb-1">
+                                <div class="relative ms-2 overflow-hidden rounded-lg p-[1px]">
+                                    <div
+                                        class="from-border absolute inset-0 rounded-lg bg-gradient-to-r to-transparent to-[4%]"
+                                    ></div>
+                                    <div class="bg-background relative space-y-1 rounded-lg py-1 ps-1">
+                                        {#each menu.children as child (child.id)}
+                                            {@const ChildIcon = getIcon(child.icon)}
+                                            <Button
+                                                variant="ghost"
+                                                class="hover:bg-dusty-100 dark:hover:bg-dusty-800 w-full justify-start gap-2"
+                                                href={child.url}
+                                            >
+                                                <ChildIcon class="size-4" />
+                                                {child.title}
+                                                {#if child.shortcut}
+                                                    <span class="text-muted-foreground ml-auto text-xs"
+                                                        >{child.shortcut}</span
+                                                    >
+                                                {/if}
+                                            </Button>
+                                        {/each}
+                                    </div>
+                                </div>
+                            </AccordionContent>
+                        </AccordionItem>
+                    {:else}
+                        <!-- 하위 메뉴가 없는 단독 메뉴 -->
+                        <Button
+                            variant="ghost"
+                            class="hover:bg-dusty-100 dark:hover:bg-dusty-800 w-full justify-start gap-2"
+                            href={menu.url}
+                        >
+                            <IconComponent class="size-5" />
+                            <span class={cn(isCollapsed && 'hidden')}>{menu.title}</span>
+                        </Button>
+                    {/if}
+                {/each}
+            </Accordion>
+        {/if}
     </nav>
 </div>
