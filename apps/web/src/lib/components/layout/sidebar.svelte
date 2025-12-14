@@ -58,7 +58,7 @@
     }
 
     // Icon mapping object
-    const iconMap: Record<string, any> = {
+    const iconMap: Record<string, typeof Circle> = {
         MessageSquare,
         Users,
         CircleStar,
@@ -135,7 +135,7 @@
             <div class="text-center text-sm text-red-500">{error}</div>
         {:else}
             <Accordion type="single" class="w-full">
-                {#each menuData as menu, index (menu.id)}
+                {#each menuData as menu (menu.id)}
                     {@const IconComponent = getIcon(menu.icon)}
                     {#if menu.children && menu.children.length > 0}
                         <!-- 하위 메뉴가 있는 경우 -->
