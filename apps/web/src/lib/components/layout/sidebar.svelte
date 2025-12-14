@@ -134,11 +134,7 @@
         {:else if error}
             <div class="text-center text-sm text-red-500">{error}</div>
         {:else}
-            <Accordion
-                type="single"
-                collapsible
-                class="w-full"
-            >
+            <Accordion type="single" class="w-full">
                 {#each menuData as menu, index (menu.id)}
                     {@const IconComponent = getIcon(menu.icon)}
                     {#if menu.children && menu.children.length > 0}
@@ -164,7 +160,9 @@
                                     <div
                                         class="from-border absolute inset-0 rounded-lg bg-gradient-to-r to-transparent to-[4%]"
                                     ></div>
-                                    <div class="bg-background relative space-y-1 rounded-lg py-1 ps-1">
+                                    <div
+                                        class="bg-background relative space-y-1 rounded-lg py-1 ps-1"
+                                    >
                                         {#each menu.children as child (child.id)}
                                             {@const ChildIcon = getIcon(child.icon)}
                                             <Button
@@ -175,7 +173,8 @@
                                                 <ChildIcon class="size-4" />
                                                 {child.title}
                                                 {#if child.shortcut}
-                                                    <span class="text-muted-foreground ml-auto text-xs"
+                                                    <span
+                                                        class="text-muted-foreground ml-auto text-xs"
                                                         >{child.shortcut}</span
                                                     >
                                                 {/if}
