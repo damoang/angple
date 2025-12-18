@@ -59,6 +59,7 @@ angple/
 ## MCP Tools
 
 This project is configured to work with:
+
 - Serena MCP
 - Context7 MCP
 - Task Manager MCP

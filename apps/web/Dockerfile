@@ -34,12 +34,15 @@ FROM base AS builder
 # Set working directory
 WORKDIR /app
 
+# Copy workspace configuration files
+COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
+
 # Copy application source
-COPY apps/web .
+COPY apps/web ./apps/web
 
 # Build the application
-RUN pnpm install --frozen-lockfile
-RUN pnpm run build
+RUN pnpm install --frozen-lockfile --filter web
+RUN pnpm --filter web run build
 
 # Production stage
 FROM caddy:2.10-alpine AS production
@@ -57,7 +60,7 @@ WORKDIR /app
 COPY --chown=caddyweb:caddyweb apps/web/Caddyfile /etc/caddy/Caddyfile
 
 # Copy built application from builder
-COPY --from=builder --chown=caddyweb:caddyweb /app/build ./build
+COPY --from=builder --chown=caddyweb:caddyweb /app/apps/web/build ./build
 
 # Switch to non-root user
 USER caddyweb

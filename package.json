@@ -1,66 +1,66 @@
 {
-  "name": "angple",
-  "version": "0.1.0",
-  "description": "Minimal SvelteKit Project",
-  "private": true,
-  "workspaces": [
-    "apps/*",
-    "packages/*"
-  ],
-  "scripts": {
-    "dev": "cd apps/web && npm run dev",
-    "dev:admin": "cd apps/admin && npm run dev",
-    "build": "cd apps/web && npm run build",
-    "build:admin": "cd apps/admin && npm run build",
-    "format": "prettier --write \"**/*.{js,ts,svelte,json,md}\"",
-    "lint": "cd apps/web && npm run lint",
-    "test": "cd apps/web && npm run test",
-    "clean": "rm -rf node_modules apps/*/node_modules && npm install"
-  },
-  "devDependencies": {
-    "@changesets/cli": "^2.26.2",
-    "@typescript-eslint/eslint-plugin": "^6.0.0",
-    "@typescript-eslint/parser": "^6.0.0",
-    "concurrently": "^8.2.0",
-    "eslint": "^8.0.0",
-    "eslint-config-prettier": "^9.0.0",
-    "eslint-plugin-svelte": "^2.35.0",
-    "husky": "^8.0.3",
-    "lint-staged": "^15.0.0",
-    "prettier": "^3.0.0",
-    "prettier-plugin-svelte": "^3.0.0",
-    "prettier-plugin-tailwindcss": "^0.5.6",
-    "typescript": "^5.0.0"
-  },
-  "engines": {
-    "node": ">=18.0.0",
-    "npm": ">=9.0.0"
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/damoang/angple.git"
-  },
-  "keywords": [
-    "svelte",
-    "sveltekit",
-    "typescript",
-    "tailwind"
-  ],
-  "author": "",
-  "license": "MIT",
-  "lint-staged": {
-    "*.{js,ts,svelte}": [
-      "eslint --fix",
-      "prettier --write"
+    "name": "angple",
+    "version": "0.1.0",
+    "description": "Minimal SvelteKit Project",
+    "private": true,
+    "workspaces": [
+        "apps/*",
+        "packages/*"
     ],
-    "*.{json,md}": [
-      "prettier --write"
-    ]
-  },
-  "husky": {
-    "hooks": {
-      "pre-commit": "lint-staged",
-      "commit-msg": "commitlint -E HUSKY_GIT_PARAMS"
+    "scripts": {
+        "dev": "cd apps/web && npm run dev",
+        "dev:admin": "cd apps/admin && npm run dev",
+        "build": "cd apps/web && npm run build",
+        "build:admin": "cd apps/admin && npm run build",
+        "format": "prettier --write \"**/*.{js,ts,svelte,json,md}\"",
+        "lint": "cd apps/web && npm run lint",
+        "test": "cd apps/web && npm run test",
+        "clean": "rm -rf node_modules apps/*/node_modules && npm install"
+    },
+    "devDependencies": {
+        "@changesets/cli": "^2.26.2",
+        "@typescript-eslint/eslint-plugin": "^6.0.0",
+        "@typescript-eslint/parser": "^6.0.0",
+        "concurrently": "^8.2.0",
+        "eslint": "^8.0.0",
+        "eslint-config-prettier": "^9.0.0",
+        "eslint-plugin-svelte": "^2.35.0",
+        "husky": "^8.0.3",
+        "lint-staged": "^15.0.0",
+        "prettier": "^3.0.0",
+        "prettier-plugin-svelte": "^3.0.0",
+        "prettier-plugin-tailwindcss": "^0.5.6",
+        "typescript": "^5.0.0"
+    },
+    "engines": {
+        "node": ">=18.0.0",
+        "npm": ">=9.0.0"
+    },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/damoang/angple.git"
+    },
+    "keywords": [
+        "svelte",
+        "sveltekit",
+        "typescript",
+        "tailwind"
+    ],
+    "author": "",
+    "license": "MIT",
+    "lint-staged": {
+        "*.{js,ts,svelte}": [
+            "eslint --fix",
+            "prettier --write"
+        ],
+        "*.{json,md}": [
+            "prettier --write"
+        ]
+    },
+    "husky": {
+        "hooks": {
+            "pre-commit": "lint-staged",
+            "commit-msg": "commitlint -E HUSKY_GIT_PARAMS"
+        }
     }
-  }
 }
