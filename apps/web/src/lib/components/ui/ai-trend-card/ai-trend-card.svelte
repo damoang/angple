@@ -23,7 +23,8 @@
     function startHeadlineRotation() {
         if (data?.headline_array && data.headline_array.length > 1) {
             headlineInterval = setInterval(() => {
-                currentHeadlineIndex = (currentHeadlineIndex + 1) % (data?.headline_array?.length || 1);
+                currentHeadlineIndex =
+                    (currentHeadlineIndex + 1) % (data?.headline_array?.length || 1);
             }, 4000);
         }
     }
@@ -64,19 +65,19 @@
     <!-- 로딩 상태 -->
     <div
         class={cn(
-            'relative flex items-center gap-3 rounded-xl border border-border bg-background p-3',
+            'border-border bg-background relative flex items-center gap-3 rounded-xl border p-3',
             'animate-pulse',
             className
         )}
     >
-        <div class="size-12 shrink-0 rounded-full bg-muted"></div>
+        <div class="bg-muted size-12 shrink-0 rounded-full"></div>
         <div class="flex-1 space-y-2">
             <div class="flex gap-1.5">
-                <div class="h-5 w-16 rounded-full bg-muted"></div>
-                <div class="h-5 w-12 rounded-full bg-muted"></div>
-                <div class="h-5 w-14 rounded-full bg-muted"></div>
+                <div class="bg-muted h-5 w-16 rounded-full"></div>
+                <div class="bg-muted h-5 w-12 rounded-full"></div>
+                <div class="bg-muted h-5 w-14 rounded-full"></div>
             </div>
-            <div class="h-4 w-3/4 rounded bg-muted"></div>
+            <div class="bg-muted h-4 w-3/4 rounded"></div>
         </div>
     </div>
 {:else if error}
@@ -87,13 +88,13 @@
             className
         )}
     >
-        <span class="text-sm text-destructive">{error}</span>
+        <span class="text-destructive text-sm">{error}</span>
     </div>
 {:else if data}
     <!-- 정상 데이터 표시 -->
     <div
         class={cn(
-            'group relative flex items-center gap-3 overflow-hidden rounded-xl border border-border bg-background p-3',
+            'border-border bg-background group relative flex items-center gap-3 overflow-hidden rounded-xl border p-3',
             'transition-all duration-200 ease-out',
             'hover:-translate-y-0.5 hover:shadow-md',
             className
@@ -131,21 +132,23 @@
                     <div class="hidden items-center gap-3 text-xs sm:flex">
                         <span class="flex items-center gap-1">
                             <span>👍</span>
-                            <span class="font-medium text-foreground"
+                            <span class="text-foreground font-medium"
                                 >{formatNumber(data.stats.total_recommends)}</span
                             >
                         </span>
                         <span class="flex items-center gap-1">
                             <span>💬</span>
-                            <span class="font-medium text-foreground"
+                            <span class="text-foreground font-medium"
                                 >{formatNumber(data.stats.total_comments)}</span
                             >
                         </span>
                         <span class="flex items-center gap-1.5">
                             <span>🔥</span>
-                            <span class="font-medium text-foreground">{data.score}</span>
+                            <span class="text-foreground font-medium">{data.score}</span>
                             <!-- 진행 바 -->
-                            <div class="h-1 w-12 overflow-hidden rounded-full bg-dusty-200 dark:bg-dusty-700">
+                            <div
+                                class="bg-dusty-200 dark:bg-dusty-700 h-1 w-12 overflow-hidden rounded-full"
+                            >
                                 <div
                                     class="h-full rounded-full bg-gradient-to-r from-amber-400 to-orange-500 transition-all duration-500"
                                     style="width: {Math.min(data.score, 100)}%"
@@ -166,11 +169,11 @@
                                 idx === currentHeadlineIndex
                                     ? 'translate-y-0 opacity-100'
                                     : idx < currentHeadlineIndex
-                                        ? '-translate-y-full opacity-0'
-                                        : 'translate-y-full opacity-0'
+                                      ? '-translate-y-full opacity-0'
+                                      : 'translate-y-full opacity-0'
                             )}
                         >
-                            <p class="truncate text-sm font-bold text-foreground">{headline}</p>
+                            <p class="text-foreground truncate text-sm font-bold">{headline}</p>
                         </div>
                     {/each}
                 </div>
@@ -180,7 +183,7 @@
             {#if whisperText}
                 <div class="mt-1.5 h-5 overflow-hidden">
                     <div class="animate-scroll-left inline-block whitespace-nowrap">
-                        <span class="text-xs text-muted-foreground dark:text-cyan-300/80">
+                        <span class="text-muted-foreground text-xs dark:text-cyan-300/80">
                             {whisperText}
                         </span>
                     </div>
@@ -192,11 +195,11 @@
     <!-- 데이터 없음 -->
     <div
         class={cn(
-            'flex items-center gap-3 rounded-xl border border-border bg-background p-3',
+            'border-border bg-background flex items-center gap-3 rounded-xl border p-3',
             className
         )}
     >
-        <span class="text-sm text-muted-foreground">트렌드 데이터가 없습니다.</span>
+        <span class="text-muted-foreground text-sm">트렌드 데이터가 없습니다.</span>
     </div>
 {/if}
 

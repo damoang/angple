@@ -25,7 +25,7 @@
 
 <!-- AI 트렌드 분석 카드 - ang-gnu 스타일 재현 -->
 <div
-    class="group relative mb-3 flex items-center gap-3 overflow-hidden rounded-xl border border-border bg-gradient-to-r from-amber-50/50 to-orange-50/30 p-3 transition-all duration-200 ease-out hover:-translate-y-0.5 hover:shadow-md dark:from-slate-800/50 dark:to-slate-900/30"
+    class="border-border group relative mb-3 flex items-center gap-3 overflow-hidden rounded-xl border bg-gradient-to-r from-amber-50/50 to-orange-50/30 p-3 transition-all duration-200 ease-out hover:-translate-y-0.5 hover:shadow-md dark:from-slate-800/50 dark:to-slate-900/30"
     role="region"
     aria-label="AI 트렌드 분석"
 >
@@ -54,21 +54,23 @@
                 >
                     <span class="flex items-center gap-1" role="listitem">
                         <span>👍</span>
-                        <span class="font-medium text-foreground"
+                        <span class="text-foreground font-medium"
                             >{formatNumber(stats.total_recommends)}</span
                         >
                     </span>
                     <span class="flex items-center gap-1" role="listitem">
                         <span>💬</span>
-                        <span class="font-medium text-foreground"
+                        <span class="text-foreground font-medium"
                             >{formatNumber(stats.total_comments)}</span
                         >
                     </span>
                     <span class="flex items-center gap-1.5" role="listitem">
                         <span>🔥</span>
-                        <span class="font-medium text-foreground">{analysis.trend_score}</span>
+                        <span class="text-foreground font-medium">{analysis.trend_score}</span>
                         <!-- 진행 바 -->
-                        <div class="h-1 w-12 overflow-hidden rounded-full bg-dusty-200 dark:bg-dusty-700">
+                        <div
+                            class="bg-dusty-200 dark:bg-dusty-700 h-1 w-12 overflow-hidden rounded-full"
+                        >
                             <div
                                 class="h-full rounded-full bg-gradient-to-r from-amber-400 to-orange-500 transition-all duration-500"
                                 style="width: {Math.min(analysis.trend_score, 100)}%"
@@ -88,7 +90,7 @@
         {#if whisperText}
             <div class="h-5 overflow-hidden">
                 <div class="animate-scroll-left inline-block whitespace-nowrap">
-                    <span class="text-xs text-muted-foreground dark:text-cyan-300/70">
+                    <span class="text-muted-foreground text-xs dark:text-cyan-300/70">
                         {whisperText}
                     </span>
                 </div>
