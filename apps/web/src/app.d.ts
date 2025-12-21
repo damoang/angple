@@ -4,7 +4,10 @@
 // DamoangAds 타입 정의
 interface DamoangAdsInterface {
     render: (position: string) => void;
-    on: (event: 'render' | 'empty' | 'click' | 'impression', callback: (data: { position: string }) => void) => void;
+    on: (
+        event: 'render' | 'empty' | 'click' | 'impression',
+        callback: (data: { position: string }) => void
+    ) => void;
     off: (event: string, callback?: () => void) => void;
 }
 
