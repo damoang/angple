@@ -6,21 +6,19 @@
     import { GroupTabs } from '$lib/components/features/group';
 </script>
 
-<div class="container mx-auto max-w-4xl px-4 py-6">
-    <div class="space-y-4">
-        <!-- 추천 글 위젯 -->
-        <RecommendedPosts />
+<div class="space-y-4">
+    <!-- 추천 글 위젯 -->
+    <RecommendedPosts />
 
-        <!-- 새로운 소식 & 알뜰구매 (2열 그리드) -->
-        <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
-            <NewBoard />
-            <EconomyTabs />
-        </div>
-
-        <!-- 갤러리 -->
-        <GalleryGrid />
-
-        <!-- 소모임 추천글 -->
-        <GroupTabs />
+    <!-- 새로운 소식 & 알뜰구매 (2열 그리드) -->
+    <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <NewBoard />
+        <EconomyTabs />
     </div>
+
+    <!-- 갤러리 -->
+    <GalleryGrid />
+
+    <!-- 소모임 추천글 -->
+    <GroupTabs />
 </div>
