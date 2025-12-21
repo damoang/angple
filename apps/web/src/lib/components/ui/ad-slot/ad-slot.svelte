@@ -69,7 +69,7 @@
     function pushAd() {
         setTimeout(() => {
             try {
-                ((window as any).adsbygoogle = (window as any).adsbygoogle || []).push({});
+                (window.adsbygoogle = window.adsbygoogle || []).push({});
             } catch (e) {
                 console.warn('AdSense push error:', e);
             }
@@ -204,8 +204,4 @@
         }
     }
 
-    /* 광고가 로드되면 플레이스홀더 숨김 */
-    .ad-slot-loaded .ad-slot-skeleton {
-        display: none;
-    }
-</style>
+    </style>

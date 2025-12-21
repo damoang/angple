@@ -90,7 +90,7 @@
 
         setTimeout(() => {
             try {
-                ((window as any).adsbygoogle = (window as any).adsbygoogle || []).push({});
+                (window.adsbygoogle = window.adsbygoogle || []).push({});
             } catch (e) {
                 console.warn('AdSense push error:', e);
             }

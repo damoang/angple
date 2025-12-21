@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
 	import { cn } from '$lib/utils';
-	import type { TrendData, AiTrendCardProps } from './types.js';
+	import type { AiTrendCardProps } from './types.js';
 
 	// Props
 	let {

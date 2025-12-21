@@ -93,7 +93,7 @@
 <div class="image-text-banner {className}" data-position={position}>
     {#if loading}
         <div class="grid grid-cols-2 gap-2">
-            {#each [1, 2, 3, 4] as _}
+            {#each [1, 2, 3, 4] as idx (idx)}
                 <div class="animate-pulse rounded-lg border-2 border-slate-200 bg-slate-100 dark:border-slate-700 dark:bg-slate-800">
                     <div class="h-[80px] bg-slate-200 dark:bg-slate-700"></div>
                     <div class="p-2">
@@ -104,7 +104,7 @@
         </div>
     {:else if banners.length > 0}
         <div class="grid grid-cols-2 gap-2">
-            {#each banners.slice(0, 4) as banner}
+            {#each banners.slice(0, 4) as banner (banner.id)}
                 <article
                     class="overflow-hidden rounded-lg border-2 border-blue-100 bg-white transition-transform hover:-translate-y-0.5 hover:border-blue-400 dark:border-slate-700 dark:bg-slate-800 dark:hover:border-blue-500"
                 >
