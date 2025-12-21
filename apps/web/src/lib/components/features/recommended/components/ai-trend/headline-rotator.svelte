@@ -1,34 +1,34 @@
 <script lang="ts">
-	let { headlines }: { headlines: string[] } = $props();
+    let { headlines }: { headlines: string[] } = $props();
 
-	let currentIndex = $state(0);
+    let currentIndex = $state(0);
 
-	// Svelte 5 Runes: $effect로 라이프사이클 자동 관리
-	$effect(() => {
-		if (headlines.length <= 1) return;
+    // Svelte 5 Runes: $effect로 라이프사이클 자동 관리
+    $effect(() => {
+        if (headlines.length <= 1) return;
 
-		currentIndex = 0;
+        currentIndex = 0;
 
-		const intervalId = setInterval(() => {
-			currentIndex = (currentIndex + 1) % headlines.length;
-		}, 4000);
+        const intervalId = setInterval(() => {
+            currentIndex = (currentIndex + 1) % headlines.length;
+        }, 4000);
 
-		// cleanup 함수: 컴포넌트 언마운트 또는 headlines 변경 시 자동 실행
-		return () => clearInterval(intervalId);
-	});
+        // cleanup 함수: 컴포넌트 언마운트 또는 headlines 변경 시 자동 실행
+        return () => clearInterval(intervalId);
+    });
 </script>
 
 <div class="relative h-6 overflow-hidden">
-	{#each headlines as headline, i (i)}
-		<p
-			class="absolute inset-0 truncate text-sm font-bold text-foreground transition-all duration-500 ease-in-out
+    {#each headlines as headline, i (i)}
+        <p
+            class="absolute inset-0 truncate text-sm font-bold text-foreground transition-all duration-500 ease-in-out
                 {i === currentIndex
-				? 'translate-y-0 opacity-100'
-				: i < currentIndex
-					? '-translate-y-full opacity-0'
-					: 'translate-y-full opacity-0'}"
-		>
-			{headline}
-		</p>
-	{/each}
+                ? 'translate-y-0 opacity-100'
+                : i < currentIndex
+                    ? '-translate-y-full opacity-0'
+                    : 'translate-y-full opacity-0'}"
+        >
+            {headline}
+        </p>
+    {/each}
 </div>
