@@ -134,7 +134,9 @@
     <!-- 확장 모드 헤더 -->
     {#if isExpandedMode}
         <div class="mb-3 flex items-center justify-between">
-            <h3 class="flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-300">
+            <h3
+                class="flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-300"
+            >
                 <Youtube class="h-4 w-4 text-red-500" />
                 다모앙 팟캐스트
             </h3>
@@ -194,7 +196,10 @@
     >
         <div class="mx-auto flex max-w-7xl items-center gap-3 px-4 py-2">
             <!-- 플레이어가 여기로 이동됨 (CSS로 위치 조정) -->
-            <div id="mini-player-slot" class="relative h-12 w-20 flex-shrink-0 overflow-hidden rounded">
+            <div
+                id="mini-player-slot"
+                class="relative h-12 w-20 flex-shrink-0 overflow-hidden rounded"
+            >
                 <!-- playerWrapper가 여기에 위치 -->
             </div>
 
@@ -244,7 +249,7 @@
 {#if !isVisible && hasStartedPlaying}
     <button
         onclick={handleReopen}
-        class="fixed bottom-4 right-4 z-50 flex items-center gap-2 rounded-full bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-lg transition-all hover:bg-red-700 hover:scale-105"
+        class="fixed bottom-4 right-4 z-50 flex items-center gap-2 rounded-full bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-lg transition-all hover:scale-105 hover:bg-red-700"
         aria-label="팟캐스트 다시 열기"
     >
         <Youtube class="h-4 w-4" />
