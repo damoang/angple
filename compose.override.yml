@@ -7,6 +7,7 @@ services:
       - web-node-modules:/app/apps/web/node_modules
     environment:
       - NODE_ENV=development
+      - API_PROXY_TARGET=http://angple-api:8081
 
   admin:
     build:

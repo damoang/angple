@@ -102,7 +102,7 @@
 
     onMount(async () => {
         try {
-            const response = await fetch('http://localhost:8081/api/v2/menus/sidebar');
+            const response = await fetch('/api/v2/menus/sidebar');
             if (!response.ok) {
                 throw new Error('메뉴 데이터를 불러올 수 없습니다');
             }

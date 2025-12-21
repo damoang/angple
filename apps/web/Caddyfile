@@ -9,22 +9,20 @@
 # domain name.
 
 :80 {
-        # Set this path to your site's directory.
-        root * /app/build
+        # API 프록시 - angple-api로 전달
+        handle /api/* {
+                reverse_proxy angple-api:8081
+        }
 
-        # SPA routing - fallback to index.html
-        try_files {path} /index.html
-
-        # Enable the static file server.
-        file_server
-
-        # Another common task is to set up a reverse proxy:
-        # reverse_proxy localhost:8080
-
-        # Or serve a PHP site through php-fpm:
-        # php_fastcgi localhost:9000
-
+        # Health check
         respond /health "OK" 200
+
+        # Static files and SPA fallback
+        handle {
+                root * /app/build
+                try_files {path} /index.html
+                file_server
+        }
 }
 
 # Refer to the Caddy docs for more information:

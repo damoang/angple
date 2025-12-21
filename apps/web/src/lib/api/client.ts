@@ -12,7 +12,7 @@ import type {
 } from './types.js';
 import { getMockFreePosts, getMockFreePost, getMockFreeComments } from './mock-data.js';
 
-const API_BASE_URL = 'https://api.ang.dev/api/v1';
+const API_BASE_URL = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api/v1` : 'https://api.damoang.dev/api/v1';
 
 /**
  * API 클라이언트
@@ -249,6 +249,7 @@ class ApiClient {
                 '48h': '48hours'
             };
             const fileName = periodMap[period] || period;
+            // 상대 경로 사용 (같은 도메인으로 요청, CORS 불필요)
             const response = await fetch(`/api/v2/recommended/${fileName}`);
             if (!response.ok) {
                 throw new Error(`AI 추천 글 데이터 로드 실패: ${period}`);

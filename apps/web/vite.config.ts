@@ -5,10 +5,10 @@ import { defineConfig } from 'vite';
 export default defineConfig({
     plugins: [tailwindcss(), sveltekit()],
     server: {
-        allowedHosts: ['web.damoang.net', 'localhost'],
+        allowedHosts: ['web.damoang.net', 'damoang.dev', 'localhost'],
         proxy: {
             '/api': {
-                target: 'http://localhost:8081',
+                target: process.env.API_PROXY_TARGET || 'http://localhost:8081',
                 changeOrigin: true,
                 secure: false
             }
