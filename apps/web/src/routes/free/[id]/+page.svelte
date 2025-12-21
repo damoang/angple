@@ -46,7 +46,7 @@
             <div>
                 {#if data.post.tags && data.post.tags.length > 0}
                     <div class="mb-3 flex flex-wrap gap-2">
-                        {#each data.post.tags as tag (tag)}
+                        {#each data.post.tags as tag, i (i)}
                             <Badge variant="secondary">{tag}</Badge>
                         {/each}
                     </div>
@@ -84,7 +84,7 @@
 
             {#if data.post.images && data.post.images.length > 0}
                 <div class="mt-6 grid gap-4">
-                    {#each data.post.images as image (image)}
+                    {#each data.post.images as image, i (i)}
                         <img
                             src={image}
                             alt="게시글 이미지"
@@ -141,7 +141,7 @@
         <CardHeader>
             <p>댓글</p>
             <ul>
-                {#each data.comments.items as comment (comment.id)}
+                {#each data.comments.items as comment, i (i)}
                     <li
                         style="margin-left: {comment.depth * 1.25}rem"
                         class="{comment.depth

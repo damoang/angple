@@ -11,6 +11,25 @@
     import { SkeletonLoader } from './components/loading';
     import { getCurrentTabVisibility } from './utils/index.js';
 
+    // 모든 섹션의 통계 합계 계산
+    function calculateStats(data: RecommendedDataWithAI) {
+        let total_recommends = 0;
+        let total_comments = 0;
+
+        const sections = ['community', 'group', 'info'] as const;
+        for (const key of sections) {
+            const section = data.sections[key];
+            if (section?.posts) {
+                for (const post of section.posts) {
+                    total_recommends += post.recommend_count || 0;
+                    total_comments += post.comment_count || 0;
+                }
+            }
+        }
+
+        return { total_recommends, total_comments };
+    }
+
     const { defaultTab } = getCurrentTabVisibility();
 
     let activeTab = $state<RecommendedPeriod>(defaultTab);
@@ -76,7 +95,8 @@
             </div>
         {:else if data}
             {#if data.ai_analysis}
-                <AITrendCard analysis={data.ai_analysis} />
+                {@const stats = calculateStats(data)}
+                <AITrendCard analysis={data.ai_analysis} {stats} />
             {/if}
             <PostList {data} />
         {/if}

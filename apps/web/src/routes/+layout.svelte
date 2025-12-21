@@ -8,6 +8,7 @@
     import Footer from '$lib/components/layout/footer.svelte';
     import LeftBanner from '$lib/components/layout/left-banner.svelte';
     import RightBanner from '$lib/components/layout/right-banner.svelte';
+    import PodcastPlayer from '$lib/components/ui/podcast-player/podcast-player.svelte';
     import { authActions } from '$lib/stores/auth.svelte';
 
     const { children } = $props(); // Svelte 5
@@ -44,6 +45,8 @@
     <title>다모앙</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="icon" href={favicon} />
+    <!-- Damoang Ads Script -->
+    <script async src="https://ads.damoang.net/ad.js"></script>
 </svelte:head>
 
 <div class="relative flex min-h-screen flex-col items-center">
@@ -93,23 +96,28 @@
             {/if}
         </div>
     </div>
-    <!-- 왼쪽 배너 - 절대 위치, 컨테이너 밖에 배치 -->
+    <!-- 왼쪽 윙 배너 - 컨테이너 바로 왼쪽 (160px 배너 + 10px 간격) -->
     <aside
-        class="fixed left-4 hidden transition-all duration-300 min-[1780px]:block"
+        class="fixed hidden transition-all duration-300 min-[1600px]:block"
         class:top-21={!isBannerUp}
         class:top-6={isBannerUp}
+        style="right: calc(50% + 760px);"
     >
         <LeftBanner />
     </aside>
-    <!-- 오른쪽 배너 - 절대 위치, 컨테이너 밖에 배치 -->
+    <!-- 오른쪽 윙 배너 - 컨테이너 바로 오른쪽 (10px 간격) -->
     <aside
-        class="fixed right-4 hidden transition-all duration-300 min-[1780px]:block"
+        class="fixed hidden transition-all duration-300 min-[1600px]:block"
         class:top-21={!isBannerUp}
         class:top-6={isBannerUp}
+        style="left: calc(50% + 760px);"
     >
         <RightBanner />
     </aside>
 
     <!-- 푸터 -->
     <Footer />
+
+    <!-- 팟캐스트 플레이어 (항상 마운트, 위치만 변경) -->
+    <PodcastPlayer />
 </div>
