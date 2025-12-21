@@ -63,7 +63,9 @@
         if (!browser) return;
 
         try {
-            const response = await fetch(`${API_BASE}/api/v1/serve/banners?position=${encodeURIComponent(position)}&limit=4`);
+            const response = await fetch(
+                `${API_BASE}/api/v1/serve/banners?position=${encodeURIComponent(position)}&limit=4`
+            );
             const result = await response.json();
 
             if (result.success && result.data?.banners?.length > 0) {
@@ -94,7 +96,9 @@
     {#if loading}
         <div class="grid grid-cols-2 gap-2">
             {#each [1, 2, 3, 4] as idx (idx)}
-                <div class="animate-pulse rounded-lg border-2 border-slate-200 bg-slate-100 dark:border-slate-700 dark:bg-slate-800">
+                <div
+                    class="animate-pulse rounded-lg border-2 border-slate-200 bg-slate-100 dark:border-slate-700 dark:bg-slate-800"
+                >
                     <div class="h-[80px] bg-slate-200 dark:bg-slate-700"></div>
                     <div class="p-2">
                         <div class="h-3 w-2/3 rounded bg-slate-200 dark:bg-slate-600"></div>
@@ -144,7 +148,9 @@
         </div>
     {:else}
         <!-- 빈 상태 -->
-        <div class="rounded-lg border-2 border-dashed border-slate-300 bg-slate-50 p-4 text-center dark:border-slate-600 dark:bg-slate-800">
+        <div
+            class="rounded-lg border-2 border-dashed border-slate-300 bg-slate-50 p-4 text-center dark:border-slate-600 dark:bg-slate-800"
+        >
             <span class="text-xs text-slate-400">광고 영역</span>
         </div>
     {/if}

@@ -9,7 +9,12 @@
         fallbackToAdsense?: boolean;
     }
 
-    let { position, height = '90px', class: className = '', fallbackToAdsense = true }: Props = $props();
+    let {
+        position,
+        height = '90px',
+        class: className = '',
+        fallbackToAdsense = true
+    }: Props = $props();
 
     let isLoaded = $state(false);
     let hasAd = $state(false);
@@ -141,7 +146,10 @@
                     data-full-width-responsive="true"
                 ></ins>
             {:else}
-                <div class="flex animate-pulse items-center justify-center bg-slate-100 dark:bg-slate-800" style="min-height: {height};">
+                <div
+                    class="flex animate-pulse items-center justify-center bg-slate-100 dark:bg-slate-800"
+                    style="min-height: {height};"
+                >
                     <span class="text-xs text-slate-400">Loading...</span>
                 </div>
             {/if}
@@ -203,5 +211,4 @@
             opacity: 0.6;
         }
     }
-
-    </style>
+</style>
