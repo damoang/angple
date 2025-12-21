@@ -12,7 +12,9 @@ import type {
 } from './types.js';
 import { getMockFreePosts, getMockFreePost, getMockFreeComments } from './mock-data.js';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api/v1` : 'https://api.damoang.dev/api/v1';
+const API_BASE_URL = import.meta.env.VITE_API_URL
+    ? `${import.meta.env.VITE_API_URL}/api/v1`
+    : 'https://api.damoang.dev/api/v1';
 
 /**
  * API 클라이언트
