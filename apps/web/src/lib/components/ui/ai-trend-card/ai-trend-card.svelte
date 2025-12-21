@@ -84,7 +84,7 @@
     <!-- 에러 상태 -->
     <div
         class={cn(
-            'flex items-center gap-3 rounded-xl border border-destructive/30 bg-destructive/5 p-3',
+            'border-destructive/30 bg-destructive/5 flex items-center gap-3 rounded-xl border p-3',
             className
         )}
     >

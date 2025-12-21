@@ -23,10 +23,10 @@
         <p
             class="text-foreground absolute inset-0 truncate text-sm font-bold transition-all duration-500 ease-in-out
                 {i === currentIndex
-                  ? 'translate-y-0 opacity-100'
-                  : i < currentIndex
-                    ? '-translate-y-full opacity-0'
-                    : 'translate-y-full opacity-0'}"
+                ? 'translate-y-0 opacity-100'
+                : i < currentIndex
+                  ? '-translate-y-full opacity-0'
+                  : 'translate-y-full opacity-0'}"
         >
             {headline}
         </p>
