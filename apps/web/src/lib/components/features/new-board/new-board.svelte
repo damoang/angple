@@ -44,7 +44,9 @@
 <Card class="gap-0">
     <CardHeader class="flex flex-row items-center justify-between space-y-0 px-4 py-2.5">
         <div class="flex items-center gap-2">
-            <div class="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900/30">
+            <div
+                class="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900/30"
+            >
                 <Newspaper class="h-4 w-4 text-blue-500" />
             </div>
             <h3 class="text-foreground text-base font-semibold">새로운 소식</h3>

@@ -29,7 +29,7 @@
 
 <!-- Pill 스타일 탭 -->
 <div class="flex gap-1">
-    {#each tabs as tab}
+    {#each tabs as tab (tab.id)}
         {#if !tab.hidden}
             <button
                 type="button"

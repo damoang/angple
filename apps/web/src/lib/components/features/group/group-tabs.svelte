@@ -48,6 +48,7 @@
             <GroupTabs bind:activeTab onTabChange={handleTabChange} />
             <a
                 href="/bbs/group.php?gr_id=group"
+                rel="external"
                 class="text-muted-foreground hover:text-foreground flex items-center gap-1 text-sm transition-all duration-200 ease-out"
             >
                 더보기

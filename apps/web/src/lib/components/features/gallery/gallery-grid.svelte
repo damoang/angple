@@ -33,15 +33,20 @@
 </script>
 
 <Card class="gap-0">
-    <CardHeader class="flex flex-row flex-nowrap items-center justify-between space-y-0 px-4 py-2.5">
+    <CardHeader
+        class="flex flex-row flex-nowrap items-center justify-between space-y-0 px-4 py-2.5"
+    >
         <div class="flex items-center gap-2">
-            <div class="flex h-7 w-7 items-center justify-center rounded-lg bg-purple-100 dark:bg-purple-900/30">
+            <div
+                class="flex h-7 w-7 items-center justify-center rounded-lg bg-purple-100 dark:bg-purple-900/30"
+            >
                 <Images class="h-4 w-4 text-purple-500" />
             </div>
             <h3 class="text-foreground text-base font-semibold">갤러리</h3>
         </div>
         <a
             href="/gallery"
+            rel="external"
             class="text-muted-foreground hover:text-foreground flex shrink-0 items-center gap-1 text-sm transition-all duration-200 ease-out"
         >
             더보기

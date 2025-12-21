@@ -10,7 +10,8 @@
 
 <a
     href={post.url}
-    class="group bg-card flex h-full flex-col overflow-hidden rounded-xl border border-border shadow-sm transition-all duration-200 ease-out hover:shadow-md"
+    rel="external"
+    class="bg-card border-border group flex h-full flex-col overflow-hidden rounded-xl border shadow-sm transition-all duration-200 ease-out hover:shadow-md"
 >
     <!-- 16:9 이미지 -->
     <div class="relative aspect-video w-full overflow-hidden">

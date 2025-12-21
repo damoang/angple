@@ -1,5 +1,6 @@
 <script lang="ts">
     import { onMount } from 'svelte';
+    import { SvelteMap } from 'svelte/reactivity';
     import { apiClient } from '$lib/api';
     import type { RecommendedDataWithAI, RecommendedPeriod } from '$lib/api/types.js';
     import { Card, CardHeader, CardContent } from '$lib/components/ui/card';
@@ -18,7 +19,7 @@
     let error = $state<string | null>(null);
 
     // 탭별 데이터 캐시
-    const dataCache = new Map<RecommendedPeriod, RecommendedDataWithAI>();
+    const dataCache = new SvelteMap<RecommendedPeriod, RecommendedDataWithAI>();
 
     async function loadData(period: RecommendedPeriod, isInitial = false) {
         // 캐시에 데이터가 있으면 즉시 표시
