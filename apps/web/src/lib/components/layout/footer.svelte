@@ -1,7 +1,4 @@
 <script lang="ts">
-    // 현재 연도 자동 계산
-    const currentYear = new Date().getFullYear();
-
     // 앙포털 메뉴
     const angportalLinks = [
         { name: '다모앙 지도 - 앙지도', href: 'https://damoang.net/angmap' },
@@ -49,7 +46,7 @@
                     앙포털
                 </h3>
                 <ul class="space-y-2">
-                    {#each angportalLinks as link}
+                    {#each angportalLinks as link (link.href)}
                         <li>
                             <a
                                 href={link.href}
@@ -70,7 +67,7 @@
                     함께만들어가요
                 </h3>
                 <ul class="space-y-2">
-                    {#each togetherLinks as link}
+                    {#each togetherLinks as link (link.href)}
                         <li>
                             <a
                                 href={link.href}
@@ -91,7 +88,7 @@
                     시스템
                 </h3>
                 <ul class="space-y-2">
-                    {#each systemLinks as link}
+                    {#each systemLinks as link (link.href)}
                         <li>
                             <a
                                 href={link.href}
@@ -110,7 +107,7 @@
             <div>
                 <h3 class="mb-4 text-lg font-semibold text-red-600">🚨삐앙삐앙🚨</h3>
                 <ul class="space-y-2">
-                    {#each emergencyLinks as link}
+                    {#each emergencyLinks as link (link.href)}
                         <li>
                             <a
                                 href={link.href}

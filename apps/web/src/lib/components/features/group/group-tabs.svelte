@@ -1,6 +1,6 @@
 <script lang="ts">
     import { onMount } from 'svelte';
-    import type { GroupTabsData, GroupTabId, GroupPost } from '$lib/api/types.js';
+    import type { GroupTabsData, GroupTabId } from '$lib/api/types.js';
     import { Card, CardHeader, CardContent } from '$lib/components/ui/card';
     import ChevronRight from '@lucide/svelte/icons/chevron-right';
     import { GroupHeader } from './components/header';

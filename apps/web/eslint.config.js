@@ -28,7 +28,8 @@ export default ts.config(
             // SvelteKit/개발 중이므로 일부 규칙 완화
             '@typescript-eslint/no-unused-vars': 'warn',
             'svelte/require-each-key': 'warn',
-            'svelte/no-navigation-without-resolve': 'warn'
+            // 외부 URL 링크를 많이 사용하므로 비활성화
+            'svelte/no-navigation-without-resolve': 'off'
         }
     },
     {
