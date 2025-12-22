@@ -32,15 +32,15 @@ export interface FreePost {
 
 // 자유게시판 댓글 타입
 export interface FreeComment {
-    id: string;
+    id: number | string; // v2 API는 number, v1은 string
     content: string;
     author: string;
     author_id: string;
-    likes: number;
-    depth: number;
-    parent_id: string;
+    likes?: number;
+    depth?: number;
+    parent_id: number | string; // v2 API는 number, v1은 string
     created_at: string;
-    updated_at: string;
+    updated_at?: string;
     images?: string[];
 }
 
@@ -201,4 +201,29 @@ export interface IndexWidgetsData {
     economy_tabs: EconomyPost[];
     gallery: GalleryPost[];
     group_tabs: GroupTabsData;
+}
+
+// 사이드바 메뉴 타입
+export interface MenuItem {
+    id: number;
+    parent_id?: number | null;
+    title: string;
+    url: string;
+    icon?: string;
+    shortcut?: string;
+    description?: string;
+    depth: number;
+    order_num: number;
+    target: string;
+    show_in_header: boolean;
+    show_in_sidebar: boolean;
+    children?: MenuItem[];
+}
+
+// 사용자 타입 (damoang.net SSO)
+export interface DamoangUser {
+    mb_id: string;
+    mb_name: string;
+    mb_level: number;
+    mb_email: string;
 }

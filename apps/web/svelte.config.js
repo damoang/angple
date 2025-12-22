@@ -1,4 +1,4 @@
-import adapter from '@sveltejs/adapter-static';
+import adapter from '@sveltejs/adapter-node';
 import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
 
 /** @type {import('@sveltejs/kit').Config} */
@@ -8,18 +8,12 @@ const config = {
     preprocess: vitePreprocess(),
 
     kit: {
-        // adapter-static for nginx deployment
+        // adapter-node for SSR deployment
         adapter: adapter({
-            pages: 'build',
-            assets: 'build',
-            fallback: 'index.html',
-            precompress: false,
-            strict: false
-        }),
-        // https://svelte.dev/docs/kit/configuration#prerender
-        prerender: {
-            handleUnseenRoutes: 'warn'
-        }
+            out: 'build',
+            precompress: true,
+            envPrefix: 'PUBLIC_'
+        })
     },
     compilerOptions: {
         runes: true //룬 모드 강제 적용

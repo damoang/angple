@@ -7,14 +7,15 @@ export default defineConfig(({ mode }) => {
     return {
         plugins: [tailwindcss(), sveltekit()],
         server: {
-            allowedHosts: ['web.damoang.net', 'damoang.dev', 'localhost'],
-            proxy: {
-                '/api': {
-                    target: env.API_PROXY_TARGET || 'http://localhost:8081',
-                    changeOrigin: true,
-                    secure: false
-                }
-            }
+            allowedHosts: ['web.damoang.net', 'damoang.dev', 'localhost']
+            // proxy는 로컬 개발에서 비활성화 (Mock 데이터 사용)
+            // proxy: {
+            //     '/api': {
+            //         target: env.API_PROXY_TARGET || 'http://localhost:8081',
+            //         changeOrigin: true,
+            //         secure: false
+            //     }
+            // }
         },
         test: {
             expect: { requireAssertions: true },

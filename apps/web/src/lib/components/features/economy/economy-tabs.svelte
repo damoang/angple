@@ -5,6 +5,7 @@
     import ShoppingCart from '@lucide/svelte/icons/shopping-cart';
     import { EconomyTabs } from './components/tabs';
     import { EconomyPostList } from './components/post-list';
+    import { apiClient } from '$lib/api';
 
     let activeTab = $state<EconomyTabId>('economy');
     let data = $state<EconomyPost[] | null>(null);
@@ -18,11 +19,8 @@
         loading = true;
         error = null;
         try {
-            const response = await fetch('/api/v2/recommended/index-widgets');
-            if (!response.ok) throw new Error('데이터 로드 실패');
-
-            const jsonData = await response.json();
-            data = jsonData.economy_tabs;
+            const widgetsData = await apiClient.getIndexWidgets();
+            data = widgetsData.economy_tabs;
         } catch (err) {
             error = err instanceof Error ? err.message : '데이터 로드 실패';
             console.error('경제 탭 로드 실패:', err);

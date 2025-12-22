@@ -6,6 +6,7 @@
     import { GroupHeader } from './components/header';
     import { GroupTabs } from './components/tabs';
     import { GroupPostList } from './components/post-list';
+    import { apiClient } from '$lib/api';
 
     let activeTab = $state<GroupTabId>('all');
     let data = $state<GroupTabsData | null>(null);
@@ -19,11 +20,8 @@
         loading = true;
         error = null;
         try {
-            const response = await fetch('/api/v2/recommended/index-widgets');
-            if (!response.ok) throw new Error('데이터 로드 실패');
-
-            const jsonData = await response.json();
-            data = jsonData.group_tabs;
+            const widgetsData = await apiClient.getIndexWidgets();
+            data = widgetsData.group_tabs;
         } catch (err) {
             error = err instanceof Error ? err.message : '데이터 로드 실패';
             console.error('소모임 추천글 로드 실패:', err);

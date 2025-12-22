@@ -8,13 +8,25 @@ import type {
     ApiError,
     RecommendedDataWithAI,
     RecommendedPeriod,
-    FreeComment
+    FreeComment,
+    MenuItem,
+    DamoangUser,
+    IndexWidgetsData
 } from './types.js';
-import { getMockFreePosts, getMockFreePost, getMockFreeComments } from './mock-data.js';
+import {
+    getMockFreePosts,
+    getMockFreePost,
+    getMockFreeComments,
+    getMockMenus,
+    getMockCurrentUser,
+    getMockIndexWidgets
+} from './mock-data.js';
+import { browser } from '$app/environment';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL
-    ? `${import.meta.env.VITE_API_URL}/api/v1`
-    : 'https://api.damoang.dev/api/v1';
+// 서버/클라이언트 환경에 따라 API URL 분기
+const API_BASE_URL = browser
+    ? import.meta.env.PUBLIC_API_URL || 'https://api.damoang.dev/api/v1'
+    : process.env.INTERNAL_API_URL || 'http://localhost:8080/api/v1';
 
 /**
  * API 클라이언트
@@ -43,9 +55,22 @@ class ApiClient {
         // 브라우저 환경에서만 로컬스토리지 접근
         if (typeof window !== 'undefined') {
             this.loadToken();
-            // Mock 모드 확인: 로컬스토리지에 명시적 설정이 없으면 기본값 true (개발 편의성)
+            // Mock 모드 확인
             const mockSetting = localStorage.getItem('damoang_use_mock');
-            this.useMock = mockSetting !== 'false'; // 'false'가 아니면 true (기본값)
+
+            // 로컬 개발 환경(localhost)에서는 기본값 true
+            const isLocalDev =
+                window.location.hostname === 'localhost' ||
+                window.location.hostname === '127.0.0.1';
+
+            if (mockSetting === null) {
+                // localStorage에 설정이 없으면: 로컬은 true, 운영은 false
+                this.useMock = isLocalDev;
+                localStorage.setItem('damoang_use_mock', isLocalDev.toString());
+            } else {
+                // localStorage 설정 우선
+                this.useMock = mockSetting !== 'false';
+            }
         }
     }
 
@@ -114,6 +139,10 @@ class ApiClient {
     // HTTP 요청 헬퍼
     private async request<T>(endpoint: string, options: RequestInit = {}): Promise<ApiResponse<T>> {
         const url = `${API_BASE_URL}${endpoint}`;
+
+        // 서버/클라이언트 환경 로깅
+        console.log(`[API] ${browser ? 'Client' : 'Server'} → ${url}`);
+
         const headers: Record<string, string> = {
             'Content-Type': 'application/json',
             ...(options.headers as Record<string, string>)
@@ -251,7 +280,6 @@ class ApiClient {
                 '48h': '48hours'
             };
             const fileName = periodMap[period] || period;
-            // 상대 경로 사용 (같은 도메인으로 요청, CORS 불필요)
             const response = await fetch(`/api/v2/recommended/${fileName}`);
             if (!response.ok) {
                 throw new Error(`AI 추천 글 데이터 로드 실패: ${period}`);
@@ -261,6 +289,48 @@ class ApiClient {
 
         // 실제 API 모드 (나중에 구현)
         const response = await this.request<RecommendedDataWithAI>(`/recommended/ai/${period}`);
+        return response.data;
+    }
+
+    // 사이드바 메뉴 조회
+    async getMenus(): Promise<MenuItem[]> {
+        // Mock 모드일 경우 가짜 데이터 반환
+        if (this.useMock) {
+            await new Promise((resolve) => setTimeout(resolve, 200));
+            return getMockMenus();
+        }
+
+        const response = await this.request<MenuItem[]>('/menus/sidebar');
+        return response.data;
+    }
+
+    // 현재 로그인 사용자 조회
+    async getCurrentUser(): Promise<DamoangUser | null> {
+        // Mock 모드일 경우 가짜 데이터 반환
+        if (this.useMock) {
+            await new Promise((resolve) => setTimeout(resolve, 200));
+            return getMockCurrentUser();
+        }
+
+        try {
+            const response = await this.request<DamoangUser>('/auth/me');
+            return response.data;
+        } catch (error) {
+            // 비로그인 상태는 에러가 아니므로 null 반환
+            console.log('User not logged in');
+            return null;
+        }
+    }
+
+    // 인덱스 위젯 데이터 조회
+    async getIndexWidgets(): Promise<IndexWidgetsData> {
+        // Mock 모드일 경우 가짜 데이터 반환
+        if (this.useMock) {
+            await new Promise((resolve) => setTimeout(resolve, 300));
+            return getMockIndexWidgets();
+        }
+
+        const response = await this.request<IndexWidgetsData>('/recommended/index-widgets');
         return response.data;
     }
 }

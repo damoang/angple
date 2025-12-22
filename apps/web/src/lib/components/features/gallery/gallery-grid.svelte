@@ -5,6 +5,7 @@
     import Images from '@lucide/svelte/icons/images';
     import ChevronRight from '@lucide/svelte/icons/chevron-right';
     import { GalleryCard } from './components';
+    import { apiClient } from '$lib/api';
 
     let posts = $state<GalleryPost[]>([]);
     let loading = $state(true);
@@ -14,11 +15,8 @@
         loading = true;
         error = null;
         try {
-            const response = await fetch('/api/v2/recommended/index-widgets');
-            if (!response.ok) throw new Error('데이터 로드 실패');
-
-            const jsonData = await response.json();
-            posts = jsonData.gallery || [];
+            const widgetsData = await apiClient.getIndexWidgets();
+            posts = widgetsData.gallery || [];
         } catch (err) {
             error = err instanceof Error ? err.message : '데이터 로드 실패';
             console.error('갤러리 로드 실패:', err);

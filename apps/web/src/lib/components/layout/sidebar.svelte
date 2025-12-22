@@ -8,6 +8,8 @@
     } from '$lib/components/ui/accordion';
     import { Button } from '$lib/components/ui/button';
     import { cn } from '$lib/utils';
+    import { apiClient } from '$lib/api';
+    import type { MenuItem } from '$lib/api/types.js';
 
     // Import all needed Lucide icons
     import MessageSquare from '@lucide/svelte/icons/message-square';
@@ -40,22 +42,6 @@
     import Apple from '@lucide/svelte/icons/apple';
 
     import UserWidget from './user-widget.svelte';
-
-    interface MenuItem {
-        id: number;
-        parent_id?: number | null;
-        title: string;
-        url: string;
-        icon?: string;
-        shortcut?: string;
-        description?: string;
-        depth: number;
-        order_num: number;
-        target: string;
-        show_in_header: boolean;
-        show_in_sidebar: boolean;
-        children?: MenuItem[];
-    }
 
     // Icon mapping object
     const iconMap: Record<string, typeof Circle> = {
@@ -102,12 +88,7 @@
 
     onMount(async () => {
         try {
-            const response = await fetch('/api/v2/menus/sidebar');
-            if (!response.ok) {
-                throw new Error('메뉴 데이터를 불러올 수 없습니다');
-            }
-            const data = await response.json();
-            menuData = data.data || [];
+            menuData = await apiClient.getMenus();
             loading = false;
         } catch (err) {
             console.error('Failed to load menu data:', err);

@@ -3,18 +3,8 @@
  * damoang.net JWT 쿠키 기반 SSO 인증
  */
 
-// 사용자 타입 정의
-export interface DamoangUser {
-    mb_id: string;
-    mb_name: string;
-    mb_level: number;
-    mb_email: string;
-}
-
-// API 응답 타입
-interface AuthResponse {
-    data: DamoangUser | null;
-}
+import { apiClient } from '$lib/api';
+import type { DamoangUser } from '$lib/api/types.js';
 
 // 인증 상태
 let user = $state<DamoangUser | null>(null);
@@ -23,9 +13,6 @@ let error = $state<string | null>(null);
 
 // Derived states
 const isLoggedIn = $derived(user !== null);
-
-// API base URL - 동일 도메인 프록시 사용 (CORS 우회)
-const API_BASE_URL = '';
 
 /**
  * 현재 사용자 정보 가져오기
@@ -36,20 +23,7 @@ async function fetchCurrentUser(): Promise<void> {
     error = null;
 
     try {
-        const response = await fetch(`${API_BASE_URL}/api/v2/auth/me`, {
-            method: 'GET',
-            credentials: 'include', // 쿠키 포함
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        });
-
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const data: AuthResponse = await response.json();
-        user = data.data;
+        user = await apiClient.getCurrentUser();
     } catch (err) {
         console.error('Failed to fetch current user:', err);
         error = err instanceof Error ? err.message : 'Unknown error';

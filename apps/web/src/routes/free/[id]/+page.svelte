@@ -143,7 +143,7 @@
             <ul>
                 {#each data.comments.items as comment, i (i)}
                     <li
-                        style="margin-left: {comment.depth * 1.25}rem"
+                        style="margin-left: {(comment.depth ?? 0) * 1.25}rem"
                         class="{comment.depth
                             ? 'reply'
                             : 'parent'} border-border border-b pb-2 pt-2 last:border-none"
@@ -164,7 +164,7 @@
                             </div>
 
                             <div class="text-secondary-foreground ml-auto flex gap-4 text-sm">
-                                <span>👍 {comment.likes.toLocaleString()}</span>
+                                <span>👍 {(comment.likes ?? 0).toLocaleString()}</span>
                             </div>
                         </div>
                         <div>{comment.content}</div>

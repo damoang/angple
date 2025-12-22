@@ -5,6 +5,7 @@
     import Newspaper from '@lucide/svelte/icons/newspaper';
     import { NewsTabs } from './components/tabs';
     import { SimplePostList } from './components/post-list';
+    import { apiClient } from '$lib/api';
 
     let activeTab = $state<NewsTabId>('new');
     let data = $state<NewsPost[] | null>(null);
@@ -18,12 +19,8 @@
         loading = true;
         error = null;
         try {
-            // JSON 파일에서 데이터 로드
-            const response = await fetch('/api/v2/recommended/index-widgets');
-            if (!response.ok) throw new Error('데이터 로드 실패');
-
-            const jsonData = await response.json();
-            data = jsonData.news_tabs;
+            const widgetsData = await apiClient.getIndexWidgets();
+            data = widgetsData.news_tabs;
         } catch (err) {
             error = err instanceof Error ? err.message : '데이터 로드 실패';
             console.error('새로운 소식 로드 실패:', err);
