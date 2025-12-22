@@ -23,20 +23,26 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
 
       - name: Install dependencies
-        run: npm ci --no-fund
+        run: pnpm install --frozen-lockfile
 
       - name: Run lint
         working-directory: apps/${{ matrix.app }}
         run: |
-            if ! npm run lint; then
+            if ! pnpm run lint; then
                 echo "❌ Formatting issues found. Showing diff:"
-                npx prettier --write .
+                pnpm exec prettier --write .
                 git --no-pager diff --color
                 git restore .
                 exit 1
@@ -53,21 +59,27 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
 
       - name: Install dependencies
-        run: npm ci --no-fund
+        run: pnpm install --frozen-lockfile
 
       - name: Run type check
         working-directory: apps/${{ matrix.app }}
-        run: npx svelte-check --tsconfig ./tsconfig.json
+        run: pnpm exec svelte-check --tsconfig ./tsconfig.json
 
       - name: Build
         working-directory: apps/${{ matrix.app }}
-        run: npm run build
+        run: pnpm run build
 
   # 보안 취약점 스캔 (HIGH 이상만 실패 처리)
   security:
@@ -80,17 +92,23 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
 
       - name: Install dependencies
-        run: npm ci --no-fund
+        run: pnpm install --frozen-lockfile
 
       - name: Run security audit
         working-directory: apps/${{ matrix.app }}
-        run: npm audit --audit-level=high
+        run: pnpm audit --audit-level=high
 
   # 테스트 (unit + e2e)
   test:
@@ -103,21 +121,27 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
 
       - name: Install dependencies
-        run: npm ci --no-fund
+        run: pnpm install --frozen-lockfile
 
       - name: Install Playwright browsers
         working-directory: apps/${{ matrix.app }}
-        run: npx playwright install --with-deps
+        run: pnpm exec playwright install --with-deps
 
       - name: Run tests
         working-directory: apps/${{ matrix.app }}
-        run: npm run test
+        run: pnpm run test
 
       - name: Upload test results
         if: always()
@@ -139,17 +163,23 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
 
       - name: Install dependencies
-        run: npm ci --no-fund
+        run: pnpm install --frozen-lockfile
 
       - name: Run Prettier
         run: |
-          npx prettier --write apps/web apps/admin
+          pnpm exec prettier --write apps/web apps/admin
 
       - name: Suggest changes
         uses: reviewdog/action-suggester@v1
@@ -173,13 +203,19 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
 
       - name: Install dependencies
-        run: npm ci --no-fund
+        run: pnpm install --frozen-lockfile
 
       - name: ESLint Review
         uses: reviewdog/action-eslint@v1
@@ -205,13 +241,19 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
 
       - name: Install dependencies
-        run: npm ci --no-fund
+        run: pnpm install --frozen-lockfile
 
       - name: Setup reviewdog
         uses: reviewdog/action-setup@v1
@@ -221,5 +263,5 @@ jobs:
         env:
           REVIEWDOG_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          npx svelte-check --tsconfig ./tsconfig.json --output machine 2>&1 | \
+          pnpm exec svelte-check --tsconfig ./tsconfig.json --output machine 2>&1 | \
           reviewdog -f=tsc -reporter=github-pr-review -filter-mode=nofilter -fail-on-error=false
