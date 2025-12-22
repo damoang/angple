@@ -141,9 +141,9 @@ class SecureApiClient {
 
 ### Phase 1: 현재 (Mock 개발)
 
-- ✅ Mock 데이터로 UI/UX 개발
-- ✅ localStorage 사용 (개발 편의성)
-- ⚠️ 보안 경고 코멘트 추가
+-   ✅ Mock 데이터로 UI/UX 개발
+-   ✅ localStorage 사용 (개발 편의성)
+-   ⚠️ 보안 경고 코멘트 추가
 
 ### Phase 2: 백엔드 API 개선
 
@@ -187,9 +187,9 @@ class SecureApiClient {
 
 ### 2. XSS 방지
 
-- ✅ Svelte의 자동 이스케이프 활용
-- ❌ `@html` 사용 최소화
-- ✅ 사용자 입력 검증
+-   ✅ Svelte의 자동 이스케이프 활용
+-   ❌ `@html` 사용 최소화
+-   ✅ 사용자 입력 검증
 
 ### 3. HTTPS 강제
 
@@ -212,14 +212,14 @@ server: {
 
 ## 📚 참고 자료
 
-- [OWASP Token Storage](https://cheatsheetseries.owasp.org/cheatsheets/HTML5_Security_Cheat_Sheet.html)
-- [JWT Best Practices](https://datatracker.ietf.org/doc/html/rfc8725)
-- [SvelteKit Security](https://kit.svelte.dev/docs/security)
+-   [OWASP Token Storage](https://cheatsheetseries.owasp.org/cheatsheets/HTML5_Security_Cheat_Sheet.html)
+-   [JWT Best Practices](https://datatracker.ietf.org/doc/html/rfc8725)
+-   [SvelteKit Security](https://kit.svelte.dev/docs/security)
 
 ---
 
 ## 🤝 관련 이슈
 
-- [ ] #XX: localStorage 토큰 저장 보안 이슈
-- [ ] #XX: httpOnly cookie 인증 구현
-- [ ] #XX: 토큰 자동 갱신 로직 추가
+-   [ ] #XX: localStorage 토큰 저장 보안 이슈
+-   [ ] #XX: httpOnly cookie 인증 구현
+-   [ ] #XX: 토큰 자동 갱신 로직 추가

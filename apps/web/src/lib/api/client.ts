@@ -315,7 +315,7 @@ class ApiClient {
         try {
             const response = await this.request<DamoangUser>('/auth/me');
             return response.data;
-        } catch (error) {
+        } catch {
             // 비로그인 상태는 에러가 아니므로 null 반환
             console.log('User not logged in');
             return null;
