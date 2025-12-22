@@ -4,19 +4,19 @@
 
 ## 기술 스택
 
-- **Svelte 5.0** - 컴포넌트 프레임워크 (Rune 모드)
-- **SvelteKit 2.22** - 풀스택 웹 프레임워크
-- **TypeScript 5.0** - 타입 안전성을 위한 정적 타입 검사
-- **Tailwind CSS 4.0** - 유틸리티 퍼스트 CSS 프레임워크
-- **Vite 7.0** - 개발 서버 및 빌드 도구
-- **pnpm** - 패키지 관리
+-   **Svelte 5.0** - 컴포넌트 프레임워크 (Rune 모드)
+-   **SvelteKit 2.22** - 풀스택 웹 프레임워크
+-   **TypeScript 5.0** - 타입 안전성을 위한 정적 타입 검사
+-   **Tailwind CSS 4.0** - 유틸리티 퍼스트 CSS 프레임워크
+-   **Vite 7.0** - 개발 서버 및 빌드 도구
+-   **pnpm** - 패키지 관리
 
 ## 시작하기
 
 ### 필수 조건
 
-- Node.js 18.0 이상
-- pnpm 8.0 이상
+-   Node.js 18.0 이상
+-   pnpm 8.0 이상
 
 ### 설치 및 실행
 
@@ -106,10 +106,10 @@ pnpm dlx shadcn-svelte@latest add dialog
 
 ### 코딩 규칙
 
-- Svelte 5의 Rune 모드 사용 ($state, $derived, $effect)
-- TypeScript 엄격 모드로 타입 안전성 확보
-- 컴포넌트 파일명은 kebab-case 사용
-- 모든 코드 주석은 한글로 작성
+-   Svelte 5의 Rune 모드 사용 ($state, $derived, $effect)
+-   TypeScript 엄격 모드로 타입 안전성 확보
+-   컴포넌트 파일명은 kebab-case 사용
+-   모든 코드 주석은 한글로 작성
 
 ### 이벤트 핸들러
 
@@ -139,14 +139,14 @@ Svelte 5의 새로운 이벤트 핸들러 문법을 사용합니다:
 
 ## 테스트
 
-- **단위 테스트**: Vitest + @testing-library/svelte
-- **E2E 테스트**: Playwright
-- **브라우저 테스트**: @vitest/browser
+-   **단위 테스트**: Vitest + @testing-library/svelte
+-   **E2E 테스트**: Playwright
+-   **브라우저 테스트**: @vitest/browser
 
 테스트 파일 규칙:
 
-- 단위 테스트: `*.test.ts`, `*.spec.ts`
-- E2E 테스트: `*.e2e.ts`
+-   단위 테스트: `*.test.ts`, `*.spec.ts`
+-   E2E 테스트: `*.e2e.ts`
 
 ## 빌드 및 배포
 
@@ -168,8 +168,8 @@ pnpm preview
 
 ### 개발 환경 포트
 
-- 개발 서버: http://localhost:3011
-- 미리보기 서버: http://localhost:4174
+-   개발 서버: http://localhost:3011
+-   미리보기 서버: http://localhost:4174
 
 ### 환경 변수
 
