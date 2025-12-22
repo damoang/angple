@@ -38,11 +38,70 @@ docker compose up -d admin
 
 Access at: http://localhost:3011
 
-## Production
+## Production Deployment
+
+### Prerequisites
+
+1. **Backend Network Setup**
+
+   This project requires `angple-backend` to be running first to create the shared Docker network:
+
+   ```bash
+   # 1. Start angple-backend (creates angple-network)
+   cd ../angple-backend
+   docker compose up -d
+
+   # 2. Verify network exists
+   docker network ls | grep angple-network
+   ```
+
+2. **Environment Configuration**
+
+   - `.env.production` - Production environment (SSR enabled)
+   - `.env.staging` - Staging environment (SSR enabled)
+   - `.env` - Local development (CSR, Mock data)
+
+### Deployment Steps
 
 ```bash
-docker compose up -f compose.yml -d
+# 1. Build and start frontend containers
+docker compose -f compose.yml up -d
+
+# 2. Check container status
+docker ps | grep angple
+
+# 3. View logs
+docker compose logs -f web
 ```
+
+### Network Architecture
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    angple-network                        │
+│  (Created by angple-backend/docker-compose.yml)         │
+├─────────────────────────────────────────────────────────┤
+│                                                          │
+│  angple-gateway:8080  ←─ INTERNAL_API_URL (SSR only)   │
+│         ↓                                                │
+│  angple-api:8081                                         │
+│         ↓                                                │
+│  angple-mysql:3307                                       │
+│                                                          │
+│  angple-web:80 (port 3010)                              │
+│  angple-admin:80 (port 3011)                            │
+│                                                          │
+└─────────────────────────────────────────────────────────┘
+
+Browser → PUBLIC_API_URL (https://api.damoang.net) → Backend
+SSR Server → INTERNAL_API_URL (http://angple-gateway:8080) → Backend (무료)
+```
+
+### SSR Benefits
+
+- **SEO**: Complete HTML for search engines
+- **Performance**: Faster initial page load
+- **Traffic Cost**: Internal Docker network (free) vs external API calls (paid)
 
 ## Project Structure
 
