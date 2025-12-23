@@ -12,11 +12,9 @@
     };
 
     let adsenseLoaded = $state(false);
-    let stickyContainer: HTMLElement;
 
     onMount(() => {
         loadAdsense();
-        initStickyAds();
     });
 
     function loadAdsense() {
@@ -51,66 +49,6 @@
         }, 100);
     }
 
-    // Sticky 광고 기능 (ang-gnu sidebar.php 동일)
-    function initStickyAds() {
-        if (!browser || !stickyContainer) return;
-
-        let originalTop = 0;
-        let isFixed = false;
-        const headerOffset = 120;
-        const bottomMargin = 100;
-        const minWidthForSticky = 1024; // lg breakpoint
-
-        function clearStickyStyles() {
-            if (!stickyContainer) return;
-            stickyContainer.style.position = '';
-            stickyContainer.style.top = '';
-            stickyContainer.style.width = '';
-            stickyContainer.style.zIndex = '';
-            isFixed = false;
-        }
-
-        function updateAdPosition() {
-            if (!stickyContainer) return;
-
-            // lg 미만에서는 sticky 비활성화
-            if (window.innerWidth < minWidthForSticky) {
-                if (isFixed) clearStickyStyles();
-                return;
-            }
-
-            if (!originalTop) {
-                originalTop = stickyContainer.getBoundingClientRect().top + window.pageYOffset;
-            }
-
-            const scrollTop = window.pageYOffset;
-            const documentHeight = document.documentElement.scrollHeight;
-            const containerHeight = stickyContainer.offsetHeight;
-
-            const shouldBeFixed = scrollTop > originalTop - headerOffset;
-            const adBottomPosition = scrollTop + headerOffset + containerHeight;
-            const reachedBottom = adBottomPosition > documentHeight - bottomMargin;
-
-            if (shouldBeFixed && !reachedBottom && !isFixed) {
-                stickyContainer.style.position = 'fixed';
-                stickyContainer.style.top = headerOffset + 'px';
-                stickyContainer.style.width = '288px';
-                stickyContainer.style.zIndex = '100';
-                isFixed = true;
-            } else if ((!shouldBeFixed || reachedBottom) && isFixed) {
-                clearStickyStyles();
-            }
-        }
-
-        window.addEventListener('scroll', updateAdPosition, { passive: true });
-        window.addEventListener('resize', () => {
-            originalTop = 0;
-            clearStickyStyles();
-            updateAdPosition();
-        });
-
-        setTimeout(updateAdPosition, 100);
-    }
 </script>
 
 <div class="flex flex-col gap-4 p-4">
@@ -193,9 +131,8 @@
 
     <!-- Sticky 광고 컨테이너 (PC 전용) -->
     <div
-        bind:this={stickyContainer}
-        class="hidden flex-col gap-4 lg:flex"
-        style="margin-bottom: 20px; max-width: 100%; overflow: hidden;"
+        class="hidden flex-col gap-4 lg:flex lg:sticky"
+        style="top: 120px; margin-bottom: 20px; max-width: 288px;"
     >
         <!-- Square 배너 (280×280) -->
         <div>
