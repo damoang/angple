@@ -48,7 +48,6 @@
             }
         }, 100);
     }
-
 </script>
 
 <div class="flex flex-col gap-4 p-4">
@@ -131,7 +130,7 @@
 
     <!-- Sticky 광고 컨테이너 (PC 전용) -->
     <div
-        class="hidden flex-col gap-4 lg:flex lg:sticky"
+        class="hidden flex-col gap-4 lg:sticky lg:flex"
         style="top: 120px; margin-bottom: 20px; max-width: 288px;"
     >
         <!-- Square 배너 (280×280) -->
