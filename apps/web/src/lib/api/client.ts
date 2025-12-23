@@ -59,16 +59,21 @@ class ApiClient {
             const mockSetting = localStorage.getItem('damoang_use_mock');
 
             // 로컬 개발 환경(localhost)에서는 기본값 true
+            // 운영 환경(damoang.dev, damoang.net)에서는 기본값 false
             const isLocalDev =
                 window.location.hostname === 'localhost' ||
                 window.location.hostname === '127.0.0.1';
 
-            if (mockSetting === null) {
-                // localStorage에 설정이 없으면: 로컬은 true, 운영은 false
-                this.useMock = isLocalDev;
-                localStorage.setItem('damoang_use_mock', isLocalDev.toString());
+            const isProduction =
+                window.location.hostname.includes('damoang.dev') ||
+                window.location.hostname.includes('damoang.net');
+
+            if (mockSetting === null || isProduction) {
+                // localStorage에 설정이 없거나 운영 환경이면: 로컬은 true, 운영은 false
+                this.useMock = isLocalDev && !isProduction;
+                localStorage.setItem('damoang_use_mock', this.useMock.toString());
             } else {
-                // localStorage 설정 우선
+                // localStorage 설정 우선 (개발 환경에서만)
                 this.useMock = mockSetting !== 'false';
             }
         }
@@ -280,7 +285,8 @@ class ApiClient {
                 '48h': '48hours'
             };
             const fileName = periodMap[period] || period;
-            const response = await fetch(`/api/v2/recommended/${fileName}`);
+            // static/data/cache/recommended/ai_1hour.json 형식으로 저장됨
+            const response = await fetch(`/data/cache/recommended/ai_${fileName}.json`);
             if (!response.ok) {
                 throw new Error(`AI 추천 글 데이터 로드 실패: ${period}`);
             }
