@@ -10,6 +10,7 @@
     import RightBanner from '$lib/components/layout/right-banner.svelte';
     import PodcastPlayer from '$lib/components/ui/podcast-player/podcast-player.svelte';
     import { authActions } from '$lib/stores/auth.svelte';
+    import { hooks } from '@angple/hook-system';
 
     const { children } = $props(); // Svelte 5
     let snbPosition = $state<'left' | 'right'>('left'); // 기본값
@@ -30,6 +31,37 @@
     }
 
     onMount(() => {
+        // 🎯 Hook 시스템 테스트
+        console.log('🎯 Hook 시스템 초기화...');
+
+        // Action 등록 - 페이지 로드 시
+        hooks.addAction('page_loaded', () => {
+            console.log('✅ Action 실행: 페이지가 로드되었습니다!');
+        }, 10);
+
+        hooks.addAction('page_loaded', () => {
+            console.log('✅ Action 실행: 두 번째 콜백 (priority 20)');
+        }, 20);
+
+        // Filter 등록 - 페이지 제목 변환
+        hooks.addFilter('page_title', (title: string) => {
+            console.log('🔄 Filter 실행: 제목 변환 중...', title);
+            return `[Angple] ${title}`;
+        }, 10);
+
+        // Action 실행
+        hooks.doAction('page_loaded');
+
+        // Filter 적용
+        const originalTitle = '다모앙';
+        const filteredTitle = hooks.applyFilters('page_title', originalTitle);
+        console.log('📝 필터 적용 결과:', filteredTitle);
+        document.title = filteredTitle;
+
+        // 등록된 Hook 조회
+        const registered = hooks.getRegisteredHooks();
+        console.log('📋 등록된 Hooks:', registered);
+
         // 인증 상태 초기화
         authActions.initAuth();
 

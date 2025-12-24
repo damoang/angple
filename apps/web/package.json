@@ -6,7 +6,9 @@
     "scripts": {
         "dev": "vite dev",
         "build": "vite build",
+        "build:static": "ADAPTER=static vite build",
         "preview": "vite preview",
+        "preview:static": "ADAPTER=static vite build && vite preview",
         "prepare": "svelte-kit sync || echo ''",
         "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
         "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
@@ -55,6 +57,7 @@
         ]
     },
     "dependencies": {
+        "@angple/hook-system": "workspace:*",
         "bits-ui": "^2.14.2"
     }
 }
