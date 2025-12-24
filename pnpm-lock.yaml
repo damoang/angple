@@ -152,6 +152,12 @@ importers:
       '@angple/hook-system':
         specifier: workspace:*
         version: link:../../packages/hook-system
+      '@angple/theme-engine':
+        specifier: workspace:*
+        version: link:../../packages/theme-engine
+      '@angple/types':
+        specifier: workspace:*
+        version: link:../../packages/types
       bits-ui:
         specifier: ^2.14.2
         version: 2.14.4(@internationalized/date@3.10.1)(@sveltejs/kit@2.49.2(@sveltejs/vite-plugin-svelte@6.2.1(svelte@5.46.0)(vite@7.3.0(jiti@2.6.1)(lightningcss@1.30.2)(yaml@2.8.2)))(svelte@5.46.0)(vite@7.3.0(jiti@2.6.1)(lightningcss@1.30.2)(yaml@2.8.2)))(svelte@5.46.0)
@@ -258,6 +264,28 @@ importers:
       vitest:
         specifier: ^3.2.3
         version: 3.2.4(@vitest/browser@3.2.4)(jiti@2.6.1)(lightningcss@1.30.2)(yaml@2.8.2)
+
+  packages/theme-engine:
+    dependencies:
+      '@angple/hook-system':
+        specifier: workspace:*
+        version: link:../hook-system
+      '@angple/types':
+        specifier: workspace:*
+        version: link:../types
+    devDependencies:
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: ^3.2.3
+        version: 3.2.4(@vitest/browser@3.2.4)(jiti@2.6.1)(lightningcss@1.30.2)(yaml@2.8.2)
+
+  packages/types:
+    devDependencies:
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
 
 packages:
 

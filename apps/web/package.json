@@ -58,6 +58,8 @@
     },
     "dependencies": {
         "@angple/hook-system": "workspace:*",
+        "@angple/theme-engine": "workspace:*",
+        "@angple/types": "workspace:*",
         "bits-ui": "^2.14.2"
     }
 }
