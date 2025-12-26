@@ -1,12 +1,13 @@
 import { mockThemes } from '$lib/data';
 import type { ThemeWithStatus, ThemeAction } from '$lib/types';
 import { toast } from 'svelte-sonner';
+import * as themesApi from '$lib/api/themes';
 
 /**
  * 테마 관리 Store (Svelte 5 Rune 모드)
  *
- * Mock 데이터 기반으로 테마 목록, 활성화/비활성화 등을 관리합니다.
- * Phase 4에서 실제 API로 교체될 예정입니다.
+ * Web API를 통해 테마 활성화를 실제로 적용합니다.
+ * 나머지 기능은 Mock 데이터 기반입니다.
  */
 class ThemeStore {
 	/** 테마 목록 */
@@ -34,25 +35,24 @@ class ThemeStore {
 
 	/**
 	 * 테마 활성화
-	 * - 기존 활성화된 테마는 비활성화
-	 * - 선택한 테마를 활성화
+	 * - Web API를 호출하여 실제 테마 활성화
+	 * - 로컬 상태도 동기화
 	 */
 	async activateTheme(themeId: string) {
 		this.isLoading = true;
 		this.currentAction = { themeId, action: 'activate' };
 
 		try {
-			// Mock API 호출 시뮬레이션 (200ms 지연)
-			await new Promise((resolve) => setTimeout(resolve, 200));
+			// Web API 호출 → settings.json 업데이트
+			await themesApi.setActiveTheme(themeId);
 
-			// 기존 활성화된 테마 비활성화
+			// 로컬 상태 동기화
 			const currentActive = this.activeTheme;
 			if (currentActive) {
 				currentActive.status = 'inactive';
 				currentActive.activatedAt = undefined;
 			}
 
-			// 새 테마 활성화
 			const theme = this.getThemeById(themeId);
 			if (theme) {
 				theme.status = 'active';
@@ -61,7 +61,7 @@ class ThemeStore {
 			}
 		} catch (error) {
 			console.error('테마 활성화 실패:', error);
-			toast.error('테마 활성화에 실패했습니다.');
+			toast.error('테마 활성화에 실패했습니다. Web 앱이 실행 중인지 확인하세요.');
 		} finally {
 			this.isLoading = false;
 			this.currentAction = null;
