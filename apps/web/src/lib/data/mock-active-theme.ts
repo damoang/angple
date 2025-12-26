@@ -74,21 +74,45 @@ export const mockActiveTheme: ActiveTheme = {
 };
 
 /**
- * 활성화된 테마 가져오기 (API 시뮬레이션)
+ * 활성화된 테마 가져오기 (실제 API 호출)
  */
 export async function fetchActiveTheme(): Promise<ActiveTheme | null> {
-	// Mock API 호출 시뮬레이션 (300ms 지연)
-	await new Promise((resolve) => setTimeout(resolve, 300));
+	try {
+		const response = await fetch('/api/themes/active');
+		if (!response.ok) {
+			console.error('활성 테마 조회 실패:', response.status);
+			return null;
+		}
 
-	// localStorage에서 Mock 모드 확인
-	const useMock =
-		typeof window !== 'undefined' &&
-		window.localStorage.getItem('damoang_use_mock') !== 'false';
+		const data = await response.json();
+		const themeId = data.activeTheme;
 
-	if (!useMock) {
-		// 실제 API 호출 (Phase 4에서 구현)
-		console.warn('⚠️ 실제 API 미구현 - Mock 데이터 반환');
+		if (!themeId) {
+			return null;
+		}
+
+		// 현재는 themeId만 받아서 Mock 매니페스트 사용
+		// TODO: 실제로는 테마 매니페스트도 API에서 가져와야 함
+		if (themeId === 'sample-theme') {
+			return mockActiveTheme;
+		}
+
+		// 다른 테마는 기본 구조만 반환
+		return {
+			manifest: {
+				id: themeId,
+				name: themeId,
+				version: '1.0.0',
+				author: { name: 'Unknown', email: '' },
+				description: '',
+				angpleVersion: '0.1.0',
+				tags: []
+			},
+			activatedAt: new Date(),
+			currentSettings: {}
+		};
+	} catch (error) {
+		console.error('테마 API 호출 에러:', error);
+		return null;
 	}
-
-	return mockActiveTheme;
 }
