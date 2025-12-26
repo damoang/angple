@@ -9,13 +9,18 @@
     import LeftBanner from '$lib/components/layout/left-banner.svelte';
     import RightBanner from '$lib/components/layout/right-banner.svelte';
     import PodcastPlayer from '$lib/components/ui/podcast-player/podcast-player.svelte';
+    import SampleThemeLayout from '$lib/themes/sample-theme/layouts/main-layout.svelte';
     import { authActions } from '$lib/stores/auth.svelte';
+    import { themeStore } from '$lib/stores/theme.svelte';
 
     const { children } = $props(); // Svelte 5
     let snbPosition = $state<'left' | 'right'>('left'); // 기본값
 
     let isBannerUp = $state(false);
     let lastScrollY = $state(0);
+
+    // 현재 활성 테마
+    const activeTheme = $derived(themeStore.currentTheme.activeTheme);
 
     function handleScroll() {
         const currentScrollY = window.scrollY;
@@ -30,13 +35,31 @@
     }
 
     onMount(() => {
+        // 테마 로드
+        themeStore.loadActiveTheme();
+
         // 인증 상태 초기화
         authActions.initAuth();
 
+        // 스크롤 이벤트
         window.addEventListener('scroll', handleScroll, { passive: true });
+
+        // postMessage 리스너 (Admin에서 테마 변경 시 리로드)
+        function handleMessage(event: MessageEvent) {
+            // 보안: localhost에서만 허용
+            if (!event.origin.includes('localhost')) return;
+
+            if (event.data?.type === 'reload-theme') {
+                console.log('🔄 테마 리로드 요청 받음');
+                themeStore.loadActiveTheme();
+            }
+        }
+
+        window.addEventListener('message', handleMessage);
 
         return () => {
             window.removeEventListener('scroll', handleScroll);
+            window.removeEventListener('message', handleMessage);
         };
     });
 </script>
@@ -49,18 +72,25 @@
     <script async src="https://ads.damoang.net/ad.js"></script>
 </svelte:head>
 
-<div class="relative flex min-h-screen flex-col items-center">
-    <!-- 배경 박스 -->
-    {#if snbPosition === 'left'}
-        <div class="snb-backdrop-left"></div>
-    {:else if snbPosition === 'right'}
-        <div class="snb-backdrop-right"></div>
-    {/if}
+<!-- 테마별 완전한 레이아웃 전환 -->
+{#if activeTheme === 'sample-theme'}
+    <SampleThemeLayout>
+        {@render children()}
+    </SampleThemeLayout>
+{:else}
+    <!-- 기본 레이아웃 -->
+    <div class="relative flex min-h-screen flex-col items-center">
+        <!-- 배경 박스 -->
+        {#if snbPosition === 'left'}
+            <div class="snb-backdrop-left"></div>
+        {:else if snbPosition === 'right'}
+            <div class="snb-backdrop-right"></div>
+        {/if}
 
-    <div class="container relative z-10 flex w-full flex-1 flex-col">
-        <Header />
+        <div class="container relative z-10 flex w-full flex-1 flex-col">
+            <Header />
 
-        <div class="mx-auto flex w-full flex-1">
+            <div class="mx-auto flex w-full flex-1">
             {#if snbPosition === 'right'}
                 <aside
                     class="bg-subtle border-border my-5 hidden w-[320px] flex-shrink-0 rounded-md border lg:block"
@@ -120,4 +150,5 @@
 
     <!-- 팟캐스트 플레이어 (항상 마운트, 위치만 변경) -->
     <PodcastPlayer />
-</div>
+    </div>
+{/if}
