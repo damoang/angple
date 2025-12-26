@@ -7,14 +7,60 @@ import type { ThemeWithStatus } from '$lib/types/theme';
 export const mockThemes: ThemeWithStatus[] = [
 	{
 		manifest: {
+			id: 'damoang-classic',
+			name: 'Damoang Classic',
+			version: '1.0.0',
+			author: {
+				name: 'Damoang Team',
+				email: 'team@damoang.net'
+			},
+			description: '다모앙의 기본 레이아웃 테마입니다. 2단 레이아웃과 윙 배너를 포함합니다.',
+			screenshot: '/themes/damoang-classic/screenshot.png',
+			settings: {
+				appearance: {
+					primaryColor: {
+						label: 'Primary Color',
+						type: 'color',
+						default: '#3b82f6'
+					},
+					secondaryColor: {
+						label: 'Secondary Color',
+						type: 'color',
+						default: '#8b5cf6'
+					},
+					showBanner: {
+						label: 'Show Wing Banners',
+						type: 'boolean',
+						default: true
+					}
+				}
+			},
+			angpleVersion: '0.1.0',
+			tags: ['default', 'classic', 'layout']
+		},
+		status: 'active',
+		installedAt: new Date('2024-12-20'),
+		activatedAt: new Date('2024-12-20'),
+		currentSettings: {
+			appearance: {
+				primaryColor: '#3b82f6',
+				secondaryColor: '#8b5cf6',
+				showBanner: true
+			}
+		},
+		source: 'builtin',
+		downloadCount: 0
+	},
+	{
+		manifest: {
 			id: 'sample-theme',
-			name: 'Sample Theme',
+			name: 'Sample Blue Theme',
 			version: '1.0.0',
 			author: {
 				name: 'Angple Team',
 				email: 'team@angple.com'
 			},
-			description: '테마 시스템 테스트용 샘플 테마입니다. 기본 Hook과 컴포넌트를 포함합니다.',
+			description: '파란색 심플 레이아웃 테마입니다. 깔끔한 1단 구조를 제공합니다.',
 			screenshot: '/themes/sample-theme/screenshot.png',
 			hooks: [
 				{
@@ -56,9 +102,8 @@ export const mockThemes: ThemeWithStatus[] = [
 			angpleVersion: '0.1.0',
 			tags: ['sample', 'test', 'basic']
 		},
-		status: 'active',
+		status: 'inactive',
 		installedAt: new Date('2024-12-20'),
-		activatedAt: new Date('2024-12-20'),
 		currentSettings: {
 			appearance: {
 				primaryColor: '#3b82f6',

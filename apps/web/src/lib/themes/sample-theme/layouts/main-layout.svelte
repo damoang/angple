@@ -46,15 +46,6 @@
 
 		<!-- Page Content -->
 		<main class="min-w-0 flex-1">
-			<!-- 테마 배너 -->
-			<div class="mb-6 rounded-lg border-2 border-blue-600 bg-blue-50 p-4">
-				<h2 class="mb-2 text-lg font-bold text-blue-900">🎨 Sample Theme 활성화됨</h2>
-				<p class="text-sm text-blue-700">
-					이 페이지는 Sample Theme의 레이아웃을 사용하고 있습니다.<br />
-					Admin 대시보드에서 테마를 비활성화하면 기본 레이아웃으로 전환됩니다.
-				</p>
-			</div>
-
 			<!-- 실제 페이지 콘텐츠 -->
 			{@render children()}
 		</main>

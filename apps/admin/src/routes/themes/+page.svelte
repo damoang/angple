@@ -121,7 +121,14 @@
 					<!-- 액션 버튼 -->
 					<div class="flex gap-2">
 						{#if theme.status === 'active'}
-							<Button variant="outline" size="sm" class="flex-1">설정</Button>
+							<Button
+								variant="outline"
+								size="sm"
+								class="flex-1"
+								href={`/themes/${theme.manifest.id}/settings`}
+							>
+								설정
+							</Button>
 							<Button
 								variant="outline"
 								size="sm"
@@ -132,7 +139,7 @@
 								{themeStore.isActionInProgress(theme.manifest.id, 'deactivate')
 									? '처리 중...'
 									: '비활성화'}
-							</Button>
+			</Button>
 						{:else if theme.status === 'inactive'}
 							<Button
 								size="sm"
@@ -144,7 +151,14 @@
 									? '처리 중...'
 									: '활성화'}
 							</Button>
-							<Button variant="outline" size="sm" class="flex-1">설정</Button>
+							<Button
+								variant="outline"
+								size="sm"
+								class="flex-1"
+								href={`/themes/${theme.manifest.id}/settings`}
+							>
+								설정
+							</Button>
 						{:else if theme.status === 'installing'}
 							<Button disabled size="sm" class="flex-1">설치 중...</Button>
 						{:else if theme.status === 'error'}
