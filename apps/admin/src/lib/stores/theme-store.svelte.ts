@@ -1,4 +1,3 @@
-import { mockThemes } from '$lib/data';
 import type { ThemeWithStatus, ThemeAction } from '$lib/types';
 import { toast } from 'svelte-sonner';
 import * as themesApi from '$lib/api/themes';
@@ -6,18 +5,34 @@ import * as themesApi from '$lib/api/themes';
 /**
  * 테마 관리 Store (Svelte 5 Rune 모드)
  *
- * Web API를 통해 테마 활성화를 실제로 적용합니다.
- * 나머지 기능은 Mock 데이터 기반입니다.
+ * Web API를 통해 실제 파일 시스템에서 테마를 로드하고 관리합니다.
  */
 class ThemeStore {
 	/** 테마 목록 */
-	themes = $state<ThemeWithStatus[]>(mockThemes);
+	themes = $state<ThemeWithStatus[]>([]);
 
 	/** 로딩 상태 */
 	isLoading = $state(false);
 
 	/** 현재 진행 중인 액션 */
 	currentAction = $state<{ themeId: string; action: ThemeAction } | null>(null);
+
+	/**
+	 * Web API에서 테마 목록 로드
+	 */
+	async loadThemes() {
+		this.isLoading = true;
+		try {
+			this.themes = await themesApi.getThemes();
+			console.log(`✅ ${this.themes.length}개 테마 로드됨`);
+		} catch (error) {
+			console.error('❌ 테마 목록 로드 실패:', error);
+			toast.error('테마 목록을 불러오지 못했습니다. Web 앱이 실행 중인지 확인하세요.');
+			this.themes = [];
+		} finally {
+			this.isLoading = false;
+		}
+	}
 
 	/**
 	 * 활성화된 테마 가져오기

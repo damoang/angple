@@ -2,6 +2,7 @@
     import '../app.css';
     import favicon from '$lib/assets/favicon.png';
     import { onMount } from 'svelte';
+    import type { Component } from 'svelte';
     import Header from '$lib/components/layout/header.svelte';
     import Sidebar from '$lib/components/layout/sidebar.svelte';
     import Panel from '$lib/components/layout/panel.svelte';
@@ -9,9 +10,10 @@
     import LeftBanner from '$lib/components/layout/left-banner.svelte';
     import RightBanner from '$lib/components/layout/right-banner.svelte';
     import PodcastPlayer from '$lib/components/ui/podcast-player/podcast-player.svelte';
-    import SampleThemeLayout from '$lib/themes/sample-theme/layouts/main-layout.svelte';
     import { authActions } from '$lib/stores/auth.svelte';
     import { themeStore } from '$lib/stores/theme.svelte';
+    import { loadThemeHooks } from '$lib/hooks/theme-loader';
+    import { getComponentsForSlot } from '$lib/components/slot-manager';
 
     const { children } = $props(); // Svelte 5
     let snbPosition = $state<'left' | 'right'>('left'); // 기본값
@@ -21,6 +23,40 @@
 
     // 현재 활성 테마
     const activeTheme = $derived(themeStore.currentTheme.activeTheme);
+
+    // 동적으로 로드된 테마 레이아웃 컴포넌트
+    let ThemeLayout = $state<Component | null>(null);
+
+    // Vite의 import.meta.glob으로 모든 테마 레이아웃 패턴 정의
+    const themeLayouts = import.meta.glob('/themes/*/layouts/main-layout.svelte');
+
+    /**
+     * 테마 레이아웃 동적 로드
+     */
+    async function loadThemeLayout(themeId: string | null) {
+        if (!themeId) {
+            ThemeLayout = null;
+            return;
+        }
+
+        try {
+            const layoutPath = `/themes/${themeId}/layouts/main-layout.svelte`;
+
+            // glob 패턴에 매칭되는 경로가 있는지 확인
+            if (layoutPath in themeLayouts) {
+                const module = await themeLayouts[layoutPath]() as any;
+                ThemeLayout = module.default;
+                console.log(`✅ [Layout] 테마 레이아웃 로드: ${themeId}`);
+            } else {
+                // 테마 레이아웃이 없으면 기본 레이아웃 사용
+                ThemeLayout = null;
+                console.log(`ℹ️ [Layout] 테마 레이아웃 없음, 기본 레이아웃 사용: ${themeId}`);
+            }
+        } catch (error) {
+            console.error(`❌ [Layout] 테마 레이아웃 로드 실패: ${themeId}`, error);
+            ThemeLayout = null;
+        }
+    }
 
     function handleScroll() {
         const currentScrollY = window.scrollY;
@@ -33,6 +69,16 @@
 
         lastScrollY = currentScrollY;
     }
+
+    // activeTheme 변경 시 자동으로 레이아웃 및 Hook 로드
+    $effect(() => {
+        loadThemeLayout(activeTheme);
+
+        // 테마 Hook 로드
+        if (activeTheme) {
+            loadThemeHooks(activeTheme);
+        }
+    });
 
     onMount(() => {
         // 테마 로드
@@ -73,10 +119,11 @@
 </svelte:head>
 
 <!-- 테마별 완전한 레이아웃 전환 -->
-{#if activeTheme === 'sample-theme'}
-    <SampleThemeLayout>
+{#if ThemeLayout}
+    <!-- 동적으로 로드된 테마 레이아웃 (Svelte 5: 컴포넌트 변수 직접 사용) -->
+    <ThemeLayout>
         {@render children()}
-    </SampleThemeLayout>
+    </ThemeLayout>
 {:else}
     <!-- 기본 레이아웃 -->
     <div class="relative flex min-h-screen flex-col items-center">
@@ -88,7 +135,19 @@
         {/if}
 
         <div class="container relative z-10 flex w-full flex-1 flex-col">
+            <!-- Slot: header-before -->
+            {#each getComponentsForSlot('header-before') as slotComp (slotComp.id)}
+                {@const Component = slotComp.component}
+                <Component {...(slotComp.props || {})} />
+            {/each}
+
             <Header />
+
+            <!-- Slot: header-after -->
+            {#each getComponentsForSlot('header-after') as slotComp (slotComp.id)}
+                {@const Component = slotComp.component}
+                <Component {...(slotComp.props || {})} />
+            {/each}
 
             <div class="mx-auto flex w-full flex-1">
             {#if snbPosition === 'right'}
@@ -108,7 +167,19 @@
             {/if}
 
             <main class="box-content flex-1 overflow-y-auto pt-1 md:py-5 lg:pe-6 2xl:!px-9">
+                <!-- Slot: content-before -->
+                {#each getComponentsForSlot('content-before') as slotComp (slotComp.id)}
+                    {@const Component = slotComp.component}
+                    <Component {...(slotComp.props || {})} />
+                {/each}
+
                 {@render children()}
+
+                <!-- Slot: content-after -->
+                {#each getComponentsForSlot('content-after') as slotComp (slotComp.id)}
+                    {@const Component = slotComp.component}
+                    <Component {...(slotComp.props || {})} />
+                {/each}
             </main>
             {#if snbPosition === 'right'}
                 <aside class="bg-background hidden 2xl:block 2xl:!w-[230px]">
@@ -145,8 +216,20 @@
         <RightBanner />
     </aside>
 
+    <!-- Slot: footer-before -->
+    {#each getComponentsForSlot('footer-before') as slotComp (slotComp.id)}
+        {@const Component = slotComp.component}
+        <Component {...(slotComp.props || {})} />
+    {/each}
+
     <!-- 푸터 -->
     <Footer />
+
+    <!-- Slot: footer-after -->
+    {#each getComponentsForSlot('footer-after') as slotComp (slotComp.id)}
+        {@const Component = slotComp.component}
+        <Component {...(slotComp.props || {})} />
+    {/each}
 
     <!-- 팟캐스트 플레이어 (항상 마운트, 위치만 변경) -->
     <PodcastPlayer />

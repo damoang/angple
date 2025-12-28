@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import { themeStore } from '$lib/stores/theme-store.svelte';
 	import { Badge } from '$lib/components/ui/badge';
 	import { Button } from '$lib/components/ui/button';
@@ -7,6 +8,11 @@
 
 	// Store에서 테마 목록 가져오기
 	const themes = $derived(themeStore.themes);
+
+	// 페이지 로드 시 Web API에서 테마 목록 가져오기
+	onMount(() => {
+		themeStore.loadThemes();
+	});
 
 	// 상태별 Badge variant 매핑
 	function getStatusVariant(status: string) {

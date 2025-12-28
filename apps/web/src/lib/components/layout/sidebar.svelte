@@ -42,6 +42,7 @@
     import Apple from '@lucide/svelte/icons/apple';
 
     import UserWidget from './user-widget.svelte';
+    import { getComponentsForSlot } from '$lib/components/slot-manager';
 
     // Icon mapping object
     const iconMap: Record<string, typeof Circle> = {
@@ -102,6 +103,12 @@
     data-collapsed={isCollapsed}
     class="group flex h-full flex-col gap-4 overflow-y-auto py-2 pe-3 data-[collapsed=true]:py-2"
 >
+    <!-- Slot: sidebar-left-top -->
+    {#each getComponentsForSlot('sidebar-left-top') as slotComp (slotComp.id)}
+        {@const Component = slotComp.component}
+        <Component {...(slotComp.props || {})} />
+    {/each}
+
     <!-- 로그인 위젯 -->
     <div class="px-2">
         <UserWidget />
@@ -180,4 +187,10 @@
             </Accordion>
         {/if}
     </nav>
+
+    <!-- Slot: sidebar-left-bottom -->
+    {#each getComponentsForSlot('sidebar-left-bottom') as slotComp (slotComp.id)}
+        {@const Component = slotComp.component}
+        <Component {...(slotComp.props || {})} />
+    {/each}
 </div>

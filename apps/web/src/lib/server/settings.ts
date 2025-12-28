@@ -53,6 +53,25 @@ export async function writeSettings(settings: ThemeSettings): Promise<void> {
 }
 
 /**
+ * 테마 설정 제거
+ */
+export async function removeThemeSettings(themeId: string): Promise<void> {
+	try {
+		const settings = await readSettings();
+		
+		// themes 객체에서 해당 테마 제거
+		if (settings.themes[themeId]) {
+			delete settings.themes[themeId];
+			await writeSettings(settings);
+			console.log(`✅ [Settings] 테마 설정 제거: ${themeId}`);
+		}
+	} catch (error) {
+		console.error(`❌ [Settings] 테마 설정 제거 실패: ${themeId}`, error);
+		throw error;
+	}
+}
+
+/**
  * 활성 테마 설정
  */
 export async function setActiveTheme(themeId: string): Promise<void> {

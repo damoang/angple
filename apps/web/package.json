@@ -31,6 +31,7 @@
         "@tailwindcss/forms": "^0.5.9",
         "@tailwindcss/typography": "^0.5.15",
         "@tailwindcss/vite": "^4.0.0",
+        "@types/adm-zip": "^0.5.7",
         "@types/node": "^25.0.3",
         "@vitest/browser": "^3.2.3",
         "clsx": "^2.1.1",
@@ -61,6 +62,9 @@
         "@angple/hook-system": "workspace:*",
         "@angple/theme-engine": "workspace:*",
         "@angple/types": "workspace:*",
-        "bits-ui": "^2.14.2"
+        "adm-zip": "^0.5.16",
+        "bits-ui": "^2.14.2",
+        "simple-git": "^3.30.0",
+        "zod": "^4.2.1"
     }
 }

@@ -4,8 +4,27 @@
  * Admin에서 Web의 테마 설정을 원격 제어합니다.
  */
 
+import type { ThemeWithStatus } from '$lib/types';
+
 // Web 앱 API 기본 URL (환경변수로 설정 가능)
 const WEB_API_BASE_URL = import.meta.env.VITE_WEB_API_URL || 'http://localhost:5173';
+
+/**
+ * 설치된 모든 테마 목록 조회
+ */
+export async function getThemes(): Promise<ThemeWithStatus[]> {
+	try {
+		const response = await fetch(`${WEB_API_BASE_URL}/api/themes`);
+		if (!response.ok) {
+			throw new Error(`HTTP ${response.status}`);
+		}
+		const data = await response.json();
+		return data.themes;
+	} catch (error) {
+		console.error('❌ 테마 목록 조회 실패:', error);
+		throw error;
+	}
+}
 
 /**
  * 현재 활성화된 테마 ID 조회
