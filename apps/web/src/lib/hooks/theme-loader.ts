@@ -37,7 +37,9 @@ export async function loadThemeHooks(themeId: string, manifest?: ThemeManifest):
         if (!manifest) {
             try {
                 // Vite requires relative paths for dynamic imports
-                const manifestModule = await import(/* @vite-ignore */ `../../../../../../themes/${themeId}/theme.json`);
+                const manifestModule = await import(
+                    /* @vite-ignore */ `../../../../../../themes/${themeId}/theme.json`
+                );
                 manifest = manifestModule.default || manifestModule;
             } catch (error) {
                 console.error(`❌ [Hook Loader] Failed to load theme.json for ${themeId}:`, error);
