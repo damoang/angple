@@ -12,9 +12,10 @@ env:
   NODE_VERSION: "24.11.1"
 
 jobs:
-  # Lint 검사
+  # Lint 검사 (push only - PR은 prettier-suggester + eslint-review 사용)
   lint:
     name: Lint (${{ matrix.app }})
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     strategy:
       matrix:
