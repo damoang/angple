@@ -23,7 +23,7 @@ import { hooks } from '@angple/hook-system';
 
 // Action 등록
 hooks.addAction('page_loaded', () => {
-	console.log('Page loaded!');
+    console.log('Page loaded!');
 });
 
 // Action 실행
@@ -39,7 +39,7 @@ import { hooks } from '@angple/hook-system';
 
 // Filter 등록
 hooks.addFilter('post_title', (title) => {
-	return title.toUpperCase();
+    return title.toUpperCase();
 });
 
 // Filter 적용
@@ -89,30 +89,30 @@ console.log(count); // 3
 
 ### Actions
 
-- `before_page_render` - 페이지 렌더링 직전
-- `after_page_render` - 페이지 렌더링 직후
-- `before_component_mount` - 컴포넌트 마운트 직전
-- `after_component_mount` - 컴포넌트 마운트 직후
-- `post_data_loaded` - 게시글 데이터 로드 완료
-- `comment_data_loaded` - 댓글 데이터 로드 완료
-- `user_data_loaded` - 사용자 데이터 로드 완료
-- `before_post_submit` - 게시글 제출 직전
-- `after_post_submit` - 게시글 제출 직후
-- `before_comment_submit` - 댓글 제출 직전
-- `after_comment_submit` - 댓글 제출 직후
-- `sidebar_widgets_render` - 사이드바 위젯 렌더링
-- `header_menu_render` - 헤더 메뉴 렌더링
-- `footer_content_render` - 푸터 콘텐츠 렌더링
+-   `before_page_render` - 페이지 렌더링 직전
+-   `after_page_render` - 페이지 렌더링 직후
+-   `before_component_mount` - 컴포넌트 마운트 직전
+-   `after_component_mount` - 컴포넌트 마운트 직후
+-   `post_data_loaded` - 게시글 데이터 로드 완료
+-   `comment_data_loaded` - 댓글 데이터 로드 완료
+-   `user_data_loaded` - 사용자 데이터 로드 완료
+-   `before_post_submit` - 게시글 제출 직전
+-   `after_post_submit` - 게시글 제출 직후
+-   `before_comment_submit` - 댓글 제출 직전
+-   `after_comment_submit` - 댓글 제출 직후
+-   `sidebar_widgets_render` - 사이드바 위젯 렌더링
+-   `header_menu_render` - 헤더 메뉴 렌더링
+-   `footer_content_render` - 푸터 콘텐츠 렌더링
 
 ### Filters
 
-- `post_content` - 게시글 내용 변환
-- `comment_content` - 댓글 내용 변환
-- `post_title` - 게시글 제목 변환
-- `sidebar_widgets` - 사이드바 위젯 목록 변환
-- `menu_items` - 메뉴 아이템 목록 변환
-- `api_response` - API 응답 데이터 변환
-- `api_error` - API 에러 변환
+-   `post_content` - 게시글 내용 변환
+-   `comment_content` - 댓글 내용 변환
+-   `post_title` - 게시글 제목 변환
+-   `sidebar_widgets` - 사이드바 위젯 목록 변환
+-   `menu_items` - 메뉴 아이템 목록 변환
+-   `api_response` - API 응답 데이터 변환
+-   `api_error` - API 에러 변환
 
 ## 라이선스
 

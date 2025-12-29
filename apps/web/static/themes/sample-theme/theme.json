@@ -1,51 +1,51 @@
 {
-	"id": "sample-theme",
-	"name": "Sample Theme",
-	"version": "1.0.0",
-	"author": {
-		"name": "Angple Team"
-	},
-	"description": "테마 시스템 테스트용 샘플 테마",
-	"hooks": [
-		{
-			"name": "page_loaded",
-			"type": "action",
-			"callback": "hooks/on-page-load.js",
-			"priority": 15,
-			"description": "페이지 로드 시 환영 메시지 출력"
-		},
-		{
-			"name": "post_title",
-			"type": "filter",
-			"callback": "hooks/filter-post-title.js",
-			"priority": 10,
-			"description": "게시물 제목에 이모지 추가"
-		}
-	],
-	"components": [
-		{
-			"id": "custom-banner",
-			"name": "Custom Banner",
-			"slot": "content-before",
-			"path": "components/banner.svelte",
-			"priority": 5
-		}
-	],
-	"settings": {
-		"appearance": {
-			"primaryColor": {
-				"label": "Primary Color",
-				"description": "Main theme color",
-				"type": "color",
-				"default": "#3b82f6"
-			},
-			"showBanner": {
-				"label": "Show Banner",
-				"description": "Display custom banner on homepage",
-				"type": "boolean",
-				"default": true
-			}
-		}
-	},
-	"tags": ["sample", "test", "demo"]
+    "id": "sample-theme",
+    "name": "Sample Theme",
+    "version": "1.0.0",
+    "author": {
+        "name": "Angple Team"
+    },
+    "description": "테마 시스템 테스트용 샘플 테마",
+    "hooks": [
+        {
+            "name": "page_loaded",
+            "type": "action",
+            "callback": "hooks/on-page-load.js",
+            "priority": 15,
+            "description": "페이지 로드 시 환영 메시지 출력"
+        },
+        {
+            "name": "post_title",
+            "type": "filter",
+            "callback": "hooks/filter-post-title.js",
+            "priority": 10,
+            "description": "게시물 제목에 이모지 추가"
+        }
+    ],
+    "components": [
+        {
+            "id": "custom-banner",
+            "name": "Custom Banner",
+            "slot": "content-before",
+            "path": "components/banner.svelte",
+            "priority": 5
+        }
+    ],
+    "settings": {
+        "appearance": {
+            "primaryColor": {
+                "label": "Primary Color",
+                "description": "Main theme color",
+                "type": "color",
+                "default": "#3b82f6"
+            },
+            "showBanner": {
+                "label": "Show Banner",
+                "description": "Display custom banner on homepage",
+                "type": "boolean",
+                "default": true
+            }
+        }
+    },
+    "tags": ["sample", "test", "demo"]
 }

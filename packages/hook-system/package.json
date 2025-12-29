@@ -1,35 +1,35 @@
 {
-  "name": "@angple/hook-system",
-  "version": "0.1.0",
-  "type": "module",
-  "description": "WordPress-style hook system for Angple (Actions & Filters)",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
-  "files": [
-    "dist"
-  ],
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+    "name": "@angple/hook-system",
+    "version": "0.1.0",
+    "type": "module",
+    "description": "WordPress-style hook system for Angple (Actions & Filters)",
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "files": [
+        "dist"
+    ],
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "import": "./dist/index.js"
+        }
+    },
+    "scripts": {
+        "build": "tsc",
+        "dev": "tsc --watch",
+        "test": "vitest"
+    },
+    "keywords": [
+        "angple",
+        "hooks",
+        "actions",
+        "filters",
+        "plugin-system"
+    ],
+    "author": "Angple Team",
+    "license": "MIT",
+    "devDependencies": {
+        "typescript": "^5.9.3",
+        "vitest": "^3.2.3"
     }
-  },
-  "scripts": {
-    "build": "tsc",
-    "dev": "tsc --watch",
-    "test": "vitest"
-  },
-  "keywords": [
-    "angple",
-    "hooks",
-    "actions",
-    "filters",
-    "plugin-system"
-  ],
-  "author": "Angple Team",
-  "license": "MIT",
-  "devDependencies": {
-    "typescript": "^5.9.3",
-    "vitest": "^3.2.3"
-  }
 }

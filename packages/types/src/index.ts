@@ -4,27 +4,22 @@
 
 // Theme types
 export type {
-	ComponentSlot,
-	ComponentDefinition,
-	ThemeSettings,
-	ThemeManifest,
-	ActiveTheme,
-	ThemeRepository
+    ComponentSlot,
+    ComponentDefinition,
+    ThemeSettings,
+    ThemeManifest,
+    ActiveTheme,
+    ThemeRepository
 } from './theme.js';
 
 // Plugin types
-export type {
-	ApiEndpoint,
-	Migration,
-	PluginManifest,
-	ActivePlugin
-} from './plugin.js';
+export type { ApiEndpoint, Migration, PluginManifest, ActivePlugin } from './plugin.js';
 
 // Hook types
 export type {
-	HookType,
-	HookDefinition,
-	ActionHookPoints,
-	FilterHookPoints,
-	HookContext
+    HookType,
+    HookDefinition,
+    ActionHookPoints,
+    FilterHookPoints,
+    HookContext
 } from './hook.js';

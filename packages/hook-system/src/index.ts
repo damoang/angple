@@ -5,10 +5,10 @@
 
 export { HookManager, hooks } from './hook-manager.js';
 export type {
-	ActionCallback,
-	FilterCallback,
-	Hook,
-	RegisteredHooks,
-	HookPoints,
-	FilterPoints
+    ActionCallback,
+    FilterCallback,
+    Hook,
+    RegisteredHooks,
+    HookPoints,
+    FilterPoints
 } from './types.js';
