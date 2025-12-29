@@ -50,7 +50,7 @@ async function getFileList(dir: string, baseDir: string = dir): Promise<string[]
     for (const entry of entries) {
         const safeName = safeBasename(entry.name);
         // safeName은 safeBasename()으로 검증됨
-        const fullPath = path.join(dir, safeName); // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal
+        const fullPath = path.join(dir, safeName); // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
         const relativePath = path.relative(baseDir, fullPath);
 
         // Symlink 보안 체크
@@ -87,8 +87,8 @@ async function copyDir(src: string, dest: string) {
     for (const entry of entries) {
         const safeName = safeBasename(entry.name);
         // safeName은 safeBasename()으로 검증됨
-        const srcPath = path.join(src, safeName); // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal
-        const destPath = path.join(dest, safeName); // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal
+        const srcPath = path.join(src, safeName); // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
+        const destPath = path.join(dest, safeName); // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
 
         // Symlink 보안 체크
         const stats = await lstat(srcPath);

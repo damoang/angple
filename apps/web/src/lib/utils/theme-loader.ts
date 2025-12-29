@@ -42,7 +42,7 @@ export async function loadThemeLayout(themeId: string): Promise<Component<Layout
         console.warn(`⚠️ 지원하지 않는 테마: ${themeId}`);
         return null;
     } catch (error) {
-        console.error(`❌ 테마 레이아웃 로드 실패: ${themeId}`, error);
+        console.error('❌ 테마 레이아웃 로드 실패:', { themeId, error });
         return null;
     }
 }
@@ -92,7 +92,7 @@ export async function loadThemeStyles(themeId: string): Promise<void> {
 
         console.log(`✅ 테마 스타일 로드: ${themeId}`);
     } catch (error) {
-        console.error(`❌ 테마 스타일 로드 실패: ${themeId}`, error);
+        console.error('❌ 테마 스타일 로드 실패:', { themeId, error });
     }
 }
 
