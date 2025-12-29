@@ -64,23 +64,23 @@ pnpm test:unit src/lib/components/features/recommended/utils/format-number.ts
 
 ### 핵심 기술
 
-- **Svelte 5.0** (Rune 모드 강제 적용)
-- **SvelteKit 2.22** (Full-stack framework)
-- **TypeScript 5.0** (strict mode)
-- **Tailwind CSS 4.0** (유틸리티 기반 스타일링)
-- **Vite 7.0** (개발 서버 및 빌드 도구)
-- **pnpm** (패키지 관리자)
-- **shadcn-svelte** (UI 컴포넌트 시스템)
-- **Lucide** (아이콘 라이브러리)
-- **bits-ui** (Headless UI 컴포넌트)
+-   **Svelte 5.0** (Rune 모드 강제 적용)
+-   **SvelteKit 2.22** (Full-stack framework)
+-   **TypeScript 5.0** (strict mode)
+-   **Tailwind CSS 4.0** (유틸리티 기반 스타일링)
+-   **Vite 7.0** (개발 서버 및 빌드 도구)
+-   **pnpm** (패키지 관리자)
+-   **shadcn-svelte** (UI 컴포넌트 시스템)
+-   **Lucide** (아이콘 라이브러리)
+-   **bits-ui** (Headless UI 컴포넌트)
 
 ### 배포 방식
 
-- **SvelteKit Adapter**: `@sveltejs/adapter-static` (nginx 정적 배포)
-- **Docker**: 멀티 스테이지 빌드 (development/production)
-- **컨테이너 구성**:
-  - `angple-web`: 웹 애플리케이션 (포트 5173 → 80)
-  - `angple-admin`: 관리자 대시보드 (포트 5174 → 80)
+-   **SvelteKit Adapter**: `@sveltejs/adapter-static` (nginx 정적 배포)
+-   **Docker**: 멀티 스테이지 빌드 (development/production)
+-   **컨테이너 구성**:
+    -   `angple-web`: 웹 애플리케이션 (포트 5173 → 80)
+    -   `angple-admin`: 관리자 대시보드 (포트 5174 → 80)
 
 ### 프로젝트 구조
 
@@ -118,6 +118,7 @@ angple/
 이 프로젝트는 `compilerOptions.runes: true`로 설정되어 있어 **Rune 모드가 강제 적용**됩니다.
 
 **상태 관리:**
+
 ```svelte
 <script lang="ts">
     // ✅ Svelte 5 Rune 모드
@@ -131,6 +132,7 @@ angple/
 ```
 
 **이벤트 핸들러:**
+
 ```svelte
 <!-- ❌ 구버전 문법 (deprecated) -->
 <button on:click={handleClick}>클릭</button>
@@ -141,14 +143,15 @@ angple/
 
 ### 파일 및 컴포넌트 네이밍
 
-- **컴포넌트 파일명**: `kebab-case` (예: `economy-post-list.svelte`)
-- **TypeScript 파일**: `kebab-case` 또는 `camelCase`
-- **디렉터리**: `kebab-case`
-- **주석**: 한글로 작성
+-   **컴포넌트 파일명**: `kebab-case` (예: `economy-post-list.svelte`)
+-   **TypeScript 파일**: `kebab-case` 또는 `camelCase`
+-   **디렉터리**: `kebab-case`
+-   **주석**: 한글로 작성
 
 ### 컴포넌트 구조화
 
 **features 디렉터리 구조 예시:**
+
 ```
 components/features/recommended/
 ├── components/               # 하위 컴포넌트
@@ -168,13 +171,15 @@ components/features/recommended/
 ```
 
 **원칙:**
-- 각 feature는 독립적으로 작동
-- `index.ts`로 공개 API 명시
-- 공통 로직은 `utils` 디렉터리로 분리
+
+-   각 feature는 독립적으로 작동
+-   `index.ts`로 공개 API 명시
+-   공통 로직은 `utils` 디렉터리로 분리
 
 ### UI 컴포넌트 시스템
 
 **새 UI 컴포넌트 추가:**
+
 ```bash
 cd apps/web
 pnpm dlx shadcn-svelte@latest add button
@@ -183,6 +188,7 @@ pnpm dlx shadcn-svelte@latest add dialog
 ```
 
 **사용 예시:**
+
 ```svelte
 <script lang="ts">
     import { Button } from '$lib/components/ui/button';
@@ -206,18 +212,21 @@ pnpm dlx shadcn-svelte@latest add dialog
 ## API 클라이언트 아키텍처
 
 ### 위치
-- **파일**: `apps/web/src/lib/api/client.ts`
-- **타입**: `apps/web/src/lib/api/types.ts`
-- **Mock 데이터**: `apps/web/src/lib/api/mock-data.ts`
+
+-   **파일**: `apps/web/src/lib/api/client.ts`
+-   **타입**: `apps/web/src/lib/api/types.ts`
+-   **Mock 데이터**: `apps/web/src/lib/api/mock-data.ts`
 
 ### 특징
 
 **Mock 모드 지원:**
-- 로컬스토리지 `damoang_use_mock` 플래그로 제어
-- 기본값: `true` (개발 편의성)
-- Mock 데이터 응답 시 인위적 지연 추가 (200-300ms)
+
+-   로컬스토리지 `damoang_use_mock` 플래그로 제어
+-   기본값: `true` (개발 편의성)
+-   Mock 데이터 응답 시 인위적 지연 추가 (200-300ms)
 
 **싱글톤 패턴:**
+
 ```typescript
 import { apiClient } from '$lib/api';
 
@@ -233,6 +242,7 @@ const posts = await apiClient.getFreePosts(1, 10);
 ⚠️ **현재 accessToken을 localStorage에 저장** → XSS 공격에 취약
 
 **권장 개선 사항:**
+
 1. `refreshToken` → httpOnly cookie (서버에서만 접근)
 2. `accessToken` → 메모리 저장 (페이지 로드 시마다 재발급)
 3. CSRF 보호 (`SameSite=Strict`)
@@ -243,14 +253,14 @@ const posts = await apiClient.getFreePosts(1, 10);
 
 ### 테스트 프레임워크
 
-- **단위 테스트**: Vitest + @testing-library/svelte
-- **E2E 테스트**: Playwright
-- **브라우저 테스트**: @vitest/browser
+-   **단위 테스트**: Vitest + @testing-library/svelte
+-   **E2E 테스트**: Playwright
+-   **브라우저 테스트**: @vitest/browser
 
 ### 파일 네이밍
 
-- `*.test.ts`, `*.spec.ts` → 단위 테스트
-- `*.e2e.ts` → E2E 테스트
+-   `*.test.ts`, `*.spec.ts` → 단위 테스트
+-   `*.e2e.ts` → E2E 테스트
 
 ### 테스트 실행 흐름
 
@@ -276,10 +286,10 @@ VITE_API_BASE_URL=http://localhost:8080
 
 ### 환경별 포트
 
-- **Web 개발 서버**: http://localhost:5173
-- **Web 미리보기**: http://localhost:4173
-- **Admin 개발 서버**: http://localhost:5174
-- **Admin 미리보기**: http://localhost:4174
+-   **Web 개발 서버**: http://localhost:5173
+-   **Web 미리보기**: http://localhost:4173
+-   **Admin 개발 서버**: http://localhost:5174
+-   **Admin 미리보기**: http://localhost:4174
 
 ## Docker Compose 사용법
 
@@ -311,24 +321,28 @@ docker compose -f compose.yml up -d
 ### 자주 발생하는 문제
 
 **타입 에러:**
+
 ```bash
 pnpm check
 # 오류 수정 후 재검사
 ```
 
 **린트 에러:**
+
 ```bash
 pnpm lint          # 검사
 pnpm format        # 자동 수정
 ```
 
 **캐시 문제:**
+
 ```bash
 rm -rf .svelte-kit node_modules
 pnpm install
 ```
 
 **Docker 볼륨 초기화:**
+
 ```bash
 docker compose down -v
 docker compose up -d --build
@@ -338,9 +352,9 @@ docker compose up -d --build
 
 ### 브랜치 전략
 
-- `main`: 메인 브랜치 (PR 타겟)
-- `feature/*`: 기능 개발 브랜치
-- `fix/*`: 버그 수정 브랜치
+-   `main`: 메인 브랜치 (PR 타겟)
+-   `feature/*`: 기능 개발 브랜치
+-   `fix/*`: 버그 수정 브랜치
 
 ### 커밋 전 체크리스트
 
@@ -353,8 +367,8 @@ pnpm build         # 빌드 검증
 
 ### Husky 훅
 
-- **pre-commit**: `lint-staged` 실행 (ESLint + Prettier)
-- **commit-msg**: `commitlint` 검증
+-   **pre-commit**: `lint-staged` 실행 (ESLint + Prettier)
+-   **commit-msg**: `commitlint` 검증
 
 ## 워크스페이스 관리
 
@@ -383,13 +397,14 @@ pnpm init
 ## MCP 도구 통합
 
 이 프로젝트는 다음 MCP 서버를 지원합니다:
-- **Serena MCP**: 작업 자동화
-- **Context7 MCP**: 라이브러리 문서 참조
-- **Task Manager MCP**: 작업 관리
+
+-   **Serena MCP**: 작업 자동화
+-   **Context7 MCP**: 라이브러리 문서 참조
+-   **Task Manager MCP**: 작업 관리
 
 ## 참고 문서
 
-- SvelteKit 5 공식 문서: https://svelte.dev/docs/kit
-- Tailwind CSS 4 문서: https://tailwindcss.com
-- shadcn-svelte: https://www.shadcn-svelte.com
-- Playwright: https://playwright.dev
+-   SvelteKit 5 공식 문서: https://svelte.dev/docs/kit
+-   Tailwind CSS 4 문서: https://tailwindcss.com
+-   shadcn-svelte: https://www.shadcn-svelte.com
+-   Playwright: https://playwright.dev

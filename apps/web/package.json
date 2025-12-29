@@ -6,7 +6,9 @@
     "scripts": {
         "dev": "vite dev",
         "build": "vite build",
+        "build:static": "ADAPTER=static vite build",
         "preview": "vite preview",
+        "preview:static": "ADAPTER=static vite build && vite preview",
         "prepare": "svelte-kit sync || echo ''",
         "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
         "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
@@ -29,6 +31,8 @@
         "@tailwindcss/forms": "^0.5.9",
         "@tailwindcss/typography": "^0.5.15",
         "@tailwindcss/vite": "^4.0.0",
+        "@types/adm-zip": "^0.5.7",
+        "@types/node": "^25.0.3",
         "@vitest/browser": "^3.2.3",
         "clsx": "^2.1.1",
         "eslint": "^9.18.0",
@@ -55,6 +59,12 @@
         ]
     },
     "dependencies": {
-        "bits-ui": "^2.14.2"
+        "@angple/hook-system": "workspace:*",
+        "@angple/theme-engine": "workspace:*",
+        "@angple/types": "workspace:*",
+        "adm-zip": "^0.5.16",
+        "bits-ui": "^2.14.2",
+        "simple-git": "^3.30.0",
+        "zod": "^4.2.1"
     }
 }

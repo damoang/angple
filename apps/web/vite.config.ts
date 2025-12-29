@@ -6,7 +6,10 @@ export default defineConfig(() => {
     return {
         plugins: [tailwindcss(), sveltekit()],
         server: {
-            allowedHosts: ['web.damoang.net', 'damoang.dev', 'localhost']
+            allowedHosts: ['web.damoang.net', 'damoang.dev', 'localhost'],
+            fs: {
+                allow: ['.', '../..']
+            }
             // proxy는 로컬 개발에서 비활성화 (Mock 데이터 사용)
             // proxy: {
             //     '/api': {

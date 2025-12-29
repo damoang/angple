@@ -3,6 +3,7 @@
     import { browser } from '$app/environment';
     import ImageBanner from '$lib/components/ui/image-banner/image-banner.svelte';
     import ImageTextBanner from '$lib/components/ui/image-text-banner/image-text-banner.svelte';
+    import { getComponentsForSlot } from '$lib/components/slot-manager';
 
     // AdSense 설정 (ang-gnu 동일)
     const ADSENSE_CLIENT = 'ca-pub-5124617752473025';
@@ -51,6 +52,12 @@
 </script>
 
 <div class="flex flex-col gap-4 p-4">
+    <!-- Slot: sidebar-right-top -->
+    {#each getComponentsForSlot('sidebar-right-top') as slotComp (slotComp.id)}
+        {@const Component = slotComp.component}
+        <Component {...slotComp.props || {}} />
+    {/each}
+
     <!-- 공지사항 -->
     <div
         class="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-800"
@@ -185,4 +192,10 @@
             </div>
         </div>
     </div>
+
+    <!-- Slot: sidebar-right-bottom -->
+    {#each getComponentsForSlot('sidebar-right-bottom') as slotComp (slotComp.id)}
+        {@const Component = slotComp.component}
+        <Component {...slotComp.props || {}} />
+    {/each}
 </div>

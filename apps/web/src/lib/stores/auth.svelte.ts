@@ -91,3 +91,20 @@ export const authActions = {
     redirectToLogin,
     redirectToLogout
 };
+
+// Export authStore for theme compatibility
+export const authStore = {
+    get user() {
+        return user;
+    },
+    get isAuthenticated() {
+        return isLoggedIn;
+    },
+    get isLoading() {
+        return isLoading;
+    },
+    get error() {
+        return error;
+    },
+    ...authActions
+};

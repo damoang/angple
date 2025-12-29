@@ -1,0 +1,40 @@
+{
+    "name": "@angple/theme-engine",
+    "version": "0.1.0",
+    "description": "Dynamic theme loading and component management for Angple",
+    "type": "module",
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "import": "./dist/index.js"
+        }
+    },
+    "files": [
+        "dist"
+    ],
+    "scripts": {
+        "build": "tsc",
+        "dev": "tsc --watch",
+        "clean": "rm -rf dist",
+        "test": "vitest"
+    },
+    "keywords": [
+        "angple",
+        "theme",
+        "engine",
+        "component",
+        "svelte"
+    ],
+    "author": "",
+    "license": "MIT",
+    "dependencies": {
+        "@angple/types": "workspace:*",
+        "@angple/hook-system": "workspace:*"
+    },
+    "devDependencies": {
+        "typescript": "^5.9.3",
+        "vitest": "^3.2.3"
+    }
+}
