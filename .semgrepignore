@@ -19,6 +19,12 @@ apps/web/src/lib/api/client.ts
 # Mock 데이터
 apps/web/src/lib/api/mock-data.ts
 
+# 테마 보안 파일 (safeBasename() sanitizer 사용 - Path Traversal false positives)
+apps/web/src/lib/server/theme-security.ts
+apps/web/src/lib/server/themes/scanner.ts
+apps/web/src/routes/api/themes/install/+server.ts
+apps/web/src/routes/api/themes/install-github/+server.ts
+
 # 설정 파일
 *.config.ts
 *.config.js
