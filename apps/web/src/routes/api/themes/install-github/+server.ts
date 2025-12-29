@@ -42,7 +42,7 @@ function isValidGitHubUrl(url: string): boolean {
  * 디렉터리의 모든 파일 목록 가져오기 (재귀)
  */
 async function getFileList(dir: string, baseDir: string = dir): Promise<string[]> {
-    const { readdir } = await import('fs/promises');
+    const { readdir, lstat } = await import('fs/promises');
     const files: string[] = [];
 
     const entries = await readdir(dir, { withFileTypes: true });
@@ -52,6 +52,13 @@ async function getFileList(dir: string, baseDir: string = dir): Promise<string[]
         // safeName은 safeBasename()으로 검증됨
         const fullPath = path.join(dir, safeName); // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal
         const relativePath = path.relative(baseDir, fullPath);
+
+        // Symlink 보안 체크
+        const stats = await lstat(fullPath);
+        if (stats.isSymbolicLink()) {
+            console.warn(`⚠️ Symlink 감지, 스킵: ${relativePath}`);
+            continue;
+        }
 
         if (entry.isDirectory()) {
             // .git 폴더는 스킵
@@ -71,7 +78,7 @@ async function getFileList(dir: string, baseDir: string = dir): Promise<string[]
  * 디렉터리 복사 (재귀)
  */
 async function copyDir(src: string, dest: string) {
-    const { readdir, copyFile } = await import('fs/promises');
+    const { readdir, copyFile, lstat } = await import('fs/promises');
 
     await mkdir(dest, { recursive: true });
 
@@ -82,6 +89,13 @@ async function copyDir(src: string, dest: string) {
         // safeName은 safeBasename()으로 검증됨
         const srcPath = path.join(src, safeName); // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal
         const destPath = path.join(dest, safeName); // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal
+
+        // Symlink 보안 체크
+        const stats = await lstat(srcPath);
+        if (stats.isSymbolicLink()) {
+            console.warn(`⚠️ Symlink 감지, 복사 스킵: ${srcPath}`);
+            continue;
+        }
 
         if (entry.isDirectory()) {
             // .git 폴더는 복사하지 않음
