@@ -12,10 +12,28 @@ export class ThemeLoader {
     }
 
     /**
+     * 경로 탐색 공격 방지를 위한 입력값 검증
+     */
+    private sanitizePath(path: string): string {
+        // 경로 탐색 문자 제거 (../, ..\, 절대 경로 등)
+        if (path.includes('..') || path.startsWith('/') || path.includes('\\')) {
+            throw new Error('Invalid path: path traversal detected');
+        }
+
+        // 알파벳, 숫자, 하이픈, 언더스코어, 슬래시, 점만 허용
+        if (!/^[a-zA-Z0-9\-_/.]+$/.test(path)) {
+            throw new Error('Invalid path: contains illegal characters');
+        }
+
+        return path;
+    }
+
+    /**
      * 테마 매니페스트 로드
      */
     async loadManifest(themeId: string): Promise<ThemeManifest> {
-        const manifestUrl = `${this.baseUrl}/${themeId}/theme.json`;
+        const sanitizedThemeId = this.sanitizePath(themeId);
+        const manifestUrl = `${this.baseUrl}/${sanitizedThemeId}/theme.json`;
 
         try {
             const response = await fetch(manifestUrl);
@@ -27,7 +45,7 @@ export class ThemeLoader {
             this.validateManifest(manifest);
             return manifest;
         } catch (error) {
-            console.error(`Error loading theme manifest for "${themeId}":`, error);
+            console.error('Error loading theme manifest:', { themeId, error });
             throw error;
         }
     }
@@ -36,17 +54,16 @@ export class ThemeLoader {
      * 테마 컴포넌트 동적 로드 (Vite import)
      */
     async loadComponent(themeId: string, componentPath: string): Promise<any> {
-        const fullPath = `${this.baseUrl}/${themeId}/${componentPath}`;
+        const sanitizedThemeId = this.sanitizePath(themeId);
+        const sanitizedComponentPath = this.sanitizePath(componentPath);
+        const fullPath = `${this.baseUrl}/${sanitizedThemeId}/${sanitizedComponentPath}`;
 
         try {
             // Vite의 동적 import 사용
             const module = await import(/* @vite-ignore */ fullPath);
             return module.default;
         } catch (error) {
-            console.error(
-                `Error loading component "${componentPath}" from theme "${themeId}":`,
-                error
-            );
+            console.error('Error loading component:', { themeId, componentPath, error });
             throw error;
         }
     }
@@ -72,13 +89,16 @@ export class ThemeLoader {
      * 테마 디렉터리 경로 가져오기
      */
     getThemePath(themeId: string): string {
-        return `${this.baseUrl}/${themeId}`;
+        const sanitizedThemeId = this.sanitizePath(themeId);
+        return `${this.baseUrl}/${sanitizedThemeId}`;
     }
 
     /**
      * 테마 에셋 URL 가져오기
      */
     getAssetUrl(themeId: string, assetPath: string): string {
-        return `${this.baseUrl}/${themeId}/${assetPath}`;
+        const sanitizedThemeId = this.sanitizePath(themeId);
+        const sanitizedAssetPath = this.sanitizePath(assetPath);
+        return `${this.baseUrl}/${sanitizedThemeId}/${sanitizedAssetPath}`;
     }
 }

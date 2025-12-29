@@ -100,7 +100,7 @@ export class ThemeManager {
 
                 console.log(`✅ Registered ${hookDef.type} hook: ${hookDef.name}`);
             } catch (error) {
-                console.error(`Failed to register hook "${hookDef.name}":`, error);
+                console.error('Failed to register hook:', { hookName: hookDef.name, error });
             }
         }
     }
@@ -131,7 +131,7 @@ export class ThemeManager {
 
                 console.log(`✅ Registered component: ${comp.name} (slot: ${comp.slot})`);
             } catch (error) {
-                console.error(`Failed to register component "${comp.name}":`, error);
+                console.error('Failed to register component:', { componentName: comp.name, error });
             }
         }
     }
