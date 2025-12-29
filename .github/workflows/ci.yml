@@ -73,6 +73,12 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Build workspace packages
+        run: |
+          pnpm --filter @angple/types build
+          pnpm --filter @angple/hook-system build
+          pnpm --filter @angple/theme-engine build
+
       - name: Run type check
         working-directory: apps/${{ matrix.app }}
         run: pnpm exec svelte-check --tsconfig ./tsconfig.json
