@@ -36,7 +36,8 @@ export async function loadThemeHooks(themeId: string, manifest?: ThemeManifest):
         // Manifest가 제공되지 않았으면 theme.json 읽기
         if (!manifest) {
             try {
-                const manifestModule = await import(`/themes/${themeId}/theme.json`);
+                // Vite requires relative paths for dynamic imports
+                const manifestModule = await import(/* @vite-ignore */ `../../../../../../themes/${themeId}/theme.json`);
                 manifest = manifestModule.default || manifestModule;
             } catch (error) {
                 console.error(`❌ [Hook Loader] Failed to load theme.json for ${themeId}:`, error);
@@ -74,7 +75,8 @@ export async function loadThemeHooks(themeId: string, manifest?: ThemeManifest):
                 }
 
                 // Hook 파일 동적 import
-                const callbackPath = `/themes/${themeId}/${callback}`;
+                // Vite requires relative paths - construct from themes directory
+                const callbackPath = `../../../../../../themes/${themeId}/${callback}`;
                 console.log(`📥 [Hook Loader] Importing hook: ${name} from ${callbackPath}`);
 
                 const hookModule = await import(/* @vite-ignore */ callbackPath);
