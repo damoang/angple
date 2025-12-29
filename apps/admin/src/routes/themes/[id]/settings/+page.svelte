@@ -299,7 +299,7 @@
                                 class="h-full w-full"
                                 style="min-height: 600px;"
                                 sandbox="allow-scripts allow-same-origin"
-                            />
+                            ></iframe>
                         </div>
                     </div>
                     <p class="text-muted-foreground mt-4 text-center text-sm">
