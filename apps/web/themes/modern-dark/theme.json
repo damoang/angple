@@ -1,34 +1,34 @@
 {
-  "id": "modern-dark",
-  "name": "Modern Dark",
-  "version": "1.0.0",
-  "author": {
-    "name": "Angple Team",
-    "email": "team@angple.com"
-  },
-  "description": "모던하고 세련된 다크 테마입니다. 눈의 피로를 줄여주는 어두운 색상 구성입니다.",
-  "screenshot": "screenshot.png",
-  "angpleVersion": "0.1.0",
-  "tags": ["dark", "modern", "elegant"],
-  "settings": {
-    "appearance": {
-      "primaryColor": {
-        "label": "Primary Color",
-        "type": "color",
-        "default": "#1e293b"
-      },
-      "secondaryColor": {
-        "label": "Secondary Color",
-        "type": "color",
-        "default": "#475569"
-      },
-      "showBanner": {
-        "label": "Show Banner",
-        "type": "boolean",
-        "default": true
-      }
-    }
-  },
-  "hooks": [],
-  "components": []
+    "id": "modern-dark",
+    "name": "Modern Dark",
+    "version": "1.0.0",
+    "author": {
+        "name": "Angple Team",
+        "email": "team@angple.com"
+    },
+    "description": "모던하고 세련된 다크 테마입니다. 눈의 피로를 줄여주는 어두운 색상 구성입니다.",
+    "screenshot": "screenshot.png",
+    "angpleVersion": "0.1.0",
+    "tags": ["dark", "modern", "elegant"],
+    "settings": {
+        "appearance": {
+            "primaryColor": {
+                "label": "Primary Color",
+                "type": "color",
+                "default": "#1e293b"
+            },
+            "secondaryColor": {
+                "label": "Secondary Color",
+                "type": "color",
+                "default": "#475569"
+            },
+            "showBanner": {
+                "label": "Show Banner",
+                "type": "boolean",
+                "default": true
+            }
+        }
+    },
+    "hooks": [],
+    "components": []
 }

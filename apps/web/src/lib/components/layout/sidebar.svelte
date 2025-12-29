@@ -106,7 +106,7 @@
     <!-- Slot: sidebar-left-top -->
     {#each getComponentsForSlot('sidebar-left-top') as slotComp (slotComp.id)}
         {@const Component = slotComp.component}
-        <Component {...(slotComp.props || {})} />
+        <Component {...slotComp.props || {}} />
     {/each}
 
     <!-- 로그인 위젯 -->
@@ -191,6 +191,6 @@
     <!-- Slot: sidebar-left-bottom -->
     {#each getComponentsForSlot('sidebar-left-bottom') as slotComp (slotComp.id)}
         {@const Component = slotComp.component}
-        <Component {...(slotComp.props || {})} />
+        <Component {...slotComp.props || {}} />
     {/each}
 </div>

@@ -16,15 +16,15 @@ const PROVIDER_TYPE = process.env.SETTINGS_PROVIDER || 'json';
 let providerInstance: SettingsProvider;
 
 switch (PROVIDER_TYPE) {
-	case 'json':
-		providerInstance = new JsonSettingsProvider();
-		break;
-	// case 'mysql':
-	//   providerInstance = new MySqlSettingsProvider();
-	//   break;
-	default:
-		console.warn(`⚠️ 알 수 없는 SETTINGS_PROVIDER: ${PROVIDER_TYPE}, JSON으로 fallback`);
-		providerInstance = new JsonSettingsProvider();
+    case 'json':
+        providerInstance = new JsonSettingsProvider();
+        break;
+    // case 'mysql':
+    //   providerInstance = new MySqlSettingsProvider();
+    //   break;
+    default:
+        console.warn(`⚠️ 알 수 없는 SETTINGS_PROVIDER: ${PROVIDER_TYPE}, JSON으로 fallback`);
+        providerInstance = new JsonSettingsProvider();
 }
 
 /**
@@ -36,38 +36,38 @@ export const settingsProvider = providerInstance;
  * 현재 활성화된 테마 ID 조회
  */
 export async function getActiveTheme(): Promise<string | null> {
-	return settingsProvider.getActiveTheme();
+    return settingsProvider.getActiveTheme();
 }
 
 /**
  * 테마 활성화
  */
 export async function setActiveTheme(themeId: string): Promise<void> {
-	return settingsProvider.setActiveTheme(themeId);
+    return settingsProvider.setActiveTheme(themeId);
 }
 
 /**
  * 테마 설정 조회
  */
-export async function getThemeSettings(themeId: string): Promise<Record<string, any>> {
-	return settingsProvider.getThemeSettings(themeId);
+export async function getThemeSettings(themeId: string): Promise<Record<string, unknown>> {
+    return settingsProvider.getThemeSettings(themeId);
 }
 
 /**
  * 테마 설정 저장
  */
 export async function setThemeSettings(
-	themeId: string,
-	settings: Record<string, any>
+    themeId: string,
+    settings: Record<string, unknown>
 ): Promise<void> {
-	return settingsProvider.setThemeSettings(themeId, settings);
+    return settingsProvider.setThemeSettings(themeId, settings);
 }
 
 /**
  * 전체 설정 조회
  */
-export async function getAllSettings(): Promise<Record<string, any>> {
-	return settingsProvider.getAllSettings();
+export async function getAllSettings(): Promise<Record<string, unknown>> {
+    return settingsProvider.getAllSettings();
 }
 
 // Export types

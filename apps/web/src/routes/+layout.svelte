@@ -44,7 +44,7 @@
 
             // glob 패턴에 매칭되는 경로가 있는지 확인
             if (layoutPath in themeLayouts) {
-                const module = await themeLayouts[layoutPath]() as any;
+                const module = (await themeLayouts[layoutPath]()) as { default: Component };
                 ThemeLayout = module.default;
                 console.log(`✅ [Layout] 테마 레이아웃 로드: ${themeId}`);
             } else {
@@ -138,7 +138,7 @@
             <!-- Slot: header-before -->
             {#each getComponentsForSlot('header-before') as slotComp (slotComp.id)}
                 {@const Component = slotComp.component}
-                <Component {...(slotComp.props || {})} />
+                <Component {...slotComp.props || {}} />
             {/each}
 
             <Header />
@@ -146,92 +146,92 @@
             <!-- Slot: header-after -->
             {#each getComponentsForSlot('header-after') as slotComp (slotComp.id)}
                 {@const Component = slotComp.component}
-                <Component {...(slotComp.props || {})} />
+                <Component {...slotComp.props || {}} />
             {/each}
 
             <div class="mx-auto flex w-full flex-1">
-            {#if snbPosition === 'right'}
-                <aside
-                    class="bg-subtle border-border my-5 hidden w-[320px] flex-shrink-0 rounded-md border lg:block"
-                >
-                    <!-- 여기에 오른쪽 사이드바 내용 추가 -->
-                    <Panel />
-                </aside>
-            {/if}
-            {#if snbPosition === 'left'}
-                <aside
-                    class="bg-background sticky top-12 hidden h-[calc(100vh-3rem)] self-start md:top-16 md:h-[calc(100vh-4rem)] 2xl:block 2xl:!w-[230px]"
-                >
-                    <Sidebar />
-                </aside>
-            {/if}
+                {#if snbPosition === 'right'}
+                    <aside
+                        class="bg-subtle border-border my-5 hidden w-[320px] flex-shrink-0 rounded-md border lg:block"
+                    >
+                        <!-- 여기에 오른쪽 사이드바 내용 추가 -->
+                        <Panel />
+                    </aside>
+                {/if}
+                {#if snbPosition === 'left'}
+                    <aside
+                        class="bg-background sticky top-12 hidden h-[calc(100vh-3rem)] self-start md:top-16 md:h-[calc(100vh-4rem)] 2xl:block 2xl:!w-[230px]"
+                    >
+                        <Sidebar />
+                    </aside>
+                {/if}
 
-            <main class="box-content flex-1 overflow-y-auto pt-1 md:py-5 lg:pe-6 2xl:!px-9">
-                <!-- Slot: content-before -->
-                {#each getComponentsForSlot('content-before') as slotComp (slotComp.id)}
-                    {@const Component = slotComp.component}
-                    <Component {...(slotComp.props || {})} />
-                {/each}
+                <main class="box-content flex-1 overflow-y-auto pt-1 md:py-5 lg:pe-6 2xl:!px-9">
+                    <!-- Slot: content-before -->
+                    {#each getComponentsForSlot('content-before') as slotComp (slotComp.id)}
+                        {@const Component = slotComp.component}
+                        <Component {...slotComp.props || {}} />
+                    {/each}
 
-                {@render children()}
+                    {@render children()}
 
-                <!-- Slot: content-after -->
-                {#each getComponentsForSlot('content-after') as slotComp (slotComp.id)}
-                    {@const Component = slotComp.component}
-                    <Component {...(slotComp.props || {})} />
-                {/each}
-            </main>
-            {#if snbPosition === 'right'}
-                <aside class="bg-background hidden 2xl:block 2xl:!w-[230px]">
-                    <Sidebar />
-                </aside>
-            {/if}
+                    <!-- Slot: content-after -->
+                    {#each getComponentsForSlot('content-after') as slotComp (slotComp.id)}
+                        {@const Component = slotComp.component}
+                        <Component {...slotComp.props || {}} />
+                    {/each}
+                </main>
+                {#if snbPosition === 'right'}
+                    <aside class="bg-background hidden 2xl:block 2xl:!w-[230px]">
+                        <Sidebar />
+                    </aside>
+                {/if}
 
-            {#if snbPosition === 'left'}
-                <aside
-                    class="bg-subtle border-border my-5 hidden w-[320px] flex-shrink-0 rounded-md border lg:block"
-                >
-                    <!-- 여기에 오른쪽 사이드바 내용 추가 -->
-                    <Panel />
-                </aside>
-            {/if}
+                {#if snbPosition === 'left'}
+                    <aside
+                        class="bg-subtle border-border my-5 hidden w-[320px] flex-shrink-0 rounded-md border lg:block"
+                    >
+                        <!-- 여기에 오른쪽 사이드바 내용 추가 -->
+                        <Panel />
+                    </aside>
+                {/if}
+            </div>
         </div>
-    </div>
-    <!-- 왼쪽 윙 배너 - 컨테이너 바로 왼쪽 (160px 배너 + 10px 간격) -->
-    <aside
-        class="fixed hidden transition-all duration-300 min-[1600px]:block"
-        class:top-21={!isBannerUp}
-        class:top-6={isBannerUp}
-        style="right: calc(50% + 760px);"
-    >
-        <LeftBanner />
-    </aside>
-    <!-- 오른쪽 윙 배너 - 컨테이너 바로 오른쪽 (10px 간격) -->
-    <aside
-        class="fixed hidden transition-all duration-300 min-[1600px]:block"
-        class:top-21={!isBannerUp}
-        class:top-6={isBannerUp}
-        style="left: calc(50% + 760px);"
-    >
-        <RightBanner />
-    </aside>
+        <!-- 왼쪽 윙 배너 - 컨테이너 바로 왼쪽 (160px 배너 + 10px 간격) -->
+        <aside
+            class="fixed hidden transition-all duration-300 min-[1600px]:block"
+            class:top-21={!isBannerUp}
+            class:top-6={isBannerUp}
+            style="right: calc(50% + 760px);"
+        >
+            <LeftBanner />
+        </aside>
+        <!-- 오른쪽 윙 배너 - 컨테이너 바로 오른쪽 (10px 간격) -->
+        <aside
+            class="fixed hidden transition-all duration-300 min-[1600px]:block"
+            class:top-21={!isBannerUp}
+            class:top-6={isBannerUp}
+            style="left: calc(50% + 760px);"
+        >
+            <RightBanner />
+        </aside>
 
-    <!-- Slot: footer-before -->
-    {#each getComponentsForSlot('footer-before') as slotComp (slotComp.id)}
-        {@const Component = slotComp.component}
-        <Component {...(slotComp.props || {})} />
-    {/each}
+        <!-- Slot: footer-before -->
+        {#each getComponentsForSlot('footer-before') as slotComp (slotComp.id)}
+            {@const Component = slotComp.component}
+            <Component {...slotComp.props || {}} />
+        {/each}
 
-    <!-- 푸터 -->
-    <Footer />
+        <!-- 푸터 -->
+        <Footer />
 
-    <!-- Slot: footer-after -->
-    {#each getComponentsForSlot('footer-after') as slotComp (slotComp.id)}
-        {@const Component = slotComp.component}
-        <Component {...(slotComp.props || {})} />
-    {/each}
+        <!-- Slot: footer-after -->
+        {#each getComponentsForSlot('footer-after') as slotComp (slotComp.id)}
+            {@const Component = slotComp.component}
+            <Component {...slotComp.props || {}} />
+        {/each}
 
-    <!-- 팟캐스트 플레이어 (항상 마운트, 위치만 변경) -->
-    <PodcastPlayer />
+        <!-- 팟캐스트 플레이어 (항상 마운트, 위치만 변경) -->
+        <PodcastPlayer />
     </div>
 {/if}

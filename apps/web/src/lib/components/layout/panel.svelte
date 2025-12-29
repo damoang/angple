@@ -55,7 +55,7 @@
     <!-- Slot: sidebar-right-top -->
     {#each getComponentsForSlot('sidebar-right-top') as slotComp (slotComp.id)}
         {@const Component = slotComp.component}
-        <Component {...(slotComp.props || {})} />
+        <Component {...slotComp.props || {}} />
     {/each}
 
     <!-- 공지사항 -->
@@ -196,6 +196,6 @@
     <!-- Slot: sidebar-right-bottom -->
     {#each getComponentsForSlot('sidebar-right-bottom') as slotComp (slotComp.id)}
         {@const Component = slotComp.component}
-        <Component {...(slotComp.props || {})} />
+        <Component {...slotComp.props || {}} />
     {/each}
 </div>

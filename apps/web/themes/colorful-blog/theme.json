@@ -1,34 +1,34 @@
 {
-  "id": "colorful-blog",
-  "name": "Colorful Blog",
-  "version": "1.0.0",
-  "author": {
-    "name": "Angple Team",
-    "email": "team@angple.com"
-  },
-  "description": "화려한 컬러의 블로그 테마입니다. 오렌지와 핑크의 조화로운 디자인을 제공합니다.",
-  "screenshot": "screenshot.png",
-  "angpleVersion": "0.1.0",
-  "tags": ["colorful", "blog", "vibrant"],
-  "settings": {
-    "appearance": {
-      "primaryColor": {
-        "label": "Primary Color",
-        "type": "color",
-        "default": "#f59e0b"
-      },
-      "secondaryColor": {
-        "label": "Secondary Color",
-        "type": "color",
-        "default": "#ec4899"
-      },
-      "showBanner": {
-        "label": "Show Banner",
-        "type": "boolean",
-        "default": true
-      }
-    }
-  },
-  "hooks": [],
-  "components": []
+    "id": "colorful-blog",
+    "name": "Colorful Blog",
+    "version": "1.0.0",
+    "author": {
+        "name": "Angple Team",
+        "email": "team@angple.com"
+    },
+    "description": "화려한 컬러의 블로그 테마입니다. 오렌지와 핑크의 조화로운 디자인을 제공합니다.",
+    "screenshot": "screenshot.png",
+    "angpleVersion": "0.1.0",
+    "tags": ["colorful", "blog", "vibrant"],
+    "settings": {
+        "appearance": {
+            "primaryColor": {
+                "label": "Primary Color",
+                "type": "color",
+                "default": "#f59e0b"
+            },
+            "secondaryColor": {
+                "label": "Secondary Color",
+                "type": "color",
+                "default": "#ec4899"
+            },
+            "showBanner": {
+                "label": "Show Banner",
+                "type": "boolean",
+                "default": true
+            }
+        }
+    },
+    "hooks": [],
+    "components": []
 }

@@ -1,50 +1,50 @@
 {
-  "id": "sample-theme",
-  "name": "Sample Blue Theme",
-  "version": "1.0.0",
-  "author": {
-    "name": "Angple Team",
-    "email": "team@angple.com"
-  },
-  "description": "파란색 심플 레이아웃 테마입니다. 깔끔한 1단 구조를 제공합니다.",
-  "screenshot": "screenshot.png",
-  "angpleVersion": "0.1.0",
-  "tags": ["sample", "test", "basic"],
-  "settings": {
-    "appearance": {
-      "primaryColor": {
-        "label": "Primary Color",
-        "type": "color",
-        "default": "#3b82f6"
-      },
-      "showBanner": {
-        "label": "Show Banner",
-        "type": "boolean",
-        "default": true
-      }
-    }
-  },
-  "hooks": [
-    {
-      "name": "page_loaded",
-      "type": "action",
-      "callback": "hooks/on-page-load.js",
-      "priority": 15
+    "id": "sample-theme",
+    "name": "Sample Blue Theme",
+    "version": "1.0.0",
+    "author": {
+        "name": "Angple Team",
+        "email": "team@angple.com"
     },
-    {
-      "name": "post_title",
-      "type": "filter",
-      "callback": "hooks/filter-post-title.js",
-      "priority": 10
-    }
-  ],
-  "components": [
-    {
-      "id": "custom-banner",
-      "name": "Custom Banner",
-      "slot": "content-before",
-      "path": "components/banner.svelte",
-      "priority": 5
-    }
-  ]
+    "description": "파란색 심플 레이아웃 테마입니다. 깔끔한 1단 구조를 제공합니다.",
+    "screenshot": "screenshot.png",
+    "angpleVersion": "0.1.0",
+    "tags": ["sample", "test", "basic"],
+    "settings": {
+        "appearance": {
+            "primaryColor": {
+                "label": "Primary Color",
+                "type": "color",
+                "default": "#3b82f6"
+            },
+            "showBanner": {
+                "label": "Show Banner",
+                "type": "boolean",
+                "default": true
+            }
+        }
+    },
+    "hooks": [
+        {
+            "name": "page_loaded",
+            "type": "action",
+            "callback": "hooks/on-page-load.js",
+            "priority": 15
+        },
+        {
+            "name": "post_title",
+            "type": "filter",
+            "callback": "hooks/filter-post-title.js",
+            "priority": 10
+        }
+    ],
+    "components": [
+        {
+            "id": "custom-banner",
+            "name": "Custom Banner",
+            "slot": "content-before",
+            "path": "components/banner.svelte",
+            "priority": 5
+        }
+    ]
 }

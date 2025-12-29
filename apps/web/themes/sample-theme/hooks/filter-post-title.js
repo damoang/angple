@@ -6,29 +6,29 @@
  */
 
 export default async function filterPostTitle(title, post) {
-	console.log('🔄 [Sample Theme Hook] Filtering post title:', title);
+    console.log('🔄 [Sample Theme Hook] Filtering post title:', title);
 
-	// 예시 1: 조회수가 1000 이상이면 인기 표시
-	if (post && post.viewCount && post.viewCount >= 1000) {
-		return `🔥 ${title}`;
-	}
+    // 예시 1: 조회수가 1000 이상이면 인기 표시
+    if (post && post.viewCount && post.viewCount >= 1000) {
+        return `🔥 ${title}`;
+    }
 
-	// 예시 2: 댓글이 50개 이상이면 Hot 표시
-	if (post && post.commentCount && post.commentCount >= 50) {
-		return `💬 ${title}`;
-	}
+    // 예시 2: 댓글이 50개 이상이면 Hot 표시
+    if (post && post.commentCount && post.commentCount >= 50) {
+        return `💬 ${title}`;
+    }
 
-	// 예시 3: 최신 게시물 (24시간 이내)이면 NEW 표시
-	if (post && post.createdAt) {
-		const now = new Date();
-		const postDate = new Date(post.createdAt);
-		const hoursDiff = (now - postDate) / (1000 * 60 * 60);
+    // 예시 3: 최신 게시물 (24시간 이내)이면 NEW 표시
+    if (post && post.createdAt) {
+        const now = new Date();
+        const postDate = new Date(post.createdAt);
+        const hoursDiff = (now - postDate) / (1000 * 60 * 60);
 
-		if (hoursDiff <= 24) {
-			return `✨ ${title}`;
-		}
-	}
+        if (hoursDiff <= 24) {
+            return `✨ ${title}`;
+        }
+    }
 
-	// 변경하지 않으면 원본 반환
-	return title;
+    // 변경하지 않으면 원본 반환
+    return title;
 }

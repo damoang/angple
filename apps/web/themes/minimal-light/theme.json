@@ -1,34 +1,34 @@
 {
-  "id": "minimal-light",
-  "name": "Minimal Light",
-  "version": "1.0.0",
-  "author": {
-    "name": "Angple Team",
-    "email": "team@angple.com"
-  },
-  "description": "미니멀한 라이트 테마입니다. 깔끔하고 밝은 색상으로 가독성이 뛰어납니다.",
-  "screenshot": "screenshot.png",
-  "angpleVersion": "0.1.0",
-  "tags": ["minimal", "light", "clean"],
-  "settings": {
-    "appearance": {
-      "primaryColor": {
-        "label": "Primary Color",
-        "type": "color",
-        "default": "#10b981"
-      },
-      "secondaryColor": {
-        "label": "Secondary Color",
-        "type": "color",
-        "default": "#06b6d4"
-      },
-      "showBanner": {
-        "label": "Show Banner",
-        "type": "boolean",
-        "default": true
-      }
-    }
-  },
-  "hooks": [],
-  "components": []
+    "id": "minimal-light",
+    "name": "Minimal Light",
+    "version": "1.0.0",
+    "author": {
+        "name": "Angple Team",
+        "email": "team@angple.com"
+    },
+    "description": "미니멀한 라이트 테마입니다. 깔끔하고 밝은 색상으로 가독성이 뛰어납니다.",
+    "screenshot": "screenshot.png",
+    "angpleVersion": "0.1.0",
+    "tags": ["minimal", "light", "clean"],
+    "settings": {
+        "appearance": {
+            "primaryColor": {
+                "label": "Primary Color",
+                "type": "color",
+                "default": "#10b981"
+            },
+            "secondaryColor": {
+                "label": "Secondary Color",
+                "type": "color",
+                "default": "#06b6d4"
+            },
+            "showBanner": {
+                "label": "Show Banner",
+                "type": "boolean",
+                "default": true
+            }
+        }
+    },
+    "hooks": [],
+    "components": []
 }
