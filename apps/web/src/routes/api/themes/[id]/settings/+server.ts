@@ -12,7 +12,7 @@ export const GET: RequestHandler = async ({ params }) => {
         const settings = await getThemeSettings(id);
         return json({ themeId: id, settings });
     } catch (error) {
-        console.error(`❌ 테마 설정 조회 실패 (${params.id}):`, error);
+        console.error('❌ 테마 설정 조회 실패:', { themeId: params.id, error });
         return json({ error: '테마 설정 조회 실패' }, { status: 500 });
     }
 };
@@ -34,7 +34,7 @@ export const PUT: RequestHandler = async ({ params, request }) => {
 
         return json({ success: true, themeId: id, settings });
     } catch (error) {
-        console.error(`❌ 테마 설정 저장 실패 (${params.id}):`, error);
+        console.error('❌ 테마 설정 저장 실패:', { themeId: params.id, error });
         return json({ error: '테마 설정 저장 실패' }, { status: 500 });
     }
 };

@@ -49,9 +49,9 @@ export class ThemeManager {
             // theme_activated Hook 실행
             hooks.doAction('theme_activated', themeId);
 
-            console.log(`✅ Theme "${manifest.name}" activated`);
+            console.log('✅ Theme activated:', { themeName: manifest.name, themeId });
         } catch (error) {
-            console.error(`Failed to activate theme "${themeId}":`, error);
+            console.error('Failed to activate theme:', { themeId, error });
             throw error;
         }
     }

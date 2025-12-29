@@ -10,6 +10,7 @@ import { rm } from 'fs/promises';
 import { existsSync } from 'fs';
 import path from 'path';
 import { readSettings, removeThemeSettings } from '$lib/server/settings';
+import { sanitizePath } from '$lib/server/path-utils';
 
 // 테마 디렉터리 경로
 const THEMES_DIR = path.join(process.cwd(), 'themes');
@@ -39,7 +40,8 @@ export const DELETE: RequestHandler = async ({ params }) => {
         }
 
         // 2. 테마 디렉터리 존재 여부 확인
-        const themePath = path.join(THEMES_DIR, themeId);
+        const sanitizedThemeId = sanitizePath(themeId);
+        const themePath = path.join(THEMES_DIR, sanitizedThemeId);
 
         if (!existsSync(themePath)) {
             return json(

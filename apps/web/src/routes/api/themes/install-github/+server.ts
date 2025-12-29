@@ -17,6 +17,7 @@ import {
     hasThemeManifest,
     type FileInfo
 } from '$lib/server/theme-security';
+import { safeBasename } from '$lib/server/path-utils';
 
 // 테마 디렉터리 경로
 const THEMES_DIR = path.join(process.cwd(), 'themes');
@@ -47,7 +48,8 @@ async function getFileList(dir: string, baseDir: string = dir): Promise<string[]
     const entries = await readdir(dir, { withFileTypes: true });
 
     for (const entry of entries) {
-        const fullPath = path.join(dir, entry.name);
+        const safeName = safeBasename(entry.name);
+        const fullPath = path.join(dir, safeName);
         const relativePath = path.relative(baseDir, fullPath);
 
         if (entry.isDirectory()) {
@@ -75,8 +77,9 @@ async function copyDir(src: string, dest: string) {
     const entries = await readdir(src, { withFileTypes: true });
 
     for (const entry of entries) {
-        const srcPath = path.join(src, entry.name);
-        const destPath = path.join(dest, entry.name);
+        const safeName = safeBasename(entry.name);
+        const srcPath = path.join(src, safeName);
+        const destPath = path.join(dest, safeName);
 
         if (entry.isDirectory()) {
             // .git 폴더는 복사하지 않음

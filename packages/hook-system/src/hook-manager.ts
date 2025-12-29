@@ -44,7 +44,7 @@ export class HookManager {
             try {
                 (hook.callback as ActionCallback)(...args);
             } catch (error) {
-                console.error(`Error in action "${hookName}":`, error);
+                console.error('Error in action:', { hookName, error });
             }
         }
     }
@@ -81,7 +81,7 @@ export class HookManager {
             try {
                 result = (hook.callback as FilterCallback)(result, ...args);
             } catch (error) {
-                console.error(`Error in filter "${hookName}":`, error);
+                console.error('Error in filter:', { hookName, error });
             }
         }
 

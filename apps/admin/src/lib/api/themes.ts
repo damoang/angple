@@ -60,9 +60,9 @@ export async function setActiveTheme(themeId: string): Promise<void> {
             throw new Error(`HTTP ${response.status}`);
         }
 
-        console.log(`✅ 테마 활성화 성공: ${themeId}`);
+        console.log('✅ 테마 활성화 성공:', { themeId });
     } catch (error) {
-        console.error('❌ 테마 활성화 실패:', error);
+        console.error('❌ 테마 활성화 실패:', { error });
         throw error;
     }
 }
@@ -79,7 +79,7 @@ export async function getThemeSettings(themeId: string): Promise<Record<string, 
         const data = await response.json();
         return data.settings;
     } catch (error) {
-        console.error(`❌ 테마 설정 조회 실패 (${themeId}):`, error);
+        console.error('❌ 테마 설정 조회 실패:', { themeId, error });
         throw error;
     }
 }
@@ -104,9 +104,9 @@ export async function setThemeSettings(
             throw new Error(`HTTP ${response.status}`);
         }
 
-        console.log(`✅ 테마 설정 저장 성공: ${themeId}`);
+        console.log('✅ 테마 설정 저장 성공:', { themeId });
     } catch (error) {
-        console.error(`❌ 테마 설정 저장 실패 (${themeId}):`, error);
+        console.error('❌ 테마 설정 저장 실패:', { themeId, error });
         throw error;
     }
 }

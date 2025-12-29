@@ -17,6 +17,7 @@ import {
     hasThemeManifest,
     type FileInfo
 } from '$lib/server/theme-security';
+import { safeBasename } from '$lib/server/path-utils';
 
 // 테마 디렉터리 경로
 const THEMES_DIR = path.join(process.cwd(), 'themes');
@@ -232,8 +233,9 @@ async function copyDir(src: string, dest: string) {
     );
 
     for (const entry of entries) {
-        const srcPath = path.join(src, entry.name);
-        const destPath = path.join(dest, entry.name);
+        const safeName = safeBasename(entry.name);
+        const srcPath = path.join(src, safeName);
+        const destPath = path.join(dest, safeName);
 
         if (entry.isDirectory()) {
             await copyDir(srcPath, destPath);
