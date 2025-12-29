@@ -70,7 +70,7 @@ export async function setActiveTheme(themeId: string): Promise<void> {
 /**
  * 특정 테마의 설정 조회
  */
-export async function getThemeSettings(themeId: string): Promise<Record<string, any>> {
+export async function getThemeSettings(themeId: string): Promise<Record<string, unknown>> {
     try {
         const response = await fetch(`${WEB_API_BASE_URL}/api/themes/${themeId}/settings`);
         if (!response.ok) {
@@ -89,7 +89,7 @@ export async function getThemeSettings(themeId: string): Promise<Record<string, 
  */
 export async function setThemeSettings(
     themeId: string,
-    settings: Record<string, any>
+    settings: Record<string, unknown>
 ): Promise<void> {
     try {
         const response = await fetch(`${WEB_API_BASE_URL}/api/themes/${themeId}/settings`, {

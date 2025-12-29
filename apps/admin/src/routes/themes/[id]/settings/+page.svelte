@@ -32,7 +32,7 @@
     const theme = $derived(themeStore.getThemeById(themeId));
 
     // 설정값 상태 (현재 설정값으로 초기화)
-    let settings = $state<Record<string, any>>({});
+    let settings = $state<Record<string, Record<string, unknown>>>({});
     let isLoading = $state(false);
     let previewIframe: HTMLIFrameElement;
 
@@ -147,7 +147,7 @@
         <!-- 설정 폼 -->
         <div class="space-y-6">
             {#if theme?.manifest.settings}
-                {#each Object.entries(theme.manifest.settings) as [category, fields]}
+                {#each Object.entries(theme.manifest.settings) as [category, fields] (category)}
                     <Card>
                         <CardHeader>
                             <CardTitle class="capitalize">{category}</CardTitle>
@@ -158,7 +158,7 @@
                             </CardDescription>
                         </CardHeader>
                         <CardContent class="space-y-6">
-                            {#each Object.entries(fields) as [key, field]}
+                            {#each Object.entries(fields) as [key, field] (`${category}-${key}`)}
                                 {#if settings[category]}
                                     <div class="space-y-2">
                                         <!-- 텍스트 입력 -->
@@ -209,7 +209,7 @@
                                                 </Label>
                                                 <Switch
                                                     id={`${category}-${key}`}
-                                                    bind:checked={settings[category][key]}
+                                                    bind:checked={settings[category][key] as boolean}
                                                 />
                                             </div>
                                         {/if}
@@ -221,9 +221,21 @@
                                                 id={`${category}-${key}`}
                                                 type="number"
                                                 bind:value={settings[category][key]}
-                                                min={(field as any).min}
-                                                max={(field as any).max}
-                                                step={(field as any).step || 1}
+                                                min={typeof field === 'object' &&
+                                                field &&
+                                                'min' in field
+                                                    ? (field.min as number)
+                                                    : undefined}
+                                                max={typeof field === 'object' &&
+                                                field &&
+                                                'max' in field
+                                                    ? (field.max as number)
+                                                    : undefined}
+                                                step={typeof field === 'object' &&
+                                                field &&
+                                                'step' in field
+                                                    ? (field.step as number)
+                                                    : 1}
                                             />
                                         {/if}
                                     </div>

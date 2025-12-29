@@ -72,7 +72,7 @@
 
     <!-- 테마 목록 -->
     <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {#each themes as theme}
+        {#each themes as theme (theme.manifest.id)}
             <Card class="overflow-hidden">
                 <!-- 스크린샷 영역 -->
                 {#if theme.manifest.screenshot}
@@ -111,7 +111,7 @@
                     <!-- 태그 -->
                     {#if theme.manifest.tags && theme.manifest.tags.length > 0}
                         <div class="mb-4 flex flex-wrap gap-1">
-                            {#each theme.manifest.tags.slice(0, 3) as tag}
+                            {#each theme.manifest.tags.slice(0, 3) as tag (tag)}
                                 <Badge variant="outline" class="text-xs">{tag}</Badge>
                             {/each}
                         </div>

@@ -26,7 +26,7 @@ export interface ThemeWithStatus {
     activatedAt?: Date;
 
     /** 현재 적용된 설정값 */
-    currentSettings?: Record<string, any>;
+    currentSettings?: Record<string, unknown>;
 
     /** 설치 소스 (github, marketplace, local 등) */
     source?: string;
@@ -60,7 +60,7 @@ export interface ThemeSettingsUpdate {
     themeId: string;
 
     /** 업데이트할 설정값 */
-    settings: Record<string, any>;
+    settings: Record<string, unknown>;
 }
 
 /**

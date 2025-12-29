@@ -8,7 +8,7 @@
         disabled?: boolean;
         name?: string;
         value?: string;
-        [key: string]: any;
+        [key: string]: unknown;
     };
 
     let { class: className, checked = $bindable(false), ...restProps }: Props = $props();

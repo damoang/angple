@@ -48,7 +48,7 @@
 
     <!-- 메뉴 영역 -->
     <nav class="flex-1 space-y-1 p-4">
-        {#each menuItems as item}
+        {#each menuItems as item (item.href)}
             {@const Icon = item.icon}
             <a
                 href={item.href}
