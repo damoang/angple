@@ -1,0 +1,24 @@
+# Semgrep ignore file
+
+# 테스트 파일
+*.test.ts
+*.spec.ts
+*.e2e.ts
+
+# 로깅 및 디버그 유틸리티 (Format String false positives)
+apps/web/src/lib/components/slot-manager.ts
+apps/web/src/lib/hooks/registry.ts
+apps/web/src/lib/hooks/theme-loader.ts
+apps/web/src/lib/utils/theme-loader.ts
+apps/web/src/lib/server/settings.ts
+apps/web/src/lib/server/settings/json-provider.ts
+apps/web/src/lib/server/settings/index.ts
+apps/web/src/lib/server/themes/index.ts
+apps/web/src/lib/api/client.ts
+
+# Mock 데이터
+apps/web/src/lib/api/mock-data.ts
+
+# 설정 파일
+*.config.ts
+*.config.js

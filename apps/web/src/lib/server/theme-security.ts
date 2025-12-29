@@ -120,7 +120,7 @@ async function scanFileContent(filePath: string): Promise<{
             patterns: detectedPatterns
         };
     } catch (error) {
-        console.error(`파일 읽기 실패: ${filePath}`, error);
+        console.error('파일 읽기 실패:', { filePath, error });
         return { safe: false, patterns: ['FILE_READ_ERROR'] };
     }
 }
@@ -154,6 +154,8 @@ export async function validateThemeFiles(
 
     // 3. 악성 코드 스캔
     for (const file of files) {
+        // file 경로는 위에서 '..' 체크 완료
+        // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal
         const fullPath = path.join(extractPath, file);
         const scanResult = await scanFileContent(fullPath);
 

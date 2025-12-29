@@ -234,7 +234,10 @@ async function copyDir(src: string, dest: string) {
 
     for (const entry of entries) {
         const safeName = safeBasename(entry.name);
+        // safeName은 safeBasename()으로 검증됨
+        // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal
         const srcPath = path.join(src, safeName);
+        // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal
         const destPath = path.join(dest, safeName);
 
         if (entry.isDirectory()) {
