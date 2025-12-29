@@ -155,8 +155,7 @@ export async function validateThemeFiles(
     // 3. 악성 코드 스캔
     for (const file of files) {
         // file 경로는 위에서 '..' 체크 완료
-        // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal
-        const fullPath = path.join(extractPath, file);
+        const fullPath = path.join(extractPath, file); // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal
         const scanResult = await scanFileContent(fullPath);
 
         if (!scanResult.safe) {

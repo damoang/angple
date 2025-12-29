@@ -50,8 +50,7 @@ async function getFileList(dir: string, baseDir: string = dir): Promise<string[]
     for (const entry of entries) {
         const safeName = safeBasename(entry.name);
         // safeName은 safeBasename()으로 검증됨
-        // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal
-        const fullPath = path.join(dir, safeName);
+        const fullPath = path.join(dir, safeName); // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal
         const relativePath = path.relative(baseDir, fullPath);
 
         if (entry.isDirectory()) {
@@ -81,10 +80,8 @@ async function copyDir(src: string, dest: string) {
     for (const entry of entries) {
         const safeName = safeBasename(entry.name);
         // safeName은 safeBasename()으로 검증됨
-        // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal
-        const srcPath = path.join(src, safeName);
-        // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal
-        const destPath = path.join(dest, safeName);
+        const srcPath = path.join(src, safeName); // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal
+        const destPath = path.join(dest, safeName); // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal
 
         if (entry.isDirectory()) {
             // .git 폴더는 복사하지 않음
