@@ -7,7 +7,7 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import AdmZip, { type IZipEntry } from 'adm-zip';
-import { mkdir, rm, writeFile, readFile, stat } from 'fs/promises';
+import { mkdir, rm, writeFile, readFile } from 'fs/promises';
 import { existsSync } from 'fs';
 import path from 'path';
 import { ThemeManifestSchema } from '$lib/types/theme';
@@ -83,25 +83,71 @@ export const POST: RequestHandler = async ({ request }) => {
             );
         }
 
-        // 8. 압축 해제
+        // 8. Zip Slip 방어: 압축 해제 전 경로 검증 및 파일 크기 검증
         await mkdir(tempExtractPath, { recursive: true });
-        zip.extractAllTo(tempExtractPath, true);
 
-        console.log(`📂 [Theme Install] 압축 해제 완료: ${tempExtractPath}`);
-
-        // 9. 파일 크기 검증
         const fileInfos: FileInfo[] = [];
+        const validatedEntries: IZipEntry[] = [];
+
         for (const entry of zipEntries) {
-            if (!entry.isDirectory) {
-                const filePath = path.join(tempExtractPath, entry.entryName);
-                const stats = await stat(filePath);
-                fileInfos.push({
-                    path: entry.entryName,
-                    size: stats.size
-                });
+            if (entry.isDirectory) {
+                continue;
             }
+
+            // 8-1. Zip Slip 방어: 경로 정규화 및 검증
+            const normalizedPath = path.normalize(entry.entryName).replace(/^(\.\.(\/|\\|$))+/, '');
+            const targetPath = path.join(tempExtractPath, normalizedPath);
+
+            // 절대 경로 체크
+            if (path.isAbsolute(normalizedPath)) {
+                return json(
+                    {
+                        error: 'Zip Slip 공격 감지: 절대 경로 포함',
+                        file: entry.entryName
+                    },
+                    { status: 400 }
+                );
+            }
+
+            // 디렉터리 탐색 공격 체크
+            if (normalizedPath.includes('..') || !targetPath.startsWith(tempExtractPath)) {
+                return json(
+                    {
+                        error: 'Zip Slip 공격 감지: 디렉터리 탈출 시도',
+                        file: entry.entryName
+                    },
+                    { status: 400 }
+                );
+            }
+
+            // 8-2. Symlink 검증 (압축 해제 전 - Zip entry 메타데이터 검사)
+            // Unix 파일 속성: 상위 16비트에 파일 모드 저장
+            // Symlink: (mode & 0o170000) === 0o120000
+            const externalAttr = entry.header.attr;
+            const fileMode = (externalAttr >> 16) & 0xffff;
+            const isSymlink = (fileMode & 0o170000) === 0o120000;
+
+            if (isSymlink) {
+                console.error(`🚨 [Theme Install] Symlink 감지 (압축 해제 전): ${entry.entryName}`);
+                return json(
+                    {
+                        error: 'Symlink 보안 위험 감지',
+                        file: entry.entryName
+                    },
+                    { status: 400 }
+                );
+            }
+
+            // 8-3. 파일 크기 사전 검증 (해제 전)
+            fileInfos.push({
+                path: entry.entryName,
+                size: entry.header.size // Zip entry의 압축 해제 후 크기
+            });
+
+            validatedEntries.push(entry);
         }
 
+        // 8-4. 파일 크기 제한 검증
         const sizeValidation = validateFileSizes(fileInfos);
         if (!sizeValidation.valid) {
             return json(
@@ -113,7 +159,17 @@ export const POST: RequestHandler = async ({ request }) => {
             );
         }
 
-        // 10. 보안 검증
+        // 8-5. 검증된 파일만 안전하게 추출
+        for (const entry of validatedEntries) {
+            const normalizedPath = path.normalize(entry.entryName).replace(/^(\.\.(\/|\\|$))+/, '');
+            zip.extractEntryTo(entry, tempExtractPath, true, true, true, normalizedPath);
+        }
+
+        console.log(
+            `📂 [Theme Install] 압축 해제 완료: ${tempExtractPath} (${validatedEntries.length}개 파일)`
+        );
+
+        // 9. 보안 검증
         const securityValidation = await validateThemeFiles(
             fileList.filter((f: string) => !f.endsWith('/')),
             tempExtractPath
@@ -130,7 +186,7 @@ export const POST: RequestHandler = async ({ request }) => {
             );
         }
 
-        // 11. theme.json 읽기 및 검증
+        // 10. theme.json 읽기 및 검증
         const manifestPath = fileList.find(
             (f: string) => f === 'theme.json' || f.endsWith('/theme.json')
         );
@@ -159,7 +215,7 @@ export const POST: RequestHandler = async ({ request }) => {
         const manifest = validationResult.data;
         console.log(`✅ [Theme Install] Manifest 검증 완료: ${manifest.id}`);
 
-        // 12. 테마가 이미 설치되어 있는지 확인
+        // 11. 테마가 이미 설치되어 있는지 확인
         const targetPath = path.join(THEMES_DIR, manifest.id);
         if (existsSync(targetPath)) {
             return json(
@@ -171,7 +227,7 @@ export const POST: RequestHandler = async ({ request }) => {
             );
         }
 
-        // 13. themes/ 폴더에 복사
+        // 12. themes/ 폴더에 복사
         await mkdir(THEMES_DIR, { recursive: true });
 
         // 압축 해제된 폴더를 테마 디렉터리로 복사
@@ -191,7 +247,7 @@ export const POST: RequestHandler = async ({ request }) => {
 
         console.log(`✅ [Theme Install] 테마 설치 완료: ${manifest.id}`);
 
-        // 14. 임시 파일 삭제
+        // 13. 임시 파일 삭제
         await rm(tempZipPath, { force: true });
         await rm(tempExtractPath, { recursive: true, force: true });
 

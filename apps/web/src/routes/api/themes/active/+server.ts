@@ -7,6 +7,7 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { readSettings, setActiveTheme as saveActiveTheme } from '$lib/server/settings';
+import { sanitizePath } from '$lib/server/path-utils';
 
 /**
  * GET /api/themes/active
@@ -39,11 +40,20 @@ export const PUT: RequestHandler = async ({ request }) => {
             return json({ error: 'themeId가 필요합니다.' }, { status: 400 });
         }
 
-        await saveActiveTheme(themeId);
+        // Path Traversal 방지
+        const sanitizedThemeId = sanitizePath(themeId);
 
-        return json({ success: true, themeId });
+        await saveActiveTheme(sanitizedThemeId);
+
+        return json({ success: true, themeId: sanitizedThemeId });
     } catch (error) {
         console.error('❌ 테마 활성화 실패:', error);
+
+        // sanitizePath 에러는 400으로 처리
+        if (error instanceof Error && error.message.includes('Invalid path')) {
+            return json({ error: error.message }, { status: 400 });
+        }
+
         return json({ error: '서버 오류' }, { status: 500 });
     }
 };
