@@ -42,7 +42,7 @@ export async function loadThemeHooks(themeId: string, manifest?: ThemeManifest):
                 );
                 manifest = manifestModule.default || manifestModule;
             } catch (error) {
-                console.error(`❌ [Hook Loader] Failed to load theme.json for ${themeId}:`, error);
+                console.error('❌ [Hook Loader] Failed to load theme.json:', { themeId, error });
                 return;
             }
         }
@@ -104,7 +104,10 @@ export async function loadThemeHooks(themeId: string, manifest?: ThemeManifest):
                     `✅ [Hook Loader] Registered ${type} hook: ${name} (priority: ${priority ?? 10})`
                 );
             } catch (error) {
-                console.error(`❌ [Hook Loader] Failed to load hook "${hookDef.name}":`, error);
+                console.error('❌ [Hook Loader] Failed to load hook:', {
+                    name: hookDef.name,
+                    error
+                });
                 // 에러가 발생해도 다음 Hook 계속 로드
             }
         }
@@ -112,7 +115,7 @@ export async function loadThemeHooks(themeId: string, manifest?: ThemeManifest):
         currentLoadedThemeId = themeId;
         console.log(`✅ [Hook Loader] Successfully loaded hooks for theme: ${themeId}`);
     } catch (error) {
-        console.error(`❌ [Hook Loader] Failed to load theme hooks for ${themeId}:`, error);
+        console.error('❌ [Hook Loader] Failed to load theme hooks:', { themeId, error });
     }
 }
 
@@ -132,7 +135,7 @@ export async function unregisterThemeHooks(themeId: string): Promise<void> {
 
         console.log(`✅ [Hook Loader] Unregistered hooks for theme: ${themeId}`);
     } catch (error) {
-        console.error(`❌ [Hook Loader] Failed to unregister hooks for ${themeId}:`, error);
+        console.error('❌ [Hook Loader] Failed to unregister hooks:', { themeId, error });
     }
 }
 

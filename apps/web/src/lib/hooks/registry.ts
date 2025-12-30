@@ -112,10 +112,11 @@ class HookRegistry {
             try {
                 await hook.callback(...args);
             } catch (error) {
-                console.error(
-                    `❌ [Hook] Error in action hook "${name}" (source: ${hook.source || 'unknown'}):`,
+                console.error('❌ [Hook] Error in action hook:', {
+                    name,
+                    source: hook.source || 'unknown',
                     error
-                );
+                });
                 // 에러가 발생해도 다음 Hook 계속 실행
             }
         }
@@ -152,10 +153,11 @@ class HookRegistry {
                 const result = await hook.callback(currentValue, ...args);
                 currentValue = result !== undefined ? (result as T) : currentValue;
             } catch (error) {
-                console.error(
-                    `❌ [Hook] Error in filter hook "${name}" (source: ${hook.source || 'unknown'}):`,
+                console.error('❌ [Hook] Error in filter hook:', {
+                    name,
+                    source: hook.source || 'unknown',
                     error
-                );
+                });
                 // 에러가 발생해도 현재 값 유지하고 다음 Hook 계속 실행
             }
         }

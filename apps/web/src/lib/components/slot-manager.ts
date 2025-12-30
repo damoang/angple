@@ -167,7 +167,7 @@ class SlotRegistry {
     debug(): void {
         console.log('🔍 [Slot Manager] Current slots:');
         for (const [slotName, componentList] of this.slots.entries()) {
-            console.log(`  ${slotName}:`, componentList.length, 'component(s)');
+            console.log('  Slot:', { name: slotName, count: componentList.length });
             componentList.forEach((comp) => {
                 console.log(
                     `    - ${comp.id} (priority: ${comp.priority}, source: ${comp.source})`

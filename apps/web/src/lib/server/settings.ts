@@ -66,7 +66,7 @@ export async function removeThemeSettings(themeId: string): Promise<void> {
             console.log(`✅ [Settings] 테마 설정 제거: ${themeId}`);
         }
     } catch (error) {
-        console.error(`❌ [Settings] 테마 설정 제거 실패: ${themeId}`, error);
+        console.error('❌ [Settings] 테마 설정 제거 실패:', { themeId, error });
         throw error;
     }
 }
