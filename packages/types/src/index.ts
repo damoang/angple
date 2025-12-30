@@ -23,3 +23,27 @@ export type {
     FilterHookPoints,
     HookContext
 } from './hook.js';
+
+// Extension types
+export { ExtensionType, ExtensionPermission, ExtensionStatus } from './extension.js';
+
+export type {
+    ExtensionAuthor,
+    ExtensionRepository,
+    ExtensionSettingType,
+    ExtensionSettingField,
+    ExtensionHook,
+    ExtensionAPIRoute,
+    ExtensionRESTAPI,
+    ExtensionGraphQLAPI,
+    ExtensionAPI,
+    ExtensionAdminMenu,
+    ExtensionAdminUI,
+    ExtensionEditorUI,
+    ExtensionUI,
+    ExtensionEngines,
+    ExtensionManifest,
+    ExtensionRuntime,
+    ExtensionInstallOptions,
+    ExtensionSearchFilter
+} from './extension.js';
