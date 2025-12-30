@@ -1,0 +1,88 @@
+{
+    "landing": [
+        {
+            "type": "hero",
+            "id": "hero-1",
+            "enabled": true,
+            "data": {
+                "title": "Your Company",
+                "subtitle": "Building the Future",
+                "cta": [
+                    {
+                        "text": "서비스 알아보기",
+                        "link": "/services",
+                        "style": "primary"
+                    },
+                    {
+                        "text": "문의하기",
+                        "link": "/contact",
+                        "style": "secondary"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "services",
+            "id": "services-1",
+            "enabled": true,
+            "data": {
+                "title": "Our Services",
+                "items": [
+                    {
+                        "icon": "🚀",
+                        "title": "커뮤니티 플랫폼",
+                        "description": "Angple 기반 커뮤니티 구축 솔루션"
+                    },
+                    {
+                        "icon": "🎨",
+                        "title": "웹 디자인",
+                        "description": "모던하고 세련된 웹사이트 디자인"
+                    },
+                    {
+                        "icon": "⚡",
+                        "title": "성능 최적화",
+                        "description": "빠르고 안정적인 웹 서비스"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "projects",
+            "id": "projects-1",
+            "enabled": true,
+            "data": {
+                "title": "Our Projects",
+                "items": [
+                    {
+                        "title": "Angple",
+                        "description": "오픈소스 커뮤니티 플랫폼",
+                        "link": "https://github.com/damoang/angple",
+                        "image": "/placeholder-project.png"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "contact",
+            "id": "contact-1",
+            "enabled": true,
+            "data": {
+                "title": "Contact Us",
+                "email": "contact@example.com",
+                "phone": "+82-10-1234-5678",
+                "address": "서울특별시 강남구"
+            }
+        }
+    ],
+    "about": [
+        {
+            "type": "content",
+            "id": "about-content-1",
+            "enabled": true,
+            "data": {
+                "title": "About Us",
+                "content": "우리는 혁신적인 IT 솔루션을 제공하는 회사입니다."
+            }
+        }
+    ]
+}

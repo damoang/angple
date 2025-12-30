@@ -1,0 +1,294 @@
+{
+    "id": "corporate-landing",
+    "name": "Corporate Landing",
+    "version": "1.0.0",
+    "author": {
+        "name": "SDK Labs",
+        "email": "team@sdklabs.kr"
+    },
+    "description": "회사 홈페이지 + 커뮤니티를 하나로. 모던한 디자인과 파티클 효과가 돋보이는 기업용 하이브리드 테마입니다. 여러 회사 사이트를 운영할 수 있는 범용 테마입니다.",
+    "screenshot": "screenshot.png",
+    "angpleVersion": "0.1.0",
+    "tags": ["business", "corporate", "landing", "hybrid", "premium", "particles", "modern"],
+    "settings": {
+        "branding": {
+            "companyName": {
+                "label": "Company Name",
+                "type": "text",
+                "default": "Your Company",
+                "description": "회사 이름 (예: SDK Corp, SDK Labs, Angple)"
+            },
+            "logoText": {
+                "label": "Logo Text",
+                "type": "text",
+                "default": "SDK",
+                "description": "로고 텍스트 (예: SDK, Angple)"
+            },
+            "tagline": {
+                "label": "Tagline",
+                "type": "text",
+                "default": "Building the Future",
+                "description": "회사 슬로건/태그라인"
+            },
+            "heroTitle": {
+                "label": "Hero Title",
+                "type": "text",
+                "default": "혁신적인 IT 솔루션",
+                "description": "메인 히어로 섹션 타이틀"
+            },
+            "heroSubtitle": {
+                "label": "Hero Subtitle",
+                "type": "textarea",
+                "default": "우리는 최신 기술로 미래를 만들어갑니다.",
+                "description": "메인 히어로 섹션 서브타이틀"
+            }
+        },
+        "appearance": {
+            "primaryColor": {
+                "label": "Primary Color",
+                "type": "color",
+                "default": "#3b82f6",
+                "description": "메인 브랜드 색상"
+            },
+            "accentColor": {
+                "label": "Accent Color",
+                "type": "color",
+                "default": "#8b5cf6",
+                "description": "액센트 색상"
+            },
+            "gradientFrom": {
+                "label": "Gradient From",
+                "type": "color",
+                "default": "#ffffff",
+                "description": "그라디언트 시작 색상"
+            },
+            "gradientVia": {
+                "label": "Gradient Via",
+                "type": "color",
+                "default": "#dbeafe",
+                "description": "그라디언트 중간 색상"
+            },
+            "gradientTo": {
+                "label": "Gradient To",
+                "type": "color",
+                "default": "#ffffff",
+                "description": "그라디언트 끝 색상"
+            },
+            "enableDarkMode": {
+                "label": "Enable Dark Mode Toggle",
+                "type": "boolean",
+                "default": true,
+                "description": "다크 모드 토글 활성화"
+            }
+        },
+        "layout": {
+            "layoutMode": {
+                "label": "Layout Mode",
+                "type": "select",
+                "options": [
+                    {
+                        "label": "Landing Only (랜딩 페이지만)",
+                        "value": "landing"
+                    },
+                    {
+                        "label": "Hybrid (랜딩 + 커뮤니티)",
+                        "value": "hybrid"
+                    },
+                    {
+                        "label": "Community Only (커뮤니티만)",
+                        "value": "community"
+                    }
+                ],
+                "default": "hybrid",
+                "description": "레이아웃 모드 선택"
+            },
+            "headerStyle": {
+                "label": "Header Style",
+                "type": "select",
+                "options": [
+                    {
+                        "label": "Fixed (고정)",
+                        "value": "fixed"
+                    },
+                    {
+                        "label": "Static (정적)",
+                        "value": "static"
+                    },
+                    {
+                        "label": "Transparent (투명)",
+                        "value": "transparent"
+                    }
+                ],
+                "default": "transparent",
+                "description": "헤더 스타일"
+            },
+            "footerStyle": {
+                "label": "Footer Style",
+                "type": "select",
+                "options": [
+                    {
+                        "label": "Minimal (미니멀)",
+                        "value": "minimal"
+                    },
+                    {
+                        "label": "Full (풀 푸터)",
+                        "value": "full"
+                    }
+                ],
+                "default": "full",
+                "description": "푸터 스타일"
+            }
+        },
+        "effects": {
+            "enableParticles": {
+                "label": "Enable Particles Effect",
+                "type": "boolean",
+                "default": true,
+                "description": "파티클 효과 활성화"
+            },
+            "particleCount": {
+                "label": "Particle Count",
+                "type": "number",
+                "default": 150,
+                "min": 50,
+                "max": 300,
+                "description": "파티클 개수 (50-300)"
+            },
+            "particleColor": {
+                "label": "Particle Color",
+                "type": "color",
+                "default": "#ffffff",
+                "description": "파티클 색상"
+            },
+            "enableAnimations": {
+                "label": "Enable Page Animations",
+                "type": "boolean",
+                "default": true,
+                "description": "페이지 애니메이션 활성화"
+            }
+        },
+        "navigation": {
+            "showAbout": {
+                "label": "Show About Page",
+                "type": "boolean",
+                "default": true,
+                "description": "About 페이지 표시"
+            },
+            "showServices": {
+                "label": "Show Services Page",
+                "type": "boolean",
+                "default": true,
+                "description": "Services 페이지 표시"
+            },
+            "showProjects": {
+                "label": "Show Projects Page",
+                "type": "boolean",
+                "default": true,
+                "description": "Projects 페이지 표시"
+            },
+            "showContact": {
+                "label": "Show Contact Page",
+                "type": "boolean",
+                "default": true,
+                "description": "Contact 페이지 표시"
+            },
+            "showCommunity": {
+                "label": "Show Community Link",
+                "type": "boolean",
+                "default": true,
+                "description": "커뮤니티 링크 표시"
+            }
+        },
+        "contact": {
+            "email": {
+                "label": "Contact Email",
+                "type": "text",
+                "default": "contact@example.com",
+                "description": "문의 이메일"
+            },
+            "phone": {
+                "label": "Phone Number",
+                "type": "text",
+                "default": "+82-10-1234-5678",
+                "description": "전화번호"
+            },
+            "address": {
+                "label": "Address",
+                "type": "textarea",
+                "default": "서울특별시 강남구",
+                "description": "회사 주소"
+            },
+            "socialLinks": {
+                "github": {
+                    "label": "GitHub URL",
+                    "type": "text",
+                    "default": "",
+                    "description": "GitHub 프로필 URL"
+                },
+                "twitter": {
+                    "label": "Twitter/X URL",
+                    "type": "text",
+                    "default": "",
+                    "description": "Twitter/X 프로필 URL"
+                },
+                "linkedin": {
+                    "label": "LinkedIn URL",
+                    "type": "text",
+                    "default": "",
+                    "description": "LinkedIn 프로필 URL"
+                }
+            }
+        }
+    },
+    "components": [
+        {
+            "id": "particles-background",
+            "name": "Particles Background",
+            "slot": "background",
+            "path": "components/particles-background.svelte",
+            "priority": 1,
+            "description": "Canvas 기반 파티클 배경 효과"
+        },
+        {
+            "id": "hero-section",
+            "name": "Hero Section",
+            "slot": "landing-hero",
+            "path": "components/hero-section.svelte",
+            "priority": 10,
+            "description": "메인 히어로 섹션"
+        },
+        {
+            "id": "services-section",
+            "name": "Services Section",
+            "slot": "landing-content",
+            "path": "components/services-section.svelte",
+            "priority": 20,
+            "description": "서비스 소개 섹션"
+        },
+        {
+            "id": "projects-section",
+            "name": "Projects Section",
+            "slot": "landing-content",
+            "path": "components/projects-section.svelte",
+            "priority": 30,
+            "description": "프로젝트 쇼케이스 섹션"
+        },
+        {
+            "id": "contact-section",
+            "name": "Contact Section",
+            "slot": "landing-content",
+            "path": "components/contact-section.svelte",
+            "priority": 40,
+            "description": "문의하기 섹션"
+        }
+    ],
+    "hooks": [
+        {
+            "name": "landing_page_load",
+            "type": "action",
+            "callback": "hooks/on-landing-load.js",
+            "priority": 10,
+            "description": "랜딩 페이지 로드 시 실행"
+        }
+    ]
+}
