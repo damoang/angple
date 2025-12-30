@@ -5,16 +5,36 @@
  */
 
 import { readFileSync, readdirSync, existsSync, statSync } from 'fs';
-import { join } from 'path';
+import { join, resolve } from 'path';
 import type { ThemeManifest } from '$lib/types/theme';
 import { safeValidateThemeManifest } from '$lib/types/theme';
 import { sanitizePath } from '../path-utils';
 
+/**
+ * 프로젝트 루트 디렉터리 찾기
+ * Monorepo 환경에서 apps/web이 아닌 프로젝트 루트를 반환
+ */
+function getProjectRoot(): string {
+    const cwd = process.cwd();
+    // apps/web에서 실행 중이면 2단계 위로 (../../)
+    if (cwd.includes('apps/web')) {
+        return resolve(cwd, '../..');
+    }
+    // apps/admin에서 실행 중이면 2단계 위로
+    if (cwd.includes('apps/admin')) {
+        return resolve(cwd, '../..');
+    }
+    // 이미 루트에 있으면 그대로
+    return cwd;
+}
+
+const PROJECT_ROOT = getProjectRoot();
+
 /** 공식 테마 디렉터리 경로 (Git 추적) */
-const THEMES_DIR = join(process.cwd(), 'themes');
+const THEMES_DIR = join(PROJECT_ROOT, 'themes');
 
 /** 커스텀 테마 디렉터리 경로 (Git 무시, 사용자 업로드) */
-const CUSTOM_THEMES_DIR = join(process.cwd(), 'custom-themes');
+const CUSTOM_THEMES_DIR = join(PROJECT_ROOT, 'custom-themes');
 
 /**
  * 테마 디렉터리가 유효한지 확인
