@@ -72,7 +72,24 @@ class ThemeStore {
             if (theme) {
                 theme.status = 'active';
                 theme.activatedAt = new Date();
-                toast.success(`${theme.manifest.name} 테마가 활성화되었습니다.`);
+
+                // Cookie에 테마 변경 플래그 기록 (Web 앱 감지용)
+                // localhost 전체에서 공유되도록 path=/ 설정
+                try {
+                    const timestamp = Date.now();
+                    document.cookie = `theme-reload-trigger=${themeId}:${timestamp}; path=/; max-age=60`;
+                    console.log('🔄 테마 변경 플래그 설정:', themeId, timestamp);
+                } catch (e) {
+                    console.warn('Cookie 저장 실패:', e);
+                }
+
+                toast.success(`${theme.manifest.name} 테마가 활성화되었습니다.`, {
+                    description: 'Web 앱을 새로고침하거나 탭을 전환하면 적용됩니다.',
+                    action: {
+                        label: 'Web 앱 열기',
+                        onClick: () => window.open('http://localhost:5173', '_blank')
+                    }
+                });
             }
         } catch (error) {
             console.error('테마 활성화 실패:', error);

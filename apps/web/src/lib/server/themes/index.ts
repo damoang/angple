@@ -4,7 +4,13 @@
  * 파일 시스템 기반 테마 관리 및 settings.json 통합
  */
 
-import { scanThemes, getThemeManifest, getThemePath, isThemeInstalled } from './scanner';
+import {
+    scanThemes,
+    getThemeManifest,
+    getThemePath,
+    isThemeInstalled,
+    isCustomTheme
+} from './scanner';
 import { settingsProvider } from '../settings/index';
 import type { ThemeManifest } from '$lib/types/theme';
 
@@ -23,6 +29,9 @@ export interface InstalledTheme {
 
     /** 활성 테마 여부 */
     isActive: boolean;
+
+    /** 테마 출처 (official: Git 추적, custom: 사용자 업로드) */
+    source: 'official' | 'custom';
 }
 
 /**
@@ -47,7 +56,8 @@ export async function getInstalledThemes(): Promise<Map<string, InstalledTheme>>
             manifest,
             currentSettings,
             path: getThemePath(themeId),
-            isActive: themeId === activeThemeId
+            isActive: themeId === activeThemeId,
+            source: isCustomTheme(themeId) ? 'custom' : 'official'
         });
     }
 
@@ -74,7 +84,8 @@ export async function getThemeById(themeId: string): Promise<InstalledTheme | nu
         manifest,
         currentSettings,
         path: getThemePath(themeId),
-        isActive: themeId === activeThemeId
+        isActive: themeId === activeThemeId,
+        source: isCustomTheme(themeId) ? 'custom' : 'official'
     };
 }
 
@@ -125,4 +136,10 @@ export async function updateThemeSettings(
 }
 
 // Re-export scanner functions
-export { getThemeManifest, getThemePath, isThemeInstalled, scanThemes } from './scanner';
+export {
+    getThemeManifest,
+    getThemePath,
+    isThemeInstalled,
+    scanThemes,
+    isCustomTheme
+} from './scanner';

@@ -2,6 +2,8 @@
  * 테마 삭제 API
  *
  * DELETE /api/themes/:id
+ * - 커스텀 테마만 삭제 가능 (공식 테마는 보호)
+ * - 활성 테마는 삭제 불가
  */
 
 import { json } from '@sveltejs/kit';
@@ -11,9 +13,10 @@ import { existsSync } from 'fs';
 import path from 'path';
 import { readSettings, removeThemeSettings } from '$lib/server/settings';
 import { sanitizePath } from '$lib/server/path-utils';
+import { isCustomTheme, getThemePath } from '$lib/server/themes/scanner';
 
-// 테마 디렉터리 경로
-const THEMES_DIR = path.join(process.cwd(), 'themes');
+// 커스텀 테마 디렉터리 경로
+const CUSTOM_THEMES_DIR = path.join(process.cwd(), 'custom-themes');
 
 /**
  * 테마 삭제
@@ -26,7 +29,18 @@ export const DELETE: RequestHandler = async ({ params }) => {
     }
 
     try {
-        // 1. 활성 테마 확인
+        // 1. 공식 테마 보호
+        if (!isCustomTheme(themeId)) {
+            return json(
+                {
+                    error: '공식 테마는 삭제할 수 없습니다.',
+                    message: '커스텀 테마만 삭제 가능합니다.'
+                },
+                { status: 403 }
+            );
+        }
+
+        // 2. 활성 테마 확인
         const settings = await readSettings();
 
         if (settings.activeTheme === themeId) {
@@ -39,9 +53,8 @@ export const DELETE: RequestHandler = async ({ params }) => {
             );
         }
 
-        // 2. 테마 디렉터리 존재 여부 확인
-        const sanitizedThemeId = sanitizePath(themeId);
-        const themePath = path.join(THEMES_DIR, sanitizedThemeId);
+        // 3. 테마 디렉터리 경로 가져오기
+        const themePath = getThemePath(themeId);
 
         if (!existsSync(themePath)) {
             return json(
@@ -53,13 +66,13 @@ export const DELETE: RequestHandler = async ({ params }) => {
             );
         }
 
-        console.log(`🗑️ [Theme Delete] 테마 삭제 시작: ${themeId}`);
+        console.log(`🗑️ [Theme Delete] 커스텀 테마 삭제 시작: ${themeId}`);
 
-        // 3. 테마 디렉터리 삭제
+        // 4. 테마 디렉터리 삭제
         await rm(themePath, { recursive: true, force: true });
         console.log(`✅ [Theme Delete] 디렉터리 삭제 완료: ${themePath}`);
 
-        // 4. 설정 파일에서 테마 정보 제거
+        // 5. 설정 파일에서 테마 정보 제거
         await removeThemeSettings(themeId);
 
         return json({

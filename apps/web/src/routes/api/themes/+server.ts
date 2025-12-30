@@ -56,7 +56,7 @@ export const GET: RequestHandler = async () => {
                 status: theme.isActive ? 'active' : 'inactive',
                 installedAt: new Date(), // TODO: 실제 설치 날짜 추적
                 currentSettings: theme.currentSettings,
-                source: 'local' // TODO: 설치 소스 추적
+                source: theme.source // 'official' 또는 'custom'
             });
         }
 

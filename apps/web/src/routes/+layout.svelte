@@ -14,6 +14,7 @@
     import { themeStore } from '$lib/stores/theme.svelte';
     import { loadThemeHooks } from '$lib/hooks/theme-loader';
     import { getComponentsForSlot } from '$lib/components/slot-manager';
+    import { loadThemeComponents } from '$lib/utils/theme-component-loader';
 
     const { children } = $props(); // Svelte 5
     let snbPosition = $state<'left' | 'right'>('left'); // 기본값
@@ -70,13 +71,14 @@
         lastScrollY = currentScrollY;
     }
 
-    // activeTheme 변경 시 자동으로 레이아웃 및 Hook 로드
+    // activeTheme 변경 시 자동으로 레이아웃, Hook, Component 로드
     $effect(() => {
         loadThemeLayout(activeTheme);
 
-        // 테마 Hook 로드
+        // 테마 Hook 및 Component 로드
         if (activeTheme) {
             loadThemeHooks(activeTheme);
+            loadThemeComponents(activeTheme);
         }
     });
 
@@ -103,9 +105,42 @@
 
         window.addEventListener('message', handleMessage);
 
+        // visibilitychange 리스너 (탭 전환 시 테마 변경 자동 감지)
+        let lastThemeCheckTimestamp = 0;
+
+        function handleVisibilityChange() {
+            if (document.visibilityState === 'visible') {
+                try {
+                    // Cookie에서 테마 변경 플래그 읽기
+                    const cookies = document.cookie.split(';');
+                    const triggerCookie = cookies.find((c) =>
+                        c.trim().startsWith('theme-reload-trigger=')
+                    );
+
+                    if (triggerCookie) {
+                        const value = triggerCookie.split('=')[1]; // "themeId:timestamp"
+                        const [themeId, timestampStr] = value.split(':');
+                        const timestamp = parseInt(timestampStr, 10);
+
+                        // 마지막 확인 이후 변경된 경우에만 리로드
+                        if (timestamp > lastThemeCheckTimestamp) {
+                            console.log('🔄 테마 변경 감지 (탭 전환):', themeId, '리로드 중...');
+                            themeStore.loadActiveTheme();
+                            lastThemeCheckTimestamp = timestamp;
+                        }
+                    }
+                } catch (e) {
+                    console.warn('테마 변경 감지 실패:', e);
+                }
+            }
+        }
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
         return () => {
             window.removeEventListener('scroll', handleScroll);
             window.removeEventListener('message', handleMessage);
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
         };
     });
 </script>
