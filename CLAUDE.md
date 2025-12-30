@@ -16,27 +16,29 @@ WordPress가 블로그와 웹사이트를 위한 플랫폼이라면, **Angple은
 
 Angple은 다모앙(damoang.net) 전용이 아닙니다. **누구나** 자유롭게 사용할 수 있는 오픈소스입니다:
 
-- 🏢 **회사**: 사내 커뮤니티, 고객 지원 포럼
-- ⛪ **종교시설**: 교회, 성당, 사찰 홈페이지
-- 🎭 **동호회**: 취미, 스포츠, 문화 모임
-- 🎓 **교육기관**: 학교, 학원, 스터디 그룹
-- 🏛️ **정당/단체**: 정당 홈페이지, 시민단체
-- 📝 **개인 블로그**: 프로필 페이지, 개인 미디어
-- 💼 **기업**: 제품 커뮤니티, 지식베이스
+-   🏢 **회사**: 사내 커뮤니티, 고객 지원 포럼
+-   ⛪ **종교시설**: 교회, 성당, 사찰 홈페이지
+-   🎭 **동호회**: 취미, 스포츠, 문화 모임
+-   🎓 **교육기관**: 학교, 학원, 스터디 그룹
+-   🏛️ **정당/단체**: 정당 홈페이지, 시민단체
+-   📝 **개인 블로그**: 프로필 페이지, 개인 미디어
+-   💼 **기업**: 제품 커뮤니티, 지식베이스
 
 ### 왜 필요한가?
 
 **기술적 차별점:**
-- 게시판 중심 커뮤니티에 최적화된 아키텍처
-- 한국 커뮤니티 문화 반영 (추천/비추천, 레벨 시스템 등)
-- SvelteKit 5 기반 현대적 웹 기술 스택
-- 타입 안전성 (TypeScript strict mode)
+
+-   게시판 중심 커뮤니티에 최적화된 아키텍처
+-   한국 커뮤니티 문화 반영 (추천/비추천, 레벨 시스템 등)
+-   SvelteKit 5 기반 현대적 웹 기술 스택
+-   타입 안전성 (TypeScript strict mode)
 
 **오픈소스의 장점:**
-- 자체 호스팅 가능 (데이터 소유권 완전 보장)
-- 테마/플러그인 시스템으로 무한 확장
-- 개발자 생태계 형성 가능
-- 커뮤니티 주도 개발
+
+-   자체 호스팅 가능 (데이터 소유권 완전 보장)
+-   테마/플러그인 시스템으로 무한 확장
+-   개발자 생태계 형성 가능
+-   커뮤니티 주도 개발
 
 ### 비즈니스 모델
 
@@ -71,17 +73,19 @@ Angple은 다모앙(damoang.net) 전용이 아닙니다. **누구나** 자유롭
 ### 실제 사용 사례
 
 **현재 운영 중인 커뮤니티들:**
-- [다모앙](https://damoang.net) - 개발자 커뮤니티
-- [뮤지아](https://muzia.net) - 음악 커뮤니티
-- [구르밋](https://goorm.it) - 교육 플랫폼
-- [SDK 블로그](https://sdk.kr) - WordPress 블로그
+
+-   [다모앙](https://damoang.net) - 개발자 커뮤니티
+-   [뮤지아](https://muzia.net) - 음악 커뮤니티
+-   [구르밋](https://goorm.it) - 교육 플랫폼
+-   [SDK 블로그](https://sdk.kr) - WordPress 블로그
 
 **향후 확장 가능성:**
-- 게임 길드 커뮤니티
-- 지역 주민 커뮤니티
-- 팬덤 커뮤니티
-- 기업 내부 지식베이스
-- 고객 지원 포럼
+
+-   게임 길드 커뮤니티
+-   지역 주민 커뮤니티
+-   팬덤 커뮤니티
+-   기업 내부 지식베이스
+-   고객 지원 포럼
 
 ---
 
@@ -89,32 +93,34 @@ Angple은 다모앙(damoang.net) 전용이 아닙니다. **누구나** 자유롭
 
 ### 완료된 단계 (Phase 1-10)
 
-| Phase | 내용 | 상태 |
-|-------|------|------|
-| Phase 1-5 | 프로젝트 초기 설정, 기본 UI 구조 | ✅ 완료 |
-| Phase 6-10 | **테마 시스템 구축** | ✅ 완료 |
-| - | Theme Engine 패키지 | ✅ 완료 |
-| - | 테마 스캐너 & 로더 | ✅ 완료 |
-| - | 테마 활성화/비활성화 | ✅ 완료 |
-| - | 테마 설정 시스템 | ✅ 완료 |
-| - | **테마 마켓플레이스** | ✅ 완료 |
-|   | └─ ZIP 업로드 기능 | ✅ 완료 |
-|   | └─ 테마 삭제 (커스텀만) | ✅ 완료 |
-|   | └─ 공식/커스텀 구분 | ✅ 완료 |
+| Phase      | 내용                             | 상태    |
+| ---------- | -------------------------------- | ------- |
+| Phase 1-5  | 프로젝트 초기 설정, 기본 UI 구조 | ✅ 완료 |
+| Phase 6-10 | **테마 시스템 구축**             | ✅ 완료 |
+| -          | Theme Engine 패키지              | ✅ 완료 |
+| -          | 테마 스캐너 & 로더               | ✅ 완료 |
+| -          | 테마 활성화/비활성화             | ✅ 완료 |
+| -          | 테마 설정 시스템                 | ✅ 완료 |
+| -          | **테마 마켓플레이스**            | ✅ 완료 |
+|            | └─ ZIP 업로드 기능               | ✅ 완료 |
+|            | └─ 테마 삭제 (커스텀만)          | ✅ 완료 |
+|            | └─ 공식/커스텀 구분              | ✅ 완료 |
 
 ### 현재 진행 상황
 
 **Phase 10 완료!** 🎉
 
 테마 마켓플레이스 기능이 완성되어, 사용자들이:
-- ZIP 파일로 커스텀 테마 업로드 가능
-- 공식 테마와 커스텀 테마를 구분하여 관리
-- 커스텀 테마는 삭제 가능 (공식 테마는 보호)
-- Admin 대시보드에서 테마 관리 UI 제공
+
+-   ZIP 파일로 커스텀 테마 업로드 가능
+-   공식 테마와 커스텀 테마를 구분하여 관리
+-   커스텀 테마는 삭제 가능 (공식 테마는 보호)
+-   Admin 대시보드에서 테마 관리 UI 제공
 
 ### 다음 단계 (Phase 11-30)
 
 #### Phase 11-15: 플러그인 시스템 (WordPress의 플러그인 개념)
+
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │ 플러그인 시스템 아키텍처                                      │
@@ -147,30 +153,33 @@ Angple은 다모앙(damoang.net) 전용이 아닙니다. **누구나** 자유롭
 ```
 
 #### Phase 16-20: Backend API 통합
-- Go/Fiber 백엔드 연동
-- 실제 데이터베이스 연결 (PostgreSQL/MySQL)
-- 인증/인가 시스템 (JWT)
-- API 클라이언트 개선 (Mock 모드 제거)
+
+-   Go/Fiber 백엔드 연동
+-   실제 데이터베이스 연결 (PostgreSQL/MySQL)
+-   인증/인가 시스템 (JWT)
+-   API 클라이언트 개선 (Mock 모드 제거)
 
 #### Phase 21-25: 콘텐츠 관리 (CRUD)
-- 게시판 CRUD
-- 댓글 시스템
-- 파일 업로드
-- 이미지 최적화
+
+-   게시판 CRUD
+-   댓글 시스템
+-   파일 업로드
+-   이미지 최적화
 
 #### Phase 26-30: 고급 기능
-- 실시간 알림 (WebSocket)
-- 검색 엔진 (Elasticsearch)
-- 캐싱 전략 (Redis)
-- 성능 최적화
+
+-   실시간 알림 (WebSocket)
+-   검색 엔진 (Elasticsearch)
+-   캐싱 전략 (Redis)
+-   성능 최적화
 
 ### 장기 목표 (Phase 31+)
 
-- 모바일 앱 (React Native / Flutter)
-- AI 기반 콘텐츠 추천
-- 다국어 지원 (i18n)
-- SEO 최적화
-- 접근성 개선 (a11y)
+-   모바일 앱 (React Native / Flutter)
+-   AI 기반 콘텐츠 추천
+-   다국어 지원 (i18n)
+-   SEO 최적화
+-   접근성 개선 (a11y)
 
 ---
 
@@ -178,17 +187,17 @@ Angple은 다모앙(damoang.net) 전용이 아닙니다. **누구나** 자유롭
 
 ### WordPress vs Angple
 
-| 구분 | WordPress | Angple |
-|------|-----------|--------|
-| **언어** | PHP | TypeScript (SvelteKit 5) |
-| **프론트엔드** | jQuery / React (Gutenberg) | Svelte 5 (Rune 모드) |
-| **데이터베이스** | MySQL | PostgreSQL/MySQL (계획) |
-| **확장 방식** | Plugins + Themes | Plugins + Themes |
-| **Hook 시스템** | `add_action()`, `add_filter()` | `@angple/hook-system` |
-| **관리자** | wp-admin (PHP) | SvelteKit Admin (TypeScript) |
-| **배포** | LAMP/LEMP Stack | Docker Compose / Static |
-| **REST API** | WordPress REST API | Custom REST API (Go/Fiber) |
-| **생태계** | 60,000+ 플러그인, 10,000+ 테마 | 🚧 구축 중 |
+| 구분             | WordPress                      | Angple                       |
+| ---------------- | ------------------------------ | ---------------------------- |
+| **언어**         | PHP                            | TypeScript (SvelteKit 5)     |
+| **프론트엔드**   | jQuery / React (Gutenberg)     | Svelte 5 (Rune 모드)         |
+| **데이터베이스** | MySQL                          | PostgreSQL/MySQL (계획)      |
+| **확장 방식**    | Plugins + Themes               | Plugins + Themes             |
+| **Hook 시스템**  | `add_action()`, `add_filter()` | `@angple/hook-system`        |
+| **관리자**       | wp-admin (PHP)                 | SvelteKit Admin (TypeScript) |
+| **배포**         | LAMP/LEMP Stack                | Docker Compose / Static      |
+| **REST API**     | WordPress REST API             | Custom REST API (Go/Fiber)   |
+| **생태계**       | 60,000+ 플러그인, 10,000+ 테마 | 🚧 구축 중                   |
 
 ### 핵심 철학
 
@@ -196,10 +205,10 @@ Angple은 다모앙(damoang.net) 전용이 아닙니다. **누구나** 자유롭
 
 WordPress가 블로그와 웹사이트 구축을 민주화했듯이, Angple은 커뮤니티 구축을 민주화합니다:
 
-- 코딩 없이 테마로 디자인 변경
-- 플러그인으로 기능 확장
-- 개발자라면 직접 테마/플러그인 제작 가능
-- 마켓플레이스를 통한 수익 창출 기회
+-   코딩 없이 테마로 디자인 변경
+-   플러그인으로 기능 확장
+-   개발자라면 직접 테마/플러그인 제작 가능
+-   마켓플레이스를 통한 수익 창출 기회
 
 ---
 
@@ -209,37 +218,38 @@ WordPress가 블로그와 웹사이트 구축을 민주화했듯이, Angple은 �
 
 WordPress가 수십 년간 쌓아온 개발자 경험을 존중하고 참고합니다:
 
-- **Hook System**: WordPress의 `add_action()`, `add_filter()` 개념을 TypeScript로 구현
-- **테마 구조**: `theme.json`은 WordPress의 `style.css` 헤더와 유사
-- **플러그인 API**: WordPress Plugin API 설계 패턴 참조
-- **관리자 페이지**: wp-admin의 직관성을 현대적 UI로 재해석
+-   **Hook System**: WordPress의 `add_action()`, `add_filter()` 개념을 TypeScript로 구현
+-   **테마 구조**: `theme.json`은 WordPress의 `style.css` 헤더와 유사
+-   **플러그인 API**: WordPress Plugin API 설계 패턴 참조
+-   **관리자 페이지**: wp-admin의 직관성을 현대적 UI로 재해석
 
 ### 2. 한국 중심, 글로벌 확장
 
-- **1차 목표**: 한국 커뮤니티 문화에 최적화
-  - 게시판 중심 구조
-  - 실시간 댓글
-  - 추천/비추천 시스템
-  - 레벨/등급 시스템
+-   **1차 목표**: 한국 커뮤니티 문화에 최적화
 
-- **2차 목표**: 국제화 (i18n)
-  - 영어, 일본어, 중국어 지원
-  - 타임존 처리
-  - 다국어 콘텐츠 관리
+    -   게시판 중심 구조
+    -   실시간 댓글
+    -   추천/비추천 시스템
+    -   레벨/등급 시스템
+
+-   **2차 목표**: 국제화 (i18n)
+    -   영어, 일본어, 중국어 지원
+    -   타임존 처리
+    -   다국어 콘텐츠 관리
 
 ### 3. 개발자 우선 (Developer First)
 
-- **명확한 API**: 타입 안전성 (TypeScript strict mode)
-- **풍부한 문서**: 코드 주석 + 외부 문서
-- **예제 코드**: 샘플 테마/플러그인 제공
-- **커뮤니티**: Discord, GitHub Discussions
+-   **명확한 API**: 타입 안전성 (TypeScript strict mode)
+-   **풍부한 문서**: 코드 주석 + 외부 문서
+-   **예제 코드**: 샘플 테마/플러그인 제공
+-   **커뮤니티**: Discord, GitHub Discussions
 
 ### 4. 성능 우선 (Performance First)
 
-- **SSR + Hydration**: SvelteKit의 장점 활용
-- **Code Splitting**: 자동 라우트 기반 분할
-- **이미지 최적화**: WebP, AVIF 지원
-- **캐싱**: Redis + CDN 전략
+-   **SSR + Hydration**: SvelteKit의 장점 활용
+-   **Code Splitting**: 자동 라우트 기반 분할
+-   **이미지 최적화**: WebP, AVIF 지원
+-   **캐싱**: Redis + CDN 전략
 
 ---
 
@@ -248,20 +258,23 @@ WordPress가 수십 년간 쌓아온 개발자 경험을 존중하고 참고합�
 ### 마켓플레이스 수익 모델
 
 **테마 개발자:**
-- 무료 테마: GitHub에 공개, 포트폴리오 활용
-- 유료 테마: 마켓플레이스 등록, 판매 가격의 70% 수령
-- 평균 가격대: ₩30,000 - ₩100,000
-- 인기 테마는 월 수백만원 수익 가능 (WordPress 시장 참고)
+
+-   무료 테마: GitHub에 공개, 포트폴리오 활용
+-   유료 테마: 마켓플레이스 등록, 판매 가격의 70% 수령
+-   평균 가격대: ₩30,000 - ₩100,000
+-   인기 테마는 월 수백만원 수익 가능 (WordPress 시장 참고)
 
 **플러그인 개발자:**
-- 무료 플러그인: 사용자 확보, 프리미엄 버전 판매
-- 유료 플러그인: 라이선스 판매 (단일 사이트 / 무제한)
-- 구독 모델: 월간/연간 결제 (지속적 수익)
+
+-   무료 플러그인: 사용자 확보, 프리미엄 버전 판매
+-   유료 플러그인: 라이선스 판매 (단일 사이트 / 무제한)
+-   구독 모델: 월간/연간 결제 (지속적 수익)
 
 **웹 에이전시:**
-- Angple 기반 웹사이트 제작 대행
-- 커스텀 테마/플러그인 개발
-- 유지보수 계약
+
+-   Angple 기반 웹사이트 제작 대행
+-   커스텀 테마/플러그인 개발
+-   유지보수 계약
 
 ### 기여 방법
 
@@ -338,30 +351,30 @@ angple/
 
 ### 핵심 기술
 
-- **Svelte 5.0** (Rune 모드 강제 적용)
-- **SvelteKit 2.22** (Full-stack framework)
-- **TypeScript 5.0** (strict mode)
-- **Tailwind CSS 4.0** (유틸리티 기반 스타일링)
-- **Vite 7.0** (개발 서버 및 빌드 도구)
-- **pnpm** (패키지 관리자, Monorepo 지원)
-- **shadcn-svelte** (UI 컴포넌트 시스템)
-- **Lucide** (아이콘 라이브러리)
-- **bits-ui** (Headless UI 컴포넌트)
+-   **Svelte 5.0** (Rune 모드 강제 적용)
+-   **SvelteKit 2.22** (Full-stack framework)
+-   **TypeScript 5.0** (strict mode)
+-   **Tailwind CSS 4.0** (유틸리티 기반 스타일링)
+-   **Vite 7.0** (개발 서버 및 빌드 도구)
+-   **pnpm** (패키지 관리자, Monorepo 지원)
+-   **shadcn-svelte** (UI 컴포넌트 시스템)
+-   **Lucide** (아이콘 라이브러리)
+-   **bits-ui** (Headless UI 컴포넌트)
 
 ### 배포 방식
 
-- **SvelteKit Adapter**: `@sveltejs/adapter-static` (nginx 정적 배포)
-- **Docker**: 멀티 스테이지 빌드 (development/production)
-- **컨테이너 구성**:
-  - `angple-web`: 웹 애플리케이션 (포트 5173 → 80)
-  - `angple-admin`: 관리자 대시보드 (포트 5174 → 80)
+-   **SvelteKit Adapter**: `@sveltejs/adapter-static` (nginx 정적 배포)
+-   **Docker**: 멀티 스테이지 빌드 (development/production)
+-   **컨테이너 구성**:
+    -   `angple-web`: 웹 애플리케이션 (포트 5173 → 80)
+    -   `angple-admin`: 관리자 대시보드 (포트 5174 → 80)
 
 ### 향후 백엔드 스택 (계획)
 
-- **Go 1.21** + **Fiber** (고성능 웹 프레임워크)
-- **PostgreSQL** 또는 **MySQL** (관계형 데이터베이스)
-- **Redis** (캐싱, 세션 관리)
-- **MinIO** 또는 **AWS S3** (파일 스토리지)
+-   **Go 1.21** + **Fiber** (고성능 웹 프레임워크)
+-   **PostgreSQL** 또는 **MySQL** (관계형 데이터베이스)
+-   **Redis** (캐싱, 세션 관리)
+-   **MinIO** 또는 **AWS S3** (파일 스토리지)
 
 ---
 
@@ -432,10 +445,10 @@ VITE_API_BASE_URL=http://localhost:8080
 
 #### 환경별 포트
 
-- **Web 개발 서버**: http://localhost:5173
-- **Web 미리보기**: http://localhost:4173
-- **Admin 개발 서버**: http://localhost:5174
-- **Admin 미리보기**: http://localhost:4174
+-   **Web 개발 서버**: http://localhost:5173
+-   **Web 미리보기**: http://localhost:4173
+-   **Admin 개발 서버**: http://localhost:5174
+-   **Admin 미리보기**: http://localhost:4174
 
 ---
 
@@ -471,10 +484,10 @@ VITE_API_BASE_URL=http://localhost:8080
 
 ### 파일 및 컴포넌트 네이밍
 
-- **컴포넌트 파일명**: `kebab-case` (예: `economy-post-list.svelte`)
-- **TypeScript 파일**: `kebab-case` 또는 `camelCase`
-- **디렉터리**: `kebab-case`
-- **주석**: 한글로 작성
+-   **컴포넌트 파일명**: `kebab-case` (예: `economy-post-list.svelte`)
+-   **TypeScript 파일**: `kebab-case` 또는 `camelCase`
+-   **디렉터리**: `kebab-case`
+-   **주석**: 한글로 작성
 
 ### 컴포넌트 구조화
 
@@ -500,9 +513,9 @@ components/features/recommended/
 
 **원칙:**
 
-- 각 feature는 독립적으로 작동
-- `index.ts`로 공개 API 명시
-- 공통 로직은 `utils` 디렉터리로 분리
+-   각 feature는 독립적으로 작동
+-   `index.ts`로 공개 API 명시
+-   공통 로직은 `utils` 디렉터리로 분리
 
 ### UI 컴포넌트 시스템
 
@@ -543,17 +556,17 @@ pnpm dlx shadcn-svelte@latest add dialog
 
 ### 위치
 
-- **파일**: `apps/web/src/lib/api/client.ts`
-- **타입**: `apps/web/src/lib/api/types.ts`
-- **Mock 데이터**: `apps/web/src/lib/api/mock-data.ts`
+-   **파일**: `apps/web/src/lib/api/client.ts`
+-   **타입**: `apps/web/src/lib/api/types.ts`
+-   **Mock 데이터**: `apps/web/src/lib/api/mock-data.ts`
 
 ### 특징
 
 **Mock 모드 지원:**
 
-- 로컬스토리지 `damoang_use_mock` 플래그로 제어
-- 기본값: `true` (개발 편의성)
-- Mock 데이터 응답 시 인위적 지연 추가 (200-300ms)
+-   로컬스토리지 `damoang_use_mock` 플래그로 제어
+-   기본값: `true` (개발 편의성)
+-   Mock 데이터 응답 시 인위적 지연 추가 (200-300ms)
 
 **싱글톤 패턴:**
 
@@ -585,14 +598,14 @@ const posts = await apiClient.getFreePosts(1, 10);
 
 ### 테스트 프레임워크
 
-- **단위 테스트**: Vitest + @testing-library/svelte
-- **E2E 테스트**: Playwright
-- **브라우저 테스트**: @vitest/browser
+-   **단위 테스트**: Vitest + @testing-library/svelte
+-   **E2E 테스트**: Playwright
+-   **브라우저 테스트**: @vitest/browser
 
 ### 파일 네이밍
 
-- `*.test.ts`, `*.spec.ts` → 단위 테스트
-- `*.e2e.ts` → E2E 테스트
+-   `*.test.ts`, `*.spec.ts` → 단위 테스트
+-   `*.e2e.ts` → E2E 테스트
 
 ### 테스트 실행 흐름
 
@@ -674,9 +687,9 @@ docker compose up -d --build
 
 ### 브랜치 전략
 
-- `main`: 메인 브랜치 (PR 타겟)
-- `feature/*`: 기능 개발 브랜치
-- `fix/*`: 버그 수정 브랜치
+-   `main`: 메인 브랜치 (PR 타겟)
+-   `feature/*`: 기능 개발 브랜치
+-   `fix/*`: 버그 수정 브랜치
 
 ### 커밋 전 체크리스트
 
@@ -689,8 +702,8 @@ pnpm build         # 빌드 검증
 
 ### Husky 훅
 
-- **pre-commit**: `lint-staged` 실행 (ESLint + Prettier)
-- **commit-msg**: `commitlint` 검증
+-   **pre-commit**: `lint-staged` 실행 (ESLint + Prettier)
+-   **commit-msg**: `commitlint` 검증
 
 ---
 
@@ -724,29 +737,29 @@ pnpm init
 
 이 프로젝트는 다음 MCP 서버를 지원합니다:
 
-- **Serena MCP**: 작업 자동화
-- **Context7 MCP**: 라이브러리 문서 참조
-- **Task Manager MCP**: 작업 관리
+-   **Serena MCP**: 작업 자동화
+-   **Context7 MCP**: 라이브러리 문서 참조
+-   **Task Manager MCP**: 작업 관리
 
 ---
 
 ## 📚 참고 문서
 
-- SvelteKit 5 공식 문서: https://svelte.dev/docs/kit
-- Tailwind CSS 4 문서: https://tailwindcss.com
-- shadcn-svelte: https://www.shadcn-svelte.com
-- Playwright: https://playwright.dev
-- WordPress Plugin Handbook: https://developer.wordpress.org/plugins
-- WordPress Theme Handbook: https://developer.wordpress.org/themes
+-   SvelteKit 5 공식 문서: https://svelte.dev/docs/kit
+-   Tailwind CSS 4 문서: https://tailwindcss.com
+-   shadcn-svelte: https://www.shadcn-svelte.com
+-   Playwright: https://playwright.dev
+-   WordPress Plugin Handbook: https://developer.wordpress.org/plugins
+-   WordPress Theme Handbook: https://developer.wordpress.org/themes
 
 ---
 
 ## 📞 커뮤니티
 
-- **GitHub**: https://github.com/angple/angple
-- **Discord**: (준비 중)
-- **공식 블로그**: https://sdk.kr
-- **다모앙 커뮤니티**: https://damoang.net
+-   **GitHub**: https://github.com/angple/angple
+-   **Discord**: (준비 중)
+-   **공식 블로그**: https://sdk.kr
+-   **다모앙 커뮤니티**: https://damoang.net
 
 ---
 

@@ -60,7 +60,8 @@ export const mockThemes: ThemeWithStatus[] = [
                 name: 'Angple Team',
                 email: 'team@angple.com'
             },
-            description: '다모앙의 기본 테마입니다. 심플하고 깔끔한 커뮤니티 레이아웃을 제공합니다.',
+            description:
+                '다모앙의 기본 테마입니다. 심플하고 깔끔한 커뮤니티 레이아웃을 제공합니다.',
             screenshot: '/themes/damoang-basic/screenshot.png',
             settings: {
                 appearance: {

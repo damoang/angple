@@ -83,16 +83,13 @@ class ThemeStore {
                     console.warn('Cookie 저장 실패:', e);
                 }
 
-                toast.success(
-                    `${theme.manifest.name} 테마가 활성화되었습니다.`,
-                    {
-                        description: 'Web 앱을 새로고침하거나 탭을 전환하면 적용됩니다.',
-                        action: {
-                            label: 'Web 앱 열기',
-                            onClick: () => window.open('http://localhost:5173', '_blank')
-                        }
+                toast.success(`${theme.manifest.name} 테마가 활성화되었습니다.`, {
+                    description: 'Web 앱을 새로고침하거나 탭을 전환하면 적용됩니다.',
+                    action: {
+                        label: 'Web 앱 열기',
+                        onClick: () => window.open('http://localhost:5173', '_blank')
                     }
-                );
+                });
             }
         } catch (error) {
             console.error('테마 활성화 실패:', error);

@@ -218,7 +218,8 @@
                                     variant="destructive"
                                     size="icon"
                                     class="flex-shrink-0"
-                                    onclick={() => deleteTheme(theme.manifest.id, theme.manifest.name)}
+                                    onclick={() =>
+                                        deleteTheme(theme.manifest.id, theme.manifest.name)}
                                 >
                                     <Trash2 class="h-4 w-4" />
                                 </Button>
