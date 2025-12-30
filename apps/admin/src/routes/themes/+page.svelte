@@ -11,6 +11,9 @@
         CardTitle
     } from '$lib/components/ui/card';
     import { Toaster } from '$lib/components/ui/sonner';
+    import ThemeUploader from '$lib/components/theme-uploader.svelte';
+    import { Trash2 } from '@lucide/svelte';
+    import { toast } from 'svelte-sonner';
 
     // Store에서 테마 목록 가져오기
     const themes = $derived(themeStore.themes);
@@ -51,6 +54,36 @@
                 return status;
         }
     }
+
+    // 테마 삭제
+    async function deleteTheme(themeId: string, themeName: string) {
+        if (!confirm(`정말로 "${themeName}" 테마를 삭제하시겠습니까?`)) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`http://localhost:5173/api/themes/${themeId}`, {
+                method: 'DELETE'
+            });
+
+            const result = await response.json();
+
+            if (response.ok && result.success) {
+                toast.success('테마가 성공적으로 삭제되었습니다.');
+                themeStore.loadThemes(); // 테마 목록 새로고침
+            } else {
+                toast.error(result.error || '테마 삭제 중 오류가 발생했습니다.');
+            }
+        } catch (error) {
+            toast.error('테마 삭제 중 오류가 발생했습니다.');
+            console.error('Theme deletion error:', error);
+        }
+    }
+
+    // 업로드 성공 콜백
+    function handleUploadSuccess() {
+        themeStore.loadThemes(); // 테마 목록 새로고침
+    }
 </script>
 
 <Toaster />
@@ -64,7 +97,7 @@
     <!-- 상단 액션 바 -->
     <div class="mb-6 flex items-center justify-between">
         <div class="flex gap-2">
-            <Button>새 테마 설치</Button>
+            <ThemeUploader onUploadSuccess={handleUploadSuccess} />
             <Button variant="outline">마켓플레이스</Button>
         </div>
         <div class="text-muted-foreground text-sm">총 {themes.length}개 테마</div>
@@ -92,7 +125,15 @@
                 <CardHeader>
                     <div class="flex items-start justify-between">
                         <div class="flex-1">
-                            <CardTitle>{theme.manifest.name}</CardTitle>
+                            <div class="mb-2 flex items-center gap-2">
+                                <CardTitle>{theme.manifest.name}</CardTitle>
+                                <!-- 출처 배지 -->
+                                {#if theme.source === 'official'}
+                                    <Badge variant="default" class="text-xs">공식</Badge>
+                                {:else if theme.source === 'custom'}
+                                    <Badge variant="secondary" class="text-xs">커스텀</Badge>
+                                {/if}
+                            </div>
                             <CardDescription class="mt-1">
                                 v{theme.manifest.version} · {theme.manifest.author.name}
                             </CardDescription>
@@ -171,6 +212,18 @@
                             >
                                 설정
                             </Button>
+                            <!-- 커스텀 테마만 삭제 버튼 표시 -->
+                            {#if theme.source === 'custom'}
+                                <Button
+                                    variant="destructive"
+                                    size="icon"
+                                    class="flex-shrink-0"
+                                    onclick={() =>
+                                        deleteTheme(theme.manifest.id, theme.manifest.name)}
+                                >
+                                    <Trash2 class="h-4 w-4" />
+                                </Button>
+                            {/if}
                         {:else if theme.status === 'installing'}
                             <Button disabled size="sm" class="flex-1">설치 중...</Button>
                         {:else if theme.status === 'error'}

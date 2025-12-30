@@ -64,3 +64,12 @@ go.work
 *~
 /data/
 apps/backend/
+
+# Custom themes (user uploads)
+/custom-themes/*
+!/custom-themes/.gitkeep
+!/custom-themes/README.md
+
+# Backup files
+*.backup
+*.bak

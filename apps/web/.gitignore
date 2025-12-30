@@ -22,3 +22,8 @@ Thumbs.db
 # Vite
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+
+# Theme System
+/custom-themes
+/data/settings.json
+/data/uploads
