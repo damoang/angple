@@ -25,12 +25,13 @@ let currentThemeId: string | null = null;
  */
 export async function loadThemeComponents(themeId: string): Promise<boolean> {
     try {
-        console.log(`🎨 [Theme Loader] Loading components for theme: ${themeId}`);
+        console.log('🎨 [Theme Loader] Loading components for theme:', themeId);
 
         // 이전 테마 컴포넌트 제거
         if (currentThemeId && currentThemeId !== themeId) {
             console.log(
-                `🗑️ [Theme Loader] Removing components from previous theme: ${currentThemeId}`
+                '🗑️ [Theme Loader] Removing components from previous theme:',
+                currentThemeId
             );
             removeComponentsBySource(currentThemeId);
         }
@@ -46,7 +47,7 @@ export async function loadThemeComponents(themeId: string): Promise<boolean> {
         const theme = themes.find((t: { manifest: ThemeManifest }) => t.manifest.id === themeId);
 
         if (!theme) {
-            console.error(`❌ [Theme Loader] Theme not found: ${themeId}`);
+            console.error('❌ [Theme Loader] Theme not found:', themeId);
             return false;
         }
 
@@ -54,7 +55,7 @@ export async function loadThemeComponents(themeId: string): Promise<boolean> {
 
         // components가 없으면 종료
         if (!manifest.components || manifest.components.length === 0) {
-            console.log(`ℹ️ [Theme Loader] No components to load for theme: ${themeId}`);
+            console.log('ℹ️ [Theme Loader] No components to load for theme:', themeId);
             currentThemeId = themeId;
             return true;
         }
@@ -70,7 +71,10 @@ export async function loadThemeComponents(themeId: string): Promise<boolean> {
                 const componentPath = `/themes/${themeId}/${componentDef.path}`;
 
                 console.log(
-                    `📦 [Theme Loader] Loading component: ${componentDef.name} from ${componentPath}`
+                    '📦 [Theme Loader] Loading component:',
+                    componentDef.name,
+                    'from',
+                    componentPath
                 );
 
                 // 동적 import (Vite glob import 사용)
@@ -78,7 +82,7 @@ export async function loadThemeComponents(themeId: string): Promise<boolean> {
                 const moduleKey = componentPath;
 
                 if (!modules[moduleKey]) {
-                    console.error(`❌ [Theme Loader] Component file not found: ${moduleKey}`);
+                    console.error('❌ [Theme Loader] Component file not found:', moduleKey);
                     failedCount++;
                     continue;
                 }
@@ -97,11 +101,15 @@ export async function loadThemeComponents(themeId: string): Promise<boolean> {
 
                 loadedCount++;
                 console.log(
-                    `✅ [Theme Loader] Component registered: ${componentDef.name} → ${componentDef.slot}`
+                    '✅ [Theme Loader] Component registered:',
+                    componentDef.name,
+                    '→',
+                    componentDef.slot
                 );
             } catch (error) {
                 console.error(
-                    `❌ [Theme Loader] Failed to load component: ${componentDef.name}`,
+                    '❌ [Theme Loader] Failed to load component:',
+                    componentDef.name,
                     error
                 );
                 failedCount++;
@@ -111,7 +119,11 @@ export async function loadThemeComponents(themeId: string): Promise<boolean> {
         currentThemeId = themeId;
 
         console.log(
-            `🎉 [Theme Loader] Theme components loaded: ${loadedCount} success, ${failedCount} failed`
+            '🎉 [Theme Loader] Theme components loaded:',
+            loadedCount,
+            'success,',
+            failedCount,
+            'failed'
         );
 
         return failedCount === 0;
@@ -126,7 +138,7 @@ export async function loadThemeComponents(themeId: string): Promise<boolean> {
  */
 export function unloadAllThemeComponents(): void {
     if (currentThemeId) {
-        console.log(`🗑️ [Theme Loader] Unloading all components from theme: ${currentThemeId}`);
+        console.log('🗑️ [Theme Loader] Unloading all components from theme:', currentThemeId);
         removeComponentsBySource(currentThemeId);
         currentThemeId = null;
     }
