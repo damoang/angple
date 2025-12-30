@@ -53,6 +53,65 @@ export const mockThemes: ThemeWithStatus[] = [
     },
     {
         manifest: {
+            id: 'damoang-basic',
+            name: 'Damoang Basic',
+            version: '1.0.0',
+            author: {
+                name: 'Angple Team',
+                email: 'team@angple.com'
+            },
+            description: '다모앙의 기본 테마입니다. 심플하고 깔끔한 커뮤니티 레이아웃을 제공합니다.',
+            screenshot: '/themes/damoang-basic/screenshot.png',
+            settings: {
+                appearance: {
+                    primaryColor: {
+                        label: 'Primary Color',
+                        type: 'color',
+                        default: '#10b981'
+                    },
+                    secondaryColor: {
+                        label: 'Secondary Color',
+                        type: 'color',
+                        default: '#3b82f6'
+                    },
+                    showBreadcrumb: {
+                        label: 'Show Breadcrumb',
+                        type: 'boolean',
+                        default: true
+                    }
+                },
+                layout: {
+                    sidebarPosition: {
+                        label: 'Sidebar Position',
+                        type: 'select',
+                        default: 'left',
+                        options: [
+                            { label: 'Left', value: 'left' },
+                            { label: 'Right', value: 'right' }
+                        ]
+                    }
+                }
+            },
+            angpleVersion: '0.1.0',
+            tags: ['default', 'basic', 'community', 'simple']
+        },
+        status: 'inactive',
+        installedAt: new Date('2024-12-29'),
+        currentSettings: {
+            appearance: {
+                primaryColor: '#10b981',
+                secondaryColor: '#3b82f6',
+                showBreadcrumb: true
+            },
+            layout: {
+                sidebarPosition: 'left'
+            }
+        },
+        source: 'builtin',
+        downloadCount: 0
+    },
+    {
+        manifest: {
             id: 'sample-theme',
             name: 'Sample Blue Theme',
             version: '1.0.0',

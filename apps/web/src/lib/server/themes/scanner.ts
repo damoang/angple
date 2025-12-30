@@ -10,8 +10,11 @@ import type { ThemeManifest } from '$lib/types/theme';
 import { safeValidateThemeManifest } from '$lib/types/theme';
 import { sanitizePath } from '../path-utils';
 
-/** 테마 디렉터리 경로 */
+/** 공식 테마 디렉터리 경로 (Git 추적) */
 const THEMES_DIR = join(process.cwd(), 'themes');
+
+/** 커스텀 테마 디렉터리 경로 (Git 무시, 사용자 업로드) */
+const CUSTOM_THEMES_DIR = join(process.cwd(), 'custom-themes');
 
 /**
  * 테마 디렉터리가 유효한지 확인
@@ -29,10 +32,12 @@ function isValidThemeDirectory(themePath: string): boolean {
 
 /**
  * theme.json 파일을 읽고 검증
+ * @param themeDir 테마 디렉터리명 (안전한 이름, readdir에서 반환)
+ * @param baseDir 테마가 위치한 기본 디렉터리 (THEMES_DIR 또는 CUSTOM_THEMES_DIR)
  */
-function loadThemeManifest(themeDir: string): ThemeManifest | null {
+function loadThemeManifest(themeDir: string, baseDir: string): ThemeManifest | null {
     // themeDir는 readdir()에서 온 안전한 디렉터리명
-    const manifestPath = join(THEMES_DIR, themeDir, 'theme.json'); // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal
+    const manifestPath = join(baseDir, themeDir, 'theme.json'); // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal
 
     try {
         const manifestJson = readFileSync(manifestPath, 'utf-8');
@@ -55,7 +60,50 @@ function loadThemeManifest(themeDir: string): ThemeManifest | null {
 }
 
 /**
- * themes/ 디렉터리를 스캔하여 모든 테마 매니페스트 반환
+ * 특정 디렉터리에서 테마 스캔 헬퍼
+ */
+function scanDirectory(baseDir: string, themes: Map<string, ThemeManifest>): number {
+    if (!existsSync(baseDir)) {
+        return 0;
+    }
+
+    let scannedCount = 0;
+    const entries = readdirSync(baseDir, { withFileTypes: true });
+
+    for (const entry of entries) {
+        // 디렉터리만 처리
+        if (!entry.isDirectory()) continue;
+
+        const themeDir = entry.name;
+        const themePath = join(baseDir, themeDir);
+
+        // 유효한 테마 디렉터리인지 확인
+        if (!isValidThemeDirectory(themePath)) {
+            console.warn(`⚠️  [Theme Scanner] 유효하지 않은 테마: ${themeDir}`);
+            continue;
+        }
+
+        // 매니페스트 로드 및 검증
+        const manifest = loadThemeManifest(themeDir, baseDir);
+        if (!manifest) continue;
+
+        // 디렉터리 이름과 ID가 일치하는지 확인
+        if (manifest.id !== themeDir) {
+            console.warn(
+                `⚠️  [Theme Scanner] 테마 ID 불일치: 디렉터리명=${themeDir}, manifest.id=${manifest.id}`
+            );
+            console.warn('   디렉터리 이름을 테마 ID로 사용합니다.');
+        }
+
+        themes.set(manifest.id, manifest);
+        scannedCount++;
+    }
+
+    return scannedCount;
+}
+
+/**
+ * themes/ 및 custom-themes/ 디렉터리를 스캔하여 모든 테마 매니페스트 반환
  *
  * @returns 테마 ID를 key로 하는 매니페스트 맵
  */
@@ -63,44 +111,15 @@ export function scanThemes(): Map<string, ThemeManifest> {
     const themes = new Map<string, ThemeManifest>();
 
     try {
-        // themes/ 디렉터리가 없으면 빈 맵 반환
-        if (!existsSync(THEMES_DIR)) {
-            console.warn('⚠️  [Theme Scanner] themes/ 디렉터리가 없습니다.');
-            return themes;
-        }
+        // 공식 테마 스캔 (Git 추적)
+        const officialCount = scanDirectory(THEMES_DIR, themes);
 
-        // 디렉터리 목록 가져오기
-        const entries = readdirSync(THEMES_DIR, { withFileTypes: true });
+        // 커스텀 테마 스캔 (사용자 업로드)
+        const customCount = scanDirectory(CUSTOM_THEMES_DIR, themes);
 
-        for (const entry of entries) {
-            // 디렉터리만 처리
-            if (!entry.isDirectory()) continue;
-
-            const themeDir = entry.name;
-            const themePath = join(THEMES_DIR, themeDir);
-
-            // 유효한 테마 디렉터리인지 확인
-            if (!isValidThemeDirectory(themePath)) {
-                console.warn(`⚠️  [Theme Scanner] 유효하지 않은 테마: ${themeDir}`);
-                continue;
-            }
-
-            // 매니페스트 로드 및 검증
-            const manifest = loadThemeManifest(themeDir);
-            if (!manifest) continue;
-
-            // 디렉터리 이름과 ID가 일치하는지 확인
-            if (manifest.id !== themeDir) {
-                console.warn(
-                    `⚠️  [Theme Scanner] 테마 ID 불일치: 디렉터리명=${themeDir}, manifest.id=${manifest.id}`
-                );
-                console.warn('   디렉터리 이름을 테마 ID로 사용합니다.');
-            }
-
-            themes.set(manifest.id, manifest);
-        }
-
-        console.log(`✅ [Theme Scanner] ${themes.size}개 테마 스캔 완료`);
+        console.log(
+            `✅ [Theme Scanner] 총 ${themes.size}개 테마 스캔 완료 (공식: ${officialCount}, 커스텀: ${customCount})`
+        );
     } catch (error) {
         console.error('❌ [Theme Scanner] 테마 스캔 실패:', error);
     }
@@ -109,35 +128,70 @@ export function scanThemes(): Map<string, ThemeManifest> {
 }
 
 /**
+ * 테마가 어느 디렉터리에 있는지 찾기
+ * @returns [baseDir, isCustom] 튜플 또는 null
+ */
+function findThemeDirectory(themeId: string): [string, boolean] | null {
+    const sanitizedId = sanitizePath(themeId);
+
+    // 1. 공식 테마 디렉터리 확인
+    // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal
+    const officialPath = join(THEMES_DIR, sanitizedId);
+    if (isValidThemeDirectory(officialPath)) {
+        return [THEMES_DIR, false];
+    }
+
+    // 2. 커스텀 테마 디렉터리 확인
+    // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal
+    const customPath = join(CUSTOM_THEMES_DIR, sanitizedId);
+    if (isValidThemeDirectory(customPath)) {
+        return [CUSTOM_THEMES_DIR, true];
+    }
+
+    return null;
+}
+
+/**
  * 특정 테마의 매니페스트 가져오기
  */
 export function getThemeManifest(themeId: string): ThemeManifest | null {
+    const result = findThemeDirectory(themeId);
+    if (!result) return null;
+
+    const [baseDir] = result;
     const sanitizedId = sanitizePath(themeId);
-    // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal
-    const themePath = join(THEMES_DIR, sanitizedId);
-
-    if (!isValidThemeDirectory(themePath)) {
-        return null;
-    }
-
-    return loadThemeManifest(sanitizedId);
+    return loadThemeManifest(sanitizedId, baseDir);
 }
 
 /**
  * 테마 디렉터리 절대 경로 반환
  */
 export function getThemePath(themeId: string): string {
+    const result = findThemeDirectory(themeId);
     const sanitizedId = sanitizePath(themeId);
+
+    if (!result) {
+        // 기본적으로 공식 테마 경로 반환 (호환성 유지)
+        // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal
+        return join(THEMES_DIR, sanitizedId);
+    }
+
+    const [baseDir] = result;
     // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal
-    return join(THEMES_DIR, sanitizedId);
+    return join(baseDir, sanitizedId);
 }
 
 /**
  * 테마가 설치되어 있는지 확인
  */
 export function isThemeInstalled(themeId: string): boolean {
-    const sanitizedId = sanitizePath(themeId);
-    // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal
-    const themePath = join(THEMES_DIR, sanitizedId);
-    return isValidThemeDirectory(themePath);
+    return findThemeDirectory(themeId) !== null;
+}
+
+/**
+ * 테마가 커스텀 테마인지 확인
+ */
+export function isCustomTheme(themeId: string): boolean {
+    const result = findThemeDirectory(themeId);
+    return result ? result[1] : false;
 }
