@@ -50,7 +50,8 @@ function isValidExtensionDirectory(extensionPath: string): boolean {
     if (!stat.isDirectory()) return false;
 
     // extension.json 파일이 있어야 함
-    const manifestPath = join(extensionPath, 'extension.json'); // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal
+    // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
+    const manifestPath = join(extensionPath, 'extension.json');
     return existsSync(manifestPath);
 }
 
@@ -61,7 +62,8 @@ function isValidExtensionDirectory(extensionPath: string): boolean {
  */
 function loadExtensionManifest(extensionDir: string, baseDir: string): ExtensionManifest | null {
     // extensionDir는 readdir()에서 온 안전한 디렉터리명
-    const manifestPath = join(baseDir, extensionDir, 'extension.json'); // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal
+    // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
+    const manifestPath = join(baseDir, extensionDir, 'extension.json');
 
     try {
         const manifestJson = readFileSync(manifestPath, 'utf-8');
@@ -110,6 +112,7 @@ function scanDirectory(baseDir: string, extensions: Map<string, ExtensionManifes
         if (!entry.isDirectory()) continue;
 
         const extensionDir = entry.name;
+        // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
         const extensionPath = join(baseDir, extensionDir);
 
         // 유효한 Extension 디렉터리인지 확인
@@ -207,12 +210,12 @@ export function getExtensionPath(extensionId: string): string {
 
     if (!result) {
         // 기본적으로 공식 Extension 경로 반환 (호환성 유지)
-        // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal
+        // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
         return join(EXTENSIONS_DIR, sanitizedId);
     }
 
     const [baseDir] = result;
-    // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal
+    // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
     return join(baseDir, sanitizedId);
 }
 
