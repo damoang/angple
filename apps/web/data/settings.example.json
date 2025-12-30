@@ -1,15 +1,15 @@
 {
-  "activeTheme": "sample-theme",
-  "activatedAt": "2025-01-01T00:00:00.000Z",
-  "themes": {
-    "sample-theme": {
-      "settings": {
-        "appearance": {
-          "primaryColor": "#3b82f6",
-          "showBanner": true
+    "activeTheme": "sample-theme",
+    "activatedAt": "2025-01-01T00:00:00.000Z",
+    "themes": {
+        "sample-theme": {
+            "settings": {
+                "appearance": {
+                    "primaryColor": "#3b82f6",
+                    "showBanner": true
+                }
+            }
         }
-      }
-    }
-  },
-  "version": "1.0.0"
+    },
+    "version": "1.0.0"
 }

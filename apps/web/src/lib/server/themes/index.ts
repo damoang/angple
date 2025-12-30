@@ -4,7 +4,13 @@
  * 파일 시스템 기반 테마 관리 및 settings.json 통합
  */
 
-import { scanThemes, getThemeManifest, getThemePath, isThemeInstalled, isCustomTheme } from './scanner';
+import {
+    scanThemes,
+    getThemeManifest,
+    getThemePath,
+    isThemeInstalled,
+    isCustomTheme
+} from './scanner';
 import { settingsProvider } from '../settings/index';
 import type { ThemeManifest } from '$lib/types/theme';
 
@@ -130,4 +136,10 @@ export async function updateThemeSettings(
 }
 
 // Re-export scanner functions
-export { getThemeManifest, getThemePath, isThemeInstalled, scanThemes, isCustomTheme } from './scanner';
+export {
+    getThemeManifest,
+    getThemePath,
+    isThemeInstalled,
+    scanThemes,
+    isCustomTheme
+} from './scanner';

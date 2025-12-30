@@ -113,7 +113,9 @@
                 try {
                     // Cookie에서 테마 변경 플래그 읽기
                     const cookies = document.cookie.split(';');
-                    const triggerCookie = cookies.find(c => c.trim().startsWith('theme-reload-trigger='));
+                    const triggerCookie = cookies.find((c) =>
+                        c.trim().startsWith('theme-reload-trigger=')
+                    );
 
                     if (triggerCookie) {
                         const value = triggerCookie.split('=')[1]; // "themeId:timestamp"
