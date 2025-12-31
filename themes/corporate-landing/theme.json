@@ -38,7 +38,7 @@
             },
             "heroSubtitle": {
                 "label": "Hero Subtitle",
-                "type": "textarea",
+                "type": "text",
                 "default": "우리는 최신 기술로 미래를 만들어갑니다.",
                 "description": "메인 히어로 섹션 서브타이틀"
             }
@@ -214,29 +214,27 @@
             },
             "address": {
                 "label": "Address",
-                "type": "textarea",
+                "type": "text",
                 "default": "서울특별시 강남구",
                 "description": "회사 주소"
             },
-            "socialLinks": {
-                "github": {
-                    "label": "GitHub URL",
-                    "type": "text",
-                    "default": "",
-                    "description": "GitHub 프로필 URL"
-                },
-                "twitter": {
-                    "label": "Twitter/X URL",
-                    "type": "text",
-                    "default": "",
-                    "description": "Twitter/X 프로필 URL"
-                },
-                "linkedin": {
-                    "label": "LinkedIn URL",
-                    "type": "text",
-                    "default": "",
-                    "description": "LinkedIn 프로필 URL"
-                }
+            "githubUrl": {
+                "label": "GitHub URL",
+                "type": "text",
+                "default": "",
+                "description": "GitHub 프로필 URL"
+            },
+            "twitterUrl": {
+                "label": "Twitter/X URL",
+                "type": "text",
+                "default": "",
+                "description": "Twitter/X 프로필 URL"
+            },
+            "linkedinUrl": {
+                "label": "LinkedIn URL",
+                "type": "text",
+                "default": "",
+                "description": "LinkedIn 프로필 URL"
             }
         }
     },
@@ -246,40 +244,35 @@
             "name": "Particles Background",
             "slot": "background",
             "path": "components/particles-background.svelte",
-            "priority": 1,
-            "description": "Canvas 기반 파티클 배경 효과"
+            "priority": 1
         },
         {
             "id": "hero-section",
             "name": "Hero Section",
             "slot": "landing-hero",
             "path": "components/hero-section.svelte",
-            "priority": 10,
-            "description": "메인 히어로 섹션"
+            "priority": 10
         },
         {
             "id": "services-section",
             "name": "Services Section",
             "slot": "landing-content",
             "path": "components/services-section.svelte",
-            "priority": 20,
-            "description": "서비스 소개 섹션"
+            "priority": 20
         },
         {
             "id": "projects-section",
             "name": "Projects Section",
             "slot": "landing-content",
             "path": "components/projects-section.svelte",
-            "priority": 30,
-            "description": "프로젝트 쇼케이스 섹션"
+            "priority": 30
         },
         {
             "id": "contact-section",
             "name": "Contact Section",
             "slot": "landing-content",
             "path": "components/contact-section.svelte",
-            "priority": 40,
-            "description": "문의하기 섹션"
+            "priority": 40
         }
     ],
     "hooks": [
@@ -287,8 +280,7 @@
             "name": "landing_page_load",
             "type": "action",
             "callback": "hooks/on-landing-load.js",
-            "priority": 10,
-            "description": "랜딩 페이지 로드 시 실행"
+            "priority": 10
         }
     ]
 }

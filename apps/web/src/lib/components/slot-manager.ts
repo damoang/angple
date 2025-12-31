@@ -36,7 +36,10 @@ export type SlotName =
     | 'content-before' // 메인 콘텐츠 상단
     | 'content-after' // 메인 콘텐츠 하단
     | 'footer-before' // 푸터 상단
-    | 'footer-after'; // 푸터 하단
+    | 'footer-after' // 푸터 하단
+    | 'background' // 배경 (테마용)
+    | 'landing-hero' // 랜딩 히어로 (테마용)
+    | 'landing-content'; // 랜딩 콘텐츠 (테마용)
 
 /**
  * Component 슬롯 레지스트리
@@ -46,6 +49,37 @@ export type SlotName =
 class SlotRegistry {
     /** 슬롯별 컴포넌트 저장소 */
     private slots: Map<SlotName, SlotComponent[]> = new Map();
+
+    /** 변경 감지를 위한 버전 (변경될 때마다 증가) */
+    private version = 0;
+
+    /** 변경 리스너들 */
+    private listeners: Set<() => void> = new Set();
+
+    /**
+     * 변경 알림
+     */
+    private notifyChange(): void {
+        this.version++;
+        this.listeners.forEach((listener) => listener());
+    }
+
+    /**
+     * 변경 리스너 구독
+     */
+    subscribe(listener: () => void): () => void {
+        this.listeners.add(listener);
+        return () => {
+            this.listeners.delete(listener);
+        };
+    }
+
+    /**
+     * 현재 버전 가져오기
+     */
+    getVersion(): number {
+        return this.version;
+    }
 
     /**
      * 컴포넌트를 슬롯에 등록
@@ -87,6 +121,9 @@ class SlotRegistry {
         console.log(
             `✅ [Slot Manager] Registered component to "${slotName}" (priority: ${priority}, source: ${source || 'unknown'})`
         );
+
+        // 변경 알림
+        this.notifyChange();
     }
 
     /**
@@ -126,6 +163,7 @@ class SlotRegistry {
         }
 
         console.log(`🗑️ [Slot Manager] Removed all components from source: ${source}`);
+        this.notifyChange();
     }
 
     /**
@@ -144,6 +182,7 @@ class SlotRegistry {
         }
 
         console.log(`🗑️ [Slot Manager] Removed component: ${id}`);
+        this.notifyChange();
     }
 
     /**
@@ -152,6 +191,7 @@ class SlotRegistry {
     clearAll(): void {
         this.slots.clear();
         console.log('🗑️ [Slot Manager] Cleared all slots');
+        this.notifyChange();
     }
 
     /**
@@ -228,4 +268,18 @@ export const clearAllSlots = (): void => {
  */
 export const debugSlots = (): void => {
     slotRegistry.debug();
+};
+
+/**
+ * 슬롯 변경 구독
+ */
+export const subscribeToSlotChanges = (listener: () => void): (() => void) => {
+    return slotRegistry.subscribe(listener);
+};
+
+/**
+ * 슬롯 버전 가져오기 (리액티브 트래킹용)
+ */
+export const getSlotVersion = (): number => {
+    return slotRegistry.getVersion();
 };
