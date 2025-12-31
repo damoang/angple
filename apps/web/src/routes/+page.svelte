@@ -7,6 +7,8 @@
     import { AdSlot } from '$lib/components/ui/ad-slot';
 </script>
 
+<!-- 기본 커뮤니티 홈 콘텐츠 -->
+<!-- corporate-landing 테마일 경우 레이아웃에서 렌더링을 대체함 -->
 <div class="space-y-4">
     <!-- index-head: 상단 광고 -->
     <AdSlot position="index-head" height="90px" />

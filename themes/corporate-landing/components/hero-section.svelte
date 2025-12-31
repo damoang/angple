@@ -27,97 +27,7 @@
     });
 </script>
 
-<svelte:head>
-    <style>
-        @keyframes fade-in {
-            0% {
-                opacity: 0;
-            }
-            75% {
-                opacity: 0;
-            }
-            100% {
-                opacity: 1;
-            }
-        }
-
-        @keyframes title-animation {
-            0% {
-                line-height: 0%;
-                letter-spacing: 0.25em;
-                opacity: 0;
-            }
-            25% {
-                line-height: 0%;
-                opacity: 0;
-            }
-            80% {
-                opacity: 1;
-            }
-            100% {
-                line-height: 100%;
-                opacity: 1;
-            }
-        }
-
-        @keyframes fade-left {
-            0% {
-                transform: translateX(100%);
-                opacity: 0;
-            }
-            30% {
-                transform: translateX(0%);
-                opacity: 1;
-            }
-            100% {
-                opacity: 0;
-            }
-        }
-
-        @keyframes fade-right {
-            0% {
-                transform: translateX(-100%);
-                opacity: 0;
-            }
-            30% {
-                transform: translateX(0%);
-                opacity: 1;
-            }
-            100% {
-                opacity: 0;
-            }
-        }
-
-        .animate-fade-in {
-            animation: fade-in 3s ease-in-out forwards;
-        }
-
-        .animate-title {
-            animation: title-animation 3s ease-out forwards;
-        }
-
-        .animate-fade-left {
-            animation: fade-left 3s ease-in-out forwards;
-        }
-
-        .animate-fade-right {
-            animation: fade-right 3s ease-in-out forwards;
-        }
-
-        .animate-glow {
-            animation: glow 2s ease-in-out infinite alternate;
-        }
-
-        @keyframes glow {
-            from {
-                opacity: 0.3;
-            }
-            to {
-                opacity: 0.6;
-            }
-        }
-    </style>
-</svelte:head>
+<!-- 애니메이션은 제거하고 Tailwind만 사용 -->
 
 <!-- sdkcorp Hero Section 디자인 -->
 <div
@@ -125,17 +35,16 @@
 >
     <!-- Background gradient mesh -->
     <div
-        class="absolute inset-0 animate-glow bg-gradient-to-br from-blue-600/10 via-transparent to-purple-600/10"
+        class="absolute inset-0 bg-gradient-to-br from-blue-600/10 via-transparent to-purple-600/10 opacity-50"
     ></div>
 
     <!-- Navigation -->
-    <nav class="z-10 my-16 animate-fade-in">
+    <nav class="z-10 my-16">
         <ul class="flex items-center justify-center gap-6">
-            {#each navigation as item, index}
+            {#each navigation as item}
                 <a
                     href={item.href}
-                    class="transform text-sm font-medium text-zinc-400 transition-all duration-500 hover:scale-110 hover:text-white"
-                    style="animation-delay: {index * 100}ms"
+                    class="transform text-sm font-medium !text-zinc-400 transition-all duration-300 hover:scale-110 hover:!text-white"
                 >
                     {item.name}
                 </a>
@@ -145,39 +54,39 @@
 
     <!-- Top divider -->
     <div
-        class="hidden h-px w-screen animate-fade-left bg-gradient-to-r from-transparent via-blue-500/50 to-transparent md:block"
+        class="hidden h-px w-screen bg-gradient-to-r from-transparent via-blue-500/50 to-transparent md:block"
     ></div>
 
     <!-- Main title with gradient -->
     <h1
-        class="animate-title z-10 cursor-default whitespace-nowrap bg-gradient-to-r from-white via-blue-200 to-white bg-clip-text px-0.5 py-3.5 text-5xl font-bold text-transparent duration-1000 transition-all hover:from-blue-400 hover:via-white hover:to-blue-400 sm:text-7xl md:text-9xl"
+        class="z-10 cursor-default whitespace-nowrap bg-gradient-to-r from-white via-blue-200 to-white bg-clip-text px-0.5 py-3.5 !text-5xl font-bold !text-transparent transition-all duration-1000 hover:from-blue-400 hover:via-white hover:to-blue-400 sm:!text-7xl md:!text-9xl"
     >
         {companyName}
     </h1>
 
     <!-- Bottom divider -->
     <div
-        class="hidden h-px w-screen animate-fade-right bg-gradient-to-r from-transparent via-blue-500/50 to-transparent md:block"
+        class="hidden h-px w-screen bg-gradient-to-r from-transparent via-blue-500/50 to-transparent md:block"
     ></div>
 
     <!-- Subtitle -->
-    <div class="my-8 max-w-2xl animate-fade-in px-6 text-center">
-        <h2 class="text-lg leading-relaxed text-zinc-300 md:text-xl">
+    <div class="my-8 max-w-2xl px-6 text-center">
+        <h2 class="!text-lg leading-relaxed !text-zinc-300 md:!text-xl">
             {subtitle}
         </h2>
     </div>
 
     <!-- CTA Buttons -->
-    <div class="mt-8 flex animate-fade-in gap-4">
+    <div class="mt-8 flex gap-4">
         <a
             href="/services"
-            class="transform rounded-lg bg-blue-600 px-6 py-3 font-semibold text-white shadow-lg shadow-blue-600/25 transition-all duration-300 hover:scale-105 hover:bg-blue-500"
+            class="transform rounded-lg bg-blue-600 px-6 py-3 font-semibold !text-white shadow-lg shadow-blue-600/25 transition-all duration-300 hover:scale-105 hover:bg-blue-500"
         >
             서비스 알아보기
         </a>
         <a
             href="/contact"
-            class="transform rounded-lg border border-zinc-700 bg-zinc-800 px-6 py-3 font-semibold text-white transition-all duration-300 hover:scale-105 hover:bg-zinc-700"
+            class="transform rounded-lg border border-zinc-700 bg-zinc-800 px-6 py-3 font-semibold !text-white transition-all duration-300 hover:scale-105 hover:bg-zinc-700"
         >
             문의하기
         </a>
@@ -186,7 +95,7 @@
     <!-- Scroll indicator -->
     <div class="absolute bottom-8 animate-bounce">
         <svg
-            class="h-6 w-6 text-zinc-400"
+            class="h-6 w-6 !text-zinc-400"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"

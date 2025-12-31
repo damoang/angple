@@ -16,11 +16,14 @@
     import { getComponentsForSlot } from '$lib/components/slot-manager';
     import { loadThemeComponents } from '$lib/utils/theme-component-loader';
 
-    const { children } = $props(); // Svelte 5
+    const { children, data } = $props(); // Svelte 5: SSR 데이터 받기
     let snbPosition = $state<'left' | 'right'>('left'); // 기본값
 
     let isBannerUp = $state(false);
     let lastScrollY = $state(0);
+
+    // SSR에서 받은 테마로 스토어 초기화 (깜박임 방지!)
+    themeStore.initFromServer(data.activeTheme);
 
     // 현재 활성 테마
     const activeTheme = $derived(themeStore.currentTheme.activeTheme);
@@ -29,25 +32,37 @@
     let ThemeLayout = $state<Component | null>(null);
 
     // Vite의 import.meta.glob으로 모든 테마 레이아웃 패턴 정의
-    const themeLayouts = import.meta.glob('/themes/*/layouts/main-layout.svelte');
+    // $themes alias를 사용하여 프로젝트 루트의 themes 디렉터리 참조
+    const themeLayouts = import.meta.glob('$themes/*/layouts/main-layout.svelte');
 
     /**
      * 테마 레이아웃 동적 로드
      */
     async function loadThemeLayout(themeId: string | null) {
+        console.log(`🔍 [loadThemeLayout] 호출됨 - themeId: ${themeId}`);
+
         if (!themeId) {
             ThemeLayout = null;
+            console.log('⚠️ [loadThemeLayout] themeId가 null, 기본 레이아웃 사용');
             return;
         }
 
         try {
-            const layoutPath = `/themes/${themeId}/layouts/main-layout.svelte`;
+            // Vite가 alias를 실제 상대 경로로 변환하므로 ../../themes/를 사용
+            const layoutPath = `../../themes/${themeId}/layouts/main-layout.svelte`;
+            console.log(`📁 [loadThemeLayout] 레이아웃 경로: ${layoutPath}`);
+            const keys = Object.keys(themeLayouts);
+            console.log(`🔎 [loadThemeLayout] themeLayouts 키 목록:`, keys);
+            console.log(`🔍 [loadThemeLayout] 첫 번째 키 예시:`, keys[0]);
 
             // glob 패턴에 매칭되는 경로가 있는지 확인
             if (layoutPath in themeLayouts) {
+                console.log(`✨ [loadThemeLayout] 레이아웃 발견! 로딩 시작...`);
                 const module = (await themeLayouts[layoutPath]()) as { default: Component };
                 ThemeLayout = module.default;
                 console.log(`✅ [Layout] 테마 레이아웃 로드: ${themeId}`);
+                console.log(`🎯 [Layout] ThemeLayout 컴포넌트:`, ThemeLayout);
+                console.log(`🔢 [Layout] ThemeLayout이 null인가?`, ThemeLayout === null);
             } else {
                 // 테마 레이아웃이 없으면 기본 레이아웃 사용
                 ThemeLayout = null;
@@ -73,6 +88,7 @@
 
     // activeTheme 변경 시 자동으로 레이아웃, Hook, Component 로드
     $effect(() => {
+        console.log('🔄 [$effect] activeTheme 변경 감지:', activeTheme);
         loadThemeLayout(activeTheme);
 
         // 테마 Hook 및 Component 로드
@@ -83,8 +99,9 @@
     });
 
     onMount(() => {
-        // 테마 로드
-        themeStore.loadActiveTheme();
+        console.log('🚀 [onMount] 컴포넌트 마운트됨');
+        // 테마는 이미 SSR에서 로드되었으므로 loadActiveTheme() 호출 불필요
+        // (깜박임 방지!)
 
         // 인증 상태 초기화
         authActions.initAuth();
@@ -149,6 +166,11 @@
     <title>다모앙</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="icon" href={favicon} />
+    <!-- Wanted Sans Font -->
+    <link
+        rel="stylesheet"
+        href="https://cdn.jsdelivr.net/gh/wanteddev/wanted-sans@v1.0.3/packages/wanted-sans/fonts/webfonts/static/split/WantedSans.min.css"
+    />
     <!-- Damoang Ads Script -->
     <script async src="https://ads.damoang.net/ad.js"></script>
 </svelte:head>

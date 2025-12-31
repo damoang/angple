@@ -217,9 +217,9 @@ pnpm build         # 빌드 검증
 
 ## 🌐 커뮤니티
 
--   **공식 블로그**: https://sdk.kr
+-   **공식 블로그**: https://angple.com
 -   **다모앙 커뮤니티**: https://damoang.net (개발자 커뮤니티)
--   **GitHub Discussions**: (준비 중)
+-   **GitHub Discussions**: https://github.com/damoang/angple/discussions
 -   **Discord**: (준비 중)
 
 ## 📜 라이선스

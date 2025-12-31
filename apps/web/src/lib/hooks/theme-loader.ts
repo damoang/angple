@@ -36,11 +36,12 @@ export async function loadThemeHooks(themeId: string, manifest?: ThemeManifest):
         // Manifest가 제공되지 않았으면 theme.json 읽기
         if (!manifest) {
             try {
-                // Vite requires relative paths for dynamic imports
-                const manifestModule = await import(
-                    /* @vite-ignore */ `../../../../../../themes/${themeId}/theme.json`
-                );
-                manifest = manifestModule.default || manifestModule;
+                // Fetch theme.json from static file server
+                const response = await fetch(`/themes/${themeId}/theme.json`);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                manifest = await response.json();
             } catch (error) {
                 console.error('❌ [Hook Loader] Failed to load theme.json:', { themeId, error });
                 return;

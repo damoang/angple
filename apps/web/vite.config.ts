@@ -1,10 +1,19 @@
 import tailwindcss from '@tailwindcss/vite';
 import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig } from 'vite';
+import { fileURLToPath } from 'url';
+import path from 'path';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig(() => {
     return {
         plugins: [tailwindcss(), sveltekit()],
+        resolve: {
+            alias: {
+                $themes: path.resolve(__dirname, '../../themes')
+            }
+        },
         server: {
             allowedHosts: ['web.damoang.net', 'damoang.dev', 'localhost'],
             fs: {
