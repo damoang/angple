@@ -1,0 +1,30 @@
+{
+    "id": "sample-extension",
+    "name": "Sample Extension",
+    "version": "1.0.0",
+    "description": "Angple Extension 개발 가이드용 샘플 프로젝트",
+    "author": {
+        "name": "Angple Team",
+        "email": "dev@angple.com",
+        "url": "https://angple.com"
+    },
+    "license": "MIT",
+    "type": "custom",
+    "category": ["development", "sample"],
+    "keywords": ["sample", "example", "tutorial", "guide"],
+    "angpleVersion": ">=1.0.0",
+    "engines": {
+        "node": ">=20.0.0",
+        "sveltekit": ">=2.0.0"
+    },
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "permissions": ["posts:read", "settings:read"],
+    "homepage": "https://github.com/angple/sample-extension",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/angple/sample-extension.git"
+    },
+    "active": false,
+    "isCustom": false
+}

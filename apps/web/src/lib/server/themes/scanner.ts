@@ -46,8 +46,7 @@ function isValidThemeDirectory(themePath: string): boolean {
     if (!stat.isDirectory()) return false;
 
     // theme.json 파일이 있어야 함
-    // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
-    const manifestPath = join(themePath, 'theme.json');
+    const manifestPath = join(themePath, 'theme.json'); // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
     return existsSync(manifestPath);
 }
 
