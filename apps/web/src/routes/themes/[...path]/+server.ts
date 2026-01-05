@@ -14,8 +14,8 @@ import { sanitizePath } from '$lib/server/path-utils';
 export const GET: RequestHandler = ({ params }) => {
     const path = params.path;
 
-    // 보안: 경로 traversal 방지 (sanitizePath 사용)
-    const safePath = sanitizePath(path);
+    // 보안: 경로 traversal 방지 (슬래시, 점 허용)
+    const safePath = sanitizePath(path, /^[a-zA-Z0-9\-_/.]+$/);
 
     try {
         // 테마 디렉터리는 프로젝트 루트의 themes/
