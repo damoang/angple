@@ -2,6 +2,7 @@ import { error } from '@sveltejs/kit';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import type { RequestHandler } from './$types';
+import { sanitizePath } from '$lib/server/path-utils';
 
 /**
  * 테마 정적 파일 서버
@@ -13,15 +14,14 @@ import type { RequestHandler } from './$types';
 export const GET: RequestHandler = ({ params }) => {
     const path = params.path;
 
-    // 보안: 경로 traversal 방지
-    if (path.includes('..') || path.startsWith('/')) {
-        throw error(403, 'Forbidden');
-    }
+    // 보안: 경로 traversal 방지 (sanitizePath 사용)
+    const safePath = sanitizePath(path);
 
     try {
         // 테마 디렉터리는 프로젝트 루트의 themes/
         const themesRoot = join(process.cwd(), '../../themes');
-        const filePath = join(themesRoot, path);
+        // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
+        const filePath = join(themesRoot, safePath);
 
         const content = readFileSync(filePath);
 
@@ -36,7 +36,7 @@ export const GET: RequestHandler = ({ params }) => {
             '.svg': 'image/svg+xml'
         };
 
-        const ext = path.substring(path.lastIndexOf('.'));
+        const ext = safePath.substring(safePath.lastIndexOf('.'));
         const mimeType = mimeTypes[ext] || 'text/plain';
 
         return new Response(content, {
@@ -46,7 +46,8 @@ export const GET: RequestHandler = ({ params }) => {
             }
         });
     } catch (err) {
-        console.error(`❌ [Theme Static] 파일 읽기 실패: /themes/${path}`, err);
+        // 보안: 포맷 스트링 인젝션 방지 (변수를 별도 인자로 전달)
+        console.error('❌ [Theme Static] 파일 읽기 실패:', '/themes/' + safePath, err);
         throw error(404, 'Not found');
     }
 };
