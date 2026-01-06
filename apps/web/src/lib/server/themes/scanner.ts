@@ -96,6 +96,8 @@ function scanDirectory(baseDir: string, themes: Map<string, ThemeManifest>): num
         if (!entry.isDirectory()) continue;
 
         const themeDir = entry.name;
+        // themeDir는 readdirSync()에서 반환된 실제 디렉터리명 (사용자 입력 아님)
+        // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
         const themePath = join(baseDir, themeDir);
 
         // 유효한 테마 디렉터리인지 확인
