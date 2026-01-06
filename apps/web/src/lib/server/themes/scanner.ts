@@ -156,14 +156,14 @@ function findThemeDirectory(themeId: string): [string, boolean] | null {
     const sanitizedId = sanitizePath(themeId);
 
     // 1. 공식 테마 디렉터리 확인
-    // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal
+    // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
     const officialPath = join(THEMES_DIR, sanitizedId);
     if (isValidThemeDirectory(officialPath)) {
         return [THEMES_DIR, false];
     }
 
     // 2. 커스텀 테마 디렉터리 확인
-    // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal
+    // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
     const customPath = join(CUSTOM_THEMES_DIR, sanitizedId);
     if (isValidThemeDirectory(customPath)) {
         return [CUSTOM_THEMES_DIR, true];
@@ -193,12 +193,12 @@ export function getThemePath(themeId: string): string {
 
     if (!result) {
         // 기본적으로 공식 테마 경로 반환 (호환성 유지)
-        // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal
+        // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
         return join(THEMES_DIR, sanitizedId);
     }
 
     const [baseDir] = result;
-    // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal
+    // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
     return join(baseDir, sanitizedId);
 }
 

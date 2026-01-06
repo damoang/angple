@@ -68,7 +68,9 @@ export async function loadThemeComponents(themeId: string): Promise<boolean> {
             try {
                 // 동적 import를 위한 경로 생성
                 // Vite는 정적 분석을 위해 템플릿 리터럴의 일부가 고정되어야 함
-                const componentPath = `/themes/${themeId}/${componentDef.path}`;
+                // ../../../../../themes/ 상대 경로 사용
+                // (apps/web/src/lib/utils/ → 프로젝트 루트 themes/)
+                const componentPath = `../../../../../themes/${themeId}/${componentDef.path}`;
 
                 console.log(
                     '📦 [Theme Loader] Loading component:',
@@ -78,8 +80,14 @@ export async function loadThemeComponents(themeId: string): Promise<boolean> {
                 );
 
                 // 동적 import (Vite glob import 사용)
-                const modules = import.meta.glob('/themes/**/*.svelte');
+                const modules = import.meta.glob('../../../../../themes/**/*.svelte');
                 const moduleKey = componentPath;
+
+                console.log(
+                    '🔍 [Theme Loader] Available modules:',
+                    Object.keys(modules).slice(0, 5)
+                );
+                console.log('🔍 [Theme Loader] Looking for:', moduleKey);
 
                 if (!modules[moduleKey]) {
                     console.error('❌ [Theme Loader] Component file not found:', moduleKey);

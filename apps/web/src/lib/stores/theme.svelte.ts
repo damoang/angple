@@ -19,6 +19,21 @@ class ThemeStore {
     error = $state<string | null>(null);
 
     /**
+     * SSR 데이터로 테마 초기화 (깜박임 방지)
+     */
+    initFromServer(activeTheme: string | null) {
+        console.log('🔧 [Theme Store] Initializing from SSR:', activeTheme);
+
+        this.currentTheme = {
+            activeTheme,
+            settings: {}
+        };
+
+        // CSS 변수 적용
+        this.applyThemeStyles();
+    }
+
+    /**
      * 활성화된 테마 로드
      */
     async loadActiveTheme() {

@@ -1,4 +1,5 @@
 import type { LayoutServerLoad } from './$types';
+import { getActiveTheme } from '$lib/server/themes';
 
 /**
  * 서버 사이드 데이터 로드
@@ -7,12 +8,13 @@ import type { LayoutServerLoad } from './$types';
 export const load: LayoutServerLoad = async ({ url }) => {
     console.log(`[SSR] Loading page: ${url.pathname}`);
 
-    // 서버에서 초기 데이터 로드 (필요시)
-    // 예: 사용자 인증 상태 확인
-    // const user = await apiClient.getCurrentUser();
+    // 서버에서 활성 테마 조회 (깜박임 방지)
+    const activeTheme = await getActiveTheme();
+    console.log(`[SSR] Active theme: ${activeTheme?.manifest.id || 'null'}`);
 
     return {
-        pathname: url.pathname
-        // user
+        pathname: url.pathname,
+        activeTheme: activeTheme?.manifest.id || null,
+        themeSettings: activeTheme?.currentSettings || {}
     };
 };

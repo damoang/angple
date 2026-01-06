@@ -1,0 +1,11 @@
+Corporate Landing Theme Screenshot Placeholder
+
+This file will be replaced with an actual screenshot.png in Phase 2.
+
+Expected dimensions: 1200x800px
+Format: PNG
+Content: Full page screenshot of the landing page with:
+- Hero section with particles effect
+- Services grid
+- Projects showcase
+- Contact section
