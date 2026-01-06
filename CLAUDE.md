@@ -183,6 +183,96 @@ Angple은 다모앙(damoang.net) 전용이 아닙니다. **누구나** 자유롭
 
 ---
 
+## 🔧 Extension System (확장 시스템)
+
+### 개요
+
+Angple은 WordPress의 플러그인/테마 시스템에서 영감을 받은 확장 시스템을 제공합니다. 테마와 플러그인은 독립적인 확장 단위로 관리됩니다.
+
+### 핵심 컴포넌트
+
+```
+packages/
+├── extension-system/          # 확장 시스템 코어
+│   ├── src/
+│   │   ├── extension-manager.ts   # 확장 관리자
+│   │   ├── extension-scanner.ts   # 확장 스캔
+│   │   ├── extension-loader.ts    # 확장 로더
+│   │   └── types.ts               # 타입 정의
+│   └── index.ts
+└── types/                     # 공유 타입
+    └── src/extension.ts       # 확장 관련 타입
+```
+
+### 확장 매니페스트 (extension.json / theme.json / plugin.json)
+
+```json
+{
+    "id": "my-extension",
+    "name": "My Extension",
+    "version": "1.0.0",
+    "type": "theme",
+    "author": "Developer Name",
+    "description": "확장 설명",
+    "angpleVersion": ">=1.0.0"
+}
+```
+
+### 확장 생명주기
+
+1. **스캔**: `themes/`, `custom-themes/`, `plugins/` 디렉터리 스캔
+2. **로드**: 매니페스트 파일 파싱 및 유효성 검증
+3. **활성화**: Admin에서 활성화 시 설정 저장
+4. **실행**: 테마 레이아웃 적용 또는 플러그인 훅 실행
+
+---
+
+## 🎨 테마 시스템 SSR
+
+### 개요
+
+테마 로딩 시 깜박임(Flash of Unstyled Content)을 방지하기 위해 SSR(Server-Side Rendering)을 통해 활성 테마를 서버에서 미리 로드합니다.
+
+### 동작 방식
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│ 테마 SSR 로딩 플로우                                          │
+├─────────────────────────────────────────────────────────────┤
+│                                                              │
+│  1. 서버 (+layout.server.ts)                                 │
+│     ├─ 활성 테마 ID 조회 (settings.json)                     │
+│     ├─ 테마 메타데이터 로드 (theme.json)                     │
+│     └─ PageData로 클라이언트에 전달                          │
+│                                                              │
+│  2. 클라이언트 (+layout.svelte)                              │
+│     ├─ SSR 데이터로 테마 스토어 초기화                       │
+│     ├─ 깜박임 없이 즉시 테마 적용                            │
+│     └─ 이후 Admin에서 변경 시 스토어 업데이트                │
+│                                                              │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### 핵심 파일
+
+-   `apps/web/src/routes/+layout.server.ts` - SSR 테마 로딩
+-   `apps/web/src/lib/stores/theme.svelte.ts` - 테마 스토어 (Svelte 5 Rune)
+-   `apps/web/src/lib/server/themes/theme-scanner.ts` - 테마 스캐너
+
+### 테마 스토어 초기화
+
+```typescript
+// +layout.svelte
+import { themeStore } from '$lib/stores/theme.svelte';
+
+// SSR 데이터로 초기화 (깜박임 방지)
+if (data.activeTheme) {
+    themeStore.initFromSSR(data.activeTheme);
+}
+```
+
+---
+
 ## 🏗️ 아키텍처 비교
 
 ### WordPress vs Angple
@@ -399,6 +489,32 @@ npm run dev                     # web 앱 개발 서버
 npm run dev:admin               # admin 앱 개발 서버
 ```
 
+#### 통합 테스트 환경 (권장)
+
+안정적인 로컬 테스트를 위해 **세 가지 서비스를 모두 실행**하는 것을 권장합니다:
+
+```bash
+# 1. Backend (Go/Fiber) - 별도 터미널
+cd ~/Documents/Release/damoang/angple-backend
+docker compose up -d            # 또는 go run main.go
+
+# 2. Admin 대시보드 - 별도 터미널
+cd apps/admin
+pnpm dev                        # http://localhost:5174
+
+# 3. Web 애플리케이션 - 별도 터미널
+cd apps/web
+pnpm dev                        # http://localhost:5173
+```
+
+**왜 세 가지 모두 필요한가?**
+
+-   **Backend**: API 요청 처리, 실제 데이터베이스 연동
+-   **Admin**: 테마/플러그인 활성화, 설정 변경 (web 앱에 영향)
+-   **Web**: 사용자 facing 애플리케이션, Admin 변경사항 반영 확인
+
+> ⚠️ Admin에서 테마를 변경하면 Web 앱에서 즉시 반영됩니다. 통합 테스트 시 Admin 없이 Web만 실행하면 테마 변경 테스트가 불가능합니다.
+
 #### 빌드 및 테스트
 
 ```bash
@@ -594,6 +710,39 @@ const posts = await apiClient.getFreePosts(1, 10);
 
 ---
 
+## 🔒 보안 유틸리티
+
+### Path Sanitization (경로 검증)
+
+**파일 위치**: `apps/web/src/lib/server/path-utils.ts`
+
+테마/플러그인 파일 서빙 시 경로 탐색 공격(Path Traversal)을 방지하기 위한 유틸리티입니다.
+
+```typescript
+import { sanitizePath } from '$lib/server/path-utils';
+
+// 기본 사용 (알파벳, 숫자, 하이픈, 언더스코어만 허용)
+const safePath = sanitizePath(userInput);
+
+// 커스텀 정규식 (슬래시, 점 허용 - 파일 경로용)
+const filePath = sanitizePath(userInput, /^[a-zA-Z0-9\-_/.]+$/);
+```
+
+**보안 검증 순서:**
+
+1. `..` 포함 여부 체크 (경로 탐색 차단)
+2. `\` 백슬래시 체크 (Windows 경로 차단)
+3. 절대 경로 체크 (`/etc/passwd` 등 차단)
+4. Null byte 체크 (`\0` 차단)
+5. 허용 문자 정규식 검증
+
+**사용처:**
+
+-   `apps/web/src/routes/themes/[...path]/+server.ts` - 테마 정적 파일 서빙
+-   향후 플러그인 파일 서빙에도 적용 예정
+
+---
+
 ## 🧪 테스트 전략
 
 ### 테스트 프레임워크
@@ -763,6 +912,6 @@ pnpm init
 
 ---
 
-**마지막 업데이트**: 2025-12-30
-**버전**: Phase 10 완료 (테마 마켓플레이스)
+**마지막 업데이트**: 2026-01-06
+**버전**: Phase 10 완료 (테마 마켓플레이스 + Extension System + SSR 테마 로딩)
 **다음 목표**: Phase 11 - 플러그인 시스템 구축
