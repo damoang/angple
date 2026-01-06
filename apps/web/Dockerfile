@@ -41,12 +41,22 @@ WORKDIR /app
 # Copy workspace configuration files
 COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
 
+# Copy workspace packages (workspace:* dependencies)
+COPY packages ./packages
+
 # Copy application source
 COPY apps/web ./apps/web
 
 # Install dependencies and build
-RUN pnpm install --frozen-lockfile --filter web
+RUN pnpm install --frozen-lockfile --filter web...
 RUN pnpm --filter web run build
+
+# Deploy as standalone package (resolves workspace:* dependencies)
+# --legacy: pnpm v10에서 inject-workspace-packages 없이 deploy 허용
+RUN pnpm --filter web deploy /app/deploy --prod --legacy
+
+# Copy build output to deploy directory
+RUN cp -r /app/apps/web/build /app/deploy/build
 
 # -----------------------------
 # Production stage (SSR Node.js)
@@ -58,12 +68,8 @@ RUN adduser -D -u 1001 -s /bin/sh nodeuser
 
 WORKDIR /app
 
-# Copy built application from builder
-COPY --from=builder --chown=nodeuser:nodeuser /app/apps/web/build ./build
-COPY --from=builder --chown=nodeuser:nodeuser /app/apps/web/package.json ./package.json
-
-# Install production dependencies only
-RUN pnpm install --prod --frozen-lockfile
+# Copy deployed standalone package from builder
+COPY --from=builder --chown=nodeuser:nodeuser /app/deploy ./
 
 # Switch to non-root user
 USER nodeuser
