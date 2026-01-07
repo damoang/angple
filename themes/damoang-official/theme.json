@@ -38,8 +38,14 @@
                 "label": "Header Style",
                 "type": "select",
                 "options": [
-                    { "label": "Fixed", "value": "fixed" },
-                    { "label": "Static", "value": "static" }
+                    {
+                        "label": "Fixed",
+                        "value": "fixed"
+                    },
+                    {
+                        "label": "Static",
+                        "value": "static"
+                    }
                 ],
                 "default": "fixed"
             },
@@ -78,5 +84,8 @@
             "priority": 10
         }
     ],
-    "hooks": []
+    "hooks": [],
+    "category": "theme",
+    "license": "MIT",
+    "main": "./dist/index.js"
 }

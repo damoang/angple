@@ -46,5 +46,8 @@
             "path": "components/banner.svelte",
             "priority": 5
         }
-    ]
+    ],
+    "category": "theme",
+    "license": "MIT",
+    "main": "./dist/index.js"
 }

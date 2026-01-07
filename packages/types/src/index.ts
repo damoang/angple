@@ -25,9 +25,10 @@ export type {
 } from './hook.js';
 
 // Extension types
-export { ExtensionType, ExtensionPermission, ExtensionStatus } from './extension.js';
+export { ExtensionType, PluginType, ExtensionPermission, ExtensionStatus } from './extension.js';
 
 export type {
+    ExtensionCategory,
     ExtensionAuthor,
     ExtensionRepository,
     ExtensionSettingType,
