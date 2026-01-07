@@ -3,24 +3,12 @@
     import favicon from '$lib/assets/favicon.png';
     import { onMount } from 'svelte';
     import type { Component } from 'svelte';
-    import Header from '$lib/components/layout/header.svelte';
-    import Sidebar from '$lib/components/layout/sidebar.svelte';
-    import Panel from '$lib/components/layout/panel.svelte';
-    import Footer from '$lib/components/layout/footer.svelte';
-    import LeftBanner from '$lib/components/layout/left-banner.svelte';
-    import RightBanner from '$lib/components/layout/right-banner.svelte';
-    import PodcastPlayer from '$lib/components/ui/podcast-player/podcast-player.svelte';
     import { authActions } from '$lib/stores/auth.svelte';
     import { themeStore } from '$lib/stores/theme.svelte';
     import { loadThemeHooks } from '$lib/hooks/theme-loader';
-    import { getComponentsForSlot } from '$lib/components/slot-manager';
     import { loadThemeComponents } from '$lib/utils/theme-component-loader';
 
     const { children, data } = $props(); // Svelte 5: SSR 데이터 받기
-    let snbPosition = $state<'left' | 'right'>('left'); // 기본값
-
-    let isBannerUp = $state(false);
-    let lastScrollY = $state(0);
 
     // SSR에서 받은 테마로 스토어 초기화 (깜박임 방지!)
     themeStore.initFromServer(data.activeTheme);
@@ -74,18 +62,6 @@
         }
     }
 
-    function handleScroll() {
-        const currentScrollY = window.scrollY;
-
-        if (currentScrollY > lastScrollY && currentScrollY > 80) {
-            isBannerUp = true; // 아래로 스크롤 시 배너 올림
-        } else if (currentScrollY < lastScrollY) {
-            isBannerUp = false; // 위로 스크롤 시 배너 내림
-        }
-
-        lastScrollY = currentScrollY;
-    }
-
     // activeTheme 변경 시 자동으로 레이아웃, Hook, Component 로드
     $effect(() => {
         console.log('🔄 [$effect] activeTheme 변경 감지:', activeTheme);
@@ -105,9 +81,6 @@
 
         // 인증 상태 초기화
         authActions.initAuth();
-
-        // 스크롤 이벤트
-        window.addEventListener('scroll', handleScroll, { passive: true });
 
         // postMessage 리스너 (Admin에서 테마 변경 시 리로드)
         function handleMessage(event: MessageEvent) {
@@ -155,7 +128,6 @@
         document.addEventListener('visibilitychange', handleVisibilityChange);
 
         return () => {
-            window.removeEventListener('scroll', handleScroll);
             window.removeEventListener('message', handleMessage);
             document.removeEventListener('visibilitychange', handleVisibilityChange);
         };
@@ -182,113 +154,12 @@
         {@render children()}
     </ThemeLayout>
 {:else}
-    <!-- 기본 레이아웃 -->
-    <div class="relative flex min-h-screen flex-col items-center">
-        <!-- 배경 박스 -->
-        {#if snbPosition === 'left'}
-            <div class="snb-backdrop-left"></div>
-        {:else if snbPosition === 'right'}
-            <div class="snb-backdrop-right"></div>
-        {/if}
-
-        <div class="container relative z-10 flex w-full flex-1 flex-col">
-            <!-- Slot: header-before -->
-            {#each getComponentsForSlot('header-before') as slotComp (slotComp.id)}
-                {@const Component = slotComp.component}
-                <Component {...slotComp.props || {}} />
-            {/each}
-
-            <Header />
-
-            <!-- Slot: header-after -->
-            {#each getComponentsForSlot('header-after') as slotComp (slotComp.id)}
-                {@const Component = slotComp.component}
-                <Component {...slotComp.props || {}} />
-            {/each}
-
-            <div class="mx-auto flex w-full flex-1">
-                {#if snbPosition === 'right'}
-                    <aside
-                        class="bg-subtle border-border my-5 hidden w-[320px] flex-shrink-0 rounded-md border lg:block"
-                    >
-                        <!-- 여기에 오른쪽 사이드바 내용 추가 -->
-                        <Panel />
-                    </aside>
-                {/if}
-                {#if snbPosition === 'left'}
-                    <aside
-                        class="bg-background sticky top-12 hidden h-[calc(100vh-3rem)] self-start md:top-16 md:h-[calc(100vh-4rem)] 2xl:block 2xl:!w-[230px]"
-                    >
-                        <Sidebar />
-                    </aside>
-                {/if}
-
-                <main class="box-content flex-1 overflow-y-auto pt-1 md:py-5 lg:pe-6 2xl:!px-9">
-                    <!-- Slot: content-before -->
-                    {#each getComponentsForSlot('content-before') as slotComp (slotComp.id)}
-                        {@const Component = slotComp.component}
-                        <Component {...slotComp.props || {}} />
-                    {/each}
-
-                    {@render children()}
-
-                    <!-- Slot: content-after -->
-                    {#each getComponentsForSlot('content-after') as slotComp (slotComp.id)}
-                        {@const Component = slotComp.component}
-                        <Component {...slotComp.props || {}} />
-                    {/each}
-                </main>
-                {#if snbPosition === 'right'}
-                    <aside class="bg-background hidden 2xl:block 2xl:!w-[230px]">
-                        <Sidebar />
-                    </aside>
-                {/if}
-
-                {#if snbPosition === 'left'}
-                    <aside
-                        class="bg-subtle border-border my-5 hidden w-[320px] flex-shrink-0 rounded-md border lg:block"
-                    >
-                        <!-- 여기에 오른쪽 사이드바 내용 추가 -->
-                        <Panel />
-                    </aside>
-                {/if}
-            </div>
+    <!-- 테마 미선택 시 안내 메시지 -->
+    <div class="flex min-h-screen flex-col items-center justify-center bg-gray-50">
+        <div class="text-center">
+            <div class="mb-4 text-6xl">🎨</div>
+            <h1 class="mb-2 text-2xl font-bold text-gray-800">테마를 선택해주세요</h1>
+            <p class="text-gray-600">관리자 페이지에서 테마를 활성화해주세요.</p>
         </div>
-        <!-- 왼쪽 윙 배너 - 컨테이너 바로 왼쪽 (160px 배너 + 10px 간격) -->
-        <aside
-            class="fixed hidden transition-all duration-300 min-[1600px]:block"
-            class:top-21={!isBannerUp}
-            class:top-6={isBannerUp}
-            style="right: calc(50% + 760px);"
-        >
-            <LeftBanner />
-        </aside>
-        <!-- 오른쪽 윙 배너 - 컨테이너 바로 오른쪽 (10px 간격) -->
-        <aside
-            class="fixed hidden transition-all duration-300 min-[1600px]:block"
-            class:top-21={!isBannerUp}
-            class:top-6={isBannerUp}
-            style="left: calc(50% + 760px);"
-        >
-            <RightBanner />
-        </aside>
-
-        <!-- Slot: footer-before -->
-        {#each getComponentsForSlot('footer-before') as slotComp (slotComp.id)}
-            {@const Component = slotComp.component}
-            <Component {...slotComp.props || {}} />
-        {/each}
-
-        <!-- 푸터 -->
-        <Footer />
-
-        <!-- Slot: footer-after -->
-        {#each getComponentsForSlot('footer-after') as slotComp (slotComp.id)}
-            {@const Component = slotComp.component}
-            <Component {...slotComp.props || {}} />
-        {/each}
-
-        <!-- 팟캐스트 플레이어 (항상 마운트, 위치만 변경) -->
-        <PodcastPlayer />
     </div>
 {/if}
