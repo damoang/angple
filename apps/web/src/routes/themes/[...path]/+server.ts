@@ -19,7 +19,7 @@ export const GET: RequestHandler = ({ params }) => {
 
     try {
         // 테마 디렉터리는 프로젝트 루트의 themes/
-        const themesRoot = join(process.cwd(), '../../themes');
+        const themesRoot = join(process.cwd(), 'themes');
         // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
         const filePath = join(themesRoot, safePath);
 

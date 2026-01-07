@@ -1,0 +1,38 @@
+# Docker Compose Override Example
+# Copy this file to compose.override.yml and customize for your environment
+# compose.override.yml is gitignored and will not be committed
+
+services:
+  web:
+    # Development mode
+    build:
+      target: development
+    volumes:
+      - ./apps/web:/app/apps/web:cached
+      - web-node-modules:/app/apps/web/node_modules
+    environment:
+      - NODE_ENV=development
+      - API_PROXY_TARGET=http://angple-api:8081
+
+  admin:
+    # Development mode
+    build:
+      target: development
+    volumes:
+      - ./apps/admin:/app/apps/admin:cached
+      - admin-node-modules:/app/apps/admin/node_modules
+    environment:
+      - NODE_ENV=development
+
+volumes:
+  web-node-modules:
+  admin-node-modules:
+
+# Example: Production with pre-built image
+# services:
+#   web:
+#     image: ghcr.io/example/angple-web:latest
+#     build: !reset null
+#   admin:
+#     image: ghcr.io/example/angple-admin:latest
+#     build: !reset null

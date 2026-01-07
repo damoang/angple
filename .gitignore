@@ -73,3 +73,7 @@ apps/backend/
 # Backup files
 *.backup
 *.bak
+
+# Docker Compose local override
+compose.override.yml
+docker-compose.override.yml

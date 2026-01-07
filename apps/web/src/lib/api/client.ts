@@ -47,8 +47,17 @@ class ApiClient {
     private useMock = false; // Mock 모드 플래그
 
     constructor() {
+        // 환경변수로 Mock 모드 강제 설정 (백엔드 미준비 시 사용)
+        const envMockMode = import.meta.env.VITE_USE_MOCK === 'true';
+
         // 브라우저 환경에서만 로컬스토리지 접근
         if (typeof window !== 'undefined') {
+            // 환경변수가 설정되어 있으면 우선 적용
+            if (envMockMode) {
+                this.useMock = true;
+                return;
+            }
+
             // Mock 모드 확인
             const mockSetting = localStorage.getItem('damoang_use_mock');
 
@@ -70,6 +79,9 @@ class ApiClient {
                 // localStorage 설정 우선 (개발 환경에서만)
                 this.useMock = mockSetting !== 'false';
             }
+        } else {
+            // SSR 환경에서도 환경변수 적용
+            this.useMock = envMockMode;
         }
     }
 
