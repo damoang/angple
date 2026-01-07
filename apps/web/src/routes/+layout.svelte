@@ -153,6 +153,10 @@
     <ThemeLayout>
         {@render children()}
     </ThemeLayout>
+{:else if activeTheme}
+    <!-- 테마 로딩 중 (activeTheme은 있지만 ThemeLayout이 아직 로드 안됨) -->
+    <!-- 빈 화면으로 깜빡임 방지 -->
+    <div class="min-h-screen bg-white"></div>
 {:else}
     <!-- 테마 미선택 시 안내 메시지 -->
     <div class="flex min-h-screen flex-col items-center justify-center bg-gray-50">
