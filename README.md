@@ -71,6 +71,39 @@ npm run dev:admin               # admin 앱
 -   **Web App**: http://localhost:5173
 -   **Admin Dashboard**: http://localhost:5174
 
+### Docker 배포 설정
+
+환경변수를 통해 유연한 배포가 가능합니다:
+
+| 환경변수 | 설명 | 기본값 |
+|---------|------|--------|
+| `COMPOSE_PROJECT_NAME` | 컨테이너 이름 prefix | `angple` |
+| `WEB_PORT` | 웹 포트 | `3010` |
+| `ADMIN_PORT` | 어드민 포트 | `3011` |
+| `DATA_PATH` | 데이터 디렉토리 | `./data` |
+| `ANGPLE_WEB_IMAGE` | 사전 빌드된 웹 이미지 | - |
+| `ANGPLE_ADMIN_IMAGE` | 사전 빌드된 어드민 이미지 | - |
+
+```bash
+# 기본 배포
+docker compose up -d
+
+# 커스텀 배포 예시
+COMPOSE_PROJECT_NAME=mysite WEB_PORT=8080 docker compose up -d
+
+# .env 파일 사용 (권장)
+cp .env.example .env
+# .env 파일 수정 후
+docker compose up -d
+```
+
+로컬 개발 설정이 필요한 경우 `compose.override.yml`을 사용하세요:
+
+```bash
+cp compose.override.yml.example compose.override.yml
+# compose.override.yml은 .gitignore에 포함되어 커밋되지 않습니다
+```
+
 ## 🛠️ 기술 스택
 
 ### 프론트엔드
