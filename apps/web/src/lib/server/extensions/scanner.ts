@@ -63,7 +63,9 @@ function isValidExtensionDirectory(extensionPath: string): boolean {
     // 보안: extensionPath는 이미 baseDir + sanitizedDir로 구성되어 안전
     // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
     const extensionManifest = join(extensionPath, 'extension.json');
+    // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
     const themeManifest = join(extensionPath, 'theme.json');
+    // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
     const pluginManifest = join(extensionPath, 'plugin.json');
 
     return existsSync(extensionManifest) || existsSync(themeManifest) || existsSync(pluginManifest);
@@ -78,8 +80,11 @@ function loadExtensionManifest(extensionDir: string, baseDir: string): Extension
     // 보안: 디렉터리명 검증 (Path Traversal 공격 방지)
     const sanitizedDir = sanitizePath(extensionDir);
 
+    // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
     const extensionPath = join(baseDir, sanitizedDir, 'extension.json');
+    // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
     const themePath = join(baseDir, sanitizedDir, 'theme.json');
+    // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
     const pluginPath = join(baseDir, sanitizedDir, 'plugin.json');
 
     // 우선순위: extension.json > theme.json > plugin.json
