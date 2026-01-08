@@ -50,6 +50,8 @@ const CUSTOM_THEMES_DIR = join(PROJECT_ROOT, 'custom-themes');
 /**
  * Extension 디렉터리가 유효한지 확인
  * extension.json, theme.json, plugin.json 중 하나라도 있으면 유효
+ *
+ * @param extensionPath - 이미 sanitize된 안전한 절대 경로
  */
 function isValidExtensionDirectory(extensionPath: string): boolean {
     if (!existsSync(extensionPath)) return false;
@@ -58,6 +60,7 @@ function isValidExtensionDirectory(extensionPath: string): boolean {
     if (!stat.isDirectory()) return false;
 
     // extension.json, theme.json, plugin.json 중 하나라도 있으면 유효
+    // 보안: extensionPath는 이미 baseDir + sanitizedDir로 구성되어 안전
     // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
     const extensionManifest = join(extensionPath, 'extension.json');
     const themeManifest = join(extensionPath, 'theme.json');
@@ -72,11 +75,12 @@ function isValidExtensionDirectory(extensionPath: string): boolean {
  * @param baseDir Extension이 위치한 기본 디렉터리 (EXTENSIONS_DIR 또는 CUSTOM_EXTENSIONS_DIR 등)
  */
 function loadExtensionManifest(extensionDir: string, baseDir: string): ExtensionManifest | null {
-    // extensionDir는 readdir()에서 온 안전한 디렉터리명
-    // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
-    const extensionPath = join(baseDir, extensionDir, 'extension.json');
-    const themePath = join(baseDir, extensionDir, 'theme.json');
-    const pluginPath = join(baseDir, extensionDir, 'plugin.json');
+    // 보안: 디렉터리명 검증 (Path Traversal 공격 방지)
+    const sanitizedDir = sanitizePath(extensionDir);
+
+    const extensionPath = join(baseDir, sanitizedDir, 'extension.json');
+    const themePath = join(baseDir, sanitizedDir, 'theme.json');
+    const pluginPath = join(baseDir, sanitizedDir, 'plugin.json');
 
     // 우선순위: extension.json > theme.json > plugin.json
     let manifestPath: string;
@@ -136,8 +140,8 @@ function scanDirectory(baseDir: string, extensions: Map<string, ExtensionManifes
         // 디렉터리만 처리
         if (!entry.isDirectory()) continue;
 
-        const extensionDir = entry.name;
-        // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
+        // 보안: 디렉터리명 검증 (Path Traversal 공격 방지)
+        const extensionDir = sanitizePath(entry.name);
         const extensionPath = join(baseDir, extensionDir);
 
         // 유효한 Extension 디렉터리인지 확인
@@ -207,6 +211,7 @@ function findExtensionDirectory(extensionId: string): [string, boolean] | null {
     const sanitizedId = sanitizePath(extensionId);
 
     // 1. 공식 Extension 디렉터리 확인
+    // 보안: sanitizedId로 이미 검증되어 안전
     // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal
     const officialPath = join(EXTENSIONS_DIR, sanitizedId);
     if (isValidExtensionDirectory(officialPath)) {
@@ -214,6 +219,7 @@ function findExtensionDirectory(extensionId: string): [string, boolean] | null {
     }
 
     // 2. 커스텀 Extension 디렉터리 확인
+    // 보안: sanitizedId로 이미 검증되어 안전
     // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal
     const customPath = join(CUSTOM_EXTENSIONS_DIR, sanitizedId);
     if (isValidExtensionDirectory(customPath)) {
@@ -244,11 +250,13 @@ export function getExtensionPath(extensionId: string): string {
 
     if (!result) {
         // 기본적으로 공식 Extension 경로 반환 (호환성 유지)
+        // 보안: sanitizedId로 이미 검증되어 안전
         // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
         return join(EXTENSIONS_DIR, sanitizedId);
     }
 
     const [baseDir] = result;
+    // 보안: sanitizedId로 이미 검증되어 안전
     // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
     return join(baseDir, sanitizedId);
 }
