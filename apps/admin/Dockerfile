@@ -42,7 +42,7 @@ RUN pnpm install --frozen-lockfile
 RUN pnpm run build
 
 # Production stage
-FROM caddy:alpine AS production
+FROM caddy:2-alpine AS production
 
 # Install dumb-init for proper signal handling
 RUN apk update && apk add dumb-init
