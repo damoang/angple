@@ -67,9 +67,13 @@ class ApiClient {
                 window.location.hostname === 'localhost' ||
                 window.location.hostname === '127.0.0.1';
 
+            // 정확한 도메인 매칭 (서브도메인 공격 방지)
+            const hostname = window.location.hostname;
             const isProduction =
-                window.location.hostname.includes('damoang.dev') ||
-                window.location.hostname.includes('damoang.net');
+                hostname === 'damoang.dev' ||
+                hostname.endsWith('.damoang.dev') ||
+                hostname === 'damoang.net' ||
+                hostname.endsWith('.damoang.net');
 
             if (mockSetting === null || isProduction) {
                 // localStorage에 설정이 없거나 운영 환경이면: 로컬은 true, 운영은 false

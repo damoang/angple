@@ -1,4 +1,4 @@
-FROM node:lts-alpine3.22 AS base
+FROM node:lts-alpine AS base
 
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
@@ -42,7 +42,7 @@ RUN pnpm install --frozen-lockfile
 RUN pnpm run build
 
 # Production stage
-FROM caddy:2.10-alpine AS production
+FROM caddy:alpine AS production
 
 # Install dumb-init for proper signal handling
 RUN apk update && apk add dumb-init
