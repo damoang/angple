@@ -1,4 +1,4 @@
-FROM node:lts-alpine3.22 AS base
+FROM node:lts-alpine AS base
 
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
@@ -79,7 +79,7 @@ RUN cp -r /app/apps/web/build /app/deploy/build
 # -----------------------------
 # Production stage (SSR Node.js)
 # -----------------------------
-FROM node:lts-alpine3.22 AS production
+FROM node:lts-alpine AS production
 
 # Create non-root user
 RUN adduser -D -u 1001 -s /bin/sh nodeuser
