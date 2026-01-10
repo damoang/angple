@@ -3,6 +3,7 @@
  */
 
 import type { HookDefinition } from './hook.js';
+import type { ExtensionManifest } from './extension.js';
 
 /**
  * 컴포넌트가 렌더링될 슬롯 위치
@@ -80,57 +81,23 @@ export interface ThemeSettings {
 
 /**
  * 테마 메타데이터 (theme.json)
+ *
+ * ExtensionManifest를 확장하여 테마 전용 필드를 추가합니다.
+ * category는 항상 'theme'로 고정되며, pluginType은 사용하지 않습니다.
  */
-export interface ThemeManifest {
-    /** 테마 고유 ID (kebab-case) */
-    id: string;
+export interface ThemeManifest
+    extends Omit<ExtensionManifest, 'category' | 'pluginType' | 'hooks' | 'settings'> {
+    /** Extension 대분류 (테마로 고정) */
+    category: 'theme';
 
-    /** 테마 이름 */
-    name: string;
-
-    /** 버전 (semver) */
-    version: string;
-
-    /** 작성자 정보 */
-    author: {
-        name: string;
-        email?: string;
-        url?: string;
-    };
-
-    /** 테마 설명 */
-    description: string;
-
-    /** 테마 스크린샷 URL */
-    screenshot?: string;
-
-    /** 테마 홈페이지 */
-    homepage?: string;
-
-    /** 라이선스 */
-    license?: string;
-
-    /** 의존성 (다른 테마/플러그인) */
-    dependencies?: {
-        themes?: string[];
-        plugins?: string[];
-        packages?: Record<string, string>;
-    };
-
-    /** 등록할 Hook 목록 */
+    /** 등록할 Hook 목록 (테마는 HookDefinition[] 형식 사용) */
     hooks?: HookDefinition[];
 
-    /** 등록할 컴포넌트 목록 */
+    /** 등록할 컴포넌트 목록 (테마 전용) */
     components?: ComponentDefinition[];
 
-    /** 테마 설정 스키마 */
+    /** 테마 설정 스키마 (테마 전용 구조) */
     settings?: ThemeSettings;
-
-    /** 지원하는 Angple 버전 */
-    angpleVersion?: string;
-
-    /** 테마 태그 */
-    tags?: string[];
 }
 
 /**

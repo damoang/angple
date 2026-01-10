@@ -10,6 +10,9 @@ export const mockThemes: ThemeWithStatus[] = [
             id: 'damoang-classic',
             name: 'Damoang Classic',
             version: '1.0.0',
+            category: 'theme',
+            license: 'MIT',
+            main: './dist/index.js',
             author: {
                 name: 'Damoang Team',
                 email: 'team@damoang.net'
@@ -53,6 +56,9 @@ export const mockThemes: ThemeWithStatus[] = [
     },
     {
         manifest: {
+            category: 'theme',
+            license: 'MIT',
+            main: './dist/index.js',
             id: 'damoang-basic',
             name: 'Damoang Basic',
             version: '1.0.0',
@@ -113,6 +119,9 @@ export const mockThemes: ThemeWithStatus[] = [
     },
     {
         manifest: {
+            category: 'theme',
+            license: 'MIT',
+            main: './dist/index.js',
             id: 'sample-theme',
             name: 'Sample Blue Theme',
             version: '1.0.0',
@@ -175,6 +184,9 @@ export const mockThemes: ThemeWithStatus[] = [
     },
     {
         manifest: {
+            category: 'theme',
+            license: 'MIT',
+            main: './dist/index.js',
             id: 'modern-dark',
             name: 'Modern Dark',
             version: '2.1.0',
@@ -250,6 +262,9 @@ export const mockThemes: ThemeWithStatus[] = [
     },
     {
         manifest: {
+            category: 'theme',
+            license: 'MIT',
+            main: './dist/index.js',
             id: 'minimal-light',
             name: 'Minimal Light',
             version: '1.5.2',
@@ -298,6 +313,9 @@ export const mockThemes: ThemeWithStatus[] = [
     },
     {
         manifest: {
+            category: 'theme',
+            license: 'MIT',
+            main: './dist/index.js',
             id: 'colorful-blog',
             name: 'Colorful Blog',
             version: '3.0.0',
@@ -364,6 +382,9 @@ export const mockThemes: ThemeWithStatus[] = [
     },
     {
         manifest: {
+            category: 'theme',
+            license: 'MIT',
+            main: './dist/index.js',
             id: 'installing-theme',
             name: 'Installing Theme',
             version: '1.0.0',
@@ -380,6 +401,9 @@ export const mockThemes: ThemeWithStatus[] = [
     },
     {
         manifest: {
+            category: 'theme',
+            license: 'MIT',
+            main: './dist/index.js',
             id: 'error-theme',
             name: 'Error Theme',
             version: '0.5.0',

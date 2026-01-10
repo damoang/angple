@@ -4,6 +4,7 @@
 
 import type { HookDefinition } from './hook.js';
 import type { ComponentDefinition } from './theme.js';
+import type { ExtensionManifest, PluginType } from './extension.js';
 
 /**
  * 플러그인 API 엔드포인트 정의
@@ -47,65 +48,31 @@ export interface Migration {
 
 /**
  * 플러그인 메타데이터 (plugin.json)
+ *
+ * ExtensionManifest를 확장하여 플러그인 전용 필드를 추가합니다.
+ * category는 항상 'plugin'으로 고정되며, pluginType으로 세부 분류합니다.
  */
-export interface PluginManifest {
-    /** 플러그인 고유 ID (kebab-case) */
-    id: string;
+export interface PluginManifest extends Omit<ExtensionManifest, 'category' | 'hooks' | 'settings'> {
+    /** Extension 대분류 (플러그인으로 고정) */
+    category: 'plugin';
 
-    /** 플러그인 이름 */
-    name: string;
+    /** 플러그인 세부 분류 (BOARD, EDITOR, AUTH 등) */
+    pluginType?: PluginType;
 
-    /** 버전 (semver) */
-    version: string;
-
-    /** 작성자 정보 */
-    author: {
-        name: string;
-        email?: string;
-        url?: string;
-    };
-
-    /** 플러그인 설명 */
-    description: string;
-
-    /** 플러그인 아이콘 */
-    icon?: string;
-
-    /** 플러그인 홈페이지 */
-    homepage?: string;
-
-    /** 라이선스 */
-    license?: string;
-
-    /** 의존성 */
-    dependencies?: {
-        plugins?: string[];
-        packages?: Record<string, string>;
-    };
-
-    /** 등록할 Hook 목록 */
+    /** 등록할 Hook 목록 (플러그인은 HookDefinition[] 형식 사용) */
     hooks?: HookDefinition[];
 
     /** 등록할 컴포넌트 목록 (UI 확장) */
     components?: ComponentDefinition[];
 
-    /** API 엔드포인트 목록 */
+    /** API 엔드포인트 목록 (플러그인 전용) */
     endpoints?: ApiEndpoint[];
 
-    /** 데이터베이스 마이그레이션 */
+    /** 데이터베이스 마이그레이션 (플러그인 전용) */
     migrations?: Migration[];
 
-    /** 설정 스키마 */
+    /** 설정 스키마 (플러그인 전용) */
     settings?: Record<string, any>;
-
-    /** 지원하는 Angple 버전 */
-    angpleVersion?: string;
-
-    /** 플러그인 카테고리 */
-    category?: 'widget' | 'integration' | 'analytics' | 'seo' | 'utility' | 'other';
-
-    /** 플러그인 태그 */
-    tags?: string[];
 }
 
 /**

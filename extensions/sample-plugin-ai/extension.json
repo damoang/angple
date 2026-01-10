@@ -1,0 +1,19 @@
+{
+    "id": "sample-plugin-ai",
+    "name": "AI Writing Assistant",
+    "version": "1.0.0",
+    "description": "GPT 기반 AI 글쓰기 도우미 플러그인",
+    "author": {
+        "name": "Angple AI Team",
+        "email": "ai@angple.com"
+    },
+    "license": "MIT",
+    "category": "plugin",
+    "pluginType": "ai",
+    "tags": ["ai", "gpt", "writing", "assistant"],
+    "keywords": ["ai", "chatgpt", "claude", "writing", "content-generation"],
+    "angpleVersion": ">=1.0.0",
+    "main": "./dist/index.js",
+    "permissions": ["posts:read", "posts:write", "api:external"],
+    "active": false
+}

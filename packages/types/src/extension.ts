@@ -8,12 +8,22 @@
  */
 
 /**
- * Extension 타입 분류
+ * Extension 대분류
+ *
+ * 하이브리드 2.0 아키텍처:
+ * - 1단계: category로 테마와 플러그인 명확히 구분
+ * - 2단계: pluginType으로 플러그인 세부 분류
+ * - 3단계: tags로 유연한 검색 지원
+ */
+export type ExtensionCategory = 'theme' | 'plugin';
+
+/**
+ * 플러그인 세부 분류
  *
  * WordPress의 단순한 "플러그인"과 달리,
- * Extension은 명확한 역할과 범위를 가짐
+ * 플러그인은 명확한 기능별 역할과 범위를 가짐
  */
-export enum ExtensionType {
+export enum PluginType {
     /** 게시판 기능 확장 (추천/비추천, 익명 게시, 신고 시스템 등) */
     BOARD = 'board',
 
@@ -47,6 +57,11 @@ export enum ExtensionType {
     /** 커스텀 (기타) */
     CUSTOM = 'custom'
 }
+
+/**
+ * @deprecated ExtensionType은 PluginType으로 이름 변경되었습니다. PluginType을 사용하세요.
+ */
+export const ExtensionType = PluginType;
 
 /**
  * Extension 권한 시스템
@@ -323,6 +338,11 @@ export interface ExtensionEngines {
  *
  * WordPress의 plugin.php 헤더와 달리,
  * TypeScript로 타입 검증 가능한 JSON 매니페스트
+ *
+ * 하이브리드 2.0 아키텍처:
+ * - category: 'theme' | 'plugin' (필수, 명확한 구분)
+ * - pluginType: PluginType enum (선택, 플러그인 세부 분류)
+ * - tags: string[] (선택, 유연한 검색)
  */
 export interface ExtensionManifest {
     /** Extension ID (kebab-case, 영문자/숫자/하이픈만) */
@@ -343,13 +363,16 @@ export interface ExtensionManifest {
     /** 라이선스 */
     license: string;
 
-    /** Extension 타입 */
-    type: ExtensionType;
+    /** Extension 대분류 (테마 또는 플러그인) */
+    category: ExtensionCategory;
 
-    /** 카테고리 (복수 가능) */
-    category?: string[];
+    /** 플러그인 세부 분류 (pluginType은 category가 'plugin'일 때만 사용) */
+    pluginType?: PluginType;
 
-    /** 키워드 (검색용) */
+    /** 검색용 태그 (AI 분석, 자동 완성 등에 활용) */
+    tags?: string[];
+
+    /** 키워드 (검색용, tags와 병행 사용 가능) */
     keywords?: string[];
 
     /** Angple 최소 버전 */
@@ -495,11 +518,14 @@ export interface ExtensionSearchFilter {
     /** 검색 쿼리 */
     query?: string;
 
-    /** Extension 타입 */
-    type?: ExtensionType;
+    /** Extension 대분류 (theme/plugin) */
+    category?: ExtensionCategory;
 
-    /** 카테고리 */
-    category?: string;
+    /** 플러그인 세부 분류 (category가 'plugin'일 때만 유효) */
+    pluginType?: PluginType;
+
+    /** 태그 검색 */
+    tags?: string[];
 
     /** 최소 평점 */
     minRating?: number;

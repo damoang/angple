@@ -142,6 +142,12 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Build workspace packages
+        run: |
+          pnpm --filter @angple/types build
+          pnpm --filter @angple/hook-system build
+          pnpm --filter @angple/theme-engine build
+
       - name: Install Playwright browsers
         working-directory: apps/${{ matrix.app }}
         run: pnpm exec playwright install --with-deps
@@ -241,6 +247,12 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Build workspace packages
+        run: |
+          pnpm --filter @angple/types build
+          pnpm --filter @angple/hook-system build
+          pnpm --filter @angple/theme-engine build
+
       - name: Run ESLint
         id: eslint-check
         working-directory: apps/${{ matrix.app }}
@@ -301,6 +313,12 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Build workspace packages
+        run: |
+          pnpm --filter @angple/types build
+          pnpm --filter @angple/hook-system build
+          pnpm --filter @angple/theme-engine build
 
       - name: Run svelte-check
         id: svelte-check

@@ -282,5 +282,8 @@
             "callback": "hooks/on-landing-load.js",
             "priority": 10
         }
-    ]
+    ],
+    "category": "theme",
+    "license": "MIT",
+    "main": "./dist/index.js"
 }

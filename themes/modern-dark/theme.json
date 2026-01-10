@@ -30,5 +30,8 @@
         }
     },
     "hooks": [],
-    "components": []
+    "components": [],
+    "category": "theme",
+    "license": "MIT",
+    "main": "./dist/index.js"
 }

@@ -59,7 +59,7 @@ Angple은 다모앙(damoang.net) 전용이 아닙니다. **누구나** 자유롭
 │                                                              │
 │  3. 마켓플레이스 (수수료 모델)                                │
 │     ├─ 테마 판매 (개발자 70% ~ 85% / 플랫폼 30% ~ 15% )                    │
-│     ├─ 플러그인 판매 (개발자 70% ~ 85% / 플랫폼 30% ~ 15% )                    │    
+│     ├─ 플러그인 판매 (개발자 70% ~ 85% / 플랫폼 30% ~ 15% )                    │
 │     └─ 무료 테마/플러그인도 등록 가능                         │
 │                                                              │
 │  4. 웹 에이전시 비즈니스 활성화                               │
@@ -77,7 +77,7 @@ Angple은 다모앙(damoang.net) 전용이 아닙니다. **누구나** 자유롭
 -   [다모앙](https://damoang.net) - 개발자 커뮤니티
 -   [뮤지아](https://muzia.net) - 음악 커뮤니티
 -   [구르밋](https://goorm.it) - 교육 플랫폼
--   [SDK 블로그](https://sdk.kr) - WordPress 블로그
+-   [Angple 블로그](https://blog.angple.com) - 공식 블로그
 
 **향후 확장 가능성:**
 
@@ -907,7 +907,7 @@ pnpm init
 
 -   **GitHub**: https://github.com/angple/angple
 -   **Discord**: (준비 중)
--   **공식 블로그**: https://sdk.kr
+-   **공식 블로그**: https://blog.angple.com
 -   **다모앙 커뮤니티**: https://damoang.net
 
 ---
