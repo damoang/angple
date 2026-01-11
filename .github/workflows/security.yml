@@ -7,6 +7,9 @@ on:
   push:
     branches:
       - main
+  schedule:
+    # 매주 월요일 18:00 KST (= UTC 09:00)
+    - cron: '0 9 * * 1'
 
 env:
   NODE_VERSION: "24.11.1"
@@ -25,10 +28,10 @@ jobs:
       - name: Run Semgrep
         run: semgrep ci --config=auto
 
-  # 심층 SAST 검사 - main merge 후에만 실행
+  # 심층 SAST 검사 - main push 또는 스케줄 실행
   sast-codeql:
     name: SAST - CodeQL
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'push' || github.event_name == 'schedule'
     runs-on: ubuntu-latest
     permissions:
       security-events: write
@@ -46,10 +49,10 @@ jobs:
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v4
 
-  # 컨테이너 보안 스캔 - main merge 후에만 실행
+  # 컨테이너 보안 스캔 - main push 또는 스케줄 실행
   container-scan:
     name: Container Security Scan
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'push' || github.event_name == 'schedule'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
