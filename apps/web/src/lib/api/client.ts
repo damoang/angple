@@ -11,7 +11,11 @@ import type {
     FreeComment,
     MenuItem,
     DamoangUser,
-    IndexWidgetsData
+    IndexWidgetsData,
+    CreatePostRequest,
+    UpdatePostRequest,
+    CreateCommentRequest,
+    UpdateCommentRequest
 } from './types.js';
 import {
     getMockFreePosts,
@@ -136,6 +140,15 @@ class ApiClient {
             'Content-Type': 'application/json',
             ...(options.headers as Record<string, string>)
         };
+
+        // 브라우저 환경에서 localStorage의 access_token을 자동으로 헤더에 추가
+        // TODO: Phase 19에서 메모리 저장 방식으로 변경 (보안 강화)
+        if (browser && typeof localStorage !== 'undefined') {
+            const accessToken = localStorage.getItem('access_token');
+            if (accessToken) {
+                headers['Authorization'] = `Bearer ${accessToken}`;
+            }
+        }
 
         try {
             const response = await fetch(url, {
@@ -341,6 +354,166 @@ class ApiClient {
 
         const response = await this.request<IndexWidgetsData>('/recommended/index-widgets');
         return response.data;
+    }
+
+    // ========================================
+    // 게시글 CRUD (Create, Update, Delete)
+    // ========================================
+
+    /**
+     * 게시글 작성
+     * 🔒 인증 필요: Authorization 헤더에 Access Token 필요
+     *
+     * @param boardId 게시판 ID (예: 'free', 'qna')
+     * @param request 게시글 작성 데이터
+     * @returns 생성된 게시글 정보
+     */
+    async createPost(boardId: string, request: CreatePostRequest): Promise<FreePost> {
+        // Mock 모드: 아직 구현 안 됨 (나중에 필요시 추가)
+        if (this.useMock) {
+            throw new Error('Mock 모드에서는 게시글 작성이 지원되지 않습니다.');
+        }
+
+        const response = await this.request<FreePost>(`/boards/${boardId}/posts`, {
+            method: 'POST',
+            body: JSON.stringify(request)
+        });
+
+        return response.data;
+    }
+
+    /**
+     * 게시글 수정
+     * 🔒 인증 필요: Authorization 헤더에 Access Token 필요
+     * 🔒 권한 필요: 본인이 작성한 게시글만 수정 가능
+     *
+     * @param boardId 게시판 ID (예: 'free', 'qna')
+     * @param postId 게시글 ID
+     * @param request 수정할 데이터 (title, content, category 중 일부만 전달 가능)
+     * @returns 수정된 게시글 정보
+     */
+    async updatePost(
+        boardId: string,
+        postId: string,
+        request: UpdatePostRequest
+    ): Promise<FreePost> {
+        // Mock 모드: 아직 구현 안 됨
+        if (this.useMock) {
+            throw new Error('Mock 모드에서는 게시글 수정이 지원되지 않습니다.');
+        }
+
+        const response = await this.request<FreePost>(`/boards/${boardId}/posts/${postId}`, {
+            method: 'PUT',
+            body: JSON.stringify(request)
+        });
+
+        return response.data;
+    }
+
+    /**
+     * 게시글 삭제
+     * 🔒 인증 필요: Authorization 헤더에 Access Token 필요
+     * 🔒 권한 필요: 본인이 작성한 게시글만 삭제 가능
+     *
+     * @param boardId 게시판 ID (예: 'free', 'qna')
+     * @param postId 게시글 ID
+     */
+    async deletePost(boardId: string, postId: string): Promise<void> {
+        // Mock 모드: 아직 구현 안 됨
+        if (this.useMock) {
+            throw new Error('Mock 모드에서는 게시글 삭제가 지원되지 않습니다.');
+        }
+
+        await this.request<void>(`/boards/${boardId}/posts/${postId}`, {
+            method: 'DELETE'
+        });
+    }
+
+    // ========================================
+    // 댓글 CRUD (Create, Update, Delete)
+    // ========================================
+
+    /**
+     * 댓글 작성
+     * 🔒 인증 필요: Authorization 헤더에 Access Token 필요
+     *
+     * @param boardId 게시판 ID (예: 'free', 'qna')
+     * @param postId 게시글 ID
+     * @param request 댓글 작성 데이터
+     * @returns 생성된 댓글 정보
+     */
+    async createComment(
+        boardId: string,
+        postId: string,
+        request: CreateCommentRequest
+    ): Promise<FreeComment> {
+        // Mock 모드: 아직 구현 안 됨
+        if (this.useMock) {
+            throw new Error('Mock 모드에서는 댓글 작성이 지원되지 않습니다.');
+        }
+
+        const response = await this.request<FreeComment>(
+            `/boards/${boardId}/posts/${postId}/comments`,
+            {
+                method: 'POST',
+                body: JSON.stringify(request)
+            }
+        );
+
+        return response.data;
+    }
+
+    /**
+     * 댓글 수정
+     * 🔒 인증 필요: Authorization 헤더에 Access Token 필요
+     * 🔒 권한 필요: 본인이 작성한 댓글만 수정 가능
+     *
+     * @param boardId 게시판 ID (예: 'free', 'qna')
+     * @param postId 게시글 ID
+     * @param commentId 댓글 ID
+     * @param request 수정할 내용
+     * @returns 수정된 댓글 정보
+     */
+    async updateComment(
+        boardId: string,
+        postId: string,
+        commentId: string,
+        request: UpdateCommentRequest
+    ): Promise<FreeComment> {
+        // Mock 모드: 아직 구현 안 됨
+        if (this.useMock) {
+            throw new Error('Mock 모드에서는 댓글 수정이 지원되지 않습니다.');
+        }
+
+        const response = await this.request<FreeComment>(
+            `/boards/${boardId}/posts/${postId}/comments/${commentId}`,
+            {
+                method: 'PUT',
+                body: JSON.stringify(request)
+            }
+        );
+
+        return response.data;
+    }
+
+    /**
+     * 댓글 삭제
+     * 🔒 인증 필요: Authorization 헤더에 Access Token 필요
+     * 🔒 권한 필요: 본인이 작성한 댓글만 삭제 가능
+     *
+     * @param boardId 게시판 ID (예: 'free', 'qna')
+     * @param postId 게시글 ID
+     * @param commentId 댓글 ID
+     */
+    async deleteComment(boardId: string, postId: string, commentId: string): Promise<void> {
+        // Mock 모드: 아직 구현 안 됨
+        if (this.useMock) {
+            throw new Error('Mock 모드에서는 댓글 삭제가 지원되지 않습니다.');
+        }
+
+        await this.request<void>(`/boards/${boardId}/posts/${postId}/comments/${commentId}`, {
+            method: 'DELETE'
+        });
     }
 }
 

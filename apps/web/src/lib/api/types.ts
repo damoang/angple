@@ -227,3 +227,30 @@ export interface DamoangUser {
     mb_level: number;
     mb_email: string;
 }
+
+// 게시글 작성 요청
+export interface CreatePostRequest {
+    title: string; // 필수, 1-200자
+    content: string; // 필수, 1자 이상
+    category?: string; // 선택
+    author: string; // 필수, 1-50자
+    password?: string; // 선택 (비회원 글 비밀번호)
+}
+
+// 게시글 수정 요청
+export interface UpdatePostRequest {
+    title?: string; // 선택, 1-200자
+    content?: string; // 선택, 1자 이상
+    category?: string; // 선택
+}
+
+// 댓글 작성 요청
+export interface CreateCommentRequest {
+    content: string; // 필수, 1자 이상
+    author: string; // 필수, 1-50자
+}
+
+// 댓글 수정 요청
+export interface UpdateCommentRequest {
+    content: string; // 필수, 1자 이상
+}
