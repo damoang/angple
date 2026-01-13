@@ -143,8 +143,6 @@
         rel="stylesheet"
         href="https://cdn.jsdelivr.net/gh/wanteddev/wanted-sans@v1.0.3/packages/wanted-sans/fonts/webfonts/static/split/WantedSans.min.css"
     />
-    <!-- Damoang Ads Script -->
-    <script async src="https://ads.damoang.net/ad.js"></script>
 </svelte:head>
 
 <!-- 테마별 완전한 레이아웃 전환 -->

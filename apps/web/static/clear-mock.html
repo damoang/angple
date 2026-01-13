@@ -1,0 +1,14 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Clear Mock Mode</title>
+    </head>
+    <body>
+        <h1>Mock 모드 비활성화 중...</h1>
+        <script>
+            localStorage.setItem('damoang_use_mock', 'false');
+            alert('Mock 모드가 비활성화되었습니다. 메인 페이지로 이동합니다.');
+            window.location.href = '/free';
+        </script>
+    </body>
+</html>
