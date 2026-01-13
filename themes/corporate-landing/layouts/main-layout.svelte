@@ -95,7 +95,9 @@
     </div>
 {:else}
     <!-- 커뮤니티 페이지: 기본 레이아웃 -->
-    <div class="relative flex min-h-screen flex-col items-center bg-gradient-to-br from-white via-blue-50 to-white">
+    <div
+        class="relative flex min-h-screen flex-col items-center bg-gradient-to-br from-white via-blue-50 to-white"
+    >
         <div class="container relative z-10 flex w-full flex-1 flex-col">
             <Header />
 

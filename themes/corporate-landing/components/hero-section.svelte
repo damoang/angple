@@ -13,7 +13,8 @@
 
     // TODO: Phase 3에서 theme settings/blocks.json 연동
     const companyName = 'SDK Corp.';
-    const subtitle = '혁신적인 IT 솔루션과 대한민국 대표 커뮤니티를 운영하며 디지털 혁신을 선도합니다.';
+    const subtitle =
+        '혁신적인 IT 솔루션과 대한민국 대표 커뮤니티를 운영하며 디지털 혁신을 선도합니다.';
 
     const navigation = [
         { name: 'About', href: '/about' },
@@ -94,12 +95,7 @@
 
     <!-- Scroll indicator -->
     <div class="absolute bottom-8 animate-bounce">
-        <svg
-            class="h-6 w-6 !text-zinc-400"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-        >
+        <svg class="h-6 w-6 !text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
                 stroke-linecap="round"
                 stroke-linejoin="round"

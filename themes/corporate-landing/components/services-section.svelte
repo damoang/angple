@@ -43,9 +43,7 @@
         <!-- Header -->
         <div class="mb-16 text-center">
             <h2 class="mb-4 text-5xl font-bold text-white">서비스</h2>
-            <p class="mx-auto max-w-3xl text-xl text-zinc-400">
-                혁신적인 IT 솔루션을 제공합니다
-            </p>
+            <p class="mx-auto max-w-3xl text-xl text-zinc-400">혁신적인 IT 솔루션을 제공합니다</p>
         </div>
 
         <!-- Services Grid -->

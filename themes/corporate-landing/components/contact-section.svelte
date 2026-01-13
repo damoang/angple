@@ -50,9 +50,7 @@
             >
                 <form onsubmit={handleSubmit} class="space-y-6">
                     <div>
-                        <label for="name" class="mb-2 block font-semibold text-white"
-                            >이름</label
-                        >
+                        <label for="name" class="mb-2 block font-semibold text-white">이름</label>
                         <input
                             type="text"
                             id="name"
@@ -64,8 +62,7 @@
                     </div>
 
                     <div>
-                        <label for="email" class="mb-2 block font-semibold text-white"
-                            >이메일</label
+                        <label for="email" class="mb-2 block font-semibold text-white">이메일</label
                         >
                         <input
                             type="email"

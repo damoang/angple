@@ -194,8 +194,5 @@
 </script>
 
 <!-- Canvas element for particle rendering -->
-<canvas
-    bind:this={canvas}
-    class="pointer-events-auto fixed inset-0 -z-10"
-    aria-hidden="true"
+<canvas bind:this={canvas} class="pointer-events-auto fixed inset-0 -z-10" aria-hidden="true"
 ></canvas>
