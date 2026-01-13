@@ -147,6 +147,7 @@ function scanDirectory(baseDir: string, extensions: Map<string, ExtensionManifes
 
         // 보안: 디렉터리명 검증 (Path Traversal 공격 방지)
         const extensionDir = sanitizePath(entry.name);
+        // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
         const extensionPath = join(baseDir, extensionDir);
 
         // 유효한 Extension 디렉터리인지 확인
