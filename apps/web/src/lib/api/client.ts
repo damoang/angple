@@ -54,7 +54,12 @@ class ApiClient {
     constructor() {
         // 환경변수로 Mock 모드 강제 설정 (백엔드 미준비 시 사용)
         const envMockMode = import.meta.env.VITE_USE_MOCK === 'true';
-        console.log('[API Client] VITE_USE_MOCK:', import.meta.env.VITE_USE_MOCK, 'envMockMode:', envMockMode);
+        console.log(
+            '[API Client] VITE_USE_MOCK:',
+            import.meta.env.VITE_USE_MOCK,
+            'envMockMode:',
+            envMockMode
+        );
 
         // 환경 변수로 false가 설정되어 있으면 무조건 Mock 모드 비활성화
         if (import.meta.env.VITE_USE_MOCK === 'false') {
