@@ -77,3 +77,8 @@ apps/backend/
 # Docker Compose local override
 compose.override.yml
 docker-compose.override.yml
+
+# Session notes (local only)
+SESSION_NOTES.md
+**/session-notes/
+**/SESSION_NOTES.*
