@@ -206,17 +206,17 @@ class ApiClient {
 
         console.log('[API] Raw response:', response);
 
-        // request()는 ApiResponse를 반환
-        // ApiResponse는 { data: T } 구조
-        // 따라서 response 자체가 { data: { data: Post[], meta: {...} } } 형태
+        // request()는 ApiResponse<BackendResponse>를 반환
+        // response = { success: boolean, data: BackendResponse }
+        // response.data = { data: Post[], meta: {...} }
 
         // 프론트엔드 PaginatedResponse 형식으로 변환
-        const result = {
-            items: response.data,
-            total: response.meta.total,
-            page: response.meta.page,
-            limit: response.meta.limit,
-            total_pages: Math.ceil(response.meta.total / response.meta.limit)
+        const result: PaginatedResponse<FreePost> = {
+            items: response.data.data,
+            total: response.data.meta.total,
+            page: response.data.meta.page,
+            limit: response.data.meta.limit,
+            total_pages: Math.ceil(response.data.meta.total / response.data.meta.limit)
         };
 
         console.log('[API] Converted PaginatedResponse:', result);
