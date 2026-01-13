@@ -32,6 +32,7 @@
         "@tailwindcss/typography": "^0.5.15",
         "@tailwindcss/vite": "^4.0.0",
         "@types/adm-zip": "^0.5.7",
+        "@types/dompurify": "^3.2.0",
         "@types/node": "^25.0.3",
         "@vitest/browser": "^3.2.3",
         "clsx": "^2.1.1",
@@ -64,6 +65,8 @@
         "@angple/types": "workspace:*",
         "adm-zip": "^0.5.16",
         "bits-ui": "^2.14.2",
+        "dompurify": "^3.3.1",
+        "marked": "^17.0.1",
         "simple-git": "^3.30.0",
         "svelte-sonner": "^1.0.7",
         "zod": "^4.2.1"

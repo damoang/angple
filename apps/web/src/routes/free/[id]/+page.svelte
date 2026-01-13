@@ -5,6 +5,7 @@
     import { Button } from '$lib/components/ui/button/index.js';
     import type { PageData } from './$types.js';
     import { NeoKeyButton } from '$lib/components/ui/neo-key-button/index.js';
+    import { Markdown } from '$lib/components/ui/markdown/index.js';
     import Heart from '@lucide/svelte/icons/heart';
 
     let { data }: { data: PageData } = $props();
@@ -77,10 +78,7 @@
             </div>
 
             <!-- 게시글 본문 -->
-
-            <div class="text-foreground mt-8 whitespace-pre-wrap">
-                {data.post.content}
-            </div>
+            <Markdown content={data.post.content} class="mt-8" />
 
             {#if data.post.images && data.post.images.length > 0}
                 <div class="mt-6 grid gap-4">
@@ -175,9 +173,3 @@
     </Card>
 </div>
 
-<style>
-    .prose {
-        font-size: 1rem;
-        line-height: 1.75;
-    }
-</style>
