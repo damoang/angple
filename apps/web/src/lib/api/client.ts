@@ -25,8 +25,13 @@ import { browser } from '$app/environment';
 
 // 서버/클라이언트 환경에 따라 API URL 분기
 const API_BASE_URL = browser
-    ? import.meta.env.PUBLIC_API_URL || 'https://api.damoang.dev/api/v1'
+    ? import.meta.env.VITE_API_URL || 'https://api.damoang.dev/api/v1'
     : process.env.INTERNAL_API_URL || 'http://localhost:8080/api/v1';
+
+// 디버깅: API URL 확인
+console.log('[API Client] Browser:', browser);
+console.log('[API Client] VITE_API_URL:', import.meta.env.VITE_API_URL);
+console.log('[API Client] Final API_BASE_URL:', API_BASE_URL);
 
 /**
  * API 클라이언트
@@ -49,10 +54,21 @@ class ApiClient {
     constructor() {
         // 환경변수로 Mock 모드 강제 설정 (백엔드 미준비 시 사용)
         const envMockMode = import.meta.env.VITE_USE_MOCK === 'true';
+        console.log('[API Client] VITE_USE_MOCK:', import.meta.env.VITE_USE_MOCK, 'envMockMode:', envMockMode);
+
+        // 환경 변수로 false가 설정되어 있으면 무조건 Mock 모드 비활성화
+        if (import.meta.env.VITE_USE_MOCK === 'false') {
+            this.useMock = false;
+            if (typeof window !== 'undefined') {
+                localStorage.setItem('damoang_use_mock', 'false');
+            }
+            console.log('[API Client] Mock mode FORCED OFF by environment variable');
+            return;
+        }
 
         // 브라우저 환경에서만 로컬스토리지 접근
         if (typeof window !== 'undefined') {
-            // 환경변수가 설정되어 있으면 우선 적용
+            // 환경변수가 true로 설정되어 있으면 우선 적용
             if (envMockMode) {
                 this.useMock = true;
                 return;
@@ -87,6 +103,8 @@ class ApiClient {
             // SSR 환경에서도 환경변수 적용
             this.useMock = envMockMode;
         }
+
+        console.log('[API Client] Final useMock:', this.useMock);
     }
 
     // Mock 모드 설정
@@ -121,15 +139,21 @@ class ApiClient {
                 credentials: 'include' // httpOnly 쿠키 자동 전송
             });
 
+            console.log(`[API] Response status:`, response.status, response.statusText);
+
             const data = await response.json();
+            console.log(`[API] Response data:`, JSON.stringify(data).substring(0, 200));
 
             if (!response.ok) {
+                console.error(`[API] Error response:`, data);
                 throw new Error((data as ApiError).error || '요청 실패');
             }
 
             return data as ApiResponse<T>;
         } catch (error) {
-            console.error('API 요청 에러:', error);
+            console.error('[API] 요청 에러:', error);
+            console.error('[API] URL:', url);
+            console.error('[API] Options:', options);
             throw error;
         }
     }
@@ -165,10 +189,39 @@ class ApiClient {
             return getMockFreePosts(page, limit);
         }
 
-        const response = await this.request<PaginatedResponse<FreePost>>(
-            `/free?page=${page}&limit=${limit}`
+        // 백엔드 응답 타입: { data: Post[], meta: { ... } }
+        interface BackendResponse {
+            data: FreePost[];
+            meta: {
+                board_id: string;
+                page: number;
+                limit: number;
+                total: number;
+            };
+        }
+
+        const response = await this.request<BackendResponse>(
+            `/boards/free/posts?page=${page}&limit=${limit}`
         );
-        return response.data;
+
+        console.log('[API] Raw response:', response);
+
+        // request()는 ApiResponse를 반환
+        // ApiResponse는 { data: T } 구조
+        // 따라서 response 자체가 { data: { data: Post[], meta: {...} } } 형태
+
+        // 프론트엔드 PaginatedResponse 형식으로 변환
+        const result = {
+            items: response.data,
+            total: response.meta.total,
+            page: response.meta.page,
+            limit: response.meta.limit,
+            total_pages: Math.ceil(response.meta.total / response.meta.limit)
+        };
+
+        console.log('[API] Converted PaginatedResponse:', result);
+
+        return result;
     }
 
     // 자유게시판 상세 조회
@@ -179,7 +232,7 @@ class ApiClient {
             return getMockFreePost(id);
         }
 
-        const response = await this.request<FreePost>(`/free/${id}`);
+        const response = await this.request<FreePost>(`/boards/free/posts/${id}`);
         return response.data;
     }
 
@@ -197,7 +250,7 @@ class ApiClient {
         }
 
         const response = await this.request<PaginatedResponse<FreeComment>>(
-            `/free/${id}/comments?page=${page}&limit=${limit}`
+            `/boards/free/posts/${id}/comments?page=${page}&limit=${limit}`
         );
         return response.data;
     }
