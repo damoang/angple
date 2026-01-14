@@ -75,14 +75,14 @@ npm run dev:admin               # admin 앱
 
 환경변수를 통해 유연한 배포가 가능합니다:
 
-| 환경변수 | 설명 | 기본값 |
-|---------|------|--------|
-| `COMPOSE_PROJECT_NAME` | 컨테이너 이름 prefix | `angple` |
-| `WEB_PORT` | 웹 포트 | `3010` |
-| `ADMIN_PORT` | 어드민 포트 | `3011` |
-| `DATA_PATH` | 데이터 디렉토리 | `./data` |
-| `ANGPLE_WEB_IMAGE` | 사전 빌드된 웹 이미지 | - |
-| `ANGPLE_ADMIN_IMAGE` | 사전 빌드된 어드민 이미지 | - |
+| 환경변수               | 설명                      | 기본값   |
+| ---------------------- | ------------------------- | -------- |
+| `COMPOSE_PROJECT_NAME` | 컨테이너 이름 prefix      | `angple` |
+| `WEB_PORT`             | 웹 포트                   | `3010`   |
+| `ADMIN_PORT`           | 어드민 포트               | `3011`   |
+| `DATA_PATH`            | 데이터 디렉토리           | `./data` |
+| `ANGPLE_WEB_IMAGE`     | 사전 빌드된 웹 이미지     | -        |
+| `ANGPLE_ADMIN_IMAGE`   | 사전 빌드된 어드민 이미지 | -        |
 
 ```bash
 # 기본 배포
