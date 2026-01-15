@@ -16,7 +16,7 @@ export interface PaginatedResponse<T> {
 
 // 자유게시판 게시글 타입
 export interface FreePost {
-    id: string;
+    id: number;
     title: string;
     content: string;
     author: string;
@@ -25,7 +25,8 @@ export interface FreePost {
     likes: number;
     comments_count: number;
     created_at: string;
-    updated_at: string;
+    updated_at?: string;
+    has_file?: boolean;
     tags?: string[];
     images?: string[];
 }

@@ -12,7 +12,7 @@ import type {
 } from './types.js';
 import { getMockFreePosts, getMockFreePost, getMockFreeComments } from './mock-data.js';
 
-const API_BASE_URL = 'https://api.ang.dev/api/v1';
+const API_BASE_URL = import.meta.env.PUBLIC_API_BASE_URL || 'http://localhost:8081/api/v2';
 
 /**
  * API 클라이언트
@@ -41,9 +41,9 @@ class ApiClient {
         // 브라우저 환경에서만 로컬스토리지 접근
         if (typeof window !== 'undefined') {
             this.loadToken();
-            // Mock 모드 확인: 로컬스토리지에 명시적 설정이 없으면 기본값 true (개발 편의성)
+            // Mock 모드 확인: 로컬스토리지에 명시적 설정이 없으면 기본값 false (실제 API 사용)
             const mockSetting = localStorage.getItem('damoang_use_mock');
-            this.useMock = mockSetting !== 'false'; // 'false'가 아니면 true (기본값)
+            this.useMock = mockSetting === 'true'; // 'true'일 때만 Mock 모드
         }
     }
 
@@ -178,27 +178,38 @@ class ApiClient {
             return getMockFreePosts(page, limit);
         }
 
-        const response = await this.request<PaginatedResponse<FreePost>>(
-            `/free?page=${page}&limit=${limit}`
-        );
-        return response.data;
+        // 백엔드 응답 구조: { data: [...], meta: { page, limit, total } }
+        const url = `${API_BASE_URL}/boards/free/posts?page=${page}&limit=${limit}`;
+        const response = await fetch(url);
+        const json = await response.json();
+
+        // 프론트엔드 형식으로 변환
+        return {
+            items: json.data || [],
+            total: json.meta?.total || 0,
+            page: json.meta?.page || page,
+            limit: json.meta?.limit || limit,
+            total_pages: Math.ceil((json.meta?.total || 0) / (json.meta?.limit || limit))
+        };
     }
 
     // 자유게시판 상세 조회
-    async getFreePost(id: string): Promise<FreePost> {
+    async getFreePost(id: string | number): Promise<FreePost> {
         // Mock 모드일 경우 가짜 데이터 반환
         if (this.useMock) {
             await new Promise((resolve) => setTimeout(resolve, 200));
-            return getMockFreePost(id);
+            return getMockFreePost(String(id));
         }
 
-        const response = await this.request<FreePost>(`/free/${id}`);
-        return response.data;
+        const url = `${API_BASE_URL}/boards/free/posts/${id}`;
+        const response = await fetch(url);
+        const json = await response.json();
+        return json.data;
     }
 
     // 자유게시판 글 댓글 조회
     async getFreeComments(
-        id: string,
+        id: string | number,
         page = 1,
         limit = 10
     ): Promise<PaginatedResponse<FreeComment>> {
@@ -209,10 +220,18 @@ class ApiClient {
             return getMockFreeComments(page, limit);
         }
 
-        const response = await this.request<PaginatedResponse<FreeComment>>(
-            `/free/${id}/comments?page=${page}&limit=${limit}`
-        );
-        return response.data;
+        const url = `${API_BASE_URL}/boards/free/posts/${String(id)}/comments?page=${page}&limit=${limit}`;
+        const response = await fetch(url);
+        const json = await response.json();
+
+        // 프론트엔드 형식으로 변환
+        return {
+            items: json.data || [],
+            total: json.meta?.total || 0,
+            page: json.meta?.page || page,
+            limit: json.meta?.limit || limit,
+            total_pages: Math.ceil((json.meta?.total || 0) / (json.meta?.limit || limit))
+        };
     }
 
     // 토큰 상태 확인
