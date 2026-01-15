@@ -9,10 +9,10 @@
 </script>
 
 <!-- PHP 원본 list-group-item 스타일 재현 -->
-<li class="border-b border-gray-200 last:border-b-0 dark:border-gray-700">
+<li>
     <a
         href={post.url}
-        class="block rounded px-2 py-0.5 transition-colors hover:bg-gray-50 dark:hover:bg-gray-800"
+        class="hover:bg-muted block rounded px-2 py-1.5 transition-all duration-200 ease-out"
     >
         <div class="flex items-center gap-2">
             <!-- rcmd-box + rcmd-sm 스타일 -->

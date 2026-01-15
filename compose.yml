@@ -1,30 +1,38 @@
 services:
   # Web Application
   web:
+    image: ${ANGPLE_WEB_IMAGE:-}
     build:
       context: .
       dockerfile: apps/web/Dockerfile
       target: production
-    container_name: angple-web
+    container_name: ${COMPOSE_PROJECT_NAME:-angple}-web
     ports:
-      - "3010:80"
+      - "${WEB_PORT:-3010}:3000"
     restart: unless-stopped
     networks:
       - angple-network
+      - proxy-network
+    volumes:
+      - ${DATA_PATH:-./data}:/app/data
 
   # Admin Dashboard
   admin:
+    image: ${ANGPLE_ADMIN_IMAGE:-}
     build:
       context: .
       dockerfile: apps/admin/Dockerfile
       target: production
-    container_name: angple-admin
+    container_name: ${COMPOSE_PROJECT_NAME:-angple}-admin
     ports:
-      - "3011:80"
+      - "${ADMIN_PORT:-3011}:80"
     restart: unless-stopped
     networks:
       - angple-network
+      - proxy-network
 
 networks:
   angple-network:
-    driver: bridge
+    external: true
+  proxy-network:
+    external: true

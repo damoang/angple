@@ -1,10 +1,11 @@
 <script lang="ts">
     import { goto } from '$app/navigation';
-    import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card/index.js';
+    import { Card, CardHeader, CardTitle } from '$lib/components/ui/card/index.js';
     import { Badge } from '$lib/components/ui/badge/index.js';
     import { Button } from '$lib/components/ui/button/index.js';
     import type { PageData } from './$types.js';
     import { NeoKeyButton } from '$lib/components/ui/neo-key-button/index.js';
+    import { Markdown } from '$lib/components/ui/markdown/index.js';
     import Heart from '@lucide/svelte/icons/heart';
 
     let { data }: { data: PageData } = $props();
@@ -46,7 +47,7 @@
             <div>
                 {#if data.post.tags && data.post.tags.length > 0}
                     <div class="mb-3 flex flex-wrap gap-2">
-                        {#each data.post.tags as tag}
+                        {#each data.post.tags as tag, i (i)}
                             <Badge variant="secondary">{tag}</Badge>
                         {/each}
                     </div>
@@ -77,14 +78,11 @@
             </div>
 
             <!-- 게시글 본문 -->
-
-            <div class="text-foreground mt-8 whitespace-pre-wrap">
-                {data.post.content}
-            </div>
+            <Markdown content={data.post.content} class="mt-8" />
 
             {#if data.post.images && data.post.images.length > 0}
                 <div class="mt-6 grid gap-4">
-                    {#each data.post.images as image}
+                    {#each data.post.images as image, i (i)}
                         <img
                             src={image}
                             alt="게시글 이미지"
@@ -141,9 +139,9 @@
         <CardHeader>
             <p>댓글</p>
             <ul>
-                {#each data.comments.items as comment}
+                {#each data.comments.items as comment, i (i)}
                     <li
-                        style="margin-left: {comment.depth * 1.25}rem"
+                        style="margin-left: {(comment.depth ?? 0) * 1.25}rem"
                         class="{comment.depth
                             ? 'reply'
                             : 'parent'} border-border border-b pb-2 pt-2 last:border-none"
@@ -164,7 +162,7 @@
                             </div>
 
                             <div class="text-secondary-foreground ml-auto flex gap-4 text-sm">
-                                <span>👍 {comment.likes.toLocaleString()}</span>
+                                <span>👍 {(comment.likes ?? 0).toLocaleString()}</span>
                             </div>
                         </div>
                         <div>{comment.content}</div>
@@ -174,10 +172,3 @@
         </CardHeader>
     </Card>
 </div>
-
-<style>
-    .prose {
-        font-size: 1rem;
-        line-height: 1.75;
-    }
-</style>

@@ -2,40 +2,134 @@
     import '../app.css';
     import favicon from '$lib/assets/favicon.png';
     import { onMount } from 'svelte';
-    import Header from '$lib/components/layout/header.svelte';
-    import Sidebar from '$lib/components/layout/sidebar.svelte';
-    import Panel from '$lib/components/layout/panel.svelte';
-    import Footer from '$lib/components/layout/footer.svelte';
-    import LeftBanner from '$lib/components/layout/left-banner.svelte';
-    import RightBanner from '$lib/components/layout/right-banner.svelte';
+    import type { Component } from 'svelte';
     import { authActions } from '$lib/stores/auth.svelte';
+    import { themeStore } from '$lib/stores/theme.svelte';
+    import { loadThemeHooks } from '$lib/hooks/theme-loader';
+    import { loadThemeComponents } from '$lib/utils/theme-component-loader';
 
-    const { children } = $props(); // Svelte 5
-    let snbPosition = $state<'left' | 'right'>('left'); // 기본값
+    const { children, data } = $props(); // Svelte 5: SSR 데이터 받기
 
-    let isBannerUp = $state(false);
-    let lastScrollY = $state(0);
+    // SSR에서 받은 테마로 스토어 초기화 (깜박임 방지!)
+    themeStore.initFromServer(data.activeTheme);
 
-    function handleScroll() {
-        const currentScrollY = window.scrollY;
+    // 현재 활성 테마
+    const activeTheme = $derived(themeStore.currentTheme.activeTheme);
 
-        if (currentScrollY > lastScrollY && currentScrollY > 80) {
-            isBannerUp = true; // 아래로 스크롤 시 배너 올림
-        } else if (currentScrollY < lastScrollY) {
-            isBannerUp = false; // 위로 스크롤 시 배너 내림
+    // 동적으로 로드된 테마 레이아웃 컴포넌트
+    let ThemeLayout = $state<Component | null>(null);
+
+    // Vite의 import.meta.glob으로 모든 테마 레이아웃 패턴 정의
+    // $themes alias를 사용하여 프로젝트 루트의 themes 디렉터리 참조
+    const themeLayouts = import.meta.glob('$themes/*/layouts/main-layout.svelte');
+
+    /**
+     * 테마 레이아웃 동적 로드
+     */
+    async function loadThemeLayout(themeId: string | null) {
+        console.log(`🔍 [loadThemeLayout] 호출됨 - themeId: ${themeId}`);
+
+        if (!themeId) {
+            ThemeLayout = null;
+            console.log('⚠️ [loadThemeLayout] themeId가 null, 기본 레이아웃 사용');
+            return;
         }
 
-        lastScrollY = currentScrollY;
+        try {
+            // Vite가 alias를 실제 상대 경로로 변환하므로 ../../themes/를 사용
+            const layoutPath = `../../themes/${themeId}/layouts/main-layout.svelte`;
+            console.log(`📁 [loadThemeLayout] 레이아웃 경로: ${layoutPath}`);
+            const keys = Object.keys(themeLayouts);
+            console.log(`🔎 [loadThemeLayout] themeLayouts 키 목록:`, keys);
+            console.log(`🔍 [loadThemeLayout] 첫 번째 키 예시:`, keys[0]);
+
+            // glob 패턴에 매칭되는 경로가 있는지 확인
+            if (layoutPath in themeLayouts) {
+                console.log(`✨ [loadThemeLayout] 레이아웃 발견! 로딩 시작...`);
+                const module = (await themeLayouts[layoutPath]()) as { default: Component };
+                ThemeLayout = module.default;
+                console.log(`✅ [Layout] 테마 레이아웃 로드: ${themeId}`);
+                console.log(`🎯 [Layout] ThemeLayout 컴포넌트:`, ThemeLayout);
+                console.log(`🔢 [Layout] ThemeLayout이 null인가?`, ThemeLayout === null);
+            } else {
+                // 테마 레이아웃이 없으면 기본 레이아웃 사용
+                ThemeLayout = null;
+                console.log(`ℹ️ [Layout] 테마 레이아웃 없음, 기본 레이아웃 사용: ${themeId}`);
+            }
+        } catch (error) {
+            console.error(`❌ [Layout] 테마 레이아웃 로드 실패: ${themeId}`, error);
+            ThemeLayout = null;
+        }
     }
 
+    // activeTheme 변경 시 자동으로 레이아웃, Hook, Component 로드
+    $effect(() => {
+        console.log('🔄 [$effect] activeTheme 변경 감지:', activeTheme);
+        loadThemeLayout(activeTheme);
+
+        // 테마 Hook 및 Component 로드
+        if (activeTheme) {
+            loadThemeHooks(activeTheme);
+            loadThemeComponents(activeTheme);
+        }
+    });
+
     onMount(() => {
+        console.log('🚀 [onMount] 컴포넌트 마운트됨');
+        // 테마는 이미 SSR에서 로드되었으므로 loadActiveTheme() 호출 불필요
+        // (깜박임 방지!)
+
         // 인증 상태 초기화
         authActions.initAuth();
 
-        window.addEventListener('scroll', handleScroll, { passive: true });
+        // postMessage 리스너 (Admin에서 테마 변경 시 리로드)
+        function handleMessage(event: MessageEvent) {
+            // 보안: localhost에서만 허용
+            if (!event.origin.includes('localhost')) return;
+
+            if (event.data?.type === 'reload-theme') {
+                console.log('🔄 테마 리로드 요청 받음');
+                themeStore.loadActiveTheme();
+            }
+        }
+
+        window.addEventListener('message', handleMessage);
+
+        // visibilitychange 리스너 (탭 전환 시 테마 변경 자동 감지)
+        let lastThemeCheckTimestamp = 0;
+
+        function handleVisibilityChange() {
+            if (document.visibilityState === 'visible') {
+                try {
+                    // Cookie에서 테마 변경 플래그 읽기
+                    const cookies = document.cookie.split(';');
+                    const triggerCookie = cookies.find((c) =>
+                        c.trim().startsWith('theme-reload-trigger=')
+                    );
+
+                    if (triggerCookie) {
+                        const value = triggerCookie.split('=')[1]; // "themeId:timestamp"
+                        const [themeId, timestampStr] = value.split(':');
+                        const timestamp = parseInt(timestampStr, 10);
+
+                        // 마지막 확인 이후 변경된 경우에만 리로드
+                        if (timestamp > lastThemeCheckTimestamp) {
+                            console.log('🔄 테마 변경 감지 (탭 전환):', themeId, '리로드 중...');
+                            themeStore.loadActiveTheme();
+                            lastThemeCheckTimestamp = timestamp;
+                        }
+                    }
+                } catch (e) {
+                    console.warn('테마 변경 감지 실패:', e);
+                }
+            }
+        }
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
 
         return () => {
-            window.removeEventListener('scroll', handleScroll);
+            window.removeEventListener('message', handleMessage);
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
         };
     });
 </script>
@@ -44,72 +138,30 @@
     <title>다모앙</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="icon" href={favicon} />
+    <!-- Wanted Sans Font -->
+    <link
+        rel="stylesheet"
+        href="https://cdn.jsdelivr.net/gh/wanteddev/wanted-sans@v1.0.3/packages/wanted-sans/fonts/webfonts/static/split/WantedSans.min.css"
+    />
 </svelte:head>
 
-<div class="relative flex min-h-screen flex-col items-center">
-    <!-- 배경 박스 -->
-    {#if snbPosition === 'left'}
-        <div class="snb-backdrop-left"></div>
-    {:else if snbPosition === 'right'}
-        <div class="snb-backdrop-right"></div>
-    {/if}
-
-    <div class="container relative z-10 flex w-full flex-1 flex-col">
-        <Header />
-
-        <div class="mx-auto flex w-full flex-1">
-            {#if snbPosition === 'right'}
-                <aside
-                    class="bg-subtle border-border my-5 hidden w-[320px] flex-shrink-0 rounded-md border lg:block"
-                >
-                    <!-- 여기에 오른쪽 사이드바 내용 추가 -->
-                    <Panel />
-                </aside>
-            {/if}
-            {#if snbPosition === 'left'}
-                <aside
-                    class="bg-background sticky top-12 hidden h-[calc(100vh-3rem)] self-start md:top-16 md:h-[calc(100vh-4rem)] 2xl:block 2xl:!w-[230px]"
-                >
-                    <Sidebar />
-                </aside>
-            {/if}
-
-            <main class="box-content flex-1 overflow-y-auto pt-1 md:py-5 lg:pe-6 2xl:!px-9">
-                {@render children()}
-            </main>
-            {#if snbPosition === 'right'}
-                <aside class="bg-background hidden 2xl:block 2xl:!w-[230px]">
-                    <Sidebar />
-                </aside>
-            {/if}
-
-            {#if snbPosition === 'left'}
-                <aside
-                    class="bg-subtle border-border my-5 hidden w-[320px] flex-shrink-0 rounded-md border lg:block"
-                >
-                    <!-- 여기에 오른쪽 사이드바 내용 추가 -->
-                    <Panel />
-                </aside>
-            {/if}
+<!-- 테마별 완전한 레이아웃 전환 -->
+{#if ThemeLayout}
+    <!-- 동적으로 로드된 테마 레이아웃 (Svelte 5: 컴포넌트 변수 직접 사용) -->
+    <ThemeLayout>
+        {@render children()}
+    </ThemeLayout>
+{:else if activeTheme}
+    <!-- 테마 로딩 중 (activeTheme은 있지만 ThemeLayout이 아직 로드 안됨) -->
+    <!-- 빈 화면으로 깜빡임 방지 -->
+    <div class="min-h-screen bg-white"></div>
+{:else}
+    <!-- 테마 미선택 시 안내 메시지 -->
+    <div class="flex min-h-screen flex-col items-center justify-center bg-gray-50">
+        <div class="text-center">
+            <div class="mb-4 text-6xl">🎨</div>
+            <h1 class="mb-2 text-2xl font-bold text-gray-800">테마를 선택해주세요</h1>
+            <p class="text-gray-600">관리자 페이지에서 테마를 활성화해주세요.</p>
         </div>
     </div>
-    <!-- 왼쪽 배너 - 절대 위치, 컨테이너 밖에 배치 -->
-    <aside
-        class="fixed left-4 hidden transition-all duration-300 min-[1780px]:block"
-        class:top-21={!isBannerUp}
-        class:top-6={isBannerUp}
-    >
-        <LeftBanner />
-    </aside>
-    <!-- 오른쪽 배너 - 절대 위치, 컨테이너 밖에 배치 -->
-    <aside
-        class="fixed right-4 hidden transition-all duration-300 min-[1780px]:block"
-        class:top-21={!isBannerUp}
-        class:top-6={isBannerUp}
-    >
-        <RightBanner />
-    </aside>
-
-    <!-- 푸터 -->
-    <Footer />
-</div>
+{/if}

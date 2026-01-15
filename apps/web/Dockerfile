@@ -1,23 +1,34 @@
-FROM node:lts-alpine3.22 AS base
+FROM node:lts-alpine AS base
 
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 RUN corepack enable
 
+# -----------------------------
 # Development stage
+# -----------------------------
 FROM base AS development
 
 # Create non-root user for development
 RUN adduser -D -u 1001 -s /bin/sh devuser
 
-# Set working directory to web app
-WORKDIR /app/apps/web
+# Set working directory
+WORKDIR /app
 
-# Copy source code
-COPY apps/web .
+# Copy workspace configuration files
+COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
+
+# Copy packages (workspace dependencies)
+COPY packages ./packages
+
+# Copy themes (for $themes alias)
+COPY themes ./themes
+
+# Copy web app source
+COPY apps/web ./apps/web
 
 # Install dependencies
-RUN pnpm install
+RUN pnpm install --filter web...
 
 # Change ownership to non-root user
 RUN chown -R devuser:devuser /app
@@ -25,49 +36,80 @@ RUN chown -R devuser:devuser /app
 # Switch to non-root user
 USER devuser
 
-# Start development server
-CMD ["pnpm", "dev", "--host", "0.0.0.0", "--port", "80"]
+WORKDIR /app/apps/web
 
+# Start development server
+CMD ["pnpm", "dev", "--host", "0.0.0.0", "--port", "3000"]
+
+# -----------------------------
 # Build stage
+# -----------------------------
 FROM base AS builder
 
+# Build arguments for Vite environment variables
+ARG VITE_USE_MOCK=true
+ENV VITE_USE_MOCK=$VITE_USE_MOCK
+
 # Set working directory
 WORKDIR /app
+
+# Copy workspace configuration files
+COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
+
+# Copy workspace packages (workspace:* dependencies)
+COPY packages ./packages
+
+# Copy themes (for $themes alias in vite.config.ts)
+COPY themes ./themes
 
 # Copy application source
-COPY apps/web .
+COPY apps/web ./apps/web
 
-# Build the application
-RUN pnpm install --frozen-lockfile
-RUN pnpm run build
+# Install dependencies and build
+RUN pnpm install --frozen-lockfile --filter web...
+# 워크스페이스 패키지 먼저 빌드 (@angple/types 등)
+RUN pnpm --filter @angple/types run build
+RUN pnpm --filter web run build
 
-# Production stage
-FROM caddy:2.10-alpine AS production
+# Deploy as standalone package (resolves workspace:* dependencies)
+# --legacy: pnpm v10에서 inject-workspace-packages 없이 deploy 허용
+RUN pnpm --filter web deploy /app/deploy --prod --legacy
 
-# Install dumb-init for proper signal handling
-RUN apk update && apk add dumb-init
+# Copy build output to deploy directory
+RUN cp -r /app/apps/web/build /app/deploy/build
+
+# -----------------------------
+# Production stage (SSR Node.js)
+# -----------------------------
+FROM node:lts-alpine AS production
 
 # Create non-root user
-RUN adduser -D -u 1001 -s /bin/sh caddyweb
-RUN chown -R caddyweb:caddyweb /config/caddy /data/caddy
+RUN adduser -D -u 1001 -s /bin/sh nodeuser
 
-# Set working directory
 WORKDIR /app
 
-COPY --chown=caddyweb:caddyweb apps/web/Caddyfile /etc/caddy/Caddyfile
+# Copy deployed standalone package from builder
+COPY --from=builder --chown=nodeuser:nodeuser /app/deploy ./
 
-# Copy built application from builder
-COPY --from=builder --chown=caddyweb:caddyweb /app/build ./build
+# Copy themes for runtime (theme scanner needs this)
+COPY --from=builder --chown=nodeuser:nodeuser /app/themes ./themes
+
+# Create data directory for settings
+RUN mkdir -p /app/data && chown nodeuser:nodeuser /app/data
 
 # Switch to non-root user
-USER caddyweb
+USER nodeuser
+
+# Environment variables
+ENV NODE_ENV=production
+ENV PORT=3000
+
+# Expose port
+EXPOSE 3000
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD wget -q -O /dev/null http://127.0.0.1:80/health || exit 1
-
-# Use dumb-init to handle signals properly
-ENTRYPOINT ["dumb-init", "--"]
+    CMD wget -q -O /dev/null http://127.0.0.1:3000/health || exit 1
 
 # Start the application
-CMD ["caddy", "run", "--config", "/etc/caddy/Caddyfile", "--adapter", "caddyfile"]
+CMD ["node", "build"]

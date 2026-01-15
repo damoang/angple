@@ -7,6 +7,9 @@ on:
   push:
     branches:
       - main
+  schedule:
+    # 매주 월요일 18:00 KST (= UTC 09:00)
+    - cron: '0 9 * * 1'
 
 env:
   NODE_VERSION: "24.11.1"
@@ -25,10 +28,10 @@ jobs:
       - name: Run Semgrep
         run: semgrep ci --config=auto
 
-  # 심층 SAST 검사 - main merge 후에만 실행
+  # 심층 SAST 검사 - main push 또는 스케줄 실행
   sast-codeql:
     name: SAST - CodeQL
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'push' || github.event_name == 'schedule'
     runs-on: ubuntu-latest
     permissions:
       security-events: write
@@ -39,29 +42,35 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
+        uses: github/codeql-action/init@v4
         with:
           languages: javascript-typescript
 
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v3
+        uses: github/codeql-action/analyze@v4
 
-  # 컨테이너 보안 스캔 - main merge 후에만 실행
+  # 컨테이너 보안 스캔 - main push 또는 스케줄 실행
   container-scan:
     name: Container Security Scan
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'push' || github.event_name == 'schedule'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
 
       - name: Install dependencies
-        run: npm ci --no-fund
+        run: pnpm install --frozen-lockfile
 
       - name: Build Docker image
         run: docker build -f apps/web/Dockerfile -t angple-web:scan .
@@ -75,6 +84,6 @@ jobs:
           severity: 'CRITICAL,HIGH'
 
       - name: Upload Trivy results to GitHub Security
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: 'trivy-results.sarif'

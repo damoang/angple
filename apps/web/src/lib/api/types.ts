@@ -33,15 +33,15 @@ export interface FreePost {
 
 // 자유게시판 댓글 타입
 export interface FreeComment {
-    id: string;
+    id: number | string; // v2 API는 number, v1은 string
     content: string;
     author: string;
     author_id: string;
-    likes: number;
-    depth: number;
-    parent_id: string;
+    likes?: number;
+    depth?: number;
+    parent_id: number | string; // v2 API는 number, v1은 string
     created_at: string;
-    updated_at: string;
+    updated_at?: string;
     images?: string[];
 }
 
@@ -202,4 +202,56 @@ export interface IndexWidgetsData {
     economy_tabs: EconomyPost[];
     gallery: GalleryPost[];
     group_tabs: GroupTabsData;
+}
+
+// 사이드바 메뉴 타입
+export interface MenuItem {
+    id: number;
+    parent_id?: number | null;
+    title: string;
+    url: string;
+    icon?: string;
+    shortcut?: string;
+    description?: string;
+    depth: number;
+    order_num: number;
+    target: string;
+    show_in_header: boolean;
+    show_in_sidebar: boolean;
+    children?: MenuItem[];
+}
+
+// 사용자 타입 (damoang.net SSO)
+export interface DamoangUser {
+    mb_id: string;
+    mb_name: string;
+    mb_level: number;
+    mb_email: string;
+}
+
+// 게시글 작성 요청
+export interface CreatePostRequest {
+    title: string; // 필수, 1-200자
+    content: string; // 필수, 1자 이상
+    category?: string; // 선택
+    author: string; // 필수, 1-50자
+    password?: string; // 선택 (비회원 글 비밀번호)
+}
+
+// 게시글 수정 요청
+export interface UpdatePostRequest {
+    title?: string; // 선택, 1-200자
+    content?: string; // 선택, 1자 이상
+    category?: string; // 선택
+}
+
+// 댓글 작성 요청
+export interface CreateCommentRequest {
+    content: string; // 필수, 1자 이상
+    author: string; // 필수, 1-50자
+}
+
+// 댓글 수정 요청
+export interface UpdateCommentRequest {
+    content: string; // 필수, 1자 이상
 }

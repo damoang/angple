@@ -1,5 +1,6 @@
 <script lang="ts">
     import { onMount } from 'svelte';
+    import { SvelteMap } from 'svelte/reactivity';
     import { apiClient } from '$lib/api';
     import type { RecommendedDataWithAI, RecommendedPeriod } from '$lib/api/types.js';
     import { Card, CardHeader, CardContent } from '$lib/components/ui/card';
@@ -10,6 +11,25 @@
     import { SkeletonLoader } from './components/loading';
     import { getCurrentTabVisibility } from './utils/index.js';
 
+    // 모든 섹션의 통계 합계 계산
+    function calculateStats(data: RecommendedDataWithAI) {
+        let total_recommends = 0;
+        let total_comments = 0;
+
+        const sections = ['community', 'group', 'info'] as const;
+        for (const key of sections) {
+            const section = data.sections[key];
+            if (section?.posts) {
+                for (const post of section.posts) {
+                    total_recommends += post.recommend_count || 0;
+                    total_comments += post.comment_count || 0;
+                }
+            }
+        }
+
+        return { total_recommends, total_comments };
+    }
+
     const { defaultTab } = getCurrentTabVisibility();
 
     let activeTab = $state<RecommendedPeriod>(defaultTab);
@@ -17,11 +37,29 @@
     let loading = $state(true);
     let error = $state<string | null>(null);
 
-    async function loadData(period: RecommendedPeriod) {
-        loading = true;
+    // 탭별 데이터 캐시
+    const dataCache = new SvelteMap<RecommendedPeriod, RecommendedDataWithAI>();
+
+    async function loadData(period: RecommendedPeriod, isInitial = false) {
+        // 캐시에 데이터가 있으면 즉시 표시
+        if (dataCache.has(period)) {
+            data = dataCache.get(period)!;
+            return;
+        }
+
+        // 초기 로드시에만 로딩 표시 (탭 전환시에는 기존 데이터 유지)
+        if (isInitial) {
+            loading = true;
+        }
         error = null;
+
         try {
-            data = await apiClient.getRecommendedPostsWithAI(period);
+            const newData = await apiClient.getRecommendedPostsWithAI(period);
+            dataCache.set(period, newData);
+            // 현재 선택된 탭의 데이터만 업데이트
+            if (activeTab === period) {
+                data = newData;
+            }
         } catch (err) {
             error = err instanceof Error ? err.message : '데이터 로드 실패';
             console.error('추천 글 로드 실패:', err);
@@ -36,17 +74,17 @@
     }
 
     onMount(() => {
-        loadData(activeTab);
+        loadData(activeTab, true);
     });
 </script>
 
 <Card class="gap-0">
-    <CardHeader class="flex-row items-center justify-between space-y-0 pb-0">
+    <CardHeader class="flex flex-row items-center justify-between space-y-0 px-4 py-2.5">
         <RecommendedHeader />
         <RecommendedTabs bind:activeTab onTabChange={handleTabChange} />
     </CardHeader>
 
-    <CardContent class="px-3">
+    <CardContent class="px-4">
         {#if loading}
             <SkeletonLoader />
         {:else if error}
@@ -57,7 +95,8 @@
             </div>
         {:else if data}
             {#if data.ai_analysis}
-                <AITrendCard analysis={data.ai_analysis} />
+                {@const stats = calculateStats(data)}
+                <AITrendCard analysis={data.ai_analysis} {stats} />
             {/if}
             <PostList {data} />
         {/if}

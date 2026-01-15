@@ -2,6 +2,7 @@
 .idea/
 .vscode/
 *.iml
+.serena/
 
 # OS
 .DS_Store
@@ -63,3 +64,21 @@ go.work
 *~
 /data/
 apps/backend/
+
+# Custom themes (user uploads)
+/custom-themes/*
+!/custom-themes/.gitkeep
+!/custom-themes/README.md
+
+# Backup files
+*.backup
+*.bak
+
+# Docker Compose local override
+compose.override.yml
+docker-compose.override.yml
+
+# Session notes (local only)
+SESSION_NOTES.md
+**/session-notes/
+**/SESSION_NOTES.*

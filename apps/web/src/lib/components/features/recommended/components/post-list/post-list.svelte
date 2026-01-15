@@ -29,5 +29,7 @@
         {/each}
     </ul>
 {:else}
-    <div class="text-muted-foreground py-8 text-center text-sm">게시물이 없습니다.</div>
+    <div class="flex flex-col items-center justify-center py-8 text-center">
+        <p class="text-muted-foreground text-sm">아직 글이 없어요</p>
+    </div>
 {/if}

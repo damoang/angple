@@ -18,10 +18,10 @@
     });
 </script>
 
-<div class="relative h-5 overflow-hidden">
-    {#each headlines as headline, i}
+<div class="relative h-6 overflow-hidden">
+    {#each headlines as headline, i (i)}
         <p
-            class="absolute inset-0 truncate text-sm font-medium text-blue-800 transition-all duration-500 dark:text-blue-200
+            class="text-foreground absolute inset-0 truncate text-sm font-bold transition-all duration-500 ease-in-out
                 {i === currentIndex
                 ? 'translate-y-0 opacity-100'
                 : i < currentIndex

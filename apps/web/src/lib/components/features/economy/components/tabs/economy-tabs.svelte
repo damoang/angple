@@ -9,10 +9,10 @@
     let { activeTab = $bindable(), onTabChange }: Props = $props();
 
     const tabs: { id: EconomyTabId; label: string }[] = [
-        { id: 'economy', label: '알뜰구매' },
-        { id: 'qa', label: '질문과답변' },
+        { id: 'economy', label: '구매' },
+        { id: 'qa', label: 'Q&A' },
         { id: 'free', label: '앙지도' },
-        { id: 'angtt', label: '다모앙 평점' }
+        { id: 'angtt', label: '평점' }
     ];
 
     function handleTabClick(tabId: EconomyTabId) {
@@ -21,21 +21,17 @@
     }
 </script>
 
-<ul class="flex gap-1 border-b border-gray-200 dark:border-gray-700" role="tablist">
+<div class="flex gap-1">
     {#each tabs as tab (tab.id)}
-        <li role="presentation">
-            <button
-                type="button"
-                role="tab"
-                aria-selected={activeTab === tab.id}
-                class="rounded-t-md px-3 py-1.5 text-sm font-medium transition-colors
-                    {activeTab === tab.id
-                    ? 'border-primary text-foreground border-b-2'
-                    : 'text-muted-foreground hover:text-foreground'}"
-                onclick={() => handleTabClick(tab.id)}
-            >
-                {tab.label}
-            </button>
-        </li>
+        <button
+            type="button"
+            class="rounded-md px-2.5 py-1 text-sm font-medium transition-all duration-200 ease-out
+                {activeTab === tab.id
+                ? 'bg-primary text-primary-foreground'
+                : 'text-muted-foreground hover:bg-muted hover:text-foreground'}"
+            onclick={() => handleTabClick(tab.id)}
+        >
+            {tab.label}
+        </button>
     {/each}
-</ul>
+</div>

@@ -3,7 +3,6 @@
     import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card/index.js';
     import { Badge } from '$lib/components/ui/badge/index.js';
     import { Button } from '$lib/components/ui/button/index.js';
-    import { Skeleton } from '$lib/components/ui/skeleton/index.js';
     import type { PageData } from './$types.js';
 
     let { data }: { data: PageData } = $props();
@@ -75,7 +74,7 @@
                 </CardContent>
             </Card>
         {:else}
-            {#each data.posts as post}
+            {#each data.posts as post (post.id)}
                 <Card
                     class="bg-background cursor-pointer transition-shadow hover:shadow-md"
                     onclick={() => goToPost(post.id)}
@@ -98,7 +97,7 @@
                             </div>
                             {#if post.tags && post.tags.length > 0}
                                 <div class="flex flex-wrap gap-1">
-                                    {#each post.tags.slice(0, 3) as tag}
+                                    {#each post.tags.slice(0, 3) as tag (tag)}
                                         <Badge variant="secondary" class="text-xs">{tag}</Badge>
                                     {/each}
                                 </div>
@@ -134,7 +133,7 @@
             {#each Array.from({ length: Math.min(5, data.pagination.totalPages) }, (_, i) => {
                 const startPage = Math.max(1, data.pagination.page - 2);
                 return startPage + i;
-            }) as pageNum}
+            }) as pageNum (pageNum)}
                 {#if pageNum <= data.pagination.totalPages}
                     <Button
                         variant={pageNum === data.pagination.page ? 'default' : 'outline'}

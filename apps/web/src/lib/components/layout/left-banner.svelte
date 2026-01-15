@@ -1,10 +1,18 @@
-<!-- 왼쪽 배너 영역 - 스켈레톤 박스 -->
-<div
-    class="border-border bg-dusty-200 dark:bg-dusty-700 flex w-full items-center justify-center rounded-lg border-2 border-dashed p-2"
->
-    <div
-        class="bg-dusty-100 text-dusty-600 dark:text-dusty-400 flex h-[600px] w-[160px] items-center justify-center text-center"
-    >
-        <div class="rotate-90 transform whitespace-nowrap text-sm font-medium">왼쪽 배너 영역</div>
-    </div>
+<script lang="ts">
+    import ImageBanner from '$lib/components/ui/image-banner/image-banner.svelte';
+
+    // AdSense 설정 (ang-gnu 동일)
+    const ADSENSE_VERTICAL_SLOT = '7464730194'; // DA_Vertical_Banner_01 (160×600)
+</script>
+
+<!-- 왼쪽 윙 배너 -->
+<div class="flex w-[160px] flex-col items-center justify-center gap-2">
+    <ImageBanner
+        position="wing-left"
+        width="160px"
+        height="600px"
+        fallbackToAdsense={true}
+        adsenseSlot={ADSENSE_VERTICAL_SLOT}
+        adsenseFormat="vertical"
+    />
 </div>

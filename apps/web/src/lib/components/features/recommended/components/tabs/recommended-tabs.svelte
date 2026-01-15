@@ -27,24 +27,19 @@
     }
 </script>
 
-<!-- PHP nav-tabs-bottomline 스타일 -->
-<div class="flex border-b border-gray-200 dark:border-gray-700">
-    {#each tabs as tab}
+<!-- Pill 스타일 탭 -->
+<div class="flex gap-1">
+    {#each tabs as tab (tab.id)}
         {#if !tab.hidden}
             <button
                 type="button"
-                class="relative px-3 py-2 text-sm font-medium transition-colors
+                class="rounded-md px-2.5 py-1 text-sm font-medium transition-all duration-200 ease-out
                     {activeTab === tab.id
-                    ? 'text-blue-600 dark:text-blue-400'
-                    : 'text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200'}"
+                    ? 'bg-primary text-primary-foreground'
+                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'}"
                 onclick={() => handleClick(tab.id)}
             >
                 {tab.label}
-                {#if activeTab === tab.id}
-                    <span
-                        class="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400"
-                    ></span>
-                {/if}
             </button>
         {/if}
     {/each}

@@ -1,0 +1,24 @@
+{
+    "id": "sample-plugin-seo",
+    "name": "SEO Optimizer",
+    "version": "1.0.0",
+    "description": "Meta tags, sitemap, OG images 자동 생성 플러그인",
+    "author": {
+        "name": "Angple SEO Team",
+        "email": "seo@angple.com",
+        "url": "https://angple.com"
+    },
+    "license": "MIT",
+    "category": "plugin",
+    "pluginType": "seo",
+    "tags": ["seo", "meta", "sitemap", "og-image"],
+    "keywords": ["seo", "meta-tags", "sitemap", "open-graph"],
+    "angpleVersion": ">=1.0.0",
+    "engines": {
+        "node": ">=20.0.0"
+    },
+    "main": "./dist/index.js",
+    "permissions": ["posts:read", "settings:write"],
+    "homepage": "https://github.com/angple/sample-plugin-seo",
+    "active": false
+}

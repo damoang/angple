@@ -1,46 +1,61 @@
 import tailwindcss from '@tailwindcss/vite';
 import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig } from 'vite';
+import { fileURLToPath } from 'url';
+import path from 'path';
 
-export default defineConfig({
-    plugins: [tailwindcss(), sveltekit()],
-    server: {
-        allowedHosts: ['web.damoang.net', 'localhost'],
-        proxy: {
-            '/api': {
-                target: 'http://localhost:8081',
-                changeOrigin: true,
-                secure: false
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+export default defineConfig(() => {
+    return {
+        plugins: [tailwindcss(), sveltekit()],
+        resolve: {
+            alias: {
+                $themes: path.resolve(__dirname, '../../themes')
             }
+        },
+        server: {
+            allowedHosts: ['web.damoang.net', 'damoang.dev', 'localhost'],
+            fs: {
+                allow: ['.', '../..']
+            }
+            // proxy는 로컬 개발에서 비활성화 (Mock 데이터 사용)
+            // proxy: {
+            //     '/api': {
+            //         target: env.API_PROXY_TARGET || 'http://localhost:8081',
+            //         changeOrigin: true,
+            //         secure: false
+            //     }
+            // }
+        },
+        test: {
+            expect: { requireAssertions: true },
+            projects: [
+                {
+                    extends: './vite.config.ts',
+                    test: {
+                        name: 'client',
+                        environment: 'browser',
+                        browser: {
+                            enabled: true,
+                            provider: 'playwright',
+                            instances: [{ browser: 'chromium' }]
+                        },
+                        include: ['src/**/*.svelte.{test,spec}.{js,ts}'],
+                        exclude: ['src/lib/server/**'],
+                        setupFiles: ['./vitest-setup-client.ts']
+                    }
+                },
+                {
+                    extends: './vite.config.ts',
+                    test: {
+                        name: 'server',
+                        environment: 'node',
+                        include: ['src/**/*.{test,spec}.{js,ts}'],
+                        exclude: ['src/**/*.svelte.{test,spec}.{js,ts}']
+                    }
+                }
+            ]
         }
-    },
-    test: {
-        expect: { requireAssertions: true },
-        projects: [
-            {
-                extends: './vite.config.ts',
-                test: {
-                    name: 'client',
-                    environment: 'browser',
-                    browser: {
-                        enabled: true,
-                        provider: 'playwright',
-                        instances: [{ browser: 'chromium' }]
-                    },
-                    include: ['src/**/*.svelte.{test,spec}.{js,ts}'],
-                    exclude: ['src/lib/server/**'],
-                    setupFiles: ['./vitest-setup-client.ts']
-                }
-            },
-            {
-                extends: './vite.config.ts',
-                test: {
-                    name: 'server',
-                    environment: 'node',
-                    include: ['src/**/*.{test,spec}.{js,ts}'],
-                    exclude: ['src/**/*.svelte.{test,spec}.{js,ts}']
-                }
-            }
-        ]
-    }
+    };
 });

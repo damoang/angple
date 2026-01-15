@@ -1,4 +1,15 @@
-import type { FreePost, FreeComment, PaginatedResponse } from './types.js';
+import type {
+    FreePost,
+    FreeComment,
+    PaginatedResponse,
+    MenuItem,
+    DamoangUser,
+    IndexWidgetsData,
+    NewsPost,
+    EconomyPost,
+    GalleryPost,
+    GroupTabsData
+} from './types.js';
 
 // Mock 게시글 데이터 생성
 function generateMockPost(id: number): FreePost {
@@ -239,5 +250,292 @@ export function getMockFreeComments(page = 1, limit = 50): PaginatedResponse<Fre
         page,
         limit,
         total_pages: totalPages
+    };
+}
+
+// 사이드바 메뉴 Mock 데이터
+export function getMockMenus(): MenuItem[] {
+    return [
+        {
+            id: 1,
+            title: '커뮤니티',
+            url: '#',
+            icon: 'MessageSquare',
+            depth: 0,
+            order_num: 1,
+            target: '_self',
+            show_in_header: true,
+            show_in_sidebar: true,
+            children: [
+                {
+                    id: 11,
+                    parent_id: 1,
+                    title: '자유게시판',
+                    url: '/free',
+                    icon: 'Circle',
+                    depth: 1,
+                    order_num: 1,
+                    target: '_self',
+                    show_in_header: false,
+                    show_in_sidebar: true
+                },
+                {
+                    id: 12,
+                    parent_id: 1,
+                    title: '질문/답변',
+                    url: '/qna',
+                    icon: 'CircleHelp',
+                    depth: 1,
+                    order_num: 2,
+                    target: '_self',
+                    show_in_header: false,
+                    show_in_sidebar: true
+                }
+            ]
+        },
+        {
+            id: 2,
+            title: '소모임',
+            url: '#',
+            icon: 'Users',
+            depth: 0,
+            order_num: 2,
+            target: '_self',
+            show_in_header: true,
+            show_in_sidebar: true,
+            children: [
+                {
+                    id: 21,
+                    parent_id: 2,
+                    title: '전체 소모임',
+                    url: '/groups',
+                    icon: 'Circle',
+                    depth: 1,
+                    order_num: 1,
+                    target: '_self',
+                    show_in_header: false,
+                    show_in_sidebar: true
+                }
+            ]
+        },
+        {
+            id: 3,
+            title: '갤러리',
+            url: '/gallery',
+            icon: 'Images',
+            depth: 0,
+            order_num: 3,
+            target: '_self',
+            show_in_header: true,
+            show_in_sidebar: true
+        },
+        {
+            id: 4,
+            title: '알뜰구매',
+            url: '/economy',
+            icon: 'ShoppingCart',
+            depth: 0,
+            order_num: 4,
+            target: '_self',
+            show_in_header: true,
+            show_in_sidebar: true
+        }
+    ];
+}
+
+// 현재 사용자 Mock 데이터
+export function getMockCurrentUser(): DamoangUser | null {
+    // 로그인 상태 시뮬레이션: 50% 확률로 로그인 사용자 반환
+    if (Math.random() > 0.5) {
+        return {
+            mb_id: 'mockuser',
+            mb_name: 'Mock 사용자',
+            mb_level: 10,
+            mb_email: 'mock@damoang.dev'
+        };
+    }
+    return null; // 비로그인 상태
+}
+
+// 인덱스 위젯 Mock 데이터
+export function getMockIndexWidgets(): IndexWidgetsData {
+    // 새로운 소식 탭 데이터
+    const news_tabs: NewsPost[] = [
+        {
+            id: 1,
+            title: 'SvelteKit 5 정식 출시!',
+            board: 'news',
+            board_name: '새소식',
+            author: '관리자',
+            created_at: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
+            comment_count: 15,
+            view_count: 234,
+            recommend_count: 45,
+            url: '/news/1',
+            is_notice: true,
+            tab: 'new'
+        },
+        {
+            id: 2,
+            title: 'Vite 7.0 업데이트 가이드',
+            board: 'tips',
+            board_name: '팁/노하우',
+            author: '개발자김철수',
+            created_at: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
+            comment_count: 8,
+            view_count: 156,
+            recommend_count: 23,
+            url: '/tips/2',
+            is_notice: false,
+            tab: 'tip'
+        },
+        {
+            id: 3,
+            title: 'Tailwind CSS 4.0 사용 후기',
+            board: 'reviews',
+            board_name: '후기/리뷰',
+            author: '프론트엔드마스터',
+            created_at: new Date(Date.now() - 1000 * 60 * 90).toISOString(),
+            comment_count: 12,
+            view_count: 189,
+            recommend_count: 31,
+            url: '/reviews/3',
+            is_notice: false,
+            tab: 'review'
+        }
+    ];
+
+    // 알뜰구매 탭 데이터
+    const economy_tabs: EconomyPost[] = [
+        {
+            id: 1,
+            title: '맥북 프로 M4 최저가 정보',
+            url: '/economy/1',
+            tab: 'economy',
+            author: '가성비왕'
+        },
+        {
+            id: 2,
+            title: '개발자를 위한 의자 추천',
+            url: '/economy/2',
+            tab: 'economy',
+            author: '알뜰구매'
+        },
+        {
+            id: 3,
+            title: '모니터 구매 시 체크사항?',
+            url: '/qna/3',
+            tab: 'qa',
+            author: '질문왕'
+        },
+        {
+            id: 4,
+            title: '중고 거래 안전 팁',
+            url: '/free/4',
+            tab: 'free',
+            author: '베테랑'
+        }
+    ];
+
+    // 갤러리 데이터
+    const gallery: GalleryPost[] = [
+        {
+            id: 1,
+            title: '내 작업실 셋업 공유',
+            url: '/gallery/1',
+            thumbnail_url: 'https://picsum.photos/seed/1/400/300',
+            author: '디자이너이영희',
+            comment_count: 18,
+            view_count: 342,
+            recommend_count: 56,
+            created_at: new Date(Date.now() - 1000 * 60 * 120).toISOString()
+        },
+        {
+            id: 2,
+            title: '개발자 데스크 투어',
+            url: '/gallery/2',
+            thumbnail_url: 'https://picsum.photos/seed/2/400/300',
+            author: '개발자김철수',
+            comment_count: 24,
+            view_count: 456,
+            recommend_count: 78,
+            created_at: new Date(Date.now() - 1000 * 60 * 180).toISOString()
+        },
+        {
+            id: 3,
+            title: '키보드 커스텀 완성!',
+            url: '/gallery/3',
+            thumbnail_url: 'https://picsum.photos/seed/3/400/300',
+            author: '키보드매니아',
+            comment_count: 31,
+            view_count: 589,
+            recommend_count: 92,
+            created_at: new Date(Date.now() - 1000 * 60 * 240).toISOString()
+        },
+        {
+            id: 4,
+            title: '미니멀 셋업 완성',
+            url: '/gallery/4',
+            thumbnail_url: 'https://picsum.photos/seed/4/400/300',
+            author: '미니멀리스트',
+            comment_count: 15,
+            view_count: 267,
+            recommend_count: 43,
+            created_at: new Date(Date.now() - 1000 * 60 * 300).toISOString()
+        }
+    ];
+
+    // 소모임 탭 데이터
+    const group_tabs: GroupTabsData = {
+        all: [
+            {
+                id: 1,
+                title: '같이 스터디하실 분!',
+                url: '/group/1',
+                recommend_count: 12,
+                author: '공부왕'
+            },
+            {
+                id: 2,
+                title: '주말 코딩 모임',
+                url: '/group/2',
+                recommend_count: 8,
+                author: '코딩좋아'
+            }
+        ],
+        '24h': [
+            {
+                id: 3,
+                title: '오늘 저녁 맛집 추천',
+                url: '/group/3',
+                recommend_count: 15,
+                author: '맛집탐방가'
+            }
+        ],
+        week: [
+            {
+                id: 4,
+                title: '이번 주 독서모임',
+                url: '/group/4',
+                recommend_count: 6,
+                author: '책벌레'
+            }
+        ],
+        month: [
+            {
+                id: 5,
+                title: '월간 프로젝트 공유',
+                url: '/group/5',
+                recommend_count: 20,
+                author: '프로젝트매니아'
+            }
+        ]
+    };
+
+    return {
+        news_tabs,
+        economy_tabs,
+        gallery,
+        group_tabs
     };
 }

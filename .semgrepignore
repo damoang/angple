@@ -1,0 +1,13 @@
+# Semgrep ignore file
+
+# 테스트 파일
+*.test.ts
+*.spec.ts
+*.e2e.ts
+
+# Mock 데이터
+apps/web/src/lib/api/mock-data.ts
+
+# 설정 파일
+*.config.ts
+*.config.js
