@@ -79,7 +79,7 @@ function generateMockPost(id: number): FreePost {
     createdDate.setHours(createdDate.getHours() - id * 2);
 
     return {
-        id: String(id),
+        id: id,
         title: randomTitle,
         content: randomContent,
         author: randomAuthor,
