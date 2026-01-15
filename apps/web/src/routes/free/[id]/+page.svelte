@@ -129,7 +129,7 @@
     </div> -->
 
     <!-- 수정/삭제 시간 표시 -->
-    {#if data.post.updated_at !== data.post.created_at}
+    {#if data.post.updated_at && data.post.updated_at !== data.post.created_at}
         <p class="text-muted-foreground mt-4 text-center text-sm">
             마지막 수정: {formatDate(data.post.updated_at)}
         </p>

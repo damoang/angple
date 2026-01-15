@@ -40,7 +40,7 @@
     }
 
     // 게시글 상세 페이지로 이동
-    function goToPost(id: string): void {
+    function goToPost(id: number): void {
         goto(`/free/${id}`);
     }
 </script>
