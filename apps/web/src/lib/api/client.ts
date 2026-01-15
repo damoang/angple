@@ -30,7 +30,7 @@ import { browser } from '$app/environment';
 // 서버/클라이언트 환경에 따라 API URL 분기
 const API_BASE_URL = browser
     ? import.meta.env.VITE_API_URL || 'https://api.damoang.dev/api/v1'
-    : process.env.INTERNAL_API_URL || 'http://localhost:8080/api/v1';
+    : import.meta.env.VITE_API_URL || 'http://localhost:8081/api/v2';
 
 // 디버깅: API URL 확인
 console.log('[API Client] Browser:', browser);
@@ -224,17 +224,20 @@ class ApiClient {
 
         console.log('[API] Raw response:', response);
 
-        // request()는 ApiResponse<BackendResponse>를 반환
-        // response = { success: boolean, data: BackendResponse }
-        // response.data = { data: Post[], meta: {...} }
+        // 백엔드가 { data: Post[], meta: {...} } 형식을 직접 반환
+        // request()는 이를 그대로 반환하므로 response가 곧 BackendResponse
+        const backendData = response as any as BackendResponse;
+
+        console.log('[API] Backend data:', backendData);
+        console.log('[API] Backend data.data length:', backendData.data?.length);
 
         // 프론트엔드 PaginatedResponse 형식으로 변환
         const result: PaginatedResponse<FreePost> = {
-            items: response.data.data,
-            total: response.data.meta.total,
-            page: response.data.meta.page,
-            limit: response.data.meta.limit,
-            total_pages: Math.ceil(response.data.meta.total / response.data.meta.limit)
+            items: backendData.data,
+            total: backendData.meta.total,
+            page: backendData.meta.page,
+            limit: backendData.meta.limit,
+            total_pages: Math.ceil(backendData.meta.total / backendData.meta.limit)
         };
 
         console.log('[API] Converted PaginatedResponse:', result);
@@ -250,8 +253,19 @@ class ApiClient {
             return getMockFreePost(id);
         }
 
-        const response = await this.request<FreePost>(`/boards/free/posts/${id}`);
-        return response.data;
+        // 백엔드 응답 타입: { data: Post }
+        interface BackendPostResponse {
+            data: FreePost;
+        }
+
+        const response = await this.request<BackendPostResponse>(`/boards/free/posts/${id}`);
+
+        console.log('[API] Post detail raw response:', response);
+
+        // 백엔드가 { data: Post } 형식을 직접 반환
+        const backendData = response as any as BackendPostResponse;
+
+        return backendData.data;
     }
 
     // 자유게시판 글 댓글 조회
@@ -267,10 +281,35 @@ class ApiClient {
             return getMockFreeComments(page, limit);
         }
 
-        const response = await this.request<PaginatedResponse<FreeComment>>(
+        // 백엔드 응답 타입: { data: Comment[] }
+        interface BackendCommentsResponse {
+            data: FreeComment[];
+        }
+
+        const response = await this.request<BackendCommentsResponse>(
             `/boards/free/posts/${id}/comments?page=${page}&limit=${limit}`
         );
-        return response.data;
+
+        console.log('[API] Comments raw response:', response);
+
+        // 백엔드가 { data: Comment[] } 형식을 직접 반환
+        const backendData = response as any as BackendCommentsResponse;
+
+        console.log('[API] Comments data length:', backendData.data?.length);
+
+        // 프론트엔드 PaginatedResponse 형식으로 변환
+        // 백엔드가 meta 정보를 제공하지 않으므로 기본값 사용
+        const result: PaginatedResponse<FreeComment> = {
+            items: backendData.data,
+            total: backendData.data.length,
+            page: page,
+            limit: limit,
+            total_pages: 1
+        };
+
+        console.log('[API] Converted comments response:', result);
+
+        return result;
     }
 
     // 로그아웃

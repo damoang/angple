@@ -20,8 +20,9 @@
     let ThemeLayout = $state<Component | null>(null);
 
     // Vite의 import.meta.glob으로 모든 테마 레이아웃 패턴 정의
-    // $themes alias를 사용하여 프로젝트 루트의 themes 디렉터리 참조
-    const themeLayouts = import.meta.glob('$themes/*/layouts/main-layout.svelte');
+    // 상대 경로로 프로젝트 루트의 themes 디렉터리 참조
+    // (Vite glob은 alias를 지원하지 않아 상대 경로 필수)
+    const themeLayouts = import.meta.glob('../../../../themes/*/layouts/main-layout.svelte');
 
     /**
      * 테마 레이아웃 동적 로드
@@ -36,8 +37,8 @@
         }
 
         try {
-            // Vite가 alias를 실제 상대 경로로 변환하므로 ../../themes/를 사용
-            const layoutPath = `../../themes/${themeId}/layouts/main-layout.svelte`;
+            // Vite glob 패턴과 일치하는 상대 경로 사용
+            const layoutPath = `../../../../themes/${themeId}/layouts/main-layout.svelte`;
             console.log(`📁 [loadThemeLayout] 레이아웃 경로: ${layoutPath}`);
             const keys = Object.keys(themeLayouts);
             console.log(`🔎 [loadThemeLayout] themeLayouts 키 목록:`, keys);
