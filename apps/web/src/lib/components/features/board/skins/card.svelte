@@ -1,10 +1,18 @@
 <script lang="ts">
     import { Badge } from '$lib/components/ui/badge/index.js';
     import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card/index.js';
-    import type { FreePost } from '$lib/api/types.js';
+    import type { FreePost, BoardDisplaySettings } from '$lib/api/types.js';
 
     // Props
-    let { post, onclick }: { post: FreePost; onclick: () => void } = $props();
+    let {
+        post,
+        displaySettings,
+        onclick
+    }: {
+        post: FreePost;
+        displaySettings?: BoardDisplaySettings;
+        onclick: () => void;
+    } = $props();
 
     // 날짜 포맷 헬퍼
     function formatDate(dateString: string): string {
@@ -67,9 +75,11 @@
         </div>
     </CardHeader>
     <CardContent>
-        <p class="text-secondary-foreground mb-4 line-clamp-2">
-            {post.content}
-        </p>
+        {#if displaySettings?.show_preview !== false}
+            <p class="text-secondary-foreground mb-4 line-clamp-2">
+                {post.content}
+            </p>
+        {/if}
         <div class="text-secondary-foreground flex items-center gap-4 text-sm">
             <span>👍 {post.likes}</span>
             <span>💬 {post.comments_count}</span>

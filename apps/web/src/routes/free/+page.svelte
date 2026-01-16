@@ -117,7 +117,11 @@
             </Card>
         {:else}
             {#each filteredPosts as post (post.id)}
-                <SkinComponent {post} onclick={() => goToPost(post.id)} />
+                <SkinComponent
+                    {post}
+                    displaySettings={data.board?.display_settings}
+                    onclick={() => goToPost(post.id)}
+                />
             {/each}
         {/if}
     </div>

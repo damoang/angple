@@ -1,10 +1,18 @@
 <script lang="ts">
     import { Badge } from '$lib/components/ui/badge/index.js';
     import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card/index.js';
-    import type { FreePost } from '$lib/api/types.js';
+    import type { FreePost, BoardDisplaySettings } from '$lib/api/types.js';
 
     // Props
-    let { post, onclick }: { post: FreePost; onclick: () => void } = $props();
+    let {
+        post,
+        displaySettings,
+        onclick
+    }: {
+        post: FreePost;
+        displaySettings?: BoardDisplaySettings;
+        onclick: () => void;
+    } = $props();
 
     // 날짜 포맷 헬퍼
     function formatDate(dateString: string): string {
@@ -72,7 +80,7 @@
     <CardContent>
         <div class="flex gap-4">
             <!-- 좌측: 썸네일 (있을 경우) -->
-            {#if thumbnailUrl}
+            {#if thumbnailUrl && displaySettings?.show_thumbnail !== false}
                 <div class="flex-shrink-0">
                     <img
                         src={thumbnailUrl}
@@ -84,9 +92,11 @@
 
             <!-- 우측: 본문 미리보기 -->
             <div class="flex-1">
-                <p class="text-secondary-foreground mb-4 line-clamp-4">
-                    {post.content}
-                </p>
+                {#if displaySettings?.show_preview !== false}
+                    <p class="text-secondary-foreground mb-4 line-clamp-4">
+                        {post.content}
+                    </p>
+                {/if}
                 <div class="text-secondary-foreground flex items-center gap-4 text-sm">
                     <span>👍 {post.likes}</span>
                     <span>💬 {post.comments_count}</span>

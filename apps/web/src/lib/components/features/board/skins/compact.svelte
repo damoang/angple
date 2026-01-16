@@ -1,9 +1,17 @@
 <script lang="ts">
     import { Badge } from '$lib/components/ui/badge/index.js';
-    import type { FreePost } from '$lib/api/types.js';
+    import type { FreePost, BoardDisplaySettings } from '$lib/api/types.js';
 
     // Props
-    let { post, onclick }: { post: FreePost; onclick: () => void } = $props();
+    let {
+        post,
+        displaySettings,
+        onclick
+    }: {
+        post: FreePost;
+        displaySettings?: BoardDisplaySettings;
+        onclick: () => void;
+    } = $props();
 
     // 날짜 포맷 헬퍼
     function formatDate(dateString: string): string {
