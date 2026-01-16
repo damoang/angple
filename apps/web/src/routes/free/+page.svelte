@@ -108,7 +108,7 @@
     {/if}
 
     <!-- 게시글 목록 -->
-    <div class="space-y-0">
+    <div class="space-y-1">
         {#if filteredPosts.length === 0}
             <Card class="bg-background">
                 <CardContent class="py-12 text-center">
