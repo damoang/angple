@@ -15,7 +15,8 @@ import type {
     CreatePostRequest,
     UpdatePostRequest,
     CreateCommentRequest,
-    UpdateCommentRequest
+    UpdateCommentRequest,
+    Board
 } from './types.js';
 import {
     getMockFreePosts,
@@ -23,7 +24,8 @@ import {
     getMockFreeComments,
     getMockMenus,
     getMockCurrentUser,
-    getMockIndexWidgets
+    getMockIndexWidgets,
+    getMockBoard
 } from './mock-data.js';
 import { browser } from '$app/environment';
 
@@ -310,6 +312,29 @@ class ApiClient {
         console.log('[API] Converted comments response:', result);
 
         return result;
+    }
+
+    // 게시판 정보 조회
+    async getBoard(boardId: string): Promise<Board> {
+        // Mock 모드일 경우 가짜 데이터 반환
+        if (this.useMock) {
+            await new Promise((resolve) => setTimeout(resolve, 200));
+            return getMockBoard(boardId);
+        }
+
+        // 백엔드 응답 타입: { data: Board }
+        interface BackendBoardResponse {
+            data: Board;
+        }
+
+        const response = await this.request<BackendBoardResponse>(`/boards/${boardId}`);
+
+        console.log('[API] Board detail raw response:', response);
+
+        // 백엔드가 { data: Board } 형식을 직접 반환
+        const backendData = response as any as BackendBoardResponse;
+
+        return backendData.data;
     }
 
     // 로그아웃

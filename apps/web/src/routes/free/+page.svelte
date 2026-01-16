@@ -1,37 +1,56 @@
 <script lang="ts">
     import { goto } from '$app/navigation';
-    import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card/index.js';
-    import { Badge } from '$lib/components/ui/badge/index.js';
+    import { page } from '$app/stores';
+    import { Card, CardContent } from '$lib/components/ui/card/index.js';
     import { Button } from '$lib/components/ui/button/index.js';
+    import { Badge } from '$lib/components/ui/badge/index.js';
     import type { PageData } from './$types.js';
+    import type { Component } from 'svelte';
+
+    // 스킨 컴포넌트 import
+    import CompactSkin from '$lib/components/features/board/skins/compact.svelte';
+    import CardSkin from '$lib/components/features/board/skins/card.svelte';
+    import DetailedSkin from '$lib/components/features/board/skins/detailed.svelte';
 
     let { data }: { data: PageData } = $props();
 
-    // 날짜 포맷 헬퍼
-    function formatDate(dateString: string): string {
-        const date = new Date(dateString);
-        const now = new Date();
-        const diff = now.getTime() - date.getTime();
-        const seconds = Math.floor(diff / 1000);
-        const minutes = Math.floor(seconds / 60);
-        const hours = Math.floor(minutes / 60);
-        const days = Math.floor(hours / 24);
+    // 게시판 표시 설정에 따라 스킨 선택
+    const listStyle = data.board?.display_settings?.list_style || 'compact';
 
-        if (days > 7) {
-            return date.toLocaleDateString('ko-KR', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
-            });
-        } else if (days > 0) {
-            return `${days}일 전`;
-        } else if (hours > 0) {
-            return `${hours}시간 전`;
-        } else if (minutes > 0) {
-            return `${minutes}분 전`;
+    // 스킨 컴포넌트 매핑
+    const skinComponents: Record<string, Component> = {
+        compact: CompactSkin,
+        card: CardSkin,
+        detailed: DetailedSkin
+    };
+
+    const SkinComponent = skinComponents[listStyle] || CompactSkin;
+
+    // 카테고리 목록 파싱 (파이프로 구분)
+    const categories = data.board?.category_list
+        ? data.board.category_list.split('|').filter((c) => c.trim())
+        : [];
+
+    // 현재 선택된 카테고리 (URL 쿼리에서 가져오기)
+    const selectedCategory = $derived($page.url.searchParams.get('category') || '전체');
+
+    // 카테고리 필터링된 게시글
+    const filteredPosts = $derived(
+        selectedCategory === '전체'
+            ? data.posts
+            : data.posts.filter((post) => post.category === selectedCategory)
+    );
+
+    // 카테고리 변경
+    function changeCategory(category: string): void {
+        const url = new URL(window.location.href);
+        if (category === '전체') {
+            url.searchParams.delete('category');
         } else {
-            return '방금 전';
+            url.searchParams.set('category', category);
         }
+        url.searchParams.set('page', '1'); // 카테고리 변경 시 1페이지로 이동
+        goto(url.pathname + url.search);
     }
 
     // 페이지 이동
@@ -56,6 +75,28 @@
         <p class="text-secondary-foreground">다모앙 커뮤니티의 자유로운 소통 공간입니다.</p>
     </div>
 
+    <!-- 카테고리 탭 -->
+    {#if categories.length > 0}
+        <div class="mb-6 flex flex-wrap gap-2">
+            <Badge
+                variant={selectedCategory === '전체' ? 'default' : 'outline'}
+                class="cursor-pointer rounded-full px-4 py-2 text-sm"
+                onclick={() => changeCategory('전체')}
+            >
+                전체
+            </Badge>
+            {#each categories as category (category)}
+                <Badge
+                    variant={selectedCategory === category ? 'default' : 'outline'}
+                    class="cursor-pointer rounded-full px-4 py-2 text-sm"
+                    onclick={() => changeCategory(category)}
+                >
+                    {category}
+                </Badge>
+            {/each}
+        </div>
+    {/if}
+
     <!-- 에러 메시지 -->
     {#if data.error}
         <Card class="border-destructive mb-6">
@@ -66,54 +107,16 @@
     {/if}
 
     <!-- 게시글 목록 -->
-    <div class="space-y-4">
-        {#if data.posts.length === 0}
+    <div class="space-y-0">
+        {#if filteredPosts.length === 0}
             <Card class="bg-background">
                 <CardContent class="py-12 text-center">
                     <p class="text-secondary-foreground">게시글이 없습니다.</p>
                 </CardContent>
             </Card>
         {:else}
-            {#each data.posts as post (post.id)}
-                <Card
-                    class="bg-background cursor-pointer transition-shadow hover:shadow-md"
-                    onclick={() => goToPost(post.id)}
-                >
-                    <CardHeader>
-                        <div class="flex items-start justify-between gap-4">
-                            <div class="min-w-0 flex-1">
-                                <CardTitle class="text-foreground mb-2 truncate"
-                                    >{post.title}</CardTitle
-                                >
-                                <div
-                                    class="text-secondary-foreground flex flex-wrap items-center gap-2 text-sm"
-                                >
-                                    <span>{post.author}</span>
-                                    <span>•</span>
-                                    <span>{formatDate(post.created_at)}</span>
-                                    <span>•</span>
-                                    <span>조회 {post.views.toLocaleString()}</span>
-                                </div>
-                            </div>
-                            {#if post.tags && post.tags.length > 0}
-                                <div class="flex flex-wrap gap-1">
-                                    {#each post.tags.slice(0, 3) as tag (tag)}
-                                        <Badge variant="secondary" class="text-xs">{tag}</Badge>
-                                    {/each}
-                                </div>
-                            {/if}
-                        </div>
-                    </CardHeader>
-                    <CardContent>
-                        <p class="text-secondary-foreground mb-4 line-clamp-2">
-                            {post.content}
-                        </p>
-                        <div class="text-secondary-foreground flex items-center gap-4 text-sm">
-                            <span>👍 {post.likes}</span>
-                            <span>💬 {post.comments_count}</span>
-                        </div>
-                    </CardContent>
-                </Card>
+            {#each filteredPosts as post (post.id)}
+                <svelte:component this={SkinComponent} {post} onclick={() => goToPost(post.id)} />
             {/each}
         {/if}
     </div>
@@ -161,12 +164,3 @@
         </p>
     {/if}
 </div>
-
-<style>
-    .line-clamp-2 {
-        display: -webkit-box;
-        -webkit-line-clamp: 2;
-        -webkit-box-orient: vertical;
-        overflow: hidden;
-    }
-</style>
