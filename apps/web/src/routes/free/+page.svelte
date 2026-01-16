@@ -5,7 +5,7 @@
     import { Button } from '$lib/components/ui/button/index.js';
     import { Badge } from '$lib/components/ui/badge/index.js';
     import type { PageData } from './$types.js';
-    import type { Component } from 'svelte';
+    import type { FreePost } from '$lib/api/types.js';
 
     // 스킨 컴포넌트 import
     import CompactSkin from '$lib/components/features/board/skins/compact.svelte';
@@ -15,21 +15,22 @@
     let { data }: { data: PageData } = $props();
 
     // 게시판 표시 설정에 따라 스킨 선택
-    const listStyle = data.board?.display_settings?.list_style || 'compact';
+    const listStyle = $derived(data.board?.display_settings?.list_style || 'compact');
 
     // 스킨 컴포넌트 매핑
-    const skinComponents: Record<string, Component> = {
+    type SkinComponent = typeof CompactSkin | typeof CardSkin | typeof DetailedSkin;
+    const skinComponents: Record<string, SkinComponent> = {
         compact: CompactSkin,
         card: CardSkin,
         detailed: DetailedSkin
     };
 
-    const SkinComponent = skinComponents[listStyle] || CompactSkin;
+    const SkinComponent = $derived(skinComponents[listStyle] || CompactSkin);
 
     // 카테고리 목록 파싱 (파이프로 구분)
-    const categories = data.board?.category_list
-        ? data.board.category_list.split('|').filter((c) => c.trim())
-        : [];
+    const categories = $derived(
+        data.board?.category_list ? data.board.category_list.split('|').filter((c) => c.trim()) : []
+    );
 
     // 현재 선택된 카테고리 (URL 쿼리에서 가져오기)
     const selectedCategory = $derived($page.url.searchParams.get('category') || '전체');
@@ -116,7 +117,7 @@
             </Card>
         {:else}
             {#each filteredPosts as post (post.id)}
-                <svelte:component this={SkinComponent} {post} onclick={() => goToPost(post.id)} />
+                <SkinComponent {post} onclick={() => goToPost(post.id)} />
             {/each}
         {/if}
     </div>

@@ -47,7 +47,9 @@
             <div>
                 {#if data.post.category}
                     <div class="mb-3 flex flex-wrap gap-1.5">
-                        <span class="bg-primary/10 text-primary rounded-md px-2 py-0.5 text-xs font-medium">
+                        <span
+                            class="bg-primary/10 text-primary rounded-md px-2 py-0.5 text-xs font-medium"
+                        >
                             {data.post.category}
                         </span>
                     </div>

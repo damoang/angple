@@ -36,7 +36,7 @@
 <!-- Compact 스킨: 제목 + 메타데이터 + 태그만 (심플) -->
 <div
     class="bg-background border-border hover:bg-accent cursor-pointer rounded-lg border px-4 py-3 transition-all hover:shadow-sm"
-    onclick={onclick}
+    {onclick}
     role="button"
     tabindex="0"
     onkeydown={(e) => e.key === 'Enter' && onclick()}

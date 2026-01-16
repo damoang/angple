@@ -34,11 +34,11 @@
     }
 
     // 썸네일 이미지 추출 (첫 번째 이미지)
-    const thumbnailUrl = post.images && post.images.length > 0 ? post.images[0] : null;
+    const thumbnailUrl = $derived(post.images && post.images.length > 0 ? post.images[0] : null);
 </script>
 
 <!-- Detailed 스킨: 제목 + 본문 미리보기 4-5줄 + 썸네일 + 메타데이터 + 태그 (뉴스 스타일) -->
-<Card class="bg-background cursor-pointer transition-shadow hover:shadow-md" onclick={onclick}>
+<Card class="bg-background cursor-pointer transition-shadow hover:shadow-md" {onclick}>
     <CardHeader>
         <div class="flex items-start justify-between gap-4">
             <div class="min-w-0 flex-1">
@@ -55,7 +55,9 @@
             </div>
             <div class="flex flex-shrink-0 flex-wrap gap-1.5">
                 {#if post.category}
-                    <span class="bg-primary/10 text-primary rounded-md px-2 py-0.5 text-xs font-medium">
+                    <span
+                        class="bg-primary/10 text-primary rounded-md px-2 py-0.5 text-xs font-medium"
+                    >
                         {post.category}
                     </span>
                 {/if}
