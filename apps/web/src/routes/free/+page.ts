@@ -6,7 +6,12 @@ export const load: PageLoad = async ({ url }) => {
     const limit = Number(url.searchParams.get('limit')) || 20;
 
     try {
-        const data = await apiClient.getFreePosts(page, limit);
+        // 게시판 정보와 게시글 목록을 병렬로 가져오기
+        const [data, board] = await Promise.all([
+            apiClient.getFreePosts(page, limit),
+            apiClient.getBoard('free')
+        ]);
+
         return {
             posts: data.items,
             pagination: {
@@ -14,7 +19,8 @@ export const load: PageLoad = async ({ url }) => {
                 page: data.page,
                 limit: data.limit,
                 totalPages: data.total_pages
-            }
+            },
+            board // 게시판 설정 정보 추가
         };
     } catch (error) {
         console.error('게시글 로딩 에러:', error);
@@ -26,6 +32,7 @@ export const load: PageLoad = async ({ url }) => {
                 limit: 20,
                 totalPages: 0
             },
+            board: null, // 에러 시 null
             error: '게시글을 불러오는데 실패했습니다.'
         };
     }

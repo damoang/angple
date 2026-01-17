@@ -27,6 +27,7 @@ export interface FreePost {
     created_at: string;
     updated_at?: string;
     has_file?: boolean;
+    category?: string; // 게시글 카테고리 (예: "일상", "음식", "맛집")
     tags?: string[];
     images?: string[];
 }
@@ -254,4 +255,37 @@ export interface CreateCommentRequest {
 // 댓글 수정 요청
 export interface UpdateCommentRequest {
     content: string; // 필수, 1자 이상
+}
+
+// 게시판 표시 설정
+export interface BoardDisplaySettings {
+    list_style: 'compact' | 'card' | 'detailed';
+    show_preview: boolean;
+    preview_length: number;
+    show_thumbnail: boolean;
+}
+
+// 게시판 타입
+export interface Board {
+    board_id: string;
+    group_id: string;
+    subject: string;
+    admin: string;
+    device: string;
+    list_level: number;
+    read_level: number;
+    write_level: number;
+    reply_level: number;
+    comment_level: number;
+    use_category: number;
+    category_list: string;
+    skin: string;
+    mobile_skin: string;
+    page_rows: number;
+    upload_count: number;
+    upload_size: number;
+    count_write: number;
+    count_comment: number;
+    insert_time: string;
+    display_settings: BoardDisplaySettings;
 }

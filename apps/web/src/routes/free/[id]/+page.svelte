@@ -45,14 +45,23 @@
     <Card class="bg-background mb-6">
         <CardHeader class="space-y-3">
             <div>
+                {#if data.post.category}
+                    <div class="mb-3 flex flex-wrap gap-1.5">
+                        <span
+                            class="bg-primary/10 text-primary rounded-md px-2 py-0.5 text-xs font-medium"
+                        >
+                            {data.post.category}
+                        </span>
+                    </div>
+                {/if}
+                <CardTitle class="text-foreground text-3xl">{data.post.title}</CardTitle>
                 {#if data.post.tags && data.post.tags.length > 0}
-                    <div class="mb-3 flex flex-wrap gap-2">
+                    <div class="mt-3 flex flex-wrap gap-2">
                         {#each data.post.tags as tag, i (i)}
                             <Badge variant="secondary">{tag}</Badge>
                         {/each}
                     </div>
                 {/if}
-                <CardTitle class="text-foreground text-3xl">{data.post.title}</CardTitle>
             </div>
 
             <div class="border-border flex flex-wrap items-center gap-4 border-t pt-4">

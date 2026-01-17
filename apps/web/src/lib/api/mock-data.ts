@@ -8,7 +8,8 @@ import type {
     NewsPost,
     EconomyPost,
     GalleryPost,
-    GroupTabsData
+    GroupTabsData,
+    Board
 } from './types.js';
 
 // Mock 게시글 데이터 생성
@@ -57,6 +58,8 @@ function generateMockPost(id: number): FreePost {
         '운영자최영수'
     ];
 
+    const categories = ['일상', '음식', '맛집', '여행', '취미'];
+
     const tags = [
         ['개발', 'TIP', '공유'],
         ['일상', '음식', '맛집'],
@@ -74,6 +77,7 @@ function generateMockPost(id: number): FreePost {
     const randomContent = contents[id % contents.length];
     const randomAuthor = authors[id % authors.length];
     const randomTags = tags[id % tags.length];
+    const randomCategory = categories[id % categories.length];
 
     const createdDate = new Date();
     createdDate.setHours(createdDate.getHours() - id * 2);
@@ -84,6 +88,7 @@ function generateMockPost(id: number): FreePost {
         content: randomContent,
         author: randomAuthor,
         author_id: `user_${id % 10}`,
+        category: randomCategory,
         views: Math.floor(Math.random() * 1000) + 50,
         likes: Math.floor(Math.random() * 100),
         comments_count: Math.floor(Math.random() * 50),
@@ -537,5 +542,37 @@ export function getMockIndexWidgets(): IndexWidgetsData {
         economy_tabs,
         gallery,
         group_tabs
+    };
+}
+
+// 게시판 Mock 데이터
+export function getMockBoard(boardId: string): Board {
+    return {
+        board_id: boardId,
+        group_id: 'community',
+        subject: boardId === 'free' ? '자유게시판' : '게시판',
+        admin: 'admin',
+        device: 'both',
+        list_level: 1,
+        read_level: 1,
+        write_level: 1,
+        reply_level: 1,
+        comment_level: 1,
+        use_category: 1, // 카테고리 사용
+        category_list: '일상|음식|맛집|여행|취미', // 파이프(|)로 구분
+        skin: 'damoang-classic',
+        mobile_skin: 'damoang-classic',
+        page_rows: 20,
+        upload_count: 2,
+        upload_size: 1048576,
+        count_write: 0,
+        count_comment: 0,
+        insert_time: '2025-01-01T00:00:00Z',
+        display_settings: {
+            list_style: 'card', // 테스트: compact → card → detailed 순서로 변경 가능
+            show_preview: true,
+            preview_length: 150,
+            show_thumbnail: false
+        }
     };
 }
