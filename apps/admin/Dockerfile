@@ -10,14 +10,20 @@ FROM base AS development
 # Create non-root user for development
 RUN adduser -D -u 1001 -s /bin/sh devuser
 
-# Set working directory to admin app
-WORKDIR /app/apps/admin
+# Set working directory
+WORKDIR /app
 
-# Copy source code
-COPY apps/admin .
+# Copy workspace configuration files
+COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
+
+# Copy packages (workspace dependencies)
+COPY packages ./packages
+
+# Copy admin app source
+COPY apps/admin ./apps/admin
 
 # Install dependencies
-RUN pnpm install
+RUN pnpm install --filter admin...
 
 # Change ownership to non-root user
 RUN chown -R devuser:devuser /app
@@ -25,20 +31,28 @@ RUN chown -R devuser:devuser /app
 # Switch to non-root user
 USER devuser
 
+WORKDIR /app/apps/admin
+
 # Start development server
 CMD ["pnpm", "dev", "--host", "0.0.0.0", "--port", "80"]
 
 # Build stage
 FROM base AS builder
-
-# Set working directory
 WORKDIR /app
 
-# Copy application source
-COPY apps/admin .
+# Copy workspace configuration files
+COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
 
-# Build the application
-RUN pnpm install --frozen-lockfile
+# Copy packages (workspace dependencies)
+COPY packages ./packages
+
+# Copy admin app source
+COPY apps/admin ./apps/admin
+
+# Install dependencies
+RUN pnpm install --frozen-lockfile --filter admin...
+
+WORKDIR /app/apps/admin
 RUN pnpm run build
 
 # Production stage
@@ -57,7 +71,7 @@ WORKDIR /app
 COPY --chown=caddyadmin:caddyadmin apps/admin/Caddyfile /etc/caddy/Caddyfile
 
 # Copy built application from builder
-COPY --from=builder --chown=caddyadmin:caddyadmin /app/build ./build
+COPY --from=builder --chown=caddyadmin:caddyadmin /app/apps/admin/build ./build
 
 # Switch to non-root user
 USER caddyadmin
