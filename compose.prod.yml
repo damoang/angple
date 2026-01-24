@@ -1,0 +1,35 @@
+# Production Docker Compose - GHCR 이미지 사용
+# 사용법: docker compose -f compose.prod.yml up -d
+
+services:
+  # Web Application (GHCR에서 pull)
+  web:
+    image: ghcr.io/damoang/angple-web:latest
+    container_name: angple-web
+    ports:
+      - "${WEB_PORT:-3010}:3000"
+    restart: unless-stopped
+    networks:
+      - angple-network
+      - proxy-network
+    volumes:
+      - ${DATA_PATH:-./data}:/app/data
+    environment:
+      - NODE_ENV=production
+
+  # Admin Dashboard (GHCR에서 pull)
+  admin:
+    image: ghcr.io/damoang/angple-admin:latest
+    container_name: angple-admin
+    ports:
+      - "${ADMIN_PORT:-3011}:80"
+    restart: unless-stopped
+    networks:
+      - angple-network
+      - proxy-network
+
+networks:
+  angple-network:
+    external: true
+  proxy-network:
+    external: true

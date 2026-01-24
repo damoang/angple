@@ -1,0 +1,103 @@
+name: Docker Build & Publish
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch: # 수동 실행 가능
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: ghcr.io/${{ github.repository_owner }}
+
+jobs:
+  build-and-push:
+    name: Build & Push (${{ matrix.app }})
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    strategy:
+      matrix:
+        include:
+          - app: web
+            dockerfile: apps/web/Dockerfile
+            context: .
+            image_name: angple-web
+          - app: admin
+            dockerfile: apps/admin/Dockerfile
+            context: .
+            image_name: angple-admin
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata (tags, labels)
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE_PREFIX }}/${{ matrix.image_name }}
+          tags: |
+            type=ref,event=branch
+            type=sha,prefix=
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
+          target: production
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            VITE_USE_MOCK=false
+
+      - name: Image digest
+        run: echo "Image pushed with digest ${{ steps.docker_build.outputs.digest }}"
+
+  # 이미지 빌드 완료 후 배포 트리거
+  trigger-deploy:
+    name: Trigger Deploy
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.2.2
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            cd /home/angple
+
+            # GHCR 로그인
+            echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+            # 최신 이미지 pull
+            docker compose -f compose.prod.yml pull
+
+            # 컨테이너 재시작
+            docker compose -f compose.prod.yml up -d
+
+            # 사용하지 않는 이미지 정리
+            docker image prune -f
+
+            echo "✅ Deployed at $(date)"
