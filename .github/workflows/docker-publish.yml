@@ -4,7 +4,19 @@ on:
   push:
     branches:
       - main
-  workflow_dispatch: # 수동 실행 가능
+      - staging
+      - develop
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: '배포 환경'
+        required: true
+        default: 'dev'
+        type: choice
+        options:
+          - dev
+          - staging
+          - prod
 
 env:
   REGISTRY: ghcr.io
@@ -71,33 +83,96 @@ jobs:
       - name: Image digest
         run: echo "Image pushed with digest ${{ steps.docker_build.outputs.digest }}"
 
-  # 이미지 빌드 완료 후 배포 트리거
-  trigger-deploy:
-    name: Trigger Deploy
+  # 개발서버 배포 (develop 브랜치) - SSH 방식
+  deploy-dev:
+    name: Deploy to Dev Server
     needs: build-and-push
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/develop' || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'dev')
 
     steps:
       - name: Deploy via SSH
-        uses: appleboy/ssh-action@v1.2.2
+        uses: appleboy/ssh-action@v1.2.4
         with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SERVER_SSH_KEY }}
+          host: ${{ secrets.DEV_SERVER_HOST }}
+          username: ${{ secrets.DEV_SERVER_USER }}
+          key: ${{ secrets.DEV_SERVER_SSH_KEY }}
           script: |
-            cd /home/angple
+            cd /home/angple/front
 
-            # GHCR 로그인
             echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
-            # 최신 이미지 pull
-            docker compose -f compose.prod.yml pull
+            docker pull ghcr.io/${{ github.repository_owner }}/angple-web:develop
+            docker pull ghcr.io/${{ github.repository_owner }}/angple-admin:develop
 
-            # 컨테이너 재시작
-            docker compose -f compose.prod.yml up -d
-
-            # 사용하지 않는 이미지 정리
+            docker compose pull
+            docker compose up -d
             docker image prune -f
 
-            echo "✅ Deployed at $(date)"
+            echo "Dev deployed at $(date)"
+
+  # 스테이징서버 배포 (staging 브랜치) - SSM 방식
+  deploy-staging:
+    name: Deploy to Staging Server (SSM)
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/staging' || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'staging')
+
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Deploy via SSM
+        run: |
+          aws ssm send-command \
+            --instance-ids "${{ secrets.STAGING_INSTANCE_ID }}" \
+            --document-name "AWS-RunShellScript" \
+            --parameters 'commands=[
+              "cd /home/angple/front",
+              "echo ${{ secrets.GHCR_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin",
+              "docker pull ghcr.io/${{ github.repository_owner }}/angple-web:staging",
+              "docker pull ghcr.io/${{ github.repository_owner }}/angple-admin:staging",
+              "docker compose pull",
+              "docker compose up -d",
+              "docker image prune -f",
+              "echo Staging deployed at $(date)"
+            ]' \
+            --timeout-seconds 300 \
+            --output text
+
+  # 운영서버 배포 (main 브랜치) - SSM 방식
+  deploy-prod:
+    name: Deploy to Prod Server (SSM)
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'prod')
+
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Deploy via SSM
+        run: |
+          aws ssm send-command \
+            --instance-ids "${{ secrets.PROD_INSTANCE_ID }}" \
+            --document-name "AWS-RunShellScript" \
+            --parameters 'commands=[
+              "cd /home/angple/front",
+              "echo ${{ secrets.GHCR_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin",
+              "docker pull ghcr.io/${{ github.repository_owner }}/angple-web:main",
+              "docker pull ghcr.io/${{ github.repository_owner }}/angple-admin:main",
+              "docker compose pull",
+              "docker compose up -d",
+              "docker image prune -f",
+              "echo Prod deployed at $(date)"
+            ]' \
+            --timeout-seconds 300 \
+            --output text
