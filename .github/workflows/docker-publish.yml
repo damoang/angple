@@ -83,12 +83,12 @@ jobs:
       - name: Image digest
         run: echo "Image pushed with digest ${{ steps.docker_build.outputs.digest }}"
 
-  # 개발서버 배포 (develop 브랜치) - SSH 방식
+  # 개발서버 배포 (main 브랜치) - SSH 방식
   deploy-dev:
     name: Deploy to Dev Server
     needs: build-and-push
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/develop' || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'dev')
+    if: github.ref == 'refs/heads/main' || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'dev')
 
     steps:
       - name: Deploy via SSH
@@ -102,8 +102,8 @@ jobs:
 
             echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
-            docker pull ghcr.io/${{ github.repository_owner }}/angple-web:develop
-            docker pull ghcr.io/${{ github.repository_owner }}/angple-admin:develop
+            docker pull ghcr.io/${{ github.repository_owner }}/angple-web:latest
+            docker pull ghcr.io/${{ github.repository_owner }}/angple-admin:latest
 
             docker compose -f compose.prod.yml up -d
             docker image prune -f
