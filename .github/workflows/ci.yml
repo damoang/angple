@@ -118,6 +118,21 @@ jobs:
     strategy:
       matrix:
         app: [web, admin]
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: angple_root_2024
+          MYSQL_DATABASE: angple_db
+          MYSQL_USER: angple_user
+          MYSQL_PASSWORD: angple_pass_2024
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost -uangple_user -pangple_pass_2024"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
@@ -139,6 +154,57 @@ jobs:
           pnpm --filter @angple/types build
           pnpm --filter @angple/hook-system build
           pnpm --filter @angple/theme-engine build
+
+      # Go 백엔드 설정 (web e2e 테스트용)
+      - name: Checkout backend
+        if: matrix.app == 'web'
+        uses: actions/checkout@v6
+        with:
+          repository: damoang/angple-backend
+          path: angple-backend
+
+      - name: Setup Go
+        if: matrix.app == 'web'
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+          cache-dependency-path: angple-backend/go.sum
+
+      - name: Initialize database
+        if: matrix.app == 'web'
+        run: |
+          sudo apt-get install -y mysql-client
+          mysql -h 127.0.0.1 -u angple_user -pangple_pass_2024 angple_db -e "SET GLOBAL sql_mode='';"
+          for f in angple-backend/.docker/mysql/init/*.sql; do
+            echo "Importing $f..."
+            mysql -h 127.0.0.1 -u angple_user -pangple_pass_2024 angple_db < "$f" || true
+          done
+
+      - name: Build and start backend
+        if: matrix.app == 'web'
+        working-directory: angple-backend
+        env:
+          DB_HOST: 127.0.0.1
+          DB_PORT: "3306"
+          DB_USER: angple_user
+          DB_PASSWORD: angple_pass_2024
+          DB_NAME: angple_db
+          JWT_SECRET: ci-test-jwt-secret-key-2024
+          DAMOANG_JWT_SECRET: ci-test-damoang-jwt-secret-2024
+          API_PORT: "8081"
+          APP_ENV: dev
+        run: |
+          go build -o /tmp/angple-api cmd/api/main.go
+          /tmp/angple-api &
+          echo "Waiting for backend..."
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:8081/health > /dev/null 2>&1; then
+              echo "Backend is ready!"
+              break
+            fi
+            sleep 1
+          done
+          curl -f http://localhost:8081/health || exit 1
 
       - name: Install Playwright browsers
         working-directory: apps/${{ matrix.app }}
