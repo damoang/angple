@@ -54,7 +54,7 @@
     }
 
     async function testMockMode() {
-        addResult(`ℹ️ Mock 모드 상태: ${apiClient.isMockMode()}`);
+        addResult(`ℹ️ Mock 모드: OFF (실제 API 호출)`);
         // Access Token은 localStorage에 저장됨
         const hasToken = !!localStorage.getItem('access_token');
         addResult(`ℹ️ Access Token: ${hasToken ? '있음' : '없음'}`);
@@ -129,9 +129,7 @@
                 >
             </li>
             <li>
-                Mock Mode: <code class="rounded bg-gray-200 px-2 py-1"
-                    >{apiClient.isMockMode() ? 'ON' : 'OFF'}</code
-                >
+                Mock Mode: <code class="rounded bg-gray-200 px-2 py-1">OFF (실제 API 호출)</code>
             </li>
             <li>
                 브라우저 테스트 페이지: <code class="rounded bg-gray-200 px-2 py-1"

@@ -3,12 +3,17 @@
     import favicon from '$lib/assets/favicon.png';
     import { onMount } from 'svelte';
     import type { Component } from 'svelte';
+    import { page } from '$app/stores';
     import { authActions } from '$lib/stores/auth.svelte';
     import { themeStore } from '$lib/stores/theme.svelte';
     import { loadThemeHooks } from '$lib/hooks/theme-loader';
     import { loadThemeComponents } from '$lib/utils/theme-component-loader';
 
     const { children, data } = $props(); // Svelte 5: SSR 데이터 받기
+
+    // /admin, /install 경로 여부 확인 (테마 레이아웃 적용 안함)
+    const isAdminRoute = $derived($page.url.pathname.startsWith('/admin'));
+    const isInstallRoute = $derived($page.url.pathname.startsWith('/install'));
 
     // SSR에서 받은 테마로 스토어 초기화 (깜박임 방지!)
     themeStore.initFromServer(data.activeTheme);
@@ -146,8 +151,10 @@
     />
 </svelte:head>
 
-<!-- 테마별 완전한 레이아웃 전환 -->
-{#if ThemeLayout}
+<!-- /admin, /install 경로는 테마 레이아웃 없이 렌더링 -->
+{#if isAdminRoute || isInstallRoute}
+    {@render children()}
+{:else if ThemeLayout}
     <!-- 동적으로 로드된 테마 레이아웃 (Svelte 5: 컴포넌트 변수 직접 사용) -->
     <ThemeLayout>
         {@render children()}

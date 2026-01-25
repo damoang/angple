@@ -1,6 +1,7 @@
 {
     "name": "angple",
     "version": "0.1.0",
+    "packageManager": "pnpm@10.15.0",
     "description": "Minimal SvelteKit Project",
     "private": true,
     "workspaces": [

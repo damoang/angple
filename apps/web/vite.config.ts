@@ -18,15 +18,21 @@ export default defineConfig(() => {
             allowedHosts: ['web.damoang.net', 'damoang.dev', 'localhost'],
             fs: {
                 allow: ['.', '../..']
+            },
+            proxy: {
+                '/api/v2': {
+                    target: 'http://localhost:8081',
+                    changeOrigin: true,
+                    secure: false,
+                    configure: (proxy) => {
+                        proxy.on('proxyReq', (proxyReq, req) => {
+                            // Origin 헤더를 백엔드 URL로 변경
+                            proxyReq.setHeader('Origin', 'http://localhost:8081');
+                            console.log('[Proxy]', req.method, req.url);
+                        });
+                    }
+                }
             }
-            // proxy는 로컬 개발에서 비활성화 (Mock 데이터 사용)
-            // proxy: {
-            //     '/api': {
-            //         target: env.API_PROXY_TARGET || 'http://localhost:8081',
-            //         changeOrigin: true,
-            //         secure: false
-            //     }
-            // }
         },
         test: {
             expect: { requireAssertions: true },
