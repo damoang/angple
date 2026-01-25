@@ -189,15 +189,13 @@ class ApiClient {
         }
 
         try {
-            const response = await this.request<BackendResponse>(
-                `/boards/${boardId}/notices`
-            );
+            const response = await this.request<BackendResponse>(`/boards/${boardId}/notices`);
 
             const backendData = response as unknown as BackendResponse;
             return backendData.data || [];
         } catch (error) {
             // 공지사항 API가 없거나 에러 시 빈 배열 반환
-            console.warn(`[API] 공지사항 로드 실패 (${boardId}):`, error);
+            console.warn('[API] 공지사항 로드 실패:', boardId, error);
             return [];
         }
     }
@@ -209,7 +207,11 @@ class ApiClient {
     /**
      * 게시판 글 목록 조회 (동적 boardId)
      */
-    async getBoardPosts(boardId: string, page = 1, limit = 10): Promise<PaginatedResponse<FreePost>> {
+    async getBoardPosts(
+        boardId: string,
+        page = 1,
+        limit = 10
+    ): Promise<PaginatedResponse<FreePost>> {
         interface BackendResponse {
             data: FreePost[];
             meta: {
@@ -231,7 +233,9 @@ class ApiClient {
             total: backendData.meta?.total || 0,
             page: backendData.meta?.page || page,
             limit: backendData.meta?.limit || limit,
-            total_pages: backendData.meta ? Math.ceil(backendData.meta.total / backendData.meta.limit) : 0
+            total_pages: backendData.meta
+                ? Math.ceil(backendData.meta.total / backendData.meta.limit)
+                : 0
         };
 
         return result;
@@ -245,7 +249,9 @@ class ApiClient {
             data: FreePost;
         }
 
-        const response = await this.request<BackendPostResponse>(`/boards/${boardId}/posts/${postId}`);
+        const response = await this.request<BackendPostResponse>(
+            `/boards/${boardId}/posts/${postId}`
+        );
         const backendData = response as unknown as BackendPostResponse;
 
         return backendData.data;
@@ -531,11 +537,7 @@ class ApiClient {
      * 댓글 추천
      * 🔒 인증 필요
      */
-    async likeComment(
-        boardId: string,
-        postId: string,
-        commentId: string
-    ): Promise<LikeResponse> {
+    async likeComment(boardId: string, postId: string, commentId: string): Promise<LikeResponse> {
         const response = await this.request<LikeResponse>(
             `/boards/${boardId}/posts/${postId}/comments/${commentId}/like`,
             { method: 'POST' }
@@ -568,10 +570,7 @@ class ApiClient {
      * @param boardId 게시판 ID
      * @param params 검색 파라미터 (query, field, page, limit)
      */
-    async searchPosts(
-        boardId: string,
-        params: SearchParams
-    ): Promise<PaginatedResponse<FreePost>> {
+    async searchPosts(boardId: string, params: SearchParams): Promise<PaginatedResponse<FreePost>> {
         interface BackendResponse {
             data: FreePost[];
             meta: {
@@ -859,10 +858,9 @@ class ApiClient {
      * 🔒 인증 필요
      */
     async deleteAttachment(boardId: string, postId: number, attachmentId: string): Promise<void> {
-        await this.request<void>(
-            `/boards/${boardId}/posts/${postId}/attachments/${attachmentId}`,
-            { method: 'DELETE' }
-        );
+        await this.request<void>(`/boards/${boardId}/posts/${postId}/attachments/${attachmentId}`, {
+            method: 'DELETE'
+        });
     }
 
     // ==================== 신고 API ====================
@@ -930,7 +928,10 @@ class ApiClient {
     /**
      * 알림 목록 조회
      */
-    async getNotifications(page: number = 1, limit: number = 20): Promise<NotificationListResponse> {
+    async getNotifications(
+        page: number = 1,
+        limit: number = 20
+    ): Promise<NotificationListResponse> {
         const response = await this.request<NotificationListResponse>(
             `/notifications?page=${page}&limit=${limit}`
         );
@@ -969,7 +970,11 @@ class ApiClient {
     /**
      * 쪽지 목록 조회
      */
-    async getMessages(kind: MessageKind = 'recv', page: number = 1, limit: number = 20): Promise<MessageListResponse> {
+    async getMessages(
+        kind: MessageKind = 'recv',
+        page: number = 1,
+        limit: number = 20
+    ): Promise<MessageListResponse> {
         const response = await this.request<MessageListResponse>(
             `/messages?kind=${kind}&page=${page}&limit=${limit}`
         );

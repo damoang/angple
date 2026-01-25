@@ -158,7 +158,10 @@
         try {
             await apiClient.markAllNotificationsAsRead();
             if (notificationData) {
-                notificationData.items = notificationData.items.map((n) => ({ ...n, is_read: true }));
+                notificationData.items = notificationData.items.map((n) => ({
+                    ...n,
+                    is_read: true
+                }));
                 notificationData.unread_count = 0;
             }
         } catch (err) {
@@ -176,8 +179,12 @@
         try {
             await apiClient.deleteNotification(notificationId);
             if (notificationData) {
-                const deletedNotification = notificationData.items.find((n) => n.id === notificationId);
-                notificationData.items = notificationData.items.filter((n) => n.id !== notificationId);
+                const deletedNotification = notificationData.items.find(
+                    (n) => n.id === notificationId
+                );
+                notificationData.items = notificationData.items.filter(
+                    (n) => n.id !== notificationId
+                );
                 notificationData.total--;
                 if (deletedNotification && !deletedNotification.is_read) {
                     notificationData.unread_count = Math.max(0, notificationData.unread_count - 1);
@@ -214,7 +221,7 @@
                 <ArrowLeft class="mr-1 h-4 w-4" />
                 마이페이지
             </Button>
-            <h1 class="text-2xl font-bold text-foreground flex items-center gap-2">
+            <h1 class="text-foreground flex items-center gap-2 text-2xl font-bold">
                 <Bell class="h-6 w-6" />
                 알림
             </h1>
@@ -229,7 +236,7 @@
 
     {#if isLoading}
         <div class="flex items-center justify-center py-20">
-            <Loader2 class="h-8 w-8 animate-spin text-primary" />
+            <Loader2 class="text-primary h-8 w-8 animate-spin" />
         </div>
     {:else if error}
         <Card class="border-destructive">
@@ -242,11 +249,13 @@
             <CardHeader>
                 <CardTitle class="flex items-center gap-2">
                     전체 알림
-                    <span class="text-sm font-normal text-muted-foreground">
+                    <span class="text-muted-foreground text-sm font-normal">
                         ({notificationData.total}개)
                     </span>
                     {#if notificationData.unread_count > 0}
-                        <span class="rounded-full bg-destructive px-2 py-0.5 text-xs font-medium text-destructive-foreground">
+                        <span
+                            class="bg-destructive text-destructive-foreground rounded-full px-2 py-0.5 text-xs font-medium"
+                        >
                             {notificationData.unread_count}개 읽지 않음
                         </span>
                     {/if}
@@ -254,40 +263,54 @@
             </CardHeader>
             <CardContent>
                 {#if notificationData.items.length > 0}
-                    <ul class="divide-y divide-border">
+                    <ul class="divide-border divide-y">
                         {#each notificationData.items as notification (notification.id)}
                             {@const Icon = getNotificationIcon(notification.type)}
                             <li class="py-3 first:pt-0 last:pb-0">
                                 <button
                                     type="button"
                                     onclick={() => handleNotificationClick(notification)}
-                                    class="w-full text-left hover:bg-accent rounded-md p-3 -m-1 transition-colors {!notification.is_read ? 'bg-muted/50' : ''}"
+                                    class="hover:bg-accent -m-1 w-full rounded-md p-3 text-left transition-colors {!notification.is_read
+                                        ? 'bg-muted/50'
+                                        : ''}"
                                 >
                                     <div class="flex items-start gap-3">
                                         <!-- 아이콘 -->
-                                        <div class="flex h-10 w-10 items-center justify-center rounded-full bg-muted shrink-0">
-                                            <Icon class="h-5 w-5 {getNotificationColor(notification.type)}" />
+                                        <div
+                                            class="bg-muted flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
+                                        >
+                                            <Icon
+                                                class="h-5 w-5 {getNotificationColor(
+                                                    notification.type
+                                                )}"
+                                            />
                                         </div>
 
                                         <!-- 내용 -->
-                                        <div class="flex-1 min-w-0">
-                                            <div class="flex items-center gap-2 mb-1">
-                                                <span class="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+                                        <div class="min-w-0 flex-1">
+                                            <div class="mb-1 flex items-center gap-2">
+                                                <span
+                                                    class="bg-muted text-muted-foreground rounded px-1.5 py-0.5 text-[10px] font-medium"
+                                                >
                                                     {getNotificationTypeLabel(notification.type)}
                                                 </span>
                                                 {#if !notification.is_read}
-                                                    <span class="rounded bg-primary px-1.5 py-0.5 text-[10px] font-medium text-primary-foreground">
+                                                    <span
+                                                        class="bg-primary text-primary-foreground rounded px-1.5 py-0.5 text-[10px] font-medium"
+                                                    >
                                                         NEW
                                                     </span>
                                                 {/if}
                                             </div>
-                                            <p class="font-medium text-foreground">
+                                            <p class="text-foreground font-medium">
                                                 {notification.title}
                                             </p>
-                                            <p class="text-muted-foreground text-sm mt-1 line-clamp-2">
+                                            <p
+                                                class="text-muted-foreground mt-1 line-clamp-2 text-sm"
+                                            >
                                                 {notification.content}
                                             </p>
-                                            <p class="text-muted-foreground text-xs mt-2">
+                                            <p class="text-muted-foreground mt-2 text-xs">
                                                 {formatTime(notification.created_at)}
                                             </p>
                                         </div>
@@ -296,8 +319,9 @@
                                         <Button
                                             variant="ghost"
                                             size="icon"
-                                            class="shrink-0 h-8 w-8 text-muted-foreground hover:text-destructive"
-                                            onclick={(e: Event) => handleDeleteNotification(notification.id, e)}
+                                            class="text-muted-foreground hover:text-destructive h-8 w-8 shrink-0"
+                                            onclick={(e: Event) =>
+                                                handleDeleteNotification(notification.id, e)}
                                         >
                                             <Trash2 class="h-4 w-4" />
                                         </Button>
@@ -307,9 +331,7 @@
                         {/each}
                     </ul>
                 {:else}
-                    <p class="text-center text-muted-foreground py-8">
-                        알림이 없습니다.
-                    </p>
+                    <p class="text-muted-foreground py-8 text-center">알림이 없습니다.</p>
                 {/if}
             </CardContent>
         </Card>
@@ -326,7 +348,7 @@
                     이전
                 </Button>
 
-                <span class="text-sm text-muted-foreground px-4">
+                <span class="text-muted-foreground px-4 text-sm">
                     {data.page} / {notificationData.total_pages}
                 </span>
 

@@ -78,8 +78,19 @@
         if (mimeType.startsWith('image/')) return FileImage;
         if (mimeType.startsWith('video/')) return FileVideo;
         if (mimeType.startsWith('audio/')) return FileAudio;
-        if (mimeType.startsWith('text/') || mimeType.includes('pdf') || mimeType.includes('document')) return FileText;
-        if (mimeType.includes('zip') || mimeType.includes('rar') || mimeType.includes('archive') || mimeType.includes('compressed')) return FileArchive;
+        if (
+            mimeType.startsWith('text/') ||
+            mimeType.includes('pdf') ||
+            mimeType.includes('document')
+        )
+            return FileText;
+        if (
+            mimeType.includes('zip') ||
+            mimeType.includes('rar') ||
+            mimeType.includes('archive') ||
+            mimeType.includes('compressed')
+        )
+            return FileArchive;
         return FileIcon;
     }
 
@@ -202,9 +213,7 @@
             tabindex="0"
         >
             <FileUp class="text-muted-foreground mb-2 h-8 w-8" />
-            <p class="text-foreground text-sm font-medium">
-                클릭하거나 파일을 드래그하세요
-            </p>
+            <p class="text-foreground text-sm font-medium">클릭하거나 파일을 드래그하세요</p>
             <p class="text-muted-foreground mt-1 text-xs">
                 최대 {maxSizeMB}MB, {maxFiles}개까지
                 {#if allowedExtensions.length > 0}
@@ -215,13 +224,7 @@
     {/if}
 
     <!-- 숨겨진 파일 입력 -->
-    <input
-        type="file"
-        multiple
-        bind:this={fileInput}
-        onchange={handleFileSelect}
-        class="hidden"
-    />
+    <input type="file" multiple bind:this={fileInput} onchange={handleFileSelect} class="hidden" />
 
     <!-- 파일 목록 -->
     {#if totalFiles > 0}
@@ -229,9 +232,7 @@
             <!-- 업로드 완료된 파일 -->
             {#each uploadedFiles as file (file.id)}
                 {@const FileIcon = getFileIcon(file.mime_type)}
-                <div
-                    class="bg-muted/50 flex items-center gap-3 rounded-lg p-3"
-                >
+                <div class="bg-muted/50 flex items-center gap-3 rounded-lg p-3">
                     <FileIcon class="text-muted-foreground h-8 w-8 shrink-0" />
                     <div class="min-w-0 flex-1">
                         <p class="text-foreground truncate text-sm font-medium">

@@ -300,7 +300,7 @@
                 {/if}
                 <CardTitle class="text-foreground flex items-center gap-2 text-3xl">
                     {#if data.post.is_secret}
-                        <Lock class="h-6 w-6 shrink-0 text-muted-foreground" />
+                        <Lock class="text-muted-foreground h-6 w-6 shrink-0" />
                     {/if}
                     {data.post.title}
                 </CardTitle>
@@ -368,7 +368,7 @@
                     <button
                         type="button"
                         onclick={loadLikers}
-                        class="text-muted-foreground hover:text-foreground border-l border-border px-2 py-1 text-xs transition-colors"
+                        class="text-muted-foreground hover:text-foreground border-border border-l px-2 py-1 text-xs transition-colors"
                     >
                         <Users class="h-4 w-4" />
                     </button>
@@ -461,9 +461,7 @@
         </Dialog.Header>
         <div class="max-h-64 overflow-y-auto">
             {#if isLoadingLikers}
-                <div class="text-muted-foreground py-8 text-center">
-                    불러오는 중...
-                </div>
+                <div class="text-muted-foreground py-8 text-center">불러오는 중...</div>
             {:else if likers.length === 0}
                 <div class="text-muted-foreground py-8 text-center">
                     아직 추천한 사람이 없습니다.

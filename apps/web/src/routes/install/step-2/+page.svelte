@@ -76,31 +76,37 @@
     <Card class="w-full max-w-lg">
         <CardHeader class="text-center">
             <div class="mb-4 text-4xl font-bold">Angple</div>
-            <CardTitle class="text-2xl flex items-center justify-center gap-2">
+            <CardTitle class="flex items-center justify-center gap-2 text-2xl">
                 <Database class="h-6 w-6" />
                 데이터베이스 설정
             </CardTitle>
-            <CardDescription>
-                MySQL/MariaDB 데이터베이스 연결 정보를 입력하세요.
-            </CardDescription>
+            <CardDescription>MySQL/MariaDB 데이터베이스 연결 정보를 입력하세요.</CardDescription>
         </CardHeader>
 
         <CardContent>
             <!-- 진행 상태 표시 (4단계) -->
             <div class="mb-8 flex items-center justify-center gap-2">
-                <div class="bg-primary/50 text-primary-foreground flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold">
+                <div
+                    class="bg-primary/50 text-primary-foreground flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold"
+                >
                     1
                 </div>
                 <div class="bg-primary h-0.5 w-8"></div>
-                <div class="bg-primary text-primary-foreground flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold">
+                <div
+                    class="bg-primary text-primary-foreground flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold"
+                >
                     2
                 </div>
                 <div class="bg-muted-foreground/30 h-0.5 w-8"></div>
-                <div class="bg-muted-foreground/30 text-muted-foreground flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold">
+                <div
+                    class="bg-muted-foreground/30 text-muted-foreground flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold"
+                >
                     3
                 </div>
                 <div class="bg-muted-foreground/30 h-0.5 w-8"></div>
-                <div class="bg-muted-foreground/30 text-muted-foreground flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold">
+                <div
+                    class="bg-muted-foreground/30 text-muted-foreground flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold"
+                >
                     4
                 </div>
             </div>
@@ -199,7 +205,12 @@
                         </Button>
 
                         {#if testResult}
-                            <div class="mt-3 flex items-center gap-2 rounded-md p-3 text-sm {testResult === 'success' ? 'bg-green-100 text-green-800' : 'bg-destructive/10 text-destructive'}">
+                            <div
+                                class="mt-3 flex items-center gap-2 rounded-md p-3 text-sm {testResult ===
+                                'success'
+                                    ? 'bg-green-100 text-green-800'
+                                    : 'bg-destructive/10 text-destructive'}"
+                            >
                                 {#if testResult === 'success'}
                                     <CheckCircle class="h-4 w-4" />
                                 {:else}
@@ -212,9 +223,7 @@
                 </div>
 
                 <div class="mt-8 flex justify-between">
-                    <Button type="button" variant="outline" href="/install">
-                        이전
-                    </Button>
+                    <Button type="button" variant="outline" href="/install">이전</Button>
                     <Button type="submit" disabled={isSubmitting}>
                         {isSubmitting ? '처리 중...' : '다음 단계'}
                     </Button>

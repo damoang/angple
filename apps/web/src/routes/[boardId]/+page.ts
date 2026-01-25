@@ -42,12 +42,10 @@ export const load: PageLoad = async ({ url, params }) => {
                 totalPages: data.total_pages
             },
             board,
-            searchParams: isSearching
-                ? { field: searchField!, query: searchQuery! }
-                : null
+            searchParams: isSearching ? { field: searchField!, query: searchQuery! } : null
         };
     } catch (error) {
-        console.error(`게시판 ${boardId} 로딩 에러:`, error);
+        console.error('게시판 로딩 에러:', boardId, error);
         return {
             boardId,
             posts: [],

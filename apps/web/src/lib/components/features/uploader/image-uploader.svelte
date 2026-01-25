@@ -224,15 +224,11 @@
             tabindex="0"
         >
             <ImagePlus class="text-muted-foreground mb-2 h-8 w-8" />
-            <p class="text-foreground text-sm font-medium">
-                클릭하거나 이미지를 드래그하세요
-            </p>
+            <p class="text-foreground text-sm font-medium">클릭하거나 이미지를 드래그하세요</p>
             <p class="text-muted-foreground mt-1 text-xs">
                 JPG, PNG, GIF, WebP (최대 {maxSizeMB}MB, {maxFiles}개까지)
             </p>
-            <p class="text-muted-foreground mt-1 text-xs">
-                Ctrl+V로 클립보드 이미지 붙여넣기 가능
-            </p>
+            <p class="text-muted-foreground mt-1 text-xs">Ctrl+V로 클립보드 이미지 붙여넣기 가능</p>
         </div>
     {/if}
 

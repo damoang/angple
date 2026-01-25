@@ -28,7 +28,9 @@ test('메인 페이지 및 게시판 확인', async ({ page }) => {
     // 4. 글쓰기 버튼 확인
     await page.goto('/boards/free');
     await page.waitForTimeout(1000);
-    const writeButton = page.locator('a[href*="write"], button:has-text("글쓰기"), a:has-text("글쓰기")').first();
+    const writeButton = page
+        .locator('a[href*="write"], button:has-text("글쓰기"), a:has-text("글쓰기")')
+        .first();
     if (await writeButton.isVisible()) {
         await writeButton.click();
         await page.waitForTimeout(2000);

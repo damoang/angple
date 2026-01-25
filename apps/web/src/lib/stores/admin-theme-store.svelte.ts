@@ -75,7 +75,7 @@ class AdminThemeStore {
                     description: '페이지를 새로고침하면 적용됩니다.',
                     action: {
                         label: '새로고침',
-                        onClick: () => window.location.href = '/'
+                        onClick: () => (window.location.href = '/')
                     }
                 });
             }

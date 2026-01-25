@@ -74,12 +74,12 @@
             <ArrowLeft class="mr-1 h-4 w-4" />
             마이페이지
         </Button>
-        <h1 class="text-2xl font-bold text-foreground">포인트 내역</h1>
+        <h1 class="text-foreground text-2xl font-bold">포인트 내역</h1>
     </div>
 
     {#if isLoading}
         <div class="flex items-center justify-center py-20">
-            <Loader2 class="h-8 w-8 animate-spin text-primary" />
+            <Loader2 class="text-primary h-8 w-8 animate-spin" />
         </div>
     {:else if error}
         <Card class="border-destructive">
@@ -94,12 +94,12 @@
             <Card class="bg-primary/5 border-primary/20">
                 <CardContent class="pt-6">
                     <div class="flex items-center gap-3">
-                        <div class="rounded-full bg-primary/10 p-3">
-                            <Coins class="h-6 w-6 text-primary" />
+                        <div class="bg-primary/10 rounded-full p-3">
+                            <Coins class="text-primary h-6 w-6" />
                         </div>
                         <div>
-                            <p class="text-sm text-muted-foreground">보유 포인트</p>
-                            <p class="text-2xl font-bold text-foreground">
+                            <p class="text-muted-foreground text-sm">보유 포인트</p>
+                            <p class="text-foreground text-2xl font-bold">
                                 {pointData.summary.total_point.toLocaleString()}
                             </p>
                         </div>
@@ -115,7 +115,7 @@
                             <TrendingUp class="h-6 w-6 text-green-500" />
                         </div>
                         <div>
-                            <p class="text-sm text-muted-foreground">총 적립</p>
+                            <p class="text-muted-foreground text-sm">총 적립</p>
                             <p class="text-2xl font-bold text-green-600">
                                 +{pointData.summary.total_earned.toLocaleString()}
                             </p>
@@ -132,7 +132,7 @@
                             <TrendingDown class="h-6 w-6 text-red-500" />
                         </div>
                         <div>
-                            <p class="text-sm text-muted-foreground">총 사용</p>
+                            <p class="text-muted-foreground text-sm">총 사용</p>
                             <p class="text-2xl font-bold text-red-600">
                                 {pointData.summary.total_used.toLocaleString()}
                             </p>
@@ -147,22 +147,24 @@
             <CardHeader>
                 <CardTitle class="flex items-center gap-2">
                     포인트 내역
-                    <span class="text-sm font-normal text-muted-foreground">
+                    <span class="text-muted-foreground text-sm font-normal">
                         ({pointData.total}건)
                     </span>
                 </CardTitle>
             </CardHeader>
             <CardContent>
                 {#if pointData.items.length > 0}
-                    <ul class="divide-y divide-border">
+                    <ul class="divide-border divide-y">
                         {#each pointData.items as item (item.id)}
                             <li class="py-3 first:pt-0 last:pb-0">
                                 <div class="flex items-center justify-between gap-4">
                                     <div class="min-w-0 flex-1">
-                                        <p class="text-foreground font-medium truncate">
+                                        <p class="text-foreground truncate font-medium">
                                             {item.po_content}
                                         </p>
-                                        <div class="text-muted-foreground text-xs flex items-center gap-2 mt-1">
+                                        <div
+                                            class="text-muted-foreground mt-1 flex items-center gap-2 text-xs"
+                                        >
                                             <span>{formatDate(item.po_datetime)}</span>
                                             {#if item.po_expired}
                                                 <span class="text-destructive">(만료됨)</span>
@@ -172,7 +174,7 @@
                                         </div>
                                     </div>
                                     <div
-                                        class="text-lg font-bold shrink-0 {item.po_point > 0
+                                        class="shrink-0 text-lg font-bold {item.po_point > 0
                                             ? 'text-green-600'
                                             : 'text-red-600'}"
                                     >
@@ -183,9 +185,7 @@
                         {/each}
                     </ul>
                 {:else}
-                    <p class="text-center text-muted-foreground py-8">
-                        포인트 내역이 없습니다.
-                    </p>
+                    <p class="text-muted-foreground py-8 text-center">포인트 내역이 없습니다.</p>
                 {/if}
             </CardContent>
         </Card>
@@ -202,7 +202,7 @@
                     이전
                 </Button>
 
-                <span class="text-sm text-muted-foreground px-4">
+                <span class="text-muted-foreground px-4 text-sm">
                     {data.page} / {pointData.total_pages}
                 </span>
 

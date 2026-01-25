@@ -53,7 +53,7 @@
             <div class="min-w-0 flex-1">
                 <CardTitle class="text-foreground mb-2 flex items-center gap-1.5">
                     {#if post.is_secret}
-                        <Lock class="h-4 w-4 shrink-0 text-muted-foreground" />
+                        <Lock class="text-muted-foreground h-4 w-4 shrink-0" />
                     {/if}
                     {post.title}
                 </CardTitle>
@@ -85,7 +85,7 @@
         <div class="flex gap-4">
             <!-- 좌측: 썸네일 (있을 경우) -->
             {#if thumbnailUrl && displaySettings?.show_thumbnail !== false}
-                <div class="relative h-32 w-32 shrink-0 overflow-hidden rounded-md bg-muted">
+                <div class="bg-muted relative h-32 w-32 shrink-0 overflow-hidden rounded-md">
                     <img
                         src={thumbnailUrl}
                         alt={post.title}

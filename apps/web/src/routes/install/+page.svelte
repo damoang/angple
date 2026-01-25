@@ -36,19 +36,27 @@
         <CardContent>
             <!-- 진행 상태 표시 (4단계) -->
             <div class="mb-8 flex items-center justify-center gap-2">
-                <div class="bg-primary text-primary-foreground flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold">
+                <div
+                    class="bg-primary text-primary-foreground flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold"
+                >
                     1
                 </div>
                 <div class="bg-muted-foreground/30 h-0.5 w-8"></div>
-                <div class="bg-muted-foreground/30 text-muted-foreground flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold">
+                <div
+                    class="bg-muted-foreground/30 text-muted-foreground flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold"
+                >
                     2
                 </div>
                 <div class="bg-muted-foreground/30 h-0.5 w-8"></div>
-                <div class="bg-muted-foreground/30 text-muted-foreground flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold">
+                <div
+                    class="bg-muted-foreground/30 text-muted-foreground flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold"
+                >
                     3
                 </div>
                 <div class="bg-muted-foreground/30 h-0.5 w-8"></div>
-                <div class="bg-muted-foreground/30 text-muted-foreground flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold">
+                <div
+                    class="bg-muted-foreground/30 text-muted-foreground flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold"
+                >
                     4
                 </div>
             </div>
@@ -72,9 +80,7 @@
                             placeholder="My Angple Site"
                             required
                         />
-                        <p class="text-muted-foreground text-sm">
-                            사이트 제목으로 표시됩니다.
-                        </p>
+                        <p class="text-muted-foreground text-sm">사이트 제목으로 표시됩니다.</p>
                     </div>
 
                     <div class="space-y-2">

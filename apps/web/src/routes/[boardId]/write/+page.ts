@@ -25,7 +25,7 @@ export const load: PageLoad = async ({ params }) => {
             categories
         };
     } catch (error) {
-        console.error(`Failed to load board info for ${boardId}:`, error);
+        console.error('Failed to load board info:', boardId, error);
         return {
             boardId,
             board: null,

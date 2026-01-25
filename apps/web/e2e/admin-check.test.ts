@@ -9,7 +9,7 @@ test('admin dashboard 확인', async ({ page }) => {
 
     // 콘솔 에러 확인
     const errors: string[] = [];
-    page.on('console', msg => {
+    page.on('console', (msg) => {
         if (msg.type() === 'error') {
             errors.push(msg.text());
         }

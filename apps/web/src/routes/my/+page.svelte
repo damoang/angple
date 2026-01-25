@@ -70,20 +70,20 @@
             <!-- 프로필 아바타 -->
             {#if authStore.user}
                 <div
-                    class="flex h-16 w-16 items-center justify-center rounded-full bg-primary text-primary-foreground text-xl font-bold"
+                    class="bg-primary text-primary-foreground flex h-16 w-16 items-center justify-center rounded-full text-xl font-bold"
                 >
                     {authStore.user.mb_name.charAt(0).toUpperCase()}
                 </div>
                 <div>
-                    <h1 class="text-2xl font-bold text-foreground">{authStore.user.mb_name}</h1>
+                    <h1 class="text-foreground text-2xl font-bold">{authStore.user.mb_name}</h1>
                     <p class="text-secondary-foreground">Lv.{authStore.user.mb_level}</p>
                 </div>
             {:else}
-                <div class="flex h-16 w-16 items-center justify-center rounded-full bg-muted">
-                    <User class="h-8 w-8 text-muted-foreground" />
+                <div class="bg-muted flex h-16 w-16 items-center justify-center rounded-full">
+                    <User class="text-muted-foreground h-8 w-8" />
                 </div>
                 <div>
-                    <h1 class="text-2xl font-bold text-foreground">마이페이지</h1>
+                    <h1 class="text-foreground text-2xl font-bold">마이페이지</h1>
                 </div>
             {/if}
         </div>
@@ -108,7 +108,7 @@
     </div>
 
     <!-- 탭 네비게이션 -->
-    <div class="mb-6 flex gap-2 border-b border-border pb-2">
+    <div class="border-border mb-6 flex gap-2 border-b pb-2">
         {#each tabs as tab (tab.id)}
             <Button
                 variant={data.tab === tab.id ? 'default' : 'ghost'}
@@ -137,7 +137,7 @@
                         <FileText class="h-5 w-5" />
                         내가 쓴 글
                         {#if data.posts}
-                            <span class="text-sm font-normal text-muted-foreground">
+                            <span class="text-muted-foreground text-sm font-normal">
                                 ({data.posts.total}개)
                             </span>
                         {/if}
@@ -145,18 +145,20 @@
                 </CardHeader>
                 <CardContent>
                     {#if data.posts && data.posts.items.length > 0}
-                        <ul class="divide-y divide-border">
+                        <ul class="divide-border divide-y">
                             {#each data.posts.items as post (post.id)}
                                 <li class="py-3 first:pt-0 last:pb-0">
                                     <button
                                         type="button"
                                         onclick={() => goToPost('free', post.id)}
-                                        class="w-full text-left hover:bg-accent rounded-md p-2 -m-2 transition-colors"
+                                        class="hover:bg-accent -m-2 w-full rounded-md p-2 text-left transition-colors"
                                     >
-                                        <h3 class="text-foreground font-medium line-clamp-1 mb-1">
+                                        <h3 class="text-foreground mb-1 line-clamp-1 font-medium">
                                             {post.title}
                                         </h3>
-                                        <div class="text-muted-foreground text-xs flex items-center gap-2">
+                                        <div
+                                            class="text-muted-foreground flex items-center gap-2 text-xs"
+                                        >
                                             <span>{formatDate(post.created_at)}</span>
                                             <span>•</span>
                                             <span>조회 {post.views.toLocaleString()}</span>
@@ -170,9 +172,7 @@
                             {/each}
                         </ul>
                     {:else}
-                        <p class="text-center text-muted-foreground py-8">
-                            작성한 글이 없습니다.
-                        </p>
+                        <p class="text-muted-foreground py-8 text-center">작성한 글이 없습니다.</p>
                     {/if}
                 </CardContent>
             </Card>
@@ -186,7 +186,7 @@
                         <MessageSquare class="h-5 w-5" />
                         내가 쓴 댓글
                         {#if data.comments}
-                            <span class="text-sm font-normal text-muted-foreground">
+                            <span class="text-muted-foreground text-sm font-normal">
                                 ({data.comments.total}개)
                             </span>
                         {/if}
@@ -194,14 +194,16 @@
                 </CardHeader>
                 <CardContent>
                     {#if data.comments && data.comments.items.length > 0}
-                        <ul class="divide-y divide-border">
+                        <ul class="divide-border divide-y">
                             {#each data.comments.items as comment (comment.id)}
                                 <li class="py-3 first:pt-0 last:pb-0">
-                                    <div class="rounded-md p-2 -m-2">
-                                        <p class="text-foreground line-clamp-2 mb-2">
+                                    <div class="-m-2 rounded-md p-2">
+                                        <p class="text-foreground mb-2 line-clamp-2">
                                             {comment.content}
                                         </p>
-                                        <div class="text-muted-foreground text-xs flex items-center gap-2">
+                                        <div
+                                            class="text-muted-foreground flex items-center gap-2 text-xs"
+                                        >
                                             <span>{formatDate(comment.created_at)}</span>
                                             {#if comment.likes}
                                                 <span>•</span>
@@ -213,7 +215,7 @@
                             {/each}
                         </ul>
                     {:else}
-                        <p class="text-center text-muted-foreground py-8">
+                        <p class="text-muted-foreground py-8 text-center">
                             작성한 댓글이 없습니다.
                         </p>
                     {/if}
@@ -229,7 +231,7 @@
                         <Heart class="h-5 w-5" />
                         추천한 글
                         {#if data.likedPosts}
-                            <span class="text-sm font-normal text-muted-foreground">
+                            <span class="text-muted-foreground text-sm font-normal">
                                 ({data.likedPosts.total}개)
                             </span>
                         {/if}
@@ -237,18 +239,20 @@
                 </CardHeader>
                 <CardContent>
                     {#if data.likedPosts && data.likedPosts.items.length > 0}
-                        <ul class="divide-y divide-border">
+                        <ul class="divide-border divide-y">
                             {#each data.likedPosts.items as post (post.id)}
                                 <li class="py-3 first:pt-0 last:pb-0">
                                     <button
                                         type="button"
                                         onclick={() => goToPost('free', post.id)}
-                                        class="w-full text-left hover:bg-accent rounded-md p-2 -m-2 transition-colors"
+                                        class="hover:bg-accent -m-2 w-full rounded-md p-2 text-left transition-colors"
                                     >
-                                        <h3 class="text-foreground font-medium line-clamp-1 mb-1">
+                                        <h3 class="text-foreground mb-1 line-clamp-1 font-medium">
                                             {post.title}
                                         </h3>
-                                        <div class="text-muted-foreground text-xs flex items-center gap-2">
+                                        <div
+                                            class="text-muted-foreground flex items-center gap-2 text-xs"
+                                        >
                                             <span>{post.author}</span>
                                             <span>•</span>
                                             <span>{formatDate(post.created_at)}</span>
@@ -260,9 +264,7 @@
                             {/each}
                         </ul>
                     {:else}
-                        <p class="text-center text-muted-foreground py-8">
-                            추천한 글이 없습니다.
-                        </p>
+                        <p class="text-muted-foreground py-8 text-center">추천한 글이 없습니다.</p>
                     {/if}
                 </CardContent>
             </Card>
@@ -280,7 +282,7 @@
                     이전
                 </Button>
 
-                <span class="text-sm text-muted-foreground px-4">
+                <span class="text-muted-foreground px-4 text-sm">
                     {data.page} / {pagination()!.total_pages}
                 </span>
 

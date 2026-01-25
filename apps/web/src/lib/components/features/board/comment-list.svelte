@@ -26,7 +26,18 @@
         useNogood?: boolean; // 비추천 기능 사용 여부 (게시판 설정)
     }
 
-    let { comments, onUpdate, onDelete, onReply, onLike, onDislike, postAuthorId, boardId = 'free', postId = 0, useNogood = false }: Props = $props();
+    let {
+        comments,
+        onUpdate,
+        onDelete,
+        onReply,
+        onLike,
+        onDislike,
+        postAuthorId,
+        boardId = 'free',
+        postId = 0,
+        useNogood = false
+    }: Props = $props();
 
     // 댓글별 좋아요 상태 관리
     let likedComments = $state<Set<string>>(new Set());
@@ -302,10 +313,14 @@
                             {comment.author.charAt(0).toUpperCase()}
                         </div>
                         <div>
-                            <p class="text-foreground font-medium {isReply ? 'text-sm' : ''} flex items-center gap-1.5">
+                            <p
+                                class="text-foreground font-medium {isReply
+                                    ? 'text-sm'
+                                    : ''} flex items-center gap-1.5"
+                            >
                                 {comment.author}
                                 {#if comment.is_secret}
-                                    <Lock class="h-3.5 w-3.5 text-muted-foreground" />
+                                    <Lock class="text-muted-foreground h-3.5 w-3.5" />
                                 {/if}
                             </p>
                             <p class="text-secondary-foreground {isReply ? 'text-xs' : 'text-sm'}">
@@ -321,7 +336,11 @@
                                 type="button"
                                 onclick={() => handleLikeComment(String(comment.id))}
                                 disabled={likingComment === String(comment.id)}
-                                class="flex items-center gap-1 transition-colors hover:text-red-500 {isCommentLiked(String(comment.id)) ? 'text-red-500' : ''}"
+                                class="flex items-center gap-1 transition-colors hover:text-red-500 {isCommentLiked(
+                                    String(comment.id)
+                                )
+                                    ? 'text-red-500'
+                                    : ''}"
                             >
                                 <span>{isCommentLiked(String(comment.id)) ? '❤️' : '👍'}</span>
                                 <span>{getCommentLikes(comment).toLocaleString()}</span>
@@ -337,7 +356,11 @@
                                     type="button"
                                     onclick={() => handleDislikeComment(String(comment.id))}
                                     disabled={dislikingComment === String(comment.id)}
-                                    class="flex items-center gap-1 transition-colors hover:text-blue-500 {isCommentDisliked(String(comment.id)) ? 'text-blue-500' : ''}"
+                                    class="flex items-center gap-1 transition-colors hover:text-blue-500 {isCommentDisliked(
+                                        String(comment.id)
+                                    )
+                                        ? 'text-blue-500'
+                                        : ''}"
                                 >
                                     <span>👎</span>
                                     <span>{getCommentDislikes(comment).toLocaleString()}</span>
@@ -421,7 +444,11 @@
                 {:else}
                     <!-- 일반 모드 -->
                     {#if comment.is_secret && !canViewSecretComment(comment)}
-                        <div class="text-muted-foreground flex items-center gap-2 italic {isReply ? 'text-sm' : ''}">
+                        <div
+                            class="text-muted-foreground flex items-center gap-2 italic {isReply
+                                ? 'text-sm'
+                                : ''}"
+                        >
                             <Lock class="h-4 w-4" />
                             비밀댓글입니다.
                         </div>

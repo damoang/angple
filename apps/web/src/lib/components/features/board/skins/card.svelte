@@ -16,7 +16,9 @@
     } = $props();
 
     // 썸네일 표시 여부
-    const showThumbnail = $derived(displaySettings?.show_thumbnail && post.images && post.images.length > 0);
+    const showThumbnail = $derived(
+        displaySettings?.show_thumbnail && post.images && post.images.length > 0
+    );
     const thumbnailUrl = $derived(post.images?.[0] || '');
 
     // 날짜 포맷 헬퍼
@@ -48,11 +50,14 @@
 </script>
 
 <!-- Card 스킨: 제목 + 본문 미리보기 2줄 + 메타데이터 + 태그 -->
-<Card class="bg-background cursor-pointer overflow-hidden transition-shadow hover:shadow-md" {onclick}>
+<Card
+    class="bg-background cursor-pointer overflow-hidden transition-shadow hover:shadow-md"
+    {onclick}
+>
     <div class="flex {showThumbnail ? 'flex-row' : 'flex-col'}">
         <!-- 썸네일 (있는 경우) -->
         {#if showThumbnail}
-            <div class="relative h-32 w-32 shrink-0 bg-muted sm:h-40 sm:w-40">
+            <div class="bg-muted relative h-32 w-32 shrink-0 sm:h-40 sm:w-40">
                 <img
                     src={thumbnailUrl}
                     alt=""
@@ -71,11 +76,13 @@
                     <div class="min-w-0 flex-1">
                         <CardTitle class="text-foreground mb-2 flex items-center gap-1.5 truncate">
                             {#if post.is_secret}
-                                <Lock class="h-4 w-4 shrink-0 text-muted-foreground" />
+                                <Lock class="text-muted-foreground h-4 w-4 shrink-0" />
                             {/if}
                             {post.title}
                         </CardTitle>
-                        <div class="text-secondary-foreground flex flex-wrap items-center gap-2 text-sm">
+                        <div
+                            class="text-secondary-foreground flex flex-wrap items-center gap-2 text-sm"
+                        >
                             <span>{post.author}</span>
                             <span>•</span>
                             <span>{formatDate(post.created_at)}</span>
@@ -93,7 +100,8 @@
                         {/if}
                         {#if post.tags && post.tags.length > 0}
                             {#each post.tags.slice(0, 3) as tag (tag)}
-                                <Badge variant="secondary" class="rounded-full text-xs">{tag}</Badge>
+                                <Badge variant="secondary" class="rounded-full text-xs">{tag}</Badge
+                                >
                             {/each}
                         {/if}
                     </div>

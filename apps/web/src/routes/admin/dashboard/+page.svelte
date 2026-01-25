@@ -7,14 +7,7 @@
         CardTitle
     } from '$lib/components/ui/card';
     import { Button } from '$lib/components/ui/button';
-    import {
-        Palette,
-        FileText,
-        Users,
-        MessageSquare,
-        TrendingUp,
-        Eye
-    } from '@lucide/svelte/icons';
+    import { Palette, FileText, Users, MessageSquare, TrendingUp, Eye } from '@lucide/svelte/icons';
 
     /**
      * 관리자 대시보드
@@ -66,9 +59,7 @@
                     <Palette class="h-5 w-5" />
                     테마 관리
                 </CardTitle>
-                <CardDescription>
-                    사이트 테마를 변경하고 커스터마이즈하세요.
-                </CardDescription>
+                <CardDescription>사이트 테마를 변경하고 커스터마이즈하세요.</CardDescription>
             </CardHeader>
             <CardContent>
                 <Button href="/admin/themes" class="w-full">테마 설정</Button>
@@ -81,9 +72,7 @@
                     <FileText class="h-5 w-5" />
                     게시판 관리
                 </CardTitle>
-                <CardDescription>
-                    게시판을 생성하고 관리하세요.
-                </CardDescription>
+                <CardDescription>게시판을 생성하고 관리하세요.</CardDescription>
             </CardHeader>
             <CardContent>
                 <Button variant="outline" class="w-full" disabled>준비 중</Button>
@@ -96,9 +85,7 @@
                     <Users class="h-5 w-5" />
                     회원 관리
                 </CardTitle>
-                <CardDescription>
-                    회원 정보를 관리하고 권한을 설정하세요.
-                </CardDescription>
+                <CardDescription>회원 정보를 관리하고 권한을 설정하세요.</CardDescription>
             </CardHeader>
             <CardContent>
                 <Button variant="outline" class="w-full" disabled>준비 중</Button>
@@ -113,9 +100,7 @@
                 <TrendingUp class="h-5 w-5" />
                 최근 활동
             </CardTitle>
-            <CardDescription>
-                사이트의 최근 활동 내역입니다.
-            </CardDescription>
+            <CardDescription>사이트의 최근 활동 내역입니다.</CardDescription>
         </CardHeader>
         <CardContent>
             <div class="text-muted-foreground py-8 text-center">

@@ -2,7 +2,13 @@
     import { goto } from '$app/navigation';
     import { browser } from '$app/environment';
     import { page } from '$app/stores';
-    import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '$lib/components/ui/card/index.js';
+    import {
+        Card,
+        CardContent,
+        CardHeader,
+        CardTitle,
+        CardDescription
+    } from '$lib/components/ui/card/index.js';
     import { Button } from '$lib/components/ui/button/index.js';
     import { Input } from '$lib/components/ui/input/index.js';
     import { Label } from '$lib/components/ui/label/index.js';
@@ -90,11 +96,7 @@
         <CardContent class="space-y-6">
             <!-- OAuth 로그인 버튼들 -->
             <div class="space-y-3">
-                <Button
-                    variant="outline"
-                    class="w-full"
-                    onclick={() => handleOAuthLogin('google')}
-                >
+                <Button variant="outline" class="w-full" onclick={() => handleOAuthLogin('google')}>
                     <svg class="mr-2 h-5 w-5" viewBox="0 0 24 24">
                         <path
                             fill="#4285F4"
@@ -165,7 +167,9 @@
                 <div class="space-y-2">
                     <Label for="mb_id">아이디</Label>
                     <div class="relative">
-                        <Mail class="text-muted-foreground absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" />
+                        <Mail
+                            class="text-muted-foreground absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2"
+                        />
                         <Input
                             id="mb_id"
                             type="text"
@@ -180,7 +184,9 @@
                 <div class="space-y-2">
                     <Label for="mb_password">비밀번호</Label>
                     <div class="relative">
-                        <Lock class="text-muted-foreground absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" />
+                        <Lock
+                            class="text-muted-foreground absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2"
+                        />
                         <Input
                             id="mb_password"
                             type="password"
@@ -195,7 +201,7 @@
                 <div class="flex items-center justify-between">
                     <div class="flex items-center gap-2">
                         <Checkbox id="remember" bind:checked={remember} />
-                        <Label for="remember" class="text-sm font-normal cursor-pointer">
+                        <Label for="remember" class="cursor-pointer text-sm font-normal">
                             로그인 유지
                         </Label>
                     </div>
@@ -217,9 +223,7 @@
 
             <div class="text-center text-sm">
                 <span class="text-muted-foreground">계정이 없으신가요?</span>
-                <a href="/register" class="text-primary ml-1 hover:underline">
-                    회원가입
-                </a>
+                <a href="/register" class="text-primary ml-1 hover:underline"> 회원가입 </a>
             </div>
         </CardContent>
     </Card>

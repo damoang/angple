@@ -185,7 +185,7 @@
                 <ArrowLeft class="mr-1 h-4 w-4" />
                 마이페이지
             </Button>
-            <h1 class="text-2xl font-bold text-foreground">쪽지함</h1>
+            <h1 class="text-foreground text-2xl font-bold">쪽지함</h1>
         </div>
         <Button onclick={() => (showSendDialog = true)}>
             <PenSquare class="mr-2 h-4 w-4" />
@@ -194,7 +194,7 @@
     </div>
 
     <!-- 탭 네비게이션 -->
-    <div class="mb-6 flex gap-2 border-b border-border pb-2">
+    <div class="border-border mb-6 flex gap-2 border-b pb-2">
         {#each tabs as tab (tab.id)}
             <Button
                 variant={data.kind === tab.id ? 'default' : 'ghost'}
@@ -204,7 +204,9 @@
                 <tab.icon class="mr-1.5 h-4 w-4" />
                 {tab.label}
                 {#if tab.id === 'recv' && messageData?.unread_count}
-                    <span class="ml-1.5 rounded-full bg-destructive px-1.5 text-xs text-destructive-foreground">
+                    <span
+                        class="bg-destructive text-destructive-foreground ml-1.5 rounded-full px-1.5 text-xs"
+                    >
                         {messageData.unread_count}
                     </span>
                 {/if}
@@ -214,7 +216,7 @@
 
     {#if isLoading}
         <div class="flex items-center justify-center py-20">
-            <Loader2 class="h-8 w-8 animate-spin text-primary" />
+            <Loader2 class="text-primary h-8 w-8 animate-spin" />
         </div>
     {:else if error}
         <Card class="border-destructive">
@@ -227,43 +229,52 @@
             <CardHeader>
                 <CardTitle class="flex items-center gap-2">
                     {data.kind === 'recv' ? '받은 쪽지' : '보낸 쪽지'}
-                    <span class="text-sm font-normal text-muted-foreground">
+                    <span class="text-muted-foreground text-sm font-normal">
                         ({messageData.total}통)
                     </span>
                 </CardTitle>
             </CardHeader>
             <CardContent>
                 {#if messageData.items.length > 0}
-                    <ul class="divide-y divide-border">
+                    <ul class="divide-border divide-y">
                         {#each messageData.items as message (message.id)}
                             <li class="py-3 first:pt-0 last:pb-0">
                                 <button
                                     type="button"
                                     onclick={() => viewMessage(message)}
-                                    class="w-full text-left hover:bg-accent rounded-md p-2 -m-2 transition-colors {!message.is_read && data.kind === 'recv' ? 'bg-muted/50' : ''}"
+                                    class="hover:bg-accent -m-2 w-full rounded-md p-2 text-left transition-colors {!message.is_read &&
+                                    data.kind === 'recv'
+                                        ? 'bg-muted/50'
+                                        : ''}"
                                 >
                                     <div class="flex items-center gap-3">
                                         <!-- 프로필 -->
-                                        <div class="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary shrink-0">
+                                        <div
+                                            class="bg-primary/10 text-primary flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
+                                        >
                                             <User class="h-5 w-5" />
                                         </div>
 
                                         <!-- 내용 -->
-                                        <div class="flex-1 min-w-0">
-                                            <div class="flex items-center gap-2 mb-1">
-                                                <span class="font-medium text-foreground">
-                                                    {data.kind === 'recv' ? message.sender_name : message.receiver_name}
+                                        <div class="min-w-0 flex-1">
+                                            <div class="mb-1 flex items-center gap-2">
+                                                <span class="text-foreground font-medium">
+                                                    {data.kind === 'recv'
+                                                        ? message.sender_name
+                                                        : message.receiver_name}
                                                 </span>
                                                 {#if !message.is_read && data.kind === 'recv'}
-                                                    <span class="rounded bg-primary px-1.5 py-0.5 text-[10px] font-medium text-primary-foreground">
+                                                    <span
+                                                        class="bg-primary text-primary-foreground rounded px-1.5 py-0.5 text-[10px] font-medium"
+                                                    >
                                                         NEW
                                                     </span>
                                                 {/if}
                                             </div>
-                                            <p class="text-muted-foreground text-sm truncate">
+                                            <p class="text-muted-foreground truncate text-sm">
                                                 {message.content}
                                             </p>
-                                            <p class="text-muted-foreground text-xs mt-1">
+                                            <p class="text-muted-foreground mt-1 text-xs">
                                                 {formatDate(message.send_datetime)}
                                             </p>
                                         </div>
@@ -273,7 +284,7 @@
                         {/each}
                     </ul>
                 {:else}
-                    <p class="text-center text-muted-foreground py-8">
+                    <p class="text-muted-foreground py-8 text-center">
                         {data.kind === 'recv' ? '받은 쪽지가 없습니다.' : '보낸 쪽지가 없습니다.'}
                     </p>
                 {/if}
@@ -292,7 +303,7 @@
                     이전
                 </Button>
 
-                <span class="text-sm text-muted-foreground px-4">
+                <span class="text-muted-foreground px-4 text-sm">
                     {data.page} / {messageData.total_pages}
                 </span>
 
@@ -317,9 +328,7 @@
                 <PenSquare class="h-5 w-5" />
                 쪽지 보내기
             </Dialog.Title>
-            <Dialog.Description>
-                회원에게 쪽지를 보냅니다.
-            </Dialog.Description>
+            <Dialog.Description>회원에게 쪽지를 보냅니다.</Dialog.Description>
         </Dialog.Header>
 
         <div class="space-y-4 py-4">
@@ -352,11 +361,7 @@
         </div>
 
         <Dialog.Footer>
-            <Button
-                variant="outline"
-                onclick={() => (showSendDialog = false)}
-                disabled={isSending}
-            >
+            <Button variant="outline" onclick={() => (showSendDialog = false)} disabled={isSending}>
                 취소
             </Button>
             <Button onclick={handleSendMessage} disabled={isSending}>
@@ -377,7 +382,7 @@
     <Dialog.Content class="sm:max-w-lg">
         {#if isLoadingMessage}
             <div class="flex items-center justify-center py-12">
-                <Loader2 class="h-8 w-8 animate-spin text-primary" />
+                <Loader2 class="text-primary h-8 w-8 animate-spin" />
             </div>
         {:else if viewingMessage}
             <Dialog.Header>
@@ -389,27 +394,31 @@
 
             <div class="py-4">
                 <!-- 발신/수신 정보 -->
-                <div class="flex items-center gap-3 mb-4 pb-4 border-b">
-                    <div class="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
+                <div class="mb-4 flex items-center gap-3 border-b pb-4">
+                    <div
+                        class="bg-primary/10 text-primary flex h-12 w-12 items-center justify-center rounded-full"
+                    >
                         <User class="h-6 w-6" />
                     </div>
                     <div>
-                        <p class="font-medium text-foreground">
-                            {data.kind === 'recv' ? viewingMessage.sender_name : viewingMessage.receiver_name}
+                        <p class="text-foreground font-medium">
+                            {data.kind === 'recv'
+                                ? viewingMessage.sender_name
+                                : viewingMessage.receiver_name}
                         </p>
-                        <p class="text-sm text-muted-foreground">
+                        <p class="text-muted-foreground text-sm">
                             {formatDate(viewingMessage.send_datetime)}
                         </p>
                     </div>
                 </div>
 
                 <!-- 내용 -->
-                <div class="whitespace-pre-wrap text-foreground">
+                <div class="text-foreground whitespace-pre-wrap">
                     {viewingMessage.content}
                 </div>
             </div>
 
-            <Dialog.Footer class="flex-col sm:flex-row gap-2">
+            <Dialog.Footer class="flex-col gap-2 sm:flex-row">
                 <Button
                     variant="outline"
                     class="text-destructive hover:text-destructive"
@@ -419,9 +428,7 @@
                     삭제
                 </Button>
                 <div class="flex-1"></div>
-                <Button variant="outline" onclick={() => (showViewDialog = false)}>
-                    닫기
-                </Button>
+                <Button variant="outline" onclick={() => (showViewDialog = false)}>닫기</Button>
                 <Button onclick={() => replyToMessage(viewingMessage!)}>
                     <Send class="mr-2 h-4 w-4" />
                     답장

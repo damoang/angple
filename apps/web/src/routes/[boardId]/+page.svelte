@@ -153,21 +153,21 @@
             <!-- 필수 공지 -->
             {#each importantNotices as notice (notice.id)}
                 <div
-                    class="bg-destructive/5 border-destructive/20 hover:bg-destructive/10 border rounded-lg px-4 py-3 cursor-pointer transition-colors"
+                    class="bg-destructive/5 border-destructive/20 hover:bg-destructive/10 cursor-pointer rounded-lg border px-4 py-3 transition-colors"
                     onclick={() => goToPost(notice.id)}
                     role="button"
                     tabindex="0"
                     onkeydown={(e) => e.key === 'Enter' && goToPost(notice.id)}
                 >
                     <div class="flex items-center gap-3">
-                        <div class="flex items-center gap-1.5 shrink-0">
-                            <Megaphone class="h-4 w-4 text-destructive" />
+                        <div class="flex shrink-0 items-center gap-1.5">
+                            <Megaphone class="text-destructive h-4 w-4" />
                             <Badge variant="destructive" class="text-xs">필수</Badge>
                         </div>
-                        <h3 class="text-foreground font-medium truncate flex-1">
+                        <h3 class="text-foreground flex-1 truncate font-medium">
                             {notice.title}
                         </h3>
-                        <span class="text-muted-foreground text-xs shrink-0">
+                        <span class="text-muted-foreground shrink-0 text-xs">
                             {notice.author}
                         </span>
                     </div>
@@ -177,21 +177,21 @@
             <!-- 일반 공지 -->
             {#each normalNotices as notice (notice.id)}
                 <div
-                    class="bg-muted/50 border-border hover:bg-muted border rounded-lg px-4 py-3 cursor-pointer transition-colors"
+                    class="bg-muted/50 border-border hover:bg-muted cursor-pointer rounded-lg border px-4 py-3 transition-colors"
                     onclick={() => goToPost(notice.id)}
                     role="button"
                     tabindex="0"
                     onkeydown={(e) => e.key === 'Enter' && goToPost(notice.id)}
                 >
                     <div class="flex items-center gap-3">
-                        <div class="flex items-center gap-1.5 shrink-0">
-                            <Pin class="h-4 w-4 text-muted-foreground" />
+                        <div class="flex shrink-0 items-center gap-1.5">
+                            <Pin class="text-muted-foreground h-4 w-4" />
                             <Badge variant="secondary" class="text-xs">공지</Badge>
                         </div>
-                        <h3 class="text-foreground font-medium truncate flex-1">
+                        <h3 class="text-foreground flex-1 truncate font-medium">
                             {notice.title}
                         </h3>
-                        <span class="text-muted-foreground text-xs shrink-0">
+                        <span class="text-muted-foreground shrink-0 text-xs">
                             {notice.author}
                         </span>
                     </div>
@@ -206,9 +206,7 @@
             <Card class="bg-background">
                 <CardContent class="py-12 text-center">
                     {#if isSearching}
-                        <p class="text-secondary-foreground">
-                            검색 결과가 없습니다.
-                        </p>
+                        <p class="text-secondary-foreground">검색 결과가 없습니다.</p>
                     {:else}
                         <p class="text-secondary-foreground">게시글이 없습니다.</p>
                     {/if}
@@ -263,8 +261,8 @@
         </div>
 
         <p class="text-secondary-foreground mt-4 text-center text-sm">
-            {isSearching ? '검색결과 ' : '전체 '}{data.pagination.total.toLocaleString()}개 중 {data.pagination.page} / {data
-                .pagination.totalPages} 페이지
+            {isSearching ? '검색결과 ' : '전체 '}{data.pagination.total.toLocaleString()}개 중 {data
+                .pagination.page} / {data.pagination.totalPages} 페이지
         </p>
     {/if}
 </div>

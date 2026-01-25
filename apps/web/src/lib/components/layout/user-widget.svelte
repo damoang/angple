@@ -60,25 +60,26 @@
             {#if user.mb_point !== undefined}
                 <a
                     href="/my/points"
-                    class="flex items-center justify-between rounded-md bg-muted/50 px-3 py-2 text-sm transition-colors hover:bg-muted"
+                    class="bg-muted/50 hover:bg-muted flex items-center justify-between rounded-md px-3 py-2 text-sm transition-colors"
                 >
-                    <span class="flex items-center gap-1.5 text-muted-foreground">
+                    <span class="text-muted-foreground flex items-center gap-1.5">
                         <Coins class="h-4 w-4" />
                         포인트
                     </span>
-                    <span class="font-medium text-foreground">{user.mb_point.toLocaleString()}</span>
+                    <span class="text-foreground font-medium">{user.mb_point.toLocaleString()}</span
+                    >
                 </a>
             {/if}
             {#if user.mb_exp !== undefined}
                 <a
                     href="/my/exp"
-                    class="flex items-center justify-between rounded-md bg-muted/50 px-3 py-2 text-sm transition-colors hover:bg-muted"
+                    class="bg-muted/50 hover:bg-muted flex items-center justify-between rounded-md px-3 py-2 text-sm transition-colors"
                 >
-                    <span class="flex items-center gap-1.5 text-muted-foreground">
+                    <span class="text-muted-foreground flex items-center gap-1.5">
                         <Star class="h-4 w-4 text-yellow-500" />
                         경험치
                     </span>
-                    <span class="font-medium text-foreground">{user.mb_exp.toLocaleString()}</span>
+                    <span class="text-foreground font-medium">{user.mb_exp.toLocaleString()}</span>
                 </a>
             {/if}
         </div>

@@ -9,7 +9,12 @@
     import Lock from '@lucide/svelte/icons/lock';
     import Save from '@lucide/svelte/icons/save';
     import Clock from '@lucide/svelte/icons/clock';
-    import type { FreePost, CreatePostRequest, UpdatePostRequest, UploadedFile } from '$lib/api/types.js';
+    import type {
+        FreePost,
+        CreatePostRequest,
+        UpdatePostRequest,
+        UploadedFile
+    } from '$lib/api/types.js';
     import DraftList from './draft-list.svelte';
     import { TiptapEditor } from '$lib/components/features/editor/index.js';
     import { ImageUploader, FileUploader } from '$lib/components/features/uploader/index.js';
@@ -24,7 +29,15 @@
         isLoading?: boolean;
     }
 
-    let { mode, post, categories = [], boardId = 'free', onSubmit, onCancel, isLoading = false }: Props = $props();
+    let {
+        mode,
+        post,
+        categories = [],
+        boardId = 'free',
+        onSubmit,
+        onCancel,
+        isLoading = false
+    }: Props = $props();
 
     // 임시저장 키
     const DRAFT_KEY = `draft_${boardId}_${mode === 'edit' && post ? post.id : 'new'}`;
@@ -247,7 +260,12 @@
     }
 
     // 임시저장 목록에서 불러오기
-    function handleLoadDraft(draft: { title: string; content: string; category: string; isSecret: boolean }): void {
+    function handleLoadDraft(draft: {
+        title: string;
+        content: string;
+        category: string;
+        isSecret: boolean;
+    }): void {
         title = draft.title;
         content = draft.content;
         category = draft.category;
@@ -278,7 +296,7 @@
                         {formatLastSaved()} 저장됨
                     </span>
                 {:else if hasUnsavedChanges}
-                    <span class="text-yellow-600 dark:text-yellow-400 flex items-center gap-1">
+                    <span class="flex items-center gap-1 text-yellow-600 dark:text-yellow-400">
                         저장되지 않은 변경사항
                     </span>
                 {/if}
@@ -383,9 +401,7 @@
                 <Checkbox id="is_secret" bind:checked={isSecret} disabled={isLoading} />
                 <div class="flex items-center gap-2">
                     <Lock class="text-muted-foreground h-4 w-4" />
-                    <Label for="is_secret" class="cursor-pointer font-normal">
-                        비밀글로 작성
-                    </Label>
+                    <Label for="is_secret" class="cursor-pointer font-normal">비밀글로 작성</Label>
                 </div>
                 <p class="text-muted-foreground ml-auto text-xs">
                     비밀글은 작성자와 관리자만 볼 수 있습니다

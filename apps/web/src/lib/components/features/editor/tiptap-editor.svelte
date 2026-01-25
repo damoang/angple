@@ -233,11 +233,7 @@
 
         if (linkText && editor?.state.selection.empty) {
             // 선택 영역이 없고 텍스트가 있으면 텍스트와 함께 링크 삽입
-            editor
-                ?.chain()
-                .focus()
-                .insertContent(`<a href="${url}">${linkText}</a>`)
-                .run();
+            editor?.chain().focus().insertContent(`<a href="${url}">${linkText}</a>`).run();
         } else {
             // 선택 영역이 있으면 해당 텍스트에 링크 적용
             editor?.chain().focus().setLink({ href: url }).run();
@@ -538,9 +534,7 @@
         </div>
         <DialogFooter class="flex gap-2">
             {#if isActive.link}
-                <Button type="button" variant="destructive" onclick={removeLink}>
-                    링크 제거
-                </Button>
+                <Button type="button" variant="destructive" onclick={removeLink}>링크 제거</Button>
             {/if}
             <Button type="button" variant="outline" onclick={() => (showLinkDialog = false)}>
                 취소
@@ -567,15 +561,8 @@
                 />
             </div>
             <div class="space-y-2">
-                <label for="image-alt" class="text-sm font-medium"
-                    >대체 텍스트 (선택사항)</label
-                >
-                <Input
-                    id="image-alt"
-                    type="text"
-                    bind:value={imageAlt}
-                    placeholder="이미지 설명"
-                />
+                <label for="image-alt" class="text-sm font-medium">대체 텍스트 (선택사항)</label>
+                <Input id="image-alt" type="text" bind:value={imageAlt} placeholder="이미지 설명" />
             </div>
         </div>
         <DialogFooter>

@@ -27,27 +27,33 @@
                 </div>
             </div>
             <CardTitle class="text-2xl">설치 완료!</CardTitle>
-            <CardDescription>
-                Angple이 성공적으로 설치되었습니다.
-            </CardDescription>
+            <CardDescription>Angple이 성공적으로 설치되었습니다.</CardDescription>
         </CardHeader>
 
         <CardContent>
             <!-- 진행 상태 표시 (4단계) -->
             <div class="mb-8 flex items-center justify-center gap-2">
-                <div class="bg-primary/50 text-primary-foreground flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold">
+                <div
+                    class="bg-primary/50 text-primary-foreground flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold"
+                >
                     1
                 </div>
                 <div class="bg-primary h-0.5 w-8"></div>
-                <div class="bg-primary/50 text-primary-foreground flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold">
+                <div
+                    class="bg-primary/50 text-primary-foreground flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold"
+                >
                     2
                 </div>
                 <div class="bg-primary h-0.5 w-8"></div>
-                <div class="bg-primary/50 text-primary-foreground flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold">
+                <div
+                    class="bg-primary/50 text-primary-foreground flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold"
+                >
                     3
                 </div>
                 <div class="bg-primary h-0.5 w-8"></div>
-                <div class="bg-primary text-primary-foreground flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold">
+                <div
+                    class="bg-primary text-primary-foreground flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold"
+                >
                     4
                 </div>
             </div>
@@ -62,12 +68,8 @@
             </div>
 
             <div class="flex flex-col gap-3">
-                <Button href="/admin/dashboard" class="w-full">
-                    관리자 대시보드로 이동
-                </Button>
-                <Button href="/" variant="outline" class="w-full">
-                    사이트 홈으로 이동
-                </Button>
+                <Button href="/admin/dashboard" class="w-full">관리자 대시보드로 이동</Button>
+                <Button href="/" variant="outline" class="w-full">사이트 홈으로 이동</Button>
             </div>
         </CardContent>
     </Card>

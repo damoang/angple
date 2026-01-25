@@ -120,7 +120,7 @@
     <DialogContent class="sm:max-w-md">
         <DialogHeader>
             <DialogTitle class="flex items-center gap-2">
-                <AlertTriangle class="h-5 w-5 text-destructive" />
+                <AlertTriangle class="text-destructive h-5 w-5" />
                 {dialogTitle}
             </DialogTitle>
             <DialogDescription>
@@ -179,7 +179,12 @@
             </div>
 
             <DialogFooter>
-                <Button type="button" variant="outline" onclick={handleClose} disabled={isSubmitting}>
+                <Button
+                    type="button"
+                    variant="outline"
+                    onclick={handleClose}
+                    disabled={isSubmitting}
+                >
                     취소
                 </Button>
                 <Button

@@ -138,24 +138,26 @@
 
         <div class="max-h-96 overflow-y-auto">
             {#if drafts.length === 0}
-                <div class="text-center py-8 text-muted-foreground">
+                <div class="text-muted-foreground py-8 text-center">
                     <FileText class="mx-auto mb-3 h-10 w-10" />
                     <p>임시저장된 글이 없습니다.</p>
                 </div>
             {:else}
-                <ul class="divide-y divide-border">
+                <ul class="divide-border divide-y">
                     {#each drafts as draft (draft.key)}
                         <li class="py-3 first:pt-0 last:pb-0">
                             <div class="flex items-start justify-between gap-3">
-                                <div class="flex-1 min-w-0">
-                                    <h4 class="text-foreground font-medium truncate">
+                                <div class="min-w-0 flex-1">
+                                    <h4 class="text-foreground truncate font-medium">
                                         {draft.title || '제목 없음'}
                                     </h4>
-                                    <p class="text-muted-foreground text-sm truncate mt-0.5">
+                                    <p class="text-muted-foreground mt-0.5 truncate text-sm">
                                         {getPreview(draft.content)}
                                     </p>
-                                    <div class="flex items-center gap-2 mt-1.5 text-xs text-muted-foreground">
-                                        <span class="bg-muted px-1.5 py-0.5 rounded">
+                                    <div
+                                        class="text-muted-foreground mt-1.5 flex items-center gap-2 text-xs"
+                                    >
+                                        <span class="bg-muted rounded px-1.5 py-0.5">
                                             {getBoardName(draft.boardId)}
                                         </span>
                                         <span class="flex items-center gap-1">
@@ -164,7 +166,7 @@
                                         </span>
                                     </div>
                                 </div>
-                                <div class="flex gap-1 shrink-0">
+                                <div class="flex shrink-0 gap-1">
                                     <Button
                                         variant="outline"
                                         size="sm"

@@ -100,7 +100,7 @@
             <ArrowLeft class="mr-1 h-4 w-4" />
             마이페이지
         </Button>
-        <h1 class="text-2xl font-bold text-foreground flex items-center gap-2">
+        <h1 class="text-foreground flex items-center gap-2 text-2xl font-bold">
             <Star class="h-6 w-6 text-yellow-500" />
             경험치
         </h1>
@@ -114,12 +114,14 @@
                 <CardContent class="pt-6">
                     <div class="flex items-center justify-between">
                         <div>
-                            <p class="text-sm text-muted-foreground">총 경험치</p>
-                            <p class="text-2xl font-bold text-foreground">
+                            <p class="text-muted-foreground text-sm">총 경험치</p>
+                            <p class="text-foreground text-2xl font-bold">
                                 {formatNumber(expSummary.total_exp)}
                             </p>
                         </div>
-                        <div class="flex h-12 w-12 items-center justify-center rounded-full bg-yellow-100 dark:bg-yellow-900/30">
+                        <div
+                            class="flex h-12 w-12 items-center justify-center rounded-full bg-yellow-100 dark:bg-yellow-900/30"
+                        >
                             <Star class="h-6 w-6 text-yellow-500" />
                         </div>
                     </div>
@@ -131,12 +133,14 @@
                 <CardContent class="pt-6">
                     <div class="flex items-center justify-between">
                         <div>
-                            <p class="text-sm text-muted-foreground">현재 레벨</p>
-                            <p class="text-2xl font-bold text-foreground">
+                            <p class="text-muted-foreground text-sm">현재 레벨</p>
+                            <p class="text-foreground text-2xl font-bold">
                                 Lv.{expSummary.current_level}
                             </p>
                         </div>
-                        <div class="flex h-12 w-12 items-center justify-center rounded-full bg-purple-100 dark:bg-purple-900/30">
+                        <div
+                            class="flex h-12 w-12 items-center justify-center rounded-full bg-purple-100 dark:bg-purple-900/30"
+                        >
                             <Award class="h-6 w-6 text-purple-500" />
                         </div>
                     </div>
@@ -148,12 +152,14 @@
                 <CardContent class="pt-6">
                     <div class="flex items-center justify-between">
                         <div>
-                            <p class="text-sm text-muted-foreground">다음 레벨까지</p>
-                            <p class="text-2xl font-bold text-foreground">
+                            <p class="text-muted-foreground text-sm">다음 레벨까지</p>
+                            <p class="text-foreground text-2xl font-bold">
                                 {formatNumber(expSummary.next_level_exp)}
                             </p>
                         </div>
-                        <div class="flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/30">
+                        <div
+                            class="flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/30"
+                        >
                             <Target class="h-6 w-6 text-blue-500" />
                         </div>
                     </div>
@@ -165,12 +171,14 @@
                 <CardContent class="pt-6">
                     <div class="flex items-center justify-between">
                         <div>
-                            <p class="text-sm text-muted-foreground">레벨 진행률</p>
-                            <p class="text-2xl font-bold text-foreground">
+                            <p class="text-muted-foreground text-sm">레벨 진행률</p>
+                            <p class="text-foreground text-2xl font-bold">
                                 {expSummary.level_progress}%
                             </p>
                         </div>
-                        <div class="flex h-12 w-12 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">
+                        <div
+                            class="flex h-12 w-12 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30"
+                        >
                             <TrendingUp class="h-6 w-6 text-green-500" />
                         </div>
                     </div>
@@ -187,8 +195,10 @@
                         <span class="text-muted-foreground">Lv.{expSummary.current_level + 1}</span>
                     </div>
                     <Progress value={expSummary.level_progress} max={100} class="h-3" />
-                    <p class="text-center text-sm text-muted-foreground">
-                        다음 레벨까지 <span class="font-medium text-foreground">{formatNumber(expSummary.next_level_exp)}</span> 경험치 필요
+                    <p class="text-muted-foreground text-center text-sm">
+                        다음 레벨까지 <span class="text-foreground font-medium"
+                            >{formatNumber(expSummary.next_level_exp)}</span
+                        > 경험치 필요
                     </p>
                 </div>
             </CardContent>
@@ -198,7 +208,7 @@
     <!-- 경험치 내역 -->
     {#if isLoading}
         <div class="flex items-center justify-center py-20">
-            <Loader2 class="h-8 w-8 animate-spin text-primary" />
+            <Loader2 class="text-primary h-8 w-8 animate-spin" />
         </div>
     {:else if error}
         <Card class="border-destructive">
@@ -211,19 +221,24 @@
             <CardHeader>
                 <CardTitle class="flex items-center gap-2">
                     경험치 내역
-                    <span class="text-sm font-normal text-muted-foreground">
+                    <span class="text-muted-foreground text-sm font-normal">
                         ({expHistory.total}건)
                     </span>
                 </CardTitle>
             </CardHeader>
             <CardContent>
                 {#if expHistory.items.length > 0}
-                    <ul class="divide-y divide-border">
+                    <ul class="divide-border divide-y">
                         {#each expHistory.items as history (history.id)}
                             <li class="flex items-center justify-between py-3 first:pt-0 last:pb-0">
                                 <div class="flex items-center gap-3">
                                     <!-- 증감 아이콘 -->
-                                    <div class="flex h-8 w-8 items-center justify-center rounded-full {history.exp_point > 0 ? 'bg-green-100 dark:bg-green-900/30' : 'bg-red-100 dark:bg-red-900/30'}">
+                                    <div
+                                        class="flex h-8 w-8 items-center justify-center rounded-full {history.exp_point >
+                                        0
+                                            ? 'bg-green-100 dark:bg-green-900/30'
+                                            : 'bg-red-100 dark:bg-red-900/30'}"
+                                    >
                                         {#if history.exp_point > 0}
                                             <Plus class="h-4 w-4 text-green-500" />
                                         {:else}
@@ -231,22 +246,30 @@
                                         {/if}
                                     </div>
                                     <div>
-                                        <p class="font-medium text-foreground">{history.exp_content}</p>
-                                        <p class="text-sm text-muted-foreground">{formatDate(history.exp_datetime)}</p>
+                                        <p class="text-foreground font-medium">
+                                            {history.exp_content}
+                                        </p>
+                                        <p class="text-muted-foreground text-sm">
+                                            {formatDate(history.exp_datetime)}
+                                        </p>
                                     </div>
                                 </div>
                                 <div class="text-right">
-                                    <p class="font-bold {history.exp_point > 0 ? 'text-green-600' : 'text-red-600'}">
-                                        {history.exp_point > 0 ? '+' : ''}{formatNumber(history.exp_point)}
+                                    <p
+                                        class="font-bold {history.exp_point > 0
+                                            ? 'text-green-600'
+                                            : 'text-red-600'}"
+                                    >
+                                        {history.exp_point > 0 ? '+' : ''}{formatNumber(
+                                            history.exp_point
+                                        )}
                                     </p>
                                 </div>
                             </li>
                         {/each}
                     </ul>
                 {:else}
-                    <p class="text-center text-muted-foreground py-8">
-                        경험치 내역이 없습니다.
-                    </p>
+                    <p class="text-muted-foreground py-8 text-center">경험치 내역이 없습니다.</p>
                 {/if}
             </CardContent>
         </Card>
@@ -263,7 +286,7 @@
                     이전
                 </Button>
 
-                <span class="text-sm text-muted-foreground px-4">
+                <span class="text-muted-foreground px-4 text-sm">
                     {data.page} / {expHistory.total_pages}
                 </span>
 

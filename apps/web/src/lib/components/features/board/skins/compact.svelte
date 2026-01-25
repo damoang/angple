@@ -16,7 +16,9 @@
     } = $props();
 
     // 썸네일 표시 여부
-    const showThumbnail = $derived(displaySettings?.show_thumbnail && post.images && post.images.length > 0);
+    const showThumbnail = $derived(
+        displaySettings?.show_thumbnail && post.images && post.images.length > 0
+    );
     const thumbnailUrl = $derived(post.images?.[0] || '');
 
     // 날짜 포맷 헬퍼
@@ -58,7 +60,7 @@
     <div class="flex items-center justify-between gap-4">
         <!-- 썸네일 (있는 경우) -->
         {#if showThumbnail}
-            <div class="relative h-14 w-14 shrink-0 overflow-hidden rounded-md bg-muted">
+            <div class="bg-muted relative h-14 w-14 shrink-0 overflow-hidden rounded-md">
                 <img
                     src={thumbnailUrl}
                     alt=""
@@ -71,8 +73,8 @@
             </div>
         {:else if post.has_file}
             <!-- 이미지가 아닌 파일 첨부 표시 -->
-            <div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-md bg-muted">
-                <ImageIcon class="h-6 w-6 text-muted-foreground" />
+            <div class="bg-muted flex h-14 w-14 shrink-0 items-center justify-center rounded-md">
+                <ImageIcon class="text-muted-foreground h-6 w-6" />
             </div>
         {/if}
 
@@ -80,7 +82,7 @@
         <div class="min-w-0 flex-1">
             <h3 class="text-foreground mb-1 flex items-center gap-1.5 truncate font-medium">
                 {#if post.is_secret}
-                    <Lock class="h-4 w-4 shrink-0 text-muted-foreground" />
+                    <Lock class="text-muted-foreground h-4 w-4 shrink-0" />
                 {/if}
                 {post.title}
             </h3>

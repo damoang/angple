@@ -58,13 +58,11 @@
             <ArrowLeft class="mr-1 h-4 w-4" />
             마이페이지로
         </Button>
-        <h1 class="text-2xl font-bold text-foreground flex items-center gap-2">
+        <h1 class="text-foreground flex items-center gap-2 text-2xl font-bold">
             <Ban class="h-6 w-6" />
             차단 목록
         </h1>
-        <p class="text-secondary-foreground mt-1">
-            차단한 회원의 글과 댓글이 숨겨집니다.
-        </p>
+        <p class="text-secondary-foreground mt-1">차단한 회원의 글과 댓글이 숨겨집니다.</p>
     </div>
 
     <!-- 에러 메시지 -->
@@ -79,20 +77,20 @@
             <CardHeader>
                 <CardTitle class="text-lg">
                     차단된 회원
-                    <span class="text-sm font-normal text-muted-foreground">
+                    <span class="text-muted-foreground text-sm font-normal">
                         ({blockedMembers.length}명)
                     </span>
                 </CardTitle>
             </CardHeader>
             <CardContent>
                 {#if blockedMembers.length > 0}
-                    <ul class="divide-y divide-border">
+                    <ul class="divide-border divide-y">
                         {#each blockedMembers as member (member.mb_id)}
-                            <li class="py-4 first:pt-0 last:pb-0 flex items-center justify-between">
+                            <li class="flex items-center justify-between py-4 first:pt-0 last:pb-0">
                                 <div class="flex items-center gap-3">
                                     <!-- 아바타 -->
                                     <div
-                                        class="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-muted-foreground"
+                                        class="bg-muted text-muted-foreground flex h-10 w-10 items-center justify-center rounded-full"
                                     >
                                         <UserX class="h-5 w-5" />
                                     </div>
@@ -121,14 +119,12 @@
                         {/each}
                     </ul>
                 {:else}
-                    <div class="text-center py-12">
-                        <Ban class="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
-                        <p class="text-lg font-medium text-foreground mb-2">
+                    <div class="py-12 text-center">
+                        <Ban class="text-muted-foreground mx-auto mb-4 h-12 w-12" />
+                        <p class="text-foreground mb-2 text-lg font-medium">
                             차단한 회원이 없습니다
                         </p>
-                        <p class="text-secondary-foreground">
-                            회원 프로필에서 차단할 수 있습니다.
-                        </p>
+                        <p class="text-secondary-foreground">회원 프로필에서 차단할 수 있습니다.</p>
                     </div>
                 {/if}
             </CardContent>

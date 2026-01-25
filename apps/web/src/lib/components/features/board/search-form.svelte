@@ -14,8 +14,11 @@
         showReset?: boolean;
     }
 
-    let { boardPath = '/free', placeholder = '검색어를 입력하세요', showReset = true }: Props =
-        $props();
+    let {
+        boardPath = '/free',
+        placeholder = '검색어를 입력하세요',
+        showReset = true
+    }: Props = $props();
 
     // 검색 필드 옵션
     const searchFieldOptions: { value: SearchField; label: string }[] = [
@@ -98,18 +101,13 @@
     </Select.Root>
 
     <!-- 검색어 입력 -->
-    <div class="relative flex-1 min-w-[200px]">
-        <Input
-            type="text"
-            bind:value={searchQuery}
-            {placeholder}
-            class="pr-10"
-        />
+    <div class="relative min-w-[200px] flex-1">
+        <Input type="text" bind:value={searchQuery} {placeholder} class="pr-10" />
         {#if searchQuery}
             <button
                 type="button"
                 onclick={() => (searchQuery = '')}
-                class="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                class="text-muted-foreground hover:text-foreground absolute right-3 top-1/2 -translate-y-1/2"
             >
                 <X class="h-4 w-4" />
             </button>
@@ -124,16 +122,14 @@
 
     <!-- 초기화 버튼 (검색 중일 때만 표시) -->
     {#if showReset && isSearching}
-        <Button type="button" variant="outline" size="sm" onclick={handleReset}>
-            초기화
-        </Button>
+        <Button type="button" variant="outline" size="sm" onclick={handleReset}>초기화</Button>
     {/if}
 </form>
 
 <!-- 검색 결과 안내 -->
 {#if isSearching}
-    <div class="mt-2 text-sm text-muted-foreground">
-        <span class="font-medium text-foreground">"{currentQuery}"</span>
+    <div class="text-muted-foreground mt-2 text-sm">
+        <span class="text-foreground font-medium">"{currentQuery}"</span>
         검색 결과 ({selectedFieldLabel})
     </div>
 {/if}

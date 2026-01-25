@@ -62,14 +62,14 @@
 <div class="flex min-h-[calc(100vh-200px)] items-center justify-center px-4">
     <div class="text-center">
         {#if isLoading}
-            <Loader2 class="mx-auto h-12 w-12 animate-spin text-primary" />
-            <p class="mt-4 text-lg text-muted-foreground">로그인 처리 중...</p>
+            <Loader2 class="text-primary mx-auto h-12 w-12 animate-spin" />
+            <p class="text-muted-foreground mt-4 text-lg">로그인 처리 중...</p>
         {:else if error}
-            <AlertCircle class="mx-auto h-12 w-12 text-destructive" />
-            <p class="mt-4 text-lg text-destructive">{error}</p>
+            <AlertCircle class="text-destructive mx-auto h-12 w-12" />
+            <p class="text-destructive mt-4 text-lg">{error}</p>
             <a
                 href="/login"
-                class="mt-6 inline-block rounded-md bg-primary px-6 py-2 text-primary-foreground hover:bg-primary/90"
+                class="bg-primary text-primary-foreground hover:bg-primary/90 mt-6 inline-block rounded-md px-6 py-2"
             >
                 로그인 페이지로 돌아가기
             </a>

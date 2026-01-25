@@ -30,7 +30,7 @@ export const load: PageLoad = async ({ params }) => {
             categories
         };
     } catch (err) {
-        console.error(`Failed to load post ${boardId}/${postId} for editing:`, err);
+        console.error('Failed to load post for editing:', boardId, postId, err);
         throw error(404, '게시글을 찾을 수 없습니다.');
     }
 };

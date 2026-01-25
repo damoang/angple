@@ -9,7 +9,10 @@ test('Swagger UI 프록시 확인', async ({ page }) => {
 
     // Swagger UI 로드 확인
     const content = await page.content();
-    console.log('Page contains Swagger:', content.includes('swagger') || content.includes('Swagger'));
+    console.log(
+        'Page contains Swagger:',
+        content.includes('swagger') || content.includes('Swagger')
+    );
 
     // 페이지 타이틀 확인
     const title = await page.title();

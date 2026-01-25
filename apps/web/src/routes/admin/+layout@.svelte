@@ -10,7 +10,9 @@
 
     // 로그인 페이지, /admin 메인에서는 사이드바 숨김
     const isLoginPage = $derived($page.url.pathname.includes('/admin/login'));
-    const isAdminRoot = $derived($page.url.pathname === '/admin' || $page.url.pathname === '/admin/');
+    const isAdminRoot = $derived(
+        $page.url.pathname === '/admin' || $page.url.pathname === '/admin/'
+    );
     const showSidebar = $derived(!isLoginPage && !isAdminRoot);
 
     onMount(() => {

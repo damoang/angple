@@ -29,8 +29,8 @@ test('게시글 작성 페이지 테스트', async ({ page }) => {
     const contentArea = page.locator('textarea, [contenteditable="true"], .editor').first();
 
     console.log('4. 폼 요소 확인:');
-    console.log('   - 제목 입력란:', await titleInput.isVisible() ? '있음' : '없음');
-    console.log('   - 내용 입력란:', await contentArea.isVisible() ? '있음' : '없음');
+    console.log('   - 제목 입력란:', (await titleInput.isVisible()) ? '있음' : '없음');
+    console.log('   - 내용 입력란:', (await contentArea.isVisible()) ? '있음' : '없음');
 
     // 4. 테스트 데이터 입력 시도
     if (await titleInput.isVisible()) {

@@ -102,7 +102,7 @@
             </Select.Root>
 
             <!-- 검색어 입력 -->
-            <div class="relative flex-1 min-w-[250px]">
+            <div class="relative min-w-[250px] flex-1">
                 <Input
                     type="text"
                     bind:value={searchQuery}
@@ -130,8 +130,8 @@
     {:else if data.query && !hasResults}
         <Card class="bg-background">
             <CardContent class="py-12 text-center">
-                <Search class="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
-                <p class="text-lg font-medium text-foreground mb-2">
+                <Search class="text-muted-foreground mx-auto mb-4 h-12 w-12" />
+                <p class="text-foreground mb-2 text-lg font-medium">
                     "{data.query}" 검색 결과가 없습니다
                 </p>
                 <p class="text-secondary-foreground">
@@ -143,9 +143,9 @@
         <!-- 검색 결과 요약 -->
         <div class="mb-6">
             <p class="text-secondary-foreground">
-                <span class="font-medium text-foreground">"{data.query}"</span>
+                <span class="text-foreground font-medium">"{data.query}"</span>
                 검색 결과 총
-                <span class="font-medium text-foreground"
+                <span class="text-foreground font-medium"
                     >{data.searchResults?.total.toLocaleString()}</span
                 >건
             </p>
@@ -157,10 +157,10 @@
                 <Card class="bg-background">
                     <CardHeader class="pb-3">
                         <div class="flex items-center justify-between">
-                            <CardTitle class="text-lg flex items-center gap-2">
-                                <FileText class="h-5 w-5 text-primary" />
+                            <CardTitle class="flex items-center gap-2 text-lg">
+                                <FileText class="text-primary h-5 w-5" />
                                 {result.board_name}
-                                <span class="text-sm font-normal text-muted-foreground">
+                                <span class="text-muted-foreground text-sm font-normal">
                                     ({result.total}건)
                                 </span>
                             </CardTitle>
@@ -177,22 +177,24 @@
                         </div>
                     </CardHeader>
                     <CardContent>
-                        <ul class="divide-y divide-border">
+                        <ul class="divide-border divide-y">
                             {#each result.posts as post (post.id)}
                                 <li class="py-3 first:pt-0 last:pb-0">
                                     <button
                                         type="button"
                                         onclick={() => goToPost(result.board_id, post.id)}
-                                        class="w-full text-left hover:bg-accent rounded-md p-2 -m-2 transition-colors"
+                                        class="hover:bg-accent -m-2 w-full rounded-md p-2 text-left transition-colors"
                                     >
-                                        <h3 class="text-foreground font-medium line-clamp-1 mb-1">
+                                        <h3 class="text-foreground mb-1 line-clamp-1 font-medium">
                                             {post.title}
                                         </h3>
-                                        <p class="text-secondary-foreground text-sm line-clamp-2 mb-2">
+                                        <p
+                                            class="text-secondary-foreground mb-2 line-clamp-2 text-sm"
+                                        >
                                             {post.content}
                                         </p>
                                         <div
-                                            class="text-muted-foreground text-xs flex items-center gap-2"
+                                            class="text-muted-foreground flex items-center gap-2 text-xs"
                                         >
                                             <span>{post.author}</span>
                                             <span>•</span>
@@ -216,8 +218,8 @@
         <!-- 검색어 입력 전 안내 -->
         <Card class="bg-background">
             <CardContent class="py-12 text-center">
-                <Search class="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
-                <p class="text-lg font-medium text-foreground mb-2">전체 검색</p>
+                <Search class="text-muted-foreground mx-auto mb-4 h-12 w-12" />
+                <p class="text-foreground mb-2 text-lg font-medium">전체 검색</p>
                 <p class="text-secondary-foreground">
                     모든 게시판에서 원하는 내용을 검색할 수 있습니다.
                 </p>

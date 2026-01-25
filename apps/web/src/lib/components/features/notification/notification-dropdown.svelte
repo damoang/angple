@@ -160,11 +160,13 @@
 </script>
 
 <DropdownMenu.Root onOpenChange={handleOpenChange}>
-    <DropdownMenu.Trigger class="inline-flex items-center justify-center rounded-lg p-2 transition-colors hover:bg-muted relative">
-        <Bell class="h-5 w-5 text-muted-foreground" />
+    <DropdownMenu.Trigger
+        class="hover:bg-muted relative inline-flex items-center justify-center rounded-lg p-2 transition-colors"
+    >
+        <Bell class="text-muted-foreground h-5 w-5" />
         {#if unreadCount > 0}
             <span
-                class="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground"
+                class="bg-destructive text-destructive-foreground absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold"
             >
                 {unreadCount > 99 ? '99+' : unreadCount}
             </span>
@@ -173,8 +175,8 @@
     </DropdownMenu.Trigger>
 
     <DropdownMenu.Content class="w-80" align="end">
-        <div class="flex items-center justify-between px-3 py-2 border-b">
-            <span class="font-semibold text-foreground">알림</span>
+        <div class="flex items-center justify-between border-b px-3 py-2">
+            <span class="text-foreground font-semibold">알림</span>
             {#if unreadCount > 0}
                 <Button variant="ghost" size="sm" class="h-7 text-xs" onclick={handleMarkAllAsRead}>
                     <Check class="mr-1 h-3 w-3" />
@@ -186,38 +188,36 @@
         <div class="max-h-80 overflow-y-auto">
             {#if isLoading}
                 <div class="flex items-center justify-center py-8">
-                    <Loader2 class="h-6 w-6 animate-spin text-muted-foreground" />
+                    <Loader2 class="text-muted-foreground h-6 w-6 animate-spin" />
                 </div>
             {:else if notifications.length === 0}
-                <div class="py-8 text-center text-muted-foreground text-sm">
-                    알림이 없습니다
-                </div>
+                <div class="text-muted-foreground py-8 text-center text-sm">알림이 없습니다</div>
             {:else}
                 {#each notifications as notification (notification.id)}
                     {@const Icon = getNotificationIcon(notification.type)}
                     <DropdownMenu.Item
-                        class="flex items-start gap-3 p-3 cursor-pointer {notification.is_read
+                        class="flex cursor-pointer items-start gap-3 p-3 {notification.is_read
                             ? 'opacity-60'
                             : 'bg-muted/30'}"
                         onclick={() => handleNotificationClick(notification)}
                     >
-                        <div class="shrink-0 mt-0.5">
+                        <div class="mt-0.5 shrink-0">
                             <Icon class="h-4 w-4 {getNotificationColor(notification.type)}" />
                         </div>
-                        <div class="flex-1 min-w-0">
-                            <p class="text-sm font-medium text-foreground line-clamp-1">
+                        <div class="min-w-0 flex-1">
+                            <p class="text-foreground line-clamp-1 text-sm font-medium">
                                 {notification.title}
                             </p>
-                            <p class="text-xs text-muted-foreground line-clamp-2 mt-0.5">
+                            <p class="text-muted-foreground mt-0.5 line-clamp-2 text-xs">
                                 {notification.content}
                             </p>
-                            <p class="text-xs text-muted-foreground mt-1">
+                            <p class="text-muted-foreground mt-1 text-xs">
                                 {formatTime(notification.created_at)}
                             </p>
                         </div>
                         {#if !notification.is_read}
                             <div class="shrink-0">
-                                <div class="h-2 w-2 rounded-full bg-primary"></div>
+                                <div class="bg-primary h-2 w-2 rounded-full"></div>
                             </div>
                         {/if}
                     </DropdownMenu.Item>

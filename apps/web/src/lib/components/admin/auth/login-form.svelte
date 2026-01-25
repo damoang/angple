@@ -25,7 +25,12 @@
                     </div>
                     <div class="grid gap-3">
                         <Label for="email-{id}">이메일</Label>
-                        <Input id="email-{id}" type="email" placeholder="admin@example.com" required />
+                        <Input
+                            id="email-{id}"
+                            type="email"
+                            placeholder="admin@example.com"
+                            required
+                        />
                     </div>
                     <div class="grid gap-3">
                         <div class="flex items-center">
@@ -37,16 +42,12 @@
                 </div>
             </form>
             <div class="bg-muted relative hidden items-center justify-center md:flex">
-                <div class="text-center p-8">
-                    <h2 class="text-4xl font-bold mb-4">Angple</h2>
+                <div class="p-8 text-center">
+                    <h2 class="mb-4 text-4xl font-bold">Angple</h2>
                     <p class="text-muted-foreground">커뮤니티를 위한 오픈소스 플랫폼</p>
                 </div>
             </div>
         </Card.Content>
     </Card.Root>
-    <div
-        class="text-muted-foreground text-balance text-center text-xs"
-    >
-        Powered by Angple
-    </div>
+    <div class="text-muted-foreground text-balance text-center text-xs">Powered by Angple</div>
 </div>

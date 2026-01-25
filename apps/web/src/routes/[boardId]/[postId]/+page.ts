@@ -22,7 +22,7 @@ export const load: PageLoad = async ({ params }) => {
             board
         };
     } catch (err) {
-        console.error(`게시글 ${boardId}/${postId} 로딩 에러:`, err);
+        console.error('게시글 로딩 에러:', boardId, postId, err);
         throw error(404, '게시글을 찾을 수 없습니다.');
     }
 };

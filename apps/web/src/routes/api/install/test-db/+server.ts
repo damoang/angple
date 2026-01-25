@@ -20,10 +20,13 @@ export const POST: RequestHandler = async ({ request }) => {
 
         // 유효성 검사
         if (!host || !port || !database || !user) {
-            return json({
-                success: false,
-                error: '필수 필드가 누락되었습니다.'
-            }, { status: 400 });
+            return json(
+                {
+                    success: false,
+                    error: '필수 필드가 누락되었습니다.'
+                },
+                { status: 400 }
+            );
         }
 
         // TODO: 실제 MySQL 연결 테스트
@@ -65,9 +68,12 @@ export const POST: RequestHandler = async ({ request }) => {
         }
     } catch (error) {
         console.error('DB 연결 테스트 오류:', error);
-        return json({
-            success: false,
-            error: error instanceof Error ? error.message : '알 수 없는 오류'
-        }, { status: 500 });
+        return json(
+            {
+                success: false,
+                error: error instanceof Error ? error.message : '알 수 없는 오류'
+            },
+            { status: 500 }
+        );
     }
 };

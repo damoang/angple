@@ -116,11 +116,11 @@
                             <img
                                 src={data.profile.mb_image}
                                 alt={data.profile.mb_name}
-                                class="h-24 w-24 rounded-full object-cover ring-4 ring-primary/10"
+                                class="ring-primary/10 h-24 w-24 rounded-full object-cover ring-4"
                             />
                         {:else}
                             <div
-                                class="flex h-24 w-24 items-center justify-center rounded-full bg-primary text-primary-foreground ring-4 ring-primary/10"
+                                class="bg-primary text-primary-foreground ring-primary/10 flex h-24 w-24 items-center justify-center rounded-full ring-4"
                             >
                                 <User class="h-12 w-12" />
                             </div>
@@ -129,24 +129,27 @@
 
                     <!-- 프로필 정보 -->
                     <div class="flex-1">
-                        <div class="flex items-center gap-3 mb-2">
+                        <div class="mb-2 flex items-center gap-3">
                             <CardTitle class="text-2xl">{data.profile.mb_name}</CardTitle>
                             <Badge variant={getLevelVariant(data.profile.mb_level)}>
-                                Lv.{data.profile.mb_level} {getLevelName(data.profile.mb_level)}
+                                Lv.{data.profile.mb_level}
+                                {getLevelName(data.profile.mb_level)}
                             </Badge>
                         </div>
 
                         {#if data.profile.mb_signature}
-                            <p class="text-secondary-foreground mb-4">{data.profile.mb_signature}</p>
+                            <p class="text-secondary-foreground mb-4">
+                                {data.profile.mb_signature}
+                            </p>
                         {/if}
 
                         <!-- 통계 -->
                         <div class="flex flex-wrap gap-4 text-sm">
-                            <div class="flex items-center gap-1.5 text-muted-foreground">
+                            <div class="text-muted-foreground flex items-center gap-1.5">
                                 <FileText class="h-4 w-4" />
                                 <span>글 {data.profile.post_count.toLocaleString()}개</span>
                             </div>
-                            <div class="flex items-center gap-1.5 text-muted-foreground">
+                            <div class="text-muted-foreground flex items-center gap-1.5">
                                 <MessageSquare class="h-4 w-4" />
                                 <span>댓글 {data.profile.comment_count.toLocaleString()}개</span>
                             </div>
@@ -171,13 +174,13 @@
             </CardHeader>
 
             <CardContent>
-                <div class="grid gap-4 border-t border-border pt-4">
+                <div class="border-border grid gap-4 border-t pt-4">
                     <!-- 가입일 -->
                     <div class="flex items-center gap-3">
-                        <Calendar class="h-5 w-5 text-muted-foreground" />
+                        <Calendar class="text-muted-foreground h-5 w-5" />
                         <div>
-                            <p class="text-sm font-medium text-foreground">가입일</p>
-                            <p class="text-sm text-secondary-foreground">
+                            <p class="text-foreground text-sm font-medium">가입일</p>
+                            <p class="text-secondary-foreground text-sm">
                                 {formatDate(data.profile.mb_datetime)}
                             </p>
                         </div>
@@ -185,10 +188,10 @@
 
                     <!-- 최근 활동 -->
                     <div class="flex items-center gap-3">
-                        <Clock class="h-5 w-5 text-muted-foreground" />
+                        <Clock class="text-muted-foreground h-5 w-5" />
                         <div>
-                            <p class="text-sm font-medium text-foreground">최근 활동</p>
-                            <p class="text-sm text-secondary-foreground">
+                            <p class="text-foreground text-sm font-medium">최근 활동</p>
+                            <p class="text-secondary-foreground text-sm">
                                 {formatRelativeTime(data.profile.mb_today_login)}
                             </p>
                         </div>
@@ -197,14 +200,14 @@
                     <!-- 홈페이지 -->
                     {#if data.profile.mb_homepage}
                         <div class="flex items-center gap-3">
-                            <Link class="h-5 w-5 text-muted-foreground" />
+                            <Link class="text-muted-foreground h-5 w-5" />
                             <div>
-                                <p class="text-sm font-medium text-foreground">홈페이지</p>
+                                <p class="text-foreground text-sm font-medium">홈페이지</p>
                                 <a
                                     href={data.profile.mb_homepage}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    class="text-sm text-primary hover:underline"
+                                    class="text-primary text-sm hover:underline"
                                 >
                                     {data.profile.mb_homepage}
                                 </a>
@@ -221,7 +224,7 @@
                 <CardTitle class="text-lg">최근 활동</CardTitle>
             </CardHeader>
             <CardContent>
-                <p class="text-center text-muted-foreground py-8">
+                <p class="text-muted-foreground py-8 text-center">
                     회원의 최근 활동 내역이 여기에 표시됩니다.
                 </p>
             </CardContent>
@@ -229,11 +232,9 @@
     {:else}
         <Card class="bg-background">
             <CardContent class="py-12 text-center">
-                <User class="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
-                <p class="text-lg font-medium text-foreground mb-2">회원을 찾을 수 없습니다</p>
-                <p class="text-secondary-foreground">
-                    요청하신 회원 정보가 존재하지 않습니다.
-                </p>
+                <User class="text-muted-foreground mx-auto mb-4 h-12 w-12" />
+                <p class="text-foreground mb-2 text-lg font-medium">회원을 찾을 수 없습니다</p>
+                <p class="text-secondary-foreground">요청하신 회원 정보가 존재하지 않습니다.</p>
             </CardContent>
         </Card>
     {/if}
