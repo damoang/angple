@@ -12,10 +12,12 @@ services:
     networks:
       - angple-network
       - proxy-network
+      - backend_angple-network
     volumes:
       - ${DATA_PATH:-./data}:/app/data
     environment:
       - NODE_ENV=production
+      - INTERNAL_API_URL=http://angple-gateway:8080/api/v1
 
   # Admin Dashboard (GHCR에서 pull)
   admin:
@@ -32,4 +34,6 @@ networks:
   angple-network:
     external: true
   proxy-network:
+    external: true
+  backend_angple-network:
     external: true
