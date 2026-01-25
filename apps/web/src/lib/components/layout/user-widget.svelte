@@ -5,6 +5,8 @@
     import LogIn from '@lucide/svelte/icons/log-in';
     import LogOut from '@lucide/svelte/icons/log-out';
     import User from '@lucide/svelte/icons/user';
+    import Coins from '@lucide/svelte/icons/coins';
+    import Star from '@lucide/svelte/icons/star';
     import { getUser, getIsLoggedIn, getIsLoading } from '$lib/stores/auth.svelte';
 
     // Reactive getters
@@ -51,6 +53,35 @@
                 <span class="truncate font-medium">{user.mb_name}</span>
                 <p class="text-muted-foreground truncate text-xs">{user.mb_id}</p>
             </div>
+        </div>
+
+        <!-- 포인트 & 경험치 표시 -->
+        <div class="mt-3 space-y-2">
+            {#if user.mb_point !== undefined}
+                <a
+                    href="/my/points"
+                    class="bg-muted/50 hover:bg-muted flex items-center justify-between rounded-md px-3 py-2 text-sm transition-colors"
+                >
+                    <span class="text-muted-foreground flex items-center gap-1.5">
+                        <Coins class="h-4 w-4" />
+                        포인트
+                    </span>
+                    <span class="text-foreground font-medium">{user.mb_point.toLocaleString()}</span
+                    >
+                </a>
+            {/if}
+            {#if user.mb_exp !== undefined}
+                <a
+                    href="/my/exp"
+                    class="bg-muted/50 hover:bg-muted flex items-center justify-between rounded-md px-3 py-2 text-sm transition-colors"
+                >
+                    <span class="text-muted-foreground flex items-center gap-1.5">
+                        <Star class="h-4 w-4 text-yellow-500" />
+                        경험치
+                    </span>
+                    <span class="text-foreground font-medium">{user.mb_exp.toLocaleString()}</span>
+                </a>
+            {/if}
         </div>
 
         <!-- 로그아웃 버튼 -->

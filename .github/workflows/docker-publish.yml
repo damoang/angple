@@ -1,9 +1,22 @@
-name: Build & Deploy
+name: Docker Build & Publish
 
 on:
   push:
     branches:
       - main
+      - staging
+      - develop
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: '배포 환경'
+        required: true
+        default: 'dev'
+        type: choice
+        options:
+          - dev
+          - staging
+          - prod
 
 env:
   REGISTRY: ghcr.io
@@ -22,44 +35,60 @@ jobs:
         include:
           - app: web
             dockerfile: apps/web/Dockerfile
+            context: .
             image_name: angple-web
           - app: admin
             dockerfile: apps/admin/Dockerfile
+            context: .
             image_name: angple-admin
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Login to GHCR
+      - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push
+      - name: Extract metadata (tags, labels)
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE_PREFIX }}/${{ matrix.image_name }}
+          tags: |
+            type=ref,event=branch
+            type=sha,prefix=
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+
+      - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
-          context: .
+          context: ${{ matrix.context }}
           file: ${{ matrix.dockerfile }}
           target: production
           push: true
-          platforms: linux/amd64,linux/arm64
-          tags: ${{ env.IMAGE_PREFIX }}/${{ matrix.image_name }}:latest
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          build-args: |
+            VITE_USE_MOCK=false
 
-  deploy:
+      - name: Image digest
+        run: echo "Image pushed with digest ${{ steps.docker_build.outputs.digest }}"
+
+  # 개발서버 배포 (develop 브랜치) - SSH 방식
+  deploy-dev:
     name: Deploy to Dev Server
     needs: build-and-push
     runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/develop' || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'dev')
 
     steps:
       - name: Deploy via SSH
@@ -73,10 +102,77 @@ jobs:
 
             echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
-            docker pull ghcr.io/damoang/angple-web:latest
-            docker pull ghcr.io/damoang/angple-admin:latest
+            docker pull ghcr.io/${{ github.repository_owner }}/angple-web:develop
+            docker pull ghcr.io/${{ github.repository_owner }}/angple-admin:develop
 
+            docker compose pull
             docker compose up -d
             docker image prune -f
 
-            echo "Deployed at $(date)"
+            echo "Dev deployed at $(date)"
+
+  # 스테이징서버 배포 (staging 브랜치) - SSM 방식
+  deploy-staging:
+    name: Deploy to Staging Server (SSM)
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/staging' || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'staging')
+
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Deploy via SSM
+        run: |
+          aws ssm send-command \
+            --instance-ids "${{ secrets.STAGING_INSTANCE_ID }}" \
+            --document-name "AWS-RunShellScript" \
+            --parameters 'commands=[
+              "cd /home/angple/front",
+              "echo ${{ secrets.GHCR_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin",
+              "docker pull ghcr.io/${{ github.repository_owner }}/angple-web:staging",
+              "docker pull ghcr.io/${{ github.repository_owner }}/angple-admin:staging",
+              "docker compose pull",
+              "docker compose up -d",
+              "docker image prune -f",
+              "echo Staging deployed at $(date)"
+            ]' \
+            --timeout-seconds 300 \
+            --output text
+
+  # 운영서버 배포 (main 브랜치) - SSM 방식
+  deploy-prod:
+    name: Deploy to Prod Server (SSM)
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'prod')
+
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Deploy via SSM
+        run: |
+          aws ssm send-command \
+            --instance-ids "${{ secrets.PROD_INSTANCE_ID }}" \
+            --document-name "AWS-RunShellScript" \
+            --parameters 'commands=[
+              "cd /home/angple/front",
+              "echo ${{ secrets.GHCR_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin",
+              "docker pull ghcr.io/${{ github.repository_owner }}/angple-web:main",
+              "docker pull ghcr.io/${{ github.repository_owner }}/angple-admin:main",
+              "docker compose pull",
+              "docker compose up -d",
+              "docker image prune -f",
+              "echo Prod deployed at $(date)"
+            ]' \
+            --timeout-seconds 300 \
+            --output text

@@ -1,5 +1,6 @@
 <script lang="ts">
     import { onMount } from 'svelte';
+    import { goto } from '$app/navigation';
     import Search from '@lucide/svelte/icons/search';
     import User from '@lucide/svelte/icons/user';
     import Bell from '@lucide/svelte/icons/bell';
@@ -11,7 +12,10 @@
     import Moon from '@lucide/svelte/icons/moon';
     import Logo from '$lib/assets/logo.svg';
     import AlignJustify from '@lucide/svelte/icons/align-justify';
+    import Mail from '@lucide/svelte/icons/mail';
     import Sidebar from './sidebar.svelte';
+    import { NotificationDropdown } from '$lib/components/features/notification/index.js';
+    import { authStore } from '$lib/stores/auth.svelte.js';
 
     // 스크롤 상태 관리
     let isHeaderVisible = $state(true);
@@ -118,6 +122,7 @@
 
             <!-- 검색 아이콘 -->
             <button
+                onclick={() => goto('/search')}
                 class="hover:bg-dusty-100 dark:hover:bg-dusty-800 rounded-lg p-2 transition-colors"
                 aria-label="검색"
             >
@@ -126,19 +131,34 @@
 
             <!-- 사용자 아이콘 (로그인/프로필) -->
             <button
+                onclick={() => goto('/my')}
                 class="hover:bg-dusty-100 dark:hover:bg-dusty-800 rounded-lg p-2 transition-colors"
                 aria-label="사용자 메뉴"
             >
                 <User class="h-5 w-5 text-blue-600 dark:text-blue-400" />
             </button>
 
-            <!-- 알림 아이콘 -->
-            <button
-                class="hover:bg-dusty-100 dark:hover:bg-dusty-800 rounded-lg p-2 transition-colors"
-                aria-label="알림"
-            >
-                <Bell class="text-dusty-600 dark:text-dusty-400 h-5 w-5" />
-            </button>
+            {#if authStore.isAuthenticated}
+                <!-- 쪽지 아이콘 -->
+                <button
+                    onclick={() => goto('/messages')}
+                    class="hover:bg-dusty-100 dark:hover:bg-dusty-800 rounded-lg p-2 transition-colors"
+                    aria-label="쪽지"
+                >
+                    <Mail class="text-dusty-600 dark:text-dusty-400 h-5 w-5" />
+                </button>
+
+                <!-- 알림 드롭다운 -->
+                <NotificationDropdown />
+            {:else}
+                <!-- 알림 아이콘 (비로그인 시 단순 버튼) -->
+                <button
+                    class="hover:bg-dusty-100 dark:hover:bg-dusty-800 rounded-lg p-2 transition-colors"
+                    aria-label="알림"
+                >
+                    <Bell class="text-dusty-600 dark:text-dusty-400 h-5 w-5" />
+                </button>
+            {/if}
 
             <!-- 햄버거 메뉴 (추가 메뉴) -->
             <button

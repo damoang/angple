@@ -51,19 +51,30 @@ function resetAuth(): void {
 }
 
 /**
- * damoang.net 로그인 페이지로 이동
+ * 로그인 페이지로 이동
  */
 function redirectToLogin(): void {
-    const currentUrl = encodeURIComponent(window.location.href);
-    window.location.href = `https://damoang.net/bbs/login.php?url=${currentUrl}`;
+    const currentPath = typeof window !== 'undefined' ? window.location.pathname : '/';
+    window.location.href = `/login?redirect=${encodeURIComponent(currentPath)}`;
 }
 
 /**
- * damoang.net 로그아웃 후 현재 페이지로 복귀
+ * 로그아웃 처리
+ */
+async function logout(): Promise<void> {
+    try {
+        await apiClient.logoutUser();
+    } finally {
+        resetAuth();
+        window.location.href = '/';
+    }
+}
+
+/**
+ * @deprecated 이전 버전 호환성을 위해 유지
  */
 function redirectToLogout(): void {
-    const currentUrl = encodeURIComponent(window.location.origin);
-    window.location.href = `https://damoang.net/bbs/logout.php?url=${currentUrl}`;
+    logout();
 }
 
 // Export getters for reactive access
@@ -89,7 +100,8 @@ export const authActions = {
     fetchCurrentUser,
     resetAuth,
     redirectToLogin,
-    redirectToLogout
+    redirectToLogout,
+    logout
 };
 
 // Export authStore for theme compatibility

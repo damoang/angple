@@ -16,22 +16,40 @@ import type {
     UpdatePostRequest,
     CreateCommentRequest,
     UpdateCommentRequest,
-    Board
+    Board,
+    LikeResponse,
+    LikersResponse,
+    SearchParams,
+    GlobalSearchResponse,
+    MemberProfile,
+    MyActivity,
+    BlockedMember,
+    UploadedFile,
+    PresignedUrlResponse,
+    PostAttachment,
+    CreateReportRequest,
+    PointSummary,
+    PointHistoryResponse,
+    NotificationSummary,
+    NotificationListResponse,
+    MessageKind,
+    MessageListResponse,
+    Message,
+    SendMessageRequest,
+    ExpSummary,
+    ExpHistoryResponse,
+    LoginRequest,
+    LoginResponse,
+    OAuthProvider,
+    OAuthLoginRequest,
+    RegisterRequest,
+    RegisterResponse
 } from './types.js';
-import {
-    getMockFreePosts,
-    getMockFreePost,
-    getMockFreeComments,
-    getMockMenus,
-    getMockCurrentUser,
-    getMockIndexWidgets,
-    getMockBoard
-} from './mock-data.js';
 import { browser } from '$app/environment';
 
 // 서버/클라이언트 환경에 따라 API URL 분기
 const API_BASE_URL = browser
-    ? import.meta.env.VITE_API_URL || 'https://api.damoang.dev/api/v1'
+    ? import.meta.env.VITE_API_URL || '/api/v2'
     : import.meta.env.VITE_API_URL || 'http://localhost:8081/api/v2';
 
 // 디버깅: API URL 확인
@@ -55,80 +73,24 @@ console.log('[API Client] Final API_BASE_URL:', API_BASE_URL);
  * 4. 로그아웃: Backend가 쿠키 만료 처리
  */
 class ApiClient {
-    private useMock = false; // Mock 모드 플래그
+    // 액세스 토큰 가져오기 헬퍼
+    private getAccessToken(): string | null {
+        if (!browser) return null;
 
-    constructor() {
-        // 환경변수로 Mock 모드 강제 설정 (백엔드 미준비 시 사용)
-        const envMockMode = import.meta.env.VITE_USE_MOCK === 'true';
-        console.log(
-            '[API Client] VITE_USE_MOCK:',
-            import.meta.env.VITE_USE_MOCK,
-            'envMockMode:',
-            envMockMode
-        );
+        // 1. localStorage에서 먼저 확인
+        let accessToken = localStorage.getItem('access_token');
 
-        // 환경 변수로 false가 설정되어 있으면 무조건 Mock 모드 비활성화
-        if (import.meta.env.VITE_USE_MOCK === 'false') {
-            this.useMock = false;
-            if (typeof window !== 'undefined') {
-                localStorage.setItem('damoang_use_mock', 'false');
+        // 2. localStorage에 없으면 쿠키에서 damoang_jwt 확인
+        if (!accessToken) {
+            const jwtCookie = document.cookie
+                .split('; ')
+                .find((row) => row.startsWith('damoang_jwt='));
+            if (jwtCookie) {
+                accessToken = jwtCookie.split('=')[1];
             }
-            console.log('[API Client] Mock mode FORCED OFF by environment variable');
-            return;
         }
 
-        // 브라우저 환경에서만 로컬스토리지 접근
-        if (typeof window !== 'undefined') {
-            // 환경변수가 true로 설정되어 있으면 우선 적용
-            if (envMockMode) {
-                this.useMock = true;
-                return;
-            }
-
-            // Mock 모드 확인
-            const mockSetting = localStorage.getItem('damoang_use_mock');
-
-            // 로컬 개발 환경(localhost)에서는 기본값 true
-            // 운영 환경(damoang.dev, damoang.net)에서는 기본값 false
-            const isLocalDev =
-                window.location.hostname === 'localhost' ||
-                window.location.hostname === '127.0.0.1';
-
-            // 정확한 도메인 매칭 (서브도메인 공격 방지)
-            const hostname = window.location.hostname;
-            const isProduction =
-                hostname === 'damoang.dev' ||
-                hostname.endsWith('.damoang.dev') ||
-                hostname === 'damoang.net' ||
-                hostname.endsWith('.damoang.net');
-
-            if (mockSetting === null || isProduction) {
-                // localStorage에 설정이 없거나 운영 환경이면: 로컬은 true, 운영은 false
-                this.useMock = isLocalDev && !isProduction;
-                localStorage.setItem('damoang_use_mock', this.useMock.toString());
-            } else {
-                // localStorage 설정 우선 (개발 환경에서만)
-                this.useMock = mockSetting !== 'false';
-            }
-        } else {
-            // SSR 환경에서도 환경변수 적용
-            this.useMock = envMockMode;
-        }
-
-        console.log('[API Client] Final useMock:', this.useMock);
-    }
-
-    // Mock 모드 설정
-    setMockMode(enabled: boolean): void {
-        this.useMock = enabled;
-        if (typeof window !== 'undefined') {
-            localStorage.setItem('damoang_use_mock', enabled.toString());
-        }
-    }
-
-    // Mock 모드 상태 확인
-    isMockMode(): boolean {
-        return this.useMock;
+        return accessToken;
     }
 
     // HTTP 요청 헬퍼
@@ -143,13 +105,10 @@ class ApiClient {
             ...(options.headers as Record<string, string>)
         };
 
-        // 브라우저 환경에서 localStorage의 access_token을 자동으로 헤더에 추가
-        // TODO: Phase 19에서 메모리 저장 방식으로 변경 (보안 강화)
-        if (browser && typeof localStorage !== 'undefined') {
-            const accessToken = localStorage.getItem('access_token');
-            if (accessToken) {
-                headers['Authorization'] = `Bearer ${accessToken}`;
-            }
+        // 브라우저 환경에서 access_token을 자동으로 헤더에 추가
+        const accessToken = this.getAccessToken();
+        if (accessToken) {
+            headers['Authorization'] = `Bearer ${accessToken}`;
         }
 
         try {
@@ -161,8 +120,33 @@ class ApiClient {
 
             console.log(`[API] Response status:`, response.status, response.statusText);
 
-            const data = await response.json();
-            console.log(`[API] Response data:`, JSON.stringify(data).substring(0, 200));
+            // 204 No Content 또는 빈 응답 처리
+            if (response.status === 204 || response.headers.get('content-length') === '0') {
+                console.log(`[API] Empty response (204 or no content)`);
+                if (!response.ok) {
+                    throw new Error('요청 실패');
+                }
+                return { data: undefined as T } as ApiResponse<T>;
+            }
+
+            // JSON 파싱 시도
+            let data;
+            const contentType = response.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
+                try {
+                    data = await response.json();
+                    console.log(`[API] Response data:`, JSON.stringify(data).substring(0, 200));
+                } catch (parseError) {
+                    console.error('[API] JSON 파싱 에러:', parseError);
+                    throw new Error('서버 응답을 처리할 수 없습니다.');
+                }
+            } else {
+                // JSON이 아닌 응답 (HTML 등)
+                if (!response.ok) {
+                    throw new Error(`서버 에러 (${response.status})`);
+                }
+                return { data: undefined as T } as ApiResponse<T>;
+            }
 
             if (!response.ok) {
                 console.error(`[API] Error response:`, data);
@@ -179,7 +163,6 @@ class ApiClient {
     }
 
     // API 키 등록
-    // 💡 Backend가 httpOnly cookie로 Refresh Token 자동 설정
     async registerApiKey(request: RegisterApiKeyRequest): Promise<ApiKeyResponse> {
         const response = await this.request<ApiKeyResponse>('/auth/register', {
             method: 'POST',
@@ -190,7 +173,6 @@ class ApiClient {
     }
 
     // 토큰 재발급
-    // 💡 쿠키의 Refresh Token으로 자동 갱신, 새 쿠키 발급
     async refreshToken(request: RefreshTokenRequest): Promise<ApiKeyResponse> {
         const response = await this.request<ApiKeyResponse>('/auth/token', {
             method: 'POST',
@@ -200,16 +182,36 @@ class ApiClient {
         return response.data;
     }
 
-    // 자유게시판 목록 조회
-    async getFreePosts(page = 1, limit = 10): Promise<PaginatedResponse<FreePost>> {
-        // Mock 모드일 경우 가짜 데이터 반환
-        if (this.useMock) {
-            // 실제 API 호출처럼 약간의 지연 추가
-            await new Promise((resolve) => setTimeout(resolve, 300));
-            return getMockFreePosts(page, limit);
+    // 게시판 공지사항 조회
+    async getBoardNotices(boardId: string): Promise<FreePost[]> {
+        interface BackendResponse {
+            data: FreePost[];
         }
 
-        // 백엔드 응답 타입: { data: Post[], meta: { ... } }
+        try {
+            const response = await this.request<BackendResponse>(`/boards/${boardId}/notices`);
+
+            const backendData = response as unknown as BackendResponse;
+            return backendData.data || [];
+        } catch (error) {
+            // 공지사항 API가 없거나 에러 시 빈 배열 반환
+            console.warn('[API] 공지사항 로드 실패:', boardId, error);
+            return [];
+        }
+    }
+
+    // ========================================
+    // 동적 게시판 조회 (범용)
+    // ========================================
+
+    /**
+     * 게시판 글 목록 조회 (동적 boardId)
+     */
+    async getBoardPosts(
+        boardId: string,
+        page = 1,
+        limit = 10
+    ): Promise<PaginatedResponse<FreePost>> {
         interface BackendResponse {
             data: FreePost[];
             meta: {
@@ -221,53 +223,82 @@ class ApiClient {
         }
 
         const response = await this.request<BackendResponse>(
-            `/boards/free/posts?page=${page}&limit=${limit}`
+            `/boards/${boardId}/posts?page=${page}&limit=${limit}`
         );
 
-        console.log('[API] Raw response:', response);
+        const backendData = response as unknown as BackendResponse;
 
-        // 백엔드가 { data: Post[], meta: {...} } 형식을 직접 반환
-        // request()는 이를 그대로 반환하므로 response가 곧 BackendResponse
-        const backendData = response as any as BackendResponse;
-
-        console.log('[API] Backend data:', backendData);
-        console.log('[API] Backend data.data length:', backendData.data?.length);
-
-        // 프론트엔드 PaginatedResponse 형식으로 변환
         const result: PaginatedResponse<FreePost> = {
-            items: backendData.data,
-            total: backendData.meta.total,
-            page: backendData.meta.page,
-            limit: backendData.meta.limit,
-            total_pages: Math.ceil(backendData.meta.total / backendData.meta.limit)
+            items: backendData.data || [],
+            total: backendData.meta?.total || 0,
+            page: backendData.meta?.page || page,
+            limit: backendData.meta?.limit || limit,
+            total_pages: backendData.meta
+                ? Math.ceil(backendData.meta.total / backendData.meta.limit)
+                : 0
         };
-
-        console.log('[API] Converted PaginatedResponse:', result);
 
         return result;
     }
 
-    // 자유게시판 상세 조회
-    async getFreePost(id: string): Promise<FreePost> {
-        // Mock 모드일 경우 가짜 데이터 반환
-        if (this.useMock) {
-            await new Promise((resolve) => setTimeout(resolve, 200));
-            return getMockFreePost(id);
-        }
-
-        // 백엔드 응답 타입: { data: Post }
+    /**
+     * 게시글 상세 조회 (동적 boardId)
+     */
+    async getBoardPost(boardId: string, postId: string): Promise<FreePost> {
         interface BackendPostResponse {
             data: FreePost;
         }
 
-        const response = await this.request<BackendPostResponse>(`/boards/free/posts/${id}`);
-
-        console.log('[API] Post detail raw response:', response);
-
-        // 백엔드가 { data: Post } 형식을 직접 반환
-        const backendData = response as any as BackendPostResponse;
+        const response = await this.request<BackendPostResponse>(
+            `/boards/${boardId}/posts/${postId}`
+        );
+        const backendData = response as unknown as BackendPostResponse;
 
         return backendData.data;
+    }
+
+    /**
+     * 게시글 댓글 조회 (동적 boardId)
+     */
+    async getBoardComments(
+        boardId: string,
+        postId: string,
+        page = 1,
+        limit = 10
+    ): Promise<PaginatedResponse<FreeComment>> {
+        interface BackendCommentsResponse {
+            data: FreeComment[];
+        }
+
+        const response = await this.request<BackendCommentsResponse>(
+            `/boards/${boardId}/posts/${postId}/comments?page=${page}&limit=${limit}`
+        );
+
+        const backendData = response as unknown as BackendCommentsResponse;
+
+        const result: PaginatedResponse<FreeComment> = {
+            items: backendData.data || [],
+            total: backendData.data?.length || 0,
+            page: page,
+            limit: limit,
+            total_pages: 1
+        };
+
+        return result;
+    }
+
+    // ========================================
+    // 자유게시판 조회 (하위 호환성 유지)
+    // ========================================
+
+    // 자유게시판 목록 조회
+    async getFreePosts(page = 1, limit = 10): Promise<PaginatedResponse<FreePost>> {
+        return this.getBoardPosts('free', page, limit);
+    }
+
+    // 자유게시판 상세 조회
+    async getFreePost(id: string): Promise<FreePost> {
+        return this.getBoardPost('free', id);
     }
 
     // 자유게시판 글 댓글 조회
@@ -276,53 +307,11 @@ class ApiClient {
         page = 1,
         limit = 10
     ): Promise<PaginatedResponse<FreeComment>> {
-        // Mock 모드일 경우 가짜 데이터 반환
-        if (this.useMock) {
-            // 실제 API 호출처럼 약간의 지연 추가
-            await new Promise((resolve) => setTimeout(resolve, 300));
-            return getMockFreeComments(page, limit);
-        }
-
-        // 백엔드 응답 타입: { data: Comment[] }
-        interface BackendCommentsResponse {
-            data: FreeComment[];
-        }
-
-        const response = await this.request<BackendCommentsResponse>(
-            `/boards/free/posts/${id}/comments?page=${page}&limit=${limit}`
-        );
-
-        console.log('[API] Comments raw response:', response);
-
-        // 백엔드가 { data: Comment[] } 형식을 직접 반환
-        const backendData = response as any as BackendCommentsResponse;
-
-        console.log('[API] Comments data length:', backendData.data?.length);
-
-        // 프론트엔드 PaginatedResponse 형식으로 변환
-        // 백엔드가 meta 정보를 제공하지 않으므로 기본값 사용
-        const result: PaginatedResponse<FreeComment> = {
-            items: backendData.data,
-            total: backendData.data.length,
-            page: page,
-            limit: limit,
-            total_pages: 1
-        };
-
-        console.log('[API] Converted comments response:', result);
-
-        return result;
+        return this.getBoardComments('free', id, page, limit);
     }
 
     // 게시판 정보 조회
     async getBoard(boardId: string): Promise<Board> {
-        // Mock 모드일 경우 가짜 데이터 반환
-        if (this.useMock) {
-            await new Promise((resolve) => setTimeout(resolve, 200));
-            return getMockBoard(boardId);
-        }
-
-        // 백엔드 응답 타입: { data: Board }
         interface BackendBoardResponse {
             data: Board;
         }
@@ -331,14 +320,12 @@ class ApiClient {
 
         console.log('[API] Board detail raw response:', response);
 
-        // 백엔드가 { data: Board } 형식을 직접 반환
-        const backendData = response as any as BackendBoardResponse;
+        const backendData = response as unknown as BackendBoardResponse;
 
         return backendData.data;
     }
 
     // 로그아웃
-    // 💡 Backend 로그아웃 엔드포인트 호출 → httpOnly cookie 만료 처리
     async logout(): Promise<void> {
         try {
             await this.request('/auth/logout', {
@@ -346,63 +333,43 @@ class ApiClient {
             });
         } catch (error) {
             console.error('로그아웃 에러:', error);
-            // 에러가 발생해도 로컬 상태는 정리
         }
     }
 
     // 추천 글 데이터 가져오기 (AI 분석 포함)
     async getRecommendedPostsWithAI(period: RecommendedPeriod): Promise<RecommendedDataWithAI> {
-        // Mock 모드: static 폴더에서 JSON 직접 로드
-        if (this.useMock) {
-            await new Promise((resolve) => setTimeout(resolve, 200));
-            // period 매핑: 1h → 1hour, 3h → 3hours 등
-            const periodMap: Record<RecommendedPeriod, string> = {
-                '1h': '1hour',
-                '3h': '3hours',
-                '6h': '6hours',
-                '12h': '12hours',
-                '24h': '24hours',
-                '48h': '48hours'
-            };
-            const fileName = periodMap[period] || period;
-            // static/data/cache/recommended/ai_1hour.json 형식으로 저장됨
-            const response = await fetch(`/data/cache/recommended/ai_${fileName}.json`);
-            if (!response.ok) {
-                throw new Error(`AI 추천 글 데이터 로드 실패: ${period}`);
-            }
-            return await response.json();
-        }
-
-        // 실제 API 모드 (나중에 구현)
         const response = await this.request<RecommendedDataWithAI>(`/recommended/ai/${period}`);
         return response.data;
     }
 
     // 사이드바 메뉴 조회
     async getMenus(): Promise<MenuItem[]> {
-        // Mock 모드일 경우 가짜 데이터 반환
-        if (this.useMock) {
-            await new Promise((resolve) => setTimeout(resolve, 200));
-            return getMockMenus();
-        }
-
         const response = await this.request<MenuItem[]>('/menus/sidebar');
         return response.data;
     }
 
     // 현재 로그인 사용자 조회
+    // /auth/profile은 JWT 기반, /auth/me는 쿠키 기반
     async getCurrentUser(): Promise<DamoangUser | null> {
-        // Mock 모드일 경우 가짜 데이터 반환
-        if (this.useMock) {
-            await new Promise((resolve) => setTimeout(resolve, 200));
-            return getMockCurrentUser();
-        }
-
         try {
-            const response = await this.request<DamoangUser>('/auth/me');
-            return response.data;
+            // JWT Authorization 헤더 기반 인증
+            interface ProfileResponse {
+                user_id: string;
+                nickname: string;
+                level: number;
+            }
+            const response = await this.request<ProfileResponse>('/auth/profile');
+            if (!response.data) {
+                return null;
+            }
+            // /auth/profile 응답을 DamoangUser 형식으로 변환
+            return {
+                mb_id: response.data.user_id,
+                mb_name: response.data.nickname,
+                mb_level: response.data.level,
+                mb_email: '' // profile API는 email을 반환하지 않음
+            };
         } catch {
-            // 비로그인 상태는 에러가 아니므로 null 반환
             console.log('User not logged in');
             return null;
         }
@@ -410,12 +377,6 @@ class ApiClient {
 
     // 인덱스 위젯 데이터 조회
     async getIndexWidgets(): Promise<IndexWidgetsData> {
-        // Mock 모드일 경우 가짜 데이터 반환
-        if (this.useMock) {
-            await new Promise((resolve) => setTimeout(resolve, 300));
-            return getMockIndexWidgets();
-        }
-
         const response = await this.request<IndexWidgetsData>('/recommended/index-widgets');
         return response.data;
     }
@@ -427,17 +388,8 @@ class ApiClient {
     /**
      * 게시글 작성
      * 🔒 인증 필요: Authorization 헤더에 Access Token 필요
-     *
-     * @param boardId 게시판 ID (예: 'free', 'qna')
-     * @param request 게시글 작성 데이터
-     * @returns 생성된 게시글 정보
      */
     async createPost(boardId: string, request: CreatePostRequest): Promise<FreePost> {
-        // Mock 모드: 아직 구현 안 됨 (나중에 필요시 추가)
-        if (this.useMock) {
-            throw new Error('Mock 모드에서는 게시글 작성이 지원되지 않습니다.');
-        }
-
         const response = await this.request<FreePost>(`/boards/${boardId}/posts`, {
             method: 'POST',
             body: JSON.stringify(request)
@@ -448,24 +400,13 @@ class ApiClient {
 
     /**
      * 게시글 수정
-     * 🔒 인증 필요: Authorization 헤더에 Access Token 필요
-     * 🔒 권한 필요: 본인이 작성한 게시글만 수정 가능
-     *
-     * @param boardId 게시판 ID (예: 'free', 'qna')
-     * @param postId 게시글 ID
-     * @param request 수정할 데이터 (title, content, category 중 일부만 전달 가능)
-     * @returns 수정된 게시글 정보
+     * 🔒 인증 필요 + 작성자 본인만 가능
      */
     async updatePost(
         boardId: string,
         postId: string,
         request: UpdatePostRequest
     ): Promise<FreePost> {
-        // Mock 모드: 아직 구현 안 됨
-        if (this.useMock) {
-            throw new Error('Mock 모드에서는 게시글 수정이 지원되지 않습니다.');
-        }
-
         const response = await this.request<FreePost>(`/boards/${boardId}/posts/${postId}`, {
             method: 'PUT',
             body: JSON.stringify(request)
@@ -476,18 +417,9 @@ class ApiClient {
 
     /**
      * 게시글 삭제
-     * 🔒 인증 필요: Authorization 헤더에 Access Token 필요
-     * 🔒 권한 필요: 본인이 작성한 게시글만 삭제 가능
-     *
-     * @param boardId 게시판 ID (예: 'free', 'qna')
-     * @param postId 게시글 ID
+     * 🔒 인증 필요 + 작성자 본인만 가능
      */
     async deletePost(boardId: string, postId: string): Promise<void> {
-        // Mock 모드: 아직 구현 안 됨
-        if (this.useMock) {
-            throw new Error('Mock 모드에서는 게시글 삭제가 지원되지 않습니다.');
-        }
-
         await this.request<void>(`/boards/${boardId}/posts/${postId}`, {
             method: 'DELETE'
         });
@@ -499,23 +431,13 @@ class ApiClient {
 
     /**
      * 댓글 작성
-     * 🔒 인증 필요: Authorization 헤더에 Access Token 필요
-     *
-     * @param boardId 게시판 ID (예: 'free', 'qna')
-     * @param postId 게시글 ID
-     * @param request 댓글 작성 데이터
-     * @returns 생성된 댓글 정보
+     * 🔒 인증 필요
      */
     async createComment(
         boardId: string,
         postId: string,
         request: CreateCommentRequest
     ): Promise<FreeComment> {
-        // Mock 모드: 아직 구현 안 됨
-        if (this.useMock) {
-            throw new Error('Mock 모드에서는 댓글 작성이 지원되지 않습니다.');
-        }
-
         const response = await this.request<FreeComment>(
             `/boards/${boardId}/posts/${postId}/comments`,
             {
@@ -529,14 +451,7 @@ class ApiClient {
 
     /**
      * 댓글 수정
-     * 🔒 인증 필요: Authorization 헤더에 Access Token 필요
-     * 🔒 권한 필요: 본인이 작성한 댓글만 수정 가능
-     *
-     * @param boardId 게시판 ID (예: 'free', 'qna')
-     * @param postId 게시글 ID
-     * @param commentId 댓글 ID
-     * @param request 수정할 내용
-     * @returns 수정된 댓글 정보
+     * 🔒 인증 필요 + 작성자 본인만 가능
      */
     async updateComment(
         boardId: string,
@@ -544,11 +459,6 @@ class ApiClient {
         commentId: string,
         request: UpdateCommentRequest
     ): Promise<FreeComment> {
-        // Mock 모드: 아직 구현 안 됨
-        if (this.useMock) {
-            throw new Error('Mock 모드에서는 댓글 수정이 지원되지 않습니다.');
-        }
-
         const response = await this.request<FreeComment>(
             `/boards/${boardId}/posts/${postId}/comments/${commentId}`,
             {
@@ -562,22 +472,639 @@ class ApiClient {
 
     /**
      * 댓글 삭제
-     * 🔒 인증 필요: Authorization 헤더에 Access Token 필요
-     * 🔒 권한 필요: 본인이 작성한 댓글만 삭제 가능
-     *
-     * @param boardId 게시판 ID (예: 'free', 'qna')
-     * @param postId 게시글 ID
-     * @param commentId 댓글 ID
+     * 🔒 인증 필요 + 작성자 본인만 가능
      */
     async deleteComment(boardId: string, postId: string, commentId: string): Promise<void> {
-        // Mock 모드: 아직 구현 안 됨
-        if (this.useMock) {
-            throw new Error('Mock 모드에서는 댓글 삭제가 지원되지 않습니다.');
-        }
-
         await this.request<void>(`/boards/${boardId}/posts/${postId}/comments/${commentId}`, {
             method: 'DELETE'
         });
+    }
+
+    // ========================================
+    // 추천/비추천 (Like/Dislike)
+    // ========================================
+
+    /**
+     * 게시글 추천
+     * 🔒 인증 필요
+     */
+    async likePost(boardId: string, postId: string): Promise<LikeResponse> {
+        const response = await this.request<LikeResponse>(
+            `/boards/${boardId}/posts/${postId}/like`,
+            { method: 'POST' }
+        );
+        return response.data;
+    }
+
+    /**
+     * 게시글 비추천
+     * 🔒 인증 필요
+     */
+    async dislikePost(boardId: string, postId: string): Promise<LikeResponse> {
+        const response = await this.request<LikeResponse>(
+            `/boards/${boardId}/posts/${postId}/dislike`,
+            { method: 'POST' }
+        );
+        return response.data;
+    }
+
+    /**
+     * 게시글 추천 상태 조회
+     */
+    async getPostLikeStatus(boardId: string, postId: string): Promise<LikeResponse> {
+        const response = await this.request<LikeResponse>(
+            `/boards/${boardId}/posts/${postId}/like-status`
+        );
+        return response.data;
+    }
+
+    /**
+     * 게시글 추천자 목록 조회
+     */
+    async getPostLikers(
+        boardId: string,
+        postId: string,
+        page = 1,
+        limit = 20
+    ): Promise<LikersResponse> {
+        const response = await this.request<LikersResponse>(
+            `/boards/${boardId}/posts/${postId}/likers?page=${page}&limit=${limit}`
+        );
+        return response.data;
+    }
+
+    /**
+     * 댓글 추천
+     * 🔒 인증 필요
+     */
+    async likeComment(boardId: string, postId: string, commentId: string): Promise<LikeResponse> {
+        const response = await this.request<LikeResponse>(
+            `/boards/${boardId}/posts/${postId}/comments/${commentId}/like`,
+            { method: 'POST' }
+        );
+        return response.data;
+    }
+
+    /**
+     * 댓글 비추천
+     * 🔒 인증 필요
+     */
+    async dislikeComment(
+        boardId: string,
+        postId: string,
+        commentId: string
+    ): Promise<LikeResponse> {
+        const response = await this.request<LikeResponse>(
+            `/boards/${boardId}/posts/${postId}/comments/${commentId}/dislike`,
+            { method: 'POST' }
+        );
+        return response.data;
+    }
+
+    // ========================================
+    // 검색 (Search)
+    // ========================================
+
+    /**
+     * 게시판 내 검색
+     * @param boardId 게시판 ID
+     * @param params 검색 파라미터 (query, field, page, limit)
+     */
+    async searchPosts(boardId: string, params: SearchParams): Promise<PaginatedResponse<FreePost>> {
+        interface BackendResponse {
+            data: FreePost[];
+            meta: {
+                board_id: string;
+                page: number;
+                limit: number;
+                total: number;
+            };
+        }
+
+        const queryParams = new URLSearchParams({
+            sfl: params.field,
+            stx: params.query,
+            page: String(params.page || 1),
+            limit: String(params.limit || 20)
+        });
+
+        const response = await this.request<BackendResponse>(
+            `/boards/${boardId}/posts?${queryParams.toString()}`
+        );
+
+        const backendData = response as unknown as BackendResponse;
+
+        return {
+            items: backendData.data,
+            total: backendData.meta.total,
+            page: backendData.meta.page,
+            limit: backendData.meta.limit,
+            total_pages: Math.ceil(backendData.meta.total / backendData.meta.limit)
+        };
+    }
+
+    /**
+     * 전체 검색 (모든 게시판)
+     * @param query 검색어
+     * @param field 검색 필드
+     * @param limit 게시판당 결과 개수 (기본 5개)
+     */
+    async searchGlobal(
+        query: string,
+        field: SearchParams['field'] = 'title_content',
+        limit = 5
+    ): Promise<GlobalSearchResponse> {
+        const queryParams = new URLSearchParams({
+            q: query,
+            sfl: field,
+            limit: String(limit)
+        });
+
+        const response = await this.request<GlobalSearchResponse>(
+            `/search?${queryParams.toString()}`
+        );
+
+        return response.data;
+    }
+
+    // ========================================
+    // 회원 (Member)
+    // ========================================
+
+    /**
+     * 회원 프로필 조회
+     * @param memberId 회원 ID
+     */
+    async getMemberProfile(memberId: string): Promise<MemberProfile> {
+        const response = await this.request<MemberProfile>(`/members/${memberId}`);
+        return response.data;
+    }
+
+    /**
+     * 내 활동 내역 조회 (마이페이지)
+     * 🔒 인증 필요
+     */
+    async getMyActivity(): Promise<MyActivity> {
+        const response = await this.request<MyActivity>('/my/activity');
+        return response.data;
+    }
+
+    /**
+     * 내가 쓴 글 목록
+     * 🔒 인증 필요
+     */
+    async getMyPosts(page = 1, limit = 20): Promise<PaginatedResponse<FreePost>> {
+        interface BackendResponse {
+            data: FreePost[];
+            meta: { page: number; limit: number; total: number };
+        }
+
+        const response = await this.request<BackendResponse>(
+            `/my/posts?page=${page}&limit=${limit}`
+        );
+
+        const backendData = response as unknown as BackendResponse;
+
+        return {
+            items: backendData.data,
+            total: backendData.meta.total,
+            page: backendData.meta.page,
+            limit: backendData.meta.limit,
+            total_pages: Math.ceil(backendData.meta.total / backendData.meta.limit)
+        };
+    }
+
+    /**
+     * 내가 쓴 댓글 목록
+     * 🔒 인증 필요
+     */
+    async getMyComments(page = 1, limit = 20): Promise<PaginatedResponse<FreeComment>> {
+        interface BackendResponse {
+            data: FreeComment[];
+            meta: { page: number; limit: number; total: number };
+        }
+
+        const response = await this.request<BackendResponse>(
+            `/my/comments?page=${page}&limit=${limit}`
+        );
+
+        const backendData = response as unknown as BackendResponse;
+
+        return {
+            items: backendData.data,
+            total: backendData.meta.total,
+            page: backendData.meta.page,
+            limit: backendData.meta.limit,
+            total_pages: Math.ceil(backendData.meta.total / backendData.meta.limit)
+        };
+    }
+
+    /**
+     * 내가 추천한 글 목록
+     * 🔒 인증 필요
+     */
+    async getMyLikedPosts(page = 1, limit = 20): Promise<PaginatedResponse<FreePost>> {
+        interface BackendResponse {
+            data: FreePost[];
+            meta: { page: number; limit: number; total: number };
+        }
+
+        const response = await this.request<BackendResponse>(
+            `/my/liked-posts?page=${page}&limit=${limit}`
+        );
+
+        const backendData = response as unknown as BackendResponse;
+
+        return {
+            items: backendData.data,
+            total: backendData.meta.total,
+            page: backendData.meta.page,
+            limit: backendData.meta.limit,
+            total_pages: Math.ceil(backendData.meta.total / backendData.meta.limit)
+        };
+    }
+
+    // ========================================
+    // 차단 (Block)
+    // ========================================
+
+    /**
+     * 차단 회원 목록 조회
+     * 🔒 인증 필요
+     */
+    async getBlockedMembers(): Promise<BlockedMember[]> {
+        const response = await this.request<BlockedMember[]>('/my/blocked');
+        return response.data;
+    }
+
+    /**
+     * 회원 차단
+     * 🔒 인증 필요
+     */
+    async blockMember(memberId: string): Promise<void> {
+        await this.request<void>(`/members/${memberId}/block`, { method: 'POST' });
+    }
+
+    /**
+     * 회원 차단 해제
+     * 🔒 인증 필요
+     */
+    async unblockMember(memberId: string): Promise<void> {
+        await this.request<void>(`/members/${memberId}/block`, { method: 'DELETE' });
+    }
+
+    // ==================== 파일 업로드 API ====================
+
+    /**
+     * Presigned URL 요청 (S3 직접 업로드용)
+     * 🔒 인증 필요
+     */
+    async getPresignedUrl(
+        boardId: string,
+        filename: string,
+        contentType: string
+    ): Promise<PresignedUrlResponse> {
+        const response = await this.request<PresignedUrlResponse>(
+            `/boards/${boardId}/upload/presign`,
+            {
+                method: 'POST',
+                body: JSON.stringify({ filename, content_type: contentType })
+            }
+        );
+        return response.data;
+    }
+
+    /**
+     * 파일 직접 업로드 (서버 경유)
+     * 🔒 인증 필요
+     */
+    async uploadFile(boardId: string, file: File, postId?: number): Promise<UploadedFile> {
+        const formData = new FormData();
+        formData.append('file', file);
+        if (postId) {
+            formData.append('post_id', String(postId));
+        }
+
+        // 토큰 가져오기
+        const accessToken = this.getAccessToken();
+
+        const response = await fetch(`${API_BASE_URL}/boards/${boardId}/upload`, {
+            method: 'POST',
+            body: formData,
+            credentials: 'include',
+            headers: {
+                ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {})
+            }
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || '파일 업로드에 실패했습니다.');
+        }
+
+        const result = (await response.json()) as ApiResponse<UploadedFile>;
+        return result.data;
+    }
+
+    /**
+     * 이미지 업로드 (이미지 전용, 썸네일 자동 생성)
+     * 🔒 인증 필요
+     */
+    async uploadImage(boardId: string, file: File, postId?: number): Promise<UploadedFile> {
+        // 이미지 파일인지 확인
+        if (!file.type.startsWith('image/')) {
+            throw new Error('이미지 파일만 업로드할 수 있습니다.');
+        }
+
+        const formData = new FormData();
+        formData.append('image', file);
+        if (postId) {
+            formData.append('post_id', String(postId));
+        }
+
+        // 토큰 가져오기
+        const accessToken = this.getAccessToken();
+
+        const response = await fetch(`${API_BASE_URL}/boards/${boardId}/upload/image`, {
+            method: 'POST',
+            body: formData,
+            credentials: 'include',
+            headers: {
+                ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {})
+            }
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || '이미지 업로드에 실패했습니다.');
+        }
+
+        const result = (await response.json()) as ApiResponse<UploadedFile>;
+        return result.data;
+    }
+
+    /**
+     * 게시글 첨부파일 목록 조회
+     */
+    async getPostAttachments(boardId: string, postId: number): Promise<PostAttachment[]> {
+        const response = await this.request<PostAttachment[]>(
+            `/boards/${boardId}/posts/${postId}/attachments`
+        );
+        return response.data;
+    }
+
+    /**
+     * 첨부파일 삭제
+     * 🔒 인증 필요
+     */
+    async deleteAttachment(boardId: string, postId: number, attachmentId: string): Promise<void> {
+        await this.request<void>(`/boards/${boardId}/posts/${postId}/attachments/${attachmentId}`, {
+            method: 'DELETE'
+        });
+    }
+
+    // ==================== 신고 API ====================
+
+    /**
+     * 게시글 신고
+     * 🔒 인증 필요
+     */
+    async reportPost(boardId: string, postId: number, request: CreateReportRequest): Promise<void> {
+        await this.request<void>(`/boards/${boardId}/posts/${postId}/report`, {
+            method: 'POST',
+            body: JSON.stringify(request)
+        });
+    }
+
+    /**
+     * 댓글 신고
+     * 🔒 인증 필요
+     */
+    async reportComment(
+        boardId: string,
+        postId: number,
+        commentId: number | string,
+        request: CreateReportRequest
+    ): Promise<void> {
+        await this.request<void>(
+            `/boards/${boardId}/posts/${postId}/comments/${commentId}/report`,
+            {
+                method: 'POST',
+                body: JSON.stringify(request)
+            }
+        );
+    }
+
+    // ==================== 포인트 API ====================
+
+    /**
+     * 현재 보유 포인트 조회
+     */
+    async getMyPoint(): Promise<PointSummary> {
+        const response = await this.request<PointSummary>('/my/point');
+        return response.data;
+    }
+
+    /**
+     * 포인트 내역 조회
+     */
+    async getPointHistory(page: number = 1, limit: number = 20): Promise<PointHistoryResponse> {
+        const response = await this.request<PointHistoryResponse>(
+            `/my/point/history?page=${page}&limit=${limit}`
+        );
+        return response.data;
+    }
+
+    // ==================== 알림 API ====================
+
+    /**
+     * 읽지 않은 알림 수 조회
+     */
+    async getUnreadNotificationCount(): Promise<NotificationSummary> {
+        const response = await this.request<NotificationSummary>('/notifications/unread-count');
+        return response.data;
+    }
+
+    /**
+     * 알림 목록 조회
+     */
+    async getNotifications(
+        page: number = 1,
+        limit: number = 20
+    ): Promise<NotificationListResponse> {
+        const response = await this.request<NotificationListResponse>(
+            `/notifications?page=${page}&limit=${limit}`
+        );
+        return response.data;
+    }
+
+    /**
+     * 알림 읽음 처리
+     */
+    async markNotificationAsRead(notificationId: number): Promise<void> {
+        await this.request<void>(`/notifications/${notificationId}/read`, {
+            method: 'POST'
+        });
+    }
+
+    /**
+     * 모든 알림 읽음 처리
+     */
+    async markAllNotificationsAsRead(): Promise<void> {
+        await this.request<void>('/notifications/read-all', {
+            method: 'POST'
+        });
+    }
+
+    /**
+     * 알림 삭제
+     */
+    async deleteNotification(notificationId: number): Promise<void> {
+        await this.request<void>(`/notifications/${notificationId}`, {
+            method: 'DELETE'
+        });
+    }
+
+    // ==================== 쪽지 API ====================
+
+    /**
+     * 쪽지 목록 조회
+     */
+    async getMessages(
+        kind: MessageKind = 'recv',
+        page: number = 1,
+        limit: number = 20
+    ): Promise<MessageListResponse> {
+        const response = await this.request<MessageListResponse>(
+            `/messages?kind=${kind}&page=${page}&limit=${limit}`
+        );
+        return response.data;
+    }
+
+    /**
+     * 쪽지 상세 조회
+     */
+    async getMessage(messageId: number): Promise<Message> {
+        const response = await this.request<Message>(`/messages/${messageId}`);
+        return response.data;
+    }
+
+    /**
+     * 쪽지 보내기
+     */
+    async sendMessage(request: SendMessageRequest): Promise<void> {
+        await this.request<void>('/messages', {
+            method: 'POST',
+            body: JSON.stringify(request)
+        });
+    }
+
+    /**
+     * 쪽지 삭제
+     */
+    async deleteMessage(messageId: number): Promise<void> {
+        await this.request<void>(`/messages/${messageId}`, {
+            method: 'DELETE'
+        });
+    }
+
+    /**
+     * 읽지 않은 쪽지 수 조회
+     */
+    async getUnreadMessageCount(): Promise<{ count: number }> {
+        const response = await this.request<{ count: number }>('/messages/unread-count');
+        return response.data;
+    }
+
+    // ==================== 경험치 API ====================
+
+    /**
+     * 경험치 요약 조회
+     */
+    async getExpSummary(): Promise<ExpSummary> {
+        const response = await this.request<ExpSummary>('/my/exp');
+        return response.data;
+    }
+
+    /**
+     * 경험치 내역 조회
+     */
+    async getExpHistory(page: number = 1, limit: number = 20): Promise<ExpHistoryResponse> {
+        const response = await this.request<ExpHistoryResponse>(
+            `/my/exp/history?page=${page}&limit=${limit}`
+        );
+        return response.data;
+    }
+
+    // ==================== 인증 API ====================
+
+    /**
+     * 아이디/비밀번호 로그인
+     */
+    async login(request: LoginRequest): Promise<LoginResponse> {
+        const response = await this.request<LoginResponse>('/auth/login', {
+            method: 'POST',
+            body: JSON.stringify(request)
+        });
+
+        // 액세스 토큰 저장
+        if (browser && response.data.access_token) {
+            localStorage.setItem('access_token', response.data.access_token);
+        }
+
+        return response.data;
+    }
+
+    /**
+     * OAuth 로그인 URL 가져오기
+     */
+    getOAuthLoginUrl(provider: OAuthProvider): string {
+        const redirectUri = browser ? `${window.location.origin}/auth/callback/${provider}` : '';
+        return `${API_BASE_URL}/auth/oauth/${provider}?redirect_uri=${encodeURIComponent(redirectUri)}`;
+    }
+
+    /**
+     * OAuth 콜백 처리
+     */
+    async handleOAuthCallback(request: OAuthLoginRequest): Promise<LoginResponse> {
+        const response = await this.request<LoginResponse>('/auth/oauth/callback', {
+            method: 'POST',
+            body: JSON.stringify(request)
+        });
+
+        // 액세스 토큰 저장
+        if (browser && response.data.access_token) {
+            localStorage.setItem('access_token', response.data.access_token);
+        }
+
+        return response.data;
+    }
+
+    /**
+     * 회원가입
+     */
+    async register(request: RegisterRequest): Promise<RegisterResponse> {
+        const response = await this.request<RegisterResponse>('/auth/register', {
+            method: 'POST',
+            body: JSON.stringify(request)
+        });
+        return response.data;
+    }
+
+    /**
+     * 로그아웃 (토큰 제거)
+     */
+    async logoutUser(): Promise<void> {
+        try {
+            await this.request('/auth/logout', { method: 'POST' });
+        } catch (error) {
+            console.error('Logout API error:', error);
+        } finally {
+            // 로컬 토큰 제거
+            if (browser) {
+                localStorage.removeItem('access_token');
+            }
+        }
     }
 }
 

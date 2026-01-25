@@ -21,7 +21,8 @@
     "devDependencies": {
         "@eslint/compat": "^1.2.5",
         "@eslint/js": "^9.18.0",
-        "@lucide/svelte": "^0.540.0",
+        "@internationalized/date": "^3.10.1",
+        "@lucide/svelte": "^0.561.0",
         "@playwright/test": "^1.49.1",
         "@sveltejs/adapter-auto": "^6.0.0",
         "@sveltejs/adapter-node": "^5.4.0",
@@ -35,6 +36,7 @@
         "@types/dompurify": "^3.2.0",
         "@types/node": "^25.0.3",
         "@vitest/browser": "^3.2.3",
+        "bits-ui": "^2.15.4",
         "clsx": "^2.1.1",
         "eslint": "^9.18.0",
         "eslint-config-prettier": "^10.0.1",
@@ -63,12 +65,19 @@
         "@angple/hook-system": "workspace:*",
         "@angple/theme-engine": "workspace:*",
         "@angple/types": "workspace:*",
+        "@tiptap/core": "^3.17.0",
+        "@tiptap/extension-image": "^3.17.0",
+        "@tiptap/extension-link": "^3.17.0",
+        "@tiptap/extension-placeholder": "^3.17.0",
+        "@tiptap/extension-underline": "^3.17.0",
+        "@tiptap/pm": "^3.17.0",
+        "@tiptap/starter-kit": "^3.17.0",
         "adm-zip": "^0.5.16",
-        "bits-ui": "^2.14.2",
         "dompurify": "^3.3.1",
         "marked": "^17.0.1",
         "simple-git": "^3.30.0",
         "svelte-sonner": "^1.0.7",
+        "svelte-tiptap": "^3.0.1",
         "zod": "^4.2.1"
     }
 }
