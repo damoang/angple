@@ -2,6 +2,7 @@
     import { Badge } from '$lib/components/ui/badge/index.js';
     import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card/index.js';
     import type { FreePost, BoardDisplaySettings } from '$lib/api/types.js';
+    import Lock from '@lucide/svelte/icons/lock';
 
     // Props
     let {
@@ -50,7 +51,10 @@
     <CardHeader>
         <div class="flex items-start justify-between gap-4">
             <div class="min-w-0 flex-1">
-                <CardTitle class="text-foreground mb-2">
+                <CardTitle class="text-foreground mb-2 flex items-center gap-1.5">
+                    {#if post.is_secret}
+                        <Lock class="h-4 w-4 shrink-0 text-muted-foreground" />
+                    {/if}
                     {post.title}
                 </CardTitle>
                 <div class="text-secondary-foreground flex flex-wrap items-center gap-2 text-sm">
@@ -81,11 +85,15 @@
         <div class="flex gap-4">
             <!-- 좌측: 썸네일 (있을 경우) -->
             {#if thumbnailUrl && displaySettings?.show_thumbnail !== false}
-                <div class="flex-shrink-0">
+                <div class="relative h-32 w-32 shrink-0 overflow-hidden rounded-md bg-muted">
                     <img
                         src={thumbnailUrl}
                         alt={post.title}
-                        class="bg-muted h-32 w-32 rounded-md object-cover"
+                        class="h-full w-full object-cover"
+                        onerror={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.style.display = 'none';
+                        }}
                     />
                 </div>
             {/if}
