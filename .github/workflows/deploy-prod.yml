@@ -16,11 +16,14 @@ jobs:
     steps:
       - name: Set image tag
         id: set-tag
+        env:
+          INPUT_TAG: ${{ inputs.tag }}
+          COMMIT_SHA: ${{ github.sha }}
         run: |
-          if [ -n "${{ inputs.tag }}" ]; then
-            echo "tag=${{ inputs.tag }}" >> $GITHUB_OUTPUT
+          if [ -n "$INPUT_TAG" ]; then
+            echo "tag=$INPUT_TAG" >> $GITHUB_OUTPUT
           else
-            echo "tag=main-$(echo ${{ github.sha }} | cut -c1-7)" >> $GITHUB_OUTPUT
+            echo "tag=main-$(echo "$COMMIT_SHA" | cut -c1-7)" >> $GITHUB_OUTPUT
           fi
 
       - name: Deploy via SSH
