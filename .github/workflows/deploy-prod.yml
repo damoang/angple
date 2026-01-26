@@ -8,6 +8,10 @@ on:
         required: false
         type: string
 
+permissions:
+  id-token: write
+  contents: read
+
 jobs:
   deploy:
     name: Deploy to Production
@@ -26,80 +30,83 @@ jobs:
             echo "tag=main-$(echo "$COMMIT_SHA" | cut -c1-7)" >> $GITHUB_OUTPUT
           fi
 
-      - name: Deploy via SSH
-        uses: appleboy/ssh-action@v1.2.2
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
         with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SERVER_SSH_KEY }}
-          script: |
-            set -e
+          role-to-assume: arn:aws:iam::891376997084:role/GitHubActionsDeployRole
+          aws-region: ap-northeast-2
 
-            IMAGE_TAG="${{ steps.set-tag.outputs.tag }}"
-            ECR_REGISTRY="891376997084.dkr.ecr.ap-northeast-2.amazonaws.com"
-            REPOSITORY="damoang"
+      - name: Deploy via SSM
+        env:
+          IMAGE_TAG: ${{ steps.set-tag.outputs.tag }}
+        run: |
+          COMMAND_ID=$(aws ssm send-command \
+            --instance-ids "i-038a1d1f00798d94b" \
+            --document-name "AWS-RunShellScript" \
+            --parameters "commands=[
+              'set -e',
+              'cd /home/damoang/angple',
+              'git fetch origin',
+              'git checkout main',
+              'git pull origin main',
+              'IMAGE_TAG=$IMAGE_TAG',
+              'ECR_REGISTRY=891376997084.dkr.ecr.ap-northeast-2.amazonaws.com',
+              'REPOSITORY=damoang',
+              'echo Deploying angple with tag: $IMAGE_TAG',
+              'aws ecr get-login-password --region ap-northeast-2 | docker login --username AWS --password-stdin $ECR_REGISTRY',
+              'docker build -f apps/web/Dockerfile --target production -t $ECR_REGISTRY/$REPOSITORY:web-$IMAGE_TAG -t $ECR_REGISTRY/$REPOSITORY:web-latest .',
+              'docker build -f apps/admin/Dockerfile --target production -t $ECR_REGISTRY/$REPOSITORY:admin-$IMAGE_TAG -t $ECR_REGISTRY/$REPOSITORY:admin-latest .',
+              'docker push $ECR_REGISTRY/$REPOSITORY:web-$IMAGE_TAG',
+              'docker push $ECR_REGISTRY/$REPOSITORY:web-latest',
+              'docker push $ECR_REGISTRY/$REPOSITORY:admin-$IMAGE_TAG',
+              'docker push $ECR_REGISTRY/$REPOSITORY:admin-latest',
+              'docker stop angple-web angple-admin 2>/dev/null || true',
+              'docker rm angple-web angple-admin 2>/dev/null || true',
+              'docker run -d --name angple-web -p 3010:3000 --restart unless-stopped --memory=2g --cpus=1.0 -e NODE_ENV=production -e API_BASE_URL=http://angple-gateway:8080 -e PUBLIC_API_BASE_URL=https://api.damoang.net $ECR_REGISTRY/$REPOSITORY:web-$IMAGE_TAG',
+              'docker run -d --name angple-admin -p 3011:80 --restart unless-stopped --memory=1g --cpus=0.5 $ECR_REGISTRY/$REPOSITORY:admin-$IMAGE_TAG',
+              'docker network connect angple-network angple-web 2>/dev/null || true',
+              'docker network connect angple-network angple-admin 2>/dev/null || true',
+              'docker network connect proxy-network angple-web 2>/dev/null || true',
+              'docker network connect proxy-network angple-admin 2>/dev/null || true',
+              'sleep 10',
+              'docker ps | grep -E angple-',
+              'docker image prune -f',
+              'echo Deployed at $(date)'
+            ]" \
+            --timeout-seconds 600 \
+            --query "Command.CommandId" \
+            --output text)
 
-            echo "🚀 Deploying angple with image tag: $IMAGE_TAG"
+          echo "Command ID: $COMMAND_ID"
 
-            cd /home/damoang/angple
-            git fetch origin
-            git checkout main
-            git pull origin main
+          # 완료 대기
+          echo "Waiting for command to complete..."
+          aws ssm wait command-executed \
+            --command-id "$COMMAND_ID" \
+            --instance-id "i-038a1d1f00798d94b" || true
 
-            # ECR 로그인
-            echo "🔑 Logging into ECR..."
-            aws ecr get-login-password --region ap-northeast-2 | docker login --username AWS --password-stdin $ECR_REGISTRY
+          # 결과 확인
+          STATUS=$(aws ssm get-command-invocation \
+            --command-id "$COMMAND_ID" \
+            --instance-id "i-038a1d1f00798d94b" \
+            --query "Status" \
+            --output text)
 
-            # EC2에서 빌드 & ECR push
-            echo "🔨 Building images on EC2..."
-            docker build -f apps/web/Dockerfile --target production -t $ECR_REGISTRY/$REPOSITORY:web-$IMAGE_TAG -t $ECR_REGISTRY/$REPOSITORY:web-latest .
-            docker build -f apps/admin/Dockerfile --target production -t $ECR_REGISTRY/$REPOSITORY:admin-$IMAGE_TAG -t $ECR_REGISTRY/$REPOSITORY:admin-latest .
+          echo "Command Status: $STATUS"
 
-            echo "📤 Pushing to ECR..."
-            docker push $ECR_REGISTRY/$REPOSITORY:web-$IMAGE_TAG
-            docker push $ECR_REGISTRY/$REPOSITORY:web-latest
-            docker push $ECR_REGISTRY/$REPOSITORY:admin-$IMAGE_TAG
-            docker push $ECR_REGISTRY/$REPOSITORY:admin-latest
+          # 출력 로그
+          aws ssm get-command-invocation \
+            --command-id "$COMMAND_ID" \
+            --instance-id "i-038a1d1f00798d94b" \
+            --query "StandardOutputContent" \
+            --output text
 
-            # 기존 컨테이너 중지 및 제거
-            echo "🛑 Stopping existing containers..."
-            docker stop angple-web angple-admin 2>/dev/null || true
-            docker rm angple-web angple-admin 2>/dev/null || true
-
-            # 컨테이너 실행
-            echo "🟢 Starting containers..."
-            docker run -d \
-              --name angple-web \
-              -p 3010:3000 \
-              --restart unless-stopped \
-              --memory="2g" \
-              --cpus="1.0" \
-              -e NODE_ENV=production \
-              -e API_BASE_URL=http://angple-gateway:8080 \
-              -e PUBLIC_API_BASE_URL=https://api.damoang.net \
-              $ECR_REGISTRY/$REPOSITORY:web-$IMAGE_TAG
-
-            docker run -d \
-              --name angple-admin \
-              -p 3011:80 \
-              --restart unless-stopped \
-              --memory="1g" \
-              --cpus="0.5" \
-              $ECR_REGISTRY/$REPOSITORY:admin-$IMAGE_TAG
-
-            # 네트워크 연결
-            docker network connect angple-network angple-web 2>/dev/null || true
-            docker network connect angple-network angple-admin 2>/dev/null || true
-            docker network connect proxy-network angple-web 2>/dev/null || true
-            docker network connect proxy-network angple-admin 2>/dev/null || true
-
-            # 헬스체크
-            echo "🏥 Health check..."
-            sleep 10
-            docker ps | grep -E "angple-(web|admin)"
-
-            # 정리
-            docker image prune -f
-
-            echo "✅ Deployed at $(date)"
-            echo "📍 Tag: $IMAGE_TAG"
+          if [ "$STATUS" != "Success" ]; then
+            echo "Error output:"
+            aws ssm get-command-invocation \
+              --command-id "$COMMAND_ID" \
+              --instance-id "i-038a1d1f00798d94b" \
+              --query "StandardErrorContent" \
+              --output text
+            exit 1
+          fi
