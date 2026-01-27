@@ -84,7 +84,7 @@ export const WidgetManifestSchema = z.object({
     icon: z.string().optional(),
 
     /** 위젯 설정 스키마 */
-    settings: z.record(WidgetSettingFieldSchema).optional(),
+    settings: z.record(z.string(), WidgetSettingFieldSchema).optional(),
 
     /** 호환 Angple 버전 */
     angpleVersion: z.string().optional(),
@@ -120,7 +120,7 @@ export type WidgetSlot = z.infer<typeof WidgetSlotSchema>;
 /**
  * 위젯 매니페스트 검증 (안전한 버전 - 오류 시 결과 객체 반환)
  */
-export function safeValidateWidgetManifest(data: unknown): z.SafeParseReturnType<unknown, WidgetManifest> {
+export function safeValidateWidgetManifest(data: unknown) {
     return WidgetManifestSchema.safeParse(data);
 }
 

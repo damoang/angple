@@ -1,0 +1,56 @@
+{
+    "name": "@angple/i18n",
+    "version": "0.1.0",
+    "description": "Internationalization system for Angple platform with Paraglide",
+    "type": "module",
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "import": "./dist/index.js"
+        },
+        "./messages/*": {
+            "import": "./messages/*.json"
+        },
+        "./paraglide": {
+            "types": "./dist/paraglide.d.ts",
+            "import": "./dist/paraglide.js"
+        },
+        "./rtl": {
+            "types": "./dist/rtl.d.ts",
+            "import": "./dist/rtl.js"
+        }
+    },
+    "files": [
+        "dist",
+        "messages"
+    ],
+    "scripts": {
+        "build": "tsc",
+        "dev": "tsc --watch",
+        "clean": "rm -rf dist",
+        "paraglide:compile": "paraglide-js compile --project ./project.inlang --outdir ./src/paraglide"
+    },
+    "keywords": [
+        "angple",
+        "i18n",
+        "internationalization",
+        "paraglide",
+        "sveltekit",
+        "rtl"
+    ],
+    "author": "",
+    "license": "MIT",
+    "dependencies": {
+        "@inlang/paraglide-js": "^1.11.0",
+        "@inlang/paraglide-sveltekit": "^0.11.0"
+    },
+    "devDependencies": {
+        "typescript": "^5.9.3"
+    },
+    "peerDependencies": {
+        "svelte": "^5.0.0",
+        "@sveltejs/kit": "^2.0.0"
+    }
+}

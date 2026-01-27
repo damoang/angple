@@ -1,0 +1,14 @@
+{
+  "activePlugins": [
+    "ad-widget"
+  ],
+  "plugins": {
+    "ad-widget": {
+      "settings": {
+        "enabled": true
+      },
+      "activatedAt": "2026-01-27T15:56:15.953Z"
+    }
+  },
+  "version": "1.0.0"
+}
