@@ -7,9 +7,9 @@ export interface Menu {
     parent_id: number | null;
     title: string;
     url: string;
-    icon: string;
-    shortcut: string;
-    description: string;
+    icon?: string;
+    shortcut?: string;
+    description?: string;
     target: string;
     depth: number;
     order_num: number;
@@ -17,7 +17,7 @@ export interface Menu {
     show_in_header: boolean;
     show_in_sidebar: boolean;
     is_active: boolean;
-    children: Menu[];
+    children?: Menu[];
 }
 
 export interface CreateMenuRequest {
