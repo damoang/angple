@@ -9,6 +9,17 @@ import { join } from 'path';
 
 const SETTINGS_FILE_PATH = join(process.cwd(), 'data', 'settings.json');
 
+/**
+ * 위젯 설정 타입
+ */
+export interface WidgetConfig {
+    id: string;
+    type: string;
+    position: number;
+    enabled: boolean;
+    settings?: Record<string, unknown>;
+}
+
 export interface ThemeSettings {
     activeTheme: string | null;
     activatedAt?: string;
@@ -18,6 +29,10 @@ export interface ThemeSettings {
             settings: Record<string, unknown>;
         }
     >;
+    /** 메인 영역 위젯 레이아웃 설정 */
+    widgetLayout?: WidgetConfig[];
+    /** 사이드바 위젯 레이아웃 설정 */
+    sidebarWidgetLayout?: WidgetConfig[];
     version: string;
 }
 

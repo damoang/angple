@@ -1,0 +1,33 @@
+{
+    "id": "ad-widget",
+    "name": "광고 배너 위젯",
+    "version": "1.0.0",
+    "description": "angple-backend 배너 API와 연동하여 광고 배너를 표시합니다. 다모앙 운영 환경에서 사용됩니다.",
+    "author": {
+        "name": "Damoang Team",
+        "url": "https://damoang.net"
+    },
+    "hooks": [
+        {
+            "name": "banner_api_config",
+            "type": "filter",
+            "callback": "hooks/banner-api-config.ts",
+            "priority": 10
+        }
+    ],
+    "settings": {
+        "apiBaseUrl": {
+            "label": "API 기본 URL",
+            "type": "url",
+            "default": "http://localhost:8081",
+            "description": "배너 API 서버의 기본 URL"
+        },
+        "enabled": {
+            "label": "활성화",
+            "type": "boolean",
+            "default": true,
+            "description": "플러그인 활성화 여부"
+        }
+    },
+    "tags": ["광고", "배너", "다모앙"]
+}

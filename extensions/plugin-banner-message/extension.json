@@ -1,0 +1,71 @@
+{
+    "id": "plugin-banner-message",
+    "name": "Banner Message System",
+    "version": "1.0.0",
+    "description": "Banner advertising system with position-based display and click tracking",
+    "author": {
+        "name": "Damoang Team",
+        "email": "dev@damoang.net"
+    },
+    "license": "MIT",
+    "category": "plugin",
+    "pluginType": "custom",
+    "tags": ["banner", "advertising", "marketing", "ads"],
+    "keywords": ["banner", "advertising", "ad-system", "marketing"],
+    "angpleVersion": ">=1.0.0",
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "permissions": ["settings:read", "network:fetch"],
+    "hooks": {
+        "before_page_render": "./hooks/header-banner.js",
+        "post_content": "./hooks/content-banner.js",
+        "sidebar_widgets": "./hooks/sidebar-banner.js"
+    },
+    "api": {
+        "rest": [
+            {
+                "method": "GET",
+                "path": "/banners",
+                "description": "Get active banners by position"
+            },
+            {
+                "method": "GET",
+                "path": "/banners/:id/click",
+                "description": "Track banner click and redirect"
+            }
+        ]
+    },
+    "settings": {
+        "headerEnabled": {
+            "type": "boolean",
+            "label": "Enable Header Banner",
+            "description": "Show banner in header area",
+            "default": true
+        },
+        "sidebarEnabled": {
+            "type": "boolean",
+            "label": "Enable Sidebar Banner",
+            "description": "Show banner in sidebar",
+            "default": true
+        },
+        "contentEnabled": {
+            "type": "boolean",
+            "label": "Enable Content Banner",
+            "description": "Show banner within content",
+            "default": false
+        },
+        "contentInsertAfterParagraph": {
+            "type": "number",
+            "label": "Insert After Paragraph",
+            "description": "Insert content banner after this paragraph number",
+            "default": 3
+        },
+        "refreshInterval": {
+            "type": "number",
+            "label": "Refresh Interval (ms)",
+            "description": "Banner rotation interval in milliseconds (0 = no rotation)",
+            "default": 0
+        }
+    },
+    "active": false
+}

@@ -6,8 +6,11 @@
     import { page } from '$app/stores';
     import { authActions } from '$lib/stores/auth.svelte';
     import { themeStore } from '$lib/stores/theme.svelte';
+    import { pluginStore } from '$lib/stores/plugin.svelte';
     import { loadThemeHooks } from '$lib/hooks/theme-loader';
     import { loadThemeComponents } from '$lib/utils/theme-component-loader';
+    import { loadAllPluginHooks } from '$lib/hooks/plugin-loader';
+    import { loadAllPluginComponents } from '$lib/utils/plugin-component-loader';
 
     const { children, data } = $props(); // Svelte 5: SSR 데이터 받기
 
@@ -18,8 +21,14 @@
     // SSR에서 받은 테마로 스토어 초기화 (깜박임 방지!)
     themeStore.initFromServer(data.activeTheme);
 
+    // SSR에서 받은 플러그인으로 스토어 초기화 (깜박임 방지!)
+    pluginStore.initFromServer(data.activePlugins || []);
+
     // 현재 활성 테마
     const activeTheme = $derived(themeStore.currentTheme.activeTheme);
+
+    // 현재 활성 플러그인
+    const activePlugins = $derived(pluginStore.state.activePlugins);
 
     // 동적으로 로드된 테마 레이아웃 컴포넌트
     let ThemeLayout = $state<Component | null>(null);
@@ -77,6 +86,43 @@
         if (activeTheme) {
             loadThemeHooks(activeTheme);
             loadThemeComponents(activeTheme);
+        }
+    });
+
+    // activePlugins 변경 시 플러그인 Hook 및 Component 로드
+    $effect(() => {
+        console.log('🔄 [$effect] activePlugins 변경 감지:', activePlugins.length, '개');
+
+        if (activePlugins.length > 0) {
+            // 플러그인 Hook 로드
+            loadAllPluginHooks(
+                activePlugins.map((p) => ({
+                    id: p.id,
+                    manifest: {
+                        id: p.id,
+                        name: p.name,
+                        version: p.version,
+                        author: { name: 'Unknown' },
+                        hooks: p.hooks,
+                        components: p.components
+                    }
+                }))
+            );
+
+            // 플러그인 Component 로드
+            loadAllPluginComponents(
+                activePlugins.map((p) => ({
+                    id: p.id,
+                    manifest: {
+                        id: p.id,
+                        name: p.name,
+                        version: p.version,
+                        author: { name: 'Unknown' },
+                        hooks: p.hooks,
+                        components: p.components
+                    }
+                }))
+            );
         }
     });
 
