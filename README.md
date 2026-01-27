@@ -330,4 +330,4 @@ Angple은 다음 오픈소스 프로젝트들에 영감을 받았습니다:
 **현재 버전**: Phase 10 완료 (테마 마켓플레이스)
 **다음 목표**: Phase 11 - 플러그인 시스템 구축
 
-Made with ❤️ by [SDK Co.](https://sdk.kr)
+Made with ❤️ by [SDK Co.](https://sdkcorp.com)
