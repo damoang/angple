@@ -4,4 +4,4 @@
  *
  * SSR 시에만 사용되며, 내부 Docker 네트워크로 API 호출
  */
-export const INTERNAL_API_URL = process.env.INTERNAL_API_URL || 'http://localhost:8080/api/v1';
+export const INTERNAL_API_URL = process.env.INTERNAL_API_URL || 'http://localhost:8082/api/v2';

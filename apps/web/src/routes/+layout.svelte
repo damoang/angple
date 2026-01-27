@@ -160,9 +160,11 @@
         {@render children()}
     </ThemeLayout>
 {:else if activeTheme}
-    <!-- 테마 로딩 중 (activeTheme은 있지만 ThemeLayout이 아직 로드 안됨) -->
-    <!-- 빈 화면으로 깜빡임 방지 -->
-    <div class="min-h-screen bg-white"></div>
+    <!-- 테마 레이아웃 로드 중 또는 SSR - children 직접 렌더링 -->
+    <!-- SSR에서 $effect가 실행되지 않아 ThemeLayout이 null이므로 children 먼저 렌더링 -->
+    <div class="min-h-screen bg-white">
+        {@render children()}
+    </div>
 {:else}
     <!-- 테마 미선택 시 안내 메시지 -->
     <div class="flex min-h-screen flex-col items-center justify-center bg-gray-50">

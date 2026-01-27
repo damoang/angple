@@ -48,13 +48,15 @@ import type {
 import { browser } from '$app/environment';
 
 // 서버/클라이언트 환경에 따라 API URL 분기
+// 클라이언트: 상대경로 (nginx 프록시)
+// SSR: Docker 내부 네트워크 직접 통신
 const API_BASE_URL = browser
-    ? import.meta.env.VITE_API_URL || '/api/v2'
-    : import.meta.env.VITE_API_URL || 'http://localhost:8081/api/v2';
+    ? '/api/v2'
+    : process.env.INTERNAL_API_URL || 'http://localhost:8082/api/v2';
 
 // 디버깅: API URL 확인
 console.log('[API Client] Browser:', browser);
-console.log('[API Client] VITE_API_URL:', import.meta.env.VITE_API_URL);
+console.log('[API Client] INTERNAL_API_URL:', browser ? 'N/A' : process.env.INTERNAL_API_URL);
 console.log('[API Client] Final API_BASE_URL:', API_BASE_URL);
 
 /**
@@ -339,6 +341,11 @@ class ApiClient {
     // 추천 글 데이터 가져오기 (AI 분석 포함)
     async getRecommendedPostsWithAI(period: RecommendedPeriod): Promise<RecommendedDataWithAI> {
         const response = await this.request<RecommendedDataWithAI>(`/recommended/ai/${period}`);
+        // API가 직접 데이터를 반환하는지 { data: ... }로 감싸는지 확인
+        const data = response as unknown as RecommendedDataWithAI;
+        if (data?.sections !== undefined) {
+            return data;
+        }
         return response.data;
     }
 
@@ -376,9 +383,21 @@ class ApiClient {
     }
 
     // 인덱스 위젯 데이터 조회
-    async getIndexWidgets(): Promise<IndexWidgetsData> {
-        const response = await this.request<IndexWidgetsData>('/recommended/index-widgets');
-        return response.data;
+    // 참고: 이 API는 다른 엔드포인트와 달리 { data: ... } 래퍼 없이 직접 데이터를 반환함
+    async getIndexWidgets(): Promise<IndexWidgetsData | null> {
+        try {
+            const response = await this.request<IndexWidgetsData>('/recommended/index-widgets');
+            // API가 데이터를 직접 반환하거나 { data: ... } 형태로 반환하는 경우 모두 처리
+            const data = (response as unknown as IndexWidgetsData);
+            // news_tabs 필드가 있으면 직접 반환된 데이터, 없으면 response.data 시도
+            if (data?.news_tabs !== undefined) {
+                return data;
+            }
+            return response?.data ?? null;
+        } catch (error) {
+            console.error('[API] getIndexWidgets failed:', error);
+            return null;
+        }
     }
 
     // ========================================

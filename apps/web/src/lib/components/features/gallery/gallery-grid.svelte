@@ -1,33 +1,17 @@
 <script lang="ts">
-    import { onMount } from 'svelte';
     import type { GalleryPost } from '$lib/api/types.js';
     import { Card, CardHeader, CardContent } from '$lib/components/ui/card';
     import Images from '@lucide/svelte/icons/images';
     import ChevronRight from '@lucide/svelte/icons/chevron-right';
     import { GalleryCard } from './components';
-    import { apiClient } from '$lib/api';
 
-    let posts = $state<GalleryPost[]>([]);
-    let loading = $state(true);
-    let error = $state<string | null>(null);
-
-    async function loadData() {
-        loading = true;
-        error = null;
-        try {
-            const widgetsData = await apiClient.getIndexWidgets();
-            posts = widgetsData.gallery || [];
-        } catch (err) {
-            error = err instanceof Error ? err.message : '데이터 로드 실패';
-            console.error('갤러리 로드 실패:', err);
-        } finally {
-            loading = false;
-        }
+    // Props로 데이터 받기 (SSR 지원)
+    interface Props {
+        posts?: GalleryPost[];
     }
+    const { posts = [] }: Props = $props();
 
-    onMount(() => {
-        loadData();
-    });
+    const hasData = $derived(posts.length > 0);
 </script>
 
 <Card class="gap-0">
@@ -53,24 +37,16 @@
     </CardHeader>
 
     <CardContent class="px-4">
-        {#if loading}
-            <div class="flex items-center justify-center py-8">
-                <div class="text-muted-foreground text-sm">로딩 중...</div>
-            </div>
-        {:else if error}
-            <div class="flex items-center justify-center py-8">
-                <div class="text-center">
-                    <p class="text-sm text-red-600 dark:text-red-400">{error}</p>
-                </div>
-            </div>
-        {:else if posts.length > 0}
+        {#if hasData}
             <div class="grid grid-cols-2 gap-3 lg:grid-cols-4">
                 {#each posts as post, index (`${post.id}-${index}`)}
                     <GalleryCard {post} />
                 {/each}
             </div>
         {:else}
-            <div class="text-muted-foreground py-8 text-center text-sm">게시물이 없습니다.</div>
+            <div class="flex items-center justify-center py-8">
+                <div class="text-muted-foreground text-sm">로딩 중...</div>
+            </div>
         {/if}
     </CardContent>
 </Card>
