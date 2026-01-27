@@ -1,41 +1,25 @@
 <script lang="ts">
-    import { onMount } from 'svelte';
     import type { NewsTabId, NewsPost } from '$lib/api/types.js';
     import { Card, CardHeader, CardContent } from '$lib/components/ui/card';
     import Newspaper from '@lucide/svelte/icons/newspaper';
     import { NewsTabs } from './components/tabs';
     import { SimplePostList } from './components/post-list';
-    import { apiClient } from '$lib/api';
+
+    // Props로 데이터 받기 (SSR 지원)
+    interface Props {
+        posts?: NewsPost[];
+    }
+    const { posts = [] }: Props = $props();
 
     let activeTab = $state<NewsTabId>('new');
-    let data = $state<NewsPost[] | null>(null);
-    let loading = $state(true);
-    let error = $state<string | null>(null);
 
-    // 탭별 포스트 필터링
-    const currentPosts = $derived(data ? data.filter((post) => post.tab === activeTab) : []);
-
-    async function loadData() {
-        loading = true;
-        error = null;
-        try {
-            const widgetsData = await apiClient.getIndexWidgets();
-            data = widgetsData.news_tabs;
-        } catch (err) {
-            error = err instanceof Error ? err.message : '데이터 로드 실패';
-            console.error('새로운 소식 로드 실패:', err);
-        } finally {
-            loading = false;
-        }
-    }
+    // props에서 반응형 데이터 사용
+    const currentPosts = $derived(posts.filter((post) => post.tab === activeTab));
+    const hasData = $derived(posts.length > 0);
 
     function handleTabChange(tabId: NewsTabId) {
         activeTab = tabId;
     }
-
-    onMount(() => {
-        loadData();
-    });
 </script>
 
 <Card class="gap-0">
@@ -52,17 +36,11 @@
     </CardHeader>
 
     <CardContent class="px-4">
-        {#if loading}
+        {#if !hasData}
             <div class="flex items-center justify-center py-8">
                 <div class="text-muted-foreground text-sm">로딩 중...</div>
             </div>
-        {:else if error}
-            <div class="flex items-center justify-center py-8">
-                <div class="text-center">
-                    <p class="text-sm text-red-600 dark:text-red-400">{error}</p>
-                </div>
-            </div>
-        {:else if data}
+        {:else}
             <SimplePostList posts={currentPosts} />
         {/if}
     </CardContent>

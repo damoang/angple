@@ -1,3 +1,4 @@
-// 개발: CSR, 배포: SSR (.env 파일에서 제어)
-export const ssr = import.meta.env.PUBLIC_SSR === 'true';
+// SSR 활성화 (Node.js adapter 사용 시)
+// 개발 환경에서 CSR 필요 시 VITE_SSR=false로 설정
+export const ssr = import.meta.env.VITE_SSR !== 'false';
 export const prerender = false;
