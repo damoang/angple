@@ -64,7 +64,7 @@ jobs:
               'docker push $ECR_REGISTRY/$REPOSITORY:admin-latest',
               'docker rm -f angple-web angple-admin 2>/dev/null || true',
               'sleep 3',
-              'docker run -d --name angple-web -p 3010:3000 --restart unless-stopped --memory=2g --cpus=1.0 -e NODE_ENV=production -e API_BASE_URL=http://angple-gateway:8083 -e PUBLIC_API_BASE_URL=https://api.damoang.net $ECR_REGISTRY/$REPOSITORY:web-$IMAGE_TAG',
+              'docker run -d --name angple-web -p 3010:3000 --restart unless-stopped --memory=2g --cpus=1.0 -e NODE_ENV=production -e INTERNAL_API_URL=http://angple-api:8082/api/v2 $ECR_REGISTRY/$REPOSITORY:web-$IMAGE_TAG',
               'docker run -d --name angple-admin -p 3011:80 --restart unless-stopped --memory=1g --cpus=0.5 $ECR_REGISTRY/$REPOSITORY:admin-$IMAGE_TAG',
               'docker network connect angple-network angple-web 2>/dev/null || true',
               'docker network connect angple-network angple-admin 2>/dev/null || true',
