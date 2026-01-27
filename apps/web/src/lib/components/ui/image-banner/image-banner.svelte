@@ -1,6 +1,7 @@
 <script lang="ts">
     import { onMount } from 'svelte';
     import { browser } from '$app/environment';
+    import { hooks } from '@angple/hook-system';
 
     interface Props {
         position: string;
@@ -22,40 +23,91 @@
         adsenseFormat = 'auto'
     }: Props = $props();
 
-    // API 베이스 URL (환경변수 또는 기본값)
-    const API_BASE = import.meta.env.VITE_ADS_API_URL || 'https://ads.damoang.net';
-
-    interface ServedBanner {
-        id: string;
-        imageUrl: string;
-        landingUrl: string;
-        altText: string;
-        target: string;
-        trackingId: string;
+    // 배너 API 설정 인터페이스
+    interface BannerApiConfig {
+        apiUrl: string;
+        trackViewUrl: (id: number) => string;
+        trackClickUrl: (id: number) => string;
     }
 
-    let banner = $state<ServedBanner | null>(null);
+    // 백엔드 BannerResponse 타입
+    interface BannerResponse {
+        id: number;
+        title: string;
+        image_url: string;
+        link_url: string;
+        position: string;
+        priority: number;
+        is_active: boolean;
+        click_count: number;
+        view_count: number;
+        alt_text?: string;
+        target: string;
+        created_at: string;
+    }
+
+    // 내부에서 사용할 정규화된 배너 타입
+    interface NormalizedBanner {
+        id: number;
+        imageUrl: string;
+        linkUrl: string;
+        altText: string;
+        target: string;
+    }
+
+    let banner = $state<NormalizedBanner | null>(null);
     let loading = $state(true);
     let showAdsense = $state(false);
     let impressionTracked = $state(false);
+    let apiConfig = $state<BannerApiConfig | null>(null);
 
     onMount(() => {
+        // 플러그인에서 배너 API 설정을 제공하는지 확인
+        // 플러그인이 없으면 null 반환 → 애드센스 폴백
+        apiConfig = hooks.applyFilters('banner_api_config', null, { position });
         fetchBanner();
     });
+
+    // 백엔드 응답을 정규화된 형태로 변환
+    function normalizeBanner(b: BannerResponse): NormalizedBanner {
+        return {
+            id: b.id,
+            imageUrl: b.image_url,
+            linkUrl: b.link_url,
+            altText: b.alt_text || b.title || '광고',
+            target: b.target || '_blank'
+        };
+    }
 
     async function fetchBanner() {
         if (!browser) return;
 
+        // 플러그인이 API 설정을 제공하지 않으면 애드센스 폴백
+        if (!apiConfig) {
+            loading = false;
+            if (fallbackToAdsense && adsenseSlot) {
+                showAdsense = true;
+                loadAdsense();
+            }
+            return;
+        }
+
         try {
             const response = await fetch(
-                `${API_BASE}/api/v1/serve/banners?position=${encodeURIComponent(position)}`
+                `${apiConfig.apiUrl}?position=${encodeURIComponent(position)}`
             );
             const result = await response.json();
 
-            if (result.success && result.data?.banners?.length > 0) {
-                // 랜덤으로 하나 선택
-                const banners = result.data.banners;
-                banner = banners[Math.floor(Math.random() * banners.length)];
+            // position 파라미터가 있으면 data.banners, 없으면 data 자체가 배열
+            const banners: BannerResponse[] = result.data?.banners || result.data || [];
+
+            if (banners.length > 0) {
+                // priority로 정렬 후 랜덤 선택 (같은 priority 내에서)
+                const sorted = [...banners].sort((a, b) => b.priority - a.priority);
+                const topPriority = sorted[0].priority;
+                const topBanners = sorted.filter((b) => b.priority === topPriority);
+                const selected = topBanners[Math.floor(Math.random() * topBanners.length)];
+                banner = normalizeBanner(selected);
             } else {
                 // 배너 없으면 애드센스 폴백
                 if (fallbackToAdsense && adsenseSlot) {
@@ -100,25 +152,21 @@
     }
 
     function trackImpression() {
-        if (!banner || impressionTracked) return;
+        if (!banner || impressionTracked || !apiConfig) return;
         impressionTracked = true;
 
-        // Impression 트래킹
-        if (banner.trackingId) {
-            const img = new Image();
-            img.src = `${API_BASE}/api/v1/track/impression?tid=${banner.trackingId}&t=${Date.now()}`;
-        }
+        // View 트래킹
+        fetch(apiConfig.trackViewUrl(banner.id), {
+            method: 'POST',
+            credentials: 'include'
+        }).catch((err) => console.warn('View tracking failed:', err));
     }
 
     function handleClick() {
-        if (!banner) return;
+        if (!banner || !apiConfig) return;
 
         // Click 트래킹
-        if (banner.trackingId) {
-            navigator.sendBeacon?.(
-                `${API_BASE}/api/v1/track/click?tid=${banner.trackingId}&t=${Date.now()}`
-            );
-        }
+        navigator.sendBeacon?.(apiConfig.trackClickUrl(banner.id));
     }
 
     function isVideo(url: string): boolean {
@@ -179,7 +227,7 @@
     {:else if banner}
         <!-- 자체 배너 -->
         <a
-            href={banner.landingUrl}
+            href={banner.linkUrl}
             target={banner.target || '_blank'}
             rel="nofollow noopener"
             onclick={handleClick}

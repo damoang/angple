@@ -9,6 +9,9 @@
     import { loadThemeHooks } from '$lib/hooks/theme-loader';
     import { loadThemeComponents } from '$lib/utils/theme-component-loader';
 
+    // 플러그인 초기화 (다모앙 전용 플러그인 로드)
+    import '$lib/plugins';
+
     const { children, data } = $props(); // Svelte 5: SSR 데이터 받기
 
     // /admin, /install 경로 여부 확인 (테마 레이아웃 적용 안함)
