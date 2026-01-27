@@ -47,8 +47,10 @@ CMD ["pnpm", "dev", "--host", "0.0.0.0", "--port", "3000"]
 FROM base AS builder
 
 # Build arguments for Vite environment variables
-ARG VITE_USE_MOCK=true
+ARG VITE_USE_MOCK=false
+ARG VITE_SSR=true
 ENV VITE_USE_MOCK=$VITE_USE_MOCK
+ENV VITE_SSR=$VITE_SSR
 
 # Set working directory
 WORKDIR /app
