@@ -1,7 +1,7 @@
 <script lang="ts">
     import { page } from '$app/stores';
     import { cn } from '$lib/utils';
-    import { LayoutDashboard, Palette, Settings, FileText } from '@lucide/svelte/icons';
+    import { LayoutDashboard, Palette, Settings, FileText, LayoutGrid, Menu } from '@lucide/svelte/icons';
 
     /**
      * Admin 앱 사이드바 네비게이션
@@ -14,9 +14,19 @@
             icon: LayoutDashboard
         },
         {
+            title: '메뉴',
+            href: '/menus',
+            icon: Menu
+        },
+        {
             title: '테마',
             href: '/themes',
             icon: Palette
+        },
+        {
+            title: '위젯',
+            href: '/widgets',
+            icon: LayoutGrid
         },
         {
             title: '플러그인',
