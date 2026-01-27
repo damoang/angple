@@ -19,6 +19,11 @@
     -   Web App: 사용자용 프론트엔드 (http://localhost:5173)
     -   Admin Dashboard: 관리자 대시보드 (http://localhost:5174)
 
+-   ✅ **SSR (Server-Side Rendering) 지원**
+    -   홈페이지 위젯 데이터 서버사이드 로딩
+    -   초기 로딩 성능 개선 (깜박임 없음)
+    -   중앙화된 스토어로 API 호출 최적화 (4회 → 1회)
+
 -   ✅ **테마 시스템** (Phase 6-10 완료)
 
     -   `@angple/theme-engine` 패키지
@@ -75,14 +80,16 @@ npm run dev:admin               # admin 앱
 
 환경변수를 통해 유연한 배포가 가능합니다:
 
-| 환경변수               | 설명                      | 기본값   |
-| ---------------------- | ------------------------- | -------- |
-| `COMPOSE_PROJECT_NAME` | 컨테이너 이름 prefix      | `angple` |
-| `WEB_PORT`             | 웹 포트                   | `3010`   |
-| `ADMIN_PORT`           | 어드민 포트               | `3011`   |
-| `DATA_PATH`            | 데이터 디렉토리           | `./data` |
-| `ANGPLE_WEB_IMAGE`     | 사전 빌드된 웹 이미지     | -        |
-| `ANGPLE_ADMIN_IMAGE`   | 사전 빌드된 어드민 이미지 | -        |
+| 환경변수               | 설명                         | 기본값                          |
+| ---------------------- | ---------------------------- | ------------------------------- |
+| `COMPOSE_PROJECT_NAME` | 컨테이너 이름 prefix         | `angple`                        |
+| `WEB_PORT`             | 웹 포트                      | `3010`                          |
+| `ADMIN_PORT`           | 어드민 포트                  | `3011`                          |
+| `DATA_PATH`            | 데이터 디렉토리              | `./data`                        |
+| `INTERNAL_API_URL`     | SSR용 내부 API URL           | `http://localhost:8082/api/v2`  |
+| `PUBLIC_API_BASE_URL`  | 클라이언트용 외부 API URL    | `https://api.damoang.net`       |
+| `ANGPLE_WEB_IMAGE`     | 사전 빌드된 웹 이미지        | -                               |
+| `ANGPLE_ADMIN_IMAGE`   | 사전 빌드된 어드민 이미지    | -                               |
 
 ```bash
 # 기본 배포
@@ -187,6 +194,7 @@ angple/
 │   │       ├── lib/
 │   │       │   ├── api/        # API 클라이언트
 │   │       │   ├── components/ # Svelte 컴포넌트
+│   │       │   ├── stores/     # Svelte 5 스토어 (SSR 데이터)
 │   │       │   ├── server/     # 서버 사이드 로직
 │   │       │   │   ├── themes/ # 테마 스캐너, 로더
 │   │       │   │   └── settings/ # 설정 관리
@@ -322,5 +330,4 @@ Angple은 다음 오픈소스 프로젝트들에 영감을 받았습니다:
 **현재 버전**: Phase 10 완료 (테마 마켓플레이스)
 **다음 목표**: Phase 11 - 플러그인 시스템 구축
 
-Made with ❤️ by [SDK Co.](https://sdk.kr)
-# Test auto deploy Mon Jan 26 06:16:01 PM KST 2026
+Made with ❤️ by [SDK Co.](https://sdkcorp.com) | [Angple](https://angple.com)
