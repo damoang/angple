@@ -128,6 +128,55 @@ cp compose.override.yml.example compose.override.yml
 -   **nginx** (정적 파일 서빙)
 -   **pnpm** (Monorepo 관리)
 
+## 🔄 GitHub Actions 배포
+
+GitHub Actions를 통해 개발/운영 환경에 자동 또는 수동으로 배포할 수 있습니다.
+
+### 환경 구성
+
+| 환경 | 서버 | 트리거 | 빌드 방식 | 이미지 저장 |
+|------|------|--------|----------|------------|
+| **개발 (DEV)** | OCI | `push to main` 자동 | docker compose | 로컬만 |
+| **운영 (PROD)** | EC2 | 수동 (workflow_dispatch) | docker build | ECR |
+
+### 개발 환경 배포 (OCI - 자동)
+
+main 브랜치에 push하면 자동으로 OCI 개발 서버에 배포됩니다.
+
+```
+main push → GitHub Actions → SSH to OCI → git pull → docker compose up
+```
+
+**워크플로우**: `.github/workflows/deploy-dev.yml`
+
+### 운영 환경 배포 (EC2 - 수동)
+
+GitHub Actions에서 수동으로 트리거하여 EC2 운영 서버에 배포합니다.
+
+```
+수동 트리거 → GitHub Actions → AWS SSM → git pull → docker build → ECR push → docker run
+```
+
+**워크플로우**: `.github/workflows/deploy-prod.yml`
+
+**배포 방법:**
+1. GitHub → Actions → "Deploy to Prod (EC2)" 선택
+2. "Run workflow" 클릭
+3. (선택) Image tag 입력 또는 비워두면 자동 생성 (`main-{커밋SHA}`)
+
+**운영 포트:**
+- Web: `3010`
+- Admin: `3011`
+
+### 롤백
+
+ECR에 저장된 이전 이미지로 롤백할 수 있습니다:
+
+```bash
+# 이전 이미지 태그로 배포
+/home/damoang/deploy/rollback.sh angple main-{이전커밋}
+```
+
 ## 📁 프로젝트 구조
 
 ```
@@ -274,3 +323,4 @@ Angple은 다음 오픈소스 프로젝트들에 영감을 받았습니다:
 **다음 목표**: Phase 11 - 플러그인 시스템 구축
 
 Made with ❤️ by [SDK Co.](https://sdk.kr)
+# Test auto deploy Mon Jan 26 06:16:01 PM KST 2026
