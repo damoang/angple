@@ -187,6 +187,7 @@ async function copyDirectory(src: string, dest: string): Promise<void> {
         // entry.name은 fs.readdir에서 반환된 안전한 파일명
         // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
         const srcPath = join(src, entry.name);
+        // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
         const destPath = join(dest, entry.name);
 
         if (entry.isDirectory()) {
