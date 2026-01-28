@@ -2,6 +2,7 @@
     import { page } from '$app/stores';
     import { cn } from '$lib/utils';
     import { LayoutDashboard, Palette, Settings, FileText, LayoutGrid, Menu } from '@lucide/svelte/icons';
+    import { t } from '$lib/i18n';
 
     /**
      * Admin 앱 사이드바 네비게이션
@@ -9,32 +10,32 @@
 
     const menuItems = [
         {
-            title: '대시보드',
+            titleKey: 'admin_dashboard_title',
             href: '/',
             icon: LayoutDashboard
         },
         {
-            title: '메뉴',
+            titleKey: 'admin_menus_title',
             href: '/menus',
             icon: Menu
         },
         {
-            title: '테마',
+            titleKey: 'admin_themes_title',
             href: '/themes',
             icon: Palette
         },
         {
-            title: '위젯',
+            titleKey: 'admin_widgets_title',
             href: '/widgets',
             icon: LayoutGrid
         },
         {
-            title: '플러그인',
+            titleKey: 'admin_plugins_title',
             href: '/plugins',
             icon: FileText
         },
         {
-            title: '설정',
+            titleKey: 'admin_settings_title',
             href: '/settings',
             icon: Settings
         }
@@ -53,7 +54,7 @@
 <aside class="bg-card border-border flex h-screen w-64 flex-col border-r">
     <!-- 로고 영역 -->
     <div class="border-border flex h-16 items-center border-b px-6">
-        <h1 class="text-xl font-bold">다모앙 Admin</h1>
+        <h1 class="text-xl font-bold">Angple Admin</h1>
     </div>
 
     <!-- 메뉴 영역 -->
@@ -70,7 +71,7 @@
                 )}
             >
                 <Icon class="h-5 w-5" />
-                <span>{item.title}</span>
+                <span>{t(item.titleKey)}</span>
             </a>
         {/each}
     </nav>

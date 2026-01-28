@@ -14,6 +14,7 @@
     import ThemeUploader from '$lib/components/theme-uploader.svelte';
     import { Trash2 } from '@lucide/svelte';
     import { toast } from 'svelte-sonner';
+    import { t } from '$lib/i18n';
 
     // Store에서 테마 목록 가져오기
     const themes = $derived(themeStore.themes);
@@ -39,17 +40,17 @@
         }
     }
 
-    // 상태 한글 변환
+    // 상태 번역
     function getStatusLabel(status: string) {
         switch (status) {
             case 'active':
-                return '활성화';
+                return t('common_activate');
             case 'inactive':
-                return '비활성화';
+                return t('common_deactivate');
             case 'installing':
-                return '설치 중';
+                return t('common_loading');
             case 'error':
-                return '오류';
+                return t('error_general');
             default:
                 return status;
         }
@@ -57,7 +58,7 @@
 
     // 테마 삭제
     async function deleteTheme(themeId: string, themeName: string) {
-        if (!confirm(`정말로 "${themeName}" 테마를 삭제하시겠습니까?`)) {
+        if (!confirm(t('admin_themes_deleteConfirm'))) {
             return;
         }
 
@@ -69,13 +70,13 @@
             const result = await response.json();
 
             if (response.ok && result.success) {
-                toast.success('테마가 성공적으로 삭제되었습니다.');
-                themeStore.loadThemes(); // 테마 목록 새로고침
+                toast.success(t('admin_themes_uploadSuccess'));
+                themeStore.loadThemes();
             } else {
-                toast.error(result.error || '테마 삭제 중 오류가 발생했습니다.');
+                toast.error(result.error || t('admin_themes_uploadError'));
             }
         } catch (error) {
-            toast.error('테마 삭제 중 오류가 발생했습니다.');
+            toast.error(t('admin_themes_uploadError'));
             console.error('Theme deletion error:', error);
         }
     }
@@ -90,17 +91,17 @@
 
 <div class="container mx-auto p-8">
     <div class="mb-8">
-        <h1 class="text-4xl font-bold">테마 관리</h1>
-        <p class="text-muted-foreground mt-2">설치된 테마를 관리하고 새로운 테마를 추가하세요.</p>
+        <h1 class="text-4xl font-bold">{t('admin_themes_title')}</h1>
+        <p class="text-muted-foreground mt-2">{t('admin_themes_noThemes')}</p>
     </div>
 
     <!-- 상단 액션 바 -->
     <div class="mb-6 flex items-center justify-between">
         <div class="flex gap-2">
             <ThemeUploader onUploadSuccess={handleUploadSuccess} />
-            <Button variant="outline">마켓플레이스</Button>
+            <Button variant="outline">{t('admin_themes_marketplace')}</Button>
         </div>
-        <div class="text-muted-foreground text-sm">총 {themes.length}개 테마</div>
+        <div class="text-muted-foreground text-sm">{t('admin_themes_installed')}: {themes.length}</div>
     </div>
 
     <!-- 테마 목록 -->
@@ -118,7 +119,7 @@
                     </div>
                 {:else}
                     <div class="bg-muted flex aspect-video items-center justify-center">
-                        <span class="text-muted-foreground text-sm">이미지 없음</span>
+                        <span class="text-muted-foreground text-sm">{t('common_preview')}</span>
                     </div>
                 {/if}
 
@@ -129,9 +130,9 @@
                                 <CardTitle>{theme.manifest.name}</CardTitle>
                                 <!-- 출처 배지 -->
                                 {#if theme.source === 'official'}
-                                    <Badge variant="default" class="text-xs">공식</Badge>
+                                    <Badge variant="default" class="text-xs">{t('admin_themes_official')}</Badge>
                                 {:else if theme.source === 'custom'}
-                                    <Badge variant="secondary" class="text-xs">커스텀</Badge>
+                                    <Badge variant="secondary" class="text-xs">{t('admin_themes_custom')}</Badge>
                                 {/if}
                             </div>
                             <CardDescription class="mt-1">
@@ -161,13 +162,13 @@
                     <!-- 통계 -->
                     <div class="text-muted-foreground mb-4 flex gap-4 text-xs">
                         {#if theme.downloadCount}
-                            <span>다운로드 {theme.downloadCount.toLocaleString()}</span>
+                            <span>{t('common_download')}: {theme.downloadCount.toLocaleString()}</span>
                         {/if}
                         {#if theme.manifest.components}
-                            <span>컴포넌트 {theme.manifest.components.length}개</span>
+                            <span>Components: {theme.manifest.components.length}</span>
                         {/if}
                         {#if theme.manifest.hooks}
-                            <span>훅 {theme.manifest.hooks.length}개</span>
+                            <span>Hooks: {theme.manifest.hooks.length}</span>
                         {/if}
                     </div>
 
@@ -180,7 +181,7 @@
                                 class="flex-1"
                                 href={`/themes/${theme.manifest.id}/settings`}
                             >
-                                설정
+                                {t('common_settings')}
                             </Button>
                             <Button
                                 variant="outline"
@@ -190,8 +191,8 @@
                                 onclick={() => themeStore.deactivateTheme(theme.manifest.id)}
                             >
                                 {themeStore.isActionInProgress(theme.manifest.id, 'deactivate')
-                                    ? '처리 중...'
-                                    : '비활성화'}
+                                    ? t('common_loading')
+                                    : t('common_deactivate')}
                             </Button>
                         {:else if theme.status === 'inactive'}
                             <Button
@@ -201,8 +202,8 @@
                                 onclick={() => themeStore.activateTheme(theme.manifest.id)}
                             >
                                 {themeStore.isActionInProgress(theme.manifest.id, 'activate')
-                                    ? '처리 중...'
-                                    : '활성화'}
+                                    ? t('common_loading')
+                                    : t('common_activate')}
                             </Button>
                             <Button
                                 variant="outline"
@@ -210,7 +211,7 @@
                                 class="flex-1"
                                 href={`/themes/${theme.manifest.id}/settings`}
                             >
-                                설정
+                                {t('common_settings')}
                             </Button>
                             <!-- 커스텀 테마만 삭제 버튼 표시 -->
                             {#if theme.source === 'custom'}
@@ -225,7 +226,7 @@
                                 </Button>
                             {/if}
                         {:else if theme.status === 'installing'}
-                            <Button disabled size="sm" class="flex-1">설치 중...</Button>
+                            <Button disabled size="sm" class="flex-1">{t('common_loading')}</Button>
                         {:else if theme.status === 'error'}
                             <Button
                                 variant="destructive"
@@ -235,8 +236,8 @@
                                 onclick={() => themeStore.retryInstall(theme.manifest.id)}
                             >
                                 {themeStore.isActionInProgress(theme.manifest.id, 'install')
-                                    ? '처리 중...'
-                                    : '재시도'}
+                                    ? t('common_loading')
+                                    : t('common_refresh')}
                             </Button>
                             <Button
                                 variant="outline"
@@ -246,8 +247,8 @@
                                 onclick={() => themeStore.deleteTheme(theme.manifest.id)}
                             >
                                 {themeStore.isActionInProgress(theme.manifest.id, 'delete')
-                                    ? '삭제 중...'
-                                    : '삭제'}
+                                    ? t('common_loading')
+                                    : t('common_delete')}
                             </Button>
                         {/if}
                     </div>

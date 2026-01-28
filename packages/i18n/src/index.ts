@@ -69,3 +69,16 @@ export {
     extractLocaleFromPath,
     localizedPath
 } from './config.js';
+
+// Context utilities (Simple, non-reactive)
+export {
+    initI18n,
+    getLocale,
+    setLocale,
+    detectLocale,
+    initLocale,
+    t,
+    isCurrentRTL,
+    getCurrentDirection,
+    getLocaleInfo
+} from './context.js';

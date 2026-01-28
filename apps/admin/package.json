@@ -59,6 +59,7 @@
         ]
     },
     "dependencies": {
+        "@angple/i18n": "workspace:*",
         "@angple/types": "workspace:*"
     }
 }
