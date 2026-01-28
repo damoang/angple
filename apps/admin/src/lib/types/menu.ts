@@ -187,6 +187,9 @@ export function buildMenuTree(menus: Menu[]): Menu[] {
         } else {
             const parent = menuMap.get(menu.parent_id);
             if (parent) {
+                if (!parent.children) {
+                    parent.children = [];
+                }
                 parent.children.push(menu);
             }
         }

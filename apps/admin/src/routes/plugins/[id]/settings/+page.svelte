@@ -174,7 +174,7 @@
                                     <Switch
                                         id={key}
                                         checked={settings[key] as boolean ?? field.default}
-                                        onCheckedChange={(checked) => (settings[key] = checked)}
+                                        onCheckedChange={(checked: boolean) => (settings[key] = checked)}
                                     />
                                 </div>
                             {/if}

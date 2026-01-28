@@ -58,7 +58,7 @@
                         depth={depth + 1}
                         {onEdit}
                         {onAddChild}
-                        onReorder={(newChildren) => handleChildReorder(index, newChildren)}
+                        onReorder={(newChildren: Menu[]) => handleChildReorder(index, newChildren)}
                     />
                 </div>
             {/if}

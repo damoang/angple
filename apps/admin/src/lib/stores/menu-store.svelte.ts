@@ -59,7 +59,7 @@ class MenuStore {
     private findMenuById(menus: Menu[], id: number): Menu | null {
         for (const menu of menus) {
             if (menu.id === id) return menu;
-            if (menu.children?.length > 0) {
+            if (menu.children && menu.children.length > 0) {
                 const found = this.findMenuById(menu.children, id);
                 if (found) return found;
             }
@@ -92,7 +92,7 @@ class MenuStore {
     private countMenus(menus: Menu[]): number {
         let count = menus.length;
         for (const menu of menus) {
-            if (menu.children?.length > 0) {
+            if (menu.children && menu.children.length > 0) {
                 count += this.countMenus(menu.children);
             }
         }
