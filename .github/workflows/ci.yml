@@ -75,6 +75,7 @@ jobs:
           pnpm --filter @angple/types build
           pnpm --filter @angple/hook-system build
           pnpm --filter @angple/theme-engine build
+          pnpm --filter @angple/i18n build
 
       - name: Run type check
         working-directory: apps/${{ matrix.app }}
@@ -154,6 +155,7 @@ jobs:
           pnpm --filter @angple/types build
           pnpm --filter @angple/hook-system build
           pnpm --filter @angple/theme-engine build
+          pnpm --filter @angple/i18n build
 
       # Go 백엔드 설정 (web e2e 테스트용)
       - name: Checkout backend
@@ -304,6 +306,7 @@ jobs:
           pnpm --filter @angple/types build
           pnpm --filter @angple/hook-system build
           pnpm --filter @angple/theme-engine build
+          pnpm --filter @angple/i18n build
 
       - name: Run ESLint
         id: eslint-check
@@ -369,6 +372,7 @@ jobs:
           pnpm --filter @angple/types build
           pnpm --filter @angple/hook-system build
           pnpm --filter @angple/theme-engine build
+          pnpm --filter @angple/i18n build
 
       - name: Run svelte-check
         id: svelte-check
