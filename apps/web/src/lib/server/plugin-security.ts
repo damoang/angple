@@ -265,7 +265,7 @@ export async function validatePluginSecurity(
     for (const file of files) {
         try {
             // file은 위에서 normalizedPath.includes('..') 및 isAbsolute로 이미 검증됨
-            // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal
+            // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
             const fullPath = path.join(extractPath, file);
             const fileStat = await stat(fullPath);
 
@@ -284,7 +284,7 @@ export async function validatePluginSecurity(
         if (normalizedPath.includes('..')) continue;
 
         // file은 위에서 normalizedPath.includes('..') 및 isAbsolute로 이미 검증됨
-        // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal
+        // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
         const fullPath = path.join(extractPath, file);
         const scanResult = await scanFileContent(fullPath);
 

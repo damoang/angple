@@ -122,7 +122,7 @@ export class NpmExecutor {
             }
 
             // tarballName은 npm pack 명령어 출력에서 추출된 파일명
-            // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal
+            // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
             const tarballPath = join(targetDir, tarballName);
             console.log('[npm-executor] Tarball created:', tarballPath);
 
