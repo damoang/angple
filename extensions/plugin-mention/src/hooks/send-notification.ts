@@ -65,7 +65,7 @@ export async function sendMentionNotification(
         return;
     }
 
-    console.log(`[Mention] ${usersToNotify.length}명에게 알림 전송 예정:`, usersToNotify);
+    console.log('[Mention]', usersToNotify.length, '명에게 알림 전송 예정:', usersToNotify);
 
     // 각 사용자에게 알림 전송
     for (const username of usersToNotify) {
@@ -80,9 +80,9 @@ export async function sendMentionNotification(
                 createdAt: new Date()
             });
 
-            console.log(`[Mention] 알림 전송 완료: @${username}`);
+            console.log('[Mention] 알림 전송 완료: @' + username);
         } catch (error) {
-            console.error(`[Mention] 알림 전송 실패: @${username}`, error);
+            console.error('[Mention] 알림 전송 실패: @' + username, error);
         }
     }
 }
@@ -99,7 +99,7 @@ async function sendNotificationToUser(
     // 예: await fetch('/api/notifications', { method: 'POST', body: JSON.stringify(notification) });
 
     // 현재는 콘솔 로그로 대체
-    console.log(`[Notification] @${username}에게 멘션 알림:`, notification);
+    console.log('[Notification] @' + username + '에게 멘션 알림:', notification);
 }
 
 /**
