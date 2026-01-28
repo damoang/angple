@@ -19,7 +19,6 @@ jobs:
   sast-semgrep:
     name: SAST - Semgrep
     runs-on: ubuntu-latest
-    continue-on-error: true
     container:
       image: semgrep/semgrep
     steps:
