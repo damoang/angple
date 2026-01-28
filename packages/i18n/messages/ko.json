@@ -91,6 +91,7 @@
     "admin_users_roles": "사용자 역할",
     "admin_users_permissions": "권한",
 
+    "admin_widgets_title": "위젯 관리",
     "admin_settings_title": "설정",
     "admin_settings_general": "일반",
     "admin_settings_appearance": "외관",

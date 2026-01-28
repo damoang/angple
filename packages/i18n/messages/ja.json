@@ -91,6 +91,7 @@
     "admin_users_roles": "ユーザー権限",
     "admin_users_permissions": "権限",
 
+    "admin_widgets_title": "ウィジェット管理",
     "admin_settings_title": "設定",
     "admin_settings_general": "一般",
     "admin_settings_appearance": "外観",

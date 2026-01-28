@@ -13,6 +13,7 @@
     import { Toaster } from '$lib/components/ui/sonner';
     import { Trash2, Settings, Plug } from '@lucide/svelte';
     import { toast } from 'svelte-sonner';
+    import { t } from '$lib/i18n';
 
     // Store에서 플러그인 목록 가져오기
     const plugins = $derived(pluginStore.plugins);
@@ -38,17 +39,17 @@
         }
     }
 
-    // 상태 한글 변환
+    // 상태 번역
     function getStatusLabel(status: string) {
         switch (status) {
             case 'active':
-                return '활성화';
+                return t('common_activate');
             case 'inactive':
-                return '비활성화';
+                return t('common_deactivate');
             case 'installing':
-                return '설치 중';
+                return t('common_loading');
             case 'error':
-                return '오류';
+                return t('error_general');
             default:
                 return status;
         }
@@ -56,7 +57,7 @@
 
     // 플러그인 삭제
     async function deletePlugin(pluginId: string, pluginName: string) {
-        if (!confirm(`정말로 "${pluginName}" 플러그인을 삭제하시겠습니까?`)) {
+        if (!confirm(t('admin_plugins_deleteConfirm'))) {
             return;
         }
 
@@ -68,8 +69,8 @@
 
 <div class="container mx-auto p-8">
     <div class="mb-8">
-        <h1 class="text-4xl font-bold">플러그인 관리</h1>
-        <p class="text-muted-foreground mt-2">설치된 플러그인을 관리하고 새로운 플러그인을 추가하세요.</p>
+        <h1 class="text-4xl font-bold">{t('admin_plugins_title')}</h1>
+        <p class="text-muted-foreground mt-2">{t('admin_plugins_noPlugins')}</p>
     </div>
 
     <!-- 상단 액션 바 -->
@@ -77,12 +78,12 @@
         <div class="flex gap-2">
             <Button variant="outline" disabled>
                 <Plug class="mr-2 h-4 w-4" />
-                플러그인 업로드
+                {t('admin_plugins_upload')}
             </Button>
-            <Button variant="outline" disabled>마켓플레이스</Button>
+            <Button variant="outline" disabled>{t('admin_plugins_marketplace')}</Button>
         </div>
         <div class="text-muted-foreground text-sm">
-            총 {plugins.length}개 플러그인 (활성: {plugins.filter((p) => p.status === 'active').length}개)
+            {t('admin_plugins_installed')}: {plugins.length} ({t('admin_plugins_active')}: {plugins.filter((p) => p.status === 'active').length})
         </div>
     </div>
 
@@ -91,9 +92,9 @@
         <Card>
             <CardContent class="py-12 text-center">
                 <div class="mb-4 text-6xl">🔌</div>
-                <h2 class="text-xl font-semibold mb-2">설치된 플러그인이 없습니다</h2>
+                <h2 class="text-xl font-semibold mb-2">{t('admin_plugins_noPlugins')}</h2>
                 <p class="text-muted-foreground">
-                    plugins/ 디렉터리에 플러그인을 추가하면 여기에 표시됩니다.
+                    {t('admin_plugins_noPlugins')}
                 </p>
             </CardContent>
         </Card>
@@ -123,9 +124,9 @@
                                     <CardTitle>{plugin.manifest.name}</CardTitle>
                                     <!-- 출처 배지 -->
                                     {#if plugin.source === 'official'}
-                                        <Badge variant="default" class="text-xs">공식</Badge>
+                                        <Badge variant="default" class="text-xs">{t('admin_themes_official')}</Badge>
                                     {:else if plugin.source === 'custom'}
-                                        <Badge variant="secondary" class="text-xs">커스텀</Badge>
+                                        <Badge variant="secondary" class="text-xs">{t('admin_themes_custom')}</Badge>
                                     {/if}
                                 </div>
                                 <CardDescription class="mt-1">
@@ -140,7 +141,7 @@
 
                     <CardContent>
                         <p class="text-muted-foreground mb-4 line-clamp-2 text-sm">
-                            {plugin.manifest.description || '설명 없음'}
+                            {plugin.manifest.description || t('plugin_description')}
                         </p>
 
                         <!-- 태그 -->
@@ -155,10 +156,10 @@
                         <!-- 통계 -->
                         <div class="text-muted-foreground mb-4 flex gap-4 text-xs">
                             {#if plugin.manifest.components}
-                                <span>컴포넌트 {plugin.manifest.components.length}개</span>
+                                <span>Components: {plugin.manifest.components.length}</span>
                             {/if}
                             {#if plugin.manifest.hooks}
-                                <span>훅 {plugin.manifest.hooks.length}개</span>
+                                <span>Hooks: {plugin.manifest.hooks.length}</span>
                             {/if}
                         </div>
 
@@ -172,7 +173,7 @@
                                     href={`/plugins/${plugin.manifest.id}/settings`}
                                 >
                                     <Settings class="mr-1 h-3 w-3" />
-                                    설정
+                                    {t('common_settings')}
                                 </Button>
                                 <Button
                                     variant="outline"
@@ -182,8 +183,8 @@
                                     onclick={() => pluginStore.deactivatePlugin(plugin.manifest.id)}
                                 >
                                     {pluginStore.isActionInProgress(plugin.manifest.id, 'deactivate')
-                                        ? '처리 중...'
-                                        : '비활성화'}
+                                        ? t('common_loading')
+                                        : t('common_deactivate')}
                                 </Button>
                             {:else if plugin.status === 'inactive'}
                                 <Button
@@ -193,8 +194,8 @@
                                     onclick={() => pluginStore.activatePlugin(plugin.manifest.id)}
                                 >
                                     {pluginStore.isActionInProgress(plugin.manifest.id, 'activate')
-                                        ? '처리 중...'
-                                        : '활성화'}
+                                        ? t('common_loading')
+                                        : t('common_activate')}
                                 </Button>
                                 <Button
                                     variant="outline"
@@ -203,7 +204,7 @@
                                     href={`/plugins/${plugin.manifest.id}/settings`}
                                 >
                                     <Settings class="mr-1 h-3 w-3" />
-                                    설정
+                                    {t('common_settings')}
                                 </Button>
                                 <!-- 커스텀 플러그인만 삭제 버튼 표시 -->
                                 {#if plugin.source === 'custom'}
@@ -218,7 +219,7 @@
                                     </Button>
                                 {/if}
                             {:else if plugin.status === 'installing'}
-                                <Button disabled size="sm" class="flex-1">설치 중...</Button>
+                                <Button disabled size="sm" class="flex-1">{t('common_loading')}</Button>
                             {:else if plugin.status === 'error'}
                                 <Button
                                     variant="destructive"
@@ -226,7 +227,7 @@
                                     class="flex-1"
                                     disabled
                                 >
-                                    재시도
+                                    {t('common_refresh')}
                                 </Button>
                             {/if}
                         </div>
