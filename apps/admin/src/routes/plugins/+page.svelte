@@ -11,9 +11,10 @@
         CardTitle
     } from '$lib/components/ui/card';
     import { Toaster } from '$lib/components/ui/sonner';
-    import { Trash2, Settings, Plug } from '@lucide/svelte';
+    import { Trash2, Settings, Plug, Github } from '@lucide/svelte';
     import { toast } from 'svelte-sonner';
     import { t } from '$lib/i18n';
+    import PluginGithubInstaller from '$lib/components/plugin-github-installer.svelte';
 
     // Store에서 플러그인 목록 가져오기
     const plugins = $derived(pluginStore.plugins);
@@ -80,6 +81,7 @@
                 <Plug class="mr-2 h-4 w-4" />
                 {t('admin_plugins_upload')}
             </Button>
+            <PluginGithubInstaller onInstallSuccess={() => pluginStore.loadPlugins()} />
             <Button variant="outline" disabled>{t('admin_plugins_marketplace')}</Button>
         </div>
         <div class="text-muted-foreground text-sm">

@@ -37,6 +37,9 @@ const PLUGINS_DIR = join(PROJECT_ROOT, 'plugins');
 /** 커스텀 플러그인 디렉터리 경로 (Git 무시, 사용자 업로드) */
 const CUSTOM_PLUGINS_DIR = join(PROJECT_ROOT, 'custom-plugins');
 
+/** GitHub Packages에서 설치된 확장 디렉터리 */
+const CUSTOM_EXTENSIONS_DIR = join(PROJECT_ROOT, 'custom-extensions');
+
 /**
  * 플러그인 디렉터리가 유효한지 확인
  */
@@ -141,8 +144,11 @@ export function scanPlugins(): Map<string, PluginManifest> {
         // 커스텀 플러그인 스캔 (사용자 업로드)
         const customCount = scanDirectory(CUSTOM_PLUGINS_DIR, plugins);
 
+        // GitHub Packages에서 설치된 확장 스캔
+        const extensionCount = scanDirectory(CUSTOM_EXTENSIONS_DIR, plugins);
+
         console.log(
-            `✅ [Plugin Scanner] 총 ${plugins.size}개 플러그인 스캔 완료 (공식: ${officialCount}, 커스텀: ${customCount})`
+            `✅ [Plugin Scanner] 총 ${plugins.size}개 플러그인 스캔 완료 (공식: ${officialCount}, 커스텀: ${customCount}, 확장: ${extensionCount})`
         );
     } catch (error) {
         console.error('❌ [Plugin Scanner] 플러그인 스캔 실패:', error);
@@ -170,6 +176,13 @@ function findPluginDirectory(pluginId: string): [string, boolean] | null {
     const customPath = join(CUSTOM_PLUGINS_DIR, sanitizedId);
     if (isValidPluginDirectory(customPath)) {
         return [CUSTOM_PLUGINS_DIR, true];
+    }
+
+    // 3. GitHub Packages에서 설치된 확장 디렉터리 확인
+    // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
+    const extensionPath = join(CUSTOM_EXTENSIONS_DIR, sanitizedId);
+    if (isValidPluginDirectory(extensionPath)) {
+        return [CUSTOM_EXTENSIONS_DIR, true];
     }
 
     return null;
@@ -223,9 +236,10 @@ export function isCustomPlugin(pluginId: string): boolean {
 /**
  * 플러그인 디렉터리 경로 반환 (파일 서빙용)
  */
-export function getPluginsDirs(): { official: string; custom: string } {
+export function getPluginsDirs(): { official: string; custom: string; extensions: string } {
     return {
         official: PLUGINS_DIR,
-        custom: CUSTOM_PLUGINS_DIR
+        custom: CUSTOM_PLUGINS_DIR,
+        extensions: CUSTOM_EXTENSIONS_DIR
     };
 }
