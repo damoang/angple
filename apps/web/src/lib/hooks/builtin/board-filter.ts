@@ -3,7 +3,21 @@
  * 차단 회원 필터링, 신고 글 표시 등 기본 게시판 기능
  */
 import { hooks } from '@angple/hook-system';
-import type { Post, FilterContext } from '@angple/hook-system';
+
+// 로컬 타입 정의 (hook 컨텍스트용)
+interface Post {
+    id: string | number;
+    authorId: string | number;
+    isReported?: boolean;
+    [key: string]: unknown;
+}
+
+interface FilterContext {
+    user?: {
+        blockedUsers?: (string | number)[];
+        reportedPosts?: (string | number)[];
+    };
+}
 
 /**
  * 게시판 필터 초기화

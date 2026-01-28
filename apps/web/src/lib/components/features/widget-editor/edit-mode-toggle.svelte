@@ -12,7 +12,7 @@
     // 사용자 정보
     const user = $derived(getUser());
     // TODO: 테스트 후 원복 필요
-    const isAdmin = $derived(true || (user && user.mb_level >= 10));
+    const isAdmin = $derived(true || (user?.mb_level ?? 0) >= 10);
 
     // 스토어 상태
     const isEditMode = $derived(widgetLayoutStore.isEditMode);

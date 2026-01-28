@@ -168,6 +168,9 @@ importers:
       '@angple/hook-system':
         specifier: workspace:*
         version: link:../../packages/hook-system
+      '@angple/i18n':
+        specifier: workspace:*
+        version: link:../../packages/i18n
       '@angple/theme-engine':
         specifier: workspace:*
         version: link:../../packages/theme-engine
