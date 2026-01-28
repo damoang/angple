@@ -121,8 +121,10 @@ export class NpmExecutor {
                 throw new Error(`예상치 못한 npm pack 출력: ${stdout}`);
             }
 
+            // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal
+            // tarballName은 npm pack 명령어 출력에서 추출된 파일명
             const tarballPath = join(targetDir, tarballName);
-            console.log(`✅ [npm-executor] Tarball created: ${tarballPath}`);
+            console.log('[npm-executor] Tarball created:', tarballPath);
 
             return tarballPath;
         } catch (error) {

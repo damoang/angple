@@ -168,7 +168,8 @@ export async function getToken(scope: string): Promise<string | null> {
 
         return token;
     } catch (error) {
-        console.error(`[Token Store] 토큰 복호화 실패: ${normalizedScope}`, error);
+        // nosemgrep: javascript.lang.security.audit.unsafe-formatstring.unsafe-formatstring
+        console.error('[Token Store] 토큰 복호화 실패:', normalizedScope, error);
         return null;
     }
 }

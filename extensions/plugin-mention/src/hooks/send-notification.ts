@@ -82,7 +82,8 @@ export async function sendMentionNotification(
 
             console.log('[Mention] 알림 전송 완료: @' + username);
         } catch (error) {
-            console.error('[Mention] 알림 전송 실패: @' + username, error);
+            // nosemgrep: javascript.lang.security.audit.unsafe-formatstring.unsafe-formatstring
+            console.error('[Mention] 알림 전송 실패:', username, error);
         }
     }
 }
@@ -99,7 +100,8 @@ async function sendNotificationToUser(
     // 예: await fetch('/api/notifications', { method: 'POST', body: JSON.stringify(notification) });
 
     // 현재는 콘솔 로그로 대체
-    console.log('[Notification] @' + username + '에게 멘션 알림:', notification);
+    // nosemgrep: javascript.lang.security.audit.unsafe-formatstring.unsafe-formatstring
+    console.log('[Notification] 멘션 알림:', username, notification);
 }
 
 /**

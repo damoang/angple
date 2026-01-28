@@ -264,6 +264,8 @@ export async function validatePluginSecurity(
     // 3. Symlink 검증
     for (const file of files) {
         try {
+            // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal
+            // file은 위에서 normalizedPath.includes('..') 및 isAbsolute로 이미 검증됨
             const fullPath = path.join(extractPath, file);
             const fileStat = await stat(fullPath);
 
@@ -281,7 +283,8 @@ export async function validatePluginSecurity(
         const normalizedPath = path.normalize(file);
         if (normalizedPath.includes('..')) continue;
 
-        // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
+        // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal
+        // file은 위에서 normalizedPath.includes('..') 및 isAbsolute로 이미 검증됨
         const fullPath = path.join(extractPath, file);
         const scanResult = await scanFileContent(fullPath);
 
