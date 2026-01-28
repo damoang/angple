@@ -141,8 +141,8 @@ async function readManifest(dir: string): Promise<ExtensionManifest> {
     const manifestNames = ['extension.json', 'plugin.json'];
 
     for (const name of manifestNames) {
-        // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal
         // name은 하드코딩된 상수 배열에서만 사용됨
+        // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal
         const manifestPath = join(dir, name);
         if (existsSync(manifestPath)) {
             const content = await readFile(manifestPath, 'utf-8');
@@ -161,8 +161,8 @@ async function listAllFiles(dir: string, baseDir: string = dir): Promise<string[
     const entries = await readdir(dir, { withFileTypes: true });
 
     for (const entry of entries) {
-        // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal
         // entry.name은 fs.readdir에서 반환된 안전한 파일명
+        // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal
         const fullPath = join(dir, entry.name);
         const relativePath = fullPath.replace(baseDir + '/', '');
 
@@ -184,8 +184,8 @@ async function copyDirectory(src: string, dest: string): Promise<void> {
     const entries = await readdir(src, { withFileTypes: true });
 
     for (const entry of entries) {
-        // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal
         // entry.name은 fs.readdir에서 반환된 안전한 파일명
+        // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal
         const srcPath = join(src, entry.name);
         const destPath = join(dest, entry.name);
 

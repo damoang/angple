@@ -80,8 +80,8 @@ export function decrypt(encrypted: string): string {
         throw new Error('잘못된 인증 태그 길이입니다.');
     }
 
-    // nosemgrep: javascript.node-crypto.security.gcm-no-tag-length.gcm-no-tag-length
     // authTag 길이는 위에서 이미 검증됨 (AUTH_TAG_LENGTH = 16)
+    // nosemgrep: javascript.node-crypto.security.gcm-no-tag-length.gcm-no-tag-length
     const decipher = createDecipheriv(ALGORITHM, Buffer.from(key, 'hex'), iv);
     decipher.setAuthTag(authTag);
 
