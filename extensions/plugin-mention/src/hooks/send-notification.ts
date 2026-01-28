@@ -80,7 +80,7 @@ export async function sendMentionNotification(
                 createdAt: new Date()
             });
 
-            console.log('[Mention] 알림 전송 완료: @' + username);
+            console.log('[Mention] 알림 전송 완료:', username);
         } catch (error) {
             // nosemgrep: javascript.lang.security.audit.unsafe-formatstring.unsafe-formatstring
             console.error('[Mention] 알림 전송 실패:', username, error);
