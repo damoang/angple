@@ -10,9 +10,13 @@
             "types": "./dist/index.d.ts",
             "import": "./dist/index.js"
         },
-        "./messages/*": {
-            "import": "./messages/*.json"
-        },
+        "./messages/en.json": "./messages/en.json",
+        "./messages/ko.json": "./messages/ko.json",
+        "./messages/ja.json": "./messages/ja.json",
+        "./messages/zh.json": "./messages/zh.json",
+        "./messages/es.json": "./messages/es.json",
+        "./messages/ar.json": "./messages/ar.json",
+        "./messages/vi.json": "./messages/vi.json",
         "./paraglide": {
             "types": "./dist/paraglide.d.ts",
             "import": "./dist/paraglide.js"
