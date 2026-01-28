@@ -50,11 +50,7 @@ export function setDocumentDirection(locale: string): void {
  * @param rtlClass - RTL용 클래스
  * @returns 적절한 클래스 문자열
  */
-export function rtlClass(
-    locale: string,
-    ltrClass: string,
-    rtlClass: string
-): string {
+export function rtlClass(locale: string, ltrClass: string, rtlClass: string): string {
     return isRTL(locale) ? rtlClass : ltrClass;
 }
 

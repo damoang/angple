@@ -388,7 +388,7 @@ class ApiClient {
         try {
             const response = await this.request<IndexWidgetsData>('/recommended/index-widgets');
             // API가 데이터를 직접 반환하거나 { data: ... } 형태로 반환하는 경우 모두 처리
-            const data = (response as unknown as IndexWidgetsData);
+            const data = response as unknown as IndexWidgetsData;
             // news_tabs 필드가 있으면 직접 반환된 데이터, 없으면 response.data 시도
             if (data?.news_tabs !== undefined) {
                 return data;

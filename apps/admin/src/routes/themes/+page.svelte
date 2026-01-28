@@ -101,7 +101,9 @@
             <ThemeUploader onUploadSuccess={handleUploadSuccess} />
             <Button variant="outline">{t('admin_themes_marketplace')}</Button>
         </div>
-        <div class="text-muted-foreground text-sm">{t('admin_themes_installed')}: {themes.length}</div>
+        <div class="text-muted-foreground text-sm">
+            {t('admin_themes_installed')}: {themes.length}
+        </div>
     </div>
 
     <!-- 테마 목록 -->
@@ -130,9 +132,13 @@
                                 <CardTitle>{theme.manifest.name}</CardTitle>
                                 <!-- 출처 배지 -->
                                 {#if theme.source === 'official'}
-                                    <Badge variant="default" class="text-xs">{t('admin_themes_official')}</Badge>
+                                    <Badge variant="default" class="text-xs"
+                                        >{t('admin_themes_official')}</Badge
+                                    >
                                 {:else if theme.source === 'custom'}
-                                    <Badge variant="secondary" class="text-xs">{t('admin_themes_custom')}</Badge>
+                                    <Badge variant="secondary" class="text-xs"
+                                        >{t('admin_themes_custom')}</Badge
+                                    >
                                 {/if}
                             </div>
                             <CardDescription class="mt-1">
@@ -162,7 +168,9 @@
                     <!-- 통계 -->
                     <div class="text-muted-foreground mb-4 flex gap-4 text-xs">
                         {#if theme.downloadCount}
-                            <span>{t('common_download')}: {theme.downloadCount.toLocaleString()}</span>
+                            <span
+                                >{t('common_download')}: {theme.downloadCount.toLocaleString()}</span
+                            >
                         {/if}
                         {#if theme.manifest.components}
                             <span>Components: {theme.manifest.components.length}</span>

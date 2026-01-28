@@ -96,7 +96,9 @@
     }
 
     // 카테고리 배지 색상
-    function getCategoryVariant(category: string): 'default' | 'secondary' | 'destructive' | 'outline' {
+    function getCategoryVariant(
+        category: string
+    ): 'default' | 'secondary' | 'destructive' | 'outline' {
         switch (category) {
             case 'content':
                 return 'default';
@@ -144,10 +146,14 @@
             <!-- 위젯 정보 -->
             <div class="mb-6">
                 <div class="flex items-center gap-3">
-                    <div class={cn(
-                        'flex h-12 w-12 items-center justify-center rounded-lg',
-                        widget.enabled ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'
-                    )}>
+                    <div
+                        class={cn(
+                            'flex h-12 w-12 items-center justify-center rounded-lg',
+                            widget.enabled
+                                ? 'bg-primary/10 text-primary'
+                                : 'bg-muted text-muted-foreground'
+                        )}
+                    >
                         <Icon class="h-6 w-6" />
                     </div>
                     <div>
@@ -170,10 +176,7 @@
             <div class="space-y-4">
                 <div class="flex items-center justify-between">
                     <Label>활성화</Label>
-                    <Switch
-                        checked={widget.enabled}
-                        onCheckedChange={handleToggle}
-                    />
+                    <Switch checked={widget.enabled} onCheckedChange={handleToggle} />
                 </div>
 
                 <div class="border-border border-t pt-4">
@@ -212,7 +215,8 @@
                             <Input
                                 id="ad-height"
                                 value={String(localSettings.height ?? '')}
-                                oninput={(e) => handleSettingChange('height', e.currentTarget.value)}
+                                oninput={(e) =>
+                                    handleSettingChange('height', e.currentTarget.value)}
                                 placeholder="예: 90px"
                             />
                         </div>
@@ -239,7 +243,8 @@
                                 id="ad-format"
                                 class="border-input bg-background ring-offset-background focus-visible:ring-ring flex h-10 w-full rounded-md border px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
                                 value={String(localSettings.format ?? 'square')}
-                                onchange={(e) => handleSettingChange('format', e.currentTarget.value)}
+                                onchange={(e) =>
+                                    handleSettingChange('format', e.currentTarget.value)}
                             >
                                 <option value="square">정사각형</option>
                                 <option value="rectangle">직사각형</option>
@@ -257,18 +262,18 @@
                     <Label class="text-muted-foreground text-xs uppercase tracking-wide">
                         설정 데이터
                     </Label>
-                    <pre class="bg-muted rounded-md p-3 text-xs">{JSON.stringify(widget.settings, null, 2)}</pre>
+                    <pre class="bg-muted rounded-md p-3 text-xs">{JSON.stringify(
+                            widget.settings,
+                            null,
+                            2
+                        )}</pre>
                 </div>
             {/if}
         </div>
 
         <!-- 푸터 -->
         <div class="border-border border-t p-4">
-            <Button
-                variant="destructive"
-                class="w-full"
-                onclick={handleDelete}
-            >
+            <Button variant="destructive" class="w-full" onclick={handleDelete}>
                 <Trash2 class="mr-2 h-4 w-4" />
                 위젯 삭제
             </Button>

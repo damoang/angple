@@ -97,9 +97,7 @@
             </Button>
             <div>
                 <h1 class="text-3xl font-bold">{plugin?.manifest.name || '플러그인'} 설정</h1>
-                <p class="text-muted-foreground">
-                    플러그인의 동작을 사용자 정의하세요.
-                </p>
+                <p class="text-muted-foreground">플러그인의 동작을 사용자 정의하세요.</p>
             </div>
         </div>
         <div class="flex gap-2">
@@ -162,7 +160,9 @@
 
                             <!-- 토글 스위치 -->
                             {#if field.type === 'boolean'}
-                                <div class="flex items-center justify-between rounded-lg border p-4">
+                                <div
+                                    class="flex items-center justify-between rounded-lg border p-4"
+                                >
                                     <Label for={key} class="flex flex-col gap-1">
                                         <span>{field.label}</span>
                                         {#if field.description}
@@ -173,8 +173,9 @@
                                     </Label>
                                     <Switch
                                         id={key}
-                                        checked={settings[key] as boolean ?? field.default}
-                                        onCheckedChange={(checked) => (settings[key] = checked)}
+                                        checked={(settings[key] as boolean) ?? field.default}
+                                        onCheckedChange={(checked: boolean) =>
+                                            (settings[key] = checked)}
                                     />
                                 </div>
                             {/if}
@@ -206,7 +207,7 @@
                                     bind:value={settings[key]}
                                     placeholder={field.default as string}
                                     rows="4"
-                                    class="border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring flex w-full rounded-md border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                                    class="border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring flex w-full rounded-md border px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                                 ></textarea>
                             {/if}
                         </div>

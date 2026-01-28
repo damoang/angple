@@ -7,11 +7,7 @@
 
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import {
-    getInstalledPlugins,
-    activatePlugin,
-    deactivatePlugin
-} from '$lib/server/plugins';
+import { getInstalledPlugins, activatePlugin, deactivatePlugin } from '$lib/server/plugins';
 import type { PluginManifest } from '$lib/types/plugin';
 
 /**
@@ -96,13 +92,13 @@ export const GET: RequestHandler = async () => {
 export const POST: RequestHandler = async ({ request }) => {
     try {
         const body = await request.json();
-        const { pluginId, action } = body as { pluginId: string; action: 'activate' | 'deactivate' };
+        const { pluginId, action } = body as {
+            pluginId: string;
+            action: 'activate' | 'deactivate';
+        };
 
         if (!pluginId || !action) {
-            return json(
-                { error: 'pluginId와 action은 필수입니다.' },
-                { status: 400 }
-            );
+            return json({ error: 'pluginId와 action은 필수입니다.' }, { status: 400 });
         }
 
         if (action !== 'activate' && action !== 'deactivate') {
@@ -121,10 +117,7 @@ export const POST: RequestHandler = async ({ request }) => {
         }
 
         if (!success) {
-            return json(
-                { error: `플러그인 ${action} 실패: ${pluginId}` },
-                { status: 400 }
-            );
+            return json({ error: `플러그인 ${action} 실패: ${pluginId}` }, { status: 400 });
         }
 
         console.log(`✅ [API /plugins] 플러그인 ${action}: ${pluginId}`);
@@ -137,9 +130,6 @@ export const POST: RequestHandler = async ({ request }) => {
     } catch (error) {
         console.error('❌ [API /plugins] 플러그인 액션 실패:', error);
 
-        return json(
-            { error: '플러그인 작업 처리 중 오류가 발생했습니다.' },
-            { status: 500 }
-        );
+        return json({ error: '플러그인 작업 처리 중 오류가 발생했습니다.' }, { status: 500 });
     }
 };

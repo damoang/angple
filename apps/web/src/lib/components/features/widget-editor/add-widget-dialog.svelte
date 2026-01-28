@@ -90,7 +90,7 @@
             {#each Object.entries(groupedWidgets()) as [category, types]}
                 {#if types.length > 0}
                     <div>
-                        <h4 class="text-sm font-medium text-muted-foreground mb-2">
+                        <h4 class="text-muted-foreground mb-2 text-sm font-medium">
                             {categoryNames[category]}
                         </h4>
                         <div class="grid grid-cols-2 gap-2">
@@ -100,16 +100,16 @@
                                 <button
                                     type="button"
                                     onclick={() => handleAddWidget(type)}
-                                    class="flex items-center gap-2 p-3 rounded-lg border border-border hover:bg-accent hover:text-accent-foreground transition-colors text-left"
+                                    class="border-border hover:bg-accent hover:text-accent-foreground flex items-center gap-2 rounded-lg border p-3 text-left transition-colors"
                                 >
                                     <div
-                                        class="flex-shrink-0 w-8 h-8 rounded-md bg-muted flex items-center justify-center"
+                                        class="bg-muted flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md"
                                     >
                                         <Icon class="h-4 w-4" />
                                     </div>
                                     <div class="min-w-0">
-                                        <div class="text-sm font-medium truncate">{entry.name}</div>
-                                        <div class="text-xs text-muted-foreground truncate">
+                                        <div class="truncate text-sm font-medium">{entry.name}</div>
+                                        <div class="text-muted-foreground truncate text-xs">
                                             {entry.description}
                                         </div>
                                     </div>
@@ -121,7 +121,7 @@
             {/each}
 
             {#if addableWidgets.length === 0}
-                <p class="text-sm text-muted-foreground text-center py-4">
+                <p class="text-muted-foreground py-4 text-center text-sm">
                     추가할 수 있는 위젯이 없습니다.
                 </p>
             {/if}

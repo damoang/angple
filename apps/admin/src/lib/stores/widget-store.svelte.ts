@@ -43,7 +43,9 @@ class WidgetStore {
     }
 
     get enabledSidebarWidgets() {
-        return this._sidebarWidgets.filter((w) => w.enabled).sort((a, b) => a.position - b.position);
+        return this._sidebarWidgets
+            .filter((w) => w.enabled)
+            .sort((a, b) => a.position - b.position);
     }
 
     // Getters - UI 상태
@@ -98,7 +100,9 @@ class WidgetStore {
             this._sidebarWidgets = data.sidebarWidgets ?? [];
             this._originalSidebarWidgets = JSON.parse(JSON.stringify(this._sidebarWidgets));
 
-            console.log(`✅ 위젯 로드됨: 메인 ${this._widgets.length}개, 사이드바 ${this._sidebarWidgets.length}개`);
+            console.log(
+                `✅ 위젯 로드됨: 메인 ${this._widgets.length}개, 사이드바 ${this._sidebarWidgets.length}개`
+            );
         } catch (error) {
             console.error('❌ 위젯 레이아웃 로드 실패:', error);
             toast.error('위젯 레이아웃을 불러오지 못했습니다. Web 앱이 실행 중인지 확인하세요.');

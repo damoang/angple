@@ -47,27 +47,27 @@
 </script>
 
 <div
-    class="group flex items-center gap-2 rounded-lg border bg-card p-3 hover:bg-accent/50 transition-colors {!menu.is_active
+    class="bg-card hover:bg-accent/50 group flex items-center gap-2 rounded-lg border p-3 transition-colors {!menu.is_active
         ? 'opacity-50'
         : ''}"
 >
     <!-- 드래그 핸들 -->
-    <div class="cursor-grab text-muted-foreground hover:text-foreground">
+    <div class="text-muted-foreground hover:text-foreground cursor-grab">
         <GripVertical class="h-5 w-5" />
     </div>
 
     <!-- 메뉴 정보 -->
-    <div class="flex-1 min-w-0">
+    <div class="min-w-0 flex-1">
         <div class="flex items-center gap-2">
-            <span class="font-medium truncate">{menu.title}</span>
+            <span class="truncate font-medium">{menu.title}</span>
             {#if menu.icon}
                 <Badge variant="outline" class="text-xs">{menu.icon}</Badge>
             {/if}
             {#if menu.target === '_blank'}
-                <ExternalLink class="h-3 w-3 text-muted-foreground" />
+                <ExternalLink class="text-muted-foreground h-3 w-3" />
             {/if}
         </div>
-        <div class="flex items-center gap-2 text-sm text-muted-foreground">
+        <div class="text-muted-foreground flex items-center gap-2 text-sm">
             <Link class="h-3 w-3" />
             <span class="truncate">{menu.url}</span>
         </div>
@@ -77,26 +77,26 @@
     <div class="flex items-center gap-1">
         {#if menu.show_in_header}
             <Badge variant="secondary" class="text-xs">
-                <PanelTop class="h-3 w-3 mr-1" />
+                <PanelTop class="mr-1 h-3 w-3" />
                 헤더
             </Badge>
         {/if}
         {#if menu.show_in_sidebar}
             <Badge variant="secondary" class="text-xs">
-                <PanelLeft class="h-3 w-3 mr-1" />
+                <PanelLeft class="mr-1 h-3 w-3" />
                 사이드바
             </Badge>
         {/if}
         {#if !menu.is_active}
             <Badge variant="destructive" class="text-xs">
-                <EyeOff class="h-3 w-3 mr-1" />
+                <EyeOff class="mr-1 h-3 w-3" />
                 비활성
             </Badge>
         {/if}
     </div>
 
     <!-- 액션 버튼 -->
-    <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+    <div class="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
         <Button variant="ghost" size="icon" class="h-8 w-8" onclick={() => onEdit(menu.id)}>
             <Pencil class="h-4 w-4" />
         </Button>

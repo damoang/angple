@@ -63,5 +63,12 @@
             "pre-commit": "lint-staged",
             "commit-msg": "commitlint -E HUSKY_GIT_PARAMS"
         }
+    },
+    "pnpm": {
+        "overrides": {
+            "sha.js": ">=2.4.12",
+            "solid-js": ">=1.9.4",
+            "devalue": ">=5.3.2"
+        }
     }
 }

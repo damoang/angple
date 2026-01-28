@@ -155,7 +155,10 @@ class JsonPluginSettingsProvider implements PluginSettingsProvider {
 
             // 플러그인 설정 초기화 (없으면)
             if (!settings.plugins[pluginId]) {
-                settings.plugins[pluginId] = { settings: {}, activatedAt: new Date().toISOString() };
+                settings.plugins[pluginId] = {
+                    settings: {},
+                    activatedAt: new Date().toISOString()
+                };
             } else {
                 settings.plugins[pluginId].activatedAt = new Date().toISOString();
             }

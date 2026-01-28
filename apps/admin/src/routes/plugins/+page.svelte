@@ -83,7 +83,9 @@
             <Button variant="outline" disabled>{t('admin_plugins_marketplace')}</Button>
         </div>
         <div class="text-muted-foreground text-sm">
-            {t('admin_plugins_installed')}: {plugins.length} ({t('admin_plugins_active')}: {plugins.filter((p) => p.status === 'active').length})
+            {t('admin_plugins_installed')}: {plugins.length} ({t('admin_plugins_active')}: {plugins.filter(
+                (p) => p.status === 'active'
+            ).length})
         </div>
     </div>
 
@@ -92,7 +94,7 @@
         <Card>
             <CardContent class="py-12 text-center">
                 <div class="mb-4 text-6xl">🔌</div>
-                <h2 class="text-xl font-semibold mb-2">{t('admin_plugins_noPlugins')}</h2>
+                <h2 class="mb-2 text-xl font-semibold">{t('admin_plugins_noPlugins')}</h2>
                 <p class="text-muted-foreground">
                     {t('admin_plugins_noPlugins')}
                 </p>
@@ -113,7 +115,7 @@
                         </div>
                     {:else}
                         <div class="bg-muted flex aspect-video items-center justify-center">
-                            <Plug class="h-12 w-12 text-muted-foreground" />
+                            <Plug class="text-muted-foreground h-12 w-12" />
                         </div>
                     {/if}
 
@@ -124,9 +126,13 @@
                                     <CardTitle>{plugin.manifest.name}</CardTitle>
                                     <!-- 출처 배지 -->
                                     {#if plugin.source === 'official'}
-                                        <Badge variant="default" class="text-xs">{t('admin_themes_official')}</Badge>
+                                        <Badge variant="default" class="text-xs"
+                                            >{t('admin_themes_official')}</Badge
+                                        >
                                     {:else if plugin.source === 'custom'}
-                                        <Badge variant="secondary" class="text-xs">{t('admin_themes_custom')}</Badge>
+                                        <Badge variant="secondary" class="text-xs"
+                                            >{t('admin_themes_custom')}</Badge
+                                        >
                                     {/if}
                                 </div>
                                 <CardDescription class="mt-1">
@@ -182,7 +188,10 @@
                                     disabled={pluginStore.isPluginLoading(plugin.manifest.id)}
                                     onclick={() => pluginStore.deactivatePlugin(plugin.manifest.id)}
                                 >
-                                    {pluginStore.isActionInProgress(plugin.manifest.id, 'deactivate')
+                                    {pluginStore.isActionInProgress(
+                                        plugin.manifest.id,
+                                        'deactivate'
+                                    )
                                         ? t('common_loading')
                                         : t('common_deactivate')}
                                 </Button>
@@ -219,14 +228,11 @@
                                     </Button>
                                 {/if}
                             {:else if plugin.status === 'installing'}
-                                <Button disabled size="sm" class="flex-1">{t('common_loading')}</Button>
-                            {:else if plugin.status === 'error'}
-                                <Button
-                                    variant="destructive"
-                                    size="sm"
-                                    class="flex-1"
-                                    disabled
+                                <Button disabled size="sm" class="flex-1"
+                                    >{t('common_loading')}</Button
                                 >
+                            {:else if plugin.status === 'error'}
+                                <Button variant="destructive" size="sm" class="flex-1" disabled>
                                     {t('common_refresh')}
                                 </Button>
                             {/if}
@@ -234,7 +240,9 @@
 
                         <!-- 에러 메시지 -->
                         {#if plugin.status === 'error' && plugin.errorMessage}
-                            <div class="bg-destructive/10 text-destructive mt-3 rounded-md p-2 text-xs">
+                            <div
+                                class="bg-destructive/10 text-destructive mt-3 rounded-md p-2 text-xs"
+                            >
                                 {plugin.errorMessage}
                             </div>
                         {/if}

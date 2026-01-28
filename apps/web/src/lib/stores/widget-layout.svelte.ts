@@ -27,11 +27,29 @@ const DEFAULT_WIDGETS: WidgetConfig[] = [
     { id: 'recommended', type: 'recommended', position: 1, enabled: true },
     { id: 'ad-top', type: 'ad', position: 2, enabled: true, settings: { position: 'index-top' } },
     { id: 'news-economy-row', type: 'news-economy-row', position: 3, enabled: true },
-    { id: 'ad-middle-1', type: 'ad', position: 4, enabled: true, settings: { position: 'index-middle-1' } },
+    {
+        id: 'ad-middle-1',
+        type: 'ad',
+        position: 4,
+        enabled: true,
+        settings: { position: 'index-middle-1' }
+    },
     { id: 'gallery', type: 'gallery', position: 5, enabled: true },
-    { id: 'ad-middle-2', type: 'ad', position: 6, enabled: true, settings: { position: 'index-middle-2' } },
+    {
+        id: 'ad-middle-2',
+        type: 'ad',
+        position: 6,
+        enabled: true,
+        settings: { position: 'index-middle-2' }
+    },
     { id: 'group', type: 'group', position: 7, enabled: true },
-    { id: 'ad-bottom', type: 'ad', position: 8, enabled: true, settings: { position: 'index-bottom' } }
+    {
+        id: 'ad-bottom',
+        type: 'ad',
+        position: 8,
+        enabled: true,
+        settings: { position: 'index-bottom' }
+    }
 ];
 
 // 기본 사이드바 위젯 레이아웃
@@ -62,8 +80,12 @@ class WidgetLayoutStore {
     private _originalWidgets = $state<WidgetConfig[]>(JSON.parse(JSON.stringify(DEFAULT_WIDGETS)));
 
     // 사이드바 위젯
-    private _sidebarWidgets = $state<WidgetConfig[]>(JSON.parse(JSON.stringify(DEFAULT_SIDEBAR_WIDGETS)));
-    private _originalSidebarWidgets = $state<WidgetConfig[]>(JSON.parse(JSON.stringify(DEFAULT_SIDEBAR_WIDGETS)));
+    private _sidebarWidgets = $state<WidgetConfig[]>(
+        JSON.parse(JSON.stringify(DEFAULT_SIDEBAR_WIDGETS))
+    );
+    private _originalSidebarWidgets = $state<WidgetConfig[]>(
+        JSON.parse(JSON.stringify(DEFAULT_SIDEBAR_WIDGETS))
+    );
 
     private _isEditMode = $state(false);
     private _isDragging = $state(false);
@@ -84,7 +106,9 @@ class WidgetLayoutStore {
     }
 
     get enabledSidebarWidgets() {
-        return this._sidebarWidgets.filter((w) => w.enabled).sort((a, b) => a.position - b.position);
+        return this._sidebarWidgets
+            .filter((w) => w.enabled)
+            .sort((a, b) => a.position - b.position);
     }
 
     get isEditMode() {
@@ -109,10 +133,7 @@ class WidgetLayoutStore {
     /**
      * 서버 데이터로 초기화 (메인 + 사이드바)
      */
-    initFromServer(
-        widgets: WidgetConfig[] | null,
-        sidebarWidgets?: WidgetConfig[] | null
-    ) {
+    initFromServer(widgets: WidgetConfig[] | null, sidebarWidgets?: WidgetConfig[] | null) {
         // 메인 위젯 초기화 (deep copy로 변경 감지 정확히)
         if (widgets && widgets.length > 0) {
             this._widgets = JSON.parse(JSON.stringify(widgets));

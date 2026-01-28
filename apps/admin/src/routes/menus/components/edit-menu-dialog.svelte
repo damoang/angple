@@ -100,13 +100,17 @@
     <Dialog.Content class="sm:max-w-[500px]">
         <Dialog.Header>
             <Dialog.Title>메뉴 수정</Dialog.Title>
-            <Dialog.Description>
-                메뉴 정보를 수정합니다.
-            </Dialog.Description>
+            <Dialog.Description>메뉴 정보를 수정합니다.</Dialog.Description>
         </Dialog.Header>
 
         {#if menu}
-            <form onsubmit={(e) => { e.preventDefault(); handleSubmit(); }} class="space-y-4">
+            <form
+                onsubmit={(e) => {
+                    e.preventDefault();
+                    handleSubmit();
+                }}
+                class="space-y-4"
+            >
                 <div class="grid gap-4">
                     <!-- 제목 -->
                     <div class="grid gap-2">
@@ -149,11 +153,7 @@
                     <!-- 단축키 -->
                     <div class="grid gap-2">
                         <Label for="edit-shortcut">단축키</Label>
-                        <Input
-                            id="edit-shortcut"
-                            bind:value={shortcut}
-                            placeholder="예: Ctrl+M"
-                        />
+                        <Input id="edit-shortcut" bind:value={shortcut} placeholder="예: Ctrl+M" />
                     </div>
 
                     <!-- 설명 -->
@@ -208,10 +208,17 @@
                         삭제
                     </Button>
                     <div class="flex gap-2">
-                        <Button type="button" variant="outline" onclick={() => handleOpenChange(false)}>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onclick={() => handleOpenChange(false)}
+                        >
                             취소
                         </Button>
-                        <Button type="submit" disabled={isSubmitting || !title.trim() || !url.trim()}>
+                        <Button
+                            type="submit"
+                            disabled={isSubmitting || !title.trim() || !url.trim()}
+                        >
                             {#if isSubmitting}
                                 <Loader2 class="mr-2 h-4 w-4 animate-spin" />
                             {/if}

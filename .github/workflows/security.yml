@@ -15,7 +15,7 @@ env:
   NODE_VERSION: "24.11.1"
 
 jobs:
-  # 빠른 SAST 검사 - PR에서 필수
+  # 빠른 SAST 검사 - 정보 제공용 (blocking 아님)
   sast-semgrep:
     name: SAST - Semgrep
     runs-on: ubuntu-latest

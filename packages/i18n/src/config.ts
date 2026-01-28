@@ -39,9 +39,7 @@ export const LOCALE_STORAGE_KEY = 'angple_locale';
  * @param customConfig - 사용자 정의 설정
  * @returns 병합된 설정
  */
-export function mergeI18nConfig(
-    customConfig: Partial<I18nConfig>
-): I18nConfig {
+export function mergeI18nConfig(customConfig: Partial<I18nConfig>): I18nConfig {
     return {
         ...DEFAULT_I18N_CONFIG,
         ...customConfig,

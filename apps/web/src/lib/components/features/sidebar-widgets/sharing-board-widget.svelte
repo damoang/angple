@@ -26,9 +26,7 @@
         나눔 게시판
     </h3>
     <ul class="space-y-2 text-xs text-slate-600 dark:text-slate-400">
-        <li class="hover:text-primary cursor-pointer truncate">
-            • [진행중] 연말 특별 나눔 이벤트
-        </li>
+        <li class="hover:text-primary cursor-pointer truncate">• [진행중] 연말 특별 나눔 이벤트</li>
         <li class="hover:text-primary cursor-pointer truncate">• [마감] 기프티콘 나눔</li>
         <li class="hover:text-primary cursor-pointer truncate">• [진행중] 책 나눔합니다</li>
     </ul>

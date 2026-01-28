@@ -41,7 +41,14 @@ const WidgetSettingFieldSchema = z.object({
 /**
  * 위젯 카테고리
  */
-export const WidgetCategorySchema = z.enum(['content', 'sidebar', 'ad', 'social', 'utility', 'layout']);
+export const WidgetCategorySchema = z.enum([
+    'content',
+    'sidebar',
+    'ad',
+    'social',
+    'utility',
+    'layout'
+]);
 
 /**
  * 위젯 슬롯
