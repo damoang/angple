@@ -87,18 +87,24 @@ async function validateTokenWithGitHub(token: string): Promise<TokenValidationRe
 /**
  * GitHub Packages에 접근 가능한지 확인
  */
-async function validatePackagesAccess(token: string, scope: string): Promise<TokenValidationResult> {
+async function validatePackagesAccess(
+    token: string,
+    scope: string
+): Promise<TokenValidationResult> {
     const normalizedScope = scope.startsWith('@') ? scope.slice(1) : scope;
 
     try {
         // GitHub Packages npm registry API로 테스트
-        const response = await fetch(`https://npm.pkg.github.com/-/user/orgs/${normalizedScope}/packages`, {
-            headers: {
-                Authorization: `Bearer ${token}`,
-                Accept: 'application/json',
-                'User-Agent': 'Angple-Plugin-Installer'
+        const response = await fetch(
+            `https://npm.pkg.github.com/-/user/orgs/${normalizedScope}/packages`,
+            {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    Accept: 'application/json',
+                    'User-Agent': 'Angple-Plugin-Installer'
+                }
             }
-        });
+        );
 
         // 401/403은 토큰 문제, 404는 org가 없거나 패키지가 없는 경우
         if (response.status === 401) {

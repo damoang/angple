@@ -27,7 +27,10 @@ export const POST: RequestHandler = async ({ request }) => {
         }
 
         // 패키지명 형식 검증
-        if (!body.packageName.startsWith('@') && !body.packageName.startsWith('https://github.com')) {
+        if (
+            !body.packageName.startsWith('@') &&
+            !body.packageName.startsWith('https://github.com')
+        ) {
             throw error(400, {
                 message: '패키지명은 @scope/package-name 형식이거나 GitHub URL이어야 합니다.'
             });

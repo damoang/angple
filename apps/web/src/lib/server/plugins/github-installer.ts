@@ -220,9 +220,7 @@ export class GitHubPluginInstaller {
             const packageInfo = parsePackageName(packageName);
             const version = request.version || packageInfo.version;
 
-            console.log(
-                `📦 [GitHub Installer] 설치 시작: ${packageInfo.fullName}@${version}`
-            );
+            console.log(`📦 [GitHub Installer] 설치 시작: ${packageInfo.fullName}@${version}`);
 
             // 2. 토큰 획득
             const token = await this.resolveToken(

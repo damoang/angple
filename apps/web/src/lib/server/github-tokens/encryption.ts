@@ -21,7 +21,7 @@ function getEncryptionKey(): string {
     if (!key) {
         throw new Error(
             'GITHUB_TOKEN_ENCRYPTION_KEY 환경변수가 설정되지 않았습니다. ' +
-                '다음 명령어로 키를 생성하세요: node -e "console.log(require(\'crypto\').randomBytes(32).toString(\'hex\'))"'
+                "다음 명령어로 키를 생성하세요: node -e \"console.log(require('crypto').randomBytes(32).toString('hex'))\""
         );
     }
 

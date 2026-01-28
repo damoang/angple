@@ -168,9 +168,7 @@
                 <Github class="h-5 w-5" />
                 GitHub에서 플러그인 설치
             </DialogTitle>
-            <DialogDescription>
-                GitHub Packages에 등록된 플러그인을 설치합니다.
-            </DialogDescription>
+            <DialogDescription>GitHub Packages에 등록된 플러그인을 설치합니다.</DialogDescription>
         </DialogHeader>
 
         <div class="space-y-4 py-4">
@@ -246,7 +244,8 @@
                         {#each logs as log}
                             <div class="flex items-center gap-2 text-sm">
                                 {#if log.status === 'pending'}
-                                    <div class="bg-muted-foreground h-4 w-4 rounded-full opacity-50"
+                                    <div
+                                        class="bg-muted-foreground h-4 w-4 rounded-full opacity-50"
                                     ></div>
                                 {:else if log.status === 'running'}
                                     <Loader2 class="text-primary h-4 w-4 animate-spin" />
@@ -266,7 +265,7 @@
                     {#if step === 'error' && errorMessage}
                         <div class="bg-destructive/10 text-destructive mt-4 rounded-md p-3 text-sm">
                             <div class="flex items-start gap-2">
-                                <AlertCircle class="h-4 w-4 flex-shrink-0 mt-0.5" />
+                                <AlertCircle class="mt-0.5 h-4 w-4 flex-shrink-0" />
                                 <span>{errorMessage}</span>
                             </div>
                         </div>

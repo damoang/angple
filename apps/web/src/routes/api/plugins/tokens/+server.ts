@@ -77,7 +77,9 @@ export const POST: RequestHandler = async ({ request }) => {
         // scope 형식 검증
         const scope = body.scope.startsWith('@') ? body.scope : `@${body.scope}`;
         if (!/^@[a-z0-9-]+$/i.test(scope)) {
-            throw error(400, { message: '잘못된 scope 형식입니다. @organization 형식이어야 합니다.' });
+            throw error(400, {
+                message: '잘못된 scope 형식입니다. @organization 형식이어야 합니다.'
+            });
         }
 
         // 토큰 형식 기본 검증 (ghp_, github_pat_, gho_ 등)

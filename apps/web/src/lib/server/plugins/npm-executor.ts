@@ -174,7 +174,8 @@ export class NpmExecutor {
                 version: data.version,
                 description: data.description,
                 author: typeof data.author === 'string' ? data.author : data.author?.name,
-                repository: typeof data.repository === 'string' ? data.repository : data.repository?.url,
+                repository:
+                    typeof data.repository === 'string' ? data.repository : data.repository?.url,
                 versions: data.versions
             };
         } catch (error) {

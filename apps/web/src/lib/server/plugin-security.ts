@@ -179,9 +179,7 @@ export function validateFileSizes(files: FileInfo[]): {
     }
 
     if (totalSize > MAX_TOTAL_SIZE) {
-        errors.push(
-            `전체 플러그인 크기 초과: ${(totalSize / 1024 / 1024).toFixed(2)}MB > 100MB`
-        );
+        errors.push(`전체 플러그인 크기 초과: ${(totalSize / 1024 / 1024).toFixed(2)}MB > 100MB`);
     }
 
     return { valid: errors.length === 0, errors };
@@ -190,9 +188,7 @@ export function validateFileSizes(files: FileInfo[]): {
 /**
  * 파일 내용 스캔
  */
-async function scanFileContent(
-    filePath: string
-): Promise<{
+async function scanFileContent(filePath: string): Promise<{
     safe: boolean;
     patterns: string[];
     warnings: string[];
