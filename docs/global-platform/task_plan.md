@@ -21,6 +21,7 @@ Angple 플랫폼을 Self-host + SaaS 듀얼 배포 지원, 7개 언어 다국어
 - [x] `package.json` 생성 (paraglide-js, paraglide-js-adapter-sveltekit)
 - [x] Paraglide 설정 파일 생성
 - [x] RTL 지원 유틸리티 (`rtl.ts`) 작성
+- [x] i18n 컨텍스트 유틸리티 (`context.ts`) 작성
 - [ ] Tailwind RTL 플러그인 설치 및 설정
 
 ### Week 2: 번역 파일 생성
@@ -31,10 +32,14 @@ Angple 플랫폼을 Self-host + SaaS 듀얼 배포 지원, 7개 언어 다국어
 - [x] `messages/es.json` 스페인어 번역
 - [x] `messages/ar.json` 아랍어 번역 (RTL)
 - [x] `messages/vi.json` 베트남어 번역
+- [x] `admin_widgets_title` 키 추가 (7개 언어)
 
 ### Week 3: 앱 통합
 - [ ] `apps/web` 컴포넌트 번역 키 적용 (~50개 파일)
-- [ ] `apps/admin` 컴포넌트 번역 키 적용 (~30개 파일)
+- [x] `apps/admin` i18n 시스템 통합
+- [x] `apps/admin` 사이드바 번역 키 적용
+- [x] `apps/admin` 테마 관리 페이지 번역 키 적용
+- [x] `apps/admin` 플러그인 관리 페이지 번역 키 적용
 - [ ] 설치 마법사 언어 선택 UI 구현
 - [ ] 테마/플러그인 manifest에 translations 필드 추가
 - [ ] RTL 레이아웃 테스트 (아랍어)

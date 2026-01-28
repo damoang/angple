@@ -104,10 +104,40 @@
 
 ---
 
+## 2026-01-28 (계속)
+
+### i18n SvelteKit 통합 - 완료
+
+#### packages/i18n 확장
+- [x] `src/context.ts` - 간단한 번역 컨텍스트 유틸리티
+  - `initI18n()` - 메시지 초기화
+  - `t()` - 번역 함수
+  - `setLocale()` - 로케일 변경
+  - `detectLocale()` - 자동 감지
+
+#### apps/admin i18n 통합
+- [x] `src/lib/i18n/index.ts` - i18n 초기화 모듈
+- [x] `src/routes/+layout.svelte` - setupI18n() 호출 추가
+- [x] `package.json` - @angple/i18n 의존성 추가
+
+#### 컴포넌트 번역 키 적용
+- [x] `src/lib/components/layout/sidebar.svelte`
+  - 메뉴 항목 번역 키 적용
+  - 로고 텍스트 "Angple Admin"으로 통일
+- [x] `src/routes/themes/+page.svelte`
+  - 제목, 버튼, 상태 레이블 번역 키 적용
+- [x] `src/routes/plugins/+page.svelte`
+  - 제목, 버튼, 상태 레이블 번역 키 적용
+
+#### 메시지 파일 업데이트
+- [x] `admin_widgets_title` 키 추가 (7개 언어 모두)
+
+---
+
 ## 다음 작업
 
 ### 즉시 필요한 작업
-1. apps/web, apps/admin 컴포넌트에 i18n 적용
+1. apps/web 컴포넌트에 i18n 적용 (~50개 파일)
 2. Tailwind RTL 플러그인 설정
 3. 테넌트 미들웨어 통합 테스트
 

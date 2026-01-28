@@ -91,6 +91,7 @@
     "admin_users_roles": "用户角色",
     "admin_users_permissions": "权限",
 
+    "admin_widgets_title": "小部件管理",
     "admin_settings_title": "设置",
     "admin_settings_general": "常规",
     "admin_settings_appearance": "外观",
