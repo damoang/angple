@@ -142,9 +142,7 @@ export function getLanguageOptions(): Array<{
         return {
             code,
             label:
-                meta.name === meta.englishName
-                    ? meta.name
-                    : `${meta.name} (${meta.englishName})`,
+                meta.name === meta.englishName ? meta.name : `${meta.name} (${meta.englishName})`,
             flag: meta.flag,
             isRTL: meta.isRTL
         };

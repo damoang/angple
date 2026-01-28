@@ -11,7 +11,12 @@ import type { RequestHandler } from './$types';
 import { existsSync, rmSync } from 'fs';
 import { join } from 'path';
 import { sanitizePath } from '$lib/server/path-utils';
-import { isCustomWidget, getWidgetManifest, scanWidgets, getCustomWidgetsDir } from '$lib/server/widgets';
+import {
+    isCustomWidget,
+    getWidgetManifest,
+    scanWidgets,
+    getCustomWidgetsDir
+} from '$lib/server/widgets';
 
 /** 커스텀 위젯 디렉터리 */
 const CUSTOM_WIDGETS_DIR = getCustomWidgetsDir();
@@ -27,10 +32,7 @@ export const GET: RequestHandler = async ({ params }) => {
         const manifest = getWidgetManifest(widgetId);
 
         if (!manifest) {
-            return json(
-                { success: false, error: '위젯을 찾을 수 없습니다.' },
-                { status: 404 }
-            );
+            return json({ success: false, error: '위젯을 찾을 수 없습니다.' }, { status: 404 });
         }
 
         return json({
@@ -65,10 +67,7 @@ export const DELETE: RequestHandler = async ({ params }) => {
         // 위젯 존재 여부 확인
         const manifest = getWidgetManifest(widgetId);
         if (!manifest) {
-            return json(
-                { success: false, error: '위젯을 찾을 수 없습니다.' },
-                { status: 404 }
-            );
+            return json({ success: false, error: '위젯을 찾을 수 없습니다.' }, { status: 404 });
         }
 
         // 커스텀 위젯인지 확인

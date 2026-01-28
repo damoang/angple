@@ -85,17 +85,18 @@
             </Dialog.Description>
         </Dialog.Header>
 
-        <form onsubmit={(e) => { e.preventDefault(); handleSubmit(); }} class="space-y-4">
+        <form
+            onsubmit={(e) => {
+                e.preventDefault();
+                handleSubmit();
+            }}
+            class="space-y-4"
+        >
             <div class="grid gap-4">
                 <!-- 제목 -->
                 <div class="grid gap-2">
                     <Label for="title">제목 *</Label>
-                    <Input
-                        id="title"
-                        bind:value={title}
-                        placeholder="메뉴 제목"
-                        required
-                    />
+                    <Input id="title" bind:value={title} placeholder="메뉴 제목" required />
                 </div>
 
                 <!-- URL -->

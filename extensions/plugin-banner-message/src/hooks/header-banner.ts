@@ -47,9 +47,7 @@ async function fetchHeaderBanners(apiBaseUrl: string): Promise<Banner[]> {
 /**
  * Render header banner
  */
-export async function renderHeaderBanner(
-    config: Partial<HeaderBannerConfig> = {}
-): Promise<void> {
+export async function renderHeaderBanner(config: Partial<HeaderBannerConfig> = {}): Promise<void> {
     const mergedConfig = { ...defaultConfig, ...config };
 
     const banners = await fetchHeaderBanners(mergedConfig.apiBaseUrl);

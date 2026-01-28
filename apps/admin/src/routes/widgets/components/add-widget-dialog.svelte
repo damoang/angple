@@ -74,7 +74,9 @@
     }
 
     // 카테고리 배지 색상
-    function getCategoryVariant(category: string): 'default' | 'secondary' | 'destructive' | 'outline' {
+    function getCategoryVariant(
+        category: string
+    ): 'default' | 'secondary' | 'destructive' | 'outline' {
         switch (category) {
             case 'content':
                 return 'default';
@@ -150,7 +152,9 @@
                     {@const widgets = groupedWidgets()[category]}
                     {#if widgets.length > 0}
                         <div class="mb-6">
-                            <h4 class="text-muted-foreground mb-3 text-sm font-medium uppercase tracking-wide">
+                            <h4
+                                class="text-muted-foreground mb-3 text-sm font-medium uppercase tracking-wide"
+                            >
                                 {getCategoryLabel(category)}
                             </h4>
                             <div class="grid grid-cols-2 gap-3">
@@ -164,19 +168,25 @@
                                             'hover:border-primary hover:bg-primary/5 flex items-start gap-3 rounded-lg border p-4 text-left transition-colors'
                                         )}
                                     >
-                                        <div class="bg-primary/10 text-primary flex h-10 w-10 shrink-0 items-center justify-center rounded-lg">
+                                        <div
+                                            class="bg-primary/10 text-primary flex h-10 w-10 shrink-0 items-center justify-center rounded-lg"
+                                        >
                                             <Icon class="h-5 w-5" />
                                         </div>
                                         <div class="min-w-0 flex-1">
                                             <div class="flex items-center gap-2">
-                                                <span class="font-medium">{getWidgetName(type)}</span>
+                                                <span class="font-medium"
+                                                    >{getWidgetName(type)}</span
+                                                >
                                                 {#if registry?.allowMultiple}
                                                     <Badge variant="outline" class="text-xs">
                                                         복수
                                                     </Badge>
                                                 {/if}
                                             </div>
-                                            <p class="text-muted-foreground mt-1 text-sm line-clamp-2">
+                                            <p
+                                                class="text-muted-foreground mt-1 line-clamp-2 text-sm"
+                                            >
                                                 {registry?.description ?? ''}
                                             </p>
                                         </div>
@@ -191,9 +201,7 @@
         </div>
 
         <Dialog.Footer>
-            <Button variant="outline" onclick={() => (open = false)}>
-                취소
-            </Button>
+            <Button variant="outline" onclick={() => (open = false)}>취소</Button>
         </Dialog.Footer>
     </Dialog.Content>
 </Dialog.Root>

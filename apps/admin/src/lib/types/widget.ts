@@ -151,7 +151,10 @@ export function getWidgetsByCategory(category: WidgetRegistryEntry['category']):
 /**
  * 추가 가능한 위젯 목록 가져오기 (현재 레이아웃 고려)
  */
-export function getAddableWidgets(currentWidgetTypes: string[], forSidebar: boolean = false): string[] {
+export function getAddableWidgets(
+    currentWidgetTypes: string[],
+    forSidebar: boolean = false
+): string[] {
     return Object.entries(WIDGET_REGISTRY)
         .filter(([type, entry]) => {
             // 사이드바 필터링

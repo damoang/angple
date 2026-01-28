@@ -197,7 +197,10 @@ class MenuStore {
     /**
      * 메뉴 토글 (show_in_header, show_in_sidebar, is_active)
      */
-    async toggleMenuProperty(id: number, property: 'show_in_header' | 'show_in_sidebar' | 'is_active') {
+    async toggleMenuProperty(
+        id: number,
+        property: 'show_in_header' | 'show_in_sidebar' | 'is_active'
+    ) {
         const menu = this.findMenuById(this._menus, id);
         if (!menu) return;
 

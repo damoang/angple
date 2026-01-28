@@ -100,7 +100,7 @@ export default class PromotionPlugin implements Extension {
             }
 
             // Mark posts as promotions
-            const markedPosts = promotionPosts.map(post => ({
+            const markedPosts = promotionPosts.map((post) => ({
                 ...post,
                 isPromotion: true
             }));

@@ -1,7 +1,14 @@
 <script lang="ts">
     import { page } from '$app/stores';
     import { cn } from '$lib/utils';
-    import { LayoutDashboard, Palette, Settings, FileText, LayoutGrid, Menu } from '@lucide/svelte/icons';
+    import {
+        LayoutDashboard,
+        Palette,
+        Settings,
+        FileText,
+        LayoutGrid,
+        Menu
+    } from '@lucide/svelte/icons';
     import { t } from '$lib/i18n';
 
     /**

@@ -55,11 +55,11 @@
     const selectedZone = $derived(widgetStore.selectedZone);
 
     // dnd 항목 (id를 dnd용으로 변환)
-    let items = $state(widgets.map(w => ({ ...w })));
+    let items = $state(widgets.map((w) => ({ ...w })));
 
     // widgets 변경 시 items 동기화
     $effect(() => {
-        items = widgets.map(w => ({ ...w }));
+        items = widgets.map((w) => ({ ...w }));
     });
 
     // 드래그 핸들러
@@ -70,7 +70,7 @@
     function handleDndFinalize(e: CustomEvent<{ items: typeof items; info: { trigger: string } }>) {
         items = e.detail.items;
         // shadow item 제거 후 스토어 업데이트
-        const cleanItems = items.filter(item => !(SHADOW_ITEM_MARKER_PROPERTY_NAME in item));
+        const cleanItems = items.filter((item) => !(SHADOW_ITEM_MARKER_PROPERTY_NAME in item));
         widgetStore.updateWidgetOrder(cleanItems);
     }
 
@@ -98,7 +98,9 @@
     }
 
     // 카테고리 배지 색상
-    function getCategoryVariant(category: string): 'default' | 'secondary' | 'destructive' | 'outline' {
+    function getCategoryVariant(
+        category: string
+    ): 'default' | 'secondary' | 'destructive' | 'outline' {
         switch (category) {
             case 'content':
                 return 'default';
@@ -134,7 +136,9 @@
 
 <div class="space-y-1">
     <!-- 헤더 -->
-    <div class="text-muted-foreground grid grid-cols-[40px_1fr_100px_80px_100px] gap-4 border-b px-4 py-2 text-sm font-medium">
+    <div
+        class="text-muted-foreground grid grid-cols-[40px_1fr_100px_80px_100px] gap-4 border-b px-4 py-2 text-sm font-medium"
+    >
         <div></div>
         <div>위젯</div>
         <div>카테고리</div>
@@ -179,10 +183,14 @@
                     onclick={() => handleSelect(widget.id)}
                     class="flex items-center gap-3 text-left"
                 >
-                    <div class={cn(
-                        'flex h-10 w-10 items-center justify-center rounded-lg',
-                        widget.enabled ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'
-                    )}>
+                    <div
+                        class={cn(
+                            'flex h-10 w-10 items-center justify-center rounded-lg',
+                            widget.enabled
+                                ? 'bg-primary/10 text-primary'
+                                : 'bg-muted text-muted-foreground'
+                        )}
+                    >
                         <Icon class="h-5 w-5" />
                     </div>
                     <div>

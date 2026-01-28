@@ -51,7 +51,10 @@ class IndexWidgetsStore {
      * SSR 데이터로 스토어 초기화 (깜박임 방지)
      */
     initFromServer(serverData: IndexWidgetsData | null): void {
-        console.log('[IndexWidgets Store] Initializing from SSR:', serverData ? 'data loaded' : 'null');
+        console.log(
+            '[IndexWidgets Store] Initializing from SSR:',
+            serverData ? 'data loaded' : 'null'
+        );
         this.data = serverData;
         this.isLoading = false;
         this.error = null;

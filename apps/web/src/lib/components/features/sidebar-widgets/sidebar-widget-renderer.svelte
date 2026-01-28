@@ -108,7 +108,9 @@
                 {#if Component}
                     <Component isEditMode={true} settings={widget.settings} />
                 {:else}
-                    <div class="rounded-lg border border-dashed border-slate-300 p-4 text-slate-500">
+                    <div
+                        class="rounded-lg border border-dashed border-slate-300 p-4 text-slate-500"
+                    >
                         알 수 없는 위젯: {widget.type}
                     </div>
                 {/if}

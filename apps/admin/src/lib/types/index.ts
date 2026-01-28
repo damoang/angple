@@ -28,8 +28,4 @@ export type {
     MenuIcon
 } from './menu';
 
-export {
-    MENU_ICONS,
-    buildMenuTree,
-    flattenMenuTree
-} from './menu';
+export { MENU_ICONS, buildMenuTree, flattenMenuTree } from './menu';

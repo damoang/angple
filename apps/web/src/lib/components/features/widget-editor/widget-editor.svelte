@@ -85,7 +85,7 @@
                         {:else if widget.type === 'group'}
                             <GroupTabs data={groupTabs} />
                         {:else}
-                            <div class="p-4 bg-muted rounded-lg text-center text-muted-foreground">
+                            <div class="bg-muted text-muted-foreground rounded-lg p-4 text-center">
                                 알 수 없는 위젯: {widget.type}
                             </div>
                         {/if}

@@ -2,7 +2,14 @@
  * i18n initialization for Web app
  */
 
-import { initI18n, initLocale, t as translate, setDocumentDirection, getDirection, getLocale } from '@angple/i18n';
+import {
+    initI18n,
+    initLocale,
+    t as translate,
+    setDocumentDirection,
+    getDirection,
+    getLocale
+} from '@angple/i18n';
 import type { SupportedLocale } from '@angple/i18n';
 
 // Import all message files

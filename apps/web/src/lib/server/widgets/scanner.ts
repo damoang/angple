@@ -83,7 +83,11 @@ function loadWidgetManifest(widgetDir: string, baseDir: string): WidgetManifest 
 /**
  * 특정 디렉터리에서 위젯 스캔 헬퍼
  */
-function scanDirectory(baseDir: string, widgets: Map<string, WidgetInfo>, isCustom: boolean): number {
+function scanDirectory(
+    baseDir: string,
+    widgets: Map<string, WidgetInfo>,
+    isCustom: boolean
+): number {
     if (!existsSync(baseDir)) {
         return 0;
     }

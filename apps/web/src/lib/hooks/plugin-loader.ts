@@ -51,7 +51,10 @@ export async function loadPluginHooks(pluginId: string, manifest?: PluginManifes
                 const data = await response.json();
                 manifest = data.plugin?.manifest;
             } catch (error) {
-                console.error('❌ [Plugin Loader] Failed to load plugin manifest:', { pluginId, error });
+                console.error('❌ [Plugin Loader] Failed to load plugin manifest:', {
+                    pluginId,
+                    error
+                });
                 return;
             }
         }
@@ -69,7 +72,9 @@ export async function loadPluginHooks(pluginId: string, manifest?: PluginManifes
             return;
         }
 
-        console.log(`📋 [Plugin Loader] Found ${manifest.hooks.length} hook(s) in plugin: ${pluginId}`);
+        console.log(
+            `📋 [Plugin Loader] Found ${manifest.hooks.length} hook(s) in plugin: ${pluginId}`
+        );
 
         // 각 Hook을 순회하며 등록
         for (const hookDef of manifest.hooks) {
@@ -94,12 +99,12 @@ export async function loadPluginHooks(pluginId: string, manifest?: PluginManifes
 
                 // 공식 플러그인 경로에서 먼저 찾기
                 if (officialPath in allPluginHooks) {
-                    hookModule = await allPluginHooks[officialPath]() as { default?: unknown };
+                    hookModule = (await allPluginHooks[officialPath]()) as { default?: unknown };
                     usedPath = officialPath;
                 }
                 // 커스텀 플러그인 경로에서 찾기
                 else if (customPath in allPluginHooks) {
-                    hookModule = await allPluginHooks[customPath]() as { default?: unknown };
+                    hookModule = (await allPluginHooks[customPath]()) as { default?: unknown };
                     usedPath = customPath;
                 }
 

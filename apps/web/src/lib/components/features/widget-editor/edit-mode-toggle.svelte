@@ -61,9 +61,9 @@
     {#if isEditMode}
         <!-- 편집 모드 툴바 -->
         <div
-            class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 bg-background border border-border rounded-full shadow-lg px-4 py-2"
+            class="bg-background border-border fixed bottom-6 left-1/2 z-50 flex -translate-x-1/2 items-center gap-2 rounded-full border px-4 py-2 shadow-lg"
         >
-            <span class="text-sm font-medium text-muted-foreground mr-2">편집 모드</span>
+            <span class="text-muted-foreground mr-2 text-sm font-medium">편집 모드</span>
 
             <!-- 위젯 추가 -->
             <AddWidgetDialog />
@@ -72,19 +72,19 @@
             <button
                 type="button"
                 onclick={handleReset}
-                class="p-2 rounded-full hover:bg-muted transition-colors"
+                class="hover:bg-muted rounded-full p-2 transition-colors"
                 title="기본 레이아웃으로 초기화"
             >
                 <RotateCcw class="h-4 w-4" />
             </button>
 
-            <div class="w-px h-6 bg-border"></div>
+            <div class="bg-border h-6 w-px"></div>
 
             <!-- 취소 -->
             <button
                 type="button"
                 onclick={handleDiscard}
-                class="px-3 py-1.5 text-sm rounded-md hover:bg-muted transition-colors"
+                class="hover:bg-muted rounded-md px-3 py-1.5 text-sm transition-colors"
                 disabled={!hasChanges}
             >
                 취소
@@ -95,7 +95,7 @@
                 type="button"
                 onclick={handleSave}
                 disabled={!hasChanges || isSaving}
-                class="flex items-center gap-1 px-3 py-1.5 text-sm font-medium bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                class="bg-primary text-primary-foreground hover:bg-primary/90 flex items-center gap-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50"
             >
                 <Save class="h-4 w-4" />
                 {isSaving ? '저장 중...' : '저장'}
@@ -105,7 +105,7 @@
             <button
                 type="button"
                 onclick={handleToggle}
-                class="p-2 rounded-full hover:bg-muted transition-colors ml-1"
+                class="hover:bg-muted ml-1 rounded-full p-2 transition-colors"
                 title="편집 모드 종료"
             >
                 <X class="h-4 w-4" />
@@ -116,7 +116,7 @@
         <button
             type="button"
             onclick={handleToggle}
-            class="fixed bottom-6 right-6 z-50 w-12 h-12 bg-primary text-primary-foreground rounded-full shadow-lg hover:bg-primary/90 transition-all hover:scale-105 flex items-center justify-center"
+            class="bg-primary text-primary-foreground hover:bg-primary/90 fixed bottom-6 right-6 z-50 flex h-12 w-12 items-center justify-center rounded-full shadow-lg transition-all hover:scale-105"
             title="페이지 레이아웃 편집"
         >
             <Settings class="h-5 w-5" />

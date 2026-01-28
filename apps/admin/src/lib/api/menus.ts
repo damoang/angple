@@ -4,7 +4,12 @@
  * Admin에서 Go 백엔드의 메뉴 API를 호출합니다.
  */
 
-import type { Menu, CreateMenuRequest, UpdateMenuRequest, ReorderMenusRequest } from '$lib/types/menu';
+import type {
+    Menu,
+    CreateMenuRequest,
+    UpdateMenuRequest,
+    ReorderMenusRequest
+} from '$lib/types/menu';
 
 // 백엔드 API 기본 URL (환경변수로 설정 가능)
 const BACKEND_API_URL = import.meta.env.VITE_BACKEND_API_URL || 'http://localhost:8081';

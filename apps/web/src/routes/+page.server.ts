@@ -26,7 +26,13 @@ const DEFAULT_WIDGETS: WidgetConfig[] = [
         settings: { position: 'index-middle-2' }
     },
     { id: 'group', type: 'group', position: 7, enabled: true },
-    { id: 'ad-bottom', type: 'ad', position: 8, enabled: true, settings: { position: 'index-bottom' } }
+    {
+        id: 'ad-bottom',
+        type: 'ad',
+        position: 8,
+        enabled: true,
+        settings: { position: 'index-bottom' }
+    }
 ];
 
 // 기본 사이드바 위젯 레이아웃

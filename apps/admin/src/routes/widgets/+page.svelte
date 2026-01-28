@@ -2,10 +2,24 @@
     import { onMount } from 'svelte';
     import { widgetStore } from '$lib/stores/widget-store.svelte';
     import { Button } from '$lib/components/ui/button';
-    import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '$lib/components/ui/card';
+    import {
+        Card,
+        CardContent,
+        CardHeader,
+        CardTitle,
+        CardDescription
+    } from '$lib/components/ui/card';
     import { Badge } from '$lib/components/ui/badge';
     import { Tabs, TabsContent, TabsList, TabsTrigger } from '$lib/components/ui/tabs';
-    import { Save, RotateCcw, Plus, ExternalLink, Package, Layout, Trash2 } from '@lucide/svelte/icons';
+    import {
+        Save,
+        RotateCcw,
+        Plus,
+        ExternalLink,
+        Package,
+        Layout,
+        Trash2
+    } from '@lucide/svelte/icons';
     import { toast } from 'svelte-sonner';
 
     import WidgetListTable from './components/widget-list-table.svelte';
@@ -206,11 +220,7 @@
                             <RotateCcw class="mr-2 h-4 w-4" />
                             취소
                         </Button>
-                        <Button
-                            size="sm"
-                            onclick={handleSave}
-                            disabled={!hasChanges || isSaving}
-                        >
+                        <Button size="sm" onclick={handleSave} disabled={!hasChanges || isSaving}>
                             <Save class="mr-2 h-4 w-4" />
                             {isSaving ? '저장 중...' : '저장'}
                         </Button>
@@ -233,7 +243,8 @@
                                 <CardContent class="py-10">
                                     <div class="text-center">
                                         <p class="text-muted-foreground mb-4">
-                                            {selectedZone === 'main' ? '메인 영역' : '사이드바'}에 등록된 위젯이 없습니다.
+                                            {selectedZone === 'main' ? '메인 영역' : '사이드바'}에
+                                            등록된 위젯이 없습니다.
                                         </p>
                                         <Button onclick={handleAddWidget}>
                                             <Plus class="mr-2 h-4 w-4" />
@@ -248,13 +259,19 @@
                                     <div class="flex items-center justify-between">
                                         <div>
                                             <CardTitle>
-                                                {selectedZone === 'main' ? '메인 영역' : '사이드바'} 위젯
+                                                {selectedZone === 'main' ? '메인 영역' : '사이드바'}
+                                                위젯
                                             </CardTitle>
                                             <CardDescription>
-                                                드래그하여 순서를 변경하고, 토글로 활성화/비활성화할 수 있습니다
+                                                드래그하여 순서를 변경하고, 토글로 활성화/비활성화할
+                                                수 있습니다
                                             </CardDescription>
                                         </div>
-                                        <Button variant="outline" size="sm" onclick={handleAddWidget}>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onclick={handleAddWidget}
+                                        >
                                             <Plus class="mr-2 h-4 w-4" />
                                             위젯 추가
                                         </Button>
@@ -318,16 +335,21 @@
                                             <CardTitle class="text-lg">{widget.name}</CardTitle>
                                             <!-- 출처 배지 -->
                                             {#if widget.isCustom}
-                                                <Badge variant="secondary" class="text-xs">커스텀</Badge>
+                                                <Badge variant="secondary" class="text-xs"
+                                                    >커스텀</Badge
+                                                >
                                             {:else}
-                                                <Badge variant="default" class="text-xs">공식</Badge>
+                                                <Badge variant="default" class="text-xs">공식</Badge
+                                                >
                                             {/if}
                                         </div>
                                         <CardDescription>
                                             v{widget.version} · {widget.author.name}
                                         </CardDescription>
                                     </div>
-                                    <Badge variant="outline">{getCategoryLabel(widget.category)}</Badge>
+                                    <Badge variant="outline"
+                                        >{getCategoryLabel(widget.category)}</Badge
+                                    >
                                 </div>
                             </CardHeader>
 
@@ -341,7 +363,9 @@
                                 <!-- 슬롯 태그 -->
                                 <div class="mb-4 flex flex-wrap gap-1">
                                     {#each widget.slots as slot (slot)}
-                                        <Badge variant="outline" class="text-xs">{getSlotLabel(slot)}</Badge>
+                                        <Badge variant="outline" class="text-xs"
+                                            >{getSlotLabel(slot)}</Badge
+                                        >
                                     {/each}
                                 </div>
 

@@ -44,15 +44,10 @@
 >
     {#each menus as menu, index (menu.id)}
         <div animate:flip={{ duration: flipDurationMs }}>
-            <MenuItemRow
-                {menu}
-                {depth}
-                {onEdit}
-                {onAddChild}
-            />
+            <MenuItemRow {menu} {depth} {onEdit} {onAddChild} />
 
             {#if menu.children && menu.children.length > 0}
-                <div class="ml-6 mt-1 border-l-2 border-border pl-2">
+                <div class="border-border ml-6 mt-1 border-l-2 pl-2">
                     <svelte:self
                         menus={menu.children}
                         depth={depth + 1}

@@ -36,7 +36,10 @@ const state: I18nState = {
 /**
  * Initialize i18n with all messages
  */
-export function initI18n(messages: Record<SupportedLocale, Messages>, initialLocale?: SupportedLocale): void {
+export function initI18n(
+    messages: Record<SupportedLocale, Messages>,
+    initialLocale?: SupportedLocale
+): void {
     state.messages = messages;
     state.initialized = true;
 
