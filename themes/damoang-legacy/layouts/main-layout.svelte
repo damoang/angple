@@ -11,6 +11,7 @@
     // 테마 설정 가져오기
     const brandColor = '#FFD700'; // 다모앙 노란색
     const showLogo = true;
+    const currentYear = new Date().getFullYear();
 </script>
 
 <svelte:head>
@@ -64,7 +65,7 @@
     <!-- 푸터 -->
     <footer class="site-footer">
         <div class="container">
-            <p class="copyright">© 2026 Damoang. All rights reserved.</p>
+            <p class="copyright">© {currentYear} Damoang. All rights reserved.</p>
             <p class="powered-by">Powered by Angple</p>
         </div>
     </footer>
