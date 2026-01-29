@@ -87,7 +87,7 @@
     <div class="border-border border-t p-4">
         <div class="text-muted-foreground text-xs">
             <p class="font-semibold">Angple Admin v0.1.0</p>
-            <p class="mt-1">© 2025 SDK Co.</p>
+            <p class="mt-1">© 2026 SDK Co.</p>
         </div>
     </div>
 </aside>

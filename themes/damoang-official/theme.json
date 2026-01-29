@@ -1,12 +1,12 @@
 {
     "id": "damoang-official",
-    "name": "Damoang Official 2025",
+    "name": "Damoang Official 2026",
     "version": "1.0.0",
     "author": {
         "name": "Damoang Team",
         "email": "team@damoang.net"
     },
-    "description": "다모앙 공식 테마 2025 - 모던하고 세련된 커뮤니티 플랫폼 디자인. 3단 레이아웃과 실시간 트렌드 위젯을 제공합니다.",
+    "description": "다모앙 공식 테마 2026 - 모던하고 세련된 커뮤니티 플랫폼 디자인. 3단 레이아웃과 실시간 트렌드 위젯을 제공합니다.",
     "screenshot": "screenshot.png",
     "angpleVersion": "0.1.0",
     "tags": ["official", "modern", "premium", "featured"],

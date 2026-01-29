@@ -64,7 +64,7 @@
     <!-- 푸터 -->
     <footer class="site-footer">
         <div class="container">
-            <p class="copyright">© 2025 Damoang. All rights reserved.</p>
+            <p class="copyright">© 2026 Damoang. All rights reserved.</p>
             <p class="powered-by">Powered by Angple</p>
         </div>
     </footer>
