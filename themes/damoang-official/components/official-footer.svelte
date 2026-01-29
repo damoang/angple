@@ -72,7 +72,7 @@
         <div
             class="mt-8 flex flex-col items-center justify-between gap-4 border-t border-gray-200 pt-8 md:flex-row"
         >
-            <p class="text-sm text-gray-500">© 2025 Damoang. All rights reserved.</p>
+            <p class="text-sm text-gray-500">© 2026 Damoang. All rights reserved.</p>
             <p class="text-sm text-gray-500">
                 Made with <span class="text-pink-500">❤️</span> in Korea
             </p>
