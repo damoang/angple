@@ -75,6 +75,17 @@ apps/backend/
 !/custom-plugins/.gitkeep
 !/custom-plugins/README.md
 
+# Custom extensions (GitHub Packages 설치)
+/custom-extensions/*
+!/custom-extensions/.gitkeep
+!/custom-extensions/README.md
+
+# GitHub token store (암호화됨)
+/data/github-tokens.json
+
+# npm pack temp directory
+.tmp/
+
 # Backup files
 *.backup
 *.bak
