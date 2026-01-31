@@ -2,6 +2,7 @@
     import { marked } from 'marked';
     import DOMPurify from 'dompurify';
     import { onMount } from 'svelte';
+    import { transformEmoticons } from '$lib/utils/content-transform.js';
 
     interface Props {
         content: string;
@@ -26,7 +27,8 @@
     // 마크다운을 HTML로 변환하고 sanitize
     $effect(() => {
         if (isBrowser && content) {
-            const rawHtml = marked.parse(content) as string;
+            const transformed = transformEmoticons(content);
+            const rawHtml = marked.parse(transformed) as string;
             renderedHtml = DOMPurify.sanitize(rawHtml, {
                 ALLOWED_TAGS: [
                     'h1',
@@ -58,7 +60,17 @@
                     'td',
                     'hr'
                 ],
-                ALLOWED_ATTR: ['href', 'src', 'alt', 'title', 'class', 'target', 'rel']
+                ALLOWED_ATTR: [
+                    'href',
+                    'src',
+                    'alt',
+                    'title',
+                    'class',
+                    'target',
+                    'rel',
+                    'width',
+                    'loading'
+                ]
             });
         }
     });
