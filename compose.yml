@@ -16,20 +16,20 @@ services:
     volumes:
       - ${DATA_PATH:-./data}:/app/data
 
-  # Admin Dashboard
-  admin:
-    image: ${ANGPLE_ADMIN_IMAGE:-}
-    build:
-      context: .
-      dockerfile: apps/admin/Dockerfile
-      target: production
-    container_name: ${COMPOSE_PROJECT_NAME:-angple}-admin
-    ports:
-      - "${ADMIN_PORT:-3011}:80"
-    restart: unless-stopped
-    networks:
-      - angple-network
-      - proxy-network
+  # Admin Dashboard (웹 앱에 통합됨 - apps/web/src/routes/admin/)
+  # admin:
+  #   image: ${ANGPLE_ADMIN_IMAGE:-}
+  #   build:
+  #     context: .
+  #     dockerfile: apps/admin/Dockerfile
+  #     target: production
+  #   container_name: ${COMPOSE_PROJECT_NAME:-angple}-admin
+  #   ports:
+  #     - "${ADMIN_PORT:-3011}:80"
+  #   restart: unless-stopped
+  #   networks:
+  #     - angple-network
+  #     - proxy-network
 
 networks:
   angple-network:

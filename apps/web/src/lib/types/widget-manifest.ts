@@ -25,6 +25,7 @@ const WidgetSettingFieldSchema = z.object({
     }),
     default: z.any(),
     description: z.string().optional(),
+    placeholder: z.string().optional(),
     options: z
         .array(
             z.object({
@@ -35,7 +36,11 @@ const WidgetSettingFieldSchema = z.object({
         .optional(),
     min: z.number().optional(),
     max: z.number().optional(),
-    step: z.number().optional()
+    step: z.number().optional(),
+    /** 동적으로 옵션을 로드할지 여부 (select 타입에서 사용) */
+    dynamic: z.boolean().default(false).optional(),
+    /** 동적 옵션 로드 API 경로 */
+    dynamicEndpoint: z.string().optional()
 });
 
 /**
@@ -105,8 +110,8 @@ export const WidgetManifestSchema = z.object({
     /** 다중 인스턴스 허용 여부 */
     allowMultiple: z.boolean().default(false),
 
-    /** 사이드바 전용 여부 */
-    sidebarOnly: z.boolean().default(false)
+    /** @deprecated slots[] 기반으로 전환됨. 하위 호환성을 위해 유지 */
+    sidebarOnly: z.boolean().default(false).optional()
 });
 
 /**

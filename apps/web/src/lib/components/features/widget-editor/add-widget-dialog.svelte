@@ -10,7 +10,10 @@
     } from '$lib/components/ui/dialog';
     import { Button } from '$lib/components/ui/button';
     import { widgetLayoutStore } from '$lib/stores/widget-layout.svelte';
-    import { WIDGET_REGISTRY, getAddableWidgets } from './registry';
+    import {
+        getWidgetRegistry,
+        getAddableWidgets
+    } from '$lib/utils/widget-component-loader';
     import Plus from '@lucide/svelte/icons/plus';
     import Star from '@lucide/svelte/icons/star';
     import Newspaper from '@lucide/svelte/icons/newspaper';
@@ -20,11 +23,28 @@
     import Users from '@lucide/svelte/icons/users';
     import Megaphone from '@lucide/svelte/icons/megaphone';
     import Box from '@lucide/svelte/icons/box';
+    import Info from '@lucide/svelte/icons/info';
+    import Play from '@lucide/svelte/icons/play';
+    import ImageIcon from '@lucide/svelte/icons/image';
+    import Gift from '@lucide/svelte/icons/gift';
+    import Pin from '@lucide/svelte/icons/pin';
+
+    interface Props {
+        forSidebar?: boolean;
+    }
+
+    const { forSidebar = false }: Props = $props();
 
     let open = $state(false);
 
-    const currentWidgetTypes = $derived(widgetLayoutStore.widgets.map((w) => w.type));
-    const addableWidgets = $derived(getAddableWidgets(currentWidgetTypes));
+    const WIDGET_REGISTRY = $derived(getWidgetRegistry());
+    const slot = $derived(forSidebar ? 'sidebar' : 'main') as 'main' | 'sidebar';
+    const currentWidgetTypes = $derived(
+        forSidebar
+            ? widgetLayoutStore.sidebarWidgets.map((w) => w.type)
+            : widgetLayoutStore.widgets.map((w) => w.type)
+    );
+    const addableWidgets = $derived(getAddableWidgets(currentWidgetTypes, slot));
 
     // 아이콘 매핑
     const iconComponents: Record<string, typeof Star> = {
@@ -35,7 +55,12 @@
         Images,
         Users,
         Megaphone,
-        Box
+        Box,
+        Info,
+        Play,
+        Image: ImageIcon,
+        Gift,
+        Pin
     };
 
     function getIcon(iconName: string) {
@@ -44,22 +69,24 @@
 
     function handleAddWidget(type: string) {
         const entry = WIDGET_REGISTRY[type];
-        widgetLayoutStore.addWidget(type, entry?.defaultSettings);
+        if (forSidebar) {
+            widgetLayoutStore.addSidebarWidget(type, entry?.defaultSettings);
+        } else {
+            widgetLayoutStore.addWidget(type, entry?.defaultSettings);
+        }
         open = false;
     }
 
     // 카테고리별 그룹화
     const groupedWidgets = $derived(() => {
-        const groups: Record<string, string[]> = {
-            content: [],
-            layout: [],
-            ad: []
-        };
+        const groups: Record<string, string[]> = {};
 
         for (const type of addableWidgets) {
             const entry = WIDGET_REGISTRY[type];
             if (entry) {
-                groups[entry.category].push(type);
+                const cat = entry.category;
+                if (!groups[cat]) groups[cat] = [];
+                groups[cat].push(type);
             }
         }
 
@@ -69,7 +96,10 @@
     const categoryNames: Record<string, string> = {
         content: '콘텐츠',
         layout: '레이아웃',
-        ad: '광고'
+        ad: '광고',
+        sidebar: '사이드바',
+        social: '소셜',
+        utility: '유틸리티'
     };
 </script>
 
@@ -83,7 +113,9 @@
     <DialogContent class="max-w-md">
         <DialogHeader>
             <DialogTitle>위젯 추가</DialogTitle>
-            <DialogDescription>메인 페이지에 추가할 위젯을 선택하세요.</DialogDescription>
+            <DialogDescription>
+                {forSidebar ? '사이드바' : '메인 페이지'}에 추가할 위젯을 선택하세요.
+            </DialogDescription>
         </DialogHeader>
 
         <div class="space-y-4 py-4">
@@ -91,7 +123,7 @@
                 {#if types.length > 0}
                     <div>
                         <h4 class="text-muted-foreground mb-2 text-sm font-medium">
-                            {categoryNames[category]}
+                            {categoryNames[category] ?? category}
                         </h4>
                         <div class="grid grid-cols-2 gap-2">
                             {#each types as type}

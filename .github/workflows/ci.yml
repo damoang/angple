@@ -214,6 +214,11 @@ jobs:
         working-directory: apps/${{ matrix.app }}
         run: pnpm exec playwright install --with-deps
 
+      - name: Run unit tests with coverage
+        working-directory: apps/${{ matrix.app }}
+        run: pnpm run test:unit -- --run --coverage
+        continue-on-error: true
+
       - name: Run tests
         working-directory: apps/${{ matrix.app }}
         env:
@@ -225,6 +230,14 @@ jobs:
           else
             pnpm run test
           fi
+
+      - name: Upload coverage to Codecov
+        if: always()
+        uses: codecov/codecov-action@v5
+        with:
+          directory: apps/${{ matrix.app }}/coverage
+          flags: ${{ matrix.app }}
+          fail_ci_if_error: false
 
       - name: Upload test results
         if: always()

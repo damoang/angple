@@ -4,8 +4,8 @@
  * Node.js fs 모듈을 사용하므로 서버 사이드에서만 사용 가능합니다.
  */
 
-import { readFile, writeFile } from 'fs/promises';
-import { join } from 'path';
+import { readFile, writeFile, mkdir } from 'fs/promises';
+import { join, dirname } from 'path';
 
 const SETTINGS_FILE_PATH = join(process.cwd(), 'data', 'settings.json');
 
@@ -59,6 +59,7 @@ export async function readSettings(): Promise<ThemeSettings> {
  */
 export async function writeSettings(settings: ThemeSettings): Promise<void> {
     try {
+        await mkdir(dirname(SETTINGS_FILE_PATH), { recursive: true });
         await writeFile(SETTINGS_FILE_PATH, JSON.stringify(settings, null, 2), 'utf-8');
         console.log('✅ settings.json 저장 완료');
     } catch (error) {

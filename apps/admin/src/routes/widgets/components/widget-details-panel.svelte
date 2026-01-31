@@ -2,11 +2,11 @@
     import { widgetStore } from '$lib/stores/widget-store.svelte';
     import { getWidgetName, getWidgetIcon, WIDGET_REGISTRY } from '$lib/types/widget';
     import { Button } from '$lib/components/ui/button';
-    import { Input } from '$lib/components/ui/input';
     import { Label } from '$lib/components/ui/label';
     import { Switch } from '$lib/components/ui/switch';
     import { Badge } from '$lib/components/ui/badge';
     import { cn } from '$lib/utils';
+    import WidgetSettingsForm from './widget-settings-form.svelte';
     import {
         X,
         Trash2,
@@ -22,16 +22,16 @@
         Image,
         Gift,
         Pin,
-        Box
+        Box,
+        List
     } from '@lucide/svelte/icons';
 
     /**
      * 위젯 상세 설정 사이드 패널
      *
-     * 선택된 위젯의 설정을 편집합니다.
+     * 매니페스트 기반 동적 설정 폼을 렌더링합니다.
      */
 
-    // 아이콘 매핑
     const iconMap: Record<string, typeof Star> = {
         Star,
         Newspaper,
@@ -45,43 +45,40 @@
         Image,
         Gift,
         Pin,
-        Box
+        Box,
+        List
     };
 
-    // 파생 상태
     const widget = $derived(widgetStore.selectedWidget);
     const registry = $derived(widget ? WIDGET_REGISTRY[widget.type] : null);
 
-    // 로컬 설정 상태
+    // 매니페스트 settings 스키마 (API에서 로드된 것 우선, 없으면 null)
+    const settingsSchema = $derived(widget ? widgetStore.getSettingsSchema(widget.type) : null);
+
     let localSettings = $state<Record<string, unknown>>({});
 
-    // widget 변경 시 localSettings 초기화
     $effect(() => {
         if (widget) {
             localSettings = { ...widget.settings };
         }
     });
 
-    // 패널 닫기
     function handleClose() {
         widgetStore.selectWidget(null);
     }
 
-    // 위젯 삭제
     function handleDelete() {
         if (widget && confirm('이 위젯을 삭제하시겠습니까?')) {
             widgetStore.removeWidget(widget.id);
         }
     }
 
-    // 활성화 토글
     function handleToggle() {
         if (widget) {
             widgetStore.toggleWidget(widget.id);
         }
     }
 
-    // 설정 변경
     function handleSettingChange(key: string, value: unknown) {
         localSettings = { ...localSettings, [key]: value };
         if (widget) {
@@ -89,13 +86,11 @@
         }
     }
 
-    // 아이콘 컴포넌트 가져오기
     function getIcon(type: string) {
         const iconName = getWidgetIcon(type);
         return iconMap[iconName] || Box;
     }
 
-    // 카테고리 배지 색상
     function getCategoryVariant(
         category: string
     ): 'default' | 'secondary' | 'destructive' | 'outline' {
@@ -113,7 +108,6 @@
         }
     }
 
-    // 카테고리 레이블
     function getCategoryLabel(category: string): string {
         switch (category) {
             case 'content':
@@ -194,69 +188,16 @@
                 </div>
             </div>
 
-            <!-- 위젯별 설정 -->
-            {#if widget.type === 'ad' || widget.type === 'sidebar-ad'}
-                <div class="border-border mt-6 space-y-4 border-t pt-4">
-                    <h5 class="font-medium">광고 설정</h5>
-
-                    <div class="space-y-2">
-                        <Label for="ad-position">광고 위치</Label>
-                        <Input
-                            id="ad-position"
-                            value={String(localSettings.position ?? '')}
-                            oninput={(e) => handleSettingChange('position', e.currentTarget.value)}
-                            placeholder="예: index-top, index-bottom"
-                        />
-                    </div>
-
-                    {#if widget.type === 'ad'}
-                        <div class="space-y-2">
-                            <Label for="ad-height">높이</Label>
-                            <Input
-                                id="ad-height"
-                                value={String(localSettings.height ?? '')}
-                                oninput={(e) =>
-                                    handleSettingChange('height', e.currentTarget.value)}
-                                placeholder="예: 90px"
-                            />
-                        </div>
-                    {/if}
-
-                    {#if widget.type === 'sidebar-ad'}
-                        <div class="space-y-2">
-                            <Label for="ad-type">광고 타입</Label>
-                            <select
-                                id="ad-type"
-                                class="border-input bg-background ring-offset-background focus-visible:ring-ring flex h-10 w-full rounded-md border px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
-                                value={String(localSettings.type ?? 'image')}
-                                onchange={(e) => handleSettingChange('type', e.currentTarget.value)}
-                            >
-                                <option value="image">이미지</option>
-                                <option value="image-text">이미지+텍스트</option>
-                                <option value="adsense">애드센스</option>
-                            </select>
-                        </div>
-
-                        <div class="space-y-2">
-                            <Label for="ad-format">포맷</Label>
-                            <select
-                                id="ad-format"
-                                class="border-input bg-background ring-offset-background focus-visible:ring-ring flex h-10 w-full rounded-md border px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
-                                value={String(localSettings.format ?? 'square')}
-                                onchange={(e) =>
-                                    handleSettingChange('format', e.currentTarget.value)}
-                            >
-                                <option value="square">정사각형</option>
-                                <option value="rectangle">직사각형</option>
-                                <option value="halfpage">하프페이지</option>
-                                <option value="grid">그리드</option>
-                            </select>
-                        </div>
-                    {/if}
-                </div>
+            <!-- 매니페스트 기반 동적 설정 폼 -->
+            {#if settingsSchema}
+                <WidgetSettingsForm
+                    settings={settingsSchema}
+                    values={localSettings}
+                    onchange={handleSettingChange}
+                />
             {/if}
 
-            <!-- 공통 설정 미리보기 (JSON) -->
+            <!-- 설정 데이터 미리보기 (JSON) -->
             {#if widget.settings && Object.keys(widget.settings).length > 0}
                 <div class="border-border mt-6 space-y-2 border-t pt-4">
                     <Label class="text-muted-foreground text-xs uppercase tracking-wide">

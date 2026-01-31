@@ -9,8 +9,6 @@ import type {
     ReorderMenusRequest
 } from '$lib/types/admin-menu';
 
-const BACKEND_API_URL = import.meta.env.VITE_BACKEND_API_URL || 'http://localhost:8081';
-
 interface APIResponse<T> {
     data: T;
     error?: {
@@ -20,9 +18,15 @@ interface APIResponse<T> {
     };
 }
 
+/**
+ * SvelteKit 프록시(/api/v2/[...path])를 통해 백엔드에 요청합니다.
+ * 같은 origin이므로 CORS 문제가 발생하지 않습니다.
+ */
+const API_BASE = '/api/v2/admin/menus';
+
 export async function getMenusForAdmin(): Promise<Menu[]> {
     try {
-        const response = await fetch(`${BACKEND_API_URL}/api/v2/admin/menus`, {
+        const response = await fetch(API_BASE, {
             credentials: 'include'
         });
         if (!response.ok) {
@@ -38,7 +42,7 @@ export async function getMenusForAdmin(): Promise<Menu[]> {
 
 export async function createMenu(request: CreateMenuRequest): Promise<Menu> {
     try {
-        const response = await fetch(`${BACKEND_API_URL}/api/v2/admin/menus`, {
+        const response = await fetch(API_BASE, {
             method: 'POST',
             credentials: 'include',
             headers: { 'Content-Type': 'application/json' },
@@ -58,7 +62,7 @@ export async function createMenu(request: CreateMenuRequest): Promise<Menu> {
 
 export async function updateMenu(id: number, request: UpdateMenuRequest): Promise<Menu> {
     try {
-        const response = await fetch(`${BACKEND_API_URL}/api/v2/admin/menus/${id}`, {
+        const response = await fetch(`${API_BASE}/${id}`, {
             method: 'PUT',
             credentials: 'include',
             headers: { 'Content-Type': 'application/json' },
@@ -78,7 +82,7 @@ export async function updateMenu(id: number, request: UpdateMenuRequest): Promis
 
 export async function deleteMenu(id: number): Promise<void> {
     try {
-        const response = await fetch(`${BACKEND_API_URL}/api/v2/admin/menus/${id}`, {
+        const response = await fetch(`${API_BASE}/${id}`, {
             method: 'DELETE',
             credentials: 'include'
         });
@@ -94,7 +98,7 @@ export async function deleteMenu(id: number): Promise<void> {
 
 export async function reorderMenus(request: ReorderMenusRequest): Promise<void> {
     try {
-        const response = await fetch(`${BACKEND_API_URL}/api/v2/admin/menus/reorder`, {
+        const response = await fetch(`${API_BASE}/reorder`, {
             method: 'POST',
             credentials: 'include',
             headers: { 'Content-Type': 'application/json' },

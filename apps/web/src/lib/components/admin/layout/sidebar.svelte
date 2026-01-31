@@ -40,9 +40,8 @@
         },
         {
             title: 'API 문서',
-            href: '/swagger/index.html',
-            icon: Code,
-            external: true
+            href: '/admin/docs',
+            icon: Code
         },
         {
             title: '설정',

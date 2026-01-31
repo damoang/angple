@@ -46,6 +46,8 @@ import type {
     RegisterResponse
 } from './types.js';
 import { browser } from '$app/environment';
+import { ApiRequestError } from './errors.js';
+import { fetchWithRetry, type RetryConfig, DEFAULT_RETRY_CONFIG } from './retry.js';
 
 // 서버/클라이언트 환경에 따라 API URL 분기
 // 클라이언트: 상대경로 (nginx 프록시)
@@ -96,7 +98,11 @@ class ApiClient {
     }
 
     // HTTP 요청 헬퍼
-    private async request<T>(endpoint: string, options: RequestInit = {}): Promise<ApiResponse<T>> {
+    private async request<T>(
+        endpoint: string,
+        options: RequestInit = {},
+        retryConfig?: Partial<RetryConfig>
+    ): Promise<ApiResponse<T>> {
         const url = `${API_BASE_URL}${endpoint}`;
 
         // 서버/클라이언트 환경 로깅
@@ -113,12 +119,18 @@ class ApiClient {
             headers['Authorization'] = `Bearer ${accessToken}`;
         }
 
+        const config: RetryConfig = { ...DEFAULT_RETRY_CONFIG, ...retryConfig };
+
         try {
-            const response = await fetch(url, {
-                ...options,
-                headers,
-                credentials: 'include' // httpOnly 쿠키 자동 전송
-            });
+            const response = await fetchWithRetry(
+                url,
+                {
+                    ...options,
+                    headers,
+                    credentials: 'include' // httpOnly 쿠키 자동 전송
+                },
+                config
+            );
 
             console.log(`[API] Response status:`, response.status, response.statusText);
 
@@ -152,15 +164,22 @@ class ApiClient {
 
             if (!response.ok) {
                 console.error(`[API] Error response:`, data);
-                throw new Error((data as ApiError).error || '요청 실패');
+                const apiErr = data as ApiError;
+                throw ApiRequestError.fromStatus(
+                    response.status,
+                    apiErr.error || '요청 실패',
+                    apiErr.code
+                );
             }
 
             return data as ApiResponse<T>;
         } catch (error) {
             console.error('[API] 요청 에러:', error);
             console.error('[API] URL:', url);
-            console.error('[API] Options:', options);
-            throw error;
+            if (error instanceof ApiRequestError) throw error;
+            throw ApiRequestError.network(
+                error instanceof Error ? error.message : '알 수 없는 에러'
+            );
         }
     }
 
@@ -200,6 +219,19 @@ class ApiClient {
             console.warn('[API] 공지사항 로드 실패:', boardId, error);
             return [];
         }
+    }
+
+    // 게시글 공지 상단고정 토글
+    async toggleNotice(
+        boardId: string,
+        postId: number,
+        noticeType: 'normal' | 'important' | null
+    ): Promise<{ success: boolean }> {
+        return this.request(`/boards/${boardId}/posts/${postId}/notice`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ notice_type: noticeType })
+        });
     }
 
     // ========================================

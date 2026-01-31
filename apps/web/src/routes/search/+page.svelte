@@ -3,8 +3,8 @@
     import { page } from '$app/stores';
     import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card/index.js';
     import { Button } from '$lib/components/ui/button/index.js';
-    import { Input } from '$lib/components/ui/input/index.js';
     import * as Select from '$lib/components/ui/select/index.js';
+    import { SearchAutocomplete } from '$lib/components/features/search/index.js';
     import type { PageData } from './$types.js';
     import type { SearchField } from '$lib/api/types.js';
     import Search from '@lucide/svelte/icons/search';
@@ -101,14 +101,15 @@
                 </Select.Content>
             </Select.Root>
 
-            <!-- 검색어 입력 -->
+            <!-- 검색어 입력 (자동완성) -->
             <div class="relative min-w-[250px] flex-1">
-                <Input
-                    type="text"
-                    bind:value={searchQuery}
+                <SearchAutocomplete
+                    initialQuery={searchQuery}
                     placeholder="검색어를 입력하세요"
-                    class="pr-10"
-                    autofocus
+                    onSearch={(q) => {
+                        searchQuery = q;
+                        handleSearch(new Event('submit'));
+                    }}
                 />
             </div>
 

@@ -51,7 +51,7 @@ async function onUserLogout(userId: string): Promise<void> {
  * 한국 시장에 최적화된 프로바이더 목록
  */
 function registerDefaultProviders(providers: string[]): string[] {
-    const defaultProviders = ['google', 'kakao', 'naver', 'apple'];
+    const defaultProviders = ['google', 'kakao', 'naver', 'apple', 'facebook', 'twitter', 'payco'];
 
     // 기존 프로바이더와 중복 제거하여 병합
     const merged = [...new Set([...providers, ...defaultProviders])];

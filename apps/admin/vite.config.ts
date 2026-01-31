@@ -6,7 +6,20 @@ export default defineConfig({
     plugins: [tailwindcss(), sveltekit()],
     server: {
         port: 5174,
-        allowedHosts: ['admin.damoang.net', 'localhost']
+        allowedHosts: ['admin.damoang.net', 'localhost'],
+        proxy: {
+            '/api/v2': {
+                target: 'http://localhost:8081',
+                changeOrigin: true,
+                secure: false,
+                configure: (proxy) => {
+                    proxy.on('proxyReq', (proxyReq, req) => {
+                        proxyReq.setHeader('Origin', 'http://localhost:8081');
+                        console.log('[Proxy]', req.method, req.url);
+                    });
+                }
+            }
+        }
     },
     test: {
         expect: { requireAssertions: true },

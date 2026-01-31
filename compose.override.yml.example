@@ -14,19 +14,20 @@ services:
       - NODE_ENV=development
       - API_PROXY_TARGET=http://angple-api:8081
 
-  admin:
-    # Development mode
-    build:
-      target: development
-    volumes:
-      - ./apps/admin:/app/apps/admin:cached
-      - admin-node-modules:/app/apps/admin/node_modules
-    environment:
-      - NODE_ENV=development
+  # Admin Dashboard (웹 앱에 통합됨 - apps/web/src/routes/admin/)
+  # admin:
+  #   # Development mode
+  #   build:
+  #     target: development
+  #   volumes:
+  #     - ./apps/admin:/app/apps/admin:cached
+  #     - admin-node-modules:/app/apps/admin/node_modules
+  #   environment:
+  #     - NODE_ENV=development
 
 volumes:
   web-node-modules:
-  admin-node-modules:
+  # admin-node-modules:
 
 # Example: Production with pre-built image
 # services:

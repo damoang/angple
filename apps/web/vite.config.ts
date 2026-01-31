@@ -11,7 +11,9 @@ export default defineConfig(() => {
         plugins: [tailwindcss(), sveltekit()],
         resolve: {
             alias: {
-                $themes: path.resolve(__dirname, '../../themes')
+                $themes: path.resolve(__dirname, '../../themes'),
+                $widgets: path.resolve(__dirname, '../../widgets'),
+                '$custom-widgets': path.resolve(__dirname, '../../custom-widgets')
             }
         },
         server: {
@@ -36,6 +38,24 @@ export default defineConfig(() => {
         },
         test: {
             expect: { requireAssertions: true },
+            coverage: {
+                provider: 'v8',
+                reporter: ['text', 'lcov', 'json-summary'],
+                reportsDirectory: './coverage',
+                include: ['src/lib/**/*.ts'],
+                exclude: [
+                    'src/lib/**/*.svelte.ts',
+                    'src/lib/**/*.d.ts',
+                    'src/lib/**/index.ts',
+                    'src/lib/components/ui/**'
+                ],
+                thresholds: {
+                    lines: 60,
+                    functions: 60,
+                    branches: 60,
+                    statements: 60
+                }
+            },
             projects: [
                 {
                     extends: './vite.config.ts',

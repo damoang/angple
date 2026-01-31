@@ -7,65 +7,8 @@
 
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { readSettings, writeSettings, type WidgetConfig } from '$lib/server/settings';
-
-// 기본 메인 위젯 레이아웃
-const DEFAULT_WIDGETS: WidgetConfig[] = [
-    { id: 'ad-head', type: 'ad', position: 0, enabled: true, settings: { position: 'index-head' } },
-    { id: 'recommended', type: 'recommended', position: 1, enabled: true },
-    { id: 'ad-top', type: 'ad', position: 2, enabled: true, settings: { position: 'index-top' } },
-    {
-        id: 'news-economy-row',
-        type: 'news-economy-row',
-        position: 3,
-        enabled: true
-    },
-    {
-        id: 'ad-middle-1',
-        type: 'ad',
-        position: 4,
-        enabled: true,
-        settings: { position: 'index-middle-1' }
-    },
-    { id: 'gallery', type: 'gallery', position: 5, enabled: true },
-    {
-        id: 'ad-middle-2',
-        type: 'ad',
-        position: 6,
-        enabled: true,
-        settings: { position: 'index-middle-2' }
-    },
-    { id: 'group', type: 'group', position: 7, enabled: true },
-    {
-        id: 'ad-bottom',
-        type: 'ad',
-        position: 8,
-        enabled: true,
-        settings: { position: 'index-bottom' }
-    }
-];
-
-// 기본 사이드바 위젯 레이아웃
-const DEFAULT_SIDEBAR_WIDGETS: WidgetConfig[] = [
-    { id: 'notice', type: 'notice', position: 0, enabled: true },
-    { id: 'podcast', type: 'podcast', position: 1, enabled: true },
-    {
-        id: 'sidebar-ad-1',
-        type: 'sidebar-ad',
-        position: 2,
-        enabled: true,
-        settings: { type: 'image', format: 'square' }
-    },
-    {
-        id: 'sidebar-ad-2',
-        type: 'sidebar-ad',
-        position: 3,
-        enabled: true,
-        settings: { type: 'image-text', format: 'grid' }
-    },
-    { id: 'sharing-board', type: 'sharing-board', position: 4, enabled: true },
-    { id: 'sticky-ads', type: 'sticky-ads', position: 5, enabled: true }
-];
+import { readSettings, writeSettings } from '$lib/server/settings';
+import { DEFAULT_WIDGETS, DEFAULT_SIDEBAR_WIDGETS } from '$lib/constants/default-widgets';
 
 /**
  * 레이아웃 조회
@@ -94,15 +37,13 @@ export const GET: RequestHandler = async () => {
  */
 export const PUT: RequestHandler = async ({ request, cookies }) => {
     try {
-        // 인증 확인 (damoang_jwt 쿠키)
+        // 인증 확인
+        // TODO: 운영 환경에서는 백엔드 API를 통한 관리자 권한 검증 필요
+        const isDev = process.env.NODE_ENV === 'development' || import.meta.env.DEV;
         const token = cookies.get('damoang_jwt');
-        if (!token) {
+        if (!isDev && !token) {
             return json({ error: '인증이 필요합니다.' }, { status: 401 });
         }
-
-        // 사용자 레벨 확인 (백엔드에서 검증)
-        // TODO: 백엔드 API를 통해 사용자 레벨 확인
-        // 현재는 토큰이 있으면 관리자로 간주 (실제 운영 시 개선 필요)
 
         const { widgets, sidebarWidgets } = await request.json();
 
@@ -144,7 +85,8 @@ export const PUT: RequestHandler = async ({ request, cookies }) => {
 
         return json({ success: true });
     } catch (error) {
-        console.error('❌ 레이아웃 저장 실패:', error);
-        return json({ error: '레이아웃 저장에 실패했습니다.' }, { status: 500 });
+        const message = error instanceof Error ? error.message : '알 수 없는 오류';
+        console.error('❌ 레이아웃 저장 실패:', message, error);
+        return json({ error: `레이아웃 저장에 실패했습니다: ${message}` }, { status: 500 });
     }
 };

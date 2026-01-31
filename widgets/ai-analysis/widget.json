@@ -1,0 +1,37 @@
+{
+    "id": "ai-analysis",
+    "name": "AI 트렌드 분석",
+    "version": "1.0.0",
+    "description": "AI(Gemini)가 분석한 커뮤니티 트렌드를 표시합니다.",
+    "author": { "name": "Angple" },
+    "category": "content",
+    "slots": ["main"],
+    "icon": "Star",
+    "allowMultiple": false,
+    "main": "index.svelte",
+    "settings": {
+        "period": {
+            "label": "분석 기간",
+            "type": "select",
+            "default": "6h",
+            "options": [
+                { "label": "1시간", "value": "1h" },
+                { "label": "3시간", "value": "3h" },
+                { "label": "6시간", "value": "6h" },
+                { "label": "12시간", "value": "12h" },
+                { "label": "24시간", "value": "24h" },
+                { "label": "48시간", "value": "48h" }
+            ]
+        },
+        "showKeywords": {
+            "label": "키워드 표시",
+            "type": "boolean",
+            "default": true
+        },
+        "showStats": {
+            "label": "통계 표시",
+            "type": "boolean",
+            "default": true
+        }
+    }
+}

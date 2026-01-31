@@ -21,6 +21,7 @@
     let title = $state('');
     let url = $state('');
     let icon = $state('');
+    let shortcut = $state('');
     let target = $state('_self');
     let showInHeader = $state(false);
     let showInSidebar = $state(true);
@@ -31,6 +32,7 @@
         title = '';
         url = '';
         icon = '';
+        shortcut = '';
         target = '_self';
         showInHeader = false;
         showInSidebar = true;
@@ -49,6 +51,7 @@
                 title: title.trim(),
                 url: url.trim(),
                 icon: icon || undefined,
+                shortcut: shortcut || undefined,
                 target,
                 show_in_header: showInHeader,
                 show_in_sidebar: showInSidebar,
@@ -121,6 +124,25 @@
                             <Select.Item value="">없음</Select.Item>
                             {#each MENU_ICONS as iconName}
                                 <Select.Item value={iconName}>{iconName}</Select.Item>
+                            {/each}
+                        </Select.Content>
+                    </Select.Root>
+                </div>
+
+                <!-- 단축키 -->
+                <div class="grid gap-2">
+                    <Label for="shortcut">단축키</Label>
+                    <Select.Root type="single" bind:value={shortcut}>
+                        <Select.Trigger class="w-full">
+                            {shortcut || '없음 (단축키 없음)'}
+                        </Select.Trigger>
+                        <Select.Content class="max-h-60">
+                            <Select.Item value="">없음 (단축키 없음)</Select.Item>
+                            {#each ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'] as key}
+                                <Select.Item value={key}>{key}</Select.Item>
+                            {/each}
+                            {#each Array.from({ length: 26 }, (_, i) => String.fromCharCode(65 + i)) as key}
+                                <Select.Item value={key}>{key}</Select.Item>
                             {/each}
                         </Select.Content>
                     </Select.Root>

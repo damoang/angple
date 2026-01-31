@@ -1,24 +1,32 @@
 <script lang="ts">
     import { widgetStore } from '$lib/stores/admin-widget-store.svelte';
     import { getWidgetName, getWidgetIcon, WIDGET_REGISTRY } from '$lib/types/admin-widget';
+    import { getWidgetManifest } from '$lib/utils/widget-component-loader';
     import { Button } from '$lib/components/ui/button';
-    import { Input } from '$lib/components/ui/input';
     import { Label } from '$lib/components/ui/label';
     import { Switch } from '$lib/components/ui/switch';
     import { Badge } from '$lib/components/ui/badge';
     import { cn } from '$lib/utils';
+    import WidgetSettingsForm from './widget-settings-form.svelte';
     import {
         X, Trash2, Star, Newspaper, ShoppingCart, LayoutGrid, Images, Users,
-        Megaphone, Info, Play, Image, Gift, Pin, Box
+        Megaphone, Info, Play, Image, Gift, Pin, Box, List
     } from '@lucide/svelte/icons';
 
     const iconMap: Record<string, typeof Star> = {
         Star, Newspaper, ShoppingCart, LayoutGrid, Images, Users,
-        Megaphone, Info, Play, Image, Gift, Pin, Box
+        Megaphone, Info, Play, Image, Gift, Pin, Box, List
     };
 
     const widget = $derived(widgetStore.selectedWidget);
     const registry = $derived(widget ? WIDGET_REGISTRY[widget.type] : null);
+
+    // 매니페스트 settings 스키마
+    const settingsSchema = $derived.by(() => {
+        if (!widget) return null;
+        const manifest = getWidgetManifest(widget.type);
+        return manifest?.settings ?? null;
+    });
 
     let localSettings = $state<Record<string, unknown>>({});
 
@@ -106,39 +114,13 @@
                 </div>
             </div>
 
-            {#if widget.type === 'ad' || widget.type === 'sidebar-ad'}
-                <div class="border-border mt-6 space-y-4 border-t pt-4">
-                    <h5 class="font-medium">광고 설정</h5>
-                    <div class="space-y-2">
-                        <Label for="ad-position">광고 위치</Label>
-                        <Input id="ad-position" value={String(localSettings.position ?? '')} oninput={(e) => handleSettingChange('position', e.currentTarget.value)} placeholder="예: index-top, index-bottom" />
-                    </div>
-                    {#if widget.type === 'ad'}
-                        <div class="space-y-2">
-                            <Label for="ad-height">높이</Label>
-                            <Input id="ad-height" value={String(localSettings.height ?? '')} oninput={(e) => handleSettingChange('height', e.currentTarget.value)} placeholder="예: 90px" />
-                        </div>
-                    {/if}
-                    {#if widget.type === 'sidebar-ad'}
-                        <div class="space-y-2">
-                            <Label for="ad-type">광고 타입</Label>
-                            <select id="ad-type" class="border-input bg-background ring-offset-background focus-visible:ring-ring flex h-10 w-full rounded-md border px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2" value={String(localSettings.type ?? 'image')} onchange={(e) => handleSettingChange('type', e.currentTarget.value)}>
-                                <option value="image">이미지</option>
-                                <option value="image-text">이미지+텍스트</option>
-                                <option value="adsense">애드센스</option>
-                            </select>
-                        </div>
-                        <div class="space-y-2">
-                            <Label for="ad-format">포맷</Label>
-                            <select id="ad-format" class="border-input bg-background ring-offset-background focus-visible:ring-ring flex h-10 w-full rounded-md border px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2" value={String(localSettings.format ?? 'square')} onchange={(e) => handleSettingChange('format', e.currentTarget.value)}>
-                                <option value="square">정사각형</option>
-                                <option value="rectangle">직사각형</option>
-                                <option value="halfpage">하프페이지</option>
-                                <option value="grid">그리드</option>
-                            </select>
-                        </div>
-                    {/if}
-                </div>
+            <!-- 매니페스트 기반 동적 설정 폼 -->
+            {#if settingsSchema}
+                <WidgetSettingsForm
+                    settings={settingsSchema}
+                    values={localSettings}
+                    onchange={handleSettingChange}
+                />
             {/if}
 
             {#if widget.settings && Object.keys(widget.settings).length > 0}

@@ -17,8 +17,8 @@ const loadedPluginIds = new Set<string>();
  * Vite glob으로 플러그인 Hook 파일 미리 로드
  * 공식 플러그인과 커스텀 플러그인 모두 포함
  */
-const pluginHooks = import.meta.glob('../../../../../../plugins/**/hooks/*.{ts,js}');
-const customPluginHooks = import.meta.glob('../../../../../../custom-plugins/**/hooks/*.{ts,js}');
+const pluginHooks = import.meta.glob('../../../../../plugins/**/hooks/*.{ts,js}');
+const customPluginHooks = import.meta.glob('../../../../../custom-plugins/**/hooks/*.{ts,js}');
 
 /**
  * 모든 플러그인 Hook 파일 병합
@@ -91,8 +91,8 @@ export async function loadPluginHooks(pluginId: string, manifest?: PluginManifes
                 }
 
                 // Hook 파일 경로 생성 (plugins/ 또는 custom-plugins/)
-                const officialPath = `../../../../../../plugins/${pluginId}/${callback}`;
-                const customPath = `../../../../../../custom-plugins/${pluginId}/${callback}`;
+                const officialPath = `../../../../../plugins/${pluginId}/${callback}`;
+                const customPath = `../../../../../custom-plugins/${pluginId}/${callback}`;
 
                 let hookModule: { default?: unknown } | null = null;
                 let usedPath = '';

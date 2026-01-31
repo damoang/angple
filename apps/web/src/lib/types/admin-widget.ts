@@ -1,5 +1,8 @@
 /**
  * 위젯 관련 타입 정의
+ *
+ * WIDGET_REGISTRY는 이제 widget-component-loader의 스캐너 기반으로 동작합니다.
+ * 이 파일은 하위 호환성을 위해 유지됩니다.
  */
 
 export interface WidgetConfig {
@@ -14,125 +17,39 @@ export interface WidgetRegistryEntry {
     name: string;
     icon: string;
     description: string;
-    category: 'content' | 'ad' | 'layout' | 'sidebar';
+    category: string;
     allowMultiple: boolean;
     defaultSettings?: Record<string, unknown>;
+    /** @deprecated slots[] 기반으로 전환됨 */
     sidebarOnly?: boolean;
+    slots?: string[];
 }
 
+// 스캐너 기반 레지스트리 re-export
+import {
+    getWidgetRegistry,
+    getWidgetIcon as _getIcon,
+    getWidgetName as _getName,
+    getAddableWidgets as _getAddable,
+    getWidgetsBySlot
+} from '$lib/utils/widget-component-loader';
+
 /**
- * 위젯 레지스트리 (Web 앱과 동일한 정의)
+ * 위젯 레지스트리 (스캐너 기반)
  */
-export const WIDGET_REGISTRY: Record<string, WidgetRegistryEntry> = {
-    recommended: {
-        name: '추천 글',
-        icon: 'Star',
-        description: '인기 있는 추천 게시글 목록',
-        category: 'content',
-        allowMultiple: false
-    },
-    'new-board': {
-        name: '새로운 소식',
-        icon: 'Newspaper',
-        description: '최신 소식 게시판',
-        category: 'content',
-        allowMultiple: false
-    },
-    economy: {
-        name: '알뜰구매',
-        icon: 'ShoppingCart',
-        description: '알뜰 구매 정보',
-        category: 'content',
-        allowMultiple: false
-    },
-    'news-economy-row': {
-        name: '새소식 + 알뜰구매',
-        icon: 'LayoutGrid',
-        description: '새소식과 알뜰구매를 2열로 표시',
-        category: 'layout',
-        allowMultiple: false
-    },
-    gallery: {
-        name: '갤러리',
-        icon: 'Images',
-        description: '이미지 갤러리 그리드',
-        category: 'content',
-        allowMultiple: false
-    },
-    group: {
-        name: '소모임',
-        icon: 'Users',
-        description: '소모임 추천글',
-        category: 'content',
-        allowMultiple: false
-    },
-    ad: {
-        name: '광고',
-        icon: 'Megaphone',
-        description: '광고 슬롯',
-        category: 'ad',
-        allowMultiple: true,
-        defaultSettings: {
-            position: 'index-custom',
-            height: '90px'
-        }
-    },
-    notice: {
-        name: '공지사항',
-        icon: 'Info',
-        description: '공지사항 목록',
-        category: 'sidebar',
-        allowMultiple: false,
-        sidebarOnly: true
-    },
-    podcast: {
-        name: '팟캐스트',
-        icon: 'Play',
-        description: '다모앙 팟캐스트 플레이어',
-        category: 'sidebar',
-        allowMultiple: false,
-        sidebarOnly: true
-    },
-    'sidebar-ad': {
-        name: '사이드바 광고',
-        icon: 'Image',
-        description: '사이드바 광고 배너',
-        category: 'sidebar',
-        allowMultiple: true,
-        sidebarOnly: true,
-        defaultSettings: {
-            type: 'image',
-            format: 'square'
-        }
-    },
-    'sharing-board': {
-        name: '나눔 게시판',
-        icon: 'Gift',
-        description: '나눔 게시판 위젯',
-        category: 'sidebar',
-        allowMultiple: false,
-        sidebarOnly: true
-    },
-    'sticky-ads': {
-        name: '스티키 광고',
-        icon: 'Pin',
-        description: '화면에 고정되는 광고',
-        category: 'sidebar',
-        allowMultiple: false,
-        sidebarOnly: true
-    }
-};
+export const WIDGET_REGISTRY: Record<string, WidgetRegistryEntry> = getWidgetRegistry();
 
 export function getWidgetIcon(type: string): string {
-    return WIDGET_REGISTRY[type]?.icon ?? 'Box';
+    return _getIcon(type);
 }
 
 export function getWidgetName(type: string): string {
-    return WIDGET_REGISTRY[type]?.name ?? type;
+    return _getName(type);
 }
 
-export function getWidgetsByCategory(category: WidgetRegistryEntry['category']): string[] {
-    return Object.entries(WIDGET_REGISTRY)
+export function getWidgetsByCategory(category: string): string[] {
+    const registry = getWidgetRegistry();
+    return Object.entries(registry)
         .filter(([, entry]) => entry.category === category)
         .map(([type]) => type);
 }
@@ -141,30 +58,20 @@ export function getAddableWidgets(
     currentWidgetTypes: string[],
     forSidebar: boolean = false
 ): string[] {
-    return Object.entries(WIDGET_REGISTRY)
-        .filter(([type, entry]) => {
-            if (forSidebar && !entry.sidebarOnly) return false;
-            if (!forSidebar && entry.sidebarOnly) return false;
-            if (entry.allowMultiple) return true;
-            return !currentWidgetTypes.includes(type);
-        })
-        .map(([type]) => type);
+    return _getAddable(currentWidgetTypes, forSidebar ? 'sidebar' : 'main');
 }
 
 export function isSidebarWidget(type: string): boolean {
-    return WIDGET_REGISTRY[type]?.sidebarOnly ?? false;
+    const registry = getWidgetRegistry();
+    return registry[type]?.slots?.includes('sidebar') ?? false;
 }
 
 export function getMainWidgetTypes(): string[] {
-    return Object.entries(WIDGET_REGISTRY)
-        .filter(([, entry]) => !entry.sidebarOnly)
-        .map(([type]) => type);
+    return getWidgetsBySlot('main').map((w) => w.manifest.id);
 }
 
 export function getSidebarWidgetTypes(): string[] {
-    return Object.entries(WIDGET_REGISTRY)
-        .filter(([, entry]) => entry.sidebarOnly)
-        .map(([type]) => type);
+    return getWidgetsBySlot('sidebar').map((w) => w.manifest.id);
 }
 
 export type WidgetZone = 'main' | 'sidebar';
