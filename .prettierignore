@@ -14,6 +14,10 @@ package-lock.json
 pnpm-lock.yaml
 yarn.lock
 
+# Static assets
+apps/web/static/
+apps/admin/static/
+
 # Generated files
 .DS_Store
 *.log
