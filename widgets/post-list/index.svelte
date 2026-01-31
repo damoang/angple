@@ -32,7 +32,8 @@
     // Phase 2에서는 기존 feature 컴포넌트를 래핑하여 호환성 유지
     // Phase 3에서 자체 API fetch로 전환 가능
     const useNativeComponent = $derived(
-        ['notice', 'economy', 'gallery', 'group'].includes(boardId) && layout === getDefaultLayout(boardId)
+        ['notice', 'economy', 'gallery', 'group'].includes(boardId) &&
+            layout === getDefaultLayout(boardId)
     );
 
     function getDefaultLayout(board: string): string {

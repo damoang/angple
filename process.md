@@ -8,11 +8,11 @@
 
 ### 필수 도구
 
-| 도구 | 버전 | 용도 |
-|------|------|------|
-| Node.js | 18+ | 런타임 |
-| pnpm | 10.15+ | 패키지 매니저 |
-| Docker + Compose | 최신 | 통합 테스트 환경 |
+| 도구             | 버전   | 용도             |
+| ---------------- | ------ | ---------------- |
+| Node.js          | 18+    | 런타임           |
+| pnpm             | 10.15+ | 패키지 매니저    |
+| Docker + Compose | 최신   | 통합 테스트 환경 |
 
 ### 초기 설정
 
@@ -48,17 +48,17 @@ pnpm format           # Prettier 포맷팅
 ### 포트 구성
 
 | 서비스 | 개발 포트 | 프로덕션 포트 |
-|--------|----------|-------------|
-| Web | 5173 | 3010 (Docker) |
-| Admin | 5174 | 3011 (Docker) |
+| ------ | --------- | ------------- |
+| Web    | 5173      | 3010 (Docker) |
+| Admin  | 5174      | 3011 (Docker) |
 
 ### 환경 변수
 
-| 변수 | 설명 | 기본값 |
-|------|------|--------|
+| 변수                  | 설명               | 기본값                  |
+| --------------------- | ------------------ | ----------------------- |
 | `PUBLIC_API_BASE_URL` | 클라이언트 API URL | `http://localhost:8081` |
-| `INTERNAL_API_URL` | SSR 내부 API URL | `http://api:8081` |
-| `DATA_PATH` | 데이터 디렉토리 | `./data` |
+| `INTERNAL_API_URL`    | SSR 내부 API URL   | `http://api:8081`       |
+| `DATA_PATH`           | 데이터 디렉토리    | `./data`                |
 
 ---
 
@@ -125,28 +125,28 @@ style(ui): 사이드바 반응형 레이아웃 수정
 
 ### 네이밍 규칙
 
-| 대상 | 규칙 | 예시 |
-|------|------|------|
-| 컴포넌트 파일 | kebab-case | `post-card.svelte` |
-| TypeScript 파일 | kebab-case | `api-client.ts` |
-| 디렉토리 | kebab-case | `board-list/` |
-| 컴포넌트 이름 | PascalCase (import 시) | `import PostCard from './post-card.svelte'` |
-| 변수/함수 | camelCase | `const postList = ...` |
-| 타입/인터페이스 | PascalCase | `interface PostData` |
-| 상수 | UPPER_SNAKE_CASE | `const MAX_FILE_SIZE = ...` |
-| CSS 클래스 | Tailwind 유틸리티 | `class="flex gap-2"` |
+| 대상            | 규칙                   | 예시                                        |
+| --------------- | ---------------------- | ------------------------------------------- |
+| 컴포넌트 파일   | kebab-case             | `post-card.svelte`                          |
+| TypeScript 파일 | kebab-case             | `api-client.ts`                             |
+| 디렉토리        | kebab-case             | `board-list/`                               |
+| 컴포넌트 이름   | PascalCase (import 시) | `import PostCard from './post-card.svelte'` |
+| 변수/함수       | camelCase              | `const postList = ...`                      |
+| 타입/인터페이스 | PascalCase             | `interface PostData`                        |
+| 상수            | UPPER_SNAKE_CASE       | `const MAX_FILE_SIZE = ...`                 |
+| CSS 클래스      | Tailwind 유틸리티      | `class="flex gap-2"`                        |
 
 ### UI 컴포넌트
 
-- **shadcn-svelte** 기반 (bits-ui + Tailwind)
-- 아이콘: **Lucide Icons**
-- 커스텀 컴포넌트: `$lib/components/ui/` 하위
+-   **shadcn-svelte** 기반 (bits-ui + Tailwind)
+-   아이콘: **Lucide Icons**
+-   커스텀 컴포넌트: `$lib/components/ui/` 하위
 
 ### 파일 크기 제한
 
-- **최대 1000줄/파일**
-- 컴포넌트가 커지면 하위 컴포넌트로 분리
-- 로직이 복잡하면 `*.svelte.ts` 스토어로 추출
+-   **최대 1000줄/파일**
+-   컴포넌트가 커지면 하위 컴포넌트로 분리
+-   로직이 복잡하면 `*.svelte.ts` 스토어로 추출
 
 ---
 
@@ -311,20 +311,20 @@ custom-widgets/{widget-id}/
 ```yaml
 # pnpm-workspace.yaml
 packages:
-  - apps/*
-  - packages/*
+    - apps/*
+    - packages/*
 ```
 
 ### 패키지 목록
 
-| 패키지 | 경로 | 설명 |
-|--------|------|------|
-| `@angple/web` | `apps/web` | Web 앱 |
-| `@angple/admin` | `apps/admin` | Admin 앱 |
-| `@angple/hook-system` | `packages/hook-system` | Hook 시스템 |
-| `@angple/i18n` | `packages/i18n` | 다국어 |
-| `@angple/theme-engine` | `packages/theme-engine` | 테마 엔진 |
-| `@angple/types` | `packages/types` | 공유 타입 |
+| 패키지                 | 경로                    | 설명        |
+| ---------------------- | ----------------------- | ----------- |
+| `@angple/web`          | `apps/web`              | Web 앱      |
+| `@angple/admin`        | `apps/admin`            | Admin 앱    |
+| `@angple/hook-system`  | `packages/hook-system`  | Hook 시스템 |
+| `@angple/i18n`         | `packages/i18n`         | 다국어      |
+| `@angple/theme-engine` | `packages/theme-engine` | 테마 엔진   |
+| `@angple/types`        | `packages/types`        | 공유 타입   |
 
 ### 패키지 간 의존성
 
@@ -354,12 +354,12 @@ pnpm add -D -w some-dev-package
 
 ### 테스트 종류
 
-| 종류 | 도구 | 대상 | 위치 |
-|------|------|------|------|
-| 단위 테스트 | Vitest | 유틸리티, 스토어, API 클라이언트 | `*.test.ts` (같은 디렉토리) |
-| 컴포넌트 테스트 | @testing-library/svelte | Svelte 컴포넌트 | `*.test.ts` |
-| E2E 테스트 | Playwright | 사용자 플로우 | `tests/e2e/` |
-| 시각적 회귀 | Percy / Chromatic | UI 스냅샷 | CI 전용 |
+| 종류            | 도구                    | 대상                             | 위치                        |
+| --------------- | ----------------------- | -------------------------------- | --------------------------- |
+| 단위 테스트     | Vitest                  | 유틸리티, 스토어, API 클라이언트 | `*.test.ts` (같은 디렉토리) |
+| 컴포넌트 테스트 | @testing-library/svelte | Svelte 컴포넌트                  | `*.test.ts`                 |
+| E2E 테스트      | Playwright              | 사용자 플로우                    | `tests/e2e/`                |
+| 시각적 회귀     | Percy / Chromatic       | UI 스냅샷                        | CI 전용                     |
 
 ### 테스트 명령어
 
@@ -455,24 +455,24 @@ const safePath = sanitizePath(userInput);
 
 ### XSS 방지
 
-- [ ] 사용자 입력 HTML 이스케이프 (Svelte는 기본 이스케이프)
-- [ ] `{@html}` 사용 시 DOMPurify 적용
-- [ ] URL 파라미터 검증
+-   [ ] 사용자 입력 HTML 이스케이프 (Svelte는 기본 이스케이프)
+-   [ ] `{@html}` 사용 시 DOMPurify 적용
+-   [ ] URL 파라미터 검증
 
 ### CORS
 
-- [ ] API 클라이언트에 `credentials: 'include'` 설정
-- [ ] 백엔드 CORS 허용 Origin 확인
-- [ ] SameSite Cookie 정책 검증
+-   [ ] API 클라이언트에 `credentials: 'include'` 설정
+-   [ ] 백엔드 CORS 허용 Origin 확인
+-   [ ] SameSite Cookie 정책 검증
 
 ### 파일 업로드
 
-- [ ] 파일 크기 제한 (클라이언트 + 서버)
-- [ ] 파일 확장자 화이트리스트
-- [ ] ZIP 업로드 경로 탈출 방지
+-   [ ] 파일 크기 제한 (클라이언트 + 서버)
+-   [ ] 파일 확장자 화이트리스트
+-   [ ] ZIP 업로드 경로 탈출 방지
 
 ### 인증
 
-- [ ] 토큰은 httpOnly Cookie에만 저장 (localStorage 금지)
-- [ ] 401 응답 시 자동 토큰 갱신
-- [ ] 인증 필요 페이지에 서버측 가드 적용
+-   [ ] 토큰은 httpOnly Cookie에만 저장 (localStorage 금지)
+-   [ ] 401 응답 시 자동 토큰 갱신
+-   [ ] 인증 필요 페이지에 서버측 가드 적용

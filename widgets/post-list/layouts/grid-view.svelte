@@ -54,7 +54,9 @@
                             {/if}
                         </div>
                         {#if post.recommend_count}
-                            <span class="bg-primary/10 text-primary shrink-0 rounded-full px-2 py-0.5 text-xs font-medium">
+                            <span
+                                class="bg-primary/10 text-primary shrink-0 rounded-full px-2 py-0.5 text-xs font-medium"
+                            >
                                 👍 {post.recommend_count}
                             </span>
                         {/if}

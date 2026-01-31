@@ -11,27 +11,27 @@ import AxeBuilder from '@axe-core/playwright';
 const PAGES_TO_TEST = ['/', '/login', '/search'];
 
 for (const pagePath of PAGES_TO_TEST) {
-	test(`접근성 검사: ${pagePath}`, async ({ page }) => {
-		await page.goto(pagePath);
-		// 페이지 로딩 대기
-		await page.waitForLoadState('networkidle');
+    test(`접근성 검사: ${pagePath}`, async ({ page }) => {
+        await page.goto(pagePath);
+        // 페이지 로딩 대기
+        await page.waitForLoadState('networkidle');
 
-		const results = await new AxeBuilder({ page })
-			.withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])
-			.analyze();
+        const results = await new AxeBuilder({ page })
+            .withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])
+            .analyze();
 
-		// critical, serious 위반만 필터링
-		const criticalViolations = results.violations.filter((v) =>
-			['critical', 'serious'].includes(v.impact || '')
-		);
+        // critical, serious 위반만 필터링
+        const criticalViolations = results.violations.filter((v) =>
+            ['critical', 'serious'].includes(v.impact || '')
+        );
 
-		if (criticalViolations.length > 0) {
-			const summary = criticalViolations
-				.map((v) => `[${v.impact}] ${v.id}: ${v.description} (${v.nodes.length}건)`)
-				.join('\n');
-			console.log(`접근성 위반 발견 (${pagePath}):\n${summary}`);
-		}
+        if (criticalViolations.length > 0) {
+            const summary = criticalViolations
+                .map((v) => `[${v.impact}] ${v.id}: ${v.description} (${v.nodes.length}건)`)
+                .join('\n');
+            console.log(`접근성 위반 발견 (${pagePath}):\n${summary}`);
+        }
 
-		expect(criticalViolations).toHaveLength(0);
-	});
+        expect(criticalViolations).toHaveLength(0);
+    });
 }

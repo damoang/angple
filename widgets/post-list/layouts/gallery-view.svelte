@@ -56,14 +56,18 @@
                                     loading="lazy"
                                 />
                             {:else}
-                                <div class="text-muted-foreground flex h-full items-center justify-center text-xs">
+                                <div
+                                    class="text-muted-foreground flex h-full items-center justify-center text-xs"
+                                >
                                     No Image
                                 </div>
                             {/if}
                         </div>
                         <p class="mt-1.5 truncate text-xs">{post.title}</p>
                         {#if post.comment_count}
-                            <span class="text-primary text-xs font-medium">[{post.comment_count}]</span>
+                            <span class="text-primary text-xs font-medium"
+                                >[{post.comment_count}]</span
+                            >
                         {/if}
                     </a>
                 {/each}

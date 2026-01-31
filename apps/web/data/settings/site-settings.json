@@ -1,50 +1,50 @@
 {
-  "general": {
-    "siteName": "",
-    "siteDescription": ""
-  },
-  "oauth": {
-    "google": {
-      "enabled": false,
-      "clientId": "",
-      "clientSecret": ""
+    "general": {
+        "siteName": "",
+        "siteDescription": ""
     },
-    "kakao": {
-      "enabled": false,
-      "clientId": "",
-      "clientSecret": ""
+    "oauth": {
+        "google": {
+            "enabled": false,
+            "clientId": "",
+            "clientSecret": ""
+        },
+        "kakao": {
+            "enabled": false,
+            "clientId": "",
+            "clientSecret": ""
+        },
+        "naver": {
+            "enabled": false,
+            "clientId": "",
+            "clientSecret": ""
+        },
+        "apple": {
+            "enabled": false,
+            "clientId": "",
+            "clientSecret": "",
+            "extra": {
+                "teamId": "",
+                "keyId": ""
+            }
+        },
+        "facebook": {
+            "enabled": false,
+            "clientId": "",
+            "clientSecret": ""
+        },
+        "twitter": {
+            "enabled": false,
+            "clientId": "",
+            "clientSecret": ""
+        },
+        "payco": {
+            "enabled": false,
+            "clientId": "",
+            "clientSecret": ""
+        }
     },
-    "naver": {
-      "enabled": false,
-      "clientId": "",
-      "clientSecret": ""
-    },
-    "apple": {
-      "enabled": false,
-      "clientId": "",
-      "clientSecret": "",
-      "extra": {
-        "teamId": "",
-        "keyId": ""
-      }
-    },
-    "facebook": {
-      "enabled": false,
-      "clientId": "",
-      "clientSecret": ""
-    },
-    "twitter": {
-      "enabled": false,
-      "clientId": "",
-      "clientSecret": ""
-    },
-    "payco": {
-      "enabled": false,
-      "clientId": "",
-      "clientSecret": ""
+    "analytics": {
+        "ga4MeasurementId": ""
     }
-  },
-  "analytics": {
-    "ga4MeasurementId": ""
-  }
 }

@@ -51,23 +51,23 @@
 
 **핵심 구분:**
 
-| 항목 | 플러그인 | 위젯 |
-|------|---------|------|
-| 주요 영역 | 백엔드 + 프론트엔드 | **프론트엔드만** |
-| 매니페스트 | `plugin.yaml` | `widget.json` |
-| 독립성 | 완전 독립 | 독립 또는 플러그인 소속 |
-| DB 접근 | 자체 테이블 가능 | API 호출만 가능 |
-| Hook 등록 | 가능 | Slot 삽입만 가능 |
+| 항목       | 플러그인            | 위젯                    |
+| ---------- | ------------------- | ----------------------- |
+| 주요 영역  | 백엔드 + 프론트엔드 | **프론트엔드만**        |
+| 매니페스트 | `plugin.yaml`       | `widget.json`           |
+| 독립성     | 완전 독립           | 독립 또는 플러그인 소속 |
+| DB 접근    | 자체 테이블 가능    | API 호출만 가능         |
+| Hook 등록  | 가능                | Slot 삽입만 가능        |
 
 ### 1.3 Core 위젯 vs 커스텀 위젯
 
-| 구분 | Core 위젯 | 커스텀 위젯 |
-|------|----------|------------|
-| 제공자 | ANGPLE 공식 | 서드파티 개발자 / 사이트 운영자 |
-| 위치 | 소스코드에 내장 (하드코딩) | `custom-widgets/` 디렉토리 |
-| 삭제 | 불가 | 관리자가 삭제 가능 |
-| 업데이트 | Core 업데이트 시 함께 | 독립적 업데이트 |
-| 보안 검증 | 코드 리뷰 완료 | ZIP 업로드 시 자동 검증 |
+| 구분      | Core 위젯                  | 커스텀 위젯                     |
+| --------- | -------------------------- | ------------------------------- |
+| 제공자    | ANGPLE 공식                | 서드파티 개발자 / 사이트 운영자 |
+| 위치      | 소스코드에 내장 (하드코딩) | `custom-widgets/` 디렉토리      |
+| 삭제      | 불가                       | 관리자가 삭제 가능              |
+| 업데이트  | Core 업데이트 시 함께      | 독립적 업데이트                 |
+| 보안 검증 | 코드 리뷰 완료             | ZIP 업로드 시 자동 검증         |
 
 ---
 
@@ -89,13 +89,13 @@ custom-widgets/{widget-id}/
 
 ### 2.2 네이밍 규칙
 
-| 항목 | 규칙 | 예시 |
-|------|------|------|
-| 위젯 ID | 소문자, 숫자, 하이픈 | `recent-posts`, `ad-banner-01` |
-| 디렉토리명 | 위젯 ID와 동일 | `custom-widgets/recent-posts/` |
+| 항목          | 규칙                 | 예시                               |
+| ------------- | -------------------- | ---------------------------------- |
+| 위젯 ID       | 소문자, 숫자, 하이픈 | `recent-posts`, `ad-banner-01`     |
+| 디렉토리명    | 위젯 ID와 동일       | `custom-widgets/recent-posts/`     |
 | 컴포넌트 파일 | kebab-case `.svelte` | `index.svelte`, `post-card.svelte` |
-| 최소 ID 길이 | 3자 | `ad` (불가) → `ad-slot` (가능) |
-| 최대 ID 길이 | 50자 | - |
+| 최소 ID 길이  | 3자                  | `ad` (불가) → `ad-slot` (가능)     |
+| 최대 ID 길이  | 50자                 | -                                  |
 
 ---
 
@@ -147,57 +147,57 @@ custom-widgets/{widget-id}/
 
 ### 3.2 필수 필드
 
-| 필드 | 타입 | 설명 |
-|------|------|------|
-| `id` | string | 위젯 고유 식별자. `/^[a-z0-9-]+$/`, 3-50자 |
-| `name` | string | 표시 이름 (1-100자) |
-| `version` | string | 시맨틱 버전 (예: `1.0.0`) |
-| `author` | object | 작성자 정보 (`name` 필수) |
-| `category` | string | 위젯 카테고리 |
-| `slots` | string[] | 배치 가능한 슬롯 (1개 이상) |
+| 필드       | 타입     | 설명                                       |
+| ---------- | -------- | ------------------------------------------ |
+| `id`       | string   | 위젯 고유 식별자. `/^[a-z0-9-]+$/`, 3-50자 |
+| `name`     | string   | 표시 이름 (1-100자)                        |
+| `version`  | string   | 시맨틱 버전 (예: `1.0.0`)                  |
+| `author`   | object   | 작성자 정보 (`name` 필수)                  |
+| `category` | string   | 위젯 카테고리                              |
+| `slots`    | string[] | 배치 가능한 슬롯 (1개 이상)                |
 
 ### 3.3 선택 필드
 
-| 필드 | 타입 | 기본값 | 설명 |
-|------|------|--------|------|
-| `description` | string | - | 위젯 설명 (500자 이내) |
-| `icon` | string | - | Lucide 아이콘 이름 |
-| `angpleVersion` | string | - | 호환 ANGPLE 버전 |
-| `screenshot` | string | - | 스크린샷 파일 경로 |
-| `main` | string | `index.svelte` | 메인 컴포넌트 파일 |
-| `allowMultiple` | boolean | `false` | 같은 페이지에 여러 인스턴스 허용 |
-| `sidebarOnly` | boolean | `false` | 사이드바 전용 |
-| `settings` | object | - | 설정 스키마 (자동 UI 생성용) |
+| 필드            | 타입    | 기본값         | 설명                             |
+| --------------- | ------- | -------------- | -------------------------------- |
+| `description`   | string  | -              | 위젯 설명 (500자 이내)           |
+| `icon`          | string  | -              | Lucide 아이콘 이름               |
+| `angpleVersion` | string  | -              | 호환 ANGPLE 버전                 |
+| `screenshot`    | string  | -              | 스크린샷 파일 경로               |
+| `main`          | string  | `index.svelte` | 메인 컴포넌트 파일               |
+| `allowMultiple` | boolean | `false`        | 같은 페이지에 여러 인스턴스 허용 |
+| `sidebarOnly`   | boolean | `false`        | 사이드바 전용                    |
+| `settings`      | object  | -              | 설정 스키마 (자동 UI 생성용)     |
 
 ### 3.4 카테고리
 
-| 카테고리 | 설명 | 예시 |
-|---------|------|------|
-| `content` | 콘텐츠 표시 위젯 | 추천 글, 최신 글, 인기 글 |
+| 카테고리  | 설명               | 예시                         |
+| --------- | ------------------ | ---------------------------- |
+| `content` | 콘텐츠 표시 위젯   | 추천 글, 최신 글, 인기 글    |
 | `sidebar` | 사이드바 전용 위젯 | 카테고리 목록, 태그 클라우드 |
-| `ad` | 광고 위젯 | 배너 광고, 구글 애드센스 |
-| `social` | 소셜 위젯 | 실시간 채팅, 소셜 피드 |
-| `utility` | 유틸리티 위젯 | 검색, 달력, 날씨 |
-| `layout` | 레이아웃 위젯 | 구분선, 여백, 컨테이너 |
+| `ad`      | 광고 위젯          | 배너 광고, 구글 애드센스     |
+| `social`  | 소셜 위젯          | 실시간 채팅, 소셜 피드       |
+| `utility` | 유틸리티 위젯      | 검색, 달력, 날씨             |
+| `layout`  | 레이아웃 위젯      | 구분선, 여백, 컨테이너       |
 
 ### 3.5 슬롯
 
-| 슬롯 | 한글명 | 설명 |
-|------|--------|------|
-| `main` | 메인 영역 | 페이지 중앙 콘텐츠 영역 |
-| `sidebar` | 사이드바 | 좌/우 사이드바 |
-| `header` | 헤더 | 헤더 아래 영역 |
-| `footer` | 푸터 | 푸터 위 영역 |
+| 슬롯      | 한글명    | 설명                    |
+| --------- | --------- | ----------------------- |
+| `main`    | 메인 영역 | 페이지 중앙 콘텐츠 영역 |
+| `sidebar` | 사이드바  | 좌/우 사이드바          |
+| `header`  | 헤더      | 헤더 아래 영역          |
+| `footer`  | 푸터      | 푸터 위 영역            |
 
 ### 3.6 설정 필드 타입
 
-| 타입 | 옵션 | UI 렌더링 |
-|------|------|----------|
-| `text` | `default`, `description` | 텍스트 입력 |
-| `number` | `default`, `min`, `max`, `step` | 숫자 입력 |
-| `boolean` | `default` | 토글 스위치 |
-| `color` | `default` | 컬러 피커 |
-| `select` | `default`, `options[]` | 드롭다운 |
+| 타입      | 옵션                            | UI 렌더링   |
+| --------- | ------------------------------- | ----------- |
+| `text`    | `default`, `description`        | 텍스트 입력 |
+| `number`  | `default`, `min`, `max`, `step` | 숫자 입력   |
+| `boolean` | `default`                       | 토글 스위치 |
+| `color`   | `default`                       | 컬러 피커   |
+| `select`  | `default`, `options[]`          | 드롭다운    |
 
 **검증**: 모든 매니페스트는 Zod 스키마로 런타임 검증됩니다 (`WidgetManifestSchema`).
 
@@ -381,31 +381,31 @@ PUT    /api/v2/admin/widget-layout          # 레이아웃 저장
 
 ### 6.1 Layout Slot vs Widget Slot
 
-| 구분 | Layout Slot | Widget Slot |
-|------|------------|-------------|
-| 목적 | 테마/플러그인이 임의 컴포넌트 삽입 | 위젯 배치 영역 |
-| 제어 | `SlotRegistry` API | `WidgetLayout` 설정 |
-| 배치 | 코드로 등록 | 관리자 UI에서 드래그앤드롭 |
+| 구분 | Layout Slot                        | Widget Slot                |
+| ---- | ---------------------------------- | -------------------------- |
+| 목적 | 테마/플러그인이 임의 컴포넌트 삽입 | 위젯 배치 영역             |
+| 제어 | `SlotRegistry` API                 | `WidgetLayout` 설정        |
+| 배치 | 코드로 등록                        | 관리자 UI에서 드래그앤드롭 |
 
 ### 6.2 사용 가능한 Layout Slot 목록
 
 [Core 스펙 §9.3](../../angple-backend/docs/specs/core-spec-v1.0.md#93-slot-시스템)과 동일:
 
-| 슬롯 | 위치 |
-|------|------|
-| `header-before` | 헤더 상단 |
-| `header-after` | 헤더 하단 |
-| `sidebar-left-top` | 왼쪽 사이드바 상단 |
-| `sidebar-left-bottom` | 왼쪽 사이드바 하단 |
-| `sidebar-right-top` | 오른쪽 사이드바 상단 |
+| 슬롯                   | 위치                 |
+| ---------------------- | -------------------- |
+| `header-before`        | 헤더 상단            |
+| `header-after`         | 헤더 하단            |
+| `sidebar-left-top`     | 왼쪽 사이드바 상단   |
+| `sidebar-left-bottom`  | 왼쪽 사이드바 하단   |
+| `sidebar-right-top`    | 오른쪽 사이드바 상단 |
 | `sidebar-right-bottom` | 오른쪽 사이드바 하단 |
-| `content-before` | 메인 콘텐츠 상단 |
-| `content-after` | 메인 콘텐츠 하단 |
-| `footer-before` | 푸터 상단 |
-| `footer-after` | 푸터 하단 |
-| `background` | 배경 (테마용) |
-| `landing-hero` | 랜딩 히어로 (테마용) |
-| `landing-content` | 랜딩 콘텐츠 (테마용) |
+| `content-before`       | 메인 콘텐츠 상단     |
+| `content-after`        | 메인 콘텐츠 하단     |
+| `footer-before`        | 푸터 상단            |
+| `footer-after`         | 푸터 하단            |
+| `background`           | 배경 (테마용)        |
+| `landing-hero`         | 랜딩 히어로 (테마용) |
+| `landing-content`      | 랜딩 콘텐츠 (테마용) |
 
 ### 6.3 SlotRegistry API
 
@@ -419,11 +419,11 @@ import {
 
 // 컴포넌트 등록
 registerComponent(
-    'sidebar-right-top',  // 슬롯 이름
-    MyComponent,          // Svelte 컴포넌트
-    10,                   // 우선순위 (낮을수록 먼저)
-    { prop1: 'value' },   // props
-    'my-plugin'           // 소스 식별자
+    'sidebar-right-top', // 슬롯 이름
+    MyComponent, // Svelte 컴포넌트
+    10, // 우선순위 (낮을수록 먼저)
+    { prop1: 'value' }, // props
+    'my-plugin' // 소스 식별자
 );
 
 // 슬롯 변경 구독 (리액티브 업데이트)
@@ -471,10 +471,11 @@ sidebar-right-top:
 ```
 
 **기능:**
-- `≡`: 드래그 핸들 (순서 변경)
-- `⚙`: 위젯 설정 패널 열기
-- `✕`: 위젯 제거
-- `[+ 위젯 추가]`: 사용 가능한 위젯 목록에서 선택
+
+-   `≡`: 드래그 핸들 (순서 변경)
+-   `⚙`: 위젯 설정 패널 열기
+-   `✕`: 위젯 제거
+-   `[+ 위젯 추가]`: 사용 가능한 위젯 목록에서 선택
 
 ### 7.2 설치된 위젯 탭
 
@@ -546,23 +547,23 @@ sidebar-right-top:
 
 ### 8.2 보안 검증
 
-| 검증 항목 | 방법 | 실패 시 |
-|----------|------|--------|
-| ZIP 크기 | 10MB 이하 | 업로드 거부 |
-| 경로 탐색 | `..`, `\`, 절대 경로, Null byte 차단 | 업로드 거부 |
-| 매니페스트 | `widget.json` Zod 스키마 검증 | 업로드 거부 |
-| 메인 파일 | `main` 필드의 파일 존재 확인 | 업로드 거부 |
+| 검증 항목   | 방법                                                                           | 실패 시        |
+| ----------- | ------------------------------------------------------------------------------ | -------------- |
+| ZIP 크기    | 10MB 이하                                                                      | 업로드 거부    |
+| 경로 탐색   | `..`, `\`, 절대 경로, Null byte 차단                                           | 업로드 거부    |
+| 매니페스트  | `widget.json` Zod 스키마 검증                                                  | 업로드 거부    |
+| 메인 파일   | `main` 필드의 파일 존재 확인                                                   | 업로드 거부    |
 | 파일 확장자 | `.svelte`, `.ts`, `.js`, `.css`, `.json`, `.md`, `.png`, `.jpg`, `.svg`만 허용 | 해당 파일 무시 |
-| ID 충돌 | 기존 Core 위젯 ID와 중복 불가 | 업로드 거부 |
+| ID 충돌     | 기존 Core 위젯 ID와 중복 불가                                                  | 업로드 거부    |
 
 ### 8.3 공식 vs 커스텀 구분
 
-| 구분 | 공식 (Core) | 커스텀 |
-|------|------------|--------|
-| 저장 위치 | 소스코드 내장 | `custom-widgets/` |
-| 삭제 | 불가 | 관리자 삭제 가능 |
-| 표시 | `[공식]` 배지 | `[커스텀]` 배지 |
-| 신뢰도 | 코드 리뷰 완료 | 업로드자 책임 |
+| 구분      | 공식 (Core)    | 커스텀            |
+| --------- | -------------- | ----------------- |
+| 저장 위치 | 소스코드 내장  | `custom-widgets/` |
+| 삭제      | 불가           | 관리자 삭제 가능  |
+| 표시      | `[공식]` 배지  | `[커스텀]` 배지   |
+| 신뢰도    | 코드 리뷰 완료 | 업로드자 책임     |
 
 ---
 
@@ -591,7 +592,7 @@ sidebar-right-top:
     let { settings = {} }: { settings?: Record<string, unknown> } = $props();
 </script>
 
-<div class="p-4 rounded-lg border bg-card">
+<div class="bg-card rounded-lg border p-4">
     <h3 class="text-lg font-semibold">Hello World!</h3>
     <p class="text-muted-foreground">첫 번째 ANGPLE 위젯입니다.</p>
 </div>
@@ -640,11 +641,7 @@ sidebar-right-top:
     let showBorder = $derived((settings.showBorder as boolean) ?? true);
 </script>
 
-<div
-    class="p-4 rounded-lg"
-    class:border={showBorder}
-    style:background-color={bgColor}
->
+<div class="rounded-lg p-4" class:border={showBorder} style:background-color={bgColor}>
     <p class="text-lg">{greeting}</p>
 </div>
 ```
@@ -707,9 +704,7 @@ sidebar-right-top:
     async function fetchPosts() {
         loading = true;
         try {
-            const res = await fetch(
-                `/api/v2/posts/popular?count=${count}&period=${period}`
-            );
+            const res = await fetch(`/api/v2/posts/popular?count=${count}&period=${period}`);
             const data = await res.json();
             if (data.success) {
                 posts = data.data;
@@ -733,24 +728,24 @@ sidebar-right-top:
     });
 </script>
 
-<div class="p-4 rounded-lg border bg-card">
-    <h3 class="text-lg font-semibold mb-3">🔥 인기 게시글</h3>
+<div class="bg-card rounded-lg border p-4">
+    <h3 class="mb-3 text-lg font-semibold">🔥 인기 게시글</h3>
 
     {#if loading}
         <div class="animate-pulse space-y-2">
             {#each Array(count) as _}
-                <div class="h-4 bg-muted rounded"></div>
+                <div class="bg-muted h-4 rounded"></div>
             {/each}
         </div>
     {:else}
         <ul class="space-y-2">
             {#each posts as post, i}
                 <li class="flex items-center gap-2">
-                    <span class="text-sm text-muted-foreground">{i + 1}</span>
-                    <a href="/boards/free/{post.id}" class="text-sm hover:underline truncate">
+                    <span class="text-muted-foreground text-sm">{i + 1}</span>
+                    <a href="/boards/free/{post.id}" class="truncate text-sm hover:underline">
                         {post.title}
                     </a>
-                    <span class="text-xs text-muted-foreground ml-auto">
+                    <span class="text-muted-foreground ml-auto text-xs">
                         {post.view_count}
                     </span>
                 </li>
@@ -781,7 +776,7 @@ VITE_ADS_URL=https://ads.damoang.net
     let { position, height = '90px' }: { position: string; height?: string } = $props();
 </script>
 
-<div class="ad-slot" style:height={height} style:min-height={height}>
+<div class="ad-slot" style:height style:min-height={height}>
     <iframe
         src="{ADS_URL}/serve?position={position}"
         width="100%"
@@ -803,19 +798,19 @@ VITE_ADS_URL=https://ads.damoang.net
 
 ### 10.3 광고 위치(position) 규약
 
-| Position | 위치 | 크기 |
-|----------|------|------|
-| `header-top` | 헤더 최상단 | 728x90 |
-| `header-bottom` | 헤더 하단 | 728x90 |
-| `sidebar-top` | 사이드바 상단 | 300x250 |
-| `sidebar-middle` | 사이드바 중간 | 300x250 |
-| `sidebar-bottom` | 사이드바 하단 | 300x600 |
-| `content-top` | 콘텐츠 상단 | 728x90 |
-| `content-middle` | 콘텐츠 중간 | 728x90 |
-| `content-bottom` | 콘텐츠 하단 | 728x90 |
-| `index-custom` | 메인 페이지 커스텀 | 가변 |
-| `post-before` | 게시글 상단 | 728x90 |
-| `post-after` | 게시글 하단 | 728x90 |
+| Position         | 위치               | 크기    |
+| ---------------- | ------------------ | ------- |
+| `header-top`     | 헤더 최상단        | 728x90  |
+| `header-bottom`  | 헤더 하단          | 728x90  |
+| `sidebar-top`    | 사이드바 상단      | 300x250 |
+| `sidebar-middle` | 사이드바 중간      | 300x250 |
+| `sidebar-bottom` | 사이드바 하단      | 300x600 |
+| `content-top`    | 콘텐츠 상단        | 728x90  |
+| `content-middle` | 콘텐츠 중간        | 728x90  |
+| `content-bottom` | 콘텐츠 하단        | 728x90  |
+| `index-custom`   | 메인 페이지 커스텀 | 가변    |
+| `post-before`    | 게시글 상단        | 728x90  |
+| `post-after`     | 게시글 하단        | 728x90  |
 
 > 광고 시스템의 상세 연동 방법은 [내부 연동 스펙](../../angple-backend/docs/specs/internal-integration-spec.md)을 참조하세요.
 

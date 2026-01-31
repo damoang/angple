@@ -22,7 +22,7 @@ export const GET: RequestHandler = async ({ url }) => {
         const widgetsData = await apiClient.getIndexWidgets();
 
         if (!widgetsData) {
-            return json({ posts: [], board, sort, limit });
+            return json({ posts: [], board, sort, count });
         }
 
         let posts: unknown[] = [];

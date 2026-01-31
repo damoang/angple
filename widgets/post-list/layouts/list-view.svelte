@@ -52,9 +52,13 @@
                             class="hover:text-primary flex items-center justify-between gap-2 text-sm transition-colors"
                         >
                             <span class="min-w-0 flex-1 truncate">{post.title}</span>
-                            <span class="text-muted-foreground flex shrink-0 items-center gap-2 text-xs">
+                            <span
+                                class="text-muted-foreground flex shrink-0 items-center gap-2 text-xs"
+                            >
                                 {#if post.comment_count}
-                                    <span class="text-primary font-medium">[{post.comment_count}]</span>
+                                    <span class="text-primary font-medium"
+                                        >[{post.comment_count}]</span
+                                    >
                                 {/if}
                                 {#if post.author}
                                     <span>{post.author}</span>
