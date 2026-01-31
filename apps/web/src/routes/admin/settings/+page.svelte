@@ -1,7 +1,13 @@
 <script lang="ts">
     import { onMount } from 'svelte';
     import { Tabs, TabsContent, TabsList, TabsTrigger } from '$lib/components/ui/tabs/index.js';
-    import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '$lib/components/ui/card/index.js';
+    import {
+        Card,
+        CardContent,
+        CardHeader,
+        CardTitle,
+        CardDescription
+    } from '$lib/components/ui/card/index.js';
     import { adminSettingsStore } from '$lib/stores/admin-settings-store.svelte.js';
     import GeneralSettings from '$lib/components/admin/settings/general-settings.svelte';
     import OauthSettings from '$lib/components/admin/settings/oauth-settings.svelte';

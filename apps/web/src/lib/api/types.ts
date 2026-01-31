@@ -607,7 +607,14 @@ export interface LoginResponse {
 }
 
 // OAuth 제공자 타입
-export type OAuthProvider = 'google' | 'kakao' | 'naver' | 'apple' | 'facebook' | 'twitter' | 'payco';
+export type OAuthProvider =
+    | 'google'
+    | 'kakao'
+    | 'naver'
+    | 'apple'
+    | 'facebook'
+    | 'twitter'
+    | 'payco';
 
 // OAuth 로그인 요청
 export interface OAuthLoginRequest {

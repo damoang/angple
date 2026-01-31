@@ -96,15 +96,31 @@
         </Dialog.Header>
 
         {#if menu}
-            <form onsubmit={(e) => { e.preventDefault(); handleSubmit(); }} class="space-y-4">
+            <form
+                onsubmit={(e) => {
+                    e.preventDefault();
+                    handleSubmit();
+                }}
+                class="space-y-4"
+            >
                 <div class="grid gap-4">
                     <div class="grid gap-2">
                         <Label for="edit-title">제목 *</Label>
-                        <Input id="edit-title" bind:value={title} placeholder="메뉴 제목" required />
+                        <Input
+                            id="edit-title"
+                            bind:value={title}
+                            placeholder="메뉴 제목"
+                            required
+                        />
                     </div>
                     <div class="grid gap-2">
                         <Label for="edit-url">URL *</Label>
-                        <Input id="edit-url" bind:value={url} placeholder="/path 또는 https://..." required />
+                        <Input
+                            id="edit-url"
+                            bind:value={url}
+                            placeholder="/path 또는 https://..."
+                            required
+                        />
                     </div>
                     <div class="grid gap-2">
                         <Label for="edit-icon">아이콘</Label>
@@ -131,7 +147,7 @@
                                 {#each ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'] as key}
                                     <Select.Item value={key}>{key}</Select.Item>
                                 {/each}
-                                {#each Array.from({ length: 26 }, (_, i) => String.fromCharCode(65 + i)) as key}
+                                {#each Array.from( { length: 26 }, (_, i) => String.fromCharCode(65 + i) ) as key}
                                     <Select.Item value={key}>{key}</Select.Item>
                                 {/each}
                             </Select.Content>
@@ -139,7 +155,11 @@
                     </div>
                     <div class="grid gap-2">
                         <Label for="edit-description">설명</Label>
-                        <Input id="edit-description" bind:value={description} placeholder="메뉴 설명 (툴팁으로 표시)" />
+                        <Input
+                            id="edit-description"
+                            bind:value={description}
+                            placeholder="메뉴 설명 (툴팁으로 표시)"
+                        />
                     </div>
                     <div class="grid gap-2">
                         <Label for="edit-target">링크 열기</Label>
@@ -170,13 +190,25 @@
                 </div>
 
                 <Dialog.Footer class="flex justify-between">
-                    <Button type="button" variant="destructive" onclick={handleDelete} disabled={isSubmitting}>
+                    <Button
+                        type="button"
+                        variant="destructive"
+                        onclick={handleDelete}
+                        disabled={isSubmitting}
+                    >
                         <Trash2 class="mr-2 h-4 w-4" />
                         삭제
                     </Button>
                     <div class="flex gap-2">
-                        <Button type="button" variant="outline" onclick={() => handleOpenChange(false)}>취소</Button>
-                        <Button type="submit" disabled={isSubmitting || !title.trim() || !url.trim()}>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onclick={() => handleOpenChange(false)}>취소</Button
+                        >
+                        <Button
+                            type="submit"
+                            disabled={isSubmitting || !title.trim() || !url.trim()}
+                        >
                             {#if isSubmitting}<Loader2 class="mr-2 h-4 w-4 animate-spin" />{/if}
                             저장
                         </Button>

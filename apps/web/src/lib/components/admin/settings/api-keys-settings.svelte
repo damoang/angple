@@ -19,25 +19,39 @@
     }
 
     function getFieldValue(serviceId: string, fieldKey: string): string {
-        const service = adminSettingsStore.settings.apiKeys?.[serviceId as keyof typeof adminSettingsStore.settings.apiKeys];
+        const service =
+            adminSettingsStore.settings.apiKeys?.[
+                serviceId as keyof typeof adminSettingsStore.settings.apiKeys
+            ];
         if (!service) return '';
         return String((service as Record<string, unknown>)[fieldKey] ?? '');
     }
 
     function setFieldValue(serviceId: string, fieldKey: string, value: string) {
         if (!adminSettingsStore.settings.apiKeys) return;
-        const service = adminSettingsStore.settings.apiKeys[serviceId as keyof typeof adminSettingsStore.settings.apiKeys];
+        const service =
+            adminSettingsStore.settings.apiKeys[
+                serviceId as keyof typeof adminSettingsStore.settings.apiKeys
+            ];
         if (!service) return;
-        (service as Record<string, unknown>)[fieldKey] = fieldKey === 'port' ? Number(value) || 0 : value;
+        (service as Record<string, unknown>)[fieldKey] =
+            fieldKey === 'port' ? Number(value) || 0 : value;
     }
 
     function isEnabled(serviceId: string): boolean {
-        return adminSettingsStore.settings.apiKeys?.[serviceId as keyof typeof adminSettingsStore.settings.apiKeys]?.enabled ?? false;
+        return (
+            adminSettingsStore.settings.apiKeys?.[
+                serviceId as keyof typeof adminSettingsStore.settings.apiKeys
+            ]?.enabled ?? false
+        );
     }
 
     function toggleEnabled(serviceId: string) {
         if (!adminSettingsStore.settings.apiKeys) return;
-        const service = adminSettingsStore.settings.apiKeys[serviceId as keyof typeof adminSettingsStore.settings.apiKeys];
+        const service =
+            adminSettingsStore.settings.apiKeys[
+                serviceId as keyof typeof adminSettingsStore.settings.apiKeys
+            ];
         if (service) service.enabled = !service.enabled;
     }
 </script>
@@ -78,10 +92,19 @@
                             <div class="relative">
                                 <Input
                                     id={uniqueKey}
-                                    type={isPassword && !visibleFields[uniqueKey] ? 'password' : field.type === 'number' ? 'number' : 'text'}
+                                    type={isPassword && !visibleFields[uniqueKey]
+                                        ? 'password'
+                                        : field.type === 'number'
+                                          ? 'number'
+                                          : 'text'}
                                     placeholder={field.placeholder}
                                     value={getFieldValue(service.id, field.key)}
-                                    oninput={(e: Event) => setFieldValue(service.id, field.key, (e.target as HTMLInputElement).value)}
+                                    oninput={(e: Event) =>
+                                        setFieldValue(
+                                            service.id,
+                                            field.key,
+                                            (e.target as HTMLInputElement).value
+                                        )}
                                     class={isPassword ? 'pr-10' : ''}
                                 />
                                 {#if isPassword}
@@ -106,7 +129,10 @@
     {/each}
 
     <div class="flex justify-end">
-        <Button onclick={() => adminSettingsStore.saveSettings()} disabled={adminSettingsStore.isSaving}>
+        <Button
+            onclick={() => adminSettingsStore.saveSettings()}
+            disabled={adminSettingsStore.isSaving}
+        >
             {#if adminSettingsStore.isSaving}
                 <Loader2 class="mr-2 h-4 w-4 animate-spin" />
                 저장 중...

@@ -9,13 +9,39 @@
     import { cn } from '$lib/utils';
     import WidgetSettingsForm from './widget-settings-form.svelte';
     import {
-        X, Trash2, Star, Newspaper, ShoppingCart, LayoutGrid, Images, Users,
-        Megaphone, Info, Play, Image, Gift, Pin, Box, List
+        X,
+        Trash2,
+        Star,
+        Newspaper,
+        ShoppingCart,
+        LayoutGrid,
+        Images,
+        Users,
+        Megaphone,
+        Info,
+        Play,
+        Image,
+        Gift,
+        Pin,
+        Box,
+        List
     } from '@lucide/svelte/icons';
 
     const iconMap: Record<string, typeof Star> = {
-        Star, Newspaper, ShoppingCart, LayoutGrid, Images, Users,
-        Megaphone, Info, Play, Image, Gift, Pin, Box, List
+        Star,
+        Newspaper,
+        ShoppingCart,
+        LayoutGrid,
+        Images,
+        Users,
+        Megaphone,
+        Info,
+        Play,
+        Image,
+        Gift,
+        Pin,
+        Box,
+        List
     };
 
     const widget = $derived(widgetStore.selectedWidget);
@@ -31,42 +57,64 @@
     let localSettings = $state<Record<string, unknown>>({});
 
     $effect(() => {
-        if (widget) { localSettings = { ...widget.settings }; }
+        if (widget) {
+            localSettings = { ...widget.settings };
+        }
     });
 
-    function handleClose() { widgetStore.selectWidget(null); }
+    function handleClose() {
+        widgetStore.selectWidget(null);
+    }
     function handleDelete() {
-        if (widget && confirm('이 위젯을 삭제하시겠습니까?')) { widgetStore.removeWidget(widget.id); }
+        if (widget && confirm('이 위젯을 삭제하시겠습니까?')) {
+            widgetStore.removeWidget(widget.id);
+        }
     }
     function handleToggle() {
-        if (widget) { widgetStore.toggleWidget(widget.id); }
+        if (widget) {
+            widgetStore.toggleWidget(widget.id);
+        }
     }
     function handleSettingChange(key: string, value: unknown) {
         localSettings = { ...localSettings, [key]: value };
-        if (widget) { widgetStore.updateWidgetSettings(widget.id, { [key]: value }); }
+        if (widget) {
+            widgetStore.updateWidgetSettings(widget.id, { [key]: value });
+        }
     }
     function getIcon(type: string) {
         const iconName = getWidgetIcon(type);
         return iconMap[iconName] || Box;
     }
 
-    function getCategoryVariant(category: string): 'default' | 'secondary' | 'destructive' | 'outline' {
+    function getCategoryVariant(
+        category: string
+    ): 'default' | 'secondary' | 'destructive' | 'outline' {
         switch (category) {
-            case 'content': return 'default';
-            case 'ad': return 'destructive';
-            case 'layout': return 'secondary';
-            case 'sidebar': return 'outline';
-            default: return 'default';
+            case 'content':
+                return 'default';
+            case 'ad':
+                return 'destructive';
+            case 'layout':
+                return 'secondary';
+            case 'sidebar':
+                return 'outline';
+            default:
+                return 'default';
         }
     }
 
     function getCategoryLabel(category: string): string {
         switch (category) {
-            case 'content': return '콘텐츠';
-            case 'ad': return '광고';
-            case 'layout': return '레이아웃';
-            case 'sidebar': return '사이드바';
-            default: return category;
+            case 'content':
+                return '콘텐츠';
+            case 'ad':
+                return '광고';
+            case 'layout':
+                return '레이아웃';
+            case 'sidebar':
+                return '사이드바';
+            default:
+                return category;
         }
     }
 </script>
@@ -84,13 +132,22 @@
         <div class="flex-1 overflow-auto p-4">
             <div class="mb-6">
                 <div class="flex items-center gap-3">
-                    <div class={cn('flex h-12 w-12 items-center justify-center rounded-lg', widget.enabled ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground')}>
+                    <div
+                        class={cn(
+                            'flex h-12 w-12 items-center justify-center rounded-lg',
+                            widget.enabled
+                                ? 'bg-primary/10 text-primary'
+                                : 'bg-muted text-muted-foreground'
+                        )}
+                    >
                         <Icon class="h-6 w-6" />
                     </div>
                     <div>
                         <h4 class="font-medium">{getWidgetName(widget.type)}</h4>
                         {#if registry}
-                            <Badge variant={getCategoryVariant(registry.category)} class="mt-1">{getCategoryLabel(registry.category)}</Badge>
+                            <Badge variant={getCategoryVariant(registry.category)} class="mt-1"
+                                >{getCategoryLabel(registry.category)}</Badge
+                            >
                         {/if}
                     </div>
                 </div>
@@ -105,11 +162,14 @@
                     <Switch checked={widget.enabled} onCheckedChange={handleToggle} />
                 </div>
                 <div class="border-border border-t pt-4">
-                    <Label class="text-muted-foreground text-xs uppercase tracking-wide">위젯 ID</Label>
+                    <Label class="text-muted-foreground text-xs uppercase tracking-wide"
+                        >위젯 ID</Label
+                    >
                     <p class="mt-1 font-mono text-sm">{widget.id}</p>
                 </div>
                 <div>
-                    <Label class="text-muted-foreground text-xs uppercase tracking-wide">위치</Label>
+                    <Label class="text-muted-foreground text-xs uppercase tracking-wide">위치</Label
+                    >
                     <p class="mt-1 text-sm">#{widget.position + 1}</p>
                 </div>
             </div>
@@ -125,8 +185,14 @@
 
             {#if widget.settings && Object.keys(widget.settings).length > 0}
                 <div class="border-border mt-6 space-y-2 border-t pt-4">
-                    <Label class="text-muted-foreground text-xs uppercase tracking-wide">설정 데이터</Label>
-                    <pre class="bg-muted rounded-md p-3 text-xs">{JSON.stringify(widget.settings, null, 2)}</pre>
+                    <Label class="text-muted-foreground text-xs uppercase tracking-wide"
+                        >설정 데이터</Label
+                    >
+                    <pre class="bg-muted rounded-md p-3 text-xs">{JSON.stringify(
+                            widget.settings,
+                            null,
+                            2
+                        )}</pre>
                 </div>
             {/if}
         </div>

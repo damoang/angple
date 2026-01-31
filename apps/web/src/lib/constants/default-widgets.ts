@@ -40,7 +40,13 @@ export const DEFAULT_WIDGETS: WidgetConfig[] = [
         type: 'post-list',
         position: 6,
         enabled: true,
-        settings: { boardId: 'gallery', layout: 'gallery', sortBy: 'date', count: 12, showTitle: true }
+        settings: {
+            boardId: 'gallery',
+            layout: 'gallery',
+            sortBy: 'date',
+            count: 12,
+            showTitle: true
+        }
     },
     {
         id: 'ad-middle-2',
@@ -96,19 +102,43 @@ export function migrateWidgetConfig(widget: WidgetConfig): WidgetConfig {
     const migrations: Record<string, Partial<WidgetConfig>> = {
         'new-board': {
             type: 'post-list',
-            settings: { boardId: 'notice', layout: 'list', sortBy: 'date', count: 10, showTitle: true }
+            settings: {
+                boardId: 'notice',
+                layout: 'list',
+                sortBy: 'date',
+                count: 10,
+                showTitle: true
+            }
         },
         economy: {
             type: 'post-list',
-            settings: { boardId: 'economy', layout: 'list', sortBy: 'date', count: 10, showTitle: true }
+            settings: {
+                boardId: 'economy',
+                layout: 'list',
+                sortBy: 'date',
+                count: 10,
+                showTitle: true
+            }
         },
         gallery: {
             type: 'post-list',
-            settings: { boardId: 'gallery', layout: 'gallery', sortBy: 'date', count: 12, showTitle: true }
+            settings: {
+                boardId: 'gallery',
+                layout: 'gallery',
+                sortBy: 'date',
+                count: 12,
+                showTitle: true
+            }
         },
         group: {
             type: 'post-list',
-            settings: { boardId: 'group', layout: 'grid', sortBy: 'date', count: 10, showTitle: true }
+            settings: {
+                boardId: 'group',
+                layout: 'grid',
+                sortBy: 'date',
+                count: 10,
+                showTitle: true
+            }
         },
         'sidebar-ad': {
             type: 'ad',
@@ -138,14 +168,26 @@ export function migrateNewsEconomyRow(widget: WidgetConfig): WidgetConfig[] {
             type: 'post-list',
             position: widget.position,
             enabled: widget.enabled,
-            settings: { boardId: 'notice', layout: 'list', sortBy: 'date', count: 10, showTitle: true }
+            settings: {
+                boardId: 'notice',
+                layout: 'list',
+                sortBy: 'date',
+                count: 10,
+                showTitle: true
+            }
         },
         {
             id: `${widget.id}-economy`,
             type: 'post-list',
             position: widget.position + 0.5,
             enabled: widget.enabled,
-            settings: { boardId: 'economy', layout: 'list', sortBy: 'date', count: 10, showTitle: true }
+            settings: {
+                boardId: 'economy',
+                layout: 'list',
+                sortBy: 'date',
+                count: 10,
+                showTitle: true
+            }
         }
     ];
 }
@@ -162,7 +204,5 @@ export function migrateWidgets(widgets: WidgetConfig[]): WidgetConfig[] {
     });
 
     // position 재정렬
-    return migrated
-        .sort((a, b) => a.position - b.position)
-        .map((w, i) => ({ ...w, position: i }));
+    return migrated.sort((a, b) => a.position - b.position).map((w, i) => ({ ...w, position: i }));
 }

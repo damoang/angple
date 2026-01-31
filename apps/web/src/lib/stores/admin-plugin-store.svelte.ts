@@ -85,7 +85,8 @@ class PluginStore {
             }
         } catch (error) {
             console.error('플러그인 삭제 실패:', error);
-            const errorMessage = error instanceof Error ? error.message : '플러그인 삭제에 실패했습니다.';
+            const errorMessage =
+                error instanceof Error ? error.message : '플러그인 삭제에 실패했습니다.';
             toast.error(errorMessage);
         } finally {
             this.isLoading = false;
@@ -94,7 +95,11 @@ class PluginStore {
     }
 
     isActionInProgress(pluginId: string, action: PluginAction): boolean {
-        return this.currentAction !== null && this.currentAction.pluginId === pluginId && this.currentAction.action === action;
+        return (
+            this.currentAction !== null &&
+            this.currentAction.pluginId === pluginId &&
+            this.currentAction.action === action
+        );
     }
 
     isPluginLoading(pluginId: string): boolean {

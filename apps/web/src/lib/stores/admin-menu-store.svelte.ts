@@ -4,7 +4,12 @@
 
 import { toast } from 'svelte-sonner';
 import * as menusApi from '$lib/api/admin-menus';
-import type { Menu, CreateMenuRequest, UpdateMenuRequest, ReorderMenuItem } from '$lib/types/admin-menu';
+import type {
+    Menu,
+    CreateMenuRequest,
+    UpdateMenuRequest,
+    ReorderMenuItem
+} from '$lib/types/admin-menu';
 import { flattenMenuTree } from '$lib/types/admin-menu';
 
 class MenuStore {
@@ -15,11 +20,21 @@ class MenuStore {
     private _selectedMenuId = $state<number | null>(null);
     private _editingMenu = $state<Menu | null>(null);
 
-    get menus() { return this._menus; }
-    get isLoading() { return this._isLoading; }
-    get isSaving() { return this._isSaving; }
-    get selectedMenuId() { return this._selectedMenuId; }
-    get editingMenu() { return this._editingMenu; }
+    get menus() {
+        return this._menus;
+    }
+    get isLoading() {
+        return this._isLoading;
+    }
+    get isSaving() {
+        return this._isSaving;
+    }
+    get selectedMenuId() {
+        return this._selectedMenuId;
+    }
+    get editingMenu() {
+        return this._editingMenu;
+    }
 
     get selectedMenu(): Menu | null {
         if (!this._selectedMenuId) return null;

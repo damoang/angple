@@ -99,7 +99,7 @@
                         <Switch
                             id="setting-{key}"
                             checked={Boolean(getValue(key, field))}
-                            onCheckedChange={(checked) => onchange(key, checked)}
+                            onCheckedChange={(checked: boolean) => onchange(key, checked)}
                         />
                     </div>
                 {:else if field.type === 'select'}

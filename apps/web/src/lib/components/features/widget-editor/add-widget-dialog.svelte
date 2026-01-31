@@ -10,10 +10,7 @@
     } from '$lib/components/ui/dialog';
     import { Button } from '$lib/components/ui/button';
     import { widgetLayoutStore } from '$lib/stores/widget-layout.svelte';
-    import {
-        getWidgetRegistry,
-        getAddableWidgets
-    } from '$lib/utils/widget-component-loader';
+    import { getWidgetRegistry, getAddableWidgets } from '$lib/utils/widget-component-loader';
     import Plus from '@lucide/svelte/icons/plus';
     import Star from '@lucide/svelte/icons/star';
     import Newspaper from '@lucide/svelte/icons/newspaper';

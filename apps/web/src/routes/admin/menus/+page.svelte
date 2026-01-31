@@ -2,7 +2,13 @@
     import { onMount } from 'svelte';
     import { menuStore } from '$lib/stores/admin-menu-store.svelte';
     import { Button } from '$lib/components/ui/button';
-    import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '$lib/components/ui/card';
+    import {
+        Card,
+        CardContent,
+        CardHeader,
+        CardTitle,
+        CardDescription
+    } from '$lib/components/ui/card';
     import { Loader2, Plus, Save, RotateCcw, Menu as MenuIcon } from '@lucide/svelte/icons';
     import MenuTree from '$lib/components/admin/menus/menu-tree.svelte';
     import AddMenuDialog from '$lib/components/admin/menus/add-menu-dialog.svelte';
@@ -12,7 +18,9 @@
     let showEditDialog = $state(false);
     let parentIdForAdd = $state<number | null>(null);
 
-    onMount(() => { menuStore.loadMenus(); });
+    onMount(() => {
+        menuStore.loadMenus();
+    });
 
     function handleAddMenu(parentId: number | null = null) {
         parentIdForAdd = parentId;
@@ -29,8 +37,12 @@
         menuStore.selectMenu(null);
     }
 
-    async function handleSaveReorder() { await menuStore.saveReorder(); }
-    function handleDiscardChanges() { menuStore.discardChanges(); }
+    async function handleSaveReorder() {
+        await menuStore.saveReorder();
+    }
+    function handleDiscardChanges() {
+        menuStore.discardChanges();
+    }
 </script>
 
 <svelte:head>
@@ -41,11 +53,17 @@
     <div class="flex items-center justify-between">
         <div>
             <h2 class="text-3xl font-bold tracking-tight">메뉴 관리</h2>
-            <p class="text-muted-foreground">사이트 메뉴를 추가, 수정, 삭제하고 순서를 변경합니다.</p>
+            <p class="text-muted-foreground">
+                사이트 메뉴를 추가, 수정, 삭제하고 순서를 변경합니다.
+            </p>
         </div>
         <div class="flex items-center gap-2">
             {#if menuStore.hasChanges}
-                <Button variant="outline" onclick={handleDiscardChanges} disabled={menuStore.isSaving}>
+                <Button
+                    variant="outline"
+                    onclick={handleDiscardChanges}
+                    disabled={menuStore.isSaving}
+                >
                     <RotateCcw class="mr-2 h-4 w-4" />
                     변경 취소
                 </Button>
@@ -82,7 +100,9 @@
                 <div class="flex flex-col items-center justify-center py-12 text-center">
                     <MenuIcon class="text-muted-foreground mb-4 h-12 w-12" />
                     <h3 class="text-lg font-semibold">메뉴가 없습니다</h3>
-                    <p class="text-muted-foreground mb-4">새 메뉴를 추가하여 사이트 네비게이션을 구성하세요.</p>
+                    <p class="text-muted-foreground mb-4">
+                        새 메뉴를 추가하여 사이트 네비게이션을 구성하세요.
+                    </p>
                     <Button onclick={() => handleAddMenu(null)}>
                         <Plus class="mr-2 h-4 w-4" />
                         첫 메뉴 추가
@@ -100,5 +120,16 @@
     </Card>
 </div>
 
-<AddMenuDialog bind:open={showAddDialog} parentId={parentIdForAdd} onSuccess={() => { showAddDialog = false; parentIdForAdd = null; }} />
-<EditMenuDialog bind:open={showEditDialog} menu={menuStore.selectedMenu} onClose={handleCloseEditDialog} />
+<AddMenuDialog
+    bind:open={showAddDialog}
+    parentId={parentIdForAdd}
+    onSuccess={() => {
+        showAddDialog = false;
+        parentIdForAdd = null;
+    }}
+/>
+<EditMenuDialog
+    bind:open={showEditDialog}
+    menu={menuStore.selectedMenu}
+    onClose={handleCloseEditDialog}
+/>

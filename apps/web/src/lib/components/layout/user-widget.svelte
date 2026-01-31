@@ -16,9 +16,7 @@
 
     // 로그인/로그아웃 URL 생성
     let loginUrl = $derived(
-        browser
-            ? `/login?redirect=${encodeURIComponent(window.location.pathname)}`
-            : '/login'
+        browser ? `/login?redirect=${encodeURIComponent(window.location.pathname)}` : '/login'
     );
 
     let logoutUrl = $derived(

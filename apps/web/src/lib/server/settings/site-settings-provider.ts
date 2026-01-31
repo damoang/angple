@@ -13,7 +13,8 @@ export class SiteSettingsProvider {
     private lock = false;
 
     constructor(filePath?: string) {
-        this.filePath = filePath || path.join(process.cwd(), 'data', 'settings', 'site-settings.json');
+        this.filePath =
+            filePath || path.join(process.cwd(), 'data', 'settings', 'site-settings.json');
     }
 
     private async acquireLock(): Promise<void> {
@@ -33,7 +34,11 @@ export class SiteSettingsProvider {
         } catch {
             const dir = path.dirname(this.filePath);
             await fs.mkdir(dir, { recursive: true });
-            await fs.writeFile(this.filePath, JSON.stringify(DEFAULT_SITE_SETTINGS, null, 2), 'utf-8');
+            await fs.writeFile(
+                this.filePath,
+                JSON.stringify(DEFAULT_SITE_SETTINGS, null, 2),
+                'utf-8'
+            );
             console.log(`site-settings.json 생성: ${this.filePath}`);
         }
     }

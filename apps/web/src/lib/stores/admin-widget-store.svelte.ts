@@ -18,14 +18,32 @@ class WidgetStore {
     private _selectedWidgetId = $state<string | null>(null);
     private _selectedZone = $state<WidgetZone>('main');
 
-    get widgets() { return this._widgets; }
-    get enabledWidgets() { return this._widgets.filter((w) => w.enabled).sort((a, b) => a.position - b.position); }
-    get sidebarWidgets() { return this._sidebarWidgets; }
-    get enabledSidebarWidgets() { return this._sidebarWidgets.filter((w) => w.enabled).sort((a, b) => a.position - b.position); }
-    get isLoading() { return this._isLoading; }
-    get isSaving() { return this._isSaving; }
-    get selectedWidgetId() { return this._selectedWidgetId; }
-    get selectedZone() { return this._selectedZone; }
+    get widgets() {
+        return this._widgets;
+    }
+    get enabledWidgets() {
+        return this._widgets.filter((w) => w.enabled).sort((a, b) => a.position - b.position);
+    }
+    get sidebarWidgets() {
+        return this._sidebarWidgets;
+    }
+    get enabledSidebarWidgets() {
+        return this._sidebarWidgets
+            .filter((w) => w.enabled)
+            .sort((a, b) => a.position - b.position);
+    }
+    get isLoading() {
+        return this._isLoading;
+    }
+    get isSaving() {
+        return this._isSaving;
+    }
+    get selectedWidgetId() {
+        return this._selectedWidgetId;
+    }
+    get selectedZone() {
+        return this._selectedZone;
+    }
 
     get selectedWidget(): WidgetConfig | null {
         if (!this._selectedWidgetId) return null;
@@ -38,7 +56,8 @@ class WidgetStore {
 
     get hasChanges(): boolean {
         const mainChanged = JSON.stringify(this._widgets) !== JSON.stringify(this._originalWidgets);
-        const sidebarChanged = JSON.stringify(this._sidebarWidgets) !== JSON.stringify(this._originalSidebarWidgets);
+        const sidebarChanged =
+            JSON.stringify(this._sidebarWidgets) !== JSON.stringify(this._originalSidebarWidgets);
         return mainChanged || sidebarChanged;
     }
 
@@ -102,7 +121,9 @@ class WidgetStore {
     toggleWidget(widgetId: string) {
         const widgets = this._selectedZone === 'main' ? this._widgets : this._sidebarWidgets;
         const widget = widgets.find((w) => w.id === widgetId);
-        if (widget) { widget.enabled = !widget.enabled; }
+        if (widget) {
+            widget.enabled = !widget.enabled;
+        }
     }
 
     removeWidget(widgetId: string) {
@@ -113,7 +134,9 @@ class WidgetStore {
             this._sidebarWidgets = this._sidebarWidgets.filter((w) => w.id !== widgetId);
             this._sidebarWidgets = this._sidebarWidgets.map((w, i) => ({ ...w, position: i }));
         }
-        if (this._selectedWidgetId === widgetId) { this._selectedWidgetId = null; }
+        if (this._selectedWidgetId === widgetId) {
+            this._selectedWidgetId = null;
+        }
     }
 
     addWidget(type: string, settings?: Record<string, unknown>) {
@@ -136,7 +159,9 @@ class WidgetStore {
     updateWidgetSettings(widgetId: string, settings: Record<string, unknown>) {
         const widgets = this._selectedZone === 'main' ? this._widgets : this._sidebarWidgets;
         const widget = widgets.find((w) => w.id === widgetId);
-        if (widget) { widget.settings = { ...widget.settings, ...settings }; }
+        if (widget) {
+            widget.settings = { ...widget.settings, ...settings };
+        }
     }
 
     discardChanges() {

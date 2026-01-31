@@ -36,9 +36,7 @@ export const GET: RequestHandler = async ({ url }) => {
             case 'group': {
                 const groupData = widgetsData.group_tabs;
                 // group은 탭별 데이터 → 전체 합침
-                posts = groupData
-                    ? [...(groupData.all ?? []), ...(groupData['24h'] ?? [])]
-                    : [];
+                posts = groupData ? [...(groupData.all ?? []), ...(groupData['24h'] ?? [])] : [];
                 break;
             }
             default:
@@ -75,9 +73,6 @@ export const GET: RequestHandler = async ({ url }) => {
         return json({ success: true, posts, total: posts.length });
     } catch (error) {
         console.error('[post-list API] 데이터 로드 실패:', error);
-        return json(
-            { success: false, posts: [], error: '데이터 로드 실패' },
-            { status: 500 }
-        );
+        return json({ success: false, posts: [], error: '데이터 로드 실패' }, { status: 500 });
     }
 };

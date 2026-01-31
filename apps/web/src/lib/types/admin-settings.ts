@@ -59,7 +59,12 @@ export interface ApiKeyServiceMeta {
     name: string;
     description: string;
     consoleUrl: string;
-    fields: { key: string; label: string; placeholder: string; type?: 'text' | 'password' | 'number' }[];
+    fields: {
+        key: string;
+        label: string;
+        placeholder: string;
+        type?: 'text' | 'password' | 'number';
+    }[];
 }
 
 /** 사이트 전체 설정 */
@@ -142,7 +147,11 @@ export const OAUTH_PROVIDER_META: OAuthProviderMeta[] = [
         consoleUrl: 'https://developer.apple.com/account/resources/identifiers/list/serviceId',
         fields: [
             { key: 'clientId', label: 'Service ID', placeholder: 'com.example.service' },
-            { key: 'clientSecret', label: 'Private Key (PEM)', placeholder: '-----BEGIN PRIVATE KEY-----' }
+            {
+                key: 'clientSecret',
+                label: 'Private Key (PEM)',
+                placeholder: '-----BEGIN PRIVATE KEY-----'
+            }
         ],
         extraFields: [
             { key: 'teamId', label: 'Team ID', placeholder: 'ABCDE12345' },
@@ -188,27 +197,21 @@ export const API_KEY_SERVICE_META: ApiKeyServiceMeta[] = [
         name: 'OpenAI',
         description: 'GPT, DALL-E 등 AI 서비스',
         consoleUrl: 'https://platform.openai.com/api-keys',
-        fields: [
-            { key: 'apiKey', label: 'API Key', placeholder: 'sk-...', type: 'password' }
-        ]
+        fields: [{ key: 'apiKey', label: 'API Key', placeholder: 'sk-...', type: 'password' }]
     },
     {
         id: 'anthropic',
         name: 'Anthropic',
         description: 'Claude AI 서비스',
         consoleUrl: 'https://console.anthropic.com/settings/keys',
-        fields: [
-            { key: 'apiKey', label: 'API Key', placeholder: 'sk-ant-...', type: 'password' }
-        ]
+        fields: [{ key: 'apiKey', label: 'API Key', placeholder: 'sk-ant-...', type: 'password' }]
     },
     {
         id: 'googleMaps',
         name: 'Google Maps',
         description: '지도 및 위치 서비스',
         consoleUrl: 'https://console.cloud.google.com/apis/credentials',
-        fields: [
-            { key: 'apiKey', label: 'API Key', placeholder: 'AIza...', type: 'password' }
-        ]
+        fields: [{ key: 'apiKey', label: 'API Key', placeholder: 'AIza...', type: 'password' }]
     },
     {
         id: 'aws',
@@ -217,7 +220,12 @@ export const API_KEY_SERVICE_META: ApiKeyServiceMeta[] = [
         consoleUrl: 'https://console.aws.amazon.com/iam/home#/security_credentials',
         fields: [
             { key: 'accessKeyId', label: 'Access Key ID', placeholder: 'AKIA...' },
-            { key: 'secretAccessKey', label: 'Secret Access Key', placeholder: '...', type: 'password' },
+            {
+                key: 'secretAccessKey',
+                label: 'Secret Access Key',
+                placeholder: '...',
+                type: 'password'
+            },
             { key: 'region', label: 'Region', placeholder: 'ap-northeast-2' }
         ]
     },

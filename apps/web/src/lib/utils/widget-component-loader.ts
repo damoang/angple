@@ -44,7 +44,8 @@ function scanWidgets(): Map<string, ScannedWidget> {
     // 빌트인 위젯 스캔
     for (const [path, module] of Object.entries(builtinManifests)) {
         const id = extractWidgetId(path);
-        const manifest = (module as { default?: WidgetManifest }).default ?? (module as WidgetManifest);
+        const manifest =
+            (module as { default?: WidgetManifest }).default ?? (module as WidgetManifest);
         const componentPath = path.replace('widget.json', 'index.svelte');
 
         if (builtinComponents[componentPath]) {
@@ -59,7 +60,8 @@ function scanWidgets(): Map<string, ScannedWidget> {
     // 커스텀 위젯 스캔
     for (const [path, module] of Object.entries(customManifests)) {
         const id = extractWidgetId(path);
-        const manifest = (module as { default?: WidgetManifest }).default ?? (module as WidgetManifest);
+        const manifest =
+            (module as { default?: WidgetManifest }).default ?? (module as WidgetManifest);
         const componentPath = path.replace('widget.json', 'index.svelte');
 
         if (customComponents[componentPath]) {
@@ -103,7 +105,7 @@ export async function loadWidgetComponent(type: string): Promise<Component | nul
         const module = await widget.load();
         return module.default;
     } catch (error) {
-        console.error(`[Widget Loader] 위젯 로드 실패: ${type}`, error);
+        console.error('[Widget Loader] 위젯 로드 실패:', type, error);
         return null;
     }
 }

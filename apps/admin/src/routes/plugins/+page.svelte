@@ -153,7 +153,8 @@
                                             {/if}
                                         </div>
                                         <CardDescription class="mt-1">
-                                            v{plugin.manifest.version} · {plugin.manifest.author.name}
+                                            v{plugin.manifest.version} · {plugin.manifest.author
+                                                .name}
                                         </CardDescription>
                                     </div>
                                     <Badge variant={getStatusVariant(plugin.status)}>
@@ -202,8 +203,11 @@
                                             variant="outline"
                                             size="sm"
                                             class="flex-1"
-                                            disabled={pluginStore.isPluginLoading(plugin.manifest.id)}
-                                            onclick={() => pluginStore.deactivatePlugin(plugin.manifest.id)}
+                                            disabled={pluginStore.isPluginLoading(
+                                                plugin.manifest.id
+                                            )}
+                                            onclick={() =>
+                                                pluginStore.deactivatePlugin(plugin.manifest.id)}
                                         >
                                             {pluginStore.isActionInProgress(
                                                 plugin.manifest.id,
@@ -216,10 +220,16 @@
                                         <Button
                                             size="sm"
                                             class="flex-1"
-                                            disabled={pluginStore.isPluginLoading(plugin.manifest.id)}
-                                            onclick={() => pluginStore.activatePlugin(plugin.manifest.id)}
+                                            disabled={pluginStore.isPluginLoading(
+                                                plugin.manifest.id
+                                            )}
+                                            onclick={() =>
+                                                pluginStore.activatePlugin(plugin.manifest.id)}
                                         >
-                                            {pluginStore.isActionInProgress(plugin.manifest.id, 'activate')
+                                            {pluginStore.isActionInProgress(
+                                                plugin.manifest.id,
+                                                'activate'
+                                            )
                                                 ? t('common_loading')
                                                 : t('common_activate')}
                                         </Button>
@@ -239,7 +249,10 @@
                                                 size="icon"
                                                 class="flex-shrink-0"
                                                 onclick={() =>
-                                                    deletePlugin(plugin.manifest.id, plugin.manifest.name)}
+                                                    deletePlugin(
+                                                        plugin.manifest.id,
+                                                        plugin.manifest.name
+                                                    )}
                                             >
                                                 <Trash2 class="h-4 w-4" />
                                             </Button>
@@ -249,7 +262,12 @@
                                             >{t('common_loading')}</Button
                                         >
                                     {:else if plugin.status === 'error'}
-                                        <Button variant="destructive" size="sm" class="flex-1" disabled>
+                                        <Button
+                                            variant="destructive"
+                                            size="sm"
+                                            class="flex-1"
+                                            disabled
+                                        >
                                             {t('common_refresh')}
                                         </Button>
                                     {/if}

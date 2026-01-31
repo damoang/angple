@@ -162,7 +162,7 @@
                                 {#each ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'] as key}
                                     <Select.Item value={key}>{key}</Select.Item>
                                 {/each}
-                                {#each Array.from({ length: 26 }, (_, i) => String.fromCharCode(65 + i)) as key}
+                                {#each Array.from( { length: 26 }, (_, i) => String.fromCharCode(65 + i) ) as key}
                                     <Select.Item value={key}>{key}</Select.Item>
                                 {/each}
                             </Select.Content>

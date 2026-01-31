@@ -295,23 +295,43 @@
         <div class="mt-8">
             <h2 class="mb-4 text-lg font-semibold">빠른 링크</h2>
             <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-                <Button variant="outline" class="h-auto flex-col py-4" href="/admin/commerce/products">
+                <Button
+                    variant="outline"
+                    class="h-auto flex-col py-4"
+                    href="/admin/commerce/products"
+                >
                     <Package class="mb-2 h-6 w-6" />
                     상품 관리
                 </Button>
-                <Button variant="outline" class="h-auto flex-col py-4" href="/admin/commerce/orders">
+                <Button
+                    variant="outline"
+                    class="h-auto flex-col py-4"
+                    href="/admin/commerce/orders"
+                >
                     <ShoppingCart class="mb-2 h-6 w-6" />
                     주문 관리
                 </Button>
-                <Button variant="outline" class="h-auto flex-col py-4" href="/admin/commerce/settlements">
+                <Button
+                    variant="outline"
+                    class="h-auto flex-col py-4"
+                    href="/admin/commerce/settlements"
+                >
                     <DollarSign class="mb-2 h-6 w-6" />
                     정산 관리
                 </Button>
-                <Button variant="outline" class="h-auto flex-col py-4" href="/admin/commerce/coupons">
+                <Button
+                    variant="outline"
+                    class="h-auto flex-col py-4"
+                    href="/admin/commerce/coupons"
+                >
                     <ClipboardList class="mb-2 h-6 w-6" />
                     쿠폰 관리
                 </Button>
-                <Button variant="outline" class="h-auto flex-col py-4" href="/admin/commerce/reviews">
+                <Button
+                    variant="outline"
+                    class="h-auto flex-col py-4"
+                    href="/admin/commerce/reviews"
+                >
                     <TrendingUp class="mb-2 h-6 w-6" />
                     리뷰 관리
                 </Button>

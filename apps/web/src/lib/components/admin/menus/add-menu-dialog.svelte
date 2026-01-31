@@ -82,7 +82,13 @@
             </Dialog.Description>
         </Dialog.Header>
 
-        <form onsubmit={(e) => { e.preventDefault(); handleSubmit(); }} class="space-y-4">
+        <form
+            onsubmit={(e) => {
+                e.preventDefault();
+                handleSubmit();
+            }}
+            class="space-y-4"
+        >
             <div class="grid gap-4">
                 <div class="grid gap-2">
                     <Label for="title">제목 *</Label>
@@ -90,7 +96,12 @@
                 </div>
                 <div class="grid gap-2">
                     <Label for="url">URL *</Label>
-                    <Input id="url" bind:value={url} placeholder="/path 또는 https://..." required />
+                    <Input
+                        id="url"
+                        bind:value={url}
+                        placeholder="/path 또는 https://..."
+                        required
+                    />
                 </div>
                 <div class="grid gap-2">
                     <Label for="icon">아이콘</Label>
@@ -117,7 +128,7 @@
                             {#each ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'] as key}
                                 <Select.Item value={key}>{key}</Select.Item>
                             {/each}
-                            {#each Array.from({ length: 26 }, (_, i) => String.fromCharCode(65 + i)) as key}
+                            {#each Array.from( { length: 26 }, (_, i) => String.fromCharCode(65 + i) ) as key}
                                 <Select.Item value={key}>{key}</Select.Item>
                             {/each}
                         </Select.Content>
@@ -152,7 +163,9 @@
             </div>
 
             <Dialog.Footer>
-                <Button type="button" variant="outline" onclick={() => handleOpenChange(false)}>취소</Button>
+                <Button type="button" variant="outline" onclick={() => handleOpenChange(false)}
+                    >취소</Button
+                >
                 <Button type="submit" disabled={isSubmitting || !title.trim() || !url.trim()}>
                     {#if isSubmitting}<Loader2 class="mr-2 h-4 w-4 animate-spin" />{/if}
                     추가

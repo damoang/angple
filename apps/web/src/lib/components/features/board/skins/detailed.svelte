@@ -53,7 +53,9 @@
             <div class="min-w-0 flex-1">
                 <CardTitle class="text-foreground mb-2 flex items-center gap-1.5">
                     {#if post.is_adult}
-                        <Badge variant="destructive" class="shrink-0 text-[10px] px-1.5 py-0">19</Badge>
+                        <Badge variant="destructive" class="shrink-0 px-1.5 py-0 text-[10px]"
+                            >19</Badge
+                        >
                     {/if}
                     {#if post.is_secret}
                         <Lock class="text-muted-foreground h-4 w-4 shrink-0" />

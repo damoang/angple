@@ -4,10 +4,7 @@
     import { Input } from '$lib/components/ui/input/index.js';
     import { Label } from '$lib/components/ui/label/index.js';
     import { widgetLayoutStore, type WidgetConfig } from '$lib/stores/widget-layout.svelte';
-    import {
-        AVAILABLE_BOARDS,
-        BOARD_FILTERABLE_WIDGET_TYPES
-    } from '$lib/types/widget-settings';
+    import { AVAILABLE_BOARDS, BOARD_FILTERABLE_WIDGET_TYPES } from '$lib/types/widget-settings';
     import Save from '@lucide/svelte/icons/save';
 
     interface Props {
@@ -25,7 +22,9 @@
     let sortBy = $state((widget.settings?.sortBy as string) ?? 'latest');
 
     const isBoardFilterable = $derived(
-        BOARD_FILTERABLE_WIDGET_TYPES.includes(widget.type as typeof BOARD_FILTERABLE_WIDGET_TYPES[number])
+        BOARD_FILTERABLE_WIDGET_TYPES.includes(
+            widget.type as (typeof BOARD_FILTERABLE_WIDGET_TYPES)[number]
+        )
     );
 
     function handleSave() {
@@ -52,9 +51,7 @@
     <Dialog.Content class="max-w-md">
         <Dialog.Header>
             <Dialog.Title>위젯 설정</Dialog.Title>
-            <Dialog.Description>
-                위젯의 데이터 소스와 표시 옵션을 설정합니다.
-            </Dialog.Description>
+            <Dialog.Description>위젯의 데이터 소스와 표시 옵션을 설정합니다.</Dialog.Description>
         </Dialog.Header>
 
         <div class="space-y-4 py-4">
@@ -64,7 +61,7 @@
                     <select
                         id="boardId"
                         bind:value={boardId}
-                        class="border-input bg-background ring-offset-background focus-visible:ring-ring flex h-10 w-full rounded-md border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+                        class="border-input bg-background ring-offset-background focus-visible:ring-ring flex h-10 w-full rounded-md border px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
                     >
                         <option value="">전체 (기본)</option>
                         {#each AVAILABLE_BOARDS as board (board.id)}
@@ -75,13 +72,7 @@
 
                 <div class="space-y-2">
                     <Label for="limit">표시 글 수</Label>
-                    <Input
-                        id="limit"
-                        type="number"
-                        min={1}
-                        max={50}
-                        bind:value={limit}
-                    />
+                    <Input id="limit" type="number" min={1} max={50} bind:value={limit} />
                 </div>
 
                 <div class="space-y-2">
@@ -89,7 +80,7 @@
                     <select
                         id="sortBy"
                         bind:value={sortBy}
-                        class="border-input bg-background ring-offset-background focus-visible:ring-ring flex h-10 w-full rounded-md border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+                        class="border-input bg-background ring-offset-background focus-visible:ring-ring flex h-10 w-full rounded-md border px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
                     >
                         <option value="latest">최신순</option>
                         <option value="popular">인기순</option>
@@ -97,16 +88,12 @@
                     </select>
                 </div>
             {:else}
-                <p class="text-muted-foreground text-sm">
-                    이 위젯은 추가 설정이 없습니다.
-                </p>
+                <p class="text-muted-foreground text-sm">이 위젯은 추가 설정이 없습니다.</p>
             {/if}
         </div>
 
         <Dialog.Footer>
-            <Button variant="outline" onclick={() => onOpenChange(false)}>
-                취소
-            </Button>
+            <Button variant="outline" onclick={() => onOpenChange(false)}>취소</Button>
             {#if isBoardFilterable}
                 <Button onclick={handleSave}>
                     <Save class="mr-2 h-4 w-4" />

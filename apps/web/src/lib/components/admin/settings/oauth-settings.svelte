@@ -71,7 +71,7 @@
                 <CardContent class="space-y-3 pt-0">
                     <!-- Callback URL (읽기전용) -->
                     <div class="space-y-1">
-                        <Label class="text-xs text-muted-foreground">Callback URL</Label>
+                        <Label class="text-muted-foreground text-xs">Callback URL</Label>
                         <div class="flex gap-2">
                             <Input value={callbackUrl(meta.id)} readonly class="bg-muted text-xs" />
                             <Button
@@ -92,9 +92,10 @@
                             <Input
                                 type={field.key === 'clientSecret' ? 'password' : 'text'}
                                 placeholder={field.placeholder}
-                                value={config[field.key as keyof typeof config] as string ?? ''}
+                                value={(config[field.key as keyof typeof config] as string) ?? ''}
                                 oninput={(e) => {
-                                    (adminSettingsStore.settings.oauth[meta.id] as any)[field.key] = e.currentTarget.value;
+                                    (adminSettingsStore.settings.oauth[meta.id] as any)[field.key] =
+                                        e.currentTarget.value;
                                 }}
                             />
                         </div>
@@ -112,7 +113,9 @@
                                         if (!adminSettingsStore.settings.oauth[meta.id].extra) {
                                             adminSettingsStore.settings.oauth[meta.id].extra = {};
                                         }
-                                        adminSettingsStore.settings.oauth[meta.id].extra![field.key] = e.currentTarget.value;
+                                        adminSettingsStore.settings.oauth[meta.id].extra![
+                                            field.key
+                                        ] = e.currentTarget.value;
                                     }}
                                 />
                             </div>
@@ -124,7 +127,10 @@
     {/each}
 
     <div class="flex justify-end pt-2">
-        <Button onclick={() => adminSettingsStore.saveSettings()} disabled={adminSettingsStore.isSaving}>
+        <Button
+            onclick={() => adminSettingsStore.saveSettings()}
+            disabled={adminSettingsStore.isSaving}
+        >
             {#if adminSettingsStore.isSaving}
                 <Loader2 class="mr-2 h-4 w-4 animate-spin" />
                 저장 중...
