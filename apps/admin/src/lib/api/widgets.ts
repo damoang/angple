@@ -37,6 +37,34 @@ export async function getWidgetLayout(): Promise<WidgetLayoutResponse> {
 }
 
 /**
+ * 설치된 위젯 목록 조회 (매니페스트 포함)
+ */
+export async function getInstalledWidgets(): Promise<{ widgets: WidgetManifestInfo[] }> {
+    try {
+        const response = await fetch(`${WEB_API_BASE_URL}/api/widgets`);
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+        const data = await response.json();
+        return { widgets: data.widgets ?? [] };
+    } catch (error) {
+        console.error('❌ 위젯 목록 조회 실패:', error);
+        throw error;
+    }
+}
+
+export interface WidgetManifestInfo {
+    id: string;
+    name: string;
+    description?: string;
+    icon?: string;
+    category: string;
+    settings?: Record<string, unknown>;
+    allowMultiple?: boolean;
+    slots?: string[];
+}
+
+/**
  * 위젯 레이아웃 저장
  */
 export async function saveWidgetLayout(

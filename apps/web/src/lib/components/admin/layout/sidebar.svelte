@@ -1,7 +1,17 @@
 <script lang="ts">
     import { page } from '$app/stores';
     import { cn } from '$lib/utils';
-    import { LayoutDashboard, Palette, Settings, FileText, Home, Code } from '@lucide/svelte/icons';
+    import {
+        LayoutDashboard,
+        Palette,
+        Settings,
+        FileText,
+        Home,
+        Code,
+        Menu,
+        LayoutGrid,
+        ShoppingCart
+    } from '@lucide/svelte/icons';
 
     /**
      * Admin 사이드바 네비게이션
@@ -14,9 +24,19 @@
             icon: LayoutDashboard
         },
         {
+            title: '메뉴 관리',
+            href: '/admin/menus',
+            icon: Menu
+        },
+        {
             title: '테마',
             href: '/admin/themes',
             icon: Palette
+        },
+        {
+            title: '위젯',
+            href: '/admin/widgets',
+            icon: LayoutGrid
         },
         {
             title: '플러그인',
@@ -24,10 +44,14 @@
             icon: FileText
         },
         {
+            title: 'Commerce',
+            href: '/admin/commerce',
+            icon: ShoppingCart
+        },
+        {
             title: 'API 문서',
-            href: '/swagger/index.html',
-            icon: Code,
-            external: true
+            href: '/admin/docs',
+            icon: Code
         },
         {
             title: '설정',

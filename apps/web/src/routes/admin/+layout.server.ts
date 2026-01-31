@@ -5,28 +5,37 @@ import type { LayoutServerLoad } from './$types';
  * Admin 레이아웃 서버 로드
  *
  * 관리자 권한 체크:
- * - mb_level >= 10 인 사용자만 접근 가능
- * - 미인증 시 /login 으로 리다이렉트
+ * - 세션 쿠키 또는 로컬 인증으로 관리자 확인
+ * - 미인증 시 /admin/login 으로 리다이렉트
+ * - /admin/login 페이지는 예외 처리
  */
-export const load: LayoutServerLoad = async ({ locals, url }) => {
-    // 설치 페이지는 권한 체크 제외
-    if (url.pathname.startsWith('/install')) {
-        return {};
+export const load: LayoutServerLoad = async ({ cookies, url }) => {
+    // 로그인 페이지와 설치 페이지는 권한 체크 제외
+    if (url.pathname === '/admin/login' || url.pathname.startsWith('/install')) {
+        return { isAdmin: false };
     }
 
-    // TODO: 실제 인증 구현 시 주석 해제
-    // const user = locals.user;
-    //
-    // if (!user) {
-    //     throw redirect(303, '/login?redirect=' + encodeURIComponent(url.pathname));
-    // }
-    //
-    // if (user.mb_level < 10) {
-    //     throw redirect(303, '/?error=forbidden');
+    // 세션 쿠키에서 인증 상태 확인
+    const sessionToken = cookies.get('admin_session');
+
+    if (!sessionToken) {
+        // 개발 모드: VITE_SKIP_AUTH 환경변수가 있으면 인증 건너뛰기
+        const skipAuth = import.meta.env.VITE_SKIP_AUTH === 'true';
+        if (skipAuth) {
+            return { isAdmin: true };
+        }
+
+        throw redirect(303, `/admin/login?redirect=${encodeURIComponent(url.pathname)}`);
+    }
+
+    // TODO: 실제 세션 토큰 검증 (백엔드 API 연동 시)
+    // const user = await validateSession(sessionToken);
+    // if (!user || user.mb_level < 10) {
+    //     cookies.delete('admin_session', { path: '/' });
+    //     throw redirect(303, '/admin/login');
     // }
 
     return {
-        // 현재는 개발 모드로 권한 체크 비활성화
         isAdmin: true
     };
 };

@@ -1,0 +1,12 @@
+{
+    "id": "notice",
+    "name": "공지사항",
+    "version": "1.0.0",
+    "description": "공지사항 목록",
+    "author": { "name": "Angple" },
+    "category": "sidebar",
+    "slots": ["sidebar"],
+    "icon": "Info",
+    "allowMultiple": false,
+    "main": "index.svelte"
+}

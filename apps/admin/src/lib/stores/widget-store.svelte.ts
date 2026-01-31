@@ -10,6 +10,32 @@ import type { WidgetConfig } from '$lib/types/widget';
 
 export type WidgetZone = 'main' | 'sidebar';
 
+/** 매니페스트에서 가져온 설정 필드 타입 */
+export interface ManifestSettingField {
+    label: string;
+    type: 'text' | 'color' | 'boolean' | 'number' | 'select';
+    default: unknown;
+    description?: string;
+    placeholder?: string;
+    options?: { label: string; value: unknown }[];
+    min?: number;
+    max?: number;
+    step?: number;
+    dynamic?: boolean;
+    dynamicEndpoint?: string;
+}
+
+export interface WidgetManifestInfo {
+    id: string;
+    name: string;
+    description?: string;
+    icon?: string;
+    category: string;
+    settings?: Record<string, ManifestSettingField>;
+    allowMultiple?: boolean;
+    slots?: string[];
+}
+
 /**
  * 위젯 관리 Store
  */
@@ -27,6 +53,9 @@ class WidgetStore {
     private _isSaving = $state(false);
     private _selectedWidgetId = $state<string | null>(null);
     private _selectedZone = $state<WidgetZone>('main');
+
+    // 매니페스트 캐시 (위젯 타입 → 매니페스트)
+    private _manifests = $state<Map<string, WidgetManifestInfo>>(new Map());
 
     // Getters - 메인 위젯
     get widgets() {
@@ -87,6 +116,20 @@ class WidgetStore {
     }
 
     /**
+     * 위젯 타입의 매니페스트 반환
+     */
+    getManifest(type: string): WidgetManifestInfo | null {
+        return this._manifests.get(type) ?? null;
+    }
+
+    /**
+     * 위젯 매니페스트의 settings 정의 반환
+     */
+    getSettingsSchema(type: string): Record<string, ManifestSettingField> | null {
+        return this._manifests.get(type)?.settings ?? null;
+    }
+
+    /**
      * Web API에서 위젯 레이아웃 로드
      */
     async loadWidgets() {
@@ -103,6 +146,9 @@ class WidgetStore {
             console.log(
                 `✅ 위젯 로드됨: 메인 ${this._widgets.length}개, 사이드바 ${this._sidebarWidgets.length}개`
             );
+
+            // 매니페스트 로드
+            await this.loadManifests();
         } catch (error) {
             console.error('❌ 위젯 레이아웃 로드 실패:', error);
             toast.error('위젯 레이아웃을 불러오지 못했습니다. Web 앱이 실행 중인지 확인하세요.');
@@ -110,6 +156,23 @@ class WidgetStore {
             this._sidebarWidgets = [];
         } finally {
             this._isLoading = false;
+        }
+    }
+
+    /**
+     * 매니페스트 로드 (Web API에서)
+     */
+    async loadManifests() {
+        try {
+            const data = await widgetsApi.getInstalledWidgets();
+            const map = new Map<string, WidgetManifestInfo>();
+            for (const w of data.widgets) {
+                map.set(w.id, w as WidgetManifestInfo);
+            }
+            this._manifests = map;
+            console.log(`✅ 매니페스트 로드됨: ${map.size}개`);
+        } catch (error) {
+            console.warn('⚠️ 매니페스트 로드 실패 (WIDGET_REGISTRY 폴백 사용):', error);
         }
     }
 

@@ -1,5 +1,7 @@
 /**
  * 위젯 관련 타입 정의
+ *
+ * Phase 2: 범용 위젯 기반으로 업데이트
  */
 
 export interface WidgetConfig {
@@ -21,9 +23,26 @@ export interface WidgetRegistryEntry {
 }
 
 /**
- * 위젯 레지스트리 (Web 앱과 동일한 정의)
+ * 위젯 레지스트리
+ *
+ * Phase 2: 매니페스트 API에서 동적 로드가 우선이며,
+ * 이 레지스트리는 폴백으로 사용됩니다.
  */
 export const WIDGET_REGISTRY: Record<string, WidgetRegistryEntry> = {
+    'post-list': {
+        name: '게시글 목록',
+        icon: 'List',
+        description: '범용 게시글 목록 (게시판/레이아웃/정렬 설정)',
+        category: 'content',
+        allowMultiple: true,
+        defaultSettings: {
+            boardId: 'notice',
+            layout: 'list',
+            sortBy: 'date',
+            count: 10,
+            showTitle: true
+        }
+    },
     recommended: {
         name: '추천 글',
         icon: 'Star',
@@ -31,45 +50,17 @@ export const WIDGET_REGISTRY: Record<string, WidgetRegistryEntry> = {
         category: 'content',
         allowMultiple: false
     },
-    'new-board': {
-        name: '새로운 소식',
-        icon: 'Newspaper',
-        description: '최신 소식 게시판',
-        category: 'content',
-        allowMultiple: false
-    },
-    economy: {
-        name: '알뜰구매',
-        icon: 'ShoppingCart',
-        description: '알뜰 구매 정보',
-        category: 'content',
-        allowMultiple: false
-    },
-    'news-economy-row': {
-        name: '새소식 + 알뜰구매',
-        icon: 'LayoutGrid',
-        description: '새소식과 알뜰구매를 2열로 표시',
-        category: 'layout',
-        allowMultiple: false
-    },
-    gallery: {
-        name: '갤러리',
-        icon: 'Images',
-        description: '이미지 갤러리 그리드',
-        category: 'content',
-        allowMultiple: false
-    },
-    group: {
-        name: '소모임',
-        icon: 'Users',
-        description: '소모임 추천글',
+    'ai-analysis': {
+        name: 'AI 트렌드 분석',
+        icon: 'Star',
+        description: 'AI가 분석한 커뮤니티 트렌드',
         category: 'content',
         allowMultiple: false
     },
     ad: {
         name: '광고',
         icon: 'Megaphone',
-        description: '광고 슬롯',
+        description: '광고 슬롯 (메인 + 사이드바)',
         category: 'ad',
         allowMultiple: true,
         defaultSettings: {
@@ -94,18 +85,6 @@ export const WIDGET_REGISTRY: Record<string, WidgetRegistryEntry> = {
         category: 'sidebar',
         allowMultiple: false,
         sidebarOnly: true
-    },
-    'sidebar-ad': {
-        name: '사이드바 광고',
-        icon: 'Image',
-        description: '사이드바 광고 배너',
-        category: 'sidebar',
-        allowMultiple: true,
-        sidebarOnly: true,
-        defaultSettings: {
-            type: 'image',
-            format: 'square'
-        }
     },
     'sharing-board': {
         name: '나눔 게시판',
@@ -157,8 +136,9 @@ export function getAddableWidgets(
 ): string[] {
     return Object.entries(WIDGET_REGISTRY)
         .filter(([type, entry]) => {
-            // 사이드바 필터링
-            if (forSidebar && !entry.sidebarOnly) return false;
+            // 사이드바 필터링: ad는 양쪽 허용
+            if (forSidebar && !entry.sidebarOnly && type !== 'ad' && type !== 'post-list')
+                return false;
             if (!forSidebar && entry.sidebarOnly) return false;
 
             if (entry.allowMultiple) return true;
@@ -188,7 +168,7 @@ export function getMainWidgetTypes(): string[] {
  */
 export function getSidebarWidgetTypes(): string[] {
     return Object.entries(WIDGET_REGISTRY)
-        .filter(([, entry]) => entry.sidebarOnly)
+        .filter(([, entry]) => entry.sidebarOnly || entry.category === 'ad')
         .map(([type]) => type);
 }
 

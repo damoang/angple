@@ -153,7 +153,20 @@
                     <!-- 단축키 -->
                     <div class="grid gap-2">
                         <Label for="edit-shortcut">단축키</Label>
-                        <Input id="edit-shortcut" bind:value={shortcut} placeholder="예: Ctrl+M" />
+                        <Select.Root type="single" bind:value={shortcut}>
+                            <Select.Trigger class="w-full">
+                                {shortcut || '없음 (단축키 없음)'}
+                            </Select.Trigger>
+                            <Select.Content class="max-h-60">
+                                <Select.Item value="">없음 (단축키 없음)</Select.Item>
+                                {#each ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'] as key}
+                                    <Select.Item value={key}>{key}</Select.Item>
+                                {/each}
+                                {#each Array.from( { length: 26 }, (_, i) => String.fromCharCode(65 + i) ) as key}
+                                    <Select.Item value={key}>{key}</Select.Item>
+                                {/each}
+                            </Select.Content>
+                        </Select.Root>
                     </div>
 
                     <!-- 설명 -->

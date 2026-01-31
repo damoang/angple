@@ -4,6 +4,7 @@
     import { onMount } from 'svelte';
     import type { Component } from 'svelte';
     import { page } from '$app/stores';
+    import { configureSeo } from '$lib/seo';
     import { authActions } from '$lib/stores/auth.svelte';
     import { themeStore } from '$lib/stores/theme.svelte';
     import { pluginStore } from '$lib/stores/plugin.svelte';
@@ -17,6 +18,12 @@
     // /admin, /install 경로 여부 확인 (테마 레이아웃 적용 안함)
     const isAdminRoute = $derived($page.url.pathname.startsWith('/admin'));
     const isInstallRoute = $derived($page.url.pathname.startsWith('/install'));
+
+    // SEO 기본 설정 초기화
+    configureSeo({
+        siteName: '다모앙',
+        siteUrl: $page.url.origin
+    });
 
     // SSR에서 받은 테마로 스토어 초기화 (깜박임 방지!)
     themeStore.initFromServer(data.activeTheme);
@@ -79,13 +86,19 @@
 
     // activeTheme 변경 시 자동으로 레이아웃, Hook, Component 로드
     $effect(() => {
-        console.log('🔄 [$effect] activeTheme 변경 감지:', activeTheme);
-        loadThemeLayout(activeTheme);
+        const theme = activeTheme;
+        console.log('🔄 [$effect] activeTheme 변경 감지:', theme);
+
+        // 비동기 로드 (void로 처리하여 $effect 내 안전하게 실행)
+        void loadThemeLayout(theme).catch((err) => {
+            console.error('❌ [Layout] 테마 레이아웃 로드 에러:', err);
+            ThemeLayout = null;
+        });
 
         // 테마 Hook 및 Component 로드
-        if (activeTheme) {
-            loadThemeHooks(activeTheme);
-            loadThemeComponents(activeTheme);
+        if (theme) {
+            loadThemeHooks(theme);
+            loadThemeComponents(theme);
         }
     });
 
@@ -202,9 +215,16 @@
     {@render children()}
 {:else if ThemeLayout}
     <!-- 동적으로 로드된 테마 레이아웃 (Svelte 5: 컴포넌트 변수 직접 사용) -->
-    <ThemeLayout>
-        {@render children()}
-    </ThemeLayout>
+    <!-- {#key}로 감싸서 네비게이션 시 안정적으로 컴포넌트 교체 -->
+    {#key activeTheme}
+        {#if typeof ThemeLayout === 'function'}
+            <ThemeLayout>
+                {@render children()}
+            </ThemeLayout>
+        {:else}
+            {@render children()}
+        {/if}
+    {/key}
 {:else if activeTheme}
     <!-- 테마 레이아웃 로드 중 또는 SSR - children 직접 렌더링 -->
     <!-- SSR에서 $effect가 실행되지 않아 ThemeLayout이 null이므로 children 먼저 렌더링 -->

@@ -12,6 +12,7 @@
     import Pencil from '@lucide/svelte/icons/pencil';
     import Lock from '@lucide/svelte/icons/lock';
     import Flag from '@lucide/svelte/icons/flag';
+    import Pin from '@lucide/svelte/icons/pin';
     import { authStore } from '$lib/stores/auth.svelte.js';
     import { apiClient } from '$lib/api/index.js';
     import DeleteConfirmDialog from '$lib/components/features/board/delete-confirm-dialog.svelte';
@@ -20,6 +21,7 @@
     import { ReportDialog } from '$lib/components/features/report/index.js';
     import type { FreeComment, LikerInfo } from '$lib/api/types.js';
     import { onMount } from 'svelte';
+    import { AdultBlur } from '$lib/components/features/adult/index.js';
 
     let { data }: { data: PageData } = $props();
 
@@ -93,6 +95,26 @@
         authStore.user?.mb_id === data.post.author_id ||
             authStore.user?.mb_name === data.post.author
     );
+
+    // 관리자 여부 (레벨 10 이상)
+    const isAdmin = $derived((authStore.user?.mb_level ?? 0) >= 10);
+
+    // 공지 상태
+    let noticeType = $state<'normal' | 'important' | null>(data.post.notice_type ?? null);
+    let isTogglingNotice = $state(false);
+
+    async function toggleNotice(type: 'normal' | 'important' | null): Promise<void> {
+        isTogglingNotice = true;
+        try {
+            await apiClient.toggleNotice(boardId, data.post.id, type);
+            noticeType = type;
+        } catch (err) {
+            console.error('Failed to toggle notice:', err);
+            alert('공지 설정에 실패했습니다.');
+        } finally {
+            isTogglingNotice = false;
+        }
+    }
 
     // 게시글 삭제
     async function handleDelete(): Promise<void> {
@@ -269,8 +291,31 @@
     <div class="mb-6 flex items-center justify-between">
         <Button variant="outline" size="sm" onclick={goBack}>← 목록으로</Button>
 
-        {#if isAuthor}
-            <div class="flex gap-2">
+        <div class="flex gap-2">
+            {#if isAdmin}
+                {#if noticeType}
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onclick={() => toggleNotice(null)}
+                        disabled={isTogglingNotice}
+                    >
+                        <Pin class="mr-1 h-4 w-4" />
+                        공지 해제
+                    </Button>
+                {:else}
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onclick={() => toggleNotice('important')}
+                        disabled={isTogglingNotice}
+                    >
+                        <Pin class="mr-1 h-4 w-4" />
+                        공지 고정
+                    </Button>
+                {/if}
+            {/if}
+            {#if isAuthor}
                 <Button variant="outline" size="sm" onclick={goToEdit}>
                     <Pencil class="mr-1 h-4 w-4" />
                     수정
@@ -281,8 +326,8 @@
                     onConfirm={handleDelete}
                     isLoading={isDeleting}
                 />
-            </div>
-        {/if}
+            {/if}
+        </div>
     </div>
 
     <!-- 게시글 헤더 -->
@@ -336,20 +381,22 @@
             </div>
 
             <!-- 게시글 본문 -->
-            <Markdown content={data.post.content} class="mt-8" />
+            <AdultBlur isAdult={data.post.is_adult ?? false}>
+                <Markdown content={data.post.content} class="mt-8" />
 
-            {#if data.post.images && data.post.images.length > 0}
-                <div class="mt-6 grid gap-4">
-                    {#each data.post.images as image, i (i)}
-                        <img
-                            src={image}
-                            alt="게시글 이미지"
-                            class="rounded-lg border"
-                            loading="lazy"
-                        />
-                    {/each}
-                </div>
-            {/if}
+                {#if data.post.images && data.post.images.length > 0}
+                    <div class="mt-6 grid gap-4">
+                        {#each data.post.images as image, i (i)}
+                            <img
+                                src={image}
+                                alt="게시글 이미지"
+                                class="rounded-lg border"
+                                loading="lazy"
+                            />
+                        {/each}
+                    </div>
+                {/if}
+            </AdultBlur>
 
             <!-- 추천/비추천 버튼 -->
             <div class="mb-3 mt-8 flex items-center gap-3">

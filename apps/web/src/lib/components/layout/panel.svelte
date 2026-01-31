@@ -1,6 +1,6 @@
 <script lang="ts">
     import { getComponentsForSlot } from '$lib/components/slot-manager';
-    import { SidebarWidgetRenderer } from '$lib/components/features/sidebar-widgets';
+    import { WidgetRenderer } from '$lib/components/widget-renderer';
 </script>
 
 <div class="flex flex-col gap-4 p-4">
@@ -10,8 +10,8 @@
         <Component {...slotComp.props || {}} />
     {/each}
 
-    <!-- 동적 사이드바 위젯 렌더러 -->
-    <SidebarWidgetRenderer />
+    <!-- 통합 위젯 렌더러 (사이드바) -->
+    <WidgetRenderer zone="sidebar" />
 
     <!-- Slot: sidebar-right-bottom -->
     {#each getComponentsForSlot('sidebar-right-bottom') as slotComp (slotComp.id)}

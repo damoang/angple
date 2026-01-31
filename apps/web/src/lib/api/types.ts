@@ -33,6 +33,8 @@ export interface FreePost {
     is_secret?: boolean; // 비밀글 여부
     is_notice?: boolean; // 공지사항 여부
     notice_type?: 'normal' | 'important'; // 공지 타입 (일반/필수)
+    is_adult?: boolean; // 19금 콘텐츠 여부
+    thumbnail?: string; // 썸네일 URL
 }
 
 // 자유게시판 댓글 타입
@@ -605,7 +607,14 @@ export interface LoginResponse {
 }
 
 // OAuth 제공자 타입
-export type OAuthProvider = 'google' | 'kakao' | 'naver' | 'apple';
+export type OAuthProvider =
+    | 'google'
+    | 'kakao'
+    | 'naver'
+    | 'apple'
+    | 'facebook'
+    | 'twitter'
+    | 'payco';
 
 // OAuth 로그인 요청
 export interface OAuthLoginRequest {
