@@ -21,6 +21,10 @@ export const GET: RequestHandler = async ({ url }) => {
         // 기존 인덱스 위젯 데이터를 활용
         const widgetsData = await apiClient.getIndexWidgets();
 
+        if (!widgetsData) {
+            return json({ posts: [], board, sort, limit });
+        }
+
         let posts: unknown[] = [];
 
         switch (board) {

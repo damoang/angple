@@ -26,12 +26,12 @@ describe('resolvePostThumbnail', () => {
 
     it('images 배열 사용', () => {
         const result = resolvePostThumbnail({ images: ['/img.jpg'] });
-        expect(result).toContain('/img.jpg');
+        expect(result).toContain(encodeURIComponent('/img.jpg'));
     });
 
     it('content에서 추출', () => {
         const result = resolvePostThumbnail({ content: '<img src="/content.jpg">' });
-        expect(result).toContain('/content.jpg');
+        expect(result).toContain(encodeURIComponent('/content.jpg'));
     });
 
     it('아무것도 없으면 null', () => {
