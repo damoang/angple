@@ -12,6 +12,8 @@
     import Flag from '@lucide/svelte/icons/flag';
     import CommentForm from './comment-form.svelte';
     import { ReportDialog } from '$lib/components/features/report/index.js';
+    import DOMPurify from 'dompurify';
+    import { transformEmoticons } from '$lib/utils/content-transform.js';
 
     interface Props {
         comments: FreeComment[];
@@ -287,6 +289,16 @@
         showReportDialog = true;
     }
 
+    // 댓글 내용 이모티콘 변환 + sanitize
+    function renderCommentContent(content: string): string {
+        const transformed = transformEmoticons(content);
+        return DOMPurify.sanitize(transformed, {
+            ALLOWED_TAGS: ['img'],
+            ALLOWED_ATTR: ['src', 'width', 'alt', 'loading', 'class'],
+            ALLOWED_URI_REGEXP: /^\/emoticons\//
+        });
+    }
+
     // 신고 다이얼로그 닫기
     function closeReportDialog(): void {
         showReportDialog = false;
@@ -454,7 +466,7 @@
                         </div>
                     {:else}
                         <div class="text-foreground whitespace-pre-wrap {isReply ? 'text-sm' : ''}">
-                            {comment.content}
+                            {@html renderCommentContent(comment.content)}
                         </div>
                     {/if}
                 {/if}
