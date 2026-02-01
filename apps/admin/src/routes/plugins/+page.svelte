@@ -17,6 +17,7 @@
     import { t } from '$lib/i18n';
     import PluginGithubInstaller from '$lib/components/plugin-github-installer.svelte';
     import BackendPluginStore from '$lib/components/backend-plugin-store.svelte';
+    import PluginZipUploader from '$lib/components/plugin-zip-uploader.svelte';
 
     // Store에서 플러그인 목록 가져오기
     const plugins = $derived(pluginStore.plugins);
@@ -92,12 +93,9 @@
             <!-- 상단 액션 바 -->
             <div class="mb-6 flex items-center justify-between">
                 <div class="flex gap-2">
-                    <Button variant="outline" disabled>
-                        <Plug class="mr-2 h-4 w-4" />
-                        {t('admin_plugins_upload')}
-                    </Button>
+                    <PluginZipUploader onUploadSuccess={() => pluginStore.loadPlugins()} />
                     <PluginGithubInstaller onInstallSuccess={() => pluginStore.loadPlugins()} />
-                    <Button variant="outline" disabled>{t('admin_plugins_marketplace')}</Button>
+                    <Button variant="outline" href="/plugins/marketplace">{t('admin_plugins_marketplace')}</Button>
                 </div>
                 <div class="text-muted-foreground text-sm">
                     {t('admin_plugins_installed')}: {plugins.length} ({t('admin_plugins_active')}: {plugins.filter(
