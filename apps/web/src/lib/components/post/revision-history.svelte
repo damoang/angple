@@ -126,11 +126,7 @@
                     {@const IconComp = getIcon(rev.change_type)}
                     {@const isSelected = selectedVersion === rev.version || compareVersion === rev.version}
                     <div
-                        class="rounded-lg border p-3 transition-colors dark:border-neutral-700"
-                        class:border-blue-300={isSelected}
-                        class:dark:border-blue-700={isSelected}
-                        class:bg-blue-50={isSelected}
-                        class:dark:bg-blue-950/20={isSelected}
+                        class="rounded-lg border p-3 transition-colors dark:border-neutral-700 {isSelected ? 'border-blue-300 bg-blue-50 dark:border-blue-700 dark:bg-blue-950/20' : ''}"
                     >
                         <div class="flex items-center gap-3">
                             <div class={getColor(rev.change_type)}>
