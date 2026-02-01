@@ -59,64 +59,82 @@ const API_BASE_URL = browser
     ? '/api/v2'
     : process.env.INTERNAL_API_URL || 'http://localhost:8082/api/v2';
 
-// 디버깅: API URL 확인
-console.log('[API Client] Browser:', browser);
-console.log('[API Client] INTERNAL_API_URL:', browser ? 'N/A' : process.env.INTERNAL_API_URL);
-console.log('[API Client] Final API_BASE_URL:', API_BASE_URL);
-
 /**
  * API 클라이언트
  *
  * 🔒 보안 기능:
  * - httpOnly cookie를 사용한 Refresh Token 관리 (XSS 공격 방지)
- * - SameSite=Strict 설정으로 CSRF 공격 방지
- * - Access Token은 응답 본문으로 받아 메모리에만 저장
+ * - Access Token은 메모리에만 저장 (localStorage 사용 안 함)
  * - 모든 요청에 credentials: 'include'로 쿠키 자동 전송
- *
- * 📋 인증 플로우:
- * 1. 로그인: Backend가 httpOnly cookie로 Refresh Token 설정
- * 2. API 요청: 쿠키가 자동으로 전송되어 인증
- * 3. 토큰 갱신: /auth/refresh 엔드포인트가 쿠키에서 토큰 읽어 갱신
- * 4. 로그아웃: Backend가 쿠키 만료 처리
+ * - 401 응답 시 자동 토큰 갱신 후 재시도
  */
 class ApiClient {
-    // 액세스 토큰 가져오기 헬퍼
-    private getAccessToken(): string | null {
+    // 메모리 기반 액세스 토큰 (XSS 공격 방지)
+    private _accessToken: string | null = null;
+    private _refreshPromise: Promise<boolean> | null = null;
+
+    /** 액세스 토큰을 메모리에 설정 */
+    setAccessToken(token: string | null): void {
+        this._accessToken = token;
+    }
+
+    /** 현재 액세스 토큰 조회 (메모리에서만) */
+    getAccessToken(): string | null {
         if (!browser) return null;
+        if (this._accessToken) return this._accessToken;
 
-        // 1. localStorage에서 먼저 확인
-        let accessToken = localStorage.getItem('access_token');
-
-        // 2. localStorage에 없으면 쿠키에서 damoang_jwt 확인
-        if (!accessToken) {
-            const jwtCookie = document.cookie
-                .split('; ')
-                .find((row) => row.startsWith('damoang_jwt='));
-            if (jwtCookie) {
-                accessToken = jwtCookie.split('=')[1];
-            }
+        // 하위 호환: damoang_jwt 쿠키 확인 (damoang.net SSO)
+        const jwtCookie = document.cookie.split('; ').find((row) => row.startsWith('damoang_jwt='));
+        if (jwtCookie) {
+            return jwtCookie.split('=')[1];
         }
+        return null;
+    }
 
-        return accessToken;
+    /** refreshToken 쿠키로 accessToken 자동 갱신 */
+    async tryRefreshToken(): Promise<boolean> {
+        if (this._refreshPromise) return this._refreshPromise;
+
+        this._refreshPromise = (async () => {
+            try {
+                const url = `${API_BASE_URL}/auth/refresh`;
+                const response = await fetch(url, {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                if (!response.ok) return false;
+                const data = await response.json();
+                const newToken = data?.data?.access_token;
+                if (newToken) {
+                    this._accessToken = newToken;
+                    return true;
+                }
+                return false;
+            } catch {
+                return false;
+            } finally {
+                this._refreshPromise = null;
+            }
+        })();
+
+        return this._refreshPromise;
     }
 
     // HTTP 요청 헬퍼
     private async request<T>(
         endpoint: string,
         options: RequestInit = {},
-        retryConfig?: Partial<RetryConfig>
+        retryConfig?: Partial<RetryConfig>,
+        _isRetryAfterRefresh = false
     ): Promise<ApiResponse<T>> {
         const url = `${API_BASE_URL}${endpoint}`;
-
-        // 서버/클라이언트 환경 로깅
-        console.log(`[API] ${browser ? 'Client' : 'Server'} → ${url}`);
 
         const headers: Record<string, string> = {
             'Content-Type': 'application/json',
             ...(options.headers as Record<string, string>)
         };
 
-        // 브라우저 환경에서 access_token을 자동으로 헤더에 추가
         const accessToken = this.getAccessToken();
         if (accessToken) {
             headers['Authorization'] = `Bearer ${accessToken}`;
@@ -130,55 +148,57 @@ class ApiClient {
                 {
                     ...options,
                     headers,
-                    credentials: 'include' // httpOnly 쿠키 자동 전송
+                    credentials: 'include'
                 },
                 config
             );
 
-            console.log(`[API] Response status:`, response.status, response.statusText);
-
-            // 204 No Content 또는 빈 응답 처리
+            // 204 No Content
             if (response.status === 204 || response.headers.get('content-length') === '0') {
-                console.log(`[API] Empty response (204 or no content)`);
-                if (!response.ok) {
-                    throw new Error('요청 실패');
-                }
+                if (!response.ok) throw new Error('요청 실패');
                 return { data: undefined as T } as ApiResponse<T>;
             }
 
-            // JSON 파싱 시도
             let data;
             const contentType = response.headers.get('content-type');
             if (contentType && contentType.includes('application/json')) {
                 try {
                     data = await response.json();
-                    console.log(`[API] Response data:`, JSON.stringify(data).substring(0, 200));
                 } catch (parseError) {
                     console.error('[API] JSON 파싱 에러:', parseError);
                     throw new Error('서버 응답을 처리할 수 없습니다.');
                 }
             } else {
-                // JSON이 아닌 응답 (HTML 등)
-                if (!response.ok) {
-                    throw new Error(`서버 에러 (${response.status})`);
-                }
+                if (!response.ok) throw new Error(`서버 에러 (${response.status})`);
                 return { data: undefined as T } as ApiResponse<T>;
             }
 
+            // 401 → 자동 토큰 갱신 후 재시도 (1회만)
+            if (response.status === 401 && !_isRetryAfterRefresh && browser) {
+                const refreshed = await this.tryRefreshToken();
+                if (refreshed) {
+                    return this.request<T>(endpoint, options, retryConfig, true);
+                }
+            }
+
             if (!response.ok) {
-                console.error(`[API] Error response:`, data);
-                const apiErr = data as ApiError;
-                throw ApiRequestError.fromStatus(
-                    response.status,
-                    apiErr.error || '요청 실패',
-                    apiErr.code
-                );
+                let errorMessage = '요청 실패';
+                let errorCode: string | undefined;
+                if (data?.error) {
+                    if (typeof data.error === 'string') {
+                        errorMessage = data.error;
+                    } else if (typeof data.error === 'object') {
+                        errorMessage = data.error.message || data.error.details || '요청 실패';
+                        errorCode = data.error.code;
+                    }
+                } else if (data?.message) {
+                    errorMessage = data.message;
+                }
+                throw ApiRequestError.fromStatus(response.status, errorMessage, errorCode);
             }
 
             return data as ApiResponse<T>;
         } catch (error) {
-            console.error('[API] 요청 에러:', error);
-            console.error('[API] URL:', url);
             if (error instanceof ApiRequestError) throw error;
             throw ApiRequestError.network(
                 error instanceof Error ? error.message : '알 수 없는 에러'
@@ -1285,11 +1305,9 @@ class ApiClient {
             body: JSON.stringify(request)
         });
 
-        // 액세스 토큰 저장 (localStorage + 쿠키)
-        if (browser && response.data.access_token) {
-            localStorage.setItem('access_token', response.data.access_token);
-            // 서버 사이드(SSR)에서도 읽을 수 있도록 쿠키에 저장
-            document.cookie = `access_token=${response.data.access_token}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
+        // 액세스 토큰을 메모리에 저장 (httpOnly 쿠키로 refreshToken은 자동 설정됨)
+        if (response.data.access_token) {
+            this._accessToken = response.data.access_token;
         }
 
         return response.data;
@@ -1312,9 +1330,9 @@ class ApiClient {
             body: JSON.stringify(request)
         });
 
-        // 액세스 토큰 저장
-        if (browser && response.data.access_token) {
-            localStorage.setItem('access_token', response.data.access_token);
+        // 액세스 토큰을 메모리에 저장
+        if (response.data.access_token) {
+            this._accessToken = response.data.access_token;
         }
 
         return response.data;
@@ -1340,10 +1358,7 @@ class ApiClient {
         } catch (error) {
             console.error('Logout API error:', error);
         } finally {
-            // 로컬 토큰 제거
-            if (browser) {
-                localStorage.removeItem('access_token');
-            }
+            this._accessToken = null;
         }
     }
 }

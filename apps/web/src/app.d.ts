@@ -14,7 +14,10 @@ interface DamoangAdsInterface {
 declare global {
     namespace App {
         // interface Error {}
-        // interface Locals {}
+        interface Locals {
+            user: { nickname?: string; level: number } | null;
+            accessToken: string | null;
+        }
         // interface PageData {}
         // interface PageState {}
         // interface Platform {}
