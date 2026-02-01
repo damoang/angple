@@ -375,8 +375,6 @@ class ApiClient {
 
         const response = await this.request<BackendBoardResponse>(`/boards/${boardId}`);
 
-        console.log('[API] Board detail raw response:', response);
-
         const backendData = response as unknown as BackendBoardResponse;
 
         return backendData.data;
@@ -432,7 +430,6 @@ class ApiClient {
                 mb_email: '' // profile API는 email을 반환하지 않음
             };
         } catch {
-            console.log('User not logged in');
             return null;
         }
     }
