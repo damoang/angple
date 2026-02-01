@@ -1,0 +1,38 @@
+{
+    "name": "@angple/plugin-engine",
+    "version": "0.1.0",
+    "type": "module",
+    "description": "Plugin engine for Angple - registry, context, and permission management",
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "files": [
+        "dist"
+    ],
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "import": "./dist/index.js"
+        }
+    },
+    "scripts": {
+        "build": "tsc",
+        "dev": "tsc --watch",
+        "test": "vitest"
+    },
+    "keywords": [
+        "angple",
+        "plugin",
+        "engine",
+        "registry",
+        "context"
+    ],
+    "author": "Angple Team",
+    "license": "MIT",
+    "dependencies": {
+        "@angple/hook-system": "workspace:*"
+    },
+    "devDependencies": {
+        "typescript": "^5.9.3",
+        "vitest": "^3.2.3"
+    }
+}

@@ -11,9 +11,7 @@
         CardHeader,
         CardTitle
     } from '$lib/components/ui/card';
-    import { Input } from '$lib/components/ui/input';
-    import { Label } from '$lib/components/ui/label';
-    import { Switch } from '$lib/components/ui/switch';
+    import PluginSettingsForm from '$lib/components/plugin/plugin-settings-form.svelte';
     import { toast } from 'svelte-sonner';
     import { Toaster } from '$lib/components/ui/sonner';
     import { ChevronLeft, Save } from '@lucide/svelte/icons';
@@ -119,99 +117,11 @@
                         {plugin.manifest.description || '플러그인 설정을 구성합니다.'}
                     </CardDescription>
                 </CardHeader>
-                <CardContent class="space-y-6">
-                    {#each Object.entries(plugin.manifest.settings) as [key, field] (key)}
-                        <div class="space-y-2">
-                            <!-- 텍스트/URL 입력 -->
-                            {#if field.type === 'text' || field.type === 'url'}
-                                <Label for={key}>{field.label}</Label>
-                                {#if field.description}
-                                    <p class="text-muted-foreground text-sm">{field.description}</p>
-                                {/if}
-                                <Input
-                                    id={key}
-                                    type={field.type === 'url' ? 'url' : 'text'}
-                                    bind:value={settings[key]}
-                                    placeholder={field.default as string}
-                                />
-                            {/if}
-
-                            <!-- 색상 선택 -->
-                            {#if field.type === 'color'}
-                                <Label for={key}>{field.label}</Label>
-                                {#if field.description}
-                                    <p class="text-muted-foreground text-sm">{field.description}</p>
-                                {/if}
-                                <div class="flex items-center gap-4">
-                                    <Input
-                                        id={key}
-                                        type="color"
-                                        bind:value={settings[key]}
-                                        class="h-12 w-24"
-                                    />
-                                    <Input
-                                        type="text"
-                                        bind:value={settings[key]}
-                                        placeholder={field.default as string}
-                                        class="flex-1"
-                                    />
-                                </div>
-                            {/if}
-
-                            <!-- 토글 스위치 -->
-                            {#if field.type === 'boolean'}
-                                <div
-                                    class="flex items-center justify-between rounded-lg border p-4"
-                                >
-                                    <Label for={key} class="flex flex-col gap-1">
-                                        <span>{field.label}</span>
-                                        {#if field.description}
-                                            <span class="text-muted-foreground text-sm font-normal">
-                                                {field.description}
-                                            </span>
-                                        {/if}
-                                    </Label>
-                                    <Switch
-                                        id={key}
-                                        checked={(settings[key] as boolean) ?? field.default}
-                                        onCheckedChange={(checked: boolean) =>
-                                            (settings[key] = checked)}
-                                    />
-                                </div>
-                            {/if}
-
-                            <!-- 숫자 입력 -->
-                            {#if field.type === 'number'}
-                                <Label for={key}>{field.label}</Label>
-                                {#if field.description}
-                                    <p class="text-muted-foreground text-sm">{field.description}</p>
-                                {/if}
-                                <Input
-                                    id={key}
-                                    type="number"
-                                    bind:value={settings[key]}
-                                    min={field.min}
-                                    max={field.max}
-                                    step={field.step ?? 1}
-                                />
-                            {/if}
-
-                            <!-- 텍스트 영역 -->
-                            {#if field.type === 'textarea'}
-                                <Label for={key}>{field.label}</Label>
-                                {#if field.description}
-                                    <p class="text-muted-foreground text-sm">{field.description}</p>
-                                {/if}
-                                <textarea
-                                    id={key}
-                                    bind:value={settings[key]}
-                                    placeholder={field.default as string}
-                                    rows="4"
-                                    class="border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring flex w-full rounded-md border px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                                ></textarea>
-                            {/if}
-                        </div>
-                    {/each}
+                <CardContent>
+                    <PluginSettingsForm
+                        schema={plugin.manifest.settings as any}
+                        bind:values={settings}
+                    />
                 </CardContent>
             </Card>
         {:else}

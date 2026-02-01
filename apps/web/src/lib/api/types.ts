@@ -35,6 +35,8 @@ export interface FreePost {
     notice_type?: 'normal' | 'important'; // 공지 타입 (일반/필수)
     is_adult?: boolean; // 19금 콘텐츠 여부
     thumbnail?: string; // 썸네일 URL
+    deleted_at?: string | null; // 소프트 삭제 시점
+    deleted_by?: string | null; // 삭제한 사용자 ID
 }
 
 // 자유게시판 댓글 타입
@@ -51,6 +53,42 @@ export interface FreeComment {
     updated_at?: string;
     images?: string[];
     is_secret?: boolean; // 비밀댓글 여부
+    deleted_at?: string | null; // 소프트 삭제 시점
+}
+
+// 게시물 수정 이력
+export interface PostRevision {
+    id: number;
+    post_id: number;
+    version: number;
+    title: string;
+    content: string;
+    tags?: string[];
+    edited_by: string;
+    edited_by_name?: string;
+    edited_at: string;
+    change_type: 'create' | 'update' | 'soft_delete' | 'restore';
+}
+
+// 스크랩
+export interface Scrap {
+    id: number;
+    post_id: number;
+    board_id: string;
+    user_id: string;
+    memo?: string;
+    created_at: string;
+    post?: FreePost;
+}
+
+// 게시판 그룹
+export interface BoardGroup {
+    id: string;
+    name: string;
+    description?: string;
+    sort_order: number;
+    is_visible: boolean;
+    boards?: Board[];
 }
 
 // API 키 등록 요청/응답

@@ -43,7 +43,10 @@ import type {
     OAuthProvider,
     OAuthLoginRequest,
     RegisterRequest,
-    RegisterResponse
+    RegisterResponse,
+    PostRevision,
+    Scrap,
+    BoardGroup
 } from './types.js';
 import { browser } from '$app/environment';
 import { ApiRequestError } from './errors.js';
@@ -467,13 +470,86 @@ class ApiClient {
     }
 
     /**
-     * 게시글 삭제
-     * 🔒 인증 필요 + 작성자 본인만 가능
+     * 게시글 삭제 (소프트 삭제)
+     * 🔒 인증 필요 + 작성자 본인 또는 관리자
      */
     async deletePost(boardId: string, postId: string): Promise<void> {
-        await this.request<void>(`/boards/${boardId}/posts/${postId}`, {
+        await this.request<void>(`/boards/${boardId}/posts/${postId}/soft-delete`, {
+            method: 'PATCH'
+        });
+    }
+
+    /**
+     * 게시글 복구 (소프트 삭제 취소)
+     * 🔒 관리자 전용
+     */
+    async restorePost(boardId: string, postId: string): Promise<FreePost> {
+        const response = await this.request<FreePost>(
+            `/boards/${boardId}/posts/${postId}/restore`,
+            { method: 'POST' }
+        );
+        return response.data;
+    }
+
+    /**
+     * 게시글 영구 삭제
+     * 🔒 관리자 전용
+     */
+    async permanentDeletePost(boardId: string, postId: string): Promise<void> {
+        await this.request<void>(`/boards/${boardId}/posts/${postId}/permanent`, {
             method: 'DELETE'
         });
+    }
+
+    /**
+     * 삭제된 게시글 목록 조회
+     * 🔒 관리자 전용
+     */
+    async getDeletedPosts(
+        page: number = 1,
+        limit: number = 20
+    ): Promise<PaginatedResponse<FreePost>> {
+        const response = await this.request<PaginatedResponse<FreePost>>(
+            `/admin/posts/deleted?page=${page}&limit=${limit}`
+        );
+        return response.data;
+    }
+
+    // ========================================
+    // 수정 이력 (Revision)
+    // ========================================
+
+    /**
+     * 게시글 수정 이력 조회
+     * 🔒 작성자 또는 관리자
+     */
+    async getPostRevisions(boardId: string, postId: string): Promise<PostRevision[]> {
+        const response = await this.request<PostRevision[]>(
+            `/boards/${boardId}/posts/${postId}/revisions`
+        );
+        return response.data;
+    }
+
+    /**
+     * 특정 버전 조회
+     */
+    async getPostRevision(boardId: string, postId: string, version: number): Promise<PostRevision> {
+        const response = await this.request<PostRevision>(
+            `/boards/${boardId}/posts/${postId}/revisions/${version}`
+        );
+        return response.data;
+    }
+
+    /**
+     * 이전 버전으로 복원
+     * 🔒 작성자 또는 관리자
+     */
+    async restoreRevision(boardId: string, postId: string, version: number): Promise<FreePost> {
+        const response = await this.request<FreePost>(
+            `/boards/${boardId}/posts/${postId}/revisions/${version}/restore`,
+            { method: 'POST' }
+        );
+        return response.data;
     }
 
     // ========================================
@@ -528,6 +604,117 @@ class ApiClient {
     async deleteComment(boardId: string, postId: string, commentId: string): Promise<void> {
         await this.request<void>(`/boards/${boardId}/posts/${postId}/comments/${commentId}`, {
             method: 'DELETE'
+        });
+    }
+
+    // ========================================
+    // 스크랩 (Scrap/Bookmark)
+    // ========================================
+
+    /**
+     * 게시글 스크랩 추가
+     * 🔒 인증 필요
+     */
+    async scrapPost(postId: string, memo?: string): Promise<Scrap> {
+        const response = await this.request<Scrap>(`/posts/${postId}/scrap`, {
+            method: 'POST',
+            body: memo ? JSON.stringify({ memo }) : undefined
+        });
+        return response.data;
+    }
+
+    /**
+     * 게시글 스크랩 해제
+     * 🔒 인증 필요
+     */
+    async unscrapPost(postId: string): Promise<void> {
+        await this.request<void>(`/posts/${postId}/scrap`, {
+            method: 'DELETE'
+        });
+    }
+
+    /**
+     * 내 스크랩 목록 조회
+     * 🔒 인증 필요
+     */
+    async getMyScraps(page: number = 1, limit: number = 20): Promise<PaginatedResponse<Scrap>> {
+        const response = await this.request<PaginatedResponse<Scrap>>(
+            `/my/scraps?page=${page}&limit=${limit}`
+        );
+        return response.data;
+    }
+
+    /**
+     * 게시글 스크랩 여부 확인
+     * 🔒 인증 필요
+     */
+    async getScrapStatus(postId: string): Promise<{ scrapped: boolean }> {
+        const response = await this.request<{ scrapped: boolean }>(`/posts/${postId}/scrap/status`);
+        return response.data;
+    }
+
+    // ========================================
+    // 게시판 그룹 (Board Groups)
+    // ========================================
+
+    /**
+     * 게시판 그룹 목록 조회 (게시판 포함)
+     */
+    async getBoardGroups(): Promise<BoardGroup[]> {
+        const response = await this.request<BoardGroup[]>('/board-groups');
+        return response.data;
+    }
+
+    /**
+     * 게시판 그룹 생성
+     * 🔒 관리자 전용
+     */
+    async createBoardGroup(data: {
+        id: string;
+        name: string;
+        description?: string;
+        sort_order?: number;
+    }): Promise<BoardGroup> {
+        const response = await this.request<BoardGroup>('/admin/board-groups', {
+            method: 'POST',
+            body: JSON.stringify(data)
+        });
+        return response.data;
+    }
+
+    /**
+     * 게시판 그룹 수정
+     * 🔒 관리자 전용
+     */
+    async updateBoardGroup(
+        groupId: string,
+        data: { name?: string; description?: string; is_visible?: boolean }
+    ): Promise<BoardGroup> {
+        const response = await this.request<BoardGroup>(`/admin/board-groups/${groupId}`, {
+            method: 'PUT',
+            body: JSON.stringify(data)
+        });
+        return response.data;
+    }
+
+    /**
+     * 게시판 그룹 삭제
+     * 🔒 관리자 전용
+     */
+    async deleteBoardGroup(groupId: string): Promise<void> {
+        await this.request<void>(`/admin/board-groups/${groupId}`, {
+            method: 'DELETE'
+        });
+    }
+
+    /**
+     * 게시판 그룹 순서 변경
+     * 🔒 관리자 전용
+     */
+    async reorderBoardGroups(groupIds: string[]): Promise<void> {
+        await this.request<void>('/admin/board-groups/reorder', {
+            method: 'PATCH',
+            body: JSON.stringify({ group_ids: groupIds })
         });
     }
 
@@ -1098,9 +1285,11 @@ class ApiClient {
             body: JSON.stringify(request)
         });
 
-        // 액세스 토큰 저장
+        // 액세스 토큰 저장 (localStorage + 쿠키)
         if (browser && response.data.access_token) {
             localStorage.setItem('access_token', response.data.access_token);
+            // 서버 사이드(SSR)에서도 읽을 수 있도록 쿠키에 저장
+            document.cookie = `access_token=${response.data.access_token}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
         }
 
         return response.data;

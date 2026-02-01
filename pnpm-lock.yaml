@@ -380,6 +380,19 @@ importers:
         specifier: ^5.9.3
         version: 5.9.3
 
+  packages/plugin-engine:
+    dependencies:
+      '@angple/hook-system':
+        specifier: workspace:*
+        version: link:../hook-system
+    devDependencies:
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: ^3.2.3
+        version: 3.2.4(@types/node@25.0.10)(@vitest/browser@3.2.4)(jiti@2.6.1)(lightningcss@1.30.2)(yaml@2.8.2)
+
   packages/theme-engine:
     dependencies:
       '@angple/hook-system':

@@ -38,7 +38,20 @@ async function fetchCurrentUser(): Promise<void> {
  * 앱 시작 시 호출
  */
 async function initAuth(): Promise<void> {
+    // localStorage 토큰이 있지만 쿠키에 없으면 동기화 (SSR에서 읽을 수 있도록)
+    syncTokenToCookie();
     await fetchCurrentUser();
+}
+
+/** localStorage의 access_token을 쿠키로 동기화 */
+function syncTokenToCookie(): void {
+    if (typeof document === 'undefined') return;
+    const token = localStorage.getItem('access_token');
+    if (!token) return;
+    const hasCookie = document.cookie.split('; ').some((c) => c.startsWith('access_token='));
+    if (!hasCookie) {
+        document.cookie = `access_token=${token}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
+    }
 }
 
 /**
@@ -48,6 +61,10 @@ async function initAuth(): Promise<void> {
 function resetAuth(): void {
     user = null;
     error = null;
+    // 쿠키 토큰도 제거
+    if (typeof document !== 'undefined') {
+        document.cookie = 'access_token=; path=/; max-age=0';
+    }
 }
 
 /**
