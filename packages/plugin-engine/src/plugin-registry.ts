@@ -55,7 +55,7 @@ export class PluginRegistry {
      */
     register(manifest: PluginManifestInfo, settings?: Record<string, unknown>): void {
         if (this.plugins.has(manifest.id)) {
-            console.warn(`[PluginRegistry] 이미 등록된 플러그인: ${manifest.id}`);
+            console.warn('[PluginRegistry] 이미 등록된 플러그인: %s', manifest.id);
             return;
         }
 
@@ -77,12 +77,12 @@ export class PluginRegistry {
     ): Promise<ExtensionContext | null> {
         const plugin = this.plugins.get(pluginId);
         if (!plugin) {
-            console.error(`[PluginRegistry] 등록되지 않은 플러그인: ${pluginId}`);
+            console.error('[PluginRegistry] 등록되지 않은 플러그인: %s', pluginId);
             return null;
         }
 
         if (plugin.active) {
-            console.warn(`[PluginRegistry] 이미 활성화된 플러그인: ${pluginId}`);
+            console.warn('[PluginRegistry] 이미 활성화된 플러그인: %s', pluginId);
             return this.contexts.get(pluginId) ?? null;
         }
 
@@ -108,7 +108,7 @@ export class PluginRegistry {
             try {
                 await initFn(context);
             } catch (error) {
-                console.error(`[PluginRegistry] 플러그인 초기화 실패: ${pluginId}`, error);
+                console.error('[PluginRegistry] 플러그인 초기화 실패: %s', pluginId, error);
                 this.permissionManager.revoke(pluginId);
                 this.contexts.delete(pluginId);
                 return null;
@@ -123,7 +123,7 @@ export class PluginRegistry {
         plugin.active = true;
         plugin.activatedAt = new Date();
 
-        console.log(`[PluginRegistry] 플러그인 활성화: ${pluginId}`);
+        console.log('[PluginRegistry] 플러그인 활성화: %s', pluginId);
         return context;
     }
 
@@ -142,7 +142,7 @@ export class PluginRegistry {
             try {
                 await cleanup();
             } catch (error) {
-                console.error(`[PluginRegistry] 플러그인 정리 실패: ${pluginId}`, error);
+                console.error('[PluginRegistry] 플러그인 정리 실패: %s', pluginId, error);
             }
         }
 
@@ -160,7 +160,7 @@ export class PluginRegistry {
         this.cleanupFunctions.delete(pluginId);
 
         plugin.active = false;
-        console.log(`[PluginRegistry] 플러그인 비활성화: ${pluginId}`);
+        console.log('[PluginRegistry] 플러그인 비활성화: %s', pluginId);
         return true;
     }
 

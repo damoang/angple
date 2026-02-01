@@ -65,16 +65,16 @@ class PluginHookManagerProxy extends HookManager {
  * 플러그인 로거 생성
  */
 function createPluginLogger(pluginId: string): PluginLogger {
-    const prefix = `[Plugin:${pluginId}]`;
+    const prefix = '[Plugin:' + pluginId + ']';
     return {
         info(message: string, ...args: unknown[]) {
-            console.log(`${prefix} ${message}`, ...args);
+            console.log('%s %s', prefix, message, ...args);
         },
         warn(message: string, ...args: unknown[]) {
-            console.warn(`${prefix} ${message}`, ...args);
+            console.warn('%s %s', prefix, message, ...args);
         },
         error(message: string, ...args: unknown[]) {
-            console.error(`${prefix} ${message}`, ...args);
+            console.error('%s %s', prefix, message, ...args);
         }
     };
 }

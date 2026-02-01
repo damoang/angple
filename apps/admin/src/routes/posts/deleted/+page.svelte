@@ -138,7 +138,7 @@
         <div class="space-y-3">
             {#each posts as post (post.id)}
                 {@const isProcessing = actionLoading[post.id]}
-                <Card.Root class="transition-opacity" class:opacity-50={isProcessing}>
+                <Card.Root class="transition-opacity {isProcessing ? 'opacity-50' : ''}">
                     <Card.Content class="flex items-center gap-4 p-4">
                         <div class="flex-1 min-w-0">
                             <div class="flex items-center gap-2">
