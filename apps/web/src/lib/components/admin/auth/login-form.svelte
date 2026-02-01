@@ -31,7 +31,7 @@
         errorMessage = '';
 
         try {
-            await apiClient.login({ email, password });
+            await apiClient.login({ user_id: email, password });
             // 로그인 성공 → 리다이렉트 (서버에서 관리자 여부 재검증)
             window.location.href = redirectTo;
         } catch (err) {

@@ -43,7 +43,10 @@ import type {
     OAuthProvider,
     OAuthLoginRequest,
     RegisterRequest,
-    RegisterResponse
+    RegisterResponse,
+    PostRevision,
+    Scrap,
+    BoardGroup
 } from './types.js';
 import { browser } from '$app/environment';
 import { ApiRequestError } from './errors.js';
