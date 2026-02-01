@@ -14,12 +14,7 @@
         variant?: 'default' | 'outline' | 'ghost';
     }
 
-    let {
-        postId,
-        initialScrapped = false,
-        size = 'icon',
-        variant = 'ghost'
-    }: Props = $props();
+    let { postId, initialScrapped = false, size = 'icon', variant = 'ghost' }: Props = $props();
 
     let scrapped = $state(initialScrapped);
     let loading = $state(false);
@@ -52,10 +47,7 @@
     aria-pressed={scrapped}
     class={scrapped ? 'text-yellow-500 hover:text-yellow-600' : ''}
 >
-    <Bookmark
-        class="h-4 w-4"
-        fill={scrapped ? 'currentColor' : 'none'}
-    />
+    <Bookmark class="h-4 w-4" fill={scrapped ? 'currentColor' : 'none'} />
     {#if size !== 'icon'}
         <span class="ml-1.5">{scrapped ? '스크랩됨' : '스크랩'}</span>
     {/if}

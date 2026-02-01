@@ -17,7 +17,9 @@ import type { LayoutServerLoad } from './$types';
 const BACKEND_API_URL = import.meta.env.VITE_BACKEND_API_URL || 'http://localhost:8081';
 
 /** 백엔드 API로 사용자 프로필 조회 */
-async function fetchUserProfile(token: string): Promise<{ isAdmin: boolean; nickname?: string } | null> {
+async function fetchUserProfile(
+    token: string
+): Promise<{ isAdmin: boolean; nickname?: string } | null> {
     try {
         const res = await fetch(`${BACKEND_API_URL}/api/v2/auth/profile`, {
             headers: { Authorization: `Bearer ${token}` }
@@ -36,10 +38,12 @@ async function fetchUserProfile(token: string): Promise<{ isAdmin: boolean; nick
 
 /** 쿠키에서 인증 토큰 추출 */
 function getAuthToken(cookies: { get(name: string): string | undefined }): string | null {
-    return cookies.get('admin_session')
-        || cookies.get('damoang_jwt')
-        || cookies.get('access_token')
-        || null;
+    return (
+        cookies.get('admin_session') ||
+        cookies.get('damoang_jwt') ||
+        cookies.get('access_token') ||
+        null
+    );
 }
 
 export const load: LayoutServerLoad = async ({ cookies, url }) => {
@@ -66,7 +70,12 @@ export const load: LayoutServerLoad = async ({ cookies, url }) => {
 
         if (profile && !profile.isAdmin) {
             // 로그인은 됐지만 관리자가 아님 → 접근 제한
-            return { isAdmin: false, authChecked: true, accessDenied: true, nickname: profile.nickname };
+            return {
+                isAdmin: false,
+                authChecked: true,
+                accessDenied: true,
+                nickname: profile.nickname
+            };
         }
     }
 

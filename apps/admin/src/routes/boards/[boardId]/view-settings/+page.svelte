@@ -17,15 +17,18 @@
     import { Label } from '$lib/components/ui/label';
     import { Switch } from '$lib/components/ui/switch';
     import { Checkbox } from '$lib/components/ui/checkbox';
-    import {
-        Select,
-        SelectContent,
-        SelectItem,
-        SelectTrigger
-    } from '$lib/components/ui/select';
+    import { Select, SelectContent, SelectItem, SelectTrigger } from '$lib/components/ui/select';
     import { toast } from 'svelte-sonner';
     import { Toaster } from '$lib/components/ui/sonner';
-    import { ChevronLeft, Save, List, LayoutGrid, Image, AlignJustify, Clock } from '@lucide/svelte';
+    import {
+        ChevronLeft,
+        Save,
+        List,
+        LayoutGrid,
+        Image,
+        AlignJustify,
+        Clock
+    } from '@lucide/svelte';
 
     type ViewMode = 'list' | 'card' | 'gallery' | 'compact' | 'timeline';
 
@@ -47,7 +50,9 @@
     ];
 
     let defaultView = $state<ViewMode>('list');
-    let allowedViews = $state<Set<ViewMode>>(new Set(['list', 'card', 'gallery', 'compact', 'timeline']));
+    let allowedViews = $state<Set<ViewMode>>(
+        new Set(['list', 'card', 'gallery', 'compact', 'timeline'])
+    );
     let isLoading = $state(false);
 
     function toggleView(viewId: ViewMode) {
@@ -115,11 +120,13 @@
                     onValueChange={(v: string) => (defaultView = v as ViewMode)}
                 >
                     <SelectTrigger>
-                        {viewModes.find(m => m.id === defaultView)?.label || '선택'}
+                        {viewModes.find((m) => m.id === defaultView)?.label || '선택'}
                     </SelectTrigger>
                     <SelectContent>
-                        {#each viewModes.filter(m => allowedViews.has(m.id)) as mode (mode.id)}
-                            <SelectItem value={mode.id}>{mode.label} - {mode.description}</SelectItem>
+                        {#each viewModes.filter((m) => allowedViews.has(m.id)) as mode (mode.id)}
+                            <SelectItem value={mode.id}
+                                >{mode.label} - {mode.description}</SelectItem
+                            >
                         {/each}
                     </SelectContent>
                 </Select>
@@ -130,9 +137,7 @@
         <Card>
             <CardHeader>
                 <CardTitle>허용 뷰 모드</CardTitle>
-                <CardDescription>
-                    사용자가 선택할 수 있는 뷰 모드를 제한합니다.
-                </CardDescription>
+                <CardDescription>사용자가 선택할 수 있는 뷰 모드를 제한합니다.</CardDescription>
             </CardHeader>
             <CardContent class="space-y-4">
                 {#each viewModes as mode (mode.id)}

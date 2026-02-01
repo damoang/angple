@@ -41,7 +41,8 @@
                 <ShieldX class="text-muted-foreground mx-auto mb-4 h-16 w-16" />
                 <h1 class="mb-2 text-2xl font-bold">접근 권한이 없습니다</h1>
                 <p class="text-muted-foreground mb-6">
-                    {data.nickname ? `${data.nickname}님은` : '현재 계정은'} 관리자 권한이 없습니다.<br />
+                    {data.nickname ? `${data.nickname}님은` : '현재 계정은'} 관리자 권한이 없습니다.<br
+                    />
                     관리자 계정으로 로그인해 주세요.
                 </p>
                 <div class="flex justify-center gap-3">

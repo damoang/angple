@@ -57,7 +57,8 @@
         {
             id: 'plugin-content-history',
             name: 'Content History',
-            description: '소프트 삭제 + 수정 이력 추적. 관리자가 삭제된 게시물을 복구할 수 있습니다.',
+            description:
+                '소프트 삭제 + 수정 이력 추적. 관리자가 삭제된 게시물을 복구할 수 있습니다.',
             version: '1.0.0',
             author: 'Angple Team',
             downloads: 0,
@@ -69,7 +70,8 @@
         {
             id: 'plugin-banner-message',
             name: 'Banner Message System',
-            description: '위치 기반 배너 광고 시스템. 헤더, 사이드바, 콘텐츠 영역에 배너를 표시합니다.',
+            description:
+                '위치 기반 배너 광고 시스템. 헤더, 사이드바, 콘텐츠 영역에 배너를 표시합니다.',
             version: '1.0.0',
             author: 'Damoang Team',
             downloads: 0,
@@ -97,16 +99,16 @@
         let result = featuredPlugins;
 
         if (activeCategory !== 'all') {
-            result = result.filter(p => p.category === activeCategory);
+            result = result.filter((p) => p.category === activeCategory);
         }
 
         if (searchQuery.trim()) {
             const query = searchQuery.toLowerCase();
             result = result.filter(
-                p =>
+                (p) =>
                     p.name.toLowerCase().includes(query) ||
                     p.description.toLowerCase().includes(query) ||
-                    p.tags.some(tag => tag.toLowerCase().includes(query))
+                    p.tags.some((tag) => tag.toLowerCase().includes(query))
             );
         }
 
@@ -136,7 +138,9 @@
     <!-- 검색 바 -->
     <div class="mb-6 flex gap-4">
         <div class="relative flex-1">
-            <Search class="text-muted-foreground absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" />
+            <Search
+                class="text-muted-foreground absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2"
+            />
             <Input
                 type="search"
                 placeholder="플러그인 검색..."

@@ -28,49 +28,62 @@
     let compareVersion = $state<number | null>(null);
     let restoringVersion = $state<number | null>(null);
 
-    const sortedRevisions = $derived(
-        [...revisions].sort((a, b) => b.version - a.version)
-    );
+    const sortedRevisions = $derived([...revisions].sort((a, b) => b.version - a.version));
 
     const selectedRevision = $derived(
         selectedVersion !== null
-            ? revisions.find((r) => r.version === selectedVersion) ?? null
+            ? (revisions.find((r) => r.version === selectedVersion) ?? null)
             : null
     );
 
     const compareRevision = $derived(
         compareVersion !== null
-            ? revisions.find((r) => r.version === compareVersion) ?? null
+            ? (revisions.find((r) => r.version === compareVersion) ?? null)
             : null
     );
 
     function getIcon(type: PostRevision['change_type']) {
         switch (type) {
-            case 'create': return FileText;
-            case 'update': return Edit;
-            case 'soft_delete': return Trash2;
-            case 'restore': return RotateCcw;
-            default: return Edit;
+            case 'create':
+                return FileText;
+            case 'update':
+                return Edit;
+            case 'soft_delete':
+                return Trash2;
+            case 'restore':
+                return RotateCcw;
+            default:
+                return Edit;
         }
     }
 
     function getColor(type: PostRevision['change_type']): string {
         switch (type) {
-            case 'create': return 'text-green-600 dark:text-green-400';
-            case 'update': return 'text-blue-600 dark:text-blue-400';
-            case 'soft_delete': return 'text-red-600 dark:text-red-400';
-            case 'restore': return 'text-orange-600 dark:text-orange-400';
-            default: return 'text-neutral-600 dark:text-neutral-400';
+            case 'create':
+                return 'text-green-600 dark:text-green-400';
+            case 'update':
+                return 'text-blue-600 dark:text-blue-400';
+            case 'soft_delete':
+                return 'text-red-600 dark:text-red-400';
+            case 'restore':
+                return 'text-orange-600 dark:text-orange-400';
+            default:
+                return 'text-neutral-600 dark:text-neutral-400';
         }
     }
 
     function getLabel(type: PostRevision['change_type']): string {
         switch (type) {
-            case 'create': return '작성';
-            case 'update': return '수정';
-            case 'soft_delete': return '삭제';
-            case 'restore': return '복원';
-            default: return '변경';
+            case 'create':
+                return '작성';
+            case 'update':
+                return '수정';
+            case 'soft_delete':
+                return '삭제';
+            case 'restore':
+                return '복원';
+            default:
+                return '변경';
         }
     }
 
@@ -124,15 +137,18 @@
             <div class="mt-4 space-y-3">
                 {#each sortedRevisions as rev (rev.version)}
                     {@const IconComp = getIcon(rev.change_type)}
-                    {@const isSelected = selectedVersion === rev.version || compareVersion === rev.version}
+                    {@const isSelected =
+                        selectedVersion === rev.version || compareVersion === rev.version}
                     <div
-                        class="rounded-lg border p-3 transition-colors dark:border-neutral-700 {isSelected ? 'border-blue-300 bg-blue-50 dark:border-blue-700 dark:bg-blue-950/20' : ''}"
+                        class="rounded-lg border p-3 transition-colors dark:border-neutral-700 {isSelected
+                            ? 'border-blue-300 bg-blue-50 dark:border-blue-700 dark:bg-blue-950/20'
+                            : ''}"
                     >
                         <div class="flex items-center gap-3">
                             <div class={getColor(rev.change_type)}>
                                 <IconComp class="h-4 w-4" />
                             </div>
-                            <div class="flex-1 min-w-0">
+                            <div class="min-w-0 flex-1">
                                 <div class="flex items-center gap-2 text-sm">
                                     <span class="font-medium">v{rev.version}</span>
                                     <span class={`text-xs ${getColor(rev.change_type)}`}>
@@ -179,7 +195,9 @@
                         </h4>
                         {#if compareRevision.title !== selectedRevision.title}
                             <div>
-                                <p class="text-muted-foreground mb-1 text-xs font-medium">제목 변경</p>
+                                <p class="text-muted-foreground mb-1 text-xs font-medium">
+                                    제목 변경
+                                </p>
                                 <RevisionDiff
                                     oldText={compareRevision.title}
                                     newText={selectedRevision.title}

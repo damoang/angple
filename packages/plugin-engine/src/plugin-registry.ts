@@ -148,7 +148,7 @@ export class PluginRegistry {
 
         // UI 슬롯에서 해당 플러그인 컴포넌트 제거
         for (const [slotName, registrations] of this.slotRegistry) {
-            const filtered = registrations.filter(r => r.pluginId !== pluginId);
+            const filtered = registrations.filter((r) => r.pluginId !== pluginId);
             this.slotRegistry.set(slotName, filtered);
         }
 
@@ -183,7 +183,7 @@ export class PluginRegistry {
      * 활성 플러그인 목록 조회
      */
     getActivePlugins(): RegisteredPlugin[] {
-        return Array.from(this.plugins.values()).filter(p => p.active);
+        return Array.from(this.plugins.values()).filter((p) => p.active);
     }
 
     /**

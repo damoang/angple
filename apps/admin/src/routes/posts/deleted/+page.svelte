@@ -140,7 +140,7 @@
                 {@const isProcessing = actionLoading[post.id]}
                 <Card.Root class="transition-opacity {isProcessing ? 'opacity-50' : ''}">
                     <Card.Content class="flex items-center gap-4 p-4">
-                        <div class="flex-1 min-w-0">
+                        <div class="min-w-0 flex-1">
                             <div class="flex items-center gap-2">
                                 <span class="truncate font-medium">{post.title}</span>
                                 <Badge variant="outline" class="shrink-0 text-xs">

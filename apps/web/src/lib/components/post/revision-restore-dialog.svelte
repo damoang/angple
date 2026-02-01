@@ -33,14 +33,11 @@
         <Dialog.Header>
             <Dialog.Title>버전 복원 확인</Dialog.Title>
             <Dialog.Description>
-                v{version} 버전으로 게시물을 복원하시겠습니까?
-                현재 내용은 새로운 수정 이력으로 저장됩니다.
+                v{version} 버전으로 게시물을 복원하시겠습니까? 현재 내용은 새로운 수정 이력으로 저장됩니다.
             </Dialog.Description>
         </Dialog.Header>
         <Dialog.Footer>
-            <Button variant="outline" onclick={onCancel} disabled={confirming}>
-                취소
-            </Button>
+            <Button variant="outline" onclick={onCancel} disabled={confirming}>취소</Button>
             <Button onclick={handleConfirm} disabled={confirming}>
                 <RotateCcw class="mr-1.5 h-4 w-4" />
                 {confirming ? '복원 중...' : '복원'}

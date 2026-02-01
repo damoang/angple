@@ -32,7 +32,9 @@
             {/if}
 
             <!-- 오버레이 -->
-            <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 transition-opacity group-hover:opacity-100">
+            <div
+                class="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 transition-opacity group-hover:opacity-100"
+            >
                 <div class="absolute bottom-0 left-0 right-0 p-2 text-white">
                     <p class="line-clamp-2 text-xs font-medium">{post.title}</p>
                     <div class="mt-1 flex items-center gap-2 text-[10px] opacity-80">

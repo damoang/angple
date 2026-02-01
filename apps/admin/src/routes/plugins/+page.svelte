@@ -95,7 +95,9 @@
                 <div class="flex gap-2">
                     <PluginZipUploader onUploadSuccess={() => pluginStore.loadPlugins()} />
                     <PluginGithubInstaller onInstallSuccess={() => pluginStore.loadPlugins()} />
-                    <Button variant="outline" href="/plugins/marketplace">{t('admin_plugins_marketplace')}</Button>
+                    <Button variant="outline" href="/plugins/marketplace"
+                        >{t('admin_plugins_marketplace')}</Button
+                    >
                 </div>
                 <div class="text-muted-foreground text-sm">
                     {t('admin_plugins_installed')}: {plugins.length} ({t('admin_plugins_active')}: {plugins.filter(

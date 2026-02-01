@@ -23,9 +23,7 @@
     const currentMode = $derived(boardViewStore.getViewMode(boardId));
 
     const availableModes = $derived(
-        allowedModes
-            ? VIEW_MODES.filter(m => allowedModes.includes(m.id))
-            : VIEW_MODES
+        allowedModes ? VIEW_MODES.filter((m) => allowedModes.includes(m.id)) : VIEW_MODES
     );
 
     function setMode(mode: BoardViewMode) {
@@ -34,11 +32,11 @@
 
     /** 아이콘 매핑 */
     const iconMap: Record<string, typeof List> = {
-        'list': List,
+        list: List,
         'layout-grid': LayoutGrid,
-        'image': ImageIcon,
+        image: ImageIcon,
         'align-justify': AlignJustify,
-        'clock': Clock
+        clock: Clock
     };
 </script>
 

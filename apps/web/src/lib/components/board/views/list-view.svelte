@@ -30,7 +30,9 @@
                 <div class="flex items-center gap-2">
                     <span class="truncate font-medium">{post.title}</span>
                     {#if post.isNew}
-                        <span class="bg-primary text-primary-foreground rounded px-1 text-xs">N</span>
+                        <span class="bg-primary text-primary-foreground rounded px-1 text-xs"
+                            >N</span
+                        >
                     {/if}
                     {#if post.commentCount > 0}
                         <span class="text-primary text-xs font-medium">[{post.commentCount}]</span>

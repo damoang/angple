@@ -17,7 +17,9 @@
     {#each posts as post, index (post.id)}
         <div class="relative mb-6">
             <!-- 타임라인 도트 -->
-            <div class="bg-background border-primary absolute -left-[31px] top-1 flex h-4 w-4 items-center justify-center rounded-full border-2">
+            <div
+                class="bg-background border-primary absolute -left-[31px] top-1 flex h-4 w-4 items-center justify-center rounded-full border-2"
+            >
                 <Circle class="text-primary h-1.5 w-1.5 fill-current" />
             </div>
 

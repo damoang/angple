@@ -38,9 +38,22 @@ const MAX_TOTAL_SIZE = 50 * 1024 * 1024;
 
 /** 허용 확장자 */
 const ALLOWED_EXTENSIONS = [
-    '.svelte', '.ts', '.js', '.json', '.css',
-    '.png', '.jpg', '.jpeg', '.svg', '.webp',
-    '.md', '.yaml', '.yml', '.html', '.go', '.sql'
+    '.svelte',
+    '.ts',
+    '.js',
+    '.json',
+    '.css',
+    '.png',
+    '.jpg',
+    '.jpeg',
+    '.svg',
+    '.webp',
+    '.md',
+    '.yaml',
+    '.yml',
+    '.html',
+    '.go',
+    '.sql'
 ];
 
 /**
@@ -103,14 +116,24 @@ export const POST: RequestHandler = async ({ request }) => {
 
         if (file.size > MAX_FILE_SIZE) {
             return json(
-                { success: false, error: `파일 크기가 너무 큽니다. (최대: ${MAX_FILE_SIZE / 1024 / 1024}MB)` },
+                {
+                    success: false,
+                    error: `파일 크기가 너무 큽니다. (최대: ${MAX_FILE_SIZE / 1024 / 1024}MB)`
+                },
                 { status: 400 }
             );
         }
 
-        const validMimeTypes = ['application/zip', 'application/x-zip-compressed', 'application/octet-stream'];
+        const validMimeTypes = [
+            'application/zip',
+            'application/x-zip-compressed',
+            'application/octet-stream'
+        ];
         if (!validMimeTypes.includes(file.type)) {
-            return json({ success: false, error: 'ZIP 파일만 업로드 가능합니다.' }, { status: 400 });
+            return json(
+                { success: false, error: 'ZIP 파일만 업로드 가능합니다.' },
+                { status: 400 }
+            );
         }
 
         // custom-plugins 디렉터리 생성
@@ -155,7 +178,10 @@ export const POST: RequestHandler = async ({ request }) => {
             if (!manifestEntry) {
                 rmSync(tempZipPath);
                 return json(
-                    { success: false, error: 'ZIP 파일에 plugin.json 또는 extension.json이 없습니다.' },
+                    {
+                        success: false,
+                        error: 'ZIP 파일에 plugin.json 또는 extension.json이 없습니다.'
+                    },
                     { status: 400 }
                 );
             }
@@ -197,7 +223,10 @@ export const POST: RequestHandler = async ({ request }) => {
             if (existsSync(targetDir)) {
                 rmSync(tempZipPath);
                 return json(
-                    { success: false, error: `플러그인 "${pluginId}"이(가) 이미 설치되어 있습니다.` },
+                    {
+                        success: false,
+                        error: `플러그인 "${pluginId}"이(가) 이미 설치되어 있습니다.`
+                    },
                     { status: 409 }
                 );
             }

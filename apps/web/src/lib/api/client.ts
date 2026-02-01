@@ -530,11 +530,7 @@ class ApiClient {
     /**
      * 특정 버전 조회
      */
-    async getPostRevision(
-        boardId: string,
-        postId: string,
-        version: number
-    ): Promise<PostRevision> {
+    async getPostRevision(boardId: string, postId: string, version: number): Promise<PostRevision> {
         const response = await this.request<PostRevision>(
             `/boards/${boardId}/posts/${postId}/revisions/${version}`
         );
@@ -545,11 +541,7 @@ class ApiClient {
      * 이전 버전으로 복원
      * 🔒 작성자 또는 관리자
      */
-    async restoreRevision(
-        boardId: string,
-        postId: string,
-        version: number
-    ): Promise<FreePost> {
+    async restoreRevision(boardId: string, postId: string, version: number): Promise<FreePost> {
         const response = await this.request<FreePost>(
             `/boards/${boardId}/posts/${postId}/revisions/${version}/restore`,
             { method: 'POST' }
@@ -642,10 +634,7 @@ class ApiClient {
      * 내 스크랩 목록 조회
      * 🔒 인증 필요
      */
-    async getMyScraps(
-        page: number = 1,
-        limit: number = 20
-    ): Promise<PaginatedResponse<Scrap>> {
+    async getMyScraps(page: number = 1, limit: number = 20): Promise<PaginatedResponse<Scrap>> {
         const response = await this.request<PaginatedResponse<Scrap>>(
             `/my/scraps?page=${page}&limit=${limit}`
         );
@@ -657,9 +646,7 @@ class ApiClient {
      * 🔒 인증 필요
      */
     async getScrapStatus(postId: string): Promise<{ scrapped: boolean }> {
-        const response = await this.request<{ scrapped: boolean }>(
-            `/posts/${postId}/scrap/status`
-        );
+        const response = await this.request<{ scrapped: boolean }>(`/posts/${postId}/scrap/status`);
         return response.data;
     }
 
@@ -700,10 +687,10 @@ class ApiClient {
         groupId: string,
         data: { name?: string; description?: string; is_visible?: boolean }
     ): Promise<BoardGroup> {
-        const response = await this.request<BoardGroup>(
-            `/admin/board-groups/${groupId}`,
-            { method: 'PUT', body: JSON.stringify(data) }
-        );
+        const response = await this.request<BoardGroup>(`/admin/board-groups/${groupId}`, {
+            method: 'PUT',
+            body: JSON.stringify(data)
+        });
         return response.data;
     }
 

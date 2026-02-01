@@ -9,12 +9,7 @@
     import { Input } from '$lib/components/ui/input';
     import { Label } from '$lib/components/ui/label';
     import { Switch } from '$lib/components/ui/switch';
-    import {
-        Select,
-        SelectContent,
-        SelectItem,
-        SelectTrigger
-    } from '$lib/components/ui/select';
+    import { Select, SelectContent, SelectItem, SelectTrigger } from '$lib/components/ui/select';
 
     interface SettingField {
         type: string;
@@ -41,11 +36,11 @@
     /**
      * select 옵션 정규화
      */
-    function normalizeOptions(options?: string[] | { label: string; value: string }[]): { label: string; value: string }[] {
+    function normalizeOptions(
+        options?: string[] | { label: string; value: string }[]
+    ): { label: string; value: string }[] {
         if (!options) return [];
-        return options.map(opt =>
-            typeof opt === 'string' ? { label: opt, value: opt } : opt
-        );
+        return options.map((opt) => (typeof opt === 'string' ? { label: opt, value: opt } : opt));
     }
 
     /**
@@ -77,7 +72,7 @@
                     />
                 </div>
 
-            <!-- number → Input[number] -->
+                <!-- number → Input[number] -->
             {:else if field.type === 'number'}
                 <Label for={key}>{field.label}</Label>
                 {#if field.description}
@@ -97,7 +92,7 @@
                     placeholder={field.placeholder}
                 />
 
-            <!-- select → Select -->
+                <!-- select → Select -->
             {:else if field.type === 'select'}
                 <Label for={key}>{field.label}</Label>
                 {#if field.description}
@@ -111,7 +106,7 @@
                     onValueChange={(v: string) => (values[key] = v)}
                 >
                     <SelectTrigger id={key}>
-                        {options.find(o => o.value === currentValue)?.label || '선택하세요'}
+                        {options.find((o) => o.value === currentValue)?.label || '선택하세요'}
                     </SelectTrigger>
                     <SelectContent>
                         {#each options as option (option.value)}
@@ -120,7 +115,7 @@
                     </SelectContent>
                 </Select>
 
-            <!-- textarea -->
+                <!-- textarea -->
             {:else if field.type === 'textarea'}
                 <Label for={key}>{field.label}</Label>
                 {#if field.description}
@@ -138,7 +133,7 @@
                     class="border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring flex w-full rounded-md border px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                 ></textarea>
 
-            <!-- color -->
+                <!-- color -->
             {:else if field.type === 'color'}
                 <Label for={key}>{field.label}</Label>
                 {#if field.description}
@@ -167,7 +162,7 @@
                     />
                 </div>
 
-            <!-- string / text / url / email → Input[text] (기본) -->
+                <!-- string / text / url / email → Input[text] (기본) -->
             {:else}
                 <Label for={key}>{field.label}</Label>
                 {#if field.description}

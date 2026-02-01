@@ -56,11 +56,15 @@
         <div class="max-h-80 overflow-y-auto text-xs">
             {#each diffLines as line}
                 {#if line.type === 'removed'}
-                    <div class="bg-red-50 px-3 py-0.5 text-red-800 dark:bg-red-950/30 dark:text-red-300">
+                    <div
+                        class="bg-red-50 px-3 py-0.5 text-red-800 dark:bg-red-950/30 dark:text-red-300"
+                    >
                         <span class="mr-2 select-none opacity-50">-</span>{line.text || ' '}
                     </div>
                 {:else if line.type === 'added'}
-                    <div class="bg-green-50 px-3 py-0.5 text-green-800 dark:bg-green-950/30 dark:text-green-300">
+                    <div
+                        class="bg-green-50 px-3 py-0.5 text-green-800 dark:bg-green-950/30 dark:text-green-300"
+                    >
                         <span class="mr-2 select-none opacity-50">+</span>{line.text || ' '}
                     </div>
                 {:else}

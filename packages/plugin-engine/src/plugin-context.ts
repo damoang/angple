@@ -36,7 +36,11 @@ class PluginHookManagerProxy extends HookManager {
         super.addAction(hookName, callback, priority);
     }
 
-    override addFilter(hookName: string, callback: (value: any, ...args: any[]) => any, priority = 10): void {
+    override addFilter(
+        hookName: string,
+        callback: (value: any, ...args: any[]) => any,
+        priority = 10
+    ): void {
         this.globalHooks.addFilter(hookName, callback, priority);
         super.addFilter(hookName, callback, priority);
     }
@@ -152,7 +156,7 @@ export function createExtensionContext(
             removeSlot(name: string): void {
                 const existing = slotRegistry.get(name);
                 if (existing) {
-                    const filtered = existing.filter(r => r.pluginId !== pluginId);
+                    const filtered = existing.filter((r) => r.pluginId !== pluginId);
                     slotRegistry.set(name, filtered);
                 }
             }

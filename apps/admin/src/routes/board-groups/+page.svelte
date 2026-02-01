@@ -207,7 +207,7 @@
                             </button>
                         </div>
 
-                        <div class="flex-1 min-w-0">
+                        <div class="min-w-0 flex-1">
                             <div class="flex items-center gap-2">
                                 <FolderOpen class="h-4 w-4 shrink-0" />
                                 <span class="font-medium">{group.name}</span>

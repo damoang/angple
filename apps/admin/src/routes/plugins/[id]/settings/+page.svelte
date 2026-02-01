@@ -119,7 +119,7 @@
                 </CardHeader>
                 <CardContent>
                     <PluginSettingsForm
-                        schema={plugin.manifest.settings}
+                        schema={plugin.manifest.settings as any}
                         bind:values={settings}
                     />
                 </CardContent>

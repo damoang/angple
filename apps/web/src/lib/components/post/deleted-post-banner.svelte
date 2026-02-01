@@ -25,9 +25,7 @@
         }
     }
 
-    const formattedDate = $derived(
-        deletedAt ? new Date(deletedAt).toLocaleString('ko-KR') : null
-    );
+    const formattedDate = $derived(deletedAt ? new Date(deletedAt).toLocaleString('ko-KR') : null);
 </script>
 
 <div
@@ -38,13 +36,13 @@
     <div class="flex items-start gap-3">
         <AlertTriangle class="mt-0.5 h-5 w-5 shrink-0 text-red-600 dark:text-red-400" />
         <div class="flex-1">
-            <p class="font-medium text-red-800 dark:text-red-300">
-                이 게시물은 삭제되었습니다.
-            </p>
+            <p class="font-medium text-red-800 dark:text-red-300">이 게시물은 삭제되었습니다.</p>
             {#if formattedDate || deletedBy}
                 <p class="mt-1 text-sm text-red-600 dark:text-red-400">
                     {#if deletedBy}삭제자: {deletedBy}{/if}
-                    {#if deletedBy && formattedDate} · {/if}
+                    {#if deletedBy && formattedDate}
+                        ·
+                    {/if}
                     {#if formattedDate}삭제일: {formattedDate}{/if}
                 </p>
             {/if}

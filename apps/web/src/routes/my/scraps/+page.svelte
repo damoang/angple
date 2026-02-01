@@ -89,7 +89,7 @@
                     class="flex items-center gap-4 py-3 transition-opacity"
                     class:opacity-50={isRemoving}
                 >
-                    <div class="flex-1 min-w-0">
+                    <div class="min-w-0 flex-1">
                         <a
                             href="/{scrap.board_id}/{scrap.post_id}"
                             class="hover:text-primary truncate font-medium transition-colors"

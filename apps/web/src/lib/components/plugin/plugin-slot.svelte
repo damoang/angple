@@ -53,13 +53,15 @@
             {#if !errors.has(slot.id)}
                 <div class="plugin-slot-item" data-plugin-source={slot.source || 'unknown'}>
                     {#key slot.id}
-                        <slot.component {...(slot.props ?? {})} {...extraProps} />
+                        <slot.component {...slot.props ?? {}} {...extraProps} />
                     {/key}
                 </div>
             {:else}
                 <!-- 에러 발생한 컴포넌트는 숨김 처리 (프로덕션) -->
                 {#if import.meta.env.DEV}
-                    <div class="plugin-slot-error rounded border border-red-200 bg-red-50 p-2 text-xs text-red-600">
+                    <div
+                        class="plugin-slot-error rounded border border-red-200 bg-red-50 p-2 text-xs text-red-600"
+                    >
                         [Plugin Error: {slot.source || slot.id}] {errors.get(slot.id)}
                     </div>
                 {/if}
