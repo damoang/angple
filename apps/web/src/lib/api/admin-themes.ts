@@ -56,8 +56,6 @@ export async function setActiveTheme(themeId: string): Promise<void> {
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}`);
         }
-
-        console.log('테마 활성화 성공:', { themeId });
     } catch (error) {
         console.error('테마 활성화 실패:', { error });
         throw error;
@@ -100,8 +98,6 @@ export async function setThemeSettings(
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}`);
         }
-
-        console.log('테마 설정 저장 성공:', { themeId });
     } catch (error) {
         console.error('테마 설정 저장 실패:', { themeId, error });
         throw error;
@@ -120,8 +116,6 @@ export async function deleteTheme(themeId: string): Promise<void> {
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}`);
         }
-
-        console.log('테마 삭제 성공:', { themeId });
     } catch (error) {
         console.error('테마 삭제 실패:', { themeId, error });
         throw error;

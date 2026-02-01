@@ -1,27 +1,16 @@
 <script lang="ts">
     import AdminLoginForm from '$lib/components/admin/auth/login-form.svelte';
-    import { onMount } from 'svelte';
     import { browser } from '$app/environment';
 
     let { data } = $props();
 
     let checking = $state(true);
 
-    onMount(() => {
+    $effect(() => {
         if (!browser) return;
 
-        // 이미 관리자 인증 완료 → 대시보드로 이동
         if (data.isAdmin) {
             window.location.href = '/admin/dashboard';
-            return;
-        }
-
-        // localStorage 토큰이 있으면 쿠키 동기화 후 새로고침
-        const token = localStorage.getItem('access_token');
-        const hasCookie = document.cookie.split('; ').some((c) => c.startsWith('access_token='));
-        if (token && !hasCookie) {
-            document.cookie = `access_token=${token}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
-            window.location.reload();
             return;
         }
 

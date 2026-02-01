@@ -55,9 +55,8 @@
 
     async function testMockMode() {
         addResult(`ℹ️ Mock 모드: OFF (실제 API 호출)`);
-        // Access Token은 localStorage에 저장됨
-        const hasToken = !!localStorage.getItem('access_token');
-        addResult(`ℹ️ Access Token: ${hasToken ? '있음' : '없음'}`);
+        const hasToken = !!apiClient.getAccessToken();
+        addResult(`ℹ️ Access Token: ${hasToken ? '있음 (메모리)' : '없음'}`);
     }
 
     function clearResults() {
