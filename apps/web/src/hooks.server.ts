@@ -12,9 +12,7 @@ import { dev } from '$app/environment';
 const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8081';
 
 /** SSR 인증: refreshToken 쿠키로 사용자 정보 조회 */
-async function authenticateSSR(
-    event: Parameters<Handle>[0]['event']
-): Promise<void> {
+async function authenticateSSR(event: Parameters<Handle>[0]['event']): Promise<void> {
     event.locals.user = null;
     event.locals.accessToken = null;
 

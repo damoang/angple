@@ -84,9 +84,7 @@ class ApiClient {
         if (this._accessToken) return this._accessToken;
 
         // 하위 호환: damoang_jwt 쿠키 확인 (damoang.net SSO)
-        const jwtCookie = document.cookie
-            .split('; ')
-            .find((row) => row.startsWith('damoang_jwt='));
+        const jwtCookie = document.cookie.split('; ').find((row) => row.startsWith('damoang_jwt='));
         if (jwtCookie) {
             return jwtCookie.split('=')[1];
         }

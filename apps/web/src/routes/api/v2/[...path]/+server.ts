@@ -63,7 +63,9 @@ async function proxyRequest(
         const responseHeaders = new Headers();
         response.headers.forEach((value, key) => {
             const k = key.toLowerCase();
-            if (!['content-encoding', 'transfer-encoding', 'connection', 'set-cookie'].includes(k)) {
+            if (
+                !['content-encoding', 'transfer-encoding', 'connection', 'set-cookie'].includes(k)
+            ) {
                 responseHeaders.set(key, value);
             }
         });
@@ -86,7 +88,10 @@ async function proxyRequest(
 
         // CORS 헤더
         responseHeaders.set('Access-Control-Allow-Origin', '*');
-        responseHeaders.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+        responseHeaders.set(
+            'Access-Control-Allow-Methods',
+            'GET, POST, PUT, DELETE, PATCH, OPTIONS'
+        );
         responseHeaders.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
         return new Response(response.body, {
