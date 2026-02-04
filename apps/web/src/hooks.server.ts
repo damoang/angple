@@ -9,7 +9,7 @@ import { dev } from '$app/environment';
  * 3. CSP 설정: XSS 및 데이터 인젝션 공격 방지
  */
 
-const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8081';
+const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8082';
 
 /** SSR 인증: refreshToken 쿠키로 사용자 정보 조회 */
 async function authenticateSSR(event: Parameters<Handle>[0]['event']): Promise<void> {

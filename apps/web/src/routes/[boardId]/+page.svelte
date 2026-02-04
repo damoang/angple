@@ -125,7 +125,7 @@
         <div>
             <h1 class="text-foreground mb-2 text-3xl font-bold">{boardTitle}</h1>
         </div>
-        {#if canWrite()}
+        {#if canWrite}
             <Button onclick={goToWrite} class="shrink-0">
                 <Pencil class="mr-2 h-4 w-4" />
                 글쓰기
@@ -135,7 +135,7 @@
             <Button
                 disabled
                 class="shrink-0 cursor-not-allowed opacity-60"
-                title={writePermissionMessage()}
+                title={writePermissionMessage}
             >
                 <Lock class="mr-2 h-4 w-4" />
                 글쓰기
