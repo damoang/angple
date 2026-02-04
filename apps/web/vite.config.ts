@@ -8,6 +8,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig(() => {
     return {
+        envDir: path.resolve(__dirname, '../..'),
         plugins: [tailwindcss(), sveltekit()],
         resolve: {
             alias: {
@@ -26,11 +27,33 @@ export default defineConfig(() => {
                     target: 'http://localhost:8081',
                     changeOrigin: true,
                     secure: false,
+                    rewrite: (path) => {
+                        // v2 전용 엔드포인트 목록 (이 경로들은 v1으로 rewrite하지 않고 그대로 v2로 전달)
+                        const v2OnlyPaths = [
+                            '/api/v2/auth/login', // 인증 로그인만 v2 (profile, refresh는 v1)
+                            '/api/v2/payments',
+                            '/api/v2/saas',
+                            '/api/v2/recommendations',
+                            '/api/v2/marketplace',
+                            '/api/v2/media',
+                            '/api/v2/search',
+                            '/api/v2/users', // v2 사용자 목록 등
+                            '/api/v2/admin/tenants' // 멀티테넌트 관리
+                        ];
+
+                        // v2 전용 경로인 경우 rewrite 안 함
+                        if (v2OnlyPaths.some((v2Path) => path.startsWith(v2Path))) {
+                            return path;
+                        }
+
+                        // 그 외(게시판, 인증 등 Core 기능)는 v1으로 rewrite
+                        return path.replace('/api/v2', '/api/v1');
+                    },
                     configure: (proxy) => {
                         proxy.on('proxyReq', (proxyReq, req) => {
-                            // Origin 헤더를 백엔드 URL로 변경
                             proxyReq.setHeader('Origin', 'http://localhost:8081');
-                            console.log('[Proxy]', req.method, req.url);
+                            // 디버깅용 로그
+                            // console.log('[Proxy]', req.method, req.url, '->', proxyReq.path);
                         });
                     }
                 }
