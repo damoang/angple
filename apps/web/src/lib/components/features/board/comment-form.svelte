@@ -54,9 +54,7 @@
     });
 
     // 권한 부족 시 표시할 메시지
-    const permissionMessage = $derived(
-        `레벨 ${requiredCommentLevel} 이상 작성 가능`
-    );
+    const permissionMessage = $derived(`레벨 ${requiredCommentLevel} 이상 작성 가능`);
 
     let content = $state('');
     let isSecret = $state(false);
