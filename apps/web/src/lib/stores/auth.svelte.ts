@@ -35,9 +35,20 @@ async function fetchCurrentUser(): Promise<void> {
 
 /**
  * 인증 상태 초기화
- * 앱 시작 시 호출
+ * 앱 시작 시 호출 — refreshToken 쿠키로 accessToken 자동 갱신
  */
 async function initAuth(): Promise<void> {
+    // 레거시 localStorage 토큰 정리
+    if (typeof localStorage !== 'undefined') {
+        localStorage.removeItem('access_token');
+    }
+    // 레거시 쿠키 정리
+    if (typeof document !== 'undefined') {
+        document.cookie = 'access_token=; path=/; max-age=0';
+    }
+
+    // refreshToken 쿠키로 accessToken 자동 갱신
+    await apiClient.tryRefreshToken();
     await fetchCurrentUser();
 }
 
@@ -48,6 +59,7 @@ async function initAuth(): Promise<void> {
 function resetAuth(): void {
     user = null;
     error = null;
+    apiClient.setAccessToken(null);
 }
 
 /**

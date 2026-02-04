@@ -1,0 +1,85 @@
+{
+    "id": "plugin-content-history",
+    "name": "Content History",
+    "version": "1.0.0",
+    "description": "소프트 삭제 + 수정 이력 추적. 삭제된 게시물 복구 및 수정 이력 diff 확인이 가능합니다.",
+    "author": {
+        "name": "Angple Team",
+        "url": "https://angple.com"
+    },
+    "license": "MIT",
+    "category": "plugin",
+    "pluginType": "board",
+    "tags": ["history", "soft-delete", "restore", "diff", "admin"],
+    "angpleVersion": ">=1.0.0",
+    "main": "./src/index.js",
+    "permissions": [
+        "posts:read",
+        "posts:write",
+        "posts:delete",
+        "settings:read"
+    ],
+    "hooks": [
+        {
+            "name": "before_post_delete",
+            "type": "filter",
+            "callback": "./src/hooks/soft-delete.js",
+            "priority": 1
+        },
+        {
+            "name": "post_content",
+            "type": "filter",
+            "callback": "./src/hooks/content-filter.js",
+            "priority": 5
+        },
+        {
+            "name": "after_post_update",
+            "type": "action",
+            "callback": "./src/hooks/history-track.js",
+            "priority": 10
+        }
+    ],
+    "components": [
+        {
+            "id": "history-viewer",
+            "name": "History Viewer",
+            "slot": "content-after",
+            "path": "./src/ui/history-viewer.svelte",
+            "priority": 20
+        },
+        {
+            "id": "deleted-banner",
+            "name": "Deleted Banner",
+            "slot": "content-before",
+            "path": "./src/ui/deleted-banner.svelte",
+            "priority": 1
+        }
+    ],
+    "settings": {
+        "enable_soft_delete": {
+            "type": "boolean",
+            "default": true,
+            "label": "소프트 삭제 활성화",
+            "description": "게시물 삭제 시 데이터를 완전히 삭제하지 않고 소프트 삭제합니다."
+        },
+        "history_visibility": {
+            "type": "select",
+            "default": "admins",
+            "label": "이력 공개 범위",
+            "description": "수정 이력을 볼 수 있는 사용자 범위",
+            "options": [
+                { "label": "관리자만", "value": "admins" },
+                { "label": "작성자 + 관리자", "value": "author_admins" },
+                { "label": "모든 사용자", "value": "all" }
+            ]
+        },
+        "max_versions": {
+            "type": "number",
+            "default": 10,
+            "label": "최대 보관 버전 수",
+            "description": "게시물당 보관할 수정 이력의 최대 수",
+            "min": 1,
+            "max": 100
+        }
+    }
+}

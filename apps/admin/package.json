@@ -41,6 +41,7 @@
         "playwright": "^1.53.0",
         "svelte": "^5.46.4",
         "svelte-check": "^4.0.0",
+        "svelte-dnd-action": "^0.9.69",
         "svelte-sonner": "^1.0.7",
         "tailwind-merge": "^3.3.1",
         "tailwind-variants": "^3.2.2",
@@ -58,6 +59,7 @@
         ]
     },
     "dependencies": {
+        "@angple/i18n": "workspace:*",
         "@angple/types": "workspace:*"
     }
 }

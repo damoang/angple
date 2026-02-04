@@ -1,0 +1,58 @@
+{
+    "id": "plugin-promotion",
+    "name": "Direct Promotion Board",
+    "version": "1.0.0",
+    "description": "Direct promotion board plugin for advertisers to post promotional content",
+    "author": {
+        "name": "Damoang Team",
+        "email": "dev@damoang.net"
+    },
+    "license": "MIT",
+    "category": "plugin",
+    "pluginType": "board",
+    "tags": ["promotion", "advertising", "board", "sponsored"],
+    "keywords": ["promotion", "advertising", "sponsored-content", "advertiser"],
+    "angpleVersion": ">=1.0.0",
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "permissions": ["posts:read", "posts:write", "settings:read"],
+    "hooks": {
+        "post_list": "./hooks/post-list-filter.js",
+        "sidebar_widgets": "./hooks/sidebar-widget.js"
+    },
+    "api": {
+        "rest": [
+            {
+                "method": "GET",
+                "path": "/promotion/posts",
+                "description": "Get promotion posts list"
+            },
+            {
+                "method": "GET",
+                "path": "/promotion/posts/insert",
+                "description": "Get promotion posts for insertion into other boards"
+            }
+        ]
+    },
+    "settings": {
+        "insertPosition": {
+            "type": "number",
+            "label": "Insert Position",
+            "description": "Position in post list to insert promotion posts",
+            "default": 3
+        },
+        "insertCount": {
+            "type": "number",
+            "label": "Insert Count",
+            "description": "Number of promotion posts to insert",
+            "default": 1
+        },
+        "excludeBoards": {
+            "type": "array",
+            "label": "Exclude Boards",
+            "description": "Board IDs to exclude from promotion post insertion",
+            "default": ["promotion", "promotion_my", "notice"]
+        }
+    },
+    "active": false
+}

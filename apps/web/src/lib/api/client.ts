@@ -43,9 +43,14 @@ import type {
     OAuthProvider,
     OAuthLoginRequest,
     RegisterRequest,
-    RegisterResponse
+    RegisterResponse,
+    PostRevision,
+    Scrap,
+    BoardGroup
 } from './types.js';
 import { browser } from '$app/environment';
+import { ApiRequestError } from './errors.js';
+import { fetchWithRetry, type RetryConfig, DEFAULT_RETRY_CONFIG } from './retry.js';
 
 // 서버/클라이언트 환경에 따라 API URL 분기
 // 클라이언트: 상대경로 (nginx 프록시)
@@ -54,113 +59,150 @@ const API_BASE_URL = browser
     ? '/api/v2'
     : process.env.INTERNAL_API_URL || 'http://localhost:8082/api/v2';
 
-// 디버깅: API URL 확인
-console.log('[API Client] Browser:', browser);
-console.log('[API Client] INTERNAL_API_URL:', browser ? 'N/A' : process.env.INTERNAL_API_URL);
-console.log('[API Client] Final API_BASE_URL:', API_BASE_URL);
-
 /**
  * API 클라이언트
  *
  * 🔒 보안 기능:
  * - httpOnly cookie를 사용한 Refresh Token 관리 (XSS 공격 방지)
- * - SameSite=Strict 설정으로 CSRF 공격 방지
- * - Access Token은 응답 본문으로 받아 메모리에만 저장
+ * - Access Token은 메모리에만 저장 (localStorage 사용 안 함)
  * - 모든 요청에 credentials: 'include'로 쿠키 자동 전송
- *
- * 📋 인증 플로우:
- * 1. 로그인: Backend가 httpOnly cookie로 Refresh Token 설정
- * 2. API 요청: 쿠키가 자동으로 전송되어 인증
- * 3. 토큰 갱신: /auth/refresh 엔드포인트가 쿠키에서 토큰 읽어 갱신
- * 4. 로그아웃: Backend가 쿠키 만료 처리
+ * - 401 응답 시 자동 토큰 갱신 후 재시도
  */
 class ApiClient {
-    // 액세스 토큰 가져오기 헬퍼
-    private getAccessToken(): string | null {
+    // 메모리 기반 액세스 토큰 (XSS 공격 방지)
+    private _accessToken: string | null = null;
+    private _refreshPromise: Promise<boolean> | null = null;
+
+    /** 액세스 토큰을 메모리에 설정 */
+    setAccessToken(token: string | null): void {
+        this._accessToken = token;
+    }
+
+    /** 현재 액세스 토큰 조회 (메모리에서만) */
+    getAccessToken(): string | null {
         if (!browser) return null;
+        if (this._accessToken) return this._accessToken;
 
-        // 1. localStorage에서 먼저 확인
-        let accessToken = localStorage.getItem('access_token');
-
-        // 2. localStorage에 없으면 쿠키에서 damoang_jwt 확인
-        if (!accessToken) {
-            const jwtCookie = document.cookie
-                .split('; ')
-                .find((row) => row.startsWith('damoang_jwt='));
-            if (jwtCookie) {
-                accessToken = jwtCookie.split('=')[1];
-            }
+        // 하위 호환: damoang_jwt 쿠키 확인 (damoang.net SSO)
+        const jwtCookie = document.cookie.split('; ').find((row) => row.startsWith('damoang_jwt='));
+        if (jwtCookie) {
+            return jwtCookie.split('=')[1];
         }
+        return null;
+    }
 
-        return accessToken;
+    /** refreshToken 쿠키로 accessToken 자동 갱신 */
+    async tryRefreshToken(): Promise<boolean> {
+        if (this._refreshPromise) return this._refreshPromise;
+
+        this._refreshPromise = (async () => {
+            try {
+                const url = `${API_BASE_URL}/auth/refresh`;
+                const response = await fetch(url, {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                if (!response.ok) return false;
+                const data = await response.json();
+                const newToken = data?.data?.access_token;
+                if (newToken) {
+                    this._accessToken = newToken;
+                    return true;
+                }
+                return false;
+            } catch {
+                return false;
+            } finally {
+                this._refreshPromise = null;
+            }
+        })();
+
+        return this._refreshPromise;
     }
 
     // HTTP 요청 헬퍼
-    private async request<T>(endpoint: string, options: RequestInit = {}): Promise<ApiResponse<T>> {
+    private async request<T>(
+        endpoint: string,
+        options: RequestInit = {},
+        retryConfig?: Partial<RetryConfig>,
+        _isRetryAfterRefresh = false
+    ): Promise<ApiResponse<T>> {
         const url = `${API_BASE_URL}${endpoint}`;
-
-        // 서버/클라이언트 환경 로깅
-        console.log(`[API] ${browser ? 'Client' : 'Server'} → ${url}`);
 
         const headers: Record<string, string> = {
             'Content-Type': 'application/json',
             ...(options.headers as Record<string, string>)
         };
 
-        // 브라우저 환경에서 access_token을 자동으로 헤더에 추가
         const accessToken = this.getAccessToken();
         if (accessToken) {
             headers['Authorization'] = `Bearer ${accessToken}`;
         }
 
+        const config: RetryConfig = { ...DEFAULT_RETRY_CONFIG, ...retryConfig };
+
         try {
-            const response = await fetch(url, {
-                ...options,
-                headers,
-                credentials: 'include' // httpOnly 쿠키 자동 전송
-            });
+            const response = await fetchWithRetry(
+                url,
+                {
+                    ...options,
+                    headers,
+                    credentials: 'include'
+                },
+                config
+            );
 
-            console.log(`[API] Response status:`, response.status, response.statusText);
-
-            // 204 No Content 또는 빈 응답 처리
+            // 204 No Content
             if (response.status === 204 || response.headers.get('content-length') === '0') {
-                console.log(`[API] Empty response (204 or no content)`);
-                if (!response.ok) {
-                    throw new Error('요청 실패');
-                }
+                if (!response.ok) throw new Error('요청 실패');
                 return { data: undefined as T } as ApiResponse<T>;
             }
 
-            // JSON 파싱 시도
             let data;
             const contentType = response.headers.get('content-type');
             if (contentType && contentType.includes('application/json')) {
                 try {
                     data = await response.json();
-                    console.log(`[API] Response data:`, JSON.stringify(data).substring(0, 200));
                 } catch (parseError) {
                     console.error('[API] JSON 파싱 에러:', parseError);
                     throw new Error('서버 응답을 처리할 수 없습니다.');
                 }
             } else {
-                // JSON이 아닌 응답 (HTML 등)
-                if (!response.ok) {
-                    throw new Error(`서버 에러 (${response.status})`);
-                }
+                if (!response.ok) throw new Error(`서버 에러 (${response.status})`);
                 return { data: undefined as T } as ApiResponse<T>;
             }
 
+            // 401 → 자동 토큰 갱신 후 재시도 (1회만)
+            if (response.status === 401 && !_isRetryAfterRefresh && browser) {
+                const refreshed = await this.tryRefreshToken();
+                if (refreshed) {
+                    return this.request<T>(endpoint, options, retryConfig, true);
+                }
+            }
+
             if (!response.ok) {
-                console.error(`[API] Error response:`, data);
-                throw new Error((data as ApiError).error || '요청 실패');
+                let errorMessage = '요청 실패';
+                let errorCode: string | undefined;
+                if (data?.error) {
+                    if (typeof data.error === 'string') {
+                        errorMessage = data.error;
+                    } else if (typeof data.error === 'object') {
+                        errorMessage = data.error.message || data.error.details || '요청 실패';
+                        errorCode = data.error.code;
+                    }
+                } else if (data?.message) {
+                    errorMessage = data.message;
+                }
+                throw ApiRequestError.fromStatus(response.status, errorMessage, errorCode);
             }
 
             return data as ApiResponse<T>;
         } catch (error) {
-            console.error('[API] 요청 에러:', error);
-            console.error('[API] URL:', url);
-            console.error('[API] Options:', options);
-            throw error;
+            if (error instanceof ApiRequestError) throw error;
+            throw ApiRequestError.network(
+                error instanceof Error ? error.message : '알 수 없는 에러'
+            );
         }
     }
 
@@ -200,6 +242,19 @@ class ApiClient {
             console.warn('[API] 공지사항 로드 실패:', boardId, error);
             return [];
         }
+    }
+
+    // 게시글 공지 상단고정 토글
+    async toggleNotice(
+        boardId: string,
+        postId: number,
+        noticeType: 'normal' | 'important' | null
+    ): Promise<{ success: boolean }> {
+        return this.request(`/boards/${boardId}/posts/${postId}/notice`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ notice_type: noticeType })
+        });
     }
 
     // ========================================
@@ -320,8 +375,6 @@ class ApiClient {
 
         const response = await this.request<BackendBoardResponse>(`/boards/${boardId}`);
 
-        console.log('[API] Board detail raw response:', response);
-
         const backendData = response as unknown as BackendBoardResponse;
 
         return backendData.data;
@@ -377,7 +430,6 @@ class ApiClient {
                 mb_email: '' // profile API는 email을 반환하지 않음
             };
         } catch {
-            console.log('User not logged in');
             return null;
         }
     }
@@ -388,7 +440,7 @@ class ApiClient {
         try {
             const response = await this.request<IndexWidgetsData>('/recommended/index-widgets');
             // API가 데이터를 직접 반환하거나 { data: ... } 형태로 반환하는 경우 모두 처리
-            const data = (response as unknown as IndexWidgetsData);
+            const data = response as unknown as IndexWidgetsData;
             // news_tabs 필드가 있으면 직접 반환된 데이터, 없으면 response.data 시도
             if (data?.news_tabs !== undefined) {
                 return data;
@@ -435,13 +487,86 @@ class ApiClient {
     }
 
     /**
-     * 게시글 삭제
-     * 🔒 인증 필요 + 작성자 본인만 가능
+     * 게시글 삭제 (소프트 삭제)
+     * 🔒 인증 필요 + 작성자 본인 또는 관리자
      */
     async deletePost(boardId: string, postId: string): Promise<void> {
-        await this.request<void>(`/boards/${boardId}/posts/${postId}`, {
+        await this.request<void>(`/boards/${boardId}/posts/${postId}/soft-delete`, {
+            method: 'PATCH'
+        });
+    }
+
+    /**
+     * 게시글 복구 (소프트 삭제 취소)
+     * 🔒 관리자 전용
+     */
+    async restorePost(boardId: string, postId: string): Promise<FreePost> {
+        const response = await this.request<FreePost>(
+            `/boards/${boardId}/posts/${postId}/restore`,
+            { method: 'POST' }
+        );
+        return response.data;
+    }
+
+    /**
+     * 게시글 영구 삭제
+     * 🔒 관리자 전용
+     */
+    async permanentDeletePost(boardId: string, postId: string): Promise<void> {
+        await this.request<void>(`/boards/${boardId}/posts/${postId}/permanent`, {
             method: 'DELETE'
         });
+    }
+
+    /**
+     * 삭제된 게시글 목록 조회
+     * 🔒 관리자 전용
+     */
+    async getDeletedPosts(
+        page: number = 1,
+        limit: number = 20
+    ): Promise<PaginatedResponse<FreePost>> {
+        const response = await this.request<PaginatedResponse<FreePost>>(
+            `/admin/posts/deleted?page=${page}&limit=${limit}`
+        );
+        return response.data;
+    }
+
+    // ========================================
+    // 수정 이력 (Revision)
+    // ========================================
+
+    /**
+     * 게시글 수정 이력 조회
+     * 🔒 작성자 또는 관리자
+     */
+    async getPostRevisions(boardId: string, postId: string): Promise<PostRevision[]> {
+        const response = await this.request<PostRevision[]>(
+            `/boards/${boardId}/posts/${postId}/revisions`
+        );
+        return response.data;
+    }
+
+    /**
+     * 특정 버전 조회
+     */
+    async getPostRevision(boardId: string, postId: string, version: number): Promise<PostRevision> {
+        const response = await this.request<PostRevision>(
+            `/boards/${boardId}/posts/${postId}/revisions/${version}`
+        );
+        return response.data;
+    }
+
+    /**
+     * 이전 버전으로 복원
+     * 🔒 작성자 또는 관리자
+     */
+    async restoreRevision(boardId: string, postId: string, version: number): Promise<FreePost> {
+        const response = await this.request<FreePost>(
+            `/boards/${boardId}/posts/${postId}/revisions/${version}/restore`,
+            { method: 'POST' }
+        );
+        return response.data;
     }
 
     // ========================================
@@ -496,6 +621,117 @@ class ApiClient {
     async deleteComment(boardId: string, postId: string, commentId: string): Promise<void> {
         await this.request<void>(`/boards/${boardId}/posts/${postId}/comments/${commentId}`, {
             method: 'DELETE'
+        });
+    }
+
+    // ========================================
+    // 스크랩 (Scrap/Bookmark)
+    // ========================================
+
+    /**
+     * 게시글 스크랩 추가
+     * 🔒 인증 필요
+     */
+    async scrapPost(postId: string, memo?: string): Promise<Scrap> {
+        const response = await this.request<Scrap>(`/posts/${postId}/scrap`, {
+            method: 'POST',
+            body: memo ? JSON.stringify({ memo }) : undefined
+        });
+        return response.data;
+    }
+
+    /**
+     * 게시글 스크랩 해제
+     * 🔒 인증 필요
+     */
+    async unscrapPost(postId: string): Promise<void> {
+        await this.request<void>(`/posts/${postId}/scrap`, {
+            method: 'DELETE'
+        });
+    }
+
+    /**
+     * 내 스크랩 목록 조회
+     * 🔒 인증 필요
+     */
+    async getMyScraps(page: number = 1, limit: number = 20): Promise<PaginatedResponse<Scrap>> {
+        const response = await this.request<PaginatedResponse<Scrap>>(
+            `/my/scraps?page=${page}&limit=${limit}`
+        );
+        return response.data;
+    }
+
+    /**
+     * 게시글 스크랩 여부 확인
+     * 🔒 인증 필요
+     */
+    async getScrapStatus(postId: string): Promise<{ scrapped: boolean }> {
+        const response = await this.request<{ scrapped: boolean }>(`/posts/${postId}/scrap/status`);
+        return response.data;
+    }
+
+    // ========================================
+    // 게시판 그룹 (Board Groups)
+    // ========================================
+
+    /**
+     * 게시판 그룹 목록 조회 (게시판 포함)
+     */
+    async getBoardGroups(): Promise<BoardGroup[]> {
+        const response = await this.request<BoardGroup[]>('/board-groups');
+        return response.data;
+    }
+
+    /**
+     * 게시판 그룹 생성
+     * 🔒 관리자 전용
+     */
+    async createBoardGroup(data: {
+        id: string;
+        name: string;
+        description?: string;
+        sort_order?: number;
+    }): Promise<BoardGroup> {
+        const response = await this.request<BoardGroup>('/admin/board-groups', {
+            method: 'POST',
+            body: JSON.stringify(data)
+        });
+        return response.data;
+    }
+
+    /**
+     * 게시판 그룹 수정
+     * 🔒 관리자 전용
+     */
+    async updateBoardGroup(
+        groupId: string,
+        data: { name?: string; description?: string; is_visible?: boolean }
+    ): Promise<BoardGroup> {
+        const response = await this.request<BoardGroup>(`/admin/board-groups/${groupId}`, {
+            method: 'PUT',
+            body: JSON.stringify(data)
+        });
+        return response.data;
+    }
+
+    /**
+     * 게시판 그룹 삭제
+     * 🔒 관리자 전용
+     */
+    async deleteBoardGroup(groupId: string): Promise<void> {
+        await this.request<void>(`/admin/board-groups/${groupId}`, {
+            method: 'DELETE'
+        });
+    }
+
+    /**
+     * 게시판 그룹 순서 변경
+     * 🔒 관리자 전용
+     */
+    async reorderBoardGroups(groupIds: string[]): Promise<void> {
+        await this.request<void>('/admin/board-groups/reorder', {
+            method: 'PATCH',
+            body: JSON.stringify({ group_ids: groupIds })
         });
     }
 
@@ -1066,9 +1302,9 @@ class ApiClient {
             body: JSON.stringify(request)
         });
 
-        // 액세스 토큰 저장
-        if (browser && response.data.access_token) {
-            localStorage.setItem('access_token', response.data.access_token);
+        // 액세스 토큰을 메모리에 저장 (httpOnly 쿠키로 refreshToken은 자동 설정됨)
+        if (response.data.access_token) {
+            this._accessToken = response.data.access_token;
         }
 
         return response.data;
@@ -1091,9 +1327,9 @@ class ApiClient {
             body: JSON.stringify(request)
         });
 
-        // 액세스 토큰 저장
-        if (browser && response.data.access_token) {
-            localStorage.setItem('access_token', response.data.access_token);
+        // 액세스 토큰을 메모리에 저장
+        if (response.data.access_token) {
+            this._accessToken = response.data.access_token;
         }
 
         return response.data;
@@ -1119,10 +1355,7 @@ class ApiClient {
         } catch (error) {
             console.error('Logout API error:', error);
         } finally {
-            // 로컬 토큰 제거
-            if (browser) {
-                localStorage.removeItem('access_token');
-            }
+            this._accessToken = null;
         }
     }
 }

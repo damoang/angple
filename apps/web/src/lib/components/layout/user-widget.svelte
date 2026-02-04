@@ -16,9 +16,7 @@
 
     // 로그인/로그아웃 URL 생성
     let loginUrl = $derived(
-        browser
-            ? `https://damoang.net/bbs/login.php?url=${encodeURIComponent(window.location.href)}`
-            : 'https://damoang.net/bbs/login.php?url=https://web.damoang.net'
+        browser ? `/login?redirect=${encodeURIComponent(window.location.pathname)}` : '/login'
     );
 
     let logoutUrl = $derived(

@@ -8,7 +8,7 @@
     import { getComponentsForSlot } from '$lib/components/slot-manager';
 
     /**
-     * Damoang Official 2025 Theme
+     * Damoang Official 2026 Theme
      * - 모던하고 세련된 3단 레이아웃
      * - 보라색/핑크 브랜드 색상
      * - 실시간 트렌드 위젯
@@ -18,7 +18,7 @@
     const { children } = $props();
 
     onMount(() => {
-        console.log('🎨 Damoang Official 2025 Theme 레이아웃 마운트됨');
+        console.log('🎨 Damoang Official 2026 Theme 레이아웃 마운트됨');
         authActions.initAuth();
     });
 </script>

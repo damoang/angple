@@ -4,10 +4,14 @@
     import { onMount } from 'svelte';
     import type { Component } from 'svelte';
     import { page } from '$app/stores';
+    import { configureSeo } from '$lib/seo';
     import { authActions } from '$lib/stores/auth.svelte';
     import { themeStore } from '$lib/stores/theme.svelte';
+    import { pluginStore } from '$lib/stores/plugin.svelte';
     import { loadThemeHooks } from '$lib/hooks/theme-loader';
     import { loadThemeComponents } from '$lib/utils/theme-component-loader';
+    import { loadAllPluginHooks } from '$lib/hooks/plugin-loader';
+    import { loadAllPluginComponents } from '$lib/utils/plugin-component-loader';
 
     const { children, data } = $props(); // Svelte 5: SSR 데이터 받기
 
@@ -15,11 +19,23 @@
     const isAdminRoute = $derived($page.url.pathname.startsWith('/admin'));
     const isInstallRoute = $derived($page.url.pathname.startsWith('/install'));
 
+    // SEO 기본 설정 초기화
+    configureSeo({
+        siteName: '다모앙',
+        siteUrl: $page.url.origin
+    });
+
     // SSR에서 받은 테마로 스토어 초기화 (깜박임 방지!)
     themeStore.initFromServer(data.activeTheme);
 
+    // SSR에서 받은 플러그인으로 스토어 초기화 (깜박임 방지!)
+    pluginStore.initFromServer(data.activePlugins || []);
+
     // 현재 활성 테마
     const activeTheme = $derived(themeStore.currentTheme.activeTheme);
+
+    // 현재 활성 플러그인
+    const activePlugins = $derived(pluginStore.state.activePlugins);
 
     // 동적으로 로드된 테마 레이아웃 컴포넌트
     let ThemeLayout = $state<Component | null>(null);
@@ -70,13 +86,56 @@
 
     // activeTheme 변경 시 자동으로 레이아웃, Hook, Component 로드
     $effect(() => {
-        console.log('🔄 [$effect] activeTheme 변경 감지:', activeTheme);
-        loadThemeLayout(activeTheme);
+        const theme = activeTheme;
+        console.log('🔄 [$effect] activeTheme 변경 감지:', theme);
+
+        // 비동기 로드 (void로 처리하여 $effect 내 안전하게 실행)
+        void loadThemeLayout(theme).catch((err) => {
+            console.error('❌ [Layout] 테마 레이아웃 로드 에러:', err);
+            ThemeLayout = null;
+        });
 
         // 테마 Hook 및 Component 로드
-        if (activeTheme) {
-            loadThemeHooks(activeTheme);
-            loadThemeComponents(activeTheme);
+        if (theme) {
+            loadThemeHooks(theme);
+            loadThemeComponents(theme);
+        }
+    });
+
+    // activePlugins 변경 시 플러그인 Hook 및 Component 로드
+    $effect(() => {
+        console.log('🔄 [$effect] activePlugins 변경 감지:', activePlugins.length, '개');
+
+        if (activePlugins.length > 0) {
+            // 플러그인 Hook 로드
+            loadAllPluginHooks(
+                activePlugins.map((p) => ({
+                    id: p.id,
+                    manifest: {
+                        id: p.id,
+                        name: p.name,
+                        version: p.version,
+                        author: { name: 'Unknown' },
+                        hooks: p.hooks,
+                        components: p.components
+                    }
+                }))
+            );
+
+            // 플러그인 Component 로드
+            loadAllPluginComponents(
+                activePlugins.map((p) => ({
+                    id: p.id,
+                    manifest: {
+                        id: p.id,
+                        name: p.name,
+                        version: p.version,
+                        author: { name: 'Unknown' },
+                        hooks: p.hooks,
+                        components: p.components
+                    }
+                }))
+            );
         }
     });
 
@@ -156,9 +215,16 @@
     {@render children()}
 {:else if ThemeLayout}
     <!-- 동적으로 로드된 테마 레이아웃 (Svelte 5: 컴포넌트 변수 직접 사용) -->
-    <ThemeLayout>
-        {@render children()}
-    </ThemeLayout>
+    <!-- {#key}로 감싸서 네비게이션 시 안정적으로 컴포넌트 교체 -->
+    {#key activeTheme}
+        {#if typeof ThemeLayout === 'function'}
+            <ThemeLayout>
+                {@render children()}
+            </ThemeLayout>
+        {:else}
+            {@render children()}
+        {/if}
+    {/key}
 {:else if activeTheme}
     <!-- 테마 레이아웃 로드 중 또는 SSR - children 직접 렌더링 -->
     <!-- SSR에서 $effect가 실행되지 않아 ThemeLayout이 null이므로 children 먼저 렌더링 -->

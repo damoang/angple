@@ -1,0 +1,47 @@
+{
+    "id": "ad",
+    "name": "광고",
+    "version": "1.0.0",
+    "description": "광고 슬롯 (메인 + 사이드바 통합)",
+    "author": { "name": "Angple" },
+    "category": "ad",
+    "slots": ["main", "sidebar"],
+    "icon": "Megaphone",
+    "allowMultiple": true,
+    "main": "index.svelte",
+    "settings": {
+        "position": {
+            "label": "광고 위치",
+            "type": "text",
+            "default": "index-custom",
+            "placeholder": "예: index-top, sidebar-1"
+        },
+        "height": {
+            "label": "높이",
+            "type": "text",
+            "default": "90px",
+            "placeholder": "예: 90px, 250px"
+        },
+        "type": {
+            "label": "광고 타입",
+            "type": "select",
+            "default": "image",
+            "options": [
+                { "label": "이미지", "value": "image" },
+                { "label": "이미지+텍스트", "value": "image-text" },
+                { "label": "애드센스", "value": "adsense" }
+            ]
+        },
+        "format": {
+            "label": "포맷",
+            "type": "select",
+            "default": "square",
+            "options": [
+                { "label": "정사각형", "value": "square" },
+                { "label": "직사각형", "value": "rectangle" },
+                { "label": "하프페이지", "value": "halfpage" },
+                { "label": "그리드", "value": "grid" }
+            ]
+        }
+    }
+}

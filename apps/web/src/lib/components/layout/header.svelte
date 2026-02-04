@@ -131,7 +131,7 @@
 
             <!-- 사용자 아이콘 (로그인/프로필) -->
             <button
-                onclick={() => goto('/my')}
+                onclick={() => goto('/login')}
                 class="hover:bg-dusty-100 dark:hover:bg-dusty-800 rounded-lg p-2 transition-colors"
                 aria-label="사용자 메뉴"
             >

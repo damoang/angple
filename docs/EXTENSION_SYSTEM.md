@@ -537,5 +537,5 @@ Extensions > Marketplace > "AI Writing Assistant" > [설치]
 
 ---
 
-**마지막 업데이트**: 2025-12-30
+**마지막 업데이트**: 2026-01-29
 **버전**: Draft v1.0

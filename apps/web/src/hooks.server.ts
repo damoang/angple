@@ -1,11 +1,97 @@
 import type { Handle } from '@sveltejs/kit';
+import { dev } from '$app/environment';
 
 /**
  * SvelteKit Server Hooks
  *
- * CORS 설정: Admin 앱에서 Web API 호출 허용
+ * 1. SSR 인증: refreshToken 쿠키로 accessToken 발급 → event.locals에 저장
+ * 2. CORS 설정: Admin 앱에서 Web API 호출 허용
+ * 3. CSP 설정: XSS 및 데이터 인젝션 공격 방지
  */
+
+const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8081';
+
+/** SSR 인증: refreshToken 쿠키로 사용자 정보 조회 */
+async function authenticateSSR(event: Parameters<Handle>[0]['event']): Promise<void> {
+    event.locals.user = null;
+    event.locals.accessToken = null;
+
+    const refreshToken = event.cookies.get('refresh_token');
+    if (!refreshToken) return;
+
+    try {
+        // 1. refreshToken으로 accessToken 발급
+        const refreshRes = await fetch(`${BACKEND_URL}/api/v2/auth/refresh`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                Cookie: `refresh_token=${refreshToken}`
+            }
+        });
+        if (!refreshRes.ok) return;
+
+        const refreshData = await refreshRes.json();
+        const accessToken = refreshData?.data?.access_token;
+        if (!accessToken) return;
+
+        event.locals.accessToken = accessToken;
+
+        // 새 refreshToken 쿠키가 있으면 갱신
+        const setCookies = refreshRes.headers.getSetCookie?.() ?? [];
+        for (const sc of setCookies) {
+            const match = sc.match(/^refresh_token=([^;]+)/);
+            if (match) {
+                event.cookies.set('refresh_token', match[1], {
+                    path: '/',
+                    httpOnly: true,
+                    sameSite: 'lax',
+                    secure: !dev,
+                    maxAge: 60 * 60 * 24 * 7
+                });
+            }
+        }
+
+        // 2. 사용자 프로필 조회
+        const profileRes = await fetch(`${BACKEND_URL}/api/v2/auth/profile`, {
+            headers: { Authorization: `Bearer ${accessToken}` }
+        });
+        if (!profileRes.ok) return;
+
+        const profileData = await profileRes.json();
+        const userData = profileData?.data ?? profileData;
+        event.locals.user = {
+            nickname: userData?.nickname,
+            level: userData?.level ?? 0
+        };
+    } catch {
+        // 인증 실패 시 무시 (비로그인 상태)
+    }
+}
+
+/** Content-Security-Policy 헤더 생성 */
+function buildCsp(): string {
+    const directives: string[] = [
+        "default-src 'self'",
+        // SvelteKit은 인라인 스크립트를 사용하므로 unsafe-inline 필요
+        "script-src 'self' 'unsafe-inline'",
+        "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net",
+        "font-src 'self' https://cdn.jsdelivr.net",
+        "img-src 'self' data: https:",
+        "connect-src 'self' http://localhost:* ws://localhost:*",
+        "frame-ancestors 'self'",
+        "base-uri 'self'",
+        "form-action 'self'"
+    ];
+
+    return directives.join('; ');
+}
+
+const cspHeader = buildCsp();
+
 export const handle: Handle = async ({ event, resolve }) => {
+    // SSR 인증
+    await authenticateSSR(event);
+
     // OPTIONS 요청 (CORS preflight) 처리
     if (event.request.method === 'OPTIONS') {
         return new Response(null, {
@@ -20,10 +106,19 @@ export const handle: Handle = async ({ event, resolve }) => {
 
     const response = await resolve(event);
 
-    // 모든 응답에 CORS 헤더 추가
+    // CORS 헤더
     response.headers.set('Access-Control-Allow-Origin', '*');
     response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
     response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+    // 보안 헤더
+    if (!dev) {
+        response.headers.set('Content-Security-Policy', cspHeader);
+    }
+    response.headers.set('X-Content-Type-Options', 'nosniff');
+    response.headers.set('X-Frame-Options', 'SAMEORIGIN');
+    response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+    response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
 
     return response;
 };

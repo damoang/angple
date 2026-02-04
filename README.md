@@ -2,7 +2,7 @@
 
 **오픈소스 커뮤니티 플랫폼**
 
-누구나 자유롭게 커뮤니티를 만들 수 있는 게시판 중심 플랫폼입니다. 테마와 플러그인 시스템을 통해 교회, 동호회, 회사, 개인 블로그 등 다양한 형태의 커뮤니티를 쉽게 구축할 수 있습니다.
+누구나 자유롭게 커뮤니티를 만들 수 있는 게시판 중심 플랫폼입니다. 테마와 플러그인 시스템을 통해 기업, 단체, 교회, 동호회, 회사, 개인 블로그 등 다양한 형태의 커뮤니티를 쉽게 구축할 수 있습니다.
 
 ## ✨ 주요 기능
 
@@ -20,6 +20,7 @@
     -   Admin Dashboard: 관리자 대시보드 (http://localhost:5174)
 
 -   ✅ **SSR (Server-Side Rendering) 지원**
+
     -   홈페이지 위젯 데이터 서버사이드 로딩
     -   초기 로딩 성능 개선 (깜박임 없음)
     -   중앙화된 스토어로 API 호출 최적화 (4회 → 1회)
@@ -80,16 +81,16 @@ npm run dev:admin               # admin 앱
 
 환경변수를 통해 유연한 배포가 가능합니다:
 
-| 환경변수               | 설명                         | 기본값                          |
-| ---------------------- | ---------------------------- | ------------------------------- |
-| `COMPOSE_PROJECT_NAME` | 컨테이너 이름 prefix         | `angple`                        |
-| `WEB_PORT`             | 웹 포트                      | `3010`                          |
-| `ADMIN_PORT`           | 어드민 포트                  | `3011`                          |
-| `DATA_PATH`            | 데이터 디렉토리              | `./data`                        |
-| `INTERNAL_API_URL`     | SSR용 내부 API URL           | `http://localhost:8082/api/v2`  |
-| `PUBLIC_API_BASE_URL`  | 클라이언트용 외부 API URL    | `https://api.damoang.net`       |
-| `ANGPLE_WEB_IMAGE`     | 사전 빌드된 웹 이미지        | -                               |
-| `ANGPLE_ADMIN_IMAGE`   | 사전 빌드된 어드민 이미지    | -                               |
+| 환경변수               | 설명                      | 기본값                         |
+| ---------------------- | ------------------------- | ------------------------------ |
+| `COMPOSE_PROJECT_NAME` | 컨테이너 이름 prefix      | `angple`                       |
+| `WEB_PORT`             | 웹 포트                   | `3010`                         |
+| `ADMIN_PORT`           | 어드민 포트               | `3011`                         |
+| `DATA_PATH`            | 데이터 디렉토리           | `./data`                       |
+| `INTERNAL_API_URL`     | SSR용 내부 API URL        | `http://localhost:8082/api/v2` |
+| `PUBLIC_API_BASE_URL`  | 클라이언트용 외부 API URL | `https://api.damoang.net`      |
+| `ANGPLE_WEB_IMAGE`     | 사전 빌드된 웹 이미지     | -                              |
+| `ANGPLE_ADMIN_IMAGE`   | 사전 빌드된 어드민 이미지 | -                              |
 
 ```bash
 # 기본 배포
@@ -141,10 +142,10 @@ GitHub Actions를 통해 개발/운영 환경에 자동 또는 수동으로 배�
 
 ### 환경 구성
 
-| 환경 | 서버 | 트리거 | 빌드 방식 | 이미지 저장 |
-|------|------|--------|----------|------------|
-| **개발 (DEV)** | OCI | `push to main` 자동 | docker compose | 로컬만 |
-| **운영 (PROD)** | EC2 | 수동 (workflow_dispatch) | docker build | ECR |
+| 환경            | 서버 | 트리거                   | 빌드 방식      | 이미지 저장 |
+| --------------- | ---- | ------------------------ | -------------- | ----------- |
+| **개발 (DEV)**  | OCI  | `push to main` 자동      | docker compose | 로컬만      |
+| **운영 (PROD)** | EC2  | 수동 (workflow_dispatch) | docker build   | ECR         |
 
 ### 개발 환경 배포 (OCI - 자동)
 
@@ -167,13 +168,15 @@ GitHub Actions에서 수동으로 트리거하여 EC2 운영 서버에 배포합
 **워크플로우**: `.github/workflows/deploy-prod.yml`
 
 **배포 방법:**
+
 1. GitHub → Actions → "Deploy to Prod (EC2)" 선택
 2. "Run workflow" 클릭
 3. (선택) Image tag 입력 또는 비워두면 자동 생성 (`main-{커밋SHA}`)
 
 **운영 포트:**
-- Web: `3010`
-- Admin: `3011`
+
+-   Web: `3010`
+-   Admin: `3011`
 
 ### 롤백
 

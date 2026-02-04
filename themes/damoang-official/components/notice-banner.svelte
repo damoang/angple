@@ -13,7 +13,7 @@
                 <div class="flex items-center gap-3">
                     <span class="text-xl">📣</span>
                     <p class="text-sm font-medium">
-                        🎉 <strong>다모앙 2025</strong> 새로운 테마 시스템이 출시되었습니다!
+                        🎉 <strong>다모앙 2026</strong> 새로운 테마 시스템이 출시되었습니다!
                         <a href="/themes" class="underline hover:no-underline">자세히 보기 →</a>
                     </p>
                 </div>

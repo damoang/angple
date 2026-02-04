@@ -4,29 +4,51 @@ import type { LayoutServerLoad } from './$types';
 /**
  * Admin 레이아웃 서버 로드
  *
- * 관리자 권한 체크:
- * - mb_level >= 10 인 사용자만 접근 가능
- * - 미인증 시 /login 으로 리다이렉트
+ * hooks.server.ts에서 이미 SSR 인증 완료 → event.locals 사용
+ * level >= 10 이면 관리자
  */
+
 export const load: LayoutServerLoad = async ({ locals, url }) => {
     // 설치 페이지는 권한 체크 제외
     if (url.pathname.startsWith('/install')) {
-        return {};
+        return { isAdmin: false, authChecked: false };
     }
 
-    // TODO: 실제 인증 구현 시 주석 해제
-    // const user = locals.user;
-    //
-    // if (!user) {
-    //     throw redirect(303, '/login?redirect=' + encodeURIComponent(url.pathname));
-    // }
-    //
-    // if (user.mb_level < 10) {
-    //     throw redirect(303, '/?error=forbidden');
-    // }
+    const isLoginPage = url.pathname === '/admin/login';
+    const user = locals.user;
 
-    return {
-        // 현재는 개발 모드로 권한 체크 비활성화
-        isAdmin: true
-    };
+    if (user) {
+        const isAdmin = user.level >= 10;
+
+        if (isAdmin) {
+            if (isLoginPage) {
+                const redirectTo = url.searchParams.get('redirect') || '/admin';
+                throw redirect(303, redirectTo);
+            }
+            return { isAdmin: true, authChecked: true, nickname: user.nickname };
+        }
+
+        // 로그인됐지만 관리자 아님
+        return {
+            isAdmin: false,
+            authChecked: true,
+            accessDenied: true,
+            nickname: user.nickname
+        };
+    }
+
+    // 개발 모드: VITE_SKIP_AUTH
+    const skipAuth = import.meta.env.VITE_SKIP_AUTH === 'true';
+    if (skipAuth) {
+        if (isLoginPage) throw redirect(303, '/admin');
+        return { isAdmin: true, authChecked: true };
+    }
+
+    // 로그인 페이지는 그대로 표시
+    if (isLoginPage) {
+        return { isAdmin: false, authChecked: true };
+    }
+
+    // 미인증 → 로그인 페이지로 리다이렉트
+    throw redirect(303, `/admin/login?redirect=${encodeURIComponent(url.pathname)}`);
 };

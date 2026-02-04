@@ -4,10 +4,21 @@
  * Node.js fs 모듈을 사용하므로 서버 사이드에서만 사용 가능합니다.
  */
 
-import { readFile, writeFile } from 'fs/promises';
-import { join } from 'path';
+import { readFile, writeFile, mkdir } from 'fs/promises';
+import { join, dirname } from 'path';
 
 const SETTINGS_FILE_PATH = join(process.cwd(), 'data', 'settings.json');
+
+/**
+ * 위젯 설정 타입
+ */
+export interface WidgetConfig {
+    id: string;
+    type: string;
+    position: number;
+    enabled: boolean;
+    settings?: Record<string, unknown>;
+}
 
 export interface ThemeSettings {
     activeTheme: string | null;
@@ -18,6 +29,10 @@ export interface ThemeSettings {
             settings: Record<string, unknown>;
         }
     >;
+    /** 메인 영역 위젯 레이아웃 설정 */
+    widgetLayout?: WidgetConfig[];
+    /** 사이드바 위젯 레이아웃 설정 */
+    sidebarWidgetLayout?: WidgetConfig[];
     version: string;
 }
 
@@ -44,6 +59,7 @@ export async function readSettings(): Promise<ThemeSettings> {
  */
 export async function writeSettings(settings: ThemeSettings): Promise<void> {
     try {
+        await mkdir(dirname(SETTINGS_FILE_PATH), { recursive: true });
         await writeFile(SETTINGS_FILE_PATH, JSON.stringify(settings, null, 2), 'utf-8');
         console.log('✅ settings.json 저장 완료');
     } catch (error) {

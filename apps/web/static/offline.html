@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="ko">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>오프라인 - 다모앙</title>
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+            body {
+                font-family:
+                    'Wanted Sans',
+                    -apple-system,
+                    BlinkMacSystemFont,
+                    sans-serif;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                min-height: 100vh;
+                background: #f9fafb;
+                color: #1a1a1a;
+            }
+            .container {
+                text-align: center;
+                padding: 2rem;
+            }
+            .icon {
+                font-size: 4rem;
+                margin-bottom: 1rem;
+            }
+            h1 {
+                font-size: 1.5rem;
+                margin-bottom: 0.5rem;
+            }
+            p {
+                color: #6b7280;
+                margin-bottom: 1.5rem;
+            }
+            button {
+                padding: 0.5rem 1.5rem;
+                border: 1px solid #d1d5db;
+                border-radius: 0.5rem;
+                background: white;
+                cursor: pointer;
+                font-size: 0.875rem;
+            }
+            button:hover {
+                background: #f3f4f6;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="icon">📡</div>
+            <h1>인터넷 연결이 끊어졌습니다</h1>
+            <p>네트워크 연결을 확인한 후 다시 시도해주세요.</p>
+            <button onclick="location.reload()">다시 시도</button>
+        </div>
+    </body>
+</html>

@@ -1,0 +1,73 @@
+{
+    "id": "post-list",
+    "name": "게시글 목록",
+    "version": "1.0.0",
+    "description": "범용 게시글 목록 위젯. 게시판, 레이아웃, 정렬, 필터를 설정으로 커스터마이징합니다.",
+    "author": { "name": "Angple" },
+    "category": "content",
+    "slots": ["main", "sidebar"],
+    "icon": "List",
+    "allowMultiple": true,
+    "main": "index.svelte",
+    "settings": {
+        "boardId": {
+            "label": "게시판",
+            "type": "select",
+            "default": "notice",
+            "options": [
+                { "label": "새소식 (공지/팁/리뷰)", "value": "notice" },
+                { "label": "알뜰구매", "value": "economy" },
+                { "label": "갤러리", "value": "gallery" },
+                { "label": "소모임", "value": "group" },
+                { "label": "자유게시판", "value": "free" }
+            ],
+            "dynamic": true,
+            "dynamicEndpoint": "/api/boards"
+        },
+        "layout": {
+            "label": "레이아웃",
+            "type": "select",
+            "default": "list",
+            "options": [
+                { "label": "목록형", "value": "list" },
+                { "label": "갤러리", "value": "gallery" },
+                { "label": "그리드", "value": "grid" },
+                { "label": "카드", "value": "card" }
+            ]
+        },
+        "sortBy": {
+            "label": "정렬",
+            "type": "select",
+            "default": "date",
+            "options": [
+                { "label": "최신순", "value": "date" },
+                { "label": "추천순", "value": "recommend" },
+                { "label": "댓글순", "value": "comment" },
+                { "label": "조회순", "value": "hit" }
+            ]
+        },
+        "count": {
+            "label": "표시 개수",
+            "type": "number",
+            "default": 10,
+            "min": 3,
+            "max": 30,
+            "step": 1
+        },
+        "filter": {
+            "label": "필터",
+            "type": "select",
+            "default": "none",
+            "options": [
+                { "label": "전체", "value": "none" },
+                { "label": "추천글만", "value": "recommended" },
+                { "label": "이미지 포함", "value": "has-image" }
+            ]
+        },
+        "showTitle": {
+            "label": "제목 표시",
+            "type": "boolean",
+            "default": true
+        }
+    }
+}

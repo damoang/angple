@@ -1,32 +1,57 @@
 import type { PageServerLoad } from './$types';
 import type { IndexWidgetsData } from '$lib/api/types';
+import { readSettings } from '$lib/server/settings';
+import { DEFAULT_WIDGETS, DEFAULT_SIDEBAR_WIDGETS } from '$lib/constants/default-widgets';
 
 const INTERNAL_API_URL = process.env.INTERNAL_API_URL || 'http://localhost:8082/api/v2';
 
 export const load: PageServerLoad = async () => {
     console.log('[SSR] Loading index widgets data');
 
-    try {
-        // SvelteKit의 fetch 대신 native fetch 사용 (SSR에서 403 문제 방지)
-        const response = await fetch(`${INTERNAL_API_URL}/recommended/index-widgets`, {
-            headers: {
-                'Accept': 'application/json',
-                'User-Agent': 'Angple-Web-SSR/1.0'
+    // 위젯 데이터와 레이아웃을 병렬로 로드
+    const [indexWidgetsResult, layoutResult] = await Promise.allSettled([
+        // 위젯 데이터 로드
+        (async () => {
+            const response = await fetch(`${INTERNAL_API_URL}/recommended/index-widgets`, {
+                headers: {
+                    Accept: 'application/json',
+                    'User-Agent': 'Angple-Web-SSR/1.0'
+                }
+            });
+
+            if (!response.ok) {
+                console.error('[SSR] API error:', response.status, await response.text());
+                return null;
             }
-        });
 
-        if (!response.ok) {
-            console.error('[SSR] API error:', response.status, await response.text());
-            return { indexWidgets: null };
-        }
+            const result = await response.json();
+            return (result.data ?? result) as IndexWidgetsData;
+        })(),
+        // 위젯 레이아웃 로드 (메인 + 사이드바)
+        (async () => {
+            const settings = await readSettings();
+            return {
+                widgetLayout: settings.widgetLayout ?? DEFAULT_WIDGETS,
+                sidebarWidgetLayout: settings.sidebarWidgetLayout ?? DEFAULT_SIDEBAR_WIDGETS
+            };
+        })()
+    ]);
 
-        const result = await response.json();
-        // API 응답이 { data: IndexWidgetsData } 형태인지 직접 IndexWidgetsData 형태인지 확인
-        const indexWidgets: IndexWidgetsData = result.data ?? result;
-        console.log('[SSR] Index widgets loaded');
-        return { indexWidgets };
-    } catch (error) {
-        console.error('[SSR] Failed to load index widgets:', error);
-        return { indexWidgets: null };
+    const indexWidgets =
+        indexWidgetsResult.status === 'fulfilled' ? indexWidgetsResult.value : null;
+    const layoutData =
+        layoutResult.status === 'fulfilled'
+            ? layoutResult.value
+            : { widgetLayout: DEFAULT_WIDGETS, sidebarWidgetLayout: DEFAULT_SIDEBAR_WIDGETS };
+
+    if (indexWidgetsResult.status === 'rejected') {
+        console.error('[SSR] Failed to load index widgets:', indexWidgetsResult.reason);
     }
+
+    console.log('[SSR] Index widgets loaded');
+    return {
+        indexWidgets,
+        widgetLayout: layoutData.widgetLayout,
+        sidebarWidgetLayout: layoutData.sidebarWidgetLayout
+    };
 };
