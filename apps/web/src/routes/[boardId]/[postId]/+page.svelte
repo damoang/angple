@@ -491,7 +491,12 @@
 
             <!-- 댓글 작성 폼 -->
             <div class="border-border border-t pt-6">
-                <CommentForm onSubmit={handleCreateComment} isLoading={isCreatingComment} />
+                <CommentForm
+                    onSubmit={handleCreateComment}
+                    isLoading={isCreatingComment}
+                    permissions={data.board?.permissions}
+                    requiredCommentLevel={data.board?.comment_level ?? 1}
+                />
             </div>
         </CardHeader>
     </Card>

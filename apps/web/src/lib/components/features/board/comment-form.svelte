@@ -3,6 +3,7 @@
     import { Textarea } from '$lib/components/ui/textarea/index.js';
     import { Checkbox } from '$lib/components/ui/checkbox/index.js';
     import { authStore } from '$lib/stores/auth.svelte.js';
+    import type { BoardPermissions } from '$lib/api/types.js';
     import Send from '@lucide/svelte/icons/send';
     import X from '@lucide/svelte/icons/x';
     import CornerDownRight from '@lucide/svelte/icons/corner-down-right';
@@ -21,6 +22,10 @@
         parentAuthor?: string;
         isReplyMode?: boolean;
         showSecretOption?: boolean;
+        /** 게시판 권한 정보 (서버에서 계산) */
+        permissions?: BoardPermissions;
+        /** 댓글 작성에 필요한 레벨 (하위호환용) */
+        requiredCommentLevel?: number;
     }
 
     let {
@@ -31,8 +36,27 @@
         parentId,
         parentAuthor,
         isReplyMode = false,
-        showSecretOption = true
+        showSecretOption = true,
+        permissions,
+        requiredCommentLevel = 1
     }: Props = $props();
+
+    // 댓글 작성 권한 체크
+    const canComment = $derived(() => {
+        if (!authStore.isAuthenticated) return false;
+        // 서버에서 계산된 권한 정보가 있으면 사용
+        if (permissions) {
+            return permissions.can_comment;
+        }
+        // 하위호환: 클라이언트에서 레벨 비교
+        const userLevel = authStore.user?.mb_level ?? 1;
+        return userLevel >= requiredCommentLevel;
+    });
+
+    // 권한 부족 시 표시할 메시지
+    const permissionMessage = $derived(
+        `레벨 ${requiredCommentLevel} 이상 작성 가능`
+    );
 
     let content = $state('');
     let isSecret = $state(false);
@@ -72,7 +96,7 @@
     }
 </script>
 
-{#if authStore.isAuthenticated}
+{#if canComment()}
     <form onsubmit={handleSubmit} class="space-y-3">
         {#if isReplyMode}
             <!-- 대댓글 모드 표시 -->
@@ -140,6 +164,14 @@
             </div>
         </div>
     </form>
+{:else if authStore.isAuthenticated}
+    <!-- 로그인했지만 권한 부족 -->
+    <div class="bg-muted/50 rounded-md p-4 text-center">
+        <p class="text-muted-foreground flex items-center justify-center gap-2">
+            <Lock class="h-4 w-4" />
+            {isReplyMode ? '답글' : '댓글'} 작성 권한이 없습니다. ({permissionMessage})
+        </p>
+    </div>
 {:else}
     <div class="bg-muted/50 rounded-md p-4 text-center">
         <p class="text-muted-foreground">
