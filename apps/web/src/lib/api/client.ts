@@ -57,7 +57,7 @@ import { fetchWithRetry, type RetryConfig, DEFAULT_RETRY_CONFIG } from './retry.
 // SSR: Docker 내부 네트워크 직접 통신
 const API_BASE_URL = browser
     ? '/api/v2'
-    : process.env.INTERNAL_API_URL || 'http://localhost:8082/api/v2';
+    : process.env.INTERNAL_API_URL || 'http://localhost:8081/api/v2';
 
 /**
  * API 클라이언트
@@ -1299,7 +1299,11 @@ class ApiClient {
     async login(request: LoginRequest): Promise<LoginResponse> {
         const response = await this.request<LoginResponse>('/auth/login', {
             method: 'POST',
-            body: JSON.stringify(request)
+            body: JSON.stringify({
+                username: request.user_id,
+                password: request.password,
+                remember: request.remember
+            })
         });
 
         // 액세스 토큰을 메모리에 저장 (httpOnly 쿠키로 refreshToken은 자동 설정됨)
