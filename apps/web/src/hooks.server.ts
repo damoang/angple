@@ -106,6 +106,10 @@ export const handle: Handle = async ({ event, resolve }) => {
 
     const response = await resolve(event);
 
+    // Link preload 헤더 제거 (nginx "upstream sent too big header" 에러 방지)
+    // SvelteKit이 생성하는 modulepreload Link 헤더가 너무 커서 nginx 버퍼 초과
+    response.headers.delete('Link');
+
     // CORS 헤더
     response.headers.set('Access-Control-Allow-Origin', '*');
     response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');

@@ -149,19 +149,21 @@
         }
     });
 
-    onMount(async () => {
+    onMount(() => {
         console.log('🚀 [onMount] 컴포넌트 마운트됨');
         // 테마는 이미 SSR에서 로드되었으므로 loadActiveTheme() 호출 불필요
         // (깜박임 방지!)
 
-        // SSR에서 토큰을 받지 못한 경우에만 refresh 시도
-        if (!data.accessToken) {
-            console.log('🔐 [Auth] SSR에서 토큰 없음, refresh 시도');
-            await apiClient.tryRefreshToken();
-        }
-
-        // 인증 상태 초기화 (사용자 정보 조회)
-        await authActions.fetchCurrentUser();
+        // 비동기 인증 초기화 (IIFE)
+        (async () => {
+            // SSR에서 토큰을 받지 못한 경우에만 refresh 시도
+            if (!data.accessToken) {
+                console.log('🔐 [Auth] SSR에서 토큰 없음, refresh 시도');
+                await apiClient.tryRefreshToken();
+            }
+            // 인증 상태 초기화 (사용자 정보 조회)
+            await authActions.fetchCurrentUser();
+        })();
 
         // postMessage 리스너 (Admin에서 테마 변경 시 리로드)
         function handleMessage(event: MessageEvent) {
