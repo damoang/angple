@@ -1381,6 +1381,23 @@ class ApiClient {
             this._accessToken = null;
         }
     }
+
+    /**
+     * damoang_jwt 쿠키를 angple JWT로 교환
+     * damoang.net 로그인 후 리다이렉트된 경우 자동 토큰 교환에 사용
+     */
+    async exchangeToken(): Promise<LoginResponse> {
+        const response = await this.request<LoginResponse>('/auth/exchange', {
+            method: 'POST'
+        });
+
+        // 액세스 토큰을 메모리에 저장 (httpOnly 쿠키로 refreshToken은 자동 설정됨)
+        if (response.data.access_token) {
+            this._accessToken = response.data.access_token;
+        }
+
+        return response.data;
+    }
 }
 
 // 싱글톤 인스턴스
