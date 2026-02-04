@@ -3,7 +3,8 @@ import type { IndexWidgetsData } from '$lib/api/types';
 import { readSettings } from '$lib/server/settings';
 import { DEFAULT_WIDGETS, DEFAULT_SIDEBAR_WIDGETS } from '$lib/constants/default-widgets';
 
-const INTERNAL_API_URL = process.env.INTERNAL_API_URL || 'http://localhost:8081/api/v2';
+// recommended 엔드포인트는 v1에만 존재 (그누보드 데이터 기반)
+const INTERNAL_API_URL = process.env.INTERNAL_API_URL || 'http://localhost:8081/api/v1';
 
 export const load: PageServerLoad = async () => {
     console.log('[SSR] Loading index widgets data');
