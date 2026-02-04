@@ -361,10 +361,9 @@
 
             <div class="border-border flex flex-wrap items-center gap-4 border-t pt-4">
                 <div class="flex items-center gap-2">
-                    {@const authorIconUrl = getMemberIconUrl(data.post.author_id)}
-                    {#if authorIconUrl}
+                    {#if getMemberIconUrl(data.post.author_id)}
                         <img
-                            src={authorIconUrl}
+                            src={getMemberIconUrl(data.post.author_id)}
                             alt={data.post.author}
                             class="size-10 rounded-full object-cover"
                             onerror={(e) => {

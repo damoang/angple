@@ -357,11 +357,11 @@
         {@const isReplyingTo = replyingToCommentId === String(comment.id)}
         {@const depth = comment.depth ?? 0}
         {@const isReply = depth > 0}
+        {@const iconUrl = getMemberIconUrl(comment.author_id)}
         <li style="margin-left: {depth * 1.25}rem" class="py-4 first:pt-0 last:pb-0">
             <div>
                 <div class="mb-2 flex flex-wrap items-center gap-4">
                     <div class="flex items-center gap-2">
-                        {@const iconUrl = getMemberIconUrl(comment.author_id)}
                         {#if iconUrl}
                             <img
                                 src={iconUrl}
