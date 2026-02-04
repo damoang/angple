@@ -132,7 +132,11 @@
             </Button>
         {:else if authStore.isAuthenticated}
             <!-- 로그인했지만 권한 부족 -->
-            <Button disabled class="shrink-0 cursor-not-allowed opacity-60" title={writePermissionMessage()}>
+            <Button
+                disabled
+                class="shrink-0 cursor-not-allowed opacity-60"
+                title={writePermissionMessage()}
+            >
                 <Lock class="mr-2 h-4 w-4" />
                 글쓰기
             </Button>
