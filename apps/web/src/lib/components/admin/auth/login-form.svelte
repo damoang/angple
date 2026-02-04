@@ -33,7 +33,9 @@
         if (!browser) return;
 
         // damoang_jwt 쿠키 존재 여부 확인
-        const hasDamoangJwt = document.cookie.split('; ').some((row) => row.startsWith('damoang_jwt='));
+        const hasDamoangJwt = document.cookie
+            .split('; ')
+            .some((row) => row.startsWith('damoang_jwt='));
         if (!hasDamoangJwt) return;
 
         isExchanging = true;
@@ -86,68 +88,73 @@
                     <p class="text-muted-foreground">다모앙 계정 확인 중...</p>
                 </div>
             {:else}
-            <form class="p-6 md:p-8" onsubmit={handleSubmit}>
-                <div class="flex flex-col gap-6">
-                    <div class="flex flex-col items-center text-center">
-                        <h1 class="text-2xl font-bold">Angple Admin</h1>
-                        <p class="text-muted-foreground text-balance">관리자 계정으로 로그인</p>
-                    </div>
-
-                    {#if errorMessage}
-                        <div
-                            class="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950/30 dark:text-red-400"
-                        >
-                            {errorMessage}
+                <form class="p-6 md:p-8" onsubmit={handleSubmit}>
+                    <div class="flex flex-col gap-6">
+                        <div class="flex flex-col items-center text-center">
+                            <h1 class="text-2xl font-bold">Angple Admin</h1>
+                            <p class="text-muted-foreground text-balance">관리자 계정으로 로그인</p>
                         </div>
-                    {/if}
 
-                    <div class="grid gap-3">
-                        <Label for="email-{id}">이메일</Label>
-                        <Input
-                            id="email-{id}"
-                            type="email"
-                            placeholder="admin@example.com"
-                            required
-                            bind:value={email}
-                            disabled={isSubmitting}
-                        />
-                    </div>
-                    <div class="grid gap-3">
-                        <div class="flex items-center">
-                            <Label for="password-{id}">비밀번호</Label>
-                        </div>
-                        <Input
-                            id="password-{id}"
-                            type="password"
-                            required
-                            bind:value={password}
-                            disabled={isSubmitting}
-                        />
-                    </div>
-                    <Button type="submit" class="w-full" disabled={isSubmitting}>
-                        {#if isSubmitting}
-                            <Loader2 class="mr-2 h-4 w-4 animate-spin" />
-                            로그인 중...
-                        {:else}
-                            로그인
+                        {#if errorMessage}
+                            <div
+                                class="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950/30 dark:text-red-400"
+                            >
+                                {errorMessage}
+                            </div>
                         {/if}
-                    </Button>
 
-                    <div class="relative">
-                        <div class="absolute inset-0 flex items-center">
-                            <Separator class="w-full" />
+                        <div class="grid gap-3">
+                            <Label for="email-{id}">이메일</Label>
+                            <Input
+                                id="email-{id}"
+                                type="email"
+                                placeholder="admin@example.com"
+                                required
+                                bind:value={email}
+                                disabled={isSubmitting}
+                            />
                         </div>
-                        <div class="relative flex justify-center text-xs uppercase">
-                            <span class="bg-card text-muted-foreground px-2">또는</span>
+                        <div class="grid gap-3">
+                            <div class="flex items-center">
+                                <Label for="password-{id}">비밀번호</Label>
+                            </div>
+                            <Input
+                                id="password-{id}"
+                                type="password"
+                                required
+                                bind:value={password}
+                                disabled={isSubmitting}
+                            />
                         </div>
+                        <Button type="submit" class="w-full" disabled={isSubmitting}>
+                            {#if isSubmitting}
+                                <Loader2 class="mr-2 h-4 w-4 animate-spin" />
+                                로그인 중...
+                            {:else}
+                                로그인
+                            {/if}
+                        </Button>
+
+                        <div class="relative">
+                            <div class="absolute inset-0 flex items-center">
+                                <Separator class="w-full" />
+                            </div>
+                            <div class="relative flex justify-center text-xs uppercase">
+                                <span class="bg-card text-muted-foreground px-2">또는</span>
+                            </div>
+                        </div>
+
+                        <Button
+                            type="button"
+                            variant="outline"
+                            class="w-full"
+                            onclick={handleJwtLogin}
+                        >
+                            <ExternalLink class="mr-2 h-4 w-4" />
+                            다모앙 계정으로 로그인
+                        </Button>
                     </div>
-
-                    <Button type="button" variant="outline" class="w-full" onclick={handleJwtLogin}>
-                        <ExternalLink class="mr-2 h-4 w-4" />
-                        다모앙 계정으로 로그인
-                    </Button>
-                </div>
-            </form>
+                </form>
             {/if}
             <div class="bg-muted relative hidden items-center justify-center md:flex">
                 <div class="p-8 text-center">
