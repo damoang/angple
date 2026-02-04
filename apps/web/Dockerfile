@@ -69,8 +69,11 @@ COPY apps/web ./apps/web
 
 # Install dependencies and build
 RUN pnpm install --frozen-lockfile --filter web...
-# 워크스페이스 패키지 먼저 빌드 (@angple/types 등)
+# 워크스페이스 패키지 먼저 빌드 (의존성 순서대로)
 RUN pnpm --filter @angple/types run build
+RUN pnpm --filter @angple/i18n run build
+RUN pnpm --filter @angple/hook-system run build
+RUN pnpm --filter @angple/theme-engine run build
 RUN pnpm --filter web run build
 
 # Deploy as standalone package (resolves workspace:* dependencies)

@@ -91,8 +91,20 @@ class ApiClient {
         return null;
     }
 
+    /** damoang_jwt 쿠키 존재 여부 확인 (그누보드 SSO) */
+    private hasDamoangJwtCookie(): boolean {
+        if (!browser) return false;
+        return document.cookie.split('; ').some((row) => row.startsWith('damoang_jwt='));
+    }
+
     /** refreshToken 쿠키로 accessToken 자동 갱신 */
     async tryRefreshToken(): Promise<boolean> {
+        // 그누보드 SSO 쿠키가 있으면 refresh 시도하지 않음
+        // (refresh_token은 Go API 로그인 시에만 설정됨)
+        if (this.hasDamoangJwtCookie()) {
+            return false;
+        }
+
         if (this._refreshPromise) return this._refreshPromise;
 
         this._refreshPromise = (async () => {
@@ -409,10 +421,21 @@ class ApiClient {
     }
 
     // 현재 로그인 사용자 조회
-    // /auth/profile은 JWT 기반, /auth/me는 쿠키 기반
+    // 1순위: /auth/me (damoang_jwt 쿠키 기반 - 그누보드 SSO)
+    // 2순위: /auth/profile (JWT 기반 - Go API 자체 인증)
     async getCurrentUser(): Promise<DamoangUser | null> {
+        // 1. 먼저 damoang_jwt 쿠키 기반 인증 시도 (그누보드 SSO)
         try {
-            // JWT Authorization 헤더 기반 인증
+            const meResponse = await this.request<DamoangUser>('/auth/me');
+            if (meResponse.data && meResponse.data.mb_id) {
+                return meResponse.data;
+            }
+        } catch {
+            // /auth/me 실패 시 무시하고 /auth/profile 시도
+        }
+
+        // 2. JWT 기반 인증 시도 (Go API 자체 로그인)
+        try {
             interface ProfileResponse {
                 user_id: string;
                 nickname: string;
@@ -427,7 +450,7 @@ class ApiClient {
                 mb_id: response.data.user_id,
                 mb_name: response.data.nickname,
                 mb_level: response.data.level,
-                mb_email: '' // profile API는 email을 반환하지 않음
+                mb_email: ''
             };
         } catch {
             return null;
