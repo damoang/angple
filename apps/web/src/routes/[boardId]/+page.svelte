@@ -7,6 +7,7 @@
     import type { PageData } from './$types.js';
     import { authStore } from '$lib/stores/auth.svelte.js';
     import Pencil from '@lucide/svelte/icons/pencil';
+    import Lock from '@lucide/svelte/icons/lock';
     import Megaphone from '@lucide/svelte/icons/megaphone';
     import Pin from '@lucide/svelte/icons/pin';
     import SearchForm from '$lib/components/features/board/search-form.svelte';
@@ -21,7 +22,28 @@
     // 게시판 정보
     const boardId = $derived(data.boardId);
     const boardTitle = $derived(data.board?.subject || boardId);
-    // 게시판 설명 (현재 Board 타입에 description 필드 없음)
+
+    // 글쓰기 권한 체크
+    // 1. 서버에서 계산된 permissions.can_write 사용 (인증된 경우)
+    // 2. permissions가 없으면 클라이언트에서 레벨 비교 (하위호환)
+    const canWrite = $derived(() => {
+        if (!authStore.isAuthenticated) return false;
+        // 서버에서 계산된 권한 정보가 있으면 사용
+        if (data.board?.permissions) {
+            return data.board.permissions.can_write;
+        }
+        // 하위호환: 클라이언트에서 레벨 비교
+        const userLevel = authStore.user?.mb_level ?? 1;
+        const requiredLevel = data.board?.write_level ?? 1;
+        return userLevel >= requiredLevel;
+    });
+
+    // 권한 부족 시 표시할 메시지
+    const writePermissionMessage = $derived(() => {
+        if (!authStore.isAuthenticated) return '로그인이 필요합니다';
+        const requiredLevel = data.board?.write_level ?? 1;
+        return `레벨 ${requiredLevel} 이상 작성 가능`;
+    });
 
     // 공지사항 분류
     const importantNotices = $derived(
@@ -103,9 +125,15 @@
         <div>
             <h1 class="text-foreground mb-2 text-3xl font-bold">{boardTitle}</h1>
         </div>
-        {#if authStore.isAuthenticated}
+        {#if canWrite()}
             <Button onclick={goToWrite} class="shrink-0">
                 <Pencil class="mr-2 h-4 w-4" />
+                글쓰기
+            </Button>
+        {:else if authStore.isAuthenticated}
+            <!-- 로그인했지만 권한 부족 -->
+            <Button disabled class="shrink-0 cursor-not-allowed opacity-60" title={writePermissionMessage()}>
+                <Lock class="mr-2 h-4 w-4" />
                 글쓰기
             </Button>
         {/if}
