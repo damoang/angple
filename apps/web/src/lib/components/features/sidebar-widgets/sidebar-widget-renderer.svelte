@@ -24,6 +24,7 @@
                 return NoticeWidget;
             case 'podcast':
                 return PodcastWidget;
+            case 'ad':
             case 'sidebar-ad':
                 return SidebarAdWidget;
             case 'sharing-board':
