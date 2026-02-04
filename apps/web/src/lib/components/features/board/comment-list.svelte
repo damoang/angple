@@ -15,6 +15,7 @@
     import DOMPurify from 'dompurify';
     import { transformEmoticons } from '$lib/utils/content-transform.js';
     import { processContent as processEmbeds } from '$lib/plugins/auto-embed/index.js';
+    import { getMemberIconUrl } from '$lib/utils/member-icon.js';
 
     interface Props {
         comments: FreeComment[];
@@ -360,13 +361,35 @@
             <div>
                 <div class="mb-2 flex flex-wrap items-center gap-4">
                     <div class="flex items-center gap-2">
-                        <div
-                            class="bg-primary text-primary-foreground flex items-center justify-center rounded-full {isReply
-                                ? 'size-8 text-sm'
-                                : 'size-10'}"
-                        >
-                            {comment.author.charAt(0).toUpperCase()}
-                        </div>
+                        {@const iconUrl = getMemberIconUrl(comment.author_id)}
+                        {#if iconUrl}
+                            <img
+                                src={iconUrl}
+                                alt={comment.author}
+                                class="rounded-full object-cover {isReply ? 'size-8' : 'size-10'}"
+                                onerror={(e) => {
+                                    const img = e.currentTarget as HTMLImageElement;
+                                    img.style.display = 'none';
+                                    const fallback = img.nextElementSibling as HTMLElement;
+                                    if (fallback) fallback.style.display = 'flex';
+                                }}
+                            />
+                            <div
+                                class="bg-primary text-primary-foreground hidden items-center justify-center rounded-full {isReply
+                                    ? 'size-8 text-sm'
+                                    : 'size-10'}"
+                            >
+                                {comment.author.charAt(0).toUpperCase()}
+                            </div>
+                        {:else}
+                            <div
+                                class="bg-primary text-primary-foreground flex items-center justify-center rounded-full {isReply
+                                    ? 'size-8 text-sm'
+                                    : 'size-10'}"
+                            >
+                                {comment.author.charAt(0).toUpperCase()}
+                            </div>
+                        {/if}
                         <div>
                             <p
                                 class="text-foreground font-medium {isReply

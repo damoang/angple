@@ -22,6 +22,7 @@
     import type { FreeComment, LikerInfo } from '$lib/api/types.js';
     import { onMount } from 'svelte';
     import { AdultBlur } from '$lib/components/features/adult/index.js';
+    import { getMemberIconUrl } from '$lib/utils/member-icon.js';
 
     let { data }: { data: PageData } = $props();
 
@@ -360,11 +361,31 @@
 
             <div class="border-border flex flex-wrap items-center gap-4 border-t pt-4">
                 <div class="flex items-center gap-2">
-                    <div
-                        class="bg-primary text-primary-foreground flex size-10 items-center justify-center rounded-full"
-                    >
-                        {data.post.author.charAt(0).toUpperCase()}
-                    </div>
+                    {@const authorIconUrl = getMemberIconUrl(data.post.author_id)}
+                    {#if authorIconUrl}
+                        <img
+                            src={authorIconUrl}
+                            alt={data.post.author}
+                            class="size-10 rounded-full object-cover"
+                            onerror={(e) => {
+                                const img = e.currentTarget as HTMLImageElement;
+                                img.style.display = 'none';
+                                const fallback = img.nextElementSibling as HTMLElement;
+                                if (fallback) fallback.style.display = 'flex';
+                            }}
+                        />
+                        <div
+                            class="bg-primary text-primary-foreground hidden size-10 items-center justify-center rounded-full"
+                        >
+                            {data.post.author.charAt(0).toUpperCase()}
+                        </div>
+                    {:else}
+                        <div
+                            class="bg-primary text-primary-foreground flex size-10 items-center justify-center rounded-full"
+                        >
+                            {data.post.author.charAt(0).toUpperCase()}
+                        </div>
+                    {/if}
                     <div>
                         <p class="text-foreground font-medium">{data.post.author}</p>
                         <p class="text-secondary-foreground text-sm">
