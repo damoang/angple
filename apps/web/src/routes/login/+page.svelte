@@ -1,5 +1,6 @@
 <script lang="ts">
     import { browser } from '$app/environment';
+    import { goto, invalidateAll } from '$app/navigation';
     import { page } from '$app/stores';
     import { onMount } from 'svelte';
     import {
@@ -41,7 +42,7 @@
             if (isRedirecting) return;
             if (!authStore.isLoading && authStore.isAuthenticated) {
                 isRedirecting = true;
-                window.location.href = redirectUrl;
+                goto(redirectUrl);
                 return;
             }
             // auth 로딩 중이면 100ms 후 재확인
@@ -71,8 +72,9 @@
                 remember
             });
 
-            // 풀 페이지 리로드로 리다이렉트 (Svelte 내부 라우팅 race condition 방지)
-            window.location.href = redirectUrl;
+            // SSR 데이터 재로드 후 SPA 네비게이션 (메모리 유지)
+            await invalidateAll();
+            await goto(redirectUrl);
         } catch (err) {
             console.error('Login failed:', err);
             error = err instanceof Error ? err.message : '로그인에 실패했습니다.';

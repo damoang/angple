@@ -3,6 +3,7 @@
     import favicon from '$lib/assets/favicon.png';
     import { onMount } from 'svelte';
     import type { Component } from 'svelte';
+    import { browser } from '$app/environment';
     import { page } from '$app/stores';
     import { configureSeo } from '$lib/seo';
     import { authActions } from '$lib/stores/auth.svelte';
@@ -12,6 +13,7 @@
     import { loadThemeComponents } from '$lib/utils/theme-component-loader';
     import { loadAllPluginHooks } from '$lib/hooks/plugin-loader';
     import { loadAllPluginComponents } from '$lib/utils/plugin-component-loader';
+    import { apiClient } from '$lib/api';
 
     const { children, data } = $props(); // Svelte 5: SSR 데이터 받기
 
@@ -139,13 +141,27 @@
         }
     });
 
-    onMount(() => {
+    // SSR에서 받은 accessToken으로 ApiClient 초기화 (페이지 새로고침 시에도 인증 유지)
+    $effect(() => {
+        if (browser && data.accessToken) {
+            console.log('🔐 [SSR Auth] accessToken으로 apiClient 초기화');
+            apiClient.setAccessToken(data.accessToken);
+        }
+    });
+
+    onMount(async () => {
         console.log('🚀 [onMount] 컴포넌트 마운트됨');
         // 테마는 이미 SSR에서 로드되었으므로 loadActiveTheme() 호출 불필요
         // (깜박임 방지!)
 
-        // 인증 상태 초기화
-        authActions.initAuth();
+        // SSR에서 토큰을 받지 못한 경우에만 refresh 시도
+        if (!data.accessToken) {
+            console.log('🔐 [Auth] SSR에서 토큰 없음, refresh 시도');
+            await apiClient.tryRefreshToken();
+        }
+
+        // 인증 상태 초기화 (사용자 정보 조회)
+        await authActions.fetchCurrentUser();
 
         // postMessage 리스너 (Admin에서 테마 변경 시 리로드)
         function handleMessage(event: MessageEvent) {

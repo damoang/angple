@@ -51,8 +51,8 @@ async function authenticateSSR(event: Parameters<Handle>[0]['event']): Promise<v
             }
         }
 
-        // 2. 사용자 프로필 조회
-        const profileRes = await fetch(`${BACKEND_URL}/api/v2/auth/profile`, {
+        // 2. 사용자 프로필 조회 (v2에서는 /auth/me 사용)
+        const profileRes = await fetch(`${BACKEND_URL}/api/v2/auth/me`, {
             headers: { Authorization: `Bearer ${accessToken}` }
         });
         if (!profileRes.ok) return;
@@ -60,8 +60,8 @@ async function authenticateSSR(event: Parameters<Handle>[0]['event']): Promise<v
         const profileData = await profileRes.json();
         const userData = profileData?.data ?? profileData;
         event.locals.user = {
-            nickname: userData?.nickname,
-            level: userData?.level ?? 0
+            nickname: userData?.mb_nick ?? userData?.nickname,
+            level: userData?.mb_level ?? userData?.level ?? 0
         };
     } catch {
         // 인증 실패 시 무시 (비로그인 상태)

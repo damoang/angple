@@ -30,7 +30,10 @@ export default defineConfig(() => {
                     rewrite: (path) => {
                         // v2 전용 엔드포인트 목록 (이 경로들은 v1으로 rewrite하지 않고 그대로 v2로 전달)
                         const v2OnlyPaths = [
-                            '/api/v2/auth/login', // 인증 로그인만 v2 (profile, refresh는 v1)
+                            '/api/v2/auth/login',
+                            '/api/v2/auth/refresh',
+                            '/api/v2/auth/me',
+                            '/api/v2/auth/logout',
                             '/api/v2/payments',
                             '/api/v2/saas',
                             '/api/v2/recommendations',
