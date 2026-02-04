@@ -395,6 +395,17 @@ export interface BoardDisplaySettings {
     show_thumbnail: boolean;
 }
 
+// 게시판 권한 정보 (사용자 레벨 기반)
+export interface BoardPermissions {
+    can_list: boolean;
+    can_read: boolean;
+    can_write: boolean;
+    can_reply: boolean;
+    can_comment: boolean;
+    can_upload: boolean;
+    can_download: boolean;
+}
+
 // 게시판 타입
 export interface Board {
     board_id: string;
@@ -420,6 +431,7 @@ export interface Board {
     count_comment: number;
     insert_time: string;
     display_settings: BoardDisplaySettings;
+    permissions?: BoardPermissions; // 사용자별 권한 정보 (서버에서 계산, 인증 시에만 포함)
 }
 
 // 파일 업로드 관련 타입
