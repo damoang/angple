@@ -14,6 +14,8 @@
     import { ReportDialog } from '$lib/components/features/report/index.js';
     import DOMPurify from 'dompurify';
     import { transformEmoticons } from '$lib/utils/content-transform.js';
+    import { processContent as processEmbeds } from '$lib/plugins/auto-embed/index.js';
+    import { getMemberIconUrl } from '$lib/utils/member-icon.js';
 
     interface Props {
         comments: FreeComment[];
@@ -67,6 +69,18 @@
 
     // 댓글 트리 구조로 변환
     const commentTree = $derived.by(() => {
+        // 그누보드 호환: API에서 이미 depth 값을 제공하면 그대로 사용
+        // (그누보드는 parent_id가 게시글 ID이고, depth 필드로 계층 표현)
+        const hasApiDepth = comments.some((c) => typeof c.depth === 'number' && c.depth > 0);
+        if (hasApiDepth) {
+            // API depth 값을 그대로 사용 (depth 1부터 시작하므로 -1 조정)
+            return comments.map((c) => ({
+                ...c,
+                depth: Math.max(0, (c.depth ?? 1) - 1)
+            }));
+        }
+
+        // parent_id 기반 트리 구조 (새 API용)
         const map = new Map<string | number, FreeComment[]>();
         const roots: FreeComment[] = [];
 
@@ -289,13 +303,43 @@
         showReportDialog = true;
     }
 
-    // 댓글 내용 이모티콘 변환 + sanitize
+    // 댓글 내용 이모티콘 변환 + URL 임베딩 + sanitize
     function renderCommentContent(content: string): string {
         const transformed = transformEmoticons(content);
-        return DOMPurify.sanitize(transformed, {
-            ALLOWED_TAGS: ['img'],
-            ALLOWED_ATTR: ['src', 'width', 'alt', 'loading', 'class'],
-            ALLOWED_URI_REGEXP: /^\/emoticons\//
+        // URL 임베딩 처리 (줄바꿈을 <br>로 변환 후 처리)
+        const withLineBreaks = transformed.replace(/\n/g, '<br>');
+        const embedded = processEmbeds(withLineBreaks);
+        return DOMPurify.sanitize(embedded, {
+            ALLOWED_TAGS: [
+                'img',
+                'br',
+                // 임베딩 관련 태그
+                'div',
+                'iframe',
+                'video',
+                'audio',
+                'source'
+            ],
+            ALLOWED_ATTR: [
+                'src',
+                'width',
+                'alt',
+                'loading',
+                'class',
+                // 임베딩 관련 속성
+                'height',
+                'style',
+                'data-platform',
+                'frameborder',
+                'allow',
+                'allowfullscreen',
+                'allowtransparency',
+                'scrolling',
+                'referrerpolicy',
+                'type',
+                'controls',
+                'title'
+            ]
         });
     }
 
@@ -313,17 +357,39 @@
         {@const isReplyingTo = replyingToCommentId === String(comment.id)}
         {@const depth = comment.depth ?? 0}
         {@const isReply = depth > 0}
+        {@const iconUrl = getMemberIconUrl(comment.author_id)}
         <li style="margin-left: {depth * 1.25}rem" class="py-4 first:pt-0 last:pb-0">
             <div>
                 <div class="mb-2 flex flex-wrap items-center gap-4">
                     <div class="flex items-center gap-2">
-                        <div
-                            class="bg-primary text-primary-foreground flex items-center justify-center rounded-full {isReply
-                                ? 'size-8 text-sm'
-                                : 'size-10'}"
-                        >
-                            {comment.author.charAt(0).toUpperCase()}
-                        </div>
+                        {#if iconUrl}
+                            <img
+                                src={iconUrl}
+                                alt={comment.author}
+                                class="rounded-full object-cover {isReply ? 'size-8' : 'size-10'}"
+                                onerror={(e) => {
+                                    const img = e.currentTarget as HTMLImageElement;
+                                    img.style.display = 'none';
+                                    const fallback = img.nextElementSibling as HTMLElement;
+                                    if (fallback) fallback.style.display = 'flex';
+                                }}
+                            />
+                            <div
+                                class="bg-primary text-primary-foreground hidden items-center justify-center rounded-full {isReply
+                                    ? 'size-8 text-sm'
+                                    : 'size-10'}"
+                            >
+                                {comment.author.charAt(0).toUpperCase()}
+                            </div>
+                        {:else}
+                            <div
+                                class="bg-primary text-primary-foreground flex items-center justify-center rounded-full {isReply
+                                    ? 'size-8 text-sm'
+                                    : 'size-10'}"
+                            >
+                                {comment.author.charAt(0).toUpperCase()}
+                            </div>
+                        {/if}
                         <div>
                             <p
                                 class="text-foreground font-medium {isReply
@@ -504,3 +570,54 @@
         onClose={closeReportDialog}
     />
 {/if}
+
+<style>
+    /* 댓글 내 임베드 컨테이너 스타일 */
+    :global(.embed-container) {
+        position: relative;
+        width: 100%;
+        max-width: var(--max-width, 100%);
+        margin: 0.75rem 0;
+    }
+
+    :global(.embed-container)::before {
+        content: '';
+        display: block;
+        padding-bottom: var(--aspect-ratio, 56.25%);
+    }
+
+    :global(.embed-container iframe),
+    :global(.embed-container video),
+    :global(.embed-container audio) {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        border: 0;
+        border-radius: 0.375rem;
+    }
+
+    /* 세로 영상 */
+    :global(.embed-container[data-platform='youtube-shorts']),
+    :global(.embed-container[data-platform='instagram-reel']),
+    :global(.embed-container[data-platform='tiktok']) {
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    /* Twitter 가변 높이 */
+    :global(.embed-container[data-platform='twitter']) {
+        min-height: 200px;
+    }
+
+    :global(.embed-container[data-platform='twitter'])::before {
+        display: none;
+    }
+
+    :global(.embed-container[data-platform='twitter'] iframe) {
+        position: relative;
+        min-height: 200px;
+        height: auto;
+    }
+</style>

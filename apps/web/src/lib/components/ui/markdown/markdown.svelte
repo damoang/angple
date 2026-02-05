@@ -3,13 +3,16 @@
     import DOMPurify from 'dompurify';
     import { onMount } from 'svelte';
     import { transformEmoticons } from '$lib/utils/content-transform.js';
+    import { processContent as processEmbeds } from '$lib/plugins/auto-embed/index.js';
 
     interface Props {
         content: string;
         class?: string;
+        /** URL 자동 임베딩 활성화 (기본값: true) */
+        enableEmbed?: boolean;
     }
 
-    let { content, class: className = '' }: Props = $props();
+    let { content, class: className = '', enableEmbed = true }: Props = $props();
 
     let renderedHtml = $state('');
     let isBrowser = $state(false);
@@ -29,7 +32,11 @@
         if (isBrowser && content) {
             const transformed = transformEmoticons(content);
             const rawHtml = marked.parse(transformed) as string;
-            renderedHtml = DOMPurify.sanitize(rawHtml, {
+
+            // URL 자동 임베딩 처리 (sanitize 전에 수행)
+            const embeddedHtml = enableEmbed ? processEmbeds(rawHtml) : rawHtml;
+
+            renderedHtml = DOMPurify.sanitize(embeddedHtml, {
                 ALLOWED_TAGS: [
                     'h1',
                     'h2',
@@ -58,7 +65,13 @@
                     'tr',
                     'th',
                     'td',
-                    'hr'
+                    'hr',
+                    // 임베딩 관련 태그 추가
+                    'div',
+                    'iframe',
+                    'video',
+                    'audio',
+                    'source'
                 ],
                 ALLOWED_ATTR: [
                     'href',
@@ -69,7 +82,23 @@
                     'target',
                     'rel',
                     'width',
-                    'loading'
+                    'loading',
+                    // 임베딩 관련 속성 추가
+                    'height',
+                    'style',
+                    'data-platform',
+                    'frameborder',
+                    'allow',
+                    'allowfullscreen',
+                    'allowtransparency',
+                    'scrolling',
+                    'referrerpolicy',
+                    'type',
+                    'controls',
+                    'autoplay',
+                    'muted',
+                    'loop',
+                    'playsinline'
                 ]
             });
         }
@@ -211,5 +240,54 @@
 
     .prose :global(em) {
         font-style: italic;
+    }
+
+    /* 임베드 컨테이너 스타일 */
+    .prose :global(.embed-container) {
+        position: relative;
+        width: 100%;
+        max-width: var(--max-width, 100%);
+        margin: 1rem 0;
+    }
+
+    .prose :global(.embed-container)::before {
+        content: '';
+        display: block;
+        padding-bottom: var(--aspect-ratio, 56.25%);
+    }
+
+    .prose :global(.embed-container iframe),
+    .prose :global(.embed-container video),
+    .prose :global(.embed-container audio) {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        border: 0;
+        border-radius: 0.5rem;
+    }
+
+    /* 세로 영상 (Shorts, Reels, TikTok) */
+    .prose :global(.embed-container[data-platform='youtube-shorts']),
+    .prose :global(.embed-container[data-platform='instagram-reel']),
+    .prose :global(.embed-container[data-platform='tiktok']) {
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    /* Twitter 가변 높이 */
+    .prose :global(.embed-container[data-platform='twitter']) {
+        min-height: 250px;
+    }
+
+    .prose :global(.embed-container[data-platform='twitter'])::before {
+        display: none;
+    }
+
+    .prose :global(.embed-container[data-platform='twitter'] iframe) {
+        position: relative;
+        min-height: 250px;
+        height: auto;
     }
 </style>

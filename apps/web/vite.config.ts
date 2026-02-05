@@ -23,13 +23,13 @@ export default defineConfig(() => {
             },
             proxy: {
                 '/api/v2': {
-                    target: 'http://localhost:8081',
+                    target: 'http://localhost:8082',
                     changeOrigin: true,
                     secure: false,
                     configure: (proxy) => {
                         proxy.on('proxyReq', (proxyReq, req) => {
                             // Origin 헤더를 백엔드 URL로 변경
-                            proxyReq.setHeader('Origin', 'http://localhost:8081');
+                            proxyReq.setHeader('Origin', 'http://localhost:8082');
                             console.log('[Proxy]', req.method, req.url);
                         });
                     }

@@ -56,8 +56,11 @@ import { fetchWithRetry, type RetryConfig, DEFAULT_RETRY_CONFIG } from './retry.
 // 클라이언트: 상대경로 (nginx 프록시)
 // SSR: Docker 내부 네트워크 직접 통신
 const API_BASE_URL = browser
-    ? '/api/v2'
-    : process.env.INTERNAL_API_URL || 'http://localhost:8082/api/v2';
+    ? '/api/v1'
+    : process.env.INTERNAL_API_URL || 'http://localhost:8082/api/v1';
+
+// v2 API URL (인증 관련 - exchange 등)
+const API_V2_URL = browser ? '/api/v2' : 'http://localhost:8082/api/v2';
 
 /**
  * API 클라이언트
@@ -1385,18 +1388,28 @@ class ApiClient {
     /**
      * damoang_jwt 쿠키를 angple JWT로 교환
      * damoang.net 로그인 후 리다이렉트된 경우 자동 토큰 교환에 사용
+     * NOTE: 이 엔드포인트는 v2 API에만 존재
      */
     async exchangeToken(): Promise<LoginResponse> {
-        const response = await this.request<LoginResponse>('/auth/exchange', {
-            method: 'POST'
+        const response = await fetch(`${API_V2_URL}/auth/exchange`, {
+            method: 'POST',
+            credentials: 'include'
         });
 
-        // 액세스 토큰을 메모리에 저장 (httpOnly 쿠키로 refreshToken은 자동 설정됨)
-        if (response.data.access_token) {
-            this._accessToken = response.data.access_token;
+        if (!response.ok) {
+            const error = await response.json().catch(() => ({}));
+            throw { response: { status: response.status }, data: error };
         }
 
-        return response.data;
+        const result = await response.json();
+        const data = result.data || result;
+
+        // 액세스 토큰을 메모리에 저장 (httpOnly 쿠키로 refreshToken은 자동 설정됨)
+        if (data.access_token) {
+            this._accessToken = data.access_token;
+        }
+
+        return data;
     }
 }
 

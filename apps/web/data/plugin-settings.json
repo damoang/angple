@@ -1,11 +1,15 @@
 {
-    "activePlugins": ["ad-widget"],
+    "activePlugins": ["ad-widget", "emoticon"],
     "plugins": {
         "ad-widget": {
             "settings": {
                 "enabled": true
             },
             "activatedAt": "2026-01-27T15:56:15.953Z"
+        },
+        "emoticon": {
+            "settings": {},
+            "activatedAt": "2026-02-04T14:51:20.087Z"
         }
     },
     "version": "1.0.0"

@@ -5,6 +5,8 @@
  * 백엔드 플러그인(commerce, marketplace 등)의 설치/활성화/비활성화/제거를 관리합니다.
  */
 
+import { apiClient } from './client';
+
 // Vite 프록시를 통해 백엔드 API 호출 (CORS 우회)
 const PLUGIN_STORE_API_URL = '/api/v2/admin/plugins';
 
@@ -58,6 +60,22 @@ export interface PluginEvent {
 }
 
 // ============================================
+// 헬퍼 함수
+// ============================================
+
+/**
+ * 인증 헤더를 포함한 fetch 옵션 생성
+ */
+function getAuthHeaders(): Record<string, string> {
+    const accessToken = apiClient.getAccessToken();
+    const headers: Record<string, string> = {};
+    if (accessToken) {
+        headers['Authorization'] = `Bearer ${accessToken}`;
+    }
+    return headers;
+}
+
+// ============================================
 // API 함수
 // ============================================
 
@@ -65,7 +83,10 @@ export interface PluginEvent {
  * 플러그인 카탈로그 목록 조회
  */
 export async function listPlugins(): Promise<CatalogPlugin[]> {
-    const response = await fetch(PLUGIN_STORE_API_URL);
+    const response = await fetch(PLUGIN_STORE_API_URL, {
+        credentials: 'include',
+        headers: getAuthHeaders()
+    });
     if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
     }
@@ -77,7 +98,10 @@ export async function listPlugins(): Promise<CatalogPlugin[]> {
  * 플러그인 상세 조회
  */
 export async function getPlugin(name: string): Promise<CatalogPlugin> {
-    const response = await fetch(`${PLUGIN_STORE_API_URL}/${name}`);
+    const response = await fetch(`${PLUGIN_STORE_API_URL}/${name}`, {
+        credentials: 'include',
+        headers: getAuthHeaders()
+    });
     if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
     }
@@ -90,7 +114,9 @@ export async function getPlugin(name: string): Promise<CatalogPlugin> {
  */
 export async function installPlugin(name: string): Promise<void> {
     const response = await fetch(`${PLUGIN_STORE_API_URL}/${name}/install`, {
-        method: 'POST'
+        method: 'POST',
+        credentials: 'include',
+        headers: getAuthHeaders()
     });
     if (!response.ok) {
         const data = await response.json();
@@ -103,7 +129,9 @@ export async function installPlugin(name: string): Promise<void> {
  */
 export async function enablePlugin(name: string): Promise<void> {
     const response = await fetch(`${PLUGIN_STORE_API_URL}/${name}/enable`, {
-        method: 'POST'
+        method: 'POST',
+        credentials: 'include',
+        headers: getAuthHeaders()
     });
     if (!response.ok) {
         const data = await response.json();
@@ -116,7 +144,9 @@ export async function enablePlugin(name: string): Promise<void> {
  */
 export async function disablePlugin(name: string): Promise<void> {
     const response = await fetch(`${PLUGIN_STORE_API_URL}/${name}/disable`, {
-        method: 'POST'
+        method: 'POST',
+        credentials: 'include',
+        headers: getAuthHeaders()
     });
     if (!response.ok) {
         const data = await response.json();
@@ -129,7 +159,9 @@ export async function disablePlugin(name: string): Promise<void> {
  */
 export async function uninstallPlugin(name: string): Promise<void> {
     const response = await fetch(`${PLUGIN_STORE_API_URL}/${name}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        credentials: 'include',
+        headers: getAuthHeaders()
     });
     if (!response.ok) {
         const data = await response.json();
@@ -141,7 +173,10 @@ export async function uninstallPlugin(name: string): Promise<void> {
  * 플러그인 설정 조회
  */
 export async function getSettings(name: string): Promise<PluginSetting[]> {
-    const response = await fetch(`${PLUGIN_STORE_API_URL}/${name}/settings`);
+    const response = await fetch(`${PLUGIN_STORE_API_URL}/${name}/settings`, {
+        credentials: 'include',
+        headers: getAuthHeaders()
+    });
     if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
     }
@@ -155,7 +190,11 @@ export async function getSettings(name: string): Promise<PluginSetting[]> {
 export async function saveSettings(name: string, settings: Record<string, unknown>): Promise<void> {
     const response = await fetch(`${PLUGIN_STORE_API_URL}/${name}/settings`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+            'Content-Type': 'application/json',
+            ...getAuthHeaders()
+        },
+        credentials: 'include',
         body: JSON.stringify({ settings })
     });
     if (!response.ok) {
@@ -168,7 +207,10 @@ export async function saveSettings(name: string, settings: Record<string, unknow
  * 플러그인 이벤트 로그 조회
  */
 export async function getEvents(name: string): Promise<PluginEvent[]> {
-    const response = await fetch(`${PLUGIN_STORE_API_URL}/${name}/events`);
+    const response = await fetch(`${PLUGIN_STORE_API_URL}/${name}/events`, {
+        credentials: 'include',
+        headers: getAuthHeaders()
+    });
     if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
     }

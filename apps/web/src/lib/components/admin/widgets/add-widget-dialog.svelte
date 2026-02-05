@@ -94,7 +94,7 @@
         }
     }
 
-    const groupedWidgets = $derived(() => {
+    const groupedWidgets = $derived.by(() => {
         const groups: Record<string, string[]> = { content: [], layout: [], ad: [], sidebar: [] };
         for (const type of addableWidgets) {
             const registry = WIDGET_REGISTRY[type];
@@ -128,7 +128,7 @@
                 </div>
             {:else}
                 {#each categoryOrder as category}
-                    {@const widgets = groupedWidgets()[category]}
+                    {@const widgets = groupedWidgets[category]}
                     {#if widgets.length > 0}
                         <div class="mb-6">
                             <h4

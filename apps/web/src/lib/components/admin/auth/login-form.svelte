@@ -29,14 +29,13 @@
     const redirectTo = $derived($page.url.searchParams.get('redirect') || '/admin');
 
     // damoang.net 로그인 후 리다이렉트된 경우 자동 토큰 교환
+    // (damoang_jwt 쿠키는 httpOnly라서 JS에서 읽을 수 없음 → URL 파라미터로 판단)
     onMount(async () => {
         if (!browser) return;
 
-        // damoang_jwt 쿠키 존재 여부 확인
-        const hasDamoangJwt = document.cookie
-            .split('; ')
-            .some((row) => row.startsWith('damoang_jwt='));
-        if (!hasDamoangJwt) return;
+        // login=success 파라미터가 있으면 damoang.net에서 로그인 후 리다이렉트된 것
+        const loginSuccess = $page.url.searchParams.get('login') === 'success';
+        if (!loginSuccess) return;
 
         isExchanging = true;
         try {
@@ -47,6 +46,7 @@
             }
         } catch {
             // 토큰 교환 실패 시 일반 로그인 폼 표시
+            errorMessage = '다모앙 로그인 연동에 실패했습니다. 직접 로그인해 주세요.';
             isExchanging = false;
         }
     });

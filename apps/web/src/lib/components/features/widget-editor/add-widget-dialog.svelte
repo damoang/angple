@@ -75,7 +75,7 @@
     }
 
     // 카테고리별 그룹화
-    const groupedWidgets = $derived(() => {
+    const groupedWidgets = $derived.by(() => {
         const groups: Record<string, string[]> = {};
 
         for (const type of addableWidgets) {
@@ -116,7 +116,7 @@
         </DialogHeader>
 
         <div class="space-y-4 py-4">
-            {#each Object.entries(groupedWidgets()) as [category, types]}
+            {#each Object.entries(groupedWidgets) as [category, types]}
                 {#if types.length > 0}
                     <div>
                         <h4 class="text-muted-foreground mb-2 text-sm font-medium">

@@ -47,7 +47,7 @@
     }
 
     // 현재 페이지네이션 데이터
-    const pagination = $derived(() => {
+    const pagination = $derived.by(() => {
         if (data.tab === 'posts' && data.posts) {
             return data.posts;
         } else if (data.tab === 'comments' && data.comments) {
@@ -271,7 +271,7 @@
         {/if}
 
         <!-- 페이지네이션 -->
-        {#if pagination() && pagination()!.total_pages > 1}
+        {#if pagination && pagination.total_pages > 1}
             <div class="mt-6 flex items-center justify-center gap-2">
                 <Button
                     variant="outline"
@@ -283,13 +283,13 @@
                 </Button>
 
                 <span class="text-muted-foreground px-4 text-sm">
-                    {data.page} / {pagination()!.total_pages}
+                    {data.page} / {pagination.total_pages}
                 </span>
 
                 <Button
                     variant="outline"
                     size="sm"
-                    disabled={data.page === pagination()!.total_pages}
+                    disabled={data.page === pagination.total_pages}
                     onclick={() => goToPage(data.page + 1)}
                 >
                     다음
