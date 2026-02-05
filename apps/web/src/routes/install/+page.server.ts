@@ -3,7 +3,7 @@ import type { Actions, PageServerLoad } from './$types';
 import { isInstalled, updateSettings } from '$lib/server/install/check-installed';
 import { scanThemes, getThemePath } from '$lib/server/themes/scanner';
 import { existsSync } from 'fs';
-import { join } from 'path';
+import { join, resolve } from 'path';
 
 /**
  * 설치 위저드 Step 1 서버 로직
@@ -21,12 +21,14 @@ export const load: PageServerLoad = async () => {
         // 스크린샷 파일 실제 존재 여부 확인
         let screenshotPath: string | null = null;
         if (theme.screenshot) {
-            // 보안: path traversal 방지 (screenshot은 파일명만 허용)
+            // 보안: path traversal 방지 - 파일명만 허용 (영문, 숫자, ., -, _)
             const safeScreenshot = theme.screenshot.replace(/[^a-zA-Z0-9._-]/g, '');
-            if (safeScreenshot && !safeScreenshot.includes('..')) {
+            if (safeScreenshot && safeScreenshot.length > 0) {
                 const themePath = getThemePath(theme.id);
-                const fullScreenshotPath = join(themePath, safeScreenshot);
-                if (existsSync(fullScreenshotPath)) {
+                // nosemgrep: path-join-resolve-traversal (safeScreenshot은 위에서 sanitize됨)
+                const fullScreenshotPath = resolve(themePath, safeScreenshot);
+                // 추가 검증: 결과 경로가 테마 디렉터리 내에 있는지 확인
+                if (fullScreenshotPath.startsWith(themePath) && existsSync(fullScreenshotPath)) {
                     screenshotPath = safeScreenshot;
                 }
             }
