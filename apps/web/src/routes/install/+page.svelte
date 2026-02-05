@@ -134,9 +134,7 @@
                                 </option>
                             {/each}
                         </select>
-                        <p class="text-muted-foreground text-sm">
-                            사이트의 기본 표시 언어입니다.
-                        </p>
+                        <p class="text-muted-foreground text-sm">사이트의 기본 표시 언어입니다.</p>
                     </div>
 
                     <!-- 테마 선택 섹션 -->

@@ -55,7 +55,9 @@
     {#each steps as step, index (step)}
         <!-- 단계 원형 -->
         <div
-            class="flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold {getStepClass(step)}"
+            class="flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold {getStepClass(
+                step
+            )}"
         >
             {step}
         </div>

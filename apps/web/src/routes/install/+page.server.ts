@@ -57,7 +57,14 @@ export const actions: Actions = {
         const language = formData.get('language') as string;
         const activeTheme = formData.get('activeTheme') as string;
 
-        console.log('[Install Step 1] siteName:', siteName, 'language:', language, 'activeTheme:', activeTheme);
+        console.log(
+            '[Install Step 1] siteName:',
+            siteName,
+            'language:',
+            language,
+            'activeTheme:',
+            activeTheme
+        );
 
         if (!siteName || siteName.trim() === '') {
             console.log('[Install Step 1] Validation failed: siteName empty');
