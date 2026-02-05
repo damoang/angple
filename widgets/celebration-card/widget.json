@@ -1,0 +1,12 @@
+{
+    "id": "celebration-card",
+    "name": "축하메시지",
+    "version": "1.0.0",
+    "description": "오늘의 축하메시지 카드 1개 표시",
+    "author": { "name": "Angple" },
+    "category": "sidebar",
+    "slots": ["sidebar"],
+    "icon": "PartyPopper",
+    "allowMultiple": false,
+    "main": "index.svelte"
+}
