@@ -21,10 +21,14 @@ export const load: PageServerLoad = async () => {
         // 스크린샷 파일 실제 존재 여부 확인
         let screenshotPath: string | null = null;
         if (theme.screenshot) {
-            const themePath = getThemePath(theme.id);
-            const fullScreenshotPath = join(themePath, theme.screenshot);
-            if (existsSync(fullScreenshotPath)) {
-                screenshotPath = theme.screenshot;
+            // 보안: path traversal 방지 (screenshot은 파일명만 허용)
+            const safeScreenshot = theme.screenshot.replace(/[^a-zA-Z0-9._-]/g, '');
+            if (safeScreenshot && !safeScreenshot.includes('..')) {
+                const themePath = getThemePath(theme.id);
+                const fullScreenshotPath = join(themePath, safeScreenshot);
+                if (existsSync(fullScreenshotPath)) {
+                    screenshotPath = safeScreenshot;
+                }
             }
         }
 
