@@ -7,6 +7,7 @@
         CardHeader,
         CardTitle
     } from '$lib/components/ui/card';
+    import { StepIndicator } from '$lib/components/install';
     import { CheckCircle } from '@lucide/svelte/icons';
 
     /**
@@ -31,32 +32,7 @@
         </CardHeader>
 
         <CardContent>
-            <!-- 진행 상태 표시 (4단계) -->
-            <div class="mb-8 flex items-center justify-center gap-2">
-                <div
-                    class="bg-primary/50 text-primary-foreground flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold"
-                >
-                    1
-                </div>
-                <div class="bg-primary h-0.5 w-8"></div>
-                <div
-                    class="bg-primary/50 text-primary-foreground flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold"
-                >
-                    2
-                </div>
-                <div class="bg-primary h-0.5 w-8"></div>
-                <div
-                    class="bg-primary/50 text-primary-foreground flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold"
-                >
-                    3
-                </div>
-                <div class="bg-primary h-0.5 w-8"></div>
-                <div
-                    class="bg-primary text-primary-foreground flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold"
-                >
-                    4
-                </div>
-            </div>
+            <StepIndicator currentStep={4} />
 
             <div class="bg-muted-foreground/10 mb-6 rounded-lg p-4">
                 <h3 class="mb-2 font-semibold">다음 단계</h3>

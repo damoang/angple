@@ -11,12 +11,37 @@
         CardHeader,
         CardTitle
     } from '$lib/components/ui/card';
+    import { StepIndicator } from '$lib/components/install';
+    import Check from '@lucide/svelte/icons/check';
 
     /**
      * 설치 위저드 Step 1: 사이트 정보 입력
      */
 
+    // 지원 언어 목록
+    const languages = [
+        { code: 'ko', label: '한국어 (Korean)' },
+        { code: 'en', label: 'English' },
+        { code: 'ja', label: '日本語 (Japanese)' },
+        { code: 'zh', label: '中文 (Chinese)' },
+        { code: 'es', label: 'Español (Spanish)' },
+        { code: 'vi', label: 'Tiếng Việt (Vietnamese)' },
+        { code: 'ar', label: 'العربية (Arabic)' }
+    ];
+
+    interface Theme {
+        id: string;
+        name: string;
+        description: string;
+        screenshot: string | null;
+    }
+
+    let { data, form } = $props();
     let isSubmitting = $state(false);
+    let selectedTheme = $state('damoang-default');
+
+    // 테마 목록 (서버에서 전달)
+    const themes: Theme[] = data.themes ?? [];
 </script>
 
 <svelte:head>
@@ -34,40 +59,26 @@
         </CardHeader>
 
         <CardContent>
-            <!-- 진행 상태 표시 (4단계) -->
-            <div class="mb-8 flex items-center justify-center gap-2">
-                <div
-                    class="bg-primary text-primary-foreground flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold"
-                >
-                    1
+            <StepIndicator currentStep={1} />
+
+            {#if form?.error}
+                <div class="bg-destructive/10 text-destructive mb-4 rounded-md p-3 text-sm">
+                    {form.error}
                 </div>
-                <div class="bg-muted-foreground/30 h-0.5 w-8"></div>
-                <div
-                    class="bg-muted-foreground/30 text-muted-foreground flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold"
-                >
-                    2
-                </div>
-                <div class="bg-muted-foreground/30 h-0.5 w-8"></div>
-                <div
-                    class="bg-muted-foreground/30 text-muted-foreground flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold"
-                >
-                    3
-                </div>
-                <div class="bg-muted-foreground/30 h-0.5 w-8"></div>
-                <div
-                    class="bg-muted-foreground/30 text-muted-foreground flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold"
-                >
-                    4
-                </div>
-            </div>
+            {/if}
 
             <form
                 method="POST"
                 use:enhance={() => {
                     isSubmitting = true;
-                    return async ({ update }) => {
-                        await update();
-                        isSubmitting = false;
+                    return async ({ result, update }) => {
+                        if (result.type === 'redirect') {
+                            // redirect는 자동 처리됨
+                            await update();
+                        } else {
+                            await update();
+                            isSubmitting = false;
+                        }
                     };
                 }}
             >
@@ -108,6 +119,81 @@
                             사이트의 접속 주소입니다. (선택사항)
                         </p>
                     </div>
+
+                    <div class="space-y-2">
+                        <Label for="language">사이트 언어 *</Label>
+                        <select
+                            id="language"
+                            name="language"
+                            class="border-input bg-background focus-visible:border-ring focus-visible:ring-ring/50 flex h-9 w-full rounded-md border px-3 py-1 text-sm shadow-sm outline-none transition-colors focus-visible:ring-[3px]"
+                            required
+                        >
+                            {#each languages as lang}
+                                <option value={lang.code} selected={lang.code === 'ko'}>
+                                    {lang.label}
+                                </option>
+                            {/each}
+                        </select>
+                        <p class="text-muted-foreground text-sm">
+                            사이트의 기본 표시 언어입니다.
+                        </p>
+                    </div>
+
+                    <!-- 테마 선택 섹션 -->
+                    {#if themes.length > 0}
+                        <div class="space-y-2 pt-4">
+                            <Label>테마 선택 *</Label>
+                            <p class="text-muted-foreground mb-3 text-sm">
+                                사이트에 적용할 기본 테마를 선택하세요. 나중에 변경할 수 있습니다.
+                            </p>
+                            <div class="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                                {#each themes as theme (theme.id)}
+                                    <button
+                                        type="button"
+                                        class="relative rounded-lg border-2 p-2 text-left transition-all hover:shadow-md {selectedTheme ===
+                                        theme.id
+                                            ? 'border-primary bg-primary/5 ring-primary/20 ring-2'
+                                            : 'border-muted hover:border-muted-foreground/30'}"
+                                        onclick={() => (selectedTheme = theme.id)}
+                                    >
+                                        <!-- 선택 표시 -->
+                                        {#if selectedTheme === theme.id}
+                                            <div
+                                                class="bg-primary text-primary-foreground absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full"
+                                            >
+                                                <Check class="h-3 w-3" />
+                                            </div>
+                                        {/if}
+
+                                        <!-- 스크린샷 영역 -->
+                                        <div
+                                            class="bg-muted mb-2 flex aspect-video items-center justify-center overflow-hidden rounded"
+                                        >
+                                            {#if theme.screenshot}
+                                                <img
+                                                    src="/themes/{theme.id}/{theme.screenshot}"
+                                                    alt={theme.name}
+                                                    class="h-full w-full object-cover"
+                                                />
+                                            {:else}
+                                                <div
+                                                    class="text-muted-foreground flex h-full w-full items-center justify-center text-xs"
+                                                >
+                                                    미리보기 없음
+                                                </div>
+                                            {/if}
+                                        </div>
+
+                                        <!-- 테마 이름 -->
+                                        <div class="truncate text-sm font-medium">{theme.name}</div>
+                                    </button>
+                                {/each}
+                            </div>
+                        </div>
+                    {/if}
+
+                    <!-- 선택된 테마 값을 hidden input으로 전송 -->
+                    <input type="hidden" name="activeTheme" value={selectedTheme} />
                 </div>
 
                 <div class="mt-8 flex justify-end">
