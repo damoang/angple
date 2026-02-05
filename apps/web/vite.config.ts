@@ -14,7 +14,9 @@ export default defineConfig(({ mode }) => {
     // 환경 변수 (앱 > 루트 > 기본값 순서로 우선순위)
     const port = parseInt(env.VITE_PORT || rootEnv.WEB_PORT || '3010');
     const apiProxyTarget = env.VITE_API_PROXY_TARGET || 'http://localhost:8081';
-    const allowedHosts = (env.VITE_ALLOWED_HOSTS || 'localhost,web.damoang.net,damoang.dev').split(',');
+    const allowedHosts = (env.VITE_ALLOWED_HOSTS || 'localhost,web.damoang.net,damoang.dev').split(
+        ','
+    );
 
     return {
         plugins: [tailwindcss(), sveltekit()],
