@@ -74,23 +74,24 @@ export const DEFAULT_WIDGETS: WidgetConfig[] = [
 /** 기본 사이드바 위젯 레이아웃 */
 export const DEFAULT_SIDEBAR_WIDGETS: WidgetConfig[] = [
     { id: 'notice', type: 'notice', position: 0, enabled: true },
-    { id: 'podcast', type: 'podcast', position: 1, enabled: true },
+    { id: 'celebration-card', type: 'celebration-card', position: 1, enabled: true },
+    { id: 'podcast', type: 'podcast', position: 2, enabled: true },
     {
         id: 'sidebar-ad-1',
         type: 'ad',
-        position: 2,
+        position: 3,
         enabled: true,
         settings: { position: 'sidebar-1', type: 'image', format: 'square' }
     },
     {
         id: 'sidebar-ad-2',
         type: 'ad',
-        position: 3,
+        position: 4,
         enabled: true,
         settings: { position: 'sidebar-2', type: 'image-text', format: 'grid' }
     },
-    { id: 'sharing-board', type: 'sharing-board', position: 4, enabled: true },
-    { id: 'sticky-ads', type: 'sticky-ads', position: 5, enabled: true }
+    { id: 'sharing-board', type: 'sharing-board', position: 5, enabled: true },
+    { id: 'sticky-ads', type: 'sticky-ads', position: 6, enabled: true }
 ];
 
 /**
