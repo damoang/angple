@@ -7,7 +7,7 @@
 
 import { apiClient } from './client';
 
-// Vite 프록시를 통해 백엔드 API 호출 (CORS 우회)
+// 백엔드 API 호출 (v2 API - Bearer 토큰 인증)
 const PLUGIN_STORE_API_URL = '/api/v2/admin/plugins';
 
 // ============================================
