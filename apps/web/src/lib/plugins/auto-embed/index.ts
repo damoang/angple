@@ -31,13 +31,13 @@ export type { EmbedInfo, EmbedPlatform, EmbedResult } from './types.js';
 
 // 핵심 함수 내보내기
 export {
-	processContent,
-	embedUrl,
-	getEmbed,
-	getEmbedInfo,
-	extractEmbeddableUrls,
-	isEmbeddable,
-	wrapEmbedHtml
+    processContent,
+    embedUrl,
+    getEmbed,
+    getEmbedInfo,
+    extractEmbeddableUrls,
+    isEmbeddable,
+    wrapEmbedHtml
 } from './embedder.js';
 
 // 플랫폼 내보내기
