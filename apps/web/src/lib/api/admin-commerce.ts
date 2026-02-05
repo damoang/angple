@@ -13,7 +13,7 @@ import type {
     CommerceDashboard
 } from '$lib/types/admin-commerce';
 
-const BACKEND_API_BASE_URL = import.meta.env.VITE_BACKEND_API_URL || 'http://localhost:8082';
+const BACKEND_API_BASE_URL = import.meta.env.VITE_BACKEND_API_URL || 'http://localhost:8081';
 const COMMERCE_API_URL = `${BACKEND_API_BASE_URL}/api/plugins/commerce`;
 
 // Re-export types for convenience

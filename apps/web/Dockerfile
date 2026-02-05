@@ -38,8 +38,12 @@ USER devuser
 
 WORKDIR /app/apps/web
 
+# 개발 서버 포트 (환경 변수로 제어 가능)
+ARG DEV_PORT=3010
+ENV DEV_PORT=$DEV_PORT
+
 # Start development server
-CMD ["pnpm", "dev", "--host", "0.0.0.0", "--port", "3000"]
+CMD ["sh", "-c", "pnpm dev --host 0.0.0.0 --port $DEV_PORT"]
 
 # -----------------------------
 # Build stage
@@ -107,6 +111,7 @@ USER nodeuser
 
 # Environment variables
 ENV NODE_ENV=production
+# 컨테이너 내부 포트는 3000 고정 (외부 매핑은 compose.yml에서 제어)
 ENV PORT=3000
 
 # Expose port

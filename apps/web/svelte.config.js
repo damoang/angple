@@ -26,7 +26,11 @@ const config = {
     preprocess: vitePreprocess(),
 
     kit: {
-        adapter
+        adapter,
+        csrf: {
+            // 개발 환경에서 localhost CSRF 허용
+            checkOrigin: process.env.NODE_ENV === 'production'
+        }
     },
     compilerOptions: {
         runes: true //룬 모드 강제 적용
