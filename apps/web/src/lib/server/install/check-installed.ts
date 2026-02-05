@@ -26,9 +26,11 @@ interface Settings {
     siteName?: string;
     siteDescription?: string;
     siteUrl?: string;
+    language?: string;
     database?: DatabaseConfig;
     adminEmail?: string;
     adminName?: string;
+    adminUsername?: string;
 }
 
 /**
