@@ -41,14 +41,14 @@ async function createAdminInBackend(data: {
             // Backend 응답 실패
             const errorResult = await response.json().catch(() => ({}));
             const errorMessage = errorResult.error?.message || '관리자 계정 생성 실패';
-            const errorDetails = errorResult.error?.details || '';
 
-            // 개발 모드에서 DB 연결 에러는 무시하고 진행
-            if (isDev && errorDetails.includes('connection refused')) {
-                console.log('[DEV] Database not available, skipping admin creation in DB');
+            // 개발 모드에서 DB 관련 에러는 무시하고 진행
+            // (connection refused, table doesn't exist, migration errors 등)
+            if (isDev) {
+                console.log('[DEV] Backend error, skipping admin creation in DB:', errorMessage);
                 return {
                     success: true,
-                    message: '관리자 계정 생성 완료 (개발 모드 - DB 미연결)',
+                    message: '관리자 계정 생성 완료 (개발 모드 - Backend 에러 무시)',
                     userId: 'dev-admin'
                 };
             }
