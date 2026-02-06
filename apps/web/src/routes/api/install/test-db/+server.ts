@@ -34,10 +34,10 @@ export const POST: RequestHandler = async ({ request }) => {
         // Frontend에서 직접 MySQL 연결은 불가능
 
         // Backend API 호출 (angple-backend 서버)
-        const backendUrl = process.env.BACKEND_URL || 'http://localhost:8080';
+        const backendUrl = process.env.BACKEND_URL || 'http://localhost:8081';
 
         try {
-            const response = await fetch(`${backendUrl}/api/install/test-db`, {
+            const response = await fetch(`${backendUrl}/api/v2/install/test-db`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ host, port, database, user, password })
