@@ -33,6 +33,17 @@ export default defineConfig(() => {
                             console.log('[Proxy]', req.method, req.url);
                         });
                     }
+                },
+                '/api/plugins': {
+                    target: 'http://localhost:8082',
+                    changeOrigin: true,
+                    secure: false,
+                    configure: (proxy) => {
+                        proxy.on('proxyReq', (proxyReq, req) => {
+                            proxyReq.setHeader('Origin', 'http://localhost:8082');
+                            console.log('[Proxy]', req.method, req.url);
+                        });
+                    }
                 }
             }
         },
