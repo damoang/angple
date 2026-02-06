@@ -95,6 +95,12 @@
                     </div>
 
                     <div class="space-y-2">
+                        <Label for="adminUsername">관리자 아이디 *</Label>
+                        <Input id="adminUsername" name="adminUsername" placeholder="admin" required />
+                        <p class="text-muted-foreground text-sm">로그인 시 사용할 아이디입니다.</p>
+                    </div>
+
+                    <div class="space-y-2">
                         <Label for="adminPassword">비밀번호 *</Label>
                         <Input
                             id="adminPassword"
