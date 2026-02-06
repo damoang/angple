@@ -1,3 +1,14 @@
+# ============================================
+# Angple Docker Compose Configuration
+# ============================================
+#
+# 사용법:
+#   개발: docker compose --env-file .env.local up -d
+#   프로덕션: docker compose --env-file .env.production up -d
+#
+# 환경 변수는 .env.local 또는 .env.production에서 로드됩니다.
+# ============================================
+
 services:
   # Web Application
   web:
@@ -7,7 +18,11 @@ services:
       dockerfile: apps/web/Dockerfile
       target: production
     container_name: ${COMPOSE_PROJECT_NAME:-angple}-web
+    environment:
+      - NODE_ENV=${NODE_ENV:-production}
+      - INTERNAL_API_URL=${INTERNAL_API_URL:-http://host.docker.internal:8081/api/v2}
     ports:
+      # 호스트 포트는 환경변수로 제어, 컨테이너 내부는 3000 고정
       - "${WEB_PORT:-3010}:3000"
     restart: unless-stopped
     networks:

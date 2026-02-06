@@ -9,6 +9,7 @@
         "packages/*"
     ],
     "scripts": {
+        "setup": "./scripts/setup.sh",
         "dev": "cd apps/web && npm run dev",
         "dev:admin": "cd apps/admin && npm run dev",
         "build": "cd apps/web && npm run build",

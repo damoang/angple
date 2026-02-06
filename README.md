@@ -87,7 +87,7 @@ npm run dev:admin               # admin 앱
 | `WEB_PORT`             | 웹 포트                   | `3010`                         |
 | `ADMIN_PORT`           | 어드민 포트               | `3011`                         |
 | `DATA_PATH`            | 데이터 디렉토리           | `./data`                       |
-| `INTERNAL_API_URL`     | SSR용 내부 API URL        | `http://localhost:8082/api/v2` |
+| `INTERNAL_API_URL`     | SSR용 내부 API URL        | `http://localhost:8081/api/v2` |
 | `PUBLIC_API_BASE_URL`  | 클라이언트용 외부 API URL | `https://api.damoang.net`      |
 | `ANGPLE_WEB_IMAGE`     | 사전 빌드된 웹 이미지     | -                              |
 | `ANGPLE_ADMIN_IMAGE`   | 사전 빌드된 어드민 이미지 | -                              |

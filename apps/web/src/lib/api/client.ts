@@ -57,10 +57,10 @@ import { fetchWithRetry, type RetryConfig, DEFAULT_RETRY_CONFIG } from './retry.
 // SSR: Docker 내부 네트워크 직접 통신
 const API_BASE_URL = browser
     ? '/api/v1'
-    : process.env.INTERNAL_API_URL || 'http://localhost:8082/api/v1';
+    : process.env.INTERNAL_API_URL || 'http://localhost:8081/api/v1';
 
 // v2 API URL (인증 관련 - exchange 등)
-const API_V2_URL = browser ? '/api/v2' : 'http://localhost:8082/api/v2';
+const API_V2_URL = browser ? '/api/v2' : 'http://localhost:8081/api/v2';
 
 /**
  * API 클라이언트
