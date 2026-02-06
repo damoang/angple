@@ -32,12 +32,12 @@ export interface FreeComment {
 
 ### 1.2 백엔드 API 스펙
 
-| Method | Endpoint | 설명 | 권한 |
-|--------|----------|------|------|
-| `PATCH` | `/api/v2/boards/{boardId}/posts/{postId}/soft-delete` | 소프트 삭제 | 작성자, 관리자 |
-| `POST` | `/api/v2/boards/{boardId}/posts/{postId}/restore` | 복구 | 관리자 |
-| `DELETE` | `/api/v2/boards/{boardId}/posts/{postId}/permanent` | 영구 삭제 | 관리자 |
-| `GET` | `/api/v2/admin/posts/deleted` | 삭제된 게시물 목록 | 관리자 |
+| Method   | Endpoint                                              | 설명               | 권한           |
+| -------- | ----------------------------------------------------- | ------------------ | -------------- |
+| `PATCH`  | `/api/v2/boards/{boardId}/posts/{postId}/soft-delete` | 소프트 삭제        | 작성자, 관리자 |
+| `POST`   | `/api/v2/boards/{boardId}/posts/{postId}/restore`     | 복구               | 관리자         |
+| `DELETE` | `/api/v2/boards/{boardId}/posts/{postId}/permanent`   | 영구 삭제          | 관리자         |
+| `GET`    | `/api/v2/admin/posts/deleted`                         | 삭제된 게시물 목록 | 관리자         |
 
 **백엔드 DB 마이그레이션** (Go/Fiber):
 
@@ -63,10 +63,10 @@ async getDeletedPosts(page?: number, limit?: number): Promise<PaginatedResponse<
 
 #### 컴포넌트
 
-| 파일 | 위치 | 설명 |
-|------|------|------|
-| `deleted-post-banner.svelte` | `apps/web/src/lib/components/post/` | 삭제된 게시물 안내 배너 + 복구 버튼 |
-| `deleted-posts-list.svelte` | `apps/admin/src/routes/posts/deleted/` | Admin 삭제 게시물 관리 |
+| 파일                         | 위치                                   | 설명                                |
+| ---------------------------- | -------------------------------------- | ----------------------------------- |
+| `deleted-post-banner.svelte` | `apps/web/src/lib/components/post/`    | 삭제된 게시물 안내 배너 + 복구 버튼 |
+| `deleted-posts-list.svelte`  | `apps/admin/src/routes/posts/deleted/` | Admin 삭제 게시물 관리              |
 
 #### 동작 흐름
 
@@ -105,11 +105,11 @@ export interface RevisionDiff {
 
 ### 2.2 백엔드 API 스펙
 
-| Method | Endpoint | 설명 | 권한 |
-|--------|----------|------|------|
-| `GET` | `/api/v2/boards/{boardId}/posts/{postId}/revisions` | 수정 이력 목록 | 작성자, 관리자 |
-| `GET` | `/api/v2/boards/{boardId}/posts/{postId}/revisions/{version}` | 특정 버전 조회 | 작성자, 관리자 |
-| `POST` | `/api/v2/boards/{boardId}/posts/{postId}/revisions/{version}/restore` | 버전 복원 | 작성자, 관리자 |
+| Method | Endpoint                                                              | 설명           | 권한           |
+| ------ | --------------------------------------------------------------------- | -------------- | -------------- |
+| `GET`  | `/api/v2/boards/{boardId}/posts/{postId}/revisions`                   | 수정 이력 목록 | 작성자, 관리자 |
+| `GET`  | `/api/v2/boards/{boardId}/posts/{postId}/revisions/{version}`         | 특정 버전 조회 | 작성자, 관리자 |
+| `POST` | `/api/v2/boards/{boardId}/posts/{postId}/revisions/{version}/restore` | 버전 복원      | 작성자, 관리자 |
 
 **백엔드 DB 마이그레이션**:
 
@@ -142,11 +142,11 @@ async restoreRevision(boardId: string, postId: string, version: number): Promise
 
 #### 컴포넌트
 
-| 파일 | 위치 | 설명 |
-|------|------|------|
-| `revision-history.svelte` | `apps/web/src/lib/components/post/` | 수정 이력 타임라인 + diff 뷰 |
-| `revision-diff.svelte` | `apps/web/src/lib/components/post/` | 두 버전 간 차이 비교 |
-| `revision-restore-dialog.svelte` | `apps/web/src/lib/components/post/` | 버전 복원 확인 다이얼로그 |
+| 파일                             | 위치                                | 설명                         |
+| -------------------------------- | ----------------------------------- | ---------------------------- |
+| `revision-history.svelte`        | `apps/web/src/lib/components/post/` | 수정 이력 타임라인 + diff 뷰 |
+| `revision-diff.svelte`           | `apps/web/src/lib/components/post/` | 두 버전 간 차이 비교         |
+| `revision-restore-dialog.svelte` | `apps/web/src/lib/components/post/` | 버전 복원 확인 다이얼로그    |
 
 #### 동작 흐름
 
@@ -169,18 +169,18 @@ export interface Scrap {
     user_id: string;
     memo?: string;
     created_at: string;
-    post?: FreePost;  // 조회 시 포함
+    post?: FreePost; // 조회 시 포함
 }
 ```
 
 ### 3.2 백엔드 API 스펙
 
-| Method | Endpoint | 설명 | 권한 |
-|--------|----------|------|------|
-| `POST` | `/api/v2/posts/{postId}/scrap` | 스크랩 추가 | 로그인 |
-| `DELETE` | `/api/v2/posts/{postId}/scrap` | 스크랩 해제 | 로그인 |
-| `GET` | `/api/v2/my/scraps` | 내 스크랩 목록 | 로그인 |
-| `GET` | `/api/v2/posts/{postId}/scrap/status` | 스크랩 여부 | 로그인 |
+| Method   | Endpoint                              | 설명           | 권한   |
+| -------- | ------------------------------------- | -------------- | ------ |
+| `POST`   | `/api/v2/posts/{postId}/scrap`        | 스크랩 추가    | 로그인 |
+| `DELETE` | `/api/v2/posts/{postId}/scrap`        | 스크랩 해제    | 로그인 |
+| `GET`    | `/api/v2/my/scraps`                   | 내 스크랩 목록 | 로그인 |
+| `GET`    | `/api/v2/posts/{postId}/scrap/status` | 스크랩 여부    | 로그인 |
 
 **백엔드 DB 마이그레이션**:
 
@@ -212,10 +212,10 @@ async getScrapStatus(postId: string): Promise<{ scrapped: boolean }>
 
 #### 컴포넌트
 
-| 파일 | 위치 | 설명 |
-|------|------|------|
+| 파일                  | 위치                                | 설명                               |
+| --------------------- | ----------------------------------- | ---------------------------------- |
 | `scrap-button.svelte` | `apps/web/src/lib/components/post/` | 스크랩 토글 버튼 (Bookmark 아이콘) |
-| `+page.svelte` | `apps/web/src/routes/my/scraps/` | 내 스크랩 목록 페이지 |
+| `+page.svelte`        | `apps/web/src/routes/my/scraps/`    | 내 스크랩 목록 페이지              |
 
 #### 동작 흐름
 
@@ -242,14 +242,14 @@ export interface BoardGroup {
 
 ### 4.2 백엔드 API 스펙
 
-| Method | Endpoint | 설명 | 권한 |
-|--------|----------|------|------|
-| `GET` | `/api/v2/board-groups` | 그룹 목록 (게시판 포함) | 공개 |
-| `POST` | `/api/v2/admin/board-groups` | 그룹 생성 | 관리자 |
-| `PUT` | `/api/v2/admin/board-groups/{groupId}` | 그룹 수정 | 관리자 |
-| `DELETE` | `/api/v2/admin/board-groups/{groupId}` | 그룹 삭제 | 관리자 |
-| `PATCH` | `/api/v2/admin/board-groups/reorder` | 그룹 순서 변경 | 관리자 |
-| `PATCH` | `/api/v2/admin/boards/{boardId}/group` | 게시판 그룹 변경 | 관리자 |
+| Method   | Endpoint                               | 설명                    | 권한   |
+| -------- | -------------------------------------- | ----------------------- | ------ |
+| `GET`    | `/api/v2/board-groups`                 | 그룹 목록 (게시판 포함) | 공개   |
+| `POST`   | `/api/v2/admin/board-groups`           | 그룹 생성               | 관리자 |
+| `PUT`    | `/api/v2/admin/board-groups/{groupId}` | 그룹 수정               | 관리자 |
+| `DELETE` | `/api/v2/admin/board-groups/{groupId}` | 그룹 삭제               | 관리자 |
+| `PATCH`  | `/api/v2/admin/board-groups/reorder`   | 그룹 순서 변경          | 관리자 |
+| `PATCH`  | `/api/v2/admin/boards/{boardId}/group` | 게시판 그룹 변경        | 관리자 |
 
 **백엔드 DB 마이그레이션**:
 
@@ -273,11 +273,11 @@ ALTER TABLE boards ADD FOREIGN KEY (group_id) REFERENCES board_groups(id);
 
 #### 컴포넌트
 
-| 파일 | 위치 | 설명 |
-|------|------|------|
-| `+page.svelte` | `apps/admin/src/routes/board-groups/` | Admin 게시판 그룹 CRUD |
-| `board-group-form.svelte` | `apps/admin/src/lib/components/board/` | 그룹 생성/수정 폼 |
-| `sidebar-board-groups.svelte` | `apps/web/src/lib/components/layout/` | 사이드바 그룹별 게시판 표시 |
+| 파일                          | 위치                                   | 설명                        |
+| ----------------------------- | -------------------------------------- | --------------------------- |
+| `+page.svelte`                | `apps/admin/src/routes/board-groups/`  | Admin 게시판 그룹 CRUD      |
+| `board-group-form.svelte`     | `apps/admin/src/lib/components/board/` | 그룹 생성/수정 폼           |
+| `sidebar-board-groups.svelte` | `apps/web/src/lib/components/layout/`  | 사이드바 그룹별 게시판 표시 |
 
 #### 동작 흐름
 
@@ -334,15 +334,15 @@ Phase 16 코어 기능 완성 후, `extensions/plugin-content-history/`는:
 
 ## 7. QA 이슈 반영 (Phase 11-15에서 발견)
 
-| 이슈 | 해결 방안 | 적용 시점 |
-|------|-----------|-----------|
-| PluginSlot handleError 미연결 | ErrorBoundary 래퍼 추가 | Phase 16과 별도 |
-| ALLOWED_EXTENSIONS 미적용 | validateZipEntries에서 검증 추가 | Phase 16과 별도 |
-| Web 설정페이지 코드 중복 | PluginSettingsForm 공유 컴포넌트 사용 | Phase 16과 별도 |
-| 마켓플레이스 GitHub 미연동 | 하드코딩 → API 연동 | Phase 17 이후 |
-| 다크모드 미지원 (plugin-slot 등) | dark: 클래스 추가 | Phase 16 구현 시 반영 |
-| 접근성 미지원 (history-viewer 등) | role/aria 속성 추가 | Phase 16 구현 시 반영 |
-| history-track 인메모리 저장 | 코어 DB 연동으로 해결 | task-49 |
+| 이슈                              | 해결 방안                             | 적용 시점             |
+| --------------------------------- | ------------------------------------- | --------------------- |
+| PluginSlot handleError 미연결     | ErrorBoundary 래퍼 추가               | Phase 16과 별도       |
+| ALLOWED_EXTENSIONS 미적용         | validateZipEntries에서 검증 추가      | Phase 16과 별도       |
+| Web 설정페이지 코드 중복          | PluginSettingsForm 공유 컴포넌트 사용 | Phase 16과 별도       |
+| 마켓플레이스 GitHub 미연동        | 하드코딩 → API 연동                   | Phase 17 이후         |
+| 다크모드 미지원 (plugin-slot 등)  | dark: 클래스 추가                     | Phase 16 구현 시 반영 |
+| 접근성 미지원 (history-viewer 등) | role/aria 속성 추가                   | Phase 16 구현 시 반영 |
+| history-track 인메모리 저장       | 코어 DB 연동으로 해결                 | task-49               |
 
 ---
 

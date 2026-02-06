@@ -279,6 +279,9 @@ importers:
       '@types/dompurify':
         specifier: ^3.2.0
         version: 3.2.0
+      '@types/google-publisher-tag':
+        specifier: ^1.20260202.0
+        version: 1.20260202.0
       '@types/node':
         specifier: ^25.0.3
         version: 25.0.10
@@ -1563,6 +1566,9 @@ packages:
 
   '@types/estree@1.0.8':
     resolution: {integrity: sha512-dWHzHa2WqEXI/O1E9OjrocMTKJl2mSrEolh1Iomrv6U+JuNwaHXsXx9bLu5gG7BUWFIN0skIQJQ/L1rIex4X6w==}
+
+  '@types/google-publisher-tag@1.20260202.0':
+    resolution: {integrity: sha512-+ZPJu9l47RomvjEg8X58n0kfpO1zofJX0COv7SD5/x0ewuPt421VcTt8IIS4J8Xp79izhfaNzGtLBdZaHFj9ww==}
 
   '@types/json-schema@7.0.15':
     resolution: {integrity: sha512-5+fP8P8MFNC+AyZCDxrB2pkZFPGzqQWUzpSeuuVLvm8VMcorNYavBqoFcxK8bQz4Qsbn4oUEEem4wDLfcysGHA==}
@@ -5266,6 +5272,8 @@ snapshots:
       dompurify: 3.3.1
 
   '@types/estree@1.0.8': {}
+
+  '@types/google-publisher-tag@1.20260202.0': {}
 
   '@types/json-schema@7.0.15': {}
 

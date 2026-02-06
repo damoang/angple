@@ -17,19 +17,8 @@
     let src = $derived(getImageUrl(filename));
 </script>
 
-<button
-    type="button"
-    class="emoticon-image-btn"
-    {onclick}
-    title={filename}
->
-    <img
-        {src}
-        {width}
-        class="emoticon"
-        loading="lazy"
-        alt={filename}
-    />
+<button type="button" class="emoticon-image-btn" {onclick} title={filename}>
+    <img {src} {width} class="emoticon" loading="lazy" alt={filename} />
 </button>
 
 <style>
@@ -42,7 +31,9 @@
         border-radius: 4px;
         background: none;
         cursor: pointer;
-        transition: border-color 0.15s, background-color 0.15s;
+        transition:
+            border-color 0.15s,
+            background-color 0.15s;
     }
 
     .emoticon-image-btn:hover {
