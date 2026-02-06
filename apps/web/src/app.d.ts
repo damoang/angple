@@ -26,6 +26,8 @@ declare global {
     interface Window {
         DamoangAds?: DamoangAdsInterface;
         adsbygoogle?: object[];
+        googletag?: typeof googletag;
+        [key: string]: unknown;
     }
 }
 

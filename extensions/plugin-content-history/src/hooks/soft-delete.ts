@@ -22,14 +22,18 @@ interface DeleteContext {
  * 소프트 삭제 훅 설정
  */
 export function setupSoftDelete(hooks: HookManager, logger: PluginLogger): void {
-    hooks.addFilter('before_post_delete', (context: DeleteContext): DeleteContext => {
-        logger.info(`소프트 삭제 처리: postId=${context.postId}`);
+    hooks.addFilter(
+        'before_post_delete',
+        (context: DeleteContext): DeleteContext => {
+            logger.info(`소프트 삭제 처리: postId=${context.postId}`);
 
-        // 실제 삭제를 중단하고 소프트 삭제로 표시
-        return {
-            ...context,
-            softDeleted: true,
-            proceed: false // 실제 삭제 중단
-        };
-    }, 1); // 최우선 실행
+            // 실제 삭제를 중단하고 소프트 삭제로 표시
+            return {
+                ...context,
+                softDeleted: true,
+                proceed: false // 실제 삭제 중단
+            };
+        },
+        1
+    ); // 최우선 실행
 }

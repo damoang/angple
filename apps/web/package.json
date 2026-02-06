@@ -36,6 +36,7 @@
         "@tailwindcss/vite": "^4.0.0",
         "@types/adm-zip": "^0.5.7",
         "@types/dompurify": "^3.2.0",
+        "@types/google-publisher-tag": "^1.20260202.0",
         "@types/node": "^25.0.3",
         "@types/tar": "^6.1.13",
         "@vitest/browser": "^3.2.3",

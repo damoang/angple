@@ -5,7 +5,7 @@
 
     interface Props {
         position: 'index' | 'board-list' | 'board-view';
-        showCelebration?: boolean;  // 축하메시지 표시 여부 (메인만 true)
+        showCelebration?: boolean; // 축하메시지 표시 여부 (메인만 true)
         height?: string;
         class?: string;
     }
@@ -48,14 +48,14 @@
 
     // position → 다모앙 광고 서버 position 매핑
     const ADS_POSITION_MAP: Record<string, string> = {
-        'index': 'main-top',
+        index: 'main-top',
         'board-list': 'board-list-head',
         'board-view': 'board-view-top'
     };
 
     // position → GAM 슬롯 위치 매핑
     const GAM_POSITION_MAP: Record<string, string> = {
-        'index': 'index-head',
+        index: 'index-head',
         'board-list': 'board-list-head',
         'board-view': 'board-content'
     };
@@ -99,7 +99,7 @@
                 `${DAMOANG_API_BASE}/api/plugins/advertising/banners/today`,
                 {
                     method: 'GET',
-                    headers: { 'Accept': 'application/json' }
+                    headers: { Accept: 'application/json' }
                 }
             );
 
@@ -155,8 +155,8 @@
             style:min-height={height}
         >
             <div class="flex flex-col items-center gap-1.5 text-center">
-                <span class="text-slate-500 dark:text-slate-400 text-xs font-semibold">AD</span>
-                <span class="text-slate-400 dark:text-slate-500 text-[10px]">로딩 중...</span>
+                <span class="text-xs font-semibold text-slate-500 dark:text-slate-400">AD</span>
+                <span class="text-[10px] text-slate-400 dark:text-slate-500">로딩 중...</span>
             </div>
         </div>
     {:else if celebrationBanner}

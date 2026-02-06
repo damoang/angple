@@ -9,12 +9,7 @@
         sizes?: Array<[number, number]> | 'fluid';
     }
 
-    let {
-        position,
-        height = '90px',
-        class: className = '',
-        sizes
-    }: Props = $props();
+    let { position, height = '90px', class: className = '', sizes }: Props = $props();
 
     // GAM 설정 (www/theme/damoang/layout/basic/config/gam-slots.php 와 동일)
     const GAM_NETWORK_CODE = '23338387889';
@@ -30,11 +25,11 @@
     // GPT 서비스 초기화 플래그 (전역)
     const GPT_INITIALIZED_KEY = '__gpt_services_initialized__';
     function isGptInitialized(): boolean {
-        return browser && (window as Record<string, unknown>)[GPT_INITIALIZED_KEY] === true;
+        return browser && window[GPT_INITIALIZED_KEY] === true;
     }
     function markGptInitialized(): void {
         if (browser) {
-            (window as Record<string, unknown>)[GPT_INITIALIZED_KEY] = true;
+            window[GPT_INITIALIZED_KEY] = true;
         }
     }
 
@@ -57,44 +52,104 @@
         // 메인 콘텐츠 영역 배너 (큰 배너) → main
         'banner-horizontal': {
             unit: AD_UNIT_PATHS.main,
-            sizes: [[970, 250], [970, 90], [728, 90], [320, 100], [300, 250]],
+            sizes: [
+                [970, 250],
+                [970, 90],
+                [728, 90],
+                [320, 100],
+                [300, 250]
+            ],
             responsive: [
-                [970, [[970, 250], [970, 90], [728, 90]]],
+                [
+                    970,
+                    [
+                        [970, 250],
+                        [970, 90],
+                        [728, 90]
+                    ]
+                ],
                 [728, [[728, 90]]],
-                [0, [[320, 100], [300, 250]]]
+                [
+                    0,
+                    [
+                        [320, 100],
+                        [300, 250]
+                    ]
+                ]
             ]
         },
         'banner-large': {
             unit: AD_UNIT_PATHS.main,
-            sizes: [[970, 250], [970, 90], [728, 90], [320, 100], [300, 250]],
+            sizes: [
+                [970, 250],
+                [970, 90],
+                [728, 90],
+                [320, 100],
+                [300, 250]
+            ],
             responsive: [
-                [970, [[970, 250], [970, 90]]],
+                [
+                    970,
+                    [
+                        [970, 250],
+                        [970, 90]
+                    ]
+                ],
                 [728, [[728, 90]]],
-                [0, [[320, 100], [300, 250]]]
+                [
+                    0,
+                    [
+                        [320, 100],
+                        [300, 250]
+                    ]
+                ]
             ]
         },
         // 게시글 본문 영역 → article
         'banner-view-content': {
             unit: AD_UNIT_PATHS.article,
-            sizes: [[728, 90], [320, 100], [300, 250]],
+            sizes: [
+                [728, 90],
+                [320, 100],
+                [300, 250]
+            ],
             responsive: [
                 [728, [[728, 90]]],
-                [0, [[320, 100], [300, 250]]]
+                [
+                    0,
+                    [
+                        [320, 100],
+                        [300, 250]
+                    ]
+                ]
             ]
         },
         // 반응형 배너 → sub
         'banner-responsive': {
             unit: AD_UNIT_PATHS.sub,
-            sizes: [[728, 90], [320, 100], [300, 250]],
+            sizes: [
+                [728, 90],
+                [320, 100],
+                [300, 250]
+            ],
             responsive: [
                 [728, [[728, 90]]],
-                [0, [[320, 100], [300, 250]]]
+                [
+                    0,
+                    [
+                        [320, 100],
+                        [300, 250]
+                    ]
+                ]
             ]
         },
         // 소형 배너 → sub
         'banner-small': {
             unit: AD_UNIT_PATHS.sub,
-            sizes: [[728, 90], [320, 100]],
+            sizes: [
+                [728, 90],
+                [320, 100]
+            ],
             responsive: [
                 [728, [[728, 90]]],
                 [0, [[320, 100]]]
@@ -102,7 +157,10 @@
         },
         'banner-compact': {
             unit: AD_UNIT_PATHS.sub,
-            sizes: [[728, 90], [320, 100]],
+            sizes: [
+                [728, 90],
+                [320, 100]
+            ],
             responsive: [
                 [728, [[728, 90]]],
                 [0, [[320, 100]]]
@@ -117,16 +175,29 @@
         // 사이드바 수직형 → sub
         'banner-halfpage': {
             unit: AD_UNIT_PATHS.sub,
-            sizes: [[300, 600], [300, 250]],
+            sizes: [
+                [300, 600],
+                [300, 250]
+            ],
             responsive: null
         },
         // 인피드 (목록 사이) → curation
-        'infeed': {
+        infeed: {
             unit: AD_UNIT_PATHS.curation,
-            sizes: [[728, 90], [320, 100], [300, 250]],
+            sizes: [
+                [728, 90],
+                [320, 100],
+                [300, 250]
+            ],
             responsive: [
                 [728, [[728, 90]]],
-                [0, [[320, 100], [300, 250]]]
+                [
+                    0,
+                    [
+                        [320, 100],
+                        [300, 250]
+                    ]
+                ]
             ]
         }
     };
@@ -150,29 +221,94 @@
         'comment-infeed': 'infeed',
         'comment-top': 'banner-compact',
         'sidebar-sticky': 'banner-halfpage',
-        'sidebar': 'banner-square'
+        sidebar: 'banner-square'
     };
 
     // 위치별 기본 사이즈 매핑 (fallback)
     const DEFAULT_SIZES: Record<string, Array<[number, number]> | 'fluid'> = {
-        'header-after': [[728, 90], [970, 90], [320, 100]],
-        'index-head': [[728, 90], [320, 100]],
-        'index-top': [[728, 90], [320, 100], [300, 250]],
-        'index-news-economy': [[728, 90], [320, 100], [300, 250]],
-        'index-middle-1': [[728, 90], [970, 90], [320, 100]],
-        'index-middle-2': [[728, 90], [970, 90], [320, 100]],
-        'index-middle-3': [[728, 90], [970, 90], [320, 100]],
-        'index-bottom': [[728, 90], [970, 90], [320, 100]],
-        'board-head': [[728, 90], [970, 90], [320, 100]],
-        'board-list-head': [[728, 90], [320, 100], [300, 250]],
-        'board-list-bottom': [[728, 90], [970, 90], [320, 100]],
-        'board-content': [[728, 90], [300, 250], [320, 100]],
-        'board-content-bottom': [[728, 90], [970, 90], [320, 100]],
-        'board-footer': [[728, 90], [970, 90], [320, 100]],
-        'comment-infeed': [[728, 90], [300, 250], [320, 100]],
-        'comment-top': [[728, 90], [320, 100]],
-        'sidebar-sticky': [[300, 250], [300, 600]],
-        'sidebar': [[300, 250]]
+        'header-after': [
+            [728, 90],
+            [970, 90],
+            [320, 100]
+        ],
+        'index-head': [
+            [728, 90],
+            [320, 100]
+        ],
+        'index-top': [
+            [728, 90],
+            [320, 100],
+            [300, 250]
+        ],
+        'index-news-economy': [
+            [728, 90],
+            [320, 100],
+            [300, 250]
+        ],
+        'index-middle-1': [
+            [728, 90],
+            [970, 90],
+            [320, 100]
+        ],
+        'index-middle-2': [
+            [728, 90],
+            [970, 90],
+            [320, 100]
+        ],
+        'index-middle-3': [
+            [728, 90],
+            [970, 90],
+            [320, 100]
+        ],
+        'index-bottom': [
+            [728, 90],
+            [970, 90],
+            [320, 100]
+        ],
+        'board-head': [
+            [728, 90],
+            [970, 90],
+            [320, 100]
+        ],
+        'board-list-head': [
+            [728, 90],
+            [320, 100],
+            [300, 250]
+        ],
+        'board-list-bottom': [
+            [728, 90],
+            [970, 90],
+            [320, 100]
+        ],
+        'board-content': [
+            [728, 90],
+            [300, 250],
+            [320, 100]
+        ],
+        'board-content-bottom': [
+            [728, 90],
+            [970, 90],
+            [320, 100]
+        ],
+        'board-footer': [
+            [728, 90],
+            [970, 90],
+            [320, 100]
+        ],
+        'comment-infeed': [
+            [728, 90],
+            [300, 250],
+            [320, 100]
+        ],
+        'comment-top': [
+            [728, 90],
+            [320, 100]
+        ],
+        'sidebar-sticky': [
+            [300, 250],
+            [300, 600]
+        ],
+        sidebar: [[300, 250]]
     };
 
     // 위치별 라벨 매핑
@@ -207,7 +343,9 @@
                 return;
             }
 
-            const existingScript = document.querySelector('script[src*="securepubads.g.doubleclick.net"]');
+            const existingScript = document.querySelector(
+                'script[src*="securepubads.g.doubleclick.net"]'
+            );
             if (existingScript) {
                 // 스크립트가 있지만 아직 로드 안됨
                 const checkReady = setInterval(() => {
@@ -235,7 +373,11 @@
     }
 
     // 광고 설정 가져오기
-    function getAdConfig(): { unit: string; sizes: Array<[number, number]>; responsive: Array<[number, Array<[number, number]>]> | null } {
+    function getAdConfig(): {
+        unit: string;
+        sizes: Array<[number, number]>;
+        responsive: Array<[number, Array<[number, number]>]> | null;
+    } {
         const configKey = POSITION_MAP[position];
         if (configKey && AD_CONFIGS[configKey]) {
             return AD_CONFIGS[configKey];
@@ -243,7 +385,11 @@
         // Fallback: 기본 설정
         return {
             unit: AD_UNIT_PATHS.sub,
-            sizes: (sizes as Array<[number, number]>) || DEFAULT_SIZES[position] as Array<[number, number]> || [[728, 90], [320, 100]],
+            sizes: (sizes as Array<[number, number]>) ||
+                (DEFAULT_SIZES[position] as Array<[number, number]>) || [
+                    [728, 90],
+                    [320, 100]
+                ],
             responsive: [
                 [728, [[728, 90]]],
                 [0, [[320, 100]]]
@@ -290,21 +436,26 @@
                 slot.addService(googletag.pubads());
 
                 // 빈 광고 이벤트 처리
-                googletag.pubads().addEventListener('slotRenderEnded', (event: googletag.events.SlotRenderEndedEvent) => {
-                    if (event.slot === slot) {
-                        isLoaded = true;
-                        hasAd = !event.isEmpty;
+                googletag
+                    .pubads()
+                    .addEventListener(
+                        'slotRenderEnded',
+                        (event: googletag.events.SlotRenderEndedEvent) => {
+                            if (event.slot === slot) {
+                                isLoaded = true;
+                                hasAd = !event.isEmpty;
 
-                        // 빈 광고면 재시도
-                        if (event.isEmpty) {
-                            setTimeout(() => {
-                                if (slot) {
-                                    googletag.pubads().refresh([slot]);
+                                // 빈 광고면 재시도
+                                if (event.isEmpty) {
+                                    setTimeout(() => {
+                                        if (slot) {
+                                            googletag.pubads().refresh([slot]);
+                                        }
+                                    }, GAM_AD_EMPTY_RETRY_DELAY * 1000);
                                 }
-                            }, GAM_AD_EMPTY_RETRY_DELAY * 1000);
+                            }
                         }
-                    }
-                });
+                    );
 
                 // GPT 서비스 초기화 (한 번만 실행)
                 if (!isGptInitialized()) {
@@ -362,20 +513,24 @@
 
     {#if !isLoaded}
         <!-- 로딩 중 플레이스홀더 -->
-        <div class="absolute inset-0 flex items-center justify-center rounded-lg border-2 border-dashed border-slate-300 bg-slate-50/50 dark:border-slate-600 dark:bg-slate-800/50">
+        <div
+            class="absolute inset-0 flex items-center justify-center rounded-lg border-2 border-dashed border-slate-300 bg-slate-50/50 dark:border-slate-600 dark:bg-slate-800/50"
+        >
             <div class="flex flex-col items-center gap-1.5 text-center">
-                <span class="text-slate-500 dark:text-slate-400 text-xs font-semibold">AD</span>
-                <span class="text-slate-400 dark:text-slate-500 text-[10px]">
+                <span class="text-xs font-semibold text-slate-500 dark:text-slate-400">AD</span>
+                <span class="text-[10px] text-slate-400 dark:text-slate-500">
                     {positionLabels[position] || position}
                 </span>
             </div>
         </div>
     {:else if !hasAd}
         <!-- 광고 없음 플레이스홀더 -->
-        <div class="absolute inset-0 flex items-center justify-center rounded-lg border-2 border-dashed border-amber-300 bg-amber-50/50 dark:border-amber-600 dark:bg-amber-900/20">
+        <div
+            class="absolute inset-0 flex items-center justify-center rounded-lg border-2 border-dashed border-amber-300 bg-amber-50/50 dark:border-amber-600 dark:bg-amber-900/20"
+        >
             <div class="flex flex-col items-center gap-1.5 text-center">
-                <span class="text-amber-600 dark:text-amber-400 text-xs font-semibold">AD</span>
-                <span class="text-amber-500 dark:text-amber-500 text-[10px]">
+                <span class="text-xs font-semibold text-amber-600 dark:text-amber-400">AD</span>
+                <span class="text-[10px] text-amber-500 dark:text-amber-500">
                     {positionLabels[position] || position}
                 </span>
             </div>
