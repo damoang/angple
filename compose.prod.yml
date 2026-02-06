@@ -17,7 +17,7 @@ services:
       - ${DATA_PATH:-./data}:/app/data
     environment:
       - NODE_ENV=production
-      - INTERNAL_API_URL=http://angple-api:8082/api/v2
+      - INTERNAL_API_URL=http://angple-api:8081/api/v2
 
   # Admin Dashboard (GHCR에서 pull)
   admin:
