@@ -34,6 +34,17 @@ export default defineConfig(({ mode }) => {
                 allow: ['.', '../..']
             },
             proxy: {
+                '/api/v1': {
+                    target: apiProxyTarget,
+                    changeOrigin: true,
+                    secure: false,
+                    configure: (proxy) => {
+                        proxy.on('proxyReq', (proxyReq, req) => {
+                            proxyReq.setHeader('Origin', apiProxyTarget);
+                            console.log('[Proxy]', req.method, req.url);
+                        });
+                    }
+                },
                 '/api/v2': {
                     target: apiProxyTarget,
                     changeOrigin: true,
