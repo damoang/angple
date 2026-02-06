@@ -338,11 +338,6 @@
         </div>
     </div>
 
-    <!-- 목록 버튼 아래 GAM 광고 -->
-    <div class="mb-6">
-        <AdSlot position="board-content" height="90px" />
-    </div>
-
     <!-- 게시글 헤더 -->
     <Card class="bg-background mb-6">
         <CardHeader class="space-y-3">
@@ -410,6 +405,11 @@
                     <span>👍 {likeCount.toLocaleString()}</span>
                     <span>💬 {data.post.comments_count.toLocaleString()}</span>
                 </div>
+            </div>
+
+            <!-- 사용자 정보 아래 GAM 광고 -->
+            <div class="mt-4">
+                <AdSlot position="board-content" height="90px" />
             </div>
 
             <!-- 게시글 본문 -->
