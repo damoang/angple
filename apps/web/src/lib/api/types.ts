@@ -357,8 +357,8 @@ export interface LikeResponse {
 export interface LikerInfo {
     mb_id: string;
     mb_name: string;
-    mb_nick: string;      // 닉네임
-    bg_ip?: string;       // 마스킹된 IP (로그인 사용자만)
+    mb_nick: string; // 닉네임
+    bg_ip?: string; // 마스킹된 IP (로그인 사용자만)
     liked_at: string;
 }
 

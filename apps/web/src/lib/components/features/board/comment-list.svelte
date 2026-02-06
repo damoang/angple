@@ -14,7 +14,10 @@
     import { ReportDialog } from '$lib/components/features/report/index.js';
     import DOMPurify from 'dompurify';
     import { transformEmoticons } from '$lib/utils/content-transform.js';
-    import { processContent as processEmbeds, processBracketImages } from '$lib/plugins/auto-embed/index.js';
+    import {
+        processContent as processEmbeds,
+        processBracketImages
+    } from '$lib/plugins/auto-embed/index.js';
     import { getMemberIconUrl } from '$lib/utils/member-icon.js';
 
     interface Props {
@@ -400,7 +403,9 @@
                             >
                                 {comment.author}
                                 {#if comment.author_ip}
-                                    <span class="text-muted-foreground text-xs font-normal">({comment.author_ip})</span>
+                                    <span class="text-muted-foreground text-xs font-normal"
+                                        >({comment.author_ip})</span
+                                    >
                                 {/if}
                                 {#if comment.is_secret}
                                     <Lock class="text-muted-foreground h-3.5 w-3.5" />

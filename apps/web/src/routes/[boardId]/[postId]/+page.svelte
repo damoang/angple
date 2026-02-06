@@ -44,7 +44,7 @@
     let isDisliked = $state(false);
     let isLiking = $state(false);
     let isDisliking = $state(false);
-    let isLikeAnimating = $state(false);  // 좋아요 애니메이션
+    let isLikeAnimating = $state(false); // 좋아요 애니메이션
 
     // 추천자 목록 다이얼로그 상태
     let showLikersDialog = $state(false);
@@ -407,7 +407,9 @@
                         <p class="text-foreground font-medium">
                             {data.post.author}
                             {#if data.post.author_ip}
-                                <span class="text-muted-foreground ml-1 text-xs font-normal">({data.post.author_ip})</span>
+                                <span class="text-muted-foreground ml-1 text-xs font-normal"
+                                    >({data.post.author_ip})</span
+                                >
                             {/if}
                         </p>
                         <p class="text-secondary-foreground text-sm">
@@ -457,7 +459,11 @@
                         disabled={isLiking}
                         class="gap-2 {isLiked ? 'text-red-500' : ''}"
                     >
-                        <Heart class="h-5 w-5 {isLiked ? 'fill-red-500' : ''} {isLikeAnimating ? 'like-animation' : ''}" />
+                        <Heart
+                            class="h-5 w-5 {isLiked ? 'fill-red-500' : ''} {isLikeAnimating
+                                ? 'like-animation'
+                                : ''}"
+                        />
                         <span class="font-semibold">{likeCount}</span>
                     </Button>
                     <button
@@ -561,12 +567,7 @@
 
     <!-- 게시판 최근글 목록 (체류시간 증가) -->
     <div class="mt-6">
-        <RecentPosts
-            {boardId}
-            {boardTitle}
-            currentPostId={data.post.id}
-            limit={10}
-        />
+        <RecentPosts {boardId} {boardTitle} currentPostId={data.post.id} limit={10} />
     </div>
 
     <!-- 댓글 섹션 하단 광고 (푸터 위) -->
@@ -622,11 +623,11 @@
                             {/if}
 
                             <!-- 닉네임 + IP + 날짜 -->
-                            <div class="flex-1 min-w-0">
+                            <div class="min-w-0 flex-1">
                                 <div class="flex items-center gap-1">
                                     <a
                                         href="/profile/{liker.mb_id}"
-                                        class="text-foreground hover:text-primary text-sm font-medium truncate"
+                                        class="text-foreground hover:text-primary truncate text-sm font-medium"
                                     >
                                         {liker.mb_nick || liker.mb_name}
                                     </a>
@@ -643,7 +644,7 @@
                             <!-- 작성글 링크 -->
                             <a
                                 href="/search?author_id={liker.mb_id}"
-                                class="text-muted-foreground hover:text-foreground text-xs whitespace-nowrap"
+                                class="text-muted-foreground hover:text-foreground whitespace-nowrap text-xs"
                             >
                                 작성글
                             </a>

@@ -136,10 +136,7 @@
                                 </span>
                             {/if}
                             {#if post.is_adult}
-                                <Badge
-                                    variant="destructive"
-                                    class="shrink-0 px-1 py-0 text-[10px]"
-                                >
+                                <Badge variant="destructive" class="shrink-0 px-1 py-0 text-[10px]">
                                     19
                                 </Badge>
                             {/if}
