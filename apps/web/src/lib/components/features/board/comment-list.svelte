@@ -14,7 +14,7 @@
     import { ReportDialog } from '$lib/components/features/report/index.js';
     import DOMPurify from 'dompurify';
     import { transformEmoticons } from '$lib/utils/content-transform.js';
-    import { processContent as processEmbeds } from '$lib/plugins/auto-embed/index.js';
+    import { processContent as processEmbeds, processBracketImages } from '$lib/plugins/auto-embed/index.js';
     import { getMemberIconUrl } from '$lib/utils/member-icon.js';
 
     interface Props {
@@ -303,12 +303,14 @@
         showReportDialog = true;
     }
 
-    // 댓글 내용 이모티콘 변환 + URL 임베딩 + sanitize
+    // 댓글 내용 이모티콘 변환 + URL 임베딩 + 대괄호 이미지 + sanitize
     function renderCommentContent(content: string): string {
         const transformed = transformEmoticons(content);
         // URL 임베딩 처리 (줄바꿈을 <br>로 변환 후 처리)
         const withLineBreaks = transformed.replace(/\n/g, '<br>');
-        const embedded = processEmbeds(withLineBreaks);
+        // 대괄호 이미지 처리: [https://...image.jpg] → <img>
+        const withBracketImages = processBracketImages(withLineBreaks);
+        const embedded = processEmbeds(withBracketImages);
         return DOMPurify.sanitize(embedded, {
             ALLOWED_TAGS: [
                 'img',
@@ -619,5 +621,19 @@
         position: relative;
         min-height: 200px;
         height: auto;
+    }
+
+    /* 대괄호 이미지 스타일 */
+    :global(.bracket-image) {
+        max-width: 100%;
+        height: auto;
+        border-radius: 0.375rem;
+        margin: 0.5rem 0;
+        display: block;
+    }
+
+    /* 이미지 로딩 실패 시 숨김 처리 */
+    :global(.bracket-image[src='']) {
+        display: none;
     }
 </style>

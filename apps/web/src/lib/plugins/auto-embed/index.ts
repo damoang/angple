@@ -43,6 +43,13 @@ export {
 // 플랫폼 내보내기
 export { platforms, getPlatform, findPlatform } from './platforms/index.js';
 
+// 대괄호 이미지 플러그인 내보내기
+export {
+    processBracketImages,
+    getAllowedDomains,
+    getAllowedExtensions
+} from './platforms/bracket-image.js';
+
 // 컴포넌트 내보내기
 export { default as EmbedContainer } from './components/EmbedContainer.svelte';
 
