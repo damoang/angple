@@ -1,0 +1,40 @@
+{
+    "id": "adsense-sidebar",
+    "name": "사이드 애드센스",
+    "version": "1.0.0",
+    "description": "사이드바 전용 AdSense 광고 슬롯",
+    "author": { "name": "Angple" },
+    "category": "sidebar",
+    "slots": ["sidebar"],
+    "icon": "Megaphone",
+    "allowMultiple": true,
+    "main": "index.svelte",
+    "settings": {
+        "position": {
+            "label": "광고 위치",
+            "type": "select",
+            "default": "banner-square",
+            "options": [
+                { "label": "정사각형 (280x280)", "value": "banner-square" },
+                { "label": "반응형", "value": "banner-responsive" },
+                { "label": "하프페이지 (280x600)", "value": "banner-halfpage" }
+            ]
+        },
+        "style": {
+            "label": "스타일",
+            "type": "select",
+            "default": "border",
+            "options": [
+                { "label": "테두리 있음", "value": "border" },
+                { "label": "테두리 없음", "value": "none" },
+                { "label": "깔끔함", "value": "clean" }
+            ]
+        },
+        "slot_id": {
+            "label": "슬롯 ID (선택)",
+            "type": "text",
+            "default": "",
+            "placeholder": "커스텀 슬롯 ID (비우면 자동)"
+        }
+    }
+}
