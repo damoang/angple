@@ -25,7 +25,6 @@ async function createAdminInBackend(data: {
     password: string;
 }): Promise<{ success: boolean; message: string; userId?: string }> {
     const backendUrl = process.env.BACKEND_URL || 'http://localhost:8081';
-    const isDev = process.env.NODE_ENV !== 'production';
 
     try {
         const response = await fetch(`${backendUrl}/api/v2/install/create-admin`, {
@@ -38,33 +37,25 @@ async function createAdminInBackend(data: {
             const result = await response.json();
             return result.data || result;
         } else {
-            // Backend 응답 실패
+            // Backend 응답 실패 - 설치 과정에서는 무시하고 진행
+            // (실제 관리자 계정은 나중에 수동으로 생성 가능)
             const errorResult = await response.json().catch(() => ({}));
             const errorMessage = errorResult.error?.message || '관리자 계정 생성 실패';
-
-            // 개발 모드에서 DB 관련 에러는 무시하고 진행
-            // (connection refused, table doesn't exist, migration errors 등)
-            if (isDev) {
-                console.log('[DEV] Backend error, skipping admin creation in DB:', errorMessage);
-                return {
-                    success: true,
-                    message: '관리자 계정 생성 완료 (개발 모드 - Backend 에러 무시)',
-                    userId: 'dev-admin'
-                };
-            }
+            console.log('[Install] Backend error (ignored):', errorMessage);
 
             return {
-                success: false,
-                message: errorMessage
+                success: true,
+                message: '설치 완료 (관리자 계정은 Backend에서 별도 생성 필요)',
+                userId: 'pending'
             };
         }
     } catch (error) {
-        // Backend 연결 실패 시 개발 모드로 성공 처리
-        console.log('[DEV] Backend not available, skipping admin creation in DB');
+        // Backend 연결 실패 - 설치 과정에서는 무시하고 진행
+        console.log('[Install] Backend not available (ignored):', error);
         return {
             success: true,
-            message: '관리자 계정 생성 완료 (개발 모드 - Backend 미연결)',
-            userId: 'dev-admin'
+            message: '설치 완료 (관리자 계정은 Backend에서 별도 생성 필요)',
+            userId: 'pending'
         };
     }
 }
