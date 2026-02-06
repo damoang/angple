@@ -8,6 +8,11 @@ export const ssr = false;
 export const load: PageLoad = async ({ params }) => {
     const { boardId, postId } = params;
 
+    // postId가 숫자인지 검증 (레거시 PHP URL 방어: /bbs/board.php 등)
+    if (!/^\d+$/.test(postId)) {
+        throw error(404, '잘못된 게시글 주소입니다.');
+    }
+
     try {
         const [post, comments, board] = await Promise.all([
             apiClient.getBoardPost(boardId, postId),

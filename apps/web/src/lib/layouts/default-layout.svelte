@@ -10,6 +10,8 @@
     import RightBanner from '$lib/components/layout/right-banner.svelte';
     import PodcastPlayer from '$lib/components/ui/podcast-player/podcast-player.svelte';
     import { authActions } from '$lib/stores/auth.svelte';
+    import { DamoangBanner } from '$lib/components/ui/damoang-banner/index.js';
+    import AdSlot from '$lib/components/ui/ad-slot/ad-slot.svelte';
 
     /**
      * 기본 레이아웃 컴포넌트
@@ -65,6 +67,16 @@
     <div class="container relative z-10 flex w-full flex-1 flex-col">
         <Header />
 
+        <!-- 헤더 아래 GAM 광고 -->
+        <div class="mx-auto w-full px-4 py-2 lg:px-0">
+            <AdSlot position="header-after" height="90px" />
+        </div>
+
+        <!-- 다모앙 배너: 축하메시지 우선, 없으면 다모앙 광고, 없으면 GAM -->
+        <div class="mx-auto w-full px-4 py-2 lg:px-0">
+            <DamoangBanner position="index" showCelebration={true} height="90px" />
+        </div>
+
         <div class="mx-auto flex w-full flex-1">
             {#if snbPosition === 'right'}
                 <aside
@@ -106,7 +118,7 @@
         class="fixed hidden transition-all duration-300 min-[1600px]:block"
         class:top-21={!isBannerUp}
         class:top-6={isBannerUp}
-        style="right: calc(50% + 760px);"
+        style="right: calc(50% + 640px);"
     >
         <LeftBanner />
     </aside>
@@ -115,7 +127,7 @@
         class="fixed hidden transition-all duration-300 min-[1600px]:block"
         class:top-21={!isBannerUp}
         class:top-6={isBannerUp}
-        style="left: calc(50% + 760px);"
+        style="left: calc(50% + 640px);"
     >
         <RightBanner />
     </aside>

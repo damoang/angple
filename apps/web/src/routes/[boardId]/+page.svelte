@@ -11,6 +11,8 @@
     import Megaphone from '@lucide/svelte/icons/megaphone';
     import Pin from '@lucide/svelte/icons/pin';
     import SearchForm from '$lib/components/features/board/search-form.svelte';
+    import { DamoangBanner } from '$lib/components/ui/damoang-banner/index.js';
+    import AdSlot from '$lib/components/ui/ad-slot/ad-slot.svelte';
 
     // 스킨 컴포넌트 import
     import CompactSkin from '$lib/components/features/board/skins/compact.svelte';
@@ -121,7 +123,7 @@
 
 <div class="mx-auto pt-4">
     <!-- 헤더 -->
-    <div class="mb-8 flex items-start justify-between">
+    <div class="mb-4 flex items-start justify-between">
         <div>
             <h1 class="text-foreground mb-2 text-3xl font-bold">{boardTitle}</h1>
         </div>
@@ -143,9 +145,19 @@
         {/if}
     </div>
 
+    <!-- 게시판 제목 아래 광고: GAM만 (축하메시지 OFF) -->
+    <div class="mb-4">
+        <DamoangBanner position="board-list" showCelebration={false} height="90px" />
+    </div>
+
     <!-- 검색 폼 -->
-    <div class="mb-6">
+    <div class="mb-3">
         <SearchForm boardPath={`/${boardId}`} />
+    </div>
+
+    <!-- 검색 폼 아래 GAM 광고 -->
+    <div class="mb-4">
+        <AdSlot position="board-head" height="90px" />
     </div>
 
     <!-- 카테고리 탭 -->
@@ -296,5 +308,10 @@
             {isSearching ? '검색결과 ' : '전체 '}{data.pagination.total.toLocaleString()}개 중 {data
                 .pagination.page} / {data.pagination.totalPages} 페이지
         </p>
+
+        <!-- 페이지네이션 아래 GAM 광고 -->
+        <div class="mt-6">
+            <AdSlot position="board-list-bottom" height="90px" />
+        </div>
     {/if}
 </div>
