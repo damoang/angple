@@ -21,6 +21,7 @@ export const actions: Actions = {
 
         const adminEmail = formData.get('adminEmail') as string;
         const adminName = formData.get('adminName') as string;
+        const adminUsername = formData.get('adminUsername') as string;
         const adminPassword = formData.get('adminPassword') as string;
         const adminPasswordConfirm = formData.get('adminPasswordConfirm') as string;
 
@@ -36,6 +37,13 @@ export const actions: Actions = {
             return {
                 success: false,
                 error: '관리자 이름은 필수입니다.'
+            };
+        }
+
+        if (!adminUsername || adminUsername.trim() === '') {
+            return {
+                success: false,
+                error: '관리자 아이디는 필수입니다.'
             };
         }
 
@@ -60,7 +68,8 @@ export const actions: Actions = {
         const updated = updateSettings({
             installed: true,
             adminEmail: adminEmail.trim(),
-            adminName: adminName.trim()
+            adminName: adminName.trim(),
+            adminUsername: adminUsername.trim()
             // 비밀번호는 settings.json에 저장하지 않음 (Backend에서 처리)
         });
 
