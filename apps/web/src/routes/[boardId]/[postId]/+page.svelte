@@ -23,6 +23,8 @@
     import { onMount } from 'svelte';
     import { AdultBlur } from '$lib/components/features/adult/index.js';
     import { getMemberIconUrl } from '$lib/utils/member-icon.js';
+    import { DamoangBanner } from '$lib/components/ui/damoang-banner/index.js';
+    import AdSlot from '$lib/components/ui/ad-slot/ad-slot.svelte';
 
     let { data }: { data: PageData } = $props();
 
@@ -288,8 +290,13 @@
 </svelte:head>
 
 <div class="mx-auto pt-2">
+    <!-- 상단 자체 공지 배너: 축하메시지 우선, 없으면 GAM -->
+    <div class="mb-4">
+        <DamoangBanner position="board-view" showCelebration={true} height="90px" />
+    </div>
+
     <!-- 상단 네비게이션 -->
-    <div class="mb-6 flex items-center justify-between">
+    <div class="mb-4 flex items-center justify-between">
         <Button variant="outline" size="sm" onclick={goBack}>← 목록으로</Button>
 
         <div class="flex gap-2">
@@ -329,6 +336,11 @@
                 />
             {/if}
         </div>
+    </div>
+
+    <!-- 목록 버튼 아래 GAM 광고 -->
+    <div class="mb-6">
+        <AdSlot position="board-content" height="90px" />
     </div>
 
     <!-- 게시글 헤더 -->
@@ -486,6 +498,11 @@
         </p>
     {/if}
 
+    <!-- 본문 하단 광고 -->
+    <div class="my-6">
+        <AdSlot position="board-content-bottom" height="90px" />
+    </div>
+
     <!-- 댓글 섹션 -->
     <Card class="bg-background">
         <CardHeader class="space-y-6">
@@ -520,6 +537,11 @@
             </div>
         </CardHeader>
     </Card>
+
+    <!-- 댓글 섹션 하단 광고 (푸터 위) -->
+    <div class="mt-6">
+        <AdSlot position="board-footer" height="90px" />
+    </div>
 </div>
 
 <!-- 추천자 목록 다이얼로그 -->
