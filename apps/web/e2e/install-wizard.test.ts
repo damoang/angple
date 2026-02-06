@@ -43,6 +43,7 @@ test.describe('설치 위저드', () => {
         await expect(page.locator('text=관리자 계정 생성')).toBeVisible();
         await expect(page.locator('input[name="adminEmail"]')).toBeVisible();
         await expect(page.locator('input[name="adminName"]')).toBeVisible();
+        await expect(page.locator('input[name="adminUsername"]')).toBeVisible();
         await expect(page.locator('input[name="adminPassword"]')).toBeVisible();
     });
 
@@ -81,6 +82,7 @@ test.describe('설치 위저드', () => {
         // Step 3: 관리자 계정
         await page.fill('input[name="adminEmail"]', 'admin@angple.test');
         await page.fill('input[name="adminName"]', 'Admin');
+        await page.fill('input[name="adminUsername"]', 'admin');
         await page.fill('input[name="adminPassword"]', 'password123');
         await page.fill('input[name="adminPasswordConfirm"]', 'password123');
         await page.click('button[type="submit"]');
