@@ -104,6 +104,38 @@ export const handle: Handle = async ({ event, resolve }) => {
         });
     }
 
+    // /api/plugins/* 요청을 백엔드로 프록시
+    if (event.url.pathname.startsWith('/api/plugins/')) {
+        try {
+            const backendUrl = `${BACKEND_URL}${event.url.pathname}${event.url.search}`;
+            const proxyRes = await fetch(backendUrl, {
+                method: event.request.method,
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(event.locals.accessToken && {
+                        Authorization: `Bearer ${event.locals.accessToken}`
+                    })
+                },
+                body: event.request.method !== 'GET' ? await event.request.text() : undefined
+            });
+
+            const data = await proxyRes.text();
+            return new Response(data, {
+                status: proxyRes.status,
+                headers: {
+                    'Content-Type': proxyRes.headers.get('Content-Type') || 'application/json',
+                    'Access-Control-Allow-Origin': '*'
+                }
+            });
+        } catch (error) {
+            console.error('[Proxy Error]', error);
+            return new Response(JSON.stringify({ error: 'Proxy error' }), {
+                status: 502,
+                headers: { 'Content-Type': 'application/json' }
+            });
+        }
+    }
+
     const response = await resolve(event);
 
     // CORS 헤더
