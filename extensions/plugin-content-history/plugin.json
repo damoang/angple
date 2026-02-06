@@ -13,12 +13,7 @@
     "tags": ["history", "soft-delete", "restore", "diff", "admin"],
     "angpleVersion": ">=1.0.0",
     "main": "./src/index.js",
-    "permissions": [
-        "posts:read",
-        "posts:write",
-        "posts:delete",
-        "settings:read"
-    ],
+    "permissions": ["posts:read", "posts:write", "posts:delete", "settings:read"],
     "hooks": [
         {
             "name": "before_post_delete",

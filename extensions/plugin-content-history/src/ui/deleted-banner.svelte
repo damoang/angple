@@ -41,7 +41,9 @@
 </script>
 
 {#if deletedAt}
-    <div class="mb-4 flex items-center justify-between rounded-lg border border-red-200 bg-red-50 p-4 dark:border-red-800 dark:bg-red-950/30">
+    <div
+        class="mb-4 flex items-center justify-between rounded-lg border border-red-200 bg-red-50 p-4 dark:border-red-800 dark:bg-red-950/30"
+    >
         <div class="flex items-center gap-3">
             <AlertTriangle class="h-5 w-5 flex-shrink-0 text-red-500" />
             <div>

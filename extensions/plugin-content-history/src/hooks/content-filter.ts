@@ -29,35 +29,39 @@ export function setupContentFilter(
     settings: SettingsAccessor,
     logger: PluginLogger
 ): void {
-    hooks.addFilter('post_content', (post: PostContent): PostContent => {
-        // 삭제되지 않은 게시물은 그대로 통과
-        if (!post.deletedAt) return post;
+    hooks.addFilter(
+        'post_content',
+        (post: PostContent): PostContent => {
+            // 삭제되지 않은 게시물은 그대로 통과
+            if (!post.deletedAt) return post;
 
-        const visibility = settings.get('history_visibility') as string;
-        const viewerRole = post.viewerRole ?? 'guest';
+            const visibility = settings.get('history_visibility') as string;
+            const viewerRole = post.viewerRole ?? 'guest';
 
-        // 관리자는 항상 원본 볼 수 있음
-        if (viewerRole === 'admin') {
+            // 관리자는 항상 원본 볼 수 있음
+            if (viewerRole === 'admin') {
+                return {
+                    ...post,
+                    title: `[삭제됨] ${post.title}`
+                    // 원본 콘텐츠 유지
+                };
+            }
+
+            // 작성자 + 관리자 모드에서 작성자인 경우
+            if (visibility === 'author_admins' && viewerRole === 'author') {
+                return {
+                    ...post,
+                    title: `[삭제됨] ${post.title}`
+                };
+            }
+
+            // 일반 사용자 → 콘텐츠 숨김
             return {
                 ...post,
-                title: `[삭제됨] ${post.title}`,
-                // 원본 콘텐츠 유지
+                title: '[삭제된 게시물입니다]',
+                content: '<p class="text-muted-foreground italic">이 게시물은 삭제되었습니다.</p>'
             };
-        }
-
-        // 작성자 + 관리자 모드에서 작성자인 경우
-        if (visibility === 'author_admins' && viewerRole === 'author') {
-            return {
-                ...post,
-                title: `[삭제됨] ${post.title}`,
-            };
-        }
-
-        // 일반 사용자 → 콘텐츠 숨김
-        return {
-            ...post,
-            title: '[삭제된 게시물입니다]',
-            content: '<p class="text-muted-foreground italic">이 게시물은 삭제되었습니다.</p>'
-        };
-    }, 5);
+        },
+        5
+    );
 }

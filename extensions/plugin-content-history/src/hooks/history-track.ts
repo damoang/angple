@@ -28,37 +28,41 @@ export function setupHistoryTrack(
     maxVersions: number,
     logger: PluginLogger
 ): void {
-    hooks.addAction('after_post_update', (context: {
-        postId: string | number;
-        previousTitle: string;
-        previousContent: string;
-        newTitle: string;
-        newContent: string;
-        userId: string;
-        changeType?: 'create' | 'update' | 'soft_delete' | 'restore';
-    }) => {
-        const postKey = String(context.postId);
-        const entries = historyStore.get(postKey) ?? [];
+    hooks.addAction(
+        'after_post_update',
+        (context: {
+            postId: string | number;
+            previousTitle: string;
+            previousContent: string;
+            newTitle: string;
+            newContent: string;
+            userId: string;
+            changeType?: 'create' | 'update' | 'soft_delete' | 'restore';
+        }) => {
+            const postKey = String(context.postId);
+            const entries = historyStore.get(postKey) ?? [];
 
-        const newEntry: HistoryEntry = {
-            version: entries.length + 1,
-            title: context.previousTitle,
-            content: context.previousContent,
-            editedBy: context.userId,
-            editedAt: new Date().toISOString(),
-            changeType: context.changeType ?? 'update'
-        };
+            const newEntry: HistoryEntry = {
+                version: entries.length + 1,
+                title: context.previousTitle,
+                content: context.previousContent,
+                editedBy: context.userId,
+                editedAt: new Date().toISOString(),
+                changeType: context.changeType ?? 'update'
+            };
 
-        entries.push(newEntry);
+            entries.push(newEntry);
 
-        // 최대 버전 수 초과 시 오래된 것 제거
-        while (entries.length > maxVersions) {
-            entries.shift();
-        }
+            // 최대 버전 수 초과 시 오래된 것 제거
+            while (entries.length > maxVersions) {
+                entries.shift();
+            }
 
-        historyStore.set(postKey, entries);
-        logger.info(`이력 저장: postId=${postKey}, version=${newEntry.version}`);
-    }, 10);
+            historyStore.set(postKey, entries);
+            logger.info(`이력 저장: postId=${postKey}, version=${newEntry.version}`);
+        },
+        10
+    );
 }
 
 /**

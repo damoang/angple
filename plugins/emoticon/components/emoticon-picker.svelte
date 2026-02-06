@@ -186,7 +186,9 @@
         font-size: 13px;
         color: var(--text-muted, #64748b);
         white-space: nowrap;
-        transition: color 0.15s, border-color 0.15s;
+        transition:
+            color 0.15s,
+            border-color 0.15s;
     }
 
     .emoticon-tab:hover {

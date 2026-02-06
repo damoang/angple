@@ -61,12 +61,14 @@
 </script>
 
 {#if loading}
-    <div class="animate-pulse rounded-xl bg-slate-200 dark:bg-slate-700 h-24"></div>
+    <div class="h-24 animate-pulse rounded-xl bg-slate-200 dark:bg-slate-700"></div>
 {:else if banner}
     <div class="celeb-card grad-{gradientNum}">
         <div class="celeb-header">
             <span class="icon">🎈</span>
-            <span class="celeb-nick">{banner.target_member_nick || banner.title || '축하합니다'}</span>
+            <span class="celeb-nick"
+                >{banner.target_member_nick || banner.title || '축하합니다'}</span
+            >
             {#if banner.external_link || banner.link_url}
                 <a
                     href={banner.external_link || banner.link_url}
@@ -189,7 +191,8 @@
         border: 3px solid transparent;
         background:
             linear-gradient(white, white) padding-box,
-            conic-gradient(from 0deg, red, orange, yellow, green, cyan, blue, violet, red) border-box;
+            conic-gradient(from 0deg, red, orange, yellow, green, cyan, blue, violet, red)
+                border-box;
         animation: rainbow-rotate 3s linear infinite;
         object-fit: cover;
     }

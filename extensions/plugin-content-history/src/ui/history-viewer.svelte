@@ -6,7 +6,15 @@
      * 버전 간 diff를 확인할 수 있습니다.
      */
 
-    import { Clock, ChevronDown, ChevronUp, FileText, Trash2, RotateCcw, Edit } from '@lucide/svelte';
+    import {
+        Clock,
+        ChevronDown,
+        ChevronUp,
+        FileText,
+        Trash2,
+        RotateCcw,
+        Edit
+    } from '@lucide/svelte';
 
     interface HistoryEntry {
         version: number;
@@ -31,33 +39,48 @@
     /** 변경 타입 라벨 */
     function getChangeLabel(type: string): string {
         switch (type) {
-            case 'create': return '최초 작성';
-            case 'update': return '수정';
-            case 'soft_delete': return '삭제';
-            case 'restore': return '복구';
-            default: return type;
+            case 'create':
+                return '최초 작성';
+            case 'update':
+                return '수정';
+            case 'soft_delete':
+                return '삭제';
+            case 'restore':
+                return '복구';
+            default:
+                return type;
         }
     }
 
     /** 변경 타입 아이콘 */
     function getChangeIcon(type: string) {
         switch (type) {
-            case 'create': return FileText;
-            case 'update': return Edit;
-            case 'soft_delete': return Trash2;
-            case 'restore': return RotateCcw;
-            default: return FileText;
+            case 'create':
+                return FileText;
+            case 'update':
+                return Edit;
+            case 'soft_delete':
+                return Trash2;
+            case 'restore':
+                return RotateCcw;
+            default:
+                return FileText;
         }
     }
 
     /** 변경 타입 색상 */
     function getChangeColor(type: string): string {
         switch (type) {
-            case 'create': return 'text-green-600';
-            case 'update': return 'text-blue-600';
-            case 'soft_delete': return 'text-red-600';
-            case 'restore': return 'text-orange-600';
-            default: return 'text-muted-foreground';
+            case 'create':
+                return 'text-green-600';
+            case 'update':
+                return 'text-blue-600';
+            case 'soft_delete':
+                return 'text-red-600';
+            case 'restore':
+                return 'text-orange-600';
+            default:
+                return 'text-muted-foreground';
         }
     }
 
@@ -70,19 +93,20 @@
     }
 
     /** 간단한 텍스트 diff (줄 단위) */
-    function getSimpleDiff(oldText: string, newText: string): { added: string[]; removed: string[] } {
+    function getSimpleDiff(
+        oldText: string,
+        newText: string
+    ): { added: string[]; removed: string[] } {
         const oldLines = oldText.split('\n');
         const newLines = newText.split('\n');
 
-        const removed = oldLines.filter(line => !newLines.includes(line));
-        const added = newLines.filter(line => !oldLines.includes(line));
+        const removed = oldLines.filter((line) => !newLines.includes(line));
+        const added = newLines.filter((line) => !oldLines.includes(line));
 
         return { added, removed };
     }
 
-    const sortedHistory = $derived(
-        [...history].sort((a, b) => b.version - a.version)
-    );
+    const sortedHistory = $derived([...history].sort((a, b) => b.version - a.version));
 </script>
 
 {#if history.length > 0}
@@ -135,13 +159,16 @@
                             <button
                                 class="text-primary mt-1 text-xs hover:underline"
                                 onclick={() =>
-                                    (selectedVersion = selectedVersion === entry.version ? null : entry.version)}
+                                    (selectedVersion =
+                                        selectedVersion === entry.version ? null : entry.version)}
                             >
                                 {selectedVersion === entry.version ? '접기' : '내용 보기'}
                             </button>
 
                             {#if selectedVersion === entry.version}
-                                <div class="bg-muted/50 mt-2 max-h-60 overflow-y-auto rounded p-3 text-sm">
+                                <div
+                                    class="bg-muted/50 mt-2 max-h-60 overflow-y-auto rounded p-3 text-sm"
+                                >
                                     {entry.content || '(내용 없음)'}
                                 </div>
                             {/if}
