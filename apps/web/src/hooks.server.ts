@@ -9,7 +9,7 @@ import { dev } from '$app/environment';
  * 3. CSP 설정: XSS 및 데이터 인젝션 공격 방지
  */
 
-const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8081';
+const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8082';
 
 /** SSR 인증: refreshToken 쿠키로 사용자 정보 조회 */
 async function authenticateSSR(event: Parameters<Handle>[0]['event']): Promise<void> {
@@ -72,12 +72,15 @@ async function authenticateSSR(event: Parameters<Handle>[0]['event']): Promise<v
 function buildCsp(): string {
     const directives: string[] = [
         "default-src 'self'",
-        // SvelteKit은 인라인 스크립트를 사용하므로 unsafe-inline 필요
-        "script-src 'self' 'unsafe-inline'",
-        "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net",
-        "font-src 'self' https://cdn.jsdelivr.net",
-        "img-src 'self' data: https:",
-        "connect-src 'self' http://localhost:* ws://localhost:*",
+        // SvelteKit + GAM(GPT) + AdSense 스크립트 허용
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://securepubads.g.doubleclick.net https://pagead2.googlesyndication.com https://ads.damoang.net https://www.googletagservices.com https://adservice.google.com https://partner.googleadservices.com https://tpc.googlesyndication.com https://www.google.com https://fundingchoicesmessages.google.com https://*.googlesyndication.com https://*.doubleclick.net https://*.gstatic.com https://*.adtrafficquality.google",
+        "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com https://ads.damoang.net",
+        "font-src 'self' https://cdn.jsdelivr.net https://fonts.gstatic.com",
+        "img-src 'self' data: blob: https:",
+        // API 및 광고 서버 연결 허용
+        "connect-src 'self' http://localhost:* ws://localhost:* https://damoang.net https://ads.damoang.net https://pagead2.googlesyndication.com https://securepubads.g.doubleclick.net https://www.google-analytics.com https://cdn.jsdelivr.net https://*.google.com https://*.googlesyndication.com https://*.doubleclick.net https://ep1.adtrafficquality.google https://ep2.adtrafficquality.google https://*.adtrafficquality.google https://*.gstatic.com",
+        // YouTube, Google 광고 iframe 허용
+        "frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com https://googleads.g.doubleclick.net https://securepubads.g.doubleclick.net https://tpc.googlesyndication.com https://www.google.com https://*.googlesyndication.com https://*.doubleclick.net",
         "frame-ancestors 'self'",
         "base-uri 'self'",
         "form-action 'self'"
@@ -104,8 +107,13 @@ export const handle: Handle = async ({ event, resolve }) => {
         });
     }
 
-    // /api/plugins/* 요청을 백엔드로 프록시
-    if (event.url.pathname.startsWith('/api/plugins/')) {
+    // /api/plugins/* 요청을 백엔드로 프록시 (SvelteKit에서 처리하는 라우트 제외)
+    const svelteKitApiRoutes = ['/api/plugins/advertising/banners/today'];
+    const shouldProxy =
+        event.url.pathname.startsWith('/api/plugins/') &&
+        !svelteKitApiRoutes.some((route) => event.url.pathname === route);
+
+    if (shouldProxy) {
         try {
             const backendUrl = `${BACKEND_URL}${event.url.pathname}${event.url.search}`;
             const proxyRes = await fetch(backendUrl, {

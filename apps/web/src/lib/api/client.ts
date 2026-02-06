@@ -57,10 +57,10 @@ import { fetchWithRetry, type RetryConfig, DEFAULT_RETRY_CONFIG } from './retry.
 // SSR: Docker 내부 네트워크 직접 통신
 const API_BASE_URL = browser
     ? '/api/v1'
-    : process.env.INTERNAL_API_URL || 'http://localhost:8081/api/v1';
+    : process.env.INTERNAL_API_URL || 'http://localhost:8082/api/v1';
 
 // v2 API URL (인증 관련 - exchange 등)
-const API_V2_URL = browser ? '/api/v2' : 'http://localhost:8081/api/v2';
+const API_V2_URL = browser ? '/api/v2' : 'http://localhost:8082/api/v2';
 
 /**
  * API 클라이언트
@@ -100,11 +100,22 @@ class ApiClient {
         return document.cookie.split('; ').some((row) => row.startsWith('damoang_jwt='));
     }
 
+    /** refresh_token 쿠키 존재 여부 확인 */
+    private hasRefreshTokenCookie(): boolean {
+        if (!browser) return false;
+        return document.cookie.split('; ').some((row) => row.startsWith('refresh_token='));
+    }
+
     /** refreshToken 쿠키로 accessToken 자동 갱신 */
     async tryRefreshToken(): Promise<boolean> {
         // 그누보드 SSO 쿠키가 있으면 refresh 시도하지 않음
         // (refresh_token은 Go API 로그인 시에만 설정됨)
         if (this.hasDamoangJwtCookie()) {
+            return false;
+        }
+
+        // refresh_token 쿠키가 없으면 갱신 시도 불필요
+        if (!this.hasRefreshTokenCookie()) {
             return false;
         }
 
