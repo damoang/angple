@@ -30,6 +30,7 @@ interface Settings {
     database?: DatabaseConfig;
     adminEmail?: string;
     adminName?: string;
+    adminUsername?: string;
 }
 
 /**
