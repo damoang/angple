@@ -21,6 +21,7 @@ export interface FreePost {
     content: string;
     author: string;
     author_id: string;
+    author_ip?: string; // 작성자 IP (마스킹된 형태, 예: 123.456.*.*)
     views: number;
     likes: number;
     comments_count: number;
@@ -45,6 +46,7 @@ export interface FreeComment {
     content: string;
     author: string;
     author_id: string;
+    author_ip?: string; // 작성자 IP (마스킹된 형태, 예: 123.456.*.*)
     likes?: number;
     dislikes?: number; // 비추천 수
     depth?: number;
@@ -275,6 +277,7 @@ export interface DamoangUser {
     mb_email: string;
     mb_point?: number; // 보유 포인트
     mb_exp?: number; // 경험치
+    mb_image?: string; // 프로필 이미지 URL
 }
 
 // 회원 프로필 타입 (공개 정보)
@@ -354,6 +357,8 @@ export interface LikeResponse {
 export interface LikerInfo {
     mb_id: string;
     mb_name: string;
+    mb_nick: string;      // 닉네임
+    bg_ip?: string;       // 마스킹된 IP (로그인 사용자만)
     liked_at: string;
 }
 

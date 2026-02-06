@@ -18,6 +18,7 @@
     import DeleteConfirmDialog from '$lib/components/features/board/delete-confirm-dialog.svelte';
     import CommentForm from '$lib/components/features/board/comment-form.svelte';
     import CommentList from '$lib/components/features/board/comment-list.svelte';
+    import RecentPosts from '$lib/components/features/board/recent-posts.svelte';
     import { ReportDialog } from '$lib/components/features/report/index.js';
     import type { FreeComment, LikerInfo } from '$lib/api/types.js';
     import { onMount } from 'svelte';
@@ -43,6 +44,7 @@
     let isDisliked = $state(false);
     let isLiking = $state(false);
     let isDisliking = $state(false);
+    let isLikeAnimating = $state(false);  // 좋아요 애니메이션
 
     // 추천자 목록 다이얼로그 상태
     let showLikersDialog = $state(false);
@@ -145,10 +147,19 @@
         isLiking = true;
         try {
             const response = await apiClient.likePost(boardId, String(data.post.id));
+            const wasLiked = isLiked;
             isLiked = response.user_liked;
             isDisliked = response.user_disliked ?? false;
             likeCount = response.likes;
             dislikeCount = response.dislikes ?? 0;
+
+            // 추천 성공 시 애니메이션 (취소가 아닌 경우만)
+            if (!wasLiked && isLiked) {
+                isLikeAnimating = true;
+                setTimeout(() => {
+                    isLikeAnimating = false;
+                }, 1000);
+            }
         } catch (err) {
             console.error('Failed to like post:', err);
             alert('추천에 실패했습니다.');
@@ -393,7 +404,12 @@
                         </div>
                     {/if}
                     <div>
-                        <p class="text-foreground font-medium">{data.post.author}</p>
+                        <p class="text-foreground font-medium">
+                            {data.post.author}
+                            {#if data.post.author_ip}
+                                <span class="text-muted-foreground ml-1 text-xs font-normal">({data.post.author_ip})</span>
+                            {/if}
+                        </p>
                         <p class="text-secondary-foreground text-sm">
                             {formatDate(data.post.created_at)}
                         </p>
@@ -441,7 +457,7 @@
                         disabled={isLiking}
                         class="gap-2 {isLiked ? 'text-red-500' : ''}"
                     >
-                        <Heart class="h-5 w-5 {isLiked ? 'fill-red-500' : ''}" />
+                        <Heart class="h-5 w-5 {isLiked ? 'fill-red-500' : ''} {isLikeAnimating ? 'like-animation' : ''}" />
                         <span class="font-semibold">{likeCount}</span>
                     </Button>
                     <button
@@ -538,6 +554,21 @@
         </CardHeader>
     </Card>
 
+    <!-- 최근글 위 광고 -->
+    <div class="mt-6">
+        <AdSlot position="board-list-bottom" height="90px" />
+    </div>
+
+    <!-- 게시판 최근글 목록 (체류시간 증가) -->
+    <div class="mt-6">
+        <RecentPosts
+            {boardId}
+            {boardTitle}
+            currentPostId={data.post.id}
+            limit={10}
+        />
+    </div>
+
     <!-- 댓글 섹션 하단 광고 (푸터 위) -->
     <div class="mt-6">
         <AdSlot position="board-footer" height="90px" />
@@ -546,14 +577,14 @@
 
 <!-- 추천자 목록 다이얼로그 -->
 <Dialog.Root bind:open={showLikersDialog}>
-    <Dialog.Content class="max-w-sm">
+    <Dialog.Content class="max-w-md">
         <Dialog.Header>
             <Dialog.Title>추천한 사람들</Dialog.Title>
             <Dialog.Description>
                 이 게시글을 추천한 {likersTotal}명
             </Dialog.Description>
         </Dialog.Header>
-        <div class="max-h-64 overflow-y-auto">
+        <div class="max-h-80 overflow-y-auto">
             {#if isLoadingLikers}
                 <div class="text-muted-foreground py-8 text-center">불러오는 중...</div>
             {:else if likers.length === 0}
@@ -564,17 +595,58 @@
                 <ul class="divide-border divide-y">
                     {#each likers as liker (liker.mb_id)}
                         <li class="flex items-center gap-3 py-3">
-                            <div
-                                class="bg-primary text-primary-foreground flex size-8 items-center justify-center rounded-full text-sm"
+                            <!-- 프로필 이미지 -->
+                            {#if getMemberIconUrl(liker.mb_id)}
+                                <img
+                                    src={getMemberIconUrl(liker.mb_id)}
+                                    alt={liker.mb_nick || liker.mb_name}
+                                    class="size-8 rounded-full object-cover"
+                                    onerror={(e) => {
+                                        const img = e.currentTarget as HTMLImageElement;
+                                        img.style.display = 'none';
+                                        const fallback = img.nextElementSibling as HTMLElement;
+                                        if (fallback) fallback.style.display = 'flex';
+                                    }}
+                                />
+                                <div
+                                    class="bg-primary text-primary-foreground hidden size-8 items-center justify-center rounded-full text-sm"
+                                >
+                                    {(liker.mb_nick || liker.mb_name).charAt(0).toUpperCase()}
+                                </div>
+                            {:else}
+                                <div
+                                    class="bg-primary text-primary-foreground flex size-8 items-center justify-center rounded-full text-sm"
+                                >
+                                    {(liker.mb_nick || liker.mb_name).charAt(0).toUpperCase()}
+                                </div>
+                            {/if}
+
+                            <!-- 닉네임 + IP + 날짜 -->
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center gap-1">
+                                    <a
+                                        href="/profile/{liker.mb_id}"
+                                        class="text-foreground hover:text-primary text-sm font-medium truncate"
+                                    >
+                                        {liker.mb_nick || liker.mb_name}
+                                    </a>
+                                </div>
+                                <div class="text-muted-foreground text-xs">
+                                    {#if authStore.isAuthenticated && liker.bg_ip}
+                                        <span>({liker.bg_ip})</span>
+                                        <span class="mx-1">·</span>
+                                    {/if}
+                                    <span>{formatDate(liker.liked_at)}</span>
+                                </div>
+                            </div>
+
+                            <!-- 작성글 링크 -->
+                            <a
+                                href="/search?author_id={liker.mb_id}"
+                                class="text-muted-foreground hover:text-foreground text-xs whitespace-nowrap"
                             >
-                                {liker.mb_name.charAt(0).toUpperCase()}
-                            </div>
-                            <div class="flex-1">
-                                <p class="text-foreground text-sm font-medium">{liker.mb_name}</p>
-                                <p class="text-muted-foreground text-xs">
-                                    {formatDate(liker.liked_at)}
-                                </p>
-                            </div>
+                                작성글
+                            </a>
                         </li>
                     {/each}
                 </ul>
@@ -592,3 +664,25 @@
     postId={data.post.id}
     onClose={() => (showReportDialog = false)}
 />
+
+<style>
+    /* 좋아요 버튼 애니메이션 (ASIS 다모앙과 동일) */
+    @keyframes da-thumbs-up {
+        0% {
+            transform: scale(1) translateX(0) rotate(0deg) translateY(0);
+        }
+        40% {
+            transform: scale(1.2) translateX(-1px) rotate(-19deg) translateY(-4px);
+        }
+        85% {
+            transform: scale(1) translateX(0) rotate(3deg) translateY(1px);
+        }
+        100% {
+            transform: scale(1) translateX(0) rotate(0deg) translateY(0);
+        }
+    }
+
+    :global(.like-animation) {
+        animation: da-thumbs-up 1s ease-in-out;
+    }
+</style>

@@ -399,6 +399,9 @@
                                     : ''} flex items-center gap-1.5"
                             >
                                 {comment.author}
+                                {#if comment.author_ip}
+                                    <span class="text-muted-foreground text-xs font-normal">({comment.author_ip})</span>
+                                {/if}
                                 {#if comment.is_secret}
                                     <Lock class="text-muted-foreground h-3.5 w-3.5" />
                                 {/if}
