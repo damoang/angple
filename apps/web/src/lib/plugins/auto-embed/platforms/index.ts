@@ -10,11 +10,20 @@ import { instagram } from './instagram.js';
 import { twitter } from './twitter.js';
 import { twitch } from './twitch.js';
 import { tiktok } from './tiktok.js';
+import { bracketImage } from './bracket-image.js';
 
 /**
  * 등록된 플랫폼 목록 (순서대로 매칭)
  */
-export const platforms: EmbedPlatform[] = [youtube, vimeo, instagram, twitter, twitch, tiktok];
+export const platforms: EmbedPlatform[] = [
+    youtube,
+    vimeo,
+    instagram,
+    twitter,
+    twitch,
+    tiktok,
+    bracketImage
+];
 
 /**
  * 플랫폼 이름으로 조회
@@ -37,4 +46,7 @@ export function findPlatform(url: string): EmbedPlatform | undefined {
     return undefined;
 }
 
-export { youtube, vimeo, instagram, twitter, twitch, tiktok };
+export { youtube, vimeo, instagram, twitter, twitch, tiktok, bracketImage };
+
+// bracket-image 전용 함수 재내보내기
+export { processBracketImages, getAllowedDomains, getAllowedExtensions } from './bracket-image.js';
