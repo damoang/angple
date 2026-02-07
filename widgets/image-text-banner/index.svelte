@@ -72,8 +72,10 @@
                     <a
                         href={banner.link || 'javascript:void(0)'}
                         target={banner.link?.startsWith('http') ? '_blank' : undefined}
-                        rel={banner.link?.startsWith('http') ? 'noopener noreferrer nofollow' : undefined}
-                        class="group border-border hover:border-primary bg-background block overflow-hidden rounded-xl border-2 transition-all duration-200 hover:-translate-y-0.5"
+                        rel={banner.link?.startsWith('http')
+                            ? 'noopener noreferrer nofollow'
+                            : undefined}
+                        class="border-border hover:border-primary bg-background group block overflow-hidden rounded-xl border-2 transition-all duration-200 hover:-translate-y-0.5"
                     >
                         {#if banner.image}
                             <figure class="m-0">

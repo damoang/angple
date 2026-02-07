@@ -9,12 +9,9 @@
     let { config, slot, isEditMode = false }: WidgetProps = $props();
 </script>
 
-<div
-    id="podcast-sidebar-anchor"
-    class="rounded-xl border border-border bg-background p-4"
->
+<div id="podcast-sidebar-anchor" class="border-border bg-background rounded-xl border p-4">
     {#if isEditMode}
-        <div class="flex items-center justify-center py-4 text-sm text-muted-foreground">
+        <div class="text-muted-foreground flex items-center justify-center py-4 text-sm">
             <PlayCircle class="mr-2 h-5 w-5" />
             팟캐스트 플레이어
         </div>

@@ -59,9 +59,9 @@
     <!-- Square 배너 (280x280) -->
     <div>
         <div class="mb-2 flex items-center justify-between">
-            <span class="text-xs font-medium text-muted-foreground">Sponsored</span>
+            <span class="text-muted-foreground text-xs font-medium">Sponsored</span>
         </div>
-        <div class="overflow-hidden rounded-xl border border-border bg-background">
+        <div class="border-border bg-background overflow-hidden rounded-xl border">
             {#if adsenseLoaded}
                 <ins
                     class="adsbygoogle"
@@ -72,9 +72,9 @@
                 ></ins>
             {:else}
                 <div
-                    class="flex h-[280px] w-[280px] animate-pulse items-center justify-center bg-muted"
+                    class="bg-muted flex h-[280px] w-[280px] animate-pulse items-center justify-center"
                 >
-                    <span class="text-xs text-muted-foreground">Loading...</span>
+                    <span class="text-muted-foreground text-xs">Loading...</span>
                 </div>
             {/if}
         </div>
@@ -83,9 +83,9 @@
     <!-- Halfpage 배너 (280x600 Sticky) -->
     <div>
         <div class="mb-2 flex items-center justify-between">
-            <span class="text-xs font-medium text-muted-foreground">Sponsored</span>
+            <span class="text-muted-foreground text-xs font-medium">Sponsored</span>
         </div>
-        <div class="overflow-hidden rounded-xl border border-border bg-background">
+        <div class="border-border bg-background overflow-hidden rounded-xl border">
             {#if adsenseLoaded}
                 <ins
                     class="adsbygoogle"
@@ -96,9 +96,9 @@
                 ></ins>
             {:else}
                 <div
-                    class="flex h-[600px] w-[280px] animate-pulse items-center justify-center bg-muted"
+                    class="bg-muted flex h-[600px] w-[280px] animate-pulse items-center justify-center"
                 >
-                    <span class="text-xs text-muted-foreground">Loading...</span>
+                    <span class="text-muted-foreground text-xs">Loading...</span>
                 </div>
             {/if}
         </div>

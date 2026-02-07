@@ -92,9 +92,7 @@
     {:else}
         <!-- 비로그인 상태 (컴팩트) -->
         <div class="flex items-center gap-2">
-            <div
-                class="bg-muted flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
-            >
+            <div class="bg-muted flex h-8 w-8 shrink-0 items-center justify-center rounded-full">
                 <User class="text-muted-foreground h-4 w-4" />
             </div>
             <Button size="sm" class="h-8 flex-1" href={loginUrl}>
