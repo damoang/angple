@@ -1,18 +1,34 @@
 <script lang="ts">
     import { browser } from '$app/environment';
+    import { onMount } from 'svelte';
     import { Button } from '$lib/components/ui/button';
     import { Skeleton } from '$lib/components/ui/skeleton';
+    import { Progress } from '$lib/components/ui/progress';
     import LogIn from '@lucide/svelte/icons/log-in';
     import LogOut from '@lucide/svelte/icons/log-out';
     import User from '@lucide/svelte/icons/user';
     import Coins from '@lucide/svelte/icons/coins';
-    import Star from '@lucide/svelte/icons/star';
     import { getUser, getIsLoggedIn, getIsLoading } from '$lib/stores/auth.svelte';
+    import { apiClient } from '$lib/api';
+    import type { ExpSummary } from '$lib/api/types';
+    import { getMemberIconUrl } from '$lib/utils/member-icon';
 
     // Reactive getters
     let user = $derived(getUser());
     let isLoggedIn = $derived(getIsLoggedIn());
     let isLoading = $derived(getIsLoading());
+
+    // 경험치 요약 (레벨 게이지용)
+    let expSummary = $state<ExpSummary | null>(null);
+
+    // 아바타 URL (mb_image 우선, 없으면 member_image 경로로 생성)
+    let avatarUrl = $derived(user?.mb_image || getMemberIconUrl(user?.mb_id) || null);
+    let avatarFailed = $state(false);
+
+    // user 변경 시 실패 상태 리셋
+    $effect(() => {
+        if (user) avatarFailed = false;
+    });
 
     // 로그인/로그아웃 URL 생성
     let loginUrl = $derived(
@@ -24,6 +40,20 @@
             ? `https://damoang.net/bbs/logout.php?url=${encodeURIComponent(window.location.origin)}`
             : 'https://damoang.net/bbs/logout.php?url=https://web.damoang.net'
     );
+
+    // 로그인 시 경험치 요약 로드
+    $effect(() => {
+        if (isLoggedIn && user) {
+            apiClient
+                .getExpSummary()
+                .then((data) => {
+                    expSummary = data;
+                })
+                .catch(() => {
+                    // 실패해도 위젯은 정상 표시
+                });
+        }
+    });
 </script>
 
 <div class="bg-card mb-3 rounded-lg border p-3">
@@ -37,22 +67,44 @@
             </div>
         </div>
     {:else if isLoggedIn && user}
-        <!-- 로그인 상태 (컴팩트) -->
+        <!-- 프로필 헤더 -->
         <div class="flex items-center gap-2">
-            <!-- 프로필 아이콘 -->
-            <div
-                class="bg-primary/10 text-primary flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
+            <!-- 프로필 아바타 -->
+            <a
+                href="/my"
+                class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-colors {avatarUrl &&
+                !avatarFailed
+                    ? 'overflow-hidden'
+                    : 'bg-primary/10 text-primary hover:bg-primary/20'}"
             >
-                <User class="h-4 w-4" />
-            </div>
+                {#if avatarUrl && !avatarFailed}
+                    <img
+                        src={avatarUrl}
+                        alt={user.mb_name}
+                        class="h-full w-full object-cover"
+                        onerror={() => {
+                            avatarFailed = true;
+                        }}
+                    />
+                {:else}
+                    <User class="h-4 w-4" />
+                {/if}
+            </a>
 
-            <!-- 사용자 정보 -->
             <div class="min-w-0 flex-1">
-                <span class="block truncate text-sm font-medium">{user.mb_name}</span>
+                <div class="flex items-center gap-1.5">
+                    <a href="/my" class="truncate text-sm font-medium hover:underline"
+                        >{user.mb_name}</a
+                    >
+                    <span
+                        class="bg-primary/10 text-primary shrink-0 rounded px-1 py-0.5 text-[10px] font-semibold leading-none"
+                    >
+                        Lv.{user.mb_level}
+                    </span>
+                </div>
                 <p class="text-muted-foreground truncate text-xs">{user.mb_id}</p>
             </div>
 
-            <!-- 로그아웃 버튼 -->
             <a
                 href={logoutUrl}
                 class="text-muted-foreground hover:text-foreground shrink-0 p-1 transition-colors"
@@ -62,32 +114,57 @@
             </a>
         </div>
 
-        <!-- 포인트 & 경험치 (인라인) -->
-        <div class="mt-2 flex gap-2 text-xs">
+        <!-- 레벨 게이지 -->
+        {#if expSummary}
+            <a href="/my/exp" class="group mt-2 block">
+                <div class="text-muted-foreground flex items-center justify-between text-[10px]">
+                    <span>Lv.{expSummary.current_level}</span>
+                    <span>Lv.{expSummary.current_level + 1}</span>
+                </div>
+                <Progress
+                    value={expSummary.level_progress}
+                    max={100}
+                    class="mt-0.5 h-1.5 transition-all group-hover:h-2"
+                />
+                <p class="text-muted-foreground mt-0.5 text-center text-[10px]">
+                    다음 레벨까지 <span class="text-foreground font-medium"
+                        >{expSummary.next_level_exp.toLocaleString()}</span
+                    >
+                </p>
+            </a>
+        {/if}
+
+        <!-- 포인트 + 내글 / 내댓글 / 전체 -->
+        <div class="mt-2 space-y-1 text-xs">
             {#if user.mb_point !== undefined}
                 <a
                     href="/my/points"
-                    class="bg-muted/50 hover:bg-muted flex flex-1 items-center justify-between rounded px-2 py-1.5 transition-colors"
+                    class="bg-muted/50 hover:bg-muted flex items-center justify-between rounded px-2 py-1.5 transition-colors"
                 >
-                    <span class="text-muted-foreground flex items-center gap-1">
-                        <Coins class="h-3 w-3" />
-                        P
-                    </span>
+                    <Coins class="text-muted-foreground h-3 w-3" />
                     <span class="font-medium">{user.mb_point.toLocaleString()}</span>
                 </a>
             {/if}
-            {#if user.mb_exp !== undefined}
+            <div class="grid grid-cols-3 gap-1">
                 <a
-                    href="/my/exp"
-                    class="bg-muted/50 hover:bg-muted flex flex-1 items-center justify-between rounded px-2 py-1.5 transition-colors"
+                    href="/my?tab=posts"
+                    class="bg-muted/50 hover:bg-muted text-muted-foreground flex items-center justify-center rounded px-2 py-1.5 transition-colors"
                 >
-                    <span class="text-muted-foreground flex items-center gap-1">
-                        <Star class="h-3 w-3 text-yellow-500" />
-                        E
-                    </span>
-                    <span class="font-medium">{user.mb_exp.toLocaleString()}</span>
+                    내글
                 </a>
-            {/if}
+                <a
+                    href="/my?tab=comments"
+                    class="bg-muted/50 hover:bg-muted text-muted-foreground flex items-center justify-center rounded px-2 py-1.5 transition-colors"
+                >
+                    내댓글
+                </a>
+                <a
+                    href="/my"
+                    class="bg-muted/50 hover:bg-muted text-muted-foreground flex items-center justify-center rounded px-2 py-1.5 transition-colors"
+                >
+                    전체
+                </a>
+            </div>
         </div>
     {:else}
         <!-- 비로그인 상태 (컴팩트) -->
