@@ -34,10 +34,12 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
-      - name: Build hook-system package
+      - name: Build workspace packages
         run: |
-          cd packages/hook-system
-          pnpm build
+          pnpm --filter @angple/types build
+          pnpm --filter @angple/i18n build
+          pnpm --filter @angple/hook-system build
+          pnpm --filter @angple/theme-engine build
 
       - name: Build web app (static)
         run: |
