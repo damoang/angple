@@ -214,6 +214,10 @@ jobs:
         working-directory: apps/${{ matrix.app }}
         run: pnpm exec playwright install --with-deps
 
+      - name: Build app for E2E tests
+        working-directory: apps/${{ matrix.app }}
+        run: pnpm run build
+
       - name: Run unit tests with coverage
         working-directory: apps/${{ matrix.app }}
         run: pnpm run test:unit -- --run --coverage
