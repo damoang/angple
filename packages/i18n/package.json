@@ -17,10 +17,6 @@
         "./messages/es.json": "./messages/es.json",
         "./messages/ar.json": "./messages/ar.json",
         "./messages/vi.json": "./messages/vi.json",
-        "./paraglide": {
-            "types": "./dist/paraglide.d.ts",
-            "import": "./dist/paraglide.js"
-        },
         "./rtl": {
             "types": "./dist/rtl.d.ts",
             "import": "./dist/rtl.js"

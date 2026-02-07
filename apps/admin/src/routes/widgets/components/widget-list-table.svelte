@@ -54,7 +54,8 @@
     const selectedWidgetId = $derived(widgetStore.selectedWidgetId);
     const selectedZone = $derived(widgetStore.selectedZone);
 
-    // dnd 항목 (id를 dnd용으로 변환)
+    // dnd 항목 (id를 dnd용으로 변환) - 드래그 중 직접 변경되므로 $derived 사용 불가
+    // eslint-disable-next-line svelte/prefer-writable-derived
     let items = $state(widgets.map((w) => ({ ...w })));
 
     // widgets 변경 시 items 동기화

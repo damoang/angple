@@ -4,6 +4,7 @@
  * Web API를 통해 위젯 레이아웃을 로드하고 관리합니다.
  */
 
+import { SvelteMap } from 'svelte/reactivity';
 import { toast } from 'svelte-sonner';
 import * as widgetsApi from '$lib/api/widgets';
 import type { WidgetConfig } from '$lib/types/widget';
@@ -55,7 +56,7 @@ class WidgetStore {
     private _selectedZone = $state<WidgetZone>('main');
 
     // 매니페스트 캐시 (위젯 타입 → 매니페스트)
-    private _manifests = $state<Map<string, WidgetManifestInfo>>(new Map());
+    private _manifests = $state<SvelteMap<string, WidgetManifestInfo>>(new SvelteMap());
 
     // Getters - 메인 위젯
     get widgets() {
@@ -165,7 +166,7 @@ class WidgetStore {
     async loadManifests() {
         try {
             const data = await widgetsApi.getInstalledWidgets();
-            const map = new Map<string, WidgetManifestInfo>();
+            const map = new SvelteMap<string, WidgetManifestInfo>();
             for (const w of data.widgets) {
                 map.set(w.id, w as WidgetManifestInfo);
             }

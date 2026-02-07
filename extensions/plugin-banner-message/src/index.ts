@@ -149,6 +149,28 @@ export default class BannerPlugin implements Extension {
     }
 
     /**
+     * Render banner as a DOM element (avoids innerHTML for security)
+     */
+    private renderBannerElement(banner: Banner): HTMLElement {
+        const clickUrl = this.getClickUrl(banner.id);
+
+        const link = document.createElement('a');
+        link.href = clickUrl;
+        link.target = banner.target;
+        link.className = 'banner-link';
+        link.dataset.bannerId = String(banner.id);
+
+        const img = document.createElement('img');
+        img.src = banner.imageUrl;
+        img.alt = banner.altText || banner.title;
+        img.className = 'banner-image';
+        img.loading = 'lazy';
+
+        link.appendChild(img);
+        return link;
+    }
+
+    /**
      * Render header banner
      */
     private async renderHeaderBanner(): Promise<void> {
@@ -164,7 +186,7 @@ export default class BannerPlugin implements Extension {
         // Create banner element
         const bannerContainer = document.createElement('div');
         bannerContainer.className = 'header-banner-container';
-        bannerContainer.innerHTML = this.renderBannerHtml(banner);
+        bannerContainer.appendChild(this.renderBannerElement(banner));
 
         // Insert at the top of the page
         const header = document.querySelector('header');

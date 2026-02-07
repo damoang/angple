@@ -95,7 +95,10 @@ export function localizedPath(
     let cleanPath = pathname;
 
     if (currentLocale) {
-        cleanPath = pathname.replace(new RegExp(`^/${currentLocale}`), '');
+        const prefix = `/${currentLocale}`;
+        if (pathname.startsWith(prefix)) {
+            cleanPath = pathname.slice(prefix.length);
+        }
     }
 
     // 기본 로케일은 경로에 포함하지 않음 (선택적)

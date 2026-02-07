@@ -118,10 +118,12 @@
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
+                    <!-- eslint-disable @typescript-eslint/no-explicit-any -->
                     <PluginSettingsForm
                         schema={plugin.manifest.settings as any}
                         bind:values={settings}
                     />
+                    <!-- eslint-enable @typescript-eslint/no-explicit-any -->
                 </CardContent>
             </Card>
         {:else}

@@ -29,6 +29,7 @@
         AlignJustify,
         Clock
     } from '@lucide/svelte';
+    import { SvelteSet } from 'svelte/reactivity';
 
     type ViewMode = 'list' | 'card' | 'gallery' | 'compact' | 'timeline';
 
@@ -50,13 +51,13 @@
     ];
 
     let defaultView = $state<ViewMode>('list');
-    let allowedViews = $state<Set<ViewMode>>(
-        new Set(['list', 'card', 'gallery', 'compact', 'timeline'])
+    let allowedViews = $state<SvelteSet<ViewMode>>(
+        new SvelteSet(['list', 'card', 'gallery', 'compact', 'timeline'])
     );
     let isLoading = $state(false);
 
     function toggleView(viewId: ViewMode) {
-        const next = new Set(allowedViews);
+        const next = new SvelteSet(allowedViews);
         if (next.has(viewId)) {
             // 최소 1개는 남겨야 함
             if (next.size > 1) {
