@@ -10,7 +10,7 @@
  * - 오프라인 시: 캐시된 오프라인 페이지 표시
  */
 
-const CACHE_NAME = 'angple-v1';
+const CACHE_NAME = 'angple-v2';
 const OFFLINE_URL = '/offline.html';
 
 // 앱 셸 프리캐시 목록
@@ -48,8 +48,9 @@ self.addEventListener('fetch', (event) => {
     // 같은 출처의 요청만 처리
     if (url.origin !== self.location.origin) return;
 
-    // API 요청: Network First
+    // API 요청: Network First (GET만 캐시, POST 등은 패스스루)
     if (url.pathname.startsWith('/api/')) {
+        if (request.method !== 'GET') return;
         event.respondWith(networkFirst(request));
         return;
     }
