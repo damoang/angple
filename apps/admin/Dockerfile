@@ -53,11 +53,9 @@ COPY apps/admin ./apps/admin
 RUN pnpm install --frozen-lockfile --filter admin...
 
 WORKDIR /app
-# 워크스페이스 패키지 먼저 빌드 (의존성 순서대로)
+# 워크스페이스 패키지 먼저 빌드 (admin이 의존하는 패키지만)
 RUN pnpm --filter @angple/types run build
 RUN pnpm --filter @angple/i18n run build
-RUN pnpm --filter @angple/hook-system run build
-RUN pnpm --filter @angple/theme-engine run build
 
 WORKDIR /app/apps/admin
 RUN pnpm run build
