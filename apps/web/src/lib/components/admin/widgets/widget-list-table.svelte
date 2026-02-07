@@ -46,6 +46,7 @@
     const selectedWidgetId = $derived(widgetStore.selectedWidgetId);
     const selectedZone = $derived(widgetStore.selectedZone);
 
+    // eslint-disable-next-line svelte/prefer-writable-derived -- items are mutated by dnd-action during drag
     let items = $state(widgets.map((w) => ({ ...w })));
 
     $effect(() => {

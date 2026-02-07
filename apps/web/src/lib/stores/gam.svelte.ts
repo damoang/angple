@@ -45,6 +45,7 @@ const state = $state<GAMState>({
 });
 
 // 슬롯 렌더 이벤트 콜백 저장
+// eslint-disable-next-line svelte/prefer-svelte-reactivity -- non-reactive callback storage
 const slotCallbacks = new Map<string, (isEmpty: boolean) => void>();
 
 /**
@@ -175,6 +176,7 @@ export function defineResponsiveSlot(
 
         // 모든 사이즈 수집
         const allSizes = sizeMapping.flatMap((m) => m.sizes);
+        // eslint-disable-next-line svelte/prefer-svelte-reactivity -- deduplication only, not reactive
         const uniqueSizes = Array.from(new Set(allSizes.map((s) => JSON.stringify(s)))).map(
             (s) => JSON.parse(s) as number[]
         );

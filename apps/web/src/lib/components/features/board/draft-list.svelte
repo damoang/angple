@@ -96,7 +96,7 @@
 
     // 내용 미리보기 (50자)
     function getPreview(content: string): string {
-        const plain = content.replace(/[#*`>\-\[\]()]/g, '').trim();
+        const plain = content.replace(/[#*`>\-[\]()]/g, '').trim();
         return plain.length > 50 ? plain.slice(0, 50) + '...' : plain;
     }
 

@@ -10,6 +10,7 @@
     import { widgetLayoutStore, type WidgetConfig } from '$lib/stores/widget-layout.svelte';
     import { loadWidgetComponent } from '$lib/utils/widget-component-loader';
     import type { Component } from 'svelte';
+    import { SvelteMap } from 'svelte/reactivity';
     import WidgetWrapper from './widget-wrapper.svelte';
 
     interface Props {
@@ -54,8 +55,8 @@
     }
 
     // 위젯 컴포넌트 캐시
-    const componentCache = new Map<string, Component | null>();
-    let loadedComponents = $state<Map<string, Component | null>>(new Map());
+    const componentCache = new SvelteMap<string, Component | null>();
+    let loadedComponents = new SvelteMap<string, Component | null>();
 
     // 위젯 타입이 변경될 때마다 컴포넌트 로드
     $effect(() => {
@@ -64,8 +65,8 @@
             if (!componentCache.has(type)) {
                 loadWidgetComponent(type).then((component) => {
                     componentCache.set(type, component);
-                    // 반응성 트리거를 위해 새 Map 생성
-                    loadedComponents = new Map(componentCache);
+                    // SvelteMap is reactive, just copy entries to trigger updates
+                    loadedComponents.set(type, component);
                 });
             }
         }

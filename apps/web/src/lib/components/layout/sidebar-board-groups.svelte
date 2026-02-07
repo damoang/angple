@@ -4,6 +4,7 @@
      * 게시판을 그룹별로 묶어 표시
      */
     import type { BoardGroup } from '$lib/api/types.js';
+    import { SvelteSet } from 'svelte/reactivity';
     import ChevronDown from '@lucide/svelte/icons/chevron-down';
     import ChevronRight from '@lucide/svelte/icons/chevron-right';
     import FolderOpen from '@lucide/svelte/icons/folder-open';
@@ -16,16 +17,14 @@
     let { groups, currentBoardId }: Props = $props();
 
     // 그룹별 열림/닫힘 상태
-    let expandedGroups = $state<Set<string>>(new Set(groups.map((g) => g.id)));
+    let expandedGroups = new SvelteSet<string>(groups.map((g) => g.id));
 
     function toggleGroup(groupId: string) {
-        const next = new Set(expandedGroups);
-        if (next.has(groupId)) {
-            next.delete(groupId);
+        if (expandedGroups.has(groupId)) {
+            expandedGroups.delete(groupId);
         } else {
-            next.add(groupId);
+            expandedGroups.add(groupId);
         }
-        expandedGroups = next;
     }
 
     const visibleGroups = $derived(groups.filter((g) => g.is_visible));
