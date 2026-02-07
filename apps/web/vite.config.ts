@@ -27,6 +27,10 @@ export default defineConfig(({ mode }) => {
                 '$custom-widgets': path.resolve(__dirname, '../../custom-widgets')
             }
         },
+        preview: {
+            port,
+            allowedHosts
+        },
         server: {
             port,
             allowedHosts,
