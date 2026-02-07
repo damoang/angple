@@ -17,6 +17,9 @@
     import { getHookVersion } from '$lib/hooks/hook-state.svelte';
     import { getMemberIconUrl } from '$lib/utils/member-icon.js';
     import { SvelteMap, SvelteSet } from 'svelte/reactivity';
+    import { pluginStore } from '$lib/stores/plugin.svelte';
+    import { loadMemosForAuthors } from '../../../../../../../plugins/member-memo/lib/memo-store.svelte';
+    import MemoBadge from '../../../../../../../plugins/member-memo/components/memo-badge.svelte';
 
     interface Props {
         comments: FreeComment[];
@@ -43,6 +46,9 @@
         postId = 0,
         useNogood = false
     }: Props = $props();
+
+    // 회원 메모 플러그인 활성화 여부
+    let memoPluginActive = $derived(pluginStore.isPluginActive('member-memo'));
 
     // 댓글별 좋아요 상태 관리
     let likedComments = new SvelteSet<string>();
@@ -363,6 +369,16 @@
         }
     });
 
+    // 회원 메모 배치 프리로드
+    $effect(() => {
+        if (memoPluginActive && commentTree.length > 0) {
+            const ids = [...new Set(commentTree.map((c) => c.author_id).filter(Boolean))];
+            if (ids.length > 0) {
+                void loadMemosForAuthors(ids);
+            }
+        }
+    });
+
     // 신고 다이얼로그 닫기
     function closeReportDialog(): void {
         showReportDialog = false;
@@ -417,6 +433,9 @@
                                     : ''} flex items-center gap-1.5"
                             >
                                 {comment.author}
+                                {#if memoPluginActive}
+                                    <MemoBadge memberId={comment.author_id} showIcon={true} />
+                                {/if}
                                 {#if comment.author_ip}
                                     <span class="text-muted-foreground text-xs font-normal"
                                         >({comment.author_ip})</span

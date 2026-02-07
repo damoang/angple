@@ -3,6 +3,10 @@
     import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card/index.js';
     import type { FreePost, BoardDisplaySettings } from '$lib/api/types.js';
     import Lock from '@lucide/svelte/icons/lock';
+    import { pluginStore } from '$lib/stores/plugin.svelte';
+    import MemoBadge from '../../../../../../../../plugins/member-memo/components/memo-badge.svelte';
+
+    let memoPluginActive = $derived(pluginStore.isPluginActive('member-memo'));
 
     // Props
     let {
@@ -90,6 +94,9 @@
                             class="text-secondary-foreground flex flex-wrap items-center gap-2 text-sm"
                         >
                             <span>{post.author}</span>
+                            {#if memoPluginActive}
+                                <MemoBadge memberId={post.author_id} />
+                            {/if}
                             <span>•</span>
                             <span>{formatDate(post.created_at)}</span>
                             <span>•</span>

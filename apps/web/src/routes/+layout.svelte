@@ -12,6 +12,7 @@
     import { loadThemeComponents } from '$lib/utils/theme-component-loader';
     import { loadAllPluginHooks } from '$lib/hooks/plugin-loader';
     import { loadAllPluginComponents } from '$lib/utils/plugin-component-loader';
+    import MemoModal from '../../../../plugins/member-memo/components/memo-modal.svelte';
 
     const { children, data } = $props(); // Svelte 5: SSR 데이터 받기
 
@@ -240,4 +241,9 @@
             <p class="text-gray-600">관리자 페이지에서 테마를 활성화해주세요.</p>
         </div>
     </div>
+{/if}
+
+<!-- 회원 메모 모달 (글로벌 1개) -->
+{#if pluginStore.isPluginActive('member-memo')}
+    <MemoModal />
 {/if}
