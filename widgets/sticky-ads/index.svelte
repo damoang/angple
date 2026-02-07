@@ -59,11 +59,9 @@
     <!-- Square 배너 (280x280) -->
     <div>
         <div class="mb-2 flex items-center justify-between">
-            <span class="text-xs font-medium text-slate-500">Sponsored</span>
+            <span class="text-xs font-medium text-muted-foreground">Sponsored</span>
         </div>
-        <div
-            class="overflow-hidden rounded-lg border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800"
-        >
+        <div class="overflow-hidden rounded-xl border border-border bg-background">
             {#if adsenseLoaded}
                 <ins
                     class="adsbygoogle"
@@ -74,9 +72,9 @@
                 ></ins>
             {:else}
                 <div
-                    class="flex h-[280px] w-[280px] animate-pulse items-center justify-center bg-slate-100 dark:bg-slate-700"
+                    class="flex h-[280px] w-[280px] animate-pulse items-center justify-center bg-muted"
                 >
-                    <span class="text-xs text-slate-400">Loading...</span>
+                    <span class="text-xs text-muted-foreground">Loading...</span>
                 </div>
             {/if}
         </div>
@@ -85,11 +83,9 @@
     <!-- Halfpage 배너 (280x600 Sticky) -->
     <div>
         <div class="mb-2 flex items-center justify-between">
-            <span class="text-xs font-medium text-slate-500">Sponsored</span>
+            <span class="text-xs font-medium text-muted-foreground">Sponsored</span>
         </div>
-        <div
-            class="overflow-hidden rounded-lg border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800"
-        >
+        <div class="overflow-hidden rounded-xl border border-border bg-background">
             {#if adsenseLoaded}
                 <ins
                     class="adsbygoogle"
@@ -100,9 +96,9 @@
                 ></ins>
             {:else}
                 <div
-                    class="flex h-[600px] w-[280px] animate-pulse items-center justify-center bg-slate-100 dark:bg-slate-700"
+                    class="flex h-[600px] w-[280px] animate-pulse items-center justify-center bg-muted"
                 >
-                    <span class="text-xs text-slate-400">Loading...</span>
+                    <span class="text-xs text-muted-foreground">Loading...</span>
                 </div>
             {/if}
         </div>
