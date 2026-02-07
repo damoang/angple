@@ -218,6 +218,10 @@ jobs:
         working-directory: apps/${{ matrix.app }}
         run: pnpm run build
 
+      - name: Create data directory for E2E tests
+        working-directory: apps/${{ matrix.app }}
+        run: mkdir -p data
+
       - name: Run unit tests with coverage
         working-directory: apps/${{ matrix.app }}
         run: pnpm run test:unit -- --run --coverage
