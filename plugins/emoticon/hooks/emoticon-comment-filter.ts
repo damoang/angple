@@ -4,7 +4,6 @@
  */
 
 import { replaceEmoticons } from '../lib/parser';
-import { getApiBaseUrl } from '../lib/api';
 
 /**
  * 댓글 본문에서 이모티콘 코드를 이미지로 변환하는 필터 콜백
@@ -14,5 +13,5 @@ import { getApiBaseUrl } from '../lib/api';
  */
 export default function emoticonCommentFilter(content: string): string {
     if (!content) return content;
-    return replaceEmoticons(content, getApiBaseUrl());
+    return replaceEmoticons(content);
 }
