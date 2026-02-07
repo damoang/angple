@@ -34,11 +34,14 @@
     // 로그인 시 경험치 요약 로드
     $effect(() => {
         if (isLoggedIn && user) {
-            apiClient.getExpSummary().then((data) => {
-                expSummary = data;
-            }).catch(() => {
-                // 실패해도 위젯은 정상 표시
-            });
+            apiClient
+                .getExpSummary()
+                .then((data) => {
+                    expSummary = data;
+                })
+                .catch(() => {
+                    // 실패해도 위젯은 정상 표시
+                });
         }
     });
 </script>
@@ -58,15 +61,19 @@
         <div class="flex items-center gap-2">
             <a
                 href="/my"
-                class="bg-primary/10 text-primary flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-primary/20"
+                class="bg-primary/10 text-primary hover:bg-primary/20 flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-colors"
             >
                 <User class="h-4 w-4" />
             </a>
 
             <div class="min-w-0 flex-1">
                 <div class="flex items-center gap-1.5">
-                    <a href="/my" class="truncate text-sm font-medium hover:underline">{user.mb_name}</a>
-                    <span class="bg-primary/10 text-primary shrink-0 rounded px-1 py-0.5 text-[10px] font-semibold leading-none">
+                    <a href="/my" class="truncate text-sm font-medium hover:underline"
+                        >{user.mb_name}</a
+                    >
+                    <span
+                        class="bg-primary/10 text-primary shrink-0 rounded px-1 py-0.5 text-[10px] font-semibold leading-none"
+                    >
                         Lv.{user.mb_level}
                     </span>
                 </div>
@@ -85,13 +92,19 @@
         <!-- 레벨 게이지 -->
         {#if expSummary}
             <a href="/my/exp" class="group mt-2 block">
-                <div class="flex items-center justify-between text-[10px] text-muted-foreground">
+                <div class="text-muted-foreground flex items-center justify-between text-[10px]">
                     <span>Lv.{expSummary.current_level}</span>
                     <span>Lv.{expSummary.current_level + 1}</span>
                 </div>
-                <Progress value={expSummary.level_progress} max={100} class="mt-0.5 h-1.5 group-hover:h-2 transition-all" />
-                <p class="mt-0.5 text-center text-[10px] text-muted-foreground">
-                    다음 레벨까지 <span class="font-medium text-foreground">{expSummary.next_level_exp.toLocaleString()}</span>
+                <Progress
+                    value={expSummary.level_progress}
+                    max={100}
+                    class="mt-0.5 h-1.5 transition-all group-hover:h-2"
+                />
+                <p class="text-muted-foreground mt-0.5 text-center text-[10px]">
+                    다음 레벨까지 <span class="text-foreground font-medium"
+                        >{expSummary.next_level_exp.toLocaleString()}</span
+                    >
                 </p>
             </a>
         {/if}
@@ -113,19 +126,19 @@
             <div class="grid grid-cols-3 gap-1">
                 <a
                     href="/my?tab=posts"
-                    class="bg-muted/50 hover:bg-muted flex items-center justify-center rounded px-2 py-1.5 text-muted-foreground transition-colors"
+                    class="bg-muted/50 hover:bg-muted text-muted-foreground flex items-center justify-center rounded px-2 py-1.5 transition-colors"
                 >
                     내글
                 </a>
                 <a
                     href="/my?tab=comments"
-                    class="bg-muted/50 hover:bg-muted flex items-center justify-center rounded px-2 py-1.5 text-muted-foreground transition-colors"
+                    class="bg-muted/50 hover:bg-muted text-muted-foreground flex items-center justify-center rounded px-2 py-1.5 transition-colors"
                 >
                     내댓글
                 </a>
                 <a
                     href="/my"
-                    class="bg-muted/50 hover:bg-muted flex items-center justify-center rounded px-2 py-1.5 text-muted-foreground transition-colors"
+                    class="bg-muted/50 hover:bg-muted text-muted-foreground flex items-center justify-center rounded px-2 py-1.5 transition-colors"
                 >
                     전체
                 </a>
@@ -134,9 +147,7 @@
     {:else}
         <!-- 비로그인 상태 (컴팩트) -->
         <div class="flex items-center gap-2">
-            <div
-                class="bg-muted flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
-            >
+            <div class="bg-muted flex h-8 w-8 shrink-0 items-center justify-center rounded-full">
                 <User class="text-muted-foreground h-4 w-4" />
             </div>
             <Button size="sm" class="h-8 flex-1" href={loginUrl}>

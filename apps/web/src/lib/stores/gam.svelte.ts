@@ -135,7 +135,7 @@ export function defineSlot(
         const adUnitPath = `/${NETWORK_CODE}/${position}`;
 
         // 슬롯 정의
-        slot = window.googletag!.defineSlot(adUnitPath, sizes, divId);
+        slot = window.googletag!.defineSlot(adUnitPath, sizes as googletag.GeneralSize, divId);
 
         if (slot) {
             slot.addService(window.googletag!.pubads());
@@ -180,17 +180,27 @@ export function defineResponsiveSlot(
         );
 
         // 슬롯 정의
-        slot = window.googletag!.defineSlot(adUnitPath, uniqueSizes, divId);
+        slot = window.googletag!.defineSlot(
+            adUnitPath,
+            uniqueSizes as googletag.GeneralSize,
+            divId
+        );
 
         if (slot) {
             // 사이즈 매핑 빌더
             const mapping = window.googletag!.sizeMapping();
 
             sizeMapping.forEach(({ viewport, sizes }) => {
-                mapping.addSize(viewport, sizes);
+                mapping.addSize(
+                    viewport as googletag.SingleSizeArray,
+                    sizes as googletag.GeneralSize
+                );
             });
 
-            slot.defineSizeMapping(mapping.build());
+            const builtMapping = mapping.build();
+            if (builtMapping) {
+                slot.defineSizeMapping(builtMapping);
+            }
             slot.addService(window.googletag!.pubads());
             state.slots.set(divId, slot);
 

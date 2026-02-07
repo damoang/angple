@@ -57,8 +57,10 @@
                     <a
                         href={banner.link || 'javascript:void(0)'}
                         target={banner.link?.startsWith('http') ? '_blank' : undefined}
-                        rel={banner.link?.startsWith('http') ? 'noopener noreferrer nofollow' : undefined}
-                        class="group border-border hover:border-primary block overflow-hidden rounded-xl border-2 bg-white transition-all duration-200 hover:-translate-y-0.5 dark:bg-gray-900"
+                        rel={banner.link?.startsWith('http')
+                            ? 'noopener noreferrer nofollow'
+                            : undefined}
+                        class="border-border hover:border-primary group block overflow-hidden rounded-xl border-2 bg-white transition-all duration-200 hover:-translate-y-0.5 dark:bg-gray-900"
                     >
                         {#if banner.image}
                             <figure class="m-0">
