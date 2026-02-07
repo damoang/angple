@@ -1,0 +1,22 @@
+{
+    "id": "giving",
+    "name": "나눔",
+    "version": "1.0.0",
+    "description": "진행중인 나눔 목록 (최대 8개)",
+    "author": { "name": "Angple" },
+    "category": "sidebar",
+    "slots": ["sidebar"],
+    "icon": "Gift",
+    "allowMultiple": false,
+    "main": "index.svelte",
+    "settings": {
+        "item_count": {
+            "label": "표시 개수",
+            "type": "number",
+            "default": 8,
+            "min": 4,
+            "max": 8,
+            "step": 2
+        }
+    }
+}

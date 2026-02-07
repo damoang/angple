@@ -1,0 +1,86 @@
+{
+    "id": "image-text-banner",
+    "name": "이미지+텍스트 배너",
+    "version": "1.0.0",
+    "description": "2x2 그리드 이미지+텍스트 배너 위젯",
+    "author": { "name": "Angple" },
+    "category": "sidebar",
+    "slots": ["sidebar"],
+    "icon": "LayoutGrid",
+    "allowMultiple": true,
+    "main": "index.svelte",
+    "settings": {
+        "banner1_image": {
+            "label": "배너1 이미지 URL",
+            "type": "text",
+            "default": "",
+            "placeholder": "https://example.com/image1.jpg"
+        },
+        "banner1_link": {
+            "label": "배너1 링크 URL",
+            "type": "text",
+            "default": "",
+            "placeholder": "https://example.com/page1"
+        },
+        "banner1_text": {
+            "label": "배너1 텍스트",
+            "type": "text",
+            "default": "",
+            "placeholder": "배너 1"
+        },
+        "banner2_image": {
+            "label": "배너2 이미지 URL",
+            "type": "text",
+            "default": "",
+            "placeholder": "https://example.com/image2.jpg"
+        },
+        "banner2_link": {
+            "label": "배너2 링크 URL",
+            "type": "text",
+            "default": "",
+            "placeholder": "https://example.com/page2"
+        },
+        "banner2_text": {
+            "label": "배너2 텍스트",
+            "type": "text",
+            "default": "",
+            "placeholder": "배너 2"
+        },
+        "banner3_image": {
+            "label": "배너3 이미지 URL",
+            "type": "text",
+            "default": "",
+            "placeholder": "https://example.com/image3.jpg"
+        },
+        "banner3_link": {
+            "label": "배너3 링크 URL",
+            "type": "text",
+            "default": "",
+            "placeholder": "https://example.com/page3"
+        },
+        "banner3_text": {
+            "label": "배너3 텍스트",
+            "type": "text",
+            "default": "",
+            "placeholder": "배너 3"
+        },
+        "banner4_image": {
+            "label": "배너4 이미지 URL",
+            "type": "text",
+            "default": "",
+            "placeholder": "https://example.com/image4.jpg"
+        },
+        "banner4_link": {
+            "label": "배너4 링크 URL",
+            "type": "text",
+            "default": "",
+            "placeholder": "https://example.com/page4"
+        },
+        "banner4_text": {
+            "label": "배너4 텍스트",
+            "type": "text",
+            "default": "",
+            "placeholder": "배너 4"
+        }
+    }
+}

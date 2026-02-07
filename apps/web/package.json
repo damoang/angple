@@ -82,6 +82,7 @@
         "adm-zip": "^0.5.16",
         "dompurify": "^3.3.1",
         "marked": "^17.0.1",
+        "mysql2": "^3.16.3",
         "simple-git": "^3.30.0",
         "svelte-dnd-action": "^0.9.54",
         "svelte-sonner": "^1.0.7",
