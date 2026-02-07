@@ -1,5 +1,5 @@
 {
-    "activePlugins": ["ad-widget", "emoticon", "bracket-image", "auto-embed"],
+    "activePlugins": ["ad-widget", "emoticon", "bracket-image", "auto-embed", "member-memo"],
     "plugins": {
         "ad-widget": {
             "settings": {
@@ -16,6 +16,10 @@
             "activatedAt": "2026-02-07T12:00:00.000Z"
         },
         "auto-embed": {
+            "settings": {},
+            "activatedAt": "2026-02-07T12:00:00.000Z"
+        },
+        "member-memo": {
             "settings": {},
             "activatedAt": "2026-02-07T12:00:00.000Z"
         }

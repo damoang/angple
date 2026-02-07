@@ -1,0 +1,27 @@
+{
+    "id": "member-memo",
+    "name": "회원 메모",
+    "version": "1.0.0",
+    "description": "회원별 개인 메모를 작성하고 이름 옆에 색상 배지로 표시합니다.",
+    "author": {
+        "name": "Damoang Team",
+        "url": "https://damoang.net"
+    },
+    "hooks": [
+        {
+            "name": "member_memo_init",
+            "type": "action",
+            "callback": "hooks/memo-init.ts",
+            "priority": 5
+        }
+    ],
+    "settings": {
+        "enabled": {
+            "label": "활성화",
+            "type": "boolean",
+            "default": true,
+            "description": "회원 메모 플러그인 활성화 여부"
+        }
+    },
+    "tags": ["회원", "메모", "배지"]
+}
