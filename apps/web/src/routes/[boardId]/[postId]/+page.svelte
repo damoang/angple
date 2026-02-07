@@ -589,7 +589,12 @@
 </div>
 
 <!-- 추천자 목록 다이얼로그 -->
-<Dialog.Root bind:open={showLikersDialog} onOpenChange={(open) => { if (!open) editingMemoFor = null; }}>
+<Dialog.Root
+    bind:open={showLikersDialog}
+    onOpenChange={(open) => {
+        if (!open) editingMemoFor = null;
+    }}
+>
     <Dialog.Content class="max-w-md">
         <Dialog.Header>
             <Dialog.Title>추천한 사람들</Dialog.Title>
@@ -648,7 +653,12 @@
                                             <MemoBadge
                                                 memberId={liker.mb_id}
                                                 showIcon={true}
-                                                onclick={() => { editingMemoFor = editingMemoFor === liker.mb_id ? null : liker.mb_id; }}
+                                                onclick={() => {
+                                                    editingMemoFor =
+                                                        editingMemoFor === liker.mb_id
+                                                            ? null
+                                                            : liker.mb_id;
+                                                }}
                                             />
                                         {/if}
                                     </div>
@@ -672,10 +682,12 @@
 
                             <!-- 인라인 메모 편집기 -->
                             {#if memoPluginActive && editingMemoFor === liker.mb_id}
-                                <div class="mt-2 ml-11">
+                                <div class="ml-11 mt-2">
                                     <MemoInlineEditor
                                         memberId={liker.mb_id}
-                                        onClose={() => { editingMemoFor = null; }}
+                                        onClose={() => {
+                                            editingMemoFor = null;
+                                        }}
                                     />
                                 </div>
                             {/if}
