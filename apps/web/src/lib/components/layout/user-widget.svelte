@@ -11,6 +11,7 @@
     import { getUser, getIsLoggedIn, getIsLoading } from '$lib/stores/auth.svelte';
     import { apiClient } from '$lib/api';
     import type { ExpSummary } from '$lib/api/types';
+    import { getMemberIconUrl } from '$lib/utils/member-icon';
 
     // Reactive getters
     let user = $derived(getUser());
@@ -19,6 +20,15 @@
 
     // 경험치 요약 (레벨 게이지용)
     let expSummary = $state<ExpSummary | null>(null);
+
+    // 아바타 URL (mb_image 우선, 없으면 member_image 경로로 생성)
+    let avatarUrl = $derived(user?.mb_image || getMemberIconUrl(user?.mb_id) || null);
+    let avatarFailed = $state(false);
+
+    // user 변경 시 실패 상태 리셋
+    $effect(() => {
+        if (user) avatarFailed = false;
+    });
 
     // 로그인/로그아웃 URL 생성
     let loginUrl = $derived(
@@ -59,11 +69,26 @@
     {:else if isLoggedIn && user}
         <!-- 프로필 헤더 -->
         <div class="flex items-center gap-2">
+            <!-- 프로필 아바타 -->
             <a
                 href="/my"
-                class="bg-primary/10 text-primary hover:bg-primary/20 flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-colors"
+                class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-colors {avatarUrl &&
+                !avatarFailed
+                    ? 'overflow-hidden'
+                    : 'bg-primary/10 text-primary hover:bg-primary/20'}"
             >
-                <User class="h-4 w-4" />
+                {#if avatarUrl && !avatarFailed}
+                    <img
+                        src={avatarUrl}
+                        alt={user.mb_name}
+                        class="h-full w-full object-cover"
+                        onerror={() => {
+                            avatarFailed = true;
+                        }}
+                    />
+                {:else}
+                    <User class="h-4 w-4" />
+                {/if}
             </a>
 
             <div class="min-w-0 flex-1">
@@ -116,10 +141,7 @@
                     href="/my/points"
                     class="bg-muted/50 hover:bg-muted flex items-center justify-between rounded px-2 py-1.5 transition-colors"
                 >
-                    <span class="text-muted-foreground flex items-center gap-1">
-                        <Coins class="h-3 w-3" />
-                        P
-                    </span>
+                    <Coins class="text-muted-foreground h-3 w-3" />
                     <span class="font-medium">{user.mb_point.toLocaleString()}</span>
                 </a>
             {/if}
