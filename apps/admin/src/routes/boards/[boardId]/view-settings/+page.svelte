@@ -51,26 +51,22 @@
     ];
 
     let defaultView = $state<ViewMode>('list');
-    let allowedViews = $state<SvelteSet<ViewMode>>(
-        new SvelteSet(['list', 'card', 'gallery', 'compact', 'timeline'])
-    );
+    let allowedViews = new SvelteSet<ViewMode>(['list', 'card', 'gallery', 'compact', 'timeline']);
     let isLoading = $state(false);
 
     function toggleView(viewId: ViewMode) {
-        const next = new SvelteSet(allowedViews);
-        if (next.has(viewId)) {
+        if (allowedViews.has(viewId)) {
             // 최소 1개는 남겨야 함
-            if (next.size > 1) {
-                next.delete(viewId);
+            if (allowedViews.size > 1) {
+                allowedViews.delete(viewId);
                 // 기본 뷰가 비활성화되면 첫 번째 허용 뷰로 변경
                 if (defaultView === viewId) {
-                    defaultView = Array.from(next)[0];
+                    defaultView = Array.from(allowedViews)[0];
                 }
             }
         } else {
-            next.add(viewId);
+            allowedViews.add(viewId);
         }
-        allowedViews = next;
     }
 
     async function saveSettings() {

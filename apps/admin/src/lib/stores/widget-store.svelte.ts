@@ -56,7 +56,7 @@ class WidgetStore {
     private _selectedZone = $state<WidgetZone>('main');
 
     // 매니페스트 캐시 (위젯 타입 → 매니페스트)
-    private _manifests = $state<SvelteMap<string, WidgetManifestInfo>>(new SvelteMap());
+    private _manifests = new SvelteMap<string, WidgetManifestInfo>();
 
     // Getters - 메인 위젯
     get widgets() {
@@ -166,12 +166,11 @@ class WidgetStore {
     async loadManifests() {
         try {
             const data = await widgetsApi.getInstalledWidgets();
-            const map = new SvelteMap<string, WidgetManifestInfo>();
+            this._manifests.clear();
             for (const w of data.widgets) {
-                map.set(w.id, w as WidgetManifestInfo);
+                this._manifests.set(w.id, w as WidgetManifestInfo);
             }
-            this._manifests = map;
-            console.log(`✅ 매니페스트 로드됨: ${map.size}개`);
+            console.log(`✅ 매니페스트 로드됨: ${this._manifests.size}개`);
         } catch (error) {
             console.warn('⚠️ 매니페스트 로드 실패 (WIDGET_REGISTRY 폴백 사용):', error);
         }
