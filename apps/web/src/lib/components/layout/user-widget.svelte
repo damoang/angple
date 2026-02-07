@@ -52,14 +52,19 @@
             <!-- 프로필 아바타 -->
             <a
                 href="/my"
-                class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-colors {avatarUrl && !avatarFailed ? 'overflow-hidden' : 'bg-primary/10 text-primary hover:bg-primary/20'}"
+                class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-colors {avatarUrl &&
+                !avatarFailed
+                    ? 'overflow-hidden'
+                    : 'bg-primary/10 text-primary hover:bg-primary/20'}"
             >
                 {#if avatarUrl && !avatarFailed}
                     <img
                         src={avatarUrl}
                         alt={user.mb_name}
                         class="h-full w-full object-cover"
-                        onerror={() => { avatarFailed = true; }}
+                        onerror={() => {
+                            avatarFailed = true;
+                        }}
                     />
                 {:else}
                     <User class="h-4 w-4" />
@@ -112,9 +117,7 @@
     {:else}
         <!-- 비로그인 상태 (컴팩트) -->
         <div class="flex items-center gap-2">
-            <div
-                class="bg-muted flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
-            >
+            <div class="bg-muted flex h-8 w-8 shrink-0 items-center justify-center rounded-full">
                 <User class="text-muted-foreground h-4 w-4" />
             </div>
             <Button size="sm" class="h-8 flex-1" href={loginUrl}>

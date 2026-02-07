@@ -19,7 +19,10 @@
     const clientId = 'ca-pub-5124617752473025';
 
     // 위치별 광고 설정
-    const adConfig: Record<string, { pc: { style: string; slot: string }; mobile: { style: string; slot: string } }> = {
+    const adConfig: Record<
+        string,
+        { pc: { style: string; slot: string }; mobile: { style: string; slot: string } }
+    > = {
         'banner-square': {
             pc: {
                 style: 'display:block;width:100%;max-width:280px;min-height:140px;max-height:280px;aspect-ratio:1/1;',
@@ -70,8 +73,12 @@
 
         // AdSense 로드
         try {
-            if (typeof window !== 'undefined' && (window as Window & { adsbygoogle?: unknown[] }).adsbygoogle) {
-                ((window as Window & { adsbygoogle?: unknown[] }).adsbygoogle = (window as Window & { adsbygoogle?: unknown[] }).adsbygoogle || []).push({});
+            if (
+                typeof window !== 'undefined' &&
+                (window as Window & { adsbygoogle?: unknown[] }).adsbygoogle
+            ) {
+                ((window as Window & { adsbygoogle?: unknown[] }).adsbygoogle =
+                    (window as Window & { adsbygoogle?: unknown[] }).adsbygoogle || []).push({});
                 adLoaded = true;
             }
         } catch {
@@ -93,7 +100,9 @@
     <div class="p-3">
         {#if isEditMode}
             <!-- 편집 모드에서는 미리보기 표시 -->
-            <div class="bg-muted/30 flex min-h-[140px] items-center justify-center rounded-lg border border-dashed">
+            <div
+                class="bg-muted/30 flex min-h-[140px] items-center justify-center rounded-lg border border-dashed"
+            >
                 <div class="text-muted-foreground text-center text-sm">
                     <Megaphone class="mx-auto mb-2 h-8 w-8 opacity-50" />
                     <p>AdSense 광고</p>
