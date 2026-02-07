@@ -186,7 +186,18 @@ export function getWidgetRegistry(): Record<
     }
 > {
     const widgets = getScannedWidgets();
-    const registry: Record<string, any> = {};
+    const registry: Record<
+        string,
+        {
+            name: string;
+            icon: string;
+            description: string;
+            category: string;
+            allowMultiple: boolean;
+            defaultSettings?: Record<string, unknown>;
+            slots: string[];
+        }
+    > = {};
 
     for (const [type, w] of widgets) {
         const defaultSettings: Record<string, unknown> = {};

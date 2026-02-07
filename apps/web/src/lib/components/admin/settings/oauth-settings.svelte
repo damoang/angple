@@ -94,6 +94,7 @@
                                 placeholder={field.placeholder}
                                 value={(config[field.key as keyof typeof config] as string) ?? ''}
                                 oninput={(e) => {
+                                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                     (adminSettingsStore.settings.oauth[meta.id] as any)[field.key] =
                                         e.currentTarget.value;
                                 }}

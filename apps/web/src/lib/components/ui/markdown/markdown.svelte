@@ -107,6 +107,7 @@
 
 {#if isBrowser}
     <div class="prose prose-neutral dark:prose-invert max-w-none {className}">
+        <!-- eslint-disable-next-line svelte/no-at-html-tags -->
         {@html renderedHtml}
     </div>
 {:else}

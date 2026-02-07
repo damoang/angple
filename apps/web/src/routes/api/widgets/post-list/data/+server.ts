@@ -25,7 +25,8 @@ export const GET: RequestHandler = async ({ url }) => {
             return json({ posts: [], board, sort, count });
         }
 
-        let posts: unknown[] = [];
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- dynamic widget data from various board types
+        let posts: any[] = [];
 
         switch (board) {
             case 'notice':
@@ -50,7 +51,7 @@ export const GET: RequestHandler = async ({ url }) => {
 
         // 정렬
         if (sort !== 'date') {
-            posts = [...posts].sort((a: any, b: any) => {
+            posts = [...posts].sort((a, b) => {
                 switch (sort) {
                     case 'recommend':
                         return (b.recommend_count ?? 0) - (a.recommend_count ?? 0);
@@ -66,9 +67,9 @@ export const GET: RequestHandler = async ({ url }) => {
 
         // 필터
         if (filter === 'recommended') {
-            posts = posts.filter((p: any) => (p.recommend_count ?? 0) > 0);
+            posts = posts.filter((p) => (p.recommend_count ?? 0) > 0);
         } else if (filter === 'has-image') {
-            posts = posts.filter((p: any) => p.thumbnail_url);
+            posts = posts.filter((p) => p.thumbnail_url);
         }
 
         // 개수 제한

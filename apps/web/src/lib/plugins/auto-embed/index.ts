@@ -51,7 +51,7 @@ export {
 } from './platforms/bracket-image.js';
 
 // 컴포넌트 내보내기
-export { default as EmbedContainer } from './components/EmbedContainer.svelte';
+export { default as EmbedContainer } from './components/embed-container.svelte';
 
 /**
  * CSS 스타일 (전역에서 import 필요)

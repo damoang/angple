@@ -19,6 +19,7 @@
         processBracketImages
     } from '$lib/plugins/auto-embed/index.js';
     import { getMemberIconUrl } from '$lib/utils/member-icon.js';
+    import { SvelteMap, SvelteSet } from 'svelte/reactivity';
 
     interface Props {
         comments: FreeComment[];
@@ -47,13 +48,13 @@
     }: Props = $props();
 
     // 댓글별 좋아요 상태 관리
-    let likedComments = $state<Set<string>>(new Set());
-    let commentLikes = $state<Map<string, number>>(new Map());
+    let likedComments = new SvelteSet<string>();
+    let commentLikes = new SvelteMap<string, number>();
     let likingComment = $state<string | null>(null);
 
     // 댓글별 비추천 상태 관리
-    let dislikedComments = $state<Set<string>>(new Set());
-    let commentDislikes = $state<Map<string, number>>(new Map());
+    let dislikedComments = new SvelteSet<string>();
+    let commentDislikes = new SvelteMap<string, number>();
     let dislikingComment = $state<string | null>(null);
 
     // 수정 상태 관리
@@ -84,7 +85,7 @@
         }
 
         // parent_id 기반 트리 구조 (새 API용)
-        const map = new Map<string | number, FreeComment[]>();
+        const map = new SvelteMap<string | number, FreeComment[]>();
         const roots: FreeComment[] = [];
 
         // 댓글이 루트인지 확인 (parent_id가 없거나, 0이거나, postId와 같으면 루트)
@@ -242,9 +243,7 @@
             } else {
                 likedComments.delete(commentId);
             }
-            likedComments = new Set(likedComments); // 반응성 트리거
             commentLikes.set(commentId, response.likes);
-            commentLikes = new Map(commentLikes); // 반응성 트리거
         } catch (err) {
             console.error('Failed to like comment:', err);
         } finally {
@@ -275,9 +274,7 @@
             } else {
                 dislikedComments.delete(commentId);
             }
-            dislikedComments = new Set(dislikedComments); // 반응성 트리거
             commentDislikes.set(commentId, response.dislikes);
-            commentDislikes = new Map(commentDislikes); // 반응성 트리거
         } catch (err) {
             console.error('Failed to dislike comment:', err);
         } finally {
@@ -542,6 +539,7 @@
                         </div>
                     {:else}
                         <div class="text-foreground whitespace-pre-wrap {isReply ? 'text-sm' : ''}">
+                            <!-- eslint-disable-next-line svelte/no-at-html-tags -->
                             {@html renderCommentContent(comment.content)}
                         </div>
                     {/if}

@@ -48,6 +48,7 @@
 
     <!-- JSON-LD 구조화 데이터 -->
     {#if jsonLdScript}
-        {@html `<script type="application/ld+json">${jsonLdScript}</script>`}
+        <!-- eslint-disable-next-line svelte/no-at-html-tags -->
+        {@html '<script type="application/ld+json">' + jsonLdScript + '</' + 'script>'}
     {/if}
 </svelte:head>

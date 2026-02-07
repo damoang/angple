@@ -69,6 +69,7 @@
         data-platform={embedInfo.platform}
         style={containerStyle}
     >
+        <!-- eslint-disable-next-line svelte/no-at-html-tags -->
         {@html embedHtml}
     </div>
 {:else if url}
