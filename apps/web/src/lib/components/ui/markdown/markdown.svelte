@@ -2,17 +2,15 @@
     import { marked } from 'marked';
     import DOMPurify from 'dompurify';
     import { onMount } from 'svelte';
-    import { transformEmoticons } from '$lib/utils/content-transform.js';
-    import { processContent as processEmbeds } from '$lib/plugins/auto-embed/index.js';
+    import { applyFilter } from '$lib/hooks/registry';
+    import { getHookVersion } from '$lib/hooks/hook-state.svelte';
 
     interface Props {
         content: string;
         class?: string;
-        /** URL 자동 임베딩 활성화 (기본값: true) */
-        enableEmbed?: boolean;
     }
 
-    let { content, class: className = '', enableEmbed = true }: Props = $props();
+    let { content, class: className = '' }: Props = $props();
 
     let renderedHtml = $state('');
     let isBrowser = $state(false);
@@ -27,79 +25,82 @@
         isBrowser = true;
     });
 
-    // 마크다운을 HTML로 변환하고 sanitize
+    // 마크다운을 HTML로 변환하고 플러그인 필터 적용 후 sanitize
     $effect(() => {
+        // hookVersion을 읽어서 hook 등록 시 $effect 재실행
+        const _hv = getHookVersion();
+
         if (isBrowser && content) {
-            const transformed = transformEmoticons(content);
-            const rawHtml = marked.parse(transformed) as string;
+            const rawHtml = marked.parse(content) as string;
 
-            // URL 자동 임베딩 처리 (sanitize 전에 수행)
-            const embeddedHtml = enableEmbed ? processEmbeds(rawHtml) : rawHtml;
-
-            renderedHtml = DOMPurify.sanitize(embeddedHtml, {
-                ALLOWED_TAGS: [
-                    'h1',
-                    'h2',
-                    'h3',
-                    'h4',
-                    'h5',
-                    'h6',
-                    'p',
-                    'br',
-                    'strong',
-                    'em',
-                    'u',
-                    's',
-                    'del',
-                    'ul',
-                    'ol',
-                    'li',
-                    'blockquote',
-                    'code',
-                    'pre',
-                    'a',
-                    'img',
-                    'table',
-                    'thead',
-                    'tbody',
-                    'tr',
-                    'th',
-                    'td',
-                    'hr',
-                    // 임베딩 관련 태그 추가
-                    'div',
-                    'iframe',
-                    'video',
-                    'audio',
-                    'source'
-                ],
-                ALLOWED_ATTR: [
-                    'href',
-                    'src',
-                    'alt',
-                    'title',
-                    'class',
-                    'target',
-                    'rel',
-                    'width',
-                    'loading',
-                    // 임베딩 관련 속성 추가
-                    'height',
-                    'style',
-                    'data-platform',
-                    'frameborder',
-                    'allow',
-                    'allowfullscreen',
-                    'allowtransparency',
-                    'scrolling',
-                    'referrerpolicy',
-                    'type',
-                    'controls',
-                    'autoplay',
-                    'muted',
-                    'loop',
-                    'playsinline'
-                ]
+            applyFilter<string>('post_content', rawHtml).then((filtered) => {
+                renderedHtml = DOMPurify.sanitize(filtered, {
+                    ALLOWED_TAGS: [
+                        'h1',
+                        'h2',
+                        'h3',
+                        'h4',
+                        'h5',
+                        'h6',
+                        'p',
+                        'br',
+                        'strong',
+                        'em',
+                        'u',
+                        's',
+                        'del',
+                        'ul',
+                        'ol',
+                        'li',
+                        'blockquote',
+                        'code',
+                        'pre',
+                        'a',
+                        'img',
+                        'table',
+                        'thead',
+                        'tbody',
+                        'tr',
+                        'th',
+                        'td',
+                        'hr',
+                        'div',
+                        'iframe',
+                        'video',
+                        'audio',
+                        'source',
+                        'span'
+                    ],
+                    ALLOWED_ATTR: [
+                        'href',
+                        'src',
+                        'alt',
+                        'title',
+                        'class',
+                        'target',
+                        'rel',
+                        'width',
+                        'loading',
+                        'height',
+                        'style',
+                        'data-platform',
+                        'data-bluesky-uri',
+                        'data-bluesky-cid',
+                        'data-embed-height',
+                        'frameborder',
+                        'allow',
+                        'allowfullscreen',
+                        'allowtransparency',
+                        'scrolling',
+                        'referrerpolicy',
+                        'type',
+                        'controls',
+                        'autoplay',
+                        'muted',
+                        'loop',
+                        'playsinline'
+                    ]
+                });
             });
         }
     });

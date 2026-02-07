@@ -13,11 +13,8 @@
     import CommentForm from './comment-form.svelte';
     import { ReportDialog } from '$lib/components/features/report/index.js';
     import DOMPurify from 'dompurify';
-    import { transformEmoticons } from '$lib/utils/content-transform.js';
-    import {
-        processContent as processEmbeds,
-        processBracketImages
-    } from '$lib/plugins/auto-embed/index.js';
+    import { applyFilter } from '$lib/hooks/registry';
+    import { getHookVersion } from '$lib/hooks/hook-state.svelte';
     import { getMemberIconUrl } from '$lib/utils/member-icon.js';
     import { SvelteMap, SvelteSet } from 'svelte/reactivity';
 
@@ -303,47 +300,68 @@
         showReportDialog = true;
     }
 
-    // 댓글 내용 이모티콘 변환 + URL 임베딩 + 대괄호 이미지 + sanitize
-    function renderCommentContent(content: string): string {
-        const transformed = transformEmoticons(content);
-        // URL 임베딩 처리 (줄바꿈을 <br>로 변환 후 처리)
-        const withLineBreaks = transformed.replace(/\n/g, '<br>');
-        // 대괄호 이미지 처리: [https://...image.jpg] → <img>
-        const withBracketImages = processBracketImages(withLineBreaks);
-        const embedded = processEmbeds(withBracketImages);
-        return DOMPurify.sanitize(embedded, {
-            ALLOWED_TAGS: [
-                'img',
-                'br',
-                // 임베딩 관련 태그
-                'div',
-                'iframe',
-                'video',
-                'audio',
-                'source'
-            ],
-            ALLOWED_ATTR: [
-                'src',
-                'width',
-                'alt',
-                'loading',
-                'class',
-                // 임베딩 관련 속성
-                'height',
-                'style',
-                'data-platform',
-                'frameborder',
-                'allow',
-                'allowfullscreen',
-                'allowtransparency',
-                'scrolling',
-                'referrerpolicy',
-                'type',
-                'controls',
-                'title'
-            ]
-        });
-    }
+    // 처리된 댓글 HTML 저장
+    let processedComments = new SvelteMap<string | number, string>();
+
+    // 댓글 내용 비동기 처리 (플러그인 필터 적용)
+    $effect(() => {
+        // hookVersion을 읽어서 hook 등록 시 $effect 재실행
+        const _hv = getHookVersion();
+
+        for (const comment of commentTree) {
+            const raw = comment.content;
+            if (!raw) {
+                processedComments.set(comment.id, '');
+                continue;
+            }
+            void (async () => {
+                const withBr = raw.replace(/\n/g, '<br>');
+                const filtered = await applyFilter<string>('comment_content', withBr);
+                processedComments.set(
+                    comment.id,
+                    DOMPurify.sanitize(filtered, {
+                        ALLOWED_TAGS: [
+                            'img',
+                            'br',
+                            'div',
+                            'iframe',
+                            'video',
+                            'audio',
+                            'source',
+                            'blockquote',
+                            'a',
+                            'span'
+                        ],
+                        ALLOWED_ATTR: [
+                            'src',
+                            'width',
+                            'alt',
+                            'loading',
+                            'class',
+                            'height',
+                            'style',
+                            'data-platform',
+                            'data-bluesky-uri',
+                            'data-bluesky-cid',
+                            'data-embed-height',
+                            'frameborder',
+                            'allow',
+                            'allowfullscreen',
+                            'allowtransparency',
+                            'scrolling',
+                            'referrerpolicy',
+                            'type',
+                            'controls',
+                            'title',
+                            'href',
+                            'target',
+                            'rel'
+                        ]
+                    })
+                );
+            })();
+        }
+    });
 
     // 신고 다이얼로그 닫기
     function closeReportDialog(): void {
@@ -540,7 +558,7 @@
                     {:else}
                         <div class="text-foreground whitespace-pre-wrap {isReply ? 'text-sm' : ''}">
                             <!-- eslint-disable-next-line svelte/no-at-html-tags -->
-                            {@html renderCommentContent(comment.content)}
+                            {@html processedComments.get(comment.id) ?? ''}
                         </div>
                     {/if}
                 {/if}

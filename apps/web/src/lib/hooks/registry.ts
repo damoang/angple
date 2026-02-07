@@ -4,6 +4,8 @@
  * 테마가 코어 기능을 확장할 수 있도록 이벤트 기반 아키텍처를 제공합니다.
  */
 
+import { incrementHookVersion } from './hook-state.svelte';
+
 /**
  * Hook 타입 정의
  */
@@ -82,6 +84,9 @@ class HookRegistry {
 
         // Priority 순서로 정렬 (낮은 숫자가 먼저)
         hookList.sort((a, b) => a.priority - b.priority);
+
+        // Reactive 버전 증가 (구독 중인 컴포넌트의 $effect 재실행)
+        incrementHookVersion();
 
         console.log(
             `🪝 [Hook] Registered ${type} hook: ${name} (priority: ${priority}${source ? `, source: ${source}` : ''})`

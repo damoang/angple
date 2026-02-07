@@ -39,15 +39,17 @@ export function parseEmoticonCode(code: string): EmoticonParseResult | null {
 
 /**
  * 콘텐츠 내 {emo:...} 코드를 <img> 태그로 변환
+ *
+ * 이미지는 /static/emoticons/ 디렉터리에서 정적 파일로 서빙
  */
-export function replaceEmoticons(content: string, baseUrl: string): string {
+export function replaceEmoticons(content: string, _baseUrl?: string): string {
     return content.replace(EMO_PATTERN, (_match, code: string) => {
         const result = parseEmoticonCode(code);
         if (!result) {
-            return renderFallback(baseUrl);
+            return renderFallback();
         }
 
-        const src = escapeHtml(`${baseUrl}/image/${result.filename}`);
+        const src = escapeHtml(`/emoticons/${result.filename}`);
         return `<img src="${src}" width="${result.width}" class="emoticon" loading="lazy" alt="emoticon" />`;
     });
 }
@@ -55,8 +57,8 @@ export function replaceEmoticons(content: string, baseUrl: string): string {
 /**
  * 삭제된 이모티콘 폴백 렌더링
  */
-function renderFallback(baseUrl: string): string {
-    const src = escapeHtml(`${baseUrl}/image/damoang-emo-010.gif`);
+function renderFallback(): string {
+    const src = escapeHtml('/emoticons/damoang-emo-010.gif');
     return `(삭제된 이모지) <img src="${src}" width="${DEFAULT_WIDTH}" class="emoticon" loading="lazy" alt="deleted emoticon" />`;
 }
 
