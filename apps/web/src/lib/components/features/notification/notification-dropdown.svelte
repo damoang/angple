@@ -163,13 +163,12 @@
     <DropdownMenu.Trigger
         class="hover:bg-muted relative inline-flex items-center justify-center rounded-lg p-2 transition-colors"
     >
-        <Bell class="text-muted-foreground h-5 w-5" />
+        <span class={unreadCount > 0 ? 'bell-ring' : ''}>
+            <Bell class="text-muted-foreground h-5 w-5" />
+        </span>
         {#if unreadCount > 0}
-            <span
-                class="bg-destructive text-destructive-foreground absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold"
-            >
-                {unreadCount > 99 ? '99+' : unreadCount}
-            </span>
+            <span class="bg-primary noti-pulse absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full"
+            ></span>
         {/if}
         <span class="sr-only">알림</span>
     </DropdownMenu.Trigger>
@@ -256,5 +255,104 @@
         -webkit-line-clamp: 2;
         -webkit-box-orient: vertical;
         overflow: hidden;
+    }
+
+    /* 벨 흔들림 애니메이션 (asis 스타일) */
+    .bell-ring {
+        animation: bell-ring 6s 0.7s infinite;
+        transform-origin: 50% 4px;
+        display: inline-block;
+    }
+
+    @keyframes bell-ring {
+        0% {
+            transform: rotate(0);
+        }
+        1% {
+            transform: rotate(30deg);
+        }
+        3% {
+            transform: rotate(-28deg);
+        }
+        5% {
+            transform: rotate(34deg);
+        }
+        7% {
+            transform: rotate(-32deg);
+        }
+        9% {
+            transform: rotate(30deg);
+        }
+        11% {
+            transform: rotate(-28deg);
+        }
+        13% {
+            transform: rotate(26deg);
+        }
+        15% {
+            transform: rotate(-24deg);
+        }
+        17% {
+            transform: rotate(22deg);
+        }
+        19% {
+            transform: rotate(-20deg);
+        }
+        21% {
+            transform: rotate(18deg);
+        }
+        23% {
+            transform: rotate(-16deg);
+        }
+        25% {
+            transform: rotate(14deg);
+        }
+        27% {
+            transform: rotate(-12deg);
+        }
+        29% {
+            transform: rotate(10deg);
+        }
+        31% {
+            transform: rotate(-8deg);
+        }
+        33% {
+            transform: rotate(6deg);
+        }
+        35% {
+            transform: rotate(-4deg);
+        }
+        37% {
+            transform: rotate(2deg);
+        }
+        39% {
+            transform: rotate(-1deg);
+        }
+        41% {
+            transform: rotate(1deg);
+        }
+        43% {
+            transform: rotate(0);
+        }
+        100% {
+            transform: rotate(0);
+        }
+    }
+
+    /* 알림 인디케이터 펄스 */
+    .noti-pulse {
+        animation: noti-pulse 1.25s ease-in-out infinite;
+    }
+
+    @keyframes noti-pulse {
+        0%,
+        100% {
+            opacity: 1;
+            transform: scale(1);
+        }
+        50% {
+            opacity: 0.6;
+            transform: scale(1.3);
+        }
     }
 </style>
