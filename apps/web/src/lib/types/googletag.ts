@@ -1,49 +1,11 @@
 /**
- * Google Publisher Tag (GPT) 타입 정의
+ * Google Publisher Tag (GPT) 타입 alias
+ * @types/google-publisher-tag 기반
  */
 
-export interface GoogleTagPubAdsService {
-    enableSingleRequest(): void;
-    collapseEmptyDivs(collapse?: boolean): void;
-    setTargeting(key: string, value: string | string[]): GoogleTagPubAdsService;
-    refresh(slots?: GoogleTagSlot[], options?: { changeCorrelator: boolean }): void;
-    addEventListener(
-        eventType: string,
-        listener: (event: GoogleTagSlotRenderEndedEvent) => void
-    ): void;
-}
-
-export interface GoogleTagSlot {
-    addService(service: GoogleTagPubAdsService): GoogleTagSlot;
-    defineSizeMapping(sizeMapping: GoogleTagSizeMapping[]): GoogleTagSlot;
-    setTargeting(key: string, value: string | string[]): GoogleTagSlot;
-    getSlotElementId(): string;
-}
-
-export interface GoogleTagSizeMappingBuilder {
-    addSize(viewportSize: number[], slotSize: number[] | number[][]): GoogleTagSizeMappingBuilder;
-    build(): GoogleTagSizeMapping[];
-}
-
-export type GoogleTagSizeMapping = [number[], number[] | number[][]];
-
-export interface GoogleTagSlotRenderEndedEvent {
-    isEmpty: boolean;
-    size: number[] | null;
-    slot: GoogleTagSlot;
-    serviceName: string;
-}
-
-export interface GoogleTagInterface {
-    cmd: Array<() => void>;
-    pubads(): GoogleTagPubAdsService;
-    defineSlot(
-        adUnitPath: string,
-        size: number[] | number[][],
-        divId: string
-    ): GoogleTagSlot | null;
-    enableServices(): void;
-    display(divId: string): void;
-    destroySlots(slots?: GoogleTagSlot[]): boolean;
-    sizeMapping(): GoogleTagSizeMappingBuilder;
-}
+export type GoogleTagInterface = typeof googletag;
+export type GoogleTagSlot = googletag.Slot;
+export type GoogleTagPubAdsService = googletag.PubAdsService;
+export type GoogleTagSizeMappingBuilder = googletag.SizeMappingBuilder;
+export type GoogleTagSizeMapping = googletag.SizeMappingArray;
+export type GoogleTagSlotRenderEndedEvent = googletag.events.SlotRenderEndedEvent;
