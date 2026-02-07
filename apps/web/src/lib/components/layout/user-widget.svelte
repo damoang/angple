@@ -1,6 +1,5 @@
 <script lang="ts">
     import { browser } from '$app/environment';
-    import { onMount } from 'svelte';
     import { Button } from '$lib/components/ui/button';
     import { Skeleton } from '$lib/components/ui/skeleton';
     import { Progress } from '$lib/components/ui/progress';
@@ -8,9 +7,8 @@
     import LogOut from '@lucide/svelte/icons/log-out';
     import User from '@lucide/svelte/icons/user';
     import Coins from '@lucide/svelte/icons/coins';
+    import Star from '@lucide/svelte/icons/star';
     import { getUser, getIsLoggedIn, getIsLoading } from '$lib/stores/auth.svelte';
-    import { apiClient } from '$lib/api';
-    import type { ExpSummary } from '$lib/api/types';
     import { getMemberIconUrl } from '$lib/utils/member-icon';
 
     // Reactive getters
@@ -18,8 +16,30 @@
     let isLoggedIn = $derived(getIsLoggedIn());
     let isLoading = $derived(getIsLoading());
 
-    // 경험치 요약 (레벨 게이지용)
-    let expSummary = $state<ExpSummary | null>(null);
+    // 등급명 (mb_level 기반)
+    const GRADE_NAMES: Record<number, string> = {
+        1: '앙님💔',
+        2: '앙님❤️',
+        3: '앙님💛',
+        4: '앙님💙',
+        5: '광고앙💚',
+        6: '운영자',
+        7: '운영자',
+        8: '관리자',
+        9: '관리자',
+        10: '최고관리자'
+    };
+    let gradeName = $derived(GRADE_NAMES[user?.mb_level ?? 1] ?? '');
+
+    // 레벨 게이지 (user 데이터에서 직접 계산)
+    let levelProgress = $derived(
+        user?.as_max && user.as_max > 0 && user.mb_exp !== undefined
+            ? Math.round((user.mb_exp / user.as_max) * 100)
+            : 0
+    );
+    let nextLevelExp = $derived(
+        user?.as_max !== undefined && user.mb_exp !== undefined ? user.as_max - user.mb_exp : 0
+    );
 
     // 아바타 URL (mb_image 우선, 없으면 member_image 경로로 생성)
     let avatarUrl = $derived(user?.mb_image || getMemberIconUrl(user?.mb_id) || null);
@@ -40,20 +60,6 @@
             ? `https://damoang.net/bbs/logout.php?url=${encodeURIComponent(window.location.origin)}`
             : 'https://damoang.net/bbs/logout.php?url=https://web.damoang.net'
     );
-
-    // 로그인 시 경험치 요약 로드
-    $effect(() => {
-        if (isLoggedIn && user) {
-            apiClient
-                .getExpSummary()
-                .then((data) => {
-                    expSummary = data;
-                })
-                .catch(() => {
-                    // 실패해도 위젯은 정상 표시
-                });
-        }
-    });
 </script>
 
 <div class="bg-card mb-3 rounded-lg border p-3">
@@ -96,11 +102,9 @@
                     <a href="/my" class="truncate text-sm font-medium hover:underline"
                         >{user.mb_name}</a
                     >
-                    <span
-                        class="bg-primary/10 text-primary shrink-0 rounded px-1 py-0.5 text-[10px] font-semibold leading-none"
-                    >
-                        Lv.{user.mb_level}
-                    </span>
+                    {#if gradeName}
+                        <span class="shrink-0 text-[10px] leading-none">{gradeName}</span>
+                    {/if}
                 </div>
                 <p class="text-muted-foreground truncate text-xs">{user.mb_id}</p>
             </div>
@@ -115,35 +119,48 @@
         </div>
 
         <!-- 레벨 게이지 -->
-        {#if expSummary}
+        {#if user.as_level !== undefined && user.as_max !== undefined}
             <a href="/my/exp" class="group mt-2 block">
                 <div class="text-muted-foreground flex items-center justify-between text-[10px]">
-                    <span>Lv.{expSummary.current_level}</span>
-                    <span>Lv.{expSummary.current_level + 1}</span>
+                    <span>Lv.{user.as_level}</span>
+                    <span
+                        >다음 레벨까지 <span class="text-foreground font-medium"
+                            >{nextLevelExp.toLocaleString()}</span
+                        ></span
+                    >
+                    <span>Lv.{user.as_level + 1}</span>
                 </div>
                 <Progress
-                    value={expSummary.level_progress}
+                    value={levelProgress}
                     max={100}
                     class="mt-0.5 h-1.5 transition-all group-hover:h-2"
                 />
-                <p class="text-muted-foreground mt-0.5 text-center text-[10px]">
-                    다음 레벨까지 <span class="text-foreground font-medium"
-                        >{expSummary.next_level_exp.toLocaleString()}</span
-                    >
-                </p>
             </a>
         {/if}
 
         <!-- 포인트 + 내글 / 내댓글 / 전체 -->
         <div class="mt-2 space-y-1 text-xs">
-            {#if user.mb_point !== undefined}
-                <a
-                    href="/my/points"
-                    class="bg-muted/50 hover:bg-muted flex items-center justify-between rounded px-2 py-1.5 transition-colors"
-                >
-                    <Coins class="text-muted-foreground h-3 w-3" />
-                    <span class="font-medium">{user.mb_point.toLocaleString()}</span>
-                </a>
+            {#if user.mb_point !== undefined || user.mb_exp !== undefined}
+                <div class="grid grid-cols-2 gap-1">
+                    {#if user.mb_point !== undefined}
+                        <a
+                            href="/my/points"
+                            class="bg-muted/50 hover:bg-muted flex items-center justify-between rounded px-2 py-1.5 transition-colors"
+                        >
+                            <Coins class="text-muted-foreground h-3 w-3" />
+                            <span class="font-medium">{user.mb_point.toLocaleString()}</span>
+                        </a>
+                    {/if}
+                    {#if user.mb_exp !== undefined}
+                        <a
+                            href="/my/exp"
+                            class="bg-muted/50 hover:bg-muted flex items-center justify-between rounded px-2 py-1.5 transition-colors"
+                        >
+                            <Star class="text-muted-foreground h-3 w-3" />
+                            <span class="font-medium">{user.mb_exp.toLocaleString()}</span>
+                        </a>
+                    {/if}
+                </div>
             {/if}
             <div class="grid grid-cols-3 gap-1">
                 <a

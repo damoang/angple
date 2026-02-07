@@ -278,6 +278,8 @@ export interface DamoangUser {
     mb_point?: number; // 보유 포인트
     mb_exp?: number; // 경험치
     mb_image?: string; // 프로필 이미지 URL
+    as_level?: number; // 나리야 경험치 레벨
+    as_max?: number; // 현재 레벨 최대 경험치
 }
 
 // 회원 프로필 타입 (공개 정보)
