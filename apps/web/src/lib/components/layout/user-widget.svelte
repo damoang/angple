@@ -103,10 +103,7 @@
                     href="/my/points"
                     class="bg-muted/50 hover:bg-muted flex items-center justify-between rounded px-2 py-1.5 transition-colors"
                 >
-                    <span class="text-muted-foreground flex items-center gap-1">
-                        <Coins class="h-3 w-3" />
-                        P
-                    </span>
+                    <Coins class="h-3 w-3 text-muted-foreground" />
                     <span class="font-medium">{user.mb_point.toLocaleString()}</span>
                 </a>
             {/if}
