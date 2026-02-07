@@ -1,43 +1,30 @@
 <script lang="ts">
     /**
      * 공지사항 위젯
-     * 실제 notice 게시판 데이터를 표시합니다.
+     * 자유게시판 상단 고정글(notices)을 표시합니다.
      */
     import type { WidgetProps } from '$lib/types/widget-props';
+    import type { FreePost } from '$lib/api/types';
+    import { apiClient } from '$lib/api';
     import { onMount } from 'svelte';
+    import Info from '@lucide/svelte/icons/info';
 
     let { config, slot, isEditMode = false, prefetchData }: WidgetProps = $props();
 
-    interface Notice {
-        id: number;
-        title: string;
-        url: string;
-    }
-
-    let notices = $state<Notice[]>([]);
+    let notices = $state<FreePost[]>([]);
     let loading = $state(true);
     let error = $state(false);
 
     onMount(async () => {
         if (prefetchData) {
-            notices = prefetchData as Notice[];
+            notices = prefetchData as FreePost[];
             loading = false;
             return;
         }
 
         try {
-            const res = await fetch('/api/v1/boards/notice/posts?per_page=5');
-            if (res.ok) {
-                const data = await res.json();
-                const list = data.data?.list ?? data.data ?? [];
-                notices = list.map((p: { wr_id: number; wr_subject: string }) => ({
-                    id: p.wr_id,
-                    title: p.wr_subject,
-                    url: `/notice/${p.wr_id}`
-                }));
-            } else {
-                error = true;
-            }
+            const data = await apiClient.getBoardNotices('free');
+            notices = data.slice(0, 5);
         } catch (e) {
             error = true;
         } finally {
@@ -46,36 +33,27 @@
     });
 </script>
 
-<div
-    class="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-800"
->
-    <h3 class="mb-3 text-sm font-semibold text-slate-700 dark:text-slate-300">
-        <svg class="mr-1 inline h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-            />
-        </svg>
+<div class="border-border bg-background rounded-xl border p-4">
+    <h3 class="text-foreground mb-3 flex items-center gap-1.5 text-sm font-semibold">
+        <Info class="text-muted-foreground h-4 w-4" />
         공지사항
     </h3>
 
     {#if loading}
         <ul class="space-y-2">
             {#each Array(3) as _}
-                <li class="h-4 animate-pulse rounded bg-slate-200 dark:bg-slate-700"></li>
+                <li class="bg-muted h-4 animate-pulse rounded"></li>
             {/each}
         </ul>
     {:else if error || notices.length === 0}
-        <p class="text-xs text-slate-400 dark:text-slate-500">공지사항이 없습니다.</p>
+        <p class="text-muted-foreground py-2 text-center text-xs">아직 공지사항이 없어요</p>
     {:else}
-        <ul class="space-y-2 text-xs text-slate-600 dark:text-slate-400">
+        <ul class="text-muted-foreground space-y-2 text-xs">
             {#each notices as notice (notice.id)}
                 <li class="truncate">
                     <a
-                        href={notice.url}
-                        class="hover:text-blue-600 hover:underline dark:hover:text-blue-400"
+                        href={`/free/${notice.id}`}
+                        class="hover:text-primary transition-colors hover:underline"
                     >
                         • {notice.title}
                     </a>
