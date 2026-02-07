@@ -8,11 +8,21 @@
     import Coins from '@lucide/svelte/icons/coins';
     import Star from '@lucide/svelte/icons/star';
     import { getUser, getIsLoggedIn, getIsLoading } from '$lib/stores/auth.svelte';
+    import { getMemberIconUrl } from '$lib/utils/member-icon';
 
     // Reactive getters
     let user = $derived(getUser());
     let isLoggedIn = $derived(getIsLoggedIn());
     let isLoading = $derived(getIsLoading());
+
+    // 아바타 URL (mb_image 우선, 없으면 member_image 경로로 생성)
+    let avatarUrl = $derived(user?.mb_image || getMemberIconUrl(user?.mb_id) || null);
+    let avatarFailed = $state(false);
+
+    // user 변경 시 실패 상태 리셋
+    $effect(() => {
+        if (user) avatarFailed = false;
+    });
 
     // 로그인/로그아웃 URL 생성
     let loginUrl = $derived(
@@ -39,12 +49,22 @@
     {:else if isLoggedIn && user}
         <!-- 로그인 상태 (컴팩트) -->
         <div class="flex items-center gap-2">
-            <!-- 프로필 아이콘 -->
-            <div
-                class="bg-primary/10 text-primary flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
+            <!-- 프로필 아바타 -->
+            <a
+                href="/my"
+                class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-colors {avatarUrl && !avatarFailed ? 'overflow-hidden' : 'bg-primary/10 text-primary hover:bg-primary/20'}"
             >
-                <User class="h-4 w-4" />
-            </div>
+                {#if avatarUrl && !avatarFailed}
+                    <img
+                        src={avatarUrl}
+                        alt={user.mb_name}
+                        class="h-full w-full object-cover"
+                        onerror={() => { avatarFailed = true; }}
+                    />
+                {:else}
+                    <User class="h-4 w-4" />
+                {/if}
+            </a>
 
             <!-- 사용자 정보 -->
             <div class="min-w-0 flex-1">

@@ -16,7 +16,7 @@ const adapter = isStatic
     : adapterNode({
           out: 'build',
           precompress: true,
-          envPrefix: 'PUBLIC_'
+          envPrefix: ''
       });
 
 /** @type {import('@sveltejs/kit').Config} */
