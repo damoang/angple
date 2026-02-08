@@ -64,32 +64,45 @@ export function embedUrl(url: string): string | null {
  * HTML 콘텐츠 내 URL을 임베드로 변환
  *
  * 변환 규칙:
- * 1. <a> 태그로 감싸진 URL은 무시 (이미 링크됨)
- * 2. 줄 단독으로 있는 URL만 임베드로 변환
+ * 1. <a> 태그의 href와 텍스트가 동일한 URL 링크는 임베드로 변환
+ *    (에디터가 자동 링크 처리한 경우: <a href="URL">URL</a>)
+ * 2. 줄 단독으로 있는 plain URL도 임베드로 변환
  * 3. 문장 중간의 URL은 변환하지 않음
  */
 export function processContent(html: string): string {
-    // URL 패턴: 줄의 시작 또는 공백 이후에 나오는 URL
-    // <a> 태그 내부가 아닌 URL만 매칭
-    const urlPattern =
-        /(?:^|\n|<br\s*\/?>|<p>)\s*(https?:\/\/[^\s<>"]+)\s*(?:\n|<br\s*\/?>|<\/p>|$)/gi;
+    // 1단계: <a> 태그로 감싸진 URL 처리 (그누보드 에디터 자동 링크)
+    // href와 텍스트가 동일한 경우만 임베드로 변환
+    const aTagPattern =
+        /<a\s[^>]*href=["'](https?:\/\/[^"']+)["'][^>]*>\s*(https?:\/\/[^\s<]+?)\s*<\/a>/gi;
 
-    return html.replace(urlPattern, (match, url) => {
+    let result = html.replace(aTagPattern, (match, href, text) => {
+        // href와 텍스트 URL이 실질적으로 같은지 확인
+        const cleanHref = href.trim().replace(/\/+$/, '');
+        const cleanText = text.trim().replace(/\/+$/, '');
+        if (cleanHref !== cleanText) {
+            return match; // 커스텀 텍스트 링크는 유지
+        }
+
+        const embedded = embedUrl(href.trim());
+        if (embedded) {
+            return embedded;
+        }
+        return match;
+    });
+
+    // 2단계: plain URL 처리 (기존 로직)
+    const urlPattern =
+        /(<p>|<br\s*\/?>|\n|^)\s*(https?:\/\/[^\s<>"]+)\s*(<\/p>|<br\s*\/?>|\n|$)/gi;
+
+    result = result.replace(urlPattern, (match, prefix, url, suffix) => {
         const embedded = embedUrl(url.trim());
         if (embedded) {
-            // 앞뒤 줄바꿈 유지
-            const prefix =
-                match.startsWith('\n') || match.startsWith('<br') || match.startsWith('<p>')
-                    ? match.match(/^[^\w]*/)?.[0] || ''
-                    : '';
-            const suffix =
-                match.endsWith('\n') || match.endsWith('<br>') || match.endsWith('</p>')
-                    ? match.match(/[^\w]*$/)?.[0] || ''
-                    : '';
-            return prefix + embedded + suffix;
+            return (prefix || '') + embedded + (suffix || '');
         }
-        return match; // 임베딩 불가 시 원본 유지
+        return match;
     });
+
+    return result;
 }
 
 /**

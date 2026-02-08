@@ -5,3 +5,4 @@
 
 export { initBoardFilters } from './board-filter';
 export { initAuthHooks } from './auth';
+export { initContentEmbed } from './content-embed';

@@ -71,20 +71,12 @@ export function processContent(html: string): string {
 
     // 1) bare URL (marked autolink 안 된 경우 — 댓글 등)
     const bareUrlPattern =
-        /(?:^|\n|<br\s*\/?>|<p>)\s*(https?:\/\/[^\s<>"]+)\s*(?:\n|<br\s*\/?>|<\/p>|$)/gi;
+        /(<p>|<br\s*\/?>|\n|^)\s*(https?:\/\/[^\s<>"]+)\s*(<\/p>|<br\s*\/?>|\n|$)/gi;
 
-    result = result.replace(bareUrlPattern, (match, url) => {
+    result = result.replace(bareUrlPattern, (match, prefix, url, suffix) => {
         const embedded = embedUrl(url.trim());
         if (embedded) {
-            const prefix =
-                match.startsWith('\n') || match.startsWith('<br') || match.startsWith('<p>')
-                    ? match.match(/^[^\w]*/)?.[0] || ''
-                    : '';
-            const suffix =
-                match.endsWith('\n') || match.endsWith('<br>') || match.endsWith('</p>')
-                    ? match.match(/[^\w]*$/)?.[0] || ''
-                    : '';
-            return prefix + embedded + suffix;
+            return (prefix || '') + embedded + (suffix || '');
         }
         return match;
     });
