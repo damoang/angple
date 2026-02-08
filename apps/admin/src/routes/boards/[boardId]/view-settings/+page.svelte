@@ -1,11 +1,13 @@
 <script lang="ts">
     /**
-     * 게시판별 뷰 설정 페이지
+     * 게시판 레이아웃 설정 페이지
      *
-     * 관리자가 각 게시판의 기본 뷰 모드와 허용 뷰 모드를 설정합니다.
+     * 관리자가 각 게시판의 목록/본문 레이아웃과 표시 옵션을 설정합니다.
+     * v2_board_display_settings 테이블에 저장됩니다.
      */
 
     import { page } from '$app/stores';
+    import { onMount } from 'svelte';
     import { Button } from '$lib/components/ui/button';
     import {
         Card,
@@ -14,9 +16,7 @@
         CardHeader,
         CardTitle
     } from '$lib/components/ui/card';
-    import { Label } from '$lib/components/ui/label';
     import { Switch } from '$lib/components/ui/switch';
-    import { Checkbox } from '$lib/components/ui/checkbox';
     import { Select, SelectContent, SelectItem, SelectTrigger } from '$lib/components/ui/select';
     import { toast } from 'svelte-sonner';
     import { Toaster } from '$lib/components/ui/sonner';
@@ -27,14 +27,18 @@
         LayoutGrid,
         Image,
         AlignJustify,
-        Clock
+        Newspaper
     } from '@lucide/svelte';
-    import { SvelteSet } from 'svelte/reactivity';
+    import {
+        getDisplaySettings,
+        updateDisplaySettings,
+        type BoardDisplaySettings
+    } from '$lib/api/board-display-settings';
 
-    type ViewMode = 'list' | 'card' | 'gallery' | 'compact' | 'timeline';
+    type ListLayoutId = 'compact' | 'card' | 'detailed' | 'gallery' | 'webzine';
 
-    interface ViewModeOption {
-        id: ViewMode;
+    interface LayoutOption {
+        id: ListLayoutId;
         label: string;
         description: string;
         icon: typeof List;
@@ -42,42 +46,65 @@
 
     const boardId = $derived($page.params.boardId || '');
 
-    const viewModes: ViewModeOption[] = [
-        { id: 'list', label: '리스트', description: '기본 목록 형태', icon: List },
+    const listLayouts: LayoutOption[] = [
+        { id: 'compact', label: '컴팩트', description: '밀집된 텍스트 목록 (기본)', icon: AlignJustify },
         { id: 'card', label: '카드', description: '카드 그리드 형태', icon: LayoutGrid },
-        { id: 'gallery', label: '갤러리', description: '이미지 중심 갤러리', icon: Image },
-        { id: 'compact', label: '컴팩트', description: '밀집된 텍스트 목록', icon: AlignJustify },
-        { id: 'timeline', label: '타임라인', description: '시간순 타임라인', icon: Clock }
+        { id: 'detailed', label: '상세', description: '미리보기 포함 리스트', icon: List },
+        { id: 'gallery', label: '갤러리', description: '이미지 중심 그리드', icon: Image },
+        { id: 'webzine', label: '웹진', description: '블로그/뉴스 스타일', icon: Newspaper }
     ];
 
-    let defaultView = $state<ViewMode>('list');
-    let allowedViews = new SvelteSet<ViewMode>(['list', 'card', 'gallery', 'compact', 'timeline']);
+    let listLayout = $state<ListLayoutId>('compact');
+    let showPreview = $state(false);
+    let previewLength = $state(150);
+    let showThumbnail = $state(false);
     let isLoading = $state(false);
+    let isSaving = $state(false);
+    let loaded = $state(false);
 
-    function toggleView(viewId: ViewMode) {
-        if (allowedViews.has(viewId)) {
-            // 최소 1개는 남겨야 함
-            if (allowedViews.size > 1) {
-                allowedViews.delete(viewId);
-                // 기본 뷰가 비활성화되면 첫 번째 허용 뷰로 변경
-                if (defaultView === viewId) {
-                    defaultView = Array.from(allowedViews)[0];
-                }
-            }
-        } else {
-            allowedViews.add(viewId);
+    onMount(async () => {
+        await loadSettings();
+    });
+
+    async function loadSettings() {
+        isLoading = true;
+        try {
+            const settings = await getDisplaySettings(boardId);
+            listLayout = (settings.list_layout || 'compact') as ListLayoutId;
+            showPreview = settings.show_preview ?? false;
+            previewLength = settings.preview_length || 150;
+            showThumbnail = settings.show_thumbnail ?? false;
+            loaded = true;
+        } catch (error) {
+            console.error('Failed to load display settings:', error);
+            toast.error('설정을 불러오는데 실패했습니다.');
+            loaded = true;
+        } finally {
+            isLoading = false;
         }
     }
 
     async function saveSettings() {
-        isLoading = true;
+        isSaving = true;
         try {
-            // TODO: API 연동
-            toast.success('뷰 설정이 저장되었습니다.');
-        } catch {
-            toast.error('설정 저장에 실패했습니다.');
+            await updateDisplaySettings(boardId, {
+                list_layout: listLayout,
+                show_preview: showPreview,
+                preview_length: previewLength,
+                show_thumbnail: showThumbnail
+            });
+            toast.success('레이아웃 설정이 저장되었습니다.');
+        } catch (error) {
+            console.error('Failed to save display settings:', error);
+            if (error instanceof Error && error.message.includes('401')) {
+                toast.error('인증이 필요합니다. 다시 로그인해주세요.');
+            } else if (error instanceof Error && error.message.includes('403')) {
+                toast.error('관리자 권한이 필요합니다.');
+            } else {
+                toast.error('설정 저장에 실패했습니다.');
+            }
         } finally {
-            isLoading = false;
+            isSaving = false;
         }
     }
 </script>
@@ -91,69 +118,121 @@
                 <ChevronLeft class="h-5 w-5" />
             </Button>
             <div>
-                <h1 class="text-3xl font-bold">게시판 뷰 설정</h1>
+                <h1 class="text-3xl font-bold">게시판 레이아웃 설정</h1>
                 <p class="text-muted-foreground">게시판 "{boardId}"의 표시 방식을 설정합니다.</p>
             </div>
         </div>
-        <Button onclick={saveSettings} disabled={isLoading}>
+        <Button onclick={saveSettings} disabled={isSaving || isLoading}>
             <Save class="mr-2 h-4 w-4" />
-            {isLoading ? '저장 중...' : '저장'}
+            {isSaving ? '저장 중...' : '저장'}
         </Button>
     </div>
 
-    <div class="space-y-6">
-        <!-- 기본 뷰 모드 -->
-        <Card>
-            <CardHeader>
-                <CardTitle>기본 뷰 모드</CardTitle>
-                <CardDescription>
-                    사용자가 별도 설정하지 않았을 때 표시되는 기본 뷰 모드입니다.
-                </CardDescription>
-            </CardHeader>
-            <CardContent>
-                <Select
-                    type="single"
-                    value={defaultView}
-                    onValueChange={(v: string) => (defaultView = v as ViewMode)}
-                >
-                    <SelectTrigger>
-                        {viewModes.find((m) => m.id === defaultView)?.label || '선택'}
-                    </SelectTrigger>
-                    <SelectContent>
-                        {#each viewModes.filter((m) => allowedViews.has(m.id)) as mode (mode.id)}
-                            <SelectItem value={mode.id}
-                                >{mode.label} - {mode.description}</SelectItem
+    {#if isLoading && !loaded}
+        <div class="flex items-center justify-center py-12">
+            <p class="text-muted-foreground">설정 불러오는 중...</p>
+        </div>
+    {:else}
+        <div class="space-y-6">
+            <!-- 목록 레이아웃 선택 -->
+            <Card>
+                <CardHeader>
+                    <CardTitle>목록 레이아웃</CardTitle>
+                    <CardDescription>
+                        게시판 목록 페이지에서 사용할 레이아웃을 선택합니다.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent class="space-y-4">
+                    {#each listLayouts as layout (layout.id)}
+                        {@const Icon = layout.icon}
+                        <button
+                            type="button"
+                            class="flex w-full items-center gap-4 rounded-lg border p-4 text-left transition-colors {listLayout ===
+                            layout.id
+                                ? 'border-primary bg-primary/5'
+                                : 'hover:bg-muted/50'}"
+                            onclick={() => (listLayout = layout.id)}
+                        >
+                            <div
+                                class="flex h-10 w-10 shrink-0 items-center justify-center rounded-md {listLayout ===
+                                layout.id
+                                    ? 'bg-primary text-primary-foreground'
+                                    : 'bg-muted'}"
                             >
-                        {/each}
-                    </SelectContent>
-                </Select>
-            </CardContent>
-        </Card>
-
-        <!-- 허용 뷰 모드 -->
-        <Card>
-            <CardHeader>
-                <CardTitle>허용 뷰 모드</CardTitle>
-                <CardDescription>사용자가 선택할 수 있는 뷰 모드를 제한합니다.</CardDescription>
-            </CardHeader>
-            <CardContent class="space-y-4">
-                {#each viewModes as mode (mode.id)}
-                    {@const Icon = mode.icon}
-                    <div class="flex items-center justify-between rounded-lg border p-4">
-                        <div class="flex items-center gap-3">
-                            <Icon class="text-muted-foreground h-5 w-5" />
-                            <div>
-                                <p class="font-medium">{mode.label}</p>
-                                <p class="text-muted-foreground text-sm">{mode.description}</p>
+                                <Icon class="h-5 w-5" />
                             </div>
+                            <div class="flex-1">
+                                <p class="font-medium">{layout.label}</p>
+                                <p class="text-muted-foreground text-sm">{layout.description}</p>
+                            </div>
+                            {#if listLayout === layout.id}
+                                <span class="text-primary text-sm font-medium">선택됨</span>
+                            {/if}
+                        </button>
+                    {/each}
+                </CardContent>
+            </Card>
+
+            <!-- 표시 옵션 -->
+            <Card>
+                <CardHeader>
+                    <CardTitle>표시 옵션</CardTitle>
+                    <CardDescription>목록에서의 추가 표시 옵션을 설정합니다.</CardDescription>
+                </CardHeader>
+                <CardContent class="space-y-6">
+                    <!-- 본문 미리보기 -->
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="font-medium">본문 미리보기</p>
+                            <p class="text-muted-foreground text-sm">
+                                목록에서 게시글 본문 일부를 미리 표시합니다.
+                            </p>
                         </div>
                         <Switch
-                            checked={allowedViews.has(mode.id)}
-                            onCheckedChange={() => toggleView(mode.id)}
+                            checked={showPreview}
+                            onCheckedChange={(v) => (showPreview = v)}
                         />
                     </div>
-                {/each}
-            </CardContent>
-        </Card>
-    </div>
+
+                    {#if showPreview}
+                        <div class="ml-4 border-l-2 pl-4">
+                            <label class="text-sm font-medium" for="preview-length">
+                                미리보기 글자 수
+                            </label>
+                            <Select
+                                type="single"
+                                value={String(previewLength)}
+                                onValueChange={(v) => (previewLength = Number(v))}
+                            >
+                                <SelectTrigger id="preview-length" class="mt-1 w-32">
+                                    {previewLength}자
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="50">50자</SelectItem>
+                                    <SelectItem value="100">100자</SelectItem>
+                                    <SelectItem value="150">150자</SelectItem>
+                                    <SelectItem value="200">200자</SelectItem>
+                                    <SelectItem value="300">300자</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    {/if}
+
+                    <!-- 썸네일 표시 -->
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="font-medium">썸네일 이미지</p>
+                            <p class="text-muted-foreground text-sm">
+                                목록에서 게시글의 첫 번째 이미지를 썸네일로 표시합니다.
+                            </p>
+                        </div>
+                        <Switch
+                            checked={showThumbnail}
+                            onCheckedChange={(v) => (showThumbnail = v)}
+                        />
+                    </div>
+                </CardContent>
+            </Card>
+        </div>
+    {/if}
 </div>

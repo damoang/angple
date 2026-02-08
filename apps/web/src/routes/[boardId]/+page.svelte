@@ -11,13 +11,15 @@
     import Megaphone from '@lucide/svelte/icons/megaphone';
     import Pin from '@lucide/svelte/icons/pin';
     import SearchForm from '$lib/components/features/board/search-form.svelte';
+    import AdminLayoutSwitcher from '$lib/components/features/board/admin-layout-switcher.svelte';
     import { DamoangBanner } from '$lib/components/ui/damoang-banner/index.js';
     import AdSlot from '$lib/components/ui/ad-slot/ad-slot.svelte';
 
-    // 스킨 컴포넌트 import
-    import CompactSkin from '$lib/components/features/board/skins/compact.svelte';
-    import CardSkin from '$lib/components/features/board/skins/card.svelte';
-    import DetailedSkin from '$lib/components/features/board/skins/detailed.svelte';
+    // Board Layout System
+    import { layoutRegistry, initCoreLayouts } from '$lib/components/features/board/layouts';
+
+    // 코어 레이아웃 초기화 (최초 1회)
+    initCoreLayouts();
 
     let { data }: { data: PageData } = $props();
 
@@ -64,18 +66,20 @@
         goto(`/${boardId}/write`);
     }
 
-    // 게시판 표시 설정에 따라 스킨 선택
-    const listStyle = $derived(data.board?.display_settings?.list_style || 'compact');
+    // 관리자 여부 (레벨 10 이상)
+    const isAdmin = $derived((authStore.user?.mb_level ?? 0) >= 10);
 
-    // 스킨 컴포넌트 매핑
-    type SkinComponent = typeof CompactSkin | typeof CardSkin | typeof DetailedSkin;
-    const skinComponents: Record<string, SkinComponent> = {
-        compact: CompactSkin,
-        card: CardSkin,
-        detailed: DetailedSkin
-    };
+    // 게시판 표시 설정에 따라 레이아웃 선택 (list_layout → list_style 폴백)
+    const listLayoutId = $derived(
+        data.board?.display_settings?.list_layout ||
+            data.board?.display_settings?.list_style ||
+            'compact'
+    );
 
-    const SkinComponent = $derived(skinComponents[listStyle] || CompactSkin);
+    // Layout Registry에서 resolve (Plugin > Theme > Core)
+    const layoutEntry = $derived(layoutRegistry.resolveList(listLayoutId));
+    const LayoutComponent = $derived(layoutEntry?.component);
+    const wrapperClass = $derived(layoutEntry?.manifest.wrapperClass || 'space-y-1');
 
     // 카테고리 목록 파싱 (파이프로 구분)
     const categories = $derived(
@@ -125,7 +129,12 @@
     <!-- 헤더 -->
     <div class="mb-4 flex items-start justify-between">
         <div>
-            <h1 class="text-foreground mb-2 text-3xl font-bold">{boardTitle}</h1>
+            <div class="flex items-center gap-2">
+                <h1 class="text-foreground text-3xl font-bold">{boardTitle}</h1>
+                {#if isAdmin}
+                    <AdminLayoutSwitcher {boardId} currentLayout={listLayoutId} />
+                {/if}
+            </div>
         </div>
         {#if canWrite()}
             <Button onclick={goToWrite} class="shrink-0">
@@ -244,10 +253,10 @@
         </div>
     {/if}
 
-    <!-- 게시글 목록 -->
-    <div class="space-y-1">
+    <!-- 게시글 목록 (레이아웃별 래퍼 클래스 적용) -->
+    <div class={wrapperClass}>
         {#if filteredPosts.length === 0}
-            <Card class="bg-background">
+            <Card class="bg-background {listLayoutId === 'gallery' ? 'col-span-full' : ''}">
                 <CardContent class="py-12 text-center">
                     {#if isSearching}
                         <p class="text-secondary-foreground">검색 결과가 없습니다.</p>
@@ -256,9 +265,9 @@
                     {/if}
                 </CardContent>
             </Card>
-        {:else}
+        {:else if LayoutComponent}
             {#each filteredPosts as post (post.id)}
-                <SkinComponent
+                <LayoutComponent
                     {post}
                     displaySettings={data.board?.display_settings}
                     onclick={() => goToPost(post.id)}

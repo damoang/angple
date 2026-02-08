@@ -396,9 +396,20 @@ export interface GlobalSearchResponse {
     query: string;
 }
 
+// 게시판 목록 레이아웃 타입
+export type ListLayout = 'compact' | 'card' | 'detailed' | 'gallery' | 'webzine' | (string & {});
+
+// 게시판 본문 레이아웃 타입
+export type ViewLayout = 'basic' | (string & {});
+
 // 게시판 표시 설정
 export interface BoardDisplaySettings {
-    list_style: 'compact' | 'card' | 'detailed';
+    /** 목록 레이아웃 ID */
+    list_layout: ListLayout;
+    /** 본문 레이아웃 ID */
+    view_layout: ViewLayout;
+    /** @deprecated list_layout으로 대체. 하위호환용 */
+    list_style?: 'compact' | 'card' | 'detailed';
     show_preview: boolean;
     preview_length: number;
     show_thumbnail: boolean;
