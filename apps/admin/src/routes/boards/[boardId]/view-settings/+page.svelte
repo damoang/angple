@@ -47,7 +47,12 @@
     const boardId = $derived($page.params.boardId || '');
 
     const listLayouts: LayoutOption[] = [
-        { id: 'compact', label: '컴팩트', description: '밀집된 텍스트 목록 (기본)', icon: AlignJustify },
+        {
+            id: 'compact',
+            label: '컴팩트',
+            description: '밀집된 텍스트 목록 (기본)',
+            icon: AlignJustify
+        },
         { id: 'card', label: '카드', description: '카드 그리드 형태', icon: LayoutGrid },
         { id: 'detailed', label: '상세', description: '미리보기 포함 리스트', icon: List },
         { id: 'gallery', label: '갤러리', description: '이미지 중심 그리드', icon: Image },
@@ -188,10 +193,7 @@
                                 목록에서 게시글 본문 일부를 미리 표시합니다.
                             </p>
                         </div>
-                        <Switch
-                            checked={showPreview}
-                            onCheckedChange={(v) => (showPreview = v)}
-                        />
+                        <Switch checked={showPreview} onCheckedChange={(v: boolean) => (showPreview = v)} />
                     </div>
 
                     {#if showPreview}
@@ -228,7 +230,7 @@
                         </div>
                         <Switch
                             checked={showThumbnail}
-                            onCheckedChange={(v) => (showThumbnail = v)}
+                            onCheckedChange={(v: boolean) => (showThumbnail = v)}
                         />
                     </div>
                 </CardContent>

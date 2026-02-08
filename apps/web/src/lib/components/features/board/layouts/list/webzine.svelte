@@ -21,7 +21,10 @@
     // HTML 태그 제거하여 미리보기 텍스트 생성
     const previewText = $derived(() => {
         const maxLen = displaySettings?.preview_length || 200;
-        const stripped = post.content.replace(/<[^>]*>/g, '').replace(/&[^;]+;/g, ' ').trim();
+        const stripped = post.content
+            .replace(/<[^>]*>/g, '')
+            .replace(/&[^;]+;/g, ' ')
+            .trim();
         return stripped.length > maxLen ? stripped.slice(0, maxLen) + '…' : stripped;
     });
 
@@ -120,7 +123,8 @@
                 {#if post.tags && post.tags.length > 0}
                     <div class="flex gap-1">
                         {#each post.tags.slice(0, 3) as tag (tag)}
-                            <Badge variant="secondary" class="rounded-full text-[10px]">{tag}</Badge>
+                            <Badge variant="secondary" class="rounded-full text-[10px]">{tag}</Badge
+                            >
                         {/each}
                     </div>
                 {/if}

@@ -18,7 +18,13 @@
  * ```
  */
 
-import type { LayoutEntry, LayoutManifest, LayoutSource, ListLayoutId, ViewLayoutId } from './types.js';
+import type {
+    LayoutEntry,
+    LayoutManifest,
+    LayoutSource,
+    ListLayoutId,
+    ViewLayoutId
+} from './types.js';
 
 /** 소스 우선순위 (높을수록 우선) */
 const SOURCE_PRIORITY: Record<LayoutSource, number> = {

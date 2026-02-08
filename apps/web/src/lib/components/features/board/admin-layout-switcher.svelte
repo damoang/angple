@@ -74,9 +74,7 @@
         } catch (error) {
             console.error('레이아웃 변경 실패:', error);
             if (browser) {
-                alert(
-                    error instanceof Error ? error.message : '레이아웃 변경에 실패했습니다.'
-                );
+                alert(error instanceof Error ? error.message : '레이아웃 변경에 실패했습니다.');
             }
         } finally {
             saving = null;

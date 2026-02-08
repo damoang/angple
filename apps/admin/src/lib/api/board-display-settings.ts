@@ -37,10 +37,9 @@ export interface UpdateDisplaySettingsRequest {
  * 게시판 표시 설정 조회
  */
 export async function getDisplaySettings(boardId: string): Promise<BoardDisplaySettings> {
-    const response = await fetch(
-        `${BACKEND_API_URL}/api/v1/boards/${boardId}/display-settings`,
-        { credentials: 'include' }
-    );
+    const response = await fetch(`${BACKEND_API_URL}/api/v1/boards/${boardId}/display-settings`, {
+        credentials: 'include'
+    });
 
     if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
@@ -57,15 +56,12 @@ export async function updateDisplaySettings(
     boardId: string,
     settings: UpdateDisplaySettingsRequest
 ): Promise<BoardDisplaySettings> {
-    const response = await fetch(
-        `${BACKEND_API_URL}/api/v1/boards/${boardId}/display-settings`,
-        {
-            method: 'PUT',
-            credentials: 'include',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(settings)
-        }
-    );
+    const response = await fetch(`${BACKEND_API_URL}/api/v1/boards/${boardId}/display-settings`, {
+        method: 'PUT',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(settings)
+    });
 
     if (!response.ok) {
         const errorResult = await response.json().catch(() => null);
