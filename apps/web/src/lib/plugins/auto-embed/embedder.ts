@@ -91,8 +91,7 @@ export function processContent(html: string): string {
     });
 
     // 2단계: plain URL 처리 (기존 로직)
-    const urlPattern =
-        /(<p>|<br\s*\/?>|\n|^)\s*(https?:\/\/[^\s<>"]+)\s*(<\/p>|<br\s*\/?>|\n|$)/gi;
+    const urlPattern = /(<p>|<br\s*\/?>|\n|^)\s*(https?:\/\/[^\s<>"]+)\s*(<\/p>|<br\s*\/?>|\n|$)/gi;
 
     result = result.replace(urlPattern, (match, prefix, url, suffix) => {
         const embedded = embedUrl(url.trim());
