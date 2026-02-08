@@ -193,7 +193,10 @@
                                 목록에서 게시글 본문 일부를 미리 표시합니다.
                             </p>
                         </div>
-                        <Switch checked={showPreview} onCheckedChange={(v: boolean) => (showPreview = v)} />
+                        <Switch
+                            checked={showPreview}
+                            onCheckedChange={(v: boolean) => (showPreview = v)}
+                        />
                     </div>
 
                     {#if showPreview}
