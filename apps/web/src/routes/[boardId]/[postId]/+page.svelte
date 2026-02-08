@@ -24,6 +24,7 @@
     import { onMount } from 'svelte';
     import { AdultBlur } from '$lib/components/features/adult/index.js';
     import { getMemberIconUrl } from '$lib/utils/member-icon.js';
+    import { isEmbeddable } from '$lib/plugins/auto-embed';
     import { DamoangBanner } from '$lib/components/ui/damoang-banner/index.js';
     import AdSlot from '$lib/components/ui/ad-slot/ad-slot.svelte';
     import { pluginStore } from '$lib/stores/plugin.svelte';
@@ -34,6 +35,15 @@
 
     // 회원 메모 플러그인 활성화 여부
     let memoPluginActive = $derived(pluginStore.isPluginActive('member-memo'));
+
+    // link1이 동영상 URL이면 본문 앞에 삽입 (그누보드 wr_link1 호환)
+    const postContent = $derived(() => {
+        const link1 = data.post.link1;
+        if (link1 && isEmbeddable(link1)) {
+            return `<p>${link1}</p>\n${data.post.content}`;
+        }
+        return data.post.content;
+    });
 
     // 게시판 정보
     const boardId = $derived(data.boardId);
@@ -444,7 +454,7 @@
 
             <!-- 게시글 본문 -->
             <AdultBlur isAdult={data.post.is_adult ?? false}>
-                <Markdown content={data.post.content} class="mt-8" />
+                <Markdown content={postContent()} class="mt-8" />
 
                 {#if data.post.images && data.post.images.length > 0}
                     <div class="mt-6 grid gap-4">

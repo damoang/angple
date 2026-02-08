@@ -36,6 +36,8 @@ export interface FreePost {
     notice_type?: 'normal' | 'important'; // 공지 타입 (일반/필수)
     is_adult?: boolean; // 19금 콘텐츠 여부
     thumbnail?: string; // 썸네일 URL
+    link1?: string; // 링크1 (동영상 URL 등)
+    link2?: string; // 링크2
     deleted_at?: string | null; // 소프트 삭제 시점
     deleted_by?: string | null; // 삭제한 사용자 ID
 }

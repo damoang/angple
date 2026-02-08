@@ -5,7 +5,7 @@
  * 이 모듈에서 초기화 함수를 호출하면 게시판 필터, 인증 등 핵심 기능이 활성화됩니다.
  */
 
-import { initBoardFilters, initAuthHooks } from './builtin';
+import { initBoardFilters, initAuthHooks, initContentEmbed } from './builtin';
 
 let initialized = false;
 
@@ -33,6 +33,9 @@ export function initBuiltinHooks(): void {
 
     // 인증 Hook (로그인/로그아웃, OAuth)
     initAuthHooks();
+
+    // 콘텐츠 임베딩 (동영상 URL → 자동 플레이어)
+    initContentEmbed();
 
     initialized = true;
     console.log('[Hooks] Built-in hooks initialized successfully');

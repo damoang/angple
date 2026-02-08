@@ -12,6 +12,7 @@
     import { loadThemeComponents } from '$lib/utils/theme-component-loader';
     import { loadAllPluginHooks } from '$lib/hooks/plugin-loader';
     import { loadAllPluginComponents } from '$lib/utils/plugin-component-loader';
+    import { initBuiltinHooks } from '$lib/hooks';
     import MemoModal from '../../../../plugins/member-memo/components/memo-modal.svelte';
 
     const { children, data } = $props(); // Svelte 5: SSR 데이터 받기
@@ -142,6 +143,10 @@
 
     onMount(() => {
         console.log('🚀 [onMount] 컴포넌트 마운트됨');
+
+        // Built-in Hooks 초기화 (콘텐츠 임베딩, 게시판 필터 등)
+        initBuiltinHooks();
+
         // 테마는 이미 SSR에서 로드되었으므로 loadActiveTheme() 호출 불필요
         // (깜박임 방지!)
 
