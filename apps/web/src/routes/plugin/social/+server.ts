@@ -86,13 +86,36 @@ async function handleCallback(
             }
         }
 
-        // 8. 회원 없으면 에러 리다이렉트
+        // 8. 회원 없으면 회원가입 페이지로 리다이렉트
         if (!mbId) {
-            const params = new URLSearchParams({ error: 'no_account', provider: providerName });
+            // 소셜 프로필 정보를 쿠키에 임시 저장 (회원가입 페이지에서 사용)
+            cookies.set(
+                'pending_social_register',
+                JSON.stringify({
+                    provider: providerName,
+                    identifier: profile.identifier,
+                    email: profile.email || '',
+                    displayName: profile.displayName || '',
+                    photoUrl: profile.photoUrl || '',
+                    profileUrl: profile.profileUrl || ''
+                }),
+                {
+                    path: '/',
+                    httpOnly: true,
+                    sameSite: 'lax',
+                    secure: !dev,
+                    maxAge: 60 * 10 // 10분
+                }
+            );
+
+            const params = new URLSearchParams({ provider: providerName });
             if (profile.email) {
                 params.set('email', profile.email);
             }
-            redirect(302, `/login?${params.toString()}`);
+            if (stateData.redirect) {
+                params.set('redirect', stateData.redirect);
+            }
+            redirect(302, `/register?${params.toString()}`);
         }
 
         // 회원 정보 조회 및 활성 상태 확인

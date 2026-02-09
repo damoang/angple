@@ -16,6 +16,7 @@
         UploadedFile
     } from '$lib/api/types.js';
     import DraftList from './draft-list.svelte';
+    import TagInput from './tag-input.svelte';
     import { TiptapEditor } from '$lib/components/features/editor/index.js';
     import { ImageUploader, FileUploader } from '$lib/components/features/uploader/index.js';
 
@@ -48,6 +49,9 @@
     let content = $state(post?.content || '');
     let category = $state(post?.category || '');
     let isSecret = $state(post?.is_secret || false);
+    let tags = $state<string[]>(post?.tags || []);
+    let link1 = $state(post?.link1 || '');
+    let link2 = $state(post?.link2 || '');
     let errors = $state<{ title?: string; content?: string }>({});
 
     // 이미지 업로드 상태
@@ -86,6 +90,9 @@
         content: string;
         category: string;
         isSecret: boolean;
+        tags: string[];
+        link1: string;
+        link2: string;
         savedAt: string;
     }
 
@@ -100,6 +107,9 @@
             content,
             category,
             isSecret,
+            tags,
+            link1,
+            link2,
             savedAt: new Date().toISOString()
         };
 
@@ -144,6 +154,9 @@
             content = draft.content;
             category = draft.category;
             isSecret = draft.isSecret;
+            tags = draft.tags || [];
+            link1 = draft.link1 || '';
+            link2 = draft.link2 || '';
             lastSavedAt = new Date(draft.savedAt);
             hasUnsavedChanges = false;
         }
@@ -239,12 +252,18 @@
                       content: content.trim(),
                       category: category || undefined,
                       author: '', // 서버에서 JWT로 설정됨
-                      is_secret: isSecret
+                      is_secret: isSecret,
+                      tags: tags.length > 0 ? tags : undefined,
+                      link1: link1.trim() || undefined,
+                      link2: link2.trim() || undefined
                   }
                 : {
                       title: title.trim(),
                       content: content.trim(),
-                      category: category || undefined
+                      category: category || undefined,
+                      tags: tags.length > 0 ? tags : undefined,
+                      link1: link1.trim() || undefined,
+                      link2: link2.trim() || undefined
                   };
 
         await onSubmit(data);
@@ -265,11 +284,17 @@
         content: string;
         category: string;
         isSecret: boolean;
+        tags?: string[];
+        link1?: string;
+        link2?: string;
     }): void {
         title = draft.title;
         content = draft.content;
         category = draft.category;
         isSecret = draft.isSecret;
+        tags = draft.tags || [];
+        link1 = draft.link1 || '';
+        link2 = draft.link2 || '';
         hasUnsavedChanges = true;
     }
 
@@ -370,6 +395,34 @@
                 {#if errors.content}
                     <p class="text-destructive text-sm">{errors.content}</p>
                 {/if}
+            </div>
+
+            <!-- 태그 입력 -->
+            <div class="space-y-2">
+                <Label>태그</Label>
+                <TagInput {tags} onchange={(t) => (tags = t)} disabled={isLoading} />
+            </div>
+
+            <!-- 링크 입력 -->
+            <div class="space-y-2">
+                <Label for="link1">링크 1</Label>
+                <Input
+                    id="link1"
+                    type="url"
+                    bind:value={link1}
+                    placeholder="https://..."
+                    disabled={isLoading}
+                />
+            </div>
+            <div class="space-y-2">
+                <Label for="link2">링크 2</Label>
+                <Input
+                    id="link2"
+                    type="url"
+                    bind:value={link2}
+                    placeholder="https://..."
+                    disabled={isLoading}
+                />
             </div>
 
             <!-- 이미지 업로드 -->

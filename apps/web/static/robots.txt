@@ -1,7 +1,0 @@
-# allow crawling everything by default
-User-agent: *
-Disallow: /admin/
-Disallow: /api/
-Disallow: /install/
-
-Sitemap: /sitemap.xml

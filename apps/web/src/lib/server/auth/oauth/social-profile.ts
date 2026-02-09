@@ -31,6 +31,24 @@ export async function findSocialProfileByMember(
     return (rows[0] as SocialProfileRow) || null;
 }
 
+/** mb_id로 연결된 모든 소셜 프로필 조회 */
+export async function getSocialProfilesByMember(mbId: string): Promise<SocialProfileRow[]> {
+    const [rows] = await pool.query<RowDataPacket[]>(
+        'SELECT * FROM g5_member_social_profiles WHERE mb_id = ? ORDER BY mp_register_day',
+        [mbId]
+    );
+    return rows as SocialProfileRow[];
+}
+
+/** 소셜 프로필 삭제 (연결 해제) */
+export async function deleteSocialProfile(mpNo: number, mbId: string): Promise<boolean> {
+    const [result] = await pool.query<RowDataPacket[]>(
+        'DELETE FROM g5_member_social_profiles WHERE mp_no = ? AND mb_id = ?',
+        [mpNo, mbId]
+    );
+    return (result as unknown as { affectedRows: number }).affectedRows > 0;
+}
+
 /**
  * 소셜 프로필 저장/업데이트
  * PHP의 social_user_profile_replace() 호환

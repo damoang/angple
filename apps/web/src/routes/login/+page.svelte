@@ -23,9 +23,14 @@
     import Lock from '@lucide/svelte/icons/lock';
     import ExternalLink from '@lucide/svelte/icons/external-link';
 
+    // 성공 메시지 매핑
+    const successMessages: Record<string, string> = {
+        password_reset_success: '비밀번호가 변경되었습니다. 새 비밀번호로 로그인해주세요.'
+    };
+
     // OAuth 에러 메시지 매핑
     const oauthErrorMessages: Record<string, string> = {
-        no_account: '연결된 계정이 없습니다. 먼저 회원가입 후 소셜 계정을 연결해주세요.',
+        no_account: '연결된 계정이 없습니다. 소셜 로그인으로 회원가입을 진행해주세요.',
         account_inactive: '탈퇴했거나 이용이 제한된 계정입니다.',
         invalid_state: '인증 세션이 만료되었습니다. 다시 시도해주세요.',
         invalid_provider: '지원하지 않는 로그인 방식입니다.',
@@ -48,11 +53,20 @@
 
     // 이미 로그인되어 있으면 리다이렉트
     // onMount에서 폴링하여 컴포넌트 트리가 완전히 마운트된 후에만 리다이렉트
+    // 성공 메시지 상태
+    let successMessage = $state<string | null>(null);
+
     onMount(() => {
         // OAuth 에러 메시지 표시
         const oauthError = $page.url.searchParams.get('error');
         if (oauthError) {
             error = oauthErrorMessages[oauthError] || `로그인 오류: ${oauthError}`;
+        }
+
+        // 성공 메시지 표시 (비밀번호 변경 등)
+        const message = $page.url.searchParams.get('message');
+        if (message) {
+            successMessage = successMessages[message] || null;
         }
 
         // OAuth 로그인 성공 시 access_token 쿠키 처리
@@ -204,6 +218,15 @@
             <CardDescription>다모앙에 오신 것을 환영합니다</CardDescription>
         </CardHeader>
         <CardContent class="space-y-6">
+            <!-- 성공 메시지 -->
+            {#if successMessage}
+                <div
+                    class="rounded-md bg-green-50 p-3 text-sm text-green-700 dark:bg-green-900/20 dark:text-green-400"
+                >
+                    {successMessage}
+                </div>
+            {/if}
+
             <!-- OAuth 에러 메시지 -->
             {#if error && !import.meta.env.DEV}
                 <div class="bg-destructive/10 text-destructive rounded-md p-3 text-sm">
@@ -353,7 +376,7 @@
                                 로그인 유지
                             </Label>
                         </div>
-                        <a href="/forgot-password" class="text-primary text-sm hover:underline">
+                        <a href="/password-reset" class="text-primary text-sm hover:underline">
                             비밀번호 찾기
                         </a>
                     </div>
