@@ -5,6 +5,7 @@
 import type { PageServerLoad, Actions } from './$types';
 import { fail, redirect } from '@sveltejs/kit';
 import { dev } from '$app/environment';
+import { randomBytes } from 'crypto';
 import {
     generateSocialMbId,
     validateNickname,
@@ -97,9 +98,9 @@ export const actions: Actions = {
         // mb_id 생성 (PHP 호환)
         let mbId = generateSocialMbId(socialProfile.provider, socialProfile.identifier);
 
-        // 혹시 mb_id가 이미 존재하면 suffix 추가
+        // 혹시 mb_id가 이미 존재하면 cryptographic suffix 추가
         if (await isMbIdTaken(mbId)) {
-            mbId = mbId + '_' + Date.now().toString(36).slice(-4);
+            mbId = mbId + '_' + randomBytes(4).toString('hex');
         }
 
         const clientIp = getClientAddress();
@@ -152,10 +153,10 @@ export const actions: Actions = {
 
             cookies.set('access_token', accessToken, {
                 path: '/',
-                httpOnly: false,
+                httpOnly: true,
                 sameSite: 'lax',
                 secure: !dev,
-                maxAge: 60
+                maxAge: 60 * 15 // 15분 (JWT 만료와 일치)
             });
 
             // 가입 완료 후 임시 쿠키 삭제

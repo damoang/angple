@@ -16,8 +16,8 @@
     let inputEl = $state<HTMLInputElement | null>(null);
 
     function addTag(value: string): void {
-        const trimmed = value.trim().replace(/^#/, '');
-        if (!trimmed) return;
+        const trimmed = value.trim().replace(/^#/, '').replace(/[<>"'&]/g, '');
+        if (!trimmed || trimmed.length > 30) return;
         if (tags.includes(trimmed)) return;
         if (tags.length >= maxTags) return;
 

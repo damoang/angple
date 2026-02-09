@@ -5,8 +5,12 @@
  */
 import pool from '$lib/server/db.js';
 import type { RowDataPacket } from 'mysql2';
-import { createHash, randomBytes } from 'crypto';
+import { randomBytes } from 'crypto';
+import bcrypt from 'bcryptjs';
 import { sendMail } from '$lib/server/mailer.js';
+
+/** 토큰 유효기간: 24시간 */
+const TOKEN_EXPIRY_MS = 24 * 60 * 60 * 1000;
 
 const SITE_URL = process.env.SITE_URL || 'https://web.damoang.net';
 
@@ -31,23 +35,22 @@ export async function findMemberByEmailForReset(
  */
 export async function createPasswordResetToken(mbId: string): Promise<string> {
     const nonce = randomBytes(16).toString('hex');
-    const tempPassword = randomBytes(8).toString('hex');
-    const encryptedTemp = createHash('sha256').update(tempPassword).digest('hex');
+    const timestamp = Date.now().toString(36); // 타임스탬프 (만료 체크용)
 
-    // mb_lost_certify에 nonce와 암호화된 임시 비밀번호 저장
+    // mb_lost_certify에 "nonce timestamp" 형식으로 저장
     await pool.query('UPDATE g5_member SET mb_lost_certify = ? WHERE mb_id = ?', [
-        `${nonce} ${encryptedTemp}`,
+        `${nonce} ${timestamp}`,
         mbId
     ]);
 
     return nonce;
 }
 
-/** 비밀번호 재설정 토큰 검증 */
+/** 비밀번호 재설정 토큰 검증 (24시간 만료) */
 export async function verifyPasswordResetToken(
     mbNo: number,
     nonce: string
-): Promise<{ valid: boolean; mbId?: string }> {
+): Promise<{ valid: boolean; mbId?: string; error?: string }> {
     const [rows] = await pool.query<RowDataPacket[]>(
         `SELECT mb_id, mb_lost_certify
 		 FROM g5_member
@@ -59,23 +62,29 @@ export async function verifyPasswordResetToken(
     if (!rows[0]) return { valid: false };
 
     const member = rows[0] as { mb_id: string; mb_lost_certify: string };
-    const storedNonce = member.mb_lost_certify.split(' ')[0];
+    const parts = member.mb_lost_certify.split(' ');
+    const storedNonce = parts[0];
+    const storedTimestamp = parts[1];
 
     if (storedNonce !== nonce) return { valid: false };
+
+    // 만료 체크 (24시간)
+    if (storedTimestamp) {
+        const createdAt = parseInt(storedTimestamp, 36);
+        if (Date.now() - createdAt > TOKEN_EXPIRY_MS) {
+            return { valid: false, error: '만료된 링크입니다. 비밀번호 재설정을 다시 요청해주세요.' };
+        }
+    }
 
     return { valid: true, mbId: member.mb_id };
 }
 
 /**
  * 비밀번호 변경
- * PHP 호환: password_hash() 대신 단순 sha256 → 실제 환경에서는 bcrypt 사용 권장
+ * PHP password_hash($password, PASSWORD_DEFAULT) 호환 (bcrypt)
  */
 export async function updatePassword(mbId: string, newPassword: string): Promise<void> {
-    // PHP의 password_hash() (bcrypt) 호환을 위해 sha256 + 솔트 사용
-    // 주의: 실제 PHP는 password_hash($password, PASSWORD_DEFAULT)를 사용
-    // SvelteKit에서도 동일하게 bcrypt를 쓰려면 별도 패키지 필요
-    // 여기서는 임시로 sha256 사용 (TODO: bcrypt 호환 필요)
-    const hashed = createHash('sha256').update(newPassword).digest('hex');
+    const hashed = await bcrypt.hash(newPassword, 10);
 
     await pool.query('UPDATE g5_member SET mb_password = ?, mb_lost_certify = ? WHERE mb_id = ?', [
         hashed,

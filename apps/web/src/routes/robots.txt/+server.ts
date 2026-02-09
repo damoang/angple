@@ -15,9 +15,9 @@ Disallow: /admin/
 Disallow: /api/
 Disallow: /install/
 Disallow: /plugin/
-Disallow: /register
+Disallow: /register/
 Disallow: /password-reset/
-Disallow: /member/settings/
+Disallow: /member/
 
 Sitemap: ${siteUrl}/sitemap.xml
 `;

@@ -22,11 +22,17 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
     }
 
     const mbId = payload.sub;
-    const body = await request.json();
-    const mpNo = body.mp_no;
 
-    if (!mpNo) {
-        throw httpError(400, '잘못된 요청입니다.');
+    let mpNo: number;
+    try {
+        const body = await request.json();
+        mpNo = Number(body.mp_no);
+        if (!mpNo || !Number.isFinite(mpNo)) {
+            throw httpError(400, '잘못된 요청입니다.');
+        }
+    } catch (err) {
+        if (err && typeof err === 'object' && 'status' in err) throw err;
+        throw httpError(400, '잘못된 요청 형식입니다.');
     }
 
     // 연결된 소셜 프로필이 1개 이하면 해제 불가 (로그인 수단이 없어짐)

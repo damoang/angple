@@ -21,7 +21,8 @@
     let isSubmitting = $state(false);
 
     const passwordsMatch = $derived(password === passwordConfirm);
-    const isValid = $derived(password.length >= 6 && passwordsMatch);
+    const hasLetterAndNumber = $derived(/[a-zA-Z]/.test(password) && /\d/.test(password));
+    const isValid = $derived(password.length >= 8 && hasLetterAndNumber && passwordsMatch);
 </script>
 
 <svelte:head>
@@ -62,14 +63,17 @@
                             id="password"
                             name="password"
                             type="password"
-                            placeholder="6자 이상 입력"
+                            placeholder="8자 이상, 영문+숫자 혼합"
                             bind:value={password}
                             class="pl-10"
-                            minlength={6}
+                            minlength={8}
                             required
                             disabled={isSubmitting}
                         />
                     </div>
+                    {#if password && (password.length < 8 || !hasLetterAndNumber)}
+                        <p class="text-muted-foreground text-xs">8자 이상, 영문과 숫자를 모두 포함해주세요.</p>
+                    {/if}
                 </div>
 
                 <div class="space-y-2">

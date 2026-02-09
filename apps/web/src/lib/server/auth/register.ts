@@ -4,7 +4,8 @@
  */
 import pool from '$lib/server/db.js';
 import type { RowDataPacket, ResultSetHeader } from 'mysql2';
-import { createHash } from 'crypto';
+import { createHash, randomBytes } from 'crypto';
+import bcrypt from 'bcryptjs';
 
 /**
  * Adler-32 체크섬 구현 (PHP의 hash('adler32') 호환)
@@ -131,7 +132,7 @@ export async function createMember(params: {
     const registerLevel = await getRegisterLevel();
 
     // mb_password는 소셜 로그인이므로 랜덤 해시 (직접 로그인 불가)
-    const randomPassword = createHash('sha256').update(crypto.randomUUID()).digest('hex');
+    const randomPassword = await bcrypt.hash(randomBytes(32).toString('hex'), 10);
 
     await pool.query<ResultSetHeader>(
         `INSERT INTO g5_member (
