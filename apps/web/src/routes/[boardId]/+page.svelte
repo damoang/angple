@@ -14,6 +14,8 @@
     import AdminLayoutSwitcher from '$lib/components/features/board/admin-layout-switcher.svelte';
     import { DamoangBanner } from '$lib/components/ui/damoang-banner/index.js';
     import AdSlot from '$lib/components/ui/ad-slot/ad-slot.svelte';
+    import { SeoHead, createBreadcrumbJsonLd } from '$lib/seo/index.js';
+    import type { SeoConfig } from '$lib/seo/types.js';
 
     // Board Layout System
     import { layoutRegistry, initCoreLayouts } from '$lib/components/features/board/layouts';
@@ -108,6 +110,28 @@
         goto(url.pathname + url.search);
     }
 
+    // SEO 설정
+    const seoConfig: SeoConfig = $derived({
+        meta: {
+            title: isSearching
+                ? `"${data.searchParams?.query}" 검색 - ${boardTitle}`
+                : boardTitle,
+            description: `${boardTitle} 게시판 - 다모앙 커뮤니티`,
+            canonicalUrl: `${$page.url.origin}/${boardId}`
+        },
+        og: {
+            title: boardTitle,
+            type: 'website',
+            url: `${$page.url.origin}/${boardId}`
+        },
+        jsonLd: [
+            createBreadcrumbJsonLd([
+                { name: '홈', url: $page.url.origin },
+                { name: boardTitle, url: `${$page.url.origin}/${boardId}` }
+            ])
+        ]
+    });
+
     // 페이지 이동 (검색 파라미터 유지)
     function goToPage(pageNum: number): void {
         const url = new URL(window.location.href);
@@ -121,9 +145,7 @@
     }
 </script>
 
-<svelte:head>
-    <title>{isSearching ? `"${data.searchParams?.query}" 검색 - ` : ''}{boardTitle} | 다모앙</title>
-</svelte:head>
+<SeoHead config={seoConfig} />
 
 <div class="mx-auto pt-4">
     <!-- 헤더 -->

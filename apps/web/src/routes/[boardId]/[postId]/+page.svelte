@@ -22,12 +22,19 @@
     import { ReportDialog } from '$lib/components/features/report/index.js';
     import type { FreeComment, LikerInfo } from '$lib/api/types.js';
     import { onMount } from 'svelte';
+    import { page } from '$app/stores';
     import { AdultBlur } from '$lib/components/features/adult/index.js';
     import { getMemberIconUrl } from '$lib/utils/member-icon.js';
     import { isEmbeddable } from '$lib/plugins/auto-embed';
     import { DamoangBanner } from '$lib/components/ui/damoang-banner/index.js';
     import AdSlot from '$lib/components/ui/ad-slot/ad-slot.svelte';
     import { pluginStore } from '$lib/stores/plugin.svelte';
+    import {
+        SeoHead,
+        createArticleJsonLd,
+        createBreadcrumbJsonLd
+    } from '$lib/seo/index.js';
+    import type { SeoConfig } from '$lib/seo/types.js';
     import MemoBadge from '../../../../../../plugins/member-memo/components/memo-badge.svelte';
     import MemoInlineEditor from '../../../../../../plugins/member-memo/components/memo-inline-editor.svelte';
 
@@ -302,6 +309,47 @@
         };
     }
 
+    // SEO 설정
+    const postDescription = $derived(
+        data.post.content.replace(/<[^>]+>/g, '').slice(0, 160)
+    );
+
+    const seoConfig: SeoConfig = $derived({
+        meta: {
+            title: `${data.post.title} - ${boardTitle}`,
+            description: postDescription,
+            canonicalUrl: `${$page.url.origin}/${boardId}/${data.post.id}`
+        },
+        og: {
+            title: data.post.title,
+            description: postDescription,
+            type: 'article',
+            url: `${$page.url.origin}/${boardId}/${data.post.id}`,
+            image: data.post.thumbnail || data.post.images?.[0]
+        },
+        twitter: {
+            card: data.post.thumbnail || data.post.images?.[0] ? 'summary_large_image' : 'summary',
+            title: data.post.title,
+            description: postDescription,
+            image: data.post.thumbnail || data.post.images?.[0]
+        },
+        jsonLd: [
+            createArticleJsonLd({
+                headline: data.post.title,
+                author: data.post.author,
+                datePublished: data.post.created_at,
+                dateModified: data.post.updated_at || data.post.created_at,
+                image: data.post.thumbnail || data.post.images?.[0],
+                description: postDescription
+            }),
+            createBreadcrumbJsonLd([
+                { name: '홈', url: $page.url.origin },
+                { name: boardTitle, url: `${$page.url.origin}/${boardId}` },
+                { name: data.post.title }
+            ])
+        ]
+    });
+
     // 댓글 비추천
     async function handleDislikeComment(
         commentId: string
@@ -314,10 +362,7 @@
     }
 </script>
 
-<svelte:head>
-    <title>{data.post.title} - {boardTitle} | 다모앙</title>
-    <meta name="description" content={data.post.content.slice(0, 150)} />
-</svelte:head>
+<SeoHead config={seoConfig} />
 
 <div class="mx-auto pt-2">
     <!-- 상단 자체 공지 배너: 축하메시지 우선, 없으면 GAM -->

@@ -1,11 +1,14 @@
 <script lang="ts">
     import { onMount } from 'svelte';
+    import { page } from '$app/stores';
     import { WidgetRenderer } from '$lib/components/widget-renderer';
     import { EditModeToggle } from '$lib/components/features/widget-editor';
     import { indexWidgetsStore } from '$lib/stores/index-widgets.svelte';
     import { widgetLayoutStore } from '$lib/stores/widget-layout.svelte';
     import { apiClient } from '$lib/api';
     import type { IndexWidgetsData } from '$lib/api/types';
+    import { SeoHead, createWebSiteJsonLd } from '$lib/seo/index.js';
+    import type { SeoConfig } from '$lib/seo/types.js';
 
     const { data } = $props();
 
@@ -18,6 +21,24 @@
     // 위젯 레이아웃 스토어 초기화 (메인 + 사이드바)
     widgetLayoutStore.initFromServer(data.widgetLayout, data.sidebarWidgetLayout);
 
+    // SEO 설정 (홈페이지)
+    const seoConfig: SeoConfig = $derived({
+        meta: {
+            title: '다모앙',
+            description: '다모앙 커뮤니티 - 자유로운 소통의 공간',
+            canonicalUrl: $page.url.origin
+        },
+        og: {
+            title: '다모앙',
+            description: '다모앙 커뮤니티 - 자유로운 소통의 공간',
+            type: 'website',
+            url: $page.url.origin
+        },
+        jsonLd: [
+            createWebSiteJsonLd(`${$page.url.origin}/search?stx={search_term_string}`)
+        ]
+    });
+
     onMount(async () => {
         // SSR 데이터 없을 경우 클라이언트에서 fetch
         if (!widgetsData) {
@@ -27,6 +48,8 @@
         }
     });
 </script>
+
+<SeoHead config={seoConfig} />
 
 <!-- 통합 위젯 렌더러로 메인 영역 렌더링 -->
 <WidgetRenderer zone="main" />

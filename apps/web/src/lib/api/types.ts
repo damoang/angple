@@ -327,6 +327,9 @@ export interface CreatePostRequest {
     author: string; // 필수, 1-50자
     password?: string; // 선택 (비회원 글 비밀번호)
     is_secret?: boolean; // 선택 (비밀글)
+    tags?: string[]; // 선택 (태그 목록)
+    link1?: string; // 선택 (링크1)
+    link2?: string; // 선택 (링크2)
 }
 
 // 게시글 수정 요청
@@ -334,6 +337,9 @@ export interface UpdatePostRequest {
     title?: string; // 선택, 1-200자
     content?: string; // 선택, 1자 이상
     category?: string; // 선택
+    tags?: string[]; // 선택 (태그 목록)
+    link1?: string; // 선택 (링크1)
+    link2?: string; // 선택 (링크2)
 }
 
 // 댓글 작성 요청
