@@ -47,7 +47,7 @@
 
 <div
     class="widget-wrapper relative {isEditMode
-        ? 'ring-dashed rounded-lg ring-2 ring-blue-400/50'
+        ? 'ring-dashed rounded-lg ring-2 ring-primary/40'
         : ''} {!widget.enabled && isEditMode ? 'opacity-50' : ''}"
 >
     {#if isEditMode}
@@ -55,7 +55,7 @@
         <div class="absolute -top-3 left-0 right-0 z-10 flex items-center justify-between px-2">
             <!-- 드래그 핸들 & 위젯 이름 -->
             <div
-                class="drag-handle flex cursor-grab items-center gap-1 rounded bg-blue-500 px-2 py-0.5 text-xs font-medium text-white active:cursor-grabbing"
+                class="drag-handle bg-primary text-primary-foreground flex cursor-grab items-center gap-1 rounded px-2 py-0.5 text-xs font-medium active:cursor-grabbing"
             >
                 <GripVertical class="h-3 w-3" />
                 <span>{getWidgetName(widget.type)}</span>
@@ -66,7 +66,7 @@
                 <button
                     type="button"
                     onclick={() => (settingsOpen = true)}
-                    class="rounded bg-gray-100 p-1 text-gray-600 transition-colors hover:bg-gray-200"
+                    class="bg-muted text-muted-foreground rounded p-1 transition-all duration-200 ease-out hover:bg-accent"
                     title="설정"
                 >
                     <SettingsIcon class="h-3.5 w-3.5" />
@@ -74,7 +74,7 @@
                 <button
                     type="button"
                     onclick={handleToggle}
-                    class="rounded bg-gray-100 p-1 text-gray-600 transition-colors hover:bg-gray-200"
+                    class="bg-muted text-muted-foreground rounded p-1 transition-all duration-200 ease-out hover:bg-accent"
                     title={widget.enabled ? '숨기기' : '표시'}
                 >
                     {#if widget.enabled}
@@ -86,7 +86,7 @@
                 <button
                     type="button"
                     onclick={handleRemove}
-                    class="rounded bg-red-100 p-1 text-red-600 transition-colors hover:bg-red-200"
+                    class="text-destructive rounded bg-destructive/10 p-1 transition-all duration-200 ease-out hover:bg-destructive/20"
                     title="삭제"
                 >
                     <Trash2 class="h-3.5 w-3.5" />

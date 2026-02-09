@@ -23,7 +23,7 @@
 </script>
 
 <Card class="gap-0">
-    <CardHeader class="flex flex-row items-center justify-between space-y-0 px-4 py-2.5">
+    <CardHeader class="flex flex-row items-center justify-between space-y-0 px-4 py-3">
         <div class="flex items-center gap-2">
             <div
                 class="flex h-7 w-7 items-center justify-center rounded-lg bg-green-100 dark:bg-green-900/30"

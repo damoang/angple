@@ -121,7 +121,7 @@
         {#if loading}
             <div class="text-muted-foreground text-center text-sm">메뉴 로딩 중...</div>
         {:else if error}
-            <div class="text-center text-sm text-red-500">{error}</div>
+            <div class="text-destructive text-center text-sm">{error}</div>
         {:else}
             <Accordion type="single" class="w-full">
                 {#each menuData as menu (menu.id)}
@@ -138,7 +138,7 @@
                                 )}
                             >
                                 <div class="flex items-center gap-2">
-                                    <IconComponent class="text-dusty-400 size-5" />
+                                    <IconComponent class="size-5 text-muted-foreground" />
                                     <span class={cn('font-semibold', isCollapsed && 'hidden')}
                                         >{menu.title}</span
                                     >
@@ -156,7 +156,7 @@
                                             {@const ChildIcon = getIcon(child.icon)}
                                             <Button
                                                 variant="ghost"
-                                                class="hover:bg-dusty-100 dark:hover:bg-dusty-800 w-full justify-start gap-2"
+                                                class="hover:bg-accent w-full justify-start gap-2"
                                                 href={child.url}
                                             >
                                                 <ChildIcon class="size-4" />
@@ -177,7 +177,7 @@
                         <!-- 하위 메뉴가 없는 단독 메뉴 -->
                         <Button
                             variant="ghost"
-                            class="hover:bg-dusty-100 dark:hover:bg-dusty-800 w-full justify-start gap-2"
+                            class="hover:bg-accent w-full justify-start gap-2"
                             href={menu.url}
                         >
                             <IconComponent class="size-5" />

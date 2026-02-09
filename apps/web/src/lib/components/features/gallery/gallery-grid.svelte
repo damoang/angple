@@ -16,7 +16,7 @@
 
 <Card class="gap-0">
     <CardHeader
-        class="flex flex-row flex-nowrap items-center justify-between space-y-0 px-4 py-2.5"
+        class="flex flex-row flex-nowrap items-center justify-between space-y-0 px-4 py-3"
     >
         <div class="flex items-center gap-2">
             <div

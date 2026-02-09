@@ -36,13 +36,13 @@
     ];
 </script>
 
-<footer class="border-border bg-dusty-50 dark:bg-dusty-900 w-full border-t">
+<footer class="border-border bg-canvas w-full border-t">
     <!-- 상단 섹션 -->
     <div class="mx-auto max-w-[1200px] px-4 py-8">
         <div class="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-4">
             <!-- 앙포털 -->
             <div>
-                <h3 class="text-dusty-900 dark:text-dusty-200 mb-4 text-lg font-semibold">
+                <h3 class="text-foreground mb-4 text-lg font-semibold">
                     앙포털
                 </h3>
                 <ul class="space-y-2">
@@ -52,7 +52,7 @@
                                 href={link.href}
                                 target={link.external ? '_blank' : undefined}
                                 rel={link.external ? 'noopener noreferrer' : undefined}
-                                class="text-dusty-600 dark:text-dusty-400 text-sm transition-colors hover:text-blue-600"
+                                class="text-muted-foreground text-sm transition-all duration-200 ease-out hover:text-primary"
                             >
                                 {link.name}
                             </a>
@@ -63,7 +63,7 @@
 
             <!-- 함께만들어가요 -->
             <div>
-                <h3 class="text-dusty-900 dark:text-dusty-200 mb-4 text-lg font-semibold">
+                <h3 class="text-foreground mb-4 text-lg font-semibold">
                     함께만들어가요
                 </h3>
                 <ul class="space-y-2">
@@ -73,7 +73,7 @@
                                 href={link.href}
                                 target={link.external ? '_blank' : undefined}
                                 rel={link.external ? 'noopener noreferrer' : undefined}
-                                class="text-dusty-600 dark:text-dusty-400 text-sm transition-colors hover:text-blue-600"
+                                class="text-muted-foreground text-sm transition-all duration-200 ease-out hover:text-primary"
                             >
                                 {link.name}
                             </a>
@@ -84,7 +84,7 @@
 
             <!-- 시스템 -->
             <div>
-                <h3 class="text-dusty-900 dark:text-dusty-200 mb-4 text-lg font-semibold">
+                <h3 class="text-foreground mb-4 text-lg font-semibold">
                     시스템
                 </h3>
                 <ul class="space-y-2">
@@ -94,7 +94,7 @@
                                 href={link.href}
                                 target={link.external ? '_blank' : undefined}
                                 rel={link.external ? 'noopener noreferrer' : undefined}
-                                class="text-dusty-600 dark:text-dusty-400 text-sm transition-colors hover:text-blue-600"
+                                class="text-muted-foreground text-sm transition-all duration-200 ease-out hover:text-primary"
                             >
                                 {link.name}
                             </a>
@@ -105,13 +105,13 @@
 
             <!-- 🚨삐앙삐앙🚨 -->
             <div>
-                <h3 class="mb-4 text-lg font-semibold text-red-600">🚨삐앙삐앙🚨</h3>
+                <h3 class="text-destructive mb-4 text-lg font-semibold">🚨삐앙삐앙🚨</h3>
                 <ul class="space-y-2">
                     {#each emergencyLinks as link (link.href)}
                         <li>
                             <a
                                 href={link.href}
-                                class="text-dusty-600 dark:text-dusty-400 text-sm transition-colors hover:text-blue-600"
+                                class="text-muted-foreground text-sm transition-all duration-200 ease-out hover:text-primary"
                             >
                                 {link.name}
                             </a>
@@ -125,7 +125,7 @@
     <!-- 저작권 및 연락처 섹션 -->
     <div class=" bg-canvas">
         <div class="mx-auto max-w-[1200px] px-4 py-6 text-center">
-            <div class="text-dusty-700 dark:text-dusty-300 space-y-2 text-sm">
+            <div class="text-muted-foreground space-y-2 text-sm">
                 <p>© SDK Co., Ltd. All rights reserved.</p>
                 <p>
                     제보/신고 : jebo@damoang.net, 문의(광고 그리고 모든 문의) : contact@damoang.net
@@ -140,7 +140,7 @@
                     aria-label="유튜브 채널"
                 >
                     <svg
-                        class="h-8 w-8 text-red-600 transition-colors hover:text-red-700"
+                        class="h-5 w-5 text-muted-foreground transition-all duration-200 ease-out hover:text-destructive"
                         fill="currentColor"
                         viewBox="0 0 24 24"
                     >

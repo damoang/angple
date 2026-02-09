@@ -1,10 +1,14 @@
 import type { Handle } from '@sveltejs/kit';
 import { dev } from '$app/environment';
+import { verifyToken } from '$lib/server/auth/jwt.js';
+import { getMemberById } from '$lib/server/auth/oauth/member.js';
 
 /**
  * SvelteKit Server Hooks
  *
  * 1. SSR 인증: refreshToken 쿠키로 accessToken 발급 → event.locals에 저장
+ *    - 1순위: SvelteKit 자체 JWT 검증 (소셜로그인으로 발급된 토큰)
+ *    - 2순위: Go 백엔드 /api/v2/auth/refresh (기존 호환)
  * 2. CORS 설정: Admin 앱에서 Web API 호출 허용
  * 3. CSP 설정: XSS 및 데이터 인젝션 공격 방지
  */
@@ -19,8 +23,27 @@ async function authenticateSSR(event: Parameters<Handle>[0]['event']): Promise<v
     const refreshToken = event.cookies.get('refresh_token');
     if (!refreshToken) return;
 
+    // 1순위: SvelteKit 자체 JWT 검증 (소셜로그인 토큰)
     try {
-        // 1. refreshToken으로 accessToken 발급
+        const payload = await verifyToken(refreshToken);
+        if (payload?.sub) {
+            const member = await getMemberById(payload.sub);
+            if (member) {
+                // 자체 JWT 검증 성공 → locals 설정
+                event.locals.user = {
+                    nickname: member.mb_nick || member.mb_name,
+                    level: member.mb_level ?? 0
+                };
+                event.locals.accessToken = refreshToken; // refresh_token 자체를 사용
+                return;
+            }
+        }
+    } catch {
+        // SvelteKit JWT 검증 실패 → Go 백엔드 시도
+    }
+
+    // 2순위: Go 백엔드 /api/v2/auth/refresh (기존 호환)
+    try {
         const refreshRes = await fetch(`${BACKEND_URL}/api/v2/auth/refresh`, {
             method: 'POST',
             headers: {
@@ -51,7 +74,7 @@ async function authenticateSSR(event: Parameters<Handle>[0]['event']): Promise<v
             }
         }
 
-        // 2. 사용자 프로필 조회
+        // 사용자 프로필 조회
         const profileRes = await fetch(`${BACKEND_URL}/api/v2/auth/profile`, {
             headers: { Authorization: `Bearer ${accessToken}` }
         });
@@ -83,7 +106,7 @@ function buildCsp(): string {
         "frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com https://googleads.g.doubleclick.net https://securepubads.g.doubleclick.net https://tpc.googlesyndication.com https://www.google.com https://*.googlesyndication.com https://*.doubleclick.net",
         "frame-ancestors 'self'",
         "base-uri 'self'",
-        "form-action 'self'"
+        "form-action 'self' https://appleid.apple.com"
     ];
 
     return directives.join('; ');

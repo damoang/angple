@@ -59,7 +59,7 @@
 </script>
 
 <Card class="gap-0">
-    <CardHeader class="flex flex-row items-center justify-between space-y-0 px-4 py-2.5">
+    <CardHeader class="flex flex-row items-center justify-between space-y-0 px-4 py-3">
         <RecommendedHeader />
         <RecommendedTabs bind:activeTab onTabChange={handleTabChange} />
     </CardHeader>
@@ -70,7 +70,7 @@
         {:else if error}
             <div class="flex items-center justify-center py-8">
                 <div class="text-center">
-                    <p class="text-sm text-red-600 dark:text-red-400">{error}</p>
+                    <p class="text-destructive text-sm">{error}</p>
                 </div>
             </div>
         {:else if data}

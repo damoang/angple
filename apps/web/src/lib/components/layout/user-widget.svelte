@@ -145,7 +145,7 @@
                     {#if user.mb_point !== undefined}
                         <a
                             href="/my/points"
-                            class="bg-muted/50 hover:bg-muted flex items-center justify-between rounded px-2 py-1.5 transition-colors"
+                            class="border-border hover:border-primary/30 hover:text-primary flex items-center justify-between rounded border px-2 py-1.5 transition-colors"
                         >
                             <Coins class="text-muted-foreground h-3 w-3" />
                             <span class="font-medium">{user.mb_point.toLocaleString()}</span>
@@ -154,7 +154,7 @@
                     {#if user.mb_exp !== undefined}
                         <a
                             href="/my/exp"
-                            class="bg-muted/50 hover:bg-muted flex items-center justify-between rounded px-2 py-1.5 transition-colors"
+                            class="border-border hover:border-primary/30 hover:text-primary flex items-center justify-between rounded border px-2 py-1.5 transition-colors"
                         >
                             <Star class="text-muted-foreground h-3 w-3" />
                             <span class="font-medium">{user.mb_exp.toLocaleString()}</span>
@@ -165,19 +165,19 @@
             <div class="grid grid-cols-3 gap-1">
                 <a
                     href="/my?tab=posts"
-                    class="bg-muted/50 hover:bg-muted text-muted-foreground flex items-center justify-center rounded px-2 py-1.5 transition-colors"
+                    class="border-border text-muted-foreground hover:border-primary/30 hover:text-primary flex items-center justify-center rounded border px-2 py-1.5 transition-colors"
                 >
                     내글
                 </a>
                 <a
                     href="/my?tab=comments"
-                    class="bg-muted/50 hover:bg-muted text-muted-foreground flex items-center justify-center rounded px-2 py-1.5 transition-colors"
+                    class="border-border text-muted-foreground hover:border-primary/30 hover:text-primary flex items-center justify-center rounded border px-2 py-1.5 transition-colors"
                 >
                     내댓글
                 </a>
                 <a
                     href="/my"
-                    class="bg-muted/50 hover:bg-muted text-muted-foreground flex items-center justify-center rounded px-2 py-1.5 transition-colors"
+                    class="border-border text-muted-foreground hover:border-primary/30 hover:text-primary flex items-center justify-center rounded border px-2 py-1.5 transition-colors"
                 >
                     전체
                 </a>
