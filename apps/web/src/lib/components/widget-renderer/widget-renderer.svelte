@@ -105,7 +105,7 @@
                         />
                     {:else}
                         <div
-                            class="bg-muted text-muted-foreground flex items-center justify-center rounded-lg p-4 text-center text-sm"
+                            class="border-border bg-background text-muted-foreground flex items-center justify-center rounded-lg border p-4 text-center text-sm"
                         >
                             로딩 중...
                         </div>

@@ -42,8 +42,17 @@ async function initAuth(): Promise<void> {
     if (typeof localStorage !== 'undefined') {
         localStorage.removeItem('access_token');
     }
-    // 레거시 쿠키 정리
+
+    // 소셜로그인 후 access_token 쿠키가 있으면 메모리로 이동
     if (typeof document !== 'undefined') {
+        const atCookie = document.cookie.split('; ').find((r) => r.startsWith('access_token='));
+        if (atCookie) {
+            const token = atCookie.split('=')[1];
+            if (token) {
+                apiClient.setAccessToken(token);
+            }
+        }
+        // 쿠키 정리 (메모리로 이동 완료)
         document.cookie = 'access_token=; path=/; max-age=0';
     }
 

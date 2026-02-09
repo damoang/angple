@@ -23,6 +23,18 @@
     import Lock from '@lucide/svelte/icons/lock';
     import ExternalLink from '@lucide/svelte/icons/external-link';
 
+    // OAuth 에러 메시지 매핑
+    const oauthErrorMessages: Record<string, string> = {
+        no_account: '연결된 계정이 없습니다. 먼저 회원가입 후 소셜 계정을 연결해주세요.',
+        account_inactive: '탈퇴했거나 이용이 제한된 계정입니다.',
+        invalid_state: '인증 세션이 만료되었습니다. 다시 시도해주세요.',
+        invalid_provider: '지원하지 않는 로그인 방식입니다.',
+        provider_mismatch: '인증 정보가 일치하지 않습니다. 다시 시도해주세요.',
+        missing_params: '인증 정보가 누락되었습니다. 다시 시도해주세요.',
+        oauth_error: '소셜로그인 처리 중 오류가 발생했습니다.',
+        provider_access_denied: '소셜로그인이 취소되었습니다.'
+    };
+
     // 폼 상태
     let mbId = $state('');
     let mbPassword = $state('');
@@ -37,6 +49,23 @@
     // 이미 로그인되어 있으면 리다이렉트
     // onMount에서 폴링하여 컴포넌트 트리가 완전히 마운트된 후에만 리다이렉트
     onMount(() => {
+        // OAuth 에러 메시지 표시
+        const oauthError = $page.url.searchParams.get('error');
+        if (oauthError) {
+            error = oauthErrorMessages[oauthError] || `로그인 오류: ${oauthError}`;
+        }
+
+        // OAuth 로그인 성공 시 access_token 쿠키 처리
+        const atCookie = document.cookie.split('; ').find((r) => r.startsWith('access_token='));
+        if (atCookie) {
+            const token = atCookie.split('=')[1];
+            if (token) {
+                apiClient.setAccessToken(token);
+                // 쿠키 삭제 (메모리로 이동 완료)
+                document.cookie = 'access_token=; path=/; max-age=0';
+            }
+        }
+
         function checkAndRedirect() {
             if (isRedirecting) return;
             if (!authStore.isLoading && authStore.isAuthenticated) {
@@ -81,12 +110,13 @@
         }
     }
 
-    // OAuth 로그인
+    // OAuth 로그인 (서버사이드 처리 → /plugin/social/start)
     function handleOAuthLogin(provider: OAuthProvider): void {
-        if (browser) {
-            sessionStorage.setItem('oauth_redirect', redirectUrl);
-        }
-        window.location.href = apiClient.getOAuthLoginUrl(provider);
+        const params = new URLSearchParams({
+            provider,
+            redirect: redirectUrl
+        });
+        window.location.href = `/plugin/social/start?${params.toString()}`;
     }
 
     // JWT 로그인 (기존 damoang.net 로그인 활용 - 마이그레이션 완료 전까지)
@@ -174,6 +204,13 @@
             <CardDescription>다모앙에 오신 것을 환영합니다</CardDescription>
         </CardHeader>
         <CardContent class="space-y-6">
+            <!-- OAuth 에러 메시지 -->
+            {#if error && !import.meta.env.DEV}
+                <div class="bg-destructive/10 text-destructive rounded-md p-3 text-sm">
+                    {error}
+                </div>
+            {/if}
+
             <!-- OAuth 로그인 버튼들 -->
             <div class="space-y-3">
                 {#each oauthProviders as provider}

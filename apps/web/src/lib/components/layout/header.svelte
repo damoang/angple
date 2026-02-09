@@ -77,10 +77,10 @@
             <!-- 햄버거 메뉴 (추가 메뉴) - 2xl 미만에서 보임 -->
             <button
                 onclick={toggleDrawer}
-                class="hover:bg-dusty-100 dark:hover:bg-dusty-800 mr-3 block rounded-lg pe-2 ps-4 transition-colors md:-ml-1 md:ps-0 2xl:hidden"
+                class="hover:bg-accent mr-3 block rounded-lg pe-2 ps-4 transition-all duration-200 ease-out md:-ml-1 md:ps-0 2xl:hidden"
                 aria-label="추가 메뉴"
             >
-                <AlignJustify class="text-dusty-600 dark:text-dusty-400 h-6 w-6" />
+                <AlignJustify class="text-muted-foreground h-6 w-6" />
             </button>
             <a href="/" class="flex items-center">
                 <img src={Logo} alt="damoang" class="h-12" />
@@ -91,14 +91,14 @@
         <nav class="hidden items-center space-x-8 md:flex">
             <a
                 href="/"
-                class="text-dusty-700 dark:text-dusty-300 flex items-center transition-colors hover:text-blue-600"
+                class="text-foreground hover:text-primary flex items-center transition-all duration-200 ease-out"
             >
                 <Home class="mr-2 h-5 w-5" />
                 홈
             </a>
             <a
                 href="/free"
-                class="text-dusty-700 dark:text-dusty-300 flex items-center transition-colors hover:text-blue-600"
+                class="text-foreground hover:text-primary flex items-center transition-all duration-200 ease-out"
             >
                 <Rss class="mr-2 h-5 w-5" />
                 피드
@@ -110,42 +110,42 @@
             <!-- 다크모드 토글 -->
             <button
                 onclick={toggleDarkMode}
-                class="hover:bg-dusty-100 dark:hover:bg-dusty-800 rounded-lg p-2 transition-colors"
+                class="hover:bg-accent rounded-lg p-2 transition-all duration-200 ease-out"
                 aria-label="다크모드 전환"
             >
                 {#if isDarkMode}
                     <Sun class="h-5 w-5 text-yellow-500" />
                 {:else}
-                    <Moon class="text-dusty-600 dark:text-dusty-400 h-5 w-5" />
+                    <Moon class="text-muted-foreground h-5 w-5" />
                 {/if}
             </button>
 
             <!-- 검색 아이콘 -->
             <button
                 onclick={() => goto('/search')}
-                class="hover:bg-dusty-100 dark:hover:bg-dusty-800 rounded-lg p-2 transition-colors"
+                class="hover:bg-accent rounded-lg p-2 transition-all duration-200 ease-out"
                 aria-label="검색"
             >
-                <Search class="text-dusty-600 dark:text-dusty-400 h-5 w-5" />
+                <Search class="text-muted-foreground h-5 w-5" />
             </button>
 
             <!-- 사용자 아이콘 (로그인/프로필) -->
             <button
                 onclick={() => goto('/login')}
-                class="hover:bg-dusty-100 dark:hover:bg-dusty-800 rounded-lg p-2 transition-colors"
+                class="hover:bg-accent rounded-lg p-2 transition-all duration-200 ease-out"
                 aria-label="사용자 메뉴"
             >
-                <User class="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                <User class="text-primary h-5 w-5" />
             </button>
 
             {#if authStore.isAuthenticated}
                 <!-- 쪽지 아이콘 -->
                 <button
                     onclick={() => goto('/messages')}
-                    class="hover:bg-dusty-100 dark:hover:bg-dusty-800 rounded-lg p-2 transition-colors"
+                    class="hover:bg-accent rounded-lg p-2 transition-all duration-200 ease-out"
                     aria-label="쪽지"
                 >
-                    <Mail class="text-dusty-600 dark:text-dusty-400 h-5 w-5" />
+                    <Mail class="text-muted-foreground h-5 w-5" />
                 </button>
 
                 <!-- 알림 드롭다운 -->
@@ -153,20 +153,20 @@
             {:else}
                 <!-- 알림 아이콘 (비로그인 시 단순 버튼) -->
                 <button
-                    class="hover:bg-dusty-100 dark:hover:bg-dusty-800 rounded-lg p-2 transition-colors"
+                    class="hover:bg-accent rounded-lg p-2 transition-all duration-200 ease-out"
                     aria-label="알림"
                 >
-                    <Bell class="text-dusty-600 dark:text-dusty-400 h-5 w-5" />
+                    <Bell class="text-muted-foreground h-5 w-5" />
                 </button>
             {/if}
 
             <!-- 햄버거 메뉴 (추가 메뉴) -->
             <button
                 onclick={toggleDrawer}
-                class="hover:bg-dusty-100 dark:hover:bg-dusty-800 hidden rounded-lg p-2 transition-colors 2xl:block"
+                class="hover:bg-accent hidden rounded-lg p-2 transition-all duration-200 ease-out 2xl:block"
                 aria-label="추가 메뉴"
             >
-                <Menu class="text-dusty-600 dark:text-dusty-400 h-5 w-5" />
+                <Menu class="text-muted-foreground h-5 w-5" />
             </button>
         </div>
     </div>
@@ -175,7 +175,7 @@
 <!-- 드로워 메뉴 오버레이 -->
 {#if isDrawerOpen}
     <div
-        class="fixed inset-0 z-40 bg-black/50 transition-opacity duration-300"
+        class="bg-foreground/50 fixed inset-0 z-40 transition-opacity duration-300"
         onclick={toggleDrawer}
         role="button"
         tabindex="0"
@@ -185,19 +185,19 @@
 
 <!-- 드로워 메뉴 (항상 DOM에 존재, 위치만 변경) -->
 <div
-    class="dark:bg-dusty-900 fixed bottom-0 right-0 top-0 z-50 w-80 transform bg-white shadow-xl transition-transform duration-300 ease-in-out"
+    class="bg-background fixed bottom-0 right-0 top-0 z-50 w-80 transform shadow-lg transition-transform duration-300 ease-in-out"
     class:translate-x-full={!isDrawerOpen}
     class:translate-x-0={isDrawerOpen}
 >
     <div class="p-6">
         <div class="mb-8 flex items-center justify-between">
-            <h2 class="text-dusty-900 text-xl font-bold dark:text-white">추가 메뉴</h2>
+            <h2 class="text-foreground text-xl font-bold">추가 메뉴</h2>
             <button
                 onclick={toggleDrawer}
-                class="hover:bg-dusty-100 dark:hover:bg-dusty-800 rounded-lg p-2 transition-colors"
+                class="hover:bg-accent rounded-lg p-2 transition-all duration-200 ease-out"
                 aria-label="메뉴 닫기"
             >
-                <X class="text-dusty-600 dark:text-dusty-400 h-6 w-6" />
+                <X class="text-muted-foreground h-6 w-6" />
             </button>
         </div>
 
