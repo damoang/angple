@@ -220,7 +220,9 @@
         <CardContent class="space-y-6">
             <!-- 성공 메시지 -->
             {#if successMessage}
-                <div class="bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400 rounded-md p-3 text-sm">
+                <div
+                    class="rounded-md bg-green-50 p-3 text-sm text-green-700 dark:bg-green-900/20 dark:text-green-400"
+                >
                     {successMessage}
                 </div>
             {/if}

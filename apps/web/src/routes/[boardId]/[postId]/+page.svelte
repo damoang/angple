@@ -29,11 +29,7 @@
     import { DamoangBanner } from '$lib/components/ui/damoang-banner/index.js';
     import AdSlot from '$lib/components/ui/ad-slot/ad-slot.svelte';
     import { pluginStore } from '$lib/stores/plugin.svelte';
-    import {
-        SeoHead,
-        createArticleJsonLd,
-        createBreadcrumbJsonLd
-    } from '$lib/seo/index.js';
+    import { SeoHead, createArticleJsonLd, createBreadcrumbJsonLd } from '$lib/seo/index.js';
     import type { SeoConfig } from '$lib/seo/types.js';
     import MemoBadge from '../../../../../../plugins/member-memo/components/memo-badge.svelte';
     import MemoInlineEditor from '../../../../../../plugins/member-memo/components/memo-inline-editor.svelte';
@@ -310,9 +306,7 @@
     }
 
     // SEO 설정
-    const postDescription = $derived(
-        data.post.content.replace(/<[^>]+>/g, '').slice(0, 160)
-    );
+    const postDescription = $derived(data.post.content.replace(/<[^>]+>/g, '').slice(0, 160));
 
     const seoConfig: SeoConfig = $derived({
         meta: {

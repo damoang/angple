@@ -113,9 +113,7 @@
     // SEO 설정
     const seoConfig: SeoConfig = $derived({
         meta: {
-            title: isSearching
-                ? `"${data.searchParams?.query}" 검색 - ${boardTitle}`
-                : boardTitle,
+            title: isSearching ? `"${data.searchParams?.query}" 검색 - ${boardTitle}` : boardTitle,
             description: `${boardTitle} 게시판 - 다모앙 커뮤니티`,
             canonicalUrl: `${$page.url.origin}/${boardId}`
         },

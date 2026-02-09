@@ -77,10 +77,10 @@
             <!-- 햄버거 메뉴 (추가 메뉴) - 2xl 미만에서 보임 -->
             <button
                 onclick={toggleDrawer}
-                class="mr-3 block rounded-lg pe-2 ps-4 transition-all duration-200 ease-out hover:bg-accent md:-ml-1 md:ps-0 2xl:hidden"
+                class="hover:bg-accent mr-3 block rounded-lg pe-2 ps-4 transition-all duration-200 ease-out md:-ml-1 md:ps-0 2xl:hidden"
                 aria-label="추가 메뉴"
             >
-                <AlignJustify class="h-6 w-6 text-muted-foreground" />
+                <AlignJustify class="text-muted-foreground h-6 w-6" />
             </button>
             <a href="/" class="flex items-center">
                 <img src={Logo} alt="damoang" class="h-12" />
@@ -91,14 +91,14 @@
         <nav class="hidden items-center space-x-8 md:flex">
             <a
                 href="/"
-                class="text-foreground flex items-center transition-all duration-200 ease-out hover:text-primary"
+                class="text-foreground hover:text-primary flex items-center transition-all duration-200 ease-out"
             >
                 <Home class="mr-2 h-5 w-5" />
                 홈
             </a>
             <a
                 href="/free"
-                class="text-foreground flex items-center transition-all duration-200 ease-out hover:text-primary"
+                class="text-foreground hover:text-primary flex items-center transition-all duration-200 ease-out"
             >
                 <Rss class="mr-2 h-5 w-5" />
                 피드
@@ -110,42 +110,42 @@
             <!-- 다크모드 토글 -->
             <button
                 onclick={toggleDarkMode}
-                class="rounded-lg p-2 transition-all duration-200 ease-out hover:bg-accent"
+                class="hover:bg-accent rounded-lg p-2 transition-all duration-200 ease-out"
                 aria-label="다크모드 전환"
             >
                 {#if isDarkMode}
                     <Sun class="h-5 w-5 text-yellow-500" />
                 {:else}
-                    <Moon class="h-5 w-5 text-muted-foreground" />
+                    <Moon class="text-muted-foreground h-5 w-5" />
                 {/if}
             </button>
 
             <!-- 검색 아이콘 -->
             <button
                 onclick={() => goto('/search')}
-                class="rounded-lg p-2 transition-all duration-200 ease-out hover:bg-accent"
+                class="hover:bg-accent rounded-lg p-2 transition-all duration-200 ease-out"
                 aria-label="검색"
             >
-                <Search class="h-5 w-5 text-muted-foreground" />
+                <Search class="text-muted-foreground h-5 w-5" />
             </button>
 
             <!-- 사용자 아이콘 (로그인/프로필) -->
             <button
                 onclick={() => goto('/login')}
-                class="rounded-lg p-2 transition-all duration-200 ease-out hover:bg-accent"
+                class="hover:bg-accent rounded-lg p-2 transition-all duration-200 ease-out"
                 aria-label="사용자 메뉴"
             >
-                <User class="h-5 w-5 text-primary" />
+                <User class="text-primary h-5 w-5" />
             </button>
 
             {#if authStore.isAuthenticated}
                 <!-- 쪽지 아이콘 -->
                 <button
                     onclick={() => goto('/messages')}
-                    class="rounded-lg p-2 transition-all duration-200 ease-out hover:bg-accent"
+                    class="hover:bg-accent rounded-lg p-2 transition-all duration-200 ease-out"
                     aria-label="쪽지"
                 >
-                    <Mail class="h-5 w-5 text-muted-foreground" />
+                    <Mail class="text-muted-foreground h-5 w-5" />
                 </button>
 
                 <!-- 알림 드롭다운 -->
@@ -153,20 +153,20 @@
             {:else}
                 <!-- 알림 아이콘 (비로그인 시 단순 버튼) -->
                 <button
-                    class="rounded-lg p-2 transition-all duration-200 ease-out hover:bg-accent"
+                    class="hover:bg-accent rounded-lg p-2 transition-all duration-200 ease-out"
                     aria-label="알림"
                 >
-                    <Bell class="h-5 w-5 text-muted-foreground" />
+                    <Bell class="text-muted-foreground h-5 w-5" />
                 </button>
             {/if}
 
             <!-- 햄버거 메뉴 (추가 메뉴) -->
             <button
                 onclick={toggleDrawer}
-                class="hidden rounded-lg p-2 transition-all duration-200 ease-out hover:bg-accent 2xl:block"
+                class="hover:bg-accent hidden rounded-lg p-2 transition-all duration-200 ease-out 2xl:block"
                 aria-label="추가 메뉴"
             >
-                <Menu class="h-5 w-5 text-muted-foreground" />
+                <Menu class="text-muted-foreground h-5 w-5" />
             </button>
         </div>
     </div>
@@ -175,7 +175,7 @@
 <!-- 드로워 메뉴 오버레이 -->
 {#if isDrawerOpen}
     <div
-        class="fixed inset-0 z-40 bg-foreground/50 transition-opacity duration-300"
+        class="bg-foreground/50 fixed inset-0 z-40 transition-opacity duration-300"
         onclick={toggleDrawer}
         role="button"
         tabindex="0"
@@ -194,10 +194,10 @@
             <h2 class="text-foreground text-xl font-bold">추가 메뉴</h2>
             <button
                 onclick={toggleDrawer}
-                class="rounded-lg p-2 transition-all duration-200 ease-out hover:bg-accent"
+                class="hover:bg-accent rounded-lg p-2 transition-all duration-200 ease-out"
                 aria-label="메뉴 닫기"
             >
-                <X class="h-6 w-6 text-muted-foreground" />
+                <X class="text-muted-foreground h-6 w-6" />
             </button>
         </div>
 

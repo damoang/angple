@@ -5,9 +5,9 @@ import type { RequestHandler } from './$types';
  * Sitemap URL을 동적으로 포함
  */
 export const GET: RequestHandler = async ({ url }) => {
-	const siteUrl = url.origin;
+    const siteUrl = url.origin;
 
-	const robotsTxt = `# Angple Community Platform
+    const robotsTxt = `# Angple Community Platform
 User-agent: *
 Allow: /
 
@@ -22,10 +22,10 @@ Disallow: /member/settings/
 Sitemap: ${siteUrl}/sitemap.xml
 `;
 
-	return new Response(robotsTxt, {
-		headers: {
-			'Content-Type': 'text/plain',
-			'Cache-Control': 'max-age=86400'
-		}
-	});
+    return new Response(robotsTxt, {
+        headers: {
+            'Content-Type': 'text/plain',
+            'Cache-Control': 'max-age=86400'
+        }
+    });
 };

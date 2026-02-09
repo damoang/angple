@@ -47,7 +47,7 @@
 
 <div
     class="widget-wrapper relative {isEditMode
-        ? 'ring-dashed rounded-lg ring-2 ring-primary/40'
+        ? 'ring-dashed ring-primary/40 rounded-lg ring-2'
         : ''} {!widget.enabled && isEditMode ? 'opacity-50' : ''}"
 >
     {#if isEditMode}
@@ -66,7 +66,7 @@
                 <button
                     type="button"
                     onclick={() => (settingsOpen = true)}
-                    class="bg-muted text-muted-foreground rounded p-1 transition-all duration-200 ease-out hover:bg-accent"
+                    class="bg-muted text-muted-foreground hover:bg-accent rounded p-1 transition-all duration-200 ease-out"
                     title="설정"
                 >
                     <SettingsIcon class="h-3.5 w-3.5" />
@@ -74,7 +74,7 @@
                 <button
                     type="button"
                     onclick={handleToggle}
-                    class="bg-muted text-muted-foreground rounded p-1 transition-all duration-200 ease-out hover:bg-accent"
+                    class="bg-muted text-muted-foreground hover:bg-accent rounded p-1 transition-all duration-200 ease-out"
                     title={widget.enabled ? '숨기기' : '표시'}
                 >
                     {#if widget.enabled}
@@ -86,7 +86,7 @@
                 <button
                     type="button"
                     onclick={handleRemove}
-                    class="text-destructive rounded bg-destructive/10 p-1 transition-all duration-200 ease-out hover:bg-destructive/20"
+                    class="text-destructive bg-destructive/10 hover:bg-destructive/20 rounded p-1 transition-all duration-200 ease-out"
                     title="삭제"
                 >
                     <Trash2 class="h-3.5 w-3.5" />

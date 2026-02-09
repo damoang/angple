@@ -42,9 +42,7 @@
         <div class="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-4">
             <!-- 앙포털 -->
             <div>
-                <h3 class="text-foreground mb-4 text-lg font-semibold">
-                    앙포털
-                </h3>
+                <h3 class="text-foreground mb-4 text-lg font-semibold">앙포털</h3>
                 <ul class="space-y-2">
                     {#each angportalLinks as link (link.href)}
                         <li>
@@ -52,7 +50,7 @@
                                 href={link.href}
                                 target={link.external ? '_blank' : undefined}
                                 rel={link.external ? 'noopener noreferrer' : undefined}
-                                class="text-muted-foreground text-sm transition-all duration-200 ease-out hover:text-primary"
+                                class="text-muted-foreground hover:text-primary text-sm transition-all duration-200 ease-out"
                             >
                                 {link.name}
                             </a>
@@ -63,9 +61,7 @@
 
             <!-- 함께만들어가요 -->
             <div>
-                <h3 class="text-foreground mb-4 text-lg font-semibold">
-                    함께만들어가요
-                </h3>
+                <h3 class="text-foreground mb-4 text-lg font-semibold">함께만들어가요</h3>
                 <ul class="space-y-2">
                     {#each togetherLinks as link (link.href)}
                         <li>
@@ -73,7 +69,7 @@
                                 href={link.href}
                                 target={link.external ? '_blank' : undefined}
                                 rel={link.external ? 'noopener noreferrer' : undefined}
-                                class="text-muted-foreground text-sm transition-all duration-200 ease-out hover:text-primary"
+                                class="text-muted-foreground hover:text-primary text-sm transition-all duration-200 ease-out"
                             >
                                 {link.name}
                             </a>
@@ -84,9 +80,7 @@
 
             <!-- 시스템 -->
             <div>
-                <h3 class="text-foreground mb-4 text-lg font-semibold">
-                    시스템
-                </h3>
+                <h3 class="text-foreground mb-4 text-lg font-semibold">시스템</h3>
                 <ul class="space-y-2">
                     {#each systemLinks as link (link.href)}
                         <li>
@@ -94,7 +88,7 @@
                                 href={link.href}
                                 target={link.external ? '_blank' : undefined}
                                 rel={link.external ? 'noopener noreferrer' : undefined}
-                                class="text-muted-foreground text-sm transition-all duration-200 ease-out hover:text-primary"
+                                class="text-muted-foreground hover:text-primary text-sm transition-all duration-200 ease-out"
                             >
                                 {link.name}
                             </a>
@@ -111,7 +105,7 @@
                         <li>
                             <a
                                 href={link.href}
-                                class="text-muted-foreground text-sm transition-all duration-200 ease-out hover:text-primary"
+                                class="text-muted-foreground hover:text-primary text-sm transition-all duration-200 ease-out"
                             >
                                 {link.name}
                             </a>
@@ -140,7 +134,7 @@
                     aria-label="유튜브 채널"
                 >
                     <svg
-                        class="h-5 w-5 text-muted-foreground transition-all duration-200 ease-out hover:text-destructive"
+                        class="text-muted-foreground hover:text-destructive h-5 w-5 transition-all duration-200 ease-out"
                         fill="currentColor"
                         viewBox="0 0 24 24"
                     >

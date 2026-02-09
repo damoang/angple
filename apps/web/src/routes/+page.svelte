@@ -34,9 +34,7 @@
             type: 'website',
             url: $page.url.origin
         },
-        jsonLd: [
-            createWebSiteJsonLd(`${$page.url.origin}/search?stx={search_term_string}`)
-        ]
+        jsonLd: [createWebSiteJsonLd(`${$page.url.origin}/search?stx={search_term_string}`)]
     });
 
     onMount(async () => {
