@@ -13,6 +13,8 @@
     import { Checkbox } from '$lib/components/ui/checkbox/index.js';
     import Loader2 from '@lucide/svelte/icons/loader-2';
     import UserPlus from '@lucide/svelte/icons/user-plus';
+    import { onMount } from 'svelte';
+    import { PUBLIC_TURNSTILE_SITE_KEY } from '$env/static/public';
     import type { PageData, ActionData } from './$types.js';
 
     let { data, form }: { data: PageData; form: ActionData } = $props();
@@ -21,6 +23,17 @@
     let agreeTerms = $state(false);
     let agreePrivacy = $state(false);
     let isSubmitting = $state(false);
+    let turnstileRef: HTMLDivElement | undefined = $state();
+
+    // Turnstile 렌더링
+    onMount(() => {
+        if (PUBLIC_TURNSTILE_SITE_KEY && turnstileRef && window.turnstile) {
+            window.turnstile.render(turnstileRef, {
+                sitekey: PUBLIC_TURNSTILE_SITE_KEY,
+                theme: 'auto'
+            });
+        }
+    });
 
     // 프로바이더 한글명
     const providerNames: Record<string, string> = {
@@ -136,6 +149,11 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Turnstile CAPTCHA -->
+                {#if PUBLIC_TURNSTILE_SITE_KEY}
+                    <div bind:this={turnstileRef} class="flex justify-center"></div>
+                {/if}
 
                 <!-- 가입 버튼 -->
                 <Button

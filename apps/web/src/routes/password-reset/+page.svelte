@@ -13,12 +13,25 @@
     import Loader2 from '@lucide/svelte/icons/loader-2';
     import Mail from '@lucide/svelte/icons/mail';
     import Check from '@lucide/svelte/icons/check';
+    import { onMount } from 'svelte';
+    import { PUBLIC_TURNSTILE_SITE_KEY } from '$env/static/public';
     import type { ActionData } from './$types.js';
 
     let { form }: { form: ActionData } = $props();
 
     let email = $state(form?.email || '');
     let isSubmitting = $state(false);
+    let turnstileRef: HTMLDivElement | undefined = $state();
+
+    // Turnstile 렌더링
+    onMount(() => {
+        if (PUBLIC_TURNSTILE_SITE_KEY && turnstileRef && window.turnstile) {
+            window.turnstile.render(turnstileRef, {
+                sitekey: PUBLIC_TURNSTILE_SITE_KEY,
+                theme: 'auto'
+            });
+        }
+    });
 </script>
 
 <svelte:head>
@@ -87,6 +100,11 @@
                             />
                         </div>
                     </div>
+
+                    <!-- Turnstile CAPTCHA -->
+                    {#if PUBLIC_TURNSTILE_SITE_KEY}
+                        <div bind:this={turnstileRef} class="flex justify-center"></div>
+                    {/if}
 
                     <Button type="submit" class="w-full" disabled={isSubmitting || !email.trim()}>
                         {#if isSubmitting}

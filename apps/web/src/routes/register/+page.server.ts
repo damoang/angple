@@ -16,6 +16,8 @@ import { upsertSocialProfile } from '$lib/server/auth/oauth/social-profile.js';
 import { getMemberById, updateLoginTimestamp } from '$lib/server/auth/oauth/member.js';
 import { generateAccessToken, generateRefreshToken } from '$lib/server/auth/jwt.js';
 import type { OAuthUserProfile, SocialProvider } from '$lib/server/auth/oauth/types.js';
+import { verifyTurnstile } from '$lib/server/captcha.js';
+import { checkRateLimit, recordAttempt } from '$lib/server/rate-limit.js';
 
 export const load: PageServerLoad = async ({ url, cookies }) => {
     const provider = url.searchParams.get('provider') || '';
@@ -46,11 +48,32 @@ export const load: PageServerLoad = async ({ url, cookies }) => {
 
 export const actions: Actions = {
     default: async ({ request, cookies, getClientAddress }) => {
+        const clientIp = getClientAddress();
         const formData = await request.formData();
         const nickname = (formData.get('nickname') as string)?.trim() || '';
         const agreeTerms = formData.get('agree_terms') === 'on';
         const agreePrivacy = formData.get('agree_privacy') === 'on';
         const redirectUrl = (formData.get('redirect') as string) || '/';
+
+        // Rate limit 체크 (5회/시간)
+        const rateCheck = checkRateLimit(clientIp, 'register', 5, 60 * 60 * 1000);
+        if (!rateCheck.allowed) {
+            return fail(429, {
+                error: `요청이 너무 많습니다. ${rateCheck.retryAfter}초 후 다시 시도해주세요.`,
+                nickname
+            });
+        }
+        recordAttempt(clientIp, 'register');
+
+        // Turnstile CAPTCHA 검증
+        const turnstileToken = (formData.get('cf-turnstile-response') as string) || '';
+        const captchaValid = await verifyTurnstile(turnstileToken, clientIp);
+        if (!captchaValid) {
+            return fail(400, {
+                error: '자동 가입 방지 확인에 실패했습니다. 다시 시도해주세요.',
+                nickname
+            });
+        }
 
         // 쿠키에서 소셜 프로필 정보 조회
         const pendingData = cookies.get('pending_social_register');
@@ -102,8 +125,6 @@ export const actions: Actions = {
         if (await isMbIdTaken(mbId)) {
             mbId = mbId + '_' + randomBytes(4).toString('hex');
         }
-
-        const clientIp = getClientAddress();
 
         try {
             // g5_member INSERT

@@ -243,11 +243,17 @@
         return Object.keys(newErrors).length === 0;
     }
 
+    // 중복 제출 방지
+    let isSubmitting = $state(false);
+
     // 폼 제출
     async function handleSubmit(e: Event): Promise<void> {
         e.preventDefault();
 
+        if (isSubmitting || isLoading) return;
         if (!validate()) return;
+
+        isSubmitting = true;
 
         const data: CreatePostRequest | UpdatePostRequest =
             mode === 'create'
@@ -270,11 +276,15 @@
                       link2: link2.trim() || undefined
                   };
 
-        await onSubmit(data);
+        try {
+            await onSubmit(data);
 
-        // 제출 성공 시 임시저장 삭제
-        clearDraft();
-        hasUnsavedChanges = false;
+            // 제출 성공 시 임시저장 삭제
+            clearDraft();
+            hasUnsavedChanges = false;
+        } finally {
+            isSubmitting = false;
+        }
     }
 
     // 수동 임시저장
@@ -496,8 +506,8 @@
                 <Button type="button" variant="outline" onclick={onCancel} disabled={isLoading}>
                     취소
                 </Button>
-                <Button type="submit" disabled={isLoading}>
-                    {#if isLoading}
+                <Button type="submit" disabled={isLoading || isSubmitting}>
+                    {#if isLoading || isSubmitting}
                         <span class="mr-2">처리 중...</span>
                     {:else}
                         {submitText}
