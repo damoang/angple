@@ -24,7 +24,21 @@ export async function getContent(coId: string): Promise<ContentRow | null> {
         'SELECT co_id, co_subject, co_content, co_html FROM g5_content WHERE co_id = ? LIMIT 1',
         [coId]
     );
-    return (rows[0] as ContentRow) || null;
+    const row = rows[0];
+    if (!row) return null;
+
+    return {
+        co_id: String(row.co_id ?? ''),
+        co_subject: String(row.co_subject ?? ''),
+        co_content: String(row.co_content ?? ''),
+        co_html: Number(row.co_html ?? 0),
+        co_skin: String(row.co_skin ?? ''),
+        co_mobile_skin: String(row.co_mobile_skin ?? ''),
+        co_tag_filter_use: Number(row.co_tag_filter_use ?? 0),
+        co_hit: Number(row.co_hit ?? 0),
+        co_include_head: String(row.co_include_head ?? ''),
+        co_include_tail: String(row.co_include_tail ?? '')
+    };
 }
 
 /** g5_config에서 사이트 제목 조회 (변수 치환용) */

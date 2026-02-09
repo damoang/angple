@@ -134,33 +134,41 @@ export async function createMember(params: {
     // mb_password는 소셜 로그인이므로 랜덤 해시 (직접 로그인 불가)
     const randomPassword = await bcrypt.hash(randomBytes(32).toString('hex'), 10);
 
-    await pool.query<ResultSetHeader>(
-        `INSERT INTO g5_member (
-			mb_id, mb_password, mb_name, mb_nick, mb_email,
-			mb_level, mb_datetime, mb_ip, mb_login_ip, mb_today_login,
-			mb_nick_date, mb_open_date, mb_email_certify,
-			mb_mailling, mb_sms, mb_open, mb_signature, mb_profile,
-			mb_memo, mb_lost_certify, mb_homepage, mb_tel, mb_hp, mb_zip1, mb_zip2,
-			mb_addr1, mb_addr2, mb_addr3, mb_addr_jibeon,
-			mb_recommend, mb_point, mb_leave_date, mb_intercept_date
-		) VALUES (
-			?, ?, ?, ?, ?,
-			?, NOW(), ?, ?, NOW(),
-			CURDATE(), CURDATE(), NOW(),
-			0, 0, 0, '', '',
-			'', '', '', '', '', '', '',
-			'', '', '', '',
-			'', 0, '', ''
-		)`,
-        [
-            params.mb_id,
-            randomPassword,
-            params.mb_name,
-            params.mb_nick,
-            params.mb_email,
-            registerLevel,
-            params.mb_ip,
-            params.mb_ip
-        ]
-    );
+    try {
+        await pool.query<ResultSetHeader>(
+            `INSERT INTO g5_member (
+				mb_id, mb_password, mb_name, mb_nick, mb_email,
+				mb_level, mb_datetime, mb_ip, mb_login_ip, mb_today_login,
+				mb_nick_date, mb_open_date, mb_email_certify,
+				mb_mailling, mb_sms, mb_open, mb_signature, mb_profile,
+				mb_memo, mb_lost_certify, mb_homepage, mb_tel, mb_hp, mb_zip1, mb_zip2,
+				mb_addr1, mb_addr2, mb_addr3, mb_addr_jibeon,
+				mb_recommend, mb_point, mb_leave_date, mb_intercept_date
+			) VALUES (
+				?, ?, ?, ?, ?,
+				?, NOW(), ?, ?, NOW(),
+				CURDATE(), CURDATE(), NOW(),
+				0, 0, 0, '', '',
+				'', '', '', '', '', '', '',
+				'', '', '', '',
+				'', 0, '', ''
+			)`,
+            [
+                params.mb_id,
+                randomPassword,
+                params.mb_name,
+                params.mb_nick,
+                params.mb_email,
+                registerLevel,
+                params.mb_ip,
+                params.mb_ip
+            ]
+        );
+    } catch (err: unknown) {
+        const mysqlError = err as { code?: string };
+        if (mysqlError.code === 'ER_DUP_ENTRY') {
+            throw new Error('이미 가입된 회원이거나 사용 중인 닉네임입니다.');
+        }
+        throw err;
+    }
 }
