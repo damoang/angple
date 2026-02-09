@@ -3,6 +3,7 @@
     import { page } from '$app/stores';
     import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card/index.js';
     import { Button } from '$lib/components/ui/button/index.js';
+    import { Badge } from '$lib/components/ui/badge/index.js';
     import * as Select from '$lib/components/ui/select/index.js';
     import { SearchAutocomplete } from '$lib/components/features/search/index.js';
     import type { PageData } from './$types.js';
@@ -10,6 +11,10 @@
     import Search from '@lucide/svelte/icons/search';
     import FileText from '@lucide/svelte/icons/file-text';
     import ChevronRight from '@lucide/svelte/icons/chevron-right';
+    import Clock from '@lucide/svelte/icons/clock';
+    import X from '@lucide/svelte/icons/x';
+    import { onMount } from 'svelte';
+    import { browser } from '$app/environment';
 
     let { data }: { data: PageData } = $props();
 
@@ -25,14 +30,73 @@
     let searchQuery = $state(data.query || '');
     let searchField = $state<SearchField>(data.field || 'title_content');
 
+    // 최근 검색어
+    const RECENT_SEARCHES_KEY = 'damoang_recent_searches';
+    const MAX_RECENT = 10;
+    let recentSearches = $state<string[]>([]);
+
+    onMount(() => {
+        if (browser) {
+            try {
+                const stored = localStorage.getItem(RECENT_SEARCHES_KEY);
+                recentSearches = stored ? JSON.parse(stored) : [];
+            } catch {
+                recentSearches = [];
+            }
+        }
+    });
+
+    function saveRecentSearch(query: string): void {
+        if (!browser || !query.trim()) return;
+        const trimmed = query.trim();
+        // 중복 제거 후 앞에 추가
+        const filtered = recentSearches.filter((s) => s !== trimmed);
+        recentSearches = [trimmed, ...filtered].slice(0, MAX_RECENT);
+        try {
+            localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(recentSearches));
+        } catch {
+            // localStorage 실패 무시
+        }
+    }
+
+    function removeRecentSearch(query: string): void {
+        recentSearches = recentSearches.filter((s) => s !== query);
+        if (browser) {
+            try {
+                localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(recentSearches));
+            } catch {
+                // 무시
+            }
+        }
+    }
+
+    function clearRecentSearches(): void {
+        recentSearches = [];
+        if (browser) {
+            localStorage.removeItem(RECENT_SEARCHES_KEY);
+        }
+    }
+
     // 검색 실행
     function handleSearch(e: Event): void {
         e.preventDefault();
 
         if (!searchQuery.trim()) return;
 
+        saveRecentSearch(searchQuery.trim());
+
         const url = new URL(window.location.origin + '/search');
         url.searchParams.set('q', searchQuery.trim());
+        url.searchParams.set('sfl', searchField);
+        goto(url.pathname + url.search);
+    }
+
+    // 최근 검색어 클릭
+    function searchRecent(query: string): void {
+        searchQuery = query;
+        saveRecentSearch(query);
+        const url = new URL(window.location.origin + '/search');
+        url.searchParams.set('q', query);
         url.searchParams.set('sfl', searchField);
         goto(url.pathname + url.search);
     }
@@ -65,6 +129,17 @@
         if (value) {
             searchField = value as SearchField;
         }
+    }
+
+    // 검색어 하이라이팅
+    function highlightQuery(text: string, query: string): string {
+        if (!query || !text) return text;
+        // HTML 특수문자 이스케이프
+        const escaped = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        // 검색어 정규식 이스케이프
+        const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const regex = new RegExp(`(${escapedQuery})`, 'gi');
+        return escaped.replace(regex, '<mark class="bg-yellow-200 dark:bg-yellow-800 rounded px-0.5">$1</mark>');
     }
 
     // 현재 선택된 필드의 라벨
@@ -187,25 +262,25 @@
                                         class="hover:bg-accent -m-2 w-full rounded-md p-2 text-left transition-colors"
                                     >
                                         <h3 class="text-foreground mb-1 line-clamp-1 font-medium">
-                                            {post.title}
+                                            {@html highlightQuery(post.title, data.query)}
                                         </h3>
                                         <p
                                             class="text-secondary-foreground mb-2 line-clamp-2 text-sm"
                                         >
-                                            {post.content}
+                                            {@html highlightQuery(post.content, data.query)}
                                         </p>
                                         <div
                                             class="text-muted-foreground flex items-center gap-2 text-xs"
                                         >
                                             <span>{post.author}</span>
-                                            <span>•</span>
+                                            <span>·</span>
                                             <span>{formatDate(post.created_at)}</span>
-                                            <span>•</span>
+                                            <span>·</span>
                                             <span>조회 {post.views.toLocaleString()}</span>
-                                            <span>•</span>
-                                            <span>👍 {post.likes}</span>
-                                            <span>•</span>
-                                            <span>💬 {post.comments_count}</span>
+                                            <span>·</span>
+                                            <span>추천 {post.likes}</span>
+                                            <span>·</span>
+                                            <span>댓글 {post.comments_count}</span>
                                         </div>
                                     </button>
                                 </li>
@@ -226,18 +301,56 @@
                 </p>
             </CardContent>
         </Card>
+
+        <!-- 최근 검색어 -->
+        {#if recentSearches.length > 0}
+            <div class="mt-6">
+                <div class="mb-3 flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <Clock class="text-muted-foreground h-4 w-4" />
+                        <span class="text-foreground text-sm font-medium">최근 검색어</span>
+                    </div>
+                    <Button variant="ghost" size="sm" class="h-7 text-xs" onclick={clearRecentSearches}>
+                        전체 삭제
+                    </Button>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    {#each recentSearches as recent (recent)}
+                        <Badge
+                            variant="secondary"
+                            class="cursor-pointer gap-1 rounded-full px-3 py-1.5"
+                        >
+                            <button
+                                type="button"
+                                onclick={() => searchRecent(recent)}
+                                class="hover:underline"
+                            >
+                                {recent}
+                            </button>
+                            <button
+                                type="button"
+                                onclick={() => removeRecentSearch(recent)}
+                                class="hover:text-foreground ml-0.5 rounded-full"
+                            >
+                                <X class="h-3 w-3" />
+                            </button>
+                        </Badge>
+                    {/each}
+                </div>
+            </div>
+        {/if}
     {/if}
 </div>
 
 <style>
-    .line-clamp-1 {
+    :global(.line-clamp-1) {
         display: -webkit-box;
         -webkit-line-clamp: 1;
         -webkit-box-orient: vertical;
         overflow: hidden;
     }
 
-    .line-clamp-2 {
+    :global(.line-clamp-2) {
         display: -webkit-box;
         -webkit-line-clamp: 2;
         -webkit-box-orient: vertical;

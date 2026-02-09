@@ -10,6 +10,8 @@
     import Lock from '@lucide/svelte/icons/lock';
     import Megaphone from '@lucide/svelte/icons/megaphone';
     import Pin from '@lucide/svelte/icons/pin';
+    import Tag from '@lucide/svelte/icons/tag';
+    import X from '@lucide/svelte/icons/x';
     import SearchForm from '$lib/components/features/board/search-form.svelte';
     import AdminLayoutSwitcher from '$lib/components/features/board/admin-layout-switcher.svelte';
     import BulkActionsToolbar from '$lib/components/features/board/bulk-actions-toolbar.svelte';
@@ -65,6 +67,25 @@
 
     // 검색 중인지 여부
     const isSearching = $derived(Boolean(data.searchParams));
+
+    // 활성 태그 필터
+    const activeTag = $derived(data.activeTag || null);
+
+    // 태그 필터 적용
+    function filterByTag(tagName: string): void {
+        const url = new URL(window.location.href);
+        url.searchParams.set('tag', tagName);
+        url.searchParams.set('page', '1');
+        goto(url.pathname + url.search);
+    }
+
+    // 태그 필터 해제
+    function clearTagFilter(): void {
+        const url = new URL(window.location.href);
+        url.searchParams.delete('tag');
+        url.searchParams.set('page', '1');
+        goto(url.pathname + url.search);
+    }
 
     // 글쓰기 페이지로 이동
     function goToWrite(): void {
@@ -183,7 +204,7 @@
     <div class="mb-4 flex items-start justify-between">
         <div>
             <div class="flex items-center gap-2">
-                <h1 class="text-foreground text-3xl font-bold">{boardTitle}</h1>
+                <h1 class="text-foreground text-xl font-bold sm:text-3xl">{boardTitle}</h1>
                 {#if isAdmin}
                     <AdminLayoutSwitcher {boardId} currentLayout={listLayoutId} />
                     <Button
@@ -250,6 +271,20 @@
                     {category}
                 </Badge>
             {/each}
+        </div>
+    {/if}
+
+    <!-- 활성 태그 필터 -->
+    {#if activeTag}
+        <div class="mb-4 flex items-center gap-2">
+            <Tag class="text-muted-foreground h-4 w-4" />
+            <Badge variant="default" class="gap-1 rounded-full px-3 py-1">
+                #{activeTag}
+                <button onclick={clearTagFilter} class="ml-1 rounded-full hover:bg-white/20">
+                    <X class="h-3 w-3" />
+                </button>
+            </Badge>
+            <span class="text-muted-foreground text-sm">태그 필터 적용 중</span>
         </div>
     {/if}
 

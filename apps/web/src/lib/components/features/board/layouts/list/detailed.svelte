@@ -90,7 +90,7 @@
         <div class="flex gap-4">
             <!-- 좌측: 썸네일 (있을 경우) -->
             {#if thumbnailUrl && displaySettings?.show_thumbnail !== false}
-                <div class="bg-muted relative h-32 w-32 shrink-0 overflow-hidden rounded-md">
+                <div class="bg-muted relative h-20 w-20 shrink-0 overflow-hidden rounded-md sm:h-32 sm:w-32">
                     <img
                         src={thumbnailUrl}
                         alt={post.title}

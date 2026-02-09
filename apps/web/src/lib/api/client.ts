@@ -955,6 +955,9 @@ class ApiClient {
             page: String(params.page || 1),
             limit: String(params.limit || 20)
         });
+        if (params.tag) {
+            queryParams.set('tag', params.tag);
+        }
 
         const response = await this.request<BackendResponse>(
             `/boards/${boardId}/posts?${queryParams.toString()}`

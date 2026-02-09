@@ -13,7 +13,9 @@ export const load: PageLoad = async ({ url, params }) => {
     // 검색 파라미터
     const searchField = (url.searchParams.get('sfl') as SearchField) || null;
     const searchQuery = url.searchParams.get('stx') || null;
+    const tag = url.searchParams.get('tag') || null;
     const isSearching = Boolean(searchField && searchQuery);
+    const isTagFiltering = Boolean(tag);
 
     try {
         // 게시판 정보, 공지사항, 게시글 목록을 병렬로 가져오기
@@ -23,9 +25,18 @@ export const load: PageLoad = async ({ url, params }) => {
                       field: searchField!,
                       query: searchQuery!,
                       page,
-                      limit
+                      limit,
+                      tag: tag || undefined
                   })
-                : apiClient.getBoardPosts(boardId, page, limit),
+                : isTagFiltering
+                  ? apiClient.searchPosts(boardId, {
+                        field: 'title_content',
+                        query: '',
+                        page,
+                        limit,
+                        tag: tag!
+                    })
+                  : apiClient.getBoardPosts(boardId, page, limit),
             apiClient.getBoard(boardId),
             // 검색 중이 아닐 때만 공지사항 로드
             isSearching ? Promise.resolve([]) : apiClient.getBoardNotices(boardId)
@@ -42,7 +53,8 @@ export const load: PageLoad = async ({ url, params }) => {
                 totalPages: data.total_pages
             },
             board,
-            searchParams: isSearching ? { field: searchField!, query: searchQuery! } : null
+            searchParams: isSearching ? { field: searchField!, query: searchQuery! } : null,
+            activeTag: tag
         };
     } catch (error) {
         console.error('게시판 로딩 에러:', boardId, error);

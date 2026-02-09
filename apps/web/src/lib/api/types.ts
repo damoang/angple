@@ -386,6 +386,7 @@ export interface SearchParams {
     field: SearchField; // 검색 필드 (sfl)
     page?: number;
     limit?: number;
+    tag?: string; // 태그 필터
 }
 
 // 전체 검색 결과 타입 (게시판별 그룹핑)

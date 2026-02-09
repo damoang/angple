@@ -185,7 +185,7 @@
 
 <!-- 드로워 메뉴 (항상 DOM에 존재, 위치만 변경) -->
 <div
-    class="bg-background fixed bottom-0 right-0 top-0 z-50 w-80 transform shadow-lg transition-transform duration-300 ease-in-out"
+    class="bg-background fixed bottom-0 right-0 top-0 z-50 w-[85vw] max-w-80 transform shadow-lg transition-transform duration-300 ease-in-out"
     class:translate-x-full={!isDrawerOpen}
     class:translate-x-0={isDrawerOpen}
 >

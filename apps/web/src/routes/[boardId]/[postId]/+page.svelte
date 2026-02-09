@@ -433,7 +433,7 @@
                         </span>
                     </div>
                 {/if}
-                <CardTitle class="text-foreground flex items-center gap-2 text-3xl">
+                <CardTitle class="text-foreground flex items-center gap-2 text-xl sm:text-3xl">
                     {#if data.post.is_secret}
                         <Lock class="text-muted-foreground h-6 w-6 shrink-0" />
                     {/if}
@@ -492,10 +492,10 @@
                     </div>
                 </div>
 
-                <div class="text-secondary-foreground ml-auto flex gap-4 text-sm">
+                <div class="text-secondary-foreground ml-auto flex gap-2 text-xs sm:gap-4 sm:text-sm">
                     <span>조회 {data.post.views.toLocaleString()}</span>
-                    <span>👍 {likeCount.toLocaleString()}</span>
-                    <span>💬 {data.post.comments_count.toLocaleString()}</span>
+                    <span>추천 {likeCount.toLocaleString()}</span>
+                    <span>댓글 {data.post.comments_count.toLocaleString()}</span>
                 </div>
             </div>
 
@@ -515,7 +515,7 @@
                                 <img
                                     src={image}
                                     alt="게시글 이미지"
-                                    class="rounded-lg border"
+                                    class="max-w-full rounded-lg border"
                                     loading="lazy"
                                 />
                             {/each}
