@@ -138,7 +138,7 @@
                                 )}
                             >
                                 <div class="flex items-center gap-2">
-                                    <IconComponent class="size-5 text-muted-foreground" />
+                                    <IconComponent class="text-muted-foreground size-5" />
                                     <span class={cn('font-semibold', isCollapsed && 'hidden')}
                                         >{menu.title}</span
                                     >
