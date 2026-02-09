@@ -699,6 +699,44 @@ export interface OAuthLoginRequest {
     redirect_uri: string;
 }
 
+// ========================================
+// 관리자 게시글 관리 (Admin Post Management)
+// ========================================
+
+// 게시글 이동 요청
+export interface MovePostRequest {
+    target_board_id: string; // 이동할 대상 게시판 ID
+}
+
+// 게시글 이동 응답
+export interface MovePostResponse {
+    success: boolean;
+    new_post_id?: number; // 이동 후 새 게시글 ID
+    target_board_id: string;
+}
+
+// 게시글 카테고리 변경 요청
+export interface ChangeCategoryRequest {
+    category: string;
+}
+
+// 일괄 작업 요청
+export interface BulkPostRequest {
+    post_ids: number[];
+}
+
+// 일괄 이동 요청
+export interface BulkMoveRequest extends BulkPostRequest {
+    target_board_id: string;
+}
+
+// 일괄 작업 응답
+export interface BulkActionResponse {
+    success: boolean;
+    affected_count: number;
+    failed_ids?: number[];
+}
+
 // 회원가입 요청
 export interface RegisterRequest {
     mb_id: string;

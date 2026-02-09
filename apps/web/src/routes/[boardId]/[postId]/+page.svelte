@@ -26,6 +26,7 @@
     import { AdultBlur } from '$lib/components/features/adult/index.js';
     import { getMemberIconUrl } from '$lib/utils/member-icon.js';
     import { isEmbeddable } from '$lib/plugins/auto-embed';
+    import AdminPostActions from '$lib/components/features/board/admin-post-actions.svelte';
     import { DamoangBanner } from '$lib/components/ui/damoang-banner/index.js';
     import AdSlot from '$lib/components/ui/ad-slot/ad-slot.svelte';
     import { pluginStore } from '$lib/stores/plugin.svelte';
@@ -125,6 +126,9 @@
 
     // 관리자 여부 (레벨 10 이상)
     const isAdmin = $derived((authStore.user?.mb_level ?? 0) >= 10);
+
+    // 비밀글 접근 권한 (작성자 또는 관리자만 열람 가능)
+    const canViewSecret = $derived(!data.post.is_secret || isAuthor || isAdmin);
 
     // 공지 상태
     let noticeType = $state<'normal' | 'important' | null>(data.post.notice_type ?? null);
@@ -391,12 +395,21 @@
                         공지 고정
                     </Button>
                 {/if}
+                <!-- 관리자 게시글 관리 (카테고리 변경, 이동) -->
+                <AdminPostActions
+                    {boardId}
+                    postId={data.post.id}
+                    currentCategory={data.post.category}
+                    categoryList={data.board?.category_list}
+                />
             {/if}
             {#if isAuthor}
                 <Button variant="outline" size="sm" onclick={goToEdit}>
                     <Pencil class="mr-1 h-4 w-4" />
                     수정
                 </Button>
+            {/if}
+            {#if isAuthor || isAdmin}
                 <DeleteConfirmDialog
                     title="게시글 삭제"
                     description="이 게시글을 삭제하시겠습니까? 댓글도 함께 삭제되며, 이 작업은 되돌릴 수 없습니다."
@@ -492,24 +505,33 @@
             </div>
 
             <!-- 게시글 본문 -->
-            <AdultBlur isAdult={data.post.is_adult ?? false}>
-                <Markdown content={postContent()} class="mt-8" />
+            {#if canViewSecret}
+                <AdultBlur isAdult={data.post.is_adult ?? false}>
+                    <Markdown content={postContent()} class="mt-8" />
 
-                {#if data.post.images && data.post.images.length > 0}
-                    <div class="mt-6 grid gap-4">
-                        {#each data.post.images as image, i (i)}
-                            <img
-                                src={image}
-                                alt="게시글 이미지"
-                                class="rounded-lg border"
-                                loading="lazy"
-                            />
-                        {/each}
-                    </div>
-                {/if}
-            </AdultBlur>
+                    {#if data.post.images && data.post.images.length > 0}
+                        <div class="mt-6 grid gap-4">
+                            {#each data.post.images as image, i (i)}
+                                <img
+                                    src={image}
+                                    alt="게시글 이미지"
+                                    class="rounded-lg border"
+                                    loading="lazy"
+                                />
+                            {/each}
+                        </div>
+                    {/if}
+                </AdultBlur>
+            {:else}
+                <div class="mt-8 flex flex-col items-center justify-center rounded-lg border border-dashed py-16">
+                    <Lock class="text-muted-foreground mb-4 h-12 w-12" />
+                    <p class="text-muted-foreground text-lg font-medium">비밀글입니다</p>
+                    <p class="text-muted-foreground mt-1 text-sm">작성자와 관리자만 볼 수 있습니다.</p>
+                </div>
+            {/if}
 
-            <!-- 추천/비추천 버튼 -->
+            <!-- 추천/비추천 버튼 (비밀글 열람 가능 시에만) -->
+            {#if canViewSecret}
             <div class="mb-3 mt-8 flex items-center gap-3">
                 <!-- 추천 버튼 -->
                 <div class="border-border flex items-center rounded-lg border">
@@ -571,6 +593,7 @@
                     </Button>
                 {/if}
             </div>
+            {/if}
         </CardHeader>
     </Card>
 
@@ -586,40 +609,42 @@
         <AdSlot position="board-content-bottom" height="90px" />
     </div>
 
-    <!-- 댓글 섹션 -->
-    <Card class="bg-background">
-        <CardHeader class="space-y-6">
-            <div class="flex items-center justify-between">
-                <h3 class="text-foreground text-lg font-semibold">
-                    댓글 <span class="text-muted-foreground">({comments.length})</span>
-                </h3>
-            </div>
+    <!-- 댓글 섹션 (비밀글 열람 가능 시에만 표시) -->
+    {#if canViewSecret}
+        <Card class="bg-background">
+            <CardHeader class="space-y-6">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-foreground text-lg font-semibold">
+                        댓글 <span class="text-muted-foreground">({comments.length})</span>
+                    </h3>
+                </div>
 
-            <!-- 댓글 목록 -->
-            <CommentList
-                {comments}
-                onUpdate={handleUpdateComment}
-                onDelete={handleDeleteComment}
-                onReply={handleReplyComment}
-                onLike={handleLikeComment}
-                onDislike={handleDislikeComment}
-                postAuthorId={data.post.author_id}
-                {boardId}
-                postId={data.post.id}
-                useNogood={data.board?.use_nogood === 1}
-            />
-
-            <!-- 댓글 작성 폼 -->
-            <div class="border-border border-t pt-6">
-                <CommentForm
-                    onSubmit={handleCreateComment}
-                    isLoading={isCreatingComment}
-                    permissions={data.board?.permissions}
-                    requiredCommentLevel={data.board?.comment_level ?? 1}
+                <!-- 댓글 목록 -->
+                <CommentList
+                    {comments}
+                    onUpdate={handleUpdateComment}
+                    onDelete={handleDeleteComment}
+                    onReply={handleReplyComment}
+                    onLike={handleLikeComment}
+                    onDislike={handleDislikeComment}
+                    postAuthorId={data.post.author_id}
+                    {boardId}
+                    postId={data.post.id}
+                    useNogood={data.board?.use_nogood === 1}
                 />
-            </div>
-        </CardHeader>
-    </Card>
+
+                <!-- 댓글 작성 폼 -->
+                <div class="border-border border-t pt-6">
+                    <CommentForm
+                        onSubmit={handleCreateComment}
+                        isLoading={isCreatingComment}
+                        permissions={data.board?.permissions}
+                        requiredCommentLevel={data.board?.comment_level ?? 1}
+                    />
+                </div>
+            </CardHeader>
+        </Card>
+    {/if}
 
     <!-- 최근글 위 광고 -->
     <div class="mt-6">

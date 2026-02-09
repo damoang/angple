@@ -12,6 +12,9 @@
     import Pin from '@lucide/svelte/icons/pin';
     import SearchForm from '$lib/components/features/board/search-form.svelte';
     import AdminLayoutSwitcher from '$lib/components/features/board/admin-layout-switcher.svelte';
+    import BulkActionsToolbar from '$lib/components/features/board/bulk-actions-toolbar.svelte';
+    import CheckSquare from '@lucide/svelte/icons/check-square';
+    import { Checkbox } from '$lib/components/ui/checkbox/index.js';
     import { DamoangBanner } from '$lib/components/ui/damoang-banner/index.js';
     import AdSlot from '$lib/components/ui/ad-slot/ad-slot.svelte';
     import { SeoHead, createBreadcrumbJsonLd } from '$lib/seo/index.js';
@@ -70,6 +73,36 @@
 
     // 관리자 여부 (레벨 10 이상)
     const isAdmin = $derived((authStore.user?.mb_level ?? 0) >= 10);
+
+    // 일괄 선택 모드 (관리자 전용)
+    let bulkSelectMode = $state(false);
+    let selectedPostIds = $state<number[]>([]);
+
+    function toggleBulkSelect(): void {
+        bulkSelectMode = !bulkSelectMode;
+        if (!bulkSelectMode) selectedPostIds = [];
+    }
+
+    function togglePostSelection(postId: number): void {
+        if (selectedPostIds.includes(postId)) {
+            selectedPostIds = selectedPostIds.filter((id) => id !== postId);
+        } else {
+            selectedPostIds = [...selectedPostIds, postId];
+        }
+    }
+
+    function selectAllVisible(): void {
+        selectedPostIds = filteredPosts.map((p) => p.id);
+    }
+
+    function clearSelection(): void {
+        selectedPostIds = [];
+    }
+
+    function handleBulkActionComplete(): void {
+        // 페이지 리로드로 데이터 갱신
+        window.location.reload();
+    }
 
     // 게시판 표시 설정에 따라 레이아웃 선택 (list_layout → list_style 폴백)
     const listLayoutId = $derived(
@@ -153,6 +186,15 @@
                 <h1 class="text-foreground text-3xl font-bold">{boardTitle}</h1>
                 {#if isAdmin}
                     <AdminLayoutSwitcher {boardId} currentLayout={listLayoutId} />
+                    <Button
+                        variant={bulkSelectMode ? 'default' : 'outline'}
+                        size="sm"
+                        onclick={toggleBulkSelect}
+                        class="h-8"
+                    >
+                        <CheckSquare class="mr-1 h-4 w-4" />
+                        선택
+                    </Button>
                 {/if}
             </div>
         </div>
@@ -273,6 +315,25 @@
         </div>
     {/if}
 
+    <!-- 일괄 작업 툴바 (관리자 선택 모드) -->
+    {#if bulkSelectMode}
+        <div class="mb-3">
+            <BulkActionsToolbar
+                {boardId}
+                selectedIds={selectedPostIds}
+                onClearSelection={clearSelection}
+                onActionComplete={handleBulkActionComplete}
+            />
+            {#if selectedPostIds.length === 0}
+                <div class="mt-2 flex items-center gap-2">
+                    <Button variant="ghost" size="sm" onclick={selectAllVisible}>
+                        현재 페이지 전체 선택
+                    </Button>
+                </div>
+            {/if}
+        </div>
+    {/if}
+
     <!-- 게시글 목록 (레이아웃별 래퍼 클래스 적용) -->
     <div class={wrapperClass}>
         {#if filteredPosts.length === 0}
@@ -287,11 +348,29 @@
             </Card>
         {:else if LayoutComponent}
             {#each filteredPosts as post (post.id)}
-                <LayoutComponent
-                    {post}
-                    displaySettings={data.board?.display_settings}
-                    onclick={() => goToPost(post.id)}
-                />
+                {#if bulkSelectMode}
+                    <div class="flex items-start gap-2">
+                        <div class="flex shrink-0 items-center pt-3">
+                            <Checkbox
+                                checked={selectedPostIds.includes(post.id)}
+                                onCheckedChange={() => togglePostSelection(post.id)}
+                            />
+                        </div>
+                        <div class="min-w-0 flex-1">
+                            <LayoutComponent
+                                {post}
+                                displaySettings={data.board?.display_settings}
+                                onclick={() => goToPost(post.id)}
+                            />
+                        </div>
+                    </div>
+                {:else}
+                    <LayoutComponent
+                        {post}
+                        displaySettings={data.board?.display_settings}
+                        onclick={() => goToPost(post.id)}
+                    />
+                {/if}
             {/each}
         {/if}
     </div>
