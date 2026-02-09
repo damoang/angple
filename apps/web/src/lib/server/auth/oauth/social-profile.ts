@@ -49,6 +49,7 @@ export async function deleteSocialProfile(mpNo: number, mbId: string): Promise<b
     return (result as unknown as { affectedRows: number }).affectedRows > 0;
 }
 
+
 /**
  * 소셜 프로필 저장/업데이트
  * PHP의 social_user_profile_replace() 호환

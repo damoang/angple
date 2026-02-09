@@ -69,6 +69,7 @@
             successMessage = successMessages[message] || null;
         }
 
+
         // OAuth 로그인 성공 시 access_token 쿠키 처리
         const atCookie = document.cookie.split('; ').find((r) => r.startsWith('access_token='));
         if (atCookie) {
@@ -226,6 +227,7 @@
                     {successMessage}
                 </div>
             {/if}
+
 
             <!-- OAuth 에러 메시지 -->
             {#if error && !import.meta.env.DEV}
