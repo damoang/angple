@@ -136,7 +136,7 @@
                 <Select.Root
                     type="single"
                     onValueChange={(v) => {
-                        if (v?.value) selectedBoardId = v.value;
+                        if (v) selectedBoardId = v;
                     }}
                 >
                     <Select.Trigger class="w-full">
