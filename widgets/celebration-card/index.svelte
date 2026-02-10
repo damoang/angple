@@ -5,6 +5,7 @@
      */
     import type { WidgetProps } from '$lib/types/widget-props';
     import { onMount } from 'svelte';
+    import User from '@lucide/svelte/icons/user';
 
     let { config, slot, isEditMode = false }: WidgetProps = $props();
 
@@ -58,6 +59,19 @@
     function stripHtml(html: string): string {
         return html.replace(/<[^>]*>/g, '').trim();
     }
+
+    // title이 날짜 형식(YYYY.MM.DD 등)인지 확인
+    function isDateTitle(title: string): boolean {
+        return /^\d{4}[.\-]\d{2}[.\-]\d{2}/.test(title);
+    }
+
+    // 축하 메시지 텍스트 (ads admin의 cardMainText 값)
+    function getCelebMessage(b: CelebrationBanner): string {
+        const contentText = stripHtml(b.content || '');
+        if (contentText) return contentText;
+        if (b.title && !isDateTitle(b.title)) return b.title;
+        return '';
+    }
 </script>
 
 {#if loading}
@@ -67,7 +81,7 @@
         <div class="celeb-header">
             <span class="icon">🎈</span>
             <span class="celeb-nick"
-                >{banner.target_member_nick || banner.title || '축하합니다'}</span
+                >{banner.target_member_nick || '축하합니다'}</span
             >
             {#if banner.external_link || banner.link_url}
                 <a
@@ -91,7 +105,9 @@
                         loading="lazy"
                     />
                 {:else}
-                    <div class="celeb-avatar-placeholder">👤</div>
+                    <div class="celeb-avatar-placeholder">
+                        <User size={20} color="white" />
+                    </div>
                 {/if}
             </div>
 
@@ -103,9 +119,9 @@
                     rel={banner.link_url?.startsWith('http') ? 'noopener noreferrer' : undefined}
                 >
                     <img src={banner.image_url} class="celeb-banner" alt="" loading="lazy" />
-                    {#if banner.content}
+                    {#if getCelebMessage(banner)}
                         <div class="celeb-overlay">
-                            <div class="celeb-message">{stripHtml(banner.content)}</div>
+                            <div class="celeb-message">{getCelebMessage(banner)}</div>
                         </div>
                     {/if}
                 </a>
@@ -113,11 +129,11 @@
                 <div class="celeb-no-banner">
                     {#if banner.link_url}
                         <a href={banner.link_url} class="celeb-message-link">
-                            {stripHtml(banner.content || banner.title)}
+                            {getCelebMessage(banner) || '축하합니다!'}
                         </a>
                     {:else}
                         <div class="celeb-message-text">
-                            {stripHtml(banner.content || banner.title)}
+                            {getCelebMessage(banner) || '축하합니다!'}
                         </div>
                     {/if}
                 </div>
@@ -131,7 +147,7 @@
         border-radius: 12px;
         overflow: hidden;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        background: white;
+        background: var(--background);
     }
 
     .celeb-header {
@@ -252,14 +268,14 @@
 
     .celeb-no-banner {
         padding: 16px 16px 16px 70px;
-        background: #f8f9fa;
+        background: var(--muted);
         min-height: 60px;
         display: flex;
         align-items: center;
     }
 
     .celeb-message-link {
-        color: #333;
+        color: var(--foreground);
         font-size: 0.8rem;
         font-weight: 500;
         line-height: 1.4;
@@ -271,12 +287,12 @@
     }
 
     .celeb-message-link:hover {
-        color: #667eea;
+        color: var(--primary);
         text-decoration: underline;
     }
 
     .celeb-message-text {
-        color: #333;
+        color: var(--foreground);
         font-size: 0.8rem;
         font-weight: 500;
         line-height: 1.4;
@@ -284,20 +300,6 @@
         -webkit-line-clamp: 2;
         -webkit-box-orient: vertical;
         overflow: hidden;
-    }
-
-    :global(.dark) .celeb-card {
-        background: #2d2d2d;
-    }
-    :global(.dark) .celeb-no-banner {
-        background: #3d3d3d;
-    }
-    :global(.dark) .celeb-message-link,
-    :global(.dark) .celeb-message-text {
-        color: #eee;
-    }
-    :global(.dark) .celeb-message-link:hover {
-        color: #a5b4fc;
     }
 
     .header-link {

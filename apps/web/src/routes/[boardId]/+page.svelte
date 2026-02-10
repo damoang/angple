@@ -18,6 +18,7 @@
     import CheckSquare from '@lucide/svelte/icons/check-square';
     import { Checkbox } from '$lib/components/ui/checkbox/index.js';
     import { DamoangBanner } from '$lib/components/ui/damoang-banner/index.js';
+    import { CelebrationRolling } from '$lib/components/ui/celebration-rolling/index.js';
     import AdSlot from '$lib/components/ui/ad-slot/ad-slot.svelte';
     import { SeoHead, createBreadcrumbJsonLd } from '$lib/seo/index.js';
     import type { SeoConfig } from '$lib/seo/types.js';
@@ -237,7 +238,7 @@
         {/if}
 
         <!-- 헤더 -->
-        <div class="mb-4 flex items-start justify-between">
+        <div class="mb-4 flex items-start justify-between gap-3">
             <div>
                 <div class="flex items-center gap-2">
                     <h1 class="text-foreground text-xl font-bold sm:text-3xl">{boardTitle}</h1>
@@ -255,6 +256,12 @@
                     {/if}
                 </div>
             </div>
+
+            <!-- 축하메시지 롤링 -->
+            <div class="flex min-w-0 flex-1 items-center">
+                <CelebrationRolling class="w-full" />
+            </div>
+
             {#if canWrite()}
                 <Button onclick={goToWrite} class="shrink-0">
                     <Pencil class="mr-2 h-4 w-4" />
