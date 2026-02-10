@@ -34,6 +34,7 @@
     import { isEmbeddable } from '$lib/plugins/auto-embed';
     import AdminPostActions from '$lib/components/features/board/admin-post-actions.svelte';
     import { DamoangBanner } from '$lib/components/ui/damoang-banner/index.js';
+    import { CelebrationRolling } from '$lib/components/ui/celebration-rolling/index.js';
     import AdSlot from '$lib/components/ui/ad-slot/ad-slot.svelte';
     import { pluginStore } from '$lib/stores/plugin.svelte';
     import { SeoHead, createArticleJsonLd, createBreadcrumbJsonLd } from '$lib/seo/index.js';
@@ -492,16 +493,21 @@
 <SeoHead config={seoConfig} />
 
 <div class="mx-auto pt-2">
-    <!-- 상단 자체 공지 배너: 축하메시지 우선, 없으면 GAM -->
+    <!-- 상단 배너: damoang-ads 이미지 배너 (축하메시지는 네비바로 이동) -->
     <div class="mb-6">
-        <DamoangBanner position="board-view" showCelebration={true} height="90px" />
+        <DamoangBanner position="board-view" showCelebration={false} height="90px" />
     </div>
 
     <!-- 상단 네비게이션 -->
-    <div class="mb-6 flex items-center justify-between">
-        <Button variant="outline" size="sm" onclick={goBack}>← 목록으로</Button>
+    <div class="mb-6 flex items-center justify-between gap-3">
+        <Button variant="outline" size="sm" onclick={goBack} class="shrink-0">← 목록으로</Button>
 
-        <div class="flex gap-2">
+        <!-- 축하메시지 롤링 -->
+        <div class="flex min-w-0 flex-1 items-center">
+            <CelebrationRolling class="w-full" />
+        </div>
+
+        <div class="flex shrink-0 gap-2">
             {#if isAdmin}
                 {#if noticeType}
                     <Button

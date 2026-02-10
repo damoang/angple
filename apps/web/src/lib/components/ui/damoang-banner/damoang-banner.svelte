@@ -29,6 +29,7 @@
         link_url: string;
         alt_text?: string;
         target?: string;
+        display_type?: 'image' | 'text';
     }
 
     // 다모앙 광고 배너 타입
@@ -108,8 +109,13 @@
             const result = await response.json();
 
             if (result.success && result.data?.length > 0) {
-                const randomIndex = Math.floor(Math.random() * result.data.length);
-                return result.data[randomIndex];
+                // display_type === 'image'인 것만 필터링 (text 타입은 CelebrationRolling에서 처리)
+                const imageBanners = result.data.filter(
+                    (b: CelebrationBanner) => !b.display_type || b.display_type === 'image'
+                );
+                if (imageBanners.length === 0) return null;
+                const randomIndex = Math.floor(Math.random() * imageBanners.length);
+                return imageBanners[randomIndex];
             }
             return null;
         } catch (error) {

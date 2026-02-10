@@ -22,6 +22,15 @@ interface Banner {
     external_link?: string;
     link_target?: string;
     sort_order?: number;
+    display_type: 'image' | 'text';
+}
+
+/**
+ * 회원 프로필 이미지 URL 생성
+ */
+function getMemberPhotoUrl(mbImageUrl: string | null | undefined): string | undefined {
+    if (!mbImageUrl) return undefined;
+    return `https://s3.damoang.net/${mbImageUrl}`;
 }
 
 /**
@@ -51,16 +60,20 @@ export const GET: RequestHandler = async () => {
 
         const banners: Banner[] = [];
 
-        // 1차: celebration_banners 테이블 (신규)
+        // 1차: celebration_banners 테이블 (신규) — g5_member JOIN으로 닉네임/사진 가져옴
         try {
             const [rows] = await pool.execute<RowDataPacket[]>(
-                `SELECT id, title, content, image_url, link_url, external_url,
-                        display_date, target_member_id, link_target, sort_order
-                 FROM celebration_banners
-                 WHERE is_active = 1
-                   AND (display_date = ?
-                        OR (yearly_repeat = 1 AND MONTH(display_date) = ? AND DAY(display_date) = ?))
-                 ORDER BY sort_order ASC, id DESC`,
+                `SELECT cb.id, cb.title, cb.content, cb.image_url, cb.link_url,
+                        cb.external_url, cb.display_date, cb.target_member_id,
+                        cb.link_target, cb.sort_order, cb.display_type,
+                        m.mb_nick AS target_member_nick,
+                        m.mb_image_url AS target_member_image_url
+                 FROM celebration_banners cb
+                 LEFT JOIN g5_member m ON cb.target_member_id = m.mb_id
+                 WHERE cb.is_active = 1
+                   AND (cb.display_date = ?
+                        OR (cb.yearly_repeat = 1 AND MONTH(cb.display_date) = ? AND DAY(cb.display_date) = ?))
+                 ORDER BY cb.sort_order ASC, cb.id DESC`,
                 [dateDash, month, day]
             );
 
@@ -74,23 +87,28 @@ export const GET: RequestHandler = async () => {
                     display_date: row.display_date,
                     is_active: true,
                     target_member_id: row.target_member_id || undefined,
+                    target_member_nick: row.target_member_nick || undefined,
+                    target_member_photo: getMemberPhotoUrl(row.target_member_image_url),
                     external_link: row.external_url || undefined,
                     link_target: row.link_target || '_blank',
-                    sort_order: row.sort_order || 0
+                    sort_order: row.sort_order || 0,
+                    display_type: row.display_type || 'image'
                 });
             }
         } catch {
             // celebration_banners 테이블이 없을 수 있음 — 무시하고 fallback으로
         }
 
-        // 2차: g5_write_message fallback (마이그레이션 전까지)
+        // 2차: g5_write_message fallback (마이그레이션 전까지) — g5_member JOIN
         if (banners.length === 0) {
             const [rows] = await pool.execute<RowDataPacket[]>(
-                `SELECT wr_id, wr_subject, wr_content, wr_link2, mb_id
-                 FROM g5_write_message
-                 WHERE wr_is_comment = 0
-                   AND (wr_subject = ? OR wr_subject = ?)
-                 ORDER BY wr_id DESC`,
+                `SELECT wm.wr_id, wm.wr_subject, wm.wr_content, wm.wr_link2, wm.mb_id,
+                        m.mb_nick, m.mb_image_url
+                 FROM g5_write_message wm
+                 LEFT JOIN g5_member m ON wm.mb_id = m.mb_id
+                 WHERE wm.wr_is_comment = 0
+                   AND (wm.wr_subject = ? OR wm.wr_subject = ?)
+                 ORDER BY wm.wr_id DESC`,
                 [dateDot, dateDash]
             );
 
@@ -106,7 +124,10 @@ export const GET: RequestHandler = async () => {
                         display_date: row.wr_subject,
                         is_active: true,
                         target_member_id: row.mb_id || undefined,
-                        external_link: row.wr_link2 || undefined
+                        target_member_nick: row.mb_nick || undefined,
+                        target_member_photo: getMemberPhotoUrl(row.mb_image_url),
+                        external_link: row.wr_link2 || undefined,
+                        display_type: 'image'
                     });
                 }
             }
