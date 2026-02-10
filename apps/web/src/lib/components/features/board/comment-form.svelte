@@ -8,6 +8,7 @@
     import X from '@lucide/svelte/icons/x';
     import CornerDownRight from '@lucide/svelte/icons/corner-down-right';
     import Lock from '@lucide/svelte/icons/lock';
+    import { MentionAutocomplete } from '$lib/components/features/mention/index.js';
 
     interface Props {
         onSubmit: (
@@ -59,6 +60,7 @@
     let content = $state('');
     let isSecret = $state(false);
     let error = $state<string | null>(null);
+    let textareaRef = $state<HTMLTextAreaElement | null>(null);
 
     // 대댓글 모드일 때 플레이스홀더 변경
     const actualPlaceholder = $derived(
@@ -114,14 +116,16 @@
                 {authStore.user?.mb_name.charAt(0).toUpperCase() || 'U'}
             </div>
 
-            <div class="flex-1 space-y-2">
+            <div class="relative flex-1 space-y-2">
                 <Textarea
+                    bind:ref={textareaRef}
                     bind:value={content}
                     placeholder={actualPlaceholder}
                     rows={isReplyMode ? 2 : 3}
                     class={error ? 'border-destructive' : ''}
                     disabled={isLoading}
                 />
+                <MentionAutocomplete textarea={textareaRef} />
                 {#if error}
                     <p class="text-destructive text-sm">{error}</p>
                 {/if}

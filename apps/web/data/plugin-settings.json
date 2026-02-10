@@ -1,5 +1,5 @@
 {
-    "activePlugins": ["ad-widget", "emoticon", "bracket-image", "auto-embed", "member-memo"],
+    "activePlugins": ["ad-widget", "emoticon", "bracket-image", "auto-embed", "member-memo", "interaction-analysis", "da-reaction"],
     "plugins": {
         "ad-widget": {
             "settings": {
@@ -22,6 +22,18 @@
         "member-memo": {
             "settings": {},
             "activatedAt": "2026-02-07T12:00:00.000Z"
+        },
+        "interaction-analysis": {
+            "settings": {},
+            "activatedAt": "2026-02-09T12:00:00.000Z"
+        },
+        "da-reaction": {
+            "settings": {
+                "enabled": true,
+                "maxReactionsPerTarget": 20,
+                "allowSelfReaction": false
+            },
+            "activatedAt": "2026-02-09T15:00:00.000Z"
         }
     },
     "version": "1.0.0"

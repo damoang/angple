@@ -902,6 +902,22 @@ class ApiClient {
     }
 
     /**
+     * 댓글 추천자 목록 조회
+     */
+    async getCommentLikers(
+        boardId: string,
+        postId: string,
+        commentId: string,
+        page = 1,
+        limit = 20
+    ): Promise<LikersResponse> {
+        const response = await this.request<LikersResponse>(
+            `/boards/${boardId}/posts/${postId}/comments/${commentId}/likers?page=${page}&limit=${limit}`
+        );
+        return response.data;
+    }
+
+    /**
      * 댓글 추천
      * 🔒 인증 필요
      */

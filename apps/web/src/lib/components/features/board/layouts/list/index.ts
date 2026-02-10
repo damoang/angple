@@ -13,6 +13,9 @@ import CardLayout from './card.svelte';
 import DetailedLayout from './detailed.svelte';
 import GalleryLayout from './gallery.svelte';
 import WebzineLayout from './webzine.svelte';
+import GivingCardLayout from './giving-card.svelte';
+import PosterGalleryLayout from './poster-gallery.svelte';
+import MarketCardLayout from './market-card.svelte';
 
 /** 코어 목록 레이아웃 매니페스트 */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -61,6 +64,33 @@ const coreListLayouts: { manifest: LayoutManifest; component: any }[] = [
             wrapperClass: 'space-y-4'
         },
         component: WebzineLayout
+    },
+    {
+        manifest: {
+            id: 'giving-card',
+            name: '나눔 카드',
+            description: '나눔 게시판 전용 카드 레이아웃 (카운트다운, 참여자 배지)',
+            wrapperClass: 'grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4'
+        },
+        component: GivingCardLayout
+    },
+    {
+        manifest: {
+            id: 'poster-gallery',
+            name: '포스터 갤러리',
+            description: '2:3 비율 포스터 카드 갤러리 (앙티티 전용)',
+            wrapperClass: 'grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5'
+        },
+        component: PosterGalleryLayout
+    },
+    {
+        manifest: {
+            id: 'market-card',
+            name: '마켓 카드',
+            description: '중고마켓 전용 카드 레이아웃 (가격, 상태 배지)',
+            wrapperClass: 'grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4'
+        },
+        component: MarketCardLayout
     }
 ];
 
@@ -77,4 +107,13 @@ export function registerCoreListLayouts(): void {
 }
 
 // 컴포넌트 개별 export (하위호환)
-export { CompactLayout, CardLayout, DetailedLayout, GalleryLayout, WebzineLayout };
+export {
+    CompactLayout,
+    CardLayout,
+    DetailedLayout,
+    GalleryLayout,
+    WebzineLayout,
+    GivingCardLayout,
+    PosterGalleryLayout,
+    MarketCardLayout
+};

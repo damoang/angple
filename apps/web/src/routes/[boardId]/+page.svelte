@@ -21,6 +21,11 @@
     import AdSlot from '$lib/components/ui/ad-slot/ad-slot.svelte';
     import { SeoHead, createBreadcrumbJsonLd } from '$lib/seo/index.js';
     import type { SeoConfig } from '$lib/seo/types.js';
+    import { memberLevelStore } from '$lib/stores/member-levels.svelte.js';
+
+    // 특수 게시판 컴포넌트
+    import { GivingBoard } from '$lib/components/features/giving/index.js';
+    import BoardMapHeader from '$lib/components/features/board/board-map-header.svelte';
 
     // Board Layout System
     import { layoutRegistry, initCoreLayouts } from '$lib/components/features/board/layouts';
@@ -33,6 +38,17 @@
     // 게시판 정보
     const boardId = $derived(data.boardId);
     const boardTitle = $derived(data.board?.subject || boardId);
+
+    // 특수 게시판 타입 감지 (board_type 또는 boardId로 판단)
+    const boardType = $derived(
+        data.board?.board_type ||
+        (boardId === 'giving' ? 'giving' :
+         boardId === 'angtt' ? 'angtt' :
+         boardId === 'angmap' ? 'angmap' :
+         'standard')
+    );
+    const isGivingBoard = $derived(boardType === 'giving');
+    const isAngmapBoard = $derived(boardType === 'angmap');
 
     // 글쓰기 권한 체크
     // 1. 서버에서 계산된 permissions.can_write 사용 (인증된 경우)
@@ -164,6 +180,14 @@
         goto(url.pathname + url.search);
     }
 
+    // 게시글 작성자 레벨 배치 로드
+    $effect(() => {
+        const ids = [...new Set(data.posts.map((p) => p.author_id).filter(Boolean))];
+        if (ids.length > 0) {
+            void memberLevelStore.fetchLevels(ids);
+        }
+    });
+
     // SEO 설정
     const seoConfig: SeoConfig = $derived({
         meta: {
@@ -197,9 +221,18 @@
     }
 </script>
 
+<!-- 나눔 게시판: 전용 탭 기반 UI -->
+{#if isGivingBoard}
+    <GivingBoard {data} />
+{:else}
 <SeoHead config={seoConfig} />
 
 <div class="mx-auto pt-4">
+    <!-- 앙지도 헤더 -->
+    {#if isAngmapBoard}
+        <BoardMapHeader />
+    {/if}
+
     <!-- 헤더 -->
     <div class="mb-4 flex items-start justify-between">
         <div>
@@ -458,3 +491,4 @@
         </div>
     {/if}
 </div>
+{/if}
