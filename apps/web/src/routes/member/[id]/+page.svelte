@@ -12,6 +12,8 @@
     import MessageSquare from '@lucide/svelte/icons/message-square';
     import Ban from '@lucide/svelte/icons/ban';
     import Link from '@lucide/svelte/icons/link';
+    import { pluginStore } from '$lib/stores/plugin.svelte';
+    import InteractionPanel from '../../../../../../plugins/interaction-analysis/components/interaction-panel.svelte';
 
     let { data }: { data: PageData } = $props();
 
@@ -71,6 +73,9 @@
 
     // 본인 프로필인지 확인
     const isOwnProfile = $derived(authStore.user?.mb_id === data.profile?.mb_id);
+
+    // 상호작용 분석 플러그인 활성화 여부
+    let interactionPluginActive = $derived(pluginStore.isPluginActive('interaction-analysis'));
 
     // 차단하기
     async function handleBlock(): Promise<void> {
@@ -218,7 +223,12 @@
             </CardContent>
         </Card>
 
-        <!-- 추가 정보 또는 최근 활동 (향후 확장) -->
+        <!-- 상호작용 분석 (플러그인 활성화 시) -->
+        {#if interactionPluginActive && data.profile}
+            <InteractionPanel memberId={data.profile.mb_id} />
+        {/if}
+
+        <!-- 최근 활동 (향후 확장) -->
         <Card class="bg-background">
             <CardHeader>
                 <CardTitle class="text-lg">최근 활동</CardTitle>

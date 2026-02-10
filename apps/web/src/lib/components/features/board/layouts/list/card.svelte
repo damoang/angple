@@ -5,6 +5,8 @@
     import Lock from '@lucide/svelte/icons/lock';
     import { pluginStore } from '$lib/stores/plugin.svelte';
     import MemoBadge from '../../../../../../../../../plugins/member-memo/components/memo-badge.svelte';
+    import { LevelBadge } from '$lib/components/ui/level-badge/index.js';
+    import { memberLevelStore } from '$lib/stores/member-levels.svelte.js';
 
     let memoPluginActive = $derived(pluginStore.isPluginActive('member-memo'));
 
@@ -93,7 +95,12 @@
                         <div
                             class="text-secondary-foreground flex flex-wrap items-center gap-2 text-sm"
                         >
-                            <span>{post.author}</span>
+                            <span class="inline-flex items-center gap-0.5"
+                                ><LevelBadge
+                                    level={memberLevelStore.getLevel(post.author_id)}
+                                    size="sm"
+                                />{post.author}</span
+                            >
                             {#if memoPluginActive}
                                 <MemoBadge memberId={post.author_id} />
                             {/if}

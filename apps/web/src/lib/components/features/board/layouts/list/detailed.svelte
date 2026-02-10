@@ -3,6 +3,8 @@
     import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card/index.js';
     import type { FreePost, BoardDisplaySettings } from '$lib/api/types.js';
     import Lock from '@lucide/svelte/icons/lock';
+    import { LevelBadge } from '$lib/components/ui/level-badge/index.js';
+    import { memberLevelStore } from '$lib/stores/member-levels.svelte.js';
 
     // Props
     let {
@@ -63,7 +65,12 @@
                     {post.title}
                 </CardTitle>
                 <div class="text-secondary-foreground flex flex-wrap items-center gap-2 text-sm">
-                    <span>{post.author}</span>
+                    <span class="inline-flex items-center gap-0.5"
+                        ><LevelBadge
+                            level={memberLevelStore.getLevel(post.author_id)}
+                            size="sm"
+                        />{post.author}</span
+                    >
                     <span>•</span>
                     <span>{formatDate(post.created_at)}</span>
                     <span>•</span>
@@ -90,7 +97,9 @@
         <div class="flex gap-4">
             <!-- 좌측: 썸네일 (있을 경우) -->
             {#if thumbnailUrl && displaySettings?.show_thumbnail !== false}
-                <div class="bg-muted relative h-32 w-32 shrink-0 overflow-hidden rounded-md">
+                <div
+                    class="bg-muted relative h-20 w-20 shrink-0 overflow-hidden rounded-md sm:h-32 sm:w-32"
+                >
                     <img
                         src={thumbnailUrl}
                         alt={post.title}

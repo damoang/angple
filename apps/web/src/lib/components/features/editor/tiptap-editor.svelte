@@ -6,6 +6,8 @@
     import Image from '@tiptap/extension-image';
     import Placeholder from '@tiptap/extension-placeholder';
     import Underline from '@tiptap/extension-underline';
+    import Mention from '@tiptap/extension-mention';
+    import { mentionSuggestion } from './mention-suggestion.js';
     import { Button } from '$lib/components/ui/button/index.js';
     import { Input } from '$lib/components/ui/input/index.js';
     import {
@@ -127,7 +129,16 @@
                 Placeholder.configure({
                     placeholder
                 }),
-                Underline
+                Underline,
+                Mention.configure({
+                    HTMLAttributes: {
+                        class: 'mention-node text-primary font-medium'
+                    },
+                    suggestion: mentionSuggestion,
+                    renderText({ node }) {
+                        return `@${node.attrs.label ?? node.attrs.id}`;
+                    }
+                })
             ],
             content,
             editable: !disabled,
@@ -687,5 +698,13 @@
 
     :global(.tiptap-content .tiptap a:hover) {
         opacity: 0.8;
+    }
+
+    /* 멘션 노드 스타일 */
+    :global(.tiptap-content .tiptap .mention-node) {
+        background-color: hsl(var(--primary) / 0.1);
+        border-radius: 0.25rem;
+        padding: 0.125rem 0.25rem;
+        text-decoration: none;
     }
 </style>

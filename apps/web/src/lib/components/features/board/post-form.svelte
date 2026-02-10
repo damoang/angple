@@ -9,6 +9,8 @@
     import Lock from '@lucide/svelte/icons/lock';
     import Save from '@lucide/svelte/icons/save';
     import Clock from '@lucide/svelte/icons/clock';
+    import RotateCcw from '@lucide/svelte/icons/rotate-ccw';
+    import XIcon from '@lucide/svelte/icons/x';
     import type {
         FreePost,
         CreatePostRequest,
@@ -83,6 +85,10 @@
     let isSaving = $state(false);
     let hasUnsavedChanges = $state(false);
     let autoSaveTimer: ReturnType<typeof setInterval> | null = null;
+
+    // 임시저장 복원 배너
+    let showDraftBanner = $state(false);
+    let draftSavedTime = $state('');
 
     // 임시저장 데이터 타입
     interface DraftData {
@@ -184,10 +190,8 @@
         if (mode === 'create') {
             const draft = loadDraft();
             if (draft && (draft.title || draft.content)) {
-                const savedTime = new Date(draft.savedAt).toLocaleString('ko-KR');
-                if (confirm(`임시저장된 글이 있습니다. (${savedTime})\n불러오시겠습니까?`)) {
-                    restoreDraft();
-                }
+                draftSavedTime = new Date(draft.savedAt).toLocaleString('ko-KR');
+                showDraftBanner = true;
             }
         }
 
@@ -239,11 +243,17 @@
         return Object.keys(newErrors).length === 0;
     }
 
+    // 중복 제출 방지
+    let isSubmitting = $state(false);
+
     // 폼 제출
     async function handleSubmit(e: Event): Promise<void> {
         e.preventDefault();
 
+        if (isSubmitting || isLoading) return;
         if (!validate()) return;
+
+        isSubmitting = true;
 
         const data: CreatePostRequest | UpdatePostRequest =
             mode === 'create'
@@ -266,11 +276,15 @@
                       link2: link2.trim() || undefined
                   };
 
-        await onSubmit(data);
+        try {
+            await onSubmit(data);
 
-        // 제출 성공 시 임시저장 삭제
-        clearDraft();
-        hasUnsavedChanges = false;
+            // 제출 성공 시 임시저장 삭제
+            clearDraft();
+            hasUnsavedChanges = false;
+        } finally {
+            isSubmitting = false;
+        }
     }
 
     // 수동 임시저장
@@ -302,6 +316,40 @@
     const formTitle = $derived(mode === 'create' ? '새 글 작성' : '글 수정');
     const submitText = $derived(mode === 'create' ? '작성하기' : '수정하기');
 </script>
+
+{#if showDraftBanner}
+    <div
+        class="mx-auto mb-3 flex max-w-3xl items-center justify-between rounded-lg border border-yellow-300 bg-yellow-50 px-4 py-3 dark:border-yellow-700 dark:bg-yellow-950"
+    >
+        <div class="flex items-center gap-2 text-sm text-yellow-800 dark:text-yellow-200">
+            <RotateCcw class="h-4 w-4" />
+            <span>임시저장된 글이 있습니다. ({draftSavedTime})</span>
+        </div>
+        <div class="flex items-center gap-2">
+            <Button
+                variant="outline"
+                size="sm"
+                onclick={() => {
+                    restoreDraft();
+                    showDraftBanner = false;
+                }}
+                class="h-7 text-xs"
+            >
+                불러오기
+            </Button>
+            <button
+                type="button"
+                onclick={() => {
+                    clearDraft();
+                    showDraftBanner = false;
+                }}
+                class="text-yellow-600 hover:text-yellow-800 dark:text-yellow-400 dark:hover:text-yellow-200"
+            >
+                <XIcon class="h-4 w-4" />
+            </button>
+        </div>
+    </div>
+{/if}
 
 <Card class="bg-background mx-auto max-w-3xl">
     <CardHeader>
@@ -466,8 +514,8 @@
                 <Button type="button" variant="outline" onclick={onCancel} disabled={isLoading}>
                     취소
                 </Button>
-                <Button type="submit" disabled={isLoading}>
-                    {#if isLoading}
+                <Button type="submit" disabled={isLoading || isSubmitting}>
+                    {#if isLoading || isSubmitting}
                         <span class="mr-2">처리 중...</span>
                     {:else}
                         {submitText}

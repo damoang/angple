@@ -2,6 +2,8 @@
     import { Badge } from '$lib/components/ui/badge/index.js';
     import type { FreePost, BoardDisplaySettings } from '$lib/api/types.js';
     import ImageIcon from '@lucide/svelte/icons/image';
+    import { LevelBadge } from '$lib/components/ui/level-badge/index.js';
+    import { memberLevelStore } from '$lib/stores/member-levels.svelte.js';
 
     // Props (동일 인터페이스)
     let {
@@ -88,7 +90,12 @@
             {post.title}
         </h3>
         <div class="text-muted-foreground flex items-center gap-1.5 text-xs">
-            <span>{post.author}</span>
+            <span class="inline-flex items-center gap-0.5"
+                ><LevelBadge
+                    level={memberLevelStore.getLevel(post.author_id)}
+                    size="sm"
+                />{post.author}</span
+            >
             <span>·</span>
             <span>{formatDate(post.created_at)}</span>
             <span>·</span>

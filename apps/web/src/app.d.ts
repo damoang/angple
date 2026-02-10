@@ -27,6 +27,18 @@ declare global {
         DamoangAds?: DamoangAdsInterface;
         adsbygoogle?: object[];
         googletag?: typeof googletag;
+        turnstile?: {
+            render: (
+                element: HTMLElement,
+                options: {
+                    sitekey: string;
+                    theme?: 'light' | 'dark' | 'auto';
+                    callback?: (token: string) => void;
+                }
+            ) => string;
+            reset: (widgetId?: string) => void;
+            remove: (widgetId?: string) => void;
+        };
         [key: string]: unknown;
     }
 }

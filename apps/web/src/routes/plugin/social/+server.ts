@@ -143,13 +143,13 @@ async function handleCallback(
             maxAge: 60 * 60 * 24 * 7
         });
 
-        // access_token을 짧은 수명 쿠키로 전달 (클라이언트에서 메모리로 이동)
+        // access_token을 httpOnly 쿠키로 설정
         cookies.set('access_token', accessToken, {
             path: '/',
-            httpOnly: false,
+            httpOnly: true,
             sameSite: 'lax',
             secure: !dev,
-            maxAge: 60
+            maxAge: 60 * 15 // 15분 (JWT 만료와 일치)
         });
 
         // 11. 원래 페이지로 리다이렉트
@@ -159,7 +159,11 @@ async function handleCallback(
         if (err && typeof err === 'object' && 'status' in err) {
             throw err;
         }
-        console.error('[OAuth Callback]', providerName, err);
+        console.error(
+            '[OAuth Callback]',
+            providerName,
+            err instanceof Error ? err.message : 'Unknown error'
+        );
         redirect(302, '/login?error=oauth_error');
     }
 }

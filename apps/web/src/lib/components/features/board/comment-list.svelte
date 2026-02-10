@@ -20,6 +20,14 @@
     import { pluginStore } from '$lib/stores/plugin.svelte';
     import { loadMemosForAuthors } from '../../../../../../../plugins/member-memo/lib/memo-store.svelte';
     import MemoBadge from '../../../../../../../plugins/member-memo/components/memo-badge.svelte';
+    import { LevelBadge } from '$lib/components/ui/level-badge/index.js';
+    import { memberLevelStore } from '$lib/stores/member-levels.svelte.js';
+    import { highlightMentions } from '$lib/utils/mention-parser.js';
+    import { ReactionBar } from '$lib/components/features/reaction/index.js';
+    import CommentLikersDialog from './comment-likers-dialog.svelte';
+    import { AvatarStack } from '$lib/components/ui/avatar-stack/index.js';
+    import { apiClient } from '$lib/api/index.js';
+    import type { LikerInfo } from '$lib/api/types.js';
 
     interface Props {
         comments: FreeComment[];
@@ -47,8 +55,9 @@
         useNogood = false
     }: Props = $props();
 
-    // 회원 메모 플러그인 활성화 여부
+    // 플러그인 활성화 여부
     let memoPluginActive = $derived(pluginStore.isPluginActive('member-memo'));
+    let reactionPluginActive = $derived(pluginStore.isPluginActive('da-reaction'));
 
     // 댓글별 좋아요 상태 관리
     let likedComments = new SvelteSet<string>();
@@ -59,6 +68,10 @@
     let dislikedComments = new SvelteSet<string>();
     let commentDislikes = new SvelteMap<string, number>();
     let dislikingComment = $state<string | null>(null);
+
+    // 댓글별 추천자 아바타 캐시
+    let commentLikersList = new SvelteMap<string, LikerInfo[]>();
+    let commentLikersTotal = new SvelteMap<string, number>();
 
     // 수정 상태 관리
     let editingCommentId = $state<string | null>(null);
@@ -73,6 +86,20 @@
     // 신고 상태 관리
     let reportingCommentId = $state<number | string | null>(null);
     let showReportDialog = $state(false);
+
+    // 추천자 목록 다이얼로그 상태
+    let showLikersDialog = $state(false);
+    let likersCommentId = $state<number | string | null>(null);
+
+    function openLikersDialog(commentId: number | string): void {
+        likersCommentId = commentId;
+        showLikersDialog = true;
+    }
+
+    function closeLikersDialog(): void {
+        showLikersDialog = false;
+        likersCommentId = null;
+    }
 
     // 댓글 트리 구조로 변환
     const commentTree = $derived.by(() => {
@@ -247,6 +274,8 @@
                 likedComments.delete(commentId);
             }
             commentLikes.set(commentId, response.likes);
+            // 아바타 스택 갱신
+            loadCommentLikerAvatars(commentId);
         } catch (err) {
             console.error('Failed to like comment:', err);
         } finally {
@@ -323,9 +352,11 @@
             void (async () => {
                 const withBr = raw.replace(/\n/g, '<br>');
                 const filtered = await applyFilter<string>('comment_content', withBr);
+                // @멘션을 클릭 가능한 링크로 변환
+                const withMentions = highlightMentions(filtered);
                 processedComments.set(
                     comment.id,
-                    DOMPurify.sanitize(filtered, {
+                    DOMPurify.sanitize(withMentions, {
                         ALLOWED_TAGS: [
                             'img',
                             'br',
@@ -361,7 +392,8 @@
                             'title',
                             'href',
                             'target',
-                            'rel'
+                            'rel',
+                            'data-mention'
                         ]
                     })
                 );
@@ -379,11 +411,54 @@
         }
     });
 
+    // 회원 레벨 배치 프리로드
+    $effect(() => {
+        if (commentTree.length > 0) {
+            const ids = [...new Set(commentTree.map((c) => c.author_id).filter(Boolean))];
+            if (ids.length > 0) {
+                void memberLevelStore.fetchLevels(ids);
+            }
+        }
+    });
+
     // 신고 다이얼로그 닫기
     function closeReportDialog(): void {
         showReportDialog = false;
         reportingCommentId = null;
     }
+
+    // 댓글 추천자 아바타 로드
+    async function loadCommentLikerAvatars(commentId: string): Promise<void> {
+        if (!boardId || !postId) return;
+        try {
+            const response = await apiClient.getCommentLikers(
+                boardId,
+                String(postId),
+                commentId,
+                1,
+                5
+            );
+            commentLikersList.set(commentId, response.likers);
+            commentLikersTotal.set(commentId, response.total);
+        } catch (err) {
+            console.error('Failed to load comment liker avatars:', err);
+        }
+    }
+
+    // 좋아요 > 0인 댓글의 아바타 배치 로드 (최대 10개)
+    let likerAvatarsLoaded = $state(false);
+    $effect(() => {
+        if (likerAvatarsLoaded || commentTree.length === 0 || !boardId || !postId) return;
+
+        const commentsWithLikes = commentTree.filter((c) => (c.likes ?? 0) > 0).slice(0, 10);
+
+        if (commentsWithLikes.length > 0) {
+            likerAvatarsLoaded = true;
+            for (const c of commentsWithLikes) {
+                loadCommentLikerAvatars(String(c.id));
+            }
+        }
+    });
 </script>
 
 <ul class="space-y-4">
@@ -394,7 +469,7 @@
         {@const depth = comment.depth ?? 0}
         {@const isReply = depth > 0}
         {@const iconUrl = getMemberIconUrl(comment.author_id)}
-        <li style="margin-left: {depth * 1.25}rem" class="py-4 first:pt-0 last:pb-0">
+        <li style="margin-left: {Math.min(depth, 3) * 1.25}rem" class="py-4 first:pt-0 last:pb-0">
             <div>
                 <div class="mb-2 flex flex-wrap items-center gap-4">
                     <div class="flex items-center gap-2">
@@ -432,6 +507,10 @@
                                     ? 'text-sm'
                                     : ''} flex items-center gap-1.5"
                             >
+                                <LevelBadge
+                                    level={memberLevelStore.getLevel(comment.author_id)}
+                                    size={isReply ? 'sm' : 'md'}
+                                />
                                 {comment.author}
                                 {#if memoPluginActive}
                                     <MemoBadge memberId={comment.author_id} showIcon={true} />
@@ -452,23 +531,58 @@
                     </div>
 
                     <div class="text-secondary-foreground ml-auto flex items-center gap-4 text-sm">
-                        <!-- 댓글 좋아요 버튼 -->
-                        {#if onLike && authStore.isAuthenticated}
+                        <!-- 댓글 좋아요 버튼 (PHP 호환: thumbup 이미지) -->
+                        <div
+                            class="comment-good-group flex items-stretch rounded-lg border {isCommentLiked(
+                                String(comment.id)
+                            )
+                                ? 'border-liked/40 bg-liked/5'
+                                : 'border-border'}"
+                        >
+                            {#if onLike && authStore.isAuthenticated}
+                                <button
+                                    type="button"
+                                    onclick={() => handleLikeComment(String(comment.id))}
+                                    disabled={likingComment === String(comment.id)}
+                                    class="flex items-center px-1.5 py-1 transition-opacity hover:opacity-80"
+                                    title="추천"
+                                >
+                                    <img
+                                        src={isCommentLiked(String(comment.id))
+                                            ? '/images/thumbup-choose.gif'
+                                            : '/images/thumbup.png'}
+                                        alt="추천"
+                                        class="size-5"
+                                    />
+                                </button>
+                            {:else}
+                                <span class="flex items-center px-1.5 py-1">
+                                    <img src="/images/thumbup.png" alt="추천" class="size-5" />
+                                </span>
+                            {/if}
                             <button
                                 type="button"
-                                onclick={() => handleLikeComment(String(comment.id))}
-                                disabled={likingComment === String(comment.id)}
-                                class="flex items-center gap-1 transition-colors hover:text-red-500 {isCommentLiked(
+                                onclick={() => openLikersDialog(comment.id)}
+                                class="text-muted-foreground hover:text-foreground border-l {isCommentLiked(
                                     String(comment.id)
                                 )
-                                    ? 'text-red-500'
-                                    : ''}"
+                                    ? 'border-liked/40 text-liked'
+                                    : 'border-border'} px-2 py-1 text-xs font-medium transition-colors"
+                                title="추천인 목록보기"
                             >
-                                <span>{isCommentLiked(String(comment.id)) ? '❤️' : '👍'}</span>
-                                <span>{getCommentLikes(comment).toLocaleString()}</span>
+                                {getCommentLikes(comment).toLocaleString()}
                             </button>
-                        {:else}
-                            <span>👍 {getCommentLikes(comment).toLocaleString()}</span>
+                        </div>
+
+                        <!-- 댓글 추천자 아바타 스택 -->
+                        {#if getCommentLikes(comment) > 0 && commentLikersList.has(String(comment.id))}
+                            <AvatarStack
+                                items={commentLikersList.get(String(comment.id)) ?? []}
+                                total={commentLikersTotal.get(String(comment.id)) ?? 0}
+                                max={5}
+                                size="sm"
+                                onclick={() => openLikersDialog(comment.id)}
+                            />
                         {/if}
 
                         <!-- 댓글 비추천 버튼 (게시판 설정에서 활성화된 경우만) -->
@@ -478,10 +592,10 @@
                                     type="button"
                                     onclick={() => handleDislikeComment(String(comment.id))}
                                     disabled={dislikingComment === String(comment.id)}
-                                    class="flex items-center gap-1 transition-colors hover:text-blue-500 {isCommentDisliked(
+                                    class="hover:text-disliked flex items-center gap-1 transition-colors {isCommentDisliked(
                                         String(comment.id)
                                     )
-                                        ? 'text-blue-500'
+                                        ? 'text-disliked'
                                         : ''}"
                                 >
                                     <span>👎</span>
@@ -582,6 +696,13 @@
                     {/if}
                 {/if}
 
+                <!-- 리액션 (da-reaction 플러그인) -->
+                {#if reactionPluginActive && !isEditing && boardId && postId}
+                    <div class="mt-2">
+                        <ReactionBar {boardId} {postId} commentId={comment.id} target="comment" />
+                    </div>
+                {/if}
+
                 <!-- 답글 폼 -->
                 {#if isReplyingTo}
                     <div class="mt-4">
@@ -613,6 +734,17 @@
         {boardId}
         {postId}
         onClose={closeReportDialog}
+    />
+{/if}
+
+<!-- 댓글 추천자 목록 다이얼로그 -->
+{#if likersCommentId !== null && boardId && postId}
+    <CommentLikersDialog
+        bind:open={showLikersDialog}
+        {boardId}
+        {postId}
+        commentId={likersCommentId}
+        onClose={closeLikersDialog}
     />
 {/if}
 

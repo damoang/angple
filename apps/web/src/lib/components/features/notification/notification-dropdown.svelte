@@ -167,8 +167,10 @@
             <Bell class="text-muted-foreground h-5 w-5" />
         </span>
         {#if unreadCount > 0}
-            <span class="bg-primary noti-pulse absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full"
-            ></span>
+            <span
+                class="bg-primary noti-pulse absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-bold leading-none text-white"
+                >{unreadCount > 99 ? '99+' : unreadCount}</span
+            >
         {/if}
         <span class="sr-only">알림</span>
     </DropdownMenu.Trigger>

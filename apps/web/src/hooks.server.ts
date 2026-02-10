@@ -95,15 +95,15 @@ async function authenticateSSR(event: Parameters<Handle>[0]['event']): Promise<v
 function buildCsp(): string {
     const directives: string[] = [
         "default-src 'self'",
-        // SvelteKit + GAM(GPT) + AdSense 스크립트 허용
-        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://securepubads.g.doubleclick.net https://pagead2.googlesyndication.com https://ads.damoang.net https://www.googletagservices.com https://adservice.google.com https://partner.googleadservices.com https://tpc.googlesyndication.com https://www.google.com https://fundingchoicesmessages.google.com https://*.googlesyndication.com https://*.doubleclick.net https://*.gstatic.com https://*.adtrafficquality.google",
+        // SvelteKit + GAM(GPT) + AdSense + Turnstile 스크립트 허용
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://challenges.cloudflare.com https://securepubads.g.doubleclick.net https://pagead2.googlesyndication.com https://ads.damoang.net https://www.googletagservices.com https://adservice.google.com https://partner.googleadservices.com https://tpc.googlesyndication.com https://www.google.com https://fundingchoicesmessages.google.com https://*.googlesyndication.com https://*.doubleclick.net https://*.gstatic.com https://*.adtrafficquality.google",
         "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com https://ads.damoang.net",
         "font-src 'self' https://cdn.jsdelivr.net https://fonts.gstatic.com",
         "img-src 'self' data: blob: https:",
         // API 및 광고 서버 연결 허용
         "connect-src 'self' http://localhost:* ws://localhost:* https://damoang.net https://ads.damoang.net https://pagead2.googlesyndication.com https://securepubads.g.doubleclick.net https://www.google-analytics.com https://cdn.jsdelivr.net https://*.google.com https://*.googlesyndication.com https://*.doubleclick.net https://ep1.adtrafficquality.google https://ep2.adtrafficquality.google https://*.adtrafficquality.google https://*.gstatic.com",
-        // YouTube, Google 광고 iframe 허용
-        "frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com https://googleads.g.doubleclick.net https://securepubads.g.doubleclick.net https://tpc.googlesyndication.com https://www.google.com https://*.googlesyndication.com https://*.doubleclick.net",
+        // YouTube, Google 광고, Turnstile iframe 허용
+        "frame-src 'self' https://challenges.cloudflare.com https://www.youtube.com https://www.youtube-nocookie.com https://googleads.g.doubleclick.net https://securepubads.g.doubleclick.net https://tpc.googlesyndication.com https://www.google.com https://*.googlesyndication.com https://*.doubleclick.net",
         "frame-ancestors 'self'",
         "base-uri 'self'",
         "form-action 'self' https://appleid.apple.com"

@@ -40,6 +40,17 @@ export interface FreePost {
     link2?: string; // 링크2
     deleted_at?: string | null; // 소프트 삭제 시점
     deleted_by?: string | null; // 삭제한 사용자 ID
+    // 확장 필드 (PHP wr_1~wr_10 매핑)
+    extra_1?: string; // wr_1 - 회원전용 등
+    extra_2?: string; // wr_2 - 나눔: 포인트/숫자
+    extra_3?: string; // wr_3 - 나눔: 상품명
+    extra_4?: string; // wr_4 - 나눔: 시작일시
+    extra_5?: string; // wr_5 - 나눔: 종료일시
+    extra_6?: string; // wr_6 - 나눔: 배송유형
+    extra_7?: string; // wr_7 - 나눔: 상태(0=활성,1=일시정지,2=강제종료)
+    extra_8?: string; // wr_8 - 나눔: 일시정지 시작시간
+    extra_9?: string; // wr_9 - 동영상 URL
+    extra_10?: string; // wr_10 - 이미지 URL
 }
 
 // 자유게시판 댓글 타입
@@ -386,6 +397,7 @@ export interface SearchParams {
     field: SearchField; // 검색 필드 (sfl)
     page?: number;
     limit?: number;
+    tag?: string; // 태그 필터
 }
 
 // 전체 검색 결과 타입 (게시판별 그룹핑)
@@ -403,7 +415,16 @@ export interface GlobalSearchResponse {
 }
 
 // 게시판 목록 레이아웃 타입
-export type ListLayout = 'compact' | 'card' | 'detailed' | 'gallery' | 'webzine' | (string & {});
+export type ListLayout =
+    | 'compact'
+    | 'card'
+    | 'detailed'
+    | 'gallery'
+    | 'webzine'
+    | 'giving-card'
+    | 'poster-gallery'
+    | 'market-card'
+    | (string & {});
 
 // 게시판 본문 레이아웃 타입
 export type ViewLayout = 'basic' | (string & {});
@@ -458,6 +479,7 @@ export interface Board {
     insert_time: string;
     display_settings: BoardDisplaySettings;
     permissions?: BoardPermissions; // 사용자별 권한 정보 (서버에서 계산, 인증 시에만 포함)
+    board_type?: 'standard' | 'giving' | 'angtt' | 'angmap' | 'used-market'; // 특수 게시판 타입
 }
 
 // 파일 업로드 관련 타입
@@ -697,6 +719,44 @@ export interface OAuthLoginRequest {
     provider: OAuthProvider;
     code: string; // OAuth 인증 코드
     redirect_uri: string;
+}
+
+// ========================================
+// 관리자 게시글 관리 (Admin Post Management)
+// ========================================
+
+// 게시글 이동 요청
+export interface MovePostRequest {
+    target_board_id: string; // 이동할 대상 게시판 ID
+}
+
+// 게시글 이동 응답
+export interface MovePostResponse {
+    success: boolean;
+    new_post_id?: number; // 이동 후 새 게시글 ID
+    target_board_id: string;
+}
+
+// 게시글 카테고리 변경 요청
+export interface ChangeCategoryRequest {
+    category: string;
+}
+
+// 일괄 작업 요청
+export interface BulkPostRequest {
+    post_ids: number[];
+}
+
+// 일괄 이동 요청
+export interface BulkMoveRequest extends BulkPostRequest {
+    target_board_id: string;
+}
+
+// 일괄 작업 응답
+export interface BulkActionResponse {
+    success: boolean;
+    affected_count: number;
+    failed_ids?: number[];
 }
 
 // 회원가입 요청

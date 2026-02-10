@@ -773,6 +773,82 @@ class ApiClient {
     }
 
     // ========================================
+    // 관리자 게시글 관리 (Admin Post Management)
+    // ========================================
+
+    /**
+     * 게시글 이동 (다른 게시판으로)
+     * 🔒 관리자 전용
+     */
+    async movePost(
+        boardId: string,
+        postId: number | string,
+        targetBoardId: string
+    ): Promise<{ success: boolean; new_post_id?: number; target_board_id: string }> {
+        const response = await this.request<{
+            success: boolean;
+            new_post_id?: number;
+            target_board_id: string;
+        }>(`/boards/${boardId}/posts/${postId}/move`, {
+            method: 'POST',
+            body: JSON.stringify({ target_board_id: targetBoardId })
+        });
+        return response.data;
+    }
+
+    /**
+     * 게시글 카테고리 변경
+     * 🔒 관리자 전용
+     */
+    async changePostCategory(
+        boardId: string,
+        postId: number | string,
+        category: string
+    ): Promise<void> {
+        await this.request<void>(`/boards/${boardId}/posts/${postId}/category`, {
+            method: 'PATCH',
+            body: JSON.stringify({ category })
+        });
+    }
+
+    /**
+     * 게시글 일괄 삭제
+     * 🔒 관리자 전용
+     */
+    async bulkDeletePosts(
+        boardId: string,
+        postIds: number[]
+    ): Promise<{ success: boolean; affected_count: number }> {
+        const response = await this.request<{ success: boolean; affected_count: number }>(
+            `/boards/${boardId}/posts/bulk-delete`,
+            {
+                method: 'POST',
+                body: JSON.stringify({ post_ids: postIds })
+            }
+        );
+        return response.data;
+    }
+
+    /**
+     * 게시글 일괄 이동
+     * 🔒 관리자 전용
+     */
+    async bulkMovePosts(
+        boardId: string,
+        postIds: number[],
+        targetBoardId: string
+    ): Promise<{ success: boolean; affected_count: number }> {
+        const response = await this.request<{ success: boolean; affected_count: number }>(
+            `/boards/${boardId}/posts/bulk-move`,
+            {
+                method: 'POST',
+                body: JSON.stringify({ post_ids: postIds, target_board_id: targetBoardId })
+            }
+        );
+        return response.data;
+    }
+
+    // ========================================
     // 추천/비추천 (Like/Dislike)
     // ========================================
 
@@ -821,6 +897,22 @@ class ApiClient {
     ): Promise<LikersResponse> {
         const response = await this.request<LikersResponse>(
             `/boards/${boardId}/posts/${postId}/likers?page=${page}&limit=${limit}`
+        );
+        return response.data;
+    }
+
+    /**
+     * 댓글 추천자 목록 조회
+     */
+    async getCommentLikers(
+        boardId: string,
+        postId: string,
+        commentId: string,
+        page = 1,
+        limit = 20
+    ): Promise<LikersResponse> {
+        const response = await this.request<LikersResponse>(
+            `/boards/${boardId}/posts/${postId}/comments/${commentId}/likers?page=${page}&limit=${limit}`
         );
         return response.data;
     }
@@ -879,6 +971,9 @@ class ApiClient {
             page: String(params.page || 1),
             limit: String(params.limit || 20)
         });
+        if (params.tag) {
+            queryParams.set('tag', params.tag);
+        }
 
         const response = await this.request<BackendResponse>(
             `/boards/${boardId}/posts?${queryParams.toString()}`
