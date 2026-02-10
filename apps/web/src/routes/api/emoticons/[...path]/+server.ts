@@ -51,7 +51,7 @@ export const GET: RequestHandler = async ({ params }) => {
     }
 
     try {
-        const filePath = resolve(baseDir, filename);
+        const filePath = resolve(baseDir, filename); // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
 
         // 절대 경로가 허용된 디렉토리 내에 있는지 확인
         if (!filePath.startsWith(baseDir)) {

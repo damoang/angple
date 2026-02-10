@@ -86,7 +86,7 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
                     sentCount++;
                 }
             } catch (err) {
-                console.error(`멘션 알림 전송 실패 (${row.mb_nick}):`, err);
+                console.error('멘션 알림 전송 실패 (%s):', row.mb_nick, err);
             }
         }
 

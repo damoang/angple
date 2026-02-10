@@ -14,7 +14,9 @@
     import Loader2 from '@lucide/svelte/icons/loader-2';
     import UserPlus from '@lucide/svelte/icons/user-plus';
     import { onMount } from 'svelte';
-    import { PUBLIC_TURNSTILE_SITE_KEY } from '$env/static/public';
+    import { env } from '$env/dynamic/public';
+
+    const PUBLIC_TURNSTILE_SITE_KEY = env.PUBLIC_TURNSTILE_SITE_KEY || '';
     import type { PageData, ActionData } from './$types.js';
 
     let { data, form }: { data: PageData; form: ActionData } = $props();

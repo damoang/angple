@@ -15,7 +15,7 @@
 
     interface GivingBoardData {
         boardId: string;
-        board?: import('$lib/api/types.js').Board;
+        board?: import('$lib/api/types.js').Board | null;
         posts: FreePost[];
         notices?: FreePost[];
         pagination: {

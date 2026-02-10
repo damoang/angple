@@ -14,7 +14,9 @@
     import Mail from '@lucide/svelte/icons/mail';
     import Check from '@lucide/svelte/icons/check';
     import { onMount } from 'svelte';
-    import { PUBLIC_TURNSTILE_SITE_KEY } from '$env/static/public';
+    import { env } from '$env/dynamic/public';
+
+    const PUBLIC_TURNSTILE_SITE_KEY = env.PUBLIC_TURNSTILE_SITE_KEY || '';
     import type { ActionData } from './$types.js';
 
     let { form }: { form: ActionData } = $props();

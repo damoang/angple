@@ -71,7 +71,7 @@ class MentionPopup {
         this.props = props;
         this.selectedIndex = 0;
 
-        this.element = document.createElement('div');
+        this.element = document.createElement('div'); // nosemgrep: javascript.browser.security.insecure-document-method.insecure-document-method
         this.element.className =
             'bg-popover text-popover-foreground border border-border rounded-md shadow-lg max-h-60 w-72 overflow-y-auto z-50';
 

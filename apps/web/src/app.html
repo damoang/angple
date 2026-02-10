@@ -6,7 +6,13 @@
         <meta name="theme-color" content="#1a1a1a" />
         <link rel="manifest" href="/manifest.json" />
         <link rel="apple-touch-icon" href="/icons/icon-192.png" />
-        <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+        <!-- nosemgrep: html.security.audit.missing-integrity.missing-integrity -->
+        <script
+            src="https://challenges.cloudflare.com/turnstile/v0/api.js"
+            async
+            defer
+            crossorigin="anonymous"
+        ></script>
         %sveltekit.head%
     </head>
     <body data-sveltekit-preload-data="hover">

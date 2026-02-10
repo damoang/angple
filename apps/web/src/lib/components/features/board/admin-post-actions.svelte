@@ -77,9 +77,9 @@
     {#if categories.length > 0}
         <Select.Root
             type="single"
-            value={currentCategory ? { value: currentCategory, label: currentCategory } : undefined}
+            value={currentCategory || undefined}
             onValueChange={(v) => {
-                if (v?.value) handleCategoryChange(v.value);
+                if (v) handleCategoryChange(v);
             }}
             disabled={isChangingCategory}
         >
@@ -119,7 +119,7 @@
                 <Select.Root
                     type="single"
                     onValueChange={(v) => {
-                        if (v?.value) selectedBoardId = v.value;
+                        if (v) selectedBoardId = v;
                     }}
                 >
                     <Select.Trigger class="w-full">
