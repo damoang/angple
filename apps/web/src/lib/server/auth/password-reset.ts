@@ -72,7 +72,10 @@ export async function verifyPasswordResetToken(
     if (storedTimestamp) {
         const createdAt = parseInt(storedTimestamp, 36);
         if (Date.now() - createdAt > TOKEN_EXPIRY_MS) {
-            return { valid: false, error: '만료된 링크입니다. 비밀번호 재설정을 다시 요청해주세요.' };
+            return {
+                valid: false,
+                error: '만료된 링크입니다. 비밀번호 재설정을 다시 요청해주세요.'
+            };
         }
     }
 

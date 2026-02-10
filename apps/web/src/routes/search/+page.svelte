@@ -139,7 +139,10 @@
         // 검색어 정규식 이스케이프
         const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         const regex = new RegExp(`(${escapedQuery})`, 'gi');
-        return escaped.replace(regex, '<mark class="bg-yellow-200 dark:bg-yellow-800 rounded px-0.5">$1</mark>');
+        return escaped.replace(
+            regex,
+            '<mark class="bg-yellow-200 dark:bg-yellow-800 rounded px-0.5">$1</mark>'
+        );
     }
 
     // 현재 선택된 필드의 라벨
@@ -310,7 +313,12 @@
                         <Clock class="text-muted-foreground h-4 w-4" />
                         <span class="text-foreground text-sm font-medium">최근 검색어</span>
                     </div>
-                    <Button variant="ghost" size="sm" class="h-7 text-xs" onclick={clearRecentSearches}>
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        class="h-7 text-xs"
+                        onclick={clearRecentSearches}
+                    >
                         전체 삭제
                     </Button>
                 </div>

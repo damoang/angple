@@ -60,7 +60,7 @@ export const GET: RequestHandler = async ({ url, params }) => {
             )
             .join('\n');
     } catch (err) {
-        console.error(`[RSS] ${boardId} 피드 생성 실패:`, err);
+        console.error('[RSS] %s 피드 생성 실패:', boardId, err);
     }
 
     const xml = `<?xml version="1.0" encoding="UTF-8"?>

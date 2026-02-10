@@ -107,9 +107,7 @@
     <Dialog.Content class="max-w-md">
         <Dialog.Header>
             <Dialog.Title>게시글 이동</Dialog.Title>
-            <Dialog.Description>
-                이 게시글을 다른 게시판으로 이동합니다.
-            </Dialog.Description>
+            <Dialog.Description>이 게시글을 다른 게시판으로 이동합니다.</Dialog.Description>
         </Dialog.Header>
 
         <div class="py-4">
@@ -134,7 +132,10 @@
                                     <Select.GroupHeading>{group.name}</Select.GroupHeading>
                                     {#each group.boards as board (board.board_id)}
                                         {#if board.board_id !== boardId}
-                                            <Select.Item value={board.board_id} label={board.subject}>
+                                            <Select.Item
+                                                value={board.board_id}
+                                                label={board.subject}
+                                            >
                                                 {board.subject}
                                             </Select.Item>
                                         {/if}
@@ -148,9 +149,7 @@
         </div>
 
         <Dialog.Footer>
-            <Button variant="outline" onclick={() => (showMoveDialog = false)}>
-                취소
-            </Button>
+            <Button variant="outline" onclick={() => (showMoveDialog = false)}>취소</Button>
             <Button
                 onclick={handleMove}
                 disabled={!selectedBoardId || selectedBoardId === boardId || isMoving}

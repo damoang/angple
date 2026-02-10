@@ -42,7 +42,12 @@ export const actions: Actions = {
         }
 
         // 이메일 형식 검증 (RFC 5321 길이 제한 + 기본 형식)
-        if (email.length > 254 || !/^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/.test(email)) {
+        if (
+            email.length > 254 ||
+            !/^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/.test(
+                email
+            )
+        ) {
             return fail(400, { error: '올바른 이메일 주소를 입력해주세요.', email });
         }
 

@@ -13,24 +13,24 @@ const HTML_MENTION_REGEX = /data-mention="([^"]+)"/g;
  * plain text 또는 HTML에서 멘션된 닉네임 추출 (중복 제거)
  */
 export function extractMentions(content: string): string[] {
-	if (!content) return [];
+    if (!content) return [];
 
-	const mentions = new Set<string>();
+    const mentions = new Set<string>();
 
-	// HTML data-mention 속성에서 추출
-	let match: RegExpExecArray | null;
-	const htmlRegex = new RegExp(HTML_MENTION_REGEX.source, 'g');
-	while ((match = htmlRegex.exec(content)) !== null) {
-		mentions.add(match[1]);
-	}
+    // HTML data-mention 속성에서 추출
+    let match: RegExpExecArray | null;
+    const htmlRegex = new RegExp(HTML_MENTION_REGEX.source, 'g');
+    while ((match = htmlRegex.exec(content)) !== null) {
+        mentions.add(match[1]);
+    }
 
-	// plain text @닉네임 패턴에서 추출
-	const textRegex = new RegExp(MENTION_REGEX.source, 'g');
-	while ((match = textRegex.exec(content)) !== null) {
-		mentions.add(match[1]);
-	}
+    // plain text @닉네임 패턴에서 추출
+    const textRegex = new RegExp(MENTION_REGEX.source, 'g');
+    while ((match = textRegex.exec(content)) !== null) {
+        mentions.add(match[1]);
+    }
 
-	return [...mentions];
+    return [...mentions];
 }
 
 /**
@@ -38,11 +38,11 @@ export function extractMentions(content: string): string[] {
  * DOMPurify를 통과할 수 있도록 <a> 태그 사용
  */
 export function highlightMentions(content: string): string {
-	if (!content) return content;
+    if (!content) return content;
 
-	return content.replace(
-		MENTION_REGEX,
-		(_match, nick) =>
-			`<a href="/profile/${encodeURIComponent(nick)}" class="mention-link text-primary font-medium hover:underline" data-mention="${nick}">@${nick}</a>`
-	);
+    return content.replace(
+        MENTION_REGEX,
+        (_match, nick) =>
+            `<a href="/profile/${encodeURIComponent(nick)}" class="mention-link text-primary font-medium hover:underline" data-mention="${nick}">@${nick}</a>`
+    );
 }

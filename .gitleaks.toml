@@ -1,0 +1,14 @@
+[extend]
+useDefault = true
+
+[allowlist]
+paths = [
+  '''node_modules/''',
+  '''custom-themes/''',
+  '''custom-plugins/''',
+  '''pnpm-lock\.yaml$''',
+  '''docs/api/''',
+  '''widgets/.*/widget\.json$''',
+  '''\.env\.example$''',
+  '''\.github/workflows/ci\.yml$''',
+]

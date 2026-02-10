@@ -18,7 +18,8 @@ export const load: PageServerLoad = async ({ params, url }) => {
     if (!result.valid) {
         throw httpError(
             400,
-            result.error || '만료되었거나 유효하지 않은 링크입니다. 다시 비밀번호 찾기를 시도해주세요.'
+            result.error ||
+                '만료되었거나 유효하지 않은 링크입니다. 다시 비밀번호 찾기를 시도해주세요.'
         );
     }
 

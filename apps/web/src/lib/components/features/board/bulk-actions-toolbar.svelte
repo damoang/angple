@@ -74,7 +74,9 @@
 </script>
 
 {#if selectedIds.length > 0}
-    <div class="bg-primary/5 border-primary/20 sticky top-0 z-10 flex items-center gap-3 rounded-lg border px-4 py-3">
+    <div
+        class="bg-primary/5 border-primary/20 sticky top-0 z-10 flex items-center gap-3 rounded-lg border px-4 py-3"
+    >
         <CheckSquare class="text-primary h-5 w-5 shrink-0" />
         <span class="text-foreground text-sm font-medium">
             {selectedIds.length}개 선택됨
@@ -85,11 +87,7 @@
                 <ArrowRightLeft class="mr-1 h-4 w-4" />
                 이동
             </Button>
-            <Button
-                variant="destructive"
-                size="sm"
-                onclick={() => (showDeleteConfirm = true)}
-            >
+            <Button variant="destructive" size="sm" onclick={() => (showDeleteConfirm = true)}>
                 <Trash2 class="mr-1 h-4 w-4" />
                 삭제
             </Button>
@@ -106,13 +104,12 @@
         <Dialog.Header>
             <Dialog.Title>게시글 일괄 삭제</Dialog.Title>
             <Dialog.Description>
-                선택한 {selectedIds.length}개의 게시글을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.
+                선택한 {selectedIds.length}개의 게시글을 삭제하시겠습니까? 이 작업은 되돌릴 수
+                없습니다.
             </Dialog.Description>
         </Dialog.Header>
         <Dialog.Footer>
-            <Button variant="outline" onclick={() => (showDeleteConfirm = false)}>
-                취소
-            </Button>
+            <Button variant="outline" onclick={() => (showDeleteConfirm = false)}>취소</Button>
             <Button variant="destructive" onclick={handleBulkDelete} disabled={isDeleting}>
                 {isDeleting ? '삭제 중...' : '삭제'}
             </Button>
@@ -152,7 +149,10 @@
                                     <Select.GroupHeading>{group.name}</Select.GroupHeading>
                                     {#each group.boards as board (board.board_id)}
                                         {#if board.board_id !== boardId}
-                                            <Select.Item value={board.board_id} label={board.subject}>
+                                            <Select.Item
+                                                value={board.board_id}
+                                                label={board.subject}
+                                            >
                                                 {board.subject}
                                             </Select.Item>
                                         {/if}
@@ -166,9 +166,7 @@
         </div>
 
         <Dialog.Footer>
-            <Button variant="outline" onclick={() => (showMoveDialog = false)}>
-                취소
-            </Button>
+            <Button variant="outline" onclick={() => (showMoveDialog = false)}>취소</Button>
             <Button
                 onclick={handleBulkMove}
                 disabled={!selectedBoardId || selectedBoardId === boardId || isMoving}

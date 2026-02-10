@@ -72,7 +72,9 @@
                         />
                     </div>
                     {#if password && (password.length < 8 || !hasLetterAndNumber)}
-                        <p class="text-muted-foreground text-xs">8자 이상, 영문과 숫자를 모두 포함해주세요.</p>
+                        <p class="text-muted-foreground text-xs">
+                            8자 이상, 영문과 숫자를 모두 포함해주세요.
+                        </p>
                     {/if}
                 </div>
 

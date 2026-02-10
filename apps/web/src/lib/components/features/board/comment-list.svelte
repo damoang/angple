@@ -431,7 +431,13 @@
     async function loadCommentLikerAvatars(commentId: string): Promise<void> {
         if (!boardId || !postId) return;
         try {
-            const response = await apiClient.getCommentLikers(boardId, String(postId), commentId, 1, 5);
+            const response = await apiClient.getCommentLikers(
+                boardId,
+                String(postId),
+                commentId,
+                1,
+                5
+            );
             commentLikersList.set(commentId, response.likers);
             commentLikersTotal.set(commentId, response.total);
         } catch (err) {
@@ -444,9 +450,7 @@
     $effect(() => {
         if (likerAvatarsLoaded || commentTree.length === 0 || !boardId || !postId) return;
 
-        const commentsWithLikes = commentTree
-            .filter((c) => (c.likes ?? 0) > 0)
-            .slice(0, 10);
+        const commentsWithLikes = commentTree.filter((c) => (c.likes ?? 0) > 0).slice(0, 10);
 
         if (commentsWithLikes.length > 0) {
             likerAvatarsLoaded = true;
@@ -503,7 +507,10 @@
                                     ? 'text-sm'
                                     : ''} flex items-center gap-1.5"
                             >
-                                <LevelBadge level={memberLevelStore.getLevel(comment.author_id)} size={isReply ? 'sm' : 'md'} />
+                                <LevelBadge
+                                    level={memberLevelStore.getLevel(comment.author_id)}
+                                    size={isReply ? 'sm' : 'md'}
+                                />
                                 {comment.author}
                                 {#if memoPluginActive}
                                     <MemoBadge memberId={comment.author_id} showIcon={true} />
@@ -525,7 +532,13 @@
 
                     <div class="text-secondary-foreground ml-auto flex items-center gap-4 text-sm">
                         <!-- 댓글 좋아요 버튼 (PHP 호환: thumbup 이미지) -->
-                        <div class="comment-good-group flex items-stretch rounded-lg border {isCommentLiked(String(comment.id)) ? 'border-liked/40 bg-liked/5' : 'border-border'}">
+                        <div
+                            class="comment-good-group flex items-stretch rounded-lg border {isCommentLiked(
+                                String(comment.id)
+                            )
+                                ? 'border-liked/40 bg-liked/5'
+                                : 'border-border'}"
+                        >
                             {#if onLike && authStore.isAuthenticated}
                                 <button
                                     type="button"
@@ -544,17 +557,17 @@
                                 </button>
                             {:else}
                                 <span class="flex items-center px-1.5 py-1">
-                                    <img
-                                        src="/images/thumbup.png"
-                                        alt="추천"
-                                        class="size-5"
-                                    />
+                                    <img src="/images/thumbup.png" alt="추천" class="size-5" />
                                 </span>
                             {/if}
                             <button
                                 type="button"
                                 onclick={() => openLikersDialog(comment.id)}
-                                class="text-muted-foreground hover:text-foreground border-l {isCommentLiked(String(comment.id)) ? 'border-liked/40 text-liked' : 'border-border'} px-2 py-1 text-xs font-medium transition-colors"
+                                class="text-muted-foreground hover:text-foreground border-l {isCommentLiked(
+                                    String(comment.id)
+                                )
+                                    ? 'border-liked/40 text-liked'
+                                    : 'border-border'} px-2 py-1 text-xs font-medium transition-colors"
                                 title="추천인 목록보기"
                             >
                                 {getCommentLikes(comment).toLocaleString()}
@@ -579,7 +592,7 @@
                                     type="button"
                                     onclick={() => handleDislikeComment(String(comment.id))}
                                     disabled={dislikingComment === String(comment.id)}
-                                    class="flex items-center gap-1 transition-colors hover:text-disliked {isCommentDisliked(
+                                    class="hover:text-disliked flex items-center gap-1 transition-colors {isCommentDisliked(
                                         String(comment.id)
                                     )
                                         ? 'text-disliked'

@@ -1,6 +1,12 @@
 <script lang="ts">
     import { goto } from '$app/navigation';
-    import { Card, CardHeader, CardContent, CardFooter, CardTitle } from '$lib/components/ui/card/index.js';
+    import {
+        Card,
+        CardHeader,
+        CardContent,
+        CardFooter,
+        CardTitle
+    } from '$lib/components/ui/card/index.js';
     import { Badge } from '$lib/components/ui/badge/index.js';
     import { Button } from '$lib/components/ui/button/index.js';
     import * as Dialog from '$lib/components/ui/dialog/index.js';
@@ -39,7 +45,11 @@
     import { extractMentions } from '$lib/utils/mention-parser.js';
     import { BidPanel } from '$lib/components/features/giving/index.js';
     import { parseGivingStatus, isGivingUrgent } from '$lib/types/giving.js';
-    import { parseMarketInfo, MARKET_STATUS_LABELS, type MarketStatus } from '$lib/types/used-market.js';
+    import {
+        parseMarketInfo,
+        MARKET_STATUS_LABELS,
+        type MarketStatus
+    } from '$lib/types/used-market.js';
     import { ReactionBar } from '$lib/components/features/reaction/index.js';
     import { AvatarStack } from '$lib/components/ui/avatar-stack/index.js';
 
@@ -65,10 +75,13 @@
     // 특수 게시판 타입 감지
     const boardType = $derived(
         data.board?.board_type ||
-        (boardId === 'giving' ? 'giving' :
-         boardId === 'angtt' ? 'angtt' :
-         boardId === 'angmap' ? 'angmap' :
-         'standard')
+            (boardId === 'giving'
+                ? 'giving'
+                : boardId === 'angtt'
+                  ? 'angtt'
+                  : boardId === 'angmap'
+                    ? 'angmap'
+                    : 'standard')
     );
     const isGivingBoard = $derived(boardType === 'giving');
     const isUsedMarket = $derived(boardType === 'used-market');
@@ -81,7 +94,7 @@
     );
 
     // 중고게시판 상태 관리
-    let marketStatus = $state(data.post.extra_2 as MarketStatus || 'selling');
+    let marketStatus = $state((data.post.extra_2 as MarketStatus) || 'selling');
     let isChangingMarketStatus = $state(false);
 
     async function changeMarketStatus(newStatus: MarketStatus) {
@@ -609,7 +622,9 @@
                     </div>
                 </div>
 
-                <div class="text-secondary-foreground ml-auto flex gap-2 text-xs sm:gap-4 sm:text-sm">
+                <div
+                    class="text-secondary-foreground ml-auto flex gap-2 text-xs sm:gap-4 sm:text-sm"
+                >
                     <span>조회 {data.post.views.toLocaleString()}</span>
                     <span>추천 {likeCount.toLocaleString()}</span>
                     <span>댓글 {data.post.comments_count.toLocaleString()}</span>
@@ -639,94 +654,98 @@
                     {/if}
                 </AdultBlur>
             {:else}
-                <div class="flex flex-col items-center justify-center rounded-xl border border-dashed py-16">
+                <div
+                    class="flex flex-col items-center justify-center rounded-xl border border-dashed py-16"
+                >
                     <Lock class="text-muted-foreground mb-4 h-12 w-12" />
                     <p class="text-muted-foreground text-lg font-medium">비밀글입니다</p>
-                    <p class="text-muted-foreground mt-1 text-sm">작성자와 관리자만 볼 수 있습니다.</p>
+                    <p class="text-muted-foreground mt-1 text-sm">
+                        작성자와 관리자만 볼 수 있습니다.
+                    </p>
                 </div>
             {/if}
         </CardContent>
         {#if canViewSecret}
-        <CardFooter class="flex-col items-start gap-3">
-            <!-- 추천/비추천/신고 버튼 -->
-            <div class="flex w-full items-center gap-3">
-                <!-- 추천 버튼 -->
-                <div class="border-border flex items-center rounded-lg border">
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        onclick={handleLike}
-                        disabled={isLiking}
-                        class="gap-2 {isLiked ? 'text-liked' : ''}"
-                    >
-                        <Heart
-                            class="h-5 w-5 {isLiked ? 'fill-liked' : ''} {isLikeAnimating
-                                ? 'like-animation'
-                                : ''}"
-                        />
-                        <span class="font-semibold">{likeCount}</span>
-                    </Button>
-                    <button
-                        type="button"
-                        onclick={loadLikers}
-                        class="text-muted-foreground hover:text-foreground border-border border-l px-2 py-1 text-xs transition-colors"
-                    >
-                        <Users class="h-4 w-4" />
-                    </button>
-                </div>
-
-                <!-- 비추천 버튼 (게시판 설정에서 활성화된 경우만) -->
-                {#if data.board?.use_nogood === 1}
+            <CardFooter class="flex-col items-start gap-3">
+                <!-- 추천/비추천/신고 버튼 -->
+                <div class="flex w-full items-center gap-3">
+                    <!-- 추천 버튼 -->
                     <div class="border-border flex items-center rounded-lg border">
                         <Button
                             variant="ghost"
                             size="sm"
-                            onclick={handleDislike}
-                            disabled={isDisliking}
-                            class="gap-2 {isDisliked ? 'text-disliked' : ''}"
+                            onclick={handleLike}
+                            disabled={isLiking}
+                            class="gap-2 {isLiked ? 'text-liked' : ''}"
                         >
-                            <ThumbsDown class="h-5 w-5 {isDisliked ? 'fill-disliked' : ''}" />
-                            <span class="font-semibold">{dislikeCount}</span>
+                            <Heart
+                                class="h-5 w-5 {isLiked ? 'fill-liked' : ''} {isLikeAnimating
+                                    ? 'like-animation'
+                                    : ''}"
+                            />
+                            <span class="font-semibold">{likeCount}</span>
                         </Button>
+                        <button
+                            type="button"
+                            onclick={loadLikers}
+                            class="text-muted-foreground hover:text-foreground border-border border-l px-2 py-1 text-xs transition-colors"
+                        >
+                            <Users class="h-4 w-4" />
+                        </button>
                     </div>
-                {/if}
 
-                <!-- 신고 버튼 -->
-                {#if !isAuthor}
-                    <Button
-                        variant="ghost"
+                    <!-- 비추천 버튼 (게시판 설정에서 활성화된 경우만) -->
+                    {#if data.board?.use_nogood === 1}
+                        <div class="border-border flex items-center rounded-lg border">
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onclick={handleDislike}
+                                disabled={isDisliking}
+                                class="gap-2 {isDisliked ? 'text-disliked' : ''}"
+                            >
+                                <ThumbsDown class="h-5 w-5 {isDisliked ? 'fill-disliked' : ''}" />
+                                <span class="font-semibold">{dislikeCount}</span>
+                            </Button>
+                        </div>
+                    {/if}
+
+                    <!-- 신고 버튼 -->
+                    {#if !isAuthor}
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onclick={() => {
+                                if (!authStore.isAuthenticated) {
+                                    authStore.redirectToLogin();
+                                    return;
+                                }
+                                showReportDialog = true;
+                            }}
+                            class="text-muted-foreground hover:text-destructive ml-auto gap-2"
+                        >
+                            <Flag class="h-4 w-4" />
+                            <span>신고</span>
+                        </Button>
+                    {/if}
+                </div>
+
+                <!-- 추천자 아바타 스택 -->
+                {#if likers.length > 0}
+                    <AvatarStack
+                        items={likers}
+                        total={likersTotal}
+                        max={5}
                         size="sm"
-                        onclick={() => {
-                            if (!authStore.isAuthenticated) {
-                                authStore.redirectToLogin();
-                                return;
-                            }
-                            showReportDialog = true;
-                        }}
-                        class="text-muted-foreground hover:text-destructive ml-auto gap-2"
-                    >
-                        <Flag class="h-4 w-4" />
-                        <span>신고</span>
-                    </Button>
+                        onclick={loadLikers}
+                    />
                 {/if}
-            </div>
 
-            <!-- 추천자 아바타 스택 -->
-            {#if likers.length > 0}
-                <AvatarStack
-                    items={likers}
-                    total={likersTotal}
-                    max={5}
-                    size="sm"
-                    onclick={loadLikers}
-                />
-            {/if}
-
-            <!-- 리액션 (da-reaction 플러그인) -->
-            {#if reactionPluginActive}
-                <ReactionBar {boardId} postId={data.post.id} target="post" />
-            {/if}
-        </CardFooter>
+                <!-- 리액션 (da-reaction 플러그인) -->
+                {#if reactionPluginActive}
+                    <ReactionBar {boardId} postId={data.post.id} target="post" />
+                {/if}
+            </CardFooter>
         {/if}
     </Card>
 
@@ -762,7 +781,7 @@
         <div class="mb-6 flex items-center gap-3 rounded-lg border p-4">
             <span class="text-sm font-medium">판매 상태:</span>
             <div class="flex gap-2">
-                {#each (['selling', 'reserved', 'sold'] as const) as status (status)}
+                {#each ['selling', 'reserved', 'sold'] as const as status (status)}
                     <Button
                         variant={marketStatus === status ? 'default' : 'outline'}
                         size="sm"
@@ -881,7 +900,10 @@
                                 <!-- 닉네임 + 메모배지 + IP + 날짜 -->
                                 <div class="min-w-0 flex-1">
                                     <div class="flex items-center gap-1">
-                                        <LevelBadge level={memberLevelStore.getLevel(liker.mb_id)} size="sm" />
+                                        <LevelBadge
+                                            level={memberLevelStore.getLevel(liker.mb_id)}
+                                            size="sm"
+                                        />
                                         <a
                                             href="/profile/{liker.mb_id}"
                                             class="text-foreground hover:text-primary truncate text-sm font-medium"

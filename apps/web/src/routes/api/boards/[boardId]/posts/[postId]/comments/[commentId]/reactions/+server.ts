@@ -6,23 +6,23 @@ import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 
 export const GET: RequestHandler = async ({ params, url, fetch }) => {
-	const { boardId, commentId } = params;
-	const targetId = `comment:${boardId}:${commentId}`;
-	const res = await fetch(`/api/reactions?targetId=${encodeURIComponent(targetId)}`);
-	return json(await res.json());
+    const { boardId, commentId } = params;
+    const targetId = `comment:${boardId}:${commentId}`;
+    const res = await fetch(`/api/reactions?targetId=${encodeURIComponent(targetId)}`);
+    return json(await res.json());
 };
 
 export const POST: RequestHandler = async ({ params, request, fetch }) => {
-	const { boardId, postId, commentId } = params;
-	const body = await request.json();
-	const res = await fetch('/api/reactions', {
-		method: 'POST',
-		headers: { 'Content-Type': 'application/json' },
-		body: JSON.stringify({
-			...body,
-			targetId: `comment:${boardId}:${commentId}`,
-			parentId: `document:${boardId}:${postId}`
-		})
-	});
-	return json(await res.json());
+    const { boardId, postId, commentId } = params;
+    const body = await request.json();
+    const res = await fetch('/api/reactions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            ...body,
+            targetId: `comment:${boardId}:${commentId}`,
+            parentId: `document:${boardId}:${postId}`
+        })
+    });
+    return json(await res.json());
 };

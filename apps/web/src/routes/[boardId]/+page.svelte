@@ -42,10 +42,13 @@
     // 특수 게시판 타입 감지 (board_type 또는 boardId로 판단)
     const boardType = $derived(
         data.board?.board_type ||
-        (boardId === 'giving' ? 'giving' :
-         boardId === 'angtt' ? 'angtt' :
-         boardId === 'angmap' ? 'angmap' :
-         'standard')
+            (boardId === 'giving'
+                ? 'giving'
+                : boardId === 'angtt'
+                  ? 'angtt'
+                  : boardId === 'angmap'
+                    ? 'angmap'
+                    : 'standard')
     );
     const isGivingBoard = $derived(boardType === 'giving');
     const isAngmapBoard = $derived(boardType === 'angmap');
@@ -225,270 +228,270 @@
 {#if isGivingBoard}
     <GivingBoard {data} />
 {:else}
-<SeoHead config={seoConfig} />
+    <SeoHead config={seoConfig} />
 
-<div class="mx-auto pt-4">
-    <!-- 앙지도 헤더 -->
-    {#if isAngmapBoard}
-        <BoardMapHeader />
-    {/if}
-
-    <!-- 헤더 -->
-    <div class="mb-4 flex items-start justify-between">
-        <div>
-            <div class="flex items-center gap-2">
-                <h1 class="text-foreground text-xl font-bold sm:text-3xl">{boardTitle}</h1>
-                {#if isAdmin}
-                    <AdminLayoutSwitcher {boardId} currentLayout={listLayoutId} />
-                    <Button
-                        variant={bulkSelectMode ? 'default' : 'outline'}
-                        size="sm"
-                        onclick={toggleBulkSelect}
-                        class="h-8"
-                    >
-                        <CheckSquare class="mr-1 h-4 w-4" />
-                        선택
-                    </Button>
-                {/if}
-            </div>
-        </div>
-        {#if canWrite()}
-            <Button onclick={goToWrite} class="shrink-0">
-                <Pencil class="mr-2 h-4 w-4" />
-                글쓰기
-            </Button>
-        {:else if authStore.isAuthenticated}
-            <!-- 로그인했지만 권한 부족 -->
-            <Button
-                disabled
-                class="shrink-0 cursor-not-allowed opacity-60"
-                title={writePermissionMessage()}
-            >
-                <Lock class="mr-2 h-4 w-4" />
-                글쓰기
-            </Button>
+    <div class="mx-auto pt-4">
+        <!-- 앙지도 헤더 -->
+        {#if isAngmapBoard}
+            <BoardMapHeader />
         {/if}
-    </div>
 
-    <!-- 게시판 제목 아래 광고: GAM만 (축하메시지 OFF) -->
-    <div class="mb-4">
-        <DamoangBanner position="board-list" showCelebration={false} height="90px" />
-    </div>
-
-    <!-- 검색 폼 -->
-    <div class="mb-3">
-        <SearchForm boardPath={`/${boardId}`} />
-    </div>
-
-    <!-- 검색 폼 아래 GAM 광고 -->
-    <div class="mb-4">
-        <AdSlot position="board-head" height="90px" />
-    </div>
-
-    <!-- 카테고리 탭 -->
-    {#if categories.length > 0 && !isSearching}
-        <div class="mb-6 flex flex-wrap gap-2">
-            <Badge
-                variant={selectedCategory === '전체' ? 'default' : 'outline'}
-                class="cursor-pointer rounded-full px-4 py-2 text-sm"
-                onclick={() => changeCategory('전체')}
-            >
-                전체
-            </Badge>
-            {#each categories as category (category)}
-                <Badge
-                    variant={selectedCategory === category ? 'default' : 'outline'}
-                    class="cursor-pointer rounded-full px-4 py-2 text-sm"
-                    onclick={() => changeCategory(category)}
-                >
-                    {category}
-                </Badge>
-            {/each}
-        </div>
-    {/if}
-
-    <!-- 활성 태그 필터 -->
-    {#if activeTag}
-        <div class="mb-4 flex items-center gap-2">
-            <Tag class="text-muted-foreground h-4 w-4" />
-            <Badge variant="default" class="gap-1 rounded-full px-3 py-1">
-                #{activeTag}
-                <button onclick={clearTagFilter} class="ml-1 rounded-full hover:bg-white/20">
-                    <X class="h-3 w-3" />
-                </button>
-            </Badge>
-            <span class="text-muted-foreground text-sm">태그 필터 적용 중</span>
-        </div>
-    {/if}
-
-    <!-- 에러 메시지 -->
-    {#if data.error}
-        <Card class="border-destructive mb-6">
-            <CardContent class="pt-6">
-                <p class="text-destructive text-center">{data.error}</p>
-            </CardContent>
-        </Card>
-    {/if}
-
-    <!-- 공지사항 (검색 중이 아닐 때만 표시) -->
-    {#if hasNotices && !isSearching}
-        <div class="mb-4 space-y-1">
-            <!-- 필수 공지 -->
-            {#each importantNotices as notice (notice.id)}
-                <div
-                    class="bg-destructive/5 border-destructive/20 hover:bg-destructive/10 cursor-pointer rounded-lg border px-4 py-3 transition-colors"
-                    onclick={() => goToPost(notice.id)}
-                    role="button"
-                    tabindex="0"
-                    onkeydown={(e) => e.key === 'Enter' && goToPost(notice.id)}
-                >
-                    <div class="flex items-center gap-3">
-                        <div class="flex shrink-0 items-center gap-1.5">
-                            <Megaphone class="text-destructive h-4 w-4" />
-                            <Badge variant="destructive" class="text-xs">필수</Badge>
-                        </div>
-                        <h3 class="text-foreground flex-1 truncate font-medium">
-                            {notice.title}
-                        </h3>
-                        <span class="text-muted-foreground shrink-0 text-xs">
-                            {notice.author}
-                        </span>
-                    </div>
+        <!-- 헤더 -->
+        <div class="mb-4 flex items-start justify-between">
+            <div>
+                <div class="flex items-center gap-2">
+                    <h1 class="text-foreground text-xl font-bold sm:text-3xl">{boardTitle}</h1>
+                    {#if isAdmin}
+                        <AdminLayoutSwitcher {boardId} currentLayout={listLayoutId} />
+                        <Button
+                            variant={bulkSelectMode ? 'default' : 'outline'}
+                            size="sm"
+                            onclick={toggleBulkSelect}
+                            class="h-8"
+                        >
+                            <CheckSquare class="mr-1 h-4 w-4" />
+                            선택
+                        </Button>
+                    {/if}
                 </div>
-            {/each}
-
-            <!-- 일반 공지 -->
-            {#each normalNotices as notice (notice.id)}
-                <div
-                    class="bg-muted/50 border-border hover:bg-muted cursor-pointer rounded-lg border px-4 py-3 transition-colors"
-                    onclick={() => goToPost(notice.id)}
-                    role="button"
-                    tabindex="0"
-                    onkeydown={(e) => e.key === 'Enter' && goToPost(notice.id)}
+            </div>
+            {#if canWrite()}
+                <Button onclick={goToWrite} class="shrink-0">
+                    <Pencil class="mr-2 h-4 w-4" />
+                    글쓰기
+                </Button>
+            {:else if authStore.isAuthenticated}
+                <!-- 로그인했지만 권한 부족 -->
+                <Button
+                    disabled
+                    class="shrink-0 cursor-not-allowed opacity-60"
+                    title={writePermissionMessage()}
                 >
-                    <div class="flex items-center gap-3">
-                        <div class="flex shrink-0 items-center gap-1.5">
-                            <Pin class="text-muted-foreground h-4 w-4" />
-                            <Badge variant="secondary" class="text-xs">공지</Badge>
-                        </div>
-                        <h3 class="text-foreground flex-1 truncate font-medium">
-                            {notice.title}
-                        </h3>
-                        <span class="text-muted-foreground shrink-0 text-xs">
-                            {notice.author}
-                        </span>
-                    </div>
-                </div>
-            {/each}
-        </div>
-    {/if}
-
-    <!-- 일괄 작업 툴바 (관리자 선택 모드) -->
-    {#if bulkSelectMode}
-        <div class="mb-3">
-            <BulkActionsToolbar
-                {boardId}
-                selectedIds={selectedPostIds}
-                onClearSelection={clearSelection}
-                onActionComplete={handleBulkActionComplete}
-            />
-            {#if selectedPostIds.length === 0}
-                <div class="mt-2 flex items-center gap-2">
-                    <Button variant="ghost" size="sm" onclick={selectAllVisible}>
-                        현재 페이지 전체 선택
-                    </Button>
-                </div>
+                    <Lock class="mr-2 h-4 w-4" />
+                    글쓰기
+                </Button>
             {/if}
         </div>
-    {/if}
 
-    <!-- 게시글 목록 (레이아웃별 래퍼 클래스 적용) -->
-    <div class={wrapperClass}>
-        {#if filteredPosts.length === 0}
-            <Card class="bg-background {listLayoutId === 'gallery' ? 'col-span-full' : ''}">
-                <CardContent class="py-12 text-center">
-                    {#if isSearching}
-                        <p class="text-secondary-foreground">검색 결과가 없습니다.</p>
-                    {:else}
-                        <p class="text-secondary-foreground">게시글이 없습니다.</p>
-                    {/if}
+        <!-- 게시판 제목 아래 광고: GAM만 (축하메시지 OFF) -->
+        <div class="mb-4">
+            <DamoangBanner position="board-list" showCelebration={false} height="90px" />
+        </div>
+
+        <!-- 검색 폼 -->
+        <div class="mb-3">
+            <SearchForm boardPath={`/${boardId}`} />
+        </div>
+
+        <!-- 검색 폼 아래 GAM 광고 -->
+        <div class="mb-4">
+            <AdSlot position="board-head" height="90px" />
+        </div>
+
+        <!-- 카테고리 탭 -->
+        {#if categories.length > 0 && !isSearching}
+            <div class="mb-6 flex flex-wrap gap-2">
+                <Badge
+                    variant={selectedCategory === '전체' ? 'default' : 'outline'}
+                    class="cursor-pointer rounded-full px-4 py-2 text-sm"
+                    onclick={() => changeCategory('전체')}
+                >
+                    전체
+                </Badge>
+                {#each categories as category (category)}
+                    <Badge
+                        variant={selectedCategory === category ? 'default' : 'outline'}
+                        class="cursor-pointer rounded-full px-4 py-2 text-sm"
+                        onclick={() => changeCategory(category)}
+                    >
+                        {category}
+                    </Badge>
+                {/each}
+            </div>
+        {/if}
+
+        <!-- 활성 태그 필터 -->
+        {#if activeTag}
+            <div class="mb-4 flex items-center gap-2">
+                <Tag class="text-muted-foreground h-4 w-4" />
+                <Badge variant="default" class="gap-1 rounded-full px-3 py-1">
+                    #{activeTag}
+                    <button onclick={clearTagFilter} class="ml-1 rounded-full hover:bg-white/20">
+                        <X class="h-3 w-3" />
+                    </button>
+                </Badge>
+                <span class="text-muted-foreground text-sm">태그 필터 적용 중</span>
+            </div>
+        {/if}
+
+        <!-- 에러 메시지 -->
+        {#if data.error}
+            <Card class="border-destructive mb-6">
+                <CardContent class="pt-6">
+                    <p class="text-destructive text-center">{data.error}</p>
                 </CardContent>
             </Card>
-        {:else if LayoutComponent}
-            {#each filteredPosts as post (post.id)}
-                {#if bulkSelectMode}
-                    <div class="flex items-start gap-2">
-                        <div class="flex shrink-0 items-center pt-3">
-                            <Checkbox
-                                checked={selectedPostIds.includes(post.id)}
-                                onCheckedChange={() => togglePostSelection(post.id)}
-                            />
-                        </div>
-                        <div class="min-w-0 flex-1">
-                            <LayoutComponent
-                                {post}
-                                displaySettings={data.board?.display_settings}
-                                onclick={() => goToPost(post.id)}
-                            />
+        {/if}
+
+        <!-- 공지사항 (검색 중이 아닐 때만 표시) -->
+        {#if hasNotices && !isSearching}
+            <div class="mb-4 space-y-1">
+                <!-- 필수 공지 -->
+                {#each importantNotices as notice (notice.id)}
+                    <div
+                        class="bg-destructive/5 border-destructive/20 hover:bg-destructive/10 cursor-pointer rounded-lg border px-4 py-3 transition-colors"
+                        onclick={() => goToPost(notice.id)}
+                        role="button"
+                        tabindex="0"
+                        onkeydown={(e) => e.key === 'Enter' && goToPost(notice.id)}
+                    >
+                        <div class="flex items-center gap-3">
+                            <div class="flex shrink-0 items-center gap-1.5">
+                                <Megaphone class="text-destructive h-4 w-4" />
+                                <Badge variant="destructive" class="text-xs">필수</Badge>
+                            </div>
+                            <h3 class="text-foreground flex-1 truncate font-medium">
+                                {notice.title}
+                            </h3>
+                            <span class="text-muted-foreground shrink-0 text-xs">
+                                {notice.author}
+                            </span>
                         </div>
                     </div>
-                {:else}
-                    <LayoutComponent
-                        {post}
-                        displaySettings={data.board?.display_settings}
-                        onclick={() => goToPost(post.id)}
-                    />
+                {/each}
+
+                <!-- 일반 공지 -->
+                {#each normalNotices as notice (notice.id)}
+                    <div
+                        class="bg-muted/50 border-border hover:bg-muted cursor-pointer rounded-lg border px-4 py-3 transition-colors"
+                        onclick={() => goToPost(notice.id)}
+                        role="button"
+                        tabindex="0"
+                        onkeydown={(e) => e.key === 'Enter' && goToPost(notice.id)}
+                    >
+                        <div class="flex items-center gap-3">
+                            <div class="flex shrink-0 items-center gap-1.5">
+                                <Pin class="text-muted-foreground h-4 w-4" />
+                                <Badge variant="secondary" class="text-xs">공지</Badge>
+                            </div>
+                            <h3 class="text-foreground flex-1 truncate font-medium">
+                                {notice.title}
+                            </h3>
+                            <span class="text-muted-foreground shrink-0 text-xs">
+                                {notice.author}
+                            </span>
+                        </div>
+                    </div>
+                {/each}
+            </div>
+        {/if}
+
+        <!-- 일괄 작업 툴바 (관리자 선택 모드) -->
+        {#if bulkSelectMode}
+            <div class="mb-3">
+                <BulkActionsToolbar
+                    {boardId}
+                    selectedIds={selectedPostIds}
+                    onClearSelection={clearSelection}
+                    onActionComplete={handleBulkActionComplete}
+                />
+                {#if selectedPostIds.length === 0}
+                    <div class="mt-2 flex items-center gap-2">
+                        <Button variant="ghost" size="sm" onclick={selectAllVisible}>
+                            현재 페이지 전체 선택
+                        </Button>
+                    </div>
                 {/if}
-            {/each}
+            </div>
+        {/if}
+
+        <!-- 게시글 목록 (레이아웃별 래퍼 클래스 적용) -->
+        <div class={wrapperClass}>
+            {#if filteredPosts.length === 0}
+                <Card class="bg-background {listLayoutId === 'gallery' ? 'col-span-full' : ''}">
+                    <CardContent class="py-12 text-center">
+                        {#if isSearching}
+                            <p class="text-secondary-foreground">검색 결과가 없습니다.</p>
+                        {:else}
+                            <p class="text-secondary-foreground">게시글이 없습니다.</p>
+                        {/if}
+                    </CardContent>
+                </Card>
+            {:else if LayoutComponent}
+                {#each filteredPosts as post (post.id)}
+                    {#if bulkSelectMode}
+                        <div class="flex items-start gap-2">
+                            <div class="flex shrink-0 items-center pt-3">
+                                <Checkbox
+                                    checked={selectedPostIds.includes(post.id)}
+                                    onCheckedChange={() => togglePostSelection(post.id)}
+                                />
+                            </div>
+                            <div class="min-w-0 flex-1">
+                                <LayoutComponent
+                                    {post}
+                                    displaySettings={data.board?.display_settings}
+                                    onclick={() => goToPost(post.id)}
+                                />
+                            </div>
+                        </div>
+                    {:else}
+                        <LayoutComponent
+                            {post}
+                            displaySettings={data.board?.display_settings}
+                            onclick={() => goToPost(post.id)}
+                        />
+                    {/if}
+                {/each}
+            {/if}
+        </div>
+
+        <!-- 페이지네이션 -->
+        {#if data.pagination.totalPages > 1}
+            <div class="mt-8 flex items-center justify-center gap-2">
+                <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={data.pagination.page === 1}
+                    onclick={() => goToPage(data.pagination.page - 1)}
+                >
+                    이전
+                </Button>
+
+                {#each Array.from({ length: Math.min(5, data.pagination.totalPages) }, (_, i) => {
+                    const startPage = Math.max(1, data.pagination.page - 2);
+                    return startPage + i;
+                }) as pageNum (pageNum)}
+                    {#if pageNum <= data.pagination.totalPages}
+                        <Button
+                            variant={pageNum === data.pagination.page ? 'default' : 'outline'}
+                            size="sm"
+                            onclick={() => goToPage(pageNum)}
+                        >
+                            {pageNum}
+                        </Button>
+                    {/if}
+                {/each}
+
+                <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={data.pagination.page === data.pagination.totalPages}
+                    onclick={() => goToPage(data.pagination.page + 1)}
+                >
+                    다음
+                </Button>
+            </div>
+
+            <p class="text-secondary-foreground mt-4 text-center text-sm">
+                {isSearching ? '검색결과 ' : '전체 '}{data.pagination.total.toLocaleString()}개 중 {data
+                    .pagination.page} / {data.pagination.totalPages} 페이지
+            </p>
+
+            <!-- 페이지네이션 아래 GAM 광고 -->
+            <div class="mt-6">
+                <AdSlot position="board-list-bottom" height="90px" />
+            </div>
         {/if}
     </div>
-
-    <!-- 페이지네이션 -->
-    {#if data.pagination.totalPages > 1}
-        <div class="mt-8 flex items-center justify-center gap-2">
-            <Button
-                variant="outline"
-                size="sm"
-                disabled={data.pagination.page === 1}
-                onclick={() => goToPage(data.pagination.page - 1)}
-            >
-                이전
-            </Button>
-
-            {#each Array.from({ length: Math.min(5, data.pagination.totalPages) }, (_, i) => {
-                const startPage = Math.max(1, data.pagination.page - 2);
-                return startPage + i;
-            }) as pageNum (pageNum)}
-                {#if pageNum <= data.pagination.totalPages}
-                    <Button
-                        variant={pageNum === data.pagination.page ? 'default' : 'outline'}
-                        size="sm"
-                        onclick={() => goToPage(pageNum)}
-                    >
-                        {pageNum}
-                    </Button>
-                {/if}
-            {/each}
-
-            <Button
-                variant="outline"
-                size="sm"
-                disabled={data.pagination.page === data.pagination.totalPages}
-                onclick={() => goToPage(data.pagination.page + 1)}
-            >
-                다음
-            </Button>
-        </div>
-
-        <p class="text-secondary-foreground mt-4 text-center text-sm">
-            {isSearching ? '검색결과 ' : '전체 '}{data.pagination.total.toLocaleString()}개 중 {data
-                .pagination.page} / {data.pagination.totalPages} 페이지
-        </p>
-
-        <!-- 페이지네이션 아래 GAM 광고 -->
-        <div class="mt-6">
-            <AdSlot position="board-list-bottom" height="90px" />
-        </div>
-    {/if}
-</div>
 {/if}

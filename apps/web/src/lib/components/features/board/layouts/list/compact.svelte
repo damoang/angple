@@ -92,7 +92,12 @@
                 {post.title}
             </h3>
             <div class="text-muted-foreground flex flex-wrap items-center gap-2 text-xs">
-                <span class="inline-flex items-center gap-0.5"><LevelBadge level={memberLevelStore.getLevel(post.author_id)} size="sm" />{post.author}</span>
+                <span class="inline-flex items-center gap-0.5"
+                    ><LevelBadge
+                        level={memberLevelStore.getLevel(post.author_id)}
+                        size="sm"
+                    />{post.author}</span
+                >
                 <span>•</span>
                 <span>{formatDate(post.created_at)}</span>
                 <span>•</span>

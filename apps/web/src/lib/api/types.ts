@@ -415,7 +415,16 @@ export interface GlobalSearchResponse {
 }
 
 // 게시판 목록 레이아웃 타입
-export type ListLayout = 'compact' | 'card' | 'detailed' | 'gallery' | 'webzine' | 'giving-card' | 'poster-gallery' | 'market-card' | (string & {});
+export type ListLayout =
+    | 'compact'
+    | 'card'
+    | 'detailed'
+    | 'gallery'
+    | 'webzine'
+    | 'giving-card'
+    | 'poster-gallery'
+    | 'market-card'
+    | (string & {});
 
 // 게시판 본문 레이아웃 타입
 export type ViewLayout = 'basic' | (string & {});

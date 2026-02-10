@@ -159,7 +159,11 @@ async function handleCallback(
         if (err && typeof err === 'object' && 'status' in err) {
             throw err;
         }
-        console.error('[OAuth Callback]', providerName, err instanceof Error ? err.message : 'Unknown error');
+        console.error(
+            '[OAuth Callback]',
+            providerName,
+            err instanceof Error ? err.message : 'Unknown error'
+        );
         redirect(302, '/login?error=oauth_error');
     }
 }

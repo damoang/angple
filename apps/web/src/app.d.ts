@@ -30,7 +30,11 @@ declare global {
         turnstile?: {
             render: (
                 element: HTMLElement,
-                options: { sitekey: string; theme?: 'light' | 'dark' | 'auto'; callback?: (token: string) => void }
+                options: {
+                    sitekey: string;
+                    theme?: 'light' | 'dark' | 'auto';
+                    callback?: (token: string) => void;
+                }
             ) => string;
             reset: (widgetId?: string) => void;
             remove: (widgetId?: string) => void;

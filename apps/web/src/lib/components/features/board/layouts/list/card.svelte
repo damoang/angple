@@ -95,7 +95,12 @@
                         <div
                             class="text-secondary-foreground flex flex-wrap items-center gap-2 text-sm"
                         >
-                            <span class="inline-flex items-center gap-0.5"><LevelBadge level={memberLevelStore.getLevel(post.author_id)} size="sm" />{post.author}</span>
+                            <span class="inline-flex items-center gap-0.5"
+                                ><LevelBadge
+                                    level={memberLevelStore.getLevel(post.author_id)}
+                                    size="sm"
+                                />{post.author}</span
+                            >
                             {#if memoPluginActive}
                                 <MemoBadge memberId={post.author_id} />
                             {/if}

@@ -12,40 +12,40 @@ const TURNSTILE_SECRET_KEY = process.env.TURNSTILE_SECRET_KEY || '';
  * @returns 검증 성공 여부
  */
 export async function verifyTurnstile(token: string, ip: string): Promise<boolean> {
-	if (!TURNSTILE_SECRET_KEY) {
-		console.warn('[Captcha] TURNSTILE_SECRET_KEY가 설정되지 않음 — 검증 건너뜀');
-		return true;
-	}
+    if (!TURNSTILE_SECRET_KEY) {
+        console.warn('[Captcha] TURNSTILE_SECRET_KEY가 설정되지 않음 — 검증 건너뜀');
+        return true;
+    }
 
-	if (!token) {
-		return false;
-	}
+    if (!token) {
+        return false;
+    }
 
-	try {
-		const res = await fetch(TURNSTILE_VERIFY_URL, {
-			method: 'POST',
-			headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-			body: new URLSearchParams({
-				secret: TURNSTILE_SECRET_KEY,
-				response: token,
-				remoteip: ip
-			})
-		});
+    try {
+        const res = await fetch(TURNSTILE_VERIFY_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({
+                secret: TURNSTILE_SECRET_KEY,
+                response: token,
+                remoteip: ip
+            })
+        });
 
-		if (!res.ok) {
-			console.error('[Captcha] Turnstile API 응답 오류:', res.status);
-			return false;
-		}
+        if (!res.ok) {
+            console.error('[Captcha] Turnstile API 응답 오류:', res.status);
+            return false;
+        }
 
-		const data = (await res.json()) as { success: boolean; 'error-codes'?: string[] };
+        const data = (await res.json()) as { success: boolean; 'error-codes'?: string[] };
 
-		if (!data.success) {
-			console.warn('[Captcha] Turnstile 검증 실패:', data['error-codes']);
-		}
+        if (!data.success) {
+            console.warn('[Captcha] Turnstile 검증 실패:', data['error-codes']);
+        }
 
-		return data.success;
-	} catch (err) {
-		console.error('[Captcha] Turnstile 검증 중 예외:', err);
-		return false;
-	}
+        return data.success;
+    } catch (err) {
+        console.error('[Captcha] Turnstile 검증 중 예외:', err);
+        return false;
+    }
 }

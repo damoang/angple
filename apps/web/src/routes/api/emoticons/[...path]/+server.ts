@@ -10,64 +10,64 @@ import { readFile } from 'fs/promises';
 import { resolve } from 'path';
 
 const MIME_TYPES: Record<string, string> = {
-	gif: 'image/gif',
-	png: 'image/png',
-	jpg: 'image/jpeg',
-	jpeg: 'image/jpeg',
-	webp: 'image/webp',
-	svg: 'image/svg+xml'
+    gif: 'image/gif',
+    png: 'image/png',
+    jpg: 'image/jpeg',
+    jpeg: 'image/jpeg',
+    webp: 'image/webp',
+    svg: 'image/svg+xml'
 };
 
 const ALLOWED_DIRS: Record<string, string> = {
-	nariya: '/home/damoang/www/plugin/nariya/skin/emo',
-	da_reaction: '/home/damoang/www/plugin/da_reaction/public/emoticon-images'
+    nariya: '/home/damoang/www/plugin/nariya/skin/emo',
+    da_reaction: '/home/damoang/www/plugin/da_reaction/public/emoticon-images'
 };
 
 export const GET: RequestHandler = async ({ params }) => {
-	const pathParts = params.path.split('/');
+    const pathParts = params.path.split('/');
 
-	if (pathParts.length < 2) {
-		return new Response('Not found', { status: 404 });
-	}
+    if (pathParts.length < 2) {
+        return new Response('Not found', { status: 404 });
+    }
 
-	const dirKey = pathParts[0];
-	const filename = pathParts.slice(1).join('/');
+    const dirKey = pathParts[0];
+    const filename = pathParts.slice(1).join('/');
 
-	const baseDir = ALLOWED_DIRS[dirKey];
-	if (!baseDir) {
-		return new Response('Not found', { status: 404 });
-	}
+    const baseDir = ALLOWED_DIRS[dirKey];
+    if (!baseDir) {
+        return new Response('Not found', { status: 404 });
+    }
 
-	// 경로 탐색 공격 방지
-	if (filename.includes('..') || filename.includes('\\') || filename.startsWith('/')) {
-		return new Response('Forbidden', { status: 403 });
-	}
+    // 경로 탐색 공격 방지
+    if (filename.includes('..') || filename.includes('\\') || filename.startsWith('/')) {
+        return new Response('Forbidden', { status: 403 });
+    }
 
-	// 확장자 검증
-	const ext = filename.split('.').pop()?.toLowerCase() || '';
-	const mimeType = MIME_TYPES[ext];
-	if (!mimeType) {
-		return new Response('Unsupported file type', { status: 415 });
-	}
+    // 확장자 검증
+    const ext = filename.split('.').pop()?.toLowerCase() || '';
+    const mimeType = MIME_TYPES[ext];
+    if (!mimeType) {
+        return new Response('Unsupported file type', { status: 415 });
+    }
 
-	try {
-		const filePath = resolve(baseDir, filename);
+    try {
+        const filePath = resolve(baseDir, filename);
 
-		// 절대 경로가 허용된 디렉토리 내에 있는지 확인
-		if (!filePath.startsWith(baseDir)) {
-			return new Response('Forbidden', { status: 403 });
-		}
+        // 절대 경로가 허용된 디렉토리 내에 있는지 확인
+        if (!filePath.startsWith(baseDir)) {
+            return new Response('Forbidden', { status: 403 });
+        }
 
-		const data = await readFile(filePath);
+        const data = await readFile(filePath);
 
-		return new Response(data, {
-			headers: {
-				'Content-Type': mimeType,
-				'Cache-Control': 'public, max-age=31536000, immutable',
-				'Access-Control-Allow-Origin': '*'
-			}
-		});
-	} catch {
-		return new Response('Not found', { status: 404 });
-	}
+        return new Response(data, {
+            headers: {
+                'Content-Type': mimeType,
+                'Cache-Control': 'public, max-age=31536000, immutable',
+                'Access-Control-Allow-Origin': '*'
+            }
+        });
+    } catch {
+        return new Response('Not found', { status: 404 });
+    }
 };

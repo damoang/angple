@@ -1,5 +1,13 @@
 {
-    "activePlugins": ["ad-widget", "emoticon", "bracket-image", "auto-embed", "member-memo", "interaction-analysis", "da-reaction"],
+    "activePlugins": [
+        "ad-widget",
+        "emoticon",
+        "bracket-image",
+        "auto-embed",
+        "member-memo",
+        "interaction-analysis",
+        "da-reaction"
+    ],
     "plugins": {
         "ad-widget": {
             "settings": {

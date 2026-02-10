@@ -318,7 +318,9 @@
 </script>
 
 {#if showDraftBanner}
-    <div class="mx-auto mb-3 flex max-w-3xl items-center justify-between rounded-lg border border-yellow-300 bg-yellow-50 px-4 py-3 dark:border-yellow-700 dark:bg-yellow-950">
+    <div
+        class="mx-auto mb-3 flex max-w-3xl items-center justify-between rounded-lg border border-yellow-300 bg-yellow-50 px-4 py-3 dark:border-yellow-700 dark:bg-yellow-950"
+    >
         <div class="flex items-center gap-2 text-sm text-yellow-800 dark:text-yellow-200">
             <RotateCcw class="h-4 w-4" />
             <span>임시저장된 글이 있습니다. ({draftSavedTime})</span>
@@ -327,14 +329,20 @@
             <Button
                 variant="outline"
                 size="sm"
-                onclick={() => { restoreDraft(); showDraftBanner = false; }}
+                onclick={() => {
+                    restoreDraft();
+                    showDraftBanner = false;
+                }}
                 class="h-7 text-xs"
             >
                 불러오기
             </Button>
             <button
                 type="button"
-                onclick={() => { clearDraft(); showDraftBanner = false; }}
+                onclick={() => {
+                    clearDraft();
+                    showDraftBanner = false;
+                }}
                 class="text-yellow-600 hover:text-yellow-800 dark:text-yellow-400 dark:hover:text-yellow-200"
             >
                 <XIcon class="h-4 w-4" />
