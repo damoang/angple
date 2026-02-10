@@ -75,7 +75,7 @@
 </script>
 
 {#if loading}
-    <div class="h-24 animate-pulse rounded-xl bg-slate-200 dark:bg-slate-700"></div>
+    <div class="h-16 animate-pulse rounded-xl bg-slate-200 dark:bg-slate-700"></div>
 {:else if banner}
     <div class="celeb-card grad-{gradientNum}">
         <div class="celeb-header">
@@ -106,7 +106,7 @@
                     />
                 {:else}
                     <div class="celeb-avatar-placeholder">
-                        <User size={20} color="white" />
+                        <User size={16} color="white" />
                     </div>
                 {/if}
             </div>
@@ -144,20 +144,20 @@
 
 <style>
     .celeb-card {
-        border-radius: 12px;
+        border-radius: 8px;
         overflow: hidden;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         background: var(--background);
     }
 
     .celeb-header {
-        padding: 8px 12px;
+        padding: 6px 10px;
         display: flex;
         align-items: center;
         gap: 6px;
         color: white;
         font-weight: 600;
-        font-size: 0.8rem;
+        font-size: 0.75rem;
     }
 
     .celeb-nick {
@@ -189,7 +189,7 @@
 
     .celeb-body {
         position: relative;
-        min-height: 60px;
+        min-height: 44px;
     }
 
     .celeb-profile {
@@ -201,8 +201,8 @@
     }
 
     .celeb-avatar {
-        width: 48px;
-        height: 48px;
+        width: 36px;
+        height: 36px;
         border-radius: 50%;
         border: 3px solid transparent;
         background:
@@ -220,8 +220,8 @@
     }
 
     .celeb-avatar-placeholder {
-        width: 48px;
-        height: 48px;
+        width: 36px;
+        height: 36px;
         border-radius: 50%;
         display: flex;
         align-items: center;
@@ -234,15 +234,15 @@
     .celeb-banner-wrap {
         display: block;
         width: 100%;
-        min-height: 70px;
+        min-height: 50px;
         position: relative;
     }
 
     .celeb-banner {
         width: 100%;
         height: 100%;
-        min-height: 70px;
-        max-height: 120px;
+        min-height: 50px;
+        max-height: 80px;
         object-fit: cover;
     }
 
@@ -251,7 +251,7 @@
         bottom: 0;
         left: 0;
         right: 0;
-        padding: 8px 12px 8px 70px;
+        padding: 6px 10px 6px 54px;
         background: linear-gradient(transparent, rgba(0, 0, 0, 0.7));
     }
 
@@ -267,9 +267,9 @@
     }
 
     .celeb-no-banner {
-        padding: 16px 16px 16px 70px;
+        padding: 10px 12px 10px 54px;
         background: var(--muted);
-        min-height: 60px;
+        min-height: 44px;
         display: flex;
         align-items: center;
     }

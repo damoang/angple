@@ -1,7 +1,6 @@
 <script lang="ts">
     import { onMount } from 'svelte';
     import { browser } from '$app/environment';
-    import { hooks } from '@angple/hook-system';
 
     interface Props {
         position: string;
@@ -23,32 +22,21 @@
         adsenseFormat = 'auto'
     }: Props = $props();
 
-    // 배너 API 설정 인터페이스
-    interface BannerApiConfig {
-        apiUrl: string;
-        trackViewUrl: (id: number) => string;
-        trackClickUrl: (id: number) => string;
-    }
-
-    // 백엔드 BannerResponse 타입
-    interface BannerResponse {
-        id: number;
-        title: string;
-        image_url: string;
-        link_url: string;
-        position: string;
-        priority: number;
-        is_active: boolean;
-        click_count: number;
-        view_count: number;
-        alt_text?: string;
-        target: string;
-        created_at: string;
+    // 직접홍보 게시글 타입
+    interface PromotionPost {
+        wrId: number;
+        subject: string;
+        imageUrl: string;
+        linkUrl: string;
+        advertiserName: string;
+        memberId: string;
+        pinToTop: boolean;
+        createdAt: string;
     }
 
     // 내부에서 사용할 정규화된 배너 타입
     interface NormalizedBanner {
-        id: number;
+        id: number | string;
         imageUrl: string;
         linkUrl: string;
         altText: string;
@@ -58,66 +46,45 @@
     let banner = $state<NormalizedBanner | null>(null);
     let loading = $state(true);
     let showAdsense = $state(false);
-    let impressionTracked = $state(false);
-    let apiConfig = $state<BannerApiConfig | null>(null);
 
     onMount(() => {
-        // 플러그인에서 배너 API 설정을 제공하는지 확인
-        // 플러그인이 없으면 null 반환 → 애드센스 폴백
-        apiConfig = hooks.applyFilters('banner_api_config', null, { position });
         fetchBanner();
     });
-
-    // 백엔드 응답을 정규화된 형태로 변환
-    function normalizeBanner(b: BannerResponse): NormalizedBanner {
-        return {
-            id: b.id,
-            imageUrl: b.image_url,
-            linkUrl: b.link_url,
-            altText: b.alt_text || b.title || '광고',
-            target: b.target || '_blank'
-        };
-    }
 
     async function fetchBanner() {
         if (!browser) return;
 
-        // 플러그인이 API 설정을 제공하지 않으면 애드센스 폴백
-        if (!apiConfig) {
-            loading = false;
-            if (fallbackToAdsense && adsenseSlot) {
-                showAdsense = true;
-                loadAdsense();
-            }
-            return;
-        }
-
         try {
-            const response = await fetch(
-                `${apiConfig.apiUrl}?position=${encodeURIComponent(position)}`
-            );
+            const response = await fetch('/api/ads/promotion-posts');
             const result = await response.json();
 
-            // position 파라미터가 있으면 data.banners, 없으면 data 자체가 배열
-            const banners: BannerResponse[] = result.data?.banners || result.data || [];
+            const posts: PromotionPost[] = result.data?.posts || [];
 
-            if (banners.length > 0) {
-                // priority로 정렬 후 랜덤 선택 (같은 priority 내에서)
-                const sorted = [...banners].sort((a, b) => b.priority - a.priority);
-                const topPriority = sorted[0].priority;
-                const topBanners = sorted.filter((b) => b.priority === topPriority);
-                const selected = topBanners[Math.floor(Math.random() * topBanners.length)];
-                banner = normalizeBanner(selected);
+            // 이미지 있는 게시글만 필터링
+            const withImage = posts.filter((p) => p.imageUrl);
+
+            if (withImage.length > 0) {
+                // pinToTop 우선, 그 중 랜덤 1개 선택
+                const pinned = withImage.filter((p) => p.pinToTop);
+                const pool = pinned.length > 0 ? pinned : withImage;
+                const selected = pool[Math.floor(Math.random() * pool.length)];
+
+                banner = {
+                    id: selected.wrId,
+                    imageUrl: selected.imageUrl,
+                    linkUrl: selected.linkUrl,
+                    altText: selected.subject,
+                    target: '_blank'
+                };
             } else {
-                // 배너 없으면 애드센스 폴백
+                // 게시글 없으면 애드센스 폴백
                 if (fallbackToAdsense && adsenseSlot) {
                     showAdsense = true;
                     loadAdsense();
                 }
             }
         } catch (error) {
-            console.warn('Banner fetch error:', error);
-            // 에러 시에도 애드센스 폴백
+            console.warn('Promotion post fetch error:', error);
             if (fallbackToAdsense && adsenseSlot) {
                 showAdsense = true;
                 loadAdsense();
@@ -151,51 +118,8 @@
         }, 100);
     }
 
-    function trackImpression() {
-        if (!banner || impressionTracked || !apiConfig) return;
-        impressionTracked = true;
-
-        // View 트래킹
-        fetch(apiConfig.trackViewUrl(banner.id), {
-            method: 'POST',
-            credentials: 'include'
-        }).catch((err) => console.warn('View tracking failed:', err));
-    }
-
-    function handleClick() {
-        if (!banner || !apiConfig) return;
-
-        // Click 트래킹
-        navigator.sendBeacon?.(apiConfig.trackClickUrl(banner.id));
-    }
-
     function isVideo(url: string): boolean {
         return url?.toLowerCase().endsWith('.mp4') || url?.toLowerCase().endsWith('.webm');
-    }
-
-    // IntersectionObserver로 뷰포트 진입 시 impression 트래킹
-    function observeImpression(node: HTMLElement) {
-        if (!browser) return;
-
-        const observer = new IntersectionObserver(
-            (entries) => {
-                entries.forEach((entry) => {
-                    if (entry.isIntersecting) {
-                        trackImpression();
-                        observer.disconnect();
-                    }
-                });
-            },
-            { threshold: 0.5 }
-        );
-
-        observer.observe(node);
-
-        return {
-            destroy() {
-                observer.disconnect();
-            }
-        };
     }
 </script>
 
@@ -225,14 +149,12 @@
             </svg>
         </div>
     {:else if banner}
-        <!-- 자체 배너 -->
+        <!-- 직접홍보 배너 -->
         <a
             href={banner.linkUrl}
             target={banner.target || '_blank'}
             rel="nofollow noopener"
-            onclick={handleClick}
             class="block overflow-hidden rounded-lg"
-            use:observeImpression
         >
             {#if isVideo(banner.imageUrl)}
                 <video
