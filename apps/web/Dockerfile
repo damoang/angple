@@ -65,20 +65,16 @@ COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
 # Copy workspace packages (workspace:* dependencies)
 COPY packages ./packages
 
-# Copy themes (for $themes alias in vite.config.ts)
-COPY themes ./themes
-
-# Copy plugins (for $plugins alias in vite.config.ts)
-COPY plugins ./plugins
-
-# Copy widgets (for $widgets alias in vite.config.ts)
-COPY widgets ./widgets
-
 # Copy application source
 COPY apps/web ./apps/web
 
-# Install dependencies and build
+# Install dependencies first
 RUN pnpm install --frozen-lockfile --filter web...
+
+# Copy themes/plugins/widgets AFTER install so they can access node_modules
+COPY themes ./themes
+COPY plugins ./plugins
+COPY widgets ./widgets
 # 워크스페이스 패키지 먼저 빌드 (의존성 순서대로)
 RUN pnpm --filter @angple/types run build
 RUN pnpm --filter @angple/i18n run build
