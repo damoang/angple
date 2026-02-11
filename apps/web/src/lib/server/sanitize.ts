@@ -93,16 +93,20 @@ export function sanitizePostContent(html: string): string {
 export function sanitizePostContentStrict(html: string): string {
     let sanitized = sanitizePostContent(html);
 
-    // iframe src가 YouTube가 아닌 경우 제거
-    sanitized = sanitized.replace(
-        /<iframe\s[^>]*src="([^"]*)"[^>]*>[\s\S]*?<\/iframe>/gi,
-        (match, src: string) => {
-            if (YOUTUBE_REGEX.test(src)) {
-                return match;
+    // iframe src가 YouTube가 아닌 경우 반복 제거 (중첩 태그 우회 방지)
+    let prev;
+    do {
+        prev = sanitized;
+        sanitized = sanitized.replace(
+            /<iframe\s[^>]*src="([^"]*)"[^>]*>[\s\S]*?<\/iframe>/gi,
+            (match, src: string) => {
+                if (YOUTUBE_REGEX.test(src)) {
+                    return match;
+                }
+                return '';
             }
-            return '';
-        }
-    );
+        );
+    } while (sanitized !== prev);
 
     return sanitized;
 }

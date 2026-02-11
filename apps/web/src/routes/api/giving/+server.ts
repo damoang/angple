@@ -44,6 +44,16 @@ interface CountRow extends RowDataPacket {
     cnt: number;
 }
 
+/** S3 URL인지 hostname으로 정확히 검증 */
+function isS3DamoangUrl(urlStr: string): boolean {
+    try {
+        const url = new URL(urlStr);
+        return url.hostname === 's3.damoang.net';
+    } catch {
+        return false;
+    }
+}
+
 export const GET: RequestHandler = async ({ url }) => {
     const tab = url.searchParams.get('tab') || 'active';
     const page = Math.max(1, parseInt(url.searchParams.get('page') || '1'));
@@ -164,8 +174,8 @@ export const GET: RequestHandler = async ({ url }) => {
                 }
             }
 
-            // S3 URL인 경우 Lambda 썸네일 URL로 변환
-            if (thumbnail && thumbnail.includes('s3.damoang.net')) {
+            // S3 URL인 경우 Lambda 썸네일 URL로 변환 (hostname으로 정확히 검증)
+            if (thumbnail && isS3DamoangUrl(thumbnail)) {
                 const match = thumbnail.match(
                     /^(https?:\/\/s3\.damoang\.net\/.+\/)([^/]+)\.([a-zA-Z0-9]+)$/
                 );

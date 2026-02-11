@@ -8,6 +8,16 @@ import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { getGitHubInstaller, type InstallRequest } from '$lib/server/plugins/github-installer';
 
+/** URL이 GitHub 호스트인지 hostname으로 정확히 검증 */
+function isGitHubUrl(urlStr: string): boolean {
+    try {
+        const url = new URL(urlStr);
+        return url.hostname === 'github.com' || url.hostname === 'www.github.com';
+    } catch {
+        return false;
+    }
+}
+
 /** 요청 body 인터페이스 */
 interface InstallRequestBody {
     packageName: string;
@@ -26,11 +36,8 @@ export const POST: RequestHandler = async ({ request }) => {
             throw error(400, { message: 'packageName은 필수 입력 항목입니다.' });
         }
 
-        // 패키지명 형식 검증
-        if (
-            !body.packageName.startsWith('@') &&
-            !body.packageName.startsWith('https://github.com')
-        ) {
+        // 패키지명 형식 검증 (URL은 hostname으로 정확히 검증)
+        if (!body.packageName.startsWith('@') && !isGitHubUrl(body.packageName)) {
             throw error(400, {
                 message: '패키지명은 @scope/package-name 형식이거나 GitHub URL이어야 합니다.'
             });

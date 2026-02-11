@@ -19,6 +19,17 @@ interface NotifyRequest {
     senderNick: string; // 발신자 닉네임
 }
 
+/** HTML 태그를 반복 제거 (중첩 태그 우회 방지) */
+function stripHtmlTags(str: string): string {
+    let result = str;
+    let prev;
+    do {
+        prev = result;
+        result = result.replace(/<[^>]+>/g, '');
+    } while (result !== prev);
+    return result;
+}
+
 export const POST: RequestHandler = async ({ request, cookies }) => {
     const accessToken =
         cookies.get('access_token') || request.headers.get('authorization')?.replace('Bearer ', '');
@@ -60,7 +71,7 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
             ? `/${boardId}/${postId}#comment-${commentId}`
             : `/${boardId}/${postId}`;
 
-        const excerpt = content.replace(/<[^>]+>/g, '').substring(0, 80);
+        const excerpt = stripHtmlTags(content).substring(0, 80);
         let sentCount = 0;
 
         for (const row of rows) {
