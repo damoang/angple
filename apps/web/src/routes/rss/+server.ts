@@ -49,9 +49,7 @@ export const GET: RequestHandler = async ({ url }) => {
                     allPosts.push({
                         title: escapeXml(post.wr_subject),
                         link: `${siteUrl}/${board.bo_table}/${post.wr_id}`,
-                        description: escapeXml(
-                            post.wr_content.replace(/<[^>]+>/g, '').slice(0, 200)
-                        ),
+                        description: escapeXml(stripHtmlTags(post.wr_content).slice(0, 200)),
                         author: escapeXml(post.wr_name),
                         pubDate: new Date(post.wr_datetime).toUTCString(),
                         boardSubject: escapeXml(board.bo_subject)
@@ -103,6 +101,17 @@ ${items}
         }
     });
 };
+
+/** HTML 태그를 반복 제거 (중첩 태그 우회 방지) */
+function stripHtmlTags(str: string): string {
+    let result = str;
+    let prev;
+    do {
+        prev = result;
+        result = result.replace(/<[^>]+>/g, '');
+    } while (result !== prev);
+    return result;
+}
 
 function escapeXml(str: string): string {
     return str

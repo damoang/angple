@@ -91,12 +91,23 @@ function parsePackageName(input: string): ParsedPackageName {
     };
 }
 
+/** URL이 GitHub 호스트인지 hostname으로 정확히 검증 */
+function isGitHubUrl(urlStr: string): boolean {
+    try {
+        const url = new URL(urlStr);
+        return url.hostname === 'github.com' || url.hostname === 'www.github.com';
+    } catch {
+        return false;
+    }
+}
+
 /**
  * GitHub URL에서 패키지명 추출
  *
  * @example extractFromGitHubUrl('https://github.com/angple/plugin-xxx')
  */
 function extractFromGitHubUrl(url: string): string | null {
+    if (!isGitHubUrl(url)) return null;
     const match = url.match(/github\.com\/([a-z0-9-]+)\/([a-z0-9-]+)/i);
     if (match) {
         return `@${match[1]}/${match[2]}`;
@@ -216,7 +227,7 @@ export class GitHubPluginInstaller {
             let packageName = request.packageName;
 
             // GitHub URL 처리
-            if (packageName.startsWith('https://github.com')) {
+            if (isGitHubUrl(packageName)) {
                 const extracted = extractFromGitHubUrl(packageName);
                 if (!extracted) {
                     throw new Error('잘못된 GitHub URL 형식입니다.');
@@ -352,7 +363,7 @@ export class GitHubPluginInstaller {
     }> {
         try {
             // GitHub URL 처리
-            if (packageName.startsWith('https://github.com')) {
+            if (isGitHubUrl(packageName)) {
                 const extracted = extractFromGitHubUrl(packageName);
                 if (!extracted) {
                     throw new Error('잘못된 GitHub URL 형식입니다.');

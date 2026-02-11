@@ -52,7 +52,7 @@ export const GET: RequestHandler = async ({ url, params }) => {
                 (post) => `    <item>
       <title>${escapeXml(post.wr_subject)}</title>
       <link>${siteUrl}/${boardId}/${post.wr_id}</link>
-      <description>${escapeXml(post.wr_content.replace(/<[^>]+>/g, '').slice(0, 200))}</description>
+      <description>${escapeXml(stripHtmlTags(post.wr_content).slice(0, 200))}</description>
       <author>${escapeXml(post.wr_name)}</author>
       <pubDate>${new Date(post.wr_datetime).toUTCString()}</pubDate>
       <guid isPermaLink="true">${siteUrl}/${boardId}/${post.wr_id}</guid>
@@ -83,6 +83,17 @@ ${items}
         }
     });
 };
+
+/** HTML 태그를 반복 제거 (중첩 태그 우회 방지) */
+function stripHtmlTags(str: string): string {
+    let result = str;
+    let prev;
+    do {
+        prev = result;
+        result = result.replace(/<[^>]+>/g, '');
+    } while (result !== prev);
+    return result;
+}
 
 function escapeXml(str: string): string {
     return str
