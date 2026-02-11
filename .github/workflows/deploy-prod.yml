@@ -47,7 +47,7 @@ jobs:
         run: |
           cat > /tmp/deploy.sh << 'DEPLOY_SCRIPT'
           #!/bin/bash
-          set -e
+          set -eo pipefail
 
           export HOME=/home/damoang
           cd /home/damoang/angple
@@ -70,13 +70,19 @@ jobs:
 
           aws ecr get-login-password --region ap-northeast-2 | docker login --username AWS --password-stdin "$ECR_REGISTRY"
 
+          echo "Building web image..."
           docker build -f apps/web/Dockerfile --target production \
             -t "$ECR_REGISTRY/$REPOSITORY:web-$IMAGE_TAG" \
-            -t "$ECR_REGISTRY/$REPOSITORY:web-latest" .
+            -t "$ECR_REGISTRY/$REPOSITORY:web-latest" . \
+            --progress=plain 2>&1 | tail -100
+          echo "Web image built successfully"
 
+          echo "Building admin image..."
           docker build -f apps/admin/Dockerfile --target production \
             -t "$ECR_REGISTRY/$REPOSITORY:admin-$IMAGE_TAG" \
-            -t "$ECR_REGISTRY/$REPOSITORY:admin-latest" .
+            -t "$ECR_REGISTRY/$REPOSITORY:admin-latest" . \
+            --progress=plain 2>&1 | tail -100
+          echo "Admin image built successfully"
 
           docker push "$ECR_REGISTRY/$REPOSITORY:web-$IMAGE_TAG"
           docker push "$ECR_REGISTRY/$REPOSITORY:web-latest"
