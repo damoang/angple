@@ -54,7 +54,7 @@
 
             const result = await response.json();
 
-            if (result.success && result.data?.length > 0) {
+            if (result.data?.length > 0) {
                 celebrations = result.data;
             }
         } catch (error) {
