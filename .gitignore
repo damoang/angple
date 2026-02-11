@@ -27,6 +27,9 @@ build/
 .next/
 .nuxt/
 .output/
+.svelte-kit/
+*.tsbuildinfo
+.turbo/
 
 # Environment files
 .env

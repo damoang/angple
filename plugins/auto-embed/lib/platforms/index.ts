@@ -52,4 +52,15 @@ export function findPlatform(url: string): EmbedPlatform | undefined {
     return undefined;
 }
 
-export { youtube, vimeo, instagram, twitter, twitch, tiktok, reddit, bluesky, dailymotion, kakaoTv };
+export {
+    youtube,
+    vimeo,
+    instagram,
+    twitter,
+    twitch,
+    tiktok,
+    reddit,
+    bluesky,
+    dailymotion,
+    kakaoTv
+};

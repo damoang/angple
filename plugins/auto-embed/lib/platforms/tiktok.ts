@@ -5,10 +5,7 @@ import type { EmbedInfo, EmbedPlatform } from '../types';
  */
 export const tiktok: EmbedPlatform = {
     name: 'tiktok',
-    patterns: [
-        /(?:www\.)?tiktok\.com\/@[\w.-]+\/video\/(\d+)/,
-        /vm\.tiktok\.com\/([a-zA-Z0-9]+)/
-    ],
+    patterns: [/(?:www\.)?tiktok\.com\/@[\w.-]+\/video\/(\d+)/, /vm\.tiktok\.com\/([a-zA-Z0-9]+)/],
 
     extract(url: string): EmbedInfo | null {
         const videoMatch = url.match(/tiktok\.com\/@[\w.-]+\/video\/(\d+)/);

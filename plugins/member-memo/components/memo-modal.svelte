@@ -171,9 +171,7 @@
             <!-- 메모 입력 -->
             <div>
                 <label for="memo-content" class="text-foreground mb-1 block text-sm font-medium">
-                    메모 <span class="text-muted-foreground text-xs"
-                        >({content.length}/250)</span
-                    >
+                    메모 <span class="text-muted-foreground text-xs">({content.length}/250)</span>
                 </label>
                 <input
                     id="memo-content"
@@ -181,7 +179,7 @@
                     bind:value={content}
                     maxlength={250}
                     placeholder="배지에 표시될 짧은 메모"
-                    class="border-input bg-background text-foreground placeholder:text-muted-foreground focus:ring-ring w-full rounded-md border px-3 py-2 text-sm focus:ring-2 focus:outline-none"
+                    class="border-input bg-background text-foreground placeholder:text-muted-foreground focus:ring-ring w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-2"
                     disabled={isSaving || isDeleting}
                 />
             </div>
@@ -228,10 +226,7 @@
                 >
                     취소
                 </Button>
-                <Button
-                    onclick={handleSave}
-                    disabled={!content.trim() || isSaving || isDeleting}
-                >
+                <Button onclick={handleSave} disabled={!content.trim() || isSaving || isDeleting}>
                     {isSaving ? '저장 중...' : '저장'}
                 </Button>
             </div>
