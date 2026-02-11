@@ -56,6 +56,7 @@ jobs:
               'ECR_REGISTRY=891376997084.dkr.ecr.ap-northeast-2.amazonaws.com',
               'REPOSITORY=damoang',
               'echo Deploying angple with tag: $IMAGE_TAG',
+              'docker logout 2>/dev/null || true',
               'aws ecr get-login-password --region ap-northeast-2 | docker login --username AWS --password-stdin $ECR_REGISTRY',
               'docker build -f apps/web/Dockerfile --target production -t $ECR_REGISTRY/$REPOSITORY:web-$IMAGE_TAG -t $ECR_REGISTRY/$REPOSITORY:web-latest .',
               'docker build -f apps/admin/Dockerfile --target production -t $ECR_REGISTRY/$REPOSITORY:admin-$IMAGE_TAG -t $ECR_REGISTRY/$REPOSITORY:admin-latest .',
