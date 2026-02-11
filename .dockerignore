@@ -61,7 +61,7 @@ tmp/
 # sub directory
 **/README.md
 **/.gitignore
-**/.npmrc
+# **/.npmrc  # Commented out - needed for pnpm hoisting config
 **/.prettier*
 **/eslint*
 **/playwright*

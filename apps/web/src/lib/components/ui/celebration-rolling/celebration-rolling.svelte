@@ -83,10 +83,12 @@
 
 {#if celebrations.length > 0}
     <a
-        href={celebrations[currentIndex]?.external_link || celebrations[currentIndex]?.link_url || '#'}
+        href={celebrations[currentIndex]?.external_link ||
+            celebrations[currentIndex]?.link_url ||
+            '#'}
         target={celebrations[currentIndex]?.link_target || '_blank'}
         rel="nofollow noopener"
-        class="border-border bg-background flex h-9 items-center gap-2 overflow-hidden rounded-lg border px-3 transition-colors hover:bg-accent {className}"
+        class="border-border bg-background hover:bg-accent flex h-9 items-center gap-2 overflow-hidden rounded-lg border px-3 transition-colors {className}"
     >
         {#if celebrations[currentIndex]?.target_member_photo}
             <img

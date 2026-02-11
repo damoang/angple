@@ -61,7 +61,12 @@
     </div>
 {:else if useDamoangBanner}
     <!-- 메인 영역: 자체 광고 우선, GAM 폴백 -->
-    <DamoangBanner position={bannerPosition} showCelebration={false} {height} gamPosition={position} />
+    <DamoangBanner
+        position={bannerPosition}
+        showCelebration={false}
+        {height}
+        gamPosition={position}
+    />
 {:else}
     <!-- 메인 영역 광고 (GAM) -->
     <AdSlot {position} {height} />

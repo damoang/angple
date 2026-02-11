@@ -80,9 +80,7 @@
     <div class="celeb-card grad-{gradientNum}">
         <div class="celeb-header">
             <span class="icon">🎈</span>
-            <span class="celeb-nick"
-                >{banner.target_member_nick || '축하합니다'}</span
-            >
+            <span class="celeb-nick">{banner.target_member_nick || '축하합니다'}</span>
             {#if banner.external_link || banner.link_url}
                 <a
                     href={banner.external_link || banner.link_url}

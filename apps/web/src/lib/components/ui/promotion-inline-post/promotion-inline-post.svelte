@@ -17,7 +17,7 @@
     href={post.linkUrl}
     target="_blank"
     rel="noopener noreferrer"
-    class="border-border bg-blue-50/50 hover:bg-blue-100/60 dark:bg-blue-950/20 dark:hover:bg-blue-950/40 flex items-center gap-3 rounded-lg border px-4 py-3 transition-all hover:shadow-sm"
+    class="border-border flex items-center gap-3 rounded-lg border bg-blue-50/50 px-4 py-3 transition-all hover:bg-blue-100/60 hover:shadow-sm dark:bg-blue-950/20 dark:hover:bg-blue-950/40"
 >
     <!-- 썸네일 -->
     {#if post.imageUrl}

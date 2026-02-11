@@ -205,9 +205,7 @@
         }
 
         // 이미지 있는 홍보글 필터 → 셔플 → 최대 2개
-        const withImage = data.promotionPosts.filter(
-            (p: { imageUrl: string }) => p.imageUrl
-        );
+        const withImage = data.promotionPosts.filter((p: { imageUrl: string }) => p.imageUrl);
         const shuffled = [...withImage].sort(() => Math.random() - 0.5);
         const maxPromo = posts.length < 5 ? 1 : 2;
         const promos = shuffled.slice(0, maxPromo);

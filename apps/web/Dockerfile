@@ -16,7 +16,7 @@ RUN adduser -D -u 1001 -s /bin/sh devuser
 WORKDIR /app
 
 # Copy workspace configuration files
-COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
+COPY pnpm-workspace.yaml package.json pnpm-lock.yaml .npmrc ./
 
 # Copy packages (workspace dependencies)
 COPY packages ./packages
@@ -60,18 +60,20 @@ ENV VITE_SSR=$VITE_SSR
 WORKDIR /app
 
 # Copy workspace configuration files
-COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
+COPY pnpm-workspace.yaml package.json pnpm-lock.yaml .npmrc ./
 
 # Copy workspace packages (workspace:* dependencies)
 COPY packages ./packages
 
-# Copy themes (for $themes alias in vite.config.ts)
+# Copy themes/plugins/widgets before install (needed for build)
 COPY themes ./themes
+COPY plugins ./plugins
+COPY widgets ./widgets
 
 # Copy application source
 COPY apps/web ./apps/web
 
-# Install dependencies and build
+# Install dependencies (with .npmrc hoisting for plugins)
 RUN pnpm install --frozen-lockfile --filter web...
 # 워크스페이스 패키지 먼저 빌드 (의존성 순서대로)
 RUN pnpm --filter @angple/types run build
