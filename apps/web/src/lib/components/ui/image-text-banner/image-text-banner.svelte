@@ -7,49 +7,58 @@
         class?: string;
     }
 
-    let { position = 'side-image-text-banner', class: className = '' }: Props = $props();
+    let { position = 'list-inline', class: className = '' }: Props = $props();
 
-    const API_BASE = import.meta.env.VITE_ADS_API_URL || 'https://ads.damoang.net';
+    // 직접홍보 게시글 타입
+    interface PromotionPost {
+        wrId: number;
+        subject: string;
+        imageUrl: string;
+        linkUrl: string;
+        advertiserName: string;
+        memberId: string;
+        pinToTop: boolean;
+        createdAt: string;
+    }
 
     interface BannerItem {
         id: string;
         imageUrl: string;
-        landingUrl: string;
+        linkUrl: string;
         altText: string;
         target: string;
-        trackingId?: string;
     }
 
     let banners = $state<BannerItem[]>([]);
     let loading = $state(true);
 
-    // 샘플 데이터 (API 연동 전 테스트용)
+    // 샘플 데이터 (API 실패 시 폴백)
     const sampleBanners: BannerItem[] = [
         {
             id: '1',
             imageUrl: 'https://via.placeholder.com/280x80/e3f2fd/1976d2?text=AD+1',
-            landingUrl: '#',
+            linkUrl: '#',
             altText: '광고 배너 1',
             target: '_blank'
         },
         {
             id: '2',
             imageUrl: 'https://via.placeholder.com/280x80/e8f5e9/388e3c?text=AD+2',
-            landingUrl: '#',
+            linkUrl: '#',
             altText: '광고 배너 2',
             target: '_blank'
         },
         {
             id: '3',
             imageUrl: 'https://via.placeholder.com/280x80/fff3e0/f57c00?text=AD+3',
-            landingUrl: '#',
+            linkUrl: '#',
             altText: '광고 배너 3',
             target: '_blank'
         },
         {
             id: '4',
             imageUrl: 'https://via.placeholder.com/280x80/fce4ec/c2185b?text=AD+4',
-            landingUrl: '#',
+            linkUrl: '#',
             altText: '광고 배너 4',
             target: '_blank'
         }
@@ -63,31 +72,30 @@
         if (!browser) return;
 
         try {
-            const response = await fetch(
-                `${API_BASE}/api/v1/serve/banners?position=${encodeURIComponent(position)}&limit=4`
-            );
+            const response = await fetch('/api/ads/promotion-posts');
             const result = await response.json();
 
-            if (result.success && result.data?.banners?.length > 0) {
-                banners = result.data.banners.slice(0, 4);
+            const posts: PromotionPost[] = result.data?.posts || [];
+
+            // 이미지 있는 게시글만 필터링, 최대 4개
+            const withImage = posts.filter((p) => p.imageUrl).slice(0, 4);
+
+            if (withImage.length > 0) {
+                banners = withImage.map((p) => ({
+                    id: String(p.wrId),
+                    imageUrl: p.imageUrl,
+                    linkUrl: p.linkUrl,
+                    altText: p.subject,
+                    target: '_blank'
+                }));
             } else {
-                // API에서 배너가 없으면 샘플 데이터 사용
                 banners = sampleBanners;
             }
         } catch (error) {
             console.warn('Image-text banner fetch error:', error);
-            // 에러 시 샘플 데이터 사용
             banners = sampleBanners;
         } finally {
             loading = false;
-        }
-    }
-
-    function handleClick(banner: BannerItem) {
-        if (banner.trackingId) {
-            navigator.sendBeacon?.(
-                `${API_BASE}/api/v1/track/click?tid=${banner.trackingId}&t=${Date.now()}`
-            );
         }
     }
 </script>
@@ -113,10 +121,9 @@
                     class="overflow-hidden rounded-lg border-2 border-blue-100 bg-white transition-transform hover:-translate-y-0.5 hover:border-blue-400 dark:border-slate-700 dark:bg-slate-800 dark:hover:border-blue-500"
                 >
                     <a
-                        href={banner.landingUrl}
+                        href={banner.linkUrl}
                         target={banner.target || '_blank'}
                         rel="nofollow noopener"
-                        onclick={() => handleClick(banner)}
                         class="block"
                     >
                         {#if banner.imageUrl}

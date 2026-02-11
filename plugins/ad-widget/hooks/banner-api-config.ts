@@ -4,7 +4,8 @@
  * banner_api_config 필터를 통해 image-banner 컴포넌트에
  * API 연동 정보를 제공합니다.
  *
- * 이 파일은 다모앙 운영 환경에서만 사용됩니다.
+ * ads.damoang.net 프록시 (/api/ads/banners)를 사용합니다.
+ * 트래킹은 ImageBanner 내부에서 trackingId 기반으로 직접 처리합니다.
  */
 
 export interface BannerApiConfig {
@@ -12,9 +13,6 @@ export interface BannerApiConfig {
     trackViewUrl: (id: number) => string;
     trackClickUrl: (id: number) => string;
 }
-
-// API 베이스 URL (환경변수 또는 기본값)
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8081';
 
 /**
  * 배너 API 설정을 반환하는 필터 콜백
@@ -28,8 +26,8 @@ export default function bannerApiConfig(
     _args: { position: string }
 ): BannerApiConfig {
     return {
-        apiUrl: `${API_BASE}/api/plugins/banner/list`,
-        trackViewUrl: (id: number) => `${API_BASE}/api/plugins/banner/${id}/view`,
-        trackClickUrl: (id: number) => `${API_BASE}/api/plugins/banner/${id}/click`
+        apiUrl: '/api/ads/banners',
+        trackViewUrl: () => '',
+        trackClickUrl: () => ''
     };
 }

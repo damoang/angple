@@ -7,6 +7,7 @@
         position: 'index' | 'board-list' | 'board-view';
         showCelebration?: boolean; // 축하메시지 표시 여부 (메인만 true)
         height?: string;
+        gamPosition?: string; // GAM 폴백 시 사용할 슬롯 이름 (위젯에서 전달)
         class?: string;
     }
 
@@ -14,13 +15,15 @@
         position,
         showCelebration = true,
         height = '90px',
+        gamPosition: gamPositionProp,
         class: className = ''
     }: Props = $props();
 
     // API 엔드포인트
     // 축하메시지 API는 SvelteKit에서 처리 (상대 경로 사용)
     const DAMOANG_API_BASE = '';
-    const ADS_API_BASE = 'https://ads.damoang.net';
+    // 트래킹은 브라우저→외부 직접 (sendBeacon은 Cloudflare 통과)
+    const ADS_TRACKING_BASE = 'https://ads.damoang.net';
 
     // 축하메시지 배너 타입
     interface CelebrationBanner {
@@ -48,10 +51,12 @@
     let useFallback = $state(false);
 
     // position → 다모앙 광고 서버 position 매핑
+    // index → index-top (메인 페이지용, 현재 배너 0개 → GAM 폴백)
+    // board-list/board-view → board-head (게시판/글 페이지용)
     const ADS_POSITION_MAP: Record<string, string> = {
-        index: 'main-top',
-        'board-list': 'board-list-head',
-        'board-view': 'board-view-top'
+        index: 'index-top',
+        'board-list': 'board-head',
+        'board-view': 'board-head'
     };
 
     // position → GAM 슬롯 위치 매핑
@@ -62,7 +67,7 @@
     };
 
     const adsPosition = $derived(ADS_POSITION_MAP[position] || position);
-    const gamPosition = $derived(GAM_POSITION_MAP[position] || 'board-head');
+    const gamPosition = $derived(gamPositionProp || GAM_POSITION_MAP[position] || 'board-head');
 
     onMount(() => {
         fetchBanners();
@@ -127,7 +132,7 @@
     async function fetchAdsBanner(): Promise<AdsBanner | null> {
         try {
             const response = await fetch(
-                `${ADS_API_BASE}/api/v1/serve/banners?position=${encodeURIComponent(adsPosition)}&limit=1`
+                `/api/ads/banners?position=${encodeURIComponent(adsPosition)}&limit=1`
             );
 
             if (!response.ok) return null;
@@ -147,7 +152,7 @@
     function handleAdsClick() {
         if (adsBanner?.trackingId) {
             navigator.sendBeacon?.(
-                `${ADS_API_BASE}/api/v1/track/click?tid=${adsBanner.trackingId}&t=${Date.now()}`
+                `${ADS_TRACKING_BASE}/api/v1/track/click?tid=${adsBanner.trackingId}&t=${Date.now()}`
             );
         }
     }
