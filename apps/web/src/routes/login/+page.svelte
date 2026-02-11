@@ -51,6 +51,11 @@
     // 리다이렉트 URL
     const redirectUrl = $derived($page.url.searchParams.get('redirect') || '/');
 
+    // web.damoang.net 도메인 체크
+    const isWebDamoang = $derived(
+        browser && (window.location.hostname === 'web.damoang.net' || window.location.hostname === 'localhost')
+    );
+
     // 이미 로그인되어 있으면 리다이렉트
     // onMount에서 폴링하여 컴포넌트 트리가 완전히 마운트된 후에만 리다이렉트
     // 성공 메시지 상태
@@ -234,14 +239,15 @@
                 </div>
             {/if}
 
-            <!-- OAuth 로그인 버튼들 -->
-            <div class="space-y-3">
-                {#each oauthProviders as provider}
-                    <button
-                        class="flex w-full items-center justify-center gap-2 rounded-md px-4 py-2.5 text-sm font-medium transition-colors {provider.bgClass} {provider.textClass} {provider.hoverClass}"
-                        onclick={() => handleOAuthLogin(provider.id)}
-                    >
-                        {#if provider.icon === 'google'}
+            <!-- OAuth 로그인 버튼들 (web.damoang.net이 아닐 때만 표시) -->
+            {#if !isWebDamoang}
+                <div class="space-y-3">
+                    {#each oauthProviders as provider}
+                        <button
+                            class="flex w-full items-center justify-center gap-2 rounded-md px-4 py-2.5 text-sm font-medium transition-colors {provider.bgClass} {provider.textClass} {provider.hoverClass}"
+                            onclick={() => handleOAuthLogin(provider.id)}
+                        >
+                            {#if provider.icon === 'google'}
                             <svg class="h-5 w-5" viewBox="0 0 24 24">
                                 <path
                                     fill="#4285F4"
@@ -306,14 +312,17 @@
                         {provider.name}으로 로그인
                     </button>
                 {/each}
-            </div>
+                </div>
+            {/if}
 
             <!-- JWT 직접 로그인 버튼 -->
             <div>
-                <Separator class="mb-4" />
+                {#if !isWebDamoang}
+                    <Separator class="mb-4" />
+                {/if}
                 <Button variant="outline" class="w-full" onclick={handleJwtLogin}>
                     <ExternalLink class="mr-2 h-4 w-4" />
-                    JWT 로그인 (백엔드)
+                    로그인
                 </Button>
             </div>
 
