@@ -30,5 +30,8 @@
     "license": "MIT",
     "devDependencies": {
         "typescript": "^5.9.3"
+    },
+    "dependencies": {
+        "zod": "^4.3.6"
     }
 }
