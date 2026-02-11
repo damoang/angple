@@ -8,9 +8,10 @@ import type { EmoticonPack, EmoticonItem } from './types';
  * 브라우저에서는 상대 경로 사용 (nginx/Vite 프록시를 통해 백엔드로 전달)
  * SSR에서는 내부 URL 사용
  */
-const PLUGIN_API = typeof window !== 'undefined'
-    ? '/api/plugins/emoticon'
-    : `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8082'}/api/plugins/emoticon`;
+const PLUGIN_API =
+    typeof window !== 'undefined'
+        ? '/api/plugins/emoticon'
+        : `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8082'}/api/plugins/emoticon`;
 
 /**
  * 활성 팩 목록 조회

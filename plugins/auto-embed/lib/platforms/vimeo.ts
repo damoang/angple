@@ -5,10 +5,7 @@ import type { EmbedInfo, EmbedPlatform } from '../types';
  */
 export const vimeo: EmbedPlatform = {
     name: 'vimeo',
-    patterns: [
-        /(?:www\.)?vimeo\.com\/(\d+)/,
-        /player\.vimeo\.com\/video\/(\d+)/
-    ],
+    patterns: [/(?:www\.)?vimeo\.com\/(\d+)/, /player\.vimeo\.com\/video\/(\d+)/],
 
     extract(url: string): EmbedInfo | null {
         for (const pattern of this.patterns) {

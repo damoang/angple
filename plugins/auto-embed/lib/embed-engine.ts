@@ -82,8 +82,7 @@ export function processContent(html: string): string {
     });
 
     // 2) autolinked URL: <p><a href="URL">URL</a></p> (marked가 자동 링크한 경우)
-    const linkedUrlPattern =
-        /(<p>)\s*<a[^>]+href="(https?:\/\/[^"]+)"[^>]*>[^<]*<\/a>\s*(<\/p>)/gi;
+    const linkedUrlPattern = /(<p>)\s*<a[^>]+href="(https?:\/\/[^"]+)"[^>]*>[^<]*<\/a>\s*(<\/p>)/gi;
 
     result = result.replace(linkedUrlPattern, (match, pOpen, url, pClose) => {
         const embedded = embedUrl(url.trim());

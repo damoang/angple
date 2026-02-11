@@ -5,9 +5,7 @@ import type { EmbedInfo, EmbedPlatform } from '../types';
  */
 export const reddit: EmbedPlatform = {
     name: 'reddit',
-    patterns: [
-        /(?:www\.)?reddit\.com\/(r|user)\/[\w:.]{2,21}\/comments\/\w{5,9}/
-    ],
+    patterns: [/(?:www\.)?reddit\.com\/(r|user)\/[\w:.]{2,21}\/comments\/\w{5,9}/],
 
     extract(url: string): EmbedInfo | null {
         const match = url.match(
