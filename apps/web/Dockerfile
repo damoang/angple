@@ -68,6 +68,12 @@ COPY packages ./packages
 # Copy themes (for $themes alias in vite.config.ts)
 COPY themes ./themes
 
+# Copy plugins (for $plugins alias in vite.config.ts)
+COPY plugins ./plugins
+
+# Copy widgets (for $widgets alias in vite.config.ts)
+COPY widgets ./widgets
+
 # Copy application source
 COPY apps/web ./apps/web
 
