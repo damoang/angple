@@ -71,15 +71,23 @@ jobs:
           aws ecr get-login-password --region ap-northeast-2 | docker login --username AWS --password-stdin "$ECR_REGISTRY"
 
           echo "Building web image..."
-          docker build -q -f apps/web/Dockerfile --target production \
+          if ! docker build --progress=plain -f apps/web/Dockerfile --target production \
             -t "$ECR_REGISTRY/$REPOSITORY:web-$IMAGE_TAG" \
-            -t "$ECR_REGISTRY/$REPOSITORY:web-latest" .
+            -t "$ECR_REGISTRY/$REPOSITORY:web-latest" . > /tmp/web-build.log 2>&1; then
+            echo "=== WEB BUILD FAILED (last 80 lines) ==="
+            tail -80 /tmp/web-build.log
+            exit 1
+          fi
           echo "Web image built successfully"
 
           echo "Building admin image..."
-          docker build -q -f apps/admin/Dockerfile --target production \
+          if ! docker build --progress=plain -f apps/admin/Dockerfile --target production \
             -t "$ECR_REGISTRY/$REPOSITORY:admin-$IMAGE_TAG" \
-            -t "$ECR_REGISTRY/$REPOSITORY:admin-latest" .
+            -t "$ECR_REGISTRY/$REPOSITORY:admin-latest" . > /tmp/admin-build.log 2>&1; then
+            echo "=== ADMIN BUILD FAILED (last 80 lines) ==="
+            tail -80 /tmp/admin-build.log
+            exit 1
+          fi
           echo "Admin image built successfully"
 
           docker push "$ECR_REGISTRY/$REPOSITORY:web-$IMAGE_TAG"
