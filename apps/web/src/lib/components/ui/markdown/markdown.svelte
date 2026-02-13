@@ -8,9 +8,11 @@
     interface Props {
         content: string;
         class?: string;
+        /** URL 자동 임베딩 활성화 (기본값: true) */
+        enableEmbed?: boolean;
     }
 
-    let { content, class: className = '' }: Props = $props();
+    let { content, class: className = '', enableEmbed = true }: Props = $props();
 
     let renderedHtml = $state('');
     let isBrowser = $state(false);
@@ -101,7 +103,6 @@
                         'playsinline'
                     ]
                 });
-            });
         }
     });
 </script>
