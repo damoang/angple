@@ -11,7 +11,7 @@ import {
     removeComponentsBySource,
     type SlotName
 } from '$lib/components/slot-manager';
-import type { PluginManifest } from '$lib/types/plugin';
+import type { ExtensionManifest } from '@angple/types';
 
 /**
  * 현재 로드된 플러그인 ID 목록 추적
@@ -34,12 +34,12 @@ const allPluginComponents = { ...pluginComponents, ...customPluginComponents };
  * 플러그인의 컴포넌트를 슬롯에 자동 등록
  *
  * @param pluginId - 플러그인 ID
- * @param manifest - 플러그인 매니페스트 (선택 사항, 없으면 API에서 로드)
+ * @param manifest - 플러그인 매니페스트 (부분 데이터 가능, 없으면 API에서 로드)
  * @returns 성공 여부
  */
 export async function loadPluginComponents(
     pluginId: string,
-    manifest?: PluginManifest
+    manifest?: Partial<ExtensionManifest>
 ): Promise<boolean> {
     try {
         console.log('🔌 [Plugin Loader] Loading components for plugin:', pluginId);
@@ -186,7 +186,7 @@ export function unloadPluginComponents(pluginId: string): void {
  * @param plugins - 로드할 플러그인 목록 [{id, manifest}]
  */
 export async function loadAllPluginComponents(
-    plugins: Array<{ id: string; manifest?: PluginManifest }>
+    plugins: Array<{ id: string; manifest?: Partial<ExtensionManifest> }>
 ): Promise<void> {
     console.log(`🔌 [Plugin Loader] Loading components for ${plugins.length} plugin(s)...`);
 

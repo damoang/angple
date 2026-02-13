@@ -5,17 +5,19 @@
  * 테마 스토어(theme.svelte.ts)와 동일한 패턴으로 구현되었습니다.
  */
 
-import type { PluginManifest, PluginHook, PluginComponent } from '$lib/types/plugin';
+import type { ExtensionHook, ExtensionComponent } from '@angple/types';
 
 /**
  * 활성 플러그인 정보
+ *
+ * SSR에서 전달되는 플러그인 데이터 형식
  */
 export interface ActivePlugin {
     id: string;
     name: string;
     version: string;
-    hooks: PluginHook[];
-    components: PluginComponent[];
+    hooks: ExtensionHook[];
+    components: ExtensionComponent[];
     settings: Record<string, unknown>;
 }
 
@@ -114,8 +116,8 @@ class PluginStore {
     /**
      * 모든 활성 플러그인의 Hook 가져오기
      */
-    get allHooks(): Array<PluginHook & { pluginId: string }> {
-        const hooks: Array<PluginHook & { pluginId: string }> = [];
+    get allHooks(): Array<ExtensionHook & { pluginId: string }> {
+        const hooks: Array<ExtensionHook & { pluginId: string }> = [];
         for (const plugin of this.state.activePlugins) {
             for (const hook of plugin.hooks) {
                 hooks.push({ ...hook, pluginId: plugin.id });
@@ -127,8 +129,8 @@ class PluginStore {
     /**
      * 모든 활성 플러그인의 컴포넌트 가져오기
      */
-    get allComponents(): Array<PluginComponent & { pluginId: string }> {
-        const components: Array<PluginComponent & { pluginId: string }> = [];
+    get allComponents(): Array<ExtensionComponent & { pluginId: string }> {
+        const components: Array<ExtensionComponent & { pluginId: string }> = [];
         for (const plugin of this.state.activePlugins) {
             for (const component of plugin.components) {
                 components.push({ ...component, pluginId: plugin.id });

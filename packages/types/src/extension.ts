@@ -178,7 +178,7 @@ export interface ExtensionSettingField {
     secret?: boolean;
 
     /** 옵션 (select, multiselect용) */
-    options?: string[] | { label: string; value: string }[];
+    options?: Array<string | { label: string; value: string }>;
 
     /** 최소값 (number용) */
     min?: number;
@@ -195,16 +195,46 @@ export interface ExtensionSettingField {
 
 /**
  * Extension Hook 정의
+ *
+ * WordPress 스타일 hook 시스템과 호환
  */
 export interface ExtensionHook {
     /** Hook 이름 */
     name: string;
 
-    /** Hook 핸들러 파일 경로 */
-    handler: string;
+    /** Hook 타입 (action 또는 filter) */
+    type: 'action' | 'filter';
 
-    /** 우선순위 (낮을수록 먼저 실행) */
+    /** Hook 콜백 파일 경로 */
+    callback: string;
+
+    /** 우선순위 (낮을수록 먼저 실행, 기본값: 10) */
     priority?: number;
+}
+
+/**
+ * Extension Component 정의
+ *
+ * Svelte 컴포넌트를 플러그인에서 삽입할 수 있도록 지원
+ */
+export interface ExtensionComponent {
+    /** Component ID (kebab-case) */
+    id: string;
+
+    /** Component 이름 */
+    name: string;
+
+    /** 삽입할 슬롯 위치 */
+    slot: string;
+
+    /** Component 파일 경로 */
+    path: string;
+
+    /** 우선순위 (낮을수록 먼저 실행, 기본값: 10) */
+    priority?: number;
+
+    /** Component에 전달할 props */
+    props?: Record<string, unknown>;
 }
 
 /**
@@ -390,8 +420,11 @@ export interface ExtensionManifest {
     /** 필요한 권한 목록 */
     permissions?: ExtensionPermission[];
 
-    /** Hook 등록 */
-    hooks?: Record<string, string>;
+    /** Hook 등록 (배열 형식) */
+    hooks?: ExtensionHook[];
+
+    /** Component 등록 (플러그인용) */
+    components?: ExtensionComponent[];
 
     /** API 설정 */
     api?: ExtensionAPI;

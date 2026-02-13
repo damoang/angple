@@ -29,7 +29,7 @@ export interface PluginManifest {
         name: string;
         type: 'action' | 'filter';
         callback: string;
-        priority: number;
+        priority?: number;
     }>;
 
     /** Component 정의 */
@@ -38,7 +38,7 @@ export interface PluginManifest {
         name: string;
         slot: string;
         path: string;
-        priority: number;
+        priority?: number;
     }>;
 
     /** 플러그인 설정 스키마 */
