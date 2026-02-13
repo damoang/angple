@@ -31,7 +31,10 @@ const allPluginHooks = { ...pluginHooks, ...customPluginHooks };
  * @param pluginId - 플러그인 ID
  * @param manifest - 플러그인 매니페스트 (부분 데이터 가능, 없으면 API에서 로드)
  */
-export async function loadPluginHooks(pluginId: string, manifest?: Partial<ExtensionManifest>): Promise<void> {
+export async function loadPluginHooks(
+    pluginId: string,
+    manifest?: Partial<ExtensionManifest>
+): Promise<void> {
     try {
         console.log(`🔌 [Plugin Loader] Loading hooks for plugin: ${pluginId}`);
 

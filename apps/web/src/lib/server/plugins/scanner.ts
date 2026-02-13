@@ -51,16 +51,16 @@ const CUSTOM_EXTENSIONS_DIR = join(PROJECT_ROOT, 'custom-extensions');
  * plugin.json 또는 extension.json 파일이 있으면 유효한 플러그인으로 간주
  */
 function isValidPluginDirectory(pluginPath: string): boolean {
-	if (!existsSync(pluginPath)) return false;
+    if (!existsSync(pluginPath)) return false;
 
-	const stat = statSync(pluginPath);
-	if (!stat.isDirectory()) return false;
+    const stat = statSync(pluginPath);
+    if (!stat.isDirectory()) return false;
 
-	// plugin.json 또는 extension.json 파일 존재 확인
-	const pluginJsonPath = join(pluginPath, 'plugin.json'); // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
-	const extensionJsonPath = join(pluginPath, 'extension.json'); // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
+    // plugin.json 또는 extension.json 파일 존재 확인
+    const pluginJsonPath = join(pluginPath, 'plugin.json'); // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
+    const extensionJsonPath = join(pluginPath, 'extension.json'); // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
 
-	return existsSync(pluginJsonPath) || existsSync(extensionJsonPath);
+    return existsSync(pluginJsonPath) || existsSync(extensionJsonPath);
 }
 
 /**
@@ -71,53 +71,54 @@ function isValidPluginDirectory(pluginPath: string): boolean {
  * @returns ExtensionManifest 또는 null (category가 'plugin'이 아니거나 검증 실패 시)
  */
 function loadPluginManifest(pluginDir: string, baseDir: string): ExtensionManifest | null {
-	// pluginDir는 readdir()에서 온 안전한 디렉터리명
-	// nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
-	const pluginJsonPath = join(baseDir, pluginDir, 'plugin.json');
-	const extensionJsonPath = join(baseDir, pluginDir, 'extension.json');
+    // pluginDir는 readdir()에서 온 안전한 디렉터리명
+    // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
+    const pluginJsonPath = join(baseDir, pluginDir, 'plugin.json');
+    // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
+    const extensionJsonPath = join(baseDir, pluginDir, 'extension.json');
 
-	// plugin.json 우선, 없으면 extension.json 시도
-	let manifestPath: string;
-	if (existsSync(pluginJsonPath)) {
-		manifestPath = pluginJsonPath;
-	} else if (existsSync(extensionJsonPath)) {
-		manifestPath = extensionJsonPath;
-	} else {
-		console.warn(`⚠️  [Plugin Scanner] 매니페스트 파일 없음: ${pluginDir}`);
-		return null;
-	}
+    // plugin.json 우선, 없으면 extension.json 시도
+    let manifestPath: string;
+    if (existsSync(pluginJsonPath)) {
+        manifestPath = pluginJsonPath;
+    } else if (existsSync(extensionJsonPath)) {
+        manifestPath = extensionJsonPath;
+    } else {
+        console.warn(`⚠️  [Plugin Scanner] 매니페스트 파일 없음: ${pluginDir}`);
+        return null;
+    }
 
-	try {
-		const manifestJson = readFileSync(manifestPath, 'utf-8');
-		const manifestData = JSON.parse(manifestJson);
+    try {
+        const manifestJson = readFileSync(manifestPath, 'utf-8');
+        const manifestData = JSON.parse(manifestJson);
 
-		// 기본값 제공 (기존 플러그인 호환성)
-		const normalizedData = {
-			...manifestData,
-			// category가 없으면 'plugin'으로 간주 (plugin.json 파일이므로)
-			category: manifestData.category || 'plugin',
-			// license가 없으면 'UNLICENSED'로 설정
-			license: manifestData.license || 'UNLICENSED'
-		};
+        // 기본값 제공 (기존 플러그인 호환성)
+        const normalizedData = {
+            ...manifestData,
+            // category가 없으면 'plugin'으로 간주 (plugin.json 파일이므로)
+            category: manifestData.category || 'plugin',
+            // license가 없으면 'UNLICENSED'로 설정
+            license: manifestData.license || 'UNLICENSED'
+        };
 
-		// ExtensionManifest Zod 검증
-		const result = safeValidateExtensionManifest(normalizedData);
+        // ExtensionManifest Zod 검증
+        const result = safeValidateExtensionManifest(normalizedData);
 
-		if (!result.success) {
-			console.error('❌ [Plugin Scanner] 매니페스트 검증 실패:', { pluginDir });
-			console.error(result.error.issues);
-			return null;
-		}
+        if (!result.success) {
+            console.error('❌ [Plugin Scanner] 매니페스트 검증 실패:', { pluginDir });
+            console.error(result.error.issues);
+            return null;
+        }
 
-		// category가 'plugin'인 것만 반환 (테마는 제외)
-		if (result.data.category !== 'plugin') {
-			console.warn(
-				`⚠️  [Plugin Scanner] 플러그인 아님 (category: ${result.data.category}): ${pluginDir}`
-			);
-			return null;
-		}
+        // category가 'plugin'인 것만 반환 (테마는 제외)
+        if (result.data.category !== 'plugin') {
+            console.warn(
+                `⚠️  [Plugin Scanner] 플러그인 아님 (category: ${result.data.category}): ${pluginDir}`
+            );
+            return null;
+        }
 
-		return result.data;
+        return result.data;
     } catch (error) {
         console.error('❌ [Plugin Scanner] 플러그인 매니페스트 로드 실패:', { pluginDir, error });
         return null;
@@ -177,7 +178,7 @@ function scanDirectory(baseDir: string, plugins: Map<string, ExtensionManifest>)
  * @returns 플러그인 ID를 key로 하는 ExtensionManifest 맵
  */
 export function scanPlugins(): Map<string, ExtensionManifest> {
-	const plugins = new Map<string, ExtensionManifest>();
+    const plugins = new Map<string, ExtensionManifest>();
 
     try {
         // 공식 플러그인 스캔 (Git 추적)

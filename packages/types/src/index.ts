@@ -52,24 +52,24 @@ export type {
 
 // Extension Zod schemas (runtime validation)
 export {
-	ExtensionManifestSchema,
-	validateExtensionManifest,
-	safeValidateExtensionManifest,
-	PartialExtensionManifestSchema,
-	ExtensionAuthorSchema,
-	ExtensionRepositorySchema,
-	ExtensionEnginesSchema,
-	ExtensionSettingFieldSchema,
-	ExtensionHookSchema,
-	ExtensionComponentSchema,
-	ExtensionAPIRouteSchema,
-	ExtensionRESTAPISchema,
-	ExtensionGraphQLAPISchema,
-	ExtensionAPISchema,
-	ExtensionAdminMenuSchema,
-	ExtensionAdminUISchema,
-	ExtensionEditorUISchema,
-	ExtensionUISchema
+    ExtensionManifestSchema,
+    validateExtensionManifest,
+    safeValidateExtensionManifest,
+    PartialExtensionManifestSchema,
+    ExtensionAuthorSchema,
+    ExtensionRepositorySchema,
+    ExtensionEnginesSchema,
+    ExtensionSettingFieldSchema,
+    ExtensionHookSchema,
+    ExtensionComponentSchema,
+    ExtensionAPIRouteSchema,
+    ExtensionRESTAPISchema,
+    ExtensionGraphQLAPISchema,
+    ExtensionAPISchema,
+    ExtensionAdminMenuSchema,
+    ExtensionAdminUISchema,
+    ExtensionEditorUISchema,
+    ExtensionUISchema
 } from './extension-schema.js';
 
 export type { ExtensionManifestValidated, PartialExtensionManifest } from './extension-schema.js';

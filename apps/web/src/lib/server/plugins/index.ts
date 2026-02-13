@@ -10,11 +10,11 @@
  */
 
 import {
-	scanPlugins,
-	getPluginManifest,
-	getPluginPath,
-	isPluginInstalled,
-	isCustomPlugin
+    scanPlugins,
+    getPluginManifest,
+    getPluginPath,
+    isPluginInstalled,
+    isCustomPlugin
 } from './scanner';
 import { pluginSettingsProvider } from '../settings/plugin-settings-provider';
 import type { ExtensionManifest } from '@angple/types';
@@ -23,8 +23,8 @@ import type { ExtensionManifest } from '@angple/types';
  * 설치된 플러그인의 전체 정보
  */
 export interface InstalledPlugin {
-	/** 플러그인 매니페스트 (ExtensionManifest with category='plugin') */
-	manifest: ExtensionManifest;
+    /** 플러그인 매니페스트 (ExtensionManifest with category='plugin') */
+    manifest: ExtensionManifest;
 
     /** 현재 설정값 (settings.json에서 로드) */
     currentSettings?: Record<string, unknown>;
