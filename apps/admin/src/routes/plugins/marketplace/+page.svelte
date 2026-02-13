@@ -2,7 +2,7 @@
     /**
      * 플러그인 마켓플레이스
      *
-     * GitHub Packages 기반 플러그인 검색 및 설치 페이지
+     * 실제 plugins/ 디렉터리 스캔 기반 플러그인 검색 및 설치 페이지
      */
 
     import { Button } from '$lib/components/ui/button';
@@ -16,8 +16,19 @@
         CardTitle
     } from '$lib/components/ui/card';
     import { Tabs, TabsContent, TabsList, TabsTrigger } from '$lib/components/ui/tabs';
-    import { ChevronLeft, Search, Download, Star, Plug, Package } from '@lucide/svelte';
+    import {
+        ChevronLeft,
+        Search,
+        Download,
+        Star,
+        Plug,
+        Package,
+        Loader2,
+        Check
+    } from '@lucide/svelte';
     import { t } from '$lib/i18n';
+    import { onMount } from 'svelte';
+    import { toast } from 'svelte-sonner';
 
     /** 마켓플레이스 플러그인 타입 */
     interface MarketplacePlugin {
@@ -33,10 +44,14 @@
         price: number;
         screenshot?: string;
         packageName?: string;
+        installed?: boolean;
     }
 
     let searchQuery = $state('');
     let activeCategory = $state('all');
+    let plugins = $state<MarketplacePlugin[]>([]);
+    let loading = $state(true);
+    let installingPlugins = $state<Set<string>>(new Set());
 
     /** 카테고리 목록 */
     const categories = [
@@ -52,51 +67,67 @@
         { id: 'payment', label: '결제' }
     ];
 
-    /** 추천 플러그인 (추후 API 연동) */
-    const featuredPlugins: MarketplacePlugin[] = [
-        {
-            id: 'plugin-content-history',
-            name: 'Content History',
-            description:
-                '소프트 삭제 + 수정 이력 추적. 관리자가 삭제된 게시물을 복구할 수 있습니다.',
-            version: '1.0.0',
-            author: 'Angple Team',
-            downloads: 0,
-            rating: 5,
-            tags: ['history', 'soft-delete', 'admin'],
-            category: 'board',
-            price: 0
-        },
-        {
-            id: 'plugin-banner-message',
-            name: 'Banner Message System',
-            description:
-                '위치 기반 배너 광고 시스템. 헤더, 사이드바, 콘텐츠 영역에 배너를 표시합니다.',
-            version: '1.0.0',
-            author: 'Damoang Team',
-            downloads: 0,
-            rating: 4,
-            tags: ['banner', 'advertising', 'marketing'],
-            category: 'custom',
-            price: 0
-        },
-        {
-            id: 'plugin-mention',
-            name: 'Mention System',
-            description: '@멘션 파싱 및 알림 시스템. 댓글에서 다른 사용자를 멘션할 수 있습니다.',
-            version: '1.0.0',
-            author: 'Angple Team',
-            downloads: 0,
-            rating: 4,
-            tags: ['mention', 'notification', 'social'],
-            category: 'social',
-            price: 0
+    /** 마켓플레이스 API 호출 */
+    async function fetchMarketplacePlugins() {
+        loading = true;
+        try {
+            const response = await fetch('http://localhost:5173/api/plugins/marketplace');
+            const data = await response.json();
+
+            if (data.plugins) {
+                plugins = data.plugins;
+                console.log(`✅ ${data.total}개 플러그인 로드 완료`);
+            } else {
+                console.error('❌ 마켓플레이스 데이터 로드 실패:', data.error);
+                toast.error('플러그인 목록을 불러오는 데 실패했습니다.');
+            }
+        } catch (error) {
+            console.error('❌ 마켓플레이스 API 호출 실패:', error);
+            toast.error('서버와 연결할 수 없습니다.');
+        } finally {
+            loading = false;
         }
-    ];
+    }
+
+    /** 플러그인 설치 (활성화) */
+    async function installPlugin(pluginId: string) {
+        installingPlugins.add(pluginId);
+        installingPlugins = installingPlugins; // trigger reactivity
+
+        try {
+            const response = await fetch('http://localhost:5173/api/plugins/marketplace/install', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ pluginId })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                toast.success('플러그인이 성공적으로 설치되었습니다.');
+
+                // 플러그인 목록 새로고침
+                await fetchMarketplacePlugins();
+            } else {
+                toast.error(data.error || '플러그인 설치에 실패했습니다.');
+            }
+        } catch (error) {
+            console.error('❌ 플러그인 설치 실패:', error);
+            toast.error('플러그인 설치 중 오류가 발생했습니다.');
+        } finally {
+            installingPlugins.delete(pluginId);
+            installingPlugins = installingPlugins;
+        }
+    }
+
+    /** 컴포넌트 마운트 시 플러그인 목록 로드 */
+    onMount(() => {
+        fetchMarketplacePlugins();
+    });
 
     /** 검색 필터링 */
     const filteredPlugins = $derived(() => {
-        let result = featuredPlugins;
+        let result = plugins;
 
         if (activeCategory !== 'all') {
             result = result.filter((p) => p.category === activeCategory);
@@ -164,7 +195,15 @@
     </div>
 
     <!-- 플러그인 그리드 -->
-    {#if filteredPlugins().length === 0}
+    {#if loading}
+        <Card>
+            <CardContent class="py-12 text-center">
+                <Loader2 class="text-muted-foreground mx-auto mb-4 h-12 w-12 animate-spin" />
+                <h2 class="mb-2 text-xl font-semibold">플러그인 로드 중...</h2>
+                <p class="text-muted-foreground">잠시만 기다려주세요.</p>
+            </CardContent>
+        </Card>
+    {:else if filteredPlugins().length === 0}
         <Card>
             <CardContent class="py-12 text-center">
                 <Package class="text-muted-foreground mx-auto mb-4 h-12 w-12" />
@@ -231,10 +270,26 @@
                         </div>
 
                         <!-- 설치 버튼 -->
-                        <Button class="w-full" size="sm">
-                            <Download class="mr-2 h-4 w-4" />
-                            설치
-                        </Button>
+                        {#if plugin.installed}
+                            <Button class="w-full" size="sm" variant="secondary" disabled>
+                                <Check class="mr-2 h-4 w-4" />
+                                설치됨
+                            </Button>
+                        {:else if installingPlugins.has(plugin.id)}
+                            <Button class="w-full" size="sm" disabled>
+                                <Loader2 class="mr-2 h-4 w-4 animate-spin" />
+                                설치 중...
+                            </Button>
+                        {:else}
+                            <Button
+                                class="w-full"
+                                size="sm"
+                                onclick={() => installPlugin(plugin.id)}
+                            >
+                                <Download class="mr-2 h-4 w-4" />
+                                설치
+                            </Button>
+                        {/if}
                     </CardContent>
                 </Card>
             {/each}

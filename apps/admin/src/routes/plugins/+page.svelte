@@ -98,7 +98,7 @@
     <div class="mb-6 flex items-center justify-between">
         <div class="flex gap-2">
             <PluginUploader onUploadSuccess={handleUploadSuccess} />
-            <Button variant="outline">마켓플레이스</Button>
+            <Button variant="outline" href="/plugins/marketplace">마켓플레이스</Button>
         </div>
         <div class="text-muted-foreground text-sm">
             설치된 플러그인: {plugins.length}

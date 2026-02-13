@@ -28,5 +28,8 @@
             "default": true
         }
     },
-    "tags": ["임베드", "YouTube", "Instagram", "Twitter"]
+    "tags": ["임베드", "YouTube", "Instagram", "Twitter"],
+    "downloads": 180,
+    "rating": 4.8,
+    "marketplaceCategory": "media"
 }

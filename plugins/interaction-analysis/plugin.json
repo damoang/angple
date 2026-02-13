@@ -28,9 +28,18 @@
             "default": "admin",
             "description": "상호작용 분석을 볼 수 있는 권한 설정",
             "options": [
-                { "label": "관리자만 (레벨 10+)", "value": "admin" },
-                { "label": "본인 + 관리자", "value": "self_admin" },
-                { "label": "모든 로그인 회원", "value": "authenticated" }
+                {
+                    "label": "관리자만 (레벨 10+)",
+                    "value": "admin"
+                },
+                {
+                    "label": "본인 + 관리자",
+                    "value": "self_admin"
+                },
+                {
+                    "label": "모든 로그인 회원",
+                    "value": "authenticated"
+                }
             ]
         },
         "maxResults": {
@@ -46,5 +55,8 @@
             "description": "분석할 게시판 ID (쉼표 구분, 비어있으면 전체). 예: free,economy,qa"
         }
     },
-    "tags": ["회원", "분석", "상호작용", "여론조작", "관리"]
+    "tags": ["회원", "분석", "상호작용", "여론조작", "관리"],
+    "downloads": 95,
+    "rating": 4.2,
+    "marketplaceCategory": "analytics"
 }
