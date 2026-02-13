@@ -16,7 +16,16 @@
         CardTitle
     } from '$lib/components/ui/card';
     import { Tabs, TabsContent, TabsList, TabsTrigger } from '$lib/components/ui/tabs';
-    import { ChevronLeft, Search, Download, Star, Plug, Package, Loader2, Check } from '@lucide/svelte';
+    import {
+        ChevronLeft,
+        Search,
+        Download,
+        Star,
+        Plug,
+        Package,
+        Loader2,
+        Check
+    } from '@lucide/svelte';
     import { t } from '$lib/i18n';
     import { onMount } from 'svelte';
     import { toast } from 'svelte-sonner';

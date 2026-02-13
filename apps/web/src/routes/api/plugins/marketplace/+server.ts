@@ -88,9 +88,7 @@ export const GET: RequestHandler = async () => {
             }
         }
 
-        console.log(
-            `✅ [API /marketplace] ${marketplacePlugins.length}개 공식 플러그인 반환`
-        );
+        console.log(`✅ [API /marketplace] ${marketplacePlugins.length}개 공식 플러그인 반환`);
 
         return json({
             plugins: marketplacePlugins,

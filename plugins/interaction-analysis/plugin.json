@@ -1,68 +1,62 @@
 {
-  "id": "interaction-analysis",
-  "name": "상호작용 분석",
-  "version": "1.0.0",
-  "description": "회원 프로필에서 공감/댓글 상호작용 상위 10명을 일/월/년 단위로 분석합니다. 집단 활동 및 여론 조작 패턴 탐지에 활용할 수 있습니다.",
-  "author": {
-    "name": "Damoang Team",
-    "url": "https://damoang.net"
-  },
-  "hooks": [
-    {
-      "name": "interaction_analysis_init",
-      "type": "action",
-      "callback": "hooks/init.ts",
-      "priority": 5
-    }
-  ],
-  "settings": {
-    "enabled": {
-      "label": "활성화",
-      "type": "boolean",
-      "default": true,
-      "description": "상호작용 분석 플러그인 활성화 여부"
+    "id": "interaction-analysis",
+    "name": "상호작용 분석",
+    "version": "1.0.0",
+    "description": "회원 프로필에서 공감/댓글 상호작용 상위 10명을 일/월/년 단위로 분석합니다. 집단 활동 및 여론 조작 패턴 탐지에 활용할 수 있습니다.",
+    "author": {
+        "name": "Damoang Team",
+        "url": "https://damoang.net"
     },
-    "visibility": {
-      "label": "접근 권한",
-      "type": "select",
-      "default": "admin",
-      "description": "상호작용 분석을 볼 수 있는 권한 설정",
-      "options": [
+    "hooks": [
         {
-          "label": "관리자만 (레벨 10+)",
-          "value": "admin"
-        },
-        {
-          "label": "본인 + 관리자",
-          "value": "self_admin"
-        },
-        {
-          "label": "모든 로그인 회원",
-          "value": "authenticated"
+            "name": "interaction_analysis_init",
+            "type": "action",
+            "callback": "hooks/init.ts",
+            "priority": 5
         }
-      ]
+    ],
+    "settings": {
+        "enabled": {
+            "label": "활성화",
+            "type": "boolean",
+            "default": true,
+            "description": "상호작용 분석 플러그인 활성화 여부"
+        },
+        "visibility": {
+            "label": "접근 권한",
+            "type": "select",
+            "default": "admin",
+            "description": "상호작용 분석을 볼 수 있는 권한 설정",
+            "options": [
+                {
+                    "label": "관리자만 (레벨 10+)",
+                    "value": "admin"
+                },
+                {
+                    "label": "본인 + 관리자",
+                    "value": "self_admin"
+                },
+                {
+                    "label": "모든 로그인 회원",
+                    "value": "authenticated"
+                }
+            ]
+        },
+        "maxResults": {
+            "label": "표시 인원",
+            "type": "number",
+            "default": 10,
+            "description": "상호작용 상위 몇 명을 표시할지 (최대 20)"
+        },
+        "targetBoards": {
+            "label": "분석 대상 게시판",
+            "type": "text",
+            "default": "",
+            "description": "분석할 게시판 ID (쉼표 구분, 비어있으면 전체). 예: free,economy,qa"
+        }
     },
-    "maxResults": {
-      "label": "표시 인원",
-      "type": "number",
-      "default": 10,
-      "description": "상호작용 상위 몇 명을 표시할지 (최대 20)"
-    },
-    "targetBoards": {
-      "label": "분석 대상 게시판",
-      "type": "text",
-      "default": "",
-      "description": "분석할 게시판 ID (쉼표 구분, 비어있으면 전체). 예: free,economy,qa"
-    }
-  },
-  "tags": [
-    "회원",
-    "분석",
-    "상호작용",
-    "여론조작",
-    "관리"
-  ],
-  "downloads": 95,
-  "rating": 4.2,
-  "marketplaceCategory": "analytics"
+    "tags": ["회원", "분석", "상호작용", "여론조작", "관리"],
+    "downloads": 95,
+    "rating": 4.2,
+    "marketplaceCategory": "analytics"
 }

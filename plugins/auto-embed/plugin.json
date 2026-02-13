@@ -1,40 +1,35 @@
 {
-  "id": "auto-embed",
-  "name": "URL 자동 임베딩",
-  "version": "1.0.0",
-  "description": "YouTube, Instagram, Twitter/X, Reddit, Bluesky 등 URL을 자동으로 임베드합니다.",
-  "author": {
-    "name": "Damoang Team",
-    "url": "https://damoang.net"
-  },
-  "hooks": [
-    {
-      "name": "post_content",
-      "type": "filter",
-      "callback": "hooks/content-filter.ts",
-      "priority": 10
+    "id": "auto-embed",
+    "name": "URL 자동 임베딩",
+    "version": "1.0.0",
+    "description": "YouTube, Instagram, Twitter/X, Reddit, Bluesky 등 URL을 자동으로 임베드합니다.",
+    "author": {
+        "name": "Damoang Team",
+        "url": "https://damoang.net"
     },
-    {
-      "name": "comment_content",
-      "type": "filter",
-      "callback": "hooks/comment-filter.ts",
-      "priority": 10
-    }
-  ],
-  "settings": {
-    "enabled": {
-      "label": "활성화",
-      "type": "boolean",
-      "default": true
-    }
-  },
-  "tags": [
-    "임베드",
-    "YouTube",
-    "Instagram",
-    "Twitter"
-  ],
-  "downloads": 180,
-  "rating": 4.8,
-  "marketplaceCategory": "media"
+    "hooks": [
+        {
+            "name": "post_content",
+            "type": "filter",
+            "callback": "hooks/content-filter.ts",
+            "priority": 10
+        },
+        {
+            "name": "comment_content",
+            "type": "filter",
+            "callback": "hooks/comment-filter.ts",
+            "priority": 10
+        }
+    ],
+    "settings": {
+        "enabled": {
+            "label": "활성화",
+            "type": "boolean",
+            "default": true
+        }
+    },
+    "tags": ["임베드", "YouTube", "Instagram", "Twitter"],
+    "downloads": 180,
+    "rating": 4.8,
+    "marketplaceCategory": "media"
 }
