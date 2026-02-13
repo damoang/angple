@@ -58,6 +58,7 @@
 ## 최종 결과
 
 ### 타입 안전성
+
 ```
 Web 앱:   0 errors ✅
 Admin 앱: 0 errors ✅
@@ -66,20 +67,25 @@ Admin 앱: 0 errors ✅
 ### 생성된 파일
 
 **Backend**
-- `apps/web/src/routes/api/plugins/upload/+server.ts`
+
+-   `apps/web/src/routes/api/plugins/upload/+server.ts`
 
 **Frontend**
-- `apps/admin/src/lib/components/plugin-uploader.svelte`
-- `apps/admin/src/routes/plugins/+page.svelte`
+
+-   `apps/admin/src/lib/components/plugin-uploader.svelte`
+-   `apps/admin/src/routes/plugins/+page.svelte`
 
 **Documentation**
-- `PLUGIN_ZIP_GUIDE.md`
+
+-   `PLUGIN_ZIP_GUIDE.md`
 
 **Test Assets**
-- `/tmp/sample-test-plugin.zip` (1.9KB)
+
+-   `/tmp/sample-test-plugin.zip` (1.9KB)
 
 ### PR
-- PR #151: https://github.com/damoang/angple/pull/151
+
+-   PR #151: https://github.com/damoang/angple/pull/151
 
 ---
 

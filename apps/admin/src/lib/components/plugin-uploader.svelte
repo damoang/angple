@@ -168,7 +168,9 @@
     <DialogContent class="sm:max-w-md">
         <DialogHeader>
             <DialogTitle>플러그인 업로드</DialogTitle>
-            <DialogDescription>ZIP 형식의 플러그인 파일을 업로드하세요. (최대 10MB)</DialogDescription>
+            <DialogDescription
+                >ZIP 형식의 플러그인 파일을 업로드하세요. (최대 10MB)</DialogDescription
+            >
         </DialogHeader>
 
         <div class="space-y-4">
