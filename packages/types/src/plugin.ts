@@ -77,20 +77,37 @@ export interface PluginManifest extends Omit<ExtensionManifest, 'category' | 'ho
 
 /**
  * 활성화된 플러그인 정보
+ *
+ * @deprecated ExtensionManifest로 통합되었습니다. 하위 호환성을 위해 유지됩니다.
  */
 export interface ActivePlugin {
-    /** 플러그인 매니페스트 */
-    manifest: PluginManifest;
+    /** 플러그인 ID */
+    id: string;
 
-    /** 플러그인 디렉터리 경로 */
-    path: string;
+    /** 플러그인 이름 */
+    name: string;
+
+    /** 플러그인 버전 */
+    version: string;
+
+    /** Hook 목록 */
+    hooks: Array<{
+        name: string;
+        type: 'action' | 'filter';
+        callback: string;
+        priority?: number;
+    }>;
+
+    /** Component 목록 */
+    components: Array<{
+        id: string;
+        name: string;
+        slot: string;
+        path: string;
+        priority?: number;
+        props?: Record<string, unknown>;
+    }>;
 
     /** 현재 설정값 */
-    settings: Record<string, any>;
-
-    /** 활성화 시간 */
-    activatedAt: Date;
-
-    /** 활성화 상태 */
-    enabled: boolean;
+    settings: Record<string, unknown>;
 }

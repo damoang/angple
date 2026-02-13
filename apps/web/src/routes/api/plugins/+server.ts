@@ -8,14 +8,14 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { getInstalledPlugins, activatePlugin, deactivatePlugin } from '$lib/server/plugins';
-import type { PluginManifest } from '$lib/types/plugin';
+import type { ExtensionManifest } from '@angple/types';
 
 /**
  * PluginWithStatus 타입 (Admin과 호환)
  */
 interface PluginWithStatus {
-    /** 플러그인 매니페스트 */
-    manifest: PluginManifest;
+    /** 플러그인 매니페스트 (ExtensionManifest with category='plugin') */
+    manifest: ExtensionManifest;
 
     /** 현재 상태 */
     status: 'active' | 'inactive' | 'installing' | 'error';

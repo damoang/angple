@@ -3,6 +3,10 @@
  *
  * 파일 시스템 기반 플러그인 관리 및 settings.json 통합
  * 테마 서버 API(themes/index.ts)와 동일한 패턴으로 구현되었습니다.
+ *
+ * ExtensionManifest 사용:
+ * - category가 'plugin'인 ExtensionManifest만 반환
+ * - 통합된 스키마로 테마와 동일한 구조 사용
  */
 
 import {
@@ -13,14 +17,14 @@ import {
     isCustomPlugin
 } from './scanner';
 import { pluginSettingsProvider } from '../settings/plugin-settings-provider';
-import type { PluginManifest } from '$lib/types/plugin';
+import type { ExtensionManifest } from '@angple/types';
 
 /**
  * 설치된 플러그인의 전체 정보
  */
 export interface InstalledPlugin {
-    /** 플러그인 매니페스트 */
-    manifest: PluginManifest;
+    /** 플러그인 매니페스트 (ExtensionManifest with category='plugin') */
+    manifest: ExtensionManifest;
 
     /** 현재 설정값 (settings.json에서 로드) */
     currentSettings?: Record<string, unknown>;

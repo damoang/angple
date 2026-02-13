@@ -95,11 +95,30 @@ export const ExtensionSettingFieldSchema = z.object({
 
 /**
  * Extension Hook 정의
+ *
+ * WordPress 스타일 hook 시스템과 호환
  */
 export const ExtensionHookSchema = z.object({
     name: z.string().min(1, 'Hook 이름은 필수입니다'),
-    handler: z.string().min(1, 'Hook 핸들러 경로는 필수입니다'),
+    type: z.enum(['action', 'filter'], {
+        message: 'Hook 타입은 action 또는 filter여야 합니다'
+    }),
+    callback: z.string().min(1, 'Hook 콜백 경로는 필수입니다'),
     priority: z.number().int().min(0).max(100).default(10)
+});
+
+/**
+ * Extension Component 정의
+ *
+ * Svelte 컴포넌트를 플러그인에서 삽입할 수 있도록 지원
+ */
+export const ExtensionComponentSchema = z.object({
+    id: z.string().regex(/^[a-z0-9-]+$/, 'Component ID는 소문자, 숫자, 하이픈만 사용 가능합니다'),
+    name: z.string().min(1, 'Component 이름은 필수입니다'),
+    slot: z.string().min(1, 'Slot 이름은 필수입니다'),
+    path: z.string().min(1, 'Component 경로는 필수입니다'),
+    priority: z.number().int().min(0).max(100).default(10),
+    props: z.record(z.string(), z.any()).optional()
 });
 
 // ============================================================================
@@ -236,7 +255,8 @@ const BaseExtensionManifestSchema = z.object({
     engines: ExtensionEnginesSchema.optional(),
     types: z.string().optional(),
     permissions: z.array(z.nativeEnum(ExtensionPermission)).optional(),
-    hooks: z.record(z.string(), z.string()).optional(),
+    hooks: z.array(ExtensionHookSchema).optional(),
+    components: z.array(ExtensionComponentSchema).optional(),
     api: ExtensionAPISchema.optional(),
     ui: ExtensionUISchema.optional(),
     settings: z.record(z.string(), ExtensionSettingFieldSchema).optional(),

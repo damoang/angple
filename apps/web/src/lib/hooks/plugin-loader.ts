@@ -6,7 +6,7 @@
  */
 
 import { registerHook, removeHooksBySource, type HookType } from './registry';
-import type { PluginManifest } from '$lib/types/plugin';
+import type { ExtensionManifest } from '@angple/types';
 
 /**
  * 현재 로드된 플러그인 ID 목록 추적 (중복 로드 방지)
@@ -29,9 +29,12 @@ const allPluginHooks = { ...pluginHooks, ...customPluginHooks };
  * 플러그인의 Hook을 자동으로 로드하고 등록
  *
  * @param pluginId - 플러그인 ID
- * @param manifest - 플러그인 매니페스트 (선택 사항, 없으면 API에서 로드)
+ * @param manifest - 플러그인 매니페스트 (부분 데이터 가능, 없으면 API에서 로드)
  */
-export async function loadPluginHooks(pluginId: string, manifest?: PluginManifest): Promise<void> {
+export async function loadPluginHooks(
+    pluginId: string,
+    manifest?: Partial<ExtensionManifest>
+): Promise<void> {
     try {
         console.log(`🔌 [Plugin Loader] Loading hooks for plugin: ${pluginId}`);
 
@@ -178,7 +181,7 @@ export async function unloadPluginHooks(pluginId: string): Promise<void> {
  * @param plugins - 로드할 플러그인 목록 [{id, manifest}]
  */
 export async function loadAllPluginHooks(
-    plugins: Array<{ id: string; manifest?: PluginManifest }>
+    plugins: Array<{ id: string; manifest?: Partial<ExtensionManifest> }>
 ): Promise<void> {
     console.log(`🔌 [Plugin Loader] Loading hooks for ${plugins.length} plugin(s)...`);
 
