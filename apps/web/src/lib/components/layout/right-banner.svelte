@@ -1,9 +1,6 @@
 <script lang="ts">
     import { onMount } from 'svelte';
-    import ImageBanner from '$lib/components/ui/image-banner/image-banner.svelte';
-
-    // AdSense 설정 (ang-gnu 동일)
-    const ADSENSE_VERTICAL_SLOT = '1774011047'; // DA_Vertical_Banner_02 (160×600)
+    import AdSlot from '$lib/components/ui/ad-slot/ad-slot.svelte';
 
     // TOP 버튼 표시 여부
     let showTopButton = $state(false);
@@ -28,16 +25,9 @@
     });
 </script>
 
-<!-- 오른쪽 윙 배너 -->
+<!-- 오른쪽 윙 배너 (GAM) -->
 <div class="flex w-[160px] flex-col items-center justify-center gap-2">
-    <ImageBanner
-        position="wing-right"
-        width="160px"
-        height="600px"
-        fallbackToAdsense={true}
-        adsenseSlot={ADSENSE_VERTICAL_SLOT}
-        adsenseFormat="vertical"
-    />
+    <AdSlot position="wing-right" height="600px" />
 </div>
 
 <!-- TOP 버튼 - 오른쪽 하단 -->

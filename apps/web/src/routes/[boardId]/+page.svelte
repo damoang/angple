@@ -293,6 +293,11 @@
     <SeoHead config={seoConfig} />
 
     <div class="mx-auto pt-4">
+        <!-- 최상단 배너 (title 위) -->
+        <div class="mb-4">
+            <DamoangBanner position="board-list" showCelebration={false} height="90px" />
+        </div>
+
         <!-- 앙지도 헤더 -->
         {#if isAngmapBoard}
             <BoardMapHeader />
@@ -302,7 +307,11 @@
         <div class="mb-4 flex items-start justify-between gap-3">
             <div>
                 <div class="flex items-center gap-2">
-                    <h1 class="text-foreground text-xl font-bold sm:text-3xl">{boardTitle}</h1>
+                    <h1 class="text-xl font-bold sm:text-3xl">
+                        <a href="/{boardId}" class="text-foreground hover:text-primary transition-colors">
+                            {boardTitle}
+                        </a>
+                    </h1>
                     {#if isAdmin}
                         <AdminLayoutSwitcher {boardId} currentLayout={listLayoutId} />
                         <Button
@@ -339,11 +348,6 @@
                     글쓰기
                 </Button>
             {/if}
-        </div>
-
-        <!-- 게시판 제목 아래 광고: GAM만 (축하메시지 OFF) -->
-        <div class="mb-4">
-            <DamoangBanner position="board-list" showCelebration={false} height="90px" />
         </div>
 
         <!-- 검색 폼 -->

@@ -4,7 +4,7 @@
     import AdSlot from '$lib/components/ui/ad-slot/ad-slot.svelte';
 
     interface Props {
-        position: 'index' | 'board-list' | 'board-view';
+        position: 'index' | 'board-list' | 'board-view' | 'sidebar';
         showCelebration?: boolean; // 축하메시지 표시 여부 (메인만 true)
         height?: string;
         gamPosition?: string; // GAM 폴백 시 사용할 슬롯 이름 (위젯에서 전달)
@@ -53,17 +53,20 @@
     // position → 다모앙 광고 서버 position 매핑
     // index → index-top (메인 페이지용, 현재 배너 0개 → GAM 폴백)
     // board-list/board-view → board-head (게시판/글 페이지용)
+    // sidebar → sidebar (사이드바용)
     const ADS_POSITION_MAP: Record<string, string> = {
         index: 'index-top',
         'board-list': 'board-head',
-        'board-view': 'board-head'
+        'board-view': 'board-head',
+        sidebar: 'sidebar'
     };
 
     // position → GAM 슬롯 위치 매핑
     const GAM_POSITION_MAP: Record<string, string> = {
         index: 'index-head',
         'board-list': 'board-list-head',
-        'board-view': 'board-content'
+        'board-view': 'board-content',
+        sidebar: 'sidebar'
     };
 
     const adsPosition = $derived(ADS_POSITION_MAP[position] || position);
@@ -176,7 +179,7 @@
             href={celebrationBanner.link_url}
             target={celebrationBanner.target || '_blank'}
             rel="nofollow noopener"
-            class="block overflow-hidden rounded-lg transition-opacity hover:opacity-90"
+            class="block overflow-hidden rounded-xl border border-border transition-opacity hover:opacity-90"
         >
             <img
                 src={celebrationBanner.image_url}
@@ -193,7 +196,7 @@
             target={adsBanner.target || '_blank'}
             rel="nofollow noopener"
             onclick={handleAdsClick}
-            class="block overflow-hidden rounded-lg transition-opacity hover:opacity-90"
+            class="block overflow-hidden rounded-xl border border-border transition-opacity hover:opacity-90"
         >
             <img
                 src={adsBanner.imageUrl}

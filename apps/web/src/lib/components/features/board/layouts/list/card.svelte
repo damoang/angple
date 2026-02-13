@@ -95,6 +95,9 @@
                         <div
                             class="text-secondary-foreground flex flex-wrap items-center gap-2 text-sm"
                         >
+                            <span>👍 {post.likes}</span>
+                            <span>💬 {post.comments_count}</span>
+                            <span>•</span>
                             <span class="inline-flex items-center gap-0.5"
                                 ><LevelBadge
                                     level={memberLevelStore.getLevel(post.author_id)}
@@ -133,10 +136,6 @@
                         {post.content}
                     </p>
                 {/if}
-                <div class="text-secondary-foreground flex items-center gap-4 text-sm">
-                    <span>👍 {post.likes}</span>
-                    <span>💬 {post.comments_count}</span>
-                </div>
             </CardContent>
         </div>
     </div>
