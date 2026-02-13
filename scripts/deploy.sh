@@ -46,6 +46,8 @@ fi
 # 1. 빌드
 echo ""
 echo -e "${BLUE}📦 [1/4] 빌드 중...${NC}"
+cd "$DEV_DIR/packages/types"
+pnpm build 2>&1
 cd "$DEV_DIR/apps/web"
 pnpm build 2>&1 | tail -3
 
