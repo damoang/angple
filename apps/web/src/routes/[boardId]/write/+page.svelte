@@ -2,6 +2,7 @@
     import { goto } from '$app/navigation';
     import { browser } from '$app/environment';
     import PostForm from '$lib/components/features/board/post-form.svelte';
+    import { writeFormRegistry } from '$lib/components/features/board/write-form-registry.js';
     import { authStore } from '$lib/stores/auth.svelte.js';
     import { apiClient } from '$lib/api/index.js';
     import type { PageData } from './$types.js';
@@ -12,6 +13,10 @@
     // 게시판 정보
     const boardId = $derived(data.boardId);
     const boardTitle = $derived(data.board?.subject || boardId);
+    const boardType = $derived(data.board?.board_type || 'standard');
+
+    // 커스텀 글쓰기 폼 resolve (없으면 기본 PostForm 사용)
+    const customWriteForm = $derived(writeFormRegistry.resolve(boardType));
 
     let isSubmitting = $state(false);
     let error = $state<string | null>(null);
@@ -78,12 +83,23 @@
             </div>
         {/if}
 
-        <PostForm
-            mode="create"
-            categories={data.categories}
-            onSubmit={handleSubmit}
-            onCancel={handleCancel}
-            isLoading={isSubmitting}
-        />
+        {#if customWriteForm}
+            <svelte:component
+                this={customWriteForm}
+                {boardId}
+                categories={data.categories}
+                onSubmit={handleSubmit}
+                onCancel={handleCancel}
+                isLoading={isSubmitting}
+            />
+        {:else}
+            <PostForm
+                mode="create"
+                categories={data.categories}
+                onSubmit={handleSubmit}
+                onCancel={handleCancel}
+                isLoading={isSubmitting}
+            />
+        {/if}
     {/if}
 </div>
