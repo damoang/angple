@@ -29,5 +29,8 @@
             "description": "플러그인 활성화 여부"
         }
     },
-    "tags": ["광고", "배너", "다모앙"]
+    "tags": ["광고", "배너", "다모앙"],
+    "downloads": 120,
+    "rating": 4.5,
+    "marketplaceCategory": "media"
 }

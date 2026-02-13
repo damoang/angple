@@ -1,39 +1,46 @@
 {
-    "id": "emoticon",
-    "name": "이모티콘",
-    "version": "1.0.0",
-    "description": "게시글/댓글에서 {emo:filename:width} 코드를 이모티콘 이미지로 변환합니다.",
-    "author": {
-        "name": "Damoang Team",
-        "url": "https://damoang.net"
+  "id": "emoticon",
+  "name": "이모티콘",
+  "version": "1.0.0",
+  "description": "게시글/댓글에서 {emo:filename:width} 코드를 이모티콘 이미지로 변환합니다.",
+  "author": {
+    "name": "Damoang Team",
+    "url": "https://damoang.net"
+  },
+  "hooks": [
+    {
+      "name": "post_content",
+      "type": "filter",
+      "callback": "hooks/emoticon-content-filter.ts",
+      "priority": 5
     },
-    "hooks": [
-        {
-            "name": "post_content",
-            "type": "filter",
-            "callback": "hooks/emoticon-content-filter.ts",
-            "priority": 5
-        },
-        {
-            "name": "comment_content",
-            "type": "filter",
-            "callback": "hooks/emoticon-comment-filter.ts",
-            "priority": 5
-        }
-    ],
-    "settings": {
-        "apiBaseUrl": {
-            "label": "API 기본 URL",
-            "type": "url",
-            "default": "http://localhost:8081",
-            "description": "이모티콘 API 서버의 기본 URL"
-        },
-        "enabled": {
-            "label": "활성화",
-            "type": "boolean",
-            "default": true,
-            "description": "플러그인 활성화 여부"
-        }
+    {
+      "name": "comment_content",
+      "type": "filter",
+      "callback": "hooks/emoticon-comment-filter.ts",
+      "priority": 5
+    }
+  ],
+  "settings": {
+    "apiBaseUrl": {
+      "label": "API 기본 URL",
+      "type": "url",
+      "default": "http://localhost:8081",
+      "description": "이모티콘 API 서버의 기본 URL"
     },
-    "tags": ["이모티콘", "이모지", "다모앙"]
+    "enabled": {
+      "label": "활성화",
+      "type": "boolean",
+      "default": true,
+      "description": "플러그인 활성화 여부"
+    }
+  },
+  "tags": [
+    "이모티콘",
+    "이모지",
+    "다모앙"
+  ],
+  "downloads": 250,
+  "rating": 5,
+  "marketplaceCategory": "social"
 }
