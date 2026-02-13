@@ -15,6 +15,8 @@ LOG_FILE="/tmp/angple-dev.log"
 case "$1" in
     start|restart)
         echo "📦 빌드 중..."
+        cd "$DEV_DIR/packages/types"
+        pnpm build 2>&1
         cd "$DEV_DIR/apps/web"
         npm run build 2>&1 | tail -3
 
