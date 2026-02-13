@@ -18,7 +18,8 @@
         startTime = '',
         pointsPerNumber = 0,
         status = 'active' as GivingStatus,
-        itemName = ''
+        itemName = '',
+        deliveryType = ''
     }: {
         postId: number;
         boardId: string;
@@ -27,6 +28,7 @@
         pointsPerNumber?: number;
         status?: GivingStatus;
         itemName?: string;
+        deliveryType?: string;
     } = $props();
 
     let bidInput = $state('');
@@ -188,6 +190,14 @@
                         >{pointsPerNumber.toLocaleString()}</span
                     >
                 </div>
+
+                <!-- 배송유형 -->
+                {#if deliveryType}
+                    <div class="bg-muted/50 rounded-lg p-3 text-center">
+                        <div class="text-muted-foreground mb-1 text-xs">배송유형</div>
+                        <span class="text-foreground text-sm font-bold">{deliveryType}</span>
+                    </div>
+                {/if}
             </div>
 
             <!-- 당첨자 (종료 후) -->

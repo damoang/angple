@@ -12,6 +12,7 @@
     import { loadThemeComponents } from '$lib/utils/theme-component-loader';
     import { loadAllPluginHooks } from '$lib/hooks/plugin-loader';
     import { loadAllPluginComponents } from '$lib/utils/plugin-component-loader';
+    import { doAction } from '$lib/hooks/registry';
     import { initBuiltinHooks } from '$lib/hooks';
     import MemoModal from '../../../../plugins/member-memo/components/memo-modal.svelte';
 
@@ -109,7 +110,7 @@
         console.log('🔄 [$effect] activePlugins 변경 감지:', activePlugins.length, '개');
 
         if (activePlugins.length > 0) {
-            // 플러그인 Hook 로드
+            // 플러그인 Hook 로드 후 액션 실행
             loadAllPluginHooks(
                 activePlugins.map((p) => ({
                     id: p.id,
@@ -122,7 +123,9 @@
                         components: p.components
                     }
                 }))
-            );
+            ).then(() => {
+                doAction('board.layout.register');
+            });
 
             // 플러그인 Component 로드
             loadAllPluginComponents(

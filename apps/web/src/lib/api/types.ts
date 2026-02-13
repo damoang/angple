@@ -341,6 +341,13 @@ export interface CreatePostRequest {
     tags?: string[]; // 선택 (태그 목록)
     link1?: string; // 선택 (링크1)
     link2?: string; // 선택 (링크2)
+    // 확장 필드 (플러그인용, PHP wr_1~wr_10 매핑)
+    extra_1?: string;
+    extra_2?: string;
+    extra_3?: string;
+    extra_4?: string;
+    extra_5?: string;
+    extra_6?: string;
 }
 
 // 게시글 수정 요청
