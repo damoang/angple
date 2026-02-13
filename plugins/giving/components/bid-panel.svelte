@@ -3,7 +3,7 @@
     import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card/index.js';
     import { Badge } from '$lib/components/ui/badge/index.js';
     import { authStore } from '$lib/stores/auth.svelte.js';
-    import { parseBidNumbers, type GivingBid, type GivingStatus } from '$lib/types/giving.js';
+    import { parseBidNumbers, type GivingBid, type GivingStatus } from '../types/giving.js';
     import CountdownTimer from './countdown-timer.svelte';
     import Trophy from '@lucide/svelte/icons/trophy';
     import Users from '@lucide/svelte/icons/users';
@@ -54,7 +54,7 @@
     async function loadBidInfo() {
         isLoading = true;
         try {
-            const res = await fetch(`/api/giving/${postId}`);
+            const res = await fetch(`/api/plugins/giving/${postId}`);
             if (res.ok) {
                 const data = await res.json();
                 if (data.success) {
@@ -92,7 +92,7 @@
         successMsg = '';
 
         try {
-            const res = await fetch(`/api/giving/${postId}/bid`, {
+            const res = await fetch(`/api/plugins/giving/${postId}/bid`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ numbers: bidInput })

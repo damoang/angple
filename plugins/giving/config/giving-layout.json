@@ -1,0 +1,41 @@
+{
+    "layout": {
+        "listLayout": "giving-card",
+        "viewLayout": "basic",
+        "cardGrid": {
+            "mobile": "grid-cols-2",
+            "tablet": "sm:grid-cols-3",
+            "desktop": "lg:grid-cols-4",
+            "gap": "gap-3"
+        }
+    },
+    "card": {
+        "showThumbnail": true,
+        "showStatusBadge": true,
+        "showParticipantBadge": true,
+        "showCountdown": true,
+        "showAuthor": true,
+        "showCommentCount": true,
+        "thumbnailAspectRatio": "aspect-video",
+        "endedOpacity": "opacity-60"
+    },
+    "board": {
+        "tabs": [
+            { "id": "active", "label": "진행중" },
+            { "id": "ended", "label": "종료" }
+        ],
+        "sortOptions": [
+            { "id": "urgent", "label": "긴급순" },
+            { "id": "newest", "label": "최신순" }
+        ],
+        "defaultTab": "active",
+        "defaultSort": "urgent"
+    },
+    "bidPanel": {
+        "showCountdown": true,
+        "showParticipantCount": true,
+        "showPointsPerNumber": true,
+        "showMyBids": true,
+        "showWinner": true
+    }
+}

@@ -45,8 +45,7 @@
     import { LevelBadge } from '$lib/components/ui/level-badge/index.js';
     import { memberLevelStore } from '$lib/stores/member-levels.svelte.js';
     import { extractMentions } from '$lib/utils/mention-parser.js';
-    import { BidPanel } from '$lib/components/features/giving/index.js';
-    import { parseGivingStatus, isGivingUrgent } from '$lib/types/giving.js';
+    import { postSlotRegistry } from '$lib/components/features/board/post-slot-registry.js';
     import {
         parseMarketInfo,
         MARKET_STATUS_LABELS,
@@ -85,15 +84,10 @@
                     ? 'angmap'
                     : 'standard')
     );
-    const isGivingBoard = $derived(boardType === 'giving');
     const isUsedMarket = $derived(boardType === 'used-market');
 
-    // 나눔 게시판 관련 파생 데이터
-    const givingStatus = $derived(
-        isGivingBoard
-            ? parseGivingStatus(data.post.extra_4, data.post.extra_5, data.post.extra_7)
-            : undefined
-    );
+    // 플러그인 슬롯: post.after_content (나눔 BidPanel 등)
+    const afterContentSlots = $derived(postSlotRegistry.resolve('post.after_content', boardType));
 
     // 중고게시판 상태 관리
     let marketStatus = $state((data.post.extra_2 as MarketStatus) || 'selling');
@@ -768,20 +762,15 @@
         <AdSlot position="board-content-bottom" height="90px" />
     </div>
 
-    <!-- 나눔 응모 패널 (나눔 게시판인 경우) -->
-    {#if isGivingBoard && givingStatus}
+    <!-- 플러그인 슬롯: post.after_content (나눔 BidPanel 등) -->
+    {#each afterContentSlots as slot (slot.component)}
         <div class="mb-6">
-            <BidPanel
-                postId={data.post.id}
-                {boardId}
-                endTime={data.post.extra_5 || ''}
-                startTime={data.post.extra_4 || ''}
-                pointsPerNumber={parseInt(data.post.extra_2 || '0', 10)}
-                status={givingStatus}
-                itemName={data.post.extra_3 || ''}
+            <svelte:component
+                this={slot.component}
+                {...slot.propsMapper ? slot.propsMapper(data) : { data }}
             />
         </div>
-    {/if}
+    {/each}
 
     <!-- 중고게시판 상태 변경 (작성자/관리자만) -->
     {#if isUsedMarket && (isAuthor || isAdmin)}
