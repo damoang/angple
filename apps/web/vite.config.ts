@@ -60,18 +60,19 @@ export default defineConfig(({ mode }) => {
                             console.log('[Proxy]', req.method, req.url);
                         });
                     }
-                },
-                '/api/plugins': {
-                    target: 'http://localhost:8082',
-                    changeOrigin: true,
-                    secure: false,
-                    configure: (proxy) => {
-                        proxy.on('proxyReq', (proxyReq, req) => {
-                            proxyReq.setHeader('Origin', 'http://localhost:8082');
-                            console.log('[Proxy]', req.method, req.url);
-                        });
-                    }
                 }
+                // /api/plugins 프록시 제거 - 모든 플러그인 API는 SvelteKit 서버 라우트
+                // '/api/plugins': {
+                //     target: 'http://localhost:8082',
+                //     changeOrigin: true,
+                //     secure: false,
+                //     configure: (proxy) => {
+                //         proxy.on('proxyReq', (proxyReq, req) => {
+                //             proxyReq.setHeader('Origin', 'http://localhost:8082');
+                //             console.log('[Proxy]', req.method, req.url);
+                //         });
+                //     }
+                // }
             }
         },
         test: {

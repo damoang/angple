@@ -98,7 +98,9 @@ function loadPluginManifest(pluginDir: string, baseDir: string): ExtensionManife
             // category가 없으면 'plugin'으로 간주 (plugin.json 파일이므로)
             category: manifestData.category || 'plugin',
             // license가 없으면 'UNLICENSED'로 설정
-            license: manifestData.license || 'UNLICENSED'
+            license: manifestData.license || 'UNLICENSED',
+            // main이 없으면 'index.ts'로 설정 (hooks 기반 플러그인 호환)
+            main: manifestData.main || 'index.ts'
         };
 
         // ExtensionManifest Zod 검증
