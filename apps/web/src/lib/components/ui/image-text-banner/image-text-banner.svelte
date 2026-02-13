@@ -9,16 +9,14 @@
 
     let { position = 'list-inline', class: className = '' }: Props = $props();
 
-    // 직접홍보 게시글 타입
-    interface PromotionPost {
-        wrId: number;
-        subject: string;
+    // damoang-ads 배너 응답 타입
+    interface ServedBanner {
+        id: string;
         imageUrl: string;
-        linkUrl: string;
-        advertiserName: string;
-        memberId: string;
-        pinToTop: boolean;
-        createdAt: string;
+        landingUrl: string;
+        altText: string;
+        target: string;
+        trackingId: string;
     }
 
     interface BannerItem {
@@ -27,12 +25,13 @@
         linkUrl: string;
         altText: string;
         target: string;
+        trackingId?: string;
     }
 
     let banners = $state<BannerItem[]>([]);
     let loading = $state(true);
 
-    // 샘플 데이터 (API 실패 시 폴백)
+    // 샘플 데이터 (API 실패 시 폴백 - side-image-text-banner 제외)
     const sampleBanners: BannerItem[] = [
         {
             id: '1',
@@ -72,49 +71,117 @@
         if (!browser) return;
 
         try {
-            const response = await fetch('/api/ads/promotion-posts');
+            // damoang-ads API 호출 - 항상 4개 요청
+            const response = await fetch(`/api/ads/banners?position=${position}&limit=4`);
             const result = await response.json();
 
-            const posts: PromotionPost[] = result.data?.posts || [];
-
-            // 이미지 있는 게시글만 필터링, 최대 4개
-            const withImage = posts.filter((p) => p.imageUrl).slice(0, 4);
-
-            if (withImage.length > 0) {
-                banners = withImage.map((p) => ({
-                    id: String(p.wrId),
-                    imageUrl: p.imageUrl,
-                    linkUrl: p.linkUrl,
-                    altText: p.subject,
-                    target: '_blank'
+            if (result.success && result.data?.banners?.length > 0) {
+                banners = result.data.banners.map((b: ServedBanner) => ({
+                    id: b.id,
+                    imageUrl: b.imageUrl,
+                    linkUrl: b.landingUrl,
+                    altText: b.altText || '',
+                    target: b.target || '_blank',
+                    trackingId: b.trackingId
                 }));
             } else {
-                banners = sampleBanners;
+                // side-image-text-banner는 빈 상태 유지, 다른 위치는 샘플 표시
+                banners = position === 'side-image-text-banner' ? [] : sampleBanners;
             }
         } catch (error) {
             console.warn('Image-text banner fetch error:', error);
-            banners = sampleBanners;
+            // side-image-text-banner는 빈 상태 유지, 다른 위치는 샘플 표시
+            banners = position === 'side-image-text-banner' ? [] : sampleBanners;
         } finally {
             loading = false;
         }
     }
+
+    // 4칸 슬롯 배열 생성 (side-image-text-banner용)
+    const slots = $derived(() => {
+        if (position !== 'side-image-text-banner') return null;
+        const result: (BannerItem | null)[] = [null, null, null, null];
+        banners.slice(0, 4).forEach((b, i) => {
+            result[i] = b;
+        });
+        return result;
+    });
 </script>
 
 <div class="image-text-banner {className}" data-position={position}>
     {#if loading}
+        <!-- 로딩 스켈레톤: 항상 4개 그리드 -->
         <div class="grid grid-cols-2 gap-2">
             {#each [1, 2, 3, 4] as idx (idx)}
                 <div
                     class="animate-pulse rounded-lg border-2 border-slate-200 bg-slate-100 dark:border-slate-700 dark:bg-slate-800"
                 >
-                    <div class="h-[80px] bg-slate-200 dark:bg-slate-700"></div>
-                    <div class="p-2">
-                        <div class="h-3 w-2/3 rounded bg-slate-200 dark:bg-slate-600"></div>
+                    <div
+                        class="{position === 'side-image-text-banner' ? 'h-[60px]' : 'h-[80px]'} bg-slate-200 dark:bg-slate-700"
+                    ></div>
+                    <div class="p-1.5">
+                        <div class="mx-auto h-2.5 w-2/3 rounded bg-slate-200 dark:bg-slate-600"></div>
                     </div>
                 </div>
             {/each}
         </div>
+    {:else if position === 'side-image-text-banner'}
+        <!-- 사이드바: 항상 4칸 그리드 (공실 포함) -->
+        <div class="grid grid-cols-2 gap-2">
+            {#each slots() || [null, null, null, null] as slot, idx (idx)}
+                {#if slot}
+                    <!-- 배너가 있는 슬롯 -->
+                    <article
+                        class="overflow-hidden rounded-lg border-2 border-blue-100 bg-white transition-transform hover:-translate-y-0.5 hover:border-blue-400 dark:border-slate-700 dark:bg-slate-800 dark:hover:border-blue-500"
+                    >
+                        <a
+                            href={slot.linkUrl}
+                            target={slot.target || '_blank'}
+                            rel="nofollow noopener"
+                            class="block"
+                        >
+                            {#if slot.imageUrl}
+                                <figure class="m-0">
+                                    <img
+                                        src={slot.imageUrl}
+                                        alt={slot.altText || '광고'}
+                                        class="h-[60px] w-full object-cover"
+                                        loading="lazy"
+                                    />
+                                    <figcaption
+                                        class="truncate bg-white px-2 py-1 text-center text-[10px] text-blue-600 dark:bg-slate-800 dark:text-blue-400"
+                                    >
+                                        {slot.altText || '광고'}
+                                    </figcaption>
+                                </figure>
+                            {:else}
+                                <div
+                                    class="flex h-[60px] items-center justify-center bg-slate-50 p-2 dark:bg-slate-700"
+                                >
+                                    <span
+                                        class="text-center text-[10px] text-blue-600 dark:text-blue-400"
+                                    >
+                                        {slot.altText || '광고'}
+                                    </span>
+                                </div>
+                            {/if}
+                        </a>
+                    </article>
+                {:else}
+                    <!-- 공실 슬롯 -->
+                    <a
+                        href="mailto:ads@damoang.net"
+                        class="flex h-[78px] flex-col items-center justify-center rounded-lg border-2 border-dashed border-slate-300 bg-slate-50 transition-colors hover:border-blue-400 hover:bg-blue-50 dark:border-slate-600 dark:bg-slate-800 dark:hover:border-blue-500 dark:hover:bg-slate-700"
+                    >
+                        <span class="text-[10px] font-medium text-slate-400 dark:text-slate-500"
+                            >광고 문의</span
+                        >
+                    </a>
+                {/if}
+            {/each}
+        </div>
     {:else if banners.length > 0}
+        <!-- 기본: 4개 그리드 -->
         <div class="grid grid-cols-2 gap-2">
             {#each banners.slice(0, 4) as banner (banner.id)}
                 <article
