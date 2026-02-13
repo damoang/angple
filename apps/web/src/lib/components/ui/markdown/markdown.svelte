@@ -103,6 +103,7 @@
                         'playsinline'
                     ]
                 });
+            });
         }
     });
 </script>
