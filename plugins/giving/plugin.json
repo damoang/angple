@@ -24,6 +24,13 @@
             "priority": 10
         },
         {
+            "id": "giving-write-form",
+            "name": "나눔 글쓰기 폼",
+            "slot": "write-form",
+            "path": "components/giving-write-form.svelte",
+            "priority": 10
+        },
+        {
             "id": "admin-controls",
             "name": "관리자 컨트롤",
             "slot": "post-detail-admin",
