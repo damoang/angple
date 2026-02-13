@@ -54,7 +54,7 @@
                 adsenseFormat="rectangle"
             />
         {:else if adType === 'image-text'}
-            <ImageTextBanner position="list-inline" />
+            <ImageTextBanner position="side-image-text-banner" />
         {:else}
             <AdSlot {position} height="250px" />
         {/if}

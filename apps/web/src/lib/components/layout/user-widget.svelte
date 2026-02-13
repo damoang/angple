@@ -162,7 +162,7 @@
                     {/if}
                 </div>
             {/if}
-            <div class="grid grid-cols-3 gap-1">
+            <div class="grid grid-cols-4 gap-1">
                 <a
                     href="/my?tab=posts"
                     class="border-border text-muted-foreground hover:border-primary/30 hover:text-primary flex items-center justify-center rounded border px-2 py-1.5 transition-colors"
@@ -180,6 +180,14 @@
                     class="border-border text-muted-foreground hover:border-primary/30 hover:text-primary flex items-center justify-center rounded border px-2 py-1.5 transition-colors"
                 >
                     전체
+                </a>
+                <a
+                    href="https://damoang.net/my"
+                    rel="external"
+                    target="_blank"
+                    class="border-border text-muted-foreground hover:border-primary/30 hover:text-primary flex items-center justify-center rounded border px-2 py-1.5 transition-colors"
+                >
+                    분석
                 </a>
             </div>
         </div>

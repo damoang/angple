@@ -52,10 +52,18 @@
     function toggleDarkMode() {
         isDarkMode = !isDarkMode;
         document.documentElement.classList.toggle('dark');
+        localStorage.setItem('darkMode', String(isDarkMode));
     }
 
     // 컴포넌트 마운트 시 스크롤 이벤트 등록
     onMount(() => {
+        // 다크모드 상태 복원
+        const saved = localStorage.getItem('darkMode');
+        if (saved === 'true') {
+            isDarkMode = true;
+            document.documentElement.classList.add('dark');
+        }
+
         window.addEventListener('scroll', handleScroll, { passive: true });
 
         return () => {

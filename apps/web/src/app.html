@@ -16,6 +16,11 @@
         %sveltekit.head%
     </head>
     <body data-sveltekit-preload-data="hover">
+        <script>
+            if (localStorage.getItem('darkMode') === 'true') {
+                document.documentElement.classList.add('dark');
+            }
+        </script>
         <div style="display: contents">%sveltekit.body%</div>
         <script>
             if ('serviceWorker' in navigator && location.hostname !== 'localhost') {
