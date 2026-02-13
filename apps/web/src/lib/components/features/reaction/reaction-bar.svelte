@@ -28,7 +28,7 @@
     let isLoading = $state(false);
     let isReacting = $state(false);
     let showPicker = $state(false);
-    let activeCategory = $state('emoji');
+    let activeCategory = $state('angticon');
 
     // target/parent ID 생성 (da_reaction 호환)
     const targetId = $derived(

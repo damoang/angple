@@ -25,6 +25,7 @@
     import CommentForm from '$lib/components/features/board/comment-form.svelte';
     import CommentList from '$lib/components/features/board/comment-list.svelte';
     import RecentPosts from '$lib/components/features/board/recent-posts.svelte';
+    import { RecommendedPosts } from '$lib/components/features/recommended/index.js';
     import { ReportDialog } from '$lib/components/features/report/index.js';
     import type { FreeComment, LikerInfo } from '$lib/api/types.js';
     import { onMount } from 'svelte';
@@ -674,7 +675,7 @@
         {#if canViewSecret}
             <CardFooter class="flex-col items-start gap-3">
                 <!-- 추천/비추천/신고 버튼 -->
-                <div class="flex w-full items-center gap-3">
+                <div class="flex w-full flex-wrap items-center gap-3">
                     <!-- 추천 버튼 -->
                     <div class="border-border flex items-center rounded-lg border">
                         <Button
@@ -699,6 +700,17 @@
                             <Users class="h-4 w-4" />
                         </button>
                     </div>
+
+                    <!-- 추천자 아바타 스택 (같은 줄) -->
+                    {#if likers.length > 0}
+                        <AvatarStack
+                            items={likers}
+                            total={likersTotal}
+                            max={5}
+                            size="sm"
+                            onclick={loadLikers}
+                        />
+                    {/if}
 
                     <!-- 비추천 버튼 (게시판 설정에서 활성화된 경우만) -->
                     {#if data.board?.use_nogood === 1}
@@ -735,17 +747,6 @@
                         </Button>
                     {/if}
                 </div>
-
-                <!-- 추천자 아바타 스택 -->
-                {#if likers.length > 0}
-                    <AvatarStack
-                        items={likers}
-                        total={likersTotal}
-                        max={5}
-                        size="sm"
-                        onclick={loadLikers}
-                    />
-                {/if}
 
                 <!-- 리액션 (da-reaction 플러그인) -->
                 {#if reactionPluginActive}
@@ -835,9 +836,14 @@
         </Card>
     {/if}
 
-    <!-- 최근글 위 광고 -->
+    <!-- 1시간 추천글 리스트 -->
     <div class="mt-6">
-        <AdSlot position="board-list-bottom" height="90px" />
+        <RecommendedPosts />
+    </div>
+
+    <!-- 추천글 아래 배너 -->
+    <div class="mt-6">
+        <DamoangBanner position="board-view" showCelebration={false} height="90px" />
     </div>
 
     <!-- 게시판 최근글 목록 (체류시간 증가) -->

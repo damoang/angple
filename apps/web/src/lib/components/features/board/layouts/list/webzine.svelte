@@ -116,6 +116,8 @@
 
             <!-- 하단 메타 정보 -->
             <div class="text-muted-foreground flex flex-wrap items-center gap-3 text-xs">
+                <span>👍 {post.likes}</span>
+                <span>💬 {post.comments_count}</span>
                 <span class="inline-flex items-center gap-0.5 font-medium"
                     ><LevelBadge
                         level={memberLevelStore.getLevel(post.author_id)}
@@ -124,8 +126,6 @@
                 >
                 <span>{formatDate(post.created_at)}</span>
                 <span>조회 {post.views.toLocaleString()}</span>
-                <span>👍 {post.likes}</span>
-                <span>💬 {post.comments_count}</span>
 
                 {#if post.tags && post.tags.length > 0}
                     <div class="flex gap-1">

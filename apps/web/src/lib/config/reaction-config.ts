@@ -10,13 +10,13 @@ import type { CategoryDef, EmoticonDef } from '$lib/types/reaction.js';
 // 카테고리
 // ============================================================
 export const REACTION_CATEGORIES: CategoryDef[] = [
-    { category: 'emoji', title: '이모지', renderType: 'emoji' },
     {
         category: 'angticon',
         title: '앙티콘',
         renderType: 'image',
         description: '다모앙 이모티콘'
     },
+    { category: 'emoji', title: '이모지', renderType: 'emoji' },
     {
         category: 'noto-animoji',
         title: 'Noto 움직이는 이모지',

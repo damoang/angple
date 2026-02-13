@@ -92,6 +92,9 @@
                 {post.title}
             </h3>
             <div class="text-muted-foreground flex flex-wrap items-center gap-2 text-xs">
+                <span>👍 {post.likes}</span>
+                <span>💬 {post.comments_count}</span>
+                <span>•</span>
                 <span class="inline-flex items-center gap-0.5"
                     ><LevelBadge
                         level={memberLevelStore.getLevel(post.author_id)}
@@ -102,10 +105,6 @@
                 <span>{formatDate(post.created_at)}</span>
                 <span>•</span>
                 <span>조회 {post.views.toLocaleString()}</span>
-                <span>•</span>
-                <span>👍 {post.likes}</span>
-                <span>•</span>
-                <span>💬 {post.comments_count}</span>
             </div>
         </div>
 

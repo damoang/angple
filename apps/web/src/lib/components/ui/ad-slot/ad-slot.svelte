@@ -199,6 +199,12 @@
                     ]
                 ]
             ]
+        },
+        // 윙 배너 (좌우 날개) → sub
+        'banner-vertical': {
+            unit: AD_UNIT_PATHS.sub,
+            sizes: [[160, 600]],
+            responsive: null
         }
     };
 
@@ -221,7 +227,10 @@
         'comment-infeed': 'infeed',
         'comment-top': 'banner-compact',
         'sidebar-sticky': 'banner-halfpage',
-        sidebar: 'banner-square'
+        sidebar: 'banner-square',
+        'sidebar-b2b': 'banner-square',
+        'wing-left': 'banner-vertical',
+        'wing-right': 'banner-vertical'
     };
 
     // 위치별 기본 사이즈 매핑 (fallback)
@@ -308,7 +317,10 @@
             [300, 250],
             [300, 600]
         ],
-        sidebar: [[300, 250]]
+        sidebar: [[300, 250]],
+        'sidebar-b2b': [[300, 250]],
+        'wing-left': [[160, 600]],
+        'wing-right': [[160, 600]]
     };
 
     // 위치별 라벨 매핑
@@ -329,7 +341,10 @@
         'board-content-bottom': '본문 하단',
         'board-footer': '게시판 하단',
         'comment-infeed': '댓글 인피드',
-        'sidebar-sticky': '사이드바 고정'
+        'sidebar-sticky': '사이드바 고정',
+        'sidebar-b2b': 'B2B 광고',
+        'wing-left': '왼쪽 윙 배너',
+        'wing-right': '오른쪽 윙 배너'
     };
 
     // GPT 스크립트 로드

@@ -530,61 +530,67 @@
                         </div>
                     </div>
 
-                    <div class="text-secondary-foreground ml-auto flex items-center gap-4 text-sm">
-                        <!-- 댓글 좋아요 버튼 (PHP 호환: thumbup 이미지) -->
-                        <div
-                            class="comment-good-group flex items-stretch rounded-lg border {isCommentLiked(
-                                String(comment.id)
-                            )
-                                ? 'border-liked/40 bg-liked/5'
-                                : 'border-border'}"
-                        >
-                            {#if onLike && authStore.isAuthenticated}
-                                <button
-                                    type="button"
-                                    onclick={() => handleLikeComment(String(comment.id))}
-                                    disabled={likingComment === String(comment.id)}
-                                    class="flex items-center px-1.5 py-1 transition-opacity hover:opacity-80"
-                                    title="추천"
-                                >
-                                    <img
-                                        src={isCommentLiked(String(comment.id))
-                                            ? '/images/thumbup-choose.gif'
-                                            : '/images/thumbup.png'}
-                                        alt="추천"
-                                        class="size-5"
-                                    />
-                                </button>
-                            {:else}
-                                <span class="flex items-center px-1.5 py-1">
-                                    <img src="/images/thumbup.png" alt="추천" class="size-5" />
-                                </span>
-                            {/if}
+                    <!-- 리액션 (da-reaction 플러그인) - 왼쪽 정렬 -->
+                    {#if reactionPluginActive && !isEditing && boardId && postId}
+                        <ReactionBar {boardId} {postId} commentId={comment.id} target="comment" />
+                    {/if}
+
+                    <!-- 댓글 좋아요 버튼 (PHP 호환: thumbup 이미지) -->
+                    <div
+                        class="comment-good-group flex items-stretch rounded-lg border {isCommentLiked(
+                            String(comment.id)
+                        )
+                            ? 'border-liked/40 bg-liked/5'
+                            : 'border-border'}"
+                    >
+                        {#if onLike && authStore.isAuthenticated}
                             <button
                                 type="button"
-                                onclick={() => openLikersDialog(comment.id)}
-                                class="text-muted-foreground hover:text-foreground border-l {isCommentLiked(
-                                    String(comment.id)
-                                )
-                                    ? 'border-liked/40 text-liked'
-                                    : 'border-border'} px-2 py-1 text-xs font-medium transition-colors"
-                                title="추천인 목록보기"
+                                onclick={() => handleLikeComment(String(comment.id))}
+                                disabled={likingComment === String(comment.id)}
+                                class="flex items-center px-1.5 py-1 transition-opacity hover:opacity-80"
+                                title="추천"
                             >
-                                {getCommentLikes(comment).toLocaleString()}
+                                <img
+                                    src={isCommentLiked(String(comment.id))
+                                        ? '/images/thumbup-choose.gif'
+                                        : '/images/thumbup.png'}
+                                    alt="추천"
+                                    class="size-5"
+                                />
                             </button>
-                        </div>
-
-                        <!-- 댓글 추천자 아바타 스택 -->
-                        {#if getCommentLikes(comment) > 0 && commentLikersList.has(String(comment.id))}
-                            <AvatarStack
-                                items={commentLikersList.get(String(comment.id)) ?? []}
-                                total={commentLikersTotal.get(String(comment.id)) ?? 0}
-                                max={5}
-                                size="sm"
-                                onclick={() => openLikersDialog(comment.id)}
-                            />
+                        {:else}
+                            <span class="flex items-center px-1.5 py-1">
+                                <img src="/images/thumbup.png" alt="추천" class="size-5" />
+                            </span>
                         {/if}
+                        <button
+                            type="button"
+                            onclick={() => openLikersDialog(comment.id)}
+                            class="text-muted-foreground hover:text-foreground border-l {isCommentLiked(
+                                String(comment.id)
+                            )
+                                ? 'border-liked/40 text-liked'
+                                : 'border-border'} px-2 py-1 text-xs font-medium transition-colors"
+                            title="추천인 목록보기"
+                        >
+                            {getCommentLikes(comment).toLocaleString()}
+                        </button>
+                    </div>
 
+                    <!-- 댓글 추천자 아바타 스택 -->
+                    {#if getCommentLikes(comment) > 0 && commentLikersList.has(String(comment.id))}
+                        <AvatarStack
+                            items={commentLikersList.get(String(comment.id)) ?? []}
+                            total={commentLikersTotal.get(String(comment.id)) ?? 0}
+                            max={5}
+                            size="sm"
+                            onclick={() => openLikersDialog(comment.id)}
+                        />
+                    {/if}
+
+                    <!-- 오른쪽 정렬: 비추천, 답글/수정/삭제 -->
+                    <div class="text-secondary-foreground ml-auto flex items-center gap-4 text-sm">
                         <!-- 댓글 비추천 버튼 (게시판 설정에서 활성화된 경우만) -->
                         {#if useNogood}
                             {#if onDislike && authStore.isAuthenticated}
@@ -694,13 +700,6 @@
                             {@html processedComments.get(comment.id) ?? ''}
                         </div>
                     {/if}
-                {/if}
-
-                <!-- 리액션 (da-reaction 플러그인) -->
-                {#if reactionPluginActive && !isEditing && boardId && postId}
-                    <div class="mt-2">
-                        <ReactionBar {boardId} {postId} commentId={comment.id} target="comment" />
-                    </div>
                 {/if}
 
                 <!-- 답글 폼 -->

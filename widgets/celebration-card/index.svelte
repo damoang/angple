@@ -149,13 +149,13 @@
     }
 
     .celeb-header {
-        padding: 6px 10px;
+        padding: 4px 8px;
         display: flex;
         align-items: center;
         gap: 6px;
         color: white;
         font-weight: 600;
-        font-size: 0.75rem;
+        font-size: 0.7rem;
     }
 
     .celeb-nick {
@@ -187,7 +187,7 @@
 
     .celeb-body {
         position: relative;
-        min-height: 44px;
+        min-height: 36px;
     }
 
     .celeb-profile {
@@ -199,10 +199,10 @@
     }
 
     .celeb-avatar {
-        width: 36px;
-        height: 36px;
+        width: 30px;
+        height: 30px;
         border-radius: 50%;
-        border: 3px solid transparent;
+        border: 2px solid transparent;
         background:
             linear-gradient(white, white) padding-box,
             conic-gradient(from 0deg, red, orange, yellow, green, cyan, blue, violet, red)
@@ -218,29 +218,29 @@
     }
 
     .celeb-avatar-placeholder {
-        width: 36px;
-        height: 36px;
+        width: 30px;
+        height: 30px;
         border-radius: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
         background: linear-gradient(135deg, #667eea, #764ba2);
         color: white;
-        font-size: 1.2rem;
+        font-size: 1rem;
     }
 
     .celeb-banner-wrap {
         display: block;
         width: 100%;
-        min-height: 50px;
+        min-height: 40px;
         position: relative;
     }
 
     .celeb-banner {
         width: 100%;
         height: 100%;
-        min-height: 50px;
-        max-height: 80px;
+        min-height: 40px;
+        max-height: 65px;
         object-fit: cover;
     }
 
@@ -249,7 +249,7 @@
         bottom: 0;
         left: 0;
         right: 0;
-        padding: 6px 10px 6px 54px;
+        padding: 4px 8px 4px 46px;
         background: linear-gradient(transparent, rgba(0, 0, 0, 0.7));
     }
 
@@ -265,9 +265,9 @@
     }
 
     .celeb-no-banner {
-        padding: 10px 12px 10px 54px;
+        padding: 8px 10px 8px 46px;
         background: var(--muted);
-        min-height: 44px;
+        min-height: 36px;
         display: flex;
         align-items: center;
     }

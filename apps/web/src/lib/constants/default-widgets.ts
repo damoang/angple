@@ -84,21 +84,28 @@ export const DEFAULT_SIDEBAR_WIDGETS: WidgetConfig[] = [
     { id: 'celebration-card', type: 'celebration-card', position: 1, enabled: true },
     { id: 'podcast', type: 'podcast', position: 2, enabled: true },
     {
-        id: 'sidebar-ad-1',
+        id: 'sidebar-b2b',
         type: 'ad',
         position: 3,
+        enabled: true,
+        settings: { position: 'sidebar-b2b', type: 'gam' }
+    },
+    {
+        id: 'sidebar-ad-1',
+        type: 'ad',
+        position: 4,
         enabled: true,
         settings: { position: 'sidebar-1', type: 'image', format: 'square' }
     },
     {
         id: 'sidebar-ad-2',
         type: 'ad',
-        position: 4,
+        position: 5,
         enabled: true,
         settings: { position: 'sidebar-2', type: 'image-text', format: 'grid' }
     },
-    { id: 'sharing-board', type: 'sharing-board', position: 5, enabled: true },
-    { id: 'sticky-ads', type: 'sticky-ads', position: 6, enabled: true }
+    { id: 'sharing-board', type: 'sharing-board', position: 6, enabled: true },
+    { id: 'sticky-ads', type: 'sticky-ads', position: 7, enabled: true }
 ];
 
 /**

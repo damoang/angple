@@ -16,7 +16,7 @@ case "$1" in
     start|restart)
         echo "📦 빌드 중..."
         cd "$DEV_DIR/apps/web"
-        pnpm build 2>&1 | tail -3
+        npm run build 2>&1 | tail -3
 
         # 기존 프로세스 종료
         OLD_PID=$(lsof -t -i:$PORT 2>/dev/null || true)
