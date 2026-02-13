@@ -11,102 +11,26 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { existsSync, mkdirSync, rmSync, writeFileSync } from 'fs';
-import { join, resolve, normalize, isAbsolute, extname } from 'path';
+import { join } from 'path';
 import AdmZip from 'adm-zip';
-import { safeValidatePluginManifest } from '$lib/types/plugin';
+import { safeValidateExtensionManifest } from '@angple/types';
 import { sanitizePath } from '$lib/server/path-utils';
 import { scanPlugins } from '$lib/server/plugins/scanner';
 
-/** 프로젝트 루트 찾기 */
-function getProjectRoot(): string {
-    const cwd = process.cwd();
-    if (cwd.includes('apps/web')) return resolve(cwd, '../..');
-    if (cwd.includes('apps/admin')) return resolve(cwd, '../..');
-    return cwd;
-}
-
-const PROJECT_ROOT = getProjectRoot();
-
 /** 커스텀 플러그인 디렉터리 */
-const CUSTOM_PLUGINS_DIR = join(PROJECT_ROOT, 'custom-plugins');
+const CUSTOM_PLUGINS_DIR = join(process.cwd(), 'custom-plugins');
 
-/** 최대 파일 크기: 20MB */
-const MAX_FILE_SIZE = 20 * 1024 * 1024;
-
-/** 최대 전체 크기: 50MB */
-const MAX_TOTAL_SIZE = 50 * 1024 * 1024;
-
-/** 허용 확장자 */
-const ALLOWED_EXTENSIONS = [
-    '.svelte',
-    '.ts',
-    '.js',
-    '.json',
-    '.css',
-    '.png',
-    '.jpg',
-    '.jpeg',
-    '.svg',
-    '.webp',
-    '.md',
-    '.yaml',
-    '.yml',
-    '.html',
-    '.go',
-    '.sql'
-];
-
-/**
- * Zip Slip 공격 방지 검증
- */
-function validateZipEntries(entries: AdmZip.IZipEntry[], targetDir: string): string | null {
-    let totalSize = 0;
-
-    for (const entry of entries) {
-        const normalizedPath = normalize(entry.entryName).replace(/^(\.\.(\/|\\|$))+/, '');
-
-        // 절대 경로 체크
-        if (isAbsolute(normalizedPath)) {
-            return 'Zip Slip 공격 감지: 절대 경로 포함';
-        }
-
-        // 디렉터리 탐색 공격 체크
-        if (normalizedPath.includes('..')) {
-            return 'Zip Slip 공격 감지: 디렉터리 탈출 시도';
-        }
-
-        // Symlink 감지
-        const externalAttr = entry.header.attr;
-        const fileMode = (externalAttr >> 16) & 0xffff;
-        const isSymlink = (fileMode & 0o170000) === 0o120000;
-        if (isSymlink) {
-            return 'Symlink 보안 위험 감지';
-        }
-
-        // 파일 크기 누적
-        if (!entry.isDirectory) {
-            totalSize += entry.header.size;
-
-            // 개별 파일 크기 체크
-            if (entry.header.size > MAX_FILE_SIZE) {
-                return `파일 크기 초과: ${entry.entryName}`;
-            }
-        }
-    }
-
-    // 전체 크기 체크
-    if (totalSize > MAX_TOTAL_SIZE) {
-        return `전체 크기 초과: ${(totalSize / 1024 / 1024).toFixed(2)}MB > 50MB`;
-    }
-
-    return null;
-}
+/** 최대 파일 크기: 10MB */
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
 
 /**
  * POST /api/plugins/upload
+ *
+ * 플러그인 ZIP 파일 업로드 처리
  */
 export const POST: RequestHandler = async ({ request }) => {
     try {
+        // FormData 파싱
         const formData = await request.formData();
         const file = formData.get('file') as File | null;
 
@@ -114,6 +38,7 @@ export const POST: RequestHandler = async ({ request }) => {
             return json({ success: false, error: '파일이 제공되지 않았습니다.' }, { status: 400 });
         }
 
+        // 파일 크기 검증
         if (file.size > MAX_FILE_SIZE) {
             return json(
                 {
@@ -124,6 +49,7 @@ export const POST: RequestHandler = async ({ request }) => {
             );
         }
 
+        // MIME 타입 검증
         const validMimeTypes = [
             'application/zip',
             'application/x-zip-compressed',
@@ -136,7 +62,7 @@ export const POST: RequestHandler = async ({ request }) => {
             );
         }
 
-        // custom-plugins 디렉터리 생성
+        // custom-plugins 디렉터리 생성 (없으면)
         if (!existsSync(CUSTOM_PLUGINS_DIR)) {
             mkdirSync(CUSTOM_PLUGINS_DIR, { recursive: true });
         }
@@ -147,27 +73,26 @@ export const POST: RequestHandler = async ({ request }) => {
         writeFileSync(tempZipPath, buffer);
 
         try {
+            // ZIP 압축 해제
             const zip = new AdmZip(tempZipPath);
             const zipEntries = zip.getEntries();
 
-            // Zip Slip 보안 검증
-            const securityError = validateZipEntries(zipEntries, CUSTOM_PLUGINS_DIR);
-            if (securityError) {
-                rmSync(tempZipPath);
-                return json({ success: false, error: securityError }, { status: 400 });
-            }
-
-            // plugin.json 또는 extension.json 찾기
+            // plugin.json 또는 extension.json 파일 찾기
             let manifestEntry: AdmZip.IZipEntry | null = null;
-            let manifestType: 'plugin' | 'extension' = 'plugin';
             let rootFolder = '';
+            let manifestFileName = '';
 
             for (const entry of zipEntries) {
-                const name = entry.entryName;
-                if (name.endsWith('plugin.json') || name.endsWith('extension.json')) {
+                if (
+                    entry.entryName.endsWith('plugin.json') ||
+                    entry.entryName.endsWith('extension.json')
+                ) {
                     manifestEntry = entry;
-                    manifestType = name.endsWith('plugin.json') ? 'plugin' : 'extension';
-                    const parts = name.split('/');
+                    manifestFileName = entry.entryName.endsWith('plugin.json')
+                        ? 'plugin.json'
+                        : 'extension.json';
+                    // 루트 폴더 추출 (예: "my-plugin/plugin.json" → "my-plugin")
+                    const parts = entry.entryName.split('/');
                     if (parts.length > 1) {
                         rootFolder = parts[0];
                     }
@@ -189,14 +114,22 @@ export const POST: RequestHandler = async ({ request }) => {
             // 매니페스트 검증
             const manifestContent = manifestEntry.getData().toString('utf8');
             const manifestData = JSON.parse(manifestContent);
-            const validationResult = safeValidatePluginManifest(manifestData);
+
+            // category, license 기본값 제공 (하위 호환성)
+            const normalizedData = {
+                ...manifestData,
+                category: manifestData.category || 'plugin',
+                license: manifestData.license || 'UNLICENSED'
+            };
+
+            const validationResult = safeValidateExtensionManifest(normalizedData);
 
             if (!validationResult.success) {
                 rmSync(tempZipPath);
                 return json(
                     {
                         success: false,
-                        error: '매니페스트 형식이 올바르지 않습니다.',
+                        error: `${manifestFileName} 형식이 올바르지 않습니다.`,
                         details: validationResult.error.issues
                     },
                     { status: 400 }
@@ -204,9 +137,22 @@ export const POST: RequestHandler = async ({ request }) => {
             }
 
             const pluginManifest = validationResult.data;
+
+            // category가 'plugin'인지 확인
+            if (pluginManifest.category !== 'plugin') {
+                rmSync(tempZipPath);
+                return json(
+                    {
+                        success: false,
+                        error: `카테고리가 'plugin'이어야 합니다. (현재: ${pluginManifest.category})`
+                    },
+                    { status: 400 }
+                );
+            }
+
             const pluginId = sanitizePath(pluginManifest.id);
 
-            // 폴더명과 ID 일치 검증
+            // 플러그인 ID와 폴더명 일치 검증
             if (rootFolder && rootFolder !== pluginId) {
                 rmSync(tempZipPath);
                 return json(
@@ -218,58 +164,62 @@ export const POST: RequestHandler = async ({ request }) => {
                 );
             }
 
-            // 중복 설치 확인
+            // 이미 존재하는 플러그인 확인
             const targetDir = join(CUSTOM_PLUGINS_DIR, pluginId);
             if (existsSync(targetDir)) {
                 rmSync(tempZipPath);
                 return json(
-                    {
-                        success: false,
-                        error: `플러그인 "${pluginId}"이(가) 이미 설치되어 있습니다.`
-                    },
+                    { success: false, error: `플러그인 "${pluginId}"가 이미 설치되어 있습니다.` },
                     { status: 409 }
                 );
             }
 
             // ZIP 압축 해제
+            // rootFolder가 있으면 해당 폴더만 추출, 없으면 전체 추출
             if (rootFolder) {
+                // 예: "my-plugin/" 폴더의 내용을 custom-plugins/my-plugin/로 추출
                 const tempExtractPath = join(CUSTOM_PLUGINS_DIR, `temp-extract-${Date.now()}`);
                 zip.extractAllTo(tempExtractPath, true);
 
-                const extractedDir = join(tempExtractPath, rootFolder);
-                if (existsSync(extractedDir)) {
+                // 임시 폴더의 rootFolder를 최종 위치로 이동
+                const extractedPluginDir = join(tempExtractPath, rootFolder);
+                if (existsSync(extractedPluginDir)) {
+                    // Node.js의 fs.renameSync로 이동
                     const fs = await import('fs');
-                    fs.renameSync(extractedDir, targetDir);
+                    fs.renameSync(extractedPluginDir, targetDir);
+                    // 임시 폴더 삭제
                     rmSync(tempExtractPath, { recursive: true, force: true });
                 } else {
                     rmSync(tempExtractPath, { recursive: true, force: true });
                     throw new Error('압축 해제된 플러그인 폴더를 찾을 수 없습니다.');
                 }
             } else {
+                // rootFolder가 없으면 전체 파일을 targetDir에 직접 추출
                 mkdirSync(targetDir, { recursive: true });
                 zip.extractAllTo(targetDir, true);
             }
 
-            // 임시 파일 삭제
+            // 임시 ZIP 파일 삭제
             rmSync(tempZipPath);
 
             // 플러그인 재스캔
             scanPlugins();
 
-            console.log(`[Plugin Upload] 플러그인 업로드 성공: ${pluginId}`);
+            console.log(`✅ [Plugin Upload] 플러그인 업로드 성공: ${pluginId}`);
 
             return json({
                 success: true,
-                message: `플러그인 "${pluginManifest.name}"이(가) 성공적으로 업로드되었습니다.`,
+                message: `플러그인 "${pluginManifest.name}"이 성공적으로 업로드되었습니다.`,
                 pluginId,
                 manifest: pluginManifest
             });
         } catch (error) {
+            // 오류 발생 시 임시 파일 정리
             if (existsSync(tempZipPath)) {
                 rmSync(tempZipPath);
             }
 
-            console.error('[Plugin Upload] 업로드 처리 중 오류:', error);
+            console.error('❌ [Plugin Upload] 업로드 처리 중 오류:', error);
             return json(
                 {
                     success: false,
@@ -280,7 +230,7 @@ export const POST: RequestHandler = async ({ request }) => {
             );
         }
     } catch (error) {
-        console.error('[Plugin Upload] 요청 처리 중 오류:', error);
+        console.error('❌ [Plugin Upload] 요청 처리 중 오류:', error);
         return json(
             {
                 success: false,
