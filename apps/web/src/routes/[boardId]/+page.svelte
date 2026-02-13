@@ -25,8 +25,8 @@
     import type { SeoConfig } from '$lib/seo/types.js';
     import { memberLevelStore } from '$lib/stores/member-levels.svelte.js';
 
-    // 특수 게시판 컴포넌트
-    import { GivingBoard } from '$lib/components/features/giving/index.js';
+    // 특수 게시판 컴포넌트 (플러그인 레지스트리 기반)
+    import { boardTypeRegistry } from '$lib/components/features/board/board-type-registry.js';
     import BoardMapHeader from '$lib/components/features/board/board-map-header.svelte';
 
     // Board Layout System
@@ -52,8 +52,10 @@
                     ? 'angmap'
                     : 'standard')
     );
-    const isGivingBoard = $derived(boardType === 'giving');
     const isAngmapBoard = $derived(boardType === 'angmap');
+
+    // 플러그인 레지스트리에서 특수 게시판 컴포넌트 resolve
+    const boardTypeComponent = $derived(boardTypeRegistry.resolve(boardType));
 
     // 글쓰기 권한 체크
     // 1. 서버에서 계산된 permissions.can_write 사용 (인증된 경우)
@@ -286,9 +288,9 @@
     }
 </script>
 
-<!-- 나눔 게시판: 전용 탭 기반 UI -->
-{#if isGivingBoard}
-    <GivingBoard {data} />
+<!-- 특수 게시판: 플러그인 레지스트리 기반 동적 로딩 -->
+{#if boardTypeComponent}
+    <svelte:component this={boardTypeComponent} {data} />
 {:else}
     <SeoHead config={seoConfig} />
 

@@ -39,7 +39,7 @@
         }
 
         try {
-            const res = await fetch(`/api/giving?limit=${itemCount}`);
+            const res = await fetch(`/api/plugins/giving/list?limit=${itemCount}&tab=active`);
             if (res.ok) {
                 const data = await res.json();
                 givings = data.data ?? [];

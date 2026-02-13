@@ -1,10 +1,10 @@
 <script lang="ts">
     import { Badge } from '$lib/components/ui/badge/index.js';
     import type { FreePost, BoardDisplaySettings } from '$lib/api/types.js';
-    import CountdownTimer from '$lib/components/features/giving/countdown-timer.svelte';
+    import CountdownTimer from './countdown-timer.svelte';
     import ImageIcon from '@lucide/svelte/icons/image';
     import Users from '@lucide/svelte/icons/users';
-    import type { GivingItem } from '$lib/types/giving.js';
+    import type { GivingStatus } from '../types/giving.js';
 
     let {
         post,
@@ -26,7 +26,7 @@
     const thumbnailUrl = $derived(post.extra_10 || post.thumbnail || post.images?.[0] || '');
     const hasImage = $derived(Boolean(thumbnailUrl));
 
-    function getStatus(): 'waiting' | 'active' | 'paused' | 'ended' {
+    function getStatus(): GivingStatus {
         if (post.extra_7 === '2') return 'ended';
         if (post.extra_7 === '1') return 'paused';
         const now = new Date();

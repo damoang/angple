@@ -1,0 +1,100 @@
+{
+    "id": "giving",
+    "name": "나눔 게시판",
+    "version": "1.0.0",
+    "author": {
+        "name": "Damoang Team",
+        "url": "https://damoang.net"
+    },
+    "category": "content",
+    "description": "포인트 기반 번호 응모 나눔 시스템",
+    "components": [
+        {
+            "id": "giving-board",
+            "name": "나눔 게시판",
+            "slot": "board-list",
+            "path": "components/giving-board.svelte",
+            "priority": 10
+        },
+        {
+            "id": "bid-panel",
+            "name": "응모 패널",
+            "slot": "post-detail",
+            "path": "components/bid-panel.svelte",
+            "priority": 10
+        },
+        {
+            "id": "admin-controls",
+            "name": "관리자 컨트롤",
+            "slot": "post-detail-admin",
+            "path": "components/admin-controls.svelte",
+            "priority": 10
+        },
+        {
+            "id": "bid-visualization",
+            "name": "응모 시각화",
+            "slot": "post-detail-extra",
+            "path": "components/bid-visualization.svelte",
+            "priority": 20
+        },
+        {
+            "id": "competition-analysis",
+            "name": "경쟁 분석",
+            "slot": "post-detail-extra",
+            "path": "components/competition-analysis.svelte",
+            "priority": 30
+        },
+        {
+            "id": "giving-rules",
+            "name": "나눔 규칙",
+            "slot": "post-detail-extra",
+            "path": "components/giving-rules.svelte",
+            "priority": 40
+        }
+    ],
+    "hooks": [
+        {
+            "name": "board.layout.register",
+            "type": "action",
+            "callback": "hooks/register-layouts.ts",
+            "priority": 10
+        }
+    ],
+    "settings": {
+        "show_visualization": {
+            "label": "응모 시각화 표시",
+            "type": "boolean",
+            "default": true,
+            "description": "종료된 나눔의 응모 번호 분포 차트 표시 여부"
+        },
+        "show_competition_analysis": {
+            "label": "경쟁 분석 표시",
+            "type": "boolean",
+            "default": true,
+            "description": "경쟁 구간/안전 구간 분석 표시 여부"
+        },
+        "show_rules": {
+            "label": "나눔 규칙 표시",
+            "type": "boolean",
+            "default": true,
+            "description": "나눔 규칙 안내 표시 여부"
+        },
+        "card_columns_mobile": {
+            "label": "모바일 카드 열 수",
+            "type": "number",
+            "default": 2,
+            "description": "모바일에서 표시할 카드 열 수",
+            "min": 1,
+            "max": 3
+        },
+        "card_columns_desktop": {
+            "label": "데스크탑 카드 열 수",
+            "type": "number",
+            "default": 4,
+            "description": "데스크탑에서 표시할 카드 열 수",
+            "min": 2,
+            "max": 6
+        }
+    },
+    "tags": ["나눔", "응모", "포인트", "게시판"]
+}

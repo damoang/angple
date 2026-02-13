@@ -13,7 +13,6 @@ import CardLayout from './card.svelte';
 import DetailedLayout from './detailed.svelte';
 import GalleryLayout from './gallery.svelte';
 import WebzineLayout from './webzine.svelte';
-import GivingCardLayout from './giving-card.svelte';
 import PosterGalleryLayout from './poster-gallery.svelte';
 import MarketCardLayout from './market-card.svelte';
 
@@ -67,15 +66,6 @@ const coreListLayouts: { manifest: LayoutManifest; component: any }[] = [
     },
     {
         manifest: {
-            id: 'giving-card',
-            name: '나눔 카드',
-            description: '나눔 게시판 전용 카드 레이아웃 (카운트다운, 참여자 배지)',
-            wrapperClass: 'grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4'
-        },
-        component: GivingCardLayout
-    },
-    {
-        manifest: {
             id: 'poster-gallery',
             name: '포스터 갤러리',
             description: '2:3 비율 포스터 카드 갤러리 (앙티티 전용)',
@@ -113,7 +103,6 @@ export {
     DetailedLayout,
     GalleryLayout,
     WebzineLayout,
-    GivingCardLayout,
     PosterGalleryLayout,
     MarketCardLayout
 };

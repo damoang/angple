@@ -5,7 +5,7 @@
     import { Button } from '$lib/components/ui/button/index.js';
     import { Card, CardContent } from '$lib/components/ui/card/index.js';
     import type { FreePost } from '$lib/api/types.js';
-    import GivingCardLayout from '$lib/components/features/board/layouts/list/giving-card.svelte';
+    import GivingCardLayout from './giving-card.svelte';
     import { authStore } from '$lib/stores/auth.svelte.js';
     import Pencil from '@lucide/svelte/icons/pencil';
     import { DamoangBanner } from '$lib/components/ui/damoang-banner/index.js';
