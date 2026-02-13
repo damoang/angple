@@ -308,7 +308,10 @@
             <div>
                 <div class="flex items-center gap-2">
                     <h1 class="text-xl font-bold sm:text-3xl">
-                        <a href="/{boardId}" class="text-foreground hover:text-primary transition-colors">
+                        <a
+                            href="/{boardId}"
+                            class="text-foreground hover:text-primary transition-colors"
+                        >
                             {boardTitle}
                         </a>
                     </h1>

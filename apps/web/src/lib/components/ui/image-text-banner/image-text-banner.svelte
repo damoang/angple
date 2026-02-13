@@ -117,10 +117,14 @@
                     class="animate-pulse rounded-lg border-2 border-slate-200 bg-slate-100 dark:border-slate-700 dark:bg-slate-800"
                 >
                     <div
-                        class="{position === 'side-image-text-banner' ? 'h-[60px]' : 'h-[80px]'} bg-slate-200 dark:bg-slate-700"
+                        class="{position === 'side-image-text-banner'
+                            ? 'h-[60px]'
+                            : 'h-[80px]'} bg-slate-200 dark:bg-slate-700"
                     ></div>
                     <div class="p-1.5">
-                        <div class="mx-auto h-2.5 w-2/3 rounded bg-slate-200 dark:bg-slate-600"></div>
+                        <div
+                            class="mx-auto h-2.5 w-2/3 rounded bg-slate-200 dark:bg-slate-600"
+                        ></div>
                     </div>
                 </div>
             {/each}

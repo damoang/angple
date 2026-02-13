@@ -702,7 +702,6 @@
                     {/if}
                 {/if}
 
-
                 <!-- 답글 폼 -->
                 {#if isReplyingTo}
                     <div class="mt-4">

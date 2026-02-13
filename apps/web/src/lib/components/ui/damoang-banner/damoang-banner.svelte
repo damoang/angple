@@ -179,7 +179,7 @@
             href={celebrationBanner.link_url}
             target={celebrationBanner.target || '_blank'}
             rel="nofollow noopener"
-            class="block overflow-hidden rounded-xl border border-border transition-opacity hover:opacity-90"
+            class="border-border block overflow-hidden rounded-xl border transition-opacity hover:opacity-90"
         >
             <img
                 src={celebrationBanner.image_url}
@@ -196,7 +196,7 @@
             target={adsBanner.target || '_blank'}
             rel="nofollow noopener"
             onclick={handleAdsClick}
-            class="block overflow-hidden rounded-xl border border-border transition-opacity hover:opacity-90"
+            class="border-border block overflow-hidden rounded-xl border transition-opacity hover:opacity-90"
         >
             <img
                 src={adsBanner.imageUrl}
