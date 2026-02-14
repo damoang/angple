@@ -43,6 +43,6 @@
 
     <!-- 제목만 -->
     <div class="p-2.5">
-        <p class="text-foreground line-clamp-2 text-sm font-medium">{post.title}</p>
+        <p class="text-foreground line-clamp-2 text-[15px] font-medium">{post.title}</p>
     </div>
 </a>

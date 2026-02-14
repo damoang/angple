@@ -504,7 +504,7 @@
                         <div>
                             <p
                                 class="text-foreground font-medium {isReply
-                                    ? 'text-sm'
+                                    ? 'text-[15px]'
                                     : ''} flex items-center gap-1.5"
                             >
                                 <LevelBadge
@@ -524,7 +524,11 @@
                                     <Lock class="text-muted-foreground h-3.5 w-3.5" />
                                 {/if}
                             </p>
-                            <p class="text-secondary-foreground {isReply ? 'text-xs' : 'text-sm'}">
+                            <p
+                                class="text-secondary-foreground {isReply
+                                    ? 'text-[13px]'
+                                    : 'text-[15px]'}"
+                            >
                                 {formatDate(comment.created_at)}
                             </p>
                         </div>
@@ -590,7 +594,9 @@
                     {/if}
 
                     <!-- 오른쪽 정렬: 비추천, 답글/수정/삭제 -->
-                    <div class="text-secondary-foreground ml-auto flex items-center gap-4 text-sm">
+                    <div
+                        class="text-secondary-foreground ml-auto flex items-center gap-4 text-[15px]"
+                    >
                         <!-- 댓글 비추천 버튼 (게시판 설정에서 활성화된 경우만) -->
                         {#if useNogood}
                             {#if onDislike && authStore.isAuthenticated}
@@ -624,7 +630,7 @@
                                         disabled={isReplyingTo}
                                     >
                                         <Reply class="h-4 w-4" />
-                                        <span class="ml-1 text-xs">답글</span>
+                                        <span class="ml-1 text-[13px]">답글</span>
                                     </Button>
                                 {/if}
 
@@ -688,14 +694,18 @@
                     {#if comment.is_secret && !canViewSecretComment(comment)}
                         <div
                             class="text-muted-foreground flex items-center gap-2 italic {isReply
-                                ? 'text-sm'
+                                ? 'text-[15px]'
                                 : ''}"
                         >
                             <Lock class="h-4 w-4" />
                             비밀댓글입니다.
                         </div>
                     {:else}
-                        <div class="text-foreground whitespace-pre-wrap {isReply ? 'text-sm' : ''}">
+                        <div
+                            class="text-foreground whitespace-pre-wrap {isReply
+                                ? 'text-[15px]'
+                                : ''}"
+                        >
                             <!-- eslint-disable-next-line svelte/no-at-html-tags -->
                             {@html processedComments.get(comment.id) ?? ''}
                         </div>

@@ -48,7 +48,7 @@
             <!-- 통계 (데스크톱에서만) -->
             {#if stats}
                 <div
-                    class="hidden items-center gap-3 text-xs sm:flex"
+                    class="hidden items-center gap-3 text-[13px] sm:flex"
                     role="list"
                     aria-label="트렌드 통계"
                 >

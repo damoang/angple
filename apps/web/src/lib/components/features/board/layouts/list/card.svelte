@@ -93,7 +93,7 @@
                             {post.title}
                         </CardTitle>
                         <div
-                            class="text-secondary-foreground flex flex-wrap items-center gap-2 text-sm"
+                            class="text-secondary-foreground flex flex-wrap items-center gap-2 text-[15px]"
                         >
                             <span>👍 {post.likes}</span>
                             <span>💬 {post.comments_count}</span>
@@ -116,7 +116,7 @@
                     <div class="flex flex-shrink-0 flex-wrap gap-1.5">
                         {#if post.category}
                             <span
-                                class="bg-primary/10 text-primary rounded-md px-2 py-0.5 text-xs font-medium"
+                                class="bg-primary/10 text-primary rounded-md px-2 py-0.5 text-[13px] font-medium"
                             >
                                 {post.category}
                             </span>

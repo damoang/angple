@@ -31,7 +31,7 @@
             <a
                 href="/bbs/group.php?gr_id=group"
                 rel="external"
-                class="text-muted-foreground hover:text-foreground flex items-center gap-1 text-sm transition-all duration-200 ease-out"
+                class="text-muted-foreground hover:text-foreground flex items-center gap-1 text-[15px] transition-all duration-200 ease-out"
             >
                 더보기
                 <ChevronRight class="h-4 w-4" />

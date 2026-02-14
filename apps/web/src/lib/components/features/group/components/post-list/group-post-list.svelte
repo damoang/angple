@@ -19,13 +19,15 @@
                 >
                     <div class="flex items-center gap-2">
                         <span
-                            class="inline-flex min-w-[2.5rem] flex-shrink-0 items-center justify-center rounded px-2 py-0.5 text-sm font-bold {getRecommendBadgeClass(
+                            class="inline-flex min-w-[2.5rem] flex-shrink-0 items-center justify-center rounded px-2 py-0.5 text-[15px] font-bold {getRecommendBadgeClass(
                                 post.recommend_count
                             )}"
                         >
                             {formatNumber(post.recommend_count)}
                         </span>
-                        <div class="text-foreground min-w-0 flex-1 truncate text-sm font-medium">
+                        <div
+                            class="text-foreground min-w-0 flex-1 truncate text-[15px] font-medium"
+                        >
                             {post.title}
                         </div>
                     </div>

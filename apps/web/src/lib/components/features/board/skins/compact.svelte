@@ -89,7 +89,7 @@
                 {/if}
                 {post.title}
             </h3>
-            <div class="text-muted-foreground flex flex-wrap items-center gap-2 text-[13px]">
+            <div class="text-muted-foreground flex flex-wrap items-center gap-2 text-[15px]">
                 <span>{post.author}</span>
                 <span>•</span>
                 <span>{formatDate(post.created_at)}</span>
@@ -105,7 +105,9 @@
         <!-- 우측: 카테고리 + 태그 -->
         <div class="flex flex-shrink-0 flex-wrap items-center gap-1.5">
             {#if post.category}
-                <span class="bg-primary/10 text-primary rounded-md px-2 py-0.5 text-xs font-medium">
+                <span
+                    class="bg-primary/10 text-primary rounded-md px-2 py-0.5 text-[13px] font-medium"
+                >
                     {post.category}
                 </span>
             {/if}

@@ -14,7 +14,7 @@
     class:ring-2={isEditMode}
     class:ring-blue-500={isEditMode}
 >
-    <h3 class="mb-3 text-sm font-semibold text-slate-700 dark:text-slate-300">
+    <h3 class="mb-3 text-[15px] font-semibold text-slate-700 dark:text-slate-300">
         <svg class="mr-1 inline h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
                 stroke-linecap="round"
@@ -25,7 +25,7 @@
         </svg>
         나눔 게시판
     </h3>
-    <ul class="space-y-2 text-xs text-slate-600 dark:text-slate-400">
+    <ul class="space-y-2 text-[13px] text-slate-600 dark:text-slate-400">
         <li class="hover:text-primary cursor-pointer truncate">• [진행중] 연말 특별 나눔 이벤트</li>
         <li class="hover:text-primary cursor-pointer truncate">• [마감] 기프티콘 나눔</li>
         <li class="hover:text-primary cursor-pointer truncate">• [진행중] 책 나눔합니다</li>
