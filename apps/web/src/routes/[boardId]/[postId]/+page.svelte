@@ -557,7 +557,7 @@
                 {#if data.post.category}
                     <div class="mb-3 flex flex-wrap gap-1.5">
                         <span
-                            class="bg-primary/10 text-primary rounded-md px-2 py-0.5 text-xs font-medium"
+                            class="bg-primary/10 text-primary rounded-md px-2 py-0.5 text-[13px] font-medium"
                         >
                             {data.post.category}
                         </span>
@@ -617,14 +617,14 @@
                                 >
                             {/if}
                         </p>
-                        <p class="text-secondary-foreground text-sm">
+                        <p class="text-secondary-foreground text-[15px]">
                             {formatDate(data.post.created_at)}
                         </p>
                     </div>
                 </div>
 
                 <div
-                    class="text-secondary-foreground ml-auto flex gap-2 text-xs sm:gap-4 sm:text-sm"
+                    class="text-secondary-foreground ml-auto flex gap-2 text-[13px] sm:gap-4 sm:text-[15px]"
                 >
                     <span>조회 {data.post.views.toLocaleString()}</span>
                     <span>추천 {likeCount.toLocaleString()}</span>
@@ -752,7 +752,7 @@
 
     <!-- 수정/삭제 시간 표시 -->
     {#if data.post.updated_at && data.post.updated_at !== data.post.created_at}
-        <p class="text-muted-foreground mt-4 text-center text-sm">
+        <p class="text-muted-foreground mt-4 text-center text-[15px]">
             마지막 수정: {formatDate(data.post.updated_at)}
         </p>
     {/if}
@@ -775,7 +775,7 @@
     <!-- 중고게시판 상태 변경 (작성자/관리자만) -->
     {#if isUsedMarket && (isAuthor || isAdmin)}
         <div class="mb-6 flex items-center gap-3 rounded-lg border p-4">
-            <span class="text-sm font-medium">판매 상태:</span>
+            <span class="text-[15px] font-medium">판매 상태:</span>
             <div class="flex gap-2">
                 {#each ['selling', 'reserved', 'sold'] as const as status (status)}
                     <Button

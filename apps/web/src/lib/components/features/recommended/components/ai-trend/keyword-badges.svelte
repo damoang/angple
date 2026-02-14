@@ -10,7 +10,7 @@
 <div class="flex flex-wrap gap-1.5" role="list" aria-label="트렌드 키워드">
     {#each displayKeywords as keyword (keyword.name)}
         <span
-            class="inline-flex items-center rounded-full bg-amber-400 px-2 py-0.5 text-xs font-medium text-slate-900 transition-colors hover:bg-amber-500 dark:bg-amber-500 dark:text-slate-900"
+            class="inline-flex items-center rounded-full bg-amber-400 px-2 py-0.5 text-[13px] font-medium text-slate-900 transition-colors hover:bg-amber-500 dark:bg-amber-500 dark:text-slate-900"
             role="listitem"
         >
             {keyword.name}
