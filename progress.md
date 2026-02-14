@@ -1,6 +1,13 @@
-# Progress: Frontend Phase 11
+# Progress
 
 ## Session Log
+
+### 2026-02-14
+
+-   사이드바 이미지 배너 3단계 폴백 체인 구현 (ads → 직접홍보 → AdSense)
+-   홈페이지 글씨 크기 개선 (PostCard 제목 15px, Compact 메타 13px)
+-   favicon을 damoang.net과 동일하게 변경 (ico, 96x96, 32x32, 16x16)
+-   ads.damoang.net 시스템 분석 결과 findings.md에 정리
 
 ### 2026-01-31
 
