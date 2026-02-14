@@ -113,15 +113,14 @@ USER nodeuser
 
 # Environment variables
 ENV NODE_ENV=production
-# 컨테이너 내부 포트는 3000 고정 (외부 매핑은 compose.yml에서 제어)
 ENV PORT=3000
 
-# Expose port
-EXPOSE 3000
+# Expose port (런타임에서 PORT 환경변수로 오버라이드 가능)
+EXPOSE ${PORT}
 
-# Health check
+# Health check (PORT 환경변수 사용)
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD wget -q -O /dev/null http://127.0.0.1:3000/health || exit 1
+    CMD wget -q -O /dev/null http://127.0.0.1:${PORT}/health || exit 1
 
 # Start the application
 CMD ["node", "build"]
