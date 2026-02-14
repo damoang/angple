@@ -39,8 +39,8 @@
     {:else if adType === 'image'}
         <ImageBanner
             position="sidebar"
-            width="100%"
-            height="250px"
+            width="280px"
+            height="140px"
             fallbackToAdsense={true}
             adsenseSlot={ADSENSE_SLOTS.square}
             adsenseFormat="rectangle"

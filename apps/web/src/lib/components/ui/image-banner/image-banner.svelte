@@ -144,14 +144,14 @@
 
 <div
     class="image-banner {className}"
-    style="width: {width}; min-height: {height};"
+    style="width: {width}; height: {height};"
     data-position={position}
 >
     {#if loading}
         <!-- 로딩 플레이스홀더 -->
         <div
             class="flex animate-pulse items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-800"
-            style="min-height: {height};"
+            style="height: {height};"
         >
             <svg
                 class="h-8 w-8 text-slate-300 dark:text-slate-600"
@@ -173,7 +173,8 @@
             href={banner.linkUrl}
             target={banner.target || '_blank'}
             rel="nofollow noopener"
-            class="block overflow-hidden rounded-lg"
+            class="border-border block overflow-hidden rounded-xl border transition-opacity hover:opacity-90"
+            style="width: 100%; height: 100%;"
         >
             {#if isVideo(banner.imageUrl)}
                 <video
@@ -181,8 +182,8 @@
                     loop
                     muted
                     playsinline
-                    class="h-auto w-full rounded-lg"
-                    style="max-width: 100%;"
+                    class="w-full"
+                    style="height: 100%; object-fit: cover;"
                 >
                     <source src={banner.imageUrl} type="video/mp4" />
                 </video>
@@ -190,8 +191,8 @@
                 <img
                     src={banner.imageUrl}
                     alt={banner.altText || '광고'}
-                    class="h-auto w-full rounded-lg"
-                    style="max-width: 100%;"
+                    class="w-full"
+                    style="height: 100%; object-fit: cover;"
                     loading="eager"
                 />
             {/if}
@@ -211,7 +212,7 @@
         <!-- 빈 상태 플레이스홀더 -->
         <div
             class="flex items-center justify-center rounded-lg border-2 border-dashed border-slate-300 bg-slate-50 dark:border-slate-600 dark:bg-slate-800"
-            style="min-height: {height};"
+            style="height: {height};"
         >
             <div class="flex flex-col items-center gap-2 text-slate-400 dark:text-slate-500">
                 <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
