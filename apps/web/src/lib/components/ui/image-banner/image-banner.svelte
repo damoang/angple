@@ -55,16 +55,34 @@
         if (!browser) return;
 
         try {
+            // 1단계: ads.damoang.net 배너 조회
+            try {
+                const adsResponse = await fetch(`/api/ads/banners?position=${position}&limit=1`);
+                const adsResult = await adsResponse.json();
+
+                if (adsResult.success && adsResult.data?.banners?.length > 0) {
+                    const adsBanner = adsResult.data.banners[0];
+                    banner = {
+                        id: adsBanner.id,
+                        imageUrl: adsBanner.imageUrl,
+                        linkUrl: adsBanner.landingUrl,
+                        altText: adsBanner.altText || '',
+                        target: adsBanner.target || '_blank'
+                    };
+                    return;
+                }
+            } catch {
+                // ads 배너 실패 시 다음 단계로
+            }
+
+            // 2단계: 직접홍보 게시물
             const response = await fetch('/api/ads/promotion-posts');
             const result = await response.json();
 
             const posts: PromotionPost[] = result.data?.posts || [];
-
-            // 이미지 있는 게시글만 필터링
             const withImage = posts.filter((p) => p.imageUrl);
 
             if (withImage.length > 0) {
-                // pinToTop 우선, 그 중 랜덤 1개 선택
                 const pinned = withImage.filter((p) => p.pinToTop);
                 const pool = pinned.length > 0 ? pinned : withImage;
                 const selected = pool[Math.floor(Math.random() * pool.length)];
@@ -76,15 +94,16 @@
                     altText: selected.subject,
                     target: '_blank'
                 };
-            } else {
-                // 게시글 없으면 애드센스 폴백
-                if (fallbackToAdsense && adsenseSlot) {
-                    showAdsense = true;
-                    loadAdsense();
-                }
+                return;
+            }
+
+            // 3단계: AdSense 폴백
+            if (fallbackToAdsense && adsenseSlot) {
+                showAdsense = true;
+                loadAdsense();
             }
         } catch (error) {
-            console.warn('Promotion post fetch error:', error);
+            console.warn('Banner fetch error:', error);
             if (fallbackToAdsense && adsenseSlot) {
                 showAdsense = true;
                 loadAdsense();

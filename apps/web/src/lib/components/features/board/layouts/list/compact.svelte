@@ -91,7 +91,7 @@
                 {/if}
                 {post.title}
             </h3>
-            <div class="text-muted-foreground flex flex-wrap items-center gap-2 text-xs">
+            <div class="text-muted-foreground flex flex-wrap items-center gap-2 text-[13px]">
                 <span>👍 {post.likes}</span>
                 <span>💬 {post.comments_count}</span>
                 <span>•</span>

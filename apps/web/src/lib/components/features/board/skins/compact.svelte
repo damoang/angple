@@ -89,7 +89,7 @@
                 {/if}
                 {post.title}
             </h3>
-            <div class="text-muted-foreground flex flex-wrap items-center gap-2 text-xs">
+            <div class="text-muted-foreground flex flex-wrap items-center gap-2 text-[13px]">
                 <span>{post.author}</span>
                 <span>•</span>
                 <span>{formatDate(post.created_at)}</span>
