@@ -101,3 +101,7 @@ docker-compose.override.yml
 SESSION_NOTES.md
 **/session-notes/
 **/SESSION_NOTES.*
+
+# Claude Code
+.claude/
+CLAUDE.md
