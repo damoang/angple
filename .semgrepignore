@@ -11,3 +11,7 @@ apps/web/src/lib/api/mock-data.ts
 # 설정 파일
 *.config.ts
 *.config.js
+
+# 배포/인프라 설정 (nginx, shell scripts)
+scripts/nginx/
+scripts/*.sh
