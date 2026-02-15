@@ -7,7 +7,6 @@
     import { dndzone, type DndEvent } from 'svelte-dnd-action';
     import NoticeWidget from './notice-widget.svelte';
     import PodcastWidget from './podcast-widget.svelte';
-    import SidebarAdWidget from './sidebar-ad-widget.svelte';
     import SharingBoardWidget from './sharing-board-widget.svelte';
     import StickyAdsWidget from './sticky-ads-widget.svelte';
 
@@ -24,8 +23,6 @@
                 return NoticeWidget;
             case 'podcast':
                 return PodcastWidget;
-            case 'sidebar-ad':
-                return SidebarAdWidget;
             case 'sharing-board':
                 return SharingBoardWidget;
             case 'sticky-ads':
@@ -106,7 +103,7 @@
 
                 <!-- 위젯 컴포넌트 렌더링 -->
                 {#if Component}
-                    <Component isEditMode={true} settings={widget.settings} />
+                    <Component isEditMode={true} />
                 {:else}
                     <div
                         class="rounded-lg border border-dashed border-slate-300 p-4 text-slate-500"
@@ -123,7 +120,7 @@
         {#each widgets as widget (widget.id)}
             {@const Component = getWidgetComponent(widget.type)}
             {#if Component}
-                <Component settings={widget.settings} />
+                <Component />
             {/if}
         {/each}
     </div>
