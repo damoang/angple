@@ -39,7 +39,7 @@
 
     onMount(async () => {
         try {
-            const res = await fetch('/api/plugins/advertising/banners/today');
+            const res = await fetch('/api/ads/celebration/today');
             if (res.ok) {
                 const data = await res.json();
                 const banners: CelebrationBanner[] = data.data ?? [];

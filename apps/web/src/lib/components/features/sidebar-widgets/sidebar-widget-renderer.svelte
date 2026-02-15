@@ -9,6 +9,7 @@
     import PodcastWidget from './podcast-widget.svelte';
     import SharingBoardWidget from './sharing-board-widget.svelte';
     import StickyAdsWidget from './sticky-ads-widget.svelte';
+    import CelebrationCardWidget from '$widgets/celebration-card/index.svelte';
 
     const flipDurationMs = 200;
 
@@ -27,6 +28,8 @@
                 return SharingBoardWidget;
             case 'sticky-ads':
                 return StickyAdsWidget;
+            case 'celebration-card':
+                return CelebrationCardWidget;
             default:
                 return null;
         }

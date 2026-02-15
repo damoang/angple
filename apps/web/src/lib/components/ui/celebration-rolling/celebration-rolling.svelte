@@ -45,7 +45,7 @@
         if (!browser) return;
 
         try {
-            const response = await fetch('/api/plugins/advertising/banners/today', {
+            const response = await fetch('/api/ads/celebration/today', {
                 method: 'GET',
                 headers: { Accept: 'application/json' }
             });
