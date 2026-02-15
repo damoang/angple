@@ -104,13 +104,10 @@
 
     async function fetchCelebrationBanner(): Promise<CelebrationBanner | null> {
         try {
-            const response = await fetch(
-                `${DAMOANG_API_BASE}/api/plugins/advertising/banners/today`,
-                {
-                    method: 'GET',
-                    headers: { Accept: 'application/json' }
-                }
-            );
+            const response = await fetch(`${DAMOANG_API_BASE}/api/ads/celebration/today`, {
+                method: 'GET',
+                headers: { Accept: 'application/json' }
+            });
 
             if (!response.ok) return null;
 
