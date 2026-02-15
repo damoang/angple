@@ -106,7 +106,7 @@
 
                 <!-- 위젯 컴포넌트 렌더링 -->
                 {#if Component}
-                    <Component isEditMode={true} />
+                    <Component config={widget} slot="sidebar" isEditMode={true} />
                 {:else}
                     <div
                         class="rounded-lg border border-dashed border-slate-300 p-4 text-slate-500"
@@ -123,7 +123,7 @@
         {#each widgets as widget (widget.id)}
             {@const Component = getWidgetComponent(widget.type)}
             {#if Component}
-                <Component />
+                <Component config={widget} slot="sidebar" />
             {/if}
         {/each}
     </div>

@@ -27,6 +27,11 @@ const config = {
 
     kit: {
         adapter,
+        alias: {
+            $widgets: '../../widgets',
+            '$custom-widgets': '../../custom-widgets',
+            $themes: '../../themes'
+        },
         csrf: {
             // 개발 환경에서 localhost CSRF 허용
             checkOrigin: process.env.NODE_ENV === 'production'
