@@ -8,5 +8,6 @@
     "slots": ["sidebar"],
     "icon": "Megaphone",
     "allowMultiple": false,
-    "main": "index.svelte"
+    "main": "index.svelte",
+    "enabled": false
 }
