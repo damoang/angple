@@ -1162,8 +1162,8 @@ class ApiClient {
     }
 
     /**
-     * 파일 직접 업로드 (서버 경유)
-     * 🔒 인증 필요
+     * 파일 업로드 (Go Backend /api/v2/media/attachments → S3)
+     * 🔒 인증 필요 (JWT Bearer)
      */
     async uploadFile(boardId: string, file: File, postId?: number): Promise<UploadedFile> {
         const formData = new FormData();
@@ -1172,10 +1172,9 @@ class ApiClient {
             formData.append('post_id', String(postId));
         }
 
-        // 토큰 가져오기
         const accessToken = this.getAccessToken();
 
-        const response = await fetch(`${API_BASE_URL}/boards/${boardId}/upload`, {
+        const response = await fetch(`${API_V2_URL}/media/attachments`, {
             method: 'POST',
             body: formData,
             credentials: 'include',
@@ -1185,17 +1184,26 @@ class ApiClient {
         });
 
         if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.message || '파일 업로드에 실패했습니다.');
+            const error = await response.json().catch(() => ({}));
+            throw new Error(error.error?.message || error.message || '파일 업로드에 실패했습니다.');
         }
 
-        const result = (await response.json()) as ApiResponse<UploadedFile>;
-        return result.data;
+        const result = await response.json();
+        const data = result.data;
+        return {
+            id: data.key,
+            filename: data.filename,
+            original_filename: data.filename,
+            url: data.cdn_url || data.url,
+            size: data.size,
+            mime_type: data.content_type,
+            created_at: new Date().toISOString()
+        };
     }
 
     /**
-     * 이미지 업로드 (이미지 전용, 썸네일 자동 생성)
-     * 🔒 인증 필요
+     * 이미지 업로드 (Go Backend /api/v2/media/images → S3)
+     * 🔒 인증 필요 (JWT Bearer)
      */
     async uploadImage(boardId: string, file: File, postId?: number): Promise<UploadedFile> {
         // 이미지 파일인지 확인
@@ -1204,15 +1212,14 @@ class ApiClient {
         }
 
         const formData = new FormData();
-        formData.append('image', file);
+        formData.append('file', file);
         if (postId) {
             formData.append('post_id', String(postId));
         }
 
-        // 토큰 가져오기
         const accessToken = this.getAccessToken();
 
-        const response = await fetch(`${API_BASE_URL}/boards/${boardId}/upload/image`, {
+        const response = await fetch(`${API_V2_URL}/media/images`, {
             method: 'POST',
             body: formData,
             credentials: 'include',
@@ -1222,12 +1229,23 @@ class ApiClient {
         });
 
         if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.message || '이미지 업로드에 실패했습니다.');
+            const error = await response.json().catch(() => ({}));
+            throw new Error(
+                error.error?.message || error.message || '이미지 업로드에 실패했습니다.'
+            );
         }
 
-        const result = (await response.json()) as ApiResponse<UploadedFile>;
-        return result.data;
+        const result = await response.json();
+        const data = result.data;
+        return {
+            id: data.key,
+            filename: data.filename,
+            original_filename: data.filename,
+            url: data.cdn_url || data.url,
+            size: data.size,
+            mime_type: data.content_type,
+            created_at: new Date().toISOString()
+        };
     }
 
     /**
