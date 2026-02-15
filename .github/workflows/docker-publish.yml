@@ -37,10 +37,6 @@ jobs:
             dockerfile: apps/web/Dockerfile
             context: .
             image_name: angple-web
-          - app: admin
-            dockerfile: apps/admin/Dockerfile
-            context: .
-            image_name: angple-admin
 
     steps:
       - name: Checkout code
@@ -107,7 +103,6 @@ jobs:
             echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
             docker pull ghcr.io/${{ github.repository_owner }}/angple-web:latest
-            docker pull ghcr.io/${{ github.repository_owner }}/angple-admin:latest
 
             docker compose -f compose.prod.yml up -d
             docker image prune -f
@@ -138,7 +133,6 @@ jobs:
               "cd /home/angple/front",
               "echo ${{ secrets.GHCR_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin",
               "docker pull ghcr.io/${{ github.repository_owner }}/angple-web:staging",
-              "docker pull ghcr.io/${{ github.repository_owner }}/angple-admin:staging",
               "docker compose -f compose.prod.yml up -d",
               "docker image prune -f",
               "echo Staging deployed at $(date)"
@@ -170,7 +164,6 @@ jobs:
               "cd /home/angple/front",
               "echo ${{ secrets.GHCR_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin",
               "docker pull ghcr.io/${{ github.repository_owner }}/angple-web:main",
-              "docker pull ghcr.io/${{ github.repository_owner }}/angple-admin:main",
               "docker compose -f compose.prod.yml up -d",
               "docker image prune -f",
               "echo Prod deployed at $(date)"
