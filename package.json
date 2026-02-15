@@ -11,9 +11,7 @@
     "scripts": {
         "setup": "./scripts/setup.sh",
         "dev": "cd apps/web && npm run dev",
-        "dev:admin": "cd apps/admin && npm run dev",
         "build": "cd apps/web && npm run build",
-        "build:admin": "cd apps/admin && npm run build",
         "format": "prettier --write \"**/*.{js,ts,svelte,json,md}\"",
         "lint": "cd apps/web && npm run lint",
         "test": "cd apps/web && npm run test",

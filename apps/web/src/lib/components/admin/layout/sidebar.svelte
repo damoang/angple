@@ -10,7 +10,9 @@
         Code,
         Menu,
         LayoutGrid,
-        ShoppingCart
+        ShoppingCart,
+        FolderOpen,
+        Trash2
     } from '@lucide/svelte/icons';
 
     /**
@@ -37,6 +39,16 @@
             title: '위젯',
             href: '/admin/widgets',
             icon: LayoutGrid
+        },
+        {
+            title: '게시판 그룹',
+            href: '/admin/board-groups',
+            icon: FolderOpen
+        },
+        {
+            title: '삭제된 게시물',
+            href: '/admin/posts/deleted',
+            icon: Trash2
         },
         {
             title: '플러그인',

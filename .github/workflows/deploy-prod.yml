@@ -80,22 +80,10 @@ jobs:
           fi
           echo "Web image built successfully"
 
-          echo "Building admin image..."
-          if ! docker build --progress=plain -f apps/admin/Dockerfile --target production \
-            -t "$ECR_REGISTRY/$REPOSITORY:admin-$IMAGE_TAG" \
-            -t "$ECR_REGISTRY/$REPOSITORY:admin-latest" . > /tmp/admin-build.log 2>&1; then
-            echo "=== ADMIN BUILD FAILED (last 80 lines) ==="
-            tail -80 /tmp/admin-build.log
-            exit 1
-          fi
-          echo "Admin image built successfully"
-
           docker push "$ECR_REGISTRY/$REPOSITORY:web-$IMAGE_TAG"
           docker push "$ECR_REGISTRY/$REPOSITORY:web-latest"
-          docker push "$ECR_REGISTRY/$REPOSITORY:admin-$IMAGE_TAG"
-          docker push "$ECR_REGISTRY/$REPOSITORY:admin-latest"
 
-          docker rm -f angple-web angple-admin 2>/dev/null || true
+          docker rm -f angple-web 2>/dev/null || true
           sleep 3
 
           docker run -d --name angple-web \
@@ -107,16 +95,8 @@ jobs:
             -e PUBLIC_API_BASE_URL=https://api.damoang.net \
             "$ECR_REGISTRY/$REPOSITORY:web-$IMAGE_TAG"
 
-          docker run -d --name angple-admin \
-            -p 3011:80 \
-            --restart unless-stopped \
-            --memory=1g --cpus=0.5 \
-            "$ECR_REGISTRY/$REPOSITORY:admin-$IMAGE_TAG"
-
           docker network connect angple-network angple-web 2>/dev/null || true
-          docker network connect angple-network angple-admin 2>/dev/null || true
           docker network connect proxy-network angple-web 2>/dev/null || true
-          docker network connect proxy-network angple-admin 2>/dev/null || true
 
           sleep 10
           docker ps | grep -E "angple-"

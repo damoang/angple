@@ -19,17 +19,6 @@ services:
       - NODE_ENV=production
       - INTERNAL_API_URL=http://angple-api:8081/api/v2
 
-  # Admin Dashboard (GHCR에서 pull)
-  admin:
-    image: ghcr.io/damoang/angple-admin:latest
-    container_name: angple-admin
-    ports:
-      - "${ADMIN_PORT:-3011}:80"
-    restart: unless-stopped
-    networks:
-      - angple-network
-      - proxy-network
-
 networks:
   angple-network:
     external: true

@@ -28,10 +28,10 @@ jobs:
 
             # Docker Compose로 빌드 & 실행
             echo "🔨 Building with docker compose..."
-            docker compose build web admin
+            docker compose build web
 
             echo "🟢 Starting containers..."
-            docker compose up -d web admin
+            docker compose up -d web
 
             # 헬스체크
             echo "🏥 Health check..."
