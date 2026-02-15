@@ -20,6 +20,7 @@
     import { DamoangBanner } from '$lib/components/ui/damoang-banner/index.js';
     import { CelebrationRolling } from '$lib/components/ui/celebration-rolling/index.js';
     import AdSlot from '$lib/components/ui/ad-slot/ad-slot.svelte';
+    import { PromotionInlinePost } from '$lib/components/ui/promotion-inline-post/index.js';
     import { SeoHead, createBreadcrumbJsonLd } from '$lib/seo/index.js';
     import type { SeoConfig } from '$lib/seo/types.js';
     import { memberLevelStore } from '$lib/stores/member-levels.svelte.js';
@@ -192,6 +193,66 @@
         if (ids.length > 0) {
             void memberLevelStore.fetchLevels(ids);
         }
+    });
+
+    // 직접홍보 사잇글 삽입 로직
+    type MergedItem =
+        | { type: 'post'; post: (typeof filteredPosts)[number]; key: string }
+        | { type: 'promotion'; promotion: (typeof data.promotionPosts)[number]; key: string };
+
+    const mergedPosts: MergedItem[] = $derived.by(() => {
+        const posts = filteredPosts;
+        if (posts.length < 3 || !data.promotionPosts || data.promotionPosts.length === 0) {
+            return posts.map((p) => ({ type: 'post' as const, post: p, key: `post-${p.id}` }));
+        }
+
+        // 이미지 있는 홍보글 필터 → 셔플 → 최대 2개
+        const withImage = data.promotionPosts.filter((p: { imageUrl: string }) => p.imageUrl);
+        const shuffled = [...withImage].sort(() => Math.random() - 0.5);
+        const maxPromo = posts.length < 5 ? 1 : 2;
+        const promos = shuffled.slice(0, maxPromo);
+
+        if (promos.length === 0) {
+            return posts.map((p) => ({ type: 'post' as const, post: p, key: `post-${p.id}` }));
+        }
+
+        // 삽입 위치: index 2 ~ (length-1) 사이에서 랜덤, 최소 3칸 간격
+        const maxIdx = posts.length - 1;
+        const minIdx = 2;
+        const positions: number[] = [];
+
+        for (let i = 0; i < promos.length; i++) {
+            let attempts = 0;
+            while (attempts < 50) {
+                const pos = minIdx + Math.floor(Math.random() * (maxIdx - minIdx + 1));
+                const tooClose = positions.some((p) => Math.abs(p - pos) < 3);
+                if (!tooClose) {
+                    positions.push(pos);
+                    break;
+                }
+                attempts++;
+            }
+            // 50회 시도 후 실패하면 삽입 포기
+        }
+
+        positions.sort((a, b) => a - b);
+
+        const result: MergedItem[] = [];
+        let promoIdx = 0;
+
+        for (let i = 0; i < posts.length; i++) {
+            if (promoIdx < positions.length && i === positions[promoIdx]) {
+                result.push({
+                    type: 'promotion',
+                    promotion: promos[promoIdx],
+                    key: `promo-${promos[promoIdx].wrId}`
+                });
+                promoIdx++;
+            }
+            result.push({ type: 'post', post: posts[i], key: `post-${posts[i].id}` });
+        }
+
+        return result;
     });
 
     // SEO 설정
@@ -434,28 +495,30 @@
                     </CardContent>
                 </Card>
             {:else if LayoutComponent}
-                {#each filteredPosts as post (post.id)}
-                    {#if bulkSelectMode}
+                {#each mergedPosts as item (item.key)}
+                    {#if item.type === 'promotion'}
+                        <PromotionInlinePost post={item.promotion} />
+                    {:else if bulkSelectMode}
                         <div class="flex items-start gap-2">
                             <div class="flex shrink-0 items-center pt-3">
                                 <Checkbox
-                                    checked={selectedPostIds.includes(post.id)}
-                                    onCheckedChange={() => togglePostSelection(post.id)}
+                                    checked={selectedPostIds.includes(item.post.id)}
+                                    onCheckedChange={() => togglePostSelection(item.post.id)}
                                 />
                             </div>
                             <div class="min-w-0 flex-1">
                                 <LayoutComponent
-                                    {post}
+                                    post={item.post}
                                     displaySettings={data.board?.display_settings}
-                                    onclick={() => goToPost(post.id)}
+                                    onclick={() => goToPost(item.post.id)}
                                 />
                             </div>
                         </div>
                     {:else}
                         <LayoutComponent
-                            {post}
+                            post={item.post}
                             displaySettings={data.board?.display_settings}
-                            onclick={() => goToPost(post.id)}
+                            onclick={() => goToPost(item.post.id)}
                         />
                     {/if}
                 {/each}
