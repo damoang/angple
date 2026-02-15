@@ -22,18 +22,6 @@
         adsenseFormat = 'auto'
     }: Props = $props();
 
-    // 직접홍보 게시글 타입
-    interface PromotionPost {
-        wrId: number;
-        subject: string;
-        imageUrl: string;
-        linkUrl: string;
-        advertiserName: string;
-        memberId: string;
-        pinToTop: boolean;
-        createdAt: string;
-    }
-
     // 내부에서 사용할 정규화된 배너 타입
     interface NormalizedBanner {
         id: number | string;
@@ -75,29 +63,7 @@
                 // ads 배너 실패 시 다음 단계로
             }
 
-            // 2단계: 직접홍보 게시물
-            const response = await fetch('/api/ads/promotion-posts');
-            const result = await response.json();
-
-            const posts: PromotionPost[] = result.data?.posts || [];
-            const withImage = posts.filter((p) => p.imageUrl);
-
-            if (withImage.length > 0) {
-                const pinned = withImage.filter((p) => p.pinToTop);
-                const pool = pinned.length > 0 ? pinned : withImage;
-                const selected = pool[Math.floor(Math.random() * pool.length)];
-
-                banner = {
-                    id: selected.wrId,
-                    imageUrl: selected.imageUrl,
-                    linkUrl: selected.linkUrl,
-                    altText: selected.subject,
-                    target: '_blank'
-                };
-                return;
-            }
-
-            // 3단계: AdSense 폴백
+            // 2단계: AdSense 폴백
             if (fallbackToAdsense && adsenseSlot) {
                 showAdsense = true;
                 loadAdsense();
@@ -168,7 +134,7 @@
             </svg>
         </div>
     {:else if banner}
-        <!-- 직접홍보 배너 -->
+        <!-- ads 배너 -->
         <a
             href={banner.linkUrl}
             target={banner.target || '_blank'}

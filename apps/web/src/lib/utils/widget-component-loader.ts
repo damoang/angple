@@ -46,6 +46,10 @@ function scanWidgets(): Map<string, ScannedWidget> {
         const id = extractWidgetId(path);
         const manifest =
             (module as { default?: WidgetManifest }).default ?? (module as WidgetManifest);
+
+        // enabled: false인 위젯은 건너뛰기
+        if ((manifest as WidgetManifest & { enabled?: boolean }).enabled === false) continue;
+
         const componentPath = path.replace('widget.json', 'index.svelte');
 
         if (builtinComponents[componentPath]) {
@@ -62,6 +66,10 @@ function scanWidgets(): Map<string, ScannedWidget> {
         const id = extractWidgetId(path);
         const manifest =
             (module as { default?: WidgetManifest }).default ?? (module as WidgetManifest);
+
+        // enabled: false인 위젯은 건너뛰기
+        if ((manifest as WidgetManifest & { enabled?: boolean }).enabled === false) continue;
+
         const componentPath = path.replace('widget.json', 'index.svelte');
 
         if (customComponents[componentPath]) {
