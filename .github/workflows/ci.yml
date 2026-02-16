@@ -193,7 +193,7 @@ jobs:
           DB_PASSWORD: angple_pass_2024
           DB_NAME: angple_db
           JWT_SECRET: ci-test-jwt-secret-key-2024
-          DAMOANG_JWT_SECRET: ci-test-damoang-jwt-secret-2024
+          LEGACY_JWT_SECRET: ci-test-legacy-jwt-secret-2024
           API_PORT: "8081"
           APP_ENV: dev
         run: |

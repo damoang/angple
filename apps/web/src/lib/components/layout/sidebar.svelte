@@ -1,5 +1,6 @@
 <script lang="ts">
     import { onMount } from 'svelte';
+    import { page } from '$app/stores';
     import {
         Accordion,
         AccordionItem,
@@ -44,6 +45,7 @@
     import UserWidget from './user-widget.svelte';
     import { getComponentsForSlot } from '$lib/components/slot-manager';
     import AdSlot from '$lib/components/ui/ad-slot/ad-slot.svelte';
+    import { widgetLayoutStore } from '$lib/stores/widget-layout.svelte';
 
     // Icon mapping object
     const iconMap: Record<string, typeof Circle> = {
@@ -81,6 +83,27 @@
     let menuData = $state<MenuItem[]>([]);
     let loading = $state(true);
     let error = $state<string | null>(null);
+
+    // Current path tracking for active menu highlighting
+    const currentPath = $derived($page.url.pathname);
+
+    function isActive(url: string): boolean {
+        if (!url) return false;
+        return currentPath === url || currentPath.startsWith(url + '/');
+    }
+
+    // Writable state for accordion — allows both auto-open and manual interaction
+    let accordionValue = $state<string | undefined>(undefined);
+
+    // Auto-open the accordion group containing the active menu when path or menu data changes
+    $effect(() => {
+        for (const menu of menuData) {
+            if (menu.children?.some((child) => isActive(child.url))) {
+                accordionValue = `item-${menu.id}`;
+                return;
+            }
+        }
+    });
 
     // Get icon component from icon name
     function getIcon(iconName?: string) {
@@ -123,7 +146,7 @@
         {:else if error}
             <div class="text-destructive text-center text-sm">{error}</div>
         {:else}
-            <Accordion type="single" class="w-full">
+            <Accordion type="single" class="w-full" bind:value={accordionValue}>
                 {#each menuData as menu (menu.id)}
                     {@const IconComponent = getIcon(menu.icon)}
                     {#if menu.children && menu.children.length > 0}
@@ -154,9 +177,15 @@
                                     >
                                         {#each menu.children as child (child.id)}
                                             {@const ChildIcon = getIcon(child.icon)}
+                                            {@const active = isActive(child.url)}
                                             <Button
-                                                variant="ghost"
-                                                class="hover:bg-accent w-full justify-start gap-2"
+                                                variant={active ? 'default' : 'ghost'}
+                                                class={cn(
+                                                    'w-full justify-start gap-2',
+                                                    active
+                                                        ? 'bg-primary text-primary-foreground hover:bg-primary/90'
+                                                        : 'hover:bg-accent'
+                                                )}
                                                 href={child.url}
                                             >
                                                 <ChildIcon class="size-4" />
@@ -175,9 +204,15 @@
                         </AccordionItem>
                     {:else}
                         <!-- 하위 메뉴가 없는 단독 메뉴 -->
+                        {@const active = isActive(menu.url)}
                         <Button
-                            variant="ghost"
-                            class="hover:bg-accent w-full justify-start gap-2"
+                            variant={active ? 'default' : 'ghost'}
+                            class={cn(
+                                'w-full justify-start gap-2',
+                                active
+                                    ? 'bg-primary text-primary-foreground hover:bg-primary/90'
+                                    : 'hover:bg-accent'
+                            )}
                             href={menu.url}
                         >
                             <IconComponent class="size-5" />
@@ -190,14 +225,16 @@
     </nav>
 
     <!-- 사이드바 메뉴 아래 GAM 광고 -->
-    <div class="px-2">
-        <AdSlot position="sidebar" height="250px" />
-    </div>
+    {#if widgetLayoutStore.hasEnabledAds}
+        <div class="px-2">
+            <AdSlot position="sidebar" height="250px" />
+        </div>
 
-    <!-- 사이드바 세로형 GAM 광고 -->
-    <div class="px-2">
-        <AdSlot position="sidebar-sticky" height="600px" />
-    </div>
+        <!-- 사이드바 세로형 GAM 광고 -->
+        <div class="px-2">
+            <AdSlot position="sidebar-sticky" height="600px" />
+        </div>
+    {/if}
 
     <!-- Slot: sidebar-left-bottom -->
     {#each getComponentsForSlot('sidebar-left-bottom') as slotComp (slotComp.id)}

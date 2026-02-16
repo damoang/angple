@@ -48,7 +48,7 @@
 </script>
 
 <svelte:head>
-    <title>차단 목록 | 다모앙</title>
+    <title>차단 목록 | {import.meta.env.VITE_SITE_NAME || 'Angple'}</title>
 </svelte:head>
 
 <div class="mx-auto max-w-2xl pt-4">

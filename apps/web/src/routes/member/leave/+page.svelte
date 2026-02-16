@@ -24,7 +24,7 @@
 </script>
 
 <svelte:head>
-    <title>회원 탈퇴 | 다모앙</title>
+    <title>회원 탈퇴 | {import.meta.env.VITE_SITE_NAME || 'Angple'}</title>
 </svelte:head>
 
 <div class="mx-auto max-w-lg px-4 py-8">

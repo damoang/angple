@@ -174,7 +174,7 @@
 </script>
 
 <svelte:head>
-    <title>쪽지함 | 다모앙</title>
+    <title>쪽지함 | {import.meta.env.VITE_SITE_NAME || 'Angple'}</title>
 </svelte:head>
 
 <div class="mx-auto max-w-4xl pt-4">

@@ -28,8 +28,8 @@
 
     const redirectTo = $derived($page.url.searchParams.get('redirect') || '/admin');
 
-    // damoang.net 로그인 후 리다이렉트된 경우 자동 토큰 교환
-    // (damoang_jwt 쿠키는 httpOnly라서 JS에서 읽을 수 없음 → URL 파라미터로 판단)
+    // 레거시 시스템 로그인 후 리다이렉트된 경우 자동 토큰 교환
+    // (레거시 SSO 쿠키는 httpOnly라서 JS에서 읽을 수 없음 → URL 파라미터로 판단)
     onMount(async () => {
         if (!browser) return;
 

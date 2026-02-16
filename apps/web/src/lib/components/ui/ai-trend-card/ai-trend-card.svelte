@@ -16,8 +16,7 @@
     let headlineInterval: ReturnType<typeof setInterval> | null = null;
 
     // 앙 캐릭터 이미지 URL
-    const angCharacterImage =
-        'https://s3.damoang.net/data/editor/2509/5770b-68ca37f63464f-24fb734ab222da3cff7aee7898aedce5e1c3c360.webp';
+    const angCharacterImage = `${import.meta.env.VITE_S3_URL}/data/editor/2509/5770b-68ca37f63464f-24fb734ab222da3cff7aee7898aedce5e1c3c360.webp`;
 
     // 헤드라인 로테이션
     function startHeadlineRotation() {

@@ -13,8 +13,8 @@ const transporter = nodemailer.createTransport({
     }
 });
 
-const FROM_ADDRESS = process.env.MAIL_FROM || 'noreply@damoang.net';
-const FROM_NAME = process.env.MAIL_FROM_NAME || '다모앙';
+const FROM_ADDRESS = process.env.MAIL_FROM || 'noreply@example.com';
+const FROM_NAME = process.env.MAIL_FROM_NAME || 'Angple';
 
 export async function sendMail(options: {
     to: string;

@@ -8,10 +8,9 @@
     import Footer from '$lib/components/layout/footer.svelte';
     import LeftBanner from '$lib/components/layout/left-banner.svelte';
     import RightBanner from '$lib/components/layout/right-banner.svelte';
-    import PodcastPlayer from '$lib/components/ui/podcast-player/podcast-player.svelte';
     import { authActions } from '$lib/stores/auth.svelte';
-    import { DamoangBanner } from '$lib/components/ui/damoang-banner/index.js';
     import AdSlot from '$lib/components/ui/ad-slot/ad-slot.svelte';
+    import { widgetLayoutStore } from '$lib/stores/widget-layout.svelte';
 
     /**
      * 기본 레이아웃 컴포넌트
@@ -49,11 +48,9 @@
 </script>
 
 <svelte:head>
-    <title>다모앙</title>
+    <title>{import.meta.env.VITE_SITE_NAME || 'Angple'}</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="icon" href={favicon} />
-    <!-- Damoang Ads Script -->
-    <script async src="https://ads.damoang.net/ad.js"></script>
 </svelte:head>
 
 <div class="relative flex min-h-screen flex-col items-center">
@@ -68,14 +65,15 @@
         <Header />
 
         <!-- 헤더 아래 GAM 광고 -->
-        <div class="mx-auto w-full px-4 py-2 lg:px-0">
-            <AdSlot position="header-after" height="90px" />
-        </div>
+        {#if widgetLayoutStore.hasEnabledAds}
+            <div class="mx-auto w-full px-4 py-2 lg:px-0">
+                <AdSlot position="header-after" height="90px" />
+            </div>
 
-        <!-- 다모앙 배너: 축하메시지 우선, 없으면 다모앙 광고, 없으면 GAM -->
-        <div class="mx-auto w-full px-4 py-2 lg:px-0">
-            <DamoangBanner position="index" showCelebration={true} height="90px" />
-        </div>
+            <div class="mx-auto w-full px-4 py-2 lg:px-0">
+                <AdSlot position="index-head" height="90px" />
+            </div>
+        {/if}
 
         <div class="mx-auto flex w-full flex-1">
             {#if snbPosition === 'right'}
@@ -134,7 +132,4 @@
 
     <!-- 푸터 -->
     <Footer />
-
-    <!-- 팟캐스트 플레이어 (항상 마운트, 위치만 변경) -->
-    <PodcastPlayer />
 </div>

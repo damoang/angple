@@ -64,7 +64,7 @@
 </script>
 
 <svelte:head>
-    <title>글쓰기 - {boardTitle} | 다모앙</title>
+    <title>글쓰기 - {boardTitle} | {import.meta.env.VITE_SITE_NAME || 'Angple'}</title>
 </svelte:head>
 
 <div class="mx-auto max-w-4xl pt-4">

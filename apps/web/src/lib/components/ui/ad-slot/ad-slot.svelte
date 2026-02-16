@@ -11,8 +11,9 @@
 
     let { position, height = '90px', class: className = '', sizes }: Props = $props();
 
-    // GAM 설정 (www/theme/damoang/layout/basic/config/gam-slots.php 와 동일)
-    const GAM_NETWORK_CODE = '23338387889';
+    // GAM 설정 (환경변수 기반)
+    const GAM_NETWORK_CODE = import.meta.env.VITE_GAM_NETWORK_CODE || '';
+    const GAM_SITE_NAME = import.meta.env.VITE_GAM_SITE_NAME || 'default';
     const GAM_AD_REFRESH_INTERVAL = 60; // 초
     const GAM_AD_EMPTY_RETRY_DELAY = 30; // 초
 
@@ -33,12 +34,12 @@
         }
     }
 
-    // GAM 광고 단위 (www와 동일)
+    // GAM 광고 단위 (환경변수 기반)
     const AD_UNIT_PATHS = {
-        main: `/${GAM_NETWORK_CODE}/damoang/banner-responsive_main`,
-        sub: `/${GAM_NETWORK_CODE}/damoang/banner-responsive_sub`,
-        curation: `/${GAM_NETWORK_CODE}/damoang/banner-responsive_curation`,
-        article: `/${GAM_NETWORK_CODE}/damoang/banner-responsive_article`
+        main: `/${GAM_NETWORK_CODE}/${GAM_SITE_NAME}/banner-responsive_main`,
+        sub: `/${GAM_NETWORK_CODE}/${GAM_SITE_NAME}/banner-responsive_sub`,
+        curation: `/${GAM_NETWORK_CODE}/${GAM_SITE_NAME}/banner-responsive_curation`,
+        article: `/${GAM_NETWORK_CODE}/${GAM_SITE_NAME}/banner-responsive_article`
     };
 
     // 광고 유형별 설정 (www gam-slots.php 기반)

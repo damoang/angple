@@ -17,7 +17,7 @@
         seoConfig || {
             meta: {
                 title,
-                description: `${title} - 다모앙`
+                description: `${title} - ${import.meta.env.VITE_SITE_NAME || 'Angple'}`
             },
             og: {
                 title,

@@ -116,7 +116,7 @@
 
         try {
             await apiClient.login({
-                user_id: mbId,
+                username: mbId,
                 password: mbPassword,
                 remember
             });
@@ -215,14 +215,14 @@
 </script>
 
 <svelte:head>
-    <title>로그인 | 다모앙</title>
+    <title>로그인 | {import.meta.env.VITE_SITE_NAME || 'Angple'}</title>
 </svelte:head>
 
 <div class="flex min-h-[calc(100vh-200px)] items-center justify-center px-4 py-12">
     <Card class="w-full max-w-md">
         <CardHeader class="text-center">
             <CardTitle class="text-2xl font-bold">로그인</CardTitle>
-            <CardDescription>다모앙에 오신 것을 환영합니다</CardDescription>
+            <CardDescription>{import.meta.env.VITE_SITE_NAME || 'Angple'}에 오신 것을 환영합니다</CardDescription>
         </CardHeader>
         <CardContent class="space-y-6">
             <!-- 성공 메시지 -->

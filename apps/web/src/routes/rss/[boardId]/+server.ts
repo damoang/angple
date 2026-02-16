@@ -8,6 +8,7 @@ import type { RowDataPacket } from 'mysql2';
  */
 export const GET: RequestHandler = async ({ url, params }) => {
     const siteUrl = url.origin;
+    const siteTitle = import.meta.env.VITE_SITE_NAME || 'Angple';
     const boardId = params.boardId;
 
     // 테이블명 검증 (SQL injection 방지)
@@ -66,7 +67,7 @@ export const GET: RequestHandler = async ({ url, params }) => {
     const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>${escapeXml(boardSubject)} - 다모앙</title>
+    <title>${escapeXml(boardSubject)} - ${escapeXml(siteTitle)}</title>
     <link>${siteUrl}/${boardId}</link>
     <description>${escapeXml(boardSubject)} 게시판 최근 게시글</description>
     <language>ko</language>

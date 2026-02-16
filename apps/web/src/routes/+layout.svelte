@@ -14,7 +14,7 @@
     import { loadAllPluginComponents } from '$lib/utils/plugin-component-loader';
     import { doAction } from '$lib/hooks/registry';
     import { initBuiltinHooks } from '$lib/hooks';
-    import MemoModal from '../../../../plugins/member-memo/components/memo-modal.svelte';
+    import { loadPluginComponent } from '$lib/utils/plugin-optional-loader';
 
     const { children, data } = $props(); // Svelte 5: SSR 데이터 받기
 
@@ -22,9 +22,18 @@
     const isAdminRoute = $derived($page.url.pathname.startsWith('/admin'));
     const isInstallRoute = $derived($page.url.pathname.startsWith('/install'));
 
+    // 동적 import: member-memo 플러그인 모달
+    let MemoModal = $state<Component | null>(null);
+
+    $effect(() => {
+        if (pluginStore.isPluginActive('member-memo')) {
+            loadPluginComponent('member-memo', 'memo-modal').then((c) => (MemoModal = c));
+        }
+    });
+
     // SEO 기본 설정 초기화
     configureSeo({
-        siteName: '다모앙',
+        siteName: import.meta.env.VITE_SITE_NAME || 'Angple',
         siteUrl: $page.url.origin
     });
 
@@ -153,8 +162,12 @@
         // 테마는 이미 SSR에서 로드되었으므로 loadActiveTheme() 호출 불필요
         // (깜박임 방지!)
 
-        // 인증 상태 초기화
-        authActions.initAuth();
+        // 인증 상태 초기화 (SSR에서 받은 데이터가 있으면 우선 사용)
+        if (data.user && data.accessToken) {
+            authActions.initFromSSR(data.user, data.accessToken);
+        } else {
+            authActions.initAuth();
+        }
 
         // postMessage 리스너 (Admin에서 테마 변경 시 리로드)
         function handleMessage(event: MessageEvent) {
@@ -209,7 +222,7 @@
 </script>
 
 <svelte:head>
-    <title>다모앙</title>
+    <title>{import.meta.env.VITE_SITE_NAME || 'Angple'}</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="icon" href={favicon} />
     <!-- Wanted Sans Font -->
@@ -252,6 +265,6 @@
 {/if}
 
 <!-- 회원 메모 모달 (글로벌 1개) -->
-{#if pluginStore.isPluginActive('member-memo')}
-    <MemoModal />
+{#if pluginStore.isPluginActive('member-memo') && MemoModal}
+    <svelte:component this={MemoModal} />
 {/if}

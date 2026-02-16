@@ -11,9 +11,9 @@ import type { WidgetConfig } from '$lib/stores/widget-layout.svelte';
 
 /** 기본 메인 위젯 레이아웃 */
 export const DEFAULT_WIDGETS: WidgetConfig[] = [
-    { id: 'ad-head', type: 'ad', position: 0, enabled: true, settings: { position: 'index-head' } },
+    { id: 'ad-head', type: 'ad-slot', position: 0, enabled: true, settings: { position: 'index-head' } },
     { id: 'recommended', type: 'recommended', position: 1, enabled: true },
-    { id: 'ad-top', type: 'ad', position: 2, enabled: true, settings: { position: 'index-top' } },
+    { id: 'ad-top', type: 'ad-slot', position: 2, enabled: true, settings: { position: 'index-top' } },
     {
         id: 'new-board',
         type: 'post-list',
@@ -23,7 +23,7 @@ export const DEFAULT_WIDGETS: WidgetConfig[] = [
     },
     {
         id: 'ad-news-economy',
-        type: 'ad',
+        type: 'ad-slot',
         position: 4,
         enabled: true,
         settings: { position: 'index-news-economy' }
@@ -37,7 +37,7 @@ export const DEFAULT_WIDGETS: WidgetConfig[] = [
     },
     {
         id: 'ad-middle-1',
-        type: 'ad',
+        type: 'ad-slot',
         position: 6,
         enabled: true,
         settings: { position: 'index-middle-1' }
@@ -57,7 +57,7 @@ export const DEFAULT_WIDGETS: WidgetConfig[] = [
     },
     {
         id: 'ad-middle-2',
-        type: 'ad',
+        type: 'ad-slot',
         position: 8,
         enabled: true,
         settings: { position: 'index-middle-2' }
@@ -71,7 +71,7 @@ export const DEFAULT_WIDGETS: WidgetConfig[] = [
     },
     {
         id: 'ad-bottom',
-        type: 'ad',
+        type: 'ad-slot',
         position: 10,
         enabled: true,
         settings: { position: 'index-bottom' }
@@ -81,31 +81,27 @@ export const DEFAULT_WIDGETS: WidgetConfig[] = [
 /** 기본 사이드바 위젯 레이아웃 */
 export const DEFAULT_SIDEBAR_WIDGETS: WidgetConfig[] = [
     { id: 'notice', type: 'notice', position: 0, enabled: true },
-    { id: 'celebration-card', type: 'celebration-card', position: 1, enabled: true },
-    { id: 'podcast', type: 'podcast', position: 2, enabled: true },
     {
         id: 'sidebar-b2b',
-        type: 'ad',
-        position: 3,
+        type: 'ad-slot',
+        position: 1,
         enabled: true,
         settings: { position: 'sidebar-b2b', type: 'gam' }
     },
     {
         id: 'sidebar-ad-1',
-        type: 'ad',
-        position: 4,
+        type: 'ad-slot',
+        position: 2,
         enabled: true,
         settings: { position: 'sidebar-1', type: 'image', format: 'square' }
     },
     {
         id: 'sidebar-ad-2',
-        type: 'ad',
-        position: 5,
+        type: 'ad-slot',
+        position: 3,
         enabled: true,
         settings: { position: 'sidebar-2', type: 'image-text', format: 'grid' }
-    },
-    { id: 'sharing-board', type: 'sharing-board', position: 6, enabled: true },
-    { id: 'sticky-ads', type: 'sticky-ads', position: 7, enabled: true }
+    }
 ];
 
 /**
@@ -115,6 +111,10 @@ export const DEFAULT_SIDEBAR_WIDGETS: WidgetConfig[] = [
  */
 export function migrateWidgetConfig(widget: WidgetConfig): WidgetConfig {
     const migrations: Record<string, Partial<WidgetConfig>> = {
+        ad: {
+            type: 'ad-slot',
+            settings: { ...widget.settings }
+        },
         'new-board': {
             type: 'post-list',
             settings: {
@@ -156,7 +156,7 @@ export function migrateWidgetConfig(widget: WidgetConfig): WidgetConfig {
             }
         },
         'sidebar-ad': {
-            type: 'ad',
+            type: 'ad-slot',
             settings: { ...widget.settings, position: widget.settings?.position ?? 'sidebar' }
         }
     };

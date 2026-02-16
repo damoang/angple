@@ -22,15 +22,17 @@
     widgetLayoutStore.initFromServer(data.widgetLayout, data.sidebarWidgetLayout);
 
     // SEO 설정 (홈페이지)
+    const siteName = import.meta.env.VITE_SITE_NAME || 'Angple';
+
     const seoConfig: SeoConfig = $derived({
         meta: {
-            title: '다모앙',
-            description: '다모앙 커뮤니티 - 자유로운 소통의 공간',
+            title: siteName,
+            description: `${siteName} 커뮤니티 - 자유로운 소통의 공간`,
             canonicalUrl: $page.url.origin
         },
         og: {
-            title: '다모앙',
-            description: '다모앙 커뮤니티 - 자유로운 소통의 공간',
+            title: siteName,
+            description: `${siteName} 커뮤니티 - 자유로운 소통의 공간`,
             type: 'website',
             url: $page.url.origin
         },

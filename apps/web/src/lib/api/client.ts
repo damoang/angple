@@ -57,10 +57,13 @@ import { fetchWithRetry, type RetryConfig, DEFAULT_RETRY_CONFIG } from './retry.
 // SSR: Docker 내부 네트워크 직접 통신
 const API_BASE_URL = browser
     ? '/api/v1'
-    : process.env.INTERNAL_API_URL || 'http://localhost:8082/api/v1';
+    : process.env.INTERNAL_API_URL || 'http://localhost:8081/api/v1';
 
 // v2 API URL (인증 관련 - exchange 등)
-const API_V2_URL = browser ? '/api/v2' : 'http://localhost:8082/api/v2';
+const API_V2_URL = browser ? '/api/v2' : 'http://localhost:8081/api/v2';
+
+// 레거시 SSO 쿠키명 (환경변수로 설정, 빈 값이면 레거시 SSO 비활성화)
+const LEGACY_SSO_COOKIE = import.meta.env.VITE_LEGACY_SSO_COOKIE || '';
 
 /**
  * API 클라이언트
@@ -86,18 +89,24 @@ class ApiClient {
         if (!browser) return null;
         if (this._accessToken) return this._accessToken;
 
-        // 하위 호환: damoang_jwt 쿠키 확인 (damoang.net SSO)
-        const jwtCookie = document.cookie.split('; ').find((row) => row.startsWith('damoang_jwt='));
-        if (jwtCookie) {
-            return jwtCookie.split('=')[1];
+        // 하위 호환: 레거시 SSO 쿠키 확인
+        if (LEGACY_SSO_COOKIE) {
+            const jwtCookie = document.cookie
+                .split('; ')
+                .find((row) => row.startsWith(`${LEGACY_SSO_COOKIE}=`));
+            if (jwtCookie) {
+                return jwtCookie.split('=')[1];
+            }
         }
         return null;
     }
 
-    /** damoang_jwt 쿠키 존재 여부 확인 (그누보드 SSO) */
-    private hasDamoangJwtCookie(): boolean {
-        if (!browser) return false;
-        return document.cookie.split('; ').some((row) => row.startsWith('damoang_jwt='));
+    /** 레거시 SSO 쿠키 존재 여부 확인 */
+    private hasLegacySsoCookie(): boolean {
+        if (!browser || !LEGACY_SSO_COOKIE) return false;
+        return document.cookie
+            .split('; ')
+            .some((row) => row.startsWith(`${LEGACY_SSO_COOKIE}=`));
     }
 
     /** refresh_token 쿠키 존재 여부 확인 */
@@ -108,15 +117,15 @@ class ApiClient {
 
     /** refreshToken 쿠키로 accessToken 자동 갱신 */
     async tryRefreshToken(): Promise<boolean> {
-        // 그누보드 SSO 쿠키가 있으면 refresh 시도하지 않음
+        // 레거시 SSO 쿠키가 있으면 refresh 시도하지 않음
         // (refresh_token은 Go API 로그인 시에만 설정됨)
-        if (this.hasDamoangJwtCookie()) {
+        if (this.hasLegacySsoCookie()) {
             return false;
         }
 
-        // refresh_token 쿠키가 없으면 갱신 시도 불필요
-        if (!this.hasRefreshTokenCookie()) {
-            return false;
+        // 이미 access_token이 있으면 갱신 불필요
+        if (this._accessToken) {
+            return true;
         }
 
         if (this._refreshPromise) return this._refreshPromise;
@@ -435,10 +444,10 @@ class ApiClient {
     }
 
     // 현재 로그인 사용자 조회
-    // 1순위: /auth/me (damoang_jwt 쿠키 기반 - 그누보드 SSO)
+    // 1순위: /auth/me (레거시 SSO 쿠키 기반)
     // 2순위: /auth/profile (JWT 기반 - Go API 자체 인증)
     async getCurrentUser(): Promise<DamoangUser | null> {
-        // 1. 먼저 damoang_jwt 쿠키 기반 인증 시도 (그누보드 SSO)
+        // 1. 먼저 레거시 SSO 쿠키 기반 인증 시도
         try {
             const meResponse = await this.request<DamoangUser>('/auth/me');
             if (meResponse.data && meResponse.data.mb_id) {
@@ -1447,17 +1456,35 @@ class ApiClient {
      * 아이디/비밀번호 로그인
      */
     async login(request: LoginRequest): Promise<LoginResponse> {
-        const response = await this.request<LoginResponse>('/auth/login', {
+        const url = `${API_V2_URL}/auth/login`;
+        const response = await fetch(url, {
             method: 'POST',
-            body: JSON.stringify(request)
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({
+                username: request.username,
+                password: request.password
+            })
         });
 
-        // 액세스 토큰을 메모리에 저장 (httpOnly 쿠키로 refreshToken은 자동 설정됨)
-        if (response.data.access_token) {
-            this._accessToken = response.data.access_token;
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => null);
+            throw new Error(errorData?.message || `로그인 실패 (${response.status})`);
         }
 
-        return response.data;
+        const json = (await response.json()) as ApiResponse<LoginResponse>;
+        if (!json.success) {
+            throw new Error(json.message || '로그인에 실패했습니다');
+        }
+
+        const data = json.data;
+
+        // 액세스 토큰을 메모리에 저장 (httpOnly 쿠키로 refreshToken은 자동 설정됨)
+        if (data.access_token) {
+            this._accessToken = data.access_token;
+        }
+
+        return data;
     }
 
     /**
@@ -1510,8 +1537,8 @@ class ApiClient {
     }
 
     /**
-     * damoang_jwt 쿠키를 angple JWT로 교환
-     * damoang.net 로그인 후 리다이렉트된 경우 자동 토큰 교환에 사용
+     * 레거시 SSO 쿠키를 angple JWT로 교환
+     * 레거시 시스템 로그인 후 리다이렉트된 경우 자동 토큰 교환에 사용
      * NOTE: 이 엔드포인트는 v2 API에만 존재
      */
     async exchangeToken(): Promise<LoginResponse> {

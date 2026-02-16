@@ -90,7 +90,7 @@
 </script>
 
 <svelte:head>
-    <title>경험치 | 다모앙</title>
+    <title>경험치 | {import.meta.env.VITE_SITE_NAME || 'Angple'}</title>
 </svelte:head>
 
 <div class="mx-auto max-w-4xl pt-4">

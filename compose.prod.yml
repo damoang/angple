@@ -4,7 +4,7 @@
 services:
   # Web Application (GHCR에서 pull)
   web:
-    image: ghcr.io/damoang/angple-web:latest
+    image: ${ANGPLE_WEB_IMAGE:-ghcr.io/angple/angple-web:latest}
     container_name: angple-web
     ports:
       - "${WEB_PORT:-3010}:3000"

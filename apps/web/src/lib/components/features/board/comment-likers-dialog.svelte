@@ -5,9 +5,20 @@
     import { authStore } from '$lib/stores/auth.svelte.js';
     import { LevelBadge } from '$lib/components/ui/level-badge/index.js';
     import { memberLevelStore } from '$lib/stores/member-levels.svelte.js';
+    import type { Component } from 'svelte';
     import { pluginStore } from '$lib/stores/plugin.svelte';
-    import MemoBadge from '../../../../../../../plugins/member-memo/components/memo-badge.svelte';
-    import MemoInlineEditor from '../../../../../../../plugins/member-memo/components/memo-inline-editor.svelte';
+    import { loadPluginComponent } from '$lib/utils/plugin-optional-loader';
+
+    // 동적 플러그인 임포트: member-memo
+    let MemoBadge = $state<Component | null>(null);
+    let MemoInlineEditor = $state<Component | null>(null);
+
+    $effect(() => {
+        if (pluginStore.isPluginActive('member-memo')) {
+            loadPluginComponent('member-memo', 'memo-badge').then((c) => (MemoBadge = c));
+            loadPluginComponent('member-memo', 'memo-inline-editor').then((c) => (MemoInlineEditor = c));
+        }
+    });
 
     interface Props {
         open: boolean;
@@ -132,8 +143,9 @@
                                         >
                                             {liker.mb_nick || liker.mb_name}
                                         </a>
-                                        {#if memoPluginActive}
-                                            <MemoBadge
+                                        {#if memoPluginActive && MemoBadge}
+                                            <svelte:component
+                                                this={MemoBadge}
                                                 memberId={liker.mb_id}
                                                 showIcon={true}
                                                 onclick={() => {
@@ -162,9 +174,10 @@
                                 </a>
                             </div>
 
-                            {#if memoPluginActive && editingMemoFor === liker.mb_id}
+                            {#if memoPluginActive && MemoInlineEditor && editingMemoFor === liker.mb_id}
                                 <div class="ml-11 mt-2">
-                                    <MemoInlineEditor
+                                    <svelte:component
+                                        this={MemoInlineEditor}
                                         memberId={liker.mb_id}
                                         onClose={() => {
                                             editingMemoFor = null;

@@ -697,7 +697,7 @@ export interface ExpHistoryResponse {
 
 // 로그인 요청
 export interface LoginRequest {
-    user_id: string; // 아이디
+    username: string; // 아이디
     password: string; // 비밀번호
     remember?: boolean; // 로그인 유지
 }

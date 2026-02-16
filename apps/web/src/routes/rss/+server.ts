@@ -8,8 +8,8 @@ import type { RowDataPacket } from 'mysql2';
  */
 export const GET: RequestHandler = async ({ url }) => {
     const siteUrl = url.origin;
-    const siteTitle = '다모앙';
-    const siteDescription = '다모앙 커뮤니티 - 최근 게시글';
+    const siteTitle = import.meta.env.VITE_SITE_NAME || 'Angple';
+    const siteDescription = `${siteTitle} 커뮤니티 - 최근 게시글`;
 
     let items = '';
 

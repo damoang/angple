@@ -12,8 +12,18 @@
     import MessageSquare from '@lucide/svelte/icons/message-square';
     import Ban from '@lucide/svelte/icons/ban';
     import Link from '@lucide/svelte/icons/link';
+    import type { Component } from 'svelte';
     import { pluginStore } from '$lib/stores/plugin.svelte';
-    import InteractionPanel from '../../../../../../plugins/interaction-analysis/components/interaction-panel.svelte';
+    import { loadPluginComponent } from '$lib/utils/plugin-optional-loader';
+
+    // 동적 플러그인 임포트: interaction-analysis
+    let InteractionPanel = $state<Component | null>(null);
+
+    $effect(() => {
+        if (pluginStore.isPluginActive('interaction-analysis')) {
+            loadPluginComponent('interaction-analysis', 'interaction-panel').then((c) => (InteractionPanel = c));
+        }
+    });
 
     let { data }: { data: PageData } = $props();
 
@@ -100,7 +110,7 @@
 </script>
 
 <svelte:head>
-    <title>{data.profile?.mb_name || '회원'} 프로필 | 다모앙</title>
+    <title>{data.profile?.mb_name || '회원'} 프로필 | {import.meta.env.VITE_SITE_NAME || 'Angple'}</title>
 </svelte:head>
 
 <div class="mx-auto max-w-2xl pt-4">
@@ -224,8 +234,8 @@
         </Card>
 
         <!-- 상호작용 분석 (플러그인 활성화 시) -->
-        {#if interactionPluginActive && data.profile}
-            <InteractionPanel memberId={data.profile.mb_id} />
+        {#if interactionPluginActive && InteractionPanel && data.profile}
+            <svelte:component this={InteractionPanel} memberId={data.profile.mb_id} />
         {/if}
 
         <!-- 최근 활동 (향후 확장) -->

@@ -75,6 +75,14 @@ class WidgetLayoutStore {
             .sort((a, b) => a.position - b.position);
     }
 
+    // === Getters (광고) ===
+
+    get hasEnabledAds(): boolean {
+        const mainHasAd = this._widgets.some((w) => w.type === 'ad-slot' && w.enabled);
+        const sidebarHasAd = this._sidebarWidgets.some((w) => w.type === 'ad-slot' && w.enabled);
+        return mainHasAd || sidebarHasAd;
+    }
+
     // === Getters (공통) ===
 
     get isEditMode() {

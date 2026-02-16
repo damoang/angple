@@ -32,7 +32,7 @@
     <!-- 앙 AI 캐릭터 이미지 -->
     <div class="hidden shrink-0 sm:block">
         <img
-            src="https://s3.damoang.net/data/editor/2509/5770b-68ca37f63464f-24fb734ab222da3cff7aee7898aedce5e1c3c360.webp"
+            src="{import.meta.env.VITE_S3_URL}/data/editor/2509/5770b-68ca37f63464f-24fb734ab222da3cff7aee7898aedce5e1c3c360.webp"
             alt="앙 AI 캐릭터"
             class="size-12 object-contain"
             loading="lazy"

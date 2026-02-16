@@ -1,6 +1,6 @@
 /**
  * 인증 상태 관리 (Svelte 5 Runes)
- * damoang.net JWT 쿠키 기반 SSO 인증
+ * JWT 쿠키 기반 인증 + 레거시 SSO 지원
  */
 
 import { apiClient } from '$lib/api';
@@ -16,7 +16,7 @@ const isLoggedIn = $derived(user !== null);
 
 /**
  * 현재 사용자 정보 가져오기
- * damoang_jwt 쿠키를 사용하여 서버에서 인증 정보 조회
+ * 쿠키 기반 서버 인증 정보 조회
  */
 async function fetchCurrentUser(): Promise<void> {
     isLoading = true;
@@ -31,6 +31,23 @@ async function fetchCurrentUser(): Promise<void> {
     } finally {
         isLoading = false;
     }
+}
+
+/**
+ * SSR에서 받은 인증 데이터로 초기화
+ * hooks.server.ts에서 설정한 user/accessToken을 +layout.server.ts 경유로 받음
+ */
+function initFromSSR(ssrUser: { nickname: string; level: number }, accessToken: string): void {
+    user = {
+        mb_id: '',
+        mb_name: ssrUser.nickname,
+        mb_level: ssrUser.level,
+        mb_email: ''
+    };
+    apiClient.setAccessToken(accessToken);
+    isLoading = false;
+    // 클라이언트에서 최신 정보로 갱신 (비동기)
+    apiClient.tryRefreshToken().then(() => fetchCurrentUser());
 }
 
 /**
@@ -118,6 +135,7 @@ export function getError() {
 // Export actions
 export const authActions = {
     initAuth,
+    initFromSSR,
     fetchCurrentUser,
     resetAuth,
     redirectToLogin,
