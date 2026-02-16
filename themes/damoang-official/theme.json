@@ -1,0 +1,91 @@
+{
+    "id": "damoang-official",
+    "name": "Damoang Official 2026",
+    "version": "1.0.0",
+    "author": {
+        "name": "Damoang Team",
+        "email": "team@damoang.net"
+    },
+    "description": "다모앙 공식 테마 2026 - 모던하고 세련된 커뮤니티 플랫폼 디자인. 3단 레이아웃과 실시간 트렌드 위젯을 제공합니다.",
+    "screenshot": "screenshot.png",
+    "angpleVersion": "0.1.0",
+    "tags": ["official", "modern", "premium", "featured"],
+    "settings": {
+        "appearance": {
+            "brandColor": {
+                "label": "Brand Color",
+                "type": "color",
+                "default": "#8b5cf6"
+            },
+            "accentColor": {
+                "label": "Accent Color",
+                "type": "color",
+                "default": "#ec4899"
+            },
+            "showNoticeBanner": {
+                "label": "Show Notice Banner",
+                "type": "boolean",
+                "default": true
+            },
+            "enableDarkMode": {
+                "label": "Enable Dark Mode Toggle",
+                "type": "boolean",
+                "default": true
+            }
+        },
+        "layout": {
+            "headerStyle": {
+                "label": "Header Style",
+                "type": "select",
+                "options": [
+                    {
+                        "label": "Fixed",
+                        "value": "fixed"
+                    },
+                    {
+                        "label": "Static",
+                        "value": "static"
+                    }
+                ],
+                "default": "fixed"
+            },
+            "showRightWidget": {
+                "label": "Show Right Widget Area",
+                "type": "boolean",
+                "default": true
+            }
+        },
+        "features": {
+            "enableTrending": {
+                "label": "Enable Trending Posts",
+                "type": "boolean",
+                "default": true
+            },
+            "enableLiveUsers": {
+                "label": "Show Live Users Count",
+                "type": "boolean",
+                "default": true
+            }
+        }
+    },
+    "components": [
+        {
+            "id": "trending-widget",
+            "name": "Trending Widget",
+            "slot": "content-before",
+            "path": "components/trending-widget.svelte",
+            "priority": 5
+        },
+        {
+            "id": "notice-banner",
+            "name": "Notice Banner",
+            "slot": "header-after",
+            "path": "components/notice-banner.svelte",
+            "priority": 10
+        }
+    ],
+    "hooks": [],
+    "category": "theme",
+    "license": "MIT",
+    "main": "./dist/index.js"
+}
