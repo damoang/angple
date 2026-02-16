@@ -56,7 +56,7 @@
 </script>
 
 <svelte:head>
-    <title>로그인 처리 중... | 다모앙</title>
+    <title>로그인 처리 중... | {import.meta.env.VITE_SITE_NAME || 'Angple'}</title>
 </svelte:head>
 
 <div class="flex min-h-[calc(100vh-200px)] items-center justify-center px-4">

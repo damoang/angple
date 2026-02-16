@@ -6,7 +6,7 @@ import { getActivePlugins } from '$lib/server/plugins';
  * 서버 사이드 데이터 로드
  * 모든 페이지 로드 전에 실행됨
  */
-export const load: LayoutServerLoad = async ({ url }) => {
+export const load: LayoutServerLoad = async ({ url, locals }) => {
     console.log(`[SSR] Loading page: ${url.pathname}`);
 
     // 서버에서 활성 테마 조회 (깜박임 방지)
@@ -28,6 +28,8 @@ export const load: LayoutServerLoad = async ({ url }) => {
             hooks: plugin.manifest.hooks || [],
             components: plugin.manifest.components || [],
             settings: plugin.currentSettings || {}
-        }))
+        })),
+        user: locals.user ?? null,
+        accessToken: locals.accessToken ?? null
     };
 };

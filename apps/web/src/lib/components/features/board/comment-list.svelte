@@ -17,10 +17,23 @@
     import { getHookVersion } from '$lib/hooks/hook-state.svelte';
     import { getMemberIconUrl } from '$lib/utils/member-icon.js';
     import { SvelteMap, SvelteSet } from 'svelte/reactivity';
+    import type { Component } from 'svelte';
     import { pluginStore } from '$lib/stores/plugin.svelte';
-    import { loadMemosForAuthors } from '../../../../../../../plugins/member-memo/lib/memo-store.svelte';
-    import MemoBadge from '../../../../../../../plugins/member-memo/components/memo-badge.svelte';
     import { LevelBadge } from '$lib/components/ui/level-badge/index.js';
+    import { loadPluginComponent, loadPluginLib } from '$lib/utils/plugin-optional-loader';
+
+    // 동적 플러그인 임포트: member-memo
+    let MemoBadge = $state<Component | null>(null);
+    let loadMemosForAuthors: ((authors: string[]) => void) | null = null;
+
+    $effect(() => {
+        if (pluginStore.isPluginActive('member-memo')) {
+            loadPluginComponent('member-memo', 'memo-badge').then((c) => (MemoBadge = c));
+            loadPluginLib<{ loadMemosForAuthors: (ids: string[]) => void }>('member-memo', 'memo-store').then(
+                (m) => { if (m) loadMemosForAuthors = m.loadMemosForAuthors; }
+            );
+        }
+    });
     import { memberLevelStore } from '$lib/stores/member-levels.svelte.js';
     import { highlightMentions } from '$lib/utils/mention-parser.js';
     import { ReactionBar } from '$lib/components/features/reaction/index.js';
@@ -403,10 +416,11 @@
 
     // 회원 메모 배치 프리로드
     $effect(() => {
-        if (memoPluginActive && commentTree.length > 0) {
+        if (memoPluginActive && loadMemosForAuthors && commentTree.length > 0) {
+            const fn = loadMemosForAuthors;
             const ids = [...new Set(commentTree.map((c) => c.author_id).filter(Boolean))];
             if (ids.length > 0) {
-                void loadMemosForAuthors(ids);
+                void fn(ids);
             }
         }
     });
@@ -512,8 +526,8 @@
                                     size={isReply ? 'sm' : 'md'}
                                 />
                                 {comment.author}
-                                {#if memoPluginActive}
-                                    <MemoBadge memberId={comment.author_id} showIcon={true} />
+                                {#if memoPluginActive && MemoBadge}
+                                    <svelte:component this={MemoBadge} memberId={comment.author_id} showIcon={true} />
                                 {/if}
                                 {#if comment.author_ip}
                                     <span class="text-muted-foreground text-xs font-normal"

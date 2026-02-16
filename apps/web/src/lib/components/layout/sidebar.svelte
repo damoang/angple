@@ -45,6 +45,7 @@
     import UserWidget from './user-widget.svelte';
     import { getComponentsForSlot } from '$lib/components/slot-manager';
     import AdSlot from '$lib/components/ui/ad-slot/ad-slot.svelte';
+    import { widgetLayoutStore } from '$lib/stores/widget-layout.svelte';
 
     // Icon mapping object
     const iconMap: Record<string, typeof Circle> = {
@@ -224,14 +225,16 @@
     </nav>
 
     <!-- 사이드바 메뉴 아래 GAM 광고 -->
-    <div class="px-2">
-        <AdSlot position="sidebar" height="250px" />
-    </div>
+    {#if widgetLayoutStore.hasEnabledAds}
+        <div class="px-2">
+            <AdSlot position="sidebar" height="250px" />
+        </div>
 
-    <!-- 사이드바 세로형 GAM 광고 -->
-    <div class="px-2">
-        <AdSlot position="sidebar-sticky" height="600px" />
-    </div>
+        <!-- 사이드바 세로형 GAM 광고 -->
+        <div class="px-2">
+            <AdSlot position="sidebar-sticky" height="600px" />
+        </div>
+    {/if}
 
     <!-- Slot: sidebar-left-bottom -->
     {#each getComponentsForSlot('sidebar-left-bottom') as slotComp (slotComp.id)}

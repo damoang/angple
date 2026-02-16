@@ -17,10 +17,8 @@
     import BulkActionsToolbar from '$lib/components/features/board/bulk-actions-toolbar.svelte';
     import CheckSquare from '@lucide/svelte/icons/check-square';
     import { Checkbox } from '$lib/components/ui/checkbox/index.js';
-    import { DamoangBanner } from '$lib/components/ui/damoang-banner/index.js';
-    import { CelebrationRolling } from '$lib/components/ui/celebration-rolling/index.js';
     import AdSlot from '$lib/components/ui/ad-slot/ad-slot.svelte';
-    import { PromotionInlinePost } from '$lib/components/ui/promotion-inline-post/index.js';
+    import { widgetLayoutStore } from '$lib/stores/widget-layout.svelte';
     import { SeoHead, createBreadcrumbJsonLd } from '$lib/seo/index.js';
     import type { SeoConfig } from '$lib/seo/types.js';
     import { memberLevelStore } from '$lib/stores/member-levels.svelte.js';
@@ -195,71 +193,11 @@
         }
     });
 
-    // 직접홍보 사잇글 삽입 로직
-    type MergedItem =
-        | { type: 'post'; post: (typeof filteredPosts)[number]; key: string }
-        | { type: 'promotion'; promotion: (typeof data.promotionPosts)[number]; key: string };
-
-    const mergedPosts: MergedItem[] = $derived.by(() => {
-        const posts = filteredPosts;
-        if (posts.length < 3 || !data.promotionPosts || data.promotionPosts.length === 0) {
-            return posts.map((p) => ({ type: 'post' as const, post: p, key: `post-${p.id}` }));
-        }
-
-        // 이미지 있는 홍보글 필터 → 셔플 → 최대 2개
-        const withImage = data.promotionPosts.filter((p: { imageUrl: string }) => p.imageUrl);
-        const shuffled = [...withImage].sort(() => Math.random() - 0.5);
-        const maxPromo = posts.length < 5 ? 1 : 2;
-        const promos = shuffled.slice(0, maxPromo);
-
-        if (promos.length === 0) {
-            return posts.map((p) => ({ type: 'post' as const, post: p, key: `post-${p.id}` }));
-        }
-
-        // 삽입 위치: index 2 ~ (length-1) 사이에서 랜덤, 최소 3칸 간격
-        const maxIdx = posts.length - 1;
-        const minIdx = 2;
-        const positions: number[] = [];
-
-        for (let i = 0; i < promos.length; i++) {
-            let attempts = 0;
-            while (attempts < 50) {
-                const pos = minIdx + Math.floor(Math.random() * (maxIdx - minIdx + 1));
-                const tooClose = positions.some((p) => Math.abs(p - pos) < 3);
-                if (!tooClose) {
-                    positions.push(pos);
-                    break;
-                }
-                attempts++;
-            }
-            // 50회 시도 후 실패하면 삽입 포기
-        }
-
-        positions.sort((a, b) => a - b);
-
-        const result: MergedItem[] = [];
-        let promoIdx = 0;
-
-        for (let i = 0; i < posts.length; i++) {
-            if (promoIdx < positions.length && i === positions[promoIdx]) {
-                result.push({
-                    type: 'promotion',
-                    promotion: promos[promoIdx],
-                    key: `promo-${promos[promoIdx].wrId}`
-                });
-                promoIdx++;
-            }
-            result.push({ type: 'post', post: posts[i], key: `post-${posts[i].id}` });
-        }
-
-        return result;
-    });
-
     // SEO 설정
     const seoConfig: SeoConfig = $derived({
         meta: {
             title: isSearching ? `"${data.searchParams?.query}" 검색 - ${boardTitle}` : boardTitle,
-            description: `${boardTitle} 게시판 - 다모앙 커뮤니티`,
+            description: `${boardTitle} 게시판 - ${import.meta.env.VITE_SITE_NAME || 'Angple'}`,
             canonicalUrl: `${$page.url.origin}/${boardId}`
         },
         og: {
@@ -296,9 +234,11 @@
 
     <div class="mx-auto pt-4">
         <!-- 최상단 배너 (title 위) -->
-        <div class="mb-4">
-            <DamoangBanner position="board-list" showCelebration={false} height="90px" />
-        </div>
+        {#if widgetLayoutStore.hasEnabledAds}
+            <div class="mb-4">
+                <AdSlot position="board-list-head" height="90px" />
+            </div>
+        {/if}
 
         <!-- 앙지도 헤더 -->
         {#if isAngmapBoard}
@@ -332,11 +272,6 @@
                 </div>
             </div>
 
-            <!-- 축하메시지 롤링 -->
-            <div class="flex min-w-0 flex-1 items-center">
-                <CelebrationRolling class="w-full" />
-            </div>
-
             {#if canWrite()}
                 <Button onclick={goToWrite} class="shrink-0">
                     <Pencil class="mr-2 h-4 w-4" />
@@ -361,9 +296,11 @@
         </div>
 
         <!-- 검색 폼 아래 GAM 광고 -->
-        <div class="mb-4">
-            <AdSlot position="board-head" height="90px" />
-        </div>
+        {#if widgetLayoutStore.hasEnabledAds}
+            <div class="mb-4">
+                <AdSlot position="board-head" height="90px" />
+            </div>
+        {/if}
 
         <!-- 카테고리 탭 -->
         {#if categories.length > 0 && !isSearching}
@@ -495,30 +432,28 @@
                     </CardContent>
                 </Card>
             {:else if LayoutComponent}
-                {#each mergedPosts as item (item.key)}
-                    {#if item.type === 'promotion'}
-                        <PromotionInlinePost post={item.promotion} />
-                    {:else if bulkSelectMode}
+                {#each filteredPosts as post (post.id)}
+                    {#if bulkSelectMode}
                         <div class="flex items-start gap-2">
                             <div class="flex shrink-0 items-center pt-3">
                                 <Checkbox
-                                    checked={selectedPostIds.includes(item.post.id)}
-                                    onCheckedChange={() => togglePostSelection(item.post.id)}
+                                    checked={selectedPostIds.includes(post.id)}
+                                    onCheckedChange={() => togglePostSelection(post.id)}
                                 />
                             </div>
                             <div class="min-w-0 flex-1">
                                 <LayoutComponent
-                                    post={item.post}
+                                    {post}
                                     displaySettings={data.board?.display_settings}
-                                    onclick={() => goToPost(item.post.id)}
+                                    onclick={() => goToPost(post.id)}
                                 />
                             </div>
                         </div>
                     {:else}
                         <LayoutComponent
-                            post={item.post}
+                            {post}
                             displaySettings={data.board?.display_settings}
-                            onclick={() => goToPost(item.post.id)}
+                            onclick={() => goToPost(post.id)}
                         />
                     {/if}
                 {/each}
@@ -568,9 +503,11 @@
             </p>
 
             <!-- 페이지네이션 아래 GAM 광고 -->
-            <div class="mt-6">
-                <AdSlot position="board-list-bottom" height="90px" />
-            </div>
+            {#if widgetLayoutStore.hasEnabledAds}
+                <div class="mt-6">
+                    <AdSlot position="board-list-bottom" height="90px" />
+                </div>
+            {/if}
         {/if}
     </div>
 {/if}

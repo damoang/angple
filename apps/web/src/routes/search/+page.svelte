@@ -157,7 +157,7 @@
 </script>
 
 <svelte:head>
-    <title>{data.query ? `"${data.query}" 검색 결과` : '검색'} | 다모앙</title>
+    <title>{data.query ? `"${data.query}" 검색 결과` : '검색'} | {import.meta.env.VITE_SITE_NAME || 'Angple'}</title>
 </svelte:head>
 
 <div class="mx-auto max-w-4xl pt-4">

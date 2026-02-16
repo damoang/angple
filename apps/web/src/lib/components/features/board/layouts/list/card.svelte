@@ -3,12 +3,22 @@
     import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card/index.js';
     import type { FreePost, BoardDisplaySettings } from '$lib/api/types.js';
     import Lock from '@lucide/svelte/icons/lock';
+    import type { Component } from 'svelte';
     import { pluginStore } from '$lib/stores/plugin.svelte';
-    import MemoBadge from '../../../../../../../../../plugins/member-memo/components/memo-badge.svelte';
     import { LevelBadge } from '$lib/components/ui/level-badge/index.js';
     import { memberLevelStore } from '$lib/stores/member-levels.svelte.js';
+    import { loadPluginComponent } from '$lib/utils/plugin-optional-loader';
 
     let memoPluginActive = $derived(pluginStore.isPluginActive('member-memo'));
+
+    // 동적 플러그인 임포트: member-memo
+    let MemoBadge = $state<Component | null>(null);
+
+    $effect(() => {
+        if (memoPluginActive) {
+            loadPluginComponent('member-memo', 'memo-badge').then((c) => (MemoBadge = c));
+        }
+    });
 
     // Props
     let {
@@ -104,8 +114,8 @@
                                     size="sm"
                                 />{post.author}</span
                             >
-                            {#if memoPluginActive}
-                                <MemoBadge memberId={post.author_id} />
+                            {#if memoPluginActive && MemoBadge}
+                                <svelte:component this={MemoBadge} memberId={post.author_id} />
                             {/if}
                             <span>•</span>
                             <span>{formatDate(post.created_at)}</span>

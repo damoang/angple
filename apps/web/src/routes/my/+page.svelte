@@ -60,7 +60,7 @@
 </script>
 
 <svelte:head>
-    <title>마이페이지 | 다모앙</title>
+    <title>마이페이지 | {import.meta.env.VITE_SITE_NAME || 'Angple'}</title>
 </svelte:head>
 
 <div class="mx-auto max-w-4xl pt-4">

@@ -1,6 +1,7 @@
 <script lang="ts">
     import { onMount } from 'svelte';
     import AdSlot from '$lib/components/ui/ad-slot/ad-slot.svelte';
+    import { widgetLayoutStore } from '$lib/stores/widget-layout.svelte';
 
     // TOP 버튼 표시 여부
     let showTopButton = $state(false);
@@ -26,9 +27,11 @@
 </script>
 
 <!-- 오른쪽 윙 배너 (GAM) -->
-<div class="flex w-[160px] flex-col items-center justify-center gap-2">
-    <AdSlot position="wing-right" height="600px" />
-</div>
+{#if widgetLayoutStore.hasEnabledAds}
+    <div class="flex w-[160px] flex-col items-center justify-center gap-2">
+        <AdSlot position="wing-right" height="600px" />
+    </div>
+{/if}
 
 <!-- TOP 버튼 - 오른쪽 하단 -->
 {#if showTopButton}

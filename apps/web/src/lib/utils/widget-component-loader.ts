@@ -7,6 +7,7 @@
 
 import type { Component } from 'svelte';
 import type { WidgetManifest } from '$lib/types/widget-manifest';
+import { safeValidateWidgetManifest } from '$lib/types/widget-manifest';
 
 export interface ScannedWidget {
     manifest: WidgetManifest;
@@ -44,17 +45,24 @@ function scanWidgets(): Map<string, ScannedWidget> {
     // 빌트인 위젯 스캔
     for (const [path, module] of Object.entries(builtinManifests)) {
         const id = extractWidgetId(path);
-        const manifest =
+        const raw =
             (module as { default?: WidgetManifest }).default ?? (module as WidgetManifest);
 
         // enabled: false인 위젯은 건너뛰기
-        if ((manifest as WidgetManifest & { enabled?: boolean }).enabled === false) continue;
+        if ((raw as WidgetManifest & { enabled?: boolean }).enabled === false) continue;
+
+        // Zod 스키마 검증
+        const result = safeValidateWidgetManifest({ ...raw, id });
+        if (!result.success) {
+            console.warn(`[Widget Loader] 매니페스트 검증 실패 (${id}):`, result.error.issues);
+            continue;
+        }
 
         const componentPath = path.replace('widget.json', 'index.svelte');
 
         if (builtinComponents[componentPath]) {
             widgets.set(id, {
-                manifest: { ...manifest, id },
+                manifest: result.data,
                 isCustom: false,
                 load: builtinComponents[componentPath] as () => Promise<{ default: Component }>
             });
@@ -64,17 +72,24 @@ function scanWidgets(): Map<string, ScannedWidget> {
     // 커스텀 위젯 스캔
     for (const [path, module] of Object.entries(customManifests)) {
         const id = extractWidgetId(path);
-        const manifest =
+        const raw =
             (module as { default?: WidgetManifest }).default ?? (module as WidgetManifest);
 
         // enabled: false인 위젯은 건너뛰기
-        if ((manifest as WidgetManifest & { enabled?: boolean }).enabled === false) continue;
+        if ((raw as WidgetManifest & { enabled?: boolean }).enabled === false) continue;
+
+        // Zod 스키마 검증
+        const result = safeValidateWidgetManifest({ ...raw, id });
+        if (!result.success) {
+            console.warn(`[Widget Loader] 커스텀 위젯 매니페스트 검증 실패 (${id}):`, result.error.issues);
+            continue;
+        }
 
         const componentPath = path.replace('widget.json', 'index.svelte');
 
         if (customComponents[componentPath]) {
             widgets.set(id, {
-                manifest: { ...manifest, id },
+                manifest: result.data,
                 isCustom: true,
                 load: customComponents[componentPath] as () => Promise<{ default: Component }>
             });

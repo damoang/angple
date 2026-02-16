@@ -34,17 +34,13 @@
     import { getMemberIconUrl } from '$lib/utils/member-icon.js';
     import { isEmbeddable } from '$lib/plugins/auto-embed';
     import AdminPostActions from '$lib/components/features/board/admin-post-actions.svelte';
-    import { DamoangBanner } from '$lib/components/ui/damoang-banner/index.js';
-    import { CelebrationRolling } from '$lib/components/ui/celebration-rolling/index.js';
     import AdSlot from '$lib/components/ui/ad-slot/ad-slot.svelte';
+    import { widgetLayoutStore } from '$lib/stores/widget-layout.svelte';
     import { pluginStore } from '$lib/stores/plugin.svelte';
     import { SeoHead, createArticleJsonLd, createBreadcrumbJsonLd } from '$lib/seo/index.js';
     import type { SeoConfig } from '$lib/seo/types.js';
-    import MemoBadge from '../../../../../../plugins/member-memo/components/memo-badge.svelte';
-    import MemoInlineEditor from '../../../../../../plugins/member-memo/components/memo-inline-editor.svelte';
     import { LevelBadge } from '$lib/components/ui/level-badge/index.js';
     import { memberLevelStore } from '$lib/stores/member-levels.svelte.js';
-    import { extractMentions } from '$lib/utils/mention-parser.js';
     import { postSlotRegistry } from '$lib/components/features/board/post-slot-registry.js';
     import {
         parseMarketInfo,
@@ -53,12 +49,25 @@
     } from '$lib/types/used-market.js';
     import { ReactionBar } from '$lib/components/features/reaction/index.js';
     import { AvatarStack } from '$lib/components/ui/avatar-stack/index.js';
+    import { loadPluginComponent } from '$lib/utils/plugin-optional-loader';
 
     let { data }: { data: PageData } = $props();
 
     // 플러그인 활성화 여부
     let memoPluginActive = $derived(pluginStore.isPluginActive('member-memo'));
     let reactionPluginActive = $derived(pluginStore.isPluginActive('da-reaction'));
+
+    // 동적 import: member-memo 플러그인 컴포넌트
+    import type { Component } from 'svelte';
+    let MemoBadge = $state<Component | null>(null);
+    let MemoInlineEditor = $state<Component | null>(null);
+
+    $effect(() => {
+        if (memoPluginActive) {
+            loadPluginComponent('member-memo', 'memo-badge').then((c) => (MemoBadge = c));
+            loadPluginComponent('member-memo', 'memo-inline-editor').then((c) => (MemoInlineEditor = c));
+        }
+    });
 
     // link1이 동영상 URL이면 본문 앞에 삽입 (그누보드 wr_link1 호환)
     const postContent = $derived(() => {
@@ -327,31 +336,6 @@
         }
     }
 
-    // 멘션 알림 전송 (fire-and-forget)
-    function sendMentionNotifications(content: string, commentId?: number): void {
-        const mentions = extractMentions(content);
-        if (mentions.length === 0 || !authStore.user) return;
-
-        // 자기 자신 멘션 제외
-        const filtered = mentions.filter(
-            (nick) => nick !== authStore.user?.mb_name && nick !== authStore.user?.mb_id
-        );
-        if (filtered.length === 0) return;
-
-        fetch('/api/mentions/notify', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                mentions: filtered,
-                boardId,
-                postId: data.post.id,
-                commentId,
-                content,
-                senderNick: authStore.user.mb_name
-            })
-        }).catch((err) => console.error('멘션 알림 전송 실패:', err));
-    }
-
     // 댓글 작성
     async function handleCreateComment(
         content: string,
@@ -373,9 +357,6 @@
 
             // 댓글 목록에 추가
             comments = [...comments, newComment];
-
-            // 멘션 알림 전송
-            sendMentionNotifications(content, Number(newComment.id));
         } finally {
             isCreatingComment = false;
         }
@@ -400,9 +381,6 @@
 
         // 댓글 목록에 추가
         comments = [...comments, newComment];
-
-        // 멘션 알림 전송
-        sendMentionNotifications(content, Number(newComment.id));
     }
 
     // 댓글 수정
@@ -488,19 +466,16 @@
 <SeoHead config={seoConfig} />
 
 <div class="mx-auto pt-2">
-    <!-- 상단 배너: damoang-ads 이미지 배너 (축하메시지는 네비바로 이동) -->
-    <div class="mb-6">
-        <DamoangBanner position="board-view" showCelebration={false} height="90px" />
-    </div>
+    <!-- 상단 배너 -->
+    {#if widgetLayoutStore.hasEnabledAds}
+        <div class="mb-6">
+            <AdSlot position="board-head" height="90px" />
+        </div>
+    {/if}
 
     <!-- 상단 네비게이션 -->
     <div class="mb-6 flex items-center justify-between gap-3">
         <Button variant="outline" size="sm" onclick={goBack} class="shrink-0">← 목록으로</Button>
-
-        <!-- 축하메시지 롤링 -->
-        <div class="flex min-w-0 flex-1 items-center">
-            <CelebrationRolling class="w-full" />
-        </div>
 
         <div class="flex shrink-0 gap-2">
             {#if isAdmin}
@@ -608,8 +583,8 @@
                         <p class="text-foreground flex items-center gap-1.5 font-medium">
                             <LevelBadge level={memberLevelStore.getLevel(data.post.author_id)} />
                             {data.post.author}
-                            {#if memoPluginActive}
-                                <MemoBadge memberId={data.post.author_id} showIcon={true} />
+                            {#if memoPluginActive && MemoBadge}
+                                <svelte:component this={MemoBadge} memberId={data.post.author_id} showIcon={true} />
                             {/if}
                             {#if data.post.author_ip}
                                 <span class="text-muted-foreground ml-1 text-xs font-normal"
@@ -634,7 +609,9 @@
         </CardHeader>
         <CardContent class="space-y-6">
             <!-- GAM 광고 -->
-            <AdSlot position="board-content" height="90px" />
+            {#if widgetLayoutStore.hasEnabledAds}
+                <AdSlot position="board-content" height="90px" />
+            {/if}
 
             <!-- 게시글 본문 -->
             {#if canViewSecret}
@@ -758,9 +735,11 @@
     {/if}
 
     <!-- 본문 하단 광고 -->
-    <div class="my-6">
-        <AdSlot position="board-content-bottom" height="90px" />
-    </div>
+    {#if widgetLayoutStore.hasEnabledAds}
+        <div class="my-6">
+            <AdSlot position="board-content-bottom" height="90px" />
+        </div>
+    {/if}
 
     <!-- 플러그인 슬롯: post.after_content (나눔 BidPanel 등) -->
     {#each afterContentSlots as slot (slot.component)}
@@ -831,9 +810,11 @@
     </div>
 
     <!-- 추천글 아래 배너 -->
-    <div class="mt-6">
-        <DamoangBanner position="board-view" showCelebration={false} height="90px" />
-    </div>
+    {#if widgetLayoutStore.hasEnabledAds}
+        <div class="mt-6">
+            <AdSlot position="board-content-bottom" height="90px" />
+        </div>
+    {/if}
 
     <!-- 게시판 최근글 목록 (체류시간 증가) -->
     <div class="mt-6">
@@ -841,9 +822,11 @@
     </div>
 
     <!-- 댓글 섹션 하단 광고 (푸터 위) -->
-    <div class="mt-6">
-        <AdSlot position="board-footer" height="90px" />
-    </div>
+    {#if widgetLayoutStore.hasEnabledAds}
+        <div class="mt-6">
+            <AdSlot position="board-footer" height="90px" />
+        </div>
+    {/if}
 </div>
 
 <!-- 추천자 목록 다이얼로그 -->
@@ -911,8 +894,9 @@
                                         >
                                             {liker.mb_nick || liker.mb_name}
                                         </a>
-                                        {#if memoPluginActive}
-                                            <MemoBadge
+                                        {#if memoPluginActive && MemoBadge}
+                                            <svelte:component
+                                                this={MemoBadge}
                                                 memberId={liker.mb_id}
                                                 showIcon={true}
                                                 onclick={() => {
@@ -943,9 +927,10 @@
                             </div>
 
                             <!-- 인라인 메모 편집기 -->
-                            {#if memoPluginActive && editingMemoFor === liker.mb_id}
+                            {#if memoPluginActive && MemoInlineEditor && editingMemoFor === liker.mb_id}
                                 <div class="ml-11 mt-2">
-                                    <MemoInlineEditor
+                                    <svelte:component
+                                        this={MemoInlineEditor}
                                         memberId={liker.mb_id}
                                         onClose={() => {
                                             editingMemoFor = null;

@@ -71,8 +71,8 @@
 </script>
 
 <svelte:head>
-    <title>새글 모아보기 | 다모앙</title>
-    <meta name="description" content="다모앙 커뮤니티 최신 글과 댓글을 한눈에 확인하세요." />
+    <title>새글 모아보기 | {import.meta.env.VITE_SITE_NAME || 'Angple'}</title>
+    <meta name="description" content="{import.meta.env.VITE_SITE_NAME || 'Angple'} 커뮤니티 최신 글과 댓글을 한눈에 확인하세요." />
 </svelte:head>
 
 <div class="mx-auto max-w-4xl pt-4">

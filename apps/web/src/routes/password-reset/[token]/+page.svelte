@@ -26,7 +26,7 @@
 </script>
 
 <svelte:head>
-    <title>비밀번호 재설정 | 다모앙</title>
+    <title>비밀번호 재설정 | {import.meta.env.VITE_SITE_NAME || 'Angple'}</title>
 </svelte:head>
 
 <div class="flex min-h-[calc(100vh-200px)] items-center justify-center px-4 py-12">

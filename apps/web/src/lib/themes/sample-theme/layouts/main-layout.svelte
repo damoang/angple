@@ -26,7 +26,7 @@
 </script>
 
 <svelte:head>
-    <title>Sample Theme - 다모앙</title>
+    <title>Sample Theme - {import.meta.env.VITE_SITE_NAME || 'Angple'}</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="icon" href={favicon} />
     <meta name="description" content="Sample Theme - WordPress 스타일 테마 시스템 데모" />

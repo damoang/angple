@@ -64,7 +64,7 @@
 </script>
 
 <svelte:head>
-    <title>포인트 내역 | 다모앙</title>
+    <title>포인트 내역 | {import.meta.env.VITE_SITE_NAME || 'Angple'}</title>
 </svelte:head>
 
 <div class="mx-auto max-w-4xl pt-4">

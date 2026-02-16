@@ -101,7 +101,7 @@
 </script>
 
 <svelte:head>
-    <title>회원 설정 | 다모앙</title>
+    <title>회원 설정 | {import.meta.env.VITE_SITE_NAME || 'Angple'}</title>
 </svelte:head>
 
 <div class="mx-auto max-w-2xl px-4 py-8">

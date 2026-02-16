@@ -1,7 +1,7 @@
 /**
  * 대괄호 이미지 변환 플러그인
  *
- * [https://s3.damoang.net/data/editor/2602/image.jpeg] 형태를
+ * [https://example.com/data/editor/2602/image.jpeg] 형태를
  * <img> 태그로 변환합니다.
  *
  * 보안:
@@ -12,11 +12,19 @@
 
 import type { EmbedPlatform, EmbedInfo } from '../types.js';
 
-/** 허용된 이미지 도메인 목록 */
+/** S3 URL에서 호스트네임 추출 */
+function extractHostname(url: string): string | null {
+    try {
+        return new URL(url).hostname;
+    } catch {
+        return null;
+    }
+}
+
+/** 허용된 이미지 도메인 목록 (환경변수 기반 + 고정 목록) */
 const ALLOWED_DOMAINS = [
-    's3.damoang.net',
-    'damoang.net',
-    'cdn.damoang.net',
+    ...(extractHostname(import.meta.env.VITE_S3_URL || '') ? [extractHostname(import.meta.env.VITE_S3_URL || '')!] : []),
+    ...(extractHostname(import.meta.env.VITE_LEGACY_URL || '') ? [extractHostname(import.meta.env.VITE_LEGACY_URL || '')!] : []),
     'i.imgur.com',
     'imgur.com'
 ];

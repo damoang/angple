@@ -226,7 +226,7 @@ custom-widgets/{widget-id}/
 │                position: 1, enabled: true, settings: {} }    │
 │          ],                                                  │
 │          sidebar: [                                          │
-│              { id: 'ad-1', type: 'ad', position: 0,         │
+│              { id: 'ad-1', type: 'ad-slot', position: 0,     │
 │                enabled: true, settings: { position: '...' }}│
 │          ]                                                   │
 │      }                                                       │
@@ -370,7 +370,7 @@ PUT    /api/v2/admin/widget-layout          # 레이아웃 저장
         { "id": "uuid-2", "type": "new-board", "position": 1, "enabled": true, "settings": {} }
     ],
     "sidebar": [
-        { "id": "uuid-3", "type": "ad", "position": 0, "enabled": true, "settings": { "position": "sidebar-top" } }
+        { "id": "uuid-3", "type": "ad-slot", "position": 0, "enabled": true, "settings": { "position": "sidebar-top" } }
     ]
 }
 ```

@@ -23,7 +23,7 @@
 </script>
 
 <svelte:head>
-    <title>관리자 - 다모앙</title>
+    <title>관리자 - {import.meta.env.VITE_SITE_NAME || 'Angple'}</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="icon" href={favicon} />
     <!-- Wanted Sans Font -->

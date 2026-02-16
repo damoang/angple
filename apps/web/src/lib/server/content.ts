@@ -47,7 +47,7 @@ export async function getSiteTitle(): Promise<string> {
     if (rows[0]) {
         return (rows[0] as { cf_title: string }).cf_title;
     }
-    return '다모앙';
+    return process.env.VITE_SITE_NAME || 'Angple';
 }
 
 /** 컨텐츠 내 변수 치환 (PHP 호환) */

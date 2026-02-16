@@ -15,11 +15,11 @@ import {
     addDnsPrefetch
 } from '$lib/utils/gpt-loader';
 
-// GAM 네트워크 코드 (기존 PHP와 동일)
-const NETWORK_CODE = '22996793498';
+// GAM 네트워크 코드 (환경변수로 설정)
+const NETWORK_CODE = import.meta.env.VITE_GAM_NETWORK_CODE || '';
 
-// AdSense 클라이언트 ID
-const ADSENSE_CLIENT = 'ca-pub-5124617752473025';
+// AdSense 클라이언트 ID (환경변수로 설정)
+const ADSENSE_CLIENT = import.meta.env.VITE_ADSENSE_CLIENT || '';
 
 // GAM 상태 관리
 interface GAMState {
@@ -67,12 +67,11 @@ export async function initGAM(): Promise<boolean> {
         await loadGPT();
 
         // GPT 초기화
+        const siteName = import.meta.env.VITE_GAM_SITE_NAME || '';
         initializeGPT({
             collapseEmptyDivs: true,
             singleRequest: true,
-            targeting: {
-                site: 'damoang'
-            }
+            targeting: siteName ? { site: siteName } : {}
         });
 
         // 슬롯 렌더 이벤트 리스너 등록

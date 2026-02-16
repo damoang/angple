@@ -40,7 +40,8 @@ export const PUT: RequestHandler = async ({ request, cookies }) => {
         // 인증 확인
         // TODO: 운영 환경에서는 백엔드 API를 통한 관리자 권한 검증 필요
         const isDev = process.env.NODE_ENV === 'development' || import.meta.env.DEV;
-        const token = cookies.get('damoang_jwt');
+        const legacyCookie = import.meta.env.VITE_LEGACY_SSO_COOKIE || '';
+        const token = legacyCookie ? cookies.get(legacyCookie) : cookies.get('refresh_token');
         if (!isDev && !token) {
             return json({ error: '인증이 필요합니다.' }, { status: 401 });
         }

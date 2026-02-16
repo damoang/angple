@@ -21,8 +21,8 @@
 </script>
 
 <svelte:head>
-    <title>자주 묻는 질문 (FAQ) | 다모앙</title>
-    <meta name="description" content="다모앙 커뮤니티 자주 묻는 질문과 답변입니다." />
+    <title>자주 묻는 질문 (FAQ) | {import.meta.env.VITE_SITE_NAME || 'Angple'}</title>
+    <meta name="description" content="{import.meta.env.VITE_SITE_NAME || 'Angple'} 커뮤니티 자주 묻는 질문과 답변입니다." />
 </svelte:head>
 
 <div class="mx-auto max-w-3xl pt-4">

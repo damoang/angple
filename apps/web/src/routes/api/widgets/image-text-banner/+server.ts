@@ -13,6 +13,8 @@ import type { RequestHandler } from './$types';
 import type { RowDataPacket } from 'mysql2';
 import pool from '$lib/server/db';
 
+const S3_URL = import.meta.env.VITE_S3_URL || '';
+
 interface BannerRow extends RowDataPacket {
     wr_id: number;
     wr_subject: string;
@@ -39,8 +41,7 @@ interface BannerItem {
 function normalizeImageUrl(url: string): string {
     if (!url) return '';
 
-    // 이미 S3 URL인 경우
-    if (url.startsWith('https://s3.damoang.net/')) return url;
+    // 이미 절대 URL인 경우
     if (url.startsWith('http')) return url;
 
     // 상대 경로 정규화
@@ -48,7 +49,7 @@ function normalizeImageUrl(url: string): string {
     if (path.startsWith('./')) path = path.slice(2);
     if (!path.startsWith('/')) path = '/' + path;
 
-    return `https://s3.damoang.net${path}`;
+    return `${S3_URL}${path}`;
 }
 
 export const GET: RequestHandler = async ({ url }) => {
