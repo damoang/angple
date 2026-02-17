@@ -324,3 +324,61 @@ export function isValidPluginId(id: string): boolean {
     // 알파벳, 숫자, 하이픈, 언더스코어만 허용
     return /^[a-zA-Z][a-zA-Z0-9-_]*$/.test(id);
 }
+
+/**
+ * 위험 권한 목록 (설치 시 경고 표시 대상)
+ */
+const DANGEROUS_PERMISSIONS = [
+    'database:write',
+    'users:write',
+    'users:delete',
+    'files:delete',
+    'network:fetch',
+    'network:websocket',
+    'api:external'
+];
+
+/**
+ * 권한별 설명
+ */
+const PERMISSION_DESCRIPTIONS: Record<string, string> = {
+    'database:write': '데이터베이스 직접 쓰기 — 데이터 손상 위험',
+    'users:write': '회원 정보 수정 — 개인정보 변경 가능',
+    'users:delete': '회원 삭제 — 복구 불가능',
+    'files:delete': '파일 삭제 — 업로드된 파일 영구 삭제',
+    'network:fetch': '외부 네트워크 요청 — 데이터 유출 가능',
+    'network:websocket': 'WebSocket 연결 — 실시간 외부 통신',
+    'api:external': '외부 API 호출 — 서버에서 외부 서비스 접근'
+};
+
+/**
+ * 매니페스트 권한 분석 결과
+ */
+export interface PermissionAnalysis {
+    dangerous: string[];
+    safe: string[];
+    descriptions: string[];
+    riskLevel: 'low' | 'medium' | 'high';
+}
+
+/**
+ * 플러그인 매니페스트의 권한을 분석하고 위험도를 반환
+ *
+ * 설치 UI에서 사용자에게 경고를 표시할 때 사용합니다.
+ */
+export function analyzePluginPermissions(permissions: string[]): PermissionAnalysis {
+    const dangerous = permissions.filter((p) => DANGEROUS_PERMISSIONS.includes(p));
+    const safe = permissions.filter((p) => !DANGEROUS_PERMISSIONS.includes(p));
+    const descriptions = dangerous.map(
+        (p) => PERMISSION_DESCRIPTIONS[p] || `${p} — 알 수 없는 위험 권한`
+    );
+
+    let riskLevel: 'low' | 'medium' | 'high' = 'low';
+    if (dangerous.length >= 3) {
+        riskLevel = 'high';
+    } else if (dangerous.length >= 1) {
+        riskLevel = 'medium';
+    }
+
+    return { dangerous, safe, descriptions, riskLevel };
+}

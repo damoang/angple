@@ -1,0 +1,24 @@
+{
+    "name": "@angple/cli",
+    "version": "0.1.0",
+    "description": "Angple CLI - 테마, 플러그인, 위젯 스캐폴딩 도구",
+    "type": "module",
+    "bin": {
+        "angple": "./dist/index.js"
+    },
+    "scripts": {
+        "build": "tsup src/index.ts --format esm --dts",
+        "dev": "tsx src/index.ts"
+    },
+    "dependencies": {
+        "commander": "^13.0.0",
+        "picocolors": "^1.1.0"
+    },
+    "devDependencies": {
+        "tsup": "^8.0.0",
+        "tsx": "^4.0.0",
+        "typescript": "^5.5.0"
+    },
+    "keywords": ["angple", "cli", "scaffolding"],
+    "license": "MIT"
+}

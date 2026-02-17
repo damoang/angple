@@ -24,14 +24,19 @@ import type {
 class PluginHookManagerProxy extends HookManager {
     private readonly globalHooks: HookManager;
     private readonly pluginId: string;
+    private readonly permMgr: PermissionManager;
 
-    constructor(globalHooks: HookManager, pluginId: string) {
+    constructor(globalHooks: HookManager, pluginId: string, permissionManager: PermissionManager) {
         super();
         this.globalHooks = globalHooks;
         this.pluginId = pluginId;
+        this.permMgr = permissionManager;
     }
 
     override addAction(hookName: string, callback: (...args: any[]) => void, priority = 10): void {
+        if (!this.permMgr.checkHookPermission(this.pluginId, hookName)) {
+            return; // 권한 없으면 무시 (로그는 PermissionManager에서 출력)
+        }
         this.globalHooks.addAction(hookName, callback, priority);
         super.addAction(hookName, callback, priority);
     }
@@ -41,6 +46,9 @@ class PluginHookManagerProxy extends HookManager {
         callback: (value: any, ...args: any[]) => any,
         priority = 10
     ): void {
+        if (!this.permMgr.checkHookPermission(this.pluginId, hookName)) {
+            return;
+        }
         this.globalHooks.addFilter(hookName, callback, priority);
         super.addFilter(hookName, callback, priority);
     }
@@ -95,7 +103,7 @@ export function createExtensionContext(
     onSettingsChange?: (pluginId: string, key: string, value: unknown) => void
 ): ExtensionContext {
     const pluginId = manifest.id;
-    const hookProxy = new PluginHookManagerProxy(globalHooks, pluginId);
+    const hookProxy = new PluginHookManagerProxy(globalHooks, pluginId, permissionManager);
     const logger = createPluginLogger(pluginId);
 
     // 설정 로컬 사본

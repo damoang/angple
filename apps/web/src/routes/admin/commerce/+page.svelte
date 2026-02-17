@@ -16,7 +16,8 @@
         ClipboardList,
         TrendingUp,
         ArrowRight,
-        AlertCircle
+        AlertCircle,
+        KeyRound
     } from '@lucide/svelte';
     import {
         type CommerceDashboard,
@@ -294,7 +295,7 @@
         <!-- 빠른 링크 -->
         <div class="mt-8">
             <h2 class="mb-4 text-lg font-semibold">빠른 링크</h2>
-            <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+            <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-6">
                 <Button
                     variant="outline"
                     class="h-auto flex-col py-4"
@@ -334,6 +335,14 @@
                 >
                     <TrendingUp class="mb-2 h-6 w-6" />
                     리뷰 관리
+                </Button>
+                <Button
+                    variant="outline"
+                    class="h-auto flex-col py-4"
+                    href="/admin/commerce/licenses"
+                >
+                    <KeyRound class="mb-2 h-6 w-6" />
+                    라이선스
                 </Button>
             </div>
         </div>

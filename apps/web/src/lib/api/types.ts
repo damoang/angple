@@ -358,6 +358,9 @@ export interface UpdatePostRequest {
     tags?: string[]; // 선택 (태그 목록)
     link1?: string; // 선택 (링크1)
     link2?: string; // 선택 (링크2)
+    extra_1?: string; // 확장 필드 (Q&A 상태 등)
+    extra_2?: string;
+    extra_3?: string;
 }
 
 // 댓글 작성 요청
@@ -486,7 +489,7 @@ export interface Board {
     insert_time: string;
     display_settings: BoardDisplaySettings;
     permissions?: BoardPermissions; // 사용자별 권한 정보 (서버에서 계산, 인증 시에만 포함)
-    board_type?: 'standard' | 'giving' | 'angtt' | 'angmap' | 'used-market'; // 특수 게시판 타입
+    board_type?: 'standard' | 'giving' | 'angtt' | 'angmap' | 'used-market' | 'qa'; // 특수 게시판 타입
 }
 
 // 파일 업로드 관련 타입

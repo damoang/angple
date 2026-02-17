@@ -7,6 +7,7 @@
     import { apiClient } from '$lib/api/index.js';
     import type { PageData } from './$types.js';
     import type { CreatePostRequest, UpdatePostRequest } from '$lib/api/types.js';
+    import { sendMentionNotifications } from '$lib/utils/mention-notify.js';
 
     let { data }: { data: PageData } = $props();
 
@@ -47,6 +48,17 @@
             };
 
             const newPost = await apiClient.createPost(boardId, request);
+
+            // @멘션 알림 전송 (fire-and-forget)
+            sendMentionNotifications({
+                content: request.content || '',
+                postUrl: `/${boardId}/${newPost.id}`,
+                postTitle: request.title,
+                boardId,
+                postId: newPost.id,
+                senderName: authStore.user.mb_name,
+                senderId: authStore.user.mb_id || ''
+            });
 
             goto(`/${boardId}/${newPost.id}`);
         } catch (err) {

@@ -27,7 +27,8 @@
     import RecentPosts from '$lib/components/features/board/recent-posts.svelte';
     import { RecommendedPosts } from '$lib/components/features/recommended/index.js';
     import { ReportDialog } from '$lib/components/features/report/index.js';
-    import type { FreeComment, LikerInfo } from '$lib/api/types.js';
+    import type { FreeComment, FreePost, LikerInfo } from '$lib/api/types.js';
+    import { sendMentionNotifications } from '$lib/utils/mention-notify.js';
     import { onMount } from 'svelte';
     import { page } from '$app/stores';
     import { AdultBlur } from '$lib/components/features/adult/index.js';
@@ -47,6 +48,18 @@
         MARKET_STATUS_LABELS,
         type MarketStatus
     } from '$lib/types/used-market.js';
+    import QAAnswerSection from '$lib/components/features/board/qa-answer-section.svelte';
+
+    // Q&A 게시판 슬롯 등록
+    postSlotRegistry.register('post.before_content', {
+        component: QAAnswerSection,
+        condition: (boardType: string) => boardType === 'qa',
+        priority: 5,
+        propsMapper: (pageData: { post: FreePost; boardId: string }) => ({
+            post: pageData.post,
+            boardId: pageData.boardId
+        })
+    });
     import { ReactionBar } from '$lib/components/features/reaction/index.js';
     import { AvatarStack } from '$lib/components/ui/avatar-stack/index.js';
     import { loadPluginComponent } from '$lib/utils/plugin-optional-loader';
@@ -95,7 +108,8 @@
     );
     const isUsedMarket = $derived(boardType === 'used-market');
 
-    // 플러그인 슬롯: post.after_content (나눔 BidPanel 등)
+    // 플러그인 슬롯
+    const beforeContentSlots = $derived(postSlotRegistry.resolve('post.before_content', boardType));
     const afterContentSlots = $derived(postSlotRegistry.resolve('post.after_content', boardType));
 
     // 중고게시판 상태 관리
@@ -357,6 +371,17 @@
 
             // 댓글 목록에 추가
             comments = [...comments, newComment];
+
+            // @멘션 알림 전송 (fire-and-forget)
+            sendMentionNotifications({
+                content,
+                postUrl: `/${boardId}/${data.post.id}`,
+                postTitle: data.post.title,
+                boardId,
+                postId: data.post.id,
+                senderName: authStore.user.mb_name,
+                senderId: authStore.user.mb_id || ''
+            });
         } finally {
             isCreatingComment = false;
         }
@@ -381,6 +406,17 @@
 
         // 댓글 목록에 추가
         comments = [...comments, newComment];
+
+        // @멘션 알림 전송 (fire-and-forget)
+        sendMentionNotifications({
+            content,
+            postUrl: `/${boardId}/${data.post.id}`,
+            postTitle: data.post.title,
+            boardId,
+            postId: data.post.id,
+            senderName: authStore.user.mb_name,
+            senderId: authStore.user.mb_id || ''
+        });
     }
 
     // 댓글 수정
@@ -547,7 +583,9 @@
                 {#if data.post.tags && data.post.tags.length > 0}
                     <div class="mt-3 flex flex-wrap gap-2">
                         {#each data.post.tags as tag, i (i)}
-                            <Badge variant="secondary">{tag}</Badge>
+                            <a href="/tags/{encodeURIComponent(tag)}">
+                                <Badge variant="secondary" class="cursor-pointer hover:bg-primary/10">#{tag}</Badge>
+                            </a>
                         {/each}
                     </div>
                 {/if}
@@ -608,6 +646,14 @@
             </div>
         </CardHeader>
         <CardContent class="space-y-6">
+            <!-- 플러그인 슬롯: post.before_content (Q&A 상태 헤더 등) -->
+            {#each beforeContentSlots as slot (slot.component)}
+                <svelte:component
+                    this={slot.component}
+                    {...slot.propsMapper ? slot.propsMapper(data) : { data }}
+                />
+            {/each}
+
             <!-- GAM 광고 -->
             {#if widgetLayoutStore.hasEnabledAds}
                 <AdSlot position="board-content" height="90px" />

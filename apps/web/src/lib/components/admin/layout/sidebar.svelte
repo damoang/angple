@@ -12,7 +12,10 @@
         LayoutGrid,
         ShoppingCart,
         FolderOpen,
-        Trash2
+        Trash2,
+        Users,
+        Layers,
+        DatabaseZap
     } from '@lucide/svelte/icons';
 
     /**
@@ -41,9 +44,19 @@
             icon: LayoutGrid
         },
         {
+            title: '게시판 관리',
+            href: '/admin/boards',
+            icon: Layers
+        },
+        {
             title: '게시판 그룹',
             href: '/admin/board-groups',
             icon: FolderOpen
+        },
+        {
+            title: '회원 관리',
+            href: '/admin/members',
+            icon: Users
         },
         {
             title: '삭제된 게시물',
@@ -64,6 +77,11 @@
             title: 'API 문서',
             href: '/admin/docs',
             icon: Code
+        },
+        {
+            title: '마이그레이션',
+            href: '/admin/migration',
+            icon: DatabaseZap
         },
         {
             title: '설정',
