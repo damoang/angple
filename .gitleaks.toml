@@ -7,7 +7,7 @@ paths = [
   '''custom-themes/''',
   '''custom-plugins/''',
   '''pnpm-lock\.yaml$''',
-  '''docs/api/''',
+  '''docs/''',
   '''widgets/.*/widget\.json$''',
   '''\.env\.example$''',
   '''\.github/workflows/ci\.yml$''',

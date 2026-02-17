@@ -21,15 +21,14 @@ export const GET: RequestHandler = async ({ url, cookies }) => {
     const redirectUrl = url.searchParams.get('redirect') || '/admin/themes/marketplace';
 
     if (!scope || !themeId) {
-        return json(
-            { error: 'scope와 themeId 파라미터가 필요합니다.' },
-            { status: 400 }
-        );
+        return json({ error: 'scope와 themeId 파라미터가 필요합니다.' }, { status: 400 });
     }
 
     if (!isGitHubOAuthConfigured()) {
         return json(
-            { error: 'GitHub OAuth가 설정되지 않았습니다. GITHUB_CLIENT_ID와 GITHUB_CLIENT_SECRET을 확인하세요.' },
+            {
+                error: 'GitHub OAuth가 설정되지 않았습니다. GITHUB_CLIENT_ID와 GITHUB_CLIENT_SECRET을 확인하세요.'
+            },
             { status: 500 }
         );
     }
@@ -46,9 +45,6 @@ export const GET: RequestHandler = async ({ url, cookies }) => {
             throw err;
         }
         console.error('[GitHub OAuth Start]', err);
-        return json(
-            { error: 'GitHub OAuth 시작 중 오류가 발생했습니다.' },
-            { status: 500 }
-        );
+        return json({ error: 'GitHub OAuth 시작 중 오류가 발생했습니다.' }, { status: 500 });
     }
 };

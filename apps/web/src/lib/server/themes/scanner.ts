@@ -136,7 +136,6 @@ export function scanThemes(): Map<string, ThemeManifest> {
 
         // 커스텀 테마 스캔 (사용자 업로드)
         const customCount = scanDirectory(CUSTOM_THEMES_DIR, themes);
-
     } catch (error) {
         console.error('[Theme Scanner] 테마 스캔 실패:', error);
     }

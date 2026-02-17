@@ -18,7 +18,7 @@ const REQUIRED_VARS: { name: string; description: string }[] = [
     { name: 'DB_USER', description: 'Database user' },
     { name: 'DB_PASSWORD', description: 'Database password' },
     { name: 'DB_NAME', description: 'Database name' },
-    { name: 'NODE_ENV', description: 'Should be "production"' },
+    { name: 'NODE_ENV', description: 'Should be "production"' }
 ];
 
 const RECOMMENDED_VARS: { name: string; description: string }[] = [
@@ -26,7 +26,7 @@ const RECOMMENDED_VARS: { name: string; description: string }[] = [
     { name: 'PUBLIC_TURNSTILE_SITE_KEY', description: 'Cloudflare Turnstile CAPTCHA site key' },
     { name: 'TURNSTILE_SECRET_KEY', description: 'Cloudflare Turnstile CAPTCHA secret key' },
     { name: 'VITE_GAM_NETWORK_CODE', description: 'Google Ad Manager network code' },
-    { name: 'VITE_ADSENSE_CLIENT', description: 'Google AdSense client ID' },
+    { name: 'VITE_ADSENSE_CLIENT', description: 'Google AdSense client ID' }
 ];
 
 function validate(): boolean {
@@ -75,9 +75,7 @@ function validate(): boolean {
     console.log('=================================================');
 
     if (missingRequired.length > 0) {
-        console.log(
-            `FAILED: ${missingRequired.length} required variable(s) missing.\n`
-        );
+        console.log(`FAILED: ${missingRequired.length} required variable(s) missing.\n`);
         console.log('Missing required variables:');
         for (const v of missingRequired) {
             console.log(`  - ${v.name}: ${v.description}`);

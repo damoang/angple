@@ -100,9 +100,7 @@ export const POST: RequestHandler = async ({ request }) => {
                     }
                 }
 
-                const [pointRows] = await conn.query(
-                    `SELECT COUNT(*) as cnt FROM ${prefix}point`
-                );
+                const [pointRows] = await conn.query(`SELECT COUNT(*) as cnt FROM ${prefix}point`);
                 const pointCount = (pointRows as any)[0].cnt;
                 tables.push({
                     sourceTable: `${prefix}point`,

@@ -82,11 +82,7 @@ export async function loadThemeComponents(themeId: string): Promise<boolean> {
 
                 loadedCount++;
             } catch (error) {
-                console.error(
-                    '[Theme Loader] Failed to load component:',
-                    componentDef.name,
-                    error
-                );
+                console.error('[Theme Loader] Failed to load component:', componentDef.name, error);
                 failedCount++;
             }
         }

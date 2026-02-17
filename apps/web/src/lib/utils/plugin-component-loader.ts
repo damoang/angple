@@ -89,10 +89,7 @@ export async function loadPluginComponents(
                 }
 
                 if (!moduleKey) {
-                    console.error(
-                        '[Plugin Loader] Component file not found:',
-                        componentDef.path
-                    );
+                    console.error('[Plugin Loader] Component file not found:', componentDef.path);
                     failedCount++;
                     continue;
                 }

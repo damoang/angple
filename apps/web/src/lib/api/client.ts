@@ -104,9 +104,7 @@ class ApiClient {
     /** 레거시 SSO 쿠키 존재 여부 확인 */
     private hasLegacySsoCookie(): boolean {
         if (!browser || !LEGACY_SSO_COOKIE) return false;
-        return document.cookie
-            .split('; ')
-            .some((row) => row.startsWith(`${LEGACY_SSO_COOKIE}=`));
+        return document.cookie.split('; ').some((row) => row.startsWith(`${LEGACY_SSO_COOKIE}=`));
     }
 
     /** refresh_token 쿠키 존재 여부 확인 */
@@ -1081,9 +1079,7 @@ class ApiClient {
      * 🔒 인증 필요
      */
     async getMyPosts(page = 1, limit = 20): Promise<PaginatedResponse<FreePost>> {
-        const response = await this.request<unknown>(
-            `/my/posts?page=${page}&limit=${limit}`
-        );
+        const response = await this.request<unknown>(`/my/posts?page=${page}&limit=${limit}`);
 
         const raw = response as unknown as Record<string, unknown>;
         const meta = raw.meta as Record<string, number> | undefined;
@@ -1106,9 +1102,7 @@ class ApiClient {
      * 🔒 인증 필요
      */
     async getMyComments(page = 1, limit = 20): Promise<PaginatedResponse<FreeComment>> {
-        const response = await this.request<unknown>(
-            `/my/comments?page=${page}&limit=${limit}`
-        );
+        const response = await this.request<unknown>(`/my/comments?page=${page}&limit=${limit}`);
 
         const raw = response as unknown as Record<string, unknown>;
         const meta = raw.meta as Record<string, number> | undefined;
@@ -1131,9 +1125,7 @@ class ApiClient {
      * 🔒 인증 필요
      */
     async getMyLikedPosts(page = 1, limit = 20): Promise<PaginatedResponse<FreePost>> {
-        const response = await this.request<unknown>(
-            `/my/liked-posts?page=${page}&limit=${limit}`
-        );
+        const response = await this.request<unknown>(`/my/liked-posts?page=${page}&limit=${limit}`);
 
         const raw = response as unknown as Record<string, unknown>;
         const meta = raw.meta as Record<string, number> | undefined;

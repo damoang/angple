@@ -142,7 +142,9 @@ export function mergeRegistryWithInstalled(
             downloads: 0,
             rating: 5,
             tags: localTheme.manifest.tags ?? [],
-            category: (localTheme.manifest as Record<string, unknown>).themeCategory as string ?? 'general',
+            category:
+                ((localTheme.manifest as Record<string, unknown>).themeCategory as string) ??
+                'general',
             price: 0,
             screenshot: localTheme.manifest.screenshot,
             installed: true,

@@ -60,10 +60,10 @@
     const filteredBoards = $derived(
         searchQuery.trim()
             ? boards.filter(
-                    (b) =>
-                        b.board_id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                        b.subject.toLowerCase().includes(searchQuery.toLowerCase())
-                )
+                  (b) =>
+                      b.board_id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                      b.subject.toLowerCase().includes(searchQuery.toLowerCase())
+              )
             : boards
     );
 
@@ -221,9 +221,7 @@
     <div class="flex items-center justify-between">
         <div>
             <h1 class="text-2xl font-bold">게시판 관리</h1>
-            <p class="text-muted-foreground text-sm">
-                게시판을 생성하고 설정을 관리합니다.
-            </p>
+            <p class="text-muted-foreground text-sm">게시판을 생성하고 설정을 관리합니다.</p>
         </div>
         <Button onclick={openCreateDialog}>
             <Plus class="mr-1.5 h-4 w-4" />
@@ -234,11 +232,7 @@
     <!-- 검색 -->
     <div class="relative">
         <Search class="text-muted-foreground absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" />
-        <Input
-            bind:value={searchQuery}
-            placeholder="게시판 이름 또는 ID로 검색..."
-            class="pl-9"
-        />
+        <Input bind:value={searchQuery} placeholder="게시판 이름 또는 ID로 검색..." class="pl-9" />
     </div>
 
     {#if loading}
@@ -426,7 +420,7 @@
                         id="board-group"
                         bind:value={formGroupId}
                         disabled={saving}
-                        class="border-input bg-background ring-offset-background focus-visible:ring-ring flex h-10 w-full rounded-md border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+                        class="border-input bg-background ring-offset-background focus-visible:ring-ring flex h-10 w-full rounded-md border px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
                     >
                         {#each groups as group (group.id)}
                             <option value={group.id}>{group.name}</option>
@@ -439,7 +433,7 @@
                         id="board-type"
                         bind:value={formBoardType}
                         disabled={saving}
-                        class="border-input bg-background ring-offset-background focus-visible:ring-ring flex h-10 w-full rounded-md border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+                        class="border-input bg-background ring-offset-background focus-visible:ring-ring flex h-10 w-full rounded-md border px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
                     >
                         {#each Object.entries(boardTypes) as [value, label] (value)}
                             <option {value}>{label}</option>

@@ -124,7 +124,9 @@
         <Card>
             <CardContent class="pt-6">
                 <p class="text-muted-foreground py-8 text-center">
-                    {currentFilter === 'all' ? '아직 질문이 없습니다.' : `${filters.find(f => f.id === currentFilter)?.label} 질문이 없습니다.`}
+                    {currentFilter === 'all'
+                        ? '아직 질문이 없습니다.'
+                        : `${filters.find((f) => f.id === currentFilter)?.label} 질문이 없습니다.`}
                 </p>
             </CardContent>
         </Card>

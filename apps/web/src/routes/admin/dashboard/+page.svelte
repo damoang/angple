@@ -33,37 +33,37 @@
     const stats = $derived(
         dashboardStats
             ? [
-                    {
-                        label: '총 게시글',
-                        value: dashboardStats.totalPosts.toLocaleString(),
-                        icon: FileText,
-                        change: dashboardStats.postsChange
-                    },
-                    {
-                        label: '총 회원',
-                        value: dashboardStats.totalMembers.toLocaleString(),
-                        icon: Users,
-                        change: dashboardStats.membersChange
-                    },
-                    {
-                        label: '오늘 댓글',
-                        value: dashboardStats.todayComments.toLocaleString(),
-                        icon: MessageSquare,
-                        change: dashboardStats.commentsChange
-                    },
-                    {
-                        label: '오늘 방문자',
-                        value: dashboardStats.todayVisitors.toLocaleString(),
-                        icon: Eye,
-                        change: dashboardStats.visitorsChange
-                    }
-                ]
+                  {
+                      label: '총 게시글',
+                      value: dashboardStats.totalPosts.toLocaleString(),
+                      icon: FileText,
+                      change: dashboardStats.postsChange
+                  },
+                  {
+                      label: '총 회원',
+                      value: dashboardStats.totalMembers.toLocaleString(),
+                      icon: Users,
+                      change: dashboardStats.membersChange
+                  },
+                  {
+                      label: '오늘 댓글',
+                      value: dashboardStats.todayComments.toLocaleString(),
+                      icon: MessageSquare,
+                      change: dashboardStats.commentsChange
+                  },
+                  {
+                      label: '오늘 방문자',
+                      value: dashboardStats.todayVisitors.toLocaleString(),
+                      icon: Eye,
+                      change: dashboardStats.visitorsChange
+                  }
+              ]
             : [
-                    { label: '총 게시글', value: '-', icon: FileText, change: 0 },
-                    { label: '총 회원', value: '-', icon: Users, change: 0 },
-                    { label: '오늘 댓글', value: '-', icon: MessageSquare, change: 0 },
-                    { label: '오늘 방문자', value: '-', icon: Eye, change: 0 }
-                ]
+                  { label: '총 게시글', value: '-', icon: FileText, change: 0 },
+                  { label: '총 회원', value: '-', icon: Users, change: 0 },
+                  { label: '오늘 댓글', value: '-', icon: MessageSquare, change: 0 },
+                  { label: '오늘 방문자', value: '-', icon: Eye, change: 0 }
+              ]
     );
 
     async function loadDashboard() {

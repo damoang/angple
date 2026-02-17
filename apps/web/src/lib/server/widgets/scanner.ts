@@ -142,7 +142,6 @@ export function scanWidgets(): Map<string, WidgetInfo> {
 
         // 커스텀 위젯 스캔 (사용자 업로드)
         const customCount = scanDirectory(CUSTOM_WIDGETS_DIR, widgets, true);
-
     } catch (error) {
         console.error('[Widget Scanner] 위젯 스캔 실패:', error);
     }

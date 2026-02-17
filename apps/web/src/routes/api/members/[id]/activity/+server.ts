@@ -144,6 +144,9 @@ export const GET: RequestHandler = async ({ params, url }) => {
         return json({ recentPosts, recentComments });
     } catch (error) {
         console.error('[activity API] error:', error);
-        return json({ success: false, error: '활동 데이터를 가져오는데 실패했습니다.' }, { status: 500 });
+        return json(
+            { success: false, error: '활동 데이터를 가져오는데 실패했습니다.' },
+            { status: 500 }
+        );
     }
 };

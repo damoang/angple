@@ -121,7 +121,9 @@
                 <Card>
                     <CardHeader>
                         <CardTitle>기능 플래그</CardTitle>
-                        <CardDescription>플랫폼 기능을 개별적으로 활성화/비활성화합니다.</CardDescription>
+                        <CardDescription
+                            >플랫폼 기능을 개별적으로 활성화/비활성화합니다.</CardDescription
+                        >
                     </CardHeader>
                     <CardContent>
                         <FeatureFlagsSettings />
@@ -133,7 +135,9 @@
                 <Card>
                     <CardHeader>
                         <CardTitle>SEO 설정</CardTitle>
-                        <CardDescription>검색엔진 최적화 및 소셜 공유 설정을 관리합니다.</CardDescription>
+                        <CardDescription
+                            >검색엔진 최적화 및 소셜 공유 설정을 관리합니다.</CardDescription
+                        >
                     </CardHeader>
                     <CardContent>
                         <SeoSettings />

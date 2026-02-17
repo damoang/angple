@@ -46,21 +46,15 @@ export const POST: RequestHandler = async ({ request }) => {
                     };
 
                 if (source === 'gnuboard') {
-                    const [m] = await conn.query(
-                        `SELECT COUNT(*) as cnt FROM ${prefix}member`
-                    );
+                    const [m] = await conn.query(`SELECT COUNT(*) as cnt FROM ${prefix}member`);
                     stats.members.total = (m as any)[0].cnt;
                     stats.members.migrated = stats.members.total;
 
-                    const [g] = await conn.query(
-                        `SELECT COUNT(*) as cnt FROM ${prefix}\`group\``
-                    );
+                    const [g] = await conn.query(`SELECT COUNT(*) as cnt FROM ${prefix}\`group\``);
                     stats.boardGroups.total = (g as any)[0].cnt;
                     stats.boardGroups.migrated = stats.boardGroups.total;
 
-                    const [b] = await conn.query(
-                        `SELECT bo_table FROM ${prefix}board`
-                    );
+                    const [b] = await conn.query(`SELECT bo_table FROM ${prefix}board`);
                     const boards = b as any[];
                     stats.boards.total = boards.length;
                     stats.boards.migrated = boards.length;
@@ -82,9 +76,7 @@ export const POST: RequestHandler = async ({ request }) => {
                         }
                     }
 
-                    const [pt] = await conn.query(
-                        `SELECT COUNT(*) as cnt FROM ${prefix}point`
-                    );
+                    const [pt] = await conn.query(`SELECT COUNT(*) as cnt FROM ${prefix}point`);
                     stats.points.total = (pt as any)[0].cnt;
                     stats.points.migrated = stats.points.total;
                 } else {
@@ -139,7 +131,10 @@ export const POST: RequestHandler = async ({ request }) => {
         return json(
             {
                 success: false,
-                error: error instanceof Error ? error.message : '마이그레이션 실행 중 오류가 발생했습니다.'
+                error:
+                    error instanceof Error
+                        ? error.message
+                        : '마이그레이션 실행 중 오류가 발생했습니다.'
             },
             { status: 500 }
         );

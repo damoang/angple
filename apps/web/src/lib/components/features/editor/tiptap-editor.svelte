@@ -648,7 +648,7 @@
             </Button>
             {#if showTableMenu}
                 <div
-                    class="bg-popover border-border absolute top-full left-0 z-50 mt-1 rounded-md border p-2 shadow-md"
+                    class="bg-popover border-border absolute left-0 top-full z-50 mt-1 rounded-md border p-2 shadow-md"
                 >
                     <div class="flex flex-col gap-1">
                         <button
@@ -680,7 +680,7 @@
                             class="hover:bg-accent flex items-center gap-2 rounded px-3 py-1.5 text-sm"
                             onclick={deleteColumn}
                         >
-                            <Columns class="h-4 w-4 text-destructive" />
+                            <Columns class="text-destructive h-4 w-4" />
                             열 삭제
                         </button>
                         <button
@@ -688,7 +688,7 @@
                             class="hover:bg-accent flex items-center gap-2 rounded px-3 py-1.5 text-sm"
                             onclick={deleteRow}
                         >
-                            <Rows class="h-4 w-4 text-destructive" />
+                            <Rows class="text-destructive h-4 w-4" />
                             행 삭제
                         </button>
                         <hr class="border-border my-1" />
@@ -710,7 +710,9 @@
     <div class="tiptap-content min-h-[300px] p-4" bind:this={editorElement}></div>
 
     <!-- 하단 상태바 -->
-    <div class="border-border text-muted-foreground flex items-center justify-end border-t px-3 py-1 text-xs">
+    <div
+        class="border-border text-muted-foreground flex items-center justify-end border-t px-3 py-1 text-xs"
+    >
         <span>{charCount}자 · {wordCount}단어</span>
     </div>
 </div>
@@ -998,23 +1000,62 @@
         padding: 0;
     }
 
-    :global(.tiptap-content .tiptap .hljs-keyword) { color: #cba6f7; }
-    :global(.tiptap-content .tiptap .hljs-string) { color: #a6e3a1; }
-    :global(.tiptap-content .tiptap .hljs-comment) { color: #6c7086; font-style: italic; }
-    :global(.tiptap-content .tiptap .hljs-number) { color: #fab387; }
-    :global(.tiptap-content .tiptap .hljs-function) { color: #89b4fa; }
-    :global(.tiptap-content .tiptap .hljs-title) { color: #89b4fa; }
-    :global(.tiptap-content .tiptap .hljs-params) { color: #f5c2e7; }
-    :global(.tiptap-content .tiptap .hljs-built_in) { color: #f38ba8; }
-    :global(.tiptap-content .tiptap .hljs-type) { color: #f9e2af; }
-    :global(.tiptap-content .tiptap .hljs-attr) { color: #89dceb; }
-    :global(.tiptap-content .tiptap .hljs-variable) { color: #cdd6f4; }
-    :global(.tiptap-content .tiptap .hljs-operator) { color: #89dceb; }
-    :global(.tiptap-content .tiptap .hljs-punctuation) { color: #bac2de; }
-    :global(.tiptap-content .tiptap .hljs-meta) { color: #f38ba8; }
-    :global(.tiptap-content .tiptap .hljs-tag) { color: #89b4fa; }
-    :global(.tiptap-content .tiptap .hljs-name) { color: #89b4fa; }
-    :global(.tiptap-content .tiptap .hljs-selector-class) { color: #a6e3a1; }
-    :global(.tiptap-content .tiptap .hljs-selector-id) { color: #fab387; }
-    :global(.tiptap-content .tiptap .hljs-literal) { color: #fab387; }
+    :global(.tiptap-content .tiptap .hljs-keyword) {
+        color: #cba6f7;
+    }
+    :global(.tiptap-content .tiptap .hljs-string) {
+        color: #a6e3a1;
+    }
+    :global(.tiptap-content .tiptap .hljs-comment) {
+        color: #6c7086;
+        font-style: italic;
+    }
+    :global(.tiptap-content .tiptap .hljs-number) {
+        color: #fab387;
+    }
+    :global(.tiptap-content .tiptap .hljs-function) {
+        color: #89b4fa;
+    }
+    :global(.tiptap-content .tiptap .hljs-title) {
+        color: #89b4fa;
+    }
+    :global(.tiptap-content .tiptap .hljs-params) {
+        color: #f5c2e7;
+    }
+    :global(.tiptap-content .tiptap .hljs-built_in) {
+        color: #f38ba8;
+    }
+    :global(.tiptap-content .tiptap .hljs-type) {
+        color: #f9e2af;
+    }
+    :global(.tiptap-content .tiptap .hljs-attr) {
+        color: #89dceb;
+    }
+    :global(.tiptap-content .tiptap .hljs-variable) {
+        color: #cdd6f4;
+    }
+    :global(.tiptap-content .tiptap .hljs-operator) {
+        color: #89dceb;
+    }
+    :global(.tiptap-content .tiptap .hljs-punctuation) {
+        color: #bac2de;
+    }
+    :global(.tiptap-content .tiptap .hljs-meta) {
+        color: #f38ba8;
+    }
+    :global(.tiptap-content .tiptap .hljs-tag) {
+        color: #89b4fa;
+    }
+    :global(.tiptap-content .tiptap .hljs-name) {
+        color: #89b4fa;
+    }
+    :global(.tiptap-content .tiptap .hljs-selector-class) {
+        color: #a6e3a1;
+    }
+    :global(.tiptap-content .tiptap .hljs-selector-id) {
+        color: #fab387;
+    }
+    :global(.tiptap-content .tiptap .hljs-literal) {
+        color: #fab387;
+    }
 </style>

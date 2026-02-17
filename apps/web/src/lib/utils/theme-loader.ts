@@ -83,7 +83,6 @@ export async function loadThemeStyles(themeId: string): Promise<void> {
         link.setAttribute('data-theme-style', themeId);
 
         document.head.appendChild(link);
-
     } catch (error) {
         console.error('테마 스타일 로드 실패:', { themeId, error });
     }

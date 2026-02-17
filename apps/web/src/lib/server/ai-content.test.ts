@@ -21,7 +21,9 @@ function makeErrorResponse(status: number) {
 
 // 100자 이상 콘텐츠 (summarizeContent의 최소 길이 조건 충족)
 const longContent =
-    '<p>' + '테스트 콘텐츠입니다. 이 글은 충분히 긴 본문을 만들기 위해 작성되었습니다. '.repeat(5) + '</p>';
+    '<p>' +
+    '테스트 콘텐츠입니다. 이 글은 충분히 긴 본문을 만들기 위해 작성되었습니다. '.repeat(5) +
+    '</p>';
 const shortContent = '<p>짧은 글</p>';
 
 describe('summarizeContent', () => {

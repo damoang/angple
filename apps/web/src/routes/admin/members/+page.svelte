@@ -231,16 +231,12 @@
                         <Search
                             class="text-muted-foreground absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2"
                         />
-                        <Input
-                            bind:value={searchQuery}
-                            placeholder="회원 검색..."
-                            class="pl-9"
-                        />
+                        <Input bind:value={searchQuery} placeholder="회원 검색..." class="pl-9" />
                     </div>
                 </div>
                 <select
                     bind:value={searchField}
-                    class="border-input bg-background ring-offset-background focus-visible:ring-ring flex h-10 rounded-md border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+                    class="border-input bg-background ring-offset-background focus-visible:ring-ring flex h-10 rounded-md border px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
                 >
                     <option value="name">이름</option>
                     <option value="email">이메일</option>
@@ -249,7 +245,7 @@
                 <select
                     bind:value={levelFilter}
                     onchange={() => handleSearch()}
-                    class="border-input bg-background ring-offset-background focus-visible:ring-ring flex h-10 rounded-md border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+                    class="border-input bg-background ring-offset-background focus-visible:ring-ring flex h-10 rounded-md border px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
                 >
                     <option value={undefined}>전체 레벨</option>
                     {#each Array.from({ length: 10 }, (_, i) => i + 1) as level}
@@ -370,9 +366,7 @@
                                             variant="ghost"
                                             size="icon"
                                             onclick={() => handleBan(member)}
-                                            title={member.mb_intercept_date
-                                                ? '차단 해제'
-                                                : '차단'}
+                                            title={member.mb_intercept_date ? '차단 해제' : '차단'}
                                         >
                                             {#if member.mb_intercept_date}
                                                 <ShieldCheck class="h-4 w-4 text-green-600" />
@@ -460,12 +454,7 @@
             </div>
             <div class="grid gap-2">
                 <Label for="edit-point">포인트</Label>
-                <Input
-                    id="edit-point"
-                    type="number"
-                    bind:value={editPoint}
-                    disabled={saving}
-                />
+                <Input id="edit-point" type="number" bind:value={editPoint} disabled={saving} />
             </div>
             <Dialog.Footer>
                 <Button

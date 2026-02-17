@@ -1,10 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-    generateLicenseKey,
-    isValidKeyFormat,
-    signLicense,
-    verifySignature
-} from './license';
+import { generateLicenseKey, isValidKeyFormat, signLicense, verifySignature } from './license';
 
 describe('generateLicenseKey', () => {
     it('ANGP-XXXX-XXXX-XXXX-XXXX 형식과 일치', () => {

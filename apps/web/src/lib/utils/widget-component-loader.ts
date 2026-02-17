@@ -45,8 +45,7 @@ function scanWidgets(): Map<string, ScannedWidget> {
     // 빌트인 위젯 스캔
     for (const [path, module] of Object.entries(builtinManifests)) {
         const id = extractWidgetId(path);
-        const raw =
-            (module as { default?: WidgetManifest }).default ?? (module as WidgetManifest);
+        const raw = (module as { default?: WidgetManifest }).default ?? (module as WidgetManifest);
 
         // enabled: false인 위젯은 건너뛰기
         if ((raw as WidgetManifest & { enabled?: boolean }).enabled === false) continue;
@@ -71,8 +70,7 @@ function scanWidgets(): Map<string, ScannedWidget> {
     // 커스텀 위젯 스캔
     for (const [path, module] of Object.entries(customManifests)) {
         const id = extractWidgetId(path);
-        const raw =
-            (module as { default?: WidgetManifest }).default ?? (module as WidgetManifest);
+        const raw = (module as { default?: WidgetManifest }).default ?? (module as WidgetManifest);
 
         // enabled: false인 위젯은 건너뛰기
         if ((raw as WidgetManifest & { enabled?: boolean }).enabled === false) continue;

@@ -218,7 +218,9 @@
             <div class="flex items-center gap-2">
                 <div
                     class="flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold
-                    {i <= stepIndex ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}"
+                    {i <= stepIndex
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-muted text-muted-foreground'}"
                 >
                     {i + 1}
                 </div>
@@ -236,7 +238,9 @@
     {#if step === 'source'}
         <div class="grid gap-4 md:grid-cols-2">
             <Card
-                class="cursor-pointer transition-shadow hover:shadow-lg {source === 'gnuboard' ? 'ring-primary ring-2' : ''}"
+                class="cursor-pointer transition-shadow hover:shadow-lg {source === 'gnuboard'
+                    ? 'ring-primary ring-2'
+                    : ''}"
                 onclick={() => (source = 'gnuboard')}
             >
                 <CardHeader>
@@ -261,7 +265,9 @@
             </Card>
 
             <Card
-                class="cursor-pointer transition-shadow hover:shadow-lg {source === 'rhymix' ? 'ring-primary ring-2' : ''}"
+                class="cursor-pointer transition-shadow hover:shadow-lg {source === 'rhymix'
+                    ? 'ring-primary ring-2'
+                    : ''}"
                 onclick={() => (source = 'rhymix')}
             >
                 <CardHeader>
@@ -461,15 +467,17 @@
                 </CardTitle>
                 <CardDescription>
                     {analysis.source === 'gnuboard' ? '그누보드' : '라이믹스'}
-                    {analysis.version ? ` (${analysis.version})` : ''} —
-                    총 {analysis.totalRows.toLocaleString()}개 레코드, 예상 소요시간: {analysis.estimatedTime}
+                    {analysis.version ? ` (${analysis.version})` : ''} — 총 {analysis.totalRows.toLocaleString()}개
+                    레코드, 예상 소요시간: {analysis.estimatedTime}
                 </CardDescription>
             </CardHeader>
             <CardContent>
                 <!-- 테이블별 분석 -->
                 <div class="space-y-2">
                     {#each analysis.tables as table (table.sourceTable)}
-                        <div class="flex items-center justify-between rounded-md bg-gray-50 p-3 dark:bg-gray-800">
+                        <div
+                            class="flex items-center justify-between rounded-md bg-gray-50 p-3 dark:bg-gray-800"
+                        >
                             <div class="flex items-center gap-2">
                                 <Badge variant={table.hasData ? 'default' : 'secondary'}>
                                     {table.hasData ? '데이터 있음' : '비어있음'}
@@ -478,7 +486,7 @@
                                 <span class="text-muted-foreground text-sm">→</span>
                                 <span class="text-sm">{table.targetTable}</span>
                             </div>
-                            <span class="text-sm font-mono">
+                            <span class="font-mono text-sm">
                                 {table.rowCount.toLocaleString()}행
                             </span>
                         </div>
@@ -489,7 +497,9 @@
                 {#if analysis.warnings.length > 0}
                     <div class="mt-4 space-y-2">
                         {#each analysis.warnings as warning (warning)}
-                            <div class="flex items-start gap-2 rounded-md bg-yellow-50 p-3 text-sm text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-200">
+                            <div
+                                class="flex items-start gap-2 rounded-md bg-yellow-50 p-3 text-sm text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-200"
+                            >
                                 <AlertTriangle class="mt-0.5 h-4 w-4 flex-shrink-0" />
                                 {warning}
                             </div>
@@ -498,7 +508,9 @@
                 {/if}
 
                 {#if dryRun}
-                    <div class="mt-4 rounded-md bg-blue-50 p-3 text-sm text-blue-800 dark:bg-blue-900/20 dark:text-blue-200">
+                    <div
+                        class="mt-4 rounded-md bg-blue-50 p-3 text-sm text-blue-800 dark:bg-blue-900/20 dark:text-blue-200"
+                    >
                         시뮬레이션 모드로 실행됩니다. 실제 데이터는 기록되지 않습니다.
                     </div>
                 {/if}
@@ -585,7 +597,9 @@
                         <div class="rounded-md border p-4">
                             <div class="flex items-center gap-2">
                                 <Icon class="text-muted-foreground h-4 w-4" />
-                                <span class="font-medium">{labels[key as keyof typeof labels] || key}</span>
+                                <span class="font-medium"
+                                    >{labels[key as keyof typeof labels] || key}</span
+                                >
                             </div>
                             <div class="mt-2 space-y-1 text-sm">
                                 <div class="flex justify-between">
@@ -615,12 +629,16 @@
                         </h3>
                         <div class="max-h-60 space-y-2 overflow-y-auto">
                             {#each result.errors.slice(0, 50) as error (error.message)}
-                                <div class="flex items-start gap-2 rounded-md bg-red-50 p-2 text-sm dark:bg-red-900/20">
+                                <div
+                                    class="flex items-start gap-2 rounded-md bg-red-50 p-2 text-sm dark:bg-red-900/20"
+                                >
                                     <XCircle class="mt-0.5 h-4 w-4 flex-shrink-0 text-red-500" />
                                     <div>
                                         <p>{error.message}</p>
                                         {#if error.detail}
-                                            <p class="text-muted-foreground text-xs">{error.detail}</p>
+                                            <p class="text-muted-foreground text-xs">
+                                                {error.detail}
+                                            </p>
                                         {/if}
                                     </div>
                                 </div>
@@ -637,7 +655,14 @@
         </Card>
 
         <div class="mt-6 flex justify-between">
-            <Button variant="outline" onclick={() => { step = 'source'; result = null; analysis = null; }}>
+            <Button
+                variant="outline"
+                onclick={() => {
+                    step = 'source';
+                    result = null;
+                    analysis = null;
+                }}
+            >
                 처음부터 다시
             </Button>
             <Button href="/admin/dashboard">대시보드로 이동</Button>

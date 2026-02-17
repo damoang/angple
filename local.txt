@@ -1,0 +1,31 @@
+개발 서버 실행 + 로그 보기
+
+  웹 서버만 (SvelteKit)
+
+  cd /Users/sdk/IdeaProjects/angple/apps/web
+  pnpm dev
+
+
+  터미널에 바로 로그가 출력됩니다.
+
+  풀스택 (Docker — Go 백엔드 포함)
+
+  cd /Users/sdk/IdeaProjects/angple
+  docker compose up
+
+
+  로그를 색상별로 보려면:
+
+  docker compose up --no-log-prefix   # 서비스명 prefix 없이
+  docker compose logs -f web          # web 서비스만 follow
+  docker compose logs -f              # 전체 follow
+
+
+  개발 서버 재시작 (현재 멈춘 경우)
+
+  # 포트 점유 확인
+  lsof -i :3010
+
+  # 강제 종료 후 재시작
+  kill -9 $(lsof -ti :3010)
+  cd /Users/sdk/IdeaProjects/angple/apps/web && pnpm dev

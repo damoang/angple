@@ -32,7 +32,10 @@
         {/each}
     </div>
 
-    <Button onclick={() => adminSettingsStore.saveSettings()} disabled={adminSettingsStore.isSaving}>
+    <Button
+        onclick={() => adminSettingsStore.saveSettings()}
+        disabled={adminSettingsStore.isSaving}
+    >
         {#if adminSettingsStore.isSaving}
             <Loader2 class="mr-2 h-4 w-4 animate-spin" />
             저장 중...

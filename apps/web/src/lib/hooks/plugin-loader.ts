@@ -102,9 +102,7 @@ export async function loadPluginHooks(
                 const hookFunction = hookModule.default || hookModule;
 
                 if (typeof hookFunction !== 'function') {
-                    console.error(
-                        `[Plugin Loader] Hook callback is not a function: ${name}`
-                    );
+                    console.error(`[Plugin Loader] Hook callback is not a function: ${name}`);
                     continue;
                 }
 

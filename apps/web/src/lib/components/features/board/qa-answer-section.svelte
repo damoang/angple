@@ -58,9 +58,7 @@
             {/if}
         </div>
         {#if isAuthor && qa.status !== 'solved' && qa.status !== 'closed'}
-            <p class="text-muted-foreground text-sm">
-                댓글에서 "답변 채택" 버튼을 눌러 채택하세요
-            </p>
+            <p class="text-muted-foreground text-sm">댓글에서 "답변 채택" 버튼을 눌러 채택하세요</p>
         {/if}
         {#if qa.acceptedAnswerId}
             <div class="flex items-center gap-1 text-green-600">

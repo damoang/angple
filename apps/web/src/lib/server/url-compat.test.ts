@@ -18,15 +18,15 @@ describe('mapGnuboardUrl', () => {
         });
 
         it('게시판 + 페이지 (2페이지 이상)', () => {
-            expect(
-                mapGnuboardUrl('/bbs/board.php', params({ bo_table: 'free', page: '3' }))
-            ).toBe('/free?page=3');
+            expect(mapGnuboardUrl('/bbs/board.php', params({ bo_table: 'free', page: '3' }))).toBe(
+                '/free?page=3'
+            );
         });
 
         it('게시판 + 1페이지는 페이지 파라미터 생략', () => {
-            expect(
-                mapGnuboardUrl('/bbs/board.php', params({ bo_table: 'free', page: '1' }))
-            ).toBe('/free');
+            expect(mapGnuboardUrl('/bbs/board.php', params({ bo_table: 'free', page: '1' }))).toBe(
+                '/free'
+            );
         });
 
         it('bo_table 없으면 null', () => {
@@ -131,9 +131,9 @@ describe('mapGnuboardUrl', () => {
 
 describe('mapRhymixUrl', () => {
     it('index.php + mid + document_srl → /mid/srl', () => {
-        expect(
-            mapRhymixUrl('/index.php', params({ mid: 'board', document_srl: '123' }))
-        ).toBe('/board/123');
+        expect(mapRhymixUrl('/index.php', params({ mid: 'board', document_srl: '123' }))).toBe(
+            '/board/123'
+        );
     });
 
     it('index.php + mid만 → /mid', () => {

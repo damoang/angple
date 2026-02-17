@@ -88,7 +88,9 @@
     $effect(() => {
         if (memoPluginActive) {
             loadPluginComponent('member-memo', 'memo-badge').then((c) => (MemoBadge = c));
-            loadPluginComponent('member-memo', 'memo-inline-editor').then((c) => (MemoInlineEditor = c));
+            loadPluginComponent('member-memo', 'memo-inline-editor').then(
+                (c) => (MemoInlineEditor = c)
+            );
         }
     });
 
@@ -121,11 +123,15 @@
     // 플러그인 슬롯
     const beforeContentSlots = $derived(postSlotRegistry.resolve('post.before_content', boardType));
     const afterContentSlots = $derived(postSlotRegistry.resolve('post.after_content', boardType));
-    const beforeCommentsSlots = $derived(postSlotRegistry.resolve('post.before_comments', boardType));
+    const beforeCommentsSlots = $derived(
+        postSlotRegistry.resolve('post.before_comments', boardType)
+    );
 
     // 중고게시판 상태 관리
     let marketStatus = $state<MarketStatus>('selling');
-    $effect(() => { marketStatus = (data.post.extra_2 as MarketStatus) || 'selling'; });
+    $effect(() => {
+        marketStatus = (data.post.extra_2 as MarketStatus) || 'selling';
+    });
     let isChangingMarketStatus = $state(false);
 
     async function changeMarketStatus(newStatus: MarketStatus) {
@@ -152,12 +158,16 @@
 
     // 댓글 목록 상태 (반응형으로 관리)
     let comments = $state<FreeComment[]>([]);
-    $effect(() => { comments = data.comments.items; });
+    $effect(() => {
+        comments = data.comments.items;
+    });
     let isCreatingComment = $state(false);
 
     // 추천/비추천 상태
     let likeCount = $state(0);
-    $effect(() => { likeCount = data.post.likes; });
+    $effect(() => {
+        likeCount = data.post.likes;
+    });
     let dislikeCount = $state(0);
     let isLiked = $state(false);
     let isDisliked = $state(false);
@@ -241,7 +251,9 @@
 
     // 공지 상태
     let noticeType = $state<'normal' | 'important' | null>(null);
-    $effect(() => { noticeType = data.post.notice_type ?? null; });
+    $effect(() => {
+        noticeType = data.post.notice_type ?? null;
+    });
     let isTogglingNotice = $state(false);
 
     async function toggleNotice(type: 'normal' | 'important' | null): Promise<void> {
@@ -599,7 +611,10 @@
                     <div class="mt-3 flex flex-wrap gap-2">
                         {#each data.post.tags as tag, i (i)}
                             <a href="/tags/{encodeURIComponent(tag)}">
-                                <Badge variant="secondary" class="cursor-pointer hover:bg-primary/10">#{tag}</Badge>
+                                <Badge
+                                    variant="secondary"
+                                    class="hover:bg-primary/10 cursor-pointer">#{tag}</Badge
+                                >
                             </a>
                         {/each}
                     </div>
@@ -664,9 +679,7 @@
             <!-- 플러그인 슬롯: post.before_content (Q&A 상태 헤더 등) -->
             {#each beforeContentSlots as slot (slot.component)}
                 {@const SlotComponent = slot.component}
-                <SlotComponent
-                    {...slot.propsMapper ? slot.propsMapper(data) : { data }}
-                />
+                <SlotComponent {...slot.propsMapper ? slot.propsMapper(data) : { data }} />
             {/each}
 
             <!-- GAM 광고 -->
@@ -806,9 +819,7 @@
     {#each afterContentSlots as slot (slot.component)}
         {@const SlotComponent = slot.component}
         <div class="mb-6">
-            <SlotComponent
-                {...slot.propsMapper ? slot.propsMapper(data) : { data }}
-            />
+            <SlotComponent {...slot.propsMapper ? slot.propsMapper(data) : { data }} />
         </div>
     {/each}
 

@@ -177,7 +177,9 @@
             const data = await response.json();
 
             if (response.ok) {
-                toast.success(`GitHub 토큰이 저장되었습니다. (${data.validation?.username || tokenScope})`);
+                toast.success(
+                    `GitHub 토큰이 저장되었습니다. (${data.validation?.username || tokenScope})`
+                );
                 showTokenDialog = false;
                 tokenInput = '';
                 await fetchMarketplaceThemes();
@@ -306,9 +308,7 @@
         </Button>
         <div>
             <h1 class="text-4xl font-bold">테마 마켓플레이스</h1>
-            <p class="text-muted-foreground mt-2">
-                Angple 생태계의 테마를 검색하고 설치하세요.
-            </p>
+            <p class="text-muted-foreground mt-2">Angple 생태계의 테마를 검색하고 설치하세요.</p>
         </div>
     </div>
 
@@ -333,7 +333,10 @@
             <Button
                 variant={activeTier === tier.id ? 'default' : 'outline'}
                 size="sm"
-                onclick={() => { activeTier = tier.id; fetchMarketplaceThemes(); }}
+                onclick={() => {
+                    activeTier = tier.id;
+                    fetchMarketplaceThemes();
+                }}
             >
                 {#if tier.id === 'premium'}
                     <Crown class="mr-1 h-3 w-3" />
@@ -401,7 +404,10 @@
                             </div>
                             <div class="flex gap-1">
                                 {#if theme.tier === 'premium'}
-                                    <Badge variant="default" class="bg-amber-500 hover:bg-amber-600">
+                                    <Badge
+                                        variant="default"
+                                        class="bg-amber-500 hover:bg-amber-600"
+                                    >
                                         <Crown class="mr-1 h-3 w-3" />
                                         프리미엄
                                     </Badge>
@@ -552,7 +558,9 @@
                         />
                     </div>
                     <div>
-                        <label class="text-sm font-medium" for="token-input">Personal Access Token</label>
+                        <label class="text-sm font-medium" for="token-input"
+                            >Personal Access Token</label
+                        >
                         <Input
                             id="token-input"
                             type="password"
@@ -568,7 +576,10 @@
                     <div class="flex justify-end gap-2">
                         <Button
                             variant="outline"
-                            onclick={() => { showTokenDialog = false; tokenInput = ''; }}
+                            onclick={() => {
+                                showTokenDialog = false;
+                                tokenInput = '';
+                            }}
                         >
                             취소
                         </Button>
@@ -599,9 +610,7 @@
                     <KeyRound class="h-5 w-5" />
                     라이선스 키 입력
                 </CardTitle>
-                <CardDescription>
-                    이 테마는 라이선스 키가 필요합니다.
-                </CardDescription>
+                <CardDescription>이 테마는 라이선스 키가 필요합니다.</CardDescription>
             </CardHeader>
             <CardContent>
                 <div class="space-y-4">
@@ -617,14 +626,14 @@
                     <div class="flex justify-end gap-2">
                         <Button
                             variant="outline"
-                            onclick={() => { showLicenseDialog = false; licenseInput = ''; }}
+                            onclick={() => {
+                                showLicenseDialog = false;
+                                licenseInput = '';
+                            }}
                         >
                             취소
                         </Button>
-                        <Button
-                            onclick={installWithLicense}
-                            disabled={!licenseInput.trim()}
-                        >
+                        <Button onclick={installWithLicense} disabled={!licenseInput.trim()}>
                             설치
                         </Button>
                     </div>

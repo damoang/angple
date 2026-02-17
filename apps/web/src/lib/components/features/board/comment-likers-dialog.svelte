@@ -16,7 +16,9 @@
     $effect(() => {
         if (pluginStore.isPluginActive('member-memo')) {
             loadPluginComponent('member-memo', 'memo-badge').then((c) => (MemoBadge = c));
-            loadPluginComponent('member-memo', 'memo-inline-editor').then((c) => (MemoInlineEditor = c));
+            loadPluginComponent('member-memo', 'memo-inline-editor').then(
+                (c) => (MemoInlineEditor = c)
+            );
         }
     });
 

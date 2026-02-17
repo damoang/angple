@@ -20,9 +20,7 @@ export function getGitHubOAuthConfig(): GitHubOAuthConfig {
     const clientSecret = env.GITHUB_CLIENT_SECRET;
 
     if (!clientId || !clientSecret) {
-        throw new Error(
-            'GITHUB_CLIENT_ID와 GITHUB_CLIENT_SECRET 환경변수가 설정되지 않았습니다.'
-        );
+        throw new Error('GITHUB_CLIENT_ID와 GITHUB_CLIENT_SECRET 환경변수가 설정되지 않았습니다.');
     }
 
     return { clientId, clientSecret };

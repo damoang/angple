@@ -237,7 +237,6 @@ export class GitHubPluginInstaller {
             const packageInfo = parsePackageName(packageName);
             const version = request.version || packageInfo.version;
 
-
             // 2. 토큰 획득
             const token = await this.resolveToken(
                 packageInfo.scope,

@@ -18,14 +18,20 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
 
         if (!body.key || !body.domain || !body.productId) {
             return json(
-                { valid: false, error: 'key, domain, productId가 필요합니다.' } satisfies Partial<LicenseVerifyResponse>,
+                {
+                    valid: false,
+                    error: 'key, domain, productId가 필요합니다.'
+                } satisfies Partial<LicenseVerifyResponse>,
                 { status: 400 }
             );
         }
 
         if (!isValidKeyFormat(body.key)) {
             return json(
-                { valid: false, error: '잘못된 라이선스 키 형식입니다.' } satisfies Partial<LicenseVerifyResponse>,
+                {
+                    valid: false,
+                    error: '잘못된 라이선스 키 형식입니다.'
+                } satisfies Partial<LicenseVerifyResponse>,
                 { status: 400 }
             );
         }
@@ -40,7 +46,10 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
 
         if (!res.ok) {
             return json(
-                { valid: false, error: '라이선스 검증 실패' } satisfies Partial<LicenseVerifyResponse>,
+                {
+                    valid: false,
+                    error: '라이선스 검증 실패'
+                } satisfies Partial<LicenseVerifyResponse>,
                 { status: res.status }
             );
         }
@@ -50,7 +59,10 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
     } catch (err) {
         console.error('[license-verify] 오류:', err);
         return json(
-            { valid: false, error: '라이선스 검증 중 오류가 발생했습니다.' } satisfies Partial<LicenseVerifyResponse>,
+            {
+                valid: false,
+                error: '라이선스 검증 중 오류가 발생했습니다.'
+            } satisfies Partial<LicenseVerifyResponse>,
             { status: 500 }
         );
     }

@@ -90,10 +90,16 @@
 
 <!-- 헤더 -->
 <div class="mb-3 flex items-center justify-between">
-    <a href="/{boardId}" class="text-foreground hover:text-primary text-lg font-bold transition-colors">
+    <a
+        href="/{boardId}"
+        class="text-foreground hover:text-primary text-lg font-bold transition-colors"
+    >
         {boardTitle}
     </a>
-    <a href="/{boardId}" class="text-muted-foreground hover:text-foreground text-sm transition-colors">
+    <a
+        href="/{boardId}"
+        class="text-muted-foreground hover:text-foreground text-sm transition-colors"
+    >
         목록 전체보기 →
     </a>
 </div>

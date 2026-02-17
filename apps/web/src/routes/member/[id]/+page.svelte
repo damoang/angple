@@ -21,7 +21,9 @@
 
     $effect(() => {
         if (pluginStore.isPluginActive('interaction-analysis')) {
-            loadPluginComponent('interaction-analysis', 'interaction-panel').then((c) => (InteractionPanel = c));
+            loadPluginComponent('interaction-analysis', 'interaction-panel').then(
+                (c) => (InteractionPanel = c)
+            );
         }
     });
 
@@ -110,7 +112,10 @@
 </script>
 
 <svelte:head>
-    <title>{data.profile?.mb_name || '회원'} 프로필 | {import.meta.env.VITE_SITE_NAME || 'Angple'}</title>
+    <title
+        >{data.profile?.mb_name || '회원'} 프로필 | {import.meta.env.VITE_SITE_NAME ||
+            'Angple'}</title
+    >
 </svelte:head>
 
 <div class="mx-auto max-w-2xl pt-4">

@@ -90,7 +90,9 @@
     <!-- 검색/필터 바 -->
     <div class="mb-6 flex gap-3">
         <div class="relative flex-1">
-            <Search class="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
+            <Search
+                class="text-muted-foreground absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2"
+            />
             <Input
                 class="pl-9"
                 placeholder="라이선스 키, 이메일, 상품명으로 검색..."
@@ -120,20 +122,25 @@
         <Card>
             <CardContent class="pt-4">
                 <div class="text-sm text-green-600">활성</div>
-                <div class="text-2xl font-bold">{licenses.filter((l) => l.status === 'active').length}</div>
+                <div class="text-2xl font-bold">
+                    {licenses.filter((l) => l.status === 'active').length}
+                </div>
             </CardContent>
         </Card>
         <Card>
             <CardContent class="pt-4">
                 <div class="text-sm text-amber-600">만료</div>
-                <div class="text-2xl font-bold">{licenses.filter((l) => l.status === 'expired').length}</div>
+                <div class="text-2xl font-bold">
+                    {licenses.filter((l) => l.status === 'expired').length}
+                </div>
             </CardContent>
         </Card>
         <Card>
             <CardContent class="pt-4">
                 <div class="text-sm text-red-600">해지/정지</div>
                 <div class="text-2xl font-bold">
-                    {licenses.filter((l) => l.status === 'revoked' || l.status === 'suspended').length}
+                    {licenses.filter((l) => l.status === 'revoked' || l.status === 'suspended')
+                        .length}
                 </div>
             </CardContent>
         </Card>
@@ -147,7 +154,9 @@
             <CardContent class="py-16 text-center">
                 <KeyRound class="text-muted-foreground mx-auto mb-4 h-12 w-12" />
                 <p class="text-muted-foreground">
-                    {searchQuery || filterStatus ? '검색 결과가 없습니다.' : '등록된 라이선스가 없습니다.'}
+                    {searchQuery || filterStatus
+                        ? '검색 결과가 없습니다.'
+                        : '등록된 라이선스가 없습니다.'}
                 </p>
             </CardContent>
         </Card>
@@ -160,7 +169,7 @@
                             <div class="space-y-2">
                                 <!-- 키 + 복사 -->
                                 <div class="flex items-center gap-2">
-                                    <code class="bg-muted rounded px-2 py-1 text-sm font-mono">
+                                    <code class="bg-muted rounded px-2 py-1 font-mono text-sm">
                                         {license.key}
                                     </code>
                                     <Button
@@ -181,7 +190,9 @@
                                     <span>{license.productName}</span>
                                     <span>{license.userEmail}</span>
                                     <span>
-                                        만료: {new Date(license.expiresAt).toLocaleDateString('ko-KR')}
+                                        만료: {new Date(license.expiresAt).toLocaleDateString(
+                                            'ko-KR'
+                                        )}
                                     </span>
                                 </div>
 
@@ -195,7 +206,10 @@
                                             </Badge>
                                         {/each}
                                         <span class="text-muted-foreground text-xs leading-6">
-                                            {license.activatedDomains.length}/{license.maxDomains === -1 ? '∞' : license.maxDomains}
+                                            {license.activatedDomains
+                                                .length}/{license.maxDomains === -1
+                                                ? '∞'
+                                                : license.maxDomains}
                                         </span>
                                     </div>
                                 {/if}
