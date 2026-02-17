@@ -40,7 +40,10 @@
     let loading = $state(true);
     let installingThemes = $state<Set<string>>(new Set());
 
-    // GitHub 토큰 다이얼로그
+    // GitHub OAuth 설정 여부 (false면 PAT 다이얼로그 폴백)
+    let githubOAuthConfigured = $state(false);
+
+    // GitHub 토큰 다이얼로그 (OAuth 미설정 시 폴백)
     let showTokenDialog = $state(false);
     let tokenInput = $state('');
     let tokenScope = $state('@damoang');
@@ -134,7 +137,15 @@
                 toast.success(`${data.theme?.name || themeId} 테마가 설치되었습니다.`);
                 await fetchMarketplaceThemes();
             } else if (data.requiresAuth) {
-                // GitHub 토큰 필요
+                // GitHub 인증 필요
+                if (githubOAuthConfigured && data.requiredScope) {
+                    // OAuth 설정됨 → GitHub 인증 페이지로 리다이렉트
+                    const authUrl = `/api/github/auth/start?scope=${encodeURIComponent(data.requiredScope)}&themeId=${encodeURIComponent(themeId)}&redirect=/admin/themes/marketplace`;
+                    window.location.href = authUrl;
+                    return;
+                }
+                // OAuth 미설정 → PAT 다이얼로그 폴백
+                tokenScope = data.requiredScope || '@damoang';
                 showTokenDialog = true;
             } else if (data.requiresLicense) {
                 // 라이선스 키 필요
@@ -189,8 +200,75 @@
         licenseThemeId = '';
     }
 
-    onMount(() => {
-        fetchMarketplaceThemes();
+    /** 테마 업데이트 (최신 버전 re-clone) */
+    async function updateTheme(themeId: string) {
+        installingThemes.add(themeId);
+        installingThemes = installingThemes;
+
+        try {
+            const response = await fetch('/api/themes/marketplace/update', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ themeId })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                toast.success(
+                    `${data.theme?.name || themeId} v${data.theme?.version} 업데이트 완료`
+                );
+                await fetchMarketplaceThemes();
+            } else if (data.requiresAuth) {
+                if (githubOAuthConfigured && data.requiredScope) {
+                    const authUrl = `/api/github/auth/start?scope=${encodeURIComponent(data.requiredScope)}&themeId=${encodeURIComponent(themeId)}&redirect=/admin/themes/marketplace`;
+                    window.location.href = authUrl;
+                    return;
+                }
+                tokenScope = data.requiredScope || '@damoang';
+                showTokenDialog = true;
+            } else {
+                toast.error(data.error || '업데이트에 실패했습니다.');
+            }
+        } catch {
+            toast.error('업데이트 중 오류가 발생했습니다.');
+        } finally {
+            installingThemes.delete(themeId);
+            installingThemes = installingThemes;
+        }
+    }
+
+    onMount(async () => {
+        // 1. GitHub OAuth 설정 상태 확인
+        try {
+            const statusRes = await fetch('/api/github/auth/status');
+            const statusData = await statusRes.json();
+            githubOAuthConfigured = statusData.configured;
+        } catch {
+            // OAuth 상태 확인 실패 → PAT 폴백 유지
+        }
+
+        // 2. 마켓플레이스 테마 목록 로드
+        await fetchMarketplaceThemes();
+
+        // 3. URL 파라미터 처리 (OAuth 콜백 후)
+        const params = new URLSearchParams(window.location.search);
+        const autoInstallId = params.get('autoInstall');
+        const errorMsg = params.get('error');
+
+        if (errorMsg) {
+            toast.error(decodeURIComponent(errorMsg));
+        }
+
+        // URL 정리
+        if (autoInstallId || errorMsg) {
+            window.history.replaceState({}, '', window.location.pathname);
+        }
+
+        // OAuth 콜백 후 자동 설치
+        if (autoInstallId) {
+            await installFromMarketplace(autoInstallId);
+        }
     });
 
     /** 검색 + 카테고리 필터링 */
@@ -358,7 +436,11 @@
                                 <Star class="h-3 w-3" />
                                 {theme.rating}/5
                             </span>
-                            {#if !theme.installed}
+                            {#if theme.hasUpdate}
+                                <Badge variant="destructive" class="text-xs"
+                                    >v{theme.registryVersion} 업데이트</Badge
+                                >
+                            {:else if !theme.installed}
                                 <Badge variant="outline" class="text-xs">미설치</Badge>
                             {/if}
                         </div>
@@ -384,16 +466,28 @@
                                 {theme.installed ? '적용 중...' : '설치 중...'}
                             </Button>
                         {:else if theme.installed}
-                            <!-- 설치됨 → 활성화 -->
+                            <!-- 설치됨 → 업데이트 또는 활성화 -->
                             <div class="flex gap-2">
-                                <Button
-                                    class="flex-1"
-                                    size="sm"
-                                    onclick={() => activateTheme(theme.id)}
-                                >
-                                    <Palette class="mr-2 h-4 w-4" />
-                                    적용
-                                </Button>
+                                {#if theme.hasUpdate}
+                                    <Button
+                                        class="flex-1"
+                                        size="sm"
+                                        variant="default"
+                                        onclick={() => updateTheme(theme.id)}
+                                    >
+                                        <Download class="mr-2 h-4 w-4" />
+                                        업데이트
+                                    </Button>
+                                {:else}
+                                    <Button
+                                        class="flex-1"
+                                        size="sm"
+                                        onclick={() => activateTheme(theme.id)}
+                                    >
+                                        <Palette class="mr-2 h-4 w-4" />
+                                        적용
+                                    </Button>
+                                {/if}
                                 <Button
                                     size="sm"
                                     variant="outline"

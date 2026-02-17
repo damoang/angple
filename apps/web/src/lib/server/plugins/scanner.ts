@@ -135,8 +135,12 @@ function scanDirectory(baseDir: string, plugins: Map<string, ExtensionManifest>)
     const entries = readdirSync(baseDir, { withFileTypes: true });
 
     for (const entry of entries) {
-        // 디렉터리만 처리
-        if (!entry.isDirectory()) continue;
+        // 디렉터리만 처리 (심링크 → 디렉터리도 허용: 개발 환경 플러그인 링크 지원)
+        if (!entry.isDirectory()) {
+            if (!entry.isSymbolicLink()) continue;
+            const targetStat = statSync(join(baseDir, entry.name));
+            if (!targetStat.isDirectory()) continue;
+        }
 
         const pluginDir = entry.name;
         // pluginDir는 readdirSync()에서 반환된 실제 디렉터리명 (사용자 입력 아님)

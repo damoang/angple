@@ -104,6 +104,11 @@ SESSION_NOTES.md
 **/session-notes/
 **/SESSION_NOTES.*
 
+# Dev-linked premium assets (symlinks to angple-premium)
+themes/damoang-default
+plugins/
+apps/web/src/lib/components/ui/podcast-player/
+
 # Claude Code
 .claude/
 CLAUDE.md

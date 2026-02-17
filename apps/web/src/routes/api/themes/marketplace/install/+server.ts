@@ -83,7 +83,8 @@ export const POST: RequestHandler = async ({ request, fetch: serverFetch }) => {
                 const resp: MarketplaceInstallResponse = {
                     success: false,
                     error: `'${regTheme.requiredScope}' GitHub 토큰이 필요합니다.`,
-                    requiresAuth: true
+                    requiresAuth: true,
+                    requiredScope: regTheme.requiredScope
                 };
                 return json(resp, { status: 401 });
             }

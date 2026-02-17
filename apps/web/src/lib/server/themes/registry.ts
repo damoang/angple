@@ -90,6 +90,10 @@ export function mergeRegistryWithInstalled(
         processedIds.add(regTheme.id);
         const localTheme = installed.get(regTheme.id);
 
+        const localVersion = localTheme?.manifest.version;
+        const registryVersion = regTheme.version;
+        const hasUpdate = !!localTheme && !!localVersion && localVersion !== registryVersion;
+
         result.push({
             id: regTheme.id,
             name: regTheme.name,
@@ -106,8 +110,12 @@ export function mergeRegistryWithInstalled(
             isActive: localTheme?.isActive ?? false,
             tier: regTheme.tier,
             githubUrl: regTheme.githubUrl,
+            githubPath: regTheme.githubPath,
             requiredScope: regTheme.requiredScope,
-            licenseRequired: regTheme.licenseRequired
+            licenseRequired: regTheme.licenseRequired,
+            localVersion,
+            registryVersion,
+            hasUpdate
         });
     }
 

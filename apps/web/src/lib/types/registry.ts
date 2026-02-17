@@ -86,6 +86,8 @@ export interface MarketplaceInstallResponse {
     requiresAuth?: boolean;
     /** 라이선스 키가 필요하면 true */
     requiresLicense?: boolean;
+    /** 필요한 GitHub scope (OAuth 리다이렉트에 사용) */
+    requiredScope?: string;
 }
 
 /**
@@ -111,8 +113,16 @@ export interface MarketplaceTheme {
     tier: 'free' | 'premium';
     /** GitHub 레포 URL */
     githubUrl?: string;
+    /** 모노레포 서브디렉토리 */
+    githubPath?: string;
     /** 필요한 GitHub token scope */
     requiredScope?: string;
     /** 라이선스 필요 여부 */
     licenseRequired?: boolean;
+    /** 로컬 설치 버전 (theme.json에서 읽음) */
+    localVersion?: string;
+    /** 레지스트리 최신 버전 */
+    registryVersion?: string;
+    /** 업데이트 가능 여부 */
+    hasUpdate?: boolean;
 }

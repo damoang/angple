@@ -20,8 +20,8 @@ const loadedPluginIds = new Set<string>();
 /**
  * Vite glob으로 플러그인 컴포넌트 파일 미리 로드
  */
-const pluginComponents = import.meta.glob('../../../../../../plugins/**/*.svelte');
-const customPluginComponents = import.meta.glob('../../../../../../custom-plugins/**/*.svelte');
+const pluginComponents = import.meta.glob('../../../../../plugins/**/*.svelte');
+const customPluginComponents = import.meta.glob('../../../../../custom-plugins/**/*.svelte');
 
 /**
  * 모든 플러그인 컴포넌트 파일 병합
@@ -77,8 +77,8 @@ export async function loadPluginComponents(
 
         for (const componentDef of manifest.components) {
             try {
-                const officialPath = `../../../../../../plugins/${pluginId}/${componentDef.path}`;
-                const customPath = `../../../../../../custom-plugins/${pluginId}/${componentDef.path}`;
+                const officialPath = `../../../../../plugins/${pluginId}/${componentDef.path}`;
+                const customPath = `../../../../../custom-plugins/${pluginId}/${componentDef.path}`;
 
                 let moduleKey: string | null = null;
 

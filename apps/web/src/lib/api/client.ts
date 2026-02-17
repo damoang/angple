@@ -446,37 +446,69 @@ class ApiClient {
     // 1순위: /auth/me (레거시 SSO 쿠키 기반)
     // 2순위: /auth/profile (JWT 기반 - Go API 자체 인증)
     async getCurrentUser(): Promise<DamoangUser | null> {
+        let userData: DamoangUser | null = null;
+
         // 1. 먼저 레거시 SSO 쿠키 기반 인증 시도
         try {
             const meResponse = await this.request<DamoangUser>('/auth/me');
             if (meResponse.data && meResponse.data.mb_id) {
-                return meResponse.data;
+                userData = meResponse.data;
             }
         } catch {
             // /auth/me 실패 시 무시하고 /auth/profile 시도
         }
 
         // 2. JWT 기반 인증 시도 (Go API 자체 로그인)
-        try {
-            interface ProfileResponse {
-                user_id: string;
-                nickname: string;
-                level: number;
-            }
-            const response = await this.request<ProfileResponse>('/auth/profile');
-            if (!response.data) {
+        if (!userData) {
+            try {
+                interface ProfileResponse {
+                    user_id: string;
+                    nickname: string;
+                    level: number;
+                }
+                const response = await this.request<ProfileResponse>('/auth/profile');
+                if (!response.data) {
+                    return null;
+                }
+                userData = {
+                    mb_id: response.data.user_id,
+                    mb_name: response.data.nickname,
+                    mb_level: response.data.level,
+                    mb_email: ''
+                };
+            } catch {
                 return null;
             }
-            // /auth/profile 응답을 DamoangUser 형식으로 변환
-            return {
-                mb_id: response.data.user_id,
-                mb_name: response.data.nickname,
-                mb_level: response.data.level,
-                mb_email: ''
-            };
-        } catch {
-            return null;
         }
+
+        // 3. 포인트/경험치 데이터 보강 (누락된 경우에만)
+        if (userData && (userData.mb_point === undefined || userData.mb_exp === undefined)) {
+            const [pointData, expData] = await Promise.all([
+                userData.mb_point === undefined
+                    ? this.request<PointSummary>('/my/point').catch(() => null)
+                    : null,
+                userData.mb_exp === undefined
+                    ? this.request<ExpSummary>('/my/exp').catch(() => null)
+                    : null
+            ]);
+
+            if (pointData?.data) {
+                userData.mb_point = pointData.data.total_point;
+            }
+            if (expData?.data) {
+                userData.mb_exp = expData.data.total_exp;
+                userData.as_level = expData.data.current_level;
+                userData.as_max = expData.data.total_exp + expData.data.next_level_exp;
+            }
+        }
+
+        // 포인트/레벨 기본값 (API 미응답 시에도 UI 표시)
+        if (userData) {
+            if (userData.mb_point === undefined) userData.mb_point = 0;
+            if (userData.mb_exp === undefined) userData.mb_exp = 0;
+        }
+
+        return userData;
     }
 
     // 인덱스 위젯 데이터 조회
@@ -1049,23 +1081,23 @@ class ApiClient {
      * 🔒 인증 필요
      */
     async getMyPosts(page = 1, limit = 20): Promise<PaginatedResponse<FreePost>> {
-        interface BackendResponse {
-            data: FreePost[];
-            meta: { page: number; limit: number; total: number };
-        }
-
-        const response = await this.request<BackendResponse>(
+        const response = await this.request<unknown>(
             `/my/posts?page=${page}&limit=${limit}`
         );
 
-        const backendData = response as unknown as BackendResponse;
+        const raw = response as unknown as Record<string, unknown>;
+        const meta = raw.meta as Record<string, number> | undefined;
+        const items = (raw.data as FreePost[]) ?? (raw.items as FreePost[]) ?? [];
+        const total = meta?.total ?? (raw.total as number) ?? 0;
+        const responsePage = meta?.page ?? (raw.page as number) ?? page;
+        const responseLimit = meta?.limit ?? (raw.limit as number) ?? limit;
 
         return {
-            items: backendData.data,
-            total: backendData.meta.total,
-            page: backendData.meta.page,
-            limit: backendData.meta.limit,
-            total_pages: Math.ceil(backendData.meta.total / backendData.meta.limit)
+            items,
+            total,
+            page: responsePage,
+            limit: responseLimit,
+            total_pages: responseLimit > 0 ? Math.ceil(total / responseLimit) : 0
         };
     }
 
@@ -1074,23 +1106,23 @@ class ApiClient {
      * 🔒 인증 필요
      */
     async getMyComments(page = 1, limit = 20): Promise<PaginatedResponse<FreeComment>> {
-        interface BackendResponse {
-            data: FreeComment[];
-            meta: { page: number; limit: number; total: number };
-        }
-
-        const response = await this.request<BackendResponse>(
+        const response = await this.request<unknown>(
             `/my/comments?page=${page}&limit=${limit}`
         );
 
-        const backendData = response as unknown as BackendResponse;
+        const raw = response as unknown as Record<string, unknown>;
+        const meta = raw.meta as Record<string, number> | undefined;
+        const items = (raw.data as FreeComment[]) ?? (raw.items as FreeComment[]) ?? [];
+        const total = meta?.total ?? (raw.total as number) ?? 0;
+        const responsePage = meta?.page ?? (raw.page as number) ?? page;
+        const responseLimit = meta?.limit ?? (raw.limit as number) ?? limit;
 
         return {
-            items: backendData.data,
-            total: backendData.meta.total,
-            page: backendData.meta.page,
-            limit: backendData.meta.limit,
-            total_pages: Math.ceil(backendData.meta.total / backendData.meta.limit)
+            items,
+            total,
+            page: responsePage,
+            limit: responseLimit,
+            total_pages: responseLimit > 0 ? Math.ceil(total / responseLimit) : 0
         };
     }
 
@@ -1099,23 +1131,23 @@ class ApiClient {
      * 🔒 인증 필요
      */
     async getMyLikedPosts(page = 1, limit = 20): Promise<PaginatedResponse<FreePost>> {
-        interface BackendResponse {
-            data: FreePost[];
-            meta: { page: number; limit: number; total: number };
-        }
-
-        const response = await this.request<BackendResponse>(
+        const response = await this.request<unknown>(
             `/my/liked-posts?page=${page}&limit=${limit}`
         );
 
-        const backendData = response as unknown as BackendResponse;
+        const raw = response as unknown as Record<string, unknown>;
+        const meta = raw.meta as Record<string, number> | undefined;
+        const items = (raw.data as FreePost[]) ?? (raw.items as FreePost[]) ?? [];
+        const total = meta?.total ?? (raw.total as number) ?? 0;
+        const responsePage = meta?.page ?? (raw.page as number) ?? page;
+        const responseLimit = meta?.limit ?? (raw.limit as number) ?? limit;
 
         return {
-            items: backendData.data,
-            total: backendData.meta.total,
-            page: backendData.meta.page,
-            limit: backendData.meta.limit,
-            total_pages: Math.ceil(backendData.meta.total / backendData.meta.limit)
+            items,
+            total,
+            page: responsePage,
+            limit: responseLimit,
+            total_pages: responseLimit > 0 ? Math.ceil(total / responseLimit) : 0
         };
     }
 

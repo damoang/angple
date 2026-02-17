@@ -20,10 +20,19 @@ import {
 import { safeBasename } from '$lib/server/path-utils';
 import { getTokenProvider } from '$lib/server/github-tokens/token-provider';
 
-// 테마 디렉터리 경로
-const THEMES_DIR = path.join(process.cwd(), 'themes');
-const CUSTOM_THEMES_DIR = path.join(process.cwd(), 'custom-themes');
-const TEMP_DIR = path.join(process.cwd(), '.tmp');
+// 프로젝트 루트 디렉터리 (monorepo 환경에서 apps/web이 아닌 루트)
+function getProjectRoot(): string {
+    const cwd = process.cwd();
+    if (cwd.includes('apps/web') || cwd.includes('apps/admin')) {
+        return path.resolve(cwd, '../..');
+    }
+    return cwd;
+}
+
+const PROJECT_ROOT = getProjectRoot();
+const THEMES_DIR = path.join(PROJECT_ROOT, 'themes');
+const CUSTOM_THEMES_DIR = path.join(PROJECT_ROOT, 'custom-themes');
+const TEMP_DIR = path.join(PROJECT_ROOT, '.tmp');
 
 /**
  * GitHub URL 검증
@@ -116,7 +125,7 @@ export const POST: RequestHandler = async ({ request }) => {
     try {
         // 1. 요청 본문에서 파라미터 가져오기
         const body = await request.json();
-        const { githubUrl, scope, subdirectory } = body;
+        const { githubUrl, scope, subdirectory, force } = body;
 
         if (!githubUrl) {
             return json({ error: 'GitHub URL이 제공되지 않았습니다.' }, { status: 400 });
@@ -283,8 +292,10 @@ export const POST: RequestHandler = async ({ request }) => {
         const targetPath = path.join(installDir, manifest.id);
 
         // 양쪽 디렉토리 모두 확인
-        if (existsSync(path.join(THEMES_DIR, manifest.id)) ||
-            existsSync(path.join(CUSTOM_THEMES_DIR, manifest.id))) {
+        const existsInThemes = existsSync(path.join(THEMES_DIR, manifest.id));
+        const existsInCustom = existsSync(path.join(CUSTOM_THEMES_DIR, manifest.id));
+
+        if ((existsInThemes || existsInCustom) && !force) {
             return json(
                 {
                     error: '이미 설치된 테마입니다.',
@@ -292,6 +303,14 @@ export const POST: RequestHandler = async ({ request }) => {
                 },
                 { status: 409 }
             );
+        }
+
+        // force 모드: 기존 디렉터리 삭제 후 재설치 (업데이트)
+        if (force && (existsInThemes || existsInCustom)) {
+            const existingPath = existsInCustom
+                ? path.join(CUSTOM_THEMES_DIR, manifest.id)
+                : path.join(THEMES_DIR, manifest.id);
+            await rm(existingPath, { recursive: true, force: true });
         }
 
         // 11. 대상 폴더에 복사 (.git 제외)
