@@ -240,7 +240,7 @@
     <!-- 테마 레이아웃 전환 시 fade-in으로 레이아웃 시프트 완화 -->
     {#key data.activeTheme}
         {#if typeof ThemeLayout === 'function'}
-            <div class="contents theme-layout-enter">
+            <div class="theme-layout-enter contents">
                 <ThemeLayout>
                     {@render children()}
                 </ThemeLayout>
@@ -252,7 +252,7 @@
 {:else if data.activeTheme}
     <!-- 테마 레이아웃 로드 대기 중 -->
     <!-- visibility:hidden으로 content 100% 너비 flash 방지 (SSR 콘텐츠는 DOM에 유지) -->
-    <div class="invisible pointer-events-none min-h-screen">
+    <div class="pointer-events-none invisible min-h-screen">
         {@render children()}
     </div>
 {:else}
