@@ -2,8 +2,7 @@
     /**
      * 테마 마켓플레이스
      *
-     * 공식 테마 검색 및 설치 페이지.
-     * plugins/marketplace 패턴을 테마용으로 미러링.
+     * 로컬 테마 + 레지스트리(외부) 테마 검색 및 설치/활성화
      */
 
     import { Button } from '$lib/components/ui/button';
@@ -25,33 +24,32 @@
         Package,
         Loader2,
         Check,
-        Eye
+        Eye,
+        Crown,
+        Lock,
+        KeyRound
     } from '@lucide/svelte';
     import { onMount } from 'svelte';
     import { toast } from 'svelte-sonner';
-
-    /** 마켓플레이스 테마 타입 */
-    interface MarketplaceTheme {
-        id: string;
-        name: string;
-        description: string;
-        version: string;
-        author: string;
-        downloads: number;
-        rating: number;
-        tags: string[];
-        category: string;
-        price: number;
-        screenshot?: string;
-        installed?: boolean;
-        isActive?: boolean;
-    }
+    import type { MarketplaceTheme } from '$lib/types/registry';
 
     let searchQuery = $state('');
     let activeCategory = $state('all');
+    let activeTier = $state<'all' | 'free' | 'premium'>('all');
     let themes = $state<MarketplaceTheme[]>([]);
     let loading = $state(true);
     let installingThemes = $state<Set<string>>(new Set());
+
+    // GitHub 토큰 다이얼로그
+    let showTokenDialog = $state(false);
+    let tokenInput = $state('');
+    let tokenScope = $state('@damoang');
+    let tokenValidating = $state(false);
+
+    // 라이선스 키 다이얼로그
+    let showLicenseDialog = $state(false);
+    let licenseInput = $state('');
+    let licenseThemeId = $state('');
 
     /** 카테고리 목록 */
     const categories = [
@@ -64,11 +62,19 @@
         { id: 'dark', label: '다크' }
     ];
 
+    /** 티어 필터 */
+    const tiers = [
+        { id: 'all' as const, label: '전체' },
+        { id: 'free' as const, label: '무료' },
+        { id: 'premium' as const, label: '프리미엄' }
+    ];
+
     /** 마켓플레이스 API 호출 */
     async function fetchMarketplaceThemes() {
         loading = true;
         try {
-            const response = await fetch('/api/themes/marketplace');
+            const params = activeTier !== 'all' ? `?tier=${activeTier}` : '';
+            const response = await fetch(`/api/themes/marketplace${params}`);
             const data = await response.json();
 
             if (data.themes) {
@@ -83,7 +89,7 @@
         }
     }
 
-    /** 테마 활성화 */
+    /** 테마 활성화 (이미 설치된 테마) */
     async function activateTheme(themeId: string) {
         installingThemes.add(themeId);
         installingThemes = installingThemes;
@@ -110,11 +116,84 @@
         }
     }
 
+    /** 마켓플레이스에서 테마 설치 */
+    async function installFromMarketplace(themeId: string, licenseKey?: string) {
+        installingThemes.add(themeId);
+        installingThemes = installingThemes;
+
+        try {
+            const response = await fetch('/api/themes/marketplace/install', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ themeId, licenseKey })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                toast.success(`${data.theme?.name || themeId} 테마가 설치되었습니다.`);
+                await fetchMarketplaceThemes();
+            } else if (data.requiresAuth) {
+                // GitHub 토큰 필요
+                showTokenDialog = true;
+            } else if (data.requiresLicense) {
+                // 라이선스 키 필요
+                licenseThemeId = themeId;
+                showLicenseDialog = true;
+            } else {
+                toast.error(data.error || '설치에 실패했습니다.');
+            }
+        } catch {
+            toast.error('설치 중 오류가 발생했습니다.');
+        } finally {
+            installingThemes.delete(themeId);
+            installingThemes = installingThemes;
+        }
+    }
+
+    /** GitHub 토큰 저장 */
+    async function saveGitHubToken() {
+        if (!tokenInput.trim()) return;
+        tokenValidating = true;
+
+        try {
+            const response = await fetch('/api/plugins/tokens', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ scope: tokenScope, token: tokenInput })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                toast.success(`GitHub 토큰이 저장되었습니다. (${data.validation?.username || tokenScope})`);
+                showTokenDialog = false;
+                tokenInput = '';
+                await fetchMarketplaceThemes();
+            } else {
+                toast.error(data.error || '토큰 저장에 실패했습니다.');
+            }
+        } catch {
+            toast.error('토큰 저장 중 오류가 발생했습니다.');
+        } finally {
+            tokenValidating = false;
+        }
+    }
+
+    /** 라이선스 키로 설치 */
+    async function installWithLicense() {
+        if (!licenseInput.trim() || !licenseThemeId) return;
+        showLicenseDialog = false;
+        await installFromMarketplace(licenseThemeId, licenseInput);
+        licenseInput = '';
+        licenseThemeId = '';
+    }
+
     onMount(() => {
         fetchMarketplaceThemes();
     });
 
-    /** 검색 필터링 */
+    /** 검색 + 카테고리 필터링 */
     const filteredThemes = $derived(() => {
         let result = themes;
 
@@ -150,7 +229,7 @@
         <div>
             <h1 class="text-4xl font-bold">테마 마켓플레이스</h1>
             <p class="text-muted-foreground mt-2">
-                Angple 생태계의 테마를 검색하고 적용하세요.
+                Angple 생태계의 테마를 검색하고 설치하세요.
             </p>
         </div>
     </div>
@@ -170,11 +249,27 @@
         </div>
     </div>
 
+    <!-- 티어 탭 -->
+    <div class="mb-4 flex flex-wrap gap-2">
+        {#each tiers as tier (tier.id)}
+            <Button
+                variant={activeTier === tier.id ? 'default' : 'outline'}
+                size="sm"
+                onclick={() => { activeTier = tier.id; fetchMarketplaceThemes(); }}
+            >
+                {#if tier.id === 'premium'}
+                    <Crown class="mr-1 h-3 w-3" />
+                {/if}
+                {tier.label}
+            </Button>
+        {/each}
+    </div>
+
     <!-- 카테고리 탭 -->
     <div class="mb-6 flex flex-wrap gap-2">
         {#each categories as category (category.id)}
             <Button
-                variant={activeCategory === category.id ? 'default' : 'outline'}
+                variant={activeCategory === category.id ? 'secondary' : 'ghost'}
                 size="sm"
                 onclick={() => (activeCategory = category.id)}
             >
@@ -226,9 +321,16 @@
                                     v{theme.version} · {theme.author}
                                 </CardDescription>
                             </div>
-                            <Badge variant={theme.price === 0 ? 'secondary' : 'default'}>
-                                {theme.price === 0 ? '무료' : `₩${theme.price.toLocaleString()}`}
-                            </Badge>
+                            <div class="flex gap-1">
+                                {#if theme.tier === 'premium'}
+                                    <Badge variant="default" class="bg-amber-500 hover:bg-amber-600">
+                                        <Crown class="mr-1 h-3 w-3" />
+                                        프리미엄
+                                    </Badge>
+                                {:else}
+                                    <Badge variant="secondary">무료</Badge>
+                                {/if}
+                            </div>
                         </div>
                     </CardHeader>
 
@@ -256,6 +358,9 @@
                                 <Star class="h-3 w-3" />
                                 {theme.rating}/5
                             </span>
+                            {#if !theme.installed}
+                                <Badge variant="outline" class="text-xs">미설치</Badge>
+                            {/if}
                         </div>
 
                         <!-- 액션 버튼 -->
@@ -276,9 +381,10 @@
                         {:else if installingThemes.has(theme.id)}
                             <Button class="w-full" size="sm" disabled>
                                 <Loader2 class="mr-2 h-4 w-4 animate-spin" />
-                                적용 중...
+                                {theme.installed ? '적용 중...' : '설치 중...'}
                             </Button>
-                        {:else}
+                        {:else if theme.installed}
+                            <!-- 설치됨 → 활성화 -->
                             <div class="flex gap-2">
                                 <Button
                                     class="flex-1"
@@ -296,6 +402,29 @@
                                     <Eye class="h-4 w-4" />
                                 </Button>
                             </div>
+                        {:else if theme.tier === 'premium' && theme.requiredScope}
+                            <!-- 프리미엄 미설치 → 잠금 해제 또는 설치 -->
+                            <div class="flex gap-2">
+                                <Button
+                                    class="flex-1"
+                                    size="sm"
+                                    variant="default"
+                                    onclick={() => installFromMarketplace(theme.id)}
+                                >
+                                    <Lock class="mr-2 h-4 w-4" />
+                                    설치
+                                </Button>
+                            </div>
+                        {:else}
+                            <!-- 무료 미설치 → 설치 -->
+                            <Button
+                                class="w-full"
+                                size="sm"
+                                onclick={() => installFromMarketplace(theme.id)}
+                            >
+                                <Download class="mr-2 h-4 w-4" />
+                                설치
+                            </Button>
                         {/if}
                     </CardContent>
                 </Card>
@@ -303,3 +432,110 @@
         </div>
     {/if}
 </div>
+
+<!-- GitHub 토큰 다이얼로그 -->
+{#if showTokenDialog}
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+        <Card class="w-full max-w-md">
+            <CardHeader>
+                <CardTitle class="flex items-center gap-2">
+                    <KeyRound class="h-5 w-5" />
+                    GitHub 토큰 등록
+                </CardTitle>
+                <CardDescription>
+                    프리미엄 테마를 설치하려면 GitHub Personal Access Token이 필요합니다.
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
+                <div class="space-y-4">
+                    <div>
+                        <label class="text-sm font-medium" for="token-scope">Scope</label>
+                        <Input
+                            id="token-scope"
+                            bind:value={tokenScope}
+                            placeholder="@damoang"
+                            class="mt-1"
+                        />
+                    </div>
+                    <div>
+                        <label class="text-sm font-medium" for="token-input">Personal Access Token</label>
+                        <Input
+                            id="token-input"
+                            type="password"
+                            bind:value={tokenInput}
+                            placeholder="ghp_..."
+                            class="mt-1"
+                        />
+                        <p class="text-muted-foreground mt-1 text-xs">
+                            GitHub Settings > Developer settings > Personal access tokens에서 생성.
+                            <code>repo</code> 권한이 필요합니다.
+                        </p>
+                    </div>
+                    <div class="flex justify-end gap-2">
+                        <Button
+                            variant="outline"
+                            onclick={() => { showTokenDialog = false; tokenInput = ''; }}
+                        >
+                            취소
+                        </Button>
+                        <Button
+                            onclick={saveGitHubToken}
+                            disabled={!tokenInput.trim() || tokenValidating}
+                        >
+                            {#if tokenValidating}
+                                <Loader2 class="mr-2 h-4 w-4 animate-spin" />
+                                검증 중...
+                            {:else}
+                                저장
+                            {/if}
+                        </Button>
+                    </div>
+                </div>
+            </CardContent>
+        </Card>
+    </div>
+{/if}
+
+<!-- 라이선스 키 다이얼로그 -->
+{#if showLicenseDialog}
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+        <Card class="w-full max-w-md">
+            <CardHeader>
+                <CardTitle class="flex items-center gap-2">
+                    <KeyRound class="h-5 w-5" />
+                    라이선스 키 입력
+                </CardTitle>
+                <CardDescription>
+                    이 테마는 라이선스 키가 필요합니다.
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
+                <div class="space-y-4">
+                    <div>
+                        <label class="text-sm font-medium" for="license-input">라이선스 키</label>
+                        <Input
+                            id="license-input"
+                            bind:value={licenseInput}
+                            placeholder="ANGP-XXXX-XXXX-XXXX-XXXX"
+                            class="mt-1 font-mono"
+                        />
+                    </div>
+                    <div class="flex justify-end gap-2">
+                        <Button
+                            variant="outline"
+                            onclick={() => { showLicenseDialog = false; licenseInput = ''; }}
+                        >
+                            취소
+                        </Button>
+                        <Button
+                            onclick={installWithLicense}
+                            disabled={!licenseInput.trim()}
+                        >
+                            설치
+                        </Button>
+                    </div>
+                </div>
+            </CardContent>
+        </Card>
+    </div>
+{/if}

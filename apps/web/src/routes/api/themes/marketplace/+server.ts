@@ -1,93 +1,42 @@
 /**
  * 테마 마켓플레이스 API
  *
- * GET /api/themes/marketplace - 공식 테마 목록 조회
+ * GET /api/themes/marketplace - 테마 목록 조회 (로컬 + 레지스트리 병합)
  *
- * plugins/marketplace 패턴을 테마용으로 미러링
+ * 쿼리 파라미터:
+ *   tier: 'free' | 'premium' | 'all' (기본값: 'all')
  */
 
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { getInstalledThemes } from '$lib/server/themes';
-import type { ThemeManifest } from '$lib/types/theme';
-
-/**
- * 마켓플레이스 테마 타입
- */
-interface MarketplaceTheme {
-    id: string;
-    name: string;
-    description: string;
-    version: string;
-    author: string;
-    downloads: number;
-    rating: number;
-    tags: string[];
-    category: string;
-    price: number;
-    screenshot?: string;
-    installed?: boolean;
-    isActive?: boolean;
-}
-
-/**
- * ThemeManifest를 MarketplaceTheme으로 변환
- */
-function transformToMarketplaceTheme(
-    manifest: ThemeManifest,
-    isActive: boolean,
-    source: string
-): MarketplaceTheme {
-    let authorName: string;
-    if (typeof manifest.author === 'string') {
-        authorName = manifest.author;
-    } else if (manifest.author && 'name' in manifest.author) {
-        authorName = manifest.author.name;
-    } else {
-        authorName = 'Unknown';
-    }
-
-    return {
-        id: manifest.id,
-        name: manifest.name,
-        description: manifest.description || '',
-        version: manifest.version,
-        author: authorName,
-        downloads: (manifest as any).downloads ?? 0,
-        rating: (manifest as any).rating ?? 5,
-        tags: manifest.tags ?? [],
-        category: (manifest as any).themeCategory ?? 'general',
-        price: 0,
-        screenshot: manifest.screenshot,
-        installed: true,
-        isActive
-    };
-}
+import { fetchThemeRegistry, mergeRegistryWithInstalled } from '$lib/server/themes/registry';
 
 /**
  * GET /api/themes/marketplace
- * 공식 테마 목록 조회 (마켓플레이스용)
+ * 로컬 설치 테마 + 외부 레지스트리 병합 목록 반환
  */
-export const GET: RequestHandler = async () => {
+export const GET: RequestHandler = async ({ url }) => {
     try {
-        const installedThemes = await getInstalledThemes();
+        const tierFilter = url.searchParams.get('tier') || 'all';
 
-        const marketplaceThemes: MarketplaceTheme[] = [];
+        // 로컬 설치 테마 + 레지스트리를 병렬 fetch
+        const [installedThemes, registry] = await Promise.all([
+            getInstalledThemes(),
+            fetchThemeRegistry()
+        ]);
 
-        for (const theme of installedThemes.values()) {
-            if (theme.source === 'official') {
-                const marketplaceTheme = transformToMarketplaceTheme(
-                    theme.manifest,
-                    theme.isActive,
-                    theme.source
-                );
-                marketplaceThemes.push(marketplaceTheme);
-            }
+        // 병합
+        let themes = mergeRegistryWithInstalled(registry, installedThemes);
+
+        // tier 필터
+        if (tierFilter === 'free' || tierFilter === 'premium') {
+            themes = themes.filter((t) => t.tier === tierFilter);
         }
 
         return json({
-            themes: marketplaceThemes,
-            total: marketplaceThemes.length
+            themes,
+            total: themes.length
         });
     } catch (error) {
         console.error('[API /themes/marketplace] 마켓플레이스 목록 조회 실패:', error);
