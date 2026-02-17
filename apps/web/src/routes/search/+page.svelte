@@ -27,8 +27,15 @@
     ];
 
     // 로컬 상태
-    let searchQuery = $state(data.query || '');
-    let searchField = $state<SearchField>(data.field || 'title_content');
+    let searchQuery = $state('');
+    let searchField = $state<SearchField>('title_content');
+
+    $effect(() => {
+        searchQuery = data.query || '';
+    });
+    $effect(() => {
+        searchField = data.field || 'title_content';
+    });
 
     // 최근 검색어
     const RECENT_SEARCHES_KEY = 'damoang_recent_searches';
@@ -353,6 +360,7 @@
 <style>
     :global(.line-clamp-1) {
         display: -webkit-box;
+        line-clamp: 1;
         -webkit-line-clamp: 1;
         -webkit-box-orient: vertical;
         overflow: hidden;
@@ -360,6 +368,7 @@
 
     :global(.line-clamp-2) {
         display: -webkit-box;
+        line-clamp: 2;
         -webkit-line-clamp: 2;
         -webkit-box-orient: vertical;
         overflow: hidden;

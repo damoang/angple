@@ -17,17 +17,13 @@ export function initAuthHooks(): void {
 
     // 기본 OAuth 프로바이더 등록 (priority: 10)
     hooks.addFilter('auth_providers', registerDefaultProviders, 10);
-
-    console.log('[Built-in] Auth hooks initialized');
 }
 
 /**
  * 사용자 로그인 시 실행
  * 로깅, 세션 초기화 등 수행
  */
-async function onUserLogin(user: { id: string; provider?: string }): Promise<void> {
-    console.log(`[Auth] User logged in: ${user.id} via ${user.provider || 'local'}`);
-
+async function onUserLogin(_user: { id: string; provider?: string }): Promise<void> {
     // TODO: 실제 구현 시 추가 작업
     // - 마지막 로그인 시간 업데이트
     // - 로그인 로그 저장
@@ -38,9 +34,7 @@ async function onUserLogin(user: { id: string; provider?: string }): Promise<voi
  * 사용자 로그아웃 시 실행
  * 세션 정리 등 수행
  */
-async function onUserLogout(userId: string): Promise<void> {
-    console.log(`[Auth] User logged out: ${userId}`);
-
+async function onUserLogout(_userId: string): Promise<void> {
     // TODO: 실제 구현 시 추가 작업
     // - 세션 삭제
     // - 토큰 무효화

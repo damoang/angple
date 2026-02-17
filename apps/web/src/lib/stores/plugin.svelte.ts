@@ -45,8 +45,6 @@ class PluginStore {
      * SSR 데이터로 플러그인 초기화 (깜박임 방지)
      */
     initFromServer(activePlugins: ActivePlugin[]) {
-        console.log('🔧 [Plugin Store] Initializing from SSR:', activePlugins.length, 'plugins');
-
         this.state = {
             activePlugins,
             isLoading: false,
@@ -67,18 +65,15 @@ class PluginStore {
             const response = await fetch('/api/plugins/active');
 
             if (!response.ok) {
-                console.log('활성화된 플러그인 없음');
                 this.state.activePlugins = [];
                 return;
             }
 
             const data = await response.json();
             this.state.activePlugins = data.plugins || [];
-
-            console.log('✅ 플러그인 로드 완료:', this.state.activePlugins.length, '개');
         } catch (err) {
             this.state.error = err instanceof Error ? err.message : '플러그인 로드 실패';
-            console.error('❌ 플러그인 로드 에러:', err);
+            console.error('플러그인 로드 에러:', err);
         } finally {
             this.state.isLoading = false;
         }

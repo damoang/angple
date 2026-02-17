@@ -44,7 +44,7 @@ export async function readSettings(): Promise<ThemeSettings> {
         const data = await readFile(SETTINGS_FILE_PATH, 'utf-8');
         return JSON.parse(data);
     } catch (error) {
-        console.error('❌ settings.json 읽기 실패:', error);
+        console.error('settings.json 읽기 실패:', error);
         // 파일이 없으면 기본값 반환
         return {
             activeTheme: null,
@@ -61,9 +61,8 @@ export async function writeSettings(settings: ThemeSettings): Promise<void> {
     try {
         await mkdir(dirname(SETTINGS_FILE_PATH), { recursive: true });
         await writeFile(SETTINGS_FILE_PATH, JSON.stringify(settings, null, 2), 'utf-8');
-        console.log('✅ settings.json 저장 완료');
     } catch (error) {
-        console.error('❌ settings.json 쓰기 실패:', error);
+        console.error('settings.json 쓰기 실패:', error);
         throw error;
     }
 }
@@ -79,10 +78,9 @@ export async function removeThemeSettings(themeId: string): Promise<void> {
         if (settings.themes[themeId]) {
             delete settings.themes[themeId];
             await writeSettings(settings);
-            console.log(`✅ [Settings] 테마 설정 제거: ${themeId}`);
         }
     } catch (error) {
-        console.error('❌ [Settings] 테마 설정 제거 실패:', { themeId, error });
+        console.error('[Settings] 테마 설정 제거 실패:', { themeId, error });
         throw error;
     }
 }

@@ -85,16 +85,12 @@ export const GET: RequestHandler = async () => {
             }
         }
 
-        console.log(
-            `✅ [API /themes/marketplace] ${marketplaceThemes.length}개 공식 테마 반환`
-        );
-
         return json({
             themes: marketplaceThemes,
             total: marketplaceThemes.length
         });
     } catch (error) {
-        console.error('❌ [API /themes/marketplace] 마켓플레이스 목록 조회 실패:', error);
+        console.error('[API /themes/marketplace] 마켓플레이스 목록 조회 실패:', error);
 
         return json(
             {

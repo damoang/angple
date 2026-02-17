@@ -54,7 +54,7 @@
 </script>
 
 <!-- Webzine 레이아웃: 큰 이미지 + 제목 + 본문 미리보기 (블로그/뉴스 스타일) -->
-<article
+<div
     class="bg-background border-border hover:border-primary/30 cursor-pointer overflow-hidden rounded-lg border transition-all hover:shadow-md"
     {onclick}
     role="button"
@@ -138,17 +138,19 @@
             </div>
         </div>
     </div>
-</article>
+</div>
 
 <style>
     .line-clamp-2 {
         display: -webkit-box;
+        line-clamp: 2;
         -webkit-line-clamp: 2;
         -webkit-box-orient: vertical;
         overflow: hidden;
     }
     .line-clamp-3 {
         display: -webkit-box;
+        line-clamp: 3;
         -webkit-line-clamp: 3;
         -webkit-box-orient: vertical;
         overflow: hidden;

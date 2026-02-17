@@ -55,6 +55,7 @@
 <div
     class="border-input bg-background focus-within:ring-ring flex min-h-[40px] flex-wrap items-center gap-1.5 rounded-md border px-3 py-2 focus-within:ring-2"
     onclick={() => inputEl?.focus()}
+    onkeydown={(e: KeyboardEvent) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); inputEl?.focus(); } }}
     role="textbox"
     tabindex="-1"
 >

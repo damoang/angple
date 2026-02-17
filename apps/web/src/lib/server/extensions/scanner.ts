@@ -105,19 +105,19 @@ function loadExtensionManifest(extensionDir: string, baseDir: string): Extension
 
         // 기본 필드 검증
         if (!manifestData.id || !manifestData.name || !manifestData.version) {
-            console.error('❌ [Extension Scanner] 필수 필드 누락:', { extensionDir });
+            console.error('[Extension Scanner] 필수 필드 누락:', { extensionDir });
             return null;
         }
 
         // ID 형식 검증 (kebab-case만 허용)
         if (!/^[a-z0-9-]+$/.test(manifestData.id)) {
-            console.error('❌ [Extension Scanner] 잘못된 ID 형식:', { id: manifestData.id });
+            console.error('[Extension Scanner] 잘못된 ID 형식:', { id: manifestData.id });
             return null;
         }
 
         // 버전 형식 검증 (semver)
         if (!/^\d+\.\d+\.\d+/.test(manifestData.version)) {
-            console.error('❌ [Extension Scanner] 잘못된 버전 형식:', {
+            console.error('[Extension Scanner] 잘못된 버전 형식:', {
                 version: manifestData.version
             });
             return null;
@@ -125,7 +125,7 @@ function loadExtensionManifest(extensionDir: string, baseDir: string): Extension
 
         return manifestData;
     } catch (error) {
-        console.error('❌ [Extension Scanner] 매니페스트 로드 실패:', { extensionDir, error });
+        console.error('[Extension Scanner] 매니페스트 로드 실패:', { extensionDir, error });
         return null;
     }
 }
@@ -152,7 +152,6 @@ function scanDirectory(baseDir: string, extensions: Map<string, ExtensionManifes
 
         // 유효한 Extension 디렉터리인지 확인
         if (!isValidExtensionDirectory(extensionPath)) {
-            console.warn(`⚠️  [Extension Scanner] 유효하지 않은 Extension: ${extensionDir}`);
             continue;
         }
 
@@ -160,13 +159,7 @@ function scanDirectory(baseDir: string, extensions: Map<string, ExtensionManifes
         const manifest = loadExtensionManifest(extensionDir, baseDir);
         if (!manifest) continue;
 
-        // 디렉터리 이름과 ID가 일치하는지 확인
-        if (manifest.id !== extensionDir) {
-            console.warn(
-                `⚠️  [Extension Scanner] Extension ID 불일치: 디렉터리명=${extensionDir}, manifest.id=${manifest.id}`
-            );
-            console.warn('   디렉터리 이름을 Extension ID로 사용합니다.');
-        }
+        // 디렉터리 이름과 ID가 일치하는지 확인 (불일치 시 디렉터리 이름을 ID로 사용)
 
         extensions.set(manifest.id, manifest);
         scannedCount++;
@@ -185,25 +178,18 @@ export function scanExtensions(): Map<string, ExtensionManifest> {
 
     try {
         // 공식 Extension 스캔 (extensions/)
-        const extensionCount = scanDirectory(EXTENSIONS_DIR, extensions);
+        scanDirectory(EXTENSIONS_DIR, extensions);
 
         // 공식 Theme 스캔 (themes/)
-        const themeCount = scanDirectory(THEMES_DIR, extensions);
+        scanDirectory(THEMES_DIR, extensions);
 
         // 커스텀 Extension 스캔 (custom-extensions/)
-        const customExtensionCount = scanDirectory(CUSTOM_EXTENSIONS_DIR, extensions);
+        scanDirectory(CUSTOM_EXTENSIONS_DIR, extensions);
 
         // 커스텀 Theme 스캔 (custom-themes/)
-        const customThemeCount = scanDirectory(CUSTOM_THEMES_DIR, extensions);
-
-        const totalOfficial = extensionCount + themeCount;
-        const totalCustom = customExtensionCount + customThemeCount;
-
-        console.log(
-            `✅ [Extension Scanner] 총 ${extensions.size}개 Extension 스캔 완료 (공식: ${totalOfficial}, 커스텀: ${totalCustom})`
-        );
+        scanDirectory(CUSTOM_THEMES_DIR, extensions);
     } catch (error) {
-        console.error('❌ [Extension Scanner] Extension 스캔 실패:', error);
+        console.error('[Extension Scanner] Extension 스캔 실패:', error);
     }
 
     return extensions;
@@ -323,7 +309,6 @@ export function scanThemes(): Map<string, ThemeManifest> {
         }
     }
 
-    console.log(`✅ [Theme Scanner] ${themes.size}개 테마 발견`);
     return themes;
 }
 
@@ -350,7 +335,6 @@ export function scanPlugins(): Map<string, PluginManifest> {
         }
     }
 
-    console.log(`✅ [Plugin Scanner] ${plugins.size}개 플러그인 발견`);
     return plugins;
 }
 
@@ -379,6 +363,5 @@ export function scanPluginsByType(type: PluginType): Map<string, PluginManifest>
         }
     }
 
-    console.log(`✅ [Plugin Scanner] ${filtered.size}개 ${type} 플러그인 발견`);
     return filtered;
 }

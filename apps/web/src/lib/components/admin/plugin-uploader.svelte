@@ -25,7 +25,7 @@
     let isDragging = $state(false);
 
     /** 파일 선택 input ref */
-    let fileInput: HTMLInputElement;
+    let fileInput = $state<HTMLInputElement | null>(null);
 
     /** 파일 선택 핸들러 */
     function handleFileSelect(event: Event) {
@@ -183,7 +183,8 @@
                     ondragover={handleDragOver}
                     ondragleave={handleDragLeave}
                     ondrop={handleDrop}
-                    onclick={() => fileInput.click()}
+                    onclick={() => fileInput?.click()}
+                    onkeydown={(e: KeyboardEvent) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileInput?.click(); } }}
                     role="button"
                     tabindex="0"
                 >

@@ -167,6 +167,9 @@
         <div
             class="bg-popover border-border absolute bottom-full left-0 z-50 mb-2 w-72 overflow-hidden rounded-xl border shadow-xl"
             onclick={(e) => e.stopPropagation()}
+            onkeydown={(e: KeyboardEvent) => { if (e.key === 'Escape') { showPicker = false; } }}
+            role="dialog"
+            tabindex="-1"
         >
             <!-- 카테고리 탭 -->
             <div class="border-border flex border-b">

@@ -205,8 +205,6 @@ export const POST: RequestHandler = async ({ request }) => {
             // 플러그인 재스캔
             scanPlugins();
 
-            console.log(`✅ [Plugin Upload] 플러그인 업로드 성공: ${pluginId}`);
-
             return json({
                 success: true,
                 message: `플러그인 "${pluginManifest.name}"이 성공적으로 업로드되었습니다.`,
@@ -219,7 +217,7 @@ export const POST: RequestHandler = async ({ request }) => {
                 rmSync(tempZipPath);
             }
 
-            console.error('❌ [Plugin Upload] 업로드 처리 중 오류:', error);
+            console.error('[Plugin Upload] 업로드 처리 중 오류:', error);
             return json(
                 {
                     success: false,
@@ -230,7 +228,7 @@ export const POST: RequestHandler = async ({ request }) => {
             );
         }
     } catch (error) {
-        console.error('❌ [Plugin Upload] 요청 처리 중 오류:', error);
+        console.error('[Plugin Upload] 요청 처리 중 오류:', error);
         return json(
             {
                 success: false,

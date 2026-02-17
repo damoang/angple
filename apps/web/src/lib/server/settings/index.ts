@@ -23,7 +23,6 @@ switch (PROVIDER_TYPE) {
     //   providerInstance = new MySqlSettingsProvider();
     //   break;
     default:
-        console.warn(`⚠️ 알 수 없는 SETTINGS_PROVIDER: ${PROVIDER_TYPE}, JSON으로 fallback`);
         providerInstance = new JsonSettingsProvider();
 }
 

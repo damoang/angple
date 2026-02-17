@@ -527,7 +527,7 @@
                                 />
                                 {comment.author}
                                 {#if memoPluginActive && MemoBadge}
-                                    <svelte:component this={MemoBadge} memberId={comment.author_id} showIcon={true} />
+                                    <MemoBadge memberId={comment.author_id} showIcon={true} />
                                 {/if}
                                 {#if comment.author_ip}
                                     <span class="text-muted-foreground text-xs font-normal"

@@ -13,15 +13,13 @@ export const GET: RequestHandler = async () => {
         const extensionsMap = scanExtensions();
         const extensions = Array.from(extensionsMap.values());
 
-        console.log(`✅ [API /extensions] ${extensions.length}개 Extension 반환`);
-
         return json({
             success: true,
             data: extensions,
             count: extensions.length
         });
     } catch (error) {
-        console.error('❌ [API /extensions] Extension 목록 조회 실패:', error);
+        console.error('[API /extensions] Extension 목록 조회 실패:', error);
 
         return json(
             {

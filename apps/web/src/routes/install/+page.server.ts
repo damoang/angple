@@ -54,7 +54,6 @@ export const load: PageServerLoad = async () => {
 
 export const actions: Actions = {
     default: async ({ request }) => {
-        console.log('[Install Step 1] Form submitted');
         const formData = await request.formData();
 
         const siteName = formData.get('siteName') as string;
@@ -63,17 +62,7 @@ export const actions: Actions = {
         const language = formData.get('language') as string;
         const activeTheme = formData.get('activeTheme') as string;
 
-        console.log(
-            '[Install Step 1] siteName:',
-            siteName,
-            'language:',
-            language,
-            'activeTheme:',
-            activeTheme
-        );
-
         if (!siteName || siteName.trim() === '') {
-            console.log('[Install Step 1] Validation failed: siteName empty');
             return {
                 success: false,
                 error: '사이트 이름은 필수입니다.'
@@ -81,7 +70,6 @@ export const actions: Actions = {
         }
 
         // 설정 저장 (Step 1 데이터)
-        console.log('[Install Step 1] Saving settings...');
         const updated = updateSettings({
             siteName: siteName.trim(),
             siteDescription: siteDescription?.trim() || '',
@@ -91,14 +79,12 @@ export const actions: Actions = {
         });
 
         if (!updated) {
-            console.log('[Install Step 1] updateSettings failed');
             return {
                 success: false,
                 error: '설정 저장에 실패했습니다.'
             };
         }
 
-        console.log('[Install Step 1] Settings saved, redirecting to step-2');
         // Step 2로 이동
         throw redirect(302, '/install/step-2');
     }

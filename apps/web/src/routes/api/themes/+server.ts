@@ -60,14 +60,12 @@ export const GET: RequestHandler = async () => {
             });
         }
 
-        console.log(`✅ [API /themes] ${themes.length}개 테마 반환`);
-
         return json({
             themes,
             total: themes.length
         });
     } catch (error) {
-        console.error('❌ [API /themes] 테마 목록 조회 실패:', error);
+        console.error('[API /themes] 테마 목록 조회 실패:', error);
 
         // 에러 발생 시 빈 배열 반환
         return json(

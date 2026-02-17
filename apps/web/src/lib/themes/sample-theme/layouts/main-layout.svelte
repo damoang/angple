@@ -18,8 +18,6 @@
     const { children } = $props(); // Svelte 5
 
     onMount(() => {
-        console.log('🎨 Sample Theme 레이아웃 마운트됨');
-
         // 인증 상태 초기화
         authActions.initAuth();
     });

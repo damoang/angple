@@ -13,13 +13,14 @@
     const { data } = $props();
 
     // SSR 데이터를 로컬 상태로 관리 (반응형 보장)
-    let widgetsData = $state<IndexWidgetsData | null>(data.indexWidgets);
+    let widgetsData = $state<IndexWidgetsData | null>(null);
 
-    // 스토어도 초기화 (다른 컴포넌트에서 사용할 수 있도록)
-    indexWidgetsStore.initFromServer(data.indexWidgets);
-
-    // 위젯 레이아웃 스토어 초기화 (메인 + 사이드바)
-    widgetLayoutStore.initFromServer(data.widgetLayout, data.sidebarWidgetLayout);
+    // SSR 데이터 변경 시 로컬 상태 + 스토어 동기화
+    $effect(() => {
+        widgetsData = data.indexWidgets;
+        indexWidgetsStore.initFromServer(data.indexWidgets);
+        widgetLayoutStore.initFromServer(data.widgetLayout, data.sidebarWidgetLayout);
+    });
 
     // SEO 설정 (홈페이지)
     const siteName = import.meta.env.VITE_SITE_NAME || 'Angple';

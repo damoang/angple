@@ -60,15 +60,13 @@ export const POST: RequestHandler = async ({ request }) => {
             );
         }
 
-        console.log(`✅ [API /marketplace/install] 플러그인 설치 완료: ${pluginId}`);
-
         return json({
             success: true,
             message: '플러그인이 성공적으로 설치되었습니다.',
             pluginId
         });
     } catch (error) {
-        console.error('❌ [API /marketplace/install] 플러그인 설치 실패:', error);
+        console.error('[API /marketplace/install] 플러그인 설치 실패:', error);
 
         return json(
             {

@@ -18,12 +18,12 @@ import type { RequestHandler } from './$types.js';
 const connections = new Map<string, ReadableStreamDefaultController>();
 
 /** 접속자 수 */
-export function getOnlineCount(): number {
+export function _getOnlineCount(): number {
     return connections.size;
 }
 
 /** 특정 사용자에게 알림 push */
-export function pushNotification(
+export function _pushNotification(
     userId: string,
     data: { type: string; title: string; content: string; url?: string }
 ): void {

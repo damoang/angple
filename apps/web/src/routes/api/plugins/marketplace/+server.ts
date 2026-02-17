@@ -88,14 +88,12 @@ export const GET: RequestHandler = async () => {
             }
         }
 
-        console.log(`✅ [API /marketplace] ${marketplacePlugins.length}개 공식 플러그인 반환`);
-
         return json({
             plugins: marketplacePlugins,
             total: marketplacePlugins.length
         });
     } catch (error) {
-        console.error('❌ [API /marketplace] 마켓플레이스 목록 조회 실패:', error);
+        console.error('[API /marketplace] 마켓플레이스 목록 조회 실패:', error);
 
         return json(
             {

@@ -24,7 +24,7 @@ export const GET: RequestHandler = async () => {
             sidebarWidgets: sidebarWidgets ?? DEFAULT_SIDEBAR_WIDGETS
         });
     } catch (error) {
-        console.error('❌ 레이아웃 조회 실패:', error);
+        console.error('레이아웃 조회 실패:', error);
         return json({
             widgets: DEFAULT_WIDGETS,
             sidebarWidgets: DEFAULT_SIDEBAR_WIDGETS
@@ -35,15 +35,14 @@ export const GET: RequestHandler = async () => {
 /**
  * 레이아웃 저장
  */
-export const PUT: RequestHandler = async ({ request, cookies }) => {
+export const PUT: RequestHandler = async ({ request, locals }) => {
     try {
-        // 인증 확인
-        // TODO: 운영 환경에서는 백엔드 API를 통한 관리자 권한 검증 필요
-        const isDev = process.env.NODE_ENV === 'development' || import.meta.env.DEV;
-        const legacyCookie = import.meta.env.VITE_LEGACY_SSO_COOKIE || '';
-        const token = legacyCookie ? cookies.get(legacyCookie) : cookies.get('refresh_token');
-        if (!isDev && !token) {
+        // 관리자 권한 검증
+        if (!locals.user) {
             return json({ error: '인증이 필요합니다.' }, { status: 401 });
+        }
+        if ((locals.user.level ?? 0) < 10) {
+            return json({ error: '관리자 권한이 필요합니다.' }, { status: 403 });
         }
 
         const { widgets, sidebarWidgets } = await request.json();
@@ -82,12 +81,10 @@ export const PUT: RequestHandler = async ({ request, cookies }) => {
         }
         await writeSettings(settings);
 
-        console.log('✅ 레이아웃 저장 완료');
-
         return json({ success: true });
     } catch (error) {
         const message = error instanceof Error ? error.message : '알 수 없는 오류';
-        console.error('❌ 레이아웃 저장 실패:', message, error);
+        console.error('레이아웃 저장 실패:', message, error);
         return json({ error: `레이아웃 저장에 실패했습니다: ${message}` }, { status: 500 });
     }
 };

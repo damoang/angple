@@ -54,7 +54,6 @@ function scanWidgets(): Map<string, ScannedWidget> {
         // Zod 스키마 검증
         const result = safeValidateWidgetManifest({ ...raw, id });
         if (!result.success) {
-            console.warn(`[Widget Loader] 매니페스트 검증 실패 (${id}):`, result.error.issues);
             continue;
         }
 
@@ -81,7 +80,6 @@ function scanWidgets(): Map<string, ScannedWidget> {
         // Zod 스키마 검증
         const result = safeValidateWidgetManifest({ ...raw, id });
         if (!result.success) {
-            console.warn(`[Widget Loader] 커스텀 위젯 매니페스트 검증 실패 (${id}):`, result.error.issues);
             continue;
         }
 
@@ -120,7 +118,6 @@ export async function loadWidgetComponent(type: string): Promise<Component | nul
     const widget = widgets.get(type);
 
     if (!widget) {
-        console.warn(`[Widget Loader] 위젯을 찾을 수 없습니다: ${type}`);
         return null;
     }
 

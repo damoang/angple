@@ -22,8 +22,6 @@ class ThemeStore {
      * SSR 데이터로 테마 초기화 (깜박임 방지)
      */
     initFromServer(activeTheme: string | null) {
-        console.log('🔧 [Theme Store] Initializing from SSR:', activeTheme);
-
         this.currentTheme = {
             activeTheme,
             settings: {}
@@ -46,7 +44,6 @@ class ThemeStore {
             const response = await fetch('/api/themes/active');
 
             if (!response.ok) {
-                console.log('활성화된 테마 없음');
                 this.currentTheme = { activeTheme: null, settings: {} };
                 return;
             }
@@ -57,13 +54,11 @@ class ThemeStore {
                 settings: data.themes?.[data.activeTheme]?.settings || {}
             };
 
-            console.log('✅ 테마 로드 완료:', this.currentTheme);
-
             // CSS 변수 적용
             this.applyThemeStyles();
         } catch (err) {
             this.error = err instanceof Error ? err.message : '테마 로드 실패';
-            console.error('❌ 테마 로드 에러:', err);
+            console.error('테마 로드 에러:', err);
         } finally {
             this.isLoading = false;
         }
@@ -81,14 +76,12 @@ class ThemeStore {
         const primaryColor = settings.appearance?.primaryColor || settings.colors?.primary;
         if (primaryColor && typeof primaryColor === 'string') {
             document.documentElement.style.setProperty('--theme-primary', primaryColor);
-            console.log('🎨 Primary Color 적용:', primaryColor);
         }
 
         // secondary color 적용
         const secondaryColor = settings.appearance?.secondaryColor || settings.colors?.secondary;
         if (secondaryColor && typeof secondaryColor === 'string') {
             document.documentElement.style.setProperty('--theme-secondary', secondaryColor);
-            console.log('🎨 Secondary Color 적용:', secondaryColor);
         }
     }
 

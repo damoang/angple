@@ -66,11 +66,8 @@ export const DELETE: RequestHandler = async ({ params }) => {
             );
         }
 
-        console.log(`🗑️ [Theme Delete] 커스텀 테마 삭제 시작: ${themeId}`);
-
         // 4. 테마 디렉터리 삭제
         await rm(themePath, { recursive: true, force: true });
-        console.log(`✅ [Theme Delete] 디렉터리 삭제 완료: ${themePath}`);
 
         // 5. 설정 파일에서 테마 정보 제거
         await removeThemeSettings(themeId);
@@ -81,7 +78,7 @@ export const DELETE: RequestHandler = async ({ params }) => {
             themeId
         });
     } catch (error) {
-        console.error('❌ [Theme Delete] 삭제 실패:', error);
+        console.error('[Theme Delete] 삭제 실패:', error);
 
         return json(
             {

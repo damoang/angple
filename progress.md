@@ -2,6 +2,40 @@
 
 ## Session Log
 
+### 2026-02-17 — B3 개발자 문서 + 테스트 보강 + 배포 준비
+
+**B3: 개발자 문서 4종 작성**
+  - `docs/developers/extension-api.md` (15KB): ExtensionContext API, 매니페스트 스키마, 라이프사이클, 권한 시스템
+  - `docs/developers/hook-reference.md` (14KB): HookManager API, 훅 목록, 프론트엔드 HookRegistry
+  - `docs/developers/theme-development.md` (13KB): 테마 매니페스트, 컴포넌트 슬롯, 설정, CLI 스캐폴딩
+  - `docs/developers/widget-development.md` (15KB): 위젯 매니페스트, 카테고리, 슬롯, 설정, 전체 예제
+
+**Sprint D/E 테스트 보강 (68개 신규, 총 122개)**
+  - `qa-board.test.ts`: 15 tests (parseQAInfo, getQAStatusLabel/Color)
+  - `license.test.ts`: 15 tests (generateLicenseKey, isValidKeyFormat, signLicense, verifySignature)
+  - `url-compat.test.ts`: 29 tests (mapGnuboardUrl, mapRhymixUrl)
+  - `ai-content.test.ts`: 9 tests (summarizeContent, analyzeSpamWithAI)
+
+**프로덕션 배포 준비**
+  - `scripts/validate-env.ts`: 필수 환경변수 6개 + 권장 5개 검증 스크립트
+  - `docs/deployment/production-checklist.md`: 배포 전/중/후 체크리스트, 롤백 절차
+  - `/health` 엔드포인트: package.json에서 동적 버전 읽기
+  - `compose.prod.yml`: NODE_OPTIONS=--max-old-space-size=512
+
+**검증**: svelte-check 0 errors, 122 unit tests passed
+**커밋**: `bbf9891`
+
+---
+
+### 2026-02-17 — 기존 TypeScript 에러 4개 수정
+
+- sidebar-widget-renderer.svelte: `config`, `slot` 잘못된 props 제거
+- login-form.svelte: `user_id` → `username`
+- +layout.svelte: `nickname ?? ''` null coalescing 추가
+- **커밋**: `f72555d`
+
+---
+
 ### 2026-02-17 — Sprint E: 장기 차별화 완료
 
 **E1: AI 콘텐츠 (스팸 필터, 자동 요약)**

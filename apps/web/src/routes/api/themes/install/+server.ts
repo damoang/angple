@@ -48,10 +48,6 @@ export const POST: RequestHandler = async ({ request }) => {
             return json({ error: '파일 크기가 100MB를 초과합니다.' }, { status: 400 });
         }
 
-        console.log(
-            `📦 [Theme Install] Zip 파일 수신: ${file.name} (${(file.size / 1024).toFixed(2)}KB)`
-        );
-
         // 4. 임시 디렉터리 생성
         if (!existsSync(TEMP_DIR)) {
             await mkdir(TEMP_DIR, { recursive: true });
@@ -65,8 +61,6 @@ export const POST: RequestHandler = async ({ request }) => {
         const arrayBuffer = await file.arrayBuffer();
         const buffer = Buffer.from(arrayBuffer);
         await writeFile(tempZipPath, buffer);
-
-        console.log(`💾 [Theme Install] Zip 파일 저장: ${tempZipPath}`);
 
         // 6. Zip 압축 해제
         const zip = new AdmZip(tempZipPath);
@@ -128,7 +122,7 @@ export const POST: RequestHandler = async ({ request }) => {
             const isSymlink = (fileMode & 0o170000) === 0o120000;
 
             if (isSymlink) {
-                console.error(`🚨 [Theme Install] Symlink 감지 (압축 해제 전): ${entry.entryName}`);
+                console.error(`[Theme Install] Symlink 감지 (압축 해제 전): ${entry.entryName}`);
                 return json(
                     {
                         error: 'Symlink 보안 위험 감지',
@@ -165,10 +159,6 @@ export const POST: RequestHandler = async ({ request }) => {
             zip.extractEntryTo(entry, tempExtractPath, true, true, true, normalizedPath);
         }
 
-        console.log(
-            `📂 [Theme Install] 압축 해제 완료: ${tempExtractPath} (${validatedEntries.length}개 파일)`
-        );
-
         // 9. 보안 검증
         const securityValidation = await validateThemeFiles(
             fileList.filter((f: string) => !f.endsWith('/')),
@@ -176,7 +166,7 @@ export const POST: RequestHandler = async ({ request }) => {
         );
 
         if (!securityValidation.valid) {
-            console.error('🚨 [Theme Install] 보안 검증 실패:', securityValidation.errors);
+            console.error('[Theme Install] 보안 검증 실패:', securityValidation.errors);
             return json(
                 {
                     error: '보안 검증 실패',
@@ -213,7 +203,6 @@ export const POST: RequestHandler = async ({ request }) => {
         }
 
         const manifest = validationResult.data;
-        console.log(`✅ [Theme Install] Manifest 검증 완료: ${manifest.id}`);
 
         // 11. 테마가 이미 설치되어 있는지 확인
         const targetPath = path.join(THEMES_DIR, manifest.id);
@@ -245,8 +234,6 @@ export const POST: RequestHandler = async ({ request }) => {
             await copyDir(tempExtractPath as string, targetPath);
         }
 
-        console.log(`✅ [Theme Install] 테마 설치 완료: ${manifest.id}`);
-
         // 13. 임시 파일 삭제
         await rm(tempZipPath, { force: true });
         await rm(tempExtractPath, { recursive: true, force: true });
@@ -261,7 +248,7 @@ export const POST: RequestHandler = async ({ request }) => {
             }
         });
     } catch (error) {
-        console.error('❌ [Theme Install] 설치 실패:', error);
+        console.error('[Theme Install] 설치 실패:', error);
 
         // 에러 발생 시 임시 파일 정리
         if (tempExtractPath && existsSync(tempExtractPath)) {

@@ -113,7 +113,8 @@
     const afterContentSlots = $derived(postSlotRegistry.resolve('post.after_content', boardType));
 
     // 중고게시판 상태 관리
-    let marketStatus = $state((data.post.extra_2 as MarketStatus) || 'selling');
+    let marketStatus = $state<MarketStatus>('selling');
+    $effect(() => { marketStatus = (data.post.extra_2 as MarketStatus) || 'selling'; });
     let isChangingMarketStatus = $state(false);
 
     async function changeMarketStatus(newStatus: MarketStatus) {
@@ -139,11 +140,13 @@
     }
 
     // 댓글 목록 상태 (반응형으로 관리)
-    let comments = $state<FreeComment[]>(data.comments.items);
+    let comments = $state<FreeComment[]>([]);
+    $effect(() => { comments = data.comments.items; });
     let isCreatingComment = $state(false);
 
     // 추천/비추천 상태
-    let likeCount = $state(data.post.likes);
+    let likeCount = $state(0);
+    $effect(() => { likeCount = data.post.likes; });
     let dislikeCount = $state(0);
     let isLiked = $state(false);
     let isDisliked = $state(false);
@@ -226,7 +229,8 @@
     const canViewSecret = $derived(!data.post.is_secret || isAuthor || isAdmin);
 
     // 공지 상태
-    let noticeType = $state<'normal' | 'important' | null>(data.post.notice_type ?? null);
+    let noticeType = $state<'normal' | 'important' | null>(null);
+    $effect(() => { noticeType = data.post.notice_type ?? null; });
     let isTogglingNotice = $state(false);
 
     async function toggleNotice(type: 'normal' | 'important' | null): Promise<void> {
@@ -622,7 +626,7 @@
                             <LevelBadge level={memberLevelStore.getLevel(data.post.author_id)} />
                             {data.post.author}
                             {#if memoPluginActive && MemoBadge}
-                                <svelte:component this={MemoBadge} memberId={data.post.author_id} showIcon={true} />
+                                <MemoBadge memberId={data.post.author_id} showIcon={true} />
                             {/if}
                             {#if data.post.author_ip}
                                 <span class="text-muted-foreground ml-1 text-xs font-normal"
@@ -648,8 +652,8 @@
         <CardContent class="space-y-6">
             <!-- 플러그인 슬롯: post.before_content (Q&A 상태 헤더 등) -->
             {#each beforeContentSlots as slot (slot.component)}
-                <svelte:component
-                    this={slot.component}
+                {@const SlotComponent = slot.component}
+                <SlotComponent
                     {...slot.propsMapper ? slot.propsMapper(data) : { data }}
                 />
             {/each}
@@ -789,9 +793,9 @@
 
     <!-- 플러그인 슬롯: post.after_content (나눔 BidPanel 등) -->
     {#each afterContentSlots as slot (slot.component)}
+        {@const SlotComponent = slot.component}
         <div class="mb-6">
-            <svelte:component
-                this={slot.component}
+            <SlotComponent
                 {...slot.propsMapper ? slot.propsMapper(data) : { data }}
             />
         </div>
@@ -941,8 +945,7 @@
                                             {liker.mb_nick || liker.mb_name}
                                         </a>
                                         {#if memoPluginActive && MemoBadge}
-                                            <svelte:component
-                                                this={MemoBadge}
+                                            <MemoBadge
                                                 memberId={liker.mb_id}
                                                 showIcon={true}
                                                 onclick={() => {
@@ -975,8 +978,7 @@
                             <!-- 인라인 메모 편집기 -->
                             {#if memoPluginActive && MemoInlineEditor && editingMemoFor === liker.mb_id}
                                 <div class="ml-11 mt-2">
-                                    <svelte:component
-                                        this={MemoInlineEditor}
+                                    <MemoInlineEditor
                                         memberId={liker.mb_id}
                                         onClose={() => {
                                             editingMemoFor = null;

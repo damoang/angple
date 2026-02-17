@@ -21,7 +21,11 @@
 
     let { data, form }: { data: PageData; form: ActionData } = $props();
 
-    let nickname = $state(form?.nickname || data.displayName || '');
+    let nickname = $state('');
+
+    $effect(() => {
+        nickname = form?.nickname || data.displayName || '';
+    });
     let agreeTerms = $state(false);
     let agreePrivacy = $state(false);
     let isSubmitting = $state(false);

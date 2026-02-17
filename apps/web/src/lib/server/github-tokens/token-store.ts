@@ -79,13 +79,6 @@ async function readStore(): Promise<TokenStoreData> {
         const content = await readFile(storePath, 'utf-8');
         const data = JSON.parse(content) as TokenStoreData;
 
-        // 버전 체크 (향후 마이그레이션 지원)
-        if (data.version !== STORE_VERSION) {
-            console.warn(
-                `[Token Store] 버전 불일치: 저장소=${data.version}, 현재=${STORE_VERSION}`
-            );
-        }
-
         return data;
     } catch (error) {
         console.error('[Token Store] 저장소 읽기 실패:', error);
@@ -140,7 +133,6 @@ export async function saveToken(scope: string, token: string): Promise<void> {
     }
 
     await writeStore(store);
-    console.log(`✅ [Token Store] 토큰 저장됨: ${normalizedScope}`);
 }
 
 /**
@@ -190,7 +182,6 @@ export async function deleteToken(scope: string): Promise<boolean> {
 
     if (store.tokens.length < initialLength) {
         await writeStore(store);
-        console.log(`✅ [Token Store] 토큰 삭제됨: ${normalizedScope}`);
         return true;
     }
 

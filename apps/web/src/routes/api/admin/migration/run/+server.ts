@@ -16,10 +16,6 @@ export const POST: RequestHandler = async ({ request }) => {
         const body = await request.json();
         const { source, sourceDb, targetDb, dryRun } = body;
 
-        console.log(
-            `🚀 [Migration] ${source} 마이그레이션 ${dryRun ? '시뮬레이션' : '실행'} 시작`
-        );
-
         const startedAt = new Date();
 
         // Dry-run: 분석 결과를 기반으로 예상 통계 반환
@@ -139,7 +135,7 @@ export const POST: RequestHandler = async ({ request }) => {
             );
         }
     } catch (error) {
-        console.error('❌ [Migration] 실행 실패:', error);
+        console.error('[Migration] 실행 실패:', error);
         return json(
             {
                 success: false,

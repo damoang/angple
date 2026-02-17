@@ -68,14 +68,14 @@ function loadWidgetManifest(widgetDir: string, baseDir: string): WidgetManifest 
         const result = safeValidateWidgetManifest(manifestData);
 
         if (!result.success) {
-            console.error('❌ [Widget Scanner] 위젯 검증 실패:', { widgetDir });
+            console.error('[Widget Scanner] 위젯 검증 실패:', { widgetDir });
             console.error(result.error.issues);
             return null;
         }
 
         return result.data;
     } catch (error) {
-        console.error('❌ [Widget Scanner] 위젯 매니페스트 로드 실패:', { widgetDir, error });
+        console.error('[Widget Scanner] 위젯 매니페스트 로드 실패:', { widgetDir, error });
         return null;
     }
 }
@@ -106,7 +106,6 @@ function scanDirectory(
 
         // 유효한 위젯 디렉터리인지 확인
         if (!isValidWidgetDirectory(widgetPath)) {
-            console.warn(`⚠️  [Widget Scanner] 유효하지 않은 위젯: ${widgetDir}`);
             continue;
         }
 
@@ -115,12 +114,6 @@ function scanDirectory(
         if (!manifest) continue;
 
         // 디렉터리 이름과 ID가 일치하는지 확인
-        if (manifest.id !== widgetDir) {
-            console.warn(
-                `⚠️  [Widget Scanner] 위젯 ID 불일치: 디렉터리명=${widgetDir}, manifest.id=${manifest.id}`
-            );
-            console.warn('   디렉터리 이름을 위젯 ID로 사용합니다.');
-        }
 
         const widgetInfo: WidgetInfo = {
             ...manifest,
@@ -150,11 +143,8 @@ export function scanWidgets(): Map<string, WidgetInfo> {
         // 커스텀 위젯 스캔 (사용자 업로드)
         const customCount = scanDirectory(CUSTOM_WIDGETS_DIR, widgets, true);
 
-        console.log(
-            `✅ [Widget Scanner] 총 ${widgets.size}개 위젯 스캔 완료 (공식: ${officialCount}, 커스텀: ${customCount})`
-        );
     } catch (error) {
-        console.error('❌ [Widget Scanner] 위젯 스캔 실패:', error);
+        console.error('[Widget Scanner] 위젯 스캔 실패:', error);
     }
 
     return widgets;

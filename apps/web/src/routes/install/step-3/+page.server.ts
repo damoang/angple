@@ -39,9 +39,6 @@ async function createAdminInBackend(data: {
         } else {
             // Backend 응답 실패 - 설치 과정에서는 무시하고 진행
             // (실제 관리자 계정은 나중에 수동으로 생성 가능)
-            const errorResult = await response.json().catch(() => ({}));
-            const errorMessage = errorResult.error?.message || '관리자 계정 생성 실패';
-            console.log('[Install] Backend error (ignored):', errorMessage);
 
             return {
                 success: true,
@@ -49,9 +46,8 @@ async function createAdminInBackend(data: {
                 userId: 'pending'
             };
         }
-    } catch (error) {
+    } catch {
         // Backend 연결 실패 - 설치 과정에서는 무시하고 진행
-        console.log('[Install] Backend not available (ignored):', error);
         return {
             success: true,
             message: '설치 완료 (관리자 계정은 Backend에서 별도 생성 필요)',

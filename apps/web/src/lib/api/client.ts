@@ -274,7 +274,6 @@ class ApiClient {
             return backendData.data || [];
         } catch (error) {
             // 공지사항 API가 없거나 에러 시 빈 배열 반환
-            console.warn('[API] 공지사항 로드 실패:', boardId, error);
             return [];
         }
     }

@@ -232,7 +232,8 @@
 
 <!-- 특수 게시판: 플러그인 레지스트리 기반 동적 로딩 -->
 {#if boardTypeComponent}
-    <svelte:component this={boardTypeComponent} {data} />
+    {@const BoardTypeComponent = boardTypeComponent}
+    <BoardTypeComponent {data} />
 {:else}
     <SeoHead config={seoConfig} />
 

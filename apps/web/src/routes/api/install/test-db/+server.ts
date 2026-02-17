@@ -58,7 +58,6 @@ export const POST: RequestHandler = async ({ request }) => {
             }
         } catch {
             // Backend 연결 실패 시 개발 모드로 성공 처리
-            console.log('[DEV] Backend not available, simulating DB test success');
             return json({
                 success: true,
                 hasExistingData: false,

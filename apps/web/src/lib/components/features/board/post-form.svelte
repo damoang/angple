@@ -47,13 +47,23 @@
     const AUTO_SAVE_INTERVAL = 30000; // 30초
 
     // 폼 상태
-    let title = $state(post?.title || '');
-    let content = $state(post?.content || '');
-    let category = $state(post?.category || '');
-    let isSecret = $state(post?.is_secret || false);
-    let tags = $state<string[]>(post?.tags || []);
-    let link1 = $state(post?.link1 || '');
-    let link2 = $state(post?.link2 || '');
+    let title = $state('');
+    let content = $state('');
+    let category = $state('');
+    let isSecret = $state(false);
+    let tags = $state<string[]>([]);
+    let link1 = $state('');
+    let link2 = $state('');
+
+    $effect(() => {
+        title = post?.title || '';
+        content = post?.content || '';
+        category = post?.category || '';
+        isSecret = post?.is_secret || false;
+        tags = post?.tags || [];
+        link1 = post?.link1 || '';
+        link2 = post?.link2 || '';
+    });
     let errors = $state<{ title?: string; content?: string }>({});
 
     // 이미지 업로드 상태

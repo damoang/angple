@@ -9,7 +9,8 @@
     let { data }: { data: PageData } = $props();
 
     // 현재 선택된 카테고리
-    let selectedCategoryId = $state(data.categories[0]?.fm_id ?? 0);
+    let selectedCategoryId = $state(0);
+    $effect(() => { selectedCategoryId = data.categories[0]?.fm_id ?? 0; });
 
     // 선택된 카테고리의 항목 필터
     const filteredItems = $derived(data.items.filter((item) => item.fm_id === selectedCategoryId));

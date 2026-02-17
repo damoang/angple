@@ -84,7 +84,6 @@ function loadPluginManifest(pluginDir: string, baseDir: string): ExtensionManife
     } else if (existsSync(extensionJsonPath)) {
         manifestPath = extensionJsonPath;
     } else {
-        console.warn(`⚠️  [Plugin Scanner] 매니페스트 파일 없음: ${pluginDir}`);
         return null;
     }
 
@@ -107,22 +106,19 @@ function loadPluginManifest(pluginDir: string, baseDir: string): ExtensionManife
         const result = safeValidateExtensionManifest(normalizedData);
 
         if (!result.success) {
-            console.error('❌ [Plugin Scanner] 매니페스트 검증 실패:', { pluginDir });
+            console.error('[Plugin Scanner] 매니페스트 검증 실패:', { pluginDir });
             console.error(result.error.issues);
             return null;
         }
 
         // category가 'plugin'인 것만 반환 (테마는 제외)
         if (result.data.category !== 'plugin') {
-            console.warn(
-                `⚠️  [Plugin Scanner] 플러그인 아님 (category: ${result.data.category}): ${pluginDir}`
-            );
             return null;
         }
 
         return result.data;
     } catch (error) {
-        console.error('❌ [Plugin Scanner] 플러그인 매니페스트 로드 실패:', { pluginDir, error });
+        console.error('[Plugin Scanner] 플러그인 매니페스트 로드 실패:', { pluginDir, error });
         return null;
     }
 }
@@ -149,7 +145,6 @@ function scanDirectory(baseDir: string, plugins: Map<string, ExtensionManifest>)
 
         // 유효한 플러그인 디렉터리인지 확인
         if (!isValidPluginDirectory(pluginPath)) {
-            console.warn(`⚠️  [Plugin Scanner] 유효하지 않은 플러그인: ${pluginDir}`);
             continue;
         }
 
@@ -157,13 +152,7 @@ function scanDirectory(baseDir: string, plugins: Map<string, ExtensionManifest>)
         const manifest = loadPluginManifest(pluginDir, baseDir);
         if (!manifest) continue;
 
-        // 디렉터리 이름과 ID가 일치하는지 확인
-        if (manifest.id !== pluginDir) {
-            console.warn(
-                `⚠️  [Plugin Scanner] 플러그인 ID 불일치: 디렉터리명=${pluginDir}, manifest.id=${manifest.id}`
-            );
-            console.warn('   디렉터리 이름을 플러그인 ID로 사용합니다.');
-        }
+        // 디렉터리 이름과 ID가 일치하는지 확인 (불일치 시 디렉터리 이름을 ID로 사용)
 
         plugins.set(manifest.id, manifest);
         scannedCount++;
@@ -184,19 +173,15 @@ export function scanPlugins(): Map<string, ExtensionManifest> {
 
     try {
         // 공식 플러그인 스캔 (Git 추적)
-        const officialCount = scanDirectory(PLUGINS_DIR, plugins);
+        scanDirectory(PLUGINS_DIR, plugins);
 
         // 커스텀 플러그인 스캔 (사용자 업로드)
-        const customCount = scanDirectory(CUSTOM_PLUGINS_DIR, plugins);
+        scanDirectory(CUSTOM_PLUGINS_DIR, plugins);
 
         // GitHub Packages에서 설치된 확장 스캔
-        const extensionCount = scanDirectory(CUSTOM_EXTENSIONS_DIR, plugins);
-
-        console.log(
-            `✅ [Plugin Scanner] 총 ${plugins.size}개 플러그인 스캔 완료 (공식: ${officialCount}, 커스텀: ${customCount}, 확장: ${extensionCount})`
-        );
+        scanDirectory(CUSTOM_EXTENSIONS_DIR, plugins);
     } catch (error) {
-        console.error('❌ [Plugin Scanner] 플러그인 스캔 실패:', error);
+        console.error('[Plugin Scanner] 플러그인 스캔 실패:', error);
     }
 
     return plugins;

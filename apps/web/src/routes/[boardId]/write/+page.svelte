@@ -96,8 +96,8 @@
         {/if}
 
         {#if customWriteForm}
-            <svelte:component
-                this={customWriteForm}
+            {@const CustomWriteForm = customWriteForm}
+            <CustomWriteForm
                 {boardId}
                 categories={data.categories}
                 onSubmit={handleSubmit}

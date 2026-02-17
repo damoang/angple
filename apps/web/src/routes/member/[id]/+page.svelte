@@ -235,7 +235,7 @@
 
         <!-- 상호작용 분석 (플러그인 활성화 시) -->
         {#if interactionPluginActive && InteractionPanel && data.profile}
-            <svelte:component this={InteractionPanel} memberId={data.profile.mb_id} />
+            <InteractionPanel memberId={data.profile.mb_id} />
         {/if}
 
         <!-- 최근 활동 (향후 확장) -->

@@ -1,6 +1,7 @@
 <script lang="ts">
     import { cn } from '$lib/utils';
     import type { HTMLButtonAttributes } from 'svelte/elements';
+    import type { Snippet } from 'svelte';
 
     type Size = 'sm' | 'md' | 'lg';
 
@@ -9,6 +10,9 @@
         liked?: boolean;
         pressed?: boolean; // 애니메이션 트리거용
         class?: string;
+        children?: Snippet;
+        label?: Snippet;
+        tooltip?: Snippet;
     }
 
     let {
@@ -18,6 +22,9 @@
         disabled = undefined,
         class: className = '',
         onclick,
+        children,
+        label,
+        tooltip,
         ...restProps
     }: Props = $props();
 
@@ -27,7 +34,7 @@
         lg: { button: 'w-16 h-16 text-3xl', radius: '8px', translate: '12px' }
     };
 
-    const currentSize = sizes[size];
+    const currentSize = $derived(sizes[size]);
 
     function handleClick(event: MouseEvent & { currentTarget: EventTarget & HTMLButtonElement }) {
         if (!disabled) {
@@ -65,16 +72,16 @@
             {...restProps}
         >
             <span class="btn-icon {pressed ? 'active' : ''}">
-                <slot />
+                {#if children}{@render children()}{/if}
             </span>
             <span class="sr-only">
-                <slot name="label">{liked ? '좋아요!' : '좋아요'}</slot>
+                {#if label}{@render label()}{:else}{liked ? '좋아요!' : '좋아요'}{/if}
             </span>
         </button>
 
         {#if showTooltip && !disabled}
             <div class="tooltip">
-                <slot name="tooltip">{liked ? '좋아요!' : '좋아요'}</slot>
+                {#if tooltip}{@render tooltip()}{:else}{liked ? '좋아요!' : '좋아요'}{/if}
             </div>
         {/if}
     </div>

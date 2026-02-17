@@ -17,6 +17,4 @@ export function initContentEmbed(): void {
         'core',
         'filter'
     );
-
-    console.log('[Built-in] Content embed filter initialized');
 }

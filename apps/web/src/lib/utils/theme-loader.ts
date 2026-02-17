@@ -24,8 +24,6 @@ type LayoutProps = {
  */
 export async function loadThemeLayout(themeId: string): Promise<Component<LayoutProps> | null> {
     try {
-        console.log(`🎨 테마 레이아웃 로드 시도: ${themeId}`);
-
         // Vite 동적 import를 사용하여 테마 레이아웃 로드
         // Phase 5: 실제 구현 시 활성화
         // const module = await import(`/themes/${themeId}/layouts/main-layout.svelte`);
@@ -35,14 +33,12 @@ export async function loadThemeLayout(themeId: string): Promise<Component<Layout
         if (themeId === 'sample-theme') {
             // Sample Theme 레이아웃 동적 import
             const module = await import('$lib/themes/sample-theme/layouts/main-layout.svelte');
-            console.log('✅ Sample Theme 레이아웃 로드 완료');
             return module.default;
         }
 
-        console.warn(`⚠️ 지원하지 않는 테마: ${themeId}`);
         return null;
     } catch (error) {
-        console.error('❌ 테마 레이아웃 로드 실패:', { themeId, error });
+        console.error('테마 레이아웃 로드 실패:', { themeId, error });
         return null;
     }
 }
@@ -55,7 +51,6 @@ export async function loadThemeLayout(themeId: string): Promise<Component<Layout
  */
 export async function getLayout(themeId: string | null): Promise<Component<LayoutProps>> {
     if (!themeId) {
-        console.log('📦 테마 없음 - 기본 레이아웃 사용');
         return DefaultLayout;
     }
 
@@ -65,7 +60,6 @@ export async function getLayout(themeId: string | null): Promise<Component<Layou
         return themeLayout;
     }
 
-    console.log('📦 Fallback - 기본 레이아웃 사용');
     return DefaultLayout;
 }
 
@@ -90,9 +84,8 @@ export async function loadThemeStyles(themeId: string): Promise<void> {
 
         document.head.appendChild(link);
 
-        console.log(`✅ 테마 스타일 로드: ${themeId}`);
     } catch (error) {
-        console.error('❌ 테마 스타일 로드 실패:', { themeId, error });
+        console.error('테마 스타일 로드 실패:', { themeId, error });
     }
 }
 
@@ -103,6 +96,5 @@ export function removeThemeStyles(): void {
     const themeStyle = document.querySelector('link[data-theme-style]');
     if (themeStyle) {
         themeStyle.remove();
-        console.log('✅ 테마 스타일 제거 완료');
     }
 }

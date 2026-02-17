@@ -64,14 +64,12 @@ export const GET: RequestHandler = async () => {
             });
         }
 
-        console.log(`✅ [API /plugins] ${plugins.length}개 플러그인 반환`);
-
         return json({
             plugins,
             total: plugins.length
         });
     } catch (error) {
-        console.error('❌ [API /plugins] 플러그인 목록 조회 실패:', error);
+        console.error('[API /plugins] 플러그인 목록 조회 실패:', error);
 
         // 에러 발생 시 빈 배열 반환
         return json(
@@ -120,15 +118,13 @@ export const POST: RequestHandler = async ({ request }) => {
             return json({ error: `플러그인 ${action} 실패: ${pluginId}` }, { status: 400 });
         }
 
-        console.log(`✅ [API /plugins] 플러그인 ${action}: ${pluginId}`);
-
         return json({
             success: true,
             pluginId,
             action
         });
     } catch (error) {
-        console.error('❌ [API /plugins] 플러그인 액션 실패:', error);
+        console.error('[API /plugins] 플러그인 액션 실패:', error);
 
         return json({ error: '플러그인 작업 처리 중 오류가 발생했습니다.' }, { status: 500 });
     }

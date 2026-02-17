@@ -85,6 +85,7 @@
                 <!-- 삭제 버튼 -->
                 <button
                     type="button"
+                    aria-label="위젯 삭제"
                     class="absolute -right-2 -top-2 z-10 rounded-full bg-red-500 p-1 text-white shadow-lg hover:bg-red-600"
                     onclick={(e) => {
                         e.stopPropagation();

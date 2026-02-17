@@ -113,7 +113,6 @@ class JsonPluginSettingsProvider implements PluginSettingsProvider {
                 JSON.stringify(DEFAULT_PLUGIN_SETTINGS, null, 2),
                 'utf-8'
             );
-            console.log(`✅ 플러그인 설정 파일 생성: ${this.filePath}`);
         }
     }
 
@@ -147,7 +146,6 @@ class JsonPluginSettingsProvider implements PluginSettingsProvider {
 
             // 이미 활성화되어 있으면 스킵
             if (settings.activePlugins.includes(pluginId)) {
-                console.log(`ℹ️ 플러그인 이미 활성화됨: ${pluginId}`);
                 return;
             }
 
@@ -164,7 +162,6 @@ class JsonPluginSettingsProvider implements PluginSettingsProvider {
             }
 
             await this.write(settings);
-            console.log(`✅ 플러그인 활성화: ${pluginId}`);
         } finally {
             this.releaseLock();
         }
@@ -179,7 +176,6 @@ class JsonPluginSettingsProvider implements PluginSettingsProvider {
             settings.activePlugins = settings.activePlugins.filter((id) => id !== pluginId);
 
             await this.write(settings);
-            console.log(`✅ 플러그인 비활성화: ${pluginId}`);
         } finally {
             this.releaseLock();
         }
@@ -202,7 +198,6 @@ class JsonPluginSettingsProvider implements PluginSettingsProvider {
             }
             settings.plugins[pluginId].settings = pluginSettings;
             await this.write(settings);
-            console.log(`✅ 플러그인 설정 저장: ${pluginId}`);
         } finally {
             this.releaseLock();
         }

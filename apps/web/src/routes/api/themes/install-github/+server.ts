@@ -56,7 +56,6 @@ async function getFileList(dir: string, baseDir: string = dir): Promise<string[]
         // Symlink 보안 체크
         const stats = await lstat(fullPath);
         if (stats.isSymbolicLink()) {
-            console.warn(`⚠️ Symlink 감지, 스킵: ${relativePath}`);
             continue;
         }
 
@@ -93,7 +92,6 @@ async function copyDir(src: string, dest: string) {
         // Symlink 보안 체크
         const stats = await lstat(srcPath);
         if (stats.isSymbolicLink()) {
-            console.warn(`⚠️ Symlink 감지, 복사 스킵: ${srcPath}`);
             continue;
         }
 
@@ -133,8 +131,6 @@ export const POST: RequestHandler = async ({ request }) => {
             );
         }
 
-        console.log(`📦 [GitHub Install] GitHub URL 수신: ${githubUrl}`);
-
         // 3. 임시 디렉터리 생성
         if (!existsSync(TEMP_DIR)) {
             await mkdir(TEMP_DIR, { recursive: true });
@@ -144,13 +140,12 @@ export const POST: RequestHandler = async ({ request }) => {
         tempClonePath = path.join(TEMP_DIR, tempId);
 
         // 4. Git clone 실행
-        console.log(`🔄 [GitHub Install] Cloning repository...`);
         const git = simpleGit();
 
         try {
             await git.clone(githubUrl, tempClonePath, ['--depth', '1']);
         } catch (gitError) {
-            console.error('❌ [GitHub Install] Git clone 실패:', gitError);
+            console.error('[GitHub Install] Git clone 실패:', gitError);
             return json(
                 {
                     error: 'GitHub 저장소를 클론할 수 없습니다.',
@@ -160,8 +155,6 @@ export const POST: RequestHandler = async ({ request }) => {
                 { status: 400 }
             );
         }
-
-        console.log(`✅ [GitHub Install] Clone 완료: ${tempClonePath}`);
 
         // 5. 파일 목록 가져오기
         const fileList = await getFileList(tempClonePath);
@@ -204,7 +197,7 @@ export const POST: RequestHandler = async ({ request }) => {
         const securityValidation = await validateThemeFiles(fileList, tempClonePath);
 
         if (!securityValidation.valid) {
-            console.error('🚨 [GitHub Install] 보안 검증 실패:', securityValidation.errors);
+            console.error('[GitHub Install] 보안 검증 실패:', securityValidation.errors);
             return json(
                 {
                     error: '보안 검증 실패',
@@ -242,7 +235,6 @@ export const POST: RequestHandler = async ({ request }) => {
         }
 
         const manifest = validationResult.data;
-        console.log(`✅ [GitHub Install] Manifest 검증 완료: ${manifest.id}`);
 
         // 10. 테마가 이미 설치되어 있는지 확인
         const targetPath = path.join(THEMES_DIR, manifest.id);
@@ -259,10 +251,7 @@ export const POST: RequestHandler = async ({ request }) => {
         // 11. themes/ 폴더에 복사 (.git 제외)
         await mkdir(THEMES_DIR, { recursive: true });
 
-        console.log(`📂 [GitHub Install] Copying to themes/${manifest.id}...`);
         await copyDir(tempClonePath, targetPath);
-
-        console.log(`✅ [GitHub Install] 테마 설치 완료: ${manifest.id}`);
 
         // 12. 임시 파일 삭제
         await rm(tempClonePath, { recursive: true, force: true });
@@ -277,7 +266,7 @@ export const POST: RequestHandler = async ({ request }) => {
             }
         });
     } catch (error) {
-        console.error('❌ [GitHub Install] 설치 실패:', error);
+        console.error('[GitHub Install] 설치 실패:', error);
 
         // 에러 발생 시 임시 파일 정리
         if (tempClonePath && existsSync(tempClonePath)) {

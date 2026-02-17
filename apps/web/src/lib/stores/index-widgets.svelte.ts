@@ -51,10 +51,6 @@ class IndexWidgetsStore {
      * SSR 데이터로 스토어 초기화 (깜박임 방지)
      */
     initFromServer(serverData: IndexWidgetsData | null): void {
-        console.log(
-            '[IndexWidgets Store] Initializing from SSR:',
-            serverData ? 'data loaded' : 'null'
-        );
         this.data = serverData;
         this.isLoading = false;
         this.error = null;
@@ -74,7 +70,6 @@ class IndexWidgetsStore {
             const response = await apiClient.getIndexWidgets();
             this.data = response;
             this.lastFetchedAt = new Date();
-            console.log('[IndexWidgets Store] Data fetched successfully');
         } catch (err) {
             this.error = err instanceof Error ? err.message : '데이터 로드 실패';
             console.error('[IndexWidgets Store] Fetch error:', err);
