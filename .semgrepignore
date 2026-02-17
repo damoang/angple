@@ -15,3 +15,18 @@ apps/web/src/lib/api/mock-data.ts
 # 배포/인프라 설정 (nginx, shell scripts)
 scripts/nginx/
 scripts/*.sh
+
+# CLI 도구 (사용자 입력 없음, path traversal/XSS false positive)
+packages/cli/
+
+# 서버 내부 스캐너 (readdirSync 결과로 path.join, 사용자 입력 아님)
+apps/web/src/lib/server/plugins/scanner.ts
+apps/web/src/lib/server/themes/scanner.ts
+apps/web/src/lib/server/widgets/scanner.ts
+apps/web/src/lib/server/extensions/scanner.ts
+
+# 마이그레이션 도구
+packages/migration/
+
+# 테마 GitHub 설치 API (path.join false positive, 내부 검증 있음)
+apps/web/src/routes/api/themes/install-github/
