@@ -5,10 +5,6 @@
     const backgroundComponents = getComponentsForSlot('background');
     const heroComponents = getComponentsForSlot('landing-hero');
     const contentComponents = getComponentsForSlot('landing-content');
-
-    console.log('🎯 [Corporate Landing] Background 컴포넌트:', backgroundComponents.length);
-    console.log('🎯 [Corporate Landing] Hero 컴포넌트:', heroComponents.length);
-    console.log('🎯 [Corporate Landing] Content 컴포넌트:', contentComponents.length);
 </script>
 
 <!-- Hero Section -->

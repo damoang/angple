@@ -1,6 +1,7 @@
 <script lang="ts">
     import type { Menu } from '$lib/types/admin-menu';
     import MenuItemRow from './menu-item-row.svelte';
+    import MenuTree from './menu-tree.svelte';
     import { dndzone, type DndEvent } from 'svelte-dnd-action';
     import { flip } from 'svelte/animate';
 
@@ -47,7 +48,7 @@
 
             {#if menu.children && menu.children.length > 0}
                 <div class="border-border ml-6 mt-1 border-l-2 pl-2">
-                    <svelte:self
+                    <MenuTree
                         menus={menu.children}
                         depth={depth + 1}
                         {onEdit}

@@ -24,7 +24,6 @@ class AdminThemeStore {
         this.isLoading = true;
         try {
             this.themes = await adminThemesApi.getThemes();
-            console.log(`${this.themes.length}개 테마 로드됨`);
         } catch (error) {
             console.error('테마 목록 로드 실패:', error);
             toast.error('테마 목록을 불러오지 못했습니다.');

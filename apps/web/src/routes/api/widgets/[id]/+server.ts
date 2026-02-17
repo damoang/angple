@@ -43,7 +43,7 @@ export const GET: RequestHandler = async ({ params }) => {
             }
         });
     } catch (error) {
-        console.error('❌ [Widget API] 위젯 조회 실패:', error);
+        console.error('[Widget API] 위젯 조회 실패:', error);
         return json(
             {
                 success: false,
@@ -87,15 +87,13 @@ export const DELETE: RequestHandler = async ({ params }) => {
         // 위젯 재스캔
         scanWidgets();
 
-        console.log(`✅ [Widget API] 위젯 삭제 성공: ${widgetId}`);
-
         return json({
             success: true,
             message: `위젯 "${manifest.name}"가 삭제되었습니다.`,
             widgetId
         });
     } catch (error) {
-        console.error('❌ [Widget API] 위젯 삭제 실패:', error);
+        console.error('[Widget API] 위젯 삭제 실패:', error);
         return json(
             {
                 success: false,

@@ -105,7 +105,7 @@
                         >
                             <span>{post.author}</span>
                             {#if memoPluginActive && MemoBadge}
-                                <svelte:component this={MemoBadge} memberId={post.author_id} />
+                                <MemoBadge memberId={post.author_id} />
                             {/if}
                             <span>•</span>
                             <span>{formatDate(post.created_at)}</span>
@@ -148,6 +148,7 @@
 <style>
     .line-clamp-2 {
         display: -webkit-box;
+        line-clamp: 2;
         -webkit-line-clamp: 2;
         -webkit-box-orient: vertical;
         overflow: hidden;

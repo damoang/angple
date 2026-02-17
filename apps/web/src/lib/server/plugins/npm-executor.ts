@@ -100,18 +100,12 @@ export class NpmExecutor {
         const versionSpec = version ? `@${version}` : '';
         const command = `npm pack ${packageName}${versionSpec} --registry=${GITHUB_NPM_REGISTRY} --pack-destination="${targetDir}"`;
 
-        console.log(`📦 [npm-executor] Executing: npm pack ${packageName}${versionSpec}`);
-
         try {
             const { stdout, stderr } = await execAsync(command, {
                 env,
                 timeout: this.timeout,
                 maxBuffer: 10 * 1024 * 1024 // 10MB
             });
-
-            if (stderr && !stderr.includes('npm warn')) {
-                console.warn('[npm-executor] stderr:', stderr);
-            }
 
             // stdout에서 생성된 파일명 추출
             const lines = stdout.trim().split('\n');
@@ -124,7 +118,6 @@ export class NpmExecutor {
             // tarballName은 npm pack 명령어 출력에서 추출된 파일명
             // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
             const tarballPath = join(targetDir, tarballName);
-            console.log('[npm-executor] Tarball created:', tarballPath);
 
             return tarballPath;
         } catch (error) {
@@ -160,8 +153,6 @@ export class NpmExecutor {
         }
 
         const command = `npm view ${packageName} --registry=${GITHUB_NPM_REGISTRY} --json`;
-
-        console.log(`🔍 [npm-executor] Getting package info: ${packageName}`);
 
         try {
             const { stdout } = await execAsync(command, {

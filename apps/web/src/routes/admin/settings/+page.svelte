@@ -13,10 +13,14 @@
     import OauthSettings from '$lib/components/admin/settings/oauth-settings.svelte';
     import AnalyticsSettings from '$lib/components/admin/settings/analytics-settings.svelte';
     import ApiKeysSettings from '$lib/components/admin/settings/api-keys-settings.svelte';
+    import FeatureFlagsSettings from '$lib/components/admin/settings/feature-flags-settings.svelte';
+    import SeoSettings from '$lib/components/admin/settings/seo-settings.svelte';
     import Settings from '@lucide/svelte/icons/settings';
     import Shield from '@lucide/svelte/icons/shield';
     import BarChart3 from '@lucide/svelte/icons/bar-chart-3';
     import KeyRound from '@lucide/svelte/icons/key-round';
+    import ToggleLeft from '@lucide/svelte/icons/toggle-left';
+    import Search from '@lucide/svelte/icons/search';
     import Loader2 from '@lucide/svelte/icons/loader-2';
 
     onMount(() => {
@@ -54,6 +58,14 @@
                 <TabsTrigger value="api-keys" class="gap-1.5">
                     <KeyRound class="h-4 w-4" />
                     API 키
+                </TabsTrigger>
+                <TabsTrigger value="features" class="gap-1.5">
+                    <ToggleLeft class="h-4 w-4" />
+                    기능
+                </TabsTrigger>
+                <TabsTrigger value="seo" class="gap-1.5">
+                    <Search class="h-4 w-4" />
+                    SEO
                 </TabsTrigger>
             </TabsList>
 
@@ -101,6 +113,34 @@
                     </CardHeader>
                     <CardContent>
                         <ApiKeysSettings />
+                    </CardContent>
+                </Card>
+            </TabsContent>
+
+            <TabsContent value="features">
+                <Card>
+                    <CardHeader>
+                        <CardTitle>기능 플래그</CardTitle>
+                        <CardDescription
+                            >플랫폼 기능을 개별적으로 활성화/비활성화합니다.</CardDescription
+                        >
+                    </CardHeader>
+                    <CardContent>
+                        <FeatureFlagsSettings />
+                    </CardContent>
+                </Card>
+            </TabsContent>
+
+            <TabsContent value="seo">
+                <Card>
+                    <CardHeader>
+                        <CardTitle>SEO 설정</CardTitle>
+                        <CardDescription
+                            >검색엔진 최적화 및 소셜 공유 설정을 관리합니다.</CardDescription
+                        >
+                    </CardHeader>
+                    <CardContent>
+                        <SeoSettings />
                     </CardContent>
                 </Card>
             </TabsContent>

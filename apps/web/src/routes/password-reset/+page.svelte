@@ -21,7 +21,11 @@
 
     let { form }: { form: ActionData } = $props();
 
-    let email = $state(form?.email || '');
+    let email = $state('');
+
+    $effect(() => {
+        email = form?.email || '';
+    });
     let isSubmitting = $state(false);
     let turnstileRef: HTMLDivElement | undefined = $state();
 

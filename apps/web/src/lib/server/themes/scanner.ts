@@ -68,14 +68,14 @@ function loadThemeManifest(themeDir: string, baseDir: string): ThemeManifest | n
         const result = safeValidateThemeManifest(manifestData);
 
         if (!result.success) {
-            console.error('❌ [Theme Scanner] 테마 검증 실패:', { themeDir });
+            console.error('[Theme Scanner] 테마 검증 실패:', { themeDir });
             console.error(result.error.issues);
             return null;
         }
 
         return result.data;
     } catch (error) {
-        console.error('❌ [Theme Scanner] 테마 매니페스트 로드 실패:', { themeDir, error });
+        console.error('[Theme Scanner] 테마 매니페스트 로드 실패:', { themeDir, error });
         return null;
     }
 }
@@ -92,8 +92,12 @@ function scanDirectory(baseDir: string, themes: Map<string, ThemeManifest>): num
     const entries = readdirSync(baseDir, { withFileTypes: true });
 
     for (const entry of entries) {
-        // 디렉터리만 처리
-        if (!entry.isDirectory()) continue;
+        // 디렉터리만 처리 (심링크 → 디렉터리도 허용: 개발 환경 테마 링크 지원)
+        if (!entry.isDirectory()) {
+            if (!entry.isSymbolicLink()) continue;
+            const targetStat = statSync(join(baseDir, entry.name));
+            if (!targetStat.isDirectory()) continue;
+        }
 
         const themeDir = entry.name;
         // themeDir는 readdirSync()에서 반환된 실제 디렉터리명 (사용자 입력 아님)
@@ -102,7 +106,6 @@ function scanDirectory(baseDir: string, themes: Map<string, ThemeManifest>): num
 
         // 유효한 테마 디렉터리인지 확인
         if (!isValidThemeDirectory(themePath)) {
-            console.warn(`⚠️  [Theme Scanner] 유효하지 않은 테마: ${themeDir}`);
             continue;
         }
 
@@ -111,12 +114,6 @@ function scanDirectory(baseDir: string, themes: Map<string, ThemeManifest>): num
         if (!manifest) continue;
 
         // 디렉터리 이름과 ID가 일치하는지 확인
-        if (manifest.id !== themeDir) {
-            console.warn(
-                `⚠️  [Theme Scanner] 테마 ID 불일치: 디렉터리명=${themeDir}, manifest.id=${manifest.id}`
-            );
-            console.warn('   디렉터리 이름을 테마 ID로 사용합니다.');
-        }
 
         themes.set(manifest.id, manifest);
         scannedCount++;
@@ -139,12 +136,8 @@ export function scanThemes(): Map<string, ThemeManifest> {
 
         // 커스텀 테마 스캔 (사용자 업로드)
         const customCount = scanDirectory(CUSTOM_THEMES_DIR, themes);
-
-        console.log(
-            `✅ [Theme Scanner] 총 ${themes.size}개 테마 스캔 완료 (공식: ${officialCount}, 커스텀: ${customCount})`
-        );
     } catch (error) {
-        console.error('❌ [Theme Scanner] 테마 스캔 실패:', error);
+        console.error('[Theme Scanner] 테마 스캔 실패:', error);
     }
 
     return themes;

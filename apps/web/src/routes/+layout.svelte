@@ -1,7 +1,7 @@
 <script lang="ts">
     import '../app.css';
     import favicon from '$lib/assets/favicon.png';
-    import { onMount } from 'svelte';
+    import { onMount, untrack } from 'svelte';
     import type { Component } from 'svelte';
     import { page } from '$app/stores';
     import { configureSeo } from '$lib/seo';
@@ -37,11 +37,15 @@
         siteUrl: $page.url.origin
     });
 
-    // SSR에서 받은 테마로 스토어 초기화 (깜박임 방지!)
-    themeStore.initFromServer(data.activeTheme);
-
-    // SSR에서 받은 플러그인으로 스토어 초기화 (깜박임 방지!)
-    pluginStore.initFromServer(data.activePlugins || []);
+    // SSR에서 받은 테마/플러그인으로 스토어 초기화 (깜박임 방지!)
+    $effect(() => {
+        const theme = data.activeTheme;
+        const plugins = data.activePlugins || [];
+        untrack(() => {
+            themeStore.initFromServer(theme);
+            pluginStore.initFromServer(plugins);
+        });
+    });
 
     // 현재 활성 테마
     const activeTheme = $derived(themeStore.currentTheme.activeTheme);
@@ -61,37 +65,25 @@
      * 테마 레이아웃 동적 로드
      */
     async function loadThemeLayout(themeId: string | null) {
-        console.log(`🔍 [loadThemeLayout] 호출됨 - themeId: ${themeId}`);
-
         if (!themeId) {
             ThemeLayout = null;
-            console.log('⚠️ [loadThemeLayout] themeId가 null, 기본 레이아웃 사용');
             return;
         }
 
         try {
             // Vite glob 패턴과 일치하는 상대 경로 사용
             const layoutPath = `../../../../themes/${themeId}/layouts/main-layout.svelte`;
-            console.log(`📁 [loadThemeLayout] 레이아웃 경로: ${layoutPath}`);
-            const keys = Object.keys(themeLayouts);
-            console.log(`🔎 [loadThemeLayout] themeLayouts 키 목록:`, keys);
-            console.log(`🔍 [loadThemeLayout] 첫 번째 키 예시:`, keys[0]);
 
             // glob 패턴에 매칭되는 경로가 있는지 확인
             if (layoutPath in themeLayouts) {
-                console.log(`✨ [loadThemeLayout] 레이아웃 발견! 로딩 시작...`);
                 const module = (await themeLayouts[layoutPath]()) as { default: Component };
                 ThemeLayout = module.default;
-                console.log(`✅ [Layout] 테마 레이아웃 로드: ${themeId}`);
-                console.log(`🎯 [Layout] ThemeLayout 컴포넌트:`, ThemeLayout);
-                console.log(`🔢 [Layout] ThemeLayout이 null인가?`, ThemeLayout === null);
             } else {
                 // 테마 레이아웃이 없으면 기본 레이아웃 사용
                 ThemeLayout = null;
-                console.log(`ℹ️ [Layout] 테마 레이아웃 없음, 기본 레이아웃 사용: ${themeId}`);
             }
         } catch (error) {
-            console.error(`❌ [Layout] 테마 레이아웃 로드 실패: ${themeId}`, error);
+            console.error(`[Layout] 테마 레이아웃 로드 실패: ${themeId}`, error);
             ThemeLayout = null;
         }
     }
@@ -99,11 +91,10 @@
     // activeTheme 변경 시 자동으로 레이아웃, Hook, Component 로드
     $effect(() => {
         const theme = activeTheme;
-        console.log('🔄 [$effect] activeTheme 변경 감지:', theme);
 
         // 비동기 로드 (void로 처리하여 $effect 내 안전하게 실행)
         void loadThemeLayout(theme).catch((err) => {
-            console.error('❌ [Layout] 테마 레이아웃 로드 에러:', err);
+            console.error('[Layout] 테마 레이아웃 로드 에러:', err);
             ThemeLayout = null;
         });
 
@@ -116,8 +107,6 @@
 
     // activePlugins 변경 시 플러그인 Hook 및 Component 로드
     $effect(() => {
-        console.log('🔄 [$effect] activePlugins 변경 감지:', activePlugins.length, '개');
-
         if (activePlugins.length > 0) {
             // 플러그인 Hook 로드 후 액션 실행
             loadAllPluginHooks(
@@ -154,8 +143,6 @@
     });
 
     onMount(() => {
-        console.log('🚀 [onMount] 컴포넌트 마운트됨');
-
         // Built-in Hooks 초기화 (콘텐츠 임베딩, 게시판 필터 등)
         initBuiltinHooks();
 
@@ -164,7 +151,10 @@
 
         // 인증 상태 초기화 (SSR에서 받은 데이터가 있으면 우선 사용)
         if (data.user && data.accessToken) {
-            authActions.initFromSSR(data.user, data.accessToken);
+            authActions.initFromSSR(
+                { nickname: data.user.nickname ?? '', level: data.user.level },
+                data.accessToken
+            );
         } else {
             authActions.initAuth();
         }
@@ -175,7 +165,6 @@
             if (!event.origin.includes('localhost')) return;
 
             if (event.data?.type === 'reload-theme') {
-                console.log('🔄 테마 리로드 요청 받음');
                 themeStore.loadActiveTheme();
             }
         }
@@ -196,18 +185,17 @@
 
                     if (triggerCookie) {
                         const value = triggerCookie.split('=')[1]; // "themeId:timestamp"
-                        const [themeId, timestampStr] = value.split(':');
+                        const [, timestampStr] = value.split(':');
                         const timestamp = parseInt(timestampStr, 10);
 
                         // 마지막 확인 이후 변경된 경우에만 리로드
                         if (timestamp > lastThemeCheckTimestamp) {
-                            console.log('🔄 테마 변경 감지 (탭 전환):', themeId, '리로드 중...');
                             themeStore.loadActiveTheme();
                             lastThemeCheckTimestamp = timestamp;
                         }
                     }
-                } catch (e) {
-                    console.warn('테마 변경 감지 실패:', e);
+                } catch {
+                    // 테마 변경 감지 실패 - 무시
                 }
             }
         }
@@ -266,5 +254,5 @@
 
 <!-- 회원 메모 모달 (글로벌 1개) -->
 {#if pluginStore.isPluginActive('member-memo') && MemoModal}
-    <svelte:component this={MemoModal} />
+    <MemoModal />
 {/if}

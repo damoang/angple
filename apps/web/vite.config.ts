@@ -33,7 +33,7 @@ export default defineConfig(({ mode }) => {
             port,
             allowedHosts,
             fs: {
-                allow: ['.', '../..']
+                allow: ['.', '../..', '../../..']
             },
             proxy: {
                 '/api/v1': {

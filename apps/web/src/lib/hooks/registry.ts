@@ -53,12 +53,6 @@ class HookRegistry {
 
     /**
      * Hook 등록
-     *
-     * @param name - Hook 이름 (예: 'post_title', 'page_loaded')
-     * @param callback - 실행할 함수
-     * @param priority - 우선순위 (기본값: 10, 낮을수록 먼저 실행)
-     * @param source - 등록 주체 (선택 사항)
-     * @param type - Hook 타입 (action 또는 filter)
      */
     register(
         name: string,
@@ -87,22 +81,12 @@ class HookRegistry {
 
         // Reactive 버전 증가 (구독 중인 컴포넌트의 $effect 재실행)
         incrementHookVersion();
-
-        console.log(
-            `🪝 [Hook] Registered ${type} hook: ${name} (priority: ${priority}${source ? `, source: ${source}` : ''})`
-        );
     }
 
     /**
      * Action Hook 실행
      *
      * 등록된 모든 콜백을 순서대로 실행합니다 (반환값 없음)
-     *
-     * @param name - Hook 이름
-     * @param args - 콜백에 전달할 인자들
-     *
-     * @example
-     * await doAction('page_loaded', { url: '/home', userId: 123 });
      */
     async doAction(name: string, ...args: unknown[]): Promise<void> {
         const hookList = this.hooks.get(name);
@@ -111,18 +95,15 @@ class HookRegistry {
             return;
         }
 
-        console.log(`⚡ [Hook] Executing action hook: ${name} (${hookList.length} callbacks)`);
-
         for (const hook of hookList) {
             try {
                 await hook.callback(...args);
             } catch (error) {
-                console.error('❌ [Hook] Error in action hook:', {
+                console.error('[Hook] Error in action hook:', {
                     name,
                     source: hook.source || 'unknown',
                     error
                 });
-                // 에러가 발생해도 다음 Hook 계속 실행
             }
         }
     }
@@ -131,16 +112,6 @@ class HookRegistry {
      * Filter Hook 실행
      *
      * 등록된 모든 콜백을 순서대로 실행하여 값을 변환합니다
-     *
-     * @param name - Hook 이름
-     * @param value - 변환할 초기값
-     * @param args - 콜백에 전달할 추가 인자들
-     * @returns 변환된 최종 값
-     *
-     * @example
-     * let title = "Hello";
-     * title = await applyFilter('post_title', title, post);
-     * // 결과: "🔥 Hello"
      */
     async applyFilter<T>(name: string, value: T, ...args: unknown[]): Promise<T> {
         const hookList = this.hooks.get(name);
@@ -149,8 +120,6 @@ class HookRegistry {
             return value;
         }
 
-        console.log(`🔄 [Hook] Applying filter hook: ${name} (${hookList.length} callbacks)`);
-
         let currentValue = value;
 
         for (const hook of hookList) {
@@ -158,12 +127,11 @@ class HookRegistry {
                 const result = await hook.callback(currentValue, ...args);
                 currentValue = result !== undefined ? (result as T) : currentValue;
             } catch (error) {
-                console.error('❌ [Hook] Error in filter hook:', {
+                console.error('[Hook] Error in filter hook:', {
                     name,
                     source: hook.source || 'unknown',
                     error
                 });
-                // 에러가 발생해도 현재 값 유지하고 다음 Hook 계속 실행
             }
         }
 
@@ -172,29 +140,20 @@ class HookRegistry {
 
     /**
      * 특정 Hook의 모든 콜백 제거
-     *
-     * @param name - Hook 이름
      */
     removeHook(name: string): void {
         this.hooks.delete(name);
-        console.log(`🗑️ [Hook] Removed all callbacks for hook: ${name}`);
     }
 
     /**
      * 특정 소스의 모든 Hook 제거 (테마 비활성화 시 사용)
-     *
-     * @param source - 제거할 Hook의 source (예: 테마 ID)
      */
     removeHooksBySource(source: string): void {
-        let removedCount = 0;
-
         for (const [name, hookList] of this.hooks.entries()) {
             const filtered = hookList.filter((hook) => hook.source !== source);
-            const removed = hookList.length - filtered.length;
 
-            if (removed > 0) {
+            if (filtered.length < hookList.length) {
                 this.hooks.set(name, filtered);
-                removedCount += removed;
             }
 
             // Hook 목록이 비었으면 삭제
@@ -202,8 +161,6 @@ class HookRegistry {
                 this.hooks.delete(name);
             }
         }
-
-        console.log(`🗑️ [Hook] Removed ${removedCount} hooks from source: ${source}`);
     }
 
     /**
@@ -211,13 +168,10 @@ class HookRegistry {
      */
     clear(): void {
         this.hooks.clear();
-        console.log('🗑️ [Hook] Cleared all hooks');
     }
 
     /**
      * 등록된 Hook 목록 조회 (디버깅용)
-     *
-     * @param name - Hook 이름 (선택 사항, 없으면 모든 Hook)
      */
     getHooks(name?: string): Hook[] {
         if (name) {

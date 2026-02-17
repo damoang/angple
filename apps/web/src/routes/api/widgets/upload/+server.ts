@@ -174,8 +174,6 @@ export const POST: RequestHandler = async ({ request }) => {
             // 위젯 재스캔
             scanWidgets();
 
-            console.log(`✅ [Widget Upload] 위젯 업로드 성공: ${widgetId}`);
-
             return json({
                 success: true,
                 message: `위젯 "${widgetManifest.name}"가 성공적으로 업로드되었습니다.`,
@@ -188,7 +186,7 @@ export const POST: RequestHandler = async ({ request }) => {
                 rmSync(tempZipPath);
             }
 
-            console.error('❌ [Widget Upload] 업로드 처리 중 오류:', error);
+            console.error('[Widget Upload] 업로드 처리 중 오류:', error);
             return json(
                 {
                     success: false,
@@ -199,7 +197,7 @@ export const POST: RequestHandler = async ({ request }) => {
             );
         }
     } catch (error) {
-        console.error('❌ [Widget Upload] 요청 처리 중 오류:', error);
+        console.error('[Widget Upload] 요청 처리 중 오류:', error);
         return json(
             {
                 success: false,

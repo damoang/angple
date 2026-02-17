@@ -23,8 +23,12 @@ function extractHostname(url: string): string | null {
 
 /** 허용된 이미지 도메인 목록 (환경변수 기반 + 고정 목록) */
 const ALLOWED_DOMAINS = [
-    ...(extractHostname(import.meta.env.VITE_S3_URL || '') ? [extractHostname(import.meta.env.VITE_S3_URL || '')!] : []),
-    ...(extractHostname(import.meta.env.VITE_LEGACY_URL || '') ? [extractHostname(import.meta.env.VITE_LEGACY_URL || '')!] : []),
+    ...(extractHostname(import.meta.env.VITE_S3_URL || '')
+        ? [extractHostname(import.meta.env.VITE_S3_URL || '')!]
+        : []),
+    ...(extractHostname(import.meta.env.VITE_LEGACY_URL || '')
+        ? [extractHostname(import.meta.env.VITE_LEGACY_URL || '')!]
+        : []),
     'i.imgur.com',
     'imgur.com'
 ];

@@ -119,14 +119,13 @@ export async function getActivePlugins(): Promise<InstalledPlugin[]> {
 export async function activatePlugin(pluginId: string): Promise<boolean> {
     // 플러그인이 설치되어 있는지 확인
     if (!isPluginInstalled(pluginId)) {
-        console.error(`❌ [Plugin API] 플러그인이 설치되지 않음: ${pluginId}`);
+        console.error(`[Plugin API] 플러그인이 설치되지 않음: ${pluginId}`);
         return false;
     }
 
     // Provider를 통해 플러그인 활성화
     await pluginSettingsProvider.activatePlugin(pluginId);
 
-    console.log(`✅ [Plugin API] 플러그인 활성화: ${pluginId}`);
     return true;
 }
 
@@ -139,7 +138,6 @@ export async function deactivatePlugin(pluginId: string): Promise<boolean> {
     // Provider를 통해 플러그인 비활성화
     await pluginSettingsProvider.deactivatePlugin(pluginId);
 
-    console.log(`✅ [Plugin API] 플러그인 비활성화: ${pluginId}`);
     return true;
 }
 
@@ -153,7 +151,6 @@ export async function updatePluginSettings(
     // Provider를 통해 플러그인 설정 업데이트
     await pluginSettingsProvider.setPluginSettings(pluginId, newSettings);
 
-    console.log(`✅ [Plugin API] 플러그인 설정 업데이트: ${pluginId}`);
     return true;
 }
 

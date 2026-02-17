@@ -1,0 +1,27 @@
+{
+    "name": "@angple/migration",
+    "version": "0.1.0",
+    "description": "그누보드/라이믹스 DB 마이그레이션 도구",
+    "type": "module",
+    "main": "./src/index.ts",
+    "scripts": {
+        "migrate:gnuboard": "tsx src/gnuboard/index.ts",
+        "migrate:rhymix": "tsx src/rhymix/index.ts"
+    },
+    "keywords": [
+        "angple",
+        "migration",
+        "gnuboard",
+        "rhymix"
+    ],
+    "license": "MIT",
+    "dependencies": {
+        "mysql2": "^3.11.0",
+        "picocolors": "^1.1.0"
+    },
+    "devDependencies": {
+        "tsx": "^4.19.0",
+        "typescript": "^5.0.0",
+        "@types/node": "^22.0.0"
+    }
+}

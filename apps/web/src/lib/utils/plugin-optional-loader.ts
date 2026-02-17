@@ -8,8 +8,12 @@
 import type { Component } from 'svelte';
 
 // Glob all plugin components (lazy, not eager)
-const pluginComponents = import.meta.glob('../../../../../../plugins/*/components/*.svelte');
-const pluginLibs = import.meta.glob('../../../../../../plugins/*/lib/*.svelte');
+const pluginComponents = import.meta.glob('../../../../../plugins/*/components/*.svelte');
+const pluginLibs = import.meta.glob([
+    '../../../../../plugins/*/lib/*.svelte',
+    '../../../../../plugins/*/lib/*.svelte.ts',
+    '../../../../../plugins/*/lib/*.ts'
+]);
 
 /**
  * Load a plugin component dynamically.
@@ -22,7 +26,7 @@ export async function loadPluginComponent(
     pluginId: string,
     componentName: string
 ): Promise<Component | null> {
-    const path = `../../../../../../plugins/${pluginId}/components/${componentName}.svelte`;
+    const path = `../../../../../plugins/${pluginId}/components/${componentName}.svelte`;
     const loader = pluginComponents[path];
     if (!loader) return null;
 
@@ -42,13 +46,18 @@ export async function loadPluginLib<T = Record<string, unknown>>(
     pluginId: string,
     libName: string
 ): Promise<T | null> {
-    const path = `../../../../../../plugins/${pluginId}/lib/${libName}.svelte`;
-    const loader = pluginLibs[path];
-    if (!loader) return null;
-
-    try {
-        return (await loader()) as T;
-    } catch {
-        return null;
+    // Try extensions in order: .svelte.ts, .ts, .svelte
+    const extensions = ['.svelte.ts', '.ts', '.svelte'];
+    for (const ext of extensions) {
+        const path = `../../../../../plugins/${pluginId}/lib/${libName}${ext}`;
+        const loader = pluginLibs[path];
+        if (loader) {
+            try {
+                return (await loader()) as T;
+            } catch {
+                return null;
+            }
+        }
     }
+    return null;
 }

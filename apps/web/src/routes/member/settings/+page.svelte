@@ -28,7 +28,11 @@
 
     let { data }: { data: PageData } = $props();
 
-    let profiles = $state(data.socialProfiles);
+    let profiles = $state([] as typeof data.socialProfiles);
+
+    $effect(() => {
+        profiles = data.socialProfiles;
+    });
     let disconnecting = $state<number | null>(null);
     let error = $state<string | null>(null);
 

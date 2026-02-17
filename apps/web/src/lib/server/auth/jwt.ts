@@ -5,9 +5,6 @@
 import { SignJWT, jwtVerify } from 'jose';
 
 const JWT_SECRET = process.env.JWT_SECRET || '';
-if (!JWT_SECRET) {
-    console.warn('[JWT] JWT_SECRET 환경변수가 설정되지 않았습니다');
-}
 
 const secret = new TextEncoder().encode(JWT_SECRET);
 

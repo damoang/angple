@@ -84,10 +84,6 @@ export const POST: RequestHandler = async ({ request }) => {
 
         // 토큰 형식 기본 검증 (ghp_, github_pat_, gho_ 등)
         const tokenPrefixes = ['ghp_', 'github_pat_', 'gho_', 'ghu_', 'ghs_'];
-        if (!tokenPrefixes.some((prefix) => body.token.startsWith(prefix))) {
-            console.warn('[API] 비표준 토큰 형식:', body.token.substring(0, 4));
-        }
-
         const tokenProvider = getTokenProvider();
 
         if (!tokenProvider.isConfigured()) {
@@ -117,8 +113,6 @@ export const POST: RequestHandler = async ({ request }) => {
 
         // 토큰 저장
         await tokenProvider.setToken(scope, body.token);
-
-        console.log(`✅ [API] 토큰 저장됨: ${scope}`);
 
         return json({
             success: true,
@@ -163,7 +157,6 @@ export const DELETE: RequestHandler = async ({ url }) => {
         const deleted = await tokenProvider.deleteToken(scope);
 
         if (deleted) {
-            console.log(`✅ [API] 토큰 삭제됨: ${scope}`);
             return json({ success: true, scope });
         } else {
             return json(

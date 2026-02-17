@@ -67,12 +67,40 @@ export interface ApiKeyServiceMeta {
     }[];
 }
 
+/** 기능 플래그 설정 */
+export interface FeatureFlagsSettings {
+    aiSpamFilter: boolean;
+    aiSummarize: boolean;
+    sseRealtime: boolean;
+    pushNotification: boolean;
+    qaBoard: boolean;
+    mentionNotify: boolean;
+    autosave: boolean;
+}
+
+/** SEO 설정 */
+export interface SeoSettings {
+    metaDescription: string;
+    ogImage: string;
+    robotsTxt: string;
+}
+
+/** 기능 플래그 메타 정보 (UI용) */
+export interface FeatureFlagMeta {
+    id: keyof FeatureFlagsSettings;
+    name: string;
+    description: string;
+    dependency?: string;
+}
+
 /** 사이트 전체 설정 */
 export interface SiteSettings {
     general: GeneralSettings;
     oauth: OAuthSettings;
     analytics: AnalyticsSettings;
     apiKeys: ApiKeysSettings;
+    featureFlags: FeatureFlagsSettings;
+    seo: SeoSettings;
 }
 
 /** 기본 OAuth 프로바이더 설정 */
@@ -105,8 +133,64 @@ export const DEFAULT_SITE_SETTINGS: SiteSettings = {
         aws: { accessKeyId: '', secretAccessKey: '', region: 'ap-northeast-2', enabled: false },
         smtp: { host: '', port: 587, username: '', password: '', enabled: false },
         pushNotification: { fcmServerKey: '', enabled: false }
+    },
+    featureFlags: {
+        aiSpamFilter: false,
+        aiSummarize: false,
+        sseRealtime: true,
+        pushNotification: false,
+        qaBoard: true,
+        mentionNotify: true,
+        autosave: true
+    },
+    seo: {
+        metaDescription: '',
+        ogImage: '',
+        robotsTxt: ''
     }
 };
+
+/** 기능 플래그 메타 목록 */
+export const FEATURE_FLAG_META: FeatureFlagMeta[] = [
+    {
+        id: 'aiSpamFilter',
+        name: 'AI 스팸 필터',
+        description: '게시글 작성 시 AI 기반 스팸 분석을 수행합니다.',
+        dependency: 'OpenAI 또는 Anthropic API 키'
+    },
+    {
+        id: 'aiSummarize',
+        name: 'AI 자동 요약',
+        description: '긴 게시글을 AI가 자동으로 요약합니다.',
+        dependency: 'OpenAI 또는 Anthropic API 키'
+    },
+    {
+        id: 'sseRealtime',
+        name: '실시간 알림',
+        description: 'SSE 기반 실시간 알림과 접속자 수를 표시합니다.'
+    },
+    {
+        id: 'pushNotification',
+        name: '푸시 알림',
+        description: '브라우저 푸시 알림을 활성화합니다.',
+        dependency: 'FCM Server Key'
+    },
+    {
+        id: 'qaBoard',
+        name: 'Q&A 게시판',
+        description: '질문/답변 형식의 게시판 타입을 사용합니다.'
+    },
+    {
+        id: 'mentionNotify',
+        name: '@멘션 알림',
+        description: '게시글/댓글에서 @멘션 시 알림을 전송합니다.'
+    },
+    {
+        id: 'autosave',
+        name: '자동저장',
+        description: '글 작성 중 30초 간격으로 자동 저장합니다.'
+    }
+];
 
 /** OAuth 프로바이더 메타 목록 */
 export const OAUTH_PROVIDER_META: OAuthProviderMeta[] = [

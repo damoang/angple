@@ -24,7 +24,6 @@ let initialized = false;
  */
 export function initBuiltinHooks(): void {
     if (initialized) {
-        console.warn('[Hooks] Built-in hooks already initialized, skipping...');
         return;
     }
 
@@ -38,7 +37,6 @@ export function initBuiltinHooks(): void {
     initContentEmbed();
 
     initialized = true;
-    console.log('[Hooks] Built-in hooks initialized successfully');
 }
 
 /**

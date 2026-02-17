@@ -16,7 +16,10 @@
 </script>
 
 <svelte:head>
-    <title>{status} - {is404 ? '페이지를 찾을 수 없습니다' : '오류가 발생했습니다'} | {import.meta.env.VITE_SITE_NAME || 'Angple'}</title>
+    <title
+        >{status} - {is404 ? '페이지를 찾을 수 없습니다' : '오류가 발생했습니다'} | {import.meta.env
+            .VITE_SITE_NAME || 'Angple'}</title
+    >
 </svelte:head>
 
 <div class="mx-auto max-w-lg px-4 py-16">

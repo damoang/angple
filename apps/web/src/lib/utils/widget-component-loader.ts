@@ -45,8 +45,7 @@ function scanWidgets(): Map<string, ScannedWidget> {
     // 빌트인 위젯 스캔
     for (const [path, module] of Object.entries(builtinManifests)) {
         const id = extractWidgetId(path);
-        const raw =
-            (module as { default?: WidgetManifest }).default ?? (module as WidgetManifest);
+        const raw = (module as { default?: WidgetManifest }).default ?? (module as WidgetManifest);
 
         // enabled: false인 위젯은 건너뛰기
         if ((raw as WidgetManifest & { enabled?: boolean }).enabled === false) continue;
@@ -54,7 +53,6 @@ function scanWidgets(): Map<string, ScannedWidget> {
         // Zod 스키마 검증
         const result = safeValidateWidgetManifest({ ...raw, id });
         if (!result.success) {
-            console.warn(`[Widget Loader] 매니페스트 검증 실패 (${id}):`, result.error.issues);
             continue;
         }
 
@@ -72,8 +70,7 @@ function scanWidgets(): Map<string, ScannedWidget> {
     // 커스텀 위젯 스캔
     for (const [path, module] of Object.entries(customManifests)) {
         const id = extractWidgetId(path);
-        const raw =
-            (module as { default?: WidgetManifest }).default ?? (module as WidgetManifest);
+        const raw = (module as { default?: WidgetManifest }).default ?? (module as WidgetManifest);
 
         // enabled: false인 위젯은 건너뛰기
         if ((raw as WidgetManifest & { enabled?: boolean }).enabled === false) continue;
@@ -81,7 +78,6 @@ function scanWidgets(): Map<string, ScannedWidget> {
         // Zod 스키마 검증
         const result = safeValidateWidgetManifest({ ...raw, id });
         if (!result.success) {
-            console.warn(`[Widget Loader] 커스텀 위젯 매니페스트 검증 실패 (${id}):`, result.error.issues);
             continue;
         }
 
@@ -120,7 +116,6 @@ export async function loadWidgetComponent(type: string): Promise<Component | nul
     const widget = widgets.get(type);
 
     if (!widget) {
-        console.warn(`[Widget Loader] 위젯을 찾을 수 없습니다: ${type}`);
         return null;
     }
 

@@ -17,9 +17,9 @@
     const { widget, zone, open, onOpenChange }: Props = $props();
 
     // 로컬 설정 상태
-    let boardId = $state((widget.settings?.boardId as string) ?? '');
-    let limit = $state((widget.settings?.limit as number) ?? 10);
-    let sortBy = $state((widget.settings?.sortBy as string) ?? 'latest');
+    let boardId = $state('');
+    let limit = $state(10);
+    let sortBy = $state('latest');
 
     const isBoardFilterable = $derived(
         BOARD_FILTERABLE_WIDGET_TYPES.includes(

@@ -130,7 +130,6 @@ export function createTokenProvider(): GitHubTokenProvider {
     return {
         async getToken(scope: string): Promise<string | null> {
             if (!isEncryptionConfigured()) {
-                console.warn('[Token Provider] 암호화 키가 설정되지 않았습니다.');
                 return null;
             }
             return getToken(scope);

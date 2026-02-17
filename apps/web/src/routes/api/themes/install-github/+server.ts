@@ -18,10 +18,21 @@ import {
     type FileInfo
 } from '$lib/server/theme-security';
 import { safeBasename } from '$lib/server/path-utils';
+import { getTokenProvider } from '$lib/server/github-tokens/token-provider';
 
-// 테마 디렉터리 경로
-const THEMES_DIR = path.join(process.cwd(), 'themes');
-const TEMP_DIR = path.join(process.cwd(), '.tmp');
+// 프로젝트 루트 디렉터리 (monorepo 환경에서 apps/web이 아닌 루트)
+function getProjectRoot(): string {
+    const cwd = process.cwd();
+    if (cwd.includes('apps/web') || cwd.includes('apps/admin')) {
+        return path.resolve(cwd, '../..');
+    }
+    return cwd;
+}
+
+const PROJECT_ROOT = getProjectRoot();
+const THEMES_DIR = path.join(PROJECT_ROOT, 'themes');
+const CUSTOM_THEMES_DIR = path.join(PROJECT_ROOT, 'custom-themes');
+const TEMP_DIR = path.join(PROJECT_ROOT, '.tmp');
 
 /**
  * GitHub URL 검증
@@ -56,7 +67,6 @@ async function getFileList(dir: string, baseDir: string = dir): Promise<string[]
         // Symlink 보안 체크
         const stats = await lstat(fullPath);
         if (stats.isSymbolicLink()) {
-            console.warn(`⚠️ Symlink 감지, 스킵: ${relativePath}`);
             continue;
         }
 
@@ -93,7 +103,6 @@ async function copyDir(src: string, dest: string) {
         // Symlink 보안 체크
         const stats = await lstat(srcPath);
         if (stats.isSymbolicLink()) {
-            console.warn(`⚠️ Symlink 감지, 복사 스킵: ${srcPath}`);
             continue;
         }
 
@@ -114,9 +123,9 @@ export const POST: RequestHandler = async ({ request }) => {
     let tempClonePath: string | null = null;
 
     try {
-        // 1. 요청 본문에서 GitHub URL 가져오기
+        // 1. 요청 본문에서 파라미터 가져오기
         const body = await request.json();
-        const { githubUrl } = body;
+        const { githubUrl, scope, subdirectory, force } = body;
 
         if (!githubUrl) {
             return json({ error: 'GitHub URL이 제공되지 않았습니다.' }, { status: 400 });
@@ -133,8 +142,6 @@ export const POST: RequestHandler = async ({ request }) => {
             );
         }
 
-        console.log(`📦 [GitHub Install] GitHub URL 수신: ${githubUrl}`);
-
         // 3. 임시 디렉터리 생성
         if (!existsSync(TEMP_DIR)) {
             await mkdir(TEMP_DIR, { recursive: true });
@@ -143,28 +150,64 @@ export const POST: RequestHandler = async ({ request }) => {
         const tempId = `github-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
         tempClonePath = path.join(TEMP_DIR, tempId);
 
-        // 4. Git clone 실행
-        console.log(`🔄 [GitHub Install] Cloning repository...`);
+        // 4. Git clone 실행 (scope가 있으면 인증된 clone)
         const git = simpleGit();
+        let cloneUrl = githubUrl;
+
+        if (scope) {
+            const tokenProvider = getTokenProvider();
+            const token = await tokenProvider.getToken(scope);
+            if (token) {
+                const parsedUrl = new URL(githubUrl);
+                parsedUrl.username = 'x-access-token';
+                parsedUrl.password = token;
+                cloneUrl = parsedUrl.toString();
+            } else {
+                return json(
+                    {
+                        error: 'GitHub 토큰이 설정되지 않았습니다.',
+                        message: `'${scope}' scope의 토큰을 먼저 등록해주세요.`,
+                        requiresAuth: true
+                    },
+                    { status: 401 }
+                );
+            }
+        }
 
         try {
-            await git.clone(githubUrl, tempClonePath, ['--depth', '1']);
+            await git.clone(cloneUrl, tempClonePath, ['--depth', '1']);
         } catch (gitError) {
-            console.error('❌ [GitHub Install] Git clone 실패:', gitError);
+            console.error('[GitHub Install] Git clone 실패:', gitError);
             return json(
                 {
                     error: 'GitHub 저장소를 클론할 수 없습니다.',
                     details: gitError instanceof Error ? gitError.message : String(gitError),
-                    message: '저장소가 존재하는지, 공개 저장소인지 확인해주세요.'
+                    message: scope
+                        ? '토큰 권한을 확인하거나, 저장소가 존재하는지 확인해주세요.'
+                        : '저장소가 존재하는지, 공개 저장소인지 확인해주세요.'
                 },
                 { status: 400 }
             );
         }
 
-        console.log(`✅ [GitHub Install] Clone 완료: ${tempClonePath}`);
+        // 4.5. subdirectory 처리 — 모노레포에서 특정 테마만 추출
+        let themeSourcePath = tempClonePath;
+        if (subdirectory) {
+            const subPath = path.join(tempClonePath, subdirectory);
+            if (!existsSync(subPath)) {
+                return json(
+                    {
+                        error: `서브디렉토리 '${subdirectory}'를 찾을 수 없습니다.`,
+                        message: '저장소 구조를 확인해주세요.'
+                    },
+                    { status: 400 }
+                );
+            }
+            themeSourcePath = subPath;
+        }
 
         // 5. 파일 목록 가져오기
-        const fileList = await getFileList(tempClonePath);
+        const fileList = await getFileList(themeSourcePath);
 
         // 6. theme.json 존재 여부 확인
         if (!hasThemeManifest(fileList)) {
@@ -180,7 +223,7 @@ export const POST: RequestHandler = async ({ request }) => {
         // 7. 파일 크기 검증
         const fileInfos: FileInfo[] = [];
         for (const file of fileList) {
-            const filePath = path.join(tempClonePath, file);
+            const filePath = path.join(themeSourcePath, file);
             const { stat } = await import('fs/promises');
             const stats = await stat(filePath);
             fileInfos.push({
@@ -201,10 +244,10 @@ export const POST: RequestHandler = async ({ request }) => {
         }
 
         // 8. 보안 검증
-        const securityValidation = await validateThemeFiles(fileList, tempClonePath);
+        const securityValidation = await validateThemeFiles(fileList, themeSourcePath);
 
         if (!securityValidation.valid) {
-            console.error('🚨 [GitHub Install] 보안 검증 실패:', securityValidation.errors);
+            console.error('[GitHub Install] 보안 검증 실패:', securityValidation.errors);
             return json(
                 {
                     error: '보안 검증 실패',
@@ -223,7 +266,7 @@ export const POST: RequestHandler = async ({ request }) => {
             return json({ error: 'theme.json을 찾을 수 없습니다.' }, { status: 400 });
         }
 
-        const manifestFullPath = path.join(tempClonePath, manifestPath);
+        const manifestFullPath = path.join(themeSourcePath, manifestPath);
         const manifestContent = await readFile(manifestFullPath, 'utf-8');
         const manifestJson = JSON.parse(manifestContent);
 
@@ -242,11 +285,17 @@ export const POST: RequestHandler = async ({ request }) => {
         }
 
         const manifest = validationResult.data;
-        console.log(`✅ [GitHub Install] Manifest 검증 완료: ${manifest.id}`);
 
         // 10. 테마가 이미 설치되어 있는지 확인
-        const targetPath = path.join(THEMES_DIR, manifest.id);
-        if (existsSync(targetPath)) {
+        // scope가 있으면 프리미엄 → custom-themes/, 없으면 → themes/
+        const installDir = scope ? CUSTOM_THEMES_DIR : THEMES_DIR;
+        const targetPath = path.join(installDir, manifest.id);
+
+        // 양쪽 디렉토리 모두 확인
+        const existsInThemes = existsSync(path.join(THEMES_DIR, manifest.id));
+        const existsInCustom = existsSync(path.join(CUSTOM_THEMES_DIR, manifest.id));
+
+        if ((existsInThemes || existsInCustom) && !force) {
             return json(
                 {
                     error: '이미 설치된 테마입니다.',
@@ -256,13 +305,18 @@ export const POST: RequestHandler = async ({ request }) => {
             );
         }
 
-        // 11. themes/ 폴더에 복사 (.git 제외)
-        await mkdir(THEMES_DIR, { recursive: true });
+        // force 모드: 기존 디렉터리 삭제 후 재설치 (업데이트)
+        if (force && (existsInThemes || existsInCustom)) {
+            const existingPath = existsInCustom
+                ? path.join(CUSTOM_THEMES_DIR, manifest.id)
+                : path.join(THEMES_DIR, manifest.id);
+            await rm(existingPath, { recursive: true, force: true });
+        }
 
-        console.log(`📂 [GitHub Install] Copying to themes/${manifest.id}...`);
-        await copyDir(tempClonePath, targetPath);
+        // 11. 대상 폴더에 복사 (.git 제외)
+        await mkdir(installDir, { recursive: true });
 
-        console.log(`✅ [GitHub Install] 테마 설치 완료: ${manifest.id}`);
+        await copyDir(themeSourcePath, targetPath);
 
         // 12. 임시 파일 삭제
         await rm(tempClonePath, { recursive: true, force: true });
@@ -277,7 +331,7 @@ export const POST: RequestHandler = async ({ request }) => {
             }
         });
     } catch (error) {
-        console.error('❌ [GitHub Install] 설치 실패:', error);
+        console.error('[GitHub Install] 설치 실패:', error);
 
         // 에러 발생 시 임시 파일 정리
         if (tempClonePath && existsSync(tempClonePath)) {

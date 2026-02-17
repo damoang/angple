@@ -12,7 +12,11 @@
     let { data }: { data: PageData } = $props();
 
     // 로컬 차단 목록 상태 (차단 해제시 반응형 업데이트)
-    let blockedMembers = $state<BlockedMember[]>(data.blockedMembers || []);
+    let blockedMembers = $state<BlockedMember[]>([]);
+
+    $effect(() => {
+        blockedMembers = data.blockedMembers || [];
+    });
     let unblockingId = $state<string | null>(null);
 
     // 날짜 포맷

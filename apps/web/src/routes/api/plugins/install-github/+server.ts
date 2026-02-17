@@ -54,8 +54,6 @@ export const POST: RequestHandler = async ({ request }) => {
             saveToken: body.saveToken ?? false
         };
 
-        console.log(`📦 [API] 플러그인 설치 요청: ${body.packageName}`);
-
         // 설치 실행
         const result = await installer.install(installRequest);
 

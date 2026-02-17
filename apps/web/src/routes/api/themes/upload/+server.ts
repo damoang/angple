@@ -174,8 +174,6 @@ export const POST: RequestHandler = async ({ request }) => {
             // 테마 재스캔
             scanThemes();
 
-            console.log(`✅ [Theme Upload] 테마 업로드 성공: ${themeId}`);
-
             return json({
                 success: true,
                 message: `테마 "${themeManifest.name}"가 성공적으로 업로드되었습니다.`,
@@ -188,7 +186,7 @@ export const POST: RequestHandler = async ({ request }) => {
                 rmSync(tempZipPath);
             }
 
-            console.error('❌ [Theme Upload] 업로드 처리 중 오류:', error);
+            console.error('[Theme Upload] 업로드 처리 중 오류:', error);
             return json(
                 {
                     success: false,
@@ -199,7 +197,7 @@ export const POST: RequestHandler = async ({ request }) => {
             );
         }
     } catch (error) {
-        console.error('❌ [Theme Upload] 요청 처리 중 오류:', error);
+        console.error('[Theme Upload] 요청 처리 중 오류:', error);
         return json(
             {
                 success: false,

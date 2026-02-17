@@ -50,8 +50,8 @@
             try {
                 (window.adsbygoogle = window.adsbygoogle || []).push({});
                 (window.adsbygoogle = window.adsbygoogle || []).push({});
-            } catch (e) {
-                console.warn('AdSense error:', e);
+            } catch {
+                // AdSense push failed silently
             }
         }, 100);
     }

@@ -222,7 +222,9 @@
     <Card class="w-full max-w-md">
         <CardHeader class="text-center">
             <CardTitle class="text-2xl font-bold">로그인</CardTitle>
-            <CardDescription>{import.meta.env.VITE_SITE_NAME || 'Angple'}에 오신 것을 환영합니다</CardDescription>
+            <CardDescription
+                >{import.meta.env.VITE_SITE_NAME || 'Angple'}에 오신 것을 환영합니다</CardDescription
+            >
         </CardHeader>
         <CardContent class="space-y-6">
             <!-- 성공 메시지 -->

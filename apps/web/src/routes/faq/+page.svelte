@@ -9,7 +9,10 @@
     let { data }: { data: PageData } = $props();
 
     // 현재 선택된 카테고리
-    let selectedCategoryId = $state(data.categories[0]?.fm_id ?? 0);
+    let selectedCategoryId = $state(0);
+    $effect(() => {
+        selectedCategoryId = data.categories[0]?.fm_id ?? 0;
+    });
 
     // 선택된 카테고리의 항목 필터
     const filteredItems = $derived(data.items.filter((item) => item.fm_id === selectedCategoryId));
@@ -22,7 +25,10 @@
 
 <svelte:head>
     <title>자주 묻는 질문 (FAQ) | {import.meta.env.VITE_SITE_NAME || 'Angple'}</title>
-    <meta name="description" content="{import.meta.env.VITE_SITE_NAME || 'Angple'} 커뮤니티 자주 묻는 질문과 답변입니다." />
+    <meta
+        name="description"
+        content="{import.meta.env.VITE_SITE_NAME || 'Angple'} 커뮤니티 자주 묻는 질문과 답변입니다."
+    />
 </svelte:head>
 
 <div class="mx-auto max-w-3xl pt-4">

@@ -6,7 +6,7 @@
     import type { FreePost } from '$lib/api/types.js';
     import { memberLevelStore } from '$lib/stores/member-levels.svelte.js';
     import { Button } from '$lib/components/ui/button/index.js';
-    import CardLayout from './layouts/list/card.svelte';
+    import CompactLayout from './layouts/list/compact.svelte';
 
     interface Props {
         boardId: string;
@@ -88,19 +88,29 @@
     });
 </script>
 
-<!--
-    RecentPosts - 게시판 목록과 동일한 card 레이아웃 사용
-    - layouts/list/card.svelte 컴포넌트 직접 사용
-    - 테이블 형식 백업: recent-posts-table.svelte
--->
+<!-- 헤더 -->
+<div class="mb-3 flex items-center justify-between">
+    <a
+        href="/{boardId}"
+        class="text-foreground hover:text-primary text-lg font-bold transition-colors"
+    >
+        {boardTitle}
+    </a>
+    <a
+        href="/{boardId}"
+        class="text-muted-foreground hover:text-foreground text-sm transition-colors"
+    >
+        목록 전체보기 →
+    </a>
+</div>
+
 {#if loading}
     <!-- 로딩 스켈레톤 -->
-    <div class="space-y-2">
+    <div class="space-y-1">
         {#each Array(5) as _, i (i)}
-            <div class="bg-background rounded-lg border p-4">
-                <div class="bg-muted mb-2 h-5 w-3/4 animate-pulse rounded"></div>
-                <div class="bg-muted mb-3 h-4 w-1/2 animate-pulse rounded"></div>
-                <div class="bg-muted h-10 w-full animate-pulse rounded"></div>
+            <div class="bg-background rounded-lg border px-4 py-3">
+                <div class="bg-muted mb-2 h-4 w-2/3 animate-pulse rounded"></div>
+                <div class="bg-muted h-3 w-1/3 animate-pulse rounded"></div>
             </div>
         {/each}
     </div>
@@ -113,16 +123,15 @@
         <p class="text-muted-foreground text-sm">최근 글이 없습니다.</p>
     </div>
 {:else}
-    <!-- 목록 (게시판 목록과 동일한 card 레이아웃) -->
-    <div class="space-y-2">
+    <div class="space-y-1">
         {#each posts as post (post.id)}
-            <CardLayout {post} onclick={() => goToPost(post.id)} />
+            <CompactLayout {post} onclick={() => goToPost(post.id)} />
         {/each}
     </div>
 
     <!-- 페이지네이션 -->
     {#if totalPages > 1}
-        <div class="mt-8 flex items-center justify-center gap-2">
+        <div class="mt-4 flex items-center justify-center gap-2">
             <Button
                 variant="outline"
                 size="sm"
@@ -152,7 +161,7 @@
             </Button>
         </div>
 
-        <p class="text-secondary-foreground mt-4 text-center text-sm">
+        <p class="text-secondary-foreground mt-3 text-center text-sm">
             전체 {totalItems.toLocaleString()}개 중 {currentPage} / {totalPages} 페이지
         </p>
     {/if}

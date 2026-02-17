@@ -38,7 +38,7 @@ export const GET: RequestHandler = async ({ params }) => {
             }
         });
     } catch (err) {
-        console.error('❌ [API /plugins/[id]] 플러그인 조회 실패:', err);
+        console.error('[API /plugins/[id]] 플러그인 조회 실패:', err);
 
         if (err && typeof err === 'object' && 'status' in err) {
             throw err;
@@ -95,14 +95,12 @@ export const DELETE: RequestHandler = async ({ params }) => {
 
         await rm(pluginPath, { recursive: true, force: true });
 
-        console.log(`✅ [API /plugins/[id]] 플러그인 삭제됨: ${id}`);
-
         return json({
             success: true,
             message: `플러그인이 삭제되었습니다: ${id}`
         });
     } catch (err) {
-        console.error('❌ [API /plugins/[id]] 플러그인 삭제 실패:', err);
+        console.error('[API /plugins/[id]] 플러그인 삭제 실패:', err);
 
         if (err && typeof err === 'object' && 'status' in err) {
             throw err;

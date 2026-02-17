@@ -7,15 +7,11 @@ import { getActivePlugins } from '$lib/server/plugins';
  * 모든 페이지 로드 전에 실행됨
  */
 export const load: LayoutServerLoad = async ({ url, locals }) => {
-    console.log(`[SSR] Loading page: ${url.pathname}`);
-
     // 서버에서 활성 테마 조회 (깜박임 방지)
     const activeTheme = await getActiveTheme();
-    console.log(`[SSR] Active theme: ${activeTheme?.manifest.id || 'null'}`);
 
     // 서버에서 활성 플러그인 목록 조회
     const activePlugins = await getActivePlugins();
-    console.log(`[SSR] Active plugins: ${activePlugins.length}개`);
 
     return {
         pathname: url.pathname,

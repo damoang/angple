@@ -29,8 +29,6 @@ export function initBoardFilters(): void {
 
     // 신고된 글 마킹 (priority: 20)
     hooks.addFilter('post_list', markReportedPosts, 20);
-
-    console.log('[Built-in] Board filters initialized');
 }
 
 /**

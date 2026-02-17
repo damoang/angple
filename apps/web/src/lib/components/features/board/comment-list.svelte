@@ -29,9 +29,12 @@
     $effect(() => {
         if (pluginStore.isPluginActive('member-memo')) {
             loadPluginComponent('member-memo', 'memo-badge').then((c) => (MemoBadge = c));
-            loadPluginLib<{ loadMemosForAuthors: (ids: string[]) => void }>('member-memo', 'memo-store').then(
-                (m) => { if (m) loadMemosForAuthors = m.loadMemosForAuthors; }
-            );
+            loadPluginLib<{ loadMemosForAuthors: (ids: string[]) => void }>(
+                'member-memo',
+                'memo-store'
+            ).then((m) => {
+                if (m) loadMemosForAuthors = m.loadMemosForAuthors;
+            });
         }
     });
     import { memberLevelStore } from '$lib/stores/member-levels.svelte.js';
@@ -527,7 +530,7 @@
                                 />
                                 {comment.author}
                                 {#if memoPluginActive && MemoBadge}
-                                    <svelte:component this={MemoBadge} memberId={comment.author_id} showIcon={true} />
+                                    <MemoBadge memberId={comment.author_id} showIcon={true} />
                                 {/if}
                                 {#if comment.author_ip}
                                     <span class="text-muted-foreground text-xs font-normal"

@@ -33,7 +33,7 @@ export const GET: RequestHandler = async ({ params }) => {
             schema: plugin.manifest.settings || {}
         });
     } catch (err) {
-        console.error('❌ [API /plugins/[id]/settings] 설정 조회 실패:', err);
+        console.error('[API /plugins/[id]/settings] 설정 조회 실패:', err);
 
         if (err && typeof err === 'object' && 'status' in err) {
             throw err;
@@ -73,15 +73,13 @@ export const PUT: RequestHandler = async ({ params, request }) => {
             throw error(500, '플러그인 설정 저장에 실패했습니다.');
         }
 
-        console.log(`✅ [API /plugins/[id]/settings] 설정 업데이트: ${id}`);
-
         return json({
             success: true,
             pluginId: id,
             settings
         });
     } catch (err) {
-        console.error('❌ [API /plugins/[id]/settings] 설정 수정 실패:', err);
+        console.error('[API /plugins/[id]/settings] 설정 수정 실패:', err);
 
         if (err && typeof err === 'object' && 'status' in err) {
             throw err;

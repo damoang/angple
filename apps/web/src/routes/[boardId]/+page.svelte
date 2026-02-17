@@ -26,6 +26,10 @@
     // 특수 게시판 컴포넌트 (플러그인 레지스트리 기반)
     import { boardTypeRegistry } from '$lib/components/features/board/board-type-registry.js';
     import BoardMapHeader from '$lib/components/features/board/board-map-header.svelte';
+    import QAPostList from '$lib/components/features/board/qa-post-list.svelte';
+
+    // Q&A 게시판 타입 등록
+    boardTypeRegistry.register('qa', QAPostList, 'core');
 
     // Board Layout System
     import { layoutRegistry, initCoreLayouts } from '$lib/components/features/board/layouts';
@@ -228,7 +232,8 @@
 
 <!-- 특수 게시판: 플러그인 레지스트리 기반 동적 로딩 -->
 {#if boardTypeComponent}
-    <svelte:component this={boardTypeComponent} {data} />
+    {@const BoardTypeComponent = boardTypeComponent}
+    <BoardTypeComponent {data} />
 {:else}
     <SeoHead config={seoConfig} />
 

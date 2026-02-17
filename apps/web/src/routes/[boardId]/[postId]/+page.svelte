@@ -27,7 +27,8 @@
     import RecentPosts from '$lib/components/features/board/recent-posts.svelte';
     import { RecommendedPosts } from '$lib/components/features/recommended/index.js';
     import { ReportDialog } from '$lib/components/features/report/index.js';
-    import type { FreeComment, LikerInfo } from '$lib/api/types.js';
+    import type { FreeComment, FreePost, LikerInfo } from '$lib/api/types.js';
+    import { sendMentionNotifications } from '$lib/utils/mention-notify.js';
     import { onMount } from 'svelte';
     import { page } from '$app/stores';
     import { AdultBlur } from '$lib/components/features/adult/index.js';
@@ -47,6 +48,28 @@
         MARKET_STATUS_LABELS,
         type MarketStatus
     } from '$lib/types/used-market.js';
+    import QAAnswerSection from '$lib/components/features/board/qa-answer-section.svelte';
+    import AuthorActivityPanel from '$lib/components/features/board/author-activity-panel.svelte';
+
+    // Q&A 게시판 슬롯 등록
+    postSlotRegistry.register('post.before_content', {
+        component: QAAnswerSection,
+        condition: (boardType: string) => boardType === 'qa',
+        priority: 5,
+        propsMapper: (pageData: { post: FreePost; boardId: string }) => ({
+            post: pageData.post,
+            boardId: pageData.boardId
+        })
+    });
+
+    // 작성자 활동 패널 슬롯 등록
+    postSlotRegistry.register('post.before_comments', {
+        component: AuthorActivityPanel,
+        priority: 10,
+        propsMapper: (pageData: { post: FreePost; boardId: string }) => ({
+            post: pageData.post
+        })
+    });
     import { ReactionBar } from '$lib/components/features/reaction/index.js';
     import { AvatarStack } from '$lib/components/ui/avatar-stack/index.js';
     import { loadPluginComponent } from '$lib/utils/plugin-optional-loader';
@@ -65,7 +88,9 @@
     $effect(() => {
         if (memoPluginActive) {
             loadPluginComponent('member-memo', 'memo-badge').then((c) => (MemoBadge = c));
-            loadPluginComponent('member-memo', 'memo-inline-editor').then((c) => (MemoInlineEditor = c));
+            loadPluginComponent('member-memo', 'memo-inline-editor').then(
+                (c) => (MemoInlineEditor = c)
+            );
         }
     });
 
@@ -95,11 +120,18 @@
     );
     const isUsedMarket = $derived(boardType === 'used-market');
 
-    // 플러그인 슬롯: post.after_content (나눔 BidPanel 등)
+    // 플러그인 슬롯
+    const beforeContentSlots = $derived(postSlotRegistry.resolve('post.before_content', boardType));
     const afterContentSlots = $derived(postSlotRegistry.resolve('post.after_content', boardType));
+    const beforeCommentsSlots = $derived(
+        postSlotRegistry.resolve('post.before_comments', boardType)
+    );
 
     // 중고게시판 상태 관리
-    let marketStatus = $state((data.post.extra_2 as MarketStatus) || 'selling');
+    let marketStatus = $state<MarketStatus>('selling');
+    $effect(() => {
+        marketStatus = (data.post.extra_2 as MarketStatus) || 'selling';
+    });
     let isChangingMarketStatus = $state(false);
 
     async function changeMarketStatus(newStatus: MarketStatus) {
@@ -125,11 +157,17 @@
     }
 
     // 댓글 목록 상태 (반응형으로 관리)
-    let comments = $state<FreeComment[]>(data.comments.items);
+    let comments = $state<FreeComment[]>([]);
+    $effect(() => {
+        comments = data.comments.items;
+    });
     let isCreatingComment = $state(false);
 
     // 추천/비추천 상태
-    let likeCount = $state(data.post.likes);
+    let likeCount = $state(0);
+    $effect(() => {
+        likeCount = data.post.likes;
+    });
     let dislikeCount = $state(0);
     let isLiked = $state(false);
     let isDisliked = $state(false);
@@ -212,7 +250,10 @@
     const canViewSecret = $derived(!data.post.is_secret || isAuthor || isAdmin);
 
     // 공지 상태
-    let noticeType = $state<'normal' | 'important' | null>(data.post.notice_type ?? null);
+    let noticeType = $state<'normal' | 'important' | null>(null);
+    $effect(() => {
+        noticeType = data.post.notice_type ?? null;
+    });
     let isTogglingNotice = $state(false);
 
     async function toggleNotice(type: 'normal' | 'important' | null): Promise<void> {
@@ -357,6 +398,17 @@
 
             // 댓글 목록에 추가
             comments = [...comments, newComment];
+
+            // @멘션 알림 전송 (fire-and-forget)
+            sendMentionNotifications({
+                content,
+                postUrl: `/${boardId}/${data.post.id}`,
+                postTitle: data.post.title,
+                boardId,
+                postId: data.post.id,
+                senderName: authStore.user.mb_name,
+                senderId: authStore.user.mb_id || ''
+            });
         } finally {
             isCreatingComment = false;
         }
@@ -381,6 +433,17 @@
 
         // 댓글 목록에 추가
         comments = [...comments, newComment];
+
+        // @멘션 알림 전송 (fire-and-forget)
+        sendMentionNotifications({
+            content,
+            postUrl: `/${boardId}/${data.post.id}`,
+            postTitle: data.post.title,
+            boardId,
+            postId: data.post.id,
+            senderName: authStore.user.mb_name,
+            senderId: authStore.user.mb_id || ''
+        });
     }
 
     // 댓글 수정
@@ -547,7 +610,12 @@
                 {#if data.post.tags && data.post.tags.length > 0}
                     <div class="mt-3 flex flex-wrap gap-2">
                         {#each data.post.tags as tag, i (i)}
-                            <Badge variant="secondary">{tag}</Badge>
+                            <a href="/tags/{encodeURIComponent(tag)}">
+                                <Badge
+                                    variant="secondary"
+                                    class="hover:bg-primary/10 cursor-pointer">#{tag}</Badge
+                                >
+                            </a>
                         {/each}
                     </div>
                 {/if}
@@ -584,7 +652,7 @@
                             <LevelBadge level={memberLevelStore.getLevel(data.post.author_id)} />
                             {data.post.author}
                             {#if memoPluginActive && MemoBadge}
-                                <svelte:component this={MemoBadge} memberId={data.post.author_id} showIcon={true} />
+                                <MemoBadge memberId={data.post.author_id} showIcon={true} />
                             {/if}
                             {#if data.post.author_ip}
                                 <span class="text-muted-foreground ml-1 text-xs font-normal"
@@ -608,6 +676,12 @@
             </div>
         </CardHeader>
         <CardContent class="space-y-6">
+            <!-- 플러그인 슬롯: post.before_content (Q&A 상태 헤더 등) -->
+            {#each beforeContentSlots as slot (slot.component)}
+                {@const SlotComponent = slot.component}
+                <SlotComponent {...slot.propsMapper ? slot.propsMapper(data) : { data }} />
+            {/each}
+
             <!-- GAM 광고 -->
             {#if widgetLayoutStore.hasEnabledAds}
                 <AdSlot position="board-content" height="90px" />
@@ -743,11 +817,9 @@
 
     <!-- 플러그인 슬롯: post.after_content (나눔 BidPanel 등) -->
     {#each afterContentSlots as slot (slot.component)}
+        {@const SlotComponent = slot.component}
         <div class="mb-6">
-            <svelte:component
-                this={slot.component}
-                {...slot.propsMapper ? slot.propsMapper(data) : { data }}
-            />
+            <SlotComponent {...slot.propsMapper ? slot.propsMapper(data) : { data }} />
         </div>
     {/each}
 
@@ -769,6 +841,13 @@
             </div>
         </div>
     {/if}
+
+    {#each beforeCommentsSlots as slot (slot.component)}
+        {@const SlotComponent = slot.component}
+        <SlotComponent
+            {...slot.propsMapper ? slot.propsMapper({ post: data.post, boardId }) : {}}
+        />
+    {/each}
 
     <!-- 댓글 섹션 (비밀글 열람 가능 시에만 표시) -->
     {#if canViewSecret}
@@ -895,8 +974,7 @@
                                             {liker.mb_nick || liker.mb_name}
                                         </a>
                                         {#if memoPluginActive && MemoBadge}
-                                            <svelte:component
-                                                this={MemoBadge}
+                                            <MemoBadge
                                                 memberId={liker.mb_id}
                                                 showIcon={true}
                                                 onclick={() => {
@@ -929,8 +1007,7 @@
                             <!-- 인라인 메모 편집기 -->
                             {#if memoPluginActive && MemoInlineEditor && editingMemoFor === liker.mb_id}
                                 <div class="ml-11 mt-2">
-                                    <svelte:component
-                                        this={MemoInlineEditor}
+                                    <MemoInlineEditor
                                         memberId={liker.mb_id}
                                         onClose={() => {
                                             editingMemoFor = null;

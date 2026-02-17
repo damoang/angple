@@ -6,8 +6,6 @@ import { DEFAULT_WIDGETS, DEFAULT_SIDEBAR_WIDGETS } from '$lib/constants/default
 const INTERNAL_API_URL = process.env.INTERNAL_API_URL || 'http://localhost:8082/api/v1';
 
 export const load: PageServerLoad = async () => {
-    console.log('[SSR] Loading index widgets data');
-
     // 위젯 데이터와 레이아웃을 병렬로 로드
     const [indexWidgetsResult, layoutResult] = await Promise.allSettled([
         // 위젯 데이터 로드
@@ -48,7 +46,6 @@ export const load: PageServerLoad = async () => {
         console.error('[SSR] Failed to load index widgets:', indexWidgetsResult.reason);
     }
 
-    console.log('[SSR] Index widgets loaded');
     return {
         indexWidgets,
         widgetLayout: layoutData.widgetLayout,

@@ -39,7 +39,6 @@ export class SiteSettingsProvider {
                 JSON.stringify(DEFAULT_SITE_SETTINGS, null, 2),
                 'utf-8'
             );
-            console.log(`site-settings.json 생성: ${this.filePath}`);
         }
     }
 

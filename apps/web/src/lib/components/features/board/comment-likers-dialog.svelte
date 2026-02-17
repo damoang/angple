@@ -16,7 +16,9 @@
     $effect(() => {
         if (pluginStore.isPluginActive('member-memo')) {
             loadPluginComponent('member-memo', 'memo-badge').then((c) => (MemoBadge = c));
-            loadPluginComponent('member-memo', 'memo-inline-editor').then((c) => (MemoInlineEditor = c));
+            loadPluginComponent('member-memo', 'memo-inline-editor').then(
+                (c) => (MemoInlineEditor = c)
+            );
         }
     });
 
@@ -144,8 +146,7 @@
                                             {liker.mb_nick || liker.mb_name}
                                         </a>
                                         {#if memoPluginActive && MemoBadge}
-                                            <svelte:component
-                                                this={MemoBadge}
+                                            <MemoBadge
                                                 memberId={liker.mb_id}
                                                 showIcon={true}
                                                 onclick={() => {
@@ -176,8 +177,7 @@
 
                             {#if memoPluginActive && MemoInlineEditor && editingMemoFor === liker.mb_id}
                                 <div class="ml-11 mt-2">
-                                    <svelte:component
-                                        this={MemoInlineEditor}
+                                    <MemoInlineEditor
                                         memberId={liker.mb_id}
                                         onClose={() => {
                                             editingMemoFor = null;

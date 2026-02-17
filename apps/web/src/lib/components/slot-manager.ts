@@ -43,8 +43,6 @@ export type SlotName =
 
 /**
  * Component 슬롯 레지스트리
- *
- * 각 슬롯 포인트에 등록된 컴포넌트를 관리합니다.
  */
 class SlotRegistry {
     /** 슬롯별 컴포넌트 저장소 */
@@ -83,12 +81,6 @@ class SlotRegistry {
 
     /**
      * 컴포넌트를 슬롯에 등록
-     *
-     * @param slotName - 슬롯 이름
-     * @param component - Svelte 컴포넌트
-     * @param priority - 우선순위 (기본값: 10)
-     * @param props - 컴포넌트에 전달할 props (선택 사항)
-     * @param source - 등록 소스 (테마 ID 등)
      */
     register(
         slotName: SlotName,
@@ -97,14 +89,12 @@ class SlotRegistry {
         props?: Record<string, unknown>,
         source?: string
     ): void {
-        // 슬롯이 없으면 생성
         if (!this.slots.has(slotName)) {
             this.slots.set(slotName, []);
         }
 
         const componentList = this.slots.get(slotName)!;
 
-        // 고유 ID 생성 (타임스탬프 + 랜덤)
         const id = `${slotName}-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 
         componentList.push({
@@ -118,19 +108,11 @@ class SlotRegistry {
         // Priority 순으로 정렬 (낮은 숫자가 먼저)
         componentList.sort((a, b) => a.priority - b.priority);
 
-        console.log(
-            `✅ [Slot Manager] Registered component to "${slotName}" (priority: ${priority}, source: ${source || 'unknown'})`
-        );
-
-        // 변경 알림
         this.notifyChange();
     }
 
     /**
      * 특정 슬롯에 등록된 모든 컴포넌트 가져오기
-     *
-     * @param slotName - 슬롯 이름
-     * @returns 등록된 컴포넌트 배열 (priority 순 정렬됨)
      */
     getComponents(slotName: SlotName): SlotComponent[] {
         return this.slots.get(slotName) || [];
@@ -138,9 +120,6 @@ class SlotRegistry {
 
     /**
      * 특정 슬롯에 등록된 컴포넌트 개수
-     *
-     * @param slotName - 슬롯 이름
-     * @returns 컴포넌트 개수
      */
     getComponentCount(slotName: SlotName): number {
         return this.getComponents(slotName).length;
@@ -148,28 +127,22 @@ class SlotRegistry {
 
     /**
      * 특정 소스(테마)의 모든 컴포넌트 제거
-     *
-     * @param source - 제거할 소스 (테마 ID 등)
      */
     removeComponentsBySource(source: string): void {
         for (const [slotName, componentList] of this.slots.entries()) {
             const filtered = componentList.filter((comp) => comp.source !== source);
             this.slots.set(slotName, filtered);
 
-            // 빈 슬롯은 제거
             if (filtered.length === 0) {
                 this.slots.delete(slotName);
             }
         }
 
-        console.log(`🗑️ [Slot Manager] Removed all components from source: ${source}`);
         this.notifyChange();
     }
 
     /**
      * 특정 ID의 컴포넌트 제거
-     *
-     * @param id - 컴포넌트 ID
      */
     removeComponentById(id: string): void {
         for (const [slotName, componentList] of this.slots.entries()) {
@@ -181,7 +154,6 @@ class SlotRegistry {
             }
         }
 
-        console.log(`🗑️ [Slot Manager] Removed component: ${id}`);
         this.notifyChange();
     }
 
@@ -190,7 +162,6 @@ class SlotRegistry {
      */
     clearAll(): void {
         this.slots.clear();
-        console.log('🗑️ [Slot Manager] Cleared all slots');
         this.notifyChange();
     }
 
@@ -205,7 +176,7 @@ class SlotRegistry {
      * 디버깅용: 모든 슬롯 정보 출력
      */
     debug(): void {
-        console.log('🔍 [Slot Manager] Current slots:');
+        console.log('[Slot Manager] Current slots:');
         for (const [slotName, componentList] of this.slots.entries()) {
             console.log('  Slot:', { name: slotName, count: componentList.length });
             componentList.forEach((comp) => {

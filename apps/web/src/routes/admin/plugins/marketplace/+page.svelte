@@ -76,13 +76,12 @@
 
             if (data.plugins) {
                 plugins = data.plugins;
-                console.log(`✅ ${data.total}개 플러그인 로드 완료`);
             } else {
-                console.error('❌ 마켓플레이스 데이터 로드 실패:', data.error);
+                console.error('마켓플레이스 데이터 로드 실패:', data.error);
                 toast.error('플러그인 목록을 불러오는 데 실패했습니다.');
             }
         } catch (error) {
-            console.error('❌ 마켓플레이스 API 호출 실패:', error);
+            console.error('마켓플레이스 API 호출 실패:', error);
             toast.error('서버와 연결할 수 없습니다.');
         } finally {
             loading = false;
@@ -112,7 +111,7 @@
                 toast.error(data.error || '플러그인 설치에 실패했습니다.');
             }
         } catch (error) {
-            console.error('❌ 플러그인 설치 실패:', error);
+            console.error('플러그인 설치 실패:', error);
             toast.error('플러그인 설치 중 오류가 발생했습니다.');
         } finally {
             installingPlugins.delete(pluginId);

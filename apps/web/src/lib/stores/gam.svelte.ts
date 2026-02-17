@@ -120,7 +120,6 @@ export function defineSlot(
     onRenderEnd?: (isEmpty: boolean) => void
 ): GoogleTagSlot | null {
     if (!browser || !state.isInitialized || !window.googletag) {
-        console.warn('[GAM] 초기화되지 않음');
         return null;
     }
 
@@ -159,7 +158,6 @@ export function defineResponsiveSlot(
     onRenderEnd?: (isEmpty: boolean) => void
 ): GoogleTagSlot | null {
     if (!browser || !state.isInitialized || !window.googletag) {
-        console.warn('[GAM] 초기화되지 않음');
         return null;
     }
 

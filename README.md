@@ -2,335 +2,182 @@
 
 **오픈소스 커뮤니티 플랫폼**
 
-누구나 자유롭게 커뮤니티를 만들 수 있는 게시판 중심 플랫폼입니다. 테마와 플러그인 시스템을 통해 기업, 단체, 교회, 동호회, 회사, 개인 블로그 등 다양한 형태의 커뮤니티를 쉽게 구축할 수 있습니다.
+누구나 자유롭게 커뮤니티를 만들 수 있는 게시판 중심 플랫폼입니다. 테마, 플러그인, 위젯, 확장 시스템을 통해 기업, 단체, 교회, 동호회, 회사, 개인 블로그 등 다양한 형태의 커뮤니티를 쉽게 구축할 수 있습니다.
 
-## ✨ 주요 기능
+## 주요 기능
 
-### 현재 구현 완료 (Phase 1-10)
+- **SvelteKit 5 기반 현대적 아키텍처** — Svelte 5 Rune 모드, TypeScript strict mode, Tailwind CSS 4
+- **통합 관리자 대시보드** — `/admin` 라우트에서 대시보드, 게시판, 회원, 테마, 플러그인 관리
+- **SSR (Server-Side Rendering)** — 서버사이드 데이터 로딩, 깜박임 없는 초기 렌더링
+- **테마 시스템** — 13개 공식 테마, ZIP 업로드 커스텀 테마, 테마 마켓플레이스
+- **플러그인 시스템** — Hook 기반 확장, 컴포넌트 슬롯, 플러그인 마켓플레이스
+- **위젯 시스템** — 드래그 앤 드롭 레이아웃, 메인/사이드바 위젯 관리
+- **확장 시스템** — 보안 샌드박스, 런타임 권한 관리, 감사 로그
+- **Hook 시스템** — WordPress 스타일 Action/Filter, 테마/플러그인에서 코어 기능 확장
+- **i18n** — Paraglide.js 기반 7개 언어 지원
+- **WYSIWYG 에디터** — TipTap 기반, 테이블/코드블록/YouTube 임베드/자동저장
+- **Q&A 게시판** — 질문/답변 게시판 타입, 채택 시스템
+- **AI 기능** — 스팸 검사, 콘텐츠 자동 요약 (OpenAI/Anthropic)
+- **실시간 SSE** — 접속자 수, 실시간 알림, heartbeat
+- **PWA** — Service Worker, 오프라인 지원, 푸시 알림
+- **마이그레이션 도구** — 그누보드/라이믹스 DB 마이그레이션, URL 리다이렉트
 
--   ✅ **SvelteKit 5 기반 현대적 아키텍처**
-
-    -   Svelte 5 Rune 모드
-    -   TypeScript strict mode
-    -   Tailwind CSS 4
-
--   ✅ **듀얼 애플리케이션 구조**
-
-    -   Web App: 사용자용 프론트엔드 (http://localhost:5173)
-    -   Admin Dashboard: 관리자 대시보드 (http://localhost:5174)
-
--   ✅ **SSR (Server-Side Rendering) 지원**
-
-    -   홈페이지 위젯 데이터 서버사이드 로딩
-    -   초기 로딩 성능 개선 (깜박임 없음)
-    -   중앙화된 스토어로 API 호출 최적화 (4회 → 1회)
-
--   ✅ **테마 시스템** (Phase 6-10 완료)
-
-    -   `@angple/theme-engine` 패키지
-    -   테마 스캐너 & 로더
-    -   테마 활성화/비활성화
-    -   테마 설정 시스템
-    -   **테마 마켓플레이스**:
-        -   ZIP 업로드로 커스텀 테마 설치
-        -   공식 테마 / 커스텀 테마 구분
-        -   커스텀 테마 삭제 (공식 테마는 보호)
-        -   Admin 대시보드 UI 제공
-
--   ✅ **Hook 시스템**
-    -   `@angple/hook-system` 패키지
-    -   이벤트 기반 확장 포인트
-
-### 다음 단계
-
--   🚧 **플러그인 시스템** (Phase 11-15, 계획 중)
--   🚧 **Backend API 통합** (Phase 16-20)
--   🚧 **콘텐츠 관리** (CRUD, Phase 21-25)
-
-## 🚀 빠른 시작
+## 빠른 시작
 
 ### 필수 요구사항
 
--   Docker Compose (권장)
--   Node.js 18+
--   pnpm 9+
+- Docker Compose (권장)
+- Node.js 18+
+- pnpm 9+
 
 ### 개발 환경 실행
 
 ```bash
 # Docker Compose 사용 (권장)
-docker compose up -d web        # 웹 애플리케이션
-docker compose up -d admin      # 관리자 대시보드
-docker compose up -d            # 모든 서비스
+docker compose up -d
 
-# 로컬 개발 (pnpm 사용)
-cd apps/web && pnpm dev         # 웹 개발 서버
-cd apps/admin && pnpm dev       # 관리자 개발 서버
-
-# 루트에서 실행
-npm run dev                     # web 앱
-npm run dev:admin               # admin 앱
+# 로컬 개발
+pnpm install
+cd apps/web && pnpm dev    # http://localhost:3010
 ```
 
 ### 접속 URL
 
--   **Web App**: http://localhost:5173
--   **Admin Dashboard**: http://localhost:5174
+- **Web App**: http://localhost:3010
+- **Admin Dashboard**: http://localhost:3010/admin
 
-### Docker 배포 설정
-
-환경변수를 통해 유연한 배포가 가능합니다:
-
-| 환경변수               | 설명                      | 기본값                         |
-| ---------------------- | ------------------------- | ------------------------------ |
-| `COMPOSE_PROJECT_NAME` | 컨테이너 이름 prefix      | `angple`                       |
-| `WEB_PORT`             | 웹 포트                   | `3010`                         |
-| `ADMIN_PORT`           | 어드민 포트               | `3011`                         |
-| `DATA_PATH`            | 데이터 디렉토리           | `./data`                       |
-| `INTERNAL_API_URL`     | SSR용 내부 API URL        | `http://localhost:8081/api/v2` |
-| `PUBLIC_API_BASE_URL`  | 클라이언트용 외부 API URL | `https://api.damoang.net`      |
-| `ANGPLE_WEB_IMAGE`     | 사전 빌드된 웹 이미지     | -                              |
-| `ANGPLE_ADMIN_IMAGE`   | 사전 빌드된 어드민 이미지 | -                              |
-
-```bash
-# 기본 배포
-docker compose up -d
-
-# 커스텀 배포 예시
-COMPOSE_PROJECT_NAME=mysite WEB_PORT=8080 docker compose up -d
-
-# .env 파일 사용 (권장)
-cp .env.example .env
-# .env 파일 수정 후
-docker compose up -d
-```
-
-로컬 개발 설정이 필요한 경우 `compose.override.yml`을 사용하세요:
-
-```bash
-cp compose.override.yml.example compose.override.yml
-# compose.override.yml은 .gitignore에 포함되어 커밋되지 않습니다
-```
-
-## 🛠️ 기술 스택
+## 기술 스택
 
 ### 프론트엔드
 
--   **Svelte 5.0** (Rune 모드)
--   **SvelteKit 2.22** (SSR/SSG 지원)
--   **TypeScript 5.0** (strict mode)
--   **Tailwind CSS 4.0**
--   **Vite 7.0**
--   **shadcn-svelte** (UI 컴포넌트)
--   **Lucide** (아이콘)
+- **Svelte 5** (Rune 모드)
+- **SvelteKit 2** (SSR/SSG)
+- **TypeScript 5** (strict mode)
+- **Tailwind CSS 4**
+- **Vite 7**
+- **shadcn-svelte** (UI 컴포넌트)
+- **Lucide** (아이콘)
 
-### 백엔드 (계획 중)
+### 백엔드
 
--   **Go 1.21** + **Fiber**
--   **PostgreSQL** 또는 **MySQL**
--   **Redis** (캐싱)
+- **Go** + **Fiber** — API 서버
+- **MySQL/PostgreSQL** — 데이터베이스
+- **Redis** — 캐싱
 
 ### 인프라
 
--   **Docker Compose** (멀티 스테이지 빌드)
--   **nginx** (정적 파일 서빙)
--   **pnpm** (Monorepo 관리)
+- **Docker Compose** (멀티 스테이지 빌드)
+- **pnpm** (Monorepo 관리)
+- **GitHub Actions** (CI/CD)
 
-## 🔄 GitHub Actions 배포
-
-GitHub Actions를 통해 개발/운영 환경에 자동 또는 수동으로 배포할 수 있습니다.
-
-### 환경 구성
-
-| 환경            | 서버 | 트리거                   | 빌드 방식      | 이미지 저장 |
-| --------------- | ---- | ------------------------ | -------------- | ----------- |
-| **개발 (DEV)**  | OCI  | `push to main` 자동      | docker compose | 로컬만      |
-| **운영 (PROD)** | EC2  | 수동 (workflow_dispatch) | docker build   | ECR         |
-
-### 개발 환경 배포 (OCI - 자동)
-
-main 브랜치에 push하면 자동으로 OCI 개발 서버에 배포됩니다.
-
-```
-main push → GitHub Actions → SSH to OCI → git pull → docker compose up
-```
-
-**워크플로우**: `.github/workflows/deploy-dev.yml`
-
-### 운영 환경 배포 (EC2 - 수동)
-
-GitHub Actions에서 수동으로 트리거하여 EC2 운영 서버에 배포합니다.
-
-```
-수동 트리거 → GitHub Actions → AWS SSM → git pull → docker build → ECR push → docker run
-```
-
-**워크플로우**: `.github/workflows/deploy-prod.yml`
-
-**배포 방법:**
-
-1. GitHub → Actions → "Deploy to Prod (EC2)" 선택
-2. "Run workflow" 클릭
-3. (선택) Image tag 입력 또는 비워두면 자동 생성 (`main-{커밋SHA}`)
-
-**운영 포트:**
-
--   Web: `3010`
--   Admin: `3011`
-
-### 롤백
-
-ECR에 저장된 이전 이미지로 롤백할 수 있습니다:
-
-```bash
-# 이전 이미지 태그로 배포
-/home/damoang/deploy/rollback.sh angple main-{이전커밋}
-```
-
-## 📁 프로젝트 구조
+## 프로젝트 구조
 
 ```
 angple/
 ├── apps/
-│   ├── web/                    # 메인 웹 애플리케이션
-│   │   └── src/
-│   │       ├── lib/
-│   │       │   ├── api/        # API 클라이언트
-│   │       │   ├── components/ # Svelte 컴포넌트
-│   │       │   ├── stores/     # Svelte 5 스토어 (SSR 데이터)
-│   │       │   ├── server/     # 서버 사이드 로직
-│   │       │   │   ├── themes/ # 테마 스캐너, 로더
-│   │       │   │   └── settings/ # 설정 관리
-│   │       │   └── types/      # TypeScript 타입
-│   │       └── routes/         # SvelteKit 라우팅
-│   │           └── api/        # API 엔드포인트
-│   │               └── themes/ # 테마 관리 API
-│   │
-│   └── admin/                  # 관리자 대시보드
+│   └── web/                      # 메인 웹 + 관리자 대시보드
 │       └── src/
 │           ├── lib/
-│           │   ├── api/        # Web API 클라이언트
-│           │   ├── stores/     # Svelte 5 스토어
-│           │   └── components/
+│           │   ├── api/          # API 클라이언트
+│           │   ├── components/   # Svelte 컴포넌트
+│           │   ├── stores/       # Svelte 5 스토어
+│           │   ├── hooks/        # Hook 시스템
+│           │   ├── server/       # 서버 사이드 로직
+│           │   └── types/        # TypeScript 타입
 │           └── routes/
-│               └── themes/     # 테마 관리 페이지
+│               ├── admin/        # 관리자 대시보드 라우트
+│               ├── api/          # API 엔드포인트
+│               ├── [boardId]/    # 게시판/게시글
+│               └── member/       # 회원 관련
 │
-├── packages/                   # 공유 패키지
-│   ├── theme-engine/          # 테마 엔진 코어
-│   ├── hook-system/           # Hook System
-│   └── types/                 # 공유 타입
+├── packages/                     # 공유 패키지
+│   ├── types/                    # @angple/types
+│   ├── theme-engine/             # @angple/theme-engine
+│   ├── hook-system/              # @angple/hook-system
+│   ├── plugin-engine/            # @angple/plugin-engine
+│   └── i18n/                     # @angple/i18n (7개 언어)
 │
-├── themes/                    # 공식 테마
-│   ├── damoang-classic/
-│   ├── sample-theme/
-│   └── ...
+├── themes/                       # 공식 테마 (13개)
+├── custom-themes/                # 사용자 업로드 테마
+├── widgets/                      # 위젯
+├── plugins/                      # 플러그인
+├── extensions/                   # 확장
 │
-├── custom-themes/             # 사용자 업로드 테마
+├── docs/                         # 개발자 문서
+│   ├── extension-api.md
+│   ├── hook-reference.md
+│   ├── theme-development.md
+│   └── widget-development.md
 │
-└── CLAUDE.md                  # 개발자 가이드
+└── CLAUDE.md                     # 프로젝트 가이드
 ```
 
-## 🧪 테스트
+## 환경변수
+
+| 환경변수 | 설명 | 기본값 |
+| --- | --- | --- |
+| `BACKEND_URL` | Go 백엔드 URL (SSR) | `http://localhost:8081` |
+| `INTERNAL_API_URL` | SSR API 베이스 | `http://localhost:8081/api/v2` |
+| `PUBLIC_API_BASE_URL` | 클라이언트 API 베이스 | — |
+| `VITE_API_PROXY_TARGET` | Dev 프록시 타겟 | `http://localhost:8081` |
+| `WEB_PORT` / `VITE_PORT` | Dev 서버 포트 | `3010` |
+| `ADAPTER` | `static`으로 설정 시 SPA 빌드 | — |
+| `VITE_SITE_NAME` | 사이트 이름 | `Angple` |
+| `VITE_GAM_NETWORK_CODE` | Google Ad Manager 네트워크 코드 | — |
+| `VITE_S3_URL` | S3 저장소 URL | — |
 
 ```bash
-# 타입 검사
-pnpm check
-
-# 린트 검사
-pnpm lint
-
-# 코드 포맷팅
-pnpm format
-
-# 단위 테스트
-pnpm test:unit
-
-# E2E 테스트
-pnpm test:e2e
-
-# 전체 테스트
-pnpm test
+cp apps/web/.env.example apps/web/.env
+# .env 파일 수정 후 개발 서버 실행
 ```
 
-## 📖 문서
+## 개발
 
-자세한 개발 가이드는 [CLAUDE.md](./CLAUDE.md)를 참고하세요:
+```bash
+# 의존성 설치
+pnpm install
 
--   프로젝트 비전 및 로드맵
--   개발 환경 설정
--   코딩 규칙 및 컨벤션
--   API 클라이언트 아키텍처
--   테스트 전략
--   문제 해결 가이드
+# 개발 서버 (localhost:3010)
+cd apps/web && pnpm dev
 
-## 🎯 사용 사례
+# 빌드
+cd apps/web && pnpm build               # Node adapter (SSR)
+cd apps/web && ADAPTER=static pnpm build # Static adapter (SPA)
+
+# 린트 & 포맷
+cd apps/web && pnpm lint
+cd apps/web && pnpm format
+cd apps/web && pnpm check               # svelte-check + TypeScript
+
+# 테스트
+cd apps/web && pnpm test:unit -- --run   # 단위 테스트
+cd apps/web && pnpm test:e2e             # E2E 테스트
+cd apps/web && pnpm test                 # 전체 테스트
+```
+
+## 사용 사례
 
 Angple은 다양한 형태의 커뮤니티에 활용할 수 있습니다:
 
--   🏢 **회사**: 사내 커뮤니티, 고객 지원 포럼
--   ⛪ **종교시설**: 교회, 성당, 사찰 홈페이지
--   🎭 **동호회**: 취미, 스포츠, 문화 모임
--   🎓 **교육기관**: 학교, 학원, 스터디 그룹
--   🏛️ **정당/단체**: 정당 홈페이지, 시민단체
--   📝 **개인 블로그**: 프로필 페이지, 개인 미디어
--   💼 **기업**: 제품 커뮤니티, 지식베이스
+- **회사** — 사내 커뮤니티, 고객 지원 포럼
+- **종교시설** — 교회, 성당, 사찰 홈페이지
+- **동호회** — 취미, 스포츠, 문화 모임
+- **교육기관** — 학교, 학원, 스터디 그룹
+- **개인 블로그** — 프로필 페이지, 개인 미디어
+- **기업** — 제품 커뮤니티, 지식베이스
 
-## 🤝 기여하기
+## 기여하기
 
-Angple은 오픈소스 프로젝트입니다. 다음과 같은 방법으로 기여할 수 있습니다:
+1. 저장소 클론: `git clone https://github.com/angple/angple.git`
+2. 의존성 설치: `pnpm install`
+3. 브랜치 생성: `git checkout -b feature/my-feature`
+4. 커밋 전 체크: `pnpm check && pnpm lint && pnpm test:unit -- --run && pnpm build`
+5. Pull Request 생성
 
-1. **코드 기여**: GitHub Issues, Pull Requests
-2. **테마/플러그인 제작**: 마켓플레이스 등록 (준비 중)
-3. **문서 작성**: 튜토리얼, 가이드
-4. **버그 리포트**: GitHub Issues
-5. **기능 제안**: GitHub Discussions
+## 라이선스
 
-### 개발 가이드
-
-```bash
-# 1. 저장소 클론
-git clone https://github.com/angple/angple.git
-cd angple
-
-# 2. 의존성 설치
-pnpm install
-
-# 3. 개발 서버 실행
-docker compose up -d
-
-# 4. 브랜치 생성
-git checkout -b feature/my-feature
-
-# 5. 커밋 전 체크리스트
-pnpm check         # 타입 검사
-pnpm lint          # 린트 검사
-pnpm test          # 테스트 실행
-pnpm build         # 빌드 검증
-```
-
-## 🌐 커뮤니티
-
--   **공식 블로그**: https://angple.com
--   **다모앙 커뮤니티**: https://damoang.net (개발자 커뮤니티)
--   **GitHub Discussions**: https://github.com/damoang/angple/discussions
--   **Discord**: (준비 중)
-
-## 📜 라이선스
-
-MIT License - 자유롭게 사용, 수정, 배포 가능합니다.
-
-## 🙏 감사
-
-Angple은 다음 오픈소스 프로젝트들에 영감을 받았습니다:
-
--   [WordPress](https://wordpress.org) - 플러그인/테마 시스템 아키텍처
--   [Svelte](https://svelte.dev) - 현대적 웹 프레임워크
--   [SvelteKit](https://kit.svelte.dev) - Full-stack 프레임워크
--   [shadcn-svelte](https://www.shadcn-svelte.com) - UI 컴포넌트 시스템
+MIT License
 
 ---
-
-**현재 버전**: Phase 10 완료 (테마 마켓플레이스)
-**다음 목표**: Phase 11 - 플러그인 시스템 구축
 
 Made with ❤️ by [SDK Co.](https://sdkcorp.com) | [Angple](https://angple.com)

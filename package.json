@@ -15,7 +15,8 @@
         "format": "prettier --write \"**/*.{js,ts,svelte,json,md}\"",
         "lint": "cd apps/web && npm run lint",
         "test": "cd apps/web && npm run test",
-        "clean": "rm -rf node_modules apps/*/node_modules && npm install"
+        "clean": "rm -rf node_modules apps/*/node_modules && npm install",
+        "angple": "pnpm --filter @angple/cli exec tsx src/index.ts"
     },
     "devDependencies": {
         "@changesets/cli": "^2.26.2",

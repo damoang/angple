@@ -13,7 +13,6 @@ const TURNSTILE_SECRET_KEY = process.env.TURNSTILE_SECRET_KEY || '';
  */
 export async function verifyTurnstile(token: string, ip: string): Promise<boolean> {
     if (!TURNSTILE_SECRET_KEY) {
-        console.warn('[Captcha] TURNSTILE_SECRET_KEY가 설정되지 않음 — 검증 건너뜀');
         return true;
     }
 
@@ -38,10 +37,6 @@ export async function verifyTurnstile(token: string, ip: string): Promise<boolea
         }
 
         const data = (await res.json()) as { success: boolean; 'error-codes'?: string[] };
-
-        if (!data.success) {
-            console.warn('[Captcha] Turnstile 검증 실패:', data['error-codes']);
-        }
 
         return data.success;
     } catch (err) {

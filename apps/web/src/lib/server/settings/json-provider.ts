@@ -58,7 +58,6 @@ export class JsonSettingsProvider implements SettingsProvider {
             const dir = path.dirname(this.filePath);
             await fs.mkdir(dir, { recursive: true });
             await fs.writeFile(this.filePath, JSON.stringify(DEFAULT_SETTINGS, null, 2), 'utf-8');
-            console.log(`✅ 설정 파일 생성: ${this.filePath}`);
         }
     }
 
@@ -92,7 +91,6 @@ export class JsonSettingsProvider implements SettingsProvider {
             settings.activeTheme = themeId;
             settings.activatedAt = new Date().toISOString();
             await this.write(settings);
-            console.log(`✅ 테마 활성화: ${themeId}`);
         } finally {
             this.releaseLock();
         }
@@ -112,7 +110,6 @@ export class JsonSettingsProvider implements SettingsProvider {
             }
             settings.themes[themeId].settings = themeSettings;
             await this.write(settings);
-            console.log(`✅ 테마 설정 저장: ${themeId}`);
         } finally {
             this.releaseLock();
         }

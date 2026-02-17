@@ -88,8 +88,7 @@
                 // side-image-text-banner는 빈 상태 유지, 다른 위치는 샘플 표시
                 banners = position === 'side-image-text-banner' ? [] : sampleBanners;
             }
-        } catch (error) {
-            console.warn('Image-text banner fetch error:', error);
+        } catch {
             // side-image-text-banner는 빈 상태 유지, 다른 위치는 샘플 표시
             banners = position === 'side-image-text-banner' ? [] : sampleBanners;
         } finally {

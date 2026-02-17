@@ -12,6 +12,8 @@
     import TrendingDown from '@lucide/svelte/icons/trending-down';
     import ArrowLeft from '@lucide/svelte/icons/arrow-left';
     import Loader2 from '@lucide/svelte/icons/loader-2';
+    import ChevronLeft from '@lucide/svelte/icons/chevron-left';
+    import ChevronRight from '@lucide/svelte/icons/chevron-right';
 
     let { data }: { data: PageData } = $props();
 
@@ -20,9 +22,23 @@
     let isLoading = $state(true);
     let error = $state<string | null>(null);
 
+    // 필터 탭 정의
+    const filterTabs = [
+        { key: 'all' as const, label: '전체' },
+        { key: 'earned' as const, label: '적립' },
+        { key: 'used' as const, label: '사용' }
+    ];
+
+    // 필터링된 아이템
+    let filteredItems = $derived(() => {
+        if (!pointData) return [];
+        if (data.filter === 'earned') return pointData.items.filter((item) => item.po_point > 0);
+        if (data.filter === 'used') return pointData.items.filter((item) => item.po_point < 0);
+        return pointData.items;
+    });
+
     // 포인트 데이터 로드
     onMount(async () => {
-        // 로그인 체크
         if (!authStore.isAuthenticated) {
             authStore.redirectToLogin();
             return;
@@ -57,9 +73,44 @@
         return point.toLocaleString();
     }
 
+    // 필터 변경
+    function setFilter(filter: string): void {
+        goto(`/my/points?page=1&filter=${filter}`);
+    }
+
     // 페이지 변경
     function goToPage(pageNum: number): void {
-        goto(`/my/points?page=${pageNum}`);
+        goto(`/my/points?page=${pageNum}&filter=${data.filter}`);
+    }
+
+    // 페이지네이션 번호 생성 (최대 5개, 현재 페이지 중심)
+    function getPageNumbers(current: number, total: number): (number | '...')[] {
+        if (total <= 5) {
+            return Array.from({ length: total }, (_, i) => i + 1);
+        }
+
+        const pages: (number | '...')[] = [];
+
+        if (current <= 3) {
+            // 앞쪽: [1] [2] [3] [4] ... [last]
+            for (let i = 1; i <= 4; i++) pages.push(i);
+            pages.push('...');
+            pages.push(total);
+        } else if (current >= total - 2) {
+            // 뒤쪽: [1] ... [last-3] [last-2] [last-1] [last]
+            pages.push(1);
+            pages.push('...');
+            for (let i = total - 3; i <= total; i++) pages.push(i);
+        } else {
+            // 중간: [1] ... [cur-1] [cur] [cur+1] ... [last]
+            pages.push(1);
+            pages.push('...');
+            for (let i = current - 1; i <= current + 1; i++) pages.push(i);
+            pages.push('...');
+            pages.push(total);
+        }
+
+        return pages;
     }
 </script>
 
@@ -142,20 +193,33 @@
             </Card>
         </div>
 
+        <!-- 필터 탭 -->
+        <div class="mb-4 flex gap-2">
+            {#each filterTabs as tab (tab.key)}
+                <Button
+                    variant={data.filter === tab.key ? 'default' : 'outline'}
+                    size="sm"
+                    onclick={() => setFilter(tab.key)}
+                >
+                    {tab.label}
+                </Button>
+            {/each}
+        </div>
+
         <!-- 포인트 내역 목록 -->
         <Card class="bg-background">
             <CardHeader>
                 <CardTitle class="flex items-center gap-2">
                     포인트 내역
                     <span class="text-muted-foreground text-sm font-normal">
-                        ({pointData.total}건)
+                        ({filteredItems().length}건)
                     </span>
                 </CardTitle>
             </CardHeader>
             <CardContent>
-                {#if pointData.items.length > 0}
+                {#if filteredItems().length > 0}
                     <ul class="divide-border divide-y">
-                        {#each pointData.items as item (item.id)}
+                        {#each filteredItems() as item (item.id)}
                             <li class="py-3 first:pt-0 last:pb-0">
                                 <div class="flex items-center justify-between gap-4">
                                     <div class="min-w-0 flex-1">
@@ -192,19 +256,31 @@
 
         <!-- 페이지네이션 -->
         {#if pointData.total_pages > 1}
-            <div class="mt-6 flex items-center justify-center gap-2">
+            <div class="mt-6 flex items-center justify-center gap-1">
                 <Button
                     variant="outline"
                     size="sm"
                     disabled={data.page === 1}
                     onclick={() => goToPage(data.page - 1)}
                 >
+                    <ChevronLeft class="h-4 w-4" />
                     이전
                 </Button>
 
-                <span class="text-muted-foreground px-4 text-sm">
-                    {data.page} / {pointData.total_pages}
-                </span>
+                {#each getPageNumbers(data.page, pointData.total_pages) as pageNum}
+                    {#if pageNum === '...'}
+                        <span class="text-muted-foreground px-2 text-sm">...</span>
+                    {:else}
+                        <Button
+                            variant={data.page === pageNum ? 'default' : 'outline'}
+                            size="sm"
+                            class="min-w-9"
+                            onclick={() => goToPage(pageNum)}
+                        >
+                            {pageNum}
+                        </Button>
+                    {/if}
+                {/each}
 
                 <Button
                     variant="outline"
@@ -213,6 +289,7 @@
                     onclick={() => goToPage(data.page + 1)}
                 >
                     다음
+                    <ChevronRight class="h-4 w-4" />
                 </Button>
             </div>
         {/if}

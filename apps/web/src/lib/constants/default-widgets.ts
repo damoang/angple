@@ -11,9 +11,21 @@ import type { WidgetConfig } from '$lib/stores/widget-layout.svelte';
 
 /** 기본 메인 위젯 레이아웃 */
 export const DEFAULT_WIDGETS: WidgetConfig[] = [
-    { id: 'ad-head', type: 'ad-slot', position: 0, enabled: true, settings: { position: 'index-head' } },
+    {
+        id: 'ad-head',
+        type: 'ad-slot',
+        position: 0,
+        enabled: true,
+        settings: { position: 'index-head' }
+    },
     { id: 'recommended', type: 'recommended', position: 1, enabled: true },
-    { id: 'ad-top', type: 'ad-slot', position: 2, enabled: true, settings: { position: 'index-top' } },
+    {
+        id: 'ad-top',
+        type: 'ad-slot',
+        position: 2,
+        enabled: true,
+        settings: { position: 'index-top' }
+    },
     {
         id: 'new-board',
         type: 'post-list',

@@ -134,7 +134,6 @@ async function extractTarball(tarballPath: string, targetDir: string): Promise<s
                 })
             )
             .on('finish', () => {
-                console.log(`✅ [GitHub Installer] Tarball extracted to: ${targetDir}`);
                 resolve(targetDir);
             })
             .on('error', (error) => {
@@ -238,8 +237,6 @@ export class GitHubPluginInstaller {
             const packageInfo = parsePackageName(packageName);
             const version = request.version || packageInfo.version;
 
-            console.log(`📦 [GitHub Installer] 설치 시작: ${packageInfo.fullName}@${version}`);
-
             // 2. 토큰 획득
             const token = await this.resolveToken(
                 packageInfo.scope,
@@ -282,9 +279,6 @@ export class GitHubPluginInstaller {
 
             // 기존 설치 확인
             if (existsSync(installDir)) {
-                console.log(
-                    `⚠️  [GitHub Installer] 기존 설치 발견, 업데이트합니다: ${manifest.id}`
-                );
                 await rm(installDir, { recursive: true, force: true });
             }
 
@@ -293,10 +287,7 @@ export class GitHubPluginInstaller {
             // 8. 토큰 저장 (요청 시)
             if (request.saveToken && request.token) {
                 await this.tokenProvider.setToken(packageInfo.scope, request.token);
-                console.log(`✅ [GitHub Installer] 토큰 저장됨: ${packageInfo.scope}`);
             }
-
-            console.log(`✅ [GitHub Installer] 설치 완료: ${manifest.id} v${manifest.version}`);
 
             return {
                 success: true,
@@ -336,7 +327,6 @@ export class GitHubPluginInstaller {
         if (isPrivate) {
             const savedToken = await this.tokenProvider.getToken(scope);
             if (savedToken) {
-                console.log(`🔑 [GitHub Installer] 저장된 토큰 사용: ${scope}`);
                 return savedToken;
             }
 

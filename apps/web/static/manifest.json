@@ -1,6 +1,6 @@
 {
-    "name": "다모앙 - Angple Community",
-    "short_name": "다모앙",
+    "name": "Angple Community",
+    "short_name": "Angple",
     "description": "누구나 자유롭게 커뮤니티를 만들 수 있는 오픈소스 플랫폼",
     "start_url": "/",
     "display": "standalone",

@@ -119,27 +119,45 @@
         </div>
 
         <!-- 레벨 게이지 -->
-        {#if user.as_level !== undefined && user.as_max !== undefined}
+        {#if user.as_level !== undefined}
             <a href="/my/exp" class="group mt-2 block">
                 <div class="text-muted-foreground flex items-center justify-between text-[10px]">
                     <span>Lv.{user.as_level}</span>
-                    <span
-                        >다음 레벨까지 <span class="text-foreground font-medium"
-                            >{nextLevelExp.toLocaleString()}</span
-                        ></span
-                    >
-                    <span>Lv.{user.as_level + 1}</span>
+                    {#if user.as_max && user.as_max > 0}
+                        <span
+                            >다음 레벨까지 <span class="text-foreground font-medium"
+                                >{nextLevelExp.toLocaleString()}</span
+                            ></span
+                        >
+                        <span>Lv.{user.as_level + 1}</span>
+                    {/if}
                 </div>
-                <Progress
-                    value={levelProgress}
-                    max={100}
-                    class="mt-0.5 h-1.5 transition-all group-hover:h-2"
-                />
+                {#if user.as_max && user.as_max > 0}
+                    <Progress
+                        value={levelProgress}
+                        max={100}
+                        class="mt-0.5 h-1.5 transition-all group-hover:h-2"
+                    />
+                {/if}
             </a>
         {/if}
 
-        <!-- 포인트 + 내글 / 내댓글 / 전체 -->
+        <!-- 내글 / 내댓글 / 전체 + 포인트 -->
         <div class="mt-2 space-y-1 text-xs">
+            <div class="text-muted-foreground flex items-center justify-center gap-1.5">
+                <a href="/my?tab=posts" class="hover:text-primary transition-colors">내글</a>
+                <span class="text-border">·</span>
+                <a href="/my?tab=comments" class="hover:text-primary transition-colors">내댓글</a>
+                <span class="text-border">·</span>
+                <a href="/my" class="hover:text-primary transition-colors">전체</a>
+                <span class="text-border">·</span>
+                <a
+                    href="https://damoang.net/my"
+                    rel="external"
+                    target="_blank"
+                    class="hover:text-primary transition-colors">분석</a
+                >
+            </div>
             {#if user.mb_point !== undefined || user.mb_exp !== undefined}
                 <div class="grid grid-cols-2 gap-1">
                     {#if user.mb_point !== undefined}
@@ -162,34 +180,6 @@
                     {/if}
                 </div>
             {/if}
-            <div class="grid grid-cols-4 gap-1">
-                <a
-                    href="/my?tab=posts"
-                    class="border-border text-muted-foreground hover:border-primary/30 hover:text-primary flex items-center justify-center rounded border px-2 py-1.5 transition-colors"
-                >
-                    내글
-                </a>
-                <a
-                    href="/my?tab=comments"
-                    class="border-border text-muted-foreground hover:border-primary/30 hover:text-primary flex items-center justify-center rounded border px-2 py-1.5 transition-colors"
-                >
-                    내댓글
-                </a>
-                <a
-                    href="/my"
-                    class="border-border text-muted-foreground hover:border-primary/30 hover:text-primary flex items-center justify-center rounded border px-2 py-1.5 transition-colors"
-                >
-                    전체
-                </a>
-                <a
-                    href="https://damoang.net/my"
-                    rel="external"
-                    target="_blank"
-                    class="border-border text-muted-foreground hover:border-primary/30 hover:text-primary flex items-center justify-center rounded border px-2 py-1.5 transition-colors"
-                >
-                    분석
-                </a>
-            </div>
         </div>
     {:else}
         <!-- 비로그인 상태 (컴팩트) -->

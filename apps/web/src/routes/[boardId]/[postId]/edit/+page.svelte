@@ -61,7 +61,10 @@
 </script>
 
 <svelte:head>
-    <title>글 수정 - {data.post.title} | {boardTitle} | {import.meta.env.VITE_SITE_NAME || 'Angple'}</title>
+    <title
+        >글 수정 - {data.post.title} | {boardTitle} | {import.meta.env.VITE_SITE_NAME ||
+            'Angple'}</title
+    >
 </svelte:head>
 
 <div class="mx-auto max-w-4xl pt-4">

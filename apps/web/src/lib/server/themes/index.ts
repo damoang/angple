@@ -110,14 +110,13 @@ export async function getActiveTheme(): Promise<InstalledTheme | null> {
 export async function activateTheme(themeId: string): Promise<boolean> {
     // 테마가 설치되어 있는지 확인
     if (!isThemeInstalled(themeId)) {
-        console.error(`❌ [Theme API] 테마가 설치되지 않음: ${themeId}`);
+        console.error(`[Theme API] 테마가 설치되지 않음: ${themeId}`);
         return false;
     }
 
     // Provider를 통해 테마 활성화
     await settingsProvider.setActiveTheme(themeId);
 
-    console.log(`✅ [Theme API] 테마 활성화: ${themeId}`);
     return true;
 }
 
@@ -131,7 +130,6 @@ export async function updateThemeSettings(
     // Provider를 통해 테마 설정 업데이트
     await settingsProvider.setThemeSettings(themeId, newSettings);
 
-    console.log(`✅ [Theme API] 테마 설정 업데이트: ${themeId}`);
     return true;
 }
 

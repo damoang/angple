@@ -85,6 +85,7 @@
                 <!-- 삭제 버튼 -->
                 <button
                     type="button"
+                    aria-label="위젯 삭제"
                     class="absolute -right-2 -top-2 z-10 rounded-full bg-red-500 p-1 text-white shadow-lg hover:bg-red-600"
                     onclick={(e) => {
                         e.stopPropagation();
@@ -103,7 +104,7 @@
 
                 <!-- 위젯 컴포넌트 렌더링 -->
                 {#if Component}
-                    <Component config={widget} slot="sidebar" isEditMode={true} />
+                    <Component isEditMode={true} />
                 {:else}
                     <div
                         class="rounded-lg border border-dashed border-slate-300 p-4 text-slate-500"
@@ -120,7 +121,7 @@
         {#each widgets as widget (widget.id)}
             {@const Component = getWidgetComponent(widget.type)}
             {#if Component}
-                <Component config={widget} slot="sidebar" />
+                <Component />
             {/if}
         {/each}
     </div>

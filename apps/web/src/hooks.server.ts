@@ -1,7 +1,8 @@
-import type { Handle } from '@sveltejs/kit';
+import { redirect, type Handle } from '@sveltejs/kit';
 import { dev } from '$app/environment';
 import { verifyToken } from '$lib/server/auth/jwt.js';
 import { getMemberById } from '$lib/server/auth/oauth/member.js';
+import { mapGnuboardUrl, mapRhymixUrl } from '$lib/server/url-compat.js';
 
 /**
  * SvelteKit Server Hooks
@@ -123,6 +124,21 @@ function buildCsp(): string {
 const cspHeader = buildCsp();
 
 export const handle: Handle = async ({ event, resolve }) => {
+    // 그누보드/라이믹스 URL 호환 리다이렉트 (SEO 보존)
+    const { pathname } = event.url;
+    if (pathname.startsWith('/bbs/')) {
+        const redirectUrl = mapGnuboardUrl(pathname, event.url.searchParams);
+        if (redirectUrl) {
+            redirect(301, redirectUrl);
+        }
+    }
+    if (pathname === '/index.php' && event.url.searchParams.has('mid')) {
+        const redirectUrl = mapRhymixUrl(pathname, event.url.searchParams);
+        if (redirectUrl) {
+            redirect(301, redirectUrl);
+        }
+    }
+
     // SSR 인증
     await authenticateSSR(event);
 

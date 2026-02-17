@@ -25,16 +25,13 @@ export const GET: RequestHandler = async ({ params }) => {
             );
         }
 
-        // nosemgrep: javascript.lang.security.audit.unsafe-formatstring.unsafe-formatstring
-        console.log(`✅ [API /extensions/${id}] Extension 반환:`, extension.name);
-
         return json({
             success: true,
             data: extension
         });
     } catch (error) {
         // nosemgrep: javascript.lang.security.audit.unsafe-formatstring.unsafe-formatstring
-        console.error(`❌ [API /extensions/${id}] Extension 조회 실패:`, error);
+        console.error(`[API /extensions/${id}] Extension 조회 실패:`, error);
 
         return json(
             {

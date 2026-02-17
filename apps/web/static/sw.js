@@ -110,6 +110,45 @@ async function networkFirst(request) {
     }
 }
 
+// 푸시 알림 수신
+self.addEventListener('push', (event) => {
+    if (!event.data) return;
+
+    try {
+        const data = event.data.json();
+        const options = {
+            body: data.content || data.body || '',
+            icon: '/icons/icon-192.png',
+            badge: '/icons/icon-192.png',
+            tag: data.tag || 'angple-notification',
+            data: { url: data.url || '/' }
+        };
+
+        event.waitUntil(self.registration.showNotification(data.title || 'Angple', options));
+    } catch {
+        // 푸시 데이터 파싱 실패 무시
+    }
+});
+
+// 알림 클릭 시 해당 URL로 이동
+self.addEventListener('notificationclick', (event) => {
+    event.notification.close();
+
+    const url = event.notification.data?.url || '/';
+    event.waitUntil(
+        self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
+            // 이미 열린 탭이 있으면 포커스
+            for (const client of clients) {
+                if (client.url.includes(url) && 'focus' in client) {
+                    return client.focus();
+                }
+            }
+            // 없으면 새 탭 열기
+            return self.clients.openWindow(url);
+        })
+    );
+});
+
 /** 정적 자산 판별 */
 function isStaticAsset(pathname) {
     return /\.(js|css|png|jpg|jpeg|gif|webp|avif|svg|woff2?|ttf|eot|ico)(\?.*)?$/.test(pathname);

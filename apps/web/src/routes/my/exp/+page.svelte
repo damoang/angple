@@ -16,6 +16,8 @@
     import Loader2 from '@lucide/svelte/icons/loader-2';
     import Plus from '@lucide/svelte/icons/plus';
     import Minus from '@lucide/svelte/icons/minus';
+    import ChevronLeft from '@lucide/svelte/icons/chevron-left';
+    import ChevronRight from '@lucide/svelte/icons/chevron-right';
 
     let { data }: { data: PageData } = $props();
 
@@ -24,6 +26,21 @@
     let expHistory = $state<ExpHistoryResponse | null>(null);
     let isLoading = $state(true);
     let error = $state<string | null>(null);
+
+    // 필터 탭 정의
+    const filterTabs = [
+        { key: 'all' as const, label: '전체' },
+        { key: 'earned' as const, label: '획득' },
+        { key: 'used' as const, label: '차감' }
+    ];
+
+    // 필터링된 아이템
+    let filteredItems = $derived(() => {
+        if (!expHistory) return [];
+        if (data.filter === 'earned') return expHistory.items.filter((item) => item.exp_point > 0);
+        if (data.filter === 'used') return expHistory.items.filter((item) => item.exp_point < 0);
+        return expHistory.items;
+    });
 
     // 경험치 요약 로드
     async function loadExpSummary(): Promise<void> {
@@ -53,9 +70,14 @@
         }
     }
 
+    // 필터 변경
+    function setFilter(filter: string): void {
+        goto(`/my/exp?page=1&filter=${filter}`);
+    }
+
     // 페이지 변경
     function goToPage(pageNum: number): void {
-        goto(`/my/exp?page=${pageNum}`);
+        goto(`/my/exp?page=${pageNum}&filter=${data.filter}`);
     }
 
     // 숫자 포맷
@@ -73,6 +95,33 @@
             hour: '2-digit',
             minute: '2-digit'
         });
+    }
+
+    // 페이지네이션 번호 생성 (최대 5개, 현재 페이지 중심)
+    function getPageNumbers(current: number, total: number): (number | '...')[] {
+        if (total <= 5) {
+            return Array.from({ length: total }, (_, i) => i + 1);
+        }
+
+        const pages: (number | '...')[] = [];
+
+        if (current <= 3) {
+            for (let i = 1; i <= 4; i++) pages.push(i);
+            pages.push('...');
+            pages.push(total);
+        } else if (current >= total - 2) {
+            pages.push(1);
+            pages.push('...');
+            for (let i = total - 3; i <= total; i++) pages.push(i);
+        } else {
+            pages.push(1);
+            pages.push('...');
+            for (let i = current - 1; i <= current + 1; i++) pages.push(i);
+            pages.push('...');
+            pages.push(total);
+        }
+
+        return pages;
     }
 
     // 초기 로드
@@ -205,6 +254,21 @@
         </Card>
     {/if}
 
+    <!-- 필터 탭 -->
+    {#if !isLoading && !error && expHistory}
+        <div class="mb-4 flex gap-2">
+            {#each filterTabs as tab (tab.key)}
+                <Button
+                    variant={data.filter === tab.key ? 'default' : 'outline'}
+                    size="sm"
+                    onclick={() => setFilter(tab.key)}
+                >
+                    {tab.label}
+                </Button>
+            {/each}
+        </div>
+    {/if}
+
     <!-- 경험치 내역 -->
     {#if isLoading}
         <div class="flex items-center justify-center py-20">
@@ -222,14 +286,14 @@
                 <CardTitle class="flex items-center gap-2">
                     경험치 내역
                     <span class="text-muted-foreground text-sm font-normal">
-                        ({expHistory.total}건)
+                        ({filteredItems().length}건)
                     </span>
                 </CardTitle>
             </CardHeader>
             <CardContent>
-                {#if expHistory.items.length > 0}
+                {#if filteredItems().length > 0}
                     <ul class="divide-border divide-y">
-                        {#each expHistory.items as history (history.id)}
+                        {#each filteredItems() as history (history.id)}
                             <li class="flex items-center justify-between py-3 first:pt-0 last:pb-0">
                                 <div class="flex items-center gap-3">
                                     <!-- 증감 아이콘 -->
@@ -276,19 +340,31 @@
 
         <!-- 페이지네이션 -->
         {#if expHistory.total_pages > 1}
-            <div class="mt-6 flex items-center justify-center gap-2">
+            <div class="mt-6 flex items-center justify-center gap-1">
                 <Button
                     variant="outline"
                     size="sm"
                     disabled={data.page === 1}
                     onclick={() => goToPage(data.page - 1)}
                 >
+                    <ChevronLeft class="h-4 w-4" />
                     이전
                 </Button>
 
-                <span class="text-muted-foreground px-4 text-sm">
-                    {data.page} / {expHistory.total_pages}
-                </span>
+                {#each getPageNumbers(data.page, expHistory.total_pages) as pageNum}
+                    {#if pageNum === '...'}
+                        <span class="text-muted-foreground px-2 text-sm">...</span>
+                    {:else}
+                        <Button
+                            variant={data.page === pageNum ? 'default' : 'outline'}
+                            size="sm"
+                            class="min-w-9"
+                            onclick={() => goToPage(pageNum)}
+                        >
+                            {pageNum}
+                        </Button>
+                    {/if}
+                {/each}
 
                 <Button
                     variant="outline"
@@ -297,6 +373,7 @@
                     onclick={() => goToPage(data.page + 1)}
                 >
                     다음
+                    <ChevronRight class="h-4 w-4" />
                 </Button>
             </div>
         {/if}

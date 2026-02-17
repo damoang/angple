@@ -6,7 +6,13 @@
 
 export { PluginRegistry } from './plugin-registry.js';
 export { createExtensionContext } from './plugin-context.js';
-export { PermissionManager } from './permission-manager.js';
+export {
+    PermissionManager,
+    PermissionDeniedError,
+    DANGEROUS_PERMISSIONS,
+    HOOK_PERMISSION_MAP
+} from './permission-manager.js';
+export type { AuditEntry } from './permission-manager.js';
 export type {
     ExtensionContext,
     PluginInitFunction,
