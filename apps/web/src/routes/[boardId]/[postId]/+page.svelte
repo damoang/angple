@@ -49,6 +49,7 @@
         type MarketStatus
     } from '$lib/types/used-market.js';
     import QAAnswerSection from '$lib/components/features/board/qa-answer-section.svelte';
+    import AuthorActivityPanel from '$lib/components/features/board/author-activity-panel.svelte';
 
     // Q&A 게시판 슬롯 등록
     postSlotRegistry.register('post.before_content', {
@@ -58,6 +59,15 @@
         propsMapper: (pageData: { post: FreePost; boardId: string }) => ({
             post: pageData.post,
             boardId: pageData.boardId
+        })
+    });
+
+    // 작성자 활동 패널 슬롯 등록
+    postSlotRegistry.register('post.before_comments', {
+        component: AuthorActivityPanel,
+        priority: 10,
+        propsMapper: (pageData: { post: FreePost; boardId: string }) => ({
+            post: pageData.post
         })
     });
     import { ReactionBar } from '$lib/components/features/reaction/index.js';
@@ -111,6 +121,7 @@
     // 플러그인 슬롯
     const beforeContentSlots = $derived(postSlotRegistry.resolve('post.before_content', boardType));
     const afterContentSlots = $derived(postSlotRegistry.resolve('post.after_content', boardType));
+    const beforeCommentsSlots = $derived(postSlotRegistry.resolve('post.before_comments', boardType));
 
     // 중고게시판 상태 관리
     let marketStatus = $state<MarketStatus>('selling');
@@ -819,6 +830,13 @@
             </div>
         </div>
     {/if}
+
+    {#each beforeCommentsSlots as slot (slot.component)}
+        {@const SlotComponent = slot.component}
+        <SlotComponent
+            {...slot.propsMapper ? slot.propsMapper({ post: data.post, boardId }) : {}}
+        />
+    {/each}
 
     <!-- 댓글 섹션 (비밀글 열람 가능 시에만 표시) -->
     {#if canViewSecret}
