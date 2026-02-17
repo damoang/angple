@@ -7,6 +7,7 @@
     import { widgetLayoutStore } from '$lib/stores/widget-layout.svelte';
     import { apiClient } from '$lib/api';
     import type { IndexWidgetsData } from '$lib/api/types';
+    import { untrack } from 'svelte';
     import { SeoHead, createWebSiteJsonLd } from '$lib/seo/index.js';
     import type { SeoConfig } from '$lib/seo/types.js';
 
@@ -17,9 +18,14 @@
 
     // SSR 데이터 변경 시 로컬 상태 + 스토어 동기화
     $effect(() => {
-        widgetsData = data.indexWidgets;
-        indexWidgetsStore.initFromServer(data.indexWidgets);
-        widgetLayoutStore.initFromServer(data.widgetLayout, data.sidebarWidgetLayout);
+        const widgets = data.indexWidgets;
+        const layout = data.widgetLayout;
+        const sidebarLayout = data.sidebarWidgetLayout;
+        untrack(() => {
+            widgetsData = widgets;
+            indexWidgetsStore.initFromServer(widgets);
+            widgetLayoutStore.initFromServer(layout, sidebarLayout);
+        });
     });
 
     // SEO 설정 (홈페이지)

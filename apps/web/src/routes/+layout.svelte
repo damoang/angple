@@ -1,7 +1,7 @@
 <script lang="ts">
     import '../app.css';
     import favicon from '$lib/assets/favicon.png';
-    import { onMount } from 'svelte';
+    import { onMount, untrack } from 'svelte';
     import type { Component } from 'svelte';
     import { page } from '$app/stores';
     import { configureSeo } from '$lib/seo';
@@ -39,10 +39,12 @@
 
     // SSR에서 받은 테마/플러그인으로 스토어 초기화 (깜박임 방지!)
     $effect(() => {
-        themeStore.initFromServer(data.activeTheme);
-    });
-    $effect(() => {
-        pluginStore.initFromServer(data.activePlugins || []);
+        const theme = data.activeTheme;
+        const plugins = data.activePlugins || [];
+        untrack(() => {
+            themeStore.initFromServer(theme);
+            pluginStore.initFromServer(plugins);
+        });
     });
 
     // 현재 활성 테마
