@@ -18,6 +18,7 @@ services:
     environment:
       - NODE_ENV=production
       - INTERNAL_API_URL=http://angple-api:8081/api/v2
+      - NODE_OPTIONS=--max-old-space-size=512
 
 networks:
   angple-network:
