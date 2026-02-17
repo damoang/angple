@@ -3,6 +3,7 @@
     import favicon from '$lib/assets/favicon.png';
     import { onMount, untrack } from 'svelte';
     import type { Component } from 'svelte';
+    import { browser } from '$app/environment';
     import { page } from '$app/stores';
     import { configureSeo } from '$lib/seo';
     import { authActions } from '$lib/stores/auth.svelte';
@@ -61,6 +62,18 @@
     // (Vite glob은 alias를 지원하지 않아 상대 경로 필수)
     const themeLayouts = import.meta.glob('../../../../themes/*/layouts/main-layout.svelte');
 
+    // 조기 로딩: browser에서 즉시 async import 시작 ($effect 실행 전에 미리 로딩)
+    if (browser && data.activeTheme) {
+        const _earlyPath = `../../../../themes/${data.activeTheme}/layouts/main-layout.svelte`;
+        if (_earlyPath in themeLayouts) {
+            themeLayouts[_earlyPath]()
+                .then((m) => {
+                    ThemeLayout = (m as { default: Component }).default;
+                })
+                .catch(() => {});
+        }
+    }
+
     /**
      * 테마 레이아웃 동적 로드
      */
@@ -88,9 +101,9 @@
         }
     }
 
-    // activeTheme 변경 시 자동으로 레이아웃, Hook, Component 로드
+    // data.activeTheme 직접 감시 → store 거치지 않아 렌더 사이클 1회 절감
     $effect(() => {
-        const theme = activeTheme;
+        const theme = data.activeTheme;
 
         // 비동기 로드 (void로 처리하여 $effect 내 안전하게 실행)
         void loadThemeLayout(theme).catch((err) => {
@@ -224,21 +237,22 @@
 {#if isAdminRoute || isInstallRoute}
     {@render children()}
 {:else if ThemeLayout}
-    <!-- 동적으로 로드된 테마 레이아웃 (Svelte 5: 컴포넌트 변수 직접 사용) -->
-    <!-- {#key}로 감싸서 네비게이션 시 안정적으로 컴포넌트 교체 -->
-    {#key activeTheme}
+    <!-- 테마 레이아웃 전환 시 fade-in으로 레이아웃 시프트 완화 -->
+    {#key data.activeTheme}
         {#if typeof ThemeLayout === 'function'}
-            <ThemeLayout>
-                {@render children()}
-            </ThemeLayout>
+            <div class="contents theme-layout-enter">
+                <ThemeLayout>
+                    {@render children()}
+                </ThemeLayout>
+            </div>
         {:else}
             {@render children()}
         {/if}
     {/key}
-{:else if activeTheme}
-    <!-- 테마 레이아웃 로드 중 또는 SSR - children 직접 렌더링 -->
-    <!-- SSR에서 $effect가 실행되지 않아 ThemeLayout이 null이므로 children 먼저 렌더링 -->
-    <div class="min-h-screen bg-white">
+{:else if data.activeTheme}
+    <!-- 테마 레이아웃 로드 대기 중 -->
+    <!-- visibility:hidden으로 content 100% 너비 flash 방지 (SSR 콘텐츠는 DOM에 유지) -->
+    <div class="invisible pointer-events-none min-h-screen">
         {@render children()}
     </div>
 {:else}
