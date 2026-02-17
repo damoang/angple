@@ -164,7 +164,7 @@
 
         // 인증 상태 초기화 (SSR에서 받은 데이터가 있으면 우선 사용)
         if (data.user && data.accessToken) {
-            authActions.initFromSSR(data.user, data.accessToken);
+            authActions.initFromSSR({ nickname: data.user.nickname ?? '', level: data.user.level }, data.accessToken);
         } else {
             authActions.initAuth();
         }
