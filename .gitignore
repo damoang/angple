@@ -112,3 +112,4 @@ apps/web/src/lib/components/ui/podcast-player/
 # Claude Code
 .claude/
 CLAUDE.md
+local.txt
