@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { onMount, onDestroy } from 'svelte';
+    import { onMount, onDestroy, tick } from 'svelte';
     import { browser } from '$app/environment';
 
     interface Props {
@@ -423,6 +423,9 @@
         const adUnitPath = config.unit;
         const adSizes = sizes || config.sizes;
         slotId = `gam-${position}-${Math.random().toString(36).substr(2, 9)}`;
+
+        // DOM 업데이트 대기 (slotId가 반영되어 div가 렌더링될 때까지)
+        await tick();
 
         window.googletag = window.googletag || { cmd: [] };
 

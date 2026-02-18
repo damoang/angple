@@ -57,6 +57,9 @@
     // 동적으로 로드된 테마 레이아웃 컴포넌트
     let ThemeLayout = $state<Component | null>(null);
 
+    // 테마 로드 실패 fallback (invisible 무한 대기 방지)
+    let themeLoadFailed = $state(false);
+
     // Vite의 import.meta.glob으로 모든 테마 레이아웃 패턴 정의
     // 상대 경로로 프로젝트 루트의 themes 디렉터리 참조
     // (Vite glob은 alias를 지원하지 않아 상대 경로 필수)
@@ -94,10 +97,12 @@
             } else {
                 // 테마 레이아웃이 없으면 기본 레이아웃 사용
                 ThemeLayout = null;
+                themeLoadFailed = true;
             }
         } catch (error) {
             console.error(`[Layout] 테마 레이아웃 로드 실패: ${themeId}`, error);
             ThemeLayout = null;
+            themeLoadFailed = true;
         }
     }
 
@@ -156,6 +161,13 @@
     });
 
     onMount(() => {
+        // 테마 로드 안전망: 2초 후에도 invisible이면 강제 표시
+        const themeTimeout = setTimeout(() => {
+            if (!ThemeLayout && data.activeTheme) {
+                themeLoadFailed = true;
+            }
+        }, 2000);
+
         // Built-in Hooks 초기화 (콘텐츠 임베딩, 게시판 필터 등)
         initBuiltinHooks();
 
@@ -216,6 +228,7 @@
         document.addEventListener('visibilitychange', handleVisibilityChange);
 
         return () => {
+            clearTimeout(themeTimeout);
             window.removeEventListener('message', handleMessage);
             document.removeEventListener('visibilitychange', handleVisibilityChange);
         };
@@ -249,9 +262,8 @@
             {@render children()}
         {/if}
     {/key}
-{:else if data.activeTheme}
-    <!-- 테마 레이아웃 로드 대기 중 -->
-    <!-- visibility:hidden으로 content 100% 너비 flash 방지 (SSR 콘텐츠는 DOM에 유지) -->
+{:else if data.activeTheme && !themeLoadFailed}
+    <!-- 테마 레이아웃 로드 대기 중 (최대 2초, 이후 fallback) -->
     <div class="pointer-events-none invisible min-h-screen">
         {@render children()}
     </div>

@@ -39,7 +39,7 @@ export const GET: RequestHandler = async ({ url }) => {
 
     try {
         const placeholders = ids.map(() => '?').join(',');
-        const [rows] = await pool.execute<RowDataPacket[]>(
+        const [rows] = await pool.query<RowDataPacket[]>(
             `SELECT mb_id, IFNULL(as_level, 1) as as_level FROM g5_member WHERE mb_id IN (${placeholders})`,
             ids
         );

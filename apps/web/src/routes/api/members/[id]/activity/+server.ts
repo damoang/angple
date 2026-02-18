@@ -67,7 +67,7 @@ export const GET: RequestHandler = async ({ params, url }) => {
         const boardSubjects = new Map<string, string>();
         if (allTables.length > 0) {
             const placeholders = allTables.map(() => '?').join(', ');
-            const [boardRows] = await pool.execute<BoardRow[]>(
+            const [boardRows] = await pool.query<BoardRow[]>(
                 `SELECT bo_table, bo_subject FROM g5_board WHERE bo_table IN (${placeholders})`,
                 allTables
             );
