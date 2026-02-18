@@ -1,0 +1,1 @@
+/home/damoang/angple-premium/deploy/scripts/dev-server.sh
