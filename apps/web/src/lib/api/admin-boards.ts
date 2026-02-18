@@ -28,6 +28,11 @@ export interface CreateBoardRequest {
     write_level?: number;
     reply_level?: number;
     comment_level?: number;
+    upload_level?: number;
+    download_level?: number;
+    write_point?: number;
+    comment_point?: number;
+    download_point?: number;
     use_category?: number;
     category_list?: string;
     use_good?: number;
@@ -48,6 +53,11 @@ export interface UpdateBoardRequest {
     write_level?: number;
     reply_level?: number;
     comment_level?: number;
+    upload_level?: number;
+    download_level?: number;
+    write_point?: number;
+    comment_point?: number;
+    download_point?: number;
     use_category?: number;
     category_list?: string;
     use_good?: number;

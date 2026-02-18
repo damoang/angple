@@ -50,7 +50,13 @@
     let formListLevel = $state(1);
     let formReadLevel = $state(1);
     let formWriteLevel = $state(2);
+    let formReplyLevel = $state(2);
     let formCommentLevel = $state(2);
+    let formUploadLevel = $state(2);
+    let formDownloadLevel = $state(1);
+    let formWritePoint = $state(0);
+    let formCommentPoint = $state(0);
+    let formDownloadPoint = $state(0);
     let formUseCategory = $state(false);
     let formCategoryList = $state('');
     let formUseGood = $state(true);
@@ -93,7 +99,13 @@
         formListLevel = 1;
         formReadLevel = 1;
         formWriteLevel = 2;
+        formReplyLevel = 2;
         formCommentLevel = 2;
+        formUploadLevel = 2;
+        formDownloadLevel = 1;
+        formWritePoint = 0;
+        formCommentPoint = 0;
+        formDownloadPoint = 0;
         formUseCategory = false;
         formCategoryList = '';
         formUseGood = true;
@@ -112,7 +124,13 @@
         formListLevel = board.list_level;
         formReadLevel = board.read_level;
         formWriteLevel = board.write_level;
+        formReplyLevel = board.reply_level ?? 2;
         formCommentLevel = board.comment_level;
+        formUploadLevel = board.upload_level ?? 2;
+        formDownloadLevel = board.download_level ?? 1;
+        formWritePoint = board.write_point ?? 0;
+        formCommentPoint = board.comment_point ?? 0;
+        formDownloadPoint = board.download_point ?? 0;
         formUseCategory = board.use_category === 1;
         formCategoryList = board.category_list ?? '';
         formUseGood = board.use_good === 1;
@@ -134,7 +152,13 @@
                     list_level: formListLevel,
                     read_level: formReadLevel,
                     write_level: formWriteLevel,
+                    reply_level: formReplyLevel,
                     comment_level: formCommentLevel,
+                    upload_level: formUploadLevel,
+                    download_level: formDownloadLevel,
+                    write_point: formWritePoint,
+                    comment_point: formCommentPoint,
+                    download_point: formDownloadPoint,
                     use_category: formUseCategory ? 1 : 0,
                     category_list: formCategoryList,
                     use_good: formUseGood ? 1 : 0,
@@ -153,7 +177,13 @@
                     list_level: formListLevel,
                     read_level: formReadLevel,
                     write_level: formWriteLevel,
+                    reply_level: formReplyLevel,
                     comment_level: formCommentLevel,
+                    upload_level: formUploadLevel,
+                    download_level: formDownloadLevel,
+                    write_point: formWritePoint,
+                    comment_point: formCommentPoint,
+                    download_point: formDownloadPoint,
                     use_category: formUseCategory ? 1 : 0,
                     category_list: formCategoryList,
                     use_good: formUseGood ? 1 : 0,
@@ -480,6 +510,17 @@
                         />
                     </div>
                     <div class="grid gap-1.5">
+                        <Label for="reply-level" class="text-xs">답글 작성</Label>
+                        <Input
+                            id="reply-level"
+                            type="number"
+                            min="0"
+                            max="10"
+                            bind:value={formReplyLevel}
+                            disabled={saving}
+                        />
+                    </div>
+                    <div class="grid gap-1.5">
                         <Label for="comment-level" class="text-xs">댓글 쓰기</Label>
                         <Input
                             id="comment-level"
@@ -490,9 +531,68 @@
                             disabled={saving}
                         />
                     </div>
+                    <div class="grid gap-1.5">
+                        <Label for="upload-level" class="text-xs">파일 업로드</Label>
+                        <Input
+                            id="upload-level"
+                            type="number"
+                            min="0"
+                            max="10"
+                            bind:value={formUploadLevel}
+                            disabled={saving}
+                        />
+                    </div>
+                    <div class="grid gap-1.5">
+                        <Label for="download-level" class="text-xs">파일 다운로드</Label>
+                        <Input
+                            id="download-level"
+                            type="number"
+                            min="0"
+                            max="10"
+                            bind:value={formDownloadLevel}
+                            disabled={saving}
+                        />
+                    </div>
                 </div>
                 <p class="text-muted-foreground text-xs">
                     0=비회원, 1=전체 회원, 2~9=해당 레벨 이상, 10=관리자만
+                </p>
+            </div>
+
+            <!-- 포인트 설정 -->
+            <div class="space-y-3">
+                <h3 class="text-sm font-semibold">포인트 설정</h3>
+                <div class="grid grid-cols-3 gap-3">
+                    <div class="grid gap-1.5">
+                        <Label for="write-point" class="text-xs">글쓰기</Label>
+                        <Input
+                            id="write-point"
+                            type="number"
+                            bind:value={formWritePoint}
+                            disabled={saving}
+                        />
+                    </div>
+                    <div class="grid gap-1.5">
+                        <Label for="comment-point" class="text-xs">댓글</Label>
+                        <Input
+                            id="comment-point"
+                            type="number"
+                            bind:value={formCommentPoint}
+                            disabled={saving}
+                        />
+                    </div>
+                    <div class="grid gap-1.5">
+                        <Label for="download-point" class="text-xs">다운로드</Label>
+                        <Input
+                            id="download-point"
+                            type="number"
+                            bind:value={formDownloadPoint}
+                            disabled={saving}
+                        />
+                    </div>
+                </div>
+                <p class="text-muted-foreground text-xs">
+                    양수=지급, 음수=차감, 0=없음
                 </p>
             </div>
 

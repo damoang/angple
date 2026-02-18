@@ -48,6 +48,9 @@
             };
 
             const newPost = await apiClient.createPost(boardId, request);
+            if (!newPost?.id) {
+                throw new Error('게시글 작성에 실패했습니다. (응답 오류)');
+            }
 
             // @멘션 알림 전송 (fire-and-forget)
             sendMentionNotifications({

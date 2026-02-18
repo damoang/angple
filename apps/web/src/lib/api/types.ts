@@ -475,6 +475,11 @@ export interface Board {
     write_level: number;
     reply_level: number;
     comment_level: number;
+    upload_level?: number;
+    download_level?: number;
+    write_point?: number;
+    comment_point?: number;
+    download_point?: number;
     use_category: number;
     use_good: number; // 추천 사용 여부 (0: 미사용, 1: 사용)
     use_nogood: number; // 비추천 사용 여부 (0: 미사용, 1: 사용)

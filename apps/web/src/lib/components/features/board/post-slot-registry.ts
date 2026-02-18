@@ -27,6 +27,8 @@
 type SlotComponent = any;
 
 export interface SlotEntry {
+    /** 중복 등록 방지용 고유 ID (미지정 시 component 참조로 대체) */
+    id?: string;
     component: SlotComponent;
     /** 이 슬롯을 표시할 조건 (boardType 기반) */
     condition?: (boardType: string) => boolean;
@@ -55,6 +57,12 @@ class PostSlotRegistry {
      */
     register(slotName: string, entry: SlotEntry): void {
         const entries = this.slots.get(slotName) || [];
+        // 중복 등록 방지: id 기반 우선, 없으면 component 참조로 비교
+        // SPA 이동 시 +page.svelte 스크립트가 인스턴스마다 재실행되므로 필수
+        const isDuplicate = entry.id
+            ? entries.some((e) => e.id === entry.id)
+            : entries.some((e) => e.component === entry.component);
+        if (isDuplicate) return;
         entries.push(entry);
         // 우선순위로 정렬
         entries.sort((a, b) => a.priority - b.priority);
