@@ -1212,8 +1212,8 @@ class ApiClient {
     }
 
     /**
-     * 파일 업로드 (Go Backend /api/v2/media/attachments → S3)
-     * 🔒 인증 필요 (JWT Bearer)
+     * 파일 업로드 (SvelteKit /api/media/images → S3, IAM Role 인증)
+     * 🔒 인증 필요 (damoang_jwt 쿠키)
      */
     async uploadFile(boardId: string, file: File, postId?: number): Promise<UploadedFile> {
         const formData = new FormData();
@@ -1222,15 +1222,10 @@ class ApiClient {
             formData.append('post_id', String(postId));
         }
 
-        const accessToken = this.getAccessToken();
-
-        const response = await fetch(`${API_V2_URL}/media/attachments`, {
+        const response = await fetch('/api/media/images', {
             method: 'POST',
             body: formData,
-            credentials: 'include',
-            headers: {
-                ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {})
-            }
+            credentials: 'include'
         });
 
         if (!response.ok) {
@@ -1252,8 +1247,8 @@ class ApiClient {
     }
 
     /**
-     * 이미지 업로드 (Go Backend /api/v2/media/images → S3)
-     * 🔒 인증 필요 (JWT Bearer)
+     * 이미지 업로드 (SvelteKit /api/media/images → S3, IAM Role 인증)
+     * 🔒 인증 필요 (damoang_jwt 쿠키)
      */
     async uploadImage(boardId: string, file: File, postId?: number): Promise<UploadedFile> {
         // 이미지 파일인지 확인
@@ -1267,15 +1262,10 @@ class ApiClient {
             formData.append('post_id', String(postId));
         }
 
-        const accessToken = this.getAccessToken();
-
-        const response = await fetch(`${API_V2_URL}/media/images`, {
+        const response = await fetch('/api/media/images', {
             method: 'POST',
             body: formData,
-            credentials: 'include',
-            headers: {
-                ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {})
-            }
+            credentials: 'include'
         });
 
         if (!response.ok) {

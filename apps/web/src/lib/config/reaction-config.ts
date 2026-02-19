@@ -38,7 +38,6 @@ const NOTO_BASE = 'https://fonts.gstatic.com/s/e/notoemoji/latest';
 // 이모지 세트
 const EMOJIS: EmoticonDef[] = [
     { reaction: 'emoji:1f44d', category: 'emoji', renderType: 'emoji', emoji: '👍' },
-    { reaction: 'emoji:1f44e', category: 'emoji', renderType: 'emoji', emoji: '👎' },
     { reaction: 'emoji:1f600', category: 'emoji', renderType: 'emoji', emoji: '😀' },
     { reaction: 'emoji:1f604', category: 'emoji', renderType: 'emoji', emoji: '😄' },
     { reaction: 'emoji:1f602', category: 'emoji', renderType: 'emoji', emoji: '😂' },
