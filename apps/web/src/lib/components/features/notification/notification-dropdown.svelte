@@ -88,7 +88,7 @@
 
         try {
             const summary = await apiClient.getUnreadNotificationCount();
-            unreadCount = summary.total_unread;
+            unreadCount = summary?.total_unread ?? 0;
         } catch (err) {
             console.error('Failed to load unread count:', err);
         }
