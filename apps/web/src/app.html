@@ -27,8 +27,18 @@
         </script>
         <div style="display: contents">%sveltekit.body%</div>
         <script>
-            if ('serviceWorker' in navigator && location.hostname !== 'localhost') {
-                navigator.serviceWorker.register('/sw.js');
+            if ('serviceWorker' in navigator) {
+                if (location.hostname === 'localhost' || location.hostname.startsWith('dev.')) {
+                    // dev 환경: SW 해제 + Cache Storage 전체 삭제
+                    navigator.serviceWorker.getRegistrations().then(function(regs) {
+                        regs.forEach(function(r) { r.unregister(); });
+                    });
+                    caches.keys().then(function(names) {
+                        names.forEach(function(name) { caches.delete(name); });
+                    });
+                } else {
+                    navigator.serviceWorker.register('/sw.js');
+                }
             }
         </script>
     </body>

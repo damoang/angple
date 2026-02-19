@@ -45,6 +45,11 @@ self.addEventListener('fetch', (event) => {
     const { request } = event;
     const url = new URL(request.url);
 
+    // dev 환경: 캐싱 완전 비활성화 (모든 요청을 네트워크로 통과)
+    if (self.location.hostname === 'localhost' || self.location.hostname.startsWith('dev.')) {
+        return;
+    }
+
     // 같은 출처의 요청만 처리
     if (url.origin !== self.location.origin) return;
 

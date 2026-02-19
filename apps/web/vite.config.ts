@@ -32,6 +32,13 @@ export default defineConfig(({ mode }) => {
         server: {
             port,
             allowedHosts,
+            // 리버스 프록시(Cloudflare) 뒤에서 구/신 chunk 버전 충돌 방지
+            headers: env.VITE_HMR_HOST
+                ? {
+                      'Cache-Control': 'no-store, no-cache, must-revalidate',
+                      'Cloudflare-CDN-Cache-Control': 'no-store'
+                  }
+                : undefined,
             hmr: env.VITE_HMR_HOST
                 ? {
                       host: env.VITE_HMR_HOST,

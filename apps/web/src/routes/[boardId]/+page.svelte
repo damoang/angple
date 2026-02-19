@@ -247,7 +247,7 @@
         <!-- 최상단 배너 (축하이미지 → 다모앙광고 → GAM 폴백) -->
         {#if widgetLayoutStore.hasEnabledAds}
             <div class="mb-4">
-                <DamoangBanner position="board-list" height="90px" />
+                <DamoangBanner position="board-list" height="90px" showCelebration={false} />
             </div>
         {/if}
 
@@ -257,31 +257,36 @@
         {/if}
 
         <!-- 헤더 -->
-        <div class="mb-4 flex items-start justify-between gap-3">
-            <div>
-                <div class="flex items-center gap-2">
-                    <h1 class="text-xl font-bold sm:text-3xl">
-                        <a
-                            href="/{boardId}"
-                            class="text-foreground hover:text-primary transition-colors"
-                        >
-                            {boardTitle}
-                        </a>
-                    </h1>
-                    {#if isAdmin}
-                        <AdminLayoutSwitcher {boardId} currentLayout={listLayoutId} />
-                        <Button
-                            variant={bulkSelectMode ? 'default' : 'outline'}
-                            size="sm"
-                            onclick={toggleBulkSelect}
-                            class="h-8"
-                        >
-                            <CheckSquare class="mr-1 h-4 w-4" />
-                            선택
-                        </Button>
-                    {/if}
-                </div>
+        <div class="mb-4 flex items-center gap-3">
+            <div class="flex shrink-0 items-center gap-2">
+                <h1 class="text-xl font-bold sm:text-3xl">
+                    <a
+                        href="/{boardId}"
+                        class="text-foreground hover:text-primary transition-colors"
+                    >
+                        {boardTitle}
+                    </a>
+                </h1>
+                {#if isAdmin}
+                    <AdminLayoutSwitcher {boardId} currentLayout={listLayoutId} />
+                    <Button
+                        variant={bulkSelectMode ? 'default' : 'outline'}
+                        size="sm"
+                        onclick={toggleBulkSelect}
+                        class="h-8"
+                    >
+                        <CheckSquare class="mr-1 h-4 w-4" />
+                        선택
+                    </Button>
+                {/if}
             </div>
+
+            <!-- 축하 메시지 롤링 (인라인) -->
+            {#if !isSearching}
+                <div class="min-w-0 flex-1">
+                    <CelebrationRolling />
+                </div>
+            {/if}
 
             {#if canWrite()}
                 <Button onclick={goToWrite} class="shrink-0">
@@ -408,13 +413,6 @@
                         </div>
                     </div>
                 {/each}
-            </div>
-        {/if}
-
-        <!-- 축하 메시지 롤링 (텍스트형) -->
-        {#if !isSearching}
-            <div class="mb-4">
-                <CelebrationRolling />
             </div>
         {/if}
 
