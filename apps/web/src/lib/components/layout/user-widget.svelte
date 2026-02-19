@@ -120,8 +120,9 @@
             </a>
         </div>
 
+        <!-- TODO: 레벨/내글/포인트 등 백엔드 API 정비 후 복원 -->
         <!-- 레벨 게이지 -->
-        {#if user.as_level !== undefined}
+        <!-- {#if user.as_level !== undefined}
             <a href="/my/exp" class="group mt-2 block">
                 <div class="text-muted-foreground flex items-center justify-between text-[10px]">
                     <span>Lv.{user.as_level}</span>
@@ -142,10 +143,10 @@
                     />
                 {/if}
             </a>
-        {/if}
+        {/if} -->
 
         <!-- 내글 / 내댓글 / 전체 + 포인트 -->
-        <div class="mt-2 space-y-1 text-xs">
+        <!-- <div class="mt-2 space-y-1 text-xs">
             <div class="text-muted-foreground flex items-center justify-center gap-1.5">
                 <a href="/my?tab=posts" class="hover:text-primary transition-colors">내글</a>
                 <span class="text-border">·</span>
@@ -182,7 +183,7 @@
                     {/if}
                 </div>
             {/if}
-        </div>
+        </div> -->
     {:else}
         <!-- 비로그인 상태 (컴팩트) -->
         <div class="flex items-center gap-2">

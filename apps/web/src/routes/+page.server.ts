@@ -3,14 +3,16 @@ import type { IndexWidgetsData } from '$lib/api/types';
 import { readSettings } from '$lib/server/settings';
 import { DEFAULT_WIDGETS, DEFAULT_SIDEBAR_WIDGETS } from '$lib/constants/default-widgets';
 
-const INTERNAL_API_URL = process.env.INTERNAL_API_URL || 'http://localhost:8082/api/v1';
+// recommended 엔드포인트는 v1에만 존재
+const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8082';
+const INTERNAL_API_V1_URL = `${BACKEND_URL}/api/v1`;
 
 export const load: PageServerLoad = async () => {
     // 위젯 데이터와 레이아웃을 병렬로 로드
     const [indexWidgetsResult, layoutResult] = await Promise.allSettled([
         // 위젯 데이터 로드
         (async () => {
-            const response = await fetch(`${INTERNAL_API_URL}/recommended/index-widgets`, {
+            const response = await fetch(`${INTERNAL_API_V1_URL}/recommended/index-widgets`, {
                 headers: {
                     Accept: 'application/json',
                     'User-Agent': 'Angple-Web-SSR/1.0'

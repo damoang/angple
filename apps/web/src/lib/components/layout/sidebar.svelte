@@ -133,7 +133,6 @@
         <Component {...slotComp.props || {}} />
     {/each}
 
-    <!-- 로그인 위젯 -->
     <div class="px-2">
         <UserWidget />
     </div>
