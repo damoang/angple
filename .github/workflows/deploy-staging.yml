@@ -105,9 +105,9 @@ jobs:
             # 이미지 pull
             docker pull ${{ env.IMAGE_NAME }}:staging
 
-            # 기존 컨테이너 교체
-            docker stop angple-staging 2>/dev/null || true
-            docker rm angple-staging 2>/dev/null || true
+            # 기존 컨테이너 강제 제거
+            docker rm -f angple-staging 2>/dev/null || true
+            sleep 3
 
             # 환경 변수 파일 확인
             ENV_FILE="/home/damoang/angple-deploy/.env.staging"
