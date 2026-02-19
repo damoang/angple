@@ -32,6 +32,13 @@ export default defineConfig(({ mode }) => {
         server: {
             port,
             allowedHosts,
+            hmr: env.VITE_HMR_HOST
+                ? {
+                      host: env.VITE_HMR_HOST,
+                      protocol: env.VITE_HMR_PROTOCOL || 'wss',
+                      clientPort: parseInt(env.VITE_HMR_CLIENT_PORT || '443')
+                  }
+                : true,
             fs: {
                 allow: ['.', '../..', '../../..']
             },
