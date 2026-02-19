@@ -10,6 +10,7 @@
     import RightBanner from '$lib/components/layout/right-banner.svelte';
     import { authActions } from '$lib/stores/auth.svelte';
     import AdSlot from '$lib/components/ui/ad-slot/ad-slot.svelte';
+    import { DamoangBanner } from '$lib/components/ui/damoang-banner';
     import { widgetLayoutStore } from '$lib/stores/widget-layout.svelte';
 
     /**
@@ -64,10 +65,10 @@
     <div class="container relative z-10 flex w-full flex-1 flex-col">
         <Header />
 
-        <!-- 헤더 아래 GAM 광고 -->
+        <!-- 헤더 아래 광고 (축하이미지 → 다모앙광고 → GAM 폴백) -->
         {#if widgetLayoutStore.hasEnabledAds}
             <div class="mx-auto w-full px-4 py-2 lg:px-0">
-                <AdSlot position="header-after" height="90px" />
+                <DamoangBanner position="index" height="90px" />
             </div>
 
             <div class="mx-auto w-full px-4 py-2 lg:px-0">

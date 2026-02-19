@@ -18,6 +18,9 @@
     import CheckSquare from '@lucide/svelte/icons/check-square';
     import { Checkbox } from '$lib/components/ui/checkbox/index.js';
     import AdSlot from '$lib/components/ui/ad-slot/ad-slot.svelte';
+    import { DamoangBanner } from '$lib/components/ui/damoang-banner';
+    import { CelebrationRolling } from '$lib/components/ui/celebration-rolling';
+    import { PromotionInlinePost } from '$lib/components/ui/promotion-inline-post';
     import { widgetLayoutStore } from '$lib/stores/widget-layout.svelte';
     import { SeoHead, createBreadcrumbJsonLd } from '$lib/seo/index.js';
     import type { SeoConfig } from '$lib/seo/types.js';
@@ -189,6 +192,9 @@
         goto(url.pathname + url.search);
     }
 
+    // 직접홍보 사잇광고
+    const promotionPosts = $derived(data.promotionPosts || []);
+
     // 게시글 작성자 레벨 배치 로드
     $effect(() => {
         const ids = [...new Set(data.posts.map((p) => p.author_id).filter(Boolean))];
@@ -238,10 +244,10 @@
     <SeoHead config={seoConfig} />
 
     <div class="mx-auto pt-4">
-        <!-- 최상단 배너 (title 위) -->
+        <!-- 최상단 배너 (축하이미지 → 다모앙광고 → GAM 폴백) -->
         {#if widgetLayoutStore.hasEnabledAds}
             <div class="mb-4">
-                <AdSlot position="board-list-head" height="90px" />
+                <DamoangBanner position="board-list" height="90px" />
             </div>
         {/if}
 
@@ -405,6 +411,13 @@
             </div>
         {/if}
 
+        <!-- 축하 메시지 롤링 (텍스트형) -->
+        {#if !isSearching}
+            <div class="mb-4">
+                <CelebrationRolling />
+            </div>
+        {/if}
+
         <!-- 일괄 작업 툴바 (관리자 선택 모드) -->
         {#if bulkSelectMode}
             <div class="mb-3">
@@ -437,7 +450,7 @@
                     </CardContent>
                 </Card>
             {:else if LayoutComponent}
-                {#each filteredPosts as post (post.id)}
+                {#each filteredPosts as post, i (post.id)}
                     {#if bulkSelectMode}
                         <div class="flex items-start gap-2">
                             <div class="flex shrink-0 items-center pt-3">
@@ -460,6 +473,12 @@
                             displaySettings={data.board?.display_settings}
                             onclick={() => goToPost(post.id)}
                         />
+                    {/if}
+
+                    <!-- 직접홍보 사잇광고 (5번째 글마다) -->
+                    {#if promotionPosts.length > 0 && (i + 1) % 5 === 0}
+                        {@const promoIndex = Math.floor(i / 5) % promotionPosts.length}
+                        <PromotionInlinePost post={promotionPosts[promoIndex]} />
                     {/if}
                 {/each}
             {/if}
