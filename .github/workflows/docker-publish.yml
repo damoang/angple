@@ -91,6 +91,8 @@ jobs:
           cache-to: type=gha,mode=max,scope=production
           build-args: |
             VITE_USE_MOCK=false
+            VITE_GAM_NETWORK_CODE=23338387889
+            VITE_GAM_SITE_NAME=damoang
 
       - name: Image digest
         run: echo "Image pushed with tags ${{ steps.meta.outputs.tags }}"

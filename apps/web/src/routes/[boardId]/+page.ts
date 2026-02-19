@@ -18,8 +18,8 @@ export const load: PageLoad = async ({ url, params }) => {
     const isTagFiltering = Boolean(tag);
 
     try {
-        // 게시판 정보, 공지사항, 게시글 목록을 병렬로 가져오기
-        const [data, board, notices] = await Promise.all([
+        // 게시판 정보, 공지사항, 게시글 목록, 직접홍보를 병렬로 가져오기
+        const [data, board, notices, promotionPostsResult] = await Promise.all([
             isSearching
                 ? apiClient.searchPosts(boardId, {
                       field: searchField!,
@@ -39,14 +39,18 @@ export const load: PageLoad = async ({ url, params }) => {
                   : apiClient.getBoardPosts(boardId, page, limit),
             apiClient.getBoard(boardId),
             // 검색 중이 아닐 때만 공지사항 로드
-            isSearching ? Promise.resolve([]) : apiClient.getBoardNotices(boardId)
+            isSearching ? Promise.resolve([]) : apiClient.getBoardNotices(boardId),
+            // 직접홍보 사잇광고
+            fetch('/api/ads/promotion-posts')
+                .then((r) => r.json())
+                .catch(() => ({ success: false, data: { posts: [] } }))
         ]);
 
         return {
             boardId,
             posts: data.items,
             notices,
-            promotionPosts: [],
+            promotionPosts: promotionPostsResult?.data?.posts || [],
             pagination: {
                 total: data.total,
                 page: data.page,
