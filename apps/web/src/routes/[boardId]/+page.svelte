@@ -475,9 +475,9 @@
                         />
                     {/if}
 
-                    <!-- 직접홍보 사잇광고 (5번째 글마다) -->
-                    {#if promotionPosts.length > 0 && (i + 1) % 5 === 0}
-                        {@const promoIndex = Math.floor(i / 5) % promotionPosts.length}
+                    <!-- 직접홍보 사잇광고 (10번째 글마다, 최대 2개) -->
+                    {#if promotionPosts.length > 0 && (i + 1) % 10 === 0}
+                        {@const promoIndex = Math.floor(i / 10) % promotionPosts.length}
                         <PromotionInlinePost post={promotionPosts[promoIndex]} />
                     {/if}
                 {/each}
