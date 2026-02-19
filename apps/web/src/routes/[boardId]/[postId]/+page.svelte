@@ -540,8 +540,6 @@
 
     <!-- 상단 네비게이션 -->
     <div class="mb-6 flex items-center justify-between gap-3">
-        <Button variant="outline" size="sm" onclick={goBack} class="shrink-0">← 목록으로</Button>
-
         <div class="flex shrink-0 gap-2">
             {#if isAdmin}
                 {#if noticeType}
@@ -588,6 +586,8 @@
                 />
             {/if}
         </div>
+
+        <Button variant="outline" size="sm" onclick={goBack} class="shrink-0">← 목록으로</Button>
     </div>
 
     <!-- 게시글 카드 -->
@@ -724,7 +724,11 @@
                 <!-- 추천/비추천/신고 버튼 -->
                 <div class="flex w-full flex-wrap items-center gap-3">
                     <!-- 추천 버튼 -->
-                    <div class="border-border flex items-center rounded-lg border">
+                    <div
+                        class="flex items-center rounded-lg border {isLiked
+                            ? 'border-liked/40 bg-liked/5'
+                            : 'border-border'}"
+                    >
                         <Button
                             variant="ghost"
                             size="sm"
@@ -742,7 +746,9 @@
                         <button
                             type="button"
                             onclick={loadLikers}
-                            class="text-muted-foreground hover:text-foreground border-border border-l px-2 py-1 text-xs transition-colors"
+                            class="border-l px-2 py-1 text-xs transition-colors {isLiked
+                                ? 'border-liked/40 text-liked'
+                                : 'text-muted-foreground hover:text-foreground border-border'}"
                         >
                             <Users class="h-4 w-4" />
                         </button>
