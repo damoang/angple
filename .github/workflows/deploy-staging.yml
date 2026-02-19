@@ -116,22 +116,21 @@ jobs:
               ENV_FLAG="--env-file $ENV_FILE"
             fi
 
-            # 새 컨테이너 시작
+            # 새 컨테이너 시작 (host 네트워크 — 포트 바인딩 충돌 방지)
             docker run -d \
               --name angple-staging \
               --restart unless-stopped \
-              --network angple-network \
-              -p 3011:3000 \
+              --network host \
               -v /home/damoang/angple-deploy/data-staging:/app/data \
               -e NODE_ENV=production \
-              -e PORT=3000 \
+              -e PORT=3011 \
               $ENV_FLAG \
               ${{ env.IMAGE_NAME }}:staging
 
             # 헬스체크 대기
             echo "Waiting for health check..."
             for i in $(seq 1 30); do
-              if docker exec angple-staging wget -q -O /dev/null http://127.0.0.1:3000/health 2>/dev/null; then
+              if docker exec angple-staging wget -q -O /dev/null http://127.0.0.1:3011/health 2>/dev/null; then
                 echo "Health check passed!"
                 break
               fi
