@@ -622,7 +622,8 @@
                     categoryList={data.board?.category_list}
                 />
             {/if}
-            {#if isAuthor}
+            <!-- TODO: 소프트 삭제 구현 후 복원 -->
+            <!-- {#if isAuthor}
                 <Button variant="outline" size="sm" onclick={goToEdit}>
                     <Pencil class="mr-1 h-4 w-4" />
                     수정
@@ -635,7 +636,7 @@
                     onConfirm={handleDelete}
                     isLoading={isDeleting}
                 />
-            {/if}
+            {/if} -->
         </div>
     </div>
 

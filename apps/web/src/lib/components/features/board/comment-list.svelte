@@ -659,7 +659,8 @@
                                     </Button>
                                 {/if}
 
-                                {#if isAuthor}
+                                <!-- TODO: 소프트 삭제 구현 후 복원 -->
+                                <!-- {#if isAuthor}
                                     <Button
                                         variant="ghost"
                                         size="sm"
@@ -677,7 +678,8 @@
                                     >
                                         <Trash2 class="h-4 w-4" />
                                     </Button>
-                                {:else if authStore.isAuthenticated}
+                                {:else} -->
+                                {#if authStore.isAuthenticated && !isAuthor}
                                     <!-- 신고 버튼 (본인이 아닌 경우에만) -->
                                     <Button
                                         variant="ghost"
@@ -694,8 +696,9 @@
                     </div>
                 </div>
 
-                {#if isEditing}
-                    <!-- 수정 모드 -->
+                <!-- TODO: 소프트 삭제 구현 후 인라인 수정 폼 복원 -->
+                {#if false}
+                    <!-- 수정 모드 (임시 비활성화) -->
                     <div class="space-y-2">
                         <Textarea bind:value={editContent} rows={3} disabled={isUpdating} />
                         <div class="flex justify-end gap-2">

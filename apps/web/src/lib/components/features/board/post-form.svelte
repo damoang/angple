@@ -20,7 +20,7 @@
     import DraftList from './draft-list.svelte';
     import TagInput from './tag-input.svelte';
     import { TiptapEditor } from '$lib/components/features/editor/index.js';
-    import { ImageUploader, FileUploader } from '$lib/components/features/uploader/index.js';
+    import { FileUploader } from '$lib/components/features/uploader/index.js';
 
     interface Props {
         mode: 'create' | 'edit';
@@ -66,20 +66,8 @@
     });
     let errors = $state<{ title?: string; content?: string }>({});
 
-    // 이미지 업로드 상태
-    let uploadedImages = $state<UploadedFile[]>([]);
-
-    // 파일 업로드 상태
+    // 파일 업로드 상태 (이미지 + 파일 통합)
     let uploadedFiles = $state<UploadedFile[]>([]);
-
-    // 이미지 업로드 핸들러
-    function handleImageUpload(file: UploadedFile): void {
-        uploadedImages = [...uploadedImages, file];
-    }
-
-    function handleImageRemove(fileId: string): void {
-        uploadedImages = uploadedImages.filter((img) => img.id !== fileId);
-    }
 
     // 파일 업로드 핸들러
     function handleFileUpload(file: UploadedFile): void {
@@ -483,24 +471,12 @@
                 />
             </div>
 
-            <!-- 이미지 업로드 -->
+            <!-- 첨부파일 (이미지 + 파일 통합) -->
             <div class="space-y-2">
-                <Label>이미지 첨부</Label>
-                <ImageUploader
-                    {boardId}
-                    maxFiles={10}
-                    maxSizeMB={10}
-                    onUpload={handleImageUpload}
-                    onRemove={handleImageRemove}
-                />
-            </div>
-
-            <!-- 파일 첨부 -->
-            <div class="space-y-2">
-                <Label>파일 첨부</Label>
+                <Label>첨부파일</Label>
                 <FileUploader
                     {boardId}
-                    maxFiles={5}
+                    maxFiles={10}
                     maxSizeMB={50}
                     onUpload={handleFileUpload}
                     onRemove={handleFileRemove}
