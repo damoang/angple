@@ -52,22 +52,6 @@ import { browser } from '$app/environment';
 import { ApiRequestError } from './errors.js';
 import { fetchWithRetry, type RetryConfig, DEFAULT_RETRY_CONFIG } from './retry.js';
 
-// reactions API 응답 → LikeResponse 변환 헬퍼
-function parseReactionsToLikeResponse(
-    targetId: string,
-    result: Record<string, { reaction: string; count: number; choose: boolean }[]>
-): LikeResponse {
-    const reactions = result?.[targetId] ?? [];
-    const like = reactions.find((r) => r.reaction === 'like');
-    const dislike = reactions.find((r) => r.reaction === 'dislike');
-    return {
-        likes: like?.count ?? 0,
-        user_liked: like?.choose ?? false,
-        dislikes: dislike?.count ?? 0,
-        user_disliked: dislike?.choose ?? false
-    };
-}
-
 // 서버/클라이언트 환경에 따라 API URL 분기
 // 클라이언트: 상대경로 (nginx 프록시)
 // SSR: Docker 내부 네트워크 직접 통신
@@ -907,46 +891,47 @@ class ApiClient {
     // ========================================
 
     /**
-     * 게시글 추천
+     * 게시글 추천 (레거시 g5_board_good 기반)
      * 🔒 인증 필요
      */
     async likePost(boardId: string, postId: string): Promise<LikeResponse> {
-        const targetId = `document:${boardId}:${postId}`;
-        const res = await fetch(`/api/boards/${boardId}/posts/${postId}/reactions`, {
+        const res = await fetch(`/api/boards/${boardId}/posts/${postId}/like`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ reaction: 'like', reactionMode: 'toggle' })
+            credentials: 'include',
+            body: JSON.stringify({ action: 'good' })
         });
         const json = await res.json();
-        if (json.status !== 'success') throw new Error(json.message || '추천에 실패했습니다.');
-        return parseReactionsToLikeResponse(targetId, json.result);
+        if (!json.success) throw new Error(json.message || '추천에 실패했습니다.');
+        return json.data;
     }
 
     /**
-     * 게시글 비추천
+     * 게시글 비추천 (레거시 g5_board_good 기반)
      * 🔒 인증 필요
      */
     async dislikePost(boardId: string, postId: string): Promise<LikeResponse> {
-        const targetId = `document:${boardId}:${postId}`;
-        const res = await fetch(`/api/boards/${boardId}/posts/${postId}/reactions`, {
+        const res = await fetch(`/api/boards/${boardId}/posts/${postId}/like`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ reaction: 'dislike', reactionMode: 'toggle' })
+            credentials: 'include',
+            body: JSON.stringify({ action: 'nogood' })
         });
         const json = await res.json();
-        if (json.status !== 'success') throw new Error(json.message || '비추천에 실패했습니다.');
-        return parseReactionsToLikeResponse(targetId, json.result);
+        if (!json.success) throw new Error(json.message || '비추천에 실패했습니다.');
+        return json.data;
     }
 
     /**
-     * 게시글 추천 상태 조회
+     * 게시글 추천 상태 조회 (레거시 g5_board_good 기반)
      */
     async getPostLikeStatus(boardId: string, postId: string): Promise<LikeResponse> {
-        const targetId = `document:${boardId}:${postId}`;
-        const res = await fetch(`/api/boards/${boardId}/posts/${postId}/reactions`);
+        const res = await fetch(`/api/boards/${boardId}/posts/${postId}/like`, {
+            credentials: 'include'
+        });
         const json = await res.json();
-        if (json.status !== 'success') return { likes: 0, user_liked: false };
-        return parseReactionsToLikeResponse(targetId, json.result);
+        if (!json.success) return { likes: 0, user_liked: false };
+        return json.data;
     }
 
     /**

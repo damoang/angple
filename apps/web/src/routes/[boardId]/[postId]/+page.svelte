@@ -36,6 +36,8 @@
     import { isEmbeddable } from '$lib/plugins/auto-embed';
     import AdminPostActions from '$lib/components/features/board/admin-post-actions.svelte';
     import AdSlot from '$lib/components/ui/ad-slot/ad-slot.svelte';
+    import { DamoangBanner } from '$lib/components/ui/damoang-banner';
+    import { CelebrationRolling } from '$lib/components/ui/celebration-rolling';
     import { widgetLayoutStore } from '$lib/stores/widget-layout.svelte';
     import { pluginStore } from '$lib/stores/plugin.svelte';
     import { SeoHead, createArticleJsonLd, createBreadcrumbJsonLd } from '$lib/seo/index.js';
@@ -182,6 +184,9 @@
     let likers = $state<LikerInfo[]>([]);
     let likersTotal = $state(0);
     let isLoadingLikers = $state(false);
+    let likersPage = $state(1);
+    let isLoadingMoreLikers = $state(false);
+    const LIKERS_PER_PAGE = 20;
 
     // 인라인 메모 편집 대상 (추천인 목록 내)
     let editingMemoFor = $state<string | null>(null);
@@ -199,16 +204,15 @@
             memberLevelStore.fetchLevels([data.post.author_id]);
         }
 
-        if (authStore.isAuthenticated) {
-            try {
-                const status = await apiClient.getPostLikeStatus(boardId, String(data.post.id));
-                isLiked = status.user_liked;
-                isDisliked = status.user_disliked ?? false;
-                likeCount = status.likes;
-                dislikeCount = status.dislikes ?? 0;
-            } catch (err) {
-                console.error('Failed to load like status:', err);
-            }
+        // 추천 상태 조회 (비로그인도 추천 수 정확하게 가져옴)
+        try {
+            const status = await apiClient.getPostLikeStatus(boardId, String(data.post.id));
+            isLiked = status.user_liked;
+            isDisliked = status.user_disliked ?? false;
+            likeCount = status.likes;
+            dislikeCount = status.dislikes ?? 0;
+        } catch (err) {
+            console.error('Failed to load like status:', err);
         }
 
         // 추천 수 > 0이면 아바타 미리 로드
@@ -352,8 +356,14 @@
     async function loadLikers(): Promise<void> {
         showLikersDialog = true;
         isLoadingLikers = true;
+        likersPage = 1;
         try {
-            const response = await apiClient.getPostLikers(boardId, String(data.post.id));
+            const response = await apiClient.getPostLikers(
+                boardId,
+                String(data.post.id),
+                1,
+                LIKERS_PER_PAGE
+            );
             likers = response.likers;
             likersTotal = response.total;
             // 추천자 레벨 배치 로드
@@ -365,6 +375,33 @@
             console.error('Failed to load likers:', err);
         } finally {
             isLoadingLikers = false;
+        }
+    }
+
+    // 추천자 더보기 로드
+    async function loadMoreLikers(): Promise<void> {
+        if (isLoadingMoreLikers) return;
+        isLoadingMoreLikers = true;
+        const nextPage = likersPage + 1;
+        try {
+            const response = await apiClient.getPostLikers(
+                boardId,
+                String(data.post.id),
+                nextPage,
+                LIKERS_PER_PAGE
+            );
+            likers = [...likers, ...response.likers];
+            likersTotal = response.total;
+            likersPage = nextPage;
+            // 추가된 추천자 레벨 배치 로드
+            const likerIds = response.likers.map((l: LikerInfo) => l.mb_id).filter(Boolean);
+            if (likerIds.length > 0) {
+                memberLevelStore.fetchLevels(likerIds);
+            }
+        } catch (err) {
+            console.error('Failed to load more likers:', err);
+        } finally {
+            isLoadingMoreLikers = false;
         }
     }
 
@@ -534,12 +571,19 @@
     <!-- 상단 배너 -->
     {#if widgetLayoutStore.hasEnabledAds}
         <div class="mb-6">
-            <AdSlot position="board-head" height="90px" />
+            <DamoangBanner position="board-view" showCelebration={false} height="90px" />
         </div>
     {/if}
 
     <!-- 상단 네비게이션 -->
-    <div class="mb-6 flex items-center justify-between gap-3">
+    <div class="mb-6 flex items-center gap-3">
+        <Button variant="outline" size="sm" onclick={goBack} class="shrink-0">← 목록으로</Button>
+
+        <!-- 축하 메시지 롤링 (인라인) -->
+        <div class="min-w-0 flex-1">
+            <CelebrationRolling />
+        </div>
+
         <div class="flex shrink-0 gap-2">
             {#if isAdmin}
                 {#if noticeType}
@@ -586,8 +630,6 @@
                 />
             {/if}
         </div>
-
-        <Button variant="outline" size="sm" onclick={goBack} class="shrink-0">← 목록으로</Button>
     </div>
 
     <!-- 게시글 카드 -->
@@ -1026,6 +1068,24 @@
                         </li>
                     {/each}
                 </ul>
+                <!-- 더보기 버튼 -->
+                {#if likers.length < likersTotal}
+                    <div class="flex justify-center pt-3">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onclick={loadMoreLikers}
+                            disabled={isLoadingMoreLikers}
+                            class="w-full"
+                        >
+                            {#if isLoadingMoreLikers}
+                                불러오는 중...
+                            {:else}
+                                더보기 ({likers.length}/{likersTotal})
+                            {/if}
+                        </Button>
+                    </div>
+                {/if}
             {/if}
         </div>
     </Dialog.Content>
