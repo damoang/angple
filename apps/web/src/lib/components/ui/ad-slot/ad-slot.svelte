@@ -220,6 +220,7 @@
         'comment-top': 'banner-compact',
         'sidebar-sticky': 'banner-halfpage',
         sidebar: 'banner-square',
+        'sidebar-2': 'banner-square',
         'sidebar-b2b': 'banner-square',
         'wing-left': 'banner-vertical',
         'wing-right': 'banner-vertical'
@@ -310,6 +311,7 @@
             [300, 600]
         ],
         sidebar: [[300, 250]],
+        'sidebar-2': [[300, 250]],
         'sidebar-b2b': [[300, 250]],
         'wing-left': [[160, 600]],
         'wing-right': [[160, 600]]
@@ -334,6 +336,7 @@
         'board-footer': '게시판 하단',
         'comment-infeed': '댓글 인피드',
         'sidebar-sticky': '사이드바 고정',
+        'sidebar-2': 'sidebar-2',
         'sidebar-b2b': 'B2B 광고',
         'wing-left': '왼쪽 윙 배너',
         'wing-right': '오른쪽 윙 배너'

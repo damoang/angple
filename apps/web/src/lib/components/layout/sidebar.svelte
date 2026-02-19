@@ -230,9 +230,13 @@
             <AdSlot position="sidebar" height="250px" />
         </div>
 
-        <!-- 사이드바 세로형 GAM 광고 -->
-        <div class="px-2">
+        <!-- 스크롤 시 고정되는 광고 영역 -->
+        <div class="sticky top-[64px] space-y-3 px-2">
+            <!-- 사이드바 세로형 GAM 광고 -->
             <AdSlot position="sidebar-sticky" height="600px" />
+
+            <!-- 사이드바 추가 GAM 광고 -->
+            <AdSlot position="sidebar-2" height="250px" />
         </div>
     {/if}
 

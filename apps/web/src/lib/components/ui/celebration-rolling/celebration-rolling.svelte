@@ -74,8 +74,8 @@
         const titleText = banner.title || '';
         const isDateTitle = /^\d{4}[.\-]\d{2}[.\-]\d{2}/.test(titleText);
         const message = contentText || (!isDateTitle ? titleText : '');
-        if (nick && message) return `${nick}님, ${message}`;
-        if (nick) return `${nick}님, 축하합니다!`;
+        if (nick && message) return `[${nick}님] ${message}`;
+        if (nick) return `[${nick}님] 축하합니다!`;
         if (message) return message;
         return '축하합니다!';
     }

@@ -50,9 +50,11 @@
         if (user) avatarFailed = false;
     });
 
-    // 로그인/로그아웃 URL 생성
+    // 로그인/로그아웃 URL 생성 (PHP 레거시 로그인으로 리다이렉트)
     let loginUrl = $derived(
-        browser ? `/login?redirect=${encodeURIComponent(window.location.pathname)}` : '/login'
+        browser
+            ? `https://damoang.net/bbs/login.php?url=${encodeURIComponent(window.location.href)}`
+            : 'https://damoang.net/bbs/login.php?url=https://web.damoang.net'
     );
 
     let logoutUrl = $derived(

@@ -1,6 +1,6 @@
 import { redirect, type Handle } from '@sveltejs/kit';
 import { dev } from '$app/environment';
-import { verifyToken } from '$lib/server/auth/jwt.js';
+import { verifyToken, verifyTokenLax } from '$lib/server/auth/jwt.js';
 import { getMemberById } from '$lib/server/auth/oauth/member.js';
 import { mapGnuboardUrl, mapRhymixUrl } from '$lib/server/url-compat.js';
 
@@ -26,73 +26,97 @@ async function authenticateSSR(event: Parameters<Handle>[0]['event']): Promise<v
     event.locals.accessToken = null;
 
     const refreshToken = event.cookies.get('refresh_token');
-    if (!refreshToken) return;
 
-    // 1순위: SvelteKit 자체 JWT 검증 (소셜로그인 토큰)
-    try {
-        const payload = await verifyToken(refreshToken);
-        if (payload?.sub) {
-            const member = await getMemberById(payload.sub);
-            if (member) {
-                // 자체 JWT 검증 성공 → locals 설정
-                event.locals.user = {
-                    nickname: member.mb_nick || member.mb_name,
-                    level: member.mb_level ?? 0
-                };
-                event.locals.accessToken = refreshToken; // refresh_token 자체를 사용
-                return;
+    if (refreshToken) {
+        // 1순위: SvelteKit 자체 JWT 검증 (소셜로그인 토큰)
+        try {
+            const payload = await verifyToken(refreshToken);
+            if (payload?.sub) {
+                const member = await getMemberById(payload.sub);
+                if (member) {
+                    event.locals.user = {
+                        nickname: member.mb_nick || member.mb_name,
+                        level: member.mb_level ?? 0
+                    };
+                    event.locals.accessToken = refreshToken;
+                    return;
+                }
             }
+        } catch {
+            // SvelteKit JWT 검증 실패 → Go 백엔드 시도
         }
-    } catch {
-        // SvelteKit JWT 검증 실패 → Go 백엔드 시도
+
+        // 2순위: Go 백엔드 /api/v2/auth/refresh (기존 호환)
+        try {
+            const refreshRes = await fetch(`${BACKEND_URL}/api/v2/auth/refresh`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Cookie: `refresh_token=${refreshToken}`
+                }
+            });
+            if (refreshRes.ok) {
+                const refreshData = await refreshRes.json();
+                const accessToken = refreshData?.data?.access_token;
+                if (accessToken) {
+                    event.locals.accessToken = accessToken;
+
+                    // 새 refreshToken 쿠키가 있으면 갱신
+                    const setCookies = refreshRes.headers.getSetCookie?.() ?? [];
+                    for (const sc of setCookies) {
+                        const match = sc.match(/^refresh_token=([^;]+)/);
+                        if (match) {
+                            event.cookies.set('refresh_token', match[1], {
+                                path: '/',
+                                httpOnly: true,
+                                sameSite: 'lax',
+                                secure: !dev,
+                                maxAge: 60 * 60 * 24 * 7
+                            });
+                        }
+                    }
+
+                    // 사용자 프로필 조회
+                    const profileRes = await fetch(`${BACKEND_URL}/api/v2/auth/profile`, {
+                        headers: { Authorization: `Bearer ${accessToken}` }
+                    });
+                    if (profileRes.ok) {
+                        const profileData = await profileRes.json();
+                        const userData = profileData?.data ?? profileData;
+                        event.locals.user = {
+                            nickname: userData?.nickname,
+                            level: userData?.level ?? 0
+                        };
+                        return;
+                    }
+                }
+            }
+        } catch {
+            // Go 백엔드 인증 실패 → damoang_jwt fallback
+        }
     }
 
-    // 2순위: Go 백엔드 /api/v2/auth/refresh (기존 호환)
-    try {
-        const refreshRes = await fetch(`${BACKEND_URL}/api/v2/auth/refresh`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                Cookie: `refresh_token=${refreshToken}`
-            }
-        });
-        if (!refreshRes.ok) return;
-
-        const refreshData = await refreshRes.json();
-        const accessToken = refreshData?.data?.access_token;
-        if (!accessToken) return;
-
-        event.locals.accessToken = accessToken;
-
-        // 새 refreshToken 쿠키가 있으면 갱신
-        const setCookies = refreshRes.headers.getSetCookie?.() ?? [];
-        for (const sc of setCookies) {
-            const match = sc.match(/^refresh_token=([^;]+)/);
-            if (match) {
-                event.cookies.set('refresh_token', match[1], {
-                    path: '/',
-                    httpOnly: true,
-                    sameSite: 'lax',
-                    secure: !dev,
-                    maxAge: 60 * 60 * 24 * 7
-                });
+    // 3순위: damoang_jwt (레거시 PHP SSO)
+    if (!event.locals.user) {
+        const legacyJwt = event.cookies.get('damoang_jwt');
+        if (legacyJwt) {
+            try {
+                const payload = await verifyTokenLax(legacyJwt);
+                if (payload?.sub) {
+                    const member = await getMemberById(payload.sub);
+                    if (member) {
+                        event.locals.user = {
+                            nickname: member.mb_nick || member.mb_name,
+                            level: member.mb_level ?? 0
+                        };
+                        event.locals.accessToken = legacyJwt;
+                        return;
+                    }
+                }
+            } catch {
+                // damoang_jwt 검증 실패 → 비로그인 상태
             }
         }
-
-        // 사용자 프로필 조회
-        const profileRes = await fetch(`${BACKEND_URL}/api/v2/auth/profile`, {
-            headers: { Authorization: `Bearer ${accessToken}` }
-        });
-        if (!profileRes.ok) return;
-
-        const profileData = await profileRes.json();
-        const userData = profileData?.data ?? profileData;
-        event.locals.user = {
-            nickname: userData?.nickname,
-            level: userData?.level ?? 0
-        };
-    } catch {
-        // 인증 실패 시 무시 (비로그인 상태)
     }
 }
 

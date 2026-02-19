@@ -192,8 +192,16 @@
         goto(url.pathname + url.search);
     }
 
-    // 직접홍보 사잇광고
+    // 직접홍보 사잇광고 (페이지 로드마다 셔플)
     const promotionPosts = $derived(data.promotionPosts || []);
+    let shuffledPromos = $derived.by(() => {
+        const arr = [...(data.promotionPosts || [])];
+        for (let i = arr.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [arr[i], arr[j]] = [arr[j], arr[i]];
+        }
+        return arr;
+    });
 
     // 게시글 작성자 레벨 배치 로드
     $effect(() => {
@@ -474,9 +482,9 @@
                     {/if}
 
                     <!-- 직접홍보 사잇광고 (10번째 글마다, 최대 2개) -->
-                    {#if promotionPosts.length > 0 && (i + 1) % 10 === 0}
-                        {@const promoIndex = Math.floor(i / 10) % promotionPosts.length}
-                        <PromotionInlinePost post={promotionPosts[promoIndex]} />
+                    {#if shuffledPromos.length > 0 && (i + 1) % 10 === 0}
+                        {@const promoIndex = Math.floor(i / 10) % shuffledPromos.length}
+                        <PromotionInlinePost post={shuffledPromos[promoIndex]} />
                     {/if}
                 {/each}
             {/if}
