@@ -974,10 +974,15 @@ class ApiClient {
         page = 1,
         limit = 20
     ): Promise<LikersResponse> {
-        const response = await this.request<LikersResponse>(
-            `/boards/${boardId}/posts/${postId}/comments/${commentId}/likers?page=${page}&limit=${limit}`
-        );
-        return response.data;
+        try {
+            const response = await this.request<LikersResponse>(
+                `/boards/${boardId}/posts/${postId}/comments/${commentId}/likers?page=${page}&limit=${limit}`
+            );
+            return response.data;
+        } catch {
+            // 백엔드 API 미구현 시 빈 결과 반환
+            return { likers: [], total: 0 };
+        }
     }
 
     /**
