@@ -355,25 +355,26 @@ class ApiClient {
         page = 1,
         limit = 10
     ): Promise<PaginatedResponse<FreeComment>> {
-        interface BackendCommentsResponse {
-            data: FreeComment[];
+        try {
+            const res = await fetch(
+                `/api/boards/${boardId}/posts/${postId}/comments?page=${page}&limit=${limit}`,
+                { credentials: 'include' }
+            );
+            const json = await res.json();
+            if (!json.success) {
+                return { items: [], total: 0, page, limit, total_pages: 0 };
+            }
+            const data = json.data;
+            return {
+                items: data.comments || [],
+                total: data.total || 0,
+                page: data.page || page,
+                limit: data.limit || limit,
+                total_pages: data.total_pages || 1
+            };
+        } catch {
+            return { items: [], total: 0, page, limit, total_pages: 0 };
         }
-
-        const response = await this.request<BackendCommentsResponse>(
-            `/boards/${boardId}/posts/${postId}/comments?page=${page}&limit=${limit}`
-        );
-
-        const backendData = response as unknown as BackendCommentsResponse;
-
-        const result: PaginatedResponse<FreeComment> = {
-            items: backendData.data || [],
-            total: backendData.data?.length || 0,
-            page: page,
-            limit: limit,
-            total_pages: 1
-        };
-
-        return result;
     }
 
     // ========================================

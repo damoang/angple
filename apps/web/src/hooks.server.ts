@@ -173,11 +173,7 @@ export const handle: Handle = async ({ event, resolve }) => {
     response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
     response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
 
-    // dev 모드: Cloudflare CDN 캐시 완전 무력화 (Vite chunk 버전 충돌 방지)
-    if (dev) {
-        response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
-        response.headers.set('Cloudflare-CDN-Cache-Control', 'no-store');
-    }
+    // dev 모드 캐시 헤더는 nginx에서 일괄 관리 (중복 방지)
 
     return response;
 };

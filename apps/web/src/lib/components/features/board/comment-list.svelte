@@ -120,13 +120,12 @@
     // 댓글 트리 구조로 변환
     const commentTree = $derived.by(() => {
         // 그누보드 호환: API에서 이미 depth 값을 제공하면 그대로 사용
-        // (그누보드는 parent_id가 게시글 ID이고, depth 필드로 계층 표현)
+        // (depth 0 = 루트, 1 = 첫 번째 대댓글, 2 = 대대댓글 ...)
         const hasApiDepth = comments.some((c) => typeof c.depth === 'number' && c.depth > 0);
         if (hasApiDepth) {
-            // API depth 값을 그대로 사용 (depth 1부터 시작하므로 -1 조정)
             return comments.map((c) => ({
                 ...c,
-                depth: Math.max(0, (c.depth ?? 1) - 1)
+                depth: c.depth ?? 0
             }));
         }
 
