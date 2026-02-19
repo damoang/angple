@@ -12,6 +12,8 @@
     import Flag from '@lucide/svelte/icons/flag';
     import CommentForm from './comment-form.svelte';
     import { ReportDialog } from '$lib/components/features/report/index.js';
+    import AdSlot from '$lib/components/ui/ad-slot/ad-slot.svelte';
+    import { widgetLayoutStore } from '$lib/stores/widget-layout.svelte';
     import DOMPurify from 'dompurify';
     import { applyFilter } from '$lib/hooks/registry';
     import { getHookVersion } from '$lib/hooks/hook-state.svelte';
@@ -478,13 +480,20 @@
 </script>
 
 <ul class="space-y-4">
-    {#each commentTree as comment (comment.id)}
+    {#each commentTree as comment, commentIndex (comment.id)}
         {@const isAuthor = isCommentAuthor(comment)}
         {@const isEditing = editingCommentId === String(comment.id)}
         {@const isReplyingTo = replyingToCommentId === String(comment.id)}
         {@const depth = comment.depth ?? 0}
         {@const isReply = depth > 0}
         {@const iconUrl = getMemberIconUrl(comment.author_id)}
+
+        <!-- 댓글 5개마다 GAM 인피드 광고 (루트 댓글 기준, 첫 번째 제외) -->
+        {#if widgetLayoutStore.hasEnabledAds && commentIndex > 0 && commentIndex % 5 === 0 && depth === 0}
+            <li class="list-none py-2">
+                <AdSlot position="comment-infeed" height="90px" />
+            </li>
+        {/if}
         <li style="margin-left: {Math.min(depth, 3) * 1.25}rem" class="py-4 first:pt-0 last:pb-0">
             <div>
                 <div class="mb-2 flex flex-wrap items-center gap-4">

@@ -639,6 +639,13 @@
         </div>
     </div>
 
+    <!-- 네비게이션 아래 GAM 광고 -->
+    {#if widgetLayoutStore.hasEnabledAds}
+        <div class="mb-6">
+            <AdSlot position="board-view-top" height="90px" />
+        </div>
+    {/if}
+
     <!-- 게시글 카드 -->
     <Card class="bg-background mb-6">
         <CardHeader class="space-y-3">
@@ -905,6 +912,13 @@
             {...slot.propsMapper ? slot.propsMapper({ post: data.post, boardId }) : {}}
         />
     {/each}
+
+    <!-- 작성자 활동 패널 아래 GAM 광고 -->
+    {#if widgetLayoutStore.hasEnabledAds}
+        <div class="my-6">
+            <AdSlot position="board-before-comments" height="90px" />
+        </div>
+    {/if}
 
     <!-- 댓글 섹션 (비밀글 열람 가능 시에만 표시) -->
     {#if canViewSecret}

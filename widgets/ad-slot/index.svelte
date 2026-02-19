@@ -14,20 +14,21 @@
     const position = $derived((config.settings?.position as string) ?? 'index-custom');
     const height = $derived((config.settings?.height as string) ?? '90px');
     const adType = $derived((config.settings?.type as string) ?? 'gam');
+    const isSticky = $derived(config.settings?.sticky === true || position === 'sidebar-sticky');
 
     const isSidebar = $derived(slot === 'sidebar');
 </script>
 
 {#if isSidebar}
     <!-- 사이드바 광고 -->
-    <div>
+    <div class={isSticky ? 'sticky top-4' : ''}>
         <div class="mb-2 flex items-center justify-between">
             <span class="text-xs font-medium text-slate-500">AD</span>
         </div>
         {#if adType === 'image-text'}
             <ImageTextBanner position="side-image-text-banner" />
         {:else}
-            <AdSlot {position} height="250px" />
+            <AdSlot {position} height={isSticky ? '500px' : '250px'} />
         {/if}
     </div>
 {:else}
