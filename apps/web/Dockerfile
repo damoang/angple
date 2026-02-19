@@ -70,6 +70,11 @@ COPY themes ./themes
 COPY plugins ./plugins
 COPY widgets ./widgets
 
+# Premium 에셋 (빌드 전 mkdir -p로 빈 디렉토리라도 보장)
+COPY custom-themes ./custom-themes
+COPY custom-widgets ./custom-widgets
+COPY extensions ./extensions
+
 # Copy application source
 COPY apps/web ./apps/web
 
@@ -104,6 +109,13 @@ COPY --from=builder --chown=nodeuser:nodeuser /app/deploy ./
 
 # Copy themes for runtime (theme scanner needs this)
 COPY --from=builder --chown=nodeuser:nodeuser /app/themes ./themes
+
+# Copy premium runtime assets
+COPY --from=builder --chown=nodeuser:nodeuser /app/plugins ./plugins
+COPY --from=builder --chown=nodeuser:nodeuser /app/widgets ./widgets
+COPY --from=builder --chown=nodeuser:nodeuser /app/custom-themes ./custom-themes
+COPY --from=builder --chown=nodeuser:nodeuser /app/custom-widgets ./custom-widgets
+COPY --from=builder --chown=nodeuser:nodeuser /app/extensions ./extensions
 
 # Create data directory for settings
 RUN mkdir -p /app/data && chown nodeuser:nodeuser /app/data

@@ -1,0 +1,82 @@
+# ============================================
+# Angple Local Development - Docker Compose
+# ============================================
+#
+# 로컬 개발 환경에서 인프라(MySQL, Redis)와 백엔드 API를
+# 한 번에 실행하기 위한 Docker Compose 파일입니다.
+#
+# 프론트엔드(SvelteKit)는 HMR 성능을 위해 네이티브(pnpm dev)로 실행합니다.
+#
+# 사용법:
+#   docker compose -f compose.local.yml up -d
+#   pnpm dev  # 프론트엔드 시작 (별도 터미널)
+#
+# 종료:
+#   docker compose -f compose.local.yml down
+#
+# 데이터 초기화:
+#   docker compose -f compose.local.yml down -v
+# ============================================
+
+services:
+  # MySQL 8.4
+  mysql:
+    image: mysql:8.4
+    container_name: angple-local-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: angple_root
+      MYSQL_DATABASE: angple
+      MYSQL_USER: angple_user
+      MYSQL_PASSWORD: angple_pass
+    ports:
+      - "3306:3306"
+    volumes:
+      - angple-mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    command: --default-authentication-plugin=mysql_native_password
+
+  # Redis 7
+  redis:
+    image: redis:7-alpine
+    container_name: angple-local-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - angple-redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # Go Backend API
+  api:
+    build:
+      context: ${ANGPLE_BACKEND_PATH:-../angple-backend}
+      dockerfile: Dockerfile
+    container_name: angple-local-api
+    ports:
+      - "8081:8081"
+    environment:
+      - APP_ENV=development
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_USER=angple_user
+      - DB_PASSWORD=angple_pass
+      - DB_NAME=angple
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  angple-mysql-data:
+  angple-redis-data:

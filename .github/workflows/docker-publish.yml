@@ -1,46 +1,59 @@
-name: Docker Build & Publish
+name: Docker Build & Deploy
 
 on:
   push:
     branches:
       - main
-      - staging
-      - develop
   workflow_dispatch:
     inputs:
       environment:
         description: '배포 환경'
         required: true
-        default: 'dev'
+        default: 'build-only'
         type: choice
         options:
-          - dev
-          - staging
+          - build-only
           - prod
+      confirm:
+        description: '프로덕션 배포 확인 (prod 선택 시 "deploy" 입력)'
+        required: false
+        type: string
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_PREFIX: ghcr.io/${{ github.repository_owner }}
+  IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/angple-web
 
 jobs:
+  # main push 시 Docker 이미지 빌드 + GHCR push
   build-and-push:
-    name: Build & Push (${{ matrix.app }})
+    name: Build & Push Image
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
 
-    strategy:
-      matrix:
-        include:
-          - app: web
-            dockerfile: apps/web/Dockerfile
-            context: .
-            image_name: angple-web
-
     steps:
-      - name: Checkout code
+      - name: Checkout angple
         uses: actions/checkout@v4
+
+      - name: Checkout angple-premium
+        uses: actions/checkout@v4
+        with:
+          repository: angple/angple-premium
+          token: ${{ secrets.PREMIUM_REPO_TOKEN }}
+          path: _premium
+        continue-on-error: true
+
+      - name: Install premium assets
+        if: hashFiles('_premium/deploy/install.sh') != ''
+        run: |
+          chmod +x _premium/deploy/install.sh
+          _premium/deploy/install.sh .
+          echo "Premium assets installed"
+
+      - name: Ensure premium directories exist
+        run: |
+          mkdir -p custom-themes custom-widgets extensions plugins widgets
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -59,36 +72,38 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.IMAGE_PREFIX }}/${{ matrix.image_name }}
+          images: ${{ env.IMAGE_NAME }}
           tags: |
-            type=ref,event=branch
             type=sha,prefix=
             type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
-          context: ${{ matrix.context }}
-          file: ${{ matrix.dockerfile }}
+          context: .
+          file: apps/web/Dockerfile
           target: production
           push: true
           platforms: linux/amd64,linux/arm64
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=production
+          cache-to: type=gha,mode=max,scope=production
           build-args: |
             VITE_USE_MOCK=false
 
       - name: Image digest
-        run: echo "Image pushed with digest ${{ steps.docker_build.outputs.digest }}"
+        run: echo "Image pushed with tags ${{ steps.meta.outputs.tags }}"
 
-  # 개발서버 배포 (main 브랜치) - SSH 방식
-  deploy-dev:
-    name: Deploy to Dev Server
+  # 프로덕션 배포 (수동 트리거 전용)
+  deploy-prod:
+    name: Deploy to Production
     needs: build-and-push
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'dev')
+    if: >-
+      github.event_name == 'workflow_dispatch'
+      && github.event.inputs.environment == 'prod'
+      && github.event.inputs.confirm == 'deploy'
 
     steps:
       - name: Deploy via SSH
@@ -98,75 +113,55 @@ jobs:
           username: ${{ secrets.DEV_SERVER_USER }}
           key: ${{ secrets.DEV_SERVER_SSH_KEY }}
           script: |
-            cd /home/angple/front
+            set -e
 
+            echo "=== Production Deploy Start ==="
+
+            # GHCR 로그인
             echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
-            docker pull ghcr.io/${{ github.repository_owner }}/angple-web:latest
+            # 최신 이미지 pull
+            docker pull ${{ env.IMAGE_NAME }}:latest
 
-            docker compose -f compose.prod.yml up -d
+            # 기존 컨테이너 교체
+            docker stop angple-web 2>/dev/null || true
+            docker rm angple-web 2>/dev/null || true
+
+            # 환경 변수 파일 확인
+            ENV_FILE="/home/damoang/angple-deploy/.env.prod"
+            ENV_FLAG=""
+            if [ -f "$ENV_FILE" ]; then
+              ENV_FLAG="--env-file $ENV_FILE"
+            fi
+
+            # 새 컨테이너 시작
+            docker run -d \
+              --name angple-web \
+              --restart unless-stopped \
+              --network angple-network \
+              -p 3010:3000 \
+              -v /home/damoang/angple-deploy/data-prod:/app/data \
+              -e NODE_ENV=production \
+              -e PORT=3000 \
+              $ENV_FLAG \
+              ${{ env.IMAGE_NAME }}:latest
+
+            # 헬스체크 대기
+            echo "Waiting for health check..."
+            for i in $(seq 1 30); do
+              if docker exec angple-web wget -q -O /dev/null http://127.0.0.1:3000/health 2>/dev/null; then
+                echo "Health check passed!"
+                break
+              fi
+              if [ "$i" -eq 30 ]; then
+                echo "Health check failed after 30 attempts"
+                docker logs --tail 50 angple-web
+                exit 1
+              fi
+              sleep 2
+            done
+
+            # 이전 이미지 정리
             docker image prune -f
 
-            echo "Dev deployed at $(date)"
-
-  # 스테이징서버 배포 (staging 브랜치) - SSM 방식
-  deploy-staging:
-    name: Deploy to Staging Server (SSM)
-    needs: build-and-push
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/staging' || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'staging')
-
-    steps:
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
-
-      - name: Deploy via SSM
-        run: |
-          aws ssm send-command \
-            --instance-ids "${{ secrets.STAGING_INSTANCE_ID }}" \
-            --document-name "AWS-RunShellScript" \
-            --parameters 'commands=[
-              "cd /home/angple/front",
-              "echo ${{ secrets.GHCR_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin",
-              "docker pull ghcr.io/${{ github.repository_owner }}/angple-web:staging",
-              "docker compose -f compose.prod.yml up -d",
-              "docker image prune -f",
-              "echo Staging deployed at $(date)"
-            ]' \
-            --timeout-seconds 300 \
-            --output text
-
-  # 운영서버 배포 (main 브랜치) - SSM 방식
-  deploy-prod:
-    name: Deploy to Prod Server (SSM)
-    needs: build-and-push
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'prod')
-
-    steps:
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
-
-      - name: Deploy via SSM
-        run: |
-          aws ssm send-command \
-            --instance-ids "${{ secrets.PROD_INSTANCE_ID }}" \
-            --document-name "AWS-RunShellScript" \
-            --parameters 'commands=[
-              "cd /home/angple/front",
-              "echo ${{ secrets.GHCR_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin",
-              "docker pull ghcr.io/${{ github.repository_owner }}/angple-web:main",
-              "docker compose -f compose.prod.yml up -d",
-              "docker image prune -f",
-              "echo Prod deployed at $(date)"
-            ]' \
-            --timeout-seconds 300 \
-            --output text
+            echo "=== Production Deploy Complete ==="
