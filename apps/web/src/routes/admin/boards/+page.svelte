@@ -591,9 +591,7 @@
                         />
                     </div>
                 </div>
-                <p class="text-muted-foreground text-xs">
-                    양수=지급, 음수=차감, 0=없음
-                </p>
+                <p class="text-muted-foreground text-xs">양수=지급, 음수=차감, 0=없음</p>
             </div>
 
             <!-- 기능 설정 -->
