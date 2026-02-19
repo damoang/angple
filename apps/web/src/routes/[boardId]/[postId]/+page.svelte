@@ -197,8 +197,15 @@
     // 신고 다이얼로그 상태
     let showReportDialog = $state(false);
 
-    // 초기 추천 상태 + 레벨 로드
+    // 초기 추천 상태 + 레벨 로드 + 조회수 증가
     onMount(async () => {
+        // 조회수 증가 (fire-and-forget)
+        fetch('/api/viewcount', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ boardId, postId: data.post.id })
+        }).catch(() => {});
+
         // 게시글 작성자 레벨 배치 로드
         if (data.post.author_id) {
             memberLevelStore.fetchLevels([data.post.author_id]);
@@ -947,7 +954,7 @@
 
     <!-- 게시판 최근글 목록 (체류시간 증가) -->
     <div class="mt-6">
-        <RecentPosts {boardId} {boardTitle} currentPostId={data.post.id} limit={10} />
+        <RecentPosts {boardId} {boardTitle} currentPostId={data.post.id} limit={20} />
     </div>
 
     <!-- 댓글 섹션 하단 광고 (푸터 위) -->
