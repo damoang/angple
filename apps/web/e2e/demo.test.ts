@@ -1,10 +1,9 @@
 import { expect, test } from '@playwright/test';
 
-test('테마 미선택 시 안내 메시지가 표시된다', async ({ page }) => {
+test('테마 미선택 시 콘텐츠가 직접 렌더링된다', async ({ page }) => {
     await page.goto('/');
-    // 테마 미선택 시 안내 메시지 확인
-    await expect(page.getByText('테마를 선택해주세요')).toBeVisible();
-    await expect(page.getByText('관리자 페이지에서 테마를 활성화해주세요')).toBeVisible();
+    // 테마 미선택 시 콘텐츠가 직접 렌더링되는지 확인 (안내 메시지 없음)
+    await expect(page.getByText('테마를 선택해주세요')).not.toBeVisible();
 });
 
 test('테마 API가 올바르게 응답한다', async ({ page }) => {
