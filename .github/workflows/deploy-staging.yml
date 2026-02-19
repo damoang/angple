@@ -1,0 +1,191 @@
+name: Deploy to Staging
+
+# PR 생성/업데이트 시 자동으로 dev.damoang.net에 배포
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: '배포할 브랜치/커밋'
+        required: false
+        default: ''
+  repository_dispatch:
+    types: [premium-updated]
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/angple-web
+
+concurrency:
+  group: staging-deploy
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    name: Build & Deploy to Staging
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout angple
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.event.inputs.ref || github.sha }}
+
+      - name: Checkout angple-premium
+        uses: actions/checkout@v4
+        with:
+          repository: angple/angple-premium
+          token: ${{ secrets.PREMIUM_REPO_TOKEN }}
+          path: _premium
+        continue-on-error: true
+
+      - name: Install premium assets
+        if: hashFiles('_premium/deploy/install.sh') != ''
+        run: |
+          chmod +x _premium/deploy/install.sh
+          _premium/deploy/install.sh .
+          echo "Premium assets installed"
+
+      - name: Ensure premium directories exist
+        run: |
+          mkdir -p custom-themes custom-widgets extensions plugins widgets
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate image tags
+        id: tags
+        run: |
+          SHA="${{ github.event.pull_request.head.sha || github.sha }}"
+          SHORT_SHA="${SHA:0:7}"
+          echo "sha_tag=${SHORT_SHA}" >> "$GITHUB_OUTPUT"
+          echo "tags=${{ env.IMAGE_NAME }}:staging,${{ env.IMAGE_NAME }}:staging-${SHORT_SHA}" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: apps/web/Dockerfile
+          target: production
+          push: true
+          platforms: linux/arm64
+          tags: ${{ steps.tags.outputs.tags }}
+          cache-from: type=gha,scope=staging
+          cache-to: type=gha,mode=max,scope=staging
+          build-args: |
+            VITE_USE_MOCK=false
+
+      - name: Deploy to staging server
+        uses: appleboy/ssh-action@v1.2.4
+        with:
+          host: ${{ secrets.DEV_SERVER_HOST }}
+          username: ${{ secrets.DEV_SERVER_USER }}
+          key: ${{ secrets.DEV_SERVER_SSH_KEY }}
+          script: |
+            set -e
+
+            echo "=== Staging Deploy Start ==="
+
+            # GHCR 로그인
+            echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+            # 이미지 pull
+            docker pull ${{ env.IMAGE_NAME }}:staging
+
+            # 기존 컨테이너 강제 제거
+            docker rm -f angple-staging 2>/dev/null || true
+            sleep 3
+
+            # 환경 변수 파일 확인
+            ENV_FILE="/home/damoang/angple-deploy/.env.staging"
+            ENV_FLAG=""
+            if [ -f "$ENV_FILE" ]; then
+              ENV_FLAG="--env-file $ENV_FILE"
+            fi
+
+            # 새 컨테이너 시작 (host 네트워크 — 포트 바인딩 충돌 방지)
+            docker run -d \
+              --name angple-staging \
+              --restart unless-stopped \
+              --network host \
+              -v /home/damoang/angple-deploy/data-staging:/app/data \
+              -e NODE_ENV=production \
+              -e PORT=3011 \
+              $ENV_FLAG \
+              ${{ env.IMAGE_NAME }}:staging
+
+            # 헬스체크 대기
+            echo "Waiting for health check..."
+            for i in $(seq 1 30); do
+              if docker exec angple-staging wget -q -O /dev/null http://127.0.0.1:3011/health 2>/dev/null; then
+                echo "Health check passed!"
+                break
+              fi
+              if [ "$i" -eq 30 ]; then
+                echo "Health check failed after 30 attempts"
+                docker logs --tail 50 angple-staging
+                exit 1
+              fi
+              sleep 2
+            done
+
+            # 이전 이미지 정리
+            docker image prune -f
+
+            echo "=== Staging Deploy Complete ==="
+
+      - name: Comment on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const sha = '${{ steps.tags.outputs.sha_tag }}';
+            const body = [
+              '### Staging 배포 완료',
+              '',
+              `**URL**: https://dev.damoang.net`,
+              `**이미지**: \`staging-${sha}\``,
+              `**커밋**: ${context.payload.pull_request.head.sha}`,
+              '',
+              '> 변경사항을 dev.damoang.net에서 확인하세요.'
+            ].join('\n');
+
+            // 기존 배포 코멘트 찾기
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const botComment = comments.find(c =>
+              c.user.type === 'Bot' && c.body.includes('Staging 배포 완료')
+            );
+
+            if (botComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
