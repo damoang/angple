@@ -268,14 +268,8 @@
         {@render children()}
     </div>
 {:else}
-    <!-- 테마 미선택 시 안내 메시지 -->
-    <div class="flex min-h-screen flex-col items-center justify-center bg-gray-50">
-        <div class="text-center">
-            <div class="mb-4 text-6xl">🎨</div>
-            <h1 class="mb-2 text-2xl font-bold text-gray-800">테마를 선택해주세요</h1>
-            <p class="text-gray-600">관리자 페이지에서 테마를 활성화해주세요.</p>
-        </div>
-    </div>
+    <!-- 테마 레이아웃 없음: 기본 레이아웃으로 콘텐츠 직접 렌더링 -->
+    {@render children()}
 {/if}
 
 <!-- 회원 메모 모달 (글로벌 1개) -->
