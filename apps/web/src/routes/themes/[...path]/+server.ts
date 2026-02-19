@@ -11,11 +11,15 @@ import { sanitizePath } from '$lib/server/path-utils';
 function getThemesRoots(): string[] {
     const roots: string[] = [];
     const cwdThemes = join(process.cwd(), 'themes');
+    const cwdCustomThemes = join(process.cwd(), 'custom-themes');
     const monoRepoThemes = resolve(process.cwd(), '..', '..', 'themes');
+    const monoRepoCustomThemes = resolve(process.cwd(), '..', '..', 'custom-themes');
 
     // monorepo 루트 우선 (공식 테마가 여기에 있음)
     if (existsSync(monoRepoThemes)) roots.push(monoRepoThemes);
+    if (existsSync(monoRepoCustomThemes)) roots.push(monoRepoCustomThemes);
     if (existsSync(cwdThemes)) roots.push(cwdThemes);
+    if (existsSync(cwdCustomThemes)) roots.push(cwdCustomThemes);
 
     if (roots.length === 0) roots.push(cwdThemes);
     return roots;
