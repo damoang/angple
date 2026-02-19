@@ -18,6 +18,10 @@ export default defineConfig(({ mode }) => {
 
     return {
         plugins: [tailwindcss(), sveltekit()],
+        ssr: {
+            // AWS SDK를 서버 번들에 포함 (프로덕션 배포 시 node_modules 불필요)
+            noExternal: ['@aws-sdk/**', '@smithy/**']
+        },
         resolve: {
             alias: {
                 $themes: path.resolve(__dirname, '../../themes'),
