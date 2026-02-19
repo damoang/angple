@@ -53,6 +53,7 @@
 
     // Q&A 게시판 슬롯 등록
     postSlotRegistry.register('post.before_content', {
+        id: 'core:qa-answer-section',
         component: QAAnswerSection,
         condition: (boardType: string) => boardType === 'qa',
         priority: 5,
@@ -64,6 +65,7 @@
 
     // 작성자 활동 패널 슬롯 등록
     postSlotRegistry.register('post.before_comments', {
+        id: 'core:author-activity-panel',
         component: AuthorActivityPanel,
         priority: 10,
         propsMapper: (pageData: { post: FreePost; boardId: string }) => ({
