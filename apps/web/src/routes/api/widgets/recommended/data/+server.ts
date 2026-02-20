@@ -8,37 +8,46 @@
 import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { readFile } from 'node:fs/promises';
-import { existsSync } from 'node:fs';
+import { existsSync, statSync } from 'node:fs';
 
 // PHP 추천글 캐시 디렉토리
 const RECOMMENDED_CACHE_DIR =
     process.env.RECOMMENDED_CACHE_DIR || '/home/damoang/www/data/cache/recommended';
 
-// period 매핑: 클라이언트 → 파일명
-const PERIOD_FILE_MAP: Record<string, string> = {
-    '1h': 'ai_1hour.json',
-    '3h': 'ai_3hours.json',
-    '6h': 'ai_6hours.json',
-    '12h': 'ai_12hours.json',
-    '24h': 'ai_24hours.json',
-    '48h': 'ai_48hours.json'
+// period 매핑: 클라이언트 → 파일명 (기본 + AI)
+const PERIOD_FILES: Record<string, { base: string; ai: string }> = {
+    '1h': { base: '1hour.json', ai: 'ai_1hour.json' },
+    '3h': { base: '3hours.json', ai: 'ai_3hours.json' },
+    '6h': { base: '6hours.json', ai: 'ai_6hours.json' },
+    '12h': { base: '12hours.json', ai: 'ai_12hours.json' },
+    '24h': { base: '24hours.json', ai: 'ai_24hours.json' },
+    '48h': { base: '48hours.json', ai: 'ai_48hours.json' }
 };
 
 export const GET: RequestHandler = async ({ url }) => {
     const period = url.searchParams.get('period') || '6h';
 
-    const filename = PERIOD_FILE_MAP[period];
-    if (!filename) {
-        error(
-            400,
-            `잘못된 period: ${period}. 가능한 값: ${Object.keys(PERIOD_FILE_MAP).join(', ')}`
-        );
+    const files = PERIOD_FILES[period];
+    if (!files) {
+        error(400, `잘못된 period: ${period}. 가능한 값: ${Object.keys(PERIOD_FILES).join(', ')}`);
     }
 
-    const filePath = `${RECOMMENDED_CACHE_DIR}/${filename}`;
+    // AI 파일이 최신이면 AI 버전 사용, 아니면 기본 파일 사용
+    const basePath = `${RECOMMENDED_CACHE_DIR}/${files.base}`;
+    const aiPath = `${RECOMMENDED_CACHE_DIR}/${files.ai}`;
+
+    let filePath = basePath;
+    if (existsSync(aiPath) && existsSync(basePath)) {
+        // AI 파일이 기본 파일보다 새로우면 AI 버전 사용
+        if (statSync(aiPath).mtimeMs >= statSync(basePath).mtimeMs) {
+            filePath = aiPath;
+        }
+    } else if (existsSync(aiPath)) {
+        filePath = aiPath;
+    }
 
     if (!existsSync(filePath)) {
-        error(404, `추천글 캐시 파일을 찾을 수 없습니다: ${filename}`);
+        error(404, `추천글 캐시 파일을 찾을 수 없습니다`);
     }
 
     try {
