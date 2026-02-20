@@ -12,6 +12,7 @@
     import * as Dialog from '$lib/components/ui/dialog/index.js';
     import type { PageData } from './$types.js';
     import { Markdown } from '$lib/components/ui/markdown/index.js';
+    import ExternalLink from '@lucide/svelte/icons/external-link';
     import Heart from '@lucide/svelte/icons/heart';
     import ThumbsDown from '@lucide/svelte/icons/thumbs-down';
     import Users from '@lucide/svelte/icons/users';
@@ -234,10 +235,18 @@
                 const el = document.getElementById(hash.slice(1));
                 if (el) {
                     el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    el.classList.add('bg-primary/10');
-                    setTimeout(() => el.classList.remove('bg-primary/10'), 2000);
+                    el.style.transition = 'background-color 0.3s ease';
+                    el.style.backgroundColor = 'hsl(var(--primary) / 0.1)';
+                    el.style.borderRadius = '0.5rem';
+                    setTimeout(() => {
+                        el.style.backgroundColor = '';
+                        setTimeout(() => {
+                            el.style.transition = '';
+                            el.style.borderRadius = '';
+                        }, 300);
+                    }, 2000);
                 }
-            }, 500);
+            }, 800);
         }
     });
 
@@ -245,6 +254,7 @@
     function formatDate(dateString: string): string {
         const date = new Date(dateString);
         return date.toLocaleDateString('ko-KR', {
+            timeZone: 'Asia/Seoul',
             year: 'numeric',
             month: 'long',
             day: 'numeric',
@@ -781,6 +791,35 @@
                         </div>
                     {/if}
                 </AdultBlur>
+
+                {#if data.post.link1 || data.post.link2}
+                    <div class="mt-4 space-y-1.5">
+                        {#if data.post.link1}
+                            <div class="flex items-center gap-1.5 text-sm">
+                                <ExternalLink class="text-muted-foreground h-3.5 w-3.5 shrink-0" />
+                                <a
+                                    href={data.post.link1}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    class="text-primary truncate hover:underline"
+                                    >{data.post.link1}</a
+                                >
+                            </div>
+                        {/if}
+                        {#if data.post.link2}
+                            <div class="flex items-center gap-1.5 text-sm">
+                                <ExternalLink class="text-muted-foreground h-3.5 w-3.5 shrink-0" />
+                                <a
+                                    href={data.post.link2}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    class="text-primary truncate hover:underline"
+                                    >{data.post.link2}</a
+                                >
+                            </div>
+                        {/if}
+                    </div>
+                {/if}
             {:else}
                 <div
                     class="flex flex-col items-center justify-center rounded-xl border border-dashed py-16"

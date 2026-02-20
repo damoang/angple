@@ -14,7 +14,8 @@ const pool = mysql.createPool({
     database: process.env.DB_NAME || 'angple',
     waitForConnections: true,
     connectionLimit: 10,
-    queueLimit: 0
+    queueLimit: 0,
+    timezone: '+09:00'
 });
 
 export { pool };
