@@ -117,7 +117,7 @@
         class="fixed hidden transition-all duration-300 min-[1600px]:block"
         class:top-21={!isBannerUp}
         class:top-6={isBannerUp}
-        style="right: calc(50% + 640px);"
+        style="right: calc(50% + 696px);"
     >
         <LeftBanner />
     </aside>
@@ -126,7 +126,7 @@
         class="fixed hidden transition-all duration-300 min-[1600px]:block"
         class:top-21={!isBannerUp}
         class:top-6={isBannerUp}
-        style="left: calc(50% + 640px);"
+        style="left: calc(50% + 696px);"
     >
         <RightBanner />
     </aside>
