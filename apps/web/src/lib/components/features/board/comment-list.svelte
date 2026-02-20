@@ -1,12 +1,7 @@
 <script lang="ts">
     import { Button } from '$lib/components/ui/button/index.js';
-    import { Textarea } from '$lib/components/ui/textarea/index.js';
     import type { FreeComment } from '$lib/api/types.js';
     import { authStore } from '$lib/stores/auth.svelte.js';
-    import Pencil from '@lucide/svelte/icons/pencil';
-    import Trash2 from '@lucide/svelte/icons/trash-2';
-    import X from '@lucide/svelte/icons/x';
-    import Check from '@lucide/svelte/icons/check';
     import Reply from '@lucide/svelte/icons/reply';
     import Lock from '@lucide/svelte/icons/lock';
     import Flag from '@lucide/svelte/icons/flag';
@@ -696,48 +691,21 @@
                     </div>
                 </div>
 
-                <!-- TODO: 소프트 삭제 구현 후 인라인 수정 폼 복원 -->
-                {#if false}
-                    <!-- 수정 모드 (임시 비활성화) -->
-                    <div class="space-y-2">
-                        <Textarea bind:value={editContent} rows={3} disabled={isUpdating} />
-                        <div class="flex justify-end gap-2">
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onclick={cancelEdit}
-                                disabled={isUpdating}
-                            >
-                                <X class="mr-1 h-4 w-4" />
-                                취소
-                            </Button>
-                            <Button size="sm" onclick={saveEdit} disabled={isUpdating}>
-                                <Check class="mr-1 h-4 w-4" />
-                                {isUpdating ? '저장 중...' : '저장'}
-                            </Button>
-                        </div>
+                <!-- 댓글 본문 -->
+                {#if comment.is_secret && !canViewSecretComment(comment)}
+                    <div
+                        class="text-muted-foreground flex items-center gap-2 italic {isReply
+                            ? 'text-[15px]'
+                            : ''}"
+                    >
+                        <Lock class="h-4 w-4" />
+                        비밀댓글입니다.
                     </div>
                 {:else}
-                    <!-- 일반 모드 -->
-                    {#if comment.is_secret && !canViewSecretComment(comment)}
-                        <div
-                            class="text-muted-foreground flex items-center gap-2 italic {isReply
-                                ? 'text-[15px]'
-                                : ''}"
-                        >
-                            <Lock class="h-4 w-4" />
-                            비밀댓글입니다.
-                        </div>
-                    {:else}
-                        <div
-                            class="text-foreground whitespace-pre-wrap {isReply
-                                ? 'text-[15px]'
-                                : ''}"
-                        >
-                            <!-- eslint-disable-next-line svelte/no-at-html-tags -->
-                            {@html processedComments.get(comment.id) ?? ''}
-                        </div>
-                    {/if}
+                    <div class="text-foreground whitespace-pre-wrap {isReply ? 'text-[15px]' : ''}">
+                        <!-- eslint-disable-next-line svelte/no-at-html-tags -->
+                        {@html processedComments.get(comment.id) ?? ''}
+                    </div>
                 {/if}
 
                 <!-- 답글 폼 -->

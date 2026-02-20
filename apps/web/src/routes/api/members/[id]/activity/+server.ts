@@ -45,7 +45,8 @@ export const GET: RequestHandler = async ({ params, url }) => {
 
     try {
         // g5_board_new에서 최근 활동 조회
-        const [newRows] = await pool.execute<BoardNewRow[]>(
+        // pool.query 사용: pool.execute의 prepared statement는 LIMIT 파라미터 타입 오류 발생
+        const [newRows] = await pool.query<BoardNewRow[]>(
             `SELECT bn_id, bo_table, wr_id, wr_is_comment, bn_datetime
              FROM g5_board_new
              WHERE mb_id = ?
