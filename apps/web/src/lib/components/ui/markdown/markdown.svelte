@@ -294,4 +294,14 @@
         min-height: 250px;
         height: auto;
     }
+
+    /* 직접 비디오 파일 ({video:} 패턴) */
+    .prose :global(.na-video-direct) {
+        margin: 1rem 0;
+    }
+
+    .prose :global(.na-video-direct video) {
+        max-width: 100%;
+        border-radius: 0.5rem;
+    }
 </style>
