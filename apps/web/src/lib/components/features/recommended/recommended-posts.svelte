@@ -1,7 +1,6 @@
 <script lang="ts">
     import { onMount } from 'svelte';
     import { SvelteMap } from 'svelte/reactivity';
-    import { apiClient } from '$lib/api';
     import type { RecommendedDataWithAI, RecommendedPeriod } from '$lib/api/types.js';
     import { Card, CardHeader, CardContent } from '$lib/components/ui/card';
     import { RecommendedHeader } from './components/header';
@@ -34,7 +33,10 @@
         error = null;
 
         try {
-            const newData = await apiClient.getRecommendedPostsWithAI(period);
+            // PHP 크론이 생성한 JSON 캐시 파일을 SvelteKit API를 통해 읽음
+            const res = await fetch(`/api/widgets/recommended/data?period=${period}`);
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const newData: RecommendedDataWithAI = await res.json();
             dataCache.set(period, newData);
             // 현재 선택된 탭의 데이터만 업데이트
             if (activeTab === period) {
