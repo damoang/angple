@@ -18,29 +18,13 @@
     import { authStore } from '$lib/stores/auth.svelte.js';
 
     // 스크롤 상태 관리
-    let isHeaderVisible = $state(true);
-    let lastScrollY = $state(0);
     let isDrawerOpen = $state(false);
     let isDarkMode = $state(false);
     let isScrolled = $state(false);
 
     // 스크롤 이벤트 핸들러
     function handleScroll() {
-        const currentScrollY = window.scrollY;
-
-        // 스크롤 방향에 따라 헤더 표시/숨김 결정
-        if (currentScrollY > lastScrollY && currentScrollY > 80) {
-            // 아래로 스크롤 시 헤더 숨김
-            isHeaderVisible = false;
-        } else {
-            // 위로 스크롤 시 헤더 표시
-            isHeaderVisible = true;
-        }
-
-        // 스크롤 여부에 따라 isScrolled 상태 업데이트
-        isScrolled = currentScrollY > 0;
-
-        lastScrollY = currentScrollY;
+        isScrolled = window.scrollY > 0;
     }
 
     // 드로워 메뉴 토글
@@ -73,9 +57,7 @@
 </script>
 
 <header
-    class="bg-background border-border fixed left-0 right-0 top-0 z-50 transition-transform duration-300 ease-in-out"
-    class:translate-y-0={isHeaderVisible}
-    class:-translate-y-full={!isHeaderVisible}
+    class="bg-background border-border fixed left-0 right-0 top-0 z-50"
     class:shadow-sm={isScrolled}
     class:border-b={isScrolled}
 >

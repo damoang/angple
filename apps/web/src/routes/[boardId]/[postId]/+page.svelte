@@ -620,7 +620,7 @@
     {/if}
 
     <!-- 상단 네비게이션 -->
-    <div class="mb-6 flex items-center gap-3">
+    <div class="bg-background sticky top-12 z-40 -mx-1 mb-6 flex items-center gap-3 py-2 md:top-16">
         <Button variant="outline" size="sm" onclick={goBack} class="shrink-0">← 목록으로</Button>
 
         <!-- 축하 메시지 롤링 (인라인) -->
