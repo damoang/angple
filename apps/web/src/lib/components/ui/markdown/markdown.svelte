@@ -25,6 +25,35 @@
 
     onMount(() => {
         isBrowser = true;
+
+        // Twitter iframe postMessage resize 수신
+        function handleTwitterResize(event: MessageEvent) {
+            if (event.origin !== 'https://platform.twitter.com') return;
+            try {
+                const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+                // Twitter sends: {"twttr.private.resize": [{"height": N}]}
+                // or: {"method":"resize","params":[N]}
+                const resizeData = data?.['twttr.private.resize'];
+                if (resizeData && Array.isArray(resizeData)) {
+                    const height = resizeData[0]?.height;
+                    if (height && typeof height === 'number') {
+                        const iframes =
+                            document.querySelectorAll<HTMLIFrameElement>('iframe[data-tweet-id]');
+                        for (const iframe of iframes) {
+                            if (iframe.contentWindow === event.source) {
+                                iframe.style.height = `${height}px`;
+                                break;
+                            }
+                        }
+                    }
+                }
+            } catch {
+                // 무시
+            }
+        }
+
+        window.addEventListener('message', handleTwitterResize);
+        return () => window.removeEventListener('message', handleTwitterResize);
     });
 
     // 마크다운을 HTML로 변환하고 플러그인 필터 적용 후 sanitize
@@ -89,6 +118,7 @@
                         'data-bluesky-uri',
                         'data-bluesky-cid',
                         'data-embed-height',
+                        'data-tweet-id',
                         'frameborder',
                         'allow',
                         'allowfullscreen',
