@@ -1252,12 +1252,33 @@ class ApiClient {
         });
 
         if (!response.ok) {
-            const error = await response.json().catch(() => ({}));
-            throw new Error(error.error?.message || error.message || '파일 업로드에 실패했습니다.');
+            const errorBody = await response.text().catch(() => '');
+            let errorMessage = '파일 업로드에 실패했습니다.';
+            if (response.status === 413) {
+                errorMessage = '파일 크기가 너무 큽니다.';
+            } else {
+                try {
+                    const parsed = JSON.parse(errorBody);
+                    errorMessage = parsed.error?.message || parsed.message || errorMessage;
+                } catch {
+                    // JSON 파싱 실패 → 기본 메시지 사용
+                }
+            }
+            throw new Error(errorMessage);
         }
 
-        const result = await response.json();
-        const data = result.data;
+        let result;
+        try {
+            result = await response.json();
+        } catch {
+            throw new Error('서버 응답을 처리할 수 없습니다.');
+        }
+
+        const data = result?.data;
+        if (!data) {
+            throw new Error('업로드 응답 데이터가 없습니다.');
+        }
+
         return {
             id: data.key,
             filename: data.filename,
@@ -1299,14 +1320,33 @@ class ApiClient {
         });
 
         if (!response.ok) {
-            const error = await response.json().catch(() => ({}));
-            throw new Error(
-                error.error?.message || error.message || '이미지 업로드에 실패했습니다.'
-            );
+            const errorBody = await response.text().catch(() => '');
+            let errorMessage = '이미지 업로드에 실패했습니다.';
+            if (response.status === 413) {
+                errorMessage = '파일 크기가 너무 큽니다. (최대 10MB)';
+            } else {
+                try {
+                    const parsed = JSON.parse(errorBody);
+                    errorMessage = parsed.error?.message || parsed.message || errorMessage;
+                } catch {
+                    // JSON 파싱 실패 (HTML 에러 페이지 등) → 기본 메시지 사용
+                }
+            }
+            throw new Error(errorMessage);
         }
 
-        const result = await response.json();
-        const data = result.data;
+        let result;
+        try {
+            result = await response.json();
+        } catch {
+            throw new Error('서버 응답을 처리할 수 없습니다.');
+        }
+
+        const data = result?.data;
+        if (!data) {
+            throw new Error('업로드 응답 데이터가 없습니다.');
+        }
+
         return {
             id: data.key,
             filename: data.filename,
