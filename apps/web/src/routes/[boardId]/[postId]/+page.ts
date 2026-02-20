@@ -23,7 +23,7 @@ export const load: PageLoad = async ({ params, fetch }) => {
                 .catch(() => ({ success: false, data: { posts: [] } }))
         ]);
 
-        // 첨부 이미지 로드 (Go API에서 미제공 → SvelteKit에서 직접 조회)
+        // 첨부 파일 로드 (Go API에서 미제공 → SvelteKit에서 직접 조회)
         try {
             const res = await fetch(`/api/boards/${boardId}/posts/${postId}/files`);
             if (res.ok) {
@@ -31,9 +31,12 @@ export const load: PageLoad = async ({ params, fetch }) => {
                 if (data.images?.length) {
                     post.images = data.images;
                 }
+                if (data.videos?.length) {
+                    post.videos = data.videos;
+                }
             }
         } catch {
-            // 첨부 이미지 로드 실패 시 무시 (본문은 정상 표시)
+            // 첨부 파일 로드 실패 시 무시 (본문은 정상 표시)
         }
 
         return {

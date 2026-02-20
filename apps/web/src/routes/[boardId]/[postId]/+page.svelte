@@ -13,6 +13,8 @@
     import type { PageData } from './$types.js';
     import { Markdown } from '$lib/components/ui/markdown/index.js';
     import ExternalLink from '@lucide/svelte/icons/external-link';
+    import Download from '@lucide/svelte/icons/download';
+    import Video from '@lucide/svelte/icons/video';
     import Heart from '@lucide/svelte/icons/heart';
     import ThumbsDown from '@lucide/svelte/icons/thumbs-down';
     import Users from '@lucide/svelte/icons/users';
@@ -261,6 +263,14 @@
             hour: '2-digit',
             minute: '2-digit'
         });
+    }
+
+    // 파일 크기 포맷
+    function formatFileSize(bytes: number): string {
+        if (!bytes) return '';
+        if (bytes < 1024) return `${bytes} B`;
+        if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+        return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
     }
 
     // 목록으로 돌아가기
@@ -777,6 +787,40 @@
             {#if canViewSecret}
                 <AdultBlur isAdult={data.post.is_adult ?? false}>
                     <Markdown content={postContent()} />
+
+                    {#if data.post.videos && data.post.videos.length > 0}
+                        <div class="mt-6 space-y-4">
+                            {#each data.post.videos as video, i (i)}
+                                <div class="overflow-hidden rounded-lg border">
+                                    <video controls preload="metadata" playsinline class="w-full">
+                                        <source src={video.url} />
+                                        동영상을 재생할 수 없습니다.
+                                    </video>
+                                    <div
+                                        class="bg-muted/50 flex items-center gap-3 border-t px-4 py-2.5"
+                                    >
+                                        <Video class="text-muted-foreground h-4 w-4 shrink-0" />
+                                        <span class="text-foreground min-w-0 truncate text-sm">
+                                            {video.filename}
+                                        </span>
+                                        {#if video.size}
+                                            <span class="text-muted-foreground shrink-0 text-xs">
+                                                {formatFileSize(video.size)}
+                                            </span>
+                                        {/if}
+                                        <a
+                                            href={video.url}
+                                            download={video.filename}
+                                            class="text-primary hover:text-primary/80 ml-auto flex shrink-0 items-center gap-1 text-sm font-medium"
+                                        >
+                                            <Download class="h-4 w-4" />
+                                            다운로드
+                                        </a>
+                                    </div>
+                                </div>
+                            {/each}
+                        </div>
+                    {/if}
 
                     {#if data.post.images && data.post.images.length > 0}
                         <div class="mt-6 grid gap-4">

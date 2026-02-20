@@ -2,6 +2,9 @@
 
 /* Tailwind CSS 4: 스캔할 파일 경로 지정 */
 @source '../../../themes/**/*.{svelte,html,js,ts}';
+@source '../../../custom-themes/**/*.{svelte,html,js,ts}';
+@source '../../../widgets/**/*.{svelte,html,js,ts}';
+@source '../../../custom-widgets/**/*.{svelte,html,js,ts}';
 
 @import 'tw-animate-css';
 @import './styles/base.css';

@@ -31,6 +31,7 @@ export interface FreePost {
     category?: string; // 게시글 카테고리 (예: "일상", "음식", "맛집")
     tags?: string[];
     images?: string[];
+    videos?: { url: string; filename: string; size: number }[];
     is_secret?: boolean; // 비밀글 여부
     is_notice?: boolean; // 공지사항 여부
     notice_type?: 'normal' | 'important'; // 공지 타입 (일반/필수)
