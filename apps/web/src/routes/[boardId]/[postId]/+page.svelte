@@ -226,6 +226,19 @@
         if (likeCount > 0) {
             loadLikerAvatars();
         }
+
+        // 댓글 앵커 스크롤 (#c_댓글ID)
+        const hash = window.location.hash;
+        if (hash && hash.startsWith('#c_')) {
+            setTimeout(() => {
+                const el = document.getElementById(hash.slice(1));
+                if (el) {
+                    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    el.classList.add('bg-primary/10');
+                    setTimeout(() => el.classList.remove('bg-primary/10'), 2000);
+                }
+            }, 500);
+        }
     });
 
     // 날짜 포맷 헬퍼
@@ -427,7 +440,8 @@
     async function handleCreateComment(
         content: string,
         parentId?: string | number,
-        isSecret?: boolean
+        isSecret?: boolean,
+        images?: string[]
     ): Promise<void> {
         if (!authStore.user) {
             throw new Error('로그인이 필요합니다.');
@@ -439,7 +453,8 @@
                 content,
                 author: authStore.user.mb_name,
                 parent_id: parentId,
-                is_secret: isSecret
+                is_secret: isSecret,
+                images
             });
 
             // 댓글 목록에 추가
@@ -464,7 +479,8 @@
     async function handleReplyComment(
         content: string,
         parentId: string | number,
-        isSecret?: boolean
+        isSecret?: boolean,
+        images?: string[]
     ): Promise<void> {
         if (!authStore.user) {
             throw new Error('로그인이 필요합니다.');
@@ -474,7 +490,8 @@
             content,
             author: authStore.user.mb_name,
             parent_id: parentId,
-            is_secret: isSecret
+            is_secret: isSecret,
+            images
         });
 
         // 댓글 목록에 추가
@@ -948,7 +965,8 @@
                         onSubmit={handleCreateComment}
                         isLoading={isCreatingComment}
                         permissions={data.board?.permissions}
-                        requiredCommentLevel={data.board?.comment_level ?? 1}
+                        requiredCommentLevel={data.board?.comment_level ?? 3}
+                        {boardId}
                     />
                 </div>
             </CardContent>
@@ -969,7 +987,13 @@
 
     <!-- 게시판 최근글 목록 (체류시간 증가) -->
     <div class="mt-6">
-        <RecentPosts {boardId} {boardTitle} currentPostId={data.post.id} limit={20} />
+        <RecentPosts
+            {boardId}
+            {boardTitle}
+            currentPostId={data.post.id}
+            limit={20}
+            promotionPosts={data.promotionPosts || []}
+        />
     </div>
 
     <!-- 댓글 섹션 하단 광고 (푸터 위) -->

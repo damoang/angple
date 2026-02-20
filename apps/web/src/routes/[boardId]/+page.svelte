@@ -73,14 +73,14 @@
         }
         // 하위호환: 클라이언트에서 레벨 비교
         const userLevel = authStore.user?.mb_level ?? 1;
-        const requiredLevel = data.board?.write_level ?? 1;
+        const requiredLevel = data.board?.write_level ?? 3;
         return userLevel >= requiredLevel;
     });
 
     // 권한 부족 시 표시할 메시지
     const writePermissionMessage = $derived(() => {
         if (!authStore.isAuthenticated) return '로그인이 필요합니다';
-        const requiredLevel = data.board?.write_level ?? 1;
+        const requiredLevel = data.board?.write_level ?? 3;
         return `레벨 ${requiredLevel} 이상 작성 가능`;
     });
 
@@ -481,10 +481,11 @@
                         />
                     {/if}
 
-                    <!-- 직접홍보 사잇광고 (10번째 글마다, 최대 2개) -->
-                    {#if shuffledPromos.length > 0 && (i + 1) % 10 === 0}
-                        {@const promoIndex = Math.floor(i / 10) % shuffledPromos.length}
-                        <PromotionInlinePost post={shuffledPromos[promoIndex]} />
+                    <!-- 직접홍보 사잇광고 (10번째 글 뒤에 2개 나란히) -->
+                    {#if shuffledPromos.length > 0 && i + 1 === 10}
+                        {#each shuffledPromos.slice(0, 2) as promo (promo.wrId)}
+                            <PromotionInlinePost post={promo} />
+                        {/each}
                     {/if}
                 {/each}
             {/if}

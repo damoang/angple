@@ -1,19 +1,16 @@
 /**
  * POST /api/media/images — 파일 업로드 (S3, EC2 IAM Role 인증)
  * 이미지 + 일반 파일 모두 지원
- * 인증: damoang_jwt 쿠키 (HMAC JWT)
+ * 인증: access_token / refresh_token / damoang_jwt 쿠키 (공유 인증)
  */
 import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
-import { jwtVerify } from 'jose';
+import { getAuthUser, verifyToken } from '$lib/server/auth/index.js';
 
 const S3_REGION = process.env.S3_REGION || 'ap-northeast-2';
 const S3_BUCKET = process.env.S3_BUCKET || 'damoang-data-v1';
 const CDN_BASE = 'https://s3.damoang.net';
-const JWT_SECRET = new TextEncoder().encode(
-    process.env.DAMOANG_JWT_SECRET || '.damoang.net-jwt-secret'
-);
 
 // S3 클라이언트 (EC2 IAM Role 자동 인증)
 const s3 = new S3Client({ region: S3_REGION });
@@ -68,21 +65,28 @@ function generateKey(filename: string): string {
 }
 
 export const POST: RequestHandler = async ({ request, cookies }) => {
-    // 인증 확인 (damoang_jwt 쿠키 JWT 검증)
-    const token = cookies.get('damoang_jwt');
-    if (!token) {
-        error(401, '로그인이 필요합니다.');
+    // 인증 확인: 1) Authorization 헤더 2) 쿠키 (access_token / refresh_token / damoang_jwt)
+    let memberId = '';
+
+    // 1순위: Authorization Bearer 토큰
+    const authHeader = request.headers.get('Authorization');
+    if (authHeader?.startsWith('Bearer ')) {
+        const token = authHeader.slice(7);
+        const payload = await verifyToken(token);
+        if (payload?.sub) {
+            memberId = payload.sub;
+        }
     }
 
-    let memberId: string;
-    try {
-        const { payload } = await jwtVerify(token, JWT_SECRET);
-        // damoang.net 형식: mb_id, angple-backend 형식: user_id
-        memberId = (payload.mb_id as string) || (payload.user_id as string) || '';
-        if (!memberId) {
-            error(401, '유효하지 않은 인증 정보입니다.');
+    // 2순위: 쿠키 기반 인증
+    if (!memberId) {
+        const authUser = await getAuthUser(cookies);
+        if (authUser) {
+            memberId = authUser.mb_id;
         }
-    } catch {
+    }
+
+    if (!memberId) {
         error(401, '로그인이 필요합니다.');
     }
 

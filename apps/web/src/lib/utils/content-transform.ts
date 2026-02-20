@@ -44,6 +44,6 @@ export function transformEmoticons(text: string): string {
             width = MAX_WIDTH;
         }
 
-        return `<img src="/emoticons/${filename}" width="${width}" alt="이모티콘" loading="lazy" class="emoticon-inline">`;
+        return `<img src="/api/emoticons/nariya/${filename}" width="${width}" alt="이모티콘" loading="lazy" class="emoticon-inline">`;
     });
 }

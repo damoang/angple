@@ -5,7 +5,7 @@ import type { SearchField } from '$lib/api/types.js';
 // CSR 전용 - Vite 프록시 사용을 위해 클라이언트에서만 로드
 export const ssr = false;
 
-export const load: PageLoad = async ({ url, params }) => {
+export const load: PageLoad = async ({ url, params, fetch }) => {
     const boardId = params.boardId;
     const page = Number(url.searchParams.get('page')) || 1;
     const limit = Number(url.searchParams.get('limit')) || 20;
@@ -21,7 +21,7 @@ export const load: PageLoad = async ({ url, params }) => {
         // 게시판 정보, 공지사항, 게시글 목록, 직접홍보를 병렬로 가져오기
         const [data, board, notices, promotionPostsResult] = await Promise.all([
             isSearching
-                ? apiClient.searchPosts(boardId, {
+                ? apiClient.withFetch(fetch).searchPosts(boardId, {
                       field: searchField!,
                       query: searchQuery!,
                       page,
@@ -29,17 +29,17 @@ export const load: PageLoad = async ({ url, params }) => {
                       tag: tag || undefined
                   })
                 : isTagFiltering
-                  ? apiClient.searchPosts(boardId, {
+                  ? apiClient.withFetch(fetch).searchPosts(boardId, {
                         field: 'title_content',
                         query: '',
                         page,
                         limit,
                         tag: tag!
                     })
-                  : apiClient.getBoardPosts(boardId, page, limit),
-            apiClient.getBoard(boardId),
+                  : apiClient.withFetch(fetch).getBoardPosts(boardId, page, limit),
+            apiClient.withFetch(fetch).getBoard(boardId),
             // 검색 중이 아닐 때만 공지사항 로드
-            isSearching ? Promise.resolve([]) : apiClient.getBoardNotices(boardId),
+            isSearching ? Promise.resolve([]) : apiClient.withFetch(fetch).getBoardNotices(boardId),
             // 직접홍보 사잇광고
             fetch('/api/ads/promotion-posts')
                 .then((r) => r.json())

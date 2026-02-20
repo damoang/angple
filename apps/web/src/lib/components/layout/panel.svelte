@@ -2,9 +2,11 @@
     import { getComponentsForSlot } from '$lib/components/slot-manager';
     import { WidgetRenderer } from '$lib/components/widget-renderer';
     import DamoangBanner from '$lib/components/ui/damoang-banner/damoang-banner.svelte';
+    import AdSlot from '$lib/components/ui/ad-slot/ad-slot.svelte';
+    import { widgetLayoutStore } from '$lib/stores/widget-layout.svelte';
 </script>
 
-<div class="flex flex-col gap-4 p-4">
+<div class="flex h-full flex-col gap-4 p-4">
     <!-- Slot: sidebar-right-top -->
     {#each getComponentsForSlot('sidebar-right-top') as slotComp (slotComp.id)}
         {@const Component = slotComp.component}
@@ -25,4 +27,12 @@
         {@const Component = slotComp.component}
         <Component {...slotComp.props || {}} />
     {/each}
+
+    <!-- 스크롤 시 고정되는 GAM 광고 (양쪽 날개형) -->
+    {#if widgetLayoutStore.hasEnabledAds}
+        <div class="sticky top-[64px] space-y-3">
+            <AdSlot position="sidebar-sticky" height="600px" />
+            <AdSlot position="sidebar-2" height="250px" />
+        </div>
+    {/if}
 </div>

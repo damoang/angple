@@ -369,6 +369,7 @@ export interface CreateCommentRequest {
     author: string; // 필수, 1-50자
     parent_id?: number | string; // 대댓글인 경우 부모 댓글 ID
     is_secret?: boolean; // 선택 (비밀댓글)
+    images?: string[]; // 첨부 이미지 URL 배열
 }
 
 // 댓글 수정 요청
@@ -579,6 +580,31 @@ export interface Report {
     status: 'pending' | 'reviewed' | 'resolved' | 'dismissed';
     created_at: string;
     reviewed_at?: string;
+}
+
+// 신고 정보 조회 응답 (관리자용)
+export interface CommentReportInfo {
+    comment_id: number | string;
+    reporter_id: string;
+    reporter_name: string;
+    reason: ReportReason;
+    reason_label: string;
+    created_at: string;
+}
+
+// Tenor GIF 검색 응답
+export interface TenorGif {
+    id: string;
+    title: string;
+    url: string; // 미디어 URL (GIF)
+    preview_url: string; // 미리보기 URL (작은 GIF)
+    width: number;
+    height: number;
+}
+
+export interface TenorSearchResponse {
+    results: TenorGif[];
+    next: string; // 다음 페이지 pos
 }
 
 // 포인트 관련 타입

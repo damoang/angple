@@ -5,6 +5,7 @@
     import Reply from '@lucide/svelte/icons/reply';
     import Lock from '@lucide/svelte/icons/lock';
     import Flag from '@lucide/svelte/icons/flag';
+    import Link2 from '@lucide/svelte/icons/link-2';
     import CommentForm from './comment-form.svelte';
     import { ReportDialog } from '$lib/components/features/report/index.js';
     import AdSlot from '$lib/components/ui/ad-slot/ad-slot.svelte';
@@ -36,17 +37,24 @@
     });
     import { memberLevelStore } from '$lib/stores/member-levels.svelte.js';
     import { highlightMentions } from '$lib/utils/mention-parser.js';
+    import { formatDate } from '$lib/utils/format-date.js';
     import { ReactionBar } from '$lib/components/features/reaction/index.js';
     import CommentLikersDialog from './comment-likers-dialog.svelte';
     import { AvatarStack } from '$lib/components/ui/avatar-stack/index.js';
     import { apiClient } from '$lib/api/index.js';
-    import type { LikerInfo } from '$lib/api/types.js';
+    import type { LikerInfo, CommentReportInfo } from '$lib/api/types.js';
+    import { toast } from 'svelte-sonner';
 
     interface Props {
         comments: FreeComment[];
         onUpdate: (commentId: string, content: string) => Promise<void>;
         onDelete: (commentId: string) => Promise<void>;
-        onReply?: (content: string, parentId: string | number, isSecret?: boolean) => Promise<void>;
+        onReply?: (
+            content: string,
+            parentId: string | number,
+            isSecret?: boolean,
+            images?: string[]
+        ) => Promise<void>;
         onLike?: (commentId: string) => Promise<{ likes: number; user_liked: boolean }>;
         onDislike?: (commentId: string) => Promise<{ dislikes: number; user_disliked: boolean }>;
         postAuthorId?: string; // 게시글 작성자 ID (비밀댓글 열람 권한 체크용)
@@ -99,6 +107,20 @@
     // 신고 상태 관리
     let reportingCommentId = $state<number | string | null>(null);
     let showReportDialog = $state(false);
+
+    // 신고자 정보 (관리자만)
+    let commentReports = $state(new SvelteMap<string, CommentReportInfo[]>());
+
+    // 댓글 주소 복사
+    async function copyCommentLink(commentId: number | string): Promise<void> {
+        const url = `${window.location.origin}${window.location.pathname}#c_${commentId}`;
+        try {
+            await navigator.clipboard.writeText(url);
+            toast.success('댓글 주소가 복사되었습니다.');
+        } catch {
+            toast.error('주소 복사에 실패했습니다.');
+        }
+    }
 
     // 추천자 목록 다이얼로그 상태
     let showLikersDialog = $state(false);
@@ -167,18 +189,6 @@
 
         return flatTree;
     });
-
-    // 날짜 포맷 헬퍼
-    function formatDate(dateString: string): string {
-        const date = new Date(dateString);
-        return date.toLocaleDateString('ko-KR', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-        });
-    }
 
     // 작성자 확인
     function isCommentAuthor(comment: FreeComment): boolean {
@@ -261,12 +271,17 @@
     }
 
     // 답글 작성
-    async function handleReply(content: string, parentId?: string | number): Promise<void> {
+    async function handleReply(
+        content: string,
+        parentId?: string | number,
+        isSecret?: boolean,
+        images?: string[]
+    ): Promise<void> {
         if (!onReply || !parentId) return;
 
         isReplying = true;
         try {
-            await onReply(content, parentId);
+            await onReply(content, parentId, isSecret, images);
             cancelReply();
         } finally {
             isReplying = false;
@@ -458,6 +473,25 @@
         }
     }
 
+    // 관리자: 댓글 신고 내역 배치 로드
+    let reportsLoaded = $state(false);
+    $effect(() => {
+        if (reportsLoaded || !boardId || !postId || commentTree.length === 0) return;
+        if (!authStore.user || authStore.user.mb_level < 10) return;
+
+        reportsLoaded = true;
+        apiClient.getCommentReports(boardId, postId).then((reports) => {
+            const map = new SvelteMap<string, CommentReportInfo[]>();
+            for (const r of reports) {
+                const key = String(r.comment_id);
+                const list = map.get(key) ?? [];
+                list.push(r);
+                map.set(key, list);
+            }
+            commentReports = map;
+        });
+    });
+
     // 좋아요 > 0인 댓글의 아바타 배치 로드 (최대 10개)
     let likerAvatarsLoaded = $state(false);
     $effect(() => {
@@ -489,7 +523,11 @@
                 <AdSlot position="comment-infeed" height="90px" />
             </li>
         {/if}
-        <li style="margin-left: {Math.min(depth, 3) * 1.25}rem" class="py-4 first:pt-0 last:pb-0">
+        <li
+            id="c_{comment.id}"
+            style="margin-left: {Math.min(depth, 3) * 1.25}rem"
+            class="py-4 transition-colors duration-500 first:pt-0 last:pb-0"
+        >
             <div>
                 <div class="mb-2 flex flex-wrap items-center gap-4">
                     <div class="flex items-center gap-2">
@@ -553,6 +591,19 @@
                             </p>
                         </div>
                     </div>
+
+                    <!-- 신고 배지 (관리자만) -->
+                    {#if authStore.user?.mb_level && authStore.user.mb_level >= 10 && commentReports.has(String(comment.id))}
+                        {@const reports = commentReports.get(String(comment.id)) ?? []}
+                        <span
+                            class="text-destructive bg-destructive/10 rounded px-1.5 py-0.5 text-[11px]"
+                            title={reports
+                                .map((r) => `${r.reporter_name}: ${r.reason_label}`)
+                                .join('\n')}
+                        >
+                            신고 {reports.length}건
+                        </span>
+                    {/if}
 
                     <!-- 리액션 (da-reaction 플러그인) - 왼쪽 정렬 -->
                     {#if reactionPluginActive && !isEditing && boardId && postId}
@@ -654,6 +705,17 @@
                                     </Button>
                                 {/if}
 
+                                <!-- 주소 복사 버튼 -->
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onclick={() => copyCommentLink(comment.id)}
+                                    class="h-7 px-2"
+                                >
+                                    <Link2 class="h-4 w-4" />
+                                    <span class="ml-1 text-[13px]">주소</span>
+                                </Button>
+
                                 <!-- TODO: 소프트 삭제 구현 후 복원 -->
                                 <!-- {#if isAuthor}
                                     <Button
@@ -718,6 +780,7 @@
                             parentAuthor={comment.author}
                             isReplyMode={true}
                             isLoading={isReplying}
+                            {boardId}
                         />
                     </div>
                 {/if}

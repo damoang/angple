@@ -16,6 +16,7 @@
     import { doAction } from '$lib/hooks/registry';
     import { initBuiltinHooks } from '$lib/hooks';
     import { loadPluginComponent } from '$lib/utils/plugin-optional-loader';
+    import { Toaster } from '$lib/components/ui/sonner';
 
     const { children, data } = $props(); // Svelte 5: SSR 데이터 받기
 
@@ -276,3 +277,6 @@
 {#if pluginStore.isPluginActive('member-memo') && MemoModal}
     <MemoModal />
 {/if}
+
+<!-- 토스트 알림 -->
+<Toaster />

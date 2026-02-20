@@ -4,6 +4,7 @@
     import ImageIcon from '@lucide/svelte/icons/image';
     import { LevelBadge } from '$lib/components/ui/level-badge/index.js';
     import { memberLevelStore } from '$lib/stores/member-levels.svelte.js';
+    import { formatDate } from '$lib/utils/format-date.js';
 
     // Props (동일 인터페이스)
     let {
@@ -18,24 +19,6 @@
 
     const thumbnailUrl = $derived(post.thumbnail || post.images?.[0] || '');
     const hasImage = $derived(Boolean(thumbnailUrl));
-
-    function formatDate(dateString: string): string {
-        const date = new Date(dateString);
-        const now = new Date();
-        const diff = now.getTime() - date.getTime();
-        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-
-        if (days > 7) {
-            return `${date.getMonth() + 1}월 ${date.getDate()}일`;
-        } else if (days > 0) {
-            return `${days}일 전`;
-        }
-        const hours = Math.floor(diff / (1000 * 60 * 60));
-        if (hours > 0) return `${hours}시간 전`;
-        const minutes = Math.floor(diff / (1000 * 60));
-        if (minutes > 0) return `${minutes}분 전`;
-        return '방금 전';
-    }
 </script>
 
 <!-- Gallery 레이아웃: 썸네일 중심 카드 (그리드 아이템) -->

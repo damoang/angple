@@ -86,7 +86,7 @@
         href={celebrations[currentIndex]?.external_link ||
             celebrations[currentIndex]?.link_url ||
             '#'}
-        target={celebrations[currentIndex]?.link_target || '_blank'}
+        target={celebrations[currentIndex]?.link_target || '_self'}
         rel="nofollow noopener"
         class="border-border bg-background hover:bg-accent flex h-9 items-center gap-2 overflow-hidden rounded-lg border px-3 transition-colors {className}"
     >

@@ -12,6 +12,7 @@
     import { apiClient } from '$lib/api/index.js';
     import type { FreePost } from '$lib/api/types.js';
     import { parseQAInfo, getQAStatusLabel, getQAStatusColor } from '$lib/types/qa-board.js';
+    import { formatDate } from '$lib/utils/format-date.js';
 
     interface Props {
         boardId: string;
@@ -75,11 +76,6 @@
 
     function goToPage(pageNum: number): void {
         goto(`/${boardId}?filter=${currentFilter}&page=${pageNum}`, { replaceState: true });
-    }
-
-    function formatDate(dateString: string): string {
-        const date = new Date(dateString);
-        return date.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' });
     }
 </script>
 

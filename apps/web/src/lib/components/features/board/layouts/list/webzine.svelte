@@ -5,6 +5,7 @@
     import Lock from '@lucide/svelte/icons/lock';
     import { LevelBadge } from '$lib/components/ui/level-badge/index.js';
     import { memberLevelStore } from '$lib/stores/member-levels.svelte.js';
+    import { formatDate } from '$lib/utils/format-date.js';
 
     // Props (동일 인터페이스)
     let {
@@ -29,28 +30,6 @@
             .trim();
         return stripped.length > maxLen ? stripped.slice(0, maxLen) + '…' : stripped;
     });
-
-    function formatDate(dateString: string): string {
-        const date = new Date(dateString);
-        const now = new Date();
-        const diff = now.getTime() - date.getTime();
-        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-
-        if (days > 7) {
-            return date.toLocaleDateString('ko-KR', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
-            });
-        } else if (days > 0) {
-            return `${days}일 전`;
-        }
-        const hours = Math.floor(diff / (1000 * 60 * 60));
-        if (hours > 0) return `${hours}시간 전`;
-        const minutes = Math.floor(diff / (1000 * 60));
-        if (minutes > 0) return `${minutes}분 전`;
-        return '방금 전';
-    }
 </script>
 
 <!-- Webzine 레이아웃: 큰 이미지 + 제목 + 본문 미리보기 (블로그/뉴스 스타일) -->

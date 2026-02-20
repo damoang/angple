@@ -135,7 +135,7 @@ export const GET: RequestHandler = async ({ params, url }) => {
                     parent_wr_id: w.wr_parent,
                     preview,
                     wr_datetime: w.wr_datetime,
-                    href: `/${row.bo_table}/${w.wr_parent}`
+                    href: `/${row.bo_table}/${w.wr_parent}#c_${w.wr_id}`
                 });
             } catch {
                 // 테이블 없으면 스킵

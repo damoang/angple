@@ -21,6 +21,7 @@
     import TagInput from './tag-input.svelte';
     import { TiptapEditor } from '$lib/components/features/editor/index.js';
     import { FileUploader } from '$lib/components/features/uploader/index.js';
+    import { authStore } from '$lib/stores/auth.svelte.js';
 
     interface Props {
         mode: 'create' | 'edit';
@@ -483,17 +484,21 @@
                 />
             </div>
 
-            <!-- 비밀글 옵션 -->
-            <div class="border-border flex items-center gap-3 rounded-lg border p-4">
-                <Checkbox id="is_secret" bind:checked={isSecret} disabled={isLoading} />
-                <div class="flex items-center gap-2">
-                    <Lock class="text-muted-foreground h-4 w-4" />
-                    <Label for="is_secret" class="cursor-pointer font-normal">비밀글로 작성</Label>
+            <!-- 비밀글 옵션 (관리자만) -->
+            {#if authStore.user?.mb_level != null && authStore.user.mb_level >= 10}
+                <div class="border-border flex items-center gap-3 rounded-lg border p-4">
+                    <Checkbox id="is_secret" bind:checked={isSecret} disabled={isLoading} />
+                    <div class="flex items-center gap-2">
+                        <Lock class="text-muted-foreground h-4 w-4" />
+                        <Label for="is_secret" class="cursor-pointer font-normal"
+                            >비밀글로 작성</Label
+                        >
+                    </div>
+                    <p class="text-muted-foreground ml-auto text-xs">
+                        비밀글은 작성자와 관리자만 볼 수 있습니다
+                    </p>
                 </div>
-                <p class="text-muted-foreground ml-auto text-xs">
-                    비밀글은 작성자와 관리자만 볼 수 있습니다
-                </p>
-            </div>
+            {/if}
 
             <!-- 버튼 -->
             <div class="flex justify-end gap-3">

@@ -7,6 +7,7 @@
     import Trash2 from '@lucide/svelte/icons/trash-2';
     import Clock from '@lucide/svelte/icons/clock';
     import FolderOpen from '@lucide/svelte/icons/folder-open';
+    import { formatDate } from '$lib/utils/format-date.js';
 
     interface Props {
         onLoad?: (draft: DraftItem) => void;
@@ -81,17 +82,6 @@
             onLoad(draft);
         }
         showDialog = false;
-    }
-
-    // 날짜 포맷
-    function formatDate(dateString: string): string {
-        const date = new Date(dateString);
-        return date.toLocaleString('ko-KR', {
-            month: 'short',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-        });
     }
 
     // 내용 미리보기 (50자)

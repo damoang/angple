@@ -22,6 +22,14 @@
     let isSubmitting = $state(false);
     let error = $state<string | null>(null);
 
+    // 글쓰기 권한 체크
+    const requiredLevel = $derived(data.board?.write_level ?? 3);
+    const canWrite = $derived(() => {
+        if (!authStore.isAuthenticated) return false;
+        if (data.board?.permissions) return data.board.permissions.can_write;
+        return (authStore.user?.mb_level ?? 1) >= requiredLevel;
+    });
+
     // 로그인 체크 (클라이언트 사이드)
     $effect(() => {
         if (browser && !authStore.isLoading && !authStore.isAuthenticated) {
@@ -90,6 +98,18 @@
     {:else if !authStore.isAuthenticated}
         <div class="py-12 text-center">
             <p class="text-muted-foreground">로그인이 필요합니다. 로그인 페이지로 이동합니다...</p>
+        </div>
+    {:else if !canWrite()}
+        <div class="py-12 text-center">
+            <div class="bg-muted/50 mx-auto max-w-md rounded-lg p-8">
+                <p class="text-muted-foreground text-lg font-medium">글쓰기 권한이 없습니다</p>
+                <p class="text-muted-foreground mt-2 text-sm">
+                    레벨 {requiredLevel} 이상부터 글쓰기가 가능합니다.
+                </p>
+                <p class="text-muted-foreground mt-1 text-sm">
+                    현재 레벨: {authStore.user?.mb_level ?? 1}
+                </p>
+            </div>
         </div>
     {:else}
         {#if error}

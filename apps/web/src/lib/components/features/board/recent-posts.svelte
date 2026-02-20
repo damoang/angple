@@ -7,15 +7,38 @@
     import { memberLevelStore } from '$lib/stores/member-levels.svelte.js';
     import { Button } from '$lib/components/ui/button/index.js';
     import CompactLayout from './layouts/list/compact.svelte';
+    import { PromotionInlinePost } from '$lib/components/ui/promotion-inline-post/index.js';
+
+    interface PromotionPost {
+        wrId: number;
+        subject: string;
+        imageUrl: string;
+        linkUrl: string;
+        advertiserName: string;
+        memberId: string;
+        pinToTop: boolean;
+        createdAt: string;
+    }
 
     interface Props {
         boardId: string;
         boardTitle: string;
         currentPostId: number;
         limit?: number;
+        promotionPosts?: PromotionPost[];
     }
 
-    let { boardId, boardTitle, currentPostId, limit = 10 }: Props = $props();
+    let { boardId, boardTitle, currentPostId, limit = 10, promotionPosts = [] }: Props = $props();
+
+    // 프로모션 셔플 (매 렌더마다 랜덤)
+    let shuffledPromos = $derived.by(() => {
+        const arr = [...promotionPosts];
+        for (let i = arr.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [arr[i], arr[j]] = [arr[j], arr[i]];
+        }
+        return arr;
+    });
     let posts = $state<FreePost[]>([]);
     let loading = $state(true);
     let error = $state<string | null>(null);
@@ -124,8 +147,13 @@
     </div>
 {:else}
     <div class="space-y-1">
-        {#each posts as post (post.id)}
+        {#each posts as post, i (post.id)}
             <CompactLayout {post} onclick={() => goToPost(post.id)} />
+            {#if shuffledPromos.length > 0 && i + 1 === 10}
+                {#each shuffledPromos.slice(0, 2) as promo (promo.wrId)}
+                    <PromotionInlinePost post={promo} />
+                {/each}
+            {/if}
         {/each}
     </div>
 

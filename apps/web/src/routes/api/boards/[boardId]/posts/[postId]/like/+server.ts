@@ -101,6 +101,14 @@ export const POST: RequestHandler = async ({ params, request, cookies }) => {
         return json({ success: false, message: '로그인이 필요합니다.' }, { status: 401 });
     }
 
+    // 레벨 체크 (레벨 3 미만은 추천/비추천 불가)
+    if ((user.mb_level ?? 0) < 3) {
+        return json(
+            { success: false, message: '레벨 3 이상부터 추천/비추천이 가능합니다.' },
+            { status: 403 }
+        );
+    }
+
     if (!boardId || !postId) {
         return json({ success: false, message: 'boardId와 postId가 필요합니다.' }, { status: 400 });
     }
