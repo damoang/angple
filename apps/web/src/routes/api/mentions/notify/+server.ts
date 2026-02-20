@@ -8,7 +8,7 @@ import type { RequestHandler } from './$types';
 import type { RowDataPacket } from 'mysql2';
 import pool from '$lib/server/db';
 
-const INTERNAL_API_URL = process.env.INTERNAL_API_URL || 'http://localhost:8082/api/v1';
+const INTERNAL_API_URL = process.env.INTERNAL_API_URL || 'http://localhost:8090/api/v1';
 
 interface NotifyRequest {
     mentions: string[]; // 닉네임 배열

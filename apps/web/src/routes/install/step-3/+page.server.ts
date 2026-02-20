@@ -24,7 +24,7 @@ async function createAdminInBackend(data: {
     username: string;
     password: string;
 }): Promise<{ success: boolean; message: string; userId?: string }> {
-    const backendUrl = process.env.BACKEND_URL || 'http://localhost:8081';
+    const backendUrl = process.env.BACKEND_URL || 'http://localhost:8090';
 
     try {
         const response = await fetch(`${backendUrl}/api/v2/install/create-admin`, {

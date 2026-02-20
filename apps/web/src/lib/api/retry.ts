@@ -71,14 +71,9 @@ export async function fetchWithRetry(
                 continue;
             }
 
-            // 429 Rate Limit
-            if (response.status === 429 && attempt < config.maxRetries) {
-                const retryAfter = response.headers.get('Retry-After');
-                const delay = retryAfter
-                    ? parseInt(retryAfter, 10) * 1000
-                    : getDelay(attempt, config.baseDelay);
-                await sleep(delay);
-                continue;
+            // 429 Rate Limit — 재시도하면 오히려 요청량 증가시키므로 즉시 반환
+            if (response.status === 429) {
+                return response;
             }
 
             return response;

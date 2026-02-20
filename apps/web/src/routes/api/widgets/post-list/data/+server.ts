@@ -10,7 +10,7 @@ import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { fetchBoardPostsForWidget } from '$lib/server/index-widgets-builder';
 
-const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8082';
+const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8090';
 
 export const GET: RequestHandler = async ({ url }) => {
     const board = url.searchParams.get('board') ?? 'notice';

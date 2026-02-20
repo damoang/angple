@@ -102,6 +102,11 @@ function getBoardName(boardId: string): string {
     return names[boardId] ?? boardId;
 }
 
+/** 인메모리 캐시 (SSR 요청 최소화) */
+let cachedWidgets: IndexWidgetsData | null = null;
+let cacheTimestamp = 0;
+const CACHE_TTL_MS = 30_000; // 30초
+
 /** 개별 게시판 API 호출 */
 async function fetchBoardPosts(
     backendUrl: string,
@@ -129,8 +134,15 @@ async function fetchBoardPosts(
 
 /**
  * 개별 게시판 API를 병렬 호출하여 IndexWidgetsData를 조립
+ * 30초 인메모리 캐시로 백엔드 요청 최소화
  */
 export async function buildIndexWidgets(backendUrl: string): Promise<IndexWidgetsData> {
+    // 캐시 유효하면 즉시 반환
+    const now = Date.now();
+    if (cachedWidgets && now - cacheTimestamp < CACHE_TTL_MS) {
+        return cachedWidgets;
+    }
+
     // news_tabs 게시판: notice, new, review
     // economy_tabs 게시판: economy, qa, free, angtt
     // gallery 게시판: gallery
@@ -183,12 +195,20 @@ export async function buildIndexWidgets(backendUrl: string): Promise<IndexWidget
         month: []
     };
 
-    return {
+    const result: IndexWidgetsData = {
         news_tabs: newsTabs,
         economy_tabs: economyTabs,
         gallery,
         group_tabs: groupTabs
     };
+
+    // 데이터가 있을 때만 캐시 (빈 결과는 캐시하지 않음)
+    if (newsTabs.length > 0 || economyTabs.length > 0 || gallery.length > 0) {
+        cachedWidgets = result;
+        cacheTimestamp = now;
+    }
+
+    return result;
 }
 
 /**

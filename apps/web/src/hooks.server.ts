@@ -14,7 +14,7 @@ import { mapGnuboardUrl, mapRhymixUrl } from '$lib/server/url-compat.js';
  * 3. CSP 설정: XSS 및 데이터 인젝션 공격 방지
  */
 
-const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8081';
+const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8090';
 
 // CSP에 추가할 사이트별 도메인 (런타임 환경변수)
 const ADS_URL = process.env.ADS_URL || '';
@@ -99,11 +99,20 @@ async function authenticateSSR(event: Parameters<Handle>[0]['event']): Promise<v
     // 3순위: damoang_jwt (레거시 PHP SSO)
     if (!event.locals.user) {
         const legacyJwt = event.cookies.get('damoang_jwt');
+        console.log('[auth] damoang_jwt cookie:', legacyJwt ? 'exists' : 'missing');
         if (legacyJwt) {
             try {
                 const payload = await verifyTokenLax(legacyJwt);
+                console.log(
+                    '[auth] verifyTokenLax result:',
+                    payload ? `sub=${payload.sub}` : 'null'
+                );
                 if (payload?.sub) {
                     const member = await getMemberById(payload.sub);
+                    console.log(
+                        '[auth] getMemberById result:',
+                        member ? `found ${member.mb_id}` : 'not found'
+                    );
                     if (member) {
                         event.locals.user = {
                             nickname: member.mb_nick || member.mb_name,
@@ -113,8 +122,8 @@ async function authenticateSSR(event: Parameters<Handle>[0]['event']): Promise<v
                         return;
                     }
                 }
-            } catch {
-                // damoang_jwt 검증 실패 → 비로그인 상태
+            } catch (err) {
+                console.error('[auth] damoang_jwt error:', err);
             }
         }
     }

@@ -59,10 +59,10 @@ import { fetchWithRetry, type RetryConfig, DEFAULT_RETRY_CONFIG } from './retry.
 // SSR: Docker 내부 네트워크 직접 통신
 const API_BASE_URL = browser
     ? '/api/v1'
-    : process.env.INTERNAL_API_URL || 'http://localhost:8081/api/v1';
+    : process.env.INTERNAL_API_URL || 'http://localhost:8090/api/v1';
 
 // v2 API URL (인증 관련 - exchange 등)
-const API_V2_URL = browser ? '/api/v2' : 'http://localhost:8081/api/v2';
+const API_V2_URL = browser ? '/api/v2' : 'http://localhost:8090/api/v2';
 
 // 레거시 SSO 쿠키명 (환경변수로 설정, 빈 값이면 레거시 SSO 비활성화)
 const LEGACY_SSO_COOKIE = import.meta.env.VITE_LEGACY_SSO_COOKIE || '';

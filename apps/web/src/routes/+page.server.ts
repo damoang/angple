@@ -3,7 +3,7 @@ import { readSettings } from '$lib/server/settings';
 import { DEFAULT_WIDGETS, DEFAULT_SIDEBAR_WIDGETS } from '$lib/constants/default-widgets';
 import { buildIndexWidgets } from '$lib/server/index-widgets-builder';
 
-const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8082';
+const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8090';
 
 export const load: PageServerLoad = async () => {
     // 위젯 데이터와 레이아웃을 병렬로 로드
