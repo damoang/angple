@@ -66,9 +66,9 @@
     // 목록 보기 권한 체크 (list_level이 0보다 크고 인증된 경우에만 체크)
     const canList = $derived(() => {
         if (!authStore.isAuthenticated) {
-            // 비로그인 시 서버에서 이미 제어하므로 클라이언트에선 허용
-            // (그누보드 list_level=1은 공개 게시판 기본값)
-            return true;
+            // 비회원 레벨=1, list_level<=1이면 공개 게시판
+            const requiredLevel = data.board?.list_level ?? 1;
+            return requiredLevel <= 1;
         }
         return checkPermission(data.board, 'can_list', authStore.user ?? null);
     });

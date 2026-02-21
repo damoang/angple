@@ -86,8 +86,9 @@
 
     // 글 읽기 권한 체크
     const canRead = $derived(
-        checkPermission(data.board, 'can_read', authStore.user ?? null) ||
-            !authStore.isAuthenticated // 비로그인 시 서버에서 이미 제어하므로 클라이언트에선 허용
+        !authStore.isAuthenticated
+            ? (data.board?.read_level ?? 1) <= 1 // 비회원 레벨=1, read_level<=1이면 공개
+            : checkPermission(data.board, 'can_read', authStore.user ?? null)
     );
     const readPermissionMessage = $derived(
         getPermissionMessage(data.board, 'can_read', authStore.user ?? null)
