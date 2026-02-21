@@ -8,6 +8,7 @@
     import type { PageData } from './$types.js';
     import type { CreatePostRequest, UpdatePostRequest } from '$lib/api/types.js';
     import { sendMentionNotifications } from '$lib/utils/mention-notify.js';
+    import { checkPermission, getPermissionMessage } from '$lib/utils/board-permissions.js';
 
     let { data }: { data: PageData } = $props();
 
@@ -26,9 +27,11 @@
     const requiredLevel = $derived(data.board?.write_level ?? 3);
     const canWrite = $derived(() => {
         if (!authStore.isAuthenticated) return false;
-        if (data.board?.permissions) return data.board.permissions.can_write;
-        return (authStore.user?.mb_level ?? 1) >= requiredLevel;
+        return checkPermission(data.board, 'can_write', authStore.user ?? null);
     });
+    const writePermissionMsg = $derived(
+        getPermissionMessage(data.board, 'can_write', authStore.user ?? null)
+    );
 
     // 로그인 체크 (클라이언트 사이드)
     $effect(() => {
@@ -103,12 +106,7 @@
         <div class="py-12 text-center">
             <div class="bg-muted/50 mx-auto max-w-md rounded-lg p-8">
                 <p class="text-muted-foreground text-lg font-medium">글쓰기 권한이 없습니다</p>
-                <p class="text-muted-foreground mt-2 text-sm">
-                    레벨 {requiredLevel} 이상부터 글쓰기가 가능합니다.
-                </p>
-                <p class="text-muted-foreground mt-1 text-sm">
-                    현재 레벨: {authStore.user?.mb_level ?? 1}
-                </p>
+                <p class="text-muted-foreground mt-2 text-sm">{writePermissionMsg}</p>
             </div>
         </div>
     {:else}

@@ -49,12 +49,13 @@
         boardId = 'free'
     }: Props = $props();
 
-    // 댓글 작성 권한 체크
+    // 댓글/답글 작성 권한 체크
     const canComment = $derived(() => {
         if (!authStore.isAuthenticated) return false;
         // 서버에서 계산된 권한 정보가 있으면 사용
         if (permissions) {
-            return permissions.can_comment;
+            // 대댓글 모드면 can_reply, 일반 댓글이면 can_comment
+            return isReplyMode ? permissions.can_reply : permissions.can_comment;
         }
         // 하위호환: 클라이언트에서 레벨 비교
         const userLevel = authStore.user?.mb_level ?? 1;

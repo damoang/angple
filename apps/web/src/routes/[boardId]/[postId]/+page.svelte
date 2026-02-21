@@ -80,8 +80,18 @@
     import { ReactionBar } from '$lib/components/features/reaction/index.js';
     import { AvatarStack } from '$lib/components/ui/avatar-stack/index.js';
     import { loadPluginComponent } from '$lib/utils/plugin-optional-loader';
+    import { checkPermission, getPermissionMessage } from '$lib/utils/board-permissions.js';
 
     let { data }: { data: PageData } = $props();
+
+    // 글 읽기 권한 체크
+    const canRead = $derived(
+        checkPermission(data.board, 'can_read', authStore.user ?? null) ||
+            !authStore.isAuthenticated // 비로그인 시 서버에서 이미 제어하므로 클라이언트에선 허용
+    );
+    const readPermissionMessage = $derived(
+        getPermissionMessage(data.board, 'can_read', authStore.user ?? null)
+    );
 
     // 플러그인 활성화 여부
     let memoPluginActive = $derived(pluginStore.isPluginActive('member-memo'));
@@ -684,407 +694,432 @@
         </div>
     {/if}
 
-    <!-- 게시글 카드 -->
-    <Card class="bg-background mb-6">
-        <CardHeader class="space-y-3">
-            <div>
-                {#if data.post.category}
-                    <div class="mb-3 flex flex-wrap gap-1.5">
-                        <span
-                            class="bg-primary/10 text-primary rounded-md px-2 py-0.5 text-[13px] font-medium"
-                        >
-                            {data.post.category}
-                        </span>
-                    </div>
-                {/if}
-                <CardTitle class="text-foreground flex items-center gap-2 text-xl sm:text-2xl">
-                    {#if data.post.is_secret}
-                        <Lock class="text-muted-foreground h-6 w-6 shrink-0" />
-                    {/if}
-                    {data.post.title}
-                </CardTitle>
-                {#if data.post.tags && data.post.tags.length > 0}
-                    <div class="mt-3 flex flex-wrap gap-2">
-                        {#each data.post.tags as tag, i (i)}
-                            <a href="/tags/{encodeURIComponent(tag)}">
-                                <Badge
-                                    variant="secondary"
-                                    class="hover:bg-primary/10 cursor-pointer">#{tag}</Badge
-                                >
-                            </a>
-                        {/each}
-                    </div>
-                {/if}
-            </div>
-
-            <div class="border-border flex flex-wrap items-center gap-4 border-t pt-4">
-                <div class="flex items-center gap-2">
-                    {#if getMemberIconUrl(data.post.author_id)}
-                        <img
-                            src={getMemberIconUrl(data.post.author_id)}
-                            alt={data.post.author}
-                            class="size-10 rounded-full object-cover"
-                            onerror={(e) => {
-                                const img = e.currentTarget as HTMLImageElement;
-                                img.style.display = 'none';
-                                const fallback = img.nextElementSibling as HTMLElement;
-                                if (fallback) fallback.style.display = 'flex';
-                            }}
-                        />
-                        <div
-                            class="bg-primary text-primary-foreground hidden size-10 items-center justify-center rounded-full"
-                        >
-                            {data.post.author.charAt(0).toUpperCase()}
-                        </div>
-                    {:else}
-                        <div
-                            class="bg-primary text-primary-foreground flex size-10 items-center justify-center rounded-full"
-                        >
-                            {data.post.author.charAt(0).toUpperCase()}
+    <!-- 읽기 권한 체크 -->
+    {#if !canRead}
+        <div class="bg-muted/50 mx-auto mt-12 max-w-md rounded-lg p-8 text-center">
+            <Lock class="text-muted-foreground mx-auto mb-4 h-12 w-12" />
+            <p class="text-muted-foreground text-lg font-medium">글 읽기 권한이 없습니다</p>
+            <p class="text-muted-foreground mt-2 text-sm">{readPermissionMessage}</p>
+        </div>
+    {:else}
+        <!-- 게시글 카드 -->
+        <Card class="bg-background mb-6">
+            <CardHeader class="space-y-3">
+                <div>
+                    {#if data.post.category}
+                        <div class="mb-3 flex flex-wrap gap-1.5">
+                            <span
+                                class="bg-primary/10 text-primary rounded-md px-2 py-0.5 text-[13px] font-medium"
+                            >
+                                {data.post.category}
+                            </span>
                         </div>
                     {/if}
-                    <div>
-                        <p class="text-foreground flex items-center gap-1.5 font-medium">
-                            <LevelBadge level={memberLevelStore.getLevel(data.post.author_id)} />
-                            {data.post.author}
-                            {#if memoPluginActive && MemoBadge}
-                                <MemoBadge memberId={data.post.author_id} showIcon={true} />
-                            {/if}
-                            {#if data.post.author_ip}
-                                <span class="text-muted-foreground ml-1 text-xs font-normal"
-                                    >({data.post.author_ip})</span
-                                >
-                            {/if}
-                        </p>
-                        <p class="text-secondary-foreground text-[15px]">
-                            {formatDate(data.post.created_at)}
-                        </p>
-                    </div>
-                </div>
-
-                <div
-                    class="text-secondary-foreground ml-auto flex gap-2 text-[13px] sm:gap-4 sm:text-[15px]"
-                >
-                    <span>조회 {data.post.views.toLocaleString()}</span>
-                    <span>추천 {likeCount.toLocaleString()}</span>
-                    <span>댓글 {data.post.comments_count.toLocaleString()}</span>
-                </div>
-            </div>
-        </CardHeader>
-        <CardContent class="space-y-6">
-            <!-- 플러그인 슬롯: post.before_content (Q&A 상태 헤더 등) -->
-            {#each beforeContentSlots as slot (slot.component)}
-                {@const SlotComponent = slot.component}
-                <SlotComponent {...slot.propsMapper ? slot.propsMapper(data) : { data }} />
-            {/each}
-
-            <!-- GAM 광고 -->
-            {#if widgetLayoutStore.hasEnabledAds}
-                <AdSlot position="board-content" height="90px" />
-            {/if}
-
-            <!-- 게시글 본문 -->
-            {#if canViewSecret}
-                <AdultBlur isAdult={data.post.is_adult ?? false}>
-                    <Markdown content={postContent()} />
-
-                    {#if data.post.videos && data.post.videos.length > 0}
-                        <div class="mt-6 space-y-4">
-                            {#each data.post.videos as video, i (i)}
-                                <div class="overflow-hidden rounded-lg border">
-                                    <video controls preload="metadata" playsinline class="w-full">
-                                        <source src={video.url} />
-                                        동영상을 재생할 수 없습니다.
-                                    </video>
-                                    <div
-                                        class="bg-muted/50 flex items-center gap-3 border-t px-4 py-2.5"
+                    <CardTitle class="text-foreground flex items-center gap-2 text-xl sm:text-2xl">
+                        {#if data.post.is_secret}
+                            <Lock class="text-muted-foreground h-6 w-6 shrink-0" />
+                        {/if}
+                        {data.post.title}
+                    </CardTitle>
+                    {#if data.post.tags && data.post.tags.length > 0}
+                        <div class="mt-3 flex flex-wrap gap-2">
+                            {#each data.post.tags as tag, i (i)}
+                                <a href="/tags/{encodeURIComponent(tag)}">
+                                    <Badge
+                                        variant="secondary"
+                                        class="hover:bg-primary/10 cursor-pointer">#{tag}</Badge
                                     >
-                                        <Video class="text-muted-foreground h-4 w-4 shrink-0" />
-                                        <span class="text-foreground min-w-0 truncate text-sm">
-                                            {video.filename}
-                                        </span>
-                                        {#if video.size}
-                                            <span class="text-muted-foreground shrink-0 text-xs">
-                                                {formatFileSize(video.size)}
-                                            </span>
-                                        {/if}
-                                        <a
-                                            href={video.url}
-                                            download={video.filename}
-                                            class="text-primary hover:text-primary/80 ml-auto flex shrink-0 items-center gap-1 text-sm font-medium"
-                                        >
-                                            <Download class="h-4 w-4" />
-                                            다운로드
-                                        </a>
-                                    </div>
-                                </div>
+                                </a>
                             {/each}
                         </div>
                     {/if}
+                </div>
 
-                    {#if data.post.images && data.post.images.length > 0}
-                        <div class="mt-6 grid gap-4">
-                            {#each data.post.images as image, i (i)}
-                                <img
-                                    src={image}
-                                    alt="게시글 이미지"
-                                    class="max-w-full rounded-lg border"
-                                    loading="lazy"
+                <div class="border-border flex flex-wrap items-center gap-4 border-t pt-4">
+                    <div class="flex items-center gap-2">
+                        {#if getMemberIconUrl(data.post.author_id)}
+                            <img
+                                src={getMemberIconUrl(data.post.author_id)}
+                                alt={data.post.author}
+                                class="size-10 rounded-full object-cover"
+                                onerror={(e) => {
+                                    const img = e.currentTarget as HTMLImageElement;
+                                    img.style.display = 'none';
+                                    const fallback = img.nextElementSibling as HTMLElement;
+                                    if (fallback) fallback.style.display = 'flex';
+                                }}
+                            />
+                            <div
+                                class="bg-primary text-primary-foreground hidden size-10 items-center justify-center rounded-full"
+                            >
+                                {data.post.author.charAt(0).toUpperCase()}
+                            </div>
+                        {:else}
+                            <div
+                                class="bg-primary text-primary-foreground flex size-10 items-center justify-center rounded-full"
+                            >
+                                {data.post.author.charAt(0).toUpperCase()}
+                            </div>
+                        {/if}
+                        <div>
+                            <p class="text-foreground flex items-center gap-1.5 font-medium">
+                                <LevelBadge
+                                    level={memberLevelStore.getLevel(data.post.author_id)}
                                 />
-                            {/each}
+                                {data.post.author}
+                                {#if memoPluginActive && MemoBadge}
+                                    <MemoBadge memberId={data.post.author_id} showIcon={true} />
+                                {/if}
+                                {#if data.post.author_ip}
+                                    <span class="text-muted-foreground ml-1 text-xs font-normal"
+                                        >({data.post.author_ip})</span
+                                    >
+                                {/if}
+                            </p>
+                            <p class="text-secondary-foreground text-[15px]">
+                                {formatDate(data.post.created_at)}
+                            </p>
+                        </div>
+                    </div>
+
+                    <div
+                        class="text-secondary-foreground ml-auto flex gap-2 text-[13px] sm:gap-4 sm:text-[15px]"
+                    >
+                        <span>조회 {data.post.views.toLocaleString()}</span>
+                        <span>추천 {likeCount.toLocaleString()}</span>
+                        <span>댓글 {data.post.comments_count.toLocaleString()}</span>
+                    </div>
+                </div>
+            </CardHeader>
+            <CardContent class="space-y-6">
+                <!-- 플러그인 슬롯: post.before_content (Q&A 상태 헤더 등) -->
+                {#each beforeContentSlots as slot (slot.component)}
+                    {@const SlotComponent = slot.component}
+                    <SlotComponent {...slot.propsMapper ? slot.propsMapper(data) : { data }} />
+                {/each}
+
+                <!-- GAM 광고 -->
+                {#if widgetLayoutStore.hasEnabledAds}
+                    <AdSlot position="board-content" height="90px" />
+                {/if}
+
+                <!-- 게시글 본문 -->
+                {#if canViewSecret}
+                    <AdultBlur isAdult={data.post.is_adult ?? false}>
+                        <Markdown content={postContent()} />
+
+                        {#if data.post.videos && data.post.videos.length > 0}
+                            <div class="mt-6 space-y-4">
+                                {#each data.post.videos as video, i (i)}
+                                    <div class="overflow-hidden rounded-lg border">
+                                        <video
+                                            controls
+                                            preload="metadata"
+                                            playsinline
+                                            class="w-full"
+                                        >
+                                            <source src={video.url} />
+                                            동영상을 재생할 수 없습니다.
+                                        </video>
+                                        <div
+                                            class="bg-muted/50 flex items-center gap-3 border-t px-4 py-2.5"
+                                        >
+                                            <Video class="text-muted-foreground h-4 w-4 shrink-0" />
+                                            <span class="text-foreground min-w-0 truncate text-sm">
+                                                {video.filename}
+                                            </span>
+                                            {#if video.size}
+                                                <span
+                                                    class="text-muted-foreground shrink-0 text-xs"
+                                                >
+                                                    {formatFileSize(video.size)}
+                                                </span>
+                                            {/if}
+                                            <a
+                                                href={video.url}
+                                                download={video.filename}
+                                                class="text-primary hover:text-primary/80 ml-auto flex shrink-0 items-center gap-1 text-sm font-medium"
+                                            >
+                                                <Download class="h-4 w-4" />
+                                                다운로드
+                                            </a>
+                                        </div>
+                                    </div>
+                                {/each}
+                            </div>
+                        {/if}
+
+                        {#if data.post.images && data.post.images.length > 0}
+                            <div class="mt-6 grid gap-4">
+                                {#each data.post.images as image, i (i)}
+                                    <img
+                                        src={image}
+                                        alt="게시글 이미지"
+                                        class="max-w-full rounded-lg border"
+                                        loading="lazy"
+                                    />
+                                {/each}
+                            </div>
+                        {/if}
+                    </AdultBlur>
+
+                    {#if data.post.link1 || data.post.link2}
+                        <div class="mt-4 space-y-1.5">
+                            {#if data.post.link1}
+                                <div class="flex items-center gap-1.5 text-sm">
+                                    <ExternalLink
+                                        class="text-muted-foreground h-3.5 w-3.5 shrink-0"
+                                    />
+                                    <a
+                                        href={data.post.link1}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        class="text-primary truncate hover:underline"
+                                        >{data.post.link1}</a
+                                    >
+                                </div>
+                            {/if}
+                            {#if data.post.link2}
+                                <div class="flex items-center gap-1.5 text-sm">
+                                    <ExternalLink
+                                        class="text-muted-foreground h-3.5 w-3.5 shrink-0"
+                                    />
+                                    <a
+                                        href={data.post.link2}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        class="text-primary truncate hover:underline"
+                                        >{data.post.link2}</a
+                                    >
+                                </div>
+                            {/if}
                         </div>
                     {/if}
-                </AdultBlur>
-
-                {#if data.post.link1 || data.post.link2}
-                    <div class="mt-4 space-y-1.5">
-                        {#if data.post.link1}
-                            <div class="flex items-center gap-1.5 text-sm">
-                                <ExternalLink class="text-muted-foreground h-3.5 w-3.5 shrink-0" />
-                                <a
-                                    href={data.post.link1}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    class="text-primary truncate hover:underline"
-                                    >{data.post.link1}</a
-                                >
-                            </div>
-                        {/if}
-                        {#if data.post.link2}
-                            <div class="flex items-center gap-1.5 text-sm">
-                                <ExternalLink class="text-muted-foreground h-3.5 w-3.5 shrink-0" />
-                                <a
-                                    href={data.post.link2}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    class="text-primary truncate hover:underline"
-                                    >{data.post.link2}</a
-                                >
-                            </div>
-                        {/if}
+                {:else}
+                    <div
+                        class="flex flex-col items-center justify-center rounded-xl border border-dashed py-16"
+                    >
+                        <Lock class="text-muted-foreground mb-4 h-12 w-12" />
+                        <p class="text-muted-foreground text-lg font-medium">비밀글입니다</p>
+                        <p class="text-muted-foreground mt-1 text-sm">
+                            작성자와 관리자만 볼 수 있습니다.
+                        </p>
                     </div>
                 {/if}
-            {:else}
-                <div
-                    class="flex flex-col items-center justify-center rounded-xl border border-dashed py-16"
-                >
-                    <Lock class="text-muted-foreground mb-4 h-12 w-12" />
-                    <p class="text-muted-foreground text-lg font-medium">비밀글입니다</p>
-                    <p class="text-muted-foreground mt-1 text-sm">
-                        작성자와 관리자만 볼 수 있습니다.
-                    </p>
-                </div>
-            {/if}
-        </CardContent>
-        {#if canViewSecret}
-            <CardFooter class="flex-col items-start gap-3">
-                <!-- 추천/비추천/신고 버튼 -->
-                <div class="flex w-full flex-wrap items-center gap-3">
-                    <!-- 추천 버튼 -->
-                    <div
-                        class="flex items-center rounded-lg border {isLiked
-                            ? 'border-liked/40 bg-liked/5'
-                            : 'border-border'}"
-                    >
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            onclick={handleLike}
-                            disabled={isLiking}
-                            class="gap-2 {isLiked ? 'text-liked' : ''}"
+            </CardContent>
+            {#if canViewSecret}
+                <CardFooter class="flex-col items-start gap-3">
+                    <!-- 추천/비추천/신고 버튼 -->
+                    <div class="flex w-full flex-wrap items-center gap-3">
+                        <!-- 추천 버튼 -->
+                        <div
+                            class="flex items-center rounded-lg border {isLiked
+                                ? 'border-liked/40 bg-liked/5'
+                                : 'border-border'}"
                         >
-                            <Heart
-                                class="h-5 w-5 {isLiked ? 'fill-liked' : ''} {isLikeAnimating
-                                    ? 'like-animation'
-                                    : ''}"
-                            />
-                            <span class="font-semibold">{likeCount}</span>
-                        </Button>
-                        <button
-                            type="button"
-                            onclick={loadLikers}
-                            class="border-l px-2 py-1 text-xs transition-colors {isLiked
-                                ? 'border-liked/40 text-liked'
-                                : 'text-muted-foreground hover:text-foreground border-border'}"
-                        >
-                            <Users class="h-4 w-4" />
-                        </button>
-                    </div>
-
-                    <!-- 추천자 아바타 스택 (같은 줄) -->
-                    {#if likers.length > 0}
-                        <AvatarStack
-                            items={likers}
-                            total={likersTotal}
-                            max={5}
-                            size="sm"
-                            onclick={loadLikers}
-                        />
-                    {/if}
-
-                    <!-- 비추천 버튼 (게시판 설정에서 활성화된 경우만) -->
-                    {#if data.board?.use_nogood === 1}
-                        <div class="border-border flex items-center rounded-lg border">
                             <Button
                                 variant="ghost"
                                 size="sm"
-                                onclick={handleDislike}
-                                disabled={isDisliking}
-                                class="gap-2 {isDisliked ? 'text-disliked' : ''}"
+                                onclick={handleLike}
+                                disabled={isLiking}
+                                class="gap-2 {isLiked ? 'text-liked' : ''}"
                             >
-                                <ThumbsDown class="h-5 w-5 {isDisliked ? 'fill-disliked' : ''}" />
-                                <span class="font-semibold">{dislikeCount}</span>
+                                <Heart
+                                    class="h-5 w-5 {isLiked ? 'fill-liked' : ''} {isLikeAnimating
+                                        ? 'like-animation'
+                                        : ''}"
+                                />
+                                <span class="font-semibold">{likeCount}</span>
                             </Button>
+                            <button
+                                type="button"
+                                onclick={loadLikers}
+                                class="border-l px-2 py-1 text-xs transition-colors {isLiked
+                                    ? 'border-liked/40 text-liked'
+                                    : 'text-muted-foreground hover:text-foreground border-border'}"
+                            >
+                                <Users class="h-4 w-4" />
+                            </button>
                         </div>
+
+                        <!-- 추천자 아바타 스택 (같은 줄) -->
+                        {#if likers.length > 0}
+                            <AvatarStack
+                                items={likers}
+                                total={likersTotal}
+                                max={5}
+                                size="sm"
+                                onclick={loadLikers}
+                            />
+                        {/if}
+
+                        <!-- 비추천 버튼 (게시판 설정에서 활성화된 경우만) -->
+                        {#if data.board?.use_nogood === 1}
+                            <div class="border-border flex items-center rounded-lg border">
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onclick={handleDislike}
+                                    disabled={isDisliking}
+                                    class="gap-2 {isDisliked ? 'text-disliked' : ''}"
+                                >
+                                    <ThumbsDown
+                                        class="h-5 w-5 {isDisliked ? 'fill-disliked' : ''}"
+                                    />
+                                    <span class="font-semibold">{dislikeCount}</span>
+                                </Button>
+                            </div>
+                        {/if}
+
+                        <!-- 신고 버튼 -->
+                        {#if !isAuthor}
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onclick={() => {
+                                    if (!authStore.isAuthenticated) {
+                                        authStore.redirectToLogin();
+                                        return;
+                                    }
+                                    showReportDialog = true;
+                                }}
+                                class="text-muted-foreground hover:text-destructive ml-auto gap-2"
+                            >
+                                <Flag class="h-4 w-4" />
+                                <span>신고</span>
+                            </Button>
+                        {/if}
+                    </div>
+
+                    <!-- 리액션 (da-reaction 플러그인) -->
+                    {#if reactionPluginActive}
+                        <ReactionBar {boardId} postId={data.post.id} target="post" />
                     {/if}
-
-                    <!-- 신고 버튼 -->
-                    {#if !isAuthor}
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            onclick={() => {
-                                if (!authStore.isAuthenticated) {
-                                    authStore.redirectToLogin();
-                                    return;
-                                }
-                                showReportDialog = true;
-                            }}
-                            class="text-muted-foreground hover:text-destructive ml-auto gap-2"
-                        >
-                            <Flag class="h-4 w-4" />
-                            <span>신고</span>
-                        </Button>
-                    {/if}
-                </div>
-
-                <!-- 리액션 (da-reaction 플러그인) -->
-                {#if reactionPluginActive}
-                    <ReactionBar {boardId} postId={data.post.id} target="post" />
-                {/if}
-            </CardFooter>
-        {/if}
-    </Card>
-
-    <!-- 수정/삭제 시간 표시 -->
-    {#if data.post.updated_at && data.post.updated_at !== data.post.created_at}
-        <p class="text-muted-foreground mt-4 text-center text-[15px]">
-            마지막 수정: {formatDate(data.post.updated_at)}
-        </p>
-    {/if}
-
-    <!-- 본문 하단 광고 -->
-    {#if widgetLayoutStore.hasEnabledAds}
-        <div class="my-6">
-            <AdSlot position="board-content-bottom" height="90px" />
-        </div>
-    {/if}
-
-    <!-- 플러그인 슬롯: post.after_content (나눔 BidPanel 등) -->
-    {#each afterContentSlots as slot (slot.component)}
-        {@const SlotComponent = slot.component}
-        <div class="mb-6">
-            <SlotComponent {...slot.propsMapper ? slot.propsMapper(data) : { data }} />
-        </div>
-    {/each}
-
-    <!-- 중고게시판 상태 변경 (작성자/관리자만) -->
-    {#if isUsedMarket && (isAuthor || isAdmin)}
-        <div class="mb-6 flex items-center gap-3 rounded-lg border p-4">
-            <span class="text-[15px] font-medium">판매 상태:</span>
-            <div class="flex gap-2">
-                {#each ['selling', 'reserved', 'sold'] as const as status (status)}
-                    <Button
-                        variant={marketStatus === status ? 'default' : 'outline'}
-                        size="sm"
-                        onclick={() => changeMarketStatus(status)}
-                        disabled={isChangingMarketStatus || marketStatus === status}
-                    >
-                        {MARKET_STATUS_LABELS[status]}
-                    </Button>
-                {/each}
-            </div>
-        </div>
-    {/if}
-
-    {#each beforeCommentsSlots as slot (slot.component)}
-        {@const SlotComponent = slot.component}
-        <SlotComponent
-            {...slot.propsMapper ? slot.propsMapper({ post: data.post, boardId }) : {}}
-        />
-    {/each}
-
-    <!-- 작성자 활동 패널 아래 GAM 광고 -->
-    {#if widgetLayoutStore.hasEnabledAds}
-        <div class="my-6">
-            <AdSlot position="board-before-comments" height="90px" />
-        </div>
-    {/if}
-
-    <!-- 댓글 섹션 (비밀글 열람 가능 시에만 표시) -->
-    {#if canViewSecret}
-        <Card class="bg-background">
-            <CardHeader>
-                <h3 class="text-foreground text-lg font-semibold">
-                    댓글 <span class="text-muted-foreground">({comments.length})</span>
-                </h3>
-            </CardHeader>
-            <CardContent class="space-y-6">
-                <CommentList
-                    {comments}
-                    onUpdate={handleUpdateComment}
-                    onDelete={handleDeleteComment}
-                    onReply={handleReplyComment}
-                    onLike={handleLikeComment}
-                    onDislike={handleDislikeComment}
-                    postAuthorId={data.post.author_id}
-                    {boardId}
-                    postId={data.post.id}
-                    useNogood={data.board?.use_nogood === 1}
-                />
-
-                <div class="border-border border-t pt-6">
-                    <CommentForm
-                        onSubmit={handleCreateComment}
-                        isLoading={isCreatingComment}
-                        permissions={data.board?.permissions}
-                        requiredCommentLevel={data.board?.comment_level ?? 3}
-                        {boardId}
-                    />
-                </div>
-            </CardContent>
+                </CardFooter>
+            {/if}
         </Card>
-    {/if}
 
-    <!-- 1시간 추천글 리스트 -->
-    <div class="mt-6">
-        <RecommendedPosts />
-    </div>
+        <!-- 수정/삭제 시간 표시 -->
+        {#if data.post.updated_at && data.post.updated_at !== data.post.created_at}
+            <p class="text-muted-foreground mt-4 text-center text-[15px]">
+                마지막 수정: {formatDate(data.post.updated_at)}
+            </p>
+        {/if}
 
-    <!-- 추천글 아래 배너 -->
-    {#if widgetLayoutStore.hasEnabledAds}
+        <!-- 본문 하단 광고 -->
+        {#if widgetLayoutStore.hasEnabledAds}
+            <div class="my-6">
+                <AdSlot position="board-content-bottom" height="90px" />
+            </div>
+        {/if}
+
+        <!-- 플러그인 슬롯: post.after_content (나눔 BidPanel 등) -->
+        {#each afterContentSlots as slot (slot.component)}
+            {@const SlotComponent = slot.component}
+            <div class="mb-6">
+                <SlotComponent {...slot.propsMapper ? slot.propsMapper(data) : { data }} />
+            </div>
+        {/each}
+
+        <!-- 중고게시판 상태 변경 (작성자/관리자만) -->
+        {#if isUsedMarket && (isAuthor || isAdmin)}
+            <div class="mb-6 flex items-center gap-3 rounded-lg border p-4">
+                <span class="text-[15px] font-medium">판매 상태:</span>
+                <div class="flex gap-2">
+                    {#each ['selling', 'reserved', 'sold'] as const as status (status)}
+                        <Button
+                            variant={marketStatus === status ? 'default' : 'outline'}
+                            size="sm"
+                            onclick={() => changeMarketStatus(status)}
+                            disabled={isChangingMarketStatus || marketStatus === status}
+                        >
+                            {MARKET_STATUS_LABELS[status]}
+                        </Button>
+                    {/each}
+                </div>
+            </div>
+        {/if}
+
+        {#each beforeCommentsSlots as slot (slot.component)}
+            {@const SlotComponent = slot.component}
+            <SlotComponent
+                {...slot.propsMapper ? slot.propsMapper({ post: data.post, boardId }) : {}}
+            />
+        {/each}
+
+        <!-- 작성자 활동 패널 아래 GAM 광고 -->
+        {#if widgetLayoutStore.hasEnabledAds}
+            <div class="my-6">
+                <AdSlot position="board-before-comments" height="90px" />
+            </div>
+        {/if}
+
+        <!-- 댓글 섹션 (비밀글 열람 가능 시에만 표시) -->
+        {#if canViewSecret}
+            <Card class="bg-background">
+                <CardHeader>
+                    <h3 class="text-foreground text-lg font-semibold">
+                        댓글 <span class="text-muted-foreground">({comments.length})</span>
+                    </h3>
+                </CardHeader>
+                <CardContent class="space-y-6">
+                    <CommentList
+                        {comments}
+                        onUpdate={handleUpdateComment}
+                        onDelete={handleDeleteComment}
+                        onReply={handleReplyComment}
+                        onLike={handleLikeComment}
+                        onDislike={handleDislikeComment}
+                        postAuthorId={data.post.author_id}
+                        {boardId}
+                        postId={data.post.id}
+                        useNogood={data.board?.use_nogood === 1}
+                    />
+
+                    <div class="border-border border-t pt-6">
+                        <CommentForm
+                            onSubmit={handleCreateComment}
+                            isLoading={isCreatingComment}
+                            permissions={data.board?.permissions}
+                            requiredCommentLevel={data.board?.comment_level ?? 3}
+                            {boardId}
+                        />
+                    </div>
+                </CardContent>
+            </Card>
+        {/if}
+
+        <!-- 1시간 추천글 리스트 -->
         <div class="mt-6">
-            <AdSlot position="board-content-bottom" height="90px" />
+            <RecommendedPosts />
         </div>
-    {/if}
 
-    <!-- 게시판 최근글 목록 (체류시간 증가) -->
-    <div class="mt-6">
-        <RecentPosts
-            {boardId}
-            {boardTitle}
-            currentPostId={data.post.id}
-            limit={20}
-            promotionPosts={data.promotionPosts || []}
-        />
-    </div>
+        <!-- 추천글 아래 배너 -->
+        {#if widgetLayoutStore.hasEnabledAds}
+            <div class="mt-6">
+                <AdSlot position="board-content-bottom" height="90px" />
+            </div>
+        {/if}
 
-    <!-- 댓글 섹션 하단 광고 (푸터 위) -->
-    {#if widgetLayoutStore.hasEnabledAds}
+        <!-- 게시판 최근글 목록 (체류시간 증가) -->
         <div class="mt-6">
-            <AdSlot position="board-footer" height="90px" />
+            <RecentPosts
+                {boardId}
+                {boardTitle}
+                currentPostId={data.post.id}
+                limit={20}
+                promotionPosts={data.promotionPosts || []}
+            />
         </div>
+
+        <!-- 댓글 섹션 하단 광고 (푸터 위) -->
+        {#if widgetLayoutStore.hasEnabledAds}
+            <div class="mt-6">
+                <AdSlot position="board-footer" height="90px" />
+            </div>
+        {/if}
     {/if}
+    <!-- /canRead -->
 </div>
 
 <!-- 추천자 목록 다이얼로그 -->
