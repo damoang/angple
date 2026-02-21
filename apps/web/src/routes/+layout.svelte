@@ -241,7 +241,7 @@
 </script>
 
 <svelte:head>
-    <title>{import.meta.env.VITE_SITE_NAME || 'Angple'}</title>
+    <title>{import.meta.env.VITE_SITE_NAME || '다모앙'}</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="icon" href={favicon} />
     <!-- Wanted Sans Font -->

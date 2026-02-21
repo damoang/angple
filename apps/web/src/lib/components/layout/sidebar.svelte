@@ -116,7 +116,7 @@
 
 <div
     data-collapsed={isCollapsed}
-    class="group flex h-full flex-col gap-4 overflow-y-auto py-2 pe-3 data-[collapsed=true]:py-2"
+    class="scrollbar-none group flex h-full flex-col gap-4 overflow-y-auto py-2 pe-3 data-[collapsed=true]:py-2"
 >
     <!-- Slot: sidebar-left-top -->
     {#each getComponentsForSlot('sidebar-left-top') as slotComp (slotComp.id)}

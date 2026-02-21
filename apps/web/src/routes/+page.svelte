@@ -26,17 +26,21 @@
     });
 
     // SEO 설정 (홈페이지)
-    const siteName = import.meta.env.VITE_SITE_NAME || 'Angple';
+    const siteName = import.meta.env.VITE_SITE_NAME || '다모앙';
+    const siteTagline = '종합 포털 커뮤니티';
+    const homeTitle = `${siteName} | ${siteTagline}`;
+    const homeDescription = `${siteName} ${siteTagline} - 자유로운 소통의 공간 | Damoang Community Portal`;
 
     const seoConfig: SeoConfig = $derived({
         meta: {
-            title: siteName,
-            description: `${siteName} 커뮤니티 - 자유로운 소통의 공간`,
-            canonicalUrl: $page.url.origin
+            title: homeTitle,
+            description: homeDescription,
+            canonicalUrl: $page.url.origin,
+            includeSiteName: false
         },
         og: {
-            title: siteName,
-            description: `${siteName} 커뮤니티 - 자유로운 소통의 공간`,
+            title: homeTitle,
+            description: homeDescription,
             type: 'website',
             url: $page.url.origin
         },
