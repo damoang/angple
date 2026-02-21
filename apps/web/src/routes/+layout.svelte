@@ -17,6 +17,7 @@
     import { initBuiltinHooks } from '$lib/hooks';
     import { loadPluginComponent } from '$lib/utils/plugin-optional-loader';
     import { Toaster } from '$lib/components/ui/sonner';
+    import DefaultLayout from '$lib/layouts/default-layout.svelte';
 
     const { children, data } = $props(); // Svelte 5: SSR 데이터 받기
 
@@ -269,8 +270,10 @@
         {@render children()}
     </div>
 {:else}
-    <!-- 테마 레이아웃 없음: 기본 레이아웃으로 콘텐츠 직접 렌더링 -->
-    {@render children()}
+    <!-- 테마 레이아웃 없음: 기본 레이아웃으로 콘텐츠 렌더링 -->
+    <DefaultLayout>
+        {@render children()}
+    </DefaultLayout>
 {/if}
 
 <!-- 회원 메모 모달 (글로벌 1개) -->
