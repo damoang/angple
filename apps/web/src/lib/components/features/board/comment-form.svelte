@@ -99,8 +99,15 @@
         error = null;
 
         try {
-            const images = uploadedImages.length > 0 ? [...uploadedImages] : undefined;
-            await onSubmit(content.trim(), parentId, isSecret, images);
+            // 이미지를 content에 <img> 태그로 삽입 (Go 백엔드 호환)
+            let finalContent = content.trim();
+            if (uploadedImages.length > 0) {
+                const imgTags = uploadedImages
+                    .map((url) => `<img src="${url}" alt="첨부 이미지" loading="lazy">`)
+                    .join('\n');
+                finalContent = finalContent ? `${finalContent}\n${imgTags}` : imgTags;
+            }
+            await onSubmit(finalContent, parentId, isSecret);
             content = ''; // 성공 시 입력 초기화
             isSecret = false;
             uploadedImages = [];
