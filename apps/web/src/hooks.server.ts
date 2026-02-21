@@ -99,20 +99,11 @@ async function authenticateSSR(event: Parameters<Handle>[0]['event']): Promise<v
     // 3순위: damoang_jwt (레거시 PHP SSO)
     if (!event.locals.user) {
         const legacyJwt = event.cookies.get('damoang_jwt');
-        console.log('[auth] damoang_jwt cookie:', legacyJwt ? 'exists' : 'missing');
         if (legacyJwt) {
             try {
                 const payload = await verifyTokenLax(legacyJwt);
-                console.log(
-                    '[auth] verifyTokenLax result:',
-                    payload ? `sub=${payload.sub}` : 'null'
-                );
                 if (payload?.sub) {
                     const member = await getMemberById(payload.sub);
-                    console.log(
-                        '[auth] getMemberById result:',
-                        member ? `found ${member.mb_id}` : 'not found'
-                    );
                     if (member) {
                         event.locals.user = {
                             nickname: member.mb_nick || member.mb_name,
@@ -122,8 +113,8 @@ async function authenticateSSR(event: Parameters<Handle>[0]['event']): Promise<v
                         return;
                     }
                 }
-            } catch (err) {
-                console.error('[auth] damoang_jwt error:', err);
+            } catch {
+                // damoang_jwt 검증 실패
             }
         }
     }

@@ -5,6 +5,7 @@
 import type { RequestHandler } from './$types';
 import { readdir } from 'fs/promises';
 import { resolve } from 'path';
+import { dev } from '$app/environment';
 
 /** 접두사 → 한글 팩명 매핑 */
 const PACK_NAMES: Record<string, string> = {
@@ -60,6 +61,7 @@ const PACK_ORDER: string[] = [
 
 const ALLOWED_EXTENSIONS = new Set(['gif', 'png', 'jpg', 'jpeg', 'webp']);
 const SKIP_FILES = new Set(['onion-license.txt']);
+const HIDDEN_PACKS = new Set(['southsky']);
 
 interface EmoticonItem {
     file: string;
@@ -96,7 +98,7 @@ function extractPrefix(filename: string): string | null {
 async function scanEmoticons(): Promise<{ packs: EmoticonPack[] }> {
     if (cachedResult) return cachedResult;
 
-    const emoticonsDir = resolve('static/emoticons');
+    const emoticonsDir = dev ? resolve('static/emoticons') : resolve('build/client/emoticons');
     const files = await readdir(emoticonsDir);
 
     // thumb 파일 맵 구축: "damoang-emo-001" → "damoang-emo-001_thumb.gif"
@@ -122,6 +124,7 @@ async function scanEmoticons(): Promise<{ packs: EmoticonPack[] }> {
 
         const prefix = extractPrefix(file);
         if (!prefix) continue;
+        if (HIDDEN_PACKS.has(prefix)) continue;
 
         if (!packMap.has(prefix)) {
             packMap.set(prefix, []);

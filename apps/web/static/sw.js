@@ -10,11 +10,10 @@
  * - 오프라인 시: 캐시된 오프라인 페이지 표시
  */
 
-const CACHE_NAME = 'angple-v2';
-const OFFLINE_URL = '/offline.html';
+const CACHE_NAME = 'angple-v3';
 
-// 앱 셸 프리캐시 목록
-const PRECACHE_URLS = [OFFLINE_URL];
+// 앱 셸 프리캐시 목록 (빈 배열 — 오프라인 페이지 없으므로 프리캐시 불필요)
+const PRECACHE_URLS = [];
 
 // 설치: 오프라인 페이지 프리캐시
 self.addEventListener('install', (event) => {
@@ -66,13 +65,8 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    // HTML 내비게이션: Network First + 오프라인 폴백
+    // HTML 내비게이션: Network Only (오프라인 폴백 없음)
     if (request.mode === 'navigate') {
-        event.respondWith(
-            fetch(request).catch(() =>
-                caches.match(OFFLINE_URL).then((r) => r || new Response('Offline', { status: 503 }))
-            )
-        );
         return;
     }
 });
