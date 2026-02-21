@@ -72,7 +72,7 @@
                 </aside>
             {/if}
 
-            <main class="box-content flex-1 pt-1 md:py-5 lg:pe-6 2xl:!px-9">
+            <main class="box-content min-w-0 flex-1 pt-1 md:py-5 lg:pe-6 2xl:!px-9">
                 {@render children()}
             </main>
             {#if snbPosition === 'right'}
