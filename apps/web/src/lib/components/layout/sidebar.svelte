@@ -1,5 +1,4 @@
 <script lang="ts">
-    import { onMount } from 'svelte';
     import { page } from '$app/stores';
     import {
         Accordion,
@@ -9,8 +8,7 @@
     } from '$lib/components/ui/accordion';
     import { Button } from '$lib/components/ui/button';
     import { cn } from '$lib/utils';
-    import { apiClient } from '$lib/api';
-    import type { MenuItem } from '$lib/api/types.js';
+    import { menuStore } from '$lib/stores/menu.svelte';
 
     // Import all needed Lucide icons
     import MessageSquare from '@lucide/svelte/icons/message-square';
@@ -80,9 +78,11 @@
     };
 
     let isCollapsed = $state(false);
-    let menuData = $state<MenuItem[]>([]);
-    let loading = $state(true);
-    let error = $state<string | null>(null);
+
+    // 메뉴 데이터는 SSR에서 초기화된 스토어에서 가져옴
+    const menuData = $derived(menuStore.menus);
+    const loading = $derived(menuStore.loading);
+    const error = $derived(menuStore.error);
 
     // Current path tracking for active menu highlighting
     const currentPath = $derived($page.url.pathname);
@@ -111,29 +111,7 @@
         return iconMap[iconName] || Circle;
     }
 
-    // 비활성화할 메뉴 ID 목록
-    const HIDDEN_MENU_IDS = new Set([261]); // 앙수호대
-
-    function filterMenus(menus: MenuItem[]): MenuItem[] {
-        return menus
-            .filter((m) => !HIDDEN_MENU_IDS.has(m.id))
-            .map((m) =>
-                m.children
-                    ? { ...m, children: m.children.filter((c) => !HIDDEN_MENU_IDS.has(c.id)) }
-                    : m
-            );
-    }
-
-    onMount(async () => {
-        try {
-            menuData = filterMenus(await apiClient.getMenus());
-            loading = false;
-        } catch (err) {
-            console.error('Failed to load menu data:', err);
-            error = err instanceof Error ? err.message : '메뉴 로드 실패';
-            loading = false;
-        }
-    });
+    // 메뉴 필터링과 로딩은 menuStore에서 SSR로 처리됨
 </script>
 
 <div
@@ -199,6 +177,7 @@
                                                         : 'hover:bg-accent'
                                                 )}
                                                 href={child.url}
+                                                rel="external"
                                             >
                                                 <ChildIcon class="size-4" />
                                                 {child.title}
@@ -226,6 +205,7 @@
                                     : 'hover:bg-accent'
                             )}
                             href={menu.url}
+                            rel="external"
                         >
                             <IconComponent class="size-5" />
                             <span class={cn(isCollapsed && 'hidden')}>{menu.title}</span>

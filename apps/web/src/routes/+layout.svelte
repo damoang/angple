@@ -9,6 +9,7 @@
     import { authActions } from '$lib/stores/auth.svelte';
     import { themeStore } from '$lib/stores/theme.svelte';
     import { pluginStore } from '$lib/stores/plugin.svelte';
+    import { menuStore } from '$lib/stores/menu.svelte';
     import { loadThemeHooks } from '$lib/hooks/theme-loader';
     import { loadThemeComponents } from '$lib/utils/theme-component-loader';
     import { loadAllPluginHooks } from '$lib/hooks/plugin-loader';
@@ -40,13 +41,15 @@
         siteUrl: $page.url.origin
     });
 
-    // SSR에서 받은 테마/플러그인으로 스토어 초기화 (깜박임 방지!)
+    // SSR에서 받은 테마/플러그인/메뉴로 스토어 초기화 (깜박임 방지!)
     $effect(() => {
         const theme = data.activeTheme;
         const plugins = data.activePlugins || [];
+        const menus = data.menus || [];
         untrack(() => {
             themeStore.initFromServer(theme);
             pluginStore.initFromServer(plugins);
+            menuStore.initFromServer(menus);
         });
     });
 

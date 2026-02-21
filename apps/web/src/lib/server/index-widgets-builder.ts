@@ -105,7 +105,7 @@ function getBoardName(boardId: string): string {
 /** 인메모리 캐시 (SSR 요청 최소화) */
 let cachedWidgets: IndexWidgetsData | null = null;
 let cacheTimestamp = 0;
-const CACHE_TTL_MS = 30_000; // 30초
+const CACHE_TTL_MS = 60_000; // 60초 (동접 1만명 환경에서 백엔드 부하 절감)
 
 /** 소모임 추천글 데이터 조회 (index-widgets 엔드포인트에서 group_tabs만 추출) */
 async function fetchGroupTabs(backendUrl: string): Promise<GroupTabsData> {
