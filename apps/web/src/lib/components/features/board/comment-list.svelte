@@ -628,8 +628,8 @@
                             >
                                 <img
                                     src={isCommentLiked(String(comment.id))
-                                        ? '/images/thumbup-choose.gif'
-                                        : '/images/thumbup.png'}
+                                        ? '/images/thumbup-choose.gif?v=2'
+                                        : '/images/thumbup.png?v=2'}
                                     alt="추천"
                                     class="size-5"
                                 />
