@@ -14,14 +14,16 @@ export const load: PageLoad = async ({ params, fetch }) => {
     }
 
     try {
-        const [post, comments, board, promotionPostsResult] = await Promise.all([
+        const [post, comments, board] = await Promise.all([
             apiClient.withFetch(fetch).getBoardPost(boardId, postId),
             apiClient.withFetch(fetch).getBoardComments(boardId, postId),
-            apiClient.withFetch(fetch).getBoard(boardId),
-            fetch('/api/ads/promotion-posts')
-                .then((r) => r.json())
-                .catch(() => ({ success: false, data: { posts: [] } }))
+            apiClient.withFetch(fetch).getBoard(boardId)
         ]);
+
+        // 직접홍보 사잇광고 (비블로킹 — 실패해도 빈 배열)
+        const promotionPostsResult = await fetch('/api/ads/promotion-posts')
+            .then((r) => r.json())
+            .catch(() => ({ success: false, data: { posts: [] } }));
 
         // 첨부 파일 로드 (Go API에서 미제공 → SvelteKit에서 직접 조회)
         try {

@@ -1090,10 +1090,11 @@
             </Card>
         {/if}
 
-        <!-- 1시간 추천글 리스트 -->
+        <!-- 1시간 추천글 리스트 (임시 비활성화)
         <div class="mt-6">
             <RecommendedPosts />
         </div>
+        -->
 
         <!-- 추천글 아래 배너 -->
         {#if widgetLayoutStore.hasEnabledAds}

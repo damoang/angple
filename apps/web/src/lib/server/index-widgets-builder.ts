@@ -1,21 +1,20 @@
 /**
- * 개별 게시판 API를 병렬 호출하여 IndexWidgetsData를 조립하는 서버 전용 유틸리티
+ * Go 백엔드가 5분마다 생성하는 index-widgets.json 파일을 직접 읽어서
+ * IndexWidgetsData를 반환하는 서버 전용 유틸리티
  *
- * 백엔드 /api/v1/recommended/index-widgets 엔드포인트가 deprecated 되어
- * 빈 배열을 반환하므로, 개별 게시판 API를 직접 호출하여 데이터를 구성합니다.
+ * 기존: 9개 게시판 API 병렬 호출 → 변경: 파일 읽기 1회
  */
 
+import { readFile } from 'fs/promises';
 import type {
     IndexWidgetsData,
     NewsPost,
-    NewsTabId,
     EconomyPost,
-    EconomyTabId,
     GalleryPost,
     GroupTabsData
 } from '$lib/api/types';
 
-/** 백엔드 게시글 응답 타입 */
+/** 백엔드 게시글 응답 타입 (fetchBoardPostsForWidget 용) */
 interface BackendPost {
     id: number;
     title: string;
@@ -42,95 +41,64 @@ interface BackendBoardResponse {
     };
 }
 
-/** 백엔드 게시글 → NewsPost 변환 */
-function toNewsPost(post: BackendPost, tab: NewsTabId): NewsPost {
-    return {
-        id: post.id,
-        title: post.title,
-        board: tab,
-        board_name: getBoardName(tab),
-        author: post.author,
-        created_at: post.created_at,
-        comment_count: post.comments_count,
-        view_count: post.views,
-        recommend_count: post.likes,
-        url: `/${tab}/${post.id}`,
-        is_notice: false,
-        tab
-    };
-}
+const JSON_PATH = '/home/damoang/www/data/cache/recommended/index-widgets.json';
+const CACHE_TTL_MS = 30_000; // 30초 (파일은 5분마다 갱신)
 
-/** 백엔드 게시글 → EconomyPost 변환 */
-function toEconomyPost(post: BackendPost, tab: EconomyTabId): EconomyPost {
-    return {
-        id: post.id,
-        title: post.title,
-        url: `/${tab}/${post.id}`,
-        tab,
-        author: post.author
-    };
-}
+const EMPTY_RESULT: IndexWidgetsData = {
+    news_tabs: [],
+    economy_tabs: [],
+    gallery: [],
+    group_tabs: { all: [], '24h': [], week: [], month: [] }
+};
 
-/** 백엔드 게시글 → GalleryPost 변환 */
-function toGalleryPost(post: BackendPost): GalleryPost {
-    return {
-        id: post.id,
-        title: post.title,
-        url: `/gallery/${post.id}`,
-        thumbnail_url: post.thumbnail,
-        author: post.author,
-        comment_count: post.comments_count,
-        view_count: post.views,
-        recommend_count: post.likes,
-        created_at: post.created_at
-    };
-}
-
-/** 게시판 ID → 한글 이름 매핑 */
-function getBoardName(boardId: string): string {
-    const names: Record<string, string> = {
-        notice: '공지사항',
-        new: '새글',
-        tip: '팁과정보',
-        review: '사용기',
-        economy: '알뜰구매',
-        qa: '질문답변',
-        free: '자유게시판',
-        angtt: '앙뜨',
-        gallery: '갤러리'
-    };
-    return names[boardId] ?? boardId;
-}
-
-/** 인메모리 캐시 (SSR 요청 최소화) */
+/** 인메모리 캐시 */
 let cachedWidgets: IndexWidgetsData | null = null;
 let cacheTimestamp = 0;
-const CACHE_TTL_MS = 60_000; // 60초 (동접 1만명 환경에서 백엔드 부하 절감)
 
-/** 소모임 추천글 데이터 조회 (index-widgets 엔드포인트에서 group_tabs만 추출) */
-async function fetchGroupTabs(backendUrl: string): Promise<GroupTabsData> {
-    const empty: GroupTabsData = { all: [], '24h': [], week: [], month: [] };
+/**
+ * index-widgets.json 파일을 읽어 IndexWidgetsData를 반환
+ * 30초 인메모리 캐시로 파일 I/O 최소화
+ */
+export async function buildIndexWidgets(_backendUrl: string): Promise<IndexWidgetsData> {
+    const now = Date.now();
+    if (cachedWidgets && now - cacheTimestamp < CACHE_TTL_MS) {
+        return cachedWidgets;
+    }
+
     try {
-        const response = await fetch(`${backendUrl}/api/v1/recommended/index-widgets`, {
-            headers: {
-                Accept: 'application/json',
-                'User-Agent': 'Angple-Web-SSR/1.0'
-            }
-        });
-        if (!response.ok) {
-            console.error('[index-widgets-builder] group_tabs API error:', response.status);
-            return empty;
+        const raw = await readFile(JSON_PATH, 'utf-8');
+        const json = JSON.parse(raw);
+
+        const result: IndexWidgetsData = {
+            news_tabs: (json.news_tabs ?? []) as NewsPost[],
+            economy_tabs: (json.economy_tabs ?? []) as EconomyPost[],
+            gallery: (json.gallery ?? []) as GalleryPost[],
+            group_tabs: (json.group_tabs ?? EMPTY_RESULT.group_tabs) as GroupTabsData
+        };
+
+        // 데이터가 있을 때만 캐시
+        if (
+            result.news_tabs.length > 0 ||
+            result.economy_tabs.length > 0 ||
+            result.gallery.length > 0
+        ) {
+            cachedWidgets = result;
+            cacheTimestamp = now;
         }
-        const data = await response.json();
-        return data.group_tabs ?? empty;
+
+        return result;
     } catch (err) {
-        console.error('[index-widgets-builder] group_tabs fetch failed:', err);
-        return empty;
+        console.error('[index-widgets-builder] JSON 파일 읽기 실패:', err);
+        // stale 캐시라도 반환
+        if (cachedWidgets) return cachedWidgets;
+        return EMPTY_RESULT;
     }
 }
 
-/** 개별 게시판 API 호출 */
-async function fetchBoardPosts(
+/**
+ * 단일 게시판 데이터 조회 (post-list 위젯용)
+ */
+export async function fetchBoardPostsForWidget(
     backendUrl: string,
     boardId: string,
     limit: number
@@ -152,94 +120,4 @@ async function fetchBoardPosts(
 
     const result: BackendBoardResponse = await response.json();
     return result.data ?? [];
-}
-
-/**
- * 개별 게시판 API를 병렬 호출하여 IndexWidgetsData를 조립
- * 30초 인메모리 캐시로 백엔드 요청 최소화
- */
-export async function buildIndexWidgets(backendUrl: string): Promise<IndexWidgetsData> {
-    // 캐시 유효하면 즉시 반환
-    const now = Date.now();
-    if (cachedWidgets && now - cacheTimestamp < CACHE_TTL_MS) {
-        return cachedWidgets;
-    }
-
-    // news_tabs 게시판: notice, new, review
-    // economy_tabs 게시판: economy, qa, free, angtt
-    // gallery 게시판: gallery
-    // group_tabs: 소모임 추천글 (index-widgets 엔드포인트에서 조회)
-    const [
-        noticePosts,
-        newPosts,
-        reviewPosts,
-        economyPosts,
-        qaPosts,
-        freePosts,
-        angttPosts,
-        galleryPosts,
-        groupTabsResult
-    ] = await Promise.allSettled([
-        fetchBoardPosts(backendUrl, 'notice', 15),
-        fetchBoardPosts(backendUrl, 'new', 15),
-        fetchBoardPosts(backendUrl, 'review', 15),
-        fetchBoardPosts(backendUrl, 'economy', 10),
-        fetchBoardPosts(backendUrl, 'qa', 10),
-        fetchBoardPosts(backendUrl, 'free', 10),
-        fetchBoardPosts(backendUrl, 'angtt', 10),
-        fetchBoardPosts(backendUrl, 'gallery', 12),
-        fetchGroupTabs(backendUrl)
-    ]);
-
-    const resolve = (result: PromiseSettledResult<BackendPost[]>): BackendPost[] =>
-        result.status === 'fulfilled' ? result.value : [];
-
-    // news_tabs: notice + new + review 게시글을 NewsPost[]로 변환
-    const newsTabs: NewsPost[] = [
-        ...resolve(noticePosts).map((p) => toNewsPost(p, 'notice')),
-        ...resolve(newPosts).map((p) => toNewsPost(p, 'new')),
-        ...resolve(reviewPosts).map((p) => toNewsPost(p, 'review'))
-    ];
-
-    // economy_tabs: economy + qa + free + angtt 게시글을 EconomyPost[]로 변환
-    const economyTabs: EconomyPost[] = [
-        ...resolve(economyPosts).map((p) => toEconomyPost(p, 'economy')),
-        ...resolve(qaPosts).map((p) => toEconomyPost(p, 'qa')),
-        ...resolve(freePosts).map((p) => toEconomyPost(p, 'free')),
-        ...resolve(angttPosts).map((p) => toEconomyPost(p, 'angtt'))
-    ];
-
-    // gallery: gallery 게시글을 GalleryPost[]로 변환
-    const gallery: GalleryPost[] = resolve(galleryPosts).map(toGalleryPost);
-
-    // group_tabs: 소모임 추천글
-    const emptyGroupTabs: GroupTabsData = { all: [], '24h': [], week: [], month: [] };
-    const groupTabs: GroupTabsData =
-        groupTabsResult.status === 'fulfilled' ? groupTabsResult.value : emptyGroupTabs;
-
-    const result: IndexWidgetsData = {
-        news_tabs: newsTabs,
-        economy_tabs: economyTabs,
-        gallery,
-        group_tabs: groupTabs
-    };
-
-    // 데이터가 있을 때만 캐시 (빈 결과는 캐시하지 않음)
-    if (newsTabs.length > 0 || economyTabs.length > 0 || gallery.length > 0) {
-        cachedWidgets = result;
-        cacheTimestamp = now;
-    }
-
-    return result;
-}
-
-/**
- * 단일 게시판 데이터 조회 (post-list 위젯용)
- */
-export async function fetchBoardPostsForWidget(
-    backendUrl: string,
-    boardId: string,
-    limit: number
-): Promise<BackendPost[]> {
-    return fetchBoardPosts(backendUrl, boardId, limit);
 }

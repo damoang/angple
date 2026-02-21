@@ -18,8 +18,8 @@ export const load: PageLoad = async ({ url, params, fetch }) => {
     const isTagFiltering = Boolean(tag);
 
     try {
-        // 게시판 정보, 공지사항, 게시글 목록, 직접홍보를 병렬로 가져오기
-        const [data, board, notices, promotionPostsResult] = await Promise.all([
+        // 게시판 정보, 공지사항, 게시글 목록을 병렬로 가져오기
+        const [data, board, notices] = await Promise.all([
             isSearching
                 ? apiClient.withFetch(fetch).searchPosts(boardId, {
                       field: searchField!,
@@ -39,12 +39,13 @@ export const load: PageLoad = async ({ url, params, fetch }) => {
                   : apiClient.withFetch(fetch).getBoardPosts(boardId, page, limit),
             apiClient.withFetch(fetch).getBoard(boardId),
             // 검색 중이 아닐 때만 공지사항 로드
-            isSearching ? Promise.resolve([]) : apiClient.withFetch(fetch).getBoardNotices(boardId),
-            // 직접홍보 사잇광고
-            fetch('/api/ads/promotion-posts')
-                .then((r) => r.json())
-                .catch(() => ({ success: false, data: { posts: [] } }))
+            isSearching ? Promise.resolve([]) : apiClient.withFetch(fetch).getBoardNotices(boardId)
         ]);
+
+        // 직접홍보 사잇광고 (비블로킹 — 실패해도 빈 배열)
+        const promotionPostsResult = await fetch('/api/ads/promotion-posts')
+            .then((r) => r.json())
+            .catch(() => ({ success: false, data: { posts: [] } }));
 
         return {
             boardId,
