@@ -8,8 +8,23 @@
     import User from '@lucide/svelte/icons/user';
     import Coins from '@lucide/svelte/icons/coins';
     import Star from '@lucide/svelte/icons/star';
-    import { getUser, getIsLoggedIn, getIsLoading } from '$lib/stores/auth.svelte';
+    import { getUser, getIsLoggedIn, getIsLoading, authActions } from '$lib/stores/auth.svelte';
     import { getMemberIconUrl } from '$lib/utils/member-icon';
+
+    let isLoggingOut = $state(false);
+
+    async function handleLogout() {
+        if (isLoggingOut) return;
+        isLoggingOut = true;
+        try {
+            await fetch('/api/auth/logout', { method: 'POST' });
+            authActions.resetAuth();
+            window.location.href = '/';
+        } catch {
+            // fallback: PHP 로그아웃
+            window.location.href = `https://damoang.net/bbs/logout.php?url=${encodeURIComponent(window.location.origin)}`;
+        }
+    }
 
     // Reactive getters
     let user = $derived(getUser());
@@ -55,12 +70,6 @@
         browser
             ? `https://damoang.net/bbs/login.php?url=${encodeURIComponent(window.location.href)}`
             : 'https://damoang.net/bbs/login.php?url=https://web.damoang.net'
-    );
-
-    let logoutUrl = $derived(
-        browser
-            ? `https://damoang.net/bbs/logout.php?url=${encodeURIComponent(window.location.origin)}`
-            : 'https://damoang.net/bbs/logout.php?url=https://web.damoang.net'
     );
 </script>
 
@@ -111,13 +120,14 @@
                 <p class="text-muted-foreground truncate text-xs">{user.mb_id}</p>
             </div>
 
-            <a
-                href={logoutUrl}
-                class="text-muted-foreground hover:text-foreground shrink-0 p-1 transition-colors"
+            <button
+                onclick={handleLogout}
+                disabled={isLoggingOut}
+                class="text-muted-foreground hover:text-foreground shrink-0 cursor-pointer p-1 transition-colors disabled:opacity-50"
                 aria-label="로그아웃"
             >
                 <LogOut class="h-4 w-4" />
-            </a>
+            </button>
         </div>
 
         <!-- TODO: 레벨/내글/포인트 등 백엔드 API 정비 후 복원 -->
