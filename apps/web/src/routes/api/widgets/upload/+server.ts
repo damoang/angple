@@ -28,7 +28,15 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024;
  *
  * 위젯 ZIP 파일 업로드 처리
  */
-export const POST: RequestHandler = async ({ request }) => {
+export const POST: RequestHandler = async ({ request, locals }) => {
+    // 관리자 권한 검증
+    if (!locals.user) {
+        return json({ success: false, error: '인증이 필요합니다.' }, { status: 401 });
+    }
+    if ((locals.user.level ?? 0) < 10) {
+        return json({ success: false, error: '관리자 권한이 필요합니다.' }, { status: 403 });
+    }
+
     try {
         // FormData 파싱
         const formData = await request.formData();

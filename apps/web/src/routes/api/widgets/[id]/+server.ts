@@ -60,7 +60,15 @@ export const GET: RequestHandler = async ({ params }) => {
  *
  * 위젯 삭제 (커스텀 위젯만)
  */
-export const DELETE: RequestHandler = async ({ params }) => {
+export const DELETE: RequestHandler = async ({ params, locals }) => {
+    // 관리자 권한 검증
+    if (!locals.user) {
+        return json({ success: false, error: '인증이 필요합니다.' }, { status: 401 });
+    }
+    if ((locals.user.level ?? 0) < 10) {
+        return json({ success: false, error: '관리자 권한이 필요합니다.' }, { status: 403 });
+    }
+
     try {
         const widgetId = sanitizePath(params.id);
 

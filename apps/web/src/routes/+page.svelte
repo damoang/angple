@@ -53,5 +53,5 @@
 <!-- 통합 위젯 렌더러로 메인 영역 렌더링 -->
 <WidgetRenderer zone="main" />
 
-<!-- 편집 모드 토글 버튼 -->
-<EditModeToggle />
+<!-- 편집 모드 토글 버튼 (서버 검증된 관리자만 표시) -->
+<EditModeToggle serverIsAdmin={data.isAdmin ?? false} />

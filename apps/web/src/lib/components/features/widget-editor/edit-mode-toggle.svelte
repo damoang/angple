@@ -9,9 +9,12 @@
 
     import AddWidgetDialog from './add-widget-dialog.svelte';
 
-    // 사용자 정보
+    // 서버 검증된 관리자 여부 (props)
+    const { serverIsAdmin = false }: { serverIsAdmin?: boolean } = $props();
+
+    // 서버 검증 + 클라이언트 이중 체크
     const user = $derived(getUser());
-    const isAdmin = $derived((user?.mb_level ?? 0) >= 10);
+    const isAdmin = $derived(serverIsAdmin && (user?.mb_level ?? 0) >= 10);
 
     // 스토어 상태
     const isEditMode = $derived(widgetLayoutStore.isEditMode);

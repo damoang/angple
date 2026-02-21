@@ -10,7 +10,7 @@
  * - 오프라인 시: 캐시된 오프라인 페이지 표시
  */
 
-const CACHE_NAME = 'angple-v4';
+const CACHE_NAME = 'angple-v5';
 
 // 앱 셸 프리캐시 목록 (빈 배열 — 오프라인 페이지 없으므로 프리캐시 불필요)
 const PRECACHE_URLS = [];
@@ -59,9 +59,15 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    // 정적 자산 (이미지, 폰트, JS, CSS): Cache First
-    if (isStaticAsset(url.pathname)) {
+    // _app/immutable/ → Cache First (해시 파일명, 변경 불가)
+    if (url.pathname.startsWith('/_app/immutable/')) {
         event.respondWith(cacheFirst(request));
+        return;
+    }
+
+    // 기타 정적 자산 → Network First (배포 후 변경 가능)
+    if (isStaticAsset(url.pathname)) {
+        event.respondWith(networkFirst(request));
         return;
     }
 
