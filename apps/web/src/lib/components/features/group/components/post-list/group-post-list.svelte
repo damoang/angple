@@ -26,7 +26,7 @@
                             {formatNumber(post.recommend_count)}
                         </span>
                         <div
-                            class="text-foreground min-w-0 flex-1 truncate text-[15px] font-medium"
+                            class="text-foreground min-w-0 flex-1 truncate text-[17px] font-medium"
                         >
                             {post.title}
                         </div>

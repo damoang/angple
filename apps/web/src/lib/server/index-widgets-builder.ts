@@ -107,6 +107,28 @@ let cachedWidgets: IndexWidgetsData | null = null;
 let cacheTimestamp = 0;
 const CACHE_TTL_MS = 30_000; // 30초
 
+/** 소모임 추천글 데이터 조회 (index-widgets 엔드포인트에서 group_tabs만 추출) */
+async function fetchGroupTabs(backendUrl: string): Promise<GroupTabsData> {
+    const empty: GroupTabsData = { all: [], '24h': [], week: [], month: [] };
+    try {
+        const response = await fetch(`${backendUrl}/api/v1/recommended/index-widgets`, {
+            headers: {
+                Accept: 'application/json',
+                'User-Agent': 'Angple-Web-SSR/1.0'
+            }
+        });
+        if (!response.ok) {
+            console.error('[index-widgets-builder] group_tabs API error:', response.status);
+            return empty;
+        }
+        const data = await response.json();
+        return data.group_tabs ?? empty;
+    } catch (err) {
+        console.error('[index-widgets-builder] group_tabs fetch failed:', err);
+        return empty;
+    }
+}
+
 /** 개별 게시판 API 호출 */
 async function fetchBoardPosts(
     backendUrl: string,
@@ -146,6 +168,7 @@ export async function buildIndexWidgets(backendUrl: string): Promise<IndexWidget
     // news_tabs 게시판: notice, new, review
     // economy_tabs 게시판: economy, qa, free, angtt
     // gallery 게시판: gallery
+    // group_tabs: 소모임 추천글 (index-widgets 엔드포인트에서 조회)
     const [
         noticePosts,
         newPosts,
@@ -154,7 +177,8 @@ export async function buildIndexWidgets(backendUrl: string): Promise<IndexWidget
         qaPosts,
         freePosts,
         angttPosts,
-        galleryPosts
+        galleryPosts,
+        groupTabsResult
     ] = await Promise.allSettled([
         fetchBoardPosts(backendUrl, 'notice', 15),
         fetchBoardPosts(backendUrl, 'new', 15),
@@ -163,7 +187,8 @@ export async function buildIndexWidgets(backendUrl: string): Promise<IndexWidget
         fetchBoardPosts(backendUrl, 'qa', 10),
         fetchBoardPosts(backendUrl, 'free', 10),
         fetchBoardPosts(backendUrl, 'angtt', 10),
-        fetchBoardPosts(backendUrl, 'gallery', 12)
+        fetchBoardPosts(backendUrl, 'gallery', 12),
+        fetchGroupTabs(backendUrl)
     ]);
 
     const resolve = (result: PromiseSettledResult<BackendPost[]>): BackendPost[] =>
@@ -187,13 +212,10 @@ export async function buildIndexWidgets(backendUrl: string): Promise<IndexWidget
     // gallery: gallery 게시글을 GalleryPost[]로 변환
     const gallery: GalleryPost[] = resolve(galleryPosts).map(toGalleryPost);
 
-    // group_tabs: 소모임 게시판 (현재 빈 데이터)
-    const groupTabs: GroupTabsData = {
-        all: [],
-        '24h': [],
-        week: [],
-        month: []
-    };
+    // group_tabs: 소모임 추천글
+    const emptyGroupTabs: GroupTabsData = { all: [], '24h': [], week: [], month: [] };
+    const groupTabs: GroupTabsData =
+        groupTabsResult.status === 'fulfilled' ? groupTabsResult.value : emptyGroupTabs;
 
     const result: IndexWidgetsData = {
         news_tabs: newsTabs,

@@ -111,9 +111,22 @@
         return iconMap[iconName] || Circle;
     }
 
+    // 비활성화할 메뉴 ID 목록
+    const HIDDEN_MENU_IDS = new Set([261]); // 앙수호대
+
+    function filterMenus(menus: MenuItem[]): MenuItem[] {
+        return menus
+            .filter((m) => !HIDDEN_MENU_IDS.has(m.id))
+            .map((m) =>
+                m.children
+                    ? { ...m, children: m.children.filter((c) => !HIDDEN_MENU_IDS.has(c.id)) }
+                    : m
+            );
+    }
+
     onMount(async () => {
         try {
-            menuData = await apiClient.getMenus();
+            menuData = filterMenus(await apiClient.getMenus());
             loading = false;
         } catch (err) {
             console.error('Failed to load menu data:', err);

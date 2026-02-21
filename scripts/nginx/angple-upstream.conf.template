@@ -1,0 +1,3 @@
+# deploy-bg.sh가 자동 관리하는 파일
+# 수동 수정 금지 - 배포/롤백 시 자동 업데이트됨
+upstream angple_backend { server 127.0.0.1:3010; }
