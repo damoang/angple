@@ -15,6 +15,7 @@ import GalleryLayout from './gallery.svelte';
 import WebzineLayout from './webzine.svelte';
 import PosterGalleryLayout from './poster-gallery.svelte';
 import MarketCardLayout from './market-card.svelte';
+import ClassicLayout from './classic.svelte';
 
 /** 코어 목록 레이아웃 매니페스트 */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -81,6 +82,15 @@ const coreListLayouts: { manifest: LayoutManifest; component: any }[] = [
             wrapperClass: 'grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4'
         },
         component: MarketCardLayout
+    },
+    {
+        manifest: {
+            id: 'classic',
+            name: '클래식',
+            description: 'PHP 게시판 스킨과 동일한 추천/제목/이름/날짜/조회 테이블형 목록',
+            wrapperClass: 'divide-y divide-border'
+        },
+        component: ClassicLayout
     }
 ];
 
@@ -104,5 +114,6 @@ export {
     GalleryLayout,
     WebzineLayout,
     PosterGalleryLayout,
-    MarketCardLayout
+    MarketCardLayout,
+    ClassicLayout
 };

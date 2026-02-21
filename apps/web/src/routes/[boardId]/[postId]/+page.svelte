@@ -716,7 +716,9 @@
                             </span>
                         </div>
                     {/if}
-                    <CardTitle class="text-foreground flex items-center gap-2 text-xl sm:text-2xl">
+                    <CardTitle
+                        class="text-foreground flex items-center gap-2 text-xl font-bold sm:text-2xl"
+                    >
                         {#if data.post.is_secret}
                             <Lock class="text-muted-foreground h-6 w-6 shrink-0" />
                         {/if}
@@ -1111,6 +1113,7 @@
                 currentPostId={data.post.id}
                 limit={20}
                 promotionPosts={data.promotionPosts || []}
+                displaySettings={data.board?.display_settings}
             />
         </div>
 

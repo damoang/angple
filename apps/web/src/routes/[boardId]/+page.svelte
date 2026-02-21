@@ -401,55 +401,141 @@
 
             <!-- 공지사항 (검색 중이 아닐 때만 표시) -->
             {#if hasNotices && !isSearching}
-                <div class="mb-4 space-y-1">
-                    <!-- 필수 공지 -->
-                    {#each importantNotices as notice (notice.id)}
-                        <div
-                            class="bg-destructive/5 border-destructive/20 hover:bg-destructive/10 cursor-pointer rounded-lg border px-4 py-3 transition-colors"
-                            onclick={() => goToPost(notice.id)}
-                            role="button"
-                            tabindex="0"
-                            onkeydown={(e) => e.key === 'Enter' && goToPost(notice.id)}
-                        >
-                            <div class="flex items-center gap-3">
-                                <div class="flex shrink-0 items-center gap-1.5">
-                                    <Megaphone class="text-destructive h-4 w-4" />
-                                    <Badge variant="destructive" class="text-xs">필수</Badge>
+                {#if listLayoutId === 'classic'}
+                    <!-- Classic 레이아웃: 플랫 행 스타일 공지 -->
+                    <div class="divide-border mb-4 divide-y">
+                        {#each importantNotices as notice (notice.id)}
+                            <div
+                                class="bg-destructive/5 hover:bg-destructive/10 cursor-pointer px-4 py-2.5 transition-colors"
+                                onclick={() => goToPost(notice.id)}
+                                role="button"
+                                tabindex="0"
+                                onkeydown={(e) => e.key === 'Enter' && goToPost(notice.id)}
+                            >
+                                <div class="flex items-center gap-2 md:gap-3">
+                                    <div class="hidden shrink-0 md:block">
+                                        <div
+                                            class="bg-destructive/10 flex h-7 w-10 items-center justify-center rounded-md"
+                                        >
+                                            <Megaphone class="text-destructive h-4 w-4" />
+                                        </div>
+                                    </div>
+                                    <div class="min-w-0 flex-1">
+                                        <div class="flex items-center gap-1">
+                                            <Megaphone
+                                                class="text-destructive h-3.5 w-3.5 shrink-0 md:hidden"
+                                            />
+                                            <Badge
+                                                variant="destructive"
+                                                class="shrink-0 text-[10px]">필수</Badge
+                                            >
+                                            <h3
+                                                class="text-foreground truncate text-base font-semibold"
+                                            >
+                                                {notice.title}
+                                            </h3>
+                                        </div>
+                                    </div>
+                                    <span
+                                        class="text-muted-foreground hidden shrink-0 text-sm md:inline"
+                                    >
+                                        {notice.author}
+                                    </span>
                                 </div>
-                                <h3 class="text-foreground flex-1 truncate font-medium">
-                                    {notice.title}
-                                </h3>
-                                <span class="text-muted-foreground shrink-0 text-xs">
-                                    {notice.author}
-                                </span>
                             </div>
-                        </div>
-                    {/each}
+                        {/each}
+                        {#each normalNotices as notice (notice.id)}
+                            <div
+                                class="bg-muted/30 hover:bg-muted cursor-pointer px-4 py-2.5 transition-colors"
+                                onclick={() => goToPost(notice.id)}
+                                role="button"
+                                tabindex="0"
+                                onkeydown={(e) => e.key === 'Enter' && goToPost(notice.id)}
+                            >
+                                <div class="flex items-center gap-2 md:gap-3">
+                                    <div class="hidden shrink-0 md:block">
+                                        <div
+                                            class="bg-liked/10 flex h-7 w-10 items-center justify-center rounded-md"
+                                        >
+                                            <Pin class="text-liked h-4 w-4" />
+                                        </div>
+                                    </div>
+                                    <div class="min-w-0 flex-1">
+                                        <div class="flex items-center gap-1">
+                                            <Pin
+                                                class="text-liked h-3.5 w-3.5 shrink-0 md:hidden"
+                                            />
+                                            <Badge variant="secondary" class="shrink-0 text-[10px]"
+                                                >공지</Badge
+                                            >
+                                            <h3
+                                                class="text-foreground truncate text-base font-semibold"
+                                            >
+                                                {notice.title}
+                                            </h3>
+                                        </div>
+                                    </div>
+                                    <span
+                                        class="text-muted-foreground hidden shrink-0 text-sm md:inline"
+                                    >
+                                        {notice.author}
+                                    </span>
+                                </div>
+                            </div>
+                        {/each}
+                    </div>
+                {:else}
+                    <!-- 기본 레이아웃: 카드 스타일 공지 -->
+                    <div class="mb-4 space-y-1">
+                        <!-- 필수 공지 -->
+                        {#each importantNotices as notice (notice.id)}
+                            <div
+                                class="bg-destructive/5 border-destructive/20 hover:bg-destructive/10 cursor-pointer rounded-lg border px-4 py-3 transition-colors"
+                                onclick={() => goToPost(notice.id)}
+                                role="button"
+                                tabindex="0"
+                                onkeydown={(e) => e.key === 'Enter' && goToPost(notice.id)}
+                            >
+                                <div class="flex items-center gap-3">
+                                    <div class="flex shrink-0 items-center gap-1.5">
+                                        <Megaphone class="text-destructive h-4 w-4" />
+                                        <Badge variant="destructive" class="text-xs">필수</Badge>
+                                    </div>
+                                    <h3 class="text-foreground flex-1 truncate font-medium">
+                                        {notice.title}
+                                    </h3>
+                                    <span class="text-muted-foreground shrink-0 text-xs">
+                                        {notice.author}
+                                    </span>
+                                </div>
+                            </div>
+                        {/each}
 
-                    <!-- 일반 공지 -->
-                    {#each normalNotices as notice (notice.id)}
-                        <div
-                            class="bg-muted/50 border-border hover:bg-muted cursor-pointer rounded-lg border px-4 py-3 transition-colors"
-                            onclick={() => goToPost(notice.id)}
-                            role="button"
-                            tabindex="0"
-                            onkeydown={(e) => e.key === 'Enter' && goToPost(notice.id)}
-                        >
-                            <div class="flex items-center gap-3">
-                                <div class="flex shrink-0 items-center gap-1.5">
-                                    <Pin class="text-muted-foreground h-4 w-4" />
-                                    <Badge variant="secondary" class="text-xs">공지</Badge>
+                        <!-- 일반 공지 -->
+                        {#each normalNotices as notice (notice.id)}
+                            <div
+                                class="bg-muted/50 border-border hover:bg-muted cursor-pointer rounded-lg border px-4 py-3 transition-colors"
+                                onclick={() => goToPost(notice.id)}
+                                role="button"
+                                tabindex="0"
+                                onkeydown={(e) => e.key === 'Enter' && goToPost(notice.id)}
+                            >
+                                <div class="flex items-center gap-3">
+                                    <div class="flex shrink-0 items-center gap-1.5">
+                                        <Pin class="text-muted-foreground h-4 w-4" />
+                                        <Badge variant="secondary" class="text-xs">공지</Badge>
+                                    </div>
+                                    <h3 class="text-foreground flex-1 truncate font-medium">
+                                        {notice.title}
+                                    </h3>
+                                    <span class="text-muted-foreground shrink-0 text-xs">
+                                        {notice.author}
+                                    </span>
                                 </div>
-                                <h3 class="text-foreground flex-1 truncate font-medium">
-                                    {notice.title}
-                                </h3>
-                                <span class="text-muted-foreground shrink-0 text-xs">
-                                    {notice.author}
-                                </span>
                             </div>
-                        </div>
-                    {/each}
-                </div>
+                        {/each}
+                    </div>
+                {/if}
             {/if}
 
             <!-- 일괄 작업 툴바 (관리자 선택 모드) -->
@@ -512,7 +598,10 @@
                         <!-- 직접홍보 사잇광고 (10번째 글 뒤에 2개 나란히) -->
                         {#if shuffledPromos.length > 0 && i + 1 === 10}
                             {#each shuffledPromos.slice(0, 2) as promo (promo.wrId)}
-                                <PromotionInlinePost post={promo} />
+                                <PromotionInlinePost
+                                    post={promo}
+                                    variant={listLayoutId === 'classic' ? 'classic' : 'default'}
+                                />
                             {/each}
                         {/if}
                     {/each}

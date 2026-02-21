@@ -3,10 +3,14 @@
     import { browser } from '$app/environment';
     import { goto } from '$app/navigation';
     import { apiClient } from '$lib/api/index.js';
-    import type { FreePost } from '$lib/api/types.js';
+    import type { FreePost, BoardDisplaySettings } from '$lib/api/types.js';
     import { memberLevelStore } from '$lib/stores/member-levels.svelte.js';
     import { Button } from '$lib/components/ui/button/index.js';
+    import { layoutRegistry, initCoreLayouts } from './layouts/index.js';
     import CompactLayout from './layouts/list/compact.svelte';
+
+    // 코어 레이아웃 초기화 (중복 호출 안전)
+    initCoreLayouts();
     import { PromotionInlinePost } from '$lib/components/ui/promotion-inline-post/index.js';
 
     interface PromotionPost {
@@ -26,9 +30,23 @@
         currentPostId: number;
         limit?: number;
         promotionPosts?: PromotionPost[];
+        displaySettings?: BoardDisplaySettings;
     }
 
-    let { boardId, boardTitle, currentPostId, limit = 10, promotionPosts = [] }: Props = $props();
+    let {
+        boardId,
+        boardTitle,
+        currentPostId,
+        limit = 10,
+        promotionPosts = [],
+        displaySettings
+    }: Props = $props();
+
+    // 게시판 레이아웃 설정에 따라 레이아웃 컴포넌트 resolve
+    const listLayoutId = $derived(displaySettings?.list_layout || 'compact');
+    const layoutEntry = $derived(layoutRegistry.resolveList(listLayoutId));
+    const LayoutComponent = $derived(layoutEntry?.component || CompactLayout);
+    const wrapperClass = $derived(layoutEntry?.manifest.wrapperClass || 'space-y-1');
 
     // 프로모션 셔플 (매 렌더마다 랜덤)
     let shuffledPromos = $derived.by(() => {
@@ -146,12 +164,15 @@
         <p class="text-muted-foreground text-sm">최근 글이 없습니다.</p>
     </div>
 {:else}
-    <div class="space-y-1">
+    <div class={wrapperClass}>
         {#each posts as post, i (post.id)}
-            <CompactLayout {post} onclick={() => goToPost(post.id)} />
+            <LayoutComponent {post} {displaySettings} onclick={() => goToPost(post.id)} />
             {#if shuffledPromos.length > 0 && i + 1 === 10}
                 {#each shuffledPromos.slice(0, 2) as promo (promo.wrId)}
-                    <PromotionInlinePost post={promo} />
+                    <PromotionInlinePost
+                        post={promo}
+                        variant={listLayoutId === 'classic' ? 'classic' : 'default'}
+                    />
                 {/each}
             {/if}
         {/each}
