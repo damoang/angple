@@ -14,11 +14,23 @@ export const load: PageLoad = async ({ params, fetch }) => {
     }
 
     try {
-        const [post, comments, board] = await Promise.all([
+        // 게시글/댓글 (필수) + 게시판 정보 (실패해도 표시)
+        const [postResult, commentsResult, boardResult] = await Promise.allSettled([
             apiClient.withFetch(fetch).getBoardPost(boardId, postId),
             apiClient.withFetch(fetch).getBoardComments(boardId, postId),
-            apiClient.withFetch(fetch).getBoard(boardId)
+            apiClient
+                .withFetch(fetch)
+                .getBoard(boardId)
+                .catch(() => null)
         ]);
+
+        // 게시글 필수 — 실패 시 404
+        if (postResult.status === 'rejected') {
+            throw postResult.reason;
+        }
+        const post = postResult.value;
+        const comments = commentsResult.status === 'fulfilled' ? commentsResult.value : [];
+        const board = boardResult.status === 'fulfilled' ? boardResult.value : null;
 
         // 직접홍보 사잇광고 (비블로킹 — 실패해도 빈 배열)
         const promotionPostsResult = await fetch('/api/ads/promotion-posts')

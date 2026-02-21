@@ -18,8 +18,8 @@ export const load: PageLoad = async ({ url, params, fetch }) => {
     const isTagFiltering = Boolean(tag);
 
     try {
-        // 게시판 정보, 공지사항, 게시글 목록을 병렬로 가져오기
-        const [data, board, notices] = await Promise.all([
+        // 게시글 목록 (필수) + 게시판 정보/공지사항 (실패해도 페이지 표시)
+        const [postsResult, boardResult, noticesResult] = await Promise.allSettled([
             isSearching
                 ? apiClient.withFetch(fetch).searchPosts(boardId, {
                       field: searchField!,
@@ -37,10 +37,25 @@ export const load: PageLoad = async ({ url, params, fetch }) => {
                         tag: tag!
                     })
                   : apiClient.withFetch(fetch).getBoardPosts(boardId, page, limit),
-            apiClient.withFetch(fetch).getBoard(boardId),
-            // 검색 중이 아닐 때만 공지사항 로드
-            isSearching ? Promise.resolve([]) : apiClient.withFetch(fetch).getBoardNotices(boardId)
+            apiClient
+                .withFetch(fetch)
+                .getBoard(boardId)
+                .catch(() => null),
+            isSearching
+                ? Promise.resolve([])
+                : apiClient
+                      .withFetch(fetch)
+                      .getBoardNotices(boardId)
+                      .catch(() => [])
         ]);
+
+        // 게시글 필수 — 실패 시 에러 페이지
+        if (postsResult.status === 'rejected') {
+            throw postsResult.reason;
+        }
+        const data = postsResult.value;
+        const board = boardResult.status === 'fulfilled' ? boardResult.value : null;
+        const notices = noticesResult.status === 'fulfilled' ? noticesResult.value : [];
 
         // 직접홍보 사잇광고 (비블로킹 — 실패해도 빈 배열)
         const promotionPostsResult = await fetch('/api/ads/promotion-posts')
