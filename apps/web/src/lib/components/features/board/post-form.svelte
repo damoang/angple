@@ -254,11 +254,24 @@
 
         isSubmitting = true;
 
+        // 첨부 이미지를 content 끝에 <img> 태그로 삽입 (Go 백엔드 호환)
+        let finalContent = content.trim();
+        const imageFiles = uploadedFiles.filter((f) => f.mime_type.startsWith('image/'));
+        if (imageFiles.length > 0) {
+            const imgTags = imageFiles
+                .map(
+                    (f) =>
+                        `<img src="${f.url}" alt="${f.original_filename}" loading="lazy" class="max-w-full">`
+                )
+                .join('\n');
+            finalContent = finalContent ? `${finalContent}\n${imgTags}` : imgTags;
+        }
+
         const data: CreatePostRequest | UpdatePostRequest =
             mode === 'create'
                 ? {
                       title: title.trim(),
-                      content: content.trim(),
+                      content: finalContent,
                       category: category || undefined,
                       author: '', // 서버에서 JWT로 설정됨
                       is_secret: isSecret,
@@ -268,7 +281,7 @@
                   }
                 : {
                       title: title.trim(),
-                      content: content.trim(),
+                      content: finalContent,
                       category: category || undefined,
                       tags: tags.length > 0 ? tags : undefined,
                       link1: link1.trim() || undefined,
