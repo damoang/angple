@@ -14,7 +14,13 @@ import {
 } from '$lib/server/auth/register.js';
 import { upsertSocialProfile } from '$lib/server/auth/oauth/social-profile.js';
 import { getMemberById, updateLoginTimestamp } from '$lib/server/auth/oauth/member.js';
-import { generateAccessToken, generateRefreshToken } from '$lib/server/auth/jwt.js';
+import { generateRefreshToken } from '$lib/server/auth/jwt.js';
+import {
+    createSession,
+    SESSION_COOKIE_NAME,
+    CSRF_COOKIE_NAME,
+    SESSION_COOKIE_MAX_AGE
+} from '$lib/server/auth/session-store.js';
 import type { OAuthUserProfile, SocialProvider } from '$lib/server/auth/oauth/types.js';
 import { verifyTurnstile } from '$lib/server/captcha.js';
 import { checkRateLimit, recordAttempt } from '$lib/server/rate-limit.js';
@@ -159,25 +165,38 @@ export const actions: Actions = {
                 });
             }
 
-            // JWT 생성
-            const accessToken = await generateAccessToken(member);
-            const refreshToken = await generateRefreshToken(member.mb_id);
+            // 서버사이드 세션 생성
+            const session = await createSession(member.mb_id, {
+                ip: clientIp
+            });
 
-            // 쿠키 설정
+            // 세션 쿠키 설정
+            cookies.set(SESSION_COOKIE_NAME, session.sessionId, {
+                path: '/',
+                httpOnly: true,
+                sameSite: 'lax',
+                secure: !dev,
+                maxAge: SESSION_COOKIE_MAX_AGE
+            });
+
+            cookies.set(CSRF_COOKIE_NAME, session.csrfToken, {
+                path: '/',
+                httpOnly: false,
+                sameSite: 'strict',
+                secure: !dev,
+                maxAge: SESSION_COOKIE_MAX_AGE
+            });
+
+            // 레거시 호환: refresh_token도 생성
+            const { token: refreshToken } = await generateRefreshToken(member.mb_id, {
+                ip: clientIp
+            });
             cookies.set('refresh_token', refreshToken, {
                 path: '/',
                 httpOnly: true,
                 sameSite: 'lax',
                 secure: !dev,
                 maxAge: 60 * 60 * 24 * 7
-            });
-
-            cookies.set('access_token', accessToken, {
-                path: '/',
-                httpOnly: true,
-                sameSite: 'lax',
-                secure: !dev,
-                maxAge: 60 * 15 // 15분 (JWT 만료와 일치)
             });
 
             // 가입 완료 후 임시 쿠키 삭제

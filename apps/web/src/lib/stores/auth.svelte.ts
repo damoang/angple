@@ -1,6 +1,10 @@
 /**
  * 인증 상태 관리 (Svelte 5 Runes)
- * JWT 쿠키 기반 인증 + 레거시 SSO 지원
+ *
+ * 서버사이드 세션 기반 인증:
+ * - SSR에서 세션 검증 후 사용자 정보를 PageData로 전달
+ * - 클라이언트는 토큰 관리 불필요 (서버가 세션 쿠키로 처리)
+ * - CSRF 토큰은 PageData에서 받아 API 요청 헤더에 포함
  */
 
 import { apiClient } from '$lib/api';
@@ -51,7 +55,7 @@ function initFromSSR(ssrUser: { nickname: string; level: number }, accessToken: 
 
 /**
  * 인증 상태 초기화
- * 앱 시작 시 호출 — refreshToken 쿠키로 accessToken 자동 갱신
+ * 앱 시작 시 호출 — 세션 쿠키로 자동 인증 (토큰 관리 불필요)
  */
 async function initAuth(): Promise<void> {
     // 레거시 localStorage 토큰 정리
@@ -59,22 +63,17 @@ async function initAuth(): Promise<void> {
         localStorage.removeItem('access_token');
     }
 
-    // 소셜로그인 후 access_token 쿠키가 있으면 메모리로 이동
+    // 레거시: 소셜로그인 후 access_token 쿠키 정리 (더 이상 사용 안 함)
     if (typeof document !== 'undefined') {
-        const atCookie = document.cookie.split('; ').find((r) => r.startsWith('access_token='));
-        if (atCookie) {
-            const token = atCookie.split('=')[1];
-            if (token) {
-                apiClient.setAccessToken(token);
-            }
-        }
-        // 쿠키 정리 (메모리로 이동 완료)
         document.cookie = 'access_token=; path=/; max-age=0';
     }
 
-    // refreshToken 쿠키로 accessToken 자동 갱신
-    await apiClient.tryRefreshToken();
-    await fetchCurrentUser();
+    // 세션 기반 인증: 서버가 쿠키로 인증하므로 클라이언트 토큰 갱신 불필요
+    // SSR에서 이미 사용자 정보가 설정되어 있으면 추가 API 호출 생략
+    if (!user) {
+        await apiClient.tryRefreshToken();
+        await fetchCurrentUser();
+    }
 }
 
 /**

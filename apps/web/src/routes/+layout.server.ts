@@ -30,6 +30,7 @@ export const load: LayoutServerLoad = async ({ url, locals }) => {
         menus,
         user: locals.user ?? null,
         accessToken: locals.accessToken ?? null,
+        csrfToken: locals.csrfToken ?? null,
         isAdmin: (locals.user?.level ?? 0) >= 10
     };
 };

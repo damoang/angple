@@ -2,40 +2,95 @@ import { redirect, type Handle } from '@sveltejs/kit';
 import { dev } from '$app/environment';
 import { verifyToken, verifyTokenLax } from '$lib/server/auth/jwt.js';
 import { getMemberById } from '$lib/server/auth/oauth/member.js';
+import {
+    getSession,
+    SESSION_COOKIE_NAME,
+    CSRF_COOKIE_NAME
+} from '$lib/server/auth/session-store.js';
+import { checkRateLimit, recordAttempt } from '$lib/server/rate-limit.js';
 import { mapGnuboardUrl, mapRhymixUrl } from '$lib/server/url-compat.js';
 
 /**
  * SvelteKit Server Hooks
  *
- * 1. SSR 인증: refreshToken 쿠키로 accessToken 발급 → event.locals에 저장
- *    - 1순위: SvelteKit 자체 JWT 검증 (소셜로그인으로 발급된 토큰)
- *    - 2순위: Go 백엔드 /api/v2/auth/refresh (기존 호환)
- * 2. CORS 설정: Admin 앱에서 Web API 호출 허용
- * 3. CSP 설정: XSS 및 데이터 인젝션 공격 방지
+ * 1. SSR 인증 (우선순위)
+ *    - 1순위: angple_sid 세션 쿠키 → 세션 스토어 조회
+ *    - 2순위: refresh_token 쿠키 → SvelteKit JWT 검증
+ *    - 3순위: refresh_token 쿠키 → Go 백엔드 /api/v2/auth/refresh
+ *    - 4순위: damoang_jwt 쿠키 → 레거시 PHP SSO
+ * 2. Rate limiting: 인증 관련 엔드포인트 보호
+ * 3. CSRF: 세션 기반 double-submit cookie 검증
+ * 4. CORS 설정: Admin 앱에서 Web API 호출 허용
+ * 5. CSP 설정: XSS 및 데이터 인젝션 공격 방지
  */
 
 const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8090';
 
 // 쿠키 도메인: 서브도메인 간 공유 (예: ".damoang.net")
-// Go 백엔드의 cookieDomain()과 일치시켜야 쿠키 충돌 방지
-// nginx가 /api/v2/를 Go 백엔드로 직접 라우팅하므로,
-// Go가 설정한 쿠키(.damoang.net)와 SSR이 재설정하는 쿠키의 domain이 달라지면
-// 브라우저에 refresh_token 쿠키가 2개 생겨 인증이 꼬임
 const COOKIE_DOMAIN = process.env.COOKIE_DOMAIN || '';
 
 // CSP에 추가할 사이트별 도메인 (런타임 환경변수)
 const ADS_URL = process.env.ADS_URL || '';
 const LEGACY_URL = process.env.LEGACY_URL || '';
 
-/** SSR 인증: refreshToken 쿠키로 사용자 정보 조회 */
+/** Rate limiting 경로 패턴 */
+const RATE_LIMITED_PATHS = [
+    { path: '/api/v2/auth/login', action: 'login', maxAttempts: 10, windowMs: 15 * 60 * 1000 },
+    {
+        path: '/plugin/social/start',
+        action: 'oauth_start',
+        maxAttempts: 20,
+        windowMs: 15 * 60 * 1000
+    },
+    { path: '/api/auth/logout', action: 'logout', maxAttempts: 30, windowMs: 15 * 60 * 1000 }
+];
+
+/** CSRF 검증이 필요한 mutating 메서드 */
+const CSRF_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
+
+/** CSRF 검증에서 제외할 경로 */
+const CSRF_EXEMPT_PATHS = [
+    '/plugin/social/', // OAuth 콜백 (프로바이더가 POST)
+    '/api/v2/', // Go 백엔드 프록시 (자체 인증 사용)
+    '/api/auth/login' // 로그인 (세션 생성 전이므로 CSRF 토큰 없음)
+];
+
+/** SSR 인증: 세션 → JWT → 레거시 순서로 사용자 인증 */
 async function authenticateSSR(event: Parameters<Handle>[0]['event']): Promise<void> {
     event.locals.user = null;
     event.locals.accessToken = null;
+    event.locals.sessionId = null;
+    event.locals.csrfToken = null;
+
+    // 1순위: angple_sid 세션 쿠키
+    const sessionId = event.cookies.get(SESSION_COOKIE_NAME);
+    if (sessionId) {
+        try {
+            const session = await getSession(sessionId);
+            if (session) {
+                const member = await getMemberById(session.mbId);
+                if (member) {
+                    event.locals.user = {
+                        nickname: member.mb_nick || member.mb_name,
+                        level: member.mb_level ?? 0
+                    };
+                    event.locals.sessionId = sessionId;
+                    event.locals.csrfToken = session.csrfToken;
+                    // 세션 기반 accessToken: Go 백엔드 통신용으로 내부 생성
+                    const { generateAccessToken } = await import('$lib/server/auth/jwt.js');
+                    event.locals.accessToken = await generateAccessToken(member);
+                    return;
+                }
+            }
+        } catch {
+            // 세션 조회 실패 → JWT fallback
+        }
+    }
 
     const refreshToken = event.cookies.get('refresh_token');
 
     if (refreshToken) {
-        // 1순위: SvelteKit 자체 JWT 검증 (소셜로그인 토큰)
+        // 2순위: SvelteKit 자체 JWT 검증 (소셜로그인 토큰)
         try {
             const payload = await verifyToken(refreshToken);
             if (payload?.sub) {
@@ -53,7 +108,7 @@ async function authenticateSSR(event: Parameters<Handle>[0]['event']): Promise<v
             // SvelteKit JWT 검증 실패 → Go 백엔드 시도
         }
 
-        // 2순위: Go 백엔드 /api/v2/auth/refresh (기존 호환)
+        // 3순위: Go 백엔드 /api/v2/auth/refresh (기존 호환)
         try {
             const refreshRes = await fetch(`${BACKEND_URL}/api/v2/auth/refresh`, {
                 method: 'POST',
@@ -104,7 +159,7 @@ async function authenticateSSR(event: Parameters<Handle>[0]['event']): Promise<v
         }
     }
 
-    // 3순위: damoang_jwt (레거시 PHP SSO)
+    // 4순위: damoang_jwt (레거시 PHP SSO)
     if (!event.locals.user) {
         const legacyJwt = event.cookies.get('damoang_jwt');
         if (legacyJwt) {
@@ -171,8 +226,48 @@ export const handle: Handle = async ({ event, resolve }) => {
         }
     }
 
+    // Rate limiting: 인증 관련 엔드포인트 보호
+    const rateLimitRule = RATE_LIMITED_PATHS.find((r) => pathname.startsWith(r.path));
+    if (rateLimitRule) {
+        const clientIp = event.getClientAddress();
+        const { allowed, retryAfter } = checkRateLimit(
+            clientIp,
+            rateLimitRule.action,
+            rateLimitRule.maxAttempts,
+            rateLimitRule.windowMs
+        );
+        if (!allowed) {
+            return new Response(
+                JSON.stringify({ error: '요청이 너무 많습니다. 잠시 후 다시 시도해주세요.' }),
+                {
+                    status: 429,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Retry-After': String(retryAfter || 60)
+                    }
+                }
+            );
+        }
+        recordAttempt(clientIp, rateLimitRule.action);
+    }
+
     // SSR 인증
     await authenticateSSR(event);
+
+    // CSRF 검증: 세션 기반 double-submit cookie
+    if (
+        event.locals.sessionId &&
+        CSRF_METHODS.has(event.request.method) &&
+        !CSRF_EXEMPT_PATHS.some((p) => pathname.startsWith(p))
+    ) {
+        const csrfHeader = event.request.headers.get('x-csrf-token');
+        if (csrfHeader !== event.locals.csrfToken) {
+            return new Response(JSON.stringify({ error: 'CSRF 토큰이 유효하지 않습니다.' }), {
+                status: 403,
+                headers: { 'Content-Type': 'application/json' }
+            });
+        }
+    }
 
     // OPTIONS 요청 (CORS preflight) 처리
     if (event.request.method === 'OPTIONS') {
@@ -194,7 +289,10 @@ export const handle: Handle = async ({ event, resolve }) => {
     // CORS 헤더
     response.headers.set('Access-Control-Allow-Origin', '*');
     response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
-    response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    response.headers.set(
+        'Access-Control-Allow-Headers',
+        'Content-Type, Authorization, X-CSRF-Token'
+    );
 
     // 보안 헤더
     if (!dev) {

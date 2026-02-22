@@ -14,7 +14,13 @@ import {
     updateLoginTimestamp,
     isMemberActive
 } from '$lib/server/auth/oauth/member.js';
-import { generateAccessToken, generateRefreshToken } from '$lib/server/auth/jwt.js';
+import { generateRefreshToken } from '$lib/server/auth/jwt.js';
+import {
+    createSession,
+    SESSION_COOKIE_NAME,
+    CSRF_COOKIE_NAME,
+    SESSION_COOKIE_MAX_AGE
+} from '$lib/server/auth/session-store.js';
 import { AppleProvider } from '$lib/server/auth/oauth/providers/apple.js';
 import { TwitterProvider } from '$lib/server/auth/oauth/providers/twitter.js';
 import type { OAuthUserProfile } from '$lib/server/auth/oauth/types.js';
@@ -130,26 +136,40 @@ async function handleCallback(
         // 로그인 시각 업데이트
         await updateLoginTimestamp(mbId, clientIp);
 
-        // 9. JWT 생성
-        const accessToken = await generateAccessToken(member);
-        const refreshToken = await generateRefreshToken(member.mb_id);
+        // 9. 서버사이드 세션 생성
+        const session = await createSession(member.mb_id, {
+            ip: clientIp,
+            userAgent: '' // RequestHandler에서 접근 불가, 빈 값
+        });
 
-        // 10. refresh_token httpOnly 쿠키 설정
+        // 10. 세션 쿠키 설정 (httpOnly)
+        cookies.set(SESSION_COOKIE_NAME, session.sessionId, {
+            path: '/',
+            httpOnly: true,
+            sameSite: 'lax',
+            secure: !dev,
+            maxAge: SESSION_COOKIE_MAX_AGE
+        });
+
+        // CSRF 토큰 쿠키 (non-httpOnly, JS에서 읽어 헤더로 전송)
+        cookies.set(CSRF_COOKIE_NAME, session.csrfToken, {
+            path: '/',
+            httpOnly: false,
+            sameSite: 'strict',
+            secure: !dev,
+            maxAge: SESSION_COOKIE_MAX_AGE
+        });
+
+        // 레거시 호환: refresh_token도 생성 (전환기)
+        const { token: refreshToken } = await generateRefreshToken(member.mb_id, {
+            ip: clientIp
+        });
         cookies.set('refresh_token', refreshToken, {
             path: '/',
             httpOnly: true,
             sameSite: 'lax',
             secure: !dev,
             maxAge: 60 * 60 * 24 * 7
-        });
-
-        // access_token을 httpOnly 쿠키로 설정
-        cookies.set('access_token', accessToken, {
-            path: '/',
-            httpOnly: true,
-            sameSite: 'lax',
-            secure: !dev,
-            maxAge: 60 * 15 // 15분 (JWT 만료와 일치)
         });
 
         // 11. 원래 페이지로 리다이렉트

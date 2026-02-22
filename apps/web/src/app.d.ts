@@ -17,6 +17,10 @@ declare global {
         interface Locals {
             user: { nickname?: string; level: number } | null;
             accessToken: string | null;
+            /** 서버사이드 세션 ID (angple_sid 쿠키 원본값) */
+            sessionId: string | null;
+            /** CSRF 토큰 (세션에 연결, double-submit cookie 검증용) */
+            csrfToken: string | null;
         }
         // interface PageData {}
         // interface PageState {}

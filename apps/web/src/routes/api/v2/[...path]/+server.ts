@@ -96,7 +96,10 @@ async function proxyRequest(
             'Access-Control-Allow-Methods',
             'GET, POST, PUT, DELETE, PATCH, OPTIONS'
         );
-        responseHeaders.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+        responseHeaders.set(
+            'Access-Control-Allow-Headers',
+            'Content-Type, Authorization, X-CSRF-Token'
+        );
 
         return new Response(response.body, {
             status: response.status,

@@ -71,13 +71,13 @@ const LEGACY_SSO_COOKIE = import.meta.env.VITE_LEGACY_SSO_COOKIE || '';
  * API 클라이언트
  *
  * 🔒 보안 기능:
- * - httpOnly cookie를 사용한 Refresh Token 관리 (XSS 공격 방지)
- * - Access Token은 메모리에만 저장 (localStorage 사용 안 함)
+ * - httpOnly 세션 쿠키(angple_sid)로 인증 (서버사이드 세션)
+ * - CSRF Double-submit: angple_csrf 쿠키에서 읽어 X-CSRF-Token 헤더로 전송
  * - 모든 요청에 credentials: 'include'로 쿠키 자동 전송
- * - 401 응답 시 자동 토큰 갱신 후 재시도
+ * - 401 응답 시 자동 토큰 갱신 후 재시도 (레거시 호환)
  */
 class ApiClient {
-    // 메모리 기반 액세스 토큰 (XSS 공격 방지)
+    // 메모리 기반 액세스 토큰 (레거시 호환, 세션 기반에서는 미사용)
     private _accessToken: string | null = null;
     private _refreshPromise: Promise<boolean> | null = null;
     private _fetchFn: typeof fetch | null = null;
@@ -114,6 +114,23 @@ class ApiClient {
     private hasLegacySsoCookie(): boolean {
         if (!browser || !LEGACY_SSO_COOKIE) return false;
         return document.cookie.split('; ').some((row) => row.startsWith(`${LEGACY_SSO_COOKIE}=`));
+    }
+
+    /** CSRF 토큰 읽기 (angple_csrf 쿠키) */
+    private getCsrfToken(): string | null {
+        if (!browser) return null;
+        const match = document.cookie.split('; ').find((r) => r.startsWith('angple_csrf='));
+        return match ? match.split('=')[1] : null;
+    }
+
+    /** CSRF 헤더 포함한 headers 객체 생성 (직접 fetch 사용 시) */
+    private buildHeaders(extra?: Record<string, string>): Record<string, string> {
+        const headers: Record<string, string> = { ...extra };
+        const csrfToken = this.getCsrfToken();
+        if (csrfToken) {
+            headers['X-CSRF-Token'] = csrfToken;
+        }
+        return headers;
     }
 
     /** refresh_token 쿠키 존재 여부 확인 */
@@ -180,6 +197,15 @@ class ApiClient {
         const accessToken = this.getAccessToken();
         if (accessToken) {
             headers['Authorization'] = `Bearer ${accessToken}`;
+        }
+
+        // CSRF 토큰: POST/PUT/PATCH/DELETE 요청에 자동 포함
+        const method = (options.method || 'GET').toUpperCase();
+        if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
+            const csrfToken = this.getCsrfToken();
+            if (csrfToken) {
+                headers['X-CSRF-Token'] = csrfToken;
+            }
         }
 
         const config: RetryConfig = { ...DEFAULT_RETRY_CONFIG, ...retryConfig };
@@ -914,7 +940,7 @@ class ApiClient {
     async likePost(boardId: string, postId: string): Promise<LikeResponse> {
         const res = await fetch(`/api/boards/${boardId}/posts/${postId}/like`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: this.buildHeaders({ 'Content-Type': 'application/json' }),
             credentials: 'include',
             body: JSON.stringify({ action: 'good' })
         });
@@ -930,7 +956,7 @@ class ApiClient {
     async dislikePost(boardId: string, postId: string): Promise<LikeResponse> {
         const res = await fetch(`/api/boards/${boardId}/posts/${postId}/like`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: this.buildHeaders({ 'Content-Type': 'application/json' }),
             credentials: 'include',
             body: JSON.stringify({ action: 'nogood' })
         });
@@ -1557,10 +1583,10 @@ class ApiClient {
      * 아이디/비밀번호 로그인
      */
     async login(request: LoginRequest): Promise<LoginResponse> {
-        const url = `${API_V2_URL}/auth/login`;
-        const response = await fetch(url, {
+        // SvelteKit 프록시 경유: 세션 생성 + 쿠키 설정을 서버가 처리
+        const response = await fetch('/api/auth/login', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: this.buildHeaders({ 'Content-Type': 'application/json' }),
             credentials: 'include',
             body: JSON.stringify({
                 username: request.username,
@@ -1580,7 +1606,7 @@ class ApiClient {
 
         const data = json.data;
 
-        // 액세스 토큰을 메모리에 저장 (httpOnly 쿠키로 refreshToken은 자동 설정됨)
+        // 레거시 호환: 액세스 토큰을 메모리에 저장
         if (data.access_token) {
             this._accessToken = data.access_token;
         }
@@ -1692,6 +1718,7 @@ class ApiClient {
     async exchangeToken(): Promise<LoginResponse> {
         const response = await fetch(`${API_V2_URL}/auth/exchange`, {
             method: 'POST',
+            headers: this.buildHeaders(),
             credentials: 'include'
         });
 
