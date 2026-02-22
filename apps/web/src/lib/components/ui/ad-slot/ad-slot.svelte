@@ -97,23 +97,16 @@
                 ]
             ]
         },
-        // 게시글 본문 영역 → article
+        // 게시글 본문 영역 → article (모바일: 배너 높이에 맞춤)
         'banner-view-content': {
             unit: AD_UNIT_PATHS.article,
             sizes: [
                 [728, 90],
-                [320, 100],
-                [300, 250]
+                [320, 100]
             ],
             responsive: [
                 [728, [[728, 90]]],
-                [
-                    0,
-                    [
-                        [320, 100],
-                        [300, 250]
-                    ]
-                ]
+                [0, [[320, 100]]]
             ]
         },
         // 반응형 배너 → sub
@@ -202,6 +195,7 @@
 
     // 사이트 위치 → 광고 유형 매핑 (www position_map 기반)
     const POSITION_MAP: Record<string, string> = {
+        'board-view-top': 'banner-small',
         'board-head': 'banner-horizontal',
         'board-list-head': 'banner-responsive',
         'board-list-bottom': 'banner-large',
@@ -268,6 +262,10 @@
             [970, 90],
             [320, 100]
         ],
+        'board-view-top': [
+            [728, 90],
+            [320, 100]
+        ],
         'board-head': [
             [728, 90],
             [970, 90],
@@ -285,7 +283,6 @@
         ],
         'board-content': [
             [728, 90],
-            [300, 250],
             [320, 100]
         ],
         'board-content-bottom': [
@@ -334,6 +331,7 @@
         'index-middle-3': '중간 광고 3',
         'index-bottom': '하단 광고',
         'side-banner': '사이드 배너',
+        'board-view-top': '본문 상단',
         'board-head': '게시판 상단',
         'board-list-head': '목록 상단',
         'board-list-bottom': '목록 하단',
