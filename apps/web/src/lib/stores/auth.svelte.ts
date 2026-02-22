@@ -71,7 +71,6 @@ async function initAuth(): Promise<void> {
     // 세션 기반 인증: 서버가 쿠키로 인증하므로 클라이언트 토큰 갱신 불필요
     // SSR에서 이미 사용자 정보가 설정되어 있으면 추가 API 호출 생략
     if (!user) {
-        await apiClient.tryRefreshToken();
         await fetchCurrentUser();
     }
 }

@@ -1,6 +1,5 @@
 import { redirect, type Handle } from '@sveltejs/kit';
 import { dev } from '$app/environment';
-import { verifyToken, verifyTokenLax } from '$lib/server/auth/jwt.js';
 import { getMemberById } from '$lib/server/auth/oauth/member.js';
 import {
     getSession,
@@ -13,18 +12,12 @@ import { mapGnuboardUrl, mapRhymixUrl } from '$lib/server/url-compat.js';
 /**
  * SvelteKit Server Hooks
  *
- * 1. SSR 인증 (우선순위)
- *    - 1순위: angple_sid 세션 쿠키 → 세션 스토어 조회
- *    - 2순위: refresh_token 쿠키 → SvelteKit JWT 검증
- *    - 3순위: refresh_token 쿠키 → Go 백엔드 /api/v2/auth/refresh
- *    - 4순위: damoang_jwt 쿠키 → 레거시 PHP SSO
+ * 1. SSR 인증: angple_sid 세션 쿠키 → 세션 스토어 조회 (세션 기반 only, JWT 미사용)
  * 2. Rate limiting: 인증 관련 엔드포인트 보호
  * 3. CSRF: 세션 기반 double-submit cookie 검증
  * 4. CORS 설정: Admin 앱에서 Web API 호출 허용
  * 5. CSP 설정: XSS 및 데이터 인젝션 공격 방지
  */
-
-const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8090';
 
 // 쿠키 도메인: 서브도메인 간 공유 (예: ".damoang.net")
 const COOKIE_DOMAIN = process.env.COOKIE_DOMAIN || '';
@@ -56,14 +49,14 @@ const CSRF_EXEMPT_PATHS = [
     '/api/auth/logout' // 로그아웃 (쿠키 삭제만 하므로 위험도 낮음)
 ];
 
-/** SSR 인증: 세션 → JWT → 레거시 순서로 사용자 인증 */
+/** SSR 인증: 서버사이드 세션 only (JWT 미사용) */
 async function authenticateSSR(event: Parameters<Handle>[0]['event']): Promise<void> {
     event.locals.user = null;
     event.locals.accessToken = null;
     event.locals.sessionId = null;
     event.locals.csrfToken = null;
 
-    // 1순위: angple_sid 세션 쿠키
+    // 세션 쿠키로 인증
     const sessionId = event.cookies.get(SESSION_COOKIE_NAME);
     if (sessionId) {
         try {
@@ -77,108 +70,27 @@ async function authenticateSSR(event: Parameters<Handle>[0]['event']): Promise<v
                     };
                     event.locals.sessionId = sessionId;
                     event.locals.csrfToken = session.csrfToken;
-                    // 세션 기반 accessToken: Go 백엔드 통신용으로 내부 생성
+                    // Go 백엔드 통신용 내부 JWT 생성 (브라우저 노출 없음)
                     const { generateAccessToken } = await import('$lib/server/auth/jwt.js');
                     event.locals.accessToken = await generateAccessToken(member);
                     return;
                 }
             }
         } catch {
-            // 세션 조회 실패 → JWT fallback
+            // 세션 조회 실패
         }
     }
 
-    const refreshToken = event.cookies.get('refresh_token');
-
-    if (refreshToken) {
-        // 2순위: SvelteKit 자체 JWT 검증 (소셜로그인 토큰)
-        try {
-            const payload = await verifyToken(refreshToken);
-            if (payload?.sub) {
-                const member = await getMemberById(payload.sub);
-                if (member) {
-                    event.locals.user = {
-                        nickname: member.mb_nick || member.mb_name,
-                        level: member.mb_level ?? 0
-                    };
-                    event.locals.accessToken = refreshToken;
-                    return;
-                }
-            }
-        } catch {
-            // SvelteKit JWT 검증 실패 → Go 백엔드 시도
-        }
-
-        // 3순위: Go 백엔드 /api/v2/auth/refresh (기존 호환)
-        try {
-            const refreshRes = await fetch(`${BACKEND_URL}/api/v2/auth/refresh`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Cookie: `refresh_token=${refreshToken}`
-                }
-            });
-            if (refreshRes.ok) {
-                const refreshData = await refreshRes.json();
-                const accessToken = refreshData?.data?.access_token;
-                if (accessToken) {
-                    event.locals.accessToken = accessToken;
-
-                    // 새 refreshToken 쿠키가 있으면 갱신
-                    const setCookies = refreshRes.headers.getSetCookie?.() ?? [];
-                    for (const sc of setCookies) {
-                        const match = sc.match(/^refresh_token=([^;]+)/);
-                        if (match) {
-                            event.cookies.set('refresh_token', match[1], {
-                                path: '/',
-                                httpOnly: true,
-                                sameSite: 'lax',
-                                secure: !dev,
-                                maxAge: 60 * 60 * 24 * 7,
-                                ...(COOKIE_DOMAIN ? { domain: COOKIE_DOMAIN } : {})
-                            });
-                        }
-                    }
-
-                    // 사용자 프로필 조회
-                    const profileRes = await fetch(`${BACKEND_URL}/api/v2/auth/profile`, {
-                        headers: { Authorization: `Bearer ${accessToken}` }
-                    });
-                    if (profileRes.ok) {
-                        const profileData = await profileRes.json();
-                        const userData = profileData?.data ?? profileData;
-                        event.locals.user = {
-                            nickname: userData?.nickname,
-                            level: userData?.level ?? 0
-                        };
-                        return;
-                    }
-                }
-            }
-        } catch {
-            // Go 백엔드 인증 실패 → damoang_jwt fallback
-        }
-    }
-
-    // 4순위: damoang_jwt (레거시 PHP SSO)
-    if (!event.locals.user) {
-        const legacyJwt = event.cookies.get('damoang_jwt');
-        if (legacyJwt) {
+    // 세션 없으면 잔여 JWT 쿠키 정리 (로그아웃 후 도메인 불일치로 남은 쿠키)
+    const domainOpt = COOKIE_DOMAIN ? { domain: COOKIE_DOMAIN } : {};
+    const cleanupOpts = { path: '/', secure: !dev, httpOnly: true, ...domainOpt } as const;
+    const staleNames = ['refresh_token', 'damoang_jwt', 'access_token'];
+    for (const name of staleNames) {
+        if (event.cookies.get(name)) {
             try {
-                const payload = await verifyTokenLax(legacyJwt);
-                if (payload?.sub) {
-                    const member = await getMemberById(payload.sub);
-                    if (member) {
-                        event.locals.user = {
-                            nickname: member.mb_nick || member.mb_name,
-                            level: member.mb_level ?? 0
-                        };
-                        event.locals.accessToken = legacyJwt;
-                        return;
-                    }
-                }
+                event.cookies.delete(name, cleanupOpts);
             } catch {
-                // damoang_jwt 검증 실패
+                // 쿠키 삭제 실패 무시
             }
         }
     }
