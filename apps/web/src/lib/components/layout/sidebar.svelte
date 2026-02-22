@@ -182,9 +182,9 @@
                                                 <ChildIcon class="size-4" />
                                                 {child.title}
                                                 {#if child.shortcut}
-                                                    <span
-                                                        class="text-muted-foreground ml-auto text-xs"
-                                                        >{child.shortcut}</span
+                                                    <kbd
+                                                        class="bg-muted text-muted-foreground ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded border px-1 font-mono text-[10px] font-medium"
+                                                        >{child.shortcut}</kbd
                                                     >
                                                 {/if}
                                             </Button>

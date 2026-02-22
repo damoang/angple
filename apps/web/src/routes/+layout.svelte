@@ -19,6 +19,7 @@
     import { loadPluginComponent } from '$lib/utils/plugin-optional-loader';
     import { Toaster } from '$lib/components/ui/sonner';
     import DefaultLayout from '$lib/layouts/default-layout.svelte';
+    import { keyboardShortcuts } from '$lib/services/keyboard-shortcuts.svelte';
 
     const { children, data } = $props(); // Svelte 5: SSR 데이터 받기
 
@@ -60,6 +61,14 @@
             themeStore.initFromServer(theme);
             pluginStore.initFromServer(plugins);
             menuStore.initFromServer(menus);
+        });
+    });
+
+    // 메뉴 데이터 변경 시 키보드 단축키 빌드
+    $effect(() => {
+        const menus = menuStore.menus;
+        untrack(() => {
+            keyboardShortcuts.buildFromMenus(menus);
         });
     });
 
@@ -249,6 +258,8 @@
         };
     });
 </script>
+
+<svelte:window onkeydown={keyboardShortcuts.handleKeydown} />
 
 <svelte:head>
     <title>{import.meta.env.VITE_SITE_NAME || '다모앙'}</title>
