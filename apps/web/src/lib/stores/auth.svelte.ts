@@ -55,7 +55,7 @@ function initFromSSR(ssrUser: { nickname: string; level: number }, accessToken: 
 
 /**
  * 인증 상태 초기화
- * 앱 시작 시 호출 — 세션 쿠키로 자동 인증 (토큰 관리 불필요)
+ * 앱 시작 시 호출 — 세션 기반: SSR이 인증 권위, 클라이언트 추가 인증 없음
  */
 async function initAuth(): Promise<void> {
     // 레거시 localStorage 토큰 정리
@@ -63,16 +63,14 @@ async function initAuth(): Promise<void> {
         localStorage.removeItem('access_token');
     }
 
-    // 레거시: 소셜로그인 후 access_token 쿠키 정리 (더 이상 사용 안 함)
+    // 레거시 쿠키 정리
     if (typeof document !== 'undefined') {
         document.cookie = 'access_token=; path=/; max-age=0';
     }
 
-    // 세션 기반 인증: 서버가 쿠키로 인증하므로 클라이언트 토큰 갱신 불필요
-    // SSR에서 이미 사용자 정보가 설정되어 있으면 추가 API 호출 생략
-    if (!user) {
-        await fetchCurrentUser();
-    }
+    // 세션 기반: SSR에서 세션 없음 = 비로그인 확정
+    // 클라이언트에서 Go 백엔드에 추가 인증 시도하지 않음
+    isLoading = false;
 }
 
 /**
