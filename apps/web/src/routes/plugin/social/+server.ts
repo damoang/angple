@@ -3,7 +3,7 @@
  * PHP 콜백 URL 호환: GET /plugin/social/?hauth.done=Naver&code=xxx&state=yyy
  * Apple: POST /plugin/social/?hauth.done=Apple (response_mode=form_post)
  */
-import { redirect, error as httpError, type RequestHandler } from '@sveltejs/kit';
+import { redirect, type RequestHandler } from '@sveltejs/kit';
 import { dev } from '$app/environment';
 import { normalizeProviderName, getProvider } from '$lib/server/auth/oauth/provider-registry.js';
 import { validateOAuthState } from '$lib/server/auth/oauth/state.js';

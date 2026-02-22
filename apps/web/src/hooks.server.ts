@@ -1,11 +1,7 @@
 import { redirect, type Handle } from '@sveltejs/kit';
 import { dev } from '$app/environment';
 import { getMemberById } from '$lib/server/auth/oauth/member.js';
-import {
-    getSession,
-    SESSION_COOKIE_NAME,
-    CSRF_COOKIE_NAME
-} from '$lib/server/auth/session-store.js';
+import { getSession, SESSION_COOKIE_NAME } from '$lib/server/auth/session-store.js';
 import { checkRateLimit, recordAttempt } from '$lib/server/rate-limit.js';
 import { mapGnuboardUrl, mapRhymixUrl } from '$lib/server/url-compat.js';
 
