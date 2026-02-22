@@ -197,7 +197,10 @@ export const handle: Handle = async ({ event, resolve }) => {
     response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
     response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
 
-    // dev 모드 캐시 헤더는 nginx에서 일괄 관리 (중복 방지)
+    // 캐시 제어: 인증 데이터(user, accessToken)가 레이아웃에 포함되므로
+    // 모든 HTML/__data.json 응답은 사용자별로 고유 → 절대 캐시 금지
+    response.headers.set('Cache-Control', 'private, no-store, no-cache, must-revalidate');
+    response.headers.set('Vary', 'Cookie');
 
     return response;
 };

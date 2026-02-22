@@ -207,6 +207,7 @@
         'board-list-bottom': 'banner-large',
         'board-content': 'banner-view-content',
         'board-content-bottom': 'banner-horizontal',
+        'board-after-comments': 'banner-responsive',
         'board-footer': 'banner-horizontal',
         'index-head': 'banner-small',
         'index-top': 'banner-responsive',
@@ -292,6 +293,11 @@
             [970, 90],
             [320, 100]
         ],
+        'board-after-comments': [
+            [728, 90],
+            [300, 250],
+            [320, 100]
+        ],
         'board-footer': [
             [728, 90],
             [970, 90],
@@ -333,6 +339,7 @@
         'board-list-bottom': '목록 하단',
         'board-content': '본문 광고',
         'board-content-bottom': '본문 하단',
+        'board-after-comments': '댓글 하단',
         'board-footer': '게시판 하단',
         'comment-infeed': '댓글 인피드',
         'sidebar-sticky': '사이드바 고정',

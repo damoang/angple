@@ -5,20 +5,22 @@
     import ImageIcon from '@lucide/svelte/icons/image';
     import Play from '@lucide/svelte/icons/play';
     import Pin from '@lucide/svelte/icons/pin';
-    import { LevelBadge } from '$lib/components/ui/level-badge/index.js';
-    import { memberLevelStore } from '$lib/stores/member-levels.svelte.js';
+    import { getMemberIconUrl, handleIconError } from '$lib/utils/member-icon.js';
     import { formatDate } from '$lib/utils/format-date.js';
 
     // Props
     let {
         post,
         displaySettings,
-        onclick
+        href
     }: {
         post: FreePost;
         displaySettings?: BoardDisplaySettings;
-        onclick: () => void;
+        href: string;
     } = $props();
+
+    // 회원 아이콘 URL
+    const iconUrl = $derived(getMemberIconUrl(post.author_id));
 
     // 추천 색상 단계 (PHP get_color_step_f20240616 재현)
     const likesStep = $derived.by(() => {
@@ -59,43 +61,50 @@
 </script>
 
 <!-- Classic 스킨: PHP list 스킨 1:1 재현 (추천|제목|이름|날짜|조회) -->
-<div
-    class="bg-background hover:bg-accent cursor-pointer px-4 py-2.5 transition-colors {isDeleted
-        ? 'opacity-50'
-        : ''}"
-    {onclick}
-    role="button"
-    tabindex="0"
-    onkeydown={(e) => e.key === 'Enter' && onclick()}
->
-    <div class="flex items-center gap-2 md:gap-3">
-        <!-- 추천 박스 (데스크톱만) -->
-        <div class="hidden shrink-0 md:block">
-            {#if post.is_notice}
-                <div class="bg-liked/10 flex h-7 w-10 items-center justify-center rounded-md">
-                    <Pin class="text-liked h-4 w-4" />
-                </div>
-            {:else}
+{#if isDeleted}
+    <div class="bg-background px-4 py-2.5 opacity-50">
+        <div class="flex items-center gap-2 md:gap-3">
+            <div class="hidden shrink-0 md:block">
                 <div
-                    class="flex h-7 w-10 items-center justify-center rounded-md text-sm font-semibold {stepClasses[
-                        likesStep
-                    ]}"
+                    class="bg-muted text-muted-foreground flex h-7 w-10 items-center justify-center rounded-md text-sm font-semibold"
                 >
-                    {post.likes.toLocaleString()}
+                    -
                 </div>
-            {/if}
+            </div>
+            <div class="min-w-0 flex-1">
+                <span class="text-muted-foreground text-[15px]">[삭제된 게시물입니다]</span>
+            </div>
         </div>
+    </div>
+{:else}
+    <a
+        {href}
+        class="bg-background hover:bg-accent block px-4 py-2.5 no-underline transition-colors"
+        data-sveltekit-preload-data="hover"
+    >
+        <div class="flex items-center gap-2 md:gap-3">
+            <!-- 추천 박스 (데스크톱만) -->
+            <div class="hidden shrink-0 md:block">
+                {#if post.is_notice}
+                    <div class="bg-liked/10 flex h-7 w-10 items-center justify-center rounded-md">
+                        <Pin class="text-liked h-4 w-4" />
+                    </div>
+                {:else}
+                    <div
+                        class="flex h-7 w-10 items-center justify-center rounded-md text-sm font-semibold {stepClasses[
+                            likesStep
+                        ]}"
+                    >
+                        {post.likes.toLocaleString()}
+                    </div>
+                {/if}
+            </div>
 
-        <!-- 제목 + 메타 영역 -->
-        <div class="min-w-0 flex-1">
-            <div class="flex flex-col gap-1 md:flex-row md:items-center md:gap-3">
-                <!-- 제목 줄 -->
-                <div class="flex min-w-0 flex-1 items-center gap-1">
-                    {#if isDeleted}
-                        <span class="text-muted-foreground truncate text-[15px]"
-                            >[삭제된 게시물입니다]</span
-                        >
-                    {:else}
+            <!-- 제목 + 메타 영역 -->
+            <div class="min-w-0 flex-1">
+                <div class="flex flex-col gap-1 md:flex-row md:items-center md:gap-3">
+                    <!-- 제목 줄 -->
+                    <div class="flex min-w-0 flex-1 items-center gap-1">
                         {#if post.is_notice}
                             <Pin class="text-liked h-3.5 w-3.5 shrink-0 md:hidden" />
                         {/if}
@@ -114,7 +123,7 @@
                                 {post.category}
                             </span>
                         {/if}
-                        <span class="text-foreground truncate text-base font-bold">
+                        <span class="text-foreground truncate text-base font-semibold">
                             {post.title}
                         </span>
                         <!-- 부가 아이콘: N, 이미지, 동영상, 댓글 -->
@@ -131,37 +140,45 @@
                                 >+{post.comments_count}</span
                             >
                         {/if}
-                    {/if}
-                </div>
+                    </div>
 
-                <!-- 메타 그룹 (데스크톱: 고정 너비 칼럼) -->
-                <div class="hidden shrink-0 items-center gap-2 md:flex">
-                    <span
-                        class="text-muted-foreground inline-flex w-[100px] items-center gap-0.5 truncate text-[15px]"
-                    >
-                        <LevelBadge
-                            level={memberLevelStore.getLevel(post.author_id)}
-                            size="sm"
-                        />{post.author}
-                    </span>
-                    <span class="text-muted-foreground w-[70px] text-center text-[15px]">
-                        {formatDate(post.created_at)}
-                    </span>
-                    <span class="text-muted-foreground w-[50px] text-center text-[15px]">
-                        {post.views.toLocaleString()}
-                    </span>
-                </div>
+                    <!-- 메타 그룹 (데스크톱: 고정 너비 칼럼) -->
+                    <div class="hidden shrink-0 items-center gap-2 md:flex">
+                        <span
+                            class="text-muted-foreground inline-flex w-[120px] items-center gap-1 truncate text-[15px]"
+                        >
+                            {#if iconUrl}
+                                <img
+                                    src={iconUrl}
+                                    alt=""
+                                    class="h-5 w-5 shrink-0 rounded-full object-cover"
+                                    onerror={handleIconError}
+                                />
+                            {/if}
+                            {post.author}
+                        </span>
+                        <span class="text-muted-foreground w-[70px] text-center text-[15px]">
+                            {formatDate(post.created_at)}
+                        </span>
+                        <span class="text-muted-foreground w-[50px] text-center text-[15px]">
+                            {post.views.toLocaleString()}
+                        </span>
+                    </div>
 
-                <!-- 메타 그룹 (모바일: 한 줄 나열) -->
-                {#if !isDeleted}
+                    <!-- 메타 그룹 (모바일: 한 줄 나열) -->
                     <div
                         class="text-muted-foreground flex flex-wrap items-center gap-2 text-[15px] md:hidden"
                     >
-                        <span class="inline-flex items-center gap-0.5">
-                            <LevelBadge
-                                level={memberLevelStore.getLevel(post.author_id)}
-                                size="sm"
-                            />{post.author}
+                        <span class="inline-flex items-center gap-1">
+                            {#if iconUrl}
+                                <img
+                                    src={iconUrl}
+                                    alt=""
+                                    class="h-5 w-5 shrink-0 rounded-full object-cover"
+                                    onerror={handleIconError}
+                                />
+                            {/if}
+                            {post.author}
                         </span>
                         <span>·</span>
                         <span>{formatDate(post.created_at)}</span>
@@ -180,8 +197,8 @@
                             </span>
                         {/if}
                     </div>
-                {/if}
+                </div>
             </div>
         </div>
-    </div>
-</div>
+    </a>
+{/if}

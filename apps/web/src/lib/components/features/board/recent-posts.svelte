@@ -1,7 +1,6 @@
 <script lang="ts">
     import { onMount } from 'svelte';
     import { browser } from '$app/environment';
-    import { goto } from '$app/navigation';
     import { apiClient } from '$lib/api/index.js';
     import type { FreePost, BoardDisplaySettings } from '$lib/api/types.js';
     import { memberLevelStore } from '$lib/stores/member-levels.svelte.js';
@@ -65,11 +64,6 @@
     let currentPage = $state(1);
     let totalPages = $state(1);
     let totalItems = $state(0);
-
-    // 게시글 상세로 이동
-    function goToPost(id: number): void {
-        goto(`/${boardId}/${id}`);
-    }
 
     // 페이지 변경
     async function goToPage(page: number): Promise<void> {
@@ -166,7 +160,7 @@
 {:else}
     <div class={wrapperClass}>
         {#each posts as post, i (post.id)}
-            <LayoutComponent {post} {displaySettings} onclick={() => goToPost(post.id)} />
+            <LayoutComponent {post} {displaySettings} href="/{boardId}/{post.id}" />
             {#if shuffledPromos.length > 0 && i + 1 === 10}
                 {#each shuffledPromos.slice(0, 2) as promo (promo.wrId)}
                     <PromotionInlinePost

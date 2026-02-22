@@ -53,7 +53,7 @@ export const GET: RequestHandler = async ({ params, url }) => {
     }
 
     const page = Math.max(1, parseInt(url.searchParams.get('page') || '1', 10));
-    const limit = Math.min(100, Math.max(1, parseInt(url.searchParams.get('limit') || '10', 10)));
+    const limit = Math.min(500, Math.max(1, parseInt(url.searchParams.get('limit') || '200', 10)));
 
     const tableName = `g5_write_${safeBoardId}`;
 
@@ -66,41 +66,15 @@ export const GET: RequestHandler = async ({ params, url }) => {
         const total = countRows[0]?.total ?? 0;
         const totalPages = Math.ceil(total / limit);
 
-        // wr_comment 기준 페이징: 루트 댓글의 wr_comment 값으로 페이징
-        // 먼저 해당 페이지의 wr_comment 범위 구하기
-        const [rootComments] = await pool.query<RowDataPacket[]>(
-            `SELECT DISTINCT wr_comment FROM ?? WHERE wr_parent = ? AND wr_is_comment = 1
-			 ORDER BY wr_comment
-			 LIMIT ? OFFSET ?`,
-            [tableName, safePostId, limit, (page - 1) * limit]
-        );
-
-        if (rootComments.length === 0) {
-            return json({
-                success: true,
-                data: {
-                    comments: [],
-                    total,
-                    page,
-                    limit,
-                    total_pages: totalPages
-                }
-            });
-        }
-
-        const commentNums = rootComments.map((r) => r.wr_comment);
-        const minComment = commentNums[0];
-        const maxComment = commentNums[commentNums.length - 1];
-
-        // 해당 wr_comment 범위의 모든 댓글 (루트 + 대댓글) 가져오기
+        // 댓글 조회 (wr_comment=0은 Go API 생성 댓글 → wr_id 기준 정렬)
         const [rows] = await pool.query<CommentRow[]>(
             `SELECT wr_id, wr_parent, wr_comment, wr_comment_reply, wr_content, wr_option,
 			        wr_good, wr_nogood, mb_id, wr_name, wr_ip, wr_datetime
 			 FROM ??
 			 WHERE wr_parent = ? AND wr_is_comment = 1
-			   AND wr_comment >= ? AND wr_comment <= ?
-			 ORDER BY wr_comment, wr_comment_reply`,
-            [tableName, safePostId, minComment, maxComment]
+			 ORDER BY CASE WHEN wr_comment = 0 THEN wr_id ELSE wr_comment END, wr_comment_reply
+			 LIMIT ? OFFSET ?`,
+            [tableName, safePostId, limit, (page - 1) * limit]
         );
 
         // 닉네임 조회 (mb_id → mb_nick)

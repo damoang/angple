@@ -148,10 +148,10 @@
                         <ul class="divide-border divide-y">
                             {#each data.posts.items as post (post.id)}
                                 <li class="py-3 first:pt-0 last:pb-0">
-                                    <button
-                                        type="button"
-                                        onclick={() => goToPost('free', post.id)}
-                                        class="hover:bg-accent -m-2 w-full rounded-md p-2 text-left transition-colors"
+                                    <a
+                                        href="/{post.board_id || 'free'}/{post.id}"
+                                        class="hover:bg-accent -m-2 block w-full rounded-md p-2 no-underline transition-colors"
+                                        data-sveltekit-preload-data="hover"
                                     >
                                         <h3 class="text-foreground mb-1 line-clamp-1 font-medium">
                                             {post.title}
@@ -167,7 +167,7 @@
                                             <span>•</span>
                                             <span>💬 {post.comments_count}</span>
                                         </div>
-                                    </button>
+                                    </a>
                                 </li>
                             {/each}
                         </ul>
@@ -242,10 +242,10 @@
                         <ul class="divide-border divide-y">
                             {#each data.likedPosts.items as post (post.id)}
                                 <li class="py-3 first:pt-0 last:pb-0">
-                                    <button
-                                        type="button"
-                                        onclick={() => goToPost('free', post.id)}
-                                        class="hover:bg-accent -m-2 w-full rounded-md p-2 text-left transition-colors"
+                                    <a
+                                        href="/{post.board_id || 'free'}/{post.id}"
+                                        class="hover:bg-accent -m-2 block w-full rounded-md p-2 no-underline transition-colors"
+                                        data-sveltekit-preload-data="hover"
                                     >
                                         <h3 class="text-foreground mb-1 line-clamp-1 font-medium">
                                             {post.title}
@@ -259,7 +259,7 @@
                                             <span>•</span>
                                             <span>👍 {post.likes}</span>
                                         </div>
-                                    </button>
+                                    </a>
                                 </li>
                             {/each}
                         </ul>

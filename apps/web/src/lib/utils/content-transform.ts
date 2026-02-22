@@ -46,7 +46,7 @@ export function transformEmoticons(text: string): string {
             width = MAX_WIDTH;
         }
 
-        return `<img src="/api/emoticons/nariya/${filename}" width="${width}" alt="이모티콘" loading="lazy" class="emoticon-inline">`;
+        return `<img src="/emoticons/${filename}" width="${width}" alt="이모티콘" loading="lazy" class="emoticon-inline">`;
     });
 }
 
@@ -54,6 +54,22 @@ export function transformEmoticons(text: string): string {
  * {video: URL} / {동영상: URL} 패턴을 동영상 플레이어로 변환
  * 레거시 PHP(나리야) na_content() 호환
  */
+/**
+ * 대괄호 이미지 패턴을 <img> 태그로 변환
+ * [https://example.com/image.jpg] → <img src="...">
+ * 그누보드/나리야 PHP 호환
+ */
+export function transformBracketImages(text: string): string {
+    if (!text || !text.includes('[http')) return text;
+
+    return text.replace(
+        /\[(https?:\/\/[^\]]+\.(?:jpg|jpeg|png|gif|webp|bmp|svg)(?:\?[^\]]*)?)\]/gi,
+        (_match, url: string) => {
+            return `<img src="${url}" alt="이미지" loading="lazy" class="bracket-image" style="max-width:100%;height:auto;">`;
+        }
+    );
+}
+
 export function transformVideos(html: string): string {
     if (!html || (!html.includes('{video') && !html.includes('{동영상'))) return html;
 

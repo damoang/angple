@@ -436,6 +436,7 @@ export type ListLayout =
     | 'giving-card'
     | 'poster-gallery'
     | 'market-card'
+    | 'classic'
     | (string & {});
 
 // 게시판 본문 레이아웃 타입

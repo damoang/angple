@@ -123,9 +123,10 @@
         <div class="flex flex-col gap-1">
             <span class="text-xs font-medium text-slate-500">AD</span>
             <!-- 외부 클리핑 래퍼: MutationObserver로 AdSense의 height 덮어쓰기 방어 -->
+            <!-- 모바일: max-height 100px로 제한 / 데스크톱: 카드 높이에 맞춤 -->
             <div
                 bind:this={clipWrapper}
-                class="overflow-hidden rounded-xl"
+                class="ad-clip-wrapper overflow-hidden rounded-xl"
                 style="height: {panelHeight - 20}px; clip-path: inset(0); position: relative;"
             >
                 <!-- AdSense가 이 div의 height를 !important로 바꿔도 외부 래퍼가 잘라냄 -->
@@ -142,8 +143,8 @@
             </div>
         </div>
 
-        <!-- 최근 글 -->
-        <Card class="gap-0">
+        <!-- 최근 글 (모바일에서 숨김) -->
+        <Card class="hidden gap-0 sm:flex">
             <CardHeader class="px-3 pb-0 pt-2">
                 <h4 class="text-foreground text-sm font-semibold">작성자 최근 글</h4>
             </CardHeader>
@@ -171,8 +172,8 @@
             </CardContent>
         </Card>
 
-        <!-- 최근 댓글 -->
-        <Card class="gap-0">
+        <!-- 최근 댓글 (모바일에서 숨김) -->
+        <Card class="hidden gap-0 sm:flex">
             <CardHeader class="px-3 pb-0 pt-2">
                 <h4 class="text-foreground text-sm font-semibold">작성자 최근 댓글</h4>
             </CardHeader>
@@ -201,3 +202,15 @@
         </Card>
     </div>
 {/if}
+
+<style>
+    /* 모바일에서 AdSense 높이 제한 (페이지 상단 광고 크기 축소) */
+    .ad-clip-wrapper {
+        max-height: 100px;
+    }
+    @media (min-width: 640px) {
+        .ad-clip-wrapper {
+            max-height: none;
+        }
+    }
+</style>

@@ -12,7 +12,7 @@
 @import './styles/components.css';
 @import './styles/utilities.css';
 
-@custom-variant dark (&:where(.dark, .dark *));
+@custom-variant dark (&:where(.dark, .dark *, .amoled, .amoled *));
 
 :root {
     --radius: 0.625rem;
@@ -166,6 +166,54 @@
     --color-canvas: oklch(0.269 0.008 196.73);
     --color-subtle: oklch(0.307 0.009 196.7);
     --color-border: oklch(0.408 0.011 196.73);
+}
+
+/* AMOLED 모드: 순수 블랙 배경 (OLED 디스플레이 최적화) */
+.amoled {
+    --background: oklch(0 0 0);
+    --foreground: oklch(0.984 0.003 247.858);
+    --card: oklch(0.06 0.003 196.75);
+    --card-foreground: oklch(0.984 0.003 247.858);
+    --popover: oklch(0.06 0.003 196.75);
+    --popover-foreground: oklch(0.984 0.003 247.858);
+    --primary: oklch(0.929 0.013 255.508);
+    --primary-foreground: oklch(0.208 0.042 265.755);
+    --secondary: oklch(0.2 0.005 196.74);
+    --secondary-foreground: oklch(0.8019 0.007 200.78);
+    --muted: oklch(0.15 0.001 196.74);
+    --muted-foreground: oklch(0.77 0.008 196.99);
+    --accent: oklch(0.15 0.02 260.031);
+    --accent-foreground: oklch(0.984 0.003 247.858);
+    --destructive: oklch(0.704 0.191 22.216);
+    --liked: oklch(0.704 0.191 22.216);
+    --liked-foreground: oklch(0.208 0.042 265.755);
+    --disliked: oklch(0.696 0.17 162.48);
+    --disliked-foreground: oklch(0.208 0.042 265.755);
+    --border: oklch(0.22 0.005 196.73);
+    --input: oklch(1 0 0 / 10%);
+    --ring: oklch(0.551 0.027 264.364);
+    --chart-1: oklch(0.488 0.243 264.376);
+    --chart-2: oklch(0.696 0.17 162.48);
+    --chart-3: oklch(0.769 0.188 70.08);
+    --chart-4: oklch(0.627 0.265 303.9);
+    --chart-5: oklch(0.645 0.246 16.439);
+    --sidebar: oklch(0 0 0);
+    --sidebar-foreground: oklch(0.984 0.003 247.858);
+    --sidebar-primary: oklch(0.488 0.243 264.376);
+    --sidebar-primary-foreground: oklch(0.984 0.003 247.858);
+    --sidebar-accent: oklch(0.15 0.02 260.031);
+    --sidebar-accent-foreground: oklch(0.984 0.003 247.858);
+    --sidebar-border: oklch(1 0 0 / 6%);
+    --sidebar-ring: oklch(0.551 0.027 264.364);
+    --canvas-color: oklch(0 0 0);
+    --subtle-color: oklch(0.1 0.003 196.7);
+}
+
+.amoled {
+    --color-background: oklch(0 0 0);
+    --color-canvas: oklch(0 0 0);
+    --color-subtle: oklch(0.1 0.003 196.7);
+    --color-border: oklch(0.22 0.005 196.73);
 }
 
 @layer base {

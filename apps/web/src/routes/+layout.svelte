@@ -36,9 +36,19 @@
     });
 
     // SEO 기본 설정 초기화
+    // SSR에서 url.origin이 http://로 올 수 있으므로 (nginx 프록시 뒤),
+    // 비 localhost 도메인은 항상 https:// 사용 (hydration mismatch 방지)
+    const siteUrl = $derived.by(() => {
+        const origin = $page.url.origin;
+        if (origin.startsWith('http://') && !origin.includes('localhost')) {
+            return origin.replace('http://', 'https://');
+        }
+        return origin;
+    });
+
     configureSeo({
         siteName: import.meta.env.VITE_SITE_NAME || 'Angple',
-        siteUrl: $page.url.origin
+        siteUrl
     });
 
     // SSR에서 받은 테마/플러그인/메뉴로 스토어 초기화 (깜박임 방지!)

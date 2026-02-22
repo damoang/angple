@@ -20,7 +20,7 @@
         href={post.linkUrl}
         target="_blank"
         rel="noopener noreferrer"
-        class="hover:bg-accent flex items-center gap-2 px-4 py-2.5 transition-colors md:gap-3"
+        class="bg-background hover:bg-accent flex items-center gap-2 px-4 py-2.5 transition-colors md:gap-3"
     >
         <!-- 썸네일 (데스크톱: 추천박스 위치) -->
         {#if post.imageUrl}

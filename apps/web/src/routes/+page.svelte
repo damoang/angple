@@ -1,11 +1,10 @@
 <script lang="ts">
-    import { page } from '$app/stores';
     import { WidgetRenderer } from '$lib/components/widget-renderer';
     import { EditModeToggle } from '$lib/components/features/widget-editor';
     import { indexWidgetsStore } from '$lib/stores/index-widgets.svelte';
     import { widgetLayoutStore } from '$lib/stores/widget-layout.svelte';
     import { untrack } from 'svelte';
-    import { SeoHead, createWebSiteJsonLd } from '$lib/seo/index.js';
+    import { SeoHead, createWebSiteJsonLd, getSiteUrl } from '$lib/seo/index.js';
     import type { SeoConfig } from '$lib/seo/types.js';
 
     const { data } = $props();
@@ -35,16 +34,16 @@
         meta: {
             title: homeTitle,
             description: homeDescription,
-            canonicalUrl: $page.url.origin,
+            canonicalUrl: getSiteUrl(),
             includeSiteName: false
         },
         og: {
             title: homeTitle,
             description: homeDescription,
             type: 'website',
-            url: $page.url.origin
+            url: getSiteUrl()
         },
-        jsonLd: [createWebSiteJsonLd(`${$page.url.origin}/search?stx={search_term_string}`)]
+        jsonLd: [createWebSiteJsonLd(`${getSiteUrl()}/search?stx={search_term_string}`)]
     });
 </script>
 

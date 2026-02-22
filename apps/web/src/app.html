@@ -27,9 +27,16 @@
     </head>
     <body data-sveltekit-preload-data="hover">
         <script>
-            if (localStorage.getItem('darkMode') === 'true') {
-                document.documentElement.classList.add('dark');
-            }
+            // 테마 모드 즉시 적용 (FOUC 방지)
+            (function() {
+                var m = localStorage.getItem('themeMode');
+                if (!m) {
+                    // 기존 darkMode 호환
+                    if (localStorage.getItem('darkMode') === 'true') m = 'dark';
+                }
+                if (m === 'dark') document.documentElement.classList.add('dark');
+                else if (m === 'amoled') document.documentElement.classList.add('amoled');
+            })();
         </script>
         <div style="display: contents">%sveltekit.body%</div>
         <script>

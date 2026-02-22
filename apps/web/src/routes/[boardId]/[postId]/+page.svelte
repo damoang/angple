@@ -43,7 +43,12 @@
     import { CelebrationRolling } from '$lib/components/ui/celebration-rolling';
     import { widgetLayoutStore } from '$lib/stores/widget-layout.svelte';
     import { pluginStore } from '$lib/stores/plugin.svelte';
-    import { SeoHead, createArticleJsonLd, createBreadcrumbJsonLd } from '$lib/seo/index.js';
+    import {
+        SeoHead,
+        createArticleJsonLd,
+        createBreadcrumbJsonLd,
+        getSiteUrl
+    } from '$lib/seo/index.js';
     import type { SeoConfig } from '$lib/seo/types.js';
     import { LevelBadge } from '$lib/components/ui/level-badge/index.js';
     import { memberLevelStore } from '$lib/stores/member-levels.svelte.js';
@@ -576,13 +581,13 @@
         meta: {
             title: `${data.post.title} - ${boardTitle}`,
             description: postDescription,
-            canonicalUrl: `${$page.url.origin}/${boardId}/${data.post.id}`
+            canonicalUrl: `${getSiteUrl()}/${boardId}/${data.post.id}`
         },
         og: {
             title: data.post.title,
             description: postDescription,
             type: 'article',
-            url: `${$page.url.origin}/${boardId}/${data.post.id}`,
+            url: `${getSiteUrl()}/${boardId}/${data.post.id}`,
             image: data.post.thumbnail || data.post.images?.[0]
         },
         twitter: {
@@ -601,8 +606,8 @@
                 description: postDescription
             }),
             createBreadcrumbJsonLd([
-                { name: '홈', url: $page.url.origin },
-                { name: boardTitle, url: `${$page.url.origin}/${boardId}` },
+                { name: '홈', url: getSiteUrl() },
+                { name: boardTitle, url: `${getSiteUrl()}/${boardId}` },
                 { name: data.post.title }
             ])
         ]
@@ -1009,13 +1014,6 @@
             </p>
         {/if}
 
-        <!-- 본문 하단 광고 -->
-        {#if widgetLayoutStore.hasEnabledAds}
-            <div class="my-6">
-                <AdSlot position="board-content-bottom" height="90px" />
-            </div>
-        {/if}
-
         <!-- 플러그인 슬롯: post.after_content (나눔 BidPanel 등) -->
         {#each afterContentSlots as slot (slot.component)}
             {@const SlotComponent = slot.component}
@@ -1050,12 +1048,13 @@
             />
         {/each}
 
-        <!-- 작성자 활동 패널 아래 GAM 광고 -->
+        <!-- 작성자 활동 패널 아래 GAM 광고 (비활성화: 본문 영역 광고 과다 방지)
         {#if widgetLayoutStore.hasEnabledAds}
             <div class="my-6">
                 <AdSlot position="board-before-comments" height="90px" />
             </div>
         {/if}
+        -->
 
         <!-- 댓글 섹션 (비밀글 열람 가능 시에만 표시) -->
         {#if canViewSecret}
@@ -1098,10 +1097,10 @@
         </div>
         -->
 
-        <!-- 추천글 아래 배너 -->
+        <!-- 댓글~목록 사이 GAM 광고 -->
         {#if widgetLayoutStore.hasEnabledAds}
-            <div class="mt-6">
-                <AdSlot position="board-content-bottom" height="90px" />
+            <div class="my-6">
+                <AdSlot position="board-after-comments" height="90px" />
             </div>
         {/if}
 

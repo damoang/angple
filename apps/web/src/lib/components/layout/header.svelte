@@ -10,6 +10,7 @@
     import Rss from '@lucide/svelte/icons/rss';
     import Sun from '@lucide/svelte/icons/sun';
     import Moon from '@lucide/svelte/icons/moon';
+    import Smartphone from '@lucide/svelte/icons/smartphone';
     import Logo from '$lib/assets/logo.svg';
     import AlignJustify from '@lucide/svelte/icons/align-justify';
     import Mail from '@lucide/svelte/icons/mail';
@@ -19,7 +20,7 @@
 
     // 스크롤 상태 관리
     let isDrawerOpen = $state(false);
-    let isDarkMode = $state(false);
+    let themeMode = $state<'light' | 'dark' | 'amoled'>('light');
     let isScrolled = $state(false);
 
     // 스크롤 이벤트 핸들러
@@ -32,20 +33,36 @@
         isDrawerOpen = !isDrawerOpen;
     }
 
-    // 다크모드 토글
-    function toggleDarkMode() {
-        isDarkMode = !isDarkMode;
-        document.documentElement.classList.toggle('dark');
-        localStorage.setItem('darkMode', String(isDarkMode));
+    // 테마 모드 순환: light → dark → amoled → light
+    function cycleThemeMode() {
+        const el = document.documentElement;
+        if (themeMode === 'light') {
+            themeMode = 'dark';
+            el.classList.add('dark');
+            el.classList.remove('amoled');
+        } else if (themeMode === 'dark') {
+            themeMode = 'amoled';
+            el.classList.remove('dark');
+            el.classList.add('amoled');
+        } else {
+            themeMode = 'light';
+            el.classList.remove('dark', 'amoled');
+        }
+        localStorage.setItem('themeMode', themeMode);
     }
 
     // 컴포넌트 마운트 시 스크롤 이벤트 등록
     onMount(() => {
-        // 다크모드 상태 복원
-        const saved = localStorage.getItem('darkMode');
-        if (saved === 'true') {
-            isDarkMode = true;
+        // 테마 모드 복원 (기존 darkMode 호환)
+        const savedMode = localStorage.getItem('themeMode');
+        const legacyDark = localStorage.getItem('darkMode');
+        if (savedMode === 'dark' || savedMode === 'amoled') {
+            themeMode = savedMode;
+            document.documentElement.classList.add(savedMode);
+        } else if (!savedMode && legacyDark === 'true') {
+            themeMode = 'dark';
             document.documentElement.classList.add('dark');
+            localStorage.setItem('themeMode', 'dark');
         }
 
         window.addEventListener('scroll', handleScroll, { passive: true });
@@ -72,7 +89,7 @@
             >
                 <AlignJustify class="text-muted-foreground h-6 w-6" />
             </button>
-            <a href="/" class="flex items-center">
+            <a href="/" data-sveltekit-reload class="flex items-center">
                 <img src={Logo} alt="damoang" class="h-12" />
             </a>
         </div>
@@ -81,6 +98,7 @@
         <nav class="hidden items-center space-x-8 md:flex">
             <a
                 href="/"
+                data-sveltekit-reload
                 class="text-foreground hover:text-primary flex items-center transition-all duration-200 ease-out"
             >
                 <Home class="mr-2 h-5 w-5" />
@@ -97,14 +115,25 @@
 
         <!-- 우측 아이콘 버튼들 -->
         <div class="flex items-center space-x-1">
-            <!-- 다크모드 토글 -->
+            <!-- 테마 모드 토글: light → dark → amoled -->
             <button
-                onclick={toggleDarkMode}
+                onclick={cycleThemeMode}
                 class="hover:bg-accent rounded-lg p-2 transition-all duration-200 ease-out"
-                aria-label="다크모드 전환"
+                aria-label={themeMode === 'light'
+                    ? '다크모드로 전환'
+                    : themeMode === 'dark'
+                      ? 'AMOLED 모드로 전환'
+                      : '라이트모드로 전환'}
+                title={themeMode === 'light'
+                    ? '다크모드'
+                    : themeMode === 'dark'
+                      ? 'AMOLED'
+                      : '라이트모드'}
             >
-                {#if isDarkMode}
-                    <Sun class="h-5 w-5 text-yellow-500" />
+                {#if themeMode === 'amoled'}
+                    <Sun class="h-5 w-5 text-orange-400" />
+                {:else if themeMode === 'dark'}
+                    <Smartphone class="h-5 w-5 text-yellow-500" />
                 {:else}
                     <Moon class="text-muted-foreground h-5 w-5" />
                 {/if}

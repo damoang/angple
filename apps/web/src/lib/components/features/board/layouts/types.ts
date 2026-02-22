@@ -21,7 +21,7 @@ export type LayoutSource = 'core' | 'theme' | 'plugin';
 export interface ListLayoutProps {
     post: FreePost;
     displaySettings?: BoardDisplaySettings;
-    onclick: () => void;
+    href: string;
 }
 
 /**

@@ -30,9 +30,8 @@
 
     <!-- 스크롤 시 고정되는 GAM 광고 (양쪽 날개형) -->
     {#if widgetLayoutStore.hasEnabledAds}
-        <div class="sticky top-[64px] space-y-3">
+        <div class="sticky top-[64px]">
             <AdSlot position="sidebar-sticky" height="600px" />
-            <AdSlot position="sidebar-2" height="250px" />
         </div>
     {/if}
 </div>

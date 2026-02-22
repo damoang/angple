@@ -367,7 +367,7 @@ class ApiClient {
         boardId: string,
         postId: string,
         page = 1,
-        limit = 10
+        limit = 200
     ): Promise<PaginatedResponse<FreeComment>> {
         const fetchFn = this._fetchFn || fetch;
         this._fetchFn = null;
@@ -411,7 +411,7 @@ class ApiClient {
     async getFreeComments(
         id: string,
         page = 1,
-        limit = 10
+        limit = 200
     ): Promise<PaginatedResponse<FreeComment>> {
         return this.getBoardComments('free', id, page, limit);
     }

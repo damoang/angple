@@ -88,7 +88,7 @@ const coreListLayouts: { manifest: LayoutManifest; component: any }[] = [
             id: 'classic',
             name: '클래식',
             description: 'PHP 게시판 스킨과 동일한 추천/제목/이름/날짜/조회 테이블형 목록',
-            wrapperClass: 'divide-y divide-border'
+            wrapperClass: 'border border-border rounded-lg divide-y divide-border overflow-hidden'
         },
         component: ClassicLayout
     }

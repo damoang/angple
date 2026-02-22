@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { goto } from '$app/navigation';
+    import { goto, invalidateAll } from '$app/navigation';
     import { page } from '$app/stores';
     import { Card, CardContent } from '$lib/components/ui/card/index.js';
     import { Button } from '$lib/components/ui/button/index.js';
@@ -22,7 +22,7 @@
     import { CelebrationRolling } from '$lib/components/ui/celebration-rolling';
     import { PromotionInlinePost } from '$lib/components/ui/promotion-inline-post';
     import { widgetLayoutStore } from '$lib/stores/widget-layout.svelte';
-    import { SeoHead, createBreadcrumbJsonLd } from '$lib/seo/index.js';
+    import { SeoHead, createBreadcrumbJsonLd, getSiteUrl } from '$lib/seo/index.js';
     import type { SeoConfig } from '$lib/seo/types.js';
     import { memberLevelStore } from '$lib/stores/member-levels.svelte.js';
     import { checkPermission, getPermissionMessage } from '$lib/utils/board-permissions.js';
@@ -220,17 +220,17 @@
         meta: {
             title: isSearching ? `"${data.searchParams?.query}" 검색 - ${boardTitle}` : boardTitle,
             description: `${boardTitle} 게시판 - ${import.meta.env.VITE_SITE_NAME || 'Angple'}`,
-            canonicalUrl: `${$page.url.origin}/${boardId}`
+            canonicalUrl: `${getSiteUrl()}/${boardId}`
         },
         og: {
             title: boardTitle,
             type: 'website',
-            url: `${$page.url.origin}/${boardId}`
+            url: `${getSiteUrl()}/${boardId}`
         },
         jsonLd: [
             createBreadcrumbJsonLd([
-                { name: '홈', url: $page.url.origin },
-                { name: boardTitle, url: `${$page.url.origin}/${boardId}` }
+                { name: '홈', url: getSiteUrl() },
+                { name: boardTitle, url: `${getSiteUrl()}/${boardId}` }
             ])
         ]
     });
@@ -240,11 +240,6 @@
         const url = new URL(window.location.href);
         url.searchParams.set('page', String(pageNum));
         goto(url.pathname + url.search);
-    }
-
-    // 게시글 상세 페이지로 이동
-    function goToPost(id: number): void {
-        goto(`/${boardId}/${id}`);
     }
 </script>
 
@@ -402,15 +397,15 @@
             <!-- 공지사항 (검색 중이 아닐 때만 표시) -->
             {#if hasNotices && !isSearching}
                 {#if listLayoutId === 'classic'}
-                    <!-- Classic 레이아웃: 플랫 행 스타일 공지 -->
-                    <div class="divide-border mb-4 divide-y">
+                    <!-- Classic 레이아웃: 붙어있는 행 스타일 공지 -->
+                    <div
+                        class="border-border divide-border mb-4 divide-y overflow-hidden rounded-lg border"
+                    >
                         {#each importantNotices as notice (notice.id)}
-                            <div
-                                class="bg-destructive/5 hover:bg-destructive/10 cursor-pointer px-4 py-2.5 transition-colors"
-                                onclick={() => goToPost(notice.id)}
-                                role="button"
-                                tabindex="0"
-                                onkeydown={(e) => e.key === 'Enter' && goToPost(notice.id)}
+                            <a
+                                href="/{boardId}/{notice.id}"
+                                class="bg-destructive/5 hover:bg-destructive/10 block px-4 py-2.5 no-underline transition-colors"
+                                data-sveltekit-preload-data="hover"
                             >
                                 <div class="flex items-center gap-2 md:gap-3">
                                     <div class="hidden shrink-0 md:block">
@@ -442,15 +437,13 @@
                                         {notice.author}
                                     </span>
                                 </div>
-                            </div>
+                            </a>
                         {/each}
                         {#each normalNotices as notice (notice.id)}
-                            <div
-                                class="bg-muted/30 hover:bg-muted cursor-pointer px-4 py-2.5 transition-colors"
-                                onclick={() => goToPost(notice.id)}
-                                role="button"
-                                tabindex="0"
-                                onkeydown={(e) => e.key === 'Enter' && goToPost(notice.id)}
+                            <a
+                                href="/{boardId}/{notice.id}"
+                                class="bg-background hover:bg-muted block px-4 py-2.5 no-underline transition-colors"
+                                data-sveltekit-preload-data="hover"
                             >
                                 <div class="flex items-center gap-2 md:gap-3">
                                     <div class="hidden shrink-0 md:block">
@@ -481,7 +474,7 @@
                                         {notice.author}
                                     </span>
                                 </div>
-                            </div>
+                            </a>
                         {/each}
                     </div>
                 {:else}
@@ -489,12 +482,10 @@
                     <div class="mb-4 space-y-1">
                         <!-- 필수 공지 -->
                         {#each importantNotices as notice (notice.id)}
-                            <div
-                                class="bg-destructive/5 border-destructive/20 hover:bg-destructive/10 cursor-pointer rounded-lg border px-4 py-3 transition-colors"
-                                onclick={() => goToPost(notice.id)}
-                                role="button"
-                                tabindex="0"
-                                onkeydown={(e) => e.key === 'Enter' && goToPost(notice.id)}
+                            <a
+                                href="/{boardId}/{notice.id}"
+                                class="bg-destructive/5 border-destructive/20 hover:bg-destructive/10 block rounded-lg border px-4 py-3 no-underline transition-colors"
+                                data-sveltekit-preload-data="hover"
                             >
                                 <div class="flex items-center gap-3">
                                     <div class="flex shrink-0 items-center gap-1.5">
@@ -508,17 +499,15 @@
                                         {notice.author}
                                     </span>
                                 </div>
-                            </div>
+                            </a>
                         {/each}
 
                         <!-- 일반 공지 -->
                         {#each normalNotices as notice (notice.id)}
-                            <div
-                                class="bg-muted/50 border-border hover:bg-muted cursor-pointer rounded-lg border px-4 py-3 transition-colors"
-                                onclick={() => goToPost(notice.id)}
-                                role="button"
-                                tabindex="0"
-                                onkeydown={(e) => e.key === 'Enter' && goToPost(notice.id)}
+                            <a
+                                href="/{boardId}/{notice.id}"
+                                class="bg-muted/50 border-border hover:bg-muted block rounded-lg border px-4 py-3 no-underline transition-colors"
+                                data-sveltekit-preload-data="hover"
                             >
                                 <div class="flex items-center gap-3">
                                     <div class="flex shrink-0 items-center gap-1.5">
@@ -532,7 +521,7 @@
                                         {notice.author}
                                     </span>
                                 </div>
-                            </div>
+                            </a>
                         {/each}
                     </div>
                 {/if}
@@ -583,7 +572,7 @@
                                     <LayoutComponent
                                         {post}
                                         displaySettings={data.board?.display_settings}
-                                        onclick={() => goToPost(post.id)}
+                                        href="/{boardId}/{post.id}"
                                     />
                                 </div>
                             </div>
@@ -591,7 +580,7 @@
                             <LayoutComponent
                                 {post}
                                 displaySettings={data.board?.display_settings}
-                                onclick={() => goToPost(post.id)}
+                                href="/{boardId}/{post.id}"
                             />
                         {/if}
 
