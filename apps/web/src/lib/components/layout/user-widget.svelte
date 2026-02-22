@@ -17,13 +17,21 @@
         if (isLoggingOut) return;
         isLoggingOut = true;
         try {
-            await fetch('/api/auth/logout', { method: 'POST' });
-            authActions.resetAuth();
-            window.location.href = '/';
+            await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
         } catch {
-            // fallback: PHP 로그아웃
-            window.location.href = `https://damoang.net/bbs/logout.php?url=${encodeURIComponent(window.location.origin)}`;
+            // 에러 무시
         }
+        // 클라이언트에서도 모든 인증 쿠키 강제 삭제 (도메인 불일치 대비)
+        const domains = ['', '.damoang.net', 'damoang.net', 'dev.damoang.net', 'web.damoang.net'];
+        const names = ['damoang_jwt', 'refresh_token', 'access_token', 'angple_sid', 'angple_csrf'];
+        for (const name of names) {
+            for (const domain of domains) {
+                const domainPart = domain ? `; domain=${domain}` : '';
+                document.cookie = `${name}=; path=/; max-age=0${domainPart}`;
+            }
+        }
+        authActions.resetAuth();
+        window.location.href = '/';
     }
 
     // Reactive getters
@@ -65,11 +73,9 @@
         if (user) avatarFailed = false;
     });
 
-    // 로그인/로그아웃 URL 생성 (PHP 레거시 로그인으로 리다이렉트)
+    // 로그인 URL (Angple 자체 로그인 페이지)
     let loginUrl = $derived(
-        browser
-            ? `https://damoang.net/bbs/login.php?url=${encodeURIComponent(window.location.href)}`
-            : 'https://damoang.net/bbs/login.php?url=https://web.damoang.net'
+        browser ? `/login?redirect=${encodeURIComponent(window.location.pathname)}` : '/login'
     );
 </script>
 

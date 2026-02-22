@@ -52,7 +52,8 @@ const CSRF_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 const CSRF_EXEMPT_PATHS = [
     '/plugin/social/', // OAuth 콜백 (프로바이더가 POST)
     '/api/v2/', // Go 백엔드 프록시 (자체 인증 사용)
-    '/api/auth/login' // 로그인 (세션 생성 전이므로 CSRF 토큰 없음)
+    '/api/auth/login', // 로그인 (세션 생성 전이므로 CSRF 토큰 없음)
+    '/api/auth/logout' // 로그아웃 (쿠키 삭제만 하므로 위험도 낮음)
 ];
 
 /** SSR 인증: 세션 → JWT → 레거시 순서로 사용자 인증 */
