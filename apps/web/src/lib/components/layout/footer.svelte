@@ -18,7 +18,7 @@
     ];
 
     // 함께만들어가요 메뉴
-    const togetherLinks = [
+    const togetherLinks: FooterLink[] = [
         { name: '공지사항', href: 'https://damoang.net/notice' },
         { name: '유지관리(버그제보)', href: 'https://damoang.net/bug' },
         { name: '다모앙 만들기', href: 'https://damoang.net/makeang' },
@@ -28,14 +28,14 @@
     ];
 
     // 시스템 메뉴
-    const systemLinks = [
+    const systemLinks: FooterLink[] = [
         { name: '포인트 안내', href: 'https://damoang.net/content/info' },
         { name: '레벨 안내', href: 'https://damoang.net/content/level' },
         { name: '새글모음', href: 'https://damoang.net/bbs/new.php', external: true }
     ];
 
     // 🚨삐앙삐앙🚨 메뉴
-    const emergencyLinks = [
+    const emergencyLinks: FooterLink[] = [
         { name: '앙리포트', href: 'https://damoang.net/report' },
         { name: '소명게시판', href: 'https://damoang.net/claim' },
         { name: '회원 신고 (누적 진실의 방)', href: 'https://damoang.net/truthroom' },
