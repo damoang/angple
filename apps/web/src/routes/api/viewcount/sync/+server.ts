@@ -44,7 +44,7 @@ export const POST: RequestHandler = async ({ url }) => {
             );
             synced++;
         } catch (err) {
-            console.error(`[viewcount sync] ${key} 실패:`, err);
+            console.error('[viewcount sync]', key, '실패:', err);
             errors++;
         }
     }

@@ -1,8 +1,10 @@
 <script lang="ts">
     import ChevronDown from '@lucide/svelte/icons/chevron-down';
 
+    type FooterLink = { name: string; href: string; external?: boolean };
+
     // 앙포털 메뉴
-    const angportalLinks = [
+    const angportalLinks: FooterLink[] = [
         { name: '다모앙 지도 - 앙지도', href: 'https://damoang.net/angmap' },
         { name: '다모앙 평점 - 앙티티', href: 'https://damoang.net/angtt' },
         { name: '다모앙 음악 - 앙뮤직', href: 'https://damoang.net/music' },

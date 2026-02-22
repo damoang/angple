@@ -21,6 +21,7 @@ export interface FreePost {
     content: string;
     author: string;
     author_id: string;
+    board_id?: string;
     author_ip?: string; // 작성자 IP (마스킹된 형태, 예: 123.456.*.*)
     views: number;
     likes: number;

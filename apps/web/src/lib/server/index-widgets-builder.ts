@@ -114,7 +114,7 @@ export async function fetchBoardPostsForWidget(
     );
 
     if (!response.ok) {
-        console.error(`[index-widgets-builder] ${boardId} API error:`, response.status);
+        console.error('[index-widgets-builder]', boardId, 'API error:', response.status);
         return [];
     }
 

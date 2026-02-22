@@ -73,23 +73,27 @@
         }
     }
 
-    onMount(async () => {
+    onMount(() => {
         if (!browser || !post.author_id) {
             loading = false;
             return;
         }
-        try {
-            const res = await fetch(`/api/members/${post.author_id}/activity?limit=5`);
-            if (res.ok) {
-                const data = await res.json();
-                recentPosts = data.recentPosts ?? [];
-                recentComments = data.recentComments ?? [];
+
+        // 비동기 데이터 로딩 (IIFE)
+        (async () => {
+            try {
+                const res = await fetch(`/api/members/${post.author_id}/activity?limit=5`);
+                if (res.ok) {
+                    const data = await res.json();
+                    recentPosts = data.recentPosts ?? [];
+                    recentComments = data.recentComments ?? [];
+                }
+            } catch {
+                // 실패 시 조용히 처리
+            } finally {
+                loading = false;
             }
-        } catch {
-            // 실패 시 조용히 처리
-        } finally {
-            loading = false;
-        }
+        })();
 
         // 카드 높이 측정 후 광고 높이 맞추기 + AdSense 초기화
         let observer: MutationObserver | undefined;
