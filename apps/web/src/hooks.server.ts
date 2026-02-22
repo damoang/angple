@@ -16,6 +16,13 @@ import { mapGnuboardUrl, mapRhymixUrl } from '$lib/server/url-compat.js';
 
 const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8090';
 
+// 쿠키 도메인: 서브도메인 간 공유 (예: ".damoang.net")
+// Go 백엔드의 cookieDomain()과 일치시켜야 쿠키 충돌 방지
+// nginx가 /api/v2/를 Go 백엔드로 직접 라우팅하므로,
+// Go가 설정한 쿠키(.damoang.net)와 SSR이 재설정하는 쿠키의 domain이 달라지면
+// 브라우저에 refresh_token 쿠키가 2개 생겨 인증이 꼬임
+const COOKIE_DOMAIN = process.env.COOKIE_DOMAIN || '';
+
 // CSP에 추가할 사이트별 도메인 (런타임 환경변수)
 const ADS_URL = process.env.ADS_URL || '';
 const LEGACY_URL = process.env.LEGACY_URL || '';
@@ -71,7 +78,8 @@ async function authenticateSSR(event: Parameters<Handle>[0]['event']): Promise<v
                                 httpOnly: true,
                                 sameSite: 'lax',
                                 secure: !dev,
-                                maxAge: 60 * 60 * 24 * 7
+                                maxAge: 60 * 60 * 24 * 7,
+                                ...(COOKIE_DOMAIN ? { domain: COOKIE_DOMAIN } : {})
                             });
                         }
                     }
