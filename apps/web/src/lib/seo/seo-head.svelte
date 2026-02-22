@@ -10,7 +10,9 @@
 
     const { config }: { config: SeoConfig } = $props();
 
-    const fullTitle = $derived(buildTitle(config.meta.title));
+    const fullTitle = $derived(
+        buildTitle(config.meta.title, config.meta.includeSiteName !== false)
+    );
     const robots = $derived(buildRobots(config.meta));
     const ogTags = $derived(buildOgTags(config.meta, config.og));
     const twitterTags = $derived(buildTwitterTags(config.meta, config.twitter));

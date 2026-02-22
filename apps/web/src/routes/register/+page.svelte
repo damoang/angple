@@ -30,13 +30,25 @@
     let agreePrivacy = $state(false);
     let isSubmitting = $state(false);
     let turnstileRef: HTMLDivElement | undefined = $state();
+    let turnstileWidgetId: string | undefined = $state();
 
-    // Turnstile 렌더링
+    // Turnstile 렌더링 (에러 시 자동 재시도)
     onMount(() => {
         if (PUBLIC_TURNSTILE_SITE_KEY && turnstileRef && window.turnstile) {
-            window.turnstile.render(turnstileRef, {
+            turnstileWidgetId = window.turnstile.render(turnstileRef, {
                 sitekey: PUBLIC_TURNSTILE_SITE_KEY,
-                theme: 'auto'
+                theme: 'auto',
+                retry: 'auto',
+                'retry-interval': 5000,
+                'error-callback': () => {
+                    // challenge 실패 시 3초 후 자동 리셋
+                    setTimeout(() => {
+                        if (turnstileWidgetId !== undefined && window.turnstile) {
+                            window.turnstile.reset(turnstileWidgetId);
+                        }
+                    }, 3000);
+                    return true;
+                }
             });
         }
     });

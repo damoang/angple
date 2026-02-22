@@ -3,6 +3,7 @@
     import type { FreePost, BoardDisplaySettings } from '$lib/api/types.js';
     import Lock from '@lucide/svelte/icons/lock';
     import ImageIcon from '@lucide/svelte/icons/image';
+    import { formatDate } from '$lib/utils/format-date.js';
 
     // Props
     let {
@@ -20,33 +21,6 @@
         displaySettings?.show_thumbnail && post.images && post.images.length > 0
     );
     const thumbnailUrl = $derived(post.images?.[0] || '');
-
-    // 날짜 포맷 헬퍼
-    function formatDate(dateString: string): string {
-        const date = new Date(dateString);
-        const now = new Date();
-        const diff = now.getTime() - date.getTime();
-        const seconds = Math.floor(diff / 1000);
-        const minutes = Math.floor(seconds / 60);
-        const hours = Math.floor(minutes / 60);
-        const days = Math.floor(hours / 24);
-
-        if (days > 7) {
-            return date.toLocaleDateString('ko-KR', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
-            });
-        } else if (days > 0) {
-            return `${days}일 전`;
-        } else if (hours > 0) {
-            return `${hours}시간 전`;
-        } else if (minutes > 0) {
-            return `${minutes}분 전`;
-        } else {
-            return '방금 전';
-        }
-    }
 </script>
 
 <!-- Compact 스킨: 제목 + 메타데이터 + 태그만 (심플) -->

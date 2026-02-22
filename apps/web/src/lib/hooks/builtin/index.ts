@@ -5,4 +5,6 @@
 
 export { initBoardFilters } from './board-filter';
 export { initAuthHooks } from './auth';
+export { initContentVideo } from './content-video';
 export { initContentEmbed } from './content-embed';
+export { initCommentContent } from './comment-content';

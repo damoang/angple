@@ -1,6 +1,6 @@
 import { redirect, type Handle } from '@sveltejs/kit';
 import { dev } from '$app/environment';
-import { verifyToken } from '$lib/server/auth/jwt.js';
+import { verifyToken, verifyTokenLax } from '$lib/server/auth/jwt.js';
 import { getMemberById } from '$lib/server/auth/oauth/member.js';
 import { mapGnuboardUrl, mapRhymixUrl } from '$lib/server/url-compat.js';
 
@@ -14,7 +14,7 @@ import { mapGnuboardUrl, mapRhymixUrl } from '$lib/server/url-compat.js';
  * 3. CSP 설정: XSS 및 데이터 인젝션 공격 방지
  */
 
-const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8081';
+const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8090';
 
 // CSP에 추가할 사이트별 도메인 (런타임 환경변수)
 const ADS_URL = process.env.ADS_URL || '';
@@ -26,73 +26,97 @@ async function authenticateSSR(event: Parameters<Handle>[0]['event']): Promise<v
     event.locals.accessToken = null;
 
     const refreshToken = event.cookies.get('refresh_token');
-    if (!refreshToken) return;
 
-    // 1순위: SvelteKit 자체 JWT 검증 (소셜로그인 토큰)
-    try {
-        const payload = await verifyToken(refreshToken);
-        if (payload?.sub) {
-            const member = await getMemberById(payload.sub);
-            if (member) {
-                // 자체 JWT 검증 성공 → locals 설정
-                event.locals.user = {
-                    nickname: member.mb_nick || member.mb_name,
-                    level: member.mb_level ?? 0
-                };
-                event.locals.accessToken = refreshToken; // refresh_token 자체를 사용
-                return;
+    if (refreshToken) {
+        // 1순위: SvelteKit 자체 JWT 검증 (소셜로그인 토큰)
+        try {
+            const payload = await verifyToken(refreshToken);
+            if (payload?.sub) {
+                const member = await getMemberById(payload.sub);
+                if (member) {
+                    event.locals.user = {
+                        nickname: member.mb_nick || member.mb_name,
+                        level: member.mb_level ?? 0
+                    };
+                    event.locals.accessToken = refreshToken;
+                    return;
+                }
             }
+        } catch {
+            // SvelteKit JWT 검증 실패 → Go 백엔드 시도
         }
-    } catch {
-        // SvelteKit JWT 검증 실패 → Go 백엔드 시도
+
+        // 2순위: Go 백엔드 /api/v2/auth/refresh (기존 호환)
+        try {
+            const refreshRes = await fetch(`${BACKEND_URL}/api/v2/auth/refresh`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Cookie: `refresh_token=${refreshToken}`
+                }
+            });
+            if (refreshRes.ok) {
+                const refreshData = await refreshRes.json();
+                const accessToken = refreshData?.data?.access_token;
+                if (accessToken) {
+                    event.locals.accessToken = accessToken;
+
+                    // 새 refreshToken 쿠키가 있으면 갱신
+                    const setCookies = refreshRes.headers.getSetCookie?.() ?? [];
+                    for (const sc of setCookies) {
+                        const match = sc.match(/^refresh_token=([^;]+)/);
+                        if (match) {
+                            event.cookies.set('refresh_token', match[1], {
+                                path: '/',
+                                httpOnly: true,
+                                sameSite: 'lax',
+                                secure: !dev,
+                                maxAge: 60 * 60 * 24 * 7
+                            });
+                        }
+                    }
+
+                    // 사용자 프로필 조회
+                    const profileRes = await fetch(`${BACKEND_URL}/api/v2/auth/profile`, {
+                        headers: { Authorization: `Bearer ${accessToken}` }
+                    });
+                    if (profileRes.ok) {
+                        const profileData = await profileRes.json();
+                        const userData = profileData?.data ?? profileData;
+                        event.locals.user = {
+                            nickname: userData?.nickname,
+                            level: userData?.level ?? 0
+                        };
+                        return;
+                    }
+                }
+            }
+        } catch {
+            // Go 백엔드 인증 실패 → damoang_jwt fallback
+        }
     }
 
-    // 2순위: Go 백엔드 /api/v2/auth/refresh (기존 호환)
-    try {
-        const refreshRes = await fetch(`${BACKEND_URL}/api/v2/auth/refresh`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                Cookie: `refresh_token=${refreshToken}`
-            }
-        });
-        if (!refreshRes.ok) return;
-
-        const refreshData = await refreshRes.json();
-        const accessToken = refreshData?.data?.access_token;
-        if (!accessToken) return;
-
-        event.locals.accessToken = accessToken;
-
-        // 새 refreshToken 쿠키가 있으면 갱신
-        const setCookies = refreshRes.headers.getSetCookie?.() ?? [];
-        for (const sc of setCookies) {
-            const match = sc.match(/^refresh_token=([^;]+)/);
-            if (match) {
-                event.cookies.set('refresh_token', match[1], {
-                    path: '/',
-                    httpOnly: true,
-                    sameSite: 'lax',
-                    secure: !dev,
-                    maxAge: 60 * 60 * 24 * 7
-                });
+    // 3순위: damoang_jwt (레거시 PHP SSO)
+    if (!event.locals.user) {
+        const legacyJwt = event.cookies.get('damoang_jwt');
+        if (legacyJwt) {
+            try {
+                const payload = await verifyTokenLax(legacyJwt);
+                if (payload?.sub) {
+                    const member = await getMemberById(payload.sub);
+                    if (member) {
+                        event.locals.user = {
+                            nickname: member.mb_nick || member.mb_name,
+                            level: member.mb_level ?? 0
+                        };
+                        event.locals.accessToken = legacyJwt;
+                        return;
+                    }
+                }
+            } catch {
+                // damoang_jwt 검증 실패
             }
         }
-
-        // 사용자 프로필 조회
-        const profileRes = await fetch(`${BACKEND_URL}/api/v2/auth/profile`, {
-            headers: { Authorization: `Bearer ${accessToken}` }
-        });
-        if (!profileRes.ok) return;
-
-        const profileData = await profileRes.json();
-        const userData = profileData?.data ?? profileData;
-        event.locals.user = {
-            nickname: userData?.nickname,
-            level: userData?.level ?? 0
-        };
-    } catch {
-        // 인증 실패 시 무시 (비로그인 상태)
     }
 }
 
@@ -105,14 +129,14 @@ function buildCsp(): string {
     const directives: string[] = [
         "default-src 'self' https://damoang.net https://*.damoang.net",
         // SvelteKit + GAM(GPT) + AdSense + Turnstile 스크립트 허용
-        `script-src 'self' 'unsafe-inline' 'unsafe-eval' https://challenges.cloudflare.com https://securepubads.g.doubleclick.net https://pagead2.googlesyndication.com${adsHost} https://www.googletagservices.com https://adservice.google.com https://partner.googleadservices.com https://tpc.googlesyndication.com https://www.google.com https://fundingchoicesmessages.google.com https://*.googlesyndication.com https://*.doubleclick.net https://*.gstatic.com https://*.adtrafficquality.google`,
+        `script-src 'self' 'unsafe-inline' 'unsafe-eval' https://challenges.cloudflare.com https://securepubads.g.doubleclick.net https://googleads.g.doubleclick.net https://pagead2.googlesyndication.com${adsHost} https://www.googletagservices.com https://www.googletagmanager.com https://adservice.google.com https://partner.googleadservices.com https://tpc.googlesyndication.com https://www.google.com https://fundingchoicesmessages.google.com https://*.googlesyndication.com https://*.doubleclick.net https://*.gstatic.com https://*.adtrafficquality.google`,
         `style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com${adsHost}`,
         "font-src 'self' https://cdn.jsdelivr.net https://fonts.gstatic.com",
         "img-src 'self' data: blob: https:",
         // API 및 광고 서버 연결 허용
         `connect-src 'self' http://localhost:* ws://localhost:* https://*.damoang.net https://damoang.net${legacyHost}${adsHost} https://pagead2.googlesyndication.com https://securepubads.g.doubleclick.net https://www.google-analytics.com https://cdn.jsdelivr.net https://*.google.com https://*.googlesyndication.com https://*.doubleclick.net https://ep1.adtrafficquality.google https://ep2.adtrafficquality.google https://*.adtrafficquality.google https://*.gstatic.com`,
-        // YouTube, Google 광고, Turnstile iframe 허용
-        "frame-src 'self' https://challenges.cloudflare.com https://www.youtube.com https://www.youtube-nocookie.com https://googleads.g.doubleclick.net https://securepubads.g.doubleclick.net https://tpc.googlesyndication.com https://www.google.com https://*.googlesyndication.com https://*.doubleclick.net https://*.adtrafficquality.google",
+        // YouTube, 임베드 플랫폼, Google 광고, Turnstile iframe 허용
+        "frame-src 'self' https://challenges.cloudflare.com https://www.youtube.com https://www.youtube-nocookie.com https://platform.twitter.com https://player.vimeo.com https://clips.twitch.tv https://player.twitch.tv https://www.tiktok.com https://www.instagram.com https://googleads.g.doubleclick.net https://securepubads.g.doubleclick.net https://tpc.googlesyndication.com https://www.google.com https://*.googlesyndication.com https://*.doubleclick.net https://*.adtrafficquality.google",
         "frame-ancestors 'self'",
         "base-uri 'self'",
         "form-action 'self' https://appleid.apple.com"
@@ -172,6 +196,11 @@ export const handle: Handle = async ({ event, resolve }) => {
     response.headers.set('X-Frame-Options', 'SAMEORIGIN');
     response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
     response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+
+    // 캐시 제어: 인증 데이터(user, accessToken)가 레이아웃에 포함되므로
+    // 모든 HTML/__data.json 응답은 사용자별로 고유 → 절대 캐시 금지
+    response.headers.set('Cache-Control', 'private, no-store, no-cache, must-revalidate');
+    response.headers.set('Vary', 'Cookie');
 
     return response;
 };

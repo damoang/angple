@@ -48,11 +48,12 @@ export const twitter: EmbedPlatform = {
         return `<iframe
 			src="${embedUrl}"
 			title="Twitter post"
+			data-tweet-id="${info.id}"
 			frameborder="0"
 			scrolling="no"
 			allowtransparency="true"
 			allowfullscreen
-			style="min-height: 250px;"
+			style="width: 100%; min-height: 300px;"
 		></iframe>`;
     }
 };

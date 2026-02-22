@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { goto } from '$app/navigation';
+    import { goto, invalidateAll } from '$app/navigation';
     import { browser } from '$app/environment';
     import PostForm from '$lib/components/features/board/post-form.svelte';
     import { writeFormRegistry } from '$lib/components/features/board/write-form-registry.js';
@@ -8,6 +8,7 @@
     import type { PageData } from './$types.js';
     import type { CreatePostRequest, UpdatePostRequest } from '$lib/api/types.js';
     import { sendMentionNotifications } from '$lib/utils/mention-notify.js';
+    import { checkPermission, getPermissionMessage } from '$lib/utils/board-permissions.js';
 
     let { data }: { data: PageData } = $props();
 
@@ -21,6 +22,16 @@
 
     let isSubmitting = $state(false);
     let error = $state<string | null>(null);
+
+    // 글쓰기 권한 체크
+    const requiredLevel = $derived(data.board?.write_level ?? 3);
+    const canWrite = $derived(() => {
+        if (!authStore.isAuthenticated) return false;
+        return checkPermission(data.board, 'can_write', authStore.user ?? null);
+    });
+    const writePermissionMsg = $derived(
+        getPermissionMessage(data.board, 'can_write', authStore.user ?? null)
+    );
 
     // 로그인 체크 (클라이언트 사이드)
     $effect(() => {
@@ -63,6 +74,8 @@
                 senderId: authStore.user.mb_id || ''
             });
 
+            // 게시판 목록 캐시 무효화 후 상세 페이지로 이동
+            await invalidateAll();
             goto(`/${boardId}/${newPost.id}`);
         } catch (err) {
             console.error('Failed to create post:', err);
@@ -90,6 +103,13 @@
     {:else if !authStore.isAuthenticated}
         <div class="py-12 text-center">
             <p class="text-muted-foreground">로그인이 필요합니다. 로그인 페이지로 이동합니다...</p>
+        </div>
+    {:else if !canWrite()}
+        <div class="py-12 text-center">
+            <div class="bg-muted/50 mx-auto max-w-md rounded-lg p-8">
+                <p class="text-muted-foreground text-lg font-medium">글쓰기 권한이 없습니다</p>
+                <p class="text-muted-foreground mt-2 text-sm">{writePermissionMsg}</p>
+            </div>
         </div>
     {:else}
         {#if error}

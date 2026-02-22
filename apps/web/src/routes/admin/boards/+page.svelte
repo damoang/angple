@@ -361,7 +361,7 @@
                                         <Button
                                             variant="ghost"
                                             size="icon"
-                                            href="/admin/boards/{board.board_id}/view-settings"
+                                            href="/admin/boards/{board.board_id}-settings"
                                             title="표시 설정"
                                         >
                                             <Settings class="h-4 w-4" />

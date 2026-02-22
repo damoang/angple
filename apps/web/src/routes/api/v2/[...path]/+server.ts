@@ -9,7 +9,7 @@ import { dev } from '$app/environment';
  * - Set-Cookie 헤더 전달 (httpOnly refreshToken)
  */
 
-const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8081';
+const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8090';
 
 // 공통 프록시 로직
 async function proxyRequest(

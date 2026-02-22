@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 
 test('게시판 CRUD 기능 확인', async ({ page }) => {
     // 1. 자유게시판 목록
-    await page.goto('/free');
+    await page.goto('/free', { waitUntil: 'domcontentloaded' });
     await page.waitForTimeout(2000);
     await page.screenshot({ path: '/tmp/crud-01-list.png', fullPage: true });
     console.log('1. 자유게시판 목록');
@@ -14,7 +14,11 @@ test('게시판 CRUD 기능 확인', async ({ page }) => {
     // 2. 게시글 상세 페이지
     const firstPost = page.locator('article, [class*="post"], [class*="card"]').first();
     if (await firstPost.isVisible()) {
-        await firstPost.click();
+        // 게시글 클릭 후 상세 페이지 이동 (백엔드 없는 CI에서 타임아웃 방지)
+        const href = await firstPost.locator('a').first().getAttribute('href');
+        if (href) {
+            await page.goto(href, { waitUntil: 'domcontentloaded' });
+        }
         await page.waitForTimeout(2000);
         await page.screenshot({ path: '/tmp/crud-02-detail.png', fullPage: true });
         console.log('2. 게시글 상세');

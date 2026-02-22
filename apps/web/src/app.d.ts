@@ -34,6 +34,9 @@ declare global {
                     sitekey: string;
                     theme?: 'light' | 'dark' | 'auto';
                     callback?: (token: string) => void;
+                    retry?: 'auto' | 'never';
+                    'retry-interval'?: number;
+                    'error-callback'?: () => boolean | void;
                 }
             ) => string;
             reset: (widgetId?: string) => void;

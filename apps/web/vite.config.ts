@@ -18,6 +18,10 @@ export default defineConfig(({ mode }) => {
 
     return {
         plugins: [tailwindcss(), sveltekit()],
+        ssr: {
+            // AWS SDK를 서버 번들에 포함 (프로덕션 배포 시 node_modules 불필요)
+            noExternal: ['@aws-sdk/**', '@smithy/**']
+        },
         resolve: {
             alias: {
                 $themes: path.resolve(__dirname, '../../themes'),
@@ -32,6 +36,7 @@ export default defineConfig(({ mode }) => {
         server: {
             port,
             allowedHosts,
+            // 캐시 헤더는 nginx에서 일괄 관리 (중복 방지)
             hmr: env.VITE_HMR_HOST
                 ? {
                       host: env.VITE_HMR_HOST,

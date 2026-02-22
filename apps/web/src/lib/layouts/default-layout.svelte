@@ -21,30 +21,9 @@
     const { children } = $props(); // Svelte 5
     let snbPosition = $state<'left' | 'right'>('left'); // 기본값
 
-    let isBannerUp = $state(false);
-    let lastScrollY = $state(0);
-
-    function handleScroll() {
-        const currentScrollY = window.scrollY;
-
-        if (currentScrollY > lastScrollY && currentScrollY > 80) {
-            isBannerUp = true; // 아래로 스크롤 시 배너 올림
-        } else if (currentScrollY < lastScrollY) {
-            isBannerUp = false; // 위로 스크롤 시 배너 내림
-        }
-
-        lastScrollY = currentScrollY;
-    }
-
     onMount(() => {
         // 인증 상태 초기화
         authActions.initAuth();
-
-        window.addEventListener('scroll', handleScroll, { passive: true });
-
-        return () => {
-            window.removeEventListener('scroll', handleScroll);
-        };
     });
 </script>
 
@@ -86,14 +65,12 @@
                 </aside>
             {/if}
             {#if snbPosition === 'left'}
-                <aside
-                    class="bg-background sticky top-12 hidden h-[calc(100vh-3rem)] self-start md:top-16 md:h-[calc(100vh-4rem)] 2xl:block 2xl:!w-[230px]"
-                >
+                <aside class="bg-background hidden self-start 2xl:block 2xl:!w-[230px]">
                     <Sidebar />
                 </aside>
             {/if}
 
-            <main class="box-content flex-1 overflow-y-auto pt-1 md:py-5 lg:pe-6 2xl:!px-9">
+            <main class="box-content min-w-0 flex-1 pt-1 md:py-5 lg:pe-6 2xl:!px-9">
                 {@render children()}
             </main>
             {#if snbPosition === 'right'}
@@ -113,21 +90,11 @@
         </div>
     </div>
     <!-- 왼쪽 윙 배너 - 컨테이너 바로 왼쪽 (160px 배너 + 10px 간격) -->
-    <aside
-        class="fixed hidden transition-all duration-300 min-[1600px]:block"
-        class:top-21={!isBannerUp}
-        class:top-6={isBannerUp}
-        style="right: calc(50% + 640px);"
-    >
+    <aside class="top-21 fixed hidden min-[1600px]:block" style="right: calc(50% + 696px);">
         <LeftBanner />
     </aside>
     <!-- 오른쪽 윙 배너 - 컨테이너 바로 오른쪽 (10px 간격) -->
-    <aside
-        class="fixed hidden transition-all duration-300 min-[1600px]:block"
-        class:top-21={!isBannerUp}
-        class:top-6={isBannerUp}
-        style="left: calc(50% + 640px);"
-    >
+    <aside class="top-21 fixed hidden min-[1600px]:block" style="left: calc(50% + 696px);">
         <RightBanner />
     </aside>
 

@@ -45,7 +45,8 @@ export const GET: RequestHandler = async ({ params, url }) => {
 
     try {
         // g5_board_new에서 최근 활동 조회
-        const [newRows] = await pool.execute<BoardNewRow[]>(
+        // pool.query 사용: pool.execute의 prepared statement는 LIMIT 파라미터 타입 오류 발생
+        const [newRows] = await pool.query<BoardNewRow[]>(
             `SELECT bn_id, bo_table, wr_id, wr_is_comment, bn_datetime
              FROM g5_board_new
              WHERE mb_id = ?
@@ -134,7 +135,7 @@ export const GET: RequestHandler = async ({ params, url }) => {
                     parent_wr_id: w.wr_parent,
                     preview,
                     wr_datetime: w.wr_datetime,
-                    href: `/${row.bo_table}/${w.wr_parent}`
+                    href: `/${row.bo_table}/${w.wr_parent}#c_${w.wr_id}`
                 });
             } catch {
                 // 테이블 없으면 스킵
@@ -144,9 +145,7 @@ export const GET: RequestHandler = async ({ params, url }) => {
         return json({ recentPosts, recentComments });
     } catch (error) {
         console.error('[activity API] error:', error);
-        return json(
-            { success: false, error: '활동 데이터를 가져오는데 실패했습니다.' },
-            { status: 500 }
-        );
+        // DB 연결 실패 등의 에러 시 빈 결과 반환 (500 대신 graceful degradation)
+        return json({ recentPosts: [], recentComments: [] });
     }
 };

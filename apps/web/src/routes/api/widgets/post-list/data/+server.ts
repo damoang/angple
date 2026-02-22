@@ -4,12 +4,13 @@
  * post-list 위젯이 사용하는 데이터 엔드포인트.
  * Query params: board, sort, count, filter
  *
- * 현재는 indexWidgetsStore의 mock/backend 데이터를 재활용합니다.
- * 백엔드 API가 완성되면 직접 호출로 전환합니다.
+ * 백엔드 개별 게시판 API를 직접 호출하여 데이터를 제공합니다.
  */
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { apiClient } from '$lib/api';
+import { fetchBoardPostsForWidget } from '$lib/server/index-widgets-builder';
+
+const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8090';
 
 export const GET: RequestHandler = async ({ url }) => {
     const board = url.searchParams.get('board') ?? 'notice';
@@ -18,36 +19,20 @@ export const GET: RequestHandler = async ({ url }) => {
     const filter = url.searchParams.get('filter') ?? 'none';
 
     try {
-        // 기존 인덱스 위젯 데이터를 활용
-        const widgetsData = await apiClient.getIndexWidgets();
-
-        if (!widgetsData) {
-            return json({ posts: [], board, sort, count });
-        }
+        const rawPosts = await fetchBoardPostsForWidget(BACKEND_URL, board, count);
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any -- dynamic widget data from various board types
-        let posts: any[] = [];
-
-        switch (board) {
-            case 'notice':
-                posts = widgetsData.news_tabs ?? [];
-                break;
-            case 'economy':
-                posts = widgetsData.economy_tabs ?? [];
-                break;
-            case 'gallery':
-                posts = widgetsData.gallery ?? [];
-                break;
-            case 'group': {
-                const groupData = widgetsData.group_tabs;
-                // group은 탭별 데이터 → 전체 합침
-                posts = groupData ? [...(groupData.all ?? []), ...(groupData['24h'] ?? [])] : [];
-                break;
-            }
-            default:
-                // 알 수 없는 게시판은 빈 배열
-                posts = [];
-        }
+        let posts: any[] = rawPosts.map((p) => ({
+            id: p.id,
+            title: p.title,
+            author: p.author,
+            created_at: p.created_at,
+            comment_count: p.comments_count,
+            view_count: p.views,
+            recommend_count: p.likes,
+            thumbnail_url: p.thumbnail,
+            url: `/${board}/${p.id}`
+        }));
 
         // 정렬
         if (sort !== 'date') {

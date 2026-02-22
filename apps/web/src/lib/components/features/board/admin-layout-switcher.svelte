@@ -4,6 +4,7 @@
      *
      * 게시판 페이지 상단에 표시되며, 관리자가 즉시 레이아웃을 변경할 수 있다.
      * 변경 즉시 API에 저장되고 페이지가 새로고침된다.
+     * 레이아웃 목록은 layoutRegistry에서 동적으로 가져온다.
      */
 
     import { invalidateAll } from '$app/navigation';
@@ -13,9 +14,16 @@
     import AlignJustify from '@lucide/svelte/icons/align-justify';
     import LayoutGrid from '@lucide/svelte/icons/layout-grid';
     import List from '@lucide/svelte/icons/list';
-    import Image from '@lucide/svelte/icons/image';
+    import ImageIcon from '@lucide/svelte/icons/image';
     import Newspaper from '@lucide/svelte/icons/newspaper';
+    import TableProperties from '@lucide/svelte/icons/table-properties';
+    import LayoutDashboard from '@lucide/svelte/icons/layout-dashboard';
     import { apiClient } from '$lib/api';
+    import { layoutRegistry, initCoreLayouts } from './layouts/index.js';
+
+    // 코어 레이아웃 초기화 (중복 호출 안전)
+    initCoreLayouts();
+    import type { Component } from 'svelte';
 
     interface Props {
         boardId: string;
@@ -27,13 +35,28 @@
     let isOpen = $state(false);
     let saving = $state<string | null>(null);
 
-    const layouts = [
-        { id: 'compact', label: '컴팩트', icon: AlignJustify },
-        { id: 'card', label: '카드', icon: LayoutGrid },
-        { id: 'detailed', label: '상세', icon: List },
-        { id: 'gallery', label: '갤러리', icon: Image },
-        { id: 'webzine', label: '웹진', icon: Newspaper }
-    ] as const;
+    // 레이아웃 ID별 아이콘 매핑 (알려진 레이아웃용)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const iconMap: Record<string, Component<any>> = {
+        compact: AlignJustify,
+        card: LayoutGrid,
+        detailed: List,
+        gallery: ImageIcon,
+        webzine: Newspaper,
+        classic: TableProperties,
+        'poster-gallery': ImageIcon,
+        'market-card': LayoutGrid
+    };
+
+    // 레지스트리에서 동적으로 레이아웃 목록 생성
+    const layouts = $derived.by(() => {
+        const manifests = layoutRegistry.getListManifests();
+        return manifests.map((m) => ({
+            id: m.id,
+            label: m.name,
+            icon: iconMap[m.id] || LayoutDashboard
+        }));
+    });
 
     function toggle() {
         isOpen = !isOpen;

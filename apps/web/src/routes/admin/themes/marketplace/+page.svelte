@@ -461,7 +461,7 @@
                                 <Button
                                     size="sm"
                                     variant="outline"
-                                    href={`/admin/themes/${theme.id}/settings`}
+                                    href={`/admin/themes/${theme.id}-settings`}
                                 >
                                     <Eye class="h-4 w-4" />
                                 </Button>
@@ -497,7 +497,7 @@
                                 <Button
                                     size="sm"
                                     variant="outline"
-                                    href={`/admin/themes/${theme.id}/settings`}
+                                    href={`/admin/themes/${theme.id}-settings`}
                                 >
                                     <Eye class="h-4 w-4" />
                                 </Button>

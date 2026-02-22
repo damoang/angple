@@ -269,10 +269,10 @@
                         <ul class="divide-border divide-y">
                             {#each result.posts as post (post.id)}
                                 <li class="py-3 first:pt-0 last:pb-0">
-                                    <button
-                                        type="button"
-                                        onclick={() => goToPost(result.board_id, post.id)}
-                                        class="hover:bg-accent -m-2 w-full rounded-md p-2 text-left transition-colors"
+                                    <a
+                                        href="/{result.board_id}/{post.id}"
+                                        class="hover:bg-accent -m-2 block w-full rounded-md p-2 no-underline transition-colors"
+                                        data-sveltekit-preload-data="hover"
                                     >
                                         <h3 class="text-foreground mb-1 line-clamp-1 font-medium">
                                             {@html highlightQuery(post.title, data.query)}
@@ -295,7 +295,7 @@
                                             <span>·</span>
                                             <span>댓글 {post.comments_count}</span>
                                         </div>
-                                    </button>
+                                    </a>
                                 </li>
                             {/each}
                         </ul>

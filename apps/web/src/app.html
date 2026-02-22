@@ -11,6 +11,13 @@
         <link rel="shortcut icon" href="/favicon.ico" />
         <link rel="apple-touch-icon" href="/icons/icon-192.png" />
         <!-- nosemgrep: html.security.audit.missing-integrity.missing-integrity -->
+        <link
+            rel="stylesheet"
+            as="style"
+            crossorigin
+            href="https://cdn.jsdelivr.net/gh/wanteddev/wanted-sans@v1.0.1/packages/wanted-sans/fonts/webfonts/variable/split/WantedSansVariable.min.css"
+        />
+        <!-- nosemgrep: html.security.audit.missing-integrity.missing-integrity -->
         <script
             src="https://challenges.cloudflare.com/turnstile/v0/api.js"
             async
@@ -21,14 +28,35 @@
     </head>
     <body data-sveltekit-preload-data="hover">
         <script>
-            if (localStorage.getItem('darkMode') === 'true') {
-                document.documentElement.classList.add('dark');
-            }
+            // 테마 모드 즉시 적용 (FOUC 방지)
+            (function () {
+                var m = localStorage.getItem('themeMode');
+                if (!m) {
+                    // 기존 darkMode 호환
+                    if (localStorage.getItem('darkMode') === 'true') m = 'dark';
+                }
+                if (m === 'dark') document.documentElement.classList.add('dark');
+                else if (m === 'amoled') document.documentElement.classList.add('amoled');
+            })();
         </script>
         <div style="display: contents">%sveltekit.body%</div>
         <script>
-            if ('serviceWorker' in navigator && location.hostname !== 'localhost') {
-                navigator.serviceWorker.register('/sw.js');
+            if ('serviceWorker' in navigator) {
+                if (location.hostname === 'localhost' || location.hostname.startsWith('dev.')) {
+                    // dev 환경: SW 해제 + Cache Storage 전체 삭제
+                    navigator.serviceWorker.getRegistrations().then(function (regs) {
+                        regs.forEach(function (r) {
+                            r.unregister();
+                        });
+                    });
+                    caches.keys().then(function (names) {
+                        names.forEach(function (name) {
+                            caches.delete(name);
+                        });
+                    });
+                } else {
+                    navigator.serviceWorker.register('/sw.js');
+                }
             }
         </script>
     </body>

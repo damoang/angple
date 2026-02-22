@@ -1,5 +1,6 @@
 export {
     configureSeo,
+    getSiteUrl,
     buildTitle,
     buildRobots,
     buildOgTags,

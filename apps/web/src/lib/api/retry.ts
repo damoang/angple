@@ -29,13 +29,14 @@ function getDelay(attempt: number, baseDelay: number): number {
 export async function fetchWithTimeout(
     url: string,
     options: RequestInit,
-    timeoutMs: number
+    timeoutMs: number,
+    fetchFn: typeof fetch = fetch
 ): Promise<Response> {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
     try {
-        const response = await fetch(url, {
+        const response = await fetchFn(url, {
             ...options,
             signal: controller.signal
         });
@@ -54,13 +55,14 @@ export async function fetchWithTimeout(
 export async function fetchWithRetry(
     url: string,
     options: RequestInit,
-    config: RetryConfig = DEFAULT_RETRY_CONFIG
+    config: RetryConfig = DEFAULT_RETRY_CONFIG,
+    fetchFn: typeof fetch = fetch
 ): Promise<Response> {
     let lastError: Error | null = null;
 
     for (let attempt = 0; attempt <= config.maxRetries; attempt++) {
         try {
-            const response = await fetchWithTimeout(url, options, config.timeout);
+            const response = await fetchWithTimeout(url, options, config.timeout, fetchFn);
 
             // 재시도 가능한 서버 에러인 경우
             if (response.status >= 500 && attempt < config.maxRetries) {
@@ -69,14 +71,9 @@ export async function fetchWithRetry(
                 continue;
             }
 
-            // 429 Rate Limit
-            if (response.status === 429 && attempt < config.maxRetries) {
-                const retryAfter = response.headers.get('Retry-After');
-                const delay = retryAfter
-                    ? parseInt(retryAfter, 10) * 1000
-                    : getDelay(attempt, config.baseDelay);
-                await sleep(delay);
-                continue;
+            // 429 Rate Limit — 재시도하면 오히려 요청량 증가시키므로 즉시 반환
+            if (response.status === 429) {
+                return response;
             }
 
             return response;

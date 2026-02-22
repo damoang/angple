@@ -73,6 +73,20 @@
         return null;
     }
 
+    // 이미지 파일 여부 확인
+    const IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp', 'ico'];
+
+    function isImageFile(file: File): boolean {
+        return (
+            file.type.startsWith('image/') ||
+            IMAGE_EXTENSIONS.includes(file.name.split('.').pop()?.toLowerCase() || '')
+        );
+    }
+
+    function isImageMime(mimeType: string): boolean {
+        return mimeType.startsWith('image/');
+    }
+
     // 파일 아이콘 선택
     function getFileIcon(mimeType: string): typeof FileIcon {
         if (mimeType.startsWith('image/')) return FileImage;
@@ -126,7 +140,10 @@
             uploadingFiles = [...uploadingFiles, uploadingFile];
 
             try {
-                const uploaded = await apiClient.uploadFile(boardId, file, postId);
+                // 이미지 파일이면 uploadImage, 아니면 uploadFile 사용
+                const uploaded = isImageFile(file)
+                    ? await apiClient.uploadImage(boardId, file, postId)
+                    : await apiClient.uploadFile(boardId, file, postId);
                 uploadingFiles = uploadingFiles.filter((f) => f.id !== uploadingFile.id);
                 uploadedFiles = [...uploadedFiles, uploaded];
                 onUpload?.(uploaded);
@@ -213,7 +230,7 @@
             tabindex="0"
         >
             <FileUp class="text-muted-foreground mb-2 h-8 w-8" />
-            <p class="text-foreground text-sm font-medium">클릭하거나 파일을 드래그하세요</p>
+            <p class="text-foreground text-sm font-medium">이미지 또는 파일을 드래그하세요</p>
             <p class="text-muted-foreground mt-1 text-xs">
                 최대 {maxSizeMB}MB, {maxFiles}개까지
                 {#if allowedExtensions.length > 0}
@@ -231,9 +248,17 @@
         <div class="space-y-2">
             <!-- 업로드 완료된 파일 -->
             {#each uploadedFiles as file (file.id)}
-                {@const FileIcon = getFileIcon(file.mime_type)}
+                {@const IconComponent = getFileIcon(file.mime_type)}
                 <div class="bg-muted/50 flex items-center gap-3 rounded-lg p-3">
-                    <FileIcon class="text-muted-foreground h-8 w-8 shrink-0" />
+                    {#if isImageMime(file.mime_type) && file.url}
+                        <img
+                            src={file.url}
+                            alt={file.original_filename}
+                            class="h-12 w-12 shrink-0 rounded object-cover"
+                        />
+                    {:else}
+                        <IconComponent class="text-muted-foreground h-8 w-8 shrink-0" />
+                    {/if}
                     <div class="min-w-0 flex-1">
                         <p class="text-foreground truncate text-sm font-medium">
                             {file.original_filename}

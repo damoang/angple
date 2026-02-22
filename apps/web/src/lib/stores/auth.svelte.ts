@@ -24,10 +24,11 @@ async function fetchCurrentUser(): Promise<void> {
 
     try {
         user = await apiClient.getCurrentUser();
-    } catch (err) {
-        console.error('Failed to fetch current user:', err);
-        error = err instanceof Error ? err.message : 'Unknown error';
-        user = null;
+    } catch {
+        // 인증 실패 시 SSR에서 설정된 사용자 정보 유지
+        if (!user) {
+            user = null;
+        }
     } finally {
         isLoading = false;
     }
@@ -46,8 +47,6 @@ function initFromSSR(ssrUser: { nickname: string; level: number }, accessToken: 
     };
     apiClient.setAccessToken(accessToken);
     isLoading = false;
-    // 클라이언트에서 최신 정보로 갱신 (비동기)
-    apiClient.tryRefreshToken().then(() => fetchCurrentUser());
 }
 
 /**

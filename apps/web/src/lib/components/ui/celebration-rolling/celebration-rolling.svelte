@@ -74,8 +74,8 @@
         const titleText = banner.title || '';
         const isDateTitle = /^\d{4}[.\-]\d{2}[.\-]\d{2}/.test(titleText);
         const message = contentText || (!isDateTitle ? titleText : '');
-        if (nick && message) return `${nick}님, ${message}`;
-        if (nick) return `${nick}님, 축하합니다!`;
+        if (nick && message) return `[${nick}님] ${message}`;
+        if (nick) return `[${nick}님] 축하합니다!`;
         if (message) return message;
         return '축하합니다!';
     }
@@ -86,7 +86,7 @@
         href={celebrations[currentIndex]?.external_link ||
             celebrations[currentIndex]?.link_url ||
             '#'}
-        target={celebrations[currentIndex]?.link_target || '_blank'}
+        target={celebrations[currentIndex]?.link_target || '_self'}
         rel="nofollow noopener"
         class="border-border bg-background hover:bg-accent flex h-9 items-center gap-2 overflow-hidden rounded-lg border px-3 transition-colors {className}"
     >

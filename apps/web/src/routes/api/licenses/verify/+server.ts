@@ -37,7 +37,7 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
         }
 
         // Go 백엔드로 검증 요청 프록시
-        const backendUrl = process.env.INTERNAL_API_URL || 'http://localhost:8081/api/v2';
+        const backendUrl = process.env.INTERNAL_API_URL || 'http://localhost:8090/api/v2';
         const res = await fetch(`${backendUrl}/licenses/verify`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },

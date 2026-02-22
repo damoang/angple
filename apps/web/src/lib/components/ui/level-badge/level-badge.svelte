@@ -16,7 +16,7 @@
 </script>
 
 <img
-    src="/images/level/{normalizedLevel}.svg"
+    src="/images/level/{normalizedLevel}.svg?v=2"
     alt="Lv.{normalizedLevel}"
     width={dimensions.width}
     height={dimensions.height}

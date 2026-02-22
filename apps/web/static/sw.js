@@ -10,11 +10,10 @@
  * - 오프라인 시: 캐시된 오프라인 페이지 표시
  */
 
-const CACHE_NAME = 'angple-v2';
-const OFFLINE_URL = '/offline.html';
+const CACHE_NAME = 'angple-v5';
 
-// 앱 셸 프리캐시 목록
-const PRECACHE_URLS = [OFFLINE_URL];
+// 앱 셸 프리캐시 목록 (빈 배열 — 오프라인 페이지 없으므로 프리캐시 불필요)
+const PRECACHE_URLS = [];
 
 // 설치: 오프라인 페이지 프리캐시
 self.addEventListener('install', (event) => {
@@ -45,6 +44,11 @@ self.addEventListener('fetch', (event) => {
     const { request } = event;
     const url = new URL(request.url);
 
+    // dev 환경: 캐싱 완전 비활성화 (모든 요청을 네트워크로 통과)
+    if (self.location.hostname === 'localhost' || self.location.hostname.startsWith('dev.')) {
+        return;
+    }
+
     // 같은 출처의 요청만 처리
     if (url.origin !== self.location.origin) return;
 
@@ -55,19 +59,20 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    // 정적 자산 (이미지, 폰트, JS, CSS): Cache First
-    if (isStaticAsset(url.pathname)) {
+    // _app/immutable/ → Cache First (해시 파일명, 변경 불가)
+    if (url.pathname.startsWith('/_app/immutable/')) {
         event.respondWith(cacheFirst(request));
         return;
     }
 
-    // HTML 내비게이션: Network First + 오프라인 폴백
+    // 기타 정적 자산 → Network First (배포 후 변경 가능)
+    if (isStaticAsset(url.pathname)) {
+        event.respondWith(networkFirst(request));
+        return;
+    }
+
+    // HTML 내비게이션: Network Only (오프라인 폴백 없음)
     if (request.mode === 'navigate') {
-        event.respondWith(
-            fetch(request).catch(() =>
-                caches.match(OFFLINE_URL).then((r) => r || new Response('Offline', { status: 503 }))
-            )
-        );
         return;
     }
 });
@@ -93,7 +98,7 @@ async function cacheFirst(request) {
 async function networkFirst(request) {
     try {
         const response = await fetch(request);
-        if (response.ok) {
+        if (response.ok && request.method === 'GET') {
             const cache = await caches.open(CACHE_NAME);
             cache.put(request, response.clone());
         }

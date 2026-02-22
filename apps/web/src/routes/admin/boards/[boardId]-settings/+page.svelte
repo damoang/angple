@@ -4,6 +4,7 @@
      *
      * 관리자가 각 게시판의 목록/본문 레이아웃과 표시 옵션을 설정합니다.
      * v2_board_display_settings 테이블에 저장됩니다.
+     * 레이아웃 목록은 layoutRegistry에서 동적으로 가져온다.
      */
 
     import { page } from '$app/stores';
@@ -27,39 +28,51 @@
         LayoutGrid,
         Image,
         AlignJustify,
-        Newspaper
+        Newspaper,
+        TableProperties,
+        LayoutDashboard
     } from '@lucide/svelte/icons';
     import {
         getDisplaySettings,
         updateDisplaySettings,
         type BoardDisplaySettings
     } from '$lib/api/board-display-settings';
+    import {
+        layoutRegistry,
+        initCoreLayouts
+    } from '$lib/components/features/board/layouts/index.js';
 
-    type ListLayoutId = 'compact' | 'card' | 'detailed' | 'gallery' | 'webzine';
+    // 코어 레이아웃 초기화 (중복 호출 안전)
+    initCoreLayouts();
+    import type { Component } from 'svelte';
 
-    interface LayoutOption {
-        id: ListLayoutId;
-        label: string;
-        description: string;
-        icon: typeof List;
-    }
+    // 레이아웃 ID별 아이콘 매핑
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const iconMap: Record<string, Component<any>> = {
+        compact: AlignJustify,
+        card: LayoutGrid,
+        detailed: List,
+        gallery: Image,
+        webzine: Newspaper,
+        classic: TableProperties,
+        'poster-gallery': Image,
+        'market-card': LayoutGrid
+    };
 
     const boardId = $derived($page.params.boardId || '');
 
-    const listLayouts: LayoutOption[] = [
-        {
-            id: 'compact',
-            label: '컴팩트',
-            description: '밀집된 텍스트 목록 (기본)',
-            icon: AlignJustify
-        },
-        { id: 'card', label: '카드', description: '카드 그리드 형태', icon: LayoutGrid },
-        { id: 'detailed', label: '상세', description: '미리보기 포함 리스트', icon: List },
-        { id: 'gallery', label: '갤러리', description: '이미지 중심 그리드', icon: Image },
-        { id: 'webzine', label: '웹진', description: '블로그/뉴스 스타일', icon: Newspaper }
-    ];
+    // 레지스트리에서 동적으로 레이아웃 목록 생성
+    const listLayouts = $derived.by(() => {
+        const manifests = layoutRegistry.getListManifests();
+        return manifests.map((m) => ({
+            id: m.id,
+            label: m.name,
+            description: m.description,
+            icon: iconMap[m.id] || LayoutDashboard
+        }));
+    });
 
-    let listLayout = $state<ListLayoutId>('compact');
+    let listLayout = $state('compact');
     let showPreview = $state(false);
     let previewLength = $state(150);
     let showThumbnail = $state(false);
@@ -75,7 +88,7 @@
         isLoading = true;
         try {
             const settings = await getDisplaySettings(boardId);
-            listLayout = (settings.list_layout || 'compact') as ListLayoutId;
+            listLayout = settings.list_layout || 'compact';
             showPreview = settings.show_preview ?? false;
             previewLength = settings.preview_length || 150;
             showThumbnail = settings.show_thumbnail ?? false;

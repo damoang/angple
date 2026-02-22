@@ -10,6 +10,8 @@ export interface SeoMeta {
     canonicalUrl?: string;
     noIndex?: boolean;
     noFollow?: boolean;
+    /** false로 설정하면 타이틀에 사이트명을 붙이지 않음 (홈페이지용) */
+    includeSiteName?: boolean;
 }
 
 /** Open Graph 메타 정보 */

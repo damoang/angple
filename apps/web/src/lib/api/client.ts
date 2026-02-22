@@ -46,37 +46,23 @@ import type {
     RegisterResponse,
     PostRevision,
     Scrap,
-    BoardGroup
+    BoardGroup,
+    CommentReportInfo,
+    TenorSearchResponse
 } from './types.js';
 import { browser } from '$app/environment';
 import { ApiRequestError } from './errors.js';
 import { fetchWithRetry, type RetryConfig, DEFAULT_RETRY_CONFIG } from './retry.js';
-
-// reactions API 응답 → LikeResponse 변환 헬퍼
-function parseReactionsToLikeResponse(
-    targetId: string,
-    result: Record<string, { reaction: string; count: number; choose: boolean }[]>
-): LikeResponse {
-    const reactions = result?.[targetId] ?? [];
-    const like = reactions.find((r) => r.reaction === 'like');
-    const dislike = reactions.find((r) => r.reaction === 'dislike');
-    return {
-        likes: like?.count ?? 0,
-        user_liked: like?.choose ?? false,
-        dislikes: dislike?.count ?? 0,
-        user_disliked: dislike?.choose ?? false
-    };
-}
 
 // 서버/클라이언트 환경에 따라 API URL 분기
 // 클라이언트: 상대경로 (nginx 프록시)
 // SSR: Docker 내부 네트워크 직접 통신
 const API_BASE_URL = browser
     ? '/api/v1'
-    : process.env.INTERNAL_API_URL || 'http://localhost:8081/api/v1';
+    : process.env.INTERNAL_API_URL || 'http://localhost:8090/api/v1';
 
 // v2 API URL (인증 관련 - exchange 등)
-const API_V2_URL = browser ? '/api/v2' : 'http://localhost:8081/api/v2';
+const API_V2_URL = browser ? '/api/v2' : 'http://localhost:8090/api/v2';
 
 // 레거시 SSO 쿠키명 (환경변수로 설정, 빈 값이면 레거시 SSO 비활성화)
 const LEGACY_SSO_COOKIE = import.meta.env.VITE_LEGACY_SSO_COOKIE || '';
@@ -94,6 +80,13 @@ class ApiClient {
     // 메모리 기반 액세스 토큰 (XSS 공격 방지)
     private _accessToken: string | null = null;
     private _refreshPromise: Promise<boolean> | null = null;
+    private _fetchFn: typeof fetch | null = null;
+
+    /** SvelteKit load 함수에서 제공하는 fetch를 임시 주입 (1회성) */
+    withFetch(fn: typeof fetch): this {
+        this._fetchFn = fn;
+        return this;
+    }
 
     /** 액세스 토큰을 메모리에 설정 */
     setAccessToken(token: string | null): void {
@@ -191,6 +184,10 @@ class ApiClient {
 
         const config: RetryConfig = { ...DEFAULT_RETRY_CONFIG, ...retryConfig };
 
+        // SvelteKit fetch 주입 (1회성 사용 후 초기화)
+        const fetchFn = this._fetchFn || fetch;
+        this._fetchFn = null;
+
         try {
             const response = await fetchWithRetry(
                 url,
@@ -199,7 +196,8 @@ class ApiClient {
                     headers,
                     credentials: 'include'
                 },
-                config
+                config,
+                fetchFn
             );
 
             // 204 No Content
@@ -369,27 +367,30 @@ class ApiClient {
         boardId: string,
         postId: string,
         page = 1,
-        limit = 10
+        limit = 200
     ): Promise<PaginatedResponse<FreeComment>> {
-        interface BackendCommentsResponse {
-            data: FreeComment[];
+        const fetchFn = this._fetchFn || fetch;
+        this._fetchFn = null;
+        try {
+            const res = await fetchFn(
+                `/api/boards/${boardId}/posts/${postId}/comments?page=${page}&limit=${limit}`,
+                { credentials: 'include' }
+            );
+            const json = await res.json();
+            if (!json.success) {
+                return { items: [], total: 0, page, limit, total_pages: 0 };
+            }
+            const data = json.data;
+            return {
+                items: data.comments || [],
+                total: data.total || 0,
+                page: data.page || page,
+                limit: data.limit || limit,
+                total_pages: data.total_pages || 1
+            };
+        } catch {
+            return { items: [], total: 0, page, limit, total_pages: 0 };
         }
-
-        const response = await this.request<BackendCommentsResponse>(
-            `/boards/${boardId}/posts/${postId}/comments?page=${page}&limit=${limit}`
-        );
-
-        const backendData = response as unknown as BackendCommentsResponse;
-
-        const result: PaginatedResponse<FreeComment> = {
-            items: backendData.data || [],
-            total: backendData.data?.length || 0,
-            page: page,
-            limit: limit,
-            total_pages: 1
-        };
-
-        return result;
     }
 
     // ========================================
@@ -410,7 +411,7 @@ class ApiClient {
     async getFreeComments(
         id: string,
         page = 1,
-        limit = 10
+        limit = 200
     ): Promise<PaginatedResponse<FreeComment>> {
         return this.getBoardComments('free', id, page, limit);
     }
@@ -907,46 +908,47 @@ class ApiClient {
     // ========================================
 
     /**
-     * 게시글 추천
+     * 게시글 추천 (레거시 g5_board_good 기반)
      * 🔒 인증 필요
      */
     async likePost(boardId: string, postId: string): Promise<LikeResponse> {
-        const targetId = `document:${boardId}:${postId}`;
-        const res = await fetch(`/api/boards/${boardId}/posts/${postId}/reactions`, {
+        const res = await fetch(`/api/boards/${boardId}/posts/${postId}/like`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ reaction: 'like', reactionMode: 'toggle' })
+            credentials: 'include',
+            body: JSON.stringify({ action: 'good' })
         });
         const json = await res.json();
-        if (json.status !== 'success') throw new Error(json.message || '추천에 실패했습니다.');
-        return parseReactionsToLikeResponse(targetId, json.result);
+        if (!json.success) throw new Error(json.message || '추천에 실패했습니다.');
+        return json.data;
     }
 
     /**
-     * 게시글 비추천
+     * 게시글 비추천 (레거시 g5_board_good 기반)
      * 🔒 인증 필요
      */
     async dislikePost(boardId: string, postId: string): Promise<LikeResponse> {
-        const targetId = `document:${boardId}:${postId}`;
-        const res = await fetch(`/api/boards/${boardId}/posts/${postId}/reactions`, {
+        const res = await fetch(`/api/boards/${boardId}/posts/${postId}/like`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ reaction: 'dislike', reactionMode: 'toggle' })
+            credentials: 'include',
+            body: JSON.stringify({ action: 'nogood' })
         });
         const json = await res.json();
-        if (json.status !== 'success') throw new Error(json.message || '비추천에 실패했습니다.');
-        return parseReactionsToLikeResponse(targetId, json.result);
+        if (!json.success) throw new Error(json.message || '비추천에 실패했습니다.');
+        return json.data;
     }
 
     /**
-     * 게시글 추천 상태 조회
+     * 게시글 추천 상태 조회 (레거시 g5_board_good 기반)
      */
     async getPostLikeStatus(boardId: string, postId: string): Promise<LikeResponse> {
-        const targetId = `document:${boardId}:${postId}`;
-        const res = await fetch(`/api/boards/${boardId}/posts/${postId}/reactions`);
+        const res = await fetch(`/api/boards/${boardId}/posts/${postId}/like`, {
+            credentials: 'include'
+        });
         const json = await res.json();
-        if (json.status !== 'success') return { likes: 0, user_liked: false };
-        return parseReactionsToLikeResponse(targetId, json.result);
+        if (!json.success) return { likes: 0, user_liked: false };
+        return json.data;
     }
 
     /**
@@ -974,10 +976,17 @@ class ApiClient {
         page = 1,
         limit = 20
     ): Promise<LikersResponse> {
-        const response = await this.request<LikersResponse>(
-            `/boards/${boardId}/posts/${postId}/comments/${commentId}/likers?page=${page}&limit=${limit}`
-        );
-        return response.data;
+        try {
+            const res = await fetch(
+                `/api/boards/${boardId}/posts/${postId}/comments/${commentId}/likers?page=${page}&limit=${limit}`,
+                { credentials: 'include' }
+            );
+            const json = await res.json();
+            if (!json.success) return { likers: [], total: 0 };
+            return json.data;
+        } catch {
+            return { likers: [], total: 0 };
+        }
     }
 
     /**
@@ -1219,8 +1228,8 @@ class ApiClient {
     }
 
     /**
-     * 파일 업로드 (Go Backend /api/v2/media/attachments → S3)
-     * 🔒 인증 필요 (JWT Bearer)
+     * 파일 업로드 (SvelteKit /api/media/images → S3, IAM Role 인증)
+     * 🔒 인증 필요
      */
     async uploadFile(boardId: string, file: File, postId?: number): Promise<UploadedFile> {
         const formData = new FormData();
@@ -1229,24 +1238,47 @@ class ApiClient {
             formData.append('post_id', String(postId));
         }
 
-        const accessToken = this.getAccessToken();
+        const headers: Record<string, string> = {};
+        const token = this.getAccessToken();
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+        }
 
-        const response = await fetch(`${API_V2_URL}/media/attachments`, {
+        const response = await fetch('/api/media/images', {
             method: 'POST',
+            headers,
             body: formData,
-            credentials: 'include',
-            headers: {
-                ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {})
-            }
+            credentials: 'include'
         });
 
         if (!response.ok) {
-            const error = await response.json().catch(() => ({}));
-            throw new Error(error.error?.message || error.message || '파일 업로드에 실패했습니다.');
+            const errorBody = await response.text().catch(() => '');
+            let errorMessage = '파일 업로드에 실패했습니다.';
+            if (response.status === 413) {
+                errorMessage = '파일 크기가 너무 큽니다.';
+            } else {
+                try {
+                    const parsed = JSON.parse(errorBody);
+                    errorMessage = parsed.error?.message || parsed.message || errorMessage;
+                } catch {
+                    // JSON 파싱 실패 → 기본 메시지 사용
+                }
+            }
+            throw new Error(errorMessage);
         }
 
-        const result = await response.json();
-        const data = result.data;
+        let result;
+        try {
+            result = await response.json();
+        } catch {
+            throw new Error('서버 응답을 처리할 수 없습니다.');
+        }
+
+        const data = result?.data;
+        if (!data) {
+            throw new Error('업로드 응답 데이터가 없습니다.');
+        }
+
         return {
             id: data.key,
             filename: data.filename,
@@ -1259,8 +1291,8 @@ class ApiClient {
     }
 
     /**
-     * 이미지 업로드 (Go Backend /api/v2/media/images → S3)
-     * 🔒 인증 필요 (JWT Bearer)
+     * 이미지 업로드 (SvelteKit /api/media/images → S3, IAM Role 인증)
+     * 🔒 인증 필요
      */
     async uploadImage(boardId: string, file: File, postId?: number): Promise<UploadedFile> {
         // 이미지 파일인지 확인
@@ -1274,26 +1306,47 @@ class ApiClient {
             formData.append('post_id', String(postId));
         }
 
-        const accessToken = this.getAccessToken();
+        const headers: Record<string, string> = {};
+        const token = this.getAccessToken();
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+        }
 
-        const response = await fetch(`${API_V2_URL}/media/images`, {
+        const response = await fetch('/api/media/images', {
             method: 'POST',
+            headers,
             body: formData,
-            credentials: 'include',
-            headers: {
-                ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {})
-            }
+            credentials: 'include'
         });
 
         if (!response.ok) {
-            const error = await response.json().catch(() => ({}));
-            throw new Error(
-                error.error?.message || error.message || '이미지 업로드에 실패했습니다.'
-            );
+            const errorBody = await response.text().catch(() => '');
+            let errorMessage = '이미지 업로드에 실패했습니다.';
+            if (response.status === 413) {
+                errorMessage = '파일 크기가 너무 큽니다. (최대 10MB)';
+            } else {
+                try {
+                    const parsed = JSON.parse(errorBody);
+                    errorMessage = parsed.error?.message || parsed.message || errorMessage;
+                } catch {
+                    // JSON 파싱 실패 (HTML 에러 페이지 등) → 기본 메시지 사용
+                }
+            }
+            throw new Error(errorMessage);
         }
 
-        const result = await response.json();
-        const data = result.data;
+        let result;
+        try {
+            result = await response.json();
+        } catch {
+            throw new Error('서버 응답을 처리할 수 없습니다.');
+        }
+
+        const data = result?.data;
+        if (!data) {
+            throw new Error('업로드 응답 데이터가 없습니다.');
+        }
+
         return {
             id: data.key,
             filename: data.filename,
@@ -1558,6 +1611,53 @@ class ApiClient {
         }
 
         return response.data;
+    }
+
+    // ==================== Tenor GIF API ====================
+
+    /**
+     * Tenor GIF 검색 (서버 프록시 경유)
+     */
+    async searchGifs(query: string, pos = ''): Promise<TenorSearchResponse> {
+        const params = new URLSearchParams({ q: query });
+        if (pos) params.set('pos', pos);
+        const res = await fetch(`/api/tenor/search?${params.toString()}`);
+        if (!res.ok) throw new Error('GIF 검색에 실패했습니다.');
+        return res.json();
+    }
+
+    /**
+     * Tenor trending GIF (서버 프록시 경유)
+     */
+    async getFeaturedGifs(pos = ''): Promise<TenorSearchResponse> {
+        const params = new URLSearchParams();
+        if (pos) params.set('pos', pos);
+        const qs = params.toString();
+        const res = await fetch(`/api/tenor/featured${qs ? `?${qs}` : ''}`);
+        if (!res.ok) throw new Error('인기 GIF 로드에 실패했습니다.');
+        return res.json();
+    }
+
+    // ==================== 댓글 신고 정보 (관리자) ====================
+
+    /**
+     * 댓글 신고 정보 조회 (관리자 전용)
+     * 🔒 관리자 전용 (mb_level >= 10)
+     */
+    async getCommentReports(
+        boardId: string,
+        postId: number | string
+    ): Promise<CommentReportInfo[]> {
+        try {
+            const res = await fetch(`/api/boards/${boardId}/posts/${postId}/comment-reports`, {
+                credentials: 'include'
+            });
+            if (!res.ok) return [];
+            const json = await res.json();
+            return json.data ?? [];
+        } catch {
+            return [];
+        }
     }
 
     /**

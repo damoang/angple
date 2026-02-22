@@ -175,7 +175,7 @@
                                 variant="outline"
                                 size="sm"
                                 class="flex-1"
-                                href={`/admin/themes/${theme.manifest.id}/settings`}
+                                href={`/admin/themes/${theme.manifest.id}-settings`}
                             >
                                 설정
                             </Button>
@@ -205,7 +205,7 @@
                                 variant="outline"
                                 size="sm"
                                 class="flex-1"
-                                href={`/admin/themes/${theme.manifest.id}/settings`}
+                                href={`/admin/themes/${theme.manifest.id}-settings`}
                             >
                                 설정
                             </Button>

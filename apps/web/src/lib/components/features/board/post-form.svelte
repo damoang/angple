@@ -20,7 +20,8 @@
     import DraftList from './draft-list.svelte';
     import TagInput from './tag-input.svelte';
     import { TiptapEditor } from '$lib/components/features/editor/index.js';
-    import { ImageUploader, FileUploader } from '$lib/components/features/uploader/index.js';
+    import { FileUploader } from '$lib/components/features/uploader/index.js';
+    import { authStore } from '$lib/stores/auth.svelte.js';
 
     interface Props {
         mode: 'create' | 'edit';
@@ -66,20 +67,8 @@
     });
     let errors = $state<{ title?: string; content?: string }>({});
 
-    // 이미지 업로드 상태
-    let uploadedImages = $state<UploadedFile[]>([]);
-
-    // 파일 업로드 상태
+    // 파일 업로드 상태 (이미지 + 파일 통합)
     let uploadedFiles = $state<UploadedFile[]>([]);
-
-    // 이미지 업로드 핸들러
-    function handleImageUpload(file: UploadedFile): void {
-        uploadedImages = [...uploadedImages, file];
-    }
-
-    function handleImageRemove(fileId: string): void {
-        uploadedImages = uploadedImages.filter((img) => img.id !== fileId);
-    }
 
     // 파일 업로드 핸들러
     function handleFileUpload(file: UploadedFile): void {
@@ -265,11 +254,24 @@
 
         isSubmitting = true;
 
+        // 첨부 이미지를 content 끝에 <img> 태그로 삽입 (Go 백엔드 호환)
+        let finalContent = content.trim();
+        const imageFiles = uploadedFiles.filter((f) => f.mime_type.startsWith('image/'));
+        if (imageFiles.length > 0) {
+            const imgTags = imageFiles
+                .map(
+                    (f) =>
+                        `<img src="${f.url}" alt="${f.original_filename}" loading="lazy" class="max-w-full">`
+                )
+                .join('\n');
+            finalContent = finalContent ? `${finalContent}\n${imgTags}` : imgTags;
+        }
+
         const data: CreatePostRequest | UpdatePostRequest =
             mode === 'create'
                 ? {
                       title: title.trim(),
-                      content: content.trim(),
+                      content: finalContent,
                       category: category || undefined,
                       author: '', // 서버에서 JWT로 설정됨
                       is_secret: isSecret,
@@ -279,7 +281,7 @@
                   }
                 : {
                       title: title.trim(),
-                      content: content.trim(),
+                      content: finalContent,
                       category: category || undefined,
                       tags: tags.length > 0 ? tags : undefined,
                       link1: link1.trim() || undefined,
@@ -483,41 +485,33 @@
                 />
             </div>
 
-            <!-- 이미지 업로드 -->
+            <!-- 첨부파일 (이미지 + 파일 통합) -->
             <div class="space-y-2">
-                <Label>이미지 첨부</Label>
-                <ImageUploader
-                    {boardId}
-                    maxFiles={10}
-                    maxSizeMB={10}
-                    onUpload={handleImageUpload}
-                    onRemove={handleImageRemove}
-                />
-            </div>
-
-            <!-- 파일 첨부 -->
-            <div class="space-y-2">
-                <Label>파일 첨부</Label>
+                <Label>첨부파일</Label>
                 <FileUploader
                     {boardId}
-                    maxFiles={5}
+                    maxFiles={10}
                     maxSizeMB={50}
                     onUpload={handleFileUpload}
                     onRemove={handleFileRemove}
                 />
             </div>
 
-            <!-- 비밀글 옵션 -->
-            <div class="border-border flex items-center gap-3 rounded-lg border p-4">
-                <Checkbox id="is_secret" bind:checked={isSecret} disabled={isLoading} />
-                <div class="flex items-center gap-2">
-                    <Lock class="text-muted-foreground h-4 w-4" />
-                    <Label for="is_secret" class="cursor-pointer font-normal">비밀글로 작성</Label>
+            <!-- 비밀글 옵션 (관리자만) -->
+            {#if authStore.user?.mb_level != null && authStore.user.mb_level >= 10}
+                <div class="border-border flex items-center gap-3 rounded-lg border p-4">
+                    <Checkbox id="is_secret" bind:checked={isSecret} disabled={isLoading} />
+                    <div class="flex items-center gap-2">
+                        <Lock class="text-muted-foreground h-4 w-4" />
+                        <Label for="is_secret" class="cursor-pointer font-normal"
+                            >비밀글로 작성</Label
+                        >
+                    </div>
+                    <p class="text-muted-foreground ml-auto text-xs">
+                        비밀글은 작성자와 관리자만 볼 수 있습니다
+                    </p>
                 </div>
-                <p class="text-muted-foreground ml-auto text-xs">
-                    비밀글은 작성자와 관리자만 볼 수 있습니다
-                </p>
-            </div>
+            {/if}
 
             <!-- 버튼 -->
             <div class="flex justify-end gap-3">

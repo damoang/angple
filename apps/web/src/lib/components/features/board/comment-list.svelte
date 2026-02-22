@@ -1,17 +1,15 @@
 <script lang="ts">
     import { Button } from '$lib/components/ui/button/index.js';
-    import { Textarea } from '$lib/components/ui/textarea/index.js';
     import type { FreeComment } from '$lib/api/types.js';
     import { authStore } from '$lib/stores/auth.svelte.js';
-    import Pencil from '@lucide/svelte/icons/pencil';
-    import Trash2 from '@lucide/svelte/icons/trash-2';
-    import X from '@lucide/svelte/icons/x';
-    import Check from '@lucide/svelte/icons/check';
     import Reply from '@lucide/svelte/icons/reply';
     import Lock from '@lucide/svelte/icons/lock';
     import Flag from '@lucide/svelte/icons/flag';
+    import Link2 from '@lucide/svelte/icons/link-2';
     import CommentForm from './comment-form.svelte';
     import { ReportDialog } from '$lib/components/features/report/index.js';
+    import AdSlot from '$lib/components/ui/ad-slot/ad-slot.svelte';
+    import { widgetLayoutStore } from '$lib/stores/widget-layout.svelte';
     import DOMPurify from 'dompurify';
     import { applyFilter } from '$lib/hooks/registry';
     import { getHookVersion } from '$lib/hooks/hook-state.svelte';
@@ -39,17 +37,24 @@
     });
     import { memberLevelStore } from '$lib/stores/member-levels.svelte.js';
     import { highlightMentions } from '$lib/utils/mention-parser.js';
+    import { formatDate } from '$lib/utils/format-date.js';
     import { ReactionBar } from '$lib/components/features/reaction/index.js';
     import CommentLikersDialog from './comment-likers-dialog.svelte';
     import { AvatarStack } from '$lib/components/ui/avatar-stack/index.js';
     import { apiClient } from '$lib/api/index.js';
-    import type { LikerInfo } from '$lib/api/types.js';
+    import type { LikerInfo, CommentReportInfo } from '$lib/api/types.js';
+    import { toast } from 'svelte-sonner';
 
     interface Props {
         comments: FreeComment[];
         onUpdate: (commentId: string, content: string) => Promise<void>;
         onDelete: (commentId: string) => Promise<void>;
-        onReply?: (content: string, parentId: string | number, isSecret?: boolean) => Promise<void>;
+        onReply?: (
+            content: string,
+            parentId: string | number,
+            isSecret?: boolean,
+            images?: string[]
+        ) => Promise<void>;
         onLike?: (commentId: string) => Promise<{ likes: number; user_liked: boolean }>;
         onDislike?: (commentId: string) => Promise<{ dislikes: number; user_disliked: boolean }>;
         postAuthorId?: string; // 게시글 작성자 ID (비밀댓글 열람 권한 체크용)
@@ -103,6 +108,20 @@
     let reportingCommentId = $state<number | string | null>(null);
     let showReportDialog = $state(false);
 
+    // 신고자 정보 (관리자만)
+    let commentReports = $state(new SvelteMap<string, CommentReportInfo[]>());
+
+    // 댓글 주소 복사
+    async function copyCommentLink(commentId: number | string): Promise<void> {
+        const url = `${window.location.origin}${window.location.pathname}#c_${commentId}`;
+        try {
+            await navigator.clipboard.writeText(url);
+            toast.success('댓글 주소가 복사되었습니다.');
+        } catch {
+            toast.error('주소 복사에 실패했습니다.');
+        }
+    }
+
     // 추천자 목록 다이얼로그 상태
     let showLikersDialog = $state(false);
     let likersCommentId = $state<number | string | null>(null);
@@ -120,13 +139,12 @@
     // 댓글 트리 구조로 변환
     const commentTree = $derived.by(() => {
         // 그누보드 호환: API에서 이미 depth 값을 제공하면 그대로 사용
-        // (그누보드는 parent_id가 게시글 ID이고, depth 필드로 계층 표현)
+        // (depth 0 = 루트, 1 = 첫 번째 대댓글, 2 = 대대댓글 ...)
         const hasApiDepth = comments.some((c) => typeof c.depth === 'number' && c.depth > 0);
         if (hasApiDepth) {
-            // API depth 값을 그대로 사용 (depth 1부터 시작하므로 -1 조정)
             return comments.map((c) => ({
                 ...c,
-                depth: Math.max(0, (c.depth ?? 1) - 1)
+                depth: c.depth ?? 0
             }));
         }
 
@@ -171,18 +189,6 @@
 
         return flatTree;
     });
-
-    // 날짜 포맷 헬퍼
-    function formatDate(dateString: string): string {
-        const date = new Date(dateString);
-        return date.toLocaleDateString('ko-KR', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-        });
-    }
 
     // 작성자 확인
     function isCommentAuthor(comment: FreeComment): boolean {
@@ -265,12 +271,17 @@
     }
 
     // 답글 작성
-    async function handleReply(content: string, parentId?: string | number): Promise<void> {
+    async function handleReply(
+        content: string,
+        parentId?: string | number,
+        isSecret?: boolean,
+        images?: string[]
+    ): Promise<void> {
         if (!onReply || !parentId) return;
 
         isReplying = true;
         try {
-            await onReply(content, parentId);
+            await onReply(content, parentId, isSecret, images);
             cancelReply();
         } finally {
             isReplying = false;
@@ -462,6 +473,25 @@
         }
     }
 
+    // 관리자: 댓글 신고 내역 배치 로드
+    let reportsLoaded = $state(false);
+    $effect(() => {
+        if (reportsLoaded || !boardId || !postId || commentTree.length === 0) return;
+        if (!authStore.user || authStore.user.mb_level < 10) return;
+
+        reportsLoaded = true;
+        apiClient.getCommentReports(boardId, postId).then((reports) => {
+            const map = new SvelteMap<string, CommentReportInfo[]>();
+            for (const r of reports) {
+                const key = String(r.comment_id);
+                const list = map.get(key) ?? [];
+                list.push(r);
+                map.set(key, list);
+            }
+            commentReports = map;
+        });
+    });
+
     // 좋아요 > 0인 댓글의 아바타 배치 로드 (최대 10개)
     let likerAvatarsLoaded = $state(false);
     $effect(() => {
@@ -479,14 +509,25 @@
 </script>
 
 <ul class="space-y-4">
-    {#each commentTree as comment (comment.id)}
+    {#each commentTree as comment, commentIndex (comment.id)}
         {@const isAuthor = isCommentAuthor(comment)}
         {@const isEditing = editingCommentId === String(comment.id)}
         {@const isReplyingTo = replyingToCommentId === String(comment.id)}
         {@const depth = comment.depth ?? 0}
         {@const isReply = depth > 0}
         {@const iconUrl = getMemberIconUrl(comment.author_id)}
-        <li style="margin-left: {Math.min(depth, 3) * 1.25}rem" class="py-4 first:pt-0 last:pb-0">
+
+        <!-- 댓글 5개마다 GAM 인피드 광고 (루트 댓글 기준, 첫 번째 제외) -->
+        {#if widgetLayoutStore.hasEnabledAds && commentIndex > 0 && commentIndex % 5 === 0 && depth === 0}
+            <li class="list-none py-2">
+                <AdSlot position="comment-infeed" height="90px" />
+            </li>
+        {/if}
+        <li
+            id="c_{comment.id}"
+            style="margin-left: {Math.min(depth, 3) * 1.25}rem"
+            class="py-4 transition-colors duration-500 first:pt-0 last:pb-0"
+        >
             <div>
                 <div class="mb-2 flex flex-wrap items-center gap-4">
                     <div class="flex items-center gap-2">
@@ -551,6 +592,19 @@
                         </div>
                     </div>
 
+                    <!-- 신고 배지 (관리자만) -->
+                    {#if authStore.user?.mb_level && authStore.user.mb_level >= 10 && commentReports.has(String(comment.id))}
+                        {@const reports = commentReports.get(String(comment.id)) ?? []}
+                        <span
+                            class="text-destructive bg-destructive/10 rounded px-1.5 py-0.5 text-[11px]"
+                            title={reports
+                                .map((r) => `${r.reporter_name}: ${r.reason_label}`)
+                                .join('\n')}
+                        >
+                            신고 {reports.length}건
+                        </span>
+                    {/if}
+
                     <!-- 리액션 (da-reaction 플러그인) - 왼쪽 정렬 -->
                     {#if reactionPluginActive && !isEditing && boardId && postId}
                         <ReactionBar {boardId} {postId} commentId={comment.id} target="comment" />
@@ -574,8 +628,8 @@
                             >
                                 <img
                                     src={isCommentLiked(String(comment.id))
-                                        ? '/images/thumbup-choose.gif'
-                                        : '/images/thumbup.png'}
+                                        ? '/images/thumbup-choose.gif?v=2'
+                                        : '/images/thumbup.png?v=2'}
                                     alt="추천"
                                     class="size-5"
                                 />
@@ -651,7 +705,19 @@
                                     </Button>
                                 {/if}
 
-                                {#if isAuthor}
+                                <!-- 주소 복사 버튼 -->
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onclick={() => copyCommentLink(comment.id)}
+                                    class="h-7 px-2"
+                                >
+                                    <Link2 class="h-4 w-4" />
+                                    <span class="ml-1 text-[13px]">주소</span>
+                                </Button>
+
+                                <!-- TODO: 소프트 삭제 구현 후 복원 -->
+                                <!-- {#if isAuthor}
                                     <Button
                                         variant="ghost"
                                         size="sm"
@@ -669,7 +735,8 @@
                                     >
                                         <Trash2 class="h-4 w-4" />
                                     </Button>
-                                {:else if authStore.isAuthenticated}
+                                {:else} -->
+                                {#if authStore.isAuthenticated && !isAuthor}
                                     <!-- 신고 버튼 (본인이 아닌 경우에만) -->
                                     <Button
                                         variant="ghost"
@@ -686,47 +753,21 @@
                     </div>
                 </div>
 
-                {#if isEditing}
-                    <!-- 수정 모드 -->
-                    <div class="space-y-2">
-                        <Textarea bind:value={editContent} rows={3} disabled={isUpdating} />
-                        <div class="flex justify-end gap-2">
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onclick={cancelEdit}
-                                disabled={isUpdating}
-                            >
-                                <X class="mr-1 h-4 w-4" />
-                                취소
-                            </Button>
-                            <Button size="sm" onclick={saveEdit} disabled={isUpdating}>
-                                <Check class="mr-1 h-4 w-4" />
-                                {isUpdating ? '저장 중...' : '저장'}
-                            </Button>
-                        </div>
+                <!-- 댓글 본문 -->
+                {#if comment.is_secret && !canViewSecretComment(comment)}
+                    <div
+                        class="text-muted-foreground flex items-center gap-2 italic {isReply
+                            ? 'text-[15px]'
+                            : ''}"
+                    >
+                        <Lock class="h-4 w-4" />
+                        비밀댓글입니다.
                     </div>
                 {:else}
-                    <!-- 일반 모드 -->
-                    {#if comment.is_secret && !canViewSecretComment(comment)}
-                        <div
-                            class="text-muted-foreground flex items-center gap-2 italic {isReply
-                                ? 'text-[15px]'
-                                : ''}"
-                        >
-                            <Lock class="h-4 w-4" />
-                            비밀댓글입니다.
-                        </div>
-                    {:else}
-                        <div
-                            class="text-foreground whitespace-pre-wrap {isReply
-                                ? 'text-[15px]'
-                                : ''}"
-                        >
-                            <!-- eslint-disable-next-line svelte/no-at-html-tags -->
-                            {@html processedComments.get(comment.id) ?? ''}
-                        </div>
-                    {/if}
+                    <div class="text-foreground whitespace-pre-wrap {isReply ? 'text-[15px]' : ''}">
+                        <!-- eslint-disable-next-line svelte/no-at-html-tags -->
+                        {@html processedComments.get(comment.id) ?? ''}
+                    </div>
                 {/if}
 
                 <!-- 답글 폼 -->
@@ -739,6 +780,7 @@
                             parentAuthor={comment.author}
                             isReplyMode={true}
                             isLoading={isReplying}
+                            {boardId}
                         />
                     </div>
                 {/if}

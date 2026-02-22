@@ -9,6 +9,7 @@
     import { authActions } from '$lib/stores/auth.svelte';
     import { themeStore } from '$lib/stores/theme.svelte';
     import { pluginStore } from '$lib/stores/plugin.svelte';
+    import { menuStore } from '$lib/stores/menu.svelte';
     import { loadThemeHooks } from '$lib/hooks/theme-loader';
     import { loadThemeComponents } from '$lib/utils/theme-component-loader';
     import { loadAllPluginHooks } from '$lib/hooks/plugin-loader';
@@ -16,6 +17,9 @@
     import { doAction } from '$lib/hooks/registry';
     import { initBuiltinHooks } from '$lib/hooks';
     import { loadPluginComponent } from '$lib/utils/plugin-optional-loader';
+    import { Toaster } from '$lib/components/ui/sonner';
+    import DefaultLayout from '$lib/layouts/default-layout.svelte';
+    import { keyboardShortcuts } from '$lib/services/keyboard-shortcuts.svelte';
 
     const { children, data } = $props(); // Svelte 5: SSR 데이터 받기
 
@@ -33,18 +37,38 @@
     });
 
     // SEO 기본 설정 초기화
-    configureSeo({
-        siteName: import.meta.env.VITE_SITE_NAME || 'Angple',
-        siteUrl: $page.url.origin
+    // SSR에서 url.origin이 http://로 올 수 있으므로 (nginx 프록시 뒤),
+    // 비 localhost 도메인은 항상 https:// 사용 (hydration mismatch 방지)
+    const siteUrl = $derived.by(() => {
+        const origin = $page.url.origin;
+        if (origin.startsWith('http://') && !origin.includes('localhost')) {
+            return origin.replace('http://', 'https://');
+        }
+        return origin;
     });
 
-    // SSR에서 받은 테마/플러그인으로 스토어 초기화 (깜박임 방지!)
+    configureSeo({
+        siteName: import.meta.env.VITE_SITE_NAME || 'Angple',
+        siteUrl
+    });
+
+    // SSR에서 받은 테마/플러그인/메뉴로 스토어 초기화 (깜박임 방지!)
     $effect(() => {
         const theme = data.activeTheme;
         const plugins = data.activePlugins || [];
+        const menus = data.menus || [];
         untrack(() => {
             themeStore.initFromServer(theme);
             pluginStore.initFromServer(plugins);
+            menuStore.initFromServer(menus);
+        });
+    });
+
+    // 메뉴 데이터 변경 시 키보드 단축키 빌드
+    $effect(() => {
+        const menus = menuStore.menus;
+        untrack(() => {
+            keyboardShortcuts.buildFromMenus(menus);
         });
     });
 
@@ -235,8 +259,10 @@
     });
 </script>
 
+<svelte:window onkeydown={keyboardShortcuts.handleKeydown} />
+
 <svelte:head>
-    <title>{import.meta.env.VITE_SITE_NAME || 'Angple'}</title>
+    <title>{import.meta.env.VITE_SITE_NAME || '다모앙'}</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="icon" href={favicon} />
     <!-- Wanted Sans Font -->
@@ -268,11 +294,16 @@
         {@render children()}
     </div>
 {:else}
-    <!-- 테마 레이아웃 없음: 기본 레이아웃으로 콘텐츠 직접 렌더링 -->
-    {@render children()}
+    <!-- 테마 레이아웃 없음: 기본 레이아웃으로 콘텐츠 렌더링 -->
+    <DefaultLayout>
+        {@render children()}
+    </DefaultLayout>
 {/if}
 
 <!-- 회원 메모 모달 (글로벌 1개) -->
 {#if pluginStore.isPluginActive('member-memo') && MemoModal}
     <MemoModal />
 {/if}
+
+<!-- 토스트 알림 -->
+<Toaster />

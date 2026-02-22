@@ -18,20 +18,34 @@
         zone: 'main' | 'sidebar';
         /** SSR prefetch 데이터 맵 (위젯 타입 → 데이터) */
         prefetchDataMap?: Record<string, unknown>;
+        /** 이 ID의 위젯만 렌더링 (whitelist) */
+        onlyIds?: string[];
+        /** 이 ID의 위젯을 렌더링에서 제외 (blacklist) */
+        excludeIds?: string[];
     }
 
-    const { zone, prefetchDataMap = {} }: Props = $props();
+    const { zone, prefetchDataMap = {}, onlyIds, excludeIds = [] }: Props = $props();
 
     // 존별 위젯 목록
-    const widgets = $derived(
+    const allWidgets = $derived(
         zone === 'sidebar' ? widgetLayoutStore.sidebarWidgets : widgetLayoutStore.widgets
     );
-    const enabledWidgets = $derived(
+    const allEnabledWidgets = $derived(
         zone === 'sidebar'
             ? widgetLayoutStore.enabledSidebarWidgets
             : widgetLayoutStore.enabledWidgets
     );
     const isEditMode = $derived(widgetLayoutStore.isEditMode);
+
+    // onlyIds/excludeIds 필터 적용
+    function filterByIds(list: WidgetConfig[]): WidgetConfig[] {
+        if (onlyIds) return list.filter((w) => onlyIds.includes(w.id));
+        if (excludeIds.length > 0) return list.filter((w) => !excludeIds.includes(w.id));
+        return list;
+    }
+
+    const widgets = $derived(filterByIds(allWidgets));
+    const enabledWidgets = $derived(filterByIds(allEnabledWidgets));
 
     // 드래그앤드롭 설정
     const flipDurationMs = 200;

@@ -75,6 +75,8 @@
         "@angple/i18n": "workspace:*",
         "@angple/theme-engine": "workspace:*",
         "@angple/types": "workspace:*",
+        "@aws-sdk/client-s3": "^3.993.0",
+        "@aws-sdk/lib-storage": "^3.993.0",
         "@tiptap/core": "^3.17.0",
         "@tiptap/extension-character-count": "^3.19.0",
         "@tiptap/extension-code-block-lowlight": "^3.19.0",

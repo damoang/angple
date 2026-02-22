@@ -121,7 +121,7 @@ export async function getNewPosts(
 /** 그룹 목록 조회 */
 export async function getBoardGroups(): Promise<{ gr_id: string; gr_subject: string }[]> {
     const [rows] = await pool.query<RowDataPacket[]>(
-        'SELECT gr_id, gr_subject FROM g5_board_group ORDER BY gr_order, gr_id'
+        'SELECT gr_id, gr_subject FROM g5_group ORDER BY gr_order, gr_id'
     );
     return rows as { gr_id: string; gr_subject: string }[];
 }

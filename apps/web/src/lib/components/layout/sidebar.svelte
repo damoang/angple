@@ -1,5 +1,4 @@
 <script lang="ts">
-    import { onMount } from 'svelte';
     import { page } from '$app/stores';
     import {
         Accordion,
@@ -9,8 +8,7 @@
     } from '$lib/components/ui/accordion';
     import { Button } from '$lib/components/ui/button';
     import { cn } from '$lib/utils';
-    import { apiClient } from '$lib/api';
-    import type { MenuItem } from '$lib/api/types.js';
+    import { menuStore } from '$lib/stores/menu.svelte';
 
     // Import all needed Lucide icons
     import MessageSquare from '@lucide/svelte/icons/message-square';
@@ -80,9 +78,11 @@
     };
 
     let isCollapsed = $state(false);
-    let menuData = $state<MenuItem[]>([]);
-    let loading = $state(true);
-    let error = $state<string | null>(null);
+
+    // 메뉴 데이터는 SSR에서 초기화된 스토어에서 가져옴
+    const menuData = $derived(menuStore.menus);
+    const loading = $derived(menuStore.loading);
+    const error = $derived(menuStore.error);
 
     // Current path tracking for active menu highlighting
     const currentPath = $derived($page.url.pathname);
@@ -111,21 +111,12 @@
         return iconMap[iconName] || Circle;
     }
 
-    onMount(async () => {
-        try {
-            menuData = await apiClient.getMenus();
-            loading = false;
-        } catch (err) {
-            console.error('Failed to load menu data:', err);
-            error = err instanceof Error ? err.message : '메뉴 로드 실패';
-            loading = false;
-        }
-    });
+    // 메뉴 필터링과 로딩은 menuStore에서 SSR로 처리됨
 </script>
 
 <div
     data-collapsed={isCollapsed}
-    class="group flex h-full flex-col gap-4 overflow-y-auto py-2 pe-3 data-[collapsed=true]:py-2"
+    class="group flex flex-col gap-4 py-2 pe-3 data-[collapsed=true]:py-2"
 >
     <!-- Slot: sidebar-left-top -->
     {#each getComponentsForSlot('sidebar-left-top') as slotComp (slotComp.id)}
@@ -133,7 +124,6 @@
         <Component {...slotComp.props || {}} />
     {/each}
 
-    <!-- 로그인 위젯 -->
     <div class="px-2">
         <UserWidget />
     </div>
@@ -187,13 +177,14 @@
                                                         : 'hover:bg-accent'
                                                 )}
                                                 href={child.url}
+                                                rel="external"
                                             >
                                                 <ChildIcon class="size-4" />
                                                 {child.title}
                                                 {#if child.shortcut}
-                                                    <span
-                                                        class="text-muted-foreground ml-auto text-xs"
-                                                        >{child.shortcut}</span
+                                                    <kbd
+                                                        class="bg-muted text-muted-foreground ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded border px-1 font-mono text-[10px] font-medium"
+                                                        >{child.shortcut}</kbd
                                                     >
                                                 {/if}
                                             </Button>
@@ -214,6 +205,7 @@
                                     : 'hover:bg-accent'
                             )}
                             href={menu.url}
+                            rel="external"
                         >
                             <IconComponent class="size-5" />
                             <span class={cn(isCollapsed && 'hidden')}>{menu.title}</span>
@@ -228,11 +220,6 @@
     {#if widgetLayoutStore.hasEnabledAds}
         <div class="px-2">
             <AdSlot position="sidebar" height="250px" />
-        </div>
-
-        <!-- 사이드바 세로형 GAM 광고 -->
-        <div class="px-2">
-            <AdSlot position="sidebar-sticky" height="600px" />
         </div>
     {/if}
 

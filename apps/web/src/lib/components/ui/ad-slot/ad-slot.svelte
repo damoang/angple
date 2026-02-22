@@ -54,29 +54,20 @@
         'banner-horizontal': {
             unit: AD_UNIT_PATHS.main,
             sizes: [
-                [970, 250],
                 [970, 90],
                 [728, 90],
-                [320, 100],
-                [300, 250]
+                [320, 100]
             ],
             responsive: [
                 [
                     970,
                     [
-                        [970, 250],
                         [970, 90],
                         [728, 90]
                     ]
                 ],
                 [728, [[728, 90]]],
-                [
-                    0,
-                    [
-                        [320, 100],
-                        [300, 250]
-                    ]
-                ]
+                [0, [[320, 100]]]
             ]
         },
         'banner-large': {
@@ -106,23 +97,16 @@
                 ]
             ]
         },
-        // 게시글 본문 영역 → article
+        // 게시글 본문 영역 → article (모바일: 배너 높이에 맞춤)
         'banner-view-content': {
             unit: AD_UNIT_PATHS.article,
             sizes: [
                 [728, 90],
-                [320, 100],
-                [300, 250]
+                [320, 100]
             ],
             responsive: [
                 [728, [[728, 90]]],
-                [
-                    0,
-                    [
-                        [320, 100],
-                        [300, 250]
-                    ]
-                ]
+                [0, [[320, 100]]]
             ]
         },
         // 반응형 배너 → sub
@@ -211,11 +195,13 @@
 
     // 사이트 위치 → 광고 유형 매핑 (www position_map 기반)
     const POSITION_MAP: Record<string, string> = {
+        'board-view-top': 'banner-small',
         'board-head': 'banner-horizontal',
         'board-list-head': 'banner-responsive',
         'board-list-bottom': 'banner-large',
-        'board-content': 'banner-responsive',
-        'board-content-bottom': 'banner-large',
+        'board-content': 'banner-view-content',
+        'board-content-bottom': 'banner-horizontal',
+        'board-after-comments': 'banner-responsive',
         'board-footer': 'banner-horizontal',
         'index-head': 'banner-small',
         'index-top': 'banner-responsive',
@@ -229,6 +215,7 @@
         'comment-top': 'banner-compact',
         'sidebar-sticky': 'banner-halfpage',
         sidebar: 'banner-square',
+        'sidebar-2': 'banner-square',
         'sidebar-b2b': 'banner-square',
         'wing-left': 'banner-vertical',
         'wing-right': 'banner-vertical'
@@ -275,6 +262,10 @@
             [970, 90],
             [320, 100]
         ],
+        'board-view-top': [
+            [728, 90],
+            [320, 100]
+        ],
         'board-head': [
             [728, 90],
             [970, 90],
@@ -292,12 +283,16 @@
         ],
         'board-content': [
             [728, 90],
-            [300, 250],
             [320, 100]
         ],
         'board-content-bottom': [
             [728, 90],
             [970, 90],
+            [320, 100]
+        ],
+        'board-after-comments': [
+            [728, 90],
+            [300, 250],
             [320, 100]
         ],
         'board-footer': [
@@ -319,6 +314,7 @@
             [300, 600]
         ],
         sidebar: [[300, 250]],
+        'sidebar-2': [[300, 250]],
         'sidebar-b2b': [[300, 250]],
         'wing-left': [[160, 600]],
         'wing-right': [[160, 600]]
@@ -335,14 +331,17 @@
         'index-middle-3': '중간 광고 3',
         'index-bottom': '하단 광고',
         'side-banner': '사이드 배너',
+        'board-view-top': '본문 상단',
         'board-head': '게시판 상단',
         'board-list-head': '목록 상단',
         'board-list-bottom': '목록 하단',
         'board-content': '본문 광고',
         'board-content-bottom': '본문 하단',
+        'board-after-comments': '댓글 하단',
         'board-footer': '게시판 하단',
         'comment-infeed': '댓글 인피드',
         'sidebar-sticky': '사이드바 고정',
+        'sidebar-2': 'sidebar-2',
         'sidebar-b2b': 'B2B 광고',
         'wing-left': '왼쪽 윙 배너',
         'wing-right': '오른쪽 윙 배너'

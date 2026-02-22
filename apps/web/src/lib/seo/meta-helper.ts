@@ -32,6 +32,11 @@ export function configureSeo(config: Partial<typeof siteDefaults>) {
     siteDefaults = { ...siteDefaults, ...config };
 }
 
+/** 설정된 사이트 URL 반환 (HTTPS 보장) */
+export function getSiteUrl(): string {
+    return siteDefaults.siteUrl;
+}
+
 /** 페이지 타이틀 생성 (사이트명 포함) */
 export function buildTitle(pageTitle: string, includeSiteName = true): string {
     if (!includeSiteName || !siteDefaults.siteName) return pageTitle;
