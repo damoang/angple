@@ -116,7 +116,7 @@
 
 <div
     data-collapsed={isCollapsed}
-    class="scrollbar-none group flex h-full flex-col gap-4 overflow-y-auto py-2 pe-3 data-[collapsed=true]:py-2"
+    class="group flex flex-col gap-4 py-2 pe-3 data-[collapsed=true]:py-2"
 >
     <!-- Slot: sidebar-left-top -->
     {#each getComponentsForSlot('sidebar-left-top') as slotComp (slotComp.id)}
@@ -220,12 +220,6 @@
     {#if widgetLayoutStore.hasEnabledAds}
         <div class="px-2">
             <AdSlot position="sidebar" height="250px" />
-        </div>
-
-        <!-- 스크롤 시 고정되는 광고 영역 -->
-        <div class="sticky top-[64px] space-y-3 px-2">
-            <!-- 사이드바 세로형 GAM 광고 -->
-            <AdSlot position="sidebar-sticky" height="600px" />
         </div>
     {/if}
 
