@@ -11,6 +11,9 @@ import { dev } from '$app/environment';
 
 const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8090';
 
+// 쿠키 도메인: Go 백엔드 cookieDomain()과 일치 (쿠키 충돌 방지)
+const COOKIE_DOMAIN = process.env.COOKIE_DOMAIN || '';
+
 // 공통 프록시 로직
 async function proxyRequest(
     method: string,
@@ -82,7 +85,8 @@ async function proxyRequest(
                 httpOnly: isRefresh,
                 sameSite: 'lax',
                 secure: !dev,
-                maxAge: value ? 60 * 60 * 24 * 7 : 0
+                maxAge: value ? 60 * 60 * 24 * 7 : 0,
+                ...(COOKIE_DOMAIN ? { domain: COOKIE_DOMAIN } : {})
             });
         }
 

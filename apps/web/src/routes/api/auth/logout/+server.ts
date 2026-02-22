@@ -4,6 +4,9 @@ import type { RequestHandler } from './$types';
 
 const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8090';
 
+// 쿠키 도메인: Go 백엔드 cookieDomain()과 일치 (쿠키 충돌 방지)
+const COOKIE_DOMAIN = process.env.COOKIE_DOMAIN || '';
+
 /**
  * POST /api/auth/logout
  * 로그아웃 처리: Go 백엔드 로그아웃 + 모든 인증 쿠키 삭제
@@ -25,10 +28,12 @@ export const POST: RequestHandler = async ({ cookies, fetch }) => {
     }
 
     // 2. 모든 인증 쿠키 삭제
+    const domainOpt = COOKIE_DOMAIN ? { domain: COOKIE_DOMAIN } : {};
     const cookieOpts = {
         path: '/',
         secure: !dev,
-        httpOnly: true
+        httpOnly: true,
+        ...domainOpt
     } as const;
 
     cookies.delete('refresh_token', cookieOpts);
