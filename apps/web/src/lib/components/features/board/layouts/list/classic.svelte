@@ -22,23 +22,21 @@
     // 회원 아이콘 URL
     const iconUrl = $derived(getMemberIconUrl(post.author_id));
 
-    // 추천 색상 단계 (PHP get_color_step_f20240616 재현)
-    const likesStep = $derived.by(() => {
+    // 추천 색상 단계 (게시판용 임계값: 0, ≤5, ≤10, ≤50, >50)
+    const likesStepClass = $derived.by(() => {
         const likes = post.likes;
-        if (likes === 0) return 'step0';
-        if (likes <= 5) return 'step1';
-        if (likes <= 10) return 'step2';
-        if (likes <= 50) return 'step3';
-        return 'step4';
+        if (likes === 0) {
+            return 'bg-[rgba(172,172,172,0.08)] text-foreground/20';
+        } else if (likes <= 5) {
+            return 'bg-[rgba(172,172,172,0.2)] text-foreground';
+        } else if (likes <= 10) {
+            return 'bg-[rgba(59,130,246,0.3)] text-foreground';
+        } else if (likes <= 50) {
+            return 'bg-[rgba(59,130,246,0.6)] text-foreground';
+        } else {
+            return 'bg-[rgba(0,102,255,0.75)] text-white';
+        }
     });
-
-    const stepClasses: Record<string, string> = {
-        step0: 'bg-muted text-muted-foreground',
-        step1: 'bg-accent text-accent-foreground',
-        step2: 'bg-secondary text-secondary-foreground',
-        step3: 'bg-liked/10 text-liked',
-        step4: 'bg-destructive/10 text-destructive'
-    };
 
     // 삭제된 글
     const isDeleted = $derived(!!post.deleted_at);
@@ -91,9 +89,7 @@
                     </div>
                 {:else}
                     <div
-                        class="flex h-7 w-10 items-center justify-center rounded-md text-sm font-semibold {stepClasses[
-                            likesStep
-                        ]}"
+                        class="flex h-7 w-10 items-center justify-center rounded-md text-sm font-semibold {likesStepClass}"
                     >
                         {post.likes.toLocaleString()}
                     </div>
@@ -188,9 +184,7 @@
                             <span>·</span>
                             <span class="inline-flex items-center gap-0.5">
                                 <span
-                                    class="inline-flex h-4 items-center rounded px-1 text-[10px] font-semibold {stepClasses[
-                                        likesStep
-                                    ]}"
+                                    class="inline-flex h-4 items-center rounded px-1 text-[10px] font-semibold {likesStepClass}"
                                 >
                                     👍 {post.likes}
                                 </span>

@@ -1,20 +1,23 @@
 /**
- * 추천수 기반 배지 컬러 클래스 반환 (PHP rcmd-box step1-4 Tailwind 변환)
+ * 추천수 기반 배지 컬러 클래스 반환 (현세대 rcmd-box step0-4 일치)
  * @param recommendCount 추천수
  * @returns Tailwind CSS 클래스 문자열
  */
 export function getRecommendBadgeClass(recommendCount: number): string {
-    if (recommendCount <= 15) {
-        // step1: 파란색
-        return 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200';
+    if (recommendCount === 0) {
+        // step0: 추천 0건 - 매우 연한 배경
+        return 'bg-[rgba(172,172,172,0.08)] text-foreground/20';
+    } else if (recommendCount <= 15) {
+        // step1: 회색 계열
+        return 'bg-[rgba(172,172,172,0.2)] text-foreground';
     } else if (recommendCount <= 25) {
-        // step2: 보라색
-        return 'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-200';
+        // step2: 연한 파란색
+        return 'bg-[rgba(59,130,246,0.3)] text-foreground';
     } else if (recommendCount <= 50) {
-        // step3: 핑크색
-        return 'bg-pink-100 text-pink-700 dark:bg-pink-900 dark:text-pink-200';
+        // step3: 중간 파란색
+        return 'bg-[rgba(59,130,246,0.6)] text-foreground';
     } else {
-        // step4: 빨간색
-        return 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-200';
+        // step4: 진한 파란색 + 흰 글자
+        return 'bg-[rgba(0,102,255,0.75)] text-white';
     }
 }

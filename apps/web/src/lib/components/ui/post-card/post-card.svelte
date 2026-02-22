@@ -18,7 +18,7 @@
         <div class="flex items-center gap-2">
             <!-- rcmd-box + rcmd-sm 스타일 -->
             <span
-                class="inline-flex min-w-[2.5rem] flex-shrink-0 items-center justify-center rounded px-2 py-0.5 text-sm font-bold {getRecommendBadgeClass(
+                class="inline-flex min-w-[2.5rem] flex-shrink-0 items-center justify-center rounded-full px-2 py-0.5 text-xs font-bold {getRecommendBadgeClass(
                     post.recommend_count
                 )}"
             >
