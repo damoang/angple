@@ -24,7 +24,7 @@ export class TwitterProvider extends BaseOAuthProvider {
     readonly provider: SocialProvider = 'twitter';
     readonly config: OAuthProviderConfig;
 
-    constructor(clientId: string, clientSecret: string) {
+    constructor(clientId: string, clientSecret: string, origin?: string) {
         super();
         this.config = {
             clientId,
@@ -33,7 +33,7 @@ export class TwitterProvider extends BaseOAuthProvider {
             tokenUrl: 'https://api.twitter.com/2/oauth2/token',
             profileUrl: 'https://api.twitter.com/2/users/me?user.fields=profile_image_url',
             scope: 'users.read tweet.read',
-            callbackUrl: getCallbackUrl('twitter')
+            callbackUrl: getCallbackUrl('twitter', origin)
         };
     }
 

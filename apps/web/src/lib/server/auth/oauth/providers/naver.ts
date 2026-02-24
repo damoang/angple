@@ -19,7 +19,7 @@ export class NaverProvider extends BaseOAuthProvider {
     readonly provider: SocialProvider = 'naver';
     readonly config: OAuthProviderConfig;
 
-    constructor(clientId: string, clientSecret: string) {
+    constructor(clientId: string, clientSecret: string, origin?: string) {
         super();
         this.config = {
             clientId,
@@ -28,7 +28,7 @@ export class NaverProvider extends BaseOAuthProvider {
             tokenUrl: 'https://nid.naver.com/oauth2.0/token',
             profileUrl: 'https://openapi.naver.com/v1/nid/me',
             scope: '',
-            callbackUrl: getCallbackUrl('naver')
+            callbackUrl: getCallbackUrl('naver', origin)
         };
     }
 

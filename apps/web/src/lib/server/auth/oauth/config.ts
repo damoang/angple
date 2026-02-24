@@ -6,6 +6,11 @@ import pool from '$lib/server/db.js';
 import type { RowDataPacket } from 'mysql2';
 
 const SITE_URL = process.env.SITE_URL || 'https://damoang.net';
+const ALLOWED_ORIGINS = new Set([
+    'https://damoang.net',
+    'https://web.damoang.net',
+    'https://dev.damoang.net'
+]);
 
 export interface OAuthKeys {
     naver_clientid: string;
@@ -72,9 +77,21 @@ export async function getOAuthKeys(): Promise<OAuthKeys> {
     return cachedKeys;
 }
 
-/** OAuth 콜백 URL 생성 */
-export function getCallbackUrl(provider: string): string {
-    return `${SITE_URL}/auth/callback/${provider.toLowerCase()}`;
+/** 요청에서 실제 origin 추출 (Host 헤더 기반, 항상 HTTPS) */
+export function resolveOrigin(request: Request): string {
+    const host = request.headers.get('host');
+    if (host) {
+        // ALB/Cloudflare 뒤이므로 항상 HTTPS
+        const origin = `https://${host}`;
+        if (ALLOWED_ORIGINS.has(origin)) return origin;
+    }
+    return SITE_URL;
+}
+
+/** OAuth 콜백 URL 생성 (요청 origin 기반, 허용 도메인만) */
+export function getCallbackUrl(provider: string, origin?: string): string {
+    const base = origin && ALLOWED_ORIGINS.has(origin) ? origin : SITE_URL;
+    return `${base}/auth/callback/${provider.toLowerCase()}`;
 }
 
 export function getSiteUrl(): string {

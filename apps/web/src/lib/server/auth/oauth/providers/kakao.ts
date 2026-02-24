@@ -25,7 +25,7 @@ export class KakaoProvider extends BaseOAuthProvider {
     readonly provider: SocialProvider = 'kakao';
     readonly config: OAuthProviderConfig;
 
-    constructor(clientId: string, clientSecret: string) {
+    constructor(clientId: string, clientSecret: string, origin?: string) {
         super();
         this.config = {
             clientId,
@@ -34,7 +34,7 @@ export class KakaoProvider extends BaseOAuthProvider {
             tokenUrl: 'https://kauth.kakao.com/oauth/token',
             profileUrl: 'https://kapi.kakao.com/v2/user/me',
             scope: 'account_email',
-            callbackUrl: getCallbackUrl('kakao')
+            callbackUrl: getCallbackUrl('kakao', origin)
         };
     }
 

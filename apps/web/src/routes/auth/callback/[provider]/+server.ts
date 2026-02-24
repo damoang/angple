@@ -6,6 +6,7 @@
 import { redirect, type RequestHandler } from '@sveltejs/kit';
 import { dev } from '$app/environment';
 import { normalizeProviderName, getProvider } from '$lib/server/auth/oauth/provider-registry.js';
+import { resolveOrigin } from '$lib/server/auth/oauth/config.js';
 import { validateOAuthState } from '$lib/server/auth/oauth/state.js';
 import { findSocialProfile, upsertSocialProfile } from '$lib/server/auth/oauth/social-profile.js';
 import {
@@ -32,7 +33,8 @@ async function handleCallback(
     cookies: Parameters<RequestHandler>[0]['cookies'],
     code: string,
     stateParam: string,
-    clientIp: string
+    clientIp: string,
+    origin: string
 ): Promise<never> {
     // 1. URL 경로 파라미터에서 프로바이더 추출
     const providerName = normalizeProviderName(providerSlug);
@@ -51,7 +53,7 @@ async function handleCallback(
     }
 
     try {
-        const provider = await getProvider(providerName);
+        const provider = await getProvider(providerName, origin);
 
         // 3. code → access_token 교환
         let tokenResponse;
@@ -175,7 +177,7 @@ async function handleCallback(
 }
 
 /** GET 콜백 (대부분의 프로바이더) */
-export const GET: RequestHandler = async ({ url, cookies, getClientAddress, params }) => {
+export const GET: RequestHandler = async ({ url, cookies, request, getClientAddress, params }) => {
     const code = url.searchParams.get('code');
     const stateParam = url.searchParams.get('state');
     const errorParam = url.searchParams.get('error');
@@ -189,7 +191,8 @@ export const GET: RequestHandler = async ({ url, cookies, getClientAddress, para
     }
 
     const clientIp = getClientAddress();
-    return handleCallback(params.provider, cookies, code, stateParam, clientIp);
+    const origin = resolveOrigin(request);
+    return handleCallback(params.provider, cookies, code, stateParam, clientIp, origin);
 };
 
 /** POST 콜백 (Apple response_mode=form_post) */
@@ -208,5 +211,6 @@ export const POST: RequestHandler = async ({ cookies, request, getClientAddress,
     }
 
     const clientIp = getClientAddress();
-    return handleCallback(params.provider, cookies, code, stateParam, clientIp);
+    const origin = resolveOrigin(request);
+    return handleCallback(params.provider, cookies, code, stateParam, clientIp, origin);
 };

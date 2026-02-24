@@ -13,29 +13,33 @@ import { AppleProvider } from './providers/apple.js';
 import { TwitterProvider } from './providers/twitter.js';
 import { PaycoProvider } from './providers/payco.js';
 
-export async function getProvider(provider: SocialProvider): Promise<BaseOAuthProvider> {
+export async function getProvider(
+    provider: SocialProvider,
+    origin?: string
+): Promise<BaseOAuthProvider> {
     const keys = await getOAuthKeys();
 
     switch (provider) {
         case 'naver':
-            return new NaverProvider(keys.naver_clientid, keys.naver_secret);
+            return new NaverProvider(keys.naver_clientid, keys.naver_secret, origin);
         case 'kakao':
-            return new KakaoProvider(keys.kakao_rest_key, keys.kakao_client_secret);
+            return new KakaoProvider(keys.kakao_rest_key, keys.kakao_client_secret, origin);
         case 'google':
-            return new GoogleProvider(keys.google_clientid, keys.google_secret);
+            return new GoogleProvider(keys.google_clientid, keys.google_secret, origin);
         case 'facebook':
-            return new FacebookProvider(keys.facebook_appid, keys.facebook_secret);
+            return new FacebookProvider(keys.facebook_appid, keys.facebook_secret, origin);
         case 'apple':
             return new AppleProvider(
                 keys.apple_bundle_id,
                 keys.apple_team_id,
                 keys.apple_key_id,
-                keys.apple_key_file
+                keys.apple_key_file,
+                origin
             );
         case 'twitter':
-            return new TwitterProvider(keys.twitter_key, keys.twitter_secret);
+            return new TwitterProvider(keys.twitter_key, keys.twitter_secret, origin);
         case 'payco':
-            return new PaycoProvider(keys.payco_clientid, keys.payco_secret);
+            return new PaycoProvider(keys.payco_clientid, keys.payco_secret, origin);
         default:
             throw new Error(`지원하지 않는 프로바이더: ${provider}`);
     }

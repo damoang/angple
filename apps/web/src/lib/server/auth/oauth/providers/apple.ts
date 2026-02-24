@@ -26,7 +26,7 @@ export class AppleProvider extends BaseOAuthProvider {
     private keyId: string;
     private keyFile: string;
 
-    constructor(bundleId: string, teamId: string, keyId: string, keyFile: string) {
+    constructor(bundleId: string, teamId: string, keyId: string, keyFile: string, origin?: string) {
         super();
         this.teamId = teamId;
         this.keyId = keyId;
@@ -38,7 +38,7 @@ export class AppleProvider extends BaseOAuthProvider {
             tokenUrl: 'https://appleid.apple.com/auth/token',
             profileUrl: '', // Apple은 id_token에서 추출
             scope: 'name email',
-            callbackUrl: getCallbackUrl('apple')
+            callbackUrl: getCallbackUrl('apple', origin)
         };
     }
 

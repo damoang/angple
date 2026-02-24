@@ -19,7 +19,7 @@ export class GoogleProvider extends BaseOAuthProvider {
     readonly provider: SocialProvider = 'google';
     readonly config: OAuthProviderConfig;
 
-    constructor(clientId: string, clientSecret: string) {
+    constructor(clientId: string, clientSecret: string, origin?: string) {
         super();
         this.config = {
             clientId,
@@ -28,7 +28,7 @@ export class GoogleProvider extends BaseOAuthProvider {
             tokenUrl: 'https://oauth2.googleapis.com/token',
             profileUrl: 'https://www.googleapis.com/oauth2/v3/userinfo',
             scope: 'openid profile email',
-            callbackUrl: getCallbackUrl('google')
+            callbackUrl: getCallbackUrl('google', origin)
         };
     }
 

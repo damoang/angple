@@ -28,7 +28,7 @@ export class PaycoProvider extends BaseOAuthProvider {
     readonly provider: SocialProvider = 'payco';
     readonly config: OAuthProviderConfig;
 
-    constructor(clientId: string, clientSecret: string) {
+    constructor(clientId: string, clientSecret: string, origin?: string) {
         super();
         this.config = {
             clientId,
@@ -37,7 +37,7 @@ export class PaycoProvider extends BaseOAuthProvider {
             tokenUrl: 'https://id.payco.com/oauth2.0/token',
             profileUrl: 'https://apis-payco.krp.toastoven.net/payco/friends/find_member_v2.json',
             scope: '',
-            callbackUrl: getCallbackUrl('payco')
+            callbackUrl: getCallbackUrl('payco', origin)
         };
     }
 

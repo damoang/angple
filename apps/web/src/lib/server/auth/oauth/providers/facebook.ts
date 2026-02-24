@@ -20,7 +20,7 @@ export class FacebookProvider extends BaseOAuthProvider {
     readonly provider: SocialProvider = 'facebook';
     readonly config: OAuthProviderConfig;
 
-    constructor(clientId: string, clientSecret: string) {
+    constructor(clientId: string, clientSecret: string, origin?: string) {
         super();
         this.config = {
             clientId,
@@ -30,7 +30,7 @@ export class FacebookProvider extends BaseOAuthProvider {
             profileUrl:
                 'https://graph.facebook.com/v19.0/me?fields=id,name,email,picture.type(large)',
             scope: 'email public_profile',
-            callbackUrl: getCallbackUrl('facebook')
+            callbackUrl: getCallbackUrl('facebook', origin)
         };
     }
 
