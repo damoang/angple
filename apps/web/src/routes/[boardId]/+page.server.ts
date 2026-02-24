@@ -1,3 +1,4 @@
+import { error as svelteError } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types.js';
 import type { FreePost, Board, SearchField } from '$lib/api/types.js';
 
@@ -24,6 +25,21 @@ export const load: PageServerLoad = async ({ url, params, fetch: svelteKitFetch,
     }
 
     try {
+        const backendFetch = globalThis.fetch;
+
+        // 게시판 정보를 먼저 가져와서 접근 권한 확인
+        const boardRes = await backendFetch(`${BACKEND_URL}/api/v1/boards/${boardId}`, { headers });
+        const board: Board | null = boardRes.ok ? ((await boardRes.json()).data as Board) : null;
+
+        // 게시판 접근 권한 체크 (list_level)
+        if (board) {
+            const userLevel = locals.user?.level ?? 0;
+            const requiredLevel = board.list_level ?? 1;
+            if (userLevel < requiredLevel) {
+                svelteError(403, '이 게시판에 접근할 권한이 없습니다.');
+            }
+        }
+
         // 검색 쿼리 빌드
         const buildPostsUrl = (): string => {
             const queryParams = new URLSearchParams({
@@ -46,41 +62,28 @@ export const load: PageServerLoad = async ({ url, params, fetch: svelteKitFetch,
             return `${BACKEND_URL}/api/v1/boards/${boardId}/posts?${queryParams.toString()}`;
         };
 
-        // 게시글 목록 (필수) + 게시판 정보/공지사항 (실패해도 페이지 표시)
-        // 백엔드 API → globalThis.fetch (Origin 헤더 미포함, CORS 403 방지)
-        // SvelteKit 내부 라우트 → svelteKitFetch (쿠키/상대경로 처리)
-        const backendFetch = globalThis.fetch;
-        const [postsResult, boardResult, noticesResult, promotionResult] = await Promise.allSettled(
-            [
-                // 게시글 목록
-                backendFetch(buildPostsUrl(), { headers }).then(async (res) => {
-                    if (!res.ok) throw new Error(`Posts API error: ${res.status}`);
-                    return res.json();
-                }),
-                // 게시판 정보
-                backendFetch(`${BACKEND_URL}/api/v1/boards/${boardId}`, { headers }).then(
-                    async (res) => {
-                        if (!res.ok) return null;
-                        const json = await res.json();
-                        return json.data as Board;
-                    }
-                ),
-                // 공지사항 (검색 중이면 건너뜀)
-                isSearching
-                    ? Promise.resolve([])
-                    : backendFetch(`${BACKEND_URL}/api/v1/boards/${boardId}/notices`, {
-                          headers
-                      }).then(async (res) => {
-                          if (!res.ok) return [];
-                          const json = await res.json();
-                          return (json.data as FreePost[]) || [];
-                      }),
-                // 직접홍보 사잇광고 (SvelteKit 내부 라우트 → svelteKitFetch 사용)
-                svelteKitFetch(`${url.origin}/api/ads/promotion-posts`)
-                    .then((r) => r.json())
-                    .catch(() => ({ success: false, data: { posts: [] } }))
-            ]
-        );
+        // 게시글 목록 + 공지사항 + 프로모션 (게시판 권한 확인 후 병렬 호출)
+        const [postsResult, noticesResult, promotionResult] = await Promise.allSettled([
+            // 게시글 목록
+            backendFetch(buildPostsUrl(), { headers }).then(async (res) => {
+                if (!res.ok) throw new Error(`Posts API error: ${res.status}`);
+                return res.json();
+            }),
+            // 공지사항 (검색 중이면 건너뜀)
+            isSearching
+                ? Promise.resolve([])
+                : backendFetch(`${BACKEND_URL}/api/v1/boards/${boardId}/notices`, {
+                      headers
+                  }).then(async (res) => {
+                      if (!res.ok) return [];
+                      const json = await res.json();
+                      return (json.data as FreePost[]) || [];
+                  }),
+            // 직접홍보 사잇광고 (SvelteKit 내부 라우트 → svelteKitFetch 사용)
+            svelteKitFetch(`${url.origin}/api/ads/promotion-posts`)
+                .then((r) => r.json())
+                .catch(() => ({ success: false, data: { posts: [] } }))
+        ]);
 
         // 게시글 필수 — 실패 시 에러 표시
         if (postsResult.status === 'rejected') {
@@ -104,7 +107,6 @@ export const load: PageServerLoad = async ({ url, params, fetch: svelteKitFetch,
         const total = meta.total || 0;
         const totalPages = meta.limit ? Math.ceil(meta.total / meta.limit) : 0;
 
-        const board = boardResult.status === 'fulfilled' ? boardResult.value : null;
         const notices = noticesResult.status === 'fulfilled' ? noticesResult.value : [];
         const promotionPosts =
             promotionResult.status === 'fulfilled' ? promotionResult.value?.data?.posts || [] : [];
@@ -125,6 +127,10 @@ export const load: PageServerLoad = async ({ url, params, fetch: svelteKitFetch,
             activeTag: tag
         };
     } catch (error) {
+        // SvelteKit HttpError (403 등)는 다시 throw → +error.svelte 렌더링
+        if (error && typeof error === 'object' && 'status' in error) {
+            throw error;
+        }
         console.error('게시판 로딩 에러:', boardId, error);
         return {
             boardId,

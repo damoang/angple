@@ -82,6 +82,15 @@ export const load: PageServerLoad = async ({ params, fetch: svelteKitFetch, loca
 
         const post = postResult.value;
         const board = boardResult.status === 'fulfilled' ? boardResult.value : null;
+
+        // 게시판 접근 권한 체크 (list_level, read_level 중 높은 값)
+        if (board) {
+            const userLevel = locals.user?.level ?? 0;
+            const requiredLevel = Math.max(board.list_level ?? 1, board.read_level ?? 1);
+            if (userLevel < requiredLevel) {
+                throw error(403, '이 게시판에 접근할 권한이 없습니다.');
+            }
+        }
         const comments =
             commentsResult.status === 'fulfilled'
                 ? commentsResult.value
