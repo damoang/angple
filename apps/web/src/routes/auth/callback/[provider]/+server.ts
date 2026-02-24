@@ -192,7 +192,7 @@ export const GET: RequestHandler = async ({ url, cookies, request, getClientAddr
 
     const clientIp = getClientAddress();
     const origin = resolveOrigin(request);
-    return handleCallback(params.provider, cookies, code, stateParam, clientIp, origin);
+    return handleCallback(params.provider!, cookies, code, stateParam, clientIp, origin);
 };
 
 /** POST 콜백 (Apple response_mode=form_post) */
@@ -212,5 +212,5 @@ export const POST: RequestHandler = async ({ cookies, request, getClientAddress,
 
     const clientIp = getClientAddress();
     const origin = resolveOrigin(request);
-    return handleCallback(params.provider, cookies, code, stateParam, clientIp, origin);
+    return handleCallback(params.provider!, cookies, code, stateParam, clientIp, origin);
 };
