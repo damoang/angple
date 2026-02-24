@@ -5,15 +5,15 @@ import type { Board } from '$lib/api/types.js';
 const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8090';
 
 /**
- * 글쓰기 페이지 서버 로드
+ * 게시글 수정 페이지 서버 로드
  * 인증 체크 (로그인 필수) + write_level 권한 체크
  */
 export const load: PageServerLoad = async ({ locals, params }) => {
-    const { boardId } = params;
+    const { boardId, postId } = params;
 
     // 서버 사이드 인증 검증 — 미인증 사용자는 로그인 페이지로 리다이렉트
     if (!locals.user) {
-        redirect(302, `/login?redirect=/${boardId}/write`);
+        redirect(302, `/login?redirect=/${boardId}/${postId}/edit`);
     }
 
     // 게시판 정보 조회 → write_level 권한 체크
