@@ -118,13 +118,13 @@
         }
     }
 
-    // OAuth 로그인 (서버사이드 처리 → /plugin/social/start)
+    // OAuth 로그인 (서버사이드 처리 → /auth/start)
     function handleOAuthLogin(provider: OAuthProvider): void {
         const params = new URLSearchParams({
             provider,
             redirect: redirectUrl
         });
-        window.location.href = `/plugin/social/start?${params.toString()}`;
+        window.location.href = `/auth/start?${params.toString()}`;
     }
 
     // OAuth 프로바이더 설정

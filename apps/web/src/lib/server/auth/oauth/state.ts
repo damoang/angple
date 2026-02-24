@@ -8,6 +8,7 @@ import { dev } from '$app/environment';
 
 const STATE_COOKIE_NAME = 'oauth_state';
 const STATE_MAX_AGE = 600; // 10분
+const COOKIE_DOMAIN = process.env.COOKIE_DOMAIN || undefined;
 
 function generateRandomState(): string {
     const bytes = new Uint8Array(32);
@@ -34,7 +35,8 @@ export function createOAuthState(
         httpOnly: true,
         sameSite: 'lax',
         secure: !dev,
-        maxAge: STATE_MAX_AGE
+        maxAge: STATE_MAX_AGE,
+        ...(COOKIE_DOMAIN && { domain: COOKIE_DOMAIN })
     });
 
     return state;
@@ -54,7 +56,10 @@ export function validateOAuthState(cookies: Cookies, state: string): OAuthStateD
         if (Date.now() - data.timestamp > STATE_MAX_AGE * 1000) return null;
 
         // 검증 성공 후 쿠키 삭제
-        cookies.delete(STATE_COOKIE_NAME, { path: '/' });
+        cookies.delete(STATE_COOKIE_NAME, {
+            path: '/',
+            ...(COOKIE_DOMAIN && { domain: COOKIE_DOMAIN })
+        });
 
         return data;
     } catch {

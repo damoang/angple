@@ -72,16 +72,9 @@ export async function getOAuthKeys(): Promise<OAuthKeys> {
     return cachedKeys;
 }
 
-/** PHP 호환 콜백 URL 생성 */
+/** OAuth 콜백 URL 생성 */
 export function getCallbackUrl(provider: string): string {
-    const providerLower = provider.toLowerCase();
-    // Twitter, Payco는 파라미터 없는 콜백
-    if (providerLower === 'twitter' || providerLower === 'payco') {
-        return `${SITE_URL}/plugin/social/`;
-    }
-    // 나머지: ?hauth.done=Provider (첫 글자 대문자)
-    const providerName = providerLower.charAt(0).toUpperCase() + providerLower.slice(1);
-    return `${SITE_URL}/plugin/social/?hauth.done=${providerName}`;
+    return `${SITE_URL}/auth/callback/${provider.toLowerCase()}`;
 }
 
 export function getSiteUrl(): string {
