@@ -18,7 +18,10 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 
     // 게시판 정보 조회 → write_level 권한 체크
     try {
-        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+        const headers: Record<string, string> = {
+            'Content-Type': 'application/json',
+            'User-Agent': 'Angple-Web-SSR/1.0'
+        };
         if (locals.accessToken) {
             headers['Authorization'] = `Bearer ${locals.accessToken}`;
         }

@@ -221,6 +221,9 @@
         <div class="px-2">
             <AdSlot position="sidebar" height="250px" />
         </div>
+        <div class="px-2">
+            <AdSlot position="sidebar-2" height="250px" />
+        </div>
     {/if}
 
     <!-- Slot: sidebar-left-bottom -->
