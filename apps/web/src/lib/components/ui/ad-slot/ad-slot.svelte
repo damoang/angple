@@ -22,6 +22,7 @@
     let slotId = $state('');
     let slot: googletag.Slot | null = null;
     let refreshInterval: ReturnType<typeof setInterval> | null = null;
+    let destroyed = false;
 
     // GPT 서비스 초기화 플래그 (전역)
     const GPT_INITIALIZED_KEY = '__gpt_services_initialized__';
@@ -431,6 +432,9 @@
         googletag.cmd.push(() => {
             const divId = slotId;
 
+            // 컴포넌트가 이미 파괴되었거나 DOM 요소가 없으면 중단
+            if (destroyed || !document.getElementById(divId)) return;
+
             // 슬롯 정의
             if (adSizes === 'fluid') {
                 slot = googletag.defineSlot(adUnitPath, ['fluid'], divId);
@@ -466,7 +470,7 @@
                                 // 빈 광고면 재시도
                                 if (event.isEmpty) {
                                     setTimeout(() => {
-                                        if (slot) {
+                                        if (slot && !destroyed) {
                                             googletag.pubads().refresh([slot]);
                                         }
                                     }, GAM_AD_EMPTY_RETRY_DELAY * 1000);
@@ -489,7 +493,7 @@
 
                 // 자동 새로고침 설정
                 refreshInterval = setInterval(() => {
-                    if (slot && hasAd) {
+                    if (slot && hasAd && !destroyed) {
                         googletag.pubads().refresh([slot]);
                     }
                 }, GAM_AD_REFRESH_INTERVAL * 1000);
@@ -502,6 +506,8 @@
     });
 
     onDestroy(() => {
+        destroyed = true;
+
         // 새로고침 인터벌 정리
         if (refreshInterval) {
             clearInterval(refreshInterval);

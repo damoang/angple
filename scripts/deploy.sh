@@ -110,7 +110,11 @@ cd "$DEV_DIR/apps/web" && pnpm build 2>&1 | tail -3
 # 2. 복사
 echo ""
 echo -e "${BLUE}[2/5] 복사...${NC}"
-rsync -a --delete "$DEV_DIR/apps/web/build/" "$PROD_DIR/build/"
+# immutable 파일(content-hash) 보존: 이전 클라이언트가 아직 로드하지 않은 chunk 404 방지
+rsync -a "$DEV_DIR/apps/web/build/" "$PROD_DIR/build/"
+rsync -a --delete --exclude='_app/immutable/' "$DEV_DIR/apps/web/build/" "$PROD_DIR/build/"
+# 2일 이상 된 이전 immutable 파일 정리 (백그라운드)
+(find "$PROD_DIR/build/_app/immutable/" -type f -mtime +2 -delete 2>/dev/null &)
 rsync -a "$DEV_DIR/data/" "$PROD_DIR/data/"
 
 # .env 동기화
