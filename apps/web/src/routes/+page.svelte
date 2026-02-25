@@ -49,8 +49,15 @@
 
 <SeoHead config={seoConfig} />
 
-<!-- 통합 위젯 렌더러로 메인 영역 렌더링 -->
-<WidgetRenderer zone="main" />
+<!-- 통합 위젯 렌더러로 메인 영역 렌더링 (추천글 SSR 프리페치 포함) -->
+<WidgetRenderer
+    zone="main"
+    prefetchDataMap={{
+        recommended: data.recommendedData
+            ? { data: data.recommendedData, period: data.recommendedPeriod }
+            : undefined
+    }}
+/>
 
 <!-- 편집 모드 토글 버튼 (서버 검증된 관리자만 표시) -->
 <EditModeToggle serverIsAdmin={data.isAdmin ?? false} />

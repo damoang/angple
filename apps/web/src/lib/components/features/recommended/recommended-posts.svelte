@@ -9,15 +9,33 @@
     import { SkeletonLoader } from './components/loading';
     import { getCurrentTabVisibility } from './utils/index.js';
 
+    interface Props {
+        /** SSR prefetch 데이터 (있으면 즉시 표시, 없으면 클라이언트 fetch) */
+        prefetchData?: { data: RecommendedDataWithAI; period: RecommendedPeriod } | unknown;
+    }
+
+    const { prefetchData }: Props = $props();
+
     const { defaultTab } = getCurrentTabVisibility();
 
-    let activeTab = $state<RecommendedPeriod>(defaultTab);
-    let data = $state<RecommendedDataWithAI | null>(null);
-    let loading = $state(true);
+    // SSR 데이터가 있으면 즉시 사용
+    const ssrData = prefetchData as
+        | { data: RecommendedDataWithAI; period: RecommendedPeriod }
+        | undefined;
+    const hasSSRData = !!ssrData?.data;
+
+    let activeTab = $state<RecommendedPeriod>(hasSSRData ? ssrData!.period : defaultTab);
+    let data = $state<RecommendedDataWithAI | null>(hasSSRData ? ssrData!.data : null);
+    let loading = $state(!hasSSRData);
     let error = $state<string | null>(null);
 
     // 탭별 데이터 캐시
     const dataCache = new SvelteMap<RecommendedPeriod, RecommendedDataWithAI>();
+
+    // SSR 데이터를 캐시에 등록
+    if (hasSSRData) {
+        dataCache.set(ssrData!.period, ssrData!.data);
+    }
 
     async function loadData(period: RecommendedPeriod, isInitial = false) {
         // 캐시에 데이터가 있으면 즉시 표시
@@ -56,7 +74,10 @@
     }
 
     onMount(() => {
-        loadData(activeTab, true);
+        // SSR 데이터가 있으면 초기 fetch 불필요
+        if (!hasSSRData) {
+            loadData(activeTab, true);
+        }
     });
 </script>
 

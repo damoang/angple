@@ -2,22 +2,23 @@ import type { PageServerLoad } from './$types';
 import { readSettings } from '$lib/server/settings';
 import { DEFAULT_WIDGETS, DEFAULT_SIDEBAR_WIDGETS } from '$lib/constants/default-widgets';
 import { buildIndexWidgets } from '$lib/server/index-widgets-builder';
+import { getDefaultPeriod, loadRecommendedData } from '$lib/server/recommended-loader';
 
 const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8090';
 
 export const load: PageServerLoad = async () => {
-    // 위젯 데이터와 레이아웃을 병렬로 로드
-    const [indexWidgetsResult, layoutResult] = await Promise.allSettled([
-        // 개별 게시판 API 병렬 호출로 위젯 데이터 조립
+    // 위젯 데이터, 레이아웃, 추천글을 병렬로 로드
+    const [indexWidgetsResult, layoutResult, recommendedResult] = await Promise.allSettled([
         buildIndexWidgets(BACKEND_URL),
-        // 위젯 레이아웃 로드 (메인 + 사이드바)
         (async () => {
             const settings = await readSettings();
             return {
                 widgetLayout: settings.widgetLayout ?? DEFAULT_WIDGETS,
                 sidebarWidgetLayout: settings.sidebarWidgetLayout ?? DEFAULT_SIDEBAR_WIDGETS
             };
-        })()
+        })(),
+        // 추천글 기본 탭 SSR 프리페치 (로딩 없이 즉시 표시)
+        loadRecommendedData(getDefaultPeriod())
     ]);
 
     const indexWidgets =
@@ -26,6 +27,8 @@ export const load: PageServerLoad = async () => {
         layoutResult.status === 'fulfilled'
             ? layoutResult.value
             : { widgetLayout: DEFAULT_WIDGETS, sidebarWidgetLayout: DEFAULT_SIDEBAR_WIDGETS };
+    const recommendedData =
+        recommendedResult.status === 'fulfilled' ? recommendedResult.value : null;
 
     if (indexWidgetsResult.status === 'rejected') {
         console.error('[SSR] Failed to load index widgets:', indexWidgetsResult.reason);
@@ -34,6 +37,8 @@ export const load: PageServerLoad = async () => {
     return {
         indexWidgets,
         widgetLayout: layoutData.widgetLayout,
-        sidebarWidgetLayout: layoutData.sidebarWidgetLayout
+        sidebarWidgetLayout: layoutData.sidebarWidgetLayout,
+        recommendedData,
+        recommendedPeriod: getDefaultPeriod()
     };
 };

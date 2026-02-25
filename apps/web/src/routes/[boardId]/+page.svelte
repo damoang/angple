@@ -161,7 +161,7 @@
     const listLayoutId = $derived(
         data.board?.display_settings?.list_layout ||
             data.board?.display_settings?.list_style ||
-            'compact'
+            'classic'
     );
 
     // Layout Registry에서 resolve (Plugin > Theme > Core)
