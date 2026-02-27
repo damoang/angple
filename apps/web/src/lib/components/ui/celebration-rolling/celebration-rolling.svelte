@@ -1,6 +1,11 @@
 <script lang="ts">
     import { onMount } from 'svelte';
-    import { browser } from '$app/environment';
+    import {
+        getCelebrations,
+        getCurrentIndex,
+        mount as celebrationMount,
+        type CelebrationBanner
+    } from '$lib/stores/celebration.svelte.js';
 
     interface Props {
         class?: string;
@@ -8,59 +13,12 @@
 
     let { class: className = '' }: Props = $props();
 
-    interface CelebrationBanner {
-        id: number;
-        title: string;
-        content: string;
-        image_url: string;
-        link_url: string;
-        target_member_nick?: string;
-        target_member_photo?: string;
-        external_link?: string;
-        link_target?: string;
-        display_type?: 'image' | 'text';
-    }
-
-    let celebrations = $state<CelebrationBanner[]>([]);
-    let currentIndex = $state(0);
+    let celebrations = $derived(getCelebrations());
+    let currentIndex = $derived(getCurrentIndex());
 
     onMount(() => {
-        fetchCelebrations();
+        return celebrationMount();
     });
-
-    // 4초 간격 롤링 (2개 이상일 때만)
-    $effect(() => {
-        if (celebrations.length <= 1) return;
-
-        currentIndex = 0;
-
-        const intervalId = setInterval(() => {
-            currentIndex = (currentIndex + 1) % celebrations.length;
-        }, 4000);
-
-        return () => clearInterval(intervalId);
-    });
-
-    async function fetchCelebrations(): Promise<void> {
-        if (!browser) return;
-
-        try {
-            const response = await fetch('/api/ads/celebration/today', {
-                method: 'GET',
-                headers: { Accept: 'application/json' }
-            });
-
-            if (!response.ok) return;
-
-            const result = await response.json();
-
-            if (result.data?.length > 0) {
-                celebrations = result.data;
-            }
-        } catch (error) {
-            console.warn('CelebrationRolling: 축하메시지 로드 실패', error);
-        }
-    }
 
     function stripHtml(html: string): string {
         return html.replace(/<[^>]*>/g, '').trim();
