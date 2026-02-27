@@ -13,7 +13,7 @@ interface APIResponse<T> {
     };
 }
 
-const API_BASE = '/api/v2/admin/boards';
+const API_BASE = '/api/v1/admin/boards';
 
 export interface CreateBoardRequest {
     board_id: string;

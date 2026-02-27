@@ -49,7 +49,7 @@ export const POST: RequestHandler = async ({ request, cookies, getClientAddress 
 
     // Go 백엔드에 자격 증명 검증
     try {
-        const backendRes = await fetch(`${BACKEND_URL}/api/v2/auth/login`, {
+        const backendRes = await fetch(`${BACKEND_URL}/api/v1/auth/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username, password })

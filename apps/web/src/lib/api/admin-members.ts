@@ -43,7 +43,7 @@ interface APIResponse<T> {
     };
 }
 
-const API_BASE = '/api/v2/admin/members';
+const API_BASE = '/api/v1/admin/members';
 
 export async function listMembers(params: MemberListParams = {}): Promise<MemberListResponse> {
     try {

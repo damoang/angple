@@ -19,10 +19,10 @@ interface APIResponse<T> {
 }
 
 /**
- * SvelteKit 프록시(/api/v2/[...path])를 통해 백엔드에 요청합니다.
+ * SvelteKit 프록시(/api/v1/[...path])를 통해 백엔드에 요청합니다.
  * 같은 origin이므로 CORS 문제가 발생하지 않습니다.
  */
-const API_BASE = '/api/v2/admin/menus';
+const API_BASE = '/api/v1/admin/menus';
 
 export async function getMenusForAdmin(): Promise<Menu[]> {
     try {
