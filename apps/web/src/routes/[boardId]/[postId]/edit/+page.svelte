@@ -82,10 +82,18 @@
             <p class="text-destructive">수정 권한이 없습니다.</p>
         </div>
     {:else}
-        <!-- TODO: 소프트 삭제 구현 후 수정 기능 복원 -->
-        <div class="py-12 text-center">
-            <p class="text-muted-foreground">게시글 수정 기능은 현재 준비 중입니다.</p>
-            <Button variant="outline" class="mt-4" onclick={handleCancel}>돌아가기</Button>
-        </div>
+        {#if error}
+            <div class="bg-destructive/10 text-destructive mb-4 rounded-lg p-3 text-sm">
+                {error}
+            </div>
+        {/if}
+        <PostForm
+            mode="edit"
+            {boardId}
+            post={data.post}
+            onSubmit={handleSubmit}
+            onCancel={handleCancel}
+            isLoading={isSubmitting}
+        />
     {/if}
 </div>
