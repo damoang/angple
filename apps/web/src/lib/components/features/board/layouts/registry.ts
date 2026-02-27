@@ -74,10 +74,10 @@ class LayoutRegistry {
      * 목록 레이아웃 resolve (Plugin > Theme > Core)
      *
      * @param id - 레이아웃 ID
-     * @returns 가장 우선순위 높은 LayoutEntry, 없으면 'compact' 폴백
+     * @returns 가장 우선순위 높은 LayoutEntry, 없으면 'classic' 폴백
      */
     resolveList(id: ListLayoutId): LayoutEntry | null {
-        return this.resolve(this.listLayouts, id) || this.resolve(this.listLayouts, 'compact');
+        return this.resolve(this.listLayouts, id) || this.resolve(this.listLayouts, 'classic');
     }
 
     /**

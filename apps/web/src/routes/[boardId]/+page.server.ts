@@ -18,7 +18,8 @@ export const load: PageServerLoad = async ({ url, params, fetch: svelteKitFetch,
 
     // 인증 헤더 (SSR에서 accessToken 사용)
     const headers: Record<string, string> = {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'User-Agent': 'Angple-Web-SSR/1.0'
     };
     if (locals.accessToken) {
         headers['Authorization'] = `Bearer ${locals.accessToken}`;

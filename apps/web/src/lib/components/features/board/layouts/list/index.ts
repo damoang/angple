@@ -16,6 +16,7 @@ import WebzineLayout from './webzine.svelte';
 import PosterGalleryLayout from './poster-gallery.svelte';
 import MarketCardLayout from './market-card.svelte';
 import ClassicLayout from './classic.svelte';
+import NoticeLayout from './notice.svelte';
 
 /** 코어 목록 레이아웃 매니페스트 */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -91,6 +92,15 @@ const coreListLayouts: { manifest: LayoutManifest; component: any }[] = [
             wrapperClass: 'border border-border rounded-lg divide-y divide-border overflow-hidden'
         },
         component: ClassicLayout
+    },
+    {
+        manifest: {
+            id: 'notice',
+            name: '공지',
+            description: '카드형 공지사항 스타일 (배지 + 깔끔한 메타데이터)',
+            wrapperClass: 'space-y-2'
+        },
+        component: NoticeLayout
     }
 ];
 
@@ -115,5 +125,6 @@ export {
     WebzineLayout,
     PosterGalleryLayout,
     MarketCardLayout,
-    ClassicLayout
+    ClassicLayout,
+    NoticeLayout
 };
