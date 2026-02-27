@@ -27,7 +27,7 @@ async function createAdminInBackend(data: {
     const backendUrl = process.env.BACKEND_URL || 'http://localhost:8090';
 
     try {
-        const response = await fetch(`${backendUrl}/api/v2/install/create-admin`, {
+        const response = await fetch(`${backendUrl}/api/v1/install/create-admin`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)

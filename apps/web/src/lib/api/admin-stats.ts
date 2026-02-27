@@ -31,7 +31,7 @@ interface APIResponse<T> {
     };
 }
 
-const API_BASE = '/api/v2/admin';
+const API_BASE = '/api/v1/admin';
 
 export async function getDashboardStats(): Promise<DashboardStats> {
     try {

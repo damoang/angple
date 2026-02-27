@@ -2,9 +2,9 @@ import type { RequestHandler } from './$types';
 import { dev } from '$app/environment';
 
 /**
- * API v2 프록시 핸들러
+ * API v1 프록시 핸들러
  *
- * 모든 /api/v2/* 요청을 Backend 서버로 프록시합니다.
+ * 모든 /api/v1/* 요청을 Backend 서버로 프록시합니다.
  * - SSR accessToken 자동 주입
  * - Set-Cookie 헤더 전달 (httpOnly refreshToken)
  */
@@ -24,7 +24,7 @@ async function proxyRequest(
 ): Promise<Response> {
     const path = params.path || '';
     const url = new URL(request.url);
-    const targetUrl = `${BACKEND_URL}/api/v2/${path}${url.search}`;
+    const targetUrl = `${BACKEND_URL}/api/v1/${path}${url.search}`;
 
     try {
         // 헤더 복사 (host 제외)

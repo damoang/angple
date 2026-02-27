@@ -37,7 +37,7 @@ export const POST: RequestHandler = async ({ request }) => {
         const backendUrl = process.env.BACKEND_URL || 'http://localhost:8090';
 
         try {
-            const response = await fetch(`${backendUrl}/api/v2/install/test-db`, {
+            const response = await fetch(`${backendUrl}/api/v1/install/test-db`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ host, port, database, user, password })

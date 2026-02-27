@@ -40,7 +40,7 @@ export const POST: RequestHandler = async ({ cookies, fetch, locals }) => {
 
         // Go 백엔드 로그아웃 호출 (서버 사이드 삭제)
         try {
-            await fetch(`${BACKEND_URL}/api/v2/auth/logout`, {
+            await fetch(`${BACKEND_URL}/api/v1/auth/logout`, {
                 method: 'POST',
                 headers: {
                     Cookie: `refresh_token=${refreshToken}`

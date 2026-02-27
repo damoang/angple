@@ -24,7 +24,7 @@ const LEGACY_URL = process.env.LEGACY_URL || '';
 
 /** Rate limiting 경로 패턴 */
 const RATE_LIMITED_PATHS = [
-    { path: '/api/v2/auth/login', action: 'login', maxAttempts: 10, windowMs: 15 * 60 * 1000 },
+    { path: '/api/v1/auth/login', action: 'login', maxAttempts: 10, windowMs: 15 * 60 * 1000 },
     {
         path: '/plugin/social/start',
         action: 'oauth_start',

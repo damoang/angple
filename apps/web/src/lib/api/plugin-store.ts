@@ -7,8 +7,8 @@
 
 import { apiClient } from './client';
 
-// 백엔드 API 호출 (v2 API - Bearer 토큰 인증)
-const PLUGIN_STORE_API_URL = '/api/v2/admin/plugins';
+// 백엔드 API 호출 (v1 API - Bearer 토큰 인증)
+const PLUGIN_STORE_API_URL = '/api/v1/admin/plugins';
 
 // ============================================
 // 타입 정의
