@@ -321,11 +321,19 @@
     async function toggleNotice(type: 'normal' | 'important' | null): Promise<void> {
         isTogglingNotice = true;
         try {
-            await apiClient.toggleNotice(boardId, data.post.id, type);
+            const res = await fetch(`/api/boards/${boardId}/posts/${data.post.id}/notice`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ notice_type: type })
+            });
+            if (!res.ok) {
+                const err = await res.json().catch(() => null);
+                throw new Error(err?.error || '공지 설정에 실패했습니다.');
+            }
             noticeType = type;
         } catch (err) {
             console.error('Failed to toggle notice:', err);
-            alert('공지 설정에 실패했습니다.');
+            alert(err instanceof Error ? err.message : '공지 설정에 실패했습니다.');
         } finally {
             isTogglingNotice = false;
         }
