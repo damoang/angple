@@ -1,8 +1,9 @@
 import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types.js';
 import type { FreePost } from '$lib/api/types.js';
+import { env } from '$env/dynamic/private';
 
-const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8090';
+const BACKEND_URL = env.BACKEND_URL || 'http://localhost:8090';
 
 export const load: PageServerLoad = async ({ params, fetch: svelteKitFetch, locals, url }) => {
     const { boardId, postId } = params;
@@ -26,54 +27,67 @@ export const load: PageServerLoad = async ({ params, fetch: svelteKitFetch, loca
         // 백엔드 API → globalThis.fetch (Origin 헤더 미포함, CORS 403 방지)
         // SvelteKit 내부 라우트 → svelteKitFetch (쿠키/상대경로 처리)
         const backendFetch = globalThis.fetch;
-        const [postResult, boardResult, commentsResult, filesResult, promotionResult] =
-            await Promise.allSettled([
-                // 게시글 (Go 백엔드 직접 호출)
-                backendFetch(`${BACKEND_URL}/api/v1/boards/${boardId}/posts/${postId}`, {
-                    headers
-                }).then(async (res) => {
-                    if (!res.ok) throw new Error(`Post API error: ${res.status}`);
+        const [
+            postResult,
+            boardResult,
+            displaySettingsResult,
+            commentsResult,
+            filesResult,
+            promotionResult
+        ] = await Promise.allSettled([
+            // 게시글 (Go 백엔드 직접 호출)
+            backendFetch(`${BACKEND_URL}/api/v1/boards/${boardId}/posts/${postId}`, {
+                headers
+            }).then(async (res) => {
+                if (!res.ok) throw new Error(`Post API error: ${res.status}`);
+                const json = await res.json();
+                return json.data as FreePost;
+            }),
+            // 게시판 정보
+            backendFetch(`${BACKEND_URL}/api/v1/boards/${boardId}`, { headers }).then(
+                async (res) => {
+                    if (!res.ok) return null;
                     const json = await res.json();
-                    return json.data as FreePost;
-                }),
-                // 게시판 정보
-                backendFetch(`${BACKEND_URL}/api/v1/boards/${boardId}`, { headers }).then(
-                    async (res) => {
-                        if (!res.ok) return null;
-                        const json = await res.json();
-                        return json.data;
-                    }
-                ),
-                // 댓글 (SvelteKit 내부 라우트 → svelteKitFetch)
-                svelteKitFetch(
-                    `${url.origin}/api/boards/${boardId}/posts/${postId}/comments?page=1&limit=200`
-                ).then(async (res) => {
-                    if (!res.ok)
-                        return { items: [], total: 0, page: 1, limit: 200, total_pages: 0 };
-                    const json = await res.json();
-                    if (!json.success)
-                        return { items: [], total: 0, page: 1, limit: 200, total_pages: 0 };
-                    const data = json.data;
-                    return {
-                        items: data.comments || [],
-                        total: data.total || 0,
-                        page: data.page || 1,
-                        limit: data.limit || 200,
-                        total_pages: data.total_pages || 1
-                    };
-                }),
-                // 첨부 파일 (SvelteKit 내부 라우트)
-                svelteKitFetch(`${url.origin}/api/boards/${boardId}/posts/${postId}/files`).then(
-                    async (res) => {
-                        if (!res.ok) return null;
-                        return res.json();
-                    }
-                ),
-                // 직접홍보 사잇광고
-                svelteKitFetch(`${url.origin}/api/ads/promotion-posts`)
-                    .then((r) => r.json())
-                    .catch(() => ({ success: false, data: { posts: [] } }))
-            ]);
+                    return json.data;
+                }
+            ),
+            // 게시판 표시 설정
+            backendFetch(`${BACKEND_URL}/api/v1/boards/${boardId}/display-settings`, {
+                headers
+            }).then(async (res) => {
+                if (!res.ok) return null;
+                const json = await res.json();
+                return json.data;
+            }),
+            // 댓글 (SvelteKit 내부 라우트 → svelteKitFetch)
+            svelteKitFetch(
+                `${url.origin}/api/boards/${boardId}/posts/${postId}/comments?page=1&limit=200`
+            ).then(async (res) => {
+                if (!res.ok) return { items: [], total: 0, page: 1, limit: 200, total_pages: 0 };
+                const json = await res.json();
+                if (!json.success)
+                    return { items: [], total: 0, page: 1, limit: 200, total_pages: 0 };
+                const data = json.data;
+                return {
+                    items: data.comments || [],
+                    total: data.total || 0,
+                    page: data.page || 1,
+                    limit: data.limit || 200,
+                    total_pages: data.total_pages || 1
+                };
+            }),
+            // 첨부 파일 (SvelteKit 내부 라우트)
+            svelteKitFetch(`${url.origin}/api/boards/${boardId}/posts/${postId}/files`).then(
+                async (res) => {
+                    if (!res.ok) return null;
+                    return res.json();
+                }
+            ),
+            // 직접홍보 사잇광고
+            svelteKitFetch(`${url.origin}/api/ads/promotion-posts`)
+                .then((r) => r.json())
+                .catch(() => ({ success: false, data: { posts: [] } }))
+        ]);
 
         // 게시글 필수 — 실패 시 404
         if (postResult.status === 'rejected') {
@@ -82,7 +96,12 @@ export const load: PageServerLoad = async ({ params, fetch: svelteKitFetch, loca
         }
 
         const post = postResult.value;
-        const board = boardResult.status === 'fulfilled' ? boardResult.value : null;
+        let board = boardResult.status === 'fulfilled' ? boardResult.value : null;
+
+        // display_settings 병합
+        if (board && displaySettingsResult.status === 'fulfilled' && displaySettingsResult.value) {
+            board = { ...board, display_settings: displaySettingsResult.value };
+        }
 
         // 게시판 접근 권한 체크 (list_level, read_level 중 높은 값)
         if (board) {

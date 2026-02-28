@@ -5,6 +5,7 @@
  */
 import { redirect, type RequestHandler } from '@sveltejs/kit';
 import { dev } from '$app/environment';
+import { env } from '$env/dynamic/private';
 import { normalizeProviderName, getProvider } from '$lib/server/auth/oauth/provider-registry.js';
 import { resolveOrigin } from '$lib/server/auth/oauth/config.js';
 import { validateOAuthState } from '$lib/server/auth/oauth/state.js';
@@ -25,7 +26,7 @@ import { AppleProvider } from '$lib/server/auth/oauth/providers/apple.js';
 import { TwitterProvider } from '$lib/server/auth/oauth/providers/twitter.js';
 import type { OAuthUserProfile } from '$lib/server/auth/oauth/types.js';
 
-const COOKIE_DOMAIN = process.env.COOKIE_DOMAIN || undefined;
+const COOKIE_DOMAIN = env.COOKIE_DOMAIN || undefined;
 
 /** 공통 콜백 처리 로직 */
 async function handleCallback(

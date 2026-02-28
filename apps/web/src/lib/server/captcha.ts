@@ -1,9 +1,10 @@
 /**
  * Cloudflare Turnstile CAPTCHA 서버 검증
  */
+import { env } from '$env/dynamic/private';
 
 const TURNSTILE_VERIFY_URL = 'https://challenges.cloudflare.com/turnstile/v0/siteverify';
-const TURNSTILE_SECRET_KEY = process.env.TURNSTILE_SECRET_KEY || '';
+const TURNSTILE_SECRET_KEY = env.TURNSTILE_SECRET_KEY || '';
 
 /**
  * Turnstile 토큰 검증

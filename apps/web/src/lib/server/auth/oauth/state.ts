@@ -5,10 +5,11 @@
 import type { Cookies } from '@sveltejs/kit';
 import type { OAuthStateData, SocialProvider } from './types.js';
 import { dev } from '$app/environment';
+import { env } from '$env/dynamic/private';
 
 const STATE_COOKIE_NAME = 'oauth_state';
 const STATE_MAX_AGE = 600; // 10분
-const COOKIE_DOMAIN = process.env.COOKIE_DOMAIN || undefined;
+const COOKIE_DOMAIN = env.COOKIE_DOMAIN || undefined;
 
 function generateRandomState(): string {
     const bytes = new Uint8Array(32);
