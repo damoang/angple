@@ -10,7 +10,7 @@ on:
 
 permissions:
   id-token: write
-  contents: read
+  contents: write
 
 env:
   NODE_VERSION: '22'
@@ -79,10 +79,34 @@ jobs:
     needs: build
 
     steps:
+      - uses: actions/checkout@v4
+
       - name: Download build
         uses: actions/download-artifact@v4
         with:
           name: web-build
+
+      - name: Create GitHub Release
+        id: release
+        run: |
+          TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+          TAG="deploy-${TIMESTAMP}"
+          echo "TAG=${TAG}" >> $GITHUB_OUTPUT
+
+          # Delete old deploy releases (keep last 5)
+          gh release list --limit 100 | grep "^deploy-" | tail -n +6 | cut -f1 | while read tag; do
+            gh release delete "$tag" --yes --cleanup-tag || true
+          done
+
+          # Create new release with build
+          gh release create "${TAG}" \
+            --title "Deploy ${TIMESTAMP}" \
+            --notes "Automated frontend deployment" \
+            build.tar.gz
+
+          echo "Release created: ${TAG}"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -90,32 +114,15 @@ jobs:
           role-to-assume: arn:aws:iam::891376997084:role/GitHubActionsDeployRole
           aws-region: ap-northeast-2
 
-      - name: Upload to S3
-        run: |
-          TIMESTAMP=$(date +%Y%m%d-%H%M%S)
-          aws s3 cp build.tar.gz "s3://damoang-deploy/angple-web/build-${TIMESTAMP}.tar.gz"
-          aws s3 cp build.tar.gz "s3://damoang-deploy/angple-web/build-latest.tar.gz"
-
       - name: Deploy via SSM
+        env:
+          RELEASE_TAG: ${{ steps.release.outputs.TAG }}
         run: |
           COMMAND_ID=$(aws ssm send-command \
             --instance-ids "i-038a1d1f00798d94b" \
             --document-name "AWS-RunShellScript" \
             --parameters 'commands=[
-              "set -e",
-              "cd /home/angple/web/apps/web",
-
-              "echo Downloading build...",
-              "aws s3 cp s3://damoang-deploy/angple-web/build-latest.tar.gz /tmp/build.tar.gz",
-
-              "echo Extracting...",
-              "tar -xzvf /tmp/build.tar.gz -C .",
-
-              "echo Restarting app...",
-              "pm2 restart angple-web 2>/dev/null || pm2 start ecosystem.config.cjs",
-
-              "rm /tmp/build.tar.gz",
-              "echo Deployed at $(date)"
+              "sudo -u angple /home/angple/web/scripts/deploy-ci.sh '"$RELEASE_TAG"'"
             ]' \
             --timeout-seconds 300 \
             --query "Command.CommandId" \
