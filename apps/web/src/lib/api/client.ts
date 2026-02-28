@@ -48,7 +48,8 @@ import type {
     Scrap,
     BoardGroup,
     CommentReportInfo,
-    TenorSearchResponse
+    TenorSearchResponse,
+    FileAttachment
 } from './types.js';
 import { browser } from '$app/environment';
 import { ApiRequestError } from './errors.js';
@@ -387,6 +388,24 @@ class ApiClient {
         const backendData = response as unknown as BackendBoardResponse;
 
         return backendData.data;
+    }
+
+    // 게시글 첨부파일 조회
+    async getPostFiles(boardId: string, postId: string): Promise<FileAttachment[]> {
+        interface BackendFilesResponse {
+            data: FileAttachment[];
+        }
+
+        try {
+            const response = await this.request<BackendFilesResponse>(
+                `/boards/${boardId}/posts/${postId}/files`
+            );
+            const backendData = response as unknown as BackendFilesResponse;
+            return backendData.data || [];
+        } catch {
+            // 파일이 없거나 오류 발생 시 빈 배열 반환
+            return [];
+        }
     }
 
     // 로그아웃

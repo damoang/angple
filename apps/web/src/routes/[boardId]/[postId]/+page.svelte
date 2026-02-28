@@ -30,7 +30,9 @@
     import RecentPosts from '$lib/components/features/board/recent-posts.svelte';
     import { RecommendedPosts } from '$lib/components/features/recommended/index.js';
     import { ReportDialog } from '$lib/components/features/report/index.js';
-    import type { FreeComment, FreePost, LikerInfo } from '$lib/api/types.js';
+    import type { FreeComment, FreePost, LikerInfo, PostRevision } from '$lib/api/types.js';
+    import DeletedPostBanner from '$lib/components/post/deleted-post-banner.svelte';
+    import RevisionHistory from '$lib/components/post/revision-history.svelte';
     import { sendMentionNotifications } from '$lib/utils/mention-notify.js';
     import { onMount } from 'svelte';
     import { page } from '$app/stores';
@@ -213,6 +215,9 @@
     // 게시글 삭제 상태
     let isDeleting = $state(false);
 
+    // 리비전 히스토리
+    let revisions = $state<PostRevision[]>([]);
+
     // 신고 다이얼로그 상태
     let showReportDialog = $state(false);
 
@@ -244,6 +249,11 @@
         // 추천 수 > 0이면 아바타 미리 로드
         if (likeCount > 0) {
             loadLikerAvatars();
+        }
+
+        // 리비전 히스토리 로드 (로그인 사용자만)
+        if (authStore.isAuthenticated) {
+            loadRevisions();
         }
 
         // 댓글 앵커 스크롤 (#c_댓글ID)
@@ -350,6 +360,38 @@
             alert('게시글 삭제에 실패했습니다.');
         } finally {
             isDeleting = false;
+        }
+    }
+
+    // 리비전 히스토리 로드
+    async function loadRevisions(): Promise<void> {
+        try {
+            revisions = await apiClient.getPostRevisions(boardId, String(data.post.id));
+        } catch {
+            // 리비전이 없거나 권한이 없으면 무시
+            revisions = [];
+        }
+    }
+
+    // 리비전 복원 (관리자)
+    async function handleRestoreRevision(version: number): Promise<void> {
+        try {
+            await apiClient.restoreRevision(boardId, String(data.post.id), version);
+            window.location.reload();
+        } catch (err) {
+            console.error('Failed to restore revision:', err);
+            alert('버전 복원에 실패했습니다.');
+        }
+    }
+
+    // 삭제된 게시글 복구 (관리자)
+    async function handleRestorePost(): Promise<void> {
+        try {
+            await apiClient.restorePost(boardId, String(data.post.id));
+            window.location.reload();
+        } catch (err) {
+            console.error('Failed to restore post:', err);
+            alert('게시글 복구에 실패했습니다.');
         }
     }
 
@@ -683,8 +725,7 @@
                     categoryList={data.board?.category_list}
                 />
             {/if}
-            <!-- TODO: 소프트 삭제 구현 후 복원 -->
-            <!-- {#if isAuthor}
+            {#if isAuthor}
                 <Button variant="outline" size="sm" onclick={goToEdit}>
                     <Pencil class="mr-1 h-4 w-4" />
                     수정
@@ -693,11 +734,11 @@
             {#if isAuthor || isAdmin}
                 <DeleteConfirmDialog
                     title="게시글 삭제"
-                    description="이 게시글을 삭제하시겠습니까? 댓글도 함께 삭제되며, 이 작업은 되돌릴 수 없습니다."
+                    description="이 게시글을 삭제하시겠습니까? 댓글은 유지됩니다."
                     onConfirm={handleDelete}
                     isLoading={isDeleting}
                 />
-            {/if} -->
+            {/if}
         </div>
     </div>
 
@@ -716,6 +757,18 @@
             <p class="text-muted-foreground mt-2 text-sm">{readPermissionMessage}</p>
         </div>
     {:else}
+        <!-- 삭제된 게시물 배너 -->
+        {#if data.post.deleted_at}
+            <div class="mb-4">
+                <DeletedPostBanner
+                    postId={data.post.id}
+                    deletedAt={data.post.deleted_at}
+                    {isAdmin}
+                    onRestore={handleRestorePost}
+                />
+            </div>
+        {/if}
+
         <!-- 게시글 카드 -->
         <Card class="bg-background mb-6">
             <CardHeader class="space-y-3">
@@ -1063,6 +1116,18 @@
             </div>
         {/if}
         -->
+
+        <!-- 수정 이력 (리비전 히스토리) -->
+        {#if revisions.length > 0}
+            <div class="mb-6">
+                <RevisionHistory
+                    {revisions}
+                    {isAdmin}
+                    canRestore={isAdmin}
+                    onRestore={handleRestoreRevision}
+                />
+            </div>
+        {/if}
 
         <!-- 댓글 섹션 (비밀글 열람 가능 시에만 표시) -->
         {#if canViewSecret}

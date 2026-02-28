@@ -6,6 +6,8 @@
     import Lock from '@lucide/svelte/icons/lock';
     import Flag from '@lucide/svelte/icons/flag';
     import Link2 from '@lucide/svelte/icons/link-2';
+    import Pencil from '@lucide/svelte/icons/pencil';
+    import Trash2 from '@lucide/svelte/icons/trash-2';
     import CommentForm from './comment-form.svelte';
     import { ReportDialog } from '$lib/components/features/report/index.js';
     import AdSlot from '$lib/components/ui/ad-slot/ad-slot.svelte';
@@ -716,8 +718,7 @@
                                     <span class="ml-1 text-[13px]">주소</span>
                                 </Button>
 
-                                <!-- TODO: 소프트 삭제 구현 후 복원 -->
-                                <!-- {#if isAuthor}
+                                {#if isAuthor}
                                     <Button
                                         variant="ghost"
                                         size="sm"
@@ -735,8 +736,7 @@
                                     >
                                         <Trash2 class="h-4 w-4" />
                                     </Button>
-                                {:else} -->
-                                {#if authStore.isAuthenticated && !isAuthor}
+                                {:else if authStore.isAuthenticated}
                                     <!-- 신고 버튼 (본인이 아닌 경우에만) -->
                                     <Button
                                         variant="ghost"

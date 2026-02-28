@@ -15,19 +15,24 @@
         FreePost,
         CreatePostRequest,
         UpdatePostRequest,
-        UploadedFile
+        UploadedFile,
+        Board,
+        FileAttachment
     } from '$lib/api/types.js';
     import DraftList from './draft-list.svelte';
     import TagInput from './tag-input.svelte';
     import { TiptapEditor } from '$lib/components/features/editor/index.js';
     import { FileUploader } from '$lib/components/features/uploader/index.js';
     import { authStore } from '$lib/stores/auth.svelte.js';
+    import { apiClient } from '$lib/api/index.js';
 
     interface Props {
         mode: 'create' | 'edit';
         post?: FreePost;
         categories?: string[];
         boardId?: string; // 게시판 ID (임시저장 키에 사용)
+        board?: Board; // 게시판 설정 (비밀글 옵션 등)
+        attachments?: FileAttachment[]; // 기존 첨부파일 (수정 시)
         onSubmit: (data: CreatePostRequest | UpdatePostRequest) => Promise<void>;
         onCancel: () => void;
         isLoading?: boolean;
@@ -38,6 +43,8 @@
         post,
         categories = [],
         boardId = 'free',
+        board,
+        attachments = [],
         onSubmit,
         onCancel,
         isLoading = false
@@ -70,6 +77,23 @@
     // 파일 업로드 상태 (이미지 + 파일 통합)
     let uploadedFiles = $state<UploadedFile[]>([]);
 
+    // 기존 첨부파일을 UploadedFile 형식으로 변환 (수정 시)
+    $effect(() => {
+        if (mode === 'edit' && attachments && attachments.length > 0) {
+            const existingFiles: UploadedFile[] = attachments.map((att) => ({
+                id: `existing_${att.id}`,
+                filename: att.filename,
+                original_filename: att.original_name,
+                url: att.url,
+                thumbnail_url: att.thumbnail_url || undefined,
+                size: att.size,
+                mime_type: att.is_image ? 'image/jpeg' : 'application/octet-stream',
+                created_at: new Date().toISOString()
+            }));
+            uploadedFiles = existingFiles;
+        }
+    });
+
     // 파일 업로드 핸들러
     function handleFileUpload(file: UploadedFile): void {
         uploadedFiles = [...uploadedFiles, file];
@@ -77,6 +101,21 @@
 
     function handleFileRemove(fileId: string): void {
         uploadedFiles = uploadedFiles.filter((f) => f.id !== fileId);
+    }
+
+    // 에디터 이미지 업로드 핸들러 (드래그 앤 드롭 / 붙여넣기)
+    async function handleEditorImageUpload(file: File): Promise<string | null> {
+        if (!boardId) return null;
+        try {
+            const postIdNum = post?.id ? Number(post.id) : undefined;
+            const result = await apiClient.uploadImage(boardId, file, postIdNum);
+            // 업로드된 파일 목록에도 추가
+            uploadedFiles = [...uploadedFiles, result];
+            return result.url;
+        } catch (err) {
+            console.error('Image upload failed:', err);
+            return null;
+        }
     }
 
     // 자동저장 상태
@@ -450,6 +489,7 @@
                     placeholder="내용을 입력하세요..."
                     disabled={isLoading}
                     onUpdate={(html) => (content = html)}
+                    onImageUpload={handleEditorImageUpload}
                     class={errors.content ? 'border-destructive' : ''}
                 />
                 {#if errors.content}
@@ -492,13 +532,14 @@
                     {boardId}
                     maxFiles={10}
                     maxSizeMB={50}
+                    files={uploadedFiles}
                     onUpload={handleFileUpload}
                     onRemove={handleFileRemove}
                 />
             </div>
 
-            <!-- 비밀글 옵션 (관리자만) -->
-            {#if authStore.user?.mb_level != null && authStore.user.mb_level >= 10}
+            <!-- 비밀글 옵션 (게시판 설정에 따라 표시) -->
+            {#if board?.use_secret === 1}
                 <div class="border-border flex items-center gap-3 rounded-lg border p-4">
                     <Checkbox id="is_secret" bind:checked={isSecret} disabled={isLoading} />
                     <div class="flex items-center gap-2">

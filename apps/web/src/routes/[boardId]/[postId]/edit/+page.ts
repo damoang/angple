@@ -18,9 +18,10 @@ export const load: PageLoad = async ({ params }) => {
     }
 
     try {
-        const [post, board] = await Promise.all([
+        const [post, board, files] = await Promise.all([
             apiClient.getBoardPost(boardId, postId),
-            apiClient.getBoard(boardId)
+            apiClient.getBoard(boardId),
+            apiClient.getPostFiles(boardId, postId)
         ]);
 
         // 카테고리 목록 파싱
@@ -30,9 +31,11 @@ export const load: PageLoad = async ({ params }) => {
 
         return {
             boardId,
+            postId,
             post,
             board,
-            categories
+            categories,
+            files
         };
     } catch (err) {
         console.error('Failed to load post for editing:', boardId, postId, err);

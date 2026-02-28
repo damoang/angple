@@ -20,6 +20,7 @@
         maxFiles?: number;
         maxSizeMB?: number;
         allowedExtensions?: string[];
+        files?: UploadedFile[]; // 기존 파일 목록 (수정 시)
         onUpload?: (file: UploadedFile) => void;
         onRemove?: (fileId: string) => void;
         class?: string;
@@ -31,6 +32,7 @@
         maxFiles = 5,
         maxSizeMB = 50,
         allowedExtensions = [],
+        files = [],
         onUpload,
         onRemove,
         class: className = ''
@@ -38,6 +40,15 @@
 
     // 업로드된 파일 목록
     let uploadedFiles = $state<UploadedFile[]>([]);
+    let hasInitialized = $state(false);
+
+    // 기존 파일 초기화 (수정 시, 최초 1회만)
+    $effect(() => {
+        if (!hasInitialized && files && files.length > 0) {
+            uploadedFiles = [...files];
+            hasInitialized = true;
+        }
+    });
 
     // 업로드 중인 파일
     interface UploadingFile {
