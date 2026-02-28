@@ -45,7 +45,8 @@
 
     // 게시판 정보
     const boardId = $derived(data.boardId);
-    const boardTitle = $derived(data.board?.subject || boardId);
+    // subject(프론트엔드 타입) 또는 name(백엔드 API 응답) 사용
+    const boardTitle = $derived(data.board?.subject || data.board?.name || boardId);
 
     // 특수 게시판 타입 감지 (board_type 또는 boardId로 판단)
     const boardType = $derived(

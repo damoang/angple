@@ -73,6 +73,21 @@ export interface FreeComment {
     deleted_at?: string | null; // 소프트 삭제 시점
 }
 
+// 첨부파일 응답
+export interface FileAttachment {
+    id: number; // bf_no
+    original_name: string; // bf_source
+    filename: string; // bf_file
+    description: string; // bf_content
+    url: string; // 파일 다운로드/표시 URL
+    thumbnail_url: string; // 썸네일 URL (이미지인 경우)
+    size: number; // bf_filesize
+    width?: number; // bf_width (이미지)
+    height?: number; // bf_height (이미지)
+    is_image: boolean; // 이미지 여부
+    download_count: number; // bf_download
+}
+
 // 게시물 수정 이력
 export interface PostRevision {
     id: number;
@@ -472,6 +487,7 @@ export interface Board {
     board_id: string;
     group_id: string;
     subject: string;
+    name?: string; // 백엔드 API v1 응답 필드 (bo_subject 매핑)
     admin: string;
     device: string;
     list_level: number;
@@ -487,6 +503,7 @@ export interface Board {
     use_category: number;
     use_good: number; // 추천 사용 여부 (0: 미사용, 1: 사용)
     use_nogood: number; // 비추천 사용 여부 (0: 미사용, 1: 사용)
+    use_secret?: number; // 비밀글 사용 여부 (0: 미사용, 1: 사용)
     category_list: string;
     skin: string;
     mobile_skin: string;

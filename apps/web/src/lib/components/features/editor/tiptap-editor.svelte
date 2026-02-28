@@ -25,8 +25,14 @@
         DialogTitle,
         DialogFooter
     } from '$lib/components/ui/dialog/index.js';
+    import { marked } from 'marked';
+    import TurndownService from 'turndown';
 
     const lowlight = createLowlight(common);
+    const turndown = new TurndownService({
+        headingStyle: 'atx',
+        codeBlockStyle: 'fenced'
+    });
 
     // 아이콘
     import Bold from '@lucide/svelte/icons/bold';
@@ -50,12 +56,16 @@
     import Columns from '@lucide/svelte/icons/columns-3';
     import Rows from '@lucide/svelte/icons/rows-3';
     import Trash2 from '@lucide/svelte/icons/trash-2';
+    import PilcrowIcon from '@lucide/svelte/icons/pilcrow';
+    import FileCodeIcon from '@lucide/svelte/icons/file-code';
+    import HashIcon from '@lucide/svelte/icons/hash';
 
     interface Props {
         content?: string;
         placeholder?: string;
         disabled?: boolean;
         onUpdate?: (html: string) => void;
+        onImageUpload?: (file: File) => Promise<string | null>;
         class?: string;
     }
 
@@ -64,8 +74,16 @@
         placeholder = '내용을 입력하세요...',
         disabled = false,
         onUpdate,
+        onImageUpload,
         class: className = ''
     }: Props = $props();
+
+    let isUploading = $state(false);
+
+    // 에디터 모드 (WYSIWYG, Markdown, HTML)
+    type EditorMode = 'wysiwyg' | 'markdown' | 'html';
+    let editorMode = $state<EditorMode>('wysiwyg');
+    let rawContent = $state(''); // 마크다운/HTML 직접 편집용
 
     let editorElement: HTMLDivElement;
     let editor: Editor | null = $state(null);
@@ -149,6 +167,8 @@
                     }
                 }),
                 Image.configure({
+                    inline: false,
+                    allowBase64: true,
                     HTMLAttributes: {
                         class: 'max-w-full rounded-lg'
                     }
@@ -222,6 +242,109 @@
             editor.setEditable(!disabled);
         }
     });
+
+    // content prop 변경 감지 (edit mode에서 비동기 로드 시)
+    // 이전 content 값을 추적 (일반 변수로 - $state 아님)
+    let lastLoadedContent = '';
+
+    $effect(() => {
+        if (!editor || !content) return;
+
+        // 새로운 content가 로드되었을 때만 에디터 업데이트
+        // (사용자 입력과 구분하기 위해 lastLoadedContent와 비교)
+        if (content !== lastLoadedContent && content.length > 0) {
+            const currentHtml = editor.getHTML();
+            const isEmpty = currentHtml === '<p></p>' || currentHtml === '';
+            const isFirstLoad = lastLoadedContent === '';
+
+            // 에디터가 비어있거나 첫 로드일 때 content 반영
+            if (isEmpty || isFirstLoad) {
+                editor.commands.setContent(content);
+            }
+            // lastLoadedContent 업데이트 (다음 effect에서 중복 방지)
+            lastLoadedContent = content;
+        }
+    });
+
+    // 이미지 파일 업로드 처리 (커서 위치에 삽입)
+    async function handleImageFile(file: File): Promise<void> {
+        if (!onImageUpload || !editor) return;
+        if (!file.type.startsWith('image/')) return;
+
+        isUploading = true;
+        try {
+            const imageUrl = await onImageUpload(file);
+            if (imageUrl) {
+                editor.chain().focus().setImage({ src: imageUrl }).run();
+            }
+        } catch (err) {
+            console.error('Image upload failed:', err);
+        } finally {
+            isUploading = false;
+        }
+    }
+
+    // 특정 위치에 이미지 삽입 (드래그 앤 드롭용)
+    async function handleImageFileAtPosition(file: File, pos: number): Promise<void> {
+        if (!onImageUpload || !editor) return;
+        if (!file.type.startsWith('image/')) return;
+
+        isUploading = true;
+        try {
+            const imageUrl = await onImageUpload(file);
+            if (imageUrl) {
+                // 특정 위치에 이미지 삽입 (기존 내용 유지)
+                editor
+                    .chain()
+                    .insertContentAt(pos, { type: 'image', attrs: { src: imageUrl } })
+                    .run();
+            }
+        } catch (err) {
+            console.error('Image upload failed:', err);
+        } finally {
+            isUploading = false;
+        }
+    }
+
+    // 드래그 앤 드롭 핸들러 (드롭 위치에 이미지 삽입)
+    function handleDrop(e: DragEvent): void {
+        if (!onImageUpload || disabled || !editor) return;
+
+        const files = e.dataTransfer?.files;
+        if (!files?.length) return;
+
+        // 이미지 파일만 처리
+        const imageFiles = Array.from(files).filter((f) => f.type.startsWith('image/'));
+        if (imageFiles.length > 0) {
+            e.preventDefault();
+
+            // 드롭 위치에서 에디터 좌표 계산
+            const pos = editor.view.posAtCoords({ left: e.clientX, top: e.clientY });
+            const insertPos = pos?.pos ?? editor.state.selection.from;
+
+            // 각 이미지를 드롭 위치에 순차적으로 삽입
+            imageFiles.forEach((file, index) => {
+                handleImageFileAtPosition(file, insertPos + index);
+            });
+        }
+    }
+
+    // 붙여넣기 핸들러
+    function handlePaste(e: ClipboardEvent): void {
+        if (!onImageUpload || disabled) return;
+
+        const items = e.clipboardData?.items;
+        if (!items) return;
+
+        for (const item of items) {
+            if (item.type.startsWith('image/')) {
+                e.preventDefault();
+                const file = item.getAsFile();
+                if (file) handleImageFile(file);
+                break;
+            }
+        }
+    }
 
     // 툴바 버튼 클릭 핸들러
     function toggleBold(): void {
@@ -392,18 +515,75 @@
         return active ? 'bg-muted' : '';
     }
 
+    // 에디터 모드 전환
+    async function switchMode(newMode: EditorMode): Promise<void> {
+        if (newMode === editorMode) return;
+
+        if (editorMode === 'wysiwyg') {
+            // WYSIWYG → 다른 모드
+            const html = editor?.getHTML() || '';
+            if (newMode === 'markdown') {
+                rawContent = turndown.turndown(html);
+            } else {
+                rawContent = html;
+            }
+        } else if (newMode === 'wysiwyg') {
+            // 다른 모드 → WYSIWYG
+            let html = rawContent;
+            if (editorMode === 'markdown') {
+                html = await marked.parse(rawContent);
+            }
+            editor?.commands.setContent(html);
+            // 부모 컴포넌트에 업데이트 알림
+            onUpdate?.(html);
+        } else {
+            // markdown ↔ html
+            if (editorMode === 'markdown' && newMode === 'html') {
+                rawContent = await marked.parse(rawContent);
+            } else {
+                rawContent = turndown.turndown(rawContent);
+            }
+        }
+
+        editorMode = newMode;
+    }
+
+    // raw 콘텐츠 변경 시 부모에게 알림
+    async function handleRawContentChange(): Promise<void> {
+        if (editorMode === 'markdown') {
+            // 마크다운을 HTML로 변환하여 부모에게 전달
+            const html = await marked.parse(rawContent);
+            onUpdate?.(html);
+        } else if (editorMode === 'html') {
+            onUpdate?.(rawContent);
+        }
+    }
+
     // HTML 내용 가져오기 (외부에서 호출용)
     export function getContent(): string {
-        return editor?.getHTML() || '';
+        if (editorMode === 'wysiwyg') {
+            return editor?.getHTML() || '';
+        } else if (editorMode === 'markdown') {
+            // 동기적으로 반환해야 하므로 marked.parseInline 사용
+            return rawContent; // 마크다운 원본 반환 (필요시 변환)
+        } else {
+            return rawContent;
+        }
     }
 
     // HTML 내용 설정 (외부에서 호출용)
     export function setContent(html: string): void {
-        editor?.commands.setContent(html);
+        if (editorMode === 'wysiwyg') {
+            editor?.commands.setContent(html);
+        } else if (editorMode === 'markdown') {
+            rawContent = turndown.turndown(html);
+        } else {
+            rawContent = html;
+        }
     }
 </script>
 
-<div class="tiptap-editor border-input rounded-md border {className}">
+<div class="tiptap-editor border-input relative rounded-md border {className}">
     <!-- 툴바 -->
     <div
         class="border-border bg-muted/50 flex flex-wrap items-center gap-1 border-b p-2"
@@ -704,10 +884,79 @@
                 </div>
             {/if}
         </div>
+
+        <div class="bg-border mx-1 h-6 w-px" role="separator"></div>
+
+        <!-- 에디터 모드 전환 -->
+        <div class="flex items-center gap-0.5">
+            <Button
+                type="button"
+                variant={editorMode === 'wysiwyg' ? 'secondary' : 'ghost'}
+                size="sm"
+                onclick={() => switchMode('wysiwyg')}
+                {disabled}
+                class="h-8 px-2 text-xs"
+                title="WYSIWYG 모드"
+            >
+                <PilcrowIcon class="mr-1 h-3 w-3" />
+                편집
+            </Button>
+            <Button
+                type="button"
+                variant={editorMode === 'markdown' ? 'secondary' : 'ghost'}
+                size="sm"
+                onclick={() => switchMode('markdown')}
+                {disabled}
+                class="h-8 px-2 text-xs"
+                title="마크다운 모드"
+            >
+                <HashIcon class="mr-1 h-3 w-3" />
+                MD
+            </Button>
+            <Button
+                type="button"
+                variant={editorMode === 'html' ? 'secondary' : 'ghost'}
+                size="sm"
+                onclick={() => switchMode('html')}
+                {disabled}
+                class="h-8 px-2 text-xs"
+                title="HTML 모드"
+            >
+                <FileCodeIcon class="mr-1 h-3 w-3" />
+                HTML
+            </Button>
+        </div>
     </div>
 
     <!-- 에디터 영역 -->
-    <div class="tiptap-content min-h-[300px] p-4" bind:this={editorElement}></div>
+    {#if editorMode === 'wysiwyg'}
+        <div
+            class="tiptap-content min-h-[300px] p-4"
+            class:uploading={isUploading}
+            bind:this={editorElement}
+            ondrop={handleDrop}
+            ondragover={(e) => e.preventDefault()}
+            onpaste={handlePaste}
+        ></div>
+    {:else}
+        <!-- 마크다운/HTML 텍스트 에디터 -->
+        <textarea
+            class="bg-background text-foreground min-h-[300px] w-full resize-y p-4 font-mono text-sm focus:outline-none"
+            bind:value={rawContent}
+            oninput={handleRawContentChange}
+            placeholder={editorMode === 'markdown'
+                ? '마크다운을 입력하세요...\n\n# 제목\n**굵게** *기울임*\n- 목록'
+                : 'HTML을 입력하세요...\n\n<h1>제목</h1>\n<p><strong>굵게</strong> <em>기울임</em></p>'}
+            {disabled}
+        ></textarea>
+    {/if}
+    {#if isUploading}
+        <div class="absolute inset-0 flex items-center justify-center rounded-lg bg-black/20">
+            <div class="bg-background rounded-md px-4 py-2 text-sm shadow-lg">
+                이미지 업로드 중...
+            </div>
+        </div>
+    {/if}
 
     <!-- 하단 상태바 -->
     <div
