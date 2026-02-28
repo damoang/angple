@@ -1,7 +1,8 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
+import { env } from '$env/dynamic/private';
 
-const ADS_URL = process.env.ADS_URL || 'http://localhost:9090';
+const ADS_URL = env.ADS_URL || 'http://localhost:9090';
 const EMPTY = { success: false, data: { posts: [], count: 0 } };
 
 // GET /api/ads/promotion-posts

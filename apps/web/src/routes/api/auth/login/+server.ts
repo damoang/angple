@@ -1,5 +1,6 @@
 import { json } from '@sveltejs/kit';
 import { dev } from '$app/environment';
+import { env } from '$env/dynamic/private';
 import type { RequestHandler } from './$types';
 import {
     createSession,
@@ -10,8 +11,8 @@ import {
 import { generateRefreshToken } from '$lib/server/auth/jwt.js';
 import { checkRateLimit, recordAttempt, resetAttempts } from '$lib/server/rate-limit.js';
 
-const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8090';
-const COOKIE_DOMAIN = process.env.COOKIE_DOMAIN || '';
+const BACKEND_URL = env.BACKEND_URL || 'http://localhost:8090';
+const COOKIE_DOMAIN = env.COOKIE_DOMAIN || '';
 
 /**
  * POST /api/auth/login

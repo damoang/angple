@@ -8,11 +8,12 @@ import type { RowDataPacket } from 'mysql2';
 import { randomBytes } from 'crypto';
 import bcrypt from 'bcryptjs';
 import { sendMail } from '$lib/server/mailer.js';
+import { env } from '$env/dynamic/private';
 
 /** 토큰 유효기간: 24시간 */
 const TOKEN_EXPIRY_MS = 24 * 60 * 60 * 1000;
 
-const SITE_URL = process.env.SITE_URL || 'https://web.damoang.net';
+const SITE_URL = env.SITE_URL || 'https://web.damoang.net';
 
 /** 이메일로 회원 조회 (탈퇴/차단 제외, 소셜 전용 계정 포함) */
 export async function findMemberByEmailForReset(

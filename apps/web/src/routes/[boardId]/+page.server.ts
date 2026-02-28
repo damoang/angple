@@ -1,8 +1,9 @@
 import { error as svelteError } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types.js';
 import type { FreePost, Board, SearchField } from '$lib/api/types.js';
+import { env } from '$env/dynamic/private';
 
-const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8090';
+const BACKEND_URL = env.BACKEND_URL || 'http://localhost:8090';
 
 export const load: PageServerLoad = async ({ url, params, fetch: svelteKitFetch, locals }) => {
     const boardId = params.boardId;
@@ -29,8 +30,17 @@ export const load: PageServerLoad = async ({ url, params, fetch: svelteKitFetch,
         const backendFetch = globalThis.fetch;
 
         // 게시판 정보를 먼저 가져와서 접근 권한 확인
-        const boardRes = await backendFetch(`${BACKEND_URL}/api/v1/boards/${boardId}`, { headers });
-        const board: Board | null = boardRes.ok ? ((await boardRes.json()).data as Board) : null;
+        const [boardRes, displaySettingsRes] = await Promise.all([
+            backendFetch(`${BACKEND_URL}/api/v1/boards/${boardId}`, { headers }),
+            backendFetch(`${BACKEND_URL}/api/v1/boards/${boardId}/display-settings`, { headers })
+        ]);
+        let board: Board | null = boardRes.ok ? ((await boardRes.json()).data as Board) : null;
+
+        // display_settings 병합
+        if (board && displaySettingsRes.ok) {
+            const displaySettings = (await displaySettingsRes.json()).data;
+            board = { ...board, display_settings: displaySettings };
+        }
 
         // 게시판 접근 권한 체크 (list_level)
         if (board) {

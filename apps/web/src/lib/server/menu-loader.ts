@@ -6,8 +6,9 @@
  */
 
 import type { MenuItem } from '$lib/api/types';
+import { env } from '$env/dynamic/private';
 
-const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8090';
+const BACKEND_URL = env.BACKEND_URL || 'http://localhost:8090';
 
 let cachedMenus: MenuItem[] | null = null;
 let cacheTimestamp = 0;

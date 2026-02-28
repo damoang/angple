@@ -7,13 +7,14 @@
  * 3. 프로바이더 인가 URL로 302 리다이렉트
  */
 import { redirect, type RequestHandler } from '@sveltejs/kit';
+import { env } from '$env/dynamic/private';
 import { isValidProvider, getProvider } from '$lib/server/auth/oauth/provider-registry.js';
 import { resolveOrigin } from '$lib/server/auth/oauth/config.js';
 import { createOAuthState } from '$lib/server/auth/oauth/state.js';
 import type { SocialProvider } from '$lib/server/auth/oauth/types.js';
 import { TwitterProvider } from '$lib/server/auth/oauth/providers/twitter.js';
 
-const COOKIE_DOMAIN = process.env.COOKIE_DOMAIN || undefined;
+const COOKIE_DOMAIN = env.COOKIE_DOMAIN || undefined;
 
 export const GET: RequestHandler = async ({ url, cookies, request }) => {
     const providerParam = url.searchParams.get('provider');

@@ -4,8 +4,9 @@
  */
 import pool from '$lib/server/db.js';
 import type { RowDataPacket } from 'mysql2';
+import { env } from '$env/dynamic/private';
 
-const SITE_URL = process.env.SITE_URL || 'https://damoang.net';
+const SITE_URL = env.SITE_URL || 'https://damoang.net';
 const ALLOWED_ORIGINS = new Set([
     'https://damoang.net',
     'https://web.damoang.net',
@@ -55,22 +56,22 @@ export async function getOAuthKeys(): Promise<OAuthKeys> {
 
     const row = rows[0];
     cachedKeys = {
-        naver_clientid: process.env.NAVER_CLIENT_ID || row.cf_naver_clientid || '',
-        naver_secret: process.env.NAVER_CLIENT_SECRET || row.cf_naver_secret || '',
-        kakao_rest_key: process.env.KAKAO_REST_KEY || row.cf_kakao_rest_key || '',
-        kakao_client_secret: process.env.KAKAO_CLIENT_SECRET || row.cf_kakao_client_secret || '',
-        google_clientid: process.env.GOOGLE_CLIENT_ID || row.cf_google_clientid || '',
-        google_secret: process.env.GOOGLE_CLIENT_SECRET || row.cf_google_secret || '',
-        facebook_appid: process.env.FACEBOOK_APP_ID || row.cf_facebook_appid || '',
-        facebook_secret: process.env.FACEBOOK_SECRET || row.cf_facebook_secret || '',
-        twitter_key: process.env.TWITTER_KEY || row.cf_twitter_key || '',
-        twitter_secret: process.env.TWITTER_SECRET || row.cf_twitter_secret || '',
-        payco_clientid: process.env.PAYCO_CLIENT_ID || row.cf_payco_clientid || '',
-        payco_secret: process.env.PAYCO_SECRET || row.cf_payco_secret || '',
-        apple_bundle_id: process.env.APPLE_BUNDLE_ID || row.cf_apple_bundle_id || '',
-        apple_team_id: process.env.APPLE_TEAM_ID || row.cf_apple_team_id || '',
-        apple_key_id: process.env.APPLE_KEY_ID || row.cf_apple_key_id || '',
-        apple_key_file: process.env.APPLE_KEY_FILE || row.cf_apple_key_file || ''
+        naver_clientid: env.NAVER_CLIENT_ID || row.cf_naver_clientid || '',
+        naver_secret: env.NAVER_CLIENT_SECRET || row.cf_naver_secret || '',
+        kakao_rest_key: env.KAKAO_REST_KEY || row.cf_kakao_rest_key || '',
+        kakao_client_secret: env.KAKAO_CLIENT_SECRET || row.cf_kakao_client_secret || '',
+        google_clientid: env.GOOGLE_CLIENT_ID || row.cf_google_clientid || '',
+        google_secret: env.GOOGLE_CLIENT_SECRET || row.cf_google_secret || '',
+        facebook_appid: env.FACEBOOK_APP_ID || row.cf_facebook_appid || '',
+        facebook_secret: env.FACEBOOK_SECRET || row.cf_facebook_secret || '',
+        twitter_key: env.TWITTER_KEY || row.cf_twitter_key || '',
+        twitter_secret: env.TWITTER_SECRET || row.cf_twitter_secret || '',
+        payco_clientid: env.PAYCO_CLIENT_ID || row.cf_payco_clientid || '',
+        payco_secret: env.PAYCO_SECRET || row.cf_payco_secret || '',
+        apple_bundle_id: env.APPLE_BUNDLE_ID || row.cf_apple_bundle_id || '',
+        apple_team_id: env.APPLE_TEAM_ID || row.cf_apple_team_id || '',
+        apple_key_id: env.APPLE_KEY_ID || row.cf_apple_key_id || '',
+        apple_key_file: env.APPLE_KEY_FILE || row.cf_apple_key_file || ''
     };
     cacheTimestamp = now;
 

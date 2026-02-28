@@ -1,5 +1,6 @@
 import { JsonSettingsProvider } from './json-provider';
 import type { SettingsProvider } from './provider';
+import { env } from '$env/dynamic/private';
 
 /**
  * 설정 Provider Facade
@@ -10,7 +11,7 @@ import type { SettingsProvider } from './provider';
  */
 
 // Provider 선택 (환경변수 또는 기본값)
-const PROVIDER_TYPE = process.env.SETTINGS_PROVIDER || 'json';
+const PROVIDER_TYPE = env.SETTINGS_PROVIDER || 'json';
 
 // Provider 인스턴스 생성
 let providerInstance: SettingsProvider;

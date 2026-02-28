@@ -8,6 +8,7 @@
  * - 재사용 탐지 시 패밀리 전체 폐기
  */
 import { SignJWT, jwtVerify } from 'jose';
+import { env } from '$env/dynamic/private';
 import {
     hashToken,
     generateFamilyId,
@@ -16,8 +17,8 @@ import {
     revokeToken
 } from './token-store.js';
 
-const JWT_SECRET = process.env.JWT_SECRET || '';
-const DAMOANG_JWT_SECRET = process.env.DAMOANG_JWT_SECRET || '';
+const JWT_SECRET = env.JWT_SECRET || '';
+const DAMOANG_JWT_SECRET = env.DAMOANG_JWT_SECRET || '';
 
 const secret = new TextEncoder().encode(JWT_SECRET);
 const damoangSecret = new TextEncoder().encode(DAMOANG_JWT_SECRET);

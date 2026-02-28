@@ -1,5 +1,6 @@
 import { json } from '@sveltejs/kit';
 import { dev } from '$app/environment';
+import { env } from '$env/dynamic/private';
 import type { RequestHandler } from './$types';
 import {
     destroySession,
@@ -8,10 +9,10 @@ import {
 } from '$lib/server/auth/session-store.js';
 import { hashToken, revokeToken } from '$lib/server/auth/token-store.js';
 
-const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8090';
+const BACKEND_URL = env.BACKEND_URL || 'http://localhost:8090';
 
 // 쿠키 도메인: Go 백엔드 cookieDomain()과 일치 (쿠키 충돌 방지)
-const COOKIE_DOMAIN = process.env.COOKIE_DOMAIN || '';
+const COOKIE_DOMAIN = env.COOKIE_DOMAIN || '';
 
 /**
  * POST /api/auth/logout

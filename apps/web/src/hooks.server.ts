@@ -1,5 +1,6 @@
 import { redirect, type Handle } from '@sveltejs/kit';
 import { dev } from '$app/environment';
+import { env } from '$env/dynamic/private';
 import { getMemberById } from '$lib/server/auth/oauth/member.js';
 import { getSession, SESSION_COOKIE_NAME } from '$lib/server/auth/session-store.js';
 import { checkRateLimit, recordAttempt } from '$lib/server/rate-limit.js';
@@ -16,11 +17,11 @@ import { mapGnuboardUrl, mapRhymixUrl } from '$lib/server/url-compat.js';
  */
 
 // 쿠키 도메인: 서브도메인 간 공유 (예: ".damoang.net")
-const COOKIE_DOMAIN = process.env.COOKIE_DOMAIN || '';
+const COOKIE_DOMAIN = env.COOKIE_DOMAIN || '';
 
 // CSP에 추가할 사이트별 도메인 (런타임 환경변수)
-const ADS_URL = process.env.ADS_URL || '';
-const LEGACY_URL = process.env.LEGACY_URL || '';
+const ADS_URL = env.ADS_URL || '';
+const LEGACY_URL = env.LEGACY_URL || '';
 
 /** Rate limiting 경로 패턴 */
 const RATE_LIMITED_PATHS = [

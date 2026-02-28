@@ -4,4 +4,6 @@
  *
  * SSR 시에만 사용되며, 내부 Docker 네트워크로 API 호출
  */
-export const INTERNAL_API_URL = process.env.INTERNAL_API_URL || 'http://localhost:8090/api/v2';
+import { env } from '$env/dynamic/private';
+
+export const INTERNAL_API_URL = env.INTERNAL_API_URL || 'http://localhost:8090/api/v2';
