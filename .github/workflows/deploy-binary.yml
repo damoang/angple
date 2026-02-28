@@ -53,7 +53,10 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build
+      - name: Build packages
+        run: pnpm --filter @angple/types build
+
+      - name: Build web
         env:
           VITE_GAM_NETWORK_CODE: '23338387889'
           VITE_GAM_SITE_NAME: 'damoang'
