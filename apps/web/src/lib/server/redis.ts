@@ -25,14 +25,14 @@ export function getRedis(): Redis {
             port: REDIS_PORT,
             password: REDIS_PASSWORD,
             maxRetriesPerRequest: 3,
-            retryStrategy(times) {
+            retryStrategy(times: number) {
                 const delay = Math.min(times * 50, 2000);
                 return delay;
             },
             lazyConnect: true
         });
 
-        redisClient.on('error', (err) => {
+        redisClient.on('error', (err: Error) => {
             console.error('[Redis] Connection error:', err.message);
         });
 
