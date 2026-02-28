@@ -1,0 +1,153 @@
+name: Deploy Build to Prod
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: '배포 확인 ("deploy" 입력)'
+        required: true
+        type: string
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  NODE_VERSION: '22'
+
+jobs:
+  build:
+    name: Build App
+    runs-on: ubuntu-latest
+    if: inputs.confirm == 'deploy'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Checkout angple-premium
+        uses: actions/checkout@v4
+        with:
+          repository: damoang/angple-premium
+          token: ${{ secrets.PREMIUM_REPO_TOKEN }}
+          path: _premium
+        continue-on-error: true
+
+      - name: Install premium assets
+        if: hashFiles('_premium/deploy/install.sh') != ''
+        run: |
+          chmod +x _premium/deploy/install.sh
+          _premium/deploy/install.sh .
+
+      - name: Setup directories
+        run: mkdir -p custom-themes custom-widgets extensions plugins widgets
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        env:
+          VITE_GAM_NETWORK_CODE: '23338387889'
+          VITE_GAM_SITE_NAME: 'damoang'
+        run: pnpm --filter web build
+
+      - name: Create tarball
+        run: |
+          cd apps/web
+          tar -czvf ../../build.tar.gz build package.json
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-build
+          path: build.tar.gz
+          retention-days: 1
+
+  deploy:
+    name: Deploy to Server
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+      - name: Download build
+        uses: actions/download-artifact@v4
+        with:
+          name: web-build
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::891376997084:role/GitHubActionsDeployRole
+          aws-region: ap-northeast-2
+
+      - name: Upload to S3
+        run: |
+          TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+          aws s3 cp build.tar.gz "s3://damoang-deploy/angple-web/build-${TIMESTAMP}.tar.gz"
+          aws s3 cp build.tar.gz "s3://damoang-deploy/angple-web/build-latest.tar.gz"
+
+      - name: Deploy via SSM
+        run: |
+          COMMAND_ID=$(aws ssm send-command \
+            --instance-ids "i-038a1d1f00798d94b" \
+            --document-name "AWS-RunShellScript" \
+            --parameters 'commands=[
+              "set -e",
+              "cd /home/angple/web/apps/web",
+
+              "echo Downloading build...",
+              "aws s3 cp s3://damoang-deploy/angple-web/build-latest.tar.gz /tmp/build.tar.gz",
+
+              "echo Extracting...",
+              "tar -xzvf /tmp/build.tar.gz -C .",
+
+              "echo Restarting app...",
+              "pm2 restart angple-web 2>/dev/null || pm2 start ecosystem.config.cjs",
+
+              "rm /tmp/build.tar.gz",
+              "echo Deployed at $(date)"
+            ]' \
+            --timeout-seconds 300 \
+            --query "Command.CommandId" \
+            --output text)
+
+          echo "Command ID: $COMMAND_ID"
+
+          echo "Waiting for deployment..."
+          aws ssm wait command-executed \
+            --command-id "$COMMAND_ID" \
+            --instance-id "i-038a1d1f00798d94b" || true
+
+          STATUS=$(aws ssm get-command-invocation \
+            --command-id "$COMMAND_ID" \
+            --instance-id "i-038a1d1f00798d94b" \
+            --query "Status" \
+            --output text)
+
+          echo "Status: $STATUS"
+
+          aws ssm get-command-invocation \
+            --command-id "$COMMAND_ID" \
+            --instance-id "i-038a1d1f00798d94b" \
+            --query "StandardOutputContent" \
+            --output text
+
+          if [ "$STATUS" != "Success" ]; then
+            echo "Error:"
+            aws ssm get-command-invocation \
+              --command-id "$COMMAND_ID" \
+              --instance-id "i-038a1d1f00798d94b" \
+              --query "StandardErrorContent" \
+              --output text
+            exit 1
+          fi
