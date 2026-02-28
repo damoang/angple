@@ -1,5 +1,4 @@
 <script lang="ts">
-    import { onMount } from 'svelte';
     import { menuStore } from '$lib/stores/admin-menu-store.svelte';
     import { Button } from '$lib/components/ui/button';
     import {
@@ -14,12 +13,18 @@
     import AddMenuDialog from '$lib/components/admin/menus/add-menu-dialog.svelte';
     import EditMenuDialog from '$lib/components/admin/menus/edit-menu-dialog.svelte';
 
+    // SSR 데이터
+    let { data } = $props();
+
     let showAddDialog = $state(false);
     let showEditDialog = $state(false);
     let parentIdForAdd = $state<number | null>(null);
 
-    onMount(() => {
-        menuStore.loadMenus();
+    // SSR 데이터로 스토어 초기화
+    $effect(() => {
+        if (data.menus && data.menus.length > 0) {
+            menuStore.initFromServer(data.menus);
+        }
     });
 
     function handleAddMenu(parentId: number | null = null) {

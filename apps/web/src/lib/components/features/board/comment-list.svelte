@@ -200,6 +200,17 @@
         );
     }
 
+    // 최고관리자 여부 (레벨 10 이상)
+    function isSuperAdmin(): boolean {
+        return (authStore.user?.mb_level ?? 0) >= 10;
+    }
+
+    // 댓글 수정/삭제 권한 (작성자 또는 최고관리자)
+    function canEditComment(comment: FreeComment): boolean {
+        if (!authStore.user) return false;
+        return isCommentAuthor(comment) || isSuperAdmin();
+    }
+
     // 비밀댓글 열람 권한 확인 (작성자, 게시글 작성자, 관리자)
     function canViewSecretComment(comment: FreeComment): boolean {
         if (!comment.is_secret) return true;
@@ -510,9 +521,10 @@
     });
 </script>
 
-<ul class="space-y-4">
+<ul class="space-y-3">
     {#each commentTree as comment, commentIndex (comment.id)}
         {@const isAuthor = isCommentAuthor(comment)}
+        {@const canEdit = canEditComment(comment)}
         {@const isEditing = editingCommentId === String(comment.id)}
         {@const isReplyingTo = replyingToCommentId === String(comment.id)}
         {@const depth = comment.depth ?? 0}
@@ -528,10 +540,10 @@
         <li
             id="c_{comment.id}"
             style="margin-left: {Math.min(depth, 3) * 1.25}rem"
-            class="py-4 transition-colors duration-500 first:pt-0 last:pb-0"
+            class="py-3 transition-colors duration-200 first:pt-0 last:pb-0"
         >
             <div>
-                <div class="mb-2 flex flex-wrap items-center gap-4">
+                <div class="mb-2 flex flex-wrap items-center gap-2 sm:gap-3">
                     <div class="flex items-center gap-2">
                         {#if iconUrl}
                             <img
@@ -563,9 +575,9 @@
                         {/if}
                         <div>
                             <p
-                                class="text-foreground font-medium {isReply
-                                    ? 'text-[15px]'
-                                    : ''} flex items-center gap-1.5"
+                                class="text-foreground flex items-center gap-1.5 font-medium {isReply
+                                    ? 'text-sm'
+                                    : 'text-base'}"
                             >
                                 <LevelBadge
                                     level={memberLevelStore.getLevel(comment.author_id)}
@@ -584,11 +596,7 @@
                                     <Lock class="text-muted-foreground h-3.5 w-3.5" />
                                 {/if}
                             </p>
-                            <p
-                                class="text-secondary-foreground {isReply
-                                    ? 'text-[13px]'
-                                    : 'text-[15px]'}"
-                            >
+                            <p class="text-muted-foreground {isReply ? 'text-xs' : 'text-sm'}">
                                 {formatDate(comment.created_at)}
                             </p>
                         </div>
@@ -667,9 +675,7 @@
                     {/if}
 
                     <!-- 오른쪽 정렬: 비추천, 답글/수정/삭제 -->
-                    <div
-                        class="text-secondary-foreground ml-auto flex items-center gap-4 text-[15px]"
-                    >
+                    <div class="text-muted-foreground ml-auto flex items-center gap-2 text-sm">
                         <!-- 댓글 비추천 버튼 (게시판 설정에서 활성화된 경우만) -->
                         {#if useNogood}
                             {#if onDislike && authStore.isAuthenticated}
@@ -703,7 +709,7 @@
                                         disabled={isReplyingTo}
                                     >
                                         <Reply class="h-4 w-4" />
-                                        <span class="ml-1 text-[13px]">답글</span>
+                                        <span class="ml-1 text-xs">답글</span>
                                     </Button>
                                 {/if}
 
@@ -715,10 +721,11 @@
                                     class="h-7 px-2"
                                 >
                                     <Link2 class="h-4 w-4" />
-                                    <span class="ml-1 text-[13px]">주소</span>
+                                    <span class="ml-1 text-xs">주소</span>
                                 </Button>
 
-                                {#if isAuthor}
+                                {#if canEdit}
+                                    <!-- 수정/삭제 버튼 (작성자 또는 최고관리자) -->
                                     <Button
                                         variant="ghost"
                                         size="sm"
@@ -736,7 +743,8 @@
                                     >
                                         <Trash2 class="h-4 w-4" />
                                     </Button>
-                                {:else if authStore.isAuthenticated}
+                                {/if}
+                                {#if !isAuthor && authStore.isAuthenticated}
                                     <!-- 신고 버튼 (본인이 아닌 경우에만) -->
                                     <Button
                                         variant="ghost"
@@ -753,18 +761,51 @@
                     </div>
                 </div>
 
-                <!-- 댓글 본문 -->
-                {#if comment.is_secret && !canViewSecretComment(comment)}
+                <!-- 댓글 본문 또는 수정 폼 -->
+                {#if isEditing}
+                    <!-- 댓글 수정 폼 -->
+                    <div class="mt-2 space-y-3">
+                        <textarea
+                            bind:value={editContent}
+                            class="border-border bg-background text-foreground focus:border-primary focus:ring-primary min-h-24 w-full resize-y rounded-lg border p-3 text-sm focus:outline-none focus:ring-1"
+                            placeholder="댓글을 입력하세요..."
+                            disabled={isUpdating}
+                        ></textarea>
+                        <div class="flex justify-end gap-2">
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onclick={cancelEdit}
+                                disabled={isUpdating}
+                            >
+                                취소
+                            </Button>
+                            <Button
+                                type="button"
+                                size="sm"
+                                onclick={saveEdit}
+                                disabled={isUpdating || !editContent.trim()}
+                            >
+                                {isUpdating ? '저장 중...' : '저장'}
+                            </Button>
+                        </div>
+                    </div>
+                {:else if comment.is_secret && !canViewSecretComment(comment)}
                     <div
                         class="text-muted-foreground flex items-center gap-2 italic {isReply
-                            ? 'text-[15px]'
-                            : ''}"
+                            ? 'text-sm'
+                            : 'text-base'}"
                     >
                         <Lock class="h-4 w-4" />
                         비밀댓글입니다.
                     </div>
                 {:else}
-                    <div class="text-foreground whitespace-pre-wrap {isReply ? 'text-[15px]' : ''}">
+                    <div
+                        class="text-foreground whitespace-pre-wrap {isReply
+                            ? 'text-sm'
+                            : 'text-base leading-relaxed'}"
+                    >
                         <!-- eslint-disable-next-line svelte/no-at-html-tags -->
                         {@html processedComments.get(comment.id) ?? ''}
                     </div>

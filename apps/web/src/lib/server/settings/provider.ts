@@ -5,6 +5,8 @@
  * Provider Pattern을 통해 저장소 변경 시 코드 수정 최소화
  */
 
+import type { WidgetConfig } from '$lib/stores/widget-layout.svelte';
+
 export interface SettingsProvider {
     /**
      * 현재 활성화된 테마 ID 조회
@@ -36,4 +38,26 @@ export interface SettingsProvider {
      * 전체 설정 조회 (디버깅/백업용)
      */
     getAllSettings(): Promise<Record<string, unknown>>;
+
+    // ========== 위젯 레이아웃 관련 ==========
+
+    /**
+     * 메인 영역 위젯 레이아웃 조회
+     */
+    getWidgetLayout(): Promise<WidgetConfig[] | null>;
+
+    /**
+     * 메인 영역 위젯 레이아웃 저장
+     */
+    setWidgetLayout(widgets: WidgetConfig[]): Promise<void>;
+
+    /**
+     * 사이드바 위젯 레이아웃 조회
+     */
+    getSidebarWidgetLayout(): Promise<WidgetConfig[] | null>;
+
+    /**
+     * 사이드바 위젯 레이아웃 저장
+     */
+    setSidebarWidgetLayout(widgets: WidgetConfig[]): Promise<void>;
 }
