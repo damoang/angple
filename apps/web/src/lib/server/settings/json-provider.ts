@@ -1,6 +1,7 @@
 import fs from 'fs/promises';
 import path from 'path';
 import type { SettingsProvider } from './provider';
+import type { WidgetConfig } from '$lib/stores/widget-layout.svelte';
 
 /**
  * JSON 파일 기반 설정 Provider
@@ -16,6 +17,8 @@ interface Settings {
     activatedAt?: string;
     themes: Record<string, { settings: Record<string, unknown> }>;
     version: string;
+    widgetLayout?: WidgetConfig[];
+    sidebarWidgetLayout?: WidgetConfig[];
 }
 
 const DEFAULT_SETTINGS: Settings = {
@@ -117,5 +120,39 @@ export class JsonSettingsProvider implements SettingsProvider {
 
     async getAllSettings(): Promise<Record<string, unknown>> {
         return (await this.read()) as unknown as Record<string, unknown>;
+    }
+
+    // ========== 위젯 레이아웃 ==========
+
+    async getWidgetLayout(): Promise<WidgetConfig[] | null> {
+        const settings = await this.read();
+        return settings.widgetLayout ?? null;
+    }
+
+    async setWidgetLayout(widgets: WidgetConfig[]): Promise<void> {
+        await this.acquireLock();
+        try {
+            const settings = await this.read();
+            settings.widgetLayout = widgets;
+            await this.write(settings);
+        } finally {
+            this.releaseLock();
+        }
+    }
+
+    async getSidebarWidgetLayout(): Promise<WidgetConfig[] | null> {
+        const settings = await this.read();
+        return settings.sidebarWidgetLayout ?? null;
+    }
+
+    async setSidebarWidgetLayout(widgets: WidgetConfig[]): Promise<void> {
+        await this.acquireLock();
+        try {
+            const settings = await this.read();
+            settings.sidebarWidgetLayout = widgets;
+            await this.write(settings);
+        } finally {
+            this.releaseLock();
+        }
     }
 }

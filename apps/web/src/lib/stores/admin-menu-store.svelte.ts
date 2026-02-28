@@ -56,6 +56,15 @@ class MenuStore {
         return null;
     }
 
+    /**
+     * SSR 데이터로 스토어 초기화
+     */
+    initFromServer(menus: Menu[]) {
+        this._menus = menus;
+        this._originalMenus = JSON.parse(JSON.stringify(menus));
+        this._isLoading = false;
+    }
+
     async loadMenus() {
         this._isLoading = true;
         try {
