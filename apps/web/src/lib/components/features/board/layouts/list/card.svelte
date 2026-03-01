@@ -25,11 +25,13 @@
     let {
         post,
         displaySettings,
-        href
+        href,
+        isRead = false
     }: {
         post: FreePost;
         displaySettings?: BoardDisplaySettings;
         href: string;
+        isRead?: boolean;
     } = $props();
 
     // 삭제된 글
@@ -73,7 +75,9 @@
                         <div class="flex items-start justify-between gap-4">
                             <div class="min-w-0 flex-1">
                                 <CardTitle
-                                    class="text-foreground mb-2 flex items-center gap-1.5 truncate"
+                                    class="mb-2 flex items-center gap-1.5 truncate {isRead
+                                        ? 'text-muted-foreground font-normal'
+                                        : 'text-foreground'}"
                                 >
                                     {#if post.is_adult}
                                         <Badge

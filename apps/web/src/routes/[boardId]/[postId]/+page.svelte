@@ -88,6 +88,7 @@
     import { AvatarStack } from '$lib/components/ui/avatar-stack/index.js';
     import { loadPluginComponent } from '$lib/utils/plugin-optional-loader';
     import { checkPermission, getPermissionMessage } from '$lib/utils/board-permissions.js';
+    import { readPostsStore } from '$lib/stores/read-posts.svelte.js';
 
     let { data }: { data: PageData } = $props();
 
@@ -221,8 +222,11 @@
     // 신고 다이얼로그 상태
     let showReportDialog = $state(false);
 
-    // 초기 추천 상태 + 레벨 로드 + 조회수 증가
+    // 초기 추천 상태 + 레벨 로드 + 조회수 증가 + 읽음 표시
     onMount(async () => {
+        // 읽음 표시 (localStorage)
+        readPostsStore.markAsRead(boardId, data.post.id);
+
         // 조회수 증가 (fire-and-forget)
         fetch('/api/viewcount', {
             method: 'POST',
@@ -262,7 +266,7 @@
             setTimeout(() => {
                 const el = document.getElementById(hash.slice(1));
                 if (el) {
-                    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
                     el.style.transition = 'background-color 0.3s ease';
                     el.style.backgroundColor = 'hsl(var(--primary) / 0.1)';
                     el.style.borderRadius = '0.5rem';

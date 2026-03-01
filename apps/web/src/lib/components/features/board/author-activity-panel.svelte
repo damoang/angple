@@ -195,6 +195,35 @@
                                 <a
                                     href={c.href}
                                     class="text-foreground hover:text-primary block min-w-0 truncate text-xs"
+                                    onclick={(e) => {
+                                        // 같은 페이지 내 앵커 클릭 시 스크롤 처리
+                                        const hash = c.href.split('#')[1];
+                                        if (
+                                            hash &&
+                                            window.location.pathname === c.href.split('#')[0]
+                                        ) {
+                                            e.preventDefault();
+                                            const el = document.getElementById(hash);
+                                            if (el) {
+                                                el.scrollIntoView({
+                                                    behavior: 'smooth',
+                                                    block: 'start'
+                                                });
+                                                // 하이라이트 효과
+                                                el.style.transition = 'background-color 0.3s ease';
+                                                el.style.backgroundColor =
+                                                    'hsl(var(--primary) / 0.1)';
+                                                el.style.borderRadius = '0.5rem';
+                                                setTimeout(() => {
+                                                    el.style.backgroundColor = '';
+                                                    setTimeout(() => {
+                                                        el.style.transition = '';
+                                                        el.style.borderRadius = '';
+                                                    }, 300);
+                                                }, 2000);
+                                            }
+                                        }
+                                    }}
                                 >
                                     {c.preview || '(내용 없음)'}
                                 </a>

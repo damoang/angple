@@ -9,11 +9,13 @@
     let {
         post,
         displaySettings,
-        href
+        href,
+        isRead = false
     }: {
         post: FreePost;
         displaySettings?: BoardDisplaySettings;
         href: string;
+        isRead?: boolean;
     } = $props();
 
     const isDeleted = $derived(!!post.deleted_at);
@@ -45,7 +47,11 @@
                     {#if post.category}
                         <Badge variant="secondary" class="text-xs">{post.category}</Badge>
                     {/if}
-                    <h2 class="text-foreground line-clamp-1 flex-1 font-medium">
+                    <h2
+                        class="line-clamp-1 flex-1 {isRead
+                            ? 'text-muted-foreground font-normal'
+                            : 'text-foreground font-medium'}"
+                    >
                         {post.title}
                     </h2>
                 </div>

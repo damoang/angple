@@ -12,11 +12,13 @@
     let {
         post,
         displaySettings,
-        href
+        href,
+        isRead = false
     }: {
         post: FreePost;
         displaySettings?: BoardDisplaySettings;
         href: string;
+        isRead?: boolean;
     } = $props();
 
     // 회원 아이콘 URL
@@ -119,7 +121,11 @@
                                 {post.category}
                             </span>
                         {/if}
-                        <span class="text-foreground truncate text-base font-semibold">
+                        <span
+                            class="truncate text-base {isRead
+                                ? 'text-muted-foreground font-normal'
+                                : 'text-foreground font-semibold'}"
+                        >
                             {post.title}
                         </span>
                         <!-- 부가 아이콘: N, 이미지, 동영상, 댓글 -->

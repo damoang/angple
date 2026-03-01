@@ -26,6 +26,7 @@
     import type { SeoConfig } from '$lib/seo/types.js';
     import { memberLevelStore } from '$lib/stores/member-levels.svelte.js';
     import { checkPermission, getPermissionMessage } from '$lib/utils/board-permissions.js';
+    import { readPostsStore } from '$lib/stores/read-posts.svelte.js';
 
     // 특수 게시판 컴포넌트 (플러그인 레지스트리 기반)
     import { boardTypeRegistry } from '$lib/components/features/board/board-type-registry.js';
@@ -574,6 +575,7 @@
                                         {post}
                                         displaySettings={data.board?.display_settings}
                                         href="/{boardId}/{post.id}"
+                                        isRead={readPostsStore.isRead(boardId, post.id)}
                                     />
                                 </div>
                             </div>
@@ -582,6 +584,7 @@
                                 {post}
                                 displaySettings={data.board?.display_settings}
                                 href="/{boardId}/{post.id}"
+                                isRead={readPostsStore.isRead(boardId, post.id)}
                             />
                         {/if}
 

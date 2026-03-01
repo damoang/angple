@@ -11,11 +11,13 @@
     let {
         post,
         displaySettings,
-        href
+        href,
+        isRead = false
     }: {
         post: FreePost;
         displaySettings?: BoardDisplaySettings;
         href: string;
+        isRead?: boolean;
     } = $props();
 
     // 삭제된 글
@@ -90,7 +92,9 @@
                     </div>
 
                     <h3
-                        class="text-foreground mb-2 line-clamp-2 text-lg font-semibold leading-snug"
+                        class="mb-2 line-clamp-2 text-lg leading-snug {isRead
+                            ? 'text-muted-foreground font-normal'
+                            : 'text-foreground font-semibold'}"
                     >
                         {post.title}
                     </h3>
