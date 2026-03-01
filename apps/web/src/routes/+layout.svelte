@@ -3,7 +3,6 @@
     import favicon from '$lib/assets/favicon.png';
     import { onMount, untrack } from 'svelte';
     import type { Component } from 'svelte';
-    import { browser } from '$app/environment';
     import { page } from '$app/stores';
     import { configureSeo } from '$lib/seo';
     import { authActions } from '$lib/stores/auth.svelte';
@@ -20,6 +19,7 @@
     import { Toaster } from '$lib/components/ui/sonner';
     import DefaultLayout from '$lib/layouts/default-layout.svelte';
     import { keyboardShortcuts } from '$lib/services/keyboard-shortcuts.svelte';
+    import { getThemeLayout } from '$lib/themes/layout-registry';
 
     const { children, data } = $props(); // Svelte 5: SSR 데이터 받기
 
@@ -72,75 +72,17 @@
         });
     });
 
-    // 현재 활성 테마
-    const activeTheme = $derived(themeStore.currentTheme.activeTheme);
-
     // 현재 활성 플러그인
     const activePlugins = $derived(pluginStore.state.activePlugins);
 
-    // 동적으로 로드된 테마 레이아웃 컴포넌트
-    let ThemeLayout = $state<Component | null>(null);
+    // SSR 시점에 즉시 레이아웃 결정 (eager import로 동적 로딩 없음)
+    // - 빌드 타임에 모든 테마 레이아웃이 번들에 포함됨
+    // - LCP/FCP 개선, invisible 대기 시간 0ms
+    const ThemeLayout = $derived(getThemeLayout(data.activeTheme));
 
-    // 테마 로드 실패 fallback (invisible 무한 대기 방지)
-    let themeLoadFailed = $state(false);
-
-    // Vite의 import.meta.glob으로 모든 테마 레이아웃 패턴 정의
-    // 상대 경로로 프로젝트 루트의 themes 디렉터리 참조
-    // (Vite glob은 alias를 지원하지 않아 상대 경로 필수)
-    const themeLayouts = import.meta.glob('../../../../themes/*/layouts/main-layout.svelte');
-
-    // 조기 로딩: browser에서 즉시 async import 시작 ($effect 실행 전에 미리 로딩)
-    if (browser && data.activeTheme) {
-        const _earlyPath = `../../../../themes/${data.activeTheme}/layouts/main-layout.svelte`;
-        if (_earlyPath in themeLayouts) {
-            themeLayouts[_earlyPath]()
-                .then((m) => {
-                    ThemeLayout = (m as { default: Component }).default;
-                })
-                .catch(() => {});
-        }
-    }
-
-    /**
-     * 테마 레이아웃 동적 로드
-     */
-    async function loadThemeLayout(themeId: string | null) {
-        if (!themeId) {
-            ThemeLayout = null;
-            return;
-        }
-
-        try {
-            // Vite glob 패턴과 일치하는 상대 경로 사용
-            const layoutPath = `../../../../themes/${themeId}/layouts/main-layout.svelte`;
-
-            // glob 패턴에 매칭되는 경로가 있는지 확인
-            if (layoutPath in themeLayouts) {
-                const module = (await themeLayouts[layoutPath]()) as { default: Component };
-                ThemeLayout = module.default;
-            } else {
-                // 테마 레이아웃이 없으면 기본 레이아웃 사용
-                ThemeLayout = null;
-                themeLoadFailed = true;
-            }
-        } catch (error) {
-            console.error(`[Layout] 테마 레이아웃 로드 실패: ${themeId}`, error);
-            ThemeLayout = null;
-            themeLoadFailed = true;
-        }
-    }
-
-    // data.activeTheme 직접 감시 → store 거치지 않아 렌더 사이클 1회 절감
+    // 테마 Hook 및 Component 로드 (레이아웃과 별개로 동작)
     $effect(() => {
         const theme = data.activeTheme;
-
-        // 비동기 로드 (void로 처리하여 $effect 내 안전하게 실행)
-        void loadThemeLayout(theme).catch((err) => {
-            console.error('[Layout] 테마 레이아웃 로드 에러:', err);
-            ThemeLayout = null;
-        });
-
-        // 테마 Hook 및 Component 로드
         if (theme) {
             loadThemeHooks(theme);
             loadThemeComponents(theme);
@@ -185,13 +127,6 @@
     });
 
     onMount(() => {
-        // 테마 로드 안전망: 2초 후에도 invisible이면 강제 표시
-        const themeTimeout = setTimeout(() => {
-            if (!ThemeLayout && data.activeTheme) {
-                themeLoadFailed = true;
-            }
-        }, 2000);
-
         // Built-in Hooks 초기화 (콘텐츠 임베딩, 게시판 필터 등)
         initBuiltinHooks();
 
@@ -252,7 +187,6 @@
         document.addEventListener('visibilitychange', handleVisibilityChange);
 
         return () => {
-            clearTimeout(themeTimeout);
             window.removeEventListener('message', handleMessage);
             document.removeEventListener('visibilitychange', handleVisibilityChange);
         };
@@ -276,23 +210,12 @@
 {#if isAdminRoute || isInstallRoute}
     {@render children()}
 {:else if ThemeLayout}
-    <!-- 테마 레이아웃 전환 시 fade-in으로 레이아웃 시프트 완화 -->
+    <!-- SSR 시점에 즉시 테마 레이아웃 렌더링 (동적 로딩 없음) -->
     {#key data.activeTheme}
-        {#if typeof ThemeLayout === 'function'}
-            <div class="theme-layout-enter contents">
-                <ThemeLayout>
-                    {@render children()}
-                </ThemeLayout>
-            </div>
-        {:else}
+        <ThemeLayout>
             {@render children()}
-        {/if}
+        </ThemeLayout>
     {/key}
-{:else if data.activeTheme && !themeLoadFailed}
-    <!-- 테마 레이아웃 로드 대기 중 (최대 2초, 이후 fallback) -->
-    <div class="pointer-events-none invisible min-h-screen">
-        {@render children()}
-    </div>
 {:else}
     <!-- 테마 레이아웃 없음: 기본 레이아웃으로 콘텐츠 렌더링 -->
     <DefaultLayout>
