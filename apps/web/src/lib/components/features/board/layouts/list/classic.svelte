@@ -1,12 +1,25 @@
 <script lang="ts">
     import { Badge } from '$lib/components/ui/badge/index.js';
     import type { FreePost, BoardDisplaySettings } from '$lib/api/types.js';
+    import type { Component } from 'svelte';
     import Lock from '@lucide/svelte/icons/lock';
     import ImageIcon from '@lucide/svelte/icons/image';
     import Play from '@lucide/svelte/icons/play';
     import Pin from '@lucide/svelte/icons/pin';
     import { getMemberIconUrl, handleIconError } from '$lib/utils/member-icon.js';
     import { formatDate } from '$lib/utils/format-date.js';
+    import { pluginStore } from '$lib/stores/plugin.svelte';
+    import { loadPluginComponent } from '$lib/utils/plugin-optional-loader';
+
+    // 메모 플러그인
+    let memoPluginActive = $derived(pluginStore.isPluginActive('member-memo'));
+    let MemoBadge = $state<Component | null>(null);
+
+    $effect(() => {
+        if (memoPluginActive) {
+            loadPluginComponent('member-memo', 'memo-badge').then((c) => (MemoBadge = c));
+        }
+    });
 
     // Props
     let {
@@ -158,6 +171,9 @@
                                 />
                             {/if}
                             {post.author}
+                            {#if memoPluginActive && MemoBadge}
+                                <MemoBadge memberId={post.author_id} />
+                            {/if}
                         </span>
                         <span class="text-muted-foreground w-[70px] text-center text-[15px]">
                             {formatDate(post.created_at)}
@@ -181,6 +197,9 @@
                                 />
                             {/if}
                             {post.author}
+                            {#if memoPluginActive && MemoBadge}
+                                <MemoBadge memberId={post.author_id} />
+                            {/if}
                         </span>
                         <span>·</span>
                         <span>{formatDate(post.created_at)}</span>
