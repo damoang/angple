@@ -82,6 +82,14 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: Prepare deployment package
+        run: |
+          # pnpm deploy로 독립 실행 가능한 패키지 생성
+          pnpm --filter web deploy --prod apps/web/deploy
+
+          # 빌드 결과물 복사
+          cp -r apps/web/build apps/web/deploy/
+
       - name: Build and push Docker image
         id: build
         env:
@@ -94,12 +102,10 @@ jobs:
           echo "Building ARM64 image: ${FULL_IMAGE}"
 
           # Create Dockerfile
-          cat > apps/web/Dockerfile << 'EOF'
+          cat > apps/web/deploy/Dockerfile << 'EOF'
           FROM node:22-alpine
           WORKDIR /app
-          COPY package.json ./
-          COPY build ./build
-          RUN npm install --omit=dev --ignore-scripts 2>/dev/null || true
+          COPY . .
           ENV NODE_ENV=production
           ENV PORT=3000
           EXPOSE 3000
@@ -107,7 +113,7 @@ jobs:
           EOF
 
           # Build and push for ARM64
-          cd apps/web
+          cd apps/web/deploy
           docker buildx build \
             --platform linux/arm64 \
             -t "${FULL_IMAGE}" \
