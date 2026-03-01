@@ -1,5 +1,5 @@
 import type { PageServerLoad } from './$types';
-import { readSettings } from '$lib/server/settings';
+import { getWidgetLayout, getSidebarWidgetLayout } from '$lib/server/settings/index';
 import { DEFAULT_WIDGETS, DEFAULT_SIDEBAR_WIDGETS } from '$lib/constants/default-widgets';
 import { buildIndexWidgets } from '$lib/server/index-widgets-builder';
 import { getDefaultPeriod, loadRecommendedData } from '$lib/server/recommended-loader';
@@ -12,10 +12,13 @@ export const load: PageServerLoad = async () => {
     const [indexWidgetsResult, layoutResult, recommendedResult] = await Promise.allSettled([
         buildIndexWidgets(BACKEND_URL),
         (async () => {
-            const settings = await readSettings();
+            const [widgetLayout, sidebarWidgetLayout] = await Promise.all([
+                getWidgetLayout(),
+                getSidebarWidgetLayout()
+            ]);
             return {
-                widgetLayout: settings.widgetLayout ?? DEFAULT_WIDGETS,
-                sidebarWidgetLayout: settings.sidebarWidgetLayout ?? DEFAULT_SIDEBAR_WIDGETS
+                widgetLayout: widgetLayout ?? DEFAULT_WIDGETS,
+                sidebarWidgetLayout: sidebarWidgetLayout ?? DEFAULT_SIDEBAR_WIDGETS
             };
         })(),
         // 추천글 기본 탭 SSR 프리페치 (로딩 없이 즉시 표시)

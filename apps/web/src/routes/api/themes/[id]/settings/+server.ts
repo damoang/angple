@@ -1,6 +1,6 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { getThemeSettings, setThemeSettings } from '$lib/server/settings';
+import { getThemeSettings, setThemeSettings } from '$lib/server/settings/index';
 import { sanitizePath } from '$lib/server/path-utils';
 
 /**
