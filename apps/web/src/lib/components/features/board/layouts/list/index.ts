@@ -17,6 +17,9 @@ import PosterGalleryLayout from './poster-gallery.svelte';
 import MarketCardLayout from './market-card.svelte';
 import ClassicLayout from './classic.svelte';
 import NoticeLayout from './notice.svelte';
+import MessageLayout from './message.svelte';
+import GivingLayout from './giving.svelte';
+import TradeLayout from './trade.svelte';
 
 /** 코어 목록 레이아웃 매니페스트 */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -101,6 +104,33 @@ const coreListLayouts: { manifest: LayoutManifest; component: any }[] = [
             wrapperClass: 'space-y-2'
         },
         component: NoticeLayout
+    },
+    {
+        manifest: {
+            id: 'message',
+            name: '축하 메시지',
+            description: '축하 카드 형태로 표시 (그라데이션 헤더, 무지개 아바타)',
+            wrapperClass: 'grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3'
+        },
+        component: MessageLayout
+    },
+    {
+        manifest: {
+            id: 'giving',
+            name: '나눔',
+            description: '나눔 게시판 전용 (카운트다운, 응모수, 상태 뱃지)',
+            wrapperClass: 'grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
+        },
+        component: GivingLayout
+    },
+    {
+        manifest: {
+            id: 'trade',
+            name: '거래',
+            description: '중고거래/판매 게시판 전용 (가격, 상태, 거래방식)',
+            wrapperClass: 'grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5'
+        },
+        component: TradeLayout
     }
 ];
 
@@ -126,5 +156,8 @@ export {
     PosterGalleryLayout,
     MarketCardLayout,
     ClassicLayout,
-    NoticeLayout
+    NoticeLayout,
+    MessageLayout,
+    GivingLayout,
+    TradeLayout
 };
