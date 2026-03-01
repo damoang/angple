@@ -12,59 +12,50 @@
 
     let { post, variant = 'default' }: { post: PromotionPost; variant?: 'default' | 'classic' } =
         $props();
+
+    // classic 레이아웃과 동일한 높이 맞춤 (py-2.5, 더 작은 요소)
+    const isClassic = $derived(variant === 'classic');
 </script>
 
-{#if variant === 'classic'}
-    <!-- Classic 변형: divide-y 행 스타일에 맞춤 -->
+{#if isClassic}
+    <!-- Classic variant: 게시글 목록과 동일한 높이 -->
     <a
         href={post.linkUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-        class="bg-background hover:bg-accent flex items-center gap-2 px-4 py-2.5 transition-colors md:gap-3"
+        class="block bg-blue-50/50 px-4 py-2.5 no-underline transition-colors hover:bg-blue-100/60 dark:bg-blue-950/20 dark:hover:bg-blue-950/40"
     >
-        <!-- 썸네일 (데스크톱: 추천박스 위치) -->
-        {#if post.imageUrl}
-            <div
-                class="bg-muted relative hidden h-7 w-10 shrink-0 overflow-hidden rounded-md md:block"
-            >
-                <img
-                    src={post.imageUrl}
-                    alt=""
-                    class="h-full w-full object-cover"
-                    onerror={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        target.style.display = 'none';
-                    }}
-                />
-            </div>
-        {:else}
-            <div class="hidden h-7 w-10 shrink-0 md:block"></div>
-        {/if}
-
-        <!-- 제목 + AD 뱃지 -->
-        <div class="min-w-0 flex-1">
-            <div class="flex items-center gap-1">
-                <span
-                    class="inline-flex shrink-0 items-center rounded bg-blue-500/80 px-1.5 py-0.5 text-[10px] font-bold leading-none text-white dark:bg-blue-400/80"
-                    >AD</span
+        <div class="flex items-center gap-2 md:gap-3">
+            <!-- AD 박스 (데스크톱만) -->
+            <div class="hidden shrink-0 md:block">
+                <div
+                    class="flex h-7 w-10 items-center justify-center rounded-md bg-blue-500/80 text-[10px] font-bold text-white dark:bg-blue-400/80"
                 >
-                <span class="truncate text-base font-medium">{post.subject}</span>
+                    AD
+                </div>
             </div>
-        </div>
 
-        <!-- 메타 (데스크톱) -->
-        <div class="hidden shrink-0 items-center gap-2 md:flex">
-            <span class="text-muted-foreground w-[100px] truncate text-sm">
+            <!-- 제목 영역 -->
+            <div class="min-w-0 flex-1">
+                <div class="flex items-center gap-1">
+                    <span
+                        class="inline-flex shrink-0 items-center rounded bg-blue-500/80 px-1.5 py-0 text-[10px] font-bold text-white md:hidden dark:bg-blue-400/80"
+                        >AD</span
+                    >
+                    <span class="text-foreground truncate text-base font-semibold">
+                        {post.subject}
+                    </span>
+                </div>
+            </div>
+
+            <!-- 광고주 (데스크톱만) -->
+            <span class="text-muted-foreground hidden shrink-0 text-[15px] md:inline">
                 {post.advertiserName}
             </span>
         </div>
     </a>
 {:else}
-    <!-- Default 변형: 카드형 -->
+    <!-- Default variant: 썸네일 포함 -->
     <a
         href={post.linkUrl}
-        target="_blank"
-        rel="noopener noreferrer"
         class="border-border flex items-center gap-3 rounded-lg border bg-blue-50/50 px-4 py-3 transition-all hover:bg-blue-100/60 hover:shadow-sm dark:bg-blue-950/20 dark:hover:bg-blue-950/40"
     >
         <!-- 썸네일 -->
