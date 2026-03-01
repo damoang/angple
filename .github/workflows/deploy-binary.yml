@@ -14,12 +14,16 @@ permissions:
 
 env:
   NODE_VERSION: '22'
+  AWS_REGION: ap-northeast-2
+  ECR_REPOSITORY: angple-web
 
 jobs:
   build:
-    name: Build App
+    name: Build & Push to ECR
     runs-on: ubuntu-latest
     if: inputs.confirm == 'deploy'
+    outputs:
+      image_tag: ${{ steps.build.outputs.IMAGE_TAG }}
 
     steps:
       - uses: actions/checkout@v4
@@ -62,68 +66,90 @@ jobs:
           VITE_GAM_SITE_NAME: 'damoang'
         run: pnpm --filter web build
 
-      - name: Create tarball
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::891376997084:role/GitHubActionsDeployRole
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push Docker image
+        id: build
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         run: |
+          IMAGE_TAG=$(date +%Y%m%d-%H%M%S)
+          FULL_IMAGE="${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
+          LATEST_IMAGE="${ECR_REGISTRY}/${ECR_REPOSITORY}:latest"
+
+          echo "Building image: ${FULL_IMAGE}"
+
+          # Create Dockerfile
+          cat > apps/web/Dockerfile << 'EOF'
+          FROM node:22-alpine
+          WORKDIR /app
+          COPY package.json ./
+          COPY build ./build
+          RUN npm install --omit=dev --ignore-scripts 2>/dev/null || true
+          ENV NODE_ENV=production
+          ENV PORT=3000
+          EXPOSE 3000
+          CMD ["node", "build/index.js"]
+          EOF
+
+          # Build and push
           cd apps/web
-          tar -czvf ../../build.tar.gz build package.json
+          docker build -t "${FULL_IMAGE}" -t "${LATEST_IMAGE}" .
+          docker push "${FULL_IMAGE}"
+          docker push "${LATEST_IMAGE}"
 
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: web-build
-          path: build.tar.gz
-          retention-days: 1
-
-  deploy:
-    name: Deploy to Server
-    runs-on: ubuntu-latest
-    needs: build
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Download build
-        uses: actions/download-artifact@v4
-        with:
-          name: web-build
+          echo "IMAGE_TAG=${IMAGE_TAG}" >> $GITHUB_OUTPUT
+          echo "Image pushed: ${FULL_IMAGE}"
 
       - name: Create GitHub Release
-        id: release
         run: |
           TIMESTAMP=$(date +%Y%m%d-%H%M%S)
           TAG="deploy-${TIMESTAMP}"
-          echo "TAG=${TAG}" >> $GITHUB_OUTPUT
 
           # Delete old deploy releases (keep last 5)
           gh release list --limit 100 | grep "^deploy-" | tail -n +6 | cut -f1 | while read tag; do
             gh release delete "$tag" --yes --cleanup-tag || true
           done
 
-          # Create new release with build
+          # Create release (for tracking)
           gh release create "${TAG}" \
             --title "Deploy ${TIMESTAMP}" \
-            --notes "Automated frontend deployment" \
-            build.tar.gz
+            --notes "Docker image: ${{ steps.login-ecr.outputs.registry }}/${ECR_REPOSITORY}:${{ steps.build.outputs.IMAGE_TAG }}"
 
           echo "Release created: ${TAG}"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+  deploy:
+    name: Deploy to K8s
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::891376997084:role/GitHubActionsDeployRole
-          aws-region: ap-northeast-2
+          aws-region: ${{ env.AWS_REGION }}
 
       - name: Deploy via SSM
         env:
-          RELEASE_TAG: ${{ steps.release.outputs.TAG }}
+          IMAGE_TAG: ${{ needs.build.outputs.image_tag }}
         run: |
           COMMAND_ID=$(aws ssm send-command \
             --instance-ids "i-038a1d1f00798d94b" \
             --document-name "AWS-RunShellScript" \
             --parameters 'commands=[
-              "sudo -u angple /home/angple/web/scripts/deploy-ci.sh '"$RELEASE_TAG"'"
+              "kubectl set image deployment/angple-web -n angple web=891376997084.dkr.ecr.ap-northeast-2.amazonaws.com/angple-web:'"$IMAGE_TAG"'",
+              "kubectl rollout status deployment/angple-web -n angple --timeout=120s"
             ]' \
             --timeout-seconds 300 \
             --query "Command.CommandId" \
