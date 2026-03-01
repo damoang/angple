@@ -84,8 +84,8 @@ jobs:
 
       - name: Prepare deployment package
         run: |
-          # pnpm deploy로 독립 실행 가능한 패키지 생성
-          pnpm --filter web deploy --prod apps/web/deploy
+          # pnpm deploy로 독립 실행 가능한 패키지 생성 (pnpm v10 requires --legacy)
+          pnpm --filter web deploy --prod --legacy apps/web/deploy
 
           # 빌드 결과물 복사
           cp -r apps/web/build apps/web/deploy/
