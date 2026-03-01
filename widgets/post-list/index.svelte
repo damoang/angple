@@ -17,6 +17,9 @@
     import GalleryView from './layouts/gallery-view.svelte';
     import GridView from './layouts/grid-view.svelte';
     import CardView from './layouts/card-view.svelte';
+    import MessageView from './layouts/message-view.svelte';
+    import GivingView from './layouts/giving-view.svelte';
+    import TradeView from './layouts/trade-view.svelte';
 
     let { config, slot, isEditMode = false, prefetchData }: WidgetProps = $props();
 
@@ -111,6 +114,12 @@
         <GridView posts={fetchedPosts} {showTitle} {boardId} />
     {:else if layout === 'card'}
         <CardView posts={fetchedPosts} {showTitle} {boardId} />
+    {:else if layout === 'message'}
+        <MessageView posts={fetchedPosts} {showTitle} {boardId} />
+    {:else if layout === 'giving'}
+        <GivingView posts={fetchedPosts} {showTitle} {boardId} />
+    {:else if layout === 'trade'}
+        <TradeView posts={fetchedPosts} {showTitle} {boardId} />
     {:else}
         <ListView posts={fetchedPosts} {showTitle} {boardId} />
     {/if}
