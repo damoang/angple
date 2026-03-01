@@ -2,6 +2,7 @@ import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types.js';
 import { isValidKeyFormat } from '$lib/server/license.js';
 import type { LicenseVerifyRequest, LicenseVerifyResponse } from '$lib/types/license.js';
+import { env } from '$env/dynamic/private';
 
 /**
  * 라이선스 검증 API (공개)
@@ -37,7 +38,7 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
         }
 
         // Go 백엔드로 검증 요청 프록시
-        const backendUrl = process.env.INTERNAL_API_URL || 'http://localhost:8090/api/v2';
+        const backendUrl = env.INTERNAL_API_URL || 'http://localhost:8090/api/v2';
         const res = await fetch(`${backendUrl}/licenses/verify`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },

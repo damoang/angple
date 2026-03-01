@@ -1,6 +1,7 @@
 import { redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { isInstalled, updateSettings, getSettings } from '$lib/server/install/check-installed';
+import { env } from '$env/dynamic/private';
 
 /**
  * 설치 위저드 Step 3 서버 로직 - 관리자 계정 생성
@@ -24,7 +25,7 @@ async function createAdminInBackend(data: {
     username: string;
     password: string;
 }): Promise<{ success: boolean; message: string; userId?: string }> {
-    const backendUrl = process.env.BACKEND_URL || 'http://localhost:8090';
+    const backendUrl = env.BACKEND_URL || 'http://localhost:8090';
 
     try {
         const response = await fetch(`${backendUrl}/api/v1/install/create-admin`, {

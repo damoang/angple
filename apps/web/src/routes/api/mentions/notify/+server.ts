@@ -7,8 +7,9 @@ import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import type { RowDataPacket } from 'mysql2';
 import pool from '$lib/server/db';
+import { env } from '$env/dynamic/private';
 
-const INTERNAL_API_URL = process.env.INTERNAL_API_URL || 'http://localhost:8090/api/v1';
+const INTERNAL_API_URL = env.INTERNAL_API_URL || 'http://localhost:8090/api/v1';
 
 interface NotifyRequest {
     mentions: string[]; // 닉네임 배열

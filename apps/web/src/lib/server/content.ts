@@ -4,6 +4,7 @@
  */
 import pool from '$lib/server/db.js';
 import type { RowDataPacket } from 'mysql2';
+import { env } from '$env/dynamic/private';
 
 export interface ContentRow {
     co_id: string;
@@ -47,7 +48,7 @@ export async function getSiteTitle(): Promise<string> {
     if (rows[0]) {
         return (rows[0] as { cf_title: string }).cf_title;
     }
-    return process.env.VITE_SITE_NAME || 'Angple';
+    return env.VITE_SITE_NAME || 'Angple';
 }
 
 /** 컨텐츠 내 변수 치환 (PHP 호환) */

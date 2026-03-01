@@ -7,9 +7,10 @@ import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { getAuthUser, verifyToken } from '$lib/server/auth/index.js';
+import { env } from '$env/dynamic/private';
 
-const S3_REGION = process.env.S3_REGION || 'ap-northeast-2';
-const S3_BUCKET = process.env.S3_BUCKET || 'damoang-data-v1';
+const S3_REGION = env.S3_REGION || 'ap-northeast-2';
+const S3_BUCKET = env.S3_BUCKET || 'damoang-data-v1';
 const CDN_BASE = 'https://s3.damoang.net';
 
 // S3 클라이언트 (EC2 IAM Role 자동 인증)

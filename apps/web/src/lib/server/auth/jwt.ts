@@ -42,6 +42,7 @@ export async function generateAccessToken(user: {
 }): Promise<string> {
     return new SignJWT({
         sub: user.mb_id,
+        user_id: user.mb_id, // Go 백엔드 호환 (Claims.UserID)
         nickname: user.mb_nick,
         level: user.mb_level,
         email: user.mb_email

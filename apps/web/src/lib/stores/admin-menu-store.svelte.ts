@@ -167,14 +167,41 @@ class MenuStore {
         }
     }
 
+    /**
+     * 메뉴 속성 토글 (낙관적 업데이트)
+     * 스크롤 위치를 유지하기 위해 loadMenus()를 호출하지 않고 로컬 상태만 업데이트합니다.
+     */
     async toggleMenuProperty(
         id: number,
         property: 'show_in_header' | 'show_in_sidebar' | 'is_active'
     ) {
         const menu = this.findMenuById(this._menus, id);
         if (!menu) return;
+
         const newValue = !menu[property];
-        await this.updateMenu(id, { [property]: newValue });
+
+        // 낙관적 업데이트: 로컬 상태 즉시 반영
+        menu[property] = newValue;
+        // originalMenus도 업데이트하여 hasChanges가 false 유지
+        const originalMenu = this.findMenuById(this._originalMenus, id);
+        if (originalMenu) {
+            originalMenu[property] = newValue;
+        }
+
+        // 백그라운드에서 API 호출 + 캐시 무효화
+        try {
+            await menusApi.updateMenu(id, { [property]: newValue });
+            await menusApi.invalidateMenuCache();
+            toast.success('메뉴가 수정되었습니다.');
+        } catch (error) {
+            // 실패 시 롤백
+            menu[property] = !newValue;
+            if (originalMenu) {
+                originalMenu[property] = !newValue;
+            }
+            console.error('❌ 메뉴 토글 실패:', error);
+            toast.error('메뉴 수정에 실패했습니다.');
+        }
     }
 
     discardChanges() {

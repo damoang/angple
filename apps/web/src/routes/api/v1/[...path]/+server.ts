@@ -1,5 +1,6 @@
 import type { RequestHandler } from './$types';
 import { dev } from '$app/environment';
+import { env } from '$env/dynamic/private';
 
 /**
  * API v1 프록시 핸들러
@@ -9,10 +10,10 @@ import { dev } from '$app/environment';
  * - Set-Cookie 헤더 전달 (httpOnly refreshToken)
  */
 
-const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8090';
+const BACKEND_URL = env.BACKEND_URL || 'http://localhost:8090';
 
 // 쿠키 도메인: Go 백엔드 cookieDomain()과 일치 (쿠키 충돌 방지)
-const COOKIE_DOMAIN = process.env.COOKIE_DOMAIN || '';
+const COOKIE_DOMAIN = env.COOKIE_DOMAIN || '';
 
 // 공통 프록시 로직
 async function proxyRequest(
@@ -26,18 +27,59 @@ async function proxyRequest(
     const url = new URL(request.url);
     const targetUrl = `${BACKEND_URL}/api/v1/${path}${url.search}`;
 
+    // 디버그: admin/menus 요청 로깅
+    if (path.includes('admin/menus')) {
+        const rawCookieHeader = request.headers.get('cookie');
+        const clientAuthHeader = request.headers.get('authorization');
+        console.log('[API Proxy DEBUG]', method, path, {
+            hasAccessToken: !!locals.accessToken,
+            accessTokenLength: locals.accessToken?.length ?? 0,
+            hasUser: !!locals.user,
+            userId: locals.user?.id,
+            userLevel: locals.user?.level,
+            hasSessionId: !!locals.sessionId,
+            sessionIdPrefix: locals.sessionId?.slice(0, 8),
+            willSetInternalHeaders: !!(locals.user?.id && locals.sessionId),
+            targetUrl,
+            rawCookieHeader: rawCookieHeader
+                ? rawCookieHeader.substring(0, 80) + '...'
+                : '(no cookie header)',
+            clientAuthHeader: clientAuthHeader
+                ? 'Bearer ...' + clientAuthHeader.slice(-8)
+                : '(none)',
+            origin: request.headers.get('origin')
+        });
+    }
+
     try {
-        // 헤더 복사 (host 제외)
+        // 헤더 복사 (프록시 관련 헤더 제외)
         const headers = new Headers();
+        const skipHeaders = new Set([
+            'host',
+            'connection',
+            'upgrade',
+            'keep-alive',
+            'transfer-encoding'
+        ]);
         request.headers.forEach((value, key) => {
-            if (key.toLowerCase() !== 'host') {
+            if (!skipHeaders.has(key.toLowerCase())) {
                 headers.set(key, value);
             }
         });
 
-        // SSR accessToken 주입 (클라이언트에서 Authorization 헤더가 없을 때)
+        // SSR 인증 정보 주입 (두 가지 방식)
+        // 1. JWT Authorization 헤더 (기존 방식)
         if (!headers.has('authorization') && locals.accessToken) {
             headers.set('Authorization', `Bearer ${locals.accessToken}`);
+        }
+
+        // 2. 내부 신뢰 헤더 (세션 인증을 거친 SvelteKit → 백엔드 통신용)
+        // 공유 시크릿 포함 (CloudFront가 직접 백엔드로 라우팅하는 경우 대비)
+        if (locals.user?.id && locals.sessionId) {
+            headers.set('X-Internal-User-ID', locals.user.id);
+            headers.set('X-Internal-User-Level', String(locals.user.level || 0));
+            headers.set('X-Internal-Auth', 'sveltekit-session');
+            headers.set('X-Internal-Secret', 'angple-internal-dev-2026');
         }
 
         // Body 처리 (GET, HEAD는 body 없음)
@@ -61,6 +103,16 @@ async function proxyRequest(
             // @ts-expect-error - Node.js fetch specific option
             duplex: body instanceof ReadableStream ? 'half' : undefined
         });
+
+        // 디버그: admin/menus 응답 로깅
+        if (path.includes('admin/menus')) {
+            console.log('[API Proxy Response]', method, path, {
+                status: response.status,
+                statusText: response.statusText,
+                contentType: response.headers.get('content-type'),
+                contentLength: response.headers.get('content-length')
+            });
+        }
 
         // 응답 헤더 복사 (set-cookie 제외 — SvelteKit cookies API로 별도 처리)
         const responseHeaders = new Headers();
@@ -90,8 +142,14 @@ async function proxyRequest(
             });
         }
 
-        // CORS 헤더
-        responseHeaders.set('Access-Control-Allow-Origin', '*');
+        // CORS 헤더 (credentials: include 지원을 위해 구체적인 origin 사용)
+        const origin = request.headers.get('origin');
+        if (origin) {
+            responseHeaders.set('Access-Control-Allow-Origin', origin);
+            responseHeaders.set('Access-Control-Allow-Credentials', 'true');
+        } else {
+            responseHeaders.set('Access-Control-Allow-Origin', '*');
+        }
         responseHeaders.set(
             'Access-Control-Allow-Methods',
             'GET, POST, PUT, DELETE, PATCH, OPTIONS'
@@ -143,14 +201,19 @@ export const DELETE: RequestHandler = async ({ params, request, locals, cookies 
     return proxyRequest('DELETE', params, request, locals, cookies);
 };
 
-export const OPTIONS: RequestHandler = async () => {
-    return new Response(null, {
-        status: 204,
-        headers: {
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
-            'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-            'Access-Control-Max-Age': '86400'
-        }
-    });
+export const OPTIONS: RequestHandler = async ({ request }) => {
+    const origin = request.headers.get('origin');
+    console.log('[OPTIONS DEBUG] origin:', origin);
+    const headers: Record<string, string> = {
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-CSRF-Token',
+        'Access-Control-Max-Age': '86400'
+    };
+    if (origin) {
+        headers['Access-Control-Allow-Origin'] = origin;
+        headers['Access-Control-Allow-Credentials'] = 'true';
+    } else {
+        headers['Access-Control-Allow-Origin'] = '*';
+    }
+    return new Response(null, { status: 204, headers });
 };

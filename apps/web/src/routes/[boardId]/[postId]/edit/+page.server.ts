@@ -1,8 +1,9 @@
 import { redirect, error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types.js';
 import type { Board } from '$lib/api/types.js';
+import { env } from '$env/dynamic/private';
 
-const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8090';
+const BACKEND_URL = env.BACKEND_URL || 'http://localhost:8090';
 
 /**
  * 게시글 수정 페이지 서버 로드

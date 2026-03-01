@@ -31,8 +31,10 @@ export interface AISpamResult {
  */
 function getAIConfig(): AIProviderConfig | null {
     // 환경변수에서 직접 로드 (관리자 설정 API를 통한 로드도 가능)
-    const openaiKey = process.env.OPENAI_API_KEY || '';
-    const anthropicKey = process.env.ANTHROPIC_API_KEY || '';
+    // Note: $env/dynamic/private는 SvelteKit SSR 환경에서만 사용 가능
+    // 이 파일이 SSR 외부에서 호출되는 경우 process.env 폴백 유지
+    const openaiKey = (typeof process !== 'undefined' && process.env?.OPENAI_API_KEY) || '';
+    const anthropicKey = (typeof process !== 'undefined' && process.env?.ANTHROPIC_API_KEY) || '';
 
     if (openaiKey) {
         return { provider: 'openai', apiKey: openaiKey };
