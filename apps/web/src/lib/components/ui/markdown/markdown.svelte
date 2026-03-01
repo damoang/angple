@@ -1,9 +1,10 @@
 <script lang="ts">
     import { marked } from 'marked';
-    import DOMPurify from 'dompurify';
+    import DOMPurify from 'isomorphic-dompurify';
     import { onMount } from 'svelte';
     import { applyFilter } from '$lib/hooks/registry';
     import { getHookVersion } from '$lib/hooks/hook-state.svelte';
+    import { browser } from '$app/environment';
 
     interface Props {
         content: string;
@@ -14,8 +15,75 @@
 
     let { content, class: className = '', enableEmbed = true }: Props = $props();
 
-    let renderedHtml = $state('');
-    let isBrowser = $state(false);
+    // DOMPurify 설정
+    const PURIFY_CONFIG = {
+        ALLOWED_TAGS: [
+            'h1',
+            'h2',
+            'h3',
+            'h4',
+            'h5',
+            'h6',
+            'p',
+            'br',
+            'strong',
+            'em',
+            'u',
+            's',
+            'del',
+            'ul',
+            'ol',
+            'li',
+            'blockquote',
+            'code',
+            'pre',
+            'a',
+            'img',
+            'table',
+            'thead',
+            'tbody',
+            'tr',
+            'th',
+            'td',
+            'hr',
+            'div',
+            'iframe',
+            'video',
+            'audio',
+            'source',
+            'span'
+        ],
+        ALLOWED_ATTR: [
+            'href',
+            'src',
+            'alt',
+            'title',
+            'class',
+            'target',
+            'rel',
+            'width',
+            'loading',
+            'height',
+            'style',
+            'data-platform',
+            'data-bluesky-uri',
+            'data-bluesky-cid',
+            'data-embed-height',
+            'data-tweet-id',
+            'frameborder',
+            'allow',
+            'allowfullscreen',
+            'allowtransparency',
+            'scrolling',
+            'referrerpolicy',
+            'type',
+            'controls',
+            'autoplay',
+            'muted',
+            'loop',
+            'playsinline'
+        ]
+    };
 
     // marked 옵션 설정 (GFM 활성화)
     marked.setOptions({
@@ -23,16 +91,22 @@
         breaks: true
     });
 
-    onMount(() => {
-        isBrowser = true;
+    // SSR용 기본 HTML (플러그인 필터 없이)
+    function getInitialHtml(content: string): string {
+        if (!content) return '';
+        const rawHtml = marked.parse(content) as string;
+        return DOMPurify.sanitize(rawHtml, PURIFY_CONFIG);
+    }
 
+    // 초기 렌더링 (SSR + 클라이언트 초기값)
+    let renderedHtml = $state(getInitialHtml(content));
+
+    onMount(() => {
         // Twitter iframe postMessage resize 수신
         function handleTwitterResize(event: MessageEvent) {
             if (event.origin !== 'https://platform.twitter.com') return;
             try {
                 const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
-                // Twitter sends: {"twttr.private.resize": [{"height": N}]}
-                // or: {"method":"resize","params":[N]}
                 const resizeData = data?.['twttr.private.resize'];
                 if (resizeData && Array.isArray(resizeData)) {
                     const height = resizeData[0]?.height;
@@ -56,99 +130,25 @@
         return () => window.removeEventListener('message', handleTwitterResize);
     });
 
-    // 마크다운을 HTML로 변환하고 플러그인 필터 적용 후 sanitize
+    // 클라이언트에서 플러그인 필터 적용
     $effect(() => {
         // hookVersion을 읽어서 hook 등록 시 $effect 재실행
         const _hv = getHookVersion();
 
-        if (isBrowser && content) {
+        if (browser && content) {
             const rawHtml = marked.parse(content) as string;
 
             applyFilter<string>('post_content', rawHtml).then((filtered) => {
-                renderedHtml = DOMPurify.sanitize(filtered, {
-                    ALLOWED_TAGS: [
-                        'h1',
-                        'h2',
-                        'h3',
-                        'h4',
-                        'h5',
-                        'h6',
-                        'p',
-                        'br',
-                        'strong',
-                        'em',
-                        'u',
-                        's',
-                        'del',
-                        'ul',
-                        'ol',
-                        'li',
-                        'blockquote',
-                        'code',
-                        'pre',
-                        'a',
-                        'img',
-                        'table',
-                        'thead',
-                        'tbody',
-                        'tr',
-                        'th',
-                        'td',
-                        'hr',
-                        'div',
-                        'iframe',
-                        'video',
-                        'audio',
-                        'source',
-                        'span'
-                    ],
-                    ALLOWED_ATTR: [
-                        'href',
-                        'src',
-                        'alt',
-                        'title',
-                        'class',
-                        'target',
-                        'rel',
-                        'width',
-                        'loading',
-                        'height',
-                        'style',
-                        'data-platform',
-                        'data-bluesky-uri',
-                        'data-bluesky-cid',
-                        'data-embed-height',
-                        'data-tweet-id',
-                        'frameborder',
-                        'allow',
-                        'allowfullscreen',
-                        'allowtransparency',
-                        'scrolling',
-                        'referrerpolicy',
-                        'type',
-                        'controls',
-                        'autoplay',
-                        'muted',
-                        'loop',
-                        'playsinline'
-                    ]
-                });
+                renderedHtml = DOMPurify.sanitize(filtered, PURIFY_CONFIG);
             });
         }
     });
 </script>
 
-{#if isBrowser}
-    <div class="prose prose-neutral dark:prose-invert max-w-none {className}">
-        <!-- eslint-disable-next-line svelte/no-at-html-tags -->
-        {@html renderedHtml}
-    </div>
-{:else}
-    <!-- SSR fallback: 원본 텍스트 표시 -->
-    <div class="whitespace-pre-wrap {className}">
-        {content}
-    </div>
-{/if}
+<div class="prose prose-neutral dark:prose-invert max-w-none {className}">
+    <!-- eslint-disable-next-line svelte/no-at-html-tags -->
+    {@html renderedHtml}
+</div>
 
 <style>
     /* Tailwind Typography 플러그인이 없을 경우를 위한 기본 스타일 */
