@@ -6,15 +6,16 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { createHmac, createHash } from 'crypto';
-import {
-    AFFI_COUPANG_ACCESS_KEY,
-    AFFI_COUPANG_SECRET_KEY,
-    AFFI_ALIEXPRESS_ACCESS_KEY,
-    AFFI_ALIEXPRESS_SECRET_KEY,
-    AFFI_AMAZON_STORE_ID,
-    AFFI_KKDAY_CID,
-    AFFI_AFFILIATE_ID
-} from '$env/static/private';
+import { env } from '$env/dynamic/private';
+
+// 환경 변수 (런타임)
+const AFFI_COUPANG_ACCESS_KEY = env.AFFI_COUPANG_ACCESS_KEY || '';
+const AFFI_COUPANG_SECRET_KEY = env.AFFI_COUPANG_SECRET_KEY || '';
+const AFFI_ALIEXPRESS_ACCESS_KEY = env.AFFI_ALIEXPRESS_ACCESS_KEY || '';
+const AFFI_ALIEXPRESS_SECRET_KEY = env.AFFI_ALIEXPRESS_SECRET_KEY || '';
+const AFFI_AMAZON_STORE_ID = env.AFFI_AMAZON_STORE_ID || 'damoang0c-20';
+const AFFI_KKDAY_CID = env.AFFI_KKDAY_CID || '20907';
+const AFFI_AFFILIATE_ID = env.AFFI_AFFILIATE_ID || '';
 
 type AffiliatePlatform = 'coupang' | 'aliexpress' | 'amazon' | 'kkday' | 'linkprice';
 
