@@ -15,12 +15,27 @@
 
     // classic 레이아웃과 동일한 높이 맞춤 (py-2.5, 더 작은 요소)
     const isClassic = $derived(variant === 'classic');
+
+    // linkUrl에서 경로만 추출하여 현재 origin 사용 (dev/web/prod 환경 대응)
+    const href = $derived.by(() => {
+        try {
+            const url = new URL(post.linkUrl);
+            // 다모앙 도메인인 경우 상대 경로로 변환
+            if (url.hostname.endsWith('damoang.net')) {
+                return url.pathname + url.search + url.hash;
+            }
+            // 외부 URL은 그대로 사용
+            return post.linkUrl;
+        } catch {
+            return post.linkUrl;
+        }
+    });
 </script>
 
 {#if isClassic}
     <!-- Classic variant: 게시글 목록과 동일한 높이 -->
     <a
-        href={post.linkUrl}
+        {href}
         class="block bg-blue-50/50 px-4 py-2.5 no-underline transition-colors hover:bg-blue-100/60 dark:bg-blue-950/20 dark:hover:bg-blue-950/40"
     >
         <div class="flex items-center gap-2 md:gap-3">
@@ -55,7 +70,7 @@
 {:else}
     <!-- Default variant: 썸네일 포함 -->
     <a
-        href={post.linkUrl}
+        {href}
         class="border-border flex items-center gap-3 rounded-lg border bg-blue-50/50 px-4 py-3 transition-all hover:bg-blue-100/60 hover:shadow-sm dark:bg-blue-950/20 dark:hover:bg-blue-950/40"
     >
         <!-- 썸네일 -->
