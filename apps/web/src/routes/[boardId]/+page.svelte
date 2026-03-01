@@ -22,7 +22,12 @@
     import { CelebrationRolling } from '$lib/components/ui/celebration-rolling';
     import { PromotionInlinePost } from '$lib/components/ui/promotion-inline-post';
     import { widgetLayoutStore } from '$lib/stores/widget-layout.svelte';
-    import { SeoHead, createBreadcrumbJsonLd, getSiteUrl } from '$lib/seo/index.js';
+    import {
+        SeoHead,
+        createBreadcrumbJsonLd,
+        getSiteUrl,
+        getPageSeoConfig
+    } from '$lib/seo/index.js';
     import type { SeoConfig } from '$lib/seo/types.js';
     import { memberLevelStore } from '$lib/stores/member-levels.svelte.js';
     import { checkPermission, getPermissionMessage } from '$lib/utils/board-permissions.js';
@@ -217,24 +222,45 @@
         }
     });
 
-    // SEO 설정
-    const seoConfig: SeoConfig = $derived({
-        meta: {
-            title: isSearching ? `"${data.searchParams?.query}" 검색 - ${boardTitle}` : boardTitle,
-            description: `${boardTitle} 게시판 - ${import.meta.env.VITE_SITE_NAME || 'Angple'}`,
-            canonicalUrl: `${getSiteUrl()}/${boardId}`
-        },
-        og: {
-            title: boardTitle,
-            type: 'website',
-            url: `${getSiteUrl()}/${boardId}`
-        },
-        jsonLd: [
-            createBreadcrumbJsonLd([
-                { name: '홈', url: getSiteUrl() },
-                { name: boardTitle, url: `${getSiteUrl()}/${boardId}` }
-            ])
-        ]
+    // SEO 설정 (페이지네이션/검색 최적화)
+    const seoConfig: SeoConfig = $derived.by(() => {
+        const siteUrl = getSiteUrl();
+        const baseUrl = `${siteUrl}/${boardId}`;
+        const currentPage = data.pagination.page;
+        const totalPages = data.pagination.totalPages;
+
+        // URL 파싱하여 SEO 설정 생성
+        const currentUrl = new URL($page.url.href);
+        const pageSeo = getPageSeoConfig(currentUrl, currentPage, totalPages, siteUrl);
+
+        return {
+            meta: {
+                title: isSearching
+                    ? `"${data.searchParams?.query}" 검색 - ${boardTitle}`
+                    : currentPage > 1
+                      ? `${boardTitle} - ${currentPage}페이지`
+                      : boardTitle,
+                description: `${boardTitle} 게시판 - ${import.meta.env.VITE_SITE_NAME || 'Angple'}`,
+                canonicalUrl: pageSeo.canonical,
+                noIndex: pageSeo.noIndex,
+                noFollow: pageSeo.noFollow
+            },
+            og: {
+                title: boardTitle,
+                type: 'website',
+                url: baseUrl
+            },
+            pagination: {
+                prev: pageSeo.prev ?? undefined,
+                next: pageSeo.next ?? undefined
+            },
+            jsonLd: [
+                createBreadcrumbJsonLd([
+                    { name: '홈', url: siteUrl },
+                    { name: boardTitle, url: baseUrl }
+                ])
+            ]
+        };
     });
 
     // 페이지 이동 (검색 파라미터 유지)

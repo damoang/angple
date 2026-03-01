@@ -72,7 +72,75 @@ export interface JsonLdBreadcrumb {
     }>;
 }
 
-export type JsonLdData = JsonLdWebSite | JsonLdArticle | JsonLdBreadcrumb;
+/** JSON-LD 구조화 데이터 - Organization */
+export interface JsonLdOrganization {
+    '@type': 'Organization';
+    name: string;
+    url: string;
+    logo?: string;
+    description?: string;
+    sameAs?: string[];
+    contactPoint?: {
+        '@type': 'ContactPoint';
+        contactType: string;
+        email?: string;
+        telephone?: string;
+    };
+}
+
+/** JSON-LD 구조화 데이터 - DiscussionForumPosting (커뮤니티 게시글용) */
+export interface JsonLdDiscussionForumPosting {
+    '@type': 'DiscussionForumPosting';
+    headline: string;
+    text?: string;
+    author: {
+        '@type': 'Person';
+        name: string;
+        url?: string;
+    };
+    datePublished: string;
+    dateModified?: string;
+    url: string;
+    image?: string;
+    interactionStatistic?: Array<{
+        '@type': 'InteractionCounter';
+        interactionType: string;
+        userInteractionCount: number;
+    }>;
+}
+
+/** JSON-LD 구조화 데이터 - FAQPage */
+export interface JsonLdFAQPage {
+    '@type': 'FAQPage';
+    mainEntity: Array<{
+        '@type': 'Question';
+        name: string;
+        acceptedAnswer: {
+            '@type': 'Answer';
+            text: string;
+        };
+    }>;
+}
+
+/** FAQ 항목 헬퍼 타입 */
+export interface JsonLdFAQItem {
+    question: string;
+    answer: string;
+}
+
+export type JsonLdData =
+    | JsonLdWebSite
+    | JsonLdArticle
+    | JsonLdBreadcrumb
+    | JsonLdOrganization
+    | JsonLdDiscussionForumPosting
+    | JsonLdFAQPage;
+
+/** 페이지네이션 SEO 정보 */
+export interface PaginationSeo {
+    prev?: string;
+    next?: string;
+}
 
 /** SEO 헬퍼에 전달하는 통합 옵션 */
 export interface SeoConfig {
@@ -80,4 +148,5 @@ export interface SeoConfig {
     og?: OgMeta;
     twitter?: TwitterMeta;
     jsonLd?: JsonLdData[];
+    pagination?: PaginationSeo;
 }
