@@ -9,10 +9,12 @@ import type { Component } from 'svelte';
 
 // Glob all plugin components (lazy, not eager)
 const pluginComponents = import.meta.glob('../../../../../plugins/*/components/*.svelte');
+// Note: Exclude .server.ts files from glob to prevent server-only code from being bundled for client
 const pluginLibs = import.meta.glob([
     '../../../../../plugins/*/lib/*.svelte',
     '../../../../../plugins/*/lib/*.svelte.ts',
-    '../../../../../plugins/*/lib/*.ts'
+    '../../../../../plugins/*/lib/*.ts',
+    '!../../../../../plugins/*/lib/*.server.ts'
 ]);
 
 /**
