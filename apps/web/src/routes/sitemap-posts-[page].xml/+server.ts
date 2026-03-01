@@ -79,11 +79,11 @@ export const GET: RequestHandler = async ({ params, url }) => {
                 skipped += POSTS_PER_BOARD;
             } catch (err) {
                 // 테이블이 없거나 쿼리 에러 - 로그만 남기고 계속
-                console.error(`[Sitemap Posts] ${boTable} 조회 실패:`, err);
+                console.error('[Sitemap Posts]', boTable, '조회 실패:', err);
             }
         }
     } catch (err) {
-        console.error(`[Sitemap Posts ${pageNum}] 조회 실패:`, err);
+        console.error('[Sitemap Posts]', pageNum, '조회 실패:', err);
     }
 
     const xml = `<?xml version="1.0" encoding="UTF-8"?>
