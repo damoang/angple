@@ -14,9 +14,16 @@ const loadedPluginIds = new Set<string>();
 
 /**
  * Vite glob으로 플러그인 Hook 파일 미리 로드
+ * Note: .server.ts 파일은 서버 전용이므로 제외
  */
-const pluginHooks = import.meta.glob('../../../../../plugins/**/hooks/*.{ts,js}');
-const customPluginHooks = import.meta.glob('../../../../../custom-plugins/**/hooks/*.{ts,js}');
+const pluginHooks = import.meta.glob([
+    '../../../../../plugins/**/hooks/*.{ts,js}',
+    '!../../../../../plugins/**/hooks/*.server.{ts,js}'
+]);
+const customPluginHooks = import.meta.glob([
+    '../../../../../custom-plugins/**/hooks/*.{ts,js}',
+    '!../../../../../custom-plugins/**/hooks/*.server.{ts,js}'
+]);
 
 /**
  * 모든 플러그인 Hook 파일 병합
