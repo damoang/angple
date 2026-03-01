@@ -49,6 +49,7 @@
         SeoHead,
         createArticleJsonLd,
         createBreadcrumbJsonLd,
+        createDiscussionForumPostingJsonLd,
         getSiteUrl
     } from '$lib/seo/index.js';
     import type { SeoConfig } from '$lib/seo/types.js';
@@ -631,40 +632,66 @@
     // SEO 설정
     const postDescription = $derived(data.post.content.replace(/<[^>]+>/g, '').slice(0, 160));
 
-    const seoConfig: SeoConfig = $derived({
-        meta: {
-            title: `${data.post.title} - ${boardTitle}`,
-            description: postDescription,
-            canonicalUrl: `${getSiteUrl()}/${boardId}/${data.post.id}`
-        },
-        og: {
-            title: data.post.title,
-            description: postDescription,
-            type: 'article',
-            url: `${getSiteUrl()}/${boardId}/${data.post.id}`,
-            image: data.post.thumbnail || data.post.images?.[0]
-        },
-        twitter: {
-            card: data.post.thumbnail || data.post.images?.[0] ? 'summary_large_image' : 'summary',
-            title: data.post.title,
-            description: postDescription,
-            image: data.post.thumbnail || data.post.images?.[0]
-        },
-        jsonLd: [
-            createArticleJsonLd({
-                headline: data.post.title,
-                author: data.post.author,
-                datePublished: data.post.created_at,
-                dateModified: data.post.updated_at || data.post.created_at,
-                image: data.post.thumbnail || data.post.images?.[0],
-                description: postDescription
-            }),
-            createBreadcrumbJsonLd([
-                { name: '홈', url: getSiteUrl() },
-                { name: boardTitle, url: `${getSiteUrl()}/${boardId}` },
-                { name: data.post.title }
-            ])
-        ]
+    const seoConfig: SeoConfig = $derived.by(() => {
+        const siteUrl = getSiteUrl();
+        const postUrl = `${siteUrl}/${boardId}/${data.post.id}`;
+        const authorUrl = data.post.author_id
+            ? `${siteUrl}/member/${data.post.author_id}`
+            : undefined;
+
+        return {
+            meta: {
+                title: `${data.post.title} - ${boardTitle}`,
+                description: postDescription,
+                canonicalUrl: postUrl
+            },
+            og: {
+                title: data.post.title,
+                description: postDescription,
+                type: 'article',
+                url: postUrl,
+                image: data.post.thumbnail || data.post.images?.[0]
+            },
+            twitter: {
+                card:
+                    data.post.thumbnail || data.post.images?.[0]
+                        ? 'summary_large_image'
+                        : 'summary',
+                title: data.post.title,
+                description: postDescription,
+                image: data.post.thumbnail || data.post.images?.[0]
+            },
+            jsonLd: [
+                // DiscussionForumPosting - 커뮤니티 게시글에 최적화된 구조화 데이터
+                createDiscussionForumPostingJsonLd({
+                    headline: data.post.title,
+                    text: postDescription,
+                    author: data.post.author,
+                    authorUrl,
+                    datePublished: data.post.created_at,
+                    dateModified: data.post.updated_at || undefined,
+                    url: postUrl,
+                    commentCount: data.comments?.total || 0,
+                    upvoteCount: data.post.likes || 0,
+                    image: data.post.thumbnail || data.post.images?.[0]
+                }),
+                // Article - 일반 검색 결과용 (폴백)
+                createArticleJsonLd({
+                    headline: data.post.title,
+                    author: data.post.author,
+                    datePublished: data.post.created_at,
+                    dateModified: data.post.updated_at || data.post.created_at,
+                    image: data.post.thumbnail || data.post.images?.[0],
+                    description: postDescription
+                }),
+                // Breadcrumb
+                createBreadcrumbJsonLd([
+                    { name: '홈', url: siteUrl },
+                    { name: boardTitle, url: `${siteUrl}/${boardId}` },
+                    { name: data.post.title }
+                ])
+            ]
+        };
     });
 
     // 댓글 비추천

@@ -96,6 +96,12 @@ export const load: PageServerLoad = async ({ params, fetch: svelteKitFetch, loca
         }
 
         const post = postResult.value;
+
+        // 삭제된 게시글 처리 (410 Gone - SEO 최적화)
+        // Google은 410을 받으면 해당 URL을 인덱스에서 더 빠르게 제거함
+        if (post.deleted_at) {
+            throw error(410, '삭제된 게시글입니다.');
+        }
         let board = boardResult.status === 'fulfilled' ? boardResult.value : null;
 
         // display_settings 병합

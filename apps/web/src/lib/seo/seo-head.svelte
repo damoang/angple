@@ -38,6 +38,14 @@
         <meta name="robots" content={robots} />
     {/if}
 
+    <!-- Pagination prev/next -->
+    {#if config.pagination?.prev}
+        <link rel="prev" href={config.pagination.prev} />
+    {/if}
+    {#if config.pagination?.next}
+        <link rel="next" href={config.pagination.next} />
+    {/if}
+
     <!-- Open Graph -->
     {#each Object.entries(ogTags) as [property, content]}
         <meta {property} {content} />
