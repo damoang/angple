@@ -48,41 +48,22 @@ export default defineConfig(({ mode }) => {
                 allow: ['.', '../..', '../../..']
             },
             proxy: {
-                '/api/v1': {
-                    target: apiProxyTarget,
-                    changeOrigin: true,
-                    secure: false,
-                    configure: (proxy) => {
-                        proxy.on('proxyReq', (proxyReq, req) => {
-                            proxyReq.setHeader('Origin', apiProxyTarget);
-                            console.log('[Proxy]', req.method, req.url);
-                        });
-                    }
-                },
+                // /api/v1/* 프록시 제거됨 - SvelteKit 라우트에서 처리
+                // routes/api/v1/[...path]/+server.ts가 모든 /api/v1/* 요청을 백엔드로 프록시
+                // 이렇게 하면 SSR 인증 토큰이 항상 주입됨 (admin 포함)
+
+                // /api/v2만 직접 프록시 (SSR 인증 불필요한 경우)
                 '/api/v2': {
                     target: apiProxyTarget,
                     changeOrigin: true,
                     secure: false,
                     configure: (proxy) => {
                         proxy.on('proxyReq', (proxyReq, req) => {
-                            // Origin 헤더를 백엔드 URL로 변경
                             proxyReq.setHeader('Origin', apiProxyTarget);
                             console.log('[Proxy]', req.method, req.url);
                         });
                     }
                 }
-                // /api/plugins 프록시 제거 - 모든 플러그인 API는 SvelteKit 서버 라우트
-                // '/api/plugins': {
-                //     target: 'http://localhost:8082',
-                //     changeOrigin: true,
-                //     secure: false,
-                //     configure: (proxy) => {
-                //         proxy.on('proxyReq', (proxyReq, req) => {
-                //             proxyReq.setHeader('Origin', 'http://localhost:8082');
-                //             console.log('[Proxy]', req.method, req.url);
-                //         });
-                //     }
-                // }
             }
         },
         test: {

@@ -15,7 +15,7 @@ declare global {
     namespace App {
         // interface Error {}
         interface Locals {
-            user: { nickname?: string; level: number } | null;
+            user: { id?: string; nickname?: string; level: number } | null;
             accessToken: string | null;
             /** 서버사이드 세션 ID (angple_sid 쿠키 원본값) */
             sessionId: string | null;

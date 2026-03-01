@@ -8,9 +8,10 @@
 import { readFile } from 'node:fs/promises';
 import { existsSync, statSync } from 'node:fs';
 import type { RecommendedDataWithAI, RecommendedPeriod } from '$lib/api/types';
+import { env } from '$env/dynamic/private';
 
 const RECOMMENDED_CACHE_DIR =
-    process.env.RECOMMENDED_CACHE_DIR || '/home/damoang/www/data/cache/recommended';
+    env.RECOMMENDED_CACHE_DIR || '/home/damoang/www/data/cache/recommended';
 
 const PERIOD_FILES: Record<string, { base: string; ai: string }> = {
     '1h': { base: '1hour.json', ai: 'ai_1hour.json' },

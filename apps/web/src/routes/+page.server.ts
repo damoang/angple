@@ -3,8 +3,9 @@ import { readSettings } from '$lib/server/settings';
 import { DEFAULT_WIDGETS, DEFAULT_SIDEBAR_WIDGETS } from '$lib/constants/default-widgets';
 import { buildIndexWidgets } from '$lib/server/index-widgets-builder';
 import { getDefaultPeriod, loadRecommendedData } from '$lib/server/recommended-loader';
+import { env } from '$env/dynamic/private';
 
-const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8090';
+const BACKEND_URL = env.BACKEND_URL || 'http://localhost:8090';
 
 export const load: PageServerLoad = async () => {
     // 위젯 데이터, 레이아웃, 추천글을 병렬로 로드

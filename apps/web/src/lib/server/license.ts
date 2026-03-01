@@ -3,8 +3,9 @@
  */
 
 import { randomBytes, createHmac } from 'node:crypto';
+import { env } from '$env/dynamic/private';
 
-const LICENSE_SECRET = process.env.LICENSE_SECRET || 'angple-license-secret';
+const LICENSE_SECRET = env.LICENSE_SECRET || 'angple-license-secret';
 
 /**
  * 라이선스 키 생성

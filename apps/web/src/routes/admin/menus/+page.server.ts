@@ -1,8 +1,9 @@
 import type { PageServerLoad } from './$types';
 import { redirect } from '@sveltejs/kit';
 import type { Menu } from '$lib/types/admin-menu';
+import { env } from '$env/dynamic/private';
 
-const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8090';
+const BACKEND_URL = env.BACKEND_URL || 'http://localhost:8090';
 
 export const load: PageServerLoad = async ({ locals }) => {
     // 로그인 확인

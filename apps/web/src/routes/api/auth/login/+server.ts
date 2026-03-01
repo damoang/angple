@@ -88,11 +88,12 @@ export const POST: RequestHandler = async ({ request, cookies, getClientAddress 
         const domainOpt = COOKIE_DOMAIN ? { domain: COOKIE_DOMAIN } : {};
 
         // 세션 쿠키
+        // 참고: dev.damoang.net은 CloudFront를 통해 HTTPS로 서빙되므로 secure: true 필요
         cookies.set(SESSION_COOKIE_NAME, session.sessionId, {
             path: '/',
             httpOnly: true,
             sameSite: 'lax',
-            secure: !dev,
+            secure: true, // CloudFront HTTPS 사용
             maxAge: SESSION_COOKIE_MAX_AGE,
             ...domainOpt
         });

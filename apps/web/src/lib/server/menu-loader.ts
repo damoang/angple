@@ -15,6 +15,14 @@ let cacheTimestamp = 0;
 const CACHE_TTL_MS = 300_000; // 5분 (메뉴는 거의 변경되지 않음)
 
 /**
+ * 메뉴 캐시 무효화 (관리자가 메뉴 변경 시 호출)
+ */
+export function invalidateMenuCache(): void {
+    cachedMenus = null;
+    cacheTimestamp = 0;
+}
+
+/**
  * 메뉴 데이터를 서버에서 로드 (5분 인메모리 캐시)
  */
 export async function loadMenus(): Promise<MenuItem[]> {

@@ -58,9 +58,11 @@ import { fetchWithRetry, type RetryConfig, DEFAULT_RETRY_CONFIG } from './retry.
 // 서버/클라이언트 환경에 따라 API URL 분기
 // 클라이언트: 상대경로 (nginx 프록시)
 // SSR: Docker 내부 네트워크 직접 통신
+// Note: SSR에서는 $env/dynamic/private 사용, 클라이언트에서는 상대 경로
 const API_BASE_URL = browser
     ? '/api/v1'
-    : process.env.INTERNAL_API_URL || 'http://localhost:8090/api/v1';
+    : (typeof process !== 'undefined' && process.env?.INTERNAL_API_URL) ||
+      'http://localhost:8090/api/v1';
 
 // v2 API URL (인증 관련 - exchange 등)
 const API_V2_URL = browser ? '/api/v2' : 'http://localhost:8090/api/v2';

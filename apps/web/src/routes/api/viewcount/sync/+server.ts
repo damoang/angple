@@ -7,8 +7,9 @@ import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { flushAll, size } from '$lib/server/viewcount';
 import pool from '$lib/server/db';
+import { env } from '$env/dynamic/private';
 
-const SYNC_SECRET = process.env.VIEWCOUNT_SYNC_SECRET || '';
+const SYNC_SECRET = env.VIEWCOUNT_SYNC_SECRET || '';
 
 export const POST: RequestHandler = async ({ url }) => {
     // secret 검증

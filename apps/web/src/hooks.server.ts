@@ -53,6 +53,27 @@ async function authenticateSSR(event: Parameters<Handle>[0]['event']): Promise<v
 
     // 세션 쿠키로 인증
     const sessionId = event.cookies.get(SESSION_COOKIE_NAME);
+
+    // 디버그: admin API 요청 로깅 (모든 admin 관련 경로)
+    const isAdminPath = event.url.pathname.includes('admin');
+    if (isAdminPath) {
+        const rawCookieHeader = event.request.headers.get('cookie');
+        console.log('[Auth Debug - Admin]', {
+            path: event.url.pathname,
+            method: event.request.method,
+            hasSessionId: !!sessionId,
+            sessionId: sessionId ? sessionId.slice(0, 8) + '...' : 'none',
+            cookieNames: event.cookies
+                .getAll()
+                .map((c) => c.name)
+                .slice(0, 5),
+            rawCookieHeader: rawCookieHeader
+                ? rawCookieHeader.substring(0, 100) + '...'
+                : '(no cookie header)',
+            hasOrigin: !!event.request.headers.get('origin'),
+            origin: event.request.headers.get('origin')
+        });
+    }
     if (sessionId) {
         try {
             const session = await getSession(sessionId);
@@ -60,6 +81,7 @@ async function authenticateSSR(event: Parameters<Handle>[0]['event']): Promise<v
                 const member = await getMemberById(session.mbId);
                 if (member) {
                     event.locals.user = {
+                        id: member.mb_id,
                         nickname: member.mb_nick || member.mb_name,
                         level: member.mb_level ?? 0
                     };
@@ -119,6 +141,11 @@ function buildCsp(): string {
 const cspHeader = buildCsp();
 
 export const handle: Handle = async ({ event, resolve }) => {
+    // 모든 요청 디버그 (임시)
+    if (event.url.pathname.includes('admin') && event.url.pathname.includes('menus')) {
+        console.log('[HOOKS] Request:', event.request.method, event.url.pathname);
+    }
+
     // 그누보드/라이믹스 URL 호환 리다이렉트 (SEO 보존)
     const { pathname } = event.url;
     if (pathname.startsWith('/bbs/')) {
@@ -179,14 +206,20 @@ export const handle: Handle = async ({ event, resolve }) => {
 
     // OPTIONS 요청 (CORS preflight) 처리
     if (event.request.method === 'OPTIONS') {
-        return new Response(null, {
-            headers: {
-                'Access-Control-Allow-Origin': '*',
-                'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
-                'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-                'Access-Control-Max-Age': '86400'
-            }
-        });
+        const origin = event.request.headers.get('origin');
+        const headers: Record<string, string> = {
+            'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-CSRF-Token',
+            'Access-Control-Max-Age': '86400'
+        };
+        // credentials: include 지원을 위해 구체적인 origin 사용
+        if (origin) {
+            headers['Access-Control-Allow-Origin'] = origin;
+            headers['Access-Control-Allow-Credentials'] = 'true';
+        } else {
+            headers['Access-Control-Allow-Origin'] = '*';
+        }
+        return new Response(null, { headers });
     }
 
     // /api/plugins/* 프록시는 더 이상 사용하지 않음
@@ -194,8 +227,14 @@ export const handle: Handle = async ({ event, resolve }) => {
 
     const response = await resolve(event);
 
-    // CORS 헤더
-    response.headers.set('Access-Control-Allow-Origin', '*');
+    // CORS 헤더 (credentials: include 지원)
+    const origin = event.request.headers.get('origin');
+    if (origin) {
+        response.headers.set('Access-Control-Allow-Origin', origin);
+        response.headers.set('Access-Control-Allow-Credentials', 'true');
+    } else {
+        response.headers.set('Access-Control-Allow-Origin', '*');
+    }
     response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
     response.headers.set(
         'Access-Control-Allow-Headers',
