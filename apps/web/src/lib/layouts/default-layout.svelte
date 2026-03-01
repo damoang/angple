@@ -9,9 +9,6 @@
     import LeftBanner from '$lib/components/layout/left-banner.svelte';
     import RightBanner from '$lib/components/layout/right-banner.svelte';
     import { authActions } from '$lib/stores/auth.svelte';
-    import AdSlot from '$lib/components/ui/ad-slot/ad-slot.svelte';
-    import { DamoangBanner } from '$lib/components/ui/damoang-banner';
-    import { widgetLayoutStore } from '$lib/stores/widget-layout.svelte';
 
     /**
      * 기본 레이아웃 컴포넌트
@@ -43,17 +40,6 @@
 
     <div class="container relative z-10 flex w-full flex-1 flex-col">
         <Header />
-
-        <!-- 헤더 아래 광고 (축하이미지 → 다모앙광고 → GAM 폴백) -->
-        {#if widgetLayoutStore.hasEnabledAds}
-            <div class="mx-auto w-full px-4 py-2 lg:px-0">
-                <DamoangBanner position="index" height="90px" />
-            </div>
-
-            <div class="mx-auto w-full px-4 py-2 lg:px-0">
-                <AdSlot position="index-head" height="90px" />
-            </div>
-        {/if}
 
         <div class="mx-auto flex w-full flex-1">
             {#if snbPosition === 'right'}
