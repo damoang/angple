@@ -539,7 +539,7 @@
         {/if}
         <li
             id="c_{comment.id}"
-            style="margin-left: {Math.min(depth, 3) * 1.25}rem"
+            style="margin-left: {Math.min(depth, 3) * 1.25}rem; scroll-margin-top: 100px"
             class="py-3 transition-colors duration-200 first:pt-0 last:pb-0"
         >
             <div>

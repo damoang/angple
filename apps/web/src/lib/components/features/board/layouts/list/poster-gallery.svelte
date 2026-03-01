@@ -9,11 +9,13 @@
     let {
         post,
         displaySettings,
-        href
+        href,
+        isRead = false
     }: {
         post: FreePost;
         displaySettings?: BoardDisplaySettings;
         href: string;
+        isRead?: boolean;
     } = $props();
 
     // 삭제된 글
@@ -59,7 +61,11 @@
             <div
                 class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-3 pt-12"
             >
-                <h3 class="mb-1 line-clamp-2 text-sm font-medium text-white">
+                <h3
+                    class="mb-1 line-clamp-2 text-sm {isRead
+                        ? 'font-normal text-white/70'
+                        : 'font-medium text-white'}"
+                >
                     {post.title}
                 </h3>
                 <div class="flex items-center gap-1.5 text-xs text-white/70">

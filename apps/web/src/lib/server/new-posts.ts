@@ -13,6 +13,7 @@ export interface NewPostItem {
     bn_datetime: string;
     bo_subject: string;
     wr_subject: string;
+    wr_content: string; // 댓글 미리보기용
     mb_id: string;
     wr_name: string;
     wr_comment: number;
@@ -89,13 +90,26 @@ export async function getNewPosts(
             if (!/^[a-zA-Z0-9_]+$/.test(row.bo_table)) continue;
 
             const [writeRows] = await pool.query<RowDataPacket[]>(
-                `SELECT wr_subject, wr_name, wr_comment, wr_hit
+                `SELECT wr_subject, wr_content, wr_name, wr_comment, wr_hit
 				 FROM \`${tableName}\`
 				 WHERE wr_id = ? LIMIT 1`,
                 [row.wr_id]
             );
 
             if (writeRows[0]) {
+                // 댓글 내용에서 HTML 태그, 이모지 코드 제거 및 앞 100자만 추출
+                const rawContent = writeRows[0].wr_content || '';
+                const plainText = rawContent
+                    .replace(/<[^>]*>/g, '') // HTML 태그 제거
+                    .replace(/\{emo:[^}]+\}/g, '') // 이모지 코드 {emo:xxx} 제거
+                    .replace(/&nbsp;/g, ' ') // &nbsp; 처리
+                    .replace(/&lt;/g, '<')
+                    .replace(/&gt;/g, '>')
+                    .replace(/&amp;/g, '&')
+                    .replace(/\s+/g, ' ') // 연속 공백 정리
+                    .trim();
+                const contentPreview = plainText.length > 100 ? plainText.slice(0, 100) : plainText;
+
                 items.push({
                     bn_id: row.bn_id,
                     bo_table: row.bo_table,
@@ -104,6 +118,7 @@ export async function getNewPosts(
                     bn_datetime: row.bn_datetime,
                     bo_subject: row.bo_subject,
                     wr_subject: writeRows[0].wr_subject,
+                    wr_content: contentPreview,
                     mb_id: row.mb_id,
                     wr_name: writeRows[0].wr_name,
                     wr_comment: writeRows[0].wr_comment,

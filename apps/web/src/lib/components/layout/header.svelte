@@ -105,7 +105,7 @@
                 홈
             </a>
             <a
-                href="/free"
+                href="/feed"
                 class="text-foreground hover:text-primary flex items-center transition-all duration-200 ease-out"
             >
                 <Rss class="mr-2 h-5 w-5" />

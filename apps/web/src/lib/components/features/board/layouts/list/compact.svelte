@@ -11,11 +11,13 @@
     let {
         post,
         displaySettings,
-        href
+        href,
+        isRead = false
     }: {
         post: FreePost;
         displaySettings?: BoardDisplaySettings;
         href: string;
+        isRead?: boolean;
     } = $props();
 
     // 삭제된 글
@@ -64,7 +66,11 @@
 
             <!-- 좌측: 제목 + 메타데이터 -->
             <div class="min-w-0 flex-1">
-                <h3 class="text-foreground mb-1 flex items-center gap-1.5 truncate font-medium">
+                <h3
+                    class="mb-1 flex items-center gap-1.5 truncate {isRead
+                        ? 'text-muted-foreground font-normal'
+                        : 'text-foreground font-medium'}"
+                >
                     {#if post.is_adult}
                         <Badge variant="destructive" class="shrink-0 px-1.5 py-0 text-[10px]"
                             >19</Badge

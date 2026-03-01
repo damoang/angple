@@ -127,7 +127,17 @@ export const GET: RequestHandler = async ({ params, url }) => {
                     [w.wr_parent]
                 );
                 if (parentRows.length === 0) continue;
-                const preview = w.wr_content.replace(/<[^>]*>/g, '').slice(0, 50);
+                // HTML 태그, 이모지 코드, HTML 엔티티 제거
+                const preview = w.wr_content
+                    .replace(/<[^>]*>/g, '') // HTML 태그 제거
+                    .replace(/\{emo:[^}]+\}/g, '') // 이모지 코드 {emo:xxx} 제거
+                    .replace(/&nbsp;/g, ' ')
+                    .replace(/&lt;/g, '<')
+                    .replace(/&gt;/g, '>')
+                    .replace(/&amp;/g, '&')
+                    .replace(/\s+/g, ' ') // 연속 공백 정리
+                    .trim()
+                    .slice(0, 80);
                 recentComments.push({
                     bo_table: row.bo_table,
                     bo_subject: boardSubjects.get(row.bo_table) || row.bo_table,
