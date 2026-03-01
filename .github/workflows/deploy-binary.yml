@@ -76,6 +76,12 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Build and push Docker image
         id: build
         env:
@@ -85,7 +91,7 @@ jobs:
           FULL_IMAGE="${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
           LATEST_IMAGE="${ECR_REGISTRY}/${ECR_REPOSITORY}:latest"
 
-          echo "Building image: ${FULL_IMAGE}"
+          echo "Building ARM64 image: ${FULL_IMAGE}"
 
           # Create Dockerfile
           cat > apps/web/Dockerfile << 'EOF'
@@ -100,11 +106,14 @@ jobs:
           CMD ["node", "build/index.js"]
           EOF
 
-          # Build and push
+          # Build and push for ARM64
           cd apps/web
-          docker build -t "${FULL_IMAGE}" -t "${LATEST_IMAGE}" .
-          docker push "${FULL_IMAGE}"
-          docker push "${LATEST_IMAGE}"
+          docker buildx build \
+            --platform linux/arm64 \
+            -t "${FULL_IMAGE}" \
+            -t "${LATEST_IMAGE}" \
+            --push \
+            .
 
           echo "IMAGE_TAG=${IMAGE_TAG}" >> $GITHUB_OUTPUT
           echo "Image pushed: ${FULL_IMAGE}"
