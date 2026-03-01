@@ -3,11 +3,18 @@
  *
  * GET /api/layout - 현재 레이아웃 조회
  * PUT /api/layout - 레이아웃 저장
+ *
+ * Provider 기반 (MySQL+Redis 또는 JSON)
  */
 
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { readSettings, writeSettings } from '$lib/server/settings';
+import {
+    getWidgetLayout,
+    setWidgetLayout,
+    getSidebarWidgetLayout,
+    setSidebarWidgetLayout
+} from '$lib/server/settings/index';
 import { DEFAULT_WIDGETS, DEFAULT_SIDEBAR_WIDGETS } from '$lib/constants/default-widgets';
 
 /**
@@ -15,9 +22,10 @@ import { DEFAULT_WIDGETS, DEFAULT_SIDEBAR_WIDGETS } from '$lib/constants/default
  */
 export const GET: RequestHandler = async () => {
     try {
-        const settings = await readSettings();
-        const widgets = settings.widgetLayout;
-        const sidebarWidgets = settings.sidebarWidgetLayout;
+        const [widgets, sidebarWidgets] = await Promise.all([
+            getWidgetLayout(),
+            getSidebarWidgetLayout()
+        ]);
 
         return json({
             widgets: widgets ?? DEFAULT_WIDGETS,
@@ -71,15 +79,15 @@ export const PUT: RequestHandler = async ({ request, locals }) => {
             }
         }
 
-        // 설정 저장
-        const settings = await readSettings();
+        // 설정 저장 (Provider 기반)
+        const promises: Promise<void>[] = [];
         if (widgets !== undefined) {
-            settings.widgetLayout = widgets;
+            promises.push(setWidgetLayout(widgets));
         }
         if (sidebarWidgets !== undefined) {
-            settings.sidebarWidgetLayout = sidebarWidgets;
+            promises.push(setSidebarWidgetLayout(sidebarWidgets));
         }
-        await writeSettings(settings);
+        await Promise.all(promises);
 
         return json({ success: true });
     } catch (error) {

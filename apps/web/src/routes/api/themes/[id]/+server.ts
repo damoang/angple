@@ -4,6 +4,8 @@
  * DELETE /api/themes/:id
  * - 커스텀 테마만 삭제 가능 (공식 테마는 보호)
  * - 활성 테마는 삭제 불가
+ *
+ * Provider 기반 (MySQL+Redis 또는 JSON)
  */
 
 import { json } from '@sveltejs/kit';
@@ -11,7 +13,7 @@ import type { RequestHandler } from './$types';
 import { rm } from 'fs/promises';
 import { existsSync } from 'fs';
 import path from 'path';
-import { readSettings, removeThemeSettings } from '$lib/server/settings';
+import { getActiveTheme } from '$lib/server/settings/index';
 import { sanitizePath } from '$lib/server/path-utils';
 import { isCustomTheme, getThemePath } from '$lib/server/themes/scanner';
 
@@ -41,9 +43,9 @@ export const DELETE: RequestHandler = async ({ params }) => {
         }
 
         // 2. 활성 테마 확인
-        const settings = await readSettings();
+        const activeTheme = await getActiveTheme();
 
-        if (settings.activeTheme === themeId) {
+        if (activeTheme === themeId) {
             return json(
                 {
                     error: '활성화된 테마는 삭제할 수 없습니다.',
@@ -69,8 +71,8 @@ export const DELETE: RequestHandler = async ({ params }) => {
         // 4. 테마 디렉터리 삭제
         await rm(themePath, { recursive: true, force: true });
 
-        // 5. 설정 파일에서 테마 정보 제거
-        await removeThemeSettings(themeId);
+        // 참고: 테마 설정은 DB/Redis에 남아 있지만, 테마 재설치 시 복구 가능
+        // 필요시 settingsProvider.setThemeSettings(themeId, {})로 초기화 가능
 
         return json({
             success: true,
