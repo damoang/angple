@@ -547,18 +547,6 @@
                 </span>
             </div>
         </div>
-    {:else if !hasAd}
-        <!-- 광고 없음 플레이스홀더 -->
-        <div
-            class="absolute inset-0 flex items-center justify-center rounded-lg border-2 border-dashed border-amber-300 bg-amber-50/50 dark:border-amber-600 dark:bg-amber-900/20"
-        >
-            <div class="flex flex-col items-center gap-1.5 text-center">
-                <span class="text-xs font-semibold text-amber-600 dark:text-amber-400">AD</span>
-                <span class="text-[10px] text-amber-500 dark:text-amber-500">
-                    {positionLabels[position] || position}
-                </span>
-            </div>
-        </div>
     {/if}
 </div>
 
