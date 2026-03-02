@@ -15,7 +15,7 @@
     import DOMPurify from 'dompurify';
     import { applyFilter } from '$lib/hooks/registry';
     import { getHookVersion } from '$lib/hooks/hook-state.svelte';
-    import { getMemberIconUrl } from '$lib/utils/member-icon.js';
+    import { getAvatarUrl, getMemberIconUrl } from '$lib/utils/member-icon.js';
     import { SvelteMap, SvelteSet } from 'svelte/reactivity';
     import type { Component } from 'svelte';
     import { pluginStore } from '$lib/stores/plugin.svelte';

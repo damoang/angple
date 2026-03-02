@@ -9,7 +9,7 @@
     import Coins from '@lucide/svelte/icons/coins';
     import Star from '@lucide/svelte/icons/star';
     import { getUser, getIsLoggedIn, getIsLoading, authActions } from '$lib/stores/auth.svelte';
-    import { getMemberIconUrl } from '$lib/utils/member-icon';
+    import { getAvatarUrl, getMemberIconUrl } from '$lib/utils/member-icon';
 
     let isLoggingOut = $state(false);
 
@@ -64,8 +64,8 @@
         user?.as_max !== undefined && user.mb_exp !== undefined ? user.as_max - user.mb_exp : 0
     );
 
-    // 아바타 URL (mb_image 우선, 없으면 member_image 경로로 생성)
-    let avatarUrl = $derived(user?.mb_image || getMemberIconUrl(user?.mb_id) || null);
+    // 아바타 URL (mb_image 우선 → avatar_url → member_image 경로 폴백)
+    let avatarUrl = $derived(getAvatarUrl(user?.mb_image) || getMemberIconUrl(user?.mb_id) || null);
     let avatarFailed = $state(false);
 
     // user 변경 시 실패 상태 리셋
