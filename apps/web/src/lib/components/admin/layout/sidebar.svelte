@@ -15,7 +15,8 @@
         Trash2,
         Users,
         Layers,
-        DatabaseZap
+        DatabaseZap,
+        BarChart3
     } from '@lucide/svelte/icons';
 
     /**
@@ -57,6 +58,11 @@
             title: '회원 관리',
             href: '/admin/members',
             icon: Users
+        },
+        {
+            title: '투표 관리',
+            href: '/admin/polls',
+            icon: BarChart3
         },
         {
             title: '삭제된 게시물',

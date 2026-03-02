@@ -155,3 +155,110 @@ export async function bulkUpdateLevel(memberIds: string[], level: number): Promi
         throw error;
     }
 }
+
+// ========================================
+// 관리자 회원 메모 (Admin Member Memo)
+// ========================================
+
+export interface MemberMemo {
+    id: number;
+    member_id: string;
+    target_member_id: string;
+    memo: string;
+    memo_detail?: string;
+    color: string;
+    created_at: string;
+    updated_at?: string;
+}
+
+export async function getMemberMemos(memberId: string): Promise<MemberMemo[]> {
+    try {
+        const response = await fetch(`${API_BASE}/${memberId}/memos`, {
+            credentials: 'include'
+        });
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+        const result: APIResponse<MemberMemo[]> = await response.json();
+        return result.data ?? [];
+    } catch (error) {
+        console.error('❌ 회원 메모 조회 실패:', error);
+        return [];
+    }
+}
+
+export async function createMemberMemo(
+    memberId: string,
+    data: { memo: string; memo_detail?: string; color?: string }
+): Promise<void> {
+    try {
+        const response = await fetch(`${API_BASE}/${memberId}/memos`, {
+            method: 'POST',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        if (!response.ok) {
+            const errorResult = await response.json();
+            throw new Error(errorResult.error?.message || `HTTP ${response.status}`);
+        }
+    } catch (error) {
+        console.error('❌ 회원 메모 작성 실패:', error);
+        throw error;
+    }
+}
+
+export async function updateMemberMemo(
+    memoId: number,
+    data: { memo?: string; memo_detail?: string; color?: string }
+): Promise<void> {
+    try {
+        const response = await fetch(`/api/v1/admin/memos/${memoId}`, {
+            method: 'PUT',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        if (!response.ok) {
+            const errorResult = await response.json();
+            throw new Error(errorResult.error?.message || `HTTP ${response.status}`);
+        }
+    } catch (error) {
+        console.error('❌ 회원 메모 수정 실패:', error);
+        throw error;
+    }
+}
+
+export async function deleteMemberMemo(memoId: number): Promise<void> {
+    try {
+        const response = await fetch(`/api/v1/admin/memos/${memoId}`, {
+            method: 'DELETE',
+            credentials: 'include'
+        });
+        if (!response.ok) {
+            const errorResult = await response.json();
+            throw new Error(errorResult.error?.message || `HTTP ${response.status}`);
+        }
+    } catch (error) {
+        console.error('❌ 회원 메모 삭제 실패:', error);
+        throw error;
+    }
+}
+
+export async function getBulkMemberMemos(
+    memberIds: string[]
+): Promise<Record<string, { memo: string; color: string }>> {
+    if (memberIds.length === 0) return {};
+    try {
+        const response = await fetch(
+            `/api/v1/admin/members/memos/bulk?member_ids=${memberIds.join(',')}`,
+            { credentials: 'include' }
+        );
+        if (!response.ok) return {};
+        const result: APIResponse<Record<string, { memo: string; color: string }>> =
+            await response.json();
+        return result.data ?? {};
+    } catch {
+        return {};
+    }
+}

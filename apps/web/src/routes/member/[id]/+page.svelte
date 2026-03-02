@@ -15,6 +15,15 @@
     import type { Component } from 'svelte';
     import { pluginStore } from '$lib/stores/plugin.svelte';
     import { loadPluginComponent } from '$lib/utils/plugin-optional-loader';
+    import StickyNote from '@lucide/svelte/icons/sticky-note';
+    import Trash2 from '@lucide/svelte/icons/trash-2';
+    import { Textarea } from '$lib/components/ui/textarea/index.js';
+    import {
+        getMemberMemos,
+        createMemberMemo,
+        deleteMemberMemo,
+        type MemberMemo
+    } from '$lib/api/admin-members.js';
 
     // 동적 플러그인 임포트: interaction-analysis
     let InteractionPanel = $state<Component | null>(null);
@@ -88,6 +97,44 @@
 
     // 상호작용 분석 플러그인 활성화 여부
     let interactionPluginActive = $derived(pluginStore.isPluginActive('interaction-analysis'));
+
+    // 관리자 회원 메모
+    const isAdmin = $derived((authStore.user?.mb_level ?? 0) >= 10);
+    let adminMemos = $state<MemberMemo[]>([]);
+    let newMemoText = $state('');
+    let isSavingMemo = $state(false);
+
+    $effect(() => {
+        if (isAdmin && data.profile?.mb_id) {
+            getMemberMemos(data.profile.mb_id).then((m) => (adminMemos = m));
+        }
+    });
+
+    async function handleSaveMemo(): Promise<void> {
+        if (!newMemoText.trim() || !data.profile) return;
+        isSavingMemo = true;
+        try {
+            await createMemberMemo(data.profile.mb_id, { memo: newMemoText.trim() });
+            adminMemos = await getMemberMemos(data.profile.mb_id);
+            newMemoText = '';
+        } catch (err) {
+            console.error('메모 저장 실패:', err);
+            alert('메모 저장에 실패했습니다.');
+        } finally {
+            isSavingMemo = false;
+        }
+    }
+
+    async function handleDeleteMemo(memoId: number): Promise<void> {
+        if (!confirm('이 메모를 삭제하시겠습니까?')) return;
+        try {
+            await deleteMemberMemo(memoId);
+            adminMemos = adminMemos.filter((m) => m.id !== memoId);
+        } catch (err) {
+            console.error('메모 삭제 실패:', err);
+            alert('메모 삭제에 실패했습니다.');
+        }
+    }
 
     // 차단하기
     async function handleBlock(): Promise<void> {
@@ -241,6 +288,62 @@
         <!-- 상호작용 분석 (플러그인 활성화 시) -->
         {#if interactionPluginActive && InteractionPanel && data.profile}
             <InteractionPanel memberId={data.profile.mb_id} />
+        {/if}
+
+        <!-- 관리자 회원 메모 (관리자만 표시) -->
+        {#if isAdmin && data.profile}
+            <Card class="bg-background mb-6">
+                <CardHeader>
+                    <CardTitle class="flex items-center gap-2 text-lg">
+                        <StickyNote class="h-5 w-5" />
+                        관리자 메모
+                    </CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <!-- 기존 메모 목록 -->
+                    {#if adminMemos.length > 0}
+                        <div class="mb-4 space-y-3">
+                            {#each adminMemos as memo}
+                                <div class="bg-muted flex items-start gap-2 rounded-lg p-3">
+                                    <div class="min-w-0 flex-1">
+                                        <p class="text-foreground text-sm">{memo.memo}</p>
+                                        <p class="text-muted-foreground mt-1 text-xs">
+                                            {memo.member_id} &middot; {new Date(
+                                                memo.created_at
+                                            ).toLocaleDateString('ko-KR')}
+                                        </p>
+                                    </div>
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        class="text-muted-foreground hover:text-destructive h-7 w-7 shrink-0 p-0"
+                                        onclick={() => handleDeleteMemo(memo.id)}
+                                    >
+                                        <Trash2 class="h-3.5 w-3.5" />
+                                    </Button>
+                                </div>
+                            {/each}
+                        </div>
+                    {/if}
+
+                    <!-- 새 메모 작성 -->
+                    <div class="flex gap-2">
+                        <Textarea
+                            bind:value={newMemoText}
+                            placeholder="회원에 대한 관리자 메모를 남겨주세요..."
+                            class="min-h-[60px] resize-none"
+                        />
+                        <Button
+                            size="sm"
+                            onclick={handleSaveMemo}
+                            disabled={!newMemoText.trim() || isSavingMemo}
+                            class="shrink-0 self-end"
+                        >
+                            {isSavingMemo ? '저장...' : '저장'}
+                        </Button>
+                    </div>
+                </CardContent>
+            </Card>
         {/if}
 
         <!-- 최근 활동 (향후 확장) -->
