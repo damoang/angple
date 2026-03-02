@@ -15,7 +15,12 @@
         showLinkWarning?: boolean;
     }
 
-    let { content, class: className = '', enableEmbed = true, showLinkWarning = true }: Props = $props();
+    let {
+        content,
+        class: className = '',
+        enableEmbed = true,
+        showLinkWarning = true
+    }: Props = $props();
 
     /**
      * URL에서 도메인 추출 (프로토콜, www, 경로 제거)
@@ -223,7 +228,7 @@
     });
 </script>
 
-<div class="prose prose-neutral dark:prose-invert max-w-none {className}">
+<div class="prose prose-neutral dark:prose-invert max-w-none text-base {className}">
     <!-- eslint-disable-next-line svelte/no-at-html-tags -->
     {@html renderedHtml}
 </div>
@@ -254,7 +259,8 @@
     .prose :global(p) {
         margin-top: 0.75rem;
         margin-bottom: 0.75rem;
-        line-height: 1.75;
+        font-size: 1rem;
+        line-height: 1.8;
     }
 
     .prose :global(ul),

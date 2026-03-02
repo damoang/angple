@@ -5,10 +5,12 @@
  * SvelteKit self-call 프록시를 거치지 않아 hooks.server.ts 재진입을 방지합니다.
  * 30초 TTL 인메모리 캐시로 반복 호출을 최소화합니다.
  */
-import { env } from '$env/dynamic/private';
 
-const ADS_SERVER_URL = env.ADS_SERVER_URL || 'http://localhost:9090';
 const PROMOTION_CACHE_TTL = 30_000; // 30초
+
+function getAdsServerUrl(): string {
+    return process.env.ADS_SERVER_URL || 'http://localhost:9090';
+}
 
 let promotionCache: { data: unknown; expiresAt: number } | null = null;
 
@@ -20,7 +22,7 @@ export async function fetchPromotionPosts(): Promise<unknown> {
         return promotionCache.data;
     }
     try {
-        const res = await fetch(`${ADS_SERVER_URL}/api/v1/serve/promotion-posts`);
+        const res = await fetch(`${getAdsServerUrl()}/api/v1/serve/promotion-posts`);
         if (!res.ok) return EMPTY_RESPONSE;
         const data = await res.json();
         promotionCache = { data, expiresAt: now + PROMOTION_CACHE_TTL };
