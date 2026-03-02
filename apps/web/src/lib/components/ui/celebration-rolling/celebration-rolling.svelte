@@ -1,11 +1,6 @@
 <script lang="ts">
     import { onMount } from 'svelte';
-    import {
-        getCelebrations,
-        getCurrentIndex,
-        mount as celebrationMount,
-        type CelebrationBanner
-    } from '$lib/stores/celebration.svelte.js';
+    import { browser } from '$app/environment';
 
     interface Props {
         class?: string;
@@ -13,12 +8,59 @@
 
     let { class: className = '' }: Props = $props();
 
-    let celebrations = $derived(getCelebrations());
-    let currentIndex = $derived(getCurrentIndex());
+    interface CelebrationBanner {
+        id: number;
+        title: string;
+        content: string;
+        image_url: string;
+        link_url: string;
+        target_member_nick?: string;
+        target_member_photo?: string;
+        external_link?: string;
+        link_target?: string;
+        display_type?: 'image' | 'text';
+    }
+
+    let celebrations = $state<CelebrationBanner[]>([]);
+    let currentIndex = $state(0);
 
     onMount(() => {
-        return celebrationMount();
+        fetchCelebrations();
     });
+
+    // 4초 간격 롤링 (2개 이상일 때만)
+    $effect(() => {
+        if (celebrations.length <= 1) return;
+
+        currentIndex = 0;
+
+        const intervalId = setInterval(() => {
+            currentIndex = (currentIndex + 1) % celebrations.length;
+        }, 4000);
+
+        return () => clearInterval(intervalId);
+    });
+
+    async function fetchCelebrations(): Promise<void> {
+        if (!browser) return;
+
+        try {
+            const response = await fetch('/api/ads/celebration/today', {
+                method: 'GET',
+                headers: { Accept: 'application/json' }
+            });
+
+            if (!response.ok) return;
+
+            const result = await response.json();
+
+            if (result.data?.length > 0) {
+                celebrations = result.data;
+            }
+        } catch (error) {
+            console.warn('CelebrationRolling: 축하메시지 로드 실패', error);
+        }
+    }
 
     function stripHtml(html: string): string {
         return html.replace(/<[^>]*>/g, '').trim();
@@ -32,8 +74,8 @@
         const titleText = banner.title || '';
         const isDateTitle = /^\d{4}[.\-]\d{2}[.\-]\d{2}/.test(titleText);
         const message = contentText || (!isDateTitle ? titleText : '');
-        if (nick && message) return `[${nick}님] ${message}`;
-        if (nick) return `[${nick}님] 축하합니다!`;
+        if (nick && message) return `${nick}님, ${message}`;
+        if (nick) return `${nick}님, 축하합니다!`;
         if (message) return message;
         return '축하합니다!';
     }
@@ -41,8 +83,10 @@
 
 {#if celebrations.length > 0}
     <a
-        href="/message"
-        target="_self"
+        href={celebrations[currentIndex]?.external_link ||
+            celebrations[currentIndex]?.link_url ||
+            '#'}
+        target={celebrations[currentIndex]?.link_target || '_blank'}
         rel="nofollow noopener"
         class="border-border bg-background hover:bg-accent flex h-9 items-center gap-2 overflow-hidden rounded-lg border px-3 transition-colors {className}"
     >

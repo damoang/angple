@@ -34,7 +34,7 @@
     async function fetchDeletedPosts() {
         loading = true;
         try {
-            const res = await fetch(`/api/plugins/deleted-posts?page=${currentPage}&limit=20`);
+            const res = await fetch(`/api/v1/admin/posts/deleted?page=${currentPage}&per_page=20`);
             if (!res.ok) {
                 posts = [];
                 total = 0;
@@ -42,9 +42,20 @@
                 return;
             }
             const data = await res.json();
-            posts = data.items ?? [];
-            total = data.total ?? 0;
-            totalPages = data.total_pages ?? 1;
+            // API 응답 구조: { success: true, data: [...], meta: { page, per_page, total, total_pages } }
+            const items = data.data ?? [];
+            posts = items.map((item: Record<string, unknown>) => ({
+                id: item.id,
+                title: item.title || '(제목 없음)',
+                author: item.user_id ? `User #${item.user_id}` : '(알 수 없음)',
+                board_id: item.board_id ? `Board #${item.board_id}` : '',
+                deleted_at: item.deleted_at ?? item.updated_at,
+                deleted_by: item.deleted_by ? `User #${item.deleted_by}` : undefined,
+                views: item.view_count ?? 0,
+                comments_count: item.comment_count ?? 0
+            }));
+            total = data.meta?.total ?? 0;
+            totalPages = data.meta?.total_pages ?? 1;
         } catch {
             posts = [];
         } finally {
@@ -55,11 +66,15 @@
     async function restorePost(postId: number) {
         actionLoading = { ...actionLoading, [postId]: 'restore' };
         try {
-            await fetch(`/api/plugins/deleted-posts/${postId}/restore`, {
+            const res = await fetch(`/api/v1/admin/posts/${postId}/restore`, {
                 method: 'POST'
             });
-            posts = posts.filter((p) => p.id !== postId);
-            total = Math.max(0, total - 1);
+            if (res.ok) {
+                posts = posts.filter((p) => p.id !== postId);
+                total = Math.max(0, total - 1);
+            } else {
+                console.error('복구 실패:', await res.text());
+            }
         } catch (err) {
             console.error('복구 실패:', err);
         } finally {
@@ -72,11 +87,15 @@
         if (!confirm('정말 영구 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) return;
         actionLoading = { ...actionLoading, [postId]: 'delete' };
         try {
-            await fetch(`/api/plugins/deleted-posts/${postId}/permanent`, {
+            const res = await fetch(`/api/v1/admin/posts/${postId}/permanent`, {
                 method: 'DELETE'
             });
-            posts = posts.filter((p) => p.id !== postId);
-            total = Math.max(0, total - 1);
+            if (res.ok) {
+                posts = posts.filter((p) => p.id !== postId);
+                total = Math.max(0, total - 1);
+            } else {
+                console.error('영구 삭제 실패:', await res.text());
+            }
         } catch (err) {
             console.error('영구 삭제 실패:', err);
         } finally {

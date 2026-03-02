@@ -5,6 +5,66 @@
  */
 import DOMPurify from 'isomorphic-dompurify';
 
+/**
+ * URL에서 도메인 추출 (프로토콜, www, 경로 제거)
+ */
+function extractDomain(url: string): string | null {
+    try {
+        // 상대 경로는 도메인 없음
+        if (url.startsWith('/') || url.startsWith('#')) {
+            return null;
+        }
+        // 프로토콜 없으면 추가
+        let normalizedUrl = url;
+        if (!url.match(/^https?:\/\//i)) {
+            normalizedUrl = 'https://' + url;
+        }
+        const parsed = new URL(normalizedUrl);
+        return parsed.hostname.replace(/^www\./i, '').toLowerCase();
+    } catch {
+        return null;
+    }
+}
+
+/**
+ * 텍스트가 URL 형식인지 확인
+ */
+function isUrlLikeText(text: string): boolean {
+    const trimmed = text.trim();
+    // URL 형태: http://, https://, www. 또는 도메인.TLD 패턴
+    return /^(https?:\/\/|www\.)/i.test(trimmed) || /^[a-z0-9-]+\.[a-z]{2,}/i.test(trimmed);
+}
+
+/**
+ * 링크 텍스트와 href의 도메인이 일치하는지 확인
+ * - 텍스트가 URL 형식이 아니면 true 반환 (체크 불필요)
+ * - 텍스트와 href의 도메인이 같으면 true 반환
+ * - 다르면 false 반환 (경고 표시 필요)
+ */
+export function isLinkDomainMatch(href: string, text: string): boolean {
+    const trimmedText = text.trim();
+
+    // 텍스트가 URL 형식이 아니면 체크 불필요
+    if (!isUrlLikeText(trimmedText)) {
+        return true;
+    }
+
+    const hrefDomain = extractDomain(href);
+    const textDomain = extractDomain(trimmedText);
+
+    // 도메인 추출 실패 시 체크 불필요
+    if (!hrefDomain || !textDomain) {
+        return true;
+    }
+
+    // 도메인 비교 (서브도메인 무시, 루트 도메인만 비교)
+    // 예: blog.example.com vs example.com → 일치로 처리
+    const hrefRoot = hrefDomain.split('.').slice(-2).join('.');
+    const textRoot = textDomain.split('.').slice(-2).join('.');
+
+    return hrefRoot === textRoot;
+}
+
 /** YouTube 도메인 허용 패턴 */
 const YOUTUBE_REGEX = /^https:\/\/(www\.)?(youtube\.com|youtube-nocookie\.com)\//;
 

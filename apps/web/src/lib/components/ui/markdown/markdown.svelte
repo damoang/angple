@@ -11,9 +11,84 @@
         class?: string;
         /** URL 자동 임베딩 활성화 (기본값: true) */
         enableEmbed?: boolean;
+        /** 링크 텍스트/URL 불일치 경고 표시 (기본값: true) */
+        showLinkWarning?: boolean;
     }
 
-    let { content, class: className = '', enableEmbed = true }: Props = $props();
+    let { content, class: className = '', enableEmbed = true, showLinkWarning = true }: Props = $props();
+
+    /**
+     * URL에서 도메인 추출 (프로토콜, www, 경로 제거)
+     */
+    function extractDomain(url: string): string | null {
+        try {
+            if (url.startsWith('/') || url.startsWith('#')) {
+                return null;
+            }
+            let normalizedUrl = url;
+            if (!url.match(/^https?:\/\//i)) {
+                normalizedUrl = 'https://' + url;
+            }
+            const parsed = new URL(normalizedUrl);
+            return parsed.hostname.replace(/^www\./i, '').toLowerCase();
+        } catch {
+            return null;
+        }
+    }
+
+    /**
+     * 텍스트가 URL 형식인지 확인
+     */
+    function isUrlLikeText(text: string): boolean {
+        const trimmed = text.trim();
+        return /^(https?:\/\/|www\.)/i.test(trimmed) || /^[a-z0-9-]+\.[a-z]{2,}/i.test(trimmed);
+    }
+
+    /**
+     * 링크 텍스트와 href의 도메인이 일치하는지 확인
+     */
+    function isLinkDomainMatch(href: string, text: string): boolean {
+        const trimmedText = text.trim();
+        if (!isUrlLikeText(trimmedText)) {
+            return true;
+        }
+        const hrefDomain = extractDomain(href);
+        const textDomain = extractDomain(trimmedText);
+        if (!hrefDomain || !textDomain) {
+            return true;
+        }
+        const hrefRoot = hrefDomain.split('.').slice(-2).join('.');
+        const textRoot = textDomain.split('.').slice(-2).join('.');
+        return hrefRoot === textRoot;
+    }
+
+    /**
+     * HTML 내 링크에 도메인 불일치 경고 추가
+     */
+    function addLinkMismatchWarnings(html: string): string {
+        if (!showLinkWarning || !browser) return html;
+
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+        const links = doc.querySelectorAll('a[href]');
+
+        links.forEach((link) => {
+            const href = link.getAttribute('href') || '';
+            const text = link.textContent || '';
+
+            if (!isLinkDomainMatch(href, text)) {
+                const hrefDomain = extractDomain(href);
+                const warning = doc.createElement('span');
+                warning.className = 'link-mismatch-warning';
+                warning.title = `실제 링크: ${hrefDomain || href}`;
+                warning.textContent = ' \u26A0\uFE0F';
+                link.appendChild(warning);
+                link.classList.add('has-link-warning');
+            }
+        });
+
+        return doc.body.innerHTML;
+    }
 
     // DOMPurify 설정
     const PURIFY_CONFIG = {
@@ -139,7 +214,10 @@
             const rawHtml = marked.parse(content) as string;
 
             applyFilter<string>('post_content', rawHtml).then((filtered) => {
-                renderedHtml = DOMPurify.sanitize(filtered, PURIFY_CONFIG);
+                let sanitized = DOMPurify.sanitize(filtered, PURIFY_CONFIG);
+                // 링크 텍스트/URL 불일치 경고 추가
+                sanitized = addLinkMismatchWarnings(sanitized);
+                renderedHtml = sanitized;
             });
         }
     });
@@ -235,6 +313,20 @@
 
     .prose :global(a:hover) {
         text-decoration: none;
+    }
+
+    /* 링크 텍스트/URL 불일치 경고 */
+    .prose :global(a.has-link-warning) {
+        position: relative;
+    }
+
+    .prose :global(.link-mismatch-warning) {
+        display: inline-flex;
+        align-items: center;
+        margin-left: 2px;
+        font-size: 0.875em;
+        cursor: help;
+        vertical-align: middle;
     }
 
     .prose :global(img) {

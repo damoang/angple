@@ -51,10 +51,13 @@ function extractFirstImage(content: string): string | null {
 
 export const GET: RequestHandler = async () => {
     try {
+        // KST 시간으로 변환 (UTC+9)
         const now = new Date();
-        const year = now.getFullYear();
-        const month = now.getMonth() + 1;
-        const day = now.getDate();
+        const kstOffset = 9 * 60 * 60 * 1000; // 9시간을 밀리초로
+        const kstDate = new Date(now.getTime() + kstOffset);
+        const year = kstDate.getUTCFullYear();
+        const month = kstDate.getUTCMonth() + 1;
+        const day = kstDate.getUTCDate();
         const dateDash = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
         const dateDot = `${year}.${String(month).padStart(2, '0')}.${String(day).padStart(2, '0')}`;
 
@@ -108,7 +111,7 @@ export const GET: RequestHandler = async () => {
                  LEFT JOIN g5_member m ON wm.mb_id = m.mb_id
                  WHERE wm.wr_is_comment = 0
                    AND (wm.wr_subject = ? OR wm.wr_subject = ?)
-                 ORDER BY wm.wr_id DESC`,
+                 ORDER BY wm.wr_subject DESC, wm.wr_id DESC`,
                 [dateDot, dateDash]
             );
 

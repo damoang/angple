@@ -523,13 +523,14 @@
 
 <ul class="space-y-3">
     {#each commentTree as comment, commentIndex (comment.id)}
+        {@const isDeleted = !!comment.deleted_at}
         {@const isAuthor = isCommentAuthor(comment)}
-        {@const canEdit = canEditComment(comment)}
+        {@const canEdit = !isDeleted && canEditComment(comment)}
         {@const isEditing = editingCommentId === String(comment.id)}
         {@const isReplyingTo = replyingToCommentId === String(comment.id)}
         {@const depth = comment.depth ?? 0}
         {@const isReply = depth > 0}
-        {@const iconUrl = getMemberIconUrl(comment.author_id)}
+        {@const iconUrl = isDeleted ? null : getMemberIconUrl(comment.author_id)}
 
         <!-- 댓글 5개마다 GAM 인피드 광고 (루트 댓글 기준, 첫 번째 제외) -->
         {#if widgetLayoutStore.hasEnabledAds && commentIndex > 0 && commentIndex % 5 === 0 && depth === 0}
@@ -616,10 +617,14 @@
                     {/if}
 
                     <!-- 리액션 (da-reaction 플러그인) - 왼쪽 정렬 -->
-                    {#if reactionPluginActive && !isEditing && boardId && postId}
+                    {#if reactionPluginActive && !isEditing && !isDeleted && boardId && postId}
                         <ReactionBar {boardId} {postId} commentId={comment.id} target="comment" />
                     {/if}
 
+                    <!-- 삭제된 댓글이면 좋아요/비추천/답글 버튼 표시 안함 -->
+                    {#if isDeleted}
+                        <!-- 삭제된 댓글: 버튼 없음 -->
+                    {:else}
                     <!-- 댓글 좋아요 버튼 (PHP 호환: thumbup 이미지) -->
                     <div
                         class="comment-good-group flex items-stretch rounded-lg border {isCommentLiked(
@@ -759,10 +764,26 @@
                             </div>
                         {/if}
                     </div>
+                    {/if}
                 </div>
 
                 <!-- 댓글 본문 또는 수정 폼 -->
-                {#if isEditing}
+                {#if comment.deleted_at}
+                    <!-- 삭제된 댓글 표시 -->
+                    <div
+                        class="text-muted-foreground flex items-center gap-2 italic opacity-60 {isReply
+                            ? 'text-sm'
+                            : 'text-base'}"
+                    >
+                        <Trash2 class="h-4 w-4" />
+                        삭제된 댓글입니다.
+                        {#if isSuperAdmin() && comment.deleted_at}
+                            <span class="text-xs">
+                                ({new Date(comment.deleted_at).toLocaleString('ko-KR')})
+                            </span>
+                        {/if}
+                    </div>
+                {:else if isEditing}
                     <!-- 댓글 수정 폼 -->
                     <div class="mt-2 space-y-3">
                         <textarea
