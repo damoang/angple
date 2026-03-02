@@ -6,10 +6,12 @@
  * 30초 TTL 인메모리 캐시로 반복 호출을 최소화합니다.
  */
 
+import { env } from '$env/dynamic/private';
+
 const PROMOTION_CACHE_TTL = 30_000; // 30초
 
 function getAdsServerUrl(): string {
-    return process.env.ADS_SERVER_URL || 'http://localhost:9090';
+    return env.ADS_SERVER_URL || 'http://localhost:9090';
 }
 
 let promotionCache: { data: unknown; expiresAt: number } | null = null;
