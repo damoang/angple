@@ -28,9 +28,17 @@ const CACHE_TTL_MS = 30_000; // 30초
 
 /**
  * 시간대별 기본 탭 결정 (PHP 원본 로직)
+ * KST(한국 표준시) 기준으로 계산
  */
 export function getDefaultPeriod(): RecommendedPeriod {
-    const hour = new Date().getHours();
+    // KST 시간대 명시적 사용 (서버가 UTC로 실행될 수 있음)
+    const kstHour = new Date().toLocaleString('en-US', {
+        timeZone: 'Asia/Seoul',
+        hour: 'numeric',
+        hour12: false
+    });
+    const hour = parseInt(kstHour, 10);
+
     if (hour >= 0 && hour < 6) return '6h';
     if (hour >= 6 && hour < 9) return '3h';
     return '1h';

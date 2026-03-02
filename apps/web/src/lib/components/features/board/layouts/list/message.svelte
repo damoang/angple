@@ -84,8 +84,7 @@
             {#if externalLink}
                 <a
                     href={externalLink}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                    rel="noopener"
                     class="ml-auto flex items-center gap-1 rounded-full bg-white/20 px-2 py-0.5 text-xs transition-colors hover:bg-white/30"
                     onclick={(e) => e.stopPropagation()}
                 >

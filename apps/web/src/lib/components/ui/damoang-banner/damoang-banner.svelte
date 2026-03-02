@@ -2,13 +2,6 @@
     import { onMount } from 'svelte';
     import { browser } from '$app/environment';
     import AdSlot from '$lib/components/ui/ad-slot/ad-slot.svelte';
-    import {
-        getCelebrations,
-        getCurrentIndex,
-        setCurrentIndex,
-        mount as celebrationMount,
-        type CelebrationBanner
-    } from '$lib/stores/celebration.svelte.js';
 
     interface Props {
         position: 'index' | 'board-list' | 'board-view' | 'sidebar';
@@ -27,8 +20,20 @@
     }: Props = $props();
 
     // API 엔드포인트
+    // 축하메시지 API는 SvelteKit에서 처리 (상대 경로 사용)
+    const DAMOANG_API_BASE = '';
     // 트래킹은 브라우저→외부 직접 (sendBeacon은 Cloudflare 통과)
     const ADS_TRACKING_BASE = 'https://ads.damoang.net';
+
+    // 축하메시지 배너 타입
+    interface CelebrationBanner {
+        id: number;
+        image_url: string;
+        link_url: string;
+        alt_text?: string;
+        target?: string;
+        display_type?: 'image' | 'text';
+    }
 
     // 다모앙 광고 배너 타입
     interface AdsBanner {
@@ -40,20 +45,15 @@
         trackingId?: string;
     }
 
-    // 전체 축하메시지 (CelebrationRolling과 동일 리스트 + 인덱스 공유)
-    let allCelebrations = $derived(showCelebration ? getCelebrations() : []);
-    // 이미지 표시 가능한 배너만 (렌더링용)
-    let celebrationBanners = $derived(
-        allCelebrations.filter(
-            (b: CelebrationBanner) => !b.display_type || b.display_type === 'image'
-        )
-    );
-    let currentBannerIndex = $derived(getCurrentIndex());
+    let celebrationBanner = $state<CelebrationBanner | null>(null);
     let adsBanner = $state<AdsBanner | null>(null);
     let loading = $state(true);
     let useFallback = $state(false);
 
     // position → 다모앙 광고 서버 position 매핑
+    // index → index-top (메인 페이지용, 현재 배너 0개 → GAM 폴백)
+    // board-list/board-view → board-head (게시판/글 페이지용)
+    // sidebar → sidebar (사이드바용)
     const ADS_POSITION_MAP: Record<string, string> = {
         index: 'index-top',
         'board-list': 'board-head',
@@ -73,17 +73,7 @@
     const gamPosition = $derived(gamPositionProp || GAM_POSITION_MAP[position] || 'board-head');
 
     onMount(() => {
-        let cleanupCelebration: (() => void) | undefined;
-
-        if (showCelebration) {
-            cleanupCelebration = celebrationMount();
-        }
-
         fetchBanners();
-
-        return () => {
-            cleanupCelebration?.();
-        };
     });
 
     async function fetchBanners() {
@@ -91,9 +81,9 @@
 
         // 1. 축하메시지 (showCelebration=true인 경우만)
         if (showCelebration) {
-            // 스토어에서 데이터가 로드될 때까지 짧은 대기
-            await waitForCelebrations();
-            if (allCelebrations.length > 0) {
+            const celebration = await fetchCelebrationBanner();
+            if (celebration) {
+                celebrationBanner = celebration;
                 loading = false;
                 return;
             }
@@ -112,11 +102,30 @@
         loading = false;
     }
 
-    async function waitForCelebrations(): Promise<void> {
-        // 스토어의 fetch가 완료될 때까지 최대 3초 대기
-        for (let i = 0; i < 30; i++) {
-            if (getCelebrations().length > 0) return;
-            await new Promise((r) => setTimeout(r, 100));
+    async function fetchCelebrationBanner(): Promise<CelebrationBanner | null> {
+        try {
+            const response = await fetch(`${DAMOANG_API_BASE}/api/ads/celebration/today`, {
+                method: 'GET',
+                headers: { Accept: 'application/json' }
+            });
+
+            if (!response.ok) return null;
+
+            const result = await response.json();
+
+            if (result.success && result.data?.length > 0) {
+                // display_type === 'image'인 것만 필터링 (text 타입은 CelebrationRolling에서 처리)
+                const imageBanners = result.data.filter(
+                    (b: CelebrationBanner) => !b.display_type || b.display_type === 'image'
+                );
+                if (imageBanners.length === 0) return null;
+                const randomIndex = Math.floor(Math.random() * imageBanners.length);
+                return imageBanners[randomIndex];
+            }
+            return null;
+        } catch (error) {
+            console.warn('DamoangBanner: 축하메시지 로드 실패', error);
+            return null;
         }
     }
 
@@ -147,22 +156,6 @@
             );
         }
     }
-
-    // 터치 스와이프
-    let touchStartX = 0;
-    function handleTouchStart(e: TouchEvent) {
-        touchStartX = e.touches[0].clientX;
-    }
-    function handleTouchEnd(e: TouchEvent) {
-        const diff = touchStartX - e.changedTouches[0].clientX;
-        if (Math.abs(diff) > 50 && allCelebrations.length > 1) {
-            const newIndex =
-                diff > 0
-                    ? (currentBannerIndex + 1) % allCelebrations.length
-                    : (currentBannerIndex - 1 + allCelebrations.length) % allCelebrations.length;
-            setCurrentIndex(newIndex);
-        }
-    }
 </script>
 
 <div class="damoang-banner {className}" data-position={position}>
@@ -177,50 +170,22 @@
                 <span class="text-[10px] text-slate-400 dark:text-slate-500">로딩 중...</span>
             </div>
         </div>
-    {:else if celebrationBanners.length > 0}
-        <!-- 축하메시지 캐러셀 (allCelebrations 기준 인덱스로 싱크) -->
-        <div
-            class="border-border relative overflow-hidden rounded-xl border"
-            ontouchstart={handleTouchStart}
-            ontouchend={handleTouchEnd}
+    {:else if celebrationBanner}
+        <!-- 축하메시지 배너 -->
+        <a
+            href={celebrationBanner.link_url}
+            target={celebrationBanner.target || '_blank'}
+            rel="nofollow noopener"
+            class="border-border block overflow-hidden rounded-xl border transition-opacity hover:opacity-90"
         >
-            {#each allCelebrations as banner, i (banner.id)}
-                {#if !banner.display_type || banner.display_type === 'image'}
-                    <a
-                        href={banner.link_url}
-                        target={banner.target || '_blank'}
-                        rel="nofollow noopener"
-                        class="w-full transition-transform duration-500 ease-in-out {i ===
-                        currentBannerIndex
-                            ? 'relative block translate-x-0'
-                            : i < currentBannerIndex
-                              ? 'absolute inset-0 block -translate-x-full'
-                              : 'absolute inset-0 block translate-x-full'}"
-                    >
-                        <img
-                            src={banner.image_url}
-                            alt={banner.alt_text || '축하메시지'}
-                            class="w-full object-contain"
-                            style:max-height={height}
-                            loading="lazy"
-                        />
-                    </a>
-                {/if}
-            {/each}
-            {#if allCelebrations.length > 1}
-                <div class="absolute bottom-2 left-1/2 flex -translate-x-1/2 gap-1.5">
-                    {#each allCelebrations as _, i}
-                        <button
-                            class="h-2 w-2 rounded-full transition-colors {i === currentBannerIndex
-                                ? 'bg-white'
-                                : 'bg-white/50'}"
-                            onclick={() => setCurrentIndex(i)}
-                            aria-label="배너 {i + 1}번으로 이동"
-                        ></button>
-                    {/each}
-                </div>
-            {/if}
-        </div>
+            <img
+                src={celebrationBanner.image_url}
+                alt={celebrationBanner.alt_text || '축하메시지'}
+                class="w-full object-contain"
+                style:max-height={height}
+                loading="lazy"
+            />
+        </a>
     {:else if adsBanner}
         <!-- 다모앙 자체 광고 배너 -->
         <a

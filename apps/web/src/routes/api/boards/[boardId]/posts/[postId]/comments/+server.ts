@@ -23,6 +23,8 @@ interface CommentRow extends RowDataPacket {
     wr_name: string;
     wr_ip: string;
     wr_datetime: string;
+    wr_deleted_at: string | null;
+    wr_deleted_by: string | null;
 }
 
 interface CountRow extends RowDataPacket {
@@ -67,9 +69,11 @@ export const GET: RequestHandler = async ({ params, url }) => {
         const totalPages = Math.ceil(total / limit);
 
         // 댓글 조회 (wr_comment=0은 Go API 생성 댓글 → wr_id 기준 정렬)
+        // 삭제된 댓글도 포함하여 조회 (프론트엔드에서 "삭제된 댓글입니다" 표시용)
         const [rows] = await pool.query<CommentRow[]>(
             `SELECT wr_id, wr_parent, wr_comment, wr_comment_reply, wr_content, wr_option,
-			        wr_good, wr_nogood, mb_id, wr_name, wr_ip, wr_datetime
+			        wr_good, wr_nogood, mb_id, wr_name, wr_ip, wr_datetime,
+			        wr_deleted_at, wr_deleted_by
 			 FROM ??
 			 WHERE wr_parent = ? AND wr_is_comment = 1
 			 ORDER BY CASE WHEN wr_comment = 0 THEN wr_id ELSE wr_comment END, wr_comment_reply
@@ -92,16 +96,18 @@ export const GET: RequestHandler = async ({ params, url }) => {
 
         const comments = rows.map((row) => ({
             id: row.wr_id,
-            content: row.wr_content,
-            author: nickMap.get(row.mb_id) || row.wr_name || row.mb_id,
-            author_id: row.mb_id,
-            author_ip: maskIp(row.wr_ip),
+            content: row.wr_deleted_at ? '' : row.wr_content, // 삭제된 댓글은 내용 숨김
+            author: row.wr_deleted_at ? '' : (nickMap.get(row.mb_id) || row.wr_name || row.mb_id),
+            author_id: row.wr_deleted_at ? '' : row.mb_id,
+            author_ip: row.wr_deleted_at ? '' : maskIp(row.wr_ip),
             likes: row.wr_good,
             dislikes: row.wr_nogood,
             depth: row.wr_comment_reply.length,
             parent_id: row.wr_parent,
             created_at: row.wr_datetime,
-            is_secret: row.wr_option?.includes('secret') || false
+            is_secret: row.wr_option?.includes('secret') || false,
+            deleted_at: row.wr_deleted_at || null,
+            deleted_by: row.wr_deleted_by || null
         }));
 
         return json({

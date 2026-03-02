@@ -7,9 +7,8 @@ import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import type { RowDataPacket } from 'mysql2';
 import pool from '$lib/server/db';
-import { env } from '$env/dynamic/private';
 
-const INTERNAL_API_URL = env.INTERNAL_API_URL || 'http://localhost:8090/api/v1';
+const INTERNAL_API_URL = process.env.INTERNAL_API_URL || 'http://localhost:8082/api/v1';
 
 interface NotifyRequest {
     mentions: string[]; // 닉네임 배열
@@ -58,7 +57,7 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
     try {
         // 닉네임으로 mb_id 조회
         const placeholders = validNicks.map(() => '?').join(',');
-        const [rows] = await pool.query<RowDataPacket[]>(
+        const [rows] = await pool.execute<RowDataPacket[]>(
             `SELECT mb_id, mb_nick FROM g5_member WHERE mb_nick IN (${placeholders}) AND mb_leave_dt = ''`,
             validNicks
         );

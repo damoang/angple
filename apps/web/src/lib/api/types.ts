@@ -71,6 +71,7 @@ export interface FreeComment {
     images?: string[];
     is_secret?: boolean; // 비밀댓글 여부
     deleted_at?: string | null; // 소프트 삭제 시점
+    deleted_by?: string | null; // 삭제한 사용자 ID
 }
 
 // 첨부파일 응답
