@@ -121,10 +121,11 @@ jobs:
           CMD ["node", "build/index.js"]
           EOF
 
-          # Build and push for ARM64
+          # Build and push for ARM64 (--no-cache to prevent stale build artifacts)
           cd apps/web/deploy
           docker buildx build \
             --platform linux/arm64 \
+            --no-cache \
             -t "${FULL_IMAGE}" \
             -t "${LATEST_IMAGE}" \
             --push \
