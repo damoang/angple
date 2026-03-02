@@ -1,11 +1,17 @@
 name: Deploy Build to Prod
 
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
     inputs:
       confirm:
         description: '배포 확인 ("deploy" 입력)'
         required: true
+        type: string
+      image_tag:
+        description: '배포할 이미지 태그 (비워두면 latest)'
+        required: false
         type: string
 
 permissions:
@@ -16,14 +22,13 @@ env:
   NODE_VERSION: '22'
   AWS_REGION: ap-northeast-2
   ECR_REPOSITORY: angple-web
+  ECR_REGISTRY: 891376997084.dkr.ecr.ap-northeast-2.amazonaws.com
 
 jobs:
   build:
     name: Build & Push to ECR
     runs-on: ubuntu-latest
-    if: inputs.confirm == 'deploy'
-    outputs:
-      image_tag: ${{ steps.build.outputs.IMAGE_TAG }}
+    if: github.event_name == 'push'
 
     steps:
       - uses: actions/checkout@v4
@@ -91,12 +96,8 @@ jobs:
           cp -r apps/web/build apps/web/deploy/
 
       - name: Build and push Docker image
-        id: build
-        env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         run: |
-          IMAGE_TAG=$(date +%Y%m%d-%H%M%S)
-          FULL_IMAGE="${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
+          FULL_IMAGE="${ECR_REGISTRY}/${ECR_REPOSITORY}:sha-${{ github.sha }}"
           LATEST_IMAGE="${ECR_REGISTRY}/${ECR_REPOSITORY}:latest"
 
           echo "Building ARM64 image: ${FULL_IMAGE}"
@@ -121,34 +122,23 @@ jobs:
             --push \
             .
 
-          echo "IMAGE_TAG=${IMAGE_TAG}" >> $GITHUB_OUTPUT
           echo "Image pushed: ${FULL_IMAGE}"
-
-      - name: Create GitHub Release
-        run: |
-          TIMESTAMP=$(date +%Y%m%d-%H%M%S)
-          TAG="deploy-${TIMESTAMP}"
-
-          # Delete old deploy releases (keep last 5)
-          gh release list --limit 100 | grep "^deploy-" | tail -n +6 | cut -f1 | while read tag; do
-            gh release delete "$tag" --yes --cleanup-tag || true
-          done
-
-          # Create release (for tracking)
-          gh release create "${TAG}" \
-            --title "Deploy ${TIMESTAMP}" \
-            --notes "Docker image: ${{ steps.login-ecr.outputs.registry }}/${ECR_REPOSITORY}:${{ steps.build.outputs.IMAGE_TAG }}"
-
-          echo "Release created: ${TAG}"
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   deploy:
     name: Deploy to K8s
     runs-on: ubuntu-latest
-    needs: build
+    if: github.event_name == 'workflow_dispatch' && inputs.confirm == 'deploy'
 
     steps:
+      - name: Set image tag
+        id: tag
+        run: |
+          if [ -n "${{ inputs.image_tag }}" ]; then
+            echo "TAG=${{ inputs.image_tag }}" >> $GITHUB_OUTPUT
+          else
+            echo "TAG=latest" >> $GITHUB_OUTPUT
+          fi
+
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -157,13 +147,13 @@ jobs:
 
       - name: Deploy via SSM
         env:
-          IMAGE_TAG: ${{ needs.build.outputs.image_tag }}
+          IMAGE_TAG: ${{ steps.tag.outputs.TAG }}
         run: |
           COMMAND_ID=$(aws ssm send-command \
             --instance-ids "i-038a1d1f00798d94b" \
             --document-name "AWS-RunShellScript" \
             --parameters 'commands=[
-              "kubectl set image deployment/angple-web -n angple web=891376997084.dkr.ecr.ap-northeast-2.amazonaws.com/angple-web:'"$IMAGE_TAG"'",
+              "kubectl set image deployment/angple-web -n angple web='"${{ env.ECR_REGISTRY }}"'/'"${{ env.ECR_REPOSITORY }}"':'"$IMAGE_TAG"'",
               "kubectl rollout status deployment/angple-web -n angple --timeout=120s"
             ]' \
             --timeout-seconds 300 \
@@ -200,3 +190,23 @@ jobs:
               --output text
             exit 1
           fi
+
+      - name: Create GitHub Release
+        run: |
+          TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+          TAG="deploy-${TIMESTAMP}"
+
+          # Delete old deploy releases (keep last 5)
+          gh release list --limit 100 | grep "^deploy-" | tail -n +6 | cut -f1 | while read tag; do
+            gh release delete "$tag" --yes --cleanup-tag || true
+          done
+
+          # Create release (for tracking)
+          gh release create "${TAG}" \
+            --title "Deploy ${TIMESTAMP}" \
+            --notes "Docker image: ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ steps.tag.outputs.TAG }}"
+
+          echo "Release created: ${TAG}"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
