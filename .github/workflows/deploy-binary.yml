@@ -95,6 +95,14 @@ jobs:
           # 빌드 결과물 복사
           cp -r apps/web/build apps/web/deploy/
 
+          # 런타임 에셋 복사 (plugins, widgets, themes)
+          cp -r plugins apps/web/deploy/ 2>/dev/null || mkdir -p apps/web/deploy/plugins
+          cp -r widgets apps/web/deploy/ 2>/dev/null || mkdir -p apps/web/deploy/widgets
+          cp -r themes apps/web/deploy/ 2>/dev/null || mkdir -p apps/web/deploy/themes
+          cp -r custom-themes apps/web/deploy/ 2>/dev/null || mkdir -p apps/web/deploy/custom-themes
+          cp -r custom-widgets apps/web/deploy/ 2>/dev/null || mkdir -p apps/web/deploy/custom-widgets
+          cp -r extensions apps/web/deploy/ 2>/dev/null || mkdir -p apps/web/deploy/extensions
+
       - name: Build and push Docker image
         run: |
           FULL_IMAGE="${ECR_REGISTRY}/${ECR_REPOSITORY}:sha-${{ github.sha }}"
