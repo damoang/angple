@@ -74,20 +74,31 @@
         const titleText = banner.title || '';
         const isDateTitle = /^\d{4}[.\-]\d{2}[.\-]\d{2}/.test(titleText);
         const message = contentText || (!isDateTitle ? titleText : '');
-        if (nick && message) return `${nick}님, ${message}`;
-        if (nick) return `${nick}님, 축하합니다!`;
+        if (nick && message) return `[${nick}] ${message}`;
+        if (nick) return `[${nick}] 축하합니다!`;
         if (message) return message;
         return '축하합니다!';
+    }
+
+    // 외부 절대 URL을 현재 도메인 상대 경로로 변환
+    function toLocalHref(banner: CelebrationBanner): string {
+        const raw = banner.external_link || banner.link_url || '#';
+        try {
+            const url = new URL(raw, window.location.origin);
+            // 같은 사이트(damoang 계열)면 pathname만 사용
+            if (url.hostname === window.location.hostname || url.hostname.endsWith('damoang.net')) {
+                return url.pathname + url.search + url.hash;
+            }
+        } catch {
+            // URL 파싱 실패 시 원본 반환
+        }
+        return raw;
     }
 </script>
 
 {#if celebrations.length > 0}
     <a
-        href={celebrations[currentIndex]?.external_link ||
-            celebrations[currentIndex]?.link_url ||
-            '#'}
-        target={celebrations[currentIndex]?.link_target || '_blank'}
-        rel="nofollow noopener"
+        href={toLocalHref(celebrations[currentIndex])}
         class="border-border bg-background hover:bg-accent flex h-9 items-center gap-2 overflow-hidden rounded-lg border px-3 transition-colors {className}"
     >
         {#if celebrations[currentIndex]?.target_member_photo}
