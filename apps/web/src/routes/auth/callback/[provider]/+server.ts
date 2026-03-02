@@ -22,6 +22,7 @@ import {
     CSRF_COOKIE_NAME,
     SESSION_COOKIE_MAX_AGE
 } from '$lib/server/auth/session-store.js';
+import { generateRefreshToken } from '$lib/server/auth/jwt.js';
 import { AppleProvider } from '$lib/server/auth/oauth/providers/apple.js';
 import { TwitterProvider } from '$lib/server/auth/oauth/providers/twitter.js';
 import type { OAuthUserProfile } from '$lib/server/auth/oauth/types.js';
@@ -143,13 +144,16 @@ async function handleCallback(
             userAgent: ''
         });
 
-        // 세션 쿠키 설정 (httpOnly)
+        const domainOpt = COOKIE_DOMAIN ? { domain: COOKIE_DOMAIN } : {};
+
+        // 세션 쿠키 설정 (httpOnly, 서브도메인 공유)
         cookies.set(SESSION_COOKIE_NAME, session.sessionId, {
             path: '/',
             httpOnly: true,
             sameSite: 'lax',
             secure: !dev,
-            maxAge: SESSION_COOKIE_MAX_AGE
+            maxAge: SESSION_COOKIE_MAX_AGE,
+            ...domainOpt
         });
 
         // CSRF 토큰 쿠키 (non-httpOnly, JS에서 읽어 헤더로 전송)
@@ -158,7 +162,22 @@ async function handleCallback(
             httpOnly: false,
             sameSite: 'strict',
             secure: !dev,
-            maxAge: SESSION_COOKIE_MAX_AGE
+            maxAge: SESSION_COOKIE_MAX_AGE,
+            ...domainOpt
+        });
+
+        // 레거시 호환: refresh_token 생성 (서브도메인 인증용)
+        const { token: refreshToken } = await generateRefreshToken(member.mb_id, {
+            ip: clientIp,
+            userAgent: ''
+        });
+        cookies.set('refresh_token', refreshToken, {
+            path: '/',
+            httpOnly: true,
+            sameSite: 'lax',
+            secure: !dev,
+            maxAge: 60 * 60 * 24 * 7,
+            ...domainOpt
         });
 
         // 원래 페이지로 리다이렉트
