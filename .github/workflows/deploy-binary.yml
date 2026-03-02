@@ -70,8 +70,11 @@ jobs:
           VITE_GAM_NETWORK_CODE: '23338387889'
           VITE_GAM_SITE_NAME: 'damoang'
         run: |
-          rm -rf apps/web/.svelte-kit apps/web/build
+          rm -rf apps/web/.svelte-kit apps/web/build apps/web/node_modules/.vite
           pnpm --filter web build
+          echo "=== Build verification ==="
+          grep -rl "private_env.ADS_SERVER_URL" apps/web/build/server/ 2>/dev/null | grep -v ".map" || echo "WARNING: ADS_SERVER_URL not found in build!"
+          grep -c "localhost:9090" apps/web/build/server/chunks/_server.ts-*.js 2>/dev/null && echo "WARNING: localhost:9090 hardcoded in server chunks!" || true
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
