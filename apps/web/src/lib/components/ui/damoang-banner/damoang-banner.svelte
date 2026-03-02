@@ -156,6 +156,24 @@
             );
         }
     }
+
+    // 외부 절대 URL을 현재 도메인 상대 경로로 변환
+    function toLocalHref(raw: string): string {
+        if (!raw || raw === '#') return raw;
+        try {
+            const url = new URL(raw, browser ? window.location.origin : 'https://localhost');
+            if (
+                browser &&
+                (url.hostname === window.location.hostname ||
+                    url.hostname.endsWith('damoang.net'))
+            ) {
+                return url.pathname + url.search + url.hash;
+            }
+        } catch {
+            // 파싱 실패 시 원본
+        }
+        return raw;
+    }
 </script>
 
 <div class="damoang-banner {className}" data-position={position}>
@@ -173,9 +191,7 @@
     {:else if celebrationBanner}
         <!-- 축하메시지 배너 -->
         <a
-            href={celebrationBanner.link_url}
-            target={celebrationBanner.target || '_blank'}
-            rel="nofollow noopener"
+            href={toLocalHref(celebrationBanner.link_url)}
             class="border-border block overflow-hidden rounded-xl border transition-opacity hover:opacity-90"
         >
             <img
@@ -189,9 +205,7 @@
     {:else if adsBanner}
         <!-- 다모앙 자체 광고 배너 -->
         <a
-            href={adsBanner.landingUrl}
-            target={adsBanner.target || '_blank'}
-            rel="nofollow noopener"
+            href={toLocalHref(adsBanner.landingUrl)}
             onclick={handleAdsClick}
             class="border-border block overflow-hidden rounded-xl border transition-opacity hover:opacity-90"
         >
