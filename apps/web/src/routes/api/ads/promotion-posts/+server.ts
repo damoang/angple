@@ -1,11 +1,11 @@
 import { json } from '@sveltejs/kit';
-import { env } from '$env/dynamic/private';
+import { getAdsServerUrl } from '$lib/server/ads/config';
 import type { RequestHandler } from './$types';
 
 // GET /api/ads/promotion-posts
 // damoang-ads 서버 프록시 (직접홍보 게시글)
 export const GET: RequestHandler = async () => {
-    const adsServerUrl = env.ADS_SERVER_URL || 'http://localhost:9090';
+    const adsServerUrl = getAdsServerUrl();
     try {
         const response = await fetch(`${adsServerUrl}/api/v1/serve/promotion-posts`);
         if (!response.ok) {
