@@ -5,9 +5,9 @@
 
     // 앙포털 메뉴
     const angportalLinks: FooterLink[] = [
-        { name: '다모앙 지도 - 앙지도', href: 'https://damoang.net/angmap' },
-        { name: '다모앙 평점 - 앙티티', href: 'https://damoang.net/angtt' },
-        { name: '다모앙 음악 - 앙뮤직', href: 'https://damoang.net/music' },
+        { name: '다모앙 지도 - 앙지도', href: '/angmap' },
+        { name: '다모앙 평점 - 앙티티', href: '/angtt' },
+        { name: '다모앙 음악 - 앙뮤직', href: '/music' },
         { name: '다모앙 상점 - 앙상점', href: 'http://damoang.shop', external: true },
         {
             name: '다모앙 영상 - 앙팡팡',
@@ -19,28 +19,28 @@
 
     // 함께만들어가요 메뉴
     const togetherLinks: FooterLink[] = [
-        { name: '공지사항', href: 'https://damoang.net/notice' },
-        { name: '유지관리(버그제보)', href: 'https://damoang.net/bug' },
-        { name: '다모앙 만들기', href: 'https://damoang.net/makeang' },
-        { name: '이벤트 제안', href: 'https://damoang.net/event' },
-        { name: '다모앙 개발지원 신청', href: 'https://damoang.net/discord' },
-        { name: '광고앙', href: 'https://damoang.net/content/advertisement', external: true }
+        { name: '공지사항', href: '/notice' },
+        { name: '유지관리(버그제보)', href: '/bug' },
+        { name: '다모앙 만들기', href: '/makeang' },
+        { name: '이벤트 제안', href: '/event' },
+        { name: '다모앙 개발지원 신청', href: '/discord' },
+        { name: '광고앙', href: '/content/advertisement' }
     ];
 
     // 시스템 메뉴
     const systemLinks: FooterLink[] = [
-        { name: '포인트 안내', href: 'https://damoang.net/content/info' },
-        { name: '레벨 안내', href: 'https://damoang.net/content/level' },
-        { name: '새글모음', href: 'https://damoang.net/bbs/new.php', external: true }
+        { name: '포인트 안내', href: '/content/info' },
+        { name: '레벨 안내', href: '/content/level' },
+        { name: '새글모음', href: '/bbs/new.php' }
     ];
 
     // 🚨삐앙삐앙🚨 메뉴
     const emergencyLinks: FooterLink[] = [
-        { name: '앙리포트', href: 'https://damoang.net/report' },
-        { name: '소명게시판', href: 'https://damoang.net/claim' },
-        { name: '회원 신고 (누적 진실의 방)', href: 'https://damoang.net/truthroom' },
-        { name: '바이럴 신고 기록 (광고 앙대앙)', href: 'https://damoang.net/nope' },
-        { name: '회원 이용제한 기록', href: 'https://damoang.net/disciplinelog' }
+        { name: '앙리포트', href: '/report' },
+        { name: '소명게시판', href: '/claim' },
+        { name: '회원 신고 (누적 진실의 방)', href: '/truthroom' },
+        { name: '바이럴 신고 기록 (광고 앙대앙)', href: '/nope' },
+        { name: '회원 이용제한 기록', href: '/disciplinelog' }
     ];
 
     // 메뉴 섹션 데이터

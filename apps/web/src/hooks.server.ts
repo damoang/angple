@@ -93,8 +93,8 @@ async function authenticateSSR(event: Parameters<Handle>[0]['event']): Promise<v
                     return;
                 }
             }
-        } catch {
-            // 세션 조회 실패
+        } catch (err) {
+            console.error('[Auth] 세션 인증 실패:', err instanceof Error ? err.message : err);
         }
     }
 

@@ -642,6 +642,21 @@ class ApiClient {
         return response.data;
     }
 
+    /**
+     * 댓글 수정 이력 조회
+     * 🔒 관리자 전용 (level ≥ 10)
+     */
+    async getCommentRevisions(
+        boardId: string,
+        postId: string,
+        commentId: string
+    ): Promise<PostRevision[]> {
+        const response = await this.request<PostRevision[]>(
+            `/boards/${boardId}/posts/${postId}/comments/${commentId}/revisions`
+        );
+        return response.data;
+    }
+
     // ========================================
     // 댓글 CRUD (Create, Update, Delete)
     // ========================================

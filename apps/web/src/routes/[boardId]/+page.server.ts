@@ -2,10 +2,11 @@ import { error as svelteError } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types.js';
 import type { FreePost, Board, SearchField } from '$lib/api/types.js';
 import { env } from '$env/dynamic/private';
+import { fetchPromotionPosts } from '$lib/server/ads/promotion.js';
 
 const BACKEND_URL = env.BACKEND_URL || 'http://localhost:8090';
 
-export const load: PageServerLoad = async ({ url, params, fetch: svelteKitFetch, locals }) => {
+export const load: PageServerLoad = async ({ url, params, locals }) => {
     const boardId = params.boardId;
     const page = Number(url.searchParams.get('page')) || 1;
     const limit = Number(url.searchParams.get('limit')) || 25;
@@ -90,10 +91,8 @@ export const load: PageServerLoad = async ({ url, params, fetch: svelteKitFetch,
                       const json = await res.json();
                       return (json.data as FreePost[]) || [];
                   }),
-            // 직접홍보 사잇광고 (SvelteKit 내부 라우트 → svelteKitFetch 사용)
-            svelteKitFetch(`${url.origin}/api/ads/promotion-posts`)
-                .then((r) => r.json())
-                .catch(() => ({ success: false, data: { posts: [] } }))
+            // 직접홍보 사잇광고 (ads 서버 직접 호출 + 캐시)
+            fetchPromotionPosts()
         ]);
 
         // 게시글 필수 — 실패 시 에러 표시

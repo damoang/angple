@@ -73,6 +73,16 @@ async function proxyRequest(
             headers.set('Authorization', `Bearer ${locals.accessToken}`);
         }
 
+        // 디버그: PUT/POST 요청 시 인증 상태 로깅
+        if (method === 'PUT' || method === 'POST') {
+            console.log('[API Proxy Auth]', method, path, {
+                hasAccessToken: !!locals.accessToken,
+                hasUser: !!locals.user,
+                userId: locals.user?.id,
+                hasSessionId: !!locals.sessionId
+            });
+        }
+
         // 2. 내부 신뢰 헤더 (세션 인증을 거친 SvelteKit → 백엔드 통신용)
         // 공유 시크릿 포함 (CloudFront가 직접 백엔드로 라우팅하는 경우 대비)
         if (locals.user?.id && locals.sessionId) {

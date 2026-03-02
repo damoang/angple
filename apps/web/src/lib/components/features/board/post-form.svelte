@@ -294,8 +294,11 @@
         isSubmitting = true;
 
         // 첨부 이미지를 content 끝에 <img> 태그로 삽입 (Go 백엔드 호환)
+        // 단, 에디터 드래그/드롭으로 이미 본문에 포함된 이미지는 제외
         let finalContent = content.trim();
-        const imageFiles = uploadedFiles.filter((f) => f.mime_type.startsWith('image/'));
+        const imageFiles = uploadedFiles.filter(
+            (f) => f.mime_type.startsWith('image/') && !finalContent.includes(f.url)
+        );
         if (imageFiles.length > 0) {
             const imgTags = imageFiles
                 .map(

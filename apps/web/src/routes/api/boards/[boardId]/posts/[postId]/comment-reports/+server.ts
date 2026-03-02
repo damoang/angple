@@ -10,31 +10,36 @@ import type { RowDataPacket } from 'mysql2';
 import pool from '$lib/server/db';
 import { getAuthUser } from '$lib/server/auth';
 
-// 신고 사유 라벨 매핑
+// 신고 사유 라벨 매핑 (nariya 플러그인 sg_type 코드 21~40)
 const REASON_LABELS: Record<number, string> = {
-    1: '회원비하',
-    2: '예의없음',
-    3: '부적절한 표현',
-    4: '차별행위',
-    5: '분란유도',
-    6: '여론조성',
-    7: '회원기만',
-    8: '이용방해',
-    9: '용도위반',
-    10: '거래금지위반',
-    11: '구걸',
-    12: '권리침해',
-    13: '외설',
-    14: '위법행위',
-    15: '광고홍보'
+    21: '회원비하',
+    22: '예의없음',
+    23: '부적절한 표현',
+    24: '차별행위',
+    25: '분란유도/갈등조장',
+    26: '여론조성',
+    27: '회원기만',
+    28: '이용방해',
+    29: '용도위반',
+    30: '거래금지위반',
+    31: '구걸',
+    32: '권리침해',
+    33: '외설',
+    34: '위법행위',
+    35: '광고/홍보',
+    36: '운영정책부정',
+    37: '다중이',
+    38: '기타사유',
+    39: '뉴스펌글누락',
+    40: '뉴스전문전재'
 };
 
 interface ReportRow extends RowDataPacket {
-    wr_id: number;
+    sg_id: number;
     mb_id: string;
     mb_name: string;
-    singo_reason: number;
-    singo_datetime: string;
+    sg_type: number;
+    sg_time: string;
 }
 
 export const GET: RequestHandler = async ({ params, cookies }) => {
@@ -58,25 +63,25 @@ export const GET: RequestHandler = async ({ params, cookies }) => {
     }
 
     try {
-        // g5_board_report 테이블에서 해당 게시판+게시글의 댓글 신고 내역 조회
-        // 댓글 wr_id는 게시글의 하위 댓글 (wr_is_comment > 0)
+        // g5_na_singo 테이블에서 해당 게시판+게시글의 댓글 신고 내역 조회
+        // sg_id != sg_parent 조건으로 댓글 신고만 필터 (게시글 자체 신고 제외)
         const [rows] = await pool.query<ReportRow[]>(
-            `SELECT r.bo_table, r.wr_id, r.mb_id, m.mb_nick as mb_name, r.singo_reason, r.singo_datetime
-             FROM g5_board_report r
+            `SELECT r.sg_table, r.sg_id, r.mb_id, m.mb_nick as mb_name, r.sg_type, r.sg_time
+             FROM g5_na_singo r
              LEFT JOIN g5_member m ON r.mb_id = m.mb_id
-             WHERE r.bo_table = ? AND r.wr_parent = ?
-             AND r.wr_id != r.wr_parent
-             ORDER BY r.singo_datetime DESC`,
+             WHERE r.sg_table = ? AND r.sg_parent = ?
+             AND r.sg_id != r.sg_parent
+             ORDER BY r.sg_time DESC`,
             [safeBoardId, safePostId]
         );
 
         const data = rows.map((row) => ({
-            comment_id: row.wr_id,
+            comment_id: row.sg_id,
             reporter_id: row.mb_id,
             reporter_name: row.mb_name || row.mb_id,
-            reason: row.singo_reason,
-            reason_label: REASON_LABELS[row.singo_reason] || `사유 ${row.singo_reason}`,
-            created_at: row.singo_datetime
+            reason: row.sg_type,
+            reason_label: REASON_LABELS[row.sg_type] || `사유 ${row.sg_type}`,
+            created_at: row.sg_time
         }));
 
         return json({ success: true, data });

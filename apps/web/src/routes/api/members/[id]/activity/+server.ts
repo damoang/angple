@@ -69,7 +69,7 @@ export const GET: RequestHandler = async ({ params, url }) => {
         if (allTables.length > 0) {
             const placeholders = allTables.map(() => '?').join(', ');
             const [boardRows] = await pool.query<BoardRow[]>(
-                `SELECT bo_table, bo_subject FROM g5_board WHERE bo_table IN (${placeholders})`,
+                `SELECT bo_table, bo_subject FROM g5_board WHERE bo_table IN (${placeholders}) AND bo_use_search = 1`,
                 allTables
             );
             for (const b of boardRows) {
@@ -82,6 +82,7 @@ export const GET: RequestHandler = async ({ params, url }) => {
         for (const row of postRows) {
             const table = `g5_write_${row.bo_table}`;
             if (!/^[a-zA-Z0-9_]+$/.test(row.bo_table)) continue;
+            if (!boardSubjects.has(row.bo_table)) continue;
             try {
                 const [writeRows] = await pool.execute<WriteRow[]>(
                     `SELECT wr_id, wr_subject, wr_datetime
@@ -110,6 +111,7 @@ export const GET: RequestHandler = async ({ params, url }) => {
         for (const row of commentRows) {
             const table = `g5_write_${row.bo_table}`;
             if (!/^[a-zA-Z0-9_]+$/.test(row.bo_table)) continue;
+            if (!boardSubjects.has(row.bo_table)) continue;
             try {
                 const [writeRows] = await pool.execute<WriteRow[]>(
                     `SELECT wr_id, wr_content, wr_parent, wr_datetime

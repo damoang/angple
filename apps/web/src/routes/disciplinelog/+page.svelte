@@ -2,49 +2,29 @@
     /**
      * 이용제한 기록 목록 페이지
      */
-    import { onMount } from 'svelte';
+    import { goto } from '$app/navigation';
     import * as Card from '$lib/components/ui/card/index.js';
     import { Button } from '$lib/components/ui/button/index.js';
     import { Badge } from '$lib/components/ui/badge/index.js';
     import ChevronLeft from '@lucide/svelte/icons/chevron-left';
     import ChevronRight from '@lucide/svelte/icons/chevron-right';
-    import Loader2 from '@lucide/svelte/icons/loader-2';
     import AlertTriangle from '@lucide/svelte/icons/alert-triangle';
-    import {
-        getDisciplineLogs,
-        getPenaltyDisplay,
-        type DisciplineLogListItem
-    } from '$lib/api/discipline-log.js';
+    import { getPenaltyDisplay } from '$lib/api/discipline-log.js';
+    import type { PageData } from './$types.js';
 
-    let logs = $state<DisciplineLogListItem[]>([]);
-    let total = $state(0);
-    let loading = $state(true);
-    let error = $state<string | null>(null);
-    let currentPage = $state(1);
+    let { data }: { data: PageData } = $props();
+
+    const logs = $derived(data.logs || []);
+    const total = $derived(data.total || 0);
+    const currentPage = $derived(data.page || 1);
     const pageSize = 20;
-
     const totalPages = $derived(Math.max(1, Math.ceil(total / pageSize)));
-
-    async function fetchLogs() {
-        loading = true;
-        error = null;
-        try {
-            const result = await getDisciplineLogs(currentPage, pageSize);
-            logs = result.data || [];
-            total = result.meta?.total || 0;
-        } catch (e) {
-            error = '이용제한 기록을 불러오는데 실패했습니다.';
-            logs = [];
-            total = 0;
-        } finally {
-            loading = false;
-        }
-    }
 
     function goToPage(page: number) {
         if (page < 1 || page > totalPages) return;
-        currentPage = page;
-        fetchLogs();
+        const url = new URL(window.location.href);
+        url.searchParams.set('page', String(page));
+        goto(url.pathname + url.search);
     }
 
     function getPenaltyBadgeVariant(
@@ -55,9 +35,13 @@
         return 'destructive';
     }
 
-    onMount(() => {
-        fetchLogs();
-    });
+    function isToday(dateStr: string): boolean {
+        const today = new Date();
+        const yyyy = today.getFullYear();
+        const mm = String(today.getMonth() + 1).padStart(2, '0');
+        const dd = String(today.getDate()).padStart(2, '0');
+        return dateStr === `${yyyy}-${mm}-${dd}`;
+    }
 </script>
 
 <svelte:head>
@@ -74,19 +58,7 @@
             <Card.Description>규정을 위반한 회원에 대한 제재 기록입니다.</Card.Description>
         </Card.Header>
         <Card.Content>
-            {#if loading}
-                <div class="flex items-center justify-center py-12">
-                    <Loader2 class="text-muted-foreground h-8 w-8 animate-spin" />
-                </div>
-            {:else if error}
-                <div class="text-muted-foreground flex flex-col items-center justify-center py-12">
-                    <AlertTriangle class="mb-4 h-12 w-12" />
-                    <p>{error}</p>
-                    <Button variant="outline" class="mt-4" onclick={() => fetchLogs()}>
-                        다시 시도
-                    </Button>
-                </div>
-            {:else if logs.length === 0}
+            {#if logs.length === 0}
                 <div class="text-muted-foreground flex flex-col items-center justify-center py-12">
                     <p>이용제한 기록이 없습니다.</p>
                 </div>
@@ -112,7 +84,9 @@
                                     <td class="p-3">
                                         <a
                                             href="/disciplinelog/{log.id}"
-                                            class="text-foreground hover:text-primary font-medium hover:underline"
+                                            class="{isToday(log.penalty_date_from)
+                                                ? 'text-red-500'
+                                                : 'text-foreground'} hover:text-primary font-medium hover:underline"
                                         >
                                             {log.member_nickname}
                                         </a>
@@ -155,7 +129,11 @@
                                 class="hover:bg-muted/50 rounded-lg border p-4 transition-all duration-200 ease-out"
                             >
                                 <div class="mb-2 flex items-center justify-between">
-                                    <span class="font-medium">{log.member_nickname}</span>
+                                    <span
+                                        class="font-medium {isToday(log.penalty_date_from)
+                                            ? 'text-red-500'
+                                            : ''}">{log.member_nickname}</span
+                                    >
                                     <Badge variant={getPenaltyBadgeVariant(log.penalty_period)}>
                                         {penalty.text}
                                     </Badge>

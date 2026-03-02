@@ -2,6 +2,7 @@ import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types.js';
 import type { FreePost } from '$lib/api/types.js';
 import { env } from '$env/dynamic/private';
+import { fetchPromotionPosts } from '$lib/server/ads/promotion.js';
 
 const BACKEND_URL = env.BACKEND_URL || 'http://localhost:8090';
 
@@ -33,7 +34,8 @@ export const load: PageServerLoad = async ({ params, fetch: svelteKitFetch, loca
             displaySettingsResult,
             commentsResult,
             filesResult,
-            promotionResult
+            promotionResult,
+            revisionsResult
         ] = await Promise.allSettled([
             // 게시글 (Go 백엔드 직접 호출)
             backendFetch(`${BACKEND_URL}/api/v1/boards/${boardId}/posts/${postId}`, {
@@ -83,10 +85,19 @@ export const load: PageServerLoad = async ({ params, fetch: svelteKitFetch, loca
                     return res.json();
                 }
             ),
-            // 직접홍보 사잇광고
-            svelteKitFetch(`${url.origin}/api/ads/promotion-posts`)
-                .then((r) => r.json())
-                .catch(() => ({ success: false, data: { posts: [] } }))
+            // 직접홍보 사잇광고 (ads 서버 직접 호출 + 캐시)
+            fetchPromotionPosts(),
+            // 리비전 히스토리 (관리자 level ≥ 10일 때만)
+            (locals.user?.level ?? 0) >= 10
+                ? backendFetch(
+                      `${BACKEND_URL}/api/v1/boards/${boardId}/posts/${postId}/revisions`,
+                      { headers }
+                  ).then(async (res) => {
+                      if (!res.ok) return [];
+                      const json = await res.json();
+                      return json.data || [];
+                  })
+                : Promise.resolve([])
         ]);
 
         // 게시글 필수 — 실패 시 404
@@ -122,11 +133,12 @@ export const load: PageServerLoad = async ({ params, fetch: svelteKitFetch, loca
                 ? commentsResult.value
                 : { items: [], total: 0, page: 1, limit: 200, total_pages: 0 };
 
-        // 첨부 파일 데이터 병합
+        // 첨부 파일 데이터 병합 (본문에 이미 포함된 이미지는 제외)
         if (filesResult.status === 'fulfilled' && filesResult.value) {
             const filesData = filesResult.value;
             if (filesData.images?.length) {
-                post.images = filesData.images;
+                const content = post.content || '';
+                post.images = filesData.images.filter((img: string) => !content.includes(img));
             }
             if (filesData.videos?.length) {
                 post.videos = filesData.videos;
@@ -136,12 +148,15 @@ export const load: PageServerLoad = async ({ params, fetch: svelteKitFetch, loca
         const promotionPosts =
             promotionResult.status === 'fulfilled' ? promotionResult.value?.data?.posts || [] : [];
 
+        const revisions = revisionsResult.status === 'fulfilled' ? revisionsResult.value || [] : [];
+
         return {
             boardId,
             post,
             comments,
             board,
-            promotionPosts
+            promotionPosts,
+            revisions
         };
     } catch (err) {
         if (err && typeof err === 'object' && 'status' in err) {

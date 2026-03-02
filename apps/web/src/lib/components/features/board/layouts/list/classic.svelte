@@ -7,7 +7,7 @@
     import Play from '@lucide/svelte/icons/play';
     import Pin from '@lucide/svelte/icons/pin';
     import { getMemberIconUrl, handleIconError } from '$lib/utils/member-icon.js';
-    import { formatDate } from '$lib/utils/format-date.js';
+    import { formatDate, isToday } from '$lib/utils/format-date.js';
     import { pluginStore } from '$lib/stores/plugin.svelte';
     import { loadPluginComponent } from '$lib/utils/plugin-optional-loader';
 
@@ -175,7 +175,11 @@
                                 <MemoBadge memberId={post.author_id} />
                             {/if}
                         </span>
-                        <span class="text-muted-foreground w-[70px] text-center text-[15px]">
+                        <span
+                            class="{isToday(post.created_at)
+                                ? 'text-red-500'
+                                : 'text-muted-foreground'} w-[70px] text-center text-[15px]"
+                        >
                             {formatDate(post.created_at)}
                         </span>
                         <span class="text-muted-foreground w-[50px] text-center text-[15px]">
@@ -202,7 +206,9 @@
                             {/if}
                         </span>
                         <span>·</span>
-                        <span>{formatDate(post.created_at)}</span>
+                        <span class={isToday(post.created_at) ? 'text-red-500' : ''}
+                            >{formatDate(post.created_at)}</span
+                        >
                         <span>·</span>
                         <span>조회 {post.views.toLocaleString()}</span>
                         {#if post.likes > 0}

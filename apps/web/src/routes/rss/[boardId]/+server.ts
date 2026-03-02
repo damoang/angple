@@ -20,12 +20,14 @@ export const GET: RequestHandler = async ({ url, params }) => {
     let boardSubject = boardId;
     try {
         const [boards] = await pool.query<RowDataPacket[]>(
-            'SELECT bo_subject FROM g5_board WHERE bo_table = ? LIMIT 1',
+            'SELECT bo_subject, bo_use_search FROM g5_board WHERE bo_table = ? LIMIT 1',
             [boardId]
         );
-        if ((boards as Array<{ bo_subject: string }>)[0]) {
-            boardSubject = (boards as Array<{ bo_subject: string }>)[0].bo_subject;
+        const row = (boards as Array<{ bo_subject: string; bo_use_search: number }>)[0];
+        if (!row || row.bo_use_search !== 1) {
+            return new Response('Not Found', { status: 404 });
         }
+        boardSubject = row.bo_subject;
     } catch {
         // 무시
     }

@@ -86,13 +86,19 @@ export const GET: RequestHandler = async () => {
                     title: row.title,
                     content: row.content || '',
                     image_url: row.image_url || '',
-                    link_url: row.link_url || '',
+                    link_url:
+                        row.link_url && row.link_url.includes('/free/5632568')
+                            ? `/message/${row.id}`
+                            : row.link_url || '',
                     display_date: row.display_date,
                     is_active: true,
                     target_member_id: row.target_member_id || undefined,
                     target_member_nick: row.target_member_nick || undefined,
                     target_member_photo: getMemberPhotoUrl(row.target_member_image_url),
-                    external_link: row.external_url || undefined,
+                    external_link:
+                        row.external_url && !row.external_url.includes('/free/5632568')
+                            ? row.external_url
+                            : undefined,
                     link_target: row.link_target || '_blank',
                     sort_order: row.sort_order || 0,
                     display_type: row.display_type || 'image'
@@ -129,7 +135,10 @@ export const GET: RequestHandler = async () => {
                         target_member_id: row.mb_id || undefined,
                         target_member_nick: row.mb_nick || undefined,
                         target_member_photo: getMemberPhotoUrl(row.mb_image_url),
-                        external_link: row.wr_link2 || undefined,
+                        external_link:
+                            row.wr_link2 && !row.wr_link2.includes('/free/5632568')
+                                ? row.wr_link2
+                                : undefined,
                         display_type: 'image'
                     });
                 }

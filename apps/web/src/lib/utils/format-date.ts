@@ -5,6 +5,16 @@
  * - 올해: MM.DD (예: 02.19)
  * - 작년 이전: YY.MM.DD (예: 25.02.19)
  */
+/**
+ * 주어진 날짜가 오늘(서울 시간 기준)인지 확인
+ */
+export function isToday(dateString: string): boolean {
+    const date = new Date(dateString);
+    const now = new Date();
+    const toSeoulDateStr = (d: Date) => d.toLocaleDateString('sv-SE', { timeZone: 'Asia/Seoul' });
+    return toSeoulDateStr(date) === toSeoulDateStr(now);
+}
+
 export function formatDate(dateString: string): string {
     const date = new Date(dateString);
     const now = new Date();

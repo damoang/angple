@@ -3,9 +3,10 @@
     import favicon from '$lib/assets/favicon.png';
     import { onMount, untrack } from 'svelte';
     import type { Component } from 'svelte';
+    import { afterNavigate } from '$app/navigation';
     import { page } from '$app/stores';
     import { configureSeo } from '$lib/seo';
-    import { authActions } from '$lib/stores/auth.svelte';
+    import { authActions, authStore } from '$lib/stores/auth.svelte';
     import { themeStore } from '$lib/stores/theme.svelte';
     import { pluginStore } from '$lib/stores/plugin.svelte';
     import { menuStore } from '$lib/stores/menu.svelte';
@@ -19,6 +20,7 @@
     import { Toaster } from '$lib/components/ui/sonner';
     import DefaultLayout from '$lib/layouts/default-layout.svelte';
     import { keyboardShortcuts } from '$lib/services/keyboard-shortcuts.svelte';
+    import { initAplog, destroyAplog } from '$lib/services/aplog';
     import { getThemeLayout } from '$lib/themes/layout-registry';
 
     const { children, data } = $props(); // Svelte 5: SSR 데이터 받기
@@ -69,6 +71,14 @@
         const menus = menuStore.menus;
         untrack(() => {
             keyboardShortcuts.buildFromMenus(menus);
+        });
+    });
+
+    // 광고 추적: 매 네비게이션마다 observer 재설정
+    afterNavigate(() => {
+        destroyAplog();
+        requestAnimationFrame(() => {
+            initAplog(authStore.user?.mb_id ?? null);
         });
     });
 

@@ -79,6 +79,9 @@ const DEFAULT_PLUGIN_SETTINGS: PluginSettings = {
 class JsonPluginSettingsProvider implements PluginSettingsProvider {
     private filePath: string;
     private lock = false;
+    private cachedSettings: PluginSettings | null = null;
+    private cacheTimestamp = 0;
+    private static readonly CACHE_TTL = 300_000; // 5분
 
     constructor(filePath?: string) {
         this.filePath = filePath || path.join(process.cwd(), 'data', 'plugin-settings.json');
@@ -117,19 +120,31 @@ class JsonPluginSettingsProvider implements PluginSettingsProvider {
     }
 
     /**
-     * 설정 읽기
+     * 설정 읽기 (인메모리 캐시 적용)
      */
     private async read(): Promise<PluginSettings> {
+        const now = Date.now();
+        if (
+            this.cachedSettings &&
+            now - this.cacheTimestamp < JsonPluginSettingsProvider.CACHE_TTL
+        ) {
+            return this.cachedSettings;
+        }
         await this.ensureFile();
         const data = await fs.readFile(this.filePath, 'utf-8');
-        return JSON.parse(data);
+        const parsed: PluginSettings = JSON.parse(data);
+        this.cachedSettings = parsed;
+        this.cacheTimestamp = now;
+        return parsed;
     }
 
     /**
-     * 설정 쓰기
+     * 설정 쓰기 (캐시 무효화)
      */
     private async write(settings: PluginSettings): Promise<void> {
         await fs.writeFile(this.filePath, JSON.stringify(settings, null, 2), 'utf-8');
+        this.cachedSettings = settings;
+        this.cacheTimestamp = Date.now();
     }
 
     // ========== Interface 구현 ==========

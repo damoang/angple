@@ -61,10 +61,6 @@ class KeyboardShortcutService {
     private systemShortcuts = $state<Map<string, string>>(new Map());
     // 사용자 숫자 단축키: event.code → URL
     private userShortcuts = $state<Map<string, string>>(new Map());
-    // 디바운스 타이머
-    private debounceTimer: ReturnType<typeof setTimeout> | null = null;
-    // 디바운스 딜레이 (ms)
-    private readonly DEBOUNCE_DELAY = 300;
 
     /**
      * 메뉴 데이터에서 시스템 단축키 빌드
@@ -150,7 +146,7 @@ class KeyboardShortcutService {
         const userUrl = this.userShortcuts.get(code);
         if (userUrl) {
             event.preventDefault();
-            this.debouncedNavigate(userUrl);
+            this.navigate(userUrl);
             return;
         }
 
@@ -158,23 +154,10 @@ class KeyboardShortcutService {
         const systemUrl = this.systemShortcuts.get(code);
         if (systemUrl && systemUrl !== DEFAULT_URL) {
             event.preventDefault();
-            this.debouncedNavigate(systemUrl);
+            this.navigate(systemUrl);
             return;
         }
     };
-
-    /**
-     * 디바운스 적용 네비게이션
-     */
-    private debouncedNavigate(url: string) {
-        if (this.debounceTimer) {
-            clearTimeout(this.debounceTimer);
-        }
-        this.debounceTimer = setTimeout(() => {
-            this.navigate(url);
-            this.debounceTimer = null;
-        }, this.DEBOUNCE_DELAY);
-    }
 
     /**
      * 네비게이션 실행

@@ -44,6 +44,7 @@ export interface CreateBoardRequest {
 export interface UpdateBoardRequest {
     group_id?: string;
     subject?: string;
+    admin?: string;
     board_type?: string;
     skin?: string;
     mobile_skin?: string;
@@ -57,13 +58,18 @@ export interface UpdateBoardRequest {
     download_level?: number;
     write_point?: number;
     comment_point?: number;
+    read_point?: number;
     download_point?: number;
     use_category?: number;
     category_list?: string;
     use_good?: number;
     use_nogood?: number;
+    use_secret?: number;
+    use_sns?: number;
     upload_count?: number;
     upload_size?: number;
+    order?: number;
+    notice?: string;
 }
 
 export async function listBoards(): Promise<Board[]> {

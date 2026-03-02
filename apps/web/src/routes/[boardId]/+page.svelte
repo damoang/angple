@@ -36,6 +36,7 @@
     // 특수 게시판 컴포넌트 (플러그인 레지스트리 기반)
     import { boardTypeRegistry } from '$lib/components/features/board/board-type-registry.js';
     import BoardMapHeader from '$lib/components/features/board/board-map-header.svelte';
+    import EconomyShoppingBanner from '$lib/components/features/board/economy-shopping-banner.svelte';
     import QAPostList from '$lib/components/features/board/qa-post-list.svelte';
 
     // Q&A 게시판 타입 등록
@@ -63,9 +64,12 @@
                   ? 'angtt'
                   : boardId === 'angmap'
                     ? 'angmap'
-                    : 'standard')
+                    : boardId === 'economy'
+                      ? 'economy'
+                      : 'standard')
     );
     const isAngmapBoard = $derived(boardType === 'angmap');
+    const isEconomyBoard = $derived(boardType === 'economy');
 
     // 플러그인 레지스트리에서 특수 게시판 컴포넌트 resolve
     const boardTypeComponent = $derived(boardTypeRegistry.resolve(boardType));
@@ -310,6 +314,11 @@
             <!-- 앙지도 헤더 -->
             {#if isAngmapBoard}
                 <BoardMapHeader />
+            {/if}
+
+            <!-- 알뜰구매 쇼핑 바로가기 -->
+            {#if isEconomyBoard}
+                <EconomyShoppingBanner />
             {/if}
 
             <!-- 헤더 -->

@@ -7,7 +7,7 @@ import { loadMenus } from '$lib/server/menu-loader';
  * 서버 사이드 데이터 로드
  * 모든 페이지 로드 전에 실행됨
  */
-export const load: LayoutServerLoad = async ({ url, locals }) => {
+export const load: LayoutServerLoad = async ({ locals }) => {
     // 병렬로 테마, 플러그인, 메뉴 데이터 로드
     const [activeTheme, activePlugins, menus] = await Promise.all([
         getActiveTheme(),
@@ -16,7 +16,6 @@ export const load: LayoutServerLoad = async ({ url, locals }) => {
     ]);
 
     return {
-        pathname: url.pathname,
         activeTheme: activeTheme?.manifest.id || null,
         themeSettings: activeTheme?.currentSettings || {},
         activePlugins: activePlugins.map((plugin) => ({

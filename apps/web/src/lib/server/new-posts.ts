@@ -39,7 +39,7 @@ export async function getNewPosts(
     perPage: number = 30
 ): Promise<NewPostsResult> {
     const offset = (page - 1) * perPage;
-    const conditions: string[] = [];
+    const conditions: string[] = ['b.bo_use_search = 1'];
     const params: (string | number)[] = [];
 
     // 원글/댓글 필터
@@ -55,7 +55,7 @@ export async function getNewPosts(
         params.push(grId);
     }
 
-    const whereClause = conditions.length > 0 ? 'WHERE ' + conditions.join(' AND ') : '';
+    const whereClause = 'WHERE ' + conditions.join(' AND ');
 
     // 카운트 쿼리
     const [countRows] = await pool.query<RowDataPacket[]>(

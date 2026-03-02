@@ -30,6 +30,7 @@
         id: number;
         image_url: string;
         link_url: string;
+        external_link?: string;
         alt_text?: string;
         target?: string;
         display_type?: 'image' | 'text';
@@ -164,8 +165,7 @@
             const url = new URL(raw, browser ? window.location.origin : 'https://localhost');
             if (
                 browser &&
-                (url.hostname === window.location.hostname ||
-                    url.hostname.endsWith('damoang.net'))
+                (url.hostname === window.location.hostname || url.hostname.endsWith('damoang.net'))
             ) {
                 return url.pathname + url.search + url.hash;
             }
@@ -173,6 +173,13 @@
             // 파싱 실패 시 원본
         }
         return raw;
+    }
+
+    // 축하메시지 배너 링크 결정: external_link 유무로 판단
+    function getCelebrationHref(banner: CelebrationBanner): string {
+        const custom = banner.external_link;
+        if (!custom || custom === '#') return `/message/${banner.id}`;
+        return toLocalHref(custom);
     }
 </script>
 
@@ -191,7 +198,7 @@
     {:else if celebrationBanner}
         <!-- 축하메시지 배너 -->
         <a
-            href={toLocalHref(celebrationBanner.link_url)}
+            href={getCelebrationHref(celebrationBanner)}
             class="border-border block overflow-hidden rounded-xl border transition-opacity hover:opacity-90"
         >
             <img

@@ -63,6 +63,8 @@
     } from '$lib/types/used-market.js';
     import QAAnswerSection from '$lib/components/features/board/qa-answer-section.svelte';
     import AuthorActivityPanel from '$lib/components/features/board/author-activity-panel.svelte';
+    import EconomyShoppingBanner from '$lib/components/features/board/economy-shopping-banner.svelte';
+    import EconomyOpenLinks from '$lib/components/features/board/economy-open-links.svelte';
 
     // Q&A 게시판 슬롯 등록
     postSlotRegistry.register('post.before_content', {
@@ -74,6 +76,20 @@
             post: pageData.post,
             boardId: pageData.boardId
         })
+    });
+
+    // 알뜰구매 게시판 슬롯 등록
+    postSlotRegistry.register('post.before_content', {
+        id: 'core:economy-shopping-banner',
+        component: EconomyShoppingBanner,
+        condition: (boardType: string) => boardType === 'economy',
+        priority: 10
+    });
+    postSlotRegistry.register('post.after_content', {
+        id: 'core:economy-open-links',
+        component: EconomyOpenLinks,
+        condition: (boardType: string) => boardType === 'economy',
+        priority: 10
     });
 
     // 작성자 활동 패널 슬롯 등록
@@ -143,7 +159,9 @@
                   ? 'angtt'
                   : boardId === 'angmap'
                     ? 'angmap'
-                    : 'standard')
+                    : boardId === 'economy'
+                      ? 'economy'
+                      : 'standard')
     );
     const isUsedMarket = $derived(boardType === 'used-market');
 
@@ -183,8 +201,8 @@
         }
     }
 
-    // 댓글 목록 상태 (반응형으로 관리)
-    let comments = $state<FreeComment[]>([]);
+    // 댓글 목록 상태 (SSR 데이터로 즉시 초기화하여 깜박임 방지 + 페이지 전환 시 갱신)
+    let comments = $state<FreeComment[]>(data.comments.items);
     $effect(() => {
         comments = data.comments.items;
     });
@@ -217,8 +235,8 @@
     // 게시글 삭제 상태
     let isDeleting = $state(false);
 
-    // 리비전 히스토리
-    let revisions = $state<PostRevision[]>([]);
+    // 리비전 히스토리 (SSR에서 관리자일 때 미리 로드됨)
+    let revisions = $state<PostRevision[]>(data.revisions ?? []);
 
     // 신고 다이얼로그 상태
     let showReportDialog = $state(false);
@@ -254,11 +272,6 @@
         // 추천 수 > 0이면 아바타 미리 로드
         if (likeCount > 0) {
             loadLikerAvatars();
-        }
-
-        // 리비전 히스토리 로드 (로그인 사용자만)
-        if (authStore.isAuthenticated) {
-            loadRevisions();
         }
 
         // 댓글 앵커 스크롤 (#c_댓글ID)
@@ -906,7 +919,9 @@
                 <!-- 게시글 본문 -->
                 {#if canViewSecret}
                     <AdultBlur isAdult={data.post.is_adult ?? false}>
-                        <Markdown content={postContent()} />
+                        <div id="economy-post-content">
+                            <Markdown content={postContent()} />
+                        </div>
 
                         {#if data.post.videos && data.post.videos.length > 0}
                             <div class="mt-6 space-y-4">
@@ -1103,6 +1118,9 @@
         {#if data.post.updated_at && data.post.updated_at !== data.post.created_at}
             <p class="text-muted-foreground mt-4 text-center text-[15px]">
                 마지막 수정: {formatDate(data.post.updated_at)}
+                {#if revisions.length > 0}
+                    <span class="text-muted-foreground/70">· 수정됨 ({revisions.length}회)</span>
+                {/if}
             </p>
         {/if}
 
@@ -1148,8 +1166,8 @@
         {/if}
         -->
 
-        <!-- 수정 이력 (리비전 히스토리) -->
-        {#if revisions.length > 0}
+        <!-- 수정 이력 (리비전 히스토리) - 관리자 전용 -->
+        {#if isAdmin && revisions.length > 0}
             <div class="mb-6">
                 <RevisionHistory
                     {revisions}

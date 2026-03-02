@@ -31,6 +31,11 @@ interface CountRow extends RowDataPacket {
     total: number;
 }
 
+interface EditCountRow extends RowDataPacket {
+    wr_id: number;
+    cnt: number;
+}
+
 function maskIp(ip: string): string {
     if (!ip) return '';
     const parts = ip.split('.');
@@ -40,8 +45,9 @@ function maskIp(ip: string): string {
     return ip;
 }
 
-export const GET: RequestHandler = async ({ params, url }) => {
+export const GET: RequestHandler = async ({ params, url, locals }) => {
     const { boardId, postId } = params;
+    const isAdmin = (locals.user?.level ?? 0) >= 10;
 
     if (!boardId || !postId) {
         return json({ success: false, message: 'boardId와 postId가 필요합니다.' }, { status: 400 });
@@ -94,12 +100,25 @@ export const GET: RequestHandler = async ({ params, url }) => {
             }
         }
 
+        // 댓글별 수정 횟수 배치 조회 (g5_write_revisions)
+        const commentIds = rows.map((r) => r.wr_id);
+        const editCountMap = new Map<number, number>();
+        if (commentIds.length > 0) {
+            const [editCounts] = await pool.query<EditCountRow[]>(
+                `SELECT wr_id, COUNT(*) AS cnt FROM g5_write_revisions WHERE board_id = ? AND wr_id IN (?) GROUP BY wr_id`,
+                [safeBoardId, commentIds]
+            );
+            for (const ec of editCounts) {
+                editCountMap.set(ec.wr_id, ec.cnt);
+            }
+        }
+
         const comments = rows.map((row) => ({
             id: row.wr_id,
             content: row.wr_deleted_at ? '' : row.wr_content, // 삭제된 댓글은 내용 숨김
-            author: row.wr_deleted_at ? '' : (nickMap.get(row.mb_id) || row.wr_name || row.mb_id),
+            author: row.wr_deleted_at ? '' : nickMap.get(row.mb_id) || row.wr_name || row.mb_id,
             author_id: row.wr_deleted_at ? '' : row.mb_id,
-            author_ip: row.wr_deleted_at ? '' : maskIp(row.wr_ip),
+            author_ip: row.wr_deleted_at ? '' : isAdmin ? row.wr_ip : maskIp(row.wr_ip),
             likes: row.wr_good,
             dislikes: row.wr_nogood,
             depth: row.wr_comment_reply.length,
@@ -107,7 +126,8 @@ export const GET: RequestHandler = async ({ params, url }) => {
             created_at: row.wr_datetime,
             is_secret: row.wr_option?.includes('secret') || false,
             deleted_at: row.wr_deleted_at || null,
-            deleted_by: row.wr_deleted_by || null
+            deleted_by: row.wr_deleted_by || null,
+            edit_count: editCountMap.get(row.wr_id) || 0
         }));
 
         return json({

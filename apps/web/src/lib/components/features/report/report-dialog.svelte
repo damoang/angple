@@ -45,27 +45,32 @@
         onSuccess
     }: Props = $props();
 
-    // 신고 사유 목록 (ang-gnu nariya 플러그인과 동일한 순서)
+    // 신고 사유 목록 (nariya 플러그인 g5_na_singo sg_type 코드 21~40)
     const reportReasons: ReportReasonInfo[] = [
-        { value: 1, label: '회원비하' },
-        { value: 2, label: '예의없음' },
-        { value: 3, label: '부적절한 표현' },
-        { value: 4, label: '차별행위' },
-        { value: 5, label: '분란유도' },
-        { value: 6, label: '여론조성' },
-        { value: 7, label: '회원기만' },
-        { value: 8, label: '이용방해' },
-        { value: 9, label: '용도위반' },
-        { value: 10, label: '거래금지위반' },
-        { value: 11, label: '구걸' },
-        { value: 12, label: '권리침해' },
-        { value: 13, label: '외설' },
-        { value: 14, label: '위법행위' },
-        { value: 15, label: '광고홍보' }
+        { value: 21, label: '회원비하' },
+        { value: 22, label: '예의없음' },
+        { value: 23, label: '부적절한 표현' },
+        { value: 24, label: '차별행위' },
+        { value: 25, label: '분란유도/갈등조장' },
+        { value: 26, label: '여론조성' },
+        { value: 27, label: '회원기만' },
+        { value: 28, label: '이용방해' },
+        { value: 29, label: '용도위반' },
+        { value: 30, label: '거래금지위반' },
+        { value: 31, label: '구걸' },
+        { value: 32, label: '권리침해' },
+        { value: 33, label: '외설' },
+        { value: 34, label: '위법행위' },
+        { value: 35, label: '광고/홍보' },
+        { value: 36, label: '운영정책부정' },
+        { value: 37, label: '다중이' },
+        { value: 38, label: '기타사유' },
+        { value: 39, label: '뉴스펌글누락' },
+        { value: 40, label: '뉴스전문전재' }
     ];
 
     // 상태
-    let selectedReason = $state<ReportReason | null>(null);
+    let selectedReasons = $state<Set<ReportReason>>(new Set());
     let detail = $state('');
     let isSubmitting = $state(false);
     let isSuccess = $state(false);
@@ -78,14 +83,14 @@
     let isLoadingReporters = $state(false);
 
     // 제출 가능 여부
-    const canSubmit = $derived(selectedReason !== null);
+    const canSubmit = $derived(selectedReasons.size > 0);
 
     // 타이틀
     const dialogTitle = $derived(targetType === 'post' ? '게시글 신고' : '댓글 신고');
 
     // 신고 제출
     async function handleSubmit(): Promise<void> {
-        if (!selectedReason) return;
+        if (selectedReasons.size === 0) return;
 
         isSubmitting = true;
         error = null;
@@ -94,7 +99,7 @@
             const request = {
                 target_type: targetType,
                 target_id: targetId,
-                reason: selectedReason,
+                reasons: [...selectedReasons],
                 ...(detail.trim() ? { detail: detail.trim() } : {})
             };
 
@@ -122,7 +127,7 @@
     function handleClose(): void {
         open = false;
         // 상태 초기화
-        selectedReason = null;
+        selectedReasons = new Set();
         detail = '';
         isSuccess = false;
         error = null;
@@ -131,9 +136,12 @@
         onClose?.();
     }
 
-    // 사유 선택
-    function selectReason(reason: ReportReason): void {
-        selectedReason = reason;
+    // 사유 토글 (다중 선택)
+    function toggleReason(reason: ReportReason): void {
+        const next = new Set(selectedReasons);
+        if (next.has(reason)) next.delete(reason);
+        else next.add(reason);
+        selectedReasons = next;
     }
 
     // 관리자: 신고자 목록 로드
@@ -226,14 +234,19 @@
                 {/if}
 
                 <div class="space-y-2">
-                    <Label>신고 사유를 선택해주세요</Label>
+                    <Label
+                        >신고 사유를 선택해주세요 <span class="text-muted-foreground font-normal"
+                            >(복수 선택 가능)</span
+                        ></Label
+                    >
                     <div class="grid grid-cols-3 gap-2">
                         {#each reportReasons as reason (reason.value)}
                             <button
                                 type="button"
-                                onclick={() => selectReason(reason.value)}
-                                class="rounded-lg border px-3 py-2 text-center text-sm transition-colors {selectedReason ===
-                                reason.value
+                                onclick={() => toggleReason(reason.value)}
+                                class="rounded-lg border px-3 py-2 text-center text-sm transition-colors {selectedReasons.has(
+                                    reason.value
+                                )
                                     ? 'border-primary bg-primary/5 text-primary font-semibold'
                                     : 'border-border text-foreground hover:bg-muted/50'}"
                             >

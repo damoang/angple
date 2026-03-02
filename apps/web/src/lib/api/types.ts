@@ -72,6 +72,8 @@ export interface FreeComment {
     is_secret?: boolean; // 비밀댓글 여부
     deleted_at?: string | null; // 소프트 삭제 시점
     deleted_by?: string | null; // 삭제한 사용자 ID
+    edit_count?: number; // 수정 횟수 (리비전 수)
+    last_edited_at?: string; // 최종 수정 시각
 }
 
 // 첨부파일 응답
@@ -500,19 +502,23 @@ export interface Board {
     download_level?: number;
     write_point?: number;
     comment_point?: number;
+    read_point?: number;
     download_point?: number;
     use_category: number;
     use_good: number; // 추천 사용 여부 (0: 미사용, 1: 사용)
     use_nogood: number; // 비추천 사용 여부 (0: 미사용, 1: 사용)
     use_secret?: number; // 비밀글 사용 여부 (0: 미사용, 1: 사용)
+    use_sns?: number; // SNS 공유 사용 여부 (0: 미사용, 1: 사용)
     category_list: string;
     skin: string;
     mobile_skin: string;
     page_rows: number;
     upload_count: number;
     upload_size: number;
+    order?: number;
     count_write: number;
     count_comment: number;
+    notice?: string;
     insert_time: string;
     display_settings: BoardDisplaySettings;
     permissions?: BoardPermissions; // 사용자별 권한 정보 (서버에서 계산, 인증 시에만 포함)
@@ -560,23 +566,28 @@ export interface PostAttachment {
 // 신고 관련 타입
 export type ReportTargetType = 'post' | 'comment';
 
-// 신고 사유 (ang-gnu nariya 플러그인과 동일한 순서)
+// 신고 사유 (nariya 플러그인 g5_na_singo 테이블 sg_type 코드 21~40)
 export type ReportReason =
-    | 1 // 회원비하
-    | 2 // 예의없음
-    | 3 // 부적절한 표현
-    | 4 // 차별행위
-    | 5 // 분란유도
-    | 6 // 여론조성
-    | 7 // 회원기만
-    | 8 // 이용방해
-    | 9 // 용도위반
-    | 10 // 거래금지위반
-    | 11 // 구걸
-    | 12 // 권리침해
-    | 13 // 외설
-    | 14 // 위법행위
-    | 15; // 광고홍보
+    | 21 // 회원비하
+    | 22 // 예의없음
+    | 23 // 부적절한 표현
+    | 24 // 차별행위
+    | 25 // 분란유도/갈등조장
+    | 26 // 여론조성
+    | 27 // 회원기만
+    | 28 // 이용방해
+    | 29 // 용도위반
+    | 30 // 거래금지위반
+    | 31 // 구걸
+    | 32 // 권리침해
+    | 33 // 외설
+    | 34 // 위법행위
+    | 35 // 광고/홍보
+    | 36 // 운영정책부정
+    | 37 // 다중이
+    | 38 // 기타사유
+    | 39 // 뉴스펌글누락
+    | 40; // 뉴스전문전재
 
 export interface ReportReasonInfo {
     value: ReportReason;
@@ -586,7 +597,7 @@ export interface ReportReasonInfo {
 export interface CreateReportRequest {
     target_type: ReportTargetType;
     target_id: number | string;
-    reason: ReportReason;
+    reasons: ReportReason[];
     detail?: string; // 기타 사유 상세 설명
 }
 
@@ -594,7 +605,7 @@ export interface Report {
     id: string;
     target_type: ReportTargetType;
     target_id: number | string;
-    reason: ReportReason;
+    reasons: ReportReason[];
     detail?: string;
     reporter_id: string;
     reporter_name: string;

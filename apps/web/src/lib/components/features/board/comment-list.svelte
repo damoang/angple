@@ -21,6 +21,9 @@
     import { pluginStore } from '$lib/stores/plugin.svelte';
     import { LevelBadge } from '$lib/components/ui/level-badge/index.js';
     import { loadPluginComponent, loadPluginLib } from '$lib/utils/plugin-optional-loader';
+    import RevisionHistory from '$lib/components/post/revision-history.svelte';
+    import type { PostRevision } from '$lib/api/types.js';
+    import History from '@lucide/svelte/icons/history';
 
     // 동적 플러그인 임포트: member-memo
     let MemoBadge = $state<Component | null>(null);
@@ -101,6 +104,32 @@
     let editContent = $state('');
     let isUpdating = $state(false);
     let isDeleting = $state<string | null>(null);
+
+    // 댓글 리비전 이력 상태 (관리자 전용)
+    let revisionCommentId = $state<string | null>(null);
+    let commentRevisions = $state<PostRevision[]>([]);
+    let loadingRevisions = $state(false);
+
+    async function toggleCommentRevisions(commentId: string): Promise<void> {
+        if (revisionCommentId === commentId) {
+            revisionCommentId = null;
+            commentRevisions = [];
+            return;
+        }
+        revisionCommentId = commentId;
+        loadingRevisions = true;
+        try {
+            commentRevisions = await apiClient.getCommentRevisions(
+                boardId,
+                String(postId),
+                commentId
+            );
+        } catch {
+            commentRevisions = [];
+        } finally {
+            loadingRevisions = false;
+        }
+    }
 
     // 답글 상태 관리
     let replyingToCommentId = $state<string | null>(null);
@@ -599,6 +628,16 @@
                             </p>
                             <p class="text-muted-foreground {isReply ? 'text-xs' : 'text-sm'}">
                                 {formatDate(comment.created_at)}
+                                {#if comment.edit_count && comment.edit_count > 0}
+                                    <span
+                                        class="text-muted-foreground/70 text-xs"
+                                        title={comment.updated_at
+                                            ? `최종 수정: ${formatDate(comment.updated_at)}`
+                                            : ''}
+                                    >
+                                        · 수정됨 ({comment.edit_count}회)
+                                    </span>
+                                {/if}
                             </p>
                         </div>
                     </div>
@@ -625,145 +664,159 @@
                     {#if isDeleted}
                         <!-- 삭제된 댓글: 버튼 없음 -->
                     {:else}
-                    <!-- 댓글 좋아요 버튼 (PHP 호환: thumbup 이미지) -->
-                    <div
-                        class="comment-good-group flex items-stretch rounded-lg border {isCommentLiked(
-                            String(comment.id)
-                        )
-                            ? 'border-liked/40 bg-liked/5'
-                            : 'border-border'}"
-                    >
-                        {#if onLike && authStore.isAuthenticated}
-                            <button
-                                type="button"
-                                onclick={() => handleLikeComment(String(comment.id))}
-                                disabled={likingComment === String(comment.id)}
-                                class="flex items-center px-1.5 py-1 transition-opacity hover:opacity-80"
-                                title="추천"
-                            >
-                                <img
-                                    src={isCommentLiked(String(comment.id))
-                                        ? '/images/thumbup-choose.gif?v=2'
-                                        : '/images/thumbup.png?v=2'}
-                                    alt="추천"
-                                    class="size-5"
-                                />
-                            </button>
-                        {:else}
-                            <span class="flex items-center px-1.5 py-1">
-                                <img src="/images/thumbup.png" alt="추천" class="size-5" />
-                            </span>
-                        {/if}
-                        <button
-                            type="button"
-                            onclick={() => openLikersDialog(comment.id)}
-                            class="text-muted-foreground hover:text-foreground border-l {isCommentLiked(
+                        <!-- 댓글 좋아요 버튼 (PHP 호환: thumbup 이미지) -->
+                        <div
+                            class="comment-good-group flex items-stretch rounded-lg border {isCommentLiked(
                                 String(comment.id)
                             )
-                                ? 'border-liked/40 text-liked'
-                                : 'border-border'} px-2 py-1 text-xs font-medium transition-colors"
-                            title="추천인 목록보기"
+                                ? 'border-liked/40 bg-liked/5'
+                                : 'border-border'}"
                         >
-                            {getCommentLikes(comment).toLocaleString()}
-                        </button>
-                    </div>
-
-                    <!-- 댓글 추천자 아바타 스택 -->
-                    {#if getCommentLikes(comment) > 0 && commentLikersList.has(String(comment.id))}
-                        <AvatarStack
-                            items={commentLikersList.get(String(comment.id)) ?? []}
-                            total={commentLikersTotal.get(String(comment.id)) ?? 0}
-                            max={5}
-                            size="sm"
-                            onclick={() => openLikersDialog(comment.id)}
-                        />
-                    {/if}
-
-                    <!-- 오른쪽 정렬: 비추천, 답글/수정/삭제 -->
-                    <div class="text-muted-foreground ml-auto flex items-center gap-2 text-sm">
-                        <!-- 댓글 비추천 버튼 (게시판 설정에서 활성화된 경우만) -->
-                        {#if useNogood}
-                            {#if onDislike && authStore.isAuthenticated}
+                            {#if onLike && authStore.isAuthenticated}
                                 <button
                                     type="button"
-                                    onclick={() => handleDislikeComment(String(comment.id))}
-                                    disabled={dislikingComment === String(comment.id)}
-                                    class="hover:text-disliked flex items-center gap-1 transition-colors {isCommentDisliked(
-                                        String(comment.id)
-                                    )
-                                        ? 'text-disliked'
-                                        : ''}"
+                                    onclick={() => handleLikeComment(String(comment.id))}
+                                    disabled={likingComment === String(comment.id)}
+                                    class="flex items-center px-1.5 py-1 transition-opacity hover:opacity-80"
+                                    title="추천"
                                 >
-                                    <span>👎</span>
-                                    <span>{getCommentDislikes(comment).toLocaleString()}</span>
+                                    <img
+                                        src={isCommentLiked(String(comment.id))
+                                            ? '/images/thumbup-choose.gif?v=2'
+                                            : '/images/thumbup.png?v=2'}
+                                        alt="추천"
+                                        class="size-5"
+                                    />
                                 </button>
                             {:else}
-                                <span>👎 {getCommentDislikes(comment).toLocaleString()}</span>
+                                <span class="flex items-center px-1.5 py-1">
+                                    <img src="/images/thumbup.png" alt="추천" class="size-5" />
+                                </span>
                             {/if}
+                            <button
+                                type="button"
+                                onclick={() => openLikersDialog(comment.id)}
+                                class="text-muted-foreground hover:text-foreground border-l {isCommentLiked(
+                                    String(comment.id)
+                                )
+                                    ? 'border-liked/40 text-liked'
+                                    : 'border-border'} px-2 py-1 text-xs font-medium transition-colors"
+                                title="추천인 목록보기"
+                            >
+                                {getCommentLikes(comment).toLocaleString()}
+                            </button>
+                        </div>
+
+                        <!-- 댓글 추천자 아바타 스택 -->
+                        {#if getCommentLikes(comment) > 0 && commentLikersList.has(String(comment.id))}
+                            <AvatarStack
+                                items={commentLikersList.get(String(comment.id)) ?? []}
+                                total={commentLikersTotal.get(String(comment.id)) ?? 0}
+                                max={5}
+                                size="sm"
+                                onclick={() => openLikersDialog(comment.id)}
+                            />
                         {/if}
 
-                        {#if !isEditing}
-                            <div class="flex gap-1">
-                                <!-- 답글 버튼 -->
-                                {#if onReply && authStore.isAuthenticated}
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onclick={() => startReply(comment)}
-                                        class="h-7 px-2"
-                                        disabled={isReplyingTo}
+                        <!-- 오른쪽 정렬: 비추천, 답글/수정/삭제 -->
+                        <div class="text-muted-foreground ml-auto flex items-center gap-2 text-sm">
+                            <!-- 댓글 비추천 버튼 (게시판 설정에서 활성화된 경우만) -->
+                            {#if useNogood}
+                                {#if onDislike && authStore.isAuthenticated}
+                                    <button
+                                        type="button"
+                                        onclick={() => handleDislikeComment(String(comment.id))}
+                                        disabled={dislikingComment === String(comment.id)}
+                                        class="hover:text-disliked flex items-center gap-1 transition-colors {isCommentDisliked(
+                                            String(comment.id)
+                                        )
+                                            ? 'text-disliked'
+                                            : ''}"
                                     >
-                                        <Reply class="h-4 w-4" />
-                                        <span class="ml-1 text-xs">답글</span>
-                                    </Button>
+                                        <span>👎</span>
+                                        <span>{getCommentDislikes(comment).toLocaleString()}</span>
+                                    </button>
+                                {:else}
+                                    <span>👎 {getCommentDislikes(comment).toLocaleString()}</span>
                                 {/if}
+                            {/if}
 
-                                <!-- 주소 복사 버튼 -->
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onclick={() => copyCommentLink(comment.id)}
-                                    class="h-7 px-2"
-                                >
-                                    <Link2 class="h-4 w-4" />
-                                    <span class="ml-1 text-xs">주소</span>
-                                </Button>
+                            {#if !isEditing}
+                                <div class="flex gap-1">
+                                    <!-- 답글 버튼 -->
+                                    {#if onReply && authStore.isAuthenticated}
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onclick={() => startReply(comment)}
+                                            class="h-7 px-2"
+                                            disabled={isReplyingTo}
+                                        >
+                                            <Reply class="h-4 w-4" />
+                                            <span class="ml-1 text-xs">답글</span>
+                                        </Button>
+                                    {/if}
 
-                                {#if canEdit}
-                                    <!-- 수정/삭제 버튼 (작성자 또는 최고관리자) -->
+                                    <!-- 주소 복사 버튼 -->
                                     <Button
                                         variant="ghost"
                                         size="sm"
-                                        onclick={() => startEdit(comment)}
+                                        onclick={() => copyCommentLink(comment.id)}
                                         class="h-7 px-2"
                                     >
-                                        <Pencil class="h-4 w-4" />
+                                        <Link2 class="h-4 w-4" />
+                                        <span class="ml-1 text-xs">주소</span>
                                     </Button>
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onclick={() => handleDelete(String(comment.id))}
-                                        disabled={isDeleting === String(comment.id)}
-                                        class="text-destructive hover:text-destructive h-7 px-2"
-                                    >
-                                        <Trash2 class="h-4 w-4" />
-                                    </Button>
-                                {/if}
-                                {#if !isAuthor && authStore.isAuthenticated}
-                                    <!-- 신고 버튼 (본인이 아닌 경우에만) -->
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onclick={() => startReport(comment)}
-                                        class="text-muted-foreground hover:text-destructive h-7 px-2"
-                                        title="신고"
-                                    >
-                                        <Flag class="h-4 w-4" />
-                                    </Button>
-                                {/if}
-                            </div>
-                        {/if}
-                    </div>
+
+                                    {#if canEdit}
+                                        <!-- 수정/삭제 버튼 (작성자 또는 최고관리자) -->
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onclick={() => startEdit(comment)}
+                                            class="h-7 px-2"
+                                        >
+                                            <Pencil class="h-4 w-4" />
+                                        </Button>
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onclick={() => handleDelete(String(comment.id))}
+                                            disabled={isDeleting === String(comment.id)}
+                                            class="text-destructive hover:text-destructive h-7 px-2"
+                                        >
+                                            <Trash2 class="h-4 w-4" />
+                                        </Button>
+                                    {/if}
+                                    {#if !isAuthor && authStore.isAuthenticated}
+                                        <!-- 신고 버튼 (본인이 아닌 경우에만) -->
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onclick={() => startReport(comment)}
+                                            class="text-muted-foreground hover:text-destructive h-7 px-2"
+                                            title="신고"
+                                        >
+                                            <Flag class="h-4 w-4" />
+                                        </Button>
+                                    {/if}
+                                    {#if isSuperAdmin() && comment.edit_count && comment.edit_count > 0}
+                                        <!-- 수정이력 버튼 (관리자 전용) -->
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onclick={() =>
+                                                toggleCommentRevisions(String(comment.id))}
+                                            class="text-muted-foreground h-7 px-2"
+                                            title="수정이력 보기"
+                                        >
+                                            <History class="h-4 w-4" />
+                                            <span class="ml-1 text-xs">수정이력</span>
+                                        </Button>
+                                    {/if}
+                                </div>
+                            {/if}
+                        </div>
                     {/if}
                 </div>
 
@@ -829,6 +882,23 @@
                     >
                         <!-- eslint-disable-next-line svelte/no-at-html-tags -->
                         {@html processedComments.get(comment.id) ?? ''}
+                    </div>
+                {/if}
+
+                <!-- 댓글 수정이력 (관리자 전용) -->
+                {#if revisionCommentId === String(comment.id)}
+                    <div class="mt-3">
+                        {#if loadingRevisions}
+                            <p class="text-muted-foreground text-sm">수정이력 로딩 중...</p>
+                        {:else if commentRevisions.length > 0}
+                            <RevisionHistory
+                                revisions={commentRevisions}
+                                isAdmin={true}
+                                canRestore={false}
+                            />
+                        {:else}
+                            <p class="text-muted-foreground text-sm">수정이력이 없습니다.</p>
+                        {/if}
                     </div>
                 {/if}
 

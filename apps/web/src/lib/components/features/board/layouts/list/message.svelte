@@ -11,8 +11,7 @@
      */
     import type { FreePost, BoardDisplaySettings } from '$lib/api/types.js';
     import Heart from '@lucide/svelte/icons/heart';
-    import { LevelBadge } from '$lib/components/ui/level-badge/index.js';
-    import { memberLevelStore } from '$lib/stores/member-levels.svelte.js';
+    import { getMemberIconUrl } from '$lib/utils/member-icon.js';
 
     let {
         post,
@@ -25,6 +24,10 @@
         href: string;
         isRead?: boolean;
     } = $props();
+
+    let showIcon = $state(true);
+    const iconUrl = $derived(showIcon ? getMemberIconUrl(post.author_id) : null);
+    const initial = $derived((post.author || '?').charAt(0).toUpperCase());
 
     // 삭제된 글
     const isDeleted = $derived(!!post.deleted_at);
@@ -81,12 +84,23 @@
 
         <!-- 본문: 프로필 + 배너 -->
         <a {href} class="relative flex min-h-[70px] flex-1" data-sveltekit-preload-data="hover">
-            <!-- 프로필 레벨 배지 (왼쪽 중앙) -->
+            <!-- 프로필 아이콘 (왼쪽 중앙) -->
             <div class="absolute left-3 top-1/2 z-10 -translate-y-1/2">
                 <div
-                    class="flex h-12 w-12 items-center justify-center rounded-full border-2 border-white/50 bg-gradient-to-br shadow-lg {grad}"
+                    class="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full border-2 border-white/50 bg-gradient-to-br shadow-lg {grad}"
                 >
-                    <LevelBadge level={memberLevelStore.getLevel(post.author_id)} size="md" />
+                    {#if iconUrl}
+                        <img
+                            src={iconUrl}
+                            alt={post.author}
+                            class="h-full w-full object-cover"
+                            onerror={() => {
+                                showIcon = false;
+                            }}
+                        />
+                    {:else}
+                        <span class="text-lg font-bold text-white">{initial}</span>
+                    {/if}
                 </div>
             </div>
 

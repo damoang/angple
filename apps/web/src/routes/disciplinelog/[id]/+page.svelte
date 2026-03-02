@@ -14,18 +14,31 @@
     import User from '@lucide/svelte/icons/user';
     import FileText from '@lucide/svelte/icons/file-text';
     import ExternalLink from '@lucide/svelte/icons/external-link';
+    import History from '@lucide/svelte/icons/history';
     import {
         getDisciplineLog,
+        getDisciplineLogs,
         getPenaltyDisplay,
-        type DisciplineLogDetail
+        type DisciplineLogDetail,
+        type DisciplineLogListItem
     } from '$lib/api/discipline-log.js';
     import { authStore } from '$lib/stores/auth.svelte.js';
 
     let log = $state<DisciplineLogDetail | null>(null);
     let loading = $state(true);
     let error = $state<string | null>(null);
+    let memberHistory = $state<DisciplineLogListItem[]>([]);
 
     const id = $derived(Number(page.params.id));
+
+    async function fetchMemberHistory(memberId: string) {
+        try {
+            const result = await getDisciplineLogs(1, 20, memberId);
+            memberHistory = result.data.filter((item) => item.id !== id);
+        } catch {
+            memberHistory = [];
+        }
+    }
 
     async function fetchLog() {
         loading = true;
@@ -33,6 +46,9 @@
         try {
             const result = await getDisciplineLog(id);
             log = result.data;
+            if (log.member_id) {
+                fetchMemberHistory(log.member_id);
+            }
         } catch (e) {
             error = '이용제한 기록을 불러오는데 실패했습니다.';
             log = null;
@@ -233,6 +249,41 @@
                             </p>
                         {/if}
                     {/if}
+                </Card.Content>
+            </Card.Root>
+        {/if}
+
+        <!-- Member History -->
+        {#if memberHistory.length > 0}
+            <Card.Root class="mt-4">
+                <Card.Header>
+                    <Card.Title class="flex items-center gap-2">
+                        <History class="h-5 w-5" />
+                        이 회원의 이전 이용제한 내역
+                    </Card.Title>
+                </Card.Header>
+                <Card.Content>
+                    <div class="space-y-2">
+                        {#each memberHistory as item}
+                            {@const itemPenalty = getPenaltyDisplay(item.penalty_period)}
+                            <a
+                                href="/disciplinelog/{item.id}"
+                                class="hover:bg-muted/50 flex items-center justify-between rounded p-2 text-sm transition-all duration-200 ease-out"
+                            >
+                                <div class="flex items-center gap-3">
+                                    <span class="text-muted-foreground"
+                                        >{item.penalty_date_from}</span
+                                    >
+                                    <Badge variant={getPenaltyBadgeVariant(item.penalty_period)}>
+                                        {itemPenalty.text}
+                                    </Badge>
+                                </div>
+                                <span class="text-muted-foreground max-w-[200px] truncate">
+                                    {item.violation_titles.join(', ')}
+                                </span>
+                            </a>
+                        {/each}
+                    </div>
                 </Card.Content>
             </Card.Root>
         {/if}
