@@ -1,5 +1,8 @@
 import { json } from '@sveltejs/kit';
+import { env } from '$env/dynamic/private';
 import type { RequestHandler } from './$types';
+
+const ADS_SERVER_URL = env.ADS_SERVER_URL || 'http://localhost:9090';
 
 // GET /api/ads/banners?position=board-head&limit=1
 // ads.damoang.net 프록시 (Cloudflare 우회)
@@ -9,7 +12,7 @@ export const GET: RequestHandler = async ({ url }) => {
 
     try {
         const response = await fetch(
-            `http://localhost:9090/api/v1/serve/banners?position=${encodeURIComponent(position)}&limit=${limit}`
+            `${ADS_SERVER_URL}/api/v1/serve/banners?position=${encodeURIComponent(position)}&limit=${limit}`
         );
         if (!response.ok) {
             return json({ success: false, data: { banners: [], count: 0 } });
