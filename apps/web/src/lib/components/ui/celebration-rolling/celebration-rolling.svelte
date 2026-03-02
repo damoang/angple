@@ -80,17 +80,18 @@
         return '축하합니다!';
     }
 
-    // 외부 절대 URL을 현재 도메인 상대 경로로 변환
+    // 배너 링크를 현재 도메인 상대 경로로 변환
+    // link_url이 없으면 /message/{id}로 폴백
     function toLocalHref(banner: CelebrationBanner): string {
-        const raw = banner.external_link || banner.link_url || '#';
+        const raw = banner.external_link || banner.link_url || '';
+        if (!raw || raw === '#') return `/message/${banner.id}`;
         try {
             const url = new URL(raw, window.location.origin);
-            // 같은 사이트(damoang 계열)면 pathname만 사용
             if (url.hostname === window.location.hostname || url.hostname.endsWith('damoang.net')) {
                 return url.pathname + url.search + url.hash;
             }
         } catch {
-            // URL 파싱 실패 시 원본 반환
+            // 파싱 실패
         }
         return raw;
     }
