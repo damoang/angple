@@ -11,7 +11,6 @@
      */
     import type { FreePost, BoardDisplaySettings } from '$lib/api/types.js';
     import Heart from '@lucide/svelte/icons/heart';
-    import ExternalLink from '@lucide/svelte/icons/external-link';
     import { LevelBadge } from '$lib/components/ui/level-badge/index.js';
     import { memberLevelStore } from '$lib/stores/member-levels.svelte.js';
 
@@ -56,9 +55,6 @@
 
     const gradNum = $derived(getGradientNumber(post.author_id));
     const grad = $derived(gradients[gradNum]);
-
-    // 외부 링크 추출 (확장 필드 - link1 사용)
-    const externalLink = $derived(post.link1);
 </script>
 
 <!-- 축하 메시지 카드 -->
@@ -74,25 +70,14 @@
     <div
         class="border-border bg-background group flex h-full flex-col overflow-hidden rounded-2xl border shadow-sm transition-all duration-200 ease-out hover:-translate-y-1 hover:shadow-lg"
     >
-        <!-- 상단 헤더: 그라데이션 + 닉네임 -->
-        <div class="flex items-center gap-2 bg-gradient-to-r px-3 py-2 text-white {grad}">
-            <Heart class="h-4 w-4" />
-            <span class="text-sm font-bold drop-shadow-md">
-                {post.author ?? '축하합니다'}
-                {post.author ? '님' : ''}
+        <!-- 상단 헤더: 그라데이션 + [닉네임] 제목 -->
+        <a {href} class="flex items-center gap-2 bg-gradient-to-r px-3 py-2 text-white {grad}">
+            <Heart class="h-4 w-4 shrink-0" />
+            <span class="truncate text-sm font-bold drop-shadow-md">
+                {#if post.author}[{post.author}]{/if}
+                {post.title}
             </span>
-            {#if externalLink}
-                <a
-                    href={externalLink}
-                    rel="noopener"
-                    class="ml-auto flex items-center gap-1 rounded-full bg-white/20 px-2 py-0.5 text-xs transition-colors hover:bg-white/30"
-                    onclick={(e) => e.stopPropagation()}
-                >
-                    <ExternalLink class="h-3 w-3" />
-                    바로가기
-                </a>
-            {/if}
-        </div>
+        </a>
 
         <!-- 본문: 프로필 + 배너 -->
         <a {href} class="relative flex min-h-[70px] flex-1" data-sveltekit-preload-data="hover">
@@ -105,7 +90,7 @@
                 </div>
             </div>
 
-            <!-- 배너 이미지 or 텍스트 영역 -->
+            <!-- 배너 이미지 or 빈 공간 -->
             {#if hasImage}
                 <div class="relative h-full w-full">
                     <img
@@ -114,29 +99,9 @@
                         class="h-full min-h-[70px] w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
                         loading="lazy"
                     />
-                    <!-- 오버레이 -->
-                    <div
-                        class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-3 py-2 pl-20"
-                    >
-                        <p
-                            class="line-clamp-2 text-sm font-semibold text-white drop-shadow-md {isRead
-                                ? 'opacity-70'
-                                : ''}"
-                        >
-                            {post.title}
-                        </p>
-                    </div>
                 </div>
             {:else}
-                <div class="bg-muted flex w-full flex-col justify-center py-4 pl-20 pr-4">
-                    <p
-                        class="line-clamp-2 text-sm font-semibold {isRead
-                            ? 'text-muted-foreground'
-                            : 'text-foreground'}"
-                    >
-                        {post.title}
-                    </p>
-                </div>
+                <div class="bg-muted flex min-h-[70px] w-full"></div>
             {/if}
         </a>
     </div>

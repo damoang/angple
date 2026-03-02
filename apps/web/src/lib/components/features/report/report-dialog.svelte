@@ -1,6 +1,7 @@
 <script lang="ts">
     import { Button } from '$lib/components/ui/button/index.js';
     import { Label } from '$lib/components/ui/label/index.js';
+    import { Textarea } from '$lib/components/ui/textarea/index.js';
     import {
         Dialog,
         DialogContent,
@@ -10,10 +11,17 @@
         DialogFooter
     } from '$lib/components/ui/dialog/index.js';
     import { apiClient } from '$lib/api/index.js';
-    import type { ReportTargetType, ReportReason, ReportReasonInfo } from '$lib/api/types.js';
+    import { authStore } from '$lib/stores/auth.svelte.js';
+    import type {
+        ReportTargetType,
+        ReportReason,
+        ReportReasonInfo,
+        CommentReportInfo
+    } from '$lib/api/types.js';
     import AlertTriangle from '@lucide/svelte/icons/alert-triangle';
     import Loader2 from '@lucide/svelte/icons/loader-2';
     import CheckCircle from '@lucide/svelte/icons/check-circle';
+    import Users from '@lucide/svelte/icons/users';
 
     interface Props {
         open?: boolean;
@@ -21,6 +29,7 @@
         targetId: number | string;
         boardId: string;
         postId: number;
+        reportCount?: number;
         onClose?: () => void;
         onSuccess?: () => void;
     }
@@ -31,6 +40,7 @@
         targetId,
         boardId,
         postId,
+        reportCount = 0,
         onClose,
         onSuccess
     }: Props = $props();
@@ -56,9 +66,16 @@
 
     // 상태
     let selectedReason = $state<ReportReason | null>(null);
+    let detail = $state('');
     let isSubmitting = $state(false);
     let isSuccess = $state(false);
     let error = $state<string | null>(null);
+
+    // 관리자 신고자 목록
+    const isAdmin = $derived((authStore.user?.mb_level ?? 0) >= 10);
+    let showReporters = $state(false);
+    let reporters = $state<CommentReportInfo[]>([]);
+    let isLoadingReporters = $state(false);
 
     // 제출 가능 여부
     const canSubmit = $derived(selectedReason !== null);
@@ -77,7 +94,8 @@
             const request = {
                 target_type: targetType,
                 target_id: targetId,
-                reason: selectedReason
+                reason: selectedReason,
+                ...(detail.trim() ? { detail: detail.trim() } : {})
             };
 
             if (targetType === 'post') {
@@ -105,14 +123,39 @@
         open = false;
         // 상태 초기화
         selectedReason = null;
+        detail = '';
         isSuccess = false;
         error = null;
+        showReporters = false;
+        reporters = [];
         onClose?.();
     }
 
     // 사유 선택
     function selectReason(reason: ReportReason): void {
         selectedReason = reason;
+    }
+
+    // 관리자: 신고자 목록 로드
+    async function loadReporters(): Promise<void> {
+        if (showReporters) {
+            showReporters = false;
+            return;
+        }
+        isLoadingReporters = true;
+        try {
+            reporters = await apiClient.getCommentReports(boardId, postId);
+            // 해당 대상만 필터
+            if (targetType === 'comment') {
+                reporters = reporters.filter((r) => String(r.comment_id) === String(targetId));
+            }
+            showReporters = true;
+        } catch {
+            reporters = [];
+            showReporters = true;
+        } finally {
+            isLoadingReporters = false;
+        }
     }
 </script>
 
@@ -140,34 +183,77 @@
         {:else}
             <!-- 신고 사유 선택 -->
             <div class="space-y-4 py-4">
+                <!-- 관리자: 신고자 목록 버튼 (신고 있을 때만) -->
+                {#if isAdmin && reportCount > 0}
+                    <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        class="w-full gap-2"
+                        onclick={loadReporters}
+                        disabled={isLoadingReporters}
+                    >
+                        {#if isLoadingReporters}
+                            <Loader2 class="h-4 w-4 animate-spin" />
+                        {:else}
+                            <Users class="h-4 w-4" />
+                        {/if}
+                        신고자 목록 ({reportCount}건)
+                    </Button>
+
+                    {#if showReporters}
+                        <div class="bg-muted/50 max-h-40 space-y-1 overflow-y-auto rounded-lg p-3">
+                            {#if reporters.length === 0}
+                                <p class="text-muted-foreground text-center text-sm">
+                                    신고 내역이 없습니다.
+                                </p>
+                            {:else}
+                                {#each reporters as r}
+                                    <div class="flex items-center justify-between text-sm">
+                                        <span class="text-foreground font-medium"
+                                            >{r.reporter_name}</span
+                                        >
+                                        <span class="text-muted-foreground text-xs">
+                                            {r.reason_label} &middot; {new Date(
+                                                r.created_at
+                                            ).toLocaleDateString('ko-KR')}
+                                        </span>
+                                    </div>
+                                {/each}
+                            {/if}
+                        </div>
+                    {/if}
+                {/if}
+
                 <div class="space-y-2">
                     <Label>신고 사유를 선택해주세요</Label>
-                    <div class="grid gap-2">
+                    <div class="grid grid-cols-3 gap-2">
                         {#each reportReasons as reason (reason.value)}
                             <button
                                 type="button"
                                 onclick={() => selectReason(reason.value)}
-                                class="flex items-start gap-3 rounded-lg border p-3 text-left transition-colors {selectedReason ===
+                                class="rounded-lg border px-3 py-2 text-center text-sm transition-colors {selectedReason ===
                                 reason.value
-                                    ? 'border-primary bg-primary/5'
-                                    : 'border-border hover:bg-muted/50'}"
+                                    ? 'border-primary bg-primary/5 text-primary font-semibold'
+                                    : 'border-border text-foreground hover:bg-muted/50'}"
                             >
-                                <div
-                                    class="mt-0.5 h-4 w-4 shrink-0 rounded-full border-2 {selectedReason ===
-                                    reason.value
-                                        ? 'border-primary bg-primary'
-                                        : 'border-muted-foreground'}"
-                                >
-                                    {#if selectedReason === reason.value}
-                                        <div class="flex h-full w-full items-center justify-center">
-                                            <div class="h-1.5 w-1.5 rounded-full bg-white"></div>
-                                        </div>
-                                    {/if}
-                                </div>
-                                <p class="text-foreground font-medium">{reason.label}</p>
+                                {reason.label}
                             </button>
                         {/each}
                     </div>
+                </div>
+
+                <!-- 의견 입력란 -->
+                <div class="space-y-2">
+                    <Label for="report-detail"
+                        >의견 <span class="text-muted-foreground font-normal">(선택)</span></Label
+                    >
+                    <Textarea
+                        id="report-detail"
+                        bind:value={detail}
+                        placeholder="신고 사유에 대한 추가 의견을 남겨주세요"
+                        class="min-h-[80px] resize-none"
+                    />
                 </div>
 
                 <!-- 에러 메시지 -->
