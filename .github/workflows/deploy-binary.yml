@@ -69,7 +69,9 @@ jobs:
         env:
           VITE_GAM_NETWORK_CODE: '23338387889'
           VITE_GAM_SITE_NAME: 'damoang'
-        run: pnpm --filter web build
+        run: |
+          rm -rf apps/web/.svelte-kit apps/web/build
+          pnpm --filter web build
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
