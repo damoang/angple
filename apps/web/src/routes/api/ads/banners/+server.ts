@@ -1,11 +1,11 @@
 import { json } from '@sveltejs/kit';
-import { env } from '$env/dynamic/private';
+import { getAdsServerUrl } from '$lib/server/ads/config';
 import type { RequestHandler } from './$types';
 
 // GET /api/ads/banners?position=board-head&limit=1
 // ads.damoang.net 프록시 (Cloudflare 우회)
 export const GET: RequestHandler = async ({ url }) => {
-    const adsServerUrl = env.ADS_SERVER_URL || 'http://localhost:9090';
+    const adsServerUrl = getAdsServerUrl();
     const position = url.searchParams.get('position') || '';
     const limit = url.searchParams.get('limit') || '1';
 
