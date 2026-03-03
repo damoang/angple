@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { browser } from '$app/environment';
     import { goto } from '$app/navigation';
     import {
         Card,
@@ -109,6 +110,32 @@
 
     let { data }: { data: PageData } = $props();
 
+    // 글자 크기 조절
+    type FontSizeKey = 'small' | 'base' | 'large' | 'xlarge';
+    const FONT_SIZES: Record<FontSizeKey, string> = {
+        small: '14px',
+        base: '16px',
+        large: '18px',
+        xlarge: '20px'
+    };
+    const FONT_SIZE_ORDER: FontSizeKey[] = ['small', 'base', 'large', 'xlarge'];
+    let fontSize = $state<FontSizeKey>(
+        browser ? (localStorage.getItem('damoang_font_size') as FontSizeKey) || 'base' : 'base'
+    );
+
+    function changeFontSize(direction: -1 | 0 | 1) {
+        if (direction === 0) {
+            fontSize = 'base';
+        } else {
+            const idx = FONT_SIZE_ORDER.indexOf(fontSize);
+            const next = idx + direction;
+            if (next >= 0 && next < FONT_SIZE_ORDER.length) {
+                fontSize = FONT_SIZE_ORDER[next];
+            }
+        }
+        if (browser) localStorage.setItem('damoang_font_size', fontSize);
+    }
+
     // 글 읽기 권한 체크
     const canRead = $derived(
         !authStore.isAuthenticated
@@ -148,7 +175,7 @@
 
     // 게시판 정보
     const boardId = $derived(data.boardId);
-    const boardTitle = $derived(data.board?.subject || boardId);
+    const boardTitle = $derived(data.board?.subject || data.board?.name || boardId);
 
     // 특수 게시판 타입 감지
     const boardType = $derived(
@@ -916,10 +943,34 @@
                     <AdSlot position="board-content" height="90px" />
                 {/if}
 
+                <!-- 글자 크기 조절 -->
+                <div class="mb-1 flex justify-end gap-1">
+                    <button
+                        type="button"
+                        class="text-muted-foreground hover:text-foreground border-border hover:bg-muted rounded border px-2 py-0.5 text-xs transition-colors disabled:opacity-30"
+                        disabled={fontSize === 'small'}
+                        onclick={() => changeFontSize(-1)}
+                        aria-label="글자 작게">A-</button
+                    >
+                    <button
+                        type="button"
+                        class="text-muted-foreground hover:text-foreground border-border hover:bg-muted rounded border px-2 py-0.5 text-xs transition-colors"
+                        onclick={() => changeFontSize(0)}
+                        aria-label="글자 기본">A</button
+                    >
+                    <button
+                        type="button"
+                        class="text-muted-foreground hover:text-foreground border-border hover:bg-muted rounded border px-2 py-0.5 text-xs transition-colors disabled:opacity-30"
+                        disabled={fontSize === 'xlarge'}
+                        onclick={() => changeFontSize(1)}
+                        aria-label="글자 크게">A+</button
+                    >
+                </div>
+
                 <!-- 게시글 본문 -->
                 {#if canViewSecret}
                     <AdultBlur isAdult={data.post.is_adult ?? false}>
-                        <div id="economy-post-content">
+                        <div id="economy-post-content" style="font-size: {FONT_SIZES[fontSize]}">
                             <Markdown content={postContent()} />
                         </div>
 

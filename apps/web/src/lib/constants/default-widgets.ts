@@ -87,6 +87,12 @@ export const DEFAULT_WIDGETS: WidgetConfig[] = [
         position: 10,
         enabled: true,
         settings: { position: 'index-bottom' }
+    },
+    {
+        id: 'celebration',
+        type: 'celebration',
+        position: 11,
+        enabled: true
     }
 ];
 

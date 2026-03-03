@@ -12,7 +12,7 @@
     // 게시판 정보
     const boardId = $derived(data.boardId);
     const postId = $derived(data.postId);
-    const boardTitle = $derived(data.board?.subject || boardId);
+    const boardTitle = $derived(data.board?.subject || data.board?.name || boardId);
 
     let isSubmitting = $state(false);
     let error = $state<string | null>(null);

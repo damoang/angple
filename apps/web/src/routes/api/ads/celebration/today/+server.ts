@@ -51,19 +51,9 @@ function extractFirstImage(content: string): string | null {
 
 export const GET: RequestHandler = async () => {
     try {
-        // KST 시간으로 변환 (UTC+9)
-        const now = new Date();
-        const kstOffset = 9 * 60 * 60 * 1000; // 9시간을 밀리초로
-        const kstDate = new Date(now.getTime() + kstOffset);
-        const year = kstDate.getUTCFullYear();
-        const month = kstDate.getUTCMonth() + 1;
-        const day = kstDate.getUTCDate();
-        const dateDash = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-        const dateDot = `${year}.${String(month).padStart(2, '0')}.${String(day).padStart(2, '0')}`;
-
         const banners: Banner[] = [];
 
-        // 1차: celebration_banners 테이블 (신규) — g5_member JOIN으로 닉네임/사진 가져옴
+        // 1차: celebration_banners 테이블 (신규) — 최근 활성 배너를 날짜 무관하게 표시
         try {
             const [rows] = await pool.execute<RowDataPacket[]>(
                 `SELECT cb.id, cb.title, cb.content, cb.image_url, cb.link_url,
@@ -74,10 +64,8 @@ export const GET: RequestHandler = async () => {
                  FROM celebration_banners cb
                  LEFT JOIN g5_member m ON cb.target_member_id = m.mb_id
                  WHERE cb.is_active = 1
-                   AND (cb.display_date = ?
-                        OR (cb.yearly_repeat = 1 AND MONTH(cb.display_date) = ? AND DAY(cb.display_date) = ?))
-                 ORDER BY cb.sort_order ASC, cb.id DESC`,
-                [dateDash, month, day]
+                 ORDER BY cb.display_date DESC, cb.sort_order ASC, cb.id DESC
+                 LIMIT 8`
             );
 
             for (const row of rows as RowDataPacket[]) {
@@ -108,7 +96,7 @@ export const GET: RequestHandler = async () => {
             // celebration_banners 테이블이 없을 수 있음 — 무시하고 fallback으로
         }
 
-        // 2차: g5_write_message fallback (마이그레이션 전까지) — g5_member JOIN
+        // 2차: g5_write_message fallback (마이그레이션 전까지) — 최근 글 표시
         if (banners.length === 0) {
             const [rows] = await pool.execute<RowDataPacket[]>(
                 `SELECT wm.wr_id, wm.wr_subject, wm.wr_content, wm.wr_link2, wm.mb_id,
@@ -116,9 +104,8 @@ export const GET: RequestHandler = async () => {
                  FROM g5_write_message wm
                  LEFT JOIN g5_member m ON wm.mb_id = m.mb_id
                  WHERE wm.wr_is_comment = 0
-                   AND (wm.wr_subject = ? OR wm.wr_subject = ?)
-                 ORDER BY wm.wr_subject DESC, wm.wr_id DESC`,
-                [dateDot, dateDash]
+                 ORDER BY wm.wr_id DESC
+                 LIMIT 8`
             );
 
             for (const row of rows as RowDataPacket[]) {

@@ -570,7 +570,9 @@
         <li
             id="c_{comment.id}"
             style="margin-left: {Math.min(depth, 3) * 1.25}rem; scroll-margin-top: 100px"
-            class="py-3 transition-colors duration-200 first:pt-0 last:pb-0"
+            class="py-3 transition-colors duration-200 first:pt-0 last:pb-0 {isReply
+                ? 'border-primary/20 border-l-2 pl-3'
+                : ''}"
         >
             <div>
                 <div class="mb-2 flex flex-wrap items-center gap-2 sm:gap-3">
@@ -605,13 +607,11 @@
                         {/if}
                         <div>
                             <p
-                                class="text-foreground flex items-center gap-1.5 font-medium {isReply
-                                    ? 'text-sm'
-                                    : 'text-base'}"
+                                class="text-foreground flex items-center gap-1.5 text-base font-medium"
                             >
                                 <LevelBadge
                                     level={memberLevelStore.getLevel(comment.author_id)}
-                                    size={isReply ? 'sm' : 'md'}
+                                    size="md"
                                 />
                                 {comment.author}
                                 {#if memoPluginActive && MemoBadge}
@@ -626,7 +626,7 @@
                                     <Lock class="text-muted-foreground h-3.5 w-3.5" />
                                 {/if}
                             </p>
-                            <p class="text-muted-foreground {isReply ? 'text-xs' : 'text-sm'}">
+                            <p class="text-muted-foreground text-sm">
                                 {formatDate(comment.created_at)}
                                 {#if comment.edit_count && comment.edit_count > 0}
                                     <span
@@ -824,9 +824,7 @@
                 {#if comment.deleted_at}
                     <!-- 삭제된 댓글 표시 -->
                     <div
-                        class="text-muted-foreground flex items-center gap-2 italic opacity-60 {isReply
-                            ? 'text-sm'
-                            : 'text-base'}"
+                        class="text-muted-foreground flex items-center gap-2 text-base italic opacity-60"
                     >
                         <Trash2 class="h-4 w-4" />
                         삭제된 댓글입니다.
@@ -866,20 +864,12 @@
                         </div>
                     </div>
                 {:else if comment.is_secret && !canViewSecretComment(comment)}
-                    <div
-                        class="text-muted-foreground flex items-center gap-2 italic {isReply
-                            ? 'text-sm'
-                            : 'text-base'}"
-                    >
+                    <div class="text-muted-foreground flex items-center gap-2 text-base italic">
                         <Lock class="h-4 w-4" />
                         비밀댓글입니다.
                     </div>
                 {:else}
-                    <div
-                        class="text-foreground whitespace-pre-wrap {isReply
-                            ? 'text-sm'
-                            : 'text-base leading-relaxed'}"
-                    >
+                    <div class="text-foreground whitespace-pre-wrap text-base leading-relaxed">
                         <!-- eslint-disable-next-line svelte/no-at-html-tags -->
                         {@html processedComments.get(comment.id) ?? ''}
                     </div>

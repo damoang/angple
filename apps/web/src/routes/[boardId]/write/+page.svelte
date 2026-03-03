@@ -14,7 +14,7 @@
 
     // 게시판 정보
     const boardId = $derived(data.boardId);
-    const boardTitle = $derived(data.board?.subject || boardId);
+    const boardTitle = $derived(data.board?.subject || data.board?.name || boardId);
     const boardType = $derived(data.board?.board_type || 'standard');
 
     // 커스텀 글쓰기 폼 resolve (없으면 기본 PostForm 사용)
