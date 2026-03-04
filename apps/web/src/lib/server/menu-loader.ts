@@ -15,6 +15,32 @@ let cacheTimestamp = 0;
 const CACHE_TTL_MS = 300_000; // 5분 (메뉴는 거의 변경되지 않음)
 
 /**
+ * 백엔드 연결 불가 시 최소한의 기본 메뉴
+ * Reddit/Facebook 패턴: 네비게이션은 항상 표시 (App Shell)
+ */
+const FALLBACK_MENUS: MenuItem[] = [
+    {
+        id: 9001,
+        title: '커뮤니티',
+        url: '',
+        icon: 'MessageSquare',
+        children: [
+            { id: 9010, title: '자유게시판', url: '/free', icon: 'MessageSquare', children: [] },
+            { id: 9011, title: '질문답변', url: '/qa', icon: 'CircleHelp', children: [] },
+            { id: 9012, title: '알뜰구매', url: '/economy', icon: 'ShoppingCart', children: [] },
+            { id: 9013, title: '정보공유', url: '/tips', icon: 'Lightbulb', children: [] }
+        ]
+    },
+    {
+        id: 9002,
+        title: '갤러리',
+        url: '/gallery',
+        icon: 'Images',
+        children: []
+    }
+];
+
+/**
  * 메뉴 캐시 무효화 (관리자가 메뉴 변경 시 호출)
  */
 export function invalidateMenuCache(): void {
@@ -44,7 +70,7 @@ export async function loadMenus(): Promise<MenuItem[]> {
 
         if (!response.ok) {
             console.error('[menu-loader] API error:', response.status);
-            return cachedMenus ?? [];
+            return cachedMenus ?? FALLBACK_MENUS;
         }
 
         const result = await response.json();
@@ -57,6 +83,7 @@ export async function loadMenus(): Promise<MenuItem[]> {
     } catch (err) {
         console.error('[menu-loader] fetch failed:', err);
         // 캐시가 있으면 만료되었더라도 반환 (graceful degradation)
-        return cachedMenus ?? [];
+        // 캐시도 없으면 fallback 메뉴 반환 (App Shell 패턴 — 네비게이션은 항상 표시)
+        return cachedMenus ?? FALLBACK_MENUS;
     }
 }
