@@ -2,8 +2,9 @@
  * 새글 모아보기 (g5_board_new 테이블)
  * PHP /bbs/new.php 호환
  */
-import pool from '$lib/server/db.js';
+import { readPool } from '$lib/server/db.js';
 import type { RowDataPacket } from 'mysql2';
+import { TieredCache } from '$lib/server/cache.js';
 
 export interface NewPostItem {
     bn_id: number;
@@ -27,7 +28,10 @@ export interface NewPostsResult {
     nextCursor: number | null;
 }
 
-// --- 인메모리 캐시 ---
+// --- 캐시 ---
+
+/** 새글 결과 캐시: L1 30초, L2 60초 (새글이 빈번하므로 짧게) */
+const feedCache = new TieredCache<NewPostsResult>('feed', 30_000, 60, 200);
 
 /** COUNT(*) 캐시: key = "view:grId", TTL 10분 */
 const countCache = new Map<string, { total: number; expiry: number }>();
@@ -67,6 +71,11 @@ export async function getNewPosts(
     perPage: number = 30,
     cursor?: number
 ): Promise<NewPostsResult> {
+    // Redis 2-tier 캐시 확인 (L1 30초, L2 60초)
+    const feedCacheKey = `${view}:${grId}:${page}:${cursor || 0}`;
+    const cached = await feedCache.get(feedCacheKey);
+    if (cached) return cached;
+
     const conditions: string[] = ['b.bo_use_search = 1'];
     const params: (string | number)[] = [];
 
@@ -109,7 +118,7 @@ export async function getNewPosts(
         }
         const countWhere = 'WHERE ' + countConditions.join(' AND ');
 
-        const [countRows] = await pool.query<RowDataPacket[]>(
+        const [countRows] = await readPool.query<RowDataPacket[]>(
             `SELECT COUNT(*) as total
 			 FROM g5_board_new bn
 			 JOIN g5_board b ON bn.bo_table = b.bo_table
@@ -126,7 +135,7 @@ export async function getNewPosts(
         ? [...params, perPage]
         : [...params, (page - 1) * perPage, perPage];
 
-    const [rows] = await pool.query<RowDataPacket[]>(
+    const [rows] = await readPool.query<RowDataPacket[]>(
         `SELECT bn.bn_id, bn.bo_table, bn.wr_id, bn.wr_parent, bn.bn_datetime,
 		        b.bo_subject, bn.mb_id
 		 FROM g5_board_new bn
@@ -161,7 +170,7 @@ export async function getNewPosts(
     const batchPromises = Array.from(grouped.entries()).map(async ([boTable, tableRows]) => {
         const wrIds = tableRows.map((r) => r.wr_id);
         try {
-            const [writeRows] = await pool.query<RowDataPacket[]>(
+            const [writeRows] = await readPool.query<RowDataPacket[]>(
                 `SELECT wr_id, wr_subject, wr_content, wr_name, wr_comment, wr_hit
 				 FROM \`g5_write_${boTable}\`
 				 WHERE wr_id IN (?)`,
@@ -202,7 +211,12 @@ export async function getNewPosts(
     // 다음 페이지 커서: 마지막 항목의 bn_id
     const nextCursor = items.length > 0 ? items[items.length - 1].bn_id : null;
 
-    return { items, total, nextCursor };
+    const result: NewPostsResult = { items, total, nextCursor };
+
+    // 결과 캐시 저장 (fire-and-forget)
+    feedCache.set(feedCacheKey, result).catch(() => {});
+
+    return result;
 }
 
 /** 그룹 목록 조회 (1시간 인메모리 캐시) */
@@ -211,7 +225,7 @@ export async function getBoardGroups(): Promise<{ gr_id: string; gr_subject: str
         return boardGroupsCache.data;
     }
 
-    const [rows] = await pool.query<RowDataPacket[]>(
+    const [rows] = await readPool.query<RowDataPacket[]>(
         'SELECT gr_id, gr_subject FROM g5_group ORDER BY gr_order, gr_id'
     );
     const data = rows as { gr_id: string; gr_subject: string }[];
