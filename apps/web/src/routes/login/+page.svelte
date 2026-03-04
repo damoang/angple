@@ -1,31 +1,10 @@
 <script lang="ts">
-    import { browser } from '$app/environment';
     import { page } from '$app/stores';
     import { onMount } from 'svelte';
-    import {
-        Card,
-        CardContent,
-        CardHeader,
-        CardTitle,
-        CardDescription
-    } from '$lib/components/ui/card/index.js';
-    import { Button } from '$lib/components/ui/button/index.js';
-    import { Input } from '$lib/components/ui/input/index.js';
-    import { Label } from '$lib/components/ui/label/index.js';
-    import { Checkbox } from '$lib/components/ui/checkbox/index.js';
+    import { Card, CardContent } from '$lib/components/ui/card/index.js';
     import { Separator } from '$lib/components/ui/separator/index.js';
     import { authStore } from '$lib/stores/auth.svelte.js';
-    import { apiClient } from '$lib/api/index.js';
     import type { OAuthProvider } from '$lib/api/types.js';
-    import Loader2 from '@lucide/svelte/icons/loader-2';
-    import LogIn from '@lucide/svelte/icons/log-in';
-    import Mail from '@lucide/svelte/icons/mail';
-    import Lock from '@lucide/svelte/icons/lock';
-
-    // 성공 메시지 매핑
-    const successMessages: Record<string, string> = {
-        password_reset_success: '비밀번호가 변경되었습니다. 새 비밀번호로 로그인해주세요.'
-    };
 
     // OAuth 에러 메시지 매핑
     const oauthErrorMessages: Record<string, string> = {
@@ -39,40 +18,15 @@
         provider_access_denied: '소셜로그인이 취소되었습니다.'
     };
 
-    // 폼 상태
-    let mbId = $state('');
-    let mbPassword = $state('');
-    let remember = $state(false);
-    let isLoading = $state(false);
     let error = $state<string | null>(null);
     let isRedirecting = $state(false);
-    let successMessage = $state<string | null>(null);
 
-    // URL 파라미터로 ID/PW 폼 표시 여부 결정
-    const showIdLogin = $derived($page.url.searchParams.get('type') === 'id');
-
-    // 리다이렉트 URL
     const redirectUrl = $derived($page.url.searchParams.get('redirect') || '/');
 
-    // "아이디로 로그인" 링크 URL 생성
-    const idLoginUrl = $derived(() => {
-        const params = new URLSearchParams($page.url.searchParams);
-        params.set('type', 'id');
-        return `/login?${params.toString()}`;
-    });
-
-    // 이미 로그인되어 있으면 리다이렉트
     onMount(() => {
-        // OAuth 에러 메시지 표시
         const oauthError = $page.url.searchParams.get('error');
         if (oauthError) {
             error = oauthErrorMessages[oauthError] || `로그인 오류: ${oauthError}`;
-        }
-
-        // 성공 메시지 표시 (비밀번호 변경 등)
-        const message = $page.url.searchParams.get('message');
-        if (message) {
-            successMessage = successMessages[message] || null;
         }
 
         function checkAndRedirect() {
@@ -89,36 +43,6 @@
         checkAndRedirect();
     });
 
-    // 아이디/비밀번호 로그인
-    async function handleLogin(e: Event): Promise<void> {
-        e.preventDefault();
-
-        if (!mbId.trim() || !mbPassword.trim()) {
-            error = '아이디와 비밀번호를 입력해주세요.';
-            return;
-        }
-
-        isLoading = true;
-        error = null;
-
-        try {
-            await apiClient.login({
-                username: mbId,
-                password: mbPassword,
-                remember
-            });
-
-            // 풀 페이지 리로드로 리다이렉트 (세션 쿠키 반영)
-            window.location.href = redirectUrl;
-        } catch (err) {
-            console.error('Login failed:', err);
-            error = err instanceof Error ? err.message : '로그인에 실패했습니다.';
-        } finally {
-            isLoading = false;
-        }
-    }
-
-    // OAuth 로그인 (서버사이드 처리 → /auth/start)
     function handleOAuthLogin(provider: OAuthProvider): void {
         const params = new URLSearchParams({
             provider,
@@ -127,111 +51,115 @@
         window.location.href = `/auth/start?${params.toString()}`;
     }
 
-    // OAuth 프로바이더 설정
-    const oauthProviders: {
+    // 주요 프로바이더 (풀 너비 버튼)
+    const mainProviders: {
         id: OAuthProvider;
         name: string;
         bgClass: string;
         textClass: string;
         hoverClass: string;
-        icon: string;
     }[] = [
-        {
-            id: 'google',
-            name: 'Google',
-            bgClass: 'bg-white border',
-            textClass: 'text-gray-700',
-            hoverClass: 'hover:bg-gray-50',
-            icon: 'google'
-        },
         {
             id: 'kakao',
             name: '카카오',
             bgClass: 'bg-[#FEE500]',
             textClass: 'text-[#191919]',
-            hoverClass: 'hover:bg-[#FEE500]/90',
-            icon: 'kakao'
+            hoverClass: 'hover:bg-[#FEE500]/90'
         },
         {
             id: 'naver',
             name: '네이버',
             bgClass: 'bg-[#03C75A]',
             textClass: 'text-white',
-            hoverClass: 'hover:bg-[#03C75A]/90',
-            icon: 'naver'
+            hoverClass: 'hover:bg-[#03C75A]/90'
         },
+        {
+            id: 'google',
+            name: 'Google',
+            bgClass: 'bg-white border border-border',
+            textClass: 'text-gray-700',
+            hoverClass: 'hover:bg-gray-50'
+        }
+    ];
+
+    // 보조 프로바이더 (아이콘 버튼)
+    const subProviders: {
+        id: OAuthProvider;
+        name: string;
+        bgClass: string;
+        hoverClass: string;
+    }[] = [
         {
             id: 'apple',
             name: 'Apple',
-            bgClass: 'bg-black',
-            textClass: 'text-white',
-            hoverClass: 'hover:bg-black/90',
-            icon: 'apple'
+            bgClass: 'bg-black dark:bg-white dark:text-black',
+            hoverClass: 'hover:bg-black/80 dark:hover:bg-white/80'
         },
         {
             id: 'facebook',
             name: 'Facebook',
             bgClass: 'bg-[#1877F2]',
-            textClass: 'text-white',
-            hoverClass: 'hover:bg-[#1877F2]/90',
-            icon: 'facebook'
+            hoverClass: 'hover:bg-[#1877F2]/80'
         },
         {
             id: 'twitter',
-            name: 'X (Twitter)',
-            bgClass: 'bg-black',
-            textClass: 'text-white',
-            hoverClass: 'hover:bg-black/90',
-            icon: 'twitter'
+            name: 'X',
+            bgClass: 'bg-black dark:bg-white dark:text-black',
+            hoverClass: 'hover:bg-black/80 dark:hover:bg-white/80'
         },
         {
             id: 'payco',
             name: 'PAYCO',
             bgClass: 'bg-[#E42529]',
-            textClass: 'text-white',
-            hoverClass: 'hover:bg-[#E42529]/90',
-            icon: 'payco'
+            hoverClass: 'hover:bg-[#E42529]/80'
         }
     ];
 </script>
 
 <svelte:head>
-    <title>로그인 | {import.meta.env.VITE_SITE_NAME || 'Angple'}</title>
+    <title>로그인 | {import.meta.env.VITE_SITE_NAME || '다모앙'}</title>
 </svelte:head>
 
 <div class="flex min-h-[calc(100vh-200px)] items-center justify-center px-4 py-12">
-    <Card class="w-full max-w-md">
-        <CardHeader class="text-center">
-            <CardTitle class="text-2xl font-bold">로그인</CardTitle>
-            <CardDescription
-                >{import.meta.env.VITE_SITE_NAME || 'Angple'}에 오신 것을 환영합니다</CardDescription
-            >
-        </CardHeader>
-        <CardContent class="space-y-6">
-            <!-- 성공 메시지 -->
-            {#if successMessage}
-                <div
-                    class="rounded-md bg-green-50 p-3 text-sm text-green-700 dark:bg-green-900/20 dark:text-green-400"
-                >
-                    {successMessage}
-                </div>
-            {/if}
+    <Card class="w-full max-w-sm shadow-sm">
+        <CardContent class="space-y-6 pb-6 pt-8">
+            <!-- 헤더 -->
+            <div class="text-center">
+                <h1 class="text-xl font-bold tracking-tight">
+                    {import.meta.env.VITE_SITE_NAME || '다모앙'}
+                </h1>
+                <p class="text-muted-foreground mt-1 text-sm">
+                    소셜 계정으로 간편하게 로그인하세요
+                </p>
+            </div>
 
             <!-- 에러 메시지 -->
             {#if error}
-                <div class="bg-destructive/10 text-destructive rounded-md p-3 text-sm">
-                    {error}
-                </div>
+                <div class="bg-destructive/10 text-destructive rounded-lg p-3 text-sm">{error}</div>
             {/if}
 
-            <!-- 소셜 로그인 -->
-            <div class="space-y-2">
-                {#each oauthProviders as provider}
+            <!-- 주요 소셜 로그인 (풀 너비) -->
+            <div class="space-y-2.5">
+                {#each mainProviders as provider}
                     <button
-                        class="flex w-full items-center justify-center gap-2 rounded-md px-4 py-2.5 text-sm font-medium transition-colors {provider.bgClass} {provider.textClass} {provider.hoverClass}"
+                        class="flex w-full items-center justify-center gap-2.5 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200 active:scale-[0.98] {provider.bgClass} {provider.textClass} {provider.hoverClass}"
                         onclick={() => handleOAuthLogin(provider.id)}
                     >
-                        {#if provider.icon === 'google'}
+                        {#if provider.id === 'kakao'}
+                            <svg class="h-5 w-5" viewBox="0 0 24 24">
+                                <path
+                                    fill="#191919"
+                                    d="M12 3c-5.065 0-9.167 3.355-9.167 7.5 0 2.625 1.757 4.937 4.403 6.278-.193.705-.7 2.555-.804 2.953-.127.497.182.49.385.357.159-.104 2.534-1.72 3.565-2.42.514.073 1.047.112 1.618.112 5.065 0 9.167-3.355 9.167-7.5S17.065 3 12 3"
+                                />
+                            </svg>
+                        {:else if provider.id === 'naver'}
+                            <svg class="h-5 w-5" viewBox="0 0 24 24">
+                                <path
+                                    fill="white"
+                                    d="M16.273 12.845 7.376 0H0v24h7.727V11.155L16.624 24H24V0h-7.727z"
+                                />
+                            </svg>
+                        {:else if provider.id === 'google'}
                             <svg class="h-5 w-5" viewBox="0 0 24 24">
                                 <path
                                     fill="#4285F4"
@@ -250,137 +178,69 @@
                                     d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
                                 />
                             </svg>
-                        {:else if provider.icon === 'kakao'}
-                            <svg class="h-5 w-5" viewBox="0 0 24 24">
-                                <path
-                                    fill="#191919"
-                                    d="M12 3c-5.065 0-9.167 3.355-9.167 7.5 0 2.625 1.757 4.937 4.403 6.278-.193.705-.7 2.555-.804 2.953-.127.497.182.49.385.357.159-.104 2.534-1.72 3.565-2.42.514.073 1.047.112 1.618.112 5.065 0 9.167-3.355 9.167-7.5S17.065 3 12 3"
-                                />
-                            </svg>
-                        {:else if provider.icon === 'naver'}
-                            <svg class="h-5 w-5" viewBox="0 0 24 24">
-                                <path
-                                    fill="white"
-                                    d="M16.273 12.845 7.376 0H0v24h7.727V11.155L16.624 24H24V0h-7.727z"
-                                />
-                            </svg>
-                        {:else if provider.icon === 'apple'}
-                            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="white">
+                        {/if}
+                        {provider.name}로 로그인
+                    </button>
+                {/each}
+            </div>
+
+            <!-- 구분선 -->
+            <div class="relative">
+                <div class="absolute inset-0 flex items-center">
+                    <Separator class="w-full" />
+                </div>
+                <div class="relative flex justify-center text-xs">
+                    <span class="bg-card text-muted-foreground px-3">다른 방법</span>
+                </div>
+            </div>
+
+            <!-- 보조 소셜 로그인 (아이콘 버튼) -->
+            <div class="flex items-center justify-center gap-3">
+                {#each subProviders as provider}
+                    <button
+                        class="flex h-11 w-11 items-center justify-center rounded-full text-white transition-all duration-200 active:scale-[0.95] {provider.bgClass} {provider.hoverClass}"
+                        onclick={() => handleOAuthLogin(provider.id)}
+                        title="{provider.name}로 로그인"
+                    >
+                        {#if provider.id === 'apple'}
+                            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
                                 <path
                                     d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"
                                 />
                             </svg>
-                        {:else if provider.icon === 'facebook'}
+                        {:else if provider.id === 'facebook'}
                             <svg class="h-5 w-5" viewBox="0 0 24 24" fill="white">
                                 <path
                                     d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"
                                 />
                             </svg>
-                        {:else if provider.icon === 'twitter'}
-                            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="white">
+                        {:else if provider.id === 'twitter'}
+                            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
                                 <path
                                     d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"
                                 />
                             </svg>
-                        {:else if provider.icon === 'payco'}
+                        {:else if provider.id === 'payco'}
                             <svg class="h-5 w-5" viewBox="0 0 24 24" fill="white">
                                 <text
-                                    x="2"
+                                    x="4"
                                     y="18"
-                                    font-size="14"
+                                    font-size="16"
                                     font-weight="bold"
                                     font-family="Arial">P</text
                                 >
                             </svg>
                         {/if}
-                        {provider.name}으로 로그인
                     </button>
                 {/each}
             </div>
 
-            <!-- 아이디로 로그인 링크 또는 폼 -->
-            {#if showIdLogin}
-                <div class="relative">
-                    <div class="absolute inset-0 flex items-center">
-                        <Separator class="w-full" />
-                    </div>
-                    <div class="relative flex justify-center text-xs uppercase">
-                        <span class="bg-card text-muted-foreground px-2">또는</span>
-                    </div>
-                </div>
-
-                <!-- 아이디/비밀번호 로그인 폼 -->
-                <form onsubmit={handleLogin} class="space-y-4">
-                    <div class="space-y-2">
-                        <Label for="mb_id">아이디</Label>
-                        <div class="relative">
-                            <Mail
-                                class="text-muted-foreground absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2"
-                            />
-                            <Input
-                                id="mb_id"
-                                type="text"
-                                placeholder="아이디를 입력하세요"
-                                bind:value={mbId}
-                                class="pl-10"
-                                disabled={isLoading}
-                            />
-                        </div>
-                    </div>
-
-                    <div class="space-y-2">
-                        <Label for="mb_password">비밀번호</Label>
-                        <div class="relative">
-                            <Lock
-                                class="text-muted-foreground absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2"
-                            />
-                            <Input
-                                id="mb_password"
-                                type="password"
-                                placeholder="비밀번호를 입력하세요"
-                                bind:value={mbPassword}
-                                class="pl-10"
-                                disabled={isLoading}
-                            />
-                        </div>
-                    </div>
-
-                    <div class="flex items-center justify-between">
-                        <div class="flex items-center gap-2">
-                            <Checkbox id="remember" bind:checked={remember} />
-                            <Label for="remember" class="cursor-pointer text-sm font-normal">
-                                로그인 유지
-                            </Label>
-                        </div>
-                        <a href="/password-reset" class="text-primary text-sm hover:underline">
-                            비밀번호 찾기
-                        </a>
-                    </div>
-
-                    <Button type="submit" class="w-full" disabled={isLoading}>
-                        {#if isLoading}
-                            <Loader2 class="mr-2 h-4 w-4 animate-spin" />
-                            로그인 중...
-                        {:else}
-                            <LogIn class="mr-2 h-4 w-4" />
-                            로그인
-                        {/if}
-                    </Button>
-                </form>
-            {:else}
-                <div class="text-center">
-                    <a
-                        href={idLoginUrl()}
-                        class="text-muted-foreground hover:text-foreground text-sm hover:underline"
-                    >
-                        아이디로 로그인
-                    </a>
-                </div>
-            {/if}
-
+            <!-- 회원가입 링크 -->
             <div class="text-center text-sm">
                 <span class="text-muted-foreground">계정이 없으신가요?</span>
-                <a href="/register" class="text-primary ml-1 hover:underline"> 회원가입 </a>
+                <a href="/register" class="text-primary ml-1 font-medium hover:underline"
+                    >회원가입</a
+                >
             </div>
         </CardContent>
     </Card>
