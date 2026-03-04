@@ -408,7 +408,7 @@
     <section class="mb-12">
         <h2 class="section-title">자주 묻는 질문</h2>
 
-        <Accordion.Root type="single" collapsible class="mt-6 space-y-2">
+        <Accordion.Root type="single" class="mt-6 space-y-2">
             {#each faqs as faq, i}
                 <Accordion.Item value="faq-{i}" class="bg-card border-border rounded-lg border">
                     <Accordion.Trigger

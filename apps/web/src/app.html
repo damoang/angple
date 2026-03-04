@@ -23,7 +23,8 @@
                 else if (m === 'amoled') document.documentElement.classList.add('amoled');
                 // 쿠키에 기록 (SSR 동기화용, 1년 만료)
                 if (m === 'dark' || m === 'amoled') {
-                    document.cookie = 'angple_theme_mode=' + m + ';path=/;max-age=31536000;SameSite=Lax';
+                    document.cookie =
+                        'angple_theme_mode=' + m + ';path=/;max-age=31536000;SameSite=Lax';
                 }
             })();
             // UI 밀도 즉시 적용 (SSR과 동일한 CSS 변수 설정)
@@ -31,7 +32,9 @@
                 var c = document.cookie.match(/angple_ui_density=(\w+)/);
                 var d = c ? c[1] : null;
                 if (!d) {
-                    try { d = localStorage.getItem('angple_ui_density'); } catch (e) {}
+                    try {
+                        d = localStorage.getItem('angple_ui_density');
+                    } catch (e) {}
                 }
                 if (d !== 'compact' && d !== 'balanced' && d !== 'relaxed') d = 'balanced';
                 var p = d === 'compact' ? '0px' : d === 'relaxed' ? '6px' : '3px';
@@ -39,16 +42,22 @@
                 s.setProperty('--row-pad-extra', p);
                 s.setProperty('--comment-pad-extra', p);
                 if (d !== 'balanced') {
-                    document.cookie = 'angple_ui_density=' + d + ';path=/;max-age=31536000;SameSite=Lax';
+                    document.cookie =
+                        'angple_ui_density=' + d + ';path=/;max-age=31536000;SameSite=Lax';
                 }
             })();
         </script>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <!-- Critical CSS: FOUC 방지 (CSS 번들 로드 전 즉시 적용) -->
         <style>
-            .mobile-meta, .mobile-only { display: none; }
+            .mobile-meta,
+            .mobile-only {
+                display: none;
+            }
             @media (min-width: 768px) {
-                .md\:hidden { display: none !important; }
+                .md\:hidden {
+                    display: none !important;
+                }
             }
         </style>
         <meta name="theme-color" content="#1a1a1a" />

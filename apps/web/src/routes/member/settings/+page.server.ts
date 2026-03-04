@@ -18,7 +18,7 @@ export const load: PageServerLoad = async ({ locals }) => {
         redirect(303, '/login?redirect=/member/settings');
     }
 
-    const mbId = locals.user.mb_id;
+    const mbId = locals.user.id!;
 
     // 병렬 조회
     const [profiles, memberProfile] = await Promise.all([
@@ -69,7 +69,7 @@ export const actions: Actions = {
         const nickname = formData.get('nickname') as string;
         if (!nickname) return fail(400, { error: '닉네임을 입력해주세요.' });
 
-        const result = await updateNickname(locals.user.mb_id, nickname);
+        const result = await updateNickname(locals.user.id!, nickname);
         if (!result.success) {
             return fail(400, { error: result.error });
         }
@@ -84,7 +84,7 @@ export const actions: Actions = {
         const email = formData.get('email') as string;
         if (!email) return fail(400, { error: '이메일을 입력해주세요.' });
 
-        const result = await updateEmail(locals.user.mb_id, email);
+        const result = await updateEmail(locals.user.id!, email);
         if (!result.success) {
             return fail(400, { error: result.error });
         }
@@ -108,7 +108,7 @@ export const actions: Actions = {
             return fail(400, { error: '새 비밀번호가 일치하지 않습니다.' });
         }
 
-        const result = await changePassword(locals.user.mb_id, currentPassword, newPassword);
+        const result = await changePassword(locals.user.id!, currentPassword, newPassword);
         if (!result.success) {
             return fail(400, { error: result.error });
         }
@@ -122,7 +122,7 @@ export const actions: Actions = {
         const formData = await request.formData();
         const avatarUrl = (formData.get('avatar_url') as string) || '';
 
-        const result = await updateProfile(locals.user.mb_id, { mb_image_url: avatarUrl });
+        const result = await updateProfile(locals.user.id!, { mb_image_url: avatarUrl });
         if (!result.success) {
             return fail(400, { error: result.error });
         }
@@ -134,7 +134,7 @@ export const actions: Actions = {
         if (!locals.user) return fail(401, { error: '로그인이 필요합니다.' });
 
         const formData = await request.formData();
-        const result = await updateProfile(locals.user.mb_id, {
+        const result = await updateProfile(locals.user.id!, {
             mb_homepage: (formData.get('homepage') as string) || '',
             mb_signature: (formData.get('signature') as string) || '',
             mb_open: formData.get('open') === 'on' ? 1 : 0,

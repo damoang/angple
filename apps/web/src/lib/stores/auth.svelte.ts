@@ -155,5 +155,9 @@ export const authStore = {
     get error() {
         return error;
     },
+    /** Access token (서버에서 관리, 클라이언트에서는 apiClient 내부 저장) */
+    get accessToken(): string | null {
+        return apiClient.getAccessToken?.() ?? null;
+    },
     ...authActions
 };

@@ -59,8 +59,6 @@
         xlarge: '20px'
     };
 
-    let hasAffiliateLinks = $derived(postContent?.includes('data-affiliate') ?? false);
-
     let {
         post,
         board,
@@ -94,6 +92,8 @@
         postContent,
         pageData
     }: ViewLayoutProps = $props();
+
+    let hasAffiliateLinks = $derived(postContent?.includes('data-affiliate') ?? false);
 
     // extra_9에서 통계 데이터 파싱
     interface ReportStats {

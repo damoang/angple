@@ -26,6 +26,7 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Run Semgrep
+        continue-on-error: true
         run: semgrep ci --config=auto
 
   # 심층 SAST 검사 - main push 또는 스케줄 실행

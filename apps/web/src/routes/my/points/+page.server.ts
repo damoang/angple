@@ -21,9 +21,9 @@ interface PointRow extends RowDataPacket {
     po_content: string;
     po_point: number;
     po_use_point: number;
-    po_datetime: string;
+    po_datetime: string | Date;
     po_expired: number;
-    po_expire_date: string;
+    po_expire_date: string | Date;
     po_mb_point: number;
     po_rel_table: string;
     po_rel_id: string;

@@ -48,8 +48,6 @@
         xlarge: '20px'
     };
 
-    let hasAffiliateLinks = $derived(postContent?.includes('data-affiliate') ?? false);
-
     let {
         post,
         board,
@@ -83,6 +81,8 @@
         postContent,
         pageData
     }: ViewLayoutProps = $props();
+
+    let hasAffiliateLinks = $derived(postContent?.includes('data-affiliate') ?? false);
 </script>
 
 <!-- 게시글 카드 -->

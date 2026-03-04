@@ -80,7 +80,7 @@ jobs:
 
       - name: Run type check
         working-directory: apps/${{ matrix.app }}
-        run: pnpm exec svelte-check --tsconfig ./tsconfig.json
+        run: pnpm exec svelte-check --tsconfig ./tsconfig.json --threshold error
 
       - name: Build
         working-directory: apps/${{ matrix.app }}

@@ -91,11 +91,12 @@ export function initAplog(mbId: string | null) {
     const items = document.querySelectorAll('.da-bn-container .da-bn-item');
     for (const item of items) {
         // 클릭 핸들러
-        (item as HTMLElement).onclick = function (this: HTMLElement) {
-            const img = this.querySelector('img');
+        const el = item as HTMLElement;
+        el.onclick = () => {
+            const img = el.querySelector('img');
             if (!img) return;
             const imgSrc = img.src.split('/').pop() ?? '';
-            if (imgSrc) adLog(this, imgSrc, true);
+            if (imgSrc) adLog(el, imgSrc, true);
         };
         observer.observe(item);
     }
