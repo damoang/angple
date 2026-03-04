@@ -66,6 +66,7 @@
         boardId?: string; // 신고 기능용
         postId?: number; // 신고 기능용
         useNogood?: boolean; // 비추천 기능 사용 여부 (게시판 설정)
+        commentLayout?: string; // 댓글 레이아웃 (flat, bordered, divided, bubble, compact)
     }
 
     let {
@@ -78,7 +79,8 @@
         postAuthorId,
         boardId = 'free',
         postId = 0,
-        useNogood = false
+        useNogood = false,
+        commentLayout = 'flat'
     }: Props = $props();
 
     // 플러그인 활성화 여부
@@ -550,7 +552,13 @@
     });
 </script>
 
-<ul class="space-y-3">
+<ul
+    class={commentLayout === 'compact'
+        ? 'space-y-1'
+        : commentLayout === 'bordered' || commentLayout === 'bubble' || commentLayout === 'chat'
+          ? 'space-y-2'
+          : 'space-y-3'}
+>
     {#each commentTree as comment, commentIndex (comment.id)}
         {@const isDeleted = !!comment.deleted_at}
         {@const isAuthor = isCommentAuthor(comment)}
@@ -570,103 +578,415 @@
         <li
             id="c_{comment.id}"
             style="margin-left: {Math.min(depth, 3) * 1.25}rem; scroll-margin-top: 100px"
-            class="py-3 transition-colors duration-200 first:pt-0 last:pb-0 {isReply
+            class="transition-colors duration-200
+                {commentLayout === 'chat'
+                ? 'flex items-start gap-2.5' + (isAuthor ? ' flex-row-reverse' : '')
+                : commentLayout === 'bordered'
+                  ? 'border-border bg-card rounded-lg border p-4 shadow-sm'
+                  : commentLayout === 'divided'
+                    ? 'border-border border-b py-3 last:border-b-0'
+                    : commentLayout === 'bubble'
+                      ? isAuthor
+                          ? 'bg-primary/10 rounded-xl rounded-br-sm p-4'
+                          : 'bg-muted rounded-xl rounded-bl-sm p-4'
+                      : commentLayout === 'compact'
+                        ? 'py-1.5'
+                        : 'py-3 first:pt-0 last:pb-0'}
+                {isReply &&
+            commentLayout !== 'bordered' &&
+            commentLayout !== 'bubble' &&
+            commentLayout !== 'chat'
                 ? 'border-primary/20 border-l-2 pl-3'
-                : ''}"
+                : isReply && commentLayout === 'bordered'
+                  ? 'border-primary/30 border-l-2'
+                  : ''}"
         >
-            <div>
-                <div class="mb-2 flex flex-wrap items-center gap-2 sm:gap-3">
-                    <div class="flex items-center gap-2">
-                        {#if iconUrl}
-                            <img
-                                src={iconUrl}
-                                alt={comment.author}
-                                class="rounded-full object-cover {isReply ? 'size-8' : 'size-10'}"
-                                onerror={(e) => {
-                                    const img = e.currentTarget as HTMLImageElement;
-                                    img.style.display = 'none';
-                                    const fallback = img.nextElementSibling as HTMLElement;
-                                    if (fallback) fallback.style.display = 'flex';
-                                }}
-                            />
-                            <div
-                                class="bg-primary text-primary-foreground hidden items-center justify-center rounded-full {isReply
-                                    ? 'size-8 text-sm'
-                                    : 'size-10'}"
-                            >
-                                {comment.author.charAt(0).toUpperCase()}
-                            </div>
-                        {:else}
-                            <div
-                                class="bg-primary text-primary-foreground flex items-center justify-center rounded-full {isReply
-                                    ? 'size-8 text-sm'
-                                    : 'size-10'}"
-                            >
-                                {comment.author.charAt(0).toUpperCase()}
-                            </div>
-                        {/if}
-                        <div>
-                            <p
-                                class="text-foreground flex items-center gap-1.5 text-base font-medium"
-                            >
-                                <LevelBadge
-                                    level={memberLevelStore.getLevel(comment.author_id)}
-                                    size="md"
+            <!-- Chat: 사이드 아바타 -->
+            {#if commentLayout === 'chat'}
+                {#if iconUrl}
+                    <img src={iconUrl} alt="" class="size-8 shrink-0 rounded-full object-cover" />
+                {:else}
+                    <div
+                        class="bg-muted text-muted-foreground flex size-8 shrink-0 items-center justify-center rounded-full text-xs"
+                    >
+                        {comment.author.charAt(0).toUpperCase()}
+                    </div>
+                {/if}
+            {/if}
+
+            <div class={commentLayout === 'chat' ? 'min-w-0 max-w-[80%]' : ''}>
+                <!-- Chat: 이름 라벨 (타인 댓글만) -->
+                {#if commentLayout === 'chat' && !isAuthor && !isDeleted}
+                    <p class="text-foreground mb-1 ml-1 text-xs font-semibold">
+                        {comment.author}
+                    </p>
+                {/if}
+
+                <!-- Chat: 버블 래퍼 (비채팅은 투명) -->
+                <div
+                    class={commentLayout === 'chat'
+                        ? isDeleted
+                            ? 'bg-muted/50 rounded-xl px-3.5 py-2.5'
+                            : isAuthor
+                              ? 'bg-primary/10 rounded-xl rounded-br-sm px-3.5 py-2.5'
+                              : 'bg-muted rounded-xl rounded-bl-sm px-3.5 py-2.5'
+                        : ''}
+                >
+                    <div
+                        class="{commentLayout === 'chat'
+                            ? 'hidden'
+                            : 'mb-2'} flex flex-wrap items-start gap-2 sm:gap-3"
+                    >
+                        <!-- 존1: 정체성 (아바타 + 이름/레벨/메모/잠금 + 날짜/IP/수정이력) -->
+                        <div class="flex items-start gap-2">
+                            {#if iconUrl}
+                                <img
+                                    src={iconUrl}
+                                    alt={comment.author}
+                                    class="mt-0.5 rounded-full object-cover {isReply
+                                        ? 'size-8'
+                                        : 'size-10'}"
+                                    onerror={(e) => {
+                                        const img = e.currentTarget as HTMLImageElement;
+                                        img.style.display = 'none';
+                                        const fallback = img.nextElementSibling as HTMLElement;
+                                        if (fallback) fallback.style.display = 'flex';
+                                    }}
                                 />
-                                {comment.author}
-                                {#if memoPluginActive && MemoBadge}
-                                    <MemoBadge memberId={comment.author_id} showIcon={true} />
-                                {/if}
-                                {#if comment.author_ip}
-                                    <span class="text-muted-foreground text-xs font-normal"
-                                        >({comment.author_ip})</span
+                                <div
+                                    class="bg-primary text-primary-foreground mt-0.5 hidden items-center justify-center rounded-full {isReply
+                                        ? 'size-8 text-sm'
+                                        : 'size-10'}"
+                                >
+                                    {comment.author.charAt(0).toUpperCase()}
+                                </div>
+                            {:else}
+                                <div
+                                    class="bg-primary text-primary-foreground mt-0.5 flex items-center justify-center rounded-full {isReply
+                                        ? 'size-8 text-sm'
+                                        : 'size-10'}"
+                                >
+                                    {comment.author.charAt(0).toUpperCase()}
+                                </div>
+                            {/if}
+                            <div>
+                                <p
+                                    class="text-foreground flex items-center gap-1.5 text-sm font-medium"
+                                >
+                                    <LevelBadge
+                                        level={memberLevelStore.getLevel(comment.author_id)}
+                                        size="md"
+                                    />
+                                    {comment.author}
+                                    {#if memoPluginActive && MemoBadge}
+                                        <MemoBadge memberId={comment.author_id} showIcon={true} />
+                                    {/if}
+                                    {#if comment.is_secret}
+                                        <Lock class="text-muted-foreground h-3.5 w-3.5" />
+                                    {/if}
+                                </p>
+                                <p class="text-muted-foreground flex items-center gap-1 text-xs">
+                                    {formatDate(comment.created_at)}
+                                    {#if comment.author_ip}
+                                        <span>· {comment.author_ip}</span>
+                                    {/if}
+                                    {#if comment.edit_count && comment.edit_count > 0}
+                                        <span
+                                            class="text-muted-foreground/70"
+                                            title={comment.updated_at
+                                                ? `최종 수정: ${formatDate(comment.updated_at)}`
+                                                : ''}
+                                        >
+                                            · 수정됨 ({comment.edit_count}회)
+                                        </span>
+                                    {/if}
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- 신고 배지 (관리자만) -->
+                        {#if authStore.user?.mb_level && authStore.user.mb_level >= 10 && commentReports.has(String(comment.id))}
+                            {@const reports = commentReports.get(String(comment.id)) ?? []}
+                            <span
+                                class="text-destructive bg-destructive/10 rounded px-1.5 py-0.5 text-xs"
+                                title={reports
+                                    .map((r) => `${r.reporter_name}: ${r.reason_label}`)
+                                    .join('\n')}
+                            >
+                                신고 {reports.length}건
+                            </span>
+                        {/if}
+
+                        <!-- 리액션 (da-reaction 플러그인) -->
+                        {#if reactionPluginActive && !isEditing && !isDeleted && boardId && postId}
+                            <ReactionBar
+                                {boardId}
+                                {postId}
+                                commentId={comment.id}
+                                target="comment"
+                            />
+                        {/if}
+
+                        <!-- 존2: 액션 (좋아요/비추천/답글/링크복사/수정/삭제/신고) -->
+                        {#if isDeleted}
+                            <!-- 삭제된 댓글: 버튼 없음 -->
+                        {:else}
+                            <!-- 댓글 좋아요 버튼 (PHP 호환: thumbup 이미지) -->
+                            <div
+                                class="comment-good-group ml-auto flex items-stretch rounded-lg border {isCommentLiked(
+                                    String(comment.id)
+                                )
+                                    ? 'border-liked/40 bg-liked/5'
+                                    : 'border-border'}"
+                            >
+                                {#if onLike && authStore.isAuthenticated}
+                                    <button
+                                        type="button"
+                                        onclick={() => handleLikeComment(String(comment.id))}
+                                        disabled={likingComment === String(comment.id)}
+                                        class="flex items-center px-1.5 py-1 transition-opacity hover:opacity-80"
+                                        title="추천"
                                     >
-                                {/if}
-                                {#if comment.is_secret}
-                                    <Lock class="text-muted-foreground h-3.5 w-3.5" />
-                                {/if}
-                            </p>
-                            <p class="text-muted-foreground text-sm">
-                                {formatDate(comment.created_at)}
-                                {#if comment.edit_count && comment.edit_count > 0}
-                                    <span
-                                        class="text-muted-foreground/70 text-xs"
-                                        title={comment.updated_at
-                                            ? `최종 수정: ${formatDate(comment.updated_at)}`
-                                            : ''}
-                                    >
-                                        · 수정됨 ({comment.edit_count}회)
+                                        <img
+                                            src={isCommentLiked(String(comment.id))
+                                                ? '/images/thumbup-choose.gif?v=2'
+                                                : '/images/thumbup.png?v=2'}
+                                            alt="추천"
+                                            class="size-5"
+                                        />
+                                    </button>
+                                {:else}
+                                    <span class="flex items-center px-1.5 py-1">
+                                        <img src="/images/thumbup.png" alt="추천" class="size-5" />
                                     </span>
                                 {/if}
-                            </p>
-                        </div>
+                                <button
+                                    type="button"
+                                    onclick={() => openLikersDialog(comment.id)}
+                                    class="text-muted-foreground hover:text-foreground border-l {isCommentLiked(
+                                        String(comment.id)
+                                    )
+                                        ? 'border-liked/40 text-liked'
+                                        : 'border-border'} px-2 py-1 text-xs font-medium transition-colors"
+                                    title="추천인 목록보기"
+                                >
+                                    {getCommentLikes(comment).toLocaleString()}
+                                </button>
+                            </div>
+
+                            <!-- 댓글 추천자 아바타 스택 -->
+                            {#if getCommentLikes(comment) > 0 && commentLikersList.has(String(comment.id))}
+                                <AvatarStack
+                                    items={commentLikersList.get(String(comment.id)) ?? []}
+                                    total={commentLikersTotal.get(String(comment.id)) ?? 0}
+                                    max={5}
+                                    size="sm"
+                                    onclick={() => openLikersDialog(comment.id)}
+                                />
+                            {/if}
+
+                            <!-- 비추천 + 액션 버튼 -->
+                            <div class="text-muted-foreground flex items-center gap-2 text-sm">
+                                <!-- 댓글 비추천 버튼 (게시판 설정에서 활성화된 경우만) -->
+                                {#if useNogood}
+                                    {#if onDislike && authStore.isAuthenticated}
+                                        <button
+                                            type="button"
+                                            onclick={() => handleDislikeComment(String(comment.id))}
+                                            disabled={dislikingComment === String(comment.id)}
+                                            class="hover:text-disliked flex items-center gap-1 transition-colors {isCommentDisliked(
+                                                String(comment.id)
+                                            )
+                                                ? 'text-disliked'
+                                                : ''}"
+                                        >
+                                            <span>👎</span>
+                                            <span
+                                                >{getCommentDislikes(
+                                                    comment
+                                                ).toLocaleString()}</span
+                                            >
+                                        </button>
+                                    {:else}
+                                        <span
+                                            >👎 {getCommentDislikes(comment).toLocaleString()}</span
+                                        >
+                                    {/if}
+                                {/if}
+
+                                {#if !isEditing}
+                                    <div class="flex gap-1">
+                                        <!-- 답글 버튼 -->
+                                        {#if onReply && authStore.isAuthenticated}
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onclick={() => startReply(comment)}
+                                                class="h-7 px-2"
+                                                disabled={isReplyingTo}
+                                            >
+                                                <Reply class="h-4 w-4" />
+                                                <span class="ml-1 text-xs">답글</span>
+                                            </Button>
+                                        {/if}
+
+                                        <!-- 링크 복사 버튼 -->
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onclick={() => copyCommentLink(comment.id)}
+                                            class="h-7 px-2"
+                                            title="이 댓글의 링크를 복사합니다"
+                                        >
+                                            <Link2 class="h-4 w-4" />
+                                            <span class="ml-1 text-xs">링크복사</span>
+                                        </Button>
+
+                                        {#if canEdit}
+                                            <!-- 수정/삭제 버튼 (작성자 또는 최고관리자) -->
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onclick={() => startEdit(comment)}
+                                                class="h-7 px-2"
+                                            >
+                                                <Pencil class="h-4 w-4" />
+                                            </Button>
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onclick={() => handleDelete(String(comment.id))}
+                                                disabled={isDeleting === String(comment.id)}
+                                                class="text-destructive hover:text-destructive h-7 px-2"
+                                            >
+                                                <Trash2 class="h-4 w-4" />
+                                            </Button>
+                                        {/if}
+                                        {#if !isAuthor && authStore.isAuthenticated}
+                                            <!-- 신고 버튼 (본인이 아닌 경우에만) -->
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onclick={() => startReport(comment)}
+                                                class="text-muted-foreground hover:text-destructive h-7 px-2"
+                                                title="신고"
+                                            >
+                                                <Flag class="h-4 w-4" />
+                                            </Button>
+                                        {/if}
+                                        {#if isSuperAdmin() && comment.edit_count && comment.edit_count > 0}
+                                            <!-- 수정이력 버튼 (관리자 전용) -->
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onclick={() =>
+                                                    toggleCommentRevisions(String(comment.id))}
+                                                class="text-muted-foreground h-7 px-2"
+                                                title="수정이력 보기"
+                                            >
+                                                <History class="h-4 w-4" />
+                                                <span class="ml-1 text-xs">수정이력</span>
+                                            </Button>
+                                        {/if}
+                                    </div>
+                                {/if}
+                            </div>
+                        {/if}
                     </div>
 
-                    <!-- 신고 배지 (관리자만) -->
-                    {#if authStore.user?.mb_level && authStore.user.mb_level >= 10 && commentReports.has(String(comment.id))}
-                        {@const reports = commentReports.get(String(comment.id)) ?? []}
-                        <span
-                            class="text-destructive bg-destructive/10 rounded px-1.5 py-0.5 text-[11px]"
-                            title={reports
-                                .map((r) => `${r.reporter_name}: ${r.reason_label}`)
-                                .join('\n')}
-                        >
-                            신고 {reports.length}건
-                        </span>
-                    {/if}
-
-                    <!-- 리액션 (da-reaction 플러그인) - 왼쪽 정렬 -->
-                    {#if reactionPluginActive && !isEditing && !isDeleted && boardId && postId}
-                        <ReactionBar {boardId} {postId} commentId={comment.id} target="comment" />
-                    {/if}
-
-                    <!-- 삭제된 댓글이면 좋아요/비추천/답글 버튼 표시 안함 -->
-                    {#if isDeleted}
-                        <!-- 삭제된 댓글: 버튼 없음 -->
-                    {:else}
-                        <!-- 댓글 좋아요 버튼 (PHP 호환: thumbup 이미지) -->
+                    <!-- 댓글 본문 또는 수정 폼 -->
+                    {#if comment.deleted_at}
+                        <!-- 삭제된 댓글 표시 -->
                         <div
-                            class="comment-good-group flex items-stretch rounded-lg border {isCommentLiked(
+                            class="text-muted-foreground flex items-center gap-2 text-base italic opacity-60"
+                        >
+                            <Trash2 class="h-4 w-4" />
+                            삭제된 댓글입니다.
+                            {#if isSuperAdmin() && comment.deleted_at}
+                                <span class="text-xs">
+                                    ({new Date(comment.deleted_at).toLocaleString('ko-KR')})
+                                </span>
+                            {/if}
+                        </div>
+                    {:else if isEditing}
+                        <!-- 댓글 수정 폼 -->
+                        <div class="mt-2 space-y-3">
+                            <textarea
+                                bind:value={editContent}
+                                class="border-border bg-background text-foreground focus:border-primary focus:ring-primary min-h-24 w-full resize-y rounded-lg border p-3 text-sm focus:outline-none focus:ring-1"
+                                placeholder="댓글을 입력하세요..."
+                                disabled={isUpdating}
+                            ></textarea>
+                            <div class="flex justify-end gap-2">
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    onclick={cancelEdit}
+                                    disabled={isUpdating}
+                                >
+                                    취소
+                                </Button>
+                                <Button
+                                    type="button"
+                                    size="sm"
+                                    onclick={saveEdit}
+                                    disabled={isUpdating || !editContent.trim()}
+                                >
+                                    {isUpdating ? '저장 중...' : '저장'}
+                                </Button>
+                            </div>
+                        </div>
+                    {:else if comment.is_secret && !canViewSecretComment(comment)}
+                        <div class="text-muted-foreground flex items-center gap-2 text-base italic">
+                            <Lock class="h-4 w-4" />
+                            비밀댓글입니다.
+                        </div>
+                    {:else}
+                        <div class="text-foreground whitespace-pre-wrap text-base leading-relaxed">
+                            <!-- eslint-disable-next-line svelte/no-at-html-tags -->
+                            {@html processedComments.get(comment.id) ?? ''}
+                        </div>
+                    {/if}
+
+                    <!-- 댓글 수정이력 (관리자 전용) -->
+                    {#if revisionCommentId === String(comment.id)}
+                        <div class="mt-3">
+                            {#if loadingRevisions}
+                                <p class="text-muted-foreground text-sm">수정이력 로딩 중...</p>
+                            {:else if commentRevisions.length > 0}
+                                <RevisionHistory
+                                    revisions={commentRevisions}
+                                    isAdmin={true}
+                                    canRestore={false}
+                                />
+                            {:else}
+                                <p class="text-muted-foreground text-sm">수정이력이 없습니다.</p>
+                            {/if}
+                        </div>
+                    {/if}
+
+                    <!-- Chat: 시간 (버블 안 우하단) -->
+                    {#if commentLayout === 'chat' && !isDeleted && !isEditing}
+                        <p class="mt-1.5 text-right">
+                            <span class="text-muted-foreground/70 text-xs"
+                                >{formatDate(comment.created_at)}</span
+                            >
+                        </p>
+                    {/if}
+                </div>
+                <!-- 버블 래퍼 닫기 -->
+
+                <!-- Chat: 컴팩트 액션 (버블 아래) -->
+                {#if commentLayout === 'chat' && !isDeleted && !isEditing}
+                    <div
+                        class="mt-1 flex items-center gap-0.5 px-0.5 {isAuthor
+                            ? 'flex-row-reverse'
+                            : ''}"
+                    >
+                        <!-- 추천 -->
+                        <div
+                            class="flex items-center rounded-lg border text-xs {isCommentLiked(
                                 String(comment.id)
                             )
                                 ? 'border-liked/40 bg-liked/5'
@@ -677,217 +997,76 @@
                                     type="button"
                                     onclick={() => handleLikeComment(String(comment.id))}
                                     disabled={likingComment === String(comment.id)}
-                                    class="flex items-center px-1.5 py-1 transition-opacity hover:opacity-80"
-                                    title="추천"
+                                    class="flex items-center px-1 py-0.5 transition-opacity hover:opacity-80"
                                 >
                                     <img
                                         src={isCommentLiked(String(comment.id))
                                             ? '/images/thumbup-choose.gif?v=2'
                                             : '/images/thumbup.png?v=2'}
                                         alt="추천"
-                                        class="size-5"
+                                        class="size-4"
                                     />
                                 </button>
                             {:else}
-                                <span class="flex items-center px-1.5 py-1">
-                                    <img src="/images/thumbup.png" alt="추천" class="size-5" />
+                                <span class="flex items-center px-1 py-0.5">
+                                    <img src="/images/thumbup.png" alt="추천" class="size-4" />
                                 </span>
                             {/if}
                             <button
                                 type="button"
                                 onclick={() => openLikersDialog(comment.id)}
-                                class="text-muted-foreground hover:text-foreground border-l {isCommentLiked(
+                                class="text-muted-foreground hover:text-foreground border-l px-1.5 py-0.5 font-medium transition-colors {isCommentLiked(
                                     String(comment.id)
                                 )
                                     ? 'border-liked/40 text-liked'
-                                    : 'border-border'} px-2 py-1 text-xs font-medium transition-colors"
-                                title="추천인 목록보기"
+                                    : 'border-border'}"
                             >
                                 {getCommentLikes(comment).toLocaleString()}
                             </button>
                         </div>
 
-                        <!-- 댓글 추천자 아바타 스택 -->
-                        {#if getCommentLikes(comment) > 0 && commentLikersList.has(String(comment.id))}
-                            <AvatarStack
-                                items={commentLikersList.get(String(comment.id)) ?? []}
-                                total={commentLikersTotal.get(String(comment.id)) ?? 0}
-                                max={5}
-                                size="sm"
-                                onclick={() => openLikersDialog(comment.id)}
-                            />
-                        {/if}
-
-                        <!-- 오른쪽 정렬: 비추천, 답글/수정/삭제 -->
-                        <div class="text-muted-foreground ml-auto flex items-center gap-2 text-sm">
-                            <!-- 댓글 비추천 버튼 (게시판 설정에서 활성화된 경우만) -->
-                            {#if useNogood}
-                                {#if onDislike && authStore.isAuthenticated}
-                                    <button
-                                        type="button"
-                                        onclick={() => handleDislikeComment(String(comment.id))}
-                                        disabled={dislikingComment === String(comment.id)}
-                                        class="hover:text-disliked flex items-center gap-1 transition-colors {isCommentDisliked(
-                                            String(comment.id)
-                                        )
-                                            ? 'text-disliked'
-                                            : ''}"
-                                    >
-                                        <span>👎</span>
-                                        <span>{getCommentDislikes(comment).toLocaleString()}</span>
-                                    </button>
-                                {:else}
-                                    <span>👎 {getCommentDislikes(comment).toLocaleString()}</span>
-                                {/if}
-                            {/if}
-
-                            {#if !isEditing}
-                                <div class="flex gap-1">
-                                    <!-- 답글 버튼 -->
-                                    {#if onReply && authStore.isAuthenticated}
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onclick={() => startReply(comment)}
-                                            class="h-7 px-2"
-                                            disabled={isReplyingTo}
-                                        >
-                                            <Reply class="h-4 w-4" />
-                                            <span class="ml-1 text-xs">답글</span>
-                                        </Button>
-                                    {/if}
-
-                                    <!-- 주소 복사 버튼 -->
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onclick={() => copyCommentLink(comment.id)}
-                                        class="h-7 px-2"
-                                    >
-                                        <Link2 class="h-4 w-4" />
-                                        <span class="ml-1 text-xs">주소</span>
-                                    </Button>
-
-                                    {#if canEdit}
-                                        <!-- 수정/삭제 버튼 (작성자 또는 최고관리자) -->
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onclick={() => startEdit(comment)}
-                                            class="h-7 px-2"
-                                        >
-                                            <Pencil class="h-4 w-4" />
-                                        </Button>
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onclick={() => handleDelete(String(comment.id))}
-                                            disabled={isDeleting === String(comment.id)}
-                                            class="text-destructive hover:text-destructive h-7 px-2"
-                                        >
-                                            <Trash2 class="h-4 w-4" />
-                                        </Button>
-                                    {/if}
-                                    {#if !isAuthor && authStore.isAuthenticated}
-                                        <!-- 신고 버튼 (본인이 아닌 경우에만) -->
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onclick={() => startReport(comment)}
-                                            class="text-muted-foreground hover:text-destructive h-7 px-2"
-                                            title="신고"
-                                        >
-                                            <Flag class="h-4 w-4" />
-                                        </Button>
-                                    {/if}
-                                    {#if isSuperAdmin() && comment.edit_count && comment.edit_count > 0}
-                                        <!-- 수정이력 버튼 (관리자 전용) -->
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onclick={() =>
-                                                toggleCommentRevisions(String(comment.id))}
-                                            class="text-muted-foreground h-7 px-2"
-                                            title="수정이력 보기"
-                                        >
-                                            <History class="h-4 w-4" />
-                                            <span class="ml-1 text-xs">수정이력</span>
-                                        </Button>
-                                    {/if}
-                                </div>
-                            {/if}
-                        </div>
-                    {/if}
-                </div>
-
-                <!-- 댓글 본문 또는 수정 폼 -->
-                {#if comment.deleted_at}
-                    <!-- 삭제된 댓글 표시 -->
-                    <div
-                        class="text-muted-foreground flex items-center gap-2 text-base italic opacity-60"
-                    >
-                        <Trash2 class="h-4 w-4" />
-                        삭제된 댓글입니다.
-                        {#if isSuperAdmin() && comment.deleted_at}
-                            <span class="text-xs">
-                                ({new Date(comment.deleted_at).toLocaleString('ko-KR')})
-                            </span>
-                        {/if}
-                    </div>
-                {:else if isEditing}
-                    <!-- 댓글 수정 폼 -->
-                    <div class="mt-2 space-y-3">
-                        <textarea
-                            bind:value={editContent}
-                            class="border-border bg-background text-foreground focus:border-primary focus:ring-primary min-h-24 w-full resize-y rounded-lg border p-3 text-sm focus:outline-none focus:ring-1"
-                            placeholder="댓글을 입력하세요..."
-                            disabled={isUpdating}
-                        ></textarea>
-                        <div class="flex justify-end gap-2">
+                        <!-- 답글 -->
+                        {#if onReply && authStore.isAuthenticated}
                             <Button
-                                type="button"
                                 variant="ghost"
                                 size="sm"
-                                onclick={cancelEdit}
-                                disabled={isUpdating}
+                                onclick={() => startReply(comment)}
+                                class="h-6 px-1.5"
+                                disabled={isReplyingTo}
                             >
-                                취소
+                                <Reply class="h-3.5 w-3.5" />
+                            </Button>
+                        {/if}
+
+                        <!-- 링크 복사 -->
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onclick={() => copyCommentLink(comment.id)}
+                            class="h-6 px-1.5"
+                            title="이 댓글의 링크를 복사합니다"
+                        >
+                            <Link2 class="h-3.5 w-3.5" />
+                        </Button>
+
+                        {#if canEdit}
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onclick={() => startEdit(comment)}
+                                class="h-6 px-1.5"
+                            >
+                                <Pencil class="h-3.5 w-3.5" />
                             </Button>
                             <Button
-                                type="button"
+                                variant="ghost"
                                 size="sm"
-                                onclick={saveEdit}
-                                disabled={isUpdating || !editContent.trim()}
+                                onclick={() => handleDelete(String(comment.id))}
+                                disabled={isDeleting === String(comment.id)}
+                                class="text-destructive hover:text-destructive h-6 px-1.5"
                             >
-                                {isUpdating ? '저장 중...' : '저장'}
+                                <Trash2 class="h-3.5 w-3.5" />
                             </Button>
-                        </div>
-                    </div>
-                {:else if comment.is_secret && !canViewSecretComment(comment)}
-                    <div class="text-muted-foreground flex items-center gap-2 text-base italic">
-                        <Lock class="h-4 w-4" />
-                        비밀댓글입니다.
-                    </div>
-                {:else}
-                    <div class="text-foreground whitespace-pre-wrap text-base leading-relaxed">
-                        <!-- eslint-disable-next-line svelte/no-at-html-tags -->
-                        {@html processedComments.get(comment.id) ?? ''}
-                    </div>
-                {/if}
-
-                <!-- 댓글 수정이력 (관리자 전용) -->
-                {#if revisionCommentId === String(comment.id)}
-                    <div class="mt-3">
-                        {#if loadingRevisions}
-                            <p class="text-muted-foreground text-sm">수정이력 로딩 중...</p>
-                        {:else if commentRevisions.length > 0}
-                            <RevisionHistory
-                                revisions={commentRevisions}
-                                isAdmin={true}
-                                canRestore={false}
-                            />
-                        {:else}
-                            <p class="text-muted-foreground text-sm">수정이력이 없습니다.</p>
                         {/if}
                     </div>
                 {/if}

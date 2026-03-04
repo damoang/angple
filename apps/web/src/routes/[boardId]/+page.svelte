@@ -332,8 +332,8 @@
                             {boardTitle}
                         </a>
                     </h1>
+                    <AdminLayoutSwitcher {boardId} currentLayout={listLayoutId} />
                     {#if isAdmin}
-                        <AdminLayoutSwitcher {boardId} currentLayout={listLayoutId} />
                         <Button
                             variant={bulkSelectMode ? 'default' : 'outline'}
                             size="sm"
@@ -441,7 +441,7 @@
                         {#each importantNotices as notice (notice.id)}
                             <a
                                 href="/{boardId}/{notice.id}"
-                                class="bg-destructive/5 hover:bg-destructive/10 block px-4 py-2.5 no-underline transition-colors"
+                                class="bg-destructive/5 hover:bg-destructive/10 block px-4 py-1 no-underline transition-colors"
                                 data-sveltekit-preload-data="hover"
                             >
                                 <div class="flex items-center gap-2 md:gap-3">
@@ -479,13 +479,13 @@
                         {#each normalNotices as notice (notice.id)}
                             <a
                                 href="/{boardId}/{notice.id}"
-                                class="bg-background hover:bg-muted block px-4 py-2.5 no-underline transition-colors"
+                                class="bg-liked/3 hover:bg-liked/8 block px-4 py-1 no-underline transition-colors"
                                 data-sveltekit-preload-data="hover"
                             >
                                 <div class="flex items-center gap-2 md:gap-3">
                                     <div class="hidden shrink-0 md:block">
                                         <div
-                                            class="bg-liked/10 flex h-7 w-10 items-center justify-center rounded-md"
+                                            class="bg-liked/15 flex h-7 w-10 items-center justify-center rounded-md"
                                         >
                                             <Pin class="text-liked h-4 w-4" />
                                         </div>
@@ -495,7 +495,8 @@
                                             <Pin
                                                 class="text-liked h-3.5 w-3.5 shrink-0 md:hidden"
                                             />
-                                            <Badge variant="secondary" class="shrink-0 text-[10px]"
+                                            <Badge
+                                                class="border-liked/20 bg-liked/15 text-liked shrink-0 text-[10px]"
                                                 >공지</Badge
                                             >
                                             <h3
@@ -585,6 +586,19 @@
 
             <!-- 게시글 목록 (레이아웃별 래퍼 클래스 적용) -->
             <div class={wrapperClass}>
+                {#if listLayoutId === 'classic'}
+                    <div
+                        class="border-border bg-muted/30 text-muted-foreground hidden border-b px-4 py-1.5 text-xs md:block"
+                    >
+                        <div class="grid grid-cols-[40px_1fr_auto_auto_auto] items-center gap-0">
+                            <div class="text-center">추천</div>
+                            <div>제목</div>
+                            <div class="w-[130px] pl-1">이름</div>
+                            <div class="w-[70px] pl-1 text-center">날짜</div>
+                            <div class="w-[50px] pl-1 text-center">조회</div>
+                        </div>
+                    </div>
+                {/if}
                 {#if filteredPosts.length === 0}
                     <Card class="bg-background {listLayoutId === 'gallery' ? 'col-span-full' : ''}">
                         <CardContent class="py-12 text-center">

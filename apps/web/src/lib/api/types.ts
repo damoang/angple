@@ -343,6 +343,14 @@ export interface MyComment extends FreeComment {
     board_id: string;
 }
 
+// 게시판별 통계
+export interface BoardStat {
+    board_id: string;
+    board_name: string;
+    post_count: number;
+    comment_count: number;
+}
+
 // 차단 회원 정보
 export interface BlockedMember {
     mb_id: string;
@@ -461,12 +469,17 @@ export type ListLayout =
 // 게시판 본문 레이아웃 타입
 export type ViewLayout = 'basic' | (string & {});
 
+// 댓글 레이아웃 타입
+export type CommentLayout = 'flat' | 'bordered' | 'divided' | 'bubble' | 'compact' | (string & {});
+
 // 게시판 표시 설정
 export interface BoardDisplaySettings {
     /** 목록 레이아웃 ID */
     list_layout: ListLayout;
     /** 본문 레이아웃 ID */
     view_layout: ViewLayout;
+    /** 댓글 레이아웃 ID */
+    comment_layout: CommentLayout;
     /** @deprecated list_layout으로 대체. 하위호환용 */
     list_style?: 'compact' | 'card' | 'detailed';
     show_preview: boolean;

@@ -17,6 +17,7 @@ interface APIResponse<T> {
 export interface BoardDisplaySettings {
     list_layout: string;
     view_layout: string;
+    comment_layout: string;
     list_style?: string;
     show_preview: boolean;
     preview_length: number;
@@ -26,6 +27,7 @@ export interface BoardDisplaySettings {
 export interface UpdateDisplaySettingsRequest {
     list_layout?: string;
     view_layout?: string;
+    comment_layout?: string;
     show_preview?: boolean;
     preview_length?: number;
     show_thumbnail?: boolean;

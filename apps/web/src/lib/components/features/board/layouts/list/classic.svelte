@@ -8,6 +8,7 @@
     import Pin from '@lucide/svelte/icons/pin';
     import { getMemberIconUrl, handleIconError } from '$lib/utils/member-icon.js';
     import { formatDate, isToday } from '$lib/utils/format-date.js';
+    import { formatCompactNumber } from '$lib/utils/format-number.js';
     import { pluginStore } from '$lib/stores/plugin.svelte';
     import { loadPluginComponent } from '$lib/utils/plugin-optional-loader';
 
@@ -37,19 +38,17 @@
     // 회원 아이콘 URL
     const iconUrl = $derived(getMemberIconUrl(post.author_id));
 
-    // 추천 색상 단계 (게시판용 임계값: 0, ≤5, ≤10, ≤50, >50)
+    // 추천 색상 단계 (0: 거의 투명, 1-4: 뮤트, 5-9: 강조, 10+: 최고)
     const likesStepClass = $derived.by(() => {
         const likes = post.likes;
         if (likes === 0) {
-            return 'bg-[rgba(172,172,172,0.08)] text-foreground/20';
-        } else if (likes <= 5) {
-            return 'bg-[rgba(172,172,172,0.2)] text-foreground';
-        } else if (likes <= 10) {
-            return 'bg-[rgba(59,130,246,0.3)] text-foreground';
-        } else if (likes <= 50) {
-            return 'bg-[rgba(59,130,246,0.6)] text-foreground';
+            return 'bg-likes-0 text-[#333] opacity-35';
+        } else if (likes <= 4) {
+            return 'bg-likes-1 text-foreground/50';
+        } else if (likes <= 9) {
+            return 'bg-likes-2 text-foreground';
         } else {
-            return 'bg-[rgba(0,102,255,0.75)] text-white';
+            return 'bg-likes-4 text-white font-bold';
         }
     });
 
@@ -71,11 +70,14 @@
     const hasImage = $derived(
         post.has_file || (post.images && post.images.length > 0) || !!post.extra_10
     );
+
+    // 홍보 게시글 여부
+    const isPromo = $derived(post.category === '홍보');
 </script>
 
-<!-- Classic 스킨: PHP list 스킨 1:1 재현 (추천|제목|이름|날짜|조회) -->
+<!-- Classic 스킨: 데스크톱 CSS Grid 5컬럼 (추천|제목|이름|날짜|조회) -->
 {#if isDeleted}
-    <div class="bg-background px-4 py-2.5 opacity-50">
+    <div class="bg-background px-4 py-1.5 opacity-50">
         <div class="flex items-center gap-2 md:gap-3">
             <div class="hidden shrink-0 md:block">
                 <div
@@ -85,19 +87,22 @@
                 </div>
             </div>
             <div class="min-w-0 flex-1">
-                <span class="text-muted-foreground text-[15px]">[삭제된 게시물입니다]</span>
+                <span class="text-muted-foreground text-sm">[삭제된 게시물입니다]</span>
             </div>
         </div>
     </div>
 {:else}
     <a
         {href}
-        class="bg-background hover:bg-accent block px-4 py-2.5 no-underline transition-colors"
+        class="bg-background hover:bg-accent block px-4 py-1.5 no-underline transition-colors"
+        class:post-promo={isPromo}
         data-sveltekit-preload-data="hover"
     >
-        <div class="flex items-center gap-2 md:gap-3">
-            <!-- 추천 박스 (데스크톱만) -->
-            <div class="hidden shrink-0 md:block">
+        <div
+            class="flex items-center gap-2 md:grid md:grid-cols-[40px_1fr_auto_auto_auto] md:items-center md:gap-0"
+        >
+            <!-- 추천 박스 (col 1, 데스크톱만) -->
+            <div class="hidden md:flex md:items-center md:justify-center">
                 {#if post.is_notice}
                     <div class="bg-liked/10 flex h-7 w-10 items-center justify-center rounded-md">
                         <Pin class="text-liked h-4 w-4" />
@@ -105,125 +110,141 @@
                 {:else}
                     <div
                         class="flex h-7 w-10 items-center justify-center rounded-md text-sm font-semibold {likesStepClass}"
+                        class:rec-zero={Number(post.likes) === 0}
                     >
                         {post.likes.toLocaleString()}
                     </div>
                 {/if}
             </div>
 
-            <!-- 제목 + 메타 영역 -->
-            <div class="min-w-0 flex-1">
-                <div class="flex flex-col gap-1 md:flex-row md:items-center md:gap-3">
-                    <!-- 제목 줄 -->
-                    <div class="flex min-w-0 flex-1 items-center gap-1">
-                        {#if post.is_notice}
-                            <Pin class="text-liked h-3.5 w-3.5 shrink-0 md:hidden" />
-                        {/if}
-                        {#if post.is_adult}
-                            <Badge variant="destructive" class="shrink-0 px-1 py-0 text-[10px]"
-                                >19</Badge
-                            >
-                        {/if}
-                        {#if post.is_secret}
-                            <Lock class="text-muted-foreground h-3.5 w-3.5 shrink-0" />
-                        {/if}
-                        {#if post.category}
-                            <span
-                                class="bg-primary/10 text-primary shrink-0 rounded px-1.5 py-0 text-xs font-medium"
-                            >
-                                {post.category}
-                            </span>
-                        {/if}
-                        <span
-                            class="truncate text-base {isRead
-                                ? 'text-muted-foreground font-normal'
-                                : 'text-foreground font-semibold'}"
+            <!-- 콘텐츠 (모바일: block, 데스크톱: contents → 그리드 col 2~5 참여) -->
+            <div class="min-w-0 flex-1 space-y-0.5 md:contents">
+                <!-- 제목 줄 (col 2) -->
+                <div class="flex min-w-0 items-center gap-1">
+                    {#if post.is_notice}
+                        <Pin class="text-liked h-3.5 w-3.5 shrink-0 md:hidden" />
+                    {/if}
+                    {#if post.is_adult}
+                        <Badge variant="destructive" class="shrink-0 px-1 py-0 text-[10px]"
+                            >19</Badge
                         >
-                            {post.title}
-                        </span>
-                        <!-- 부가 아이콘: N, 이미지, 동영상, 댓글 -->
-                        {#if isNew}
-                            <span class="text-liked shrink-0 text-[10px] font-bold">N</span>
-                        {/if}
-                        {#if hasVideo}
-                            <Play class="text-destructive h-3.5 w-3.5 shrink-0" />
-                        {:else if hasImage}
-                            <ImageIcon class="text-muted-foreground h-3.5 w-3.5 shrink-0" />
-                        {/if}
-                        {#if post.comments_count > 0}
-                            <span class="text-liked shrink-0 text-[13px] font-semibold"
-                                >+{post.comments_count}</span
-                            >
-                        {/if}
-                    </div>
-
-                    <!-- 메타 그룹 (데스크톱: 고정 너비 칼럼) -->
-                    <div class="hidden shrink-0 items-center gap-2 md:flex">
+                    {/if}
+                    {#if post.is_secret}
+                        <Lock class="text-muted-foreground h-3.5 w-3.5 shrink-0" />
+                    {/if}
+                    {#if post.category}
                         <span
-                            class="text-muted-foreground inline-flex w-[120px] items-center gap-1 truncate text-[15px]"
+                            class="bg-primary/10 text-primary shrink-0 rounded px-1.5 py-0 text-xs font-medium"
                         >
-                            {#if iconUrl}
-                                <img
-                                    src={iconUrl}
-                                    alt=""
-                                    class="h-5 w-5 shrink-0 rounded-full object-cover"
-                                    onerror={handleIconError}
-                                />
-                            {/if}
-                            {post.author}
-                            {#if memoPluginActive && MemoBadge}
-                                <MemoBadge memberId={post.author_id} />
-                            {/if}
+                            {post.category}
                         </span>
-                        <span
-                            class="{isToday(post.created_at)
-                                ? 'text-red-500'
-                                : 'text-muted-foreground'} w-[70px] text-center text-[15px]"
-                        >
-                            {formatDate(post.created_at)}
-                        </span>
-                        <span class="text-muted-foreground w-[50px] text-center text-[15px]">
-                            {post.views.toLocaleString()}
-                        </span>
-                    </div>
-
-                    <!-- 메타 그룹 (모바일: 한 줄 나열) -->
-                    <div
-                        class="text-muted-foreground flex flex-wrap items-center gap-2 text-[15px] md:hidden"
+                    {/if}
+                    <span
+                        class="truncate text-base {isRead
+                            ? 'text-muted-foreground font-normal'
+                            : 'text-foreground font-semibold'}"
                     >
-                        <span class="inline-flex items-center gap-1">
-                            {#if iconUrl}
-                                <img
-                                    src={iconUrl}
-                                    alt=""
-                                    class="h-5 w-5 shrink-0 rounded-full object-cover"
-                                    onerror={handleIconError}
-                                />
-                            {/if}
-                            {post.author}
-                            {#if memoPluginActive && MemoBadge}
-                                <MemoBadge memberId={post.author_id} />
-                            {/if}
-                        </span>
-                        <span>·</span>
-                        <span class={isToday(post.created_at) ? 'text-red-500' : ''}
-                            >{formatDate(post.created_at)}</span
+                        {post.title}
+                    </span>
+                    <!-- 부가 아이콘: N, 이미지, 동영상, 댓글 -->
+                    {#if isNew}
+                        <span class="text-liked shrink-0 text-[10px] font-bold">N</span>
+                    {/if}
+                    {#if hasVideo}
+                        <Play class="text-destructive h-3.5 w-3.5 shrink-0" />
+                    {:else if hasImage}
+                        <ImageIcon class="text-muted-foreground h-3.5 w-3.5 shrink-0" />
+                    {/if}
+                    {#if post.comments_count > 0}
+                        <span class="text-liked shrink-0 text-[13px] font-semibold"
+                            >+{post.comments_count}</span
                         >
-                        <span>·</span>
-                        <span>조회 {post.views.toLocaleString()}</span>
-                        {#if post.likes > 0}
-                            <span>·</span>
-                            <span class="inline-flex items-center gap-0.5">
-                                <span
-                                    class="inline-flex h-4 items-center rounded px-1 text-[10px] font-semibold {likesStepClass}"
-                                >
-                                    👍 {post.likes}
-                                </span>
-                            </span>
+                    {/if}
+                </div>
+
+                <!-- 이름 (col 3, 데스크톱만) -->
+                <span
+                    class="text-foreground/70 hidden items-center gap-1 truncate text-sm md:inline-flex md:w-[130px] md:pl-1"
+                >
+                    {#if iconUrl}
+                        <img
+                            src={iconUrl}
+                            alt=""
+                            class="h-5 w-5 shrink-0 rounded-full object-cover"
+                            onerror={handleIconError}
+                        />
+                    {/if}
+                    {post.author}
+                    {#if memoPluginActive && MemoBadge}
+                        <MemoBadge memberId={post.author_id} />
+                    {/if}
+                </span>
+
+                <!-- 날짜 (col 4, 데스크톱만) -->
+                <span
+                    class="hidden text-sm md:inline md:w-[70px] md:pl-1 md:text-center {isToday(
+                        post.created_at
+                    )
+                        ? 'text-date-today'
+                        : 'text-muted-foreground'}"
+                >
+                    {formatDate(post.created_at)}
+                </span>
+
+                <!-- 조회수 (col 5, 데스크톱만) -->
+                <span
+                    class="text-foreground/40 hidden text-xs md:inline md:w-[50px] md:pl-1 md:text-center"
+                >
+                    {formatCompactNumber(post.views)}
+                </span>
+
+                <!-- 모바일 메타 -->
+                <div class="flex flex-wrap items-center gap-1.5 md:hidden">
+                    <span class="text-foreground/70 inline-flex items-center gap-1 text-sm">
+                        {#if iconUrl}
+                            <img
+                                src={iconUrl}
+                                alt=""
+                                class="h-5 w-5 shrink-0 rounded-full object-cover"
+                                onerror={handleIconError}
+                            />
                         {/if}
-                    </div>
+                        {post.author}
+                        {#if memoPluginActive && MemoBadge}
+                            <MemoBadge memberId={post.author_id} />
+                        {/if}
+                    </span>
+                    <span
+                        class="{isToday(post.created_at)
+                            ? 'text-date-today'
+                            : 'text-muted-foreground'} text-sm"
+                    >
+                        {formatDate(post.created_at)}
+                    </span>
+                    <span class="text-muted-foreground text-xs"
+                        >조회 {formatCompactNumber(post.views)}</span
+                    >
+                    {#if post.likes > 0}
+                        <span
+                            class="inline-flex h-4 items-center rounded px-1 text-[10px] font-semibold {likesStepClass}"
+                        >
+                            👍 {post.likes}
+                        </span>
+                    {/if}
                 </div>
             </div>
         </div>
     </a>
 {/if}
+
+<style>
+    .rec-zero {
+        color: #333 !important;
+        opacity: 0.3 !important;
+    }
+
+    .post-promo {
+        background: rgba(251, 146, 60, 0.05) !important;
+        border-left: 3px solid rgba(251, 146, 60, 0.35) !important;
+    }
+</style>

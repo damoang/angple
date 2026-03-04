@@ -11,26 +11,33 @@
  * initCoreLayouts();
  *
  * // 목록 레이아웃 resolve
- * const entry = layoutRegistry.resolveList('gallery');
- * const Component = entry?.component;
- * const wrapperClass = entry?.manifest.wrapperClass;
+ * const listEntry = layoutRegistry.resolveList('gallery');
+ * const ListComponent = listEntry?.component;
+ *
+ * // 본문 레이아웃 resolve
+ * const viewEntry = layoutRegistry.resolveView('basic');
+ * const ViewComponent = viewEntry?.component;
  *
  * // 관리자 UI에서 선택지 표시
- * const manifests = layoutRegistry.getListManifests();
+ * const listManifests = layoutRegistry.getListManifests();
+ * const viewManifests = layoutRegistry.getViewManifests();
  * ```
  */
 
 import { registerCoreListLayouts } from './list/index.js';
+import { registerCoreViewLayouts } from './view/index.js';
 
 export { layoutRegistry } from './registry.js';
 export { registerCoreListLayouts } from './list/index.js';
+export { registerCoreViewLayouts } from './view/index.js';
 export type {
     LayoutManifest,
     LayoutEntry,
     LayoutSource,
     ListLayoutId,
     ViewLayoutId,
-    ListLayoutProps
+    ListLayoutProps,
+    ViewLayoutProps
 } from './types.js';
 
 /**
@@ -38,4 +45,5 @@ export type {
  */
 export function initCoreLayouts(): void {
     registerCoreListLayouts();
+    registerCoreViewLayouts();
 }

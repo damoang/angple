@@ -1,10 +1,10 @@
 <script lang="ts">
     /**
-     * 관리자 전용 게시판 목록 레이아웃 변경 드롭다운
+     * 관리자 전용 댓글 레이아웃 변경 드롭다운
      *
-     * 게시판 페이지 상단에 표시되며, 관리자가 즉시 레이아웃을 변경할 수 있다.
+     * 게시글 본문 페이지의 댓글 영역 헤더에 표시되며,
+     * 관리자가 즉시 댓글 레이아웃을 변경할 수 있다.
      * 변경 즉시 API에 저장되고 페이지가 새로고침된다.
-     * 레이아웃 목록은 layoutRegistry에서 동적으로 가져온다.
      *
      * 컴포넌트 내부에서 authStore를 통해 관리자 여부를 확인하므로,
      * 부모에서 {#if} 조건 없이 항상 렌더링해도 됨 (SSR hydration 안전).
@@ -17,22 +17,12 @@
     import AlignJustify from '@lucide/svelte/icons/align-justify';
     import LayoutGrid from '@lucide/svelte/icons/layout-grid';
     import List from '@lucide/svelte/icons/list';
-    import ImageIcon from '@lucide/svelte/icons/image';
-    import Newspaper from '@lucide/svelte/icons/newspaper';
-    import TableProperties from '@lucide/svelte/icons/table-properties';
-    import LayoutDashboard from '@lucide/svelte/icons/layout-dashboard';
-    import Megaphone from '@lucide/svelte/icons/megaphone';
-    import PartyPopper from '@lucide/svelte/icons/party-popper';
-    import Gift from '@lucide/svelte/icons/gift';
-    import ArrowLeftRight from '@lucide/svelte/icons/arrow-left-right';
-    import ShoppingBag from '@lucide/svelte/icons/shopping-bag';
+    import MessageCircle from '@lucide/svelte/icons/message-circle';
+    import MessagesSquare from '@lucide/svelte/icons/messages-square';
+    import Minus from '@lucide/svelte/icons/minus';
     import { apiClient } from '$lib/api';
     import { authStore } from '$lib/stores/auth.svelte.js';
-    import { layoutRegistry, initCoreLayouts } from './layouts/index.js';
     import type { Component } from 'svelte';
-
-    // 코어 레이아웃 초기화 (중복 호출 안전)
-    initCoreLayouts();
 
     interface Props {
         boardId: string;
@@ -53,33 +43,20 @@
     // 관리자 여부
     const isAdmin = $derived((authStore.user?.mb_level ?? 0) >= 10);
 
-    // 레이아웃 ID별 아이콘 매핑
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const iconMap: Record<string, Component<any>> = {
-        compact: AlignJustify,
-        card: LayoutGrid,
-        detailed: List,
-        gallery: ImageIcon,
-        webzine: Newspaper,
-        classic: TableProperties,
-        'poster-gallery': ImageIcon,
-        'market-card': ShoppingBag,
-        notice: Megaphone,
-        message: PartyPopper,
-        giving: Gift,
-        trade: ArrowLeftRight
-    };
-
-    // 레지스트리에서 동적으로 레이아웃 목록 생성
-    const layouts = $derived.by(() => {
-        const manifests = layoutRegistry.getListManifests();
-        return manifests.map((m) => ({
-            id: m.id,
-            label: m.name,
-            description: m.description,
-            icon: iconMap[m.id] || LayoutDashboard
-        }));
-    });
+    // 댓글 레이아웃 옵션
+    const layouts: { id: string; label: string; description: string; icon: Component<any> }[] = [
+        { id: 'flat', label: '기본', description: '구분 없는 평면 목록', icon: AlignJustify },
+        { id: 'bordered', label: '카드형', description: '테두리 카드로 구분', icon: LayoutGrid },
+        { id: 'divided', label: '구분선형', description: '구분선으로 나누기', icon: List },
+        {
+            id: 'bubble',
+            label: '말풍선형',
+            description: '작성자 방향별 말풍선',
+            icon: MessageCircle
+        },
+        { id: 'chat', label: '채팅형', description: '채팅앱 스타일 버블', icon: MessagesSquare },
+        { id: 'compact', label: '컴팩트', description: '최소 여백 밀집 배치', icon: Minus }
+    ];
 
     // 현재 활성 레이아웃 정보
     const activeLayout = $derived(layouts.find((l) => l.id === currentLayout));
@@ -109,7 +86,7 @@
                     ...(token ? { Authorization: `Bearer ${token}` } : {})
                 },
                 credentials: 'include',
-                body: JSON.stringify({ list_layout: layoutId })
+                body: JSON.stringify({ comment_layout: layoutId })
             });
 
             if (!response.ok) {
@@ -120,9 +97,11 @@
             close();
             await invalidateAll();
         } catch (error) {
-            console.error('레이아웃 변경 실패:', error);
+            console.error('댓글 레이아웃 변경 실패:', error);
             if (browser) {
-                alert(error instanceof Error ? error.message : '레이아웃 변경에 실패했습니다.');
+                alert(
+                    error instanceof Error ? error.message : '댓글 레이아웃 변경에 실패했습니다.'
+                );
             }
         } finally {
             saving = null;
@@ -133,7 +112,7 @@
     function handleClickOutside(event: MouseEvent) {
         if (!isOpen) return;
         const target = event.target as HTMLElement;
-        if (!target.closest('.admin-layout-switcher')) {
+        if (!target.closest('.admin-comment-layout-switcher')) {
             close();
         }
     }
@@ -142,20 +121,20 @@
 <svelte:window onclick={handleClickOutside} />
 
 {#if mounted && isAdmin}
-    <div class="admin-layout-switcher relative inline-block">
-        <!-- 트리거 버튼: 현재 레이아웃 이름 표시 -->
+    <div class="admin-comment-layout-switcher relative inline-block">
+        <!-- 트리거 버튼: 현재 댓글 레이아웃 이름 표시 -->
         <button
             type="button"
             class="border-border hover:border-primary/40 hover:bg-accent flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs transition-colors"
             onclick={toggle}
-            title="게시판 목록 레이아웃 변경 (관리자)"
+            title="댓글 레이아웃 변경 (관리자)"
         >
             {#if activeLayout}
                 {@const ActiveIcon = activeLayout.icon}
                 <ActiveIcon class="text-primary h-3.5 w-3.5" />
                 <span class="text-foreground font-medium">{activeLayout.label}</span>
             {:else}
-                <LayoutDashboard class="text-muted-foreground h-3.5 w-3.5" />
+                <AlignJustify class="text-muted-foreground h-3.5 w-3.5" />
                 <span class="text-muted-foreground">레이아웃</span>
             {/if}
             <ChevronDown
@@ -167,12 +146,12 @@
 
         {#if isOpen}
             <div
-                class="bg-popover border-border absolute left-0 z-50 mt-1.5 w-56 rounded-lg border py-1.5 shadow-xl"
+                class="bg-popover border-border absolute right-0 z-50 mt-1.5 w-52 rounded-lg border py-1.5 shadow-xl"
             >
                 <div
                     class="text-muted-foreground border-border mb-1 border-b px-3 pb-1.5 text-[10px] font-medium uppercase tracking-wider"
                 >
-                    목록 레이아웃
+                    댓글 레이아웃
                 </div>
                 {#each layouts as layout (layout.id)}
                     {@const Icon = layout.icon}
@@ -194,11 +173,9 @@
                         />
                         <div class="flex-1 text-left">
                             <span class={isActive ? 'font-medium' : ''}>{layout.label}</span>
-                            {#if layout.description}
-                                <p class="text-muted-foreground mt-0.5 text-[11px] leading-tight">
-                                    {layout.description}
-                                </p>
-                            {/if}
+                            <p class="text-muted-foreground mt-0.5 text-[11px] leading-tight">
+                                {layout.description}
+                            </p>
                         </div>
                         {#if isSaving}
                             <span class="text-muted-foreground animate-pulse text-xs">저장...</span>

@@ -9,7 +9,7 @@ const BACKEND_URL = env.BACKEND_URL || 'http://localhost:8090';
 export const load: PageServerLoad = async ({ url, params, locals }) => {
     const boardId = params.boardId;
     const page = Number(url.searchParams.get('page')) || 1;
-    const limit = Number(url.searchParams.get('limit')) || 25;
+    const limit = Number(url.searchParams.get('limit')) || 30;
 
     // 검색 파라미터
     const searchField = (url.searchParams.get('sfl') as SearchField) || null;
@@ -103,7 +103,7 @@ export const load: PageServerLoad = async ({ url, params, locals }) => {
                 posts: [],
                 notices: [],
                 promotionPosts: [],
-                pagination: { total: 0, page: 1, limit: 25, totalPages: 0 },
+                pagination: { total: 0, page: 1, limit: 30, totalPages: 0 },
                 board: null,
                 searchParams: null,
                 activeTag: tag,
@@ -150,7 +150,7 @@ export const load: PageServerLoad = async ({ url, params, locals }) => {
             pagination: {
                 total: 0,
                 page: 1,
-                limit: 25,
+                limit: 30,
                 totalPages: 0
             },
             board: null,

@@ -146,6 +146,7 @@
 
     // 표시설정 폼
     let formListLayout = $state('compact');
+    let formCommentLayout = $state('flat');
     let formShowPreview = $state(false);
     let formPreviewLength = $state(150);
     let formShowThumbnail = $state(false);
@@ -249,6 +250,7 @@
             formUploadLevel,
             formDownloadLevel,
             formListLayout,
+            formCommentLayout,
             formShowPreview,
             formPreviewLength,
             formShowThumbnail,
@@ -352,6 +354,7 @@
         formDownloadLevel = b.download_level ?? 0;
 
         formListLayout = ds.list_layout || 'compact';
+        formCommentLayout = ds.comment_layout || 'flat';
         formShowPreview = ds.show_preview ?? false;
         formPreviewLength = ds.preview_length || 150;
         formShowThumbnail = ds.show_thumbnail ?? false;
@@ -460,6 +463,7 @@
                     : {
                           list_layout: 'compact',
                           view_layout: 'basic',
+                          comment_layout: 'flat',
                           show_preview: false,
                           preview_length: 150,
                           show_thumbnail: false
@@ -516,6 +520,7 @@
             // 표시 설정 업데이트
             const displayUpdate = {
                 list_layout: formListLayout,
+                comment_layout: formCommentLayout,
                 show_preview: formShowPreview,
                 preview_length: formPreviewLength,
                 show_thumbnail: formShowThumbnail
@@ -1025,6 +1030,49 @@
                                             </p>
                                         </div>
                                         {#if formListLayout === layout.id}
+                                            <span class="text-primary text-xs font-medium"
+                                                >선택됨</span
+                                            >
+                                        {/if}
+                                    </button>
+                                {/each}
+                            </Card.Content>
+                        </Card.Root>
+
+                        <!-- 댓글 레이아웃 -->
+                        <Card.Root>
+                            <Card.Header>
+                                <Card.Title>댓글 레이아웃</Card.Title>
+                                <Card.Description>
+                                    게시글 본문 하단 댓글 영역의 레이아웃을 선택합니다.
+                                </Card.Description>
+                            </Card.Header>
+                            <Card.Content class="space-y-3">
+                                {#each [{ id: 'flat', icon: AlignJustify, label: '기본', description: '구분선 없이 평면적으로 나열' }, { id: 'bordered', icon: LayoutGrid, label: '카드형', description: '각 댓글을 테두리가 있는 카드로 표시' }, { id: 'divided', icon: List, label: '구분선형', description: '댓글 사이에 구분선으로 분리' }, { id: 'bubble', icon: MessageCircle, label: '말풍선형', description: '채팅 앱처럼 말풍선 스타일로 표시' }, { id: 'compact', icon: AlignJustify, label: '컴팩트', description: '간격을 줄여 밀집된 레이아웃' }] as layout (layout.id)}
+                                    {@const Icon = layout.icon}
+                                    <button
+                                        type="button"
+                                        class="flex w-full items-center gap-4 rounded-lg border p-3 text-left transition-colors {formCommentLayout ===
+                                        layout.id
+                                            ? 'border-primary bg-primary/5'
+                                            : 'hover:bg-muted/50'}"
+                                        onclick={() => (formCommentLayout = layout.id)}
+                                    >
+                                        <div
+                                            class="flex h-9 w-9 shrink-0 items-center justify-center rounded-md {formCommentLayout ===
+                                            layout.id
+                                                ? 'bg-primary text-primary-foreground'
+                                                : 'bg-muted'}"
+                                        >
+                                            <Icon class="h-4 w-4" />
+                                        </div>
+                                        <div class="flex-1">
+                                            <p class="text-sm font-medium">{layout.label}</p>
+                                            <p class="text-muted-foreground text-xs">
+                                                {layout.description}
+                                            </p>
+                                        </div>
+                                        {#if formCommentLayout === layout.id}
                                             <span class="text-primary text-xs font-medium"
                                                 >선택됨</span
                                             >
