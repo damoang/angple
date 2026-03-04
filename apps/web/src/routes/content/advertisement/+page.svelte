@@ -36,7 +36,8 @@
             cpmLink: { text: '개인 신청', href: 'https://forms.gle/Yj3D28THBxVNMWn2A' },
             features: [
                 '축하 / 기념일 / 프로포즈 등',
-                'PC/모바일 첫 페이지 노출',
+                '모든 페이지 상단 텍스트 노출',
+                'PC 화면 공지사항 아래 이미지 노출',
                 '개인 신청(현금영수증)'
             ]
         },

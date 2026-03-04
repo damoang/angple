@@ -988,19 +988,26 @@ class ApiClient {
     }
 
     /**
-     * 댓글 추천
+     * 댓글 추천 (SvelteKit 라우트 — g5_board_good 기반)
      * 🔒 인증 필요
      */
     async likeComment(boardId: string, postId: string, commentId: string): Promise<LikeResponse> {
-        const response = await this.request<LikeResponse>(
-            `/boards/${boardId}/posts/${postId}/comments/${commentId}/like`,
-            { method: 'POST' }
+        const res = await fetch(
+            `/api/boards/${boardId}/posts/${postId}/comments/${commentId}/like`,
+            {
+                method: 'POST',
+                headers: this.buildHeaders({ 'Content-Type': 'application/json' }),
+                credentials: 'include',
+                body: JSON.stringify({ action: 'good' })
+            }
         );
-        return response.data;
+        const json = await res.json();
+        if (!json.success) throw new Error(json.message || '댓글 추천에 실패했습니다.');
+        return json.data;
     }
 
     /**
-     * 댓글 비추천
+     * 댓글 비추천 (SvelteKit 라우트 — g5_board_good 기반)
      * 🔒 인증 필요
      */
     async dislikeComment(
@@ -1008,11 +1015,18 @@ class ApiClient {
         postId: string,
         commentId: string
     ): Promise<LikeResponse> {
-        const response = await this.request<LikeResponse>(
-            `/boards/${boardId}/posts/${postId}/comments/${commentId}/dislike`,
-            { method: 'POST' }
+        const res = await fetch(
+            `/api/boards/${boardId}/posts/${postId}/comments/${commentId}/like`,
+            {
+                method: 'POST',
+                headers: this.buildHeaders({ 'Content-Type': 'application/json' }),
+                credentials: 'include',
+                body: JSON.stringify({ action: 'nogood' })
+            }
         );
-        return response.data;
+        const json = await res.json();
+        if (!json.success) throw new Error(json.message || '댓글 비추천에 실패했습니다.');
+        return json.data;
     }
 
     // ========================================
