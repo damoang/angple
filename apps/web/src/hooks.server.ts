@@ -200,7 +200,21 @@ export const handle: Handle = async ({ event, resolve }) => {
     // /api/plugins/* 프록시는 더 이상 사용하지 않음
     // 모든 /api/plugins/* 요청은 SvelteKit API 라우트에서 처리
 
-    const response = await resolve(event);
+    // SSR 다크모드: 쿠키에서 테마 읽어 <html> 클래스 주입 (FOUC 방지)
+    const themeMode = event.cookies.get('angple_theme_mode') || '';
+    const htmlClass = themeMode === 'dark' ? 'dark' : themeMode === 'amoled' ? 'amoled' : '';
+
+    // SSR 밀도: 쿠키에서 읽어 CSS 변수 주입 (레이아웃 flash 방지)
+    const density = event.cookies.get('angple_ui_density') || 'balanced';
+    const dPad = density === 'compact' ? '0px' : density === 'relaxed' ? '6px' : '3px';
+
+    const response = await resolve(event, {
+        transformPageChunk: ({ html }) => {
+            const cls = htmlClass ? ` class="${htmlClass}"` : '';
+            const sty = ` style="--row-pad-extra:${dPad};--comment-pad-extra:${dPad}"`;
+            return html.replace('<html lang="ko">', `<html lang="ko"${cls}${sty}>`);
+        }
+    });
 
     // CORS 헤더 (credentials: include 지원)
     const origin = event.request.headers.get('origin');

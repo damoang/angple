@@ -145,8 +145,16 @@ export const load: PageServerLoad = async ({ params, fetch: svelteKitFetch, loca
             }
         }
 
-        const promotionPosts =
-            promotionResult.status === 'fulfilled' ? promotionResult.value?.data?.posts || [] : [];
+        // 프로모션 사잇광고: board_exception에 포함된 게시판은 제외
+        let promotionPosts: unknown[] = [];
+        if (promotionResult.status === 'fulfilled') {
+            const promoData = promotionResult.value?.data;
+            const boardException = (promoData?.board_exception || '') as string;
+            const excludedBoards = boardException.split(',').map((s: string) => s.trim());
+            if (!excludedBoards.includes(boardId)) {
+                promotionPosts = promoData?.posts || [];
+            }
+        }
 
         const revisions = revisionsResult.status === 'fulfilled' ? revisionsResult.value || [] : [];
 

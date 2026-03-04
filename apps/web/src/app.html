@@ -2,7 +2,55 @@
 <html lang="ko">
     <head>
         <meta charset="utf-8" />
+        <script>
+            // 테마 모드 즉시 적용 (FOUC 방지 — CSS 파싱보다 먼저 실행)
+            // 1순위: 쿠키 (SSR과 동일한 소스)
+            // 2순위: localStorage (기존 사용자 호환)
+            // 3순위: prefers-color-scheme (첫 방문자)
+            (function () {
+                var c = document.cookie.match(/angple_theme_mode=(\w+)/);
+                var m = c ? c[1] : null;
+                if (!m) {
+                    try {
+                        m = localStorage.getItem('themeMode');
+                        if (!m && localStorage.getItem('darkMode') === 'true') m = 'dark';
+                    } catch (e) {}
+                }
+                if (!m && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                    m = 'dark';
+                }
+                if (m === 'dark') document.documentElement.classList.add('dark');
+                else if (m === 'amoled') document.documentElement.classList.add('amoled');
+                // 쿠키에 기록 (SSR 동기화용, 1년 만료)
+                if (m === 'dark' || m === 'amoled') {
+                    document.cookie = 'angple_theme_mode=' + m + ';path=/;max-age=31536000;SameSite=Lax';
+                }
+            })();
+            // UI 밀도 즉시 적용 (SSR과 동일한 CSS 변수 설정)
+            (function () {
+                var c = document.cookie.match(/angple_ui_density=(\w+)/);
+                var d = c ? c[1] : null;
+                if (!d) {
+                    try { d = localStorage.getItem('angple_ui_density'); } catch (e) {}
+                }
+                if (d !== 'compact' && d !== 'balanced' && d !== 'relaxed') d = 'balanced';
+                var p = d === 'compact' ? '0px' : d === 'relaxed' ? '6px' : '3px';
+                var s = document.documentElement.style;
+                s.setProperty('--row-pad-extra', p);
+                s.setProperty('--comment-pad-extra', p);
+                if (d !== 'balanced') {
+                    document.cookie = 'angple_ui_density=' + d + ';path=/;max-age=31536000;SameSite=Lax';
+                }
+            })();
+        </script>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <!-- Critical CSS: FOUC 방지 (CSS 번들 로드 전 즉시 적용) -->
+        <style>
+            .mobile-meta, .mobile-only { display: none; }
+            @media (min-width: 768px) {
+                .md\:hidden { display: none !important; }
+            }
+        </style>
         <meta name="theme-color" content="#1a1a1a" />
         <link rel="manifest" href="/manifest.json" />
         <link rel="icon" type="image/png" href="/favicon-96x96.png" sizes="96x96" />
@@ -13,9 +61,8 @@
         <!-- nosemgrep: html.security.audit.missing-integrity.missing-integrity -->
         <link
             rel="stylesheet"
-            as="style"
             crossorigin
-            href="https://cdn.jsdelivr.net/gh/wanteddev/wanted-sans@v1.0.1/packages/wanted-sans/fonts/webfonts/variable/split/WantedSansVariable.min.css"
+            href="https://cdn.jsdelivr.net/gh/wanteddev/wanted-sans@v1.0.3/packages/wanted-sans/fonts/webfonts/variable/split/WantedSansVariable.min.css"
         />
         <!-- nosemgrep: html.security.audit.missing-integrity.missing-integrity -->
         <script
@@ -27,18 +74,6 @@
         %sveltekit.head%
     </head>
     <body data-sveltekit-preload-data="hover">
-        <script>
-            // 테마 모드 즉시 적용 (FOUC 방지)
-            (function () {
-                var m = localStorage.getItem('themeMode');
-                if (!m) {
-                    // 기존 darkMode 호환
-                    if (localStorage.getItem('darkMode') === 'true') m = 'dark';
-                }
-                if (m === 'dark') document.documentElement.classList.add('dark');
-                else if (m === 'amoled') document.documentElement.classList.add('amoled');
-            })();
-        </script>
         <div style="display: contents">%sveltekit.body%</div>
         <script>
             if ('serviceWorker' in navigator) {

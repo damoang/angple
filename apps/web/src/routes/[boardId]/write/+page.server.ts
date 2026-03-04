@@ -38,6 +38,31 @@ export const load: PageServerLoad = async ({ locals, params }) => {
                 error(403, '이 게시판에 글을 작성할 권한이 없습니다.');
             }
         }
+
+        // ExtendedSettings 기반 글쓰기 제한 체크 (서버 사이드 사전 검증)
+        if (locals.accessToken) {
+            try {
+                const permRes = await backendFetch(
+                    `${BACKEND_URL}/api/v1/boards/${boardId}/write-permission`,
+                    { headers }
+                );
+                if (permRes.ok) {
+                    const permData = await permRes.json();
+                    if (permData.data && !permData.data.can_write) {
+                        error(
+                            403,
+                            permData.data.reason || '글쓰기 제한에 의해 작성할 수 없습니다.'
+                        );
+                    }
+                }
+            } catch (permErr) {
+                // SvelteKit HttpError는 다시 throw
+                if (permErr && typeof permErr === 'object' && 'status' in permErr) {
+                    throw permErr;
+                }
+                // 권한 조회 실패는 무시 (클라이언트에서 재확인)
+            }
+        }
     } catch (err) {
         // SvelteKit HttpError (403 등)는 다시 throw
         if (err && typeof err === 'object' && 'status' in err) {

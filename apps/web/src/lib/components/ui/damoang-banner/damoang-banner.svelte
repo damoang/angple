@@ -175,11 +175,9 @@
         return raw;
     }
 
-    // 축하메시지 배너 링크 결정: external_link 유무로 판단
+    // 축하메시지 배너 링크: API가 link_url에 올바른 경로를 반환 (/message/{wr_id} 등)
     function getCelebrationHref(banner: CelebrationBanner): string {
-        const custom = banner.external_link;
-        if (!custom || custom === '#') return `/message/${banner.id}`;
-        return toLocalHref(custom);
+        return banner.link_url || `/message/${banner.id}`;
     }
 </script>
 

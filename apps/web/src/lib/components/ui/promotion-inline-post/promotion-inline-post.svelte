@@ -35,18 +35,20 @@
 </script>
 
 {#if isClassic}
-    <!-- Classic variant: 동일 그리드 + 앰버 accent -->
+    <!-- Classic variant: legacy step-pai amber bg + left accent -->
     <a
         {href}
-        class="block border-l-[3px] border-l-amber-500/30 bg-amber-50/[0.04] px-4 py-1.5 no-underline transition-colors hover:bg-amber-100/10 dark:border-l-amber-400/25 dark:bg-amber-950/[0.04] dark:hover:bg-amber-950/15"
+        class="promo-classic-row block px-4 no-underline transition-colors hover:bg-amber-100/10 dark:hover:bg-amber-950/15"
+        style="background: rgba(255, 179, 39, 0.06); border-left: 3px solid rgba(255, 179, 39, 0.4); border-bottom: 1px solid color-mix(in oklch, var(--foreground) 8%, transparent);"
     >
         <div
-            class="flex items-center gap-2 md:grid md:grid-cols-[40px_1fr_auto_auto_auto] md:items-center md:gap-0"
+            class="flex items-center gap-2 md:grid md:grid-cols-[60px_1fr_auto_auto_auto] md:items-center md:gap-0"
         >
-            <!-- 홍보 박스 (col 1, 데스크톱만) -->
+            <!-- 홍보 박스 (col 1, 데스크톱만) — legacy step-pai: rgb(255,179,39) bg -->
             <div class="hidden md:flex md:items-center md:justify-center">
                 <div
-                    class="flex h-7 w-10 items-center justify-center rounded-md bg-amber-500/15 text-[10px] font-semibold text-amber-500 dark:bg-amber-400/15 dark:text-amber-400"
+                    class="flex h-5 w-10 items-center justify-center rounded-lg text-xs font-semibold leading-5"
+                    style="background: rgb(255, 179, 39); color: rgb(78, 78, 78);"
                 >
                     홍보
                 </div>
@@ -56,22 +58,31 @@
             <div class="min-w-0 flex-1 md:flex-none">
                 <div class="flex min-w-0 items-center gap-1">
                     <span
-                        class="inline-flex shrink-0 items-center rounded bg-amber-500/15 px-1.5 py-0 text-[10px] font-semibold text-amber-500 md:hidden dark:bg-amber-400/15 dark:text-amber-400"
-                        >홍보</span
+                        class="inline-flex shrink-0 items-center rounded px-1.5 py-0 text-[10px] font-semibold md:hidden"
+                        style="background: rgb(255, 179, 39); color: rgb(78, 78, 78);">홍보</span
                     >
-                    <span class="text-foreground truncate text-base font-semibold">
+                    <span
+                        class="text-foreground truncate font-medium"
+                        style="font-size: 0.9375rem;"
+                    >
                         {post.subject}
                     </span>
                 </div>
             </div>
 
             <!-- 광고주 (col 3, 데스크톱만) -->
-            <span class="text-foreground/70 hidden w-[130px] truncate pl-1 text-sm md:inline-flex">
+            <span
+                class="text-muted-foreground hidden w-[120px] truncate pl-1 md:inline-flex"
+                style="font-size: 15px;"
+            >
                 {post.advertiserName}
             </span>
 
             <!-- 날짜 (col 4, 데스크톱만) -->
-            <span class="text-muted-foreground hidden w-[70px] pl-1 text-center text-sm md:inline">
+            <span
+                class="text-muted-foreground hidden w-[70px] pl-1 text-center md:inline"
+                style="font-size: 15px;"
+            >
                 {formatDate(post.createdAt)}
             </span>
 
@@ -115,3 +126,18 @@
         </div>
     </a>
 {/if}
+
+<style>
+    /* 홍보 classic 행: regular post-row와 동일한 density-aware 패딩 */
+    .promo-classic-row {
+        padding-top: calc(10px + var(--row-pad-extra, 3px));
+        padding-bottom: calc(10px + var(--row-pad-extra, 3px));
+    }
+
+    @media (min-width: 768px) {
+        .promo-classic-row {
+            padding-top: calc(6px + var(--row-pad-extra, 3px));
+            padding-bottom: calc(6px + var(--row-pad-extra, 3px));
+        }
+    }
+</style>

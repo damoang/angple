@@ -209,11 +209,6 @@
     <title>{import.meta.env.VITE_SITE_NAME || '다모앙'}</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="icon" href={favicon} />
-    <!-- Wanted Sans Font -->
-    <link
-        rel="stylesheet"
-        href="https://cdn.jsdelivr.net/gh/wanteddev/wanted-sans@v1.0.3/packages/wanted-sans/fonts/webfonts/static/split/WantedSans.min.css"
-    />
 </svelte:head>
 
 <!-- /admin, /install 경로는 테마 레이아웃 없이 렌더링 -->

@@ -60,39 +60,41 @@ export const GET: RequestHandler = async ({ url }) => {
         // mode=recent: 날짜 무관 최근 8건 (메인 위젯용)
         // 기본: 오늘 날짜만 (롤링 텍스트/사이드바 배너용)
         try {
-            const dateFilter = isRecent ? '' : 'AND cb.display_date = CURDATE()';
+            const dateFilter = isRecent
+                ? ''
+                : "AND cb.display_date = DATE(CONVERT_TZ(NOW(), '+00:00', '+09:00'))";
             const [rows] = await pool.execute<RowDataPacket[]>(
                 `SELECT cb.id, cb.title, cb.content, cb.image_url, cb.link_url,
                         cb.external_url, cb.display_date, cb.target_member_id,
                         cb.link_target, cb.sort_order, cb.display_type,
+                        cb.source_wr_id,
                         m.mb_nick AS target_member_nick,
                         m.mb_image_url AS target_member_image_url
                  FROM celebration_banners cb
-                 LEFT JOIN g5_member m ON cb.target_member_id = m.mb_id
+                 LEFT JOIN g5_member m ON cb.target_member_id COLLATE utf8mb4_unicode_ci = m.mb_id
                  WHERE cb.is_active = 1 ${dateFilter}
                  ORDER BY cb.display_date DESC, cb.sort_order ASC, cb.id DESC
                  LIMIT 8`
             );
 
             for (const row of rows as RowDataPacket[]) {
+                // link_url 결정: source_wr_id → /message/{wr_id}, 없으면 external_url, 최후 link_url
+                const linkUrl = row.source_wr_id
+                    ? `/message/${row.source_wr_id}`
+                    : row.external_url || row.link_url || '';
+
                 banners.push({
-                    id: row.id,
+                    id: row.source_wr_id || row.id,
                     title: row.title,
                     content: row.content || '',
                     image_url: row.image_url || '',
-                    link_url:
-                        row.link_url && row.link_url.includes('/free/5632568')
-                            ? `/message/${row.id}`
-                            : row.link_url || '',
+                    link_url: linkUrl,
                     display_date: row.display_date,
                     is_active: true,
                     target_member_id: row.target_member_id || undefined,
                     target_member_nick: row.target_member_nick || undefined,
                     target_member_photo: getMemberPhotoUrl(row.target_member_image_url),
-                    external_link:
-                        row.external_url && !row.external_url.includes('/free/5632568')
-                            ? row.external_url
-                            : undefined,
+                    external_link: row.external_url || undefined,
                     link_target: row.link_target || '_blank',
                     sort_order: row.sort_order || 0,
                     display_type: row.display_type || 'image'
@@ -105,7 +107,9 @@ export const GET: RequestHandler = async ({ url }) => {
         // 2차: g5_write_message fallback (마이그레이션 전까지)
         // mode=recent: 최근 글 표시, 기본: 오늘 날짜만
         if (banners.length === 0) {
-            const legacyDateFilter = isRecent ? '' : 'AND DATE(wm.wr_datetime) = CURDATE()';
+            const legacyDateFilter = isRecent
+                ? ''
+                : "AND DATE(CONVERT_TZ(wm.wr_datetime, '+00:00', '+09:00')) = DATE(CONVERT_TZ(NOW(), '+00:00', '+09:00'))";
             const [rows] = await pool.execute<RowDataPacket[]>(
                 `SELECT wm.wr_id, wm.wr_subject, wm.wr_content, wm.wr_link2, wm.mb_id,
                         m.mb_nick, m.mb_image_url
@@ -130,10 +134,7 @@ export const GET: RequestHandler = async ({ url }) => {
                         target_member_id: row.mb_id || undefined,
                         target_member_nick: row.mb_nick || undefined,
                         target_member_photo: getMemberPhotoUrl(row.mb_image_url),
-                        external_link:
-                            row.wr_link2 && !row.wr_link2.includes('/free/5632568')
-                                ? row.wr_link2
-                                : undefined,
+                        external_link: row.wr_link2 || undefined,
                         display_type: 'image'
                     });
                 }

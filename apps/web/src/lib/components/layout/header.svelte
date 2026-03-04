@@ -63,26 +63,55 @@
             themeMode = 'light';
             el.classList.remove('dark', 'amoled');
         }
-        localStorage.setItem('themeMode', themeMode);
+        // localStorage + 쿠키 동시 기록 (SSR 동기화)
+        try {
+            localStorage.setItem('themeMode', themeMode);
+        } catch {}
+        if (themeMode === 'light') {
+            document.cookie = 'angple_theme_mode=;path=/;max-age=0;SameSite=Lax';
+        } else {
+            document.cookie =
+                'angple_theme_mode=' + themeMode + ';path=/;max-age=31536000;SameSite=Lax';
+        }
     }
 
-    // 컴포넌트 마운트 시 스크롤 이벤트 등록
+    // 컴포넌트 마운트 시 스크롤 이벤트 등록 + 테마 복원
     onMount(() => {
-        // 테마 모드 복원 (기존 darkMode 호환)
-        const savedMode = localStorage.getItem('themeMode');
-        const legacyDark = localStorage.getItem('darkMode');
+        // 테마 모드 복원: 쿠키 → localStorage → prefers-color-scheme
+        let savedMode: string | null = null;
+        const cookieMatch = document.cookie.match(/angple_theme_mode=(\w+)/);
+        if (cookieMatch) {
+            savedMode = cookieMatch[1];
+        }
+        if (!savedMode) {
+            try {
+                savedMode = localStorage.getItem('themeMode');
+                const legacyDark = localStorage.getItem('darkMode');
+                if (!savedMode && legacyDark === 'true') savedMode = 'dark';
+            } catch {}
+        }
+        if (!savedMode && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            savedMode = 'dark';
+        }
         if (savedMode === 'dark' || savedMode === 'amoled') {
             themeMode = savedMode;
-            document.documentElement.classList.add(savedMode);
-        } else if (!savedMode && legacyDark === 'true') {
-            themeMode = 'dark';
-            document.documentElement.classList.add('dark');
-            localStorage.setItem('themeMode', 'dark');
         }
 
+        // cross-tab 테마 동기화 (다른 탭에서 테마 변경 시)
+        function handleStorageChange(e: StorageEvent) {
+            if (e.key === 'themeMode' && e.newValue) {
+                const el = document.documentElement;
+                el.classList.remove('dark', 'amoled');
+                if (e.newValue === 'dark') el.classList.add('dark');
+                else if (e.newValue === 'amoled') el.classList.add('amoled');
+                themeMode = e.newValue as 'light' | 'dark' | 'amoled';
+            }
+        }
+        window.addEventListener('storage', handleStorageChange);
         window.addEventListener('scroll', handleScroll, { passive: true });
 
         return () => {
+            window.removeEventListener('storage', handleStorageChange);
             window.removeEventListener('scroll', handleScroll);
         };
     });

@@ -578,11 +578,11 @@
         <li
             id="c_{comment.id}"
             style="margin-left: {Math.min(depth, 3) * 1.25}rem; scroll-margin-top: 100px"
-            class="transition-colors duration-200
+            class="comment-item transition-colors duration-200
                 {commentLayout === 'chat'
                 ? 'flex items-start gap-2.5' + (isAuthor ? ' flex-row-reverse' : '')
                 : commentLayout === 'bordered'
-                  ? 'border-border bg-card rounded-lg border p-4 shadow-sm'
+                  ? 'bg-card rounded-lg border border-black/[0.06] p-4 shadow-[0_1px_3px_rgba(0,0,0,0.06)] dark:border-white/[0.08] dark:bg-white/[0.05] dark:shadow-none'
                   : commentLayout === 'divided'
                     ? 'border-border border-b py-3 last:border-b-0'
                     : commentLayout === 'bubble'
@@ -596,9 +596,9 @@
             commentLayout !== 'bordered' &&
             commentLayout !== 'bubble' &&
             commentLayout !== 'chat'
-                ? 'border-primary/20 border-l-2 pl-3'
+                ? 'border-border/60 border-l-2 pl-3'
                 : isReply && commentLayout === 'bordered'
-                  ? 'border-primary/30 border-l-2'
+                  ? 'border-border/60 border-l-2'
                   : ''}"
         >
             <!-- Chat: 사이드 아바타 -->
@@ -635,7 +635,7 @@
                     <div
                         class="{commentLayout === 'chat'
                             ? 'hidden'
-                            : 'mb-2'} flex flex-wrap items-start gap-2 sm:gap-3"
+                            : 'mb-1.5'} flex flex-wrap items-start gap-1 sm:gap-1.5"
                     >
                         <!-- 존1: 정체성 (아바타 + 이름/레벨/메모/잠금 + 날짜/IP/수정이력) -->
                         <div class="flex items-start gap-2">
@@ -769,6 +769,7 @@
                                         ? 'border-liked/40 text-liked'
                                         : 'border-border'} px-2 py-1 text-xs font-medium transition-colors"
                                     title="추천인 목록보기"
+                                    style={getCommentLikes(comment) === 0 ? 'opacity: 0.25;' : ''}
                                 >
                                     {getCommentLikes(comment).toLocaleString()}
                                 </button>
@@ -786,7 +787,7 @@
                             {/if}
 
                             <!-- 비추천 + 액션 버튼 -->
-                            <div class="text-muted-foreground flex items-center gap-2 text-sm">
+                            <div class="text-muted-foreground flex items-center gap-1.5 text-sm">
                                 <!-- 댓글 비추천 버튼 (게시판 설정에서 활성화된 경우만) -->
                                 {#if useNogood}
                                     {#if onDislike && authStore.isAuthenticated}
@@ -835,7 +836,7 @@
                                             variant="ghost"
                                             size="sm"
                                             onclick={() => copyCommentLink(comment.id)}
-                                            class="h-7 px-2"
+                                            class="comment-action-secondary h-7 px-2 opacity-40 transition-opacity hover:opacity-80"
                                             title="이 댓글의 링크를 복사합니다"
                                         >
                                             <Link2 class="h-4 w-4" />
@@ -848,7 +849,7 @@
                                                 variant="ghost"
                                                 size="sm"
                                                 onclick={() => startEdit(comment)}
-                                                class="h-7 px-2"
+                                                class="comment-action-secondary h-7 px-2 opacity-40 transition-opacity hover:opacity-80"
                                             >
                                                 <Pencil class="h-4 w-4" />
                                             </Button>
@@ -857,7 +858,7 @@
                                                 size="sm"
                                                 onclick={() => handleDelete(String(comment.id))}
                                                 disabled={isDeleting === String(comment.id)}
-                                                class="text-destructive hover:text-destructive h-7 px-2"
+                                                class="comment-action-secondary text-destructive hover:text-destructive h-7 px-2 opacity-40 transition-opacity hover:opacity-80"
                                             >
                                                 <Trash2 class="h-4 w-4" />
                                             </Button>
@@ -868,7 +869,7 @@
                                                 variant="ghost"
                                                 size="sm"
                                                 onclick={() => startReport(comment)}
-                                                class="text-muted-foreground hover:text-destructive h-7 px-2"
+                                                class="comment-action-secondary text-muted-foreground hover:text-destructive h-7 px-2 opacity-40 transition-opacity hover:opacity-80"
                                                 title="신고"
                                             >
                                                 <Flag class="h-4 w-4" />
@@ -881,7 +882,7 @@
                                                 size="sm"
                                                 onclick={() =>
                                                     toggleCommentRevisions(String(comment.id))}
-                                                class="text-muted-foreground h-7 px-2"
+                                                class="comment-action-secondary text-muted-foreground h-7 px-2 opacity-40 transition-opacity hover:opacity-80"
                                                 title="수정이력 보기"
                                             >
                                                 <History class="h-4 w-4" />
@@ -943,7 +944,9 @@
                             비밀댓글입니다.
                         </div>
                     {:else}
-                        <div class="text-foreground whitespace-pre-wrap text-base leading-relaxed">
+                        <div
+                            class="comment-body text-foreground whitespace-pre-wrap text-base leading-normal"
+                        >
                             <!-- eslint-disable-next-line svelte/no-at-html-tags -->
                             {@html processedComments.get(comment.id) ?? ''}
                         </div>
@@ -1165,6 +1168,49 @@
         position: relative;
         min-height: 200px;
         height: auto;
+    }
+
+    /* 댓글 밀도 설정 (--comment-pad-extra CSS 변수로 제어) */
+    .comment-item {
+        padding-top: calc(var(--comment-pad-extra, 3px) + 0.75rem);
+        padding-bottom: calc(var(--comment-pad-extra, 3px) + 0.75rem);
+    }
+    .comment-item:first-child {
+        padding-top: calc(var(--comment-pad-extra, 3px));
+    }
+    .comment-item:last-child {
+        padding-bottom: calc(var(--comment-pad-extra, 3px));
+    }
+
+    /* 댓글 본문 문단 간격 축소 */
+    :global(.comment-body p) {
+        margin-bottom: 0.6em;
+    }
+    :global(.comment-body p:last-child) {
+        margin-bottom: 0;
+    }
+
+    /* 연속 줄바꿈 간격 축소 */
+    :global(.comment-body br + br) {
+        display: block;
+        content: '';
+        margin-top: 0.3em;
+    }
+
+    /* 모바일에서 secondary 액션 버튼 더 dim */
+    @media (max-width: 767px) {
+        :global(.comment-action-secondary) {
+            opacity: 0.3 !important;
+        }
+        :global(.comment-action-secondary:hover),
+        :global(.comment-action-secondary:active) {
+            opacity: 0.8 !important;
+        }
+    }
+
+    /* 액션 버튼 그룹 간격 */
+    .comment-item :global(.comment-good-group) {
+        gap: 0;
     }
 
     /* 대괄호 이미지 스타일 */

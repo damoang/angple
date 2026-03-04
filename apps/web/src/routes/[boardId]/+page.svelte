@@ -1,6 +1,7 @@
 <script lang="ts">
     import { goto, invalidateAll } from '$app/navigation';
     import { page } from '$app/stores';
+    import { onMount } from 'svelte';
     import { Card, CardContent } from '$lib/components/ui/card/index.js';
     import { Button } from '$lib/components/ui/button/index.js';
     import { Badge } from '$lib/components/ui/badge/index.js';
@@ -32,6 +33,7 @@
     import { memberLevelStore } from '$lib/stores/member-levels.svelte.js';
     import { checkPermission, getPermissionMessage } from '$lib/utils/board-permissions.js';
     import { readPostsStore } from '$lib/stores/read-posts.svelte.js';
+    import { densityStore } from '$lib/stores/density.svelte.js';
 
     // 특수 게시판 컴포넌트 (플러그인 레지스트리 기반)
     import { boardTypeRegistry } from '$lib/components/features/board/board-type-registry.js';
@@ -110,6 +112,17 @@
 
     // 검색 중인지 여부
     const isSearching = $derived(Boolean(data.searchParams));
+
+    // 읽은 글 표시 지연 — SSR에서는 모든 글이 "안읽음"으로 렌더링되므로,
+    // 하이드레이션 직후 즉시 변경하면 깜빡임 발생. 2프레임 대기 후 부드럽게 전환.
+    let showReadState = $state(false);
+    onMount(() => {
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                showReadState = true;
+            });
+        });
+    });
 
     // 활성 태그 필터
     const activeTag = $derived(data.activeTag || null);
@@ -435,21 +448,27 @@
             {#if hasNotices && !isSearching}
                 {#if listLayoutId === 'classic'}
                     <!-- Classic 레이아웃: 붙어있는 행 스타일 공지 -->
+                    <!-- 공지 섹션 — legacy bg-light-subtle + fw-medium title -->
                     <div
-                        class="border-border divide-border mb-4 divide-y overflow-hidden rounded-lg border"
+                        class="border-border divide-border mb-2 divide-y overflow-hidden rounded-lg border"
                     >
                         {#each importantNotices as notice (notice.id)}
                             <a
                                 href="/{boardId}/{notice.id}"
-                                class="bg-destructive/5 hover:bg-destructive/10 block px-4 py-1 no-underline transition-colors"
+                                class="hover:bg-destructive/10 block px-4 py-1.5 no-underline transition-colors"
+                                style="background: rgba(239, 68, 68, 0.04);"
                                 data-sveltekit-preload-data="hover"
                             >
                                 <div class="flex items-center gap-2 md:gap-3">
-                                    <div class="hidden shrink-0 md:block">
+                                    <div class="hidden shrink-0 md:block" style="width: 60px;">
                                         <div
-                                            class="bg-destructive/10 flex h-7 w-10 items-center justify-center rounded-md"
+                                            class="mx-auto flex h-5 w-10 items-center justify-center rounded-lg"
+                                            style="background: rgba(239,68,68,0.1);"
                                         >
-                                            <Megaphone class="text-destructive h-4 w-4" />
+                                            <Megaphone
+                                                class="h-3.5 w-3.5"
+                                                style="color: orangered;"
+                                            />
                                         </div>
                                     </div>
                                     <div class="min-w-0 flex-1">
@@ -462,14 +481,16 @@
                                                 class="shrink-0 text-[10px]">필수</Badge
                                             >
                                             <h3
-                                                class="text-foreground truncate text-base font-semibold"
+                                                class="text-foreground truncate font-medium"
+                                                style="font-size: 0.9375rem;"
                                             >
                                                 {notice.title}
                                             </h3>
                                         </div>
                                     </div>
                                     <span
-                                        class="text-muted-foreground hidden shrink-0 text-sm md:inline"
+                                        class="text-muted-foreground hidden shrink-0 md:inline"
+                                        style="font-size: 13px;"
                                     >
                                         {notice.author}
                                     </span>
@@ -479,15 +500,17 @@
                         {#each normalNotices as notice (notice.id)}
                             <a
                                 href="/{boardId}/{notice.id}"
-                                class="bg-liked/3 hover:bg-liked/8 block px-4 py-1 no-underline transition-colors"
+                                class="hover:bg-accent block px-4 py-1.5 no-underline transition-colors"
+                                style="background: rgba(255, 255, 255, 0.03);"
                                 data-sveltekit-preload-data="hover"
                             >
                                 <div class="flex items-center gap-2 md:gap-3">
-                                    <div class="hidden shrink-0 md:block">
+                                    <div class="hidden shrink-0 md:block" style="width: 60px;">
                                         <div
-                                            class="bg-liked/15 flex h-7 w-10 items-center justify-center rounded-md"
+                                            class="mx-auto flex h-5 w-10 items-center justify-center rounded-lg"
+                                            style="background: rgba(239,68,68,0.1);"
                                         >
-                                            <Pin class="text-liked h-4 w-4" />
+                                            <Pin class="h-3.5 w-3.5" style="color: orangered;" />
                                         </div>
                                     </div>
                                     <div class="min-w-0 flex-1">
@@ -496,18 +519,21 @@
                                                 class="text-liked h-3.5 w-3.5 shrink-0 md:hidden"
                                             />
                                             <Badge
-                                                class="border-liked/20 bg-liked/15 text-liked shrink-0 text-[10px]"
+                                                class="shrink-0 text-[10px] font-semibold"
+                                                style="background: rgba(239, 68, 68, 0.15); color: rgb(239, 68, 68); border: 1px solid rgba(239, 68, 68, 0.2);"
                                                 >공지</Badge
                                             >
                                             <h3
-                                                class="text-foreground truncate text-base font-semibold"
+                                                class="text-foreground truncate font-medium"
+                                                style="font-size: 0.9375rem;"
                                             >
                                                 {notice.title}
                                             </h3>
                                         </div>
                                     </div>
                                     <span
-                                        class="text-muted-foreground hidden shrink-0 text-sm md:inline"
+                                        class="text-muted-foreground hidden shrink-0 md:inline"
+                                        style="font-size: 13px;"
                                     >
                                         {notice.author}
                                     </span>
@@ -587,13 +613,40 @@
             <!-- 게시글 목록 (레이아웃별 래퍼 클래스 적용) -->
             <div class={wrapperClass}>
                 {#if listLayoutId === 'classic'}
+                    <!-- 행 높이 토글 (컬럼 헤더 위, 우측 정렬) -->
+                    <div class="hidden justify-end px-4 pb-1 md:flex">
+                        <div class="flex items-center gap-0.5">
+                            <button
+                                class="rounded px-1.5 py-0.5 text-[10px] transition-colors {densityStore.value ===
+                                'compact'
+                                    ? 'bg-foreground/10 text-foreground'
+                                    : 'text-muted-foreground hover:text-foreground'}"
+                                onclick={() => densityStore.set('compact')}>촘촘</button
+                            >
+                            <button
+                                class="rounded px-1.5 py-0.5 text-[10px] transition-colors {densityStore.value ===
+                                'balanced'
+                                    ? 'bg-foreground/10 text-foreground'
+                                    : 'text-muted-foreground hover:text-foreground'}"
+                                onclick={() => densityStore.set('balanced')}>보통</button
+                            >
+                            <button
+                                class="rounded px-1.5 py-0.5 text-[10px] transition-colors {densityStore.value ===
+                                'relaxed'
+                                    ? 'bg-foreground/10 text-foreground'
+                                    : 'text-muted-foreground hover:text-foreground'}"
+                                onclick={() => densityStore.set('relaxed')}>여유</button
+                            >
+                        </div>
+                    </div>
+                    <!-- 컬럼 헤더 -->
                     <div
-                        class="border-border bg-muted/30 text-muted-foreground hidden border-b px-4 py-1.5 text-xs md:block"
+                        class="border-border bg-muted/30 text-muted-foreground hidden border-b px-4 py-1.5 text-sm font-medium md:block"
                     >
-                        <div class="grid grid-cols-[40px_1fr_auto_auto_auto] items-center gap-0">
+                        <div class="grid grid-cols-[60px_1fr_auto_auto_auto] items-center gap-0">
                             <div class="text-center">추천</div>
                             <div>제목</div>
-                            <div class="w-[130px] pl-1">이름</div>
+                            <div class="w-[120px] pl-1">이름</div>
                             <div class="w-[70px] pl-1 text-center">날짜</div>
                             <div class="w-[50px] pl-1 text-center">조회</div>
                         </div>
@@ -624,7 +677,8 @@
                                         {post}
                                         displaySettings={data.board?.display_settings}
                                         href="/{boardId}/{post.id}"
-                                        isRead={readPostsStore.isRead(boardId, post.id)}
+                                        isRead={showReadState &&
+                                            readPostsStore.isRead(boardId, post.id)}
                                     />
                                 </div>
                             </div>
@@ -633,7 +687,7 @@
                                 {post}
                                 displaySettings={data.board?.display_settings}
                                 href="/{boardId}/{post.id}"
-                                isRead={readPostsStore.isRead(boardId, post.id)}
+                                isRead={showReadState && readPostsStore.isRead(boardId, post.id)}
                             />
                         {/if}
 

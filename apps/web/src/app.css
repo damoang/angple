@@ -316,6 +316,9 @@
 
     body {
         @apply bg-background text-foreground text-base leading-relaxed;
+        font-weight: 400;
+        /* font-variation-settings 사용 안 함 — 가변 폰트는 font-weight를 wght 축에
+           자동 매핑하므로, 수동 고정하면 SSR→Hydration 깜빡임 발생 */
     }
 
     /* 2) 모든 요소가 html의 폰트/옵션을 ‘상속’하도록 고정 */
@@ -330,17 +333,7 @@
         font-synthesis-style: inherit;
     }
 
-    /* 3) 기본 가중치 강제(가변폰트일 때 wght 축도 고정) */
-    body {
-        @apply bg-background text-foreground;
-        @apply text-base leading-relaxed;
-        font-weight: 400;
-        /* == font-normal */
-        font-variation-settings: 'wght' 400;
-        /* 가변축 직접 고정 */
-    }
-
-    /* 4) 제목 두께도 명시(브라우저 합성볼드 방지용) */
+    /* 4) 제목 두께 (브라우저 합성볼드 방지: html에 font-synthesis-weight: none 적용됨) */
     h1,
     h2,
     h3,
@@ -348,23 +341,6 @@
     h5,
     h6 {
         font-weight: 700;
-        font-variation-settings: 'wght' 700;
-    }
-
-    /* 5) Tailwind font-weight 클래스에 가변축(wght) 연동
-     *    body의 font-variation-settings: 'wght' 400 고정이
-     *    상속되면서 font-weight가 시각적으로 무시되는 문제 해결 */
-    .font-medium {
-        font-variation-settings: 'wght' 500;
-    }
-    .font-semibold {
-        font-variation-settings: 'wght' 600;
-    }
-    .font-bold {
-        font-variation-settings: 'wght' 700;
-    }
-    .font-extrabold {
-        font-variation-settings: 'wght' 800;
     }
 }
 

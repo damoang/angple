@@ -7,6 +7,7 @@
     import { apiClient } from '$lib/api/index.js';
     import type { PageData } from './$types.js';
     import type { CreatePostRequest, UpdatePostRequest } from '$lib/api/types.js';
+    import type { WritePermission } from './+page.js';
     import { sendMentionNotifications } from '$lib/utils/mention-notify.js';
     import { checkPermission, getPermissionMessage } from '$lib/utils/board-permissions.js';
 
@@ -23,14 +24,32 @@
     let isSubmitting = $state(false);
     let error = $state<string | null>(null);
 
+    // 글쓰기 권한 조회 결과
+    const writePermission = $derived(data.writePermission as WritePermission | null);
+
+    // 글쓰기 제한으로 차단된 경우
+    const isRestricted = $derived(writePermission !== null && !writePermission.can_write);
+    const restrictionReason = $derived(writePermission?.reason ?? '');
+
+    // 남은 횟수 표시 여부 (제한이 있고, remaining >= 0일 때)
+    const showRemainingBadge = $derived(
+        writePermission !== null &&
+            writePermission.can_write &&
+            writePermission.remaining >= 0 &&
+            writePermission.daily_limit > 0
+    );
+
     // 글쓰기 권한 체크
     const requiredLevel = $derived(data.board?.write_level ?? 3);
     const canWrite = $derived(() => {
         if (!authStore.isAuthenticated) return false;
+        if (isRestricted) return false;
         return checkPermission(data.board, 'can_write', authStore.user ?? null);
     });
     const writePermissionMsg = $derived(
-        getPermissionMessage(data.board, 'can_write', authStore.user ?? null)
+        isRestricted
+            ? restrictionReason
+            : getPermissionMessage(data.board, 'can_write', authStore.user ?? null)
     );
 
     // 로그인 체크 (클라이언트 사이드)
@@ -115,6 +134,15 @@
         {#if error}
             <div class="bg-destructive/10 text-destructive mb-4 rounded-md p-4">
                 {error}
+            </div>
+        {/if}
+
+        {#if showRemainingBadge}
+            <div
+                class="mb-4 rounded-md bg-blue-50 px-4 py-3 text-sm text-blue-700 dark:bg-blue-950/30 dark:text-blue-300"
+            >
+                오늘 <strong>{writePermission?.remaining}</strong>/{writePermission?.daily_limit}회
+                작성 가능
             </div>
         {/if}
 
