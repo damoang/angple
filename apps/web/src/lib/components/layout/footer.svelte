@@ -19,7 +19,7 @@
             href: 'https://www.youtube.com/@AngPangPang',
             external: true
         },
-        { name: '미니게임', href: '/game' },
+        { name: '미니게임', href: '/games' },
         { name: 'X (구 트위터)', href: 'https://x.com/@damoang_net', external: true }
     ];
 

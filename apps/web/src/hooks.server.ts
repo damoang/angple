@@ -31,7 +31,7 @@ const ADS_URL = env.ADS_URL || '';
 const LEGACY_URL = env.LEGACY_URL || '';
 
 /** CDN 캐시 가능한 공개 경로 (비로그인 시만 적용) */
-const PUBLIC_CACHEABLE_PATHS = ['/feed', '/game', '/info'];
+const PUBLIC_CACHEABLE_PATHS = ['/feed', '/games', '/info'];
 
 function isPublicCacheablePath(pathname: string): boolean {
     return PUBLIC_CACHEABLE_PATHS.some((p) => pathname === p || pathname.startsWith(p + '/'));

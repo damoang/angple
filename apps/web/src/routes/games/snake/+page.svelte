@@ -12,7 +12,7 @@
 
 <div class="mx-auto max-w-xl px-4 py-8">
     <div class="mb-6">
-        <a href="/game" class="text-muted-foreground hover:text-foreground text-sm">← 게임 목록</a>
+        <a href="/games" class="text-muted-foreground hover:text-foreground text-sm">← 게임 목록</a>
         <h1 class="text-foreground mt-2 text-2xl font-bold">뱀 게임</h1>
         <p class="text-muted-foreground text-sm">먹이를 먹으며 길어지는 클래식 스네이크</p>
     </div>
