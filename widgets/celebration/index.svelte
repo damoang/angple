@@ -30,7 +30,7 @@
 
     $effect(() => {
         if (!loaded && browser) {
-            fetch('/api/ads/celebration/today')
+            fetch('/api/ads/celebration/today?mode=recent')
                 .then((r) => r.json())
                 .then((res) => {
                     if (res.success && res.data) {

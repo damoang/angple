@@ -10,6 +10,7 @@
     import Star from '@lucide/svelte/icons/star';
     import { getUser, getIsLoggedIn, getIsLoading, authActions } from '$lib/stores/auth.svelte';
     import { getAvatarUrl, getMemberIconUrl } from '$lib/utils/member-icon';
+    import { getGradeName } from '$lib/utils/grade';
 
     let isLoggingOut = $state(false);
 
@@ -39,20 +40,7 @@
     let isLoggedIn = $derived(getIsLoggedIn());
     let isLoading = $derived(getIsLoading());
 
-    // 등급명 (mb_level 기반)
-    const GRADE_NAMES: Record<number, string> = {
-        1: '앙님💔',
-        2: '앙님❤️',
-        3: '앙님💛',
-        4: '앙님💙',
-        5: '광고앙💚',
-        6: '운영자',
-        7: '운영자',
-        8: '관리자',
-        9: '관리자',
-        10: '최고관리자'
-    };
-    let gradeName = $derived(GRADE_NAMES[user?.mb_level ?? 1] ?? '');
+    let gradeName = $derived(user ? getGradeName(user.mb_level) : '');
 
     // 레벨 게이지 (user 데이터에서 직접 계산)
     let levelProgress = $derived(
@@ -136,9 +124,8 @@
             </button>
         </div>
 
-        <!-- TODO: 레벨/내글/포인트 등 백엔드 API 정비 후 복원 -->
         <!-- 레벨 게이지 -->
-        <!-- {#if user.as_level !== undefined}
+        {#if user.as_level !== undefined}
             <a href="/my/exp" class="group mt-2 block">
                 <div class="text-muted-foreground flex items-center justify-between text-[10px]">
                     <span>Lv.{user.as_level}</span>
@@ -159,23 +146,18 @@
                     />
                 {/if}
             </a>
-        {/if} -->
+        {/if}
 
         <!-- 내글 / 내댓글 / 전체 + 포인트 -->
-        <!-- <div class="mt-2 space-y-1 text-xs">
+        <div class="mt-2 space-y-1 text-xs">
             <div class="text-muted-foreground flex items-center justify-center gap-1.5">
                 <a href="/my?tab=posts" class="hover:text-primary transition-colors">내글</a>
                 <span class="text-border">·</span>
                 <a href="/my?tab=comments" class="hover:text-primary transition-colors">내댓글</a>
                 <span class="text-border">·</span>
-                <a href="/my" class="hover:text-primary transition-colors">전체</a>
+                <a href="/my?tab=liked" class="hover:text-primary transition-colors">전체</a>
                 <span class="text-border">·</span>
-                <a
-                    href="https://damoang.net/my"
-                    rel="external"
-                    target="_blank"
-                    class="hover:text-primary transition-colors">분석</a
-                >
+                <a href="/my?tab=stats" class="hover:text-primary transition-colors">분석</a>
             </div>
             {#if user.mb_point !== undefined || user.mb_exp !== undefined}
                 <div class="grid grid-cols-2 gap-1">
@@ -199,7 +181,7 @@
                     {/if}
                 </div>
             {/if}
-        </div> -->
+        </div>
     {:else}
         <!-- 비로그인 상태 (컴팩트) -->
         <div class="flex items-center gap-2">

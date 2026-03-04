@@ -14,6 +14,7 @@
             href: 'https://www.youtube.com/@AngPangPang',
             external: true
         },
+        { name: '미니게임', href: '/game' },
         { name: 'X (구 트위터)', href: 'https://x.com/@damoang_net', external: true }
     ];
 
@@ -24,14 +25,14 @@
         { name: '다모앙 만들기', href: '/makeang' },
         { name: '이벤트 제안', href: '/event' },
         { name: '다모앙 개발지원 신청', href: '/discord' },
-        { name: '광고앙', href: '/content/advertisement' }
+        { name: '광고앙', href: '/advertising' }
     ];
 
     // 시스템 메뉴
     const systemLinks: FooterLink[] = [
-        { name: '포인트 안내', href: '/content/info' },
-        { name: '레벨 안내', href: '/content/level' },
-        { name: '새글모음', href: '/bbs/new.php' }
+        { name: '포인트 안내', href: '/info' },
+        { name: '레벨 안내', href: '/level' },
+        { name: '새글모음', href: '/feed' }
     ];
 
     // 🚨삐앙삐앙🚨 메뉴

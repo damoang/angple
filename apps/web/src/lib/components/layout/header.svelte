@@ -17,6 +17,21 @@
     import Sidebar from './sidebar.svelte';
     import { NotificationDropdown } from '$lib/components/features/notification/index.js';
     import { authStore } from '$lib/stores/auth.svelte.js';
+    import { getAvatarUrl, getMemberIconUrl } from '$lib/utils/member-icon';
+
+    let headerAvatarUrl = $derived(
+        authStore.user
+            ? getAvatarUrl(authStore.user.mb_image) ||
+                  getMemberIconUrl(authStore.user.mb_id) ||
+                  null
+            : null
+    );
+    let headerAvatarFailed = $state(false);
+
+    // user 변경 시 실패 상태 리셋
+    $effect(() => {
+        if (authStore.user) headerAvatarFailed = false;
+    });
 
     // 스크롤 상태 관리
     let isDrawerOpen = $state(false);
@@ -149,13 +164,45 @@
             </button>
 
             <!-- 사용자 아이콘 (로그인/프로필) -->
-            <button
-                onclick={() => goto('/login')}
-                class="hover:bg-accent rounded-lg p-2 transition-all duration-200 ease-out"
-                aria-label="사용자 메뉴"
-            >
-                <User class="text-primary h-5 w-5" />
-            </button>
+            {#if authStore.isAuthenticated && authStore.user}
+                <a
+                    href="/my"
+                    class="hover:bg-accent flex items-center gap-1.5 rounded-lg px-2 py-1.5 transition-all duration-200 ease-out"
+                >
+                    <div
+                        class="h-6 w-6 shrink-0 overflow-hidden rounded-full {headerAvatarUrl &&
+                        !headerAvatarFailed
+                            ? ''
+                            : 'bg-primary/10 flex items-center justify-center'}"
+                    >
+                        {#if headerAvatarUrl && !headerAvatarFailed}
+                            <img
+                                src={headerAvatarUrl}
+                                alt={authStore.user.mb_name}
+                                class="h-full w-full object-cover"
+                                onerror={() => {
+                                    headerAvatarFailed = true;
+                                }}
+                            />
+                        {:else}
+                            <span class="text-primary text-xs font-bold"
+                                >{authStore.user.mb_name.charAt(0).toUpperCase()}</span
+                            >
+                        {/if}
+                    </div>
+                    <span class="text-foreground hidden text-sm font-medium md:inline">
+                        {authStore.user.mb_name}
+                    </span>
+                </a>
+            {:else}
+                <button
+                    onclick={() => goto('/login')}
+                    class="hover:bg-accent rounded-lg p-2 transition-all duration-200 ease-out"
+                    aria-label="로그인"
+                >
+                    <User class="text-primary h-5 w-5" />
+                </button>
+            {/if}
 
             {#if authStore.isAuthenticated}
                 <!-- 쪽지 아이콘 -->

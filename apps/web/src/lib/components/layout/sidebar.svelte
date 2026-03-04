@@ -128,6 +128,16 @@
         <UserWidget />
     </div>
 
+    <div class="px-2">
+        <a
+            href="/message"
+            class="text-muted-foreground hover:text-primary flex items-center gap-1.5 text-xs transition-colors"
+        >
+            <Gift class="h-3.5 w-3.5" />
+            축하메시지
+        </a>
+    </div>
+
     <nav
         class="grid gap-1 px-2 group-[[data-collapsed=true]]:justify-center group-[[data-collapsed=true]]:px-2"
     >

@@ -1,4 +1,6 @@
 <script lang="ts">
+    import { formatDate } from '$lib/utils/format-date.js';
+
     interface PromotionPost {
         wrId: number;
         subject: string;
@@ -13,7 +15,7 @@
     let { post, variant = 'default' }: { post: PromotionPost; variant?: 'default' | 'classic' } =
         $props();
 
-    // classic 레이아웃과 동일한 높이 맞춤 (py-2.5, 더 작은 요소)
+    // classic 레이아웃과 동일한 높이 맞춤
     const isClassic = $derived(variant === 'classic');
 
     // linkUrl에서 경로만 추출하여 현재 origin 사용 (dev/web/prod 환경 대응)
@@ -33,27 +35,29 @@
 </script>
 
 {#if isClassic}
-    <!-- Classic variant: 게시글 목록과 동일한 높이 -->
+    <!-- Classic variant: 동일 그리드 + 앰버 accent -->
     <a
         {href}
-        class="block bg-blue-50/50 px-4 py-2.5 no-underline transition-colors hover:bg-blue-100/60 dark:bg-blue-950/20 dark:hover:bg-blue-950/40"
+        class="block border-l-[3px] border-l-amber-500/30 bg-amber-50/[0.04] px-4 py-1.5 no-underline transition-colors hover:bg-amber-100/10 dark:border-l-amber-400/25 dark:bg-amber-950/[0.04] dark:hover:bg-amber-950/15"
     >
-        <div class="flex items-center gap-2 md:gap-3">
-            <!-- AD 박스 (데스크톱만) -->
-            <div class="hidden shrink-0 md:block">
+        <div
+            class="flex items-center gap-2 md:grid md:grid-cols-[40px_1fr_auto_auto_auto] md:items-center md:gap-0"
+        >
+            <!-- 홍보 박스 (col 1, 데스크톱만) -->
+            <div class="hidden md:flex md:items-center md:justify-center">
                 <div
-                    class="flex h-7 w-10 items-center justify-center rounded-md bg-blue-500/80 text-[10px] font-bold text-white dark:bg-blue-400/80"
+                    class="flex h-7 w-10 items-center justify-center rounded-md bg-amber-500/15 text-[10px] font-semibold text-amber-500 dark:bg-amber-400/15 dark:text-amber-400"
                 >
-                    AD
+                    홍보
                 </div>
             </div>
 
-            <!-- 제목 영역 -->
-            <div class="min-w-0 flex-1">
-                <div class="flex items-center gap-1">
+            <!-- 제목 (col 2) -->
+            <div class="min-w-0 flex-1 md:flex-none">
+                <div class="flex min-w-0 items-center gap-1">
                     <span
-                        class="inline-flex shrink-0 items-center rounded bg-blue-500/80 px-1.5 py-0 text-[10px] font-bold text-white md:hidden dark:bg-blue-400/80"
-                        >AD</span
+                        class="inline-flex shrink-0 items-center rounded bg-amber-500/15 px-1.5 py-0 text-[10px] font-semibold text-amber-500 md:hidden dark:bg-amber-400/15 dark:text-amber-400"
+                        >홍보</span
                     >
                     <span class="text-foreground truncate text-base font-semibold">
                         {post.subject}
@@ -61,10 +65,18 @@
                 </div>
             </div>
 
-            <!-- 광고주 (데스크톱만) -->
-            <span class="text-muted-foreground hidden shrink-0 text-[15px] md:inline">
+            <!-- 광고주 (col 3, 데스크톱만) -->
+            <span class="text-foreground/70 hidden w-[130px] truncate pl-1 text-sm md:inline-flex">
                 {post.advertiserName}
             </span>
+
+            <!-- 날짜 (col 4, 데스크톱만) -->
+            <span class="text-muted-foreground hidden w-[70px] pl-1 text-center text-sm md:inline">
+                {formatDate(post.createdAt)}
+            </span>
+
+            <!-- 조회 (col 5, 빈칸) -->
+            <span class="hidden w-[50px] pl-1 md:inline"></span>
         </div>
     </a>
 {:else}
@@ -88,12 +100,12 @@
             </div>
         {/if}
 
-        <!-- 제목 + AD 뱃지 -->
+        <!-- 제목 + 홍보 뱃지 -->
         <div class="min-w-0 flex-1">
             <h3 class="text-foreground mb-1 flex items-center gap-1.5 truncate font-medium">
                 <span
-                    class="inline-flex shrink-0 items-center rounded bg-blue-500/80 px-1.5 py-0.5 text-[10px] font-bold leading-none text-white dark:bg-blue-400/80"
-                    >AD</span
+                    class="inline-flex shrink-0 items-center rounded bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-semibold leading-none text-amber-500 dark:bg-amber-400/15 dark:text-amber-400"
+                    >홍보</span
                 >
                 {post.subject}
             </h3>

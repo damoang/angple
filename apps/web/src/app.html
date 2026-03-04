@@ -55,7 +55,29 @@
                         });
                     });
                 } else {
-                    navigator.serviceWorker.register('/sw.js');
+                    // 운영 환경: SW 등록 + 배포 감지 시 캐시 자동 정리
+                    navigator.serviceWorker.register('/sw.js').then(function (reg) {
+                        // 새 SW 발견 시 즉시 활성화
+                        reg.addEventListener('updatefound', function () {
+                            var newSw = reg.installing;
+                            if (newSw) {
+                                newSw.addEventListener('statechange', function () {
+                                    if (newSw.state === 'activated') {
+                                        // 새 SW 활성화 → 오래된 캐시 전체 정리
+                                        caches.keys().then(function (names) {
+                                            names.forEach(function (name) {
+                                                caches.delete(name);
+                                            });
+                                        });
+                                    }
+                                });
+                            }
+                        });
+                    });
+                    // 페이지 로드 시마다 SW 업데이트 확인
+                    navigator.serviceWorker.ready.then(function (reg) {
+                        reg.update();
+                    });
                 }
             }
         </script>
