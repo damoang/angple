@@ -55,7 +55,8 @@
     prefetchDataMap={{
         recommended: data.recommendedData
             ? { data: data.recommendedData, period: data.recommendedPeriod }
-            : undefined
+            : undefined,
+        celebration: data.celebrationData ? { data: data.celebrationData } : undefined
     }}
 />
 
