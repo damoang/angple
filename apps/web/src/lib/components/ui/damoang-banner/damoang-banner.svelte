@@ -2,6 +2,8 @@
     import { onMount } from 'svelte';
     import { browser } from '$app/environment';
     import AdSlot from '$lib/components/ui/ad-slot/ad-slot.svelte';
+    import { aplogTrack } from '$lib/services/aplog';
+    import { authStore } from '$lib/stores/auth.svelte';
 
     interface Props {
         position: 'index' | 'board-list' | 'board-view' | 'sidebar';
@@ -212,6 +214,12 @@
         <a
             href={toLocalHref(adsBanner.landingUrl)}
             onclick={handleAdsClick}
+            use:aplogTrack={{
+                adId: adsBanner.id,
+                adPos: adsPosition,
+                imgSrc: adsBanner.imageUrl,
+                mbId: authStore.user?.mb_id || null
+            }}
             class="border-border block overflow-hidden rounded-xl border transition-opacity hover:opacity-90"
         >
             <img
