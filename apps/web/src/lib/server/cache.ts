@@ -1,15 +1,19 @@
 /**
- * 서버 사이드 인메모리 캐시
+ * 서버 사이드 캐시 유틸리티
  *
- * SvelteKit SSR에서 반복 요청을 줄이기 위한 단순한 TTL 기반 캐시입니다.
- * 프로덕션에서는 Redis로 교체하는 것을 권장합니다.
+ * 1. createCache<T>() — 단순 인메모리 TTL 캐시
+ * 2. TieredCache<T> — L1(Map) → L2(Redis) 2-tier 캐시
+ *    - L1 히트: 0ms, L2 히트: 1-3ms, 미스: DB/API 호출
+ *    - 서버 재시작 시 Redis에서 복구 (cold start 방지)
+ *    - 멀티 인스턴스(K8s pods) 간 캐시 공유
  *
  * @example
  * ```ts
- * const boardCache = createCache<Board>({ ttl: 60_000 }); // 1분
- * const board = await boardCache.getOrSet('free', () => fetchBoard('free'));
+ * const boardCache = createCache<Board>({ ttl: 60_000 }); // 단순 캐시
+ * const sessionCache = new TieredCache<Session>('sess', 60_000, 300); // 2-tier
  * ```
  */
+import { getRedis } from './redis.js';
 
 interface CacheEntry<T> {
     value: T;
@@ -100,4 +104,114 @@ export function createCache<T>(options?: Partial<CacheOptions>): Cache<T> {
             return store.size;
         }
     };
+}
+
+// --- 2-tier 캐시: L1 (Map) → L2 (Redis) ---
+
+interface L1Entry<T> {
+    data: T;
+    expiry: number;
+}
+
+/**
+ * 2-tier 캐시: L1(Map, 0ms) → L2(Redis, 1-3ms)
+ *
+ * Redis 장애 시 L1만으로 동작 (graceful degradation).
+ */
+export class TieredCache<T> {
+    private l1: Map<string, L1Entry<T>>;
+    private readonly prefix: string;
+    private readonly l1TtlMs: number;
+    private readonly l2TtlSec: number;
+    private readonly maxL1Size: number;
+
+    constructor(prefix: string, l1TtlMs: number, l2TtlSec: number, maxL1Size = 5000) {
+        this.l1 = new Map();
+        this.prefix = prefix;
+        this.l1TtlMs = l1TtlMs;
+        this.l2TtlSec = l2TtlSec;
+        this.maxL1Size = maxL1Size;
+    }
+
+    /** L1 → L2 조회 */
+    async get(key: string): Promise<T | null> {
+        const l1Entry = this.l1.get(key);
+        if (l1Entry && Date.now() < l1Entry.expiry) {
+            return l1Entry.data;
+        }
+
+        try {
+            const redis = getRedis();
+            const val = await redis.get(`${this.prefix}:${key}`);
+            if (val) {
+                const data = JSON.parse(val) as T;
+                this.setL1(key, data);
+                return data;
+            }
+        } catch {
+            // Redis 장애 → null (DB fallback)
+        }
+
+        return null;
+    }
+
+    /** L1 + L2에 저장 */
+    async set(key: string, data: T): Promise<void> {
+        this.setL1(key, data);
+
+        try {
+            const redis = getRedis();
+            await redis.setex(`${this.prefix}:${key}`, this.l2TtlSec, JSON.stringify(data));
+        } catch {
+            // Redis 장애 무시 (L1에는 있음)
+        }
+    }
+
+    /** L1 + L2에서 삭제 */
+    async delete(key: string): Promise<void> {
+        this.l1.delete(key);
+
+        try {
+            const redis = getRedis();
+            await redis.del(`${this.prefix}:${key}`);
+        } catch {
+            // Redis 장애 무시
+        }
+    }
+
+    /** L1 + L2 조회 → 미스 시 factory 실행 후 저장 */
+    async getOrFetch(key: string, factory: () => Promise<T>): Promise<T> {
+        const cached = await this.get(key);
+        if (cached !== null) return cached;
+
+        const data = await factory();
+        await this.set(key, data);
+        return data;
+    }
+
+    /** L1만 삭제 */
+    deleteL1(key: string): void {
+        this.l1.delete(key);
+    }
+
+    /** L1 전체 삭제 */
+    clearL1(): void {
+        this.l1.clear();
+    }
+
+    private setL1(key: string, data: T): void {
+        if (this.l1.size >= this.maxL1Size) {
+            const now = Date.now();
+            for (const [k, entry] of this.l1) {
+                if (now >= entry.expiry) this.l1.delete(k);
+            }
+            if (this.l1.size >= this.maxL1Size) {
+                const keys = Array.from(this.l1.keys());
+                for (const k of keys.slice(0, Math.floor(keys.length / 2))) {
+                    this.l1.delete(k);
+                }
+            }
+        }
+        this.l1.set(key, { data, expiry: Date.now() + this.l1TtlMs });
+    }
 }

@@ -3,8 +3,14 @@ import { dev } from '$app/environment';
 import { env } from '$env/dynamic/private';
 import { getMemberById } from '$lib/server/auth/oauth/member.js';
 import { getSession, SESSION_COOKIE_NAME } from '$lib/server/auth/session-store.js';
+import { generateAccessToken } from '$lib/server/auth/jwt.js';
 import { checkRateLimit, recordAttempt } from '$lib/server/rate-limit.js';
 import { mapGnuboardUrl, mapRhymixUrl } from '$lib/server/url-compat.js';
+
+// --- JWT 인메모리 캐시 (세션별, 5분 TTL) ---
+const jwtCache = new Map<string, { token: string; expiry: number }>();
+const JWT_CACHE_TTL = 5 * 60 * 1000; // 5분
+const MAX_JWT_CACHE_SIZE = 5000;
 
 /**
  * SvelteKit Server Hooks
@@ -22,6 +28,13 @@ const COOKIE_DOMAIN = env.COOKIE_DOMAIN || '';
 // CSP에 추가할 사이트별 도메인 (런타임 환경변수)
 const ADS_URL = env.ADS_URL || '';
 const LEGACY_URL = env.LEGACY_URL || '';
+
+/** CDN 캐시 가능한 공개 경로 (비로그인 시만 적용) */
+const PUBLIC_CACHEABLE_PATHS = ['/feed', '/game', '/info'];
+
+function isPublicCacheablePath(pathname: string): boolean {
+    return PUBLIC_CACHEABLE_PATHS.some((p) => pathname === p || pathname.startsWith(p + '/'));
+}
 
 /** Rate limiting 경로 패턴 */
 const RATE_LIMITED_PATHS = [
@@ -67,9 +80,23 @@ async function authenticateSSR(event: Parameters<Handle>[0]['event']): Promise<v
                     };
                     event.locals.sessionId = sessionId;
                     event.locals.csrfToken = session.csrfToken;
-                    // Go 백엔드 통신용 내부 JWT 생성 (브라우저 노출 없음)
-                    const { generateAccessToken } = await import('$lib/server/auth/jwt.js');
-                    event.locals.accessToken = await generateAccessToken(member);
+
+                    // Go 백엔드 통신용 내부 JWT (캐시 사용, 5분 TTL)
+                    const now = Date.now();
+                    const cachedJwt = jwtCache.get(session.mbId);
+                    if (cachedJwt && now < cachedJwt.expiry) {
+                        event.locals.accessToken = cachedJwt.token;
+                    } else {
+                        const token = await generateAccessToken(member);
+                        event.locals.accessToken = token;
+                        // 캐시 크기 제한
+                        if (jwtCache.size > MAX_JWT_CACHE_SIZE) {
+                            for (const [key, entry] of jwtCache) {
+                                if (now >= entry.expiry) jwtCache.delete(key);
+                            }
+                        }
+                        jwtCache.set(session.mbId, { token, expiry: now + JWT_CACHE_TTL });
+                    }
                     return;
                 }
             }
@@ -240,9 +267,19 @@ export const handle: Handle = async ({ event, resolve }) => {
     response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
 
     // 캐시 제어:
-    // - _app/immutable/ 은 content-hash 파일명이므로 SvelteKit 기본 장기 캐시 유지
-    // - 나머지(HTML, __data.json 등)는 인증 데이터 포함 → 캐시 금지
-    if (!event.url.pathname.startsWith('/_app/immutable')) {
+    // - _app/immutable/ → SvelteKit 기본 장기 캐시 유지 (content-hash)
+    // - 비로그인 + 공개 페이지 → CDN stale-while-revalidate (ISR-like)
+    // - 나머지 → 캐시 금지 (인증 데이터 포함)
+    if (event.url.pathname.startsWith('/_app/immutable')) {
+        // SvelteKit이 이미 설정 → 그대로 유지
+    } else if (!event.locals.user && isPublicCacheablePath(pathname)) {
+        // 비로그인 사용자의 공개 페이지: CDN 캐시 30초, stale 60초
+        response.headers.set(
+            'Cache-Control',
+            'public, s-maxage=30, stale-while-revalidate=60, max-age=0'
+        );
+        response.headers.set('Vary', 'Cookie');
+    } else {
         response.headers.set('Cache-Control', 'private, no-store, no-cache, must-revalidate');
         response.headers.set('Vary', 'Cookie');
     }

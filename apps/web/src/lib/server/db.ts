@@ -14,8 +14,8 @@ const pool = mysql.createPool({
     password: env.DB_PASSWORD || '',
     database: env.DB_NAME || 'angple',
     waitForConnections: true,
-    connectionLimit: 10,
-    queueLimit: 0,
+    connectionLimit: 50,
+    queueLimit: 100,
     timezone: '+09:00'
 });
 

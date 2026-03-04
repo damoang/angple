@@ -1,3 +1,9 @@
+/**
+ * 마이페이지 서버 — Streaming SSR + 타임아웃
+ *
+ * tab/page: 즉시 반환 (URL 파라미터)
+ * tabData: 스트리밍 Promise (Go 백엔드, 스켈레톤 → 데이터)
+ */
 import type { PageServerLoad } from './$types.js';
 import type {
     FreePost,
@@ -9,6 +15,9 @@ import type {
 import { env } from '$env/dynamic/private';
 
 const BACKEND_URL = env.BACKEND_URL || 'http://localhost:8090';
+
+/** Go 백엔드 타임아웃: 5초 */
+const BACKEND_TIMEOUT = 5_000;
 
 function parsePaginated<T>(
     json: Record<string, unknown>,
@@ -27,6 +36,96 @@ function parsePaginated<T>(
     };
 }
 
+export interface MyPageData {
+    expSummary: ExpSummary | null;
+    posts: PaginatedResponse<FreePost> | null;
+    comments: PaginatedResponse<MyComment> | null;
+    likedPosts: PaginatedResponse<FreePost> | null;
+    boardStats: BoardStat[] | null;
+    error: string | null;
+}
+
+/** 탭 데이터 + 경험치 로딩 (타임아웃 포함) */
+async function loadMyPageData(
+    tab: string,
+    page: number,
+    limit: number,
+    headers: Record<string, string>
+): Promise<MyPageData> {
+    const result: MyPageData = {
+        expSummary: null,
+        posts: null,
+        comments: null,
+        likedPosts: null,
+        boardStats: null,
+        error: null
+    };
+
+    try {
+        // expSummary + 탭 데이터 병렬 로딩 (각각 타임아웃)
+        const expPromise = fetch(`${BACKEND_URL}/api/v1/my/exp`, {
+            headers,
+            signal: AbortSignal.timeout(BACKEND_TIMEOUT)
+        })
+            .then(async (res) => {
+                if (!res.ok) return null;
+                const json = await res.json();
+                return json.data as ExpSummary;
+            })
+            .catch(() => null);
+
+        let tabPromise: Promise<void>;
+
+        if (tab === 'posts') {
+            tabPromise = fetch(`${BACKEND_URL}/api/v1/my/posts?page=${page}&limit=${limit}`, {
+                headers,
+                signal: AbortSignal.timeout(BACKEND_TIMEOUT)
+            }).then(async (res) => {
+                if (!res.ok) return;
+                result.posts = parsePaginated<FreePost>(await res.json(), page, limit);
+            });
+        } else if (tab === 'comments') {
+            tabPromise = fetch(`${BACKEND_URL}/api/v1/my/comments?page=${page}&limit=${limit}`, {
+                headers,
+                signal: AbortSignal.timeout(BACKEND_TIMEOUT)
+            }).then(async (res) => {
+                if (!res.ok) return;
+                result.comments = parsePaginated<MyComment>(await res.json(), page, limit);
+            });
+        } else if (tab === 'liked') {
+            tabPromise = fetch(`${BACKEND_URL}/api/v1/my/liked-posts?page=${page}&limit=${limit}`, {
+                headers,
+                signal: AbortSignal.timeout(BACKEND_TIMEOUT)
+            }).then(async (res) => {
+                if (!res.ok) return;
+                result.likedPosts = parsePaginated<FreePost>(await res.json(), page, limit);
+            });
+        } else if (tab === 'stats') {
+            tabPromise = fetch(`${BACKEND_URL}/api/v1/my/stats`, {
+                headers,
+                signal: AbortSignal.timeout(BACKEND_TIMEOUT)
+            }).then(async (res) => {
+                if (!res.ok) return;
+                const json = await res.json();
+                result.boardStats = (json.data as BoardStat[]) ?? [];
+            });
+        } else {
+            tabPromise = Promise.resolve();
+        }
+
+        const [expSummary] = await Promise.all([expPromise, tabPromise]);
+        result.expSummary = expSummary;
+    } catch (error) {
+        const isTimeout = error instanceof DOMException && error.name === 'TimeoutError';
+        console.error('마이페이지 로딩 에러:', isTimeout ? 'Backend timeout (5s)' : error);
+        result.error = isTimeout
+            ? '서버 응답이 느립니다. 잠시 후 다시 시도해주세요.'
+            : '데이터를 불러오는데 실패했습니다.';
+    }
+
+    return result;
+}
+
 export const load: PageServerLoad = async ({ url, locals }) => {
     const tab = url.searchParams.get('tab') || 'posts';
     const page = Number(url.searchParams.get('page')) || 1;
@@ -40,84 +139,15 @@ export const load: PageServerLoad = async ({ url, locals }) => {
         headers['Authorization'] = `Bearer ${locals.accessToken}`;
     }
 
-    const backendFetch = globalThis.fetch;
+    // 스트리밍: tabData를 await 하지 않음 → 스켈레톤 먼저 렌더링
+    const tabDataPromise = loadMyPageData(tab, page, limit, headers);
 
-    try {
-        let posts: PaginatedResponse<FreePost> | null = null;
-        let comments: PaginatedResponse<MyComment> | null = null;
-        let likedPosts: PaginatedResponse<FreePost> | null = null;
-        let boardStats: BoardStat[] | null = null;
-
-        // expSummary + 탭 데이터를 병렬로 로딩
-        const expPromise = backendFetch(`${BACKEND_URL}/api/v1/my/exp`, { headers })
-            .then(async (res) => {
-                if (!res.ok) return null;
-                const json = await res.json();
-                return json.data as ExpSummary;
-            })
-            .catch(() => null);
-
-        let tabPromise: Promise<void>;
-
-        if (tab === 'posts') {
-            tabPromise = backendFetch(
-                `${BACKEND_URL}/api/v1/my/posts?page=${page}&limit=${limit}`,
-                { headers }
-            ).then(async (res) => {
-                if (!res.ok) return;
-                posts = parsePaginated<FreePost>(await res.json(), page, limit);
-            });
-        } else if (tab === 'comments') {
-            tabPromise = backendFetch(
-                `${BACKEND_URL}/api/v1/my/comments?page=${page}&limit=${limit}`,
-                { headers }
-            ).then(async (res) => {
-                if (!res.ok) return;
-                comments = parsePaginated<MyComment>(await res.json(), page, limit);
-            });
-        } else if (tab === 'liked') {
-            tabPromise = backendFetch(
-                `${BACKEND_URL}/api/v1/my/liked-posts?page=${page}&limit=${limit}`,
-                { headers }
-            ).then(async (res) => {
-                if (!res.ok) return;
-                likedPosts = parsePaginated<FreePost>(await res.json(), page, limit);
-            });
-        } else if (tab === 'stats') {
-            tabPromise = backendFetch(`${BACKEND_URL}/api/v1/my/stats`, { headers }).then(
-                async (res) => {
-                    if (!res.ok) return;
-                    const json = await res.json();
-                    boardStats = (json.data as BoardStat[]) ?? [];
-                }
-            );
-        } else {
-            tabPromise = Promise.resolve();
+    return {
+        tab,
+        page,
+        /** 스트리밍: Promise로 반환 → 클라이언트에서 {#await} 사용 */
+        streamed: {
+            tabData: tabDataPromise
         }
-
-        const [expSummary] = await Promise.all([expPromise, tabPromise]);
-
-        return {
-            tab,
-            page,
-            posts,
-            comments,
-            likedPosts,
-            boardStats,
-            expSummary,
-            error: null as string | null
-        };
-    } catch (error) {
-        console.error('마이페이지 로딩 에러:', error);
-        return {
-            tab,
-            page,
-            posts: null as PaginatedResponse<FreePost> | null,
-            comments: null as PaginatedResponse<MyComment> | null,
-            likedPosts: null as PaginatedResponse<FreePost> | null,
-            boardStats: null as BoardStat[] | null,
-            expSummary: null as ExpSummary | null,
-            error: '데이터를 불러오는데 실패했습니다.'
-        };
-    }
+    };
 };

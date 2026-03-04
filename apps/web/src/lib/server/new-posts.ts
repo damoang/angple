@@ -23,6 +23,33 @@ export interface NewPostItem {
 export interface NewPostsResult {
     items: NewPostItem[];
     total: number;
+    /** 다음 페이지 커서 (마지막 항목의 bn_id) */
+    nextCursor: number | null;
+}
+
+// --- 인메모리 캐시 ---
+
+/** COUNT(*) 캐시: key = "view:grId", TTL 10분 */
+const countCache = new Map<string, { total: number; expiry: number }>();
+const COUNT_CACHE_TTL = 10 * 60 * 1000; // 10분
+
+/** 그룹 목록 캐시: TTL 1시간 */
+let boardGroupsCache: { data: { gr_id: string; gr_subject: string }[]; expiry: number } | null =
+    null;
+const BOARD_GROUPS_CACHE_TTL = 60 * 60 * 1000; // 1시간
+
+/** HTML 태그, 이모지 코드 제거 및 미리보기 추출 */
+function extractContentPreview(rawContent: string, maxLen = 100): string {
+    const plainText = rawContent
+        .replace(/<[^>]*>/g, '') // HTML 태그 제거
+        .replace(/\{emo:[^}]+\}/g, '') // 이모지 코드 {emo:xxx} 제거
+        .replace(/&nbsp;/g, ' ')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&amp;/g, '&')
+        .replace(/\s+/g, ' ')
+        .trim();
+    return plainText.length > maxLen ? plainText.slice(0, maxLen) : plainText;
 }
 
 /**
@@ -31,14 +58,15 @@ export interface NewPostsResult {
  * @param grId - 그룹 필터 (optional)
  * @param page - 페이지 번호
  * @param perPage - 페이지당 항목 수
+ * @param cursor - 커서 (이전 페이지 마지막 bn_id, OFFSET 대신 사용)
  */
 export async function getNewPosts(
     view: string,
     grId: string,
     page: number,
-    perPage: number = 30
+    perPage: number = 30,
+    cursor?: number
 ): Promise<NewPostsResult> {
-    const offset = (page - 1) * perPage;
     const conditions: string[] = ['b.bo_use_search = 1'];
     const params: (string | number)[] = [];
 
@@ -55,88 +83,138 @@ export async function getNewPosts(
         params.push(grId);
     }
 
+    // 커서 기반 페이지네이션 (OFFSET 대신 인덱스 범위 스캔)
+    if (cursor && cursor > 0) {
+        conditions.push('bn.bn_id < ?');
+        params.push(cursor);
+    }
+
     const whereClause = 'WHERE ' + conditions.join(' AND ');
 
-    // 카운트 쿼리
-    const [countRows] = await pool.query<RowDataPacket[]>(
-        `SELECT COUNT(*) as total
-		 FROM g5_board_new bn
-		 JOIN g5_board b ON bn.bo_table = b.bo_table
-		 ${whereClause}`,
-        params
-    );
-    const total = countRows[0]?.total || 0;
+    // COUNT(*) — 캐시 우선 (커서 무관, 필터 기준)
+    const cacheKey = `${view}:${grId}`;
+    const cachedCount = countCache.get(cacheKey);
+    let total: number;
+    if (cachedCount && Date.now() < cachedCount.expiry) {
+        total = cachedCount.total;
+    } else {
+        // 커서 조건 제외한 원본 WHERE로 카운트
+        const countConditions: string[] = ['b.bo_use_search = 1'];
+        const countParams: (string | number)[] = [];
+        if (view === 'w') countConditions.push('bn.wr_id = bn.wr_parent');
+        else if (view === 'c') countConditions.push('bn.wr_id != bn.wr_parent');
+        if (grId) {
+            countConditions.push('b.gr_id = ?');
+            countParams.push(grId);
+        }
+        const countWhere = 'WHERE ' + countConditions.join(' AND ');
 
-    // 게시글 조회 (g5_board_new + g5_board + 각 게시판 테이블)
-    // g5_board_new에는 wr_subject가 없으므로 개별 테이블 JOIN 필요
-    // 성능을 위해 서브쿼리로 처리
+        const [countRows] = await pool.query<RowDataPacket[]>(
+            `SELECT COUNT(*) as total
+			 FROM g5_board_new bn
+			 JOIN g5_board b ON bn.bo_table = b.bo_table
+			 ${countWhere}`,
+            countParams
+        );
+        total = countRows[0]?.total || 0;
+        countCache.set(cacheKey, { total, expiry: Date.now() + COUNT_CACHE_TTL });
+    }
+
+    // 게시글 목록 조회 — 커서가 있으면 OFFSET 불필요
+    const useCursor = cursor && cursor > 0;
+    const listParams = useCursor
+        ? [...params, perPage]
+        : [...params, (page - 1) * perPage, perPage];
+
     const [rows] = await pool.query<RowDataPacket[]>(
         `SELECT bn.bn_id, bn.bo_table, bn.wr_id, bn.wr_parent, bn.bn_datetime,
 		        b.bo_subject, bn.mb_id
 		 FROM g5_board_new bn
 		 JOIN g5_board b ON bn.bo_table = b.bo_table
 		 ${whereClause}
-		 ORDER BY bn.bn_datetime DESC
-		 LIMIT ?, ?`,
-        [...params, offset, perPage]
+		 ORDER BY bn.bn_id DESC
+		 LIMIT ${useCursor ? '?' : '?, ?'}`,
+        listParams
     );
 
-    // 각 게시글의 제목/작성자/댓글수/조회수 조회
-    const items: NewPostItem[] = [];
+    if (rows.length === 0) {
+        return { items: [], total, nextCursor: null };
+    }
+
+    // --- 테이블별 배치 IN 쿼리 (N+1 해결) ---
+    // rows를 bo_table 기준으로 그룹핑
+    const grouped = new Map<string, RowDataPacket[]>();
     for (const row of rows) {
+        // 테이블명 안전성 검증 (영문+숫자+언더스코어만 허용)
+        if (!/^[a-zA-Z0-9_]+$/.test(row.bo_table)) continue;
+        const existing = grouped.get(row.bo_table);
+        if (existing) {
+            existing.push(row);
+        } else {
+            grouped.set(row.bo_table, [row]);
+        }
+    }
+
+    // 테이블별 병렬 배치 쿼리 실행
+    const writeDataMap = new Map<string, RowDataPacket>(); // key: "bo_table:wr_id"
+
+    const batchPromises = Array.from(grouped.entries()).map(async ([boTable, tableRows]) => {
+        const wrIds = tableRows.map((r) => r.wr_id);
         try {
-            const tableName = `g5_write_${row.bo_table}`;
-            // 테이블명은 bo_table에서 오므로 안전 (영문+숫자만 허용)
-            if (!/^[a-zA-Z0-9_]+$/.test(row.bo_table)) continue;
-
             const [writeRows] = await pool.query<RowDataPacket[]>(
-                `SELECT wr_subject, wr_content, wr_name, wr_comment, wr_hit
-				 FROM \`${tableName}\`
-				 WHERE wr_id = ? LIMIT 1`,
-                [row.wr_id]
+                `SELECT wr_id, wr_subject, wr_content, wr_name, wr_comment, wr_hit
+				 FROM \`g5_write_${boTable}\`
+				 WHERE wr_id IN (?)`,
+                [wrIds]
             );
-
-            if (writeRows[0]) {
-                // 댓글 내용에서 HTML 태그, 이모지 코드 제거 및 앞 100자만 추출
-                const rawContent = writeRows[0].wr_content || '';
-                const plainText = rawContent
-                    .replace(/<[^>]*>/g, '') // HTML 태그 제거
-                    .replace(/\{emo:[^}]+\}/g, '') // 이모지 코드 {emo:xxx} 제거
-                    .replace(/&nbsp;/g, ' ') // &nbsp; 처리
-                    .replace(/&lt;/g, '<')
-                    .replace(/&gt;/g, '>')
-                    .replace(/&amp;/g, '&')
-                    .replace(/\s+/g, ' ') // 연속 공백 정리
-                    .trim();
-                const contentPreview = plainText.length > 100 ? plainText.slice(0, 100) : plainText;
-
-                items.push({
-                    bn_id: row.bn_id,
-                    bo_table: row.bo_table,
-                    wr_id: row.wr_id,
-                    wr_parent: row.wr_parent,
-                    bn_datetime: row.bn_datetime,
-                    bo_subject: row.bo_subject,
-                    wr_subject: writeRows[0].wr_subject,
-                    wr_content: contentPreview,
-                    mb_id: row.mb_id,
-                    wr_name: writeRows[0].wr_name,
-                    wr_comment: writeRows[0].wr_comment,
-                    wr_hit: writeRows[0].wr_hit
-                });
+            for (const wr of writeRows) {
+                writeDataMap.set(`${boTable}:${wr.wr_id}`, wr);
             }
         } catch {
             // 삭제된 게시판 등 오류 무시
         }
+    });
+
+    await Promise.all(batchPromises);
+
+    // 결과 조립 (원래 순서 유지)
+    const items: NewPostItem[] = [];
+    for (const row of rows) {
+        const writeData = writeDataMap.get(`${row.bo_table}:${row.wr_id}`);
+        if (writeData) {
+            items.push({
+                bn_id: row.bn_id,
+                bo_table: row.bo_table,
+                wr_id: row.wr_id,
+                wr_parent: row.wr_parent,
+                bn_datetime: row.bn_datetime,
+                bo_subject: row.bo_subject,
+                wr_subject: writeData.wr_subject,
+                wr_content: extractContentPreview(writeData.wr_content || ''),
+                mb_id: row.mb_id,
+                wr_name: writeData.wr_name,
+                wr_comment: writeData.wr_comment,
+                wr_hit: writeData.wr_hit
+            });
+        }
     }
 
-    return { items, total };
+    // 다음 페이지 커서: 마지막 항목의 bn_id
+    const nextCursor = items.length > 0 ? items[items.length - 1].bn_id : null;
+
+    return { items, total, nextCursor };
 }
 
-/** 그룹 목록 조회 */
+/** 그룹 목록 조회 (1시간 인메모리 캐시) */
 export async function getBoardGroups(): Promise<{ gr_id: string; gr_subject: string }[]> {
+    if (boardGroupsCache && Date.now() < boardGroupsCache.expiry) {
+        return boardGroupsCache.data;
+    }
+
     const [rows] = await pool.query<RowDataPacket[]>(
         'SELECT gr_id, gr_subject FROM g5_group ORDER BY gr_order, gr_id'
     );
-    return rows as { gr_id: string; gr_subject: string }[];
+    const data = rows as { gr_id: string; gr_subject: string }[];
+    boardGroupsCache = { data, expiry: Date.now() + BOARD_GROUPS_CACHE_TTL };
+    return data;
 }
