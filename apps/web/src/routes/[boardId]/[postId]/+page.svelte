@@ -55,6 +55,7 @@
         layoutRegistry,
         initCoreLayouts
     } from '$lib/components/features/board/layouts/index.js';
+    import ScrapButton from '$lib/components/post/scrap-button.svelte';
 
     // Q&A 게시판 슬롯 등록
     postSlotRegistry.register('post.before_content', {
@@ -69,12 +70,6 @@
     });
 
     // 알뜰구매 게시판 슬롯 등록
-    postSlotRegistry.register('post.before_content', {
-        id: 'core:economy-shopping-banner',
-        component: EconomyShoppingBanner,
-        condition: (boardType: string) => boardType === 'economy',
-        priority: 10
-    });
     postSlotRegistry.register('post.after_content', {
         id: 'core:economy-open-links',
         component: EconomyOpenLinks,
@@ -761,6 +756,13 @@
         </div>
 
         <div class="flex shrink-0 gap-2">
+            {#if authStore.isAuthenticated}
+                <ScrapButton
+                    boardId={data.boardId}
+                    postId={data.post.id}
+                    initialScrapped={data.isScrapped}
+                />
+            {/if}
             {#if isAdmin}
                 {#if noticeType}
                     <Button
@@ -812,6 +814,13 @@
     {#if widgetLayoutStore.hasEnabledAds}
         <div class="mb-6">
             <AdSlot position="board-view-top" height="90px" />
+        </div>
+    {/if}
+
+    <!-- 알뜰구매 쇼핑 바로가기 (목록으로 버튼 → GAM → 여기 → 본문 카드) -->
+    {#if boardType === 'economy'}
+        <div class="mb-6">
+            <EconomyShoppingBanner />
         </div>
     {/if}
 
@@ -888,14 +897,6 @@
                 {/if}
             </p>
         {/if}
-
-        <!-- 플러그인 슬롯: post.after_content (나눔 BidPanel 등) -->
-        {#each afterContentSlots as slot (slot.component)}
-            {@const SlotComponent = slot.component}
-            <div class="mb-6">
-                <SlotComponent {...slot.propsMapper ? slot.propsMapper(data) : { data }} />
-            </div>
-        {/each}
 
         <!-- 중고게시판 상태 변경 (작성자/관리자만) -->
         {#if isUsedMarket && (isAuthor || isAdmin)}

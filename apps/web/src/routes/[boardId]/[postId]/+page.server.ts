@@ -3,6 +3,8 @@ import type { PageServerLoad } from './$types.js';
 import type { FreePost } from '$lib/api/types.js';
 import { env } from '$env/dynamic/private';
 import { fetchPromotionPosts } from '$lib/server/ads/promotion.js';
+import { transformAffiliateContent } from '$lib/hooks/builtin/affiliate.js';
+import { isScraped } from '$lib/server/scrap.js';
 
 const BACKEND_URL = env.BACKEND_URL || 'http://localhost:8090';
 
@@ -108,6 +110,11 @@ export const load: PageServerLoad = async ({ params, fetch: svelteKitFetch, loca
 
         const post = postResult.value;
 
+        // 게시글 데이터가 null인 경우 (백엔드 응답이 { data: null })
+        if (!post) {
+            throw error(404, '게시글을 찾을 수 없습니다.');
+        }
+
         // 삭제된 게시글: 에러 대신 데이터 전달 (PHP 호환: "삭제된 게시물입니다" 표시)
         // 본문 내용은 제거하고 삭제 상태만 전달
         if (post.deleted_at) {
@@ -158,13 +165,59 @@ export const load: PageServerLoad = async ({ params, fetch: svelteKitFetch, loca
 
         const revisions = revisionsResult.status === 'fulfilled' ? revisionsResult.value || [] : [];
 
+        // 스크랩 여부 (로그인 시만)
+        const isScrapped = locals.user?.id
+            ? await isScraped(locals.user.id, boardId, postId).catch(() => false)
+            : false;
+
+        // 제휴 링크 서버사이드 변환 (본문 + 댓글)
+        const affiliateContext = { bo_table: boardId, wr_id: Number(postId) };
+        try {
+            const transformPromises: Promise<void>[] = [];
+
+            // 본문 변환
+            if (post.content) {
+                transformPromises.push(
+                    transformAffiliateContent(post.content, affiliateContext).then((html) => {
+                        post.content = html;
+                    })
+                );
+            }
+
+            // 댓글 변환
+            if (comments.items?.length) {
+                for (const comment of comments.items) {
+                    if (comment.content) {
+                        transformPromises.push(
+                            transformAffiliateContent(comment.content, affiliateContext).then(
+                                (html) => {
+                                    comment.content = html;
+                                }
+                            )
+                        );
+                    }
+                }
+            }
+
+            // 병렬 처리 (타임아웃 3초)
+            if (transformPromises.length > 0) {
+                await Promise.race([
+                    Promise.allSettled(transformPromises),
+                    new Promise((resolve) => setTimeout(resolve, 3000))
+                ]);
+            }
+        } catch {
+            // 변환 실패 시 원본 유지
+        }
+
         return {
             boardId,
             post,
             comments,
             board,
             promotionPosts,
-            revisions
+            revisions,
+            isScrapped
         };
     } catch (err) {
         if (err && typeof err === 'object' && 'status' in err) {
