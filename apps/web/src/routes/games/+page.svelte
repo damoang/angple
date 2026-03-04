@@ -49,7 +49,7 @@
     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {#each games as game (game.id)}
             <a
-                href="/game/{game.id}"
+                href="/games/{game.id}"
                 class="border-border hover:border-primary/50 group block rounded-xl border p-6 transition-all hover:shadow-md {game.bgColor}"
             >
                 <div class="mb-3 flex items-center gap-3">

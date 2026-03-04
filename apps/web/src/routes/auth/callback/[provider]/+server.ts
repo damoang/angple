@@ -23,6 +23,7 @@ import {
     SESSION_COOKIE_MAX_AGE
 } from '$lib/server/auth/session-store.js';
 import { generateRefreshToken } from '$lib/server/auth/jwt.js';
+import { setDamoangSSOCookie } from '$lib/server/auth/sso-cookie.js';
 import { AppleProvider } from '$lib/server/auth/oauth/providers/apple.js';
 import { TwitterProvider } from '$lib/server/auth/oauth/providers/twitter.js';
 import type { OAuthUserProfile } from '$lib/server/auth/oauth/types.js';
@@ -179,6 +180,18 @@ async function handleCallback(
             maxAge: 60 * 60 * 24 * 7,
             ...domainOpt
         });
+
+        // 서브도메인 SSO: damoang_jwt 쿠키 발급 (ads.damoang.net 등 Go 서비스 인증용)
+        try {
+            await setDamoangSSOCookie(cookies, {
+                mb_id: member.mb_id,
+                mb_level: member.mb_level ?? 0,
+                mb_name: member.mb_name || member.mb_nick,
+                mb_email: member.mb_email
+            });
+        } catch (e) {
+            console.error('[OAuth Callback] SSO cookie 발급 실패:', e);
+        }
 
         // 원래 페이지로 리다이렉트
         redirect(302, stateData.redirect || '/');

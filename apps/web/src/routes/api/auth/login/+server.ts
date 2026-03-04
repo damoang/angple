@@ -9,6 +9,8 @@ import {
     SESSION_COOKIE_MAX_AGE
 } from '$lib/server/auth/session-store.js';
 import { generateRefreshToken } from '$lib/server/auth/jwt.js';
+import { setDamoangSSOCookie } from '$lib/server/auth/sso-cookie.js';
+import { getMemberById } from '$lib/server/auth/oauth/member.js';
 import { checkRateLimit, recordAttempt, resetAttempts } from '$lib/server/rate-limit.js';
 
 const BACKEND_URL = env.BACKEND_URL || 'http://localhost:8090';
@@ -136,6 +138,21 @@ export const POST: RequestHandler = async ({ request, cookies, getClientAddress 
                     ...domainOpt
                 });
             }
+        }
+
+        // 서브도메인 SSO: damoang_jwt 쿠키 발급 (ads.damoang.net 등 Go 서비스 인증용)
+        try {
+            const member = await getMemberById(mbId);
+            if (member) {
+                await setDamoangSSOCookie(cookies, {
+                    mb_id: member.mb_id,
+                    mb_level: member.mb_level ?? 0,
+                    mb_name: member.mb_name || member.mb_nick,
+                    mb_email: member.mb_email
+                });
+            }
+        } catch (e) {
+            console.error('[Login] SSO cookie 발급 실패:', e);
         }
 
         return json({

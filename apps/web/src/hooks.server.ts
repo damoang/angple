@@ -4,6 +4,7 @@ import { env } from '$env/dynamic/private';
 import { getMemberById } from '$lib/server/auth/oauth/member.js';
 import { getSession, SESSION_COOKIE_NAME } from '$lib/server/auth/session-store.js';
 import { generateAccessToken } from '$lib/server/auth/jwt.js';
+import { setDamoangSSOCookie } from '$lib/server/auth/sso-cookie.js';
 import { checkRateLimit, recordAttempt } from '$lib/server/rate-limit.js';
 import { mapGnuboardUrl, mapRhymixUrl } from '$lib/server/url-compat.js';
 
@@ -30,7 +31,7 @@ const ADS_URL = env.ADS_URL || '';
 const LEGACY_URL = env.LEGACY_URL || '';
 
 /** CDN 캐시 가능한 공개 경로 (비로그인 시만 적용) */
-const PUBLIC_CACHEABLE_PATHS = ['/feed', '/game', '/info'];
+const PUBLIC_CACHEABLE_PATHS = ['/feed', '/games', '/info'];
 
 function isPublicCacheablePath(pathname: string): boolean {
     return PUBLIC_CACHEABLE_PATHS.some((p) => pathname === p || pathname.startsWith(p + '/'));
@@ -97,6 +98,40 @@ async function authenticateSSR(event: Parameters<Handle>[0]['event']): Promise<v
                         }
                         jwtCache.set(session.mbId, { token, expiry: now + JWT_CACHE_TTL });
                     }
+
+                    // 서브도메인 SSO: damoang_jwt 쿠키 자동 갱신
+                    // 페이지 네비게이션 요청에서만 실행 (API 요청 제외)
+                    if (!event.url.pathname.startsWith('/api/')) {
+                        try {
+                            const existingJwt = event.cookies.get('damoang_jwt');
+                            let needsRenewal = !existingJwt;
+
+                            if (existingJwt && !needsRenewal) {
+                                // JWT 만료 10분 이내면 갱신 (base64 페이로드만 읽기)
+                                const parts = existingJwt.split('.');
+                                if (parts.length === 3) {
+                                    const payload = JSON.parse(
+                                        atob(parts[1].replace(/-/g, '+').replace(/_/g, '/'))
+                                    );
+                                    if (payload.exp && payload.exp - now / 1000 < 600) {
+                                        needsRenewal = true;
+                                    }
+                                }
+                            }
+
+                            if (needsRenewal) {
+                                await setDamoangSSOCookie(event.cookies, {
+                                    mb_id: member.mb_id,
+                                    mb_level: member.mb_level ?? 0,
+                                    mb_name: member.mb_name || member.mb_nick,
+                                    mb_email: member.mb_email
+                                });
+                            }
+                        } catch {
+                            // SSO 쿠키 갱신 실패는 무시 (메인 인증에 영향 없음)
+                        }
+                    }
+
                     return;
                 }
             }

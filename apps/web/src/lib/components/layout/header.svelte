@@ -1,6 +1,6 @@
 <script lang="ts">
     import { onMount } from 'svelte';
-    import { goto } from '$app/navigation';
+    import { goto, afterNavigate } from '$app/navigation';
     import Search from '@lucide/svelte/icons/search';
     import User from '@lucide/svelte/icons/user';
     import Bell from '@lucide/svelte/icons/bell';
@@ -47,6 +47,11 @@
     function toggleDrawer() {
         isDrawerOpen = !isDrawerOpen;
     }
+
+    // 페이지 이동 시 드로워 자동 닫기
+    afterNavigate(() => {
+        isDrawerOpen = false;
+    });
 
     // 테마 모드 순환: light → dark → amoled → light
     function cycleThemeMode() {
