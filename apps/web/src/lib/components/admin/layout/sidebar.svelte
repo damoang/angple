@@ -18,7 +18,8 @@
         DatabaseZap,
         BarChart3,
         Megaphone,
-        StickyNote
+        StickyNote,
+        TrendingUp
     } from '@lucide/svelte/icons';
 
     /**
@@ -70,6 +71,11 @@
             title: '회원 관리',
             href: '/admin/members',
             icon: Users
+        },
+        {
+            title: '경험치 관리',
+            href: '/admin/xp',
+            icon: TrendingUp
         },
         {
             title: '투표 관리',
