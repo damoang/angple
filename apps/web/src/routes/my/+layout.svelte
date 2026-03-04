@@ -17,7 +17,7 @@
         { href: '/my/exp', label: '경험치', icon: Star, exact: false },
         { href: '/my/blocked', label: '차단 목록', icon: Ban, exact: false },
         { href: '/my/scraps', label: '스크랩', icon: Bookmark, exact: false },
-        { href: '/my/settings', label: '설정', icon: Settings, exact: false }
+        { href: '/member/settings', label: '설정', icon: Settings, exact: false }
     ];
 
     function isActive(href: string, exact: boolean, pathname: string): boolean {

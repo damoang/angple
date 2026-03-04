@@ -203,12 +203,19 @@
                                             {/if}
                                         </div>
                                     </div>
-                                    <div
-                                        class="shrink-0 text-lg font-bold {item.po_point > 0
-                                            ? 'text-green-600'
-                                            : 'text-red-600'}"
-                                    >
-                                        {formatPoint(item.po_point)}
+                                    <div class="shrink-0 text-right">
+                                        <div
+                                            class="text-lg font-bold {item.po_point > 0
+                                                ? 'text-green-600'
+                                                : 'text-red-600'}"
+                                        >
+                                            {formatPoint(item.po_point)}
+                                        </div>
+                                        {#if item.po_mb_point != null}
+                                            <div class="text-muted-foreground text-xs">
+                                                잔액 {item.po_mb_point.toLocaleString()}
+                                            </div>
+                                        {/if}
                                     </div>
                                 </div>
                             </li>

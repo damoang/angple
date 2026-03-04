@@ -17,12 +17,14 @@ interface CountRow extends RowDataPacket {
 
 interface PointRow extends RowDataPacket {
     po_id: number;
-    po_mb_id: string;
+    mb_id: string;
     po_content: string;
     po_point: number;
+    po_use_point: number;
     po_datetime: string;
     po_expired: number;
     po_expire_date: string;
+    po_mb_point: number;
     po_rel_table: string;
     po_rel_id: string;
     po_rel_action: string;
@@ -55,22 +57,22 @@ export const load: PageServerLoad = async ({ url, locals }) => {
                     mbId
                 ]),
                 pool.query<SumRow[]>(
-                    'SELECT COALESCE(SUM(po_point), 0) AS total FROM g5_point WHERE po_mb_id = ? AND po_point > 0',
+                    'SELECT COALESCE(SUM(po_point), 0) AS total FROM g5_point WHERE mb_id = ? AND po_point > 0',
                     [mbId]
                 ),
                 pool.query<SumRow[]>(
-                    'SELECT COALESCE(ABS(SUM(po_point)), 0) AS total FROM g5_point WHERE po_mb_id = ? AND po_point < 0',
+                    'SELECT COALESCE(ABS(SUM(po_point)), 0) AS total FROM g5_point WHERE mb_id = ? AND po_point < 0',
                     [mbId]
                 ),
                 pool.query<CountRow[]>(
-                    `SELECT COUNT(*) AS cnt FROM g5_point WHERE po_mb_id = ?${filterClause}`,
+                    `SELECT COUNT(*) AS cnt FROM g5_point WHERE mb_id = ?${filterClause}`,
                     [mbId]
                 ),
                 // pool.query 사용: pool.execute의 prepared statement는 LIMIT 파라미터 타입 오류 발생
                 pool.query<PointRow[]>(
-                    `SELECT po_id, po_mb_id, po_content, po_point, po_datetime,
-				        po_expired, po_expire_date, po_rel_table, po_rel_id, po_rel_action
-				 FROM g5_point WHERE po_mb_id = ?${filterClause}
+                    `SELECT po_id, mb_id, po_content, po_point, po_use_point, po_datetime,
+				        po_expired, po_expire_date, po_mb_point, po_rel_table, po_rel_id, po_rel_action
+				 FROM g5_point WHERE mb_id = ?${filterClause}
 				 ORDER BY po_id DESC LIMIT ? OFFSET ?`,
                     [mbId, limit, offset]
                 )
@@ -85,9 +87,10 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 
         const items = itemRows.map((row) => ({
             id: row.po_id,
-            mb_id: row.po_mb_id,
+            mb_id: row.mb_id,
             po_content: row.po_content,
             po_point: row.po_point,
+            po_use_point: row.po_use_point,
             // mysql2는 DATETIME을 Date 객체로 반환 → 문자열 변환 필수 (SvelteKit 직렬화)
             po_datetime:
                 row.po_datetime instanceof Date
@@ -96,11 +99,13 @@ export const load: PageServerLoad = async ({ url, locals }) => {
                           .replace('T', ' ')
                           .replace(/\.\d{3}Z$/, '')
                     : String(row.po_datetime || ''),
-            po_expired: row.po_expired === 1,
+            // po_expired: 0=활성, 1=만료, 100=전부 사용됨
+            po_expired: row.po_expired === 1 || row.po_expired === 100,
             po_expire_date:
                 row.po_expire_date instanceof Date
                     ? row.po_expire_date.toISOString().split('T')[0]
                     : String(row.po_expire_date || ''),
+            po_mb_point: row.po_mb_point,
             po_rel_table: row.po_rel_table || undefined,
             po_rel_id: row.po_rel_id || undefined,
             po_rel_action: row.po_rel_action || undefined
