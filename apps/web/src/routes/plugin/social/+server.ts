@@ -5,7 +5,9 @@
  */
 import { redirect, type RequestHandler } from '@sveltejs/kit';
 import { dev } from '$app/environment';
+import { env } from '$env/dynamic/private';
 import { normalizeProviderName, getProvider } from '$lib/server/auth/oauth/provider-registry.js';
+import { resolveOrigin } from '$lib/server/auth/oauth/config.js';
 import { validateOAuthState } from '$lib/server/auth/oauth/state.js';
 import { findSocialProfile, upsertSocialProfile } from '$lib/server/auth/oauth/social-profile.js';
 import {
@@ -25,13 +27,16 @@ import { AppleProvider } from '$lib/server/auth/oauth/providers/apple.js';
 import { TwitterProvider } from '$lib/server/auth/oauth/providers/twitter.js';
 import type { OAuthUserProfile } from '$lib/server/auth/oauth/types.js';
 
+const COOKIE_DOMAIN = env.COOKIE_DOMAIN || undefined;
+
 /** 공통 콜백 처리 로직 */
 async function handleCallback(
     url: URL,
     cookies: Parameters<RequestHandler>[0]['cookies'],
     code: string,
     stateParam: string,
-    clientIp: string
+    clientIp: string,
+    origin: string
 ): Promise<never> {
     // 1. hauth.done 파라미터에서 프로바이더 추출
     const hauthDone = url.searchParams.get('hauth.done');
@@ -55,7 +60,7 @@ async function handleCallback(
     }
 
     try {
-        const provider = await getProvider(providerName);
+        const provider = await getProvider(providerName, origin);
 
         // 3. code → access_token 교환
         let tokenResponse;
@@ -142,13 +147,16 @@ async function handleCallback(
             userAgent: '' // RequestHandler에서 접근 불가, 빈 값
         });
 
-        // 10. 세션 쿠키 설정 (httpOnly)
+        const domainOpt = COOKIE_DOMAIN ? { domain: COOKIE_DOMAIN } : {};
+
+        // 10. 세션 쿠키 설정 (httpOnly, 서브도메인 공유)
         cookies.set(SESSION_COOKIE_NAME, session.sessionId, {
             path: '/',
             httpOnly: true,
             sameSite: 'lax',
             secure: !dev,
-            maxAge: SESSION_COOKIE_MAX_AGE
+            maxAge: SESSION_COOKIE_MAX_AGE,
+            ...domainOpt
         });
 
         // CSRF 토큰 쿠키 (non-httpOnly, JS에서 읽어 헤더로 전송)
@@ -157,7 +165,8 @@ async function handleCallback(
             httpOnly: false,
             sameSite: 'strict',
             secure: !dev,
-            maxAge: SESSION_COOKIE_MAX_AGE
+            maxAge: SESSION_COOKIE_MAX_AGE,
+            ...domainOpt
         });
 
         // 레거시 호환: refresh_token도 생성 (전환기)
@@ -169,7 +178,8 @@ async function handleCallback(
             httpOnly: true,
             sameSite: 'lax',
             secure: !dev,
-            maxAge: 60 * 60 * 24 * 7
+            maxAge: 60 * 60 * 24 * 7,
+            ...domainOpt
         });
 
         // 11. 원래 페이지로 리다이렉트
@@ -189,7 +199,7 @@ async function handleCallback(
 }
 
 /** GET 콜백 (대부분의 프로바이더) */
-export const GET: RequestHandler = async ({ url, cookies, getClientAddress }) => {
+export const GET: RequestHandler = async ({ url, cookies, request, getClientAddress }) => {
     const code = url.searchParams.get('code');
     const stateParam = url.searchParams.get('state');
     const errorParam = url.searchParams.get('error');
@@ -203,7 +213,8 @@ export const GET: RequestHandler = async ({ url, cookies, getClientAddress }) =>
     }
 
     const clientIp = getClientAddress();
-    return handleCallback(url, cookies, code, stateParam, clientIp);
+    const origin = resolveOrigin(request);
+    return handleCallback(url, cookies, code, stateParam, clientIp, origin);
 };
 
 /** POST 콜백 (Apple response_mode=form_post) */
@@ -222,5 +233,6 @@ export const POST: RequestHandler = async ({ url, cookies, request, getClientAdd
     }
 
     const clientIp = getClientAddress();
-    return handleCallback(url, cookies, code, stateParam, clientIp);
+    const origin = resolveOrigin(request);
+    return handleCallback(url, cookies, code, stateParam, clientIp, origin);
 };

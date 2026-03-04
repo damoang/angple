@@ -8,11 +8,12 @@
  */
 import { redirect, type RequestHandler } from '@sveltejs/kit';
 import { isValidProvider, getProvider } from '$lib/server/auth/oauth/provider-registry.js';
+import { resolveOrigin } from '$lib/server/auth/oauth/config.js';
 import { createOAuthState } from '$lib/server/auth/oauth/state.js';
 import type { SocialProvider } from '$lib/server/auth/oauth/types.js';
 import { TwitterProvider } from '$lib/server/auth/oauth/providers/twitter.js';
 
-export const GET: RequestHandler = async ({ url, cookies }) => {
+export const GET: RequestHandler = async ({ url, cookies, request }) => {
     const providerParam = url.searchParams.get('provider');
     const redirectUrl = url.searchParams.get('redirect') || '/';
 
@@ -23,7 +24,8 @@ export const GET: RequestHandler = async ({ url, cookies }) => {
     const providerName = providerParam.toLowerCase() as SocialProvider;
 
     try {
-        const provider = await getProvider(providerName);
+        const origin = resolveOrigin(request);
+        const provider = await getProvider(providerName, origin);
         const state = createOAuthState(cookies, providerName, redirectUrl);
 
         // Twitter는 PKCE 사용

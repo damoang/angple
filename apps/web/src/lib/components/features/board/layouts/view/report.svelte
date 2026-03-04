@@ -48,6 +48,7 @@
     import AdSlot from '$lib/components/ui/ad-slot/ad-slot.svelte';
     import AdminViewLayoutSwitcher from '$lib/components/features/board/admin-view-layout-switcher.svelte';
     import EconomyShoppingBanner from '$lib/components/features/board/economy-shopping-banner.svelte';
+    import Info from '@lucide/svelte/icons/info';
     import type { ViewLayoutProps } from '../types.js';
 
     type FontSizeKey = 'small' | 'base' | 'large' | 'xlarge';
@@ -57,6 +58,8 @@
         large: '18px',
         xlarge: '20px'
     };
+
+    let hasAffiliateLinks = $derived(postContent?.includes('data-affiliate') ?? false);
 
     let {
         post,
@@ -374,6 +377,18 @@
                 >
                     <Markdown content={postContent} />
                 </div>
+
+                {#if hasAffiliateLinks}
+                    <p
+                        class="text-muted-foreground mt-4 flex items-start gap-1.5 text-xs leading-relaxed"
+                    >
+                        <Info class="mt-0.5 h-3 w-3 shrink-0" />
+                        <span
+                            >이 글에 포함된 일부 링크는 제휴 링크이며, 다모앙은 소정의 커미션을 제공
+                            받을 수 있습니다.</span
+                        >
+                    </p>
+                {/if}
 
                 {#if post.videos && post.videos.length > 0}
                     <div class="mt-6 space-y-4">
