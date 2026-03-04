@@ -36,6 +36,7 @@
     import { widgetLayoutStore } from '$lib/stores/widget-layout.svelte';
     import AdSlot from '$lib/components/ui/ad-slot/ad-slot.svelte';
     import AdminViewLayoutSwitcher from '$lib/components/features/board/admin-view-layout-switcher.svelte';
+    import EconomyShoppingBanner from '$lib/components/features/board/economy-shopping-banner.svelte';
     import type { ViewLayoutProps } from '../types.js';
 
     type FontSizeKey = 'small' | 'base' | 'large' | 'xlarge';
@@ -73,7 +74,7 @@
         reactionPluginActive,
         MemoBadge,
         beforeContentSlots,
-        afterContentSlots: _afterContentSlots,
+        afterContentSlots,
         formatDate,
         formatFileSize,
         postContent,
@@ -189,6 +190,14 @@
         {#if widgetLayoutStore.hasEnabledAds}
             <AdSlot position="board-content" height="90px" />
         {/if}
+
+        <!-- 알뜰구매 모든 링크열기 (GAM 바로 아래) -->
+        {#each afterContentSlots as slot (slot.component)}
+            {@const SlotComponent = slot.component}
+            <SlotComponent
+                {...slot.propsMapper ? slot.propsMapper(pageData) : { data: pageData }}
+            />
+        {/each}
 
         <!-- 글자 크기 조절 -->
         <div class="mb-1 flex justify-end gap-1">

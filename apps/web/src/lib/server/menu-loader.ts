@@ -38,7 +38,8 @@ export async function loadMenus(): Promise<MenuItem[]> {
             headers: {
                 Accept: 'application/json',
                 'User-Agent': 'Angple-Web-SSR/1.0'
-            }
+            },
+            signal: AbortSignal.timeout(3_000)
         });
 
         if (!response.ok) {

@@ -8,6 +8,7 @@
     import Pencil from '@lucide/svelte/icons/pencil';
     import Lock from '@lucide/svelte/icons/lock';
     import Pin from '@lucide/svelte/icons/pin';
+    import RefreshCw from '@lucide/svelte/icons/refresh-cw';
     import { authStore } from '$lib/stores/auth.svelte.js';
     import { apiClient } from '$lib/api/index.js';
     import DeleteConfirmDialog from '$lib/components/features/board/delete-confirm-dialog.svelte';
@@ -224,6 +225,20 @@
         comments = data.comments.items;
     });
     let isCreatingComment = $state(false);
+    let isRefreshingComments = $state(false);
+
+    async function refreshComments() {
+        if (isRefreshingComments) return;
+        isRefreshingComments = true;
+        try {
+            const result = await apiClient.getBoardComments(boardId, String(data.post.id));
+            comments = result.items;
+        } catch {
+            // 실패 시 조용히 무시
+        } finally {
+            isRefreshingComments = false;
+        }
+    }
 
     // 추천/비추천 상태
     let likeCount = $state(0);
@@ -948,9 +963,22 @@
         {#if canViewSecret}
             <Card class="bg-background">
                 <CardHeader class="flex flex-row items-center justify-between">
-                    <h3 class="text-foreground text-lg font-semibold">
-                        댓글 <span class="text-muted-foreground">({comments.length})</span>
-                    </h3>
+                    <div class="flex items-center gap-2">
+                        <h3 class="text-foreground text-lg font-semibold">
+                            댓글 <span class="text-muted-foreground">({comments.length})</span>
+                        </h3>
+                        <button
+                            type="button"
+                            onclick={refreshComments}
+                            disabled={isRefreshingComments}
+                            class="text-muted-foreground hover:text-foreground rounded-md p-1 transition-colors disabled:opacity-50"
+                            title="댓글 새로고침"
+                        >
+                            <RefreshCw
+                                class="size-4 {isRefreshingComments ? 'animate-spin' : ''}"
+                            />
+                        </button>
+                    </div>
                     <AdminCommentLayoutSwitcher
                         {boardId}
                         currentLayout={data.board?.display_settings?.comment_layout || 'flat'}

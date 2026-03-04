@@ -406,8 +406,49 @@
         showReportDialog = true;
     }
 
+    // URL 텍스트를 자동 하이퍼링크로 변환
+    // HTML 태그 내부의 URL (src="...", href="..." 등)은 건드리지 않음
+    // 다모앙 내부 링크는 현재창, 외부 링크는 새창
+    function autoLinkUrls(html: string): string {
+        // 모든 HTML 태그를 분리하여 텍스트 노드에서만 URL 변환
+        const parts = html.split(/(<[^>]+>)/g);
+        return parts
+            .map((part) => {
+                // HTML 태그이면 건드리지 않음 (<a>, <img>, <div> 등 모든 태그)
+                if (part.startsWith('<')) return part;
+                // 텍스트 노드에서만 URL 패턴 매칭 (http/https)
+                return part.replace(/(https?:\/\/[^\s<>"']+)/gi, (url) => {
+                    const isDamoang = /damoang\.net/i.test(url);
+                    if (isDamoang) {
+                        return `<a href="${url}" class="text-primary hover:underline">${url}</a>`;
+                    }
+                    return `<a href="${url}" target="_blank" rel="noopener noreferrer" class="text-primary hover:underline">${url}</a>`;
+                });
+            })
+            .join('');
+    }
+
+    // SSR 안전 HTML 이스케이프 (플러그인 필터 적용 전 기본 텍스트 표시용)
+    function escapeHtml(text: string): string {
+        return text
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/\n/g, '<br>');
+    }
+
     // 처리된 댓글 HTML 저장
     let processedComments = new SvelteMap<string | number, string>();
+
+    // SSR용: 기본 이스케이프된 댓글 내용 (플러그인 필터 없이 즉시 렌더링)
+    const ssrCommentHtml = $derived.by(() => {
+        const map = new Map<string | number, string>();
+        for (const comment of commentTree) {
+            map.set(comment.id, comment.content ? escapeHtml(comment.content) : '');
+        }
+        return map;
+    });
 
     // 댓글 내용 비동기 처리 (플러그인 필터 적용)
     $effect(() => {
@@ -425,9 +466,11 @@
                 const filtered = await applyFilter<string>('comment_content', withBr);
                 // @멘션을 클릭 가능한 링크로 변환
                 const withMentions = highlightMentions(filtered);
+                // URL 텍스트를 자동 하이퍼링크로 변환
+                const withLinks = autoLinkUrls(withMentions);
                 processedComments.set(
                     comment.id,
-                    DOMPurify.sanitize(withMentions, {
+                    DOMPurify.sanitize(withLinks, {
                         ALLOWED_TAGS: [
                             'img',
                             'br',
@@ -948,7 +991,9 @@
                             class="comment-body text-foreground whitespace-pre-wrap text-base leading-normal"
                         >
                             <!-- eslint-disable-next-line svelte/no-at-html-tags -->
-                            {@html processedComments.get(comment.id) ?? ''}
+                            {@html processedComments.get(comment.id) ??
+                                ssrCommentHtml.get(comment.id) ??
+                                ''}
                         </div>
                     {/if}
 
@@ -1051,6 +1096,16 @@
                         >
                             <Link2 class="h-3.5 w-3.5" />
                         </Button>
+
+                        <!-- 리액션 (da-reaction 플러그인) -->
+                        {#if reactionPluginActive && boardId && postId}
+                            <ReactionBar
+                                {boardId}
+                                {postId}
+                                commentId={comment.id}
+                                target="comment"
+                            />
+                        {/if}
 
                         {#if canEdit}
                             <Button

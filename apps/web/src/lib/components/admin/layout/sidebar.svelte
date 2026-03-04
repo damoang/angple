@@ -17,7 +17,8 @@
         Layers,
         DatabaseZap,
         BarChart3,
-        Megaphone
+        Megaphone,
+        StickyNote
     } from '@lucide/svelte/icons';
 
     /**
@@ -54,6 +55,11 @@
             title: '게시판 그룹',
             href: '/admin/board-groups',
             icon: FolderOpen
+        },
+        {
+            title: '내용 관리',
+            href: '/admin/contents',
+            icon: StickyNote
         },
         {
             title: '프로모션',

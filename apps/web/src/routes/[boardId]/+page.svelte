@@ -396,6 +396,11 @@
                 </div>
             {/if}
 
+            <!-- 알뜰구매 쇼핑 바로가기 (검색 → GAM → 여기) -->
+            {#if boardId === 'economy'}
+                <EconomyShoppingBanner />
+            {/if}
+
             <!-- 카테고리 탭 -->
             {#if categories.length > 0 && !isSearching}
                 <div class="mb-6 flex flex-wrap gap-2">

@@ -32,8 +32,14 @@ export const load: PageServerLoad = async ({ url, params, locals }) => {
 
         // 게시판 정보를 먼저 가져와서 접근 권한 확인
         const [boardRes, displaySettingsRes] = await Promise.all([
-            backendFetch(`${BACKEND_URL}/api/v1/boards/${boardId}`, { headers }),
-            backendFetch(`${BACKEND_URL}/api/v1/boards/${boardId}/display-settings`, { headers })
+            backendFetch(`${BACKEND_URL}/api/v1/boards/${boardId}`, {
+                headers,
+                signal: AbortSignal.timeout(5_000)
+            }),
+            backendFetch(`${BACKEND_URL}/api/v1/boards/${boardId}/display-settings`, {
+                headers,
+                signal: AbortSignal.timeout(5_000)
+            })
         ]);
         let board: Board | null = boardRes.ok ? ((await boardRes.json()).data as Board) : null;
 
@@ -77,15 +83,18 @@ export const load: PageServerLoad = async ({ url, params, locals }) => {
         // 게시글 목록 + 공지사항 + 프로모션 (게시판 권한 확인 후 병렬 호출)
         const [postsResult, noticesResult, promotionResult] = await Promise.allSettled([
             // 게시글 목록
-            backendFetch(buildPostsUrl(), { headers }).then(async (res) => {
-                if (!res.ok) throw new Error(`Posts API error: ${res.status}`);
-                return res.json();
-            }),
+            backendFetch(buildPostsUrl(), { headers, signal: AbortSignal.timeout(5_000) }).then(
+                async (res) => {
+                    if (!res.ok) throw new Error(`Posts API error: ${res.status}`);
+                    return res.json();
+                }
+            ),
             // 공지사항 (검색 중이면 건너뜀)
             isSearching
                 ? Promise.resolve([])
                 : backendFetch(`${BACKEND_URL}/api/v1/boards/${boardId}/notices`, {
-                      headers
+                      headers,
+                      signal: AbortSignal.timeout(5_000)
                   }).then(async (res) => {
                       if (!res.ok) return [];
                       const json = await res.json();
