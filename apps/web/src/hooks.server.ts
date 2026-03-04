@@ -1,4 +1,4 @@
-import { redirect, type Handle } from '@sveltejs/kit';
+import { redirect, type Handle, type HandleServerError } from '@sveltejs/kit';
 import { dev } from '$app/environment';
 import { env } from '$env/dynamic/private';
 import { getMemberById } from '$lib/server/auth/oauth/member.js';
@@ -285,4 +285,37 @@ export const handle: Handle = async ({ event, resolve }) => {
     }
 
     return response;
+};
+
+/**
+ * 서버 에러 핸들러 — 에러 추적 및 사용자 친화적 메시지 반환
+ * 404 제외한 모든 에러를 Dantry(ClickHouse 기반)로 fire-and-forget 전송
+ */
+export const handleError: HandleServerError = ({ error, event, status, message }) => {
+    const err = error instanceof Error ? error : new Error(String(error));
+
+    if (status !== 404) {
+        console.error(`[Server Error] ${status} ${event.url.pathname}:`, err.message);
+
+        // Fire-and-forget: Dantry 에러 트래커로 전송
+        if (ADS_URL) {
+            fetch(`${ADS_URL}/api/v1/dantry`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    type: 'server_error',
+                    status,
+                    message: err.message,
+                    stack: err.stack?.slice(0, 2000),
+                    url: event.url.href,
+                    timestamp: new Date().toISOString()
+                }),
+                signal: AbortSignal.timeout(3_000)
+            }).catch(() => {});
+        }
+    }
+
+    return {
+        message: status >= 500 ? '일시적인 오류가 발생했습니다.' : message
+    };
 };

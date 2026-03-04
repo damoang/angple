@@ -110,6 +110,7 @@ async function proxyRequest(
             method,
             headers,
             body,
+            signal: AbortSignal.timeout(10_000),
             // @ts-expect-error - Node.js fetch specific option
             duplex: body instanceof ReadableStream ? 'half' : undefined
         });

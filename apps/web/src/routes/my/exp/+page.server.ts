@@ -1,40 +1,30 @@
 import type { PageServerLoad } from './$types.js';
 import type { ExpSummary, ExpHistoryResponse } from '$lib/api/types.js';
-import { env } from '$env/dynamic/private';
-
-const BACKEND_URL = env.BACKEND_URL || 'http://localhost:8090';
+import { backendFetch, createAuthHeaders } from '$lib/server/backend-fetch.js';
 
 export const load: PageServerLoad = async ({ url, locals }) => {
     const page = Number(url.searchParams.get('page')) || 1;
     const limit = 20;
     const filter = (url.searchParams.get('filter') as 'all' | 'earned' | 'used') || 'all';
 
-    const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-        'User-Agent': 'Angple-Web-SSR/1.0'
-    };
-    if (locals.accessToken) {
-        headers['Authorization'] = `Bearer ${locals.accessToken}`;
-    }
+    const headers = createAuthHeaders(locals.accessToken);
 
     let expSummary: ExpSummary | null = null;
     let expHistory: ExpHistoryResponse | null = null;
 
     try {
-        const backendFetch = globalThis.fetch;
-
-        const [summaryRes, historyRes] = await Promise.all([
-            backendFetch(`${BACKEND_URL}/api/v1/my/exp`, { headers }),
-            backendFetch(`${BACKEND_URL}/api/v1/my/exp/history?page=${page}&limit=${limit}`, {
+        const [summaryRes, historyRes] = await Promise.allSettled([
+            backendFetch(`/api/v1/my/exp`, { headers }),
+            backendFetch(`/api/v1/my/exp/history?page=${page}&limit=${limit}`, {
                 headers
             })
         ]);
 
-        if (summaryRes.ok) {
-            expSummary = (await summaryRes.json()).data;
+        if (summaryRes.status === 'fulfilled' && summaryRes.value.ok) {
+            expSummary = (await summaryRes.value.json()).data;
         }
-        if (historyRes.ok) {
-            const raw = (await historyRes.json()).data;
+        if (historyRes.status === 'fulfilled' && historyRes.value.ok) {
+            const raw = (await historyRes.value.json()).data;
             expHistory = {
                 summary: raw.summary,
                 items: raw.items || [],

@@ -1,12 +1,10 @@
 import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types.js';
 import type { FreePost } from '$lib/api/types.js';
-import { env } from '$env/dynamic/private';
 import { fetchPromotionPosts } from '$lib/server/ads/promotion.js';
 import { transformAffiliateContent } from '$lib/hooks/builtin/affiliate.js';
 import { isScraped } from '$lib/server/scrap.js';
-
-const BACKEND_URL = env.BACKEND_URL || 'http://localhost:8090';
+import { backendFetch as bFetch, createAuthHeaders } from '$lib/server/backend-fetch.js';
 
 export const load: PageServerLoad = async ({ params, fetch: svelteKitFetch, locals, url }) => {
     const { boardId, postId } = params;
@@ -17,19 +15,12 @@ export const load: PageServerLoad = async ({ params, fetch: svelteKitFetch, loca
     }
 
     // 인증 헤더 (SSR에서 accessToken 사용)
-    const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-        'User-Agent': 'Angple-Web-SSR/1.0'
-    };
-    if (locals.accessToken) {
-        headers['Authorization'] = `Bearer ${locals.accessToken}`;
-    }
+    const headers = createAuthHeaders(locals.accessToken);
 
     try {
         // 게시글/게시판 정보 (필수) + 댓글/파일/광고 (보조)
-        // 백엔드 API → globalThis.fetch (Origin 헤더 미포함, CORS 403 방지)
-        // SvelteKit 내부 라우트 → svelteKitFetch (쿠키/상대경로 처리)
-        const backendFetch = globalThis.fetch;
+        // backendFetch → Go 백엔드 (timeout 5s + circuit breaker)
+        // svelteKitFetch → SvelteKit 내부 라우트 (쿠키/상대경로 처리)
         const [
             postResult,
             boardResult,
@@ -40,7 +31,7 @@ export const load: PageServerLoad = async ({ params, fetch: svelteKitFetch, loca
             revisionsResult
         ] = await Promise.allSettled([
             // 게시글 (Go 백엔드 직접 호출)
-            backendFetch(`${BACKEND_URL}/api/v1/boards/${boardId}/posts/${postId}`, {
+            bFetch(`/api/v1/boards/${boardId}/posts/${postId}`, {
                 headers
             }).then(async (res) => {
                 if (!res.ok) throw new Error(`Post API error: ${res.status}`);
@@ -48,15 +39,13 @@ export const load: PageServerLoad = async ({ params, fetch: svelteKitFetch, loca
                 return json.data as FreePost;
             }),
             // 게시판 정보
-            backendFetch(`${BACKEND_URL}/api/v1/boards/${boardId}`, { headers }).then(
-                async (res) => {
-                    if (!res.ok) return null;
-                    const json = await res.json();
-                    return json.data;
-                }
-            ),
+            bFetch(`/api/v1/boards/${boardId}`, { headers }).then(async (res) => {
+                if (!res.ok) return null;
+                const json = await res.json();
+                return json.data;
+            }),
             // 게시판 표시 설정
-            backendFetch(`${BACKEND_URL}/api/v1/boards/${boardId}/display-settings`, {
+            bFetch(`/api/v1/boards/${boardId}/display-settings`, {
                 headers
             }).then(async (res) => {
                 if (!res.ok) return null;
@@ -91,10 +80,9 @@ export const load: PageServerLoad = async ({ params, fetch: svelteKitFetch, loca
             fetchPromotionPosts(),
             // 리비전 히스토리 (관리자 level ≥ 10일 때만)
             (locals.user?.level ?? 0) >= 10
-                ? backendFetch(
-                      `${BACKEND_URL}/api/v1/boards/${boardId}/posts/${postId}/revisions`,
-                      { headers }
-                  ).then(async (res) => {
+                ? bFetch(`/api/v1/boards/${boardId}/posts/${postId}/revisions`, {
+                      headers
+                  }).then(async (res) => {
                       if (!res.ok) return [];
                       const json = await res.json();
                       return json.data || [];
