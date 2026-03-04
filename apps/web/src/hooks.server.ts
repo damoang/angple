@@ -182,9 +182,49 @@ function buildCsp(): string {
 
 const cspHeader = buildCsp();
 
+/** 개발/내부 전용 경로 — 프로덕션에서 차단 */
+const DEV_ONLY_PATHS = ['/api-test', '/api-docs', '/api-doc', '/install'];
+
+/** 글로벌 API rate limiting (IP당 요청 수) */
+const GLOBAL_API_RATE = { maxRequests: 120, windowMs: 60_000 }; // 분당 120회
+const WRITE_API_RATE = { maxRequests: 30, windowMs: 60_000 }; // 쓰기 분당 30회
+
 export const handle: Handle = async ({ event, resolve }) => {
-    // 그누보드/라이믹스 URL 호환 리다이렉트 (SEO 보존)
     const { pathname } = event.url;
+
+    // 개발/내부 전용 경로 차단 (프로덕션)
+    if (!dev && DEV_ONLY_PATHS.some((p) => pathname === p || pathname.startsWith(p + '/'))) {
+        return new Response('Not Found', { status: 404 });
+    }
+
+    // 글로벌 API Rate Limiting
+    if (pathname.startsWith('/api/')) {
+        const clientIp = event.getClientAddress();
+        const isWrite = event.request.method !== 'GET' && event.request.method !== 'HEAD';
+        const rate = isWrite ? WRITE_API_RATE : GLOBAL_API_RATE;
+        const action = isWrite ? 'api_write' : 'api_read';
+        const { allowed, retryAfter } = checkRateLimit(
+            clientIp,
+            action,
+            rate.maxRequests,
+            rate.windowMs
+        );
+        if (!allowed) {
+            return new Response(
+                JSON.stringify({ error: '요청이 너무 많습니다. 잠시 후 다시 시도해주세요.' }),
+                {
+                    status: 429,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Retry-After': String(retryAfter || 60)
+                    }
+                }
+            );
+        }
+        recordAttempt(clientIp, action);
+    }
+
+    // 그누보드/라이믹스 URL 호환 리다이렉트 (SEO 보존)
     if (pathname.startsWith('/bbs/')) {
         const redirectUrl = mapGnuboardUrl(pathname, event.url.searchParams);
         if (redirectUrl) {
