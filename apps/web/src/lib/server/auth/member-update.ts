@@ -22,6 +22,7 @@ export interface MemberFullProfile {
     mb_leave_date: string;
     mb_intercept_date: string;
     mb_level: number;
+    mb_image_url: string;
 }
 
 /** 프로필 전체 정보 조회 */
@@ -29,7 +30,7 @@ export async function getMemberFullProfile(mbId: string): Promise<MemberFullProf
     const [rows] = await pool.query<RowDataPacket[]>(
         `SELECT mb_id, mb_nick, mb_email, mb_homepage, mb_signature,
 		        mb_open, mb_mailling, mb_nick_date, mb_hp, mb_password,
-		        mb_leave_date, mb_intercept_date, mb_level
+		        mb_leave_date, mb_intercept_date, mb_level, mb_image_url
 		 FROM g5_member WHERE mb_id = ? LIMIT 1`,
         [mbId]
     );
@@ -178,10 +179,20 @@ export async function updateProfile(
         mb_signature?: string;
         mb_open?: number;
         mb_mailling?: number;
+        mb_image_url?: string;
     }
 ): Promise<{ success: boolean; error?: string }> {
     const updates: string[] = [];
     const values: (string | number)[] = [];
+
+    if (fields.mb_image_url !== undefined) {
+        // 빈 문자열(삭제) 또는 S3 CDN URL만 허용
+        if (fields.mb_image_url && !fields.mb_image_url.startsWith('https://s3.damoang.net/')) {
+            return { success: false, error: '유효하지 않은 이미지 URL입니다.' };
+        }
+        updates.push('mb_image_url = ?');
+        values.push(fields.mb_image_url);
+    }
 
     if (fields.mb_homepage !== undefined) {
         // URL 형식 검증 (빈 문자열 허용)

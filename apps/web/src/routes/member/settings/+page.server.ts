@@ -3,7 +3,6 @@
  */
 import type { PageServerLoad, Actions } from './$types';
 import { redirect, fail } from '@sveltejs/kit';
-import { verifyToken } from '$lib/server/auth/jwt.js';
 import { getSocialProfilesByMember } from '$lib/server/auth/oauth/social-profile.js';
 import {
     getMemberFullProfile,
@@ -13,19 +12,13 @@ import {
     updateProfile
 } from '$lib/server/auth/member-update.js';
 
-export const load: PageServerLoad = async ({ cookies }) => {
-    // 인증 확인 (refresh_token에서 사용자 정보 추출)
-    const refreshToken = cookies.get('refresh_token');
-    if (!refreshToken) {
-        redirect(302, '/login?redirect=/member/settings');
+export const load: PageServerLoad = async ({ locals }) => {
+    // 인증 확인 (locals.user 기반 — /my/* 패턴과 동일)
+    if (!locals.user) {
+        redirect(303, '/login?redirect=/member/settings');
     }
 
-    const payload = await verifyToken(refreshToken);
-    if (!payload?.sub) {
-        redirect(302, '/login?redirect=/member/settings');
-    }
-
-    const mbId = payload.sub;
+    const mbId = locals.user.mb_id;
 
     // 병렬 조회
     const [profiles, memberProfile] = await Promise.all([
@@ -52,7 +45,8 @@ export const load: PageServerLoad = async ({ cookies }) => {
                   mb_signature: memberProfile.mb_signature,
                   mb_open: memberProfile.mb_open,
                   mb_mailling: memberProfile.mb_mailling,
-                  mb_level: memberProfile.mb_level
+                  mb_level: memberProfile.mb_level,
+                  mb_image_url: memberProfile.mb_image_url || ''
               }
             : null,
         nickChangeDaysLeft,
@@ -68,18 +62,14 @@ export const load: PageServerLoad = async ({ cookies }) => {
 };
 
 export const actions: Actions = {
-    updateNickname: async ({ request, cookies }) => {
-        const refreshToken = cookies.get('refresh_token');
-        if (!refreshToken) return fail(401, { error: '로그인이 필요합니다.' });
-
-        const payload = await verifyToken(refreshToken);
-        if (!payload?.sub) return fail(401, { error: '로그인이 필요합니다.' });
+    updateNickname: async ({ request, locals }) => {
+        if (!locals.user) return fail(401, { error: '로그인이 필요합니다.' });
 
         const formData = await request.formData();
         const nickname = formData.get('nickname') as string;
         if (!nickname) return fail(400, { error: '닉네임을 입력해주세요.' });
 
-        const result = await updateNickname(payload.sub, nickname);
+        const result = await updateNickname(locals.user.mb_id, nickname);
         if (!result.success) {
             return fail(400, { error: result.error });
         }
@@ -87,18 +77,14 @@ export const actions: Actions = {
         return { success: true, message: '닉네임이 변경되었습니다.' };
     },
 
-    updateEmail: async ({ request, cookies }) => {
-        const refreshToken = cookies.get('refresh_token');
-        if (!refreshToken) return fail(401, { error: '로그인이 필요합니다.' });
-
-        const payload = await verifyToken(refreshToken);
-        if (!payload?.sub) return fail(401, { error: '로그인이 필요합니다.' });
+    updateEmail: async ({ request, locals }) => {
+        if (!locals.user) return fail(401, { error: '로그인이 필요합니다.' });
 
         const formData = await request.formData();
         const email = formData.get('email') as string;
         if (!email) return fail(400, { error: '이메일을 입력해주세요.' });
 
-        const result = await updateEmail(payload.sub, email);
+        const result = await updateEmail(locals.user.mb_id, email);
         if (!result.success) {
             return fail(400, { error: result.error });
         }
@@ -106,12 +92,8 @@ export const actions: Actions = {
         return { success: true, message: '이메일이 변경되었습니다.' };
     },
 
-    changePassword: async ({ request, cookies }) => {
-        const refreshToken = cookies.get('refresh_token');
-        if (!refreshToken) return fail(401, { error: '로그인이 필요합니다.' });
-
-        const payload = await verifyToken(refreshToken);
-        if (!payload?.sub) return fail(401, { error: '로그인이 필요합니다.' });
+    changePassword: async ({ request, locals }) => {
+        if (!locals.user) return fail(401, { error: '로그인이 필요합니다.' });
 
         const formData = await request.formData();
         const currentPassword = formData.get('currentPassword') as string;
@@ -126,7 +108,7 @@ export const actions: Actions = {
             return fail(400, { error: '새 비밀번호가 일치하지 않습니다.' });
         }
 
-        const result = await changePassword(payload.sub, currentPassword, newPassword);
+        const result = await changePassword(locals.user.mb_id, currentPassword, newPassword);
         if (!result.success) {
             return fail(400, { error: result.error });
         }
@@ -134,15 +116,25 @@ export const actions: Actions = {
         return { success: true, message: '비밀번호가 변경되었습니다.' };
     },
 
-    updateProfile: async ({ request, cookies }) => {
-        const refreshToken = cookies.get('refresh_token');
-        if (!refreshToken) return fail(401, { error: '로그인이 필요합니다.' });
-
-        const payload = await verifyToken(refreshToken);
-        if (!payload?.sub) return fail(401, { error: '로그인이 필요합니다.' });
+    updateAvatar: async ({ request, locals }) => {
+        if (!locals.user) return fail(401, { error: '로그인이 필요합니다.' });
 
         const formData = await request.formData();
-        const result = await updateProfile(payload.sub, {
+        const avatarUrl = (formData.get('avatar_url') as string) || '';
+
+        const result = await updateProfile(locals.user.mb_id, { mb_image_url: avatarUrl });
+        if (!result.success) {
+            return fail(400, { error: result.error });
+        }
+
+        return { success: true, message: '프로필 사진이 변경되었습니다.' };
+    },
+
+    updateProfile: async ({ request, locals }) => {
+        if (!locals.user) return fail(401, { error: '로그인이 필요합니다.' });
+
+        const formData = await request.formData();
+        const result = await updateProfile(locals.user.mb_id, {
             mb_homepage: (formData.get('homepage') as string) || '',
             mb_signature: (formData.get('signature') as string) || '',
             mb_open: formData.get('open') === 'on' ? 1 : 0,

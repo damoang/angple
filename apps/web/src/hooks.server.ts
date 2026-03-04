@@ -54,26 +54,6 @@ async function authenticateSSR(event: Parameters<Handle>[0]['event']): Promise<v
     // 세션 쿠키로 인증
     const sessionId = event.cookies.get(SESSION_COOKIE_NAME);
 
-    // 디버그: admin API 요청 로깅 (모든 admin 관련 경로)
-    const isAdminPath = event.url.pathname.includes('admin');
-    if (isAdminPath) {
-        const rawCookieHeader = event.request.headers.get('cookie');
-        console.log('[Auth Debug - Admin]', {
-            path: event.url.pathname,
-            method: event.request.method,
-            hasSessionId: !!sessionId,
-            sessionId: sessionId ? sessionId.slice(0, 8) + '...' : 'none',
-            cookieNames: event.cookies
-                .getAll()
-                .map((c) => c.name)
-                .slice(0, 5),
-            rawCookieHeader: rawCookieHeader
-                ? rawCookieHeader.substring(0, 100) + '...'
-                : '(no cookie header)',
-            hasOrigin: !!event.request.headers.get('origin'),
-            origin: event.request.headers.get('origin')
-        });
-    }
     if (sessionId) {
         try {
             const session = await getSession(sessionId);
@@ -141,11 +121,6 @@ function buildCsp(): string {
 const cspHeader = buildCsp();
 
 export const handle: Handle = async ({ event, resolve }) => {
-    // 모든 요청 디버그 (임시)
-    if (event.url.pathname.includes('admin') && event.url.pathname.includes('menus')) {
-        console.log('[HOOKS] Request:', event.request.method, event.url.pathname);
-    }
-
     // 그누보드/라이믹스 URL 호환 리다이렉트 (SEO 보존)
     const { pathname } = event.url;
     if (pathname.startsWith('/bbs/')) {
@@ -250,10 +225,13 @@ export const handle: Handle = async ({ event, resolve }) => {
     response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
     response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
 
-    // 캐시 제어: 인증 데이터(user, accessToken)가 레이아웃에 포함되므로
-    // 모든 HTML/__data.json 응답은 사용자별로 고유 → 절대 캐시 금지
-    response.headers.set('Cache-Control', 'private, no-store, no-cache, must-revalidate');
-    response.headers.set('Vary', 'Cookie');
+    // 캐시 제어:
+    // - _app/immutable/ 은 content-hash 파일명이므로 SvelteKit 기본 장기 캐시 유지
+    // - 나머지(HTML, __data.json 등)는 인증 데이터 포함 → 캐시 금지
+    if (!event.url.pathname.startsWith('/_app/immutable')) {
+        response.headers.set('Cache-Control', 'private, no-store, no-cache, must-revalidate');
+        response.headers.set('Vary', 'Cookie');
+    }
 
     return response;
 };

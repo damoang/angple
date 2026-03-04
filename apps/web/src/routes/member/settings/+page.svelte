@@ -21,10 +21,12 @@
     import Mail from '@lucide/svelte/icons/mail';
     import KeyRound from '@lucide/svelte/icons/key-round';
     import Globe from '@lucide/svelte/icons/globe';
+    import Camera from '@lucide/svelte/icons/camera';
     import CircleCheck from '@lucide/svelte/icons/circle-check';
     import CircleAlert from '@lucide/svelte/icons/circle-alert';
     import type { PageData } from './$types.js';
     import { enhance } from '$app/forms';
+    import { getAvatarUrl } from '$lib/utils/member-icon';
 
     let { data }: { data: PageData } = $props();
 
@@ -45,6 +47,72 @@
     let pwError = $state<string | null>(null);
     let profileSuccess = $state<string | null>(null);
     let profileError = $state<string | null>(null);
+
+    // 아바타 상태
+    let avatarUploading = $state(false);
+    let avatarSuccess = $state<string | null>(null);
+    let avatarError = $state<string | null>(null);
+    let currentAvatarUrl = $state(
+        data.profile?.mb_image_url ? getAvatarUrl(data.profile.mb_image_url) : null
+    );
+    let avatarFormRef = $state<HTMLFormElement | null>(null);
+    let avatarUrlInput = $state('');
+
+    let fileInputRef = $state<HTMLInputElement | null>(null);
+
+    async function handleAvatarFileChange(event: Event) {
+        const input = event.target as HTMLInputElement;
+        const file = input.files?.[0];
+        if (!file) return;
+
+        // 파일 크기 체크 (5MB)
+        if (file.size > 5 * 1024 * 1024) {
+            avatarError = '파일 크기는 5MB 이하여야 합니다.';
+            return;
+        }
+
+        // 이미지 타입 체크
+        if (!file.type.startsWith('image/')) {
+            avatarError = '이미지 파일만 업로드 가능합니다.';
+            return;
+        }
+
+        avatarUploading = true;
+        avatarError = null;
+        avatarSuccess = null;
+
+        try {
+            // S3 업로드
+            const formData = new FormData();
+            formData.append('file', file);
+            const res = await fetch('/api/media/images', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (!res.ok) {
+                const errData = await res.json().catch(() => null);
+                throw new Error(errData?.error || '업로드에 실패했습니다.');
+            }
+
+            const result = await res.json();
+            const uploadedUrl = result.url || result.cdnUrl;
+            if (!uploadedUrl) throw new Error('업로드 URL을 받지 못했습니다.');
+
+            // form action으로 DB 업데이트
+            avatarUrlInput = uploadedUrl;
+
+            // 약간의 딜레이 후 폼 제출 (state 반영 대기)
+            await new Promise((r) => setTimeout(r, 50));
+            avatarFormRef?.requestSubmit();
+        } catch (err) {
+            avatarError = err instanceof Error ? err.message : '업로드에 실패했습니다.';
+            avatarUploading = false;
+        }
+
+        // input 리셋
+        input.value = '';
+    }
 
     const providerNames: Record<string, string> = {
         google: 'Google',
@@ -115,6 +183,138 @@
     </div>
 
     <div class="space-y-6">
+        <!-- 0. 프로필 사진 카드 -->
+        {#if data.profile}
+            <Card>
+                <CardHeader>
+                    <CardTitle class="flex items-center gap-2">
+                        <Camera class="h-5 w-5" />
+                        프로필 사진
+                    </CardTitle>
+                    <CardDescription
+                        >프로필 사진을 변경합니다. (5MB 이하, 이미지 파일)</CardDescription
+                    >
+                </CardHeader>
+                <CardContent>
+                    <div class="flex items-center gap-6">
+                        <!-- 현재 아바타 -->
+                        <div class="relative">
+                            <div
+                                class="bg-primary/10 flex h-24 w-24 items-center justify-center overflow-hidden rounded-full"
+                            >
+                                {#if currentAvatarUrl}
+                                    <img
+                                        src={currentAvatarUrl}
+                                        alt="프로필 사진"
+                                        class="h-full w-full object-cover"
+                                        onerror={() => {
+                                            currentAvatarUrl = null;
+                                        }}
+                                    />
+                                {:else}
+                                    <User class="text-primary h-10 w-10" />
+                                {/if}
+                            </div>
+                            {#if avatarUploading}
+                                <div
+                                    class="absolute inset-0 flex items-center justify-center rounded-full bg-black/40"
+                                >
+                                    <Loader2 class="h-6 w-6 animate-spin text-white" />
+                                </div>
+                            {/if}
+                        </div>
+
+                        <div class="space-y-2">
+                            <input
+                                bind:this={fileInputRef}
+                                type="file"
+                                accept="image/*"
+                                class="hidden"
+                                onchange={handleAvatarFileChange}
+                            />
+                            <Button
+                                variant="outline"
+                                onclick={() => fileInputRef?.click()}
+                                disabled={avatarUploading}
+                            >
+                                {#if avatarUploading}
+                                    <Loader2 class="mr-2 h-4 w-4 animate-spin" />
+                                    업로드 중...
+                                {:else}
+                                    <Camera class="mr-2 h-4 w-4" />
+                                    사진 변경
+                                {/if}
+                            </Button>
+
+                            {#if currentAvatarUrl}
+                                <form
+                                    method="POST"
+                                    action="?/updateAvatar"
+                                    use:enhance={() => {
+                                        avatarSuccess = null;
+                                        avatarError = null;
+                                        return async ({ result }) => {
+                                            if (result.type === 'success') {
+                                                avatarSuccess = '프로필 사진이 삭제되었습니다.';
+                                                currentAvatarUrl = null;
+                                            } else if (result.type === 'failure') {
+                                                avatarError =
+                                                    (result.data?.error as string) ||
+                                                    '삭제에 실패했습니다.';
+                                            }
+                                        };
+                                    }}
+                                >
+                                    <input type="hidden" name="avatar_url" value="" />
+                                    <Button
+                                        type="submit"
+                                        variant="ghost"
+                                        size="sm"
+                                        class="text-muted-foreground"
+                                    >
+                                        사진 삭제
+                                    </Button>
+                                </form>
+                            {/if}
+
+                            {#if avatarSuccess}
+                                <p class="flex items-center gap-1 text-xs text-green-600">
+                                    <CircleCheck class="h-3 w-3" />{avatarSuccess}
+                                </p>
+                            {/if}
+                            {#if avatarError}
+                                <p class="flex items-center gap-1 text-xs text-red-600">
+                                    <CircleAlert class="h-3 w-3" />{avatarError}
+                                </p>
+                            {/if}
+                        </div>
+                    </div>
+
+                    <!-- 숨겨진 폼: S3 업로드 후 DB 업데이트용 -->
+                    <form
+                        bind:this={avatarFormRef}
+                        method="POST"
+                        action="?/updateAvatar"
+                        class="hidden"
+                        use:enhance={() => {
+                            return async ({ result }) => {
+                                avatarUploading = false;
+                                if (result.type === 'success') {
+                                    avatarSuccess = '프로필 사진이 변경되었습니다.';
+                                    currentAvatarUrl = avatarUrlInput;
+                                } else if (result.type === 'failure') {
+                                    avatarError =
+                                        (result.data?.error as string) || '저장에 실패했습니다.';
+                                }
+                            };
+                        }}
+                    >
+                        <input type="hidden" name="avatar_url" value={avatarUrlInput} />
+                    </form>
+                </CardContent>
+            </Card>
+        {/if}
+
         <!-- 1. 기본 정보 카드 -->
         {#if data.profile}
             <Card>

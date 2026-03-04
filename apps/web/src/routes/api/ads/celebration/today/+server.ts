@@ -49,12 +49,18 @@ function extractFirstImage(content: string): string | null {
     return null;
 }
 
-export const GET: RequestHandler = async () => {
+export const GET: RequestHandler = async ({ url }) => {
+    const mode = url.searchParams.get('mode');
+    const isRecent = mode === 'recent';
+
     try {
         const banners: Banner[] = [];
 
-        // 1차: celebration_banners 테이블 (신규) — 최근 활성 배너를 날짜 무관하게 표시
+        // 1차: celebration_banners 테이블 (신규)
+        // mode=recent: 날짜 무관 최근 8건 (메인 위젯용)
+        // 기본: 오늘 날짜만 (롤링 텍스트/사이드바 배너용)
         try {
+            const dateFilter = isRecent ? '' : 'AND cb.display_date = CURDATE()';
             const [rows] = await pool.execute<RowDataPacket[]>(
                 `SELECT cb.id, cb.title, cb.content, cb.image_url, cb.link_url,
                         cb.external_url, cb.display_date, cb.target_member_id,
@@ -63,7 +69,7 @@ export const GET: RequestHandler = async () => {
                         m.mb_image_url AS target_member_image_url
                  FROM celebration_banners cb
                  LEFT JOIN g5_member m ON cb.target_member_id = m.mb_id
-                 WHERE cb.is_active = 1
+                 WHERE cb.is_active = 1 ${dateFilter}
                  ORDER BY cb.display_date DESC, cb.sort_order ASC, cb.id DESC
                  LIMIT 8`
             );
@@ -96,14 +102,16 @@ export const GET: RequestHandler = async () => {
             // celebration_banners 테이블이 없을 수 있음 — 무시하고 fallback으로
         }
 
-        // 2차: g5_write_message fallback (마이그레이션 전까지) — 최근 글 표시
+        // 2차: g5_write_message fallback (마이그레이션 전까지)
+        // mode=recent: 최근 글 표시, 기본: 오늘 날짜만
         if (banners.length === 0) {
+            const legacyDateFilter = isRecent ? '' : 'AND DATE(wm.wr_datetime) = CURDATE()';
             const [rows] = await pool.execute<RowDataPacket[]>(
                 `SELECT wm.wr_id, wm.wr_subject, wm.wr_content, wm.wr_link2, wm.mb_id,
                         m.mb_nick, m.mb_image_url
                  FROM g5_write_message wm
                  LEFT JOIN g5_member m ON wm.mb_id = m.mb_id
-                 WHERE wm.wr_is_comment = 0
+                 WHERE wm.wr_is_comment = 0 ${legacyDateFilter}
                  ORDER BY wm.wr_id DESC
                  LIMIT 8`
             );
