@@ -70,11 +70,24 @@ jobs:
           VITE_GAM_NETWORK_CODE: '23338387889'
           VITE_GAM_SITE_NAME: 'damoang'
         run: |
+          # .env 파일 생성 (gitignored이므로 CI에서 명시적으로 생성)
+          echo "VITE_GAM_NETWORK_CODE=23338387889" > apps/web/.env
+          echo "VITE_GAM_SITE_NAME=damoang" >> apps/web/.env
+
           rm -rf apps/web/.svelte-kit apps/web/build apps/web/node_modules/.vite
           pnpm --filter web build
+
           echo "=== Build verification ==="
           grep -rl "private_env.ADS_SERVER_URL" apps/web/build/server/ 2>/dev/null | grep -v ".map" || echo "WARNING: ADS_SERVER_URL not found in build!"
           grep -c "localhost:9090" apps/web/build/server/chunks/_server.ts-*.js 2>/dev/null && echo "WARNING: localhost:9090 hardcoded in server chunks!" || true
+
+          # GAM 네트워크 코드 검증 (크리티컬)
+          if grep -rl "23338387889" apps/web/build/client/ >/dev/null 2>&1; then
+            echo "✅ GAM network code verified in client bundle"
+          else
+            echo "❌ FATAL: GAM network code NOT found in client bundle!"
+            exit 1
+          fi
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
