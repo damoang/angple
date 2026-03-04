@@ -2,23 +2,27 @@
     import { goto } from '$app/navigation';
     import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card/index.js';
     import { Button } from '$lib/components/ui/button/index.js';
+    import { Progress } from '$lib/components/ui/progress/index.js';
     import type { PageData } from './$types.js';
     import { authStore } from '$lib/stores/auth.svelte.js';
+    import { getGradeName } from '$lib/utils/grade.js';
     import FileText from '@lucide/svelte/icons/file-text';
     import MessageSquare from '@lucide/svelte/icons/message-square';
     import Heart from '@lucide/svelte/icons/heart';
+    import BarChart3 from '@lucide/svelte/icons/bar-chart-3';
     import User from '@lucide/svelte/icons/user';
-    import Settings from '@lucide/svelte/icons/settings';
-    import Coins from '@lucide/svelte/icons/coins';
-    import Star from '@lucide/svelte/icons/star';
 
     let { data }: { data: PageData } = $props();
+
+    // 경험치 요약 (레벨 게이지용) - loaded from +page.ts
+    const expSummary = $derived(data.expSummary);
 
     // 탭 정의
     const tabs = [
         { id: 'posts', label: '내가 쓴 글', icon: FileText },
         { id: 'comments', label: '내가 쓴 댓글', icon: MessageSquare },
-        { id: 'liked', label: '추천한 글', icon: Heart }
+        { id: 'liked', label: '추천한 글', icon: Heart },
+        { id: 'stats', label: '전체분석', icon: BarChart3 }
     ];
 
     // 탭 변경
@@ -29,11 +33,6 @@
     // 페이지 변경
     function goToPage(pageNum: number): void {
         goto(`/my?tab=${data.tab}&page=${pageNum}`);
-    }
-
-    // 게시글로 이동
-    function goToPost(boardId: string, postId: number): void {
-        goto(`/${boardId}/${postId}`);
     }
 
     // 날짜 포맷
@@ -63,7 +62,7 @@
     <title>마이페이지 | {import.meta.env.VITE_SITE_NAME || 'Angple'}</title>
 </svelte:head>
 
-<div class="mx-auto max-w-4xl pt-4">
+<div class="mx-auto max-w-4xl px-4">
     <!-- 헤더 -->
     <div class="mb-6 flex items-center justify-between">
         <div class="flex items-center gap-4">
@@ -76,7 +75,23 @@
                 </div>
                 <div>
                     <h1 class="text-foreground text-2xl font-bold">{authStore.user.mb_name}</h1>
-                    <p class="text-secondary-foreground">Lv.{authStore.user.mb_level}</p>
+                    <p class="text-secondary-foreground">{getGradeName(authStore.user.mb_level)}</p>
+                    <!-- 레벨 게이지 -->
+                    {#if expSummary}
+                        <div class="mt-1 w-48">
+                            <div
+                                class="text-muted-foreground mb-0.5 flex items-center justify-between text-xs"
+                            >
+                                <span>Lv.{expSummary.current_level}</span>
+                                <span>{expSummary.level_progress}%</span>
+                            </div>
+                            <Progress value={expSummary.level_progress} max={100} class="h-2" />
+                            <p class="text-muted-foreground mt-0.5 text-xs">
+                                {expSummary.total_exp.toLocaleString()} / {expSummary.next_level_exp.toLocaleString()}
+                                XP
+                            </p>
+                        </div>
+                    {/if}
                 </div>
             {:else}
                 <div class="bg-muted flex h-16 w-16 items-center justify-center rounded-full">
@@ -86,24 +101,6 @@
                     <h1 class="text-foreground text-2xl font-bold">마이페이지</h1>
                 </div>
             {/if}
-        </div>
-
-        <div class="flex gap-2">
-            <Button variant="outline" size="sm" onclick={() => goto('/my/points')}>
-                <Coins class="mr-1 h-4 w-4" />
-                포인트
-            </Button>
-            <Button variant="outline" size="sm" onclick={() => goto('/my/exp')}>
-                <Star class="mr-1 h-4 w-4" />
-                경험치
-            </Button>
-            <Button variant="outline" size="sm" onclick={() => goto('/my/blocked')}>
-                차단 목록
-            </Button>
-            <Button variant="outline" size="sm" onclick={() => goto('/my/settings')}>
-                <Settings class="mr-1 h-4 w-4" />
-                설정
-            </Button>
         </div>
     </div>
 
@@ -160,12 +157,12 @@
                                             class="text-muted-foreground flex items-center gap-2 text-xs"
                                         >
                                             <span>{formatDate(post.created_at)}</span>
-                                            <span>•</span>
+                                            <span>·</span>
                                             <span>조회 {post.views.toLocaleString()}</span>
-                                            <span>•</span>
-                                            <span>👍 {post.likes}</span>
-                                            <span>•</span>
-                                            <span>💬 {post.comments_count}</span>
+                                            <span>·</span>
+                                            <span>추천 {post.likes}</span>
+                                            <span>·</span>
+                                            <span>댓글 {post.comments_count}</span>
                                         </div>
                                     </a>
                                 </li>
@@ -195,9 +192,21 @@
                 <CardContent>
                     {#if data.comments && data.comments.items.length > 0}
                         <ul class="divide-border divide-y">
-                            {#each data.comments.items as comment (comment.id)}
+                            {#each data.comments.items as comment (`${comment.board_id}-${comment.id}`)}
                                 <li class="py-3 first:pt-0 last:pb-0">
-                                    <div class="-m-2 rounded-md p-2">
+                                    <a
+                                        href="/{comment.board_id || 'free'}/{comment.post_id ||
+                                            comment.parent_id}"
+                                        class="hover:bg-accent -m-2 block rounded-md p-2 no-underline transition-colors"
+                                        data-sveltekit-preload-data="hover"
+                                    >
+                                        {#if comment.post_title}
+                                            <p
+                                                class="text-muted-foreground mb-1 line-clamp-1 text-xs"
+                                            >
+                                                {comment.post_title}
+                                            </p>
+                                        {/if}
                                         <p class="text-foreground mb-2 line-clamp-2">
                                             {comment.content}
                                         </p>
@@ -206,11 +215,11 @@
                                         >
                                             <span>{formatDate(comment.created_at)}</span>
                                             {#if comment.likes}
-                                                <span>•</span>
-                                                <span>👍 {comment.likes}</span>
+                                                <span>·</span>
+                                                <span>추천 {comment.likes}</span>
                                             {/if}
                                         </div>
-                                    </div>
+                                    </a>
                                 </li>
                             {/each}
                         </ul>
@@ -254,10 +263,10 @@
                                             class="text-muted-foreground flex items-center gap-2 text-xs"
                                         >
                                             <span>{post.author}</span>
-                                            <span>•</span>
+                                            <span>·</span>
                                             <span>{formatDate(post.created_at)}</span>
-                                            <span>•</span>
-                                            <span>👍 {post.likes}</span>
+                                            <span>·</span>
+                                            <span>추천 {post.likes}</span>
                                         </div>
                                     </a>
                                 </li>
@@ -265,6 +274,40 @@
                         </ul>
                     {:else}
                         <p class="text-muted-foreground py-8 text-center">추천한 글이 없습니다.</p>
+                    {/if}
+                </CardContent>
+            </Card>
+        {/if}
+
+        <!-- 전체분석 -->
+        {#if data.tab === 'stats'}
+            <Card class="bg-background">
+                <CardHeader>
+                    <CardTitle class="flex items-center gap-2">
+                        <BarChart3 class="h-5 w-5" />
+                        전체분석
+                    </CardTitle>
+                </CardHeader>
+                <CardContent>
+                    {#if data.boardStats && data.boardStats.length > 0}
+                        <div class="divide-border divide-y">
+                            {#each data.boardStats as stat (stat.board_id)}
+                                <div class="flex items-center justify-between py-3">
+                                    <a
+                                        href="/{stat.board_id}"
+                                        class="text-foreground font-medium hover:underline"
+                                    >
+                                        {stat.board_name}
+                                    </a>
+                                    <div class="text-muted-foreground flex gap-4 text-sm">
+                                        <span>글 {stat.post_count}</span>
+                                        <span>댓글 {stat.comment_count}</span>
+                                    </div>
+                                </div>
+                            {/each}
+                        </div>
+                    {:else}
+                        <p class="text-muted-foreground py-8 text-center">활동 내역이 없습니다.</p>
                     {/if}
                 </CardContent>
             </Card>

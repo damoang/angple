@@ -3,24 +3,15 @@
     import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card/index.js';
     import { Button } from '$lib/components/ui/button/index.js';
     import type { PageData } from './$types.js';
-    import { apiClient } from '$lib/api/index.js';
-    import { authStore } from '$lib/stores/auth.svelte.js';
-    import type { PointHistoryResponse } from '$lib/api/types.js';
-    import { onMount } from 'svelte';
     import Coins from '@lucide/svelte/icons/coins';
     import TrendingUp from '@lucide/svelte/icons/trending-up';
     import TrendingDown from '@lucide/svelte/icons/trending-down';
-    import ArrowLeft from '@lucide/svelte/icons/arrow-left';
-    import Loader2 from '@lucide/svelte/icons/loader-2';
     import ChevronLeft from '@lucide/svelte/icons/chevron-left';
     import ChevronRight from '@lucide/svelte/icons/chevron-right';
 
     let { data }: { data: PageData } = $props();
 
-    // 상태
-    let pointData = $state<PointHistoryResponse | null>(null);
-    let isLoading = $state(true);
-    let error = $state<string | null>(null);
+    let pointData = $derived(data.pointData);
 
     // 필터 탭 정의
     const filterTabs = [
@@ -35,22 +26,6 @@
         if (data.filter === 'earned') return pointData.items.filter((item) => item.po_point > 0);
         if (data.filter === 'used') return pointData.items.filter((item) => item.po_point < 0);
         return pointData.items;
-    });
-
-    // 포인트 데이터 로드
-    onMount(async () => {
-        if (!authStore.isAuthenticated) {
-            authStore.redirectToLogin();
-            return;
-        }
-
-        try {
-            pointData = await apiClient.getPointHistory(data.page, data.limit);
-        } catch (err) {
-            error = err instanceof Error ? err.message : '포인트 내역을 불러오는데 실패했습니다.';
-        } finally {
-            isLoading = false;
-        }
     });
 
     // 날짜 포맷
@@ -92,17 +67,14 @@
         const pages: (number | '...')[] = [];
 
         if (current <= 3) {
-            // 앞쪽: [1] [2] [3] [4] ... [last]
             for (let i = 1; i <= 4; i++) pages.push(i);
             pages.push('...');
             pages.push(total);
         } else if (current >= total - 2) {
-            // 뒤쪽: [1] ... [last-3] [last-2] [last-1] [last]
             pages.push(1);
             pages.push('...');
             for (let i = total - 3; i <= total; i++) pages.push(i);
         } else {
-            // 중간: [1] ... [cur-1] [cur] [cur+1] ... [last]
             pages.push(1);
             pages.push('...');
             for (let i = current - 1; i <= current + 1; i++) pages.push(i);
@@ -118,27 +90,21 @@
     <title>포인트 내역 | {import.meta.env.VITE_SITE_NAME || 'Angple'}</title>
 </svelte:head>
 
-<div class="mx-auto max-w-4xl pt-4">
+<div class="mx-auto max-w-4xl px-4">
     <!-- 헤더 -->
-    <div class="mb-6 flex items-center gap-4">
-        <Button variant="ghost" size="sm" onclick={() => goto('/my')}>
-            <ArrowLeft class="mr-1 h-4 w-4" />
-            마이페이지
-        </Button>
+    <div class="mb-6">
         <h1 class="text-foreground text-2xl font-bold">포인트 내역</h1>
     </div>
 
-    {#if isLoading}
-        <div class="flex items-center justify-center py-20">
-            <Loader2 class="text-primary h-8 w-8 animate-spin" />
-        </div>
-    {:else if error}
-        <Card class="border-destructive">
+    {#if !pointData}
+        <Card>
             <CardContent class="pt-6">
-                <p class="text-destructive text-center">{error}</p>
+                <p class="text-muted-foreground text-center">
+                    로그인이 필요하거나 포인트 데이터를 불러올 수 없습니다.
+                </p>
             </CardContent>
         </Card>
-    {:else if pointData}
+    {:else}
         <!-- 포인트 요약 -->
         <div class="mb-6 grid gap-4 sm:grid-cols-3">
             <!-- 현재 보유 포인트 -->

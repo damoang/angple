@@ -63,7 +63,7 @@
     <title>내 스크랩 - Angple</title>
 </svelte:head>
 
-<div class="mx-auto max-w-3xl space-y-6 p-4 md:p-6">
+<div class="mx-auto max-w-3xl space-y-6 px-4 md:px-6">
     <div class="flex items-center gap-3">
         <Bookmark class="h-6 w-6" />
         <div>

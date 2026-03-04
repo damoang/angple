@@ -4,16 +4,10 @@
     import { Button } from '$lib/components/ui/button/index.js';
     import { Progress } from '$lib/components/ui/progress/index.js';
     import type { PageData } from './$types.js';
-    import { apiClient } from '$lib/api/index.js';
-    import { authStore } from '$lib/stores/auth.svelte.js';
-    import type { ExpSummary, ExpHistoryResponse, ExpHistory } from '$lib/api/types.js';
-    import { onMount } from 'svelte';
     import Star from '@lucide/svelte/icons/star';
     import TrendingUp from '@lucide/svelte/icons/trending-up';
     import Award from '@lucide/svelte/icons/award';
     import Target from '@lucide/svelte/icons/target';
-    import ArrowLeft from '@lucide/svelte/icons/arrow-left';
-    import Loader2 from '@lucide/svelte/icons/loader-2';
     import Plus from '@lucide/svelte/icons/plus';
     import Minus from '@lucide/svelte/icons/minus';
     import ChevronLeft from '@lucide/svelte/icons/chevron-left';
@@ -21,11 +15,8 @@
 
     let { data }: { data: PageData } = $props();
 
-    // 상태
-    let expSummary = $state<ExpSummary | null>(null);
-    let expHistory = $state<ExpHistoryResponse | null>(null);
-    let isLoading = $state(true);
-    let error = $state<string | null>(null);
+    let expSummary = $derived(data.expSummary);
+    let expHistory = $derived(data.expHistory);
 
     // 필터 탭 정의
     const filterTabs = [
@@ -41,34 +32,6 @@
         if (data.filter === 'used') return expHistory.items.filter((item) => item.exp_point < 0);
         return expHistory.items;
     });
-
-    // 경험치 요약 로드
-    async function loadExpSummary(): Promise<void> {
-        try {
-            expSummary = await apiClient.getExpSummary();
-        } catch (err) {
-            console.error('Failed to load exp summary:', err);
-        }
-    }
-
-    // 경험치 내역 로드
-    async function loadExpHistory(): Promise<void> {
-        if (!authStore.isAuthenticated) {
-            authStore.redirectToLogin();
-            return;
-        }
-
-        isLoading = true;
-        error = null;
-
-        try {
-            expHistory = await apiClient.getExpHistory(data.page, data.limit);
-        } catch (err) {
-            error = err instanceof Error ? err.message : '경험치 내역을 불러오는데 실패했습니다.';
-        } finally {
-            isLoading = false;
-        }
-    }
 
     // 필터 변경
     function setFilter(filter: string): void {
@@ -123,32 +86,15 @@
 
         return pages;
     }
-
-    // 초기 로드
-    onMount(() => {
-        loadExpSummary();
-        loadExpHistory();
-    });
-
-    // 페이지 변경 시 내역 다시 로드
-    $effect(() => {
-        if (data.page) {
-            loadExpHistory();
-        }
-    });
 </script>
 
 <svelte:head>
     <title>경험치 | {import.meta.env.VITE_SITE_NAME || 'Angple'}</title>
 </svelte:head>
 
-<div class="mx-auto max-w-4xl pt-4">
+<div class="mx-auto max-w-4xl px-4">
     <!-- 헤더 -->
-    <div class="mb-6 flex items-center gap-4">
-        <Button variant="ghost" size="sm" onclick={() => goto('/my')}>
-            <ArrowLeft class="mr-1 h-4 w-4" />
-            마이페이지
-        </Button>
+    <div class="mb-6">
         <h1 class="text-foreground flex items-center gap-2 text-2xl font-bold">
             <Star class="h-6 w-6 text-yellow-500" />
             경험치
@@ -254,8 +200,16 @@
         </Card>
     {/if}
 
-    <!-- 필터 탭 -->
-    {#if !isLoading && !error && expHistory}
+    {#if !expSummary && !expHistory}
+        <Card>
+            <CardContent class="pt-6">
+                <p class="text-muted-foreground text-center">
+                    로그인이 필요하거나 경험치 데이터를 불러올 수 없습니다.
+                </p>
+            </CardContent>
+        </Card>
+    {:else if expHistory}
+        <!-- 필터 탭 -->
         <div class="mb-4 flex gap-2">
             {#each filterTabs as tab (tab.key)}
                 <Button
@@ -267,20 +221,8 @@
                 </Button>
             {/each}
         </div>
-    {/if}
 
-    <!-- 경험치 내역 -->
-    {#if isLoading}
-        <div class="flex items-center justify-center py-20">
-            <Loader2 class="text-primary h-8 w-8 animate-spin" />
-        </div>
-    {:else if error}
-        <Card class="border-destructive">
-            <CardContent class="pt-6">
-                <p class="text-destructive text-center">{error}</p>
-            </CardContent>
-        </Card>
-    {:else if expHistory}
+        <!-- 경험치 내역 -->
         <Card class="bg-background">
             <CardHeader>
                 <CardTitle class="flex items-center gap-2">

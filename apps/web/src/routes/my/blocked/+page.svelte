@@ -7,7 +7,6 @@
     import { apiClient } from '$lib/api/index.js';
     import Ban from '@lucide/svelte/icons/ban';
     import UserX from '@lucide/svelte/icons/user-x';
-    import ArrowLeft from '@lucide/svelte/icons/arrow-left';
 
     let { data }: { data: PageData } = $props();
 
@@ -55,13 +54,9 @@
     <title>차단 목록 | {import.meta.env.VITE_SITE_NAME || 'Angple'}</title>
 </svelte:head>
 
-<div class="mx-auto max-w-2xl pt-4">
+<div class="mx-auto max-w-2xl px-4">
     <!-- 헤더 -->
     <div class="mb-6">
-        <Button variant="ghost" size="sm" onclick={() => goto('/my')} class="mb-4">
-            <ArrowLeft class="mr-1 h-4 w-4" />
-            마이페이지로
-        </Button>
         <h1 class="text-foreground flex items-center gap-2 text-2xl font-bold">
             <Ban class="h-6 w-6" />
             차단 목록
