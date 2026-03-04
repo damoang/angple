@@ -27,25 +27,24 @@
 
     async function toggleScrap() {
         if (loading) return;
+
+        // Optimistic UI: 즉시 토글 → 실패 시 롤백
+        const prev = scrapped;
+        scrapped = !prev;
         loading = true;
+
         try {
-            if (scrapped) {
-                const res = await fetch('/api/scraps', {
-                    method: 'DELETE',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ boardId, postId: String(postId) })
-                });
-                if (res.ok) scrapped = false;
-            } else {
-                const res = await fetch('/api/scraps', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ boardId, postId: String(postId) })
-                });
-                if (res.ok) scrapped = true;
+            const res = await fetch('/api/scraps', {
+                method: prev ? 'DELETE' : 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ boardId, postId: String(postId) })
+            });
+            if (!res.ok) {
+                scrapped = prev; // 롤백
             }
         } catch (err) {
             console.error('스크랩 토글 실패:', err);
+            scrapped = prev; // 롤백
         } finally {
             loading = false;
         }

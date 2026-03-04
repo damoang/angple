@@ -119,11 +119,13 @@ export const load: PageServerLoad = async ({ url, params, locals }) => {
         // 프로모션 사잇광고: board_exception에 포함된 게시판은 제외
         let promotionPosts: unknown[] = [];
         if (promotionResult.status === 'fulfilled') {
-            const promoData = promotionResult.value?.data;
+            const promoData = (promotionResult.value as Record<string, unknown>)?.data as
+                | Record<string, unknown>
+                | undefined;
             const boardException = (promoData?.board_exception || '') as string;
             const excludedBoards = boardException.split(',').map((s: string) => s.trim());
             if (!excludedBoards.includes(boardId)) {
-                promotionPosts = promoData?.posts || [];
+                promotionPosts = (promoData?.posts as unknown[]) || [];
             }
         }
 

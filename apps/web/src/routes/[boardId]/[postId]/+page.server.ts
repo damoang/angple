@@ -6,6 +6,12 @@ import { transformAffiliateContent } from '$lib/hooks/builtin/affiliate.js';
 import { isScraped } from '$lib/server/scrap.js';
 import { backendFetch as bFetch, createAuthHeaders } from '$lib/server/backend-fetch.js';
 
+/**
+ * 게시글 상세 페이지 — Streaming SSR
+ *
+ * 1단계 (즉시 await): post, board, displaySettings, files → 본문, SEO, 권한
+ * 2단계 (스트리밍):   comments, promotions, revisions → 스켈레톤 먼저 표시
+ */
 export const load: PageServerLoad = async ({ params, fetch: svelteKitFetch, locals, url }) => {
     const { boardId, postId } = params;
 
@@ -18,77 +24,39 @@ export const load: PageServerLoad = async ({ params, fetch: svelteKitFetch, loca
     const headers = createAuthHeaders(locals.accessToken);
 
     try {
-        // 게시글/게시판 정보 (필수) + 댓글/파일/광고 (보조)
-        // backendFetch → Go 백엔드 (timeout 5s + circuit breaker)
-        // svelteKitFetch → SvelteKit 내부 라우트 (쿠키/상대경로 처리)
-        const [
-            postResult,
-            boardResult,
-            displaySettingsResult,
-            commentsResult,
-            filesResult,
-            promotionResult,
-            revisionsResult
-        ] = await Promise.allSettled([
-            // 게시글 (Go 백엔드 직접 호출)
-            bFetch(`/api/v1/boards/${boardId}/posts/${postId}`, {
-                headers
-            }).then(async (res) => {
-                if (!res.ok) throw new Error(`Post API error: ${res.status}`);
-                const json = await res.json();
-                return json.data as FreePost;
-            }),
-            // 게시판 정보
-            bFetch(`/api/v1/boards/${boardId}`, { headers }).then(async (res) => {
-                if (!res.ok) return null;
-                const json = await res.json();
-                return json.data;
-            }),
-            // 게시판 표시 설정
-            bFetch(`/api/v1/boards/${boardId}/display-settings`, {
-                headers
-            }).then(async (res) => {
-                if (!res.ok) return null;
-                const json = await res.json();
-                return json.data;
-            }),
-            // 댓글 (SvelteKit 내부 라우트 → svelteKitFetch)
-            svelteKitFetch(
-                `${url.origin}/api/boards/${boardId}/posts/${postId}/comments?page=1&limit=200`
-            ).then(async (res) => {
-                if (!res.ok) return { items: [], total: 0, page: 1, limit: 200, total_pages: 0 };
-                const json = await res.json();
-                if (!json.success)
-                    return { items: [], total: 0, page: 1, limit: 200, total_pages: 0 };
-                const data = json.data;
-                return {
-                    items: data.comments || [],
-                    total: data.total || 0,
-                    page: data.page || 1,
-                    limit: data.limit || 200,
-                    total_pages: data.total_pages || 1
-                };
-            }),
-            // 첨부 파일 (SvelteKit 내부 라우트)
-            svelteKitFetch(`${url.origin}/api/boards/${boardId}/posts/${postId}/files`).then(
-                async (res) => {
+        // --- 1단계: 필수 데이터 즉시 await (본문, SEO, 권한 체크) ---
+        const [postResult, boardResult, displaySettingsResult, filesResult] =
+            await Promise.allSettled([
+                // 게시글 (Go 백엔드 직접 호출)
+                bFetch(`/api/v1/boards/${boardId}/posts/${postId}`, {
+                    headers
+                }).then(async (res) => {
+                    if (!res.ok) throw new Error(`Post API error: ${res.status}`);
+                    const json = await res.json();
+                    return json.data as FreePost;
+                }),
+                // 게시판 정보
+                bFetch(`/api/v1/boards/${boardId}`, { headers }).then(async (res) => {
                     if (!res.ok) return null;
-                    return res.json();
-                }
-            ),
-            // 직접홍보 사잇광고 (ads 서버 직접 호출 + 캐시)
-            fetchPromotionPosts(),
-            // 리비전 히스토리 (관리자 level ≥ 10일 때만)
-            (locals.user?.level ?? 0) >= 10
-                ? bFetch(`/api/v1/boards/${boardId}/posts/${postId}/revisions`, {
-                      headers
-                  }).then(async (res) => {
-                      if (!res.ok) return [];
-                      const json = await res.json();
-                      return json.data || [];
-                  })
-                : Promise.resolve([])
-        ]);
+                    const json = await res.json();
+                    return json.data;
+                }),
+                // 게시판 표시 설정
+                bFetch(`/api/v1/boards/${boardId}/display-settings`, {
+                    headers
+                }).then(async (res) => {
+                    if (!res.ok) return null;
+                    const json = await res.json();
+                    return json.data;
+                }),
+                // 첨부 파일 (SvelteKit 내부 라우트)
+                svelteKitFetch(`${url.origin}/api/boards/${boardId}/posts/${postId}/files`).then(
+                    async (res) => {
+                        if (!res.ok) return null;
+                        return res.json();
+                    }
+                )
+            ]);
 
         // 게시글 필수 — 실패 시 404
         if (postResult.status === 'rejected') {
@@ -104,10 +72,10 @@ export const load: PageServerLoad = async ({ params, fetch: svelteKitFetch, loca
         }
 
         // 삭제된 게시글: 에러 대신 데이터 전달 (PHP 호환: "삭제된 게시물입니다" 표시)
-        // 본문 내용은 제거하고 삭제 상태만 전달
         if (post.deleted_at) {
             post.content = '';
         }
+
         let board = boardResult.status === 'fulfilled' ? boardResult.value : null;
 
         // display_settings 병합
@@ -123,10 +91,6 @@ export const load: PageServerLoad = async ({ params, fetch: svelteKitFetch, loca
                 throw error(403, '이 게시판에 접근할 권한이 없습니다.');
             }
         }
-        const comments =
-            commentsResult.status === 'fulfilled'
-                ? commentsResult.value
-                : { items: [], total: 0, page: 1, limit: 200, total_pages: 0 };
 
         // 첨부 파일 데이터 병합 (본문에 이미 포함된 이미지는 제외)
         if (filesResult.status === 'fulfilled' && filesResult.value) {
@@ -140,72 +104,121 @@ export const load: PageServerLoad = async ({ params, fetch: svelteKitFetch, loca
             }
         }
 
-        // 프로모션 사잇광고: board_exception에 포함된 게시판은 제외
-        let promotionPosts: unknown[] = [];
-        if (promotionResult.status === 'fulfilled') {
-            const promoData = promotionResult.value?.data;
-            const boardException = (promoData?.board_exception || '') as string;
-            const excludedBoards = boardException.split(',').map((s: string) => s.trim());
-            if (!excludedBoards.includes(boardId)) {
-                promotionPosts = promoData?.posts || [];
+        // 본문 제휴 링크 서버사이드 변환 (즉시)
+        const affiliateContext = { bo_table: boardId, wr_id: Number(postId) };
+        if (post.content) {
+            try {
+                const transformed = await Promise.race([
+                    transformAffiliateContent(post.content, affiliateContext),
+                    new Promise<string>((_, reject) =>
+                        setTimeout(() => reject(new Error('timeout')), 3000)
+                    )
+                ]);
+                post.content = transformed;
+            } catch {
+                // 변환 실패 시 원본 유지
             }
         }
-
-        const revisions = revisionsResult.status === 'fulfilled' ? revisionsResult.value || [] : [];
 
         // 스크랩 여부 (로그인 시만)
         const isScrapped = locals.user?.id
             ? await isScraped(locals.user.id, boardId, postId).catch(() => false)
             : false;
 
-        // 제휴 링크 서버사이드 변환 (본문 + 댓글)
-        const affiliateContext = { bo_table: boardId, wr_id: Number(postId) };
-        try {
-            const transformPromises: Promise<void>[] = [];
+        // --- 2단계: 보조 데이터 스트리밍 (await 안 함 → 스켈레톤 먼저 표시) ---
+        const secondaryDataPromise = (async () => {
+            const [commentsResult, promotionResult, revisionsResult] = await Promise.allSettled([
+                // 댓글 (SvelteKit 내부 라우트 → svelteKitFetch)
+                svelteKitFetch(
+                    `${url.origin}/api/boards/${boardId}/posts/${postId}/comments?page=1&limit=200`
+                ).then(async (res) => {
+                    if (!res.ok)
+                        return { items: [], total: 0, page: 1, limit: 200, total_pages: 0 };
+                    const json = await res.json();
+                    if (!json.success)
+                        return { items: [], total: 0, page: 1, limit: 200, total_pages: 0 };
+                    const data = json.data;
+                    return {
+                        items: data.comments || [],
+                        total: data.total || 0,
+                        page: data.page || 1,
+                        limit: data.limit || 200,
+                        total_pages: data.total_pages || 1
+                    };
+                }),
+                // 직접홍보 사잇광고 (ads 서버 직접 호출 + 캐시)
+                fetchPromotionPosts(),
+                // 리비전 히스토리 (관리자 level ≥ 10일 때만)
+                (locals.user?.level ?? 0) >= 10
+                    ? bFetch(`/api/v1/boards/${boardId}/posts/${postId}/revisions`, {
+                          headers
+                      }).then(async (res) => {
+                          if (!res.ok) return [];
+                          const json = await res.json();
+                          return json.data || [];
+                      })
+                    : Promise.resolve([])
+            ]);
 
-            // 본문 변환
-            if (post.content) {
-                transformPromises.push(
-                    transformAffiliateContent(post.content, affiliateContext).then((html) => {
-                        post.content = html;
-                    })
-                );
-            }
+            const comments =
+                commentsResult.status === 'fulfilled'
+                    ? commentsResult.value
+                    : { items: [], total: 0, page: 1, limit: 200, total_pages: 0 };
 
-            // 댓글 변환
+            // 댓글 제휴 링크 서버사이드 변환
             if (comments.items?.length) {
-                for (const comment of comments.items) {
-                    if (comment.content) {
-                        transformPromises.push(
-                            transformAffiliateContent(comment.content, affiliateContext).then(
-                                (html) => {
-                                    comment.content = html;
-                                }
-                            )
-                        );
+                try {
+                    const transformPromises: Promise<void>[] = [];
+                    for (const comment of comments.items) {
+                        if (comment.content) {
+                            transformPromises.push(
+                                transformAffiliateContent(comment.content, affiliateContext).then(
+                                    (html) => {
+                                        comment.content = html;
+                                    }
+                                )
+                            );
+                        }
                     }
+                    if (transformPromises.length > 0) {
+                        await Promise.race([
+                            Promise.allSettled(transformPromises),
+                            new Promise((resolve) => setTimeout(resolve, 3000))
+                        ]);
+                    }
+                } catch {
+                    // 변환 실패 시 원본 유지
                 }
             }
 
-            // 병렬 처리 (타임아웃 3초)
-            if (transformPromises.length > 0) {
-                await Promise.race([
-                    Promise.allSettled(transformPromises),
-                    new Promise((resolve) => setTimeout(resolve, 3000))
-                ]);
+            // 프로모션 사잇광고: board_exception에 포함된 게시판은 제외
+            let promotionPosts: unknown[] = [];
+            if (promotionResult.status === 'fulfilled') {
+                const promoData = (promotionResult.value as Record<string, unknown>)?.data as
+                    | Record<string, unknown>
+                    | undefined;
+                const boardException = (promoData?.board_exception || '') as string;
+                const excludedBoards = boardException.split(',').map((s: string) => s.trim());
+                if (!excludedBoards.includes(boardId)) {
+                    promotionPosts = (promoData?.posts as unknown[]) || [];
+                }
             }
-        } catch {
-            // 변환 실패 시 원본 유지
-        }
+
+            const revisions =
+                revisionsResult.status === 'fulfilled' ? revisionsResult.value || [] : [];
+
+            return { comments, promotionPosts, revisions };
+        })();
 
         return {
             boardId,
             post,
-            comments,
             board,
-            promotionPosts,
-            revisions,
-            isScrapped
+            isScrapped,
+            /** 스트리밍: Promise로 반환 → 클라이언트에서 $effect로 수신 */
+            streamed: {
+                secondaryData: secondaryDataPromise
+            }
         };
     } catch (err) {
         if (err && typeof err === 'object' && 'status' in err) {

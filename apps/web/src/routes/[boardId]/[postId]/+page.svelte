@@ -219,11 +219,51 @@
         }
     }
 
-    // 댓글 목록 상태 (SSR 데이터로 즉시 초기화하여 깜박임 방지 + 페이지 전환 시 갱신)
-    let comments = $state<FreeComment[]>(data.comments.items);
+    // 댓글/프로모션/리비전 — Streaming SSR (2단계 데이터)
+    let comments = $state<FreeComment[]>([]);
+    let promotionPosts = $state<unknown[]>([]);
+    let revisions = $state<PostRevision[]>([]);
+    let secondaryLoaded = $state(false);
+    let secondaryError = $state(false);
+
     $effect(() => {
-        comments = data.comments.items;
+        const promise = data.streamed?.secondaryData;
+        if (!promise) return;
+
+        let cancelled = false;
+
+        // 네비게이션 시 초기화
+        comments = [];
+        promotionPosts = [];
+        revisions = [];
+        secondaryLoaded = false;
+        secondaryError = false;
+
+        promise
+            .then(
+                (result: {
+                    comments: { items: FreeComment[] };
+                    promotionPosts: unknown[];
+                    revisions: PostRevision[];
+                }) => {
+                    if (cancelled) return;
+                    comments = result.comments.items || [];
+                    promotionPosts = result.promotionPosts || [];
+                    revisions = result.revisions || [];
+                    secondaryLoaded = true;
+                }
+            )
+            .catch(() => {
+                if (cancelled) return;
+                secondaryError = true;
+                secondaryLoaded = true;
+            });
+
+        return () => {
+            cancelled = true;
+        };
     });
+
     let isCreatingComment = $state(false);
     let isRefreshingComments = $state(false);
 
@@ -267,8 +307,7 @@
     // 게시글 삭제 상태
     let isDeleting = $state(false);
 
-    // 리비전 히스토리 (SSR에서 관리자일 때 미리 로드됨)
-    let revisions = $state<PostRevision[]>(data.revisions ?? []);
+    // 리비전 히스토리 (Streaming SSR로 로드)
 
     // 신고 다이얼로그 상태
     let showReportDialog = $state(false);
@@ -305,26 +344,30 @@
         if (likeCount > 0) {
             loadLikerAvatars();
         }
+    });
 
-        // 댓글 앵커 스크롤 (#c_댓글ID)
-        const hash = window.location.hash;
-        if (hash && hash.startsWith('#c_')) {
-            setTimeout(() => {
-                const el = document.getElementById(hash.slice(1));
-                if (el) {
-                    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    el.style.transition = 'background-color 0.3s ease';
-                    el.style.backgroundColor = 'hsl(var(--primary) / 0.1)';
-                    el.style.borderRadius = '0.5rem';
-                    setTimeout(() => {
-                        el.style.backgroundColor = '';
+    // 댓글 앵커 스크롤 (#c_댓글ID) — 스트리밍 완료 후 실행
+    $effect(() => {
+        if (secondaryLoaded && browser) {
+            const hash = window.location.hash;
+            if (hash && hash.startsWith('#c_')) {
+                setTimeout(() => {
+                    const el = document.getElementById(hash.slice(1));
+                    if (el) {
+                        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        el.style.transition = 'background-color 0.3s ease';
+                        el.style.backgroundColor = 'hsl(var(--primary) / 0.1)';
+                        el.style.borderRadius = '0.5rem';
                         setTimeout(() => {
-                            el.style.transition = '';
-                            el.style.borderRadius = '';
-                        }, 300);
-                    }, 2000);
-                }
-            }, 800);
+                            el.style.backgroundColor = '';
+                            setTimeout(() => {
+                                el.style.transition = '';
+                                el.style.borderRadius = '';
+                            }, 300);
+                        }, 2000);
+                    }
+                }, 100);
+            }
         }
     });
 
@@ -716,7 +759,7 @@
                     datePublished: data.post.created_at,
                     dateModified: data.post.updated_at || undefined,
                     url: postUrl,
-                    commentCount: data.comments?.total || 0,
+                    commentCount: comments.length,
                     upvoteCount: data.post.likes || 0,
                     image: data.post.thumbnail || data.post.images?.[0]
                 }),
@@ -947,8 +990,8 @@
         {/if}
         -->
 
-        <!-- 수정 이력 (리비전 히스토리) - 관리자 전용 -->
-        {#if isAdmin && revisions.length > 0}
+        <!-- 수정 이력 (리비전 히스토리) - 관리자 전용 (스트리밍 완료 후) -->
+        {#if isAdmin && secondaryLoaded && revisions.length > 0}
             <div class="mb-6">
                 <RevisionHistory
                     {revisions}
@@ -959,8 +1002,25 @@
             </div>
         {/if}
 
-        <!-- 댓글 섹션 (비밀글 열람 가능 시에만 표시) -->
-        {#if canViewSecret}
+        <!-- 댓글 섹션 (비밀글 열람 가능 + 스트리밍 완료 시 표시) -->
+        {#if canViewSecret && !secondaryLoaded}
+            <Card class="bg-background">
+                <CardContent class="py-8">
+                    <div class="flex items-center justify-center gap-2">
+                        <div
+                            class="border-primary h-4 w-4 animate-spin rounded-full border-2 border-t-transparent"
+                        ></div>
+                        <span class="text-muted-foreground text-sm">댓글을 불러오는 중...</span>
+                    </div>
+                </CardContent>
+            </Card>
+        {:else if canViewSecret && secondaryError}
+            <Card class="bg-background">
+                <CardContent class="py-8 text-center">
+                    <p class="text-destructive text-sm">댓글을 불러오지 못했습니다.</p>
+                </CardContent>
+            </Card>
+        {:else if canViewSecret}
             <Card class="bg-background">
                 <CardHeader class="flex flex-row items-center justify-between">
                     <div class="flex items-center gap-2">
@@ -1032,7 +1092,7 @@
                 {boardTitle}
                 currentPostId={data.post.id}
                 limit={25}
-                promotionPosts={data.promotionPosts || []}
+                promotionPosts={promotionPosts as any[]}
                 displaySettings={data.board?.display_settings}
             />
         </div>
