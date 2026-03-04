@@ -2,24 +2,19 @@
  * 이용제한 기록 목록 - SSR 데이터 로드
  */
 import type { PageServerLoad } from './$types';
-import { env } from '$env/dynamic/private';
-
-const BACKEND_URL = env.BACKEND_URL || 'http://localhost:8090';
+import { backendFetch } from '$lib/server/backend-fetch.js';
 
 export const load: PageServerLoad = async ({ url }) => {
     const page = Number(url.searchParams.get('page')) || 1;
     const limit = 20;
 
     try {
-        const response = await fetch(
-            `${BACKEND_URL}/api/v1/discipline-logs?page=${page}&limit=${limit}`,
-            {
-                headers: {
-                    Accept: 'application/json',
-                    'User-Agent': 'Angple-Web-SSR/1.0'
-                }
+        const response = await backendFetch(`/api/v1/discipline-logs?page=${page}&limit=${limit}`, {
+            headers: {
+                Accept: 'application/json',
+                'User-Agent': 'Angple-Web-SSR/1.0'
             }
-        );
+        });
 
         if (!response.ok) {
             return { logs: [], total: 0, page, limit };

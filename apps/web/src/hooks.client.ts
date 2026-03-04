@@ -13,12 +13,9 @@ function sendDantry(payload: Record<string, unknown>) {
 }
 
 /**
- * 배포 후 chunk 로드 실패 감지 및 자동 새로고침
- * - 새 배포 시 이전 JS chunk 파일명이 변경되어 404 발생
- * - 사용자에게 캐시 초기화를 요구하지 않고 자동으로 페이지 새로고침
+ * Chunk load error 감지
+ * - 새 배포 시 이전 JS chunk 파일명이 변경되어 dynamic import 실패
  */
-const RELOAD_KEY = '__angple_reload_attempt__';
-
 function isChunkLoadError(error: unknown): boolean {
     if (!(error instanceof Error)) return false;
     const msg = error.message.toLowerCase();
@@ -31,20 +28,39 @@ function isChunkLoadError(error: unknown): boolean {
     );
 }
 
+/**
+ * Chunk error 시 자동 새로고침 (최대 1회)
+ * sessionStorage 카운터로 무한 루프 방지
+ */
+const RELOAD_KEY = '__angple_chunk_reload_count__';
+
+function tryChunkReload(): void {
+    const count = Number(sessionStorage.getItem(RELOAD_KEY) || '0');
+    if (count < 1) {
+        sessionStorage.setItem(RELOAD_KEY, String(count + 1));
+        window.location.reload();
+    } else {
+        // 1회 재시도 후에도 실패하면 카운터 리셋하고 포기
+        sessionStorage.removeItem(RELOAD_KEY);
+        console.error('[Angple] Chunk load failed after retry. Please clear browser cache.');
+    }
+}
+
+// 성공적으로 페이지 로드되면 카운터 리셋
+if (typeof window !== 'undefined') {
+    window.addEventListener('load', () => {
+        sessionStorage.removeItem(RELOAD_KEY);
+    });
+}
+
 // SvelteKit 에러 훅 (라우트 에러, 로드 에러 등)
 export const handleError: HandleClientError = ({ error, event, status }) => {
     const err = error instanceof Error ? error : new Error(String(error));
 
     // 배포 후 chunk 로드 실패 → 자동 새로고침 (1회만)
     if (isChunkLoadError(error)) {
-        const lastReload = sessionStorage.getItem(RELOAD_KEY);
-        const now = Date.now();
-        // 마지막 새로고침으로부터 30초 이내면 중복 방지
-        if (!lastReload || now - Number(lastReload) > 30_000) {
-            sessionStorage.setItem(RELOAD_KEY, String(now));
-            window.location.reload();
-            return;
-        }
+        tryChunkReload();
+        return;
     }
 
     sendDantry({

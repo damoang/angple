@@ -17,7 +17,9 @@
         Layers,
         DatabaseZap,
         BarChart3,
-        Megaphone
+        Megaphone,
+        StickyNote,
+        TrendingUp
     } from '@lucide/svelte/icons';
 
     /**
@@ -56,6 +58,11 @@
             icon: FolderOpen
         },
         {
+            title: '내용 관리',
+            href: '/admin/contents',
+            icon: StickyNote
+        },
+        {
             title: '프로모션',
             href: '/admin/promotion',
             icon: Megaphone
@@ -64,6 +71,11 @@
             title: '회원 관리',
             href: '/admin/members',
             icon: Users
+        },
+        {
+            title: '경험치 관리',
+            href: '/admin/xp',
+            icon: TrendingUp
         },
         {
             title: '투표 관리',

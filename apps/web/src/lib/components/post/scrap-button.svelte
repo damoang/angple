@@ -1,37 +1,50 @@
 <script lang="ts">
     /**
      * 스크랩(북마크) 토글 버튼
-     * 게시물 상세 페이지에서 사용
+     * g5_scrap 테이블 직접 연동
      */
-    import { apiClient } from '$lib/api';
     import { Button } from '$lib/components/ui/button/index.js';
     import Bookmark from '@lucide/svelte/icons/bookmark';
 
     interface Props {
+        boardId: string;
         postId: string | number;
         initialScrapped?: boolean;
         size?: 'default' | 'sm' | 'lg' | 'icon';
         variant?: 'default' | 'outline' | 'ghost';
     }
 
-    let { postId, initialScrapped = false, size = 'icon', variant = 'ghost' }: Props = $props();
+    let {
+        boardId,
+        postId,
+        initialScrapped = false,
+        size = 'icon',
+        variant = 'ghost'
+    }: Props = $props();
 
     let scrapped = $state(initialScrapped);
     let loading = $state(false);
 
     async function toggleScrap() {
         if (loading) return;
+
+        // Optimistic UI: 즉시 토글 → 실패 시 롤백
+        const prev = scrapped;
+        scrapped = !prev;
         loading = true;
+
         try {
-            if (scrapped) {
-                await apiClient.unscrapPost(String(postId));
-                scrapped = false;
-            } else {
-                await apiClient.scrapPost(String(postId));
-                scrapped = true;
+            const res = await fetch('/api/scraps', {
+                method: prev ? 'DELETE' : 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ boardId, postId: String(postId) })
+            });
+            if (!res.ok) {
+                scrapped = prev; // 롤백
             }
         } catch (err) {
             console.error('스크랩 토글 실패:', err);
+            scrapped = prev; // 롤백
         } finally {
             loading = false;
         }

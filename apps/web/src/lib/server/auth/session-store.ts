@@ -8,6 +8,7 @@
  */
 import { randomBytes, createHash } from 'crypto';
 import pool from '$lib/server/db.js';
+import { TieredCache } from '$lib/server/cache.js';
 import type { RowDataPacket, ResultSetHeader } from 'mysql2';
 
 /** 세션 수명: 30일 */
@@ -15,6 +16,9 @@ const SESSION_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
 
 /** 슬라이딩 윈도우: 마지막 활동 후 15일 이내에 재접속하면 갱신 */
 const SESSION_REFRESH_THRESHOLD_MS = 15 * 24 * 60 * 60 * 1000;
+
+/** last_active_at 업데이트 간격: 5분 */
+const LAST_ACTIVE_UPDATE_INTERVAL = 5 * 60 * 1000;
 
 export interface SessionData {
     sessionId: string; // 원본 세션 ID (쿠키에 저장, DB에는 해시만)
@@ -38,6 +42,13 @@ interface SessionRow extends RowDataPacket {
     last_active_at: Date;
     expires_at: Date;
 }
+
+// --- 2-tier 세션 캐시: L1(Map) → L2(Redis) ---
+// L1: 1분, L2: 5분 (Redis), 최대 10,000 항목
+const sessionCache = new TieredCache<SessionData>('sess', 60_000, 300, 10000);
+
+// last_active_at DB 업데이트 추적 (L1 전용, Redis 불필요)
+const lastDbUpdateMap = new Map<string, number>();
 
 /** 세션 ID 생성 (32 bytes → 64 hex chars) */
 function generateSessionId(): string {
@@ -84,14 +95,31 @@ export async function createSession(
 }
 
 /**
- * 세션 조회 (유효성 검증 포함)
- * - 만료 확인
- * - 슬라이딩 윈도우 갱신
- * @returns 유효한 세션 데이터 또는 null
+ * 세션 조회 (유효성 검증 포함, 2-tier 캐시)
+ * - L1(Map) 히트: 0ms
+ * - L2(Redis) 히트: 1-3ms
+ * - 미스: DB SELECT + 조건부 UPDATE
  */
 export async function getSession(sessionId: string): Promise<SessionData | null> {
     const sessionIdHash = hashSessionId(sessionId);
+    const now = Date.now();
 
+    // 1. 2-tier 캐시 확인 (L1 → L2)
+    const cached = await sessionCache.get(sessionIdHash);
+    if (cached) {
+        // last_active_at 비동기 업데이트 (5분 간격, fire-and-forget)
+        const lastUpdate = lastDbUpdateMap.get(sessionIdHash) || 0;
+        if (now - lastUpdate > LAST_ACTIVE_UPDATE_INTERVAL) {
+            lastDbUpdateMap.set(sessionIdHash, now);
+            pool.query<ResultSetHeader>(
+                `UPDATE angple_sessions SET last_active_at = NOW() WHERE session_id_hash = ?`,
+                [sessionIdHash]
+            ).catch(() => {});
+        }
+        return cached;
+    }
+
+    // 2. DB 조회 (캐시 미스)
     const [rows] = await pool.query<SessionRow[]>(
         `SELECT mb_id, csrf_token, ip, user_agent, created_at, last_active_at, expires_at
          FROM angple_sessions
@@ -100,39 +128,39 @@ export async function getSession(sessionId: string): Promise<SessionData | null>
         [sessionIdHash]
     );
 
-    if (rows.length === 0) return null;
-
-    const row = rows[0];
-    const now = new Date();
-
-    // 만료 확인
-    if (now > new Date(row.expires_at)) {
-        // 만료된 세션 삭제
-        await pool.query<ResultSetHeader>(`DELETE FROM angple_sessions WHERE session_id_hash = ?`, [
-            sessionIdHash
-        ]);
+    if (rows.length === 0) {
+        await sessionCache.delete(sessionIdHash);
         return null;
     }
 
-    // 슬라이딩 윈도우: 마지막 활동 후 일정 시간 지나면 만료 시간 갱신
-    const lastActive = new Date(row.last_active_at);
-    if (now.getTime() - lastActive.getTime() > SESSION_REFRESH_THRESHOLD_MS) {
-        const newExpiresAt = new Date(now.getTime() + SESSION_MAX_AGE_MS);
-        await pool.query<ResultSetHeader>(
-            `UPDATE angple_sessions SET last_active_at = NOW(), expires_at = ? WHERE session_id_hash = ?`,
-            [newExpiresAt, sessionIdHash]
-        );
-    } else {
-        // 활동 시간만 업데이트 (5분 간격으로 제한하여 DB 부하 감소)
-        if (now.getTime() - lastActive.getTime() > 5 * 60 * 1000) {
-            await pool.query<ResultSetHeader>(
-                `UPDATE angple_sessions SET last_active_at = NOW() WHERE session_id_hash = ?`,
-                [sessionIdHash]
-            );
-        }
+    const row = rows[0];
+    const nowDate = new Date();
+
+    // 만료 확인
+    if (nowDate > new Date(row.expires_at)) {
+        await sessionCache.delete(sessionIdHash);
+        pool.query<ResultSetHeader>(`DELETE FROM angple_sessions WHERE session_id_hash = ?`, [
+            sessionIdHash
+        ]).catch(() => {});
+        return null;
     }
 
-    return {
+    // 슬라이딩 윈도우
+    const lastActive = new Date(row.last_active_at);
+    if (nowDate.getTime() - lastActive.getTime() > SESSION_REFRESH_THRESHOLD_MS) {
+        const newExpiresAt = new Date(nowDate.getTime() + SESSION_MAX_AGE_MS);
+        pool.query<ResultSetHeader>(
+            `UPDATE angple_sessions SET last_active_at = NOW(), expires_at = ? WHERE session_id_hash = ?`,
+            [newExpiresAt, sessionIdHash]
+        ).catch(() => {});
+    } else if (nowDate.getTime() - lastActive.getTime() > LAST_ACTIVE_UPDATE_INTERVAL) {
+        pool.query<ResultSetHeader>(
+            `UPDATE angple_sessions SET last_active_at = NOW() WHERE session_id_hash = ?`,
+            [sessionIdHash]
+        ).catch(() => {});
+    }
+
+    const sessionData: SessionData = {
         sessionId,
         mbId: row.mb_id,
         csrfToken: row.csrf_token,
@@ -142,22 +170,33 @@ export async function getSession(sessionId: string): Promise<SessionData | null>
         lastActiveAt: new Date(row.last_active_at),
         expiresAt: new Date(row.expires_at)
     };
+
+    // 3. 2-tier 캐시에 저장 (L1 + L2)
+    await sessionCache.set(sessionIdHash, sessionData);
+    lastDbUpdateMap.set(sessionIdHash, now);
+
+    return sessionData;
 }
 
 /**
- * 세션 파괴 (로그아웃)
+ * 세션 파괴 (로그아웃) — L1 + L2 캐시 무효화
  */
 export async function destroySession(sessionId: string): Promise<void> {
     const sessionIdHash = hashSessionId(sessionId);
+    await sessionCache.delete(sessionIdHash);
+    lastDbUpdateMap.delete(sessionIdHash);
     await pool.query<ResultSetHeader>(`DELETE FROM angple_sessions WHERE session_id_hash = ?`, [
         sessionIdHash
     ]);
 }
 
 /**
- * 사용자의 모든 세션 파괴 ("모든 기기에서 로그아웃")
+ * 사용자의 모든 세션 파괴 ("모든 기기에서 로그아웃") — L1 전체 클리어
  */
 export async function destroyAllUserSessions(mbId: string): Promise<number> {
+    // L1 전체 클리어 (mbId로 필터링이 어려우므로)
+    sessionCache.clearL1();
+
     const [result] = await pool.query<ResultSetHeader>(
         `DELETE FROM angple_sessions WHERE mb_id = ?`,
         [mbId]

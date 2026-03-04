@@ -1,34 +1,22 @@
 <script lang="ts">
+    import { browser } from '$app/environment';
     import { goto } from '$app/navigation';
-    import {
-        Card,
-        CardHeader,
-        CardContent,
-        CardFooter,
-        CardTitle
-    } from '$lib/components/ui/card/index.js';
-    import { Badge } from '$lib/components/ui/badge/index.js';
+    import { Card, CardHeader, CardContent } from '$lib/components/ui/card/index.js';
     import { Button } from '$lib/components/ui/button/index.js';
     import * as Dialog from '$lib/components/ui/dialog/index.js';
     import type { PageData } from './$types.js';
-    import { Markdown } from '$lib/components/ui/markdown/index.js';
-    import ExternalLink from '@lucide/svelte/icons/external-link';
-    import Download from '@lucide/svelte/icons/download';
-    import Video from '@lucide/svelte/icons/video';
-    import Heart from '@lucide/svelte/icons/heart';
-    import ThumbsDown from '@lucide/svelte/icons/thumbs-down';
-    import Users from '@lucide/svelte/icons/users';
     import Pencil from '@lucide/svelte/icons/pencil';
     import Lock from '@lucide/svelte/icons/lock';
-    import Flag from '@lucide/svelte/icons/flag';
     import Pin from '@lucide/svelte/icons/pin';
+    import RefreshCw from '@lucide/svelte/icons/refresh-cw';
     import { authStore } from '$lib/stores/auth.svelte.js';
     import { apiClient } from '$lib/api/index.js';
     import DeleteConfirmDialog from '$lib/components/features/board/delete-confirm-dialog.svelte';
     import CommentForm from '$lib/components/features/board/comment-form.svelte';
     import CommentList from '$lib/components/features/board/comment-list.svelte';
+    import AdminCommentLayoutSwitcher from '$lib/components/features/board/admin-comment-layout-switcher.svelte';
+
     import RecentPosts from '$lib/components/features/board/recent-posts.svelte';
-    import { RecommendedPosts } from '$lib/components/features/recommended/index.js';
     import { ReportDialog } from '$lib/components/features/report/index.js';
     import type { FreeComment, FreePost, LikerInfo, PostRevision } from '$lib/api/types.js';
     import DeletedPostBanner from '$lib/components/post/deleted-post-banner.svelte';
@@ -36,7 +24,6 @@
     import { sendMentionNotifications } from '$lib/utils/mention-notify.js';
     import { onMount } from 'svelte';
     import { page } from '$app/stores';
-    import { AdultBlur } from '$lib/components/features/adult/index.js';
     import { getMemberIconUrl } from '$lib/utils/member-icon.js';
     import { isEmbeddable } from '$lib/plugins/auto-embed';
     import AdminPostActions from '$lib/components/features/board/admin-post-actions.svelte';
@@ -65,6 +52,11 @@
     import AuthorActivityPanel from '$lib/components/features/board/author-activity-panel.svelte';
     import EconomyShoppingBanner from '$lib/components/features/board/economy-shopping-banner.svelte';
     import EconomyOpenLinks from '$lib/components/features/board/economy-open-links.svelte';
+    import {
+        layoutRegistry,
+        initCoreLayouts
+    } from '$lib/components/features/board/layouts/index.js';
+    import ScrapButton from '$lib/components/post/scrap-button.svelte';
 
     // Q&A 게시판 슬롯 등록
     postSlotRegistry.register('post.before_content', {
@@ -79,12 +71,6 @@
     });
 
     // 알뜰구매 게시판 슬롯 등록
-    postSlotRegistry.register('post.before_content', {
-        id: 'core:economy-shopping-banner',
-        component: EconomyShoppingBanner,
-        condition: (boardType: string) => boardType === 'economy',
-        priority: 10
-    });
     postSlotRegistry.register('post.after_content', {
         id: 'core:economy-open-links',
         component: EconomyOpenLinks,
@@ -101,13 +87,45 @@
             post: pageData.post
         })
     });
-    import { ReactionBar } from '$lib/components/features/reaction/index.js';
-    import { AvatarStack } from '$lib/components/ui/avatar-stack/index.js';
     import { loadPluginComponent } from '$lib/utils/plugin-optional-loader';
     import { checkPermission, getPermissionMessage } from '$lib/utils/board-permissions.js';
     import { readPostsStore } from '$lib/stores/read-posts.svelte.js';
 
     let { data }: { data: PageData } = $props();
+
+    // 코어 레이아웃 초기화
+    initCoreLayouts();
+
+    // 뷰 레이아웃 동적 resolve
+    const viewLayoutId = $derived(data.board?.display_settings?.view_layout || 'basic');
+    const viewEntry = $derived(layoutRegistry.resolveView(viewLayoutId));
+    const ViewComponent = $derived(viewEntry?.component);
+
+    // 글자 크기 조절
+    type FontSizeKey = 'small' | 'base' | 'large' | 'xlarge';
+    const FONT_SIZES: Record<FontSizeKey, string> = {
+        small: '14px',
+        base: '16px',
+        large: '18px',
+        xlarge: '20px'
+    };
+    const FONT_SIZE_ORDER: FontSizeKey[] = ['small', 'base', 'large', 'xlarge'];
+    let fontSize = $state<FontSizeKey>(
+        browser ? (localStorage.getItem('damoang_font_size') as FontSizeKey) || 'base' : 'base'
+    );
+
+    function changeFontSize(direction: -1 | 0 | 1) {
+        if (direction === 0) {
+            fontSize = 'base';
+        } else {
+            const idx = FONT_SIZE_ORDER.indexOf(fontSize);
+            const next = idx + direction;
+            if (next >= 0 && next < FONT_SIZE_ORDER.length) {
+                fontSize = FONT_SIZE_ORDER[next];
+            }
+        }
+        if (browser) localStorage.setItem('damoang_font_size', fontSize);
+    }
 
     // 글 읽기 권한 체크
     const canRead = $derived(
@@ -148,7 +166,7 @@
 
     // 게시판 정보
     const boardId = $derived(data.boardId);
-    const boardTitle = $derived(data.board?.subject || boardId);
+    const boardTitle = $derived(data.board?.subject || data.board?.name || boardId);
 
     // 특수 게시판 타입 감지
     const boardType = $derived(
@@ -201,12 +219,66 @@
         }
     }
 
-    // 댓글 목록 상태 (SSR 데이터로 즉시 초기화하여 깜박임 방지 + 페이지 전환 시 갱신)
-    let comments = $state<FreeComment[]>(data.comments.items);
+    // 댓글/프로모션/리비전 — Streaming SSR (2단계 데이터)
+    let comments = $state<FreeComment[]>([]);
+    let promotionPosts = $state<unknown[]>([]);
+    let revisions = $state<PostRevision[]>([]);
+    let secondaryLoaded = $state(false);
+    let secondaryError = $state(false);
+
     $effect(() => {
-        comments = data.comments.items;
+        const promise = data.streamed?.secondaryData;
+        if (!promise) return;
+
+        let cancelled = false;
+
+        // 네비게이션 시 초기화
+        comments = [];
+        promotionPosts = [];
+        revisions = [];
+        secondaryLoaded = false;
+        secondaryError = false;
+
+        promise
+            .then(
+                (result: {
+                    comments: { items: FreeComment[] };
+                    promotionPosts: unknown[];
+                    revisions: PostRevision[];
+                }) => {
+                    if (cancelled) return;
+                    comments = result.comments.items || [];
+                    promotionPosts = result.promotionPosts || [];
+                    revisions = result.revisions || [];
+                    secondaryLoaded = true;
+                }
+            )
+            .catch(() => {
+                if (cancelled) return;
+                secondaryError = true;
+                secondaryLoaded = true;
+            });
+
+        return () => {
+            cancelled = true;
+        };
     });
+
     let isCreatingComment = $state(false);
+    let isRefreshingComments = $state(false);
+
+    async function refreshComments() {
+        if (isRefreshingComments) return;
+        isRefreshingComments = true;
+        try {
+            const result = await apiClient.getBoardComments(boardId, String(data.post.id));
+            comments = result.items;
+        } catch {
+            // 실패 시 조용히 무시
+        } finally {
+            isRefreshingComments = false;
+        }
+    }
 
     // 추천/비추천 상태
     let likeCount = $state(0);
@@ -235,8 +307,7 @@
     // 게시글 삭제 상태
     let isDeleting = $state(false);
 
-    // 리비전 히스토리 (SSR에서 관리자일 때 미리 로드됨)
-    let revisions = $state<PostRevision[]>(data.revisions ?? []);
+    // 리비전 히스토리 (Streaming SSR로 로드)
 
     // 신고 다이얼로그 상태
     let showReportDialog = $state(false);
@@ -273,26 +344,30 @@
         if (likeCount > 0) {
             loadLikerAvatars();
         }
+    });
 
-        // 댓글 앵커 스크롤 (#c_댓글ID)
-        const hash = window.location.hash;
-        if (hash && hash.startsWith('#c_')) {
-            setTimeout(() => {
-                const el = document.getElementById(hash.slice(1));
-                if (el) {
-                    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    el.style.transition = 'background-color 0.3s ease';
-                    el.style.backgroundColor = 'hsl(var(--primary) / 0.1)';
-                    el.style.borderRadius = '0.5rem';
-                    setTimeout(() => {
-                        el.style.backgroundColor = '';
+    // 댓글 앵커 스크롤 (#c_댓글ID) — 스트리밍 완료 후 실행
+    $effect(() => {
+        if (secondaryLoaded && browser) {
+            const hash = window.location.hash;
+            if (hash && hash.startsWith('#c_')) {
+                setTimeout(() => {
+                    const el = document.getElementById(hash.slice(1));
+                    if (el) {
+                        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        el.style.transition = 'background-color 0.3s ease';
+                        el.style.backgroundColor = 'hsl(var(--primary) / 0.1)';
+                        el.style.borderRadius = '0.5rem';
                         setTimeout(() => {
-                            el.style.transition = '';
-                            el.style.borderRadius = '';
-                        }, 300);
-                    }, 2000);
-                }
-            }, 800);
+                            el.style.backgroundColor = '';
+                            setTimeout(() => {
+                                el.style.transition = '';
+                                el.style.borderRadius = '';
+                            }, 300);
+                        }, 2000);
+                    }
+                }, 100);
+            }
         }
     });
 
@@ -684,7 +759,7 @@
                     datePublished: data.post.created_at,
                     dateModified: data.post.updated_at || undefined,
                     url: postUrl,
-                    commentCount: data.comments?.total || 0,
+                    commentCount: comments.length,
                     upvoteCount: data.post.likes || 0,
                     image: data.post.thumbnail || data.post.images?.[0]
                 }),
@@ -739,6 +814,13 @@
         </div>
 
         <div class="flex shrink-0 gap-2">
+            {#if authStore.isAuthenticated}
+                <ScrapButton
+                    boardId={data.boardId}
+                    postId={data.post.id}
+                    initialScrapped={data.isScrapped}
+                />
+            {/if}
             {#if isAdmin}
                 {#if noticeType}
                     <Button
@@ -793,6 +875,13 @@
         </div>
     {/if}
 
+    <!-- 알뜰구매 쇼핑 바로가기 (목록으로 버튼 → GAM → 여기 → 본문 카드) -->
+    {#if boardType === 'economy'}
+        <div class="mb-6">
+            <EconomyShoppingBanner />
+        </div>
+    {/if}
+
     <!-- 읽기 권한 체크 -->
     {#if !canRead}
         <div class="bg-muted/50 mx-auto mt-12 max-w-md rounded-lg p-8 text-center">
@@ -813,306 +902,49 @@
             </div>
         {/if}
 
-        <!-- 게시글 카드 -->
-        <Card class="bg-background mb-6">
-            <CardHeader class="space-y-3">
-                <div>
-                    {#if data.post.category}
-                        <div class="mb-3 flex flex-wrap gap-1.5">
-                            <span
-                                class="bg-primary/10 text-primary rounded-md px-2 py-0.5 text-[13px] font-medium"
-                            >
-                                {data.post.category}
-                            </span>
-                        </div>
-                    {/if}
-                    <CardTitle
-                        class="text-foreground flex items-center gap-2 text-xl font-bold sm:text-2xl"
-                    >
-                        {#if data.post.is_secret}
-                            <Lock class="text-muted-foreground h-6 w-6 shrink-0" />
-                        {/if}
-                        {data.post.title}
-                    </CardTitle>
-                    {#if data.post.tags && data.post.tags.length > 0}
-                        <div class="mt-3 flex flex-wrap gap-2">
-                            {#each data.post.tags as tag, i (i)}
-                                <a href="/tags/{encodeURIComponent(tag)}">
-                                    <Badge
-                                        variant="secondary"
-                                        class="hover:bg-primary/10 cursor-pointer">#{tag}</Badge
-                                    >
-                                </a>
-                            {/each}
-                        </div>
-                    {/if}
-                </div>
-
-                <div class="border-border flex flex-wrap items-center gap-4 border-t pt-4">
-                    <div class="flex items-center gap-2">
-                        {#if getMemberIconUrl(data.post.author_id)}
-                            <img
-                                src={getMemberIconUrl(data.post.author_id)}
-                                alt={data.post.author}
-                                class="size-10 rounded-full object-cover"
-                                onerror={(e) => {
-                                    const img = e.currentTarget as HTMLImageElement;
-                                    img.style.display = 'none';
-                                    const fallback = img.nextElementSibling as HTMLElement;
-                                    if (fallback) fallback.style.display = 'flex';
-                                }}
-                            />
-                            <div
-                                class="bg-primary text-primary-foreground hidden size-10 items-center justify-center rounded-full"
-                            >
-                                {data.post.author.charAt(0).toUpperCase()}
-                            </div>
-                        {:else}
-                            <div
-                                class="bg-primary text-primary-foreground flex size-10 items-center justify-center rounded-full"
-                            >
-                                {data.post.author.charAt(0).toUpperCase()}
-                            </div>
-                        {/if}
-                        <div>
-                            <p class="text-foreground flex items-center gap-1.5 font-medium">
-                                <LevelBadge
-                                    level={memberLevelStore.getLevel(data.post.author_id)}
-                                />
-                                {data.post.author}
-                                {#if memoPluginActive && MemoBadge}
-                                    <MemoBadge memberId={data.post.author_id} showIcon={true} />
-                                {/if}
-                                {#if data.post.author_ip}
-                                    <span class="text-muted-foreground ml-1 text-xs font-normal"
-                                        >({data.post.author_ip})</span
-                                    >
-                                {/if}
-                            </p>
-                            <p class="text-secondary-foreground text-[15px]">
-                                {formatDate(data.post.created_at)}
-                            </p>
-                        </div>
-                    </div>
-
-                    <div
-                        class="text-secondary-foreground ml-auto flex gap-2 text-[13px] sm:gap-4 sm:text-[15px]"
-                    >
-                        <span>조회 {data.post.views.toLocaleString()}</span>
-                        <span>추천 {likeCount.toLocaleString()}</span>
-                        <span>댓글 {data.post.comments_count.toLocaleString()}</span>
-                    </div>
-                </div>
-            </CardHeader>
-            <CardContent class="space-y-6">
-                <!-- 플러그인 슬롯: post.before_content (Q&A 상태 헤더 등) -->
-                {#each beforeContentSlots as slot (slot.component)}
-                    {@const SlotComponent = slot.component}
-                    <SlotComponent {...slot.propsMapper ? slot.propsMapper(data) : { data }} />
-                {/each}
-
-                <!-- GAM 광고 -->
-                {#if widgetLayoutStore.hasEnabledAds}
-                    <AdSlot position="board-content" height="90px" />
-                {/if}
-
-                <!-- 게시글 본문 -->
-                {#if canViewSecret}
-                    <AdultBlur isAdult={data.post.is_adult ?? false}>
-                        <div id="economy-post-content">
-                            <Markdown content={postContent()} />
-                        </div>
-
-                        {#if data.post.videos && data.post.videos.length > 0}
-                            <div class="mt-6 space-y-4">
-                                {#each data.post.videos as video, i (i)}
-                                    <div class="overflow-hidden rounded-lg border">
-                                        <video
-                                            controls
-                                            preload="metadata"
-                                            playsinline
-                                            class="w-full"
-                                        >
-                                            <source src={video.url} />
-                                            동영상을 재생할 수 없습니다.
-                                        </video>
-                                        <div
-                                            class="bg-muted/50 flex items-center gap-3 border-t px-4 py-2.5"
-                                        >
-                                            <Video class="text-muted-foreground h-4 w-4 shrink-0" />
-                                            <span class="text-foreground min-w-0 truncate text-sm">
-                                                {video.filename}
-                                            </span>
-                                            {#if video.size}
-                                                <span
-                                                    class="text-muted-foreground shrink-0 text-xs"
-                                                >
-                                                    {formatFileSize(video.size)}
-                                                </span>
-                                            {/if}
-                                            <a
-                                                href={video.url}
-                                                download={video.filename}
-                                                class="text-primary hover:text-primary/80 ml-auto flex shrink-0 items-center gap-1 text-sm font-medium"
-                                            >
-                                                <Download class="h-4 w-4" />
-                                                다운로드
-                                            </a>
-                                        </div>
-                                    </div>
-                                {/each}
-                            </div>
-                        {/if}
-
-                        {#if data.post.images && data.post.images.length > 0}
-                            <div class="mt-6 grid gap-4">
-                                {#each data.post.images as image, i (i)}
-                                    <img
-                                        src={image}
-                                        alt="게시글 이미지"
-                                        class="max-w-full rounded-lg border"
-                                        loading="lazy"
-                                    />
-                                {/each}
-                            </div>
-                        {/if}
-                    </AdultBlur>
-
-                    {#if data.post.link1 || data.post.link2}
-                        <div class="mt-4 space-y-1.5">
-                            {#if data.post.link1}
-                                <div class="flex items-center gap-1.5 text-sm">
-                                    <ExternalLink
-                                        class="text-muted-foreground h-3.5 w-3.5 shrink-0"
-                                    />
-                                    <a
-                                        href={data.post.link1}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        class="text-primary truncate hover:underline"
-                                        >{data.post.link1}</a
-                                    >
-                                </div>
-                            {/if}
-                            {#if data.post.link2}
-                                <div class="flex items-center gap-1.5 text-sm">
-                                    <ExternalLink
-                                        class="text-muted-foreground h-3.5 w-3.5 shrink-0"
-                                    />
-                                    <a
-                                        href={data.post.link2}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        class="text-primary truncate hover:underline"
-                                        >{data.post.link2}</a
-                                    >
-                                </div>
-                            {/if}
-                        </div>
-                    {/if}
-                {:else}
-                    <div
-                        class="flex flex-col items-center justify-center rounded-xl border border-dashed py-16"
-                    >
-                        <Lock class="text-muted-foreground mb-4 h-12 w-12" />
-                        <p class="text-muted-foreground text-lg font-medium">비밀글입니다</p>
-                        <p class="text-muted-foreground mt-1 text-sm">
-                            작성자와 관리자만 볼 수 있습니다.
-                        </p>
-                    </div>
-                {/if}
-            </CardContent>
-            {#if canViewSecret}
-                <CardFooter class="flex-col items-start gap-3">
-                    <!-- 추천/비추천/신고 버튼 -->
-                    <div class="flex w-full flex-wrap items-center gap-3">
-                        <!-- 추천 버튼 -->
-                        <div
-                            class="flex items-center rounded-lg border {isLiked
-                                ? 'border-liked/40 bg-liked/5'
-                                : 'border-border'}"
-                        >
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                onclick={handleLike}
-                                disabled={isLiking}
-                                class="gap-2 {isLiked ? 'text-liked' : ''}"
-                            >
-                                <Heart
-                                    class="h-5 w-5 {isLiked ? 'fill-liked' : ''} {isLikeAnimating
-                                        ? 'like-animation'
-                                        : ''}"
-                                />
-                                <span class="font-semibold">{likeCount}</span>
-                            </Button>
-                            <button
-                                type="button"
-                                onclick={loadLikers}
-                                class="border-l px-2 py-1 text-xs transition-colors {isLiked
-                                    ? 'border-liked/40 text-liked'
-                                    : 'text-muted-foreground hover:text-foreground border-border'}"
-                            >
-                                <Users class="h-4 w-4" />
-                            </button>
-                        </div>
-
-                        <!-- 추천자 아바타 스택 (같은 줄) -->
-                        {#if likers.length > 0}
-                            <AvatarStack
-                                items={likers}
-                                total={likersTotal}
-                                max={5}
-                                size="sm"
-                                onclick={loadLikers}
-                            />
-                        {/if}
-
-                        <!-- 비추천 버튼 (게시판 설정에서 활성화된 경우만) -->
-                        {#if data.board?.use_nogood === 1}
-                            <div class="border-border flex items-center rounded-lg border">
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onclick={handleDislike}
-                                    disabled={isDisliking}
-                                    class="gap-2 {isDisliked ? 'text-disliked' : ''}"
-                                >
-                                    <ThumbsDown
-                                        class="h-5 w-5 {isDisliked ? 'fill-disliked' : ''}"
-                                    />
-                                    <span class="font-semibold">{dislikeCount}</span>
-                                </Button>
-                            </div>
-                        {/if}
-
-                        <!-- 신고 버튼 -->
-                        {#if !isAuthor}
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                onclick={() => {
-                                    if (!authStore.isAuthenticated) {
-                                        authStore.redirectToLogin();
-                                        return;
-                                    }
-                                    showReportDialog = true;
-                                }}
-                                class="text-muted-foreground hover:text-destructive ml-auto gap-2"
-                            >
-                                <Flag class="h-4 w-4" />
-                                <span>신고</span>
-                            </Button>
-                        {/if}
-                    </div>
-
-                    <!-- 리액션 (da-reaction 플러그인) -->
-                    {#if reactionPluginActive}
-                        <ReactionBar {boardId} postId={data.post.id} target="post" />
-                    {/if}
-                </CardFooter>
-            {/if}
-        </Card>
+        <!-- 게시글 카드 (뷰 레이아웃) -->
+        {#if ViewComponent}
+            <ViewComponent
+                post={data.post}
+                board={data.board}
+                {boardId}
+                {isAuthor}
+                {isAdmin}
+                {canViewSecret}
+                {likeCount}
+                {dislikeCount}
+                {isLiked}
+                {isDisliked}
+                {isLiking}
+                {isDisliking}
+                {isLikeAnimating}
+                {likers}
+                {likersTotal}
+                {fontSize}
+                fontSizeLabel={FONT_SIZE_ORDER[FONT_SIZE_ORDER.indexOf(fontSize)]}
+                onLike={handleLike}
+                onDislike={handleDislike}
+                onLoadLikers={loadLikers}
+                onReport={() => {
+                    showReportDialog = true;
+                }}
+                onChangeFontSize={changeFontSize}
+                {memoPluginActive}
+                {reactionPluginActive}
+                {MemoBadge}
+                {beforeContentSlots}
+                {afterContentSlots}
+                {formatDate}
+                {formatFileSize}
+                postContent={postContent()}
+                pageData={data}
+            />
+        {:else}
+            <!-- 폴백: 레이아웃을 resolve할 수 없을 때 기본 메시지 -->
+            <div class="text-muted-foreground py-12 text-center">
+                레이아웃을 불러올 수 없습니다.
+            </div>
+        {/if}
 
         <!-- 수정/삭제 시간 표시 -->
         {#if data.post.updated_at && data.post.updated_at !== data.post.created_at}
@@ -1123,14 +955,6 @@
                 {/if}
             </p>
         {/if}
-
-        <!-- 플러그인 슬롯: post.after_content (나눔 BidPanel 등) -->
-        {#each afterContentSlots as slot (slot.component)}
-            {@const SlotComponent = slot.component}
-            <div class="mb-6">
-                <SlotComponent {...slot.propsMapper ? slot.propsMapper(data) : { data }} />
-            </div>
-        {/each}
 
         <!-- 중고게시판 상태 변경 (작성자/관리자만) -->
         {#if isUsedMarket && (isAuthor || isAdmin)}
@@ -1166,8 +990,8 @@
         {/if}
         -->
 
-        <!-- 수정 이력 (리비전 히스토리) - 관리자 전용 -->
-        {#if isAdmin && revisions.length > 0}
+        <!-- 수정 이력 (리비전 히스토리) - 관리자 전용 (스트리밍 완료 후) -->
+        {#if isAdmin && secondaryLoaded && revisions.length > 0}
             <div class="mb-6">
                 <RevisionHistory
                     {revisions}
@@ -1178,13 +1002,47 @@
             </div>
         {/if}
 
-        <!-- 댓글 섹션 (비밀글 열람 가능 시에만 표시) -->
-        {#if canViewSecret}
+        <!-- 댓글 섹션 (비밀글 열람 가능 + 스트리밍 완료 시 표시) -->
+        {#if canViewSecret && !secondaryLoaded}
             <Card class="bg-background">
-                <CardHeader>
-                    <h3 class="text-foreground text-lg font-semibold">
-                        댓글 <span class="text-muted-foreground">({comments.length})</span>
-                    </h3>
+                <CardContent class="py-8">
+                    <div class="flex items-center justify-center gap-2">
+                        <div
+                            class="border-primary h-4 w-4 animate-spin rounded-full border-2 border-t-transparent"
+                        ></div>
+                        <span class="text-muted-foreground text-sm">댓글을 불러오는 중...</span>
+                    </div>
+                </CardContent>
+            </Card>
+        {:else if canViewSecret && secondaryError}
+            <Card class="bg-background">
+                <CardContent class="py-8 text-center">
+                    <p class="text-destructive text-sm">댓글을 불러오지 못했습니다.</p>
+                </CardContent>
+            </Card>
+        {:else if canViewSecret}
+            <Card class="bg-background">
+                <CardHeader class="flex flex-row items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <h3 class="text-foreground text-lg font-semibold">
+                            댓글 <span class="text-muted-foreground">({comments.length})</span>
+                        </h3>
+                        <button
+                            type="button"
+                            onclick={refreshComments}
+                            disabled={isRefreshingComments}
+                            class="text-muted-foreground hover:text-foreground rounded-md p-1 transition-colors disabled:opacity-50"
+                            title="댓글 새로고침"
+                        >
+                            <RefreshCw
+                                class="size-4 {isRefreshingComments ? 'animate-spin' : ''}"
+                            />
+                        </button>
+                    </div>
+                    <AdminCommentLayoutSwitcher
+                        {boardId}
+                        currentLayout={data.board?.display_settings?.comment_layout || 'flat'}
+                    />
                 </CardHeader>
                 <CardContent class="space-y-6">
                     <CommentList
@@ -1198,6 +1056,7 @@
                         {boardId}
                         postId={data.post.id}
                         useNogood={data.board?.use_nogood === 1}
+                        commentLayout={data.board?.display_settings?.comment_layout || 'flat'}
                     />
 
                     <div class="border-border border-t pt-6">
@@ -1232,8 +1091,8 @@
                 {boardId}
                 {boardTitle}
                 currentPostId={data.post.id}
-                limit={20}
-                promotionPosts={data.promotionPosts || []}
+                limit={25}
+                promotionPosts={promotionPosts as any[]}
                 displaySettings={data.board?.display_settings}
             />
         </div>
@@ -1390,25 +1249,3 @@
     postId={data.post.id}
     onClose={() => (showReportDialog = false)}
 />
-
-<style>
-    /* 좋아요 버튼 애니메이션 (ASIS 다모앙과 동일) */
-    @keyframes da-thumbs-up {
-        0% {
-            transform: scale(1) translateX(0) rotate(0deg) translateY(0);
-        }
-        40% {
-            transform: scale(1.2) translateX(-1px) rotate(-19deg) translateY(-4px);
-        }
-        85% {
-            transform: scale(1) translateX(0) rotate(3deg) translateY(1px);
-        }
-        100% {
-            transform: scale(1) translateX(0) rotate(0deg) translateY(0);
-        }
-    }
-
-    :global(.like-animation) {
-        animation: da-thumbs-up 1s ease-in-out;
-    }
-</style>

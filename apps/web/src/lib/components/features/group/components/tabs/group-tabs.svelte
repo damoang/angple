@@ -9,7 +9,7 @@
     let { activeTab = $bindable(), onTabChange }: Props = $props();
 
     const tabs: { id: GroupTabId; label: string }[] = [
-        { id: 'all', label: '전체글' },
+        // { id: 'all', label: '전체글' },
         { id: '24h', label: '24시간' },
         { id: 'week', label: '주간' },
         { id: 'month', label: '이번 달' }

@@ -20,7 +20,9 @@ export async function fetchPromotionPosts(): Promise<unknown> {
         return promotionCache.data;
     }
     try {
-        const res = await fetch(`${getAdsServerUrl()}/api/v1/serve/promotion-posts`);
+        const res = await fetch(`${getAdsServerUrl()}/api/v1/serve/promotion-posts`, {
+            signal: AbortSignal.timeout(3_000)
+        });
         if (!res.ok) return EMPTY_RESPONSE;
         const data = await res.json();
         promotionCache = { data, expiresAt: now + PROMOTION_CACHE_TTL };

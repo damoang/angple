@@ -8,12 +8,18 @@
         { name: '다모앙 지도 - 앙지도', href: '/angmap' },
         { name: '다모앙 평점 - 앙티티', href: '/angtt' },
         { name: '다모앙 음악 - 앙뮤직', href: '/music' },
-        { name: '다모앙 상점 - 앙상점', href: 'http://damoang.shop', external: true },
+        {
+            name: '다모앙 스마트스토어',
+            href: 'https://smartstore.naver.com/damoang-net/',
+            external: true
+        },
+        { name: '다모앙 마플샵', href: 'https://marpple.shop/kr/dma', external: true },
         {
             name: '다모앙 영상 - 앙팡팡',
             href: 'https://www.youtube.com/@AngPangPang',
             external: true
         },
+        { name: '미니게임', href: '/game' },
         { name: 'X (구 트위터)', href: 'https://x.com/@damoang_net', external: true }
     ];
 
@@ -24,14 +30,14 @@
         { name: '다모앙 만들기', href: '/makeang' },
         { name: '이벤트 제안', href: '/event' },
         { name: '다모앙 개발지원 신청', href: '/discord' },
-        { name: '광고앙', href: '/content/advertisement' }
+        { name: '광고앙', href: '/advertising' }
     ];
 
     // 시스템 메뉴
     const systemLinks: FooterLink[] = [
         { name: '포인트 안내', href: '/content/info' },
         { name: '레벨 안내', href: '/content/level' },
-        { name: '새글모음', href: '/bbs/new.php' }
+        { name: '새글모음', href: '/feed' }
     ];
 
     // 🚨삐앙삐앙🚨 메뉴
@@ -116,11 +122,76 @@
         </div>
     </div>
 
+    <!-- 법적 링크 섹션 -->
+    <div class="border-border border-t">
+        <div class="mx-auto max-w-[1200px] px-4 py-4">
+            <ul class="flex flex-wrap justify-center gap-x-4 gap-y-1 text-sm">
+                <li>
+                    <a
+                        href="/content/company"
+                        class="text-muted-foreground hover:text-primary transition-colors"
+                        >사이트 소개</a
+                    >
+                </li>
+                <li>
+                    <a
+                        href="/content/advertisement"
+                        class="text-muted-foreground hover:text-primary transition-colors"
+                        >광고상품</a
+                    >
+                </li>
+                <li>
+                    <a
+                        href="/content/provision"
+                        class="text-muted-foreground hover:text-primary font-semibold transition-colors"
+                        >이용약관</a
+                    >
+                </li>
+                <li>
+                    <a
+                        href="/content/privacy"
+                        class="text-muted-foreground hover:text-primary font-semibold transition-colors"
+                        >개인정보처리방침</a
+                    >
+                </li>
+                <li>
+                    <a
+                        href="/content/operation_policy"
+                        class="text-muted-foreground hover:text-primary transition-colors"
+                        >운영정책</a
+                    >
+                </li>
+                <li>
+                    <a
+                        href="/content/operation_policy_add"
+                        class="text-muted-foreground hover:text-primary transition-colors"
+                        >이용제한사유 안내</a
+                    >
+                </li>
+                <li>
+                    <a
+                        href="/content/contract"
+                        class="text-muted-foreground hover:text-primary transition-colors"
+                        >온사이트 광고 운영정책</a
+                    >
+                </li>
+            </ul>
+        </div>
+    </div>
+
     <!-- 저작권 및 연락처 섹션 -->
     <div class="bg-canvas">
         <div class="mx-auto max-w-[1200px] px-4 py-6 text-center">
             <div class="text-muted-foreground space-y-2 text-sm">
-                <p>© SDK Co., Ltd. All rights reserved.</p>
+                <p>
+                    <a
+                        href="https://sdkcorp.com"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="hover:text-primary transition-colors"
+                        >© SDK Co., Ltd. All rights reserved.</a
+                    >
+                </p>
                 <p>
                     제보/신고 : jebo@damoang.net, 문의(광고 그리고 모든 문의) : contact@damoang.net
                 </p>

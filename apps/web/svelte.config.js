@@ -30,7 +30,8 @@ const config = {
         alias: {
             $widgets: '../../widgets',
             '$custom-widgets': '../../custom-widgets',
-            $themes: '../../themes'
+            $themes: '../../themes',
+            $plugins: '../../plugins'
         },
         csrf: {
             // 개발 환경에서 localhost CSRF 허용

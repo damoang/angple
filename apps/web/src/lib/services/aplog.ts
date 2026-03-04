@@ -91,11 +91,12 @@ export function initAplog(mbId: string | null) {
     const items = document.querySelectorAll('.da-bn-container .da-bn-item');
     for (const item of items) {
         // 클릭 핸들러
-        (item as HTMLElement).onclick = function (this: HTMLElement) {
-            const img = this.querySelector('img');
+        const el = item as HTMLElement;
+        el.onclick = () => {
+            const img = el.querySelector('img');
             if (!img) return;
             const imgSrc = img.src.split('/').pop() ?? '';
-            if (imgSrc) adLog(this, imgSrc, true);
+            if (imgSrc) adLog(el, imgSrc, true);
         };
         observer.observe(item);
     }
@@ -108,4 +109,67 @@ export function destroyAplog() {
         observer = null;
     }
     calledAdList = [];
+}
+
+// --- Svelte action 기반 추적 (SvelteKit 배너 컴포넌트용) ---
+
+export interface AplogTrackParams {
+    adId: string;
+    adPos: string;
+    imgSrc: string;
+    adUserId?: string;
+    mbId: string | null;
+}
+
+export function sendAplogEvent(params: AplogTrackParams, click?: boolean) {
+    const endpoint = click ? '/click?' : '/expose?';
+    const da = getDa();
+    const qs = new URLSearchParams();
+    qs.set('imgSrc', params.imgSrc.split('/').pop() ?? '');
+    if (params.adUserId) qs.set('adUserId', params.adUserId);
+    qs.set('adId', params.adId);
+    qs.set('adPos', params.adPos);
+    qs.set('da', da);
+    qs.set('mbId', params.mbId ?? 'null');
+    qs.set('board', extractBoard());
+    qs.set('url', cleanUrl());
+    const url = APLOG_BASE + endpoint + qs.toString();
+    fetch(url, { mode: 'cors', keepalive: true }).catch(() => {});
+}
+
+export function aplogTrack(node: HTMLElement, params: AplogTrackParams | null) {
+    if (!params) return { update() {}, destroy() {} };
+
+    let currentParams = params;
+    let exposed = false;
+
+    const observer = new IntersectionObserver(
+        (entries) => {
+            for (const entry of entries) {
+                if (entry.isIntersecting && !exposed) {
+                    exposed = true;
+                    sendAplogEvent(currentParams);
+                    observer.unobserve(node);
+                }
+            }
+        },
+        { threshold: 0.5 }
+    );
+
+    observer.observe(node);
+
+    const handleClick = () => sendAplogEvent(currentParams, true);
+    node.addEventListener('click', handleClick);
+
+    return {
+        update(newParams: AplogTrackParams | null) {
+            currentParams = newParams!;
+            exposed = false;
+            if (newParams) observer.observe(node);
+        },
+        destroy() {
+            observer.disconnect();
+            node.removeEventListener('click', handleClick);
+        }
+    };
 }

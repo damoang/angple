@@ -228,7 +228,7 @@
     });
 </script>
 
-<div class="prose prose-neutral dark:prose-invert max-w-none text-base {className}">
+<div class="prose prose-neutral dark:prose-invert max-w-none text-lg {className}">
     <!-- eslint-disable-next-line svelte/no-at-html-tags -->
     {@html renderedHtml}
 </div>
@@ -259,7 +259,7 @@
     .prose :global(p) {
         margin-top: 0.75rem;
         margin-bottom: 0.75rem;
-        font-size: 1rem;
+        font-size: 1.125rem;
         line-height: 1.8;
     }
 
@@ -343,7 +343,9 @@
     }
 
     .prose :global(table) {
+        display: block;
         width: 100%;
+        overflow-x: auto;
         border-collapse: collapse;
         margin: 1rem 0;
     }

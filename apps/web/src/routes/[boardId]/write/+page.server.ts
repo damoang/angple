@@ -1,9 +1,7 @@
 import { redirect, error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types.js';
 import type { Board } from '$lib/api/types.js';
-import { env } from '$env/dynamic/private';
-
-const BACKEND_URL = env.BACKEND_URL || 'http://localhost:8090';
+import { backendFetch, createAuthHeaders } from '$lib/server/backend-fetch.js';
 
 /**
  * 글쓰기 페이지 서버 로드
@@ -19,16 +17,9 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 
     // 게시판 정보 조회 → write_level 권한 체크
     try {
-        const headers: Record<string, string> = {
-            'Content-Type': 'application/json',
-            'User-Agent': 'Angple-Web-SSR/1.0'
-        };
-        if (locals.accessToken) {
-            headers['Authorization'] = `Bearer ${locals.accessToken}`;
-        }
+        const headers = createAuthHeaders(locals.accessToken);
 
-        const backendFetch = globalThis.fetch;
-        const boardRes = await backendFetch(`${BACKEND_URL}/api/v1/boards/${boardId}`, { headers });
+        const boardRes = await backendFetch(`/api/v1/boards/${boardId}`, { headers });
         const board: Board | null = boardRes.ok ? ((await boardRes.json()).data as Board) : null;
 
         if (board) {
@@ -36,6 +27,30 @@ export const load: PageServerLoad = async ({ locals, params }) => {
             const requiredLevel = board.write_level ?? 1;
             if (userLevel < requiredLevel) {
                 error(403, '이 게시판에 글을 작성할 권한이 없습니다.');
+            }
+        }
+
+        // ExtendedSettings 기반 글쓰기 제한 체크 (서버 사이드 사전 검증)
+        if (locals.accessToken) {
+            try {
+                const permRes = await backendFetch(`/api/v1/boards/${boardId}/write-permission`, {
+                    headers
+                });
+                if (permRes.ok) {
+                    const permData = await permRes.json();
+                    if (permData.data && !permData.data.can_write) {
+                        error(
+                            403,
+                            permData.data.reason || '글쓰기 제한에 의해 작성할 수 없습니다.'
+                        );
+                    }
+                }
+            } catch (permErr) {
+                // SvelteKit HttpError는 다시 throw
+                if (permErr && typeof permErr === 'object' && 'status' in permErr) {
+                    throw permErr;
+                }
+                // 권한 조회 실패는 무시 (클라이언트에서 재확인)
             }
         }
     } catch (err) {

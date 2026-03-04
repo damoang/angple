@@ -2,6 +2,8 @@
     import { onMount } from 'svelte';
     import { browser } from '$app/environment';
     import AdSlot from '$lib/components/ui/ad-slot/ad-slot.svelte';
+    import { aplogTrack } from '$lib/services/aplog';
+    import { authStore } from '$lib/stores/auth.svelte';
 
     interface Props {
         position: 'index' | 'board-list' | 'board-view' | 'sidebar';
@@ -175,11 +177,9 @@
         return raw;
     }
 
-    // 축하메시지 배너 링크 결정: external_link 유무로 판단
+    // 축하메시지 배너 링크: API가 link_url에 올바른 경로를 반환 (/message/{wr_id} 등)
     function getCelebrationHref(banner: CelebrationBanner): string {
-        const custom = banner.external_link;
-        if (!custom || custom === '#') return `/message/${banner.id}`;
-        return toLocalHref(custom);
+        return banner.link_url || `/message/${banner.id}`;
     }
 </script>
 
@@ -214,6 +214,12 @@
         <a
             href={toLocalHref(adsBanner.landingUrl)}
             onclick={handleAdsClick}
+            use:aplogTrack={{
+                adId: adsBanner.id,
+                adPos: adsPosition,
+                imgSrc: adsBanner.imageUrl,
+                mbId: authStore.user?.mb_id || null
+            }}
             class="border-border block overflow-hidden rounded-xl border transition-opacity hover:opacity-90"
         >
             <img

@@ -1,6 +1,8 @@
 <script lang="ts">
     import { onMount } from 'svelte';
     import { browser } from '$app/environment';
+    import { aplogTrack } from '$lib/services/aplog';
+    import { authStore } from '$lib/stores/auth.svelte';
 
     interface Props {
         position?: string;
@@ -141,6 +143,14 @@
                             href={slot.linkUrl}
                             target={slot.target || '_blank'}
                             rel="nofollow noopener"
+                            use:aplogTrack={slot.trackingId
+                                ? {
+                                      adId: slot.id,
+                                      adPos: position,
+                                      imgSrc: slot.imageUrl,
+                                      mbId: authStore.user?.mb_id || null
+                                  }
+                                : null}
                             class="block"
                         >
                             {#if slot.imageUrl}
@@ -194,6 +204,14 @@
                         href={banner.linkUrl}
                         target={banner.target || '_blank'}
                         rel="nofollow noopener"
+                        use:aplogTrack={banner.trackingId
+                            ? {
+                                  adId: banner.id,
+                                  adPos: position,
+                                  imgSrc: banner.imageUrl,
+                                  mbId: authStore.user?.mb_id || null
+                              }
+                            : null}
                         class="block"
                     >
                         {#if banner.imageUrl}

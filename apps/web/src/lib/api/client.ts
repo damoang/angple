@@ -23,6 +23,7 @@ import type {
     GlobalSearchResponse,
     MemberProfile,
     MyActivity,
+    MyComment,
     BlockedMember,
     UploadedFile,
     PresignedUrlResponse,
@@ -49,7 +50,8 @@ import type {
     BoardGroup,
     CommentReportInfo,
     TenorSearchResponse,
-    FileAttachment
+    FileAttachment,
+    BoardStat
 } from './types.js';
 import { browser } from '$app/environment';
 import { ApiRequestError } from './errors.js';
@@ -1131,12 +1133,12 @@ class ApiClient {
      * 내가 쓴 댓글 목록
      * 🔒 인증 필요
      */
-    async getMyComments(page = 1, limit = 20): Promise<PaginatedResponse<FreeComment>> {
+    async getMyComments(page = 1, limit = 20): Promise<PaginatedResponse<MyComment>> {
         const response = await this.request<unknown>(`/my/comments?page=${page}&limit=${limit}`);
 
         const raw = response as unknown as Record<string, unknown>;
         const meta = raw.meta as Record<string, number> | undefined;
-        const items = (raw.data as FreeComment[]) ?? (raw.items as FreeComment[]) ?? [];
+        const items = (raw.data as MyComment[]) ?? (raw.items as MyComment[]) ?? [];
         const total = meta?.total ?? (raw.total as number) ?? 0;
         const responsePage = meta?.page ?? (raw.page as number) ?? page;
         const responseLimit = meta?.limit ?? (raw.limit as number) ?? limit;
@@ -1171,6 +1173,15 @@ class ApiClient {
             limit: responseLimit,
             total_pages: responseLimit > 0 ? Math.ceil(total / responseLimit) : 0
         };
+    }
+
+    /**
+     * 게시판별 통계 조회
+     * 🔒 인증 필요
+     */
+    async getBoardStats(): Promise<BoardStat[]> {
+        const response = await this.request<BoardStat[]>('/my/stats');
+        return response.data ?? [];
     }
 
     // ========================================

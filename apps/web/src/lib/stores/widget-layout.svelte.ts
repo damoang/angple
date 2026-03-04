@@ -110,8 +110,10 @@ class WidgetLayoutStore {
         if (widgets && widgets.length > 0) {
             // 기존 레이아웃 마이그레이션 (구 위젯 타입 → post-list 등)
             const migrated = migrateWidgets(deepCopy(widgets));
-            this._widgets = migrated;
-            this._originalWidgets = deepCopy(migrated);
+            // 신규 기본 위젯 자동 추가 (저장된 레이아웃에 없는 위젯)
+            const mergedMain = this._mergeNewDefaults(migrated, DEFAULT_WIDGETS);
+            this._widgets = mergedMain;
+            this._originalWidgets = deepCopy(mergedMain);
         } else {
             this._widgets = deepCopy(DEFAULT_WIDGETS);
             this._originalWidgets = deepCopy(DEFAULT_WIDGETS);
@@ -119,12 +121,32 @@ class WidgetLayoutStore {
 
         if (sidebarWidgets && sidebarWidgets.length > 0) {
             const migratedSidebar = migrateWidgets(deepCopy(sidebarWidgets));
-            this._sidebarWidgets = migratedSidebar;
-            this._originalSidebarWidgets = deepCopy(migratedSidebar);
+            const mergedSidebar = this._mergeNewDefaults(migratedSidebar, DEFAULT_SIDEBAR_WIDGETS);
+            this._sidebarWidgets = mergedSidebar;
+            this._originalSidebarWidgets = deepCopy(mergedSidebar);
         } else {
             this._sidebarWidgets = deepCopy(DEFAULT_SIDEBAR_WIDGETS);
             this._originalSidebarWidgets = deepCopy(DEFAULT_SIDEBAR_WIDGETS);
         }
+    }
+
+    /** DEFAULT_WIDGETS에 있지만 저장된 레이아웃에 없는 위젯을 추가하고, 기본 순서에 맞게 재정렬 */
+    private _mergeNewDefaults(saved: WidgetConfig[], defaults: WidgetConfig[]): WidgetConfig[] {
+        const savedIds = new Set(saved.map((w) => w.id));
+        const missing = defaults.filter((dw) => !savedIds.has(dw.id));
+
+        let merged = missing.length > 0 ? [...saved, ...missing.map((w) => deepCopy(w))] : saved;
+
+        // 기본 위젯 순서 맵 (id → position)으로 재정렬
+        const defaultOrder = new Map(defaults.map((w) => [w.id, w.position]));
+        merged.sort((a, b) => {
+            const orderA = defaultOrder.get(a.id) ?? a.position;
+            const orderB = defaultOrder.get(b.id) ?? b.position;
+            return orderA - orderB;
+        });
+
+        // position 재할당
+        return merged.map((w, i) => ({ ...w, position: i }));
     }
 
     // === 편집 모드 ===

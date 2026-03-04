@@ -39,6 +39,7 @@
     import Gamepad2 from '@lucide/svelte/icons/gamepad-2';
     import BookOpen from '@lucide/svelte/icons/book-open';
     import Apple from '@lucide/svelte/icons/apple';
+    import ChevronRight from '@lucide/svelte/icons/chevron-right';
 
     import UserWidget from './user-widget.svelte';
     import { getComponentsForSlot } from '$lib/components/slot-manager';
@@ -96,13 +97,47 @@
     let accordionValue = $state<string | undefined>(undefined);
 
     // Auto-open the accordion group containing the active menu when path or menu data changes
+    // depth 2/3까지 재귀 탐색하여 활성 메뉴 포함 그룹을 자동 오픈
     $effect(() => {
+        const hasActiveChild = (items: typeof menuData): boolean =>
+            items.some((c) => isActive(c.url) || (c.children && hasActiveChild(c.children)));
+
         for (const menu of menuData) {
-            if (menu.children?.some((child) => isActive(child.url))) {
+            if (menu.children && hasActiveChild(menu.children)) {
                 accordionValue = `item-${menu.id}`;
                 return;
             }
         }
+    });
+
+    // 2/3depth 그룹 접기/펼치기 상태
+    let expandedGroups = $state<Set<number>>(new Set());
+
+    function toggleSubGroup(id: number) {
+        const next = new Set(expandedGroups);
+        if (next.has(id)) next.delete(id);
+        else next.add(id);
+        expandedGroups = next;
+    }
+
+    // 2depth 하위에 활성 메뉴가 있으면 자동 펼침
+    $effect(() => {
+        const autoExpand = new Set<number>();
+        const check = (items: typeof menuData) => {
+            for (const item of items) {
+                if (item.children?.length) {
+                    const childActive = item.children.some(
+                        (c) => isActive(c.url) || c.children?.some((gc) => isActive(gc.url))
+                    );
+                    if (childActive) autoExpand.add(item.id);
+                    check(item.children);
+                }
+            }
+        };
+        for (const menu of menuData) {
+            if (menu.children) check(menu.children);
+        }
+        if (autoExpand.size > 0) expandedGroups = autoExpand;
     });
 
     // Get icon component from icon name
@@ -126,6 +161,16 @@
 
     <div class="px-2">
         <UserWidget />
+    </div>
+
+    <div class="px-2">
+        <a
+            href="/message"
+            class="text-muted-foreground hover:text-primary flex items-center gap-1.5 text-xs transition-colors"
+        >
+            <Gift class="h-3.5 w-3.5" />
+            축하메시지
+        </a>
     </div>
 
     <nav
@@ -168,26 +213,90 @@
                                         {#each menu.children as child (child.id)}
                                             {@const ChildIcon = getIcon(child.icon)}
                                             {@const active = isActive(child.url)}
-                                            <Button
-                                                variant={active ? 'default' : 'ghost'}
-                                                class={cn(
-                                                    'w-full justify-start gap-2',
-                                                    active
-                                                        ? 'bg-primary text-primary-foreground hover:bg-primary/90'
-                                                        : 'hover:bg-accent'
-                                                )}
-                                                href={child.url}
-                                                rel="external"
-                                            >
-                                                <ChildIcon class="size-4" />
-                                                {child.title}
-                                                {#if child.shortcut}
-                                                    <kbd
-                                                        class="bg-muted text-muted-foreground ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded border px-1 font-mono text-[10px] font-medium"
-                                                        >{child.shortcut}</kbd
+                                            {#if child.children && child.children.length > 0}
+                                                <!-- 2depth: 하위 메뉴가 있는 그룹 -->
+                                                <div>
+                                                    <button
+                                                        type="button"
+                                                        onclick={() => toggleSubGroup(child.id)}
+                                                        class={cn(
+                                                            'flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors',
+                                                            'hover:bg-accent text-muted-foreground'
+                                                        )}
                                                     >
-                                                {/if}
-                                            </Button>
+                                                        <ChildIcon class="size-4" />
+                                                        <span class="flex-1 text-left"
+                                                            >{child.title}</span
+                                                        >
+                                                        <ChevronRight
+                                                            class={cn(
+                                                                'size-3.5 transition-transform duration-200',
+                                                                expandedGroups.has(child.id) &&
+                                                                    'rotate-90'
+                                                            )}
+                                                        />
+                                                    </button>
+                                                    {#if expandedGroups.has(child.id)}
+                                                        <div
+                                                            class="border-border/50 ms-3 space-y-0.5 border-l py-0.5 ps-2"
+                                                        >
+                                                            {#each child.children as grandchild (grandchild.id)}
+                                                                {@const GcIcon = getIcon(
+                                                                    grandchild.icon
+                                                                )}
+                                                                {@const gcActive = isActive(
+                                                                    grandchild.url
+                                                                )}
+                                                                <Button
+                                                                    variant={gcActive
+                                                                        ? 'default'
+                                                                        : 'ghost'}
+                                                                    size="sm"
+                                                                    class={cn(
+                                                                        'h-8 w-full justify-start gap-2 text-xs',
+                                                                        gcActive
+                                                                            ? 'bg-primary text-primary-foreground hover:bg-primary/90'
+                                                                            : 'hover:bg-accent'
+                                                                    )}
+                                                                    href={grandchild.url}
+                                                                    rel="external"
+                                                                >
+                                                                    <GcIcon class="size-3.5" />
+                                                                    {grandchild.title}
+                                                                    {#if grandchild.shortcut}
+                                                                        <kbd
+                                                                            class="bg-muted text-muted-foreground ml-auto inline-flex h-4 min-w-4 items-center justify-center rounded border px-0.5 font-mono text-[9px] font-medium"
+                                                                            >{grandchild.shortcut}</kbd
+                                                                        >
+                                                                    {/if}
+                                                                </Button>
+                                                            {/each}
+                                                        </div>
+                                                    {/if}
+                                                </div>
+                                            {:else}
+                                                <!-- 2depth: 단독 메뉴 (기존) -->
+                                                <Button
+                                                    variant={active ? 'default' : 'ghost'}
+                                                    class={cn(
+                                                        'w-full justify-start gap-2',
+                                                        active
+                                                            ? 'bg-primary text-primary-foreground hover:bg-primary/90'
+                                                            : 'hover:bg-accent'
+                                                    )}
+                                                    href={child.url}
+                                                    rel="external"
+                                                >
+                                                    <ChildIcon class="size-4" />
+                                                    {child.title}
+                                                    {#if child.shortcut}
+                                                        <kbd
+                                                            class="bg-muted text-muted-foreground ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded border px-1 font-mono text-[10px] font-medium"
+                                                            >{child.shortcut}</kbd
+                                                        >
+                                                    {/if}
+                                                </Button>
+                                            {/if}
                                         {/each}
                                     </div>
                                 </div>

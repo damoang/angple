@@ -109,7 +109,7 @@ const coreListLayouts: { manifest: LayoutManifest; component: any }[] = [
         manifest: {
             id: 'message',
             name: '축하 메시지',
-            description: '축하 카드 형태로 표시 (그라데이션 헤더, 무지개 아바타)',
+            description: '축하 카드 형태로 표시 (Soft Parchment 스타일, accent border)',
             wrapperClass: 'grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3'
         },
         component: MessageLayout

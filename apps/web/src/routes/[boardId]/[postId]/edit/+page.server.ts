@@ -1,9 +1,7 @@
 import { redirect, error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types.js';
 import type { Board } from '$lib/api/types.js';
-import { env } from '$env/dynamic/private';
-
-const BACKEND_URL = env.BACKEND_URL || 'http://localhost:8090';
+import { backendFetch, createAuthHeaders } from '$lib/server/backend-fetch.js';
 
 /**
  * 게시글 수정 페이지 서버 로드
@@ -19,16 +17,9 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 
     // 게시판 정보 조회 → write_level 권한 체크
     try {
-        const headers: Record<string, string> = {
-            'Content-Type': 'application/json',
-            'User-Agent': 'Angple-Web-SSR/1.0'
-        };
-        if (locals.accessToken) {
-            headers['Authorization'] = `Bearer ${locals.accessToken}`;
-        }
+        const headers = createAuthHeaders(locals.accessToken);
 
-        const backendFetch = globalThis.fetch;
-        const boardRes = await backendFetch(`${BACKEND_URL}/api/v1/boards/${boardId}`, { headers });
+        const boardRes = await backendFetch(`/api/v1/boards/${boardId}`, { headers });
         const board: Board | null = boardRes.ok ? ((await boardRes.json()).data as Board) : null;
 
         if (board) {

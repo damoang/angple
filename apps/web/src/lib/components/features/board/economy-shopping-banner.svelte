@@ -1,11 +1,11 @@
 <script lang="ts">
     // 쇼핑 바로가기 배너 - economy 게시판 전용
     const shops = [
-        { name: '쿠팡', href: 'https://link.coupang.com/a/cSFTV0' },
         {
             name: '알리익스프레스',
             href: 'https://s.click.aliexpress.com/e/_oFaTsCc'
         },
+        { name: '오늘의집', href: 'https://ozip.me/p22qT2u?af' },
         { name: '아마존', href: 'https://www.amazon.com/?tag=damoang0c-20' },
         {
             name: 'G마켓',
@@ -26,7 +26,8 @@
         {
             name: '교보문고',
             href: 'https://click.linkprice.com/click.php?m=kbbook&a=A100694456&l=9999&l_cd2=0&tu=https%3A%2F%2Fwww.kyobobook.co.kr%2F'
-        }
+        },
+        { name: '쿠팡', href: 'https://link.coupang.com/a/cSFTV0' }
     ];
 </script>
 

@@ -42,9 +42,12 @@ async function fetchCurrentUser(): Promise<void> {
  * SSR에서 받은 인증 데이터로 초기화
  * hooks.server.ts에서 설정한 user/accessToken을 +layout.server.ts 경유로 받음
  */
-function initFromSSR(ssrUser: { nickname: string; level: number }, accessToken: string): void {
+function initFromSSR(
+    ssrUser: { id?: string; nickname: string; level: number },
+    accessToken: string
+): void {
     user = {
-        mb_id: '',
+        mb_id: ssrUser.id ?? '',
         mb_name: ssrUser.nickname,
         mb_level: ssrUser.level,
         mb_email: ''
@@ -151,6 +154,10 @@ export const authStore = {
     },
     get error() {
         return error;
+    },
+    /** Access token (서버에서 관리, 클라이언트에서는 apiClient 내부 저장) */
+    get accessToken(): string | null {
+        return apiClient.getAccessToken?.() ?? null;
     },
     ...authActions
 };

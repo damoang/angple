@@ -1,10 +1,16 @@
-import { redirect, type Handle } from '@sveltejs/kit';
+import { redirect, type Handle, type HandleServerError } from '@sveltejs/kit';
 import { dev } from '$app/environment';
 import { env } from '$env/dynamic/private';
 import { getMemberById } from '$lib/server/auth/oauth/member.js';
 import { getSession, SESSION_COOKIE_NAME } from '$lib/server/auth/session-store.js';
+import { generateAccessToken } from '$lib/server/auth/jwt.js';
 import { checkRateLimit, recordAttempt } from '$lib/server/rate-limit.js';
 import { mapGnuboardUrl, mapRhymixUrl } from '$lib/server/url-compat.js';
+
+// --- JWT 인메모리 캐시 (세션별, 5분 TTL) ---
+const jwtCache = new Map<string, { token: string; expiry: number }>();
+const JWT_CACHE_TTL = 5 * 60 * 1000; // 5분
+const MAX_JWT_CACHE_SIZE = 5000;
 
 /**
  * SvelteKit Server Hooks
@@ -22,6 +28,13 @@ const COOKIE_DOMAIN = env.COOKIE_DOMAIN || '';
 // CSP에 추가할 사이트별 도메인 (런타임 환경변수)
 const ADS_URL = env.ADS_URL || '';
 const LEGACY_URL = env.LEGACY_URL || '';
+
+/** CDN 캐시 가능한 공개 경로 (비로그인 시만 적용) */
+const PUBLIC_CACHEABLE_PATHS = ['/feed', '/game', '/info'];
+
+function isPublicCacheablePath(pathname: string): boolean {
+    return PUBLIC_CACHEABLE_PATHS.some((p) => pathname === p || pathname.startsWith(p + '/'));
+}
 
 /** Rate limiting 경로 패턴 */
 const RATE_LIMITED_PATHS = [
@@ -54,26 +67,6 @@ async function authenticateSSR(event: Parameters<Handle>[0]['event']): Promise<v
     // 세션 쿠키로 인증
     const sessionId = event.cookies.get(SESSION_COOKIE_NAME);
 
-    // 디버그: admin API 요청 로깅 (모든 admin 관련 경로)
-    const isAdminPath = event.url.pathname.includes('admin');
-    if (isAdminPath) {
-        const rawCookieHeader = event.request.headers.get('cookie');
-        console.log('[Auth Debug - Admin]', {
-            path: event.url.pathname,
-            method: event.request.method,
-            hasSessionId: !!sessionId,
-            sessionId: sessionId ? sessionId.slice(0, 8) + '...' : 'none',
-            cookieNames: event.cookies
-                .getAll()
-                .map((c) => c.name)
-                .slice(0, 5),
-            rawCookieHeader: rawCookieHeader
-                ? rawCookieHeader.substring(0, 100) + '...'
-                : '(no cookie header)',
-            hasOrigin: !!event.request.headers.get('origin'),
-            origin: event.request.headers.get('origin')
-        });
-    }
     if (sessionId) {
         try {
             const session = await getSession(sessionId);
@@ -87,9 +80,23 @@ async function authenticateSSR(event: Parameters<Handle>[0]['event']): Promise<v
                     };
                     event.locals.sessionId = sessionId;
                     event.locals.csrfToken = session.csrfToken;
-                    // Go 백엔드 통신용 내부 JWT 생성 (브라우저 노출 없음)
-                    const { generateAccessToken } = await import('$lib/server/auth/jwt.js');
-                    event.locals.accessToken = await generateAccessToken(member);
+
+                    // Go 백엔드 통신용 내부 JWT (캐시 사용, 5분 TTL)
+                    const now = Date.now();
+                    const cachedJwt = jwtCache.get(session.mbId);
+                    if (cachedJwt && now < cachedJwt.expiry) {
+                        event.locals.accessToken = cachedJwt.token;
+                    } else {
+                        const token = await generateAccessToken(member);
+                        event.locals.accessToken = token;
+                        // 캐시 크기 제한
+                        if (jwtCache.size > MAX_JWT_CACHE_SIZE) {
+                            for (const [key, entry] of jwtCache) {
+                                if (now >= entry.expiry) jwtCache.delete(key);
+                            }
+                        }
+                        jwtCache.set(session.mbId, { token, expiry: now + JWT_CACHE_TTL });
+                    }
                     return;
                 }
             }
@@ -141,11 +148,6 @@ function buildCsp(): string {
 const cspHeader = buildCsp();
 
 export const handle: Handle = async ({ event, resolve }) => {
-    // 모든 요청 디버그 (임시)
-    if (event.url.pathname.includes('admin') && event.url.pathname.includes('menus')) {
-        console.log('[HOOKS] Request:', event.request.method, event.url.pathname);
-    }
-
     // 그누보드/라이믹스 URL 호환 리다이렉트 (SEO 보존)
     const { pathname } = event.url;
     if (pathname.startsWith('/bbs/')) {
@@ -225,7 +227,21 @@ export const handle: Handle = async ({ event, resolve }) => {
     // /api/plugins/* 프록시는 더 이상 사용하지 않음
     // 모든 /api/plugins/* 요청은 SvelteKit API 라우트에서 처리
 
-    const response = await resolve(event);
+    // SSR 다크모드: 쿠키에서 테마 읽어 <html> 클래스 주입 (FOUC 방지)
+    const themeMode = event.cookies.get('angple_theme_mode') || '';
+    const htmlClass = themeMode === 'dark' ? 'dark' : themeMode === 'amoled' ? 'amoled' : '';
+
+    // SSR 밀도: 쿠키에서 읽어 CSS 변수 주입 (레이아웃 flash 방지)
+    const density = event.cookies.get('angple_ui_density') || 'balanced';
+    const dPad = density === 'compact' ? '0px' : density === 'relaxed' ? '6px' : '3px';
+
+    const response = await resolve(event, {
+        transformPageChunk: ({ html }) => {
+            const cls = htmlClass ? ` class="${htmlClass}"` : '';
+            const sty = ` style="--row-pad-extra:${dPad};--comment-pad-extra:${dPad}"`;
+            return html.replace('<html lang="ko">', `<html lang="ko"${cls}${sty}>`);
+        }
+    });
 
     // CORS 헤더 (credentials: include 지원)
     const origin = event.request.headers.get('origin');
@@ -250,10 +266,56 @@ export const handle: Handle = async ({ event, resolve }) => {
     response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
     response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
 
-    // 캐시 제어: 인증 데이터(user, accessToken)가 레이아웃에 포함되므로
-    // 모든 HTML/__data.json 응답은 사용자별로 고유 → 절대 캐시 금지
-    response.headers.set('Cache-Control', 'private, no-store, no-cache, must-revalidate');
-    response.headers.set('Vary', 'Cookie');
+    // 캐시 제어:
+    // - _app/immutable/ → SvelteKit 기본 장기 캐시 유지 (content-hash)
+    // - 비로그인 + 공개 페이지 → CDN stale-while-revalidate (ISR-like)
+    // - 나머지 → 캐시 금지 (인증 데이터 포함)
+    if (event.url.pathname.startsWith('/_app/immutable')) {
+        // SvelteKit이 이미 설정 → 그대로 유지
+    } else if (!event.locals.user && isPublicCacheablePath(pathname)) {
+        // 비로그인 사용자의 공개 페이지: CDN 캐시 30초, stale 60초
+        response.headers.set(
+            'Cache-Control',
+            'public, s-maxage=30, stale-while-revalidate=60, max-age=0'
+        );
+        response.headers.set('Vary', 'Cookie');
+    } else {
+        response.headers.set('Cache-Control', 'private, no-store, no-cache, must-revalidate');
+        response.headers.set('Vary', 'Cookie');
+    }
 
     return response;
+};
+
+/**
+ * 서버 에러 핸들러 — 에러 추적 및 사용자 친화적 메시지 반환
+ * 404 제외한 모든 에러를 Dantry(ClickHouse 기반)로 fire-and-forget 전송
+ */
+export const handleError: HandleServerError = ({ error, event, status, message }) => {
+    const err = error instanceof Error ? error : new Error(String(error));
+
+    if (status !== 404) {
+        console.error(`[Server Error] ${status} ${event.url.pathname}:`, err.message);
+
+        // Fire-and-forget: Dantry 에러 트래커로 전송
+        if (ADS_URL) {
+            fetch(`${ADS_URL}/api/v1/dantry`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    type: 'server_error',
+                    status,
+                    message: err.message,
+                    stack: err.stack?.slice(0, 2000),
+                    url: event.url.href,
+                    timestamp: new Date().toISOString()
+                }),
+                signal: AbortSignal.timeout(3_000)
+            }).catch(() => {});
+        }
+    }
+
+    return {
+        message: status >= 500 ? '일시적인 오류가 발생했습니다.' : message
+    };
 };

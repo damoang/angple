@@ -13,11 +13,7 @@ const HIDDEN_MENU_IDS = new Set([261]); // 앙수호대
 function filterMenus(menus: MenuItem[]): MenuItem[] {
     return menus
         .filter((m) => !HIDDEN_MENU_IDS.has(m.id))
-        .map((m) =>
-            m.children
-                ? { ...m, children: m.children.filter((c) => !HIDDEN_MENU_IDS.has(c.id)) }
-                : m
-        );
+        .map((m) => (m.children ? { ...m, children: filterMenus(m.children) } : m));
 }
 
 class MenuStore {

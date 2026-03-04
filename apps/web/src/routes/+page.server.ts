@@ -7,23 +7,29 @@ import { env } from '$env/dynamic/private';
 
 const BACKEND_URL = env.BACKEND_URL || 'http://localhost:8090';
 
-export const load: PageServerLoad = async () => {
-    // 위젯 데이터, 레이아웃, 추천글을 병렬로 로드
-    const [indexWidgetsResult, layoutResult, recommendedResult] = await Promise.allSettled([
-        buildIndexWidgets(BACKEND_URL),
-        (async () => {
-            const [widgetLayout, sidebarWidgetLayout] = await Promise.all([
-                getWidgetLayout(),
-                getSidebarWidgetLayout()
-            ]);
-            return {
-                widgetLayout: widgetLayout ?? DEFAULT_WIDGETS,
-                sidebarWidgetLayout: sidebarWidgetLayout ?? DEFAULT_SIDEBAR_WIDGETS
-            };
-        })(),
-        // 추천글 기본 탭 SSR 프리페치 (로딩 없이 즉시 표시)
-        loadRecommendedData(getDefaultPeriod())
-    ]);
+export const load: PageServerLoad = async ({ fetch }) => {
+    // 위젯 데이터, 레이아웃, 추천글, 축하메시지를 병렬로 로드
+    const [indexWidgetsResult, layoutResult, recommendedResult, celebrationResult] =
+        await Promise.allSettled([
+            buildIndexWidgets(BACKEND_URL),
+            (async () => {
+                const [widgetLayout, sidebarWidgetLayout] = await Promise.all([
+                    getWidgetLayout(),
+                    getSidebarWidgetLayout()
+                ]);
+                return {
+                    widgetLayout: widgetLayout ?? DEFAULT_WIDGETS,
+                    sidebarWidgetLayout: sidebarWidgetLayout ?? DEFAULT_SIDEBAR_WIDGETS
+                };
+            })(),
+            // 추천글 기본 탭 SSR 프리페치 (로딩 없이 즉시 표시)
+            loadRecommendedData(getDefaultPeriod()),
+            // 축하메시지 SSR 프리페치
+            fetch('/api/ads/celebration/today?mode=recent')
+                .then((r) => r.json())
+                .then((res) => (res.success ? res.data : []))
+                .catch(() => [])
+        ]);
 
     const indexWidgets =
         indexWidgetsResult.status === 'fulfilled' ? indexWidgetsResult.value : null;
@@ -33,6 +39,7 @@ export const load: PageServerLoad = async () => {
             : { widgetLayout: DEFAULT_WIDGETS, sidebarWidgetLayout: DEFAULT_SIDEBAR_WIDGETS };
     const recommendedData =
         recommendedResult.status === 'fulfilled' ? recommendedResult.value : null;
+    const celebrationData = celebrationResult.status === 'fulfilled' ? celebrationResult.value : [];
 
     if (indexWidgetsResult.status === 'rejected') {
         console.error('[SSR] Failed to load index widgets:', indexWidgetsResult.reason);
@@ -43,6 +50,7 @@ export const load: PageServerLoad = async () => {
         widgetLayout: layoutData.widgetLayout,
         sidebarWidgetLayout: layoutData.sidebarWidgetLayout,
         recommendedData,
-        recommendedPeriod: getDefaultPeriod()
+        recommendedPeriod: getDefaultPeriod(),
+        celebrationData
     };
 };

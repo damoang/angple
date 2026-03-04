@@ -2,15 +2,16 @@
     import { goto } from '$app/navigation';
     import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card/index.js';
     import { Button } from '$lib/components/ui/button/index.js';
+    import { Progress } from '$lib/components/ui/progress/index.js';
     import type { PageData } from './$types.js';
     import { authStore } from '$lib/stores/auth.svelte.js';
+    import { getGradeName } from '$lib/utils/grade.js';
+    import MySkeleton from '$lib/components/features/my/my-skeleton.svelte';
     import FileText from '@lucide/svelte/icons/file-text';
     import MessageSquare from '@lucide/svelte/icons/message-square';
     import Heart from '@lucide/svelte/icons/heart';
+    import BarChart3 from '@lucide/svelte/icons/bar-chart-3';
     import User from '@lucide/svelte/icons/user';
-    import Settings from '@lucide/svelte/icons/settings';
-    import Coins from '@lucide/svelte/icons/coins';
-    import Star from '@lucide/svelte/icons/star';
 
     let { data }: { data: PageData } = $props();
 
@@ -18,7 +19,8 @@
     const tabs = [
         { id: 'posts', label: '내가 쓴 글', icon: FileText },
         { id: 'comments', label: '내가 쓴 댓글', icon: MessageSquare },
-        { id: 'liked', label: '추천한 글', icon: Heart }
+        { id: 'liked', label: '추천한 글', icon: Heart },
+        { id: 'stats', label: '전체분석', icon: BarChart3 }
     ];
 
     // 탭 변경
@@ -31,11 +33,6 @@
         goto(`/my?tab=${data.tab}&page=${pageNum}`);
     }
 
-    // 게시글로 이동
-    function goToPost(boardId: string, postId: number): void {
-        goto(`/${boardId}/${postId}`);
-    }
-
     // 날짜 포맷
     function formatDate(dateString: string): string {
         const date = new Date(dateString);
@@ -45,29 +42,16 @@
             day: 'numeric'
         });
     }
-
-    // 현재 페이지네이션 데이터
-    const pagination = $derived.by(() => {
-        if (data.tab === 'posts' && data.posts) {
-            return data.posts;
-        } else if (data.tab === 'comments' && data.comments) {
-            return data.comments;
-        } else if (data.tab === 'liked' && data.likedPosts) {
-            return data.likedPosts;
-        }
-        return null;
-    });
 </script>
 
 <svelte:head>
     <title>마이페이지 | {import.meta.env.VITE_SITE_NAME || 'Angple'}</title>
 </svelte:head>
 
-<div class="mx-auto max-w-4xl pt-4">
-    <!-- 헤더 -->
+<div class="mx-auto max-w-4xl px-4">
+    <!-- 헤더 (즉시 렌더링: locals.user에서 옴) -->
     <div class="mb-6 flex items-center justify-between">
         <div class="flex items-center gap-4">
-            <!-- 프로필 아바타 -->
             {#if authStore.user}
                 <div
                     class="bg-primary text-primary-foreground flex h-16 w-16 items-center justify-center rounded-full text-xl font-bold"
@@ -76,7 +60,29 @@
                 </div>
                 <div>
                     <h1 class="text-foreground text-2xl font-bold">{authStore.user.mb_name}</h1>
-                    <p class="text-secondary-foreground">Lv.{authStore.user.mb_level}</p>
+                    <p class="text-secondary-foreground">{getGradeName(authStore.user.mb_level)}</p>
+                    <!-- 경험치 게이지: 스트리밍 데이터 도착 후 표시 -->
+                    {#await data.streamed.tabData then result}
+                        {#if result.expSummary}
+                            <div class="mt-1 w-48">
+                                <div
+                                    class="text-muted-foreground mb-0.5 flex items-center justify-between text-xs"
+                                >
+                                    <span>Lv.{result.expSummary.current_level}</span>
+                                    <span>{result.expSummary.level_progress}%</span>
+                                </div>
+                                <Progress
+                                    value={result.expSummary.level_progress}
+                                    max={100}
+                                    class="h-2"
+                                />
+                                <p class="text-muted-foreground mt-0.5 text-xs">
+                                    {result.expSummary.total_exp.toLocaleString()} / {result.expSummary.next_level_exp.toLocaleString()}
+                                    XP
+                                </p>
+                            </div>
+                        {/if}
+                    {/await}
                 </div>
             {:else}
                 <div class="bg-muted flex h-16 w-16 items-center justify-center rounded-full">
@@ -87,27 +93,9 @@
                 </div>
             {/if}
         </div>
-
-        <div class="flex gap-2">
-            <Button variant="outline" size="sm" onclick={() => goto('/my/points')}>
-                <Coins class="mr-1 h-4 w-4" />
-                포인트
-            </Button>
-            <Button variant="outline" size="sm" onclick={() => goto('/my/exp')}>
-                <Star class="mr-1 h-4 w-4" />
-                경험치
-            </Button>
-            <Button variant="outline" size="sm" onclick={() => goto('/my/blocked')}>
-                차단 목록
-            </Button>
-            <Button variant="outline" size="sm" onclick={() => goto('/my/settings')}>
-                <Settings class="mr-1 h-4 w-4" />
-                설정
-            </Button>
-        </div>
     </div>
 
-    <!-- 탭 네비게이션 -->
+    <!-- 탭 네비게이션 (즉시 렌더링) -->
     <div class="border-border mb-6 flex gap-2 border-b pb-2">
         {#each tabs as tab (tab.id)}
             <Button
@@ -121,182 +109,299 @@
         {/each}
     </div>
 
-    <!-- 에러 메시지 -->
-    {#if data.error}
-        <Card class="border-destructive">
-            <CardContent class="pt-6">
-                <p class="text-destructive text-center">{data.error}</p>
-            </CardContent>
-        </Card>
-    {:else}
-        <!-- 내가 쓴 글 -->
-        {#if data.tab === 'posts'}
-            <Card class="bg-background">
-                <CardHeader>
-                    <CardTitle class="flex items-center gap-2">
-                        <FileText class="h-5 w-5" />
-                        내가 쓴 글
-                        {#if data.posts}
-                            <span class="text-muted-foreground text-sm font-normal">
-                                ({data.posts.total}개)
-                            </span>
-                        {/if}
-                    </CardTitle>
-                </CardHeader>
-                <CardContent>
-                    {#if data.posts && data.posts.items.length > 0}
-                        <ul class="divide-border divide-y">
-                            {#each data.posts.items as post (post.id)}
-                                <li class="py-3 first:pt-0 last:pb-0">
-                                    <a
-                                        href="/{post.board_id || 'free'}/{post.id}"
-                                        class="hover:bg-accent -m-2 block w-full rounded-md p-2 no-underline transition-colors"
-                                        data-sveltekit-preload-data="hover"
-                                    >
-                                        <h3 class="text-foreground mb-1 line-clamp-1 font-medium">
-                                            {post.title}
-                                        </h3>
-                                        <div
-                                            class="text-muted-foreground flex items-center gap-2 text-xs"
-                                        >
-                                            <span>{formatDate(post.created_at)}</span>
-                                            <span>•</span>
-                                            <span>조회 {post.views.toLocaleString()}</span>
-                                            <span>•</span>
-                                            <span>👍 {post.likes}</span>
-                                            <span>•</span>
-                                            <span>💬 {post.comments_count}</span>
-                                        </div>
-                                    </a>
-                                </li>
-                            {/each}
-                        </ul>
-                    {:else}
-                        <p class="text-muted-foreground py-8 text-center">작성한 글이 없습니다.</p>
-                    {/if}
+    <!-- 탭 콘텐츠 (스트리밍) -->
+    {#await data.streamed.tabData}
+        <!-- 스켈레톤 -->
+        <MySkeleton />
+    {:then result}
+        <!-- 에러 메시지 -->
+        {#if result.error}
+            <Card class="border-destructive">
+                <CardContent class="pt-6">
+                    <p class="text-destructive text-center">{result.error}</p>
                 </CardContent>
             </Card>
-        {/if}
-
-        <!-- 내가 쓴 댓글 -->
-        {#if data.tab === 'comments'}
-            <Card class="bg-background">
-                <CardHeader>
-                    <CardTitle class="flex items-center gap-2">
-                        <MessageSquare class="h-5 w-5" />
-                        내가 쓴 댓글
-                        {#if data.comments}
-                            <span class="text-muted-foreground text-sm font-normal">
-                                ({data.comments.total}개)
-                            </span>
-                        {/if}
-                    </CardTitle>
-                </CardHeader>
-                <CardContent>
-                    {#if data.comments && data.comments.items.length > 0}
-                        <ul class="divide-border divide-y">
-                            {#each data.comments.items as comment (comment.id)}
-                                <li class="py-3 first:pt-0 last:pb-0">
-                                    <div class="-m-2 rounded-md p-2">
-                                        <p class="text-foreground mb-2 line-clamp-2">
-                                            {comment.content}
-                                        </p>
-                                        <div
-                                            class="text-muted-foreground flex items-center gap-2 text-xs"
+        {:else}
+            <!-- 내가 쓴 글 -->
+            {#if data.tab === 'posts'}
+                <Card class="bg-background">
+                    <CardHeader>
+                        <CardTitle class="flex items-center gap-2">
+                            <FileText class="h-5 w-5" />
+                            내가 쓴 글
+                            {#if result.posts}
+                                <span class="text-muted-foreground text-sm font-normal">
+                                    ({result.posts.total}개)
+                                </span>
+                            {/if}
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        {#if result.posts && result.posts.items.length > 0}
+                            <ul class="divide-border divide-y">
+                                {#each result.posts.items as post (post.id)}
+                                    <li class="py-3 first:pt-0 last:pb-0">
+                                        <a
+                                            href="/{post.board_id || 'free'}/{post.id}"
+                                            class="hover:bg-accent -m-2 block w-full rounded-md p-2 no-underline transition-colors"
+                                            data-sveltekit-preload-data="hover"
                                         >
-                                            <span>{formatDate(comment.created_at)}</span>
-                                            {#if comment.likes}
-                                                <span>•</span>
-                                                <span>👍 {comment.likes}</span>
+                                            <h3
+                                                class="text-foreground mb-1 line-clamp-1 font-medium"
+                                            >
+                                                {post.title}
+                                            </h3>
+                                            <div
+                                                class="text-muted-foreground flex items-center gap-2 text-xs"
+                                            >
+                                                <span>{formatDate(post.created_at)}</span>
+                                                <span>·</span>
+                                                <span>조회 {post.views.toLocaleString()}</span>
+                                                <span>·</span>
+                                                <span>추천 {post.likes}</span>
+                                                <span>·</span>
+                                                <span>댓글 {post.comments_count}</span>
+                                            </div>
+                                        </a>
+                                    </li>
+                                {/each}
+                            </ul>
+                        {:else}
+                            <p class="text-muted-foreground py-8 text-center">
+                                작성한 글이 없습니다.
+                            </p>
+                        {/if}
+                    </CardContent>
+                </Card>
+
+                <!-- 페이지네이션 -->
+                {#if result.posts && result.posts.total_pages > 1}
+                    {@const pag = result.posts}
+                    <div class="mt-6 flex items-center justify-center gap-2">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={data.page === 1}
+                            onclick={() => goToPage(data.page - 1)}
+                        >
+                            이전
+                        </Button>
+                        <span class="text-muted-foreground px-4 text-sm">
+                            {data.page} / {pag.total_pages}
+                        </span>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={data.page === pag.total_pages}
+                            onclick={() => goToPage(data.page + 1)}
+                        >
+                            다음
+                        </Button>
+                    </div>
+                {/if}
+            {/if}
+
+            <!-- 내가 쓴 댓글 -->
+            {#if data.tab === 'comments'}
+                <Card class="bg-background">
+                    <CardHeader>
+                        <CardTitle class="flex items-center gap-2">
+                            <MessageSquare class="h-5 w-5" />
+                            내가 쓴 댓글
+                            {#if result.comments}
+                                <span class="text-muted-foreground text-sm font-normal">
+                                    ({result.comments.total}개)
+                                </span>
+                            {/if}
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        {#if result.comments && result.comments.items.length > 0}
+                            <ul class="divide-border divide-y">
+                                {#each result.comments.items as comment (`${comment.board_id}-${comment.id}`)}
+                                    <li class="py-3 first:pt-0 last:pb-0">
+                                        <a
+                                            href="/{comment.board_id || 'free'}/{comment.post_id ||
+                                                comment.parent_id}"
+                                            class="hover:bg-accent -m-2 block rounded-md p-2 no-underline transition-colors"
+                                            data-sveltekit-preload-data="hover"
+                                        >
+                                            {#if comment.post_title}
+                                                <p
+                                                    class="text-muted-foreground mb-1 line-clamp-1 text-xs"
+                                                >
+                                                    {comment.post_title}
+                                                </p>
                                             {/if}
+                                            <p class="text-foreground mb-2 line-clamp-2">
+                                                {comment.content}
+                                            </p>
+                                            <div
+                                                class="text-muted-foreground flex items-center gap-2 text-xs"
+                                            >
+                                                <span>{formatDate(comment.created_at)}</span>
+                                                {#if comment.likes}
+                                                    <span>·</span>
+                                                    <span>추천 {comment.likes}</span>
+                                                {/if}
+                                            </div>
+                                        </a>
+                                    </li>
+                                {/each}
+                            </ul>
+                        {:else}
+                            <p class="text-muted-foreground py-8 text-center">
+                                작성한 댓글이 없습니다.
+                            </p>
+                        {/if}
+                    </CardContent>
+                </Card>
+
+                {#if result.comments && result.comments.total_pages > 1}
+                    {@const pag = result.comments}
+                    <div class="mt-6 flex items-center justify-center gap-2">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={data.page === 1}
+                            onclick={() => goToPage(data.page - 1)}
+                        >
+                            이전
+                        </Button>
+                        <span class="text-muted-foreground px-4 text-sm">
+                            {data.page} / {pag.total_pages}
+                        </span>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={data.page === pag.total_pages}
+                            onclick={() => goToPage(data.page + 1)}
+                        >
+                            다음
+                        </Button>
+                    </div>
+                {/if}
+            {/if}
+
+            <!-- 추천한 글 -->
+            {#if data.tab === 'liked'}
+                <Card class="bg-background">
+                    <CardHeader>
+                        <CardTitle class="flex items-center gap-2">
+                            <Heart class="h-5 w-5" />
+                            추천한 글
+                            {#if result.likedPosts}
+                                <span class="text-muted-foreground text-sm font-normal">
+                                    ({result.likedPosts.total}개)
+                                </span>
+                            {/if}
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        {#if result.likedPosts && result.likedPosts.items.length > 0}
+                            <ul class="divide-border divide-y">
+                                {#each result.likedPosts.items as post (post.id)}
+                                    <li class="py-3 first:pt-0 last:pb-0">
+                                        <a
+                                            href="/{post.board_id || 'free'}/{post.id}"
+                                            class="hover:bg-accent -m-2 block w-full rounded-md p-2 no-underline transition-colors"
+                                            data-sveltekit-preload-data="hover"
+                                        >
+                                            <h3
+                                                class="text-foreground mb-1 line-clamp-1 font-medium"
+                                            >
+                                                {post.title}
+                                            </h3>
+                                            <div
+                                                class="text-muted-foreground flex items-center gap-2 text-xs"
+                                            >
+                                                <span>{post.author}</span>
+                                                <span>·</span>
+                                                <span>{formatDate(post.created_at)}</span>
+                                                <span>·</span>
+                                                <span>추천 {post.likes}</span>
+                                            </div>
+                                        </a>
+                                    </li>
+                                {/each}
+                            </ul>
+                        {:else}
+                            <p class="text-muted-foreground py-8 text-center">
+                                추천한 글이 없습니다.
+                            </p>
+                        {/if}
+                    </CardContent>
+                </Card>
+
+                {#if result.likedPosts && result.likedPosts.total_pages > 1}
+                    {@const pag = result.likedPosts}
+                    <div class="mt-6 flex items-center justify-center gap-2">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={data.page === 1}
+                            onclick={() => goToPage(data.page - 1)}
+                        >
+                            이전
+                        </Button>
+                        <span class="text-muted-foreground px-4 text-sm">
+                            {data.page} / {pag.total_pages}
+                        </span>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={data.page === pag.total_pages}
+                            onclick={() => goToPage(data.page + 1)}
+                        >
+                            다음
+                        </Button>
+                    </div>
+                {/if}
+            {/if}
+
+            <!-- 전체분석 -->
+            {#if data.tab === 'stats'}
+                <Card class="bg-background">
+                    <CardHeader>
+                        <CardTitle class="flex items-center gap-2">
+                            <BarChart3 class="h-5 w-5" />
+                            전체분석
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        {#if result.boardStats && result.boardStats.length > 0}
+                            <div class="divide-border divide-y">
+                                {#each result.boardStats as stat (stat.board_id)}
+                                    <div class="flex items-center justify-between py-3">
+                                        <a
+                                            href="/{stat.board_id}"
+                                            class="text-foreground font-medium hover:underline"
+                                        >
+                                            {stat.board_name}
+                                        </a>
+                                        <div class="text-muted-foreground flex gap-4 text-sm">
+                                            <span>글 {stat.post_count}</span>
+                                            <span>댓글 {stat.comment_count}</span>
                                         </div>
                                     </div>
-                                </li>
-                            {/each}
-                        </ul>
-                    {:else}
-                        <p class="text-muted-foreground py-8 text-center">
-                            작성한 댓글이 없습니다.
-                        </p>
-                    {/if}
-                </CardContent>
-            </Card>
-        {/if}
-
-        <!-- 추천한 글 -->
-        {#if data.tab === 'liked'}
-            <Card class="bg-background">
-                <CardHeader>
-                    <CardTitle class="flex items-center gap-2">
-                        <Heart class="h-5 w-5" />
-                        추천한 글
-                        {#if data.likedPosts}
-                            <span class="text-muted-foreground text-sm font-normal">
-                                ({data.likedPosts.total}개)
-                            </span>
+                                {/each}
+                            </div>
+                        {:else}
+                            <p class="text-muted-foreground py-8 text-center">
+                                활동 내역이 없습니다.
+                            </p>
                         {/if}
-                    </CardTitle>
-                </CardHeader>
-                <CardContent>
-                    {#if data.likedPosts && data.likedPosts.items.length > 0}
-                        <ul class="divide-border divide-y">
-                            {#each data.likedPosts.items as post (post.id)}
-                                <li class="py-3 first:pt-0 last:pb-0">
-                                    <a
-                                        href="/{post.board_id || 'free'}/{post.id}"
-                                        class="hover:bg-accent -m-2 block w-full rounded-md p-2 no-underline transition-colors"
-                                        data-sveltekit-preload-data="hover"
-                                    >
-                                        <h3 class="text-foreground mb-1 line-clamp-1 font-medium">
-                                            {post.title}
-                                        </h3>
-                                        <div
-                                            class="text-muted-foreground flex items-center gap-2 text-xs"
-                                        >
-                                            <span>{post.author}</span>
-                                            <span>•</span>
-                                            <span>{formatDate(post.created_at)}</span>
-                                            <span>•</span>
-                                            <span>👍 {post.likes}</span>
-                                        </div>
-                                    </a>
-                                </li>
-                            {/each}
-                        </ul>
-                    {:else}
-                        <p class="text-muted-foreground py-8 text-center">추천한 글이 없습니다.</p>
-                    {/if}
-                </CardContent>
-            </Card>
+                    </CardContent>
+                </Card>
+            {/if}
         {/if}
-
-        <!-- 페이지네이션 -->
-        {#if pagination && pagination.total_pages > 1}
-            <div class="mt-6 flex items-center justify-center gap-2">
-                <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={data.page === 1}
-                    onclick={() => goToPage(data.page - 1)}
-                >
-                    이전
-                </Button>
-
-                <span class="text-muted-foreground px-4 text-sm">
-                    {data.page} / {pagination.total_pages}
-                </span>
-
-                <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={data.page === pagination.total_pages}
-                    onclick={() => goToPage(data.page + 1)}
-                >
-                    다음
-                </Button>
-            </div>
-        {/if}
-    {/if}
+    {:catch}
+        <Card class="border-destructive">
+            <CardContent class="pt-6">
+                <p class="text-destructive text-center">데이터를 불러오는데 실패했습니다.</p>
+            </CardContent>
+        </Card>
+    {/await}
 </div>
 
 <style>

@@ -1,17 +1,16 @@
 <script lang="ts">
     /**
-     * 축하 메시지 게시판 레이아웃
+     * 축하 메시지 게시판 레이아웃 — Soft Parchment Card
      *
      * 회원 축하/기념 게시글을 카드 형태로 표시합니다.
-     * - 그라데이션 헤더 (회원 아이디 기반 일관된 색상)
-     * - 레벨 배지 아바타
-     * - 배너 이미지 오버레이
-     *
-     * Design System: "Soft Modern" - 부드러운 카드, 호버 리프트 효과
+     * - 왼쪽 accent border (회원 아이디 기반 dusty 팔레트)
+     * - 이미지 aspect-[2/1] inset
+     * - 하단 메타: 아바타 + 닉네임 + 날짜
      */
     import type { FreePost, BoardDisplaySettings } from '$lib/api/types.js';
     import Heart from '@lucide/svelte/icons/heart';
     import { getMemberIconUrl } from '$lib/utils/member-icon.js';
+    import { formatDate } from '$lib/utils/format-date.js';
 
     let {
         post,
@@ -29,41 +28,36 @@
     const iconUrl = $derived(showIcon ? getMemberIconUrl(post.author_id) : null);
     const initial = $derived((post.author || '?').charAt(0).toUpperCase());
 
-    // 삭제된 글
     const isDeleted = $derived(!!post.deleted_at);
 
-    // 썸네일 표시
     const thumbnailUrl = $derived(post.thumbnail || post.images?.[0] || '');
     const hasImage = $derived(Boolean(thumbnailUrl));
 
-    // 회원 아이디 기반 그라데이션 번호 (1-5, 일관된 색상)
-    function getGradientNumber(memberId?: string): number {
-        if (!memberId) return Math.floor(Math.random() * 5) + 1;
+    // 회원 아이디 기반 accent 색상 (dusty 팔레트)
+    const accentColors = [
+        'border-l-dusty-300',
+        'border-l-dusty-400',
+        'border-l-dusty-500',
+        'border-l-dusty-600',
+        'border-l-dusty-300/70'
+    ];
+
+    function getAccentIndex(memberId?: string): number {
+        if (!memberId) return 0;
         let hash = 0;
         for (let i = 0; i < memberId.length; i++) {
             hash = (hash << 5) - hash + memberId.charCodeAt(i);
             hash |= 0;
         }
-        return (Math.abs(hash) % 5) + 1;
+        return Math.abs(hash) % accentColors.length;
     }
 
-    // 그라데이션 색상 매핑
-    const gradients: Record<number, string> = {
-        1: 'from-indigo-500 to-purple-600',
-        2: 'from-pink-400 to-rose-500',
-        3: 'from-cyan-400 to-teal-500',
-        4: 'from-emerald-400 to-cyan-500',
-        5: 'from-rose-400 to-amber-400'
-    };
-
-    const gradNum = $derived(getGradientNumber(post.author_id));
-    const grad = $derived(gradients[gradNum]);
+    const accent = $derived(accentColors[getAccentIndex(post.author_id)]);
 </script>
 
-<!-- 축하 메시지 카드 -->
 {#if isDeleted}
     <div
-        class="border-border bg-background flex h-full flex-col overflow-hidden rounded-2xl border opacity-50"
+        class="border-border bg-background flex h-full flex-col overflow-hidden rounded-lg border opacity-50"
     >
         <div class="flex flex-1 items-center justify-center p-4">
             <span class="text-muted-foreground text-sm">[삭제된 게시물입니다]</span>
@@ -71,52 +65,62 @@
     </div>
 {:else}
     <div
-        class="border-border bg-background group flex h-full flex-col overflow-hidden rounded-2xl border shadow-sm transition-all duration-200 ease-out hover:-translate-y-1 hover:shadow-lg"
+        class="border-border bg-background group flex h-full flex-col overflow-hidden rounded-lg border border-l-[3px] shadow-sm transition-all duration-200 ease-out hover:-translate-y-0.5 hover:shadow-md {accent}"
+        class:opacity-75={isRead}
     >
-        <!-- 상단 헤더: 그라데이션 + [닉네임] 제목 -->
-        <a {href} class="flex items-center gap-2 bg-gradient-to-r px-3 py-2 text-white {grad}">
-            <Heart class="h-4 w-4 shrink-0" />
-            <span class="truncate text-sm font-bold drop-shadow-md">
-                {#if post.author}[{post.author}]{/if}
+        <!-- 제목 -->
+        <a {href} class="block px-3 pb-1 pt-3">
+            <h3 class="text-foreground truncate text-sm font-medium">
                 {post.title}
-            </span>
+            </h3>
         </a>
 
-        <!-- 본문: 프로필 + 배너 -->
-        <a {href} class="relative flex min-h-[70px] flex-1" data-sveltekit-preload-data="hover">
-            <!-- 프로필 아이콘 (왼쪽 중앙) -->
-            <div class="absolute left-3 top-1/2 z-10 -translate-y-1/2">
-                <div
-                    class="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full border-2 border-white/50 bg-gradient-to-br shadow-lg {grad}"
-                >
-                    {#if iconUrl}
-                        <img
-                            src={iconUrl}
-                            alt={post.author}
-                            class="h-full w-full object-cover"
-                            onerror={() => {
-                                showIcon = false;
-                            }}
-                        />
-                    {:else}
-                        <span class="text-lg font-bold text-white">{initial}</span>
-                    {/if}
-                </div>
-            </div>
-
-            <!-- 배너 이미지 or 빈 공간 -->
+        <!-- 이미지 영역 -->
+        <a {href} class="block px-3 py-1" data-sveltekit-preload-data="hover">
             {#if hasImage}
-                <div class="relative h-full w-full">
+                <div class="overflow-hidden rounded">
                     <img
                         src={thumbnailUrl}
                         alt={post.title}
-                        class="h-full min-h-[70px] w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+                        class="aspect-[6/1] w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
                         loading="lazy"
                     />
                 </div>
             {:else}
-                <div class="bg-muted flex min-h-[70px] w-full"></div>
+                <div
+                    class="bg-dusty-50 flex aspect-[6/1] w-full items-center justify-center rounded"
+                >
+                    <Heart class="text-dusty-300 h-8 w-8" />
+                </div>
             {/if}
         </a>
+
+        <!-- 하단 메타: 아바타 + 닉네임 + 날짜 -->
+        <div class="flex items-center gap-2 px-3 pb-3 pt-1">
+            <div
+                class="bg-dusty-100 flex h-6 w-6 shrink-0 items-center justify-center overflow-hidden rounded-full"
+            >
+                {#if iconUrl}
+                    <img
+                        src={iconUrl}
+                        alt={post.author}
+                        class="h-full w-full object-cover"
+                        onerror={() => {
+                            showIcon = false;
+                        }}
+                    />
+                {:else}
+                    <span class="text-dusty-500 text-xs font-medium">{initial}</span>
+                {/if}
+            </div>
+            <span class="text-muted-foreground truncate text-xs">
+                {post.author || '익명'}
+            </span>
+            {#if post.created_at}
+                <span class="text-muted-foreground/60 ml-auto shrink-0 text-xs">
+                    {formatDate(post.created_at)}
+                </span>
+            {/if}
+        </div>
     </div>
 {/if}

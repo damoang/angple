@@ -10,7 +10,8 @@ const SITE_URL = env.SITE_URL || 'https://damoang.net';
 const ALLOWED_ORIGINS = new Set([
     'https://damoang.net',
     'https://web.damoang.net',
-    'https://dev.damoang.net'
+    'https://dev.damoang.net',
+    'https://canary.damoang.net'
 ]);
 
 export interface OAuthKeys {

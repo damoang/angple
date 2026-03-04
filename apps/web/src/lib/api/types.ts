@@ -343,6 +343,14 @@ export interface MyComment extends FreeComment {
     board_id: string;
 }
 
+// 게시판별 통계
+export interface BoardStat {
+    board_id: string;
+    board_name: string;
+    post_count: number;
+    comment_count: number;
+}
+
 // 차단 회원 정보
 export interface BlockedMember {
     mb_id: string;
@@ -461,12 +469,17 @@ export type ListLayout =
 // 게시판 본문 레이아웃 타입
 export type ViewLayout = 'basic' | (string & {});
 
+// 댓글 레이아웃 타입
+export type CommentLayout = 'flat' | 'bordered' | 'divided' | 'bubble' | 'compact' | (string & {});
+
 // 게시판 표시 설정
 export interface BoardDisplaySettings {
     /** 목록 레이아웃 ID */
     list_layout: ListLayout;
     /** 본문 레이아웃 ID */
     view_layout: ViewLayout;
+    /** 댓글 레이아웃 ID */
+    comment_layout: CommentLayout;
     /** @deprecated list_layout으로 대체. 하위호환용 */
     list_style?: 'compact' | 'card' | 'detailed';
     show_preview: boolean;
@@ -645,9 +658,11 @@ export interface PointHistory {
     mb_id: string;
     po_content: string; // 포인트 내역 설명
     po_point: number; // 포인트 금액 (양수: 적립, 음수: 사용)
+    po_use_point?: number; // 사용된 포인트 (적립 포인트 중 소진된 양)
     po_datetime: string; // 발생 시간
-    po_expired: boolean; // 만료 여부
+    po_expired: boolean; // 만료 여부 (0=활성, 1=만료, 100=전부사용)
     po_expire_date: string; // 만료일
+    po_mb_point?: number; // 거래 시점 보유 포인트 (잔액 스냅샷)
     po_rel_table?: string; // 관련 테이블 (예: 게시판)
     po_rel_id?: string; // 관련 ID
     po_rel_action?: string; // 관련 액션 (예: 글쓰기, 댓글)

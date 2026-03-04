@@ -90,16 +90,30 @@ export async function getThemeById(themeId: string): Promise<InstalledTheme | nu
 }
 
 /**
- * 활성 테마 가져오기
+ * 활성 테마 인메모리 캐시 (30초 TTL)
+ * 매 요청마다 scanThemes() 디스크 I/O를 방지
+ */
+let activeThemeCache: { data: InstalledTheme | null; expiry: number } | null = null;
+const THEME_CACHE_TTL = 30_000; // 30초
+
+/**
+ * 활성 테마 가져오기 (캐시 적용)
  */
 export async function getActiveTheme(): Promise<InstalledTheme | null> {
+    if (activeThemeCache && Date.now() < activeThemeCache.expiry) {
+        return activeThemeCache.data;
+    }
+
     const activeThemeId = await settingsProvider.getActiveTheme();
 
     if (!activeThemeId) {
+        activeThemeCache = { data: null, expiry: Date.now() + THEME_CACHE_TTL };
         return null;
     }
 
-    return getThemeById(activeThemeId);
+    const theme = await getThemeById(activeThemeId);
+    activeThemeCache = { data: theme, expiry: Date.now() + THEME_CACHE_TTL };
+    return theme;
 }
 
 /**
@@ -116,6 +130,9 @@ export async function activateTheme(themeId: string): Promise<boolean> {
 
     // Provider를 통해 테마 활성화
     await settingsProvider.setActiveTheme(themeId);
+
+    // 캐시 무효화
+    activeThemeCache = null;
 
     return true;
 }

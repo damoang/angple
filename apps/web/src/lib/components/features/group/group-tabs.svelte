@@ -12,7 +12,7 @@
     }
     const { data = null }: Props = $props();
 
-    let activeTab = $state<GroupTabId>('all');
+    let activeTab = $state<GroupTabId>('24h');
 
     // props에서 반응형 데이터 사용
     const currentPosts = $derived(data ? data[activeTab] || [] : []);
@@ -28,6 +28,7 @@
         <GroupHeader />
         <div class="flex items-center gap-2">
             <GroupTabs bind:activeTab onTabChange={handleTabChange} />
+            <!-- 더보기 링크 숨김 처리
             <a
                 href="/bbs/group.php?gr_id=group"
                 rel="external"
@@ -36,6 +37,7 @@
                 더보기
                 <ChevronRight class="h-4 w-4" />
             </a>
+            -->
         </div>
     </CardHeader>
 

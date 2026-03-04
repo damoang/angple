@@ -6,13 +6,14 @@
  * Resolution Order (Plugin > Theme > Core)로 최종 컴포넌트를 결정한다.
  */
 
-import type { FreePost, BoardDisplaySettings } from '$lib/api/types.js';
+import type { FreePost, LikerInfo, BoardDisplaySettings } from '$lib/api/types.js';
+import type { Component } from 'svelte';
 
 /** 목록 레이아웃 ID */
 export type ListLayoutId = 'compact' | 'card' | 'gallery' | 'webzine' | (string & {});
 
 /** 본문 레이아웃 ID */
-export type ViewLayoutId = 'basic' | (string & {});
+export type ViewLayoutId = 'basic' | 'report' | 'disciplinelog' | 'giving' | 'map' | (string & {});
 
 /** 레이아웃 등록 소스 (우선순위: plugin > theme > core) */
 export type LayoutSource = 'core' | 'theme' | 'plugin';
@@ -48,4 +49,65 @@ export interface LayoutEntry {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     component: any;
     source: LayoutSource;
+}
+
+/** 본문(View) 레이아웃 컴포넌트의 Props 인터페이스 */
+export interface ViewLayoutProps {
+    /** 게시글 데이터 */
+    post: FreePost;
+    /** 게시판 정보 */
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    board: any;
+    /** 게시판 ID */
+    boardId: string;
+
+    // 작성자/권한
+    isAuthor: boolean;
+    isAdmin: boolean;
+    canViewSecret: boolean;
+
+    // 추천/비추천 상태
+    likeCount: number;
+    dislikeCount: number;
+    isLiked: boolean;
+    isDisliked: boolean;
+    isLiking: boolean;
+    isDisliking: boolean;
+    isLikeAnimating: boolean;
+
+    // 추천자
+    likers: LikerInfo[];
+    likersTotal: number;
+
+    // 글자 크기
+    fontSize: string;
+    fontSizeLabel: string;
+
+    // 콜백
+    onLike: () => void;
+    onDislike: () => void;
+    onLoadLikers: () => void;
+    onReport: () => void;
+    onChangeFontSize: (direction: -1 | 0 | 1) => void;
+
+    // 플러그인
+    memoPluginActive: boolean;
+    reactionPluginActive: boolean;
+    MemoBadge: Component | null;
+
+    // 슬롯 컴포넌트
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    beforeContentSlots: any[];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    afterContentSlots: any[];
+
+    // 유틸
+    formatDate: (date: string) => string;
+    formatFileSize: (bytes: number) => string;
+    /** 본문 HTML (link1 동영상 URL 포함) */
+    postContent: string;
+
+    // 페이지 데이터 (슬롯용)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    pageData: any;
 }

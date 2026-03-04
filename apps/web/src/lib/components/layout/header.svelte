@@ -17,6 +17,21 @@
     import Sidebar from './sidebar.svelte';
     import { NotificationDropdown } from '$lib/components/features/notification/index.js';
     import { authStore } from '$lib/stores/auth.svelte.js';
+    import { getAvatarUrl, getMemberIconUrl } from '$lib/utils/member-icon';
+
+    let headerAvatarUrl = $derived(
+        authStore.user
+            ? getAvatarUrl(authStore.user.mb_image) ||
+                  getMemberIconUrl(authStore.user.mb_id) ||
+                  null
+            : null
+    );
+    let headerAvatarFailed = $state(false);
+
+    // user 변경 시 실패 상태 리셋
+    $effect(() => {
+        if (authStore.user) headerAvatarFailed = false;
+    });
 
     // 스크롤 상태 관리
     let isDrawerOpen = $state(false);
@@ -48,26 +63,55 @@
             themeMode = 'light';
             el.classList.remove('dark', 'amoled');
         }
-        localStorage.setItem('themeMode', themeMode);
+        // localStorage + 쿠키 동시 기록 (SSR 동기화)
+        try {
+            localStorage.setItem('themeMode', themeMode);
+        } catch {}
+        if (themeMode === 'light') {
+            document.cookie = 'angple_theme_mode=;path=/;max-age=0;SameSite=Lax';
+        } else {
+            document.cookie =
+                'angple_theme_mode=' + themeMode + ';path=/;max-age=31536000;SameSite=Lax';
+        }
     }
 
-    // 컴포넌트 마운트 시 스크롤 이벤트 등록
+    // 컴포넌트 마운트 시 스크롤 이벤트 등록 + 테마 복원
     onMount(() => {
-        // 테마 모드 복원 (기존 darkMode 호환)
-        const savedMode = localStorage.getItem('themeMode');
-        const legacyDark = localStorage.getItem('darkMode');
+        // 테마 모드 복원: 쿠키 → localStorage → prefers-color-scheme
+        let savedMode: string | null = null;
+        const cookieMatch = document.cookie.match(/angple_theme_mode=(\w+)/);
+        if (cookieMatch) {
+            savedMode = cookieMatch[1];
+        }
+        if (!savedMode) {
+            try {
+                savedMode = localStorage.getItem('themeMode');
+                const legacyDark = localStorage.getItem('darkMode');
+                if (!savedMode && legacyDark === 'true') savedMode = 'dark';
+            } catch {}
+        }
+        if (!savedMode && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            savedMode = 'dark';
+        }
         if (savedMode === 'dark' || savedMode === 'amoled') {
             themeMode = savedMode;
-            document.documentElement.classList.add(savedMode);
-        } else if (!savedMode && legacyDark === 'true') {
-            themeMode = 'dark';
-            document.documentElement.classList.add('dark');
-            localStorage.setItem('themeMode', 'dark');
         }
 
+        // cross-tab 테마 동기화 (다른 탭에서 테마 변경 시)
+        function handleStorageChange(e: StorageEvent) {
+            if (e.key === 'themeMode' && e.newValue) {
+                const el = document.documentElement;
+                el.classList.remove('dark', 'amoled');
+                if (e.newValue === 'dark') el.classList.add('dark');
+                else if (e.newValue === 'amoled') el.classList.add('amoled');
+                themeMode = e.newValue as 'light' | 'dark' | 'amoled';
+            }
+        }
+        window.addEventListener('storage', handleStorageChange);
         window.addEventListener('scroll', handleScroll, { passive: true });
 
         return () => {
+            window.removeEventListener('storage', handleStorageChange);
             window.removeEventListener('scroll', handleScroll);
         };
     });
@@ -149,13 +193,45 @@
             </button>
 
             <!-- 사용자 아이콘 (로그인/프로필) -->
-            <button
-                onclick={() => goto('/login')}
-                class="hover:bg-accent rounded-lg p-2 transition-all duration-200 ease-out"
-                aria-label="사용자 메뉴"
-            >
-                <User class="text-primary h-5 w-5" />
-            </button>
+            {#if authStore.isAuthenticated && authStore.user}
+                <a
+                    href="/my"
+                    class="hover:bg-accent flex items-center gap-1.5 rounded-lg px-2 py-1.5 transition-all duration-200 ease-out"
+                >
+                    <div
+                        class="h-6 w-6 shrink-0 overflow-hidden rounded-full {headerAvatarUrl &&
+                        !headerAvatarFailed
+                            ? ''
+                            : 'bg-primary/10 flex items-center justify-center'}"
+                    >
+                        {#if headerAvatarUrl && !headerAvatarFailed}
+                            <img
+                                src={headerAvatarUrl}
+                                alt={authStore.user.mb_name}
+                                class="h-full w-full object-cover"
+                                onerror={() => {
+                                    headerAvatarFailed = true;
+                                }}
+                            />
+                        {:else}
+                            <span class="text-primary text-xs font-bold"
+                                >{authStore.user.mb_name.charAt(0).toUpperCase()}</span
+                            >
+                        {/if}
+                    </div>
+                    <span class="text-foreground hidden text-sm font-medium md:inline">
+                        {authStore.user.mb_name}
+                    </span>
+                </a>
+            {:else}
+                <button
+                    onclick={() => goto('/login')}
+                    class="hover:bg-accent rounded-lg p-2 transition-all duration-200 ease-out"
+                    aria-label="로그인"
+                >
+                    <User class="text-primary h-5 w-5" />
+                </button>
+            {/if}
 
             {#if authStore.isAuthenticated}
                 <!-- 쪽지 아이콘 -->

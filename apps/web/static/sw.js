@@ -3,14 +3,13 @@
 /**
  * Angple Service Worker
  *
- * 전략:
- * - 앱 셸(HTML/CSS/JS): Cache First → 빠른 로드
- * - API 요청: Network First → 최신 데이터 우선
- * - 이미지/폰트: Cache First → 대역폭 절약
- * - 오프라인 시: 캐시된 오프라인 페이지 표시
+ * 전략: 모든 요청 Network First (배포 후 stale 캐시 방지)
+ * - 네트워크 성공 → 캐시 업데이트 + 응답
+ * - 네트워크 실패 → 캐시 폴백 (오프라인 지원)
+ * - 푸시 알림 수신/클릭 처리
  */
 
-const CACHE_NAME = 'angple-v6';
+const CACHE_NAME = 'angple-v7';
 
 // 앱 셸 프리캐시 목록 (빈 배열 — 오프라인 페이지 없으므로 프리캐시 불필요)
 const PRECACHE_URLS = [];
@@ -25,16 +24,12 @@ self.addEventListener('install', (event) => {
     );
 });
 
-// 활성화: 이전 버전 캐시 정리
+// 활성화: 모든 이전 캐시 정리 + 즉시 제어권 획득
 self.addEventListener('activate', (event) => {
     event.waitUntil(
         caches
             .keys()
-            .then((keys) =>
-                Promise.all(
-                    keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))
-                )
-            )
+            .then((keys) => Promise.all(keys.map((key) => caches.delete(key))))
             .then(() => self.clients.claim())
     );
 });
@@ -59,9 +54,11 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    // _app/immutable/ → Cache First (해시 파일명, 변경 불가)
+    // _app/immutable/ → Network First (배포 후 stale JS 제공 방지)
+    // 해시 파일명이라 이론상 Cache First가 안전하지만,
+    // 배포 직후 Cloudflare/브라우저 캐시와의 경합 상태에서 흰 화면 유발 가능
     if (url.pathname.startsWith('/_app/immutable/')) {
-        event.respondWith(cacheFirst(request));
+        event.respondWith(networkFirst(request));
         return;
     }
 
@@ -76,23 +73,6 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 });
-
-/** Cache First 전략 */
-async function cacheFirst(request) {
-    const cached = await caches.match(request);
-    if (cached) return cached;
-
-    try {
-        const response = await fetch(request);
-        if (response.ok) {
-            const cache = await caches.open(CACHE_NAME);
-            cache.put(request, response.clone());
-        }
-        return response;
-    } catch {
-        return new Response('', { status: 503 });
-    }
-}
 
 /** Network First 전략 */
 async function networkFirst(request) {

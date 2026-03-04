@@ -16,7 +16,7 @@ import type {
     JsonLdBreadcrumb
 } from './types';
 
-const DEFAULT_SITE_NAME = 'Angple';
+const DEFAULT_SITE_NAME = '다모앙 - 종합 포털 커뮤니티';
 const DEFAULT_LOCALE = 'ko_KR';
 
 /** 사이트 기본 설정 (앱 시작 시 한 번 설정) */

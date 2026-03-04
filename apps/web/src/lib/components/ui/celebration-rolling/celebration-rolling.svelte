@@ -80,21 +80,9 @@
         return '축하합니다!';
     }
 
-    // 배너 링크 결정: external_link 유무로 판단
-    // external_link 있으면 → 해당 링크 (같은 도메인이면 상대경로 변환)
-    // external_link 없으면 → /message/{id} (기본 메시지 페이지)
+    // 배너 링크: API가 link_url에 올바른 경로를 반환 (/message/{wr_id} 등)
     function toLocalHref(banner: CelebrationBanner): string {
-        const custom = banner.external_link;
-        if (!custom || custom === '#') return `/message/${banner.id}`;
-        try {
-            const url = new URL(custom, window.location.origin);
-            if (url.hostname === window.location.hostname || url.hostname.endsWith('damoang.net')) {
-                return url.pathname + url.search + url.hash;
-            }
-        } catch {
-            // 파싱 실패
-        }
-        return custom;
+        return banner.link_url || `/message/${banner.id}`;
     }
 </script>
 

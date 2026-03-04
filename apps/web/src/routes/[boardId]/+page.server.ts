@@ -1,15 +1,19 @@
 import { error as svelteError } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types.js';
 import type { FreePost, Board, SearchField } from '$lib/api/types.js';
-import { env } from '$env/dynamic/private';
 import { fetchPromotionPosts } from '$lib/server/ads/promotion.js';
+import { backendFetch as bFetch, createAuthHeaders } from '$lib/server/backend-fetch.js';
 
-const BACKEND_URL = env.BACKEND_URL || 'http://localhost:8090';
-
+/**
+ * 게시판 목록 페이지 — Streaming SSR
+ *
+ * board 정보: 즉시 await (헤더, SEO, 권한 체크 필요)
+ * posts/notices/promotions: 스트리밍 (스켈레톤 먼저 표시)
+ */
 export const load: PageServerLoad = async ({ url, params, locals }) => {
     const boardId = params.boardId;
     const page = Number(url.searchParams.get('page')) || 1;
-    const limit = Number(url.searchParams.get('limit')) || 25;
+    const limit = Number(url.searchParams.get('limit')) || 30;
 
     // 검색 파라미터
     const searchField = (url.searchParams.get('sfl') as SearchField) || null;
@@ -19,23 +23,16 @@ export const load: PageServerLoad = async ({ url, params, locals }) => {
     const isTagFiltering = Boolean(tag);
 
     // 인증 헤더 (SSR에서 accessToken 사용)
-    const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-        'User-Agent': 'Angple-Web-SSR/1.0'
-    };
-    if (locals.accessToken) {
-        headers['Authorization'] = `Bearer ${locals.accessToken}`;
-    }
+    const headers = createAuthHeaders(locals.accessToken);
 
+    // --- 1단계: board 정보 즉시 await (헤더, SEO, 권한 체크) ---
+    let board: Board | null = null;
     try {
-        const backendFetch = globalThis.fetch;
-
-        // 게시판 정보를 먼저 가져와서 접근 권한 확인
         const [boardRes, displaySettingsRes] = await Promise.all([
-            backendFetch(`${BACKEND_URL}/api/v1/boards/${boardId}`, { headers }),
-            backendFetch(`${BACKEND_URL}/api/v1/boards/${boardId}/display-settings`, { headers })
+            bFetch(`/api/v1/boards/${boardId}`, { headers }),
+            bFetch(`/api/v1/boards/${boardId}/display-settings`, { headers })
         ]);
-        let board: Board | null = boardRes.ok ? ((await boardRes.json()).data as Board) : null;
+        board = boardRes.ok ? ((await boardRes.json()).data as Board) : null;
 
         // display_settings 병합
         if (board && displaySettingsRes.ok) {
@@ -51,112 +48,98 @@ export const load: PageServerLoad = async ({ url, params, locals }) => {
                 svelteError(403, '이 게시판에 접근할 권한이 없습니다.');
             }
         }
+    } catch (error) {
+        // SvelteKit HttpError (403 등)는 다시 throw
+        if (error && typeof error === 'object' && 'status' in error) {
+            throw error;
+        }
+        console.error('게시판 정보 로딩 에러:', boardId, error);
+        // board=null로 계속 진행 (게시글 목록은 시도)
+    }
 
-        // 검색 쿼리 빌드
-        const buildPostsUrl = (): string => {
-            const queryParams = new URLSearchParams({
-                page: String(page),
-                limit: String(limit)
-            });
+    // --- 2단계: posts/notices/promotions 스트리밍 (await 안 함) ---
+    const buildPostsUrl = (): string => {
+        const queryParams = new URLSearchParams({
+            page: String(page),
+            limit: String(limit)
+        });
+        if (isSearching) {
+            queryParams.set('sfl', searchField!);
+            queryParams.set('stx', searchQuery!);
+        }
+        if (tag) {
+            queryParams.set('tag', tag);
+        }
+        if (isTagFiltering && !isSearching) {
+            queryParams.set('sfl', 'title_content');
+            queryParams.set('stx', '');
+        }
+        return `/api/v1/boards/${boardId}/posts?${queryParams.toString()}`;
+    };
 
-            if (isSearching) {
-                queryParams.set('sfl', searchField!);
-                queryParams.set('stx', searchQuery!);
-            }
-            if (tag) {
-                queryParams.set('tag', tag);
-            }
-            if (isTagFiltering && !isSearching) {
-                queryParams.set('sfl', 'title_content');
-                queryParams.set('stx', '');
-            }
-
-            return `${BACKEND_URL}/api/v1/boards/${boardId}/posts?${queryParams.toString()}`;
-        };
-
-        // 게시글 목록 + 공지사항 + 프로모션 (게시판 권한 확인 후 병렬 호출)
+    // Promise (await 하지 않음 → SvelteKit이 스트리밍)
+    const postsDataPromise = (async () => {
         const [postsResult, noticesResult, promotionResult] = await Promise.allSettled([
-            // 게시글 목록
-            backendFetch(buildPostsUrl(), { headers }).then(async (res) => {
+            bFetch(buildPostsUrl(), { headers }).then(async (res) => {
                 if (!res.ok) throw new Error(`Posts API error: ${res.status}`);
                 return res.json();
             }),
-            // 공지사항 (검색 중이면 건너뜀)
             isSearching
                 ? Promise.resolve([])
-                : backendFetch(`${BACKEND_URL}/api/v1/boards/${boardId}/notices`, {
-                      headers
-                  }).then(async (res) => {
+                : bFetch(`/api/v1/boards/${boardId}/notices`, { headers }).then(async (res) => {
                       if (!res.ok) return [];
                       const json = await res.json();
                       return (json.data as FreePost[]) || [];
                   }),
-            // 직접홍보 사잇광고 (ads 서버 직접 호출 + 캐시)
             fetchPromotionPosts()
         ]);
 
-        // 게시글 필수 — 실패 시 에러 표시
-        if (postsResult.status === 'rejected') {
-            console.error('게시판 로딩 에러:', boardId, postsResult.reason);
-            return {
-                boardId,
-                posts: [],
-                notices: [],
-                promotionPosts: [],
-                pagination: { total: 0, page: 1, limit: 25, totalPages: 0 },
-                board: null,
-                searchParams: null,
-                activeTag: tag,
-                error: '게시글을 불러오는데 실패했습니다.'
-            };
-        }
+        // 게시글
+        let posts: FreePost[] = [];
+        let pagination = { total: 0, page, limit, totalPages: 0 };
+        let error: string | null = null;
 
-        const postsData = postsResult.value;
-        const posts: FreePost[] = postsData.data || [];
-        const meta = postsData.meta || {};
-        const total = meta.total || 0;
-        const totalPages = meta.limit ? Math.ceil(meta.total / meta.limit) : 0;
-
-        const notices = noticesResult.status === 'fulfilled' ? noticesResult.value : [];
-        const promotionPosts =
-            promotionResult.status === 'fulfilled' ? promotionResult.value?.data?.posts || [] : [];
-
-        return {
-            boardId,
-            posts,
-            notices,
-            promotionPosts,
-            pagination: {
-                total,
+        if (postsResult.status === 'fulfilled') {
+            const postsData = postsResult.value;
+            posts = postsData.data || [];
+            const meta = postsData.meta || {};
+            pagination = {
+                total: meta.total || 0,
                 page: meta.page || page,
                 limit: meta.limit || limit,
-                totalPages
-            },
-            board,
-            searchParams: isSearching ? { field: searchField!, query: searchQuery! } : null,
-            activeTag: tag
-        };
-    } catch (error) {
-        // SvelteKit HttpError (403 등)는 다시 throw → +error.svelte 렌더링
-        if (error && typeof error === 'object' && 'status' in error) {
-            throw error;
+                totalPages: meta.limit ? Math.ceil(meta.total / meta.limit) : 0
+            };
+        } else {
+            console.error('게시판 로딩 에러:', boardId, postsResult.reason);
+            error = '게시글을 불러오는데 실패했습니다.';
         }
-        console.error('게시판 로딩 에러:', boardId, error);
-        return {
-            boardId,
-            posts: [],
-            notices: [],
-            promotionPosts: [],
-            pagination: {
-                total: 0,
-                page: 1,
-                limit: 25,
-                totalPages: 0
-            },
-            board: null,
-            searchParams: null,
-            activeTag: tag,
-            error: '게시글을 불러오는데 실패했습니다.'
-        };
-    }
+
+        const notices = noticesResult.status === 'fulfilled' ? noticesResult.value : [];
+
+        // 프로모션 사잇광고: board_exception에 포함된 게시판은 제외
+        let promotionPosts: unknown[] = [];
+        if (promotionResult.status === 'fulfilled') {
+            const promoData = (promotionResult.value as Record<string, unknown>)?.data as
+                | Record<string, unknown>
+                | undefined;
+            const boardException = (promoData?.board_exception || '') as string;
+            const excludedBoards = boardException.split(',').map((s: string) => s.trim());
+            if (!excludedBoards.includes(boardId)) {
+                promotionPosts = (promoData?.posts as unknown[]) || [];
+            }
+        }
+
+        return { posts, notices, promotionPosts, pagination, error };
+    })();
+
+    return {
+        boardId,
+        board,
+        searchParams: isSearching ? { field: searchField!, query: searchQuery! } : null,
+        activeTag: tag,
+        /** 스트리밍: Promise로 반환 → 클라이언트에서 {#await} 사용 */
+        streamed: {
+            postsData: postsDataPromise
+        }
+    };
 };

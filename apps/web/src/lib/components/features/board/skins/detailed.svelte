@@ -36,9 +36,7 @@
                     {/if}
                     {post.title}
                 </CardTitle>
-                <div
-                    class="text-secondary-foreground flex flex-wrap items-center gap-2 text-[15px]"
-                >
+                <div class="text-secondary-foreground flex flex-wrap items-center gap-2 text-sm">
                     <span>{post.author}</span>
                     <span>•</span>
                     <span>{formatDate(post.created_at)}</span>
@@ -86,7 +84,7 @@
                         {post.content}
                     </p>
                 {/if}
-                <div class="text-secondary-foreground flex items-center gap-4 text-[15px]">
+                <div class="text-secondary-foreground flex items-center gap-4 text-sm">
                     <span>👍 {post.likes}</span>
                     <span>💬 {post.comments_count}</span>
                 </div>

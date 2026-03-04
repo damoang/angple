@@ -1,0 +1,12 @@
+{
+    "id": "celebration",
+    "name": "축하메시지",
+    "version": "1.0.0",
+    "description": "오늘의 축하메시지 배너를 2x2 그리드로 표시합니다.",
+    "author": { "name": "Angple" },
+    "category": "content",
+    "slots": ["main"],
+    "icon": "PartyPopper",
+    "allowMultiple": false,
+    "main": "index.svelte"
+}

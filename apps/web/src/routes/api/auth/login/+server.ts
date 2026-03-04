@@ -1,5 +1,5 @@
 import { json } from '@sveltejs/kit';
-import { dev } from '$app/environment';
+
 import { env } from '$env/dynamic/private';
 import type { RequestHandler } from './$types';
 import {
@@ -103,7 +103,7 @@ export const POST: RequestHandler = async ({ request, cookies, getClientAddress 
             path: '/',
             httpOnly: false,
             sameSite: 'strict',
-            secure: !dev,
+            secure: true,
             maxAge: SESSION_COOKIE_MAX_AGE,
             ...domainOpt
         });
@@ -117,7 +117,7 @@ export const POST: RequestHandler = async ({ request, cookies, getClientAddress 
             path: '/',
             httpOnly: true,
             sameSite: 'lax',
-            secure: !dev,
+            secure: true,
             maxAge: 60 * 60 * 24 * 7,
             ...domainOpt
         });
@@ -131,7 +131,7 @@ export const POST: RequestHandler = async ({ request, cookies, getClientAddress 
                     path: '/',
                     httpOnly: true,
                     sameSite: 'lax',
-                    secure: !dev,
+                    secure: true,
                     maxAge: 60 * 60 * 24 * 7,
                     ...domainOpt
                 });
