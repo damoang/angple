@@ -106,6 +106,30 @@ export async function rotateRefreshToken(
     return { token, mbId: tokenInfo.mbId };
 }
 
+/**
+ * damoang_jwt 생성 — PHP SimpleJWT::createForMember()와 동일 포맷
+ * Go 서비스(ads.damoang.net 등)가 이 토큰으로 인증
+ */
+export async function generateDamoangJWT(user: {
+    mb_id: string;
+    mb_level: number;
+    mb_name: string;
+    mb_email: string;
+}): Promise<string> {
+    return new SignJWT({
+        mb_id: user.mb_id,
+        mb_level: user.mb_level,
+        mb_name: user.mb_name,
+        mb_email: user.mb_email
+    })
+        .setProtectedHeader({ alg: 'HS256', typ: 'JWT' })
+        .setIssuedAt()
+        .setExpirationTime('1h')
+        .setIssuer('damoang.net')
+        .setAudience('ads.damoang.net')
+        .sign(damoangSecret);
+}
+
 /** JWT 검증 */
 export async function verifyToken(token: string): Promise<JwtPayload | null> {
     try {

@@ -8,6 +8,7 @@ import {
     CSRF_COOKIE_NAME
 } from '$lib/server/auth/session-store.js';
 import { hashToken, revokeToken } from '$lib/server/auth/token-store.js';
+import { clearDamoangSSOCookie } from '$lib/server/auth/sso-cookie.js';
 
 const BACKEND_URL = env.BACKEND_URL || 'http://localhost:8090';
 
@@ -73,6 +74,9 @@ export const POST: RequestHandler = async ({ cookies, fetch, locals }) => {
     cookies.delete('refresh_token', cookieOpts);
     cookies.delete('damoang_jwt', { ...cookieOpts, httpOnly: false });
     cookies.delete('access_token', { ...cookieOpts, httpOnly: false });
+
+    // 서브도메인 SSO 쿠키 삭제 (.damoang.net 도메인)
+    clearDamoangSSOCookie(cookies);
 
     return json({ success: true });
 };
