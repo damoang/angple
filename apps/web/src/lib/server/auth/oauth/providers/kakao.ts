@@ -33,7 +33,7 @@ export class KakaoProvider extends BaseOAuthProvider {
             authorizeUrl: 'https://kauth.kakao.com/oauth/authorize',
             tokenUrl: 'https://kauth.kakao.com/oauth/token',
             profileUrl: 'https://kapi.kakao.com/v2/user/me',
-            scope: 'account_email',
+            scope: 'profile_nickname profile_image account_email',
             callbackUrl: getCallbackUrl('kakao', origin)
         };
     }

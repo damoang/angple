@@ -12,7 +12,7 @@ import type {
     OAuthUserProfile,
     SocialProvider
 } from '../types.js';
-import { readFileSync } from 'fs';
+import { readFileSync, existsSync } from 'fs';
 
 interface AppleIdTokenPayload {
     sub: string;
@@ -25,12 +25,21 @@ export class AppleProvider extends BaseOAuthProvider {
     private teamId: string;
     private keyId: string;
     private keyFile: string;
+    private keyContent: string;
 
-    constructor(bundleId: string, teamId: string, keyId: string, keyFile: string, origin?: string) {
+    constructor(
+        bundleId: string,
+        teamId: string,
+        keyId: string,
+        keyFile: string,
+        origin?: string,
+        keyContent?: string
+    ) {
         super();
         this.teamId = teamId;
         this.keyId = keyId;
         this.keyFile = keyFile;
+        this.keyContent = keyContent || '';
         this.config = {
             clientId: bundleId,
             clientSecret: '', // 동적 생성
@@ -45,11 +54,30 @@ export class AppleProvider extends BaseOAuthProvider {
     /** Apple client_secret JWT 생성 */
     private async generateClientSecret(): Promise<string> {
         let keyContent: string;
-        try {
-            keyContent = readFileSync(this.keyFile, 'utf-8');
-        } catch {
-            throw new Error(`Apple 키 파일을 읽을 수 없습니다: ${this.keyFile}`);
+
+        // 1) 직접 전달된 키 내용 (env APPLE_KEY_CONTENT)
+        if (this.keyContent) {
+            keyContent = this.keyContent;
         }
+        // 2) keyFile이 실제 PEM 키 내용인 경우 (g5_config에 키 내용 직접 저장)
+        else if (this.keyFile && this.keyFile.includes('-----BEGIN')) {
+            keyContent = this.keyFile;
+        }
+        // 3) 파일 경로에서 읽기
+        else if (this.keyFile && existsSync(this.keyFile)) {
+            try {
+                keyContent = readFileSync(this.keyFile, 'utf-8');
+            } catch {
+                throw new Error(`Apple 키 파일을 읽을 수 없습니다: ${this.keyFile}`);
+            }
+        } else {
+            throw new Error(
+                `Apple 키가 설정되지 않았습니다. APPLE_KEY_CONTENT 환경변수 또는 유효한 키 파일 경로가 필요합니다. (keyFile: ${this.keyFile})`
+            );
+        }
+
+        // \r 제거 (DB에서 \r\n으로 저장된 경우)
+        keyContent = keyContent.replace(/\r/g, '');
 
         const privateKey = await importPKCS8(keyContent, 'ES256');
 

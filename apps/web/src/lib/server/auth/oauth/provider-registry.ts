@@ -34,7 +34,8 @@ export async function getProvider(
                 keys.apple_team_id,
                 keys.apple_key_id,
                 keys.apple_key_file,
-                origin
+                origin,
+                keys.apple_key_content
             );
         case 'twitter':
             return new TwitterProvider(keys.twitter_key, keys.twitter_secret, origin);

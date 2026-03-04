@@ -31,6 +31,7 @@ export interface OAuthKeys {
     apple_team_id: string;
     apple_key_id: string;
     apple_key_file: string;
+    apple_key_content: string;
 }
 
 let cachedKeys: OAuthKeys | null = null;
@@ -72,7 +73,8 @@ export async function getOAuthKeys(): Promise<OAuthKeys> {
         apple_bundle_id: env.APPLE_BUNDLE_ID || row.cf_apple_bundle_id || '',
         apple_team_id: env.APPLE_TEAM_ID || row.cf_apple_team_id || '',
         apple_key_id: env.APPLE_KEY_ID || row.cf_apple_key_id || '',
-        apple_key_file: env.APPLE_KEY_FILE || row.cf_apple_key_file || ''
+        apple_key_file: env.APPLE_KEY_FILE || row.cf_apple_key_file || '',
+        apple_key_content: env.APPLE_KEY_CONTENT || ''
     };
     cacheTimestamp = now;
 
