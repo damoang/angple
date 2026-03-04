@@ -110,7 +110,9 @@ async function authenticateSSR(event: Parameters<Handle>[0]['event']): Promise<v
                                 // JWT 만료 10분 이내면 갱신 (base64 페이로드만 읽기)
                                 const parts = existingJwt.split('.');
                                 if (parts.length === 3) {
-                                    const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
+                                    const payload = JSON.parse(
+                                        atob(parts[1].replace(/-/g, '+').replace(/_/g, '/'))
+                                    );
                                     if (payload.exp && payload.exp - now / 1000 < 600) {
                                         needsRenewal = true;
                                     }
