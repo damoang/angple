@@ -3,7 +3,7 @@
     import { Editor } from '@tiptap/core';
     import StarterKit from '@tiptap/starter-kit';
     import Link from '@tiptap/extension-link';
-    import Image from '@tiptap/extension-image';
+    import { LinkedImage } from './linked-image.js';
     import Placeholder from '@tiptap/extension-placeholder';
     import Underline from '@tiptap/extension-underline';
     import Mention from '@tiptap/extension-mention';
@@ -166,7 +166,7 @@
                         class: 'text-primary underline'
                     }
                 }),
-                Image.configure({
+                LinkedImage.configure({
                     inline: false,
                     allowBase64: true,
                     HTMLAttributes: {
