@@ -29,21 +29,33 @@ function isChunkLoadError(error: unknown): boolean {
 }
 
 /**
- * Chunk error 시 자동 새로고침 (최대 1회)
+ * Chunk error 시 자동 새로고침 (최대 2회)
  * sessionStorage 카운터로 무한 루프 방지
+ * 2회 실패 시 사용자에게 새 버전 배포 안내 UI 표시
  */
 const RELOAD_KEY = '__angple_chunk_reload_count__';
 
 function tryChunkReload(): void {
     const count = Number(sessionStorage.getItem(RELOAD_KEY) || '0');
-    if (count < 1) {
+    if (count < 2) {
         sessionStorage.setItem(RELOAD_KEY, String(count + 1));
         window.location.reload();
     } else {
-        // 1회 재시도 후에도 실패하면 카운터 리셋하고 포기
         sessionStorage.removeItem(RELOAD_KEY);
-        console.error('[Angple] Chunk load failed after retry. Please clear browser cache.');
+        showUpdateNotice();
     }
+}
+
+function showUpdateNotice(): void {
+    document.body.innerHTML = `
+        <div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;flex-direction:column;gap:16px;text-align:center;padding:20px;background:#fafafa;color:#333">
+            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/></svg>
+            <h2 style="margin:0;font-size:20px;font-weight:600">새 버전이 배포되었습니다</h2>
+            <p style="margin:0;color:#666;font-size:14px">페이지를 새로고침하면 최신 버전으로 이용할 수 있습니다.</p>
+            <button onclick="location.reload()" style="margin-top:8px;padding:12px 32px;font-size:15px;cursor:pointer;border-radius:8px;border:none;background:#2563eb;color:white;font-weight:500;transition:background 0.2s" onmouseover="this.style.background='#1d4ed8'" onmouseout="this.style.background='#2563eb'">
+                새로고침
+            </button>
+        </div>`;
 }
 
 // 성공적으로 페이지 로드되면 카운터 리셋
@@ -57,7 +69,7 @@ if (typeof window !== 'undefined') {
 export const handleError: HandleClientError = ({ error, event, status }) => {
     const err = error instanceof Error ? error : new Error(String(error));
 
-    // 배포 후 chunk 로드 실패 → 자동 새로고침 (1회만)
+    // 배포 후 chunk 로드 실패 → 자동 새로고침 (최대 2회)
     if (isChunkLoadError(error)) {
         tryChunkReload();
         return;
