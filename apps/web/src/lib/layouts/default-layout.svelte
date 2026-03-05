@@ -56,7 +56,7 @@
                 </aside>
             {/if}
 
-            <main class="box-content min-w-0 flex-1 pt-1 md:py-5 lg:pe-6 2xl:!px-9">
+            <main class="box-content min-w-0 flex-1 px-1.5 pt-1 md:px-0 md:py-5 lg:pe-6 2xl:!px-9">
                 {@render children()}
             </main>
             {#if snbPosition === 'right'}
