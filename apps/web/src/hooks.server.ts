@@ -192,8 +192,8 @@ const cspHeader = buildCsp();
 const DEV_ONLY_PATHS = ['/api-test', '/api-docs', '/api-doc', '/install'];
 
 /** 글로벌 API rate limiting (IP당 요청 수) */
-const GLOBAL_API_RATE = { maxRequests: 120, windowMs: 60_000 }; // 분당 120회
-const WRITE_API_RATE = { maxRequests: 30, windowMs: 60_000 }; // 쓰기 분당 30회
+const GLOBAL_API_RATE = { maxRequests: 600, windowMs: 60_000 }; // 분당 600회 (페이지당 ~10 API 호출)
+const WRITE_API_RATE = { maxRequests: 60, windowMs: 60_000 }; // 쓰기 분당 60회
 
 export const handle: Handle = async ({ event, resolve }) => {
     const { pathname } = event.url;
