@@ -157,13 +157,19 @@ jobs:
     if: github.event_name == 'workflow_dispatch' && inputs.confirm == 'deploy'
 
     steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
       - name: Set image tag
         id: tag
         run: |
           if [ -n "${{ inputs.image_tag }}" ]; then
             echo "TAG=${{ inputs.image_tag }}" >> $GITHUB_OUTPUT
           else
-            echo "TAG=latest" >> $GITHUB_OUTPUT
+            # latest 대신 SHA 태그 사용 (K8s가 이미지 변경을 감지하도록)
+            SHA=$(git rev-parse HEAD)
+            echo "TAG=sha-${SHA}" >> $GITHUB_OUTPUT
           fi
 
       - name: Configure AWS credentials
