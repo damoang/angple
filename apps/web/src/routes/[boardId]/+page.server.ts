@@ -98,7 +98,17 @@ export const load: PageServerLoad = async ({ url, params, locals }) => {
             let error: string | null = null;
 
             if (promoBoardResult.status === 'fulfilled' && promoBoardResult.value.success) {
-                posts = promoBoardResult.value.data.map(mapPromotionBoardPostToFreePost);
+                const rawData = promoBoardResult.value.data;
+                const pinMap = new Map(rawData.map((p) => [p.wr_id, p.pin_to_top]));
+                posts = rawData.map(mapPromotionBoardPostToFreePost);
+                // 최신순 정렬 (pin_to_top 우선, 그 다음 날짜 내림차순)
+                posts.sort((a, b) => {
+                    const aPin = pinMap.get(a.id);
+                    const bPin = pinMap.get(b.id);
+                    if (aPin && !bPin) return -1;
+                    if (!aPin && bPin) return 1;
+                    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+                });
             } else {
                 console.error('프로모션 게시판 로딩 에러:', promoBoardResult);
                 error = '게시글을 불러오는데 실패했습니다.';

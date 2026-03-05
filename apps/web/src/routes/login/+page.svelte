@@ -114,6 +114,19 @@
             hoverClass: 'hover:bg-[#E42529]/80'
         }
     ];
+
+    // 소셜 로그인 버튼 순서 랜덤 셔플 (SSR에서는 기본 순서, 클라이언트에서 셔플)
+    function shuffle<T>(arr: T[]): T[] {
+        const a = [...arr];
+        for (let i = a.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [a[i], a[j]] = [a[j], a[i]];
+        }
+        return a;
+    }
+
+    let shuffledMainProviders = $state(shuffle(mainProviders));
+    let shuffledSubProviders = $state(shuffle(subProviders));
 </script>
 
 <svelte:head>
@@ -140,7 +153,7 @@
 
             <!-- 주요 소셜 로그인 (풀 너비) -->
             <div class="space-y-2.5">
-                {#each mainProviders as provider}
+                {#each shuffledMainProviders as provider}
                     <button
                         class="flex w-full items-center justify-center gap-2.5 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200 active:scale-[0.98] {provider.bgClass} {provider.textClass} {provider.hoverClass}"
                         onclick={() => handleOAuthLogin(provider.id)}
@@ -196,7 +209,7 @@
 
             <!-- 보조 소셜 로그인 (아이콘 버튼) -->
             <div class="flex items-center justify-center gap-3">
-                {#each subProviders as provider}
+                {#each shuffledSubProviders as provider}
                     <button
                         class="flex h-11 w-11 items-center justify-center rounded-full text-white transition-all duration-200 active:scale-[0.95] {provider.bgClass} {provider.hoverClass}"
                         onclick={() => handleOAuthLogin(provider.id)}
