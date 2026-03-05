@@ -57,9 +57,9 @@
             newSettings.sortBy = sortBy;
         }
         if (isTagNav) {
-            newSettings.menus = tagNavMenus;
+            newSettings.menus = JSON.parse(JSON.stringify(tagNavMenus));
         }
-        widget.settings = newSettings;
+        widgetLayoutStore.updateWidgetSettings(zone, widget.id, newSettings);
         onOpenChange(false);
     }
 
@@ -84,7 +84,9 @@
 
         if (isTagNav) {
             const saved = widget.settings?.menus as TagNavMenu[] | undefined;
-            tagNavMenus = saved ? structuredClone(saved) : structuredClone(DEFAULT_TAG_NAV_MENUS);
+            tagNavMenus = saved
+                ? JSON.parse(JSON.stringify(saved))
+                : JSON.parse(JSON.stringify(DEFAULT_TAG_NAV_MENUS));
         }
     });
 </script>
