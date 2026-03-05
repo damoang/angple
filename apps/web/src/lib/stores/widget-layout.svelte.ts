@@ -209,6 +209,17 @@ class WidgetLayoutStore {
             .map((w, i) => ({ ...w, position: i }));
     }
 
+    /** 위젯 설정 업데이트 */
+    updateWidgetSettings(
+        zone: 'main' | 'sidebar',
+        widgetId: string,
+        settings: Record<string, unknown>
+    ) {
+        const widgets = zone === 'sidebar' ? this._sidebarWidgets : this._widgets;
+        const widget = widgets.find((w) => w.id === widgetId);
+        if (widget) widget.settings = settings;
+    }
+
     /** 위젯 추가 (메인) */
     addWidget(type: string, settings?: Record<string, unknown>) {
         const newWidget: WidgetConfig = {
