@@ -355,7 +355,10 @@
 
     // 댓글 좋아요
     async function handleLikeComment(commentId: string): Promise<void> {
-        if (!onLike || !authStore.isAuthenticated) return;
+        if (!onLike || !authStore.isAuthenticated) {
+            toast.error('로그인이 필요합니다.');
+            return;
+        }
 
         likingComment = commentId;
         try {
@@ -369,6 +372,8 @@
             // 아바타 스택 갱신
             loadCommentLikerAvatars(commentId);
         } catch (err) {
+            const msg = err instanceof Error ? err.message : '댓글 추천에 실패했습니다.';
+            toast.error(msg);
             console.error('Failed to like comment:', err);
         } finally {
             likingComment = null;
@@ -388,7 +393,10 @@
 
     // 댓글 비추천
     async function handleDislikeComment(commentId: string): Promise<void> {
-        if (!onDislike || !authStore.isAuthenticated) return;
+        if (!onDislike || !authStore.isAuthenticated) {
+            toast.error('로그인이 필요합니다.');
+            return;
+        }
 
         dislikingComment = commentId;
         try {
@@ -400,6 +408,8 @@
             }
             commentDislikes.set(commentId, response.dislikes);
         } catch (err) {
+            const msg = err instanceof Error ? err.message : '댓글 비추천에 실패했습니다.';
+            toast.error(msg);
             console.error('Failed to dislike comment:', err);
         } finally {
             dislikingComment = null;
