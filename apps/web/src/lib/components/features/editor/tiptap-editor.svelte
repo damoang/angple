@@ -112,6 +112,10 @@
     let linkUrl = $state('');
     let linkText = $state('');
 
+    // 이미지 링크 다이얼로그
+    let showImageLinkDialog = $state(false);
+    let imageLinkUrl = $state('');
+
     // 이미지 다이얼로그
     let showImageDialog = $state(false);
     let imageUrl = $state('');
@@ -397,6 +401,14 @@
 
     // 링크 삽입
     function openLinkDialog(): void {
+        // 이미지가 선택된 경우 이미지 링크 다이얼로그 열기
+        if (editor?.isActive('image')) {
+            const imgAttrs = editor.getAttributes('image');
+            imageLinkUrl = imgAttrs.href || '';
+            showImageLinkDialog = true;
+            return;
+        }
+
         const previousUrl = editor?.getAttributes('link').href || '';
         const selection = editor?.state.selection;
         const selectedText =
@@ -434,6 +446,27 @@
     function removeLink(): void {
         editor?.chain().focus().unsetLink().run();
         showLinkDialog = false;
+    }
+
+    // 이미지 링크 삽입
+    function insertImageLink(): void {
+        if (!imageLinkUrl || !editor) {
+            showImageLinkDialog = false;
+            return;
+        }
+        const url =
+            imageLinkUrl.startsWith('http') || imageLinkUrl.startsWith('tel:')
+                ? imageLinkUrl
+                : `https://${imageLinkUrl}`;
+        editor.chain().focus().updateAttributes('image', { href: url, linkTarget: '_blank' }).run();
+        showImageLinkDialog = false;
+        imageLinkUrl = '';
+    }
+
+    function removeImageLink(): void {
+        editor?.chain().focus().updateAttributes('image', { href: null, linkTarget: null }).run();
+        showImageLinkDialog = false;
+        imageLinkUrl = '';
     }
 
     // 이미지 삽입
@@ -999,6 +1032,38 @@
     </DialogContent>
 </Dialog>
 
+<!-- 이미지 링크 다이얼로그 -->
+<Dialog bind:open={showImageLinkDialog}>
+    <DialogContent class="sm:max-w-md">
+        <DialogHeader>
+            <DialogTitle>이미지 링크 설정</DialogTitle>
+        </DialogHeader>
+        <div class="space-y-4 py-4">
+            <div class="space-y-2">
+                <label for="image-link-url" class="text-sm font-medium">URL</label>
+                <Input
+                    id="image-link-url"
+                    type="url"
+                    bind:value={imageLinkUrl}
+                    placeholder="https://example.com 또는 tel:010-1234-5678"
+                />
+                <p class="text-muted-foreground text-xs">이미지를 클릭하면 이 URL로 이동합니다</p>
+            </div>
+        </div>
+        <DialogFooter class="flex gap-2">
+            {#if editor?.getAttributes('image').href}
+                <Button type="button" variant="destructive" onclick={removeImageLink}
+                    >링크 제거</Button
+                >
+            {/if}
+            <Button type="button" variant="outline" onclick={() => (showImageLinkDialog = false)}>
+                취소
+            </Button>
+            <Button type="button" onclick={insertImageLink}>적용</Button>
+        </DialogFooter>
+    </DialogContent>
+</Dialog>
+
 <!-- 이미지 다이얼로그 -->
 <Dialog bind:open={showImageDialog}>
     <DialogContent class="sm:max-w-md">
@@ -1158,6 +1223,13 @@
         max-width: 100%;
         height: auto;
         margin: 0.75rem 0;
+    }
+
+    /* 이미지 링크 표시 (에디터 내 링크 있는 이미지) */
+    :global(.tiptap-content .tiptap a > img) {
+        outline: 2px solid hsl(var(--primary) / 0.4);
+        outline-offset: 2px;
+        border-radius: 0.5rem;
     }
 
     /* 링크 스타일 */
