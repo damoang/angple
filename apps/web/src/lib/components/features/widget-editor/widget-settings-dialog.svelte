@@ -29,7 +29,8 @@
         { key: 'economy', text: '알뜰구매', url: '/economy', show: true },
         { key: 'promotion', text: '직접홍보', url: '/promotion', show: true },
         { key: 'qa', text: '질문과답변', url: '/qa', show: true },
-        { key: 'lecture', text: '강좌&팁', url: '/lecture', show: true }
+        { key: 'lecture', text: '강좌&팁', url: '/lecture', show: true },
+        { key: 'message', text: '축하메시지', url: '/message', show: true }
     ];
 
     // 로컬 설정 상태 (게시판 필터용)
