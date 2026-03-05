@@ -1,7 +1,8 @@
 import { error as svelteError } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types.js';
 import type { FreePost, Board, SearchField } from '$lib/api/types.js';
-import { fetchPromotionPosts } from '$lib/server/ads/promotion.js';
+import { fetchPromotionPosts, fetchPromotionBoardPosts } from '$lib/server/ads/promotion.js';
+import type { PromotionBoardPost } from '$lib/server/ads/promotion.js';
 import { backendFetch as bFetch, createAuthHeaders } from '$lib/server/backend-fetch.js';
 
 /**
@@ -77,8 +78,44 @@ export const load: PageServerLoad = async ({ url, params, locals }) => {
         return `/api/v1/boards/${boardId}/posts?${queryParams.toString()}`;
     };
 
+    // 프로모션 게시판 전용: 광고주별 post_count 제한 적용 (검색/태그 필터 없을 때만)
+    const isPromotionBoard = boardId === 'promotion' && !isSearching && !isTagFiltering;
+
     // Promise (await 하지 않음 → SvelteKit이 스트리밍)
     const postsDataPromise = (async () => {
+        if (isPromotionBoard) {
+            // 프로모션 게시판: ads 서버에서 광고주별 제한된 게시글 조회
+            const [promoBoardResult, noticesResult] = await Promise.allSettled([
+                fetchPromotionBoardPosts(),
+                bFetch(`/api/v1/boards/${boardId}/notices`, { headers }).then(async (res) => {
+                    if (!res.ok) return [];
+                    const json = await res.json();
+                    return (json.data as FreePost[]) || [];
+                })
+            ]);
+
+            let posts: FreePost[] = [];
+            let error: string | null = null;
+
+            if (promoBoardResult.status === 'fulfilled' && promoBoardResult.value.success) {
+                posts = promoBoardResult.value.data.map(mapPromotionBoardPostToFreePost);
+            } else {
+                console.error('프로모션 게시판 로딩 에러:', promoBoardResult);
+                error = '게시글을 불러오는데 실패했습니다.';
+            }
+
+            const notices = noticesResult.status === 'fulfilled' ? noticesResult.value : [];
+            const pagination = {
+                total: posts.length,
+                page: 1,
+                limit: posts.length || 1,
+                totalPages: 1
+            };
+
+            return { posts, notices, promotionPosts: [], pagination, error };
+        }
+
+        // 일반 게시판 (또는 프로모션 게시판 검색/태그 필터)
         const [postsResult, noticesResult, promotionResult] = await Promise.allSettled([
             bFetch(buildPostsUrl(), { headers }).then(async (res) => {
                 if (!res.ok) throw new Error(`Posts API error: ${res.status}`);
@@ -143,3 +180,22 @@ export const load: PageServerLoad = async ({ url, params, locals }) => {
         }
     };
 };
+
+function mapPromotionBoardPostToFreePost(p: PromotionBoardPost): FreePost {
+    return {
+        id: p.wr_id,
+        title: p.wr_subject,
+        content: p.wr_content,
+        author: p.wr_name,
+        author_id: p.mb_id,
+        board_id: 'promotion',
+        views: p.wr_hit,
+        likes: p.wr_good,
+        comments_count: p.wr_comment,
+        created_at: p.wr_datetime,
+        has_file: p.file_count > 0,
+        thumbnail: p.thumbnail || undefined,
+        link1: p.wr_link1 || undefined,
+        link2: p.wr_link2 || undefined
+    };
+}

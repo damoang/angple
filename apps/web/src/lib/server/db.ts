@@ -21,7 +21,11 @@ const pool = mysql.createPool({
     waitForConnections: true,
     connectionLimit: 200,
     queueLimit: 500,
-    timezone: '+09:00'
+    timezone: '+09:00',
+    connectTimeout: 5_000,
+    enableKeepAlive: true,
+    keepAliveInitialDelay: 30_000,
+    idleTimeout: 60_000
 });
 
 /**
@@ -38,7 +42,11 @@ const readPool: mysql.Pool = env.DB_READ_HOST
           waitForConnections: true,
           connectionLimit: 400,
           queueLimit: 1000,
-          timezone: '+09:00'
+          timezone: '+09:00',
+          connectTimeout: 5_000,
+          enableKeepAlive: true,
+          keepAliveInitialDelay: 30_000,
+          idleTimeout: 60_000
       })
     : pool;
 
