@@ -35,9 +35,7 @@ function isCoupangAffiliateLink(url: string): boolean {
 function isAliExpressDomain(url: string): boolean {
     try {
         const parsed = new URL(url);
-        return (
-            parsed.hostname === 'aliexpress.com' || parsed.hostname.endsWith('.aliexpress.com')
-        );
+        return parsed.hostname === 'aliexpress.com' || parsed.hostname.endsWith('.aliexpress.com');
     } catch {
         return false;
     }

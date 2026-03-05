@@ -130,7 +130,12 @@ export const GET: RequestHandler = async ({ params, url }) => {
                 );
                 if (parentRows.length === 0) continue;
                 // HTML 태그, 이모지 코드, HTML 엔티티 제거
-                const entityMap: Record<string, string> = { '&nbsp;': ' ', '&lt;': '<', '&gt;': '>', '&amp;': '&' };
+                const entityMap: Record<string, string> = {
+                    '&nbsp;': ' ',
+                    '&lt;': '<',
+                    '&gt;': '>',
+                    '&amp;': '&'
+                };
                 const preview = w.wr_content
                     .replace(/<[^>]*>/g, '') // HTML 태그 제거
                     .replace(/\{emo:[^}]+\}/g, '') // 이모지 코드 {emo:xxx} 제거
