@@ -44,13 +44,11 @@ const BOARD_GROUPS_CACHE_TTL = 60 * 60 * 1000; // 1시간
 
 /** HTML 태그, 이모지 코드 제거 및 미리보기 추출 */
 function extractContentPreview(rawContent: string, maxLen = 100): string {
+    const entityMap: Record<string, string> = { '&nbsp;': ' ', '&lt;': '<', '&gt;': '>', '&amp;': '&' };
     const plainText = rawContent
         .replace(/<[^>]*>/g, '') // HTML 태그 제거
         .replace(/\{emo:[^}]+\}/g, '') // 이모지 코드 {emo:xxx} 제거
-        .replace(/&nbsp;/g, ' ')
-        .replace(/&lt;/g, '<')
-        .replace(/&gt;/g, '>')
-        .replace(/&amp;/g, '&')
+        .replace(/&(?:nbsp|lt|gt|amp);/g, (m) => entityMap[m])
         .replace(/\s+/g, ' ')
         .trim();
     return plainText.length > maxLen ? plainText.slice(0, maxLen) : plainText;

@@ -44,7 +44,8 @@ async function resolveShortUrl(url: string): Promise<string> {
 				}
 			});
 			const finalUrl = response.url;
-			if (finalUrl.includes('aliexpress.com')) {
+			const parsedFinal = (() => { try { return new URL(finalUrl); } catch { return null; } })();
+			if (parsedFinal && (parsedFinal.hostname === 'aliexpress.com' || parsedFinal.hostname.endsWith('.aliexpress.com'))) {
 				// 기존 제휴 파라미터 제거
 				const cleaned = finalUrl
 					.replace(/[?&]aff_[^&]*/gi, '')

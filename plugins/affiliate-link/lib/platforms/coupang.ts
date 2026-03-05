@@ -41,8 +41,13 @@ async function resolveShortUrl(url: string): Promise<string> {
 				}
 			});
 			const finalUrl = response.url;
-			if (finalUrl.includes('coupang.com')) {
-				return finalUrl;
+			try {
+				const parsed = new URL(finalUrl);
+				if (parsed.hostname === 'coupang.com' || parsed.hostname.endsWith('.coupang.com')) {
+					return finalUrl;
+				}
+			} catch {
+				// URL 파싱 실패 시 무시
 			}
 		} catch {
 			// 리다이렉트 실패 시 원본 반환
@@ -128,8 +133,17 @@ function buildCoupangFallbackUrl(url: string): string | null {
 	if (!partnerId) return null;
 
 	// 이미 제휴 링크인 경우 건너뛰기
-	if (url.includes('link.coupang.com') || url.includes('coupa.ng')) {
-		return null;
+	try {
+		const parsed = new URL(url);
+		if (
+			parsed.hostname === 'link.coupang.com' ||
+			parsed.hostname === 'coupa.ng' ||
+			parsed.hostname.endsWith('.coupa.ng')
+		) {
+			return null;
+		}
+	} catch {
+		// URL 파싱 실패 시 계속 진행
 	}
 
 	return `https://link.coupang.com/re/AFFSDP?lptag=${partnerId}&pageKey=0&subId=&subId2=&subId3=&tracking=&u=${encodeURIComponent(url)}`;
