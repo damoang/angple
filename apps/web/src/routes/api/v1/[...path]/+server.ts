@@ -146,30 +146,6 @@ async function proxyRequest(
         }
     }
 
-    // 디버그: admin/menus 요청 로깅
-    if (path.includes('admin/menus')) {
-        const rawCookieHeader = request.headers.get('cookie');
-        const clientAuthHeader = request.headers.get('authorization');
-        console.log('[API Proxy DEBUG]', method, path, {
-            hasAccessToken: !!locals.accessToken,
-            accessTokenLength: locals.accessToken?.length ?? 0,
-            hasUser: !!locals.user,
-            userId: locals.user?.id,
-            userLevel: locals.user?.level,
-            hasSessionId: !!locals.sessionId,
-            sessionIdPrefix: locals.sessionId?.slice(0, 8),
-            willSetInternalHeaders: !!(locals.user?.id && locals.sessionId),
-            targetUrl,
-            rawCookieHeader: rawCookieHeader
-                ? rawCookieHeader.substring(0, 80) + '...'
-                : '(no cookie header)',
-            clientAuthHeader: clientAuthHeader
-                ? 'Bearer ...' + clientAuthHeader.slice(-8)
-                : '(none)',
-            origin: request.headers.get('origin')
-        });
-    }
-
     try {
         // 헤더 복사 (프록시 관련 헤더 제외)
         const headers = new Headers();
@@ -190,16 +166,6 @@ async function proxyRequest(
         // 1. JWT Authorization 헤더 (기존 방식)
         if (!headers.has('authorization') && locals.accessToken) {
             headers.set('Authorization', `Bearer ${locals.accessToken}`);
-        }
-
-        // 디버그: PUT/POST 요청 시 인증 상태 로깅
-        if (method === 'PUT' || method === 'POST') {
-            console.log('[API Proxy Auth]', method, path, {
-                hasAccessToken: !!locals.accessToken,
-                hasUser: !!locals.user,
-                userId: locals.user?.id,
-                hasSessionId: !!locals.sessionId
-            });
         }
 
         // 2. 내부 신뢰 헤더 (세션 인증을 거친 SvelteKit → 백엔드 통신용)
@@ -233,16 +199,6 @@ async function proxyRequest(
             // @ts-expect-error - Node.js fetch specific option
             duplex: body instanceof ReadableStream ? 'half' : undefined
         });
-
-        // 디버그: admin/menus 응답 로깅
-        if (path.includes('admin/menus')) {
-            console.log('[API Proxy Response]', method, path, {
-                status: response.status,
-                statusText: response.statusText,
-                contentType: response.headers.get('content-type'),
-                contentLength: response.headers.get('content-length')
-            });
-        }
 
         // 응답 헤더 복사 (set-cookie 제외 — SvelteKit cookies API로 별도 처리)
         const responseHeaders = new Headers();
@@ -333,7 +289,6 @@ export const DELETE: RequestHandler = async ({ params, request, locals, cookies 
 
 export const OPTIONS: RequestHandler = async ({ request }) => {
     const origin = request.headers.get('origin');
-    console.log('[OPTIONS DEBUG] origin:', origin);
     const headers: Record<string, string> = {
         'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
         'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-CSRF-Token',
