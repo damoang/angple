@@ -651,7 +651,7 @@
         {/if}
         <li
             id="c_{comment.id}"
-            style="margin-left: {Math.min(depth, 3) * 1.25}rem; scroll-margin-top: 100px"
+            style="margin-left: {Math.min(depth, 2) * 1}rem; scroll-margin-top: 100px"
             class="comment-item transition-colors duration-200
                 {commentLayout === 'chat'
                 ? 'flex items-start gap-2.5' + (isAuthor ? ' flex-row-reverse' : '')
@@ -718,8 +718,8 @@
                                     src={iconUrl}
                                     alt={comment.author}
                                     class="mt-0.5 rounded-full object-cover {isReply
-                                        ? 'size-8'
-                                        : 'size-10'}"
+                                        ? 'size-7'
+                                        : 'size-8'}"
                                     onerror={(e) => {
                                         const img = e.currentTarget as HTMLImageElement;
                                         img.style.display = 'none';
@@ -729,16 +729,16 @@
                                 />
                                 <div
                                     class="bg-primary text-primary-foreground mt-0.5 hidden items-center justify-center rounded-full {isReply
-                                        ? 'size-8 text-sm'
-                                        : 'size-10'}"
+                                        ? 'size-7 text-xs'
+                                        : 'size-8 text-sm'}"
                                 >
                                     {comment.author.charAt(0).toUpperCase()}
                                 </div>
                             {:else}
                                 <div
                                     class="bg-primary text-primary-foreground mt-0.5 flex items-center justify-center rounded-full {isReply
-                                        ? 'size-8 text-sm'
-                                        : 'size-10'}"
+                                        ? 'size-7 text-xs'
+                                        : 'size-8 text-sm'}"
                                 >
                                     {comment.author.charAt(0).toUpperCase()}
                                 </div>
@@ -791,23 +791,26 @@
                             </span>
                         {/if}
 
-                        <!-- 리액션 (da-reaction 플러그인) -->
-                        {#if reactionPluginActive && !isEditing && !isDeleted && boardId && postId}
-                            <ReactionBar
-                                {boardId}
-                                {postId}
-                                commentId={comment.id}
-                                target="comment"
-                            />
-                        {/if}
-
                         <!-- 존2: 액션 (좋아요/비추천/답글/링크복사/수정/삭제/신고) -->
                         {#if isDeleted}
                             <!-- 삭제된 댓글: 버튼 없음 -->
                         {:else}
+                            <!-- 리액션 (da-reaction 플러그인) — 따봉 옆 배치 -->
+                            {#if reactionPluginActive && !isEditing && boardId && postId}
+                                <div class="ml-auto">
+                                    <ReactionBar
+                                        {boardId}
+                                        {postId}
+                                        commentId={comment.id}
+                                        target="comment"
+                                    />
+                                </div>
+                            {/if}
                             <!-- 댓글 좋아요 버튼 (PHP 호환: thumbup 이미지) -->
                             <div
-                                class="comment-good-group ml-auto flex items-stretch rounded-lg border {isCommentLiked(
+                                class="comment-good-group {reactionPluginActive
+                                    ? ''
+                                    : 'ml-auto'} flex items-stretch rounded-lg border {isCommentLiked(
                                     String(comment.id)
                                 )
                                     ? 'border-liked/40 bg-liked/5'
@@ -860,35 +863,8 @@
                                 />
                             {/if}
 
-                            <!-- 비추천 + 액션 버튼 -->
-                            <div class="text-muted-foreground flex items-center gap-1.5 text-sm">
-                                <!-- 댓글 비추천 버튼 (게시판 설정에서 활성화된 경우만) -->
-                                {#if useNogood}
-                                    {#if onDislike && authStore.isAuthenticated}
-                                        <button
-                                            type="button"
-                                            onclick={() => handleDislikeComment(String(comment.id))}
-                                            disabled={dislikingComment === String(comment.id)}
-                                            class="hover:text-disliked flex items-center gap-1 transition-colors {isCommentDisliked(
-                                                String(comment.id)
-                                            )
-                                                ? 'text-disliked'
-                                                : ''}"
-                                        >
-                                            <span>👎</span>
-                                            <span
-                                                >{getCommentDislikes(
-                                                    comment
-                                                ).toLocaleString()}</span
-                                            >
-                                        </button>
-                                    {:else}
-                                        <span
-                                            >👎 {getCommentDislikes(comment).toLocaleString()}</span
-                                        >
-                                    {/if}
-                                {/if}
-
+                            <!-- 액션 버튼 -->
+                            <div class="text-muted-foreground flex items-center gap-1 text-sm">
                                 {#if !isEditing}
                                     <div class="flex gap-1">
                                         <!-- 답글 버튼 -->
@@ -900,8 +876,10 @@
                                                 class="h-7 px-2"
                                                 disabled={isReplyingTo}
                                             >
-                                                <Reply class="h-4 w-4" />
-                                                <span class="ml-1 text-xs">답글</span>
+                                                <Reply class="h-3.5 w-3.5" />
+                                                <span class="ml-1 hidden text-xs sm:inline"
+                                                    >답글</span
+                                                >
                                             </Button>
                                         {/if}
 
@@ -910,11 +888,13 @@
                                             variant="ghost"
                                             size="sm"
                                             onclick={() => copyCommentLink(comment.id)}
-                                            class="comment-action-secondary h-7 px-2 opacity-40 transition-opacity hover:opacity-80"
+                                            class="comment-action-secondary h-7 px-1.5 opacity-50 transition-opacity hover:opacity-90"
                                             title="이 댓글의 링크를 복사합니다"
                                         >
-                                            <Link2 class="h-4 w-4" />
-                                            <span class="ml-1 text-xs">링크복사</span>
+                                            <Link2 class="h-3.5 w-3.5" />
+                                            <span class="ml-1 hidden text-xs sm:inline"
+                                                >링크복사</span
+                                            >
                                         </Button>
 
                                         {#if canEdit}
@@ -923,7 +903,7 @@
                                                 variant="ghost"
                                                 size="sm"
                                                 onclick={() => startEdit(comment)}
-                                                class="comment-action-secondary h-7 px-2 opacity-40 transition-opacity hover:opacity-80"
+                                                class="comment-action-secondary h-7 px-2 opacity-50 transition-opacity hover:opacity-90"
                                             >
                                                 <Pencil class="h-4 w-4" />
                                             </Button>
@@ -932,7 +912,7 @@
                                                 size="sm"
                                                 onclick={() => handleDelete(String(comment.id))}
                                                 disabled={isDeleting === String(comment.id)}
-                                                class="comment-action-secondary text-destructive hover:text-destructive h-7 px-2 opacity-40 transition-opacity hover:opacity-80"
+                                                class="comment-action-secondary text-destructive hover:text-destructive h-7 px-2 opacity-50 transition-opacity hover:opacity-90"
                                             >
                                                 <Trash2 class="h-4 w-4" />
                                             </Button>
@@ -943,7 +923,7 @@
                                                 variant="ghost"
                                                 size="sm"
                                                 onclick={() => startReport(comment)}
-                                                class="comment-action-secondary text-muted-foreground hover:text-destructive h-7 px-2 opacity-40 transition-opacity hover:opacity-80"
+                                                class="comment-action-secondary text-muted-foreground hover:text-destructive h-7 px-2 opacity-50 transition-opacity hover:opacity-90"
                                                 title="신고"
                                             >
                                                 <Flag class="h-4 w-4" />
@@ -956,7 +936,7 @@
                                                 size="sm"
                                                 onclick={() =>
                                                     toggleCommentRevisions(String(comment.id))}
-                                                class="comment-action-secondary text-muted-foreground h-7 px-2 opacity-40 transition-opacity hover:opacity-80"
+                                                class="comment-action-secondary text-muted-foreground h-7 px-2 opacity-50 transition-opacity hover:opacity-90"
                                                 title="수정이력 보기"
                                             >
                                                 <History class="h-4 w-4" />
