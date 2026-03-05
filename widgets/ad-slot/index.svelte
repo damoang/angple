@@ -8,6 +8,7 @@
     import type { WidgetProps } from '$lib/types/widget-props';
     import { AdSlot } from '$lib/components/ui/ad-slot';
     import ImageTextBanner from '$lib/components/ui/image-text-banner/image-text-banner.svelte';
+    import { DamoangBanner } from '$lib/components/ui/damoang-banner';
 
     let { config, slot, isEditMode = false }: WidgetProps = $props();
 
@@ -31,6 +32,9 @@
             <AdSlot {position} height={isSticky ? '500px' : '250px'} />
         {/if}
     </div>
+{:else if position === 'index-head'}
+    <!-- 메인 상단: 축하메시지 → 프리미엄배너 → GAM 폴백 -->
+    <DamoangBanner position="index" showCelebration={true} {height} gamPosition="index-head" />
 {:else}
     <!-- 메인 영역 광고 (GAM) -->
     <AdSlot {position} {height} />
