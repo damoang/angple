@@ -66,6 +66,11 @@ export const load: PageServerLoad = async ({ url, params, locals }) => {
             }
         }
 
+        // 게시판이 존재하지 않으면 404
+        if (!board) {
+            svelteError(404, `'${boardId}' 게시판을 찾을 수 없습니다.`);
+        }
+
         // 게시판 접근 권한 체크 (list_level)
         if (board) {
             const userLevel = locals.user?.level ?? 1;
