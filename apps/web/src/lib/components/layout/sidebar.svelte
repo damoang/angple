@@ -325,14 +325,14 @@
         {/if}
     </nav>
 
-    <!-- 사이드바 메뉴 아래 GAM 광고 -->
+    <!-- 사이드바 메뉴 아래 GAM 광고 (2번째 비활성화: 연속 광고 과다 방지) -->
     {#if widgetLayoutStore.hasEnabledAds}
         <div class="px-2">
             <AdSlot position="sidebar" height="250px" />
         </div>
-        <div class="px-2">
+        <!-- <div class="px-2">
             <AdSlot position="sidebar-2" height="250px" />
-        </div>
+        </div> -->
     {/if}
 
     <!-- Slot: sidebar-left-bottom -->

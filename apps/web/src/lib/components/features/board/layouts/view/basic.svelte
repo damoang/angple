@@ -189,10 +189,11 @@
             />
         {/each}
 
-        <!-- GAM 광고 -->
+        <!-- GAM 광고 (비활성화: 본문 시작 전 광고 과다 방지)
         {#if widgetLayoutStore.hasEnabledAds}
             <AdSlot position="board-content" height="90px" />
         {/if}
+        -->
 
         <!-- 알뜰구매 모든 링크열기 (GAM 바로 아래) -->
         {#each afterContentSlots as slot (slot.component)}

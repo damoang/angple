@@ -868,12 +868,13 @@
         </div>
     </div>
 
-    <!-- 네비게이션 아래 GAM 광고 -->
+    <!-- 네비게이션 아래 GAM 광고 (비활성화: 광고 과다 방지)
     {#if widgetLayoutStore.hasEnabledAds}
         <div class="mb-6">
             <AdSlot position="board-view-top" height="90px" />
         </div>
     {/if}
+    -->
 
     <!-- 알뜰구매 쇼핑 바로가기 (목록으로 버튼 → GAM → 여기 → 본문 카드) -->
     {#if boardType === 'economy'}

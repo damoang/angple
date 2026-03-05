@@ -71,7 +71,7 @@ export const DEFAULT_WIDGETS: WidgetConfig[] = [
         id: 'ad-middle-2',
         type: 'ad-slot',
         position: 8,
-        enabled: true,
+        enabled: false, // 비활성화: 4분할 아래 광고 과다 방지
         settings: { position: 'index-middle-2' }
     },
     {
