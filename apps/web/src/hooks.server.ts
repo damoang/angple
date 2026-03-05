@@ -90,10 +90,14 @@ async function authenticateSSR(event: Parameters<Handle>[0]['event']): Promise<v
                     } else {
                         const token = await generateAccessToken(member);
                         event.locals.accessToken = token;
-                        // 캐시 크기 제한
-                        if (jwtCache.size > MAX_JWT_CACHE_SIZE) {
-                            for (const [key, entry] of jwtCache) {
-                                if (now >= entry.expiry) jwtCache.delete(key);
+                        // 캐시 크기 제한: 한계 도달 시 가장 오래된 25% 제거 (O(n) sweep 대신 batch eviction)
+                        if (jwtCache.size >= MAX_JWT_CACHE_SIZE) {
+                            const evictCount = Math.floor(MAX_JWT_CACHE_SIZE * 0.25);
+                            let removed = 0;
+                            for (const key of jwtCache.keys()) {
+                                if (removed >= evictCount) break;
+                                jwtCache.delete(key);
+                                removed++;
                             }
                         }
                         jwtCache.set(session.mbId, { token, expiry: now + JWT_CACHE_TTL });
