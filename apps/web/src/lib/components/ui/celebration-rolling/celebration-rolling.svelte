@@ -62,21 +62,9 @@
         }
     }
 
-    function stripHtml(html: string): string {
-        return html.replace(/<[^>]*>/g, '').trim();
-    }
-
     function getDisplayText(banner: CelebrationBanner): string {
         const nick = banner.target_member_nick || '';
-        const contentText = stripHtml(banner.content || '');
-        // content가 비면 title 사용 (ads admin의 cardMainText가 title에 포함됨)
-        // 단, title이 날짜 형식(YYYY.MM.DD 등)이면 무시
-        const titleText = banner.title || '';
-        const isDateTitle = /^\d{4}[.\-]\d{2}[.\-]\d{2}/.test(titleText);
-        const message = contentText || (!isDateTitle ? titleText : '');
-        if (nick && message) return `[${nick}] ${message}`;
-        if (nick) return `[${nick}] 축하합니다!`;
-        if (message) return message;
+        if (nick) return nick;
         return '축하합니다!';
     }
 

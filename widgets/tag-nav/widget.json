@@ -1,0 +1,12 @@
+{
+    "id": "tag-nav",
+    "name": "태그 네비게이션",
+    "version": "1.0.0",
+    "description": "주요 게시판으로 빠르게 이동하는 태그 네비게이션 바",
+    "author": { "name": "Angple" },
+    "category": "utility",
+    "slots": ["main"],
+    "icon": "Tag",
+    "allowMultiple": false,
+    "main": "index.svelte"
+}

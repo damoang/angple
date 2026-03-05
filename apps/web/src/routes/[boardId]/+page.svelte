@@ -21,6 +21,7 @@
     import AdSlot from '$lib/components/ui/ad-slot/ad-slot.svelte';
     import { DamoangBanner } from '$lib/components/ui/damoang-banner';
     import { CelebrationRolling } from '$lib/components/ui/celebration-rolling';
+    import { TagNav } from '$lib/components/ui/tag-nav';
     import { PromotionInlinePost } from '$lib/components/ui/promotion-inline-post';
     import { widgetLayoutStore } from '$lib/stores/widget-layout.svelte';
     import {
@@ -304,6 +305,9 @@
                     <DamoangBanner position="board-list" height="90px" showCelebration={false} />
                 </div>
             {/if}
+
+            <!-- 태그 네비게이션 -->
+            <TagNav class="mb-4" />
 
             <!-- 앙지도 헤더 -->
             {#if isAngmapBoard}
