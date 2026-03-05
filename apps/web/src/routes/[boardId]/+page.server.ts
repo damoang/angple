@@ -4,6 +4,20 @@ import type { FreePost, Board, SearchField } from '$lib/api/types.js';
 import { fetchPromotionPosts, fetchPromotionBoardPosts } from '$lib/server/ads/promotion.js';
 import type { PromotionBoardPost } from '$lib/server/ads/promotion.js';
 import { backendFetch as bFetch, createAuthHeaders } from '$lib/server/backend-fetch.js';
+import { createCache } from '$lib/server/cache.js';
+
+// --- 인메모리 캐시: board 정보 (60초 TTL, 거의 안 바뀜) ---
+const boardInfoCache = createCache<Board>({ ttl: 60_000, maxSize: 200 });
+
+// --- 인메모리 캐시: 비로그인 게시글 목록 (15초 TTL) ---
+interface PostsCacheData {
+    posts: FreePost[];
+    notices: FreePost[];
+    promotionPosts: unknown[];
+    pagination: { total: number; page: number; limit: number; totalPages: number };
+    error: string | null;
+}
+const postsCache = createCache<PostsCacheData>({ ttl: 15_000, maxSize: 100 });
 
 /**
  * 게시판 목록 페이지 — Streaming SSR
@@ -27,18 +41,29 @@ export const load: PageServerLoad = async ({ url, params, locals }) => {
     const headers = createAuthHeaders(locals.accessToken);
 
     // --- 1단계: board 정보 즉시 await (헤더, SEO, 권한 체크) ---
+    // board 메타데이터는 관리자 변경 시만 바뀌므로 60초 인메모리 캐시
     let board: Board | null = null;
     try {
-        const [boardRes, displaySettingsRes] = await Promise.all([
-            bFetch(`/api/v1/boards/${boardId}`, { headers }),
-            bFetch(`/api/v1/boards/${boardId}/display-settings`, { headers })
-        ]);
-        board = boardRes.ok ? ((await boardRes.json()).data as Board) : null;
+        const cached = boardInfoCache.get(boardId);
+        if (cached) {
+            board = cached;
+        } else {
+            const [boardRes, displaySettingsRes] = await Promise.all([
+                bFetch(`/api/v1/boards/${boardId}`, { headers }),
+                bFetch(`/api/v1/boards/${boardId}/display-settings`, { headers })
+            ]);
+            board = boardRes.ok ? ((await boardRes.json()).data as Board) : null;
 
-        // display_settings 병합
-        if (board && displaySettingsRes.ok) {
-            const displaySettings = (await displaySettingsRes.json()).data;
-            board = { ...board, display_settings: displaySettings };
+            // display_settings 병합
+            if (board && displaySettingsRes.ok) {
+                const displaySettings = (await displaySettingsRes.json()).data;
+                board = { ...board, display_settings: displaySettings };
+            }
+
+            // 캐시 저장 (board가 null이 아닐 때만)
+            if (board) {
+                boardInfoCache.set(boardId, board);
+            }
         }
 
         // 게시판 접근 권한 체크 (list_level)
@@ -81,6 +106,23 @@ export const load: PageServerLoad = async ({ url, params, locals }) => {
     // 프로모션 게시판 전용: 광고주별 post_count 제한 적용 (검색/태그 필터 없을 때만)
     const isPromotionBoard = boardId === 'promotion' && !isSearching && !isTagFiltering;
 
+    // 비로그인 + 검색/태그 필터 없는 경우: 게시글 목록 캐시 사용 (15초)
+    const usePostsCache = !locals.user && !isSearching && !isTagFiltering;
+    const postsCacheKey = `${boardId}:p${page}:l${limit}`;
+
+    if (usePostsCache) {
+        const cachedPosts = postsCache.get(postsCacheKey);
+        if (cachedPosts) {
+            return {
+                boardId,
+                board,
+                searchParams: null,
+                activeTag: null,
+                streamed: { postsData: Promise.resolve(cachedPosts) }
+            };
+        }
+    }
+
     // Promise (await 하지 않음 → SvelteKit이 스트리밍)
     const postsDataPromise = (async () => {
         if (isPromotionBoard) {
@@ -122,7 +164,14 @@ export const load: PageServerLoad = async ({ url, params, locals }) => {
                 totalPages: 1
             };
 
-            return { posts, notices, promotionPosts: [], pagination, error };
+            const result = { posts, notices, promotionPosts: [] as unknown[], pagination, error };
+
+            // 비로그인 + 에러 없는 경우만 캐시 저장
+            if (usePostsCache && !error) {
+                postsCache.set(postsCacheKey, result);
+            }
+
+            return result;
         }
 
         // 일반 게시판 (또는 프로모션 게시판 검색/태그 필터)
@@ -176,7 +225,14 @@ export const load: PageServerLoad = async ({ url, params, locals }) => {
             }
         }
 
-        return { posts, notices, promotionPosts, pagination, error };
+        const result = { posts, notices, promotionPosts, pagination, error };
+
+        // 비로그인 + 에러 없는 경우만 캐시 저장
+        if (usePostsCache && !error) {
+            postsCache.set(postsCacheKey, result);
+        }
+
+        return result;
     })();
 
     return {
