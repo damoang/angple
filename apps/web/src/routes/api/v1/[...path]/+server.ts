@@ -18,6 +18,51 @@ const BACKEND_URL = env.BACKEND_URL || 'http://localhost:8090';
 const COOKIE_DOMAIN = env.COOKIE_DOMAIN || '';
 
 /**
+ * 댓글 수정 시 대댓글 존재 여부 확인
+ * 대댓글이 달린 댓글은 수정 불가 (삭제는 허용)
+ */
+async function checkCommentHasReplies(path: string): Promise<Response | null> {
+    const commentMatch = path.match(/^boards\/([a-zA-Z0-9_-]+)\/posts\/(\d+)\/comments\/(\d+)$/);
+    if (!commentMatch) return null;
+
+    const [, boardId, postId, commentId] = commentMatch;
+    const safeBoardId = boardId.replace(/[^a-zA-Z0-9_-]/g, '');
+    try {
+        // 그누보드: 같은 wr_parent(글 ID) 아래에서 wr_comment(댓글 그룹)와 wr_comment_reply로 계층 구조
+        // 해당 댓글의 wr_comment 값을 가져와서 같은 그룹에 wr_comment_reply가 더 긴 댓글이 있는지 확인
+        const [rows] = await pool.query<RowDataPacket[]>(
+            `SELECT wr_comment, wr_comment_reply FROM ?? WHERE wr_id = ? AND wr_is_comment >= 1`,
+            [`g5_write_${safeBoardId}`, parseInt(commentId, 10)]
+        );
+        if (!rows[0]) return null;
+
+        const { wr_comment, wr_comment_reply } = rows[0];
+        const replyPrefix = wr_comment_reply || '';
+
+        // 같은 댓글 그룹(wr_comment)에서 wr_comment_reply가 현재보다 긴(자식) 댓글 존재 확인
+        const [replyRows] = await pool.query<RowDataPacket[]>(
+            `SELECT COUNT(*) as cnt FROM ?? WHERE wr_parent = ? AND wr_comment = ? AND wr_comment_reply LIKE ? AND wr_comment_reply != ? AND wr_is_comment >= 1`,
+            [
+                `g5_write_${safeBoardId}`,
+                parseInt(postId, 10),
+                wr_comment,
+                `${replyPrefix}%`,
+                replyPrefix
+            ]
+        );
+        if (replyRows[0]?.cnt > 0) {
+            return new Response(
+                JSON.stringify({ error: '답글이 달린 댓글은 수정할 수 없습니다.' }),
+                { status: 403, headers: { 'Content-Type': 'application/json' } }
+            );
+        }
+    } catch {
+        // DB 조회 실패 시 백엔드에 위임
+    }
+    return null;
+}
+
+/**
  * 글/댓글 수정·삭제 시 본인 확인
  * 경로 패턴: boards/{boardId}/posts/{postId} 또는 boards/{boardId}/posts/{postId}/comments/{commentId}
  * 본인이 아니면 403 Response 반환, 본인이면 null 반환
@@ -81,6 +126,14 @@ async function proxyRequest(
     const path = params.path || '';
     const url = new URL(request.url);
     const targetUrl = `${BACKEND_URL}/api/v1/${path}${url.search}`;
+
+    // 댓글 수정 시 대댓글 존재 확인 (관리자 포함 모두 차단)
+    if (method === 'PUT') {
+        const replyCheckResult = await checkCommentHasReplies(path);
+        if (replyCheckResult) {
+            return replyCheckResult; // 403 Response
+        }
+    }
 
     // 글/댓글 수정/삭제 시 본인 확인 (관리자 레벨 10 이상은 통과)
     if ((method === 'PUT' || method === 'DELETE') && locals.user?.id) {
