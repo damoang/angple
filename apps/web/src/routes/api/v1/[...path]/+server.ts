@@ -83,7 +83,7 @@ async function proxyRequest(
     const targetUrl = `${BACKEND_URL}/api/v1/${path}${url.search}`;
 
     // 글/댓글 수정/삭제 시 본인 확인 (관리자 레벨 10 이상은 통과)
-    if ((method === 'PUT' || method === 'DELETE') && locals.user) {
+    if ((method === 'PUT' || method === 'DELETE') && locals.user?.id) {
         const userLevel = locals.user.level ?? 0;
         if (userLevel < 10) {
             const authorCheckResult = await checkWriteAuthor(path, locals.user.id);
