@@ -34,8 +34,8 @@ export function createOAuthState(
     cookies.set(STATE_COOKIE_NAME, JSON.stringify(data), {
         path: '/',
         httpOnly: true,
-        sameSite: 'lax',
-        secure: !dev,
+        sameSite: 'none', // Apple Sign In form_post (cross-site POST)에서 쿠키 전송 필요
+        secure: true, // SameSite=None은 Secure 필수
         maxAge: STATE_MAX_AGE,
         ...(COOKIE_DOMAIN && { domain: COOKIE_DOMAIN })
     });
