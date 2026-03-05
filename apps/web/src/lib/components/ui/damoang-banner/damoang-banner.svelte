@@ -48,6 +48,7 @@
         trackingId?: string;
     }
 
+    // 최종 선택된 배너 (축하메시지 or 프리미엄 광고)
     let celebrationBanner = $state<CelebrationBanner | null>(null);
     let adsBanner = $state<AdsBanner | null>(null);
     let loading = $state(true);
@@ -82,73 +83,95 @@
     async function fetchBanners() {
         if (!browser) return;
 
-        // 1. 축하메시지 (showCelebration=true인 경우만)
         if (showCelebration) {
-            const celebration = await fetchCelebrationBanner();
-            if (celebration) {
-                celebrationBanner = celebration;
+            // 메인 페이지: 축하메시지 + 프리미엄 배너를 동시 fetch → 풀에서 랜덤 1개
+            const [celebrations, adsBanners] = await Promise.all([
+                fetchCelebrationBanners(),
+                fetchAdsBanners()
+            ]);
+
+            // 슬롯 풀 구성:
+            // - 축하메시지 N개 → 슬롯 1개 (내부 랜덤)
+            // - 프리미엄 배너 각각 슬롯 1개씩
+            type Slot =
+                | { type: 'celebration'; data: CelebrationBanner }
+                | { type: 'ads'; data: AdsBanner };
+            const pool: Slot[] = [];
+
+            if (celebrations.length > 0) {
+                const picked = celebrations[Math.floor(Math.random() * celebrations.length)];
+                pool.push({ type: 'celebration', data: picked });
+            }
+            for (const banner of adsBanners) {
+                pool.push({ type: 'ads', data: banner });
+            }
+
+            if (pool.length > 0) {
+                const selected = pool[Math.floor(Math.random() * pool.length)];
+                if (selected.type === 'celebration') {
+                    celebrationBanner = selected.data;
+                } else {
+                    adsBanner = selected.data;
+                }
+                loading = false;
+                return;
+            }
+        } else {
+            // 게시판 페이지: 프리미엄 + 일반 배너만 (축하메시지 없음)
+            const ads = await fetchAdsBanners();
+            if (ads.length > 0) {
+                adsBanner = ads[Math.floor(Math.random() * ads.length)];
                 loading = false;
                 return;
             }
         }
 
-        // 2. 다모앙 광고 서버 (ads.damoang.net)
-        const ads = await fetchAdsBanner();
-        if (ads) {
-            adsBanner = ads;
-            loading = false;
-            return;
-        }
-
-        // 3. 모두 실패 → GAM 폴백
+        // 모두 없음 → GAM 폴백
         useFallback = true;
         loading = false;
     }
 
-    async function fetchCelebrationBanner(): Promise<CelebrationBanner | null> {
+    async function fetchCelebrationBanners(): Promise<CelebrationBanner[]> {
         try {
             const response = await fetch(`${DAMOANG_API_BASE}/api/ads/celebration/today`, {
                 method: 'GET',
                 headers: { Accept: 'application/json' }
             });
 
-            if (!response.ok) return null;
+            if (!response.ok) return [];
 
             const result = await response.json();
 
             if (result.success && result.data?.length > 0) {
                 // display_type === 'image'인 것만 필터링 (text 타입은 CelebrationRolling에서 처리)
-                const imageBanners = result.data.filter(
+                return result.data.filter(
                     (b: CelebrationBanner) => !b.display_type || b.display_type === 'image'
                 );
-                if (imageBanners.length === 0) return null;
-                const randomIndex = Math.floor(Math.random() * imageBanners.length);
-                return imageBanners[randomIndex];
             }
-            return null;
+            return [];
         } catch (error) {
             console.warn('DamoangBanner: 축하메시지 로드 실패', error);
-            return null;
+            return [];
         }
     }
 
-    async function fetchAdsBanner(): Promise<AdsBanner | null> {
+    async function fetchAdsBanners(): Promise<AdsBanner[]> {
         try {
             const response = await fetch(
-                `/api/ads/banners?position=${encodeURIComponent(adsPosition)}&limit=1`
+                `/api/ads/banners?position=${encodeURIComponent(adsPosition)}&limit=10`
             );
 
-            if (!response.ok) return null;
+            if (!response.ok) return [];
 
             const result = await response.json();
 
             if (result.success && result.data?.banners?.length > 0) {
-                return result.data.banners[0];
+                return result.data.banners;
             }
-            return null;
+            return [];
         } catch (error) {
             console.warn('DamoangBanner: 다모앙 광고 로드 실패', error);
-            return null;
+            return [];
         }
     }
 
