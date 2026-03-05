@@ -18,46 +18,47 @@ export const DEFAULT_WIDGETS: WidgetConfig[] = [
         enabled: true,
         settings: { position: 'index-head' }
     },
-    { id: 'recommended', type: 'recommended', position: 1, enabled: true },
+    { id: 'tag-nav', type: 'tag-nav', position: 1, enabled: true },
+    { id: 'recommended', type: 'recommended', position: 2, enabled: true },
     {
         id: 'ad-top',
         type: 'ad-slot',
-        position: 2,
+        position: 3,
         enabled: true,
         settings: { position: 'index-top' }
     },
     {
         id: 'new-board',
         type: 'post-list',
-        position: 3,
+        position: 4,
         enabled: true,
         settings: { boardId: 'notice', layout: 'list', sortBy: 'date', count: 10, showTitle: true }
     },
     {
         id: 'ad-news-economy',
         type: 'ad-slot',
-        position: 4,
+        position: 5,
         enabled: true,
         settings: { position: 'index-news-economy' }
     },
     {
         id: 'economy',
         type: 'post-list',
-        position: 5,
+        position: 6,
         enabled: true,
         settings: { boardId: 'economy', layout: 'list', sortBy: 'date', count: 10, showTitle: true }
     },
     {
         id: 'ad-middle-1',
         type: 'ad-slot',
-        position: 6,
+        position: 7,
         enabled: true,
         settings: { position: 'index-middle-1' }
     },
     {
         id: 'gallery',
         type: 'post-list',
-        position: 7,
+        position: 8,
         enabled: true,
         settings: {
             boardId: 'gallery',
@@ -70,28 +71,28 @@ export const DEFAULT_WIDGETS: WidgetConfig[] = [
     {
         id: 'ad-middle-2',
         type: 'ad-slot',
-        position: 8,
+        position: 9,
         enabled: true,
         settings: { position: 'index-middle-2' }
     },
     {
         id: 'group',
         type: 'post-list',
-        position: 9,
+        position: 10,
         enabled: true,
         settings: { boardId: 'group', layout: 'grid', sortBy: 'date', count: 10, showTitle: true }
     },
     {
         id: 'ad-bottom',
         type: 'ad-slot',
-        position: 10,
+        position: 11,
         enabled: true,
         settings: { position: 'index-bottom' }
     },
     {
         id: 'celebration',
         type: 'celebration',
-        position: 11,
+        position: 12,
         enabled: true
     }
 ];
