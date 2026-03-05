@@ -11,7 +11,7 @@ import { mapGnuboardUrl, mapRhymixUrl } from '$lib/server/url-compat.js';
 // --- JWT 인메모리 캐시 (세션별, 5분 TTL) ---
 const jwtCache = new Map<string, { token: string; expiry: number }>();
 const JWT_CACHE_TTL = 5 * 60 * 1000; // 5분
-const MAX_JWT_CACHE_SIZE = 5000;
+const MAX_JWT_CACHE_SIZE = 50000;
 
 /**
  * SvelteKit Server Hooks
@@ -101,6 +101,7 @@ async function authenticateSSR(event: Parameters<Handle>[0]['event']): Promise<v
 
                     // 서브도메인 SSO: damoang_jwt 쿠키 자동 갱신
                     // 페이지 네비게이션 요청에서만 실행 (API 요청 제외)
+                    // ⚡ 비동기 non-blocking: 응답 지연 방지
                     if (!event.url.pathname.startsWith('/api/')) {
                         try {
                             const existingJwt = event.cookies.get('damoang_jwt');
@@ -120,12 +121,13 @@ async function authenticateSSR(event: Parameters<Handle>[0]['event']): Promise<v
                             }
 
                             if (needsRenewal) {
-                                await setDamoangSSOCookie(event.cookies, {
+                                // fire-and-forget: 응답을 기다리지 않음
+                                void setDamoangSSOCookie(event.cookies, {
                                     mb_id: member.mb_id,
                                     mb_level: member.mb_level ?? 0,
                                     mb_name: member.mb_name || member.mb_nick,
                                     mb_email: member.mb_email
-                                });
+                                }).catch(() => {});
                             }
                         } catch {
                             // SSO 쿠키 갱신 실패는 무시 (메인 인증에 영향 없음)

@@ -236,9 +236,30 @@
         return (authStore.user?.mb_level ?? 0) >= 10;
     }
 
-    // 댓글 수정/삭제 권한 (작성자 또는 최고관리자)
+    // 댓글에 대댓글(답글)이 달려있는지 확인
+    function hasReplies(comment: FreeComment): boolean {
+        const commentId = String(comment.id);
+        // parent_id 기반: 다른 댓글이 이 댓글을 부모로 갖는지 확인
+        const hasChildByParent = comments.some(
+            (c) => String(c.parent_id) === commentId && String(c.id) !== commentId
+        );
+        if (hasChildByParent) return true;
+
+        // depth 기반 (그누보드 호환): commentTree에서 바로 다음 댓글의 depth가 더 크면 답글 있음
+        const idx = commentTree.findIndex((c) => String(c.id) === commentId);
+        if (idx >= 0 && idx + 1 < commentTree.length) {
+            const currentDepth = commentTree[idx].depth ?? 0;
+            const nextDepth = commentTree[idx + 1].depth ?? 0;
+            if (nextDepth > currentDepth) return true;
+        }
+        return false;
+    }
+
+    // 댓글 수정 권한 (작성자 또는 최고관리자, 대댓글이 달린 댓글은 수정 불가)
     function canEditComment(comment: FreeComment): boolean {
         if (!authStore.user) return false;
+        // 대댓글이 달려있으면 수정 불가 (관리자도 불가)
+        if (hasReplies(comment)) return false;
         return isCommentAuthor(comment) || isSuperAdmin();
     }
 
@@ -334,7 +355,10 @@
 
     // 댓글 좋아요
     async function handleLikeComment(commentId: string): Promise<void> {
-        if (!onLike || !authStore.isAuthenticated) return;
+        if (!onLike || !authStore.isAuthenticated) {
+            toast.error('로그인이 필요합니다.');
+            return;
+        }
 
         likingComment = commentId;
         try {
@@ -348,6 +372,8 @@
             // 아바타 스택 갱신
             loadCommentLikerAvatars(commentId);
         } catch (err) {
+            const msg = err instanceof Error ? err.message : '댓글 추천에 실패했습니다.';
+            toast.error(msg);
             console.error('Failed to like comment:', err);
         } finally {
             likingComment = null;
@@ -367,7 +393,10 @@
 
     // 댓글 비추천
     async function handleDislikeComment(commentId: string): Promise<void> {
-        if (!onDislike || !authStore.isAuthenticated) return;
+        if (!onDislike || !authStore.isAuthenticated) {
+            toast.error('로그인이 필요합니다.');
+            return;
+        }
 
         dislikingComment = commentId;
         try {
@@ -379,6 +408,8 @@
             }
             commentDislikes.set(commentId, response.dislikes);
         } catch (err) {
+            const msg = err instanceof Error ? err.message : '댓글 비추천에 실패했습니다.';
+            toast.error(msg);
             console.error('Failed to dislike comment:', err);
         } finally {
             dislikingComment = null;
