@@ -33,8 +33,46 @@ const LEGACY_URL = env.LEGACY_URL || '';
 /** CDN 캐시 가능한 공개 경로 (비로그인 시만 적용) */
 const PUBLIC_CACHEABLE_PATHS = ['/feed', '/games', '/info'];
 
+/** 게시판 목록 패턴: /free, /tips, /qa 등 (1-depth, 영문+숫자+하이픈) */
+const BOARD_PATH_REGEX = /^\/[a-z][a-z0-9_-]{1,20}$/;
+
+/** 게시판이 아닌 1-depth 경로 (기존 라우트와 충돌 방지) */
+const NON_BOARD_PATHS = new Set([
+    '/admin',
+    '/auth',
+    '/login',
+    '/logout',
+    '/register',
+    '/signup',
+    '/search',
+    '/settings',
+    '/profile',
+    '/api',
+    '/feed',
+    '/games',
+    '/info',
+    '/about',
+    '/contact',
+    '/plugin',
+    '/themes',
+    '/install',
+    '/healthz',
+    '/manifest',
+    '/robots',
+    '/sitemap',
+    '/sw'
+]);
+
 function isPublicCacheablePath(pathname: string): boolean {
     return PUBLIC_CACHEABLE_PATHS.some((p) => pathname === p || pathname.startsWith(p + '/'));
+}
+
+function isBoardListPath(pathname: string, searchParams: URLSearchParams): boolean {
+    if (!BOARD_PATH_REGEX.test(pathname)) return false;
+    if (NON_BOARD_PATHS.has(pathname)) return false;
+    // 검색 파라미터 있으면 캐시 안 함 (개인화 가능성)
+    if (searchParams.has('sfl') || searchParams.has('stx') || searchParams.has('tag')) return false;
+    return true;
 }
 
 /** Rate limiting 경로 패턴 */
@@ -366,6 +404,13 @@ export const handle: Handle = async ({ event, resolve }) => {
         response.headers.set(
             'Cache-Control',
             'public, s-maxage=30, stale-while-revalidate=60, max-age=0'
+        );
+        response.headers.set('Vary', 'Cookie');
+    } else if (!event.locals.user && isBoardListPath(pathname, event.url.searchParams)) {
+        // 비로그인 사용자의 게시판 목록: CDN 캐시 10초, stale 30초
+        response.headers.set(
+            'Cache-Control',
+            'public, s-maxage=10, stale-while-revalidate=30, max-age=0'
         );
         response.headers.set('Vary', 'Cookie');
     } else {
