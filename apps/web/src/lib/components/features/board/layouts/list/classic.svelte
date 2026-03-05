@@ -283,9 +283,10 @@
         color: var(--color-foreground);
     }
 
-    /* 읽은 글 — weight 동일(레이아웃 시프트 방지), 색상만 muted */
+    /* 읽은 글 — weight 동일(레이아웃 시프트 방지), 색상+투명도로 확실히 구분 */
     .post-title-read {
         color: var(--color-muted-foreground);
+        opacity: 0.55;
     }
 
     /* ===== 메타데이터 텍스트 (이름, 날짜, 조회) ===== */

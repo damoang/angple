@@ -1,6 +1,8 @@
 import type { RequestHandler } from './$types';
 import { dev } from '$app/environment';
 import { env } from '$env/dynamic/private';
+import pool from '$lib/server/db';
+import type { RowDataPacket } from 'mysql2';
 
 /**
  * API v1 프록시 핸들러
@@ -15,6 +17,59 @@ const BACKEND_URL = env.BACKEND_URL || 'http://localhost:8090';
 // 쿠키 도메인: Go 백엔드 cookieDomain()과 일치 (쿠키 충돌 방지)
 const COOKIE_DOMAIN = env.COOKIE_DOMAIN || '';
 
+/**
+ * 글/댓글 수정·삭제 시 본인 확인
+ * 경로 패턴: boards/{boardId}/posts/{postId} 또는 boards/{boardId}/posts/{postId}/comments/{commentId}
+ * 본인이 아니면 403 Response 반환, 본인이면 null 반환
+ */
+async function checkWriteAuthor(path: string, userId: string): Promise<Response | null> {
+    // boards/{boardId}/posts/{postId}/comments/{commentId} — 댓글 수정/삭제
+    const commentMatch = path.match(/^boards\/([a-zA-Z0-9_-]+)\/posts\/\d+\/comments\/(\d+)$/);
+    if (commentMatch) {
+        const [, boardId, commentId] = commentMatch;
+        const safeBoardId = boardId.replace(/[^a-zA-Z0-9_-]/g, '');
+        try {
+            const [rows] = await pool.query<RowDataPacket[]>(
+                `SELECT mb_id FROM ?? WHERE wr_id = ? AND wr_is_comment >= 1`,
+                [`g5_write_${safeBoardId}`, parseInt(commentId, 10)]
+            );
+            if (rows[0] && rows[0].mb_id !== userId) {
+                return new Response(
+                    JSON.stringify({ error: '본인이 작성한 댓글만 수정/삭제할 수 있습니다.' }),
+                    { status: 403, headers: { 'Content-Type': 'application/json' } }
+                );
+            }
+        } catch {
+            // DB 조회 실패 시 백엔드에 위임
+        }
+        return null;
+    }
+
+    // boards/{boardId}/posts/{postId} — 글 수정/삭제
+    const postMatch = path.match(/^boards\/([a-zA-Z0-9_-]+)\/posts\/(\d+)$/);
+    if (postMatch) {
+        const [, boardId, postId] = postMatch;
+        const safeBoardId = boardId.replace(/[^a-zA-Z0-9_-]/g, '');
+        try {
+            const [rows] = await pool.query<RowDataPacket[]>(
+                `SELECT mb_id FROM ?? WHERE wr_id = ? AND wr_is_comment = 0`,
+                [`g5_write_${safeBoardId}`, parseInt(postId, 10)]
+            );
+            if (rows[0] && rows[0].mb_id !== userId) {
+                return new Response(
+                    JSON.stringify({ error: '본인이 작성한 글만 수정/삭제할 수 있습니다.' }),
+                    { status: 403, headers: { 'Content-Type': 'application/json' } }
+                );
+            }
+        } catch {
+            // DB 조회 실패 시 백엔드에 위임
+        }
+        return null;
+    }
+
+    return null;
+}
+
 // 공통 프록시 로직
 async function proxyRequest(
     method: string,
@@ -26,6 +81,17 @@ async function proxyRequest(
     const path = params.path || '';
     const url = new URL(request.url);
     const targetUrl = `${BACKEND_URL}/api/v1/${path}${url.search}`;
+
+    // 글/댓글 수정/삭제 시 본인 확인 (관리자 레벨 10 이상은 통과)
+    if ((method === 'PUT' || method === 'DELETE') && locals.user) {
+        const userLevel = locals.user.level ?? 0;
+        if (userLevel < 10) {
+            const authorCheckResult = await checkWriteAuthor(path, locals.user.id);
+            if (authorCheckResult) {
+                return authorCheckResult; // 403 Response
+            }
+        }
+    }
 
     // 디버그: admin/menus 요청 로깅
     if (path.includes('admin/menus')) {
