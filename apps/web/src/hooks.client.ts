@@ -35,11 +35,35 @@ function isChunkLoadError(error: unknown): boolean {
  */
 const RELOAD_KEY = '__angple_chunk_reload_count__';
 
+function clearCachesAndReload(): void {
+    // SW 해제 + Cache Storage 전체 삭제 후 캐시 무시 리로드
+    const tasks: Promise<void>[] = [];
+    if (navigator.serviceWorker) {
+        tasks.push(
+            navigator.serviceWorker.getRegistrations().then((regs) => {
+                regs.forEach((r) => r.unregister());
+            })
+        );
+    }
+    if (window.caches) {
+        tasks.push(
+            caches.keys().then((names) => {
+                names.forEach((name) => caches.delete(name));
+            })
+        );
+    }
+    Promise.all(tasks).finally(() => {
+        // cache-busting query로 브라우저 캐시 우회
+        const url = location.href.split('?')[0];
+        location.replace(url + '?_v=' + Date.now());
+    });
+}
+
 function tryChunkReload(): void {
     const count = Number(sessionStorage.getItem(RELOAD_KEY) || '0');
     if (count < 2) {
         sessionStorage.setItem(RELOAD_KEY, String(count + 1));
-        window.location.reload();
+        clearCachesAndReload();
     } else {
         sessionStorage.removeItem(RELOAD_KEY);
         showUpdateNotice();
@@ -47,21 +71,33 @@ function tryChunkReload(): void {
 }
 
 function showUpdateNotice(): void {
-    document.body.innerHTML = `
-        <div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;flex-direction:column;gap:16px;text-align:center;padding:20px;background:#fafafa;color:#333">
-            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/></svg>
-            <h2 style="margin:0;font-size:20px;font-weight:600">새 버전이 배포되었습니다</h2>
-            <p style="margin:0;color:#666;font-size:14px">페이지를 새로고침하면 최신 버전으로 이용할 수 있습니다.</p>
-            <button onclick="location.reload()" style="margin-top:8px;padding:12px 32px;font-size:15px;cursor:pointer;border-radius:8px;border:none;background:#2563eb;color:white;font-weight:500;transition:background 0.2s" onmouseover="this.style.background='#1d4ed8'" onmouseout="this.style.background='#2563eb'">
-                새로고침
-            </button>
-        </div>`;
+    if (document.getElementById('__angple_update_banner__')) return;
+    const banner = document.createElement('div');
+    banner.id = '__angple_update_banner__';
+    banner.setAttribute(
+        'style',
+        'position:fixed;top:0;left:0;right:0;z-index:99999;display:flex;align-items:center;justify-content:center;gap:12px;padding:10px 16px;background:#2563eb;color:white;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;font-size:14px;box-shadow:0 2px 8px rgba(0,0,0,0.15)'
+    );
+    banner.innerHTML = `
+        <span>새 버전이 배포되었습니다. 새로고침하면 최신 버전으로 이용할 수 있습니다.</span>
+        <button id="__angple_update_reload__" style="padding:5px 16px;font-size:13px;cursor:pointer;border-radius:4px;border:1px solid rgba(255,255,255,0.4);background:transparent;color:white;font-weight:500;white-space:nowrap">새로고침</button>
+        <button id="__angple_update_close__" style="padding:2px 6px;font-size:18px;cursor:pointer;border:none;background:transparent;color:white;line-height:1" aria-label="닫기">&times;</button>`;
+    document.body.prepend(banner);
+    document.getElementById('__angple_update_reload__')?.addEventListener('click', () => {
+        clearCachesAndReload();
+    });
+    document.getElementById('__angple_update_close__')?.addEventListener('click', () => {
+        banner.remove();
+    });
 }
 
-// 성공적으로 페이지 로드되면 카운터 리셋
+// 성공적으로 페이지 로드 + hydration 완료 후 카운터 리셋
+// load 직후 제거하면 hydration 중 chunk error로 카운터가 리셋되어 무한 리로드 발생
 if (typeof window !== 'undefined') {
     window.addEventListener('load', () => {
-        sessionStorage.removeItem(RELOAD_KEY);
+        setTimeout(() => {
+            sessionStorage.removeItem(RELOAD_KEY);
+        }, 10000);
     });
 }
 
