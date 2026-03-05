@@ -153,8 +153,8 @@
     onMount(() => {
         loadUnreadCount();
 
-        // 30초마다 읽지 않은 알림 수 갱신
-        const interval = setInterval(loadUnreadCount, 30000);
+        // 5분마다 읽지 않은 알림 수 갱신
+        const interval = setInterval(loadUnreadCount, 300000);
         return () => clearInterval(interval);
     });
 </script>
