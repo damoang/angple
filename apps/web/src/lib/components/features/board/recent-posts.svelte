@@ -72,7 +72,7 @@
         loading = true;
         try {
             const response = await apiClient.getBoardPosts(boardId, page, limit);
-            posts = response.items.filter((p) => p.id !== currentPostId);
+            posts = response.items;
             currentPage = response.page;
             totalPages = response.total_pages;
             totalItems = response.total;
@@ -94,7 +94,7 @@
 
         try {
             const response = await apiClient.getBoardPosts(boardId, 1, limit);
-            posts = response.items.filter((p) => p.id !== currentPostId);
+            posts = response.items;
             totalPages = response.total_pages;
             totalItems = response.total;
 
@@ -160,7 +160,9 @@
 {:else}
     <div class={wrapperClass}>
         {#each posts as post, i (post.id)}
-            <LayoutComponent {post} {displaySettings} href="/{boardId}/{post.id}" />
+            <div class={post.id === currentPostId ? 'current-post-highlight' : ''}>
+                <LayoutComponent {post} {displaySettings} href="/{boardId}/{post.id}" />
+            </div>
             {#if shuffledPromos.length > 0 && i + 1 === 10}
                 {#each shuffledPromos.slice(0, 2) as promo (promo.wrId)}
                     <PromotionInlinePost
@@ -209,3 +211,12 @@
         </p>
     {/if}
 {/if}
+
+<style>
+    /* 현재 읽고 있는 글 하이라이트 */
+    .current-post-highlight {
+        background-color: color-mix(in srgb, var(--color-primary) 8%, transparent);
+        border-left: 3px solid var(--color-primary);
+        border-radius: 0.25rem;
+    }
+</style>
