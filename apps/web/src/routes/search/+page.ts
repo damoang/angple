@@ -1,12 +1,10 @@
-import { apiClient } from '$lib/api/index.js';
 import type { PageLoad } from './$types.js';
-import type { SearchField, GlobalSearchResponse } from '$lib/api/types.js';
+import type { SearchField } from '$lib/api/types.js';
 
-export const load: PageLoad = async ({ url }) => {
+export const load: PageLoad = async ({ url, fetch }) => {
     const query = url.searchParams.get('q') || '';
     const field = (url.searchParams.get('sfl') as SearchField) || 'title_content';
 
-    // 검색어가 없으면 빈 결과 반환
     if (!query.trim()) {
         return {
             searchResults: null,
@@ -16,10 +14,12 @@ export const load: PageLoad = async ({ url }) => {
     }
 
     try {
-        const searchResults = await apiClient.searchGlobal(query, field, 5);
+        const params = new URLSearchParams({ q: query, sfl: field, limit: '5' });
+        const res = await fetch(`/api/search?${params.toString()}`);
+        const json = await res.json();
 
         return {
-            searchResults,
+            searchResults: json.success ? json.data : null,
             query,
             field
         };
