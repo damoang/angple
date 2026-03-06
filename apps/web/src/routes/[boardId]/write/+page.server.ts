@@ -24,14 +24,16 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 
         if (board) {
             const userLevel = locals.user.level ?? 0;
+            const isSuperAdmin = userLevel >= 10;
             const requiredLevel = board.write_level ?? 1;
-            if (userLevel < requiredLevel) {
+            if (!isSuperAdmin && userLevel < requiredLevel) {
                 error(403, '이 게시판에 글을 작성할 권한이 없습니다.');
             }
         }
 
-        // ExtendedSettings 기반 글쓰기 제한 체크 (서버 사이드 사전 검증)
-        if (locals.accessToken) {
+        // ExtendedSettings 기반 글쓰기 제한 체크 (서버 사이드 사전 검증, 최고관리자 제외)
+        const isSuperAdmin = (locals.user.level ?? 0) >= 10;
+        if (locals.accessToken && !isSuperAdmin) {
             try {
                 const permRes = await backendFetch(`/api/v1/boards/${boardId}/write-permission`, {
                     headers

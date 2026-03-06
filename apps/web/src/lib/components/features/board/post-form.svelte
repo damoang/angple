@@ -533,8 +533,8 @@
                 <Label>첨부파일</Label>
                 <FileUploader
                     {boardId}
-                    maxFiles={10}
-                    maxSizeMB={50}
+                    maxFiles={20}
+                    maxSizeMB={10}
                     files={uploadedFiles}
                     onUpload={handleFileUpload}
                     onRemove={handleFileRemove}

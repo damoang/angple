@@ -29,8 +29,8 @@
     let {
         boardId = 'free',
         postId,
-        maxFiles = 5,
-        maxSizeMB = 50,
+        maxFiles = 20,
+        maxSizeMB = 10,
         allowedExtensions = [],
         files = [],
         onUpload,
