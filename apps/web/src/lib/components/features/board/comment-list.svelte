@@ -770,13 +770,13 @@
                                         level={memberLevelStore.getLevel(comment.author_id)}
                                         size="md"
                                     />
+                                    {#if !isDeleted && memoPluginActive && MemoBadge}
+                                        <MemoBadge memberId={comment.author_id} showIcon={true} />
+                                    {/if}
                                     <AuthorLink
                                         authorId={comment.author_id}
                                         authorName={comment.author}
                                     />
-                                    {#if !isDeleted && memoPluginActive && MemoBadge}
-                                        <MemoBadge memberId={comment.author_id} showIcon={true} />
-                                    {/if}
                                     {#if comment.is_secret}
                                         <Lock class="text-muted-foreground h-3.5 w-3.5" />
                                     {/if}
