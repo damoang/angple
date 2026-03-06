@@ -962,16 +962,17 @@
     </div>
 
     <!-- 에디터 영역 -->
-    {#if editorMode === 'wysiwyg'}
-        <div
-            class="tiptap-content min-h-[300px] p-4"
-            class:uploading={isUploading}
-            bind:this={editorElement}
-            ondrop={handleDrop}
-            ondragover={(e) => e.preventDefault()}
-            onpaste={handlePaste}
-        ></div>
-    {:else}
+    <!-- WYSIWYG: hidden 속성으로 표시/숨김 (DOM 유지 — TipTap 에디터가 참조하는 요소 파괴 방지) -->
+    <div
+        class="tiptap-content min-h-[300px] p-4"
+        class:uploading={isUploading}
+        hidden={editorMode !== 'wysiwyg'}
+        bind:this={editorElement}
+        ondrop={handleDrop}
+        ondragover={(e) => e.preventDefault()}
+        onpaste={handlePaste}
+    ></div>
+    {#if editorMode !== 'wysiwyg'}
         <!-- 마크다운/HTML 텍스트 에디터 -->
         <textarea
             class="bg-background text-foreground min-h-[300px] w-full resize-y p-4 font-mono text-sm focus:outline-none"
