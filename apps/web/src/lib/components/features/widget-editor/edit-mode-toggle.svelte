@@ -131,7 +131,7 @@
 
 <!-- 버그 제보 FAB 버튼 (모든 사용자) -->
 <a
-    href="/bugs"
+    href="/bug"
     class="bg-destructive text-destructive-foreground hover:bg-destructive/90 fixed bottom-6 z-50 flex h-12 w-12 items-center justify-center rounded-full shadow-lg transition-all hover:scale-105 {bugBtnRight}"
     title="버그 제보"
 >
