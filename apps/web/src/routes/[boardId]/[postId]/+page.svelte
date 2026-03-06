@@ -348,6 +348,17 @@
         }
     });
 
+    // 글 이동 시 상태 리셋 (같은 레이아웃 내 다른 글로 이동할 때)
+    $effect(() => {
+        // data.post.id 변경 감지
+        void data.post.id;
+        // 추천자 목록 리셋
+        likers = [];
+        likersTotal = 0;
+        showLikersDialog = false;
+        likersPage = 1;
+    });
+
     // 댓글 앵커 스크롤 (#c_댓글ID) — 스트리밍 완료 후 실행
     $effect(() => {
         if (secondaryLoaded && browser) {

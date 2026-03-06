@@ -35,6 +35,17 @@
         }
     }
 
+    // GPT enableServices 호출 플래그 (전역)
+    const GPT_SERVICES_ENABLED_KEY = '__gpt_services_enabled__';
+    function isServicesEnabled(): boolean {
+        return browser && window[GPT_SERVICES_ENABLED_KEY] === true;
+    }
+    function markServicesEnabled(): void {
+        if (browser) {
+            window[GPT_SERVICES_ENABLED_KEY] = true;
+        }
+    }
+
     // GAM 광고 단위 (환경변수 기반)
     const AD_UNIT_PATHS = {
         main: `/${GAM_NETWORK_CODE}/${GAM_SITE_NAME}/banner-responsive_main`,
@@ -480,14 +491,15 @@
                     );
 
                 // GPT 서비스 초기화 (한 번만 실행)
-                if (!isGptInitialized()) {
-                    googletag.pubads().disableInitialLoad();
-                    googletag.pubads().enableSingleRequest();
+                // SPA에서는 enableSingleRequest 사용하지 않음
+                // — 슬롯이 동적으로 마운트/언마운트되므로 개별 fetch 모드 사용
+                if (!isServicesEnabled()) {
+                    googletag.pubads().collapseEmptyDivs();
                     googletag.enableServices();
-                    markGptInitialized();
+                    markServicesEnabled();
                 }
 
-                // 광고 표시
+                // 광고 표시 + 개별 fetch
                 googletag.display(divId);
                 googletag.pubads().refresh([slot]);
 

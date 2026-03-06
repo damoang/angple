@@ -277,6 +277,11 @@
         line-height: 1.8;
     }
 
+    /* 빈 <p></p> 태그도 줄바꿈으로 표시 (에디터 엔터키 반영) */
+    .prose :global(p:empty) {
+        min-height: 1.8em;
+    }
+
     .prose :global(ul),
     .prose :global(ol) {
         margin-top: 0.5rem;
