@@ -6,6 +6,7 @@
     import type { PageData } from './$types.js';
     import { authStore } from '$lib/stores/auth.svelte.js';
     import { getGradeName } from '$lib/utils/grade.js';
+    import { getAvatarUrl, getMemberIconUrl } from '$lib/utils/member-icon.js';
     import MySkeleton from '$lib/components/features/my/my-skeleton.svelte';
     import FileText from '@lucide/svelte/icons/file-text';
     import MessageSquare from '@lucide/svelte/icons/message-square';
@@ -14,6 +15,15 @@
     import User from '@lucide/svelte/icons/user';
 
     let { data }: { data: PageData } = $props();
+
+    let myAvatarUrl = $derived(
+        getAvatarUrl(authStore.user?.mb_image) || getMemberIconUrl(authStore.user?.mb_id) || null
+    );
+    let myAvatarFailed = $state(false);
+
+    $effect(() => {
+        if (authStore.user) myAvatarFailed = false;
+    });
 
     // 탭 정의
     const tabs = [
@@ -54,9 +64,23 @@
         <div class="flex items-center gap-4">
             {#if authStore.user}
                 <div
-                    class="bg-primary text-primary-foreground flex h-16 w-16 items-center justify-center rounded-full text-xl font-bold"
+                    class="flex h-16 w-16 shrink-0 items-center justify-center rounded-full text-xl font-bold {myAvatarUrl &&
+                    !myAvatarFailed
+                        ? 'overflow-hidden'
+                        : 'bg-primary text-primary-foreground'}"
                 >
-                    {authStore.user.mb_name.charAt(0).toUpperCase()}
+                    {#if myAvatarUrl && !myAvatarFailed}
+                        <img
+                            src={myAvatarUrl}
+                            alt={authStore.user.mb_name}
+                            class="h-full w-full object-cover"
+                            onerror={() => {
+                                myAvatarFailed = true;
+                            }}
+                        />
+                    {:else}
+                        {authStore.user.mb_name.charAt(0).toUpperCase()}
+                    {/if}
                 </div>
                 <div>
                     <h1 class="text-foreground text-2xl font-bold">{authStore.user.mb_name}</h1>
