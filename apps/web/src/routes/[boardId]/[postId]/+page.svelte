@@ -805,13 +805,10 @@
     {/if}
 
     <!-- 상단 네비게이션 -->
-    <div class="bg-background sticky top-12 z-40 -mx-1 mb-6 flex items-center gap-3 py-2 md:top-16">
+    <div class="-mx-1 mb-2 flex items-center gap-3 py-2">
         <Button variant="outline" size="sm" onclick={goBack} class="shrink-0">← 목록으로</Button>
 
-        <!-- 축하 메시지 롤링 (인라인) -->
-        <div class="min-w-0 flex-1">
-            <CelebrationRolling />
-        </div>
+        <div class="flex-1"></div>
 
         <div class="flex shrink-0 gap-2">
             {#if authStore.isAuthenticated}
@@ -868,8 +865,13 @@
         </div>
     </div>
 
-    <!-- 네비게이션 아래 GAM 광고 -->
-    {#if widgetLayoutStore.hasEnabledAds}
+    <!-- 축하 메시지 롤링 -->
+    <div class="mb-4">
+        <CelebrationRolling />
+    </div>
+
+    <!-- 네비게이션 아래 GAM 광고 (알뜰구매/중고장터 등 특정 게시판에서만 표시) -->
+    {#if widgetLayoutStore.hasEnabledAds && (boardType === 'economy' || boardType === 'used-market')}
         <div class="mb-6">
             <AdSlot position="board-view-top" height="90px" />
         </div>

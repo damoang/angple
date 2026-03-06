@@ -36,6 +36,14 @@ const config = {
         csrf: {
             // 개발 환경에서 localhost CSRF 허용
             checkOrigin: process.env.NODE_ENV === 'production'
+        },
+        output: {
+            // preload-js: <link rel="preload" as="script"> 대신 사용 (modulepreload보다 Link 헤더 축소)
+            preloadStrategy: 'preload-js'
+        },
+        version: {
+            // 빌드 시 자동 생성되는 버전 해시로 새 배포 감지
+            pollInterval: 60000 // 60초마다 서버 버전 확인
         }
     },
     compilerOptions: {

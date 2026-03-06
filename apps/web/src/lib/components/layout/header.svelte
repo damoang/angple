@@ -4,7 +4,6 @@
     import Search from '@lucide/svelte/icons/search';
     import User from '@lucide/svelte/icons/user';
     import Bell from '@lucide/svelte/icons/bell';
-    import Menu from '@lucide/svelte/icons/menu';
     import X from '@lucide/svelte/icons/x';
     import Home from '@lucide/svelte/icons/home';
     import Rss from '@lucide/svelte/icons/rss';
@@ -13,6 +12,7 @@
     import Smartphone from '@lucide/svelte/icons/smartphone';
     import Logo from '$lib/assets/logo.svg';
     import AlignJustify from '@lucide/svelte/icons/align-justify';
+    import Shield from '@lucide/svelte/icons/shield';
     import Mail from '@lucide/svelte/icons/mail';
     import Sidebar from './sidebar.svelte';
     import { NotificationDropdown } from '$lib/components/features/notification/index.js';
@@ -130,15 +130,7 @@
     <div class="container mx-auto flex h-12 items-center justify-between md:h-16">
         <!-- 로고 -->
         <div class="flex items-center">
-            <!-- 햄버거 메뉴 (추가 메뉴) - 2xl 미만에서 보임 -->
-            <button
-                onclick={toggleDrawer}
-                class="hover:bg-accent mr-3 block rounded-lg pe-2 ps-4 transition-all duration-200 ease-out md:-ml-1 md:ps-0 2xl:hidden"
-                aria-label="추가 메뉴"
-            >
-                <AlignJustify class="text-muted-foreground h-6 w-6" />
-            </button>
-            <a href="/" data-sveltekit-reload class="flex items-center">
+            <a href="/" data-sveltekit-reload class="flex items-center ps-4 md:ps-0">
                 <img src={Logo} alt="damoang" class="h-12" />
             </a>
         </div>
@@ -159,6 +151,15 @@
             >
                 <Rss class="mr-2 h-5 w-5" />
                 피드
+            </a>
+            <a
+                href="https://web.damoang.net"
+                target="_blank"
+                rel="noopener"
+                class="text-foreground hover:text-primary flex items-center transition-all duration-200 ease-out"
+            >
+                <Shield class="mr-2 h-5 w-5" />
+                대피소
             </a>
         </nav>
 
@@ -263,10 +264,10 @@
             <!-- 햄버거 메뉴 (추가 메뉴) -->
             <button
                 onclick={toggleDrawer}
-                class="hover:bg-accent hidden rounded-lg p-2 transition-all duration-200 ease-out 2xl:block"
+                class="hover:bg-accent rounded-lg p-2 transition-all duration-200 ease-out"
                 aria-label="추가 메뉴"
             >
-                <Menu class="text-muted-foreground h-5 w-5" />
+                <AlignJustify class="text-muted-foreground h-5 w-5" />
             </button>
         </div>
     </div>
@@ -289,8 +290,8 @@
     class:translate-x-full={!isDrawerOpen}
     class:translate-x-0={isDrawerOpen}
 >
-    <div class="p-6">
-        <div class="mb-8 flex items-center justify-between">
+    <div class="flex h-full flex-col p-6">
+        <div class="mb-8 flex shrink-0 items-center justify-between">
             <h2 class="text-foreground text-xl font-bold">추가 메뉴</h2>
             <button
                 onclick={toggleDrawer}
@@ -302,7 +303,7 @@
         </div>
 
         <!-- 사이드바 메뉴 -->
-        <div class="overflow-y-auto">
+        <div class="min-h-0 flex-1 overflow-y-auto">
             <Sidebar />
         </div>
     </div>

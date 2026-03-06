@@ -79,7 +79,10 @@ export async function getNewPosts(
     const cached = await feedCache.get(feedCacheKey);
     if (cached) return cached;
 
-    const conditions: string[] = ['b.bo_use_search = 1'];
+    const conditions: string[] = [
+        'b.bo_use_search = 1',
+        'bn.bn_datetime > DATE_SUB(NOW(), INTERVAL 7 DAY)'
+    ];
     const params: (string | number)[] = [];
 
     // 원글/댓글 필터
@@ -111,7 +114,10 @@ export async function getNewPosts(
         total = cachedCount.total;
     } else {
         // 커서 조건 제외한 원본 WHERE로 카운트
-        const countConditions: string[] = ['b.bo_use_search = 1'];
+        const countConditions: string[] = [
+            'b.bo_use_search = 1',
+            'bn.bn_datetime > DATE_SUB(NOW(), INTERVAL 7 DAY)'
+        ];
         const countParams: (string | number)[] = [];
         if (view === 'w') countConditions.push('bn.wr_id = bn.wr_parent');
         else if (view === 'c') countConditions.push('bn.wr_id != bn.wr_parent');
