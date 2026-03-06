@@ -112,10 +112,34 @@
                 themeMode = e.newValue as 'light' | 'dark' | 'amoled';
             }
         }
+
+        // OS 다크모드 변경 감지 (사용자가 명시적 테마 설정 안 한 경우만)
+        const darkMq = window.matchMedia('(prefers-color-scheme: dark)');
+        function handleSystemThemeChange(e: MediaQueryListEvent) {
+            // 쿠키나 localStorage에 명시적 설정이 있으면 무시
+            const hasCookie = /angple_theme_mode=\w+/.test(document.cookie);
+            let hasLocal = false;
+            try {
+                hasLocal = !!localStorage.getItem('themeMode');
+            } catch {}
+            if (hasCookie || hasLocal) return;
+
+            const el = document.documentElement;
+            el.classList.remove('dark', 'amoled');
+            if (e.matches) {
+                el.classList.add('dark');
+                themeMode = 'dark';
+            } else {
+                themeMode = 'light';
+            }
+        }
+        darkMq.addEventListener('change', handleSystemThemeChange);
+
         window.addEventListener('storage', handleStorageChange);
         window.addEventListener('scroll', handleScroll, { passive: true });
 
         return () => {
+            darkMq.removeEventListener('change', handleSystemThemeChange);
             window.removeEventListener('storage', handleStorageChange);
             window.removeEventListener('scroll', handleScroll);
         };
