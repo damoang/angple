@@ -16,6 +16,7 @@
      * - extra_2: 응모수/포인트 (wr_2)
      */
     import type { FreePost, BoardDisplaySettings } from '$lib/api/types.js';
+    import AuthorLink from '$lib/components/ui/author-link/author-link.svelte';
     import Gift from '@lucide/svelte/icons/gift';
     import Clock from '@lucide/svelte/icons/clock';
     import Users from '@lucide/svelte/icons/users';
@@ -287,7 +288,7 @@
             <!-- 작성자 -->
             <div class="text-muted-foreground mt-2 flex items-center gap-2 pt-2 text-xs">
                 <span class="truncate">
-                    {post.author}
+                    <AuthorLink authorId={post.author_id} authorName={post.author} />
                 </span>
             </div>
         </div>

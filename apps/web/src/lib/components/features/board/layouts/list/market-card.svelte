@@ -1,6 +1,7 @@
 <script lang="ts">
     import { Badge } from '$lib/components/ui/badge/index.js';
     import type { FreePost, BoardDisplaySettings } from '$lib/api/types.js';
+    import AuthorLink from '$lib/components/ui/author-link/author-link.svelte';
     import {
         parseMarketInfo,
         formatPrice,
@@ -156,7 +157,7 @@
             <div class="text-muted-foreground mt-1.5 flex items-center justify-between text-xs">
                 <span class="inline-flex items-center gap-0.5">
                     <LevelBadge level={memberLevelStore.getLevel(post.author_id)} size="sm" />
-                    {post.author}
+                    <AuthorLink authorId={post.author_id} authorName={post.author} />
                 </span>
                 <div class="flex gap-2">
                     {#if post.likes > 0}

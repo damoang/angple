@@ -2,6 +2,7 @@
     import { Button } from '$lib/components/ui/button/index.js';
     import type { FreeComment } from '$lib/api/types.js';
     import { authStore } from '$lib/stores/auth.svelte.js';
+    import AuthorLink from '$lib/components/ui/author-link/author-link.svelte';
     import Reply from '@lucide/svelte/icons/reply';
     import Lock from '@lucide/svelte/icons/lock';
     import Flag from '@lucide/svelte/icons/flag';
@@ -710,7 +711,7 @@
                 <!-- Chat: 이름 라벨 (타인 댓글만) -->
                 {#if commentLayout === 'chat' && !isAuthor && !isDeleted}
                     <p class="text-foreground mb-1 ml-1 text-xs font-semibold">
-                        {comment.author}
+                        <AuthorLink authorId={comment.author_id} authorName={comment.author} />
                     </p>
                 {/if}
 
@@ -769,7 +770,10 @@
                                         level={memberLevelStore.getLevel(comment.author_id)}
                                         size="md"
                                     />
-                                    {comment.author}
+                                    <AuthorLink
+                                        authorId={comment.author_id}
+                                        authorName={comment.author}
+                                    />
                                     {#if !isDeleted && memoPluginActive && MemoBadge}
                                         <MemoBadge memberId={comment.author_id} showIcon={true} />
                                     {/if}
