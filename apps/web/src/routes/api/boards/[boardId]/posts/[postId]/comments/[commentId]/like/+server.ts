@@ -89,7 +89,7 @@ export const GET: RequestHandler = async ({ params, cookies }) => {
  * POST: 댓글 추천/비추천 토글
  * body: { action: 'good' | 'nogood' }
  */
-export const POST: RequestHandler = async ({ params, request, cookies }) => {
+export const POST: RequestHandler = async ({ params, request, cookies, getClientAddress }) => {
     const { boardId, commentId } = params;
 
     const user = await getAuthUser(cookies);
@@ -210,9 +210,10 @@ export const POST: RequestHandler = async ({ params, request, cookies }) => {
             );
         } else {
             // 추가
+            const clientIp = getClientAddress();
             await conn.query(
-                `INSERT INTO g5_board_good (bo_table, wr_id, mb_id, bg_flag, bg_datetime) VALUES (?, ?, ?, ?, NOW())`,
-                [safeBoardId, safeCommentId, user.mb_id, action]
+                `INSERT INTO g5_board_good (bo_table, wr_id, mb_id, bg_flag, bg_datetime, bg_ip) VALUES (?, ?, ?, ?, NOW(), ?)`,
+                [safeBoardId, safeCommentId, user.mb_id, action, clientIp]
             );
             await conn.query(`UPDATE ?? SET ${column} = ${column} + 1 WHERE wr_id = ?`, [
                 tableName,

@@ -94,7 +94,7 @@ export const GET: RequestHandler = async ({ params, cookies }) => {
  * 이미 같은 action이 있으면 취소(DELETE), 없으면 추가(INSERT)
  * 반대 action이 있으면 에러 반환 (그누보드 동작과 동일)
  */
-export const POST: RequestHandler = async ({ params, request, cookies }) => {
+export const POST: RequestHandler = async ({ params, request, cookies, getClientAddress }) => {
     const { boardId, postId } = params;
 
     const user = await getAuthUser(cookies);
@@ -213,9 +213,10 @@ export const POST: RequestHandler = async ({ params, request, cookies }) => {
             );
         } else {
             // 추가 (INSERT + 카운트 증가)
+            const clientIp = getClientAddress();
             await conn.query(
-                `INSERT INTO g5_board_good (bo_table, wr_id, mb_id, bg_flag, bg_datetime) VALUES (?, ?, ?, ?, NOW())`,
-                [safeBoardId, safePostId, user.mb_id, action]
+                `INSERT INTO g5_board_good (bo_table, wr_id, mb_id, bg_flag, bg_datetime, bg_ip) VALUES (?, ?, ?, ?, NOW(), ?)`,
+                [safeBoardId, safePostId, user.mb_id, action, clientIp]
             );
             await conn.query(`UPDATE ?? SET ${column} = ${column} + 1 WHERE wr_id = ?`, [
                 tableName,
