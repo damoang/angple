@@ -34,8 +34,9 @@ const config = {
             $plugins: '../../plugins'
         },
         csrf: {
-            // 개발 환경에서 localhost CSRF 허용
-            checkOrigin: process.env.NODE_ENV === 'production'
+            // 자체 CSRF 보호 사용 (세션 기반 double-submit cookie, hooks.server.ts)
+            // Apple Sign In form_post 등 cross-origin POST 허용을 위해 비활성화
+            checkOrigin: false
         },
         output: {
             // preload-js: <link rel="preload" as="script"> 대신 사용 (modulepreload보다 Link 헤더 축소)

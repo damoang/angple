@@ -241,14 +241,6 @@ const WRITE_API_RATE = { maxRequests: 60, windowMs: 60_000 }; // 쓰기 분당 6
 export const handle: Handle = async ({ event, resolve }) => {
     const { pathname } = event.url;
 
-    // Apple Sign In form_post: cross-origin POST이므로 SvelteKit CSRF 우회
-    // OAuth state 쿠키가 자체 CSRF 보호 제공
-    if (pathname.startsWith('/auth/callback/') && event.request.method === 'POST') {
-        const headers = new Headers(event.request.headers);
-        headers.set('origin', event.url.origin);
-        Object.defineProperty(event.request, 'headers', { value: headers });
-    }
-
     // 개발/내부 전용 경로 차단 (프로덕션)
     if (!dev && DEV_ONLY_PATHS.some((p) => pathname === p || pathname.startsWith(p + '/'))) {
         return new Response('Not Found', { status: 404 });

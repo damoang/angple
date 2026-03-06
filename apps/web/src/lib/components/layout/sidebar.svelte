@@ -164,16 +164,6 @@
         <UserWidget />
     </div>
 
-    <div class="px-2">
-        <a
-            href="/message"
-            class="text-muted-foreground hover:text-primary flex items-center gap-1.5 text-xs transition-colors"
-        >
-            <Gift class="h-3.5 w-3.5" />
-            축하메시지
-        </a>
-    </div>
-
     <!-- 즐겨찾기 단축키 메뉴 (2열 그리드) -->
     {#if boardFavoritesStore.normalSlots.length > 0 || boardFavoritesStore.shiftSlots.length > 0}
         <div class="px-2">
