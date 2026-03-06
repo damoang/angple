@@ -229,7 +229,7 @@
 </script>
 
 {#if canComment()}
-    <form onsubmit={handleSubmit} class="space-y-3">
+    <form onsubmit={handleSubmit} class="space-y-2">
         {#if isReplyMode}
             <!-- 대댓글 모드 표시 -->
             <div class="text-muted-foreground flex items-center gap-2 text-sm">
@@ -267,7 +267,7 @@
                     bind:ref={textareaRef}
                     bind:value={content}
                     placeholder={actualPlaceholder}
-                    rows={isReplyMode ? 2 : 3}
+                    rows={isReplyMode ? 1 : 2}
                     class={error ? 'border-destructive' : ''}
                     disabled={isLoading}
                     onpaste={handlePaste}
