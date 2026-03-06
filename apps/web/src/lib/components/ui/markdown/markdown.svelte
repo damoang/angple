@@ -242,6 +242,7 @@
 <div
     bind:this={proseEl}
     class="prose prose-neutral dark:prose-invert max-w-none text-lg {className}"
+    style="overflow-wrap: break-word; word-wrap: break-word; overflow-x: hidden;"
 >
     <!-- eslint-disable-next-line svelte/no-at-html-tags -->
     {@html renderedHtml}
@@ -334,6 +335,8 @@
     .prose :global(a) {
         color: var(--primary);
         text-decoration: underline;
+        overflow-wrap: break-word;
+        word-break: break-all;
     }
 
     .prose :global(a:hover) {
@@ -408,11 +411,18 @@
     }
 
     /* 임베드 컨테이너 스타일 */
+    /* 모든 iframe/video가 컨테이너를 넘지 않도록 */
+    .prose :global(iframe),
+    .prose :global(video) {
+        max-width: 100%;
+    }
+
     .prose :global(.embed-container) {
         position: relative;
         width: 100%;
         max-width: var(--max-width, 100%);
         margin: 1rem 0;
+        overflow: hidden;
     }
 
     .prose :global(.embed-container)::before {

@@ -582,9 +582,16 @@
         display: flex;
         justify-content: center;
         align-items: center;
+        max-width: 100%;
+        overflow: hidden;
     }
 
     .gam-ad-slot:empty {
         display: none;
+    }
+
+    /* 광고 iframe이 컨테이너를 넘지 않도록 */
+    .gam-ad-slot :global(iframe) {
+        max-width: 100% !important;
     }
 </style>

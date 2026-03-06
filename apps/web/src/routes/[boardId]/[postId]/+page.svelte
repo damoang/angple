@@ -825,7 +825,7 @@
 
 <SeoHead config={seoConfig} />
 
-<div class="mx-auto pt-2">
+<div class="mx-auto overflow-x-hidden pt-2">
     <!-- 상단 배너 -->
     {#if widgetLayoutStore.hasEnabledAds}
         <div class="mb-6">
