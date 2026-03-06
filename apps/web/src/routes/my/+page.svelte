@@ -64,14 +64,19 @@
         <div class="flex items-center gap-4">
             {#if authStore.user}
                 <div
-                    class="flex h-16 w-16 shrink-0 items-center justify-center rounded-full text-xl font-bold {myAvatarUrl && !myAvatarFailed ? 'overflow-hidden' : 'bg-primary text-primary-foreground'}"
+                    class="flex h-16 w-16 shrink-0 items-center justify-center rounded-full text-xl font-bold {myAvatarUrl &&
+                    !myAvatarFailed
+                        ? 'overflow-hidden'
+                        : 'bg-primary text-primary-foreground'}"
                 >
                     {#if myAvatarUrl && !myAvatarFailed}
                         <img
                             src={myAvatarUrl}
                             alt={authStore.user.mb_name}
                             class="h-full w-full object-cover"
-                            onerror={() => { myAvatarFailed = true; }}
+                            onerror={() => {
+                                myAvatarFailed = true;
+                            }}
                         />
                     {:else}
                         {authStore.user.mb_name.charAt(0).toUpperCase()}

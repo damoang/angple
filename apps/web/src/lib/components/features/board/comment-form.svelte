@@ -243,14 +243,19 @@
         <div class="flex items-start gap-3">
             <!-- 사용자 아바타 -->
             <div
-                class="flex size-10 shrink-0 items-center justify-center rounded-full {commentAvatarUrl && !commentAvatarFailed ? 'overflow-hidden' : 'bg-primary text-primary-foreground'}"
+                class="flex size-10 shrink-0 items-center justify-center rounded-full {commentAvatarUrl &&
+                !commentAvatarFailed
+                    ? 'overflow-hidden'
+                    : 'bg-primary text-primary-foreground'}"
             >
                 {#if commentAvatarUrl && !commentAvatarFailed}
                     <img
                         src={commentAvatarUrl}
                         alt={authStore.user?.mb_name || ''}
                         class="h-full w-full object-cover"
-                        onerror={() => { commentAvatarFailed = true; }}
+                        onerror={() => {
+                            commentAvatarFailed = true;
+                        }}
                     />
                 {:else}
                     {authStore.user?.mb_name.charAt(0).toUpperCase() || 'U'}
