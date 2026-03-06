@@ -159,6 +159,27 @@ export function transformInlineCode(text: string): string {
     });
 }
 
+/**
+ * 간단한 인라인 마크다운을 HTML로 변환
+ * **bold**, *italic*, ~~strikethrough~~
+ * <code>, <pre> 내부는 변환하지 않음
+ */
+export function transformInlineMarkdown(text: string): string {
+    if (!text || (!text.includes('*') && !text.includes('~~'))) return text;
+
+    // <pre>...</pre>, <code>...</code> 블록을 보호하면서 나머지만 변환
+    return text.replace(
+        /(<pre[\s>][\s\S]*?<\/pre>|<code[\s>][\s\S]*?<\/code>)|(\*\*(.+?)\*\*|\*(.+?)\*|~~(.+?)~~)/g,
+        (match, codeBlock, _md, bold, italic, strike) => {
+            if (codeBlock) return codeBlock;
+            if (bold) return `<strong>${bold}</strong>`;
+            if (italic) return `<em>${italic}</em>`;
+            if (strike) return `<del>${strike}</del>`;
+            return match;
+        }
+    );
+}
+
 export function transformCodeBlocks(html: string): string {
     if (!html || !html.toLowerCase().includes('[code')) return html;
 

@@ -516,7 +516,10 @@
                             'a',
                             'span',
                             'pre',
-                            'code'
+                            'code',
+                            'strong',
+                            'em',
+                            'del'
                         ],
                         ALLOWED_ATTR: [
                             'src',

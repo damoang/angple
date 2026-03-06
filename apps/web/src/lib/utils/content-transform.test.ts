@@ -7,6 +7,7 @@ import {
     transformCodeBlocks,
     transformBacktickCodeBlocks,
     transformInlineCode,
+    transformInlineMarkdown,
     transformEmoticons,
     transformVideos,
     transformBracketImages
@@ -259,6 +260,55 @@ describe('transformEmoticons - 기존 동작 유지', () => {
     it('패턴 없으면 원본 반환', () => {
         const result = transformEmoticons('hello world');
         expect(result).toBe('hello world');
+    });
+});
+
+describe('transformInlineMarkdown', () => {
+    it('**bold** 변환', () => {
+        expect(transformInlineMarkdown('마크다운 **테스트**!')).toBe(
+            '마크다운 <strong>테스트</strong>!'
+        );
+    });
+
+    it('*italic* 변환', () => {
+        expect(transformInlineMarkdown('이것은 *기울임*입니다')).toBe(
+            '이것은 <em>기울임</em>입니다'
+        );
+    });
+
+    it('~~strikethrough~~ 변환', () => {
+        expect(transformInlineMarkdown('~~취소선~~ 텍스트')).toBe('<del>취소선</del> 텍스트');
+    });
+
+    it('혼합 사용', () => {
+        const input = '**볼드** *이탤릭* ~~취소~~';
+        const result = transformInlineMarkdown(input);
+        expect(result).toContain('<strong>볼드</strong>');
+        expect(result).toContain('<em>이탤릭</em>');
+        expect(result).toContain('<del>취소</del>');
+    });
+
+    it('<code> 내부는 변환하지 않음', () => {
+        const input = '<code>**코드 안**</code> **코드 밖**';
+        const result = transformInlineMarkdown(input);
+        expect(result).toContain('<code>**코드 안**</code>');
+        expect(result).toContain('<strong>코드 밖</strong>');
+    });
+
+    it('<pre><code> 내부는 변환하지 않음', () => {
+        const input = '<pre><code>**코드 블록**</code></pre> **밖**';
+        const result = transformInlineMarkdown(input);
+        expect(result).toContain('<pre><code>**코드 블록**</code></pre>');
+        expect(result).toContain('<strong>밖</strong>');
+    });
+
+    it('마크다운 패턴이 없으면 원본 반환', () => {
+        expect(transformInlineMarkdown('일반 텍스트')).toBe('일반 텍스트');
+    });
+
+    it('빈/null 입력', () => {
+        expect(transformInlineMarkdown('')).toBe('');
+        expect(transformInlineMarkdown(null as unknown as string)).toBe(null);
     });
 });
 
