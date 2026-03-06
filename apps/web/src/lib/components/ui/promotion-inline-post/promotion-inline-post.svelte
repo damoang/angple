@@ -91,22 +91,22 @@
         </div>
     </a>
 {:else}
-    <!-- Default variant: 일반 행과 동일 높이 -->
+    <!-- Default variant: compact 레이아웃 행과 동일한 높이/스타일 -->
     <a
         {href}
-        class="border-border flex items-center gap-2 rounded-lg border bg-blue-50/50 px-4 py-1.5 transition-all hover:bg-blue-100/60 hover:shadow-sm dark:bg-blue-950/20 dark:hover:bg-blue-950/40"
+        class="border-border bg-background hover:bg-accent block rounded-lg border px-4 py-3 no-underline transition-all hover:shadow-sm"
+        style="border-left: 3px solid rgba(255, 179, 39, 0.4);"
     >
-        <!-- 제목 + 홍보 뱃지 -->
-        <div class="min-w-0 flex-1">
-            <h3 class="text-foreground flex items-center gap-1.5 truncate font-medium">
-                <span
-                    class="inline-flex shrink-0 items-center rounded bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-semibold leading-none text-amber-500 dark:bg-amber-400/15 dark:text-amber-400"
-                    >홍보</span
-                >
+        <div class="flex items-center gap-2">
+            <span
+                class="inline-flex shrink-0 items-center rounded px-1.5 py-0.5 text-[10px] font-semibold leading-none"
+                style="background: rgb(255, 179, 39); color: rgb(78, 78, 78);">홍보</span
+            >
+            <span class="text-foreground min-w-0 flex-1 truncate text-sm font-medium">
                 {post.subject}
-            </h3>
+            </span>
+            <span class="text-muted-foreground shrink-0 text-xs">{post.advertiserName}</span>
         </div>
-        <span class="text-muted-foreground shrink-0 text-xs">{post.advertiserName}</span>
     </a>
 {/if}
 
