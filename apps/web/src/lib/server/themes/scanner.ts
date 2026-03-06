@@ -2,13 +2,23 @@
  * 테마 스캔 및 로드 함수
  *
  * themes/ 디렉터리를 스캔하여 설치된 테마 목록을 가져옵니다.
+ * 모든 파일 I/O는 비동기로 처리하여 event loop 블로킹 방지.
  */
 
-import { readFileSync, readdirSync, existsSync, statSync } from 'fs';
+import { readFile, readdir, stat, access } from 'fs/promises';
 import { join, resolve } from 'path';
 import type { ThemeManifest } from '$lib/types/theme';
 import { safeValidateThemeManifest } from '$lib/types/theme';
 import { sanitizePath } from '../path-utils';
+
+async function fileExists(path: string): Promise<boolean> {
+    try {
+        await access(path);
+        return true;
+    } catch {
+        return false;
+    }
+}
 
 /**
  * 프로젝트 루트 디렉터리 찾기
@@ -39,15 +49,15 @@ const CUSTOM_THEMES_DIR = join(PROJECT_ROOT, 'custom-themes');
 /**
  * 테마 디렉터리가 유효한지 확인
  */
-function isValidThemeDirectory(themePath: string): boolean {
-    if (!existsSync(themePath)) return false;
+async function isValidThemeDirectory(themePath: string): Promise<boolean> {
+    if (!(await fileExists(themePath))) return false;
 
-    const stat = statSync(themePath);
-    if (!stat.isDirectory()) return false;
+    const s = await stat(themePath);
+    if (!s.isDirectory()) return false;
 
     // theme.json 파일이 있어야 함
     const manifestPath = join(themePath, 'theme.json'); // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
-    return existsSync(manifestPath);
+    return fileExists(manifestPath);
 }
 
 /**
@@ -55,13 +65,13 @@ function isValidThemeDirectory(themePath: string): boolean {
  * @param themeDir 테마 디렉터리명 (안전한 이름, readdir에서 반환)
  * @param baseDir 테마가 위치한 기본 디렉터리 (THEMES_DIR 또는 CUSTOM_THEMES_DIR)
  */
-function loadThemeManifest(themeDir: string, baseDir: string): ThemeManifest | null {
+async function loadThemeManifest(themeDir: string, baseDir: string): Promise<ThemeManifest | null> {
     // themeDir는 readdir()에서 온 안전한 디렉터리명
     // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
     const manifestPath = join(baseDir, themeDir, 'theme.json');
 
     try {
-        const manifestJson = readFileSync(manifestPath, 'utf-8');
+        const manifestJson = await readFile(manifestPath, 'utf-8');
         const manifestData = JSON.parse(manifestJson);
 
         // Zod 검증
@@ -83,34 +93,34 @@ function loadThemeManifest(themeDir: string, baseDir: string): ThemeManifest | n
 /**
  * 특정 디렉터리에서 테마 스캔 헬퍼
  */
-function scanDirectory(baseDir: string, themes: Map<string, ThemeManifest>): number {
-    if (!existsSync(baseDir)) {
+async function scanDirectory(baseDir: string, themes: Map<string, ThemeManifest>): Promise<number> {
+    if (!(await fileExists(baseDir))) {
         return 0;
     }
 
     let scannedCount = 0;
-    const entries = readdirSync(baseDir, { withFileTypes: true });
+    const entries = await readdir(baseDir, { withFileTypes: true });
 
     for (const entry of entries) {
         // 디렉터리만 처리 (심링크 → 디렉터리도 허용: 개발 환경 테마 링크 지원)
         if (!entry.isDirectory()) {
             if (!entry.isSymbolicLink()) continue;
-            const targetStat = statSync(join(baseDir, entry.name));
+            const targetStat = await stat(join(baseDir, entry.name));
             if (!targetStat.isDirectory()) continue;
         }
 
         const themeDir = entry.name;
-        // themeDir는 readdirSync()에서 반환된 실제 디렉터리명 (사용자 입력 아님)
+        // themeDir는 readdir()에서 반환된 실제 디렉터리명 (사용자 입력 아님)
         // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
         const themePath = join(baseDir, themeDir);
 
         // 유효한 테마 디렉터리인지 확인
-        if (!isValidThemeDirectory(themePath)) {
+        if (!(await isValidThemeDirectory(themePath))) {
             continue;
         }
 
         // 매니페스트 로드 및 검증
-        const manifest = loadThemeManifest(themeDir, baseDir);
+        const manifest = await loadThemeManifest(themeDir, baseDir);
         if (!manifest) continue;
 
         // 디렉터리 이름과 ID가 일치하는지 확인
@@ -127,7 +137,7 @@ function scanDirectory(baseDir: string, themes: Map<string, ThemeManifest>): num
  *
  * @returns 테마 ID를 key로 하는 매니페스트 맵
  */
-export function scanThemes(): Map<string, ThemeManifest> {
+export async function scanThemes(): Promise<Map<string, ThemeManifest>> {
     const themes = new Map<string, ThemeManifest>();
 
     try {
@@ -136,6 +146,8 @@ export function scanThemes(): Map<string, ThemeManifest> {
 
         // 커스텀 테마 스캔 (사용자 업로드)
         const customCount = scanDirectory(CUSTOM_THEMES_DIR, themes);
+
+        await Promise.all([officialCount, customCount]);
     } catch (error) {
         console.error('[Theme Scanner] 테마 스캔 실패:', error);
     }
@@ -147,20 +159,20 @@ export function scanThemes(): Map<string, ThemeManifest> {
  * 테마가 어느 디렉터리에 있는지 찾기
  * @returns [baseDir, isCustom] 튜플 또는 null
  */
-function findThemeDirectory(themeId: string): [string, boolean] | null {
+async function findThemeDirectory(themeId: string): Promise<[string, boolean] | null> {
     const sanitizedId = sanitizePath(themeId);
 
     // 1. 공식 테마 디렉터리 확인
     // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
     const officialPath = join(THEMES_DIR, sanitizedId);
-    if (isValidThemeDirectory(officialPath)) {
+    if (await isValidThemeDirectory(officialPath)) {
         return [THEMES_DIR, false];
     }
 
     // 2. 커스텀 테마 디렉터리 확인
     // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
     const customPath = join(CUSTOM_THEMES_DIR, sanitizedId);
-    if (isValidThemeDirectory(customPath)) {
+    if (await isValidThemeDirectory(customPath)) {
         return [CUSTOM_THEMES_DIR, true];
     }
 
@@ -170,8 +182,8 @@ function findThemeDirectory(themeId: string): [string, boolean] | null {
 /**
  * 특정 테마의 매니페스트 가져오기
  */
-export function getThemeManifest(themeId: string): ThemeManifest | null {
-    const result = findThemeDirectory(themeId);
+export async function getThemeManifest(themeId: string): Promise<ThemeManifest | null> {
+    const result = await findThemeDirectory(themeId);
     if (!result) return null;
 
     const [baseDir] = result;
@@ -182,8 +194,8 @@ export function getThemeManifest(themeId: string): ThemeManifest | null {
 /**
  * 테마 디렉터리 절대 경로 반환
  */
-export function getThemePath(themeId: string): string {
-    const result = findThemeDirectory(themeId);
+export async function getThemePath(themeId: string): Promise<string> {
+    const result = await findThemeDirectory(themeId);
     const sanitizedId = sanitizePath(themeId);
 
     if (!result) {
@@ -200,14 +212,14 @@ export function getThemePath(themeId: string): string {
 /**
  * 테마가 설치되어 있는지 확인
  */
-export function isThemeInstalled(themeId: string): boolean {
-    return findThemeDirectory(themeId) !== null;
+export async function isThemeInstalled(themeId: string): Promise<boolean> {
+    return (await findThemeDirectory(themeId)) !== null;
 }
 
 /**
  * 테마가 커스텀 테마인지 확인
  */
-export function isCustomTheme(themeId: string): boolean {
-    const result = findThemeDirectory(themeId);
+export async function isCustomTheme(themeId: string): Promise<boolean> {
+    const result = await findThemeDirectory(themeId);
     return result ? result[1] : false;
 }

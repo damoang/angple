@@ -43,7 +43,7 @@ export async function getInstalledThemes(): Promise<Map<string, InstalledTheme>>
     const themes = new Map<string, InstalledTheme>();
 
     // 1. 파일 시스템에서 테마 스캔
-    const manifests = scanThemes();
+    const manifests = await scanThemes();
 
     // 2. 활성 테마 ID 조회
     const activeThemeId = await settingsProvider.getActiveTheme();
@@ -55,9 +55,9 @@ export async function getInstalledThemes(): Promise<Map<string, InstalledTheme>>
         themes.set(themeId, {
             manifest,
             currentSettings,
-            path: getThemePath(themeId),
+            path: await getThemePath(themeId),
             isActive: themeId === activeThemeId,
-            source: isCustomTheme(themeId) ? 'custom' : 'official'
+            source: (await isCustomTheme(themeId)) ? 'custom' : 'official'
         });
     }
 
@@ -68,11 +68,11 @@ export async function getInstalledThemes(): Promise<Map<string, InstalledTheme>>
  * 특정 테마 정보 가져오기
  */
 export async function getThemeById(themeId: string): Promise<InstalledTheme | null> {
-    if (!isThemeInstalled(themeId)) {
+    if (!(await isThemeInstalled(themeId))) {
         return null;
     }
 
-    const manifest = getThemeManifest(themeId);
+    const manifest = await getThemeManifest(themeId);
     if (!manifest) {
         return null;
     }
@@ -83,9 +83,9 @@ export async function getThemeById(themeId: string): Promise<InstalledTheme | nu
     return {
         manifest,
         currentSettings,
-        path: getThemePath(themeId),
+        path: await getThemePath(themeId),
         isActive: themeId === activeThemeId,
-        source: isCustomTheme(themeId) ? 'custom' : 'official'
+        source: (await isCustomTheme(themeId)) ? 'custom' : 'official'
     };
 }
 
@@ -94,7 +94,7 @@ export async function getThemeById(themeId: string): Promise<InstalledTheme | nu
  * 매 요청마다 scanThemes() 디스크 I/O를 방지
  */
 let activeThemeCache: { data: InstalledTheme | null; expiry: number } | null = null;
-const THEME_CACHE_TTL = 30_000; // 30초
+const THEME_CACHE_TTL = 5 * 60_000; // 5분 (관리자만 변경, invalidate 함수 존재)
 
 /**
  * 활성 테마 가져오기 (캐시 적용)
@@ -123,7 +123,7 @@ export async function getActiveTheme(): Promise<InstalledTheme | null> {
  */
 export async function activateTheme(themeId: string): Promise<boolean> {
     // 테마가 설치되어 있는지 확인
-    if (!isThemeInstalled(themeId)) {
+    if (!(await isThemeInstalled(themeId))) {
         console.error(`[Theme API] 테마가 설치되지 않음: ${themeId}`);
         return false;
     }

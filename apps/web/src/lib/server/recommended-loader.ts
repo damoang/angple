@@ -24,7 +24,7 @@ const PERIOD_FILES: Record<string, { base: string; ai: string }> = {
 
 /** 인메모리 캐시 (period별) */
 const cache = new Map<string, { data: RecommendedDataWithAI; timestamp: number }>();
-const CACHE_TTL_MS = 30_000; // 30초
+const CACHE_TTL_MS = 60_000; // 60초 (PHP cron 주기적 업데이트)
 
 /**
  * 시간대별 기본 탭 결정 (PHP 원본 로직)

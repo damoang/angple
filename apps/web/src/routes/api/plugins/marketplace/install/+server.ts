@@ -37,7 +37,7 @@ export const POST: RequestHandler = async ({ request }) => {
         }
 
         // 커스텀 플러그인은 마켓플레이스에서 설치 불가
-        if (isCustomPlugin(pluginId)) {
+        if (await isCustomPlugin(pluginId)) {
             return json(
                 {
                     success: false,

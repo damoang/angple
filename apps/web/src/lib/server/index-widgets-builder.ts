@@ -42,7 +42,7 @@ interface BackendBoardResponse {
 }
 
 const JSON_PATH = '/home/damoang/www/data/cache/recommended/index-widgets.json';
-const CACHE_TTL_MS = 30_000; // 30초 (파일은 5분마다 갱신)
+const CACHE_TTL_MS = 60_000; // 60초 (파일은 5분마다 갱신)
 
 const EMPTY_RESULT: IndexWidgetsData = {
     news_tabs: [],

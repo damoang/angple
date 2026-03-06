@@ -13,6 +13,11 @@ const jwtCache = new Map<string, { token: string; expiry: number }>();
 const JWT_CACHE_TTL = 5 * 60 * 1000; // 5분
 const MAX_JWT_CACHE_SIZE = 50000;
 
+// --- SSR 응답 캐시 (비로그인 홈페이지) ---
+const ssrCache = new Map<string, { body: string; timestamp: number }>();
+const SSR_CACHE_TTL = 10_000; // 10초
+let ssrCachePending: Promise<Response> | null = null;
+
 /**
  * SvelteKit Server Hooks
  *
@@ -353,6 +358,84 @@ export const handle: Handle = async ({ event, resolve }) => {
 
     // /api/plugins/* 프록시는 더 이상 사용하지 않음
     // 모든 /api/plugins/* 요청은 SvelteKit API 라우트에서 처리
+
+    // --- 비로그인 홈페이지 SSR 응답 캐시 ---
+    // Pod 재시작 시 캐시 자동 소멸 → 배포 시 구 JS 경로 문제 없음
+    if (!event.locals.user && pathname === '/') {
+        const cached = ssrCache.get('/');
+        if (cached && Date.now() - cached.timestamp < SSR_CACHE_TTL) {
+            return new Response(cached.body, {
+                status: 200,
+                headers: {
+                    'Content-Type': 'text/html; charset=utf-8',
+                    'Cache-Control': 'private, no-store, no-cache, must-revalidate',
+                    Vary: 'Cookie',
+                    'X-Content-Type-Options': 'nosniff',
+                    'X-Frame-Options': 'SAMEORIGIN',
+                    'Referrer-Policy': 'strict-origin-when-cross-origin',
+                    'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
+                    ...(!dev ? { 'Content-Security-Policy': cspHeader } : {}),
+                    'X-SSR-Cache': 'HIT'
+                }
+            });
+        }
+
+        // Singleflight: 동시 요청 시 1개만 SSR 실행
+        if (ssrCachePending) {
+            try {
+                const result = await ssrCachePending;
+                return result.clone();
+            } catch {
+                // pending 실패 시 아래에서 직접 렌더링
+            }
+        }
+
+        const renderPromise = (async () => {
+            const themeMode = event.cookies.get('angple_theme_mode') || '';
+            const htmlClass =
+                themeMode === 'dark' ? 'dark' : themeMode === 'amoled' ? 'amoled' : '';
+            const density = event.cookies.get('angple_ui_density') || 'balanced';
+            const dPad = density === 'compact' ? '0px' : density === 'relaxed' ? '6px' : '3px';
+
+            const response = await resolve(event, {
+                transformPageChunk: ({ html }) => {
+                    const cls = htmlClass ? ` class="${htmlClass}"` : '';
+                    const sty = ` style="--row-pad-extra:${dPad};--comment-pad-extra:${dPad}"`;
+                    return html.replace('<html lang="ko">', `<html lang="ko"${cls}${sty}>`);
+                }
+            });
+
+            if (response.status === 200) {
+                const body = await response.text();
+                ssrCache.set('/', { body, timestamp: Date.now() });
+
+                return new Response(body, {
+                    status: 200,
+                    headers: {
+                        'Content-Type': 'text/html; charset=utf-8',
+                        'Cache-Control': 'private, no-store, no-cache, must-revalidate',
+                        Vary: 'Cookie',
+                        'X-Content-Type-Options': 'nosniff',
+                        'X-Frame-Options': 'SAMEORIGIN',
+                        'Referrer-Policy': 'strict-origin-when-cross-origin',
+                        'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
+                        ...(!dev ? { 'Content-Security-Policy': cspHeader } : {}),
+                        'X-SSR-Cache': 'MISS'
+                    }
+                });
+            }
+
+            return response;
+        })();
+
+        ssrCachePending = renderPromise;
+        try {
+            const result = await renderPromise;
+            return result;
+        } finally {
+            ssrCachePending = null;
+        }
+    }
 
     // SSR 다크모드: 쿠키에서 테마 읽어 <html> 클래스 주입 (FOUC 방지)
     const themeMode = event.cookies.get('angple_theme_mode') || '';
