@@ -42,7 +42,7 @@ const ALLOWED_EXTENSIONS = new Set([
     '.csv',
     '.json'
 ]);
-const MAX_SIZE = 50 * 1024 * 1024; // 50MB
+const MAX_SIZE = 10 * 1024 * 1024; // 10MB
 
 function getExt(filename: string): string {
     const dot = filename.lastIndexOf('.');

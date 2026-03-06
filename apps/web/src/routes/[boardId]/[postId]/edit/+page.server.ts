@@ -25,7 +25,8 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 
         if (board) {
             const requiredLevel = board.write_level ?? 1;
-            if (userLevel < requiredLevel) {
+            const isSuperAdmin = userLevel >= 10;
+            if (!isSuperAdmin && userLevel < requiredLevel) {
                 error(403, '이 게시판에 글을 작성할 권한이 없습니다.');
             }
         }
