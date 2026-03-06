@@ -5,7 +5,11 @@
      */
     import { Button } from '$lib/components/ui/button/index.js';
     import Star from '@lucide/svelte/icons/star';
-    import { boardFavoritesStore, slotLabel, type SlotNumber } from '$lib/stores/board-favorites.svelte';
+    import {
+        boardFavoritesStore,
+        slotLabel,
+        type SlotNumber
+    } from '$lib/stores/board-favorites.svelte';
     import { toast } from 'svelte-sonner';
 
     interface Props {
@@ -42,8 +46,12 @@
     onclick={toggle}
     aria-label={isFavorite ? '즐겨찾기 해제' : '즐겨찾기 등록'}
     aria-pressed={isFavorite}
-    title={isFavorite ? `즐겨찾기 '${slotLabel(registeredSlot!)}' (클릭하여 해제)` : '이 게시판을 즐겨찾기에 등록'}
-    class="h-8 w-8 {isFavorite ? 'text-yellow-500 hover:text-yellow-600' : 'text-muted-foreground hover:text-yellow-500'}"
+    title={isFavorite
+        ? `즐겨찾기 '${slotLabel(registeredSlot!)}' (클릭하여 해제)`
+        : '이 게시판을 즐겨찾기에 등록'}
+    class="h-8 w-8 {isFavorite
+        ? 'text-yellow-500 hover:text-yellow-600'
+        : 'text-muted-foreground hover:text-yellow-500'}"
 >
     <Star class="h-4 w-4" fill={isFavorite ? 'currentColor' : 'none'} />
 </Button>

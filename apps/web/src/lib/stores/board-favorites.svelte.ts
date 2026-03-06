@@ -10,7 +10,27 @@ import { browser } from '$app/environment';
 const STORAGE_KEY = 'angple-board-favorites';
 
 /** 단축키 슬롯 (1-10: 일반, 11-20: Shift) */
-export type SlotNumber = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20;
+export type SlotNumber =
+    | 1
+    | 2
+    | 3
+    | 4
+    | 5
+    | 6
+    | 7
+    | 8
+    | 9
+    | 10
+    | 11
+    | 12
+    | 13
+    | 14
+    | 15
+    | 16
+    | 17
+    | 18
+    | 19
+    | 20;
 
 export interface FavoriteEntry {
     boardId: string;
@@ -65,16 +85,18 @@ class BoardFavoritesStore {
 
     /** 일반 슬롯만 조회 (사이드바 표시용) */
     get normalSlots(): { slot: SlotNumber; entry: FavoriteEntry }[] {
-        return NORMAL_SLOTS
-            .filter((s) => this.favorites[s])
-            .map((s) => ({ slot: s, entry: this.favorites[s]! }));
+        return NORMAL_SLOTS.filter((s) => this.favorites[s]).map((s) => ({
+            slot: s,
+            entry: this.favorites[s]!
+        }));
     }
 
     /** Shift 슬롯만 조회 */
     get shiftSlots(): { slot: SlotNumber; entry: FavoriteEntry }[] {
-        return SHIFT_SLOTS
-            .filter((s) => this.favorites[s])
-            .map((s) => ({ slot: s, entry: this.favorites[s]! }));
+        return SHIFT_SLOTS.filter((s) => this.favorites[s]).map((s) => ({
+            slot: s,
+            entry: this.favorites[s]!
+        }));
     }
 
     /** 특정 슬롯 조회 */
@@ -158,7 +180,7 @@ class BoardFavoritesStore {
         for (const slot of SHIFT_SLOTS) {
             const entry = this.favorites[slot];
             if (entry) {
-                const digit = (slot - 10) === 10 ? '0' : String(slot - 10);
+                const digit = slot - 10 === 10 ? '0' : String(slot - 10);
                 shift[digit] = `/${entry.boardId}`;
             }
         }

@@ -205,12 +205,16 @@
             </div>
             <!-- Shift 슬롯 (S+1 ~ S+0): 접기/펼치기 -->
             {#if boardFavoritesStore.shiftSlots.length > 0}
-                {@const hasShiftActive = boardFavoritesStore.shiftSlots.some(({ entry }) => isActive(`/${entry.boardId}`))}
+                {@const hasShiftActive = boardFavoritesStore.shiftSlots.some(({ entry }) =>
+                    isActive(`/${entry.boardId}`)
+                )}
                 <details class="mt-1" open={hasShiftActive || undefined}>
                     <summary
                         class="text-muted-foreground hover:text-foreground flex cursor-pointer select-none items-center gap-1 px-2 py-1 text-[10px] transition-colors"
                     >
-                        <ChevronRight class="h-3 w-3 transition-transform duration-200 [[open]_&]:rotate-90" />
+                        <ChevronRight
+                            class="h-3 w-3 transition-transform duration-200 [[open]_&]:rotate-90"
+                        />
                         추가 단축키 ({boardFavoritesStore.shiftSlots.length})
                     </summary>
                     <div class="mt-0.5 grid grid-cols-2 gap-0.5">
