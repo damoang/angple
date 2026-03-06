@@ -1089,7 +1089,7 @@
                         postAuthorId={data.post.author_id}
                         {boardId}
                         postId={data.post.id}
-                        useNogood={data.board?.use_nogood === 1}
+                        useNogood={!!data.board?.use_nogood}
                         commentLayout={data.board?.display_settings?.comment_layout || 'flat'}
                     />
 

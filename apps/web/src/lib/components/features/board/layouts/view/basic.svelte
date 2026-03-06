@@ -392,7 +392,7 @@
                 {/if}
 
                 <!-- 비추천 버튼 (게시판 설정에서 활성화된 경우만) -->
-                {#if board?.use_nogood === 1}
+                {#if board?.use_nogood}
                     <div class="border-border flex items-center rounded-lg border">
                         <Button
                             variant="ghost"
