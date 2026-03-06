@@ -10,6 +10,7 @@ import type { RequestHandler } from './$types';
 import type { RowDataPacket } from 'mysql2';
 import pool from '$lib/server/db';
 import { getAuthUser } from '$lib/server/auth';
+import { checkCertification } from '$lib/server/certification';
 
 const REACTION_LIMIT = 20;
 const VALID_REACTION_PATTERN = /^[a-zA-Z0-9:_-]+$/;
@@ -173,6 +174,16 @@ export const POST: RequestHandler = async ({ request, cookies, getClientAddress 
                 { status: 'error', message: '유효하지 않은 리액션입니다.' },
                 { status: 400 }
             );
+        }
+
+        // 실명인증 체크 (targetId에서 boardId 추출)
+        const certTargetParts = safeTargetId.split(':');
+        if (certTargetParts.length >= 2) {
+            const certBoardId = certTargetParts[1].replace(/[^a-zA-Z0-9_-]/g, '');
+            const certError = await checkCertification(certBoardId, user.mb_id);
+            if (certError) {
+                return json({ status: 'error', message: certError }, { status: 403 });
+            }
         }
 
         // 작성자 리액션 방지 (PHP preventWriterReaction과 동일: wr_is_comment=1로 댓글만 체크)
