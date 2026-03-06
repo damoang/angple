@@ -10,6 +10,17 @@ import type { RowDataPacket } from 'mysql2';
 import pool from '$lib/server/db';
 import { getAuthUser } from '$lib/server/auth';
 
+/** IP 마스킹: 두 번째 옥텟을 ♡로 (예: 222.114.55.158 → 222.♡.55.158) */
+function maskIp(ip: string | null | undefined): string {
+    if (!ip) return '';
+    const parts = ip.split('.');
+    if (parts.length === 4) {
+        parts[1] = '♡';
+        return parts.join('.');
+    }
+    return ip.slice(0, 3) + '.♡';
+}
+
 interface LikerRow extends RowDataPacket {
     mb_id: string;
     mb_nick: string;
@@ -71,7 +82,7 @@ export const GET: RequestHandler = async ({ params, url, cookies }) => {
             mb_id: row.mb_id,
             mb_name: row.mb_name,
             mb_nick: row.mb_nick,
-            bg_ip: isAuthenticated ? row.bg_ip || '' : '',
+            bg_ip: isAuthenticated ? maskIp(row.bg_ip) : '',
             liked_at: row.bg_datetime
         }));
 
