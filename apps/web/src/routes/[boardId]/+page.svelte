@@ -53,7 +53,7 @@
     // 코어 레이아웃 초기화 (최초 1회)
     initCoreLayouts();
     // @ts-ignore giving 플러그인 (선택적 설치)
-    import('../../../../../plugins/giving/hooks/register-layouts.js')
+    import(/* @vite-ignore */ '../../../../../plugins/giving/hooks/register-layouts.js')
         .then((m: { default: () => void }) => m.default())
         .catch(() => {});
 
@@ -110,6 +110,9 @@
 
     // 검색 중인지 여부
     const isSearching = $derived(Boolean(data.searchParams));
+
+    // 현재 페이지 번호 (글 링크에 전달용)
+    const listPage = $derived(Number($page.url.searchParams.get('page')) || 1);
 
     // 읽은 글 표시 지연 — SSR에서는 모든 글이 "안읽음"으로 렌더링되므로,
     // 하이드레이션 직후 즉시 변경하면 깜빡임 발생. 2프레임 대기 후 부드럽게 전환.
@@ -699,7 +702,9 @@
                                         <LayoutComponent
                                             {post}
                                             displaySettings={data.board?.display_settings}
-                                            href="/{boardId}/{post.id}"
+                                            href="/{boardId}/{post.id}{listPage > 1
+                                                ? `?page=${listPage}`
+                                                : ''}"
                                             isRead={showReadState &&
                                                 readPostsStore.isRead(boardId, post.id)}
                                         />
@@ -709,7 +714,9 @@
                                 <LayoutComponent
                                     {post}
                                     displaySettings={data.board?.display_settings}
-                                    href="/{boardId}/{post.id}"
+                                    href="/{boardId}/{post.id}{listPage > 1
+                                        ? `?page=${listPage}`
+                                        : ''}"
                                     isRead={showReadState &&
                                         readPostsStore.isRead(boardId, post.id)}
                                 />

@@ -29,6 +29,7 @@
         boardTitle: string;
         currentPostId: number;
         limit?: number;
+        initialPage?: number;
         promotionPosts?: PromotionPost[];
         displaySettings?: BoardDisplaySettings;
     }
@@ -38,6 +39,7 @@
         boardTitle,
         currentPostId,
         limit = 10,
+        initialPage = 1,
         promotionPosts = [],
         displaySettings
     }: Props = $props();
@@ -112,8 +114,10 @@
         if (!browser) return;
 
         try {
-            const response = await apiClient.getBoardPosts(boardId, 1, limit);
+            const startPage = Math.max(1, initialPage);
+            const response = await apiClient.getBoardPosts(boardId, startPage, limit);
             posts = response.items;
+            currentPage = response.page;
             totalPages = response.total_pages;
             totalItems = response.total;
 
@@ -183,7 +187,7 @@
                 <LayoutComponent
                     {post}
                     {displaySettings}
-                    href="/{boardId}/{post.id}"
+                    href="/{boardId}/{post.id}{currentPage > 1 ? `?page=${currentPage}` : ''}"
                     isRead={showReadState && readPostsStore.isRead(boardId, post.id)}
                 />
             </div>

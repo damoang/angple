@@ -96,7 +96,7 @@
     // 코어 레이아웃 초기화
     initCoreLayouts();
     // @ts-ignore giving 플러그인 (선택적 설치)
-    import('../../../../../../plugins/giving/hooks/register-layouts.js')
+    import(/* @vite-ignore */ '../../../../../../plugins/giving/hooks/register-layouts.js')
         .then((m: { default: () => void }) => m.default())
         .catch(() => {});
 
@@ -1126,6 +1126,7 @@
                 {boardTitle}
                 currentPostId={data.post.id}
                 limit={25}
+                initialPage={Number($page.url.searchParams.get('page')) || 1}
                 promotionPosts={promotionPosts as any[]}
                 displaySettings={data.board?.display_settings}
             />
