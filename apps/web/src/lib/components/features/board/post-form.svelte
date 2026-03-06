@@ -72,7 +72,7 @@
         link1 = post?.link1 || '';
         link2 = post?.link2 || '';
     });
-    let errors = $state<{ title?: string; content?: string }>({});
+    let errors = $state<{ title?: string; content?: string; category?: string }>({});
 
     // 파일 업로드 상태 (이미지 + 파일 통합)
     let uploadedFiles = $state<UploadedFile[]>([]);
@@ -263,9 +263,12 @@
         });
     }
 
+    // 카테고리 필수 여부
+    const categoryRequired = $derived(categories.length > 0 && board?.use_category === 1);
+
     // 유효성 검증
     function validate(): boolean {
-        const newErrors: { title?: string; content?: string } = {};
+        const newErrors: { title?: string; content?: string; category?: string } = {};
 
         if (!title.trim()) {
             newErrors.title = '제목을 입력해주세요.';
@@ -275,6 +278,10 @@
 
         if (!content.trim()) {
             newErrors.content = '내용을 입력해주세요.';
+        }
+
+        if (categoryRequired && !category) {
+            newErrors.category = '카테고리를 선택해주세요.';
         }
 
         errors = newErrors;
@@ -452,17 +459,29 @@
             <!-- 카테고리 선택 -->
             {#if categories.length > 0}
                 <div class="space-y-2">
-                    <Label for="category">카테고리</Label>
+                    <Label for="category"
+                        >카테고리 {#if categoryRequired}<span class="text-destructive">*</span
+                            >{/if}</Label
+                    >
                     <select
                         id="category"
                         bind:value={category}
-                        class="border-input bg-background text-foreground focus:ring-ring w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-2"
+                        class="border-input bg-background text-foreground focus:ring-ring w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-2 {errors.category
+                            ? 'border-destructive'
+                            : ''}"
                     >
-                        <option value="">카테고리 선택 (선택사항)</option>
+                        <option value=""
+                            >{categoryRequired
+                                ? '카테고리를 선택하세요'
+                                : '카테고리 선택 (선택사항)'}</option
+                        >
                         {#each categories as cat (cat)}
                             <option value={cat}>{cat}</option>
                         {/each}
                     </select>
+                    {#if errors.category}
+                        <p class="text-destructive text-sm">{errors.category}</p>
+                    {/if}
                 </div>
             {/if}
 
