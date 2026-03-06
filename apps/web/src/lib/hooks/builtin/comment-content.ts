@@ -9,7 +9,8 @@ import {
     transformVideos,
     transformCodeBlocks,
     transformBacktickCodeBlocks,
-    transformInlineCode
+    transformInlineCode,
+    transformInlineMarkdown
 } from '$lib/utils/content-transform';
 import { processContent } from '$lib/plugins/auto-embed';
 
@@ -59,6 +60,15 @@ export function initCommentContent(): void {
         'comment_content',
         (html: unknown) => transformInlineCode(html as string),
         4.5,
+        'core',
+        'filter'
+    );
+
+    // **bold**, *italic*, ~~strike~~ 인라인 마크다운 (코드 블록 이후 실행)
+    registerHook(
+        'comment_content',
+        (html: unknown) => transformInlineMarkdown(html as string),
+        4.6,
         'core',
         'filter'
     );
