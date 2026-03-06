@@ -222,6 +222,28 @@ export const POST: RequestHandler = async ({ params, request, cookies }) => {
 
         await conn.commit();
 
+        // 댓글 좋아요 알림 (추가 시에만)
+        if (!alreadyExists && action === 'good') {
+            const commentAuthorId = writeRows[0].mb_id;
+            if (commentAuthorId && commentAuthorId !== user.mb_id) {
+                const userNick = user.mb_nick || user.mb_name || user.mb_id;
+                pool.query(
+                    `INSERT INTO g5_na_noti (ph_to_case, ph_from_case, bo_table, wr_id, mb_id, rel_mb_id, rel_mb_nick, rel_msg, rel_url, ph_readed, ph_datetime, parent_subject, wr_parent)
+                     VALUES ('good', 'good', ?, ?, ?, ?, ?, ?, ?, 'N', NOW(), '', ?)`,
+                    [
+                        safeBoardId,
+                        safeCommentId,
+                        commentAuthorId,
+                        user.mb_id,
+                        userNick,
+                        `${userNick}님이 회원님의 댓글을 추천했습니다.`,
+                        `/${safeBoardId}/${params.postId}#c_${safeCommentId}`,
+                        parseInt(params.postId!, 10)
+                    ]
+                ).catch(() => {});
+            }
+        }
+
         // 최신 값 조회
         const [updatedRows] = await pool.query<WriteRow[]>(
             `SELECT wr_good, wr_nogood FROM ?? WHERE wr_id = ?`,
