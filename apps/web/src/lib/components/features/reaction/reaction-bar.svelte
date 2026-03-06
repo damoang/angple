@@ -20,9 +20,10 @@
         postId: number | string;
         commentId?: number | string;
         target: 'post' | 'comment';
+        initialReactions?: ReactionItem[];
     }
 
-    let { boardId, postId, commentId, target }: Props = $props();
+    let { boardId, postId, commentId, target, initialReactions }: Props = $props();
 
     let reactions = $state<ReactionItem[]>([]);
     let isLoading = $state(false);
@@ -110,8 +111,15 @@
         }
     }
 
+    // initialReactions가 제공되면 fetch 스킵 (일괄 조회 최적화)
+    if (initialReactions) {
+        reactions = initialReactions;
+    }
+
     onMount(() => {
-        loadReactions();
+        if (!initialReactions) {
+            loadReactions();
+        }
         document.addEventListener('click', handleClickOutside);
         return () => document.removeEventListener('click', handleClickOutside);
     });

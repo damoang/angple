@@ -49,7 +49,11 @@ export const GET: RequestHandler = async ({ url }) => {
             levels[row.mb_id] = row.as_level;
         }
 
-        return json(levels);
+        return json(levels, {
+            headers: {
+                'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=120'
+            }
+        });
     } catch (error) {
         console.error('Member levels API error:', error);
         return json({ error: '회원 레벨 조회 실패' }, { status: 500 });

@@ -472,7 +472,14 @@ export const handle: Handle = async ({ event, resolve }) => {
     // - _app/immutable/ → SvelteKit 기본 장기 캐시 유지 (content-hash)
     // - 비로그인 + 공개 페이지 → CDN stale-while-revalidate (ISR-like)
     // - 나머지 → 캐시 금지 (인증 데이터 포함)
-    if (event.url.pathname.startsWith('/_app/immutable')) {
+    // API 핸들러가 명시적으로 public Cache-Control을 설정한 경우 유지
+    const existingCacheControl = response.headers.get('Cache-Control');
+    const hasExplicitPublicCache =
+        existingCacheControl?.includes('public') && pathname.startsWith('/api/');
+
+    if (hasExplicitPublicCache) {
+        // API 핸들러가 설정한 Cache-Control 유지 (celebration, banners, levels, reactions, init 등)
+    } else if (event.url.pathname.startsWith('/_app/immutable')) {
         // SvelteKit이 이미 설정 → 그대로 유지
     } else if (!event.locals.user && isPublicCacheablePath(pathname)) {
         // 비로그인 사용자의 공개 페이지: CDN 캐시 30초, stale 60초

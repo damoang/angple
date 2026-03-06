@@ -16,7 +16,11 @@ export const GET: RequestHandler = async ({ url }) => {
         if (!response.ok) {
             return json({ success: false, data: { banners: [], count: 0 } });
         }
-        return json(await response.json());
+        return json(await response.json(), {
+            headers: {
+                'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600'
+            }
+        });
     } catch {
         return json({ success: false, data: { banners: [], count: 0 } });
     }

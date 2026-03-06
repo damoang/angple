@@ -3,6 +3,7 @@
     import { browser } from '$app/environment';
     import { aplogTrack } from '$lib/services/aplog';
     import { authStore } from '$lib/stores/auth.svelte';
+    import { getCachedBanners } from '$lib/stores/app-init.svelte';
 
     interface Props {
         position?: string;
@@ -71,6 +72,21 @@
 
     async function fetchBanners() {
         if (!browser) return;
+
+        // app-init 캐시에서 먼저 확인
+        const cached = getCachedBanners(position);
+        if (cached && cached.length > 0) {
+            banners = cached.map((b: ServedBanner) => ({
+                id: b.id,
+                imageUrl: b.imageUrl,
+                linkUrl: b.landingUrl,
+                altText: b.altText || '',
+                target: b.target || '_blank',
+                trackingId: b.trackingId
+            }));
+            loading = false;
+            return;
+        }
 
         try {
             // damoang-ads API 호출 - 항상 4개 요청

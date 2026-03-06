@@ -22,6 +22,8 @@
     import DeletedPostBanner from '$lib/components/post/deleted-post-banner.svelte';
     import RevisionHistory from '$lib/components/post/revision-history.svelte';
     import { sendMentionNotifications } from '$lib/utils/mention-notify.js';
+    import type { ReactionItem } from '$lib/types/reaction.js';
+    import { generateParentId, generateDocumentTargetId } from '$lib/types/reaction.js';
     import { onMount } from 'svelte';
     import { page } from '$app/stores';
     import { getMemberIconUrl } from '$lib/utils/member-icon.js';
@@ -317,6 +319,26 @@
     // 신고 다이얼로그 상태
     let showReportDialog = $state(false);
 
+    // 리액션 일괄 조회 (게시글 + 모든 댓글)
+    let postReactions = $state<ReactionItem[] | undefined>(undefined);
+    let reactionsMap = $state<Record<string, ReactionItem[]> | undefined>(undefined);
+
+    async function fetchBatchReactions(): Promise<void> {
+        if (!reactionPluginActive) return;
+        try {
+            const parentId = generateParentId(boardId, data.post.id);
+            const res = await fetch(`/api/reactions?parentId=${encodeURIComponent(parentId)}`);
+            const json = await res.json();
+            if (json.status === 'success' && json.result) {
+                reactionsMap = json.result;
+                const docTargetId = generateDocumentTargetId(boardId, data.post.id);
+                postReactions = json.result[docTargetId] || [];
+            }
+        } catch (err) {
+            console.error('Failed to batch-load reactions:', err);
+        }
+    }
+
     // 초기 추천 상태 + 레벨 로드 + 조회수 증가 + 읽음 표시
     onMount(async () => {
         // 읽음 표시 (localStorage)
@@ -349,6 +371,9 @@
         if (likeCount > 0) {
             loadLikerAvatars();
         }
+
+        // 리액션 일괄 조회 (게시글 + 모든 댓글, 1회 fetch)
+        fetchBatchReactions();
     });
 
     // 글 이동 시 상태 리셋 (같은 레이아웃 내 다른 글로 이동할 때)
@@ -973,6 +998,7 @@
                 {formatFileSize}
                 postContent={postContent()}
                 pageData={data}
+                {postReactions}
             />
         {:else}
             <!-- 폴백: 레이아웃을 resolve할 수 없을 때 기본 메시지 -->
@@ -1092,6 +1118,7 @@
                         postId={data.post.id}
                         useNogood={!!data.board?.use_nogood}
                         commentLayout={data.board?.display_settings?.comment_layout || 'flat'}
+                        {reactionsMap}
                     />
 
                     <div class="border-border border-t pt-6">

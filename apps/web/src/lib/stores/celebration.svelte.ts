@@ -88,6 +88,20 @@ export function getLink(banner: CelebrationBanner): string {
     return banner.external_link || banner.link_url || `/message/${banner.id}`;
 }
 
+/** 외부 데이터로 초기화 (app-init 스토어에서 주입 시 fetch 스킵) */
+export function initFromData(data: CelebrationBanner[]): void {
+    if (fetched || data.length === 0) return;
+
+    // Fisher-Yates 셔플
+    const arr = [...data];
+    for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    celebrations = arr;
+    fetched = true;
+}
+
 /** 컴포넌트 마운트 시 호출. fetch + rotation 시작. cleanup 함수 반환 */
 export function mount(): () => void {
     refCount++;

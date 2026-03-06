@@ -131,7 +131,14 @@ export const GET: RequestHandler = async ({ url, cookies }) => {
             result[row.target_id].push(parseReaction(row.reaction, row.reaction_count, isChosen));
         }
 
-        return json({ status: 'success', result });
+        return json(
+            { status: 'success', result },
+            {
+                headers: {
+                    'Cache-Control': 'public, s-maxage=10, stale-while-revalidate=30'
+                }
+            }
+        );
     } catch (error) {
         console.error('Reaction GET error:', error);
         return json({ status: 'error', message: '리액션 조회에 실패했습니다.' }, { status: 500 });

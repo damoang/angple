@@ -149,13 +149,43 @@
         }
     }
 
-    // 초기 로드
+    // 초기 로드 + Page Visibility API 기반 폴링
     onMount(() => {
         loadUnreadCount();
 
-        // 5분마다 읽지 않은 알림 수 갱신
-        const interval = setInterval(loadUnreadCount, 300000);
-        return () => clearInterval(interval);
+        let interval: ReturnType<typeof setInterval> | null = null;
+
+        function startPolling() {
+            if (interval) return;
+            interval = setInterval(loadUnreadCount, 300000);
+        }
+
+        function stopPolling() {
+            if (interval) {
+                clearInterval(interval);
+                interval = null;
+            }
+        }
+
+        function handleVisibilityChange() {
+            if (document.visibilityState === 'visible') {
+                loadUnreadCount(); // 탭 복귀 시 즉시 1회 호출
+                startPolling();
+            } else {
+                stopPolling();
+            }
+        }
+
+        // 탭이 보일 때만 폴링
+        if (document.visibilityState === 'visible') {
+            startPolling();
+        }
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
+        return () => {
+            stopPolling();
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+        };
     });
 </script>
 
