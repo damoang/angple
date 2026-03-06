@@ -52,10 +52,11 @@
     import { layoutRegistry, initCoreLayouts } from '$lib/components/features/board/layouts';
     // 코어 레이아웃 초기화 (최초 1회)
     initCoreLayouts();
-    // @ts-ignore giving 플러그인 (선택적 설치)
-    import(/* @vite-ignore */ '../../../../../plugins/giving/hooks/register-layouts.js')
-        .then((m: { default: () => void }) => m.default())
-        .catch(() => {});
+    {
+        const p = '../../../../../plugins/giving/hooks/register-layouts.js';
+        // @ts-ignore
+        import(p).then((m: { default: () => void }) => m.default()).catch(() => {});
+    }
 
     let { data }: { data: PageData } = $props();
 
