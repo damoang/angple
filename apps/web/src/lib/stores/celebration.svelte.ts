@@ -42,7 +42,13 @@ async function doFetch(): Promise<void> {
         const result = await response.json();
 
         if (result.data?.length > 0) {
-            celebrations = result.data;
+            // Fisher-Yates 셔플 (랜덤 순서)
+            const arr = [...result.data];
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+            celebrations = arr;
         }
     } catch (error) {
         console.warn('CelebrationStore: 축하메시지 로드 실패', error);
