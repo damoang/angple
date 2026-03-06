@@ -15,6 +15,7 @@ import type { Cookies } from '@sveltejs/kit';
 export interface AuthUser {
     mb_id: string;
     mb_name: string;
+    mb_nick: string;
     mb_level: number;
     mb_email: string;
 }
@@ -34,6 +35,7 @@ export async function getAuthUser(cookies: Cookies): Promise<AuthUser | null> {
                     return {
                         mb_id: member.mb_id,
                         mb_name: member.mb_nick || member.mb_name,
+                        mb_nick: member.mb_nick || '',
                         mb_level: member.mb_level ?? 0,
                         mb_email: member.mb_email || ''
                     };
@@ -52,6 +54,7 @@ export async function getAuthUser(cookies: Cookies): Promise<AuthUser | null> {
             return {
                 mb_id: payload.sub,
                 mb_name: payload.nickname,
+                mb_nick: payload.nickname,
                 mb_level: payload.level,
                 mb_email: payload.email
             };
@@ -69,6 +72,7 @@ export async function getAuthUser(cookies: Cookies): Promise<AuthUser | null> {
                     return {
                         mb_id: member.mb_id,
                         mb_name: member.mb_nick || member.mb_name,
+                        mb_nick: member.mb_nick || '',
                         mb_level: member.mb_level ?? 0,
                         mb_email: member.mb_email || ''
                     };
@@ -88,6 +92,7 @@ export async function getAuthUser(cookies: Cookies): Promise<AuthUser | null> {
                 return {
                     mb_id: payload.sub,
                     mb_name: payload.nickname,
+                    mb_nick: payload.nickname,
                     mb_level: payload.level,
                     mb_email: payload.email
                 };
