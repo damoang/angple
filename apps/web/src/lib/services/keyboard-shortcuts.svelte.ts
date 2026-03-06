@@ -59,8 +59,10 @@ function hasUnsavedContent(): boolean {
 class KeyboardShortcutService {
     // 시스템 단축키: event.code → URL
     private systemShortcuts = $state<Map<string, string>>(new Map());
-    // 사용자 숫자 단축키: event.code → URL
+    // 사용자 숫자 단축키: event.code → URL (일반)
     private userShortcuts = $state<Map<string, string>>(new Map());
+    // 사용자 숫자 단축키: event.code → URL (Shift)
+    private shiftShortcuts = $state<Map<string, string>>(new Map());
 
     /**
      * 메뉴 데이터에서 시스템 단축키 빌드
@@ -99,16 +101,27 @@ class KeyboardShortcutService {
 
     /**
      * 사용자 숫자 단축키 설정
-     * @param shortcuts - { '1': '/free', '2': '/trade', ... }
+     * @param normal - 일반 { '1': '/free', '2': '/trade', ... }
+     * @param shift - Shift { '1': '/gallery', '2': '/giving', ... }
      */
-    setUserShortcuts(shortcuts: Record<string, string>) {
+    setUserShortcuts(normal: Record<string, string>, shift?: Record<string, string>) {
         const map = new Map<string, string>();
-        for (const [digit, url] of Object.entries(shortcuts)) {
+        for (const [digit, url] of Object.entries(normal)) {
             if (/^\d$/.test(digit) && url) {
                 map.set(`Digit${digit}`, url);
             }
         }
         this.userShortcuts = map;
+
+        const smap = new Map<string, string>();
+        if (shift) {
+            for (const [digit, url] of Object.entries(shift)) {
+                if (/^\d$/.test(digit) && url) {
+                    smap.set(`Digit${digit}`, url);
+                }
+            }
+        }
+        this.shiftShortcuts = smap;
     }
 
     /**
@@ -126,6 +139,10 @@ class KeyboardShortcutService {
         for (const [code, url] of this.userShortcuts) {
             combined.set(code, url);
         }
+        // Shift 단축키
+        for (const [code, url] of this.shiftShortcuts) {
+            combined.set(`Shift+${code}`, url);
+        }
         return combined;
     }
 
@@ -135,18 +152,32 @@ class KeyboardShortcutService {
     handleKeydown = (event: KeyboardEvent) => {
         // 입력 필드 안에서는 무시
         if (isInputElement(event.target)) return;
-        // modifier 키 조합 무시
-        if (isKeyCombination(event)) return;
         // contentEditable 요소 안에서는 무시
         if (isContentEditable(event.target)) return;
 
         const code = event.code;
+        const isDigit = code.startsWith('Digit');
+
+        // Shift+숫자: Shift 즐겨찾기 단축키
+        if (event.shiftKey && !event.ctrlKey && !event.altKey && !event.metaKey && isDigit) {
+            const shiftUrl = this.shiftShortcuts.get(code);
+            if (shiftUrl) {
+                event.preventDefault();
+                this.navigate(shiftUrl);
+            }
+            return;
+        }
+
+        // Shift 외 modifier 키 조합 무시
+        if (isKeyCombination(event)) return;
 
         // 사용자 숫자 단축키 먼저 체크
-        const userUrl = this.userShortcuts.get(code);
-        if (userUrl) {
-            event.preventDefault();
-            this.navigate(userUrl);
+        if (isDigit) {
+            const userUrl = this.userShortcuts.get(code);
+            if (userUrl) {
+                event.preventDefault();
+                this.navigate(userUrl);
+            }
             return;
         }
 

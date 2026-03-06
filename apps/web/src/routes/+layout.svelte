@@ -20,6 +20,7 @@
     import { Toaster } from '$lib/components/ui/sonner';
     import DefaultLayout from '$lib/layouts/default-layout.svelte';
     import { keyboardShortcuts } from '$lib/services/keyboard-shortcuts.svelte';
+    import { boardFavoritesStore } from '$lib/stores/board-favorites.svelte';
     import { initAplog, destroyAplog } from '$lib/services/aplog';
     import { getThemeLayout } from '$lib/themes/layout-registry';
 
@@ -71,6 +72,14 @@
         const menus = menuStore.menus;
         untrack(() => {
             keyboardShortcuts.buildFromMenus(menus);
+        });
+    });
+
+    // 즐겨찾기 → 숫자 단축키 연결
+    $effect(() => {
+        const { normal, shift } = boardFavoritesStore.toShortcutMap();
+        untrack(() => {
+            keyboardShortcuts.setUserShortcuts(normal, shift);
         });
     });
 

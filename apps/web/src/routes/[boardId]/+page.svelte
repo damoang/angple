@@ -42,6 +42,7 @@
     import BoardMapHeader from '$lib/components/features/board/board-map-header.svelte';
     import EconomyShoppingBanner from '$lib/components/features/board/economy-shopping-banner.svelte';
     import QAPostList from '$lib/components/features/board/qa-post-list.svelte';
+    import BoardFavoriteButton from '$lib/components/features/board/board-favorite-button.svelte';
 
     // Q&A 게시판 타입 등록
     boardTypeRegistry.register('qa', QAPostList, 'core');
@@ -330,6 +331,7 @@
                             {boardTitle}
                         </a>
                     </h1>
+                    <BoardFavoriteButton {boardId} {boardTitle} />
                     <AdminLayoutSwitcher {boardId} currentLayout={listLayoutId} />
                     {#if isAdmin}
                         <Button
