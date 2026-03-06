@@ -578,6 +578,13 @@
         background: transparent;
     }
 
+    /* 다크모드: 광고 iframe 흰 배경 완화 (눈부심 방지) */
+    :global(.dark) .ad-slot-loaded,
+    :global(.amoled) .ad-slot-loaded {
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        border-radius: 0.5rem;
+    }
+
     .gam-ad-slot {
         display: flex;
         justify-content: center;
@@ -593,5 +600,11 @@
     /* 광고 iframe이 컨테이너를 넘지 않도록 */
     .gam-ad-slot :global(iframe) {
         max-width: 100% !important;
+    }
+
+    /* 다크모드: 광고 iframe 밝기 낮춤 (눈부심 완화) */
+    :global(.dark) .gam-ad-slot :global(iframe),
+    :global(.amoled) .gam-ad-slot :global(iframe) {
+        filter: brightness(0.9);
     }
 </style>
