@@ -264,7 +264,7 @@
     }
 
     // 카테고리 필수 여부
-    const categoryRequired = $derived(categories.length > 0 && board?.use_category === 1);
+    const categoryRequired = $derived(categories.length > 0 && !!board?.use_category);
 
     // 유효성 검증
     function validate(): boolean {
@@ -561,7 +561,7 @@
             </div>
 
             <!-- 비밀글 옵션 (게시판 설정에 따라 표시) -->
-            {#if board?.use_secret === 1}
+            {#if board?.use_secret}
                 <div class="border-border flex items-center gap-3 rounded-lg border p-4">
                     <Checkbox id="is_secret" bind:checked={isSecret} disabled={isLoading} />
                     <div class="flex items-center gap-2">

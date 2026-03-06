@@ -299,6 +299,7 @@
 
     /* 1) 기본 폰트 적용 + 스무딩(맥), 커닝/리거처 통일 */
     html {
+        scrollbar-gutter: stable;
         font-family: var(--font-sans);
         -webkit-font-smoothing: antialiased;
         /* macOS */

@@ -78,6 +78,9 @@
     let totalPages = $state(1);
     let totalItems = $state(0);
 
+    // 목록 컨테이너 참조
+    let listContainer: HTMLElement | undefined = $state();
+
     // 페이지 변경
     async function goToPage(page: number): Promise<void> {
         if (page < 1 || page > totalPages || page === currentPage) return;
@@ -94,6 +97,11 @@
             const authorIds = [...new Set(posts.map((p) => p.author_id).filter(Boolean))];
             if (authorIds.length > 0) {
                 void memberLevelStore.fetchLevels(authorIds);
+            }
+
+            // 목록 영역으로 스크롤 (본문이 다시 보이는 문제 방지)
+            if (listContainer) {
+                listContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }
         } catch (err) {
             console.error('[RecentPosts] 페이지 로드 실패:', err);
@@ -139,7 +147,7 @@
 </script>
 
 <!-- 헤더 -->
-<div class="mb-3 flex items-center justify-between">
+<div bind:this={listContainer} class="mb-3 flex items-center justify-between">
     <a
         href="/{boardId}"
         class="text-foreground hover:text-primary text-lg font-bold transition-colors"
