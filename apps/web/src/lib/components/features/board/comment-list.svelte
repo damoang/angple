@@ -512,7 +512,9 @@
                             'source',
                             'blockquote',
                             'a',
-                            'span'
+                            'span',
+                            'pre',
+                            'code'
                         ],
                         ALLOWED_ATTR: [
                             'src',
@@ -1254,6 +1256,32 @@
     }
     :global(.comment-body p:last-child) {
         margin-bottom: 0;
+    }
+
+    /* 댓글 코드 블록 스타일 (게시글 본문 .prose와 동일) */
+    :global(.comment-body pre) {
+        background: oklch(0.939 0.002 247.845);
+        padding: 1rem;
+        border-radius: 0.5rem;
+        overflow-x: auto;
+        margin: 0.5em 0;
+        white-space: pre;
+    }
+    :global(.comment-body pre code) {
+        font-size: 0.875rem;
+        line-height: 1.6;
+    }
+    :global(.comment-body > code) {
+        background: oklch(0.939 0.002 247.845);
+        padding: 0.15em 0.4em;
+        border-radius: 0.25rem;
+        font-size: 0.875em;
+    }
+    :global(.dark .comment-body pre) {
+        background: oklch(0.269 0.015 252.417);
+    }
+    :global(.dark .comment-body > code) {
+        background: oklch(0.269 0.015 252.417);
     }
 
     /* 연속 줄바꿈 간격 축소 */

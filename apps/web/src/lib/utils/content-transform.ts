@@ -7,6 +7,8 @@
 const EMOTICON_PATTERN = /\{(이모티콘|emo):([^}]*)\}/gi;
 const VIDEO_PATTERN = /\{(동영상|video)\s*:\s*([\s\S]*?)\}/gi;
 const CODE_BLOCK_PATTERN = /\[code(?:=([a-zA-Z0-9_+-]+))?\]([\s\S]*?)\[\/code\]/gi;
+const BACKTICK_CODE_BLOCK_PATTERN = /```([a-zA-Z0-9_+-]*)(?:\n|<br\s*\/?>)([\s\S]*?)```/gi;
+const INLINE_CODE_PATTERN = /`([^`\n]+)`/g;
 const MAX_WIDTH = 200;
 const DEFAULT_WIDTH = 50;
 const ALLOWED_EXTENSIONS = ['.gif', '.png', '.jpg', '.jpeg', '.webp'];
@@ -117,6 +119,34 @@ export function transformVideos(html: string): string {
  * [code]...[/code] 또는 [code=lang]...[/code] BBCode를 <pre><code>로 변환
  * 그누보드/나리야 레거시 호환
  */
+/**
+ * ```lang\n...\n``` 백틱 코드 블록을 <pre><code>로 변환
+ * 댓글 등 marked.parse를 거치지 않는 plain text 전용
+ */
+export function transformBacktickCodeBlocks(text: string): string {
+    if (!text || !text.includes('```')) return text;
+
+    return text.replace(BACKTICK_CODE_BLOCK_PATTERN, (_match, lang: string, code: string) => {
+        const cleaned = code.replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]*>/g, '');
+        const trimmed = cleaned.replace(/^\n+|\n+$/g, '');
+        const langAttr = lang ? ` class="language-${lang}"` : '';
+        return `<pre><code${langAttr}>${trimmed}</code></pre>`;
+    });
+}
+
+/**
+ * `code` 인라인 백틱을 <code>로 변환
+ * 댓글 등 marked.parse를 거치지 않는 plain text 전용
+ * 반드시 transformBacktickCodeBlocks 이후에 실행해야 ``` 블록 내부를 오염시키지 않음
+ */
+export function transformInlineCode(text: string): string {
+    if (!text || !text.includes('`')) return text;
+
+    return text.replace(INLINE_CODE_PATTERN, (_match, code: string) => {
+        return `<code>${code}</code>`;
+    });
+}
+
 export function transformCodeBlocks(html: string): string {
     if (!html || !html.toLowerCase().includes('[code')) return html;
 

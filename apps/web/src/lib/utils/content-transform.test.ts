@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import {
 	transformCodeBlocks,
+	transformBacktickCodeBlocks,
+	transformInlineCode,
 	transformEmoticons,
 	transformVideos,
 	transformBracketImages
@@ -98,5 +100,83 @@ describe('transformCodeBlocks', () => {
 		expect(result).toBe(
 			'<p>설명:</p><pre><code class="language-bash">echo hi</code></pre><p>끝</p>'
 		);
+	});
+});
+
+describe('transformBacktickCodeBlocks', () => {
+	it('기본 ```lang 코드 블록 변환', () => {
+		const input = '```javascript\nconsole.log("hi");\n```';
+		expect(transformBacktickCodeBlocks(input)).toBe(
+			'<pre><code class="language-javascript">console.log("hi");</code></pre>'
+		);
+	});
+
+	it('언어 미지정 ``` 블록', () => {
+		const input = '```\nplain code\n```';
+		expect(transformBacktickCodeBlocks(input)).toBe(
+			'<pre><code>plain code</code></pre>'
+		);
+	});
+
+	it('<br>로 줄바꿈된 경우 (댓글 파이프라인)', () => {
+		const input = '```python<br>print("hello")<br>x = 1<br>```';
+		expect(transformBacktickCodeBlocks(input)).toBe(
+			'<pre><code class="language-python">print("hello")\nx = 1</code></pre>'
+		);
+	});
+
+	it('여러 줄 코드', () => {
+		const input = '```rust\nfn main() {\n    println!("hello");\n}\n```';
+		expect(transformBacktickCodeBlocks(input)).toBe(
+			'<pre><code class="language-rust">fn main() {\n    println!("hello");\n}</code></pre>'
+		);
+	});
+
+	it('```가 없으면 원본 반환', () => {
+		expect(transformBacktickCodeBlocks('일반 텍스트')).toBe('일반 텍스트');
+	});
+
+	it('빈/null 입력', () => {
+		expect(transformBacktickCodeBlocks('')).toBe('');
+		expect(transformBacktickCodeBlocks(null as unknown as string)).toBe(null);
+	});
+
+	it('주변 텍스트 보존', () => {
+		const input = '앞 텍스트 ```js\nalert(1)\n``` 뒤 텍스트';
+		expect(transformBacktickCodeBlocks(input)).toBe(
+			'앞 텍스트 <pre><code class="language-js">alert(1)</code></pre> 뒤 텍스트'
+		);
+	});
+});
+
+describe('transformInlineCode', () => {
+	it('기본 인라인 코드 변환', () => {
+		expect(transformInlineCode('use `const x = 1` here')).toBe(
+			'use <code>const x = 1</code> here'
+		);
+	});
+
+	it('여러 인라인 코드', () => {
+		expect(transformInlineCode('`a` and `b`')).toBe(
+			'<code>a</code> and <code>b</code>'
+		);
+	});
+
+	it('줄바꿈 포함 백틱은 변환하지 않음', () => {
+		const input = '`line1\nline2`';
+		expect(transformInlineCode(input)).toBe(input);
+	});
+
+	it('백틱이 없으면 원본 반환', () => {
+		expect(transformInlineCode('plain text')).toBe('plain text');
+	});
+
+	it('빈/null 입력', () => {
+		expect(transformInlineCode('')).toBe('');
+		expect(transformInlineCode(null as unknown as string)).toBe(null);
+	});
+
+	it('빈 백틱은 변환하지 않음', () => {
+		expect(transformInlineCode('``')).toBe('``');
 	});
 });
