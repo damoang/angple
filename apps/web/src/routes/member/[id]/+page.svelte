@@ -304,7 +304,7 @@
                             {#if p.mb_certify}
                                 <CheckCircle
                                     class="text-muted-foreground h-4 w-4 shrink-0"
-                                    title="본인확인 완료"
+                                    aria-label="본인확인 완료"
                                 />
                             {/if}
                         </div>
