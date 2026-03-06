@@ -355,13 +355,6 @@
                     {/if}
                 </div>
 
-                <!-- 축하 메시지 롤링 (인라인) -->
-                {#if !isSearching}
-                    <div class="min-w-0 flex-1">
-                        <CelebrationRolling />
-                    </div>
-                {/if}
-
                 {#if canWrite()}
                     <Button onclick={goToWrite} class="shrink-0">
                         <Pencil class="mr-2 h-4 w-4" />
@@ -379,6 +372,13 @@
                     </Button>
                 {/if}
             </div>
+
+            <!-- 축하 메시지 롤링 -->
+            {#if !isSearching}
+                <div class="mb-4">
+                    <CelebrationRolling />
+                </div>
+            {/if}
 
             <!-- 검색 폼 -->
             <div class="mb-3">
