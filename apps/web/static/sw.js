@@ -24,13 +24,6 @@ self.addEventListener('install', (event) => {
     );
 });
 
-// 클라이언트에서 SKIP_WAITING 메시지 수신 시 대기 중인 SW 즉시 활성화
-self.addEventListener('message', (event) => {
-    if (event.data?.type === 'SKIP_WAITING') {
-        self.skipWaiting();
-    }
-});
-
 // 활성화: 모든 이전 캐시 정리 + 즉시 제어권 획득
 self.addEventListener('activate', (event) => {
     event.waitUntil(

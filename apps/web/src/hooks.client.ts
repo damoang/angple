@@ -35,30 +35,28 @@ function isChunkLoadError(error: unknown): boolean {
  */
 const RELOAD_KEY = '__angple_chunk_reload_count__';
 
-async function clearCachesAndReload(): Promise<void> {
-    // 1. 대기 중인 새 SW가 있으면 즉시 활성화 요청
-    if (navigator.serviceWorker?.controller) {
-        navigator.serviceWorker.controller.postMessage({ type: 'SKIP_WAITING' });
-    }
-
-    // 2. SW 해제 (모든 unregister Promise를 await)
+function clearCachesAndReload(): void {
+    // SW 해제 + Cache Storage 전체 삭제 후 캐시 무시 리로드
+    const tasks: Promise<void>[] = [];
     if (navigator.serviceWorker) {
-        const regs = await navigator.serviceWorker.getRegistrations();
-        await Promise.all(regs.map((r) => r.unregister()));
+        tasks.push(
+            navigator.serviceWorker.getRegistrations().then((regs) => {
+                regs.forEach((r) => r.unregister());
+            })
+        );
     }
-
-    // 3. Cache Storage 전체 삭제 (모든 delete Promise를 await)
     if (window.caches) {
-        const names = await caches.keys();
-        await Promise.all(names.map((name) => caches.delete(name)));
+        tasks.push(
+            caches.keys().then((names) => {
+                names.forEach((name) => caches.delete(name));
+            })
+        );
     }
-
-    // 4. SW 해제 반영 대기 후 cache-busting 리로드
-    //    unregister 후에도 현재 페이지 세션에서는 SW가 활성 상태일 수 있으므로
-    //    짧은 대기로 브라우저가 SW 상태를 갱신할 시간 확보
-    await new Promise((r) => setTimeout(r, 100));
-    const url = location.href.split('?')[0];
-    location.replace(url + '?_v=' + Date.now());
+    Promise.all(tasks).finally(() => {
+        // cache-busting query로 브라우저 캐시 우회
+        const url = location.href.split('?')[0];
+        location.replace(url + '?_v=' + Date.now());
+    });
 }
 
 function tryChunkReload(): void {
