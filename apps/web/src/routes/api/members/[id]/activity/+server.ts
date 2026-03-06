@@ -136,8 +136,13 @@ export const GET: RequestHandler = async ({ params, url }) => {
                     '&gt;': '>',
                     '&amp;': '&'
                 };
-                const preview = w.wr_content
-                    .replace(/<[^>]*>/g, '') // HTML 태그 제거
+                let contentStripped = w.wr_content;
+                let prevContent;
+                do {
+                    prevContent = contentStripped;
+                    contentStripped = contentStripped.replace(/<[^>]*>/g, '');
+                } while (contentStripped !== prevContent);
+                const preview = contentStripped
                     .replace(/\{emo:[^}]+\}/g, '') // 이모지 코드 {emo:xxx} 제거
                     .replace(/&(?:nbsp|lt|gt|amp);/g, (m) => entityMap[m])
                     .replace(/\s+/g, ' ') // 연속 공백 정리
