@@ -50,11 +50,13 @@
 
     // Board Layout System
     import { layoutRegistry, initCoreLayouts } from '$lib/components/features/board/layouts';
-    import registerGivingLayouts from '../../../../../plugins/giving/hooks/register-layouts.js';
-
     // 코어 레이아웃 초기화 (최초 1회)
     initCoreLayouts();
-    registerGivingLayouts();
+    import('../../../../../plugins/giving/hooks/register-layouts.js')
+        .then((m) => m.default())
+        .catch(() => {
+            /* giving 플러그인 미설치 시 무시 */
+        });
 
     let { data }: { data: PageData } = $props();
 

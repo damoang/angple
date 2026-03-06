@@ -57,7 +57,6 @@
         initCoreLayouts
     } from '$lib/components/features/board/layouts/index.js';
     import ScrapButton from '$lib/components/post/scrap-button.svelte';
-    import registerGivingLayouts from '../../../../../../plugins/giving/hooks/register-layouts.js';
 
     // Q&A 게시판 슬롯 등록
     postSlotRegistry.register('post.before_content', {
@@ -96,7 +95,11 @@
 
     // 코어 레이아웃 초기화
     initCoreLayouts();
-    registerGivingLayouts();
+    import('../../../../../../plugins/giving/hooks/register-layouts.js')
+        .then((m) => m.default())
+        .catch(() => {
+            /* giving 플러그인 미설치 시 무시 */
+        });
 
     // 뷰 레이아웃 동적 resolve
     const viewLayoutId = $derived(data.board?.display_settings?.view_layout || 'basic');
