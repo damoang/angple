@@ -45,6 +45,7 @@
     import { getComponentsForSlot } from '$lib/components/slot-manager';
     import AdSlot from '$lib/components/ui/ad-slot/ad-slot.svelte';
     import { widgetLayoutStore } from '$lib/stores/widget-layout.svelte';
+    import { boardFavoritesStore, slotLabel } from '$lib/stores/board-favorites.svelte';
 
     // Icon mapping object
     const iconMap: Record<string, typeof Circle> = {
@@ -172,6 +173,78 @@
             축하메시지
         </a>
     </div>
+
+    <!-- 즐겨찾기 단축키 메뉴 (2열 그리드) -->
+    {#if boardFavoritesStore.normalSlots.length > 0 || boardFavoritesStore.shiftSlots.length > 0}
+        <div class="px-2">
+            <div class="text-muted-foreground mb-1.5 text-xs font-semibold">즐겨찾기</div>
+            <!-- 일반 슬롯 (1-0): 2열 -->
+            <div class="grid grid-cols-2 gap-0.5">
+                {#each boardFavoritesStore.normalSlots as { slot, entry } (slot)}
+                    {@const active = isActive(`/${entry.boardId}`)}
+                    <a
+                        href="/{entry.boardId}"
+                        class={cn(
+                            'flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs transition-colors',
+                            active
+                                ? 'bg-primary text-primary-foreground'
+                                : 'hover:bg-accent text-muted-foreground'
+                        )}
+                    >
+                        <kbd
+                            class={cn(
+                                'inline-flex h-4 min-w-4 shrink-0 items-center justify-center rounded border px-0.5 font-mono text-[9px] font-medium',
+                                active
+                                    ? 'border-primary-foreground/30 bg-primary-foreground/20 text-primary-foreground'
+                                    : 'bg-primary text-primary-foreground'
+                            )}>{slotLabel(slot)}</kbd
+                        >
+                        <span class="truncate">{entry.title}</span>
+                    </a>
+                {/each}
+            </div>
+            <!-- Shift 슬롯 (S+1 ~ S+0): 접기/펼치기 -->
+            {#if boardFavoritesStore.shiftSlots.length > 0}
+                {@const hasShiftActive = boardFavoritesStore.shiftSlots.some(({ entry }) =>
+                    isActive(`/${entry.boardId}`)
+                )}
+                <details class="mt-1" open={hasShiftActive || undefined}>
+                    <summary
+                        class="text-muted-foreground hover:text-foreground flex cursor-pointer select-none items-center gap-1 px-2 py-1 text-[10px] transition-colors"
+                    >
+                        <ChevronRight
+                            class="h-3 w-3 transition-transform duration-200 [[open]_&]:rotate-90"
+                        />
+                        추가 단축키 ({boardFavoritesStore.shiftSlots.length})
+                    </summary>
+                    <div class="mt-0.5 grid grid-cols-2 gap-0.5">
+                        {#each boardFavoritesStore.shiftSlots as { slot, entry } (slot)}
+                            {@const active = isActive(`/${entry.boardId}`)}
+                            <a
+                                href="/{entry.boardId}"
+                                class={cn(
+                                    'flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs transition-colors',
+                                    active
+                                        ? 'bg-primary text-primary-foreground'
+                                        : 'hover:bg-accent text-muted-foreground'
+                                )}
+                            >
+                                <kbd
+                                    class={cn(
+                                        'inline-flex h-4 min-w-4 shrink-0 items-center justify-center rounded border px-0.5 font-mono text-[9px] font-medium',
+                                        active
+                                            ? 'border-primary-foreground/30 bg-primary-foreground/20 text-primary-foreground'
+                                            : 'bg-primary text-primary-foreground'
+                                    )}>{slotLabel(slot)}</kbd
+                                >
+                                <span class="truncate">{entry.title}</span>
+                            </a>
+                        {/each}
+                    </div>
+                </details>
+            {/if}
+        </div>
+    {/if}
 
     <nav
         class="grid gap-1 px-2 group-[[data-collapsed=true]]:justify-center group-[[data-collapsed=true]]:px-2"
