@@ -3,6 +3,7 @@
     import { Textarea } from '$lib/components/ui/textarea/index.js';
     import { Checkbox } from '$lib/components/ui/checkbox/index.js';
     import { authStore } from '$lib/stores/auth.svelte.js';
+    import { getAvatarUrl, getMemberIconUrl } from '$lib/utils/member-icon.js';
     import type { BoardPermissions } from '$lib/api/types.js';
     import { apiClient } from '$lib/api/index.js';
     import Send from '@lucide/svelte/icons/send';
@@ -64,6 +65,15 @@
 
     // 권한 부족 시 표시할 메시지
     const permissionMessage = $derived(`레벨 ${requiredCommentLevel} 이상 작성 가능`);
+
+    let commentAvatarUrl = $derived(
+        getAvatarUrl(authStore.user?.mb_image) || getMemberIconUrl(authStore.user?.mb_id) || null
+    );
+    let commentAvatarFailed = $state(false);
+
+    $effect(() => {
+        if (authStore.user) commentAvatarFailed = false;
+    });
 
     let content = $state('');
     let isSecret = $state(false);
@@ -233,9 +243,18 @@
         <div class="flex items-start gap-3">
             <!-- 사용자 아바타 -->
             <div
-                class="bg-primary text-primary-foreground flex size-10 shrink-0 items-center justify-center rounded-full"
+                class="flex size-10 shrink-0 items-center justify-center rounded-full {commentAvatarUrl && !commentAvatarFailed ? 'overflow-hidden' : 'bg-primary text-primary-foreground'}"
             >
-                {authStore.user?.mb_name.charAt(0).toUpperCase() || 'U'}
+                {#if commentAvatarUrl && !commentAvatarFailed}
+                    <img
+                        src={commentAvatarUrl}
+                        alt={authStore.user?.mb_name || ''}
+                        class="h-full w-full object-cover"
+                        onerror={() => { commentAvatarFailed = true; }}
+                    />
+                {:else}
+                    {authStore.user?.mb_name.charAt(0).toUpperCase() || 'U'}
+                {/if}
             </div>
 
             <div class="relative flex-1 space-y-2">
