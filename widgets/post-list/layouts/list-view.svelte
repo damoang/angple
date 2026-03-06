@@ -3,6 +3,8 @@
      * 목록형 레이아웃
      */
     import { Card, CardHeader, CardContent } from '$lib/components/ui/card';
+    import { readPostsStore } from '$lib/stores/read-posts.svelte.js';
+    import { browser } from '$app/environment';
 
     interface Post {
         id: number;
@@ -51,7 +53,12 @@
                             href={post.url ?? `#`}
                             class="hover:text-primary flex items-center justify-between gap-2 text-sm transition-colors"
                         >
-                            <span class="min-w-0 flex-1 truncate">{post.title}</span>
+                            <span
+                                class="min-w-0 flex-1 truncate {browser &&
+                                readPostsStore.isRead(boardId, post.id)
+                                    ? 'text-muted-foreground'
+                                    : ''}">{post.title}</span
+                            >
                             <span
                                 class="text-muted-foreground flex shrink-0 items-center gap-2 text-xs"
                             >
