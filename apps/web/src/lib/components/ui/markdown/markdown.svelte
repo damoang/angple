@@ -1,10 +1,11 @@
 <script lang="ts">
     import { marked } from 'marked';
     import DOMPurify from 'isomorphic-dompurify';
-    import { onMount } from 'svelte';
+    import { onMount, tick } from 'svelte';
     import { applyFilter } from '$lib/hooks/registry';
     import { getHookVersion } from '$lib/hooks/hook-state.svelte';
     import { browser } from '$app/environment';
+    import { highlightAllCodeBlocks } from '$lib/utils/code-highlight';
 
     interface Props {
         content: string;
@@ -180,6 +181,7 @@
 
     // 초기 렌더링 (SSR + 클라이언트 초기값)
     let renderedHtml = $state(getInitialHtml(content));
+    let proseEl: HTMLDivElement;
 
     onMount(() => {
         // Twitter iframe postMessage resize 수신
@@ -226,9 +228,21 @@
             });
         }
     });
+
+    // 코드 블록 구문 하이라이팅 (렌더링 완료 후 적용)
+    $effect(() => {
+        // renderedHtml 변경 감지
+        void renderedHtml;
+        if (browser && proseEl) {
+            tick().then(() => highlightAllCodeBlocks(proseEl));
+        }
+    });
 </script>
 
-<div class="prose prose-neutral dark:prose-invert max-w-none text-lg {className}">
+<div
+    bind:this={proseEl}
+    class="prose prose-neutral dark:prose-invert max-w-none text-lg {className}"
+>
     <!-- eslint-disable-next-line svelte/no-at-html-tags -->
     {@html renderedHtml}
 </div>
@@ -355,6 +369,18 @@
         border: 1px solid var(--border);
         padding: 0.5rem;
         text-align: left;
+    }
+
+    /* 줄번호 테이블은 일반 테이블 스타일 제외 */
+    .prose :global(.hljs-ln) {
+        display: table;
+        border-collapse: collapse;
+        margin: 0;
+    }
+
+    .prose :global(.hljs-ln td) {
+        border: none;
+        padding: 0;
     }
 
     .prose :global(th) {

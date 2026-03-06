@@ -3,7 +3,7 @@
  * 나리야(PHP) 호환 동영상 삽입 문법을 HTML 플레이어로 변환
  */
 import { registerHook } from '../registry';
-import { transformVideos } from '$lib/utils/content-transform';
+import { transformVideos, transformCodeBlocks } from '$lib/utils/content-transform';
 
 /**
  * 동영상 패턴 변환 필터 초기화
@@ -14,6 +14,15 @@ export function initContentVideo(): void {
         'post_content',
         (html: unknown) => transformVideos(html as string),
         5, // auto-embed(10)보다 먼저 실행
+        'core',
+        'filter'
+    );
+
+    // [code]...[/code] BBCode → <pre><code>
+    registerHook(
+        'post_content',
+        (html: unknown) => transformCodeBlocks(html as string),
+        3, // 동영상(5), auto-embed(10)보다 먼저 실행
         'core',
         'filter'
     );
