@@ -224,7 +224,7 @@
 <svelte:window onkeydown={keyboardShortcuts.handleKeydown} />
 
 <svelte:head>
-    <title>{import.meta.env.VITE_SITE_NAME || '다모앙'}</title>
+    <title>{import.meta.env.VITE_SITE_NAME || '다모앙'} - 종합 커뮤니티</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="icon" href={favicon} />
 </svelte:head>
