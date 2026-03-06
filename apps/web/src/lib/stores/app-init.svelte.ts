@@ -1,8 +1,11 @@
 /**
  * 앱 초기화 스토어
  *
- * /api/init 엔드포인트를 1회 호출하여 celebration + banners 데이터를 메모리 캐시.
+ * SSR에서 celebration + banners 데이터를 받아 메모리 캐시.
  * SPA 내비게이션 간 5분 TTL로 재사용하여 중복 API 호출 방지.
+ *
+ * SSR 데이터가 있으면 /api/init fetch 없이 즉시 초기화.
+ * SSR 실패 시 fallback으로 클라이언트 fetch.
  */
 import { browser } from '$app/environment';
 import type { CelebrationBanner } from './celebration.svelte';
@@ -41,7 +44,18 @@ async function fetchInit(positions: string[]): Promise<InitData | null> {
 }
 
 /**
+ * SSR 데이터로 캐시 초기화 (fetch 없이)
+ * +layout.svelte에서 SSR data.celebration, data.banners 주입
+ */
+export function initFromSSR(data: InitData): void {
+    if (isCacheValid()) return; // 이미 유효한 캐시가 있으면 무시
+    cachedData = data;
+    cacheTimestamp = Date.now();
+}
+
+/**
  * 초기화 데이터 가져오기 (캐시 우선, 만료 시 fetch)
+ * SSR initFromSSR()로 이미 캐시가 있으면 fetch 스킵
  */
 export async function getInitData(positions: string[] = []): Promise<InitData | null> {
     if (isCacheValid()) return cachedData;
