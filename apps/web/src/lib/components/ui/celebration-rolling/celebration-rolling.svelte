@@ -1,6 +1,11 @@
 <script lang="ts">
     import { onMount } from 'svelte';
-    import { browser } from '$app/environment';
+    import {
+        mount,
+        getCelebrations,
+        getCurrentIndex,
+        getLink
+    } from '$lib/stores/celebration.svelte';
 
     interface Props {
         class?: string;
@@ -8,75 +13,23 @@
 
     let { class: className = '' }: Props = $props();
 
-    interface CelebrationBanner {
-        id: number;
-        title: string;
-        content: string;
-        image_url: string;
-        link_url: string;
-        target_member_nick?: string;
-        target_member_photo?: string;
-        external_link?: string;
-        link_target?: string;
-        display_type?: 'image' | 'text';
-    }
-
-    let celebrations = $state<CelebrationBanner[]>([]);
-    let currentIndex = $state(0);
+    let celebrations = $derived(getCelebrations());
+    let currentIndex = $derived(getCurrentIndex());
 
     onMount(() => {
-        fetchCelebrations();
+        return mount();
     });
 
-    // 4초 간격 롤링 (2개 이상일 때만)
-    $effect(() => {
-        if (celebrations.length <= 1) return;
-
-        currentIndex = 0;
-
-        const intervalId = setInterval(() => {
-            currentIndex = (currentIndex + 1) % celebrations.length;
-        }, 4000);
-
-        return () => clearInterval(intervalId);
-    });
-
-    async function fetchCelebrations(): Promise<void> {
-        if (!browser) return;
-
-        try {
-            const response = await fetch('/api/ads/celebration/today', {
-                method: 'GET',
-                headers: { Accept: 'application/json' }
-            });
-
-            if (!response.ok) return;
-
-            const result = await response.json();
-
-            if (result.data?.length > 0) {
-                celebrations = result.data;
-            }
-        } catch (error) {
-            console.warn('CelebrationRolling: 축하메시지 로드 실패', error);
-        }
-    }
-
-    function getDisplayText(banner: CelebrationBanner): string {
+    function getDisplayText(banner: { target_member_nick?: string }): string {
         const nick = banner.target_member_nick || '';
         if (nick) return nick;
         return '축하합니다!';
-    }
-
-    // 배너 링크: API가 link_url에 올바른 경로를 반환 (/message/{wr_id} 등)
-    function toLocalHref(banner: CelebrationBanner): string {
-        return banner.link_url || `/message/${banner.id}`;
     }
 </script>
 
 {#if celebrations.length > 0}
     <a
-        href={toLocalHref(celebrations[currentIndex])}
+        href={getLink(celebrations[currentIndex])}
         class="border-border bg-background hover:bg-accent flex h-9 items-center gap-2 overflow-hidden rounded-lg border px-3 transition-colors {className}"
     >
         {#if celebrations[currentIndex]?.target_member_photo}

@@ -1,7 +1,7 @@
 import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types.js';
 import type { FreePost } from '$lib/api/types.js';
-import { fetchPromotionPosts } from '$lib/server/ads/promotion.js';
+import { fetchPromotionPosts, fetchPromotionBoardPosts } from '$lib/server/ads/promotion.js';
 import { transformAffiliateContent } from '$lib/hooks/builtin/affiliate.js';
 import { isScraped } from '$lib/server/scrap.js';
 import { backendFetch as bFetch, createAuthHeaders } from '$lib/server/backend-fetch.js';
@@ -125,6 +125,22 @@ export const load: PageServerLoad = async ({ params, fetch: svelteKitFetch, loca
             ? await isScraped(locals.user.id, boardId, postId).catch(() => false)
             : false;
 
+        // 직접홍보 게시판: 활성 목록에 없는 글은 만료 처리
+        let promotionExpired = false;
+        if (boardId === 'promotion') {
+            try {
+                const promoBoard = await fetchPromotionBoardPosts();
+                if (promoBoard.success && promoBoard.data.length > 0) {
+                    const activeIds = new Set(promoBoard.data.map((p) => p.wr_id));
+                    if (!activeIds.has(Number(postId))) {
+                        promotionExpired = true;
+                    }
+                }
+            } catch {
+                // ads 서버 실패 시 만료 처리하지 않음 (안전하게)
+            }
+        }
+
         // --- 2단계: 보조 데이터 스트리밍 (await 안 함 → 스켈레톤 먼저 표시) ---
         const secondaryDataPromise = (async () => {
             const [commentsResult, promotionResult, revisionsResult] = await Promise.allSettled([
@@ -215,6 +231,7 @@ export const load: PageServerLoad = async ({ params, fetch: svelteKitFetch, loca
             post,
             board,
             isScrapped,
+            promotionExpired,
             /** 스트리밍: Promise로 반환 → 클라이언트에서 $effect로 수신 */
             streamed: {
                 secondaryData: secondaryDataPromise

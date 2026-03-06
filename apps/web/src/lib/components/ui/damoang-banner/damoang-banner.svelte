@@ -4,6 +4,13 @@
     import AdSlot from '$lib/components/ui/ad-slot/ad-slot.svelte';
     import { aplogTrack } from '$lib/services/aplog';
     import { authStore } from '$lib/stores/auth.svelte';
+    import {
+        mount as celebrationMount,
+        getCelebrations,
+        getCurrentIndex,
+        getLink as getCelebrationLink,
+        type CelebrationBanner
+    } from '$lib/stores/celebration.svelte';
 
     interface Props {
         position: 'index' | 'board-list' | 'board-view' | 'sidebar';
@@ -21,22 +28,8 @@
         class: className = ''
     }: Props = $props();
 
-    // API 엔드포인트
-    // 축하메시지 API는 SvelteKit에서 처리 (상대 경로 사용)
-    const DAMOANG_API_BASE = '';
     // 트래킹은 브라우저→외부 직접 (sendBeacon은 Cloudflare 통과)
     const ADS_TRACKING_BASE = 'https://ads.damoang.net';
-
-    // 축하메시지 배너 타입
-    interface CelebrationBanner {
-        id: number;
-        image_url: string;
-        link_url: string;
-        external_link?: string;
-        alt_text?: string;
-        target?: string;
-        display_type?: 'image' | 'text';
-    }
 
     // 다모앙 광고 배너 타입
     interface AdsBanner {
@@ -48,11 +41,24 @@
         trackingId?: string;
     }
 
+    // 공유 스토어에서 축하메시지 가져오기
+    let storeCelebrations = $derived(getCelebrations());
+    let storeIndex = $derived(getCurrentIndex());
+    // 이미지 타입만 필터링
+    let imageCelebrations = $derived(
+        storeCelebrations.filter((b) => !b.display_type || b.display_type === 'image')
+    );
+
     // 최종 선택된 배너 (축하메시지 or 프리미엄 광고)
-    let celebrationBanner = $state<CelebrationBanner | null>(null);
     let adsBanner = $state<AdsBanner | null>(null);
     let loading = $state(true);
     let useFallback = $state(false);
+
+    let celebrationBanner = $derived.by<CelebrationBanner | null>(() => {
+        if (!showCelebration || useFallback || adsBanner) return null;
+        if (imageCelebrations.length === 0) return null;
+        return imageCelebrations[storeIndex % imageCelebrations.length] ?? null;
+    });
 
     // position → 다모앙 광고 서버 position 매핑
     // index → index-top (메인 페이지용, 현재 배너 0개 → GAM 폴백)
@@ -77,44 +83,34 @@
     const gamPosition = $derived(gamPositionProp || GAM_POSITION_MAP[position] || 'board-head');
 
     onMount(() => {
+        // 축하메시지: 공유 스토어에서 관리 (CelebrationRolling과 싱크)
+        let cleanupCelebration: (() => void) | undefined;
+        if (showCelebration) {
+            cleanupCelebration = celebrationMount();
+        }
+
         fetchBanners();
+
+        return () => {
+            cleanupCelebration?.();
+        };
     });
 
     async function fetchBanners() {
         if (!browser) return;
 
         if (showCelebration) {
-            // 메인 페이지: 축하메시지 + 프리미엄 배너를 동시 fetch → 풀에서 랜덤 1개
-            const [celebrations, adsBanners] = await Promise.all([
-                fetchCelebrationBanners(),
-                fetchAdsBanners()
-            ]);
-
-            // 슬롯 풀 구성:
-            // - 축하메시지 N개 → 슬롯 1개 (내부 랜덤)
-            // - 프리미엄 배너 각각 슬롯 1개씩
-            type Slot =
-                | { type: 'celebration'; data: CelebrationBanner }
-                | { type: 'ads'; data: AdsBanner };
-            const pool: Slot[] = [];
-
-            if (celebrations.length > 0) {
-                const picked = celebrations[Math.floor(Math.random() * celebrations.length)];
-                pool.push({ type: 'celebration', data: picked });
+            // 축하메시지는 공유 스토어에서 관리 → 광고만 fetch
+            const ads = await fetchAdsBanners();
+            if (ads.length > 0) {
+                adsBanner = ads[Math.floor(Math.random() * ads.length)];
             }
-            for (const banner of adsBanners) {
-                pool.push({ type: 'ads', data: banner });
-            }
-
-            if (pool.length > 0) {
-                const selected = pool[Math.floor(Math.random() * pool.length)];
-                if (selected.type === 'celebration') {
-                    celebrationBanner = selected.data;
-                } else {
-                    adsBanner = selected.data;
-                }
-                loading = false;
-                return;
+            // celebrationBanner는 $derived로 스토어에서 자동 반영
+            loading = false;
+            // 축하메시지도 광고도 없으면 GAM 폴백 (스토어 로드 대기)
+            await new Promise((r) => setTimeout(r, 500));
+            if (!adsBanner && imageCelebrations.length === 0) {
+                useFallback = true;
             }
         } else {
             // 게시판 페이지: 프리미엄 + 일반 배너만 (축하메시지 없음)
@@ -124,34 +120,8 @@
                 loading = false;
                 return;
             }
-        }
-
-        // 모두 없음 → GAM 폴백
-        useFallback = true;
-        loading = false;
-    }
-
-    async function fetchCelebrationBanners(): Promise<CelebrationBanner[]> {
-        try {
-            const response = await fetch(`${DAMOANG_API_BASE}/api/ads/celebration/today`, {
-                method: 'GET',
-                headers: { Accept: 'application/json' }
-            });
-
-            if (!response.ok) return [];
-
-            const result = await response.json();
-
-            if (result.success && result.data?.length > 0) {
-                // display_type === 'image'인 것만 필터링 (text 타입은 CelebrationRolling에서 처리)
-                return result.data.filter(
-                    (b: CelebrationBanner) => !b.display_type || b.display_type === 'image'
-                );
-            }
-            return [];
-        } catch (error) {
-            console.warn('DamoangBanner: 축하메시지 로드 실패', error);
-            return [];
+            useFallback = true;
+            loading = false;
         }
     }
 
@@ -200,9 +170,9 @@
         return raw;
     }
 
-    // 축하메시지 배너 링크: API가 link_url에 올바른 경로를 반환 (/message/{wr_id} 등)
+    // 축하메시지 배너 링크: 공유 스토어의 getLink 사용
     function getCelebrationHref(banner: CelebrationBanner): string {
-        return banner.link_url || `/message/${banner.id}`;
+        return getCelebrationLink(banner);
     }
 </script>
 

@@ -65,6 +65,7 @@ export interface ViewLayoutProps {
     isAuthor: boolean;
     isAdmin: boolean;
     canViewSecret: boolean;
+    promotionExpired?: boolean;
 
     // 추천/비추천 상태
     likeCount: number;

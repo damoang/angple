@@ -77,6 +77,11 @@ export function setCurrentIndex(index: number): void {
     currentIndex = index;
 }
 
+/** 배너 링크: external_link 우선 → link_url → /message/{id} */
+export function getLink(banner: CelebrationBanner): string {
+    return banner.external_link || banner.link_url || `/message/${banner.id}`;
+}
+
 /** 컴포넌트 마운트 시 호출. fetch + rotation 시작. cleanup 함수 반환 */
 export function mount(): () => void {
     refCount++;

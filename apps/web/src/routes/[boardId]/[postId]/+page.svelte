@@ -411,8 +411,13 @@
     // 관리자 여부 (레벨 10 이상)
     const isAdmin = $derived((authStore.user?.mb_level ?? 0) >= 10);
 
-    // 비밀글 접근 권한 (작성자 또는 관리자만 열람 가능)
-    const canViewSecret = $derived(!data.post.is_secret || isAuthor || isAdmin);
+    // 직접홍보 게시판 만료 여부
+    const promotionExpired = $derived(data.promotionExpired === true && !isAuthor && !isAdmin);
+
+    // 비밀글 접근 권한 (작성자 또는 관리자만 열람 가능, 홍보 만료 글도 차단)
+    const canViewSecret = $derived(
+        (!data.post.is_secret || isAuthor || isAdmin) && !promotionExpired
+    );
 
     // 공지 상태
     let noticeType = $state<'normal' | 'important' | null>(null);
@@ -913,6 +918,7 @@
                 {isAuthor}
                 {isAdmin}
                 {canViewSecret}
+                {promotionExpired}
                 {likeCount}
                 {dislikeCount}
                 {isLiked}

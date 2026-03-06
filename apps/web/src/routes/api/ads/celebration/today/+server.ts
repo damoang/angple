@@ -78,10 +78,10 @@ export const GET: RequestHandler = async ({ url }) => {
             );
 
             for (const row of rows as RowDataPacket[]) {
-                // link_url 결정: source_wr_id → /message/{wr_id}, 없으면 external_url, 최후 link_url
-                const linkUrl = row.source_wr_id
-                    ? `/message/${row.source_wr_id}`
-                    : row.external_url || row.link_url || '';
+                // link_url 결정: external_url 우선 → source_wr_id → link_url
+                const linkUrl =
+                    row.external_url ||
+                    (row.source_wr_id ? `/message/${row.source_wr_id}` : row.link_url || '');
 
                 banners.push({
                     id: row.source_wr_id || row.id,
@@ -109,7 +109,7 @@ export const GET: RequestHandler = async ({ url }) => {
         if (banners.length === 0) {
             const legacyDateFilter = isRecent
                 ? ''
-                : "AND DATE(CONVERT_TZ(wm.wr_datetime, '+00:00', '+09:00')) = DATE(CONVERT_TZ(NOW(), '+00:00', '+09:00'))";
+                : "AND (wm.wr_subject = DATE_FORMAT(CONVERT_TZ(NOW(),'+00:00','+09:00'),'%Y.%m.%d') OR wm.wr_subject = DATE_FORMAT(CONVERT_TZ(NOW(),'+00:00','+09:00'),'%Y-%m-%d'))";
             const [rows] = await pool.execute<RowDataPacket[]>(
                 `SELECT wm.wr_id, wm.wr_subject, wm.wr_content, wm.wr_link2, wm.mb_id,
                         m.mb_nick, m.mb_image_url
@@ -128,7 +128,7 @@ export const GET: RequestHandler = async ({ url }) => {
                         title: row.wr_subject,
                         content: row.wr_content,
                         image_url: imageUrl,
-                        link_url: `/message/${row.wr_id}`,
+                        link_url: row.wr_link2 || `/message/${row.wr_id}`,
                         display_date: row.wr_subject,
                         is_active: true,
                         target_member_id: row.mb_id || undefined,
