@@ -6,7 +6,8 @@ import { registerHook } from '../registry';
 import {
     transformEmoticons,
     transformBracketImages,
-    transformVideos
+    transformVideos,
+    transformCodeBlocks
 } from '$lib/utils/content-transform';
 import { processContent } from '$lib/plugins/auto-embed';
 
@@ -29,6 +30,15 @@ export function initCommentContent(): void {
         'comment_content',
         (html: unknown) => transformBracketImages(html as string),
         2,
+        'core',
+        'filter'
+    );
+
+    // [code]...[/code] BBCode → <pre><code>
+    registerHook(
+        'comment_content',
+        (html: unknown) => transformCodeBlocks(html as string),
+        3,
         'core',
         'filter'
     );

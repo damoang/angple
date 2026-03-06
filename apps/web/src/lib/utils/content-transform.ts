@@ -6,6 +6,7 @@
 
 const EMOTICON_PATTERN = /\{(이모티콘|emo):([^}]*)\}/gi;
 const VIDEO_PATTERN = /\{(동영상|video)\s*:\s*([\s\S]*?)\}/gi;
+const CODE_BLOCK_PATTERN = /\[code(?:=([a-zA-Z0-9_+-]+))?\]([\s\S]*?)\[\/code\]/gi;
 const MAX_WIDTH = 200;
 const DEFAULT_WIDTH = 50;
 const ALLOWED_EXTENSIONS = ['.gif', '.png', '.jpg', '.jpeg', '.webp'];
@@ -109,5 +110,24 @@ export function transformVideos(html: string): string {
 
         // 기타: 링크로 표시
         return `<a href="${url}" target="_blank" rel="noopener">${url}</a>`;
+    });
+}
+
+/**
+ * [code]...[/code] 또는 [code=lang]...[/code] BBCode를 <pre><code>로 변환
+ * 그누보드/나리야 레거시 호환
+ */
+export function transformCodeBlocks(html: string): string {
+    if (!html || !html.toLowerCase().includes('[code')) return html;
+
+    return html.replace(CODE_BLOCK_PATTERN, (_match, lang: string | undefined, code: string) => {
+        // HTML 태그 제거 (에디터가 삽입한 <br>, <p> 등)
+        const cleaned = code.replace(/<br\s*\/?>/gi, '\n').replace(/<\/?p>/gi, '\n').replace(/<[^>]*>/g, '');
+
+        // 앞뒤 빈 줄 제거
+        const trimmed = cleaned.replace(/^\n+|\n+$/g, '');
+
+        const langAttr = lang ? ` class="language-${lang}"` : '';
+        return `<pre><code${langAttr}>${trimmed}</code></pre>`;
     });
 }
