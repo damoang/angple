@@ -130,7 +130,17 @@
     <div class="container mx-auto flex h-12 items-center justify-between md:h-16">
         <!-- 로고 -->
         <div class="flex items-center">
-            <a href="/" data-sveltekit-reload class="flex items-center ps-4 md:ps-0">
+            <a
+                href="/"
+                data-sveltekit-reload
+                class="flex items-center ps-4 md:ps-0"
+                onclick={(e: MouseEvent) => {
+                    if (window.location.pathname === '/') {
+                        e.preventDefault();
+                        window.location.reload();
+                    }
+                }}
+            >
                 <img src={Logo} alt="damoang" class="h-12" />
             </a>
         </div>
@@ -141,6 +151,12 @@
                 href="/"
                 data-sveltekit-reload
                 class="text-foreground hover:text-primary flex items-center transition-all duration-200 ease-out"
+                onclick={(e: MouseEvent) => {
+                    if (window.location.pathname === '/') {
+                        e.preventDefault();
+                        window.location.reload();
+                    }
+                }}
             >
                 <Home class="mr-2 h-5 w-5" />
                 홈
