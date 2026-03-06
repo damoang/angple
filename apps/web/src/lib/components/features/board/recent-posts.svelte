@@ -147,7 +147,11 @@
 </script>
 
 <!-- 헤더 -->
-<div bind:this={listContainer} class="mb-3 flex items-center justify-between">
+<div
+    bind:this={listContainer}
+    class="mb-3 flex items-center justify-between"
+    style="scroll-margin-top: 1rem"
+>
     <a
         href="/{boardId}"
         class="text-foreground hover:text-primary text-lg font-bold transition-colors"
