@@ -9,6 +9,92 @@ pre code.hljs {
     overflow-x: auto;
 }
 
+/* 코드 블록 컨테이너 (복사 버튼 위치 기준) */
+pre:has(code.hljs) {
+    position: relative;
+}
+
+/* 줄번호 테이블 */
+.hljs-ln {
+    border-collapse: collapse;
+    width: 100%;
+}
+
+.hljs-ln td {
+    padding: 0;
+}
+
+.hljs-ln-num {
+    width: 2.5em;
+    text-align: right;
+    padding-right: 1em !important;
+    user-select: none;
+    color: #9ca3af;
+    vertical-align: top;
+}
+
+.hljs-ln-num::before {
+    content: attr(data-line-number);
+}
+
+.hljs-ln-code {
+    padding-left: 0.75em !important;
+}
+
+.dark .hljs-ln-num,
+.amoled .hljs-ln-num {
+    color: #6b7280;
+}
+
+/* 복사 버튼 */
+.hljs-copy-btn {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+    line-height: 1;
+    border-radius: 0.25rem;
+    border: 1px solid #d1d5db;
+    background: rgba(255, 255, 255, 0.8);
+    color: #374151;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.15s;
+    z-index: 1;
+}
+
+pre:hover .hljs-copy-btn {
+    opacity: 1;
+}
+
+.hljs-copy-btn:hover {
+    background: rgba(255, 255, 255, 0.95);
+}
+
+.hljs-copy-btn.copied {
+    border-color: #22c55e;
+    color: #16a34a;
+}
+
+.dark .hljs-copy-btn,
+.amoled .hljs-copy-btn {
+    border-color: #4b5563;
+    background: rgba(31, 41, 55, 0.8);
+    color: #d1d5db;
+}
+
+.dark .hljs-copy-btn:hover,
+.amoled .hljs-copy-btn:hover {
+    background: rgba(31, 41, 55, 0.95);
+}
+
+.dark .hljs-copy-btn.copied,
+.amoled .hljs-copy-btn.copied {
+    border-color: #22c55e;
+    color: #4ade80;
+}
+
 /* 라이트 모드 (GitHub Light) */
 .hljs {
     color: #24292e;

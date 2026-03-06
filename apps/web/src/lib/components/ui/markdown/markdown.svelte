@@ -371,6 +371,18 @@
         text-align: left;
     }
 
+    /* 줄번호 테이블은 일반 테이블 스타일 제외 */
+    .prose :global(.hljs-ln) {
+        display: table;
+        border-collapse: collapse;
+        margin: 0;
+    }
+
+    .prose :global(.hljs-ln td) {
+        border: none;
+        padding: 0;
+    }
+
     .prose :global(th) {
         background-color: var(--muted);
         font-weight: 600;
