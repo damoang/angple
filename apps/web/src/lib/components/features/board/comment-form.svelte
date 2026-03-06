@@ -271,6 +271,14 @@
                     class={error ? 'border-destructive' : ''}
                     disabled={isLoading}
                     onpaste={handlePaste}
+                    onkeydown={(e: KeyboardEvent) => {
+                        if ((e.altKey || e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                            e.preventDefault();
+                            if (canSubmit && !isLoading) {
+                                handleSubmit(e);
+                            }
+                        }
+                    }}
                 />
                 <MentionAutocomplete textarea={textareaRef} />
 
@@ -331,7 +339,12 @@
                                 취소
                             </Button>
                         {/if}
-                        <Button type="submit" size="sm" disabled={isLoading || !canSubmit}>
+                        <Button
+                            type="submit"
+                            size="sm"
+                            disabled={isLoading || !canSubmit}
+                            title="Alt+Enter / Ctrl+Enter"
+                        >
                             {#if isLoading}
                                 작성 중...
                             {:else}
