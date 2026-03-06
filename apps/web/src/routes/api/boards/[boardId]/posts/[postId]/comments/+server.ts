@@ -74,7 +74,7 @@ export const GET: RequestHandler = async ({ params, url, locals }) => {
         const total = countRows[0]?.total ?? 0;
         const totalPages = Math.ceil(total / limit);
 
-        // 댓글 조회 (wr_comment=0은 Go API 생성 댓글 → wr_id 기준 정렬)
+        // 댓글 조회 (wr_comment + wr_comment_reply 순으로 정렬 — Go 백엔드와 동일)
         // 삭제된 댓글도 포함하여 조회 (프론트엔드에서 "삭제된 댓글입니다" 표시용)
         const [rows] = await pool.query<CommentRow[]>(
             `SELECT wr_id, wr_parent, wr_comment, wr_comment_reply, wr_content, wr_option,
@@ -82,7 +82,7 @@ export const GET: RequestHandler = async ({ params, url, locals }) => {
 			        wr_deleted_at, wr_deleted_by
 			 FROM ??
 			 WHERE wr_parent = ? AND wr_is_comment = 1
-			 ORDER BY CASE WHEN wr_comment = 0 THEN wr_id ELSE wr_comment END, wr_comment_reply
+			 ORDER BY wr_comment, wr_comment_reply
 			 LIMIT ? OFFSET ?`,
             [tableName, safePostId, limit, (page - 1) * limit]
         );
