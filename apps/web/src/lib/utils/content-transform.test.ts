@@ -277,9 +277,7 @@ describe('transformInlineMarkdown', () => {
     });
 
     it('~~strikethrough~~ 변환', () => {
-        expect(transformInlineMarkdown('~~취소선~~ 텍스트')).toBe(
-            '<del>취소선</del> 텍스트'
-        );
+        expect(transformInlineMarkdown('~~취소선~~ 텍스트')).toBe('<del>취소선</del> 텍스트');
     });
 
     it('혼합 사용', () => {
