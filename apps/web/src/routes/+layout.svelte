@@ -23,6 +23,8 @@
     import { boardFavoritesStore } from '$lib/stores/board-favorites.svelte';
     import { initAplog, destroyAplog } from '$lib/services/aplog';
     import { getThemeLayout } from '$lib/themes/layout-registry';
+    import Bug from '@lucide/svelte/icons/bug';
+    import FileSpreadsheet from '@lucide/svelte/icons/file-spreadsheet';
 
     const { children, data } = $props(); // Svelte 5: SSR 데이터 받기
 
@@ -251,3 +253,25 @@
 
 <!-- 토스트 알림 -->
 <Toaster />
+
+<!-- 버그 제보 + 트래커 FAB (admin/install 제외) -->
+{#if !isAdminRoute && !isInstallRoute}
+    <div class="fixed bottom-24 right-6 z-50 flex flex-col items-end gap-2">
+        <a
+            href="https://docs.google.com/spreadsheets/d/1zqUv_vKVqEeZhxpxrw2OVIUmUEAS8qONUUPVpNthYOU"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-600 text-white shadow-lg transition-all hover:scale-105 hover:bg-emerald-700"
+            title="버그 트래커 (Google Sheets)"
+        >
+            <FileSpreadsheet class="h-5 w-5" />
+        </a>
+        <a
+            href="/bug"
+            class="flex h-12 w-12 items-center justify-center rounded-full bg-red-600 text-white shadow-lg transition-all hover:scale-105 hover:bg-red-700"
+            title="버그 제보"
+        >
+            <Bug class="h-6 w-6" />
+        </a>
+    </div>
+{/if}

@@ -2,7 +2,6 @@
     import { widgetLayoutStore } from '$lib/stores/widget-layout.svelte';
     import { getUser } from '$lib/stores/auth.svelte';
     import Settings from '@lucide/svelte/icons/settings';
-    import Bug from '@lucide/svelte/icons/bug';
     import X from '@lucide/svelte/icons/x';
     import Save from '@lucide/svelte/icons/save';
     import RotateCcw from '@lucide/svelte/icons/rotate-ccw';
@@ -19,8 +18,6 @@
 
     // 스토어 상태
     const isEditMode = $derived(widgetLayoutStore.isEditMode);
-    // 관리자 FAB이 표시될 때 버그 버튼 위치 조정
-    const bugBtnRight = $derived(isAdmin && !isEditMode ? 'right-20' : 'right-6');
     const isSaving = $derived(widgetLayoutStore.isSaving);
     const hasChanges = $derived(widgetLayoutStore.hasChanges);
 
@@ -128,12 +125,3 @@
         </button>
     {/if}
 {/if}
-
-<!-- 버그 제보 FAB 버튼 (모든 사용자) -->
-<a
-    href="/bug"
-    class="bg-destructive text-destructive-foreground hover:bg-destructive/90 fixed bottom-6 z-50 flex h-12 w-12 items-center justify-center rounded-full shadow-lg transition-all hover:scale-105 {bugBtnRight}"
-    title="버그 제보"
->
-    <Bug class="h-5 w-5" />
-</a>
