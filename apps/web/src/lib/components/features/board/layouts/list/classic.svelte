@@ -202,10 +202,10 @@
                             onerror={handleIconError}
                         />
                     {/if}
-                    <AuthorLink authorId={post.author_id} authorName={post.author} />
                     {#if memoPluginActive && MemoBadge}
                         <MemoBadge memberId={post.author_id} />
                     {/if}
+                    <AuthorLink authorId={post.author_id} authorName={post.author} />
                 </span>
 
                 <!-- 날짜 (col 4, 데스크톱만) -->
@@ -240,10 +240,10 @@
                                 onerror={handleIconError}
                             />
                         {/if}
-                        <AuthorLink authorId={post.author_id} authorName={post.author} />
                         {#if memoPluginActive && MemoBadge}
                             <MemoBadge memberId={post.author_id} />
                         {/if}
+                        <AuthorLink authorId={post.author_id} authorName={post.author} />
                     </span>
                     <span class="mobile-meta-sep {isToday(post.created_at) ? 'date-today' : ''}">
                         {formatDate(post.created_at)}
