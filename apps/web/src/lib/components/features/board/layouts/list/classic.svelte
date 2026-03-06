@@ -276,7 +276,6 @@
     .post-title,
     .post-title-read {
         font-size: 1rem;
-        font-weight: 600;
         transition: color 0.8s ease-in-out;
     }
 
