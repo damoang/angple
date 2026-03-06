@@ -6,7 +6,10 @@ import { registerHook } from '../registry';
 import {
     transformEmoticons,
     transformBracketImages,
-    transformVideos
+    transformVideos,
+    transformCodeBlocks,
+    transformBacktickCodeBlocks,
+    transformInlineCode
 } from '$lib/utils/content-transform';
 import { processContent } from '$lib/plugins/auto-embed';
 
@@ -29,6 +32,33 @@ export function initCommentContent(): void {
         'comment_content',
         (html: unknown) => transformBracketImages(html as string),
         2,
+        'core',
+        'filter'
+    );
+
+    // [code]...[/code] BBCode → <pre><code>
+    registerHook(
+        'comment_content',
+        (html: unknown) => transformCodeBlocks(html as string),
+        3,
+        'core',
+        'filter'
+    );
+
+    // ```lang\n...\n``` 백틱 코드 블록 → <pre><code>
+    registerHook(
+        'comment_content',
+        (html: unknown) => transformBacktickCodeBlocks(html as string),
+        4,
+        'core',
+        'filter'
+    );
+
+    // `code` 인라인 백틱 → <code> (블록 변환 이후 실행)
+    registerHook(
+        'comment_content',
+        (html: unknown) => transformInlineCode(html as string),
+        4.5,
         'core',
         'filter'
     );

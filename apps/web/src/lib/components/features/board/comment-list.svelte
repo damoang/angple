@@ -15,6 +15,8 @@
     import DOMPurify from 'dompurify';
     import { applyFilter } from '$lib/hooks/registry';
     import { getHookVersion } from '$lib/hooks/hook-state.svelte';
+    import { tick } from 'svelte';
+    import { highlightAllCodeBlocks } from '$lib/utils/code-highlight';
     import { getAvatarUrl, getMemberIconUrl } from '$lib/utils/member-icon.js';
     import { SvelteMap, SvelteSet } from 'svelte/reactivity';
     import type { Component } from 'svelte';
@@ -512,7 +514,9 @@
                             'source',
                             'blockquote',
                             'a',
-                            'span'
+                            'span',
+                            'pre',
+                            'code'
                         ],
                         ALLOWED_ATTR: [
                             'src',
@@ -543,6 +547,16 @@
                     })
                 );
             })();
+        }
+    });
+
+    // 코드 블록 구문 하이라이팅 (댓글 렌더링 완료 후 적용)
+    let commentListEl: HTMLElement;
+    $effect(() => {
+        // processedComments 변경 감지
+        void processedComments.size;
+        if (commentListEl) {
+            tick().then(() => highlightAllCodeBlocks(commentListEl));
         }
     });
 
@@ -627,6 +641,7 @@
 </script>
 
 <ul
+    bind:this={commentListEl}
     class={commentLayout === 'compact'
         ? 'space-y-1'
         : commentLayout === 'bordered' || commentLayout === 'bubble' || commentLayout === 'chat'
@@ -1254,6 +1269,27 @@
     }
     :global(.comment-body p:last-child) {
         margin-bottom: 0;
+    }
+
+    /* 댓글 코드 블록 스타일 (게시글 본문 .prose와 동일) */
+    :global(.comment-body pre) {
+        background-color: var(--muted);
+        padding: 1rem;
+        border-radius: 0.5rem;
+        overflow-x: auto;
+        margin: 0.5em 0;
+        white-space: pre;
+    }
+    :global(.comment-body pre code) {
+        font-size: 0.875rem;
+        line-height: 1.6;
+        background-color: transparent;
+    }
+    :global(.comment-body > code) {
+        background-color: var(--muted);
+        padding: 0.15em 0.4em;
+        border-radius: 0.25rem;
+        font-size: 0.875em;
     }
 
     /* 연속 줄바꿈 간격 축소 */
