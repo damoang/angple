@@ -76,15 +76,34 @@ function showUpdateNotice(): void {
     banner.id = '__angple_update_banner__';
     banner.setAttribute(
         'style',
-        'position:fixed;top:0;left:0;right:0;z-index:99999;display:flex;align-items:center;justify-content:center;gap:12px;padding:10px 16px;background:#2563eb;color:white;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;font-size:14px;box-shadow:0 2px 8px rgba(0,0,0,0.15)'
+        'position:fixed;top:0;left:0;right:0;z-index:99999;display:flex;flex-direction:column;align-items:center;padding:0;background:#2563eb;color:white;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;font-size:14px;box-shadow:0 2px 8px rgba(0,0,0,0.15)'
     );
     banner.innerHTML = `
-        <span>새 버전이 배포되었습니다. 새로고침하면 최신 버전으로 이용할 수 있습니다.</span>
-        <button id="__angple_update_reload__" style="padding:5px 16px;font-size:13px;cursor:pointer;border-radius:4px;border:1px solid rgba(255,255,255,0.4);background:transparent;color:white;font-weight:500;white-space:nowrap">새로고침</button>
-        <button id="__angple_update_close__" style="padding:2px 6px;font-size:18px;cursor:pointer;border:none;background:transparent;color:white;line-height:1" aria-label="닫기">&times;</button>`;
+        <div style="display:flex;align-items:center;justify-content:center;gap:12px;padding:10px 16px;width:100%">
+            <span>새 버전이 배포되었습니다. 새로고침하면 최신 버전으로 이용할 수 있습니다.</span>
+            <button id="__angple_update_reload__" style="padding:5px 16px;font-size:13px;cursor:pointer;border-radius:4px;border:1px solid rgba(255,255,255,0.4);background:transparent;color:white;font-weight:500;white-space:nowrap">새로고침</button>
+            <button id="__angple_update_cache_help__" style="padding:5px 16px;font-size:13px;cursor:pointer;border-radius:4px;border:1px solid rgba(255,255,255,0.4);background:transparent;color:white;font-weight:500;white-space:nowrap">캐시 삭제 방법</button>
+            <button id="__angple_update_close__" style="padding:2px 6px;font-size:18px;cursor:pointer;border:none;background:transparent;color:white;line-height:1" aria-label="닫기">&times;</button>
+        </div>
+        <div id="__angple_cache_help__" style="display:none;width:100%;padding:12px 16px;background:#1d4ed8;font-size:13px;line-height:1.6;border-top:1px solid rgba(255,255,255,0.2)">
+            <div style="max-width:600px;margin:0 auto">
+                <p style="margin:0 0 8px;font-weight:600">새로고침으로 해결되지 않으면 브라우저 캐시를 삭제해 주세요:</p>
+                <ul style="margin:0;padding-left:20px">
+                    <li><b>PC (Chrome/Edge)</b>: <kbd style="background:rgba(255,255,255,0.2);padding:1px 5px;border-radius:3px;font-size:12px">Ctrl + Shift + Delete</kbd> → '캐시된 이미지 및 파일' 체크 → 삭제</li>
+                    <li><b>Mac (Chrome/Safari)</b>: <kbd style="background:rgba(255,255,255,0.2);padding:1px 5px;border-radius:3px;font-size:12px">⌘ + Shift + Delete</kbd> → 캐시 삭제</li>
+                    <li><b>모바일 (Chrome)</b>: 설정 → 인터넷 사용 기록 삭제 → '캐시된 이미지 및 파일' → 삭제</li>
+                    <li><b>모바일 (Safari)</b>: 설정 → Safari → 방문 기록 및 웹 사이트 데이터 지우기</li>
+                </ul>
+                <p style="margin:8px 0 0;opacity:0.85">캐시 삭제 후에도 문제가 지속되면 브라우저의 전체 데이터를 삭제해 보세요.</p>
+            </div>
+        </div>`;
     document.body.prepend(banner);
     document.getElementById('__angple_update_reload__')?.addEventListener('click', () => {
         clearCachesAndReload();
+    });
+    document.getElementById('__angple_update_cache_help__')?.addEventListener('click', () => {
+        const help = document.getElementById('__angple_cache_help__');
+        if (help) help.style.display = help.style.display === 'none' ? 'block' : 'none';
     });
     document.getElementById('__angple_update_close__')?.addEventListener('click', () => {
         banner.remove();
