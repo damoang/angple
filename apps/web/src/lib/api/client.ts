@@ -1091,11 +1091,13 @@ class ApiClient {
             limit: String(limit)
         });
 
-        const response = await this.request<GlobalSearchResponse>(
-            `/search?${queryParams.toString()}`
-        );
-
-        return response.data;
+        // Sphinx 기반 SvelteKit API route 직접 호출 (/api/search)
+        const res = await fetch(`/api/search?${queryParams.toString()}`);
+        const json = await res.json();
+        if (!json.success) {
+            throw new Error(json.error || '검색 실패');
+        }
+        return json.data;
     }
 
     // ========================================
