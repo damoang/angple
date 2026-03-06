@@ -84,6 +84,15 @@
     </head>
     <body data-sveltekit-preload-data="hover">
         <div style="display: contents">%sveltekit.body%</div>
+        <!-- Safari bfcache 복원 시 stale 상태 방지 -->
+        <script>
+            window.addEventListener('pageshow', function (e) {
+                if (e.persisted) {
+                    // bfcache에서 복원됨 — SvelteKit 라우터 상태 갱신 위해 리로드
+                    location.reload();
+                }
+            });
+        </script>
         <!-- JS chunk 로드 실패는 hooks.client.ts에서 자동 새로고침 처리 -->
         <script>
             if ('serviceWorker' in navigator) {
