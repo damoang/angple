@@ -23,7 +23,13 @@ export async function sendMentionNotifications(params: MentionNotifyParams): Pro
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include',
-            body: JSON.stringify(params)
+            body: JSON.stringify({
+                mentions,
+                boardId: params.boardId,
+                postId: params.postId,
+                content: params.content,
+                senderNick: params.senderName
+            })
         });
     } catch {
         // fire-and-forget: 멘션 알림 실패는 무시
