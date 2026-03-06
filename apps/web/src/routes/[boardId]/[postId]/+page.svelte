@@ -95,10 +95,11 @@
 
     // 코어 레이아웃 초기화
     initCoreLayouts();
-    // @ts-ignore giving 플러그인 (선택적 설치)
-    import(/* @vite-ignore */ '../../../../../../plugins/giving/hooks/register-layouts.js')
-        .then((m: { default: () => void }) => m.default())
-        .catch(() => {});
+    {
+        const p = '../../../../../../plugins/giving/hooks/register-layouts.js';
+        // @ts-ignore
+        import(p).then((m: { default: () => void }) => m.default()).catch(() => {});
+    }
 
     // 뷰 레이아웃 동적 resolve
     const viewLayoutId = $derived(data.board?.display_settings?.view_layout || 'basic');
