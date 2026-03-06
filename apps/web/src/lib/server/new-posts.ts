@@ -50,8 +50,13 @@ function extractContentPreview(rawContent: string, maxLen = 100): string {
         '&gt;': '>',
         '&amp;': '&'
     };
-    const plainText = rawContent
-        .replace(/<[^>]*>/g, '') // HTML 태그 제거
+    let stripped = rawContent;
+    let prev;
+    do {
+        prev = stripped;
+        stripped = stripped.replace(/<[^>]*>/g, '');
+    } while (stripped !== prev);
+    const plainText = stripped
         .replace(/\{emo:[^}]+\}/g, '') // 이모지 코드 {emo:xxx} 제거
         .replace(/&(?:nbsp|lt|gt|amp);/g, (m) => entityMap[m])
         .replace(/\s+/g, ' ')
