@@ -4,7 +4,7 @@
     import { onMount, untrack } from 'svelte';
     import type { Component } from 'svelte';
     import { afterNavigate } from '$app/navigation';
-    import { page } from '$app/stores';
+    import { page, updated } from '$app/stores';
     import { configureSeo } from '$lib/seo';
     import { authActions, authStore } from '$lib/stores/auth.svelte';
     import { themeStore } from '$lib/stores/theme.svelte';
@@ -72,6 +72,13 @@
         untrack(() => {
             keyboardShortcuts.buildFromMenus(menus);
         });
+    });
+
+    // 새 버전 감지 시 다음 네비게이션에서 캐시 무효화 후 풀 리로드
+    afterNavigate(({ type }) => {
+        if ($updated && type !== 'enter') {
+            location.reload();
+        }
     });
 
     // 광고 추적: 매 네비게이션마다 observer 재설정

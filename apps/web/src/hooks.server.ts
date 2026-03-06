@@ -418,6 +418,10 @@ export const handle: Handle = async ({ event, resolve }) => {
         response.headers.set('Vary', 'Cookie');
     }
 
+    // SvelteKit modulepreload Link 헤더 제거 (8KB+ → 응답 헤더 축소)
+    // HTML 내 <link> 태그로 이미 preload되므로 헤더는 불필요
+    response.headers.delete('Link');
+
     return response;
 };
 
