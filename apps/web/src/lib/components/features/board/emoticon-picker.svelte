@@ -113,7 +113,7 @@
     }
 </script>
 
-<div class="bg-background w-[340px] rounded-lg border p-3 shadow-lg">
+<div class="bg-background w-full rounded-t-lg border p-3 shadow-lg sm:w-[340px] sm:rounded-lg">
     {#if loading}
         <div class="flex h-[280px] items-center justify-center">
             <span class="text-muted-foreground text-sm">로딩 중...</span>

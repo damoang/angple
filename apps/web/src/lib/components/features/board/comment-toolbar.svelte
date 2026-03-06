@@ -52,11 +52,14 @@
             <!-- 외부 클릭으로 닫기 -->
             <!-- svelte-ignore a11y_no_static_element_interactions -->
             <div
-                class="fixed inset-0 z-40"
+                class="fixed inset-0 z-40 bg-black/20 sm:bg-transparent"
                 onclick={() => (showEmoticonPicker = false)}
                 onkeydown={(e) => e.key === 'Escape' && (showEmoticonPicker = false)}
             ></div>
-            <div class="absolute bottom-full left-0 z-50 mb-1">
+            <!-- 모바일: 화면 하단 고정, PC: 버튼 위에 팝업 -->
+            <div
+                class="fixed inset-x-0 bottom-0 z-50 sm:absolute sm:inset-auto sm:bottom-full sm:left-0 sm:mb-1"
+            >
                 <EmoticonPicker
                     onInsertEmoticon={handleInsertEmoticon}
                     onClose={() => (showEmoticonPicker = false)}
