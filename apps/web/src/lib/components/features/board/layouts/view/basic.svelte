@@ -79,7 +79,8 @@
         formatDate,
         formatFileSize,
         postContent,
-        pageData
+        pageData,
+        promotionExpired = false
     }: ViewLayoutProps = $props();
 
     let hasAffiliateLinks = $derived(postContent?.includes('data-affiliate') ?? false);
@@ -327,8 +328,19 @@
                 class="flex flex-col items-center justify-center rounded-xl border border-dashed py-16"
             >
                 <Lock class="text-muted-foreground mb-4 h-12 w-12" />
-                <p class="text-muted-foreground text-lg font-medium">비밀글입니다</p>
-                <p class="text-muted-foreground mt-1 text-sm">작성자와 관리자만 볼 수 있습니다.</p>
+                {#if promotionExpired}
+                    <p class="text-muted-foreground text-lg font-medium">
+                        광고 기간이 종료된 게시글입니다
+                    </p>
+                    <p class="text-muted-foreground mt-1 text-sm">
+                        광고주와 관리자만 볼 수 있습니다.
+                    </p>
+                {:else}
+                    <p class="text-muted-foreground text-lg font-medium">비밀글입니다</p>
+                    <p class="text-muted-foreground mt-1 text-sm">
+                        작성자와 관리자만 볼 수 있습니다.
+                    </p>
+                {/if}
             </div>
         {/if}
     </CardContent>

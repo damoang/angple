@@ -10,6 +10,7 @@ import type { RequestHandler } from './$types';
 import type { RowDataPacket, ResultSetHeader } from 'mysql2';
 import pool from '$lib/server/db';
 import { getAuthUser } from '$lib/server/auth';
+import { checkCertification } from '$lib/server/certification';
 
 interface GoodRow extends RowDataPacket {
     bg_flag: string;
@@ -115,6 +116,12 @@ export const POST: RequestHandler = async ({ params, request, cookies }) => {
 
     const safeBoardId = boardId.replace(/[^a-zA-Z0-9_-]/g, '');
     const safePostId = parseInt(postId, 10);
+
+    // 실명인증 체크
+    const certError = await checkCertification(safeBoardId, user.mb_id);
+    if (certError) {
+        return json({ success: false, message: certError }, { status: 403 });
+    }
 
     if (isNaN(safePostId)) {
         return json({ success: false, message: '유효하지 않은 postId입니다.' }, { status: 400 });

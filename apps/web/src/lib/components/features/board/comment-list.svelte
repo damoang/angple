@@ -767,7 +767,7 @@
                                         size="md"
                                     />
                                     {comment.author}
-                                    {#if memoPluginActive && MemoBadge}
+                                    {#if !isDeleted && memoPluginActive && MemoBadge}
                                         <MemoBadge memberId={comment.author_id} showIcon={true} />
                                     {/if}
                                     {#if comment.is_secret}
@@ -880,7 +880,7 @@
 
                             <!-- 액션 버튼 -->
                             <div class="text-muted-foreground flex items-center gap-1 text-sm">
-                                {#if !isEditing}
+                                {#if !isDeleted && !isEditing}
                                     <div class="flex gap-1">
                                         <!-- 답글 버튼 -->
                                         {#if onReply && authStore.isAuthenticated}

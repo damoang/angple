@@ -411,8 +411,13 @@
     // 관리자 여부 (레벨 10 이상)
     const isAdmin = $derived((authStore.user?.mb_level ?? 0) >= 10);
 
-    // 비밀글 접근 권한 (작성자 또는 관리자만 열람 가능)
-    const canViewSecret = $derived(!data.post.is_secret || isAuthor || isAdmin);
+    // 직접홍보 게시판 만료 여부
+    const promotionExpired = $derived(data.promotionExpired === true && !isAuthor && !isAdmin);
+
+    // 비밀글 접근 권한 (작성자 또는 관리자만 열람 가능, 홍보 만료 글도 차단)
+    const canViewSecret = $derived(
+        (!data.post.is_secret || isAuthor || isAdmin) && !promotionExpired
+    );
 
     // 공지 상태
     let noticeType = $state<'normal' | 'important' | null>(null);
@@ -615,6 +620,17 @@
         }
     }
 
+    // 서버에서 댓글 목록 다시 가져오기
+    async function refetchComments(): Promise<void> {
+        const res = await fetch(
+            `/api/boards/${boardId}/posts/${data.post.id}/comments?page=1&limit=200`
+        );
+        const json = await res.json();
+        if (json.success) {
+            comments = json.data.comments;
+        }
+    }
+
     // 댓글 작성
     async function handleCreateComment(
         content: string,
@@ -628,7 +644,7 @@
 
         isCreatingComment = true;
         try {
-            const newComment = await apiClient.createComment(boardId, String(data.post.id), {
+            await apiClient.createComment(boardId, String(data.post.id), {
                 content,
                 author: authStore.user.mb_name,
                 parent_id: parentId,
@@ -636,8 +652,8 @@
                 images
             });
 
-            // 댓글 목록에 추가
-            comments = [...comments, newComment];
+            // 서버에서 정렬된 댓글 목록 다시 가져오기
+            await refetchComments();
 
             // @멘션 알림 전송 (fire-and-forget)
             sendMentionNotifications({
@@ -665,7 +681,7 @@
             throw new Error('로그인이 필요합니다.');
         }
 
-        const newComment = await apiClient.createComment(boardId, String(data.post.id), {
+        await apiClient.createComment(boardId, String(data.post.id), {
             content,
             author: authStore.user.mb_name,
             parent_id: parentId,
@@ -673,8 +689,8 @@
             images
         });
 
-        // 댓글 목록에 추가
-        comments = [...comments, newComment];
+        // 서버에서 정렬된 댓글 목록 다시 가져오기
+        await refetchComments();
 
         // @멘션 알림 전송 (fire-and-forget)
         sendMentionNotifications({
@@ -702,8 +718,8 @@
     async function handleDeleteComment(commentId: string): Promise<void> {
         await apiClient.deleteComment(boardId, String(data.post.id), commentId);
 
-        // 로컬 상태에서 제거
-        comments = comments.filter((c) => String(c.id) !== commentId);
+        // 서버에서 댓글 목록 다시 가져오기 (삭제된 댓글 포함 정확한 상태 반영)
+        await refetchComments();
     }
 
     // 댓글 추천
@@ -913,6 +929,7 @@
                 {isAuthor}
                 {isAdmin}
                 {canViewSecret}
+                {promotionExpired}
                 {likeCount}
                 {dislikeCount}
                 {isLiked}

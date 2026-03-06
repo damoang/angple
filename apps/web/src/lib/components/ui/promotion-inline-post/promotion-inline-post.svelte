@@ -91,39 +91,22 @@
         </div>
     </a>
 {:else}
-    <!-- Default variant: 썸네일 포함 -->
+    <!-- Default variant: 일반 행과 동일 높이 -->
     <a
         {href}
-        class="border-border flex items-center gap-3 rounded-lg border bg-blue-50/50 px-4 py-3 transition-all hover:bg-blue-100/60 hover:shadow-sm dark:bg-blue-950/20 dark:hover:bg-blue-950/40"
+        class="border-border flex items-center gap-2 rounded-lg border bg-blue-50/50 px-4 py-1.5 transition-all hover:bg-blue-100/60 hover:shadow-sm dark:bg-blue-950/20 dark:hover:bg-blue-950/40"
     >
-        <!-- 썸네일 -->
-        {#if post.imageUrl}
-            <div class="bg-muted relative h-14 w-14 shrink-0 overflow-hidden rounded-md">
-                <img
-                    src={post.imageUrl}
-                    alt=""
-                    class="h-full w-full object-cover"
-                    onerror={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        target.style.display = 'none';
-                    }}
-                />
-            </div>
-        {/if}
-
         <!-- 제목 + 홍보 뱃지 -->
         <div class="min-w-0 flex-1">
-            <h3 class="text-foreground mb-1 flex items-center gap-1.5 truncate font-medium">
+            <h3 class="text-foreground flex items-center gap-1.5 truncate font-medium">
                 <span
                     class="inline-flex shrink-0 items-center rounded bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-semibold leading-none text-amber-500 dark:bg-amber-400/15 dark:text-amber-400"
                     >홍보</span
                 >
                 {post.subject}
             </h3>
-            <div class="text-muted-foreground text-xs">
-                {post.advertiserName}
-            </div>
         </div>
+        <span class="text-muted-foreground shrink-0 text-xs">{post.advertiserName}</span>
     </a>
 {/if}
 
