@@ -20,10 +20,12 @@
         return mount();
     });
 
-    function getDisplayText(banner: { target_member_nick?: string }): string {
-        const nick = banner.target_member_nick || '';
-        if (nick) return nick;
-        return '축하합니다!';
+    function getNick(banner: { target_member_nick?: string }): string {
+        return banner.target_member_nick || '축하합니다';
+    }
+
+    function getMessage(banner: { content?: string }): string {
+        return banner.content || '';
     }
 </script>
 
@@ -52,14 +54,17 @@
         <div class="relative h-7 min-w-0 flex-1 overflow-hidden">
             {#each celebrations as banner, i (banner.id)}
                 <span
-                    class="text-foreground absolute inset-0 flex items-center truncate text-sm transition-all duration-500 ease-in-out
+                    class="absolute inset-0 flex items-center gap-1.5 truncate text-sm transition-all duration-500 ease-in-out
                         {i === currentIndex
                         ? 'translate-y-0 opacity-100'
                         : i < currentIndex
                           ? '-translate-y-full opacity-0'
                           : 'translate-y-full opacity-0'}"
                 >
-                    {getDisplayText(banner)}
+                    <span class="text-foreground font-medium">{getNick(banner)}</span>
+                    {#if getMessage(banner)}
+                        <span class="text-muted-foreground truncate">{getMessage(banner)}</span>
+                    {/if}
                 </span>
             {/each}
         </div>
