@@ -92,7 +92,8 @@
         formatFileSize,
         postContent,
         pageData,
-        promotionExpired = false
+        promotionExpired = false,
+        postReactions
     }: ViewLayoutProps = $props();
 
     let hasAffiliateLinks = $derived(postContent?.includes('data-affiliate') ?? false);
@@ -571,7 +572,12 @@
 
             <!-- 리액션 (da-reaction 플러그인) -->
             {#if reactionPluginActive}
-                <ReactionBar {boardId} postId={post.id} target="post" />
+                <ReactionBar
+                    {boardId}
+                    postId={post.id}
+                    target="post"
+                    initialReactions={postReactions}
+                />
             {/if}
         </CardFooter>
     {/if}

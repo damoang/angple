@@ -23,6 +23,8 @@
     import { boardFavoritesStore } from '$lib/stores/board-favorites.svelte';
     import { initAplog, destroyAplog } from '$lib/services/aplog';
     import { getThemeLayout } from '$lib/themes/layout-registry';
+    import { getInitData } from '$lib/stores/app-init.svelte';
+    import { initFromData as initCelebrationFromData } from '$lib/stores/celebration.svelte';
     import Bug from '@lucide/svelte/icons/bug';
     import FileSpreadsheet from '@lucide/svelte/icons/file-spreadsheet';
 
@@ -155,6 +157,13 @@
     });
 
     onMount(() => {
+        // 앱 초기화: celebration + banners 일괄 조회 (1회)
+        getInitData(['index-top', 'board-head', 'sidebar']).then((initData) => {
+            if (initData?.celebration) {
+                initCelebrationFromData(initData.celebration);
+            }
+        });
+
         // Built-in Hooks 초기화 (콘텐츠 임베딩, 게시판 필터 등)
         initBuiltinHooks();
 

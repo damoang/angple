@@ -11,6 +11,7 @@
         getLink as getCelebrationLink,
         type CelebrationBanner
     } from '$lib/stores/celebration.svelte';
+    import { getCachedBanners } from '$lib/stores/app-init.svelte';
 
     interface Props {
         position: 'index' | 'board-list' | 'board-view' | 'sidebar';
@@ -126,6 +127,12 @@
     }
 
     async function fetchAdsBanners(): Promise<AdsBanner[]> {
+        // app-init 캐시에서 먼저 확인
+        const cached = getCachedBanners(adsPosition);
+        if (cached && cached.length > 0) {
+            return cached as AdsBanner[];
+        }
+
         try {
             const response = await fetch(
                 `/api/ads/banners?position=${encodeURIComponent(adsPosition)}&limit=10`

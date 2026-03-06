@@ -47,6 +47,7 @@
     import { highlightMentions } from '$lib/utils/mention-parser.js';
     import { formatDate } from '$lib/utils/format-date.js';
     import { ReactionBar } from '$lib/components/features/reaction/index.js';
+    import type { ReactionItem } from '$lib/types/reaction.js';
     import CommentLikersDialog from './comment-likers-dialog.svelte';
     import { AvatarStack } from '$lib/components/ui/avatar-stack/index.js';
     import { apiClient } from '$lib/api/index.js';
@@ -70,6 +71,7 @@
         postId?: number; // 신고 기능용
         useNogood?: boolean; // 비추천 기능 사용 여부 (게시판 설정)
         commentLayout?: string; // 댓글 레이아웃 (flat, bordered, divided, bubble, compact)
+        reactionsMap?: Record<string, ReactionItem[]>; // 일괄 조회된 리액션 맵
     }
 
     let {
@@ -83,7 +85,8 @@
         boardId = 'free',
         postId = 0,
         useNogood = false,
-        commentLayout = 'flat'
+        commentLayout = 'flat',
+        reactionsMap
     }: Props = $props();
 
     // 플러그인 활성화 여부
@@ -825,6 +828,9 @@
                                         {postId}
                                         commentId={comment.id}
                                         target="comment"
+                                        initialReactions={reactionsMap?.[
+                                            `comment:${boardId}:${comment.id}`
+                                        ]}
                                     />
                                 </div>
                             {/if}
@@ -1137,6 +1143,9 @@
                                 {postId}
                                 commentId={comment.id}
                                 target="comment"
+                                initialReactions={reactionsMap?.[
+                                    `comment:${boardId}:${comment.id}`
+                                ]}
                             />
                         {/if}
 

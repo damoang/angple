@@ -8,6 +8,7 @@
 
 import type { FreePost, LikerInfo, BoardDisplaySettings } from '$lib/api/types.js';
 import type { Component } from 'svelte';
+import type { ReactionItem } from '$lib/types/reaction.js';
 
 /** 목록 레이아웃 ID */
 export type ListLayoutId = 'compact' | 'card' | 'gallery' | 'webzine' | (string & {});
@@ -111,4 +112,7 @@ export interface ViewLayoutProps {
     // 페이지 데이터 (슬롯용)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     pageData: any;
+
+    /** 일괄 조회된 게시글 리액션 (있으면 개별 fetch 스킵) */
+    postReactions?: ReactionItem[];
 }
