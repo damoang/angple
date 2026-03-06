@@ -152,7 +152,10 @@ export function transformCodeBlocks(html: string): string {
 
     return html.replace(CODE_BLOCK_PATTERN, (_match, lang: string | undefined, code: string) => {
         // HTML 태그 제거 (에디터가 삽입한 <br>, <p> 등)
-        const cleaned = code.replace(/<br\s*\/?>/gi, '\n').replace(/<\/?p>/gi, '\n').replace(/<[^>]*>/g, '');
+        const cleaned = code
+            .replace(/<br\s*\/?>/gi, '\n')
+            .replace(/<\/?p>/gi, '\n')
+            .replace(/<[^>]*>/g, '');
 
         // 앞뒤 빈 줄 제거
         const trimmed = cleaned.replace(/^\n+|\n+$/g, '');
