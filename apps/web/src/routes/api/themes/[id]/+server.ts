@@ -32,7 +32,7 @@ export const DELETE: RequestHandler = async ({ params }) => {
 
     try {
         // 1. 공식 테마 보호
-        if (!isCustomTheme(themeId)) {
+        if (!(await isCustomTheme(themeId))) {
             return json(
                 {
                     error: '공식 테마는 삭제할 수 없습니다.',
@@ -56,7 +56,7 @@ export const DELETE: RequestHandler = async ({ params }) => {
         }
 
         // 3. 테마 디렉터리 경로 가져오기
-        const themePath = getThemePath(themeId);
+        const themePath = await getThemePath(themeId);
 
         if (!existsSync(themePath)) {
             return json(

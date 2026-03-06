@@ -28,7 +28,7 @@ export const POST: RequestHandler = async ({ request, fetch: serverFetch }) => {
         }
 
         // 1. 이미 설치되어 있는지 확인
-        if (isThemeInstalled(themeId)) {
+        if (await isThemeInstalled(themeId)) {
             return json({ success: false, error: '이미 설치된 테마입니다.' }, { status: 409 });
         }
 

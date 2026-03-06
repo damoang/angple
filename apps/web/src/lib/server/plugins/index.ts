@@ -48,7 +48,7 @@ export async function getInstalledPlugins(): Promise<Map<string, InstalledPlugin
     const plugins = new Map<string, InstalledPlugin>();
 
     // 1. 파일 시스템에서 플러그인 스캔
-    const manifests = scanPlugins();
+    const manifests = await scanPlugins();
 
     // 2. 활성 플러그인 ID 목록 조회
     const activePluginIds = await pluginSettingsProvider.getActivePlugins();
@@ -60,9 +60,9 @@ export async function getInstalledPlugins(): Promise<Map<string, InstalledPlugin
         plugins.set(pluginId, {
             manifest,
             currentSettings,
-            path: getPluginPath(pluginId),
+            path: await getPluginPath(pluginId),
             isActive: activePluginIds.includes(pluginId),
-            source: isCustomPlugin(pluginId) ? 'custom' : 'official'
+            source: (await isCustomPlugin(pluginId)) ? 'custom' : 'official'
         });
     }
 
@@ -73,11 +73,11 @@ export async function getInstalledPlugins(): Promise<Map<string, InstalledPlugin
  * 특정 플러그인 정보 가져오기
  */
 export async function getPluginById(pluginId: string): Promise<InstalledPlugin | null> {
-    if (!isPluginInstalled(pluginId)) {
+    if (!(await isPluginInstalled(pluginId))) {
         return null;
     }
 
-    const manifest = getPluginManifest(pluginId);
+    const manifest = await getPluginManifest(pluginId);
     if (!manifest) {
         return null;
     }
@@ -88,9 +88,9 @@ export async function getPluginById(pluginId: string): Promise<InstalledPlugin |
     return {
         manifest,
         currentSettings,
-        path: getPluginPath(pluginId),
+        path: await getPluginPath(pluginId),
         isActive: activePluginIds.includes(pluginId),
-        source: isCustomPlugin(pluginId) ? 'custom' : 'official'
+        source: (await isCustomPlugin(pluginId)) ? 'custom' : 'official'
     };
 }
 
@@ -132,7 +132,7 @@ export function invalidateActivePluginsCache(): void {
  */
 export async function activatePlugin(pluginId: string): Promise<boolean> {
     // 플러그인이 설치되어 있는지 확인
-    if (!isPluginInstalled(pluginId)) {
+    if (!(await isPluginInstalled(pluginId))) {
         console.error(`[Plugin API] 플러그인이 설치되지 않음: ${pluginId}`);
         return false;
     }

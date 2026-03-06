@@ -44,6 +44,7 @@ export interface Cache<T> {
 export function createCache<T>(options?: Partial<CacheOptions>): Cache<T> {
     const config = { ...DEFAULT_OPTIONS, ...options };
     const store = new Map<string, CacheEntry<T>>();
+    const pending = new Map<string, Promise<T>>();
 
     function isExpired(entry: CacheEntry<T>): boolean {
         return Date.now() > entry.expiresAt;
@@ -87,9 +88,23 @@ export function createCache<T>(options?: Partial<CacheOptions>): Cache<T> {
             const cached = this.get(key);
             if (cached !== undefined) return cached;
 
-            const value = await factory();
-            this.set(key, value);
-            return value;
+            // Singleflight: 동일 key에 대한 중복 factory 실행 방지
+            const inflight = pending.get(key);
+            if (inflight) return inflight;
+
+            const promise = factory()
+                .then((value) => {
+                    this.set(key, value);
+                    pending.delete(key);
+                    return value;
+                })
+                .catch((err) => {
+                    pending.delete(key);
+                    throw err;
+                });
+
+            pending.set(key, promise);
+            return promise;
         },
 
         delete(key: string): void {
@@ -124,9 +139,11 @@ export class TieredCache<T> {
     private readonly l1TtlMs: number;
     private readonly l2TtlSec: number;
     private readonly maxL1Size: number;
+    private readonly pending: Map<string, Promise<T>>;
 
     constructor(prefix: string, l1TtlMs: number, l2TtlSec: number, maxL1Size = 5000) {
         this.l1 = new Map();
+        this.pending = new Map();
         this.prefix = prefix;
         this.l1TtlMs = l1TtlMs;
         this.l2TtlSec = l2TtlSec;
@@ -179,14 +196,28 @@ export class TieredCache<T> {
         }
     }
 
-    /** L1 + L2 조회 → 미스 시 factory 실행 후 저장 */
+    /** L1 + L2 조회 → 미스 시 factory 실행 후 저장 (singleflight) */
     async getOrFetch(key: string, factory: () => Promise<T>): Promise<T> {
         const cached = await this.get(key);
         if (cached !== null) return cached;
 
-        const data = await factory();
-        await this.set(key, data);
-        return data;
+        // Singleflight: 동일 key에 대한 중복 factory 실행 방지
+        const inflight = this.pending.get(key);
+        if (inflight) return inflight;
+
+        const promise = factory()
+            .then(async (data) => {
+                await this.set(key, data);
+                this.pending.delete(key);
+                return data;
+            })
+            .catch((err) => {
+                this.pending.delete(key);
+                throw err;
+            });
+
+        this.pending.set(key, promise);
+        return promise;
     }
 
     /** L1만 삭제 */

@@ -3,6 +3,7 @@
  *
  * plugins/ 및 custom-plugins/ 디렉터리를 스캔하여 설치된 플러그인 목록을 가져옵니다.
  * 테마 스캐너(scanner.ts)와 동일한 패턴으로 구현되었습니다.
+ * 모든 파일 I/O는 비동기로 처리하여 event loop 블로킹 방지.
  *
  * ExtensionManifest 스키마 사용:
  * - plugin.json 또는 extension.json 파일 모두 지원
@@ -10,11 +11,20 @@
  * - category 필드로 테마/플러그인 구분
  */
 
-import { readFileSync, readdirSync, existsSync, statSync } from 'fs';
+import { readFile, readdir, stat, access } from 'fs/promises';
 import { join, resolve } from 'path';
 import type { ExtensionManifest } from '@angple/types';
 import { safeValidateExtensionManifest } from '@angple/types';
 import { sanitizePath } from '../path-utils';
+
+async function fileExists(path: string): Promise<boolean> {
+    try {
+        await access(path);
+        return true;
+    } catch {
+        return false;
+    }
+}
 
 /**
  * 프로젝트 루트 디렉터리 찾기
@@ -50,17 +60,17 @@ const CUSTOM_EXTENSIONS_DIR = join(PROJECT_ROOT, 'custom-extensions');
  *
  * plugin.json 또는 extension.json 파일이 있으면 유효한 플러그인으로 간주
  */
-function isValidPluginDirectory(pluginPath: string): boolean {
-    if (!existsSync(pluginPath)) return false;
+async function isValidPluginDirectory(pluginPath: string): Promise<boolean> {
+    if (!(await fileExists(pluginPath))) return false;
 
-    const stat = statSync(pluginPath);
-    if (!stat.isDirectory()) return false;
+    const s = await stat(pluginPath);
+    if (!s.isDirectory()) return false;
 
     // plugin.json 또는 extension.json 파일 존재 확인
     const pluginJsonPath = join(pluginPath, 'plugin.json'); // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
     const extensionJsonPath = join(pluginPath, 'extension.json'); // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
 
-    return existsSync(pluginJsonPath) || existsSync(extensionJsonPath);
+    return (await fileExists(pluginJsonPath)) || (await fileExists(extensionJsonPath));
 }
 
 /**
@@ -70,7 +80,10 @@ function isValidPluginDirectory(pluginPath: string): boolean {
  * @param baseDir 플러그인이 위치한 기본 디렉터리 (PLUGINS_DIR 또는 CUSTOM_PLUGINS_DIR)
  * @returns ExtensionManifest 또는 null (category가 'plugin'이 아니거나 검증 실패 시)
  */
-function loadPluginManifest(pluginDir: string, baseDir: string): ExtensionManifest | null {
+async function loadPluginManifest(
+    pluginDir: string,
+    baseDir: string
+): Promise<ExtensionManifest | null> {
     // pluginDir는 readdir()에서 온 안전한 디렉터리명
     // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
     const pluginJsonPath = join(baseDir, pluginDir, 'plugin.json');
@@ -79,16 +92,16 @@ function loadPluginManifest(pluginDir: string, baseDir: string): ExtensionManife
 
     // plugin.json 우선, 없으면 extension.json 시도
     let manifestPath: string;
-    if (existsSync(pluginJsonPath)) {
+    if (await fileExists(pluginJsonPath)) {
         manifestPath = pluginJsonPath;
-    } else if (existsSync(extensionJsonPath)) {
+    } else if (await fileExists(extensionJsonPath)) {
         manifestPath = extensionJsonPath;
     } else {
         return null;
     }
 
     try {
-        const manifestJson = readFileSync(manifestPath, 'utf-8');
+        const manifestJson = await readFile(manifestPath, 'utf-8');
         const manifestData = JSON.parse(manifestJson);
 
         // 기본값 제공 (기존 플러그인 호환성)
@@ -126,34 +139,37 @@ function loadPluginManifest(pluginDir: string, baseDir: string): ExtensionManife
 /**
  * 특정 디렉터리에서 플러그인 스캔 헬퍼
  */
-function scanDirectory(baseDir: string, plugins: Map<string, ExtensionManifest>): number {
-    if (!existsSync(baseDir)) {
+async function scanDirectory(
+    baseDir: string,
+    plugins: Map<string, ExtensionManifest>
+): Promise<number> {
+    if (!(await fileExists(baseDir))) {
         return 0;
     }
 
     let scannedCount = 0;
-    const entries = readdirSync(baseDir, { withFileTypes: true });
+    const entries = await readdir(baseDir, { withFileTypes: true });
 
     for (const entry of entries) {
         // 디렉터리만 처리 (심링크 → 디렉터리도 허용: 개발 환경 플러그인 링크 지원)
         if (!entry.isDirectory()) {
             if (!entry.isSymbolicLink()) continue;
-            const targetStat = statSync(join(baseDir, entry.name));
+            const targetStat = await stat(join(baseDir, entry.name));
             if (!targetStat.isDirectory()) continue;
         }
 
         const pluginDir = entry.name;
-        // pluginDir는 readdirSync()에서 반환된 실제 디렉터리명 (사용자 입력 아님)
+        // pluginDir는 readdir()에서 반환된 실제 디렉터리명 (사용자 입력 아님)
         // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
         const pluginPath = join(baseDir, pluginDir);
 
         // 유효한 플러그인 디렉터리인지 확인
-        if (!isValidPluginDirectory(pluginPath)) {
+        if (!(await isValidPluginDirectory(pluginPath))) {
             continue;
         }
 
         // 매니페스트 로드 및 검증
-        const manifest = loadPluginManifest(pluginDir, baseDir);
+        const manifest = await loadPluginManifest(pluginDir, baseDir);
         if (!manifest) continue;
 
         // 디렉터리 이름과 ID가 일치하는지 확인 (불일치 시 디렉터리 이름을 ID로 사용)
@@ -172,18 +188,16 @@ function scanDirectory(baseDir: string, plugins: Map<string, ExtensionManifest>)
  *
  * @returns 플러그인 ID를 key로 하는 ExtensionManifest 맵
  */
-export function scanPlugins(): Map<string, ExtensionManifest> {
+export async function scanPlugins(): Promise<Map<string, ExtensionManifest>> {
     const plugins = new Map<string, ExtensionManifest>();
 
     try {
-        // 공식 플러그인 스캔 (Git 추적)
-        scanDirectory(PLUGINS_DIR, plugins);
-
-        // 커스텀 플러그인 스캔 (사용자 업로드)
-        scanDirectory(CUSTOM_PLUGINS_DIR, plugins);
-
-        // GitHub Packages에서 설치된 확장 스캔
-        scanDirectory(CUSTOM_EXTENSIONS_DIR, plugins);
+        // 병렬 스캔
+        await Promise.all([
+            scanDirectory(PLUGINS_DIR, plugins),
+            scanDirectory(CUSTOM_PLUGINS_DIR, plugins),
+            scanDirectory(CUSTOM_EXTENSIONS_DIR, plugins)
+        ]);
     } catch (error) {
         console.error('[Plugin Scanner] 플러그인 스캔 실패:', error);
     }
@@ -195,27 +209,27 @@ export function scanPlugins(): Map<string, ExtensionManifest> {
  * 플러그인이 어느 디렉터리에 있는지 찾기
  * @returns [baseDir, isCustom] 튜플 또는 null
  */
-function findPluginDirectory(pluginId: string): [string, boolean] | null {
+async function findPluginDirectory(pluginId: string): Promise<[string, boolean] | null> {
     const sanitizedId = sanitizePath(pluginId);
 
     // 1. 공식 플러그인 디렉터리 확인
     // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
     const officialPath = join(PLUGINS_DIR, sanitizedId);
-    if (isValidPluginDirectory(officialPath)) {
+    if (await isValidPluginDirectory(officialPath)) {
         return [PLUGINS_DIR, false];
     }
 
     // 2. 커스텀 플러그인 디렉터리 확인
     // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
     const customPath = join(CUSTOM_PLUGINS_DIR, sanitizedId);
-    if (isValidPluginDirectory(customPath)) {
+    if (await isValidPluginDirectory(customPath)) {
         return [CUSTOM_PLUGINS_DIR, true];
     }
 
     // 3. GitHub Packages에서 설치된 확장 디렉터리 확인
     // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
     const extensionPath = join(CUSTOM_EXTENSIONS_DIR, sanitizedId);
-    if (isValidPluginDirectory(extensionPath)) {
+    if (await isValidPluginDirectory(extensionPath)) {
         return [CUSTOM_EXTENSIONS_DIR, true];
     }
 
@@ -225,8 +239,8 @@ function findPluginDirectory(pluginId: string): [string, boolean] | null {
 /**
  * 특정 플러그인의 매니페스트 가져오기
  */
-export function getPluginManifest(pluginId: string): ExtensionManifest | null {
-    const result = findPluginDirectory(pluginId);
+export async function getPluginManifest(pluginId: string): Promise<ExtensionManifest | null> {
+    const result = await findPluginDirectory(pluginId);
     if (!result) return null;
 
     const [baseDir] = result;
@@ -237,8 +251,8 @@ export function getPluginManifest(pluginId: string): ExtensionManifest | null {
 /**
  * 플러그인 디렉터리 절대 경로 반환
  */
-export function getPluginPath(pluginId: string): string {
-    const result = findPluginDirectory(pluginId);
+export async function getPluginPath(pluginId: string): Promise<string> {
+    const result = await findPluginDirectory(pluginId);
     const sanitizedId = sanitizePath(pluginId);
 
     if (!result) {
@@ -255,15 +269,15 @@ export function getPluginPath(pluginId: string): string {
 /**
  * 플러그인이 설치되어 있는지 확인
  */
-export function isPluginInstalled(pluginId: string): boolean {
-    return findPluginDirectory(pluginId) !== null;
+export async function isPluginInstalled(pluginId: string): Promise<boolean> {
+    return (await findPluginDirectory(pluginId)) !== null;
 }
 
 /**
  * 플러그인이 커스텀 플러그인인지 확인
  */
-export function isCustomPlugin(pluginId: string): boolean {
-    const result = findPluginDirectory(pluginId);
+export async function isCustomPlugin(pluginId: string): Promise<boolean> {
+    const result = await findPluginDirectory(pluginId);
     return result ? result[1] : false;
 }
 

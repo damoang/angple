@@ -180,7 +180,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
             rmSync(tempZipPath);
 
             // 테마 재스캔
-            scanThemes();
+            await scanThemes();
 
             return json({
                 success: true,
