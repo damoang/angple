@@ -83,7 +83,14 @@ export function transformVideos(html: string): string {
         if (hrefMatch) {
             url = hrefMatch[1].trim();
         } else {
-            url = innerContent.replace(/<[^>]*>/g, '').trim();
+            // 반복 제거로 중첩 태그 조각 방지 (예: <scr<b>ipt> → <script>)
+            let cleaned = innerContent;
+            let prev;
+            do {
+                prev = cleaned;
+                cleaned = cleaned.replace(/<[^>]*>/g, '');
+            } while (cleaned !== prev);
+            url = cleaned.trim();
         }
 
         if (!url) return '';
