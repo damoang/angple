@@ -115,6 +115,86 @@ async function checkWriteAuthor(path: string, userId: string): Promise<Response 
     return null;
 }
 
+/**
+ * message 게시판 글 수정 시 celebration_banners 동기화
+ * wr_subject(날짜), wr_content, wr_9(이미지) → celebration_banners
+ */
+async function syncCelebrationBanner(path: string): Promise<void> {
+    const match = path.match(/^boards\/message\/posts\/(\d+)$/);
+    if (!match) return;
+
+    const wrId = parseInt(match[1], 10);
+
+    // g5_write_message에서 최신 데이터 조회
+    const [rows] = await pool.query<RowDataPacket[]>(
+        `SELECT wr_subject, wr_content, wr_9 FROM g5_write_message WHERE wr_id = ?`,
+        [wrId]
+    );
+    if (!rows[0]) return;
+
+    const { wr_subject, wr_content, wr_9 } = rows[0];
+
+    // wr_subject → display_date (2026.03.07 → 2026-03-07)
+    const displayDate = wr_subject?.replace(/\./g, '-');
+    if (!displayDate || !/^\d{4}-\d{2}-\d{2}$/.test(displayDate)) return;
+
+    // wr_content에서 텍스트만 추출 (HTML 태그 제거)
+    const textContent = wr_content
+        ?.replace(/<img[^>]*>/gi, '')
+        .replace(/<[^>]*>/g, '')
+        .trim();
+
+    // celebration_banners 업데이트
+    await pool.execute(
+        `UPDATE celebration_banners
+         SET display_date = ?, content = ?, image_url = COALESCE(NULLIF(?, ''), image_url),
+             title = COALESCE(NULLIF(?, ''), title), updated_at = NOW()
+         WHERE source_wr_id = ?`,
+        [displayDate, textContent || '', wr_9 || '', textContent || '', wrId]
+    );
+}
+
+/**
+ * 글/댓글 작성 성공 시 g5_board_new에 INSERT
+ * angple-backend의 Create()에 이 로직이 빠져있어 SvelteKit에서 보완
+ */
+async function insertBoardNew(path: string, response: Response, locals: App.Locals): Promise<void> {
+    // 글 작성: boards/{boardId}/posts (댓글 아닌 원글만)
+    const postMatch = path.match(/^boards\/([a-zA-Z0-9_-]+)\/posts$/);
+    // 댓글 작성: boards/{boardId}/posts/{postId}/comments
+    const commentMatch = path.match(/^boards\/([a-zA-Z0-9_-]+)\/posts\/(\d+)\/comments$/);
+
+    if (!postMatch && !commentMatch) return;
+
+    let data: { data?: { id?: number; wr_id?: number } };
+    try {
+        data = await response.json();
+    } catch {
+        return;
+    }
+
+    const wrId = data?.data?.id || data?.data?.wr_id;
+    if (!wrId) return;
+
+    const boardId = (postMatch || commentMatch)![1];
+    const mbId = locals.user?.id || '';
+
+    if (postMatch) {
+        // 원글: wr_parent = wr_id
+        await pool.execute(
+            `INSERT IGNORE INTO g5_board_new (bo_table, wr_id, wr_parent, bn_datetime, mb_id) VALUES (?, ?, ?, NOW(), ?)`,
+            [boardId, wrId, wrId, mbId]
+        );
+    } else if (commentMatch) {
+        // 댓글: wr_parent = 원글 ID
+        const parentId = parseInt(commentMatch[2], 10);
+        await pool.execute(
+            `INSERT IGNORE INTO g5_board_new (bo_table, wr_id, wr_parent, bn_datetime, mb_id, wr_is_comment) VALUES (?, ?, ?, NOW(), ?, 1)`,
+            [boardId, wrId, parentId, mbId]
+        );
+    }
+}
+
 // 공통 프록시 로직
 async function proxyRequest(
     method: string,
@@ -244,6 +324,20 @@ async function proxyRequest(
             'Access-Control-Allow-Headers',
             'Content-Type, Authorization, X-CSRF-Token'
         );
+
+        // 글/댓글 작성 성공 시 g5_board_new에 INSERT (angple-backend에 누락된 로직 보완)
+        if (method === 'POST' && response.status >= 200 && response.status < 300) {
+            insertBoardNew(path, response.clone(), locals).catch((err) => {
+                console.error('[API Proxy] g5_board_new insert error:', err);
+            });
+        }
+
+        // message 게시판 글 수정 시 celebration_banners 동기화
+        if (method === 'PUT' && response.status >= 200 && response.status < 300) {
+            syncCelebrationBanner(path).catch((err) => {
+                console.error('[API Proxy] celebration sync error:', err);
+            });
+        }
 
         return new Response(response.body, {
             status: response.status,
