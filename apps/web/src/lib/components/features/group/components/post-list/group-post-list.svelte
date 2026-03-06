@@ -1,5 +1,7 @@
 <script lang="ts">
+    import { onMount } from 'svelte';
     import type { GroupPost } from '$lib/api/types.js';
+    import { readPostsStore } from '$lib/stores/read-posts.svelte.js';
     import { formatNumber, getRecommendBadgeClass } from '../../../recommended/utils/index.js';
 
     type Props = {
@@ -7,6 +9,22 @@
     };
 
     let { posts }: Props = $props();
+
+    // URL에서 boardId 추출 (/{boardId}/{postId} 형태)
+    function getBoardId(url: string): string {
+        const parts = url.split('/').filter(Boolean);
+        return parts[0] || '';
+    }
+
+    // 읽은 글 표시 (하이드레이션 깜빡임 방지)
+    let showReadState = $state(false);
+    onMount(() => {
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                showReadState = true;
+            });
+        });
+    });
 </script>
 
 {#if posts.length > 0}
@@ -27,7 +45,10 @@
                             {formatNumber(post.recommend_count)}
                         </span>
                         <div
-                            class="text-foreground min-w-0 flex-1 truncate text-[17px] font-medium"
+                            class="min-w-0 flex-1 truncate text-[17px] font-medium {showReadState &&
+                            readPostsStore.isRead(getBoardId(post.url), post.id)
+                                ? 'text-muted-foreground'
+                                : 'text-foreground'}"
                         >
                             {post.title}
                         </div>

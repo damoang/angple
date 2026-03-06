@@ -4,6 +4,7 @@
     import { apiClient } from '$lib/api/index.js';
     import type { FreePost, BoardDisplaySettings } from '$lib/api/types.js';
     import { memberLevelStore } from '$lib/stores/member-levels.svelte.js';
+    import { readPostsStore } from '$lib/stores/read-posts.svelte.js';
     import { Button } from '$lib/components/ui/button/index.js';
     import { layoutRegistry, initCoreLayouts } from './layouts/index.js';
     import CompactLayout from './layouts/list/compact.svelte';
@@ -59,6 +60,16 @@
     let posts = $state<FreePost[]>([]);
     let loading = $state(true);
     let error = $state<string | null>(null);
+
+    // 읽은 글 표시 (하이드레이션 깜빡임 방지)
+    let showReadState = $state(false);
+    onMount(() => {
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                showReadState = true;
+            });
+        });
+    });
 
     // 페이지네이션
     let currentPage = $state(1);
@@ -161,7 +172,12 @@
     <div class={wrapperClass}>
         {#each posts as post, i (post.id)}
             <div class={post.id === currentPostId ? 'current-post-highlight' : ''}>
-                <LayoutComponent {post} {displaySettings} href="/{boardId}/{post.id}" />
+                <LayoutComponent
+                    {post}
+                    {displaySettings}
+                    href="/{boardId}/{post.id}"
+                    isRead={showReadState && readPostsStore.isRead(boardId, post.id)}
+                />
             </div>
             {#if shuffledPromos.length > 0 && i + 1 === 10}
                 {#each shuffledPromos.slice(0, 2) as promo (promo.wrId)}

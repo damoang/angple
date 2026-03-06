@@ -1,11 +1,23 @@
 <script lang="ts">
+    import { onMount } from 'svelte';
     import type { NewsPost } from '$lib/api/types.js';
+    import { readPostsStore } from '$lib/stores/read-posts.svelte.js';
 
     type Props = {
         posts: NewsPost[];
     };
 
     let { posts }: Props = $props();
+
+    // 읽은 글 표시 (하이드레이션 깜빡임 방지)
+    let showReadState = $state(false);
+    onMount(() => {
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                showReadState = true;
+            });
+        });
+    });
 </script>
 
 {#if posts.length > 0}
@@ -19,7 +31,10 @@
                 >
                     <div class="flex items-center gap-2">
                         <div
-                            class="text-foreground min-w-0 flex-1 truncate text-[17px] font-medium"
+                            class="min-w-0 flex-1 truncate text-[17px] font-medium {showReadState &&
+                            readPostsStore.isRead(post.board, post.id)
+                                ? 'text-muted-foreground'
+                                : 'text-foreground'}"
                         >
                             {post.title}
                         </div>

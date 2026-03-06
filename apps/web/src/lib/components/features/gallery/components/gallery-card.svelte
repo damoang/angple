@@ -1,11 +1,21 @@
 <script lang="ts">
     import type { GalleryPost } from '$lib/api/types.js';
+    import { readPostsStore } from '$lib/stores/read-posts.svelte.js';
+    import { browser } from '$app/environment';
 
     type Props = {
         post: GalleryPost;
     };
 
     let { post }: Props = $props();
+
+    // URL에서 boardId 추출
+    function getBoardId(url: string): string {
+        const parts = url.split('/').filter(Boolean);
+        return parts[0] || '';
+    }
+
+    const isRead = $derived(browser && readPostsStore.isRead(getBoardId(post.url), post.id));
 </script>
 
 <a
@@ -43,6 +53,12 @@
 
     <!-- 제목만 -->
     <div class="p-2.5">
-        <p class="text-foreground line-clamp-2 text-[15px] font-medium">{post.title}</p>
+        <p
+            class="line-clamp-2 text-[15px] font-medium {isRead
+                ? 'text-muted-foreground'
+                : 'text-foreground'}"
+        >
+            {post.title}
+        </p>
     </div>
 </a>
