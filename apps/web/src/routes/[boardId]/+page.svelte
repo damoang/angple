@@ -50,11 +50,13 @@
 
     // Board Layout System
     import { layoutRegistry, initCoreLayouts } from '$lib/components/features/board/layouts';
-    import registerGivingLayouts from '../../../../../plugins/giving/hooks/register-layouts.js';
-
     // 코어 레이아웃 초기화 (최초 1회)
     initCoreLayouts();
-    registerGivingLayouts();
+    import('../../../../../plugins/giving/hooks/register-layouts.js')
+        .then((m) => m.default())
+        .catch(() => {
+            /* giving 플러그인 미설치 시 무시 */
+        });
 
     let { data }: { data: PageData } = $props();
 
@@ -109,6 +111,9 @@
 
     // 검색 중인지 여부
     const isSearching = $derived(Boolean(data.searchParams));
+
+    // 현재 페이지 번호 (글 링크에 전달용)
+    const listPage = $derived(Number($page.url.searchParams.get('page')) || 1);
 
     // 읽은 글 표시 지연 — SSR에서는 모든 글이 "안읽음"으로 렌더링되므로,
     // 하이드레이션 직후 즉시 변경하면 깜빡임 발생. 2프레임 대기 후 부드럽게 전환.
@@ -698,7 +703,9 @@
                                         <LayoutComponent
                                             {post}
                                             displaySettings={data.board?.display_settings}
-                                            href="/{boardId}/{post.id}"
+                                            href="/{boardId}/{post.id}{listPage > 1
+                                                ? `?page=${listPage}`
+                                                : ''}"
                                             isRead={showReadState &&
                                                 readPostsStore.isRead(boardId, post.id)}
                                         />
@@ -708,7 +715,9 @@
                                 <LayoutComponent
                                     {post}
                                     displaySettings={data.board?.display_settings}
-                                    href="/{boardId}/{post.id}"
+                                    href="/{boardId}/{post.id}{listPage > 1
+                                        ? `?page=${listPage}`
+                                        : ''}"
                                     isRead={showReadState &&
                                         readPostsStore.isRead(boardId, post.id)}
                                 />
