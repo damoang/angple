@@ -40,6 +40,7 @@
     import { authStore } from '$lib/stores/auth.svelte.js';
     import { AdultBlur } from '$lib/components/features/adult/index.js';
     import { getMemberIconUrl } from '$lib/utils/member-icon.js';
+    import AuthorLink from '$lib/components/ui/author-link/author-link.svelte';
     import { LevelBadge } from '$lib/components/ui/level-badge/index.js';
     import { memberLevelStore } from '$lib/stores/member-levels.svelte.js';
     import { ReactionBar } from '$lib/components/features/reaction/index.js';
@@ -265,7 +266,7 @@
                 <div>
                     <p class="text-foreground flex items-center gap-1.5 font-medium">
                         <LevelBadge level={memberLevelStore.getLevel(post.author_id)} />
-                        {post.author}
+                        <AuthorLink authorId={post.author_id} authorName={post.author} />
                         {#if memoPluginActive && MemoBadge}
                             <MemoBadge memberId={post.author_id} showIcon={true} />
                         {/if}

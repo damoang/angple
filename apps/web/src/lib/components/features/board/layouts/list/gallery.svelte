@@ -3,6 +3,7 @@
     import type { FreePost, BoardDisplaySettings } from '$lib/api/types.js';
     import ImageIcon from '@lucide/svelte/icons/image';
     import { LevelBadge } from '$lib/components/ui/level-badge/index.js';
+    import AuthorLink from '$lib/components/ui/author-link/author-link.svelte';
     import { memberLevelStore } from '$lib/stores/member-levels.svelte.js';
     import { formatDate } from '$lib/utils/format-date.js';
 
@@ -93,7 +94,7 @@
                     ><LevelBadge
                         level={memberLevelStore.getLevel(post.author_id)}
                         size="sm"
-                    />{post.author}</span
+                    /><AuthorLink authorId={post.author_id} authorName={post.author} /></span
                 >
                 <span>·</span>
                 <span>{formatDate(post.created_at)}</span>

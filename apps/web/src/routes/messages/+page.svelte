@@ -163,6 +163,11 @@
     // 초기 로드
     onMount(() => {
         loadMessages();
+        // URL에 to 파라미터가 있으면 쪽지 보내기 다이얼로그 자동 오픈
+        if (data.to) {
+            sendTo = data.to;
+            showSendDialog = true;
+        }
     });
 
     // kind 변경 시 다시 로드

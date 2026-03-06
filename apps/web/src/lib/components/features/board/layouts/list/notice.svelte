@@ -3,6 +3,7 @@
     import type { FreePost, BoardDisplaySettings } from '$lib/api/types.js';
     import Eye from '@lucide/svelte/icons/eye';
     import MessageSquare from '@lucide/svelte/icons/message-square';
+    import AuthorLink from '$lib/components/ui/author-link/author-link.svelte';
     import Pin from '@lucide/svelte/icons/pin';
     import { formatDate } from '$lib/utils/format-date.js';
 
@@ -56,7 +57,7 @@
                     </h2>
                 </div>
                 <div class="text-muted-foreground flex flex-wrap items-center gap-3 text-sm">
-                    <span>{post.author}</span>
+                    <AuthorLink authorId={post.author_id} authorName={post.author} />
                     <span>{formatDate(post.created_at)}</span>
                     <span class="flex items-center gap-1">
                         <Eye class="h-3.5 w-3.5" />

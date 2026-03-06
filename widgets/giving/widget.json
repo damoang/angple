@@ -1,0 +1,12 @@
+{
+    "id": "giving",
+    "name": "나눔",
+    "version": "1.0.0",
+    "description": "진행중인 나눔 목록 (컴팩트)",
+    "author": { "name": "Angple" },
+    "category": "sidebar",
+    "slots": ["sidebar"],
+    "icon": "Gift",
+    "allowMultiple": false,
+    "main": "index.svelte"
+}

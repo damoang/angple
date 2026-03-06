@@ -107,6 +107,7 @@ SESSION_NOTES.md
 # Dev-linked premium assets (symlinks to angple-premium)
 themes/damoang-default
 plugins/
+!apps/web/src/routes/api/plugins/
 apps/web/src/lib/components/ui/podcast-player/
 
 # Claude Code

@@ -10,6 +10,7 @@
     import type { FreePost, BoardDisplaySettings } from '$lib/api/types.js';
     import Heart from '@lucide/svelte/icons/heart';
     import { getMemberIconUrl } from '$lib/utils/member-icon.js';
+    import AuthorLink from '$lib/components/ui/author-link/author-link.svelte';
     import { formatDate } from '$lib/utils/format-date.js';
 
     let {
@@ -114,7 +115,7 @@
                 {/if}
             </div>
             <span class="text-muted-foreground truncate text-xs">
-                {post.author || '익명'}
+                <AuthorLink authorId={post.author_id} authorName={post.author || '익명'} />
             </span>
             {#if post.created_at}
                 <span class="text-muted-foreground/60 ml-auto shrink-0 text-xs">

@@ -3,6 +3,7 @@
     import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card/index.js';
     import type { FreePost, BoardDisplaySettings } from '$lib/api/types.js';
     import Lock from '@lucide/svelte/icons/lock';
+    import AuthorLink from '$lib/components/ui/author-link/author-link.svelte';
     import type { Component } from 'svelte';
     import { pluginStore } from '$lib/stores/plugin.svelte';
     import { LevelBadge } from '$lib/components/ui/level-badge/index.js';
@@ -100,7 +101,10 @@
                                         ><LevelBadge
                                             level={memberLevelStore.getLevel(post.author_id)}
                                             size="sm"
-                                        />{post.author}</span
+                                        /><AuthorLink
+                                            authorId={post.author_id}
+                                            authorName={post.author}
+                                        /></span
                                     >
                                     {#if memoPluginActive && MemoBadge}
                                         <MemoBadge memberId={post.author_id} />

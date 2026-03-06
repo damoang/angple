@@ -43,15 +43,18 @@
     import EconomyShoppingBanner from '$lib/components/features/board/economy-shopping-banner.svelte';
     import QAPostList from '$lib/components/features/board/qa-post-list.svelte';
     import BoardFavoriteButton from '$lib/components/features/board/board-favorite-button.svelte';
+    import BoardSubscribeButton from '$lib/components/features/board/board-subscribe-button.svelte';
 
     // Q&A 게시판 타입 등록
     boardTypeRegistry.register('qa', QAPostList, 'core');
 
     // Board Layout System
     import { layoutRegistry, initCoreLayouts } from '$lib/components/features/board/layouts';
+    import registerGivingLayouts from '../../../../../plugins/giving/hooks/register-layouts.js';
 
     // 코어 레이아웃 초기화 (최초 1회)
     initCoreLayouts();
+    registerGivingLayouts();
 
     let { data }: { data: PageData } = $props();
 
@@ -332,6 +335,7 @@
                         </a>
                     </h1>
                     <BoardFavoriteButton {boardId} {boardTitle} />
+                    <BoardSubscribeButton {boardId} {boardTitle} />
                     <AdminLayoutSwitcher {boardId} currentLayout={listLayoutId} />
                     {#if isAdmin}
                         <Button

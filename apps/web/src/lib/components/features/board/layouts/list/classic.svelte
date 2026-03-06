@@ -7,6 +7,7 @@
     import Play from '@lucide/svelte/icons/play';
     import Pin from '@lucide/svelte/icons/pin';
     import { getMemberIconUrl, handleIconError } from '$lib/utils/member-icon.js';
+    import AuthorLink from '$lib/components/ui/author-link/author-link.svelte';
     import { formatDate, isToday } from '$lib/utils/format-date.js';
     import { formatCompactNumber } from '$lib/utils/format-number.js';
     import { pluginStore } from '$lib/stores/plugin.svelte';
@@ -201,7 +202,7 @@
                             onerror={handleIconError}
                         />
                     {/if}
-                    {post.author}
+                    <AuthorLink authorId={post.author_id} authorName={post.author} />
                     {#if memoPluginActive && MemoBadge}
                         <MemoBadge memberId={post.author_id} />
                     {/if}
@@ -239,7 +240,7 @@
                                 onerror={handleIconError}
                             />
                         {/if}
-                        {post.author}
+                        <AuthorLink authorId={post.author_id} authorName={post.author} />
                         {#if memoPluginActive && MemoBadge}
                             <MemoBadge memberId={post.author_id} />
                         {/if}
