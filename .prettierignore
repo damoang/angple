@@ -18,6 +18,9 @@ yarn.lock
 apps/web/static/
 apps/admin/static/
 
+# CI/CD workflows
+.github/
+
 # Generated files
 .DS_Store
 *.log
