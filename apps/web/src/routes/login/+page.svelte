@@ -248,13 +248,10 @@
                 {/each}
             </div>
 
-            <!-- 회원가입 링크 -->
-            <div class="text-center text-sm">
-                <span class="text-muted-foreground">계정이 없으신가요?</span>
-                <a href="/register" class="text-primary ml-1 font-medium hover:underline"
-                    >회원가입</a
-                >
-            </div>
+            <!-- 회원가입 안내 -->
+            <p class="text-muted-foreground text-center text-xs">
+                계정이 없으신가요? 위 소셜 로그인으로 자동 회원가입됩니다.
+            </p>
         </CardContent>
     </Card>
 </div>

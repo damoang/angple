@@ -22,8 +22,14 @@ import {
     SESSION_COOKIE_MAX_AGE
 } from '$lib/server/auth/session-store.js';
 import type { OAuthUserProfile, SocialProvider } from '$lib/server/auth/oauth/types.js';
+import { setDamoangSSOCookie } from '$lib/server/auth/sso-cookie.js';
 import { verifyTurnstile } from '$lib/server/captcha.js';
 import { checkRateLimit, recordAttempt } from '$lib/server/rate-limit.js';
+import { getCertConfig } from '$lib/server/auth/cert-inicis.js';
+import { getContent, getSiteTitle, replaceContentVariables } from '$lib/server/content.js';
+import { env } from '$env/dynamic/private';
+
+const COOKIE_DOMAIN = env.COOKIE_DOMAIN || undefined;
 
 export const load: PageServerLoad = async ({ url, cookies }) => {
     const provider = url.searchParams.get('provider') || '';
@@ -44,16 +50,28 @@ export const load: PageServerLoad = async ({ url, cookies }) => {
         redirect(302, '/login');
     }
 
+    // 약관/개인정보처리방침 내용 로드
+    const [termsContent, privacyContent, siteTitle] = await Promise.all([
+        getContent('provision'),
+        getContent('privacy'),
+        getSiteTitle()
+    ]);
+
     return {
         provider: socialProfile.provider || provider,
         email: socialProfile.email || email,
         displayName: socialProfile.displayName || '',
-        redirectUrl
+        redirectUrl,
+        termsHtml: termsContent ? replaceContentVariables(termsContent.co_content, siteTitle) : '',
+        privacyHtml: privacyContent
+            ? replaceContentVariables(privacyContent.co_content, siteTitle)
+            : ''
     };
 };
 
 export const actions: Actions = {
     default: async ({ request, cookies, getClientAddress }) => {
+        console.log('[Register] Action started');
         const clientIp = getClientAddress();
         const formData = await request.formData();
         const nickname = (formData.get('nickname') as string)?.trim() || '';
@@ -170,13 +188,16 @@ export const actions: Actions = {
                 ip: clientIp
             });
 
+            const domainOpt = COOKIE_DOMAIN ? { domain: COOKIE_DOMAIN } : {};
+
             // 세션 쿠키 설정
             cookies.set(SESSION_COOKIE_NAME, session.sessionId, {
                 path: '/',
                 httpOnly: true,
                 sameSite: 'lax',
                 secure: !dev,
-                maxAge: SESSION_COOKIE_MAX_AGE
+                maxAge: SESSION_COOKIE_MAX_AGE,
+                ...domainOpt
             });
 
             cookies.set(CSRF_COOKIE_NAME, session.csrfToken, {
@@ -184,7 +205,8 @@ export const actions: Actions = {
                 httpOnly: false,
                 sameSite: 'strict',
                 secure: !dev,
-                maxAge: SESSION_COOKIE_MAX_AGE
+                maxAge: SESSION_COOKIE_MAX_AGE,
+                ...domainOpt
             });
 
             // 레거시 호환: refresh_token도 생성
@@ -196,14 +218,24 @@ export const actions: Actions = {
                 httpOnly: true,
                 sameSite: 'lax',
                 secure: !dev,
-                maxAge: 60 * 60 * 24 * 7
+                maxAge: 60 * 60 * 24 * 7,
+                ...domainOpt
             });
+
+            // SSO 쿠키 설정 (ads.damoang.net 등 Go 서비스 인증용)
+            try {
+                await setDamoangSSOCookie(cookies, {
+                    mb_id: member.mb_id,
+                    mb_level: member.mb_level ?? 0,
+                    mb_name: member.mb_name || member.mb_nick,
+                    mb_email: member.mb_email
+                });
+            } catch {
+                // SSO 쿠키 실패해도 가입은 진행
+            }
 
             // 가입 완료 후 임시 쿠키 삭제
             cookies.delete('pending_social_register', { path: '/' });
-
-            // 리다이렉트
-            redirect(302, redirectUrl);
         } catch (err) {
             // SvelteKit redirect는 다시 throw
             if (err && typeof err === 'object' && 'status' in err) {
@@ -216,5 +248,22 @@ export const actions: Actions = {
                 nickname
             });
         }
+
+        // 실명인증 활성화 시 인증 페이지로
+        try {
+            const certConfig = await getCertConfig();
+            console.log('[Register] certConfig:', JSON.stringify(certConfig));
+            if (certConfig.certUse > 0) {
+                console.log('[Register] Redirecting to /register/cert');
+                redirect(302, '/register/cert');
+            }
+        } catch (err) {
+            if (err && typeof err === 'object' && 'status' in err) {
+                throw err;
+            }
+            console.error('[Register] getCertConfig error:', err);
+        }
+
+        redirect(302, redirectUrl);
     }
 };

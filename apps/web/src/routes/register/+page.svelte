@@ -31,6 +31,38 @@
     let isSubmitting = $state(false);
     let turnstileRef: HTMLDivElement | undefined = $state();
     let turnstileWidgetId: string | undefined = $state();
+    let nicknameRef: HTMLDivElement | undefined = $state();
+
+    // 닉네임 관련 에러인지 판별
+    const nicknameErrors = ['닉네임', '사용할 수 없는'];
+    let isNicknameError = $derived(
+        form?.error ? nicknameErrors.some((k) => form!.error!.includes(k)) : false
+    );
+
+    // 에러 발생 시 닉네임 필드로 스크롤
+    $effect(() => {
+        if (isNicknameError && nicknameRef) {
+            nicknameRef.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    });
+
+    // 약관/개인정보 스크롤 끝까지 읽었는지 여부
+    let termsRead = $state(!data.termsHtml);
+    let privacyRead = $state(!data.privacyHtml);
+
+    function handleTermsScroll(e: Event) {
+        const el = e.target as HTMLDivElement;
+        if (el.scrollTop + el.clientHeight >= el.scrollHeight - 10) {
+            termsRead = true;
+        }
+    }
+
+    function handlePrivacyScroll(e: Event) {
+        const el = e.target as HTMLDivElement;
+        if (el.scrollTop + el.clientHeight >= el.scrollHeight - 10) {
+            privacyRead = true;
+        }
+    }
 
     // Turnstile 렌더링 (에러 시 자동 재시도)
     onMount(() => {
@@ -41,7 +73,6 @@
                 retry: 'auto',
                 'retry-interval': 5000,
                 'error-callback': () => {
-                    // challenge 실패 시 3초 후 자동 리셋
                     setTimeout(() => {
                         if (turnstileWidgetId !== undefined && window.turnstile) {
                             window.turnstile.reset(turnstileWidgetId);
@@ -72,7 +103,7 @@
 </svelte:head>
 
 <div class="flex min-h-[calc(100vh-200px)] items-center justify-center px-4 py-12">
-    <Card class="w-full max-w-md">
+    <Card class="w-full max-w-lg">
         <CardHeader class="text-center">
             <CardTitle class="text-2xl font-bold">회원가입</CardTitle>
             <CardDescription>
@@ -84,8 +115,8 @@
             </CardDescription>
         </CardHeader>
         <CardContent>
-            <!-- 에러 메시지 -->
-            {#if form?.error}
+            <!-- 일반 에러 메시지 (닉네임 외) -->
+            {#if form?.error && !isNicknameError}
                 <div class="bg-destructive/10 text-destructive mb-4 rounded-md p-3 text-sm">
                     {form.error}
                 </div>
@@ -105,7 +136,7 @@
                 <input type="hidden" name="redirect" value={data.redirectUrl} />
 
                 <!-- 닉네임 입력 -->
-                <div class="space-y-2">
+                <div class="space-y-2" bind:this={nicknameRef}>
                     <Label for="nickname">닉네임 <span class="text-destructive">*</span></Label>
                     <Input
                         id="nickname"
@@ -117,56 +148,91 @@
                         minlength={2}
                         required
                         disabled={isSubmitting}
+                        class={isNicknameError ? 'border-destructive' : ''}
                     />
+                    {#if isNicknameError}
+                        <p class="text-destructive text-xs font-medium">{form?.error}</p>
+                    {/if}
                     <p class="text-muted-foreground text-xs">
                         한글, 영문, 숫자, 점(.), 밑줄(_) 사용 가능 (2~20자)
                     </p>
                 </div>
 
-                <!-- 약관 동의 -->
-                <div class="space-y-3">
-                    <div class="flex items-start gap-3">
+                <!-- 이용약관 -->
+                <div class="space-y-2">
+                    <Label class="font-medium">
+                        이용약관 <span class="text-destructive">*</span>
+                    </Label>
+                    {#if data.termsHtml}
+                        <div
+                            class="terms-content border-border bg-muted/30 max-h-48 overflow-y-auto rounded-md border p-3 text-xs leading-relaxed"
+                            onscroll={handleTermsScroll}
+                        >
+                            {@html data.termsHtml}
+                        </div>
+                    {/if}
+                    <div class="flex items-center gap-3">
                         <Checkbox
                             id="agree_terms"
-                            name="agree_terms"
                             bind:checked={agreeTerms}
-                            disabled={isSubmitting}
+                            disabled={isSubmitting || !termsRead}
                         />
-                        <div>
-                            <Label for="agree_terms" class="cursor-pointer font-normal">
-                                <a
-                                    href="/terms"
-                                    target="_blank"
-                                    class="text-primary hover:underline"
-                                >
-                                    이용약관
-                                </a>에 동의합니다
-                                <span class="text-destructive">*</span>
-                            </Label>
-                        </div>
-                    </div>
-
-                    <div class="flex items-start gap-3">
-                        <Checkbox
-                            id="agree_privacy"
-                            name="agree_privacy"
-                            bind:checked={agreePrivacy}
-                            disabled={isSubmitting}
-                        />
-                        <div>
-                            <Label for="agree_privacy" class="cursor-pointer font-normal">
-                                <a
-                                    href="/privacy"
-                                    target="_blank"
-                                    class="text-primary hover:underline"
-                                >
-                                    개인정보처리방침
-                                </a>에 동의합니다
-                                <span class="text-destructive">*</span>
-                            </Label>
-                        </div>
+                        <Label
+                            for="agree_terms"
+                            class="cursor-pointer text-sm {termsRead
+                                ? ''
+                                : 'text-muted-foreground'}"
+                        >
+                            {#if termsRead}
+                                이용약관에 동의합니다
+                            {:else}
+                                약관을 끝까지 읽어주세요
+                            {/if}
+                        </Label>
                     </div>
                 </div>
+
+                <!-- 개인정보처리방침 -->
+                <div class="space-y-2">
+                    <Label class="font-medium">
+                        개인정보처리방침 <span class="text-destructive">*</span>
+                    </Label>
+                    {#if data.privacyHtml}
+                        <div
+                            class="terms-content border-border bg-muted/30 max-h-48 overflow-y-auto rounded-md border p-3 text-xs leading-relaxed"
+                            onscroll={handlePrivacyScroll}
+                        >
+                            {@html data.privacyHtml}
+                        </div>
+                    {/if}
+                    <div class="flex items-center gap-3">
+                        <Checkbox
+                            id="agree_privacy"
+                            bind:checked={agreePrivacy}
+                            disabled={isSubmitting || !privacyRead}
+                        />
+                        <Label
+                            for="agree_privacy"
+                            class="cursor-pointer text-sm {privacyRead
+                                ? ''
+                                : 'text-muted-foreground'}"
+                        >
+                            {#if privacyRead}
+                                개인정보처리방침에 동의합니다
+                            {:else}
+                                방침을 끝까지 읽어주세요
+                            {/if}
+                        </Label>
+                    </div>
+                </div>
+
+                <!-- 체크박스 값 전송용 hidden input -->
+                {#if agreeTerms}
+                    <input type="hidden" name="agree_terms" value="on" />
+                {/if}
+                {#if agreePrivacy}
+                    <input type="hidden" name="agree_privacy" value="on" />
+                {/if}
 
                 <!-- Turnstile CAPTCHA -->
                 {#if PUBLIC_TURNSTILE_SITE_KEY}
@@ -196,3 +262,27 @@
         </CardContent>
     </Card>
 </div>
+
+<style>
+    .terms-content :global(h1),
+    .terms-content :global(h2),
+    .terms-content :global(h3) {
+        font-weight: 600;
+        margin-top: 0.75rem;
+        margin-bottom: 0.25rem;
+    }
+
+    .terms-content :global(p) {
+        margin-bottom: 0.5rem;
+    }
+
+    .terms-content :global(ul),
+    .terms-content :global(ol) {
+        padding-left: 1.25rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .terms-content :global(li) {
+        margin-bottom: 0.25rem;
+    }
+</style>
