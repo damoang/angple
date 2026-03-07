@@ -76,7 +76,8 @@
         }
     }
 
-    // Turnstile 렌더링 (에러 시 자동 재시도)
+    // Turnstile 렌더링 (에러 시 1회만 재시도)
+    let turnstileRetried = false;
     onMount(() => {
         if (PUBLIC_TURNSTILE_SITE_KEY && turnstileRef && window.turnstile) {
             turnstileWidgetId = window.turnstile.render(turnstileRef, {
@@ -85,11 +86,14 @@
                 retry: 'auto',
                 'retry-interval': 5000,
                 'error-callback': () => {
-                    setTimeout(() => {
-                        if (turnstileWidgetId !== undefined && window.turnstile) {
-                            window.turnstile.reset(turnstileWidgetId);
-                        }
-                    }, 3000);
+                    if (!turnstileRetried) {
+                        turnstileRetried = true;
+                        setTimeout(() => {
+                            if (turnstileWidgetId !== undefined && window.turnstile) {
+                                window.turnstile.reset(turnstileWidgetId);
+                            }
+                        }, 3000);
+                    }
                     return true;
                 }
             });
@@ -111,7 +115,10 @@
 </script>
 
 <svelte:head>
-    <title>회원가입 | {import.meta.env.VITE_SITE_NAME || 'Angple'}</title>
+    <title
+        >{data.isInviteFlow ? '광고주 가입' : '회원가입'} | {import.meta.env.VITE_SITE_NAME ||
+            'Angple'}</title
+    >
 </svelte:head>
 
 <div class="flex min-h-[calc(100vh-200px)] items-center justify-center px-4 py-12">
@@ -126,7 +133,7 @@
             </CardTitle>
             <CardDescription>
                 {#if data.isInviteFlow}
-                    광고 계정 연동을 위해 간편 가입합니다
+                    광고 계정 연동을 위한 회원가입입니다
                 {:else}
                     {providerLabel} 계정으로 가입합니다
                 {/if}
@@ -161,10 +168,12 @@
             >
                 <input type="hidden" name="redirect" value={data.redirectUrl} />
 
-                <!-- 닉네임 입력 -->
+                <!-- 닉네임 입력 (초대 플로우에서는 숨김) -->
                 {#if data.isInviteFlow}
-                    <div class="bg-muted/50 text-muted-foreground rounded-md p-3 text-sm">
-                        닉네임은 자동으로 생성됩니다. 가입 후 변경 가능합니다.
+                    <div class="bg-muted/50 rounded-md p-3">
+                        <p class="text-muted-foreground text-sm">
+                            닉네임은 중복되지 않는 값으로 자동 생성됩니다. 가입 후 변경 가능합니다.
+                        </p>
                     </div>
                 {:else}
                     <div class="space-y-2" bind:this={nicknameRef}>
@@ -302,7 +311,6 @@
                 {#if agreePolicy}
                     <input type="hidden" name="agree_policy" value="on" />
                 {/if}
-
                 <!-- Turnstile CAPTCHA -->
                 {#if PUBLIC_TURNSTILE_SITE_KEY}
                     <div bind:this={turnstileRef} class="flex justify-center"></div>
@@ -316,7 +324,7 @@
                         (!data.isInviteFlow && !nickname.trim()) ||
                         !agreeTerms ||
                         !agreePrivacy ||
-                        (data.policyHtml && !agreePolicy)}
+                        (!!data.policyHtml && !agreePolicy)}
                 >
                     {#if isSubmitting}
                         <Loader2 class="mr-2 h-4 w-4 animate-spin" />

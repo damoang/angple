@@ -22,6 +22,7 @@
     let isRedirecting = $state(false);
 
     const redirectUrl = $derived($page.url.searchParams.get('redirect') || '/');
+    const isInviteFlow = $derived(redirectUrl.includes('ads.damoang.net/invite/'));
 
     onMount(() => {
         const oauthError = $page.url.searchParams.get('error');
@@ -139,10 +140,18 @@
             <!-- 헤더 -->
             <div class="text-center">
                 <h1 class="text-xl font-bold tracking-tight">
-                    {import.meta.env.VITE_SITE_NAME || '다모앙'}
+                    {#if isInviteFlow}
+                        광고주 가입 / 연동
+                    {:else}
+                        {import.meta.env.VITE_SITE_NAME || '다모앙'}
+                    {/if}
                 </h1>
                 <p class="text-muted-foreground mt-1 text-sm">
-                    소셜 계정으로 간편하게 로그인하세요
+                    {#if isInviteFlow}
+                        기존 회원은 로그인으로 연동, 신규 회원은 가입이 진행됩니다
+                    {:else}
+                        소셜 계정으로 간편하게 로그인하세요
+                    {/if}
                 </p>
             </div>
 
@@ -250,7 +259,11 @@
 
             <!-- 회원가입 안내 -->
             <p class="text-muted-foreground text-center text-xs">
-                계정이 없으신가요? 위 소셜 로그인으로 자동 회원가입됩니다.
+                {#if isInviteFlow}
+                    소셜 로그인 후 기존 회원은 자동 연동, 신규 회원은 가입 페이지로 이동합니다
+                {:else}
+                    계정이 없으신가요? 위 소셜 로그인으로 자동 회원가입됩니다.
+                {/if}
             </p>
         </CardContent>
     </Card>

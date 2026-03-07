@@ -9,6 +9,7 @@ import { randomBytes } from 'crypto';
 import {
     generateSocialMbId,
     validateNickname,
+    isNicknameTaken,
     isMbIdTaken,
     createMember
 } from '$lib/server/auth/register.js';
@@ -50,15 +51,15 @@ export const load: PageServerLoad = async ({ url, cookies }) => {
         redirect(302, '/login');
     }
 
-    // 약관/개인정보처리방침/이용제한사유 내용 로드
+    const isInviteFlow = redirectUrl.includes('ads.damoang.net/invite/');
+
+    // 약관/개인정보처리방침/이용제한사유 로드
     const [termsContent, privacyContent, policyContent, siteTitle] = await Promise.all([
         getContent('provision'),
         getContent('privacy'),
         getContent('operation_policy_add'),
         getSiteTitle()
     ]);
-
-    const isInviteFlow = redirectUrl.includes('ads.damoang.net/invite/');
 
     return {
         provider: socialProfile.provider || provider,
@@ -143,14 +144,13 @@ export const actions: Actions = {
         // 초대 플로우 감지
         const isInviteFlow = redirectUrl.includes('ads.damoang.net/invite/');
 
-        // 닉네임 처리: 초대 플로우면 자동 생성, 아니면 검증
+        // 닉네임: 초대 플로우는 중복되지 않는 값으로 자동 생성, 일반은 검증
         let finalNickname = nickname;
         if (isInviteFlow) {
-            finalNickname = 'inv_' + randomBytes(4).toString('hex');
-            for (let i = 0; i < 3; i++) {
-                const check = await validateNickname(finalNickname);
-                if (check.valid) break;
+            // 중복되지 않는 닉네임 생성 (최대 5회 시도)
+            for (let i = 0; i < 5; i++) {
                 finalNickname = 'inv_' + randomBytes(4).toString('hex');
+                if (!(await isNicknameTaken(finalNickname))) break;
             }
         } else {
             const nicknameResult = await validateNickname(nickname);
@@ -162,10 +162,8 @@ export const actions: Actions = {
             }
         }
 
-        // mb_id 생성 (PHP 호환)
+        // mb_id: 소셜 프로바이더 기반 자동 생성
         let mbId = generateSocialMbId(socialProfile.provider, socialProfile.identifier);
-
-        // 혹시 mb_id가 이미 존재하면 cryptographic suffix 추가
         if (await isMbIdTaken(mbId)) {
             mbId = mbId + '_' + randomBytes(4).toString('hex');
         }
