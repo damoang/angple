@@ -4,6 +4,7 @@
      */
     import { Card, CardHeader, CardContent } from '$lib/components/ui/card';
     import { readPostsStore } from '$lib/stores/read-posts.svelte.js';
+    import { getReadPostClasses } from '$lib/stores/read-post-style.svelte.js';
     import { browser } from '$app/environment';
 
     interface Post {
@@ -46,18 +47,17 @@
         {#if posts.length === 0}
             <p class="text-muted-foreground py-4 text-center text-sm">게시글이 없습니다.</p>
         {:else}
-            <ul class="divide-border divide-y">
+            <ul>
                 {#each posts as post (post.id)}
-                    <li class="py-2">
+                    <li>
                         <a
                             href={post.url ?? `#`}
-                            class="hover:text-primary flex items-center justify-between gap-2 text-sm transition-colors"
+                            class="hover:bg-muted flex items-center justify-between gap-2 rounded px-2 py-1.5 transition-all duration-200 ease-out"
                         >
                             <span
-                                class="min-w-0 flex-1 truncate {browser &&
-                                readPostsStore.isRead(boardId, post.id)
-                                    ? 'text-muted-foreground'
-                                    : ''}">{post.title}</span
+                                class="min-w-0 flex-1 truncate text-[15px] leading-relaxed {getReadPostClasses(
+                                    browser && readPostsStore.isRead(boardId, post.id)
+                                )}">{post.title}</span
                             >
                             <span
                                 class="text-muted-foreground flex shrink-0 items-center gap-2 text-xs"

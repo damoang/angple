@@ -228,20 +228,31 @@ export const POST: RequestHandler = async ({ params, request, cookies, getClient
             const commentAuthorId = writeRows[0].mb_id;
             if (commentAuthorId && commentAuthorId !== user.mb_id) {
                 const userNick = user.mb_nick || user.mb_name || user.mb_id;
-                pool.query(
-                    `INSERT INTO g5_na_noti (ph_to_case, ph_from_case, bo_table, wr_id, mb_id, rel_mb_id, rel_mb_nick, rel_msg, rel_url, ph_readed, ph_datetime, parent_subject, wr_parent)
-                     VALUES ('good', 'good', ?, ?, ?, ?, ?, ?, ?, 'N', NOW(), '', ?)`,
-                    [
-                        safeBoardId,
-                        safeCommentId,
-                        commentAuthorId,
-                        user.mb_id,
-                        userNick,
-                        `${userNick}님이 회원님의 댓글을 추천했습니다.`,
-                        `/${safeBoardId}/${params.postId}#c_${safeCommentId}`,
-                        parseInt(params.postId!, 10)
-                    ]
-                ).catch(() => {});
+                // 부모 글 제목 조회
+                const safeParentPostId = parseInt(params.postId!, 10);
+                pool.query<WriteRow[]>(`SELECT wr_subject FROM ?? WHERE wr_id = ?`, [
+                    tableName,
+                    safeParentPostId
+                ])
+                    .then(([parentRows]) => {
+                        const parentSubject = (parentRows[0] as any)?.wr_subject || '';
+                        pool.query(
+                            `INSERT INTO g5_na_noti (ph_to_case, ph_from_case, bo_table, wr_id, mb_id, rel_mb_id, rel_mb_nick, rel_msg, rel_url, ph_readed, ph_datetime, parent_subject, wr_parent)
+                         VALUES ('good', 'good', ?, ?, ?, ?, ?, ?, ?, 'N', NOW(), ?, ?)`,
+                            [
+                                safeBoardId,
+                                safeCommentId,
+                                commentAuthorId,
+                                user.mb_id,
+                                userNick,
+                                `${userNick}님이 회원님의 댓글을 추천했습니다.`,
+                                `/${safeBoardId}/${params.postId}#c_${safeCommentId}`,
+                                parentSubject,
+                                safeParentPostId
+                            ]
+                        );
+                    })
+                    .catch(() => {});
             }
         }
 

@@ -13,6 +13,7 @@
     import { pluginStore } from '$lib/stores/plugin.svelte';
     import { loadPluginComponent } from '$lib/utils/plugin-optional-loader';
     import { readPostStyleStore } from '$lib/stores/read-post-style.svelte.js';
+    import { uiSettingsStore } from '$lib/stores/ui-settings.svelte.js';
 
     // 메모 플러그인
     let memoPluginActive = $derived(pluginStore.isPluginActive('member-memo'));
@@ -179,7 +180,10 @@
                             {post.category}
                         </span>
                     {/if}
-                    <span class="truncate {readClass}">
+                    <span
+                        class="truncate {readClass}"
+                        class:font-bold={uiSettingsStore.titleBold && !isRead}
+                    >
                         {post.title}
                     </span>
                     <!-- 부가 아이콘: N, 이미지, 동영상, 댓글 -->

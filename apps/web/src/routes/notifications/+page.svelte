@@ -310,12 +310,14 @@
                                             <p class="text-foreground font-medium">
                                                 {notification.title}
                                             </p>
-                                            <p
-                                                class="text-muted-foreground mt-1 line-clamp-2 text-sm"
-                                            >
-                                                {notification.content}
-                                            </p>
-                                            <p class="text-muted-foreground mt-2 text-xs">
+                                            {#if notification.parent_subject}
+                                                <p
+                                                    class="text-muted-foreground mt-1 line-clamp-1 text-sm"
+                                                >
+                                                    "{notification.parent_subject}"
+                                                </p>
+                                            {/if}
+                                            <p class="text-muted-foreground mt-1 text-xs">
                                                 {formatTime(notification.created_at)}
                                             </p>
                                         </div>

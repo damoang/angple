@@ -247,10 +247,10 @@ export const POST: RequestHandler = async ({ request, cookies, getClientAddress 
                 const wrId = parseInt(targetParts[2], 10);
                 if (!isNaN(wrId)) {
                     pool.query<RowDataPacket[]>(
-                        `SELECT mb_id, wr_parent FROM g5_write_${boardTable} WHERE wr_id = ?`,
+                        `SELECT mb_id, wr_parent, wr_subject FROM g5_write_${boardTable} WHERE wr_id = ?`,
                         [wrId]
                     )
-                        .then(([rows]) => {
+                        .then(async ([rows]) => {
                             const authorId = rows[0]?.mb_id;
                             const wrParent = rows[0]?.wr_parent ?? wrId;
                             if (authorId && authorId !== user.mb_id) {
@@ -259,9 +259,18 @@ export const POST: RequestHandler = async ({ request, cookies, getClientAddress 
                                 const targetLabel = isComment ? '댓글' : '글';
                                 const urlHash = isComment ? `#c_${wrId}` : '';
                                 const postId = isComment ? wrParent : wrId;
+                                // 부모 글 제목
+                                let parentSubject = rows[0]?.wr_subject || '';
+                                if (isComment && wrParent !== wrId) {
+                                    const [parentRows] = await pool.query<RowDataPacket[]>(
+                                        `SELECT wr_subject FROM g5_write_${boardTable} WHERE wr_id = ?`,
+                                        [wrParent]
+                                    );
+                                    parentSubject = parentRows[0]?.wr_subject || '';
+                                }
                                 pool.query(
                                     `INSERT INTO g5_na_noti (ph_to_case, ph_from_case, bo_table, wr_id, mb_id, rel_mb_id, rel_mb_nick, rel_msg, rel_url, ph_readed, ph_datetime, parent_subject, wr_parent)
-                                     VALUES ('reaction', 'reaction', ?, ?, ?, ?, ?, ?, ?, 'N', NOW(), '', ?)`,
+                                     VALUES ('reaction', 'reaction', ?, ?, ?, ?, ?, ?, ?, 'N', NOW(), ?, ?)`,
                                     [
                                         boardTable,
                                         wrId,
@@ -270,6 +279,7 @@ export const POST: RequestHandler = async ({ request, cookies, getClientAddress 
                                         userNick,
                                         `${userNick}님이 회원님의 ${targetLabel}에 리액션을 남겼습니다.`,
                                         `/${boardTable}/${postId}${urlHash}`,
+                                        parentSubject,
                                         postId
                                     ]
                                 ).catch(() => {});

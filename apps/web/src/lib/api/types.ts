@@ -702,6 +702,7 @@ export interface Notification {
     sender_name?: string; // 발신자 이름
     is_read: boolean;
     created_at: string;
+    parent_subject?: string; // 원본 글 제목 (힌트)
 }
 
 export interface NotificationSummary {

@@ -244,10 +244,12 @@
                             <p class="text-foreground line-clamp-1 text-sm font-medium">
                                 {notification.title}
                             </p>
-                            <p class="text-muted-foreground mt-0.5 line-clamp-2 text-xs">
-                                {notification.content}
-                            </p>
-                            <p class="text-muted-foreground mt-1 text-xs">
+                            {#if notification.parent_subject}
+                                <p class="text-muted-foreground mt-0.5 line-clamp-1 text-xs">
+                                    "{notification.parent_subject}"
+                                </p>
+                            {/if}
+                            <p class="text-muted-foreground mt-0.5 text-[11px]">
                                 {formatTime(notification.created_at)}
                             </p>
                         </div>

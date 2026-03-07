@@ -20,6 +20,7 @@ interface WriteRow extends RowDataPacket {
     wr_good: number;
     wr_nogood: number;
     mb_id: string;
+    wr_subject?: string;
 }
 
 /**
@@ -151,7 +152,7 @@ export const POST: RequestHandler = async ({ params, request, cookies, getClient
 
         // 게시글 존재 확인 + 본인 글 추천 방지
         const [writeRows] = await conn.query<WriteRow[]>(
-            `SELECT wr_good, wr_nogood, mb_id FROM ?? WHERE wr_id = ? AND wr_is_comment = 0`,
+            `SELECT wr_good, wr_nogood, mb_id, wr_subject FROM ?? WHERE wr_id = ? AND wr_is_comment = 0`,
             [tableName, safePostId]
         );
 
@@ -232,9 +233,10 @@ export const POST: RequestHandler = async ({ params, request, cookies, getClient
             const postAuthorId = writeRows[0].mb_id;
             if (postAuthorId && postAuthorId !== user.mb_id) {
                 const userNick = user.mb_nick || user.mb_name || user.mb_id;
+                const postSubject = writeRows[0].wr_subject || '';
                 pool.query(
                     `INSERT INTO g5_na_noti (ph_to_case, ph_from_case, bo_table, wr_id, mb_id, rel_mb_id, rel_mb_nick, rel_msg, rel_url, ph_readed, ph_datetime, parent_subject, wr_parent)
-                     VALUES ('good', 'good', ?, ?, ?, ?, ?, ?, ?, 'N', NOW(), '', ?)`,
+                     VALUES ('good', 'good', ?, ?, ?, ?, ?, ?, ?, 'N', NOW(), ?, ?)`,
                     [
                         safeBoardId,
                         safePostId,
@@ -243,6 +245,7 @@ export const POST: RequestHandler = async ({ params, request, cookies, getClient
                         userNick,
                         `${userNick}님이 회원님의 글을 추천했습니다.`,
                         `/${safeBoardId}/${safePostId}`,
+                        postSubject,
                         safePostId
                     ]
                 ).catch(() => {});
