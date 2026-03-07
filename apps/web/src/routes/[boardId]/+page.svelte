@@ -313,7 +313,7 @@
             <!-- 최상단 배너 (축하이미지 → 다모앙광고 → GAM 폴백) -->
             {#if widgetLayoutStore.hasEnabledAds}
                 <div class="mb-4">
-                    <DamoangBanner position="board-list" height="90px" showCelebration={false} />
+                    <DamoangBanner position="board-list" height="45px" showCelebration={false} />
                 </div>
             {/if}
 
@@ -396,7 +396,7 @@
             <!-- 검색 폼 아래 GAM 광고 -->
             {#if widgetLayoutStore.hasEnabledAds}
                 <div class="mb-4">
-                    <AdSlot position="board-head" height="90px" />
+                    <AdSlot position="board-head" height="45px" />
                 </div>
             {/if}
 

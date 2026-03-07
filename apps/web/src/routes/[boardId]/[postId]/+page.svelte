@@ -982,7 +982,7 @@
     <!-- 상단 배너 -->
     {#if widgetLayoutStore.hasEnabledAds}
         <div class="mb-6">
-            <DamoangBanner position="board-view" showCelebration={false} height="90px" />
+            <DamoangBanner position="board-view" showCelebration={false} height="45px" />
         </div>
     {/if}
 
@@ -1055,7 +1055,7 @@
     <!-- 네비게이션 아래 GAM 광고 (알뜰구매/중고장터 등 특정 게시판에서만 표시) -->
     {#if widgetLayoutStore.hasEnabledAds && (boardType === 'economy' || boardType === 'used-market')}
         <div class="mb-6">
-            <AdSlot position="board-view-top" height="90px" />
+            <AdSlot position="board-view-top" height="45px" />
         </div>
     {/if}
 
