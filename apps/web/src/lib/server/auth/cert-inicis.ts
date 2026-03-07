@@ -115,9 +115,9 @@ export async function generateRequestParams(callbackUrl: string): Promise<CertRe
  */
 function decryptSeed(ciphertext: string, seedKey: string): string {
     try {
-        const keyBytes = Array.from(Buffer.from(seedKey, 'base64'));
-        const ivBytes = Array.from(Buffer.from(SEED_IV, 'ascii'));
-        const encBytes = Array.from(Buffer.from(ciphertext, 'base64'));
+        const keyBytes = new Uint8Array(Buffer.from(seedKey, 'base64'));
+        const ivBytes = new Uint8Array(Buffer.from(SEED_IV, 'ascii'));
+        const encBytes = new Uint8Array(Buffer.from(ciphertext, 'base64'));
 
         if (encBytes.length === 0) return ciphertext;
 
@@ -144,8 +144,8 @@ function decryptSeed(ciphertext: string, seedKey: string): string {
 
         // 0바이트인 경우: 더미 패딩 블록 추가 방식으로 재시도
         // 마지막 암호문 블록을 IV로 사용해서 PKCS5 full padding (16 bytes of 0x10)을 암호화
-        const lastCipherBlock = encBytes.slice(-16);
-        const paddingBlock = new Array(16).fill(16); // PKCS5: 전체가 패딩
+        const lastCipherBlock = new Uint8Array(encBytes.slice(-16));
+        const paddingBlock = new Uint8Array(16).fill(16); // PKCS5: 전체가 패딩
         const encPadding = KISA_SEED_CBC.SEED_CBC_Encrypt(
             keyBytes,
             lastCipherBlock,
@@ -157,7 +157,10 @@ function decryptSeed(ciphertext: string, seedKey: string): string {
         if (!encPadding || encPadding.length === 0) return ciphertext;
 
         // 원본 + 암호화된 패딩 블록 결합 (패딩 블록이 32바이트로 나올 수 있음 — 첫 16바이트만 사용)
-        const extended = [...encBytes, ...Array.from(encPadding).slice(0, 16)];
+        const extended = new Uint8Array([
+            ...encBytes,
+            ...Array.from(encPadding as Uint8Array).slice(0, 16)
+        ]);
         decBytes = KISA_SEED_CBC.SEED_CBC_Decrypt(keyBytes, ivBytes, extended, 0, extended.length);
 
         if (!decBytes || decBytes.length === 0) return ciphertext;

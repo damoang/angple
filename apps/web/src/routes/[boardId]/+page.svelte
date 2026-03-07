@@ -321,7 +321,7 @@
             {#if widgetLayoutStore.widgets.find((w) => w.type === 'tag-nav')?.enabled !== false}
                 <TagNav
                     menus={widgetLayoutStore.widgets.find((w) => w.type === 'tag-nav')?.settings
-                        ?.menus}
+                        ?.menus as import('$lib/components/ui/tag-nav').TagNavMenu[] | undefined}
                     class="mb-4"
                 />
             {/if}
