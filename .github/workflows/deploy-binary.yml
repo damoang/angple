@@ -1,17 +1,11 @@
 name: Deploy Build to Prod
 
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
     inputs:
       confirm:
         description: '배포 확인 ("deploy" 입력)'
         required: true
-        type: string
-      image_tag:
-        description: '배포할 이미지 태그 (비워두면 latest)'
-        required: false
         type: string
 
 permissions:
@@ -25,10 +19,10 @@ env:
   ECR_REGISTRY: 891376997084.dkr.ecr.ap-northeast-2.amazonaws.com
 
 jobs:
-  build:
-    name: Build & Push to ECR
+  build-and-deploy:
+    name: Build & Deploy
     runs-on: ubuntu-latest
-    if: github.event_name == 'push'
+    if: inputs.confirm == 'deploy'
 
     steps:
       - uses: actions/checkout@v4
@@ -70,7 +64,6 @@ jobs:
           VITE_GAM_NETWORK_CODE: '23338387889'
           VITE_GAM_SITE_NAME: 'damoang'
         run: |
-          # .env 파일 생성 (gitignored이므로 CI에서 명시적으로 생성)
           echo "VITE_GAM_NETWORK_CODE=23338387889" > apps/web/.env
           echo "VITE_GAM_SITE_NAME=damoang" >> apps/web/.env
 
@@ -81,11 +74,10 @@ jobs:
           grep -rl "private_env.ADS_SERVER_URL" apps/web/build/server/ 2>/dev/null | grep -v ".map" || echo "WARNING: ADS_SERVER_URL not found in build!"
           grep -c "localhost:9090" apps/web/build/server/chunks/_server.ts-*.js 2>/dev/null && echo "WARNING: localhost:9090 hardcoded in server chunks!" || true
 
-          # GAM 네트워크 코드 검증 (크리티컬)
           if grep -rl "23338387889" apps/web/build/client/ >/dev/null 2>&1; then
-            echo "✅ GAM network code verified in client bundle"
+            echo "GAM network code verified in client bundle"
           else
-            echo "❌ FATAL: GAM network code NOT found in client bundle!"
+            echo "FATAL: GAM network code NOT found in client bundle!"
             exit 1
           fi
 
@@ -107,13 +99,10 @@ jobs:
 
       - name: Prepare deployment package
         run: |
-          # pnpm deploy로 독립 실행 가능한 패키지 생성 (pnpm v10 requires --legacy)
           pnpm --filter web deploy --prod --legacy apps/web/deploy
 
-          # 빌드 결과물 복사
           cp -r apps/web/build apps/web/deploy/
 
-          # 런타임 에셋 복사 (plugins, widgets, themes)
           cp -r plugins apps/web/deploy/ 2>/dev/null || mkdir -p apps/web/deploy/plugins
           cp -r widgets apps/web/deploy/ 2>/dev/null || mkdir -p apps/web/deploy/widgets
           cp -r themes apps/web/deploy/ 2>/dev/null || mkdir -p apps/web/deploy/themes
@@ -128,7 +117,6 @@ jobs:
 
           echo "Building ARM64 image: ${FULL_IMAGE}"
 
-          # Create Dockerfile
           cat > apps/web/deploy/Dockerfile << 'EOF'
           FROM node:22-alpine
           WORKDIR /app
@@ -139,7 +127,6 @@ jobs:
           CMD ["node", "build/index.js"]
           EOF
 
-          # Build and push for ARM64 (--no-cache to prevent stale build artifacts)
           cd apps/web/deploy
           docker buildx build \
             --platform linux/arm64 \
@@ -151,36 +138,9 @@ jobs:
 
           echo "Image pushed: ${FULL_IMAGE}"
 
-  deploy:
-    name: Deploy to K8s
-    runs-on: ubuntu-latest
-    if: github.event_name == 'workflow_dispatch' && inputs.confirm == 'deploy'
-
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 1
-
-      - name: Set image tag
-        id: tag
-        run: |
-          if [ -n "${{ inputs.image_tag }}" ]; then
-            echo "TAG=${{ inputs.image_tag }}" >> $GITHUB_OUTPUT
-          else
-            # latest 대신 SHA 태그 사용 (K8s가 이미지 변경을 감지하도록)
-            SHA=$(git rev-parse HEAD)
-            echo "TAG=sha-${SHA}" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: arn:aws:iam::891376997084:role/GitHubActionsDeployRole
-          aws-region: ${{ env.AWS_REGION }}
-
       - name: Deploy via SSM
         env:
-          IMAGE_TAG: ${{ steps.tag.outputs.TAG }}
+          IMAGE_TAG: sha-${{ github.sha }}
         run: |
           COMMAND_ID=$(aws ssm send-command \
             --instance-ids "i-038a1d1f00798d94b" \
@@ -222,23 +182,3 @@ jobs:
               --output text
             exit 1
           fi
-
-      - name: Create GitHub Release
-        run: |
-          TIMESTAMP=$(date +%Y%m%d-%H%M%S)
-          TAG="deploy-${TIMESTAMP}"
-
-          # Delete old deploy releases (keep last 5)
-          gh release list --limit 100 | grep "^deploy-" | tail -n +6 | cut -f1 | while read tag; do
-            gh release delete "$tag" --yes --cleanup-tag || true
-          done
-
-          # Create release (for tracking)
-          gh release create "${TAG}" \
-            --title "Deploy ${TIMESTAMP}" \
-            --notes "Docker image: ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ steps.tag.outputs.TAG }}"
-
-          echo "Release created: ${TAG}"
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GH_REPO: ${{ github.repository }}
