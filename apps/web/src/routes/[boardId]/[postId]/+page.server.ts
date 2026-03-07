@@ -20,7 +20,8 @@ export const load: PageServerLoad = async ({
     fetch: svelteKitFetch,
     locals,
     url,
-    cookies
+    cookies,
+    getClientAddress
 }) => {
     const { boardId, postId } = params;
 
@@ -298,12 +299,23 @@ export const load: PageServerLoad = async ({
             return { comments, promotionPosts, revisions, reactions, likersData, memberLevels };
         })();
 
+        // 워터마크 대상 게시판: 열람자 IP 전달
+        let clientIp = '';
+        if (boardId === 'truthroom') {
+            try {
+                clientIp = getClientAddress();
+            } catch {
+                clientIp = '';
+            }
+        }
+
         return {
             boardId,
             post,
             board,
             isScrapped,
             promotionExpired,
+            clientIp,
             /** 스트리밍: Promise로 반환 → 클라이언트에서 $effect로 수신 */
             streamed: {
                 secondaryData: secondaryDataPromise
