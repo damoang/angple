@@ -412,7 +412,7 @@
                 <!-- 공유 + 신고 (우측 정렬) -->
                 <div class="ml-auto flex items-center gap-1">
                     {#if board?.use_sns}
-                        <ShareButton {boardId} postId={post.id} title={post.subject || ''} />
+                        <ShareButton {boardId} postId={post.id} title={post.title || ''} />
                     {/if}
                     {#if !isAuthor}
                         <Button
