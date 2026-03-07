@@ -249,10 +249,16 @@
         promise
             .then(
                 (result: {
-                    comments: { items: FreeComment[] };
+                    comments: {
+                        items: FreeComment[];
+                        total: number;
+                        page: number;
+                        limit: number;
+                        total_pages: number;
+                    };
                     promotionPosts: unknown[];
                     revisions: PostRevision[];
-                    reactions?: Record<string, ReactionItem[]>;
+                    reactions?: Record<string, unknown>;
                     likersData?: { likers: LikerInfo[]; total: number };
                     memberLevels?: Record<string, number>;
                 }) => {
@@ -263,9 +269,10 @@
 
                     // SSR 리액션 데이터 적용
                     if (result.reactions && Object.keys(result.reactions).length > 0) {
-                        reactionsMap = result.reactions;
+                        reactionsMap = result.reactions as Record<string, ReactionItem[]>;
                         const docTargetId = generateDocumentTargetId(boardId, data.post.id);
-                        postReactions = result.reactions[docTargetId] || [];
+                        postReactions =
+                            (result.reactions as Record<string, ReactionItem[]>)[docTargetId] || [];
                     }
 
                     // SSR 추천자 아바타 적용
@@ -1126,6 +1133,20 @@
                     />
 
                     <div class="border-border border-t pt-6">
+                        <div class="mb-3 flex justify-end">
+                            <button
+                                type="button"
+                                onclick={refreshComments}
+                                disabled={isRefreshingComments}
+                                class="text-muted-foreground hover:text-foreground flex items-center gap-1 rounded-md px-2 py-1 text-xs transition-colors disabled:opacity-50"
+                                title="댓글 새로고침"
+                            >
+                                <RefreshCw
+                                    class="size-3.5 {isRefreshingComments ? 'animate-spin' : ''}"
+                                />
+                                새로고침
+                            </button>
+                        </div>
                         <CommentForm
                             onSubmit={handleCreateComment}
                             isLoading={isCreatingComment}

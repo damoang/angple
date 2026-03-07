@@ -133,7 +133,7 @@
             type="button"
             onclick={() => handleReactionClick(item.reaction)}
             disabled={isReacting}
-            class="da-reaction-badge inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs transition-all
+            class="da-reaction-badge inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-sm transition-all
 				{item.choose
                 ? 'border-primary/50 bg-primary/10 text-primary ring-primary/20 ring-1'
                 : 'border-border bg-muted/50 text-muted-foreground hover:border-primary/30 hover:bg-primary/5'}"
@@ -143,11 +143,11 @@
                 <img
                     src={display.url}
                     alt={display.label}
-                    class="h-4 w-4 object-contain"
+                    class="h-5 w-5 object-contain"
                     loading="lazy"
                 />
             {:else}
-                <span class="text-sm leading-none">{display.emoji}</span>
+                <span class="text-base leading-none">{display.emoji}</span>
             {/if}
             <span class="font-medium">{item.count}</span>
         </button>
@@ -164,10 +164,10 @@
             }
             showPicker = !showPicker;
         }}
-        class="border-border bg-muted/30 text-muted-foreground hover:border-primary/30 hover:bg-primary/5 hover:text-foreground inline-flex h-6 items-center gap-1 rounded-full border px-1.5 text-xs transition-colors"
+        class="border-border bg-muted/30 text-muted-foreground hover:border-primary/30 hover:bg-primary/5 hover:text-foreground inline-flex h-8 items-center gap-1 rounded-full border px-2 text-sm transition-colors"
         title="리액션 추가"
     >
-        <SmilePlus class="h-3.5 w-3.5" />
+        <SmilePlus class="h-4 w-4" />
     </button>
 
     <!-- 이모티콘 피커 -->
