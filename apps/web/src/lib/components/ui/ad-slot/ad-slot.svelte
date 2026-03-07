@@ -268,6 +268,7 @@
         'comment-top': 'banner-compact',
         'sidebar-sticky': 'banner-halfpage',
         sidebar: 'banner-square',
+        'sidebar-1': 'banner-square',
         'sidebar-2': 'banner-square',
         'sidebar-b2b': 'banner-square',
         'wing-left': 'banner-vertical',
