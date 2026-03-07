@@ -1187,7 +1187,13 @@
         margin-left: 0;
         margin-bottom: 0.75rem;
         font-style: italic;
+        font-synthesis: style;
         color: var(--muted-foreground);
+    }
+
+    :global(.tiptap-content .tiptap em) {
+        font-style: italic;
+        font-synthesis: style;
     }
 
     /* 코드 블록 스타일 */

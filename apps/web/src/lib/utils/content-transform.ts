@@ -165,15 +165,16 @@ export function transformInlineCode(text: string): string {
  * <code>, <pre> 내부는 변환하지 않음
  */
 export function transformInlineMarkdown(text: string): string {
-    if (!text || (!text.includes('*') && !text.includes('~~'))) return text;
+    if (!text || (!text.includes('*') && !text.includes('~~') && !text.includes('_'))) return text;
 
     // <pre>...</pre>, <code>...</code> 블록을 보호하면서 나머지만 변환
+    // __bold__, _italic_ 은 단어 경계(\b)에서만 매칭 (URL 내 _ 오작동 방지)
     return text.replace(
-        /(<pre[\s>][\s\S]*?<\/pre>|<code[\s>][\s\S]*?<\/code>)|(\*\*(.+?)\*\*|\*(.+?)\*|~~(.+?)~~)/g,
-        (match, codeBlock, _md, bold, italic, strike) => {
+        /(<pre[\s>][\s\S]*?<\/pre>|<code[\s>][\s\S]*?<\/code>)|(\*\*(.+?)\*\*|\b__(.+?)__\b|\*(.+?)\*|\b_(.+?)_\b|~~(.+?)~~)/g,
+        (match, codeBlock, _md, boldStar, boldUnderscore, italicStar, italicUnderscore, strike) => {
             if (codeBlock) return codeBlock;
-            if (bold) return `<strong>${bold}</strong>`;
-            if (italic) return `<em>${italic}</em>`;
+            if (boldStar || boldUnderscore) return `<strong>${boldStar || boldUnderscore}</strong>`;
+            if (italicStar || italicUnderscore) return `<em>${italicStar || italicUnderscore}</em>`;
             if (strike) return `<del>${strike}</del>`;
             return match;
         }

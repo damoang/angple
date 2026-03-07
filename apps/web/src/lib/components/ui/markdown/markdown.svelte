@@ -309,6 +309,7 @@
         margin: 1rem 0;
         color: var(--muted-foreground);
         font-style: italic;
+        font-synthesis: style;
     }
 
     .prose :global(code) {
@@ -408,6 +409,7 @@
 
     .prose :global(em) {
         font-style: italic;
+        font-synthesis: style;
     }
 
     /* 임베드 컨테이너 스타일 */
