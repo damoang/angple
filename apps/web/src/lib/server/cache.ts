@@ -34,6 +34,8 @@ const DEFAULT_OPTIONS: CacheOptions = {
 
 export interface Cache<T> {
     get(key: string): T | undefined;
+    /** TTL 만료되어도 stale 데이터 반환 (에러 fallback용) */
+    getStale(key: string): T | undefined;
     set(key: string, value: T): void;
     getOrSet(key: string, factory: () => Promise<T>): Promise<T>;
     delete(key: string): void;
@@ -65,6 +67,11 @@ export function createCache<T>(options?: Partial<CacheOptions>): Cache<T> {
                 return undefined;
             }
             return entry.value;
+        },
+
+        getStale(key: string): T | undefined {
+            const entry = store.get(key);
+            return entry?.value;
         },
 
         set(key: string, value: T): void {

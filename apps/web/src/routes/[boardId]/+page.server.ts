@@ -50,8 +50,8 @@ export const load: PageServerLoad = async ({ url, params, locals }) => {
             board = cached;
         } else {
             const [boardRes, displaySettingsRes] = await Promise.all([
-                bFetch(`/api/v1/boards/${boardId}`, { headers }),
-                bFetch(`/api/v1/boards/${boardId}/display-settings`, { headers })
+                bFetch(`/api/v1/boards/${boardId}`, { headers, timeout: 3_000 }),
+                bFetch(`/api/v1/boards/${boardId}/display-settings`, { headers, timeout: 3_000 })
             ]);
             board = boardRes.ok ? ((await boardRes.json()).data as Board) : null;
 
@@ -138,11 +138,13 @@ export const load: PageServerLoad = async ({ url, params, locals }) => {
             // 프로모션 게시판: ads 서버에서 광고주별 제한된 게시글 조회
             const [promoBoardResult, noticesResult] = await Promise.allSettled([
                 fetchPromotionBoardPosts(),
-                bFetch(`/api/v1/boards/${boardId}/notices`, { headers }).then(async (res) => {
-                    if (!res.ok) return [];
-                    const json = await res.json();
-                    return (json.data as FreePost[]) || [];
-                })
+                bFetch(`/api/v1/boards/${boardId}/notices`, { headers, timeout: 3_000 }).then(
+                    async (res) => {
+                        if (!res.ok) return [];
+                        const json = await res.json();
+                        return (json.data as FreePost[]) || [];
+                    }
+                )
             ]);
 
             let posts: FreePost[] = [];
@@ -191,11 +193,13 @@ export const load: PageServerLoad = async ({ url, params, locals }) => {
             }),
             isSearching
                 ? Promise.resolve([])
-                : bFetch(`/api/v1/boards/${boardId}/notices`, { headers }).then(async (res) => {
-                      if (!res.ok) return [];
-                      const json = await res.json();
-                      return (json.data as FreePost[]) || [];
-                  }),
+                : bFetch(`/api/v1/boards/${boardId}/notices`, { headers, timeout: 3_000 }).then(
+                      async (res) => {
+                          if (!res.ok) return [];
+                          const json = await res.json();
+                          return (json.data as FreePost[]) || [];
+                      }
+                  ),
             fetchPromotionPosts()
         ]);
 
@@ -216,6 +220,11 @@ export const load: PageServerLoad = async ({ url, params, locals }) => {
             };
         } else {
             console.error('게시판 로딩 에러:', boardId, postsResult.reason);
+            // stale-while-error: 캐시 만료된 데이터라도 에러보다 나음
+            const stale = postsCache.getStale(postsCacheKey);
+            if (stale) {
+                return { ...stale, error: null };
+            }
             error = '게시글을 불러오는데 실패했습니다.';
         }
 

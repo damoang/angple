@@ -303,8 +303,26 @@
                     secondaryLoaded = true;
                 }
             )
-            .catch(() => {
+            .catch(async () => {
                 if (cancelled) return;
+                // 스트리밍 실패 시 클라이언트에서 댓글만 직접 재시도 (1회)
+                if (browser) {
+                    try {
+                        const res = await fetch(
+                            `/api/boards/${boardId}/posts/${data.post.id}/comments?page=1&limit=200`
+                        );
+                        if (res.ok) {
+                            const json = await res.json();
+                            if (json.success && json.data) {
+                                comments = json.data.comments || [];
+                                secondaryLoaded = true;
+                                return;
+                            }
+                        }
+                    } catch {
+                        // 재시도도 실패
+                    }
+                }
                 secondaryError = true;
                 secondaryLoaded = true;
             });

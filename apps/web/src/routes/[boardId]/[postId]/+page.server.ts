@@ -39,21 +39,25 @@ export const load: PageServerLoad = async ({
             await Promise.allSettled([
                 // 게시글 (Go 백엔드 직접 호출)
                 bFetch(`/api/v1/boards/${boardId}/posts/${postId}`, {
-                    headers
+                    headers,
+                    timeout: 8_000
                 }).then(async (res) => {
                     if (!res.ok) throw new Error(`Post API error: ${res.status}`);
                     const json = await res.json();
                     return json.data as FreePost;
                 }),
-                // 게시판 정보
-                bFetch(`/api/v1/boards/${boardId}`, { headers }).then(async (res) => {
-                    if (!res.ok) return null;
-                    const json = await res.json();
-                    return json.data;
-                }),
-                // 게시판 표시 설정
+                // 게시판 정보 (가벼움, 캐시됨)
+                bFetch(`/api/v1/boards/${boardId}`, { headers, timeout: 3_000 }).then(
+                    async (res) => {
+                        if (!res.ok) return null;
+                        const json = await res.json();
+                        return json.data;
+                    }
+                ),
+                // 게시판 표시 설정 (가벼움)
                 bFetch(`/api/v1/boards/${boardId}/display-settings`, {
-                    headers
+                    headers,
+                    timeout: 3_000
                 }).then(async (res) => {
                     if (!res.ok) return null;
                     const json = await res.json();
@@ -201,7 +205,8 @@ export const load: PageServerLoad = async ({
                 // 리비전 히스토리 (관리자 level ≥ 10일 때만)
                 (locals.user?.level ?? 0) >= 10
                     ? bFetch(`/api/v1/boards/${boardId}/posts/${postId}/revisions`, {
-                          headers
+                          headers,
+                          timeout: 3_000
                       }).then(async (res) => {
                           if (!res.ok) return [];
                           const json = await res.json();
@@ -215,7 +220,8 @@ export const load: PageServerLoad = async ({
                 ).catch(() => ({}) as Record<string, unknown>),
                 // 추천자 아바타 상위 5명 (Go 백엔드 직접 호출 — CDN 요청 제거)
                 bFetch(`/api/v1/boards/${boardId}/posts/${postId}/likers?page=1&limit=5`, {
-                    headers
+                    headers,
+                    timeout: 3_000
                 })
                     .then(async (res) => {
                         if (!res.ok) return { likers: [], total: 0 };

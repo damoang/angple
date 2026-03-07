@@ -75,6 +75,6 @@ export class CircuitBreaker {
 
 /** 글로벌 백엔드 Circuit Breaker (싱글톤) */
 export const backendCircuitBreaker = new CircuitBreaker('backend', {
-    failureThreshold: 5,
-    resetTimeoutMs: 30_000
+    failureThreshold: 15,
+    resetTimeoutMs: 10_000
 });
