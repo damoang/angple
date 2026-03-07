@@ -34,6 +34,7 @@ export const load: PageServerLoad = async ({ url, params, locals }) => {
     const searchField = (url.searchParams.get('sfl') as SearchField) || null;
     const searchQuery = url.searchParams.get('stx') || null;
     const tag = url.searchParams.get('tag') || null;
+    const category = url.searchParams.get('category') || null;
     const isSearching = Boolean(searchField && searchQuery);
     const isTagFiltering = Boolean(tag);
 
@@ -101,6 +102,9 @@ export const load: PageServerLoad = async ({ url, params, locals }) => {
         if (tag) {
             queryParams.set('tag', tag);
         }
+        if (category) {
+            queryParams.set('category', category);
+        }
         if (isTagFiltering && !isSearching) {
             queryParams.set('sfl', 'title_content');
             queryParams.set('stx', '');
@@ -112,7 +116,7 @@ export const load: PageServerLoad = async ({ url, params, locals }) => {
     const isPromotionBoard = boardId === 'promotion' && !isSearching && !isTagFiltering;
 
     // 비로그인 + 검색/태그 필터 없는 경우: 게시글 목록 캐시 사용 (15초)
-    const usePostsCache = !locals.user && !isSearching && !isTagFiltering;
+    const usePostsCache = !locals.user && !isSearching && !isTagFiltering && !category;
     const postsCacheKey = `${boardId}:p${page}:l${limit}`;
 
     if (usePostsCache) {

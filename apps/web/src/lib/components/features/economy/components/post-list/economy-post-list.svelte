@@ -2,6 +2,7 @@
     import { onMount } from 'svelte';
     import type { EconomyPost } from '$lib/api/types.js';
     import { readPostsStore } from '$lib/stores/read-posts.svelte.js';
+    import { getReadPostClasses } from '$lib/stores/read-post-style.svelte.js';
 
     type Props = {
         posts: EconomyPost[];
@@ -37,10 +38,10 @@
                 >
                     <div class="flex items-center gap-2">
                         <div
-                            class="min-w-0 flex-1 truncate text-[17px] font-medium {showReadState &&
-                            readPostsStore.isRead(getBoardId(post.url), post.id)
-                                ? 'text-muted-foreground'
-                                : 'text-foreground'}"
+                            class="min-w-0 flex-1 truncate text-[17px] font-medium {getReadPostClasses(
+                                showReadState &&
+                                    readPostsStore.isRead(getBoardId(post.url), post.id)
+                            )}"
                         >
                             {post.title}
                         </div>

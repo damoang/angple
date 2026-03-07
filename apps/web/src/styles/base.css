@@ -1,0 +1,10 @@
+/* 버튼, 링크 등 인터랙티브 요소에 cursor:pointer 기본 적용 */
+button,
+[role='button'],
+[type='button'],
+[type='submit'],
+[type='reset'],
+summary,
+select {
+    cursor: pointer;
+}

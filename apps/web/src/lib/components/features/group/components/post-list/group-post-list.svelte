@@ -2,6 +2,7 @@
     import { onMount } from 'svelte';
     import type { GroupPost } from '$lib/api/types.js';
     import { readPostsStore } from '$lib/stores/read-posts.svelte.js';
+    import { getReadPostClasses } from '$lib/stores/read-post-style.svelte.js';
     import { formatNumber, getRecommendBadgeClass } from '../../../recommended/utils/index.js';
 
     type Props = {
@@ -45,10 +46,10 @@
                             {formatNumber(post.recommend_count)}
                         </span>
                         <div
-                            class="min-w-0 flex-1 truncate text-[17px] font-medium {showReadState &&
-                            readPostsStore.isRead(getBoardId(post.url), post.id)
-                                ? 'text-muted-foreground'
-                                : 'text-foreground'}"
+                            class="min-w-0 flex-1 truncate text-[17px] font-medium {getReadPostClasses(
+                                showReadState &&
+                                    readPostsStore.isRead(getBoardId(post.url), post.id)
+                            )}"
                         >
                             {post.title}
                         </div>

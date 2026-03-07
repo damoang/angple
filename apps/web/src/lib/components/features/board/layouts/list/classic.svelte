@@ -12,6 +12,7 @@
     import { formatCompactNumber } from '$lib/utils/format-number.js';
     import { pluginStore } from '$lib/stores/plugin.svelte';
     import { loadPluginComponent } from '$lib/utils/plugin-optional-loader';
+    import { readPostStyleStore } from '$lib/stores/read-post-style.svelte.js';
 
     // 메모 플러그인
     let memoPluginActive = $derived(pluginStore.isPluginActive('member-memo'));
@@ -88,6 +89,11 @@
 
     // 홍보 게시글 여부
     const isPromo = $derived(post.category === '홍보');
+
+    // 읽은 글 CSS 클래스
+    const readClass = $derived(
+        isRead ? `post-title-read-${readPostStyleStore.value}` : 'post-title'
+    );
 
     // 모바일 추천 텍스트 색상 (작은 인라인 텍스트용)
     const mobileLikesClass = $derived.by(() => {
@@ -173,7 +179,7 @@
                             {post.category}
                         </span>
                     {/if}
-                    <span class="truncate {isRead ? 'post-title-read' : 'post-title'}">
+                    <span class="truncate {readClass}">
                         {post.title}
                     </span>
                     <!-- 부가 아이콘: N, 이미지, 동영상, 댓글 -->
@@ -274,7 +280,7 @@
     /* ===== 제목 텍스트 ===== */
 
     .post-title,
-    .post-title-read {
+    [class^='post-title-read-'] {
         font-size: 1rem;
         transition: color 0.8s ease-in-out;
     }
@@ -283,10 +289,30 @@
         color: var(--color-foreground);
     }
 
-    /* 읽은 글 — weight 동일(레이아웃 시프트 방지), 색상+투명도로 확실히 구분 */
-    .post-title-read {
+    /* 읽은 글 스타일 옵션 */
+    .post-title-read-dimmed {
         color: var(--color-muted-foreground);
         opacity: 0.55;
+    }
+
+    .post-title-read-bold {
+        color: var(--color-muted-foreground);
+        font-weight: 700;
+    }
+
+    .post-title-read-italic {
+        color: var(--color-muted-foreground);
+        font-style: italic;
+    }
+
+    .post-title-read-underline {
+        color: var(--color-muted-foreground);
+        text-decoration: underline;
+    }
+
+    .post-title-read-strikethrough {
+        color: var(--color-muted-foreground);
+        text-decoration: line-through;
     }
 
     /* ===== 메타데이터 텍스트 (이름, 날짜, 조회) ===== */

@@ -35,6 +35,7 @@
     import { checkPermission, getPermissionMessage } from '$lib/utils/board-permissions.js';
     import { readPostsStore } from '$lib/stores/read-posts.svelte.js';
     import { densityStore } from '$lib/stores/density.svelte.js';
+    import { readPostStyleStore, type ReadPostStyle } from '$lib/stores/read-post-style.svelte.js';
     import BoardListSkeleton from '$lib/components/features/board/board-list-skeleton.svelte';
 
     // 특수 게시판 컴포넌트 (플러그인 레지스트리 기반)
@@ -637,28 +638,48 @@
                 <div class={wrapperClass}>
                     {#if listLayoutId === 'classic'}
                         <div class="hidden justify-end px-4 pb-1 md:flex">
-                            <div class="flex items-center gap-0.5">
-                                <button
-                                    class="rounded px-1.5 py-0.5 text-[10px] transition-colors {densityStore.value ===
-                                    'compact'
-                                        ? 'bg-foreground/10 text-foreground'
-                                        : 'text-muted-foreground hover:text-foreground'}"
-                                    onclick={() => densityStore.set('compact')}>촘촘</button
-                                >
-                                <button
-                                    class="rounded px-1.5 py-0.5 text-[10px] transition-colors {densityStore.value ===
-                                    'balanced'
-                                        ? 'bg-foreground/10 text-foreground'
-                                        : 'text-muted-foreground hover:text-foreground'}"
-                                    onclick={() => densityStore.set('balanced')}>보통</button
-                                >
-                                <button
-                                    class="rounded px-1.5 py-0.5 text-[10px] transition-colors {densityStore.value ===
-                                    'relaxed'
-                                        ? 'bg-foreground/10 text-foreground'
-                                        : 'text-muted-foreground hover:text-foreground'}"
-                                    onclick={() => densityStore.set('relaxed')}>여유</button
-                                >
+                            <div class="flex items-center gap-3">
+                                <!-- 읽은 글 스타일 -->
+                                <div class="flex items-center gap-0.5">
+                                    <span class="text-muted-foreground mr-0.5 text-[10px]"
+                                        >읽은글</span
+                                    >
+                                    {#each [{ value: 'dimmed', label: '흐림' }, { value: 'bold', label: '굵게' }, { value: 'italic', label: '기울임' }, { value: 'underline', label: '밑줄' }, { value: 'strikethrough', label: '취소선' }] as opt (opt.value)}
+                                        <button
+                                            class="rounded px-1.5 py-0.5 text-[10px] transition-colors {readPostStyleStore.value ===
+                                            opt.value
+                                                ? 'bg-foreground/10 text-foreground'
+                                                : 'text-muted-foreground hover:text-foreground'}"
+                                            onclick={() =>
+                                                readPostStyleStore.set(opt.value as ReadPostStyle)}
+                                            >{opt.label}</button
+                                        >
+                                    {/each}
+                                </div>
+                                <!-- 밀도 -->
+                                <div class="flex items-center gap-0.5">
+                                    <button
+                                        class="rounded px-1.5 py-0.5 text-[10px] transition-colors {densityStore.value ===
+                                        'compact'
+                                            ? 'bg-foreground/10 text-foreground'
+                                            : 'text-muted-foreground hover:text-foreground'}"
+                                        onclick={() => densityStore.set('compact')}>촘촘</button
+                                    >
+                                    <button
+                                        class="rounded px-1.5 py-0.5 text-[10px] transition-colors {densityStore.value ===
+                                        'balanced'
+                                            ? 'bg-foreground/10 text-foreground'
+                                            : 'text-muted-foreground hover:text-foreground'}"
+                                        onclick={() => densityStore.set('balanced')}>보통</button
+                                    >
+                                    <button
+                                        class="rounded px-1.5 py-0.5 text-[10px] transition-colors {densityStore.value ===
+                                        'relaxed'
+                                            ? 'bg-foreground/10 text-foreground'
+                                            : 'text-muted-foreground hover:text-foreground'}"
+                                        onclick={() => densityStore.set('relaxed')}>여유</button
+                                    >
+                                </div>
                             </div>
                         </div>
                         <div

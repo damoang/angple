@@ -397,6 +397,7 @@
         likersTotal = 0;
         showLikersDialog = false;
         likersPage = 1;
+        editingMemoFor = null;
     });
 
     // 댓글 앵커 스크롤 (#c_댓글ID) — 스트리밍 완료 후 실행
