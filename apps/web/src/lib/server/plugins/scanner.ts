@@ -119,8 +119,7 @@ async function loadPluginManifest(
         const result = safeValidateExtensionManifest(normalizedData);
 
         if (!result.success) {
-            console.error('[Plugin Scanner] 매니페스트 검증 실패:', { pluginDir });
-            console.error(result.error.issues);
+            console.warn('[Plugin Scanner] 매니페스트 검증 실패:', pluginDir);
             return null;
         }
 

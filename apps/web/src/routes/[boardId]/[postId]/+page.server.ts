@@ -70,7 +70,6 @@ export const load: PageServerLoad = async ({
 
         // 게시글 필수 — 실패 시 404
         if (postResult.status === 'rejected') {
-            console.error('게시글 로딩 에러:', boardId, postId, postResult.reason);
             throw error(404, '게시글을 찾을 수 없습니다.');
         }
 
@@ -331,7 +330,6 @@ export const load: PageServerLoad = async ({
         if (err && typeof err === 'object' && 'status' in err) {
             throw err; // SvelteKit error() already thrown
         }
-        console.error('게시글 로딩 에러:', boardId, postId, err);
         throw error(404, '게시글을 찾을 수 없습니다.');
     }
 };

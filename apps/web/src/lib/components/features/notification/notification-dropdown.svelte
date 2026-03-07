@@ -126,7 +126,12 @@
         // URL이 있으면 이동
         if (notification.url) {
             isOpen = false;
-            goto(notification.url);
+            let url = notification.url;
+            // 추천 알림에 앵커가 없으면 #likes 추가
+            if (notification.type === 'like' && !url.includes('#')) {
+                url += '#likes';
+            }
+            goto(url);
         }
     }
 

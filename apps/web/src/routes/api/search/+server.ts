@@ -209,7 +209,10 @@ export const GET: RequestHandler = async ({ url }) => {
             }
         });
     } catch (err) {
-        console.error('Sphinx search error:', err);
+        const isConnectionError = err instanceof Error && err.message.includes('ECONNREFUSED');
+        if (!isConnectionError) {
+            console.error('Sphinx search error:', err);
+        }
         return json({ success: false, error: '검색 중 오류가 발생했습니다.' }, { status: 500 });
     }
 };
