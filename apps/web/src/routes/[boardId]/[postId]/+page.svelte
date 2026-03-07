@@ -858,11 +858,11 @@
 
 <SeoHead config={seoConfig} />
 
-{#if boardId === 'truthroom'}
+{#if data.watermark}
     <Watermark
-        nickname={authStore.user?.mb_name || '비회원'}
-        userId={authStore.user?.mb_id || ''}
-        clientIp={((data as Record<string, unknown>).clientIp as string) || ''}
+        nickname={data.watermark.nickname}
+        userId={data.watermark.userId}
+        clientIp={data.watermark.clientIp}
         pageTitle={boardTitle}
     />
 {/if}

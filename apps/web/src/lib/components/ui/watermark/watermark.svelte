@@ -19,7 +19,8 @@
     // 워터마크 텍스트
     const now = new Date();
     const timestamp = `${String(now.getFullYear()).slice(2)}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
-    const watermarkUnit = `\t@${nickname}(${userId}) ${clientIp}\t${timestamp}\t${pageTitle}`;
+    const userInfo = nickname ? `@${nickname}(${userId}) ` : '';
+    const watermarkUnit = `\t${userInfo}${clientIp}\t${timestamp}\t${pageTitle}`;
     const repeatedText = (watermarkUnit + ' ').repeat(200);
 
     onMount(() => {
