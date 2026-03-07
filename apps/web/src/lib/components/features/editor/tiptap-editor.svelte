@@ -1394,6 +1394,7 @@
         margin-left: 0;
         margin-bottom: 0.75rem;
         font-style: italic;
+        font-synthesis: style;
         color: var(--muted-foreground);
     }
 
@@ -1538,6 +1539,7 @@
     :global(.tiptap-content .tiptap .hljs-comment) {
         color: #6c7086;
         font-style: italic;
+        font-synthesis: style;
     }
     :global(.tiptap-content .tiptap .hljs-number) {
         color: #fab387;
