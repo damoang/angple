@@ -1276,7 +1276,7 @@
         padding-top: calc(var(--comment-pad-extra, 3px));
     }
     .comment-item:last-child {
-        padding-bottom: var(--comment-pad-extra, 3px);
+        padding-bottom: calc(var(--comment-pad-extra, 3px) + 0.75rem);
     }
 
     /* 댓글 본문 문단 간격 축소 */

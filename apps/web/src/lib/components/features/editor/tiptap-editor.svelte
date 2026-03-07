@@ -311,7 +311,7 @@
     }
 
     // 드래그 앤 드롭 핸들러 (드롭 위치에 이미지 삽입)
-    function handleDrop(e: DragEvent): void {
+    async function handleDrop(e: DragEvent): Promise<void> {
         if (!onImageUpload || disabled || !editor) return;
 
         const files = e.dataTransfer?.files;
@@ -327,9 +327,9 @@
             const insertPos = pos?.pos ?? editor.state.selection.from;
 
             // 각 이미지를 드롭 위치에 순차적으로 삽입
-            imageFiles.forEach((file, index) => {
-                handleImageFileAtPosition(file, insertPos + index);
-            });
+            for (let i = 0; i < imageFiles.length; i++) {
+                await handleImageFileAtPosition(imageFiles[i], insertPos + i);
+            }
         }
     }
 

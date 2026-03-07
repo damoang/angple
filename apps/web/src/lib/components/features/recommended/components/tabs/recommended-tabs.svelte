@@ -33,7 +33,7 @@
         {#if !tab.hidden}
             <button
                 type="button"
-                class="rounded-md px-2.5 py-1 text-[15px] font-medium transition-all duration-200 ease-out
+                class="rounded-md px-2 py-1 text-xs font-medium transition-all duration-200 ease-out sm:px-2.5 sm:text-[15px]
                     {activeTab === tab.id
                     ? 'bg-primary text-primary-foreground'
                     : 'text-muted-foreground hover:bg-muted hover:text-foreground'}"
