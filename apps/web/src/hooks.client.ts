@@ -14,12 +14,23 @@ const IGNORED_PATTERNS = [
     'cross-origin frame',
     'zGetBack is not defined',
     '@context',
-    'currentPage.innerText'
+    'currentPage.innerText',
+    'affiliateDomainData',
+    'getBack is not defined',
+    '__gCrWeb',
+    'Blocked a frame',
+    'querySelectorAll',
+    'getAttribute',
+    '.regional',
+    'popover is not a function',
+    'parentNode.parentNode'
 ];
 
 function shouldIgnore(message: string): boolean {
     if (!message) return true;
     if (message === '[object Object]') return true;
+    if (message === '(unknown)') return true;
+    if (message === 'Rejected') return true;
     return IGNORED_PATTERNS.some((p) => message.includes(p));
 }
 

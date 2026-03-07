@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { onMount } from 'svelte';
+    import { onMount, untrack } from 'svelte';
     import { goto, afterNavigate } from '$app/navigation';
     import Search from '@lucide/svelte/icons/search';
     import User from '@lucide/svelte/icons/user';
@@ -30,7 +30,7 @@
 
     // user 변경 시 실패 상태 리셋
     $effect(() => {
-        if (authStore.user) headerAvatarFailed = false;
+        if (authStore.user) untrack(() => (headerAvatarFailed = false));
     });
 
     // 스크롤 상태 관리

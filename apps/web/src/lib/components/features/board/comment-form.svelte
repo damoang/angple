@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { untrack } from 'svelte';
     import { Button } from '$lib/components/ui/button/index.js';
     import { Textarea } from '$lib/components/ui/textarea/index.js';
     import { Checkbox } from '$lib/components/ui/checkbox/index.js';
@@ -72,7 +73,7 @@
     let commentAvatarFailed = $state(false);
 
     $effect(() => {
-        if (authStore.user) commentAvatarFailed = false;
+        if (authStore.user) untrack(() => (commentAvatarFailed = false));
     });
 
     let content = $state('');

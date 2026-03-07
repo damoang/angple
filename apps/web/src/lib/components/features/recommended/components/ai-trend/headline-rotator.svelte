@@ -1,4 +1,6 @@
 <script lang="ts">
+    import { untrack } from 'svelte';
+
     let { headlines }: { headlines: string[] } = $props();
 
     let currentIndex = $state(0);
@@ -7,7 +9,7 @@
     $effect(() => {
         if (headlines.length <= 1) return;
 
-        currentIndex = 0;
+        untrack(() => (currentIndex = 0));
 
         const intervalId = setInterval(() => {
             currentIndex = (currentIndex + 1) % headlines.length;
