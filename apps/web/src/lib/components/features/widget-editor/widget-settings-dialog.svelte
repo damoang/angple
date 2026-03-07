@@ -24,7 +24,7 @@
     const DEFAULT_TAG_NAV_MENUS: TagNavMenu[] = [
         { key: 'tutorial', text: '사용기', url: '/tutorial', show: true },
         { key: 'free', text: '자유게시판', url: '/free', show: true },
-        { key: 'group', text: '소모임', url: '/group', show: true },
+        { key: 'group', text: '소모임', url: '/groups', show: true },
         { key: 'new', text: '새로운소식', url: '/new', show: true },
         { key: 'economy', text: '알뜰구매', url: '/economy', show: true },
         { key: 'promotion', text: '직접홍보', url: '/promotion', show: true },
