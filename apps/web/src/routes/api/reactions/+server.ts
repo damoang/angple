@@ -11,6 +11,7 @@ import type { RowDataPacket } from 'mysql2';
 import pool from '$lib/server/db';
 import { getAuthUser } from '$lib/server/auth';
 import { checkCertification } from '$lib/server/certification';
+import { fetchReactionsByParentId } from '$lib/server/reactions';
 
 const REACTION_LIMIT = 20;
 const VALID_REACTION_PATTERN = /^[a-zA-Z0-9:_-]+$/;
@@ -54,6 +55,8 @@ function sanitizeId(id: string): string {
  * GET - 리액션 조회
  * ?targetId=document:free:12345 (단일 대상)
  * ?parentId=document:free:12345 (게시글 + 모든 댓글)
+ *
+ * parentId 조회는 공유 모듈 사용 (SSR과 동일 로직)
  */
 export const GET: RequestHandler = async ({ url, cookies }) => {
     const targetId = url.searchParams.get('targetId');
@@ -70,66 +73,43 @@ export const GET: RequestHandler = async ({ url, cookies }) => {
         const user = await getAuthUser(cookies);
         const memberId = user?.mb_id || '';
 
-        let reactions: ReactionRow[];
-        let memberChoices: ChooseRow[];
-
+        // parentId 조회: 공유 모듈 사용
         if (parentId) {
-            const safeParentId = sanitizeId(parentId);
-
-            // 부모 기준 전체 리액션 (게시글 + 모든 댓글)
-            [reactions] = await pool.query<ReactionRow[]>(
-                `SELECT target_id, reaction, reaction_count FROM g5_da_reaction
-				 WHERE parent_id = ? ORDER BY id ASC`,
-                [safeParentId]
+            const result = await fetchReactionsByParentId(parentId, memberId);
+            return json(
+                { status: 'success', result },
+                {
+                    headers: {
+                        'Cache-Control': 'public, s-maxage=10, stale-while-revalidate=30'
+                    }
+                }
             );
+        }
 
-            if (memberId) {
-                [memberChoices] = await pool.query<ChooseRow[]>(
-                    `SELECT target_id, reaction FROM g5_da_reaction_choose
-					 WHERE member_id = ? AND parent_id = ?`,
-                    [memberId, safeParentId]
-                );
-            } else {
-                memberChoices = [];
-            }
-        } else {
-            const safeTargetId = sanitizeId(targetId!);
+        // targetId 조회: 단일 대상 (인라인 로직 유지)
+        const safeTargetId = sanitizeId(targetId!);
 
-            [reactions] = await pool.query<ReactionRow[]>(
-                `SELECT target_id, reaction, reaction_count FROM g5_da_reaction
-				 WHERE target_id = ? ORDER BY id ASC`,
-                [safeTargetId]
+        const [reactions] = await pool.query<ReactionRow[]>(
+            `SELECT target_id, reaction, reaction_count FROM g5_da_reaction
+             WHERE target_id = ? ORDER BY id ASC`,
+            [safeTargetId]
+        );
+
+        let memberChoices: ChooseRow[] = [];
+        if (memberId) {
+            [memberChoices] = await pool.query<ChooseRow[]>(
+                `SELECT target_id, reaction FROM g5_da_reaction_choose
+                 WHERE member_id = ? AND target_id = ?`,
+                [memberId, safeTargetId]
             );
-
-            if (memberId) {
-                [memberChoices] = await pool.query<ChooseRow[]>(
-                    `SELECT target_id, reaction FROM g5_da_reaction_choose
-					 WHERE member_id = ? AND target_id = ?`,
-                    [memberId, safeTargetId]
-                );
-            } else {
-                memberChoices = [];
-            }
         }
 
-        // 사용자 선택 맵 생성
-        const chooseMap = new Map<string, Set<string>>();
-        for (const row of memberChoices) {
-            if (!chooseMap.has(row.target_id)) {
-                chooseMap.set(row.target_id, new Set());
-            }
-            chooseMap.get(row.target_id)!.add(row.reaction);
-        }
-
-        // 결과 구성 (PHP와 동일 포맷: { [targetId]: ReactionItem[] })
-        const result: Record<string, ReturnType<typeof parseReaction>[]> = {};
-        for (const row of reactions) {
-            if (!result[row.target_id]) {
-                result[row.target_id] = [];
-            }
-            const isChosen = chooseMap.get(row.target_id)?.has(row.reaction) ?? false;
-            result[row.target_id].push(parseReaction(row.reaction, row.reaction_count, isChosen));
-        }
+        const chosenSet = new Set(memberChoices.map((r) => r.reaction));
+        const result: Record<string, ReturnType<typeof parseReaction>[]> = {
+            [safeTargetId]: reactions.map((r) =>
+                parseReaction(r.reaction, r.reaction_count, chosenSet.has(r.reaction))
+            )
+        };
 
         return json(
             { status: 'success', result },
