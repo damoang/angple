@@ -73,6 +73,7 @@
                                 <th class="p-3 text-left font-medium">시작일</th>
                                 <th class="p-3 text-center font-medium">기간</th>
                                 <th class="p-3 text-left font-medium">사유</th>
+                                <th class="p-3 text-left font-medium">메모</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -114,6 +115,11 @@
                                             {/if}
                                         </div>
                                     </td>
+                                    <td
+                                        class="text-muted-foreground max-w-[200px] truncate p-3 text-sm"
+                                    >
+                                        {log.memo || ''}
+                                    </td>
                                 </tr>
                             {/each}
                         </tbody>
@@ -151,6 +157,11 @@
                                         >
                                     {/if}
                                 </div>
+                                {#if log.memo}
+                                    <div class="text-muted-foreground mt-1 truncate text-xs">
+                                        {log.memo}
+                                    </div>
+                                {/if}
                             </div>
                         </a>
                     {/each}

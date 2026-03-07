@@ -70,6 +70,7 @@ export interface DisciplineLogListItem {
     penalty_date_from: string;
     violation_types: number[];
     violation_titles: string[];
+    memo?: string;
 }
 
 export interface DisciplineLogDetail {
@@ -81,6 +82,7 @@ export interface DisciplineLogDetail {
     penalty_date_to?: string;
     violation_types: ViolationType[];
     reported_items?: ReportedItem[];
+    memo?: string;
     created_by: string;
     created_at: string;
     status: 'pending' | 'approved' | 'rejected';

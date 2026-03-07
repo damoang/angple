@@ -125,6 +125,10 @@ function createUiSettingsStore() {
         get titleBold() {
             return settings.titleBold;
         },
+        set titleBold(v: boolean) {
+            settings.titleBold = v;
+            save();
+        },
         get lineHeight() {
             return settings.lineHeight;
         },

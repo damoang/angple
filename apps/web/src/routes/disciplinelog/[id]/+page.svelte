@@ -197,6 +197,21 @@
             </Card.Content>
         </Card.Root>
 
+        <!-- Memo -->
+        {#if log.memo}
+            <Card.Root class="mb-4">
+                <Card.Header>
+                    <Card.Title class="flex items-center gap-2">
+                        <FileText class="h-5 w-5" />
+                        메모
+                    </Card.Title>
+                </Card.Header>
+                <Card.Content>
+                    <p class="whitespace-pre-wrap text-sm">{log.memo}</p>
+                </Card.Content>
+            </Card.Root>
+        {/if}
+
         <!-- Reported Items -->
         {#if log.reported_items && log.reported_items.length > 0}
             <Card.Root class="mb-4">
