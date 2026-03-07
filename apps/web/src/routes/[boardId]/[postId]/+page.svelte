@@ -386,10 +386,11 @@
     let adjacentPosts = $state<AdjacentPosts>({ prev: null, next: null });
 
     $effect(() => {
-        const promise = data.streamed?.adjacentPosts;
+        const streamed = data.streamed as Record<string, unknown> | undefined;
+        const promise = streamed?.adjacentPosts as Promise<AdjacentPosts> | undefined;
         if (!promise) return;
         promise
-            .then((result) => {
+            .then((result: AdjacentPosts) => {
                 adjacentPosts = result;
             })
             .catch(() => {});

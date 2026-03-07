@@ -21,7 +21,7 @@
     import AdSlot from '$lib/components/ui/ad-slot/ad-slot.svelte';
     import { DamoangBanner } from '$lib/components/ui/damoang-banner';
     import { CelebrationRolling } from '$lib/components/ui/celebration-rolling';
-    import { TagNav } from '$lib/components/ui/tag-nav';
+    import { TagNav, type TagNavMenu } from '$lib/components/ui/tag-nav';
     import { PromotionInlinePost } from '$lib/components/ui/promotion-inline-post';
     import { widgetLayoutStore } from '$lib/stores/widget-layout.svelte';
     import {
@@ -320,7 +320,7 @@
             {#if widgetLayoutStore.widgets.find((w) => w.type === 'tag-nav')?.enabled !== false}
                 <TagNav
                     menus={widgetLayoutStore.widgets.find((w) => w.type === 'tag-nav')?.settings
-                        ?.menus}
+                        ?.menus as TagNavMenu[] | undefined}
                     class="mb-4"
                 />
             {/if}
