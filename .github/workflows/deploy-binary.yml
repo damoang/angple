@@ -151,6 +151,34 @@ jobs:
 
           echo "Image pushed: ${FULL_IMAGE}"
 
+      - name: Notify build ready (Telegram)
+        if: success()
+        run: |
+          SHORT_SHA="${{ github.sha }}"
+          SHORT_SHA="${SHORT_SHA:0:7}"
+          COMMIT_MSG=$(git log -1 --pretty=format:'%s')
+          MSG="📦 프론트엔드 이미지 빌드 완료
+
+          커밋: ${SHORT_SHA} - ${COMMIT_MSG}
+          이미지: angple-web:sha-${SHORT_SHA}
+
+          ➡️ ops.damoang.net/deploy 에서 배포 가능"
+
+          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_TOKEN }}/sendMessage" \
+            --data-urlencode "chat_id=${{ secrets.TELEGRAM_CHAT_ID }}" \
+            --data-urlencode "text=${MSG}" >/dev/null 2>&1 || true
+
+      - name: Notify build ready (Discord)
+        if: success()
+        run: |
+          SHORT_SHA="${{ github.sha }}"
+          SHORT_SHA="${SHORT_SHA:0:7}"
+          COMMIT_MSG=$(git log -1 --pretty=format:'%s')
+
+          curl -s -H "Content-Type: application/json" \
+            -d "{\"embeds\":[{\"title\":\"📦 프론트엔드 이미지 빌드 완료\",\"description\":\"커밋: \`${SHORT_SHA}\` - ${COMMIT_MSG}\\n이미지: \`angple-web:sha-${SHORT_SHA}\`\\n\\n➡️ [배포 대시보드](https://ops.damoang.net/deploy)에서 배포 가능\",\"color\":3447003,\"timestamp\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}]}" \
+            "${{ secrets.DISCORD_WEBHOOK }}" >/dev/null 2>&1 || true
+
   deploy:
     name: Deploy to K8s
     runs-on: ubuntu-latest
