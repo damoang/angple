@@ -33,7 +33,7 @@ export const GET: RequestHandler = async ({ url }) => {
             `SELECT mb_id, mb_nick, mb_name, IFNULL(as_level, 1) as as_level
 			 FROM g5_member
 			 WHERE (mb_nick LIKE ? OR mb_id LIKE ?)
-			   AND mb_leave_dt = ''
+			   AND mb_leave_date = ''
 			   AND mb_intercept_date = ''
 			 ORDER BY
 			   CASE WHEN mb_nick = ? THEN 0 WHEN mb_nick LIKE ? THEN 1 ELSE 2 END,

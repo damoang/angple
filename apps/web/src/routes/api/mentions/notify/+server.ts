@@ -58,7 +58,7 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
         // 닉네임으로 mb_id 조회
         const placeholders = validNicks.map(() => '?').join(',');
         const [rows] = await pool.execute<RowDataPacket[]>(
-            `SELECT mb_id, mb_nick FROM g5_member WHERE mb_nick IN (${placeholders}) AND mb_leave_dt = ''`,
+            `SELECT mb_id, mb_nick FROM g5_member WHERE mb_nick IN (${placeholders}) AND mb_leave_date = ''`,
             validNicks
         );
 
