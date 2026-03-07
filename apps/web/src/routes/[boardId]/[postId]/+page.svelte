@@ -59,6 +59,7 @@
         initCoreLayouts
     } from '$lib/components/features/board/layouts/index.js';
     import ScrapButton from '$lib/components/post/scrap-button.svelte';
+    import { Watermark } from '$lib/components/ui/watermark/index.js';
 
     // Q&A 게시판 슬롯 등록
     postSlotRegistry.register('post.before_content', {
@@ -863,6 +864,15 @@
 </script>
 
 <SeoHead config={seoConfig} />
+
+{#if data.watermark}
+    <Watermark
+        nickname={data.watermark.nickname}
+        userId={data.watermark.userId}
+        clientIp={data.watermark.clientIp}
+        pageTitle={boardTitle}
+    />
+{/if}
 
 <div class="mx-auto overflow-x-hidden pt-2">
     <!-- 상단 배너 -->
