@@ -358,7 +358,11 @@
     {#if canViewSecret}
         <CardFooter class="flex-col items-start gap-3">
             <!-- 추천/비추천/신고 버튼 -->
-            <div class="flex w-full flex-wrap items-center gap-3">
+            <div
+                id="likes"
+                class="flex w-full flex-wrap items-center gap-3"
+                style="scroll-margin-top: 100px"
+            >
                 <!-- 추천 버튼 -->
                 <div
                     class="flex items-center rounded-lg border {isLiked

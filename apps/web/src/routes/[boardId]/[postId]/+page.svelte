@@ -490,28 +490,41 @@
         editingMemoFor = null;
     });
 
-    // 댓글 앵커 스크롤 (#c_댓글ID) — 스트리밍 완료 후 실행
+    // 앵커 스크롤 + 하이라이트 헬퍼
+    function scrollToAndHighlight(el: HTMLElement) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        el.style.transition = 'background-color 0.3s ease';
+        el.style.backgroundColor = 'hsl(var(--primary) / 0.1)';
+        el.style.borderRadius = '0.5rem';
+        setTimeout(() => {
+            el.style.backgroundColor = '';
+            setTimeout(() => {
+                el.style.transition = '';
+                el.style.borderRadius = '';
+            }, 300);
+        }, 2000);
+    }
+
+    // 앵커 스크롤 (#c_댓글ID, #comment_댓글ID, #likes) — 스트리밍 완료 후 실행
     $effect(() => {
         if (secondaryLoaded && browser) {
             const hash = window.location.hash;
-            if (hash && hash.startsWith('#c_')) {
-                setTimeout(() => {
-                    const el = document.getElementById(hash.slice(1));
-                    if (el) {
-                        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                        el.style.transition = 'background-color 0.3s ease';
-                        el.style.backgroundColor = 'hsl(var(--primary) / 0.1)';
-                        el.style.borderRadius = '0.5rem';
-                        setTimeout(() => {
-                            el.style.backgroundColor = '';
-                            setTimeout(() => {
-                                el.style.transition = '';
-                                el.style.borderRadius = '';
-                            }, 300);
-                        }, 2000);
-                    }
-                }, 100);
-            }
+            if (!hash) return;
+
+            // #comment_XXX → #c_XXX 호환
+            const normalizedHash = hash.startsWith('#comment_')
+                ? '#c_' + hash.slice('#comment_'.length)
+                : hash;
+
+            setTimeout(() => {
+                if (normalizedHash.startsWith('#c_')) {
+                    const el = document.getElementById(normalizedHash.slice(1));
+                    if (el) scrollToAndHighlight(el);
+                } else if (normalizedHash === '#likes') {
+                    const el = document.getElementById('likes');
+                    if (el) scrollToAndHighlight(el);
+                }
+            }, 100);
         }
     });
 
