@@ -46,7 +46,7 @@
             title="이모티콘"
         >
             <Smile class="h-4 w-4" />
-            <span class="ml-1 text-xs">이모티콘</span>
+            <span class="ml-1 hidden text-xs sm:inline">이모티콘</span>
         </Button>
         {#if showEmoticonPicker}
             <!-- 외부 클릭으로 닫기 -->
@@ -79,7 +79,7 @@
         title="GIF"
     >
         <Film class="h-4 w-4" />
-        <span class="ml-1 text-xs">GIF</span>
+        <span class="ml-1 hidden text-xs sm:inline">GIF</span>
     </Button>
 
     <!-- 사진 버튼 -->
@@ -93,7 +93,7 @@
         title="사진"
     >
         <ImageIcon class="h-4 w-4" />
-        <span class="ml-1 text-xs">사진</span>
+        <span class="ml-1 hidden text-xs sm:inline">사진</span>
     </Button>
 
     <!-- 빈댓글 버튼 -->
@@ -107,7 +107,7 @@
         title="빈댓글"
     >
         <Space class="h-4 w-4" />
-        <span class="ml-1 text-xs">빈댓글</span>
+        <span class="ml-1 hidden text-xs sm:inline">빈댓글</span>
     </Button>
 </div>
 

@@ -97,7 +97,7 @@
             }
 
             const result = await res.json();
-            const uploadedUrl = result.url || result.cdnUrl;
+            const uploadedUrl = result.data?.cdn_url || result.data?.url;
             if (!uploadedUrl) throw new Error('업로드 URL을 받지 못했습니다.');
 
             // form action으로 DB 업데이트

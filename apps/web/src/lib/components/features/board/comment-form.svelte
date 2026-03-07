@@ -231,10 +231,11 @@
         {/if}
 
         <div class="flex items-start gap-3">
-            <!-- 사용자 아바타 -->
+            <!-- 사용자 아바타 (답글 모드에서는 모바일 숨김) -->
             <div
-                class="flex size-10 shrink-0 items-center justify-center rounded-full {commentAvatarUrl &&
-                !commentAvatarFailed
+                class="flex size-10 shrink-0 items-center justify-center rounded-full {isReplyMode
+                    ? 'hidden sm:flex'
+                    : ''} {commentAvatarUrl && !commentAvatarFailed
                     ? 'overflow-hidden'
                     : 'bg-primary text-primary-foreground'}"
             >
