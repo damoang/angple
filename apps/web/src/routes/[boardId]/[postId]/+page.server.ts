@@ -8,6 +8,7 @@ import { backendFetch as bFetch, createAuthHeaders } from '$lib/server/backend-f
 import { increment as incrementViewcount } from '$lib/server/viewcount.js';
 import { fetchReactionsByParentId } from '$lib/server/reactions.js';
 import { fetchMemberLevels } from '$lib/server/member-levels.js';
+import { fetchLikeStatus } from '$lib/server/like-status.js';
 
 /**
  * 게시글 상세 페이지 — Streaming SSR
@@ -176,7 +177,8 @@ export const load: PageServerLoad = async ({
                 promotionResult,
                 revisionsResult,
                 reactionsResult,
-                likersResult
+                likersResult,
+                likeStatusResult
             ] = await Promise.allSettled([
                 // 댓글 (SvelteKit 내부 라우트 → svelteKitFetch)
                 svelteKitFetch(
@@ -222,7 +224,14 @@ export const load: PageServerLoad = async ({
                         const json = await res.json();
                         return json.data || { likers: [], total: 0 };
                     })
-                    .catch(() => ({ likers: [], total: 0 }))
+                    .catch(() => ({ likers: [], total: 0 })),
+                // 추천 상태 (DB 직접 조회 — CDN 요청 제거, 사용자별 데이터 포함)
+                fetchLikeStatus(boardId, Number(postId), locals.user?.id || '').catch(() => ({
+                    likes: 0,
+                    dislikes: 0,
+                    user_liked: false,
+                    user_disliked: false
+                }))
             ]);
 
             const comments =
@@ -295,7 +304,20 @@ export const load: PageServerLoad = async ({
                 // 레벨 조회 실패 시 빈 맵 (클라이언트에서 fallback)
             }
 
-            return { comments, promotionPosts, revisions, reactions, likersData, memberLevels };
+            const likeStatus =
+                likeStatusResult.status === 'fulfilled'
+                    ? likeStatusResult.value
+                    : { likes: 0, dislikes: 0, user_liked: false, user_disliked: false };
+
+            return {
+                comments,
+                promotionPosts,
+                revisions,
+                reactions,
+                likersData,
+                memberLevels,
+                likeStatus
+            };
         })();
 
         return {

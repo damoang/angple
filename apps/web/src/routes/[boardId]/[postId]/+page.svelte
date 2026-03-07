@@ -255,6 +255,12 @@
                     reactions?: Record<string, ReactionItem[]>;
                     likersData?: { likers: LikerInfo[]; total: number };
                     memberLevels?: Record<string, number>;
+                    likeStatus?: {
+                        likes: number;
+                        dislikes: number;
+                        user_liked: boolean;
+                        user_disliked: boolean;
+                    };
                 }) => {
                     if (cancelled) return;
                     comments = result.comments.items || [];
@@ -277,6 +283,14 @@
                     // SSR 회원 레벨 적용
                     if (result.memberLevels && Object.keys(result.memberLevels).length > 0) {
                         memberLevelStore.initFromSSR(result.memberLevels);
+                    }
+
+                    // SSR 추천 상태 적용
+                    if (result.likeStatus) {
+                        likeCount = result.likeStatus.likes;
+                        dislikeCount = result.likeStatus.dislikes;
+                        isLiked = result.likeStatus.user_liked;
+                        isDisliked = result.likeStatus.user_disliked;
                     }
 
                     secondaryLoaded = true;
@@ -361,23 +375,10 @@
         }
     }
 
-    // 초기 추천 상태 + 읽음 표시
-    // 조회수: SSR에서 처리 (CDN 요청 제거)
-    // 레벨/리액션/추천자 아바타: SSR 스트리밍에서 로드 (CDN 요청 제거)
-    onMount(async () => {
-        // 읽음 표시 (localStorage)
+    // 읽음 표시 (localStorage)
+    // 모든 API 호출은 SSR 스트리밍에서 처리 — 클라이언트 API 호출 0건
+    onMount(() => {
         readPostsStore.markAsRead(boardId, data.post.id);
-
-        // 추천 상태 조회 (사용자별 데이터 — 클라이언트 전용)
-        try {
-            const status = await apiClient.getPostLikeStatus(boardId, String(data.post.id));
-            isLiked = status.user_liked;
-            isDisliked = status.user_disliked ?? false;
-            likeCount = status.likes;
-            dislikeCount = status.dislikes ?? 0;
-        } catch (err) {
-            console.error('Failed to load like status:', err);
-        }
     });
 
     // 글 이동 시 상태 리셋 (같은 레이아웃 내 다른 글로 이동할 때)
