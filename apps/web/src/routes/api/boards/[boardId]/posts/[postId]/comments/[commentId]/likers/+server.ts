@@ -83,10 +83,7 @@ export const GET: RequestHandler = async ({ params, url, cookies }) => {
             mb_name: row.mb_name,
             mb_nick: row.mb_nick,
             bg_ip: isAuthenticated ? maskIp(row.bg_ip) : '',
-            liked_at:
-                row.bg_datetime instanceof Date
-                    ? row.bg_datetime.toISOString()
-                    : String(row.bg_datetime).replace(' ', 'T') + 'Z'
+            liked_at: String(row.bg_datetime).replace(' ', 'T') + 'Z'
         }));
 
         return json({
