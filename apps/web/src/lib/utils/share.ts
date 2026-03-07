@@ -92,7 +92,7 @@ async function loadKakaoSdk(): Promise<boolean> {
         const script = document.createElement('script');
         script.src = 'https://t1.kakaocdn.net/kakao_js_sdk/v1/kakao.min.js';
         script.onload = () => {
-            const key = '58f106fd33cdb834c1dcc2d923d2975e';
+            const key = import.meta.env.VITE_KAKAO_JS_KEY || '';
             if (window.Kakao && !window.Kakao.isInitialized()) {
                 window.Kakao.init(key);
             }

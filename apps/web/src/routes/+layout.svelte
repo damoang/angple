@@ -18,6 +18,7 @@
     import { initBuiltinHooks } from '$lib/hooks';
     import { loadPluginComponent } from '$lib/utils/plugin-optional-loader';
     import { Toaster } from '$lib/components/ui/sonner';
+    import { ShortcutButtons } from '$lib/components/features/shortcut-buttons';
     import DefaultLayout from '$lib/layouts/default-layout.svelte';
     import { keyboardShortcuts } from '$lib/services/keyboard-shortcuts.svelte';
     import { boardFavoritesStore } from '$lib/stores/board-favorites.svelte';
@@ -288,4 +289,9 @@
             <Bug class="h-6 w-6" />
         </a>
     </div>
+{/if}
+
+<!-- 단축 버튼 (admin/install 제외) -->
+{#if !isAdminRoute && !isInstallRoute}
+    <ShortcutButtons />
 {/if}

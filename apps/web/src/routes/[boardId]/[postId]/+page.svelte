@@ -93,6 +93,19 @@
     import { loadPluginComponent } from '$lib/utils/plugin-optional-loader';
     import { checkPermission, getPermissionMessage } from '$lib/utils/board-permissions.js';
     import { readPostsStore } from '$lib/stores/read-posts.svelte.js';
+    import { uiSettingsStore } from '$lib/stores/ui-settings.svelte.js';
+    import { commentTracker } from '$lib/stores/comment-tracker.svelte.js';
+    import { onDestroy } from 'svelte';
+    import { TouchGestureService } from '$lib/services/touch-gestures.svelte.js';
+
+    interface AdjacentPost {
+        id: number;
+        title: string;
+    }
+    interface AdjacentPosts {
+        prev: AdjacentPost | null;
+        next: AdjacentPost | null;
+    }
 
     let { data }: { data: PageData } = $props();
 
@@ -369,12 +382,88 @@
         }
     }
 
+    // 이전글/다음글 (스트리밍)
+    let adjacentPosts = $state<AdjacentPosts>({ prev: null, next: null });
+
+    $effect(() => {
+        const promise = data.streamed?.adjacentPosts;
+        if (!promise) return;
+        promise
+            .then((result) => {
+                adjacentPosts = result;
+            })
+            .catch(() => {});
+    });
+
+    // `,` `.` 이전글/다음글 키보드 단축키
+    function handleAdjacentKeydown(event: KeyboardEvent) {
+        if (event.target instanceof HTMLElement) {
+            const tag = event.target.tagName;
+            if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+            if (event.target.contentEditable === 'true') return;
+        }
+        if (event.ctrlKey || event.altKey || event.metaKey) return;
+
+        if (event.code === 'Comma' && adjacentPosts.prev) {
+            event.preventDefault();
+            goto(`/${boardId}/${adjacentPosts.prev.id}`);
+        } else if (event.code === 'Period' && adjacentPosts.next) {
+            event.preventDefault();
+            goto(`/${boardId}/${adjacentPosts.next.id}`);
+        }
+    }
+
+    if (browser) {
+        document.addEventListener('keydown', handleAdjacentKeydown);
+    }
+
+    onDestroy(() => {
+        if (browser) {
+            document.removeEventListener('keydown', handleAdjacentKeydown);
+        }
+    });
+
+    // 터치 제스처 (스와이프 이전/다음글, 더블탭 추천)
+    const touchGestures = new TouchGestureService();
+
+    $effect(() => {
+        if (!browser) return;
+        if (uiSettingsStore.enableTouchGestures) {
+            touchGestures.activate(
+                {
+                    onSwipeLeft: () => {
+                        if (adjacentPosts.next) goto(`/${boardId}/${adjacentPosts.next.id}`);
+                    },
+                    onSwipeRight: () => {
+                        if (adjacentPosts.prev) goto(`/${boardId}/${adjacentPosts.prev.id}`);
+                    },
+                    onDoubleTap: () => {
+                        handleLike();
+                    }
+                },
+                {
+                    swipeThreshold: uiSettingsStore.swipeThreshold,
+                    doubleTapInterval: uiSettingsStore.doubleTapInterval
+                }
+            );
+        } else {
+            touchGestures.deactivate();
+        }
+
+        return () => {
+            touchGestures.deactivate();
+        };
+    });
+
     // 초기 추천 상태 + 읽음 표시
     // 조회수: SSR에서 처리 (CDN 요청 제거)
     // 레벨/리액션/추천자 아바타: SSR 스트리밍에서 로드 (CDN 요청 제거)
     onMount(async () => {
         // 읽음 표시 (localStorage)
         readPostsStore.markAsRead(boardId, data.post.id);
+
+        // 댓글 수 추적 (새 댓글 표시용)
+        commentTracker.markSeen(boardId, data.post.id, data.post.comments_count ?? 0);
 
         // 추천 상태 조회 (사용자별 데이터 — 클라이언트 전용)
         try {
