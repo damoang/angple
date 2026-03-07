@@ -39,6 +39,7 @@
     import AdminViewLayoutSwitcher from '$lib/components/features/board/admin-view-layout-switcher.svelte';
     import EconomyShoppingBanner from '$lib/components/features/board/economy-shopping-banner.svelte';
     import Info from '@lucide/svelte/icons/info';
+    import ShareButton from '$lib/components/post/share-button.svelte';
     import type { ViewLayoutProps } from '../types.js';
 
     type FontSizeKey = 'small' | 'base' | 'large' | 'xlarge';
@@ -408,24 +409,29 @@
                     </div>
                 {/if}
 
-                <!-- 신고 버튼 -->
-                {#if !isAuthor}
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        onclick={() => {
-                            if (!authStore.isAuthenticated) {
-                                authStore.redirectToLogin();
-                                return;
-                            }
-                            onReport();
-                        }}
-                        class="text-muted-foreground hover:text-destructive ml-auto gap-2"
-                    >
-                        <Flag class="h-4 w-4" />
-                        <span>신고</span>
-                    </Button>
-                {/if}
+                <!-- 공유 + 신고 (우측 정렬) -->
+                <div class="ml-auto flex items-center gap-1">
+                    {#if board?.use_sns}
+                        <ShareButton {boardId} postId={post.id} title={post.subject || ''} />
+                    {/if}
+                    {#if !isAuthor}
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onclick={() => {
+                                if (!authStore.isAuthenticated) {
+                                    authStore.redirectToLogin();
+                                    return;
+                                }
+                                onReport();
+                            }}
+                            class="text-muted-foreground hover:text-destructive gap-2"
+                        >
+                            <Flag class="h-4 w-4" />
+                            <span>신고</span>
+                        </Button>
+                    {/if}
+                </div>
             </div>
 
             <!-- 리액션 (da-reaction 플러그인) -->

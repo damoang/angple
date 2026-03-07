@@ -1126,6 +1126,20 @@
                     />
 
                     <div class="border-border border-t pt-6">
+                        <div class="mb-3 flex justify-end">
+                            <button
+                                type="button"
+                                onclick={refreshComments}
+                                disabled={isRefreshingComments}
+                                class="text-muted-foreground hover:text-foreground flex items-center gap-1 rounded-md px-2 py-1 text-xs transition-colors disabled:opacity-50"
+                                title="댓글 새로고침"
+                            >
+                                <RefreshCw
+                                    class="size-3.5 {isRefreshingComments ? 'animate-spin' : ''}"
+                                />
+                                새로고침
+                            </button>
+                        </div>
                         <CommentForm
                             onSubmit={handleCreateComment}
                             isLoading={isCreatingComment}
