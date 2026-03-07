@@ -53,6 +53,7 @@
     import Minus from '@lucide/svelte/icons/minus';
     import TableIcon from '@lucide/svelte/icons/table';
     import YoutubeIcon from '@lucide/svelte/icons/youtube';
+    import Upload from '@lucide/svelte/icons/upload';
     import Columns from '@lucide/svelte/icons/columns-3';
     import Rows from '@lucide/svelte/icons/rows-3';
     import Trash2 from '@lucide/svelte/icons/trash-2';
@@ -308,16 +309,17 @@
         }
     }
 
-    // 드래그 앤 드롭 핸들러 (드롭 위치에 이미지 삽입)
+    // 드래그 앤 드롭 핸들러 (드롭 위치에 이미지/동영상 삽입)
     async function handleDrop(e: DragEvent): Promise<void> {
         if (!onImageUpload || disabled || !editor) return;
 
         const files = e.dataTransfer?.files;
         if (!files?.length) return;
 
-        // 이미지 파일만 처리
-        const imageFiles = Array.from(files).filter((f) => f.type.startsWith('image/'));
-        if (imageFiles.length > 0) {
+        const mediaFiles = Array.from(files).filter(
+            (f) => f.type.startsWith('image/') || f.type.startsWith('video/')
+        );
+        if (mediaFiles.length > 0) {
             e.preventDefault();
             e.stopImmediatePropagation();
 
@@ -325,9 +327,33 @@
             const pos = editor.view.posAtCoords({ left: e.clientX, top: e.clientY });
             const insertPos = pos?.pos ?? editor.state.selection.from;
 
-            // 각 이미지를 드롭 위치에 순차적으로 삽입
-            for (let i = 0; i < imageFiles.length; i++) {
-                await handleImageFileAtPosition(imageFiles[i], insertPos + i);
+            for (let i = 0; i < mediaFiles.length; i++) {
+                const file = mediaFiles[i];
+                if (file.type.startsWith('video/')) {
+                    isUploading = true;
+                    try {
+                        const videoUrl = await onImageUpload(file);
+                        if (videoUrl) {
+                            editor
+                                .chain()
+                                .focus()
+                                .insertContentAt(insertPos + i, {
+                                    type: 'paragraph',
+                                    content: []
+                                })
+                                .insertContent(
+                                    `<video src="${videoUrl}" controls playsinline preload="metadata" style="max-width:100%;border-radius:8px;"></video>`
+                                )
+                                .run();
+                        }
+                    } catch (err) {
+                        console.error('Video upload failed:', err);
+                    } finally {
+                        isUploading = false;
+                    }
+                } else {
+                    await handleImageFileAtPosition(file, insertPos + i);
+                }
             }
         }
     }
@@ -492,6 +518,41 @@
         imageAlt = '';
     }
 
+    // 다이얼로그에서 파일 선택 시 이미지 업로드 (복수 선택 지원)
+    async function handleImageFileFromDialog(e: Event): Promise<void> {
+        const input = e.currentTarget as HTMLInputElement;
+        const files = input.files;
+        if (!files?.length) return;
+
+        for (const file of Array.from(files)) {
+            if (file.type.startsWith('image/')) {
+                await handleImageFile(file);
+            }
+        }
+
+        showImageDialog = false;
+        input.value = '';
+    }
+
+    // 다이얼로그 드래그앤드롭 상태
+    let imageDialogDragOver = $state(false);
+
+    // 다이얼로그 내 드래그앤드롭 이미지 업로드
+    async function handleImageDialogDrop(e: DragEvent): Promise<void> {
+        e.preventDefault();
+        imageDialogDragOver = false;
+        const files = e.dataTransfer?.files;
+        if (!files?.length) return;
+
+        for (const file of Array.from(files)) {
+            if (file.type.startsWith('image/')) {
+                await handleImageFile(file);
+            }
+        }
+
+        showImageDialog = false;
+    }
+
     // 테이블 관련
     function insertTable(): void {
         editor?.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run();
@@ -519,7 +580,7 @@
         showTableMenu = false;
     }
 
-    // YouTube 삽입
+    // YouTube / 동영상 삽입
     function openYoutubeDialog(): void {
         youtubeUrl = '';
         showYoutubeDialog = true;
@@ -533,6 +594,64 @@
         editor?.chain().focus().setYoutubeVideo({ src: youtubeUrl }).run();
         showYoutubeDialog = false;
         youtubeUrl = '';
+    }
+
+    // 동영상 파일 업로드 헬퍼
+    async function insertVideoFile(file: File): Promise<void> {
+        if (!onImageUpload || !editor) return;
+
+        isUploading = true;
+        try {
+            const videoUrl = await onImageUpload(file);
+            if (videoUrl) {
+                editor
+                    .chain()
+                    .focus()
+                    .insertContent(
+                        `<video src="${videoUrl}" controls playsinline preload="metadata" style="max-width:100%;border-radius:8px;"></video>`
+                    )
+                    .run();
+            }
+        } catch (err) {
+            console.error('Video upload failed:', err);
+        } finally {
+            isUploading = false;
+        }
+    }
+
+    // 동영상 다이얼로그에서 파일 선택 (복수 지원)
+    async function handleVideoFileFromDialog(e: Event): Promise<void> {
+        const input = e.currentTarget as HTMLInputElement;
+        const files = input.files;
+        if (!files?.length) return;
+
+        for (const file of Array.from(files)) {
+            if (file.type.startsWith('video/')) {
+                await insertVideoFile(file);
+            }
+        }
+
+        showYoutubeDialog = false;
+        input.value = '';
+    }
+
+    // 동영상 다이얼로그 드래그앤드롭 상태
+    let videoDialogDragOver = $state(false);
+
+    // 동영상 다이얼로그 내 드래그앤드롭
+    async function handleVideoDialogDrop(e: DragEvent): Promise<void> {
+        e.preventDefault();
+        videoDialogDragOver = false;
+        const files = e.dataTransfer?.files;
+        if (!files?.length) return;
+
+        for (const file of Array.from(files)) {
+            if (file.type.startsWith('video/')) {
+                await insertVideoFile(file);
+            }
+        }
+
+        showYoutubeDialog = false;
     }
 
     // 글자 수 업데이트
@@ -1076,6 +1195,47 @@
             <DialogTitle>이미지 삽입</DialogTitle>
         </DialogHeader>
         <div class="space-y-4 py-4">
+            {#if onImageUpload}
+                <div class="space-y-2">
+                    <label class="text-sm font-medium">파일 업로드</label>
+                    <!-- svelte-ignore a11y_no_static_element_interactions -->
+                    <label
+                        class="border-border hover:bg-muted/50 flex cursor-pointer flex-col items-center gap-2 rounded-lg border-2 border-dashed p-6 transition-colors {imageDialogDragOver
+                            ? 'border-primary bg-primary/10'
+                            : ''}"
+                        ondragover={(e) => {
+                            e.preventDefault();
+                            imageDialogDragOver = true;
+                        }}
+                        ondragleave={() => {
+                            imageDialogDragOver = false;
+                        }}
+                        ondrop={handleImageDialogDrop}
+                    >
+                        <Upload class="text-muted-foreground h-8 w-8" />
+                        <span class="text-muted-foreground text-sm"
+                            >클릭 또는 드래그하여 이미지 선택</span
+                        >
+                        <span class="text-muted-foreground text-xs">여러 파일 선택 가능</span>
+                        <input
+                            type="file"
+                            accept="image/*"
+                            multiple
+                            class="hidden"
+                            onchange={handleImageFileFromDialog}
+                            disabled={isUploading}
+                        />
+                    </label>
+                </div>
+                <div class="relative">
+                    <div class="absolute inset-0 flex items-center">
+                        <span class="border-border w-full border-t"></span>
+                    </div>
+                    <div class="relative flex justify-center text-xs uppercase">
+                        <span class="bg-background text-muted-foreground px-2">또는</span>
+                    </div>
+                </div>
+            {/if}
             <div class="space-y-2">
                 <label for="image-url" class="text-sm font-medium">이미지 URL</label>
                 <Input
@@ -1099,13 +1259,56 @@
     </DialogContent>
 </Dialog>
 
-<!-- YouTube 다이얼로그 -->
+<!-- 동영상 다이얼로그 -->
 <Dialog bind:open={showYoutubeDialog}>
     <DialogContent class="sm:max-w-md">
         <DialogHeader>
-            <DialogTitle>YouTube 삽입</DialogTitle>
+            <DialogTitle>동영상 삽입</DialogTitle>
         </DialogHeader>
         <div class="space-y-4 py-4">
+            {#if onImageUpload}
+                <div class="space-y-2">
+                    <label class="text-sm font-medium">동영상 파일 업로드</label>
+                    <!-- svelte-ignore a11y_no_static_element_interactions -->
+                    <label
+                        class="border-border hover:bg-muted/50 flex cursor-pointer flex-col items-center gap-2 rounded-lg border-2 border-dashed p-6 transition-colors {videoDialogDragOver
+                            ? 'border-primary bg-primary/10'
+                            : ''}"
+                        ondragover={(e) => {
+                            e.preventDefault();
+                            videoDialogDragOver = true;
+                        }}
+                        ondragleave={() => {
+                            videoDialogDragOver = false;
+                        }}
+                        ondrop={handleVideoDialogDrop}
+                    >
+                        <Upload class="text-muted-foreground h-8 w-8" />
+                        <span class="text-muted-foreground text-sm"
+                            >클릭 또는 드래그하여 동영상 선택</span
+                        >
+                        <span class="text-muted-foreground text-xs"
+                            >MP4, WebM, MOV (여러 파일 가능)</span
+                        >
+                        <input
+                            type="file"
+                            accept="video/*"
+                            multiple
+                            class="hidden"
+                            onchange={handleVideoFileFromDialog}
+                            disabled={isUploading}
+                        />
+                    </label>
+                </div>
+                <div class="relative">
+                    <div class="absolute inset-0 flex items-center">
+                        <span class="border-border w-full border-t"></span>
+                    </div>
+                    <div class="relative flex justify-center text-xs uppercase">
+                        <span class="bg-background text-muted-foreground px-2">또는</span>
+                    </div>
+                </div>
+            {/if}
             <div class="space-y-2">
                 <label for="youtube-url" class="text-sm font-medium">YouTube URL</label>
                 <Input

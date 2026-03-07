@@ -82,7 +82,6 @@
     let fileInputRef = $state<HTMLInputElement | null>(null);
 
     // 이미지 업로드 상태
-    let uploadedImages = $state<string[]>([]);
     let isUploading = $state(false);
 
     const MAX_IMAGES = 3;
@@ -93,34 +92,24 @@
         isReplyMode && parentAuthor ? `@${parentAuthor}님에게 답글 작성...` : placeholder
     );
 
-    // 제출 가능 여부 (텍스트 또는 이미지 중 하나라도 있으면 OK)
-    const canSubmit = $derived(content.trim().length > 0 || uploadedImages.length > 0);
+    // 제출 가능 여부
+    const canSubmit = $derived(content.trim().length > 0);
 
     // 제출 핸들러
     async function handleSubmit(e: Event): Promise<void> {
         e.preventDefault();
 
-        // 텍스트와 이미지 모두 없으면 에러
-        if (!content.trim() && uploadedImages.length === 0) {
-            error = '댓글 내용을 입력하거나 이미지를 첨부해주세요.';
+        if (!content.trim()) {
+            error = '댓글 내용을 입력해주세요.';
             return;
         }
 
         error = null;
 
         try {
-            // 이미지를 content에 <img> 태그로 삽입 (Go 백엔드 호환)
-            let finalContent = content.trim();
-            if (uploadedImages.length > 0) {
-                const imgTags = uploadedImages
-                    .map((url) => `<img src="${url}" alt="첨부 이미지" loading="lazy">`)
-                    .join('\n');
-                finalContent = finalContent ? `${finalContent}\n${imgTags}` : imgTags;
-            }
-            await onSubmit(finalContent, parentId, isSecret);
-            content = ''; // 성공 시 입력 초기화
+            await onSubmit(content.trim(), parentId, isSecret);
+            content = '';
             isSecret = false;
-            uploadedImages = [];
         } catch (err) {
             error = err instanceof Error ? err.message : '댓글 작성에 실패했습니다.';
         }
@@ -131,7 +120,6 @@
         content = '';
         isSecret = false;
         error = null;
-        uploadedImages = [];
         onCancel?.();
     }
 
@@ -160,10 +148,11 @@
         fileInputRef?.click();
     }
 
-    // 이미지 파일 처리
+    // 이미지 파일 처리 — 업로드 후 커서 위치에 img 태그 삽입
     async function handleFiles(files: FileList | File[]): Promise<void> {
         const fileArray = Array.from(files);
-        const remaining = MAX_IMAGES - uploadedImages.length;
+        const insertedImageCount = (content.match(/<img\s/g) || []).length;
+        const remaining = MAX_IMAGES - insertedImageCount;
         if (remaining <= 0) {
             error = `이미지는 최대 ${MAX_IMAGES}개까지 첨부할 수 있습니다.`;
             return;
@@ -189,7 +178,9 @@
                     error = '이미지 URL을 받지 못했습니다.';
                     continue;
                 }
-                uploadedImages = [...uploadedImages, result.url];
+                // 커서 위치에 img 태그 삽입
+                const imgTag = `<img src="${result.url}" alt="첨부 이미지" loading="lazy">`;
+                insertText(imgTag);
             } catch (err) {
                 error = err instanceof Error ? err.message : '이미지 업로드에 실패했습니다.';
             } finally {
@@ -224,11 +215,6 @@
             e.preventDefault();
             handleFiles(imageFiles);
         }
-    }
-
-    // 업로드된 이미지 제거
-    function removeImage(index: number): void {
-        uploadedImages = uploadedImages.filter((_, i) => i !== index);
     }
 </script>
 
@@ -286,33 +272,10 @@
                 />
                 <MentionAutocomplete textarea={textareaRef} />
 
-                <!-- 업로드된 이미지 미리보기 -->
-                {#if uploadedImages.length > 0}
-                    <div class="flex flex-wrap gap-2">
-                        {#each uploadedImages as imageUrl, i}
-                            <div class="group relative">
-                                <img
-                                    src={imageUrl}
-                                    alt="첨부 이미지 {i + 1}"
-                                    class="h-16 w-16 rounded-md border object-cover"
-                                />
-                                <button
-                                    type="button"
-                                    onclick={() => removeImage(i)}
-                                    class="bg-destructive text-destructive-foreground absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full text-xs opacity-0 transition-opacity group-hover:opacity-100"
-                                    title="이미지 제거"
-                                >
-                                    ×
-                                </button>
-                            </div>
-                        {/each}
-                        {#if isUploading}
-                            <div
-                                class="flex h-16 w-16 items-center justify-center rounded-md border"
-                            >
-                                <Loader2 class="text-muted-foreground h-5 w-5 animate-spin" />
-                            </div>
-                        {/if}
+                {#if isUploading}
+                    <div class="text-muted-foreground flex items-center gap-2 text-sm">
+                        <Loader2 class="h-4 w-4 animate-spin" />
+                        <span>이미지 업로드 중...</span>
                     </div>
                 {/if}
 

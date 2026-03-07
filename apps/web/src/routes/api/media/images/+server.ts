@@ -26,6 +26,11 @@ const ALLOWED_EXTENSIONS = new Set([
     '.mp4',
     '.webm',
     '.mov',
+    '.avi',
+    '.mkv',
+    '.wmv',
+    '.flv',
+    '.m4v',
     '.pdf',
     '.doc',
     '.docx',
@@ -42,7 +47,7 @@ const ALLOWED_EXTENSIONS = new Set([
     '.csv',
     '.json'
 ]);
-const MAX_SIZE = 10 * 1024 * 1024; // 10MB
+const MAX_SIZE = 50 * 1024 * 1024; // 50MB
 
 function getExt(filename: string): string {
     const dot = filename.lastIndexOf('.');

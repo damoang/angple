@@ -103,17 +103,17 @@
         uploadedFiles = uploadedFiles.filter((f) => f.id !== fileId);
     }
 
-    // 에디터 이미지 업로드 핸들러 (드래그 앤 드롭 / 붙여넣기)
+    // 에디터 미디어 업로드 핸들러 (이미지 + 동영상, 드래그앤드롭 / 붙여넣기 / 다이얼로그)
     async function handleEditorImageUpload(file: File): Promise<string | null> {
         if (!boardId) return null;
         try {
             const postIdNum = post?.id ? Number(post.id) : undefined;
-            const result = await apiClient.uploadImage(boardId, file, postIdNum);
+            const result = await apiClient.uploadFile(boardId, file, postIdNum);
             // 업로드된 파일 목록에도 추가
             uploadedFiles = [...uploadedFiles, result];
             return result.url;
         } catch (err) {
-            console.error('Image upload failed:', err);
+            console.error('Media upload failed:', err);
             return null;
         }
     }
