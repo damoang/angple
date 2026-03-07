@@ -119,6 +119,42 @@ export async function validateNickname(
 }
 
 /**
+ * 아이디 검증 (초대 플로우에서 사용자가 직접 입력)
+ * - 3~20자
+ * - 영문 소문자, 숫자, 밑줄 허용
+ * - 금지어 불가
+ * - 중복 불가
+ */
+export async function validateMbId(mbId: string): Promise<{ valid: boolean; error?: string }> {
+    if (!mbId || !mbId.trim()) {
+        return { valid: false, error: '아이디를 입력해주세요.' };
+    }
+
+    const trimmed = mbId.trim();
+
+    if (trimmed.length < 3 || trimmed.length > 20) {
+        return { valid: false, error: '아이디는 3~20자로 입력해주세요.' };
+    }
+
+    if (!/^[a-z0-9_]+$/.test(trimmed)) {
+        return { valid: false, error: '아이디는 영문 소문자, 숫자, 밑줄만 사용 가능합니다.' };
+    }
+
+    // 금지어 체크
+    const prohibitList = await getProhibitList();
+    if (prohibitList.includes(trimmed.toLowerCase())) {
+        return { valid: false, error: '사용할 수 없는 아이디입니다.' };
+    }
+
+    // 중복 체크
+    if (await isMbIdTaken(trimmed)) {
+        return { valid: false, error: '이미 사용 중인 아이디입니다.' };
+    }
+
+    return { valid: true };
+}
+
+/**
  * g5_member에 새 회원 INSERT
  * PHP register_form_update.php 기반 필수 컬럼
  */

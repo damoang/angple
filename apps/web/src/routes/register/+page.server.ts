@@ -9,7 +9,7 @@ import { randomBytes } from 'crypto';
 import {
     generateSocialMbId,
     validateNickname,
-    isNicknameTaken,
+    validateMbId,
     isMbIdTaken,
     createMember
 } from '$lib/server/auth/register.js';
@@ -53,13 +53,15 @@ export const load: PageServerLoad = async ({ url, cookies }) => {
 
     const isInviteFlow = redirectUrl.includes('ads.damoang.net/invite/');
 
-    // 약관/개인정보처리방침/이용제한사유 로드
-    const [termsContent, privacyContent, policyContent, siteTitle] = await Promise.all([
-        getContent('provision'),
-        getContent('privacy'),
-        getContent('operation_policy_add'),
-        getSiteTitle()
-    ]);
+    // 약관/개인정보처리방침/이용제한사유 + 광고주 약관(초대 시) 로드
+    const [termsContent, privacyContent, policyContent, siteTitle, contractContent] =
+        await Promise.all([
+            getContent('provision'),
+            getContent('privacy'),
+            getContent('operation_policy_add'),
+            getSiteTitle(),
+            isInviteFlow ? getContent('contract') : Promise.resolve(null)
+        ]);
 
     return {
         provider: socialProfile.provider || provider,
@@ -73,6 +75,9 @@ export const load: PageServerLoad = async ({ url, cookies }) => {
             : '',
         policyHtml: policyContent
             ? replaceContentVariables(policyContent.co_content, siteTitle)
+            : '',
+        contractHtml: contractContent
+            ? replaceContentVariables(contractContent.co_content, siteTitle)
             : ''
     };
 };
@@ -144,37 +149,52 @@ export const actions: Actions = {
             });
         }
 
-        // 닉네임: 초대 플로우는 중복되지 않는 값으로 자동 생성, 일반은 검증
-        let finalNickname = nickname;
+        // 초대 플로우: 광고주 약관 동의 확인
         if (isInviteFlow) {
-            // 중복되지 않는 닉네임 생성 (최대 5회 시도)
-            for (let i = 0; i < 5; i++) {
-                finalNickname = 'inv_' + randomBytes(4).toString('hex');
-                if (!(await isNicknameTaken(finalNickname))) break;
-            }
-        } else {
-            const nicknameResult = await validateNickname(nickname);
-            if (!nicknameResult.valid) {
+            const agreeContract = formData.get('agree_contract') === 'on';
+            if (!agreeContract) {
                 return fail(400, {
-                    error: nicknameResult.error,
+                    error: '광고주 약관에 동의해주세요.',
                     nickname
                 });
             }
         }
 
-        // mb_id: 소셜 프로바이더 기반 자동 생성
-        let mbId = generateSocialMbId(socialProfile.provider, socialProfile.identifier);
-        if (await isMbIdTaken(mbId)) {
-            mbId = mbId + '_' + randomBytes(4).toString('hex');
+        // 닉네임 검증
+        const nicknameResult = await validateNickname(nickname);
+        if (!nicknameResult.valid) {
+            return fail(400, {
+                error: nicknameResult.error,
+                nickname
+            });
+        }
+
+        // mb_id: 초대 플로우는 사용자 입력, 일반은 소셜 프로바이더 기반 자동 생성
+        let mbId: string;
+        if (isInviteFlow) {
+            const customMbId = (formData.get('mb_id') as string)?.trim().toLowerCase() || '';
+            const mbIdResult = await validateMbId(customMbId);
+            if (!mbIdResult.valid) {
+                return fail(400, {
+                    error: mbIdResult.error,
+                    nickname
+                });
+            }
+            mbId = customMbId;
+        } else {
+            mbId = generateSocialMbId(socialProfile.provider, socialProfile.identifier);
+            if (await isMbIdTaken(mbId)) {
+                mbId = mbId + '_' + randomBytes(4).toString('hex');
+            }
         }
 
         try {
             // g5_member INSERT
             await createMember({
                 mb_id: mbId,
-                mb_nick: finalNickname,
+                mb_nick: nickname,
                 mb_email: socialProfile.email,
-                mb_name: finalNickname,
+                mb_name: nickname,
                 mb_ip: clientIp
             });
 

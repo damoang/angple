@@ -22,6 +22,7 @@
     let { data, form }: { data: PageData; form: ActionData } = $props();
 
     let nickname = $state('');
+    let customMbId = $state('');
 
     $effect(() => {
         nickname = form?.nickname || data.displayName || '';
@@ -29,15 +30,22 @@
     let agreeTerms = $state(false);
     let agreePrivacy = $state(false);
     let agreePolicy = $state(false);
+    let agreeContract = $state(false);
     let isSubmitting = $state(false);
     let turnstileRef: HTMLDivElement | undefined = $state();
     let turnstileWidgetId: string | undefined = $state();
     let nicknameRef: HTMLDivElement | undefined = $state();
 
     // 닉네임 관련 에러인지 판별
-    const nicknameErrors = ['닉네임', '사용할 수 없는'];
+    const nicknameErrors = ['닉네임', '사용할 수 없는 닉'];
     let isNicknameError = $derived(
         form?.error ? nicknameErrors.some((k) => form!.error!.includes(k)) : false
+    );
+
+    // 아이디 관련 에러인지 판별
+    const mbIdErrors = ['아이디'];
+    let isMbIdError = $derived(
+        form?.error ? mbIdErrors.some((k) => form!.error!.includes(k)) : false
     );
 
     // 에러 발생 시 닉네임 필드로 스크롤
@@ -54,6 +62,8 @@
     let termsRead = $derived(termsScrolled || !data.termsHtml);
     let privacyRead = $derived(privacyScrolled || !data.privacyHtml);
     let policyRead = $derived(policyScrolled || !data.policyHtml);
+    let contractScrolled = $state(false);
+    let contractRead = $derived(contractScrolled || !data.contractHtml);
 
     function handleTermsScroll(e: Event) {
         const el = e.target as HTMLDivElement;
@@ -73,6 +83,13 @@
         const el = e.target as HTMLDivElement;
         if (el.scrollTop + el.clientHeight >= el.scrollHeight - 10) {
             policyScrolled = true;
+        }
+    }
+
+    function handleContractScroll(e: Event) {
+        const el = e.target as HTMLDivElement;
+        if (el.scrollTop + el.clientHeight >= el.scrollHeight - 10) {
+            contractScrolled = true;
         }
     }
 
@@ -144,8 +161,8 @@
             </CardDescription>
         </CardHeader>
         <CardContent>
-            <!-- 일반 에러 메시지 (닉네임 외) -->
-            {#if form?.error && !isNicknameError}
+            <!-- 일반 에러 메시지 (닉네임/아이디 외) -->
+            {#if form?.error && !isNicknameError && !isMbIdError}
                 <div class="bg-destructive/10 text-destructive mb-4 rounded-md p-3 text-sm">
                     {form.error}
                 </div>
@@ -167,37 +184,6 @@
                 class="space-y-6"
             >
                 <input type="hidden" name="redirect" value={data.redirectUrl} />
-
-                <!-- 닉네임 입력 (초대 플로우에서는 숨김) -->
-                {#if data.isInviteFlow}
-                    <div class="bg-muted/50 rounded-md p-3">
-                        <p class="text-muted-foreground text-sm">
-                            닉네임은 중복되지 않는 값으로 자동 생성됩니다. 가입 후 변경 가능합니다.
-                        </p>
-                    </div>
-                {:else}
-                    <div class="space-y-2" bind:this={nicknameRef}>
-                        <Label for="nickname">닉네임 <span class="text-destructive">*</span></Label>
-                        <Input
-                            id="nickname"
-                            name="nickname"
-                            type="text"
-                            placeholder="사용할 닉네임을 입력하세요"
-                            bind:value={nickname}
-                            maxlength={20}
-                            minlength={2}
-                            required
-                            disabled={isSubmitting}
-                            class={isNicknameError ? 'border-destructive' : ''}
-                        />
-                        {#if isNicknameError}
-                            <p class="text-destructive text-xs font-medium">{form?.error}</p>
-                        {/if}
-                        <p class="text-muted-foreground text-xs">
-                            한글, 영문, 숫자, 점(.), 밑줄(_) 사용 가능 (2~20자)
-                        </p>
-                    </div>
-                {/if}
 
                 <!-- 이용약관 -->
                 <div class="space-y-2">
@@ -301,6 +287,88 @@
                     </div>
                 {/if}
 
+                <!-- 광고주 약관 (초대 플로우) -->
+                {#if data.isInviteFlow && data.contractHtml}
+                    <div class="space-y-2">
+                        <Label class="font-medium">
+                            광고주 약관 <span class="text-destructive">*</span>
+                        </Label>
+                        <div
+                            class="terms-content border-border bg-muted/30 max-h-48 overflow-y-auto rounded-md border p-3 text-xs leading-relaxed"
+                            onscroll={handleContractScroll}
+                        >
+                            {@html data.contractHtml}
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <Checkbox
+                                id="agree_contract"
+                                bind:checked={agreeContract}
+                                disabled={isSubmitting || !contractRead}
+                            />
+                            <Label
+                                for="agree_contract"
+                                class="cursor-pointer text-sm {contractRead
+                                    ? ''
+                                    : 'text-muted-foreground'}"
+                            >
+                                {#if contractRead}
+                                    광고주 약관에 동의합니다
+                                {:else}
+                                    약관을 끝까지 읽어주세요
+                                {/if}
+                            </Label>
+                        </div>
+                    </div>
+                {/if}
+
+                <!-- 아이디 입력 (초대 플로우) -->
+                {#if data.isInviteFlow}
+                    <div class="space-y-2">
+                        <Label for="mb_id">아이디 <span class="text-destructive">*</span></Label>
+                        <Input
+                            id="mb_id"
+                            name="mb_id"
+                            type="text"
+                            placeholder="사용할 아이디를 입력하세요"
+                            bind:value={customMbId}
+                            maxlength={20}
+                            minlength={3}
+                            required
+                            disabled={isSubmitting}
+                            class={isMbIdError ? 'border-destructive' : ''}
+                        />
+                        {#if isMbIdError}
+                            <p class="text-destructive text-xs font-medium">{form?.error}</p>
+                        {/if}
+                        <p class="text-muted-foreground text-xs">
+                            영문 소문자, 숫자, 밑줄(_) 사용 가능 (3~20자)
+                        </p>
+                    </div>
+                {/if}
+
+                <!-- 닉네임 입력 -->
+                <div class="space-y-2" bind:this={nicknameRef}>
+                    <Label for="nickname">닉네임 <span class="text-destructive">*</span></Label>
+                    <Input
+                        id="nickname"
+                        name="nickname"
+                        type="text"
+                        placeholder="사용할 닉네임을 입력하세요"
+                        bind:value={nickname}
+                        maxlength={20}
+                        minlength={2}
+                        required
+                        disabled={isSubmitting}
+                        class={isNicknameError ? 'border-destructive' : ''}
+                    />
+                    {#if isNicknameError}
+                        <p class="text-destructive text-xs font-medium">{form?.error}</p>
+                    {/if}
+                    <p class="text-muted-foreground text-xs">
+                        한글, 영문, 숫자, 점(.), 밑줄(_) 사용 가능 (2~20자)
+                    </p>
+                </div>
+
                 <!-- 체크박스 값 전송용 hidden input -->
                 {#if agreeTerms}
                     <input type="hidden" name="agree_terms" value="on" />
@@ -310,6 +378,9 @@
                 {/if}
                 {#if agreePolicy}
                     <input type="hidden" name="agree_policy" value="on" />
+                {/if}
+                {#if agreeContract}
+                    <input type="hidden" name="agree_contract" value="on" />
                 {/if}
                 <!-- Turnstile CAPTCHA (초대 플로우는 스킵) -->
                 {#if PUBLIC_TURNSTILE_SITE_KEY && !data.isInviteFlow}
@@ -321,10 +392,12 @@
                     type="submit"
                     class="w-full"
                     disabled={isSubmitting ||
-                        (!data.isInviteFlow && !nickname.trim()) ||
+                        !nickname.trim() ||
                         !agreeTerms ||
                         !agreePrivacy ||
-                        (!!data.policyHtml && !agreePolicy)}
+                        (!!data.policyHtml && !agreePolicy) ||
+                        (data.isInviteFlow && !!data.contractHtml && !agreeContract) ||
+                        (data.isInviteFlow && !customMbId.trim())}
                 >
                     {#if isSubmitting}
                         <Loader2 class="mr-2 h-4 w-4 animate-spin" />
