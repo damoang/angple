@@ -128,12 +128,20 @@ function scanDirectory(
     return scannedCount;
 }
 
+// --- 인메모리 캐시 (5분 TTL, admin API에서만 호출) ---
+let widgetScanCache: { data: Map<string, WidgetInfo>; expiry: number } | null = null;
+const WIDGET_SCAN_CACHE_TTL = 5 * 60 * 1000; // 5분
+
 /**
  * widgets/ 및 custom-widgets/ 디렉터리를 스캔하여 모든 위젯 매니페스트 반환
  *
  * @returns 위젯 ID를 key로 하는 WidgetInfo 맵
  */
 export function scanWidgets(): Map<string, WidgetInfo> {
+    if (widgetScanCache && Date.now() < widgetScanCache.expiry) {
+        return widgetScanCache.data;
+    }
+
     const widgets = new Map<string, WidgetInfo>();
 
     try {
@@ -146,7 +154,13 @@ export function scanWidgets(): Map<string, WidgetInfo> {
         console.error('[Widget Scanner] 위젯 스캔 실패:', error);
     }
 
+    widgetScanCache = { data: widgets, expiry: Date.now() + WIDGET_SCAN_CACHE_TTL };
     return widgets;
+}
+
+/** 위젯 스캔 캐시 무효화 (위젯 설치/삭제 시 호출) */
+export function invalidateWidgetScanCache(): void {
+    widgetScanCache = null;
 }
 
 /**

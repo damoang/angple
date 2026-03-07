@@ -24,9 +24,18 @@
 
     let scrapped = $state(initialScrapped);
     let loading = $state(false);
+    let userInteracted = $state(false);
+
+    // SSR 스트리밍: initialScrapped prop이 변경되면 동기화 (사용자 조작 전만)
+    $effect(() => {
+        if (!userInteracted) {
+            scrapped = initialScrapped;
+        }
+    });
 
     async function toggleScrap() {
         if (loading) return;
+        userInteracted = true;
 
         // Optimistic UI: 즉시 토글 → 실패 시 롤백
         const prev = scrapped;

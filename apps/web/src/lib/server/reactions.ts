@@ -52,20 +52,24 @@ export async function fetchReactionsByParentId(
 ): Promise<Record<string, ReactionItem[]>> {
     const safeParentId = sanitizeId(parentId);
 
-    const [reactions] = await pool.query<ReactionRow[]>(
-        `SELECT target_id, reaction, reaction_count FROM g5_da_reaction
+    // 두 쿼리를 병렬 실행 (순차 → 병렬: 50-100ms 절감)
+    const [reactionsQueryResult, choicesQueryResult] = await Promise.all([
+        pool.query<ReactionRow[]>(
+            `SELECT target_id, reaction, reaction_count FROM g5_da_reaction
 		 WHERE parent_id = ? ORDER BY id ASC`,
-        [safeParentId]
-    );
-
-    let memberChoices: ChooseRow[] = [];
-    if (memberId) {
-        [memberChoices] = await pool.query<ChooseRow[]>(
-            `SELECT target_id, reaction FROM g5_da_reaction_choose
+            [safeParentId]
+        ),
+        memberId
+            ? pool.query<ChooseRow[]>(
+                  `SELECT target_id, reaction FROM g5_da_reaction_choose
 			 WHERE member_id = ? AND parent_id = ?`,
-            [memberId, safeParentId]
-        );
-    }
+                  [memberId, safeParentId]
+              )
+            : Promise.resolve([[] as ChooseRow[]])
+    ]);
+
+    const [reactions] = reactionsQueryResult;
+    const [memberChoices] = choicesQueryResult;
 
     // 사용자 선택 맵
     const chooseMap = new Map<string, Set<string>>();

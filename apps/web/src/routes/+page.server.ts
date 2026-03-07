@@ -3,11 +3,12 @@ import { getWidgetLayout, getSidebarWidgetLayout } from '$lib/server/settings/in
 import { DEFAULT_WIDGETS, DEFAULT_SIDEBAR_WIDGETS } from '$lib/constants/default-widgets';
 import { buildIndexWidgets } from '$lib/server/index-widgets-builder';
 import { getDefaultPeriod, loadRecommendedData } from '$lib/server/recommended-loader';
+import { getCachedCelebrations } from '$lib/server/celebration';
 import { env } from '$env/dynamic/private';
 
 const BACKEND_URL = env.BACKEND_URL || 'http://localhost:8090';
 
-export const load: PageServerLoad = async ({ fetch }) => {
+export const load: PageServerLoad = async () => {
     // 위젯 데이터, 레이아웃, 추천글, 축하메시지를 병렬로 로드
     const [indexWidgetsResult, layoutResult, recommendedResult, celebrationResult] =
         await Promise.allSettled([
@@ -24,11 +25,8 @@ export const load: PageServerLoad = async ({ fetch }) => {
             })(),
             // 추천글 기본 탭 SSR 프리페치 (로딩 없이 즉시 표시)
             loadRecommendedData(getDefaultPeriod()),
-            // 축하메시지 SSR 프리페치
-            fetch('/api/ads/celebration/today?mode=recent')
-                .then((r) => r.json())
-                .then((res) => (res.success ? res.data : []))
-                .catch(() => [])
+            // 축하메시지 SSR 프리페치 (DB 직접 조회 — 내부 HTTP 호출 제거)
+            getCachedCelebrations(true).catch(() => [])
         ]);
 
     const indexWidgets =

@@ -8,7 +8,16 @@
         CardTitle,
         CardDescription
     } from '$lib/components/ui/card';
-    import { Loader2, Plus, Save, RotateCcw, Menu as MenuIcon } from '@lucide/svelte/icons';
+    import {
+        Loader2,
+        Plus,
+        Save,
+        RotateCcw,
+        Menu as MenuIcon,
+        ChevronsDownUp,
+        ChevronsUpDown
+    } from '@lucide/svelte/icons';
+    import type { Menu } from '$lib/types/admin-menu';
     import MenuTree from '$lib/components/admin/menus/menu-tree.svelte';
     import AddMenuDialog from '$lib/components/admin/menus/add-menu-dialog.svelte';
     import EditMenuDialog from '$lib/components/admin/menus/edit-menu-dialog.svelte';
@@ -20,10 +29,41 @@
     let showEditDialog = $state(false);
     let parentIdForAdd = $state<number | null>(null);
 
-    // SSR 데이터로 스토어 초기화
+    // 접기/펼치기 상태 (기본: 모두 접힘)
+    let collapsedIds = $state<Set<number>>(new Set());
+    let allCollapsed = $derived.by(() => {
+        const parentIds = collectParentIds(menuStore.menus);
+        return (
+            parentIds.size > 0 &&
+            parentIds.size === collapsedIds.size &&
+            [...parentIds].every((id) => collapsedIds.has(id))
+        );
+    });
+
+    function collectParentIds(menus: Menu[]): Set<number> {
+        const ids = new Set<number>();
+        for (const m of menus) {
+            if (m.children && m.children.length > 0) {
+                ids.add(m.id);
+                for (const id of collectParentIds(m.children)) ids.add(id);
+            }
+        }
+        return ids;
+    }
+
+    function collapseAll() {
+        collapsedIds = collectParentIds(menuStore.menus);
+    }
+
+    function expandAll() {
+        collapsedIds = new Set();
+    }
+
+    // SSR 데이터로 스토어 초기화 + 기본 접힘
     $effect(() => {
         if (data.menus && data.menus.length > 0) {
             menuStore.initFromServer(data.menus);
+            collapsedIds = collectParentIds(data.menus);
         }
     });
 
@@ -90,11 +130,32 @@
 
     <Card>
         <CardHeader>
-            <CardTitle class="flex items-center gap-2">
-                <MenuIcon class="h-5 w-5" />
-                메뉴 트리
-            </CardTitle>
-            <CardDescription>드래그하여 메뉴 순서와 계층을 변경할 수 있습니다.</CardDescription>
+            <div class="flex items-center justify-between">
+                <div>
+                    <CardTitle class="flex items-center gap-2">
+                        <MenuIcon class="h-5 w-5" />
+                        메뉴 트리
+                    </CardTitle>
+                    <CardDescription
+                        >드래그하여 메뉴 순서와 계층을 변경할 수 있습니다.</CardDescription
+                    >
+                </div>
+                {#if menuStore.menus.length > 0}
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onclick={allCollapsed ? expandAll : collapseAll}
+                    >
+                        {#if allCollapsed}
+                            <ChevronsUpDown class="mr-1.5 h-4 w-4" />
+                            모두 펼치기
+                        {:else}
+                            <ChevronsDownUp class="mr-1.5 h-4 w-4" />
+                            모두 접기
+                        {/if}
+                    </Button>
+                {/if}
+            </div>
         </CardHeader>
         <CardContent>
             {#if menuStore.isLoading}
@@ -114,12 +175,15 @@
                     </Button>
                 </div>
             {:else}
-                <MenuTree
-                    menus={menuStore.menus}
-                    onEdit={handleEditMenu}
-                    onAddChild={handleAddMenu}
-                    onReorder={(newMenus) => menuStore.updateMenuOrder(newMenus)}
-                />
+                <div class="max-h-[70vh] overflow-y-auto pr-1">
+                    <MenuTree
+                        menus={menuStore.menus}
+                        onEdit={handleEditMenu}
+                        onAddChild={handleAddMenu}
+                        onReorder={(newMenus) => menuStore.updateMenuOrder(newMenus)}
+                        bind:collapsedIds
+                    />
+                </div>
             {/if}
         </CardContent>
     </Card>

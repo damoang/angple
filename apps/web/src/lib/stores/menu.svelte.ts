@@ -22,6 +22,24 @@ class MenuStore {
     error = $state<string | null>(null);
 
     /**
+     * show_in_header가 true인 메뉴만 order_num 순으로 반환
+     */
+    get headerMenus(): MenuItem[] {
+        return this.collectHeaderMenus(this.menus).sort((a, b) => a.order_num - b.order_num);
+    }
+
+    private collectHeaderMenus(menus: MenuItem[]): MenuItem[] {
+        const result: MenuItem[] = [];
+        for (const m of menus) {
+            if (m.show_in_header) result.push(m);
+            if (m.children) {
+                result.push(...this.collectHeaderMenus(m.children));
+            }
+        }
+        return result;
+    }
+
+    /**
      * SSR 데이터로 메뉴 초기화
      */
     initFromServer(menus: MenuItem[]) {

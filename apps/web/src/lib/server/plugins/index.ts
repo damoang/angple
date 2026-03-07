@@ -17,6 +17,7 @@ import {
     isCustomPlugin
 } from './scanner';
 import { pluginSettingsProvider } from '../settings/plugin-settings-provider';
+import { TieredCache } from '$lib/server/cache';
 import type { ExtensionManifest } from '@angple/types';
 
 /**
@@ -94,35 +95,31 @@ export async function getPluginById(pluginId: string): Promise<InstalledPlugin |
     };
 }
 
-// --- 인메모리 캐시: 활성 플러그인 (5분 TTL) ---
-let activePluginsCache: { data: InstalledPlugin[]; expiry: number } | null = null;
-const ACTIVE_PLUGINS_CACHE_TTL = 5 * 60 * 1000; // 5분
+// --- 2-tier 캐시: 활성 플러그인 (L1 30초, L2 5분) ---
+const activePluginsTieredCache = new TieredCache<InstalledPlugin[]>('plugins:active', 30_000, 300, 10);
 
 /**
- * 활성화된 모든 플러그인 가져오기 (5분 인메모리 캐시)
+ * 활성화된 모든 플러그인 가져오기 (TieredCache: L1 30초, L2 5분)
  */
 export async function getActivePlugins(): Promise<InstalledPlugin[]> {
-    if (activePluginsCache && Date.now() < activePluginsCache.expiry) {
-        return activePluginsCache.data;
-    }
+    return activePluginsTieredCache.getOrFetch('list', async () => {
+        const activePluginIds = await pluginSettingsProvider.getActivePlugins();
+        const activePlugins: InstalledPlugin[] = [];
 
-    const activePluginIds = await pluginSettingsProvider.getActivePlugins();
-    const activePlugins: InstalledPlugin[] = [];
-
-    for (const pluginId of activePluginIds) {
-        const plugin = await getPluginById(pluginId);
-        if (plugin) {
-            activePlugins.push(plugin);
+        for (const pluginId of activePluginIds) {
+            const plugin = await getPluginById(pluginId);
+            if (plugin) {
+                activePlugins.push(plugin);
+            }
         }
-    }
 
-    activePluginsCache = { data: activePlugins, expiry: Date.now() + ACTIVE_PLUGINS_CACHE_TTL };
-    return activePlugins;
+        return activePlugins;
+    });
 }
 
 /** 플러그인 캐시 무효화 (활성화/비활성화 시 호출) */
-export function invalidateActivePluginsCache(): void {
-    activePluginsCache = null;
+export async function invalidateActivePluginsCache(): Promise<void> {
+    await activePluginsTieredCache.delete('list');
 }
 
 /**
@@ -139,7 +136,7 @@ export async function activatePlugin(pluginId: string): Promise<boolean> {
 
     // Provider를 통해 플러그인 활성화
     await pluginSettingsProvider.activatePlugin(pluginId);
-    invalidateActivePluginsCache();
+    await invalidateActivePluginsCache();
 
     return true;
 }
@@ -152,7 +149,7 @@ export async function activatePlugin(pluginId: string): Promise<boolean> {
 export async function deactivatePlugin(pluginId: string): Promise<boolean> {
     // Provider를 통해 플러그인 비활성화
     await pluginSettingsProvider.deactivatePlugin(pluginId);
-    invalidateActivePluginsCache();
+    await invalidateActivePluginsCache();
 
     return true;
 }

@@ -93,7 +93,42 @@
                 }
             });
         </script>
-        <!-- JS chunk 로드 실패는 hooks.client.ts에서 자동 새로고침 처리 -->
+        <!-- JS chunk 로드 실패 시 자동 새로고침 (배포 후 캐시 불일치 대응) -->
+        <script>
+            (function () {
+                var reloadKey = '_angple_reload';
+                var reloaded = sessionStorage.getItem(reloadKey);
+                window.addEventListener('error', function (e) {
+                    // immutable JS/CSS 로드 실패 감지
+                    if (
+                        e.target &&
+                        (e.target.tagName === 'SCRIPT' || e.target.tagName === 'LINK') &&
+                        e.target.href &&
+                        e.target.href.indexOf('/_app/immutable/') !== -1 &&
+                        !reloaded
+                    ) {
+                        sessionStorage.setItem(reloadKey, '1');
+                        location.reload();
+                    }
+                }, true);
+                // 모듈 import 실패 감지
+                window.addEventListener('unhandledrejection', function (e) {
+                    if (
+                        e.reason &&
+                        e.reason.message &&
+                        e.reason.message.indexOf('Failed to fetch dynamically imported module') !== -1 &&
+                        !reloaded
+                    ) {
+                        sessionStorage.setItem(reloadKey, '1');
+                        location.reload();
+                    }
+                });
+                // 정상 로드 시 플래그 제거
+                window.addEventListener('load', function () {
+                    sessionStorage.removeItem(reloadKey);
+                });
+            })();
+        </script>
         <script>
             if ('serviceWorker' in navigator) {
                 if (location.hostname === 'localhost' || location.hostname.startsWith('dev.')) {

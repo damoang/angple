@@ -988,6 +988,29 @@ class ApiClient {
     }
 
     /**
+     * 댓글 추천자 배치 조회 (여러 댓글을 한 번에)
+     */
+    async getCommentLikersBatch(
+        boardId: string,
+        postId: string,
+        commentIds: string[],
+        limit = 5
+    ): Promise<Record<string, LikersResponse>> {
+        try {
+            const ids = commentIds.join(',');
+            const res = await fetch(
+                `/api/boards/${boardId}/posts/${postId}/comments/likers-batch?commentIds=${ids}&limit=${limit}`,
+                { credentials: 'include' }
+            );
+            const json = await res.json();
+            if (!json.success) return {};
+            return json.data;
+        } catch {
+            return {};
+        }
+    }
+
+    /**
      * 댓글 추천 (SvelteKit 라우트 — g5_board_good 기반)
      * 🔒 인증 필요
      */

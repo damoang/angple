@@ -596,19 +596,20 @@
         reportingCommentId = null;
     }
 
-    // 댓글 추천자 아바타 로드
-    async function loadCommentLikerAvatars(commentId: string): Promise<void> {
-        if (!boardId || !postId) return;
+    // 댓글 추천자 아바타 배치 로드
+    async function loadCommentLikerAvatarsBatch(commentIds: string[]): Promise<void> {
+        if (!boardId || !postId || commentIds.length === 0) return;
         try {
-            const response = await apiClient.getCommentLikers(
+            const result = await apiClient.getCommentLikersBatch(
                 boardId,
                 String(postId),
-                commentId,
-                1,
+                commentIds,
                 5
             );
-            commentLikersList.set(commentId, response.likers);
-            commentLikersTotal.set(commentId, response.total);
+            for (const [commentId, data] of Object.entries(result)) {
+                commentLikersList.set(commentId, data.likers);
+                commentLikersTotal.set(commentId, data.total);
+            }
         } catch (err) {
             console.error('Failed to load comment liker avatars:', err);
         }
@@ -642,9 +643,8 @@
 
         if (commentsWithLikes.length > 0) {
             likerAvatarsLoaded = true;
-            for (const c of commentsWithLikes) {
-                loadCommentLikerAvatars(String(c.id));
-            }
+            const ids = commentsWithLikes.map((c) => String(c.id));
+            loadCommentLikerAvatarsBatch(ids);
         }
     });
 </script>

@@ -72,22 +72,12 @@ class MenuStore {
             this._menus = data;
             this._originalMenus = JSON.parse(JSON.stringify(data));
         } catch (error) {
-            console.error('❌ 메뉴 로드 실패:', error);
+            console.error('메뉴 로드 실패:', error);
             toast.error('메뉴를 불러오지 못했습니다. 백엔드 서버가 실행 중인지 확인하세요.');
             this._menus = [];
         } finally {
             this._isLoading = false;
         }
-    }
-
-    private countMenus(menus: Menu[]): number {
-        let count = menus.length;
-        for (const menu of menus) {
-            if (menu.children && menu.children.length > 0) {
-                count += this.countMenus(menu.children);
-            }
-        }
-        return count;
     }
 
     selectMenu(menuId: number | null) {
@@ -99,12 +89,27 @@ class MenuStore {
         this._isSaving = true;
         try {
             const newMenu = await menusApi.createMenu(request);
-            await this.loadMenus();
+            // 로컬 트리에 삽입
+            const menuWithChildren: Menu = { ...newMenu, children: [] };
+            if (request.parent_id) {
+                const parent = this.findMenuById(this._menus, request.parent_id);
+                if (parent) {
+                    if (!parent.children) parent.children = [];
+                    parent.children.push(menuWithChildren);
+                } else {
+                    this._menus.push(menuWithChildren);
+                }
+            } else {
+                this._menus.push(menuWithChildren);
+            }
+            this._originalMenus = JSON.parse(JSON.stringify(this._menus));
             this._selectedMenuId = newMenu.id;
             toast.success('메뉴가 생성되었습니다.');
+            // 캐시 무효화 (백그라운드)
+            menusApi.invalidateMenuCache().catch(() => {});
             return newMenu;
         } catch (error) {
-            console.error('❌ 메뉴 생성 실패:', error);
+            console.error('메뉴 생성 실패:', error);
             toast.error('메뉴 생성에 실패했습니다.');
             throw error;
         } finally {
@@ -116,11 +121,15 @@ class MenuStore {
         this._isSaving = true;
         try {
             const updatedMenu = await menusApi.updateMenu(id, request);
-            await this.loadMenus();
+            // 로컬에서 해당 메뉴 교체
+            this.replaceMenuInTree(this._menus, id, updatedMenu);
+            this.replaceMenuInTree(this._originalMenus, id, updatedMenu);
             toast.success('메뉴가 수정되었습니다.');
+            // 캐시 무효화 (백그라운드)
+            menusApi.invalidateMenuCache().catch(() => {});
             return updatedMenu;
         } catch (error) {
-            console.error('❌ 메뉴 수정 실패:', error);
+            console.error('메뉴 수정 실패:', error);
             toast.error('메뉴 수정에 실패했습니다.');
             throw error;
         } finally {
@@ -128,23 +137,49 @@ class MenuStore {
         }
     }
 
+    private replaceMenuInTree(menus: Menu[], id: number, updated: Menu): boolean {
+        for (let i = 0; i < menus.length; i++) {
+            if (menus[i].id === id) {
+                menus[i] = { ...updated, children: menus[i].children };
+                return true;
+            }
+            if (menus[i].children && menus[i].children!.length > 0) {
+                if (this.replaceMenuInTree(menus[i].children!, id, updated)) return true;
+            }
+        }
+        return false;
+    }
+
     async deleteMenu(id: number) {
         this._isSaving = true;
         try {
             await menusApi.deleteMenu(id);
-            await this.loadMenus();
+            // 로컬에서 재귀 제거
+            this._menus = this.removeMenuFromTree(this._menus, id);
+            this._originalMenus = JSON.parse(JSON.stringify(this._menus));
             if (this._selectedMenuId === id) {
                 this._selectedMenuId = null;
                 this._editingMenu = null;
             }
             toast.success('메뉴가 삭제되었습니다.');
+            // 캐시 무효화 (백그라운드)
+            menusApi.invalidateMenuCache().catch(() => {});
         } catch (error) {
-            console.error('❌ 메뉴 삭제 실패:', error);
+            console.error('메뉴 삭제 실패:', error);
             toast.error('메뉴 삭제에 실패했습니다.');
             throw error;
         } finally {
             this._isSaving = false;
         }
+    }
+
+    private removeMenuFromTree(menus: Menu[], id: number): Menu[] {
+        return menus
+            .filter((m) => m.id !== id)
+            .map((m) => ({
+                ...m,
+                children: m.children ? this.removeMenuFromTree(m.children, id) : []
+            }));
     }
 
     updateMenuOrder(newMenus: Menu[]) {
@@ -158,8 +193,10 @@ class MenuStore {
             await menusApi.reorderMenus({ items });
             this._originalMenus = JSON.parse(JSON.stringify(this._menus));
             toast.success('메뉴 순서가 저장되었습니다.');
+            // 캐시 무효화 (백그라운드)
+            menusApi.invalidateMenuCache().catch(() => {});
         } catch (error) {
-            console.error('❌ 메뉴 순서 저장 실패:', error);
+            console.error('메뉴 순서 저장 실패:', error);
             toast.error('메뉴 순서 저장에 실패했습니다.');
             throw error;
         } finally {
@@ -199,7 +236,7 @@ class MenuStore {
             if (originalMenu) {
                 originalMenu[property] = !newValue;
             }
-            console.error('❌ 메뉴 토글 실패:', error);
+            console.error('메뉴 토글 실패:', error);
             toast.error('메뉴 수정에 실패했습니다.');
         }
     }

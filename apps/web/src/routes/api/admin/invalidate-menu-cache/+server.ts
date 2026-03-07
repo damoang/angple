@@ -11,6 +11,6 @@ export const POST: RequestHandler = async ({ locals }) => {
         return json({ success: false, error: 'Unauthorized' }, { status: 403 });
     }
 
-    invalidateMenuCache();
+    await invalidateMenuCache();
     return json({ success: true });
 };

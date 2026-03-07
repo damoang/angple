@@ -10,74 +10,14 @@
     import { cn } from '$lib/utils';
     import { menuStore } from '$lib/stores/menu.svelte';
 
-    // Import all needed Lucide icons
-    import MessageSquare from '@lucide/svelte/icons/message-square';
-    import Users from '@lucide/svelte/icons/users';
-    import CircleStar from '@lucide/svelte/icons/circle-star';
-    import CircleHelp from '@lucide/svelte/icons/circle-help';
-    import Images from '@lucide/svelte/icons/images';
-    import Newspaper from '@lucide/svelte/icons/newspaper';
-    import PenTool from '@lucide/svelte/icons/pen-tool';
-    import Lightbulb from '@lucide/svelte/icons/lightbulb';
-    import FolderOpen from '@lucide/svelte/icons/folder-open';
-    import Gift from '@lucide/svelte/icons/gift';
-    import MapPin from '@lucide/svelte/icons/map-pin';
-    import Star from '@lucide/svelte/icons/star';
-    import TrendingUp from '@lucide/svelte/icons/trending-up';
-    import ShoppingCart from '@lucide/svelte/icons/shopping-cart';
-    import Megaphone from '@lucide/svelte/icons/megaphone';
-    import Sparkles from '@lucide/svelte/icons/sparkles';
-    import Coffee from '@lucide/svelte/icons/coffee';
-    import UserCheck from '@lucide/svelte/icons/user-check';
-    import Music from '@lucide/svelte/icons/music';
-    import Info from '@lucide/svelte/icons/info';
-    import HelpCircle from '@lucide/svelte/icons/help-circle';
-    import BookText from '@lucide/svelte/icons/book-text';
-    import Circle from '@lucide/svelte/icons/circle';
-    import Cpu from '@lucide/svelte/icons/cpu';
-    import Code from '@lucide/svelte/icons/code';
-    import Gamepad2 from '@lucide/svelte/icons/gamepad-2';
-    import BookOpen from '@lucide/svelte/icons/book-open';
-    import Apple from '@lucide/svelte/icons/apple';
     import ChevronRight from '@lucide/svelte/icons/chevron-right';
+    import { getIcon } from '$lib/utils/icon-map';
 
     import UserWidget from './user-widget.svelte';
     import { getComponentsForSlot } from '$lib/components/slot-manager';
     import AdSlot from '$lib/components/ui/ad-slot/ad-slot.svelte';
     import { widgetLayoutStore } from '$lib/stores/widget-layout.svelte';
     import { boardFavoritesStore, slotLabel } from '$lib/stores/board-favorites.svelte';
-
-    // Icon mapping object
-    const iconMap: Record<string, typeof Circle> = {
-        MessageSquare,
-        Users,
-        CircleStar,
-        CircleHelp,
-        Images,
-        Newspaper,
-        PenTool,
-        Lightbulb,
-        FolderOpen,
-        Gift,
-        MapPin,
-        Star,
-        TrendingUp,
-        ShoppingCart,
-        Megaphone,
-        Sparkles,
-        Coffee,
-        UserCheck,
-        Music,
-        Info,
-        HelpCircle,
-        BookText,
-        Circle,
-        Cpu,
-        Code,
-        Gamepad2,
-        BookOpen,
-        Apple
-    };
 
     let isCollapsed = $state(false);
 
@@ -140,12 +80,6 @@
         }
         if (autoExpand.size > 0) expandedGroups = autoExpand;
     });
-
-    // Get icon component from icon name
-    function getIcon(iconName?: string) {
-        if (!iconName) return Circle;
-        return iconMap[iconName] || Circle;
-    }
 
     // 메뉴 필터링과 로딩은 menuStore에서 SSR로 처리됨
 </script>

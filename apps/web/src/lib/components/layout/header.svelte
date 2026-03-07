@@ -6,18 +6,18 @@
     import Bell from '@lucide/svelte/icons/bell';
     import X from '@lucide/svelte/icons/x';
     import Home from '@lucide/svelte/icons/home';
-    import Rss from '@lucide/svelte/icons/rss';
     import Sun from '@lucide/svelte/icons/sun';
     import Moon from '@lucide/svelte/icons/moon';
     import Smartphone from '@lucide/svelte/icons/smartphone';
     import Logo from '$lib/assets/logo.svg';
     import AlignJustify from '@lucide/svelte/icons/align-justify';
-    import Shield from '@lucide/svelte/icons/shield';
     import Mail from '@lucide/svelte/icons/mail';
     import Sidebar from './sidebar.svelte';
     import { NotificationDropdown } from '$lib/components/features/notification/index.js';
     import { authStore } from '$lib/stores/auth.svelte.js';
     import { getAvatarUrl, getMemberIconUrl } from '$lib/utils/member-icon';
+    import { menuStore } from '$lib/stores/menu.svelte';
+    import { getIcon } from '$lib/utils/icon-map';
 
     let headerAvatarUrl = $derived(
         authStore.user
@@ -169,38 +169,49 @@
             </a>
         </div>
 
-        <!-- 데스크톱 네비게이션 -->
+        <!-- 데스크톱 네비게이션 (show_in_header 메뉴 동적 렌더링) -->
         <nav class="hidden items-center space-x-8 md:flex">
-            <a
-                href="/"
-                data-sveltekit-reload
-                class="text-foreground hover:text-primary flex items-center transition-all duration-200 ease-out"
-                onclick={(e: MouseEvent) => {
-                    if (window.location.pathname === '/') {
-                        e.preventDefault();
-                        window.location.reload();
-                    }
-                }}
-            >
-                <Home class="mr-2 h-5 w-5" />
-                홈
-            </a>
-            <a
-                href="/feed"
-                class="text-foreground hover:text-primary flex items-center transition-all duration-200 ease-out"
-            >
-                <Rss class="mr-2 h-5 w-5" />
-                피드
-            </a>
-            <a
-                href="https://web.damoang.net"
-                target="_blank"
-                rel="noopener"
-                class="text-foreground hover:text-primary flex items-center transition-all duration-200 ease-out"
-            >
-                <Shield class="mr-2 h-5 w-5" />
-                대피소
-            </a>
+            {#if menuStore.headerMenus.length > 0}
+                {#each menuStore.headerMenus as headerMenu (headerMenu.id)}
+                    {@const IconComp = getIcon(headerMenu.icon)}
+                    {@const isExternal = headerMenu.url.startsWith('http')}
+                    {@const isHome = headerMenu.url === '/'}
+                    <a
+                        href={headerMenu.url}
+                        target={headerMenu.target === '_blank' ? '_blank' : undefined}
+                        rel={headerMenu.target === '_blank' || isExternal ? 'noopener' : undefined}
+                        data-sveltekit-reload={isHome ? '' : undefined}
+                        class="text-foreground hover:text-primary flex items-center transition-all duration-200 ease-out"
+                        onclick={isHome
+                            ? (e: MouseEvent) => {
+                                  if (window.location.pathname === '/') {
+                                      e.preventDefault();
+                                      window.location.reload();
+                                  }
+                              }
+                            : undefined}
+                    >
+                        <IconComp class="mr-2 h-5 w-5" />
+                        {headerMenu.title}
+                    </a>
+                {/each}
+            {:else}
+                <!-- headerMenus가 비어있으면 홈 링크만 기본 표시 -->
+                <a
+                    href="/"
+                    data-sveltekit-reload
+                    class="text-foreground hover:text-primary flex items-center transition-all duration-200 ease-out"
+                    onclick={(e: MouseEvent) => {
+                        if (window.location.pathname === '/') {
+                            e.preventDefault();
+                            window.location.reload();
+                        }
+                    }}
+                >
+                    <Home class="mr-2 h-5 w-5" />
+                    홈
+                </a>
+            {/if}
         </nav>
 
         <!-- 우측 아이콘 버튼들 -->

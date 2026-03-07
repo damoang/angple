@@ -8,6 +8,9 @@
     import * as Dialog from '$lib/components/ui/dialog';
     import * as Select from '$lib/components/ui/select';
     import { Loader2, Trash2 } from '@lucide/svelte/icons';
+    import { getIcon } from '$lib/utils/icon-map';
+
+    const SelectedIcon = $derived(icon ? getIcon(icon) : null);
 
     interface Props {
         open: boolean;
@@ -126,12 +129,23 @@
                         <Label for="edit-icon">아이콘</Label>
                         <Select.Root type="single" bind:value={icon}>
                             <Select.Trigger class="w-full">
-                                {icon || '아이콘 선택 (선택사항)'}
+                                <span class="flex items-center gap-2">
+                                    {#if SelectedIcon}
+                                        <SelectedIcon class="h-4 w-4" />
+                                    {/if}
+                                    {icon || '아이콘 선택 (선택사항)'}
+                                </span>
                             </Select.Trigger>
                             <Select.Content class="max-h-60">
                                 <Select.Item value="">없음</Select.Item>
                                 {#each MENU_ICONS as iconName}
-                                    <Select.Item value={iconName}>{iconName}</Select.Item>
+                                    {@const IconComp = getIcon(iconName)}
+                                    <Select.Item value={iconName}>
+                                        <span class="flex items-center gap-2">
+                                            <IconComp class="h-4 w-4" />
+                                            {iconName}
+                                        </span>
+                                    </Select.Item>
                                 {/each}
                             </Select.Content>
                         </Select.Root>

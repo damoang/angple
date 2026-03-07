@@ -117,26 +117,10 @@ export const load: PageServerLoad = async ({
             }
         }
 
-        // 본문 제휴 링크 서버사이드 변환 (즉시)
+        // 본문 제휴 링크 변환은 2단계 스트리밍으로 이동 (초기 렌더 블로킹 방지)
         const affiliateContext = { bo_table: boardId, wr_id: Number(postId) };
-        if (post.content) {
-            try {
-                const transformed = await Promise.race([
-                    transformAffiliateContent(post.content, affiliateContext),
-                    new Promise<string>((_, reject) =>
-                        setTimeout(() => reject(new Error('timeout')), 3000)
-                    )
-                ]);
-                post.content = transformed;
-            } catch {
-                // 변환 실패 시 원본 유지
-            }
-        }
 
-        // 스크랩 여부 (로그인 시만)
-        const isScrapped = locals.user?.id
-            ? await isScraped(locals.user.id, boardId, postId).catch(() => false)
-            : false;
+        // 스크랩 여부는 2단계 스트리밍으로 이동 (초기 렌더 블로킹 방지)
 
         // 직접홍보 게시판: 활성 목록에 없는 글은 만료 처리
         let promotionExpired = false;
@@ -180,7 +164,9 @@ export const load: PageServerLoad = async ({
                 promotionResult,
                 revisionsResult,
                 reactionsResult,
-                likersResult
+                likersResult,
+                postContentResult,
+                scrapResult
             ] = await Promise.allSettled([
                 // 댓글 (SvelteKit 내부 라우트 → svelteKitFetch)
                 svelteKitFetch(
@@ -228,7 +214,20 @@ export const load: PageServerLoad = async ({
                         const json = await res.json();
                         return json.data || { likers: [], total: 0 };
                     })
-                    .catch(() => ({ likers: [], total: 0 }))
+                    .catch(() => ({ likers: [], total: 0 })),
+                // 본문 제휴 링크 변환 (스트리밍 — 초기 렌더 블로킹 방지)
+                post.content
+                    ? Promise.race([
+                          transformAffiliateContent(post.content, affiliateContext),
+                          new Promise<string>((_, reject) =>
+                              setTimeout(() => reject(new Error('timeout')), 3000)
+                          )
+                      ]).catch(() => null)
+                    : Promise.resolve(null),
+                // 스크랩 여부 (로그인 시만, 스트리밍 — 초기 렌더 블로킹 방지)
+                locals.user?.id
+                    ? isScraped(locals.user.id, boardId, postId).catch(() => false)
+                    : Promise.resolve(false)
             ]);
 
             const comments =
@@ -301,7 +300,22 @@ export const load: PageServerLoad = async ({
                 // 레벨 조회 실패 시 빈 맵 (클라이언트에서 fallback)
             }
 
-            return { comments, promotionPosts, revisions, reactions, likersData, memberLevels };
+            // 본문 제휴 링크 변환 결과
+            const transformedPostContent =
+                postContentResult.status === 'fulfilled' ? postContentResult.value : null;
+
+            const isScrapped = scrapResult.status === 'fulfilled' ? scrapResult.value : false;
+
+            return {
+                comments,
+                promotionPosts,
+                revisions,
+                reactions,
+                likersData,
+                memberLevels,
+                transformedPostContent,
+                isScrapped
+            };
         })();
 
         // 워터마크 대상 게시판: 열람자 정보 전달
@@ -324,7 +338,7 @@ export const load: PageServerLoad = async ({
             boardId,
             post,
             board,
-            isScrapped,
+            isScrapped: false,
             promotionExpired,
             watermark,
             /** 스트리밍: Promise로 반환 → 클라이언트에서 $effect로 수신 */
