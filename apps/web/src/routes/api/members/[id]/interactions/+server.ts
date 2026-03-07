@@ -38,19 +38,14 @@ const MAJOR_BOARDS = [
     'qa',
     'notice',
     'gallery',
-    'humor',
-    'tip',
     'review',
     'angtt',
     'giving',
-    'news',
-    'politics',
     'game',
     'travel',
-    'food',
     'car',
-    'digital',
-    'life'
+    'pds',
+    'promotion'
 ];
 
 export const GET: RequestHandler = async ({ params, url, cookies }) => {

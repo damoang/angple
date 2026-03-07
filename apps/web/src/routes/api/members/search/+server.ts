@@ -29,7 +29,7 @@ export const GET: RequestHandler = async ({ url }) => {
 
     try {
         const searchPattern = `%${query}%`;
-        const [rows] = await pool.execute<RowDataPacket[]>(
+        const [rows] = await pool.query<RowDataPacket[]>(
             `SELECT mb_id, mb_nick, mb_name, IFNULL(as_level, 1) as as_level
 			 FROM g5_member
 			 WHERE (mb_nick LIKE ? OR mb_id LIKE ?)

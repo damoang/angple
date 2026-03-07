@@ -75,7 +75,7 @@ async function callLinkPriceApi(originalUrl: string, context?: ConvertContext): 
 			return linkpriceUrl;
 		}
 
-		console.warn('[LinkPrice] 변환 실패:', data);
+		// 승인거부(-6), 유효하지 않은 URL(-4) 등은 정상 응답 — 로그 생략
 		return null;
 	} catch (error) {
 		console.error('[LinkPrice] API 호출 실패:', error);
