@@ -2,6 +2,27 @@ import type { HandleClientError } from '@sveltejs/kit';
 
 const DANTRY_URL = 'https://aplog.damoang.net/api/v1/dantry';
 
+// 수집할 필요 없는 에러 필터
+const IGNORED_PATTERNS = [
+    'Script error.',
+    'runtime.sendMessage',
+    'Extension context invalidated',
+    'Unable to preload CSS',
+    'Failed to fetch',
+    'Load failed',
+    'NetworkError',
+    'cross-origin frame',
+    'zGetBack is not defined',
+    '@context',
+    'currentPage.innerText'
+];
+
+function shouldIgnore(message: string): boolean {
+    if (!message) return true;
+    if (message === '[object Object]') return true;
+    return IGNORED_PATTERNS.some((p) => message.includes(p));
+}
+
 function sendDantry(payload: Record<string, unknown>) {
     fetch(DANTRY_URL, {
         mode: 'cors',
@@ -130,6 +151,8 @@ export const handleError: HandleClientError = ({ error, event, status }) => {
         return;
     }
 
+    if (shouldIgnore(err.message)) return;
+
     sendDantry({
         type: 'sveltekit_error',
         message: err.message,
@@ -143,6 +166,8 @@ export const handleError: HandleClientError = ({ error, event, status }) => {
 // 전역 JS 에러 (SvelteKit 밖에서 발생하는 에러)
 if (typeof window !== 'undefined') {
     window.addEventListener('error', (event) => {
+        if (shouldIgnore(event.message)) return;
+
         sendDantry({
             type: event.type,
             message: event.message,
@@ -156,9 +181,12 @@ if (typeof window !== 'undefined') {
     });
 
     window.addEventListener('unhandledrejection', (event) => {
+        const reason = String(event.reason ?? '(unknown)');
+        if (shouldIgnore(reason)) return;
+
         const payload: Record<string, unknown> = {
             type: event.type,
-            reason: String(event.reason ?? '(unknown)'),
+            reason,
             url: window.location.href,
             userAgent: navigator.userAgent
         };
