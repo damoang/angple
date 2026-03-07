@@ -316,8 +316,14 @@
                 </div>
             {/if}
 
-            <!-- 태그 네비게이션 -->
-            <TagNav class="mb-4" />
+            <!-- 태그 네비게이션 (메인과 동일한 위젯 설정 사용) -->
+            {#if widgetLayoutStore.widgets.find((w) => w.type === 'tag-nav')?.enabled !== false}
+                <TagNav
+                    menus={widgetLayoutStore.widgets.find((w) => w.type === 'tag-nav')?.settings
+                        ?.menus}
+                    class="mb-4"
+                />
+            {/if}
 
             <!-- 앙지도 헤더 -->
             {#if isAngmapBoard}
