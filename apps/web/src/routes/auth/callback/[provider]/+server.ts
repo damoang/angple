@@ -27,6 +27,7 @@ import { setDamoangSSOCookie } from '$lib/server/auth/sso-cookie.js';
 import { AppleProvider } from '$lib/server/auth/oauth/providers/apple.js';
 import { TwitterProvider } from '$lib/server/auth/oauth/providers/twitter.js';
 import type { OAuthUserProfile } from '$lib/server/auth/oauth/types.js';
+import { getCertConfig } from '$lib/server/auth/cert-inicis.js';
 
 const COOKIE_DOMAIN = env.COOKIE_DOMAIN || undefined;
 
@@ -191,6 +192,18 @@ async function handleCallback(
             });
         } catch (e) {
             console.error('[OAuth Callback] SSO cookie 발급 실패:', e);
+        }
+
+        // 실명인증 미완료 시 인증 페이지로 리다이렉트
+        if (!member.mb_certify) {
+            try {
+                const certConfig = await getCertConfig();
+                if (certConfig.certUse > 0) {
+                    redirect(302, '/register/cert');
+                }
+            } catch (certErr) {
+                if (certErr && typeof certErr === 'object' && 'status' in certErr) throw certErr;
+            }
         }
 
         // 원래 페이지로 리다이렉트

@@ -4,11 +4,19 @@
  */
 import pool, { readPool } from '$lib/server/db.js';
 import type { RowDataPacket } from 'mysql2';
-import { createHash } from 'crypto';
+import { createHash, randomBytes } from 'crypto';
 import { env } from '$env/dynamic/private';
 
-const SEED_IV = 'SASHOSTSIRIAS000';
-const CERT_TOKEN_KEY = env.CERT_TOKEN_ENCRYPTION_KEY || '';
+/** SEED IV를 base64로 반환 (런타임에 env 읽기) */
+export function getSeedIV(): string {
+    const raw = env.CERT_INICIS_SEED_IV || '';
+    return raw ? Buffer.from(raw).toString('base64') : '';
+}
+
+/** dupinfo 생성용 키 (런타임에 env 읽기) */
+function getCertTokenKey(): string {
+    return env.CERT_TOKEN_ENCRYPTION_KEY || '';
+}
 
 interface CertConfigRow extends RowDataPacket {
     cf_cert_use: number;
@@ -57,12 +65,6 @@ export async function buildCertRequest(): Promise<{
 }> {
     const config = await getCertConfig();
 
-    // 최대 cr_id 조회
-    const [crRows] = await readPool.query<RowDataPacket[]>(
-        'SELECT MAX(cr_id) as max_cr_id FROM g5_cert_history LIMIT 1'
-    );
-    const maxCrId = crRows[0]?.max_cr_id || 0;
-
     let mid: string;
     let apiKey: string;
 
@@ -72,11 +74,14 @@ export async function buildCertRequest(): Promise<{
         apiKey = config.kgCd;
     } else {
         // 테스트
-        mid = env.CERT_INICIS_TEST_MID || 'SRAiasTest';
+        mid = env.CERT_INICIS_TEST_MID || '';
         apiKey = env.CERT_INICIS_TEST_API_KEY || '';
     }
 
-    const mTxId = ('SIR_' + maxCrId + '_' + Date.now()).substring(0, 16);
+    const mTxId = ('SIR' + Date.now().toString(36) + randomBytes(3).toString('hex')).substring(
+        0,
+        20
+    );
     const reqSvcCd = '01'; // 간편인증
     const authHash = createHash('sha256')
         .update(mid + mTxId + apiKey)
@@ -86,10 +91,35 @@ export async function buildCertRequest(): Promise<{
     return { mid, apiKey, mTxId, authHash, reqSvcCd, reservedMsg };
 }
 
+/** 인증 요청 시 mTxId → mbId 매핑 저장 (DB 기반, 5분 TTL) */
+export async function storeCertPending(mTxId: string, mbId: string): Promise<void> {
+    await pool.query(
+        `INSERT INTO g5_cert_pending (cp_mtxid, cp_mb_id, cp_datetime) VALUES (?, ?, NOW())
+		 ON DUPLICATE KEY UPDATE cp_mb_id = ?, cp_datetime = NOW()`,
+        [mTxId, mbId, mbId]
+    );
+    // 만료된 항목 정리 (5분 이상)
+    await pool.query(
+        `DELETE FROM g5_cert_pending WHERE cp_datetime < DATE_SUB(NOW(), INTERVAL 5 MINUTE)`
+    );
+}
+
+/** 인증 콜백에서 mTxId로 mbId 조회 (1회용) */
+export async function getCertPendingMbId(mTxId: string): Promise<string | null> {
+    const [rows] = await readPool.query<RowDataPacket[]>(
+        `SELECT cp_mb_id FROM g5_cert_pending WHERE cp_mtxid = ? AND cp_datetime > DATE_SUB(NOW(), INTERVAL 5 MINUTE)`,
+        [mTxId]
+    );
+    if (!rows[0]) return null;
+    // 1회용 삭제
+    await pool.query('DELETE FROM g5_cert_pending WHERE cp_mtxid = ?', [mTxId]);
+    return rows[0].cp_mb_id as string;
+}
+
 /** CI 기반 mb_dupinfo 생성 (PHP 호환) */
 export function buildDupinfo(ci: string): string {
     return createHash('sha256')
-        .update(ci + CERT_TOKEN_KEY)
+        .update(ci + getCertTokenKey())
         .digest('hex');
 }
 
@@ -142,5 +172,3 @@ export async function checkDupinfo(mbId: string, dupinfo: string): Promise<strin
 
     return null;
 }
-
-export { SEED_IV };
