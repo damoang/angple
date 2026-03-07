@@ -45,20 +45,16 @@
     // 공유 스토어에서 축하메시지 가져오기
     let storeCelebrations = $derived(getCelebrations());
     let storeIndex = $derived(getCurrentIndex());
-    // 이미지 타입만 필터링
-    let imageCelebrations = $derived(
-        storeCelebrations.filter((b) => !b.display_type || b.display_type === 'image')
-    );
-
     // 최종 선택된 배너 (축하메시지 or 프리미엄 광고)
     let adsBanner = $state<AdsBanner | null>(null);
     let loading = $state(true);
     let useFallback = $state(false);
 
+    // 텍스트 롤링과 동일한 인덱스 사용 (싱크)
     let celebrationBanner = $derived.by<CelebrationBanner | null>(() => {
         if (!showCelebration || useFallback || adsBanner) return null;
-        if (imageCelebrations.length === 0) return null;
-        return imageCelebrations[storeIndex % imageCelebrations.length] ?? null;
+        if (storeCelebrations.length === 0) return null;
+        return storeCelebrations[storeIndex % storeCelebrations.length] ?? null;
     });
 
     // position → 다모앙 광고 서버 position 매핑
@@ -110,7 +106,7 @@
             loading = false;
             // 축하메시지도 광고도 없으면 GAM 폴백 (스토어 로드 대기)
             await new Promise((r) => setTimeout(r, 500));
-            if (!adsBanner && imageCelebrations.length === 0) {
+            if (!adsBanner && storeCelebrations.length === 0) {
                 useFallback = true;
             }
         } else {
