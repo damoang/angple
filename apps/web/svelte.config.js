@@ -39,8 +39,8 @@ const config = {
             checkOrigin: false
         },
         output: {
-            // preload-js: <link rel="preload" as="script"> 대신 사용 (modulepreload보다 Link 헤더 축소)
-            preloadStrategy: 'preload-js'
+            // modulepreload: 브라우저 기본 동작에 위임하여 불필요한 prefetch 감소
+            preloadStrategy: 'modulepreload'
         },
         version: {
             // 빌드 시 자동 생성되는 버전 해시로 새 배포 감지

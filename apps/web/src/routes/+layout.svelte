@@ -17,17 +17,19 @@
     import { doAction } from '$lib/hooks/registry';
     import { initBuiltinHooks } from '$lib/hooks';
     import { loadPluginComponent } from '$lib/utils/plugin-optional-loader';
-    import { Toaster } from '$lib/components/ui/sonner';
-    import { ShortcutButtons } from '$lib/components/features/shortcut-buttons';
     import DefaultLayout from '$lib/layouts/default-layout.svelte';
-    import { keyboardShortcuts } from '$lib/services/keyboard-shortcuts.svelte';
-    import { boardFavoritesStore } from '$lib/stores/board-favorites.svelte';
-    import { initAplog, destroyAplog } from '$lib/services/aplog';
     import { getThemeLayout } from '$lib/themes/layout-registry';
     import { initFromSSR as initAppData } from '$lib/stores/app-init.svelte';
     import { initFromData as initCelebrationFromData } from '$lib/stores/celebration.svelte';
-    import Bug from '@lucide/svelte/icons/bug';
-    import FileSpreadsheet from '@lucide/svelte/icons/file-spreadsheet';
+
+    // 지연 로딩 모듈 참조
+    let keyboardShortcutsMod: typeof import('$lib/services/keyboard-shortcuts.svelte') | null =
+        $state(null);
+    let boardFavoritesMod: typeof import('$lib/stores/board-favorites.svelte') | null =
+        $state(null);
+    let aplogMod: typeof import('$lib/services/aplog') | null = $state(null);
+    let LazyToaster: Component | null = $state(null);
+    let LazyShortcutButtons: Component | null = $state(null);
 
     const { children, data } = $props(); // Svelte 5: SSR 데이터 받기
 
@@ -72,19 +74,23 @@
         });
     });
 
-    // 메뉴 데이터 변경 시 키보드 단축키 빌드
+    // 메뉴 데이터 변경 시 키보드 단축키 빌드 (모듈 로드 후 활성화)
     $effect(() => {
+        if (!keyboardShortcutsMod) return;
         const menus = menuStore.menus;
+        const ks = keyboardShortcutsMod;
         untrack(() => {
-            keyboardShortcuts.buildFromMenus(menus);
+            ks.keyboardShortcuts.buildFromMenus(menus);
         });
     });
 
-    // 즐겨찾기 → 숫자 단축키 연결
+    // 즐겨찾기 → 숫자 단축키 연결 (모듈 로드 후 활성화)
     $effect(() => {
-        const { normal, shift } = boardFavoritesStore.toShortcutMap();
+        if (!keyboardShortcutsMod || !boardFavoritesMod) return;
+        const { normal, shift } = boardFavoritesMod.boardFavoritesStore.toShortcutMap();
+        const ks = keyboardShortcutsMod;
         untrack(() => {
-            keyboardShortcuts.setUserShortcuts(normal, shift);
+            ks.keyboardShortcuts.setUserShortcuts(normal, shift);
         });
     });
 
@@ -95,11 +101,12 @@
         }
     });
 
-    // 광고 추적: 매 네비게이션마다 observer 재설정
+    // 광고 추적: 매 네비게이션마다 observer 재설정 (aplog 모듈 로드 후)
     afterNavigate(() => {
-        destroyAplog();
+        if (!aplogMod) return;
+        aplogMod.destroyAplog();
         requestAnimationFrame(() => {
-            initAplog(authStore.user?.mb_id ?? null);
+            aplogMod!.initAplog(authStore.user?.mb_id ?? null);
         });
     });
 
@@ -173,9 +180,6 @@
         // Built-in Hooks 초기화 (콘텐츠 임베딩, 게시판 필터 등)
         initBuiltinHooks();
 
-        // 테마는 이미 SSR에서 로드되었으므로 loadActiveTheme() 호출 불필요
-        // (깜박임 방지!)
-
         // 인증 상태 초기화 (SSR에서 받은 데이터가 있으면 우선 사용)
         if (data.user && data.accessToken) {
             authActions.initFromSSR(
@@ -188,9 +192,7 @@
 
         // postMessage 리스너 (Admin에서 테마 변경 시 리로드)
         function handleMessage(event: MessageEvent) {
-            // 보안: localhost에서만 허용
             if (!event.origin.includes('localhost')) return;
-
             if (event.data?.type === 'reload-theme') {
                 themeStore.loadActiveTheme();
             }
@@ -204,18 +206,14 @@
         function handleVisibilityChange() {
             if (document.visibilityState === 'visible') {
                 try {
-                    // Cookie에서 테마 변경 플래그 읽기
                     const cookies = document.cookie.split(';');
                     const triggerCookie = cookies.find((c) =>
                         c.trim().startsWith('theme-reload-trigger=')
                     );
-
                     if (triggerCookie) {
-                        const value = triggerCookie.split('=')[1]; // "themeId:timestamp"
+                        const value = triggerCookie.split('=')[1];
                         const [, timestampStr] = value.split(':');
                         const timestamp = parseInt(timestampStr, 10);
-
-                        // 마지막 확인 이후 변경된 경우에만 리로드
                         if (timestamp > lastThemeCheckTimestamp) {
                             themeStore.loadActiveTheme();
                             lastThemeCheckTimestamp = timestamp;
@@ -229,14 +227,31 @@
 
         document.addEventListener('visibilitychange', handleVisibilityChange);
 
+        // 지연 로딩: 키보드 단축키, 즐겨찾기, 광고 추적, UI 컴포넌트
+        Promise.all([
+            import('$lib/services/keyboard-shortcuts.svelte'),
+            import('$lib/stores/board-favorites.svelte'),
+            import('$lib/services/aplog'),
+            import('$lib/components/ui/sonner'),
+            import('$lib/components/features/shortcut-buttons')
+        ]).then(([kbMod, bfMod, apMod, toasterMod, shortcutBtnMod]) => {
+            keyboardShortcutsMod = kbMod;
+            boardFavoritesMod = bfMod;
+            aplogMod = apMod;
+            LazyToaster = toasterMod.Toaster;
+            LazyShortcutButtons = shortcutBtnMod.ShortcutButtons;
+            apMod.initAplog(authStore.user?.mb_id ?? null);
+        });
+
         return () => {
             window.removeEventListener('message', handleMessage);
             document.removeEventListener('visibilitychange', handleVisibilityChange);
+            aplogMod?.destroyAplog();
         };
     });
 </script>
 
-<svelte:window onkeydown={keyboardShortcuts.handleKeydown} />
+<svelte:window onkeydown={(e) => keyboardShortcutsMod?.keyboardShortcuts.handleKeydown(e)} />
 
 <svelte:head>
     <title>{import.meta.env.VITE_SITE_NAME || '다모앙'} - 종합 커뮤니티</title>
@@ -266,8 +281,10 @@
     <MemoModal />
 {/if}
 
-<!-- 토스트 알림 -->
-<Toaster />
+<!-- 토스트 알림 (지연 로딩) -->
+{#if LazyToaster}
+    <LazyToaster />
+{/if}
 
 <!-- 버그 제보 + 트래커 FAB (admin/install 제외) -->
 {#if !isAdminRoute && !isInstallRoute}
@@ -279,19 +296,55 @@
             class="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-600 text-white shadow-lg transition-all hover:scale-105 hover:bg-emerald-700"
             title="버그 트래커 (Google Sheets)"
         >
-            <FileSpreadsheet class="h-5 w-5" />
+            <!-- FileSpreadsheet icon (inline SVG — lucide 의존성 제거) -->
+            <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                ><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" /><path
+                    d="M14 2v4a2 2 0 0 0 2 2h4"
+                /><path d="M8 13h2" /><path d="M14 13h2" /><path d="M8 17h2" /><path
+                    d="M14 17h2"
+                /></svg
+            >
         </a>
         <a
             href="/bug"
             class="flex h-12 w-12 items-center justify-center rounded-full bg-red-600 text-white shadow-lg transition-all hover:scale-105 hover:bg-red-700"
             title="버그 제보"
         >
-            <Bug class="h-6 w-6" />
+            <!-- Bug icon (inline SVG — lucide 의존성 제거) -->
+            <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                ><path d="m8 2 1.88 1.88" /><path d="M14.12 3.88 16 2" /><path
+                    d="M9 7.13v-1a3.003 3.003 0 1 1 6 0v1"
+                /><path
+                    d="M12 20c-3.3 0-6-2.7-6-6v-3a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v3c0 3.3-2.7 6-6 6"
+                /><path d="M12 20v-9" /><path d="M6.53 9C4.6 8.8 3 7.1 3 5" /><path
+                    d="M6 13H2"
+                /><path d="M3 21c0-2.1 1.7-3.9 3.8-4" /><path
+                    d="M20.97 5c0 2.1-1.6 3.8-3.5 4"
+                /><path d="M22 13h-4" /><path d="M17.2 17c2.1.1 3.8 1.9 3.8 4" /></svg
+            >
         </a>
     </div>
 {/if}
 
-<!-- 단축 버튼 (admin/install 제외) -->
-{#if !isAdminRoute && !isInstallRoute}
-    <ShortcutButtons />
+<!-- 단축 버튼 (지연 로딩, admin/install 제외) -->
+{#if !isAdminRoute && !isInstallRoute && LazyShortcutButtons}
+    <LazyShortcutButtons />
 {/if}
