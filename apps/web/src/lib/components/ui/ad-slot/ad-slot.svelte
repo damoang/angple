@@ -24,37 +24,15 @@
     let refreshInterval: ReturnType<typeof setInterval> | null = null;
     let destroyed = false;
 
-    // GPT 서비스 초기화 플래그 (전역)
-    const GPT_INITIALIZED_KEY = '__gpt_services_initialized__';
-    function isGptInitialized(): boolean {
-        return browser && window[GPT_INITIALIZED_KEY] === true;
-    }
-    function markGptInitialized(): void {
-        if (browser) {
-            window[GPT_INITIALIZED_KEY] = true;
-        }
-    }
-
-    // GPT enableServices 호출 플래그 (전역)
-    const GPT_SERVICES_ENABLED_KEY = '__gpt_services_enabled__';
-    function isServicesEnabled(): boolean {
-        return browser && window[GPT_SERVICES_ENABLED_KEY] === true;
-    }
-    function markServicesEnabled(): void {
-        if (browser) {
-            window[GPT_SERVICES_ENABLED_KEY] = true;
-        }
-    }
-
     // GAM 광고 단위 (환경변수 기반)
-    const AD_UNIT_PATHS = {
+    const AD_UNIT_PATHS: Record<string, string> = {
         main: `/${GAM_NETWORK_CODE}/${GAM_SITE_NAME}/banner-responsive_main`,
         sub: `/${GAM_NETWORK_CODE}/${GAM_SITE_NAME}/banner-responsive_sub`,
         curation: `/${GAM_NETWORK_CODE}/${GAM_SITE_NAME}/banner-responsive_curation`,
         article: `/${GAM_NETWORK_CODE}/${GAM_SITE_NAME}/banner-responsive_article`
     };
 
-    // 광고 유형별 설정 (www gam-slots.php 기반)
+    // 광고 유형별 설정
     type AdConfig = {
         unit: string;
         sizes: Array<[number, number]>;
@@ -62,24 +40,32 @@
     };
 
     const AD_CONFIGS: Record<string, AdConfig> = {
-        // 메인 콘텐츠 영역 배너 (큰 배너) → main
         'banner-horizontal': {
             unit: AD_UNIT_PATHS.main,
             sizes: [
+                [970, 250],
                 [970, 90],
                 [728, 90],
-                [320, 100]
+                [320, 100],
+                [300, 250]
             ],
             responsive: [
                 [
                     970,
                     [
+                        [970, 250],
                         [970, 90],
                         [728, 90]
                     ]
                 ],
                 [728, [[728, 90]]],
-                [0, [[320, 100]]]
+                [
+                    0,
+                    [
+                        [320, 100],
+                        [300, 250]
+                    ]
+                ]
             ]
         },
         'banner-large': {
@@ -109,19 +95,24 @@
                 ]
             ]
         },
-        // 게시글 본문 영역 → article (모바일: 배너 높이에 맞춤)
         'banner-view-content': {
             unit: AD_UNIT_PATHS.article,
             sizes: [
                 [728, 90],
-                [320, 100]
+                [320, 100],
+                [300, 250]
             ],
             responsive: [
                 [728, [[728, 90]]],
-                [0, [[320, 100]]]
+                [
+                    0,
+                    [
+                        [320, 100],
+                        [300, 250]
+                    ]
+                ]
             ]
         },
-        // 반응형 배너 → sub
         'banner-responsive': {
             unit: AD_UNIT_PATHS.sub,
             sizes: [
@@ -140,7 +131,6 @@
                 ]
             ]
         },
-        // 소형 배너 → sub
         'banner-small': {
             unit: AD_UNIT_PATHS.sub,
             sizes: [
@@ -163,13 +153,11 @@
                 [0, [[320, 100]]]
             ]
         },
-        // 사이드바 정사각 → sub
         'banner-square': {
             unit: AD_UNIT_PATHS.sub,
             sizes: [[300, 250]],
             responsive: null
         },
-        // 사이드바 수직형 → sub
         'banner-halfpage': {
             unit: AD_UNIT_PATHS.sub,
             sizes: [
@@ -178,7 +166,6 @@
             ],
             responsive: null
         },
-        // 인피드 (목록 사이) → curation
         infeed: {
             unit: AD_UNIT_PATHS.curation,
             sizes: [
@@ -197,7 +184,6 @@
                 ]
             ]
         },
-        // 윙 배너 (좌우 날개) → sub
         'banner-vertical': {
             unit: AD_UNIT_PATHS.sub,
             sizes: [[160, 600]],
@@ -205,7 +191,7 @@
         }
     };
 
-    // 사이트 위치 → 광고 유형 매핑 (www position_map 기반)
+    // 사이트 위치 → 광고 유형 매핑
     const POSITION_MAP: Record<string, string> = {
         'board-view-top': 'banner-small',
         'board-head': 'banner-horizontal',
@@ -231,105 +217,6 @@
         'sidebar-b2b': 'banner-square',
         'wing-left': 'banner-vertical',
         'wing-right': 'banner-vertical'
-    };
-
-    // 위치별 기본 사이즈 매핑 (fallback)
-    const DEFAULT_SIZES: Record<string, Array<[number, number]> | 'fluid'> = {
-        'header-after': [
-            [728, 90],
-            [970, 90],
-            [320, 100]
-        ],
-        'index-head': [
-            [728, 90],
-            [320, 100]
-        ],
-        'index-top': [
-            [728, 90],
-            [320, 100],
-            [300, 250]
-        ],
-        'index-news-economy': [
-            [728, 90],
-            [320, 100],
-            [300, 250]
-        ],
-        'index-middle-1': [
-            [728, 90],
-            [970, 90],
-            [320, 100]
-        ],
-        'index-middle-2': [
-            [728, 90],
-            [970, 90],
-            [320, 100]
-        ],
-        'index-middle-3': [
-            [728, 90],
-            [970, 90],
-            [320, 100]
-        ],
-        'index-bottom': [
-            [728, 90],
-            [970, 90],
-            [320, 100]
-        ],
-        'board-view-top': [
-            [728, 90],
-            [320, 100]
-        ],
-        'board-head': [
-            [728, 90],
-            [970, 90],
-            [320, 100]
-        ],
-        'board-list-head': [
-            [728, 90],
-            [320, 100],
-            [300, 250]
-        ],
-        'board-list-bottom': [
-            [728, 90],
-            [970, 90],
-            [320, 100]
-        ],
-        'board-content': [
-            [728, 90],
-            [320, 100]
-        ],
-        'board-content-bottom': [
-            [728, 90],
-            [970, 90],
-            [320, 100]
-        ],
-        'board-after-comments': [
-            [728, 90],
-            [300, 250],
-            [320, 100]
-        ],
-        'board-footer': [
-            [728, 90],
-            [970, 90],
-            [320, 100]
-        ],
-        'comment-infeed': [
-            [728, 90],
-            [300, 250],
-            [320, 100]
-        ],
-        'comment-top': [
-            [728, 90],
-            [320, 100]
-        ],
-        'sidebar-sticky': [
-            [300, 250],
-            [300, 600]
-        ],
-        sidebar: [[300, 250]],
-        'sidebar-2': [[300, 250]],
-        'sidebar-b2b': [[300, 250]],
-        'wing-left': [[160, 600]],
-        'wing-right': [[160, 600]]
     };
 
     // 위치별 라벨 매핑
@@ -359,12 +246,133 @@
         'wing-right': '오른쪽 윙 배너'
     };
 
+    // ========================================
+    // 배치 슬롯 매니저 (전역 싱글톤)
+    // ========================================
+    const BATCH_KEY = '__gam_batch_manager__';
+
+    interface BatchManager {
+        queue: Array<{
+            divId: string;
+            config: AdConfig;
+            adSizes: Array<[number, number]> | 'fluid';
+            onRender: (isEmpty: boolean) => void;
+        }>;
+        timer: ReturnType<typeof setTimeout> | null;
+        servicesEnabled: boolean;
+        slotsMap: Map<string, googletag.Slot>;
+    }
+
+    function getBatchManager(): BatchManager {
+        if (!browser)
+            return { queue: [], timer: null, servicesEnabled: false, slotsMap: new Map() };
+        if (!(window as any)[BATCH_KEY]) {
+            (window as any)[BATCH_KEY] = {
+                queue: [],
+                timer: null,
+                servicesEnabled: false,
+                slotsMap: new Map()
+            };
+        }
+        return (window as any)[BATCH_KEY];
+    }
+
+    function processBatch() {
+        const mgr = getBatchManager();
+        if (mgr.queue.length === 0) return;
+
+        const batch = mgr.queue.splice(0);
+
+        googletag.cmd.push(() => {
+            const newSlots: googletag.Slot[] = [];
+
+            for (const item of batch) {
+                if (!document.getElementById(item.divId)) continue;
+
+                let s: googletag.Slot | null;
+                if (item.adSizes === 'fluid') {
+                    s = googletag.defineSlot(item.config.unit, ['fluid'], item.divId);
+                } else {
+                    s = googletag.defineSlot(
+                        item.config.unit,
+                        item.adSizes as googletag.GeneralSize,
+                        item.divId
+                    );
+                }
+
+                if (!s) continue;
+
+                if (item.config.responsive) {
+                    const mapping = googletag.sizeMapping();
+                    for (const [viewport, slotSizes] of item.config.responsive) {
+                        mapping.addSize([viewport, 0], slotSizes as googletag.GeneralSize);
+                    }
+                    const builtMapping = mapping.build();
+                    if (builtMapping) {
+                        s.defineSizeMapping(builtMapping);
+                    }
+                }
+
+                s.addService(googletag.pubads());
+                mgr.slotsMap.set(item.divId, s);
+                newSlots.push(s);
+
+                // 개별 렌더 이벤트 콜백 등록
+                const divId = item.divId;
+                const onRender = item.onRender;
+                googletag
+                    .pubads()
+                    .addEventListener(
+                        'slotRenderEnded',
+                        (event: googletag.events.SlotRenderEndedEvent) => {
+                            if (event.slot.getSlotElementId() === divId) {
+                                onRender(event.isEmpty);
+                            }
+                        }
+                    );
+            }
+
+            if (!mgr.servicesEnabled) {
+                googletag.pubads().collapseEmptyDivs();
+                googletag.pubads().setTargeting('site', GAM_SITE_NAME);
+                const theme = document.documentElement.classList.contains('dark')
+                    ? 'dark'
+                    : 'light';
+                googletag.pubads().setTargeting('theme', theme);
+                googletag.enableServices();
+                mgr.servicesEnabled = true;
+            }
+
+            // display + refresh
+            for (const s of newSlots) {
+                googletag.display(s.getSlotElementId());
+            }
+            googletag.pubads().refresh(newSlots);
+        });
+    }
+
+    function enqueueSlot(
+        divId: string,
+        config: AdConfig,
+        adSizes: Array<[number, number]> | 'fluid',
+        onRender: (isEmpty: boolean) => void
+    ) {
+        const mgr = getBatchManager();
+        mgr.queue.push({ divId, config, adSizes, onRender });
+
+        // 50ms 디바운스로 같은 틱에 마운트되는 슬롯들을 배치 처리
+        if (mgr.timer) clearTimeout(mgr.timer);
+        mgr.timer = setTimeout(() => {
+            mgr.timer = null;
+            processBatch();
+        }, 50);
+    }
+
     // GPT 스크립트 로드
     function loadGPT(): Promise<void> {
         return new Promise((resolve) => {
             if (!browser) return resolve();
 
-            // 이미 로드됨
             if (window.googletag?.apiReady) {
                 resolve();
                 return;
@@ -374,7 +382,6 @@
                 'script[src*="securepubads.g.doubleclick.net"]'
             );
             if (existingScript) {
-                // 스크립트가 있지만 아직 로드 안됨
                 const checkReady = setInterval(() => {
                     if (window.googletag?.apiReady) {
                         clearInterval(checkReady);
@@ -400,23 +407,17 @@
     }
 
     // 광고 설정 가져오기
-    function getAdConfig(): {
-        unit: string;
-        sizes: Array<[number, number]>;
-        responsive: Array<[number, Array<[number, number]>]> | null;
-    } {
+    function getAdConfig(): AdConfig {
         const configKey = POSITION_MAP[position];
         if (configKey && AD_CONFIGS[configKey]) {
             return AD_CONFIGS[configKey];
         }
-        // Fallback: 기본 설정
         return {
             unit: AD_UNIT_PATHS.sub,
-            sizes: (sizes as Array<[number, number]>) ||
-                (DEFAULT_SIZES[position] as Array<[number, number]>) || [
-                    [728, 90],
-                    [320, 100]
-                ],
+            sizes: (sizes as Array<[number, number]>) || [
+                [728, 90],
+                [320, 100]
+            ],
             responsive: [
                 [728, [[728, 90]]],
                 [0, [[320, 100]]]
@@ -424,86 +425,39 @@
         };
     }
 
-    // 광고 슬롯 정의 및 표시
+    // 광고 슬롯 초기화
     async function initAdSlot() {
         if (!browser) return;
 
         await loadGPT();
 
         const config = getAdConfig();
-        const adUnitPath = config.unit;
         const adSizes = sizes || config.sizes;
         slotId = `gam-${position}-${Math.random().toString(36).substr(2, 9)}`;
 
-        // DOM 업데이트 대기 (slotId가 반영되어 div가 렌더링될 때까지)
         await tick();
 
         window.googletag = window.googletag || { cmd: [] };
 
-        googletag.cmd.push(() => {
-            const divId = slotId;
+        enqueueSlot(slotId, config, adSizes, (isEmpty: boolean) => {
+            isLoaded = true;
+            hasAd = !isEmpty;
 
-            // 컴포넌트가 이미 파괴되었거나 DOM 요소가 없으면 중단
-            if (destroyed || !document.getElementById(divId)) return;
+            // 슬롯 참조 저장
+            const mgr = getBatchManager();
+            slot = mgr.slotsMap.get(slotId) || null;
 
-            // 슬롯 정의
-            if (adSizes === 'fluid') {
-                slot = googletag.defineSlot(adUnitPath, ['fluid'], divId);
-            } else {
-                slot = googletag.defineSlot(adUnitPath, adSizes as googletag.GeneralSize, divId);
+            // 빈 광고면 재시도
+            if (isEmpty && slot) {
+                setTimeout(() => {
+                    if (slot && !destroyed) {
+                        googletag.pubads().refresh([slot]);
+                    }
+                }, GAM_AD_EMPTY_RETRY_DELAY * 1000);
             }
 
-            if (slot) {
-                // 반응형 사이즈 매핑 적용
-                if (config.responsive) {
-                    const mapping = googletag.sizeMapping();
-                    for (const [viewport, slotSizes] of config.responsive) {
-                        mapping.addSize([viewport, 0], slotSizes as googletag.GeneralSize);
-                    }
-                    const builtMapping = mapping.build();
-                    if (builtMapping) {
-                        slot.defineSizeMapping(builtMapping);
-                    }
-                }
-
-                slot.addService(googletag.pubads());
-
-                // 빈 광고 이벤트 처리
-                googletag
-                    .pubads()
-                    .addEventListener(
-                        'slotRenderEnded',
-                        (event: googletag.events.SlotRenderEndedEvent) => {
-                            if (event.slot === slot) {
-                                isLoaded = true;
-                                hasAd = !event.isEmpty;
-
-                                // 빈 광고면 재시도
-                                if (event.isEmpty) {
-                                    setTimeout(() => {
-                                        if (slot && !destroyed) {
-                                            googletag.pubads().refresh([slot]);
-                                        }
-                                    }, GAM_AD_EMPTY_RETRY_DELAY * 1000);
-                                }
-                            }
-                        }
-                    );
-
-                // GPT 서비스 초기화 (한 번만 실행)
-                // SPA에서는 enableSingleRequest 사용하지 않음
-                // — 슬롯이 동적으로 마운트/언마운트되므로 개별 fetch 모드 사용
-                if (!isServicesEnabled()) {
-                    googletag.pubads().collapseEmptyDivs();
-                    googletag.enableServices();
-                    markServicesEnabled();
-                }
-
-                // 광고 표시 + 개별 fetch
-                googletag.display(divId);
-                googletag.pubads().refresh([slot]);
-
-                // 자동 새로고침 설정
+            // 자동 새로고침 설정
+            if (!isEmpty && !refreshInterval) {
                 refreshInterval = setInterval(() => {
                     if (slot && hasAd && !destroyed) {
                         googletag.pubads().refresh([slot]);
@@ -520,16 +474,16 @@
     onDestroy(() => {
         destroyed = true;
 
-        // 새로고침 인터벌 정리
         if (refreshInterval) {
             clearInterval(refreshInterval);
         }
 
-        // 슬롯 정리
         if (slot && browser && window.googletag) {
             googletag.cmd.push(() => {
                 if (slot) {
                     googletag.destroySlots([slot]);
+                    const mgr = getBatchManager();
+                    mgr.slotsMap.delete(slotId);
                 }
             });
         }
@@ -578,7 +532,6 @@
         background: transparent;
     }
 
-    /* 다크모드: 광고 iframe 흰 배경 완화 (눈부심 방지) */
     :global(.dark) .ad-slot-loaded,
     :global(.amoled) .ad-slot-loaded {
         border: 1px solid rgba(255, 255, 255, 0.06);
@@ -597,12 +550,10 @@
         display: none;
     }
 
-    /* 광고 iframe이 컨테이너를 넘지 않도록 */
     .gam-ad-slot :global(iframe) {
         max-width: 100% !important;
     }
 
-    /* 다크모드: 광고 iframe 밝기 낮춤 (눈부심 완화) */
     :global(.dark) .gam-ad-slot :global(iframe),
     :global(.amoled) .gam-ad-slot :global(iframe) {
         filter: brightness(0.9);
