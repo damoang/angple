@@ -130,7 +130,7 @@
                                             size="sm"
                                         />
                                         <a
-                                            href="/profile/{liker.mb_id}"
+                                            href="/member/{liker.mb_id}"
                                             class="text-foreground hover:text-primary truncate text-sm font-medium"
                                         >
                                             {liker.mb_nick || liker.mb_name}
