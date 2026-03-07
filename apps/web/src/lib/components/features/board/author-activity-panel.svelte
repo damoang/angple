@@ -43,7 +43,6 @@
         if (!clipWrapper || panelHeight <= 20) return;
         const h = panelHeight - 20;
         const target = `${h}px`;
-        // 이미 올바른 값이면 무시 (MutationObserver 무한 루프 방지)
         if (
             clipWrapper.style.getPropertyValue('height') === target &&
             clipWrapper.style.getPropertyPriority('height') === 'important'
@@ -56,7 +55,6 @@
     function loadAdSense(): void {
         if (!browser || !adContainer) return;
 
-        // adsbygoogle.js 로드 (중복 방지)
         if (!document.querySelector('script[src*="ca-pub-2456249131797827"]')) {
             const script = document.createElement('script');
             script.src =
@@ -73,17 +71,23 @@
         }
     }
 
-    onMount(() => {
-        if (!browser || !post.author_id) {
+    // SPA 네비게이션 시 author_id 변경을 감지하여 데이터 재로딩
+    $effect(() => {
+        const authorId = post.author_id;
+        if (!browser || !authorId) {
             loading = false;
             return;
         }
 
-        // 비동기 데이터 로딩 (IIFE)
+        loading = true;
+        recentPosts = [];
+        recentComments = [];
+
+        let cancelled = false;
         (async () => {
             try {
-                const res = await fetch(`/api/members/${post.author_id}/activity?limit=5`);
-                if (res.ok) {
+                const res = await fetch(`/api/members/${authorId}/activity?limit=5`);
+                if (res.ok && !cancelled) {
                     const data = await res.json();
                     recentPosts = data.recentPosts ?? [];
                     recentComments = data.recentComments ?? [];
@@ -91,16 +95,21 @@
             } catch {
                 // 실패 시 조용히 처리
             } finally {
-                loading = false;
+                if (!cancelled) loading = false;
             }
         })();
 
+        return () => {
+            cancelled = true;
+        };
+    });
+
+    onMount(() => {
         // 카드 높이 측정 후 광고 높이 맞추기 + AdSense 초기화
         let observer: MutationObserver | undefined;
 
         requestAnimationFrame(() => {
             if (panelEl) {
-                // 두 번째 카드(작성자 최근 글)의 높이를 기준으로 사용
                 const cards = panelEl.querySelectorAll('[data-slot="card"]');
                 if (cards.length > 0) {
                     const cardHeight = (cards[0] as HTMLElement).offsetHeight;
@@ -109,7 +118,6 @@
             }
             loadAdSense();
 
-            // AdSense가 height: auto !important로 덮어쓰면 즉시 원복
             if (clipWrapper) {
                 enforceClipHeight();
                 observer = new MutationObserver(() => enforceClipHeight());

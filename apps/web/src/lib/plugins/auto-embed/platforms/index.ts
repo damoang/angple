@@ -10,6 +10,8 @@ import { instagram } from './instagram.js';
 import { twitter } from './twitter.js';
 import { twitch } from './twitch.js';
 import { tiktok } from './tiktok.js';
+import { reddit } from './reddit.js';
+import { bluesky } from './bluesky.js';
 import { bracketImage } from './bracket-image.js';
 
 /**
@@ -22,6 +24,8 @@ export const platforms: EmbedPlatform[] = [
     twitter,
     twitch,
     tiktok,
+    reddit,
+    bluesky,
     bracketImage
 ];
 
@@ -46,7 +50,7 @@ export function findPlatform(url: string): EmbedPlatform | undefined {
     return undefined;
 }
 
-export { youtube, vimeo, instagram, twitter, twitch, tiktok, bracketImage };
+export { youtube, vimeo, instagram, twitter, twitch, tiktok, reddit, bluesky, bracketImage };
 
 // bracket-image 전용 함수 재내보내기
 export { processBracketImages, getAllowedDomains, getAllowedExtensions } from './bracket-image.js';
