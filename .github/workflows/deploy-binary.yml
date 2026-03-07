@@ -186,8 +186,7 @@ jobs:
             --instance-ids "i-038a1d1f00798d94b" \
             --document-name "AWS-RunShellScript" \
             --parameters 'commands=[
-              "kubectl set image deployment/angple-web -n angple web='"${{ env.ECR_REGISTRY }}"'/'"${{ env.ECR_REPOSITORY }}"':'"$IMAGE_TAG"' copy-immutable-assets='"${{ env.ECR_REGISTRY }}"'/'"${{ env.ECR_REPOSITORY }}"':'"$IMAGE_TAG"'",
-              "kubectl rollout status deployment/angple-web -n angple --timeout=120s"
+              "/home/angple/k8s/prod/deploy.sh web '"$IMAGE_TAG"'"
             ]' \
             --timeout-seconds 300 \
             --query "Command.CommandId" \
