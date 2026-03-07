@@ -15,7 +15,7 @@ overrides:
   ajv: '>=6.14.0'
   markdown-it: '>=14.1.1'
   fast-xml-parser: '>=5.3.8'
-  tar: '>=7.5.8'
+  tar: '>=7.5.10'
   svelte: '>=5.53.5'
   '@sveltejs/kit': '>=2.53.3'
 
@@ -141,8 +141,8 @@ importers:
         specifier: ^3.0.3
         version: 3.0.3
       dompurify:
-        specifier: ^3.3.1
-        version: 3.3.1
+        specifier: ^3.3.2
+        version: 3.3.2
       highlight.js:
         specifier: ^11.11.1
         version: 11.11.1
@@ -150,8 +150,8 @@ importers:
         specifier: ^5.10.0
         version: 5.10.0
       isomorphic-dompurify:
-        specifier: 3.0.0-rc.2
-        version: 3.0.0-rc.2
+        specifier: 3.0.0
+        version: 3.0.0
       jose:
         specifier: ^6.1.3
         version: 6.1.3
@@ -180,8 +180,8 @@ importers:
         specifier: ^3.0.1
         version: 3.0.1(@floating-ui/dom@1.7.4)(@tiptap/core@3.20.0(@tiptap/pm@3.20.0))(@tiptap/extension-bubble-menu@3.17.1(@tiptap/core@3.20.0(@tiptap/pm@3.20.0))(@tiptap/pm@3.20.0))(@tiptap/extension-floating-menu@3.17.1(@floating-ui/dom@1.7.4)(@tiptap/core@3.20.0(@tiptap/pm@3.20.0))(@tiptap/pm@3.20.0))(@tiptap/pm@3.20.0)(svelte@5.53.6)
       tar:
-        specifier: '>=7.5.8'
-        version: 7.5.9
+        specifier: '>=7.5.10'
+        version: 7.5.10
       turndown:
         specifier: ^7.2.2
         version: 7.2.2
@@ -2743,8 +2743,9 @@ packages:
   dom-accessibility-api@0.5.16:
     resolution: {integrity: sha512-X7BJ2yElsnOJ30pZF4uIIDfBEVgF4XEBxL9Bxhy6dnrm5hkzqmsWHGTiHqRiITNhMyFLyAiWndIJP7Z1NTteDg==}
 
-  dompurify@3.3.1:
-    resolution: {integrity: sha512-qkdCKzLNtrgPFP1Vo+98FRzJnBRGe4ffyCea9IwHB1fyxPOeNTHpLKYGd4Uk9xvNoH0ZoOjwZxNptyMwqrId1Q==}
+  dompurify@3.3.2:
+    resolution: {integrity: sha512-6obghkliLdmKa56xdbLOpUZ43pAR6xFy1uOrxBaIDjT+yaRuuybLjGS9eVBoSR/UPU5fq3OXClEHLJNGvbxKpQ==}
+    engines: {node: '>=20'}
 
   dunder-proto@1.0.1:
     resolution: {integrity: sha512-KIN/nDJBQRcXw0MLVhZE9iQHmG68qAVIBg9CqmUYjmQIhgij9U5MFvrqkUL5FbtyyzZuOeOt0zdeRe4UY7ct+A==}
@@ -3305,8 +3306,8 @@ packages:
   isexe@2.0.0:
     resolution: {integrity: sha512-RHxMLp9lnKHGHRng9QFhRCMbYAcVpn69smSGcq3f36xjgVVWThj4qqLbTLlq7Ssj8B+fIQ1EuCEGI2lKsyQeIw==}
 
-  isomorphic-dompurify@3.0.0-rc.2:
-    resolution: {integrity: sha512-krCa8psVRnfeJxZnCk+USqMKvcDOkQCGbAeFXQwaJiIcRFOGp9GDa2h06QzVIdVbM+onpro2Vg4uLe2RHI1McA==}
+  isomorphic-dompurify@3.0.0:
+    resolution: {integrity: sha512-5K+MYP7Nrg74+Bi+QmQGzQ/FgEOyVHWsN8MuJy5wYQxxBRxPnWsD25Tjjt5FWYhan3OQ+vNLubyNJH9dfG03lQ==}
     engines: {node: ^20.19.0 || ^22.12.0 || >=24.0.0}
 
   istanbul-lib-coverage@3.2.2:
@@ -4456,8 +4457,8 @@ packages:
     resolution: {integrity: sha512-g9ljZiwki/LfxmQADO3dEY1CbpmXT5Hm2fJ+QaGKwSXUylMybePR7/67YW7jOrrvjEgL1Fmz5kzyAjWVWLlucg==}
     engines: {node: '>=6'}
 
-  tar@7.5.9:
-    resolution: {integrity: sha512-BTLcK0xsDh2+PUe9F6c2TlRp4zOOBMTkoQHQIWSIzI0R7KG46uEwq4OPk2W7bZcprBMsuaeFsqwYr7pjh6CuHg==}
+  tar@7.5.10:
+    resolution: {integrity: sha512-8mOPs1//5q/rlkNSPcCegA6hiHJYDmSLEI8aMH/CdSQJNWztHC9WHNam5zdQlfpTwB9Xp7IBEsHfV5LKMJGVAw==}
     engines: {node: '>=18'}
 
   term-size@2.2.1:
@@ -7091,7 +7092,7 @@ snapshots:
 
   '@types/dompurify@3.2.0':
     dependencies:
-      dompurify: 3.3.1
+      dompurify: 3.3.2
 
   '@types/estree@1.0.8': {}
 
@@ -7766,7 +7767,7 @@ snapshots:
 
   dom-accessibility-api@0.5.16: {}
 
-  dompurify@3.3.1:
+  dompurify@3.3.2:
     optionalDependencies:
       '@types/trusted-types': 2.0.7
 
@@ -8403,9 +8404,9 @@ snapshots:
 
   isexe@2.0.0: {}
 
-  isomorphic-dompurify@3.0.0-rc.2:
+  isomorphic-dompurify@3.0.0:
     dependencies:
-      dompurify: 3.3.1
+      dompurify: 3.3.2
       jsdom: 28.0.0
     transitivePeerDependencies:
       - '@noble/hashes'
@@ -9522,7 +9523,7 @@ snapshots:
 
   tapable@2.3.0: {}
 
-  tar@7.5.9:
+  tar@7.5.10:
     dependencies:
       '@isaacs/fs-minipass': 4.0.1
       chownr: 3.0.0
