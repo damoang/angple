@@ -83,9 +83,21 @@ export function setCurrentIndex(index: number): void {
     currentIndex = index;
 }
 
-/** 배너 링크: external_link 우선 → link_url → /message/{id} */
+/** 배너 링크: external_link 우선 → link_url → /message/{id} (현재창 내비게이션) */
 export function getLink(banner: CelebrationBanner): string {
-    return banner.external_link || banner.link_url || `/message/${banner.id}`;
+    const raw = banner.external_link || banner.link_url || `/message/${banner.id}`;
+    // 절대 URL을 상대 경로로 변환 (SPA 내비게이션, 현재창)
+    if (browser) {
+        try {
+            const url = new URL(raw, window.location.origin);
+            if (url.hostname === window.location.hostname || url.hostname.endsWith('damoang.net')) {
+                return url.pathname + url.search + url.hash;
+            }
+        } catch {
+            // 파싱 실패 시 원본
+        }
+    }
+    return raw;
 }
 
 /** 외부 데이터로 초기화 (app-init 스토어에서 주입 시 fetch 스킵) */
