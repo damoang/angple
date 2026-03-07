@@ -166,6 +166,60 @@
             ],
             responsive: null
         },
+        'banner-medium': {
+            unit: AD_UNIT_PATHS.sub,
+            sizes: [
+                [728, 90],
+                [320, 100],
+                [300, 250]
+            ],
+            responsive: [
+                [728, [[728, 90]]],
+                [
+                    0,
+                    [
+                        [320, 100],
+                        [300, 250]
+                    ]
+                ]
+            ]
+        },
+        'banner-large-728': {
+            unit: AD_UNIT_PATHS.main,
+            sizes: [
+                [728, 90],
+                [320, 100],
+                [300, 250]
+            ],
+            responsive: [
+                [728, [[728, 90]]],
+                [
+                    0,
+                    [
+                        [320, 100],
+                        [300, 250]
+                    ]
+                ]
+            ]
+        },
+        'banner-horizontal-728': {
+            unit: AD_UNIT_PATHS.article,
+            sizes: [
+                [728, 90],
+                [320, 100],
+                [300, 250]
+            ],
+            responsive: [
+                [728, [[728, 90]]],
+                [
+                    0,
+                    [
+                        [320, 100],
+                        [300, 250]
+                    ]
+                ]
+            ]
+        },
         infeed: {
             unit: AD_UNIT_PATHS.curation,
             sizes: [
@@ -195,10 +249,11 @@
     const POSITION_MAP: Record<string, string> = {
         'board-view-top': 'banner-small',
         'board-head': 'banner-horizontal',
-        'board-list-head': 'banner-responsive',
+        'board-list-head': 'banner-medium',
         'board-list-bottom': 'banner-large',
-        'board-content': 'banner-view-content',
-        'board-content-bottom': 'banner-horizontal',
+        'board-content': 'banner-responsive',
+        'board-content-bottom': 'banner-large',
+        'board-before-comments': 'banner-responsive',
         'board-after-comments': 'banner-responsive',
         'board-footer': 'banner-horizontal',
         'index-head': 'banner-small',
@@ -236,6 +291,7 @@
         'board-list-bottom': '목록 하단',
         'board-content': '본문 광고',
         'board-content-bottom': '본문 하단',
+        'board-before-comments': '댓글 상단',
         'board-after-comments': '댓글 하단',
         'board-footer': '게시판 하단',
         'comment-infeed': '댓글 인피드',
