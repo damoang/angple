@@ -55,6 +55,7 @@ export const ExtensionEnginesSchema = z.object({
 export const ExtensionSettingFieldSchema = z.object({
     type: z.enum([
         'string',
+        'text',
         'number',
         'boolean',
         'select',

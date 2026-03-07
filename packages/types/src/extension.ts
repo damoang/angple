@@ -143,6 +143,7 @@ export interface ExtensionRepository {
  */
 export type ExtensionSettingType =
     | 'string'
+    | 'text'
     | 'number'
     | 'boolean'
     | 'select'
