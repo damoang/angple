@@ -58,11 +58,14 @@ export const load: PageServerLoad = async ({ url, cookies }) => {
         getSiteTitle()
     ]);
 
+    const isInviteFlow = redirectUrl.includes('ads.damoang.net/invite/');
+
     return {
         provider: socialProfile.provider || provider,
         email: socialProfile.email || email,
         displayName: socialProfile.displayName || '',
         redirectUrl,
+        isInviteFlow,
         termsHtml: termsContent ? replaceContentVariables(termsContent.co_content, siteTitle) : '',
         privacyHtml: privacyContent
             ? replaceContentVariables(privacyContent.co_content, siteTitle)
@@ -137,13 +140,26 @@ export const actions: Actions = {
             });
         }
 
-        // 닉네임 검증
-        const nicknameResult = await validateNickname(nickname);
-        if (!nicknameResult.valid) {
-            return fail(400, {
-                error: nicknameResult.error,
-                nickname
-            });
+        // 초대 플로우 감지
+        const isInviteFlow = redirectUrl.includes('ads.damoang.net/invite/');
+
+        // 닉네임 처리: 초대 플로우면 자동 생성, 아니면 검증
+        let finalNickname = nickname;
+        if (isInviteFlow) {
+            finalNickname = 'inv_' + randomBytes(4).toString('hex');
+            for (let i = 0; i < 3; i++) {
+                const check = await validateNickname(finalNickname);
+                if (check.valid) break;
+                finalNickname = 'inv_' + randomBytes(4).toString('hex');
+            }
+        } else {
+            const nicknameResult = await validateNickname(nickname);
+            if (!nicknameResult.valid) {
+                return fail(400, {
+                    error: nicknameResult.error,
+                    nickname
+                });
+            }
         }
 
         // mb_id 생성 (PHP 호환)
@@ -158,9 +174,9 @@ export const actions: Actions = {
             // g5_member INSERT
             await createMember({
                 mb_id: mbId,
-                mb_nick: nickname,
+                mb_nick: finalNickname,
                 mb_email: socialProfile.email,
-                mb_name: nickname,
+                mb_name: finalNickname,
                 mb_ip: clientIp
             });
 
@@ -251,6 +267,11 @@ export const actions: Actions = {
                 error: '회원가입 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.',
                 nickname
             });
+        }
+
+        // 초대 플로우: 실명인증 스킵, 바로 리다이렉트
+        if (isInviteFlow) {
+            redirect(302, redirectUrl);
         }
 
         // 실명인증 활성화 시 인증 페이지로
