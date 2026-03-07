@@ -180,10 +180,7 @@
                             {post.category}
                         </span>
                     {/if}
-                    <span
-                        class="truncate {readClass}"
-                        class:font-bold={uiSettingsStore.titleBold && !isRead}
-                    >
+                    <span class="truncate {readClass}" class:font-bold={uiSettingsStore.titleBold}>
                         {post.title}
                     </span>
                     <!-- 부가 아이콘: N, 이미지, 동영상, 댓글 -->

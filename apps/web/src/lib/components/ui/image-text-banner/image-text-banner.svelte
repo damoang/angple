@@ -170,22 +170,23 @@
                             class="block"
                         >
                             {#if slot.imageUrl}
-                                <figure class="m-0">
+                                <figure class="relative m-0">
                                     <img
                                         src={slot.imageUrl}
                                         alt={slot.altText || '광고'}
-                                        class="h-[60px] w-full object-cover"
+                                        class="mx-auto h-[78px] w-[139px] object-fill"
                                         loading="lazy"
                                     />
                                     <figcaption
-                                        class="truncate bg-white px-2 py-1 text-center text-[10px] text-blue-600 dark:bg-slate-800 dark:text-blue-400"
+                                        class="absolute bottom-0 left-0 right-0 truncate px-2 py-0.5 text-center text-[10px] font-bold text-white"
+                                        style="text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;"
                                     >
                                         {slot.altText || '광고'}
                                     </figcaption>
                                 </figure>
                             {:else}
                                 <div
-                                    class="flex h-[60px] items-center justify-center bg-slate-50 p-2 dark:bg-slate-700"
+                                    class="flex h-[80px] items-center justify-center bg-slate-50 p-2 dark:bg-slate-700"
                                 >
                                     <span
                                         class="text-center text-[10px] text-blue-600 dark:text-blue-400"

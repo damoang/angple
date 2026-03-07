@@ -28,11 +28,16 @@ const pool = mysql.createPool({
     idleTimeout: 60_000
 });
 
+// RDS 시스템 timezone이 UTC이므로, 세션 timezone을 KST로 설정하여 NOW() 등이 KST를 반환하도록 함
+pool.on('connection', (connection: { query: (sql: string) => void }) => {
+    connection.query("SET time_zone = '+09:00'");
+});
+
 /**
  * Read Replica pool (SELECT 전용)
  * DB_READ_HOST가 없으면 writer pool 재사용 (비용 0)
  */
-const readPool: mysql.Pool = env.DB_READ_HOST
+const _readPool: mysql.Pool | null = env.DB_READ_HOST
     ? mysql.createPool({
           host: env.DB_READ_HOST,
           port: parseInt(env.DB_READ_PORT || env.DB_PORT || '3306', 10),
@@ -48,7 +53,15 @@ const readPool: mysql.Pool = env.DB_READ_HOST
           keepAliveInitialDelay: 30_000,
           idleTimeout: 60_000
       })
-    : pool;
+    : null;
+
+if (_readPool) {
+    _readPool.on('connection', (connection: { query: (sql: string) => void }) => {
+        connection.query("SET time_zone = '+09:00'");
+    });
+}
+
+const readPool: mysql.Pool = _readPool ?? pool;
 
 export { pool, readPool };
 export default pool;

@@ -36,6 +36,7 @@
     import { readPostsStore } from '$lib/stores/read-posts.svelte.js';
     import { densityStore } from '$lib/stores/density.svelte.js';
     import { readPostStyleStore, type ReadPostStyle } from '$lib/stores/read-post-style.svelte.js';
+    import { uiSettingsStore } from '$lib/stores/ui-settings.svelte.js';
     import BoardListSkeleton from '$lib/components/features/board/board-list-skeleton.svelte';
 
     // 특수 게시판 컴포넌트 (플러그인 레지스트리 기반)
@@ -686,6 +687,15 @@
                                         onclick={() => densityStore.set('relaxed')}>여유</button
                                     >
                                 </div>
+                                <!-- 제목 굵게 -->
+                                <button
+                                    class="rounded px-1.5 py-0.5 text-[10px] transition-colors {uiSettingsStore.titleBold
+                                        ? 'bg-foreground/10 text-foreground'
+                                        : 'text-muted-foreground hover:text-foreground'}"
+                                    onclick={() =>
+                                        (uiSettingsStore.titleBold = !uiSettingsStore.titleBold)}
+                                    >제목 굵게</button
+                                >
                             </div>
                         </div>
                         <div
