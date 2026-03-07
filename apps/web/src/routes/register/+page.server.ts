@@ -24,6 +24,7 @@ import {
 import type { OAuthUserProfile, SocialProvider } from '$lib/server/auth/oauth/types.js';
 import { verifyTurnstile } from '$lib/server/captcha.js';
 import { checkRateLimit, recordAttempt } from '$lib/server/rate-limit.js';
+import { getCertConfig } from '$lib/server/auth/cert-inicis.js';
 
 export const load: PageServerLoad = async ({ url, cookies }) => {
     const provider = url.searchParams.get('provider') || '';
@@ -202,7 +203,11 @@ export const actions: Actions = {
             // 가입 완료 후 임시 쿠키 삭제
             cookies.delete('pending_social_register', { path: '/' });
 
-            // 리다이렉트
+            // 실명인증 활성화 시 인증 페이지로, 아니면 홈으로
+            const certConfig = await getCertConfig();
+            if (certConfig.certUse > 0) {
+                redirect(302, '/register/cert');
+            }
             redirect(302, redirectUrl);
         } catch (err) {
             // SvelteKit redirect는 다시 throw

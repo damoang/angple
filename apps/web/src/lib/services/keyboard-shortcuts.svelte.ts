@@ -183,10 +183,13 @@ class KeyboardShortcutService {
 
         // 시스템 단축키 체크
         const systemUrl = this.systemShortcuts.get(code);
-        if (systemUrl && systemUrl !== DEFAULT_URL) {
-            event.preventDefault();
-            this.navigate(systemUrl);
-            return;
+        if (systemUrl) {
+            // 특수 단축키(H=홈, R=새로고침)는 항상 실행, 일반 단축키는 DEFAULT_URL 제외
+            if (code in SPECIAL_SHORTCUTS || systemUrl !== DEFAULT_URL) {
+                event.preventDefault();
+                this.navigate(systemUrl);
+                return;
+            }
         }
     };
 

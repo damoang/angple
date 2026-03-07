@@ -35,6 +35,9 @@ const COOKIE_DOMAIN = env.COOKIE_DOMAIN || '';
 const ADS_URL = env.ADS_URL || '';
 const LEGACY_URL = env.LEGACY_URL || '';
 
+// Dantry 에러 트래커 (ClickHouse 기반)
+const DANTRY_URL = env.DANTRY_URL || '';
+
 /** CDN 캐시 가능한 공개 경로 (비로그인 시만 적용) */
 const PUBLIC_CACHEABLE_PATHS = ['/feed', '/games', '/info'];
 
@@ -518,17 +521,18 @@ export const handleError: HandleServerError = ({ error, event, status, message }
         console.error(`[Server Error] ${status} ${event.url.pathname}:`, err.message);
 
         // Fire-and-forget: Dantry 에러 트래커로 전송
-        if (ADS_URL) {
-            fetch(`${ADS_URL}/api/v1/dantry`, {
+        if (DANTRY_URL) {
+            fetch(DANTRY_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     type: 'server_error',
+                    member_id: event.locals.user?.id || 'anonymous',
                     status,
-                    message: err.message,
+                    message: err.message.slice(0, 2000),
                     stack: err.stack?.slice(0, 2000),
                     url: event.url.href,
-                    timestamp: new Date().toISOString()
+                    userAgent: event.request.headers.get('user-agent') || ''
                 }),
                 signal: AbortSignal.timeout(3_000)
             }).catch(() => {});

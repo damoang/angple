@@ -11,6 +11,7 @@
     import { getUser, getIsLoggedIn, getIsLoading, authActions } from '$lib/stores/auth.svelte';
     import { getAvatarUrl, getMemberIconUrl } from '$lib/utils/member-icon';
     import { getGradeName } from '$lib/utils/grade';
+    import { uiSettingsStore } from '$lib/stores/ui-settings.svelte.js';
 
     let isLoggingOut = $state(false);
 
@@ -83,12 +84,13 @@
             <!-- 프로필 아바타 -->
             <a
                 href="/my"
-                class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-colors {avatarUrl &&
+                class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-colors {!uiSettingsStore.hideMyProfile &&
+                avatarUrl &&
                 !avatarFailed
                     ? 'overflow-hidden'
                     : 'bg-primary/10 text-primary hover:bg-primary/20'}"
             >
-                {#if avatarUrl && !avatarFailed}
+                {#if !uiSettingsStore.hideMyProfile && avatarUrl && !avatarFailed}
                     <img
                         src={avatarUrl}
                         alt={user.mb_name}
@@ -104,14 +106,20 @@
 
             <div class="min-w-0 flex-1">
                 <div class="flex items-center gap-1.5">
-                    <a href="/my" class="truncate text-sm font-medium hover:underline"
-                        >{user.mb_name}</a
-                    >
-                    {#if gradeName}
-                        <span class="shrink-0 text-[10px] leading-none">{gradeName}</span>
+                    {#if uiSettingsStore.hideMyProfile}
+                        <span class="text-muted-foreground truncate text-sm">회원</span>
+                    {:else}
+                        <a href="/my" class="truncate text-sm font-medium hover:underline"
+                            >{user.mb_name}</a
+                        >
+                        {#if gradeName}
+                            <span class="shrink-0 text-[10px] leading-none">{gradeName}</span>
+                        {/if}
                     {/if}
                 </div>
-                <p class="text-muted-foreground truncate text-xs">{user.mb_id}</p>
+                {#if !uiSettingsStore.hideMyProfile}
+                    <p class="text-muted-foreground truncate text-xs">{user.mb_id}</p>
+                {/if}
             </div>
 
             <button

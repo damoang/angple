@@ -36,6 +36,7 @@
     import { readPostsStore } from '$lib/stores/read-posts.svelte.js';
     import { densityStore } from '$lib/stores/density.svelte.js';
     import { readPostStyleStore, type ReadPostStyle } from '$lib/stores/read-post-style.svelte.js';
+    import { uiSettingsStore } from '$lib/stores/ui-settings.svelte.js';
     import BoardListSkeleton from '$lib/components/features/board/board-list-skeleton.svelte';
 
     // 특수 게시판 컴포넌트 (플러그인 레지스트리 기반)
@@ -451,10 +452,13 @@
                 {@const notices = result.notices || []}
                 {@const promotionPosts = result.promotionPosts || []}
                 {@const pagination = result.pagination}
-                {@const filteredPosts =
+                {@const categoryPosts =
                     selectedCategory === '전체'
                         ? posts
                         : posts.filter((p) => p.category === selectedCategory)}
+                {@const filteredPosts = categoryPosts.filter(
+                    (p) => !uiSettingsStore.isMuted(p.title)
+                )}
                 {@const importantNotices = notices.filter((n) => n.notice_type === 'important')}
                 {@const normalNotices = notices.filter((n) => n.notice_type !== 'important')}
                 {@const hasNotices = notices.length > 0}
@@ -741,6 +745,7 @@
                             {:else}
                                 <LayoutComponent
                                     {post}
+                                    {boardId}
                                     displaySettings={data.board?.display_settings}
                                     href="/{boardId}/{post.id}{listPage > 1
                                         ? `?page=${listPage}`

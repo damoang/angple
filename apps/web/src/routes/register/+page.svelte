@@ -135,7 +135,7 @@
                         <div>
                             <Label for="agree_terms" class="cursor-pointer font-normal">
                                 <a
-                                    href="/terms"
+                                    href="/content/provision"
                                     target="_blank"
                                     class="text-primary hover:underline"
                                 >
@@ -156,7 +156,7 @@
                         <div>
                             <Label for="agree_privacy" class="cursor-pointer font-normal">
                                 <a
-                                    href="/privacy"
+                                    href="/content/privacy"
                                     target="_blank"
                                     class="text-primary hover:underline"
                                 >

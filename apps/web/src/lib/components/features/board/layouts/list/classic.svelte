@@ -13,6 +13,8 @@
     import { pluginStore } from '$lib/stores/plugin.svelte';
     import { loadPluginComponent } from '$lib/utils/plugin-optional-loader';
     import { readPostStyleStore } from '$lib/stores/read-post-style.svelte.js';
+    import { uiSettingsStore } from '$lib/stores/ui-settings.svelte.js';
+    import { commentTracker } from '$lib/stores/comment-tracker.svelte.js';
 
     // 메모 플러그인
     let memoPluginActive = $derived(pluginStore.isPluginActive('member-memo'));
@@ -29,13 +31,17 @@
         post,
         displaySettings,
         href,
-        isRead = false
+        isRead = false,
+        boardId = ''
     }: {
         post: FreePost;
         displaySettings?: BoardDisplaySettings;
         href: string;
         isRead?: boolean;
+        boardId?: string;
     } = $props();
+
+    const effectiveBoardId = $derived(boardId || post.board_id || '');
 
     // 회원 아이콘 URL
     const iconUrl = $derived(getMemberIconUrl(post.author_id));
@@ -95,6 +101,9 @@
         isRead ? `post-title-read-${readPostStyleStore.value}` : 'post-title'
     );
 
+    // 제목 굵게
+    const boldClass = $derived(uiSettingsStore.titleBold ? 'font-bold' : '');
+
     // 모바일 추천 텍스트 색상 (작은 인라인 텍스트용)
     const mobileLikesClass = $derived.by(() => {
         const likes = post.likes;
@@ -106,6 +115,13 @@
 
     // 모바일 10+ 추천 시 pill 배지 스타일
     const mobileLikesPill = $derived(post.likes >= 10);
+
+    // 새 댓글 수
+    const newCommentCount = $derived(
+        uiSettingsStore.showNewComments && effectiveBoardId
+            ? commentTracker.getNewCount(effectiveBoardId, post.id, post.comments_count)
+            : 0
+    );
 </script>
 
 <!-- Classic 스킨: 데스크톱 CSS Grid 5컬럼 (추천|제목|이름|날짜|조회) -->
@@ -179,7 +195,7 @@
                             {post.category}
                         </span>
                     {/if}
-                    <span class="truncate {readClass}">
+                    <span class="truncate {readClass} {boldClass}">
                         {post.title}
                     </span>
                     <!-- 부가 아이콘: N, 이미지, 동영상, 댓글 -->
@@ -193,6 +209,11 @@
                     {/if}
                     {#if post.comments_count > 0}
                         <span class="comment-count shrink-0">+{post.comments_count}</span>
+                        {#if newCommentCount > 0}
+                            <span class="text-liked shrink-0 text-[10px] font-bold"
+                                >+{newCommentCount}</span
+                            >
+                        {/if}
                     {/if}
                 </div>
 
@@ -208,8 +229,8 @@
                             onerror={handleIconError}
                         />
                     {/if}
-                    {#if memoPluginActive && MemoBadge}
-                        <MemoBadge memberId={post.author_id} />
+                    {#if memoPluginActive && MemoBadge && !uiSettingsStore.hideMemoInList}
+                        <MemoBadge memberId={post.author_id} blur={uiSettingsStore.blurMemo} />
                     {/if}
                     <AuthorLink authorId={post.author_id} authorName={post.author} />
                 </span>

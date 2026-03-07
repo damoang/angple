@@ -24,10 +24,12 @@
     import Camera from '@lucide/svelte/icons/camera';
     import CircleCheck from '@lucide/svelte/icons/circle-check';
     import CircleAlert from '@lucide/svelte/icons/circle-alert';
+    import ShieldCheck from '@lucide/svelte/icons/shield-check';
     import Coins from '@lucide/svelte/icons/coins';
     import Star from '@lucide/svelte/icons/star';
     import Ban from '@lucide/svelte/icons/ban';
     import Bookmark from '@lucide/svelte/icons/bookmark';
+    import Monitor from '@lucide/svelte/icons/monitor';
     import type { PageData } from './$types.js';
     import { enhance } from '$app/forms';
     import { getAvatarUrl } from '$lib/utils/member-icon';
@@ -38,7 +40,8 @@
         { href: '/my/exp', label: '경험치', icon: Star },
         { href: '/my/blocked', label: '차단 목록', icon: Ban },
         { href: '/my/scraps', label: '스크랩', icon: Bookmark },
-        { href: '/member/settings', label: '설정', icon: Settings }
+        { href: '/member/settings', label: '설정', icon: Settings },
+        { href: '/member/settings/ui', label: '화면 설정', icon: Monitor }
     ];
 
     let { data }: { data: PageData } = $props();
@@ -56,8 +59,6 @@
     let nickError = $state<string | null>(null);
     let emailSuccess = $state<string | null>(null);
     let emailError = $state<string | null>(null);
-    let pwSuccess = $state<string | null>(null);
-    let pwError = $state<string | null>(null);
     let profileSuccess = $state<string | null>(null);
     let profileError = $state<string | null>(null);
 
@@ -183,6 +184,39 @@
             day: 'numeric'
         });
     }
+
+    // 실명인증
+    let certCompleted = $state(data.certCompleted);
+
+    function openCertPopup() {
+        const width = 500;
+        const height = 620;
+        const left = (screen.width - width) / 2;
+        const top = (screen.height - height) / 2;
+        window.open(
+            '/cert/inicis?pageType=settings',
+            'sa_popup',
+            `width=${width},height=${height},left=${left},top=${top},scrollbars=yes`
+        );
+    }
+
+    function handleCertMessage(event: MessageEvent) {
+        if (event.data?.type === 'cert_result' && event.data.data?.success) {
+            certCompleted = true;
+        }
+    }
+
+    import { onMount, onDestroy } from 'svelte';
+
+    onMount(() => {
+        window.addEventListener('message', handleCertMessage);
+    });
+
+    onDestroy(() => {
+        if (typeof window !== 'undefined') {
+            window.removeEventListener('message', handleCertMessage);
+        }
+    });
 </script>
 
 <svelte:head>
@@ -450,83 +484,7 @@
                 </CardContent>
             </Card>
 
-            <!-- 2. 비밀번호 변경 카드 -->
-            <Card>
-                <CardHeader>
-                    <CardTitle class="flex items-center gap-2">
-                        <KeyRound class="h-5 w-5" />
-                        비밀번호 변경
-                    </CardTitle>
-                    <CardDescription
-                        >비밀번호를 변경합니다. 소셜 로그인으로만 가입한 경우 현재 비밀번호가 없을
-                        수 있습니다.</CardDescription
-                    >
-                </CardHeader>
-                <CardContent>
-                    <form
-                        method="POST"
-                        action="?/changePassword"
-                        use:enhance={() => {
-                            pwSuccess = null;
-                            pwError = null;
-                            return async ({ result, update }) => {
-                                if (result.type === 'success') {
-                                    pwSuccess = '비밀번호가 변경되었습니다.';
-                                    update({ reset: true });
-                                } else if (result.type === 'failure') {
-                                    pwError =
-                                        (result.data?.error as string) || '변경에 실패했습니다.';
-                                }
-                            };
-                        }}
-                        class="space-y-4"
-                    >
-                        <div class="space-y-2">
-                            <Label for="currentPassword">현재 비밀번호</Label>
-                            <Input
-                                id="currentPassword"
-                                name="currentPassword"
-                                type="password"
-                                placeholder="현재 비밀번호"
-                                autocomplete="current-password"
-                            />
-                        </div>
-                        <div class="space-y-2">
-                            <Label for="newPassword">새 비밀번호</Label>
-                            <Input
-                                id="newPassword"
-                                name="newPassword"
-                                type="password"
-                                placeholder="새 비밀번호 (4자 이상)"
-                                autocomplete="new-password"
-                            />
-                        </div>
-                        <div class="space-y-2">
-                            <Label for="confirmPassword">새 비밀번호 확인</Label>
-                            <Input
-                                id="confirmPassword"
-                                name="confirmPassword"
-                                type="password"
-                                placeholder="새 비밀번호 확인"
-                                autocomplete="new-password"
-                            />
-                        </div>
-                        {#if pwSuccess}
-                            <p class="flex items-center gap-1 text-xs text-green-600">
-                                <CircleCheck class="h-3 w-3" />{pwSuccess}
-                            </p>
-                        {/if}
-                        {#if pwError}
-                            <p class="flex items-center gap-1 text-xs text-red-600">
-                                <CircleAlert class="h-3 w-3" />{pwError}
-                            </p>
-                        {/if}
-                        <Button type="submit">비밀번호 변경</Button>
-                    </form>
-                </CardContent>
-            </Card>
-
-            <!-- 3. 설정 카드 -->
+            <!-- 설정 카드 -->
             <Card>
                 <CardHeader>
                     <CardTitle class="flex items-center gap-2">
@@ -686,6 +644,68 @@
                 </div>
             </CardContent>
         </Card>
+
+        <!-- 5. 본인인증 -->
+        {#if data.certEnabled}
+            <Card>
+                <CardHeader>
+                    <CardTitle class="flex items-center gap-2">
+                        <ShieldCheck class="h-5 w-5" />
+                        본인인증
+                    </CardTitle>
+                    <CardDescription>
+                        본인인증을 완료하면 글쓰기, 댓글, 추천 등 모든 기능을 이용할 수 있습니다.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    {#if certCompleted}
+                        <div
+                            class="flex items-center gap-3 rounded-lg border border-green-200 bg-green-50 p-4 dark:border-green-800 dark:bg-green-950"
+                        >
+                            <div
+                                class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-green-100 dark:bg-green-900"
+                            >
+                                <ShieldCheck class="h-5 w-5 text-green-600 dark:text-green-400" />
+                            </div>
+                            <div>
+                                <p class="font-medium text-green-800 dark:text-green-200">
+                                    본인인증 완료
+                                </p>
+                                <p class="text-sm text-green-600 dark:text-green-400">
+                                    모든 기능을 이용할 수 있습니다.
+                                </p>
+                            </div>
+                        </div>
+                    {:else}
+                        <div class="space-y-4">
+                            <div
+                                class="flex items-center gap-3 rounded-lg border border-yellow-200 bg-yellow-50 p-4 dark:border-yellow-800 dark:bg-yellow-950"
+                            >
+                                <div
+                                    class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-yellow-100 dark:bg-yellow-900"
+                                >
+                                    <CircleAlert
+                                        class="h-5 w-5 text-yellow-600 dark:text-yellow-400"
+                                    />
+                                </div>
+                                <div>
+                                    <p class="font-medium text-yellow-800 dark:text-yellow-200">
+                                        본인인증이 필요합니다
+                                    </p>
+                                    <p class="text-sm text-yellow-600 dark:text-yellow-400">
+                                        인증 전에는 글쓰기, 댓글, 추천, 신고 기능이 제한됩니다.
+                                    </p>
+                                </div>
+                            </div>
+                            <Button onclick={openCertPopup}>
+                                <ShieldCheck class="mr-2 h-4 w-4" />
+                                간편인증 하기
+                            </Button>
+                        </div>
+                    {/if}
+                </CardContent>
+            </Card>
+        {/if}
 
         <!-- 회원 탈퇴 링크 -->
         <div class="text-center">

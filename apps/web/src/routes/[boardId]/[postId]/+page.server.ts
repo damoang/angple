@@ -8,6 +8,7 @@ import { backendFetch as bFetch, createAuthHeaders } from '$lib/server/backend-f
 import { increment as incrementViewcount } from '$lib/server/viewcount.js';
 import { fetchReactionsByParentId } from '$lib/server/reactions.js';
 import { fetchMemberLevels } from '$lib/server/member-levels.js';
+import { getAdjacentPosts } from '$lib/server/adjacent-posts.js';
 
 /**
  * 게시글 상세 페이지 — Streaming SSR
@@ -169,6 +170,9 @@ export const load: PageServerLoad = async ({
             }
         }
 
+        // --- 이전글/다음글 (스트리밍) ---
+        const adjacentPostsPromise = getAdjacentPosts(boardId, Number(postId));
+
         // --- 2단계: 보조 데이터 스트리밍 (await 안 함 → 스켈레톤 먼저 표시) ---
         const secondaryDataPromise = (async () => {
             const [
@@ -306,7 +310,8 @@ export const load: PageServerLoad = async ({
             promotionExpired,
             /** 스트리밍: Promise로 반환 → 클라이언트에서 $effect로 수신 */
             streamed: {
-                secondaryData: secondaryDataPromise
+                secondaryData: secondaryDataPromise,
+                adjacentPosts: adjacentPostsPromise
             }
         };
     } catch (err) {

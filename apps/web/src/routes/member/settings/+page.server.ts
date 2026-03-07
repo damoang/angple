@@ -11,6 +11,9 @@ import {
     changePassword,
     updateProfile
 } from '$lib/server/auth/member-update.js';
+import { getCertConfig } from '$lib/server/auth/cert-inicis.js';
+import pool from '$lib/server/db.js';
+import type { RowDataPacket } from 'mysql2';
 
 export const load: PageServerLoad = async ({ locals }) => {
     // 인증 확인 (locals.user 기반 — /my/* 패턴과 동일)
@@ -21,9 +24,21 @@ export const load: PageServerLoad = async ({ locals }) => {
     const mbId = locals.user.id!;
 
     // 병렬 조회
-    const [profiles, memberProfile] = await Promise.all([
+    const [profiles, memberProfile, certConfig, certStatus] = await Promise.all([
         getSocialProfilesByMember(mbId),
-        getMemberFullProfile(mbId)
+        getMemberFullProfile(mbId),
+        getCertConfig(),
+        pool
+            .query<RowDataPacket[]>(
+                'SELECT mb_certify, mb_dupinfo, mb_adult FROM g5_member WHERE mb_id = ? LIMIT 1',
+                [mbId]
+            )
+            .then(([rows]) =>
+                rows.length > 0
+                    ? (rows[0] as { mb_certify: string; mb_dupinfo: string; mb_adult: number })
+                    : null
+            )
+            .catch(() => null)
     ]);
 
     // 닉네임 변경 가능일 계산
@@ -50,6 +65,9 @@ export const load: PageServerLoad = async ({ locals }) => {
               }
             : null,
         nickChangeDaysLeft,
+        certEnabled: certConfig.certUse > 0,
+        certCompleted: !!certStatus?.mb_certify,
+        certType: certStatus?.mb_certify || '',
         socialProfiles: profiles.map((p) => ({
             mpNo: p.mp_no,
             provider: p.provider,

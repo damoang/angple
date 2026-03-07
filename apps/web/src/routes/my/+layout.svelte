@@ -8,6 +8,7 @@
     import Ban from '@lucide/svelte/icons/ban';
     import Bookmark from '@lucide/svelte/icons/bookmark';
     import Settings from '@lucide/svelte/icons/settings';
+    import Monitor from '@lucide/svelte/icons/monitor';
 
     let { children }: { children: Snippet } = $props();
 
@@ -17,7 +18,8 @@
         { href: '/my/exp', label: '경험치', icon: Star, exact: false },
         { href: '/my/blocked', label: '차단 목록', icon: Ban, exact: false },
         { href: '/my/scraps', label: '스크랩', icon: Bookmark, exact: false },
-        { href: '/member/settings', label: '설정', icon: Settings, exact: false }
+        { href: '/member/settings', label: '설정', icon: Settings, exact: false },
+        { href: '/member/settings/ui', label: '화면 설정', icon: Monitor, exact: false }
     ];
 
     function isActive(href: string, exact: boolean, pathname: string): boolean {

@@ -10,6 +10,8 @@
     import { memberLevelStore } from '$lib/stores/member-levels.svelte.js';
     import { loadPluginComponent } from '$lib/utils/plugin-optional-loader';
     import { formatDate } from '$lib/utils/format-date.js';
+    import { uiSettingsStore } from '$lib/stores/ui-settings.svelte.js';
+    import { commentTracker } from '$lib/stores/comment-tracker.svelte.js';
 
     let memoPluginActive = $derived(pluginStore.isPluginActive('member-memo'));
 
@@ -27,13 +29,22 @@
         post,
         displaySettings,
         href,
-        isRead = false
+        isRead = false,
+        boardId = ''
     }: {
         post: FreePost;
         displaySettings?: BoardDisplaySettings;
         href: string;
         isRead?: boolean;
+        boardId?: string;
     } = $props();
+
+    const effectiveBoardId = $derived(boardId || post.board_id || '');
+    const newCommentCount = $derived(
+        uiSettingsStore.showNewComments && effectiveBoardId
+            ? commentTracker.getNewCount(effectiveBoardId, post.id, post.comments_count)
+            : 0
+    );
 
     // 삭제된 글
     const isDeleted = $derived(!!post.deleted_at);
@@ -78,7 +89,9 @@
                                 <CardTitle
                                     class="mb-2 flex items-center gap-1.5 truncate {isRead
                                         ? 'text-muted-foreground font-normal'
-                                        : 'text-foreground'}"
+                                        : 'text-foreground'} {uiSettingsStore.titleBold
+                                        ? 'font-bold'
+                                        : ''}"
                                 >
                                     {#if post.is_adult}
                                         <Badge
@@ -95,7 +108,13 @@
                                     class="text-secondary-foreground flex flex-wrap items-center gap-2 text-sm"
                                 >
                                     <span>👍 {post.likes}</span>
-                                    <span>💬 {post.comments_count}</span>
+                                    <span
+                                        >💬 {post.comments_count}{#if newCommentCount > 0}<span
+                                                class="text-liked font-bold"
+                                            >
+                                                +{newCommentCount}</span
+                                            >{/if}</span
+                                    >
                                     <span>•</span>
                                     <span class="inline-flex items-center gap-0.5"
                                         ><LevelBadge
@@ -106,8 +125,11 @@
                                             authorName={post.author}
                                         /></span
                                     >
-                                    {#if memoPluginActive && MemoBadge}
-                                        <MemoBadge memberId={post.author_id} />
+                                    {#if memoPluginActive && MemoBadge && !uiSettingsStore.hideMemoInList}
+                                        <MemoBadge
+                                            memberId={post.author_id}
+                                            blur={uiSettingsStore.blurMemo}
+                                        />
                                     {/if}
                                     <span>•</span>
                                     <span>{formatDate(post.created_at)}</span>

@@ -46,6 +46,7 @@
     import AdSlot from '$lib/components/ui/ad-slot/ad-slot.svelte';
     import { widgetLayoutStore } from '$lib/stores/widget-layout.svelte';
     import { boardFavoritesStore, slotLabel } from '$lib/stores/board-favorites.svelte';
+    import { uiSettingsStore } from '$lib/stores/ui-settings.svelte.js';
 
     // Icon mapping object
     const iconMap: Record<string, typeof Circle> = {
@@ -181,14 +182,16 @@
                                 : 'hover:bg-accent text-muted-foreground'
                         )}
                     >
-                        <kbd
-                            class={cn(
-                                'inline-flex h-4 min-w-4 shrink-0 items-center justify-center rounded border px-0.5 font-mono text-[9px] font-medium',
-                                active
-                                    ? 'border-primary-foreground/30 bg-primary-foreground/20 text-primary-foreground'
-                                    : 'bg-primary text-primary-foreground'
-                            )}>{slotLabel(slot)}</kbd
-                        >
+                        {#if uiSettingsStore.showShortcutBadge}
+                            <kbd
+                                class={cn(
+                                    'inline-flex h-4 min-w-4 shrink-0 items-center justify-center rounded border px-0.5 font-mono text-[9px] font-medium',
+                                    active
+                                        ? 'border-primary-foreground/30 bg-primary-foreground/20 text-primary-foreground'
+                                        : 'bg-primary text-primary-foreground'
+                                )}>{slotLabel(slot)}</kbd
+                            >
+                        {/if}
                         <span class="truncate">{entry.title}</span>
                     </a>
                 {/each}

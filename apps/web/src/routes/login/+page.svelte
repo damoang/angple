@@ -251,9 +251,7 @@
             <!-- 회원가입 링크 -->
             <div class="text-center text-sm">
                 <span class="text-muted-foreground">계정이 없으신가요?</span>
-                <a href="/register" class="text-primary ml-1 font-medium hover:underline"
-                    >회원가입</a
-                >
+                <a href="/join" class="text-primary ml-1 font-medium hover:underline">회원가입</a>
             </div>
         </CardContent>
     </Card>
