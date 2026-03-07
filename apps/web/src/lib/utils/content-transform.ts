@@ -2,7 +2,10 @@
  * 콘텐츠 변환 유틸리티
  * {emo:filename:size} 또는 {이모티콘:filename:size} 패턴을 <img> 태그로 변환
  * {video: URL} 또는 {동영상: URL} 패턴을 <video>/<iframe> 태그로 변환
+ * <oembed url="..."> (CKEditor5 미디어 삽입) → 임베드 플레이어 변환
  */
+
+import { embedUrl } from '$lib/plugins/auto-embed';
 
 const EMOTICON_PATTERN = /\{(이모티콘|emo):([^}]*)\}/gi;
 const VIDEO_PATTERN = /\{(동영상|video)\s*:\s*([\s\S]*?)\}/gi;
@@ -198,4 +201,54 @@ export function transformCodeBlocks(html: string): string {
         const langAttr = lang ? ` class="language-${lang}"` : '';
         return `<pre><code${langAttr}>${trimmed}</code></pre>`;
     });
+}
+
+/**
+ * CKEditor5 <oembed url="..."> 태그를 임베드 플레이어로 변환
+ * Gnuboard5의 CKEditor5 미디어 삽입 시 생성되는 형식:
+ * - <figure class="media"><oembed url="..."></oembed></figure>
+ * - <oembed url="..."></oembed> (단독)
+ */
+export function transformOembed(html: string): string {
+    if (!html || !html.includes('oembed')) return html;
+
+    // <figure class="media">로 감싸진 oembed 또는 단독 oembed 처리
+    return html.replace(
+        /(?:<figure[^>]*class="[^"]*media[^"]*"[^>]*>\s*)?<oembed\s+url=["']([^"']+)["'][^>]*>\s*<\/oembed>\s*(?:<\/figure>)?/gi,
+        (_match, url: string) => {
+            if (!url) return '';
+            const embedded = embedUrl(url.trim());
+            if (embedded) return embedded;
+            // fallback: 링크로 표시
+            return `<a href="${url}" target="_blank" rel="noopener">${url}</a>`;
+        }
+    );
+}
+
+/**
+ * HTML 엔티티로 이스케이프된 <video> / <iframe> 태그를 복원
+ * 백엔드에서 HTML 태그를 &lt;/&gt;로 이스케이프한 경우 원래 HTML로 변환
+ *
+ * 보안: video, iframe(허용된 도메인만), source 태그만 복원
+ */
+export function transformEscapedMedia(html: string): string {
+    if (!html || (!html.includes('&lt;video') && !html.includes('&lt;iframe'))) return html;
+
+    // &lt;video ...&gt;...&lt;/video&gt; 복원
+    let result = html.replace(
+        /&lt;video\s([^]*?)&gt;([^]*?)&lt;\/video&gt;/gi,
+        (_match, attrs: string, inner: string) => {
+            // 속성에서 위험한 이벤트 핸들러 제거
+            const safeAttrs = attrs.replace(/\bon\w+\s*=\s*["'][^"']*["']/gi, '');
+            // 내부 &lt;source&gt; 태그도 복원
+            const safeInner = inner.replace(
+                /&lt;source\s([^]*?)(?:\/?)&gt;/gi,
+                (_m: string, sAttrs: string) =>
+                    `<source ${sAttrs.replace(/\bon\w+\s*=\s*["'][^"']*["']/gi, '')}>`
+            );
+            return `<video ${safeAttrs}>${safeInner}</video>`;
+        }
+    );
+
+    return result;
 }

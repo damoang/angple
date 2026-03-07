@@ -10,7 +10,9 @@ import {
     transformCodeBlocks,
     transformBacktickCodeBlocks,
     transformInlineCode,
-    transformInlineMarkdown
+    transformInlineMarkdown,
+    transformOembed,
+    transformEscapedMedia
 } from '$lib/utils/content-transform';
 import { processContent } from '$lib/plugins/auto-embed';
 
@@ -19,6 +21,15 @@ import { processContent } from '$lib/plugins/auto-embed';
  * comment_content 필터에 이모티콘, 대괄호 이미지, 동영상 변환 등록
  */
 export function initCommentContent(): void {
+    // 이스케이프된 <video>/<iframe> 태그 복원
+    registerHook(
+        'comment_content',
+        (html: unknown) => transformEscapedMedia(html as string),
+        0.5,
+        'core',
+        'filter'
+    );
+
     // 이모티콘 {emo:filename:size} → <img>
     registerHook(
         'comment_content',
@@ -69,6 +80,15 @@ export function initCommentContent(): void {
         'comment_content',
         (html: unknown) => transformInlineMarkdown(html as string),
         4.6,
+        'core',
+        'filter'
+    );
+
+    // CKEditor5 <oembed> 태그 → 임베드 플레이어
+    registerHook(
+        'comment_content',
+        (html: unknown) => transformOembed(html as string),
+        4.8,
         'core',
         'filter'
     );

@@ -128,6 +128,8 @@
             'td',
             'hr',
             'div',
+            'figure',
+            'figcaption',
             'iframe',
             'video',
             'audio',
