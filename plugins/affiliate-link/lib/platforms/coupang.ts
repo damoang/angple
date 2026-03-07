@@ -6,7 +6,7 @@
 import { createHmac } from 'crypto';
 import type { PlatformConverter, ConvertContext } from '../types';
 import { PLATFORM_DOMAINS, matchesPlatform } from '../domain-matcher';
-import { env } from '$env/dynamic/private';
+const env = process.env;
 
 const API_ENDPOINT = 'https://api-gateway.coupang.com';
 const API_PATH = '/v2/providers/affiliate_open_api/apis/openapi/v1/deeplink';

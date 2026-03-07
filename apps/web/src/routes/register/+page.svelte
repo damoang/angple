@@ -48,28 +48,31 @@
     });
 
     // 약관/개인정보처리방침/이용제한사유 스크롤 끝까지 읽었는지 여부
-    let termsRead = $state(!data.termsHtml);
-    let privacyRead = $state(!data.privacyHtml);
-    let policyRead = $state(!data.policyHtml);
+    let termsScrolled = $state(false);
+    let privacyScrolled = $state(false);
+    let policyScrolled = $state(false);
+    let termsRead = $derived(termsScrolled || !data.termsHtml);
+    let privacyRead = $derived(privacyScrolled || !data.privacyHtml);
+    let policyRead = $derived(policyScrolled || !data.policyHtml);
 
     function handleTermsScroll(e: Event) {
         const el = e.target as HTMLDivElement;
         if (el.scrollTop + el.clientHeight >= el.scrollHeight - 10) {
-            termsRead = true;
+            termsScrolled = true;
         }
     }
 
     function handlePrivacyScroll(e: Event) {
         const el = e.target as HTMLDivElement;
         if (el.scrollTop + el.clientHeight >= el.scrollHeight - 10) {
-            privacyRead = true;
+            privacyScrolled = true;
         }
     }
 
     function handlePolicyScroll(e: Event) {
         const el = e.target as HTMLDivElement;
         if (el.scrollTop + el.clientHeight >= el.scrollHeight - 10) {
-            policyRead = true;
+            policyScrolled = true;
         }
     }
 

@@ -5,7 +5,7 @@
 
 import type { PlatformConverter, ConvertContext } from '../types';
 import { PLATFORM_DOMAINS, matchesPlatform, LINKPRICE_MERCHANTS, extractHost } from '../domain-matcher';
-import { env } from '$env/dynamic/private';
+const env = process.env;
 
 const API_ENDPOINT = 'https://api.linkprice.com/ci/service/custom_link_xml';
 

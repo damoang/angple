@@ -6,7 +6,7 @@
 import { createHmac } from 'crypto';
 import type { PlatformConverter, ConvertContext } from '../types';
 import { PLATFORM_DOMAINS, matchesPlatform } from '../domain-matcher';
-import { env } from '$env/dynamic/private';
+const env = process.env;
 
 const API_ENDPOINT = 'https://api-sg.aliexpress.com/sync';
 const API_METHOD = 'aliexpress.affiliate.link.generate';

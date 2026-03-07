@@ -190,7 +190,7 @@
             </div>
             <Button size="sm" class="h-8 flex-1" href={loginUrl}>
                 <LogIn class="mr-1.5 h-3.5 w-3.5" />
-                로그인
+                로그인/가입
             </Button>
         </div>
     {/if}
