@@ -94,18 +94,15 @@
         });
     });
 
-    // 새 버전 감지 시 다음 네비게이션에서 캐시 무효화 후 풀 리로드
-    // 단, chunk error 리로드 한도 초과 시 스킵 (리로드 루프 방지)
+    // 새 버전 감지 시 다음 네비게이션에서 풀 리로드 (최대 2회, 무한 루프 방지)
+    const UPDATED_RELOAD_KEY = '__angple_updated_reload__';
     afterNavigate(({ type }) => {
         if ($updated && type !== 'enter') {
-            try {
-                const raw = sessionStorage.getItem('__angple_chunk_error__');
-                if (raw) {
-                    const s = JSON.parse(raw);
-                    if (s.count >= 2 || s.exhausted) return;
-                }
-            } catch {}
-            location.reload();
+            const count = Number(sessionStorage.getItem(UPDATED_RELOAD_KEY) || '0');
+            if (count < 2) {
+                sessionStorage.setItem(UPDATED_RELOAD_KEY, String(count + 1));
+                location.reload();
+            }
         }
     });
 
@@ -187,6 +184,9 @@
     });
 
     onMount(() => {
+        // $updated 리로드 카운터 리셋 (정상 로드 확인 후)
+        setTimeout(() => sessionStorage.removeItem(UPDATED_RELOAD_KEY), 10000);
+
         // Built-in Hooks 초기화 (콘텐츠 임베딩, 게시판 필터 등)
         initBuiltinHooks();
 
