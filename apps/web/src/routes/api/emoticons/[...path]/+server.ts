@@ -1,11 +1,11 @@
 /**
- * 이모티콘 이미지 프록시
+ * 이모티콘 이미지 프록시 (SvelteKit fallback)
  *
- * 1차: 로컬 파일 시스템에서 서빙
- * 2차: PHP 서버(web.damoang.net)에서 프록시
+ * 운영 환경에서는 nginx가 직접 서빙 (SvelteKit 우회):
+ *   /api/emoticons/nariya/* → /home/damoang/www/plugin/nariya/skin/emo/
+ *   /emoticons/*            → /home/damoang/www/plugin/nariya/skin/emo/
  *
- * /api/emoticons/nariya/damoang-emo-008.gif → 앙티콘 GIF
- * /api/emoticons/da_reaction/filename.webp → 리액션 이미지
+ * 이 라우트는 dev 서버용 fallback으로만 사용됨.
  */
 import type { RequestHandler } from './$types';
 import { readFile } from 'fs/promises';
@@ -24,12 +24,6 @@ const MIME_TYPES: Record<string, string> = {
 const ALLOWED_DIRS: Record<string, string> = {
     nariya: '/home/damoang/www/plugin/nariya/skin/emo',
     da_reaction: '/home/damoang/www/plugin/da_reaction/public/emoticon-images'
-};
-
-/** PHP 서버 URL → 경로 매핑 */
-const PHP_URL_MAP: Record<string, string> = {
-    nariya: 'https://web.damoang.net/plugin/nariya/skin/emo',
-    da_reaction: 'https://web.damoang.net/plugin/da_reaction/public/emoticon-images'
 };
 
 const CACHE_HEADERS = {
@@ -63,7 +57,7 @@ export const GET: RequestHandler = async ({ params }) => {
         return new Response('Unsupported file type', { status: 415 });
     }
 
-    // 1차: 로컬 파일에서 서빙 (파일이 존재하는 경우)
+    // 로컬 파일에서 서빙
     const baseDir = ALLOWED_DIRS[dirKey];
     const filePath = resolve(baseDir, filename); // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
 
@@ -74,34 +68,9 @@ export const GET: RequestHandler = async ({ params }) => {
                 headers: { 'Content-Type': mimeType, ...CACHE_HEADERS }
             });
         } catch {
-            // 로컬 읽기 실패 → PHP 서버로 fallback
+            // 읽기 실패
         }
     }
 
-    // 2차: PHP 서버에서 프록시
-    const phpBaseUrl = PHP_URL_MAP[dirKey];
-    if (!phpBaseUrl) {
-        return new Response('Not found', { status: 404 });
-    }
-
-    try {
-        const phpUrl = `${phpBaseUrl}/${filename}`;
-        const response = await fetch(phpUrl, {
-            signal: AbortSignal.timeout(5_000)
-        });
-
-        if (!response.ok) {
-            return new Response('Not found', { status: 404 });
-        }
-
-        const data = await response.arrayBuffer();
-        return new Response(data, {
-            headers: {
-                'Content-Type': response.headers.get('content-type') || mimeType,
-                ...CACHE_HEADERS
-            }
-        });
-    } catch {
-        return new Response('Not found', { status: 404 });
-    }
+    return new Response('Not found', { status: 404 });
 };
