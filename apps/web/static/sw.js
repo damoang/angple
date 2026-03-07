@@ -9,7 +9,7 @@
  * - 푸시 알림 수신/클릭 처리
  */
 
-const CACHE_NAME = 'angple-v7';
+const CACHE_NAME = 'angple-v8';
 
 // 앱 셸 프리캐시 목록 (빈 배열 — 오프라인 페이지 없으므로 프리캐시 불필요)
 const PRECACHE_URLS = [];
@@ -54,11 +54,10 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    // _app/immutable/ → Network First (배포 후 stale JS 제공 방지)
-    // 해시 파일명이라 이론상 Cache First가 안전하지만,
-    // 배포 직후 Cloudflare/브라우저 캐시와의 경합 상태에서 흰 화면 유발 가능
+    // _app/immutable/ → SW 개입 안 함 (네트워크 직접 요청)
+    // 해시 파일명이라 브라우저/CDN 캐시만으로 충분.
+    // SW가 캐싱하면 배포 후 stale 청크 서빙 → 무한 새로고침 유발.
     if (url.pathname.startsWith('/_app/immutable/')) {
-        event.respondWith(networkFirst(request));
         return;
     }
 
