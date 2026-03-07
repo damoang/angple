@@ -28,6 +28,7 @@
     });
     let agreeTerms = $state(false);
     let agreePrivacy = $state(false);
+    let agreePolicy = $state(false);
     let isSubmitting = $state(false);
     let turnstileRef: HTMLDivElement | undefined = $state();
     let turnstileWidgetId: string | undefined = $state();
@@ -46,9 +47,10 @@
         }
     });
 
-    // 약관/개인정보 스크롤 끝까지 읽었는지 여부
+    // 약관/개인정보처리방침/이용제한사유 스크롤 끝까지 읽었는지 여부
     let termsRead = $state(!data.termsHtml);
     let privacyRead = $state(!data.privacyHtml);
+    let policyRead = $state(!data.policyHtml);
 
     function handleTermsScroll(e: Event) {
         const el = e.target as HTMLDivElement;
@@ -61,6 +63,13 @@
         const el = e.target as HTMLDivElement;
         if (el.scrollTop + el.clientHeight >= el.scrollHeight - 10) {
             privacyRead = true;
+        }
+    }
+
+    function handlePolicyScroll(e: Event) {
+        const el = e.target as HTMLDivElement;
+        if (el.scrollTop + el.clientHeight >= el.scrollHeight - 10) {
+            policyRead = true;
         }
     }
 
@@ -126,7 +135,11 @@
                 method="POST"
                 use:enhance={() => {
                     isSubmitting = true;
-                    return async ({ update }) => {
+                    return async ({ result, update }) => {
+                        if (result.type === 'redirect') {
+                            window.location.href = result.location;
+                            return;
+                        }
                         isSubmitting = false;
                         await update();
                     };
@@ -226,12 +239,49 @@
                     </div>
                 </div>
 
+                <!-- 이용제한사유 안내 -->
+                {#if data.policyHtml}
+                    <div class="space-y-2">
+                        <Label class="font-medium">
+                            이용제한사유 안내 <span class="text-destructive">*</span>
+                        </Label>
+                        <div
+                            class="terms-content border-border bg-muted/30 max-h-48 overflow-y-auto rounded-md border p-3 text-xs leading-relaxed"
+                            onscroll={handlePolicyScroll}
+                        >
+                            {@html data.policyHtml}
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <Checkbox
+                                id="agree_policy"
+                                bind:checked={agreePolicy}
+                                disabled={isSubmitting || !policyRead}
+                            />
+                            <Label
+                                for="agree_policy"
+                                class="cursor-pointer text-sm {policyRead
+                                    ? ''
+                                    : 'text-muted-foreground'}"
+                            >
+                                {#if policyRead}
+                                    이용제한사유 안내에 동의합니다
+                                {:else}
+                                    안내를 끝까지 읽어주세요
+                                {/if}
+                            </Label>
+                        </div>
+                    </div>
+                {/if}
+
                 <!-- 체크박스 값 전송용 hidden input -->
                 {#if agreeTerms}
                     <input type="hidden" name="agree_terms" value="on" />
                 {/if}
                 {#if agreePrivacy}
                     <input type="hidden" name="agree_privacy" value="on" />
+                {/if}
+                {#if agreePolicy}
+                    <input type="hidden" name="agree_policy" value="on" />
                 {/if}
 
                 <!-- Turnstile CAPTCHA -->
@@ -243,7 +293,11 @@
                 <Button
                     type="submit"
                     class="w-full"
-                    disabled={isSubmitting || !nickname.trim() || !agreeTerms || !agreePrivacy}
+                    disabled={isSubmitting ||
+                        !nickname.trim() ||
+                        !agreeTerms ||
+                        !agreePrivacy ||
+                        (data.policyHtml && !agreePolicy)}
                 >
                     {#if isSubmitting}
                         <Loader2 class="mr-2 h-4 w-4 animate-spin" />

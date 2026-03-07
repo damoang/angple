@@ -5,15 +5,17 @@
 import type { RequestHandler } from './$types';
 import { KISA_SEED_CBC } from 'kisa-seed';
 import {
-    SEED_IV,
+    getSeedIV,
     buildDupinfo,
     isValidInicisUrl,
     saveCertResult,
-    checkDupinfo
+    checkDupinfo,
+    getCertPendingMbId
 } from '$lib/server/auth/cert-inicis.js';
 
-export const POST: RequestHandler = async ({ request, locals }) => {
+export const POST: RequestHandler = async ({ request, locals, cookies }) => {
     const formData = await request.formData();
+
     const txId = (formData.get('txId') as string) || '';
     const resultCode = (formData.get('resultCode') as string) || '';
     const resultMsg = (formData.get('resultMsg') as string) || '';
@@ -38,7 +40,14 @@ export const POST: RequestHandler = async ({ request, locals }) => {
         body: JSON.stringify({ mid, txId })
     });
 
-    const resData = await response.json();
+    const resText = await response.text();
+    let resData: Record<string, string>;
+    try {
+        resData = JSON.parse(resText);
+    } catch {
+        console.error('[Cert] JSON parse failed, raw:', resText);
+        return certResultPage(false, '인증 서버 응답을 처리할 수 없습니다.');
+    }
 
     if (resData.resultCode !== '0000') {
         return certResultPage(
@@ -54,27 +63,48 @@ export const POST: RequestHandler = async ({ request, locals }) => {
     let userCi = resData.userCi || '';
 
     if (seedKey) {
+        const seedIV = getSeedIV();
+        if (!seedIV) {
+            console.error('[Cert] SEED IV is empty — check CERT_INICIS_SEED_IV env var');
+            return certResultPage(false, '인증 서버 설정 오류입니다.');
+        }
         try {
-            userName = KISA_SEED_CBC.decrypt(seedKey, SEED_IV, userName);
-            userPhone = KISA_SEED_CBC.decrypt(seedKey, SEED_IV, userPhone);
-            userBirthday = KISA_SEED_CBC.decrypt(seedKey, SEED_IV, userBirthday);
-            userCi = KISA_SEED_CBC.decrypt(seedKey, SEED_IV, userCi);
-        } catch {
+            userName = KISA_SEED_CBC.decrypt(seedKey, seedIV, userName);
+            userPhone = KISA_SEED_CBC.decrypt(seedKey, seedIV, userPhone);
+            userBirthday = KISA_SEED_CBC.decrypt(seedKey, seedIV, userBirthday);
+            userCi = KISA_SEED_CBC.decrypt(seedKey, seedIV, userCi);
+        } catch (err) {
+            console.error('[Cert] SEED decrypt error:', err);
             return certResultPage(false, '인증 데이터 복호화에 실패했습니다.');
         }
     }
 
     if (!userPhone) {
+        console.error('[Cert] userPhone empty after processing');
         return certResultPage(false, '정상적인 인증이 아닙니다.');
     }
 
     // CI 기반 dupinfo 생성
     const mbDupinfo = buildDupinfo(userCi);
 
-    // 로그인 사용자 확인
-    const mbId = locals.user?.mb_id;
+    // 사용자 확인: 세션 → DB(mTxId) → 쿠키(백업) 순으로 시도
+    const certPendingMbId = cookies.get('cert_pending_mbid');
+    const mTxId = resData.mTxId || txId;
+    const dbPendingMbId = mTxId ? await getCertPendingMbId(mTxId) : null;
+    const mbId = locals.user?.mb_id || dbPendingMbId || certPendingMbId;
+    console.log('[Cert] mbId resolve:', {
+        fromSession: locals.user?.mb_id,
+        fromDB: dbPendingMbId,
+        fromCookie: certPendingMbId,
+        final: mbId
+    });
     if (!mbId) {
-        return certResultPage(false, '로그인 세션이 만료되었습니다.');
+        console.error('[Cert] mbId not found');
+        return certResultPage(false, '인증 세션이 만료되었습니다. 다시 시도해주세요.');
+    }
+    // 쿠키 사용 후 삭제
+    if (certPendingMbId) {
+        cookies.delete('cert_pending_mbid', { path: '/', sameSite: 'none', secure: true });
     }
 
     // 중복 인증 체크
@@ -94,18 +124,35 @@ export const POST: RequestHandler = async ({ request, locals }) => {
     return certResultPage(true, '본인인증이 완료되었습니다.');
 };
 
-/** 인증 결과를 부모 창에 postMessage로 전달하는 HTML 페이지 */
+/** 인증 결과를 부모 창에 전달하는 HTML 페이지 */
 function certResultPage(success: boolean, message: string) {
     const html = `<!DOCTYPE html>
 <html>
 <head><title>인증 결과</title></head>
 <body>
+<p style="text-align:center;margin-top:40px;font-family:sans-serif;color:#666;">${success ? '인증이 완료되었습니다. 잠시 후 이동합니다...' : message}</p>
 <script>
-    alert(${JSON.stringify(message)});
+(function() {
+    // localStorage 이벤트로 부모 창에 결과 전달 (window.opener가 끊겨도 동작)
+    try {
+        localStorage.setItem('cert_result', JSON.stringify({ success: ${success}, ts: Date.now() }));
+    } catch(e) {}
+
+    // postMessage도 시도
     if (window.opener) {
-        window.opener.postMessage({ type: 'cert_complete', success: ${success} }, '*');
+        try {
+            window.opener.postMessage({ type: 'cert_complete', success: ${success} }, '*');
+        } catch(e) {}
     }
-    window.close();
+
+    ${success ? '' : `alert(${JSON.stringify(message)});`}
+
+    // 팝업 닫기 시도, 실패하면 리다이렉트
+    try { window.close(); } catch(e) {}
+    setTimeout(function() {
+        if (!window.closed) window.location.href = '/register/cert';
+    }, 500);
+})();
 </script>
 </body>
 </html>`;

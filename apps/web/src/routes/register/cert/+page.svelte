@@ -26,16 +26,34 @@
         );
     }
 
-    // 팝업에서 인증 완료 시 메시지 수신
+    // 팝업에서 인증 완료 시 메시지 수신 (postMessage + localStorage 이벤트)
     function handleMessage(e: MessageEvent) {
         if (e.data?.type === 'cert_complete' && e.data?.success) {
             location.reload();
         }
     }
 
+    function handleStorage(e: StorageEvent) {
+        if (e.key === 'cert_result') {
+            try {
+                const result = JSON.parse(e.newValue || '');
+                if (result.success) {
+                    localStorage.removeItem('cert_result');
+                    location.reload();
+                }
+            } catch {
+                // ignore
+            }
+        }
+    }
+
     $effect(() => {
         window.addEventListener('message', handleMessage);
-        return () => window.removeEventListener('message', handleMessage);
+        window.addEventListener('storage', handleStorage);
+        return () => {
+            window.removeEventListener('message', handleMessage);
+            window.removeEventListener('storage', handleStorage);
+        };
     });
 </script>
 

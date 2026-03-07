@@ -98,7 +98,8 @@ const CSRF_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 /** CSRF 검증에서 제외할 경로 */
 const CSRF_EXEMPT_PATHS = [
     '/plugin/social/', // OAuth 콜백 (프로바이더가 POST)
-    '/api/' // SvelteKit 내부 API 라우트 (same-origin, SvelteKit Origin 검증으로 보호)
+    '/api/', // SvelteKit 내부 API 라우트 (same-origin, SvelteKit Origin 검증으로 보호)
+    '/cert/inicis/result' // KG이니시스 인증 콜백 (외부 POST)
 ];
 
 /** SSR 인증: 서버사이드 세션 only (JWT 미사용) */
