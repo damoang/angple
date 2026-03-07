@@ -1325,6 +1325,20 @@
         font-size: 0.875em;
     }
 
+    /* 댓글 이탤릭/인용문 */
+    :global(.comment-body em) {
+        font-style: italic;
+        font-synthesis: style;
+    }
+    :global(.comment-body blockquote) {
+        border-left: 4px solid var(--border);
+        padding-left: 1rem;
+        margin: 0.5em 0;
+        color: var(--muted-foreground);
+        font-style: italic;
+        font-synthesis: style;
+    }
+
     /* 연속 줄바꿈 간격 축소 */
     :global(.comment-body br + br) {
         display: block;
