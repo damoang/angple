@@ -89,7 +89,7 @@ export const actions: Actions = {
             return fail(400, { error: result.error });
         }
 
-        return { success: true, message: '이메일이 변경되었습니다.' };
+        return { success: true, message: result.message };
     },
 
     changePassword: async ({ request, locals }) => {

@@ -5,7 +5,13 @@
 import pool from '$lib/server/db.js';
 import type { RowDataPacket, ResultSetHeader } from 'mysql2';
 import bcrypt from 'bcryptjs';
+import { randomBytes } from 'crypto';
 import { validateNickname } from './register.js';
+import { sendMail } from '$lib/server/mailer.js';
+import { env } from '$env/dynamic/private';
+
+const SITE_URL = env.SITE_URL || 'https://damoang.net';
+const SITE_NAME = env.VITE_SITE_NAME || 'Angple';
 
 /** 프로필 전체 정보 조회 */
 export interface MemberFullProfile {
@@ -87,13 +93,14 @@ export async function updateNickname(
 }
 
 /**
- * 이메일 변경
- * - 형식 검증 + 중복 체크
+ * 이메일 변경 요청 (인증 메일 발송)
+ * - 형식 검증 + 중복 체크 → 인증 토큰 생성 → 메일 발송
+ * - mb_email_certify2에 "새이메일|토큰|타임스탬프" 저장
  */
 export async function updateEmail(
     mbId: string,
     newEmail: string
-): Promise<{ success: boolean; error?: string }> {
+): Promise<{ success: boolean; error?: string; message?: string }> {
     const trimmed = newEmail.trim().toLowerCase();
 
     // 이메일 형식 검증
@@ -120,13 +127,104 @@ export async function updateEmail(
         return { success: false, error: '이미 사용 중인 이메일입니다.' };
     }
 
-    // UPDATE
-    await pool.query<ResultSetHeader>('UPDATE g5_member SET mb_email = ? WHERE mb_id = ?', [
-        trimmed,
-        mbId
-    ]);
+    // 인증 토큰 생성
+    const token = randomBytes(24).toString('hex');
+    const timestamp = Date.now().toString(36);
 
-    return { success: true };
+    // mb_email_certify2에 "새이메일|토큰|타임스탬프" 저장
+    await pool.query<ResultSetHeader>(
+        'UPDATE g5_member SET mb_email_certify2 = ? WHERE mb_id = ?',
+        [`${trimmed}|${token}|${timestamp}`, mbId]
+    );
+
+    // 인증 메일 발송
+    const verifyUrl = `${SITE_URL}/member/settings/verify-email?token=${token}&mb_id=${encodeURIComponent(mbId)}`;
+    await sendMail({
+        to: trimmed,
+        subject: `[${SITE_NAME}] 이메일 변경 인증`,
+        html: `
+            <div style="max-width:600px;margin:0 auto;font-family:sans-serif;">
+                <h2 style="color:#333;">이메일 변경 인증</h2>
+                <p>${profile.mb_nick}님, 안녕하세요.</p>
+                <p>이메일을 <strong>${trimmed}</strong>으로 변경하시려면 아래 버튼을 클릭해주세요.</p>
+                <p style="margin:30px 0;">
+                    <a href="${verifyUrl}"
+                       style="background:#2563eb;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:bold;">
+                        이메일 변경 확인
+                    </a>
+                </p>
+                <p style="color:#666;font-size:14px;">
+                    이 링크는 24시간 동안 유효합니다.<br/>
+                    본인이 요청하지 않았다면 이 메일을 무시하세요.
+                </p>
+                <hr style="border:0;border-top:1px solid #eee;margin:30px 0;">
+                <p style="color:#999;font-size:12px;">${SITE_NAME}</p>
+            </div>
+        `
+    });
+
+    return {
+        success: true,
+        message: `${trimmed}으로 인증 메일을 발송했습니다. 메일의 링크를 클릭해주세요.`
+    };
+}
+
+/**
+ * 이메일 변경 인증 토큰 검증 및 변경 확정
+ * - mb_email_certify2에서 토큰 검증 → 이메일 변경
+ */
+export async function confirmEmailChange(
+    mbId: string,
+    token: string
+): Promise<{ success: boolean; error?: string; newEmail?: string }> {
+    const TOKEN_EXPIRY_MS = 24 * 60 * 60 * 1000;
+
+    const [rows] = await pool.query<RowDataPacket[]>(
+        'SELECT mb_email_certify2 FROM g5_member WHERE mb_id = ? LIMIT 1',
+        [mbId]
+    );
+
+    if (!rows[0]?.mb_email_certify2) {
+        return { success: false, error: '이메일 변경 요청을 찾을 수 없습니다.' };
+    }
+
+    const parts = (rows[0].mb_email_certify2 as string).split('|');
+    if (parts.length < 3) {
+        return { success: false, error: '잘못된 인증 정보입니다.' };
+    }
+
+    const [storedEmail, storedToken, storedTimestamp] = parts;
+
+    // 토큰 검증
+    if (storedToken !== token) {
+        return { success: false, error: '유효하지 않은 인증 링크입니다.' };
+    }
+
+    // 만료 체크 (24시간)
+    const createdAt = parseInt(storedTimestamp, 36);
+    if (Date.now() - createdAt > TOKEN_EXPIRY_MS) {
+        return {
+            success: false,
+            error: '만료된 인증 링크입니다. 이메일 변경을 다시 요청해주세요.'
+        };
+    }
+
+    // 중복 체크 (토큰 생성 후 다른 회원이 같은 이메일 등록했을 수 있음)
+    const [dupRows] = await pool.query<RowDataPacket[]>(
+        'SELECT COUNT(*) as cnt FROM g5_member WHERE mb_email = ? AND mb_id != ?',
+        [storedEmail, mbId]
+    );
+    if ((dupRows[0]?.cnt || 0) > 0) {
+        return { success: false, error: '이미 다른 회원이 사용 중인 이메일입니다.' };
+    }
+
+    // 이메일 변경 확정 + 인증 정보 초기화
+    await pool.query<ResultSetHeader>(
+        'UPDATE g5_member SET mb_email = ?, mb_email_certify2 = ? WHERE mb_id = ?',
+        [storedEmail, '', mbId]
+    );
+
+    return { success: true, newEmail: storedEmail };
 }
 
 /**

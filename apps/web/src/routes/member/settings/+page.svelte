@@ -379,7 +379,7 @@
 
                     <Separator />
 
-                    <!-- 이메일 변경 -->
+                    <!-- 이메일 변경 (인증 메일 발송) -->
                     <form
                         method="POST"
                         action="?/updateEmail"
@@ -388,7 +388,9 @@
                             emailError = null;
                             return async ({ result }) => {
                                 if (result.type === 'success') {
-                                    emailSuccess = '이메일이 변경되었습니다.';
+                                    emailSuccess =
+                                        (result.data?.message as string) ||
+                                        '인증 메일을 발송했습니다. 메일의 링크를 클릭해주세요.';
                                 } else if (result.type === 'failure') {
                                     emailError =
                                         (result.data?.error as string) || '변경에 실패했습니다.';
@@ -404,10 +406,16 @@
                                     name="email"
                                     type="email"
                                     value={data.profile.mb_email}
-                                    placeholder="이메일"
+                                    placeholder="새 이메일 주소"
                                 />
-                                <Button type="submit" variant="outline">변경</Button>
+                                <Button type="submit" variant="outline">
+                                    <Mail class="mr-1 h-4 w-4" />
+                                    인증
+                                </Button>
                             </div>
+                            <p class="text-muted-foreground text-xs">
+                                변경할 이메일로 인증 메일이 발송됩니다.
+                            </p>
                             {#if emailSuccess}
                                 <p class="flex items-center gap-1 text-xs text-green-600">
                                     <CircleCheck class="h-3 w-3" />{emailSuccess}
