@@ -774,7 +774,11 @@
                                         size="md"
                                     />
                                     {#if !isDeleted && memoPluginActive && MemoBadge}
-                                        <MemoBadge memberId={comment.author_id} showIcon={true} />
+                                        <MemoBadge
+                                            memberId={comment.author_id}
+                                            showIcon={true}
+                                            ip={comment.author_ip}
+                                        />
                                     {/if}
                                     <AuthorLink
                                         authorId={comment.author_id}

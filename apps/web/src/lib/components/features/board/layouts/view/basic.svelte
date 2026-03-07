@@ -28,6 +28,7 @@
     import Flag from '@lucide/svelte/icons/flag';
     import { authStore } from '$lib/stores/auth.svelte.js';
     import { AdultBlur } from '$lib/components/features/adult/index.js';
+    import { uiSettingsStore } from '$lib/stores/ui-settings.svelte.js';
     import { getMemberIconUrl } from '$lib/utils/member-icon.js';
     import AuthorLink from '$lib/components/ui/author-link/author-link.svelte';
     import { LevelBadge } from '$lib/components/ui/level-badge/index.js';
@@ -160,8 +161,13 @@
                     <p class="text-foreground flex items-center gap-1.5 font-medium">
                         <LevelBadge level={memberLevelStore.getLevel(post.author_id)} />
                         <AuthorLink authorId={post.author_id} authorName={post.author} />
-                        {#if memoPluginActive && MemoBadge}
-                            <MemoBadge memberId={post.author_id} showIcon={true} />
+                        {#if memoPluginActive && MemoBadge && !uiSettingsStore.hideMemo}
+                            <MemoBadge
+                                memberId={post.author_id}
+                                showIcon={true}
+                                blur={uiSettingsStore.blurMemo}
+                                ip={post.author_ip}
+                            />
                         {/if}
                         {#if post.author_ip}
                             <span class="text-muted-foreground ml-1 text-xs font-normal"
@@ -232,7 +238,9 @@
 
         <!-- 게시글 본문 -->
         {#if canViewSecret}
-            <AdultBlur isAdult={post.is_adult ?? false}>
+            <AdultBlur
+                isAdult={(post.is_adult ?? false) || uiSettingsStore.shouldBlurContent(post.title)}
+            >
                 <div
                     id="economy-post-content"
                     style="font-size: {FONT_SIZES[fontSize as FontSizeKey]}"
