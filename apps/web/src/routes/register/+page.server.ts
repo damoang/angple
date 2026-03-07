@@ -97,14 +97,17 @@ export const actions: Actions = {
         }
         recordAttempt(clientIp, 'register');
 
-        // Turnstile CAPTCHA 검증
-        const turnstileToken = (formData.get('cf-turnstile-response') as string) || '';
-        const captchaValid = await verifyTurnstile(turnstileToken, clientIp);
-        if (!captchaValid) {
-            return fail(400, {
-                error: '자동 가입 방지 확인에 실패했습니다. 다시 시도해주세요.',
-                nickname
-            });
+        // Turnstile CAPTCHA 검증 (초대 플로우는 소셜 인증 완료 상태이므로 스킵)
+        const isInviteFlow = redirectUrl.includes('ads.damoang.net/invite/');
+        if (!isInviteFlow) {
+            const turnstileToken = (formData.get('cf-turnstile-response') as string) || '';
+            const captchaValid = await verifyTurnstile(turnstileToken, clientIp);
+            if (!captchaValid) {
+                return fail(400, {
+                    error: '자동 가입 방지 확인에 실패했습니다. 다시 시도해주세요.',
+                    nickname
+                });
+            }
         }
 
         // 쿠키에서 소셜 프로필 정보 조회
@@ -140,9 +143,6 @@ export const actions: Actions = {
                 nickname
             });
         }
-
-        // 초대 플로우 감지
-        const isInviteFlow = redirectUrl.includes('ads.damoang.net/invite/');
 
         // 닉네임: 초대 플로우는 중복되지 않는 값으로 자동 생성, 일반은 검증
         let finalNickname = nickname;

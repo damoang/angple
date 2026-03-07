@@ -311,8 +311,8 @@
                 {#if agreePolicy}
                     <input type="hidden" name="agree_policy" value="on" />
                 {/if}
-                <!-- Turnstile CAPTCHA -->
-                {#if PUBLIC_TURNSTILE_SITE_KEY}
+                <!-- Turnstile CAPTCHA (초대 플로우는 스킵) -->
+                {#if PUBLIC_TURNSTILE_SITE_KEY && !data.isInviteFlow}
                     <div bind:this={turnstileRef} class="flex justify-center"></div>
                 {/if}
 
