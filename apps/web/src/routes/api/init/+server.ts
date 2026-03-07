@@ -10,34 +10,7 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { getCachedCelebrations } from '$lib/server/celebration';
-import { getAdsServerUrl } from '$lib/server/ads/config';
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function fetchBannersByPositions(positions: string[]): Promise<Record<string, any>> {
-    const adsServerUrl = getAdsServerUrl();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const result: Record<string, any> = {};
-
-    await Promise.all(
-        positions.map(async (position) => {
-            try {
-                const response = await fetch(
-                    `${adsServerUrl}/api/v1/serve/banners?position=${encodeURIComponent(position)}&limit=10`
-                );
-                if (response.ok) {
-                    const data = await response.json();
-                    if (data.success && data.data?.banners) {
-                        result[position] = data.data.banners;
-                    }
-                }
-            } catch {
-                // 개별 position 실패는 무시
-            }
-        })
-    );
-
-    return result;
-}
+import { getCachedBannersByPositions } from '$lib/server/ads/banners';
 
 export const GET: RequestHandler = async ({ url }) => {
     const positionsParam = url.searchParams.get('positions') || '';
@@ -49,7 +22,7 @@ export const GET: RequestHandler = async ({ url }) => {
     try {
         const [celebration, banners] = await Promise.all([
             getCachedCelebrations(),
-            positions.length > 0 ? fetchBannersByPositions(positions) : {}
+            positions.length > 0 ? getCachedBannersByPositions(positions) : {}
         ]);
 
         return json(

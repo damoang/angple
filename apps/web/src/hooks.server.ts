@@ -13,10 +13,12 @@ const jwtCache = new Map<string, { token: string; expiry: number }>();
 const JWT_CACHE_TTL = 5 * 60 * 1000; // 5분
 const MAX_JWT_CACHE_SIZE = 50000;
 
-// --- SSR 응답 캐시 (비로그인 홈페이지) ---
+// --- SSR 응답 캐시 (비로그인: 홈 + 게시판 목록) ---
 const ssrCache = new Map<string, { body: string; timestamp: number }>();
-const SSR_CACHE_TTL = 10_000; // 10초
-let ssrCachePending: Promise<Response> | null = null;
+const SSR_CACHE_TTL_HOME = 10_000; // 홈 10초
+const SSR_CACHE_TTL_BOARD = 30_000; // 게시판 목록 30초
+const MAX_SSR_CACHE_SIZE = 50; // 캐시할 최대 페이지 수
+const ssrCachePending = new Map<string, Promise<Response>>();
 
 /**
  * SvelteKit Server Hooks
@@ -134,14 +136,20 @@ async function authenticateSSR(event: Parameters<Handle>[0]['event']): Promise<v
                     } else {
                         const token = await generateAccessToken(member);
                         event.locals.accessToken = token;
-                        // 캐시 크기 제한: 한계 도달 시 가장 오래된 25% 제거 (O(n) sweep 대신 batch eviction)
+                        // 캐시 크기 제한: 만료 항목만 정리 (O(n) 랜덤 삭제 → 정밀 eviction)
                         if (jwtCache.size >= MAX_JWT_CACHE_SIZE) {
-                            const evictCount = Math.floor(MAX_JWT_CACHE_SIZE * 0.25);
-                            let removed = 0;
-                            for (const key of jwtCache.keys()) {
-                                if (removed >= evictCount) break;
-                                jwtCache.delete(key);
-                                removed++;
+                            for (const [key, entry] of jwtCache) {
+                                if (now >= entry.expiry) jwtCache.delete(key);
+                            }
+                            // 만료 정리 후에도 초과면 가장 오래된 10% 제거
+                            if (jwtCache.size >= MAX_JWT_CACHE_SIZE) {
+                                const evictCount = Math.floor(MAX_JWT_CACHE_SIZE * 0.1);
+                                let removed = 0;
+                                for (const key of jwtCache.keys()) {
+                                    if (removed >= evictCount) break;
+                                    jwtCache.delete(key);
+                                    removed++;
+                                }
                             }
                         }
                         jwtCache.set(session.mbId, { token, expiry: now + JWT_CACHE_TTL });
@@ -352,11 +360,16 @@ export const handle: Handle = async ({ event, resolve }) => {
     // /api/plugins/* 프록시는 더 이상 사용하지 않음
     // 모든 /api/plugins/* 요청은 SvelteKit API 라우트에서 처리
 
-    // --- 비로그인 홈페이지 SSR 응답 캐시 ---
+    // --- 비로그인 SSR 응답 캐시 (홈 + 게시판 목록) ---
     // Pod 재시작 시 캐시 자동 소멸 → 배포 시 구 JS 경로 문제 없음
-    if (!event.locals.user && pathname === '/') {
-        const cached = ssrCache.get('/');
-        if (cached && Date.now() - cached.timestamp < SSR_CACHE_TTL) {
+    const isHomePage = pathname === '/';
+    const isBoardList = isBoardListPath(pathname, event.url.searchParams);
+    if (!event.locals.user && (isHomePage || isBoardList)) {
+        const cacheKey = isHomePage ? '/' : pathname;
+        const cacheTtl = isHomePage ? SSR_CACHE_TTL_HOME : SSR_CACHE_TTL_BOARD;
+
+        const cached = ssrCache.get(cacheKey);
+        if (cached && Date.now() - cached.timestamp < cacheTtl) {
             return new Response(cached.body, {
                 status: 200,
                 headers: {
@@ -374,9 +387,10 @@ export const handle: Handle = async ({ event, resolve }) => {
         }
 
         // Singleflight: 동시 요청 시 1개만 SSR 실행
-        if (ssrCachePending) {
+        const pending = ssrCachePending.get(cacheKey);
+        if (pending) {
             try {
-                const result = await ssrCachePending;
+                const result = await pending;
                 return result.clone();
             } catch {
                 // pending 실패 시 아래에서 직접 렌더링
@@ -400,7 +414,16 @@ export const handle: Handle = async ({ event, resolve }) => {
 
             if (response.status === 200) {
                 const body = await response.text();
-                ssrCache.set('/', { body, timestamp: Date.now() });
+
+                // 캐시 크기 제한: 오래된 항목 정리
+                if (ssrCache.size >= MAX_SSR_CACHE_SIZE) {
+                    const now = Date.now();
+                    for (const [key, entry] of ssrCache) {
+                        const ttl = key === '/' ? SSR_CACHE_TTL_HOME : SSR_CACHE_TTL_BOARD;
+                        if (now - entry.timestamp > ttl) ssrCache.delete(key);
+                    }
+                }
+                ssrCache.set(cacheKey, { body, timestamp: Date.now() });
 
                 return new Response(body, {
                     status: 200,
@@ -421,12 +444,12 @@ export const handle: Handle = async ({ event, resolve }) => {
             return response;
         })();
 
-        ssrCachePending = renderPromise;
+        ssrCachePending.set(cacheKey, renderPromise);
         try {
             const result = await renderPromise;
             return result;
         } finally {
-            ssrCachePending = null;
+            ssrCachePending.delete(cacheKey);
         }
     }
 

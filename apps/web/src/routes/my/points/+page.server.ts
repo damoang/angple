@@ -3,14 +3,6 @@ import type { PointHistoryResponse } from '$lib/api/types.js';
 import { pool } from '$lib/server/db.js';
 import type { RowDataPacket } from 'mysql2';
 
-interface MemberPointRow extends RowDataPacket {
-    mb_point: number;
-}
-
-interface SumRow extends RowDataPacket {
-    total: number;
-}
-
 interface CountRow extends RowDataPacket {
     cnt: number;
 }
@@ -50,38 +42,36 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 
         const offset = (page - 1) * limit;
 
-        // 요약 3쿼리 + 카운트 + 데이터 병렬 실행
-        const [[memberRows], [earnedRows], [usedRows], [countRows], [itemRows]] = await Promise.all(
-            [
-                pool.query<MemberPointRow[]>('SELECT mb_point FROM g5_member WHERE mb_id = ?', [
-                    mbId
-                ]),
-                pool.query<SumRow[]>(
-                    'SELECT COALESCE(SUM(po_point), 0) AS total FROM g5_point WHERE mb_id = ? AND po_point > 0',
-                    [mbId]
-                ),
-                pool.query<SumRow[]>(
-                    'SELECT COALESCE(ABS(SUM(po_point)), 0) AS total FROM g5_point WHERE mb_id = ? AND po_point < 0',
-                    [mbId]
-                ),
-                pool.query<CountRow[]>(
-                    `SELECT COUNT(*) AS cnt FROM g5_point WHERE mb_id = ?${filterClause}`,
-                    [mbId]
-                ),
-                // pool.query 사용: pool.execute의 prepared statement는 LIMIT 파라미터 타입 오류 발생
-                pool.query<PointRow[]>(
-                    `SELECT po_id, mb_id, po_content, po_point, po_use_point, po_datetime,
+        // 요약(1쿼리) + 카운트 + 데이터 병렬 실행 (5→3쿼리 최적화)
+        const [[summaryRows], [countRows], [itemRows]] = await Promise.all([
+            pool.query<RowDataPacket[]>(
+                `SELECT
+                    m.mb_point,
+                    COALESCE(SUM(CASE WHEN p.po_point > 0 THEN p.po_point ELSE 0 END), 0) AS total_earned,
+                    COALESCE(ABS(SUM(CASE WHEN p.po_point < 0 THEN p.po_point ELSE 0 END)), 0) AS total_used
+                 FROM g5_member m
+                 LEFT JOIN g5_point p ON p.mb_id = m.mb_id
+                 WHERE m.mb_id = ?
+                 GROUP BY m.mb_id`,
+                [mbId]
+            ),
+            pool.query<CountRow[]>(
+                `SELECT COUNT(*) AS cnt FROM g5_point WHERE mb_id = ?${filterClause}`,
+                [mbId]
+            ),
+            // pool.query 사용: pool.execute의 prepared statement는 LIMIT 파라미터 타입 오류 발생
+            pool.query<PointRow[]>(
+                `SELECT po_id, mb_id, po_content, po_point, po_use_point, po_datetime,
 				        po_expired, po_expire_date, po_mb_point, po_rel_table, po_rel_id, po_rel_action
 				 FROM g5_point WHERE mb_id = ?${filterClause}
 				 ORDER BY po_id DESC LIMIT ? OFFSET ?`,
-                    [mbId, limit, offset]
-                )
-            ]
-        );
+                [mbId, limit, offset]
+            )
+        ]);
 
-        const totalPoint = memberRows[0]?.mb_point ?? 0;
-        const totalEarned = earnedRows[0]?.total ?? 0;
-        const totalUsed = usedRows[0]?.total ?? 0;
+        const totalPoint = summaryRows[0]?.mb_point ?? 0;
+        const totalEarned = summaryRows[0]?.total_earned ?? 0;
+        const totalUsed = summaryRows[0]?.total_used ?? 0;
         const total = countRows[0]?.cnt ?? 0;
         const totalPages = Math.ceil(total / limit);
 

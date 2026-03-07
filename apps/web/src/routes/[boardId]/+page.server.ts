@@ -116,8 +116,8 @@ export const load: PageServerLoad = async ({ url, params, locals }) => {
     const isPromotionBoard = boardId === 'promotion' && !isSearching && !isTagFiltering;
 
     // 비로그인 + 검색/태그 필터 없는 경우: 게시글 목록 캐시 사용 (15초)
-    const usePostsCache = !locals.user && !isSearching && !isTagFiltering && !category;
-    const postsCacheKey = `${boardId}:p${page}:l${limit}`;
+    const usePostsCache = !locals.user && !isSearching && !isTagFiltering;
+    const postsCacheKey = `${boardId}:p${page}:l${limit}${category ? `:c${category}` : ''}`;
 
     if (usePostsCache) {
         const cachedPosts = postsCache.get(postsCacheKey);

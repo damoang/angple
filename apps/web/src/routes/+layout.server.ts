@@ -3,35 +3,7 @@ import { getActiveTheme } from '$lib/server/themes';
 import { getActivePlugins } from '$lib/server/plugins';
 import { loadMenus } from '$lib/server/menu-loader';
 import { getCachedCelebrations } from '$lib/server/celebration';
-import { getAdsServerUrl } from '$lib/server/ads/config';
-
-/** ads 서버에서 배너 데이터 내부 호출 (CDN 우회, localhost:9090 직접) */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function fetchBannersByPositions(positions: string[]): Promise<Record<string, any[]>> {
-    const adsServerUrl = getAdsServerUrl();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const result: Record<string, any[]> = {};
-
-    await Promise.all(
-        positions.map(async (position) => {
-            try {
-                const response = await fetch(
-                    `${adsServerUrl}/api/v1/serve/banners?position=${encodeURIComponent(position)}&limit=10`
-                );
-                if (response.ok) {
-                    const data = await response.json();
-                    if (data.success && data.data?.banners) {
-                        result[position] = data.data.banners;
-                    }
-                }
-            } catch {
-                // 개별 position 실패는 무시
-            }
-        })
-    );
-
-    return result;
-}
+import { getCachedBannersByPositions } from '$lib/server/ads/banners';
 
 /**
  * 서버 사이드 데이터 로드
@@ -41,7 +13,8 @@ async function fetchBannersByPositions(positions: string[]): Promise<Record<stri
  *
  * celebration + banners: SSR에서 직접 로드하여 클라이언트 /api/init CDN 요청 제거
  */
-export const load: LayoutServerLoad = async ({ locals }) => {
+export const load: LayoutServerLoad = async ({ locals, url }) => {
+    void url.pathname; // URL 변경 시 load 재실행 → SPA 네비게이션마다 SSR 데이터 갱신
     // 병렬로 모든 데이터 로드 (allSettled: 개별 실패 허용)
     const [themeResult, pluginsResult, menusResult, celebrationResult, bannersResult] =
         await Promise.allSettled([
@@ -49,7 +22,7 @@ export const load: LayoutServerLoad = async ({ locals }) => {
             getActivePlugins(),
             loadMenus(),
             getCachedCelebrations(),
-            fetchBannersByPositions(['index-top', 'board-head', 'sidebar'])
+            getCachedBannersByPositions(['index-top', 'board-head', 'sidebar'])
         ]);
 
     const activeTheme = themeResult.status === 'fulfilled' ? themeResult.value : null;
