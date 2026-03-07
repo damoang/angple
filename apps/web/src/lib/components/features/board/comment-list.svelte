@@ -649,11 +649,13 @@
 
 <ul
     bind:this={commentListEl}
-    class={commentLayout === 'compact'
-        ? 'space-y-1'
-        : commentLayout === 'bordered' || commentLayout === 'bubble' || commentLayout === 'chat'
-          ? 'space-y-2'
-          : 'space-y-3'}
+    class={commentLayout === 'chat'
+        ? 'space-y-0.5'
+        : commentLayout === 'compact'
+          ? 'space-y-1'
+          : commentLayout === 'bordered' || commentLayout === 'bubble'
+            ? 'space-y-2'
+            : 'space-y-3'}
 >
     {#each commentTree as comment, commentIndex (comment.id)}
         {@const isDeleted = !!comment.deleted_at}
@@ -711,10 +713,19 @@
             {/if}
 
             <div class={commentLayout === 'chat' ? 'min-w-0 max-w-[80%]' : ''}>
-                <!-- Chat: 이름 라벨 (타인 댓글만) -->
+                <!-- Chat: 이름 라벨 + 메모 (타인 댓글만) -->
                 {#if commentLayout === 'chat' && !isAuthor && !isDeleted}
-                    <p class="text-foreground mb-1 ml-1 text-xs font-semibold">
+                    <p
+                        class="text-foreground mb-1 ml-1 flex items-center gap-1 text-xs font-semibold"
+                    >
                         <AuthorLink authorId={comment.author_id} authorName={comment.author} />
+                        {#if memoPluginActive && MemoBadge}
+                            <MemoBadge
+                                memberId={comment.author_id}
+                                showIcon={true}
+                                ip={comment.author_ip}
+                            />
+                        {/if}
                     </p>
                 {/if}
 

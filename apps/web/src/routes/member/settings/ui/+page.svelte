@@ -14,11 +14,8 @@
     import { Separator } from '$lib/components/ui/separator/index.js';
     import Settings from '@lucide/svelte/icons/settings';
     import User from '@lucide/svelte/icons/user';
-    import Coins from '@lucide/svelte/icons/coins';
     import Star from '@lucide/svelte/icons/star';
     import Ban from '@lucide/svelte/icons/ban';
-    import Bookmark from '@lucide/svelte/icons/bookmark';
-    import Monitor from '@lucide/svelte/icons/monitor';
     import Type from '@lucide/svelte/icons/type';
     import LayoutDashboard from '@lucide/svelte/icons/layout-dashboard';
     import LayoutList from '@lucide/svelte/icons/layout-list';
@@ -51,15 +48,7 @@
     import { keyboardShortcuts } from '$lib/services/keyboard-shortcuts.svelte.js';
     import { readPostStyleStore, type ReadPostStyle } from '$lib/stores/read-post-style.svelte.js';
 
-    const navItems = [
-        { href: '/my', label: '마이페이지', icon: User },
-        { href: '/my/points', label: '포인트', icon: Coins },
-        { href: '/my/exp', label: '경험치', icon: Star },
-        { href: '/my/blocked', label: '차단 목록', icon: Ban },
-        { href: '/my/scraps', label: '스크랩', icon: Bookmark },
-        { href: '/member/settings', label: '설정', icon: Settings },
-        { href: '/member/settings/ui', label: '화면 설정', icon: Monitor }
-    ];
+    import MyNav from '$lib/components/features/my/my-nav.svelte';
 
     type Tab = 'layout' | 'board' | 'shortcut' | 'etc';
     let activeTab = $state<Tab>('layout');
@@ -193,21 +182,7 @@
     <title>화면 설정 | {import.meta.env.VITE_SITE_NAME || 'Angple'}</title>
 </svelte:head>
 
-<div class="mx-auto max-w-4xl px-4 pt-4">
-    <nav class="mb-6 overflow-x-auto">
-        <div class="flex gap-1">
-            {#each navItems as item (item.href)}
-                {@const active = item.href === '/member/settings/ui'}
-                <a href={item.href} class="shrink-0" data-sveltekit-preload-data="hover">
-                    <Button variant={active ? 'default' : 'ghost'} size="sm">
-                        <item.icon class="mr-1.5 h-4 w-4" />
-                        {item.label}
-                    </Button>
-                </a>
-            {/each}
-        </div>
-    </nav>
-</div>
+<MyNav />
 
 <div class="mx-auto max-w-2xl px-4 pb-8">
     <!-- 탭 -->
