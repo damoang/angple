@@ -151,31 +151,38 @@ async function queryReceivedInteractions(
     entries: InteractionRow[]
 ) {
     // 공감 분석: g5_board_good에서 target의 글에 추천한 사람
+    // 게시판별 개별 쿼리 + 병렬 실행 (기존 13개 테이블 UNION ALL IN 서브쿼리 → 20분+ 슬로우 쿼리 해소)
     let likeMap = new Map<string, { count: number; name: string }>();
     if (type === 'like' || type === 'all') {
         const likeDateCond = dateCondition.replace(/bg_datetime/g, 'g.bg_datetime');
-        const unionParts = MAJOR_BOARDS.map(
-            () => `SELECT wr_id FROM ?? WHERE mb_id = ? AND wr_is_comment = 0`
-        ).join(' UNION ALL ');
-        const unionParams = MAJOR_BOARDS.flatMap((b) => [`g5_write_${b}`, targetId]);
-
-        const [rows] = await pool.query<RowDataPacket[]>(
-            `SELECT g.mb_id, m.mb_nick as mb_name, COUNT(*) as cnt
-			 FROM g5_board_good g
-			 JOIN g5_member m ON g.mb_id = m.mb_id
-			 WHERE g.bg_flag = 'good'
-			   AND g.wr_id IN (${unionParts})
-			   AND g.mb_id != ?
-			   ${likeDateCond}
-			 GROUP BY g.mb_id, m.mb_nick
-			 ORDER BY cnt DESC
-			 LIMIT ?`,
-            [...unionParams, targetId, limit * 2]
+        await Promise.all(
+            MAJOR_BOARDS.map(async (board) => {
+                try {
+                    const [rows] = await pool.query<RowDataPacket[]>(
+                        `SELECT g.mb_id, m.mb_nick as mb_name, COUNT(*) as cnt
+                         FROM g5_board_good g
+                         JOIN g5_member m ON g.mb_id = m.mb_id
+                         JOIN ?? w ON g.wr_id = w.wr_id AND w.mb_id = ? AND w.wr_is_comment = 0
+                         WHERE g.bg_flag = 'good'
+                           AND g.bo_table = ?
+                           AND g.mb_id != ?
+                           ${likeDateCond}
+                         GROUP BY g.mb_id, m.mb_nick`,
+                        [`g5_write_${board}`, targetId, board, targetId]
+                    );
+                    for (const row of rows) {
+                        const existing = likeMap.get(row.mb_id);
+                        if (existing) {
+                            existing.count += row.cnt;
+                        } else {
+                            likeMap.set(row.mb_id, { count: row.cnt, name: row.mb_name });
+                        }
+                    }
+                } catch {
+                    // 테이블이 없으면 스킵
+                }
+            })
         );
-
-        for (const row of rows) {
-            likeMap.set(row.mb_id, { count: row.cnt, name: row.mb_name });
-        }
     }
 
     // 댓글 분석: 주요 게시판에서 target의 글에 댓글 단 사람
