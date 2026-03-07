@@ -117,9 +117,19 @@
 <div class="flex min-h-[calc(100vh-200px)] items-center justify-center px-4 py-12">
     <Card class="w-full max-w-lg">
         <CardHeader class="text-center">
-            <CardTitle class="text-2xl font-bold">회원가입</CardTitle>
+            <CardTitle class="text-2xl font-bold">
+                {#if data.isInviteFlow}
+                    광고주 가입
+                {:else}
+                    회원가입
+                {/if}
+            </CardTitle>
             <CardDescription>
-                {providerLabel} 계정으로 가입합니다
+                {#if data.isInviteFlow}
+                    광고 계정 연동을 위해 간편 가입합니다
+                {:else}
+                    {providerLabel} 계정으로 가입합니다
+                {/if}
                 {#if data.email}
                     <br />
                     <span class="text-foreground font-medium">{data.email}</span>
@@ -152,27 +162,33 @@
                 <input type="hidden" name="redirect" value={data.redirectUrl} />
 
                 <!-- 닉네임 입력 -->
-                <div class="space-y-2" bind:this={nicknameRef}>
-                    <Label for="nickname">닉네임 <span class="text-destructive">*</span></Label>
-                    <Input
-                        id="nickname"
-                        name="nickname"
-                        type="text"
-                        placeholder="사용할 닉네임을 입력하세요"
-                        bind:value={nickname}
-                        maxlength={20}
-                        minlength={2}
-                        required
-                        disabled={isSubmitting}
-                        class={isNicknameError ? 'border-destructive' : ''}
-                    />
-                    {#if isNicknameError}
-                        <p class="text-destructive text-xs font-medium">{form?.error}</p>
-                    {/if}
-                    <p class="text-muted-foreground text-xs">
-                        한글, 영문, 숫자, 점(.), 밑줄(_) 사용 가능 (2~20자)
-                    </p>
-                </div>
+                {#if data.isInviteFlow}
+                    <div class="bg-muted/50 text-muted-foreground rounded-md p-3 text-sm">
+                        닉네임은 자동으로 생성됩니다. 가입 후 변경 가능합니다.
+                    </div>
+                {:else}
+                    <div class="space-y-2" bind:this={nicknameRef}>
+                        <Label for="nickname">닉네임 <span class="text-destructive">*</span></Label>
+                        <Input
+                            id="nickname"
+                            name="nickname"
+                            type="text"
+                            placeholder="사용할 닉네임을 입력하세요"
+                            bind:value={nickname}
+                            maxlength={20}
+                            minlength={2}
+                            required
+                            disabled={isSubmitting}
+                            class={isNicknameError ? 'border-destructive' : ''}
+                        />
+                        {#if isNicknameError}
+                            <p class="text-destructive text-xs font-medium">{form?.error}</p>
+                        {/if}
+                        <p class="text-muted-foreground text-xs">
+                            한글, 영문, 숫자, 점(.), 밑줄(_) 사용 가능 (2~20자)
+                        </p>
+                    </div>
+                {/if}
 
                 <!-- 이용약관 -->
                 <div class="space-y-2">
@@ -297,7 +313,7 @@
                     type="submit"
                     class="w-full"
                     disabled={isSubmitting ||
-                        !nickname.trim() ||
+                        (!data.isInviteFlow && !nickname.trim()) ||
                         !agreeTerms ||
                         !agreePrivacy ||
                         (data.policyHtml && !agreePolicy)}
@@ -307,7 +323,11 @@
                         가입 중...
                     {:else}
                         <UserPlus class="mr-2 h-4 w-4" />
-                        가입하기
+                        {#if data.isInviteFlow}
+                            가입 및 연동하기
+                        {:else}
+                            가입하기
+                        {/if}
                     {/if}
                 </Button>
             </form>
