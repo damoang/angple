@@ -148,7 +148,7 @@ async function syncCelebrationBanner(path: string): Promise<void> {
     await pool.execute(
         `UPDATE celebration_banners
          SET display_date = ?, content = ?, image_url = COALESCE(NULLIF(?, ''), image_url),
-             title = COALESCE(NULLIF(?, ''), title), updated_at = NOW()
+             title = COALESCE(NULLIF(?, ''), title), updated_at = CONVERT_TZ(UTC_TIMESTAMP(), '+00:00', '+09:00')
          WHERE source_wr_id = ?`,
         [displayDate, textContent || '', wr_9 || '', textContent || '', wrId]
     );
@@ -182,7 +182,7 @@ async function insertBoardNew(path: string, response: Response, locals: App.Loca
     if (postMatch) {
         // 원글: wr_parent = wr_id
         await pool.execute(
-            `INSERT IGNORE INTO g5_board_new (bo_table, wr_id, wr_parent, bn_datetime, mb_id) VALUES (?, ?, ?, NOW(), ?)`,
+            `INSERT IGNORE INTO g5_board_new (bo_table, wr_id, wr_parent, bn_datetime, mb_id) VALUES (?, ?, ?, CONVERT_TZ(UTC_TIMESTAMP(), '+00:00', '+09:00'), ?)`,
             [boardId, wrId, wrId, mbId]
         );
     } else if (commentMatch) {

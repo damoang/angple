@@ -216,7 +216,7 @@ export const POST: RequestHandler = async ({ params, request, cookies, getClient
             // 추가 (INSERT + 카운트 증가)
             const clientIp = getClientAddress();
             await conn.query(
-                `INSERT INTO g5_board_good (bo_table, wr_id, mb_id, bg_flag, bg_datetime, bg_ip) VALUES (?, ?, ?, ?, NOW(), ?)`,
+                `INSERT INTO g5_board_good (bo_table, wr_id, mb_id, bg_flag, bg_datetime, bg_ip) VALUES (?, ?, ?, ?, CONVERT_TZ(UTC_TIMESTAMP(), '+00:00', '+09:00'), ?)`,
                 [safeBoardId, safePostId, user.mb_id, action, clientIp]
             );
             await conn.query(`UPDATE ?? SET ${column} = ${column} + 1 WHERE wr_id = ?`, [
@@ -236,7 +236,7 @@ export const POST: RequestHandler = async ({ params, request, cookies, getClient
                 const postSubject = writeRows[0].wr_subject || '';
                 pool.query(
                     `INSERT INTO g5_na_noti (ph_to_case, ph_from_case, bo_table, wr_id, mb_id, rel_mb_id, rel_mb_nick, rel_msg, rel_url, ph_readed, ph_datetime, parent_subject, wr_parent)
-                     VALUES ('good', 'good', ?, ?, ?, ?, ?, ?, ?, 'N', NOW(), ?, ?)`,
+                     VALUES ('good', 'good', ?, ?, ?, ?, ?, ?, ?, 'N', CONVERT_TZ(UTC_TIMESTAMP(), '+00:00', '+09:00'), ?, ?)`,
                     [
                         safeBoardId,
                         safePostId,

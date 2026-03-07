@@ -270,7 +270,7 @@ export const POST: RequestHandler = async ({ request, cookies, getClientAddress 
                                 }
                                 pool.query(
                                     `INSERT INTO g5_na_noti (ph_to_case, ph_from_case, bo_table, wr_id, mb_id, rel_mb_id, rel_mb_nick, rel_msg, rel_url, ph_readed, ph_datetime, parent_subject, wr_parent)
-                                     VALUES ('reaction', 'reaction', ?, ?, ?, ?, ?, ?, ?, 'N', NOW(), ?, ?)`,
+                                     VALUES ('reaction', 'reaction', ?, ?, ?, ?, ?, ?, ?, 'N', CONVERT_TZ(UTC_TIMESTAMP(), '+00:00', '+09:00'), ?, ?)`,
                                     [
                                         boardTable,
                                         wrId,
@@ -336,7 +336,7 @@ async function addReaction(
         await conn.query(
             `INSERT INTO g5_da_reaction_choose
 			 (member_id, reaction, target_id, parent_id, created_at, chosen_ip)
-			 VALUES (?, ?, ?, ?, NOW(), ?)`,
+			 VALUES (?, ?, ?, ?, CONVERT_TZ(UTC_TIMESTAMP(), '+00:00', '+09:00'), ?)`,
             [memberId, reaction, targetId, parentId, clientIp || null]
         );
 
