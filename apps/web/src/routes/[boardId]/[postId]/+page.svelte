@@ -858,10 +858,10 @@
 
 <SeoHead config={seoConfig} />
 
-{#if boardId === 'truthroom' && authStore.isAuthenticated && authStore.user}
+{#if boardId === 'truthroom'}
     <Watermark
-        nickname={authStore.user.mb_name}
-        userId={authStore.user.mb_id}
+        nickname={authStore.user?.mb_name || '비회원'}
+        userId={authStore.user?.mb_id || ''}
         clientIp={((data as Record<string, unknown>).clientIp as string) || ''}
         pageTitle={boardTitle}
     />
