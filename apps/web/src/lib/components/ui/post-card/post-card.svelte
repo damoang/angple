@@ -1,11 +1,28 @@
 <script lang="ts">
+    import { onMount } from 'svelte';
     import type { RecommendedPost } from '$lib/api/types.js';
     import {
         formatNumber,
         getRecommendBadgeClass
     } from '../../features/recommended/utils/index.js';
+    import { readPostsStore } from '$lib/stores/read-posts.svelte.js';
+    import { getReadPostClasses } from '$lib/stores/read-post-style.svelte.js';
 
     let { post }: { post: RecommendedPost } = $props();
+
+    function getBoardId(url: string): string {
+        const parts = url.split('/').filter(Boolean);
+        return parts[0] || '';
+    }
+
+    let showReadState = $state(false);
+    onMount(() => {
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                showReadState = true;
+            });
+        });
+    });
 </script>
 
 <!-- PHP 원본 list-group-item 스타일 재현 -->
@@ -25,7 +42,11 @@
                 {formatNumber(post.recommend_count)}
             </span>
             <!-- text-truncate -->
-            <div class="text-foreground min-w-0 flex-1 truncate text-[17px] font-medium">
+            <div
+                class="min-w-0 flex-1 truncate text-[15px] leading-relaxed {getReadPostClasses(
+                    showReadState && readPostsStore.isRead(getBoardId(post.url), post.id)
+                )}"
+            >
                 {post.title}
             </div>
         </div>

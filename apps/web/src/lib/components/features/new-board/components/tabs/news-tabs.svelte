@@ -21,7 +21,7 @@
     }
 </script>
 
-<div class="flex gap-1">
+<div class="flex flex-wrap justify-end gap-1">
     {#each tabs as tab (tab.id)}
         <button
             type="button"

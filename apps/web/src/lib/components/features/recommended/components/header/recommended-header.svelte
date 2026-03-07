@@ -2,7 +2,7 @@
     import Flame from '@lucide/svelte/icons/flame';
 </script>
 
-<div class="flex items-center gap-2">
+<div class="flex shrink-0 items-center gap-2">
     <div
         class="flex h-7 w-7 items-center justify-center rounded-lg bg-orange-100 dark:bg-orange-900/30"
     >

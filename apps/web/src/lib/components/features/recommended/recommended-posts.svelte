@@ -24,9 +24,30 @@
         | undefined;
     const hasSSRData = !!ssrData?.data;
 
-    let activeTab = $state<RecommendedPeriod>(hasSSRData ? ssrData!.period : defaultTab);
-    let data = $state<RecommendedDataWithAI | null>(hasSSRData ? ssrData!.data : null);
-    let loading = $state(!hasSSRData);
+    // 마지막 선택 탭 복원 (localStorage > SSR period > 시간대 기본값)
+    function getSavedTab(): RecommendedPeriod | null {
+        if (typeof window === 'undefined') return null;
+        try {
+            const saved = localStorage.getItem(
+                'angple_recommended_tab'
+            ) as RecommendedPeriod | null;
+            if (saved && ['1h', '3h', '6h', '12h', '24h', '48h'].includes(saved)) {
+                return saved;
+            }
+        } catch {
+            /* ignore */
+        }
+        return null;
+    }
+
+    const savedTab = getSavedTab();
+    const initialTab = savedTab ?? (hasSSRData ? ssrData!.period : defaultTab);
+    // SSR 데이터가 초기 탭과 같은 period인 경우에만 즉시 사용
+    const canUseSSR = hasSSRData && ssrData!.period === initialTab;
+
+    let activeTab = $state<RecommendedPeriod>(initialTab);
+    let data = $state<RecommendedDataWithAI | null>(canUseSSR ? ssrData!.data : null);
+    let loading = $state(!canUseSSR);
     let error = $state<string | null>(null);
 
     // 탭별 데이터 캐시
@@ -71,18 +92,24 @@
     function handleTabChange(tabId: RecommendedPeriod) {
         activeTab = tabId;
         loadData(tabId);
+        // 탭 선택 저장 (뒤로가기 시 복원)
+        try {
+            localStorage.setItem('angple_recommended_tab', tabId);
+        } catch {
+            /* ignore */
+        }
     }
 
     onMount(() => {
-        // SSR 데이터가 있으면 초기 fetch 불필요
-        if (!hasSSRData) {
+        // SSR 데이터가 없거나 저장된 탭과 다르면 클라이언트에서 fetch
+        if (!canUseSSR) {
             loadData(activeTab, true);
         }
     });
 </script>
 
 <Card class="gap-0">
-    <CardHeader class="flex flex-row items-center justify-between space-y-0 px-4 py-3">
+    <CardHeader class="flex flex-row items-center justify-between gap-2 space-y-0 px-4 py-3">
         <RecommendedHeader />
         <RecommendedTabs bind:activeTab onTabChange={handleTabChange} />
     </CardHeader>

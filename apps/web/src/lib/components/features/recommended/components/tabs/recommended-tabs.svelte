@@ -28,7 +28,7 @@
 </script>
 
 <!-- Pill 스타일 탭 -->
-<div class="flex gap-1">
+<div class="flex flex-wrap justify-end gap-1">
     {#each tabs as tab (tab.id)}
         {#if !tab.hidden}
             <button
