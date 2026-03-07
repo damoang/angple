@@ -140,12 +140,7 @@
             title={display.label}
         >
             {#if display.renderType === 'image' && display.url}
-                <img
-                    src={display.url}
-                    alt={display.label}
-                    class="h-5 w-5 object-contain"
-                    loading="lazy"
-                />
+                <img src={display.url} alt={display.label} class="h-5 w-5 object-scale-down" />
             {:else}
                 <span class="text-base leading-none">{display.emoji}</span>
             {/if}
@@ -219,8 +214,7 @@
                                 <img
                                     src={emo.url}
                                     alt={emo.reaction}
-                                    class="h-7 w-7 object-contain"
-                                    loading="lazy"
+                                    class="h-7 w-7 object-scale-down"
                                 />
                             {:else}
                                 <span class="text-xl leading-none">{emo.emoji}</span>
