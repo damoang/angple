@@ -185,6 +185,10 @@
             error = null;
             try {
                 const result = await apiClient.uploadImage(boardId, file);
+                if (!result?.url) {
+                    error = '이미지 URL을 받지 못했습니다.';
+                    continue;
+                }
                 uploadedImages = [...uploadedImages, result.url];
             } catch (err) {
                 error = err instanceof Error ? err.message : '이미지 업로드에 실패했습니다.';

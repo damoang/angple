@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { onMount, onDestroy } from 'svelte';
+    import { onMount, onDestroy, tick } from 'svelte';
     import { Editor } from '@tiptap/core';
     import StarterKit from '@tiptap/starter-kit';
     import Link from '@tiptap/extension-link';
@@ -203,9 +203,7 @@
                     HTMLAttributes: {
                         class: 'tiptap-youtube'
                     },
-                    inline: false,
-                    width: 640,
-                    height: 360
+                    inline: false
                 }),
                 CharacterCount,
                 CodeBlockLowlight.configure({
@@ -321,6 +319,7 @@
         const imageFiles = Array.from(files).filter((f) => f.type.startsWith('image/'));
         if (imageFiles.length > 0) {
             e.preventDefault();
+            e.stopImmediatePropagation();
 
             // 드롭 위치에서 에디터 좌표 계산
             const pos = editor.view.posAtCoords({ left: e.clientX, top: e.clientY });
@@ -566,9 +565,14 @@
             if (editorMode === 'markdown') {
                 html = await marked.parse(rawContent);
             }
+            // 먼저 모드 변경하여 hidden 해제
+            editorMode = newMode;
+            // DOM 업데이트 대기
+            await tick();
+            // visible 상태에서 content 설정
             editor?.commands.setContent(html);
-            // 부모 컴포넌트에 업데이트 알림
             onUpdate?.(html);
+            return;
         } else {
             // markdown ↔ html
             if (editorMode === 'markdown' && newMode === 'html') {

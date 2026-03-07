@@ -288,8 +288,10 @@
 
     // 수정 모드 시작
     function startEdit(comment: FreeComment): void {
-        editingCommentId = String(comment.id);
-        editContent = comment.content;
+        // commentTree에서 ID로 명시적 조회 (클로저 안전)
+        const target = commentTree.find((c) => c.id === comment.id) ?? comment;
+        editingCommentId = String(target.id);
+        editContent = target.content;
         replyingToCommentId = null; // 답글 모드 해제
     }
 

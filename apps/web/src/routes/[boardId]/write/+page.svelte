@@ -158,6 +158,7 @@
         {:else}
             <PostForm
                 mode="create"
+                board={data.board}
                 categories={data.categories}
                 onSubmit={handleSubmit}
                 onCancel={handleCancel}

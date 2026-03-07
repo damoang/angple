@@ -278,8 +278,9 @@
         line-height: 1.8;
     }
 
-    /* 빈 <p></p> 태그도 줄바꿈으로 표시 (에디터 엔터키 반영) */
-    .prose :global(p:empty) {
+    /* 빈 <p></p> 및 <p><br></p> 태그도 줄바꿈으로 표시 (에디터 엔터키 반영) */
+    .prose :global(p:empty),
+    .prose :global(p:has(> br:only-child)) {
         min-height: 1.8em;
     }
 
@@ -411,10 +412,17 @@
     }
 
     /* 임베드 컨테이너 스타일 */
-    /* 모든 iframe/video가 컨테이너를 넘지 않도록 */
+    /* 모든 iframe/video가 컨테이너를 넘지 않도록 (인라인 width/height 속성 오버라이드) */
     .prose :global(iframe),
     .prose :global(video) {
-        max-width: 100%;
+        max-width: 100% !important;
+        height: auto !important;
+    }
+
+    /* YouTube iframe은 16:9 비율 유지 */
+    .prose :global(iframe[src*='youtube']),
+    .prose :global(iframe[src*='youtu.be']) {
+        aspect-ratio: 16 / 9;
     }
 
     .prose :global(.embed-container) {
