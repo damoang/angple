@@ -13,11 +13,12 @@ const jwtCache = new Map<string, { token: string; expiry: number }>();
 const JWT_CACHE_TTL = 5 * 60 * 1000; // 5분
 const MAX_JWT_CACHE_SIZE = 50000;
 
-// --- SSR 응답 캐시 (비로그인: 홈 + 게시판 목록) ---
+// --- SSR 응답 캐시 (비로그인: 홈 + 게시판 목록 + 글 상세) ---
 const ssrCache = new Map<string, { body: string; timestamp: number }>();
-const SSR_CACHE_TTL_HOME = 10_000; // 홈 10초
-const SSR_CACHE_TTL_BOARD = 30_000; // 게시판 목록 30초
-const MAX_SSR_CACHE_SIZE = 50; // 캐시할 최대 페이지 수
+const SSR_CACHE_TTL_HOME = 60_000; // 홈 60초
+const SSR_CACHE_TTL_BOARD = 120_000; // 게시판 목록 120초
+const SSR_CACHE_TTL_POST = 60_000; // 글 상세 60초
+const MAX_SSR_CACHE_SIZE = 500; // 캐시할 최대 페이지 수
 const ssrCachePending = new Map<string, Promise<Response>>();
 
 /**
@@ -80,6 +81,12 @@ function isBoardListPath(pathname: string, searchParams: URLSearchParams): boole
     // 검색 파라미터 있으면 캐시 안 함 (개인화 가능성)
     if (searchParams.has('sfl') || searchParams.has('stx') || searchParams.has('tag')) return false;
     return true;
+}
+
+/** 글 상세 페이지 패턴: /boardId/postId (숫자) */
+const POST_DETAIL_REGEX = /^\/[a-z][a-z0-9_-]{1,20}\/\d+$/;
+function isPostDetailPath(pathname: string): boolean {
+    return POST_DETAIL_REGEX.test(pathname);
 }
 
 /** Rate limiting 경로 패턴 */
@@ -360,13 +367,18 @@ export const handle: Handle = async ({ event, resolve }) => {
     // /api/plugins/* 프록시는 더 이상 사용하지 않음
     // 모든 /api/plugins/* 요청은 SvelteKit API 라우트에서 처리
 
-    // --- 비로그인 SSR 응답 캐시 (홈 + 게시판 목록) ---
+    // --- 비로그인 SSR 응답 캐시 (홈 + 게시판 목록 + 글 상세) ---
     // Pod 재시작 시 캐시 자동 소멸 → 배포 시 구 JS 경로 문제 없음
     const isHomePage = pathname === '/';
     const isBoardList = isBoardListPath(pathname, event.url.searchParams);
-    if (!event.locals.user && (isHomePage || isBoardList)) {
+    const isPostDetail = isPostDetailPath(pathname);
+    if (!event.locals.user && (isHomePage || isBoardList || isPostDetail)) {
         const cacheKey = isHomePage ? '/' : pathname;
-        const cacheTtl = isHomePage ? SSR_CACHE_TTL_HOME : SSR_CACHE_TTL_BOARD;
+        const cacheTtl = isHomePage
+            ? SSR_CACHE_TTL_HOME
+            : isPostDetail
+              ? SSR_CACHE_TTL_POST
+              : SSR_CACHE_TTL_BOARD;
 
         const cached = ssrCache.get(cacheKey);
         if (cached && Date.now() - cached.timestamp < cacheTtl) {
@@ -419,7 +431,12 @@ export const handle: Handle = async ({ event, resolve }) => {
                 if (ssrCache.size >= MAX_SSR_CACHE_SIZE) {
                     const now = Date.now();
                     for (const [key, entry] of ssrCache) {
-                        const ttl = key === '/' ? SSR_CACHE_TTL_HOME : SSR_CACHE_TTL_BOARD;
+                        const ttl =
+                            key === '/'
+                                ? SSR_CACHE_TTL_HOME
+                                : key.includes('/')
+                                  ? SSR_CACHE_TTL_POST
+                                  : SSR_CACHE_TTL_BOARD;
                         if (now - entry.timestamp > ttl) ssrCache.delete(key);
                     }
                 }
@@ -513,10 +530,17 @@ export const handle: Handle = async ({ event, resolve }) => {
         );
         response.headers.set('Vary', 'Cookie');
     } else if (!event.locals.user && isBoardListPath(pathname, event.url.searchParams)) {
-        // 비로그인 사용자의 게시판 목록: CDN 캐시 10초, stale 30초
+        // 비로그인 사용자의 게시판 목록: CDN 캐시 30초, stale 60초
         response.headers.set(
             'Cache-Control',
-            'public, s-maxage=10, stale-while-revalidate=30, max-age=0'
+            'public, s-maxage=30, stale-while-revalidate=60, max-age=0'
+        );
+        response.headers.set('Vary', 'Cookie');
+    } else if (!event.locals.user && isPostDetailPath(pathname)) {
+        // 비로그인 사용자의 글 상세: CDN 캐시 30초, stale 60초
+        response.headers.set(
+            'Cache-Control',
+            'public, s-maxage=30, stale-while-revalidate=60, max-age=0'
         );
         response.headers.set('Vary', 'Cookie');
     } else {
