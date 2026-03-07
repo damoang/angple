@@ -252,11 +252,33 @@
                     comments: { items: FreeComment[] };
                     promotionPosts: unknown[];
                     revisions: PostRevision[];
+                    reactions?: Record<string, ReactionItem[]>;
+                    likersData?: { likers: LikerInfo[]; total: number };
+                    memberLevels?: Record<string, number>;
                 }) => {
                     if (cancelled) return;
                     comments = result.comments.items || [];
                     promotionPosts = result.promotionPosts || [];
                     revisions = result.revisions || [];
+
+                    // SSR 리액션 데이터 적용
+                    if (result.reactions && Object.keys(result.reactions).length > 0) {
+                        reactionsMap = result.reactions;
+                        const docTargetId = generateDocumentTargetId(boardId, data.post.id);
+                        postReactions = result.reactions[docTargetId] || [];
+                    }
+
+                    // SSR 추천자 아바타 적용
+                    if (result.likersData) {
+                        likers = result.likersData.likers || [];
+                        likersTotal = result.likersData.total || 0;
+                    }
+
+                    // SSR 회원 레벨 적용
+                    if (result.memberLevels && Object.keys(result.memberLevels).length > 0) {
+                        memberLevelStore.initFromSSR(result.memberLevels);
+                    }
+
                     secondaryLoaded = true;
                 }
             )
@@ -339,24 +361,14 @@
         }
     }
 
-    // 초기 추천 상태 + 레벨 로드 + 조회수 증가 + 읽음 표시
+    // 초기 추천 상태 + 읽음 표시
+    // 조회수: SSR에서 처리 (CDN 요청 제거)
+    // 레벨/리액션/추천자 아바타: SSR 스트리밍에서 로드 (CDN 요청 제거)
     onMount(async () => {
         // 읽음 표시 (localStorage)
         readPostsStore.markAsRead(boardId, data.post.id);
 
-        // 조회수 증가 (fire-and-forget)
-        fetch('/api/viewcount', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ boardId, postId: data.post.id })
-        }).catch(() => {});
-
-        // 게시글 작성자 레벨 배치 로드
-        if (data.post.author_id) {
-            memberLevelStore.fetchLevels([data.post.author_id]);
-        }
-
-        // 추천 상태 조회 (비로그인도 추천 수 정확하게 가져옴)
+        // 추천 상태 조회 (사용자별 데이터 — 클라이언트 전용)
         try {
             const status = await apiClient.getPostLikeStatus(boardId, String(data.post.id));
             isLiked = status.user_liked;
@@ -366,14 +378,6 @@
         } catch (err) {
             console.error('Failed to load like status:', err);
         }
-
-        // 추천 수 > 0이면 아바타 미리 로드
-        if (likeCount > 0) {
-            loadLikerAvatars();
-        }
-
-        // 리액션 일괄 조회 (게시글 + 모든 댓글, 1회 fetch)
-        fetchBatchReactions();
     });
 
     // 글 이동 시 상태 리셋 (같은 레이아웃 내 다른 글로 이동할 때)

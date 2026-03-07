@@ -5,6 +5,9 @@ import { fetchPromotionPosts, fetchPromotionBoardPosts } from '$lib/server/ads/p
 import { transformAffiliateContent } from '$lib/hooks/builtin/affiliate.js';
 import { isScraped } from '$lib/server/scrap.js';
 import { backendFetch as bFetch, createAuthHeaders } from '$lib/server/backend-fetch.js';
+import { increment as incrementViewcount } from '$lib/server/viewcount.js';
+import { fetchReactionsByParentId } from '$lib/server/reactions.js';
+import { fetchMemberLevels } from '$lib/server/member-levels.js';
 
 /**
  * 게시글 상세 페이지 — Streaming SSR
@@ -12,7 +15,13 @@ import { backendFetch as bFetch, createAuthHeaders } from '$lib/server/backend-f
  * 1단계 (즉시 await): post, board, displaySettings, files → 본문, SEO, 권한
  * 2단계 (스트리밍):   comments, promotions, revisions → 스켈레톤 먼저 표시
  */
-export const load: PageServerLoad = async ({ params, fetch: svelteKitFetch, locals, url }) => {
+export const load: PageServerLoad = async ({
+    params,
+    fetch: svelteKitFetch,
+    locals,
+    url,
+    cookies
+}) => {
     const { boardId, postId } = params;
 
     // postId가 숫자인지 검증 (레거시 PHP URL 방어: /bbs/board.php 등)
@@ -141,9 +150,34 @@ export const load: PageServerLoad = async ({ params, fetch: svelteKitFetch, loca
             }
         }
 
+        // --- 조회수 증가 (SSR에서 직접 처리, CDN 요청 제거) ---
+        // 쿠키 기반 중복 방지: viewed_posts 쿠키에 최근 100개 글 ID 저장
+        if (!post.deleted_at) {
+            const vcKey = `${boardId}:${postId}`;
+            const viewedRaw = cookies.get('viewed_posts') || '';
+            const viewed = viewedRaw ? viewedRaw.split(',').filter(Boolean) : [];
+            if (!viewed.includes(vcKey)) {
+                incrementViewcount(boardId, Number(postId));
+                viewed.push(vcKey);
+                if (viewed.length > 100) viewed.splice(0, viewed.length - 100);
+                cookies.set('viewed_posts', viewed.join(','), {
+                    path: '/',
+                    httpOnly: true,
+                    sameSite: 'lax',
+                    maxAge: 60 * 60 * 24
+                });
+            }
+        }
+
         // --- 2단계: 보조 데이터 스트리밍 (await 안 함 → 스켈레톤 먼저 표시) ---
         const secondaryDataPromise = (async () => {
-            const [commentsResult, promotionResult, revisionsResult] = await Promise.allSettled([
+            const [
+                commentsResult,
+                promotionResult,
+                revisionsResult,
+                reactionsResult,
+                likersResult
+            ] = await Promise.allSettled([
                 // 댓글 (SvelteKit 내부 라우트 → svelteKitFetch)
                 svelteKitFetch(
                     `${url.origin}/api/boards/${boardId}/posts/${postId}/comments?page=1&limit=200`
@@ -173,7 +207,22 @@ export const load: PageServerLoad = async ({ params, fetch: svelteKitFetch, loca
                           const json = await res.json();
                           return json.data || [];
                       })
-                    : Promise.resolve([])
+                    : Promise.resolve([]),
+                // 리액션 일괄 조회 (게시글 + 모든 댓글, DB 직접 호출 — CDN 요청 제거)
+                fetchReactionsByParentId(
+                    `document:${boardId}:${postId}`,
+                    locals.user?.id || ''
+                ).catch(() => ({}) as Record<string, unknown>),
+                // 추천자 아바타 상위 5명 (Go 백엔드 직접 호출 — CDN 요청 제거)
+                bFetch(`/api/v1/boards/${boardId}/posts/${postId}/likers?page=1&limit=5`, {
+                    headers
+                })
+                    .then(async (res) => {
+                        if (!res.ok) return { likers: [], total: 0 };
+                        const json = await res.json();
+                        return json.data || { likers: [], total: 0 };
+                    })
+                    .catch(() => ({ likers: [], total: 0 }))
             ]);
 
             const comments =
@@ -223,7 +272,30 @@ export const load: PageServerLoad = async ({ params, fetch: svelteKitFetch, loca
             const revisions =
                 revisionsResult.status === 'fulfilled' ? revisionsResult.value || [] : [];
 
-            return { comments, promotionPosts, revisions };
+            const reactions =
+                reactionsResult.status === 'fulfilled' ? reactionsResult.value || {} : {};
+
+            const likersData =
+                likersResult.status === 'fulfilled'
+                    ? likersResult.value || { likers: [], total: 0 }
+                    : { likers: [], total: 0 };
+
+            // 회원 레벨 배치 조회 (작성자 + 댓글 작성자, DB 직접 — CDN 요청 제거)
+            let memberLevels: Record<string, number> = {};
+            try {
+                const authorIds = new Set<string>();
+                if (post.author_id) authorIds.add(post.author_id);
+                for (const c of comments.items || []) {
+                    if (c.author_id) authorIds.add(c.author_id);
+                }
+                if (authorIds.size > 0) {
+                    memberLevels = await fetchMemberLevels([...authorIds]);
+                }
+            } catch {
+                // 레벨 조회 실패 시 빈 맵 (클라이언트에서 fallback)
+            }
+
+            return { comments, promotionPosts, revisions, reactions, likersData, memberLevels };
         })();
 
         return {

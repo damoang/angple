@@ -55,6 +55,17 @@ class MemberLevelStore {
     }
 
     /**
+     * SSR 데이터로 캐시 초기화 (fetch 없이)
+     */
+    initFromSSR(data: Record<string, number>): void {
+        const updated = new Map(this.levels);
+        for (const [mbId, level] of Object.entries(data)) {
+            updated.set(mbId, level);
+        }
+        this.levels = updated;
+    }
+
+    /**
      * 전체 캐시 클리어
      */
     clear(): void {
