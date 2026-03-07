@@ -304,6 +304,7 @@
     .post-title-read-italic {
         color: var(--color-muted-foreground);
         font-style: italic;
+        font-synthesis: style;
     }
 
     .post-title-read-underline {
