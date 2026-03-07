@@ -19,45 +19,6 @@ export default defineConfig(({ mode }) => {
     return {
         plugins: [tailwindcss(), sveltekit()],
         build: {
-            rollupOptions: {
-                output: {
-                    manualChunks(id) {
-                        if (id.includes('.svelte-kit/') || id.includes('src/routes/')) return;
-                        if (id.includes('node_modules/')) {
-                            if (id.includes('/svelte/')) return 'svelte-runtime';
-                            if (
-                                id.includes('bits-ui') ||
-                                id.includes('melt-ui') ||
-                                id.includes('@floating-ui') ||
-                                id.includes('@lucide')
-                            )
-                                return 'ui-lib';
-                            // 나머지 주요 node_modules 라이브러리 통합
-                            if (
-                                id.includes('clsx') ||
-                                id.includes('tailwind-merge') ||
-                                id.includes('tailwind-variants')
-                            )
-                                return 'ui-lib';
-                            if (id.includes('date-fns') || id.includes('@internationalized'))
-                                return 'vendor-utils';
-                            if (
-                                id.includes('dompurify') ||
-                                id.includes('marked') ||
-                                id.includes('highlight.js')
-                            )
-                                return 'vendor-content';
-                            if (
-                                id.includes('runed') ||
-                                id.includes('nanoid') ||
-                                id.includes('devalue') ||
-                                id.includes('esm-env')
-                            )
-                                return 'svelte-runtime';
-                        }
-                    }
-                }
-            },
             assetsInlineLimit: 8192
         },
         ssr: {
