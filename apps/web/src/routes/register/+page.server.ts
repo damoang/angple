@@ -50,10 +50,11 @@ export const load: PageServerLoad = async ({ url, cookies }) => {
         redirect(302, '/login');
     }
 
-    // 약관/개인정보처리방침 내용 로드
-    const [termsContent, privacyContent, siteTitle] = await Promise.all([
+    // 약관/개인정보처리방침/이용제한사유 내용 로드
+    const [termsContent, privacyContent, policyContent, siteTitle] = await Promise.all([
         getContent('provision'),
         getContent('privacy'),
+        getContent('operation_policy_add'),
         getSiteTitle()
     ]);
 
@@ -65,6 +66,9 @@ export const load: PageServerLoad = async ({ url, cookies }) => {
         termsHtml: termsContent ? replaceContentVariables(termsContent.co_content, siteTitle) : '',
         privacyHtml: privacyContent
             ? replaceContentVariables(privacyContent.co_content, siteTitle)
+            : '',
+        policyHtml: policyContent
+            ? replaceContentVariables(policyContent.co_content, siteTitle)
             : ''
     };
 };

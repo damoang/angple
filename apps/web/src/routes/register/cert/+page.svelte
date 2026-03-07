@@ -47,12 +47,33 @@
         }
     }
 
+    // localStorage 폴링 (storage 이벤트가 동작하지 않는 경우 대비)
+    let pollTimer: ReturnType<typeof setInterval> | undefined;
+
+    function startPolling() {
+        pollTimer = setInterval(() => {
+            try {
+                const raw = localStorage.getItem('cert_result');
+                if (raw) {
+                    const result = JSON.parse(raw);
+                    if (result.success) {
+                        localStorage.removeItem('cert_result');
+                        clearInterval(pollTimer);
+                        location.reload();
+                    }
+                }
+            } catch {}
+        }, 1000);
+    }
+
     $effect(() => {
         window.addEventListener('message', handleMessage);
         window.addEventListener('storage', handleStorage);
+        startPolling();
         return () => {
             window.removeEventListener('message', handleMessage);
             window.removeEventListener('storage', handleStorage);
+            if (pollTimer) clearInterval(pollTimer);
         };
     });
 </script>

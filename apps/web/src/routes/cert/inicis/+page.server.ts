@@ -12,14 +12,19 @@ export const load: PageServerLoad = async ({ locals, url, request, cookies }) =>
         redirect(303, '/login');
     }
 
+    const mbId = locals.user.id;
+    if (!mbId) {
+        redirect(303, '/login');
+    }
+
     const pageType = url.searchParams.get('pageType') || 'register';
     const certData = await buildCertRequest();
 
     // mTxId → mbId 매핑을 DB에 저장 (cross-origin POST에서 쿠키 신뢰 불가)
-    await storeCertPending(certData.mTxId, locals.user.mb_id);
+    await storeCertPending(certData.mTxId, mbId);
 
     // 백업: sameSite=none 쿠키로도 mbId 저장 (third-party cookie 허용 시 사용)
-    cookies.set('cert_pending_mbid', locals.user.mb_id, {
+    cookies.set('cert_pending_mbid', mbId, {
         path: '/',
         httpOnly: true,
         sameSite: 'none',
@@ -37,7 +42,7 @@ export const load: PageServerLoad = async ({ locals, url, request, cookies }) =>
         mTxId: certData.mTxId,
         authHash: certData.authHash,
         reservedMsg: certData.reservedMsg,
-        mbId: locals.user.mb_id,
+        mbId,
         successUrl: resultUrl,
         failUrl: resultUrl,
         pageType

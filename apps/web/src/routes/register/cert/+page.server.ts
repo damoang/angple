@@ -28,7 +28,7 @@ export const load: PageServerLoad = async ({ locals }) => {
     // 이미 인증 완료 여부 확인
     const [rows] = await readPool.query<MemberCertRow[]>(
         'SELECT mb_certify FROM g5_member WHERE mb_id = ?',
-        [locals.user.mb_id]
+        [locals.user.id]
     );
 
     const mbCertify = rows[0]?.mb_certify || '';

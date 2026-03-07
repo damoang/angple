@@ -5,7 +5,7 @@
 
 import type { PlatformConverter, ConvertContext } from '../types';
 import { PLATFORM_DOMAINS, matchesPlatform } from '../domain-matcher';
-import { env } from '$env/dynamic/private';
+const env = process.env;
 
 /**
  * 아마존 URL에 제휴 태그 추가

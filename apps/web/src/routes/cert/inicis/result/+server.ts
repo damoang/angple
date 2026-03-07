@@ -91,9 +91,10 @@ export const POST: RequestHandler = async ({ request, locals, cookies }) => {
     const certPendingMbId = cookies.get('cert_pending_mbid');
     const mTxId = resData.mTxId || txId;
     const dbPendingMbId = mTxId ? await getCertPendingMbId(mTxId) : null;
-    const mbId = locals.user?.mb_id || dbPendingMbId || certPendingMbId;
+    const sessionMbId = locals.user?.id;
+    const mbId = sessionMbId || dbPendingMbId || certPendingMbId;
     console.log('[Cert] mbId resolve:', {
-        fromSession: locals.user?.mb_id,
+        fromSession: sessionMbId,
         fromDB: dbPendingMbId,
         fromCookie: certPendingMbId,
         final: mbId
