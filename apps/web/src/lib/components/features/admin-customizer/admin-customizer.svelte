@@ -38,14 +38,14 @@
 <svelte:window onkeydown={handleKeydown} />
 
 {#if isOpen}
-    <!-- Backdrop -->
-    <button
-        type="button"
-        class="fixed inset-0 z-[59] bg-black/20 backdrop-blur-[1px] md:block"
+    <!-- Backdrop (패널 영역 제외) -->
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <div
+        class="fixed inset-0 z-[59] bg-black/20 backdrop-blur-[1px]"
         onclick={handleBackdropClick}
-        aria-label="커스터마이저 닫기"
-        tabindex="-1"
-    ></button>
+        onkeydown={() => {}}
+        role="presentation"
+    ></div>
 
     <!-- 패널 -->
     <div
