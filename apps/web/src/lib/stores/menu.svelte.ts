@@ -18,7 +18,7 @@ function filterMenus(menus: MenuItem[]): MenuItem[] {
 
 class MenuStore {
     menus = $state<MenuItem[]>([]);
-    loading = $state(true);
+    loading = $state(false);
     error = $state<string | null>(null);
 
     /**
