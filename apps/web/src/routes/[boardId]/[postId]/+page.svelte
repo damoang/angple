@@ -1387,8 +1387,7 @@
 
 <!-- 게시판 최근글 목록 -->
 {#if canRead}
-    <div class="bg-card mx-auto mt-3 rounded-xl px-3 py-3 md:mt-4 md:px-5">
-        <RecentPosts
+    <RecentPosts
             {boardId}
             {boardTitle}
             currentPostId={data.post.id}
@@ -1397,7 +1396,6 @@
             promotionPosts={promotionPosts as any[]}
             displaySettings={data.board?.display_settings}
         />
-    </div>
 {/if}
 
 <!-- 추천자 목록 다이얼로그 -->
