@@ -40,10 +40,19 @@ class MenuStore {
     }
 
     /**
-     * SSR 데이터로 메뉴 초기화
+     * SSR 데이터로 메뉴 초기화 (동일 데이터 시 리렌더 방지)
      */
     initFromServer(menus: MenuItem[]) {
-        this.menus = filterMenus(menus);
+        const filtered = filterMenus(menus);
+        // 동일한 메뉴 데이터면 스킵 (네비게이션 시 불필요한 리렌더/깜빡임 방지)
+        if (
+            this.menus.length === filtered.length &&
+            JSON.stringify(this.menus) === JSON.stringify(filtered)
+        ) {
+            this.loading = false;
+            return;
+        }
+        this.menus = filtered;
         this.loading = false;
         this.error = null;
     }

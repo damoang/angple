@@ -19,9 +19,10 @@ class ThemeStore {
     error = $state<string | null>(null);
 
     /**
-     * SSR 데이터로 테마 초기화 (깜박임 방지)
+     * SSR 데이터로 테마 초기화 (동일 테마 시 리렌더 방지)
      */
     initFromServer(activeTheme: string | null) {
+        if (this.currentTheme.activeTheme === activeTheme) return;
         this.currentTheme = {
             activeTheme,
             settings: {}
