@@ -265,6 +265,14 @@
                     계정이 없으신가요? 위 소셜 로그인으로 자동 회원가입됩니다.
                 {/if}
             </p>
+
+            <!-- 접속 문제 안내 -->
+            <p class="text-muted-foreground text-center text-xs">
+                접속에 문제가 있나요?
+                <a href="/help/cache-clear.html" class="text-primary hover:underline"
+                    >캐시 삭제 안내</a
+                >
+            </p>
         </CardContent>
     </Card>
 </div>

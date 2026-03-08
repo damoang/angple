@@ -94,6 +94,14 @@
                     </Button>
                 </div>
             {/if}
+
+            <!-- 캐시 문제 안내 -->
+            <p class="text-muted-foreground mt-6 text-xs">
+                접속이 안 되시나요?
+                <a href="/help/cache-clear.html" class="text-primary hover:underline"
+                    >캐시 삭제 안내</a
+                >
+            </p>
         </CardContent>
     </Card>
 </div>
