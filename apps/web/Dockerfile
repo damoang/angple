@@ -46,6 +46,24 @@ ENV DEV_PORT=$DEV_PORT
 CMD ["sh", "-c", "pnpm dev --host 0.0.0.0 --port $DEV_PORT"]
 
 # -----------------------------
+# Dependencies stage (캐시 최적화)
+# -----------------------------
+FROM base AS deps
+
+WORKDIR /app
+
+# 의존성 파일만 먼저 복사 (소스 변경 시에도 이 레이어 캐시 유지)
+COPY pnpm-workspace.yaml package.json pnpm-lock.yaml .npmrc ./
+COPY packages/types/package.json ./packages/types/
+COPY packages/i18n/package.json ./packages/i18n/
+COPY packages/hook-system/package.json ./packages/hook-system/
+COPY packages/theme-engine/package.json ./packages/theme-engine/
+COPY apps/web/package.json ./apps/web/
+
+# Install dependencies (lock 파일 변경 시에만 재실행)
+RUN pnpm install --frozen-lockfile --filter web...
+
+# -----------------------------
 # Build stage
 # -----------------------------
 FROM base AS builder
@@ -60,36 +78,33 @@ ENV VITE_SSR=$VITE_SSR
 ENV VITE_GAM_NETWORK_CODE=$VITE_GAM_NETWORK_CODE
 ENV VITE_GAM_SITE_NAME=$VITE_GAM_SITE_NAME
 
-# Set working directory
 WORKDIR /app
 
-# Copy workspace configuration files
+# 캐시된 node_modules 복사
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/packages/types/node_modules ./packages/types/node_modules
+COPY --from=deps /app/packages/i18n/node_modules ./packages/i18n/node_modules
+COPY --from=deps /app/packages/hook-system/node_modules ./packages/hook-system/node_modules
+COPY --from=deps /app/packages/theme-engine/node_modules ./packages/theme-engine/node_modules
+COPY --from=deps /app/apps/web/node_modules ./apps/web/node_modules
+
+# 소스 코드 복사
 COPY pnpm-workspace.yaml package.json pnpm-lock.yaml .npmrc ./
-
-# Copy workspace packages (workspace:* dependencies)
 COPY packages ./packages
-
-# Copy themes/plugins/widgets before install (needed for build)
 COPY themes ./themes
 COPY plugins ./plugins
 COPY widgets ./widgets
-
-# Premium 에셋 (빌드 전 mkdir -p로 빈 디렉토리라도 보장)
 COPY custom-themes ./custom-themes
 COPY custom-widgets ./custom-widgets
 COPY extensions ./extensions
-
-# Copy application source
 COPY apps/web ./apps/web
 
-# Install dependencies (with .npmrc hoisting for plugins)
-RUN pnpm install --frozen-lockfile --filter web...
 # 워크스페이스 패키지 먼저 빌드 (의존성 순서대로)
-RUN pnpm --filter @angple/types run build
-RUN pnpm --filter @angple/i18n run build
-RUN pnpm --filter @angple/hook-system run build
-RUN pnpm --filter @angple/theme-engine run build
-RUN pnpm --filter web run build
+RUN pnpm --filter @angple/types run build \
+    && pnpm --filter @angple/i18n run build \
+    && pnpm --filter @angple/hook-system run build \
+    && pnpm --filter @angple/theme-engine run build \
+    && pnpm --filter web run build
 
 # Deploy as standalone package (resolves workspace:* dependencies)
 # --legacy: pnpm v10에서 inject-workspace-packages 없이 deploy 허용

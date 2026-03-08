@@ -27,7 +27,7 @@ jobs:
   # main push 시 Docker 이미지 빌드 + GHCR push
   build-and-push:
     name: Build & Push Image
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm  # ARM64 네이티브 러너 (QEMU 불필요)
     permissions:
       contents: read
       packages: write
@@ -55,9 +55,6 @@ jobs:
         run: |
           mkdir -p custom-themes custom-widgets extensions plugins widgets
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -84,11 +81,11 @@ jobs:
           file: apps/web/Dockerfile
           target: production
           push: true
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/arm64
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha,scope=production
-          cache-to: type=gha,mode=max,scope=production
+          cache-from: type=gha,scope=production-arm64
+          cache-to: type=gha,mode=max,scope=production-arm64
           build-args: |
             VITE_USE_MOCK=false
             VITE_GAM_NETWORK_CODE=23338387889
