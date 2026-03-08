@@ -402,8 +402,26 @@ export const handle: Handle = async ({ event, resolve }) => {
         const pending = ssrCachePending.get(cacheKey);
         if (pending) {
             try {
-                const result = await pending;
-                return result.clone();
+                await pending;
+                // Response.clone() 대신 캐시된 body로 새 Response 생성
+                // (원본 Response body가 이미 소비되어 clone() 실패하는 버그 방지)
+                const freshCached = ssrCache.get(cacheKey);
+                if (freshCached) {
+                    return new Response(freshCached.body, {
+                        status: 200,
+                        headers: {
+                            'Content-Type': 'text/html; charset=utf-8',
+                            'Cache-Control': 'private, no-store, no-cache, must-revalidate',
+                            Vary: 'Cookie',
+                            'X-Content-Type-Options': 'nosniff',
+                            'X-Frame-Options': 'SAMEORIGIN',
+                            'Referrer-Policy': 'strict-origin-when-cross-origin',
+                            'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
+                            ...(!dev ? { 'Content-Security-Policy': cspHeader } : {}),
+                            'X-SSR-Cache': 'HIT'
+                        }
+                    });
+                }
             } catch {
                 // pending 실패 시 아래에서 직접 렌더링
             }
