@@ -50,7 +50,9 @@
 
     // 페이지 이동 시 드로워 자동 닫기
     afterNavigate(() => {
-        isDrawerOpen = false;
+        untrack(() => {
+            isDrawerOpen = false;
+        });
     });
 
     // 테마 모드 순환: light → dark → amoled → light

@@ -111,10 +111,12 @@
 
     // 광고 추적: 매 네비게이션마다 observer 재설정 (aplog 모듈 로드 후)
     afterNavigate(() => {
-        if (!aplogMod) return;
-        aplogMod.destroyAplog();
-        requestAnimationFrame(() => {
-            aplogMod!.initAplog(authStore.user?.mb_id ?? null);
+        untrack(() => {
+            if (!aplogMod) return;
+            aplogMod.destroyAplog();
+            requestAnimationFrame(() => {
+                aplogMod!.initAplog(authStore.user?.mb_id ?? null);
+            });
         });
     });
 
