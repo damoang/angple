@@ -8,6 +8,7 @@
     import type { BoardPermissions } from '$lib/api/types.js';
     import { apiClient } from '$lib/api/index.js';
     import Send from '@lucide/svelte/icons/send';
+    import RefreshCw from '@lucide/svelte/icons/refresh-cw';
     import X from '@lucide/svelte/icons/x';
     import CornerDownRight from '@lucide/svelte/icons/corner-down-right';
     import Lock from '@lucide/svelte/icons/lock';
@@ -35,6 +36,10 @@
         requiredCommentLevel?: number;
         /** 게시판 ID (이미지 업로드용) */
         boardId?: string;
+        /** 댓글 새로고침 콜백 */
+        onRefresh?: () => void;
+        /** 새로고침 중 여부 */
+        isRefreshing?: boolean;
     }
 
     let {
@@ -48,7 +53,9 @@
         showSecretOption = true,
         permissions,
         requiredCommentLevel = 3,
-        boardId = 'free'
+        boardId = 'free',
+        onRefresh,
+        isRefreshing = false
     }: Props = $props();
 
     // 댓글/답글 작성 권한 체크
@@ -321,6 +328,17 @@
                                 {isReplyMode ? '답글 작성' : '댓글 작성'}
                             {/if}
                         </Button>
+                        {#if onRefresh}
+                            <button
+                                type="button"
+                                onclick={onRefresh}
+                                disabled={isRefreshing}
+                                class="text-muted-foreground hover:text-foreground rounded-md p-1.5 transition-colors disabled:opacity-50"
+                                title="댓글 새로고침"
+                            >
+                                <RefreshCw class="size-4 {isRefreshing ? 'animate-spin' : ''}" />
+                            </button>
+                        {/if}
                     </div>
                 </div>
 

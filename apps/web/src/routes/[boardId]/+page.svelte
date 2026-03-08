@@ -316,7 +316,7 @@
             <!-- 최상단 배너 (축하이미지 → 다모앙광고 → GAM 폴백) -->
             {#if widgetLayoutStore.hasEnabledAds}
                 <div class="mb-4">
-                    <DamoangBanner position="board-list" height="45px" showCelebration={false} />
+                    <DamoangBanner position="board-list" height="90px" showCelebration={false} />
                 </div>
             {/if}
 

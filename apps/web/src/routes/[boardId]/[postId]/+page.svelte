@@ -1298,6 +1298,8 @@
                             permissions={data.board?.permissions}
                             requiredCommentLevel={data.board?.comment_level ?? 3}
                             {boardId}
+                            onRefresh={refreshComments}
+                            isRefreshing={isRefreshingComments}
                         />
                     </div>
                 </CardContent>
