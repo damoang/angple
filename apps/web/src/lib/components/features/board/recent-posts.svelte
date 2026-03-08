@@ -175,7 +175,7 @@
         <!-- 보기 옵션 -->
         <DropdownMenu>
             <DropdownMenuTrigger>
-                <Button variant="ghost" size="icon" class="h-8 w-8" title="보기 옵션">
+                <Button variant="ghost" size="icon" class="h-8 w-8 hover:bg-accent-foreground/5 dark:hover:bg-primary-foreground/50" title="보기 옵션">
                     <SlidersHorizontal class="h-4 w-4" />
                 </Button>
             </DropdownMenuTrigger>
