@@ -20,9 +20,13 @@
     let isLoaded = $state(false);
     let hasAd = $state(false);
     let slotId = $state('');
+    let computedHeight = $state(height);
     let slot: googletag.Slot | null = null;
     let refreshInterval: ReturnType<typeof setInterval> | null = null;
     let destroyed = false;
+    let isVisible = false;
+    let visibilityObserver: IntersectionObserver | null = null;
+    let containerEl: HTMLDivElement | null = null;
 
     // GAM 광고 단위 (환경변수 기반)
     const AD_UNIT_PATHS: Record<string, string> = {
@@ -264,6 +268,7 @@
         'index-middle-3': 'banner-horizontal',
         'index-bottom': 'banner-large',
         'header-after': 'banner-horizontal',
+        'board-list-infeed': 'infeed',
         'comment-infeed': 'infeed',
         'comment-top': 'banner-compact',
         'sidebar-sticky': 'banner-halfpage',
@@ -295,6 +300,7 @@
         'board-before-comments': '댓글 상단',
         'board-after-comments': '댓글 하단',
         'board-footer': '게시판 하단',
+        'board-list-infeed': '목록 인피드',
         'comment-infeed': '댓글 인피드',
         'sidebar-sticky': '사이드바 고정',
         'sidebar-2': 'sidebar-2',
@@ -390,7 +396,14 @@
             }
 
             if (!mgr.servicesEnabled) {
+                googletag.pubads().enableSingleRequest();
                 googletag.pubads().collapseEmptyDivs();
+                googletag.pubads().enableLazyLoad({
+                    fetchMarginPercent: 200,
+                    renderMarginPercent: 100,
+                    mobileScaling: 2.0
+                });
+                googletag.pubads().setCentering(true);
                 googletag.pubads().setTargeting('site', GAM_SITE_NAME);
                 const theme = document.documentElement.classList.contains('dark')
                     ? 'dark'
@@ -482,6 +495,26 @@
         };
     }
 
+    // 반응형 높이 자동 계산
+    function getResponsiveHeight(config: AdConfig): string {
+        if (typeof window === 'undefined') return height;
+        const width = window.innerWidth;
+        if (config.responsive) {
+            for (const [viewport, viewportSizes] of config.responsive) {
+                if (width >= viewport && viewportSizes.length > 0) {
+                    const maxHeight = Math.max(...viewportSizes.map((s) => s[1]));
+                    return `${maxHeight}px`;
+                }
+            }
+        }
+        // fallback: 기본 sizes에서 최대 높이
+        if (config.sizes.length > 0) {
+            const maxHeight = Math.max(...config.sizes.map((s) => s[1]));
+            return `${maxHeight}px`;
+        }
+        return height;
+    }
+
     // 광고 슬롯 초기화
     async function initAdSlot() {
         if (!browser) return;
@@ -492,9 +525,26 @@
         const adSizes = sizes || config.sizes;
         slotId = `gam-${position}-${Math.random().toString(36).substr(2, 9)}`;
 
+        // 반응형 높이 자동 계산 (height prop이 기본값인 경우만)
+        if (height === '90px') {
+            computedHeight = getResponsiveHeight(config);
+        }
+
         await tick();
 
         window.googletag = window.googletag || { cmd: [] };
+
+        // IntersectionObserver로 viewability 추적
+        const slotEl = document.getElementById(slotId);
+        if (slotEl) {
+            visibilityObserver = new IntersectionObserver(
+                ([entry]) => {
+                    isVisible = entry.isIntersecting;
+                },
+                { threshold: 0.5 }
+            );
+            visibilityObserver.observe(slotEl);
+        }
 
         enqueueSlot(slotId, config, adSizes, (isEmpty: boolean) => {
             isLoaded = true;
@@ -508,16 +558,16 @@
             if (isEmpty && slot) {
                 setTimeout(() => {
                     if (slot && !destroyed) {
-                        googletag.pubads().refresh([slot]);
+                        googletag.pubads().refresh([slot], { changeCorrelator: false });
                     }
                 }, GAM_AD_EMPTY_RETRY_DELAY * 1000);
             }
 
-            // 자동 새로고침 설정
+            // 자동 새로고침 설정 (viewability 체크)
             if (!isEmpty && !refreshInterval) {
                 refreshInterval = setInterval(() => {
-                    if (slot && hasAd && !destroyed) {
-                        googletag.pubads().refresh([slot]);
+                    if (slot && hasAd && !destroyed && isVisible) {
+                        googletag.pubads().refresh([slot], { changeCorrelator: false });
                     }
                 }, GAM_AD_REFRESH_INTERVAL * 1000);
             }
@@ -530,6 +580,10 @@
 
     onDestroy(() => {
         destroyed = true;
+
+        if (visibilityObserver) {
+            visibilityObserver.disconnect();
+        }
 
         if (refreshInterval) {
             clearInterval(refreshInterval);
@@ -548,14 +602,15 @@
 </script>
 
 <div
+    bind:this={containerEl}
     class="ad-slot-container relative overflow-hidden rounded-lg transition-all duration-300 {className}"
     class:ad-slot-placeholder={!isLoaded}
     class:ad-slot-loaded={isLoaded && hasAd}
-    style:min-height={height}
+    style:min-height={computedHeight}
 >
     {#if slotId}
         <!-- GAM 광고 슬롯 -->
-        <div id={slotId} class="gam-ad-slot w-full" style="min-height: {height};"></div>
+        <div id={slotId} class="gam-ad-slot w-full" style="min-height: {computedHeight};"></div>
     {/if}
 
     {#if !isLoaded}

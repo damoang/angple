@@ -71,6 +71,7 @@ export async function initGAM(): Promise<boolean> {
         initializeGPT({
             collapseEmptyDivs: true,
             singleRequest: true,
+            lazyLoad: true,
             targeting: siteName ? { site: siteName } : {}
         });
 

@@ -93,12 +93,18 @@ export function initializeGPT(
     options: {
         collapseEmptyDivs?: boolean;
         singleRequest?: boolean;
+        lazyLoad?: boolean;
         targeting?: Record<string, string>;
     } = {}
 ): void {
     if (!browser || !window.googletag) return;
 
-    const { collapseEmptyDivs = true, singleRequest = true, targeting = {} } = options;
+    const {
+        collapseEmptyDivs = true,
+        singleRequest = true,
+        lazyLoad = true,
+        targeting = {}
+    } = options;
 
     window.googletag.cmd.push(() => {
         const pubads = window.googletag!.pubads();
@@ -112,6 +118,18 @@ export function initializeGPT(
         if (singleRequest) {
             pubads.enableSingleRequest();
         }
+
+        // Lazy Load (뷰포트 근처 광고만 fetch/render)
+        if (lazyLoad) {
+            pubads.enableLazyLoad({
+                fetchMarginPercent: 200,
+                renderMarginPercent: 100,
+                mobileScaling: 2.0
+            });
+        }
+
+        // 광고 중앙 정렬 (모바일 잘림 방지)
+        pubads.setCentering(true);
 
         // 타겟팅 설정
         Object.entries(targeting).forEach(([key, value]) => {

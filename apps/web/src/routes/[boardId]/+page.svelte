@@ -7,8 +7,10 @@
     import { Badge } from '$lib/components/ui/badge/index.js';
     import type { PageData } from './$types.js';
     import { authStore } from '$lib/stores/auth.svelte.js';
+    import { slide } from 'svelte/transition';
     import Pencil from '@lucide/svelte/icons/pencil';
     import Lock from '@lucide/svelte/icons/lock';
+    import Search from '@lucide/svelte/icons/search';
     import Megaphone from '@lucide/svelte/icons/megaphone';
     import Pin from '@lucide/svelte/icons/pin';
     import Tag from '@lucide/svelte/icons/tag';
@@ -119,6 +121,7 @@
 
     // 읽은 글 표시 지연 — SSR에서는 모든 글이 "안읽음"으로 렌더링되므로,
     // 하이드레이션 직후 즉시 변경하면 깜빡임 발생. 2프레임 대기 후 부드럽게 전환.
+    let showSearch = $state(false);
     let showReadState = $state(false);
     onMount(() => {
         requestAnimationFrame(() => {
@@ -363,6 +366,15 @@
                     {/if}
                 </div>
 
+                <Button
+                    variant="outline"
+                    size="icon"
+                    class="h-9 w-9 shrink-0"
+                    onclick={() => (showSearch = !showSearch)}
+                    title="검색"
+                >
+                    <Search class="h-4 w-4" />
+                </Button>
                 {#if canWrite()}
                     <Button onclick={goToWrite} class="shrink-0">
                         <Pencil class="mr-2 h-4 w-4" />
@@ -388,15 +400,17 @@
                 </div>
             {/if}
 
-            <!-- 검색 폼 -->
-            <div class="mb-3">
-                <SearchForm boardPath={`/${boardId}`} />
-            </div>
+            <!-- 검색 폼 (토글 or 검색 중) -->
+            {#if showSearch || isSearching}
+                <div class="mb-3" transition:slide={{ duration: 200 }}>
+                    <SearchForm boardPath={`/${boardId}`} />
+                </div>
+            {/if}
 
-            <!-- 검색 폼 아래 GAM 광고 -->
+            <!-- 상단 GAM 광고 -->
             {#if widgetLayoutStore.hasEnabledAds}
                 <div class="mb-4">
-                    <AdSlot position="board-head" height="45px" />
+                    <AdSlot position="board-head" height="22px" />
                 </div>
             {/if}
 
@@ -475,148 +489,6 @@
                             <p class="text-destructive text-center">{result.error}</p>
                         </CardContent>
                     </Card>
-                {/if}
-
-                <!-- 공지사항 (검색 중이 아닐 때만 표시) -->
-                {#if hasNotices && !isSearching}
-                    {#if listLayoutId === 'classic'}
-                        <div
-                            class="border-border divide-border mb-2 divide-y overflow-hidden rounded-lg border"
-                        >
-                            {#each importantNotices as notice (notice.id)}
-                                <a
-                                    href="/{boardId}/{notice.id}"
-                                    class="hover:bg-destructive/10 block px-4 py-1.5 no-underline transition-colors"
-                                    style="background: rgba(239, 68, 68, 0.04);"
-                                    data-sveltekit-preload-data="hover"
-                                >
-                                    <div class="flex items-center gap-2 md:gap-3">
-                                        <div class="hidden shrink-0 md:block" style="width: 60px;">
-                                            <div
-                                                class="mx-auto flex h-5 w-10 items-center justify-center rounded-lg"
-                                                style="background: rgba(239,68,68,0.1);"
-                                            >
-                                                <Megaphone
-                                                    class="h-3.5 w-3.5"
-                                                    style="color: orangered;"
-                                                />
-                                            </div>
-                                        </div>
-                                        <div class="min-w-0 flex-1">
-                                            <div class="flex items-center gap-1">
-                                                <Megaphone
-                                                    class="text-destructive h-3.5 w-3.5 shrink-0 md:hidden"
-                                                /><Badge
-                                                    variant="destructive"
-                                                    class="shrink-0 text-[10px]">필수</Badge
-                                                >
-                                                <h3
-                                                    class="text-foreground truncate font-medium"
-                                                    style="font-size: 0.9375rem;"
-                                                >
-                                                    {notice.title}
-                                                </h3>
-                                            </div>
-                                        </div>
-                                        <span
-                                            class="text-muted-foreground hidden shrink-0 md:inline"
-                                            style="font-size: 13px;">{notice.author}</span
-                                        >
-                                    </div>
-                                </a>
-                            {/each}
-                            {#each normalNotices as notice (notice.id)}
-                                <a
-                                    href="/{boardId}/{notice.id}"
-                                    class="hover:bg-accent block px-4 py-1.5 no-underline transition-colors"
-                                    style="background: rgba(255, 255, 255, 0.03);"
-                                    data-sveltekit-preload-data="hover"
-                                >
-                                    <div class="flex items-center gap-2 md:gap-3">
-                                        <div class="hidden shrink-0 md:block" style="width: 60px;">
-                                            <div
-                                                class="mx-auto flex h-5 w-10 items-center justify-center rounded-lg"
-                                                style="background: rgba(239,68,68,0.1);"
-                                            >
-                                                <Pin
-                                                    class="h-3.5 w-3.5"
-                                                    style="color: orangered;"
-                                                />
-                                            </div>
-                                        </div>
-                                        <div class="min-w-0 flex-1">
-                                            <div class="flex items-center gap-1">
-                                                <Pin
-                                                    class="text-liked h-3.5 w-3.5 shrink-0 md:hidden"
-                                                /><Badge
-                                                    class="shrink-0 text-[10px] font-semibold"
-                                                    style="background: rgba(239, 68, 68, 0.15); color: rgb(239, 68, 68); border: 1px solid rgba(239, 68, 68, 0.2);"
-                                                    >공지</Badge
-                                                >
-                                                <h3
-                                                    class="text-foreground truncate font-medium"
-                                                    style="font-size: 0.9375rem;"
-                                                >
-                                                    {notice.title}
-                                                </h3>
-                                            </div>
-                                        </div>
-                                        <span
-                                            class="text-muted-foreground hidden shrink-0 md:inline"
-                                            style="font-size: 13px;">{notice.author}</span
-                                        >
-                                    </div>
-                                </a>
-                            {/each}
-                        </div>
-                    {:else}
-                        <div class="mb-4 space-y-1">
-                            {#each importantNotices as notice (notice.id)}
-                                <a
-                                    href="/{boardId}/{notice.id}"
-                                    class="bg-destructive/5 border-destructive/20 hover:bg-destructive/10 block rounded-lg border px-4 py-3 no-underline transition-colors"
-                                    data-sveltekit-preload-data="hover"
-                                >
-                                    <div class="flex items-center gap-3">
-                                        <div class="flex shrink-0 items-center gap-1.5">
-                                            <Megaphone class="text-destructive h-4 w-4" /><Badge
-                                                variant="destructive"
-                                                class="text-xs">필수</Badge
-                                            >
-                                        </div>
-                                        <h3 class="text-foreground flex-1 truncate font-medium">
-                                            {notice.title}
-                                        </h3>
-                                        <span class="text-muted-foreground shrink-0 text-xs"
-                                            >{notice.author}</span
-                                        >
-                                    </div>
-                                </a>
-                            {/each}
-                            {#each normalNotices as notice (notice.id)}
-                                <a
-                                    href="/{boardId}/{notice.id}"
-                                    class="bg-muted/50 border-border hover:bg-muted block rounded-lg border px-4 py-3 no-underline transition-colors"
-                                    data-sveltekit-preload-data="hover"
-                                >
-                                    <div class="flex items-center gap-3">
-                                        <div class="flex shrink-0 items-center gap-1.5">
-                                            <Pin class="text-muted-foreground h-4 w-4" /><Badge
-                                                variant="secondary"
-                                                class="text-xs">공지</Badge
-                                            >
-                                        </div>
-                                        <h3 class="text-foreground flex-1 truncate font-medium">
-                                            {notice.title}
-                                        </h3>
-                                        <span class="text-muted-foreground shrink-0 text-xs"
-                                            >{notice.author}</span
-                                        >
-                                    </div>
-                                </a>
-                            {/each}
-                        </div>
-                    {/if}
                 {/if}
 
                 <!-- 일괄 작업 툴바 (관리자 선택 모드) -->
@@ -712,6 +584,141 @@
                             </div>
                         </div>
                     {/if}
+                    <!-- 공지사항 (목록 내부) -->
+                    {#if hasNotices && !isSearching}
+                        {#if listLayoutId === 'classic'}
+                            {#each importantNotices as notice (notice.id)}
+                                <a
+                                    href="/{boardId}/{notice.id}"
+                                    class="hover:bg-destructive/10 block px-4 py-1.5 no-underline transition-colors"
+                                    style="background: rgba(239, 68, 68, 0.04);"
+                                    data-sveltekit-preload-data="hover"
+                                >
+                                    <div class="flex items-center gap-2 md:gap-3">
+                                        <div class="hidden shrink-0 md:block" style="width: 60px;">
+                                            <div
+                                                class="mx-auto flex h-5 w-10 items-center justify-center rounded-lg"
+                                                style="background: rgba(239,68,68,0.1);"
+                                            >
+                                                <Megaphone
+                                                    class="h-3.5 w-3.5"
+                                                    style="color: orangered;"
+                                                />
+                                            </div>
+                                        </div>
+                                        <div class="min-w-0 flex-1">
+                                            <div class="flex items-center gap-1">
+                                                <Megaphone
+                                                    class="text-destructive h-3.5 w-3.5 shrink-0 md:hidden"
+                                                /><Badge
+                                                    variant="destructive"
+                                                    class="shrink-0 text-[10px]">필수</Badge
+                                                >
+                                                <h3
+                                                    class="text-foreground truncate font-medium"
+                                                    style="font-size: 0.9375rem;"
+                                                >
+                                                    {notice.title}
+                                                </h3>
+                                            </div>
+                                        </div>
+                                        <span
+                                            class="text-muted-foreground hidden shrink-0 md:inline"
+                                            style="font-size: 13px;">{notice.author}</span
+                                        >
+                                    </div>
+                                </a>
+                            {/each}
+                            {#each normalNotices as notice (notice.id)}
+                                <a
+                                    href="/{boardId}/{notice.id}"
+                                    class="hover:bg-accent block px-4 py-1.5 no-underline transition-colors"
+                                    style="background: rgba(255, 255, 255, 0.03);"
+                                    data-sveltekit-preload-data="hover"
+                                >
+                                    <div class="flex items-center gap-2 md:gap-3">
+                                        <div class="hidden shrink-0 md:block" style="width: 60px;">
+                                            <div
+                                                class="mx-auto flex h-5 w-10 items-center justify-center rounded-lg"
+                                                style="background: rgba(239,68,68,0.1);"
+                                            >
+                                                <Pin
+                                                    class="h-3.5 w-3.5"
+                                                    style="color: orangered;"
+                                                />
+                                            </div>
+                                        </div>
+                                        <div class="min-w-0 flex-1">
+                                            <div class="flex items-center gap-1">
+                                                <Pin
+                                                    class="text-liked h-3.5 w-3.5 shrink-0 md:hidden"
+                                                /><Badge
+                                                    class="shrink-0 text-[10px] font-semibold"
+                                                    style="background: rgba(239, 68, 68, 0.15); color: rgb(239, 68, 68); border: 1px solid rgba(239, 68, 68, 0.2);"
+                                                    >공지</Badge
+                                                >
+                                                <h3
+                                                    class="text-foreground truncate font-medium"
+                                                    style="font-size: 0.9375rem;"
+                                                >
+                                                    {notice.title}
+                                                </h3>
+                                            </div>
+                                        </div>
+                                        <span
+                                            class="text-muted-foreground hidden shrink-0 md:inline"
+                                            style="font-size: 13px;">{notice.author}</span
+                                        >
+                                    </div>
+                                </a>
+                            {/each}
+                        {:else}
+                            {#each importantNotices as notice (notice.id)}
+                                <a
+                                    href="/{boardId}/{notice.id}"
+                                    class="bg-destructive/5 border-destructive/20 hover:bg-destructive/10 block rounded-lg border px-4 py-3 no-underline transition-colors"
+                                    data-sveltekit-preload-data="hover"
+                                >
+                                    <div class="flex items-center gap-3">
+                                        <div class="flex shrink-0 items-center gap-1.5">
+                                            <Megaphone class="text-destructive h-4 w-4" /><Badge
+                                                variant="destructive"
+                                                class="text-xs">필수</Badge
+                                            >
+                                        </div>
+                                        <h3 class="text-foreground flex-1 truncate font-medium">
+                                            {notice.title}
+                                        </h3>
+                                        <span class="text-muted-foreground shrink-0 text-xs"
+                                            >{notice.author}</span
+                                        >
+                                    </div>
+                                </a>
+                            {/each}
+                            {#each normalNotices as notice (notice.id)}
+                                <a
+                                    href="/{boardId}/{notice.id}"
+                                    class="bg-muted/50 border-border hover:bg-muted block rounded-lg border px-4 py-3 no-underline transition-colors"
+                                    data-sveltekit-preload-data="hover"
+                                >
+                                    <div class="flex items-center gap-3">
+                                        <div class="flex shrink-0 items-center gap-1.5">
+                                            <Pin class="text-muted-foreground h-4 w-4" /><Badge
+                                                variant="secondary"
+                                                class="text-xs">공지</Badge
+                                            >
+                                        </div>
+                                        <h3 class="text-foreground flex-1 truncate font-medium">
+                                            {notice.title}
+                                        </h3>
+                                        <span class="text-muted-foreground shrink-0 text-xs"
+                                            >{notice.author}</span
+                                        >
+                                    </div>
+                                </a>
+                            {/each}
+                        {/if}
+                    {/if}
                     {#if filteredPosts.length === 0}
                         <Card
                             class="bg-background {listLayoutId === 'gallery'
@@ -766,6 +773,11 @@
                                         variant={listLayoutId === 'classic' ? 'classic' : 'default'}
                                     />
                                 {/each}
+                            {/if}
+                            {#if widgetLayoutStore.hasEnabledAds && i + 1 === 15}
+                                <div class="py-2">
+                                    <AdSlot position="board-list-infeed" height="90px" />
+                                </div>
                             {/if}
                         {/each}
                     {/if}
