@@ -100,12 +100,21 @@ jobs:
 
           cp -r apps/web/build apps/web/deploy/
 
+          # 기존 부분 복사 방지 — 깨끗한 상태에서 복사
+          rm -rf apps/web/deploy/plugins apps/web/deploy/widgets apps/web/deploy/themes
+          rm -rf apps/web/deploy/custom-themes apps/web/deploy/custom-widgets apps/web/deploy/extensions
+
           cp -r plugins apps/web/deploy/ 2>/dev/null || mkdir -p apps/web/deploy/plugins
           cp -r widgets apps/web/deploy/ 2>/dev/null || mkdir -p apps/web/deploy/widgets
           cp -r themes apps/web/deploy/ 2>/dev/null || mkdir -p apps/web/deploy/themes
           cp -r custom-themes apps/web/deploy/ 2>/dev/null || mkdir -p apps/web/deploy/custom-themes
           cp -r custom-widgets apps/web/deploy/ 2>/dev/null || mkdir -p apps/web/deploy/custom-widgets
           cp -r extensions apps/web/deploy/ 2>/dev/null || mkdir -p apps/web/deploy/extensions
+
+          # 검증 로그
+          echo "=== Plugin verification ==="
+          ls -la apps/web/deploy/plugins/ || echo "WARNING: plugins directory empty!"
+          ls apps/web/deploy/plugins/*/plugin.json 2>/dev/null | wc -l | xargs -I{} echo "Plugins with manifest: {}"
 
       - name: Build and push Docker image
         run: |
