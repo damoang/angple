@@ -95,8 +95,16 @@
     });
 
     // 새 버전 감지 시 다음 네비게이션에서 캐시 무효화 후 풀 리로드
+    // 단, chunk error 리로드 한도 초과 시 스킵 (리로드 루프 방지)
     afterNavigate(({ type }) => {
         if ($updated && type !== 'enter') {
+            try {
+                const raw = sessionStorage.getItem('__angple_chunk_error__');
+                if (raw) {
+                    const s = JSON.parse(raw);
+                    if (s.count >= 2 || s.exhausted) return;
+                }
+            } catch {}
             location.reload();
         }
     });

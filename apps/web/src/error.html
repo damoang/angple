@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="ko">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>오류 발생 - %sveltekit.status%</title>
+        <style>
+            *,
+            *::before,
+            *::after {
+                box-sizing: border-box;
+                margin: 0;
+                padding: 0;
+            }
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                min-height: 100vh;
+                background: #f9fafb;
+                color: #111827;
+                padding: 24px;
+            }
+            @media (prefers-color-scheme: dark) {
+                body {
+                    background: #111827;
+                    color: #f9fafb;
+                }
+                .card {
+                    background: #1f2937 !important;
+                    border-color: #374151 !important;
+                }
+                .btn {
+                    border-color: #4b5563 !important;
+                    color: #f9fafb !important;
+                }
+                .btn:hover {
+                    background: #374151 !important;
+                }
+                .btn-primary {
+                    background: #2563eb !important;
+                    border-color: #2563eb !important;
+                    color: #fff !important;
+                }
+                .btn-primary:hover {
+                    background: #1d4ed8 !important;
+                }
+                .status {
+                    color: #9ca3af !important;
+                }
+            }
+            .card {
+                background: #fff;
+                border: 1px solid #e5e7eb;
+                border-radius: 12px;
+                padding: 40px;
+                max-width: 480px;
+                width: 100%;
+                text-align: center;
+            }
+            .status {
+                font-size: 48px;
+                font-weight: 700;
+                color: #6b7280;
+                margin-bottom: 8px;
+            }
+            h1 {
+                font-size: 20px;
+                font-weight: 600;
+                margin-bottom: 12px;
+            }
+            p {
+                font-size: 14px;
+                color: #6b7280;
+                margin-bottom: 24px;
+                line-height: 1.6;
+            }
+            .actions {
+                display: flex;
+                gap: 12px;
+                justify-content: center;
+                flex-wrap: wrap;
+            }
+            .btn {
+                display: inline-flex;
+                align-items: center;
+                padding: 10px 20px;
+                font-size: 14px;
+                font-weight: 500;
+                border-radius: 8px;
+                border: 1px solid #d1d5db;
+                background: transparent;
+                color: #374151;
+                cursor: pointer;
+                text-decoration: none;
+                transition: background 0.15s;
+            }
+            .btn:hover {
+                background: #f3f4f6;
+            }
+            .btn-primary {
+                background: #2563eb;
+                border-color: #2563eb;
+                color: #fff;
+            }
+            .btn-primary:hover {
+                background: #1d4ed8;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="card">
+            <div class="status">%sveltekit.status%</div>
+            <h1>페이지를 불러올 수 없습니다</h1>
+            <p>%sveltekit.error.message%</p>
+            <div class="actions">
+                <button class="btn btn-primary" onclick="location.reload()">새로고침</button>
+                <button
+                    class="btn"
+                    onclick="if(navigator.serviceWorker){navigator.serviceWorker.getRegistrations().then(function(r){r.forEach(function(s){s.unregister()})})};if(window.caches){caches.keys().then(function(n){n.forEach(function(k){caches.delete(k)})})};setTimeout(function(){location.replace(location.href.split('?')[0]+'?_v='+Date.now())},300)"
+                >
+                    캐시 삭제 후 새로고침
+                </button>
+            </div>
+        </div>
+    </body>
+</html>

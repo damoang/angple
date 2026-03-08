@@ -61,14 +61,9 @@ function isChunkLoadError(error: unknown): boolean {
 }
 
 /**
- * Chunk error 시 자동 새로고침 (최대 2회)
- * sessionStorage 카운터로 무한 루프 방지
- * 2회 실패 시 사용자에게 새 버전 배포 안내 UI 표시
+ * 캐시 전체 삭제 후 리로드 (배너 새로고침 버튼에서 사용)
  */
-const RELOAD_KEY = '__angple_chunk_reload_count__';
-
 function clearCachesAndReload(): void {
-    // SW 해제 + Cache Storage 전체 삭제 후 캐시 무시 리로드
     const tasks: Promise<void>[] = [];
     if (navigator.serviceWorker) {
         tasks.push(
@@ -85,21 +80,9 @@ function clearCachesAndReload(): void {
         );
     }
     Promise.all(tasks).finally(() => {
-        // cache-busting query로 브라우저 캐시 우회
         const url = location.href.split('?')[0];
         location.replace(url + '?_v=' + Date.now());
     });
-}
-
-function tryChunkReload(): void {
-    const count = Number(sessionStorage.getItem(RELOAD_KEY) || '0');
-    if (count < 2) {
-        sessionStorage.setItem(RELOAD_KEY, String(count + 1));
-        clearCachesAndReload();
-    } else {
-        sessionStorage.removeItem(RELOAD_KEY);
-        showUpdateNotice();
-    }
 }
 
 function showUpdateNotice(): void {
@@ -142,13 +125,24 @@ function showUpdateNotice(): void {
     });
 }
 
-// 성공적으로 페이지 로드 + hydration 완료 후 카운터 리셋
-// load 직후 제거하면 hydration 중 chunk error로 카운터가 리셋되어 무한 리로드 발생
+// app.html 통합 핸들러와 연동: exhausted 상태면 배너 표시
 if (typeof window !== 'undefined') {
-    window.addEventListener('load', () => {
-        setTimeout(() => {
-            sessionStorage.removeItem(RELOAD_KEY);
-        }, 10000);
+    // 페이지 로드 시 exhausted 체크
+    const chunkError = (window as any).__angpleChunkError;
+    if (chunkError) {
+        const state = chunkError.getState();
+        if (state.exhausted) {
+            // DOM 준비 후 배너 표시
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', () => showUpdateNotice());
+            } else {
+                showUpdateNotice();
+            }
+        }
+    }
+    // 리로드 한도 초과 이벤트 수신
+    window.addEventListener('angple:chunk-error-exhausted', () => {
+        showUpdateNotice();
     });
 }
 
@@ -156,9 +150,12 @@ if (typeof window !== 'undefined') {
 export const handleError: HandleClientError = ({ error, event, status }) => {
     const err = error instanceof Error ? error : new Error(String(error));
 
-    // 배포 후 chunk 로드 실패 → 자동 새로고침 (최대 2회)
+    // 배포 후 chunk 로드 실패 → app.html 통합 핸들러에 위임
     if (isChunkLoadError(error)) {
-        tryChunkReload();
+        const chunkError = (window as any).__angpleChunkError;
+        if (chunkError) {
+            chunkError.handle();
+        }
         return;
     }
 

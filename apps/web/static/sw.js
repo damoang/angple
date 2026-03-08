@@ -67,6 +67,12 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
+    // __data.json Circuit Breaker: 연속 실패 시 서버 요청 폭풍 차단
+    if (url.pathname.endsWith('/__data.json')) {
+        event.respondWith(dataJsonWithCircuitBreaker(request));
+        return;
+    }
+
     // HTML 내비게이션: Network Only (오프라인 폴백 없음)
     if (request.mode === 'navigate') {
         return;
@@ -132,6 +138,48 @@ self.addEventListener('notificationclick', (event) => {
         })
     );
 });
+
+/** __data.json Circuit Breaker */
+let dataJsonFailCount = 0;
+let dataJsonCooldownUntil = 0;
+const DATA_JSON_MAX_FAILS = 3;
+const DATA_JSON_COOLDOWN_MS = 10000;
+
+async function dataJsonWithCircuitBreaker(request) {
+    const now = Date.now();
+    // 쿨다운 중이면 즉시 503 반환
+    if (dataJsonFailCount >= DATA_JSON_MAX_FAILS && now < dataJsonCooldownUntil) {
+        return new Response(
+            JSON.stringify({ error: 'Circuit breaker open — too many failures' }),
+            { status: 503, headers: { 'Content-Type': 'application/json' } }
+        );
+    }
+    // 쿨다운 만료 시 리셋
+    if (now >= dataJsonCooldownUntil && dataJsonFailCount >= DATA_JSON_MAX_FAILS) {
+        dataJsonFailCount = 0;
+    }
+    try {
+        const response = await fetch(request);
+        if (response.ok) {
+            dataJsonFailCount = 0; // 성공 시 즉시 리셋
+        } else {
+            dataJsonFailCount++;
+            if (dataJsonFailCount >= DATA_JSON_MAX_FAILS) {
+                dataJsonCooldownUntil = Date.now() + DATA_JSON_COOLDOWN_MS;
+            }
+        }
+        return response;
+    } catch {
+        dataJsonFailCount++;
+        if (dataJsonFailCount >= DATA_JSON_MAX_FAILS) {
+            dataJsonCooldownUntil = Date.now() + DATA_JSON_COOLDOWN_MS;
+        }
+        return new Response(
+            JSON.stringify({ error: 'Network error' }),
+            { status: 503, headers: { 'Content-Type': 'application/json' } }
+        );
+    }
+}
 
 /** 정적 자산 판별 */
 function isStaticAsset(pathname) {

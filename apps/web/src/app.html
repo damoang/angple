@@ -93,40 +93,121 @@
                 }
             });
         </script>
-        <!-- JS chunk 로드 실패 시 자동 새로고침 (배포 후 캐시 불일치 대응) -->
+        <!-- 통합 청크 에러 핸들러 (app.html + hooks.client.ts 공유) -->
         <script>
             (function () {
-                var reloadKey = '_angple_reload';
-                var reloaded = sessionStorage.getItem(reloadKey);
+                var KEY = '__angple_chunk_error__';
+                var MAX_RELOADS = 2;
+                var WINDOW_MS = 60000;
+
+                function getState() {
+                    try {
+                        var raw = sessionStorage.getItem(KEY);
+                        if (raw) return JSON.parse(raw);
+                    } catch (e) {}
+                    return { count: 0, ts: 0, exhausted: false };
+                }
+
+                function setState(s) {
+                    try { sessionStorage.setItem(KEY, JSON.stringify(s)); } catch (e) {}
+                }
+
+                function isChunkError(msg) {
+                    if (!msg) return false;
+                    var m = msg.toLowerCase();
+                    return m.indexOf('failed to fetch dynamically imported module') !== -1 ||
+                        m.indexOf('importing a module script failed') !== -1 ||
+                        m.indexOf('error loading dynamically imported module') !== -1 ||
+                        m.indexOf('chunkloaderror') !== -1 ||
+                        (m.indexOf('load') !== -1 && m.indexOf('chunk') !== -1);
+                }
+
+                function handle() {
+                    var s = getState();
+                    var now = Date.now();
+                    // 윈도우 만료 시 리셋
+                    if (now - s.ts > WINDOW_MS) {
+                        s = { count: 0, ts: now, exhausted: false };
+                    }
+                    s.count++;
+                    s.ts = now;
+                    if (s.count <= MAX_RELOADS) {
+                        setState(s);
+                        location.reload();
+                    } else {
+                        s.exhausted = true;
+                        setState(s);
+                        // hooks.client.ts에서 배너 표시하도록 이벤트 발송
+                        try {
+                            window.dispatchEvent(new CustomEvent('angple:chunk-error-exhausted'));
+                        } catch (e) {}
+                    }
+                }
+
+                // 전역 노출 (hooks.client.ts와 공유)
+                window.__angpleChunkError = { getState: getState, handle: handle };
+
+                // <script>/<link> error 이벤트 캡처
                 window.addEventListener('error', function (e) {
-                    // immutable JS/CSS 로드 실패 감지
                     if (
                         e.target &&
                         (e.target.tagName === 'SCRIPT' || e.target.tagName === 'LINK') &&
-                        e.target.href &&
-                        e.target.href.indexOf('/_app/immutable/') !== -1 &&
-                        !reloaded
+                        (e.target.src || e.target.href || '').indexOf('/_app/immutable/') !== -1
                     ) {
-                        sessionStorage.setItem(reloadKey, '1');
-                        location.reload();
+                        handle();
                     }
                 }, true);
+
                 // 모듈 import 실패 감지
                 window.addEventListener('unhandledrejection', function (e) {
-                    if (
-                        e.reason &&
-                        e.reason.message &&
-                        e.reason.message.indexOf('Failed to fetch dynamically imported module') !== -1 &&
-                        !reloaded
-                    ) {
-                        sessionStorage.setItem(reloadKey, '1');
-                        location.reload();
+                    if (e.reason && e.reason.message && isChunkError(e.reason.message)) {
+                        handle();
                     }
                 });
-                // 정상 로드 시 플래그 제거
+
+                // 정상 로드 + hydration 완료 후 카운터 리셋 (10초 딜레이)
                 window.addEventListener('load', function () {
-                    sessionStorage.removeItem(reloadKey);
+                    setTimeout(function () {
+                        var s = getState();
+                        if (!s.exhausted) {
+                            try { sessionStorage.removeItem(KEY); } catch (e) {}
+                        }
+                    }, 10000);
                 });
+            })();
+        </script>
+        <!-- Raw JSON 감지: JS 로드 실패 시 __data.json이 화면에 표시되는 것 방지 -->
+        <script>
+            (function () {
+                setTimeout(function () {
+                    try {
+                        var text = document.body.innerText;
+                        if (!text) return;
+                        var trimmed = text.trim();
+                        if (
+                            trimmed.indexOf('{"type":"data","nodes":[') === 0 ||
+                            trimmed.indexOf('{"type":"redirect"') === 0
+                        ) {
+                            var isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                            var bg = isDark ? '#111827' : '#f9fafb';
+                            var fg = isDark ? '#f9fafb' : '#111827';
+                            var cardBg = isDark ? '#1f2937' : '#fff';
+                            var borderColor = isDark ? '#374151' : '#e5e7eb';
+                            var btnBg = '#2563eb';
+                            document.documentElement.innerHTML =
+                                '<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>페이지 로딩 오류</title></head>' +
+                                '<body style="font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;background:' + bg + ';color:' + fg + ';padding:24px;margin:0">' +
+                                '<div style="background:' + cardBg + ';border:1px solid ' + borderColor + ';border-radius:12px;padding:40px;max-width:480px;width:100%;text-align:center">' +
+                                '<div style="font-size:48px;font-weight:700;color:#6b7280;margin-bottom:8px">!</div>' +
+                                '<h1 style="font-size:20px;font-weight:600;margin-bottom:12px">페이지를 불러올 수 없습니다</h1>' +
+                                '<p style="font-size:14px;color:#6b7280;margin-bottom:24px;line-height:1.6">새 버전이 배포되어 페이지를 표시할 수 없습니다.<br>아래 버튼을 눌러 새로고침해 주세요.</p>' +
+                                '<div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">' +
+                                '<button onclick="location.reload()" style="padding:10px 20px;font-size:14px;font-weight:500;border-radius:8px;border:none;background:' + btnBg + ';color:#fff;cursor:pointer">새로고침</button>' +
+                                '<button onclick="if(navigator.serviceWorker){navigator.serviceWorker.getRegistrations().then(function(r){r.forEach(function(s){s.unregister()})})};if(window.caches){caches.keys().then(function(n){n.forEach(function(k){caches.delete(k)})})};setTimeout(function(){location.replace(location.href.split(\'?\')[0]+\'?_v=\'+Date.now())},300)" style="padding:10px 20px;font-size:14px;font-weight:500;border-radius:8px;border:1px solid ' + borderColor + ';background:transparent;color:' + fg + ';cursor:pointer">캐시 삭제 후 새로고침</button>' +
+                                '</div></div></body>';
+                        }
+                    } catch (e) {}
+                }, 3000);
             })();
         </script>
         <script>
