@@ -6,7 +6,7 @@
     import * as Tabs from '$lib/components/ui/tabs/index.js';
     import type { PageData } from './$types.js';
     import { authStore } from '$lib/stores/auth.svelte.js';
-    import { getAvatarUrl, getMemberIconUrl } from '$lib/utils/member-icon.js';
+    import { getAvatarUrl, getMemberIconUrl, handleIconError } from '$lib/utils/member-icon.js';
     import { apiClient } from '$lib/api/index.js';
     import { goto } from '$app/navigation';
     import { onMount } from 'svelte';
@@ -62,13 +62,12 @@
     let { data }: { data: PageData & { profile: any } } = $props();
     const p = $derived(data.profile);
 
-    let profileAvatarUrl = $derived(
-        getAvatarUrl(p?.mb_image) || getMemberIconUrl(p?.mb_id) || null
+    const profileIconUrl = $derived(
+        getAvatarUrl(p?.mb_image) || getMemberIconUrl(p?.mb_id)
     );
-    let profileAvatarFailed = $state(false);
-
+    let profileIconFailed = $state(false);
     $effect(() => {
-        if (p) profileAvatarFailed = false;
+        if (p) profileIconFailed = false;
     });
 
     // 본인 프로필
@@ -328,25 +327,23 @@
             <CardContent class="pt-6">
                 <div class="flex items-center gap-4">
                     <!-- 프로필 이미지 -->
-                    <div
-                        class="flex h-16 w-16 shrink-0 items-center justify-center rounded-full {profileAvatarUrl &&
-                        !profileAvatarFailed
-                            ? 'overflow-hidden'
-                            : 'bg-primary text-primary-foreground'}"
-                    >
-                        {#if profileAvatarUrl && !profileAvatarFailed}
-                            <img
-                                src={profileAvatarUrl}
-                                alt={p.mb_name}
-                                class="h-full w-full object-cover"
-                                onerror={() => {
-                                    profileAvatarFailed = true;
-                                }}
-                            />
-                        {:else}
-                            <User class="h-8 w-8" />
-                        {/if}
-                    </div>
+                    {#if profileIconUrl && !profileIconFailed}
+                        <img
+                            src={profileIconUrl}
+                            alt={p.mb_name}
+                            class="size-16 shrink-0 rounded-full object-cover"
+                            onerror={(e) => {
+                                handleIconError(e);
+                                profileIconFailed = true;
+                            }}
+                        />
+                    {:else}
+                        <div
+                            class="bg-muted text-muted-foreground flex size-16 shrink-0 items-center justify-center rounded-full text-xl font-bold"
+                        >
+                            {p.mb_name.charAt(0).toUpperCase()}
+                        </div>
+                    {/if}
 
                     <div class="min-w-0 flex-1">
                         <div class="flex items-center gap-2">
