@@ -7,8 +7,8 @@
 import mysql from 'mysql2/promise';
 
 const sphinxPool = mysql.createPool({
-    host: '127.0.0.1',
-    port: 9306,
+    host: process.env.SPHINX_HOST || '127.0.0.1',
+    port: parseInt(process.env.SPHINX_PORT || '9306'),
     waitForConnections: true,
     connectionLimit: 10,
     queueLimit: 50,
