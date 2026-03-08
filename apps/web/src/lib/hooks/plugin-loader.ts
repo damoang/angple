@@ -88,15 +88,22 @@ export async function loadPluginHooks(
                 }
 
                 // Hook 파일 경로 생성
+                // Vite 빌드 시 .ts → .js로 변환되므로 두 확장자 모두 시도
                 const officialPath = `../../../../../plugins/${pluginId}/${callback}`;
                 const customPath = `../../../../../custom-plugins/${pluginId}/${callback}`;
+                const officialPathJs = officialPath.replace(/\.ts$/, '.js');
+                const customPathJs = customPath.replace(/\.ts$/, '.js');
 
                 let hookModule: { default?: unknown } | null = null;
 
                 if (officialPath in allPluginHooks) {
                     hookModule = (await allPluginHooks[officialPath]()) as { default?: unknown };
+                } else if (officialPathJs in allPluginHooks) {
+                    hookModule = (await allPluginHooks[officialPathJs]()) as { default?: unknown };
                 } else if (customPath in allPluginHooks) {
                     hookModule = (await allPluginHooks[customPath]()) as { default?: unknown };
+                } else if (customPathJs in allPluginHooks) {
+                    hookModule = (await allPluginHooks[customPathJs]()) as { default?: unknown };
                 }
 
                 if (!hookModule) {
