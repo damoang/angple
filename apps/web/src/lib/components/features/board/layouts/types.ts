@@ -103,8 +103,14 @@ export interface ViewLayoutProps {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     afterContentSlots: any[];
 
+    // 수정/삭제 메타
+    /** 수정 횟수 (update 타입 리비전 수) */
+    editCount?: number;
+
     // 유틸
     formatDate: (date: string) => string;
+    /** 시간만 짧게 표시 (같은 날: HH:MM, 다른 날: MM.DD HH:MM) */
+    formatTimeShort?: (date: string, refDate?: string) => string;
     formatFileSize: (bytes: number) => string;
     /** 본문 HTML (link1 동영상 URL 포함) */
     postContent: string;

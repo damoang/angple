@@ -89,7 +89,9 @@
         MemoBadge,
         beforeContentSlots,
         afterContentSlots,
+        editCount = 0,
         formatDate,
+        formatTimeShort,
         formatFileSize,
         postContent,
         pageData,
@@ -279,6 +281,28 @@
                     </p>
                     <p class="text-secondary-foreground text-[15px]">
                         {formatDate(post.created_at)}
+                        {#if post.updated_at && post.updated_at !== post.created_at && formatTimeShort}
+                            {#if editCount > 0}
+                                <span class="text-muted-foreground/70"
+                                    >· 수정 {editCount}회({formatTimeShort(
+                                        post.updated_at,
+                                        post.created_at
+                                    )})</span
+                                >
+                            {:else}
+                                <span class="text-muted-foreground/70"
+                                    >· 수정됨({formatTimeShort(
+                                        post.updated_at,
+                                        post.created_at
+                                    )})</span
+                                >
+                            {/if}
+                        {/if}
+                        {#if post.deleted_at && formatTimeShort}
+                            <span class="text-red-500/70"
+                                >· 삭제됨 {formatTimeShort(post.deleted_at, post.created_at)}</span
+                            >
+                        {/if}
                     </p>
                 </div>
             </div>

@@ -1206,6 +1206,8 @@
                 {beforeContentSlots}
                 {afterContentSlots}
                 {formatDate}
+                {formatTimeShort}
+                editCount={revisions.filter((r) => r.change_type === 'update').length}
                 {formatFileSize}
                 postContent={postContent()}
                 pageData={data}
@@ -1217,33 +1219,6 @@
             <div class="text-muted-foreground py-12 text-center">
                 레이아웃을 불러올 수 없습니다.
             </div>
-        {/if}
-
-        <!-- 수정/삭제 시간 표시 (4가지 케이스) -->
-        {@const hasEdits = data.post.updated_at && data.post.updated_at !== data.post.created_at}
-        {@const isDeletedPost = !!data.post.deleted_at}
-        {@const editCount = revisions.filter((r) => r.change_type === 'update').length}
-        {#if hasEdits || isDeletedPost}
-            <p class="text-muted-foreground mt-4 text-center text-[15px]">
-                {formatDate(data.post.created_at)}
-                {#if hasEdits && editCount > 0}
-                    <span class="text-muted-foreground/70">
-                        · 수정 {editCount}회({formatTimeShort(
-                            data.post.updated_at,
-                            data.post.created_at
-                        )})
-                    </span>
-                {:else if hasEdits}
-                    <span class="text-muted-foreground/70">
-                        · 수정됨({formatTimeShort(data.post.updated_at, data.post.created_at)})
-                    </span>
-                {/if}
-                {#if isDeletedPost}
-                    <span class="text-red-500/70">
-                        · 삭제됨 {formatTimeShort(data.post.deleted_at, data.post.created_at)}
-                    </span>
-                {/if}
-            </p>
         {/if}
 
         <!-- 중고게시판 상태 변경 (작성자/관리자만) -->
