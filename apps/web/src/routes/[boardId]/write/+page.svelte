@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { goto, invalidateAll } from '$app/navigation';
+    import { goto } from '$app/navigation';
     import { browser } from '$app/environment';
     import PostForm from '$lib/components/features/board/post-form.svelte';
     import { writeFormRegistry } from '$lib/components/features/board/write-form-registry.js';
@@ -93,8 +93,7 @@
                 senderId: authStore.user.mb_id || ''
             });
 
-            // 게시판 목록 캐시 무효화 후 상세 페이지로 이동
-            await invalidateAll();
+            // 상세 페이지로 이동 (새 경로이므로 page load 자동 실행)
             goto(`/${boardId}/${newPost.id}`);
         } catch (err) {
             console.error('Failed to create post:', err);

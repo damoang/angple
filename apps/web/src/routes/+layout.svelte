@@ -3,7 +3,7 @@
     import favicon from '$lib/assets/favicon.png';
     import { onMount, untrack } from 'svelte';
     import type { Component } from 'svelte';
-    import { afterNavigate } from '$app/navigation';
+    import { afterNavigate, onNavigate } from '$app/navigation';
     import { page, updated } from '$app/stores';
     import { configureSeo } from '$lib/seo';
     import { authActions, authStore } from '$lib/stores/auth.svelte';
@@ -91,6 +91,17 @@
         const ks = keyboardShortcutsMod;
         untrack(() => {
             ks.keyboardShortcuts.setUserShortcuts(normal, shift);
+        });
+    });
+
+    // View Transitions API — 부드러운 페이지 전환 (지원 브라우저에서만)
+    onNavigate((navigation) => {
+        if (!document.startViewTransition) return;
+        return new Promise((resolve) => {
+            document.startViewTransition(async () => {
+                resolve();
+                await navigation.complete;
+            });
         });
     });
 

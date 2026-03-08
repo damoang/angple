@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { goto, invalidateAll } from '$app/navigation';
+    import { goto } from '$app/navigation';
     import { browser } from '$app/environment';
     import PostForm from '$lib/components/features/board/post-form.svelte';
     import { authStore } from '$lib/stores/auth.svelte.js';
@@ -37,9 +37,8 @@
         try {
             await apiClient.updatePost(boardId, String(postId), formData);
 
-            // 게시판 목록 캐시 무효화 후 상세 페이지로 이동
-            await invalidateAll();
-            goto(`/${boardId}/${postId}`);
+            // 상세 페이지로 이동 (page load 재실행됨)
+            goto(`/${boardId}/${postId}`, { invalidateAll: true });
         } catch (err) {
             console.error('Failed to update post:', err);
             error = err instanceof Error ? err.message : '게시글 수정에 실패했습니다.';

@@ -1,3 +1,15 @@
+<script lang="ts" module>
+    import type { Snapshot } from './$types.js';
+
+    // 뒤로가기 시 스크롤 위치 즉시 복원 (서버 재요청 대기 중에도 이전 위치 유지)
+    export const snapshot: Snapshot<{ scrollY: number }> = {
+        capture: () => ({ scrollY: window.scrollY }),
+        restore: (value) => {
+            requestAnimationFrame(() => window.scrollTo(0, value.scrollY));
+        }
+    };
+</script>
+
 <script lang="ts">
     import { goto, invalidateAll } from '$app/navigation';
     import { page } from '$app/stores';

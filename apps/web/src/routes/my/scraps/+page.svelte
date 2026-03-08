@@ -3,7 +3,7 @@
      * 내 스크랩 목록 페이지 (SSR + 검색)
      */
     import { goto } from '$app/navigation';
-    import { invalidateAll } from '$app/navigation';
+    import { invalidate } from '$app/navigation';
     import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card/index.js';
     import { Button } from '$lib/components/ui/button/index.js';
     import { Input } from '$lib/components/ui/input/index.js';
@@ -44,7 +44,7 @@
                 body: JSON.stringify({ boardId: boTable, postId: wrId })
             });
             if (res.ok) {
-                await invalidateAll();
+                await invalidate('app:scraps');
             }
         } catch (err) {
             console.error('스크랩 해제 실패:', err);
