@@ -249,7 +249,7 @@
 
 <div
     bind:this={proseEl}
-    class="prose prose-neutral dark:prose-invert max-w-none text-lg {className}"
+    class="prose prose-neutral dark:prose-invert max-w-none {className}"
     style="overflow-wrap: break-word; word-wrap: break-word; overflow-x: hidden;"
 >
     <!-- eslint-disable-next-line svelte/no-at-html-tags -->
@@ -282,7 +282,7 @@
     .prose :global(p) {
         margin-top: 0.75rem;
         margin-bottom: 0.75rem;
-        font-size: 1.125rem;
+        font-size: inherit;
         line-height: 1.8;
     }
 

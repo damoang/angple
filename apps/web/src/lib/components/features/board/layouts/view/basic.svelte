@@ -46,10 +46,10 @@
     import { apiClient } from '$lib/api/index.js';
 
     const FONT_SIZES: Record<ContentFontSize, string> = {
-        small: '14px',
-        base: '16px',
-        large: '18px',
-        xlarge: '20px'
+        small: '16px',
+        base: '18px',
+        large: '20px',
+        xlarge: '22px'
     };
 
     const currentFontSize = $derived(uiSettingsStore.contentFontSize);
