@@ -149,7 +149,7 @@ export const load: PageServerLoad = async ({
             const viewed = viewedRaw ? viewedRaw.split(',').filter(Boolean) : [];
             const alreadyViewedByCookie = viewed.includes(vcKey);
 
-            // 서버 사이드 IP 기반 중복 방지 (2차 방어선)
+            // 서버 사이드 IP 기반 중복 방지 (Redis — pod 간 공유)
             let clientIp = '';
             try {
                 clientIp = getClientAddress();
@@ -157,12 +157,12 @@ export const load: PageServerLoad = async ({
                 clientIp = '';
             }
             const alreadyViewedByIp = clientIp
-                ? hasRecentlyViewed(clientIp, boardId, Number(postId))
+                ? await hasRecentlyViewed(clientIp, boardId, Number(postId))
                 : false;
 
             if (!alreadyViewedByCookie && !alreadyViewedByIp) {
                 incrementViewcount(boardId, Number(postId));
-                if (clientIp) markViewed(clientIp, boardId, Number(postId));
+                if (clientIp) await markViewed(clientIp, boardId, Number(postId));
                 viewed.push(vcKey);
                 if (viewed.length > 100) viewed.splice(0, viewed.length - 100);
                 cookies.set('viewed_posts', viewed.join(','), {

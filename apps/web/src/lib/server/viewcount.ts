@@ -6,36 +6,42 @@
  * - 3분마다 cron이 /api/viewcount/sync 호출 → MySQL 일괄 동기화
  * - Node.js 싱글스레드이므로 Map 조작에 동시성 문제 없음
  * - 서버 재시작 시 미동기화 카운트 유실 가능 (3분 이내 분량, 허용)
+ *
+ * IP 중복 방지: Redis 기반 (pod 간 공유 — HPA 환경에서 필수)
  */
+
+import { getRedis } from './redis';
 
 /** 키: `{boardId}:{postId}` → 누적 조회수 */
 const viewCounts = new Map<string, number>();
 
-/** IP 기반 중복 조회 방지 (10분 TTL) */
-const recentlyViewed = new Map<string, number>();
-const VIEWED_TTL_MS = 10 * 60 * 1000;
-const VIEWED_CLEANUP_INTERVAL = 5 * 60 * 1000;
+/** Redis 키 접두사 */
+const VIEWED_PREFIX = 'vc:';
+const VIEWED_TTL_SEC = 600; // 10분
 
-// 5분마다 만료 항목 정리
-setInterval(() => {
-    const now = Date.now();
-    for (const [key, ts] of recentlyViewed) {
-        if (now - ts > VIEWED_TTL_MS) recentlyViewed.delete(key);
+/** IP 기반으로 최근 10분 이내 조회했는지 확인 (Redis — pod 간 공유) */
+export async function hasRecentlyViewed(
+    ip: string,
+    boardId: string,
+    postId: number
+): Promise<boolean> {
+    try {
+        const key = `${VIEWED_PREFIX}${ip}:${boardId}:${postId}`;
+        const exists = await getRedis().exists(key);
+        return exists === 1;
+    } catch {
+        return false; // Redis 장애 시 허용 (조회수 약간 늘어날 수 있음)
     }
-}, VIEWED_CLEANUP_INTERVAL);
-
-/** IP 기반으로 최근 10분 이내 조회했는지 확인 */
-export function hasRecentlyViewed(ip: string, boardId: string, postId: number): boolean {
-    const key = `${ip}:${boardId}:${postId}`;
-    const ts = recentlyViewed.get(key);
-    if (ts && Date.now() - ts < VIEWED_TTL_MS) return true;
-    return false;
 }
 
-/** IP 기반 조회 기록 저장 */
-export function markViewed(ip: string, boardId: string, postId: number): void {
-    const key = `${ip}:${boardId}:${postId}`;
-    recentlyViewed.set(key, Date.now());
+/** IP 기반 조회 기록 저장 (Redis — pod 간 공유) */
+export async function markViewed(ip: string, boardId: string, postId: number): Promise<void> {
+    try {
+        const key = `${VIEWED_PREFIX}${ip}:${boardId}:${postId}`;
+        await getRedis().setex(key, VIEWED_TTL_SEC, '1');
+    } catch {
+        // Redis 장애 시 무시
+    }
 }
 
 /** 조회수 1 증가 */
