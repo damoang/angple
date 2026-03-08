@@ -745,6 +745,16 @@ export interface GroupedNotificationListResponse {
     total_pages: number;
 }
 
+// 알림 설정
+export interface NotificationPreferences {
+    noti_comment: boolean;
+    noti_reply: boolean;
+    noti_mention: boolean;
+    noti_like: boolean;
+    noti_follow: boolean;
+    like_threshold: number;
+}
+
 // 쪽지 관련 타입
 export type MessageKind = 'recv' | 'send'; // 받은쪽지 / 보낸쪽지
 

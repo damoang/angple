@@ -47,16 +47,20 @@
     } from '$lib/stores/board-favorites.svelte.js';
     import { keyboardShortcuts } from '$lib/services/keyboard-shortcuts.svelte.js';
     import { readPostStyleStore, type ReadPostStyle } from '$lib/stores/read-post-style.svelte.js';
+    import BellRing from '@lucide/svelte/icons/bell-ring';
+    import { apiClient } from '$lib/api/index.js';
+    import type { NotificationPreferences } from '$lib/api/types.js';
 
     import MyNav from '$lib/components/features/my/my-nav.svelte';
 
-    type Tab = 'layout' | 'board' | 'shortcut' | 'etc';
+    type Tab = 'layout' | 'board' | 'shortcut' | 'notification' | 'etc';
     let activeTab = $state<Tab>('layout');
 
     const tabs: { id: Tab; label: string; icon: typeof LayoutDashboard }[] = [
         { id: 'layout', label: '레이아웃', icon: LayoutDashboard },
         { id: 'board', label: '게시판', icon: LayoutList },
         { id: 'shortcut', label: '단축키', icon: Settings },
+        { id: 'notification', label: '알림', icon: BellRing },
         { id: 'etc', label: '기타', icon: MessageSquare }
     ];
 
@@ -172,9 +176,50 @@
         }
     }
 
+    // 알림 설정
+    let notiPrefs = $state<NotificationPreferences>({
+        noti_comment: true,
+        noti_reply: true,
+        noti_mention: true,
+        noti_like: true,
+        noti_follow: true,
+        like_threshold: 1
+    });
+    let notiLoading = $state(false);
+    let notiSaving = $state(false);
+    let notiSaveTimer: ReturnType<typeof setTimeout> | null = null;
+
+    async function loadNotiPrefs() {
+        if (!browser) return;
+        notiLoading = true;
+        try {
+            notiPrefs = await apiClient.getNotificationPreferences();
+        } catch {
+            // ignore — defaults are fine
+        }
+        notiLoading = false;
+    }
+
+    function saveNotiPrefs(update: Partial<NotificationPreferences>) {
+        // Apply immediately to UI
+        notiPrefs = { ...notiPrefs, ...update };
+        // Debounce API call
+        if (notiSaveTimer) clearTimeout(notiSaveTimer);
+        notiSaving = true;
+        notiSaveTimer = setTimeout(async () => {
+            try {
+                notiPrefs = await apiClient.updateNotificationPreferences(update);
+            } catch {
+                // ignore
+            }
+            notiSaving = false;
+        }, 300);
+    }
+
     onMount(() => {
         loadSubscriptions();
         loadFollowing();
+        loadNotiPrefs();
     });
 </script>
 
@@ -778,6 +823,114 @@
                                 />
                             </div>
                         </div>
+                    {/if}
+                </CardContent>
+            </Card>
+        {/if}
+
+        <!-- ========== 알림 탭 ========== -->
+        {#if activeTab === 'notification'}
+            <Card>
+                <CardHeader>
+                    <CardTitle class="flex items-center gap-2">
+                        <BellRing class="h-5 w-5" />
+                        알림 수신 설정
+                    </CardTitle>
+                    <CardDescription>알림 종류별 수신 여부를 설정합니다.</CardDescription>
+                </CardHeader>
+                <CardContent class="space-y-4">
+                    {#if notiLoading}
+                        <p class="text-muted-foreground text-xs">로딩 중...</p>
+                    {:else}
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <Label>댓글 알림</Label>
+                                <p class="text-muted-foreground text-xs">
+                                    내 글에 댓글이 달리면 알림을 받습니다
+                                </p>
+                            </div>
+                            <Switch
+                                checked={notiPrefs.noti_comment}
+                                onCheckedChange={(v) => saveNotiPrefs({ noti_comment: v })}
+                            />
+                        </div>
+                        <Separator />
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <Label>답글 알림</Label>
+                                <p class="text-muted-foreground text-xs">
+                                    내 댓글에 답글이 달리면 알림을 받습니다
+                                </p>
+                            </div>
+                            <Switch
+                                checked={notiPrefs.noti_reply}
+                                onCheckedChange={(v) => saveNotiPrefs({ noti_reply: v })}
+                            />
+                        </div>
+                        <Separator />
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <Label>멘션 알림</Label>
+                                <p class="text-muted-foreground text-xs">
+                                    다른 사람이 나를 @멘션하면 알림을 받습니다
+                                </p>
+                            </div>
+                            <Switch
+                                checked={notiPrefs.noti_mention}
+                                onCheckedChange={(v) => saveNotiPrefs({ noti_mention: v })}
+                            />
+                        </div>
+                        <Separator />
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <Label>추천 알림</Label>
+                                <p class="text-muted-foreground text-xs">
+                                    내 글이 추천을 받으면 알림을 받습니다
+                                </p>
+                            </div>
+                            <Switch
+                                checked={notiPrefs.noti_like}
+                                onCheckedChange={(v) => saveNotiPrefs({ noti_like: v })}
+                            />
+                        </div>
+                        {#if notiPrefs.noti_like}
+                            <div class="bg-muted/50 ml-4 rounded-md p-3">
+                                <Label>추천 임계값</Label>
+                                <p class="text-muted-foreground mb-2 text-xs">
+                                    추천 수가 이 값 이상일 때만 알림을 받습니다
+                                </p>
+                                <Input
+                                    type="number"
+                                    min={1}
+                                    max={100}
+                                    class="w-24"
+                                    value={String(notiPrefs.like_threshold)}
+                                    onchange={(e) => {
+                                        const v = parseInt(
+                                            (e.target as HTMLInputElement).value,
+                                            10
+                                        );
+                                        if (v >= 1) saveNotiPrefs({ like_threshold: v });
+                                    }}
+                                />
+                            </div>
+                        {/if}
+                        <Separator />
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <Label>팔로우/구독 알림</Label>
+                                <p class="text-muted-foreground text-xs">
+                                    팔로우 회원이나 구독 게시판에 새 글이 올라오면 알림을 받습니다
+                                </p>
+                            </div>
+                            <Switch
+                                checked={notiPrefs.noti_follow}
+                                onCheckedChange={(v) => saveNotiPrefs({ noti_follow: v })}
+                            />
+                        </div>
+                        {#if notiSaving}
+                            <p class="text-muted-foreground text-right text-xs">저장 중...</p>
+                        {/if}
                     {/if}
                 </CardContent>
             </Card>

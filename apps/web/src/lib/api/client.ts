@@ -34,6 +34,7 @@ import type {
     NotificationSummary,
     NotificationListResponse,
     GroupedNotificationListResponse,
+    NotificationPreferences,
     MessageKind,
     MessageListResponse,
     Message,
@@ -1565,6 +1566,36 @@ class ApiClient {
         await this.request<void>(`/notifications/group?${params}`, {
             method: 'DELETE'
         });
+    }
+
+    /**
+     * 알림 설정 조회
+     */
+    async getNotificationPreferences(): Promise<NotificationPreferences> {
+        const response = await this.request<NotificationPreferences>('/notifications/preferences');
+        return (
+            response.data ?? {
+                noti_comment: true,
+                noti_reply: true,
+                noti_mention: true,
+                noti_like: true,
+                noti_follow: true,
+                like_threshold: 1
+            }
+        );
+    }
+
+    /**
+     * 알림 설정 업데이트
+     */
+    async updateNotificationPreferences(
+        prefs: Partial<NotificationPreferences>
+    ): Promise<NotificationPreferences> {
+        const response = await this.request<NotificationPreferences>('/notifications/preferences', {
+            method: 'PUT',
+            body: JSON.stringify(prefs)
+        });
+        return response.data;
     }
 
     // ==================== 쪽지 API ====================
