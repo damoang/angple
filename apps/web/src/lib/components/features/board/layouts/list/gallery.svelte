@@ -49,6 +49,10 @@
                     alt=""
                     class="h-full w-full object-cover transition-transform group-hover:scale-105"
                     loading="lazy"
+                    decoding="async"
+                    width="400"
+                    height="225"
+                    sizes="(max-width: 1024px) 50vw, 25vw"
                     onerror={(e) => {
                         const target = e.target as HTMLImageElement;
                         target.style.display = 'none';

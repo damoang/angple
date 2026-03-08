@@ -3,11 +3,14 @@
     import Users from '@lucide/svelte/icons/users';
     import MessageSquare from '@lucide/svelte/icons/message-square';
     import FileText from '@lucide/svelte/icons/file-text';
+    import Clock from '@lucide/svelte/icons/clock';
+    import { formatDate } from '$lib/utils/format-date.js';
     import type { PageData } from './$types';
 
     let { data }: { data: PageData } = $props();
 
     let searchQuery = $state('');
+    let activeTab = $state<'list' | 'latest'>('list');
 
     let filteredBoards = $derived(
         searchQuery
@@ -37,55 +40,137 @@
         </div>
     </div>
 
-    <!-- 검색 -->
-    <div class="mb-6">
-        <input
-            type="text"
-            placeholder="소모임 검색..."
-            class="border-border bg-canvas text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-primary w-full rounded-lg border px-4 py-2.5 text-sm focus:outline-none focus:ring-1"
-            bind:value={searchQuery}
-        />
+    <!-- 탭 -->
+    <div class="border-border mb-4 flex gap-1 border-b">
+        <button
+            onclick={() => (activeTab = 'list')}
+            class="border-b-2 px-3 py-2 text-sm font-medium transition-colors {activeTab === 'list'
+                ? 'border-primary text-primary'
+                : 'text-muted-foreground hover:text-foreground border-transparent'}"
+        >
+            소모임 목록
+        </button>
+        <button
+            onclick={() => (activeTab = 'latest')}
+            class="border-b-2 px-3 py-2 text-sm font-medium transition-colors {activeTab ===
+            'latest'
+                ? 'border-primary text-primary'
+                : 'text-muted-foreground hover:text-foreground border-transparent'}"
+        >
+            최근글
+        </button>
     </div>
 
-    <!-- 소모임 그리드 -->
-    {#if filteredBoards.length === 0}
-        <div class="text-muted-foreground py-12 text-center">
-            {#if searchQuery}
-                <p>'{searchQuery}'에 해당하는 소모임이 없습니다.</p>
-            {:else}
-                <p>소모임 목록을 불러올 수 없습니다.</p>
-            {/if}
+    {#if activeTab === 'list'}
+        <!-- 검색 -->
+        <div class="mb-6">
+            <input
+                type="text"
+                placeholder="소모임 검색..."
+                class="border-border bg-canvas text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-primary w-full rounded-lg border px-4 py-2.5 text-sm focus:outline-none focus:ring-1"
+                bind:value={searchQuery}
+            />
         </div>
-    {:else}
-        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {#each filteredBoards as board (board.bo_table)}
-                <a
-                    href="/{board.bo_table}"
-                    class="border-border hover:border-primary/40 bg-canvas flex items-center gap-3 rounded-lg border p-4 transition-all hover:shadow-sm"
-                >
-                    <div
-                        class="bg-primary/10 text-primary flex h-10 w-10 shrink-0 items-center justify-center rounded-lg"
+
+        <!-- 소모임 그리드 -->
+        {#if filteredBoards.length === 0}
+            <div class="text-muted-foreground py-12 text-center">
+                {#if searchQuery}
+                    <p>'{searchQuery}'에 해당하는 소모임이 없습니다.</p>
+                {:else}
+                    <p>소모임 목록을 불러올 수 없습니다.</p>
+                {/if}
+            </div>
+        {:else}
+            <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {#each filteredBoards as board (board.bo_table)}
+                    <a
+                        href="/{board.bo_table}"
+                        class="border-border hover:border-primary/40 bg-canvas flex items-center gap-3 rounded-lg border p-4 transition-all hover:shadow-sm"
                     >
-                        <Users class="h-5 w-5" />
-                    </div>
-                    <div class="min-w-0 flex-1">
-                        <h2 class="text-foreground truncate text-sm font-semibold">
-                            {board.bo_subject}
-                        </h2>
-                        <div class="text-muted-foreground mt-0.5 flex items-center gap-3 text-xs">
-                            <span class="flex items-center gap-1">
-                                <FileText class="h-3 w-3" />
-                                {board.bo_count_write.toLocaleString()}
-                            </span>
-                            <span class="flex items-center gap-1">
-                                <MessageSquare class="h-3 w-3" />
-                                {board.bo_count_comment.toLocaleString()}
-                            </span>
+                        <div
+                            class="bg-primary/10 text-primary flex h-10 w-10 shrink-0 items-center justify-center rounded-lg"
+                        >
+                            <Users class="h-5 w-5" />
                         </div>
-                    </div>
-                </a>
-            {/each}
-        </div>
+                        <div class="min-w-0 flex-1">
+                            <h2
+                                class="text-foreground flex items-center gap-1.5 truncate text-sm font-semibold"
+                            >
+                                <span class="truncate">{board.bo_subject}</span>
+                                {#if board.today_count > 0}
+                                    <span class="text-primary shrink-0 text-xs font-normal"
+                                        >(+{board.today_count})</span
+                                    >
+                                {/if}
+                            </h2>
+                            <div
+                                class="text-muted-foreground mt-0.5 flex items-center gap-3 text-xs"
+                            >
+                                <span class="flex items-center gap-1">
+                                    <FileText class="h-3 w-3" />
+                                    {board.bo_count_write.toLocaleString()}
+                                </span>
+                                <span class="flex items-center gap-1">
+                                    <MessageSquare class="h-3 w-3" />
+                                    {board.bo_count_comment.toLocaleString()}
+                                </span>
+                            </div>
+                        </div>
+                    </a>
+                {/each}
+            </div>
+        {/if}
+    {:else}
+        <!-- 최근글 탭 -->
+        {#if data.latestPosts.length === 0}
+            <div class="text-muted-foreground py-12 text-center">
+                <p>최근 작성된 글이 없습니다.</p>
+            </div>
+        {:else}
+            <ul class="divide-border divide-y">
+                {#each data.latestPosts as post (post.bo_table + '-' + post.wr_id)}
+                    <li>
+                        <a
+                            href="/{post.bo_table}/{post.wr_id}"
+                            class="hover:bg-muted flex items-start gap-3 rounded px-2 py-2.5 transition-colors"
+                        >
+                            <div class="min-w-0 flex-1">
+                                <div class="flex items-center gap-2">
+                                    <span
+                                        class="bg-muted text-muted-foreground shrink-0 rounded px-1.5 py-0.5 text-xs"
+                                    >
+                                        {post.bo_subject}
+                                    </span>
+                                    <span class="text-foreground min-w-0 truncate text-sm">
+                                        {post.wr_subject}
+                                    </span>
+                                    {#if post.wr_comment > 0}
+                                        <span class="text-primary shrink-0 text-xs"
+                                            >[{post.wr_comment}]</span
+                                        >
+                                    {/if}
+                                </div>
+                                <div
+                                    class="text-muted-foreground mt-1 flex items-center gap-2 text-xs"
+                                >
+                                    <span>{post.mb_nick}</span>
+                                    <span>·</span>
+                                    <span class="flex items-center gap-0.5">
+                                        <Clock class="h-3 w-3" />
+                                        {formatDate(post.wr_datetime)}
+                                    </span>
+                                    {#if post.wr_good > 0}
+                                        <span>·</span>
+                                        <span>👍 {post.wr_good}</span>
+                                    {/if}
+                                </div>
+                            </div>
+                        </a>
+                    </li>
+                {/each}
+            </ul>
+        {/if}
     {/if}
 
     <!-- 소모임 개설 안내 -->

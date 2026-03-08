@@ -393,7 +393,21 @@
     }
 
     function toggleHeading(level: 1 | 2 | 3): void {
-        editor?.chain().focus().toggleHeading({ level }).run();
+        if (!editor) return;
+        // 다중 블록 선택 시 현재 커서 위치의 블록만 변환
+        const { from, to } = editor.state.selection;
+        if (from !== to) {
+            const resolved = editor.state.doc.resolve(from);
+            const blockEnd = resolved.end();
+            editor
+                .chain()
+                .focus()
+                .setTextSelection({ from, to: Math.min(to, blockEnd) })
+                .toggleHeading({ level })
+                .run();
+        } else {
+            editor.chain().focus().toggleHeading({ level }).run();
+        }
     }
 
     function toggleBulletList(): void {

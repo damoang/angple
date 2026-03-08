@@ -48,12 +48,31 @@
         isDrawerOpen = !isDrawerOpen;
     }
 
+    // body 스크롤 잠금 (드로워 열림 시)
+    $effect(() => {
+        if (typeof document !== 'undefined') {
+            document.body.style.overflow = isDrawerOpen ? 'hidden' : '';
+        }
+        return () => {
+            if (typeof document !== 'undefined') {
+                document.body.style.overflow = '';
+            }
+        };
+    });
+
     // 페이지 이동 시 드로워 자동 닫기
     afterNavigate(() => {
         untrack(() => {
             isDrawerOpen = false;
         });
     });
+
+    // Escape 키로 드로워 닫기
+    function handleKeydown(e: KeyboardEvent) {
+        if (e.key === 'Escape' && isDrawerOpen) {
+            toggleDrawer();
+        }
+    }
 
     // 테마 모드 순환: light → dark → amoled → light
     function cycleThemeMode() {
@@ -139,11 +158,13 @@
 
         window.addEventListener('storage', handleStorageChange);
         window.addEventListener('scroll', handleScroll, { passive: true });
+        window.addEventListener('keydown', handleKeydown);
 
         return () => {
             darkMq.removeEventListener('change', handleSystemThemeChange);
             window.removeEventListener('storage', handleStorageChange);
             window.removeEventListener('scroll', handleScroll);
+            window.removeEventListener('keydown', handleKeydown);
         };
     });
 </script>
@@ -341,12 +362,11 @@
 
 <!-- 드로워 메뉴 오버레이 -->
 {#if isDrawerOpen}
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
     <div
         class="bg-foreground/50 fixed inset-0 z-[60] transition-opacity duration-300"
         onclick={toggleDrawer}
-        role="button"
-        tabindex="0"
-        onkeydown={(e) => e.key === 'Escape' && toggleDrawer()}
+        aria-hidden="true"
     ></div>
 {/if}
 
@@ -357,7 +377,7 @@
     class:md:translate-x-full={!isDrawerOpen}
     class:translate-x-0={isDrawerOpen}
 >
-    <div class="flex h-full flex-col p-6">
+    <div class="flex h-full min-w-0 flex-col p-6">
         <div class="mb-8 flex shrink-0 items-center justify-between">
             <h2 class="text-foreground text-xl font-bold">추가 메뉴</h2>
             <button

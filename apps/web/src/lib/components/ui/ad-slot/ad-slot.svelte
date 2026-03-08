@@ -300,8 +300,8 @@
         'board-content': 'banner-small',
         'board-content-bottom': 'banner-large',
         'board-before-comments': 'banner-small',
-        'board-after-comments': 'banner-small',
-        'board-footer': 'banner-horizontal',
+        'board-after-comments': 'banner-compact',
+        'board-footer': 'banner-compact',
         'index-head': 'banner-small',
         'index-top': 'banner-responsive',
         'index-news-economy': 'banner-responsive',
@@ -566,10 +566,8 @@
         const adSizes = sizes || config.sizes;
         slotId = `gam-${position}-${Math.random().toString(36).substr(2, 9)}`;
 
-        // 반응형 높이 자동 계산 (height prop이 기본값인 경우만)
-        if (height === '90px') {
-            computedHeight = getResponsiveHeight(config);
-        }
+        // 반응형 높이 자동 계산 (CLS 방지)
+        computedHeight = getResponsiveHeight(config);
 
         await tick();
 

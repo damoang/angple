@@ -4,7 +4,10 @@
     import type { FreePost } from '$lib/api/types.js';
     import { Card, CardHeader, CardContent } from '$lib/components/ui/card/index.js';
     import Loader2 from '@lucide/svelte/icons/loader-2';
+    import ChevronDown from '@lucide/svelte/icons/chevron-down';
+    import ChevronUp from '@lucide/svelte/icons/chevron-up';
     import { formatDate } from '$lib/utils/format-date.js';
+    import { slide } from 'svelte/transition';
 
     interface RecentPost {
         bo_table: string;
@@ -38,6 +41,7 @@
     let clipWrapper = $state<HTMLElement | null>(null);
     let panelEl = $state<HTMLElement | null>(null);
     let panelHeight = $state(160);
+    let mobileExpanded = $state(false);
 
     function enforceClipHeight(): void {
         if (!clipWrapper || panelHeight <= 20) return;
@@ -159,7 +163,7 @@
             </div>
         </div>
 
-        <!-- 최근 글 (모바일에서 숨김) -->
+        <!-- 최근 글 (데스크톱: 항상 표시) -->
         <Card class="hidden gap-0 sm:flex">
             <CardHeader class="pb-0 pt-2">
                 <h4 class="text-foreground text-sm font-semibold">작성자 최근 글</h4>
@@ -188,7 +192,7 @@
             </CardContent>
         </Card>
 
-        <!-- 최근 댓글 (모바일에서 숨김) -->
+        <!-- 최근 댓글 (데스크톱: 항상 표시) -->
         <Card class="hidden gap-0 sm:flex">
             <CardHeader class="pb-0 pt-2">
                 <h4 class="text-foreground text-sm font-semibold">작성자 최근 댓글</h4>
@@ -246,6 +250,69 @@
             </CardContent>
         </Card>
     </div>
+
+    <!-- 모바일: 작성자 활동 접기/펼치기 -->
+    {#if !loading && (recentPosts.length > 0 || recentComments.length > 0)}
+        <div class="mb-4 sm:hidden">
+            <button
+                onclick={() => (mobileExpanded = !mobileExpanded)}
+                class="text-muted-foreground hover:text-foreground flex w-full items-center justify-center gap-1 py-1.5 text-xs transition-colors"
+            >
+                작성자 최근 활동
+                {#if mobileExpanded}
+                    <ChevronUp class="h-3.5 w-3.5" />
+                {:else}
+                    <ChevronDown class="h-3.5 w-3.5" />
+                {/if}
+            </button>
+            {#if mobileExpanded}
+                <div class="grid grid-cols-2 gap-2" transition:slide={{ duration: 200 }}>
+                    {#if recentPosts.length > 0}
+                        <Card class="gap-0">
+                            <CardHeader class="pb-0 pt-2">
+                                <h4 class="text-foreground text-xs font-semibold">최근 글</h4>
+                            </CardHeader>
+                            <CardContent class="pb-2 pt-0">
+                                <ul class="divide-border divide-y">
+                                    {#each recentPosts as p (p.wr_id)}
+                                        <li class="py-1">
+                                            <a
+                                                href={p.href}
+                                                class="text-foreground hover:text-primary block min-w-0 truncate text-xs"
+                                            >
+                                                {p.wr_subject || '(제목 없음)'}
+                                            </a>
+                                        </li>
+                                    {/each}
+                                </ul>
+                            </CardContent>
+                        </Card>
+                    {/if}
+                    {#if recentComments.length > 0}
+                        <Card class="gap-0">
+                            <CardHeader class="pb-0 pt-2">
+                                <h4 class="text-foreground text-xs font-semibold">최근 댓글</h4>
+                            </CardHeader>
+                            <CardContent class="pb-2 pt-0">
+                                <ul class="divide-border divide-y">
+                                    {#each recentComments as c (c.wr_id)}
+                                        <li class="py-1">
+                                            <a
+                                                href={c.href}
+                                                class="text-foreground hover:text-primary block min-w-0 truncate text-xs"
+                                            >
+                                                {c.preview || '(내용 없음)'}
+                                            </a>
+                                        </li>
+                                    {/each}
+                                </ul>
+                            </CardContent>
+                        </Card>
+                    {/if}
+                </div>
+            {/if}
+        </div>
+    {/if}
 {/if}
 
 <style>

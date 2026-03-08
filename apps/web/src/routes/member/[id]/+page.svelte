@@ -469,7 +469,7 @@
                             <div class="flex items-center gap-2">
                                 <Calendar class="h-4 w-4 shrink-0" />
                                 <span>
-                                    {p.mb_datetime} 가입
+                                    {formatDate(p.mb_datetime)} 가입
                                     {#if !p.is_left}
                                         ({p.reg_days.toLocaleString()}일)
                                     {/if}
@@ -478,13 +478,13 @@
                             {#if p.is_left && p.mb_leave_date}
                                 <div class="flex items-center gap-2">
                                     <Calendar class="h-4 w-4 shrink-0" />
-                                    <span>{p.mb_leave_date} 탈퇴</span>
+                                    <span>{formatDate(p.mb_leave_date)} 탈퇴</span>
                                 </div>
                             {/if}
                             {#if p.mb_nick_date}
                                 <div class="flex items-center gap-2">
                                     <User class="h-4 w-4 shrink-0" />
-                                    <span>{p.mb_nick_date} 닉네임 수정</span>
+                                    <span>{formatDate(p.mb_nick_date)} 닉네임 수정</span>
                                 </div>
                             {/if}
                             <div class="flex items-center gap-2">

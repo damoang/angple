@@ -252,14 +252,9 @@
                     {formatCompactNumber(post.views)}
                 </span>
 
-                <!-- 모바일 메타 (Line 2: 👍likes · Author · Date · 조회) -->
+                <!-- 모바일 메타 (Line 2: Author · Date · 조회 · 추천) -->
                 <div class="mobile-meta" class:modern-view={isMobileView}>
-                    {#if mobileLikesPill}
-                        <span class="mobile-likes-pill">👍{post.likes}</span>
-                    {:else}
-                        <span class={mobileLikesClass}>👍{post.likes}</span>
-                    {/if}
-                    <span class="mobile-meta-sep inline-flex items-center gap-0.5">
+                    <span class="inline-flex items-center gap-0.5">
                         {#if iconUrl}
                             <img
                                 src={iconUrl}
@@ -274,6 +269,25 @@
                         {formatDate(post.created_at)}
                     </span>
                     <span class="mobile-meta-sep">{formatCompactNumber(post.views)}</span>
+                    {#if mobileLikesPill}
+                        <span
+                            class="mobile-likes-pill mobile-meta-sep inline-flex items-center gap-0.5"
+                            ><img
+                                alt="추천"
+                                class="size-3.5"
+                                src="/images/thumbup.png?v=2"
+                            />{post.likes}</span
+                        >
+                    {:else}
+                        <span
+                            class="{mobileLikesClass} mobile-meta-sep inline-flex items-center gap-0.5"
+                            ><img
+                                alt="추천"
+                                class="size-3.5"
+                                src="/images/thumbup.png?v=2"
+                            />{post.likes}</span
+                        >
+                    {/if}
                 </div>
             </div>
         </div>
@@ -396,15 +410,11 @@
         font-weight: 600;
     }
 
-    /* 모바일 10+ 추천 pill 배지 */
+    /* 모바일 10+ 추천 */
     .mobile-likes-pill {
-        display: inline-block;
-        font-size: 12px;
+        font-size: 13px;
         font-weight: 600;
-        padding: 1px 5px;
-        border-radius: 8px;
-        background: rgba(59, 130, 246, 0.25);
-        color: var(--color-foreground);
+        color: var(--color-liked, #f97316);
     }
 
     /* 오늘 날짜 — scoped class로 specificity 통일 (Tailwind utility 대신) */

@@ -122,7 +122,7 @@
 </script>
 
 <!-- 게시글 카드 -->
-<Card class="bg-background mb-6 pb-5 pt-0">
+<Card class="bg-background mb-6 rounded-xl pb-5 pt-0">
     <CardHeader class="space-y-3">
         <!-- 관리자 본문 레이아웃 스위처 -->
         <div class="flex items-center justify-end">

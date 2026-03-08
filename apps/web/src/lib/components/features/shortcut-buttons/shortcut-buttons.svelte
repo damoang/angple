@@ -5,7 +5,7 @@
     import { uiSettingsStore, type ShortcutButtonSize } from '$lib/stores/ui-settings.svelte';
     import { boardFavoritesStore } from '$lib/stores/board-favorites.svelte';
     import Home from '@lucide/svelte/icons/house';
-    import RefreshCw from '@lucide/svelte/icons/refresh-cw';
+    import MessageSquare from '@lucide/svelte/icons/message-square';
     import ArrowUp from '@lucide/svelte/icons/arrow-up';
     import ArrowDown from '@lucide/svelte/icons/arrow-down';
 
@@ -62,7 +62,7 @@
 
 {#if browser && uiSettingsStore.showShortcutButtons && !hidden}
     <nav
-        class="border-border bg-background/95 fixed bottom-4 left-1/2 z-40 flex -translate-x-1/2 items-center gap-1 rounded-full border px-2 py-1.5 shadow-lg backdrop-blur-sm"
+        class="border-border bg-background/95 fixed bottom-[4.5rem] left-1/2 z-40 flex -translate-x-1/2 items-center gap-1 rounded-full border px-2 py-1.5 shadow-lg backdrop-blur-sm md:bottom-4"
         aria-label="단축 버튼"
     >
         <!-- 고정 버튼: 홈 -->
@@ -76,15 +76,15 @@
             <Home class={iconSize} />
         </button>
 
-        <!-- 고정 버튼: 새로고침 -->
+        <!-- 고정 버튼: 댓글 새로고침 -->
         <button
             type="button"
             class="shortcut-btn"
             style="width:{btnSize};height:{btnSize}"
-            title="새로고침"
-            onclick={() => location.reload()}
+            title="댓글 새로고침"
+            onclick={() => window.dispatchEvent(new CustomEvent('comment-refresh'))}
         >
-            <RefreshCw class={iconSize} />
+            <MessageSquare class={iconSize} />
         </button>
 
         <!-- 고정 버튼: 위로 -->

@@ -6,6 +6,16 @@
     import { memberLevelStore } from '$lib/stores/member-levels.svelte.js';
     import { readPostsStore } from '$lib/stores/read-posts.svelte.js';
     import { Button } from '$lib/components/ui/button/index.js';
+    import Search from '@lucide/svelte/icons/search';
+    import {
+        DropdownMenu,
+        DropdownMenuContent,
+        DropdownMenuRadioGroup,
+        DropdownMenuRadioItem,
+        DropdownMenuTrigger,
+        DropdownMenuCheckboxItem
+    } from '$lib/components/ui/dropdown-menu/index.js';
+    import SlidersHorizontal from '@lucide/svelte/icons/sliders-horizontal';
     import { layoutRegistry, initCoreLayouts } from './layouts/index.js';
     import CompactLayout from './layouts/list/compact.svelte';
     import AdSlot from '$lib/components/ui/ad-slot/ad-slot.svelte';
@@ -161,12 +171,40 @@
     >
         {boardTitle}
     </a>
-    <a
-        href="/{boardId}"
-        class="text-muted-foreground hover:text-foreground text-sm transition-colors"
-    >
-        목록 전체보기 →
-    </a>
+    <div class="flex items-center gap-1">
+        <!-- 보기 옵션 -->
+        <DropdownMenu>
+            <DropdownMenuTrigger>
+                <Button variant="ghost" size="icon" class="h-8 w-8" title="보기 옵션">
+                    <SlidersHorizontal class="h-4 w-4" />
+                </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+                <DropdownMenuRadioGroup
+                    value={uiSettingsStore.listView}
+                    onValueChange={(v) => {
+                        if (v) uiSettingsStore.listView = v;
+                    }}
+                >
+                    <DropdownMenuRadioItem value="classic">클래식</DropdownMenuRadioItem>
+                    <DropdownMenuRadioItem value="modern">모던</DropdownMenuRadioItem>
+                </DropdownMenuRadioGroup>
+                <DropdownMenuCheckboxItem
+                    checked={uiSettingsStore.titleBold}
+                    onCheckedChange={(v) => (uiSettingsStore.titleBold = v)}
+                    >글 제목 굵게</DropdownMenuCheckboxItem
+                >
+            </DropdownMenuContent>
+        </DropdownMenu>
+        <!-- 검색 (게시판 목록으로 이동) -->
+        <a
+            href="/{boardId}?search=1"
+            class="text-muted-foreground hover:text-foreground inline-flex h-8 w-8 items-center justify-center rounded-md transition-colors"
+            title="검색"
+        >
+            <Search class="h-4 w-4" />
+        </a>
+    </div>
 </div>
 
 {#if loading}
@@ -263,6 +301,13 @@
         <p class="text-secondary-foreground mt-3 text-center text-sm">
             전체 {totalItems.toLocaleString()}개 중 {currentPage} / {totalPages} 페이지
         </p>
+    {/if}
+
+    <!-- 페이징 아래 GAM 광고 (모바일만) -->
+    {#if widgetLayoutStore.hasEnabledAds}
+        <div class="mt-4 md:hidden">
+            <AdSlot position="board-footer" height="90px" />
+        </div>
     {/if}
 {/if}
 

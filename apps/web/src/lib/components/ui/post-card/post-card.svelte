@@ -43,7 +43,7 @@
             </span>
             <!-- text-truncate -->
             <div
-                class="min-w-0 flex-1 truncate text-[15px] leading-relaxed {getReadPostClasses(
+                class="min-w-0 flex-1 truncate text-sm leading-relaxed {getReadPostClasses(
                     showReadState && readPostsStore.isRead(getBoardId(post.url), post.id)
                 )}"
             >

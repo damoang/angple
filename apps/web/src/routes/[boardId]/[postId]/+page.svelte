@@ -518,6 +518,17 @@
         // 댓글 수 추적 (새 댓글 표시용)
         commentTracker.markSeen(boardId, data.post.id, data.post.comments_count ?? 0);
 
+        // 플로팅 바 댓글 새로고침 이벤트 수신
+        const handleCommentRefresh = () => {
+            refreshComments();
+            // 댓글 영역으로 스크롤
+            const commentSection = document.getElementById('comments');
+            if (commentSection) {
+                commentSection.scrollIntoView({ behavior: 'smooth' });
+            }
+        };
+        window.addEventListener('comment-refresh', handleCommentRefresh);
+
         // 추천 상태 조회 (사용자별 데이터 — 클라이언트 전용)
         try {
             const status = await apiClient.getPostLikeStatus(boardId, String(data.post.id));
@@ -528,6 +539,10 @@
         } catch (err) {
             console.error('Failed to load like status:', err);
         }
+
+        return () => {
+            window.removeEventListener('comment-refresh', handleCommentRefresh);
+        };
     });
 
     // 글 이동 시 상태 리셋 (같은 레이아웃 내 다른 글로 이동할 때)
@@ -1284,7 +1299,7 @@
                 </CardContent>
             </Card>
         {:else if canViewSecret}
-            <Card class="bg-background">
+            <Card id="comments" class="bg-background rounded-xl">
                 <CardHeader class="flex flex-row items-center justify-between">
                     <div class="flex items-center gap-2">
                         <h3 class="text-foreground text-lg font-semibold">
@@ -1367,28 +1382,30 @@
             </div>
         {/if}
 
-        <!-- 게시판 최근글 목록 (체류시간 증가) -->
-        <div class="mt-6">
-            <RecentPosts
-                {boardId}
-                {boardTitle}
-                currentPostId={data.post.id}
-                limit={25}
-                initialPage={Number($page.url.searchParams.get('page')) || 1}
-                promotionPosts={promotionPosts as any[]}
-                displaySettings={data.board?.display_settings}
-            />
-        </div>
-
-        <!-- 댓글 섹션 하단 광고 (푸터 위) -->
+        <!-- 댓글 섹션 하단 광고 (푸터 위, PC만) -->
         {#if widgetLayoutStore.hasEnabledAds}
-            <div class="mt-6">
+            <div class="mt-6 hidden md:block">
                 <AdSlot position="board-footer" height="90px" />
             </div>
         {/if}
     {/if}
     <!-- /canRead -->
 </div>
+
+<!-- 게시판 최근글 목록 -->
+{#if canRead}
+    <div class="bg-card mx-auto mt-6 rounded-xl px-3 py-3 md:px-5">
+        <RecentPosts
+            {boardId}
+            {boardTitle}
+            currentPostId={data.post.id}
+            limit={25}
+            initialPage={Number($page.url.searchParams.get('page')) || 1}
+            promotionPosts={promotionPosts as any[]}
+            displaySettings={data.board?.display_settings}
+        />
+    </div>
+{/if}
 
 <!-- 추천자 목록 다이얼로그 -->
 <Dialog.Root
@@ -1533,3 +1550,14 @@
     postId={data.post.id}
     onClose={() => (showReportDialog = false)}
 />
+
+<!-- 모바일 글쓰기 FAB -->
+{#if authStore.isAuthenticated && checkPermission(data.board, 'can_write', authStore.user ?? null)}
+    <a
+        href="/{boardId}/write"
+        class="bg-primary text-primary-foreground fixed bottom-4 right-4 z-50 flex h-10 w-10 items-center justify-center rounded-full shadow-lg transition-transform active:scale-95 md:hidden"
+        aria-label="글쓰기"
+    >
+        <Pencil class="h-4 w-4" />
+    </a>
+{/if}

@@ -13,6 +13,8 @@ import { tiktok } from './tiktok.js';
 import { reddit } from './reddit.js';
 import { bluesky } from './bluesky.js';
 import { bracketImage } from './bracket-image.js';
+import { naverTv } from './naver-tv.js';
+import { spotify } from './spotify.js';
 
 /**
  * 등록된 플랫폼 목록 (순서대로 매칭)
@@ -26,6 +28,8 @@ export const platforms: EmbedPlatform[] = [
     tiktok,
     reddit,
     bluesky,
+    naverTv,
+    spotify,
     bracketImage
 ];
 
@@ -50,7 +54,19 @@ export function findPlatform(url: string): EmbedPlatform | undefined {
     return undefined;
 }
 
-export { youtube, vimeo, instagram, twitter, twitch, tiktok, reddit, bluesky, bracketImage };
+export {
+    youtube,
+    vimeo,
+    instagram,
+    twitter,
+    twitch,
+    tiktok,
+    reddit,
+    bluesky,
+    naverTv,
+    spotify,
+    bracketImage
+};
 
 // bracket-image 전용 함수 재내보내기
 export { processBracketImages, getAllowedDomains, getAllowedExtensions } from './bracket-image.js';
