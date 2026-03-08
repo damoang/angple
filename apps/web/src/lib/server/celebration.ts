@@ -65,7 +65,7 @@ export async function fetchCelebrations(isRecent: boolean = false): Promise<Cele
 					m.mb_nick AS target_member_nick,
 					m.mb_image_url AS target_member_image_url
 			 FROM celebration_banners cb
-			 LEFT JOIN g5_member m ON cb.target_member_id COLLATE utf8mb4_unicode_ci = m.mb_id
+			 LEFT JOIN g5_member m ON cb.target_member_id = m.mb_id
 			 WHERE cb.is_active = 1 ${dateFilter}
 			 ORDER BY cb.display_date DESC, cb.sort_order ASC, cb.id DESC
 			 LIMIT 8`

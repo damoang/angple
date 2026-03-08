@@ -5,6 +5,7 @@ import { fetchPromotionPosts, fetchPromotionBoardPosts } from '$lib/server/ads/p
 import { transformAffiliateContent } from '$lib/hooks/builtin/affiliate.js';
 import { isScraped } from '$lib/server/scrap.js';
 import { backendFetch as bFetch, createAuthHeaders } from '$lib/server/backend-fetch.js';
+import { getCachedBoard } from '$lib/server/board-cache.js';
 import { increment as incrementViewcount } from '$lib/server/viewcount.js';
 import { fetchReactionsByParentId } from '$lib/server/reactions.js';
 import { fetchMemberLevels } from '$lib/server/member-levels.js';
@@ -35,42 +36,27 @@ export const load: PageServerLoad = async ({
 
     try {
         // --- 1단계: 필수 데이터 즉시 await (본문, SEO, 권한 체크) ---
-        const [postResult, boardResult, displaySettingsResult, filesResult] =
-            await Promise.allSettled([
-                // 게시글 (Go 백엔드 직접 호출)
-                bFetch(`/api/v1/boards/${boardId}/posts/${postId}`, {
-                    headers,
-                    timeout: 8_000
-                }).then(async (res) => {
-                    if (!res.ok) throw new Error(`Post API error: ${res.status}`);
-                    const json = await res.json();
-                    return json.data as FreePost;
-                }),
-                // 게시판 정보 (가벼움, 캐시됨)
-                bFetch(`/api/v1/boards/${boardId}`, { headers, timeout: 3_000 }).then(
-                    async (res) => {
-                        if (!res.ok) return null;
-                        const json = await res.json();
-                        return json.data;
-                    }
-                ),
-                // 게시판 표시 설정 (가벼움)
-                bFetch(`/api/v1/boards/${boardId}/display-settings`, {
-                    headers,
-                    timeout: 3_000
-                }).then(async (res) => {
+        // board는 공유 캐시(300초 TTL)에서 조회, post/files는 병렬로 fetch
+        const [postResult, boardResult, filesResult] = await Promise.allSettled([
+            // 게시글 (Go 백엔드 직접 호출)
+            bFetch(`/api/v1/boards/${boardId}/posts/${postId}`, {
+                headers,
+                timeout: 5_000
+            }).then(async (res) => {
+                if (!res.ok) throw new Error(`Post API error: ${res.status}`);
+                const json = await res.json();
+                return json.data as FreePost;
+            }),
+            // 게시판 정보 (공유 캐시, 캐시 히트 시 0ms)
+            getCachedBoard(boardId, headers),
+            // 첨부 파일 (SvelteKit 내부 라우트)
+            svelteKitFetch(`${url.origin}/api/boards/${boardId}/posts/${postId}/files`).then(
+                async (res) => {
                     if (!res.ok) return null;
-                    const json = await res.json();
-                    return json.data;
-                }),
-                // 첨부 파일 (SvelteKit 내부 라우트)
-                svelteKitFetch(`${url.origin}/api/boards/${boardId}/posts/${postId}/files`).then(
-                    async (res) => {
-                        if (!res.ok) return null;
-                        return res.json();
-                    }
-                )
-            ]);
+                    return res.json();
+                }
+            )
+        ]);
 
         // 게시글 필수 — 실패 시 404
         if (postResult.status === 'rejected') {
@@ -89,12 +75,7 @@ export const load: PageServerLoad = async ({
             post.content = '';
         }
 
-        let board = boardResult.status === 'fulfilled' ? boardResult.value : null;
-
-        // display_settings 병합
-        if (board && displaySettingsResult.status === 'fulfilled' && displaySettingsResult.value) {
-            board = { ...board, display_settings: displaySettingsResult.value };
-        }
+        const board = boardResult.status === 'fulfilled' ? boardResult.value : null;
 
         // 게시판 접근 권한 체크 (list_level, read_level 중 높은 값)
         if (board) {

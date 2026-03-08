@@ -13,8 +13,7 @@ import { getCachedBannersByPositions } from '$lib/server/ads/banners';
  *
  * celebration + banners: SSR에서 직접 로드하여 클라이언트 /api/init CDN 요청 제거
  */
-export const load: LayoutServerLoad = async ({ locals, url }) => {
-    void url.pathname; // URL 변경 시 load 재실행 → SPA 네비게이션마다 SSR 데이터 갱신
+export const load: LayoutServerLoad = async ({ locals }) => {
     // 병렬로 모든 데이터 로드 (allSettled: 개별 실패 허용)
     const [themeResult, pluginsResult, menusResult, celebrationResult, bannersResult] =
         await Promise.allSettled([

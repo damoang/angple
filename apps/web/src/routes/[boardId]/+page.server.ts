@@ -5,9 +5,7 @@ import { fetchPromotionPosts, fetchPromotionBoardPosts } from '$lib/server/ads/p
 import type { PromotionBoardPost } from '$lib/server/ads/promotion.js';
 import { backendFetch as bFetch, createAuthHeaders } from '$lib/server/backend-fetch.js';
 import { createCache } from '$lib/server/cache.js';
-
-// --- 인메모리 캐시: board 정보 (60초 TTL, 거의 안 바뀜) ---
-const boardInfoCache = createCache<Board>({ ttl: 60_000, maxSize: 200 });
+import { getCachedBoard } from '$lib/server/board-cache.js';
 
 // --- 인메모리 캐시: 비로그인 게시글 목록 (15초 TTL) ---
 interface PostsCacheData {
@@ -42,30 +40,10 @@ export const load: PageServerLoad = async ({ url, params, locals }) => {
     const headers = createAuthHeaders(locals.accessToken);
 
     // --- 1단계: board 정보 즉시 await (헤더, SEO, 권한 체크) ---
-    // board 메타데이터는 관리자 변경 시만 바뀌므로 60초 인메모리 캐시
+    // board 메타데이터는 관리자 변경 시만 바뀌므로 300초 인메모리 캐시 (board-cache.ts 공유)
     let board: Board | null = null;
     try {
-        const cached = boardInfoCache.get(boardId);
-        if (cached) {
-            board = cached;
-        } else {
-            const [boardRes, displaySettingsRes] = await Promise.all([
-                bFetch(`/api/v1/boards/${boardId}`, { headers, timeout: 3_000 }),
-                bFetch(`/api/v1/boards/${boardId}/display-settings`, { headers, timeout: 3_000 })
-            ]);
-            board = boardRes.ok ? ((await boardRes.json()).data as Board) : null;
-
-            // display_settings 병합
-            if (board && displaySettingsRes.ok) {
-                const displaySettings = (await displaySettingsRes.json()).data;
-                board = { ...board, display_settings: displaySettings };
-            }
-
-            // 캐시 저장 (board가 null이 아닐 때만)
-            if (board) {
-                boardInfoCache.set(boardId, board);
-            }
-        }
+        board = await getCachedBoard(boardId, headers);
 
         // 게시판이 존재하지 않으면 404
         if (!board) {
