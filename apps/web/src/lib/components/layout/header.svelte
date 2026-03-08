@@ -154,12 +154,19 @@
     class:border-b={isScrolled}
 >
     <div class="container mx-auto flex h-12 items-center justify-between md:h-16">
-        <!-- 로고 -->
+        <!-- 햄버거 메뉴 + 로고 -->
         <div class="flex items-center">
+            <button
+                onclick={toggleDrawer}
+                class="hover:bg-accent rounded-lg p-2 transition-all duration-200 ease-out md:hidden"
+                aria-label="메뉴"
+            >
+                <AlignJustify class="text-muted-foreground h-5 w-5" />
+            </button>
             <a
                 href="/"
                 data-sveltekit-reload
-                class="flex items-center ps-4 md:ps-0"
+                class="flex items-center ps-1 md:ps-0"
                 onclick={(e: MouseEvent) => {
                     if (window.location.pathname === '/') {
                         e.preventDefault();
@@ -314,10 +321,10 @@
                 </button>
             {/if}
 
-            <!-- 햄버거 메뉴 (추가 메뉴) -->
+            <!-- 햄버거 메뉴 (PC 전용, 모바일은 좌측에 배치) -->
             <button
                 onclick={toggleDrawer}
-                class="hover:bg-accent rounded-lg p-2 transition-all duration-200 ease-out"
+                class="hover:bg-accent hidden rounded-lg p-2 transition-all duration-200 ease-out md:inline-flex"
                 aria-label="추가 메뉴"
             >
                 <AlignJustify class="text-muted-foreground h-5 w-5" />
