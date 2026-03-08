@@ -2,7 +2,23 @@ import type { HandleClientError } from '@sveltejs/kit';
 
 const DANTRY_URL = 'https://aplog.damoang.net/api/v1/dantry';
 
-// 수집할 필요 없는 에러 필터
+// 외부 스크립트 소스 URL 필터 (광고, 애널리틱스, 브라우저 확장)
+const DENIED_SOURCES = [
+    'doubleclick.net',
+    'googlesyndication.com',
+    'google-analytics.com',
+    'googletagmanager.com',
+    'facebook.net',
+    'connect.facebook.net',
+    'ads.google.com',
+    'pagead2.googlesyndication.com',
+    'chrome-extension://',
+    'moz-extension://',
+    'safari-extension://',
+    'edge://'
+];
+
+// 수집할 필요 없는 에러 메시지 패턴
 const IGNORED_PATTERNS = [
     'Script error.',
     'runtime.sendMessage',
@@ -23,15 +39,68 @@ const IGNORED_PATTERNS = [
     'getAttribute',
     '.regional',
     'popover is not a function',
-    'parentNode.parentNode'
+    'parentNode.parentNode',
+    'ResizeObserver loop',
+    'Non-Error promise rejection',
+    'fb_xd_fragment',
+    'instantSearchSDKJSBridgeClearHighlight',
+    'window.bannerNight',
+    'wrsParams',
+    'serviceWorker.register',
+    'pubads'
 ];
 
-function shouldIgnore(message: string): boolean {
+function shouldIgnore(message: string, source?: string, stack?: string): boolean {
+    // 1. 메시지 필터
     if (!message) return true;
     if (message === '[object Object]') return true;
     if (message === '(unknown)') return true;
     if (message === 'Rejected') return true;
-    return IGNORED_PATTERNS.some((p) => message.includes(p));
+    if (IGNORED_PATTERNS.some((p) => message.includes(p))) return true;
+
+    // 2. 소스 URL 필터
+    if (source && DENIED_SOURCES.some((d) => source.includes(d))) return true;
+
+    // 3. 스택 트레이스 필터 (외부 스크립트에서 발생한 에러)
+    if (stack && DENIED_SOURCES.some((d) => stack.includes(d))) return true;
+
+    return false;
+}
+
+// 세션 내 동일 에러 중복 제한
+const errorCounts = new Map<string, number>();
+const MAX_SAME_ERROR = 5;
+
+function shouldThrottle(message: string): boolean {
+    const key = message.substring(0, 100);
+    const count = errorCounts.get(key) || 0;
+    if (count >= MAX_SAME_ERROR) return true;
+    errorCounts.set(key, count + 1);
+    return false;
+}
+
+// 전역 레이트 리밋 (1분당 최대 20건)
+let sentCount = 0;
+let sentResetTime = 0;
+const MAX_PER_MINUTE = 20;
+
+function isRateLimited(): boolean {
+    const now = Date.now();
+    if (now - sentResetTime > 60_000) {
+        sentCount = 0;
+        sentResetTime = now;
+    }
+    if (sentCount >= MAX_PER_MINUTE) return true;
+    sentCount++;
+    return false;
+}
+
+// 공통 전송 가드 (중복 제한 + 레이트 리밋)
+function guardedSend(payload: Record<string, unknown>) {
+    const msg = String(payload.message || payload.reason || '');
+    if (shouldThrottle(msg)) return;
+    if (isRateLimited()) return;
+    sendDantry(payload);
 }
 
 function sendDantry(payload: Record<string, unknown>) {
@@ -159,9 +228,9 @@ export const handleError: HandleClientError = ({ error, event, status }) => {
         return;
     }
 
-    if (shouldIgnore(err.message)) return;
+    if (shouldIgnore(err.message, undefined, err.stack)) return;
 
-    sendDantry({
+    guardedSend({
         type: 'sveltekit_error',
         message: err.message,
         stack: err.stack || '(no stack)',
@@ -174,9 +243,9 @@ export const handleError: HandleClientError = ({ error, event, status }) => {
 // 전역 JS 에러 (SvelteKit 밖에서 발생하는 에러)
 if (typeof window !== 'undefined') {
     window.addEventListener('error', (event) => {
-        if (shouldIgnore(event.message)) return;
+        if (shouldIgnore(event.message, event.filename, event.error?.stack)) return;
 
-        sendDantry({
+        guardedSend({
             type: event.type,
             message: event.message,
             source: event.filename,
@@ -190,7 +259,8 @@ if (typeof window !== 'undefined') {
 
     window.addEventListener('unhandledrejection', (event) => {
         const reason = String(event.reason ?? '(unknown)');
-        if (shouldIgnore(reason)) return;
+        const stack = event.reason instanceof Error ? event.reason.stack : undefined;
+        if (shouldIgnore(reason, undefined, stack)) return;
 
         const payload: Record<string, unknown> = {
             type: event.type,
@@ -198,9 +268,9 @@ if (typeof window !== 'undefined') {
             url: window.location.href,
             userAgent: navigator.userAgent
         };
-        if (event.reason instanceof Error) {
-            payload.stack = event.reason.stack;
+        if (stack) {
+            payload.stack = stack;
         }
-        sendDantry(payload);
+        guardedSend(payload);
     });
 }
