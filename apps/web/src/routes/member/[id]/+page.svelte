@@ -6,6 +6,7 @@
     import * as Tabs from '$lib/components/ui/tabs/index.js';
     import type { PageData } from './$types.js';
     import { authStore } from '$lib/stores/auth.svelte.js';
+    import { getAvatarUrl, getMemberIconUrl } from '$lib/utils/member-icon.js';
     import { apiClient } from '$lib/api/index.js';
     import { goto } from '$app/navigation';
     import { onMount } from 'svelte';
@@ -60,6 +61,15 @@
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let { data }: { data: PageData & { profile: any } } = $props();
     const p = $derived(data.profile);
+
+    let profileAvatarUrl = $derived(
+        getAvatarUrl(p?.mb_image) || getMemberIconUrl(p?.mb_id) || null
+    );
+    let profileAvatarFailed = $state(false);
+
+    $effect(() => {
+        if (p) profileAvatarFailed = false;
+    });
 
     // 본인 프로필
     const isOwnProfile = $derived(authStore.user?.mb_id === p?.mb_id);
@@ -318,19 +328,23 @@
             <CardContent class="pt-6">
                 <div class="flex items-center gap-4">
                     <!-- 프로필 이미지 -->
-                    <div class="shrink-0">
-                        {#if p.mb_image}
+                    <div
+                        class="flex h-16 w-16 shrink-0 items-center justify-center rounded-full {profileAvatarUrl &&
+                        !profileAvatarFailed
+                            ? 'overflow-hidden'
+                            : 'bg-primary text-primary-foreground'}"
+                    >
+                        {#if profileAvatarUrl && !profileAvatarFailed}
                             <img
-                                src={p.mb_image}
+                                src={profileAvatarUrl}
                                 alt={p.mb_name}
-                                class="h-16 w-16 rounded-full object-cover"
+                                class="h-full w-full object-cover"
+                                onerror={() => {
+                                    profileAvatarFailed = true;
+                                }}
                             />
                         {:else}
-                            <div
-                                class="bg-primary text-primary-foreground flex h-16 w-16 items-center justify-center rounded-full"
-                            >
-                                <User class="h-8 w-8" />
-                            </div>
+                            <User class="h-8 w-8" />
                         {/if}
                     </div>
 
