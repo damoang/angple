@@ -208,7 +208,7 @@
                     {#if post.comments_count > 0}
                         <span class="comment-count shrink-0">+{post.comments_count}</span>
                     {/if}
-                    {#if memoPluginActive && MemoBadge}
+                    {#if memoPluginActive && MemoBadge && !uiSettingsStore.hideMemoInList}
                         <span class="ml-auto shrink-0">
                             <MemoBadge memberId={post.author_id} />
                         </span>

@@ -9,6 +9,7 @@
     import { pluginStore } from '$lib/stores/plugin.svelte';
     import { loadPluginComponent } from '$lib/utils/plugin-optional-loader';
     import { formatDate } from '$lib/utils/format-date.js';
+    import { uiSettingsStore } from '$lib/stores/ui-settings.svelte.js';
 
     // 동적 플러그인 임포트: member-memo
     let MemoBadge = $state<Component | null>(null);
@@ -135,10 +136,11 @@
                                         >
                                             {liker.mb_nick || liker.mb_name}
                                         </a>
-                                        {#if memoPluginActive && MemoBadge}
+                                        {#if memoPluginActive && MemoBadge && !uiSettingsStore.hideMemo}
                                             <MemoBadge
                                                 memberId={liker.mb_id}
                                                 showIcon={true}
+                                                blur={uiSettingsStore.blurMemo}
                                                 onclick={() => {
                                                     editingMemoFor =
                                                         editingMemoFor === liker.mb_id

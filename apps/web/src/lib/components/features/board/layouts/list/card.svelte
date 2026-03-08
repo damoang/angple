@@ -10,6 +10,7 @@
     import { memberLevelStore } from '$lib/stores/member-levels.svelte.js';
     import { loadPluginComponent } from '$lib/utils/plugin-optional-loader';
     import { formatDate } from '$lib/utils/format-date.js';
+    import { uiSettingsStore } from '$lib/stores/ui-settings.svelte.js';
 
     let memoPluginActive = $derived(pluginStore.isPluginActive('member-memo'));
 
@@ -106,7 +107,7 @@
                                             authorName={post.author}
                                         /></span
                                     >
-                                    {#if memoPluginActive && MemoBadge}
+                                    {#if memoPluginActive && MemoBadge && !uiSettingsStore.hideMemoInList}
                                         <MemoBadge memberId={post.author_id} />
                                     {/if}
                                     <span>•</span>

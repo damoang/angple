@@ -27,6 +27,7 @@
     import RevisionHistory from '$lib/components/post/revision-history.svelte';
     import type { PostRevision } from '$lib/api/types.js';
     import History from '@lucide/svelte/icons/history';
+    import { uiSettingsStore } from '$lib/stores/ui-settings.svelte.js';
 
     // 동적 플러그인 임포트: member-memo
     let MemoBadge = $state<Component | null>(null);
@@ -748,11 +749,11 @@
                         class="text-foreground mb-1 ml-1 flex items-center gap-1 text-xs font-semibold"
                     >
                         <AuthorLink authorId={comment.author_id} authorName={comment.author} />
-                        {#if memoPluginActive && MemoBadge}
+                        {#if memoPluginActive && MemoBadge && !uiSettingsStore.hideMemo}
                             <MemoBadge
                                 memberId={comment.author_id}
                                 showIcon={true}
-                                ip={comment.author_ip}
+                                blur={uiSettingsStore.blurMemo}
                             />
                         {/if}
                     </p>
@@ -817,11 +818,11 @@
                                         authorId={comment.author_id}
                                         authorName={comment.author}
                                     />
-                                    {#if !isDeleted && memoPluginActive && MemoBadge}
+                                    {#if !isDeleted && memoPluginActive && MemoBadge && !uiSettingsStore.hideMemo}
                                         <MemoBadge
                                             memberId={comment.author_id}
                                             showIcon={true}
-                                            ip={comment.author_ip}
+                                            blur={uiSettingsStore.blurMemo}
                                         />
                                     {/if}
                                     {#if comment.is_secret}

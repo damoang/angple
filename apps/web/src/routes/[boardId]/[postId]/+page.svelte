@@ -1441,10 +1441,11 @@
                                         >
                                             {liker.mb_nick || liker.mb_name}
                                         </a>
-                                        {#if memoPluginActive && MemoBadge}
+                                        {#if memoPluginActive && MemoBadge && !uiSettingsStore.hideMemo}
                                             <MemoBadge
                                                 memberId={liker.mb_id}
                                                 showIcon={true}
+                                                blur={uiSettingsStore.blurMemo}
                                                 onclick={() => {
                                                     editingMemoFor =
                                                         editingMemoFor === liker.mb_id

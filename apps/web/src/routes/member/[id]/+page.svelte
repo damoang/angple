@@ -31,6 +31,7 @@
     import type { Component } from 'svelte';
     import { pluginStore } from '$lib/stores/plugin.svelte';
     import { loadPluginComponent } from '$lib/utils/plugin-optional-loader';
+    import { uiSettingsStore } from '$lib/stores/ui-settings.svelte.js';
     import {
         getMemberMemos,
         createMemberMemo,
@@ -354,8 +355,12 @@
                                     aria-label="본인확인 완료"
                                 />
                             {/if}
-                            {#if memoPluginActive && MemoBadge}
-                                <MemoBadge memberId={p.mb_id} showIcon={true} />
+                            {#if memoPluginActive && MemoBadge && !uiSettingsStore.hideMemo}
+                                <MemoBadge
+                                    memberId={p.mb_id}
+                                    showIcon={true}
+                                    blur={uiSettingsStore.blurMemo}
+                                />
                             {/if}
                         </div>
                         <p class="text-muted-foreground text-sm">{p.mb_id}</p>

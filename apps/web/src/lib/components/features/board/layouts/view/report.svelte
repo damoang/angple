@@ -274,7 +274,6 @@
                                 memberId={post.author_id}
                                 showIcon={true}
                                 blur={uiSettingsStore.blurMemo}
-                                ip={post.author_ip}
                             />
                         {/if}
                     </p>
