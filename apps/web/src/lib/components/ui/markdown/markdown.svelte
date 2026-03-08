@@ -6,6 +6,7 @@
     import { getHookVersion } from '$lib/hooks/hook-state.svelte';
     import { browser } from '$app/environment';
     import { highlightAllCodeBlocks } from '$lib/utils/code-highlight';
+    import { transformEscapedMedia } from '$lib/utils/content-transform';
 
     interface Props {
         content: string;
@@ -164,7 +165,8 @@
             'autoplay',
             'muted',
             'loop',
-            'playsinline'
+            'playsinline',
+            'preload'
         ]
     };
 
@@ -174,10 +176,11 @@
         breaks: true
     });
 
-    // SSR용 기본 HTML (플러그인 필터 없이)
+    // SSR용 기본 HTML (플러그인 필터 없이, 이스케이프된 미디어 태그는 복원)
     function getInitialHtml(content: string): string {
         if (!content) return '';
-        const rawHtml = marked.parse(content) as string;
+        let rawHtml = marked.parse(content) as string;
+        rawHtml = transformEscapedMedia(rawHtml);
         return DOMPurify.sanitize(rawHtml, PURIFY_CONFIG);
     }
 

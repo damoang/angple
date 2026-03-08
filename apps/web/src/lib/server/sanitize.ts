@@ -136,6 +136,7 @@ export function sanitizePostContent(html: string): string {
             'muted',
             'loop',
             'playsinline',
+            'preload',
             'start',
             'colspan',
             'rowspan'
