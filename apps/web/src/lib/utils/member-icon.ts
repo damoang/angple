@@ -5,7 +5,6 @@
  */
 
 const CDN_BASE_URL = 'https://s3.damoang.net';
-const LEGACY_BASE_URL = 'https://damoang.net';
 
 /**
  * 이미지 로드 실패한 mb_id 캐시 (세션 내 재요청 방지)
@@ -40,7 +39,7 @@ export function getMemberIconUrl(mbId: string | null | undefined): string | null
     if (failedIconCache.has(mbId)) return null;
 
     const prefix = mbId.substring(0, 2).toLowerCase();
-    return `${LEGACY_BASE_URL}/data/member_image/${prefix}/${mbId}.gif`;
+    return `${CDN_BASE_URL}/data/member_image/${prefix}/${mbId}.gif`;
 }
 
 /**
