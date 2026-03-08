@@ -42,8 +42,9 @@ interface ReportRow extends RowDataPacket {
     sg_time: string;
 }
 
-export const GET: RequestHandler = async ({ params, cookies }) => {
+export const GET: RequestHandler = async ({ params, cookies, url }) => {
     const { boardId, postId } = params;
+    const includePost = url.searchParams.get('include_post') === '1';
 
     if (!boardId || !postId) {
         return json({ success: false, message: 'boardId와 postId가 필요합니다.' }, { status: 400 });
@@ -63,14 +64,17 @@ export const GET: RequestHandler = async ({ params, cookies }) => {
     }
 
     try {
-        // g5_na_singo 테이블에서 해당 게시판+게시글의 댓글 신고 내역 조회
-        // sg_id != sg_parent 조건으로 댓글 신고만 필터 (게시글 자체 신고 제외)
+        // g5_na_singo 테이블에서 해당 게시판+게시글의 신고 내역 조회
+        // include_post=1이면 게시글 자체 신고도 포함, 아니면 댓글 신고만 (sg_id != sg_parent)
+        const condition = includePost
+            ? 'WHERE r.sg_table = ? AND r.sg_parent = ?'
+            : 'WHERE r.sg_table = ? AND r.sg_parent = ? AND r.sg_id != r.sg_parent';
+
         const [rows] = await pool.query<ReportRow[]>(
             `SELECT r.sg_table, r.sg_id, r.mb_id, m.mb_nick as mb_name, r.sg_type, r.sg_time
              FROM g5_na_singo r
              LEFT JOIN g5_member m ON r.mb_id = m.mb_id
-             WHERE r.sg_table = ? AND r.sg_parent = ?
-             AND r.sg_id != r.sg_parent
+             ${condition}
              ORDER BY r.sg_time DESC`,
             [safeBoardId, safePostId]
         );

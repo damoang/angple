@@ -33,15 +33,17 @@
                 tag === 'SELECT' ||
                 el.contentEditable === 'true'
             ) {
-                hidden = true;
+                queueMicrotask(() => {
+                    hidden = true;
+                });
             }
         }
     }
 
     function handleFocusOut() {
-        setTimeout(() => {
+        queueMicrotask(() => {
             hidden = false;
-        }, 0);
+        });
     }
 
     onMount(() => {

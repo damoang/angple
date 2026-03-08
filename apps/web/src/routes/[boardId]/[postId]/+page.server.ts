@@ -14,6 +14,7 @@ import {
 import { fetchReactionsByParentId } from '$lib/server/reactions.js';
 import { fetchMemberLevels } from '$lib/server/member-levels.js';
 import { fetchCommentLikeStatuses } from '$lib/server/comment-likes.js';
+import { fetchPostReportCount } from '$lib/server/report-count.js';
 
 /**
  * 게시글 상세 페이지 — Streaming SSR
@@ -183,7 +184,8 @@ export const load: PageServerLoad = async ({
                 reactionsResult,
                 likersResult,
                 postContentResult,
-                scrapResult
+                scrapResult,
+                postReportCountResult
             ] = await Promise.allSettled([
                 // 댓글 (SvelteKit 내부 라우트 → svelteKitFetch)
                 svelteKitFetch(
@@ -244,7 +246,11 @@ export const load: PageServerLoad = async ({
                 // 스크랩 여부 (로그인 시만, 스트리밍 — 초기 렌더 블로킹 방지)
                 locals.user?.id
                     ? isScraped(locals.user.id, boardId, postId).catch(() => false)
-                    : Promise.resolve(false)
+                    : Promise.resolve(false),
+                // 게시글 신고 횟수 (관리자만, PK 단건 조회)
+                (locals.user?.level ?? 0) >= 10
+                    ? fetchPostReportCount(boardId, Number(postId)).catch(() => null)
+                    : Promise.resolve(null)
             ]);
 
             const comments =
@@ -343,6 +349,9 @@ export const load: PageServerLoad = async ({
 
             const isScrapped = scrapResult.status === 'fulfilled' ? scrapResult.value : false;
 
+            const postReportCount =
+                postReportCountResult.status === 'fulfilled' ? postReportCountResult.value : null;
+
             return {
                 comments,
                 promotionPosts,
@@ -352,7 +361,8 @@ export const load: PageServerLoad = async ({
                 memberLevels,
                 commentLikeStatuses,
                 transformedPostContent,
-                isScrapped
+                isScrapped,
+                postReportCount
             };
         })();
 

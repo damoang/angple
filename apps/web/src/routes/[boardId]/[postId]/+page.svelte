@@ -261,6 +261,7 @@
     let secondaryLoaded = $state(false);
     let secondaryError = $state(false);
     let isScrapped = $state(false);
+    let postReportCount = $state<number | string | null>(null);
 
     $effect(() => {
         const promise = data.streamed?.secondaryData;
@@ -293,6 +294,7 @@
                     commentLikeStatuses?: { likedIds: number[]; dislikedIds: number[] };
                     transformedPostContent?: string | null;
                     isScrapped?: boolean;
+                    postReportCount?: number | string | null;
                 }) => {
                     if (cancelled) return;
                     comments = result.comments.items || [];
@@ -332,6 +334,11 @@
                     // 스크랩 상태 적용 (스트리밍)
                     if (result.isScrapped) {
                         isScrapped = result.isScrapped;
+                    }
+
+                    // 게시글 신고 횟수 (관리자만)
+                    if (result.postReportCount != null) {
+                        postReportCount = result.postReportCount;
                     }
 
                     secondaryLoaded = true;
@@ -1179,6 +1186,7 @@
                 postContent={postContent()}
                 pageData={data}
                 {postReactions}
+                {postReportCount}
             />
         {:else}
             <!-- 폴백: 레이아웃을 resolve할 수 없을 때 기본 메시지 -->

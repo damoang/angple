@@ -42,6 +42,8 @@
     import Info from '@lucide/svelte/icons/info';
     import ShareButton from '$lib/components/post/share-button.svelte';
     import type { ViewLayoutProps } from '../types.js';
+    import type { CommentReportInfo } from '$lib/api/types.js';
+    import { apiClient } from '$lib/api/index.js';
 
     type FontSizeKey = 'small' | 'base' | 'large' | 'xlarge';
     const FONT_SIZES: Record<FontSizeKey, string> = {
@@ -84,10 +86,34 @@
         postContent,
         pageData,
         promotionExpired = false,
-        postReactions
+        postReactions,
+        postReportCount
     }: ViewLayoutProps = $props();
 
     let hasAffiliateLinks = $derived(postContent?.includes('data-affiliate') ?? false);
+
+    // 게시글 신고자 상세 (관리자가 배지 클릭 시 lazy-load)
+    let showPostReports = $state(false);
+    let postReports = $state<CommentReportInfo[]>([]);
+    let postReportsLoading = $state(false);
+
+    async function loadPostReports() {
+        if (postReportsLoading || postReports.length > 0) {
+            showPostReports = !showPostReports;
+            return;
+        }
+        postReportsLoading = true;
+        showPostReports = true;
+        try {
+            const reports = await apiClient.getCommentReports(boardId, post.id, true);
+            // 게시글 자체 신고만 필터 (sg_id === sg_parent, 즉 comment_id === postId)
+            postReports = reports.filter((r) => String(r.comment_id) === String(post.id));
+        } catch {
+            postReports = [];
+        } finally {
+            postReportsLoading = false;
+        }
+    }
 </script>
 
 <!-- 게시글 카드 -->
@@ -117,7 +143,59 @@
                     <Lock class="text-muted-foreground h-6 w-6 shrink-0" />
                 {/if}
                 {post.title}
+                {#if isAdmin && postReportCount != null}
+                    {#if postReportCount === 'lock'}
+                        <button
+                            type="button"
+                            class="bg-destructive/10 text-destructive inline-flex shrink-0 cursor-pointer items-center gap-1 rounded px-1.5 py-0.5 text-xs font-medium"
+                            onclick={loadPostReports}
+                        >
+                            <Lock class="h-3 w-3" />
+                            신고잠금
+                        </button>
+                    {:else}
+                        <button
+                            type="button"
+                            class="bg-destructive/10 text-destructive shrink-0 cursor-pointer rounded px-1.5 py-0.5 text-xs font-medium"
+                            onclick={loadPostReports}
+                        >
+                            신고 {postReportCount}건
+                        </button>
+                    {/if}
+                {/if}
             </CardTitle>
+            {#if showPostReports}
+                <div
+                    class="bg-destructive/5 border-destructive/20 mt-2 rounded-md border p-3 text-sm"
+                >
+                    {#if postReportsLoading}
+                        <p class="text-muted-foreground">로딩 중...</p>
+                    {:else if postReports.length === 0}
+                        <p class="text-muted-foreground">신고 상세 내역이 없습니다.</p>
+                    {:else}
+                        <table class="w-full text-left text-xs">
+                            <thead>
+                                <tr class="text-muted-foreground border-b">
+                                    <th class="pb-1 pr-3">신고자</th>
+                                    <th class="pb-1 pr-3">사유</th>
+                                    <th class="pb-1">시간</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {#each postReports as report}
+                                    <tr class="border-border/50 border-b last:border-0">
+                                        <td class="py-1 pr-3">{report.reporter_name}</td>
+                                        <td class="py-1 pr-3">{report.reason_label}</td>
+                                        <td class="text-muted-foreground py-1"
+                                            >{report.created_at}</td
+                                        >
+                                    </tr>
+                                {/each}
+                            </tbody>
+                        </table>
+                    {/if}
+                </div>
+            {/if}
             {#if post.tags && post.tags.length > 0}
                 <div class="mt-3 flex flex-wrap gap-2">
                     {#each post.tags as tag, i (i)}

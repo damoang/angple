@@ -74,6 +74,7 @@ export interface FreeComment {
     deleted_by?: string | null; // 삭제한 사용자 ID
     edit_count?: number; // 수정 횟수 (리비전 수)
     last_edited_at?: string; // 최종 수정 시각
+    report_count?: number | string; // wr_7 값: 숫자(신고수) 또는 "lock"
 }
 
 // 첨부파일 응답

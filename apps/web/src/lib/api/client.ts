@@ -1764,10 +1764,12 @@ class ApiClient {
      */
     async getCommentReports(
         boardId: string,
-        postId: number | string
+        postId: number | string,
+        includePost = false
     ): Promise<CommentReportInfo[]> {
         try {
-            const res = await fetch(`/api/boards/${boardId}/posts/${postId}/comment-reports`, {
+            const qs = includePost ? '?include_post=1' : '';
+            const res = await fetch(`/api/boards/${boardId}/posts/${postId}/comment-reports${qs}`, {
                 credentials: 'include'
             });
             if (!res.ok) return [];

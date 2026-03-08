@@ -25,6 +25,7 @@ interface CommentRow extends RowDataPacket {
     wr_datetime: string;
     wr_deleted_at: string | null;
     wr_deleted_by: string | null;
+    wr_7: string | null;
 }
 
 interface CountRow extends RowDataPacket {
@@ -79,7 +80,7 @@ export const GET: RequestHandler = async ({ params, url, locals }) => {
         const [rows] = await pool.query<CommentRow[]>(
             `SELECT wr_id, wr_parent, wr_comment, wr_comment_reply, wr_content, wr_option,
 			        wr_good, wr_nogood, mb_id, wr_name, wr_ip, wr_datetime,
-			        wr_deleted_at, wr_deleted_by
+			        wr_deleted_at, wr_deleted_by, wr_7
 			 FROM ??
 			 WHERE wr_parent = ? AND wr_is_comment = 1
 			 ORDER BY wr_comment, wr_comment_reply
@@ -127,7 +128,13 @@ export const GET: RequestHandler = async ({ params, url, locals }) => {
             is_secret: row.wr_option?.includes('secret') || false,
             deleted_at: row.wr_deleted_at || null,
             deleted_by: row.wr_deleted_by || null,
-            edit_count: editCountMap.get(row.wr_id) || 0
+            edit_count: editCountMap.get(row.wr_id) || 0,
+            ...(isAdmin && row.wr_7
+                ? {
+                      report_count:
+                          row.wr_7 === 'lock' ? 'lock' : parseInt(row.wr_7, 10) || undefined
+                  }
+                : {})
         }));
 
         return json({

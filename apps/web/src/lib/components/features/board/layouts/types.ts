@@ -115,4 +115,7 @@ export interface ViewLayoutProps {
 
     /** 일괄 조회된 게시글 리액션 (있으면 개별 fetch 스킵) */
     postReactions?: ReactionItem[];
+
+    /** 게시글 신고 횟수 (관리자만, wr_7 값) */
+    postReportCount?: number | string | null;
 }

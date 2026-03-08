@@ -570,7 +570,7 @@
             {/if}
 
             <!-- Streaming SSR: 게시글 목록 (스켈레톤 → 데이터) -->
-            {#await data.streamed.postsData}
+            {#await data.streamed?.postsData}
                 <BoardListSkeleton />
             {:then result}
                 {@const posts = result.posts}
