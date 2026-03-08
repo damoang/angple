@@ -38,7 +38,7 @@
     <div class="fixed right-6 z-40" style="bottom: 24px;">
         <button
             onclick={scrollToTop}
-            class="group flex h-12 w-12 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg transition-all duration-300 hover:bg-blue-700"
+            class="group flex h-10 w-10 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg transition-all duration-300 hover:bg-blue-700"
             aria-label="페이지 상단으로 이동"
         >
             <svg
