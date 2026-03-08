@@ -34,19 +34,20 @@ jobs:
       - name: Checkout angple-premium
         uses: actions/checkout@v4
         with:
-          repository: angple/angple-premium
+          repository: damoang/angple-premium
           token: ${{ secrets.PREMIUM_REPO_TOKEN }}
           path: _premium
-        continue-on-error: true
 
       - name: Install premium assets
-        if: hashFiles('_premium/deploy/install.sh') != ''
         run: |
+          if [ ! -f "_premium/deploy/install.sh" ]; then
+            echo "FATAL: Premium repo checkout failed or install.sh missing!"
+            exit 1
+          fi
           chmod +x _premium/deploy/install.sh
           _premium/deploy/install.sh .
-          echo "Premium assets installed"
 
-      - name: Ensure premium directories exist
+      - name: Setup directories
         run: mkdir -p custom-themes custom-widgets extensions plugins widgets
 
       # --- 네이티브 빌드 ---
@@ -77,9 +78,22 @@ jobs:
         run: |
           pnpm --filter web deploy --prod --legacy apps/web/deploy
           cp -r apps/web/build apps/web/deploy/
+          rm -rf apps/web/deploy/plugins apps/web/deploy/widgets apps/web/deploy/themes
+          rm -rf apps/web/deploy/custom-themes apps/web/deploy/custom-widgets apps/web/deploy/extensions
           for dir in plugins widgets themes custom-themes custom-widgets extensions; do
             cp -r "$dir" "apps/web/deploy/" 2>/dev/null || mkdir -p "apps/web/deploy/$dir"
           done
+
+          # 필수 검증 — 플러그인 최소 개수 미달 시 빌드 실패
+          echo "=== Plugin verification ==="
+          ls -la apps/web/deploy/plugins/
+          PLUGIN_COUNT=$(ls apps/web/deploy/plugins/*/plugin.json 2>/dev/null | wc -l)
+          echo "Plugins with manifest: $PLUGIN_COUNT"
+          if [ "$PLUGIN_COUNT" -lt 5 ]; then
+            echo "FATAL: Expected at least 5 plugins, found $PLUGIN_COUNT!"
+            echo "Premium checkout or install.sh may have failed."
+            exit 1
+          fi
 
       # --- Docker 이미지 빌드 + push ---
       - name: Set up Docker Buildx
@@ -289,6 +303,24 @@ jobs:
           done
           echo "Timed out"
           exit 1
+
+      - name: Notify deploy complete (Telegram)
+        if: success()
+        env:
+          IMAGE_TAG: ${{ needs.build.outputs.image-tag }}
+        run: |
+          COMMIT_MSG=$(echo "${{ github.event.head_commit.message }}" | head -1)
+
+          MSG="🚀 angple-web 배포 완료
+
+          커밋: ${GITHUB_SHA:0:7} - ${COMMIT_MSG}
+          Tag: ${IMAGE_TAG}"
+
+          MSG=$(echo "$MSG" | sed 's/^          //')
+
+          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+            --data-urlencode "chat_id=${{ secrets.TELEGRAM_CHAT_ID }}" \
+            --data-urlencode "text=${MSG}" >/dev/null 2>&1 || true
 
       - name: Deploy summary
         run: |
