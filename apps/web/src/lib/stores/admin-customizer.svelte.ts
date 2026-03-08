@@ -40,13 +40,12 @@ class AdminCustomizerStore {
         if (section) {
             this._activeSection = section;
         }
-        // 메뉴 데이터 로드 (관리자 API)
-        // 실패 시 SSR 메뉴 데이터를 fallback으로 사용
-        adminMenuStore.loadMenus().then(() => {
-            if (adminMenuStore.menus.length === 0 && menuStore.menus.length > 0) {
-                adminMenuStore.initFromServer(menuStore.menus as Menu[]);
-            }
-        });
+        // 즉시 SSR 메뉴 데이터로 초기화 (빈 화면 방지)
+        if (adminMenuStore.menus.length === 0 && menuStore.menus.length > 0) {
+            adminMenuStore.initFromServer(menuStore.menus as Menu[]);
+        }
+        // 관리자 API로 전체 메뉴 로드 (성공 시 덮어쓰기, 실패 시 SSR 데이터 유지)
+        adminMenuStore.loadMenus();
         // 위젯 섹션이면 편집 모드 진입
         if (this._activeSection === 'widgets') {
             widgetLayoutStore.enterEditMode();
