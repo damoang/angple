@@ -254,29 +254,19 @@
 
         {#if notifications.length > 0}
             <div class="flex gap-1 border-t px-3 py-2">
-                <Button
-                    variant="ghost"
-                    size="sm"
-                    class="flex-1 text-sm"
-                    onclick={() => {
-                        isOpen = false;
-                        goto('/notifications');
-                    }}
+                <a
+                    href="/notifications"
+                    class="hover:bg-accent flex-1 rounded-md py-1.5 text-center text-sm transition-colors"
                 >
                     모든 알림 보기
-                </Button>
-                <Button
-                    variant="ghost"
-                    size="sm"
-                    class="flex-1 text-sm"
-                    onclick={() => {
-                        isOpen = false;
-                        goto('/member/settings/ui');
-                    }}
+                </a>
+                <a
+                    href="/member/settings/ui?tab=notification"
+                    class="hover:bg-accent flex flex-1 items-center justify-center gap-1 rounded-md py-1.5 text-center text-sm transition-colors"
                 >
-                    <Settings class="mr-1 h-3.5 w-3.5" />
+                    <Settings class="h-3.5 w-3.5" />
                     알림설정
-                </Button>
+                </a>
             </div>
         {/if}
     </DropdownMenu.Content>

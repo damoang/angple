@@ -253,7 +253,7 @@
             </button>
         {/each}
         <button
-            onclick={() => goto('/member/settings/ui')}
+            onclick={() => goto('/member/settings/ui?tab=notification')}
             class="text-muted-foreground hover:bg-muted hover:text-foreground ml-auto flex items-center gap-1 rounded-md px-3 py-1.5 text-xs font-medium transition-colors"
         >
             <Settings class="h-3.5 w-3.5" />

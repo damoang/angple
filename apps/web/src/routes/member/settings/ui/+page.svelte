@@ -31,6 +31,7 @@
     import UserPlus from '@lucide/svelte/icons/user-plus';
     import { browser } from '$app/environment';
     import { onMount } from 'svelte';
+    import { page } from '$app/stores';
     import {
         uiSettingsStore,
         BLUR_KEYWORDS,
@@ -54,7 +55,15 @@
     import MyNav from '$lib/components/features/my/my-nav.svelte';
 
     type Tab = 'layout' | 'board' | 'shortcut' | 'notification' | 'etc';
+    const validTabs: Tab[] = ['layout', 'board', 'shortcut', 'notification', 'etc'];
+    const urlTab = $derived($page.url.searchParams.get('tab'));
     let activeTab = $state<Tab>('layout');
+
+    $effect(() => {
+        if (urlTab && validTabs.includes(urlTab as Tab)) {
+            activeTab = urlTab as Tab;
+        }
+    });
 
     const tabs: { id: Tab; label: string; icon: typeof LayoutDashboard }[] = [
         { id: 'layout', label: '레이아웃', icon: LayoutDashboard },
