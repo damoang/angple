@@ -46,7 +46,7 @@
                             {formatNumber(post.recommend_count)}
                         </span>
                         <div
-                            class="min-w-0 flex-1 truncate text-[17px] font-medium {getReadPostClasses(
+                            class="min-w-0 flex-1 truncate text-sm leading-relaxed {getReadPostClasses(
                                 showReadState &&
                                     readPostsStore.isRead(getBoardId(post.url), post.id)
                             )}"

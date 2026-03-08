@@ -32,7 +32,7 @@
                 >
                     <div class="flex items-center gap-2">
                         <div
-                            class="min-w-0 flex-1 truncate text-[17px] font-medium {getReadPostClasses(
+                            class="min-w-0 flex-1 truncate text-sm leading-relaxed {getReadPostClasses(
                                 showReadState && readPostsStore.isRead(post.board, post.id)
                             )}"
                         >

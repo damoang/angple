@@ -311,7 +311,7 @@
         'index-bottom': 'banner-large',
         'header-after': 'banner-horizontal',
         'board-list-infeed': 'infeed-compact',
-        'comment-infeed': 'infeed',
+        'comment-infeed': 'infeed-compact',
         'comment-top': 'banner-compact',
         'sidebar-sticky': 'banner-halfpage',
         sidebar: 'banner-square',
