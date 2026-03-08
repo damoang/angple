@@ -1,9 +1,6 @@
 /**
  * 도메인 매칭 로직
  * PHP MoneyMoang의 AffiliateDomains.php 참조
- *
- * - detectPlatform(): 동기 — 하드코딩 fallback (클라이언트/서버 공용)
- * - detectPlatformAsync(): 비동기 — DB 기반 동적 로딩 (서버사이드 전용)
  */
 
 import type { AffiliatePlatform, PlatformInfo } from './types';
@@ -217,72 +214,4 @@ export function getPlatformNameKo(platform: AffiliatePlatform): string {
  */
 export function getPlatformName(platform: AffiliatePlatform): string {
     return PLATFORM_DOMAINS[platform]?.name || platform;
-}
-
-// =============================================================================
-// Async 버전 (서버사이드 전용 — DB 기반 동적 머천트 로딩)
-// =============================================================================
-
-/** 동적 머천트 로더 함수 타입 */
-type MerchantLoader = (platform: string) => Promise<string[] | null>;
-
-/** 서버사이드에서 주입하는 동적 머천트 로더 */
-let _dynamicMerchantLoader: MerchantLoader | null = null;
-
-/**
- * 동적 머천트 로더 설정 (서버 시작 시 1회 호출)
- * affiliate-merchants.ts의 getPlatformMerchants를 주입합니다.
- */
-export function setDynamicMerchantLoader(loader: MerchantLoader): void {
-    _dynamicMerchantLoader = loader;
-}
-
-/**
- * 링크프라이스 머천트 도메인 목록 (동적 로딩 우선, fallback: 하드코딩)
- */
-async function getLinkpriceMerchants(): Promise<string[]> {
-    if (_dynamicMerchantLoader) {
-        const domains = await _dynamicMerchantLoader('linkprice');
-        if (domains && domains.length > 0) return domains;
-    }
-    return LINKPRICE_MERCHANTS;
-}
-
-/**
- * URL의 플랫폼 감지 (비동기 — 서버사이드 전용)
- * DB에서 동적으로 로드한 머천트 목록을 사용합니다.
- */
-export async function detectPlatformAsync(url: string): Promise<AffiliatePlatform | null> {
-    const host = extractHost(url);
-    if (!host) return null;
-
-    // 1. 직접 플랫폼 매칭 (쿠팡, 알리, 아마존, KKday) — 변동 없음
-    const directPlatforms: AffiliatePlatform[] = ['coupang', 'aliexpress', 'amazon', 'kkday'];
-    for (const platform of directPlatforms) {
-        if (matchesPlatform(url, platform)) {
-            return platform;
-        }
-    }
-
-    // 2. 링크프라이스 단축 URL
-    if (matchesPlatform(url, 'linkprice')) {
-        return 'linkprice';
-    }
-
-    // 3. 링크프라이스 머천트 도메인 (동적 로딩)
-    const merchants = await getLinkpriceMerchants();
-    for (const merchant of merchants) {
-        if (host === merchant || host.endsWith('.' + merchant)) {
-            return 'linkprice';
-        }
-    }
-
-    return null;
-}
-
-/**
- * URL이 제휴 대상인지 확인 (비동기 — 서버사이드 전용)
- */
-export async function isAffiliateUrlAsync(url: string): Promise<boolean> {
-    return (await detectPlatformAsync(url)) !== null;
 }

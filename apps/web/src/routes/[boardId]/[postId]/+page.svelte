@@ -37,13 +37,13 @@
     import type { ReactionItem } from '$lib/types/reaction.js';
     import { generateParentId, generateDocumentTargetId } from '$lib/types/reaction.js';
     import { onMount } from 'svelte';
+    import { doAction } from '$lib/hooks/registry';
     import { page } from '$app/stores';
     import { getMemberIconUrl } from '$lib/utils/member-icon.js';
     import { isEmbeddable } from '$lib/plugins/auto-embed';
     import AdminPostActions from '$lib/components/features/board/admin-post-actions.svelte';
     import AdSlot from '$lib/components/ui/ad-slot/ad-slot.svelte';
-    import { DamoangBanner } from '$lib/components/ui/damoang-banner';
-    import { CelebrationRolling } from '$lib/components/ui/celebration-rolling';
+    import PluginSlot from '$lib/components/plugin/plugin-slot.svelte';
     import { widgetLayoutStore } from '$lib/stores/widget-layout.svelte';
     import { pluginStore } from '$lib/stores/plugin.svelte';
     import {
@@ -514,6 +514,9 @@
     onMount(async () => {
         // 읽음 표시 (localStorage)
         readPostsStore.markAsRead(boardId, data.post.id);
+
+        // 훅: 게시글 렌더링 후 (플러그인 확장 포인트)
+        doAction('after_post_render', { post: data.post, boardId, boardType });
 
         // 댓글 수 추적 (새 댓글 표시용)
         commentTracker.markSeen(boardId, data.post.id, data.post.comments_count ?? 0);
@@ -1030,11 +1033,11 @@
     />
 {/if}
 
-<div class="mx-auto pt-2">
-    <!-- 상단 배너 -->
+<div class="mx-auto overflow-x-hidden pt-2">
+    <!-- 상단 배너 (슬롯 기반) -->
     {#if widgetLayoutStore.hasEnabledAds}
         <div class="mb-6">
-            <DamoangBanner position="board-view" showCelebration={false} height="45px" />
+            <PluginSlot name="board-view-banner" />
         </div>
     {/if}
 
@@ -1099,9 +1102,9 @@
         </div>
     </div>
 
-    <!-- 축하 메시지 롤링 -->
+    <!-- 축하 메시지 롤링 (슬롯 기반) -->
     <div class="mb-4">
-        <CelebrationRolling />
+        <PluginSlot name="board-view-rolling" />
     </div>
 
     <!-- 네비게이션 아래 GAM 광고 (알뜰구매/중고장터 등 특정 게시판에서만 표시) -->

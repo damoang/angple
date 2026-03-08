@@ -17,6 +17,7 @@
     import { loadAllPluginComponents } from '$lib/utils/plugin-component-loader';
     import { doAction } from '$lib/hooks/registry';
     import { initBuiltinHooks } from '$lib/hooks';
+    import { registerDefaultSlots } from '$lib/components/slot-defaults';
     import { loadPluginComponent } from '$lib/utils/plugin-optional-loader';
     import DefaultLayout from '$lib/layouts/default-layout.svelte';
     import { getThemeLayout } from '$lib/themes/layout-registry';
@@ -217,6 +218,9 @@
 
         // Built-in Hooks 초기화 (콘텐츠 임베딩, 게시판 필터 등)
         initBuiltinHooks();
+
+        // 슬롯 기본 컴포넌트 등록 (포크 시 slot-defaults.ts 수정으로 커스터마이징)
+        registerDefaultSlots();
 
         // 인증 상태 초기화 (SSR에서 받은 데이터가 있으면 우선 사용)
         if (data.user && data.accessToken) {

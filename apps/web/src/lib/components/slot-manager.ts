@@ -39,7 +39,13 @@ export type SlotName =
     | 'footer-after' // 푸터 하단
     | 'background' // 배경 (테마용)
     | 'landing-hero' // 랜딩 히어로 (테마용)
-    | 'landing-content'; // 랜딩 콘텐츠 (테마용)
+    | 'landing-content' // 랜딩 콘텐츠 (테마용)
+    | 'board-list-banner' // 게시판 목록 상단 배너
+    | 'board-list-rolling' // 게시판 목록 헤더 아래 롤링 메시지
+    | 'board-view-banner' // 게시글 상세 상단 배너
+    | 'board-view-rolling' // 게시글 상세 롤링 메시지
+    | 'sidebar-banner' // 사이드바 배너
+    | 'board-list-promotion'; // 게시판 목록 인라인 홍보글
 
 /**
  * Component 슬롯 레지스트리

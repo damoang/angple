@@ -29,7 +29,6 @@ export interface ConvertResponse {
     converted: boolean;
     cached: boolean;
     error?: string;
-    latencyMs?: number;
 }
 
 /** 일괄 변환 요청 */
@@ -100,17 +99,4 @@ export interface AffiliateConfig {
 
     // 캐시 TTL (초)
     cacheTtl: number;
-}
-
-/** 제휴 링크 변환 이벤트 (ClickHouse 통계 추적) */
-export interface AffiliateEvent {
-    event_type: 'transform' | 'success' | 'failure' | 'cache_hit';
-    platform: string;
-    merchant_domain: string;
-    original_url: string;
-    affiliate_url?: string;
-    board: string;
-    post_id: number;
-    error_message?: string;
-    latency_ms: number;
 }

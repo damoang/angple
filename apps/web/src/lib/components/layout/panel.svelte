@@ -1,7 +1,7 @@
 <script lang="ts">
     import { getComponentsForSlot } from '$lib/components/slot-manager';
     import { WidgetRenderer } from '$lib/components/widget-renderer';
-    import DamoangBanner from '$lib/components/ui/damoang-banner/damoang-banner.svelte';
+    import PluginSlot from '$lib/components/plugin/plugin-slot.svelte';
     import AdSlot from '$lib/components/ui/ad-slot/ad-slot.svelte';
     import { widgetLayoutStore } from '$lib/stores/widget-layout.svelte';
 </script>
@@ -16,8 +16,8 @@
     <!-- 공지사항 위젯 (가장 위) -->
     <WidgetRenderer zone="sidebar" onlyIds={['notice']} />
 
-    <!-- 축하메시지 캐러셀 -->
-    <DamoangBanner position="sidebar" height="auto" />
+    <!-- 사이드바 배너 (슬롯 기반) -->
+    <PluginSlot name="sidebar-banner" />
 
     <!-- 나머지 사이드바 위젯 (sticky 광고 제외) -->
     <WidgetRenderer zone="sidebar" excludeIds={['notice', 'sidebar-ad-1']} />

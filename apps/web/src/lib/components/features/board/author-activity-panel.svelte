@@ -55,10 +55,12 @@
     function loadAdSense(): void {
         if (!browser || !adContainer) return;
 
-        if (!document.querySelector('script[src*="ca-pub-2456249131797827"]')) {
+        const adsenseClient = import.meta.env.VITE_ADSENSE_ACTIVITY_CLIENT || '';
+        if (!adsenseClient) return; // 환경변수 미설정 시 광고 미표시
+
+        if (!document.querySelector(`script[src*="${adsenseClient}"]`)) {
             const script = document.createElement('script');
-            script.src =
-                'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2456249131797827';
+            script.src = `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${adsenseClient}`;
             script.async = true;
             script.crossOrigin = 'anonymous';
             document.head.appendChild(script);
@@ -143,14 +145,16 @@
             >
                 <!-- AdSense가 이 div의 height를 !important로 바꿔도 외부 래퍼가 잘라냄 -->
                 <div bind:this={adContainer}>
-                    <ins
-                        class="adsbygoogle"
-                        style="display:block;"
-                        data-ad-client="ca-pub-2456249131797827"
-                        data-ad-slot="3485137135"
-                        data-ad-format="auto"
-                        data-full-width-responsive="true"
-                    ></ins>
+                    {#if import.meta.env.VITE_ADSENSE_ACTIVITY_CLIENT}
+                        <ins
+                            class="adsbygoogle"
+                            style="display:block;"
+                            data-ad-client={import.meta.env.VITE_ADSENSE_ACTIVITY_CLIENT}
+                            data-ad-slot={import.meta.env.VITE_ADSENSE_ACTIVITY_SLOT || ''}
+                            data-ad-format="auto"
+                            data-full-width-responsive="true"
+                        ></ins>
+                    {/if}
                 </div>
             </div>
         </div>

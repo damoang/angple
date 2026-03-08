@@ -14,9 +14,11 @@ function addKKdayCid(originalUrl: string): string | null {
 	const cid = env.AFFI_KKDAY_CID || '20907';
 
 	try {
-		// HTML 엔티티 디코드 (단일 패스로 이중 언이스케이프 방지)
-		const entityMap: Record<string, string> = { '&amp;': '&', '&#x3D;': '=', '&#x26;': '&' };
-		const decodedUrl = originalUrl.replace(/&amp;|&#x3D;|&#x26;/g, (m) => entityMap[m]);
+		// HTML 엔티티 디코드
+		const decodedUrl = originalUrl
+			.replace(/&amp;/g, '&')
+			.replace(/&#x3D;/g, '=')
+			.replace(/&#x26;/g, '&');
 
 		const url = new URL(decodedUrl);
 

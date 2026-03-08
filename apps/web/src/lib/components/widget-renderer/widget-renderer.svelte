@@ -12,6 +12,7 @@
     import type { Component } from 'svelte';
     import { SvelteMap } from 'svelte/reactivity';
     import WidgetWrapper from './widget-wrapper.svelte';
+    import { hooks } from '@angple/hook-system';
 
     interface Props {
         /** 렌더링할 위젯 존 */
@@ -90,8 +91,13 @@
         return loadedComponents.get(type) ?? null;
     }
 
-    // 편집 모드에서는 전체 위젯, 일반 모드에서는 활성화된 위젯만
-    const displayWidgets = $derived(isEditMode ? widgets : enabledWidgets);
+    // 훅: 위젯 목록 필터 (플러그인이 위젯 추가/제거/순서 변경 가능)
+    const filteredEnabledWidgets = $derived(
+        hooks.applyFilters('sidebar_widgets', enabledWidgets, zone) as WidgetConfig[]
+    );
+
+    // 편집 모드에서는 전체 위젯, 일반 모드에서는 활성화된(필터 적용) 위젯만
+    const displayWidgets = $derived(isEditMode ? widgets : filteredEnabledWidgets);
 </script>
 
 {#if isEditMode}
@@ -131,7 +137,7 @@
 {:else}
     <!-- 일반 모드 -->
     <div class={zone === 'sidebar' ? 'flex flex-col gap-4' : 'space-y-4'}>
-        {#each enabledWidgets as widget (widget.id)}
+        {#each filteredEnabledWidgets as widget (widget.id)}
             {@const WidgetComponent = getComponent(widget.type)}
             {#if WidgetComponent}
                 <WidgetComponent

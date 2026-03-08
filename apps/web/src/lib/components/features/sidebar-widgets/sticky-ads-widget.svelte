@@ -12,11 +12,11 @@
 
     let { isEditMode = false }: Props = $props();
 
-    // AdSense 설정
-    const ADSENSE_CLIENT = 'ca-pub-5124617752473025';
+    // AdSense 설정 (환경변수 기반, 포크 시 .env에서 설정)
+    const ADSENSE_CLIENT = import.meta.env.VITE_ADSENSE_CLIENT || '';
     const ADSENSE_SLOTS = {
-        square: '7466402991',
-        halfpage: '7464730194'
+        square: import.meta.env.VITE_ADSENSE_SLOT_SQUARE || '',
+        halfpage: import.meta.env.VITE_ADSENSE_SLOT_HALFPAGE || ''
     };
 
     let adsenseLoaded = $state(false);

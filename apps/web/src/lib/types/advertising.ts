@@ -4,14 +4,14 @@
 
 /** GAM 네트워크 설정 */
 export interface GAMConfig {
-    network_code: string; // "22996793498"
+    network_code: string; // VITE_GAM_NETWORK_CODE 환경변수
     enable_gam: boolean;
     enable_fallback: boolean;
 }
 
 /** GAM 광고 유닛 설정 */
 export interface AdUnitConfig {
-    unit: string; // GAM unit path (e.g., "/22996793498/main")
+    unit: string; // GAM unit path (e.g., "/{network_code}/main")
     sizes: number[][]; // [[728,90], [300,250]]
     responsive?: ResponsiveMapping[];
 }
@@ -24,7 +24,7 @@ export interface ResponsiveMapping {
 
 /** AdSense 설정 */
 export interface AdSenseConfig {
-    client_id: string; // "ca-pub-5124617752473025"
+    client_id: string; // VITE_ADSENSE_CLIENT 환경변수
     slot: string; // 위치별 슬롯 ID
 }
 

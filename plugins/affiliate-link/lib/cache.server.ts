@@ -1,106 +1,143 @@
 /**
  * 제휴 링크 캐싱 로직
- * Redis 2-tier 캐시 (L1 메모리 + L2 Redis)
- *
- * - 같은 URL은 bo_table/wr_id 무관하게 같은 수익링크 → 키에 URL만 사용
- * - 성공 TTL: 7일, 에러 TTL: 6시간
+ * Redis 또는 메모리 캐시 지원
  */
 
 import { createHash } from 'crypto';
-import { TieredCache } from '$lib/server/cache.js';
 import type { AffiliatePlatform } from './types';
 
-/** 캐시 저장 데이터 */
-interface AffiliateCacheData {
-	url: string;
-	platform: AffiliatePlatform;
+/** 캐시 항목 */
+interface CacheItem {
+    url: string;
+    platform: AffiliatePlatform;
+    timestamp: number;
 }
 
-/** 에러 센티널 */
-interface AffiliateErrorData {
-	isError: true;
+/** 에러 캐시 항목 */
+interface ErrorCacheItem {
+    isError: true;
+    timestamp: number;
 }
 
-type CacheValue = AffiliateCacheData | AffiliateErrorData;
+type CacheValue = CacheItem | ErrorCacheItem;
 
-// TTL 설정
-const SUCCESS_L1_TTL_MS = 10 * 60 * 1000; // L1: 10분
-const SUCCESS_L2_TTL_SEC = 7 * 24 * 60 * 60; // L2: 7일
-const ERROR_L1_TTL_MS = 5 * 60 * 1000; // L1: 5분
-const ERROR_L2_TTL_SEC = 6 * 60 * 60; // L2: 6시간
+// 메모리 캐시 (서버 재시작 시 초기화)
+const memoryCache = new Map<string, CacheValue>();
 
-// 성공 캐시
-const successCache = new TieredCache<AffiliateCacheData>(
-	'affi',
-	SUCCESS_L1_TTL_MS,
-	SUCCESS_L2_TTL_SEC,
-	10000
-);
-
-// 에러 캐시 (짧은 TTL)
-const errorCache = new TieredCache<AffiliateErrorData>(
-	'affi_err',
-	ERROR_L1_TTL_MS,
-	ERROR_L2_TTL_SEC,
-	5000
-);
+// 캐시 TTL (초)
+const TTL = {
+    SUCCESS: 7 * 24 * 60 * 60, // 7일 (성공)
+    PERMANENT_ERROR: 24 * 60 * 60, // 24시간 (지원 불가 도메인)
+    TEMPORARY_ERROR: 6 * 60 * 60 // 6시간 (API 오류)
+};
 
 /**
- * 캐시 키 생성 — URL만 기준 (같은 URL → 같은 수익링크)
+ * 캐시 키 생성
  */
-function getCacheKey(url: string): string {
-	return createHash('md5').update(url).digest('hex');
+function getCacheKey(url: string, boTable?: string, wrId?: number): string {
+    const input = `${url}:${boTable || ''}:${wrId || ''}`;
+    return `affiliate:${createHash('md5').update(input).digest('hex')}`;
 }
 
 /**
  * 캐시에서 조회
  */
-export async function getFromCache(
-	url: string
-): Promise<{ url: string; platform: AffiliatePlatform } | 'error' | null> {
-	const key = getCacheKey(url);
+export function getFromCache(
+    url: string,
+    boTable?: string,
+    wrId?: number
+): { url: string; platform: AffiliatePlatform } | 'error' | null {
+    const key = getCacheKey(url, boTable, wrId);
+    const cached = memoryCache.get(key);
 
-	// 성공 캐시 확인
-	const cached = await successCache.get(key);
-	if (cached) {
-		return { url: cached.url, platform: cached.platform };
-	}
+    if (!cached) {
+        return null;
+    }
 
-	// 에러 캐시 확인
-	const errCached = await errorCache.get(key);
-	if (errCached) {
-		return 'error';
-	}
+    // TTL 확인
+    const now = Date.now();
+    const age = (now - cached.timestamp) / 1000;
 
-	return null;
+    if ('isError' in cached) {
+        // 에러 캐시
+        if (age > TTL.TEMPORARY_ERROR) {
+            memoryCache.delete(key);
+            return null;
+        }
+        return 'error';
+    }
+
+    // 성공 캐시
+    if (age > TTL.SUCCESS) {
+        memoryCache.delete(key);
+        return null;
+    }
+
+    return { url: cached.url, platform: cached.platform };
 }
 
 /**
  * 성공 결과 캐시 저장
  */
-export async function setSuccessCache(
-	originalUrl: string,
-	convertedUrl: string,
-	platform: AffiliatePlatform
-): Promise<void> {
-	const key = getCacheKey(originalUrl);
-	await successCache.set(key, { url: convertedUrl, platform });
-	// 에러 캐시 제거 (이전 에러가 있었다면)
-	await errorCache.delete(key);
+export function setSuccessCache(
+    originalUrl: string,
+    convertedUrl: string,
+    platform: AffiliatePlatform,
+    boTable?: string,
+    wrId?: number
+): void {
+    const key = getCacheKey(originalUrl, boTable, wrId);
+    memoryCache.set(key, {
+        url: convertedUrl,
+        platform,
+        timestamp: Date.now()
+    });
 }
 
 /**
  * 에러 캐시 저장
  */
-export async function setErrorCache(url: string): Promise<void> {
-	const key = getCacheKey(url);
-	await errorCache.set(key, { isError: true });
+export function setErrorCache(url: string, boTable?: string, wrId?: number): void {
+    const key = getCacheKey(url, boTable, wrId);
+    memoryCache.set(key, {
+        isError: true,
+        timestamp: Date.now()
+    });
 }
 
 /**
- * 캐시 초기화 (L1만)
+ * 캐시 통계
+ */
+export function getCacheStats(): { size: number; keys: string[] } {
+    return {
+        size: memoryCache.size,
+        keys: Array.from(memoryCache.keys())
+    };
+}
+
+/**
+ * 캐시 초기화
  */
 export function clearCache(): void {
-	successCache.clearL1();
-	errorCache.clearL1();
+    memoryCache.clear();
+}
+
+/**
+ * 만료된 캐시 정리
+ */
+export function cleanupExpiredCache(): number {
+    const now = Date.now();
+    let cleaned = 0;
+
+    for (const [key, value] of memoryCache.entries()) {
+        const age = (now - value.timestamp) / 1000;
+        const ttl = 'isError' in value ? TTL.TEMPORARY_ERROR : TTL.SUCCESS;
+
+        if (age > ttl) {
+            memoryCache.delete(key);
+            cleaned++;
+        }
+    }
+
+    return cleaned;
 }

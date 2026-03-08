@@ -44,8 +44,7 @@ async function resolveShortUrl(url: string): Promise<string> {
 				}
 			});
 			const finalUrl = response.url;
-			const parsedFinal = (() => { try { return new URL(finalUrl); } catch { return null; } })();
-			if (parsedFinal && (parsedFinal.hostname === 'aliexpress.com' || parsedFinal.hostname.endsWith('.aliexpress.com'))) {
+			if (finalUrl.includes('aliexpress.com')) {
 				// 기존 제휴 파라미터 제거
 				const cleaned = finalUrl
 					.replace(/[?&]aff_[^&]*/gi, '')
@@ -125,30 +124,12 @@ async function callAliExpressApi(originalUrl: string): Promise<string | null> {
 			return result;
 		}
 
-		console.warn('[AliExpress] 변환 실패:', JSON.stringify(data?.aliexpress_affiliate_link_generate_response?.resp_result?.result || ''));
-		// Fallback: API 실패 시 aff 파라미터 직접 추가
-		return buildAliExpressFallbackUrl(resolvedUrl);
+		console.warn('[AliExpress] 변환 실패:', data);
+		return null;
 	} catch (error) {
 		console.error('[AliExpress] API 호출 실패:', error);
-		return buildAliExpressFallbackUrl(originalUrl);
-	}
-}
-
-/**
- * 알리익스프레스 API 실패 시 fallback URL 생성
- * aff_id 파라미터를 직접 추가 (쿠키 기반 추적)
- */
-function buildAliExpressFallbackUrl(url: string): string | null {
-	const accessKey = env.AFFI_ALIEXPRESS_ACCESS_KEY;
-	if (!accessKey) return null;
-
-	// 이미 제휴 링크면 건너뛰기
-	if (url.includes('aff_id=') || url.includes('s.click.aliexpress')) {
 		return null;
 	}
-
-	const separator = url.includes('?') ? '&' : '?';
-	return `${url}${separator}aff_id=${accessKey}&aff_short_key=damoang&aff_platform=portals-tool`;
 }
 
 export const aliexpressConverter: PlatformConverter = {

@@ -4,6 +4,7 @@ import { getActivePlugins } from '$lib/server/plugins';
 import { loadMenus } from '$lib/server/menu-loader';
 import { getCachedCelebrations } from '$lib/server/celebration';
 import { getCachedBannersByPositions } from '$lib/server/ads/banners';
+import { hooks } from '@angple/hook-system';
 
 /**
  * 서버 사이드 데이터 로드
@@ -43,7 +44,7 @@ export const load: LayoutServerLoad = async ({ locals }) => {
         }
     }
 
-    return {
+    const layoutData = {
         activeTheme: activeTheme?.manifest.id || null,
         themeSettings: activeTheme?.currentSettings || {},
         activePlugins: activePlugins.map((plugin) => ({
@@ -63,4 +64,7 @@ export const load: LayoutServerLoad = async ({ locals }) => {
         celebration,
         banners
     };
+
+    // 훅: 레이아웃 데이터 필터 (플러그인이 SSR 데이터를 수정/확장 가능)
+    return hooks.applyFilters('layout_server_data', layoutData);
 };

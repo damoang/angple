@@ -33,10 +33,9 @@
     import CheckSquare from '@lucide/svelte/icons/check-square';
     import { Checkbox } from '$lib/components/ui/checkbox/index.js';
     import AdSlot from '$lib/components/ui/ad-slot/ad-slot.svelte';
-    import { DamoangBanner } from '$lib/components/ui/damoang-banner';
-    import { CelebrationRolling } from '$lib/components/ui/celebration-rolling';
+    import PluginSlot from '$lib/components/plugin/plugin-slot.svelte';
+    import { doAction } from '$lib/hooks/registry';
     import { TagNav, type TagNavMenu } from '$lib/components/ui/tag-nav';
-    import { PromotionInlinePost } from '$lib/components/ui/promotion-inline-post';
     import { widgetLayoutStore } from '$lib/stores/widget-layout.svelte';
     import {
         SeoHead,
@@ -154,7 +153,7 @@
         });
     });
 
-    // 스트리밍 데이터 도착 시 레벨 배치 로드
+    // 스트리밍 데이터 도착 시 레벨 배치 로드 + 훅 발행
     $effect(() => {
         const promise = data.streamed?.postsData;
         if (!promise) return;
@@ -167,6 +166,14 @@
                 if (authorIds.length > 0) {
                     memberLevelStore.fetchLevels(authorIds);
                 }
+
+                // 훅: 게시글 목록 로드 완료 (플러그인 확장 포인트)
+                doAction('board_list_loaded', {
+                    boardId,
+                    boardType,
+                    posts: result.posts,
+                    notices: (result as any).notices || []
+                });
             })
             .catch(() => {});
     });
@@ -336,10 +343,10 @@
         </div>
     {:else}
         <div class="mx-auto pt-4">
-            <!-- 최상단 배너 (축하이미지 → 다모앙광고 → GAM 폴백) -->
+            <!-- 최상단 배너 (슬롯 기반: 포크 시 slot-defaults.ts에서 커스터마이징) -->
             {#if widgetLayoutStore.hasEnabledAds}
                 <div class="mb-4">
-                    <DamoangBanner position="board-list" height="90px" showCelebration={false} />
+                    <PluginSlot name="board-list-banner" />
                 </div>
             {/if}
 
@@ -394,7 +401,13 @@
                         <DropdownMenu>
                             <DropdownMenuTrigger>
                                 {#snippet child({ props })}
-                                    <Button {...props} variant="outline" size="icon" class="relative h-9 w-9 shrink-0" title="보기 설정">
+                                    <Button
+                                        {...props}
+                                        variant="outline"
+                                        size="icon"
+                                        class="relative h-9 w-9 shrink-0"
+                                        title="보기 설정"
+                                    >
                                         <span class="absolute -inset-1.5"></span>
                                         <Settings2 class="h-4 w-4" />
                                     </Button>
@@ -403,42 +416,70 @@
                             <DropdownMenuContent align="end" class="w-44">
                                 <!-- 화면 레이아웃 (데스크탑 전용) -->
                                 <div class="hidden md:block">
-                                    <DropdownMenuLabel class="text-xs font-semibold">화면 레이아웃</DropdownMenuLabel>
+                                    <DropdownMenuLabel class="text-xs font-semibold"
+                                        >화면 레이아웃</DropdownMenuLabel
+                                    >
                                     <DropdownMenuRadioGroup
                                         value={uiSettingsStore.listView}
-                                        onValueChange={(v) => (uiSettingsStore.listView = v as 'classic' | 'modern')}
+                                        onValueChange={(v) =>
+                                            (uiSettingsStore.listView = v as 'classic' | 'modern')}
                                     >
-                                        <DropdownMenuRadioItem value="classic">클래식</DropdownMenuRadioItem>
-                                        <DropdownMenuRadioItem value="modern">모던</DropdownMenuRadioItem>
+                                        <DropdownMenuRadioItem value="classic"
+                                            >클래식</DropdownMenuRadioItem
+                                        >
+                                        <DropdownMenuRadioItem value="modern"
+                                            >모던</DropdownMenuRadioItem
+                                        >
                                     </DropdownMenuRadioGroup>
                                     <DropdownMenuSeparator />
                                 </div>
-                                <DropdownMenuLabel class="text-xs font-semibold">읽은 글 표시</DropdownMenuLabel>
+                                <DropdownMenuLabel class="text-xs font-semibold"
+                                    >읽은 글 표시</DropdownMenuLabel
+                                >
                                 <DropdownMenuRadioGroup
                                     value={readPostStyleStore.value}
-                                    onValueChange={(v) => readPostStyleStore.set(v as ReadPostStyle)}
+                                    onValueChange={(v) =>
+                                        readPostStyleStore.set(v as ReadPostStyle)}
                                 >
-                                    <DropdownMenuRadioItem value="dimmed">흐림</DropdownMenuRadioItem>
+                                    <DropdownMenuRadioItem value="dimmed"
+                                        >흐림</DropdownMenuRadioItem
+                                    >
                                     <DropdownMenuRadioItem value="bold">굵게</DropdownMenuRadioItem>
-                                    <DropdownMenuRadioItem value="italic">기울임</DropdownMenuRadioItem>
-                                    <DropdownMenuRadioItem value="underline">밑줄</DropdownMenuRadioItem>
-                                    <DropdownMenuRadioItem value="strikethrough">취소선</DropdownMenuRadioItem>
+                                    <DropdownMenuRadioItem value="italic"
+                                        >기울임</DropdownMenuRadioItem
+                                    >
+                                    <DropdownMenuRadioItem value="underline"
+                                        >밑줄</DropdownMenuRadioItem
+                                    >
+                                    <DropdownMenuRadioItem value="strikethrough"
+                                        >취소선</DropdownMenuRadioItem
+                                    >
                                 </DropdownMenuRadioGroup>
                                 <DropdownMenuSeparator />
-                                <DropdownMenuLabel class="text-xs font-semibold">목록 밀도</DropdownMenuLabel>
+                                <DropdownMenuLabel class="text-xs font-semibold"
+                                    >목록 밀도</DropdownMenuLabel
+                                >
                                 <DropdownMenuRadioGroup
                                     value={densityStore.value}
-                                    onValueChange={(v) => densityStore.set(v as 'compact' | 'balanced' | 'relaxed')}
+                                    onValueChange={(v) =>
+                                        densityStore.set(v as 'compact' | 'balanced' | 'relaxed')}
                                 >
-                                    <DropdownMenuRadioItem value="compact">촘촘</DropdownMenuRadioItem>
-                                    <DropdownMenuRadioItem value="balanced">보통</DropdownMenuRadioItem>
-                                    <DropdownMenuRadioItem value="relaxed">여유</DropdownMenuRadioItem>
+                                    <DropdownMenuRadioItem value="compact"
+                                        >촘촘</DropdownMenuRadioItem
+                                    >
+                                    <DropdownMenuRadioItem value="balanced"
+                                        >보통</DropdownMenuRadioItem
+                                    >
+                                    <DropdownMenuRadioItem value="relaxed"
+                                        >여유</DropdownMenuRadioItem
+                                    >
                                 </DropdownMenuRadioGroup>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuCheckboxItem
                                     checked={uiSettingsStore.titleBold}
                                     onCheckedChange={(v) => (uiSettingsStore.titleBold = v)}
-                                >글 제목 굵게 표시</DropdownMenuCheckboxItem>
+                                    >글 제목 굵게 표시</DropdownMenuCheckboxItem
+                                >
                             </DropdownMenuContent>
                         </DropdownMenu>
                     {/if}
@@ -470,10 +511,10 @@
                 </div>
             </div>
 
-            <!-- 축하 메시지 롤링 -->
+            <!-- 축하 메시지 롤링 (슬롯 기반) -->
             {#if !isSearching}
                 <div class="mb-4">
-                    <CelebrationRolling />
+                    <PluginSlot name="board-list-rolling" />
                 </div>
             {/if}
 
@@ -788,12 +829,11 @@
                                 </div>
                             {/if}
                             {#if shuffledPromos.length > 0 && i + 1 === 12}
-                                {#each shuffledPromos.slice(0, 2) as promo ((promo as any).wrId)}
-                                    <PromotionInlinePost
-                                        post={promo as any}
-                                        variant={listLayoutId === 'classic' ? 'classic' : 'default'}
-                                    />
-                                {/each}
+                                <PluginSlot
+                                    name="board-list-promotion"
+                                    posts={shuffledPromos}
+                                    variant={listLayoutId === 'classic' ? 'classic' : 'default'}
+                                />
                             {/if}
                         {/each}
                     {/if}

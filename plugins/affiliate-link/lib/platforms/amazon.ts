@@ -14,9 +14,11 @@ function addAmazonTag(originalUrl: string): string | null {
 	const storeId = env.AFFI_AMAZON_STORE_ID || 'damoang0c-20';
 
 	try {
-		// HTML 엔티티 디코드 (단일 패스로 이중 언이스케이프 방지)
-		const entityMap: Record<string, string> = { '&amp;': '&', '&#x3D;': '=', '&#x26;': '&' };
-		const decodedUrl = originalUrl.replace(/&amp;|&#x3D;|&#x26;/g, (m) => entityMap[m]);
+		// HTML 엔티티 디코드
+		const decodedUrl = originalUrl
+			.replace(/&amp;/g, '&')
+			.replace(/&#x3D;/g, '=')
+			.replace(/&#x26;/g, '&');
 
 		const url = new URL(decodedUrl);
 

@@ -41,13 +41,8 @@ async function resolveShortUrl(url: string): Promise<string> {
 				}
 			});
 			const finalUrl = response.url;
-			try {
-				const parsed = new URL(finalUrl);
-				if (parsed.hostname === 'coupang.com' || parsed.hostname.endsWith('.coupang.com')) {
-					return finalUrl;
-				}
-			} catch {
-				// URL 파싱 실패 시 무시
+			if (finalUrl.includes('coupang.com')) {
+				return finalUrl;
 			}
 		} catch {
 			// 리다이렉트 실패 시 원본 반환
@@ -115,38 +110,11 @@ async function callCoupangApi(originalUrl: string): Promise<string | null> {
 		}
 
 		console.warn('[Coupang] 변환 실패:', data.rMessage || 'Unknown error');
-		// Fallback: deeplink API 실패 시 파트너스 웹 리다이렉트 URL 생성
-		// 쿠팡 수익에서 가장 중요한 부분 — API 거부되어도 파트너 ID는 붙여야 함
-		return buildCoupangFallbackUrl(resolvedUrl);
+		return null;
 	} catch (error) {
 		console.error('[Coupang] API 호출 실패:', error);
-		return buildCoupangFallbackUrl(originalUrl);
+		return null;
 	}
-}
-
-/**
- * 쿠팡 Deeplink API 실패 시 fallback URL 생성
- * Coupang Partners 웹 리다이렉트 방식 (수수료 추적 가능)
- */
-function buildCoupangFallbackUrl(url: string): string | null {
-	const partnerId = env.AFFI_COUPANG_PARTNER_ID;
-	if (!partnerId) return null;
-
-	// 이미 제휴 링크인 경우 건너뛰기
-	try {
-		const parsed = new URL(url);
-		if (
-			parsed.hostname === 'link.coupang.com' ||
-			parsed.hostname === 'coupa.ng' ||
-			parsed.hostname.endsWith('.coupa.ng')
-		) {
-			return null;
-		}
-	} catch {
-		// URL 파싱 실패 시 계속 진행
-	}
-
-	return `https://link.coupang.com/re/AFFSDP?lptag=${partnerId}&pageKey=0&subId=&subId2=&subId3=&tracking=&u=${encodeURIComponent(url)}`;
 }
 
 export const coupangConverter: PlatformConverter = {

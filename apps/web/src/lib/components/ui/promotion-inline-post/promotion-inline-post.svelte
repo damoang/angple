@@ -22,11 +22,15 @@
     const href = $derived.by(() => {
         try {
             const url = new URL(post.linkUrl);
-            // 다모앙 도메인인 경우 상대 경로로 변환
-            if (url.hostname.endsWith('damoang.net')) {
+            // 같은 도메인인 경우 상대 경로로 변환 (dev/web/prod 환경 대응)
+            if (typeof window !== 'undefined' && url.hostname === window.location.hostname) {
                 return url.pathname + url.search + url.hash;
             }
-            // 외부 URL은 그대로 사용
+            // 사이트 도메인과 일치하면 상대 경로로 변환
+            const siteDomain = import.meta.env.VITE_SITE_DOMAIN || '';
+            if (siteDomain && url.hostname.endsWith(siteDomain)) {
+                return url.pathname + url.search + url.hash;
+            }
             return post.linkUrl;
         } catch {
             return post.linkUrl;
