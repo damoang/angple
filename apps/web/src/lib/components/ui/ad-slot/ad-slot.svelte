@@ -188,6 +188,37 @@
                 ]
             ]
         },
+        'banner-medium-compact': {
+            unit: AD_UNIT_PATHS.sub,
+            sizes: [
+                [728, 90],
+                [320, 100]
+            ],
+            responsive: [
+                [728, [[728, 90]]],
+                [0, [[320, 100]]]
+            ]
+        },
+        'banner-large-compact': {
+            unit: AD_UNIT_PATHS.main,
+            sizes: [
+                [970, 250],
+                [970, 90],
+                [728, 90],
+                [320, 100]
+            ],
+            responsive: [
+                [
+                    970,
+                    [
+                        [970, 250],
+                        [970, 90]
+                    ]
+                ],
+                [728, [[728, 90]]],
+                [0, [[320, 100]]]
+            ]
+        },
         'banner-large-728': {
             unit: AD_UNIT_PATHS.main,
             sizes: [
@@ -242,6 +273,17 @@
                 ]
             ]
         },
+        'infeed-compact': {
+            unit: AD_UNIT_PATHS.curation,
+            sizes: [
+                [728, 90],
+                [320, 100]
+            ],
+            responsive: [
+                [728, [[728, 90]]],
+                [0, [[320, 100]]]
+            ]
+        },
         'banner-vertical': {
             unit: AD_UNIT_PATHS.sub,
             sizes: [[160, 600]],
@@ -253,8 +295,8 @@
     const POSITION_MAP: Record<string, string> = {
         'board-view-top': 'banner-small',
         'board-head': 'banner-horizontal',
-        'board-list-head': 'banner-medium',
-        'board-list-bottom': 'banner-large',
+        'board-list-head': 'banner-medium-compact',
+        'board-list-bottom': 'banner-large-compact',
         'board-content': 'banner-responsive',
         'board-content-bottom': 'banner-large',
         'board-before-comments': 'banner-responsive',
@@ -268,7 +310,7 @@
         'index-middle-3': 'banner-horizontal',
         'index-bottom': 'banner-large',
         'header-after': 'banner-horizontal',
-        'board-list-infeed': 'infeed',
+        'board-list-infeed': 'infeed-compact',
         'comment-infeed': 'infeed',
         'comment-top': 'banner-compact',
         'sidebar-sticky': 'banner-halfpage',
