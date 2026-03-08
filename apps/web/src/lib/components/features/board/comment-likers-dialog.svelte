@@ -1,7 +1,7 @@
 <script lang="ts">
     import * as Dialog from '$lib/components/ui/dialog/index.js';
     import type { LikerInfo } from '$lib/api/types.js';
-    import { getMemberIconUrl } from '$lib/utils/member-icon.js';
+    import { getAvatarUrl, getMemberIconUrl } from '$lib/utils/member-icon.js';
     import { authStore } from '$lib/stores/auth.svelte.js';
     import { LevelBadge } from '$lib/components/ui/level-badge/index.js';
     import { memberLevelStore } from '$lib/stores/member-levels.svelte.js';
@@ -97,11 +97,13 @@
             {:else}
                 <ul class="divide-border divide-y">
                     {#each likers as liker (liker.mb_id)}
+                        {@const likerIcon =
+                            getAvatarUrl(liker.mb_image) || getMemberIconUrl(liker.mb_id)}
                         <li class="py-3">
                             <div class="flex items-center gap-3">
-                                {#if getMemberIconUrl(liker.mb_id)}
+                                {#if likerIcon}
                                     <img
-                                        src={getMemberIconUrl(liker.mb_id)}
+                                        src={likerIcon}
                                         alt={liker.mb_nick || liker.mb_name}
                                         class="size-8 rounded-full object-cover"
                                         onerror={(e) => {

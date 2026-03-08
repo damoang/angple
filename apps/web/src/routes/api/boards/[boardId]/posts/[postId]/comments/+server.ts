@@ -91,13 +91,15 @@ export const GET: RequestHandler = async ({ params, url, locals }) => {
         // 닉네임 조회 (mb_id → mb_nick)
         const mbIds = [...new Set(rows.map((r) => r.mb_id).filter(Boolean))];
         const nickMap = new Map<string, string>();
+        const imageMap = new Map<string, string>();
         if (mbIds.length > 0) {
             const [members] = await pool.query<RowDataPacket[]>(
-                `SELECT mb_id, mb_nick FROM g5_member WHERE mb_id IN (?)`,
+                `SELECT mb_id, mb_nick, mb_image_url FROM g5_member WHERE mb_id IN (?)`,
                 [mbIds]
             );
             for (const m of members) {
                 nickMap.set(m.mb_id, m.mb_nick);
+                if (m.mb_image_url) imageMap.set(m.mb_id, m.mb_image_url);
             }
         }
 
@@ -119,6 +121,7 @@ export const GET: RequestHandler = async ({ params, url, locals }) => {
             content: row.wr_deleted_at ? '' : row.wr_content, // 삭제된 댓글은 내용 숨김
             author: row.wr_deleted_at ? '' : nickMap.get(row.mb_id) || row.wr_name || row.mb_id,
             author_id: row.wr_deleted_at ? '' : row.mb_id,
+            author_image: row.wr_deleted_at ? '' : imageMap.get(row.mb_id) || '',
             author_ip: row.wr_deleted_at ? '' : isAdmin ? row.wr_ip : maskIp(row.wr_ip),
             likes: row.wr_good,
             dislikes: row.wr_nogood,

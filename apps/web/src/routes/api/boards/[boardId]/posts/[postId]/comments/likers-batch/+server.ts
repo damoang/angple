@@ -25,6 +25,7 @@ interface LikerRow extends RowDataPacket {
     mb_id: string;
     mb_nick: string;
     mb_name: string;
+    mb_image_url: string;
     bg_ip: string;
     bg_datetime: string;
 }
@@ -81,9 +82,9 @@ export const GET: RequestHandler = async ({ params, url, cookies }) => {
         // 댓글별 추천자 목록 (limit개씩, 최신순)
         // ROW_NUMBER() 윈도우 함수로 댓글별 limit 적용
         const [likerRows] = await pool.query<LikerRow[]>(
-            `SELECT sub.wr_id, sub.mb_id, sub.mb_nick, sub.mb_name, sub.bg_ip, sub.bg_datetime
+            `SELECT sub.wr_id, sub.mb_id, sub.mb_nick, sub.mb_name, sub.mb_image_url, sub.bg_ip, sub.bg_datetime
 			 FROM (
-			   SELECT g.wr_id, g.mb_id, m.mb_nick, m.mb_name, g.bg_ip, g.bg_datetime,
+			   SELECT g.wr_id, g.mb_id, m.mb_nick, m.mb_name, COALESCE(m.mb_image_url, '') as mb_image_url, g.bg_ip, g.bg_datetime,
 			          ROW_NUMBER() OVER (PARTITION BY g.wr_id ORDER BY g.bg_datetime DESC) AS rn
 			   FROM g5_board_good g
 			   JOIN g5_member m ON g.mb_id = m.mb_id
@@ -122,6 +123,7 @@ export const GET: RequestHandler = async ({ params, url, cookies }) => {
                     mb_id: row.mb_id,
                     mb_name: row.mb_name,
                     mb_nick: row.mb_nick,
+                    mb_image: row.mb_image_url || '',
                     bg_ip: isAuthenticated ? maskIp(row.bg_ip) : '',
                     liked_at: String(row.bg_datetime).replace(' ', 'T') + 'Z'
                 });

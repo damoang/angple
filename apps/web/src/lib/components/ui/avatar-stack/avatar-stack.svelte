@@ -1,10 +1,11 @@
 <script lang="ts">
-    import { getMemberIconUrl, handleIconError } from '$lib/utils/member-icon.js';
+    import { getAvatarUrl, getMemberIconUrl, handleIconError } from '$lib/utils/member-icon.js';
 
     interface AvatarItem {
         mb_id: string;
         mb_nick?: string;
         mb_name?: string;
+        mb_image?: string;
     }
 
     interface Props {
@@ -31,7 +32,7 @@
 >
     <div class="flex items-center -space-x-1.5">
         {#each visibleItems as item (item.mb_id)}
-            {@const iconUrl = getMemberIconUrl(item.mb_id)}
+            {@const iconUrl = getAvatarUrl(item.mb_image) || getMemberIconUrl(item.mb_id)}
             {@const nick = item.mb_nick || item.mb_name || item.mb_id}
             {#if iconUrl}
                 <img
