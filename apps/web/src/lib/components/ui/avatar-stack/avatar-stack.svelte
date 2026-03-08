@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { getMemberIconUrl } from '$lib/utils/member-icon.js';
+    import { getMemberIconUrl, handleIconError } from '$lib/utils/member-icon.js';
 
     interface AvatarItem {
         mb_id: string;
@@ -40,9 +40,9 @@
                     title={nick}
                     class="{sizeClass} ring-background rounded-full object-cover ring-2"
                     onerror={(e) => {
-                        const img = e.currentTarget as HTMLImageElement;
-                        img.style.display = 'none';
-                        const fallback = img.nextElementSibling as HTMLElement;
+                        handleIconError(e);
+                        const fallback = (e.currentTarget as HTMLElement)
+                            .nextElementSibling as HTMLElement;
                         if (fallback) fallback.style.display = 'flex';
                     }}
                 />

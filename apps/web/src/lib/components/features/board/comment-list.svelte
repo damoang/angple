@@ -18,7 +18,7 @@
     import { getHookVersion } from '$lib/hooks/hook-state.svelte';
     import { tick } from 'svelte';
     import { highlightAllCodeBlocks } from '$lib/utils/code-highlight';
-    import { getAvatarUrl, getMemberIconUrl } from '$lib/utils/member-icon.js';
+    import { getAvatarUrl, getMemberIconUrl, handleIconError } from '$lib/utils/member-icon.js';
     import { SvelteMap, SvelteSet } from 'svelte/reactivity';
     import type { Component } from 'svelte';
     import { pluginStore } from '$lib/stores/plugin.svelte';
@@ -704,7 +704,12 @@
             <!-- Chat: 사이드 아바타 -->
             {#if commentLayout === 'chat'}
                 {#if iconUrl}
-                    <img src={iconUrl} alt="" class="size-8 shrink-0 rounded-full object-cover" />
+                    <img
+                        src={iconUrl}
+                        alt=""
+                        class="size-8 shrink-0 rounded-full object-cover"
+                        onerror={handleIconError}
+                    />
                 {:else}
                     <div
                         class="bg-muted text-muted-foreground flex size-8 shrink-0 items-center justify-center rounded-full text-xs"
