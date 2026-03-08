@@ -97,15 +97,31 @@
     let memoPluginActive = $derived(pluginStore.isPluginActive('member-memo'));
     let reactionPluginActive = $derived(pluginStore.isPluginActive('da-reaction'));
 
-    // 댓글별 좋아요 상태 관리 (SSR 데이터로 초기화)
-    let likedComments = new SvelteSet<string>(initialLikedCommentIds.map((id) => String(id)));
+    // 댓글별 좋아요 상태 관리 (SSR 스트리밍 데이터 반영)
+    let likedComments = new SvelteSet<string>();
     let commentLikes = new SvelteMap<string, number>();
     let likingComment = $state<string | null>(null);
 
-    // 댓글별 비추천 상태 관리 (SSR 데이터로 초기화)
-    let dislikedComments = new SvelteSet<string>(initialDislikedCommentIds.map((id) => String(id)));
+    // 댓글별 비추천 상태 관리 (SSR 스트리밍 데이터 반영)
+    let dislikedComments = new SvelteSet<string>();
     let commentDislikes = new SvelteMap<string, number>();
     let dislikingComment = $state<string | null>(null);
+
+    // SSR 스트리밍으로 좋아요/비추천 상태가 나중에 도착할 때 SvelteSet 업데이트
+    $effect(() => {
+        if (initialLikedCommentIds.length > 0) {
+            for (const id of initialLikedCommentIds) {
+                likedComments.add(String(id));
+            }
+        }
+    });
+    $effect(() => {
+        if (initialDislikedCommentIds.length > 0) {
+            for (const id of initialDislikedCommentIds) {
+                dislikedComments.add(String(id));
+            }
+        }
+    });
 
     // 댓글별 추천자 아바타 캐시
     let commentLikersList = new SvelteMap<string, LikerInfo[]>();
