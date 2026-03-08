@@ -134,30 +134,20 @@
     const viewEntry = $derived(layoutRegistry.resolveView(viewLayoutId));
     const ViewComponent = $derived(viewEntry?.component);
 
-    // 글자 크기 조절
-    type FontSizeKey = 'small' | 'base' | 'large' | 'xlarge';
-    const FONT_SIZES: Record<FontSizeKey, string> = {
-        small: '14px',
-        base: '16px',
-        large: '18px',
-        xlarge: '20px'
-    };
-    const FONT_SIZE_ORDER: FontSizeKey[] = ['small', 'base', 'large', 'xlarge'];
-    let fontSize = $state<FontSizeKey>(
-        browser ? (localStorage.getItem('damoang_font_size') as FontSizeKey) || 'base' : 'base'
-    );
+    // 글자 크기 조절 (uiSettingsStore 연동)
+    const fontSize = $derived(uiSettingsStore.contentFontSize);
 
     function changeFontSize(direction: -1 | 0 | 1) {
-        if (direction === 0) {
-            fontSize = 'base';
-        } else {
-            const idx = FONT_SIZE_ORDER.indexOf(fontSize);
-            const next = idx + direction;
-            if (next >= 0 && next < FONT_SIZE_ORDER.length) {
-                fontSize = FONT_SIZE_ORDER[next];
-            }
+        uiSettingsStore.changeContentFontSize(direction);
+    }
+
+    // 기존 damoang_font_size localStorage → uiSettingsStore 마이그레이션
+    if (browser) {
+        const legacy = localStorage.getItem('damoang_font_size');
+        if (legacy && ['small', 'base', 'large', 'xlarge'].includes(legacy)) {
+            uiSettingsStore.setContentFontSize(legacy as 'small' | 'base' | 'large' | 'xlarge');
+            localStorage.removeItem('damoang_font_size');
         }
-        if (browser) localStorage.setItem('damoang_font_size', fontSize);
     }
 
     // 글 읽기 권한 체크
@@ -1192,7 +1182,7 @@
                 {likers}
                 {likersTotal}
                 {fontSize}
-                fontSizeLabel={FONT_SIZE_ORDER[FONT_SIZE_ORDER.indexOf(fontSize)]}
+                fontSizeLabel={fontSize}
                 onLike={handleLike}
                 onDislike={handleDislike}
                 onLoadLikers={loadLikers}

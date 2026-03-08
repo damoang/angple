@@ -37,6 +37,7 @@
         BLUR_KEYWORDS,
         type FontFamily,
         type LineHeight,
+        type ContentFontSize,
         type ShortcutButtonSize
     } from '$lib/stores/ui-settings.svelte.js';
     import { densityStore } from '$lib/stores/density.svelte.js';
@@ -85,6 +86,13 @@
         { value: 'normal', label: '보통 (1.6)' },
         { value: 'relaxed', label: '여유 (1.8)' },
         { value: 'loose', label: '넓게 (2.0)' }
+    ];
+
+    const contentFontSizeOptions: { value: ContentFontSize; label: string }[] = [
+        { value: 'small', label: '작게 (14px)' },
+        { value: 'base', label: '보통 (16px)' },
+        { value: 'large', label: '크게 (18px)' },
+        { value: 'xlarge', label: '아주 크게 (20px)' }
     ];
 
     const readStyleOptions: { value: ReadPostStyle; label: string }[] = [
@@ -300,6 +308,34 @@
                                     ? 'border-primary bg-primary/10 text-foreground'
                                     : 'border-border text-muted-foreground hover:border-foreground/20 hover:text-foreground'}"
                                 onclick={() => uiSettingsStore.setLineHeight(opt.value)}
+                            >
+                                {opt.label}
+                            </button>
+                        {/each}
+                    </div>
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle class="flex items-center gap-2">
+                        <Type class="h-5 w-5" />
+                        본문 글자 크기
+                    </CardTitle>
+                    <CardDescription
+                        >게시글 본문의 글자 크기를 조정합니다. 게시글 상세 페이지의 A-/A/A+ 버튼과
+                        연동됩니다.</CardDescription
+                    >
+                </CardHeader>
+                <CardContent>
+                    <div class="flex flex-wrap gap-2">
+                        {#each contentFontSizeOptions as opt (opt.value)}
+                            <button
+                                class="rounded-lg border px-4 py-2 text-sm transition-colors {uiSettingsStore.contentFontSize ===
+                                opt.value
+                                    ? 'border-primary bg-primary/10 text-foreground'
+                                    : 'border-border text-muted-foreground hover:border-foreground/20 hover:text-foreground'}"
+                                onclick={() => uiSettingsStore.setContentFontSize(opt.value)}
                             >
                                 {opt.label}
                             </button>

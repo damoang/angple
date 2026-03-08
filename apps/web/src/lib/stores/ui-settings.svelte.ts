@@ -13,6 +13,7 @@ export type FontFamily = 'default' | 'pretendard' | 'nanum-gothic' | 'noto-sans'
 export type LineHeight = 'compact' | 'normal' | 'relaxed' | 'loose';
 export type ShortcutButtonSize = 'small' | 'medium' | 'large';
 export type ListViewMode = 'classic' | 'modern';
+export type ContentFontSize = 'small' | 'base' | 'large' | 'xlarge';
 
 interface UiSettings {
     // 레이아웃
@@ -20,6 +21,7 @@ interface UiSettings {
     listView: ListViewMode;
     lineHeight: LineHeight;
     fontFamily: FontFamily;
+    contentFontSize: ContentFontSize;
     hideMyProfile: boolean;
     // 게시판
     contentBlur: boolean;
@@ -45,6 +47,7 @@ const DEFAULTS: UiSettings = {
     listView: 'classic',
     lineHeight: 'normal',
     fontFamily: 'default',
+    contentFontSize: 'base',
     hideMyProfile: false,
     contentBlur: true,
     hidePostList: false,
@@ -144,6 +147,27 @@ function createUiSettingsStore() {
         },
         get fontFamily() {
             return settings.fontFamily;
+        },
+        get contentFontSize() {
+            return settings.contentFontSize;
+        },
+        setContentFontSize(v: ContentFontSize) {
+            settings.contentFontSize = v;
+            save();
+        },
+        /** A-/A/A+ 버튼용: -1=작게, 0=기본, 1=크게 */
+        changeContentFontSize(direction: -1 | 0 | 1) {
+            const order: ContentFontSize[] = ['small', 'base', 'large', 'xlarge'];
+            if (direction === 0) {
+                settings.contentFontSize = 'base';
+            } else {
+                const idx = order.indexOf(settings.contentFontSize);
+                const next = idx + direction;
+                if (next >= 0 && next < order.length) {
+                    settings.contentFontSize = order[next];
+                }
+            }
+            save();
         },
         get hideMyProfile() {
             return settings.hideMyProfile;
