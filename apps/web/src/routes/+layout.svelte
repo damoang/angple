@@ -24,6 +24,9 @@
     import { initFromSSR as initAppData } from '$lib/stores/app-init.svelte';
     import { initFromData as initCelebrationFromData } from '$lib/stores/celebration.svelte';
 
+    // 커스터마이저 패널 (관리자 전용, 지연 로딩)
+    let LazyAdminCustomizer: Component | null = $state(null);
+
     // 지연 로딩 모듈 참조
     let keyboardShortcutsMod: typeof import('$lib/services/keyboard-shortcuts.svelte') | null =
         $state(null);
@@ -285,6 +288,13 @@
             apMod.initAplog(authStore.user?.mb_id ?? null);
         });
 
+        // 관리자 커스터마이저 패널 (관리자일 때만 로드)
+        if (data.isAdmin) {
+            import('$lib/components/features/admin-customizer').then((mod) => {
+                LazyAdminCustomizer = mod.AdminCustomizer;
+            });
+        }
+
         return () => {
             window.removeEventListener('message', handleMessage);
             document.removeEventListener('visibilitychange', handleVisibilityChange);
@@ -394,4 +404,9 @@
 <!-- 단축 버튼 (지연 로딩, admin/install 제외) -->
 {#if !isAdminRoute && !isInstallRoute && LazyShortcutButtons}
     <LazyShortcutButtons />
+{/if}
+
+<!-- 관리자 커스터마이저 패널 (지연 로딩) -->
+{#if !isAdminRoute && !isInstallRoute && LazyAdminCustomizer}
+    <LazyAdminCustomizer />
 {/if}

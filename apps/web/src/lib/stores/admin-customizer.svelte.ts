@@ -1,0 +1,111 @@
+/**
+ * 관리자 커스터마이저 상태 관리 스토어
+ *
+ * 오른쪽 슬라이드 패널의 열림/닫힘, 활성 섹션 등을 관리합니다.
+ * 실제 데이터 변경은 기존 widgetLayoutStore, admin-menu-store에 위임합니다.
+ */
+
+import { widgetLayoutStore } from '$lib/stores/widget-layout.svelte';
+import { menuStore as adminMenuStore } from '$lib/stores/admin-menu-store.svelte';
+import { toast } from 'svelte-sonner';
+
+export type CustomizerSection = 'header' | 'sidebar' | 'mega' | 'widgets';
+
+class AdminCustomizerStore {
+    private _isOpen = $state(false);
+    private _activeSection = $state<CustomizerSection>('header');
+    private _isSaving = $state(false);
+
+    get isOpen() {
+        return this._isOpen;
+    }
+
+    get activeSection() {
+        return this._activeSection;
+    }
+
+    get isSaving() {
+        return this._isSaving;
+    }
+
+    get hasChanges(): boolean {
+        return widgetLayoutStore.hasChanges || adminMenuStore.hasChanges;
+    }
+
+    open(section?: CustomizerSection) {
+        this._isOpen = true;
+        if (section) {
+            this._activeSection = section;
+        }
+        // 메뉴 데이터 로드 (관리자 API로 전체 메뉴 트리)
+        adminMenuStore.loadMenus();
+        // 위젯 섹션이면 편집 모드 진입
+        if (this._activeSection === 'widgets') {
+            widgetLayoutStore.enterEditMode();
+        }
+    }
+
+    close() {
+        if (this.hasChanges) {
+            if (!confirm('저장하지 않은 변경사항이 있습니다. 정말 닫으시겠습니까?')) {
+                return;
+            }
+            this.discardAll();
+        }
+        this._isOpen = false;
+        widgetLayoutStore.exitEditMode();
+    }
+
+    forceClose() {
+        this._isOpen = false;
+        widgetLayoutStore.exitEditMode();
+    }
+
+    setSection(section: CustomizerSection) {
+        this._activeSection = section;
+        // 위젯 섹션 진입/퇴장 시 편집 모드 토글
+        if (section === 'widgets') {
+            widgetLayoutStore.enterEditMode();
+        } else {
+            widgetLayoutStore.exitEditMode();
+        }
+    }
+
+    async saveAll(): Promise<boolean> {
+        this._isSaving = true;
+        try {
+            const promises: Promise<unknown>[] = [];
+
+            if (widgetLayoutStore.hasChanges) {
+                promises.push(widgetLayoutStore.saveLayout());
+            }
+
+            if (adminMenuStore.hasChanges) {
+                promises.push(adminMenuStore.saveReorder());
+            }
+
+            const results = await Promise.allSettled(promises);
+            const allSuccess = results.every((r) => r.status === 'fulfilled' && r.value !== false);
+
+            if (allSuccess) {
+                toast.success('변경사항이 저장되었습니다.');
+                return true;
+            } else {
+                toast.error('일부 저장에 실패했습니다.');
+                return false;
+            }
+        } catch {
+            toast.error('저장 중 오류가 발생했습니다.');
+            return false;
+        } finally {
+            this._isSaving = false;
+        }
+    }
+
+    discardAll() {
+        widgetLayoutStore.discardChanges();
+        adminMenuStore.discardChanges();
+    }
+}
+
+export const customizerStore = new AdminCustomizerStore();
