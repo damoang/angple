@@ -46,7 +46,7 @@ export const twitter: EmbedPlatform = {
 			scrolling="auto"
 			allowtransparency="true"
 			allowfullscreen
-			style="width: 100%; min-height: 250px; border: none;"
+			style="width: 100%; min-height: 600px; border: none;"
 		></iframe>`;
     }
 };
