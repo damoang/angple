@@ -181,9 +181,9 @@ class KeyboardShortcutService {
             return;
         }
 
-        // 시스템 단축키 체크
-        const systemUrl = this.systemShortcuts.get(code);
-        if (systemUrl && systemUrl !== DEFAULT_URL) {
+        // 시스템 단축키 체크 (A-Z 키)
+        if (code.startsWith('Key')) {
+            const systemUrl = this.systemShortcuts.get(code) ?? DEFAULT_URL;
             event.preventDefault();
             this.navigate(systemUrl);
             return;
