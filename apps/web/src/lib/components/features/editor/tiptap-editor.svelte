@@ -225,7 +225,7 @@
                 updateActiveState();
             },
             onTransaction: () => {
-                updateActiveState();
+                setTimeout(() => updateActiveState(), 0);
             }
         });
 

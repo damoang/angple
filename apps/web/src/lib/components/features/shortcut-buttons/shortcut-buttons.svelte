@@ -39,7 +39,9 @@
     }
 
     function handleFocusOut() {
-        hidden = false;
+        setTimeout(() => {
+            hidden = false;
+        }, 0);
     }
 
     onMount(() => {
