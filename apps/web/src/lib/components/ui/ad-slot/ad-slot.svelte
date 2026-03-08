@@ -396,7 +396,6 @@
             }
 
             if (!mgr.servicesEnabled) {
-                googletag.pubads().enableSingleRequest();
                 googletag.pubads().collapseEmptyDivs();
                 googletag.pubads().enableLazyLoad({
                     fetchMarginPercent: 200,
