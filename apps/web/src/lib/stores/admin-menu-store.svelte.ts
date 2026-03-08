@@ -73,8 +73,10 @@ class MenuStore {
             this._originalMenus = JSON.parse(JSON.stringify(data));
         } catch (error) {
             console.error('메뉴 로드 실패:', error);
-            toast.error('메뉴를 불러오지 못했습니다. 백엔드 서버가 실행 중인지 확인하세요.');
-            this._menus = [];
+            // 기존 데이터가 있으면 유지 (SSR fallback 보존)
+            if (this._menus.length === 0) {
+                toast.error('메뉴를 불러오지 못했습니다.');
+            }
         } finally {
             this._isLoading = false;
         }
