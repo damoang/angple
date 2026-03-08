@@ -1388,14 +1388,14 @@
 <!-- 게시판 최근글 목록 -->
 {#if canRead}
     <RecentPosts
-            {boardId}
-            {boardTitle}
-            currentPostId={data.post.id}
-            limit={25}
-            initialPage={Number($page.url.searchParams.get('page')) || 1}
-            promotionPosts={promotionPosts as any[]}
-            displaySettings={data.board?.display_settings}
-        />
+        {boardId}
+        {boardTitle}
+        currentPostId={data.post.id}
+        limit={25}
+        initialPage={Number($page.url.searchParams.get('page')) || 1}
+        promotionPosts={promotionPosts as any[]}
+        displaySettings={data.board?.display_settings}
+    />
 {/if}
 
 <!-- 추천자 목록 다이얼로그 -->
