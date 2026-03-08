@@ -13,6 +13,7 @@ import {
 } from '$lib/server/viewcount.js';
 import { fetchReactionsByParentId } from '$lib/server/reactions.js';
 import { fetchMemberLevels } from '$lib/server/member-levels.js';
+import { fetchCommentLikeStatuses } from '$lib/server/comment-likes.js';
 
 /**
  * 게시글 상세 페이지 — Streaming SSR
@@ -316,6 +317,26 @@ export const load: PageServerLoad = async ({
                 // 레벨 조회 실패 시 빈 맵 (클라이언트에서 fallback)
             }
 
+            // 댓글 좋아요/비추천 상태 배치 조회 (로그인 시만)
+            let commentLikeStatuses: { likedIds: number[]; dislikedIds: number[] } = {
+                likedIds: [],
+                dislikedIds: []
+            };
+            if (locals.user?.id && comments.items?.length) {
+                try {
+                    const commentIds = comments.items
+                        .map((c: { id: number | string }) => Number(c.id))
+                        .filter((id: number) => !isNaN(id));
+                    commentLikeStatuses = await fetchCommentLikeStatuses(
+                        boardId,
+                        commentIds,
+                        locals.user.id
+                    );
+                } catch {
+                    // 실패 시 빈 상태 (클라이언트에서 fallback)
+                }
+            }
+
             // 본문 제휴 링크 변환 결과
             const transformedPostContent =
                 postContentResult.status === 'fulfilled' ? postContentResult.value : null;
@@ -329,6 +350,7 @@ export const load: PageServerLoad = async ({
                 reactions,
                 likersData,
                 memberLevels,
+                commentLikeStatuses,
                 transformedPostContent,
                 isScrapped
             };

@@ -77,14 +77,15 @@
 
     function getReportedItemUrl(item: { table: string; id: number; parent?: number }): string {
         if (item.parent && item.parent > 0) {
-            return `/${item.table}/${item.id}#comment-${item.parent}`;
+            // parent = 게시글 ID (wr_parent), id = 댓글 ID (wr_id)
+            return `/${item.table}/${item.parent}#c_${item.id}`;
         }
         return `/${item.table}/${item.id}`;
     }
 
     function getReportedItemLabel(item: { table: string; id: number; parent?: number }): string {
         if (item.parent && item.parent > 0) {
-            return `/${item.table}/${item.id} (댓글 #${item.parent})`;
+            return `/${item.table}/${item.parent} (댓글 #${item.id})`;
         }
         return `/${item.table}/${item.id}`;
     }

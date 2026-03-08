@@ -72,6 +72,8 @@
         useNogood?: boolean; // 비추천 기능 사용 여부 (게시판 설정)
         commentLayout?: string; // 댓글 레이아웃 (flat, bordered, divided, bubble, compact)
         reactionsMap?: Record<string, ReactionItem[]>; // 일괄 조회된 리액션 맵
+        initialLikedCommentIds?: number[]; // SSR에서 전달된 좋아요한 댓글 ID 목록
+        initialDislikedCommentIds?: number[]; // SSR에서 전달된 비추천한 댓글 ID 목록
     }
 
     let {
@@ -86,20 +88,22 @@
         postId = 0,
         useNogood = false,
         commentLayout = 'flat',
-        reactionsMap
+        reactionsMap,
+        initialLikedCommentIds = [],
+        initialDislikedCommentIds = []
     }: Props = $props();
 
     // 플러그인 활성화 여부
     let memoPluginActive = $derived(pluginStore.isPluginActive('member-memo'));
     let reactionPluginActive = $derived(pluginStore.isPluginActive('da-reaction'));
 
-    // 댓글별 좋아요 상태 관리
-    let likedComments = new SvelteSet<string>();
+    // 댓글별 좋아요 상태 관리 (SSR 데이터로 초기화)
+    let likedComments = new SvelteSet<string>(initialLikedCommentIds.map((id) => String(id)));
     let commentLikes = new SvelteMap<string, number>();
     let likingComment = $state<string | null>(null);
 
-    // 댓글별 비추천 상태 관리
-    let dislikedComments = new SvelteSet<string>();
+    // 댓글별 비추천 상태 관리 (SSR 데이터로 초기화)
+    let dislikedComments = new SvelteSet<string>(initialDislikedCommentIds.map((id) => String(id)));
     let commentDislikes = new SvelteMap<string, number>();
     let dislikingComment = $state<string | null>(null);
 

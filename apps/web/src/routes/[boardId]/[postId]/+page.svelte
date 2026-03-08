@@ -256,6 +256,8 @@
     let comments = $state<FreeComment[]>([]);
     let promotionPosts = $state<unknown[]>([]);
     let revisions = $state<PostRevision[]>([]);
+    let initialLikedCommentIds = $state<number[]>([]);
+    let initialDislikedCommentIds = $state<number[]>([]);
     let secondaryLoaded = $state(false);
     let secondaryError = $state(false);
     let isScrapped = $state(false);
@@ -288,6 +290,7 @@
                     reactions?: Record<string, unknown>;
                     likersData?: { likers: LikerInfo[]; total: number };
                     memberLevels?: Record<string, number>;
+                    commentLikeStatuses?: { likedIds: number[]; dislikedIds: number[] };
                     transformedPostContent?: string | null;
                     isScrapped?: boolean;
                 }) => {
@@ -318,6 +321,12 @@
                     // 본문 제휴 링크 변환 적용 (스트리밍)
                     if (result.transformedPostContent) {
                         data.post.content = result.transformedPostContent;
+                    }
+
+                    // SSR 댓글 좋아요 상태 적용
+                    if (result.commentLikeStatuses) {
+                        initialLikedCommentIds = result.commentLikeStatuses.likedIds || [];
+                        initialDislikedCommentIds = result.commentLikeStatuses.dislikedIds || [];
                     }
 
                     // 스크랩 상태 적용 (스트리밍)
@@ -1287,6 +1296,8 @@
                         useNogood={!!data.board?.use_nogood}
                         commentLayout={data.board?.display_settings?.comment_layout || 'flat'}
                         {reactionsMap}
+                        {initialLikedCommentIds}
+                        {initialDislikedCommentIds}
                     />
 
                     <div class="border-border border-t pt-6">
