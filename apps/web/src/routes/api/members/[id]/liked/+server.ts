@@ -74,32 +74,49 @@ export const GET: RequestHandler = async ({ params, url }) => {
             }
         }
 
-        // 글 제목 조회
-        const items = [];
+        // 글 제목 조회 — 보드별 배치 IN 쿼리
+        const groupedByBoard = new Map<string, number[]>();
         for (const row of goodRows) {
             if (!/^[a-zA-Z0-9_]+$/.test(row.bo_table)) continue;
             if (!boardSubjects.has(row.bo_table)) continue;
-            try {
-                const [writeRows] = await pool.execute<WriteRow[]>(
-                    `SELECT wr_id, wr_subject, wr_datetime
-					 FROM \`g5_write_${row.bo_table}\`
-					 WHERE wr_id = ? AND wr_is_comment = 0`,
-                    [row.wr_id]
-                );
-                if (writeRows.length === 0) continue;
-                const w = writeRows[0];
-                items.push({
-                    bo_table: row.bo_table,
-                    bo_subject: boardSubjects.get(row.bo_table) || row.bo_table,
-                    wr_id: w.wr_id,
-                    wr_subject: w.wr_subject,
-                    wr_datetime: w.wr_datetime,
-                    bg_datetime: row.bg_datetime,
-                    href: `/${row.bo_table}/${w.wr_id}`
-                });
-            } catch {
-                // 테이블 없으면 스킵
-            }
+            const ids = groupedByBoard.get(row.bo_table);
+            if (ids) ids.push(row.wr_id);
+            else groupedByBoard.set(row.bo_table, [row.wr_id]);
+        }
+
+        const writeMap = new Map<string, WriteRow>();
+        await Promise.all(
+            Array.from(groupedByBoard.entries()).map(async ([boTable, wrIds]) => {
+                try {
+                    const placeholders = wrIds.map(() => '?').join(', ');
+                    const [writeRows] = await pool.query<WriteRow[]>(
+                        `SELECT wr_id, wr_subject, wr_datetime
+                         FROM \`g5_write_${boTable}\`
+                         WHERE wr_id IN (${placeholders}) AND wr_is_comment = 0`,
+                        wrIds
+                    );
+                    for (const w of writeRows) {
+                        writeMap.set(`${boTable}:${w.wr_id}`, w);
+                    }
+                } catch {
+                    // 테이블 없으면 스킵
+                }
+            })
+        );
+
+        const items = [];
+        for (const row of goodRows) {
+            const w = writeMap.get(`${row.bo_table}:${row.wr_id}`);
+            if (!w) continue;
+            items.push({
+                bo_table: row.bo_table,
+                bo_subject: boardSubjects.get(row.bo_table) || row.bo_table,
+                wr_id: w.wr_id,
+                wr_subject: w.wr_subject,
+                wr_datetime: w.wr_datetime,
+                bg_datetime: row.bg_datetime,
+                href: `/${row.bo_table}/${w.wr_id}`
+            });
         }
 
         return json({

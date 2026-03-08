@@ -38,6 +38,15 @@
     } from '$lib/api/admin-members.js';
     import { formatDate } from '$lib/utils/format-date.js';
 
+    // 동적 플러그인 임포트: member-memo
+    let memoPluginActive = $derived(pluginStore.isPluginActive('member-memo'));
+    let MemoBadge = $state<Component | null>(null);
+    $effect(() => {
+        if (memoPluginActive) {
+            loadPluginComponent('member-memo', 'memo-badge').then((c) => (MemoBadge = c));
+        }
+    });
+
     // 동적 플러그인 임포트: interaction-analysis
     let InteractionPanel = $state<Component | null>(null);
     $effect(() => {
@@ -105,6 +114,25 @@
     let newMemoText = $state('');
     let isSavingMemo = $state(false);
 
+    // 회원 메모 (member-memo 플러그인) — 관리자 전용 전체 목록
+    interface PluginMemo {
+        id: number;
+        mb_id: string;
+        mb_nick: string;
+        content: string;
+        color: string;
+        created_at: string;
+    }
+    let pluginMemos = $state<PluginMemo[]>([]);
+
+    const memoColorMap: Record<string, { bg: string; text: string }> = {
+        yellow: { bg: '#ffe69c', text: '#664d03' },
+        green: { bg: '#d1e7dd', text: '#0f5132' },
+        purple: { bg: '#e2d9f3', text: '#432874' },
+        red: { bg: '#f8d7da', text: '#dc3545' },
+        blue: { bg: '#cfe2ff', text: '#084298' }
+    };
+
     onMount(async () => {
         if (!p?.mb_id) return;
 
@@ -118,10 +146,20 @@
                 }
             } catch {}
         }
+    });
 
-        // 관리자 메모
-        if (isAdmin) {
+    // 관리자 메모 로딩 — $effect로 isAdmin 반응형 대기
+    let adminMemosLoaded = $state(false);
+    $effect(() => {
+        if (isAdmin && p?.mb_id && !adminMemosLoaded) {
+            adminMemosLoaded = true;
             getMemberMemos(p.mb_id).then((m) => (adminMemos = m));
+            fetch(`/api/members/${p.mb_id}/memos`)
+                .then((r) => (r.ok ? r.json() : null))
+                .then((d) => {
+                    if (d?.success) pluginMemos = d.data;
+                })
+                .catch(() => {});
         }
     });
 
@@ -306,6 +344,9 @@
                                     class="text-muted-foreground h-4 w-4 shrink-0"
                                     aria-label="본인확인 완료"
                                 />
+                            {/if}
+                            {#if memoPluginActive && MemoBadge}
+                                <MemoBadge memberId={p.mb_id} showIcon={true} />
                             {/if}
                         </div>
                         <p class="text-muted-foreground text-sm">{p.mb_id}</p>
@@ -745,6 +786,42 @@
             <div class="mt-4">
                 <InteractionPanel memberId={p.mb_id} />
             </div>
+        {/if}
+
+        <!-- 회원 메모 (member-memo 플러그인) — 관리자 전용 전체 목록 -->
+        {#if isAdmin && pluginMemos.length > 0}
+            <Card class="bg-background mt-4">
+                <CardHeader class="pb-2">
+                    <CardTitle class="flex items-center gap-2 text-sm">
+                        <StickyNote class="h-4 w-4" />
+                        회원 메모 ({pluginMemos.length})
+                    </CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <div class="space-y-2">
+                        {#each pluginMemos as memo}
+                            {@const colors = memoColorMap[memo.color] || memoColorMap.yellow}
+                            <div
+                                class="flex items-start gap-2 rounded-lg p-2.5"
+                                style="background-color: {colors.bg}20;"
+                            >
+                                <span
+                                    class="mt-0.5 inline-block h-3 w-3 shrink-0 rounded-full"
+                                    style="background-color: {colors.bg};"
+                                ></span>
+                                <div class="min-w-0 flex-1">
+                                    <p class="text-foreground text-sm">{memo.content}</p>
+                                    <p class="text-muted-foreground mt-0.5 text-xs">
+                                        {memo.mb_nick || memo.mb_id} ({memo.mb_id}) · {formatDate(
+                                            memo.created_at
+                                        )}
+                                    </p>
+                                </div>
+                            </div>
+                        {/each}
+                    </div>
+                </CardContent>
+            </Card>
         {/if}
 
         <!-- 관리자 메모 -->

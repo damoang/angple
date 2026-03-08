@@ -96,6 +96,11 @@
         <!-- 통합 청크 에러 핸들러 (app.html + hooks.client.ts 공유) -->
         <script>
             (function () {
+                // dev 환경에서는 청크 에러 핸들러 비활성화 (HMR이 chunk error를 유발)
+                if (location.hostname === 'localhost' || location.hostname.startsWith('dev.')) {
+                    window.__angpleChunkError = { getState: function () { return { count: 0, ts: 0, exhausted: false }; }, handle: function () {} };
+                    return;
+                }
                 var KEY = '__angple_chunk_error__';
                 var MAX_RELOADS = 2;
                 var WINDOW_MS = 60000;
