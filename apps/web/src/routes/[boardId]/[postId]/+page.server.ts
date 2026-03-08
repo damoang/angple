@@ -76,9 +76,12 @@ export const load: PageServerLoad = async ({
             throw error(404, '게시글을 찾을 수 없습니다.');
         }
 
-        // 삭제된 게시글: 에러 대신 데이터 전달 (PHP 호환: "삭제된 게시물입니다" 표시)
+        // 삭제된 게시글: 관리자는 본문+리비전 유지, 일반 유저는 본문 숨김
         if (post.deleted_at) {
-            post.content = '';
+            const isAdmin = (locals.user?.mb_level ?? 0) >= 10;
+            if (!isAdmin) {
+                post.content = '';
+            }
         }
 
         let board = null;

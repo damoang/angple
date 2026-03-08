@@ -14,7 +14,6 @@
     import { loadPluginComponent } from '$lib/utils/plugin-optional-loader';
     import { readPostStyleStore } from '$lib/stores/read-post-style.svelte.js';
     import { uiSettingsStore } from '$lib/stores/ui-settings.svelte.js';
-
     // 메모 플러그인
     let memoPluginActive = $derived(pluginStore.isPluginActive('member-memo'));
     let MemoBadge = $state<Component | null>(null);
@@ -114,7 +113,10 @@
 
 <!-- Classic 스킨: 데스크톱 CSS Grid 5컬럼 (추천|제목|이름|날짜|조회) -->
 {#if isDeleted}
-    <div class="bg-background px-4 py-1.5 opacity-50">
+    <a
+        {href}
+        class="bg-background hover:bg-accent block cursor-pointer px-4 py-1.5 no-underline opacity-50"
+    >
         <div class="flex items-center gap-2 md:gap-3">
             <div class="hidden shrink-0 md:block">
                 <div
@@ -128,7 +130,7 @@
                 <span class="text-muted-foreground text-[15px]">[삭제된 게시물입니다]</span>
             </div>
         </div>
-    </div>
+    </a>
 {:else}
     <a
         {href}

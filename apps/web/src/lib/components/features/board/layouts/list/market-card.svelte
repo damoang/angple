@@ -14,7 +14,6 @@
     import { LevelBadge } from '$lib/components/ui/level-badge/index.js';
     import { memberLevelStore } from '$lib/stores/member-levels.svelte.js';
     import { formatDate } from '$lib/utils/format-date.js';
-
     let {
         post,
         displaySettings,
@@ -65,11 +64,14 @@
 
 <!-- 마켓 카드 레이아웃 -->
 {#if isDeleted}
-    <div class="bg-background border-border overflow-hidden rounded-lg border opacity-50">
+    <a
+        {href}
+        class="bg-background border-border block cursor-pointer overflow-hidden rounded-lg border no-underline opacity-50 transition-shadow hover:shadow-md"
+    >
         <div class="bg-muted flex aspect-square items-center justify-center">
             <span class="text-muted-foreground text-sm">[삭제됨]</span>
         </div>
-    </div>
+    </a>
 {:else}
     <a
         {href}

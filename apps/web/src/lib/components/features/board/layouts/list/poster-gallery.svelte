@@ -6,7 +6,6 @@
     import AuthorLink from '$lib/components/ui/author-link/author-link.svelte';
     import { memberLevelStore } from '$lib/stores/member-levels.svelte.js';
     import { formatDate } from '$lib/utils/format-date.js';
-
     let {
         post,
         displaySettings,
@@ -28,11 +27,14 @@
 
 <!-- 포스터 갤러리 레이아웃: 2:3 비율 포스터 카드 -->
 {#if isDeleted}
-    <div class="overflow-hidden rounded-lg opacity-50">
+    <a
+        {href}
+        class="block cursor-pointer overflow-hidden rounded-lg no-underline opacity-50 transition-shadow hover:shadow-lg"
+    >
         <div class="bg-muted flex items-center justify-center" style="aspect-ratio: 2/3">
             <span class="text-muted-foreground text-sm">[삭제됨]</span>
         </div>
-    </div>
+    </a>
 {:else}
     <a
         {href}

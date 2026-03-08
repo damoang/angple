@@ -6,7 +6,6 @@
     import AuthorLink from '$lib/components/ui/author-link/author-link.svelte';
     import { memberLevelStore } from '$lib/stores/member-levels.svelte.js';
     import { formatDate } from '$lib/utils/format-date.js';
-
     // Props (동일 인터페이스)
     let {
         post,
@@ -29,11 +28,14 @@
 
 <!-- Gallery 레이아웃: 썸네일 중심 카드 (그리드 아이템) -->
 {#if isDeleted}
-    <div class="bg-background border-border overflow-hidden rounded-lg border opacity-50">
+    <a
+        {href}
+        class="bg-background border-border block cursor-pointer overflow-hidden rounded-lg border no-underline opacity-50 transition-shadow hover:shadow-md"
+    >
         <div class="bg-muted flex aspect-video items-center justify-center">
             <span class="text-muted-foreground text-sm">[삭제됨]</span>
         </div>
-    </div>
+    </a>
 {:else}
     <a
         {href}

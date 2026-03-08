@@ -7,7 +7,6 @@
     import { LevelBadge } from '$lib/components/ui/level-badge/index.js';
     import { memberLevelStore } from '$lib/stores/member-levels.svelte.js';
     import { formatDate } from '$lib/utils/format-date.js';
-
     // Props (동일 인터페이스)
     let {
         post,
@@ -41,9 +40,12 @@
 
 <!-- Webzine 레이아웃: 큰 이미지 + 제목 + 본문 미리보기 (블로그/뉴스 스타일) -->
 {#if isDeleted}
-    <div class="bg-background border-border rounded-lg border px-4 py-3 opacity-50">
+    <a
+        {href}
+        class="bg-background border-border hover:border-primary/30 block cursor-pointer rounded-lg border px-4 py-3 no-underline opacity-50"
+    >
         <span class="text-muted-foreground">[삭제된 게시물입니다]</span>
-    </div>
+    </a>
 {:else}
     <a
         {href}

@@ -12,7 +12,6 @@
     import { getMemberIconUrl } from '$lib/utils/member-icon.js';
     import AuthorLink from '$lib/components/ui/author-link/author-link.svelte';
     import { formatDate } from '$lib/utils/format-date.js';
-
     let {
         post,
         displaySettings,
@@ -57,13 +56,14 @@
 </script>
 
 {#if isDeleted}
-    <div
-        class="border-border bg-background flex h-full flex-col overflow-hidden rounded-lg border opacity-50"
+    <a
+        {href}
+        class="border-border bg-background flex h-full cursor-pointer flex-col overflow-hidden rounded-lg border no-underline opacity-50 transition-shadow hover:shadow-md"
     >
         <div class="flex flex-1 items-center justify-center p-4">
             <span class="text-muted-foreground text-sm">[삭제된 게시물입니다]</span>
         </div>
-    </div>
+    </a>
 {:else}
     <div
         class="border-border bg-background group flex h-full flex-col overflow-hidden rounded-lg border border-l-[3px] shadow-sm transition-all duration-200 ease-out hover:-translate-y-0.5 hover:shadow-md {accent}"

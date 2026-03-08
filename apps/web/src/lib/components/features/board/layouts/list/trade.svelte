@@ -27,7 +27,6 @@
     import CheckCircle from '@lucide/svelte/icons/check-circle';
     import Tag from '@lucide/svelte/icons/tag';
     import MessageSquare from '@lucide/svelte/icons/message-square';
-
     let {
         post,
         displaySettings,
@@ -92,13 +91,14 @@
 
 <!-- 거래 카드 -->
 {#if isDeleted}
-    <div
-        class="border-border bg-background flex flex-col overflow-hidden rounded-xl border opacity-50"
+    <a
+        {href}
+        class="border-border bg-background flex cursor-pointer flex-col overflow-hidden rounded-xl border no-underline opacity-50 transition-shadow hover:shadow-md"
     >
         <div class="bg-muted flex aspect-square items-center justify-center">
             <span class="text-muted-foreground text-sm">[삭제됨]</span>
         </div>
-    </div>
+    </a>
 {:else}
     <a
         {href}

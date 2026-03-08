@@ -11,7 +11,6 @@
     import { loadPluginComponent } from '$lib/utils/plugin-optional-loader';
     import { formatDate } from '$lib/utils/format-date.js';
     import { uiSettingsStore } from '$lib/stores/ui-settings.svelte.js';
-
     let memoPluginActive = $derived(pluginStore.isPluginActive('member-memo'));
 
     // 동적 플러그인 임포트: member-memo
@@ -48,11 +47,13 @@
 
 <!-- Card 스킨: 제목 + 본문 미리보기 2줄 + 메타데이터 + 태그 -->
 {#if isDeleted}
-    <Card class="bg-background opacity-50">
-        <CardContent class="py-4">
-            <span class="text-muted-foreground">[삭제된 게시물입니다]</span>
-        </CardContent>
-    </Card>
+    <a {href} class="block cursor-pointer no-underline">
+        <Card class="bg-background opacity-50 transition-shadow hover:shadow-md">
+            <CardContent class="py-4">
+                <span class="text-muted-foreground">[삭제된 게시물입니다]</span>
+            </CardContent>
+        </Card>
+    </a>
 {:else}
     <a {href} class="block no-underline">
         <Card class="bg-background overflow-hidden transition-shadow hover:shadow-md">

@@ -6,7 +6,6 @@
     import AuthorLink from '$lib/components/ui/author-link/author-link.svelte';
     import Pin from '@lucide/svelte/icons/pin';
     import { formatDate } from '$lib/utils/format-date.js';
-
     let {
         post,
         displaySettings,
@@ -24,9 +23,12 @@
 
 <!-- Notice 스킨: 카드형 공지사항 스타일 (배지 + 깔끔한 메타데이터) -->
 {#if isDeleted}
-    <div class="border-border bg-background rounded-lg border px-4 py-3 opacity-50">
+    <a
+        {href}
+        class="border-border bg-background hover:border-primary/30 hover:bg-muted/30 block cursor-pointer rounded-lg border px-4 py-3 no-underline opacity-50 transition-all"
+    >
         <span class="text-muted-foreground">[삭제된 게시물입니다]</span>
-    </div>
+    </a>
 {:else}
     <a
         {href}

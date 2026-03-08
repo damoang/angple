@@ -7,7 +7,6 @@
     import { LevelBadge } from '$lib/components/ui/level-badge/index.js';
     import { memberLevelStore } from '$lib/stores/member-levels.svelte.js';
     import { formatDate } from '$lib/utils/format-date.js';
-
     // Props
     let {
         post,
@@ -30,11 +29,13 @@
 
 <!-- Detailed 스킨: 제목 + 본문 미리보기 4-5줄 + 썸네일 + 메타데이터 + 태그 (뉴스 스타일) -->
 {#if isDeleted}
-    <Card class="bg-background opacity-50">
-        <CardContent class="py-4">
-            <span class="text-muted-foreground">[삭제된 게시물입니다]</span>
-        </CardContent>
-    </Card>
+    <a {href} class="block cursor-pointer no-underline">
+        <Card class="bg-background opacity-50 transition-shadow hover:shadow-md">
+            <CardContent class="py-4">
+                <span class="text-muted-foreground">[삭제된 게시물입니다]</span>
+            </CardContent>
+        </Card>
+    </a>
 {:else}
     <a {href} class="block no-underline">
         <Card class="bg-background transition-shadow hover:shadow-md">
