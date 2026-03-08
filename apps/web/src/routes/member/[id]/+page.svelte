@@ -26,6 +26,8 @@
     import Loader2 from '@lucide/svelte/icons/loader-2';
     import StickyNote from '@lucide/svelte/icons/sticky-note';
     import Trash2 from '@lucide/svelte/icons/trash-2';
+    import Camera from '@lucide/svelte/icons/camera';
+    import X from '@lucide/svelte/icons/x';
     import { Textarea } from '$lib/components/ui/textarea/index.js';
     import { LevelBadge } from '$lib/components/ui/level-badge/index.js';
     import type { Component } from 'svelte';
@@ -63,11 +65,62 @@
     let { data }: { data: PageData & { profile: any } } = $props();
     const p = $derived(data.profile);
 
-    const profileIconUrl = $derived(getAvatarUrl(p?.mb_image) || getMemberIconUrl(p?.mb_id));
+    let overrideImageUrl = $state<string | null>(null);
+    const profileIconUrl = $derived(
+        overrideImageUrl || getAvatarUrl(p?.mb_image) || getMemberIconUrl(p?.mb_id)
+    );
     let profileIconFailed = $state(false);
     $effect(() => {
         if (p) profileIconFailed = false;
     });
+
+    // 프로필 이미지 업로드
+    let imageUploading = $state(false);
+    let imageFileInput: HTMLInputElement | undefined = $state();
+
+    function handleImageClick(): void {
+        if (!isOwnProfile || imageUploading) return;
+        imageFileInput?.click();
+    }
+
+    async function handleImageSelect(e: Event): Promise<void> {
+        const input = e.target as HTMLInputElement;
+        const file = input.files?.[0];
+        if (!file) return;
+
+        if (!file.type.startsWith('image/')) {
+            alert('이미지 파일만 업로드할 수 있습니다.');
+            return;
+        }
+        if (file.size > 2 * 1024 * 1024) {
+            alert('파일 크기가 너무 큽니다. (최대 2MB)');
+            return;
+        }
+
+        imageUploading = true;
+        try {
+            const result = await apiClient.uploadMemberImage(file);
+            overrideImageUrl = result.url;
+            profileIconFailed = false;
+        } catch (err) {
+            alert(err instanceof Error ? err.message : '이미지 업로드에 실패했습니다.');
+        }
+        imageUploading = false;
+        input.value = '';
+    }
+
+    async function handleImageDelete(): Promise<void> {
+        if (!confirm('프로필 이미지를 삭제하시겠습니까?')) return;
+        imageUploading = true;
+        try {
+            await apiClient.deleteMemberImage();
+            overrideImageUrl = null;
+            profileIconFailed = true;
+        } catch (err) {
+            alert(err instanceof Error ? err.message : '이미지 삭제에 실패했습니다.');
+        }
+        imageUploading = false;
+    }
 
     // 본인 프로필
     const isOwnProfile = $derived(authStore.user?.mb_id === p?.mb_id);
@@ -326,23 +379,68 @@
             <CardContent class="pt-6">
                 <div class="flex items-center gap-4">
                     <!-- 프로필 이미지 -->
-                    {#if profileIconUrl && !profileIconFailed}
-                        <img
-                            src={profileIconUrl}
-                            alt={p.mb_name}
-                            class="size-16 shrink-0 rounded-full object-cover"
-                            onerror={(e) => {
-                                handleIconError(e);
-                                profileIconFailed = true;
-                            }}
-                        />
-                    {:else}
-                        <div
-                            class="bg-muted text-muted-foreground flex size-16 shrink-0 items-center justify-center rounded-full text-xl font-bold"
-                        >
-                            {p.mb_name.charAt(0).toUpperCase()}
-                        </div>
-                    {/if}
+                    <div class="relative shrink-0">
+                        {#if profileIconUrl && !profileIconFailed}
+                            <img
+                                src={profileIconUrl}
+                                alt={p.mb_name}
+                                class="size-16 rounded-full object-cover"
+                                class:cursor-pointer={isOwnProfile}
+                                onclick={handleImageClick}
+                                onerror={(e) => {
+                                    handleIconError(e);
+                                    profileIconFailed = true;
+                                }}
+                            />
+                        {:else}
+                            <div
+                                class="bg-muted text-muted-foreground flex size-16 items-center justify-center rounded-full text-xl font-bold"
+                                class:cursor-pointer={isOwnProfile}
+                                onclick={handleImageClick}
+                                role={isOwnProfile ? 'button' : undefined}
+                                tabindex={isOwnProfile ? 0 : undefined}
+                                onkeydown={(e) => {
+                                    if (isOwnProfile && (e.key === 'Enter' || e.key === ' '))
+                                        handleImageClick();
+                                }}
+                            >
+                                {p.mb_name.charAt(0).toUpperCase()}
+                            </div>
+                        {/if}
+                        {#if isOwnProfile}
+                            {#if imageUploading}
+                                <div
+                                    class="absolute inset-0 flex items-center justify-center rounded-full bg-black/40"
+                                >
+                                    <Loader2 class="h-5 w-5 animate-spin text-white" />
+                                </div>
+                            {:else}
+                                <button
+                                    onclick={handleImageClick}
+                                    class="absolute bottom-0 right-0 flex h-6 w-6 items-center justify-center rounded-full border-2 border-white bg-gray-700 text-white shadow-sm transition-colors hover:bg-gray-600"
+                                    title="프로필 이미지 변경"
+                                >
+                                    <Camera class="h-3 w-3" />
+                                </button>
+                            {/if}
+                            {#if profileIconUrl && !profileIconFailed && !imageUploading}
+                                <button
+                                    onclick={handleImageDelete}
+                                    class="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-white shadow-sm transition-colors hover:bg-red-600"
+                                    title="프로필 이미지 삭제"
+                                >
+                                    <X class="h-3 w-3" />
+                                </button>
+                            {/if}
+                            <input
+                                type="file"
+                                accept="image/jpeg,image/png,image/gif,image/webp"
+                                class="hidden"
+                                bind:this={imageFileInput}
+                                onchange={handleImageSelect}
+                            />
+                        {/if}
+                    </div>
 
                     <div class="min-w-0 flex-1">
                         <div class="flex items-center gap-2">

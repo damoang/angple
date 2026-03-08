@@ -1254,6 +1254,67 @@ class ApiClient {
         await this.request<void>(`/members/${memberId}/block`, { method: 'DELETE' });
     }
 
+    // ==================== 프로필 이미지 API ====================
+
+    /**
+     * 프로필 이미지 업로드
+     * 🔒 인증 필요
+     */
+    async uploadMemberImage(file: File): Promise<{ url: string }> {
+        const formData = new FormData();
+        formData.append('image', file);
+
+        const headers: Record<string, string> = {};
+        const token = this.getAccessToken();
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+        }
+
+        const response = await fetch('/api/members/me/image', {
+            method: 'POST',
+            headers,
+            body: formData,
+            credentials: 'include'
+        });
+
+        if (!response.ok) {
+            const errorBody = await response.text().catch(() => '');
+            let errorMessage = '프로필 이미지 업로드에 실패했습니다.';
+            try {
+                const parsed = JSON.parse(errorBody);
+                errorMessage = parsed.error || parsed.message || errorMessage;
+            } catch {
+                // ignore
+            }
+            throw new Error(errorMessage);
+        }
+
+        const result = await response.json();
+        return result.data;
+    }
+
+    /**
+     * 프로필 이미지 삭제
+     * 🔒 인증 필요
+     */
+    async deleteMemberImage(): Promise<void> {
+        const headers: Record<string, string> = {};
+        const token = this.getAccessToken();
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+        }
+
+        const response = await fetch('/api/members/me/image', {
+            method: 'DELETE',
+            headers,
+            credentials: 'include'
+        });
+
+        if (!response.ok) {
+            throw new Error('프로필 이미지 삭제에 실패했습니다.');
+        }
+    }
+
     // ==================== 파일 업로드 API ====================
 
     /**
