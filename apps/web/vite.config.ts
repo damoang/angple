@@ -19,7 +19,8 @@ export default defineConfig(({ mode }) => {
     return {
         plugins: [tailwindcss(), sveltekit()],
         build: {
-            assetsInlineLimit: 8192
+            assetsInlineLimit: 8192,
+            chunkSizeWarningLimit: 1120
         },
         ssr: {
             // AWS SDK를 서버 번들에 포함 (프로덕션 배포 시 node_modules 불필요)

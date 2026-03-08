@@ -39,6 +39,8 @@ const config = {
             checkOrigin: false
         },
         output: {
+            // 청크 수를 줄이기 위해 단일 번들 전략 사용
+            bundleStrategy: 'single',
             // modulepreload: 브라우저 기본 동작에 위임하여 불필요한 prefetch 감소
             preloadStrategy: 'modulepreload'
         },
