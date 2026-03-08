@@ -13,7 +13,7 @@ export const GET: RequestHandler = () => {
             display: 'standalone',
             background_color: '#ffffff',
             theme_color: '#1a1a1a',
-            orientation: 'any',
+            orientation: 'natural',
             categories: ['social', 'news'],
             icons: [
                 {
