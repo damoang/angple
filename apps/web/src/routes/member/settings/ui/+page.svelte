@@ -92,7 +92,9 @@
         { value: 'small', label: '작게 (16px)' },
         { value: 'base', label: '보통 (18px)' },
         { value: 'large', label: '크게 (20px)' },
-        { value: 'xlarge', label: '아주 크게 (22px)' }
+        { value: 'xlarge', label: '아주 크게 (22px)' },
+        { value: '2xlarge', label: '매우 크게 (24px)' },
+        { value: '3xlarge', label: '최대 (28px)' }
     ];
 
     const readStyleOptions: { value: ReadPostStyle; label: string }[] = [

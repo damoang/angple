@@ -13,7 +13,7 @@ export type FontFamily = 'default' | 'pretendard' | 'nanum-gothic' | 'noto-sans'
 export type LineHeight = 'compact' | 'normal' | 'relaxed' | 'loose';
 export type ShortcutButtonSize = 'small' | 'medium' | 'large';
 export type ListViewMode = 'classic' | 'modern';
-export type ContentFontSize = 'small' | 'base' | 'large' | 'xlarge';
+export type ContentFontSize = 'small' | 'base' | 'large' | 'xlarge' | '2xlarge' | '3xlarge';
 
 interface UiSettings {
     // 레이아웃
@@ -157,7 +157,14 @@ function createUiSettingsStore() {
         },
         /** A-/A/A+ 버튼용: -1=작게, 0=기본, 1=크게 */
         changeContentFontSize(direction: -1 | 0 | 1) {
-            const order: ContentFontSize[] = ['small', 'base', 'large', 'xlarge'];
+            const order: ContentFontSize[] = [
+                'small',
+                'base',
+                'large',
+                'xlarge',
+                '2xlarge',
+                '3xlarge'
+            ];
             if (direction === 0) {
                 settings.contentFontSize = 'base';
             } else {
