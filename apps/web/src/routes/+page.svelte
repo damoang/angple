@@ -56,7 +56,9 @@
         recommended: data.recommendedData
             ? { data: data.recommendedData, period: data.recommendedPeriod }
             : undefined,
-        celebration: data.celebration?.length ? { data: data.celebration } : undefined
+        celebration: (data.celebrationRecent ?? data.celebration)?.length
+            ? { data: data.celebrationRecent ?? data.celebration }
+            : undefined
     }}
 />
 
