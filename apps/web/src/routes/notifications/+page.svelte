@@ -18,6 +18,7 @@
     import ArrowLeft from '@lucide/svelte/icons/arrow-left';
     import ChevronLeft from '@lucide/svelte/icons/chevron-left';
     import ChevronRight from '@lucide/svelte/icons/chevron-right';
+    import Settings from '@lucide/svelte/icons/settings';
 
     let { data }: { data: PageData } = $props();
 
@@ -239,7 +240,7 @@
     </div>
 
     <!-- 필터 탭 -->
-    <div class="border-border mb-3 flex gap-1 border-b pb-2">
+    <div class="border-border mb-3 flex items-center gap-1 border-b pb-2">
         {#each filters as filter}
             <button
                 onclick={() => setFilter(filter.key)}
@@ -251,6 +252,13 @@
                 {filter.label}
             </button>
         {/each}
+        <button
+            onclick={() => goto('/member/settings/ui')}
+            class="text-muted-foreground hover:bg-muted hover:text-foreground ml-auto flex items-center gap-1 rounded-md px-3 py-1.5 text-xs font-medium transition-colors"
+        >
+            <Settings class="h-3.5 w-3.5" />
+            설정
+        </button>
     </div>
 
     {#if isLoading}

@@ -34,13 +34,13 @@
         <button
             type="button"
             onclick={() => customizerStore.setSection(section.id)}
-            class="flex flex-1 flex-col items-center gap-1 px-2 py-2.5 text-xs transition-colors {activeSection ===
+            class="flex flex-1 cursor-pointer flex-col items-center gap-1 px-2 py-3 text-xs transition-colors {activeSection ===
             section.id
                 ? 'border-primary text-primary border-b-2 font-medium'
                 : 'text-muted-foreground hover:text-foreground'}"
         >
-            <section.icon class="h-4 w-4" />
-            {section.label}
+            <section.icon class="pointer-events-none h-4 w-4" />
+            <span class="pointer-events-none">{section.label}</span>
         </button>
     {/each}
 </div>

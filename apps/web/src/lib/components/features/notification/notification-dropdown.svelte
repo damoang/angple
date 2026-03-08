@@ -14,6 +14,7 @@
     import Info from '@lucide/svelte/icons/info';
     import Check from '@lucide/svelte/icons/check';
     import Loader2 from '@lucide/svelte/icons/loader-2';
+    import Settings from '@lucide/svelte/icons/settings';
 
     let notifications = $state<GroupedNotification[]>([]);
     let unreadCount = $state(0);
@@ -252,17 +253,29 @@
         </div>
 
         {#if notifications.length > 0}
-            <div class="border-t px-3 py-2">
+            <div class="flex gap-1 border-t px-3 py-2">
                 <Button
                     variant="ghost"
                     size="sm"
-                    class="w-full text-sm"
+                    class="flex-1 text-sm"
                     onclick={() => {
                         isOpen = false;
                         goto('/notifications');
                     }}
                 >
                     모든 알림 보기
+                </Button>
+                <Button
+                    variant="ghost"
+                    size="sm"
+                    class="flex-1 text-sm"
+                    onclick={() => {
+                        isOpen = false;
+                        goto('/member/settings/ui');
+                    }}
+                >
+                    <Settings class="mr-1 h-3.5 w-3.5" />
+                    알림설정
                 </Button>
             </div>
         {/if}
