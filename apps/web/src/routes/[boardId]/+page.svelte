@@ -868,7 +868,7 @@
                         중 {pagination.page} / {pagination.totalPages} 페이지
                     </p>
                     {#if widgetLayoutStore.hasEnabledAds}
-                        <div class="mt-6">
+                        <div class="mt-3">
                             <AdSlot position="board-list-bottom" height="90px" />
                         </div>
                     {/if}

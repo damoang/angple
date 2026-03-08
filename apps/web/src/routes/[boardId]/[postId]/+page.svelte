@@ -1377,15 +1377,8 @@
 
         <!-- 댓글~목록 사이 GAM 광고 -->
         {#if widgetLayoutStore.hasEnabledAds}
-            <div class="my-6">
+            <div class="my-3 md:my-4">
                 <AdSlot position="board-after-comments" height="90px" />
-            </div>
-        {/if}
-
-        <!-- 댓글 섹션 하단 광고 (푸터 위, PC만) -->
-        {#if widgetLayoutStore.hasEnabledAds}
-            <div class="mt-6 hidden md:block">
-                <AdSlot position="board-footer" height="90px" />
             </div>
         {/if}
     {/if}
@@ -1394,7 +1387,7 @@
 
 <!-- 게시판 최근글 목록 -->
 {#if canRead}
-    <div class="bg-card mx-auto mt-6 rounded-xl px-3 py-3 md:px-5">
+    <div class="bg-card mx-auto mt-3 rounded-xl px-3 py-3 md:mt-4 md:px-5">
         <RecentPosts
             {boardId}
             {boardTitle}
