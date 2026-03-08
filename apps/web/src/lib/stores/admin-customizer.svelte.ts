@@ -42,7 +42,27 @@ class AdminCustomizerStore {
         }
         // 즉시 SSR 메뉴 데이터로 초기화 (빈 화면 방지)
         if (adminMenuStore.menus.length === 0 && menuStore.menus.length > 0) {
-            adminMenuStore.initFromServer(menuStore.menus as Menu[]);
+            // MenuItem → Menu 변환 (is_active 등 누락 필드 보완)
+            const fallbackMenus: Menu[] = menuStore.menus.map((m) => ({
+                ...m,
+                parent_id: m.parent_id ?? null,
+                view_level: 0,
+                is_active: true,
+                children: m.children?.map((c) => ({
+                    ...c,
+                    parent_id: c.parent_id ?? null,
+                    view_level: 0,
+                    is_active: true,
+                    children: c.children?.map((gc) => ({
+                        ...gc,
+                        parent_id: gc.parent_id ?? null,
+                        view_level: 0,
+                        is_active: true,
+                        children: []
+                    })) as Menu[]
+                })) as Menu[]
+            })) as Menu[];
+            adminMenuStore.initFromServer(fallbackMenus);
         }
         // 관리자 API로 전체 메뉴 로드 (성공 시 덮어쓰기, 실패 시 SSR 데이터 유지)
         adminMenuStore.loadMenus();

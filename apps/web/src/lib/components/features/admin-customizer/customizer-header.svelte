@@ -8,6 +8,11 @@
 
     const activeSection = $derived(customizerStore.activeSection);
 
+    function handleSectionClick(id: CustomizerSection) {
+        console.log('[Customizer] Tab clicked:', id, '→ current:', activeSection);
+        customizerStore.setSection(id);
+    }
+
     const sections: { id: CustomizerSection; label: string; icon: typeof PanelTop }[] = [
         { id: 'header', label: '상단', icon: PanelTop },
         { id: 'sidebar', label: '사이드', icon: PanelLeft },
@@ -33,7 +38,7 @@
     {#each sections as section}
         <button
             type="button"
-            onclick={() => customizerStore.setSection(section.id)}
+            onclick={() => handleSectionClick(section.id)}
             class="flex flex-1 cursor-pointer flex-col items-center gap-1 px-2 py-3 text-xs transition-colors {activeSection ===
             section.id
                 ? 'border-primary text-primary border-b-2 font-medium'
