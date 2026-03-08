@@ -169,7 +169,11 @@
                                     onclick={() => toggleVersion(rev.version)}
                                     class="h-7 text-xs"
                                 >
-                                    {isSelected ? '닫기' : '비교'}
+                                    {isSelected
+                                        ? '닫기'
+                                        : sortedRevisions.length > 1
+                                          ? '비교'
+                                          : '보기'}
                                 </Button>
                                 {#if canRestore && rev.change_type !== 'create'}
                                     <Button
@@ -215,6 +219,33 @@
                                 newLabel="v{selectedRevision.version}"
                             />
                         </div>
+                    </div>
+                {:else if selectedRevision && !compareRevision}
+                    <!-- 단일 리비전 보기 (비교 대상 없음) -->
+                    <div class="mt-4 space-y-3">
+                        <h4 class="text-sm font-medium">
+                            v{selectedRevision.version} — {getLabel(selectedRevision.change_type)} 내용
+                        </h4>
+                        {#if selectedRevision.title}
+                            <div>
+                                <p class="text-muted-foreground mb-1 text-xs font-medium">제목</p>
+                                <div
+                                    class="rounded-md border px-3 py-2 text-sm dark:border-neutral-700"
+                                >
+                                    {selectedRevision.title}
+                                </div>
+                            </div>
+                        {/if}
+                        {#if selectedRevision.content}
+                            <div>
+                                <p class="text-muted-foreground mb-1 text-xs font-medium">본문</p>
+                                <div
+                                    class="max-h-80 overflow-y-auto rounded-md border px-3 py-2 text-xs dark:border-neutral-700"
+                                >
+                                    {@html selectedRevision.content}
+                                </div>
+                            </div>
+                        {/if}
                     </div>
                 {/if}
             </div>
