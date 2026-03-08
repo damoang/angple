@@ -22,7 +22,7 @@
     let isCollapsed = $state(false);
 
     // 메뉴 데이터는 SSR에서 초기화된 스토어에서 가져옴
-    const menuData = $derived(menuStore.menus);
+    const menuData = $derived(menuStore.menus.filter((m) => m.show_in_sidebar !== false));
     const loading = $derived(menuStore.loading);
     const error = $derived(menuStore.error);
 
