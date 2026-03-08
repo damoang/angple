@@ -8,6 +8,9 @@
     import { Button } from '$lib/components/ui/button/index.js';
     import { layoutRegistry, initCoreLayouts } from './layouts/index.js';
     import CompactLayout from './layouts/list/compact.svelte';
+    import AdSlot from '$lib/components/ui/ad-slot/ad-slot.svelte';
+    import { widgetLayoutStore } from '$lib/stores/widget-layout.svelte';
+    import { uiSettingsStore } from '$lib/stores/ui-settings.svelte.js';
 
     // 코어 레이아웃 초기화 (중복 호출 안전)
     initCoreLayouts();
@@ -186,6 +189,20 @@
     </div>
 {:else}
     <div class={wrapperClass}>
+        <!-- Classic 레이아웃 헤더 (게시판 목록과 동일) -->
+        {#if listLayoutId === 'classic' && uiSettingsStore.listView !== 'modern'}
+            <div
+                class="border-border bg-muted/30 text-muted-foreground hidden border-b px-4 py-1.5 text-sm font-medium md:block"
+            >
+                <div class="grid grid-cols-[60px_1fr_auto_auto_auto] items-center gap-0">
+                    <div class="text-center">추천</div>
+                    <div>제목</div>
+                    <div class="w-[120px] pl-1">이름</div>
+                    <div class="w-[70px] pl-1 text-center">날짜</div>
+                    <div class="w-[50px] pl-1 text-center">조회</div>
+                </div>
+            </div>
+        {/if}
         {#each posts as post, i (post.id)}
             <div class={post.id === currentPostId ? 'current-post-highlight' : ''}>
                 <LayoutComponent
@@ -195,6 +212,11 @@
                     isRead={showReadState && readPostsStore.isRead(boardId, post.id)}
                 />
             </div>
+            {#if widgetLayoutStore.hasEnabledAds && i + 1 === 7}
+                <div class="py-2">
+                    <AdSlot position="board-list-infeed" height="90px" />
+                </div>
+            {/if}
             {#if shuffledPromos.length > 0 && i + 1 === 10}
                 {#each shuffledPromos.slice(0, 2) as promo (promo.wrId)}
                     <PromotionInlinePost
