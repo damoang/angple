@@ -27,13 +27,13 @@
     }
 </script>
 
-<!-- Pill 스타일 탭 -->
-<div class="flex flex-wrap justify-end gap-1">
+<!-- Pill 스타일 탭 (모바일: 가로 스크롤) -->
+<div class="flex gap-1 overflow-x-auto" style="-ms-overflow-style:none;scrollbar-width:none">
     {#each tabs as tab (tab.id)}
         {#if !tab.hidden}
             <button
                 type="button"
-                class="rounded-md px-2 py-1 text-xs font-medium transition-all duration-200 ease-out sm:px-2.5 sm:text-[15px]
+                class="shrink-0 whitespace-nowrap rounded-md px-2 py-1 text-xs font-medium transition-all duration-200 ease-out sm:px-2.5 sm:text-[15px]
                     {activeTab === tab.id
                     ? 'bg-primary text-primary-foreground'
                     : 'text-muted-foreground hover:bg-muted hover:text-foreground'}"
