@@ -52,7 +52,13 @@ const IGNORED_PATTERNS = [
     'Unrecognized token',
     'state_unsafe_mutation',
     'error loading dynamically imported module',
-    'adsbygoogle.push()'
+    'adsbygoogle.push()',
+    'JSON.parse: unexpected character',
+    '__firefox__',
+    'window.ethereum',
+    'hover` was not found',
+    'Failed to update the ServiceWorker',
+    'Failed to update a ServiceWorker'
 ];
 
 function shouldIgnore(message: string, source?: string, stack?: string): boolean {

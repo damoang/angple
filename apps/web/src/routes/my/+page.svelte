@@ -86,7 +86,7 @@
                     <h1 class="text-foreground text-2xl font-bold">{authStore.user.mb_name}</h1>
                     <p class="text-secondary-foreground">{getGradeName(authStore.user.mb_level)}</p>
                     <!-- 경험치 게이지: 스트리밍 데이터 도착 후 표시 -->
-                    {#await data.streamed.tabData then result}
+                    {#await data.streamed?.tabData then result}
                         {#if result.expSummary}
                             <div class="mt-1 w-48">
                                 <div
@@ -134,7 +134,7 @@
     </div>
 
     <!-- 탭 콘텐츠 (스트리밍) -->
-    {#await data.streamed.tabData}
+    {#await data.streamed?.tabData}
         <!-- 스켈레톤 -->
         <MySkeleton />
     {:then result}

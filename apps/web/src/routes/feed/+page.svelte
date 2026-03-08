@@ -84,7 +84,7 @@
 </svelte:head>
 
 <div class="mx-auto max-w-4xl pt-4">
-    {#await data.streamed.posts}
+    {#await data.streamed?.posts}
         <!-- 스켈레톤 (데이터 로딩 중) -->
         <FeedSkeleton />
     {:then result}
