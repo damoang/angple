@@ -1069,7 +1069,7 @@
     />
 {/if}
 
-<div class="mx-auto overflow-x-hidden pt-2">
+<div class="mx-auto pt-2">
     <!-- 상단 배너 (슬롯 기반) -->
     {#if widgetLayoutStore.hasEnabledAds}
         <div class="mb-6">
