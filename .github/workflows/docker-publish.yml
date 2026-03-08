@@ -194,6 +194,28 @@ jobs:
           echo "Timed out"
           exit 1
 
+      - name: Notify Telegram (승인 요청)
+        if: success()
+        env:
+          IMAGE_TAG: ${{ needs.build.outputs.image-tag }}
+        run: |
+          COMMIT_MSG=$(echo "${{ github.event.head_commit.message }}" | head -1)
+          RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+          MSG="✅ 카나리 배포 통과 — 승인 대기 중
+
+          ${COMMIT_MSG}
+          Tag: ${IMAGE_TAG}
+
+          👉 승인하기: ${RUN_URL}"
+
+          # 들여쓰기 제거
+          MSG=$(echo "$MSG" | sed 's/^          //')
+
+          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+            --data-urlencode "chat_id=${{ secrets.TELEGRAM_CHAT_ID }}" \
+            --data-urlencode "text=${MSG}" >/dev/null 2>&1 || true
+
       - name: Canary summary
         run: |
           echo "### Canary Passed" >> "$GITHUB_STEP_SUMMARY"
