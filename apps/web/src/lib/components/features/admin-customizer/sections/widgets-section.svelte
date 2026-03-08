@@ -8,15 +8,30 @@
     type WidgetZoneTab = 'main' | 'sidebar';
     let activeZone = $state<WidgetZoneTab>('main');
 
-    const mainWidgets = $derived(
-        widgetLayoutStore.widgets.slice().sort((a, b) => a.position - b.position)
-    );
-    const sidebarWidgets = $derived(
-        widgetLayoutStore.sidebarWidgets.slice().sort((a, b) => a.position - b.position)
-    );
+    // DnD용 로컬 상태 ($state)
+    let mainDndItems = $state<WidgetConfig[]>([]);
+    let sidebarDndItems = $state<WidgetConfig[]>([]);
+    let mainDndKey = $state(0);
+    let sidebarDndKey = $state(0);
 
-    let mainDndItems = $derived(mainWidgets.map((w) => ({ ...w })));
-    let sidebarDndItems = $derived(sidebarWidgets.map((w) => ({ ...w })));
+    // 소스 데이터 변경 시 동기화
+    $effect(() => {
+        const widgets = widgetLayoutStore.widgets;
+        mainDndItems = widgets
+            .slice()
+            .sort((a, b) => a.position - b.position)
+            .map((w) => ({ ...w }));
+        mainDndKey++;
+    });
+
+    $effect(() => {
+        const widgets = widgetLayoutStore.sidebarWidgets;
+        sidebarDndItems = widgets
+            .slice()
+            .sort((a, b) => a.position - b.position)
+            .map((w) => ({ ...w }));
+        sidebarDndKey++;
+    });
 
     function handleMainConsider(e: CustomEvent<{ items: WidgetConfig[] }>) {
         mainDndItems = e.detail.items;
@@ -118,80 +133,92 @@
         {#if mainDndItems.length === 0}
             <p class="text-muted-foreground py-4 text-center text-sm">위젯이 없습니다.</p>
         {:else}
-            <div
-                use:dndzone={{ items: mainDndItems, flipDurationMs: 200, type: 'main-widgets' }}
-                onconsider={handleMainConsider}
-                onfinalize={handleMainFinalize}
-                class="flex flex-col gap-1"
-            >
-                {#each mainDndItems as widget (widget.id)}
-                    <div
-                        class="bg-background border-border flex items-center gap-2 rounded-md border px-3 py-2"
-                    >
-                        <GripVertical class="text-muted-foreground h-4 w-4 shrink-0 cursor-grab" />
-                        <span class="flex-1 truncate text-sm">{getWidgetLabel(widget.type)}</span>
-                        <button
-                            type="button"
-                            onclick={() => toggleWidget('main', widget.id)}
-                            class="rounded px-1.5 py-0.5 text-xs transition-colors {widget.enabled
-                                ? 'bg-primary/10 text-primary'
-                                : 'bg-muted text-muted-foreground'}"
+            {#key mainDndKey}
+                <div
+                    use:dndzone={{ items: mainDndItems, flipDurationMs: 200, type: 'main-widgets' }}
+                    onconsider={handleMainConsider}
+                    onfinalize={handleMainFinalize}
+                    class="flex flex-col gap-1"
+                >
+                    {#each mainDndItems as widget (widget.id)}
+                        <div
+                            class="bg-background border-border flex items-center gap-2 rounded-md border px-3 py-2"
                         >
-                            {widget.enabled ? 'ON' : 'OFF'}
-                        </button>
-                        <button
-                            type="button"
-                            onclick={() => removeWidget('main', widget.id)}
-                            class="text-muted-foreground hover:text-destructive p-0.5 transition-colors"
-                            title="삭제"
-                        >
-                            <Trash2 class="h-3.5 w-3.5" />
-                        </button>
-                    </div>
-                {/each}
-            </div>
+                            <GripVertical
+                                class="text-muted-foreground h-4 w-4 shrink-0 cursor-grab"
+                            />
+                            <span class="flex-1 truncate text-sm"
+                                >{getWidgetLabel(widget.type)}</span
+                            >
+                            <button
+                                type="button"
+                                onclick={() => toggleWidget('main', widget.id)}
+                                class="rounded px-1.5 py-0.5 text-xs transition-colors {widget.enabled
+                                    ? 'bg-primary/10 text-primary'
+                                    : 'bg-muted text-muted-foreground'}"
+                            >
+                                {widget.enabled ? 'ON' : 'OFF'}
+                            </button>
+                            <button
+                                type="button"
+                                onclick={() => removeWidget('main', widget.id)}
+                                class="text-muted-foreground hover:text-destructive p-0.5 transition-colors"
+                                title="삭제"
+                            >
+                                <Trash2 class="h-3.5 w-3.5" />
+                            </button>
+                        </div>
+                    {/each}
+                </div>
+            {/key}
         {/if}
     {:else}
         <!-- 사이드바 위젯 -->
         {#if sidebarDndItems.length === 0}
             <p class="text-muted-foreground py-4 text-center text-sm">사이드바 위젯이 없습니다.</p>
         {:else}
-            <div
-                use:dndzone={{
-                    items: sidebarDndItems,
-                    flipDurationMs: 200,
-                    type: 'sidebar-widgets'
-                }}
-                onconsider={handleSidebarConsider}
-                onfinalize={handleSidebarFinalize}
-                class="flex flex-col gap-1"
-            >
-                {#each sidebarDndItems as widget (widget.id)}
-                    <div
-                        class="bg-background border-border flex items-center gap-2 rounded-md border px-3 py-2"
-                    >
-                        <GripVertical class="text-muted-foreground h-4 w-4 shrink-0 cursor-grab" />
-                        <span class="flex-1 truncate text-sm">{getWidgetLabel(widget.type)}</span>
-                        <button
-                            type="button"
-                            onclick={() => toggleWidget('sidebar', widget.id)}
-                            class="rounded px-1.5 py-0.5 text-xs transition-colors {widget.enabled
-                                ? 'bg-primary/10 text-primary'
-                                : 'bg-muted text-muted-foreground'}"
+            {#key sidebarDndKey}
+                <div
+                    use:dndzone={{
+                        items: sidebarDndItems,
+                        flipDurationMs: 200,
+                        type: 'sidebar-widgets'
+                    }}
+                    onconsider={handleSidebarConsider}
+                    onfinalize={handleSidebarFinalize}
+                    class="flex flex-col gap-1"
+                >
+                    {#each sidebarDndItems as widget (widget.id)}
+                        <div
+                            class="bg-background border-border flex items-center gap-2 rounded-md border px-3 py-2"
                         >
-                            {widget.enabled ? 'ON' : 'OFF'}
-                        </button>
-                        <button
-                            type="button"
-                            onclick={() => removeWidget('sidebar', widget.id)}
-                            class="text-muted-foreground hover:text-destructive p-0.5 transition-colors"
-                            title="삭제"
-                        >
-                            <Trash2 class="h-3.5 w-3.5" />
-                        </button>
-                    </div>
-                {/each}
-            </div>
+                            <GripVertical
+                                class="text-muted-foreground h-4 w-4 shrink-0 cursor-grab"
+                            />
+                            <span class="flex-1 truncate text-sm"
+                                >{getWidgetLabel(widget.type)}</span
+                            >
+                            <button
+                                type="button"
+                                onclick={() => toggleWidget('sidebar', widget.id)}
+                                class="rounded px-1.5 py-0.5 text-xs transition-colors {widget.enabled
+                                    ? 'bg-primary/10 text-primary'
+                                    : 'bg-muted text-muted-foreground'}"
+                            >
+                                {widget.enabled ? 'ON' : 'OFF'}
+                            </button>
+                            <button
+                                type="button"
+                                onclick={() => removeWidget('sidebar', widget.id)}
+                                class="text-muted-foreground hover:text-destructive p-0.5 transition-colors"
+                                title="삭제"
+                            >
+                                <Trash2 class="h-3.5 w-3.5" />
+                            </button>
+                        </div>
+                    {/each}
+                </div>
+            {/key}
         {/if}
     {/if}
 </div>

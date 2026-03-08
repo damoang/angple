@@ -28,8 +28,16 @@
         return result;
     }
 
-    // DnD용 아이템 (id 필수)
-    let dndItems = $derived(headerMenus.map((m) => ({ ...m, id: m.id })));
+    // DnD용 로컬 상태 ($derived가 아닌 $state로 관리)
+    let dndItems = $state<Menu[]>([]);
+    let dndKey = $state(0);
+
+    // 소스 데이터 변경 시 동기화
+    $effect(() => {
+        const menus = headerMenus;
+        dndItems = menus.map((m) => ({ ...m }));
+        dndKey++;
+    });
 
     function handleDndConsider(e: CustomEvent<{ items: Menu[] }>) {
         dndItems = e.detail.items;
@@ -50,7 +58,6 @@
 
     async function toggleHeader(menu: Menu) {
         await adminMenuStore.toggleMenuProperty(menu.id, 'show_in_header');
-        // 프론트 메뉴 스토어도 갱신
         await adminMenuStore.loadMenus();
         customizerStore.refreshFrontMenus();
     }
@@ -70,29 +77,33 @@
         {#if dndItems.length === 0}
             <p class="text-muted-foreground py-4 text-center text-sm">상단 메뉴가 없습니다.</p>
         {:else}
-            <div
-                use:dndzone={{ items: dndItems, flipDurationMs: 200, type: 'header-menus' }}
-                onconsider={handleDndConsider}
-                onfinalize={handleDndFinalize}
-                class="flex flex-col gap-1"
-            >
-                {#each dndItems as menu (menu.id)}
-                    <div
-                        class="bg-background border-border flex items-center gap-2 rounded-md border px-3 py-2"
-                    >
-                        <GripVertical class="text-muted-foreground h-4 w-4 shrink-0 cursor-grab" />
-                        <span class="flex-1 truncate text-sm">{menu.title}</span>
-                        <button
-                            type="button"
-                            onclick={() => toggleHeader(menu)}
-                            class="text-muted-foreground hover:text-destructive text-xs"
-                            title="상단에서 제거"
+            {#key dndKey}
+                <div
+                    use:dndzone={{ items: dndItems, flipDurationMs: 200, type: 'header-menus' }}
+                    onconsider={handleDndConsider}
+                    onfinalize={handleDndFinalize}
+                    class="flex flex-col gap-1"
+                >
+                    {#each dndItems as menu (menu.id)}
+                        <div
+                            class="bg-background border-border flex items-center gap-2 rounded-md border px-3 py-2"
                         >
-                            제거
-                        </button>
-                    </div>
-                {/each}
-            </div>
+                            <GripVertical
+                                class="text-muted-foreground h-4 w-4 shrink-0 cursor-grab"
+                            />
+                            <span class="flex-1 truncate text-sm">{menu.title}</span>
+                            <button
+                                type="button"
+                                onclick={() => toggleHeader(menu)}
+                                class="text-muted-foreground hover:text-destructive text-xs"
+                                title="상단에서 제거"
+                            >
+                                제거
+                            </button>
+                        </div>
+                    {/each}
+                </div>
+            {/key}
         {/if}
     </div>
 

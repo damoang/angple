@@ -91,6 +91,8 @@ class AdminCustomizerStore {
 
             if (allSuccess) {
                 toast.success('변경사항이 저장되었습니다.');
+                // 저장 후 프론트 메뉴 갱신
+                this.refreshFrontMenus();
                 return true;
             } else {
                 toast.error('일부 저장에 실패했습니다.');

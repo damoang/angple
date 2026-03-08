@@ -14,8 +14,16 @@
             .sort((a, b) => a.order_num - b.order_num)
     );
 
-    let dndItems = $derived(sidebarMenus.map((m) => ({ ...m, id: m.id })));
+    // DnD용 로컬 상태
+    let dndItems = $state<Menu[]>([]);
+    let dndKey = $state(0);
     let expandedIds = $state(new Set<number>());
+
+    $effect(() => {
+        const menus = sidebarMenus;
+        dndItems = menus.map((m) => ({ ...m }));
+        dndKey++;
+    });
 
     function toggleExpand(id: number) {
         const next = new Set(expandedIds);
@@ -71,115 +79,117 @@
         {#if dndItems.length === 0}
             <p class="text-muted-foreground py-4 text-center text-sm">사이드바 메뉴가 없습니다.</p>
         {:else}
-            <div
-                use:dndzone={{ items: dndItems, flipDurationMs: 200, type: 'sidebar-menus' }}
-                onconsider={handleDndConsider}
-                onfinalize={handleDndFinalize}
-                class="flex flex-col gap-1"
-            >
-                {#each dndItems as menu (menu.id)}
-                    <div class="border-border rounded-md border">
-                        <div class="flex items-center gap-2 px-3 py-2">
-                            <GripVertical
-                                class="text-muted-foreground h-4 w-4 shrink-0 cursor-grab"
-                            />
+            {#key dndKey}
+                <div
+                    use:dndzone={{ items: dndItems, flipDurationMs: 200, type: 'sidebar-menus' }}
+                    onconsider={handleDndConsider}
+                    onfinalize={handleDndFinalize}
+                    class="flex flex-col gap-1"
+                >
+                    {#each dndItems as menu (menu.id)}
+                        <div class="border-border rounded-md border">
+                            <div class="flex items-center gap-2 px-3 py-2">
+                                <GripVertical
+                                    class="text-muted-foreground h-4 w-4 shrink-0 cursor-grab"
+                                />
 
-                            {#if menu.children && menu.children.length > 0}
+                                {#if menu.children && menu.children.length > 0}
+                                    <button
+                                        type="button"
+                                        onclick={() => toggleExpand(menu.id)}
+                                        class="hover:bg-muted rounded p-0.5"
+                                    >
+                                        {#if expandedIds.has(menu.id)}
+                                            <ChevronDown class="h-3.5 w-3.5" />
+                                        {:else}
+                                            <ChevronRight class="h-3.5 w-3.5" />
+                                        {/if}
+                                    </button>
+                                {:else}
+                                    <div class="w-[18px]"></div>
+                                {/if}
+
+                                <span
+                                    class="flex-1 truncate text-sm {menu.is_active
+                                        ? ''
+                                        : 'text-muted-foreground line-through'}"
+                                >
+                                    {menu.title}
+                                </span>
+
                                 <button
                                     type="button"
-                                    onclick={() => toggleExpand(menu.id)}
-                                    class="hover:bg-muted rounded p-0.5"
+                                    onclick={() => toggleActive(menu)}
+                                    class="rounded px-1.5 py-0.5 text-xs transition-colors {menu.is_active
+                                        ? 'bg-primary/10 text-primary'
+                                        : 'bg-muted text-muted-foreground'}"
                                 >
-                                    {#if expandedIds.has(menu.id)}
-                                        <ChevronDown class="h-3.5 w-3.5" />
-                                    {:else}
-                                        <ChevronRight class="h-3.5 w-3.5" />
-                                    {/if}
+                                    {menu.is_active ? 'ON' : 'OFF'}
                                 </button>
-                            {:else}
-                                <div class="w-[18px]"></div>
-                            {/if}
 
-                            <span
-                                class="flex-1 truncate text-sm {menu.is_active
-                                    ? ''
-                                    : 'text-muted-foreground line-through'}"
-                            >
-                                {menu.title}
-                            </span>
-
-                            <button
-                                type="button"
-                                onclick={() => toggleActive(menu)}
-                                class="rounded px-1.5 py-0.5 text-xs transition-colors {menu.is_active
-                                    ? 'bg-primary/10 text-primary'
-                                    : 'bg-muted text-muted-foreground'}"
-                            >
-                                {menu.is_active ? 'ON' : 'OFF'}
-                            </button>
-
-                            <button
-                                type="button"
-                                onclick={() => toggleSidebar(menu)}
-                                class="text-muted-foreground hover:text-destructive text-xs"
-                                title="사이드바에서 제거"
-                            >
-                                제거
-                            </button>
-                        </div>
-
-                        <!-- 하위 메뉴 표시 -->
-                        {#if expandedIds.has(menu.id) && menu.children && menu.children.length > 0}
-                            <div class="border-border border-t px-3 py-1">
-                                {#each menu.children as child (child.id)}
-                                    <div class="flex items-center gap-2 py-1.5 pl-6">
-                                        <span
-                                            class="flex-1 truncate text-xs {child.is_active
-                                                ? ''
-                                                : 'text-muted-foreground line-through'}"
-                                        >
-                                            {child.title}
-                                        </span>
-                                        <button
-                                            type="button"
-                                            onclick={() => toggleActive(child)}
-                                            class="rounded px-1.5 py-0.5 text-[10px] transition-colors {child.is_active
-                                                ? 'bg-primary/10 text-primary'
-                                                : 'bg-muted text-muted-foreground'}"
-                                        >
-                                            {child.is_active ? 'ON' : 'OFF'}
-                                        </button>
-                                    </div>
-
-                                    <!-- depth 3 -->
-                                    {#if expandedIds.has(menu.id) && child.children && child.children.length > 0}
-                                        {#each child.children as grandchild (grandchild.id)}
-                                            <div class="flex items-center gap-2 py-1 pl-12">
-                                                <span
-                                                    class="flex-1 truncate text-xs {grandchild.is_active
-                                                        ? 'text-muted-foreground'
-                                                        : 'text-muted-foreground/50 line-through'}"
-                                                >
-                                                    {grandchild.title}
-                                                </span>
-                                                <button
-                                                    type="button"
-                                                    onclick={() => toggleActive(grandchild)}
-                                                    class="rounded px-1 py-0.5 text-[10px] transition-colors {grandchild.is_active
-                                                        ? 'bg-primary/10 text-primary'
-                                                        : 'bg-muted text-muted-foreground'}"
-                                                >
-                                                    {grandchild.is_active ? 'ON' : 'OFF'}
-                                                </button>
-                                            </div>
-                                        {/each}
-                                    {/if}
-                                {/each}
+                                <button
+                                    type="button"
+                                    onclick={() => toggleSidebar(menu)}
+                                    class="text-muted-foreground hover:text-destructive text-xs"
+                                    title="사이드바에서 제거"
+                                >
+                                    제거
+                                </button>
                             </div>
-                        {/if}
-                    </div>
-                {/each}
-            </div>
+
+                            <!-- 하위 메뉴 표시 -->
+                            {#if expandedIds.has(menu.id) && menu.children && menu.children.length > 0}
+                                <div class="border-border border-t px-3 py-1">
+                                    {#each menu.children as child (child.id)}
+                                        <div class="flex items-center gap-2 py-1.5 pl-6">
+                                            <span
+                                                class="flex-1 truncate text-xs {child.is_active
+                                                    ? ''
+                                                    : 'text-muted-foreground line-through'}"
+                                            >
+                                                {child.title}
+                                            </span>
+                                            <button
+                                                type="button"
+                                                onclick={() => toggleActive(child)}
+                                                class="rounded px-1.5 py-0.5 text-[10px] transition-colors {child.is_active
+                                                    ? 'bg-primary/10 text-primary'
+                                                    : 'bg-muted text-muted-foreground'}"
+                                            >
+                                                {child.is_active ? 'ON' : 'OFF'}
+                                            </button>
+                                        </div>
+
+                                        <!-- depth 3 -->
+                                        {#if child.children && child.children.length > 0}
+                                            {#each child.children as grandchild (grandchild.id)}
+                                                <div class="flex items-center gap-2 py-1 pl-12">
+                                                    <span
+                                                        class="flex-1 truncate text-xs {grandchild.is_active
+                                                            ? 'text-muted-foreground'
+                                                            : 'text-muted-foreground/50 line-through'}"
+                                                    >
+                                                        {grandchild.title}
+                                                    </span>
+                                                    <button
+                                                        type="button"
+                                                        onclick={() => toggleActive(grandchild)}
+                                                        class="rounded px-1 py-0.5 text-[10px] transition-colors {grandchild.is_active
+                                                            ? 'bg-primary/10 text-primary'
+                                                            : 'bg-muted text-muted-foreground'}"
+                                                    >
+                                                        {grandchild.is_active ? 'ON' : 'OFF'}
+                                                    </button>
+                                                </div>
+                                            {/each}
+                                        {/if}
+                                    {/each}
+                                </div>
+                            {/if}
+                        </div>
+                    {/each}
+                </div>
+            {/key}
         {/if}
     </div>
 
