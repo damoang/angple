@@ -3,7 +3,7 @@
     import * as DropdownMenu from '$lib/components/ui/dropdown-menu/index.js';
     import { apiClient } from '$lib/api/index.js';
     import { authStore } from '$lib/stores/auth.svelte.js';
-    import type { Notification, NotificationListResponse } from '$lib/api/types.js';
+    import type { GroupedNotification } from '$lib/api/types.js';
     import { onMount } from 'svelte';
     import { goto } from '$app/navigation';
     import Bell from '@lucide/svelte/icons/bell';
@@ -11,19 +11,16 @@
     import Reply from '@lucide/svelte/icons/reply';
     import AtSign from '@lucide/svelte/icons/at-sign';
     import Heart from '@lucide/svelte/icons/heart';
-    import Mail from '@lucide/svelte/icons/mail';
     import Info from '@lucide/svelte/icons/info';
     import Check from '@lucide/svelte/icons/check';
     import Loader2 from '@lucide/svelte/icons/loader-2';
 
-    // 상태
-    let notifications = $state<Notification[]>([]);
+    let notifications = $state<GroupedNotification[]>([]);
     let unreadCount = $state(0);
     let isLoading = $state(false);
     let isOpen = $state(false);
 
-    // 알림 타입별 아이콘
-    function getNotificationIcon(type: Notification['type']) {
+    function getNotificationIcon(type: string) {
         switch (type) {
             case 'comment':
                 return MessageSquare;
@@ -33,16 +30,12 @@
                 return AtSign;
             case 'like':
                 return Heart;
-            case 'message':
-                return Mail;
-            case 'system':
             default:
                 return Info;
         }
     }
 
-    // 알림 타입별 색상
-    function getNotificationColor(type: Notification['type']): string {
+    function getNotificationColor(type: string): string {
         switch (type) {
             case 'comment':
                 return 'text-blue-500';
@@ -52,15 +45,11 @@
                 return 'text-purple-500';
             case 'like':
                 return 'text-red-500';
-            case 'message':
-                return 'text-orange-500';
-            case 'system':
             default:
                 return 'text-muted-foreground';
         }
     }
 
-    // 시간 포맷
     function formatTime(dateString: string): string {
         const date = new Date(dateString);
         const now = new Date();
@@ -82,7 +71,6 @@
         });
     }
 
-    // 읽지 않은 알림 수 로드
     async function loadUnreadCount(): Promise<void> {
         if (!authStore.isAuthenticated) return;
 
@@ -94,13 +82,12 @@
         }
     }
 
-    // 알림 목록 로드
     async function loadNotifications(): Promise<void> {
         if (!authStore.isAuthenticated) return;
 
         isLoading = true;
         try {
-            const response = await apiClient.getNotifications(1, 10);
+            const response = await apiClient.getGroupedNotifications(1, 10);
             notifications = response.items;
             unreadCount = response.unread_count;
         } catch (err) {
@@ -110,24 +97,25 @@
         }
     }
 
-    // 알림 클릭 처리
-    async function handleNotificationClick(notification: Notification): Promise<void> {
-        // 읽음 처리
-        if (!notification.is_read) {
+    async function handleNotificationClick(notification: GroupedNotification): Promise<void> {
+        if (notification.has_unread) {
             try {
-                await apiClient.markNotificationAsRead(notification.id);
-                notification.is_read = true;
-                unreadCount = Math.max(0, unreadCount - 1);
+                await apiClient.markGroupAsRead(
+                    notification.bo_table,
+                    notification.wr_id,
+                    notification.from_case
+                );
+                notification.has_unread = false;
+                unreadCount = Math.max(0, unreadCount - notification.unread_count);
+                notification.unread_count = 0;
             } catch (err) {
                 console.error('Failed to mark as read:', err);
             }
         }
 
-        // URL이 있으면 이동
         if (notification.url) {
             isOpen = false;
             let url = notification.url;
-            // 추천 알림에 앵커가 없으면 #likes 추가
             if (notification.type === 'like' && !url.includes('#')) {
                 url += '#likes';
             }
@@ -135,18 +123,20 @@
         }
     }
 
-    // 모두 읽음 처리
     async function handleMarkAllAsRead(): Promise<void> {
         try {
             await apiClient.markAllNotificationsAsRead();
-            notifications = notifications.map((n) => ({ ...n, is_read: true }));
+            notifications = notifications.map((n) => ({
+                ...n,
+                has_unread: false,
+                unread_count: 0
+            }));
             unreadCount = 0;
         } catch (err) {
             console.error('Failed to mark all as read:', err);
         }
     }
 
-    // 드롭다운 열릴 때 알림 로드
     function handleOpenChange(open: boolean): void {
         isOpen = open;
         if (open) {
@@ -154,7 +144,6 @@
         }
     }
 
-    // 초기 로드 + Page Visibility API 기반 폴링
     onMount(() => {
         loadUnreadCount();
 
@@ -174,14 +163,13 @@
 
         function handleVisibilityChange() {
             if (document.visibilityState === 'visible') {
-                loadUnreadCount(); // 탭 복귀 시 즉시 1회 호출
+                loadUnreadCount();
                 startPolling();
             } else {
                 stopPolling();
             }
         }
 
-        // 탭이 보일 때만 폴링
         if (document.visibilityState === 'visible') {
             startPolling();
         }
@@ -229,33 +217,33 @@
             {:else if notifications.length === 0}
                 <div class="text-muted-foreground py-8 text-center text-sm">알림이 없습니다</div>
             {:else}
-                {#each notifications as notification (notification.id)}
+                {#each notifications as notification, i}
                     {@const Icon = getNotificationIcon(notification.type)}
                     <DropdownMenu.Item
-                        class="flex cursor-pointer items-start gap-3 p-3 {notification.is_read
-                            ? 'opacity-60'
-                            : 'bg-muted/30'}"
+                        class="flex cursor-pointer items-start gap-2.5 px-3 py-2 {notification.has_unread
+                            ? 'bg-muted/30'
+                            : 'opacity-60'}"
                         onclick={() => handleNotificationClick(notification)}
                     >
                         <div class="mt-0.5 shrink-0">
                             <Icon class="h-4 w-4 {getNotificationColor(notification.type)}" />
                         </div>
                         <div class="min-w-0 flex-1">
-                            <p class="text-foreground line-clamp-1 text-sm font-medium">
+                            <p class="text-foreground line-clamp-1 text-[13px] font-medium">
                                 {notification.title}
                             </p>
                             {#if notification.parent_subject}
-                                <p class="text-muted-foreground mt-0.5 line-clamp-1 text-xs">
-                                    "{notification.parent_subject}"
+                                <p class="text-muted-foreground mt-0.5 line-clamp-1 text-[11px]">
+                                    {notification.parent_subject}
                                 </p>
                             {/if}
-                            <p class="text-muted-foreground mt-0.5 text-[11px]">
-                                {formatTime(notification.created_at)}
+                            <p class="text-muted-foreground mt-0.5 text-[10px]">
+                                {formatTime(notification.latest_at)}
                             </p>
                         </div>
-                        {#if !notification.is_read}
-                            <div class="shrink-0">
-                                <div class="bg-primary h-2 w-2 rounded-full"></div>
+                        {#if notification.has_unread}
+                            <div class="mt-1 shrink-0">
+                                <div class="bg-primary h-1.5 w-1.5 rounded-full"></div>
                             </div>
                         {/if}
                     </DropdownMenu.Item>
@@ -290,15 +278,7 @@
         overflow: hidden;
     }
 
-    .line-clamp-2 {
-        display: -webkit-box;
-        line-clamp: 2;
-        -webkit-line-clamp: 2;
-        -webkit-box-orient: vertical;
-        overflow: hidden;
-    }
-
-    /* 벨 흔들림 애니메이션 (asis 스타일) */
+    /* 벨 흔들림 애니메이션 */
     .bell-ring {
         animation: bell-ring 6s 0.7s infinite;
         transform-origin: 50% 4px;

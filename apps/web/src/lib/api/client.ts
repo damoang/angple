@@ -33,6 +33,7 @@ import type {
     PointHistoryResponse,
     NotificationSummary,
     NotificationListResponse,
+    GroupedNotificationListResponse,
     MessageKind,
     MessageListResponse,
     Message,
@@ -1522,6 +1523,46 @@ class ApiClient {
      */
     async deleteNotification(notificationId: number): Promise<void> {
         await this.request<void>(`/notifications/${notificationId}`, {
+            method: 'DELETE'
+        });
+    }
+
+    /**
+     * 그룹화 알림 목록 조회
+     */
+    async getGroupedNotifications(
+        page: number = 1,
+        limit: number = 20,
+        filterType: string = ''
+    ): Promise<GroupedNotificationListResponse> {
+        const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+        if (filterType) params.set('type', filterType);
+        const response = await this.request<GroupedNotificationListResponse>(
+            `/notifications/grouped?${params}`
+        );
+        return response.data;
+    }
+
+    /**
+     * 그룹 알림 읽음 처리
+     */
+    async markGroupAsRead(boTable: string, wrId: number, fromCase: string): Promise<void> {
+        await this.request<void>('/notifications/group/read', {
+            method: 'POST',
+            body: JSON.stringify({ bo_table: boTable, wr_id: wrId, from_case: fromCase })
+        });
+    }
+
+    /**
+     * 그룹 알림 삭제
+     */
+    async deleteNotificationGroup(boTable: string, wrId: number, fromCase: string): Promise<void> {
+        const params = new URLSearchParams({
+            bo_table: boTable,
+            wr_id: String(wrId),
+            from_case: fromCase
+        });
+        await this.request<void>(`/notifications/group?${params}`, {
             method: 'DELETE'
         });
     }

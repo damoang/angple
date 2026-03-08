@@ -718,6 +718,33 @@ export interface NotificationListResponse {
     total_pages: number;
 }
 
+// 그룹화 알림
+export interface GroupedNotification {
+    type: NotificationType;
+    bo_table: string;
+    wr_id: number;
+    title: string;
+    url?: string;
+    parent_subject?: string;
+    content?: string;
+    latest_sender: string;
+    senders: string[];
+    sender_count: number;
+    unread_count: number;
+    has_unread: boolean;
+    latest_at: string;
+    from_case: string;
+}
+
+export interface GroupedNotificationListResponse {
+    items: GroupedNotification[];
+    total: number;
+    unread_count: number;
+    page: number;
+    limit: number;
+    total_pages: number;
+}
+
 // 쪽지 관련 타입
 export type MessageKind = 'recv' | 'send'; // 받은쪽지 / 보낸쪽지
 
