@@ -23,6 +23,10 @@ Thumbs.db
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 
+# Site-specific
+/static/ads.txt
+/static/robots.txt
+
 # Theme System
 /custom-themes
 /data/settings.json
