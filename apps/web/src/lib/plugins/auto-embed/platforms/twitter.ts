@@ -50,10 +50,10 @@ export const twitter: EmbedPlatform = {
 			title="Twitter post"
 			data-tweet-id="${info.id}"
 			frameborder="0"
-			scrolling="no"
+			scrolling="auto"
 			allowtransparency="true"
 			allowfullscreen
-			style="width: 100%; min-height: 300px;"
+			style="width: 100%; min-height: 500px; border: none;"
 		></iframe>`;
     }
 };
