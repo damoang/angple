@@ -7,6 +7,8 @@
 
 import { widgetLayoutStore } from '$lib/stores/widget-layout.svelte';
 import { menuStore as adminMenuStore } from '$lib/stores/admin-menu-store.svelte';
+import { menuStore } from '$lib/stores/menu.svelte';
+import type { MenuItem } from '$lib/api/types';
 import { toast } from 'svelte-sonner';
 
 export type CustomizerSection = 'header' | 'sidebar' | 'mega' | 'widgets';
@@ -105,6 +107,22 @@ class AdminCustomizerStore {
     discardAll() {
         widgetLayoutStore.discardChanges();
         adminMenuStore.discardChanges();
+    }
+
+    /**
+     * 프론트 표시용 메뉴를 SSR API에서 다시 fetch하여 갱신
+     * (adminMenuStore와 menuStore는 타입이 다르므로 직접 대입 금지)
+     */
+    async refreshFrontMenus(): Promise<void> {
+        try {
+            const response = await fetch('/api/v1/menus/sidebar');
+            if (!response.ok) return;
+            const result = await response.json();
+            const menus: MenuItem[] = result.data ?? [];
+            menuStore.initFromServer(menus);
+        } catch {
+            // 갱신 실패 시 무시 (다음 페이지 로드에서 갱신됨)
+        }
     }
 }
 

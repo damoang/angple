@@ -1,6 +1,6 @@
 <script lang="ts">
     import { menuStore as adminMenuStore } from '$lib/stores/admin-menu-store.svelte';
-    import { menuStore } from '$lib/stores/menu.svelte';
+    import { customizerStore } from '$lib/stores/admin-customizer.svelte';
     import type { Menu } from '$lib/types/admin-menu';
     import ChevronRight from '@lucide/svelte/icons/chevron-right';
     import ChevronDown from '@lucide/svelte/icons/chevron-down';
@@ -25,13 +25,13 @@
     async function toggleActive(menu: Menu) {
         await adminMenuStore.toggleMenuProperty(menu.id, 'is_active');
         await adminMenuStore.loadMenus();
-        menuStore.initFromServer(adminMenuStore.menus);
+        customizerStore.refreshFrontMenus();
     }
 
     async function toggleHeader(menu: Menu) {
         await adminMenuStore.toggleMenuProperty(menu.id, 'show_in_header');
         await adminMenuStore.loadMenus();
-        menuStore.initFromServer(adminMenuStore.menus);
+        customizerStore.refreshFrontMenus();
     }
 </script>
 

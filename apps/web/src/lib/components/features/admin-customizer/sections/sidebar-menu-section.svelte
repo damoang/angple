@@ -1,6 +1,6 @@
 <script lang="ts">
     import { menuStore as adminMenuStore } from '$lib/stores/admin-menu-store.svelte';
-    import { menuStore } from '$lib/stores/menu.svelte';
+    import { customizerStore } from '$lib/stores/admin-customizer.svelte';
     import type { Menu } from '$lib/types/admin-menu';
     import GripVertical from '@lucide/svelte/icons/grip-vertical';
     import ChevronRight from '@lucide/svelte/icons/chevron-right';
@@ -46,13 +46,13 @@
     async function toggleActive(menu: Menu) {
         await adminMenuStore.toggleMenuProperty(menu.id, 'is_active');
         await adminMenuStore.loadMenus();
-        menuStore.initFromServer(adminMenuStore.menus);
+        customizerStore.refreshFrontMenus();
     }
 
     async function toggleSidebar(menu: Menu) {
         await adminMenuStore.toggleMenuProperty(menu.id, 'show_in_sidebar');
         await adminMenuStore.loadMenus();
-        menuStore.initFromServer(adminMenuStore.menus);
+        customizerStore.refreshFrontMenus();
     }
 
     // 사이드바에 표시되지 않는 메뉴 (추가 후보)

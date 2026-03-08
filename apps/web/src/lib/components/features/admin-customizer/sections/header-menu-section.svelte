@@ -1,6 +1,6 @@
 <script lang="ts">
     import { menuStore as adminMenuStore } from '$lib/stores/admin-menu-store.svelte';
-    import { menuStore } from '$lib/stores/menu.svelte';
+    import { customizerStore } from '$lib/stores/admin-customizer.svelte';
     import type { Menu } from '$lib/types/admin-menu';
     import GripVertical from '@lucide/svelte/icons/grip-vertical';
     import { dndzone } from 'svelte-dnd-action';
@@ -52,13 +52,13 @@
         await adminMenuStore.toggleMenuProperty(menu.id, 'show_in_header');
         // 프론트 메뉴 스토어도 갱신
         await adminMenuStore.loadMenus();
-        menuStore.initFromServer(adminMenuStore.menus);
+        customizerStore.refreshFrontMenus();
     }
 
     async function addToHeader(menuId: number) {
         await adminMenuStore.toggleMenuProperty(menuId, 'show_in_header');
         await adminMenuStore.loadMenus();
-        menuStore.initFromServer(adminMenuStore.menus);
+        customizerStore.refreshFrontMenus();
     }
 </script>
 
