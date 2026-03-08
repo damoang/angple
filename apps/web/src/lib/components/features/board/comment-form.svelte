@@ -267,7 +267,7 @@
                     bind:value={content}
                     placeholder={actualPlaceholder}
                     rows={isReplyMode ? 1 : 2}
-                    class={error ? 'border-destructive' : ''}
+                    class="{error ? 'border-destructive' : ''} max-h-[40vh] overflow-y-auto"
                     disabled={isLoading}
                     onpaste={handlePaste}
                     onkeydown={(e: KeyboardEvent) => {

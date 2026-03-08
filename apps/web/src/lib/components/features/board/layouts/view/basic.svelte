@@ -215,20 +215,20 @@
         <div class="mb-1 flex justify-end gap-1">
             <button
                 type="button"
-                class="text-muted-foreground hover:text-foreground border-border hover:bg-muted rounded border px-2 py-0.5 text-xs transition-colors disabled:opacity-30"
+                class="text-muted-foreground hover:text-foreground active:bg-muted border-border hover:bg-muted rounded border px-3 py-1.5 text-sm transition-colors disabled:opacity-30"
                 disabled={fontSize === 'small'}
                 onclick={() => onChangeFontSize(-1)}
                 aria-label="글자 작게">A-</button
             >
             <button
                 type="button"
-                class="text-muted-foreground hover:text-foreground border-border hover:bg-muted rounded border px-2 py-0.5 text-xs transition-colors"
+                class="text-muted-foreground hover:text-foreground active:bg-muted border-border hover:bg-muted rounded border px-3 py-1.5 text-sm transition-colors"
                 onclick={() => onChangeFontSize(0)}
                 aria-label="글자 기본">A</button
             >
             <button
                 type="button"
-                class="text-muted-foreground hover:text-foreground border-border hover:bg-muted rounded border px-2 py-0.5 text-xs transition-colors disabled:opacity-30"
+                class="text-muted-foreground hover:text-foreground active:bg-muted border-border hover:bg-muted rounded border px-3 py-1.5 text-sm transition-colors disabled:opacity-30"
                 disabled={fontSize === 'xlarge'}
                 onclick={() => onChangeFontSize(1)}
                 aria-label="글자 크게">A+</button
