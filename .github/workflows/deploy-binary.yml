@@ -33,11 +33,13 @@ jobs:
           repository: damoang/angple-premium
           token: ${{ secrets.PREMIUM_REPO_TOKEN }}
           path: _premium
-        continue-on-error: true
 
       - name: Install premium assets
-        if: hashFiles('_premium/deploy/install.sh') != ''
         run: |
+          if [ ! -f "_premium/deploy/install.sh" ]; then
+            echo "FATAL: Premium repo checkout failed or install.sh missing!"
+            exit 1
+          fi
           chmod +x _premium/deploy/install.sh
           _premium/deploy/install.sh .
 
@@ -104,17 +106,23 @@ jobs:
           rm -rf apps/web/deploy/plugins apps/web/deploy/widgets apps/web/deploy/themes
           rm -rf apps/web/deploy/custom-themes apps/web/deploy/custom-widgets apps/web/deploy/extensions
 
-          cp -r plugins apps/web/deploy/ 2>/dev/null || mkdir -p apps/web/deploy/plugins
+          cp -r plugins apps/web/deploy/
           cp -r widgets apps/web/deploy/ 2>/dev/null || mkdir -p apps/web/deploy/widgets
           cp -r themes apps/web/deploy/ 2>/dev/null || mkdir -p apps/web/deploy/themes
           cp -r custom-themes apps/web/deploy/ 2>/dev/null || mkdir -p apps/web/deploy/custom-themes
           cp -r custom-widgets apps/web/deploy/ 2>/dev/null || mkdir -p apps/web/deploy/custom-widgets
           cp -r extensions apps/web/deploy/ 2>/dev/null || mkdir -p apps/web/deploy/extensions
 
-          # 검증 로그
+          # 필수 검증 — 플러그인 최소 개수 미달 시 빌드 실패
           echo "=== Plugin verification ==="
-          ls -la apps/web/deploy/plugins/ || echo "WARNING: plugins directory empty!"
-          ls apps/web/deploy/plugins/*/plugin.json 2>/dev/null | wc -l | xargs -I{} echo "Plugins with manifest: {}"
+          ls -la apps/web/deploy/plugins/
+          PLUGIN_COUNT=$(ls apps/web/deploy/plugins/*/plugin.json 2>/dev/null | wc -l)
+          echo "Plugins with manifest: $PLUGIN_COUNT"
+          if [ "$PLUGIN_COUNT" -lt 5 ]; then
+            echo "FATAL: Expected at least 5 plugins, found $PLUGIN_COUNT!"
+            echo "Premium checkout or install.sh may have failed."
+            exit 1
+          fi
 
       - name: Build and push Docker image
         run: |
