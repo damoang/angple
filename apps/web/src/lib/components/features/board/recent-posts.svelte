@@ -162,7 +162,7 @@
 <!-- 헤더 -->
 <div
     bind:this={listContainer}
-    class="mb-3 flex items-center justify-between"
+    class="mb-3 px-2 md:px-0 flex items-center justify-between"
     style="scroll-margin-top: 1rem"
 >
     <a
