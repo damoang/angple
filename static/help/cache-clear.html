@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>다모앙 접속 문제 해결 안내</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans KR', sans-serif;
+            background: #f8f9fa;
+            color: #1a1a1a;
+            line-height: 1.7;
+            padding: 20px;
+        }
+        .container {
+            max-width: 640px;
+            margin: 40px auto;
+            background: #fff;
+            border-radius: 16px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+            padding: 32px 28px;
+        }
+        h1 {
+            font-size: 22px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: #111;
+        }
+        .subtitle {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 28px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #eee;
+        }
+        .reason {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            border-radius: 10px;
+            padding: 16px 20px;
+            margin-bottom: 24px;
+            font-size: 14px;
+        }
+        .reason strong { color: #856404; }
+        h2 {
+            font-size: 17px;
+            font-weight: 600;
+            margin: 28px 0 12px;
+            color: #222;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        h2 .badge {
+            background: #4a90d9;
+            color: #fff;
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 20px;
+            font-weight: 500;
+        }
+        .steps {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 8px;
+        }
+        .step {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 14px;
+        }
+        .step:last-child { margin-bottom: 0; }
+        .step-num {
+            flex-shrink: 0;
+            width: 26px;
+            height: 26px;
+            background: #4a90d9;
+            color: #fff;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            font-weight: 600;
+            margin-top: 1px;
+        }
+        .step-text { font-size: 14px; }
+        .step-text strong { color: #333; }
+        kbd {
+            background: #e9ecef;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            padding: 1px 6px;
+            font-size: 12px;
+            font-family: monospace;
+            white-space: nowrap;
+        }
+        .shortcut {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            background: #e8f4fd;
+            border: 1px solid #b8daff;
+            border-radius: 6px;
+            padding: 4px 10px;
+            margin: 8px 0;
+            font-size: 13px;
+        }
+        .tab { cursor: pointer; }
+        .tabs {
+            display: flex;
+            gap: 0;
+            margin-bottom: 0;
+            border-bottom: 2px solid #eee;
+        }
+        .tab {
+            padding: 10px 16px;
+            font-size: 14px;
+            font-weight: 500;
+            color: #888;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -2px;
+            background: none;
+            border-top: none;
+            border-left: none;
+            border-right: none;
+        }
+        .tab.active {
+            color: #4a90d9;
+            border-bottom-color: #4a90d9;
+        }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .note {
+            background: #e8f5e9;
+            border: 1px solid #a5d6a7;
+            border-radius: 10px;
+            padding: 16px 20px;
+            margin-top: 24px;
+            font-size: 14px;
+        }
+        .note strong { color: #2e7d32; }
+        .footer {
+            text-align: center;
+            margin-top: 28px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+        }
+        .btn {
+            display: inline-block;
+            background: #4a90d9;
+            color: #fff;
+            text-decoration: none;
+            padding: 12px 32px;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 500;
+            transition: background 0.2s;
+        }
+        .btn:hover { background: #3a7bc8; }
+        .contact {
+            margin-top: 16px;
+            font-size: 13px;
+            color: #888;
+        }
+        .contact a { color: #4a90d9; }
+        @media (max-width: 480px) {
+            .container { padding: 24px 20px; margin: 20px auto; }
+            h1 { font-size: 19px; }
+            .tabs { overflow-x: auto; }
+            .tab { padding: 8px 12px; font-size: 13px; white-space: nowrap; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>다모앙 접속이 안 되시나요?</h1>
+        <p class="subtitle">브라우저 캐시 문제로 페이지가 열리지 않을 수 있습니다. 아래 안내에 따라 캐시를 삭제해 주세요.</p>
+
+        <div class="reason">
+            <strong>왜 이런 문제가 발생하나요?</strong><br>
+            사이트 업데이트 후 브라우저에 저장된 이전 데이터(캐시)가 충돌하여 페이지가 정상적으로 표시되지 않을 수 있습니다.
+        </div>
+
+        <div class="tabs">
+            <button class="tab active" onclick="showTab('pc-chrome')">PC (Chrome)</button>
+            <button class="tab" onclick="showTab('pc-edge')">PC (Edge)</button>
+            <button class="tab" onclick="showTab('mobile-android')">Android</button>
+            <button class="tab" onclick="showTab('mobile-ios')">iPhone</button>
+        </div>
+
+        <!-- PC Chrome -->
+        <div id="pc-chrome" class="tab-content active">
+            <h2>Chrome 캐시 삭제 <span class="badge">가장 간단</span></h2>
+            <div class="steps">
+                <div class="step">
+                    <div class="step-num">1</div>
+                    <div class="step-text">
+                        <strong>강력 새로고침</strong>을 먼저 시도해 보세요<br>
+                        <div class="shortcut"><kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>R</kbd></div>
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-num">2</div>
+                    <div class="step-text">
+                        그래도 안 되면 캐시를 삭제합니다<br>
+                        <div class="shortcut"><kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>Delete</kbd></div>
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-num">3</div>
+                    <div class="step-text">
+                        기간을 <strong>"전체"</strong>로 선택하고<br>
+                        <strong>"캐시된 이미지 및 파일"</strong>에 체크 후 <strong>"인터넷 사용 기록 삭제"</strong> 클릭
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- PC Edge -->
+        <div id="pc-edge" class="tab-content">
+            <h2>Edge 캐시 삭제</h2>
+            <div class="steps">
+                <div class="step">
+                    <div class="step-num">1</div>
+                    <div class="step-text">
+                        <strong>강력 새로고침</strong>을 먼저 시도해 보세요<br>
+                        <div class="shortcut"><kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>R</kbd></div>
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-num">2</div>
+                    <div class="step-text">
+                        그래도 안 되면 캐시를 삭제합니다<br>
+                        <div class="shortcut"><kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>Delete</kbd></div>
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-num">3</div>
+                    <div class="step-text">
+                        시간 범위를 <strong>"모든 시간"</strong>으로 선택하고<br>
+                        <strong>"캐시된 이미지 및 파일"</strong>에 체크 후 <strong>"지금 지우기"</strong> 클릭
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Android -->
+        <div id="mobile-android" class="tab-content">
+            <h2>Android (Chrome) 캐시 삭제</h2>
+            <div class="steps">
+                <div class="step">
+                    <div class="step-num">1</div>
+                    <div class="step-text">Chrome 앱에서 우측 상단 <strong>점 세 개(&#8942;)</strong> 터치</div>
+                </div>
+                <div class="step">
+                    <div class="step-num">2</div>
+                    <div class="step-text"><strong>인터넷 사용 기록 삭제</strong> 터치</div>
+                </div>
+                <div class="step">
+                    <div class="step-num">3</div>
+                    <div class="step-text">기간을 <strong>"전체"</strong>로 선택</div>
+                </div>
+                <div class="step">
+                    <div class="step-num">4</div>
+                    <div class="step-text"><strong>"캐시된 이미지 및 파일"</strong>에 체크 후 <strong>"인터넷 사용 기록 삭제"</strong> 터치</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- iOS -->
+        <div id="mobile-ios" class="tab-content">
+            <h2>iPhone (Safari) 캐시 삭제</h2>
+            <div class="steps">
+                <div class="step">
+                    <div class="step-num">1</div>
+                    <div class="step-text"><strong>설정</strong> 앱을 엽니다</div>
+                </div>
+                <div class="step">
+                    <div class="step-num">2</div>
+                    <div class="step-text">아래로 스크롤하여 <strong>"앱" > "Safari"</strong>를 터치</div>
+                </div>
+                <div class="step">
+                    <div class="step-num">3</div>
+                    <div class="step-text"><strong>"방문 기록 및 웹 사이트 데이터 지우기"</strong>를 터치</div>
+                </div>
+                <div class="step">
+                    <div class="step-num">4</div>
+                    <div class="step-text"><strong>"지우기"</strong>를 눌러 확인</div>
+                </div>
+            </div>
+            <h2>iPhone (Chrome) 캐시 삭제</h2>
+            <div class="steps">
+                <div class="step">
+                    <div class="step-num">1</div>
+                    <div class="step-text">Chrome 앱에서 하단 <strong>점 세 개(&#8943;)</strong> 터치</div>
+                </div>
+                <div class="step">
+                    <div class="step-num">2</div>
+                    <div class="step-text"><strong>인터넷 사용 기록 삭제</strong> 터치</div>
+                </div>
+                <div class="step">
+                    <div class="step-num">3</div>
+                    <div class="step-text"><strong>"캐시된 이미지 및 파일"</strong>에 체크 후 <strong>"인터넷 사용 기록 삭제"</strong> 터치</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="note">
+            <strong>캐시 삭제 후에도 안 되시면?</strong><br>
+            시크릿(프라이빗) 모드로 접속해 보세요. 정상 접속되면 캐시 문제가 맞습니다. 위 방법으로 해결이 안 되면 아래로 문의해 주세요.
+        </div>
+
+        <div class="footer">
+            <a href="https://damoang.net" class="btn">다모앙 접속하기</a>
+            <p class="contact">
+                문의: <a href="mailto:jebo@damoang.net">jebo@damoang.net</a>
+            </p>
+        </div>
+    </div>
+
+    <script>
+        function showTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            event.currentTarget.classList.add('active');
+        }
+    </script>
+</body>
+</html>

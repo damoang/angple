@@ -6,6 +6,7 @@
     import * as Tabs from '$lib/components/ui/tabs/index.js';
     import type { PageData } from './$types.js';
     import { authStore } from '$lib/stores/auth.svelte.js';
+    import { getAvatarUrl, getMemberIconUrl, handleIconError } from '$lib/utils/member-icon.js';
     import { apiClient } from '$lib/api/index.js';
     import { goto } from '$app/navigation';
     import { onMount } from 'svelte';
@@ -60,6 +61,12 @@
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let { data }: { data: PageData & { profile: any } } = $props();
     const p = $derived(data.profile);
+
+    const profileIconUrl = $derived(getAvatarUrl(p?.mb_image) || getMemberIconUrl(p?.mb_id));
+    let profileIconFailed = $state(false);
+    $effect(() => {
+        if (p) profileIconFailed = false;
+    });
 
     // 본인 프로필
     const isOwnProfile = $derived(authStore.user?.mb_id === p?.mb_id);
@@ -318,21 +325,23 @@
             <CardContent class="pt-6">
                 <div class="flex items-center gap-4">
                     <!-- 프로필 이미지 -->
-                    <div class="shrink-0">
-                        {#if p.mb_image}
-                            <img
-                                src={p.mb_image}
-                                alt={p.mb_name}
-                                class="h-16 w-16 rounded-full object-cover"
-                            />
-                        {:else}
-                            <div
-                                class="bg-primary text-primary-foreground flex h-16 w-16 items-center justify-center rounded-full"
-                            >
-                                <User class="h-8 w-8" />
-                            </div>
-                        {/if}
-                    </div>
+                    {#if profileIconUrl && !profileIconFailed}
+                        <img
+                            src={profileIconUrl}
+                            alt={p.mb_name}
+                            class="size-16 shrink-0 rounded-full object-cover"
+                            onerror={(e) => {
+                                handleIconError(e);
+                                profileIconFailed = true;
+                            }}
+                        />
+                    {:else}
+                        <div
+                            class="bg-muted text-muted-foreground flex size-16 shrink-0 items-center justify-center rounded-full text-xl font-bold"
+                        >
+                            {p.mb_name.charAt(0).toUpperCase()}
+                        </div>
+                    {/if}
 
                     <div class="min-w-0 flex-1">
                         <div class="flex items-center gap-2">

@@ -130,13 +130,8 @@ export const GET: RequestHandler = async ({ params }) => {
             [memberId]
         );
 
-        // 이미지 URL 처리
-        let imageUrl = '';
-        if (member.mb_image_url) {
-            imageUrl = member.mb_image_url.startsWith('http')
-                ? member.mb_image_url
-                : `/data/member/${memberId}.gif`;
-        }
+        // 이미지 URL: 원본 값 그대로 전달 (프론트에서 getAvatarUrl로 CDN URL 변환)
+        const imageUrl = member.mb_image_url || '';
 
         return json({
             success: true,
