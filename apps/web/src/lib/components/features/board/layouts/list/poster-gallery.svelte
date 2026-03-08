@@ -37,7 +37,6 @@
     <a
         {href}
         class="group block overflow-hidden rounded-lg no-underline transition-all hover:shadow-lg"
-        data-sveltekit-preload-data="hover"
     >
         <!-- 포스터 영역 (2:3 비율) -->
         <div class="bg-muted relative overflow-hidden" style="aspect-ratio: 2/3">

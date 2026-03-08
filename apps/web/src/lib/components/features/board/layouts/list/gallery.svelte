@@ -38,7 +38,6 @@
     <a
         {href}
         class="bg-background border-border hover:border-primary/30 group block overflow-hidden rounded-lg border no-underline transition-all hover:shadow-md"
-        data-sveltekit-preload-data="hover"
     >
         <!-- 썸네일 영역 -->
         <div class="bg-muted relative aspect-video overflow-hidden">

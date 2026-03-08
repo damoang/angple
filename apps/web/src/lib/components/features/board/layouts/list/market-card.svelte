@@ -76,7 +76,6 @@
         class="bg-background border-border hover:border-primary/30 group block overflow-hidden rounded-lg border no-underline transition-all hover:shadow-md {isSold
             ? 'opacity-60'
             : ''}"
-        data-sveltekit-preload-data="hover"
     >
         <!-- 상품 이미지 (1:1 비율) -->
         <div class="bg-muted relative aspect-square overflow-hidden">

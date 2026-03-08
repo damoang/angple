@@ -184,7 +184,6 @@
                                     <a
                                         href="/{scrap.bo_table}/{scrap.wr_id}"
                                         class="hover:bg-accent -mx-2 -my-1 block rounded-md px-2 py-1 no-underline transition-colors"
-                                        data-sveltekit-preload-data="hover"
                                     >
                                         <h3 class="text-foreground line-clamp-1 font-medium">
                                             {scrap.wr_subject ?? `게시물 #${scrap.wr_id}`}

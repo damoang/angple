@@ -105,7 +105,6 @@
         class="border-border bg-background group flex flex-col overflow-hidden rounded-xl border shadow-sm transition-all duration-200 ease-out hover:-translate-y-0.5 hover:shadow-md {isSold
             ? 'opacity-60'
             : ''}"
-        data-sveltekit-preload-data="hover"
     >
         <!-- 썸네일 -->
         <div class="bg-muted relative aspect-square overflow-hidden">

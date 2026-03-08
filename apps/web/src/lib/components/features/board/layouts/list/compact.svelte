@@ -40,7 +40,6 @@
     <a
         {href}
         class="bg-background border-border hover:bg-accent block rounded-lg border px-4 py-3 no-underline transition-all hover:shadow-sm"
-        data-sveltekit-preload-data="hover"
     >
         <div class="flex items-center justify-between gap-4">
             <!-- 썸네일 (있는 경우) -->

@@ -30,7 +30,7 @@
         <div class="flex gap-1">
             {#each navItems as item (item.href)}
                 {@const active = isActive(item.href, item.exact, $page.url.pathname)}
-                <a href={item.href} class="shrink-0" data-sveltekit-preload-data="hover">
+                <a href={item.href} class="shrink-0">
                     <Button variant={active ? 'default' : 'ghost'} size="sm">
                         <item.icon class="mr-1.5 h-4 w-4" />
                         {item.label}

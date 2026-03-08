@@ -167,7 +167,6 @@
                                     ? `/${item.bo_table}/${item.wr_parent}#c_${item.wr_id}`
                                     : `/${item.bo_table}/${item.wr_id}`}
                                 class="hover:bg-muted/50 block px-4 py-2.5 no-underline transition-all duration-200"
-                                data-sveltekit-preload-data="hover"
                             >
                                 <div class="flex items-center gap-2 md:gap-3">
                                     <div class="hidden shrink-0 md:block">

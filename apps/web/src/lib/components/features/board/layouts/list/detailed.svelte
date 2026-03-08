@@ -36,7 +36,7 @@
         </CardContent>
     </Card>
 {:else}
-    <a {href} class="block no-underline" data-sveltekit-preload-data="hover">
+    <a {href} class="block no-underline">
         <Card class="bg-background transition-shadow hover:shadow-md">
             <CardHeader>
                 <div class="flex items-start justify-between gap-4">

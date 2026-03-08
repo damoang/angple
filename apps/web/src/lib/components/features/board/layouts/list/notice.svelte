@@ -31,7 +31,6 @@
     <a
         {href}
         class="bg-background border-border hover:border-primary/30 hover:bg-muted/30 block rounded-lg border p-4 no-underline transition-all"
-        data-sveltekit-preload-data="hover"
     >
         <div class="flex items-start gap-3">
             <div class="min-w-0 flex-1">

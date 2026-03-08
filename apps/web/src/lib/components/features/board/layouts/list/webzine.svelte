@@ -48,7 +48,6 @@
     <a
         {href}
         class="bg-background border-border hover:border-primary/30 block overflow-hidden rounded-lg border no-underline transition-all hover:shadow-md"
-        data-sveltekit-preload-data="hover"
     >
         <div class="flex flex-col sm:flex-row">
             <!-- 썸네일 영역 -->

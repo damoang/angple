@@ -649,7 +649,6 @@
                                     href="/{boardId}/{notice.id}"
                                     class="hover:bg-destructive/10 block px-4 py-1.5 no-underline transition-colors"
                                     style="background: rgba(239, 68, 68, 0.04);"
-                                    data-sveltekit-preload-data="hover"
                                 >
                                     <div class="flex items-center gap-2 md:gap-3">
                                         <div class="hidden shrink-0 md:block" style="width: 60px;">
@@ -691,7 +690,6 @@
                                     href="/{boardId}/{notice.id}"
                                     class="hover:bg-accent block px-4 py-1.5 no-underline transition-colors"
                                     style="background: rgba(255, 255, 255, 0.03);"
-                                    data-sveltekit-preload-data="hover"
                                 >
                                     <div class="flex items-center gap-2 md:gap-3">
                                         <div class="hidden shrink-0 md:block" style="width: 60px;">
@@ -734,7 +732,6 @@
                                 <a
                                     href="/{boardId}/{notice.id}"
                                     class="bg-destructive/5 border-destructive/20 hover:bg-destructive/10 block rounded-lg border px-4 py-3 no-underline transition-colors"
-                                    data-sveltekit-preload-data="hover"
                                 >
                                     <div class="flex items-center gap-3">
                                         <div class="flex shrink-0 items-center gap-1.5">
@@ -756,7 +753,6 @@
                                 <a
                                     href="/{boardId}/{notice.id}"
                                     class="bg-muted/50 border-border hover:bg-muted block rounded-lg border px-4 py-3 no-underline transition-colors"
-                                    data-sveltekit-preload-data="hover"
                                 >
                                     <div class="flex items-center gap-3">
                                         <div class="flex shrink-0 items-center gap-1.5">

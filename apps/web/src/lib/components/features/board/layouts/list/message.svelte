@@ -77,7 +77,7 @@
         </a>
 
         <!-- 이미지 영역 -->
-        <a {href} class="block px-3 py-1" data-sveltekit-preload-data="hover">
+        <a {href} class="block px-3 py-1">
             {#if hasImage}
                 <div class="overflow-hidden rounded">
                     <img

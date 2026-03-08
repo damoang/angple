@@ -53,7 +53,7 @@
         </CardContent>
     </Card>
 {:else}
-    <a {href} class="block no-underline" data-sveltekit-preload-data="hover">
+    <a {href} class="block no-underline">
         <Card class="bg-background overflow-hidden transition-shadow hover:shadow-md">
             <div class="flex {showThumbnail ? 'flex-row' : 'flex-col'}">
                 <!-- 썸네일 (있는 경우) -->

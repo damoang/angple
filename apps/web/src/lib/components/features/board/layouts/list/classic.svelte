@@ -135,7 +135,6 @@
         class="post-row bg-background hover:bg-accent block px-4 no-underline transition-colors"
         class:post-promo={isPromo}
         class:post-notice={post.is_notice}
-        data-sveltekit-preload-data="hover"
     >
         <div
             class={isMobileView
@@ -143,7 +142,9 @@
                 : 'flex items-center gap-2 md:grid md:grid-cols-[60px_1fr_auto_auto_auto] md:items-center md:gap-0'}
         >
             <!-- 추천 박스 (col 1, 데스크톱만) — legacy: rcmd-box 40×20 rounded-lg -->
-            <div class={isMobileView ? 'hidden' : 'hidden md:flex md:items-center md:justify-center'}>
+            <div
+                class={isMobileView ? 'hidden' : 'hidden md:flex md:items-center md:justify-center'}
+            >
                 {#if post.is_notice}
                     <div
                         class="flex h-5 w-10 items-center justify-center rounded-lg"
@@ -162,7 +163,11 @@
             </div>
 
             <!-- 콘텐츠 (모바일: block, 데스크톱: contents → 그리드 col 2~5 참여) -->
-            <div class={isMobileView ? 'min-w-0 flex-1 space-y-1' : 'min-w-0 flex-1 space-y-1 md:contents md:space-y-0'}>
+            <div
+                class={isMobileView
+                    ? 'min-w-0 flex-1 space-y-1'
+                    : 'min-w-0 flex-1 space-y-1 md:contents md:space-y-0'}
+            >
                 <!-- 제목 줄 (col 2) -->
                 <div class="flex min-w-0 items-center gap-1">
                     {#if post.is_notice}
@@ -185,7 +190,10 @@
                             {post.category}
                         </span>
                     {/if}
-                    <span class="truncate {readClass}" class:font-semibold={uiSettingsStore.titleBold}>
+                    <span
+                        class="truncate {readClass}"
+                        class:font-semibold={uiSettingsStore.titleBold}
+                    >
                         {post.title}
                     </span>
                     <!-- 부가 아이콘: N, 이미지, 동영상, 댓글 -->
@@ -209,7 +217,9 @@
 
                 <!-- 이름 (col 3, 데스크톱만) — legacy: 13px, 100px wide -->
                 <span
-                    class={isMobileView ? 'hidden' : 'post-meta-text hidden items-center gap-1 truncate md:inline-flex md:w-[120px] md:pl-1'}
+                    class={isMobileView
+                        ? 'hidden'
+                        : 'post-meta-text hidden items-center gap-1 truncate md:inline-flex md:w-[120px] md:pl-1'}
                 >
                     {#if iconUrl}
                         <img
@@ -224,13 +234,19 @@
 
                 <!-- 날짜 (col 4, 데스크톱만) -->
                 <span
-                    class={isMobileView ? 'hidden' : `post-meta-text hidden md:inline md:w-[70px] md:pl-1 md:text-center ${isToday(post.created_at) ? 'date-today' : ''}`}
+                    class={isMobileView
+                        ? 'hidden'
+                        : `post-meta-text hidden md:inline md:w-[70px] md:pl-1 md:text-center ${isToday(post.created_at) ? 'date-today' : ''}`}
                 >
                     {formatDate(post.created_at)}
                 </span>
 
                 <!-- 조회수 (col 5, 데스크톱만) -->
-                <span class={isMobileView ? 'hidden' : 'post-meta-text hidden md:inline md:w-[50px] md:pl-1 md:text-center'}>
+                <span
+                    class={isMobileView
+                        ? 'hidden'
+                        : 'post-meta-text hidden md:inline md:w-[50px] md:pl-1 md:text-center'}
+                >
                     {formatCompactNumber(post.views)}
                 </span>
 

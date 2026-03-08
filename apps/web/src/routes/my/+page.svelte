@@ -168,7 +168,6 @@
                                         <a
                                             href="/{post.board_id || 'free'}/{post.id}"
                                             class="hover:bg-accent -m-2 block w-full rounded-md p-2 no-underline transition-colors"
-                                            data-sveltekit-preload-data="hover"
                                         >
                                             <h3
                                                 class="text-foreground mb-1 line-clamp-1 font-medium"
@@ -248,7 +247,6 @@
                                             href="/{comment.board_id || 'free'}/{comment.post_id ||
                                                 comment.parent_id}"
                                             class="hover:bg-accent -m-2 block rounded-md p-2 no-underline transition-colors"
-                                            data-sveltekit-preload-data="hover"
                                         >
                                             {#if comment.post_title}
                                                 <p
@@ -329,7 +327,6 @@
                                         <a
                                             href="/{post.board_id || 'free'}/{post.id}"
                                             class="hover:bg-accent -m-2 block w-full rounded-md p-2 no-underline transition-colors"
-                                            data-sveltekit-preload-data="hover"
                                         >
                                             <h3
                                                 class="text-foreground mb-1 line-clamp-1 font-medium"
