@@ -35,25 +35,18 @@ export const twitter: EmbedPlatform = {
     },
 
     render(info: EmbedInfo): string {
-        // Twitter는 oEmbed API를 통해 HTML을 가져오는 것이 이상적이지만
-        // 서버 측 API 호출이 필요하므로 iframe fallback 사용
-        // 또는 정적 blockquote + widgets.js 로드 방식
-        const twitterUrl = info.params?.username
-            ? `https://twitter.com/${info.params.username}/status/${info.id}`
-            : info.url;
-
-        // Twitter publish iframe 사용
         const embedUrl = `https://platform.twitter.com/embed/Tweet.html?id=${info.id}&theme=light`;
 
         return `<iframe
+			class="twitter-embed-iframe"
 			src="${embedUrl}"
 			title="Twitter post"
 			data-tweet-id="${info.id}"
 			frameborder="0"
-			scrolling="auto"
+			scrolling="no"
 			allowtransparency="true"
 			allowfullscreen
-			style="width: 100%; min-height: 500px; border: none;"
+			style="width: 100%; min-height: 250px; border: none;"
 		></iframe>`;
     }
 };
