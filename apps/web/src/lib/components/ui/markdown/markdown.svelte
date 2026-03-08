@@ -135,7 +135,9 @@
             'video',
             'audio',
             'source',
-            'span'
+            'span',
+            'details',
+            'summary'
         ],
         ALLOWED_ATTR: [
             'href',
@@ -166,7 +168,8 @@
             'muted',
             'loop',
             'playsinline',
-            'preload'
+            'preload',
+            'open'
         ]
     };
 
@@ -479,6 +482,50 @@
         position: relative;
         min-height: 250px;
         height: auto;
+    }
+
+    /* 스포일러 블록 [spoiler]...[/spoiler] */
+    .prose :global(.spoiler-block) {
+        border: 1px solid var(--border);
+        border-radius: 0.5rem;
+        margin: 0.75rem 0;
+        overflow: hidden;
+    }
+
+    .prose :global(.spoiler-block summary) {
+        cursor: pointer;
+        padding: 0.5rem 0.75rem;
+        background-color: var(--muted);
+        font-weight: 500;
+        font-size: 0.875rem;
+        color: var(--muted-foreground);
+        user-select: none;
+        list-style: none;
+        display: flex;
+        align-items: center;
+        gap: 0.375rem;
+    }
+
+    .prose :global(.spoiler-block summary::-webkit-details-marker) {
+        display: none;
+    }
+
+    .prose :global(.spoiler-block summary::before) {
+        content: '▶';
+        font-size: 0.625rem;
+        transition: transform 0.2s;
+    }
+
+    .prose :global(.spoiler-block[open] summary::before) {
+        transform: rotate(90deg);
+    }
+
+    .prose :global(.spoiler-block summary:hover) {
+        background-color: color-mix(in srgb, var(--muted) 80%, var(--foreground) 5%);
+    }
+
+    .prose :global(.spoiler-content) {
+        padding: 0.75rem;
     }
 
     /* 직접 비디오 파일 ({video:} 패턴) */

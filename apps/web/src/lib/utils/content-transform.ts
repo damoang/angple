@@ -12,6 +12,7 @@ const VIDEO_PATTERN = /\{(동영상|video)\s*:\s*([\s\S]*?)\}/gi;
 const CODE_BLOCK_PATTERN = /\[code(?:=([a-zA-Z0-9_+-]+))?\]([\s\S]*?)\[\/code\]/gi;
 const BACKTICK_CODE_BLOCK_PATTERN = /```([a-zA-Z0-9_+-]*)(?:\n|<br\s*\/?>)([\s\S]*?)```/gi;
 const INLINE_CODE_PATTERN = /`([^`\n]+)`/g;
+const SPOILER_PATTERN = /\[spoiler(?:=([^\]]*))?\]([\s\S]*?)\[\/spoiler\]/gi;
 const MAX_WIDTH = 200;
 const DEFAULT_WIDTH = 50;
 const ALLOWED_EXTENSIONS = ['.gif', '.png', '.jpg', '.jpeg', '.webp'];
@@ -251,4 +252,17 @@ export function transformEscapedMedia(html: string): string {
     );
 
     return result;
+}
+
+/**
+ * [spoiler]...[/spoiler] 또는 [spoiler=제목]...[/spoiler] BBCode를 <details> 태그로 변환
+ * 클릭하면 내용이 펼쳐지는 스포일러 블록
+ */
+export function transformSpoilers(html: string): string {
+    if (!html || !html.toLowerCase().includes('[spoiler')) return html;
+
+    return html.replace(SPOILER_PATTERN, (_match, title: string | undefined, content: string) => {
+        const label = title?.trim() || '스포일러';
+        return `<details class="spoiler-block"><summary>${label}</summary><div class="spoiler-content">${content}</div></details>`;
+    });
 }

@@ -529,7 +529,9 @@
                             'code',
                             'strong',
                             'em',
-                            'del'
+                            'del',
+                            'details',
+                            'summary'
                         ],
                         ALLOWED_ATTR: [
                             'src',
@@ -1383,5 +1385,40 @@
     /* 이미지 로딩 실패 시 숨김 처리 */
     :global(.bracket-image[src='']) {
         display: none;
+    }
+
+    /* 댓글 스포일러 블록 */
+    :global(.comment-body .spoiler-block) {
+        border: 1px solid var(--border);
+        border-radius: 0.375rem;
+        margin: 0.5em 0;
+        overflow: hidden;
+    }
+    :global(.comment-body .spoiler-block summary) {
+        cursor: pointer;
+        padding: 0.375rem 0.625rem;
+        background-color: var(--muted);
+        font-weight: 500;
+        font-size: 0.8125rem;
+        color: var(--muted-foreground);
+        user-select: none;
+        list-style: none;
+        display: flex;
+        align-items: center;
+        gap: 0.375rem;
+    }
+    :global(.comment-body .spoiler-block summary::-webkit-details-marker) {
+        display: none;
+    }
+    :global(.comment-body .spoiler-block summary::before) {
+        content: '▶';
+        font-size: 0.5625rem;
+        transition: transform 0.2s;
+    }
+    :global(.comment-body .spoiler-block[open] summary::before) {
+        transform: rotate(90deg);
+    }
+    :global(.comment-body .spoiler-content) {
+        padding: 0.5rem 0.625rem;
     }
 </style>

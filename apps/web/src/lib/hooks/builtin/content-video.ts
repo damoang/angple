@@ -7,7 +7,8 @@ import {
     transformVideos,
     transformCodeBlocks,
     transformOembed,
-    transformEscapedMedia
+    transformEscapedMedia,
+    transformSpoilers
 } from '$lib/utils/content-transform';
 
 /**
@@ -46,6 +47,15 @@ export function initContentVideo(): void {
         'post_content',
         (html: unknown) => transformCodeBlocks(html as string),
         3, // 동영상(5), auto-embed(10)보다 먼저 실행
+        'core',
+        'filter'
+    );
+
+    // [spoiler]...[/spoiler] BBCode → <details>
+    registerHook(
+        'post_content',
+        (html: unknown) => transformSpoilers(html as string),
+        3.5,
         'core',
         'filter'
     );

@@ -12,7 +12,8 @@ import {
     transformInlineCode,
     transformInlineMarkdown,
     transformOembed,
-    transformEscapedMedia
+    transformEscapedMedia,
+    transformSpoilers
 } from '$lib/utils/content-transform';
 import { processContent } from '$lib/plugins/auto-embed';
 
@@ -53,6 +54,15 @@ export function initCommentContent(): void {
         'comment_content',
         (html: unknown) => transformCodeBlocks(html as string),
         3,
+        'core',
+        'filter'
+    );
+
+    // [spoiler]...[/spoiler] BBCode → <details>
+    registerHook(
+        'comment_content',
+        (html: unknown) => transformSpoilers(html as string),
+        3.5,
         'core',
         'filter'
     );
