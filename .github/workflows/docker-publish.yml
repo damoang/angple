@@ -55,6 +55,39 @@ jobs:
         run: |
           mkdir -p custom-themes custom-widgets extensions plugins widgets
 
+      # --- 네이티브 빌드 (Docker 밖에서 빌드 → 최소 이미지만 생성) ---
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build packages & web
+        env:
+          VITE_USE_MOCK: 'false'
+          VITE_GAM_NETWORK_CODE: '23338387889'
+          VITE_GAM_SITE_NAME: 'damoang'
+        run: |
+          pnpm --filter "./packages/*" build
+          echo "VITE_GAM_NETWORK_CODE=23338387889" > apps/web/.env
+          echo "VITE_GAM_SITE_NAME=damoang" >> apps/web/.env
+          pnpm --filter web build
+
+      - name: Prepare deploy package
+        run: |
+          pnpm --filter web deploy --prod --legacy apps/web/deploy
+          cp -r apps/web/build apps/web/deploy/
+          for dir in plugins widgets themes custom-themes custom-widgets extensions; do
+            cp -r "$dir" "apps/web/deploy/" 2>/dev/null || mkdir -p "apps/web/deploy/$dir"
+          done
+
+      # --- 최소 Docker 이미지 생성 (COPY만) ---
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -77,19 +110,12 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
-          context: .
-          file: apps/web/Dockerfile
-          target: production
+          context: apps/web/deploy
+          file: apps/web/Dockerfile.prod
           push: true
           platforms: linux/arm64
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha,scope=production-arm64
-          cache-to: type=gha,mode=max,scope=production-arm64
-          build-args: |
-            VITE_USE_MOCK=false
-            VITE_GAM_NETWORK_CODE=23338387889
-            VITE_GAM_SITE_NAME=damoang
 
       - name: Image digest
         run: echo "Image pushed with tags ${{ steps.meta.outputs.tags }}"
