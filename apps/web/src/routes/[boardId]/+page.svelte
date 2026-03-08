@@ -407,13 +407,6 @@
                 </div>
             {/if}
 
-            <!-- 상단 GAM 광고 -->
-            {#if widgetLayoutStore.hasEnabledAds}
-                <div class="mb-4">
-                    <AdSlot position="board-head" height="22px" />
-                </div>
-            {/if}
-
             <!-- 알뜰구매 쇼핑 바로가기 (검색 → GAM → 여기) -->
             {#if boardId === 'economy'}
                 <EconomyShoppingBanner />
@@ -766,18 +759,18 @@
                                         readPostsStore.isRead(boardId, post.id)}
                                 />
                             {/if}
-                            {#if shuffledPromos.length > 0 && i + 1 === 10}
+                            {#if widgetLayoutStore.hasEnabledAds && i + 1 === 5}
+                                <div class="py-2">
+                                    <AdSlot position="board-list-infeed" height="90px" />
+                                </div>
+                            {/if}
+                            {#if shuffledPromos.length > 0 && i + 1 === 12}
                                 {#each shuffledPromos.slice(0, 2) as promo ((promo as any).wrId)}
                                     <PromotionInlinePost
                                         post={promo as any}
                                         variant={listLayoutId === 'classic' ? 'classic' : 'default'}
                                     />
                                 {/each}
-                            {/if}
-                            {#if widgetLayoutStore.hasEnabledAds && i + 1 === 15}
-                                <div class="py-2">
-                                    <AdSlot position="board-list-infeed" height="90px" />
-                                </div>
                             {/if}
                         {/each}
                     {/if}
