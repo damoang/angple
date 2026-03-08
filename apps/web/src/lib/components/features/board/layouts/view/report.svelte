@@ -39,7 +39,7 @@
     import CalendarDays from '@lucide/svelte/icons/calendar-days';
     import { authStore } from '$lib/stores/auth.svelte.js';
     import { AdultBlur } from '$lib/components/features/adult/index.js';
-    import { uiSettingsStore } from '$lib/stores/ui-settings.svelte.js';
+    import { uiSettingsStore, type ContentFontSize } from '$lib/stores/ui-settings.svelte.js';
     import { getMemberIconUrl } from '$lib/utils/member-icon.js';
     import AuthorLink from '$lib/components/ui/author-link/author-link.svelte';
     import { LevelBadge } from '$lib/components/ui/level-badge/index.js';
@@ -53,13 +53,14 @@
     import Info from '@lucide/svelte/icons/info';
     import type { ViewLayoutProps } from '../types.js';
 
-    type FontSizeKey = 'small' | 'base' | 'large' | 'xlarge';
-    const FONT_SIZES: Record<FontSizeKey, string> = {
+    const FONT_SIZES: Record<ContentFontSize, string> = {
         small: '14px',
         base: '16px',
         large: '18px',
         xlarge: '20px'
     };
+
+    const currentFontSize = $derived(uiSettingsStore.contentFontSize);
 
     let {
         post,
@@ -381,21 +382,21 @@
             <button
                 type="button"
                 class="text-muted-foreground hover:text-foreground active:bg-muted border-border hover:bg-muted rounded border px-3 py-1.5 text-sm transition-colors disabled:opacity-30"
-                disabled={fontSize === 'small'}
-                onclick={() => onChangeFontSize(-1)}
+                disabled={currentFontSize === 'small'}
+                onclick={() => uiSettingsStore.changeContentFontSize(-1)}
                 aria-label="글자 작게">A-</button
             >
             <button
                 type="button"
                 class="text-muted-foreground hover:text-foreground active:bg-muted border-border hover:bg-muted rounded border px-3 py-1.5 text-sm transition-colors"
-                onclick={() => onChangeFontSize(0)}
+                onclick={() => uiSettingsStore.changeContentFontSize(0)}
                 aria-label="글자 기본">A</button
             >
             <button
                 type="button"
                 class="text-muted-foreground hover:text-foreground active:bg-muted border-border hover:bg-muted rounded border px-3 py-1.5 text-sm transition-colors disabled:opacity-30"
-                disabled={fontSize === 'xlarge'}
-                onclick={() => onChangeFontSize(1)}
+                disabled={currentFontSize === 'xlarge'}
+                onclick={() => uiSettingsStore.changeContentFontSize(1)}
                 aria-label="글자 크게">A+</button
             >
         </div>
@@ -405,10 +406,7 @@
             <AdultBlur
                 isAdult={(post.is_adult ?? false) || uiSettingsStore.shouldBlurContent(post.title)}
             >
-                <div
-                    id="economy-post-content"
-                    style="font-size: {FONT_SIZES[fontSize as FontSizeKey]}"
-                >
+                <div id="economy-post-content" style="font-size: {FONT_SIZES[currentFontSize]}">
                     <Markdown content={postContent} />
                 </div>
 
