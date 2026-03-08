@@ -127,6 +127,11 @@
             return;
         }
 
+        if (sendTo.trim().toLowerCase() === 'admin') {
+            sendError = '관리자에게는 쪽지를 보낼 수 없습니다.';
+            return;
+        }
+
         isSending = true;
         sendError = null;
 

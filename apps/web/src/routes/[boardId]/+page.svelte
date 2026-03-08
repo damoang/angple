@@ -625,7 +625,9 @@
                 {/if}
 
                 <!-- 게시글 목록 -->
-                <div class={wrapperClass}>
+                <div
+                    class="{wrapperClass} bg-card rounded-xl px-1 py-2 md:rounded-none md:bg-transparent md:px-0 md:py-0"
+                >
                     {#if listLayoutId === 'classic' && uiSettingsStore.listView !== 'modern'}
                         <div
                             class="border-border bg-muted/30 text-muted-foreground hidden border-b px-4 py-1.5 text-sm font-medium md:block"

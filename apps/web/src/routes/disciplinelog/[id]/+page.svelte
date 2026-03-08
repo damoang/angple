@@ -58,8 +58,10 @@
     }
 
     function getPenaltyBadgeVariant(
-        period: number
+        period: number,
+        released: boolean = false
     ): 'default' | 'secondary' | 'destructive' | 'outline' {
+        if (released) return 'secondary';
         if (period === 0) return 'secondary';
         return 'destructive';
     }
@@ -143,7 +145,7 @@
             </Card.Content>
         </Card.Root>
     {:else}
-        {@const penalty = getPenaltyDisplay(log.penalty_period)}
+        {@const penalty = getPenaltyDisplay(log.penalty_period, log.penalty_date_to)}
 
         <!-- Basic Info -->
         <Card.Root class="mb-4">
@@ -167,7 +169,9 @@
                 <div>
                     <div class="text-muted-foreground mb-1 text-sm">제재 기간</div>
                     <div class="flex items-center gap-2">
-                        <Badge variant={getPenaltyBadgeVariant(log.penalty_period)}>
+                        <Badge
+                            variant={getPenaltyBadgeVariant(log.penalty_period, penalty.released)}
+                        >
                             {penalty.text}
                         </Badge>
                         <span class="text-muted-foreground text-sm">
@@ -281,7 +285,10 @@
                 <Card.Content>
                     <div class="space-y-2">
                         {#each memberHistory as item}
-                            {@const itemPenalty = getPenaltyDisplay(item.penalty_period)}
+                            {@const itemPenalty = getPenaltyDisplay(
+                                item.penalty_period,
+                                item.penalty_date_to
+                            )}
                             <a
                                 href="/disciplinelog/{item.id}"
                                 class="hover:bg-muted/50 flex items-center justify-between rounded p-2 text-sm transition-all duration-200 ease-out"
@@ -290,7 +297,12 @@
                                     <span class="text-muted-foreground"
                                         >{item.penalty_date_from}</span
                                     >
-                                    <Badge variant={getPenaltyBadgeVariant(item.penalty_period)}>
+                                    <Badge
+                                        variant={getPenaltyBadgeVariant(
+                                            item.penalty_period,
+                                            itemPenalty.released
+                                        )}
+                                    >
                                         {itemPenalty.text}
                                     </Badge>
                                 </div>
