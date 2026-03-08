@@ -378,7 +378,7 @@
             }
             commentLikes.set(commentId, response.likes);
             // 아바타 스택 갱신
-            loadCommentLikerAvatars(commentId);
+            loadCommentLikerAvatarsBatch([commentId]);
         } catch (err) {
             const msg = err instanceof Error ? err.message : '댓글 추천에 실패했습니다.';
             toast.error(msg);

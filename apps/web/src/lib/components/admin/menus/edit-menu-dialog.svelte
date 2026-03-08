@@ -10,8 +10,6 @@
     import { Loader2, Trash2 } from '@lucide/svelte/icons';
     import { getIcon } from '$lib/utils/icon-map';
 
-    const SelectedIcon = $derived(icon ? getIcon(icon) : null);
-
     interface Props {
         open: boolean;
         menu: Menu | null;
@@ -23,6 +21,8 @@
     let title = $state('');
     let url = $state('');
     let icon = $state('');
+
+    const SelectedIcon = $derived(icon ? getIcon(icon) : null);
     let shortcut = $state('');
     let description = $state('');
     let target = $state('_self');
