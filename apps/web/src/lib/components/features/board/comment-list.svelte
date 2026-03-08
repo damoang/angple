@@ -1056,6 +1056,14 @@
                                 </span>
                             {/if}
                         </div>
+                        {#if isSuperAdmin() && comment.content}
+                            <!-- 관리자: 삭제된 댓글 원문 표시 -->
+                            <div
+                                class="mt-1 rounded border border-red-200 bg-red-50/50 p-2 text-sm opacity-70 dark:border-red-800 dark:bg-red-950/20"
+                            >
+                                {@html comment.content}
+                            </div>
+                        {/if}
                     {:else if isEditing}
                         <!-- 댓글 수정 폼 -->
                         <div class="mt-2 space-y-3">
