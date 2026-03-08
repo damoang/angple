@@ -14,12 +14,14 @@ const JWT_CACHE_TTL = 5 * 60 * 1000; // 5분
 const MAX_JWT_CACHE_SIZE = 50000;
 
 // --- SSR 응답 캐시 (비로그인: 홈 + 게시판 목록 + 글 상세) ---
-const ssrCache = new Map<string, { body: string; timestamp: number }>();
-const SSR_CACHE_TTL_HOME = 60_000; // 홈 60초
-const SSR_CACHE_TTL_BOARD = 120_000; // 게시판 목록 120초
-const SSR_CACHE_TTL_POST = 60_000; // 글 상세 60초
-const MAX_SSR_CACHE_SIZE = 500; // 캐시할 최대 페이지 수
-const ssrCachePending = new Map<string, Promise<Response>>();
+import {
+    ssrCache,
+    ssrCachePending,
+    SSR_CACHE_TTL_HOME,
+    SSR_CACHE_TTL_BOARD,
+    SSR_CACHE_TTL_POST,
+    MAX_SSR_CACHE_SIZE
+} from '$lib/server/ssr-cache.js';
 
 /**
  * SvelteKit Server Hooks

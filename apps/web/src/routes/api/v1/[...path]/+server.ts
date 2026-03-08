@@ -3,6 +3,7 @@ import { dev } from '$app/environment';
 import { env } from '$env/dynamic/private';
 import pool from '$lib/server/db';
 import type { RowDataPacket } from 'mysql2';
+import { invalidateBoardCache } from '$lib/server/ssr-cache.js';
 
 /**
  * API v1 프록시 핸들러
@@ -337,6 +338,22 @@ async function proxyRequest(
             syncCelebrationBanner(path).catch((err) => {
                 console.error('[API Proxy] celebration sync error:', err);
             });
+        }
+
+        // 글/댓글 작성·수정·삭제 성공 시 SSR 캐시 무효화 (비로그인 사용자도 즉시 반영)
+        if (
+            (method === 'POST' || method === 'PUT' || method === 'DELETE') &&
+            response.status >= 200 &&
+            response.status < 300
+        ) {
+            const boardMatch = path.match(/^boards\/([a-zA-Z0-9_-]+)\/posts/);
+            if (boardMatch) {
+                const postIdMatch = path.match(/^boards\/[a-zA-Z0-9_-]+\/posts\/(\d+)/);
+                invalidateBoardCache(
+                    boardMatch[1],
+                    postIdMatch ? parseInt(postIdMatch[1], 10) : undefined
+                );
+            }
         }
 
         return new Response(response.body, {
