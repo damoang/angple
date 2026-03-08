@@ -195,6 +195,11 @@
                     {#if post.comments_count > 0}
                         <span class="comment-count shrink-0">+{post.comments_count}</span>
                     {/if}
+                    {#if memoPluginActive && MemoBadge}
+                        <span class="ml-auto shrink-0">
+                            <MemoBadge memberId={post.author_id} />
+                        </span>
+                    {/if}
                 </div>
 
                 <!-- 이름 (col 3, 데스크톱만) — legacy: 13px, 100px wide -->
@@ -208,9 +213,6 @@
                             class="h-5 w-5 shrink-0 rounded-full object-cover"
                             onerror={handleIconError}
                         />
-                    {/if}
-                    {#if memoPluginActive && MemoBadge}
-                        <MemoBadge memberId={post.author_id} />
                     {/if}
                     <AuthorLink authorId={post.author_id} authorName={post.author} />
                 </span>
@@ -246,9 +248,6 @@
                                 class="h-5 w-5 shrink-0 rounded-full object-cover"
                                 onerror={handleIconError}
                             />
-                        {/if}
-                        {#if memoPluginActive && MemoBadge}
-                            <MemoBadge memberId={post.author_id} />
                         {/if}
                         <AuthorLink authorId={post.author_id} authorName={post.author} />
                     </span>
