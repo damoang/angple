@@ -373,14 +373,14 @@
         </a>
         <a
             href="/bug"
-            class="flex h-12 w-12 items-center justify-center rounded-full bg-red-600 text-white shadow-lg transition-all hover:scale-105 hover:bg-red-700"
+            class="flex h-10 w-10 items-center justify-center rounded-full bg-red-600 text-white shadow-lg transition-all hover:scale-105 hover:bg-red-700"
             title="버그 제보"
         >
             <!-- Bug icon (inline SVG — lucide 의존성 제거) -->
             <svg
                 xmlns="http://www.w3.org/2000/svg"
-                width="24"
-                height="24"
+                width="20"
+                height="20"
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
