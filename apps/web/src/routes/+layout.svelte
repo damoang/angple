@@ -4,6 +4,7 @@
     import { onMount, untrack } from 'svelte';
     import type { Component } from 'svelte';
     import { afterNavigate, onNavigate } from '$app/navigation';
+    import { navigating } from '$app/state';
     import { page, updated } from '$app/stores';
     import { configureSeo } from '$lib/seo';
     import { authActions, authStore } from '$lib/stores/auth.svelte';
@@ -94,9 +95,25 @@
         });
     });
 
-    // View Transitions API — 부드러운 페이지 전환 (지원 브라우저에서만)
+    // 네비게이션 프로그레스바 (300ms 딜레이 — 빠른 전환에서는 숨김)
+    let showNavProgress = $state(false);
+    let navProgressTimeout: ReturnType<typeof setTimeout> | undefined;
+
+    $effect(() => {
+        clearTimeout(navProgressTimeout);
+        if (navigating.to) {
+            navProgressTimeout = setTimeout(() => {
+                showNavProgress = true;
+            }, 300);
+        } else {
+            showNavProgress = false;
+        }
+    });
+
+    // View Transitions API — 부드러운 페이지 전환 (지원 브라우저에서만, 모션 감소 설정 존중)
     onNavigate((navigation) => {
-        if (!document.startViewTransition) return;
+        if (!document.startViewTransition || matchMedia('(prefers-reduced-motion: reduce)').matches)
+            return;
         return new Promise((resolve) => {
             document.startViewTransition(async () => {
                 resolve();
@@ -279,6 +296,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="icon" href={favicon} />
 </svelte:head>
+
+<!-- 네비게이션 프로그레스바 (300ms 이상 걸리는 전환에서만 표시) -->
+{#if showNavProgress}
+    <div class="nav-progress" aria-hidden="true"></div>
+{/if}
 
 <!-- /admin, /install 경로는 테마 레이아웃 없이 렌더링 -->
 {#if isAdminRoute || isInstallRoute}

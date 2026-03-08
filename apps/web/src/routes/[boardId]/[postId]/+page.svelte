@@ -1243,13 +1243,21 @@
         <!-- 댓글 섹션 (비밀글 열람 가능 + 스트리밍 완료 시 표시) -->
         {#if canViewSecret && !secondaryLoaded}
             <Card class="bg-background">
-                <CardContent class="py-8">
-                    <div class="flex items-center justify-center gap-2">
-                        <div
-                            class="border-primary h-4 w-4 animate-spin rounded-full border-2 border-t-transparent"
-                        ></div>
-                        <span class="text-muted-foreground text-sm">댓글을 불러오는 중...</span>
-                    </div>
+                <CardContent class="space-y-4 py-6">
+                    <!-- 댓글 스켈레톤 -->
+                    {#each { length: 3 } as _}
+                        <div class="flex gap-3">
+                            <div class="bg-muted h-8 w-8 animate-pulse rounded-full"></div>
+                            <div class="flex-1 space-y-2">
+                                <div class="flex items-center gap-2">
+                                    <div class="bg-muted h-3.5 w-20 animate-pulse rounded"></div>
+                                    <div class="bg-muted h-3 w-16 animate-pulse rounded"></div>
+                                </div>
+                                <div class="bg-muted h-4 w-full animate-pulse rounded"></div>
+                                <div class="bg-muted h-4 w-3/4 animate-pulse rounded"></div>
+                            </div>
+                        </div>
+                    {/each}
                 </CardContent>
             </Card>
         {:else if canViewSecret && secondaryError}
