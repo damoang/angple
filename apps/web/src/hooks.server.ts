@@ -444,7 +444,10 @@ export const handle: Handle = async ({ event, resolve }) => {
                 }
             });
 
-            if (response.status === 200) {
+            const contentType = response.headers.get('Content-Type') || '';
+            const isHtml = contentType.includes('text/html');
+
+            if (response.status === 200 && isHtml) {
                 const body = await response.text();
 
                 // 캐시 크기 제한: 오래된 항목 정리
