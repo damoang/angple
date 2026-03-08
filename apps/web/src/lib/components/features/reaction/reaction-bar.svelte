@@ -130,7 +130,9 @@
     function handleClickOutside(event: MouseEvent): void {
         const el = event.target as HTMLElement;
         if (!el.closest('.reaction-bar-root') && !el.closest('.reaction-picker-fixed')) {
-            showPicker = false;
+            queueMicrotask(() => {
+                showPicker = false;
+            });
         }
     }
 
