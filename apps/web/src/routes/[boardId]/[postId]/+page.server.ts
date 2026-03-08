@@ -6,7 +6,11 @@ import { transformAffiliateContent } from '$lib/hooks/builtin/affiliate.js';
 import { isScraped } from '$lib/server/scrap.js';
 import { backendFetch as bFetch, createAuthHeaders } from '$lib/server/backend-fetch.js';
 import { getCachedBoard } from '$lib/server/board-cache.js';
-import { increment as incrementViewcount } from '$lib/server/viewcount.js';
+import {
+    increment as incrementViewcount,
+    hasRecentlyViewed,
+    markViewed
+} from '$lib/server/viewcount.js';
 import { fetchReactionsByParentId } from '$lib/server/reactions.js';
 import { fetchMemberLevels } from '$lib/server/member-levels.js';
 
@@ -75,14 +79,31 @@ export const load: PageServerLoad = async ({
             post.content = '';
         }
 
-        const board = boardResult.status === 'fulfilled' ? boardResult.value : null;
+        let board = null;
+        if (boardResult.status === 'fulfilled') {
+            const br = boardResult.value;
+            board = br.board;
+            if (!board && (br.status === 401 || br.status === 403)) {
+                throw error(
+                    403,
+                    locals.user
+                        ? '이 게시판에 접근할 권한이 없습니다.'
+                        : '로그인이 필요한 게시판입니다.'
+                );
+            }
+        }
 
         // 게시판 접근 권한 체크 (list_level, read_level 중 높은 값)
         if (board) {
             const userLevel = locals.user?.level ?? 1;
             const requiredLevel = Math.max(board.list_level ?? 1, board.read_level ?? 1);
             if (userLevel < requiredLevel) {
-                throw error(403, '이 게시판에 접근할 권한이 없습니다.');
+                throw error(
+                    403,
+                    locals.user
+                        ? '이 게시판에 접근할 권한이 없습니다.'
+                        : '로그인이 필요한 게시판입니다.'
+                );
             }
         }
 
@@ -120,13 +141,27 @@ export const load: PageServerLoad = async ({
         }
 
         // --- 조회수 증가 (SSR에서 직접 처리, CDN 요청 제거) ---
-        // 쿠키 기반 중복 방지: viewed_posts 쿠키에 최근 100개 글 ID 저장
+        // 이중 방어: 1) 쿠키 기반 + 2) 서버 인메모리 IP 기반
         if (!post.deleted_at) {
             const vcKey = `${boardId}:${postId}`;
             const viewedRaw = cookies.get('viewed_posts') || '';
             const viewed = viewedRaw ? viewedRaw.split(',').filter(Boolean) : [];
-            if (!viewed.includes(vcKey)) {
+            const alreadyViewedByCookie = viewed.includes(vcKey);
+
+            // 서버 사이드 IP 기반 중복 방지 (2차 방어선)
+            let clientIp = '';
+            try {
+                clientIp = getClientAddress();
+            } catch {
+                clientIp = '';
+            }
+            const alreadyViewedByIp = clientIp
+                ? hasRecentlyViewed(clientIp, boardId, Number(postId))
+                : false;
+
+            if (!alreadyViewedByCookie && !alreadyViewedByIp) {
                 incrementViewcount(boardId, Number(postId));
+                if (clientIp) markViewed(clientIp, boardId, Number(postId));
                 viewed.push(vcKey);
                 if (viewed.length > 100) viewed.splice(0, viewed.length - 100);
                 cookies.set('viewed_posts', viewed.join(','), {

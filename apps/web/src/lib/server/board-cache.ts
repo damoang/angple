@@ -10,6 +10,12 @@ import { createCache } from '$lib/server/cache.js';
 
 const boardInfoCache = createCache<Board>({ ttl: 300_000, maxSize: 200 });
 
+export interface BoardResult {
+    board: Board | null;
+    /** 백엔드 응답 상태 코드 (캐시 히트 시 200) */
+    status: number;
+}
+
 /**
  * 게시판 정보 조회 (캐시 우선)
  * board + display_settings 를 병합하여 반환
@@ -17,16 +23,20 @@ const boardInfoCache = createCache<Board>({ ttl: 300_000, maxSize: 200 });
 export async function getCachedBoard(
     boardId: string,
     headers: Record<string, string>
-): Promise<Board | null> {
+): Promise<BoardResult> {
     const cached = boardInfoCache.get(boardId);
-    if (cached) return cached;
+    if (cached) return { board: cached, status: 200 };
 
     const [boardRes, displaySettingsRes] = await Promise.all([
         bFetch(`/api/v1/boards/${boardId}`, { headers, timeout: 3_000 }),
         bFetch(`/api/v1/boards/${boardId}/display-settings`, { headers, timeout: 3_000 })
     ]);
 
-    let board: Board | null = boardRes.ok ? ((await boardRes.json()).data as Board) : null;
+    if (!boardRes.ok) {
+        return { board: null, status: boardRes.status };
+    }
+
+    let board: Board | null = (await boardRes.json()).data as Board;
 
     if (board && displaySettingsRes.ok) {
         const displaySettings = (await displaySettingsRes.json()).data;
@@ -37,5 +47,5 @@ export async function getCachedBoard(
         boardInfoCache.set(boardId, board);
     }
 
-    return board;
+    return { board, status: boardRes.status };
 }

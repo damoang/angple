@@ -43,10 +43,18 @@ export const load: PageServerLoad = async ({ url, params, locals }) => {
     // board 메타데이터는 관리자 변경 시만 바뀌므로 300초 인메모리 캐시 (board-cache.ts 공유)
     let board: Board | null = null;
     try {
-        board = await getCachedBoard(boardId, headers);
+        const boardResult = await getCachedBoard(boardId, headers);
+        board = boardResult.board;
 
-        // 게시판이 존재하지 않으면 404
         if (!board) {
+            if (boardResult.status === 401 || boardResult.status === 403) {
+                svelteError(
+                    403,
+                    locals.user
+                        ? '이 게시판에 접근할 권한이 없습니다.'
+                        : '로그인이 필요한 게시판입니다.'
+                );
+            }
             svelteError(404, `'${boardId}' 게시판을 찾을 수 없습니다.`);
         }
 
@@ -55,7 +63,12 @@ export const load: PageServerLoad = async ({ url, params, locals }) => {
             const userLevel = locals.user?.level ?? 1;
             const requiredLevel = board.list_level ?? 1;
             if (userLevel < requiredLevel) {
-                svelteError(403, '이 게시판에 접근할 권한이 없습니다.');
+                svelteError(
+                    403,
+                    locals.user
+                        ? '이 게시판에 접근할 권한이 없습니다.'
+                        : '로그인이 필요한 게시판입니다.'
+                );
             }
         }
     } catch (error) {

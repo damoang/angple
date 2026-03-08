@@ -11,6 +11,33 @@
 /** 키: `{boardId}:{postId}` → 누적 조회수 */
 const viewCounts = new Map<string, number>();
 
+/** IP 기반 중복 조회 방지 (10분 TTL) */
+const recentlyViewed = new Map<string, number>();
+const VIEWED_TTL_MS = 10 * 60 * 1000;
+const VIEWED_CLEANUP_INTERVAL = 5 * 60 * 1000;
+
+// 5분마다 만료 항목 정리
+setInterval(() => {
+    const now = Date.now();
+    for (const [key, ts] of recentlyViewed) {
+        if (now - ts > VIEWED_TTL_MS) recentlyViewed.delete(key);
+    }
+}, VIEWED_CLEANUP_INTERVAL);
+
+/** IP 기반으로 최근 10분 이내 조회했는지 확인 */
+export function hasRecentlyViewed(ip: string, boardId: string, postId: number): boolean {
+    const key = `${ip}:${boardId}:${postId}`;
+    const ts = recentlyViewed.get(key);
+    if (ts && Date.now() - ts < VIEWED_TTL_MS) return true;
+    return false;
+}
+
+/** IP 기반 조회 기록 저장 */
+export function markViewed(ip: string, boardId: string, postId: number): void {
+    const key = `${ip}:${boardId}:${postId}`;
+    recentlyViewed.set(key, Date.now());
+}
+
 /** 조회수 1 증가 */
 export function increment(boardId: string, postId: number): void {
     const key = `${boardId}:${postId}`;
