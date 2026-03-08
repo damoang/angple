@@ -603,6 +603,30 @@
         });
     }
 
+    // 시간만 표시 (같은 날이면 HH:MM, 다른 날이면 MM.DD HH:MM)
+    function formatTimeShort(dateString: string, refDateString?: string): string {
+        const date = new Date(dateString);
+        const ref = refDateString ? new Date(refDateString) : new Date();
+        const opts: Intl.DateTimeFormatOptions = {
+            timeZone: 'Asia/Seoul',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
+        };
+        const sameDay =
+            date.toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul' }) ===
+            ref.toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul' });
+        if (sameDay) {
+            return date.toLocaleTimeString('ko-KR', opts);
+        }
+        return date.toLocaleDateString('ko-KR', {
+            timeZone: 'Asia/Seoul',
+            month: '2-digit',
+            day: '2-digit',
+            ...opts
+        });
+    }
+
     // 파일 크기 포맷
     function formatFileSize(bytes: number): string {
         if (!bytes) return '';
@@ -1195,12 +1219,29 @@
             </div>
         {/if}
 
-        <!-- 수정/삭제 시간 표시 -->
-        {#if data.post.updated_at && data.post.updated_at !== data.post.created_at}
+        <!-- 수정/삭제 시간 표시 (4가지 케이스) -->
+        {@const hasEdits = data.post.updated_at && data.post.updated_at !== data.post.created_at}
+        {@const isDeletedPost = !!data.post.deleted_at}
+        {@const editCount = revisions.filter((r) => r.change_type === 'update').length}
+        {#if hasEdits || isDeletedPost}
             <p class="text-muted-foreground mt-4 text-center text-[15px]">
-                마지막 수정: {formatDate(data.post.updated_at)}
-                {#if revisions.length > 0}
-                    <span class="text-muted-foreground/70">· 수정됨 ({revisions.length}회)</span>
+                {formatDate(data.post.created_at)}
+                {#if hasEdits && editCount > 0}
+                    <span class="text-muted-foreground/70">
+                        · 수정 {editCount}회({formatTimeShort(
+                            data.post.updated_at,
+                            data.post.created_at
+                        )})
+                    </span>
+                {:else if hasEdits}
+                    <span class="text-muted-foreground/70">
+                        · 수정됨({formatTimeShort(data.post.updated_at, data.post.created_at)})
+                    </span>
+                {/if}
+                {#if isDeletedPost}
+                    <span class="text-red-500/70">
+                        · 삭제됨 {formatTimeShort(data.post.deleted_at, data.post.created_at)}
+                    </span>
                 {/if}
             </p>
         {/if}
