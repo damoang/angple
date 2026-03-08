@@ -42,9 +42,12 @@ class PluginStore {
     });
 
     /**
-     * SSR 데이터로 플러그인 초기화 (깜박임 방지)
+     * SSR 데이터로 플러그인 초기화 (동일 데이터 시 리렌더 방지)
      */
     initFromServer(activePlugins: ActivePlugin[]) {
+        const currentIds = this.state.activePlugins.map((p) => p.id).join(',');
+        const newIds = activePlugins.map((p) => p.id).join(',');
+        if (currentIds === newIds && !this.state.isLoading) return;
         this.state = {
             activePlugins,
             isLoading: false,

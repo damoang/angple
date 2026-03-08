@@ -18,7 +18,7 @@ function filterMenus(menus: MenuItem[]): MenuItem[] {
 
 class MenuStore {
     menus = $state<MenuItem[]>([]);
-    loading = $state(true);
+    loading = $state(false);
     error = $state<string | null>(null);
 
     /**
@@ -40,11 +40,17 @@ class MenuStore {
     }
 
     /**
-     * SSR 데이터로 메뉴 초기화
+     * SSR 데이터로 메뉴 초기화 (동일 데이터 시 리렌더 방지)
      */
     initFromServer(menus: MenuItem[]) {
-        this.menus = filterMenus(menus);
-        this.loading = false;
+        const filtered = filterMenus(menus);
+        if (
+            this.menus.length === filtered.length &&
+            JSON.stringify(this.menus) === JSON.stringify(filtered)
+        ) {
+            return;
+        }
+        this.menus = filtered;
         this.error = null;
     }
 }
