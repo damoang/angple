@@ -304,7 +304,7 @@
         {/each}
 
         <!-- GAM 광고 -->
-        {#if widgetLayoutStore.hasEnabledAds}
+        {#if widgetLayoutStore.hasEnabledAds && (postContent?.length ?? 0) >= 500}
             <AdSlot position="board-content" height="90px" />
         {/if}
 

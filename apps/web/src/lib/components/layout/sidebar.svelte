@@ -327,10 +327,6 @@
         <div class:hidden={!widgetLayoutStore.hasEnabledAds}>
             <AdSlot position="sidebar" height="250px" />
         </div>
-        <div class:hidden={!widgetLayoutStore.hasEnabledAds}>
-            <AdSlot position="sidebar-2" height="250px" />
-        </div>
-
         <!-- Slot: sidebar-left-bottom -->
         {#each getComponentsForSlot('sidebar-left-bottom') as slotComp (slotComp.id)}
             {@const Component = slotComp.component}

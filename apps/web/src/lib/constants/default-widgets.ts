@@ -108,16 +108,9 @@ export const DEFAULT_SIDEBAR_WIDGETS: WidgetConfig[] = [
         settings: { position: 'sidebar-b2b', type: 'gam' }
     },
     {
-        id: 'sidebar-ad-2',
-        type: 'ad-slot',
-        position: 2,
-        enabled: true,
-        settings: { position: 'sidebar-2', type: 'image-text', format: 'grid' }
-    },
-    {
         id: 'sidebar-ad-1',
         type: 'ad-slot',
-        position: 3,
+        position: 2,
         enabled: true,
         settings: { position: 'sidebar-1', type: 'image', format: 'square' }
     }

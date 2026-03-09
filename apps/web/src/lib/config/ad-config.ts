@@ -318,14 +318,12 @@ export const POSITION_MAP: Record<string, string> = {
     'index-news-economy': 'banner-responsive',
     'index-middle-1': 'banner-horizontal',
     'index-middle-2': 'banner-horizontal',
-    'index-middle-3': 'banner-horizontal',
     'index-bottom': 'banner-large',
 
     // 사이드바 — sub 유닛 (소형)
     'sidebar-sticky': 'banner-halfpage',
     sidebar: 'banner-square',
     'sidebar-1': 'banner-square',
-    'sidebar-2': 'banner-square',
     'sidebar-b2b': 'banner-square',
 
     // 윙 배너 — sub 유닛
@@ -341,7 +339,6 @@ export const POSITION_LABELS: Record<string, string> = {
     'index-news-economy': '소식/구매 사이',
     'index-middle-1': '중간 광고 1',
     'index-middle-2': '중간 광고 2',
-    'index-middle-3': '중간 광고 3',
     'index-bottom': '하단 광고',
     'side-banner': '사이드 배너',
     'board-view-top': '본문 상단',
@@ -356,7 +353,6 @@ export const POSITION_LABELS: Record<string, string> = {
     'board-list-infeed': '목록 인피드',
     'comment-infeed': '댓글 인피드',
     'sidebar-sticky': '사이드바 고정',
-    'sidebar-2': 'sidebar-2',
     'sidebar-b2b': 'B2B 광고',
     'wing-left': '왼쪽 윙 배너',
     'wing-right': '오른쪽 윙 배너'
