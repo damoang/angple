@@ -52,7 +52,10 @@ function initFromSSR(
         mb_level: ssrUser.level,
         mb_email: ''
     };
-    apiClient.setAccessToken(accessToken);
+    // accessToken은 클라이언트에서만 설정 (SSR에서 글로벌 상태 오염 방지)
+    if (typeof window !== 'undefined') {
+        apiClient.setAccessToken(accessToken);
+    }
     isLoading = false;
 }
 

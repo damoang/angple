@@ -39,8 +39,7 @@
 
     const { children, data } = $props(); // Svelte 5: SSR 데이터 받기
 
-    // 인증 상태 동기화 — data.user 변경에 반응 (SPA 네비게이션 + 초기 로드 모두 대응)
-    let authInitialized = false;
+    // 인증 상태 동기화 — SSR + 클라이언트 모두에서 즉시 실행
     function syncAuth(d: typeof data) {
         if (d.user && d.accessToken) {
             authActions.initFromSSR(
@@ -48,7 +47,6 @@
                 d.accessToken
             );
         } else if (d.user) {
-            // accessToken 없어도 user 있으면 로그인 상태 인식
             authActions.initFromSSR(
                 { id: d.user.id, nickname: d.user.nickname ?? '', level: d.user.level },
                 ''
@@ -56,16 +54,16 @@
         } else {
             authActions.initAuth();
         }
-        authInitialized = true;
     }
+
+    // 즉시 실행: SSR에서도 인증 상태 반영 (로그인 버튼 깜빡임 방지)
+    syncAuth(data);
 
     // $effect: data.user 변경 시 인증 상태 자동 동기화 (SPA 네비게이션 시)
     $effect(() => {
         const u = data.user;
         const t = data.accessToken;
-        if (authInitialized) {
-            untrack(() => syncAuth(data));
-        }
+        untrack(() => syncAuth(data));
     });
 
     // /admin, /install 경로 여부 확인 (테마 레이아웃 적용 안함)
@@ -266,9 +264,6 @@
 
         // 슬롯 기본 컴포넌트 등록 (포크 시 slot-defaults.ts 수정으로 커스터마이징)
         registerDefaultSlots();
-
-        // 인증 상태 초기화 — onMount에서 한 번 실행
-        syncAuth(data);
 
         // postMessage 리스너 (Admin에서 테마 변경 시 리로드)
         function handleMessage(event: MessageEvent) {
