@@ -6,11 +6,7 @@
 
 export { analyzeGnuboard, migrateGnuboard } from './gnuboard/index.js';
 export { analyzeRhymix, migrateRhymix } from './rhymix/index.js';
-export {
-    migratePassword,
-    detectHashType,
-    convertPhpBcryptHash
-} from './gnuboard/password-compat.js';
+export { migratePassword, detectHashType, convertPhpBcryptHash } from './gnuboard/password-compat.js';
 export { migrateAttachments, convertContentImagePaths } from './gnuboard/attachment-migrator.js';
 
 export type {

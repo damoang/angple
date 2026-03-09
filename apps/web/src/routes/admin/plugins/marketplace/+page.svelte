@@ -125,7 +125,7 @@
     });
 
     /** 검색 필터링 */
-    const filteredPlugins = $derived.by(() => {
+    const filteredPlugins = $derived(() => {
         let result = plugins;
 
         if (activeCategory !== 'all') {

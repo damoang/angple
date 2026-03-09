@@ -59,7 +59,7 @@
     }: Props = $props();
 
     // 댓글/답글 작성 권한 체크
-    const canComment = $derived.by(() => {
+    const canComment = $derived(() => {
         if (!authStore.isAuthenticated) return false;
         // 서버에서 계산된 권한 정보가 있으면 사용
         if (permissions) {

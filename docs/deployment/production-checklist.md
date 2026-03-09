@@ -4,32 +4,32 @@
 
 ### Environment Variables
 
--   [ ] Copy `.env.example` to `.env.local` and fill in all production values
--   [ ] `NODE_ENV=production`
--   [ ] `INTERNAL_API_URL` points to the Go backend (e.g. `http://angple-api:8081/api/v2`)
--   [ ] `DB_HOST`, `DB_USER`, `DB_PASSWORD`, `DB_NAME` configured for production database
--   [ ] `GITHUB_TOKEN_ENCRYPTION_KEY` generated (`node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`)
--   [ ] `PUBLIC_TURNSTILE_SITE_KEY` and `TURNSTILE_SECRET_KEY` set if CAPTCHA is enabled
--   [ ] `VITE_SITE_NAME` set to the desired site branding name
--   [ ] Run env validation: `node --import tsx apps/web/scripts/validate-env.ts`
+- [ ] Copy `.env.example` to `.env.local` and fill in all production values
+- [ ] `NODE_ENV=production`
+- [ ] `INTERNAL_API_URL` points to the Go backend (e.g. `http://angple-api:8081/api/v2`)
+- [ ] `DB_HOST`, `DB_USER`, `DB_PASSWORD`, `DB_NAME` configured for production database
+- [ ] `GITHUB_TOKEN_ENCRYPTION_KEY` generated (`node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`)
+- [ ] `PUBLIC_TURNSTILE_SITE_KEY` and `TURNSTILE_SECRET_KEY` set if CAPTCHA is enabled
+- [ ] `VITE_SITE_NAME` set to the desired site branding name
+- [ ] Run env validation: `node --import tsx apps/web/scripts/validate-env.ts`
 
 ### Secrets
 
--   [ ] Database credentials are not hardcoded; they come from `.env.local` or Docker secrets
--   [ ] `.env.local` is in `.gitignore` and never committed
--   [ ] SMTP credentials configured if email features are required
+- [ ] Database credentials are not hardcoded; they come from `.env.local` or Docker secrets
+- [ ] `.env.local` is in `.gitignore` and never committed
+- [ ] SMTP credentials configured if email features are required
 
 ### Docker Build
 
--   [ ] Docker image builds successfully: `docker build -t angple-web -f apps/web/Dockerfile .`
--   [ ] Or use pre-built image: `ANGPLE_WEB_IMAGE=ghcr.io/angple/angple-web:<tag>`
--   [ ] Verify image size is reasonable (should be under 500 MB)
+- [ ] Docker image builds successfully: `docker build -t angple-web -f apps/web/Dockerfile .`
+- [ ] Or use pre-built image: `ANGPLE_WEB_IMAGE=ghcr.io/angple/angple-web:<tag>`
+- [ ] Verify image size is reasonable (should be under 500 MB)
 
 ### Database
 
--   [ ] Production database is accessible from the Docker network
--   [ ] Database user has appropriate permissions (read/write on the application database)
--   [ ] Database backups are configured and tested
+- [ ] Production database is accessible from the Docker network
+- [ ] Database user has appropriate permissions (read/write on the application database)
+- [ ] Database backups are configured and tested
 
 ---
 
@@ -86,8 +86,8 @@ curl -f http://localhost:3010/health
 
 ### Admin Access
 
--   [ ] Navigate to `https://<domain>/admin` and verify the admin login page loads
--   [ ] Log in with admin credentials and verify the dashboard is accessible
+- [ ] Navigate to `https://<domain>/admin` and verify the admin login page loads
+- [ ] Log in with admin credentials and verify the dashboard is accessible
 
 ### API Connectivity
 
@@ -96,15 +96,15 @@ curl -f http://localhost:3010/health
 docker exec angple-web wget -qO- http://angple-api:8081/api/v2/health
 ```
 
--   [ ] Boards load correctly on the homepage
--   [ ] Posts can be created and read
--   [ ] User authentication (login/logout) works
+- [ ] Boards load correctly on the homepage
+- [ ] Posts can be created and read
+- [ ] User authentication (login/logout) works
 
 ### SSL / Reverse Proxy
 
--   [ ] HTTPS is properly configured via reverse proxy (Nginx, Traefik, Caddy, etc.)
--   [ ] HTTP redirects to HTTPS
--   [ ] HSTS headers are present
+- [ ] HTTPS is properly configured via reverse proxy (Nginx, Traefik, Caddy, etc.)
+- [ ] HTTP redirects to HTTPS
+- [ ] HSTS headers are present
 
 ---
 
@@ -146,9 +146,9 @@ If a deployment includes database schema changes:
 
 ## Monitoring Endpoints
 
-| Endpoint  | Method | Purpose                                               |
-| --------- | ------ | ----------------------------------------------------- |
-| `/health` | GET    | Application health check (used by Docker HEALTHCHECK) |
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `/health` | GET | Application health check (used by Docker HEALTHCHECK) |
 
 ### Docker Health Status
 

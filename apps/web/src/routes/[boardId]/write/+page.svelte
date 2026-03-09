@@ -41,7 +41,7 @@
 
     // 글쓰기 권한 체크
     const requiredLevel = $derived(data.board?.write_level ?? 3);
-    const canWrite = $derived.by(() => {
+    const canWrite = $derived(() => {
         if (!authStore.isAuthenticated) return false;
         if (isRestricted) return false;
         return checkPermission(data.board, 'can_write', authStore.user ?? null);

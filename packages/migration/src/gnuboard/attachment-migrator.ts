@@ -112,10 +112,16 @@ export function convertContentImagePaths(
     if (!content) return content;
 
     // /data/file/ 경로 변환
-    let result = content.replace(/(?:https?:\/\/[^/]*)?\/data\/file\//g, `${newBaseUrl}/uploads/`);
+    let result = content.replace(
+        /(?:https?:\/\/[^/]*)?\/data\/file\//g,
+        `${newBaseUrl}/uploads/`
+    );
 
     // data/file/ 상대 경로 변환
-    result = result.replace(/(?<!=["'])data\/file\//g, `${newBaseUrl}/uploads/`);
+    result = result.replace(
+        /(?<!=["'])data\/file\//g,
+        `${newBaseUrl}/uploads/`
+    );
 
     // 커스텀 도메인 변환 (oldBaseUrl이 제공된 경우)
     if (oldBaseUrl) {

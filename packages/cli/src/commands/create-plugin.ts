@@ -10,17 +10,8 @@ interface Options {
 }
 
 const PLUGIN_TYPES = [
-    'board',
-    'editor',
-    'auth',
-    'seo',
-    'media',
-    'social',
-    'notification',
-    'analytics',
-    'payment',
-    'ai',
-    'custom'
+    'board', 'editor', 'auth', 'seo', 'media',
+    'social', 'notification', 'analytics', 'payment', 'ai', 'custom'
 ];
 
 const DEFAULT_PERMISSIONS: Record<string, string[]> = {
