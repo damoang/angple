@@ -19,7 +19,7 @@ export default defineConfig(({ mode }) => {
     return {
         plugins: [tailwindcss(), sveltekit()],
         build: {
-            assetsInlineLimit: 8192,
+            assetsInlineLimit: 0,
             chunkSizeWarningLimit: 1120
         },
         ssr: {
