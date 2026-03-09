@@ -167,7 +167,7 @@
                 <img
                     src={display.url}
                     alt={display.label}
-                    class="h-5 w-5 object-scale-down transition-transform group-hover:scale-[2.5]"
+                    class="h-5 w-5 object-scale-down transition-transform group-hover:scale-[25]"
                 />
             {:else}
                 <span class="text-base leading-none">{display.emoji}</span>
