@@ -127,7 +127,7 @@
         });
     });
 
-    // 네비게이션 프로그레스바 (300ms 딜레이 — 빠른 전환에서는 숨김)
+    // 네비게이션 프로그레스바 (500ms 딜레이 — 빠른 전환에서는 숨김)
     let showNavProgress = $state(false);
     let navProgressTimeout: ReturnType<typeof setTimeout> | undefined;
 
@@ -136,7 +136,7 @@
         if (navigating.to) {
             navProgressTimeout = setTimeout(() => {
                 showNavProgress = true;
-            }, 300);
+            }, 500);
         } else {
             showNavProgress = false;
         }
@@ -345,7 +345,7 @@
     <link rel="icon" href={favicon} />
 </svelte:head>
 
-<!-- 네비게이션 프로그레스바 (300ms 이상 걸리는 전환에서만 표시) -->
+<!-- 네비게이션 프로그레스바 (500ms 이상 걸리는 전환에서만 표시) -->
 {#if showNavProgress}
     <div class="nav-progress" aria-hidden="true"></div>
 {/if}

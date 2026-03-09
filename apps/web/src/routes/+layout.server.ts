@@ -15,7 +15,8 @@ import { env } from '$env/dynamic/private';
  *
  * celebration + banners: SSR에서 직접 로드하여 클라이언트 /api/init CDN 요청 제거
  */
-export const load: LayoutServerLoad = async ({ locals }) => {
+export const load: LayoutServerLoad = async ({ locals, depends }) => {
+    depends('app:layout');
     // 병렬로 모든 데이터 로드 (allSettled: 개별 실패 허용)
     const [themeResult, pluginsResult, menusResult, celebrationResult, bannersResult] =
         await Promise.allSettled([
