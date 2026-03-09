@@ -117,11 +117,13 @@ export async function analyzeRhymix(config: DatabaseConfig): Promise<MigrationAn
             warnings.push('포인트 테이블을 찾을 수 없습니다. 포인트 마이그레이션을 건너뜁니다.');
         }
 
-        const totalRows = memberCount + moduleCount + docCount + commentCount + fileCount + pointCount;
+        const totalRows =
+            memberCount + moduleCount + docCount + commentCount + fileCount + pointCount;
         const estimatedSeconds = Math.max(10, Math.ceil(totalRows / 1000));
-        const estimatedTime = estimatedSeconds < 60
-            ? `약 ${estimatedSeconds}초`
-            : `약 ${Math.ceil(estimatedSeconds / 60)}분`;
+        const estimatedTime =
+            estimatedSeconds < 60
+                ? `약 ${estimatedSeconds}초`
+                : `약 ${Math.ceil(estimatedSeconds / 60)}분`;
 
         // 라이믹스 버전 감지
         let version: string | undefined;
@@ -163,7 +165,12 @@ export async function migrateRhymix(options: MigrationOptions): Promise<Migratio
     const errors: MigrationError[] = [];
     const prefix = options.tablePrefix || 'xe_';
 
-    const progress = (phase: MigrationProgress['phase'], current: number, total: number, message: string) => {
+    const progress = (
+        phase: MigrationProgress['phase'],
+        current: number,
+        total: number,
+        message: string
+    ) => {
         const percent = total > 0 ? Math.round((current / total) * 100) : 0;
         options.onProgress?.({ phase, current, total, message, percent, errors });
     };
@@ -222,7 +229,18 @@ export async function migrateRhymix(options: MigrationOptions): Promise<Migratio
                         `INSERT INTO board (bo_table, bo_subject, bo_skin, gr_id, bo_list_level, bo_read_level, bo_write_level, bo_comment_level, bo_page_rows, bo_order)
                          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                          ON DUPLICATE KEY UPDATE bo_subject = VALUES(bo_subject)`,
-                        [mapped.bo_table, mapped.bo_subject, mapped.bo_skin, mapped.gr_id, mapped.bo_list_level, mapped.bo_read_level, mapped.bo_write_level, mapped.bo_comment_level, mapped.bo_page_rows, mapped.bo_order]
+                        [
+                            mapped.bo_table,
+                            mapped.bo_subject,
+                            mapped.bo_skin,
+                            mapped.gr_id,
+                            mapped.bo_list_level,
+                            mapped.bo_read_level,
+                            mapped.bo_write_level,
+                            mapped.bo_comment_level,
+                            mapped.bo_page_rows,
+                            mapped.bo_order
+                        ]
                     );
                 }
                 stats.boards.migrated++;
@@ -237,13 +255,20 @@ export async function migrateRhymix(options: MigrationOptions): Promise<Migratio
         }
 
         // ─── 2. 회원 ───
-        const [memberCountRows] = await sourceConn.query(`SELECT COUNT(*) as cnt FROM ${prefix}member`);
+        const [memberCountRows] = await sourceConn.query(
+            `SELECT COUNT(*) as cnt FROM ${prefix}member`
+        );
         const memberTotal = (memberCountRows as any)[0].cnt;
         stats.members.total = memberTotal;
 
         let memberOffset = 0;
         while (memberOffset < memberTotal) {
-            progress('members', memberOffset, memberTotal, `회원 마이그레이션 중... (${memberOffset}/${memberTotal})`);
+            progress(
+                'members',
+                memberOffset,
+                memberTotal,
+                `회원 마이그레이션 중... (${memberOffset}/${memberTotal})`
+            );
 
             const [memberRows] = await sourceConn.query(
                 `SELECT * FROM ${prefix}member ORDER BY member_srl LIMIT ? OFFSET ?`,
@@ -263,7 +288,21 @@ export async function migrateRhymix(options: MigrationOptions): Promise<Migratio
                             `INSERT INTO member (mb_id, mb_password, mb_name, mb_nick, mb_email, mb_homepage, mb_level, mb_point, mb_ip, mb_datetime, mb_leave_date, mb_intercept_date, mb_memo)
                              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                              ON DUPLICATE KEY UPDATE mb_name = VALUES(mb_name)`,
-                            [mapped.mb_id, pw.hash, mapped.mb_name, mapped.mb_nick, mapped.mb_email, mapped.mb_homepage, mapped.mb_level, 0, mapped.mb_ip, mapped.mb_datetime, mapped.mb_leave_date, mapped.mb_intercept_date, mapped.mb_memo]
+                            [
+                                mapped.mb_id,
+                                pw.hash,
+                                mapped.mb_name,
+                                mapped.mb_nick,
+                                mapped.mb_email,
+                                mapped.mb_homepage,
+                                mapped.mb_level,
+                                0,
+                                mapped.mb_ip,
+                                mapped.mb_datetime,
+                                mapped.mb_leave_date,
+                                mapped.mb_intercept_date,
+                                mapped.mb_memo
+                            ]
                         );
                     }
                     stats.members.migrated++;
@@ -295,7 +334,12 @@ export async function migrateRhymix(options: MigrationOptions): Promise<Migratio
 
             let docOffset = 0;
             while (docOffset < docTotal) {
-                progress('posts', docOffset, docTotal, `게시글 마이그레이션 중... (${docOffset}/${docTotal})`);
+                progress(
+                    'posts',
+                    docOffset,
+                    docTotal,
+                    `게시글 마이그레이션 중... (${docOffset}/${docTotal})`
+                );
 
                 const [docRows] = await sourceConn.query(
                     `SELECT * FROM ${prefix}documents WHERE module_srl IN (${placeholders}) ORDER BY document_srl LIMIT ? OFFSET ?`,
@@ -313,7 +357,27 @@ export async function migrateRhymix(options: MigrationOptions): Promise<Migratio
                                 `INSERT INTO post (wr_id, bo_table, wr_subject, wr_content, wr_name, mb_id, wr_datetime, wr_hit, wr_good, wr_nogood, wr_comment, wr_ip, is_secret, is_notice, extra_1, extra_2, extra_3, extra_4, extra_5)
                                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                                  ON DUPLICATE KEY UPDATE wr_subject = VALUES(wr_subject)`,
-                                [mapped.wr_id, mapped.bo_table, mapped.wr_subject, mapped.wr_content, mapped.wr_name, mapped.mb_id, mapped.wr_datetime, mapped.wr_hit, mapped.wr_good, mapped.wr_nogood, mapped.wr_comment, mapped.wr_ip, mapped.is_secret, mapped.is_notice, mapped.extra_1, mapped.extra_2, mapped.extra_3, mapped.extra_4, mapped.extra_5]
+                                [
+                                    mapped.wr_id,
+                                    mapped.bo_table,
+                                    mapped.wr_subject,
+                                    mapped.wr_content,
+                                    mapped.wr_name,
+                                    mapped.mb_id,
+                                    mapped.wr_datetime,
+                                    mapped.wr_hit,
+                                    mapped.wr_good,
+                                    mapped.wr_nogood,
+                                    mapped.wr_comment,
+                                    mapped.wr_ip,
+                                    mapped.is_secret,
+                                    mapped.is_notice,
+                                    mapped.extra_1,
+                                    mapped.extra_2,
+                                    mapped.extra_3,
+                                    mapped.extra_4,
+                                    mapped.extra_5
+                                ]
                             );
                         }
                         stats.posts.migrated++;
@@ -341,7 +405,12 @@ export async function migrateRhymix(options: MigrationOptions): Promise<Migratio
 
             let commentOffset = 0;
             while (commentOffset < commentTotal) {
-                progress('comments', commentOffset, commentTotal, `댓글 마이그레이션 중... (${commentOffset}/${commentTotal})`);
+                progress(
+                    'comments',
+                    commentOffset,
+                    commentTotal,
+                    `댓글 마이그레이션 중... (${commentOffset}/${commentTotal})`
+                );
 
                 const [commentRows] = await sourceConn.query(
                     `SELECT * FROM ${prefix}comments WHERE module_srl IN (${placeholders}) ORDER BY comment_srl LIMIT ? OFFSET ?`,
@@ -359,7 +428,19 @@ export async function migrateRhymix(options: MigrationOptions): Promise<Migratio
                                 `INSERT INTO comment (wr_id, bo_table, wr_parent, wr_content, wr_name, mb_id, wr_datetime, wr_ip, wr_good, wr_nogood, is_secret)
                                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                                  ON DUPLICATE KEY UPDATE wr_content = VALUES(wr_content)`,
-                                [mapped.wr_id, mapped.bo_table, mapped.wr_parent, mapped.wr_content, mapped.wr_name, mapped.mb_id, mapped.wr_datetime, mapped.wr_ip, mapped.wr_good, mapped.wr_nogood, mapped.is_secret]
+                                [
+                                    mapped.wr_id,
+                                    mapped.bo_table,
+                                    mapped.wr_parent,
+                                    mapped.wr_content,
+                                    mapped.wr_name,
+                                    mapped.mb_id,
+                                    mapped.wr_datetime,
+                                    mapped.wr_ip,
+                                    mapped.wr_good,
+                                    mapped.wr_nogood,
+                                    mapped.is_secret
+                                ]
                             );
                         }
                         stats.comments.migrated++;

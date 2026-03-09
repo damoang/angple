@@ -23,10 +23,10 @@ themes/my-theme/
 
 ## themes/ vs custom-themes/
 
-| 디렉토리        | 용도                    | 보호 | 삭제 가능 |
-| --------------- | ----------------------- | ---- | --------- |
-| `themes/`       | 공식 테마 (Git 관리)    | O    | X         |
-| `custom-themes/`| 사용자 업로드 (ZIP)     | X    | O         |
+| 디렉토리         | 용도                 | 보호 | 삭제 가능 |
+| ---------------- | -------------------- | ---- | --------- |
+| `themes/`        | 공식 테마 (Git 관리) | O    | X         |
+| `custom-themes/` | 사용자 업로드 (ZIP)  | X    | O         |
 
 공식 테마는 `themes/` 디렉토리에 두고 Git으로 관리합니다. 사용자가 업로드한 테마는 `custom-themes/`에 저장되며 관리자 패널에서 삭제할 수 있습니다.
 
@@ -51,7 +51,7 @@ themes/my-theme/
         "url": "https://example.com"
     },
     "license": "MIT",
-    "category": "theme",              // 반드시 "theme"
+    "category": "theme", // 반드시 "theme"
     "main": "./dist/index.js",
 
     // === 테마 전용 필드 ===
@@ -158,17 +158,17 @@ themes/my-theme/
 
 컴포넌트가 렌더링될 수 있는 슬롯 위치입니다.
 
-| Slot              | 설명                      |
-| ----------------- | ------------------------- |
-| `header`          | 페이지 상단 헤더          |
-| `footer`          | 페이지 하단 푸터          |
-| `sidebar-left`    | 왼쪽 사이드바             |
-| `sidebar-right`   | 오른쪽 사이드바           |
-| `panel`           | 패널 영역                 |
-| `content-before`  | 본문 콘텐츠 위            |
-| `content-after`   | 본문 콘텐츠 아래          |
-| `banner-left`     | 왼쪽 배너 영역            |
-| `banner-right`    | 오른쪽 배너 영역          |
+| Slot             | 설명             |
+| ---------------- | ---------------- |
+| `header`         | 페이지 상단 헤더 |
+| `footer`         | 페이지 하단 푸터 |
+| `sidebar-left`   | 왼쪽 사이드바    |
+| `sidebar-right`  | 오른쪽 사이드바  |
+| `panel`          | 패널 영역        |
+| `content-before` | 본문 콘텐츠 위   |
+| `content-after`  | 본문 콘텐츠 아래 |
+| `banner-left`    | 왼쪽 배너 영역   |
+| `banner-right`   | 오른쪽 배너 영역 |
 
 ---
 
@@ -178,13 +178,13 @@ themes/my-theme/
 
 ```typescript
 interface ComponentDefinition {
-    id: string;              // 컴포넌트 고유 식별자 (kebab-case)
-    name: string;            // 표시 이름
-    slot: ComponentSlot;     // 렌더링될 슬롯 위치
-    path: string;            // 컴포넌트 파일 경로 (테마 디렉토리 기준)
-    props?: Record<string, any>;  // 컴포넌트에 전달될 props
-    priority?: number;       // 우선순위 (기본: 10, 낮을수록 먼저)
-    condition?: string;      // 조건부 렌더링 표현식
+    id: string; // 컴포넌트 고유 식별자 (kebab-case)
+    name: string; // 표시 이름
+    slot: ComponentSlot; // 렌더링될 슬롯 위치
+    path: string; // 컴포넌트 파일 경로 (테마 디렉토리 기준)
+    props?: Record<string, any>; // 컴포넌트에 전달될 props
+    priority?: number; // 우선순위 (기본: 10, 낮을수록 먼저)
+    condition?: string; // 조건부 렌더링 표현식
 }
 ```
 
@@ -195,9 +195,9 @@ interface ComponentDefinition {
 ```json
 {
     "components": [
-        { "id": "urgent-notice", "slot": "content-before", "priority": 1,  "path": "..." },
-        { "id": "banner",        "slot": "content-before", "priority": 5,  "path": "..." },
-        { "id": "ad-slot",       "slot": "content-before", "priority": 20, "path": "..." }
+        { "id": "urgent-notice", "slot": "content-before", "priority": 1, "path": "..." },
+        { "id": "banner", "slot": "content-before", "priority": 5, "path": "..." },
+        { "id": "ad-slot", "slot": "content-before", "priority": 20, "path": "..." }
     ]
 }
 ```
@@ -236,7 +236,7 @@ interface ThemeSettings {
                 required?: boolean;
                 min?: number;
                 max?: number;
-                pattern?: string;  // 정규식 패턴
+                pattern?: string; // 정규식 패턴
             };
         };
     };
@@ -249,7 +249,7 @@ interface ThemeSettings {
 const settings = themeManager.getSettings();
 // { "appearance.primaryColor": "#3b82f6", "appearance.showBanner": true, ... }
 
-themeManager.updateSettings({ "appearance.primaryColor": "#ef4444" });
+themeManager.updateSettings({ 'appearance.primaryColor': '#ef4444' });
 ```
 
 ---
@@ -426,8 +426,10 @@ pnpm angple create theme my-theme
 
     $effect(() => {
         fetch(`/api/v1/posts/trending?limit=${limit}&period=${period}`)
-            .then(res => res.json())
-            .then(data => { posts = data.posts; });
+            .then((res) => res.json())
+            .then((data) => {
+                posts = data.posts;
+            });
     });
 </script>
 
