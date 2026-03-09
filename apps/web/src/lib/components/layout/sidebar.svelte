@@ -322,15 +322,13 @@
         {/if}
     </nav>
 
-    <!-- 사이드바 메뉴 아래 GAM 광고 -->
-    {#if widgetLayoutStore.hasEnabledAds}
-        <div class="px-2">
-            <AdSlot position="sidebar" height="250px" />
-        </div>
-        <div class="px-2">
-            <AdSlot position="sidebar-2" height="250px" />
-        </div>
-    {/if}
+    <!-- 사이드바 메뉴 아래 GAM 광고 (항상 마운트 — SPA 이동 시 리프레시 방지) -->
+    <div class="px-2" class:hidden={!widgetLayoutStore.hasEnabledAds}>
+        <AdSlot position="sidebar" height="250px" />
+    </div>
+    <div class="px-2" class:hidden={!widgetLayoutStore.hasEnabledAds}>
+        <AdSlot position="sidebar-2" height="250px" />
+    </div>
 
     <!-- Slot: sidebar-left-bottom -->
     {#each getComponentsForSlot('sidebar-left-bottom') as slotComp (slotComp.id)}

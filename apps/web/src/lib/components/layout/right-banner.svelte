@@ -26,12 +26,13 @@
     });
 </script>
 
-<!-- 오른쪽 윙 배너 (GAM) -->
-{#if widgetLayoutStore.hasEnabledAds}
-    <div class="flex w-[160px] flex-col items-center justify-center gap-2">
-        <AdSlot position="wing-right" height="600px" />
-    </div>
-{/if}
+<!-- 오른쪽 윙 배너 (GAM) — 항상 마운트 (SPA 이동 시 리프레시 방지) -->
+<div
+    class="flex w-[160px] flex-col items-center justify-center gap-2"
+    class:hidden={!widgetLayoutStore.hasEnabledAds}
+>
+    <AdSlot position="wing-right" height="600px" />
+</div>
 
 <!-- TOP 버튼 - 오른쪽 하단 -->
 {#if showTopButton}

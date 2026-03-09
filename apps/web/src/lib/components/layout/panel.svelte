@@ -31,8 +31,8 @@
     <!-- 광고 2개 sticky -->
     <div class="sticky top-[64px] space-y-4">
         <WidgetRenderer zone="sidebar" onlyIds={['sidebar-ad-1']} />
-        {#if widgetLayoutStore.hasEnabledAds}
+        <div class:hidden={!widgetLayoutStore.hasEnabledAds}>
             <AdSlot position="sidebar-sticky" height="600px" />
-        {/if}
+        </div>
     </div>
 </div>
