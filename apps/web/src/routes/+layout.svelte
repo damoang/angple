@@ -142,17 +142,17 @@
         }
     });
 
-    // View Transitions API — 부드러운 페이지 전환 (지원 브라우저에서만, 모션 감소 설정 존중)
-    onNavigate((navigation) => {
-        if (!document.startViewTransition || matchMedia('(prefers-reduced-motion: reduce)').matches)
-            return;
-        return new Promise((resolve) => {
-            document.startViewTransition(async () => {
-                resolve();
-                await navigation.complete;
-            });
-        });
-    });
+    // View Transitions API — 비활성화 (SPA 네비게이션 깜빡임 유발)
+    // onNavigate((navigation) => {
+    //     if (!document.startViewTransition || matchMedia('(prefers-reduced-motion: reduce)').matches)
+    //         return;
+    //     return new Promise((resolve) => {
+    //         document.startViewTransition(async () => {
+    //             resolve();
+    //             await navigation.complete;
+    //         });
+    //     });
+    // });
 
     // 새 버전 감지 시 다음 네비게이션에서 풀 리로드 (최대 2회, 무한 루프 방지)
     const UPDATED_RELOAD_KEY = '__angple_updated_reload__';

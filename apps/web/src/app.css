@@ -352,51 +352,7 @@
     }
 }
 
-/* View Transitions API — 부드러운 페이지 전환 애니메이션 */
-@keyframes fade-in {
-    from {
-        opacity: 0;
-    }
-    to {
-        opacity: 1;
-    }
-}
-
-@keyframes fade-out {
-    to {
-        opacity: 0;
-    }
-}
-
-/* 기존 root 전환 — 이름 없는 요소의 fallback */
-::view-transition-old(root) {
-    animation: 90ms fade-out ease-out;
-}
-
-::view-transition-new(root) {
-    animation: 210ms fade-in ease-in;
-}
-
-/* 헤더/사이드바/패널/푸터 — 전환 없음 (안정적 유지) */
-::view-transition-old(header),
-::view-transition-new(header),
-::view-transition-old(sidebar),
-::view-transition-new(sidebar),
-::view-transition-old(panel),
-::view-transition-new(panel),
-::view-transition-old(footer),
-::view-transition-new(footer) {
-    animation: none;
-}
-
-/* 콘텐츠 영역만 부드러운 전환 */
-::view-transition-old(content) {
-    animation: 80ms fade-out ease-out;
-}
-
-::view-transition-new(content) {
-    animation: 120ms fade-in ease-in;
-}
+/* View Transitions API — 비활성화됨 (SPA 네비게이션 깜빡임/쪼그라듦 유발) */
 
 /* 네비게이션 프로그레스바 */
 @keyframes nav-progress {
