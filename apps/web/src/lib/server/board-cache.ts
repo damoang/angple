@@ -20,6 +20,13 @@ export interface BoardResult {
  * 게시판 정보 조회 (캐시 우선)
  * board + display_settings 를 병합하여 반환
  */
+/**
+ * 보드 캐시 무효화 (관리자가 설정 변경 후 즉시 반영용)
+ */
+export function invalidateBoardCache(boardId: string): void {
+    boardInfoCache.delete(boardId);
+}
+
 export async function getCachedBoard(
     boardId: string,
     headers: Record<string, string>

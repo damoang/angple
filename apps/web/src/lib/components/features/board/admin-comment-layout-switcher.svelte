@@ -27,9 +27,10 @@
     interface Props {
         boardId: string;
         currentLayout: string;
+        onLayoutChange?: (layoutId: string) => void;
     }
 
-    let { boardId, currentLayout }: Props = $props();
+    let { boardId, currentLayout, onLayoutChange }: Props = $props();
 
     let isOpen = $state(false);
     let saving = $state<string | null>(null);
@@ -95,6 +96,10 @@
             }
 
             close();
+            // 부모에 즉시 레이아웃 변경 반영
+            onLayoutChange?.(layoutId);
+            // 서버 캐시 무효화 후 페이지 데이터 새로고침
+            await fetch(`/api/boards/${boardId}/invalidate-cache`, { method: 'POST' });
             await invalidateAll();
         } catch (error) {
             console.error('댓글 레이아웃 변경 실패:', error);

@@ -104,10 +104,14 @@
             }
             // celebrationBanner는 $derived로 스토어에서 자동 반영
             loading = false;
-            // 축하메시지도 광고도 없으면 GAM 폴백 (스토어 로드 대기)
-            await new Promise((r) => setTimeout(r, 500));
+            // 축하메시지도 광고도 없으면 GAM 폴백
+            // 스토어가 아직 안 불렸을 수 있으므로 짧게 대기 후 체크
             if (!adsBanner && storeCelebrations.length === 0) {
-                useFallback = true;
+                // 100ms만 대기 후 재확인 (기존 500ms → 빠른 폴백)
+                await new Promise((r) => setTimeout(r, 100));
+                if (!adsBanner && storeCelebrations.length === 0) {
+                    useFallback = true;
+                }
             }
         } else {
             // 게시판 페이지: 프리미엄 + 일반 배너만 (축하메시지 없음)

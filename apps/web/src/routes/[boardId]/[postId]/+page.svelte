@@ -665,6 +665,12 @@
         (!data.post.is_secret || isAuthor || isAdmin) && !promotionExpired
     );
 
+    // 댓글 레이아웃 (관리자 변경 시 즉시 반영용)
+    let commentLayout = $state(data.board?.display_settings?.comment_layout || 'flat');
+    $effect(() => {
+        commentLayout = data.board?.display_settings?.comment_layout || 'flat';
+    });
+
     // 공지 상태
     let noticeType = $state<'normal' | 'important' | null>(null);
     $effect(() => {
@@ -685,6 +691,8 @@
                 throw new Error(err?.error || '공지 설정에 실패했습니다.');
             }
             noticeType = type;
+            // 보드 캐시 무효화 → 목록 페이지에서 공지 변경 즉시 반영
+            await fetch(`/api/boards/${boardId}/invalidate-cache`, { method: 'POST' });
         } catch (err) {
             console.error('Failed to toggle notice:', err);
             alert(err instanceof Error ? err.message : '공지 설정에 실패했습니다.');
@@ -1317,7 +1325,10 @@
                     </div>
                     <AdminCommentLayoutSwitcher
                         {boardId}
-                        currentLayout={data.board?.display_settings?.comment_layout || 'flat'}
+                        currentLayout={commentLayout}
+                        onLayoutChange={(layoutId) => {
+                            commentLayout = layoutId;
+                        }}
                     />
                 </CardHeader>
                 <CardContent class="space-y-6">
@@ -1332,7 +1343,7 @@
                         {boardId}
                         postId={data.post.id}
                         useNogood={!!data.board?.use_nogood}
-                        commentLayout={data.board?.display_settings?.comment_layout || 'flat'}
+                        {commentLayout}
                         {reactionsMap}
                         {initialLikedCommentIds}
                         {initialDislikedCommentIds}
@@ -1367,11 +1378,17 @@
             </Card>
         {/if}
 
-        <!-- 1시간 추천글 리스트 (임시 비활성화)
-        <div class="mt-6">
-            <RecommendedPosts />
+        <!-- 댓글 아래 네비게이션 -->
+        <div class="-mx-5 mt-4 flex items-center gap-3 px-5 py-2 md:mx-0 md:px-0">
+            <Button variant="outline" size="sm" onclick={goBack} class="shrink-0">← 목록으로</Button
+            >
+            <div class="flex-1"></div>
+            {#if authStore.isAuthenticated && checkPermission(data.board, 'can_write', authStore.user ?? null)}
+                <Button variant="default" size="sm" href="/{boardId}/write" class="shrink-0"
+                    >글쓰기</Button
+                >
+            {/if}
         </div>
-        -->
 
         <!-- 댓글~목록 사이 GAM 광고 -->
         {#if widgetLayoutStore.hasEnabledAds}

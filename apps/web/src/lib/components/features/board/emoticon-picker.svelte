@@ -236,7 +236,7 @@
                                 <button
                                     type="button"
                                     onclick={() => selectEmoticon(item.file)}
-                                    class="hover:bg-muted flex items-center justify-center rounded-lg p-1 transition-colors"
+                                    class="hover:bg-muted group/emo relative flex items-center justify-center rounded-lg p-1 transition-colors"
                                     title={item.file}
                                 >
                                     <img
@@ -244,6 +244,12 @@
                                         alt={item.file}
                                         class="size-10 object-contain"
                                         loading="lazy"
+                                    />
+                                    <!-- 호버 확대 미리보기 -->
+                                    <img
+                                        src={thumbUrl(item)}
+                                        alt={item.file}
+                                        class="pointer-events-none absolute -top-20 left-1/2 hidden size-16 -translate-x-1/2 rounded-lg border bg-white object-contain p-1 shadow-lg group-hover/emo:block dark:bg-zinc-800"
                                     />
                                 </button>
                             {/each}

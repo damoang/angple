@@ -157,14 +157,18 @@
             type="button"
             onclick={() => handleReactionClick(item.reaction)}
             disabled={isReacting}
-            class="da-reaction-badge inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-sm transition-all
+            class="da-reaction-badge group inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-sm transition-all
 				{item.choose
                 ? 'border-primary/50 bg-primary/10 text-primary ring-primary/20 ring-1'
                 : 'border-border bg-muted/50 text-muted-foreground hover:border-primary/30 hover:bg-primary/5'}"
             title={display.label}
         >
             {#if display.renderType === 'image' && display.url}
-                <img src={display.url} alt={display.label} class="h-5 w-5 object-scale-down" />
+                <img
+                    src={display.url}
+                    alt={display.label}
+                    class="h-5 w-5 object-scale-down transition-transform group-hover:scale-[2.5]"
+                />
             {:else}
                 <span class="text-base leading-none">{display.emoji}</span>
             {/if}
@@ -238,7 +242,7 @@
                         type="button"
                         onclick={() => react(emo.reaction, 'add')}
                         disabled={isReacting}
-                        class="hover:bg-accent flex items-center justify-center rounded-lg p-1 transition-all hover:scale-110"
+                        class="hover:bg-accent group/emo relative flex items-center justify-center rounded-lg p-1 transition-all hover:scale-110"
                         title={emo.emoji || emo.reaction}
                     >
                         {#if emo.renderType === 'image' && emo.url}
@@ -246,6 +250,12 @@
                                 src={emo.url}
                                 alt={emo.reaction}
                                 class="h-7 w-7 object-scale-down"
+                            />
+                            <!-- 호버 확대 미리보기 -->
+                            <img
+                                src={emo.url}
+                                alt={emo.reaction}
+                                class="pointer-events-none absolute -top-16 left-1/2 hidden h-14 w-14 -translate-x-1/2 rounded-lg border bg-white object-scale-down p-1 shadow-lg group-hover/emo:block dark:bg-zinc-800"
                             />
                         {:else}
                             <span class="text-xl leading-none">{emo.emoji}</span>

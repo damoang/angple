@@ -322,17 +322,19 @@
         {/if}
     </nav>
 
-    <!-- 사이드바 메뉴 아래 GAM 광고 (항상 마운트 — SPA 이동 시 리프레시 방지) -->
-    <div class="px-2" class:hidden={!widgetLayoutStore.hasEnabledAds}>
-        <AdSlot position="sidebar" height="250px" />
-    </div>
-    <div class="px-2" class:hidden={!widgetLayoutStore.hasEnabledAds}>
-        <AdSlot position="sidebar-2" height="250px" />
-    </div>
+    <!-- 사이드바 메뉴 아래 GAM 광고 (sticky — 스크롤 시 상단 고정) -->
+    <div class="sticky top-[64px] space-y-2 px-2">
+        <div class:hidden={!widgetLayoutStore.hasEnabledAds}>
+            <AdSlot position="sidebar" height="250px" />
+        </div>
+        <div class:hidden={!widgetLayoutStore.hasEnabledAds}>
+            <AdSlot position="sidebar-2" height="250px" />
+        </div>
 
-    <!-- Slot: sidebar-left-bottom -->
-    {#each getComponentsForSlot('sidebar-left-bottom') as slotComp (slotComp.id)}
-        {@const Component = slotComp.component}
-        <Component {...slotComp.props || {}} />
-    {/each}
+        <!-- Slot: sidebar-left-bottom -->
+        {#each getComponentsForSlot('sidebar-left-bottom') as slotComp (slotComp.id)}
+            {@const Component = slotComp.component}
+            <Component {...slotComp.props || {}} />
+        {/each}
+    </div>
 </div>
