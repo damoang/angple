@@ -46,8 +46,14 @@ function initFromSSR(
     ssrUser: { id?: string; nickname: string; level: number },
     accessToken: string
 ): void {
+    const mbId = ssrUser.id ?? '';
+    // 동일 사용자면 스킵 (SPA 네비게이션마다 불필요한 상태 갱신 방지)
+    if (user && user.mb_id === mbId) {
+        isLoading = false;
+        return;
+    }
     user = {
-        mb_id: ssrUser.id ?? '',
+        mb_id: mbId,
         mb_name: ssrUser.nickname,
         mb_level: ssrUser.level,
         mb_email: ''
