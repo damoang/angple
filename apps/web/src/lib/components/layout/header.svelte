@@ -22,9 +22,12 @@
     import { menuStore } from '$lib/stores/menu.svelte';
     import { getIcon } from '$lib/utils/icon-map';
     import { page } from '$app/stores';
+    import { browser } from '$app/environment';
 
-    // SSR 안전한 인증 상태: authStore.isLoading(SSR) 시 $page.data.user 사용
-    // authStore의 $state는 모듈 레벨이라 SSR에서 요청간 공유 → $page.data는 요청별 안전
+    // SSR 안전한 인증 상태:
+    // - 서버(SSR): $page.data.user 사용 (요청별 안전, 모듈 레벨 상태 오염 없음)
+    // - 클라이언트(hydration 전): $page.data.user 사용 (authStore.isLoading = true)
+    // - 클라이언트(onMount 후): authStore.user 사용 (syncAuth로 초기화됨)
     const ssrUser = $derived(
         $page.data.user
             ? {
@@ -35,7 +38,7 @@
               }
             : null
     );
-    const effectiveUser = $derived(authStore.isLoading ? ssrUser : authStore.user);
+    const effectiveUser = $derived(browser && !authStore.isLoading ? authStore.user : ssrUser);
     const isEffectivelyLoggedIn = $derived(effectiveUser !== null && effectiveUser !== undefined);
 
     let headerAvatarUrl = $derived(
