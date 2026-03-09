@@ -29,7 +29,8 @@ const coreListLayouts: { manifest: LayoutManifest; component: any }[] = [
             id: 'compact',
             name: '컴팩트',
             description: '제목과 메타데이터만 표시하는 기본 목록',
-            wrapperClass: 'space-y-1 -mx-2 md:mx-0 [&>a]:border-x-0 md:[&>a]:border-x [&>a]:rounded-none md:[&>a]:rounded-lg'
+            wrapperClass:
+                'space-y-1 -mx-2 md:mx-0 [&>a]:border-x-0 md:[&>a]:border-x [&>a]:rounded-none md:[&>a]:rounded-lg'
         },
         component: CompactLayout
     },
@@ -38,7 +39,8 @@ const coreListLayouts: { manifest: LayoutManifest; component: any }[] = [
             id: 'card',
             name: '카드',
             description: '본문 미리보기와 썸네일을 포함한 카드형 목록',
-            wrapperClass: 'space-y-3 -mx-2 md:mx-0 [&>a]:border-x-0 md:[&>a]:border-x [&>a]:rounded-none md:[&>a]:rounded-lg'
+            wrapperClass:
+                'space-y-3 -mx-2 md:mx-0 [&>a]:border-x-0 md:[&>a]:border-x [&>a]:rounded-none md:[&>a]:rounded-lg'
         },
         component: CardLayout
     },
@@ -47,7 +49,8 @@ const coreListLayouts: { manifest: LayoutManifest; component: any }[] = [
             id: 'detailed',
             name: '상세',
             description: '큰 썸네일과 상세 메타데이터를 포함한 목록',
-            wrapperClass: 'space-y-3 -mx-2 md:mx-0 [&>a]:border-x-0 md:[&>a]:border-x [&>a]:rounded-none md:[&>a]:rounded-lg'
+            wrapperClass:
+                'space-y-3 -mx-2 md:mx-0 [&>a]:border-x-0 md:[&>a]:border-x [&>a]:rounded-none md:[&>a]:rounded-lg'
         },
         component: DetailedLayout
     },
@@ -65,7 +68,8 @@ const coreListLayouts: { manifest: LayoutManifest; component: any }[] = [
             id: 'webzine',
             name: '웹진',
             description: '큰 이미지와 본문 미리보기를 포함한 블로그 스타일',
-            wrapperClass: 'space-y-4 -mx-2 md:mx-0 [&>a]:border-x-0 md:[&>a]:border-x [&>a]:rounded-none md:[&>a]:rounded-lg'
+            wrapperClass:
+                'space-y-4 -mx-2 md:mx-0 [&>a]:border-x-0 md:[&>a]:border-x [&>a]:rounded-none md:[&>a]:rounded-lg'
         },
         component: WebzineLayout
     },
@@ -92,7 +96,8 @@ const coreListLayouts: { manifest: LayoutManifest; component: any }[] = [
             id: 'classic',
             name: '클래식',
             description: 'PHP 게시판 스킨과 동일한 추천/제목/이름/날짜/조회 테이블형 목록',
-            wrapperClass: 'border-y border-x-0 md:border-x border-border rounded-none md:rounded-lg divide-y divide-border overflow-hidden -mx-2 md:mx-0'
+            wrapperClass:
+                'border-y border-x-0 md:border-x border-border rounded-none md:rounded-lg divide-y divide-border overflow-hidden -mx-2 md:mx-0'
         },
         component: ClassicLayout
     },
@@ -101,7 +106,8 @@ const coreListLayouts: { manifest: LayoutManifest; component: any }[] = [
             id: 'notice',
             name: '공지',
             description: '카드형 공지사항 스타일 (배지 + 깔끔한 메타데이터)',
-            wrapperClass: 'space-y-2 -mx-2 md:mx-0 [&>a]:border-x-0 md:[&>a]:border-x [&>a]:rounded-none md:[&>a]:rounded-lg'
+            wrapperClass:
+                'space-y-2 -mx-2 md:mx-0 [&>a]:border-x-0 md:[&>a]:border-x [&>a]:rounded-none md:[&>a]:rounded-lg'
         },
         component: NoticeLayout
     },
