@@ -111,7 +111,7 @@
     const boardTypeComponent = $derived(boardTypeRegistry.resolve(boardType));
 
     // 목록 보기 권한 체크 (list_level이 0보다 크고 인증된 경우에만 체크)
-    const canList = $derived(() => {
+    const canList = $derived.by(() => {
         if (!authStore.isAuthenticated) {
             // 비회원 레벨=1, list_level<=1이면 공개 게시판
             const requiredLevel = data.board?.list_level ?? 1;
@@ -124,13 +124,13 @@
     );
 
     // 글쓰기 권한 체크 (서버 permissions 우선, 클라이언트 레벨 비교 폴백)
-    const canWrite = $derived(() => {
+    const canWrite = $derived.by(() => {
         if (!authStore.isAuthenticated) return false;
         return checkPermission(data.board, 'can_write', authStore.user ?? null);
     });
 
     // 권한 부족 시 표시할 메시지
-    const writePermissionMessage = $derived(() => {
+    const writePermissionMessage = $derived.by(() => {
         if (!authStore.isAuthenticated) return '로그인이 필요합니다';
         return getPermissionMessage(data.board, 'can_write', authStore.user ?? null);
     });

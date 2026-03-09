@@ -26,7 +26,7 @@
     ];
 
     // 필터링된 아이템
-    let filteredItems = $derived(() => {
+    let filteredItems = $derived.by(() => {
         if (!expHistory) return [];
         if (data.filter === 'earned') return expHistory.items.filter((item) => item.exp_point > 0);
         if (data.filter === 'used') return expHistory.items.filter((item) => item.exp_point < 0);
