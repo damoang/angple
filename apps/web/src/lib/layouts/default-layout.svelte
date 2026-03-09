@@ -57,7 +57,7 @@
             {/if}
 
             <main
-                class="box-content min-w-0 flex-1 px-2 pt-1 md:px-0 md:py-5 lg:pe-6 2xl:!px-9 md:[&_[data-slot='card']]:mx-0"
+                class="box-content min-w-0 flex-1 px-5 pt-1 md:px-0 md:py-5 lg:pe-6 2xl:!px-9 [&_[data-slot='card']]:-mx-5 md:[&_[data-slot='card']]:mx-0"
             >
                 {@render children()}
             </main>
