@@ -242,14 +242,8 @@
                                     <img
                                         src={thumbUrl(item)}
                                         alt={item.file}
-                                        class="size-10 object-contain"
+                                        class="size-10 object-contain transition-transform group-hover/emo:scale-[3]"
                                         loading="lazy"
-                                    />
-                                    <!-- 호버 확대 미리보기 -->
-                                    <img
-                                        src={thumbUrl(item)}
-                                        alt={item.file}
-                                        class="pointer-events-none absolute -top-20 left-1/2 hidden size-16 -translate-x-1/2 rounded-lg border bg-white object-contain p-1 shadow-lg group-hover/emo:block dark:bg-zinc-800"
                                     />
                                 </button>
                             {/each}

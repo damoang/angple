@@ -167,7 +167,7 @@
                 <img
                     src={display.url}
                     alt={display.label}
-                    class="h-5 w-5 object-scale-down transition-transform group-hover:scale-[100]"
+                    class="h-5 w-5 object-scale-down transition-transform group-hover:scale-[2.5]"
                 />
             {:else}
                 <span class="text-base leading-none">{display.emoji}</span>
@@ -249,13 +249,7 @@
                             <img
                                 src={emo.url}
                                 alt={emo.reaction}
-                                class="h-7 w-7 object-scale-down"
-                            />
-                            <!-- 호버 확대 미리보기 -->
-                            <img
-                                src={emo.url}
-                                alt={emo.reaction}
-                                class="pointer-events-none absolute -top-16 left-1/2 hidden h-14 w-14 -translate-x-1/2 rounded-lg border bg-white object-scale-down p-1 shadow-lg group-hover/emo:block dark:bg-zinc-800"
+                                class="h-7 w-7 object-scale-down transition-transform group-hover/emo:scale-[4]"
                             />
                         {:else}
                             <span class="text-xl leading-none">{emo.emoji}</span>
