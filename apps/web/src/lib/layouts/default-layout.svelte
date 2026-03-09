@@ -1,6 +1,5 @@
 <script lang="ts">
     import '../../app.css';
-    import favicon from '$lib/assets/favicon.png';
     import { onMount } from 'svelte';
     import Header from '$lib/components/layout/header.svelte';
     import Sidebar from '$lib/components/layout/sidebar.svelte';
@@ -23,12 +22,6 @@
         authActions.initAuth();
     });
 </script>
-
-<svelte:head>
-    <title>{import.meta.env.VITE_SITE_NAME || 'Angple'}</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link rel="icon" href={favicon} />
-</svelte:head>
 
 <div class="relative flex min-h-screen flex-col items-center">
     <!-- 배경 박스 -->
