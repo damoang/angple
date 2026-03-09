@@ -2,12 +2,14 @@
     import { goto } from '$app/navigation';
     import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card/index.js';
     import { Button } from '$lib/components/ui/button/index.js';
+    import { Badge } from '$lib/components/ui/badge/index.js';
     import type { PageData } from './$types.js';
     import Coins from '@lucide/svelte/icons/coins';
     import TrendingUp from '@lucide/svelte/icons/trending-up';
     import TrendingDown from '@lucide/svelte/icons/trending-down';
     import ChevronLeft from '@lucide/svelte/icons/chevron-left';
     import ChevronRight from '@lucide/svelte/icons/chevron-right';
+    import Clock from '@lucide/svelte/icons/clock';
 
     let { data }: { data: PageData } = $props();
 
@@ -39,6 +41,26 @@
             minute: '2-digit'
         });
     }
+
+    // 만료 상태 판별 (7일 이내 만료 예정)
+    function isExpiringSoon(expireDate: string): boolean {
+        if (!expireDate || expireDate === '9999-12-31') return false;
+        const now = new Date();
+        const expire = new Date(expireDate);
+        const diffDays = (expire.getTime() - now.getTime()) / (1000 * 60 * 60 * 24);
+        return diffDays >= 0 && diffDays <= 7;
+    }
+
+    // 만료 예정 포인트 합계
+    let expiringTotal = $derived.by(() => {
+        if (!pointData) return 0;
+        return pointData.items
+            .filter(
+                (item) =>
+                    item.po_point > 0 && !item.po_expired && isExpiringSoon(item.po_expire_date)
+            )
+            .reduce((sum, item) => sum + (item.po_point - (item.po_use_point ?? 0)), 0);
+    });
 
     // 포인트 포맷 (양수는 +, 음수는 그대로)
     function formatPoint(point: number): string {
@@ -106,7 +128,7 @@
         </Card>
     {:else}
         <!-- 포인트 요약 -->
-        <div class="mb-6 grid gap-4 sm:grid-cols-3">
+        <div class="mb-6 grid gap-4 sm:grid-cols-3" class:sm:grid-cols-4={expiringTotal > 0}>
             <!-- 현재 보유 포인트 -->
             <Card class="bg-primary/5 border-primary/20">
                 <CardContent class="pt-6">
@@ -157,6 +179,27 @@
                     </div>
                 </CardContent>
             </Card>
+
+            <!-- 만료 예정 (있을 때만) -->
+            {#if expiringTotal > 0}
+                <Card
+                    class="border-orange-200 bg-orange-50/50 dark:border-orange-900 dark:bg-orange-950/20"
+                >
+                    <CardContent class="pt-6">
+                        <div class="flex items-center gap-3">
+                            <div class="rounded-full bg-orange-500/10 p-3">
+                                <Clock class="h-6 w-6 text-orange-500" />
+                            </div>
+                            <div>
+                                <p class="text-muted-foreground text-sm">7일 내 만료</p>
+                                <p class="text-2xl font-bold text-orange-600">
+                                    {expiringTotal.toLocaleString()}
+                                </p>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+            {/if}
         </div>
 
         <!-- 필터 탭 -->
@@ -197,9 +240,23 @@
                                         >
                                             <span>{formatDate(item.po_datetime)}</span>
                                             {#if item.po_expired}
-                                                <span class="text-destructive">(만료됨)</span>
+                                                <Badge
+                                                    variant="secondary"
+                                                    class="text-muted-foreground text-[10px]"
+                                                    >만료됨</Badge
+                                                >
+                                            {:else if isExpiringSoon(item.po_expire_date)}
+                                                <Badge
+                                                    variant="outline"
+                                                    class="border-orange-300 text-[10px] text-orange-600"
+                                                >
+                                                    <Clock class="mr-0.5 h-2.5 w-2.5" />
+                                                    만료 임박
+                                                </Badge>
                                             {:else if item.po_expire_date && item.po_expire_date !== '9999-12-31'}
-                                                <span>만료: {item.po_expire_date}</span>
+                                                <span class="text-muted-foreground"
+                                                    >만료: {item.po_expire_date}</span
+                                                >
                                             {/if}
                                         </div>
                                     </div>

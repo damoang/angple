@@ -28,11 +28,16 @@
         grantXP,
         getXPConfig,
         updateXPConfig,
+        getPointConfig,
+        updatePointConfig,
         type MemberXPInfo,
         type XPHistoryItem,
         type XPSummary,
-        type XPConfig
+        type XPConfig,
+        type PointConfig
     } from '$lib/api/admin-xp';
+    import Clock from '@lucide/svelte/icons/clock';
+    import Coins from '@lucide/svelte/icons/coins';
 
     // 레벨 구간 데이터
     const levelThresholds = [
@@ -76,6 +81,41 @@
             alert('설정 저장에 실패했습니다.');
         } finally {
             configSaving = false;
+        }
+    }
+
+    // 포인트 설정 상태
+    let pointCfg = $state<PointConfig>({
+        expiry_enabled: false,
+        expiry_days: 180
+    });
+    let pointConfigLoading = $state(true);
+    let pointConfigSaving = $state(false);
+    let pointConfigSaved = $state(false);
+
+    async function loadPointConfig() {
+        pointConfigLoading = true;
+        try {
+            pointCfg = await getPointConfig();
+        } catch (error) {
+            console.error('포인트 설정 로드 실패:', error);
+        } finally {
+            pointConfigLoading = false;
+        }
+    }
+
+    async function savePointConfig() {
+        pointConfigSaving = true;
+        pointConfigSaved = false;
+        try {
+            await updatePointConfig(pointCfg);
+            pointConfigSaved = true;
+            setTimeout(() => (pointConfigSaved = false), 2000);
+        } catch (error) {
+            console.error('포인트 설정 저장 실패:', error);
+            alert('설정 저장에 실패했습니다.');
+        } finally {
+            pointConfigSaving = false;
         }
     }
 
@@ -197,6 +237,7 @@
 
     onMount(() => {
         loadConfig();
+        loadPointConfig();
         loadMembers();
     });
 </script>
@@ -336,6 +377,83 @@
                                 <Check class="mr-2 h-4 w-4" />
                                 저장됨
                             {:else if configSaving}
+                                <Loader2 class="mr-2 h-4 w-4 animate-spin" />
+                                저장 중...
+                            {:else}
+                                <Save class="mr-2 h-4 w-4" />
+                                저장
+                            {/if}
+                        </Button>
+                    </div>
+                </div>
+            {/if}
+        </Card.Content>
+    </Card.Root>
+
+    <!-- 포인트 유효기간 설정 -->
+    <Card.Root>
+        <Card.Header class="pb-3">
+            <Card.Title class="flex items-center gap-2 text-base">
+                <Coins class="h-4 w-4" />
+                포인트 설정
+            </Card.Title>
+        </Card.Header>
+        <Card.Content>
+            {#if pointConfigLoading}
+                <div class="flex items-center gap-2 py-2">
+                    <Loader2 class="text-muted-foreground h-4 w-4 animate-spin" />
+                    <span class="text-muted-foreground text-sm">설정 로드 중...</span>
+                </div>
+            {:else}
+                <div class="space-y-5">
+                    <!-- 포인트 유효기간 -->
+                    <div class="flex items-center justify-between gap-4">
+                        <div class="flex-1">
+                            <div class="flex items-center gap-2">
+                                <Label for="point-expiry-days" class="font-medium">
+                                    <Clock class="mr-1 inline h-3.5 w-3.5" />
+                                    포인트 유효기간
+                                </Label>
+                                <Switch
+                                    checked={pointCfg.expiry_enabled}
+                                    onCheckedChange={(v) => (pointCfg.expiry_enabled = v)}
+                                />
+                            </div>
+                            <p class="text-muted-foreground mt-0.5 text-xs">
+                                활성화 시 새로 지급되는 포인트부터 유효기간이 적용됩니다
+                            </p>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <Input
+                                id="point-expiry-days"
+                                type="number"
+                                min="1"
+                                max="3650"
+                                step="1"
+                                class="w-24 text-right"
+                                bind:value={pointCfg.expiry_days}
+                                disabled={!pointCfg.expiry_enabled}
+                            />
+                            <span class="text-muted-foreground w-6 text-sm">일</span>
+                        </div>
+                    </div>
+
+                    {#if pointCfg.expiry_enabled}
+                        <div class="bg-muted/50 rounded-lg p-3">
+                            <p class="text-muted-foreground text-xs">
+                                만료 크론이 매일 새벽에 실행되어 만료된 포인트를 자동 차감합니다.
+                                만료 7일 전 알림이 발송됩니다.
+                            </p>
+                        </div>
+                    {/if}
+
+                    <!-- 저장 버튼 -->
+                    <div class="flex justify-end">
+                        <Button size="sm" onclick={savePointConfig} disabled={pointConfigSaving}>
+                            {#if pointConfigSaved}
+                                <Check class="mr-2 h-4 w-4" />
+                                저장됨
+                            {:else if pointConfigSaving}
                                 <Loader2 class="mr-2 h-4 w-4 animate-spin" />
                                 저장 중...
                             {:else}
