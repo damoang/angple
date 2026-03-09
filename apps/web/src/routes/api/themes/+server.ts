@@ -60,10 +60,17 @@ export const GET: RequestHandler = async () => {
             });
         }
 
-        return json({
-            themes,
-            total: themes.length
-        });
+        return json(
+            {
+                themes,
+                total: themes.length
+            },
+            {
+                headers: {
+                    'Cache-Control': 'public, max-age=120'
+                }
+            }
+        );
     } catch (error) {
         console.error('[API /themes] 테마 목록 조회 실패:', error);
 
