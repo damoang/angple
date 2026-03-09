@@ -159,9 +159,7 @@ export async function unloadPluginHooks(pluginId: string): Promise<void> {
 export async function loadAllPluginHooks(
     plugins: Array<{ id: string; manifest?: Partial<ExtensionManifest> }>
 ): Promise<void> {
-    for (const plugin of plugins) {
-        await loadPluginHooks(plugin.id, plugin.manifest);
-    }
+    await Promise.all(plugins.map((plugin) => loadPluginHooks(plugin.id, plugin.manifest)));
 }
 
 /**

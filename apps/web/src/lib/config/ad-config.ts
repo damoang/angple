@@ -315,16 +315,12 @@ export const POSITION_MAP: Record<string, string> = {
     // 인덱스(홈) — main 유닛
     'index-head': 'banner-small',
     'index-top': 'banner-responsive',
-    'index-news-economy': 'banner-responsive',
-    'index-middle-1': 'banner-horizontal',
-    'index-middle-2': 'banner-horizontal',
+    'index-middle-1': 'banner-responsive',
     'index-bottom': 'banner-large',
 
     // 사이드바 — sub 유닛 (소형)
     'sidebar-sticky': 'banner-halfpage',
     sidebar: 'banner-square',
-    'sidebar-1': 'banner-square',
-    'sidebar-b2b': 'banner-square',
 
     // 윙 배너 — sub 유닛
     'wing-left': 'banner-vertical',
@@ -336,9 +332,7 @@ export const POSITION_LABELS: Record<string, string> = {
     'header-after': '메뉴 하단',
     'index-head': '상단 광고',
     'index-top': '추천글 하단 광고',
-    'index-news-economy': '소식/구매 사이',
-    'index-middle-1': '중간 광고 1',
-    'index-middle-2': '중간 광고 2',
+    'index-middle-1': '중간 광고',
     'index-bottom': '하단 광고',
     'side-banner': '사이드 배너',
     'board-view-top': '본문 상단',
@@ -353,7 +347,6 @@ export const POSITION_LABELS: Record<string, string> = {
     'board-list-infeed': '목록 인피드',
     'comment-infeed': '댓글 인피드',
     'sidebar-sticky': '사이드바 고정',
-    'sidebar-b2b': 'B2B 광고',
     'wing-left': '왼쪽 윙 배너',
     'wing-right': '오른쪽 윙 배너'
 };

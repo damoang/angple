@@ -39,6 +39,13 @@ function fingerprint(key: string, value: unknown): string {
                 .map(([k, v]) => k + ':' + v.length)
                 .sort()
                 .join('|');
+        case 'user':
+            if (value && typeof value === 'object' && 'id' in (value as Record<string, unknown>)) {
+                return (value as { id?: string }).id ?? '';
+            }
+            return 'null';
+        case 'accessToken':
+            return String(value);
         case 'themeSettings':
             return JSON.stringify(value); // 작은 객체, JSON OK
         default:
@@ -53,7 +60,9 @@ const STABLE_KEYS = [
     'menus',
     'celebration',
     'banners',
-    'ga4MeasurementId'
+    'ga4MeasurementId',
+    'user',
+    'accessToken'
 ] as const;
 
 export const load = ({ data }) => {

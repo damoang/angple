@@ -37,20 +37,6 @@
     // Writable state for accordion — allows both auto-open and manual interaction
     let accordionValue = $state<string | undefined>(undefined);
 
-    // Auto-open the accordion group containing the active menu when path or menu data changes
-    // depth 2/3까지 재귀 탐색하여 활성 메뉴 포함 그룹을 자동 오픈
-    $effect(() => {
-        const hasActiveChild = (items: typeof menuData): boolean =>
-            items.some((c) => isActive(c.url) || (c.children && hasActiveChild(c.children)));
-
-        for (const menu of menuData) {
-            if (menu.children && hasActiveChild(menu.children)) {
-                accordionValue = `item-${menu.id}`;
-                return;
-            }
-        }
-    });
-
     // 2/3depth 그룹 접기/펼치기 상태
     let expandedGroups = $state<Set<number>>(new Set());
 
@@ -61,23 +47,30 @@
         expandedGroups = next;
     }
 
-    // 2depth 하위에 활성 메뉴가 있으면 자동 펼침
+    // 단일 트리 순회로 1depth 아코디언 + 2/3depth 서브그룹 동시 처리
     $effect(() => {
+        let newAccordionValue: string | undefined = undefined;
         const autoExpand = new Set<number>();
-        const check = (items: typeof menuData) => {
+
+        const traverse = (items: typeof menuData, depth: number) => {
             for (const item of items) {
                 if (item.children?.length) {
                     const childActive = item.children.some(
                         (c) => isActive(c.url) || c.children?.some((gc) => isActive(gc.url))
                     );
-                    if (childActive) autoExpand.add(item.id);
-                    check(item.children);
+                    if (depth === 0 && childActive) {
+                        newAccordionValue = `item-${item.id}`;
+                    }
+                    if (depth >= 1 && childActive) {
+                        autoExpand.add(item.id);
+                    }
+                    traverse(item.children, depth + 1);
                 }
             }
         };
-        for (const menu of menuData) {
-            if (menu.children) check(menu.children);
-        }
+
+        traverse(menuData, 0);
+        if (newAccordionValue) accordionValue = newAccordionValue;
         if (autoExpand.size > 0) expandedGroups = autoExpand;
     });
 
