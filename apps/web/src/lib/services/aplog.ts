@@ -102,7 +102,37 @@ export function initAplog(mbId: string | null) {
     }
 }
 
-// Observer 해제 (SPA 네비게이션 시 호출)
+// SPA 네비게이션 시 기존 observer 재활용 (새 광고 요소만 추가 observe)
+export function reinitAplog(mbId: string | null) {
+    currentMbId = mbId;
+
+    if (!observer) {
+        // observer가 없으면 새로 생성 (최초 호출 또는 destroy 후)
+        initAplog(mbId);
+        return;
+    }
+
+    const items = document.querySelectorAll('.da-bn-container .da-bn-item');
+    for (const item of items) {
+        const img = item.querySelector('img');
+        if (!img) continue;
+        const imgSrc = img.src.split('/').pop() ?? '';
+        // 이미 추적한 광고는 스킵
+        if (imgSrc && calledAdList.includes(imgSrc)) continue;
+
+        // 클릭 핸들러 (중복 방지를 위해 매번 재설정)
+        const el = item as HTMLElement;
+        el.onclick = () => {
+            const clickImg = el.querySelector('img');
+            if (!clickImg) return;
+            const clickImgSrc = clickImg.src.split('/').pop() ?? '';
+            if (clickImgSrc) adLog(el, clickImgSrc, true);
+        };
+        observer.observe(item);
+    }
+}
+
+// Observer 해제 (onMount cleanup용)
 export function destroyAplog() {
     if (observer) {
         observer.disconnect();

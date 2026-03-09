@@ -154,32 +154,27 @@
     //     });
     // });
 
-    // 새 버전 감지 시 다음 네비게이션에서 풀 리로드 (최대 2회, 무한 루프 방지)
+    // afterNavigate 통합: 버전 감지 리로드 + GA4 페이지뷰 + 광고 observer 재설정
     const UPDATED_RELOAD_KEY = '__angple_updated_reload__';
-    afterNavigate(({ type }) => {
+    afterNavigate(({ type, to }) => {
+        // 새 버전 감지 시 풀 리로드 (최대 2회, 무한 루프 방지)
         if ($updated && type !== 'enter') {
             const count = Number(sessionStorage.getItem(UPDATED_RELOAD_KEY) || '0');
             if (count < 2) {
                 sessionStorage.setItem(UPDATED_RELOAD_KEY, String(count + 1));
                 location.reload();
+                return;
             }
         }
-    });
-
-    // GA4: SPA 네비게이션 시 페이지뷰 추적
-    afterNavigate(({ to }) => {
+        // GA4 페이지뷰 추적
         if (to?.url) {
             trackPageView(to.url.pathname + to.url.search);
         }
-    });
-
-    // 광고 추적: 매 네비게이션마다 observer 재설정 (aplog 모듈 로드 후)
-    afterNavigate(() => {
+        // 광고 observer 재설정 (기존 observer 재활용, 새 광고만 추가 observe)
         untrack(() => {
             if (!aplogMod) return;
-            aplogMod.destroyAplog();
             requestAnimationFrame(() => {
-                aplogMod!.initAplog(authStore.user?.mb_id ?? null);
+                aplogMod!.reinitAplog(authStore.user?.mb_id ?? null);
             });
         });
     });
