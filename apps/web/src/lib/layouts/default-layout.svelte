@@ -51,7 +51,7 @@
                 </aside>
             {/if}
             {#if snbPosition === 'left'}
-                <aside class="bg-background hidden self-start 2xl:block 2xl:!w-[230px]">
+                <aside class="bg-background hidden 2xl:block 2xl:!w-[230px]">
                     <Sidebar />
                 </aside>
             {/if}
