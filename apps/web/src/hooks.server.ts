@@ -469,7 +469,7 @@ export const handle: Handle = async ({ event, resolve }) => {
                     status: 200,
                     headers: {
                         'Content-Type': 'text/html; charset=utf-8',
-                        'Cache-Control': 'private, no-store, no-cache, must-revalidate',
+                        'Cache-Control': 'private, max-age=30, must-revalidate',
                         Vary: 'Cookie',
                         'X-Content-Type-Options': 'nosniff',
                         'X-Frame-Options': 'SAMEORIGIN',
@@ -567,7 +567,7 @@ export const handle: Handle = async ({ event, resolve }) => {
         );
         response.headers.set('Vary', 'Cookie');
     } else {
-        response.headers.set('Cache-Control', 'private, no-store, no-cache, must-revalidate');
+        response.headers.set('Cache-Control', 'private, max-age=2, must-revalidate');
         response.headers.set('Vary', 'Cookie');
     }
 
