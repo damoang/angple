@@ -21,19 +21,33 @@
     import { getAvatarUrl, getMemberIconUrl } from '$lib/utils/member-icon';
     import { menuStore } from '$lib/stores/menu.svelte';
     import { getIcon } from '$lib/utils/icon-map';
+    import { page } from '$app/stores';
+
+    // SSR 안전한 인증 상태: authStore.isLoading(SSR) 시 $page.data.user 사용
+    // authStore의 $state는 모듈 레벨이라 SSR에서 요청간 공유 → $page.data는 요청별 안전
+    const ssrUser = $derived(
+        $page.data.user
+            ? {
+                  mb_id: $page.data.user.id ?? '',
+                  mb_name: $page.data.user.nickname ?? '',
+                  mb_level: $page.data.user.level ?? 0,
+                  mb_image: $page.data.user.mb_image
+              }
+            : null
+    );
+    const effectiveUser = $derived(authStore.isLoading ? ssrUser : authStore.user);
+    const isEffectivelyLoggedIn = $derived(effectiveUser !== null && effectiveUser !== undefined);
 
     let headerAvatarUrl = $derived(
-        authStore.user
-            ? getAvatarUrl(authStore.user.mb_image) ||
-                  getMemberIconUrl(authStore.user.mb_id) ||
-                  null
+        effectiveUser
+            ? getAvatarUrl(effectiveUser.mb_image) || getMemberIconUrl(effectiveUser.mb_id) || null
             : null
     );
     let headerAvatarFailed = $state(false);
 
     // user 변경 시 실패 상태 리셋
     $effect(() => {
-        if (authStore.user) untrack(() => (headerAvatarFailed = false));
+        if (effectiveUser) untrack(() => (headerAvatarFailed = false));
     });
 
     // 스크롤 상태 관리
@@ -286,7 +300,7 @@
             </button>
 
             <!-- 사용자 아이콘 (로그인/프로필) -->
-            {#if authStore.isAuthenticated && authStore.user}
+            {#if isEffectivelyLoggedIn && effectiveUser}
                 <a
                     href="/my"
                     class="hover:bg-accent flex items-center gap-1.5 rounded-lg px-2 py-1.5 transition-all duration-200 ease-out"
@@ -300,7 +314,7 @@
                         {#if headerAvatarUrl && !headerAvatarFailed}
                             <img
                                 src={headerAvatarUrl}
-                                alt={authStore.user.mb_name}
+                                alt={effectiveUser.mb_name}
                                 class="h-full w-full object-cover"
                                 onerror={() => {
                                     headerAvatarFailed = true;
@@ -308,12 +322,12 @@
                             />
                         {:else}
                             <span class="text-primary text-xs font-bold"
-                                >{authStore.user.mb_name.charAt(0).toUpperCase()}</span
+                                >{effectiveUser.mb_name.charAt(0).toUpperCase()}</span
                             >
                         {/if}
                     </div>
                     <span class="text-foreground hidden text-sm font-medium md:inline">
-                        {authStore.user.mb_name}
+                        {effectiveUser.mb_name}
                     </span>
                 </a>
             {:else}
@@ -327,7 +341,7 @@
                 </button>
             {/if}
 
-            {#if authStore.isAuthenticated}
+            {#if isEffectivelyLoggedIn}
                 <!-- 쪽지 아이콘 -->
                 <button
                     onclick={() => goto('/messages')}
