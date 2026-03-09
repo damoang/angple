@@ -87,6 +87,17 @@ export const AD_CONFIGS: Record<string, AdConfig> = {
             ]
         ]
     },
+    'banner-article': {
+        unit: AD_UNIT_PATHS.article,
+        sizes: [
+            [728, 90],
+            [320, 100]
+        ],
+        responsive: [
+            [728, [[728, 90]]],
+            [0, [[320, 100]]]
+        ]
+    },
     'banner-view-content': {
         unit: AD_UNIT_PATHS.article,
         sizes: [
@@ -280,16 +291,28 @@ export const AD_CONFIGS: Record<string, AdConfig> = {
 };
 
 // 사이트 위치 → 광고 유형 매핑
+// 유닛 분산: main(대형), sub(중소형), article(본문), curation(인피드)
 export const POSITION_MAP: Record<string, string> = {
-    'board-view-top': 'banner-small',
+    // 게시판 상단/하단 — main 유닛 (대형)
     'board-head': 'banner-horizontal',
     'board-list-head': 'banner-medium-compact',
     'board-list-bottom': 'banner-large-compact',
-    'board-content': 'banner-small',
-    'board-content-bottom': 'banner-large',
-    'board-before-comments': 'banner-small',
-    'board-after-comments': 'banner-compact',
     'board-footer': 'banner-compact',
+    'header-after': 'banner-horizontal',
+
+    // 본문 영역 — article 유닛 (본문 전용)
+    'board-view-top': 'banner-article',
+    'board-content': 'banner-article',
+    'board-content-bottom': 'banner-view-content',
+    'board-before-comments': 'banner-article',
+    'board-after-comments': 'banner-horizontal-728',
+
+    // 인피드 — curation 유닛
+    'board-list-infeed': 'infeed-compact',
+    'comment-infeed': 'infeed-compact',
+    'comment-top': 'banner-compact',
+
+    // 인덱스(홈) — main 유닛
     'index-head': 'banner-small',
     'index-top': 'banner-responsive',
     'index-news-economy': 'banner-responsive',
@@ -297,15 +320,15 @@ export const POSITION_MAP: Record<string, string> = {
     'index-middle-2': 'banner-horizontal',
     'index-middle-3': 'banner-horizontal',
     'index-bottom': 'banner-large',
-    'header-after': 'banner-horizontal',
-    'board-list-infeed': 'infeed-compact',
-    'comment-infeed': 'infeed-compact',
-    'comment-top': 'banner-compact',
+
+    // 사이드바 — sub 유닛 (소형)
     'sidebar-sticky': 'banner-halfpage',
     sidebar: 'banner-square',
     'sidebar-1': 'banner-square',
     'sidebar-2': 'banner-square',
     'sidebar-b2b': 'banner-square',
+
+    // 윙 배너 — sub 유닛
     'wing-left': 'banner-vertical',
     'wing-right': 'banner-vertical'
 };
