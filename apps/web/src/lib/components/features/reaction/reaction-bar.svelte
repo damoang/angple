@@ -249,7 +249,7 @@
                             <img
                                 src={emo.url}
                                 alt={emo.reaction}
-                                class="h-7 w-7 object-scale-down transition-transform group-hover/emo:scale-[4]"
+                                class="h-7 w-7 object-scale-down transition-transform group-hover/emo:z-50 group-hover/emo:scale-[4]"
                             />
                         {:else}
                             <span class="text-xl leading-none">{emo.emoji}</span>
