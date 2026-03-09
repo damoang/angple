@@ -39,6 +39,35 @@
 
     const { children, data } = $props(); // Svelte 5: SSR 데이터 받기
 
+    // 인증 상태 동기화 — data.user 변경에 반응 (SPA 네비게이션 + 초기 로드 모두 대응)
+    let authInitialized = false;
+    function syncAuth(d: typeof data) {
+        if (d.user && d.accessToken) {
+            authActions.initFromSSR(
+                { id: d.user.id, nickname: d.user.nickname ?? '', level: d.user.level },
+                d.accessToken
+            );
+        } else if (d.user) {
+            // accessToken 없어도 user 있으면 로그인 상태 인식
+            authActions.initFromSSR(
+                { id: d.user.id, nickname: d.user.nickname ?? '', level: d.user.level },
+                ''
+            );
+        } else {
+            authActions.initAuth();
+        }
+        authInitialized = true;
+    }
+
+    // $effect: data.user 변경 시 인증 상태 자동 동기화 (SPA 네비게이션 시)
+    $effect(() => {
+        const u = data.user;
+        const t = data.accessToken;
+        if (authInitialized) {
+            untrack(() => syncAuth(data));
+        }
+    });
+
     // /admin, /install 경로 여부 확인 (테마 레이아웃 적용 안함)
     const isAdminRoute = $derived($page.url.pathname.startsWith('/admin'));
     const isInstallRoute = $derived($page.url.pathname.startsWith('/install'));
@@ -238,15 +267,8 @@
         // 슬롯 기본 컴포넌트 등록 (포크 시 slot-defaults.ts 수정으로 커스터마이징)
         registerDefaultSlots();
 
-        // 인증 상태 초기화 (SSR에서 받은 데이터가 있으면 우선 사용)
-        if (data.user && data.accessToken) {
-            authActions.initFromSSR(
-                { id: data.user.id, nickname: data.user.nickname ?? '', level: data.user.level },
-                data.accessToken
-            );
-        } else {
-            authActions.initAuth();
-        }
+        // 인증 상태 초기화 — onMount에서 한 번 실행
+        syncAuth(data);
 
         // postMessage 리스너 (Admin에서 테마 변경 시 리로드)
         function handleMessage(event: MessageEvent) {
