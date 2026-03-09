@@ -104,7 +104,7 @@
 
                     <!-- 본문 미리보기 -->
                     <p class="text-muted-foreground mb-3 line-clamp-3 text-sm leading-relaxed">
-                        {previewText()}
+                        {previewText}
                     </p>
                 </div>
 

@@ -226,7 +226,7 @@
     }
 </script>
 
-{#if canComment()}
+{#if canComment}
     <form onsubmit={handleSubmit} class="space-y-2">
         {#if isReplyMode}
             <!-- 대댓글 모드 표시 -->

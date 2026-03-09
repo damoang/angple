@@ -278,7 +278,7 @@
                 이전
             </Button>
 
-            {#each pageNumbers() as pageNum (pageNum)}
+            {#each pageNumbers as pageNum (pageNum)}
                 <Button
                     variant={pageNum === currentPage ? 'default' : 'outline'}
                     size="sm"
