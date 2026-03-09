@@ -207,7 +207,6 @@
             </button>
             <a
                 href="/"
-                data-sveltekit-reload
                 class="flex items-center ps-1 md:ps-0"
                 onclick={(e: MouseEvent) => {
                     if (window.location.pathname === '/') {
@@ -231,7 +230,6 @@
                         href={headerMenu.url}
                         target={headerMenu.target === '_blank' ? '_blank' : undefined}
                         rel={headerMenu.target === '_blank' || isExternal ? 'noopener' : undefined}
-                        data-sveltekit-reload={isHome ? '' : undefined}
                         class="text-foreground hover:text-primary flex items-center transition-all duration-200 ease-out"
                         onclick={isHome
                             ? (e: MouseEvent) => {
@@ -250,7 +248,6 @@
                 <!-- headerMenus가 비어있으면 홈 링크만 기본 표시 -->
                 <a
                     href="/"
-                    data-sveltekit-reload
                     class="text-foreground hover:text-primary flex items-center transition-all duration-200 ease-out"
                     onclick={(e: MouseEvent) => {
                         if (window.location.pathname === '/') {

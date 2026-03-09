@@ -192,21 +192,27 @@
     // - LCP/FCP 개선, invisible 대기 시간 0ms
     const ThemeLayout = $derived(getThemeLayout(data.activeTheme));
 
-    // 테마 Hook 및 Component 로드 (레이아웃과 별개로 동작)
+    // 테마 Hook 및 Component 로드 (변경 시에만)
+    let prevThemeId = '';
     $effect(() => {
         const theme = data.activeTheme;
-        if (theme) {
+        if (theme && theme !== prevThemeId) {
+            prevThemeId = theme;
             loadThemeHooks(theme);
             loadThemeComponents(theme);
         }
     });
 
-    // activePlugins 변경 시 플러그인 Hook 및 Component 로드
+    // activePlugins 변경 시 플러그인 Hook 및 Component 로드 (ID 변경 시에만)
+    let prevPluginIds = '';
     $effect(() => {
-        if (activePlugins.length > 0) {
+        const plugins = activePlugins;
+        const pluginIds = plugins.map((p) => p.id).join(',');
+        if (plugins.length > 0 && pluginIds !== prevPluginIds) {
+            prevPluginIds = pluginIds;
             // 플러그인 Hook 로드 후 액션 실행
             loadAllPluginHooks(
-                activePlugins.map((p) => ({
+                plugins.map((p) => ({
                     id: p.id,
                     manifest: {
                         id: p.id,
@@ -223,7 +229,7 @@
 
             // 플러그인 Component 로드
             loadAllPluginComponents(
-                activePlugins.map((p) => ({
+                plugins.map((p) => ({
                     id: p.id,
                     manifest: {
                         id: p.id,

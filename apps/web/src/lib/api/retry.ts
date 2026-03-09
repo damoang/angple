@@ -14,9 +14,9 @@ export interface RetryConfig {
 }
 
 export const DEFAULT_RETRY_CONFIG: RetryConfig = {
-    maxRetries: 2,
-    baseDelay: 1000,
-    timeout: 15000
+    maxRetries: 1,
+    baseDelay: 500,
+    timeout: 8000
 };
 
 /** 지수 백오프 딜레이 계산 */
