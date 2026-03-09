@@ -366,17 +366,28 @@
         timer: ReturnType<typeof setTimeout> | null;
         servicesEnabled: boolean;
         slotsMap: Map<string, googletag.Slot>;
+        lastRefreshTime: number;
+        pendingRefreshTimer: ReturnType<typeof setTimeout> | null;
     }
 
     function getBatchManager(): BatchManager {
         if (!browser)
-            return { queue: [], timer: null, servicesEnabled: false, slotsMap: new Map() };
+            return {
+                queue: [],
+                timer: null,
+                servicesEnabled: false,
+                slotsMap: new Map(),
+                lastRefreshTime: 0,
+                pendingRefreshTimer: null
+            };
         if (!(window as any)[BATCH_KEY]) {
             (window as any)[BATCH_KEY] = {
                 queue: [],
                 timer: null,
                 servicesEnabled: false,
-                slotsMap: new Map()
+                slotsMap: new Map(),
+                lastRefreshTime: 0,
+                pendingRefreshTimer: null
             };
         }
         return (window as any)[BATCH_KEY];
@@ -454,11 +465,37 @@
                 mgr.servicesEnabled = true;
             }
 
-            // display + refresh
+            // display (슬롯을 DOM에 등록 — 광고 요청은 아직 안 함)
             for (const s of newSlots) {
                 googletag.display(s.getSlotElementId());
             }
-            googletag.pubads().refresh(newSlots);
+
+            // SPA 쿨다운: 마지막 refresh 후 60초 이내면 지연
+            const REFRESH_COOLDOWN = GAM_AD_REFRESH_INTERVAL * 1000;
+            const now = Date.now();
+            const elapsed = now - mgr.lastRefreshTime;
+
+            if (elapsed >= REFRESH_COOLDOWN) {
+                // 쿨다운 지남 → 즉시 refresh
+                googletag.pubads().refresh(newSlots);
+                mgr.lastRefreshTime = now;
+            } else {
+                // 쿨다운 중 → 남은 시간만큼 지연 후 refresh
+                const delay = REFRESH_COOLDOWN - elapsed;
+                if (mgr.pendingRefreshTimer) clearTimeout(mgr.pendingRefreshTimer);
+                mgr.pendingRefreshTimer = setTimeout(() => {
+                    googletag.cmd.push(() => {
+                        // 아직 살아있는 슬롯만 refresh
+                        const validSlots = newSlots.filter((s) =>
+                            mgr.slotsMap.has(s.getSlotElementId())
+                        );
+                        if (validSlots.length > 0) {
+                            googletag.pubads().refresh(validSlots);
+                            mgr.lastRefreshTime = Date.now();
+                        }
+                    });
+                }, delay);
+            }
         });
     }
 
