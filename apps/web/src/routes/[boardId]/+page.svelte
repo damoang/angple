@@ -35,7 +35,6 @@
     import AdSlot from '$lib/components/ui/ad-slot/ad-slot.svelte';
     import PluginSlot from '$lib/components/plugin/plugin-slot.svelte';
     import { doAction } from '$lib/hooks/registry';
-    import { TagNav, type TagNavMenu } from '$lib/components/ui/tag-nav';
     import { widgetLayoutStore } from '$lib/stores/widget-layout.svelte';
     import {
         SeoHead,
@@ -348,15 +347,6 @@
                 <div class="mb-4">
                     <PluginSlot name="board-list-banner" />
                 </div>
-            {/if}
-
-            <!-- 태그 네비게이션 (메인과 동일한 위젯 설정 사용) -->
-            {#if widgetLayoutStore.widgets.find((w) => w.type === 'tag-nav')?.enabled !== false}
-                <TagNav
-                    menus={widgetLayoutStore.widgets.find((w) => w.type === 'tag-nav')?.settings
-                        ?.menus as TagNavMenu[] | undefined}
-                    class="mb-4"
-                />
             {/if}
 
             <!-- 앙지도 헤더 -->

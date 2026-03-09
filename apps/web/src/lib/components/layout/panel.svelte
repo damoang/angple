@@ -6,7 +6,7 @@
     import { widgetLayoutStore } from '$lib/stores/widget-layout.svelte';
 </script>
 
-<div class="flex flex-1 flex-col gap-4 p-4">
+<div class="flex min-h-full flex-col gap-4 p-4">
     <!-- Slot: sidebar-right-top -->
     {#each getComponentsForSlot('sidebar-right-top') as slotComp (slotComp.id)}
         {@const Component = slotComp.component}
