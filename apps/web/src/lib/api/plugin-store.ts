@@ -6,6 +6,7 @@
  */
 
 import { apiClient } from './client';
+import { safeJson } from './safe-json.js';
 
 // 백엔드 API 호출 (v1 API - Bearer 토큰 인증)
 const PLUGIN_STORE_API_URL = '/api/v1/admin/plugins';
@@ -90,7 +91,7 @@ export async function listPlugins(): Promise<CatalogPlugin[]> {
     if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
     }
-    const data = await response.json();
+    const data = await safeJson(response);
     return data.data || [];
 }
 
@@ -105,7 +106,7 @@ export async function getPlugin(name: string): Promise<CatalogPlugin> {
     if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
     }
-    const data = await response.json();
+    const data = await safeJson(response);
     return data.data;
 }
 
@@ -119,7 +120,7 @@ export async function installPlugin(name: string): Promise<void> {
         headers: getAuthHeaders()
     });
     if (!response.ok) {
-        const data = await response.json();
+        const data = await safeJson(response);
         throw new Error(data.message || `HTTP ${response.status}`);
     }
 }
@@ -134,7 +135,7 @@ export async function enablePlugin(name: string): Promise<void> {
         headers: getAuthHeaders()
     });
     if (!response.ok) {
-        const data = await response.json();
+        const data = await safeJson(response);
         throw new Error(data.message || `HTTP ${response.status}`);
     }
 }
@@ -149,7 +150,7 @@ export async function disablePlugin(name: string): Promise<void> {
         headers: getAuthHeaders()
     });
     if (!response.ok) {
-        const data = await response.json();
+        const data = await safeJson(response);
         throw new Error(data.message || `HTTP ${response.status}`);
     }
 }
@@ -164,7 +165,7 @@ export async function uninstallPlugin(name: string): Promise<void> {
         headers: getAuthHeaders()
     });
     if (!response.ok) {
-        const data = await response.json();
+        const data = await safeJson(response);
         throw new Error(data.message || `HTTP ${response.status}`);
     }
 }
@@ -180,7 +181,7 @@ export async function getSettings(name: string): Promise<PluginSetting[]> {
     if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
     }
-    const data = await response.json();
+    const data = await safeJson(response);
     return data.data || [];
 }
 
@@ -198,7 +199,7 @@ export async function saveSettings(name: string, settings: Record<string, unknow
         body: JSON.stringify({ settings })
     });
     if (!response.ok) {
-        const data = await response.json();
+        const data = await safeJson(response);
         throw new Error(data.message || `HTTP ${response.status}`);
     }
 }
@@ -214,6 +215,6 @@ export async function getEvents(name: string): Promise<PluginEvent[]> {
     if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
     }
-    const data = await response.json();
+    const data = await safeJson(response);
     return data.data || [];
 }

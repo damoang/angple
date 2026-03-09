@@ -2,6 +2,7 @@
  * Discipline Log (이용제한 기록) API
  */
 import { browser } from '$app/environment';
+import { safeJson } from './safe-json.js';
 
 const API_BASE = browser ? '/api/v1' : 'http://localhost:8090/api/v1';
 
@@ -162,7 +163,7 @@ export async function getDisciplineLogs(
         throw new Error(`HTTP ${response.status}`);
     }
 
-    return response.json();
+    return safeJson(response);
 }
 
 /**
@@ -176,7 +177,7 @@ export async function getDisciplineLog(id: number): Promise<DisciplineLogDetailR
         throw new Error(`HTTP ${response.status}`);
     }
 
-    return response.json();
+    return safeJson(response);
 }
 
 /**
@@ -206,7 +207,7 @@ export async function createDisciplineLog(
         throw new Error(`HTTP ${response.status}`);
     }
 
-    return response.json();
+    return safeJson(response);
 }
 
 /**

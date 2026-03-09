@@ -11,6 +11,7 @@ import {
     type SlotName
 } from '$lib/components/slot-manager';
 import type { ThemeManifest } from '$lib/types/theme';
+import { safeJson } from '$lib/api/safe-json.js';
 
 /**
  * 현재 로드된 테마 ID 추적
@@ -34,7 +35,9 @@ export async function loadThemeComponents(themeId: string): Promise<boolean> {
             return false;
         }
 
-        const { themes } = await themesResponse.json();
+        const { themes } = await safeJson<{ themes: { manifest: ThemeManifest }[] }>(
+            themesResponse
+        );
         const theme = themes.find((t: { manifest: ThemeManifest }) => t.manifest.id === themeId);
 
         if (!theme) {

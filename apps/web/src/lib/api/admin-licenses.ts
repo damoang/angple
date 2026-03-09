@@ -4,6 +4,7 @@
 
 import type { LicenseKey, LicenseCreateRequest, LicenseStatus } from '$lib/types/license.js';
 import type { PaginatedResponse } from '$lib/types/admin-commerce.js';
+import { safeJson } from './safe-json.js';
 
 const API_BASE = '/api/admin/licenses';
 
@@ -16,7 +17,7 @@ export async function getLicenses(
     if (status) params.append('status', status);
     const res = await fetch(`${API_BASE}?${params}`);
     if (!res.ok) throw new Error('라이선스 목록 조회 실패');
-    return res.json();
+    return safeJson(res);
 }
 
 export async function createLicense(data: LicenseCreateRequest): Promise<LicenseKey> {
@@ -26,7 +27,7 @@ export async function createLicense(data: LicenseCreateRequest): Promise<License
         body: JSON.stringify(data)
     });
     if (!res.ok) throw new Error('라이선스 생성 실패');
-    return res.json();
+    return safeJson(res);
 }
 
 export async function revokeLicense(id: number): Promise<void> {

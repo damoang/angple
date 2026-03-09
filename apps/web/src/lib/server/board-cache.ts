@@ -7,6 +7,7 @@
 import type { Board } from '$lib/api/types.js';
 import { backendFetch as bFetch } from '$lib/server/backend-fetch.js';
 import { createCache } from '$lib/server/cache.js';
+import { safeJson } from '$lib/api/safe-json.js';
 
 const boardInfoCache = createCache<Board>({ ttl: 300_000, maxSize: 200 });
 
@@ -43,10 +44,12 @@ export async function getCachedBoard(
         return { board: null, status: boardRes.status };
     }
 
-    let board: Board | null = (await boardRes.json()).data as Board;
+    let board: Board | null = (await safeJson<{ data: Board }>(boardRes)).data;
 
     if (board && displaySettingsRes.ok) {
-        const displaySettings = (await displaySettingsRes.json()).data;
+        const displaySettings = (
+            await safeJson<{ data: Board['display_settings'] }>(displaySettingsRes)
+        ).data;
         board = { ...board, display_settings: displaySettings };
     }
 

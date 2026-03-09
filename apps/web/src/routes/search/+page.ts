@@ -1,5 +1,6 @@
 import type { PageLoad } from './$types.js';
 import type { SearchField } from '$lib/api/types.js';
+import { safeJson } from '$lib/api/safe-json.js';
 
 export const load: PageLoad = async ({ url, fetch }) => {
     const query = url.searchParams.get('q') || '';
@@ -16,7 +17,7 @@ export const load: PageLoad = async ({ url, fetch }) => {
     try {
         const params = new URLSearchParams({ q: query, sfl: field, limit: '5' });
         const res = await fetch(`/api/search?${params.toString()}`);
-        const json = await res.json();
+        const json = await safeJson(res);
 
         return {
             searchResults: json.success ? json.data : null,

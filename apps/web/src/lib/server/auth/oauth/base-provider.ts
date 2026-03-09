@@ -8,6 +8,7 @@ import type {
     OAuthUserProfile,
     SocialProvider
 } from './types.js';
+import { safeJson } from '$lib/api/safe-json.js';
 
 export abstract class BaseOAuthProvider {
     abstract readonly provider: SocialProvider;
@@ -47,7 +48,7 @@ export abstract class BaseOAuthProvider {
             throw new Error(`토큰 교환 실패 (${response.status}): ${errorText}`);
         }
 
-        return response.json();
+        return safeJson<OAuthTokenResponse>(response);
     }
 
     /** 프로바이더별 프로필 파싱 (각 프로바이더에서 구현) */
@@ -63,7 +64,7 @@ export abstract class BaseOAuthProvider {
             throw new Error(`프로필 조회 실패 (${response.status})`);
         }
 
-        const data = await response.json();
+        const data = await safeJson(response);
         return this.parseUserProfile(data);
     }
 }

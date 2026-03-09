@@ -43,6 +43,8 @@ interface APIResponse<T> {
     };
 }
 
+import { safeJson } from './safe-json.js';
+
 const API_BASE = '/api/v1/admin/members';
 
 export async function listMembers(params: MemberListParams = {}): Promise<MemberListResponse> {
@@ -61,7 +63,7 @@ export async function listMembers(params: MemberListParams = {}): Promise<Member
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}`);
         }
-        const result: APIResponse<MemberListResponse> = await response.json();
+        const result: APIResponse<MemberListResponse> = await safeJson(response);
         return result.data ?? { members: [], total: 0, page: 1, limit: 20 };
     } catch (error) {
         console.error('❌ 회원 목록 조회 실패:', error);
@@ -77,7 +79,7 @@ export async function getMember(memberId: string): Promise<AdminMember> {
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}`);
         }
-        const result: APIResponse<AdminMember> = await response.json();
+        const result: APIResponse<AdminMember> = await safeJson(response);
         return result.data;
     } catch (error) {
         console.error('❌ 회원 조회 실패:', error);
@@ -97,7 +99,7 @@ export async function updateMember(
             body: JSON.stringify(data)
         });
         if (!response.ok) {
-            const errorResult = await response.json();
+            const errorResult = await safeJson(response);
             throw new Error(errorResult.error?.message || `HTTP ${response.status}`);
         }
     } catch (error) {
@@ -113,7 +115,7 @@ export async function banMember(memberId: string): Promise<void> {
             credentials: 'include'
         });
         if (!response.ok) {
-            const errorResult = await response.json();
+            const errorResult = await safeJson(response);
             throw new Error(errorResult.error?.message || `HTTP ${response.status}`);
         }
     } catch (error) {
@@ -129,7 +131,7 @@ export async function unbanMember(memberId: string): Promise<void> {
             credentials: 'include'
         });
         if (!response.ok) {
-            const errorResult = await response.json();
+            const errorResult = await safeJson(response);
             throw new Error(errorResult.error?.message || `HTTP ${response.status}`);
         }
     } catch (error) {
@@ -147,7 +149,7 @@ export async function bulkUpdateLevel(memberIds: string[], level: number): Promi
             body: JSON.stringify({ member_ids: memberIds, level })
         });
         if (!response.ok) {
-            const errorResult = await response.json();
+            const errorResult = await safeJson(response);
             throw new Error(errorResult.error?.message || `HTTP ${response.status}`);
         }
     } catch (error) {
@@ -179,7 +181,7 @@ export async function getMemberMemos(memberId: string): Promise<MemberMemo[]> {
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}`);
         }
-        const result: APIResponse<MemberMemo[]> = await response.json();
+        const result: APIResponse<MemberMemo[]> = await safeJson(response);
         return result.data ?? [];
     } catch (error) {
         console.error('❌ 회원 메모 조회 실패:', error);
@@ -199,7 +201,7 @@ export async function createMemberMemo(
             body: JSON.stringify(data)
         });
         if (!response.ok) {
-            const errorResult = await response.json();
+            const errorResult = await safeJson(response);
             throw new Error(errorResult.error?.message || `HTTP ${response.status}`);
         }
     } catch (error) {
@@ -220,7 +222,7 @@ export async function updateMemberMemo(
             body: JSON.stringify(data)
         });
         if (!response.ok) {
-            const errorResult = await response.json();
+            const errorResult = await safeJson(response);
             throw new Error(errorResult.error?.message || `HTTP ${response.status}`);
         }
     } catch (error) {
@@ -236,7 +238,7 @@ export async function deleteMemberMemo(memoId: number): Promise<void> {
             credentials: 'include'
         });
         if (!response.ok) {
-            const errorResult = await response.json();
+            const errorResult = await safeJson(response);
             throw new Error(errorResult.error?.message || `HTTP ${response.status}`);
         }
     } catch (error) {
@@ -256,7 +258,7 @@ export async function getBulkMemberMemos(
         );
         if (!response.ok) return {};
         const result: APIResponse<Record<string, { memo: string; color: string }>> =
-            await response.json();
+            await safeJson(response);
         return result.data ?? {};
     } catch {
         return {};

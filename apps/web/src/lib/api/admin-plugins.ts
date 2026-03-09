@@ -3,6 +3,7 @@
  */
 
 import type { PluginWithStatus } from '$lib/types/admin-plugin';
+import { safeJson } from './safe-json.js';
 
 export async function getPlugins(): Promise<PluginWithStatus[]> {
     try {
@@ -10,7 +11,7 @@ export async function getPlugins(): Promise<PluginWithStatus[]> {
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}`);
         }
-        const data = await response.json();
+        const data = await safeJson<{ plugins: PluginWithStatus[] }>(response);
         return data.plugins;
     } catch (error) {
         console.error('❌ 플러그인 목록 조회 실패:', error);
@@ -24,8 +25,8 @@ export async function getActivePlugins(): Promise<string[]> {
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}`);
         }
-        const data = await response.json();
-        return data.plugins.map((p: { id: string }) => p.id);
+        const data = await safeJson<{ plugins: { id: string }[] }>(response);
+        return data.plugins.map((p) => p.id);
     } catch (error) {
         console.error('❌ 활성 플러그인 조회 실패:', error);
         throw error;
@@ -40,7 +41,9 @@ export async function activatePlugin(pluginId: string): Promise<void> {
             body: JSON.stringify({ pluginId, action: 'activate' })
         });
         if (!response.ok) {
-            const data = await response.json();
+            const data = await safeJson<{ error?: string }>(response).catch(() => ({
+                error: undefined
+            }));
             throw new Error(data.error || `HTTP ${response.status}`);
         }
     } catch (error) {
@@ -57,7 +60,9 @@ export async function deactivatePlugin(pluginId: string): Promise<void> {
             body: JSON.stringify({ pluginId, action: 'deactivate' })
         });
         if (!response.ok) {
-            const data = await response.json();
+            const data = await safeJson<{ error?: string }>(response).catch(() => ({
+                error: undefined
+            }));
             throw new Error(data.error || `HTTP ${response.status}`);
         }
     } catch (error) {
@@ -72,7 +77,9 @@ export async function deletePlugin(pluginId: string): Promise<void> {
             method: 'DELETE'
         });
         if (!response.ok) {
-            const data = await response.json();
+            const data = await safeJson<{ error?: string }>(response).catch(() => ({
+                error: undefined
+            }));
             throw new Error(data.error || `HTTP ${response.status}`);
         }
     } catch (error) {
@@ -89,7 +96,10 @@ export async function getPluginSettings(
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}`);
         }
-        const data = await response.json();
+        const data = await safeJson<{
+            settings: Record<string, unknown>;
+            schema: Record<string, unknown>;
+        }>(response);
         return { settings: data.settings, schema: data.schema };
     } catch (error) {
         console.error('❌ 플러그인 설정 조회 실패:', { pluginId, error });

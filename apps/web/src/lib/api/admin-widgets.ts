@@ -2,6 +2,8 @@
  * 위젯 레이아웃 API 클라이언트
  */
 
+import { safeJson } from './safe-json.js';
+
 export interface WidgetConfig {
     id: string;
     type: string;
@@ -21,7 +23,7 @@ export async function getWidgetLayout(): Promise<WidgetLayoutResponse> {
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}`);
         }
-        return await response.json();
+        return await safeJson(response);
     } catch (error) {
         console.error('❌ 위젯 레이아웃 조회 실패:', error);
         throw error;

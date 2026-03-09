@@ -5,6 +5,7 @@
  */
 
 import type { ThemeWithStatus } from '$lib/types/admin-theme';
+import { safeJson } from './safe-json.js';
 
 /**
  * 설치된 모든 테마 목록 조회
@@ -15,7 +16,7 @@ export async function getThemes(): Promise<ThemeWithStatus[]> {
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}`);
         }
-        const data = await response.json();
+        const data = await safeJson(response);
         return data.themes;
     } catch (error) {
         console.error('테마 목록 조회 실패:', error);
@@ -32,7 +33,7 @@ export async function getActiveTheme(): Promise<string | null> {
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}`);
         }
-        const data = await response.json();
+        const data = await safeJson(response);
         return data.activeTheme;
     } catch (error) {
         console.error('활성 테마 조회 실패:', error);
@@ -71,7 +72,7 @@ export async function getThemeSettings(themeId: string): Promise<Record<string, 
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}`);
         }
-        const data = await response.json();
+        const data = await safeJson(response);
         return data.settings;
     } catch (error) {
         console.error('테마 설정 조회 실패:', { themeId, error });

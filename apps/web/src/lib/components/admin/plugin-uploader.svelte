@@ -9,6 +9,7 @@
         DialogTitle
     } from '$lib/components/ui/dialog';
     import { toast } from 'svelte-sonner';
+    import { safeJsonParse } from '$lib/api/safe-json.js';
 
     /** 업로드 상태 */
     type UploadState = 'idle' | 'uploading' | 'success' | 'error';
@@ -113,30 +114,40 @@
 
             // 완료 이벤트
             xhr.addEventListener('load', () => {
-                if (xhr.status >= 200 && xhr.status < 300) {
-                    const response = JSON.parse(xhr.responseText);
+                try {
+                    if (xhr.status >= 200 && xhr.status < 300) {
+                        const response = safeJsonParse<{
+                            success: boolean;
+                            manifest?: { name: string };
+                            error?: string;
+                        }>(xhr.responseText);
 
-                    if (response.success) {
-                        uploadState = 'success';
-                        toast.success(
-                            `플러그인 "${response.manifest.name}"이 성공적으로 업로드되었습니다.`
-                        );
+                        if (response.success) {
+                            uploadState = 'success';
+                            toast.success(
+                                `플러그인 "${response.manifest?.name}"이 성공적으로 업로드되었습니다.`
+                            );
 
-                        // 2초 후 다이얼로그 닫기 및 콜백 호출
-                        setTimeout(() => {
-                            dialogOpen = false;
-                            removeFile();
-                            onUploadSuccess();
-                        }, 2000);
+                            // 2초 후 다이얼로그 닫기 및 콜백 호출
+                            setTimeout(() => {
+                                dialogOpen = false;
+                                removeFile();
+                                onUploadSuccess();
+                            }, 2000);
+                        } else {
+                            uploadState = 'error';
+                            errorMessage = response.error || '업로드 중 오류가 발생했습니다.';
+                            toast.error(errorMessage!);
+                        }
                     } else {
+                        const response = safeJsonParse<{ error?: string }>(xhr.responseText);
                         uploadState = 'error';
-                        errorMessage = response.error || '업로드 중 오류가 발생했습니다.';
+                        errorMessage = response.error || `서버 오류 (${xhr.status})`;
                         toast.error(errorMessage!);
                     }
-                } else {
-                    const response = JSON.parse(xhr.responseText);
+                } catch {
                     uploadState = 'error';
-                    errorMessage = response.error || `서버 오류 (${xhr.status})`;
+                    errorMessage = `서버 오류 (${xhr.status})`;
                     toast.error(errorMessage!);
                 }
             });

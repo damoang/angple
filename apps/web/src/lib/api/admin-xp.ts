@@ -65,6 +65,8 @@ interface APIResponse<T> {
     };
 }
 
+import { safeJson } from './safe-json.js';
+
 const API_BASE = '/api/v2/admin/xp';
 
 export async function listMemberXP(params: MemberXPListParams = {}): Promise<MemberXPListResponse> {
@@ -80,7 +82,7 @@ export async function listMemberXP(params: MemberXPListParams = {}): Promise<Mem
     if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
     }
-    const result: APIResponse<MemberXPListResponse> = await response.json();
+    const result: APIResponse<MemberXPListResponse> = await safeJson(response);
     return (
         result.data ?? {
             members: [],
@@ -96,7 +98,7 @@ export async function getMemberXPHistory(mbId: string, page = 1): Promise<Member
     if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
     }
-    const result: APIResponse<MemberXPHistoryResponse> = await response.json();
+    const result: APIResponse<MemberXPHistoryResponse> = await safeJson(response);
     return result.data;
 }
 
@@ -118,7 +120,7 @@ export async function getXPConfig(): Promise<XPConfig> {
     if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
     }
-    const result: APIResponse<XPConfig> = await response.json();
+    const result: APIResponse<XPConfig> = await safeJson(response);
     return (
         result.data ?? {
             login_xp: 500,
@@ -139,7 +141,7 @@ export async function updateXPConfig(config: XPConfig): Promise<void> {
         body: JSON.stringify(config)
     });
     if (!response.ok) {
-        const errorResult = await response.json();
+        const errorResult = await safeJson(response);
         throw new Error(errorResult.error?.message || `HTTP ${response.status}`);
     }
 }
@@ -160,7 +162,7 @@ export async function getPointConfig(): Promise<PointConfig> {
     if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
     }
-    const result: APIResponse<PointConfig> = await response.json();
+    const result: APIResponse<PointConfig> = await safeJson(response);
     return (
         result.data ?? {
             expiry_enabled: false,
@@ -177,7 +179,7 @@ export async function updatePointConfig(config: Partial<PointConfig>): Promise<v
         body: JSON.stringify(config)
     });
     if (!response.ok) {
-        const errorResult = await response.json();
+        const errorResult = await safeJson(response);
         throw new Error(errorResult.error?.message || `HTTP ${response.status}`);
     }
 }
@@ -194,7 +196,7 @@ export async function grantXP(mbId: string, point: number, content: string): Pro
         body: JSON.stringify({ point, content })
     });
     if (!response.ok) {
-        const errorResult = await response.json();
+        const errorResult = await safeJson(response);
         throw new Error(errorResult.error?.message || `HTTP ${response.status}`);
     }
 }

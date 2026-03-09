@@ -3,6 +3,7 @@
  */
 import type { PageServerLoad } from './$types';
 import { backendFetch } from '$lib/server/backend-fetch.js';
+import { safeJson } from '$lib/api/safe-json.js';
 
 export const load: PageServerLoad = async ({ url }) => {
     const page = Number(url.searchParams.get('page')) || 1;
@@ -20,7 +21,7 @@ export const load: PageServerLoad = async ({ url }) => {
             return { logs: [], total: 0, page, limit };
         }
 
-        const result = await response.json();
+        const result = await safeJson(response);
         return {
             logs: result.data || [],
             total: result.meta?.total || 0,

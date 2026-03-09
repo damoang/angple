@@ -9,6 +9,7 @@ import type {
     ReorderMenusRequest
 } from '$lib/types/admin-menu';
 import { apiClient } from '$lib/api';
+import { safeJson } from './safe-json.js';
 
 interface APIResponse<T> {
     data: T;
@@ -47,7 +48,7 @@ export async function getMenusForAdmin(): Promise<Menu[]> {
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}`);
         }
-        const result: APIResponse<Menu[]> = await response.json();
+        const result: APIResponse<Menu[]> = await safeJson(response);
         return result.data ?? [];
     } catch (error) {
         console.error('❌ 메뉴 조회 실패:', error);
@@ -64,10 +65,10 @@ export async function createMenu(request: CreateMenuRequest): Promise<Menu> {
             body: JSON.stringify(request)
         });
         if (!response.ok) {
-            const errorResult = await response.json();
+            const errorResult = await safeJson(response);
             throw new Error(errorResult.error?.message || `HTTP ${response.status}`);
         }
-        const result: APIResponse<Menu> = await response.json();
+        const result: APIResponse<Menu> = await safeJson(response);
         return result.data;
     } catch (error) {
         console.error('❌ 메뉴 생성 실패:', error);
@@ -84,10 +85,10 @@ export async function updateMenu(id: number, request: UpdateMenuRequest): Promis
             body: JSON.stringify(request)
         });
         if (!response.ok) {
-            const errorResult = await response.json();
+            const errorResult = await safeJson(response);
             throw new Error(errorResult.error?.message || `HTTP ${response.status}`);
         }
-        const result: APIResponse<Menu> = await response.json();
+        const result: APIResponse<Menu> = await safeJson(response);
         return result.data;
     } catch (error) {
         console.error('❌ 메뉴 수정 실패:', error);
@@ -103,7 +104,7 @@ export async function deleteMenu(id: number): Promise<void> {
             headers: getAuthHeaders()
         });
         if (!response.ok) {
-            const errorResult = await response.json();
+            const errorResult = await safeJson(response);
             throw new Error(errorResult.error?.message || `HTTP ${response.status}`);
         }
     } catch (error) {
@@ -121,7 +122,7 @@ export async function reorderMenus(request: ReorderMenusRequest): Promise<void> 
             body: JSON.stringify(request)
         });
         if (!response.ok) {
-            const errorResult = await response.json();
+            const errorResult = await safeJson(response);
             throw new Error(errorResult.error?.message || `HTTP ${response.status}`);
         }
     } catch (error) {

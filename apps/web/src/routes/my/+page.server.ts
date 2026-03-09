@@ -13,6 +13,7 @@ import type {
     PaginatedResponse
 } from '$lib/api/types.js';
 import { env } from '$env/dynamic/private';
+import { safeJson } from '$lib/api/safe-json.js';
 
 const BACKEND_URL = env.BACKEND_URL || 'http://localhost:8090';
 
@@ -69,7 +70,7 @@ async function loadMyPageData(
         })
             .then(async (res) => {
                 if (!res.ok) return null;
-                const json = await res.json();
+                const json = await safeJson(res);
                 return json.data as ExpSummary;
             })
             .catch(() => null);
@@ -82,7 +83,7 @@ async function loadMyPageData(
                 signal: AbortSignal.timeout(BACKEND_TIMEOUT)
             }).then(async (res) => {
                 if (!res.ok) return;
-                result.posts = parsePaginated<FreePost>(await res.json(), page, limit);
+                result.posts = parsePaginated<FreePost>(await safeJson(res), page, limit);
             });
         } else if (tab === 'comments') {
             tabPromise = fetch(`${BACKEND_URL}/api/v1/my/comments?page=${page}&limit=${limit}`, {
@@ -90,7 +91,7 @@ async function loadMyPageData(
                 signal: AbortSignal.timeout(BACKEND_TIMEOUT)
             }).then(async (res) => {
                 if (!res.ok) return;
-                result.comments = parsePaginated<MyComment>(await res.json(), page, limit);
+                result.comments = parsePaginated<MyComment>(await safeJson(res), page, limit);
             });
         } else if (tab === 'liked') {
             tabPromise = fetch(`${BACKEND_URL}/api/v1/my/liked-posts?page=${page}&limit=${limit}`, {
@@ -98,7 +99,7 @@ async function loadMyPageData(
                 signal: AbortSignal.timeout(BACKEND_TIMEOUT)
             }).then(async (res) => {
                 if (!res.ok) return;
-                result.likedPosts = parsePaginated<FreePost>(await res.json(), page, limit);
+                result.likedPosts = parsePaginated<FreePost>(await safeJson(res), page, limit);
             });
         } else if (tab === 'stats') {
             tabPromise = fetch(`${BACKEND_URL}/api/v1/my/stats`, {
@@ -106,7 +107,7 @@ async function loadMyPageData(
                 signal: AbortSignal.timeout(BACKEND_TIMEOUT)
             }).then(async (res) => {
                 if (!res.ok) return;
-                const json = await res.json();
+                const json = await safeJson(res);
                 result.boardStats = (json.data as BoardStat[]) ?? [];
             });
         } else {

@@ -12,6 +12,7 @@ import type {
     PaginatedResponse,
     CommerceDashboard
 } from '$lib/types/admin-commerce';
+import { safeJson } from './safe-json.js';
 
 const BACKEND_API_BASE_URL = import.meta.env.VITE_BACKEND_API_URL || 'http://localhost:8090';
 const COMMERCE_API_URL = `${BACKEND_API_BASE_URL}/api/plugins/commerce`;
@@ -40,7 +41,7 @@ export async function getProducts(
             headers: getAuthHeaders()
         });
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        return await response.json();
+        return await safeJson(response);
     } catch (error) {
         console.error('상품 목록 조회 실패:', error);
         throw error;
@@ -53,7 +54,7 @@ export async function getProduct(id: number): Promise<Product> {
             headers: getAuthHeaders()
         });
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        const data = await response.json();
+        const data = await safeJson(response);
         return data.data;
     } catch (error) {
         console.error('상품 상세 조회 실패:', error);
@@ -87,7 +88,7 @@ export async function getOrders(
             headers: getAuthHeaders()
         });
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        return await response.json();
+        return await safeJson(response);
     } catch (error) {
         console.error('주문 목록 조회 실패:', error);
         throw error;
@@ -100,7 +101,7 @@ export async function getOrder(id: number): Promise<Order> {
             headers: getAuthHeaders()
         });
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        const data = await response.json();
+        const data = await safeJson(response);
         return data.data;
     } catch (error) {
         console.error('주문 상세 조회 실패:', error);
@@ -134,7 +135,7 @@ export async function getSettlements(
             headers: getAuthHeaders()
         });
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        return await response.json();
+        return await safeJson(response);
     } catch (error) {
         console.error('정산 목록 조회 실패:', error);
         throw error;
@@ -161,7 +162,7 @@ export async function getCoupons(page = 1, limit = 20): Promise<PaginatedRespons
             headers: getAuthHeaders()
         });
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        return await response.json();
+        return await safeJson(response);
     } catch (error) {
         console.error('쿠폰 목록 조회 실패:', error);
         throw error;
@@ -176,7 +177,7 @@ export async function createCoupon(coupon: Partial<Coupon>): Promise<Coupon> {
             body: JSON.stringify(coupon)
         });
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        const data = await response.json();
+        const data = await safeJson(response);
         return data.data;
     } catch (error) {
         console.error('쿠폰 생성 실패:', error);
@@ -223,7 +224,7 @@ export async function getReviews(
             headers: getAuthHeaders()
         });
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        return await response.json();
+        return await safeJson(response);
     } catch (error) {
         console.error('리뷰 목록 조회 실패:', error);
         throw error;
@@ -266,7 +267,7 @@ export async function getDashboard(): Promise<CommerceDashboard> {
             headers: getAuthHeaders()
         });
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        const data = await response.json();
+        const data = await safeJson(response);
         return data.data;
     } catch (error) {
         console.error('대시보드 조회 실패:', error);
