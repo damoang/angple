@@ -37,7 +37,7 @@
         <div class="mx-auto flex w-full flex-1">
             {#if snbPosition === 'right'}
                 <aside
-                    class="bg-subtle border-border my-5 hidden w-[320px] flex-shrink-0 rounded-md border lg:block"
+                    class="bg-subtle border-border my-5 hidden w-[320px] flex-shrink-0 rounded-md border lg:flex lg:flex-col"
                 >
                     <!-- 여기에 오른쪽 사이드바 내용 추가 -->
                     <Panel />
@@ -62,7 +62,7 @@
 
             {#if snbPosition === 'left'}
                 <aside
-                    class="bg-subtle border-border my-5 hidden w-[320px] flex-shrink-0 rounded-md border lg:block"
+                    class="bg-subtle border-border my-5 hidden w-[320px] flex-shrink-0 rounded-md border lg:flex lg:flex-col"
                 >
                     <!-- 여기에 오른쪽 사이드바 내용 추가 -->
                     <Panel />
