@@ -27,7 +27,7 @@
     const hasImage = $derived(Boolean(thumbnailUrl));
 
     // HTML 태그 제거하여 미리보기 텍스트 생성
-    const previewText = $derived(() => {
+    const previewText = $derived.by(() => {
         if (!post.content) return '';
         const maxLen = displaySettings?.preview_length || 200;
         const stripped = post.content

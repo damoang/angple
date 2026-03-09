@@ -68,6 +68,7 @@ export interface DisciplineLogListItem {
     member_nickname: string;
     penalty_period: number; // -1: permanent, 0: warning, >0: days
     penalty_date_from: string;
+    penalty_date_to?: string;
     violation_types: number[];
     violation_titles: string[];
     memo?: string;
@@ -107,17 +108,33 @@ export interface DisciplineLogDetailResponse {
 /**
  * Get penalty period display text and color
  */
-export function getPenaltyDisplay(period: number): {
+export function getPenaltyDisplay(
+    period: number,
+    penaltyDateTo?: string
+): {
     text: string;
-    color: 'magenta' | 'orange' | 'red';
+    color: 'magenta' | 'orange' | 'red' | 'green';
+    released: boolean;
 } {
-    if (period === -1) {
-        return { text: '영구', color: 'magenta' };
-    } else if (period === 0) {
-        return { text: '주의', color: 'orange' };
-    } else {
-        return { text: `${period}일`, color: 'red' };
+    // 경고는 해제 개념 없음
+    if (period === 0) {
+        return { text: '주의', color: 'orange', released: false };
     }
+    // 영구 제재는 해제되지 않음
+    if (period === -1) {
+        return { text: '영구', color: 'magenta', released: false };
+    }
+    // 종료일이 있고 현재 날짜보다 과거이면 해제됨
+    if (penaltyDateTo) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const toDate = new Date(penaltyDateTo);
+        toDate.setHours(0, 0, 0, 0);
+        if (toDate < today) {
+            return { text: '해제됨', color: 'green', released: true };
+        }
+    }
+    return { text: `${period}일`, color: 'red', released: false };
 }
 
 /**

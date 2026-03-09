@@ -90,7 +90,8 @@ class SlotRegistry {
      */
     register(
         slotName: SlotName,
-        component: Component,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        component: Component<any>,
         priority: number = 10,
         props?: Record<string, unknown>,
         source?: string
@@ -204,7 +205,8 @@ const slotRegistry = new SlotRegistry();
  */
 export const registerComponent = (
     slotName: SlotName,
-    component: Component,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    component: Component<any>,
     priority: number = 10,
     props?: Record<string, unknown>,
     source?: string

@@ -68,9 +68,7 @@ export class PermissionDeniedError extends Error {
         public readonly permission: PluginPermission,
         public readonly action: string
     ) {
-        super(
-            `[${pluginId}] 권한 거부: '${permission}' 필요 (${action})`
-        );
+        super(`[${pluginId}] 권한 거부: '${permission}' 필요 (${action})`);
         this.name = 'PermissionDeniedError';
     }
 }
@@ -147,12 +145,7 @@ export class PermissionManager {
         }
 
         const granted = this.check(pluginId, requiredPermission);
-        this.addAuditEntry(
-            pluginId,
-            requiredPermission,
-            `hook:${hookName}`,
-            granted
-        );
+        this.addAuditEntry(pluginId, requiredPermission, `hook:${hookName}`, granted);
 
         if (!granted) {
             console.warn(

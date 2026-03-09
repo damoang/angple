@@ -50,7 +50,6 @@ const IGNORED_PATTERNS = [
     'pubads',
     'is not valid JSON',
     'Unrecognized token',
-    'state_unsafe_mutation',
     'error loading dynamically imported module',
     'adsbygoogle.push()',
     'JSON.parse: unexpected character',
@@ -275,6 +274,7 @@ if (typeof window !== 'undefined') {
 
         const payload: Record<string, unknown> = {
             type: event.type,
+            message: reason,
             reason,
             url: window.location.href,
             userAgent: navigator.userAgent

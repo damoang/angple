@@ -179,7 +179,7 @@
     });
 
     // link1이 동영상 URL이면 본문 앞에 삽입 (그누보드 wr_link1 호환)
-    const postContent = $derived(() => {
+    const postContent = $derived.by(() => {
         const link1 = data.post.link1;
         if (link1 && isEmbeddable(link1)) {
             return `<p>${link1}</p>\n${data.post.content}`;
@@ -1214,7 +1214,7 @@
                 {formatTimeShort}
                 editCount={revisions.filter((r) => r.change_type === 'update').length}
                 {formatFileSize}
-                postContent={postContent()}
+                {postContent}
                 pageData={data}
                 {postReactions}
                 {postReportCount}

@@ -111,7 +111,7 @@
     const boardTypeComponent = $derived(boardTypeRegistry.resolve(boardType));
 
     // 목록 보기 권한 체크 (list_level이 0보다 크고 인증된 경우에만 체크)
-    const canList = $derived(() => {
+    const canList = $derived.by(() => {
         if (!authStore.isAuthenticated) {
             // 비회원 레벨=1, list_level<=1이면 공개 게시판
             const requiredLevel = data.board?.list_level ?? 1;
@@ -124,13 +124,13 @@
     );
 
     // 글쓰기 권한 체크 (서버 permissions 우선, 클라이언트 레벨 비교 폴백)
-    const canWrite = $derived(() => {
+    const canWrite = $derived.by(() => {
         if (!authStore.isAuthenticated) return false;
         return checkPermission(data.board, 'can_write', authStore.user ?? null);
     });
 
     // 권한 부족 시 표시할 메시지
-    const writePermissionMessage = $derived(() => {
+    const writePermissionMessage = $derived.by(() => {
         if (!authStore.isAuthenticated) return '로그인이 필요합니다';
         return getPermissionMessage(data.board, 'can_write', authStore.user ?? null);
     });
@@ -321,7 +321,7 @@
 {:else}
     <SeoHead config={seoConfig} />
 
-    {#if !canList()}
+    {#if !canList}
         <div class="mx-auto pt-4">
             <div class="bg-muted/50 mx-auto mt-12 max-w-md rounded-lg p-8 text-center">
                 <Lock class="text-muted-foreground mx-auto mb-4 h-12 w-12" />
@@ -493,7 +493,7 @@
                         <span class="absolute -inset-1.5"></span>
                         <Search class="h-4 w-4" />
                     </Button>
-                    {#if canWrite()}
+                    {#if canWrite}
                         <Button onclick={goToWrite} class="shrink-0">
                             <Pencil class="mr-2 h-4 w-4" />
                             글쓰기
@@ -502,7 +502,7 @@
                         <Button
                             disabled
                             class="shrink-0 cursor-not-allowed opacity-60"
-                            title={writePermissionMessage()}
+                            title={writePermissionMessage}
                         >
                             <Lock class="mr-2 h-4 w-4" />
                             글쓰기
@@ -892,7 +892,7 @@
 {/if}
 
 <!-- 모바일 글쓰기 FAB -->
-{#if canWrite()}
+{#if canWrite}
     <button
         onclick={goToWrite}
         class="bg-primary text-primary-foreground fixed bottom-4 right-4 z-50 flex h-10 w-10 items-center justify-center rounded-full shadow-lg transition-transform active:scale-95 md:hidden"

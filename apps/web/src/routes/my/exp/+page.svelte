@@ -26,7 +26,7 @@
     ];
 
     // 필터링된 아이템
-    let filteredItems = $derived(() => {
+    let filteredItems = $derived.by(() => {
         if (!expHistory) return [];
         if (data.filter === 'earned') return expHistory.items.filter((item) => item.exp_point > 0);
         if (data.filter === 'used') return expHistory.items.filter((item) => item.exp_point < 0);
@@ -228,14 +228,14 @@
                 <CardTitle class="flex items-center gap-2">
                     경험치 내역
                     <span class="text-muted-foreground text-sm font-normal">
-                        ({filteredItems().length}건)
+                        ({filteredItems.length}건)
                     </span>
                 </CardTitle>
             </CardHeader>
             <CardContent>
-                {#if filteredItems().length > 0}
+                {#if filteredItems.length > 0}
                     <ul class="divide-border divide-y">
-                        {#each filteredItems() as history (history.id)}
+                        {#each filteredItems as history (history.id)}
                             <li class="flex items-center justify-between py-3 first:pt-0 last:pb-0">
                                 <div class="flex items-center gap-3">
                                     <!-- 증감 아이콘 -->

@@ -125,7 +125,7 @@
     });
 
     /** 검색 필터링 */
-    const filteredPlugins = $derived(() => {
+    const filteredPlugins = $derived.by(() => {
         let result = plugins;
 
         if (activeCategory !== 'all') {
@@ -202,7 +202,7 @@
                 <p class="text-muted-foreground">잠시만 기다려주세요.</p>
             </CardContent>
         </Card>
-    {:else if filteredPlugins().length === 0}
+    {:else if filteredPlugins.length === 0}
         <Card>
             <CardContent class="py-12 text-center">
                 <Package class="text-muted-foreground mx-auto mb-4 h-12 w-12" />
@@ -212,7 +212,7 @@
         </Card>
     {:else}
         <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {#each filteredPlugins() as plugin (plugin.id)}
+            {#each filteredPlugins as plugin (plugin.id)}
                 <Card class="overflow-hidden transition-shadow hover:shadow-lg">
                     {#if plugin.screenshot}
                         <div class="bg-muted aspect-video">

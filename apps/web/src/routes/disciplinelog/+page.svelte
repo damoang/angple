@@ -28,8 +28,10 @@
     }
 
     function getPenaltyBadgeVariant(
-        period: number
+        period: number,
+        released: boolean
     ): 'default' | 'secondary' | 'destructive' | 'outline' {
+        if (released) return 'secondary';
         if (period === -1) return 'destructive';
         if (period === 0) return 'secondary';
         return 'destructive';
@@ -78,7 +80,10 @@
                         </thead>
                         <tbody>
                             {#each logs as log (log.id)}
-                                {@const penalty = getPenaltyDisplay(log.penalty_period)}
+                                {@const penalty = getPenaltyDisplay(
+                                    log.penalty_period,
+                                    log.penalty_date_to
+                                )}
                                 <tr
                                     class="hover:bg-muted/50 border-b transition-all duration-200 ease-out"
                                 >
@@ -97,7 +102,12 @@
                                         >{log.penalty_date_from}</td
                                     >
                                     <td class="p-3 text-center">
-                                        <Badge variant={getPenaltyBadgeVariant(log.penalty_period)}>
+                                        <Badge
+                                            variant={getPenaltyBadgeVariant(
+                                                log.penalty_period,
+                                                penalty.released
+                                            )}
+                                        >
                                             {penalty.text}
                                         </Badge>
                                     </td>
@@ -129,7 +139,10 @@
                 <!-- Mobile cards -->
                 <div class="space-y-3 md:hidden">
                     {#each logs as log (log.id)}
-                        {@const penalty = getPenaltyDisplay(log.penalty_period)}
+                        {@const penalty = getPenaltyDisplay(
+                            log.penalty_period,
+                            log.penalty_date_to
+                        )}
                         <a href="/disciplinelog/{log.id}" class="block">
                             <div
                                 class="hover:bg-muted/50 rounded-lg border p-4 transition-all duration-200 ease-out"
@@ -140,7 +153,12 @@
                                             ? 'text-red-500'
                                             : ''}">{log.member_nickname}</span
                                     >
-                                    <Badge variant={getPenaltyBadgeVariant(log.penalty_period)}>
+                                    <Badge
+                                        variant={getPenaltyBadgeVariant(
+                                            log.penalty_period,
+                                            penalty.released
+                                        )}
+                                    >
                                         {penalty.text}
                                     </Badge>
                                 </div>

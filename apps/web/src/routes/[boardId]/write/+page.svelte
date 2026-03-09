@@ -41,7 +41,7 @@
 
     // 글쓰기 권한 체크
     const requiredLevel = $derived(data.board?.write_level ?? 3);
-    const canWrite = $derived(() => {
+    const canWrite = $derived.by(() => {
         if (!authStore.isAuthenticated) return false;
         if (isRestricted) return false;
         return checkPermission(data.board, 'can_write', authStore.user ?? null);
@@ -122,7 +122,7 @@
         <div class="py-12 text-center">
             <p class="text-muted-foreground">로그인이 필요합니다. 로그인 페이지로 이동합니다...</p>
         </div>
-    {:else if !canWrite()}
+    {:else if !canWrite}
         <div class="py-12 text-center">
             <div class="bg-muted/50 mx-auto max-w-md rounded-lg p-8">
                 <p class="text-muted-foreground text-lg font-medium">글쓰기 권한이 없습니다</p>
