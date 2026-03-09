@@ -5,6 +5,7 @@ import { loadMenus } from '$lib/server/menu-loader';
 import { getCachedCelebrations } from '$lib/server/celebration';
 import { getCachedBannersByPositions } from '$lib/server/ads/banners';
 import { hooks } from '@angple/hook-system';
+import { env } from '$env/dynamic/private';
 
 /**
  * 서버 사이드 데이터 로드
@@ -62,7 +63,9 @@ export const load: LayoutServerLoad = async ({ locals }) => {
         isAdmin: (locals.user?.level ?? 0) >= 10,
         // SSR에서 직접 로드 — 클라이언트 /api/init 호출 제거
         celebration,
-        banners
+        banners,
+        // GA4 Measurement ID (env에서 로드, 미설정 시 미적용)
+        ga4MeasurementId: env.GA4_MEASUREMENT_ID || ''
     };
 
     // 훅: 레이아웃 데이터 필터 (플러그인이 SSR 데이터를 수정/확장 가능)

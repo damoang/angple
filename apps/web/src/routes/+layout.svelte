@@ -23,6 +23,7 @@
     import { getThemeLayout } from '$lib/themes/layout-registry';
     import { initFromSSR as initAppData } from '$lib/stores/app-init.svelte';
     import { initFromData as initCelebrationFromData } from '$lib/stores/celebration.svelte';
+    import { initGA4, trackPageView } from '$lib/services/ga4';
 
     // 커스터마이저 패널 (관리자 전용, 지연 로딩)
     let LazyAdminCustomizer: Component | null = $state(null);
@@ -138,6 +139,13 @@
         }
     });
 
+    // GA4: SPA 네비게이션 시 페이지뷰 추적
+    afterNavigate(({ to }) => {
+        if (to?.url) {
+            trackPageView(to.url.pathname + to.url.search);
+        }
+    });
+
     // 광고 추적: 매 네비게이션마다 observer 재설정 (aplog 모듈 로드 후)
     afterNavigate(() => {
         untrack(() => {
@@ -216,6 +224,11 @@
     });
 
     onMount(() => {
+        // GA4 초기화 (Measurement ID가 설정된 경우에만)
+        if (data.ga4MeasurementId) {
+            initGA4(data.ga4MeasurementId);
+        }
+
         // $updated 리로드 카운터 리셋 (정상 로드 확인 후)
         setTimeout(() => sessionStorage.removeItem(UPDATED_RELOAD_KEY), 10000);
 
