@@ -101,25 +101,11 @@ export const DEFAULT_WIDGETS: WidgetConfig[] = [
 export const DEFAULT_SIDEBAR_WIDGETS: WidgetConfig[] = [
     { id: 'notice', type: 'notice', position: 0, enabled: true },
     {
-        id: 'sidebar-b2b',
+        id: 'sidebar-ad-2',
         type: 'ad-slot',
         position: 1,
         enabled: true,
-        settings: { position: 'sidebar-b2b', type: 'gam' }
-    },
-    {
-        id: 'sidebar-ad-2',
-        type: 'ad-slot',
-        position: 2,
-        enabled: true,
         settings: { position: 'sidebar-2', type: 'image-text', format: 'grid' }
-    },
-    {
-        id: 'sidebar-ad-1',
-        type: 'ad-slot',
-        position: 3,
-        enabled: true,
-        settings: { position: 'sidebar-1', type: 'image', format: 'square' }
     }
 ];
 

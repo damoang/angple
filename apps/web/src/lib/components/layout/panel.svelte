@@ -19,8 +19,8 @@
     <!-- 사이드바 배너 (슬롯 기반) -->
     <PluginSlot name="sidebar-banner" />
 
-    <!-- 나머지 사이드바 위젯 (sticky 광고 제외) -->
-    <WidgetRenderer zone="sidebar" excludeIds={['notice', 'sidebar-ad-1']} />
+    <!-- 나머지 사이드바 위젯 -->
+    <WidgetRenderer zone="sidebar" excludeIds={['notice']} />
 
     <!-- Slot: sidebar-right-bottom -->
     {#each getComponentsForSlot('sidebar-right-bottom') as slotComp (slotComp.id)}
@@ -28,9 +28,8 @@
         <Component {...slotComp.props || {}} />
     {/each}
 
-    <!-- 광고 2개 sticky -->
-    <div class="sticky top-[64px] space-y-4">
-        <WidgetRenderer zone="sidebar" onlyIds={['sidebar-ad-1']} />
+    <!-- sidebar-sticky (GAM 300x600) -->
+    <div class="sticky top-[64px]">
         <div class:hidden={!widgetLayoutStore.hasEnabledAds}>
             <AdSlot position="sidebar-sticky" height="600px" />
         </div>

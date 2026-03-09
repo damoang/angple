@@ -231,7 +231,17 @@
             />
         </a>
     {:else if useFallback}
-        <!-- GAM 폴백 -->
-        <AdSlot position={gamPosition} {height} />
+        {#if position === 'sidebar'}
+            <!-- 사이드바: 축하메시지/광고 없으면 빈 플레이스홀더 -->
+            <div
+                class="flex items-center justify-center rounded-lg border border-dashed border-slate-200 bg-slate-50/50 dark:border-slate-700 dark:bg-slate-800/30"
+                style:min-height="40px"
+            >
+                <p class="text-[10px] text-slate-400 dark:text-slate-500">축하메시지가 없습니다</p>
+            </div>
+        {:else}
+            <!-- GAM 폴백 -->
+            <AdSlot position={gamPosition} {height} />
+        {/if}
     {/if}
 </div>
