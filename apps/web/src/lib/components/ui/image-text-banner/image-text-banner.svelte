@@ -115,7 +115,7 @@
     }
 
     // 4칸 슬롯 배열 생성 (side-image-text-banner용)
-    const slots = $derived(() => {
+    const slots = $derived.by(() => {
         if (position !== 'side-image-text-banner') return null;
         const result: (BannerItem | null)[] = [null, null, null, null];
         banners.slice(0, 4).forEach((b, i) => {

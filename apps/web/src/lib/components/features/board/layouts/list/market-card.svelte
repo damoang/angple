@@ -35,7 +35,7 @@
     const isSold = $derived(market.status === 'sold');
 
     // 상태 배지 스타일
-    const statusBadge = $derived(() => {
+    const statusBadge = $derived.by(() => {
         const s = market.status;
         switch (s) {
             case 'selling':
