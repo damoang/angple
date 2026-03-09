@@ -240,14 +240,14 @@ export const handleError: HandleClientError = ({ error, event, status }) => {
 
     if (shouldIgnore(err.message, undefined, err.stack)) return;
 
-    guardedSend({
-        type: 'sveltekit_error',
-        message: err.message,
-        stack: err.stack || '(no stack)',
-        url: event.url.href,
-        status,
-        userAgent: navigator.userAgent
-    });
+    // [임시 비활성화] guardedSend({
+    //     type: 'sveltekit_error',
+    //     message: err.message,
+    //     stack: err.stack || '(no stack)',
+    //     url: event.url.href,
+    //     status,
+    //     userAgent: navigator.userAgent
+    // });
 };
 
 // 전역 JS 에러 (SvelteKit 밖에서 발생하는 에러)
@@ -255,16 +255,16 @@ if (typeof window !== 'undefined') {
     window.addEventListener('error', (event) => {
         if (shouldIgnore(event.message, event.filename, event.error?.stack)) return;
 
-        guardedSend({
-            type: event.type,
-            message: event.message,
-            source: event.filename,
-            lineno: event.lineno,
-            colno: event.colno,
-            stack: event.error?.stack || '(no stack)',
-            url: window.location.href,
-            userAgent: navigator.userAgent
-        });
+        // [임시 비활성화] guardedSend({
+        //     type: event.type,
+        //     message: event.message,
+        //     source: event.filename,
+        //     lineno: event.lineno,
+        //     colno: event.colno,
+        //     stack: event.error?.stack || '(no stack)',
+        //     url: window.location.href,
+        //     userAgent: navigator.userAgent
+        // });
     });
 
     window.addEventListener('unhandledrejection', (event) => {
@@ -282,6 +282,6 @@ if (typeof window !== 'undefined') {
         if (stack) {
             payload.stack = stack;
         }
-        guardedSend(payload);
+        // [임시 비활성화] guardedSend(payload);
     });
 }
