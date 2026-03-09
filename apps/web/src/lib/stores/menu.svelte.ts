@@ -44,10 +44,10 @@ class MenuStore {
      */
     initFromServer(menus: MenuItem[]) {
         const filtered = filterMenus(menus);
-        if (
-            this.menus.length === filtered.length &&
-            JSON.stringify(this.menus) === JSON.stringify(filtered)
-        ) {
+        // 경량 비교: ID 목록으로 변경 감지 (JSON.stringify 대비 ~100x 빠름)
+        const currentIds = this.menus.map((m) => m.id).join(',');
+        const newIds = filtered.map((m) => m.id).join(',');
+        if (this.menus.length === filtered.length && currentIds === newIds) {
             return;
         }
         this.menus = filtered;

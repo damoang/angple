@@ -135,7 +135,15 @@ class WidgetLayoutStore {
         const savedIds = new Set(saved.map((w) => w.id));
         const missing = defaults.filter((dw) => !savedIds.has(dw.id));
 
-        let merged = missing.length > 0 ? [...saved, ...missing.map((w) => deepCopy(w))] : saved;
+        // 삭제 대상 위젯 제거 (기본 목록에서 제거된 광고 위젯)
+        const removedIds = new Set([
+            'ad-news-economy',
+            'ad-middle-2',
+            'sidebar-b2b',
+            'sidebar-ad-1'
+        ]);
+        let merged = saved.filter((w) => !removedIds.has(w.id));
+        if (missing.length > 0) merged = [...merged, ...missing.map((w) => deepCopy(w))];
 
         // 기본 위젯 순서 맵 (id → position)으로 재정렬
         const defaultOrder = new Map(defaults.map((w) => [w.id, w.position]));

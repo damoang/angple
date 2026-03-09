@@ -35,30 +35,23 @@ export const DEFAULT_WIDGETS: WidgetConfig[] = [
         settings: { boardId: 'notice', layout: 'list', sortBy: 'date', count: 10, showTitle: true }
     },
     {
-        id: 'ad-news-economy',
-        type: 'ad-slot',
-        position: 5,
-        enabled: true,
-        settings: { position: 'index-news-economy' }
-    },
-    {
         id: 'economy',
         type: 'post-list',
-        position: 6,
+        position: 5,
         enabled: true,
         settings: { boardId: 'economy', layout: 'list', sortBy: 'date', count: 10, showTitle: true }
     },
     {
         id: 'ad-middle-1',
         type: 'ad-slot',
-        position: 7,
+        position: 6,
         enabled: true,
         settings: { position: 'index-middle-1' }
     },
     {
         id: 'gallery',
         type: 'post-list',
-        position: 8,
+        position: 7,
         enabled: true,
         settings: {
             boardId: 'gallery',
@@ -69,30 +62,23 @@ export const DEFAULT_WIDGETS: WidgetConfig[] = [
         }
     },
     {
-        id: 'ad-middle-2',
-        type: 'ad-slot',
-        position: 9,
-        enabled: true,
-        settings: { position: 'index-middle-2' }
-    },
-    {
         id: 'group',
         type: 'post-list',
-        position: 10,
+        position: 8,
         enabled: true,
         settings: { boardId: 'group', layout: 'grid', sortBy: 'date', count: 10, showTitle: true }
     },
     {
         id: 'ad-bottom',
         type: 'ad-slot',
-        position: 11,
+        position: 9,
         enabled: true,
         settings: { position: 'index-bottom' }
     },
     {
         id: 'celebration',
         type: 'celebration',
-        position: 12,
+        position: 10,
         enabled: true
     }
 ];
