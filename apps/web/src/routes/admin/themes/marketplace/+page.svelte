@@ -368,7 +368,7 @@
                 <p class="text-muted-foreground">잠시만 기다려주세요.</p>
             </CardContent>
         </Card>
-    {:else if filteredThemes().length === 0}
+    {:else if filteredThemes.length === 0}
         <Card>
             <CardContent class="py-12 text-center">
                 <Package class="text-muted-foreground mx-auto mb-4 h-12 w-12" />
@@ -378,7 +378,7 @@
         </Card>
     {:else}
         <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {#each filteredThemes() as theme (theme.id)}
+            {#each filteredThemes as theme (theme.id)}
                 <Card class="overflow-hidden transition-shadow hover:shadow-lg">
                     {#if theme.screenshot}
                         <div class="bg-muted aspect-video">
