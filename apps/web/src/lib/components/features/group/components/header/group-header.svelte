@@ -8,5 +8,5 @@
     >
         <Users class="h-4 w-4 text-orange-500" />
     </div>
-    <h3 class="text-foreground text-base font-semibold">소모임 추천글</h3>
+    <h3 class="text-foreground text-lg font-semibold">소모임 추천글</h3>
 </div>

@@ -22,7 +22,7 @@
             >
                 <Images class="h-4 w-4 text-purple-500" />
             </div>
-            <h3 class="text-foreground text-base font-semibold">갤러리</h3>
+            <h3 class="text-foreground text-lg font-semibold">갤러리</h3>
         </div>
         <a
             href="/gallery"

@@ -30,7 +30,7 @@
             >
                 <ShoppingCart class="h-4 w-4 text-green-500" />
             </div>
-            <h3 class="text-foreground text-base font-semibold">알뜰구매</h3>
+            <h3 class="text-foreground text-lg font-semibold">알뜰구매</h3>
         </div>
         <EconomyTabs bind:activeTab onTabChange={handleTabChange} />
     </CardHeader>

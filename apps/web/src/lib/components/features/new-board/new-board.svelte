@@ -30,7 +30,7 @@
             >
                 <Newspaper class="h-4 w-4 text-blue-500" />
             </div>
-            <h3 class="text-foreground text-base font-semibold">새로운 소식</h3>
+            <h3 class="text-foreground text-lg font-semibold">새로운 소식</h3>
         </div>
         <NewsTabs bind:activeTab onTabChange={handleTabChange} />
     </CardHeader>
