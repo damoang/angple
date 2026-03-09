@@ -179,13 +179,11 @@
     });
 
     // link1이 동영상 URL이면 본문 앞에 삽입 (그누보드 wr_link1 호환)
-    const postContent = $derived(() => {
-        const link1 = data.post.link1;
-        if (link1 && isEmbeddable(link1)) {
-            return `<p>${link1}</p>\n${data.post.content}`;
-        }
-        return data.post.content;
-    });
+    const postContent = $derived(
+        data.post.link1 && isEmbeddable(data.post.link1)
+            ? `<p>${data.post.link1}</p>\n${data.post.content}`
+            : data.post.content
+    );
 
     // 게시판 정보
     const boardId = $derived(data.boardId);
