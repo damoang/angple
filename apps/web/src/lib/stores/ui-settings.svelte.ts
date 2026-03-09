@@ -54,7 +54,7 @@ const DEFAULTS: UiSettings = {
     muteKeywords: [],
     showNewComments: true,
     showShortcutBadge: true,
-    showShortcutButtons: true,
+    showShortcutButtons: false,
     shortcutButtonSize: 'medium',
     enableTouchGestures: false,
     swipeThreshold: 50,

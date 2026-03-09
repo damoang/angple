@@ -352,7 +352,8 @@
                 </button>
             {/if}
 
-            <!-- 햄버거 메뉴 (PC 전용, 모바일은 좌측에 배치) -->
+            <!-- 햄버거 메뉴 (PC에서는 숨김) -->
+            <!--
             <button
                 onclick={toggleDrawer}
                 class="hover:bg-accent hidden rounded-lg p-2 transition-all duration-200 ease-out md:inline-flex"
@@ -360,6 +361,7 @@
             >
                 <AlignJustify class="text-muted-foreground h-5 w-5" />
             </button>
+            -->
         </div>
     </div>
 </header>

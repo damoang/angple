@@ -891,13 +891,22 @@
     <!-- /canList -->
 {/if}
 
-<!-- 모바일 글쓰기 FAB -->
+<!-- 모바일 FAB: 설정 + 글쓰기 -->
 {#if canWrite}
-    <button
-        onclick={goToWrite}
-        class="bg-primary text-primary-foreground fixed bottom-4 right-4 z-50 flex h-10 w-10 items-center justify-center rounded-full shadow-lg transition-transform active:scale-95 md:hidden"
-        aria-label="글쓰기"
-    >
-        <Pencil class="h-4 w-4" />
-    </button>
+    <div class="fixed bottom-4 right-4 z-50 flex flex-col items-center gap-2 md:hidden">
+        <a
+            href="/member/settings/ui"
+            class="bg-muted text-muted-foreground flex h-9 w-9 items-center justify-center rounded-full shadow-md transition-transform active:scale-95"
+            aria-label="설정"
+        >
+            <Settings2 class="h-4 w-4" />
+        </a>
+        <button
+            onclick={goToWrite}
+            class="bg-primary text-primary-foreground flex h-10 w-10 items-center justify-center rounded-full shadow-lg transition-transform active:scale-95"
+            aria-label="글쓰기"
+        >
+            <Pencil class="h-4 w-4" />
+        </button>
+    </div>
 {/if}
