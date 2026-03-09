@@ -106,6 +106,11 @@ export async function getMemberXPHistory(mbId: string, page = 1): Promise<Member
 
 export interface XPConfig {
     login_xp: number;
+    write_xp: number;
+    comment_xp: number;
+    login_enabled: boolean;
+    write_enabled: boolean;
+    comment_enabled: boolean;
 }
 
 export async function getXPConfig(): Promise<XPConfig> {
@@ -114,11 +119,58 @@ export async function getXPConfig(): Promise<XPConfig> {
         throw new Error(`HTTP ${response.status}`);
     }
     const result: APIResponse<XPConfig> = await response.json();
-    return result.data ?? { login_xp: 500 };
+    return (
+        result.data ?? {
+            login_xp: 500,
+            write_xp: 100,
+            comment_xp: 50,
+            login_enabled: true,
+            write_enabled: false,
+            comment_enabled: false
+        }
+    );
 }
 
 export async function updateXPConfig(config: XPConfig): Promise<void> {
     const response = await fetch(`${API_BASE}/config`, {
+        method: 'PUT',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(config)
+    });
+    if (!response.ok) {
+        const errorResult = await response.json();
+        throw new Error(errorResult.error?.message || `HTTP ${response.status}`);
+    }
+}
+
+// ========================================
+// Point Config (포인트 유효기간 설정)
+// ========================================
+
+const POINT_API_BASE = '/api/v2/admin/point';
+
+export interface PointConfig {
+    expiry_enabled: boolean;
+    expiry_days: number;
+}
+
+export async function getPointConfig(): Promise<PointConfig> {
+    const response = await fetch(`${POINT_API_BASE}/config`, { credentials: 'include' });
+    if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+    }
+    const result: APIResponse<PointConfig> = await response.json();
+    return (
+        result.data ?? {
+            expiry_enabled: false,
+            expiry_days: 180
+        }
+    );
+}
+
+export async function updatePointConfig(config: Partial<PointConfig>): Promise<void> {
+    const response = await fetch(`${POINT_API_BASE}/config`, {
         method: 'PUT',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },

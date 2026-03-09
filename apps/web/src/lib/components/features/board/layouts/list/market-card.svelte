@@ -35,7 +35,7 @@
     const isSold = $derived(market.status === 'sold');
 
     // 상태 배지 스타일
-    const statusBadge = $derived.by(() => {
+    const statusBadge = $derived(() => {
         const s = market.status;
         switch (s) {
             case 'selling':
@@ -101,10 +101,9 @@
             <!-- 상태 배지 (좌상단) -->
             <div class="absolute left-2 top-2">
                 <span
-                    class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium {statusBadge()
-                        .class}"
+                    class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium {statusBadge.class}"
                 >
-                    {statusBadge().label}
+                    {statusBadge.label}
                 </span>
             </div>
 

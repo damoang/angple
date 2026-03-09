@@ -115,7 +115,7 @@
     }
 
     // 4칸 슬롯 배열 생성 (side-image-text-banner용)
-    const slots = $derived.by(() => {
+    const slots = $derived(() => {
         if (position !== 'side-image-text-banner') return null;
         const result: (BannerItem | null)[] = [null, null, null, null];
         banners.slice(0, 4).forEach((b, i) => {
@@ -149,7 +149,7 @@
     {:else if position === 'side-image-text-banner'}
         <!-- 사이드바: 항상 4칸 그리드 (공실 포함) -->
         <div class="grid grid-cols-2 gap-2">
-            {#each slots() || [null, null, null, null] as slot, idx (idx)}
+            {#each slots || [null, null, null, null] as slot, idx (idx)}
                 {#if slot}
                     <!-- 배너가 있는 슬롯 -->
                     <article

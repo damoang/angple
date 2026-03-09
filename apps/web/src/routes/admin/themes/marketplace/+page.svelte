@@ -274,7 +274,7 @@
     });
 
     /** 검색 + 카테고리 필터링 */
-    const filteredThemes = $derived.by(() => {
+    const filteredThemes = $derived(() => {
         let result = themes;
 
         if (activeCategory !== 'all') {

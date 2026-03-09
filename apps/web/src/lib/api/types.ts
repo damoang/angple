@@ -692,7 +692,9 @@ export type NotificationType =
     | 'mention' // @멘션
     | 'like' // 추천
     | 'message' // 쪽지
-    | 'system'; // 시스템 알림
+    | 'system' // 시스템 알림
+    | 'levelup' // 레벨업
+    | 'point_expiry'; // 포인트 만료 예정
 
 export interface Notification {
     id: number;

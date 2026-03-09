@@ -836,7 +836,7 @@
                                     {#if comment.author_ip}
                                         <span>· {comment.author_ip}</span>
                                     {/if}
-                                    {#if comment.edit_count && comment.edit_count > 0}
+                                    {#if comment.edit_count && comment.edit_count > 0 && comment.updated_at && new Date(comment.updated_at).getTime() - new Date(comment.created_at).getTime() > 5 * 60 * 1000}
                                         <span
                                             class="text-muted-foreground/70"
                                             title={comment.updated_at

@@ -21,22 +21,22 @@ widgets/my-widget/
 ```jsonc
 {
     // === 필수 필드 ===
-    "id": "my-widget", // kebab-case, 소문자/숫자/하이픈 (3~50자)
-    "name": "My Widget", // 표시 이름 (최대 100자)
-    "version": "1.0.0", // semver 형식
+    "id": "my-widget",          // kebab-case, 소문자/숫자/하이픈 (3~50자)
+    "name": "My Widget",        // 표시 이름 (최대 100자)
+    "version": "1.0.0",         // semver 형식
     "author": {
-        "name": "Author Name", // 필수
-        "email": "dev@example.com", // 선택
+        "name": "Author Name",  // 필수
+        "email": "dev@example.com",  // 선택
         "url": "https://example.com" // 선택
     },
-    "category": "content", // 위젯 카테고리
+    "category": "content",      // 위젯 카테고리
     "slots": ["main", "sidebar"], // 배치 가능한 슬롯 (최소 1개)
 
     // === 선택 필드 ===
     "description": "위젯 설명 (최대 500자)",
-    "icon": "Star", // Lucide 아이콘 이름 (기본: "Box")
-    "main": "index.svelte", // 메인 컴포넌트 파일 (기본: "index.svelte")
-    "allowMultiple": false, // 다중 인스턴스 허용 여부 (기본: false)
+    "icon": "Star",             // Lucide 아이콘 이름 (기본: "Box")
+    "main": "index.svelte",     // 메인 컴포넌트 파일 (기본: "index.svelte")
+    "allowMultiple": false,     // 다중 인스턴스 허용 여부 (기본: false)
     "angpleVersion": ">=1.0.0", // 호환 Angple 버전
     "screenshot": "screenshot.png",
 
@@ -76,14 +76,14 @@ if (result.success) {
 
 ## Widget Categories
 
-| Category  | 설명     | 예시                          |
-| --------- | -------- | ----------------------------- |
-| `content` | 콘텐츠   | 게시글 목록, 추천 글, AI 분석 |
-| `sidebar` | 사이드바 | 공지사항, 이미지 배너         |
-| `ad`      | 광고     | 광고 슬롯, 애드센스           |
-| `social`  | 소셜     | 소셜 피드, 공유 버튼          |
-| `utility` | 유틸리티 | 검색, 캘린더, 날씨            |
-| `layout`  | 레이아웃 | 구분선, 스페이서              |
+| Category   | 설명       | 예시                        |
+| ---------- | ---------- | --------------------------- |
+| `content`  | 콘텐츠     | 게시글 목록, 추천 글, AI 분석 |
+| `sidebar`  | 사이드바   | 공지사항, 이미지 배너       |
+| `ad`       | 광고       | 광고 슬롯, 애드센스         |
+| `social`   | 소셜       | 소셜 피드, 공유 버튼        |
+| `utility`  | 유틸리티   | 검색, 캘린더, 날씨          |
+| `layout`   | 레이아웃   | 구분선, 스페이서            |
 
 한글 라벨은 `WIDGET_CATEGORY_LABELS`에서 접근할 수 있습니다:
 
@@ -98,12 +98,12 @@ import { WIDGET_CATEGORY_LABELS } from '$lib/types/widget-manifest';
 
 위젯이 배치될 수 있는 영역입니다.
 
-| Slot      | 설명      |
-| --------- | --------- |
-| `main`    | 메인 영역 |
-| `sidebar` | 사이드바  |
-| `header`  | 헤더      |
-| `footer`  | 푸터      |
+| Slot      | 설명       |
+| --------- | ---------- |
+| `main`    | 메인 영역  |
+| `sidebar` | 사이드바   |
+| `header`  | 헤더       |
+| `footer`  | 푸터       |
 
 한글 라벨은 `WIDGET_SLOT_LABELS`에서 접근할 수 있습니다:
 
@@ -120,12 +120,12 @@ import { WIDGET_SLOT_LABELS } from '$lib/types/widget-manifest';
 
 ### Field Types
 
-| Type      | 설명        | 추가 속성                               |
-| --------- | ----------- | --------------------------------------- |
-| `text`    | 텍스트 입력 | `placeholder`                           |
-| `color`   | 색상 선택   | --                                      |
-| `boolean` | 토글 스위치 | --                                      |
-| `number`  | 숫자 입력   | `min`, `max`, `step`                    |
+| Type      | 설명        | 추가 속성                          |
+| --------- | ----------- | ---------------------------------- |
+| `text`    | 텍스트 입력 | `placeholder`                      |
+| `color`   | 색상 선택   | --                                 |
+| `boolean` | 토글 스위치 | --                                 |
+| `number`  | 숫자 입력   | `min`, `max`, `step`               |
 | `select`  | 드롭다운    | `options`, `dynamic`, `dynamicEndpoint` |
 
 ### 설정 필드 예시
@@ -181,7 +181,9 @@ import { WIDGET_SLOT_LABELS } from '$lib/types/widget-manifest';
         "label": "게시판",
         "type": "select",
         "default": "notice",
-        "options": [{ "label": "공지사항", "value": "notice" }],
+        "options": [
+            { "label": "공지사항", "value": "notice" }
+        ],
         "dynamic": true,
         "dynamicEndpoint": "/api/boards"
     }
@@ -203,8 +205,8 @@ import { WIDGET_SLOT_LABELS } from '$lib/types/widget-manifest';
 }
 ```
 
--   `allowMultiple: false` (기본): 레이아웃에 한 번만 배치 가능. 이미 배치된 위젯은 추가 목록에서 제외됩니다.
--   `allowMultiple: true`: 같은 위젯을 여러 번 배치 가능. 각각 다른 설정을 적용할 수 있습니다.
+- `allowMultiple: false` (기본): 레이아웃에 한 번만 배치 가능. 이미 배치된 위젯은 추가 목록에서 제외됩니다.
+- `allowMultiple: true`: 같은 위젯을 여러 번 배치 가능. 각각 다른 설정을 적용할 수 있습니다.
 
 ```typescript
 // widget-component-loader.ts의 getAddableWidgets() 내부 로직
@@ -212,8 +214,8 @@ function getAddableWidgets(currentWidgetTypes: string[], slot: 'main' | 'sidebar
     return Array.from(widgets.entries())
         .filter(([type, w]) => {
             if (!w.manifest.slots.includes(slot)) return false;
-            if (w.manifest.allowMultiple) return true; // 항상 추가 가능
-            return !currentWidgetTypes.includes(type); // 이미 있으면 제외
+            if (w.manifest.allowMultiple) return true;  // 항상 추가 가능
+            return !currentWidgetTypes.includes(type);    // 이미 있으면 제외
         })
         .map(([type]) => type);
 }
@@ -238,15 +240,15 @@ function getAddableWidgets(currentWidgetTypes: string[], slot: 'main' | 'sidebar
 
 ```typescript
 import {
-    getScannedWidgets, // 전체 위젯 맵 (캐시)
-    loadWidgetComponent, // 위젯 컴포넌트 동적 로드
-    getWidgetManifest, // 매니페스트 조회
-    getWidgetName, // 위젯 이름 조회
-    getWidgetIcon, // 위젯 아이콘 조회
-    getWidgetsBySlot, // 슬롯별 위젯 목록
-    getAddableWidgets, // 추가 가능한 위젯 목록
-    getWidgetsByCategory, // 카테고리별 위젯 목록
-    getWidgetRegistry // 전체 레지스트리 (호환용)
+    getScannedWidgets,       // 전체 위젯 맵 (캐시)
+    loadWidgetComponent,     // 위젯 컴포넌트 동적 로드
+    getWidgetManifest,       // 매니페스트 조회
+    getWidgetName,           // 위젯 이름 조회
+    getWidgetIcon,           // 위젯 아이콘 조회
+    getWidgetsBySlot,        // 슬롯별 위젯 목록
+    getAddableWidgets,       // 추가 가능한 위젯 목록
+    getWidgetsByCategory,    // 카테고리별 위젯 목록
+    getWidgetRegistry        // 전체 레지스트리 (호환용)
 } from '$lib/utils/widget-component-loader';
 ```
 
@@ -279,18 +281,18 @@ interface ScannedWidget {
 
 ```typescript
 interface WidgetProps {
-    config: WidgetConfig; // 위젯 인스턴스 설정
-    slot: WidgetSlot; // 배치 슬롯 ('main' | 'sidebar' | 'header' | 'footer')
-    isEditMode?: boolean; // 편집 모드 여부
-    prefetchData?: unknown; // SSR prefetch 데이터
+    config: WidgetConfig;     // 위젯 인스턴스 설정
+    slot: WidgetSlot;         // 배치 슬롯 ('main' | 'sidebar' | 'header' | 'footer')
+    isEditMode?: boolean;     // 편집 모드 여부
+    prefetchData?: unknown;   // SSR prefetch 데이터
 }
 
 interface WidgetConfig {
-    id: string; // 위젯 인스턴스 고유 ID
-    type: string; // 위젯 타입 (widget.json의 id)
-    position: number; // 배치 순서
-    enabled: boolean; // 활성화 여부
-    settings?: Record<string, unknown>; // 인스턴스별 설정값
+    id: string;               // 위젯 인스턴스 고유 ID
+    type: string;             // 위젯 타입 (widget.json의 id)
+    position: number;         // 배치 순서
+    enabled: boolean;         // 활성화 여부
+    settings?: Record<string, unknown>;  // 인스턴스별 설정값
 }
 ```
 
@@ -427,7 +429,11 @@ Svelte 5 runes 모드를 사용해야 합니다 (`$props`, `$state`, `$derived`,
             {#each comments as comment (comment.id)}
                 <li class="comment-item">
                     {#if showAvatar && comment.avatarUrl}
-                        <img src={comment.avatarUrl} alt={comment.author} class="avatar" />
+                        <img
+                            src={comment.avatarUrl}
+                            alt={comment.author}
+                            class="avatar"
+                        />
                     {/if}
                     <div>
                         <span class="author">{comment.author}</span>

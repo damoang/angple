@@ -11,6 +11,7 @@
     import Reply from '@lucide/svelte/icons/reply';
     import AtSign from '@lucide/svelte/icons/at-sign';
     import Heart from '@lucide/svelte/icons/heart';
+    import Star from '@lucide/svelte/icons/star';
     import Info from '@lucide/svelte/icons/info';
     import Check from '@lucide/svelte/icons/check';
     import Loader2 from '@lucide/svelte/icons/loader-2';
@@ -31,6 +32,8 @@
                 return AtSign;
             case 'like':
                 return Heart;
+            case 'levelup':
+                return Star;
             default:
                 return Info;
         }
@@ -46,6 +49,8 @@
                 return 'text-purple-500';
             case 'like':
                 return 'text-red-500';
+            case 'levelup':
+                return 'text-yellow-500';
             default:
                 return 'text-muted-foreground';
         }

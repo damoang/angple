@@ -148,7 +148,7 @@
     });
 
     // 페이지 번호 배열 계산
-    const pageNumbers = $derived.by(() => {
+    const pageNumbers = $derived(() => {
         const pages: number[] = [];
         const startPage = Math.max(1, currentPage - 2);
         const endPage = Math.min(totalPages, startPage + 4);
@@ -278,7 +278,7 @@
                 이전
             </Button>
 
-            {#each pageNumbers() as pageNum (pageNum)}
+            {#each pageNumbers as pageNum (pageNum)}
                 <Button
                     variant={pageNum === currentPage ? 'default' : 'outline'}
                     size="sm"

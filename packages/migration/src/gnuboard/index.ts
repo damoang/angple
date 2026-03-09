@@ -131,20 +131,20 @@ export async function analyzeGnuboard(config: DatabaseConfig): Promise<Migration
             hasData: pointCount > 0
         });
 
-        const totalRows =
-            memberCount + groupCount + boards.length + totalPosts + totalComments + pointCount;
+        const totalRows = memberCount + groupCount + boards.length + totalPosts + totalComments + pointCount;
 
         // 예상 시간: 대략 1000행당 1초
         const estimatedSeconds = Math.max(10, Math.ceil(totalRows / 1000));
-        const estimatedTime =
-            estimatedSeconds < 60
-                ? `약 ${estimatedSeconds}초`
-                : `약 ${Math.ceil(estimatedSeconds / 60)}분`;
+        const estimatedTime = estimatedSeconds < 60
+            ? `약 ${estimatedSeconds}초`
+            : `약 ${Math.ceil(estimatedSeconds / 60)}분`;
 
         // 그누보드 버전 감지
         let version: string | undefined;
         try {
-            const [configRows] = await conn.query(`SELECT cf_title FROM ${prefix}config LIMIT 1`);
+            const [configRows] = await conn.query(
+                `SELECT cf_title FROM ${prefix}config LIMIT 1`
+            );
             if ((configRows as any[]).length > 0) {
                 version = '5.x';
             }
@@ -174,12 +174,7 @@ export async function migrateGnuboard(options: MigrationOptions): Promise<Migrat
     const errors: MigrationError[] = [];
     const prefix = options.tablePrefix || 'g5_';
 
-    const progress = (
-        phase: MigrationProgress['phase'],
-        current: number,
-        total: number,
-        message: string
-    ) => {
+    const progress = (phase: MigrationProgress['phase'], current: number, total: number, message: string) => {
         const percent = total > 0 ? Math.round((current / total) * 100) : 0;
         options.onProgress?.({ phase, current, total, message, percent, errors });
     };
@@ -208,9 +203,7 @@ export async function migrateGnuboard(options: MigrationOptions): Promise<Migrat
     try {
         // ─── 1. 게시판 그룹 ───
         progress('board_groups', 0, 1, '게시판 그룹 마이그레이션 중...');
-        const [groupRows] = await sourceConn.query(
-            `SELECT * FROM ${prefix}\`group\` ORDER BY gr_order`
-        );
+        const [groupRows] = await sourceConn.query(`SELECT * FROM ${prefix}\`group\` ORDER BY gr_order`);
         const groups = groupRows as any[];
         stats.boardGroups.total = groups.length;
 
@@ -238,9 +231,7 @@ export async function migrateGnuboard(options: MigrationOptions): Promise<Migrat
 
         // ─── 2. 게시판 ───
         progress('boards', 0, 1, '게시판 마이그레이션 중...');
-        const [boardRows] = await sourceConn.query(
-            `SELECT * FROM ${prefix}board ORDER BY bo_order`
-        );
+        const [boardRows] = await sourceConn.query(`SELECT * FROM ${prefix}board ORDER BY bo_order`);
         let boards = boardRows as GnuBoard[];
         stats.boards.total = boards.length;
 
@@ -257,21 +248,7 @@ export async function migrateGnuboard(options: MigrationOptions): Promise<Migrat
                         `INSERT INTO board (bo_table, bo_subject, bo_skin, gr_id, bo_list_level, bo_read_level, bo_write_level, bo_comment_level, bo_page_rows, bo_upload_count, bo_order, bo_count_write, bo_count_comment)
                          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                          ON DUPLICATE KEY UPDATE bo_subject = VALUES(bo_subject)`,
-                        [
-                            mapped.bo_table,
-                            mapped.bo_subject,
-                            mapped.bo_skin,
-                            mapped.gr_id,
-                            mapped.bo_list_level,
-                            mapped.bo_read_level,
-                            mapped.bo_write_level,
-                            mapped.bo_comment_level,
-                            mapped.bo_page_rows,
-                            mapped.bo_upload_count,
-                            mapped.bo_order,
-                            mapped.bo_count_write,
-                            mapped.bo_count_comment
-                        ]
+                        [mapped.bo_table, mapped.bo_subject, mapped.bo_skin, mapped.gr_id, mapped.bo_list_level, mapped.bo_read_level, mapped.bo_write_level, mapped.bo_comment_level, mapped.bo_page_rows, mapped.bo_upload_count, mapped.bo_order, mapped.bo_count_write, mapped.bo_count_comment]
                     );
                 }
                 stats.boards.migrated++;
@@ -287,20 +264,13 @@ export async function migrateGnuboard(options: MigrationOptions): Promise<Migrat
         }
 
         // ─── 3. 회원 ───
-        const [memberCountRows] = await sourceConn.query(
-            `SELECT COUNT(*) as cnt FROM ${prefix}member`
-        );
+        const [memberCountRows] = await sourceConn.query(`SELECT COUNT(*) as cnt FROM ${prefix}member`);
         const memberTotal = (memberCountRows as any)[0].cnt;
         stats.members.total = memberTotal;
 
         let memberOffset = 0;
         while (memberOffset < memberTotal) {
-            progress(
-                'members',
-                memberOffset,
-                memberTotal,
-                `회원 마이그레이션 중... (${memberOffset}/${memberTotal})`
-            );
+            progress('members', memberOffset, memberTotal, `회원 마이그레이션 중... (${memberOffset}/${memberTotal})`);
 
             const [memberRows] = await sourceConn.query(
                 `SELECT * FROM ${prefix}member ORDER BY mb_datetime LIMIT ? OFFSET ?`,
@@ -320,21 +290,7 @@ export async function migrateGnuboard(options: MigrationOptions): Promise<Migrat
                             `INSERT INTO member (mb_id, mb_password, mb_name, mb_nick, mb_email, mb_homepage, mb_level, mb_point, mb_ip, mb_datetime, mb_leave_date, mb_intercept_date, mb_memo)
                              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                              ON DUPLICATE KEY UPDATE mb_name = VALUES(mb_name), mb_nick = VALUES(mb_nick)`,
-                            [
-                                mapped.mb_id,
-                                pw.hash,
-                                mapped.mb_name,
-                                mapped.mb_nick,
-                                mapped.mb_email,
-                                mapped.mb_homepage || '',
-                                mapped.mb_level,
-                                mapped.mb_point,
-                                mapped.mb_ip || '',
-                                mapped.mb_datetime,
-                                mapped.mb_leave_date,
-                                mapped.mb_intercept_date,
-                                mapped.mb_memo
-                            ]
+                            [mapped.mb_id, pw.hash, mapped.mb_name, mapped.mb_nick, mapped.mb_email, mapped.mb_homepage || '', mapped.mb_level, mapped.mb_point, mapped.mb_ip || '', mapped.mb_datetime, mapped.mb_leave_date, mapped.mb_intercept_date, mapped.mb_memo]
                         );
                     }
                     stats.members.migrated++;
@@ -369,12 +325,8 @@ export async function migrateGnuboard(options: MigrationOptions): Promise<Migrat
                 // 게시글 배치 처리
                 let postOffset = 0;
                 while (postOffset < postTotal) {
-                    progress(
-                        'posts',
-                        stats.posts.migrated,
-                        stats.posts.total,
-                        `[${board.bo_table}] 게시글 마이그레이션 중... (${postOffset}/${postTotal})`
-                    );
+                    progress('posts', stats.posts.migrated, stats.posts.total,
+                        `[${board.bo_table}] 게시글 마이그레이션 중... (${postOffset}/${postTotal})`);
 
                     const [postRows] = await sourceConn.query(
                         `SELECT * FROM ${writeTable} WHERE wr_is_comment = 0 ORDER BY wr_id LIMIT ? OFFSET ?`,
@@ -392,7 +344,7 @@ export async function migrateGnuboard(options: MigrationOptions): Promise<Migrat
                                 mapped.wr_content = convertContentImagePaths(
                                     mapped.wr_content,
                                     '', // oldBaseUrl (설정에서 가져올 수 있음)
-                                    '' // newBaseUrl (상대 경로 사용)
+                                    ''  // newBaseUrl (상대 경로 사용)
                                 );
                             }
 
@@ -401,35 +353,7 @@ export async function migrateGnuboard(options: MigrationOptions): Promise<Migrat
                                     `INSERT INTO post (wr_id, bo_table, wr_subject, wr_content, wr_name, mb_id, wr_datetime, wr_hit, wr_good, wr_nogood, wr_comment, wr_link1, wr_link2, wr_ip, ca_name, is_secret, is_notice, extra_1, extra_2, extra_3, extra_4, extra_5, extra_6, extra_7, extra_8, extra_9, extra_10)
                                      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                                      ON DUPLICATE KEY UPDATE wr_subject = VALUES(wr_subject)`,
-                                    [
-                                        mapped.wr_id,
-                                        mapped.bo_table,
-                                        mapped.wr_subject,
-                                        mapped.wr_content,
-                                        mapped.wr_name,
-                                        mapped.mb_id,
-                                        mapped.wr_datetime,
-                                        mapped.wr_hit,
-                                        mapped.wr_good,
-                                        mapped.wr_nogood,
-                                        mapped.wr_comment,
-                                        mapped.wr_link1,
-                                        mapped.wr_link2,
-                                        mapped.wr_ip,
-                                        mapped.ca_name,
-                                        mapped.is_secret,
-                                        mapped.is_notice,
-                                        mapped.extra_1,
-                                        mapped.extra_2,
-                                        mapped.extra_3,
-                                        mapped.extra_4,
-                                        mapped.extra_5,
-                                        mapped.extra_6,
-                                        mapped.extra_7,
-                                        mapped.extra_8,
-                                        mapped.extra_9,
-                                        mapped.extra_10
-                                    ]
+                                    [mapped.wr_id, mapped.bo_table, mapped.wr_subject, mapped.wr_content, mapped.wr_name, mapped.mb_id, mapped.wr_datetime, mapped.wr_hit, mapped.wr_good, mapped.wr_nogood, mapped.wr_comment, mapped.wr_link1, mapped.wr_link2, mapped.wr_ip, mapped.ca_name, mapped.is_secret, mapped.is_notice, mapped.extra_1, mapped.extra_2, mapped.extra_3, mapped.extra_4, mapped.extra_5, mapped.extra_6, mapped.extra_7, mapped.extra_8, mapped.extra_9, mapped.extra_10]
                                 );
                             }
                             stats.posts.migrated++;
@@ -457,12 +381,8 @@ export async function migrateGnuboard(options: MigrationOptions): Promise<Migrat
 
                 let commentOffset = 0;
                 while (commentOffset < commentTotal) {
-                    progress(
-                        'comments',
-                        stats.comments.migrated,
-                        stats.comments.total,
-                        `[${board.bo_table}] 댓글 마이그레이션 중...`
-                    );
+                    progress('comments', stats.comments.migrated, stats.comments.total,
+                        `[${board.bo_table}] 댓글 마이그레이션 중...`);
 
                     const [commentRows] = await sourceConn.query(
                         `SELECT * FROM ${writeTable} WHERE wr_is_comment = 1 ORDER BY wr_id LIMIT ? OFFSET ?`,
@@ -478,19 +398,7 @@ export async function migrateGnuboard(options: MigrationOptions): Promise<Migrat
                                     `INSERT INTO comment (wr_id, bo_table, wr_parent, wr_content, wr_name, mb_id, wr_datetime, wr_ip, wr_good, wr_nogood, is_secret)
                                      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                                      ON DUPLICATE KEY UPDATE wr_content = VALUES(wr_content)`,
-                                    [
-                                        mapped.wr_id,
-                                        mapped.bo_table,
-                                        mapped.wr_parent,
-                                        mapped.wr_content,
-                                        mapped.wr_name,
-                                        mapped.mb_id,
-                                        mapped.wr_datetime,
-                                        mapped.wr_ip,
-                                        mapped.wr_good,
-                                        mapped.wr_nogood,
-                                        mapped.is_secret
-                                    ]
+                                    [mapped.wr_id, mapped.bo_table, mapped.wr_parent, mapped.wr_content, mapped.wr_name, mapped.mb_id, mapped.wr_datetime, mapped.wr_ip, mapped.wr_good, mapped.wr_nogood, mapped.is_secret]
                                 );
                             }
                             stats.comments.migrated++;
@@ -520,20 +428,13 @@ export async function migrateGnuboard(options: MigrationOptions): Promise<Migrat
 
         // ─── 5. 포인트 ───
         progress('points', 0, 1, '포인트 마이그레이션 중...');
-        const [pointCountRows] = await sourceConn.query(
-            `SELECT COUNT(*) as cnt FROM ${prefix}point`
-        );
+        const [pointCountRows] = await sourceConn.query(`SELECT COUNT(*) as cnt FROM ${prefix}point`);
         const pointTotal = (pointCountRows as any)[0].cnt;
         stats.points.total = pointTotal;
 
         let pointOffset = 0;
         while (pointOffset < pointTotal) {
-            progress(
-                'points',
-                pointOffset,
-                pointTotal,
-                `포인트 마이그레이션 중... (${pointOffset}/${pointTotal})`
-            );
+            progress('points', pointOffset, pointTotal, `포인트 마이그레이션 중... (${pointOffset}/${pointTotal})`);
 
             const [pointRows] = await sourceConn.query(
                 `SELECT * FROM ${prefix}point ORDER BY po_id LIMIT ? OFFSET ?`,
@@ -548,18 +449,7 @@ export async function migrateGnuboard(options: MigrationOptions): Promise<Migrat
                         await targetConn.query(
                             `INSERT INTO point (mb_id, point, use_point, content, datetime, rel_table, rel_id, rel_action, expired, mb_point)
                              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-                            [
-                                mapped.mb_id,
-                                mapped.point,
-                                mapped.use_point,
-                                mapped.content,
-                                mapped.datetime,
-                                mapped.rel_table,
-                                mapped.rel_id,
-                                mapped.rel_action,
-                                mapped.expired,
-                                mapped.mb_point
-                            ]
+                            [mapped.mb_id, mapped.point, mapped.use_point, mapped.content, mapped.datetime, mapped.rel_table, mapped.rel_id, mapped.rel_action, mapped.expired, mapped.mb_point]
                         );
                     }
                     stats.points.migrated++;
@@ -572,11 +462,7 @@ export async function migrateGnuboard(options: MigrationOptions): Promise<Migrat
         }
 
         // ─── 6. 첨부파일 ───
-        if (
-            options.migrateAttachments &&
-            options.attachmentSourcePath &&
-            options.attachmentTargetPath
-        ) {
+        if (options.migrateAttachments && options.attachmentSourcePath && options.attachmentTargetPath) {
             progress('attachments', 0, 1, '첨부파일 마이그레이션 중...');
             const boardTables = boards.map((b) => b.bo_table);
             const attachResult = await migrateAttachments(
