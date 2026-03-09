@@ -58,39 +58,17 @@
         }, 300);
     }
 
+    // TEMP: 검색 서버 전용 인스턴스 생기면 debounceSearch 호출 복원
     function handleInput(e: Event): void {
         const target = e.target as HTMLInputElement;
         query = target.value;
-        debounceSearch(query);
     }
 
+    // TEMP: 검색 서버 전용 인스턴스 생기면 드롭다운 네비게이션 복원
     function handleKeydown(e: KeyboardEvent): void {
-        if (!isOpen) {
-            if (e.key === 'Enter') {
-                submitSearch();
-            }
-            return;
-        }
-
-        const selectableItems = flatItems.filter((i) => i.type === 'post');
-
-        if (e.key === 'ArrowDown') {
+        if (e.key === 'Enter') {
             e.preventDefault();
-            selectedIndex = Math.min(selectedIndex + 1, selectableItems.length - 1);
-        } else if (e.key === 'ArrowUp') {
-            e.preventDefault();
-            selectedIndex = Math.max(selectedIndex - 1, -1);
-        } else if (e.key === 'Enter') {
-            e.preventDefault();
-            if (selectedIndex >= 0 && selectedIndex < selectableItems.length) {
-                const item = selectableItems[selectedIndex];
-                if (item.type === 'post') {
-                    goto(`/${item.boardId}/${item.postId}`);
-                    close();
-                }
-            } else {
-                submitSearch();
-            }
+            submitSearch();
         } else if (e.key === 'Escape') {
             close();
         }
@@ -150,7 +128,7 @@
         {/if}
     </div>
 
-    {#if isOpen}
+    {#if false && isOpen}<!-- TEMP: 검색 서버 전용 인스턴스 생기면 복원 -->
         <div
             class="bg-popover border-border absolute z-50 mt-1 w-full overflow-hidden rounded-md border shadow-lg"
         >
