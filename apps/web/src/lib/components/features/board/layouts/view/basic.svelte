@@ -259,7 +259,7 @@
                     </p>
                     <p class="text-secondary-foreground text-[15px]">
                         {formatDate(post.created_at)}
-                        {#if post.updated_at && post.updated_at !== post.created_at && formatTimeShort}
+                        {#if post.updated_at && post.updated_at !== post.created_at && formatTimeShort && new Date(post.updated_at).getTime() - new Date(post.created_at).getTime() > 5 * 60 * 1000}
                             {#if editCount > 0}
                                 <span class="text-muted-foreground/70"
                                     >· 수정 {editCount}회({formatTimeShort(
