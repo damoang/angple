@@ -21,6 +21,7 @@
     import Settings from '@lucide/svelte/icons/settings';
     import Save from '@lucide/svelte/icons/save';
     import Check from '@lucide/svelte/icons/check';
+    import { Switch } from '$lib/components/ui/switch/index.js';
     import {
         listMemberXP,
         getMemberXPHistory,
@@ -29,11 +30,25 @@
         updateXPConfig,
         type MemberXPInfo,
         type XPHistoryItem,
-        type XPSummary
+        type XPSummary,
+        type XPConfig
     } from '$lib/api/admin-xp';
 
+    // 레벨 구간 데이터
+    const levelThresholds = [
+        0, 1000, 3000, 6000, 10000, 15000, 21000, 28000, 36000, 45000, 55000, 66000, 78000, 91000,
+        105000
+    ];
+
     // 설정 상태
-    let configLoginXP = $state(500);
+    let config = $state<XPConfig>({
+        login_xp: 500,
+        write_xp: 100,
+        comment_xp: 50,
+        login_enabled: true,
+        write_enabled: false,
+        comment_enabled: false
+    });
     let configLoading = $state(true);
     let configSaving = $state(false);
     let configSaved = $state(false);
@@ -41,8 +56,7 @@
     async function loadConfig() {
         configLoading = true;
         try {
-            const config = await getXPConfig();
-            configLoginXP = config.login_xp;
+            config = await getXPConfig();
         } catch (error) {
             console.error('XP 설정 로드 실패:', error);
         } finally {
@@ -54,7 +68,7 @@
         configSaving = true;
         configSaved = false;
         try {
-            await updateXPConfig({ login_xp: configLoginXP });
+            await updateXPConfig(config);
             configSaved = true;
             setTimeout(() => (configSaved = false), 2000);
         } catch (error) {
@@ -218,39 +232,119 @@
                     <span class="text-muted-foreground text-sm">설정 로드 중...</span>
                 </div>
             {:else}
-                <div class="flex items-end gap-4">
-                    <div class="w-48">
-                        <Label for="config-login-xp">로그인 경험치</Label>
-                        <div class="mt-1 flex items-center gap-2">
+                <div class="space-y-5">
+                    <!-- 로그인 보상 -->
+                    <div class="flex items-center justify-between gap-4">
+                        <div class="flex-1">
+                            <div class="flex items-center gap-2">
+                                <Label for="config-login-xp" class="font-medium">로그인 보상</Label>
+                                <Switch
+                                    checked={config.login_enabled}
+                                    onCheckedChange={(v) => (config.login_enabled = v)}
+                                />
+                            </div>
+                            <p class="text-muted-foreground mt-0.5 text-xs">
+                                매일 첫 로그인 시 지급
+                            </p>
+                        </div>
+                        <div class="flex items-center gap-2">
                             <Input
                                 id="config-login-xp"
                                 type="number"
                                 min="0"
                                 step="100"
-                                bind:value={configLoginXP}
+                                class="w-24 text-right"
+                                bind:value={config.login_xp}
+                                disabled={!config.login_enabled}
                             />
-                            <span class="text-muted-foreground whitespace-nowrap text-sm"
-                                >XP / 일</span
-                            >
+                            <span class="text-muted-foreground w-6 text-sm">XP</span>
                         </div>
                     </div>
-                    <Button size="sm" onclick={saveConfig} disabled={configSaving}>
-                        {#if configSaved}
-                            <Check class="mr-2 h-4 w-4" />
-                            저장됨
-                        {:else if configSaving}
-                            <Loader2 class="mr-2 h-4 w-4 animate-spin" />
-                            저장 중...
-                        {:else}
-                            <Save class="mr-2 h-4 w-4" />
-                            저장
-                        {/if}
-                    </Button>
+
+                    <!-- 글쓰기 보상 -->
+                    <div class="flex items-center justify-between gap-4">
+                        <div class="flex-1">
+                            <div class="flex items-center gap-2">
+                                <Label for="config-write-xp" class="font-medium">글쓰기 보상</Label>
+                                <Switch
+                                    checked={config.write_enabled}
+                                    onCheckedChange={(v) => (config.write_enabled = v)}
+                                />
+                            </div>
+                            <p class="text-muted-foreground mt-0.5 text-xs">게시글 작성 시 지급</p>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <Input
+                                id="config-write-xp"
+                                type="number"
+                                min="0"
+                                step="50"
+                                class="w-24 text-right"
+                                bind:value={config.write_xp}
+                                disabled={!config.write_enabled}
+                            />
+                            <span class="text-muted-foreground w-6 text-sm">XP</span>
+                        </div>
+                    </div>
+
+                    <!-- 댓글 보상 -->
+                    <div class="flex items-center justify-between gap-4">
+                        <div class="flex-1">
+                            <div class="flex items-center gap-2">
+                                <Label for="config-comment-xp" class="font-medium">댓글 보상</Label>
+                                <Switch
+                                    checked={config.comment_enabled}
+                                    onCheckedChange={(v) => (config.comment_enabled = v)}
+                                />
+                            </div>
+                            <p class="text-muted-foreground mt-0.5 text-xs">
+                                댓글 작성 시 지급 (30일 이내 글만)
+                            </p>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <Input
+                                id="config-comment-xp"
+                                type="number"
+                                min="0"
+                                step="10"
+                                class="w-24 text-right"
+                                bind:value={config.comment_xp}
+                                disabled={!config.comment_enabled}
+                            />
+                            <span class="text-muted-foreground w-6 text-sm">XP</span>
+                        </div>
+                    </div>
+
+                    <!-- 레벨 구간 참고 -->
+                    <div class="bg-muted/50 rounded-lg p-3">
+                        <p class="text-muted-foreground mb-1.5 text-xs font-medium">
+                            레벨 구간 (읽기 전용)
+                        </p>
+                        <div class="flex flex-wrap gap-x-3 gap-y-1">
+                            {#each levelThresholds as threshold, i}
+                                <span class="text-muted-foreground text-xs tabular-nums">
+                                    Lv.{i + 1}: {formatNumber(threshold)}
+                                </span>
+                            {/each}
+                        </div>
+                    </div>
+
+                    <!-- 저장 버튼 -->
+                    <div class="flex justify-end">
+                        <Button size="sm" onclick={saveConfig} disabled={configSaving}>
+                            {#if configSaved}
+                                <Check class="mr-2 h-4 w-4" />
+                                저장됨
+                            {:else if configSaving}
+                                <Loader2 class="mr-2 h-4 w-4 animate-spin" />
+                                저장 중...
+                            {:else}
+                                <Save class="mr-2 h-4 w-4" />
+                                저장
+                            {/if}
+                        </Button>
+                    </div>
                 </div>
-                <p class="text-muted-foreground mt-2 text-xs">
-                    매일 첫 로그인 시 지급되는 경험치입니다. 0으로 설정하면 로그인 경험치가
-                    비활성화됩니다.
-                </p>
             {/if}
         </Card.Content>
     </Card.Root>

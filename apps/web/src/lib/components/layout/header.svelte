@@ -13,7 +13,10 @@
     import AlignJustify from '@lucide/svelte/icons/align-justify';
     import Mail from '@lucide/svelte/icons/mail';
     import Sidebar from './sidebar.svelte';
-    import { NotificationDropdown } from '$lib/components/features/notification/index.js';
+    import {
+        NotificationDropdown,
+        LevelupCelebration
+    } from '$lib/components/features/notification/index.js';
     import { authStore } from '$lib/stores/auth.svelte.js';
     import { getAvatarUrl, getMemberIconUrl } from '$lib/utils/member-icon';
     import { menuStore } from '$lib/stores/menu.svelte';
@@ -337,6 +340,7 @@
 
                 <!-- 알림 드롭다운 -->
                 <NotificationDropdown />
+                <LevelupCelebration />
             {:else}
                 <!-- 알림 아이콘 (비로그인 시 단순 버튼) -->
                 <button
