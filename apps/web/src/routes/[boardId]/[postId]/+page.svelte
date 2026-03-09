@@ -976,6 +976,11 @@
         await refetchComments();
     }
 
+    async function handleRestoreComment(commentId: string): Promise<void> {
+        await apiClient.restoreComment(boardId, String(data.post.id), commentId);
+        await refetchComments();
+    }
+
     // 댓글 추천
     async function handleLikeComment(
         commentId: string
@@ -1336,6 +1341,7 @@
                         {comments}
                         onUpdate={handleUpdateComment}
                         onDelete={handleDeleteComment}
+                        onRestore={handleRestoreComment}
                         onReply={handleReplyComment}
                         onLike={handleLikeComment}
                         onDislike={handleDislikeComment}

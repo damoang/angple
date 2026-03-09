@@ -716,6 +716,13 @@ class ApiClient {
         });
     }
 
+    async restoreComment(boardId: string, postId: string, commentId: string): Promise<void> {
+        await this.request<void>(
+            `/boards/${boardId}/posts/${postId}/comments/${commentId}/restore`,
+            { method: 'POST' }
+        );
+    }
+
     // ========================================
     // 스크랩 (Scrap/Bookmark)
     // ========================================

@@ -9,6 +9,7 @@
     import Link2 from '@lucide/svelte/icons/link-2';
     import Pencil from '@lucide/svelte/icons/pencil';
     import Trash2 from '@lucide/svelte/icons/trash-2';
+    import RotateCcw from '@lucide/svelte/icons/rotate-ccw';
     import CommentForm from './comment-form.svelte';
     import { ReportDialog } from '$lib/components/features/report/index.js';
     import AdSlot from '$lib/components/ui/ad-slot/ad-slot.svelte';
@@ -67,6 +68,7 @@
         ) => Promise<void>;
         onLike?: (commentId: string) => Promise<{ likes: number; user_liked: boolean }>;
         onDislike?: (commentId: string) => Promise<{ dislikes: number; user_disliked: boolean }>;
+        onRestore?: (commentId: string) => Promise<void>;
         postAuthorId?: string; // 게시글 작성자 ID (비밀댓글 열람 권한 체크용)
         boardId?: string; // 신고 기능용
         postId?: number; // 신고 기능용
@@ -84,6 +86,7 @@
         onReply,
         onLike,
         onDislike,
+        onRestore,
         postAuthorId,
         boardId = 'free',
         postId = 0,
@@ -133,6 +136,7 @@
     let editContent = $state('');
     let isUpdating = $state(false);
     let isDeleting = $state<string | null>(null);
+    let isRestoring = $state<string | null>(null);
 
     // 댓글 리비전 이력 상태 (관리자 전용)
     let revisionCommentId = $state<string | null>(null);
@@ -350,6 +354,22 @@
             alert('댓글 삭제에 실패했습니다.');
         } finally {
             isDeleting = null;
+        }
+    }
+
+    async function handleRestore(commentId: string): Promise<void> {
+        if (!onRestore) return;
+        if (!confirm('이 댓글을 복구하시겠습니까?')) return;
+
+        isRestoring = commentId;
+        try {
+            await onRestore(commentId);
+            toast.success('댓글이 복구되었습니다.');
+        } catch (err) {
+            console.error('Failed to restore comment:', err);
+            toast.error('댓글 복구에 실패했습니다.');
+        } finally {
+            isRestoring = null;
         }
     }
 
@@ -1065,6 +1085,18 @@
                             >
                                 {@html comment.content}
                             </div>
+                        {/if}
+                        {#if isSuperAdmin() && onRestore}
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                class="mt-1"
+                                disabled={isRestoring === String(comment.id)}
+                                onclick={() => handleRestore(String(comment.id))}
+                            >
+                                <RotateCcw class="mr-1 h-3 w-3" />
+                                {isRestoring === String(comment.id) ? '복구 중...' : '복구'}
+                            </Button>
                         {/if}
                     {:else if isEditing}
                         <!-- 댓글 수정 폼 -->

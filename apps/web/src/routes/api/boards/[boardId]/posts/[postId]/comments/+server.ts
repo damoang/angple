@@ -118,11 +118,25 @@ export const GET: RequestHandler = async ({ params, url, locals }) => {
 
         const comments = rows.map((row) => ({
             id: row.wr_id,
-            content: row.wr_deleted_at ? '' : row.wr_content, // 삭제된 댓글은 내용 숨김
-            author: row.wr_deleted_at ? '' : nickMap.get(row.mb_id) || row.wr_name || row.mb_id,
-            author_id: row.wr_deleted_at ? '' : row.mb_id,
-            author_image: row.wr_deleted_at ? '' : imageMap.get(row.mb_id) || '',
-            author_ip: row.wr_deleted_at ? '' : isAdmin ? row.wr_ip : maskIp(row.wr_ip),
+            content: row.wr_deleted_at ? (isAdmin ? row.wr_content : '') : row.wr_content,
+            author: row.wr_deleted_at
+                ? isAdmin
+                    ? nickMap.get(row.mb_id) || row.wr_name || row.mb_id
+                    : ''
+                : nickMap.get(row.mb_id) || row.wr_name || row.mb_id,
+            author_id: row.wr_deleted_at ? (isAdmin ? row.mb_id : '') : row.mb_id,
+            author_image: row.wr_deleted_at
+                ? isAdmin
+                    ? imageMap.get(row.mb_id) || ''
+                    : ''
+                : imageMap.get(row.mb_id) || '',
+            author_ip: row.wr_deleted_at
+                ? isAdmin
+                    ? row.wr_ip
+                    : ''
+                : isAdmin
+                  ? row.wr_ip
+                  : maskIp(row.wr_ip),
             likes: row.wr_good,
             dislikes: row.wr_nogood,
             depth: row.wr_comment_reply.length,
