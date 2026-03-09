@@ -1214,7 +1214,7 @@
                 {formatTimeShort}
                 editCount={revisions.filter((r) => r.change_type === 'update').length}
                 {formatFileSize}
-                postContent={postContent()}
+                {postContent}
                 pageData={data}
                 {postReactions}
                 {postReportCount}

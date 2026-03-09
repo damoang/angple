@@ -321,7 +321,7 @@
 {:else}
     <SeoHead config={seoConfig} />
 
-    {#if !canList()}
+    {#if !canList}
         <div class="mx-auto pt-4">
             <div class="bg-muted/50 mx-auto mt-12 max-w-md rounded-lg p-8 text-center">
                 <Lock class="text-muted-foreground mx-auto mb-4 h-12 w-12" />
