@@ -469,7 +469,7 @@ export const handle: Handle = async ({ event, resolve }) => {
                     status: 200,
                     headers: {
                         'Content-Type': 'text/html; charset=utf-8',
-                        'Cache-Control': 'private, max-age=30, must-revalidate',
+                        'Cache-Control': 'private, no-store, no-cache, must-revalidate',
                         Vary: 'Cookie',
                         'X-Content-Type-Options': 'nosniff',
                         'X-Frame-Options': 'SAMEORIGIN',
