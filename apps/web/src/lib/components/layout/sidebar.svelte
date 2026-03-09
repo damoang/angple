@@ -227,41 +227,69 @@
                                                         />
                                                     </button>
                                                     {#if expandedGroups.has(child.id)}
-                                                        <div
-                                                            class="border-border/50 ms-3 space-y-0.5 border-l py-0.5 ps-2"
-                                                        >
-                                                            {#each child.children as grandchild (grandchild.id)}
-                                                                {@const GcIcon = getIcon(
-                                                                    grandchild.icon
-                                                                )}
-                                                                {@const gcActive = isActive(
-                                                                    grandchild.url
-                                                                )}
-                                                                <Button
-                                                                    variant={gcActive
-                                                                        ? 'default'
-                                                                        : 'ghost'}
-                                                                    size="sm"
-                                                                    class={cn(
-                                                                        'h-8 w-full justify-start gap-2 text-xs',
-                                                                        gcActive
-                                                                            ? 'bg-primary text-primary-foreground hover:bg-primary/90'
-                                                                            : 'hover:bg-accent'
+                                                        {#if child.children.length >= 4}
+                                                            <!-- 3depth 그리드 레이아웃 (소모임 등) -->
+                                                            <div
+                                                                class="bg-muted/30 border-border/40 mt-1.5 grid grid-cols-3 gap-px overflow-hidden rounded-[10px] border"
+                                                            >
+                                                                {#each child.children as grandchild (grandchild.id)}
+                                                                    {@const gcActive = isActive(
+                                                                        grandchild.url
                                                                     )}
-                                                                    href={grandchild.url}
-                                                                    rel="external"
-                                                                >
-                                                                    <GcIcon class="size-3.5" />
-                                                                    {grandchild.title}
-                                                                    {#if grandchild.shortcut}
-                                                                        <kbd
-                                                                            class="bg-muted text-muted-foreground ml-auto inline-flex h-4 min-w-4 items-center justify-center rounded border px-0.5 font-mono text-[9px] font-medium"
-                                                                            >{grandchild.shortcut}</kbd
+                                                                    <a
+                                                                        href={grandchild.url}
+                                                                        rel="external"
+                                                                        class={cn(
+                                                                            'bg-background flex items-center justify-center px-1 py-2 text-center text-[11px] leading-tight transition-all duration-200 ease-out active:scale-[0.98]',
+                                                                            gcActive
+                                                                                ? 'bg-primary/10 text-primary font-semibold'
+                                                                                : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground'
+                                                                        )}
+                                                                    >
+                                                                        <span class="line-clamp-1"
+                                                                            >{grandchild.title}</span
                                                                         >
-                                                                    {/if}
-                                                                </Button>
-                                                            {/each}
-                                                        </div>
+                                                                    </a>
+                                                                {/each}
+                                                            </div>
+                                                        {:else}
+                                                            <!-- 3depth 리스트 레이아웃 (항목 적을 때) -->
+                                                            <div
+                                                                class="border-border/50 ms-3 space-y-0.5 border-l py-0.5 ps-2"
+                                                            >
+                                                                {#each child.children as grandchild (grandchild.id)}
+                                                                    {@const GcIcon = getIcon(
+                                                                        grandchild.icon
+                                                                    )}
+                                                                    {@const gcActive = isActive(
+                                                                        grandchild.url
+                                                                    )}
+                                                                    <Button
+                                                                        variant={gcActive
+                                                                            ? 'default'
+                                                                            : 'ghost'}
+                                                                        size="sm"
+                                                                        class={cn(
+                                                                            'h-8 w-full justify-start gap-2 text-xs',
+                                                                            gcActive
+                                                                                ? 'bg-primary text-primary-foreground hover:bg-primary/90'
+                                                                                : 'hover:bg-accent'
+                                                                        )}
+                                                                        href={grandchild.url}
+                                                                        rel="external"
+                                                                    >
+                                                                        <GcIcon class="size-3.5" />
+                                                                        {grandchild.title}
+                                                                        {#if grandchild.shortcut}
+                                                                            <kbd
+                                                                                class="bg-muted text-muted-foreground ml-auto inline-flex h-4 min-w-4 items-center justify-center rounded border px-0.5 font-mono text-[9px] font-medium"
+                                                                                >{grandchild.shortcut}</kbd
+                                                                            >
+                                                                        {/if}
+                                                                    </Button>
+                                                                {/each}
+                                                            </div>
+                                                        {/if}
                                                     {/if}
                                                 </div>
                                             {:else}
