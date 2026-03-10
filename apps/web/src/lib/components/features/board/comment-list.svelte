@@ -1042,6 +1042,7 @@
                                                 title="신고"
                                             >
                                                 <Flag class="h-4 w-4" />
+                                                <span class="ml-1 text-xs">신고</span>
                                             </Button>
                                         {/if}
                                         {#if isSuperAdmin() && comment.edit_count && comment.edit_count > 0}

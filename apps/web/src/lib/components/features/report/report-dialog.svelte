@@ -74,6 +74,7 @@
     let detail = $state('');
     let isSubmitting = $state(false);
     let isSuccess = $state(false);
+    let showConfirm = $state(false);
     let error = $state<string | null>(null);
 
     // 관리자 신고자 목록
@@ -88,10 +89,17 @@
     // 타이틀
     const dialogTitle = $derived(targetType === 'post' ? '게시글 신고' : '댓글 신고');
 
+    // 신고 확인 단계
+    function handleReportClick(): void {
+        if (selectedReasons.size === 0) return;
+        showConfirm = true;
+    }
+
     // 신고 제출
     async function handleSubmit(): Promise<void> {
         if (selectedReasons.size === 0) return;
 
+        showConfirm = false;
         isSubmitting = true;
         error = null;
 
@@ -130,6 +138,7 @@
         selectedReasons = new Set();
         detail = '';
         isSuccess = false;
+        showConfirm = false;
         error = null;
         showReporters = false;
         reporters = [];
@@ -275,30 +284,54 @@
                         {error}
                     </div>
                 {/if}
+
+                <!-- 신고 확인 단계 -->
+                {#if showConfirm}
+                    <div class="bg-destructive/10 rounded-md p-3 text-sm">
+                        <p class="text-destructive font-medium">정말 신고하시겠습니까?</p>
+                        <p class="text-muted-foreground mt-1">
+                            신고가 접수되면 취소할 수 없습니다.
+                        </p>
+                    </div>
+                {/if}
             </div>
 
             <DialogFooter>
-                <Button
-                    type="button"
-                    variant="outline"
-                    onclick={handleClose}
-                    disabled={isSubmitting}
-                >
-                    취소
-                </Button>
-                <Button
-                    type="button"
-                    variant="destructive"
-                    onclick={handleSubmit}
-                    disabled={!canSubmit || isSubmitting}
-                >
-                    {#if isSubmitting}
-                        <Loader2 class="mr-2 h-4 w-4 animate-spin" />
-                        신고 중...
-                    {:else}
+                {#if showConfirm}
+                    <Button type="button" variant="outline" onclick={() => (showConfirm = false)}>
+                        돌아가기
+                    </Button>
+                    <Button
+                        type="button"
+                        variant="destructive"
+                        onclick={handleSubmit}
+                        disabled={isSubmitting}
+                    >
+                        {#if isSubmitting}
+                            <Loader2 class="mr-2 h-4 w-4 animate-spin" />
+                            신고 중...
+                        {:else}
+                            확인
+                        {/if}
+                    </Button>
+                {:else}
+                    <Button
+                        type="button"
+                        variant="outline"
+                        onclick={handleClose}
+                        disabled={isSubmitting}
+                    >
+                        취소
+                    </Button>
+                    <Button
+                        type="button"
+                        variant="destructive"
+                        onclick={handleReportClick}
+                        disabled={!canSubmit || isSubmitting}
+                    >
                         신고하기
-                    {/if}
-                </Button>
+                    </Button>
+                {/if}
             </DialogFooter>
         {/if}
     </DialogContent>

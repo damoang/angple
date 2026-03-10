@@ -180,7 +180,7 @@
 
     // link1이 동영상 URL이면 본문 앞에 삽입 (그누보드 wr_link1 호환)
     const postContent = $derived(
-        data.post.link1 && isEmbeddable(data.post.link1)
+        !data.post.deleted_at && data.post.link1 && isEmbeddable(data.post.link1)
             ? `<p>${data.post.link1}</p>\n${data.post.content}`
             : data.post.content
     );
@@ -705,7 +705,10 @@
     async function handleDelete(): Promise<void> {
         isDeleting = true;
         try {
-            await apiClient.deletePost(boardId, String(data.post.id));
+            const result = await apiClient.deletePost(boardId, String(data.post.id));
+            if (result.scheduled) {
+                alert(result.message || `${result.delay_minutes}분 후 삭제됩니다.`);
+            }
             goto(`/${boardId}`);
         } catch (err) {
             console.error('Failed to delete post:', err);

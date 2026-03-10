@@ -567,10 +567,24 @@ class ApiClient {
      * 게시글 삭제 (소프트 삭제)
      * 🔒 인증 필요 + 작성자 본인 또는 관리자
      */
-    async deletePost(boardId: string, postId: string): Promise<void> {
-        await this.request<void>(`/boards/${boardId}/posts/${postId}/soft-delete`, {
+    async deletePost(
+        boardId: string,
+        postId: string
+    ): Promise<{
+        scheduled?: boolean;
+        scheduled_at?: string;
+        delay_minutes?: number;
+        message?: string;
+    }> {
+        const response = await this.request<{
+            scheduled?: boolean;
+            scheduled_at?: string;
+            delay_minutes?: number;
+            message?: string;
+        }>(`/boards/${boardId}/posts/${postId}/soft-delete`, {
             method: 'PATCH'
         });
+        return response.data ?? {};
     }
 
     /**
