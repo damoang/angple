@@ -30,7 +30,7 @@
         { name: '다모앙 만들기', href: '/makeang' },
         { name: '이벤트 제안', href: '/event' },
         { name: '다모앙 개발지원 신청', href: '/discord' },
-        { name: '광고앙', href: '/advertising' }
+        { name: '광고상품', href: '/content/advertisement' }
     ];
 
     // 시스템 메뉴

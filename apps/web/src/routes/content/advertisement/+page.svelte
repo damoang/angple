@@ -51,19 +51,27 @@
         },
         {
             title: '미니배너',
-            spec: '125 x 90px',
+            spec: 'PC 125 x 90px · 모바일 139 x 78px',
             price: '30',
             unit: '만원/월',
             cpm: 'CPM 약 37원 · 월 800만 노출',
-            features: ['사이드바 고정 노출', '모바일 햄버거 메뉴에 표시']
+            features: [
+                'PC 화면 사이드바 고정 노출',
+                '모바일 햄버거 메뉴 내 노출',
+                '2x2 그리드 이미지+텍스트 형태'
+            ]
         },
         {
             title: '네모배너',
-            spec: '200 x 200px',
+            spec: 'PC 200 x 200px · 모바일 320 x 100px',
             price: '70',
             unit: '만원/월',
             cpm: 'CPM 약 35원 · 월 2,000만 노출',
-            features: ['PC 사이드 노출', '모바일 하단 노출']
+            features: [
+                'PC 사이드바 정사각 노출',
+                '모바일 햄버거 메뉴 내 가로 배너 노출',
+                'PC/모바일 모두 노출'
+            ]
         },
         {
             title: '스탠다드 긴배너',
@@ -330,8 +338,11 @@
                         >
                             네모배너
                         </h3>
-                        <div class="bg-muted/50 flex items-center justify-center rounded-lg p-4">
-                            <span class="text-muted-foreground text-sm">200 x 200px 배너 영역</span>
+                        <div
+                            class="bg-muted/50 flex flex-col items-center justify-center gap-1 rounded-lg p-4"
+                        >
+                            <span class="text-muted-foreground text-sm">PC: 200 x 200px</span>
+                            <span class="text-muted-foreground text-xs">모바일: 320 x 100px</span>
                         </div>
                     </div>
 
@@ -341,8 +352,13 @@
                         >
                             미니배너
                         </h3>
-                        <div class="bg-muted/50 flex items-center justify-center rounded-lg p-4">
-                            <span class="text-muted-foreground text-sm">125 x 90px 배너 영역</span>
+                        <div
+                            class="bg-muted/50 flex flex-col items-center justify-center gap-1 rounded-lg p-4"
+                        >
+                            <span class="text-muted-foreground text-sm">PC: 125 x 90px</span>
+                            <span class="text-muted-foreground text-xs"
+                                >모바일: 139 x 78px (햄버거 메뉴 내)</span
+                            >
                         </div>
                     </div>
                 </div>
