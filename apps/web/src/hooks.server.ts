@@ -8,6 +8,29 @@ import { setDamoangSSOCookie } from '$lib/server/auth/sso-cookie.js';
 import { checkRateLimit, recordAttempt } from '$lib/server/rate-limit.js';
 import { mapGnuboardUrl, mapRhymixUrl } from '$lib/server/url-compat.js';
 
+// --- 환경별 접근 제어 (hostname → 환경변수 매핑) ---
+// 각 환경변수가 설정된 경우에만 해당 호스트에서 접근 제어 활성화
+const ACCESS_CONTROL_MAP: Record<string, string[] | null> = {
+    'canary.damoang.net': env.CANARY_ALLOWED_MEMBERS
+        ? env.CANARY_ALLOWED_MEMBERS.split(',').map((s) => s.trim())
+        : null,
+    'dev.damoang.net': env.DEV_ALLOWED_MEMBERS
+        ? env.DEV_ALLOWED_MEMBERS.split(',').map((s) => s.trim())
+        : null
+};
+
+/** JWT 페이로드 파싱 (서명 검증 없이 - 접근 제어용 간단 체크) */
+function parseJWTPayload(token: string): { mb_id?: string } | null {
+    try {
+        const parts = token.split('.');
+        if (parts.length !== 3) return null;
+        const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
+        return payload;
+    } catch {
+        return null;
+    }
+}
+
 // --- JWT 인메모리 캐시 (세션별, 5분 TTL) ---
 const jwtCache = new Map<string, { token: string; expiry: number }>();
 const JWT_CACHE_TTL = 5 * 60 * 1000; // 5분
@@ -258,6 +281,29 @@ const WRITE_API_RATE = { maxRequests: 60, windowMs: 60_000 }; // 쓰기 분당 6
 
 export const handle: Handle = async ({ event, resolve }) => {
     const { pathname } = event.url;
+
+    // --- 환경별 접근 제어 (hostname 기반) ---
+    const allowedMembers = ACCESS_CONTROL_MAP[event.url.hostname];
+    if (allowedMembers) {
+        const jwt = event.cookies.get('damoang_jwt');
+
+        if (!jwt) {
+            // 로그인 페이지로 리다이렉트
+            const loginUrl = `https://damoang.net/login?redirect=${encodeURIComponent(event.url.href)}`;
+            return new Response(null, {
+                status: 302,
+                headers: { Location: loginUrl }
+            });
+        }
+
+        const payload = parseJWTPayload(jwt);
+        if (!payload?.mb_id || !allowedMembers.includes(payload.mb_id)) {
+            return new Response(
+                '접근 권한이 없습니다. 허용된 테스터만 접근할 수 있습니다.',
+                { status: 403, headers: { 'Content-Type': 'text/plain; charset=utf-8' } }
+            );
+        }
+    }
 
     // 개발/내부 전용 경로 차단 (프로덕션)
     if (!dev && DEV_ONLY_PATHS.some((p) => pathname === p || pathname.startsWith(p + '/'))) {
