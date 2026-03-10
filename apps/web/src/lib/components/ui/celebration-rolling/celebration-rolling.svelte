@@ -70,4 +70,10 @@
         </div>
         <span class="text-muted-foreground shrink-0 text-xs">&rarr;</span>
     </a>
+{:else}
+    <div
+        class="border-border bg-background flex h-9 items-center justify-center rounded-lg border px-3 {className}"
+    >
+        <span class="text-muted-foreground text-sm">축하메시지가 없습니다</span>
+    </div>
 {/if}
