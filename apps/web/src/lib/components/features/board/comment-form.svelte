@@ -1,7 +1,6 @@
 <script lang="ts">
     import { untrack } from 'svelte';
     import { Button } from '$lib/components/ui/button/index.js';
-    import { Textarea } from '$lib/components/ui/textarea/index.js';
     import { Checkbox } from '$lib/components/ui/checkbox/index.js';
     import { authStore } from '$lib/stores/auth.svelte.js';
     import { getAvatarUrl, getMemberIconUrl } from '$lib/utils/member-icon.js';
@@ -13,7 +12,7 @@
     import CornerDownRight from '@lucide/svelte/icons/corner-down-right';
     import Lock from '@lucide/svelte/icons/lock';
     import Loader2 from '@lucide/svelte/icons/loader-2';
-    import { MentionAutocomplete } from '$lib/components/features/mention/index.js';
+    import type { Component } from 'svelte';
     import CommentToolbar from './comment-toolbar.svelte';
 
     interface Props {
@@ -29,16 +28,11 @@
         parentId?: string | number;
         parentAuthor?: string;
         isReplyMode?: boolean;
-        showSecretOption?: boolean; // deprecated: 관리자 레벨 기반으로 자동 판단
-        /** 게시판 권한 정보 (서버에서 계산) */
+        showSecretOption?: boolean;
         permissions?: BoardPermissions;
-        /** 댓글 작성에 필요한 레벨 (하위호환용) */
         requiredCommentLevel?: number;
-        /** 게시판 ID (이미지 업로드용) */
         boardId?: string;
-        /** 댓글 새로고침 콜백 */
         onRefresh?: () => void;
-        /** 새로고침 중 여부 */
         isRefreshing?: boolean;
     }
 
@@ -58,20 +52,15 @@
         isRefreshing = false
     }: Props = $props();
 
-    // 댓글/답글 작성 권한 체크
     const canComment = $derived.by(() => {
         if (!authStore.isAuthenticated) return false;
-        // 서버에서 계산된 권한 정보가 있으면 사용
         if (permissions) {
-            // 대댓글 모드면 can_reply, 일반 댓글이면 can_comment
             return isReplyMode ? permissions.can_reply : permissions.can_comment;
         }
-        // 하위호환: 클라이언트에서 레벨 비교
         const userLevel = authStore.user?.mb_level ?? 1;
         return userLevel >= requiredCommentLevel;
     });
 
-    // 권한 부족 시 표시할 메시지
     const permissionMessage = $derived(`레벨 ${requiredCommentLevel} 이상 작성 가능`);
 
     let commentAvatarUrl = $derived(
@@ -86,8 +75,26 @@
     let content = $state('');
     let isSecret = $state(false);
     let error = $state<string | null>(null);
-    let textareaRef = $state<HTMLTextAreaElement | null>(null);
+    let editorRef = $state<any>(null);
     let fileInputRef = $state<HTMLInputElement | null>(null);
+
+    // === CommentEditor 동적 로드 ===
+    let LazyCommentEditor = $state<Component | null>(null);
+    let editorLoading = $state(false);
+
+    function loadEditor(): void {
+        if (LazyCommentEditor || editorLoading) return;
+        editorLoading = true;
+        import('./comment-editor.svelte').then((m) => {
+            LazyCommentEditor = m.default;
+            editorLoading = false;
+        });
+    }
+
+    // 대댓글: 폼이 마운트되면 바로 에디터 로드 시작
+    $effect(() => {
+        if (isReplyMode && canComment) loadEditor();
+    });
 
     // 이미지 업로드 상태
     let isUploading = $state(false);
@@ -95,19 +102,27 @@
     const MAX_IMAGES = 3;
     const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
 
-    // 대댓글 모드일 때 플레이스홀더 변경
     const actualPlaceholder = $derived(
         isReplyMode && parentAuthor ? `@${parentAuthor}님에게 답글 작성...` : placeholder
     );
 
-    // 제출 가능 여부
-    const canSubmit = $derived(content.trim().length > 0);
+    // 제출 가능 여부 — Tiptap 빈 상태 <p></p> 대응
+    const canSubmit = $derived(
+        content.replace(/<[^>]*>/g, '').trim().length > 0 || content.includes('<img ')
+    );
 
-    // 제출 핸들러
+    // 앙티콘 이미지를 {emo:filename} 텍스트로 복원
+    function convertEmoticonImages(html: string): string {
+        return html.replace(
+            /<img[^>]+src="\/emoticons\/([^"]+)"[^>]*>/g,
+            (_match, filename) => `{emo:${filename}}`
+        );
+    }
+
     async function handleSubmit(e: Event): Promise<void> {
         e.preventDefault();
 
-        if (!content.trim()) {
+        if (!canSubmit) {
             error = '댓글 내용을 입력해주세요.';
             return;
         }
@@ -115,15 +130,16 @@
         error = null;
 
         try {
-            await onSubmit(content.trim(), parentId, isSecret);
+            const submitContent = convertEmoticonImages(content.trim());
+            await onSubmit(submitContent, parentId, isSecret);
             content = '';
+            editorRef?.clear();
             isSecret = false;
         } catch (err) {
             error = err instanceof Error ? err.message : '댓글 작성에 실패했습니다.';
         }
     }
 
-    // 취소 핸들러
     function handleCancel(): void {
         content = '';
         isSecret = false;
@@ -131,35 +147,17 @@
         onCancel?.();
     }
 
-    // 툴바에서 텍스트 삽입
     function insertText(text: string): void {
-        if (textareaRef) {
-            const start = textareaRef.selectionStart;
-            const end = textareaRef.selectionEnd;
-            content = content.substring(0, start) + text + content.substring(end);
-            // 커서를 삽입된 텍스트 뒤로 이동
-            requestAnimationFrame(() => {
-                if (textareaRef) {
-                    const newPos = start + text.length;
-                    textareaRef.selectionStart = newPos;
-                    textareaRef.selectionEnd = newPos;
-                    textareaRef.focus();
-                }
-            });
-        } else {
-            content += text;
-        }
+        editorRef?.insertContent(text);
     }
 
-    // 파일 선택 트리거
     function triggerFileSelect(): void {
         fileInputRef?.click();
     }
 
-    // 이미지 파일 처리 — 업로드 후 커서 위치에 img 태그 삽입
     async function handleFiles(files: FileList | File[]): Promise<void> {
         const fileArray = Array.from(files);
-        const insertedImageCount = (content.match(/<img\s/g) || []).length;
+        const insertedImageCount = editorRef?.getImageCount() ?? 0;
         const remaining = MAX_IMAGES - insertedImageCount;
         if (remaining <= 0) {
             error = `이미지는 최대 ${MAX_IMAGES}개까지 첨부할 수 있습니다.`;
@@ -186,9 +184,7 @@
                     error = '이미지 URL을 받지 못했습니다.';
                     continue;
                 }
-                // 커서 위치에 img 태그 삽입
-                const imgTag = `<img src="${result.url}" alt="첨부 이미지" loading="lazy">`;
-                insertText(imgTag);
+                editorRef?.insertImage(result.url, '첨부 이미지');
             } catch (err) {
                 error = err instanceof Error ? err.message : '이미지 업로드에 실패했습니다.';
             } finally {
@@ -197,31 +193,11 @@
         }
     }
 
-    // 파일 input 변경
     function handleFileChange(e: Event): void {
         const input = e.currentTarget as HTMLInputElement;
         if (input.files && input.files.length > 0) {
             handleFiles(input.files);
-            input.value = ''; // 리셋하여 같은 파일 재선택 허용
-        }
-    }
-
-    // 클립보드 붙여넣기 이미지 처리
-    function handlePaste(e: ClipboardEvent): void {
-        const items = e.clipboardData?.items;
-        if (!items) return;
-
-        const imageFiles: File[] = [];
-        for (const item of items) {
-            if (item.type.startsWith('image/')) {
-                const file = item.getAsFile();
-                if (file) imageFiles.push(file);
-            }
-        }
-
-        if (imageFiles.length > 0) {
-            e.preventDefault();
-            handleFiles(imageFiles);
+            input.value = '';
         }
     }
 </script>
@@ -229,7 +205,6 @@
 {#if canComment}
     <form onsubmit={handleSubmit} class="space-y-2">
         {#if isReplyMode}
-            <!-- 대댓글 모드 표시 -->
             <div class="text-muted-foreground flex items-center gap-2 text-sm">
                 <CornerDownRight class="h-4 w-4" />
                 <span>
@@ -239,7 +214,6 @@
         {/if}
 
         <div class="flex items-start gap-3">
-            <!-- 사용자 아바타 (답글 모드에서는 모바일 숨김) -->
             <div
                 class="flex size-10 shrink-0 items-center justify-center rounded-full {isReplyMode
                     ? 'hidden sm:flex'
@@ -262,24 +236,37 @@
             </div>
 
             <div class="relative flex-1 space-y-2">
-                <Textarea
-                    bind:ref={textareaRef}
-                    bind:value={content}
-                    placeholder={actualPlaceholder}
-                    rows={isReplyMode ? 1 : 2}
-                    class="{error ? 'border-destructive' : ''} max-h-[40vh] overflow-y-auto"
-                    disabled={isLoading}
-                    onpaste={handlePaste}
-                    onkeydown={(e: KeyboardEvent) => {
-                        if ((e.altKey || e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-                            e.preventDefault();
-                            if (canSubmit && !isLoading) {
-                                handleSubmit(e);
-                            }
-                        }
-                    }}
-                />
-                <MentionAutocomplete textarea={textareaRef} />
+                {#if LazyCommentEditor}
+                    <LazyCommentEditor
+                        bind:this={editorRef}
+                        placeholder={actualPlaceholder}
+                        disabled={isLoading}
+                        onUpdate={(html) => {
+                            content = html;
+                        }}
+                        onImagePaste={(file) => handleFiles([file])}
+                        onSubmitShortcut={() => {
+                            if (canSubmit && !isLoading) handleSubmit(new Event('submit'));
+                        }}
+                        class={error ? 'border-destructive' : ''}
+                    />
+                {:else}
+                    <!-- 에디터 로드 전 플레이스홀더 — hover로 preload, click으로 활성화 -->
+                    <!-- svelte-ignore a11y_no_static_element_interactions -->
+                    <div
+                        class="border-border bg-background text-muted-foreground min-h-20 cursor-text rounded-lg border p-3 text-sm"
+                        onmouseenter={loadEditor}
+                        onfocusin={loadEditor}
+                        onclick={loadEditor}
+                        onkeydown={loadEditor}
+                    >
+                        {#if editorLoading}
+                            <span class="animate-pulse">에디터 로딩 중...</span>
+                        {:else}
+                            {actualPlaceholder}
+                        {/if}
+                    </div>
+                {/if}
 
                 {#if isUploading}
                     <div class="text-muted-foreground flex items-center gap-2 text-sm">
@@ -293,12 +280,14 @@
                     <CommentToolbar
                         onInsertText={insertText}
                         onSelectImage={triggerFileSelect}
+                        onInsertEmoticon={(filename) => {
+                            editorRef?.insertImage(`/emoticons/${filename}`, filename);
+                        }}
                         disabled={isLoading}
                         {boardId}
                     />
 
                     <div class="ml-auto flex items-center gap-2">
-                        <!-- 비밀댓글 옵션 (관리자만) -->
                         {#if authStore.user?.mb_level != null && authStore.user.mb_level >= 10}
                             <label
                                 class="text-muted-foreground flex cursor-pointer items-center gap-2 text-sm"
@@ -348,7 +337,6 @@
             </div>
         </div>
 
-        <!-- 숨겨진 파일 input -->
         <input
             bind:this={fileInputRef}
             type="file"
@@ -359,7 +347,6 @@
         />
     </form>
 {:else if authStore.isAuthenticated}
-    <!-- 로그인했지만 권한 부족 -->
     <div class="bg-muted/50 rounded-md p-4 text-center">
         <p class="text-muted-foreground flex items-center justify-center gap-2">
             <Lock class="h-4 w-4" />

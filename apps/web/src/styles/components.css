@@ -339,6 +339,38 @@ pre:hover .hljs-copy-btn {
     border-radius: 4px;
 }
 
+/* 댓글 에디터 */
+.comment-editor .tiptap {
+    outline: none;
+    min-height: 5rem;
+    max-height: 40vh;
+    overflow-y: auto;
+}
+
+.comment-editor .tiptap p {
+    margin: 0;
+}
+
+.comment-editor .tiptap p.is-editor-empty:first-child::before {
+    content: attr(data-placeholder);
+    color: var(--color-muted-foreground);
+    float: left;
+    height: 0;
+    pointer-events: none;
+}
+
+.comment-editor .tiptap img {
+    max-width: 100%;
+    border-radius: 0.5rem;
+    margin: 0.25rem 0;
+    display: inline;
+}
+
+.comment-editor .tiptap img.ProseMirror-selectednode {
+    outline: 2px solid oklch(0.62 0.15 250);
+    outline-offset: 2px;
+}
+
 /* 댓글 이모티콘 overflow 방지 */
 .comment-body img {
     display: inline;

@@ -135,6 +135,7 @@
     let editingCommentId = $state<string | null>(null);
     let editContent = $state('');
     let isUpdating = $state(false);
+    let LazyCommentEditor = $state<Component | null>(null);
     let isDeleting = $state<string | null>(null);
     let isRestoring = $state<string | null>(null);
 
@@ -313,11 +314,15 @@
 
     // 수정 모드 시작
     function startEdit(comment: FreeComment): void {
-        // commentTree에서 ID로 명시적 조회 (클로저 안전)
         const target = commentTree.find((c) => c.id === comment.id) ?? comment;
         editingCommentId = String(target.id);
         editContent = target.content;
-        replyingToCommentId = null; // 답글 모드 해제
+        replyingToCommentId = null;
+        if (!LazyCommentEditor) {
+            import('./comment-editor.svelte').then((m) => {
+                LazyCommentEditor = m.default;
+            });
+        }
     }
 
     // 수정 취소
@@ -552,6 +557,7 @@
                     comment.id,
                     DOMPurify.sanitize(withLinks, {
                         ALLOWED_TAGS: [
+                            'p',
                             'img',
                             'br',
                             'div',
@@ -1102,12 +1108,20 @@
                     {:else if isEditing}
                         <!-- 댓글 수정 폼 -->
                         <div class="mt-2 space-y-3">
-                            <textarea
-                                bind:value={editContent}
-                                class="border-border bg-background text-foreground focus:border-primary focus:ring-primary min-h-24 w-full resize-y rounded-lg border p-3 text-sm focus:outline-none focus:ring-1"
-                                placeholder="댓글을 입력하세요..."
-                                disabled={isUpdating}
-                            ></textarea>
+                            {#if LazyCommentEditor}
+                                <LazyCommentEditor
+                                    content={editContent}
+                                    onUpdate={(html) => {
+                                        editContent = html;
+                                    }}
+                                    placeholder="댓글을 입력하세요..."
+                                    disabled={isUpdating}
+                                />
+                            {:else}
+                                <div
+                                    class="border-border bg-background min-h-24 animate-pulse rounded-lg border p-3"
+                                ></div>
+                            {/if}
                             <div class="flex justify-end gap-2">
                                 <Button
                                     type="button"
