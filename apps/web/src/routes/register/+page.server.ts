@@ -15,7 +15,7 @@ import {
 } from '$lib/server/auth/register.js';
 import { upsertSocialProfile } from '$lib/server/auth/oauth/social-profile.js';
 import { getMemberById, updateLoginTimestamp } from '$lib/server/auth/oauth/member.js';
-import { generateRefreshToken } from '$lib/server/auth/jwt.js';
+import { generateRefreshToken, generateDamoangJWT } from '$lib/server/auth/jwt.js';
 import {
     createSession,
     SESSION_COOKIE_NAME,
@@ -287,8 +287,50 @@ export const actions: Actions = {
             });
         }
 
-        // 초대 플로우: 실명인증 스킵, 바로 리다이렉트
+        // 초대 플로우: ads API 서버사이드 호출 후 완료 페이지로 리다이렉트
         if (isInviteFlow) {
+            const tokenMatch = redirectUrl.match(/invite\/([a-f0-9]+)/);
+            const inviteToken = tokenMatch?.[1];
+
+            if (inviteToken) {
+                try {
+                    const jwtToken = await generateDamoangJWT({
+                        mb_id: mbId,
+                        mb_level: member?.mb_level ?? 0,
+                        mb_name: member?.mb_name || nickname,
+                        mb_email: socialProfile.email
+                    });
+
+                    const confirmRes = await fetch(
+                        `https://ads.damoang.net/api/v1/invite/${inviteToken}/confirm`,
+                        {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                Cookie: `damoang_jwt=${jwtToken}`
+                            },
+                            body: JSON.stringify({
+                                type: 'create_account',
+                                mbId: mbId,
+                                mbNick: nickname
+                            })
+                        }
+                    );
+
+                    const result = await confirmRes.json();
+                    if (result.success) {
+                        redirect(302, '/register/invite-complete');
+                    }
+                    console.error('[Register] Invite confirm failed:', result.message);
+                } catch (err) {
+                    // SvelteKit redirect는 다시 throw
+                    if (err && typeof err === 'object' && 'status' in err) {
+                        throw err;
+                    }
+                    console.error('[Register] Invite confirm error:', err);
+                }
+            }
+            // 실패 시 기존 동작 (ads 초대페이지로 리다이렉트)
             redirect(302, redirectUrl);
         }
 
