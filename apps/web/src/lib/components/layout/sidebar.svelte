@@ -17,6 +17,7 @@
     import { getComponentsForSlot } from '$lib/components/slot-manager';
     import AdSlot from '$lib/components/ui/ad-slot/ad-slot.svelte';
     import ImageTextBanner from '$lib/components/ui/image-text-banner/image-text-banner.svelte';
+    import { CelebrationRolling } from '$lib/components/ui/celebration-rolling';
     import { widgetLayoutStore } from '$lib/stores/widget-layout.svelte';
     import { boardFavoritesStore, slotLabel } from '$lib/stores/board-favorites.svelte';
 
@@ -376,6 +377,8 @@
                 </div>
                 <ImageTextBanner position="side-image-text-banner" />
             </div>
+            <!-- 드로워: 축하메시지 -->
+            <CelebrationRolling />
         {:else}
             <!-- Slot: sidebar-left-bottom -->
             {#each getComponentsForSlot('sidebar-left-bottom') as slotComp (slotComp.id)}
