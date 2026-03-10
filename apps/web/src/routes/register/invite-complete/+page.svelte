@@ -19,7 +19,9 @@
 <div class="mx-auto flex min-h-[60vh] max-w-md items-center justify-center px-4 py-12">
     <Card class="w-full">
         <CardHeader class="items-center text-center">
-            <div class="mb-2 flex h-16 w-16 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">
+            <div
+                class="mb-2 flex h-16 w-16 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30"
+            >
                 <CircleCheck class="h-8 w-8 text-green-600 dark:text-green-400" />
             </div>
             <CardTitle class="text-xl">가입이 완료되었습니다</CardTitle>

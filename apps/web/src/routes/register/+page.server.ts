@@ -294,10 +294,11 @@ export const actions: Actions = {
 
             if (inviteToken) {
                 try {
+                    const inviteMember = await getMemberById(mbId);
                     const jwtToken = await generateDamoangJWT({
                         mb_id: mbId,
-                        mb_level: member?.mb_level ?? 0,
-                        mb_name: member?.mb_name || nickname,
+                        mb_level: inviteMember?.mb_level ?? 0,
+                        mb_name: inviteMember?.mb_name || nickname,
                         mb_email: socialProfile.email
                     });
 
