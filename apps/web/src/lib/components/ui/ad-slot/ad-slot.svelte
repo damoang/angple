@@ -27,6 +27,8 @@
     let computedHeight = $state(height);
     let slot: googletag.Slot | null = null;
     let refreshInterval: ReturnType<typeof setInterval> | null = null;
+    let emptyRetryTimeout: ReturnType<typeof setTimeout> | null = null;
+    let emptyRetryCount = 0;
     let destroyed = false;
     let isVisible = false;
     let visibilityObserver: IntersectionObserver | null = null;
@@ -47,8 +49,8 @@
         timer: ReturnType<typeof setTimeout> | null;
         servicesEnabled: boolean;
         slotsMap: Map<string, googletag.Slot>;
-        lastRefreshTime: number;
-        pendingRefreshTimer: ReturnType<typeof setTimeout> | null;
+        renderCallbacks: Map<string, (isEmpty: boolean) => void>;
+        slotRenderListenerRegistered: boolean;
     }
 
     function getBatchManager(): BatchManager {
@@ -58,8 +60,8 @@
                 timer: null,
                 servicesEnabled: false,
                 slotsMap: new Map(),
-                lastRefreshTime: 0,
-                pendingRefreshTimer: null
+                renderCallbacks: new Map(),
+                slotRenderListenerRegistered: false
             };
         if (!(window as any)[BATCH_KEY]) {
             (window as any)[BATCH_KEY] = {
@@ -67,8 +69,8 @@
                 timer: null,
                 servicesEnabled: false,
                 slotsMap: new Map(),
-                lastRefreshTime: 0,
-                pendingRefreshTimer: null
+                renderCallbacks: new Map(),
+                slotRenderListenerRegistered: false
             };
         }
         return (window as any)[BATCH_KEY];
@@ -83,8 +85,25 @@
         googletag.cmd.push(() => {
             const newSlots: googletag.Slot[] = [];
 
+            if (!mgr.slotRenderListenerRegistered) {
+                googletag
+                    .pubads()
+                    .addEventListener(
+                        'slotRenderEnded',
+                        (event: googletag.events.SlotRenderEndedEvent) => {
+                            const divId = event.slot.getSlotElementId();
+                            const onRender = mgr.renderCallbacks.get(divId);
+                            if (onRender) {
+                                onRender(event.isEmpty);
+                            }
+                        }
+                    );
+                mgr.slotRenderListenerRegistered = true;
+            }
+
             for (const item of batch) {
                 if (!document.getElementById(item.divId)) continue;
+                if (mgr.slotsMap.has(item.divId)) continue;
 
                 let s: googletag.Slot | null;
                 if (item.adSizes === 'fluid') {
@@ -112,21 +131,8 @@
 
                 s.addService(googletag.pubads());
                 mgr.slotsMap.set(item.divId, s);
+                mgr.renderCallbacks.set(item.divId, item.onRender);
                 newSlots.push(s);
-
-                // 개별 렌더 이벤트 콜백 등록
-                const divId = item.divId;
-                const onRender = item.onRender;
-                googletag
-                    .pubads()
-                    .addEventListener(
-                        'slotRenderEnded',
-                        (event: googletag.events.SlotRenderEndedEvent) => {
-                            if (event.slot.getSlotElementId() === divId) {
-                                onRender(event.isEmpty);
-                            }
-                        }
-                    );
             }
 
             if (!mgr.servicesEnabled) {
@@ -146,36 +152,9 @@
                 mgr.servicesEnabled = true;
             }
 
-            // display (슬롯을 DOM에 등록 — 광고 요청은 아직 안 함)
+            // display 호출로 초기 광고 요청이 시작됨
             for (const s of newSlots) {
                 googletag.display(s.getSlotElementId());
-            }
-
-            // SPA 쿨다운: 마지막 refresh 후 60초 이내면 지연
-            const REFRESH_COOLDOWN = GAM_AD_REFRESH_INTERVAL * 1000;
-            const now = Date.now();
-            const elapsed = now - mgr.lastRefreshTime;
-
-            if (elapsed >= REFRESH_COOLDOWN) {
-                // 쿨다운 지남 → 즉시 refresh
-                googletag.pubads().refresh(newSlots);
-                mgr.lastRefreshTime = now;
-            } else {
-                // 쿨다운 중 → 남은 시간만큼 지연 후 refresh
-                const delay = REFRESH_COOLDOWN - elapsed;
-                if (mgr.pendingRefreshTimer) clearTimeout(mgr.pendingRefreshTimer);
-                mgr.pendingRefreshTimer = setTimeout(() => {
-                    googletag.cmd.push(() => {
-                        // 아직 살아있는 슬롯만 refresh
-                        const validSlots = newSlots.filter((s) =>
-                            mgr.slotsMap.has(s.getSlotElementId())
-                        );
-                        if (validSlots.length > 0) {
-                            googletag.pubads().refresh(validSlots);
-                            mgr.lastRefreshTime = Date.now();
-                        }
-                    });
-                }, delay);
             }
         });
     }
@@ -310,27 +289,26 @@
             // 슬롯 참조 저장
             const mgr = getBatchManager();
             slot = mgr.slotsMap.get(slotId) || null;
-
-            // 빈 광고면 재시도 (10초 후 1차, 추가 30초 후 2차)
-            if (isEmpty && slot) {
-                setTimeout(() => {
-                    if (slot && !destroyed) {
+            const maxRetryLimit = 3;
+            // 빈 광고면 delay ms 마다 최대 3회까지만 재시도하고, 중복 타이머는 만들지 않음
+            if (!isEmpty) {
+                if (emptyRetryTimeout) {
+                    clearTimeout(emptyRetryTimeout);
+                    emptyRetryTimeout = null;
+                }
+            } else if (slot && emptyRetryCount < maxRetryLimit && !emptyRetryTimeout) {
+                const delayMilliseconds = emptyRetryCount === 0 ? 10_000 : GAM_AD_EMPTY_RETRY_DELAY * 1000;
+                emptyRetryTimeout = setTimeout(() => {
+                    emptyRetryTimeout = null;
+                    if (slot && !destroyed && hasAd === false) {
+                        emptyRetryCount += 1;
                         googletag.cmd.push(() => {
                             if (slot && !destroyed) {
                                 googletag.pubads().refresh([slot], { changeCorrelator: false });
                             }
                         });
                     }
-                }, 10_000);
-                setTimeout(() => {
-                    if (slot && !destroyed && !hasAd) {
-                        googletag.cmd.push(() => {
-                            if (slot && !destroyed) {
-                                googletag.pubads().refresh([slot], { changeCorrelator: false });
-                            }
-                        });
-                    }
-                }, GAM_AD_EMPTY_RETRY_DELAY * 1000);
+                }, delayMilliseconds);
             }
 
             // 자동 새로고침 설정 (viewability 체크)
@@ -359,12 +337,17 @@
             clearInterval(refreshInterval);
         }
 
+        if (emptyRetryTimeout) {
+            clearTimeout(emptyRetryTimeout);
+        }
+
         if (slot && browser && window.googletag) {
             googletag.cmd.push(() => {
                 if (slot) {
                     googletag.destroySlots([slot]);
                     const mgr = getBatchManager();
                     mgr.slotsMap.delete(slotId);
+                    mgr.renderCallbacks.delete(slotId);
                 }
             });
         }
