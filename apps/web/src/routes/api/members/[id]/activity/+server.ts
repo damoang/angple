@@ -88,7 +88,8 @@ export const GET: RequestHandler = async ({ params, url }) => {
                     `SELECT wr_id, wr_subject, wr_datetime
                      FROM \`${table}\`
                      WHERE wr_id = ? AND wr_is_comment = 0
-                       AND (wr_option NOT LIKE '%secret%' OR wr_option IS NULL)`,
+                       AND (wr_option NOT LIKE '%secret%' OR wr_option IS NULL)
+                       AND (wr_deleted_at IS NULL OR wr_deleted_at = '0000-00-00 00:00:00')`,
                     [row.wr_id]
                 );
                 if (writeRows.length === 0) continue;
@@ -116,7 +117,8 @@ export const GET: RequestHandler = async ({ params, url }) => {
                 const [writeRows] = await pool.execute<WriteRow[]>(
                     `SELECT wr_id, wr_content, wr_parent, wr_datetime
                      FROM \`${table}\`
-                     WHERE wr_id = ? AND wr_is_comment = 1`,
+                     WHERE wr_id = ? AND wr_is_comment = 1
+                       AND (wr_deleted_at IS NULL OR wr_deleted_at = '0000-00-00 00:00:00')`,
                     [row.wr_id]
                 );
                 if (writeRows.length === 0) continue;
@@ -125,7 +127,8 @@ export const GET: RequestHandler = async ({ params, url }) => {
                 const [parentRows] = await pool.execute<WriteRow[]>(
                     `SELECT wr_id FROM \`${table}\`
                      WHERE wr_id = ? AND wr_is_comment = 0
-                       AND (wr_option NOT LIKE '%secret%' OR wr_option IS NULL)`,
+                       AND (wr_option NOT LIKE '%secret%' OR wr_option IS NULL)
+                       AND (wr_deleted_at IS NULL OR wr_deleted_at = '0000-00-00 00:00:00')`,
                     [w.wr_parent]
                 );
                 if (parentRows.length === 0) continue;
