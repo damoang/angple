@@ -8,8 +8,10 @@
     import { Badge } from '$lib/components/ui/badge/index.js';
     import ChevronLeft from '@lucide/svelte/icons/chevron-left';
     import ChevronRight from '@lucide/svelte/icons/chevron-right';
-    import AlertTriangle from '@lucide/svelte/icons/alert-triangle';
+    import Shield from '@lucide/svelte/icons/shield';
     import { getPenaltyDisplay } from '$lib/api/discipline-log.js';
+    import BoardFavoriteButton from '$lib/components/features/board/board-favorite-button.svelte';
+    import BoardSubscribeButton from '$lib/components/features/board/board-subscribe-button.svelte';
     import type { PageData } from './$types.js';
 
     let { data }: { data: PageData } = $props();
@@ -32,9 +34,9 @@
         released: boolean
     ): 'default' | 'secondary' | 'destructive' | 'outline' {
         if (released) return 'secondary';
-        if (period === -1) return 'destructive';
-        if (period === 0) return 'secondary';
-        return 'destructive';
+        if (period === -1) return 'default';
+        if (period === 0) return 'outline';
+        return 'default';
     }
 
     function isToday(dateStr: string): boolean {
@@ -53,10 +55,14 @@
 <div class="container mx-auto max-w-4xl px-4 py-6">
     <Card.Root>
         <Card.Header>
-            <Card.Title class="flex items-center gap-2">
-                <AlertTriangle class="text-destructive h-5 w-5" />
-                이용제한 기록
-            </Card.Title>
+            <div class="flex items-center gap-2">
+                <Card.Title class="flex items-center gap-2">
+                    <Shield class="text-muted-foreground h-5 w-5" />
+                    이용제한 기록
+                </Card.Title>
+                <BoardFavoriteButton boardId="disciplinelog" boardTitle="이용제한 기록" />
+                <BoardSubscribeButton boardId="disciplinelog" boardTitle="이용제한 기록" />
+            </div>
             <Card.Description>규정을 위반한 회원에 대한 제재 기록입니다.</Card.Description>
         </Card.Header>
         <Card.Content>
@@ -75,7 +81,6 @@
                                 <th class="p-3 text-left font-medium">시작일</th>
                                 <th class="p-3 text-center font-medium">기간</th>
                                 <th class="p-3 text-left font-medium">사유</th>
-                                <th class="p-3 text-left font-medium">메모</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -85,17 +90,17 @@
                                     log.penalty_date_to
                                 )}
                                 <tr
-                                    class="hover:bg-muted/50 border-b transition-all duration-200 ease-out"
+                                    class="hover:bg-muted/50 cursor-pointer border-b transition-all duration-200 ease-out"
+                                    onclick={() => goto(`/disciplinelog/${log.id}`)}
                                 >
                                     <td class="p-3">
-                                        <a
-                                            href="/disciplinelog/{log.id}"
+                                        <span
                                             class="{isToday(log.penalty_date_from)
-                                                ? 'text-red-500'
-                                                : 'text-foreground'} hover:text-primary font-medium hover:underline"
+                                                ? 'text-primary font-semibold'
+                                                : 'text-foreground'} font-medium"
                                         >
                                             {log.member_nickname}
-                                        </a>
+                                        </span>
                                     </td>
                                     <td class="text-muted-foreground p-3">{log.member_id}</td>
                                     <td class="text-muted-foreground p-3"
@@ -125,11 +130,6 @@
                                             {/if}
                                         </div>
                                     </td>
-                                    <td
-                                        class="text-muted-foreground max-w-[200px] truncate p-3 text-sm"
-                                    >
-                                        {log.memo || ''}
-                                    </td>
                                 </tr>
                             {/each}
                         </tbody>
@@ -150,7 +150,7 @@
                                 <div class="mb-2 flex items-center justify-between">
                                     <span
                                         class="font-medium {isToday(log.penalty_date_from)
-                                            ? 'text-red-500'
+                                            ? 'text-primary font-semibold'
                                             : ''}">{log.member_nickname}</span
                                     >
                                     <Badge
@@ -175,11 +175,6 @@
                                         >
                                     {/if}
                                 </div>
-                                {#if log.memo}
-                                    <div class="text-muted-foreground mt-1 truncate text-xs">
-                                        {log.memo}
-                                    </div>
-                                {/if}
                             </div>
                         </a>
                     {/each}

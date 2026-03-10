@@ -62,8 +62,8 @@
         released: boolean = false
     ): 'default' | 'secondary' | 'destructive' | 'outline' {
         if (released) return 'secondary';
-        if (period === 0) return 'secondary';
-        return 'destructive';
+        if (period === 0) return 'outline';
+        return 'default';
     }
 
     function formatPeriodRange(log: DisciplineLogDetail): string {
@@ -186,7 +186,7 @@
         <Card.Root class="mb-4">
             <Card.Header>
                 <Card.Title class="flex items-center gap-2">
-                    <AlertTriangle class="text-destructive h-5 w-5" />
+                    <AlertTriangle class="text-muted-foreground h-5 w-5" />
                     제재 사유
                 </Card.Title>
             </Card.Header>
@@ -223,7 +223,7 @@
                 <Card.Header>
                     <Card.Title class="flex items-center gap-2">
                         <FileText class="h-5 w-5" />
-                        신고된 글
+                        신고 접수된 글
                     </Card.Title>
                 </Card.Header>
                 <Card.Content>
@@ -264,7 +264,7 @@
                                 소명하기
                             </Button>
                         {:else}
-                            <p class="text-destructive text-sm">
+                            <p class="text-muted-foreground text-sm">
                                 소명 가능 기간(15일)이 지났습니다.
                             </p>
                         {/if}
