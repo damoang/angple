@@ -9,19 +9,16 @@ on:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/angple-web
-  ECR_REGISTRY: 891376997084.dkr.ecr.ap-northeast-2.amazonaws.com
-  ECR_REPOSITORY: angple-web
   AWS_REGION: ap-northeast-2
 
 jobs:
   # ──────────────────────────────────────────────
-  # 1단계: 빌드 → GHCR + ECR push (자동)
+  # 1단계: 빌드 → GHCR push (자동)
   # ──────────────────────────────────────────────
   build:
     name: Build & Push
     runs-on: ubuntu-24.04-arm
     permissions:
-      id-token: write
       contents: read
       packages: write
     outputs:
@@ -106,22 +103,13 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: arn:aws:iam::891376997084:role/GitHubActionsDeployRole
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: Login to Amazon ECR
-        uses: aws-actions/amazon-ecr-login@v2
-
       - name: Set image tags
         id: tags
         run: |
           SHA_TAG="sha-${GITHUB_SHA}"
           echo "sha_tag=${SHA_TAG}" >> "$GITHUB_OUTPUT"
 
-      - name: Build and push to GHCR + ECR
+      - name: Build and push to GHCR
         uses: docker/build-push-action@v5
         with:
           context: apps/web/deploy
@@ -131,14 +119,13 @@ jobs:
           tags: |
             ${{ env.IMAGE_NAME }}:${{ steps.tags.outputs.sha_tag }}
             ${{ env.IMAGE_NAME }}:latest
-            ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ steps.tags.outputs.sha_tag }}
-            ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:latest
+          cache-from: type=gha,scope=prod
+          cache-to: type=gha,mode=min,scope=prod
 
       - name: Build summary
         run: |
           echo "### Build Complete" >> "$GITHUB_STEP_SUMMARY"
           echo "- GHCR: \`${{ env.IMAGE_NAME }}:${{ steps.tags.outputs.sha_tag }}\`" >> "$GITHUB_STEP_SUMMARY"
-          echo "- ECR: \`${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ steps.tags.outputs.sha_tag }}\`" >> "$GITHUB_STEP_SUMMARY"
 
   # ──────────────────────────────────────────────
   # 2단계: 카나리 배포 + 스모크 테스트 (자동)
