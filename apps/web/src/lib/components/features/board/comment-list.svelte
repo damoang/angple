@@ -718,7 +718,8 @@
         {@const isReply = depth > 0}
         {@const iconUrl = isDeleted
             ? null
-            : getAvatarUrl(comment.author_image) || getMemberIconUrl(comment.author_id)}
+            : getAvatarUrl((comment as FreeComment & { author_image?: string }).author_image) ||
+              getMemberIconUrl(comment.author_id)}
 
         <!-- 댓글 5개마다 GAM 인피드 광고 (루트 댓글 기준, 첫 번째 제외) -->
         {#if widgetLayoutStore.hasEnabledAds && commentIndex > 0 && commentIndex % 5 === 0 && depth === 0}
@@ -1111,7 +1112,7 @@
                             {#if LazyCommentEditor}
                                 <LazyCommentEditor
                                     content={editContent}
-                                    onUpdate={(html) => {
+                                    onUpdate={(html: string) => {
                                         editContent = html;
                                     }}
                                     placeholder="댓글을 입력하세요..."

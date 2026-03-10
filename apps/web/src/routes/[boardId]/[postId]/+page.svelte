@@ -506,7 +506,7 @@
     // 초기 추천 상태 + 읽음 표시
     // 조회수: SSR에서 처리 (CDN 요청 제거)
     // 레벨/리액션/추천자 아바타: SSR 스트리밍에서 로드 (CDN 요청 제거)
-    onMount(async () => {
+    onMount(() => {
         // 읽음 표시 (localStorage)
         readPostsStore.markAsRead(boardId, data.post.id);
 
@@ -528,15 +528,17 @@
         window.addEventListener('comment-refresh', handleCommentRefresh);
 
         // 추천 상태 조회 (사용자별 데이터 — 클라이언트 전용)
-        try {
-            const status = await apiClient.getPostLikeStatus(boardId, String(data.post.id));
-            isLiked = status.user_liked;
-            isDisliked = status.user_disliked ?? false;
-            likeCount = status.likes;
-            dislikeCount = status.dislikes ?? 0;
-        } catch (err) {
-            console.error('Failed to load like status:', err);
-        }
+        (async () => {
+            try {
+                const status = await apiClient.getPostLikeStatus(boardId, String(data.post.id));
+                isLiked = status.user_liked;
+                isDisliked = status.user_disliked ?? false;
+                likeCount = status.likes;
+                dislikeCount = status.dislikes ?? 0;
+            } catch (err) {
+                console.error('Failed to load like status:', err);
+            }
+        })();
 
         return () => {
             window.removeEventListener('comment-refresh', handleCommentRefresh);

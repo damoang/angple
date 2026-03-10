@@ -26,8 +26,10 @@
     let showGifPicker = $state(false);
 
     // 동적 로드 — 버튼 클릭 시에만 import
-    let LazyEmoticonPicker = $state<Component | null>(null);
-    let LazyTenorGifPicker = $state<Component | null>(null);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let LazyEmoticonPicker = $state<Component<any> | null>(null);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let LazyTenorGifPicker = $state<Component<any> | null>(null);
 
     function toggleEmoticonPicker(): void {
         if (showEmoticonPicker) {

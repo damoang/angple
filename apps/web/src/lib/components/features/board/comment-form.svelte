@@ -241,10 +241,10 @@
                         bind:this={editorRef}
                         placeholder={actualPlaceholder}
                         disabled={isLoading}
-                        onUpdate={(html) => {
+                        onUpdate={(html: string) => {
                             content = html;
                         }}
-                        onImagePaste={(file) => handleFiles([file])}
+                        onImagePaste={(file: File) => handleFiles([file])}
                         onSubmitShortcut={() => {
                             if (canSubmit && !isLoading) handleSubmit(new Event('submit'));
                         }}

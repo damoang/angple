@@ -102,6 +102,7 @@ export const GET: RequestHandler = async ({ params, url, cookies }) => {
                     mb_id: string;
                     mb_name: string;
                     mb_nick: string;
+                    mb_image: string;
                     bg_ip: string;
                     liked_at: string;
                 }>;

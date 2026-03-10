@@ -78,7 +78,7 @@ export const load: PageServerLoad = async ({
 
         // 삭제된 게시글: 관리자는 본문+리비전 유지, 일반 유저는 본문 숨김
         if (post.deleted_at) {
-            const isAdmin = (locals.user?.mb_level ?? 0) >= 10;
+            const isAdmin = (locals.user?.level ?? 0) >= 10;
             if (!isAdmin) {
                 post.content = '';
             }

@@ -20,7 +20,7 @@
     import CompactLayout from './layouts/list/compact.svelte';
     import AdSlot from '$lib/components/ui/ad-slot/ad-slot.svelte';
     import { widgetLayoutStore } from '$lib/stores/widget-layout.svelte';
-    import { uiSettingsStore } from '$lib/stores/ui-settings.svelte.js';
+    import { uiSettingsStore, type ListViewMode } from '$lib/stores/ui-settings.svelte.js';
 
     // 코어 레이아웃 초기화 (중복 호출 안전)
     initCoreLayouts();
@@ -175,7 +175,12 @@
         <!-- 보기 옵션 -->
         <DropdownMenu>
             <DropdownMenuTrigger>
-                <Button variant="ghost" size="icon" class="h-8 w-8 hover:bg-accent-foreground/5 dark:hover:bg-primary-foreground/50" title="보기 옵션">
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    class="hover:bg-accent-foreground/5 dark:hover:bg-primary-foreground/50 h-8 w-8"
+                    title="보기 옵션"
+                >
                     <SlidersHorizontal class="h-4 w-4" />
                 </Button>
             </DropdownMenuTrigger>
@@ -183,7 +188,7 @@
                 <DropdownMenuRadioGroup
                     value={uiSettingsStore.listView}
                     onValueChange={(v) => {
-                        if (v) uiSettingsStore.listView = v;
+                        if (v) uiSettingsStore.listView = v as ListViewMode;
                     }}
                 >
                     <DropdownMenuRadioItem value="classic">클래식</DropdownMenuRadioItem>
