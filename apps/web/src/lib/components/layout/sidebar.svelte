@@ -16,8 +16,15 @@
     import UserWidget from './user-widget.svelte';
     import { getComponentsForSlot } from '$lib/components/slot-manager';
     import AdSlot from '$lib/components/ui/ad-slot/ad-slot.svelte';
+    import ImageTextBanner from '$lib/components/ui/image-text-banner/image-text-banner.svelte';
     import { widgetLayoutStore } from '$lib/stores/widget-layout.svelte';
     import { boardFavoritesStore, slotLabel } from '$lib/stores/board-favorites.svelte';
+
+    interface Props {
+        compact?: boolean;
+    }
+
+    let { compact = false }: Props = $props();
 
     let isCollapsed = $state(false);
 
@@ -79,7 +86,10 @@
 
 <div
     data-collapsed={isCollapsed}
-    class="group flex flex-col gap-4 py-2 pe-3 data-[collapsed=true]:py-2"
+    class={cn(
+        'group flex flex-col pe-3 data-[collapsed=true]:py-2',
+        compact ? 'gap-1 py-0 pe-1' : 'gap-4 py-2'
+    )}
 >
     <!-- Slot: sidebar-left-top -->
     {#each getComponentsForSlot('sidebar-left-top') as slotComp (slotComp.id)}
@@ -87,13 +97,13 @@
         <Component {...slotComp.props || {}} />
     {/each}
 
-    <div class="px-2">
-        <UserWidget />
+    <div class={compact ? 'px-1' : 'px-2'}>
+        <UserWidget {compact} />
     </div>
 
     <!-- 즐겨찾기 단축키 메뉴 (2열 그리드) -->
     {#if boardFavoritesStore.normalSlots.length > 0 || boardFavoritesStore.shiftSlots.length > 0}
-        <div class="px-2">
+        <div class={compact ? 'px-1' : 'px-2'}>
             <div class="text-muted-foreground mb-1.5 text-xs font-semibold">즐겨찾기</div>
             <!-- 일반 슬롯 (1-0): 2열 -->
             <div class="grid grid-cols-2 gap-0.5">
@@ -164,7 +174,10 @@
     {/if}
 
     <nav
-        class="grid gap-1 px-2 group-[[data-collapsed=true]]:justify-center group-[[data-collapsed=true]]:px-2"
+        class={cn(
+            'grid group-[[data-collapsed=true]]:justify-center group-[[data-collapsed=true]]:px-2',
+            compact ? 'gap-0 px-1' : 'gap-1 px-2'
+        )}
     >
         {#if loading}
             <div class="text-muted-foreground text-center text-sm">메뉴 로딩 중...</div>
@@ -181,6 +194,7 @@
                                 class={cn(
                                     'cursor-pointer',
                                     'hover:no-underline',
+                                    compact && 'py-2.5',
                                     isCollapsed &&
                                         'flex justify-center [&[data-state=open]>div>svg.lucide-chevron-down]:hidden'
                                 )}
@@ -343,15 +357,31 @@
         {/if}
     </nav>
 
-    <!-- 사이드바 메뉴 아래 GAM 광고 -->
-    <div class="space-y-2 px-2">
+    <!-- 사이드바 메뉴 아래 광고 -->
+    <div class={compact ? 'space-y-2 px-1' : 'space-y-2 px-2'}>
         <div class:hidden={!widgetLayoutStore.hasEnabledAds}>
-            <AdSlot position="sidebar" height="250px" />
+            {#if compact}
+                <div class="flex justify-center">
+                    <AdSlot position="sidebar-drawer" height="100px" />
+                </div>
+            {:else}
+                <AdSlot position="sidebar" height="250px" />
+            {/if}
         </div>
-        <!-- Slot: sidebar-left-bottom -->
-        {#each getComponentsForSlot('sidebar-left-bottom') as slotComp (slotComp.id)}
-            {@const Component = slotComp.component}
-            <Component {...slotComp.props || {}} />
-        {/each}
+        {#if compact}
+            <!-- 드로워: 이미지텍스트 배너 -->
+            <div>
+                <div class="mb-1 flex items-center justify-between">
+                    <span class="text-xs font-medium text-slate-500">AD</span>
+                </div>
+                <ImageTextBanner position="side-image-text-banner" />
+            </div>
+        {:else}
+            <!-- Slot: sidebar-left-bottom -->
+            {#each getComponentsForSlot('sidebar-left-bottom') as slotComp (slotComp.id)}
+                {@const Component = slotComp.component}
+                <Component {...slotComp.props || {}} />
+            {/each}
+        {/if}
     </div>
 </div>

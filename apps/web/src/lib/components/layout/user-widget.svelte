@@ -12,6 +12,12 @@
     import { getAvatarUrl, getMemberIconUrl } from '$lib/utils/member-icon';
     import { getGradeName } from '$lib/utils/grade';
 
+    interface Props {
+        compact?: boolean;
+    }
+
+    let { compact = false }: Props = $props();
+
     let isLoggingOut = $state(false);
 
     async function handleLogout() {
@@ -67,7 +73,7 @@
     );
 </script>
 
-<div class="bg-card mb-3 rounded-lg border p-3">
+<div class={compact ? 'bg-card mb-1 rounded-lg border p-2' : 'bg-card mb-3 rounded-lg border p-3'}>
     {#if isLoading}
         <!-- 로딩 상태 -->
         <div class="flex items-center gap-2">
@@ -126,7 +132,7 @@
 
         <!-- 레벨 게이지 -->
         {#if user.as_level !== undefined}
-            <a href="/my/exp" class="group mt-2 block">
+            <a href="/my/exp" class={compact ? 'group mt-1 block' : 'group mt-2 block'}>
                 <div class="text-muted-foreground flex items-center justify-between text-[10px]">
                     <span>Lv.{user.as_level}</span>
                     {#if user.as_max && user.as_max > 0}
@@ -149,7 +155,7 @@
         {/if}
 
         <!-- 내글 / 내댓글 / 전체 + 포인트 -->
-        <div class="mt-2 space-y-1 text-xs">
+        <div class={compact ? 'mt-1 space-y-0.5 text-xs' : 'mt-2 space-y-1 text-xs'}>
             <div class="text-muted-foreground flex items-center justify-center gap-1.5">
                 <a href="/my?tab=posts" class="hover:text-primary transition-colors">내글</a>
                 <span class="text-border">·</span>

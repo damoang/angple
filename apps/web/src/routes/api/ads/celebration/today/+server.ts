@@ -66,10 +66,10 @@ export const GET: RequestHandler = async () => {
                  FROM celebration_banners cb
                  LEFT JOIN g5_member m ON cb.target_member_id = m.mb_id
                  WHERE cb.is_active = 1
-                   AND (cb.display_date = DATE(CONVERT_TZ(NOW(), '+00:00', '+09:00'))
+                   AND (cb.display_date = CURDATE()
                         OR (cb.yearly_repeat = 1
-                            AND MONTH(cb.display_date) = MONTH(CONVERT_TZ(NOW(), '+00:00', '+09:00'))
-                            AND DAY(cb.display_date) = DAY(CONVERT_TZ(NOW(), '+00:00', '+09:00'))))
+                            AND MONTH(cb.display_date) = MONTH(CURDATE())
+                            AND DAY(cb.display_date) = DAY(CURDATE())))
                  ORDER BY cb.sort_order ASC, cb.id DESC`
             );
 
@@ -107,8 +107,8 @@ export const GET: RequestHandler = async () => {
                  FROM g5_write_message wm
                  LEFT JOIN g5_member m ON wm.mb_id = m.mb_id
                  WHERE wm.wr_is_comment = 0
-                   AND (wm.wr_subject = DATE_FORMAT(CONVERT_TZ(NOW(), '+00:00', '+09:00'), '%Y.%m.%d')
-                        OR wm.wr_subject = DATE_FORMAT(CONVERT_TZ(NOW(), '+00:00', '+09:00'), '%Y-%m-%d'))
+                   AND (wm.wr_subject = DATE_FORMAT(NOW(), '%Y.%m.%d')
+                        OR wm.wr_subject = DATE_FORMAT(NOW(), '%Y-%m-%d'))
                  ORDER BY wm.wr_id DESC`
             );
 

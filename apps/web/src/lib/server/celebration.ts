@@ -54,9 +54,7 @@ export async function fetchCelebrations(isRecent: boolean = false): Promise<Cele
 
     // 1차: celebration_banners 테이블 (신규)
     try {
-        const dateFilter = isRecent
-            ? ''
-            : "AND cb.display_date = DATE(CONVERT_TZ(NOW(), '+00:00', '+09:00'))";
+        const dateFilter = isRecent ? '' : 'AND cb.display_date = CURDATE()';
         const [rows] = await pool.execute<RowDataPacket[]>(
             `SELECT cb.id, cb.title, cb.content, cb.image_url, cb.link_url,
 					cb.external_url, cb.display_date, cb.target_member_id,
@@ -101,7 +99,7 @@ export async function fetchCelebrations(isRecent: boolean = false): Promise<Cele
     if (banners.length === 0) {
         const legacyDateFilter = isRecent
             ? ''
-            : "AND (wm.wr_subject = DATE_FORMAT(CONVERT_TZ(NOW(),'+00:00','+09:00'),'%Y.%m.%d') OR wm.wr_subject = DATE_FORMAT(CONVERT_TZ(NOW(),'+00:00','+09:00'),'%Y-%m-%d'))";
+            : "AND (wm.wr_subject = DATE_FORMAT(NOW(),'%Y.%m.%d') OR wm.wr_subject = DATE_FORMAT(NOW(),'%Y-%m-%d'))";
         const [rows] = await pool.execute<RowDataPacket[]>(
             `SELECT wm.wr_id, wm.wr_subject, wm.wr_content, wm.wr_link2, wm.mb_id,
 					m.mb_nick, m.mb_image_url

@@ -161,6 +161,11 @@ export const AD_CONFIGS: Record<string, AdConfig> = {
         sizes: [[300, 250]],
         responsive: null
     },
+    'banner-square-small': {
+        unit: AD_UNIT_PATHS.sub,
+        sizes: [[320, 100]],
+        responsive: null
+    },
     'banner-halfpage': {
         unit: AD_UNIT_PATHS.sub,
         sizes: [
@@ -323,6 +328,7 @@ export const POSITION_MAP: Record<string, string> = {
     // 사이드바 — sub 유닛 (소형)
     'sidebar-sticky': 'banner-halfpage',
     sidebar: 'banner-square',
+    'sidebar-drawer': 'banner-square-small',
     'sidebar-1': 'banner-square',
     'sidebar-b2b': 'banner-square',
 
