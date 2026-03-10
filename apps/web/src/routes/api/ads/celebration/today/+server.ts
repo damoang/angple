@@ -51,16 +51,10 @@ function extractFirstImage(content: string): string | null {
 
 export const GET: RequestHandler = async () => {
     try {
-        const now = new Date();
-        const year = now.getFullYear();
-        const month = now.getMonth() + 1;
-        const day = now.getDate();
-        const dateDash = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-        const dateDot = `${year}.${String(month).padStart(2, '0')}.${String(day).padStart(2, '0')}`;
-
         const banners: Banner[] = [];
 
         // 1차: celebration_banners 테이블 (신규) — g5_member JOIN으로 닉네임/사진 가져옴
+        // KST 기준 날짜 비교: MySQL CONVERT_TZ 사용 (서버 UTC → KST 변환)
         try {
             const [rows] = await pool.execute<RowDataPacket[]>(
                 `SELECT cb.id, cb.title, cb.content, cb.image_url, cb.link_url,
@@ -72,10 +66,11 @@ export const GET: RequestHandler = async () => {
                  FROM celebration_banners cb
                  LEFT JOIN g5_member m ON cb.target_member_id = m.mb_id
                  WHERE cb.is_active = 1
-                   AND (cb.display_date = ?
-                        OR (cb.yearly_repeat = 1 AND MONTH(cb.display_date) = ? AND DAY(cb.display_date) = ?))
-                 ORDER BY cb.sort_order ASC, cb.id DESC`,
-                [dateDash, month, day]
+                   AND (cb.display_date = DATE(CONVERT_TZ(NOW(), '+00:00', '+09:00'))
+                        OR (cb.yearly_repeat = 1
+                            AND MONTH(cb.display_date) = MONTH(CONVERT_TZ(NOW(), '+00:00', '+09:00'))
+                            AND DAY(cb.display_date) = DAY(CONVERT_TZ(NOW(), '+00:00', '+09:00'))))
+                 ORDER BY cb.sort_order ASC, cb.id DESC`
             );
 
             for (const row of rows as RowDataPacket[]) {
@@ -112,9 +107,9 @@ export const GET: RequestHandler = async () => {
                  FROM g5_write_message wm
                  LEFT JOIN g5_member m ON wm.mb_id = m.mb_id
                  WHERE wm.wr_is_comment = 0
-                   AND (wm.wr_subject = ? OR wm.wr_subject = ?)
-                 ORDER BY wm.wr_id DESC`,
-                [dateDot, dateDash]
+                   AND (wm.wr_subject = DATE_FORMAT(CONVERT_TZ(NOW(), '+00:00', '+09:00'), '%Y.%m.%d')
+                        OR wm.wr_subject = DATE_FORMAT(CONVERT_TZ(NOW(), '+00:00', '+09:00'), '%Y-%m-%d'))
+                 ORDER BY wm.wr_id DESC`
             );
 
             for (const row of rows as RowDataPacket[]) {

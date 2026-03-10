@@ -13,6 +13,7 @@
     import AlignJustify from '@lucide/svelte/icons/align-justify';
     import Mail from '@lucide/svelte/icons/mail';
     import Sidebar from './sidebar.svelte';
+    import ImageTextBanner from '$lib/components/ui/image-text-banner/image-text-banner.svelte';
     import {
         NotificationDropdown,
         LevelupCelebration
@@ -407,6 +408,14 @@
             >
                 <X class="text-muted-foreground h-6 w-6" />
             </button>
+        </div>
+
+        <!-- 사이드바 이미지텍스트 배너 (메뉴 바로 아래) -->
+        <div class="shrink-0 pb-4">
+            <div class="mb-2 flex items-center justify-between">
+                <span class="text-xs font-medium text-slate-500">AD</span>
+            </div>
+            <ImageTextBanner position="side-image-text-banner" />
         </div>
 
         <!-- 사이드바 메뉴 -->
