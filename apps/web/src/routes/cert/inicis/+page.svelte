@@ -8,12 +8,6 @@
     let errorDetail = $state('');
 
     onMount(() => {
-        console.log('[Cert] Data:', {
-            mid: data.mid,
-            mTxId: data.mTxId,
-            hasAuthHash: !!data.authHash
-        });
-
         // mid 값 검증
         if (!data.mid) {
             status = '오류: 상점 ID가 설정되지 않았습니다.';
@@ -27,7 +21,6 @@
 
         if (form) {
             try {
-                console.log('[Cert] Submitting form to:', form.action);
                 form.submit();
             } catch (err) {
                 console.error('[Cert] Submit error:', err);
@@ -49,7 +42,6 @@
     function manualSubmit() {
         const form = document.getElementById('saForm') as HTMLFormElement;
         if (form) {
-            console.log('[Cert] Manual submit triggered');
             form.submit();
         }
     }

@@ -401,7 +401,21 @@ export const handle: Handle = async ({ event, resolve }) => {
         !CSRF_EXEMPT_PATHS.some((p) => pathname.startsWith(p))
     ) {
         const csrfHeader = event.request.headers.get('x-csrf-token');
-        if (csrfHeader !== event.locals.csrfToken) {
+        let csrfFormValue: string | null = null;
+        const contentType = event.request.headers.get('content-type') || '';
+        if (
+            contentType.includes('application/x-www-form-urlencoded') ||
+            contentType.includes('multipart/form-data')
+        ) {
+            try {
+                const formData = await event.request.clone().formData();
+                csrfFormValue = String(formData.get('_csrf') || '');
+            } catch {
+                csrfFormValue = null;
+            }
+        }
+
+        if (csrfHeader !== event.locals.csrfToken && csrfFormValue !== event.locals.csrfToken) {
             return new Response(JSON.stringify({ error: 'CSRF 토큰이 유효하지 않습니다.' }), {
                 status: 403,
                 headers: { 'Content-Type': 'application/json' }

@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { page } from '$app/state';
     import {
         Card,
         CardContent,
@@ -62,6 +63,7 @@
                 }}
                 class="space-y-4"
             >
+                <input type="hidden" name="_csrf" value={$page.data.csrfToken ?? ''} />
                 <div class="space-y-2">
                     <Label for="confirmText">
                         탈퇴를 원하시면 <strong class="text-red-600">"탈퇴합니다"</strong>를

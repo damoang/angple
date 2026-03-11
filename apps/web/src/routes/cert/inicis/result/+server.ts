@@ -98,12 +98,6 @@ export const POST: RequestHandler = async ({ request, locals, cookies }) => {
     const dbPendingMbId = mTxId ? await getCertPendingMbId(mTxId) : null;
     const sessionMbId = locals.user?.id;
     const mbId = sessionMbId || dbPendingMbId || certPendingMbId;
-    console.log('[Cert] mbId resolve:', {
-        fromSession: sessionMbId,
-        fromDB: dbPendingMbId,
-        fromCookie: certPendingMbId,
-        final: mbId
-    });
     if (!mbId) {
         console.error('[Cert] mbId not found');
         return certResultPage(false, '인증 세션이 만료되었습니다. 다시 시도해주세요.');
