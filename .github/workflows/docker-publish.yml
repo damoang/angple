@@ -251,7 +251,7 @@ jobs:
           MSG=$(echo "$MSG" | sed 's/^          //')
 
           curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
-            --data-urlencode "chat_id=${{ secrets.TELEGRAM_CHAT_ID }}" \
+            --data-urlencode "chat_id=${{ secrets.TELEGRAM_DEPLOY_CHAT_ID }}" \
             --data-urlencode "text=${MSG}" >/dev/null 2>&1 || true
 
       - name: Canary summary
@@ -343,7 +343,7 @@ jobs:
           MSG=$(echo "$MSG" | sed 's/^          //')
 
           curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
-            --data-urlencode "chat_id=${{ secrets.TELEGRAM_CHAT_ID }}" \
+            --data-urlencode "chat_id=${{ secrets.TELEGRAM_DEPLOY_CHAT_ID }}" \
             --data-urlencode "text=${MSG}" >/dev/null 2>&1 || true
 
       - name: Deploy summary
