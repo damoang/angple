@@ -218,7 +218,7 @@ class KeyboardShortcutService {
         if (url.startsWith('http://') || url.startsWith('https://')) {
             window.location.href = url;
         } else {
-            goto(url);
+            goto(url, { invalidateAll: true });
         }
     }
 }
