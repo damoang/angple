@@ -1256,7 +1256,7 @@
                                     신고잠금
                                 </span>
                             {/if}
-                        {:else if comment.report_count && comment.report_count > 0}
+                        {:else if comment.report_count && typeof comment.report_count === 'number' && comment.report_count > 0}
                             <button
                                 type="button"
                                 onclick={() => toggleCommentReportDetails(String(comment.id))}

@@ -35,8 +35,8 @@ const config = {
         },
         csrf: {
             // 자체 CSRF 보호 사용 (세션 기반 double-submit cookie, hooks.server.ts)
-            // Apple Sign In form_post 등 cross-origin POST 허용을 위해 비활성화
-            checkOrigin: false
+            // Apple Sign In form_post 등 cross-origin POST 허용을 위해 모든 origin 허용
+            trustedOrigins: ['*']
         },
         output: {
             // 청크 수를 줄이기 위해 단일 번들 전략 사용
