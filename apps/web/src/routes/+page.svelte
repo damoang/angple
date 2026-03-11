@@ -54,7 +54,9 @@
 
 {#if leftMessageVisible}
     <div class="mx-auto mb-4 max-w-5xl px-4 pt-4">
-        <div class="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
+        <div
+            class="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800"
+        >
             회원 탈퇴가 완료되었습니다. 안전하게 로그아웃되었습니다.
         </div>
     </div>
