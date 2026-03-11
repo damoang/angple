@@ -772,7 +772,7 @@
             {/if}
 
             <div class={commentLayout === 'chat' ? 'min-w-0 max-w-[80%]' : ''}>
-                <!-- Chat: 이름 라벨 + 메모 (타인 댓글만) -->
+                <!-- Chat: 이름 라벨 + 메모 + IP (타인 댓글만) -->
                 {#if commentLayout === 'chat' && !isAuthor && !isDeleted}
                     <p
                         class="text-foreground mb-1 ml-1 flex items-center gap-1 text-xs font-semibold"
@@ -784,6 +784,9 @@
                                 showIcon={true}
                                 blur={uiSettingsStore.blurMemo}
                             />
+                        {/if}
+                        {#if comment.author_ip}
+                            <span class="text-muted-foreground font-normal">· {comment.author_ip}</span>
                         {/if}
                     </p>
                 {/if}
