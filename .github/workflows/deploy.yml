@@ -184,8 +184,8 @@ jobs:
         run: |
           curl -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
             -d "chat_id=${{ secrets.TELEGRAM_DEPLOY_CHAT_ID }}" \
-            -d "text=✅ Canary 배포 완료%0A%0A승인하시겠습니까?" \
-            -d "reply_markup={\"inline_keyboard\":[[{\"text\":\"✅ 승인\",\"callback_data\":\"approve:${{ github.run_id }}\"},{\"text\":\"❌ 거부\",\"callback_data\":\"reject:${{ github.run_id }}\"}]]}"
+            -d "text=✅ Web Canary 완료%0A%0ATag: \`${{ needs.build.outputs.sha_tag }}\`%0AURL: https://canary.damoang.net%0A%0A승인하시겠습니까?%0A%0A👉 ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+            -d "reply_markup={\"inline_keyboard\":[[{\"text\":\"✅ 승인\",\"url\":\"${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\"},{\"text\":\"❌ 거부\",\"callback_data\":\"reject:${{ github.run_id }}\"}]]}"
 
   deploy-production:
     needs: [build, deploy-canary]
