@@ -30,7 +30,7 @@ export function adler32(buf: Buffer): number {
  */
 export function generateSocialMbId(provider: string, identifier: string): string {
     const md5Hash = createHash('md5').update(identifier).digest('hex');
-    const adlerValue = adler32(Buffer.from(md5Hash, 'utf-8'));
+    const adlerValue = adler32(Buffer.from(md5Hash, 'utf-8')) >>> 0;
     return `${provider.toLowerCase()}_${adlerValue.toString(16).padStart(8, '0')}`;
 }
 
