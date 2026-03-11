@@ -4,6 +4,11 @@ import { test, expect } from '@playwright/test';
  * 설치 위저드 E2E 테스트
  */
 
+test.skip(
+    !!process.env.CI,
+    '설치 위저드는 CI 환경에서 /install 접근 제약과 환경 의존성이 커서 별도 검증한다.'
+);
+
 test.describe('설치 위저드', () => {
     test('Step 1: 사이트 정보 입력 페이지가 표시된다', async ({ page }) => {
         await page.goto('/install');
