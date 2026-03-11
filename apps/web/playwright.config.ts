@@ -6,7 +6,7 @@ const port = isCI ? 3000 : 4173;
 export default defineConfig({
     webServer: {
         command: isCI
-            ? `ORIGIN=http://localhost:${port} PORT=${port} node build`
+            ? `ORIGIN=http://localhost:${port} PORT=${port} ALLOW_INSTALL_ROUTE_FOR_E2E=true node build`
             : 'pnpm run build && pnpm run preview',
         port,
         timeout: isCI ? 30_000 : 120_000,
