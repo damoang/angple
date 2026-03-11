@@ -12,6 +12,10 @@ on:
 env:
   NODE_VERSION: "24.11.1"
 
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   # Lint 검사 (push only - PR은 prettier-suggester + eslint-review 사용)
   lint:
@@ -35,7 +39,9 @@ jobs:
           cache: 'pnpm'
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: |
+          pnpm fetch --frozen-lockfile
+          pnpm install --frozen-lockfile --prefer-offline
 
       - name: Run lint
         working-directory: apps/${{ matrix.app }}
@@ -69,7 +75,9 @@ jobs:
           cache: 'pnpm'
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: |
+          pnpm fetch --frozen-lockfile
+          pnpm install --frozen-lockfile --prefer-offline
 
       - name: Build workspace packages
         run: |
@@ -107,7 +115,9 @@ jobs:
           cache: 'pnpm'
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: |
+          pnpm fetch --frozen-lockfile
+          pnpm install --frozen-lockfile --prefer-offline
 
       - name: Run security audit
         working-directory: apps/${{ matrix.app }}
@@ -149,7 +159,9 @@ jobs:
           cache: 'pnpm'
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: |
+          pnpm fetch --frozen-lockfile
+          pnpm install --frozen-lockfile --prefer-offline
 
       - name: Build workspace packages
         run: |

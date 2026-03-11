@@ -9,6 +9,10 @@ env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ghcr.io/damoang/angple-web
 
+concurrency:
+  group: deploy-main-web
+  cancel-in-progress: true
+
 jobs:
   build:
     runs-on: ubuntu-24.04-arm
@@ -20,10 +24,10 @@ jobs:
       contents: read
       packages: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Checkout premium
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: damoang/angple-premium
           token: ${{ secrets.PREMIUM_REPO_TOKEN }}
@@ -41,13 +45,16 @@ jobs:
         uses: pnpm/action-setup@v4
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: '22'
           cache: 'pnpm'
+          cache-dependency-path: pnpm-lock.yaml
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: |
+          pnpm fetch --frozen-lockfile
+          pnpm install --frozen-lockfile --prefer-offline
 
       - name: Build
         env:
@@ -85,7 +92,7 @@ jobs:
 
       - name: Build and push
         id: build_image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: apps/web/deploy
           file: apps/web/Dockerfile.prod
@@ -95,7 +102,7 @@ jobs:
             ${{ env.IMAGE_NAME }}:${{ steps.tags.outputs.sha_tag }}
             ${{ env.IMAGE_NAME }}:latest
           cache-from: type=gha,scope=web
-          cache-to: type=gha,mode=min,scope=web
+          cache-to: type=gha,mode=max,scope=web
 
   deploy-canary:
     needs: build
