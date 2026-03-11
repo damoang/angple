@@ -37,14 +37,14 @@ export async function getMemberById(mbId: string): Promise<MemberRow | null> {
     return member;
 }
 
-/** 이메일로 회원 조회 (탈퇴/차단 제외) */
+/** 이메일로 회원 조회 (탈퇴 제외, 이용제한 회원도 로그인 허용) */
 export async function findMemberByEmail(email: string): Promise<MemberRow | null> {
     if (!email) return null;
     const [rows] = await pool.query<RowDataPacket[]>(
         `SELECT mb_id, mb_name, mb_nick, mb_email, mb_level, mb_point,
 		        mb_today_login, mb_login_ip, mb_leave_date, mb_intercept_date, mb_certify
 		 FROM g5_member
-		 WHERE mb_email = ? AND mb_leave_date = '' AND mb_intercept_date = ''
+		 WHERE mb_email = ? AND mb_leave_date = ''
 		 LIMIT 1`,
         [email]
     );
@@ -60,7 +60,7 @@ export async function updateLoginTimestamp(mbId: string, ip: string): Promise<vo
     await invalidateMemberCache(mbId);
 }
 
-/** 회원이 활성 상태인지 확인 (탈퇴/차단 여부) */
+/** 회원이 활성 상태인지 확인 (탈퇴 여부만 체크) */
 export function isMemberActive(member: MemberRow): boolean {
-    return !member.mb_leave_date && !member.mb_intercept_date;
+    return !member.mb_leave_date;
 }
