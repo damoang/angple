@@ -261,6 +261,8 @@ jobs:
           directory: apps/${{ matrix.app }}/coverage
           flags: ${{ matrix.app }}
           fail_ci_if_error: false
+          disable_search: true
+          handle_no_reports_found: true
 
       - name: Upload test results
         if: always()
