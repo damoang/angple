@@ -18,6 +18,12 @@ export interface AuthUser {
     mb_nick: string;
     mb_level: number;
     mb_email: string;
+    mb_intercept_date?: string;
+}
+
+export function isRestrictedUser(user: AuthUser | null): boolean {
+    if (!user?.mb_intercept_date) return false;
+    return user.mb_intercept_date !== '0000-00-00' && user.mb_intercept_date !== '00000000';
 }
 
 /**
@@ -37,7 +43,8 @@ export async function getAuthUser(cookies: Cookies): Promise<AuthUser | null> {
                         mb_name: member.mb_nick || member.mb_name,
                         mb_nick: member.mb_nick || '',
                         mb_level: member.mb_level ?? 0,
-                        mb_email: member.mb_email || ''
+                        mb_email: member.mb_email || '',
+                        mb_intercept_date: member.mb_intercept_date || ''
                     };
                 }
             }
@@ -51,12 +58,14 @@ export async function getAuthUser(cookies: Cookies): Promise<AuthUser | null> {
     if (accessToken) {
         const payload = await verifyToken(accessToken);
         if (payload) {
+            const member = payload.sub ? await getMemberById(payload.sub) : null;
             return {
                 mb_id: payload.sub,
-                mb_name: payload.nickname,
-                mb_nick: payload.nickname,
-                mb_level: payload.level,
-                mb_email: payload.email
+                mb_name: member?.mb_nick || member?.mb_name || payload.nickname,
+                mb_nick: member?.mb_nick || payload.nickname,
+                mb_level: member?.mb_level ?? payload.level,
+                mb_email: member?.mb_email || payload.email,
+                mb_intercept_date: member?.mb_intercept_date || ''
             };
         }
     }
@@ -74,7 +83,8 @@ export async function getAuthUser(cookies: Cookies): Promise<AuthUser | null> {
                         mb_name: member.mb_nick || member.mb_name,
                         mb_nick: member.mb_nick || '',
                         mb_level: member.mb_level ?? 0,
-                        mb_email: member.mb_email || ''
+                        mb_email: member.mb_email || '',
+                        mb_intercept_date: member.mb_intercept_date || ''
                     };
                 }
             }
@@ -89,12 +99,14 @@ export async function getAuthUser(cookies: Cookies): Promise<AuthUser | null> {
         try {
             const payload = await verifyTokenLax(legacyJwt);
             if (payload?.sub) {
+                const member = await getMemberById(payload.sub);
                 return {
                     mb_id: payload.sub,
-                    mb_name: payload.nickname,
-                    mb_nick: payload.nickname,
-                    mb_level: payload.level,
-                    mb_email: payload.email
+                    mb_name: member?.mb_nick || member?.mb_name || payload.nickname,
+                    mb_nick: member?.mb_nick || payload.nickname,
+                    mb_level: member?.mb_level ?? payload.level,
+                    mb_email: member?.mb_email || payload.email,
+                    mb_intercept_date: member?.mb_intercept_date || ''
                 };
             }
         } catch {

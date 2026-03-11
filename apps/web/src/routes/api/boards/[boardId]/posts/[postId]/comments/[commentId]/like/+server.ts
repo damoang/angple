@@ -9,7 +9,7 @@ import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import type { RowDataPacket } from 'mysql2';
 import pool from '$lib/server/db';
-import { getAuthUser } from '$lib/server/auth';
+import { getAuthUser, isRestrictedUser } from '$lib/server/auth';
 import { checkCertification } from '$lib/server/certification';
 
 interface GoodRow extends RowDataPacket {
@@ -95,6 +95,13 @@ export const POST: RequestHandler = async ({ params, request, cookies, getClient
     const user = await getAuthUser(cookies);
     if (!user) {
         return json({ success: false, message: '로그인이 필요합니다.' }, { status: 401 });
+    }
+
+    if (isRestrictedUser(user)) {
+        return json(
+            { success: false, message: '이용제한 중에는 추천/비추천을 할 수 없습니다.' },
+            { status: 403 }
+        );
     }
 
     if ((user.mb_level ?? 0) < 3) {
