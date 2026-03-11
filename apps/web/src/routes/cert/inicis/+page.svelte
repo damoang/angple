@@ -3,22 +3,74 @@
     import type { PageData } from './$types.js';
 
     let { data }: { data: PageData } = $props();
+    let status = $state('페이지 로딩 중...');
+    let showManualButton = $state(false);
+    let errorDetail = $state('');
 
     onMount(() => {
-        // 페이지 로드 시 자동으로 이니시스로 POST
+        console.log('[Cert] Data:', { mid: data.mid, mTxId: data.mTxId, hasAuthHash: !!data.authHash });
+
+        // mid 값 검증
+        if (!data.mid) {
+            status = '오류: 상점 ID가 설정되지 않았습니다.';
+            errorDetail = 'KG이니시스 MID가 비어있습니다. 관리자에게 문의하세요.';
+            showManualButton = false;
+            return;
+        }
+
+        status = '인증 페이지로 이동 중...';
+        const form = document.getElementById('saForm') as HTMLFormElement;
+
+        if (form) {
+            try {
+                console.log('[Cert] Submitting form to:', form.action);
+                form.submit();
+            } catch (err) {
+                console.error('[Cert] Submit error:', err);
+                status = '폼 제출 오류가 발생했습니다.';
+                errorDetail = err instanceof Error ? err.message : String(err);
+                showManualButton = true;
+            }
+        } else {
+            status = '오류: 폼을 찾을 수 없습니다.';
+            showManualButton = true;
+        }
+
+        // 10초 후에도 페이지에 있으면 수동 버튼 표시
+        setTimeout(() => {
+            showManualButton = true;
+        }, 10000);
+    });
+
+    function manualSubmit() {
         const form = document.getElementById('saForm') as HTMLFormElement;
         if (form) {
+            console.log('[Cert] Manual submit triggered');
             form.submit();
         }
-    });
+    }
 </script>
 
 <svelte:head>
     <title>KG이니시스 간편인증</title>
 </svelte:head>
 
-<div class="flex min-h-screen items-center justify-center">
-    <p class="text-muted-foreground text-sm">인증 페이지로 이동 중...</p>
+<div class="flex min-h-screen flex-col items-center justify-center gap-4">
+    <p class="text-muted-foreground text-sm">{status}</p>
+    {#if errorDetail}
+        <p class="max-w-md text-center text-xs text-red-500">{errorDetail}</p>
+    {/if}
+    {#if showManualButton && data.mid}
+        <button
+            onclick={manualSubmit}
+            class="bg-primary text-primary-foreground hover:bg-primary/90 rounded-md px-4 py-2 text-sm font-medium"
+        >
+            인증 페이지로 직접 이동
+        </button>
+        <p class="text-muted-foreground text-xs">
+            자동 이동이 안 되면 위 버튼을 클릭하세요.
+        </p>
+    {/if}
 </div>
 
 <form id="saForm" method="post" action="https://sa.inicis.com/auth">

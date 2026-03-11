@@ -8,6 +8,8 @@ import { buildCertRequest, storeCertPending } from '$lib/server/auth/cert-inicis
 import { resolveOrigin } from '$lib/server/auth/oauth/config.js';
 
 export const load: PageServerLoad = async ({ locals, url, request, cookies }) => {
+    console.log('[Cert:init] User:', locals.user?.id);
+
     if (!locals.user) {
         redirect(303, '/login');
     }
@@ -19,6 +21,18 @@ export const load: PageServerLoad = async ({ locals, url, request, cookies }) =>
 
     const pageType = url.searchParams.get('pageType') || 'register';
     const certData = await buildCertRequest();
+
+    console.log('[Cert:init] Request data:', {
+        mid: certData.mid,
+        mTxId: certData.mTxId,
+        hasApiKey: !!certData.apiKey,
+        midLength: certData.mid?.length || 0
+    });
+
+    // mid 값 검증 - 빈 값이면 경고 로그
+    if (!certData.mid) {
+        console.error('[Cert:init] ERROR: MID is empty! Check cf_cert_kg_mid in g5_config or CERT_INICIS_TEST_MID env var');
+    }
 
     // mTxId → mbId 매핑을 DB에 저장 (cross-origin POST에서 쿠키 신뢰 불가)
     await storeCertPending(certData.mTxId, mbId);
