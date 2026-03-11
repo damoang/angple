@@ -21,6 +21,8 @@ export interface AuthUser {
     mb_intercept_date?: string;
 }
 
+const RESTRICTED_WRITE_ALLOWED_BOARDS = new Set(['promotion']);
+
 function parseInterceptDate(value: string): Date | null {
     if (!value || value === '0000-00-00' || value === '00000000') {
         return null;
@@ -50,6 +52,18 @@ export function isRestrictedUser(user: AuthUser | null): boolean {
     const banEnd = parseInterceptDate(user.mb_intercept_date);
     if (!banEnd) return false;
     return Date.now() <= banEnd.getTime();
+}
+
+function normalizeBoardId(boardId: string | null | undefined): string {
+    return (boardId || '').replace(/[^a-zA-Z0-9_-]/g, '');
+}
+
+export function canRestrictedUserWriteToBoard(boardId: string | null | undefined): boolean {
+    return RESTRICTED_WRITE_ALLOWED_BOARDS.has(normalizeBoardId(boardId));
+}
+
+export function canRestrictedUserReactToBoard(_boardId: string | null | undefined): boolean {
+    return false;
 }
 
 /**

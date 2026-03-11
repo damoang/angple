@@ -9,7 +9,7 @@ import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import type { RowDataPacket } from 'mysql2';
 import pool from '$lib/server/db';
-import { getAuthUser, isRestrictedUser } from '$lib/server/auth';
+import { canRestrictedUserReactToBoard, getAuthUser, isRestrictedUser } from '$lib/server/auth';
 import { checkCertification } from '$lib/server/certification';
 import { fetchReactionsByParentId } from '$lib/server/reactions';
 
@@ -136,13 +136,6 @@ export const POST: RequestHandler = async ({ request, cookies, getClientAddress 
         return json({ status: 'error', message: '로그인이 필요합니다.' }, { status: 401 });
     }
 
-    if (isRestrictedUser(user)) {
-        return json(
-            { status: 'error', message: '이용제한 중에는 리액션을 할 수 없습니다.' },
-            { status: 403 }
-        );
-    }
-
     try {
         const body = await request.json();
         const { reaction, targetId, parentId, reactionMode = 'add' } = body;
@@ -170,8 +163,17 @@ export const POST: RequestHandler = async ({ request, cookies, getClientAddress 
             );
         }
 
+        const targetParts = safeTargetId.split(':');
+        const restrictedBoardId = targetParts.length >= 2 ? targetParts[1] : '';
+        if (isRestrictedUser(user) && !canRestrictedUserReactToBoard(restrictedBoardId)) {
+            return json(
+                { status: 'error', message: '이용제한 중에는 리액션을 할 수 없습니다.' },
+                { status: 403 }
+            );
+        }
+
         // 실명인증 체크 (targetId에서 boardId 추출)
-        const certTargetParts = safeTargetId.split(':');
+        const certTargetParts = targetParts;
         if (certTargetParts.length >= 2) {
             const certBoardId = certTargetParts[1].replace(/[^a-zA-Z0-9_-]/g, '');
             const certError = await checkCertification(certBoardId, user.mb_id);
@@ -181,7 +183,6 @@ export const POST: RequestHandler = async ({ request, cookies, getClientAddress 
         }
 
         // 작성자 리액션 방지 (PHP preventWriterReaction과 동일: wr_is_comment=1로 댓글만 체크)
-        const targetParts = safeTargetId.split(':');
         if (targetParts.length >= 3) {
             const boardTable = targetParts[1].replace(/[^a-zA-Z0-9_]/g, '');
             const wrId = targetParts[2];

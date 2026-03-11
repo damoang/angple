@@ -9,7 +9,7 @@ import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import type { RowDataPacket, ResultSetHeader } from 'mysql2';
 import pool from '$lib/server/db';
-import { getAuthUser, isRestrictedUser } from '$lib/server/auth';
+import { canRestrictedUserReactToBoard, getAuthUser, isRestrictedUser } from '$lib/server/auth';
 import { checkCertification } from '$lib/server/certification';
 
 interface GoodRow extends RowDataPacket {
@@ -103,7 +103,7 @@ export const POST: RequestHandler = async ({ params, request, cookies, getClient
         return json({ success: false, message: '로그인이 필요합니다.' }, { status: 401 });
     }
 
-    if (isRestrictedUser(user)) {
+    if (isRestrictedUser(user) && !canRestrictedUserReactToBoard(boardId)) {
         return json(
             { success: false, message: '이용제한 중에는 추천/비추천을 할 수 없습니다.' },
             { status: 403 }
