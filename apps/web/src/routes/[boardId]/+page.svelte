@@ -89,6 +89,7 @@
     }
 
     let { data }: { data: PageData } = $props();
+    let promotionPosts = $state<unknown[]>([]);
 
     // 게시판 정보
     const boardId = $derived(data.boardId);
@@ -180,6 +181,31 @@
                 });
             })
             .catch(() => {});
+    });
+
+    $effect(() => {
+        const promise = data.streamed?.promotionData;
+        if (!promise) {
+            promotionPosts = [];
+            return;
+        }
+
+        let cancelled = false;
+        promotionPosts = [];
+
+        promise
+            .then((result: unknown[]) => {
+                if (cancelled) return;
+                promotionPosts = result || [];
+            })
+            .catch(() => {
+                if (cancelled) return;
+                promotionPosts = [];
+            });
+
+        return () => {
+            cancelled = true;
+        };
     });
 
     // 활성 태그 필터
@@ -580,7 +606,6 @@
             {:then result}
                 {@const posts = result.posts}
                 {@const notices = result.notices || []}
-                {@const promotionPosts = result.promotionPosts || []}
                 {@const pagination = result.pagination}
                 {@const filteredPosts =
                     selectedCategory === '전체'

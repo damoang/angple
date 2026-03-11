@@ -9,6 +9,8 @@
 import { getAdsServerUrl } from './config';
 
 const PROMOTION_CACHE_TTL = 30_000; // 30초
+const PROMOTION_POSTS_TIMEOUT_MS = 500;
+const PROMOTION_BOARD_TIMEOUT_MS = 1_500;
 
 let promotionCache: { data: unknown; expiresAt: number } | null = null;
 
@@ -54,7 +56,7 @@ export async function fetchPromotionBoardPosts(): Promise<PromotionBoardPostsRes
     }
     try {
         const res = await fetch(`${getAdsServerUrl()}/api/v1/serve/promotion-board-posts`, {
-            signal: AbortSignal.timeout(5_000)
+            signal: AbortSignal.timeout(PROMOTION_BOARD_TIMEOUT_MS)
         });
         if (!res.ok) return EMPTY_BOARD_RESPONSE;
         const data = await res.json();
@@ -74,7 +76,7 @@ export async function fetchPromotionPosts(): Promise<unknown> {
     }
     try {
         const res = await fetch(`${getAdsServerUrl()}/api/v1/serve/promotion-posts`, {
-            signal: AbortSignal.timeout(3_000)
+            signal: AbortSignal.timeout(PROMOTION_POSTS_TIMEOUT_MS)
         });
         if (!res.ok) return EMPTY_RESPONSE;
         const data = await res.json();

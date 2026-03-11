@@ -178,10 +178,97 @@ export const load: PageServerLoad = async ({
             }
         }
 
-        // --- 2단계: 보조 데이터 스트리밍 (await 안 함 → 스켈레톤 먼저 표시) ---
-        const secondaryDataPromise = (async () => {
+        // --- 2단계: 핵심/보조 데이터를 분리해 스트리밍 ---
+        const commentsDataPromise = (async () => {
+            const commentsResult = await svelteKitFetch(
+                `${url.origin}/api/boards/${boardId}/posts/${postId}/comments?page=1&limit=200`
+            ).then(async (res) => {
+                if (!res.ok) return { items: [], total: 0, page: 1, limit: 200, total_pages: 0 };
+                const json = await res.json();
+                if (!json.success)
+                    return { items: [], total: 0, page: 1, limit: 200, total_pages: 0 };
+                const data = json.data;
+                return {
+                    items: data.comments || [],
+                    total: data.total || 0,
+                    page: data.page || 1,
+                    limit: data.limit || 200,
+                    total_pages: data.total_pages || 1
+                };
+            });
+
+            const comments = commentsResult;
+
+            // 댓글 제휴 링크 서버사이드 변환
+            if (comments.items?.length) {
+                try {
+                    const transformPromises: Promise<void>[] = [];
+                    for (const comment of comments.items) {
+                        if (comment.content) {
+                            transformPromises.push(
+                                transformAffiliateContent(comment.content, affiliateContext).then(
+                                    (html) => {
+                                        comment.content = html;
+                                    }
+                                )
+                            );
+                        }
+                    }
+                    if (transformPromises.length > 0) {
+                        await Promise.race([
+                            Promise.allSettled(transformPromises),
+                            new Promise((resolve) => setTimeout(resolve, 3000))
+                        ]);
+                    }
+                } catch {
+                    // 변환 실패 시 원본 유지
+                }
+            }
+
+            // 회원 레벨 배치 조회 (작성자 + 댓글 작성자, DB 직접 — CDN 요청 제거)
+            let memberLevels: Record<string, number> = {};
+            try {
+                const authorIds = new Set<string>();
+                if (post.author_id) authorIds.add(post.author_id);
+                for (const c of comments.items || []) {
+                    if (c.author_id) authorIds.add(c.author_id);
+                }
+                if (authorIds.size > 0) {
+                    memberLevels = await fetchMemberLevels([...authorIds]);
+                }
+            } catch {
+                // 레벨 조회 실패 시 빈 맵 (클라이언트에서 fallback)
+            }
+
+            // 댓글 좋아요/비추천 상태 배치 조회 (로그인 시만)
+            let commentLikeStatuses: { likedIds: number[]; dislikedIds: number[] } = {
+                likedIds: [],
+                dislikedIds: []
+            };
+            if (locals.user?.id && comments.items?.length) {
+                try {
+                    const commentIds = comments.items
+                        .map((c: { id: number | string }) => Number(c.id))
+                        .filter((id: number) => !isNaN(id));
+                    commentLikeStatuses = await fetchCommentLikeStatuses(
+                        boardId,
+                        commentIds,
+                        locals.user.id
+                    );
+                } catch {
+                    // 실패 시 빈 상태 (클라이언트에서 fallback)
+                }
+            }
+
+            return {
+                comments,
+                memberLevels,
+                commentLikeStatuses
+            };
+        })();
+
+        const auxiliaryDataPromise = (async () => {
             const [
-                commentsResult,
                 promotionResult,
                 revisionsResult,
                 reactionsResult,
@@ -190,24 +277,6 @@ export const load: PageServerLoad = async ({
                 scrapResult,
                 postReportCountResult
             ] = await Promise.allSettled([
-                // 댓글 (SvelteKit 내부 라우트 → svelteKitFetch)
-                svelteKitFetch(
-                    `${url.origin}/api/boards/${boardId}/posts/${postId}/comments?page=1&limit=200`
-                ).then(async (res) => {
-                    if (!res.ok)
-                        return { items: [], total: 0, page: 1, limit: 200, total_pages: 0 };
-                    const json = await res.json();
-                    if (!json.success)
-                        return { items: [], total: 0, page: 1, limit: 200, total_pages: 0 };
-                    const data = json.data;
-                    return {
-                        items: data.comments || [],
-                        total: data.total || 0,
-                        page: data.page || 1,
-                        limit: data.limit || 200,
-                        total_pages: data.total_pages || 1
-                    };
-                }),
                 // 직접홍보 사잇광고 (ads 서버 직접 호출 + 캐시)
                 fetchPromotionPosts(),
                 // 리비전 히스토리 (관리자 level ≥ 10일 때만)
@@ -256,37 +325,6 @@ export const load: PageServerLoad = async ({
                     : Promise.resolve(null)
             ]);
 
-            const comments =
-                commentsResult.status === 'fulfilled'
-                    ? commentsResult.value
-                    : { items: [], total: 0, page: 1, limit: 200, total_pages: 0 };
-
-            // 댓글 제휴 링크 서버사이드 변환
-            if (comments.items?.length) {
-                try {
-                    const transformPromises: Promise<void>[] = [];
-                    for (const comment of comments.items) {
-                        if (comment.content) {
-                            transformPromises.push(
-                                transformAffiliateContent(comment.content, affiliateContext).then(
-                                    (html) => {
-                                        comment.content = html;
-                                    }
-                                )
-                            );
-                        }
-                    }
-                    if (transformPromises.length > 0) {
-                        await Promise.race([
-                            Promise.allSettled(transformPromises),
-                            new Promise((resolve) => setTimeout(resolve, 3000))
-                        ]);
-                    }
-                } catch {
-                    // 변환 실패 시 원본 유지
-                }
-            }
-
             // 프로모션 사잇광고: board_exception에 포함된 게시판은 제외
             let promotionPosts: unknown[] = [];
             if (promotionResult.status === 'fulfilled') {
@@ -311,41 +349,6 @@ export const load: PageServerLoad = async ({
                     ? likersResult.value || { likers: [], total: 0 }
                     : { likers: [], total: 0 };
 
-            // 회원 레벨 배치 조회 (작성자 + 댓글 작성자, DB 직접 — CDN 요청 제거)
-            let memberLevels: Record<string, number> = {};
-            try {
-                const authorIds = new Set<string>();
-                if (post.author_id) authorIds.add(post.author_id);
-                for (const c of comments.items || []) {
-                    if (c.author_id) authorIds.add(c.author_id);
-                }
-                if (authorIds.size > 0) {
-                    memberLevels = await fetchMemberLevels([...authorIds]);
-                }
-            } catch {
-                // 레벨 조회 실패 시 빈 맵 (클라이언트에서 fallback)
-            }
-
-            // 댓글 좋아요/비추천 상태 배치 조회 (로그인 시만)
-            let commentLikeStatuses: { likedIds: number[]; dislikedIds: number[] } = {
-                likedIds: [],
-                dislikedIds: []
-            };
-            if (locals.user?.id && comments.items?.length) {
-                try {
-                    const commentIds = comments.items
-                        .map((c: { id: number | string }) => Number(c.id))
-                        .filter((id: number) => !isNaN(id));
-                    commentLikeStatuses = await fetchCommentLikeStatuses(
-                        boardId,
-                        commentIds,
-                        locals.user.id
-                    );
-                } catch {
-                    // 실패 시 빈 상태 (클라이언트에서 fallback)
-                }
-            }
-
             // 본문 제휴 링크 변환 결과
             const transformedPostContent =
                 postContentResult.status === 'fulfilled' ? postContentResult.value : null;
@@ -356,13 +359,10 @@ export const load: PageServerLoad = async ({
                 postReportCountResult.status === 'fulfilled' ? postReportCountResult.value : null;
 
             return {
-                comments,
                 promotionPosts,
                 revisions,
                 reactions,
                 likersData,
-                memberLevels,
-                commentLikeStatuses,
                 transformedPostContent,
                 isScrapped,
                 postReportCount
@@ -394,7 +394,8 @@ export const load: PageServerLoad = async ({
             watermark,
             /** 스트리밍: Promise로 반환 → 클라이언트에서 $effect로 수신 */
             streamed: {
-                secondaryData: secondaryDataPromise
+                commentsData: commentsDataPromise,
+                auxiliaryData: auxiliaryDataPromise
             }
         };
     } catch (err) {

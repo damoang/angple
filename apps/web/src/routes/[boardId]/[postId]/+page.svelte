@@ -251,23 +251,24 @@
     let revisions = $state<PostRevision[]>([]);
     let initialLikedCommentIds = $state<number[]>([]);
     let initialDislikedCommentIds = $state<number[]>([]);
-    let secondaryLoaded = $state(false);
-    let secondaryError = $state(false);
+    let commentsLoaded = $state(false);
+    let commentsError = $state(false);
+    let auxiliaryLoaded = $state(false);
     let isScrapped = $state(false);
     let postReportCount = $state<number | string | null>(null);
 
     $effect(() => {
-        const promise = data.streamed?.secondaryData;
+        const promise = data.streamed?.commentsData;
         if (!promise) return;
 
         let cancelled = false;
 
         // 네비게이션 시 초기화
         comments = [];
-        promotionPosts = [];
-        revisions = [];
-        secondaryLoaded = false;
-        secondaryError = false;
+        initialLikedCommentIds = [];
+        initialDislikedCommentIds = [];
+        commentsLoaded = false;
+        commentsError = false;
 
         promise
             .then(
@@ -279,43 +280,15 @@
                         limit: number;
                         total_pages: number;
                     };
-                    promotionPosts: unknown[];
-                    revisions: PostRevision[];
-                    reactions?: Record<string, unknown>;
-                    likersData?: { likers: LikerInfo[]; total: number };
                     memberLevels?: Record<string, number>;
                     commentLikeStatuses?: { likedIds: number[]; dislikedIds: number[] };
-                    transformedPostContent?: string | null;
-                    isScrapped?: boolean;
-                    postReportCount?: number | string | null;
                 }) => {
                     if (cancelled) return;
                     comments = result.comments.items || [];
-                    promotionPosts = result.promotionPosts || [];
-                    revisions = result.revisions || [];
-
-                    // SSR 리액션 데이터 적용
-                    if (result.reactions && Object.keys(result.reactions).length > 0) {
-                        reactionsMap = result.reactions as Record<string, ReactionItem[]>;
-                        const docTargetId = generateDocumentTargetId(boardId, data.post.id);
-                        postReactions =
-                            (result.reactions as Record<string, ReactionItem[]>)[docTargetId] || [];
-                    }
-
-                    // SSR 추천자 아바타 적용
-                    if (result.likersData) {
-                        likers = result.likersData.likers || [];
-                        likersTotal = result.likersData.total || 0;
-                    }
 
                     // SSR 회원 레벨 적용
                     if (result.memberLevels && Object.keys(result.memberLevels).length > 0) {
                         memberLevelStore.initFromSSR(result.memberLevels);
-                    }
-
-                    // 본문 제휴 링크 변환 적용 (스트리밍)
-                    if (result.transformedPostContent) {
-                        data.post.content = result.transformedPostContent;
                     }
 
                     // SSR 댓글 좋아요 상태 적용
@@ -323,18 +296,7 @@
                         initialLikedCommentIds = result.commentLikeStatuses.likedIds || [];
                         initialDislikedCommentIds = result.commentLikeStatuses.dislikedIds || [];
                     }
-
-                    // 스크랩 상태 적용 (스트리밍)
-                    if (result.isScrapped) {
-                        isScrapped = result.isScrapped;
-                    }
-
-                    // 게시글 신고 횟수 (관리자만)
-                    if (result.postReportCount != null) {
-                        postReportCount = result.postReportCount;
-                    }
-
-                    secondaryLoaded = true;
+                    commentsLoaded = true;
                 }
             )
             .catch(async () => {
@@ -349,7 +311,7 @@
                             const json = await res.json();
                             if (json.success && json.data) {
                                 comments = json.data.comments || [];
-                                secondaryLoaded = true;
+                                commentsLoaded = true;
                                 return;
                             }
                         }
@@ -357,8 +319,70 @@
                         // 재시도도 실패
                     }
                 }
-                secondaryError = true;
-                secondaryLoaded = true;
+                commentsError = true;
+                commentsLoaded = true;
+            });
+
+        return () => {
+            cancelled = true;
+        };
+    });
+
+    $effect(() => {
+        const promise = data.streamed?.auxiliaryData;
+        if (!promise) return;
+
+        let cancelled = false;
+
+        promotionPosts = [];
+        revisions = [];
+        auxiliaryLoaded = false;
+
+        promise
+            .then(
+                (result: {
+                    promotionPosts: unknown[];
+                    revisions: PostRevision[];
+                    reactions?: Record<string, unknown>;
+                    likersData?: { likers: LikerInfo[]; total: number };
+                    transformedPostContent?: string | null;
+                    isScrapped?: boolean;
+                    postReportCount?: number | string | null;
+                }) => {
+                    if (cancelled) return;
+                    promotionPosts = result.promotionPosts || [];
+                    revisions = result.revisions || [];
+
+                    if (result.reactions && Object.keys(result.reactions).length > 0) {
+                        reactionsMap = result.reactions as Record<string, ReactionItem[]>;
+                        const docTargetId = generateDocumentTargetId(boardId, data.post.id);
+                        postReactions =
+                            (result.reactions as Record<string, ReactionItem[]>)[docTargetId] || [];
+                    }
+
+                    if (result.likersData) {
+                        likers = result.likersData.likers || [];
+                        likersTotal = result.likersData.total || 0;
+                    }
+
+                    if (result.transformedPostContent) {
+                        data.post.content = result.transformedPostContent;
+                    }
+
+                    if (result.isScrapped) {
+                        isScrapped = result.isScrapped;
+                    }
+
+                    if (result.postReportCount != null) {
+                        postReportCount = result.postReportCount;
+                    }
+
+                    auxiliaryLoaded = true;
+                }
+            )
+            .catch(() => {
+                if (cancelled) return;
+                auxiliaryLoaded = true;
             });
 
         return () => {
@@ -579,7 +603,7 @@
 
     // 앵커 스크롤 (#c_댓글ID, #comment_댓글ID, #likes) — 스트리밍 완료 후 실행
     $effect(() => {
-        if (secondaryLoaded && browser) {
+        if (commentsLoaded && browser) {
             const hash = window.location.hash;
             if (!hash) return;
 
@@ -1300,7 +1324,7 @@
         -->
 
         <!-- 수정 이력 (리비전 히스토리) - 관리자 전용 (스트리밍 완료 후) -->
-        {#if isAdmin && secondaryLoaded && revisions.length > 0}
+        {#if isAdmin && auxiliaryLoaded && revisions.length > 0}
             <div class="mb-6">
                 <RevisionHistory
                     {revisions}
@@ -1312,7 +1336,7 @@
         {/if}
 
         <!-- 댓글 섹션 (비밀글 열람 가능 + 스트리밍 완료 시 표시) -->
-        {#if canViewSecret && !secondaryLoaded}
+        {#if canViewSecret && !commentsLoaded}
             <Card class="bg-background">
                 <CardContent class="space-y-4 py-6">
                     <!-- 댓글 스켈레톤 -->
@@ -1331,7 +1355,7 @@
                     {/each}
                 </CardContent>
             </Card>
-        {:else if canViewSecret && secondaryError}
+        {:else if canViewSecret && commentsError}
             <Card class="bg-background">
                 <CardContent class="py-8 text-center">
                     <p class="text-destructive text-sm">댓글을 불러오지 못했습니다.</p>

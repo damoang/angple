@@ -11,7 +11,6 @@ import { getCachedBoard } from '$lib/server/board-cache.js';
 interface PostsCacheData {
     posts: FreePost[];
     notices: FreePost[];
-    promotionPosts: unknown[];
     pagination: { total: number; page: number; limit: number; totalPages: number };
     error: string | null;
 }
@@ -166,7 +165,7 @@ export const load: PageServerLoad = async ({ url, params, locals }) => {
                 totalPages: 1
             };
 
-            const result = { posts, notices, promotionPosts: [] as unknown[], pagination, error };
+            const result = { posts, notices, pagination, error };
 
             // 비로그인 + 에러 없는 경우만 캐시 저장
             if (usePostsCache && !error) {
@@ -177,7 +176,7 @@ export const load: PageServerLoad = async ({ url, params, locals }) => {
         }
 
         // 일반 게시판 (또는 프로모션 게시판 검색/태그 필터)
-        const [postsResult, noticesResult, promotionResult] = await Promise.allSettled([
+        const [postsResult, noticesResult] = await Promise.allSettled([
             bFetch(buildPostsUrl(), { headers }).then(async (res) => {
                 if (!res.ok) throw new Error(`Posts API error: ${res.status}`);
                 return res.json();
@@ -190,8 +189,7 @@ export const load: PageServerLoad = async ({ url, params, locals }) => {
                           const json = await res.json();
                           return (json.data as FreePost[]) || [];
                       }
-                  ),
-            fetchPromotionPosts()
+                  )
         ]);
 
         // 게시글
@@ -221,20 +219,7 @@ export const load: PageServerLoad = async ({ url, params, locals }) => {
 
         const notices = noticesResult.status === 'fulfilled' ? noticesResult.value : [];
 
-        // 프로모션 사잇광고: board_exception에 포함된 게시판은 제외
-        let promotionPosts: unknown[] = [];
-        if (promotionResult.status === 'fulfilled') {
-            const promoData = (promotionResult.value as Record<string, unknown>)?.data as
-                | Record<string, unknown>
-                | undefined;
-            const boardException = (promoData?.board_exception || '') as string;
-            const excludedBoards = boardException.split(',').map((s: string) => s.trim());
-            if (!excludedBoards.includes(boardId)) {
-                promotionPosts = (promoData?.posts as unknown[]) || [];
-            }
-        }
-
-        const result = { posts, notices, promotionPosts, pagination, error };
+        const result = { posts, notices, pagination, error };
 
         // 비로그인 + 에러 없는 경우만 캐시 저장
         if (usePostsCache && !error) {
@@ -244,6 +229,27 @@ export const load: PageServerLoad = async ({ url, params, locals }) => {
         return result;
     })();
 
+    const promotionDataPromise = (async () => {
+        if (isSearching || isPromotionBoard) {
+            return [] as unknown[];
+        }
+
+        try {
+            const promotionResult = await fetchPromotionPosts();
+            const promoData = (promotionResult as Record<string, unknown>)?.data as
+                | Record<string, unknown>
+                | undefined;
+            const boardException = (promoData?.board_exception || '') as string;
+            const excludedBoards = boardException.split(',').map((s: string) => s.trim());
+            if (excludedBoards.includes(boardId)) {
+                return [] as unknown[];
+            }
+            return (promoData?.posts as unknown[]) || [];
+        } catch {
+            return [] as unknown[];
+        }
+    })();
+
     return {
         boardId,
         board,
@@ -251,7 +257,8 @@ export const load: PageServerLoad = async ({ url, params, locals }) => {
         activeTag: tag,
         /** 스트리밍: Promise로 반환 → 클라이언트에서 {#await} 사용 */
         streamed: {
-            postsData: postsDataPromise
+            postsData: postsDataPromise,
+            promotionData: promotionDataPromise
         }
     };
 };
