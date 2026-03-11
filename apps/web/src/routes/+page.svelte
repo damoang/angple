@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { page } from '$app/state';
     import { WidgetRenderer } from '$lib/components/widget-renderer';
     import { CustomizerTrigger } from '$lib/components/features/admin-customizer';
     import { indexWidgetsStore } from '$lib/stores/index-widgets.svelte';
@@ -45,9 +46,19 @@
         },
         jsonLd: [createWebSiteJsonLd(`${getSiteUrl()}/search?stx={search_term_string}`)]
     });
+
+    const leftMessageVisible = $derived(page.url.searchParams.get('left') === '1');
 </script>
 
 <SeoHead config={seoConfig} />
+
+{#if leftMessageVisible}
+    <div class="mx-auto mb-4 max-w-5xl px-4 pt-4">
+        <div class="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
+            회원 탈퇴가 완료되었습니다. 안전하게 로그아웃되었습니다.
+        </div>
+    </div>
+{/if}
 
 <!-- 통합 위젯 렌더러로 메인 영역 렌더링 (추천글 SSR 프리페치 포함) -->
 <WidgetRenderer
