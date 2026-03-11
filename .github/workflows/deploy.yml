@@ -10,14 +10,61 @@ env:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     outputs:
-      image-tag: ${{ steps.meta.outputs.tags }}
+      sha_tag: ${{ steps.tags.outputs.sha_tag }}
     permissions:
       contents: read
       packages: write
     steps:
       - uses: actions/checkout@v4
+
+      - name: Checkout premium
+        uses: actions/checkout@v4
+        with:
+          repository: damoang/angple-premium
+          token: ${{ secrets.PREMIUM_REPO_TOKEN }}
+          path: _premium
+
+      - name: Install premium assets
+        run: |
+          chmod +x _premium/deploy/install.sh
+          _premium/deploy/install.sh .
+
+      - name: Setup directories
+        run: mkdir -p custom-themes custom-widgets extensions plugins widgets
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        env:
+          VITE_USE_MOCK: 'false'
+          VITE_GAM_NETWORK_CODE: '23338387889'
+          VITE_GAM_SITE_NAME: 'damoang'
+        run: |
+          pnpm --filter "./packages/*" build
+          echo "VITE_GAM_NETWORK_CODE=23338387889" > apps/web/.env
+          echo "VITE_GAM_SITE_NAME=damoang" >> apps/web/.env
+          pnpm --filter web build
+
+      - name: Prepare deploy package
+        run: |
+          pnpm --filter web deploy --prod apps/web/deploy
+          cp -r apps/web/build apps/web/deploy/
+          rm -rf apps/web/deploy/{plugins,widgets,themes,custom-themes,custom-widgets,extensions}
+          for dir in plugins widgets themes custom-themes custom-widgets extensions; do
+            [ -d "$dir" ] && cp -r "$dir" apps/web/deploy/
+          done
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -29,24 +76,22 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.IMAGE_NAME }}
-          tags: |
-            type=sha,prefix=sha-
+      - name: Set image tags
+        id: tags
+        run: echo "sha_tag=sha-${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
 
       - name: Build and push
         uses: docker/build-push-action@v5
         with:
-          context: .
-          file: apps/web/Dockerfile
+          context: apps/web/deploy
+          file: apps/web/Dockerfile.prod
           push: true
           platforms: linux/arm64
-          tags: ${{ steps.meta.outputs.tags }}
+          tags: |
+            ${{ env.IMAGE_NAME }}:${{ steps.tags.outputs.sha_tag }}
+            ${{ env.IMAGE_NAME }}:latest
           cache-from: type=gha,scope=web
-          cache-to: type=gha,mode=max,scope=web
+          cache-to: type=gha,mode=min,scope=web
 
   deploy-canary:
     needs: build
@@ -73,7 +118,7 @@ jobs:
 
       - name: Deploy to canary
         env:
-          IMAGE_TAG: ${{ needs.build.outputs.image-tag }}
+          IMAGE_TAG: ${{ needs.build.outputs.sha_tag }}
         run: |
           # Pull from GHCR
           docker pull "${IMAGE_TAG}"
@@ -116,7 +161,7 @@ jobs:
               \"title\": \"🚀 Canary Deploy $STATUS\",
               \"color\": $COLOR,
               \"fields\": [
-                {\"name\": \"Tag\", \"value\": \"\`${{ needs.build.outputs.image-tag }}\`\"},
+                {\"name\": \"Tag\", \"value\": \"\`${{ needs.build.outputs.sha_tag }}\`\"},
                 {\"name\": \"URL\", \"value\": \"https://canary.damoang.net\"}
               ]
             }]
@@ -155,7 +200,7 @@ jobs:
 
       - name: Deploy to production
         env:
-          IMAGE_TAG: ${{ needs.build.outputs.image-tag }}
+          IMAGE_TAG: ${{ needs.build.outputs.sha_tag }}
         run: |
           # Pull from GHCR
           docker pull "${IMAGE_TAG}"
@@ -185,7 +230,7 @@ jobs:
               \"title\": \"🎉 Production Deploy $STATUS\",
               \"color\": $COLOR,
               \"fields\": [
-                {\"name\": \"Tag\", \"value\": \"\`${{ needs.build.outputs.image-tag }}\`\"},
+                {\"name\": \"Tag\", \"value\": \"\`${{ needs.build.outputs.sha_tag }}\`\"},
                 {\"name\": \"URL\", \"value\": \"https://damoang.net\"}
               ]
             }]
@@ -198,4 +243,4 @@ jobs:
           EMOJI=$([[ "$STATUS" == "success" ]] && echo "🎉" || echo "❌")
           curl -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
             -d "chat_id=${{ secrets.TELEGRAM_DEPLOY_CHAT_ID }}" \
-            -d "text=${EMOJI} 운영 배포 ${STATUS}%0A%0ATag: \`${{ needs.build.outputs.image-tag }}\`%0AURL: https://damoang.net"
+            -d "text=${EMOJI} 운영 배포 ${STATUS}%0A%0ATag: \`${{ needs.build.outputs.sha_tag }}\`%0AURL: https://damoang.net"

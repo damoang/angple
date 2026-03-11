@@ -19,7 +19,8 @@
         BarChart3,
         Megaphone,
         StickyNote,
-        TrendingUp
+        TrendingUp,
+        Award
     } from '@lucide/svelte/icons';
 
     /**
@@ -76,6 +77,11 @@
             title: '경험치 관리',
             href: '/admin/xp',
             icon: TrendingUp
+        },
+        {
+            title: '등급 설정',
+            href: '/admin/settings/levels',
+            icon: Award
         },
         {
             title: '투표 관리',
