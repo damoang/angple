@@ -13,10 +13,12 @@ env:
   NODE_VERSION: "24.11.1"
 
 jobs:
-  # Lint 검사 (push only - PR은 prettier-suggester + eslint-review 사용)
+  # 전체 lint는 수동 실행만 허용한다.
+  # PR에서는 eslint-review/prettier-suggester가 이미 같은 역할을 맡고,
+  # main push에서는 빌드/테스트/배포 경로를 막지 않도록 분리한다.
   lint:
     name: Lint (${{ matrix.app }})
-    if: github.event_name == 'push'
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     strategy:
       matrix:
