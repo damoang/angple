@@ -59,7 +59,7 @@ jobs:
 
       - name: Prepare deploy package
         run: |
-          pnpm --filter web deploy --prod apps/web/deploy
+          pnpm --filter web deploy --prod --legacy apps/web/deploy
           cp -r apps/web/build apps/web/deploy/
           rm -rf apps/web/deploy/{plugins,widgets,themes,custom-themes,custom-widgets,extensions}
           for dir in plugins widgets themes custom-themes custom-widgets extensions; do
