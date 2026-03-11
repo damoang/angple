@@ -14,6 +14,8 @@ jobs:
     runs-on: ubuntu-24.04-arm
     outputs:
       sha_tag: ${{ steps.tags.outputs.sha_tag }}
+      image_repo: ${{ env.IMAGE_NAME }}
+      image_digest: ${{ steps.build_image.outputs.digest }}
     permissions:
       contents: read
       packages: write
@@ -82,6 +84,7 @@ jobs:
         run: echo "sha_tag=sha-${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
 
       - name: Build and push
+        id: build_image
         uses: docker/build-push-action@v5
         with:
           context: apps/web/deploy
@@ -120,18 +123,18 @@ jobs:
             --document-name "AWS-RunShellScript" \
             --parameters "{
               \"commands\": [
-                \"export GHCR_TOKEN='${{ secrets.GITHUB_TOKEN }}' && /home/angple/k8s/prod/deploy.sh web $IMAGE_TAG --canary-only\"
+                \"export GHCR_TOKEN='${{ secrets.GITHUB_TOKEN }}' TELEGRAM_BOT_TOKEN='${{ secrets.TELEGRAM_BOT_TOKEN }}' TELEGRAM_DEPLOY_CHAT_ID='${{ secrets.TELEGRAM_DEPLOY_CHAT_ID }}' DISCORD_WEBHOOK_URL='https://discord.com/api/webhooks/1435940653375815730/${{ secrets.DISCORD_WEBHOOK_TOKEN_WEB }}' && /home/angple/k8s/prod/deploy.sh web $IMAGE_TAG --canary-only\"
               ]
             }" \
             --timeout-seconds 600 \
             --query "Command.CommandId" \
             --output text 2>&1)
-          
+
           if [ -z "$COMMAND_ID" ] || [[ "$COMMAND_ID" == *"error"* ]]; then
             echo "❌ SSM send-command failed: $COMMAND_ID"
             exit 1
           fi
-          
+
           echo "SSM Command ID: $COMMAND_ID"
 
           for i in $(seq 1 30); do
@@ -190,13 +193,30 @@ jobs:
           echo "Timeout"
           exit 1
 
+      - name: Notify Discord (Canary)
+        if: always()
+        run: |
+          STATUS="${{ job.status }}"
+          COLOR=$([[ "$STATUS" == "success" ]] && echo "3066993" || echo "15158332")
+          curl -X POST "https://discord.com/api/webhooks/1435940653375815730/${{ secrets.DISCORD_WEBHOOK_TOKEN_WEB }}" -H "Content-Type: application/json" -d "{
+            \"embeds\": [{
+              \"title\": \"🚀 Canary Deploy $STATUS\",
+              \"color\": $COLOR,
+              \"fields\": [
+                {\"name\": \"Tag\", \"value\": \"\`${{ needs.build.outputs.sha_tag }}\`\"},
+                {\"name\": \"URL\", \"value\": \"https://canary.damoang.net\"}
+              ]
+            }]
+          }"
+
       - name: Notify Telegram (Approval)
         if: success()
         run: |
+          RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           curl -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
             -d "chat_id=${{ secrets.TELEGRAM_DEPLOY_CHAT_ID }}" \
-            -d "text=✅ Web Canary 완료%0A%0ATag: \`${{ needs.build.outputs.sha_tag }}\`%0AURL: https://canary.damoang.net%0A%0A승인하시겠습니까?%0A%0A👉 ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
-            -d "reply_markup={\"inline_keyboard\":[[{\"text\":\"✅ 승인\",\"url\":\"${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\"},{\"text\":\"❌ 거부\",\"callback_data\":\"reject:${{ github.run_id }}\"}]]}"
+            -d "text=✅ angple web canary ready%0A%0ARepo: ${{ github.repository }}%0ACommit: ${{ github.sha }}%0ATag: \`${{ needs.build.outputs.sha_tag }}\`%0ADigest: \`${{ needs.build.outputs.image_digest }}\`%0ACanary: https://canary.damoang.net%0AGate Approval: ${RUN_URL}%0A%0AEnvironment approval 후 production 배포가 진행됩니다." \
+            -d "reply_markup={\"inline_keyboard\":[[{\"text\":\"Canary 열기\",\"url\":\"https://canary.damoang.net\"},{\"text\":\"Gate Approval\",\"url\":\"${RUN_URL}\"}]]}"
 
   deploy-production:
     needs: [build, deploy-canary]
@@ -224,18 +244,18 @@ jobs:
             --document-name "AWS-RunShellScript" \
             --parameters "{
               \"commands\": [
-                \"export GHCR_TOKEN='${{ secrets.GITHUB_TOKEN }}' && /home/angple/k8s/prod/deploy.sh web $IMAGE_TAG --skip-canary\"
+                \"export GHCR_TOKEN='${{ secrets.GITHUB_TOKEN }}' TELEGRAM_BOT_TOKEN='${{ secrets.TELEGRAM_BOT_TOKEN }}' TELEGRAM_DEPLOY_CHAT_ID='${{ secrets.TELEGRAM_DEPLOY_CHAT_ID }}' DISCORD_WEBHOOK_URL='https://discord.com/api/webhooks/1435940653375815730/${{ secrets.DISCORD_WEBHOOK_TOKEN_WEB }}' && /home/angple/k8s/prod/deploy.sh web $IMAGE_TAG --skip-canary\"
               ]
             }" \
             --timeout-seconds 600 \
             --query "Command.CommandId" \
             --output text 2>&1)
-          
+
           if [ -z "$COMMAND_ID" ] || [[ "$COMMAND_ID" == *"error"* ]]; then
             echo "❌ SSM send-command failed: $COMMAND_ID"
             exit 1
           fi
-          
+
           echo "SSM Command ID: $COMMAND_ID"
 
           for i in $(seq 1 30); do
@@ -268,4 +288,4 @@ jobs:
           EMOJI=$([[ "$STATUS" == "success" ]] && echo "🎉" || echo "❌")
           curl -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
             -d "chat_id=${{ secrets.TELEGRAM_DEPLOY_CHAT_ID }}" \
-            -d "text=${EMOJI} 운영 배포 ${STATUS}%0A%0ATag: \`${{ needs.build.outputs.sha_tag }}\`%0AURL: https://damoang.net"
+            -d "text=${EMOJI} angple web production ${STATUS}%0A%0ATag: \`${{ needs.build.outputs.sha_tag }}\`%0ADigest: \`${{ needs.build.outputs.image_digest }}\`%0AURL: https://damoang.net"
