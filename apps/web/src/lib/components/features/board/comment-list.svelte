@@ -1176,12 +1176,15 @@
                         </div>
                     {/if}
 
-                    <!-- Chat: 시간 (버블 안 우하단) -->
+                    <!-- Chat: 시간 + IP (버블 안 우하단) -->
                     {#if commentLayout === 'chat' && !isDeleted && !isEditing}
                         <p class="mt-1.5 text-right">
-                            <span class="text-muted-foreground/70 text-xs"
-                                >{formatDate(comment.created_at)}</span
-                            >
+                            <span class="text-muted-foreground/70 text-xs">
+                                {formatDate(comment.created_at)}
+                                {#if comment.author_ip}
+                                    · {comment.author_ip}
+                                {/if}
+                            </span>
                         </p>
                     {/if}
                 </div>
