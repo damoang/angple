@@ -764,6 +764,11 @@
             return;
         }
 
+        if (!canUseCertifiedAction(authStore.user, boardId)) {
+            goToCertification();
+            return;
+        }
+
         if (isLiking) return;
 
         isLiking = true;
@@ -787,6 +792,10 @@
             loadLikerAvatars();
         } catch (err) {
             console.error('Failed to like post:', err);
+            if (err instanceof Error && err.message.includes('실명인증')) {
+                goToCertification();
+                return;
+            }
             alert('추천에 실패했습니다.');
         } finally {
             isLiking = false;
@@ -797,6 +806,11 @@
     async function handleDislike(): Promise<void> {
         if (!authStore.isAuthenticated) {
             authStore.redirectToLogin();
+            return;
+        }
+
+        if (!canUseCertifiedAction(authStore.user, boardId)) {
+            goToCertification();
             return;
         }
 
@@ -814,6 +828,10 @@
             loadLikerAvatars();
         } catch (err) {
             console.error('Failed to dislike post:', err);
+            if (err instanceof Error && err.message.includes('실명인증')) {
+                goToCertification();
+                return;
+            }
             alert('비추천에 실패했습니다.');
         } finally {
             isDisliking = false;
