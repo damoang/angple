@@ -151,6 +151,7 @@ jobs:
         id: deploy-canary
         env:
           IMAGE_TAG: ${{ needs.build.outputs.image-tag }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           echo "Deploying canary with tag: $IMAGE_TAG"
 
@@ -158,6 +159,7 @@ jobs:
             --instance-ids "i-038a1d1f00798d94b" \
             --document-name "AWS-RunShellScript" \
             --parameters "commands=[
+              \"export GHCR_TOKEN='${GHCR_TOKEN}'\",
               \"/home/angple/k8s/prod/deploy.sh web $IMAGE_TAG --canary-only\"
             ]" \
             --timeout-seconds 300 \
@@ -331,6 +333,7 @@ jobs:
       - name: Deploy to production via SSM
         env:
           IMAGE_TAG: ${{ needs.build.outputs.image-tag }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           echo "Production deploy with tag: $IMAGE_TAG"
 
@@ -338,6 +341,7 @@ jobs:
             --instance-ids "i-038a1d1f00798d94b" \
             --document-name "AWS-RunShellScript" \
             --parameters "commands=[
+              \"export GHCR_TOKEN='${GHCR_TOKEN}'\",
               \"/home/angple/k8s/prod/deploy.sh web $IMAGE_TAG --skip-canary\"
             ]" \
             --timeout-seconds 600 \
