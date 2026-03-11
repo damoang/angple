@@ -2,7 +2,6 @@ import prettier from 'eslint-config-prettier';
 import { includeIgnoreFile } from '@eslint/compat';
 import js from '@eslint/js';
 import svelte from 'eslint-plugin-svelte';
-import filenamesPlugin from 'eslint-plugin-filenames-simple';
 import globals from 'globals';
 import { fileURLToPath } from 'node:url';
 import ts from 'typescript-eslint';
@@ -44,33 +43,6 @@ export default ts.config(
                 parser: ts.parser,
                 svelteConfig
             }
-        }
-    },
-    {
-        files: ['**/*.svelte', '**/*.ts', '**/*.js'],
-        ignores: [
-            '**/+*.js', // SvelteKit 파일들 제외
-            '**/+*.ts',
-            '**/+*.svelte',
-            '**/app.html', // 특수 SvelteKit 파일
-            '**/app.css', // CSS 파일
-            '**/vite.config.*', // 설정 파일들
-            '**/svelte.config.*',
-            '**/eslint.config.*',
-            '**/playwright.config.*',
-            '**/tsconfig.*'
-        ],
-        plugins: {
-            'filenames-simple': filenamesPlugin
-        },
-        rules: {
-            // 파일명은 kebab-case로 강제
-            'filenames-simple/naming-convention': [
-                'error',
-                {
-                    rule: 'kebab-case'
-                }
-            ]
         }
     }
 );
