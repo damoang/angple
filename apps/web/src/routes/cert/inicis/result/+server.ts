@@ -86,6 +86,11 @@ export const POST: RequestHandler = async ({ request, locals, cookies }) => {
 
     // CI 기반 dupinfo 생성
     const mbDupinfo = buildDupinfo(userCi);
+    console.log('[Cert] dupinfo generated:', {
+        dupinfoPrefix: mbDupinfo.slice(0, 16),
+        hasCi: !!userCi,
+        birthDay: userBirthday
+    });
 
     // 사용자 확인: 세션 → DB(mTxId) → 쿠키(백업) 순으로 시도
     const certPendingMbId = cookies.get('cert_pending_mbid');
@@ -110,6 +115,11 @@ export const POST: RequestHandler = async ({ request, locals, cookies }) => {
 
     // 중복 인증 체크
     const existingId = await checkDupinfo(mbId, mbDupinfo);
+    console.log('[Cert] dupinfo check result:', {
+        mbId,
+        dupinfoPrefix: mbDupinfo.slice(0, 16),
+        existingId
+    });
     if (existingId) {
         return certResultPage(false, '입력하신 본인확인 정보로 이미 가입된 내역이 존재합니다.');
     }
