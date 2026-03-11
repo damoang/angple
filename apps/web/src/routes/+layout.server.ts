@@ -16,8 +16,30 @@ import { env } from '$env/dynamic/private';
  *
  * celebration + banners: SSR에서 직접 로드하여 클라이언트 /api/init CDN 요청 제거
  */
-export const load: LayoutServerLoad = async ({ locals, depends }) => {
+export const load: LayoutServerLoad = async ({ locals, depends, url }) => {
     depends('app:layout');
+
+    // Install wizard must not depend on runtime infra such as Redis, menus, banners, or MySQL.
+    // CI/E2E runs this route before the full stack is provisioned.
+    if (url.pathname.startsWith('/install')) {
+        const installLayoutData = {
+            activeTheme: null,
+            themeSettings: {},
+            activePlugins: [],
+            menus: [],
+            user: locals.user ?? null,
+            accessToken: locals.accessToken ?? null,
+            csrfToken: locals.csrfToken ?? null,
+            isAdmin: (locals.user?.level ?? 0) >= 10,
+            singoRole: null,
+            celebration: [],
+            banners: {},
+            ga4MeasurementId: ''
+        };
+
+        return hooks.applyFilters('layout_server_data', installLayoutData);
+    }
+
     const singoRolePromise =
         (locals.user?.level ?? 0) >= 10 && locals.user?.id
             ? getSingoRole(locals.user.id).catch(() => null)
