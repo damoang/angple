@@ -157,14 +157,18 @@
     // afterNavigate 통합: 버전 감지 리로드 + GA4 페이지뷰 + 광고 observer 재설정
     const UPDATED_RELOAD_KEY = '__angple_updated_reload__';
     afterNavigate(({ type, to }) => {
-        // 새 버전 감지 시 풀 리로드 (최대 2회, 무한 루프 방지)
+        // 새 버전 감지 시 캐시 버스터로 1회만 재요청
         if ($updated && type !== 'enter') {
             const count = Number(sessionStorage.getItem(UPDATED_RELOAD_KEY) || '0');
-            if (count < 2) {
+            if (count < 1) {
                 sessionStorage.setItem(UPDATED_RELOAD_KEY, String(count + 1));
-                location.reload();
+                const url = new URL(location.href);
+                url.searchParams.set('_v', String(Date.now()));
+                location.replace(url.toString());
                 return;
             }
+        } else if (!$updated) {
+            sessionStorage.removeItem(UPDATED_RELOAD_KEY);
         }
         // GA4 페이지뷰 추적
         if (to?.url) {

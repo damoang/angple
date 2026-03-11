@@ -136,6 +136,43 @@
                     );
                 }
 
+                function reloadWithCacheBust(clearCaches) {
+                    function replaceNow() {
+                        var url = new URL(location.href);
+                        url.searchParams.set('_v', String(Date.now()));
+                        location.replace(url.toString());
+                    }
+
+                    if (!clearCaches) {
+                        replaceNow();
+                        return;
+                    }
+
+                    var tasks = [];
+                    if (navigator.serviceWorker) {
+                        tasks.push(
+                            navigator.serviceWorker.getRegistrations().then(function (regs) {
+                                regs.forEach(function (r) {
+                                    r.unregister();
+                                });
+                            })
+                        );
+                    }
+                    if (window.caches) {
+                        tasks.push(
+                            caches.keys().then(function (names) {
+                                return Promise.all(
+                                    names.map(function (name) {
+                                        return caches.delete(name);
+                                    })
+                                );
+                            })
+                        );
+                    }
+
+                    Promise.all(tasks).finally(replaceNow);
+                }
+
                 function handle() {
                     var s = getState();
                     var now = Date.now();
@@ -147,7 +184,7 @@
                     s.ts = now;
                     if (s.count <= MAX_RELOADS) {
                         setState(s);
-                        location.reload();
+                        reloadWithCacheBust(s.count > 1);
                     } else {
                         s.exhausted = true;
                         setState(s);
