@@ -46,7 +46,8 @@ export const load: PageServerLoad = async ({ locals }) => {
                   mb_open: memberProfile.mb_open,
                   mb_mailling: memberProfile.mb_mailling,
                   mb_level: memberProfile.mb_level,
-                  mb_image_url: memberProfile.mb_image_url || ''
+                  mb_image_url: memberProfile.mb_image_url || '',
+                  mb_certify: memberProfile.mb_certify || ''
               }
             : null,
         nickChangeDaysLeft,
