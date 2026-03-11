@@ -148,6 +148,7 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Deploy canary via SSM
+        id: deploy-canary
         env:
           IMAGE_TAG: ${{ needs.build.outputs.image-tag }}
         run: |
@@ -179,6 +180,7 @@ jobs:
                 --instance-id "i-038a1d1f00798d94b" \
                 --query "StandardOutputContent" \
                 --output text
+              echo "deploy_success=true" >> "$GITHUB_OUTPUT"
               exit 0
             elif [ "$STATUS" = "Failed" ] || [ "$STATUS" = "Cancelled" ] || [ "$STATUS" = "TimedOut" ]; then
               echo "Canary failed: $STATUS"
@@ -189,11 +191,40 @@ jobs:
                 --output text)
               echo "$ERROR_OUTPUT"
               
-              # Fallback: 직접 kubectl로 배포 시도
-              echo "Attempting fallback deployment..."
-              kubectl rollout restart deployment/angple-web-canary -n angple || true
-              sleep 10
-              kubectl rollout status deployment/angple-web-canary -n angple --timeout=60s && exit 0 || exit 1
+              # Fallback: SSM으로 kubectl 재시작 명령 실행
+              echo "Attempting fallback deployment via SSM..."
+              FALLBACK_CMD=$(aws ssm send-command \
+                --instance-ids "i-038a1d1f00798d94b" \
+                --document-name "AWS-RunShellScript" \
+                --parameters "commands=[
+                  'kubectl rollout restart deployment/angple-web-canary -n angple',
+                  'sleep 15',
+                  'kubectl rollout status deployment/angple-web-canary -n angple --timeout=60s'
+                ]" \
+                --timeout-seconds 120 \
+                --query "Command.CommandId" \
+                --output text)
+              
+              sleep 5
+              for j in $(seq 1 15); do
+                FALLBACK_STATUS=$(aws ssm get-command-invocation \
+                  --command-id "$FALLBACK_CMD" \
+                  --instance-id "i-038a1d1f00798d94b" \
+                  --query "Status" \
+                  --output text 2>/dev/null || echo "Pending")
+                
+                if [ "$FALLBACK_STATUS" = "Success" ]; then
+                  echo "Fallback deployment succeeded!"
+                  echo "deploy_success=true" >> "$GITHUB_OUTPUT"
+                  exit 0
+                elif [ "$FALLBACK_STATUS" = "Failed" ]; then
+                  echo "Fallback deployment failed"
+                  exit 1
+                fi
+                sleep 5
+              done
+              
+              exit 1
             fi
 
             sleep 10
@@ -202,7 +233,7 @@ jobs:
           exit 1
 
       - name: Notify Telegram (승인 요청)
-        if: success()
+        if: steps.deploy-canary.outputs.deploy_success == 'true'
         env:
           IMAGE_TAG: ${{ needs.build.outputs.image-tag }}
         run: |
