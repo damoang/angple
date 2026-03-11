@@ -438,3 +438,29 @@ jobs:
           else
             echo "✅ No type errors"
           fi
+
+  # CI 결과 텔레그램 알림
+  notify:
+    name: Notify Telegram
+    needs: [build, security, test]
+    if: always() && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Determine status
+        id: status
+        run: |
+          if [[ "${{ needs.build.result }}" == "failure" || "${{ needs.security.result }}" == "failure" || "${{ needs.test.result }}" == "failure" ]]; then
+            echo "result=failure" >> $GITHUB_OUTPUT
+            echo "emoji=❌" >> $GITHUB_OUTPUT
+          else
+            echo "result=success" >> $GITHUB_OUTPUT
+            echo "emoji=✅" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Send Telegram notification
+        if: steps.status.outputs.result == 'failure'
+        run: |
+          curl -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+            -d "chat_id=${{ secrets.TELEGRAM_DEPLOY_CHAT_ID }}" \
+            -d "parse_mode=Markdown" \
+            -d "text=${{ steps.status.outputs.emoji }} *Web CI ${{ steps.status.outputs.result }}*%0A%0ABuild: ${{ needs.build.result }}%0ASecurity: ${{ needs.security.result }}%0ATest: ${{ needs.test.result }}%0A%0A[Actions](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"

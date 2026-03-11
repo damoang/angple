@@ -170,22 +170,6 @@ jobs:
           echo "❌ Canary failed (Status: $STATUS)"
           exit 1
 
-      - name: Notify Discord (Canary)
-        if: always()
-        run: |
-          STATUS="${{ job.status }}"
-          COLOR=$([[ "$STATUS" == "success" ]] && echo "3066993" || echo "15158332")
-          curl -X POST "https://discord.com/api/webhooks/1449348482673672286/${{ secrets.DISCORD_WEBHOOK_TOKEN_BACKEND }}" -H "Content-Type: application/json" -d "{
-            \"embeds\": [{
-              \"title\": \"🚀 Canary Deploy $STATUS\",
-              \"color\": $COLOR,
-              \"fields\": [
-                {\"name\": \"Tag\", \"value\": \"\`${{ needs.build.outputs.sha_tag }}\`\"},
-                {\"name\": \"URL\", \"value\": \"https://canary.damoang.net\"}
-              ]
-            }]
-          }"
-
       - name: Notify Telegram (Approval)
         if: success()
         run: |
@@ -256,22 +240,6 @@ jobs:
           done
           echo "Timeout"
           exit 1
-
-      - name: Notify Discord (Production)
-        if: always()
-        run: |
-          STATUS="${{ job.status }}"
-          COLOR=$([[ "$STATUS" == "success" ]] && echo "3066993" || echo "15158332")
-          curl -X POST "https://discord.com/api/webhooks/1435940653375815730/${{ secrets.DISCORD_WEBHOOK_TOKEN_WEB }}" -H "Content-Type: application/json" -d "{
-            \"embeds\": [{
-              \"title\": \"🎉 Production Deploy $STATUS\",
-              \"color\": $COLOR,
-              \"fields\": [
-                {\"name\": \"Tag\", \"value\": \"\`${{ needs.build.outputs.sha_tag }}\`\"},
-                {\"name\": \"URL\", \"value\": \"https://damoang.net\"}
-              ]
-            }]
-          }"
 
       - name: Notify Telegram (Production)
         if: always()
