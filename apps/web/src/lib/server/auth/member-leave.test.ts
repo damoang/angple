@@ -4,7 +4,7 @@ import { formatLeaveDate, prependLeaveMemo } from './member-leave';
 
 describe('member leave helpers', () => {
     it('formats leave date as YYYYMMDD', () => {
-        expect(formatLeaveDate(new Date('2026-03-12T01:02:03+09:00'))).toBe('20260312');
+        expect(formatLeaveDate(new Date(2026, 2, 12, 1, 2, 3))).toBe('20260312');
     });
 
     it('prepends leave memo before existing memo', () => {
