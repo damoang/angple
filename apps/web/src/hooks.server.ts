@@ -168,7 +168,8 @@ async function authenticateSSR(event: Parameters<Handle>[0]['event']): Promise<v
                     event.locals.user = {
                         id: member.mb_id,
                         nickname: member.mb_nick || member.mb_name,
-                        level: member.mb_level ?? 0
+                        level: member.mb_level ?? 0,
+                        mb_certify: member.mb_certify || ''
                     };
                     event.locals.sessionId = sessionId;
                     event.locals.csrfToken = session.csrfToken;
@@ -277,7 +278,7 @@ function buildCsp(): string {
         "frame-src 'self' https://challenges.cloudflare.com https://www.youtube.com https://www.youtube-nocookie.com https://platform.twitter.com https://player.vimeo.com https://clips.twitch.tv https://player.twitch.tv https://www.tiktok.com https://www.instagram.com https://www.redditmedia.com https://embed.bsky.app https://googleads.g.doubleclick.net https://securepubads.g.doubleclick.net https://tpc.googlesyndication.com https://www.google.com https://*.googlesyndication.com https://*.doubleclick.net https://*.adtrafficquality.google",
         "frame-ancestors 'self'",
         "base-uri 'self'",
-        "form-action 'self' https://appleid.apple.com https://sa.inicis.com"
+        "form-action 'self' https://appleid.apple.com"
     ];
 
     return directives.join('; ');
@@ -287,8 +288,6 @@ const cspHeader = buildCsp();
 
 /** 개발/내부 전용 경로 — 프로덕션에서 차단 */
 const DEV_ONLY_PATHS = ['/api-test', '/api-docs', '/api-doc', '/install'];
-const allowInstallRouteInE2E =
-    env.ALLOW_INSTALL_ROUTE_FOR_E2E === 'true' || env.ALLOW_INSTALL_ROUTE_FOR_E2E === '1';
 
 /** 글로벌 API rate limiting (IP당 요청 수) */
 const GLOBAL_API_RATE = { maxRequests: 600, windowMs: 60_000 }; // 분당 600회 (페이지당 ~10 API 호출)
@@ -322,11 +321,7 @@ export const handle: Handle = async ({ event, resolve }) => {
     }
 
     // 개발/내부 전용 경로 차단 (프로덕션)
-    const isDevOnlyPath = DEV_ONLY_PATHS.some(
-        (p) => pathname === p || pathname.startsWith(p + '/')
-    );
-    const isInstallPath = pathname === '/install' || pathname.startsWith('/install/');
-    if (!dev && isDevOnlyPath && !(allowInstallRouteInE2E && isInstallPath)) {
+    if (!dev && DEV_ONLY_PATHS.some((p) => pathname === p || pathname.startsWith(p + '/'))) {
         return new Response('Not Found', { status: 404 });
     }
 

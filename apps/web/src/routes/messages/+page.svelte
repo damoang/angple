@@ -19,6 +19,11 @@
     import Loader2 from '@lucide/svelte/icons/loader-2';
     import User from '@lucide/svelte/icons/user';
     import ArrowLeft from '@lucide/svelte/icons/arrow-left';
+    import {
+        canUseCertifiedAction,
+        getCertificationBlockedMessage,
+        goToCertification
+    } from '$lib/utils/certification-gate.js';
 
     let { data }: { data: PageData } = $props();
 
@@ -122,6 +127,11 @@
 
     // 쪽지 보내기
     async function handleSendMessage(): Promise<void> {
+        if (!canUseCertifiedAction(authStore.user, null)) {
+            sendError = getCertificationBlockedMessage();
+            goToCertification();
+            return;
+        }
         if (!sendTo.trim() || !sendContent.trim()) {
             sendError = '받는 사람과 내용을 입력해주세요.';
             return;
@@ -197,7 +207,16 @@
             </Button>
             <h1 class="text-foreground text-2xl font-bold">쪽지함</h1>
         </div>
-        <Button onclick={() => (showSendDialog = true)}>
+        <Button
+            onclick={() => {
+                if (!canUseCertifiedAction(authStore.user, null)) {
+                    goToCertification();
+                    return;
+                }
+                showSendDialog = true;
+            }}
+            title={!canUseCertifiedAction(authStore.user, null) ? '실명인증' : undefined}
+        >
             <PenSquare class="mr-2 h-4 w-4" />
             쪽지 쓰기
         </Button>

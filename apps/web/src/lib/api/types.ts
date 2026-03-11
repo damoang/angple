@@ -309,6 +309,7 @@ export interface DamoangUser {
     mb_name: string;
     mb_level: number;
     mb_email: string;
+    mb_certify?: string;
     mb_point?: number; // 보유 포인트
     mb_exp?: number; // 경험치
     mb_image?: string; // 프로필 이미지 URL

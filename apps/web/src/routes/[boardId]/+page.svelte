@@ -19,6 +19,11 @@
     import { Badge } from '$lib/components/ui/badge/index.js';
     import type { PageData } from './$types.js';
     import { authStore } from '$lib/stores/auth.svelte.js';
+    import {
+        canUseCertifiedAction,
+        getCertificationBlockedMessage,
+        goToCertification
+    } from '$lib/utils/certification-gate.js';
     import { slide } from 'svelte/transition';
     import Pencil from '@lucide/svelte/icons/pencil';
     import Lock from '@lucide/svelte/icons/lock';
@@ -198,6 +203,10 @@
 
     // 글쓰기 페이지로 이동
     function goToWrite(): void {
+        if (!canUseCertifiedAction(authStore.user, boardId)) {
+            goToCertification();
+            return;
+        }
         goto(`/${boardId}/write`);
     }
 
@@ -484,9 +493,15 @@
                         <Search class="h-4 w-4" />
                     </Button>
                     {#if canWrite}
-                        <Button onclick={goToWrite} class="shrink-0">
+                        <Button
+                            onclick={goToWrite}
+                            class="shrink-0"
+                            title={!canUseCertifiedAction(authStore.user, boardId)
+                                ? getCertificationBlockedMessage(boardId)
+                                : undefined}
+                        >
                             <Pencil class="mr-2 h-4 w-4" />
-                            글쓰기
+                            {#if !canUseCertifiedAction(authStore.user, boardId)}실명인증{:else}글쓰기{/if}
                         </Button>
                     {:else if authStore.isAuthenticated}
                         <Button

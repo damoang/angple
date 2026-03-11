@@ -22,6 +22,11 @@
     import Pin from '@lucide/svelte/icons/pin';
     import RefreshCw from '@lucide/svelte/icons/refresh-cw';
     import { authStore } from '$lib/stores/auth.svelte.js';
+    import {
+        canUseCertifiedAction,
+        getCertificationBlockedMessage,
+        goToCertification
+    } from '$lib/utils/certification-gate.js';
     import { apiClient } from '$lib/api/index.js';
     import DeleteConfirmDialog from '$lib/components/features/board/delete-confirm-dialog.svelte';
     import CommentForm from '$lib/components/features/board/comment-form.svelte';
@@ -1395,9 +1400,25 @@
             >
             <div class="flex-1"></div>
             {#if authStore.isAuthenticated && checkPermission(data.board, 'can_write', authStore.user ?? null)}
-                <Button variant="default" size="sm" href="/{boardId}/write" class="shrink-0"
-                    >글쓰기</Button
+                <Button
+                    variant="default"
+                    size="sm"
+                    href={canUseCertifiedAction(authStore.user, boardId)
+                        ? `/${boardId}/write`
+                        : undefined}
+                    onclick={(e) => {
+                        if (!canUseCertifiedAction(authStore.user, boardId)) {
+                            e.preventDefault();
+                            goToCertification();
+                        }
+                    }}
+                    title={!canUseCertifiedAction(authStore.user, boardId)
+                        ? getCertificationBlockedMessage(boardId)
+                        : undefined}
+                    class="shrink-0"
                 >
+                    {#if !canUseCertifiedAction(authStore.user, boardId)}실명인증{:else}글쓰기{/if}
+                </Button>
             {/if}
         </div>
 

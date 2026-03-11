@@ -43,7 +43,7 @@ async function fetchCurrentUser(): Promise<void> {
  * hooks.server.ts에서 설정한 user/accessToken을 +layout.server.ts 경유로 받음
  */
 function initFromSSR(
-    ssrUser: { id?: string; nickname: string; level: number },
+    ssrUser: { id?: string; nickname: string; level: number; mb_certify?: string },
     accessToken: string
 ): void {
     const mbId = ssrUser.id ?? '';
@@ -56,7 +56,8 @@ function initFromSSR(
         mb_id: mbId,
         mb_name: ssrUser.nickname,
         mb_level: ssrUser.level,
-        mb_email: ''
+        mb_email: '',
+        mb_certify: ssrUser.mb_certify || ''
     };
     apiClient.setAccessToken(accessToken);
     isLoading = false;

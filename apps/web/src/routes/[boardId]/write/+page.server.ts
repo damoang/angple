@@ -2,6 +2,7 @@ import { redirect, error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types.js';
 import type { Board } from '$lib/api/types.js';
 import { backendFetch, createAuthHeaders } from '$lib/server/backend-fetch.js';
+import { checkCertification } from '$lib/server/certification.js';
 
 /**
  * 글쓰기 페이지 서버 로드
@@ -13,6 +14,11 @@ export const load: PageServerLoad = async ({ locals, params }) => {
     // 서버 사이드 인증 검증 — 미인증 사용자는 로그인 페이지로 리다이렉트
     if (!locals.user) {
         redirect(302, `/login?redirect=/${boardId}/write`);
+    }
+
+    const certError = await checkCertification(boardId, locals.user.id);
+    if (certError) {
+        redirect(302, '/register/cert');
     }
 
     // 게시판 정보 조회 → write_level 권한 체크
