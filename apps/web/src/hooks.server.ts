@@ -114,6 +114,19 @@ function isPostDetailPath(pathname: string): boolean {
     return POST_DETAIL_REGEX.test(pathname);
 }
 
+/**
+ * 스벨트내부 데이터 요청인지 구분
+ * @param event
+ * @returns 
+ */
+function isSvelteKitDataRequest(event: Parameters<Handle>[0]['event']): boolean {
+    return (
+        event.isDataRequest ||
+        event.url.pathname.endsWith('/__data.json') ||
+        event.request.headers.has('x-sveltekit-invalidated')
+    );
+}
+
 /** Rate limiting 경로 패턴 */
 const RATE_LIMITED_PATHS = [
     { path: '/api/v1/auth/login', action: 'login', maxAttempts: 10, windowMs: 15 * 60 * 1000 },
@@ -281,6 +294,7 @@ const WRITE_API_RATE = { maxRequests: 60, windowMs: 60_000 }; // 쓰기 분당 6
 
 export const handle: Handle = async ({ event, resolve }) => {
     const { pathname } = event.url;
+    const isDataRequest = isSvelteKitDataRequest(event);
 
     // --- 환경별 접근 제어 (hostname 기반) ---
     const allowedMembers = ACCESS_CONTROL_MAP[event.url.hostname];
@@ -420,7 +434,7 @@ export const handle: Handle = async ({ event, resolve }) => {
     const isHomePage = pathname === '/';
     const isBoardList = isBoardListPath(pathname, event.url.searchParams);
     const isPostDetail = isPostDetailPath(pathname);
-    if (!event.locals.user && (isHomePage || isBoardList || isPostDetail)) {
+    if (!isDataRequest && !event.locals.user && (isHomePage || isBoardList || isPostDetail)) {
         const cacheKey = isHomePage ? '/' : pathname;
         const cacheTtl = isHomePage
             ? SSR_CACHE_TTL_HOME
