@@ -1342,6 +1342,19 @@
                                 <Trash2 class="h-3.5 w-3.5" />
                             </Button>
                         {/if}
+
+                        <!-- 신고 버튼 (본인이 아닌 경우) -->
+                        {#if !isAuthor && authStore.isAuthenticated}
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onclick={() => startReport(comment)}
+                                class="text-muted-foreground hover:text-destructive h-6 px-1.5"
+                                title="신고"
+                            >
+                                <Flag class="h-3.5 w-3.5" />
+                            </Button>
+                        {/if}
                     </div>
                 {/if}
 
