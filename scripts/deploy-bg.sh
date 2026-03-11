@@ -25,6 +25,7 @@ NGINX_UPSTREAM="/etc/nginx/conf.d/angple-upstream.conf"
 LOG_DIR="/tmp"
 HEALTH_TIMEOUT=10
 HEALTH_RETRIES=5
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # 색상 코드
 RED='\033[0;31m'
@@ -267,14 +268,14 @@ echo -e "==========================================${NC}"
 
 # 0. 검증
 echo ""
-echo -e "${BLUE_C}[0/5] 배포 전 검증...${NC}"
+echo -e "${BLUE_C}[0/6] 배포 전 검증...${NC}"
 if [ -f "$DEV_DIR/scripts/check-clean.sh" ]; then
     "$DEV_DIR/scripts/check-clean.sh" || true
 fi
 
 # 1. 빌드
 echo ""
-echo -e "${BLUE_C}[1/5] 빌드 중...${NC}"
+echo -e "${BLUE_C}[1/6] 빌드 중...${NC}"
 cd "$DEV_DIR/packages/types"
 pnpm build 2>&1
 cd "$DEV_DIR/apps/web"
@@ -282,7 +283,7 @@ pnpm build 2>&1 | tail -3
 
 # 2. 비활성 슬롯에 복사
 echo ""
-echo -e "${BLUE_C}[2/5] $TARGET 슬롯에 복사 중...${NC}"
+echo -e "${BLUE_C}[2/6] $TARGET 슬롯에 복사 중...${NC}"
 init_slot "$TARGET_DIR"
 rsync -a --delete "$DEV_DIR/apps/web/build/" "$TARGET_DIR/build/"
 rsync -a "$DEV_DIR/data/" "$TARGET_DIR/data/"
@@ -292,7 +293,7 @@ echo -e "${GREEN_C}   복사 완료: $(du -sh "$TARGET_DIR/build/" | cut -f1)${N
 
 # 3. 비활성 슬롯 서버 시작 + 헬스체크
 echo ""
-echo -e "${BLUE_C}[3/5] $TARGET 서버 시작 (포트 $TARGET_PORT)...${NC}"
+echo -e "${BLUE_C}[3/6] $TARGET 서버 시작 (포트 $TARGET_PORT)...${NC}"
 
 # 혹시 이전 프로세스가 남아있으면 정리
 stop_server "$TARGET_PORT"
@@ -312,7 +313,7 @@ echo -e "${GREEN_C}   ✅ $TARGET 서버 정상 (PID: $NEW_PID, 포트 $TARGET_P
 
 # 4. nginx 전환
 echo ""
-echo -e "${BLUE_C}[4/5] nginx upstream 전환 → 포트 $TARGET_PORT...${NC}"
+echo -e "${BLUE_C}[4/6] nginx upstream 전환 → 포트 $TARGET_PORT...${NC}"
 if switch_nginx "$TARGET_PORT"; then
     echo -e "${GREEN_C}   ✅ nginx 전환 완료${NC}"
 else
@@ -321,9 +322,16 @@ else
     exit 1
 fi
 
-# 5. 이전 슬롯 서버 종료
+# 5. Cloudflare purge + 외부 스모크 테스트
 echo ""
-echo -e "${BLUE_C}[5/5] 이전 $ACTIVE 서버 종료 (포트 $ACTIVE_PORT)...${NC}"
+echo -e "${BLUE_C}[5/6] 외부 캐시 무효화 + 스모크 테스트...${NC}"
+"$SCRIPT_DIR/cloudflare-purge.sh"
+"$SCRIPT_DIR/smoke-test.sh"
+echo -e "${GREEN_C}   ✅ 외부 검증 완료${NC}"
+
+# 6. 이전 슬롯 서버 종료
+echo ""
+echo -e "${BLUE_C}[6/6] 이전 $ACTIVE 서버 종료 (포트 $ACTIVE_PORT)...${NC}"
 stop_server "$ACTIVE_PORT"
 echo -e "${GREEN_C}   ✅ $ACTIVE 서버 종료 완료${NC}"
 

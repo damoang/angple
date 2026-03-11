@@ -16,6 +16,7 @@ PROD_DIR="/home/damoang/angple-prod"
 PREMIUM_DIR="/home/damoang/angple-premium"
 UPSTREAM_CONF="/etc/nginx/conf.d/angple-upstream.conf"
 LOG_FILE="/tmp/angple-prod.log"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 BLUE_PORT=3012
 GREEN_PORT=3013
@@ -88,7 +89,7 @@ echo -e "   활성: ${GREEN}$ACTIVE_PORT${NC}  →  새 배포: ${BLUE}$NEW_PORT
 
 # 0. 검증
 echo ""
-echo -e "${BLUE}[0/5] 사전 검증...${NC}"
+echo -e "${BLUE}[0/6] 사전 검증...${NC}"
 if [ -f "$DEV_DIR/scripts/check-clean.sh" ]; then
     if ! "$DEV_DIR/scripts/check-clean.sh"; then
         if [ -t 0 ]; then
@@ -103,13 +104,13 @@ fi
 
 # 1. 빌드
 echo ""
-echo -e "${BLUE}[1/5] 빌드...${NC}"
+echo -e "${BLUE}[1/6] 빌드...${NC}"
 cd "$DEV_DIR/packages/types" && pnpm build 2>&1 | tail -1
 cd "$DEV_DIR/apps/web" && pnpm build 2>&1 | tail -3
 
 # 2. 복사
 echo ""
-echo -e "${BLUE}[2/5] 복사...${NC}"
+echo -e "${BLUE}[2/6] 복사...${NC}"
 # immutable 파일(content-hash) 보존: 이전 클라이언트가 아직 로드하지 않은 chunk 404 방지
 rsync -a "$DEV_DIR/apps/web/build/" "$PROD_DIR/build/"
 rsync -a --delete --exclude='_app/immutable/' "$DEV_DIR/apps/web/build/" "$PROD_DIR/build/"
@@ -139,7 +140,7 @@ echo -e "${GREEN}   복사 완료 ($(du -sh "$PROD_DIR/build/" | cut -f1))${NC}"
 
 # 3. 새 서버 시작 (비활성 포트)
 echo ""
-echo -e "${BLUE}[3/5] 새 서버 시작 (포트 $NEW_PORT)...${NC}"
+echo -e "${BLUE}[3/6] 새 서버 시작 (포트 $NEW_PORT)...${NC}"
 
 # 비활성 포트에 이전 프로세스 있으면 정리
 OLD_INACTIVE=$(lsof -t -i:$NEW_PORT 2>/dev/null || true)
@@ -172,13 +173,20 @@ echo -e "${GREEN}   ✅ 새 서버 정상 (PID: $NEW_PID, 게시글: ${POSTS}건
 
 # 4. nginx 전환 (무중단)
 echo ""
-echo -e "${BLUE}[4/5] nginx 전환 ($ACTIVE_PORT → $NEW_PORT)...${NC}"
+echo -e "${BLUE}[4/6] nginx 전환 ($ACTIVE_PORT → $NEW_PORT)...${NC}"
 switch_upstream "$NEW_PORT"
 echo -e "${GREEN}   ✅ 트래픽 전환 완료${NC}"
 
-# 5. 이전 서버 종료
+# 5. Cloudflare purge + 외부 스모크 테스트
 echo ""
-echo -e "${BLUE}[5/5] 이전 서버 종료 (포트 $ACTIVE_PORT)...${NC}"
+echo -e "${BLUE}[5/6] 외부 캐시 무효화 + 스모크 테스트...${NC}"
+"$SCRIPT_DIR/cloudflare-purge.sh"
+"$SCRIPT_DIR/smoke-test.sh"
+echo -e "${GREEN}   ✅ 외부 검증 완료${NC}"
+
+# 6. 이전 서버 종료
+echo ""
+echo -e "${BLUE}[6/6] 이전 서버 종료 (포트 $ACTIVE_PORT)...${NC}"
 sleep 2
 OLD_PID=$(lsof -t -i:$ACTIVE_PORT 2>/dev/null || true)
 [ -n "$OLD_PID" ] && kill $OLD_PID 2>/dev/null

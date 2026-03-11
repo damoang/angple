@@ -179,6 +179,18 @@ jobs:
 
             echo "=== Staging Deploy Complete ==="
 
+      - name: Smoke test staging origin
+        uses: appleboy/ssh-action@v1.2.4
+        with:
+          host: ${{ secrets.DEV_SERVER_HOST }}
+          username: ${{ secrets.DEV_SERVER_USER }}
+          key: ${{ secrets.DEV_SERVER_SSH_KEY }}
+          script: |
+            set -e
+            export DEPLOY_ORIGIN_URL="http://127.0.0.1:3011"
+            export DEPLOY_SMOKE_PATHS="/,/free"
+            bash /home/angple/web/scripts/smoke-test.sh
+
       - name: Comment on PR
         if: github.event_name == 'pull_request'
         uses: actions/github-script@v7
