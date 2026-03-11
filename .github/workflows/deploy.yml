@@ -121,7 +121,7 @@ jobs:
                 \"export GHCR_TOKEN='${{ secrets.GITHUB_TOKEN }}' && /home/angple/k8s/prod/deploy.sh web $IMAGE_TAG --canary-only\"
               ]
             }" \
-            --timeout-seconds 300 \
+            --timeout-seconds 600 \
             --query "Command.CommandId" \
             --output text)
 
@@ -213,7 +213,7 @@ jobs:
                 \"export GHCR_TOKEN='${{ secrets.GITHUB_TOKEN }}' && /home/angple/k8s/prod/deploy.sh web $IMAGE_TAG --skip-canary\"
               ]
             }" \
-            --timeout-seconds 300 \
+            --timeout-seconds 600 \
             --query "Command.CommandId" \
             --output text)
 

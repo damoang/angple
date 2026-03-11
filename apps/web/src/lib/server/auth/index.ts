@@ -21,9 +21,35 @@ export interface AuthUser {
     mb_intercept_date?: string;
 }
 
+function parseInterceptDate(value: string): Date | null {
+    if (!value || value === '0000-00-00' || value === '00000000') {
+        return null;
+    }
+
+    if (value === '99991231') {
+        return new Date('9999-12-31T23:59:59+09:00');
+    }
+
+    if (/^\d{8}$/.test(value)) {
+        const year = value.slice(0, 4);
+        const month = value.slice(4, 6);
+        const day = value.slice(6, 8);
+        return new Date(`${year}-${month}-${day}T23:59:59+09:00`);
+    }
+
+    if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+        return new Date(`${value}T23:59:59+09:00`);
+    }
+
+    const parsed = new Date(value);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
 export function isRestrictedUser(user: AuthUser | null): boolean {
     if (!user?.mb_intercept_date) return false;
-    return user.mb_intercept_date !== '0000-00-00' && user.mb_intercept_date !== '00000000';
+    const banEnd = parseInterceptDate(user.mb_intercept_date);
+    if (!banEnd) return false;
+    return Date.now() <= banEnd.getTime();
 }
 
 /**

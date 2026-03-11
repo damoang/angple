@@ -92,9 +92,9 @@
         return `/${item.table}/${item.id}`;
     }
 
-    // 소명 가능 여부: 주의(0) 제외, 영구(-1) 및 정지(>=1) 모두 가능
+    // 소명 가능 여부: 1일 이상 이용제한만 가능
     function isAppealablePenalty(log: DisciplineLogDetail): boolean {
-        return log.penalty_period !== 0;
+        return log.penalty_period >= 1;
     }
 
     // 소명 기간 내 여부: 제재 시작 후 1일 경과 ~ 15일 이내
