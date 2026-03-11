@@ -4,6 +4,7 @@ import { getActivePlugins } from '$lib/server/plugins';
 import { loadMenus } from '$lib/server/menu-loader';
 import { getCachedCelebrations } from '$lib/server/celebration';
 import { getCachedBannersByPositions } from '$lib/server/ads/banners';
+import { getSingoRole } from '$lib/server/singo-role';
 import { hooks } from '@angple/hook-system';
 import { env } from '$env/dynamic/private';
 
@@ -17,14 +18,20 @@ import { env } from '$env/dynamic/private';
  */
 export const load: LayoutServerLoad = async ({ locals, depends }) => {
     depends('app:layout');
+    const singoRolePromise =
+        (locals.user?.level ?? 0) >= 10 && locals.user?.id
+            ? getSingoRole(locals.user.id).catch(() => null)
+            : Promise.resolve(null);
+
     // 병렬로 모든 데이터 로드 (allSettled: 개별 실패 허용)
-    const [themeResult, pluginsResult, menusResult, celebrationResult, bannersResult] =
+    const [themeResult, pluginsResult, menusResult, celebrationResult, bannersResult, singoRoleResult] =
         await Promise.allSettled([
             getActiveTheme(),
             getActivePlugins(),
             loadMenus(),
             getCachedCelebrations(),
-            getCachedBannersByPositions(['index-top', 'board-head', 'sidebar'])
+            getCachedBannersByPositions(['index-top', 'board-head', 'sidebar']),
+            singoRolePromise
         ]);
 
     const activeTheme = themeResult.status === 'fulfilled' ? themeResult.value : null;
@@ -32,6 +39,7 @@ export const load: LayoutServerLoad = async ({ locals, depends }) => {
     const menus = menusResult.status === 'fulfilled' ? menusResult.value : [];
     const celebration = celebrationResult.status === 'fulfilled' ? celebrationResult.value : [];
     const banners = bannersResult.status === 'fulfilled' ? bannersResult.value : {};
+    const singoRole = singoRoleResult.status === 'fulfilled' ? singoRoleResult.value : null;
 
     // 실패 로깅 (크래시 안 함)
     for (const [name, r] of [
@@ -62,6 +70,7 @@ export const load: LayoutServerLoad = async ({ locals, depends }) => {
         accessToken: locals.accessToken ?? null,
         csrfToken: locals.csrfToken ?? null,
         isAdmin: (locals.user?.level ?? 0) >= 10,
+        singoRole,
         // SSR에서 직접 로드 — 클라이언트 /api/init 호출 제거
         celebration,
         banners,

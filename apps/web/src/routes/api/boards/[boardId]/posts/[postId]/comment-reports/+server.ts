@@ -9,6 +9,7 @@ import type { RequestHandler } from './$types';
 import type { RowDataPacket } from 'mysql2';
 import pool from '$lib/server/db';
 import { getAuthUser } from '$lib/server/auth';
+import { getSingoRole } from '$lib/server/singo-role';
 
 // 신고 사유 라벨 매핑 (nariya 플러그인 sg_type 코드 21~40)
 const REASON_LABELS: Record<number, string> = {
@@ -54,6 +55,9 @@ export const GET: RequestHandler = async ({ params, cookies, url }) => {
     const user = await getAuthUser(cookies);
     if (!user || user.mb_level < 10) {
         return json({ success: false, message: '관리자 권한이 필요합니다.' }, { status: 403 });
+    }
+    if ((await getSingoRole(user.mb_id)) !== 'super_admin') {
+        return json({ success: false, message: '최고 관리자 권한이 필요합니다.' }, { status: 403 });
     }
 
     const safeBoardId = boardId.replace(/[^a-zA-Z0-9_-]/g, '');

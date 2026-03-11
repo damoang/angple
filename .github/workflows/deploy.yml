@@ -1,0 +1,201 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ghcr.io/damoang/angple-web
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      image-tag: ${{ steps.meta.outputs.tags }}
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE_NAME }}
+          tags: |
+            type=sha,prefix=sha-
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            BUILDKIT_INLINE_CACHE=1
+
+  deploy-canary:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: canary
+      url: https://canary.damoang.net
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::891376997084:role/GitHubActionsDeployRole
+          aws-region: ap-northeast-2
+
+      - name: Setup kubectl
+        run: |
+          aws eks update-kubeconfig --name angple-cluster --region ap-northeast-2
+
+      - name: Login to GHCR
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Deploy to canary
+        env:
+          IMAGE_TAG: ${{ needs.build.outputs.image-tag }}
+        run: |
+          # Pull from GHCR
+          docker pull "${IMAGE_TAG}"
+          
+          # Tag for local registry
+          docker tag "${IMAGE_TAG}" "localhost:5000/angple-web-canary:latest"
+          
+          # Push to k8s local registry via port-forward
+          kubectl port-forward -n kube-system svc/registry 5000:5000 &
+          PF_PID=$!
+          sleep 3
+          
+          docker push "localhost:5000/angple-web-canary:latest"
+          kill $PF_PID
+          
+          # Restart canary deployment
+          kubectl rollout restart deployment/angple-web-canary -n angple
+          kubectl rollout status deployment/angple-web-canary -n angple --timeout=180s
+
+      - name: Smoke test
+        run: |
+          for i in {1..30}; do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://canary.damoang.net/api/health || echo "000")
+            if [ "$STATUS" = "200" ]; then
+              echo "✅ Canary healthy"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "❌ Canary failed"
+          exit 1
+
+      - name: Notify Discord (Canary)
+        if: always()
+        run: |
+          STATUS="${{ job.status }}"
+          COLOR=$([[ "$STATUS" == "success" ]] && echo "3066993" || echo "15158332")
+          curl -X POST "https://discord.com/api/webhooks/1449348482673672286/${{ secrets.DISCORD_WEBHOOK_TOKEN_BACKEND }}" -H "Content-Type: application/json" -d "{
+            \"embeds\": [{
+              \"title\": \"🚀 Canary Deploy $STATUS\",
+              \"color\": $COLOR,
+              \"fields\": [
+                {\"name\": \"Tag\", \"value\": \"\`${{ needs.build.outputs.image-tag }}\`\"},
+                {\"name\": \"URL\", \"value\": \"https://canary.damoang.net\"}
+              ]
+            }]
+          }"
+
+      - name: Notify Telegram (Approval)
+        if: success()
+        run: |
+          curl -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+            -d "chat_id=${{ secrets.TELEGRAM_DEPLOY_CHAT_ID }}" \
+            -d "text=✅ Canary 배포 완료%0A%0A승인하시겠습니까?" \
+            -d "reply_markup={\"inline_keyboard\":[[{\"text\":\"✅ 승인\",\"callback_data\":\"approve:${{ github.run_id }}\"},{\"text\":\"❌ 거부\",\"callback_data\":\"reject:${{ github.run_id }}\"}]]}"
+
+  deploy-production:
+    needs: [build, deploy-canary]
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://damoang.net
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::891376997084:role/GitHubActionsDeployRole
+          aws-region: ap-northeast-2
+
+      - name: Setup kubectl
+        run: |
+          aws eks update-kubeconfig --name angple-cluster --region ap-northeast-2
+
+      - name: Login to GHCR
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Deploy to production
+        env:
+          IMAGE_TAG: ${{ needs.build.outputs.image-tag }}
+        run: |
+          # Pull from GHCR
+          docker pull "${IMAGE_TAG}"
+          
+          # Tag for local registry
+          docker tag "${IMAGE_TAG}" "localhost:5000/angple-web:latest"
+          
+          # Push to k8s local registry
+          kubectl port-forward -n kube-system svc/registry 5000:5000 &
+          PF_PID=$!
+          sleep 3
+          
+          docker push "localhost:5000/angple-web:latest"
+          kill $PF_PID
+          
+          # Restart production deployment
+          kubectl rollout restart deployment/angple-web -n angple
+          kubectl rollout status deployment/angple-web -n angple --timeout=300s
+
+      - name: Notify Discord (Production)
+        if: always()
+        run: |
+          STATUS="${{ job.status }}"
+          COLOR=$([[ "$STATUS" == "success" ]] && echo "3066993" || echo "15158332")
+          curl -X POST "https://discord.com/api/webhooks/1435940653375815730/${{ secrets.DISCORD_WEBHOOK_TOKEN_WEB }}" -H "Content-Type: application/json" -d "{
+            \"embeds\": [{
+              \"title\": \"🎉 Production Deploy $STATUS\",
+              \"color\": $COLOR,
+              \"fields\": [
+                {\"name\": \"Tag\", \"value\": \"\`${{ needs.build.outputs.image-tag }}\`\"},
+                {\"name\": \"URL\", \"value\": \"https://damoang.net\"}
+              ]
+            }]
+          }"
+
+      - name: Notify Telegram (Production)
+        if: always()
+        run: |
+          STATUS="${{ job.status }}"
+          EMOJI=$([[ "$STATUS" == "success" ]] && echo "🎉" || echo "❌")
+          curl -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+            -d "chat_id=${{ secrets.TELEGRAM_DEPLOY_CHAT_ID }}" \
+            -d "text=${EMOJI} 운영 배포 ${STATUS}%0A%0ATag: \`${{ needs.build.outputs.image-tag }}\`%0AURL: https://damoang.net"

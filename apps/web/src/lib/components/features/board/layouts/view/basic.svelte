@@ -44,6 +44,7 @@
     import type { ViewLayoutProps } from '../types.js';
     import type { CommentReportInfo } from '$lib/api/types.js';
     import { apiClient } from '$lib/api/index.js';
+    import { page } from '$app/stores';
 
     const FONT_SIZES: Record<ContentFontSize, string> = {
         small: '16px',
@@ -101,6 +102,8 @@
     let showPostReports = $state(false);
     let postReports = $state<CommentReportInfo[]>([]);
     let postReportsLoading = $state(false);
+    const isSingoSuperAdmin = $derived($page.data.singoRole === 'super_admin');
+    const isLockedPost = $derived(postReportCount === 'lock' || post.extra_7 === 'lock');
 
     async function loadPostReports() {
         if (postReportsLoading || postReports.length > 0) {
@@ -148,28 +151,33 @@
                     <Lock class="text-muted-foreground h-6 w-6 shrink-0" />
                 {/if}
                 {post.title}
-                {#if isAdmin && postReportCount != null}
-                    {#if postReportCount === 'lock'}
+                {#if isLockedPost}
+                    <span
+                        class="bg-destructive/10 text-destructive inline-flex shrink-0 items-center gap-1 rounded px-1.5 py-0.5 text-xs font-medium"
+                    >
+                        <Lock class="h-3 w-3" />
+                        신고잠금
+                    </span>
+                    {#if isSingoSuperAdmin}
                         <button
                             type="button"
-                            class="bg-destructive/10 text-destructive inline-flex shrink-0 cursor-pointer items-center gap-1 rounded px-1.5 py-0.5 text-xs font-medium"
+                            class="bg-muted text-muted-foreground shrink-0 cursor-pointer rounded px-1.5 py-0.5 text-xs font-medium"
                             onclick={loadPostReports}
                         >
-                            <Lock class="h-3 w-3" />
-                            신고잠금
-                        </button>
-                    {:else}
-                        <button
-                            type="button"
-                            class="bg-destructive/10 text-destructive shrink-0 cursor-pointer rounded px-1.5 py-0.5 text-xs font-medium"
-                            onclick={loadPostReports}
-                        >
-                            신고 {postReportCount}건
+                            신고내역
                         </button>
                     {/if}
+                {:else if isSingoSuperAdmin && postReportCount != null && Number(postReportCount) > 0}
+                    <button
+                        type="button"
+                        class="bg-destructive/10 text-destructive shrink-0 cursor-pointer rounded px-1.5 py-0.5 text-xs font-medium"
+                        onclick={loadPostReports}
+                    >
+                        신고 {postReportCount}건
+                    </button>
                 {/if}
             </CardTitle>
-            {#if showPostReports}
+            {#if isSingoSuperAdmin && showPostReports}
                 <div
                     class="bg-destructive/5 border-destructive/20 mt-2 rounded-md border p-3 text-sm"
                 >

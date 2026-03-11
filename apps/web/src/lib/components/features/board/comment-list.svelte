@@ -55,6 +55,7 @@
     import { apiClient } from '$lib/api/index.js';
     import type { LikerInfo, CommentReportInfo } from '$lib/api/types.js';
     import { toast } from 'svelte-sonner';
+    import { page } from '$app/stores';
 
     interface Props {
         comments: FreeComment[];
@@ -666,9 +667,10 @@
 
     // 관리자: 댓글 신고 내역 배치 로드
     let reportsLoaded = $state(false);
+    const isSingoSuperAdmin = $derived($page.data.singoRole === 'super_admin');
     $effect(() => {
         if (reportsLoaded || !boardId || !postId || commentTree.length === 0) return;
-        if (!authStore.user || authStore.user.mb_level < 10) return;
+        if (!isSingoSuperAdmin) return;
 
         reportsLoaded = true;
         apiClient.getCommentReports(boardId, postId).then((reports) => {
@@ -880,37 +882,40 @@
                             </div>
                         </div>
 
-                        <!-- 신고 배지 (관리자만) -->
-                        {#if authStore.user?.mb_level && authStore.user.mb_level >= 10}
-                            {#if comment.report_count === 'lock'}
-                                <span
-                                    class="text-destructive bg-destructive/10 inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs"
-                                >
-                                    <Lock class="h-3 w-3" />
-                                    신고잠금
-                                </span>
-                            {:else if comment.report_count && Number(comment.report_count) > 0}
-                                <span
-                                    class="text-destructive bg-destructive/10 rounded px-1.5 py-0.5 text-xs"
-                                    title={commentReports.has(String(comment.id))
-                                        ? (commentReports.get(String(comment.id)) ?? [])
-                                              .map((r) => `${r.reporter_name}: ${r.reason_label}`)
-                                              .join('\n')
-                                        : `신고 ${comment.report_count}건`}
-                                >
-                                    신고 {comment.report_count}건
-                                </span>
-                            {:else if commentReports.has(String(comment.id))}
-                                {@const reports = commentReports.get(String(comment.id)) ?? []}
-                                <span
-                                    class="text-destructive bg-destructive/10 rounded px-1.5 py-0.5 text-xs"
-                                    title={reports
-                                        .map((r) => `${r.reporter_name}: ${r.reason_label}`)
-                                        .join('\n')}
-                                >
-                                    신고 {reports.length}건
-                                </span>
-                            {/if}
+                        <!-- 신고 배지 -->
+                        {#if comment.report_count === 'lock'}
+                            <span
+                                class="text-destructive bg-destructive/10 inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs"
+                                title={isSingoSuperAdmin && commentReports.has(String(comment.id))
+                                    ? (commentReports.get(String(comment.id)) ?? [])
+                                          .map((r) => `${r.reporter_name}: ${r.reason_label}`)
+                                          .join('\n')
+                                    : undefined}
+                            >
+                                <Lock class="h-3 w-3" />
+                                신고잠금
+                            </span>
+                        {:else if isSingoSuperAdmin && comment.report_count && Number(comment.report_count) > 0}
+                            <span
+                                class="text-destructive bg-destructive/10 rounded px-1.5 py-0.5 text-xs"
+                                title={commentReports.has(String(comment.id))
+                                    ? (commentReports.get(String(comment.id)) ?? [])
+                                          .map((r) => `${r.reporter_name}: ${r.reason_label}`)
+                                          .join('\n')
+                                    : `신고 ${comment.report_count}건`}
+                            >
+                                신고 {comment.report_count}건
+                            </span>
+                        {:else if isSingoSuperAdmin && commentReports.has(String(comment.id))}
+                            {@const reports = commentReports.get(String(comment.id)) ?? []}
+                            <span
+                                class="text-destructive bg-destructive/10 rounded px-1.5 py-0.5 text-xs"
+                                title={reports
+                                    .map((r) => `${r.reporter_name}: ${r.reason_label}`)
+                                    .join('\n')}
+                            >
+                                신고 {reports.length}건
+                            </span>
                         {/if}
 
                         <!-- 존2: 액션 (좋아요/비추천/답글/링크복사/수정/삭제/신고) -->
