@@ -182,7 +182,7 @@ jobs:
             --document-name "AWS-RunShellScript" \
             --parameters "{
               \"commands\": [
-                \"for i in {1..10}; do STATUS=\\$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:30082/); [ \\\"\\$STATUS\\\" = \\\"200\\\" ] && echo 'OK' && exit 0; sleep 2; done; exit 1\"
+                \"for i in {1..10}; do curl -I -s http://127.0.0.1:30082/ | head -n 1 | grep -q ' 200 ' && echo 'OK' && exit 0; sleep 2; done; exit 1\"
               ]
             }" \
             --timeout-seconds 60 \
