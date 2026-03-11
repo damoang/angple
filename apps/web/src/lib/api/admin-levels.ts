@@ -90,7 +90,9 @@ export async function promoteAllEligible(): Promise<{ promoted: number; failed: 
 /**
  * 특정 회원 승급
  */
-export async function promoteMember(mbId: string): Promise<{ promoted: boolean; newLevel?: number }> {
+export async function promoteMember(
+    mbId: string
+): Promise<{ promoted: boolean; newLevel?: number }> {
     const response = await fetch(`${API_BASE}/promote`, {
         method: 'POST',
         credentials: 'include',

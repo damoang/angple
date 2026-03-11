@@ -137,7 +137,15 @@
         if (idx >= 0) {
             rules[idx] = { ...rules[idx], [field]: value };
         } else {
-            rules = [...rules, { fromLevel: 2, toLevel: 3, minLoginDays: field === 'minLoginDays' ? value : 7, minXP: field === 'minXP' ? value : 3000 }];
+            rules = [
+                ...rules,
+                {
+                    fromLevel: 2,
+                    toLevel: 3,
+                    minLoginDays: field === 'minLoginDays' ? value : 7,
+                    minXP: field === 'minXP' ? value : 3000
+                }
+            ];
         }
     }
 
@@ -156,7 +164,9 @@
         <Award class="h-8 w-8" />
         <div>
             <h1 class="text-2xl font-bold">등급 자동 승급 설정</h1>
-            <p class="text-muted-foreground text-sm">로그인 일수와 경험치 조건 기반 자동 등급 승급</p>
+            <p class="text-muted-foreground text-sm">
+                로그인 일수와 경험치 조건 기반 자동 등급 승급
+            </p>
         </div>
     </div>
 
@@ -195,7 +205,11 @@
                                 max="365"
                                 class="w-24 text-right"
                                 value={rule2to3.minLoginDays}
-                                onchange={(e) => updateRule2to3('minLoginDays', parseInt(e.currentTarget.value) || 7)}
+                                onchange={(e) =>
+                                    updateRule2to3(
+                                        'minLoginDays',
+                                        parseInt(e.currentTarget.value) || 7
+                                    )}
                             />
                             <span class="text-muted-foreground w-6 text-sm">일</span>
                         </div>
@@ -217,7 +231,11 @@
                                 step="500"
                                 class="w-28 text-right"
                                 value={rule2to3.minXP}
-                                onchange={(e) => updateRule2to3('minXP', parseInt(e.currentTarget.value) || 3000)}
+                                onchange={(e) =>
+                                    updateRule2to3(
+                                        'minXP',
+                                        parseInt(e.currentTarget.value) || 3000
+                                    )}
                             />
                             <span class="text-muted-foreground w-6 text-sm">XP</span>
                         </div>
@@ -265,7 +283,12 @@
                     </Card.Description>
                 </div>
                 <div class="flex items-center gap-2">
-                    <Button variant="outline" size="sm" onclick={loadCandidates} disabled={candidatesLoading}>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onclick={loadCandidates}
+                        disabled={candidatesLoading}
+                    >
                         <RefreshCw class="mr-2 h-4 w-4 {candidatesLoading ? 'animate-spin' : ''}" />
                         새로고침
                     </Button>
@@ -330,7 +353,9 @@
                                         {formatNumber(candidate.as_exp)}
                                     </td>
                                     <td class="px-3 py-2 text-center">
-                                        <Badge variant="secondary">등급{candidate.eligible_for}</Badge>
+                                        <Badge variant="secondary"
+                                            >등급{candidate.eligible_for}</Badge
+                                        >
                                     </td>
                                     <td class="px-3 py-2 text-center">
                                         <Button

@@ -8,7 +8,11 @@
     let errorDetail = $state('');
 
     onMount(() => {
-        console.log('[Cert] Data:', { mid: data.mid, mTxId: data.mTxId, hasAuthHash: !!data.authHash });
+        console.log('[Cert] Data:', {
+            mid: data.mid,
+            mTxId: data.mTxId,
+            hasAuthHash: !!data.authHash
+        });
 
         // mid 값 검증
         if (!data.mid) {
@@ -67,9 +71,7 @@
         >
             인증 페이지로 직접 이동
         </button>
-        <p class="text-muted-foreground text-xs">
-            자동 이동이 안 되면 위 버튼을 클릭하세요.
-        </p>
+        <p class="text-muted-foreground text-xs">자동 이동이 안 되면 위 버튼을 클릭하세요.</p>
     {/if}
 </div>
 

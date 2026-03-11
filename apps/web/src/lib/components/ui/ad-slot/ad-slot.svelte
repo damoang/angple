@@ -297,7 +297,8 @@
                     emptyRetryTimeout = null;
                 }
             } else if (slot && emptyRetryCount < maxRetryLimit && !emptyRetryTimeout) {
-                const delayMilliseconds = emptyRetryCount === 0 ? 10_000 : GAM_AD_EMPTY_RETRY_DELAY * 1000;
+                const delayMilliseconds =
+                    emptyRetryCount === 0 ? 10_000 : GAM_AD_EMPTY_RETRY_DELAY * 1000;
                 emptyRetryTimeout = setTimeout(() => {
                     emptyRetryTimeout = null;
                     if (slot && !destroyed && hasAd === false) {

@@ -24,15 +24,21 @@ export const load: LayoutServerLoad = async ({ locals, depends }) => {
             : Promise.resolve(null);
 
     // 병렬로 모든 데이터 로드 (allSettled: 개별 실패 허용)
-    const [themeResult, pluginsResult, menusResult, celebrationResult, bannersResult, singoRoleResult] =
-        await Promise.allSettled([
-            getActiveTheme(),
-            getActivePlugins(),
-            loadMenus(),
-            getCachedCelebrations(),
-            getCachedBannersByPositions(['index-top', 'board-head', 'sidebar']),
-            singoRolePromise
-        ]);
+    const [
+        themeResult,
+        pluginsResult,
+        menusResult,
+        celebrationResult,
+        bannersResult,
+        singoRoleResult
+    ] = await Promise.allSettled([
+        getActiveTheme(),
+        getActivePlugins(),
+        loadMenus(),
+        getCachedCelebrations(),
+        getCachedBannersByPositions(['index-top', 'board-head', 'sidebar']),
+        singoRolePromise
+    ]);
 
     const activeTheme = themeResult.status === 'fulfilled' ? themeResult.value : null;
     const activePlugins = pluginsResult.status === 'fulfilled' ? pluginsResult.value : [];

@@ -7,7 +7,10 @@ import { promoteAllEligible } from '$lib/server/auth/auto-promotion.js';
 export const POST: RequestHandler = async ({ locals }) => {
     // 관리자 권한 확인
     if (!locals.user || (locals.user.level ?? 0) < 8) {
-        return json({ error: { code: 'FORBIDDEN', message: '관리자 권한이 필요합니다.' } }, { status: 403 });
+        return json(
+            { error: { code: 'FORBIDDEN', message: '관리자 권한이 필요합니다.' } },
+            { status: 403 }
+        );
     }
 
     try {

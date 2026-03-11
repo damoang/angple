@@ -117,7 +117,7 @@ function isPostDetailPath(pathname: string): boolean {
 /**
  * 스벨트내부 데이터 요청인지 구분
  * @param event
- * @returns 
+ * @returns
  */
 function isSvelteKitDataRequest(event: Parameters<Handle>[0]['event']): boolean {
     return (
@@ -312,10 +312,10 @@ export const handle: Handle = async ({ event, resolve }) => {
 
         const payload = parseJWTPayload(jwt);
         if (!payload?.mb_id || !allowedMembers.includes(payload.mb_id)) {
-            return new Response(
-                '접근 권한이 없습니다. 허용된 테스터만 접근할 수 있습니다.',
-                { status: 403, headers: { 'Content-Type': 'text/plain; charset=utf-8' } }
-            );
+            return new Response('접근 권한이 없습니다. 허용된 테스터만 접근할 수 있습니다.', {
+                status: 403,
+                headers: { 'Content-Type': 'text/plain; charset=utf-8' }
+            });
         }
     }
 

@@ -7,7 +7,10 @@ import { checkAndPromoteMember } from '$lib/server/auth/auto-promotion.js';
 export const POST: RequestHandler = async ({ locals, request }) => {
     // 관리자 권한 확인
     if (!locals.user || (locals.user.level ?? 0) < 8) {
-        return json({ error: { code: 'FORBIDDEN', message: '관리자 권한이 필요합니다.' } }, { status: 403 });
+        return json(
+            { error: { code: 'FORBIDDEN', message: '관리자 권한이 필요합니다.' } },
+            { status: 403 }
+        );
     }
 
     try {
@@ -15,7 +18,10 @@ export const POST: RequestHandler = async ({ locals, request }) => {
         const mbId = body.mb_id;
 
         if (!mbId || typeof mbId !== 'string') {
-            return json({ error: { code: 'INVALID', message: 'mb_id가 필요합니다.' } }, { status: 400 });
+            return json(
+                { error: { code: 'INVALID', message: 'mb_id가 필요합니다.' } },
+                { status: 400 }
+            );
         }
 
         const result = await checkAndPromoteMember(mbId);

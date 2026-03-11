@@ -678,9 +678,13 @@
                         <div
                             class="flex items-center gap-3 rounded-lg border border-green-200 bg-green-50 p-4 dark:border-green-800 dark:bg-green-950"
                         >
-                            <ShieldCheck class="h-6 w-6 shrink-0 text-green-600 dark:text-green-400" />
+                            <ShieldCheck
+                                class="h-6 w-6 shrink-0 text-green-600 dark:text-green-400"
+                            />
                             <div>
-                                <p class="font-medium text-green-800 dark:text-green-200">인증 완료</p>
+                                <p class="font-medium text-green-800 dark:text-green-200">
+                                    인증 완료
+                                </p>
                                 <p class="text-sm text-green-600 dark:text-green-400">
                                     본인확인이 정상적으로 완료되었습니다.
                                 </p>
@@ -690,9 +694,13 @@
                         <div
                             class="flex items-center gap-3 rounded-lg border border-yellow-200 bg-yellow-50 p-4 dark:border-yellow-800 dark:bg-yellow-950"
                         >
-                            <ShieldAlert class="h-6 w-6 shrink-0 text-yellow-600 dark:text-yellow-400" />
+                            <ShieldAlert
+                                class="h-6 w-6 shrink-0 text-yellow-600 dark:text-yellow-400"
+                            />
                             <div>
-                                <p class="font-medium text-yellow-800 dark:text-yellow-200">인증 필요</p>
+                                <p class="font-medium text-yellow-800 dark:text-yellow-200">
+                                    인증 필요
+                                </p>
                                 <p class="text-sm text-yellow-600 dark:text-yellow-400">
                                     일부 게시판 이용 시 본인확인이 필요할 수 있습니다.
                                 </p>

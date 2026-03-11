@@ -798,7 +798,9 @@
                             />
                         {/if}
                         {#if comment.author_ip}
-                            <span class="text-muted-foreground font-normal">· {comment.author_ip}</span>
+                            <span class="text-muted-foreground font-normal"
+                                >· {comment.author_ip}</span
+                            >
                         {/if}
                     </p>
                 {/if}
@@ -1094,7 +1096,9 @@
 
                     {#if isSingoSuperAdmin && expandedReportComments.has(String(comment.id))}
                         {@const reports = commentReports.get(String(comment.id)) ?? []}
-                        <div class="bg-destructive/5 border-destructive/20 mt-2 rounded-md border p-3 text-xs">
+                        <div
+                            class="bg-destructive/5 border-destructive/20 mt-2 rounded-md border p-3 text-xs"
+                        >
                             {#if reports.length === 0}
                                 <p class="text-muted-foreground">신고 상세 내역이 없습니다.</p>
                             {:else}
@@ -1111,7 +1115,9 @@
                                             <tr class="border-border/50 border-b last:border-0">
                                                 <td class="py-1 pr-3">{report.reporter_name}</td>
                                                 <td class="py-1 pr-3">{report.reason_label}</td>
-                                                <td class="text-muted-foreground py-1">{report.created_at}</td>
+                                                <td class="text-muted-foreground py-1"
+                                                    >{report.created_at}</td
+                                                >
                                             </tr>
                                         {/each}
                                     </tbody>
@@ -1400,7 +1406,9 @@
                     <!-- Chat: 신고 상세 내역 (관리자만) -->
                     {#if isSingoSuperAdmin && expandedReportComments.has(String(comment.id))}
                         {@const reports = commentReports.get(String(comment.id)) ?? []}
-                        <div class="bg-destructive/5 border-destructive/20 mt-2 rounded-md border p-3 text-xs">
+                        <div
+                            class="bg-destructive/5 border-destructive/20 mt-2 rounded-md border p-3 text-xs"
+                        >
                             {#if reports.length === 0}
                                 <p class="text-muted-foreground">신고 상세 내역이 없습니다.</p>
                             {:else}
@@ -1417,7 +1425,9 @@
                                             <tr class="border-border/50 border-b last:border-0">
                                                 <td class="py-1 pr-3">{report.reporter_name}</td>
                                                 <td class="py-1 pr-3">{report.reason_label}</td>
-                                                <td class="text-muted-foreground py-1">{report.created_at}</td>
+                                                <td class="text-muted-foreground py-1"
+                                                    >{report.created_at}</td
+                                                >
                                             </tr>
                                         {/each}
                                     </tbody>

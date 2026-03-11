@@ -96,7 +96,12 @@ export async function getPluginById(pluginId: string): Promise<InstalledPlugin |
 }
 
 // --- 2-tier 캐시: 활성 플러그인 (L1 30초, L2 5분) ---
-const activePluginsTieredCache = new TieredCache<InstalledPlugin[]>('plugins:active', 30_000, 300, 10);
+const activePluginsTieredCache = new TieredCache<InstalledPlugin[]>(
+    'plugins:active',
+    30_000,
+    300,
+    10
+);
 
 /**
  * 활성화된 모든 플러그인 가져오기 (TieredCache: L1 30초, L2 5분)

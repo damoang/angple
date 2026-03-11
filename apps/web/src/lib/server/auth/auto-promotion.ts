@@ -85,10 +85,9 @@ export async function savePromotionRules(rules: PromotionRule[]): Promise<void> 
             [jsonStr]
         );
     } else {
-        await pool.query(
-            `UPDATE site_settings SET settings_json = ? WHERE site_id = 'default'`,
-            [jsonStr]
-        );
+        await pool.query(`UPDATE site_settings SET settings_json = ? WHERE site_id = 'default'`, [
+            jsonStr
+        ]);
     }
 }
 
@@ -149,14 +148,15 @@ export async function checkAndPromoteMember(mbId: string): Promise<{
     }
 
     // 승급 실행
-    await pool.query(
-        `UPDATE g5_member SET mb_level = ? WHERE mb_id = ? AND mb_level = ?`,
-        [applicableRule.toLevel, mbId, applicableRule.fromLevel]
-    );
+    await pool.query(`UPDATE g5_member SET mb_level = ? WHERE mb_id = ? AND mb_level = ?`, [
+        applicableRule.toLevel,
+        mbId,
+        applicableRule.fromLevel
+    ]);
 
     console.log(
         `[AutoPromotion] ${mbId} promoted: ${applicableRule.fromLevel} → ${applicableRule.toLevel} ` +
-        `(loginDays: ${loginDays}, xp: ${member.as_exp})`
+            `(loginDays: ${loginDays}, xp: ${member.as_exp})`
     );
 
     return {
@@ -170,14 +170,16 @@ export async function checkAndPromoteMember(mbId: string): Promise<{
  * 승급 대상 회원 목록 조회 (관리자용)
  * 조건 충족했지만 아직 승급 안 된 회원들
  */
-export async function getPromotionCandidates(): Promise<Array<{
-    mb_id: string;
-    mb_nick: string;
-    mb_level: number;
-    as_exp: number;
-    login_days: number;
-    eligible_for: number;
-}>> {
+export async function getPromotionCandidates(): Promise<
+    Array<{
+        mb_id: string;
+        mb_nick: string;
+        mb_level: number;
+        as_exp: number;
+        login_days: number;
+        eligible_for: number;
+    }>
+> {
     const rules = await getPromotionRules();
     const candidates: Array<{
         mb_id: string;
