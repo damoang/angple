@@ -43,12 +43,22 @@
     function syncAuth(d: typeof data) {
         if (d.user && d.accessToken) {
             authActions.initFromSSR(
-                { id: d.user.id, nickname: d.user.nickname ?? '', level: d.user.level },
+                {
+                    id: d.user.id,
+                    nickname: d.user.nickname ?? '',
+                    level: d.user.level,
+                    mb_certify: d.user.mb_certify ?? ''
+                },
                 d.accessToken
             );
         } else if (d.user) {
             authActions.initFromSSR(
-                { id: d.user.id, nickname: d.user.nickname ?? '', level: d.user.level },
+                {
+                    id: d.user.id,
+                    nickname: d.user.nickname ?? '',
+                    level: d.user.level,
+                    mb_certify: d.user.mb_certify ?? ''
+                },
                 ''
             );
         } else {
