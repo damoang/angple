@@ -3,6 +3,11 @@
     import { Button } from '$lib/components/ui/button/index.js';
     import { Checkbox } from '$lib/components/ui/checkbox/index.js';
     import { authStore } from '$lib/stores/auth.svelte.js';
+    import {
+        canUseCertifiedAction,
+        getCertificationBlockedMessage,
+        goToCertification
+    } from '$lib/utils/certification-gate.js';
     import { getAvatarUrl, getMemberIconUrl } from '$lib/utils/member-icon.js';
     import type { BoardPermissions } from '$lib/api/types.js';
     import { apiClient } from '$lib/api/index.js';
@@ -346,6 +351,21 @@
             onchange={handleFileChange}
         />
     </form>
+{:else if authStore.isAuthenticated && !canUseCertifiedAction(authStore.user, boardId)}
+    <div class="bg-muted/50 rounded-md p-4 text-center">
+        <p class="text-muted-foreground">
+            {isReplyMode ? '답글' : '댓글'}을 작성하려면
+            <button
+                type="button"
+                onclick={goToCertification}
+                class="text-primary hover:underline"
+                title={getCertificationBlockedMessage(boardId)}
+            >
+                실명인증
+            </button>
+            이 필요합니다.
+        </p>
+    </div>
 {:else if authStore.isAuthenticated}
     <div class="bg-muted/50 rounded-md p-4 text-center">
         <p class="text-muted-foreground flex items-center justify-center gap-2">

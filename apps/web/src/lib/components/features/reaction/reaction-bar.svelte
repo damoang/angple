@@ -14,6 +14,11 @@
         REACTION_REPLACE
     } from '$lib/config/reaction-config.js';
     import SmilePlus from '@lucide/svelte/icons/smile-plus';
+    import {
+        canUseCertifiedAction,
+        getCertificationBlockedMessage,
+        goToCertification
+    } from '$lib/utils/certification-gate.js';
 
     interface Props {
         boardId: string;
@@ -68,6 +73,10 @@
     async function react(reaction: string, mode: string = 'add'): Promise<void> {
         if (!authStore.isAuthenticated) {
             authStore.redirectToLogin();
+            return;
+        }
+        if (!canUseCertifiedAction(authStore.user, boardId)) {
+            goToCertification();
             return;
         }
         if (isReacting) return;
@@ -186,13 +195,19 @@
                 authStore.redirectToLogin();
                 return;
             }
+            if (!canUseCertifiedAction(authStore.user, boardId)) {
+                goToCertification();
+                return;
+            }
             showPicker = !showPicker;
             if (showPicker) {
                 requestAnimationFrame(() => updatePickerPosition());
             }
         }}
         class="border-border bg-muted/30 text-muted-foreground hover:border-primary/30 hover:bg-primary/5 hover:text-foreground inline-flex h-8 items-center gap-1 rounded-full border px-2 text-sm transition-colors"
-        title="리액션 추가"
+        title={!canUseCertifiedAction(authStore.user, boardId)
+            ? getCertificationBlockedMessage(boardId)
+            : '리액션 추가'}
     >
         <SmilePlus class="h-4 w-4" />
     </button>

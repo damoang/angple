@@ -168,7 +168,8 @@ async function authenticateSSR(event: Parameters<Handle>[0]['event']): Promise<v
                     event.locals.user = {
                         id: member.mb_id,
                         nickname: member.mb_nick || member.mb_name,
-                        level: member.mb_level ?? 0
+                        level: member.mb_level ?? 0,
+                        mb_certify: member.mb_certify || ''
                     };
                     event.locals.sessionId = sessionId;
                     event.locals.csrfToken = session.csrfToken;
@@ -277,7 +278,7 @@ function buildCsp(): string {
         "frame-src 'self' https://challenges.cloudflare.com https://www.youtube.com https://www.youtube-nocookie.com https://platform.twitter.com https://player.vimeo.com https://clips.twitch.tv https://player.twitch.tv https://www.tiktok.com https://www.instagram.com https://www.redditmedia.com https://embed.bsky.app https://googleads.g.doubleclick.net https://securepubads.g.doubleclick.net https://tpc.googlesyndication.com https://www.google.com https://*.googlesyndication.com https://*.doubleclick.net https://*.adtrafficquality.google",
         "frame-ancestors 'self'",
         "base-uri 'self'",
-        "form-action 'self' https://appleid.apple.com"
+        "form-action 'self' https://appleid.apple.com https://sa.inicis.com"
     ];
 
     return directives.join('; ');
