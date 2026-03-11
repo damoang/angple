@@ -176,6 +176,7 @@
 
     // 신고자 정보 (관리자만)
     let commentReports = $state(new SvelteMap<string, CommentReportInfo[]>());
+    let expandedReportComments = $state(new SvelteSet<string>());
 
     // 댓글 주소 복사
     async function copyCommentLink(commentId: number | string): Promise<void> {
@@ -685,6 +686,15 @@
         });
     });
 
+    function toggleCommentReportDetails(commentId: string): void {
+        if (!isSingoSuperAdmin) return;
+        if (expandedReportComments.has(commentId)) {
+            expandedReportComments.delete(commentId);
+            return;
+        }
+        expandedReportComments.add(commentId);
+    }
+
     // 좋아요 > 0인 댓글의 아바타 배치 로드 (최대 10개)
     let likerAvatarsLoaded = $state(false);
     $effect(() => {
@@ -884,38 +894,40 @@
 
                         <!-- 신고 배지 -->
                         {#if comment.report_count === 'lock'}
-                            <span
-                                class="text-destructive bg-destructive/10 inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs"
-                                title={isSingoSuperAdmin && commentReports.has(String(comment.id))
-                                    ? (commentReports.get(String(comment.id)) ?? [])
-                                          .map((r) => `${r.reporter_name}: ${r.reason_label}`)
-                                          .join('\n')
-                                    : undefined}
-                            >
-                                <Lock class="h-3 w-3" />
-                                신고잠금
-                            </span>
+                            {#if isSingoSuperAdmin}
+                                <button
+                                    type="button"
+                                    class="text-destructive bg-destructive/10 inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs"
+                                    onclick={() => toggleCommentReportDetails(String(comment.id))}
+                                >
+                                    <Lock class="h-3 w-3" />
+                                    신고잠금
+                                </button>
+                            {:else}
+                                <span
+                                    class="text-destructive bg-destructive/10 inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs"
+                                >
+                                    <Lock class="h-3 w-3" />
+                                    신고잠금
+                                </span>
+                            {/if}
                         {:else if isSingoSuperAdmin && comment.report_count && Number(comment.report_count) > 0}
-                            <span
+                            <button
+                                type="button"
                                 class="text-destructive bg-destructive/10 rounded px-1.5 py-0.5 text-xs"
-                                title={commentReports.has(String(comment.id))
-                                    ? (commentReports.get(String(comment.id)) ?? [])
-                                          .map((r) => `${r.reporter_name}: ${r.reason_label}`)
-                                          .join('\n')
-                                    : `신고 ${comment.report_count}건`}
+                                onclick={() => toggleCommentReportDetails(String(comment.id))}
                             >
                                 신고 {comment.report_count}건
-                            </span>
+                            </button>
                         {:else if isSingoSuperAdmin && commentReports.has(String(comment.id))}
                             {@const reports = commentReports.get(String(comment.id)) ?? []}
-                            <span
+                            <button
+                                type="button"
                                 class="text-destructive bg-destructive/10 rounded px-1.5 py-0.5 text-xs"
-                                title={reports
-                                    .map((r) => `${r.reporter_name}: ${r.reason_label}`)
-                                    .join('\n')}
+                                onclick={() => toggleCommentReportDetails(String(comment.id))}
                             >
                                 신고 {reports.length}건
-                            </span>
+                            </button>
                         {/if}
 
                         <!-- 존2: 액션 (좋아요/비추천/답글/링크복사/수정/삭제/신고) -->
@@ -1079,6 +1091,34 @@
                             </div>
                         {/if}
                     </div>
+
+                    {#if isSingoSuperAdmin && expandedReportComments.has(String(comment.id))}
+                        {@const reports = commentReports.get(String(comment.id)) ?? []}
+                        <div class="bg-destructive/5 border-destructive/20 mt-2 rounded-md border p-3 text-xs">
+                            {#if reports.length === 0}
+                                <p class="text-muted-foreground">신고 상세 내역이 없습니다.</p>
+                            {:else}
+                                <table class="w-full text-left">
+                                    <thead>
+                                        <tr class="text-muted-foreground border-b">
+                                            <th class="pb-1 pr-3">신고자</th>
+                                            <th class="pb-1 pr-3">사유</th>
+                                            <th class="pb-1">시간</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {#each reports as report}
+                                            <tr class="border-border/50 border-b last:border-0">
+                                                <td class="py-1 pr-3">{report.reporter_name}</td>
+                                                <td class="py-1 pr-3">{report.reason_label}</td>
+                                                <td class="text-muted-foreground py-1">{report.created_at}</td>
+                                            </tr>
+                                        {/each}
+                                    </tbody>
+                                </table>
+                            {/if}
+                        </div>
+                    {/if}
 
                     <!-- 댓글 본문 또는 수정 폼 -->
                     {#if comment.deleted_at}
