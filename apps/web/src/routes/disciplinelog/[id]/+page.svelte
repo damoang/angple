@@ -97,14 +97,14 @@
         return log.penalty_period !== 0;
     }
 
-    // 소명 기간 내 여부: 통보 후 15일 이내
+    // 소명 기간 내 여부: 제재 시작 후 1일 경과 ~ 15일 이내
     function isWithinAppealPeriod(log: DisciplineLogDetail): boolean {
         const penaltyDate = new Date(log.penalty_date_from);
         const now = new Date();
         const diffDays = Math.floor(
             (now.getTime() - penaltyDate.getTime()) / (1000 * 60 * 60 * 24)
         );
-        return diffDays <= 15;
+        return diffDays >= 1 && diffDays <= 15;
     }
 
     // 본인 확인
@@ -256,7 +256,7 @@
                 <Card.Content>
                     <p class="text-muted-foreground mb-4 text-sm">
                         이용제한에 대해 이의가 있으시면 소명 게시판에서 소명하실 수 있습니다. 소명은
-                        제재 시작일로부터 15일 이내에만 가능합니다.
+                        제재 시작 후 1일이 지난 시점부터 15일 이내에만 가능합니다.
                     </p>
                     {#if isOwnPenalty(log)}
                         {#if isWithinAppealPeriod(log)}
@@ -265,7 +265,7 @@
                             </Button>
                         {:else}
                             <p class="text-muted-foreground text-sm">
-                                소명 가능 기간(15일)이 지났습니다.
+                                소명 가능 기간이 아니거나 15일이 지났습니다.
                             </p>
                         {/if}
                     {/if}
