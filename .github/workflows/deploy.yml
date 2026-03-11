@@ -157,17 +157,37 @@ jobs:
           echo "Timeout"
           exit 1
 
-      - name: Smoke test
+      - name: Smoke test (via SSM)
         run: |
-          for i in {1..30}; do
-            STATUS=$(curl -s -o /dev/null -w "%{http_code}" -A "GitHub-Actions-Healthcheck" https://canary.damoang.net/ || echo "000")
-            if [ "$STATUS" = "200" ]; then
+          COMMAND_ID=$(aws ssm send-command \
+            --instance-ids "i-038a1d1f00798d94b" \
+            --document-name "AWS-RunShellScript" \
+            --parameters "{
+              \"commands\": [
+                \"for i in {1..10}; do STATUS=\\$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:30082/); [ \\\"\\$STATUS\\\" = \\\"200\\\" ] && echo 'OK' && exit 0; sleep 2; done; exit 1\"
+              ]
+            }" \
+            --timeout-seconds 60 \
+            --query "Command.CommandId" \
+            --output text)
+
+          for i in $(seq 1 12); do
+            STATUS=$(aws ssm get-command-invocation \
+              --command-id "$COMMAND_ID" \
+              --instance-id "i-038a1d1f00798d94b" \
+              --query "Status" \
+              --output text 2>/dev/null || echo "Pending")
+
+            if [ "$STATUS" = "Success" ]; then
               echo "✅ Canary healthy"
               exit 0
+            elif [ "$STATUS" = "Failed" ]; then
+              echo "❌ Canary smoke test failed"
+              exit 1
             fi
-            sleep 2
+            sleep 5
           done
-          echo "❌ Canary failed (Status: $STATUS)"
+          echo "Timeout"
           exit 1
 
       - name: Notify Telegram (Approval)
