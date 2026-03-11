@@ -112,16 +112,15 @@ jobs:
       - name: Deploy canary via SSM
         env:
           IMAGE_TAG: ${{ needs.build.outputs.sha_tag }}
-          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           COMMAND_ID=$(aws ssm send-command \
             --instance-ids "i-038a1d1f00798d94b" \
             --document-name "AWS-RunShellScript" \
-            --parameters '{
-              "commands": [
-                "export GHCR_TOKEN='"'$GHCR_TOKEN'"' && /home/angple/k8s/prod/deploy.sh web '"$IMAGE_TAG"' --canary-only"
+            --parameters "{
+              \"commands\": [
+                \"export GHCR_TOKEN='${{ secrets.GITHUB_TOKEN }}' && /home/angple/k8s/prod/deploy.sh web $IMAGE_TAG --canary-only\"
               ]
-            }' \
+            }" \
             --timeout-seconds 300 \
             --query "Command.CommandId" \
             --output text)
@@ -205,16 +204,15 @@ jobs:
       - name: Deploy production via SSM
         env:
           IMAGE_TAG: ${{ needs.build.outputs.sha_tag }}
-          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           COMMAND_ID=$(aws ssm send-command \
             --instance-ids "i-038a1d1f00798d94b" \
             --document-name "AWS-RunShellScript" \
-            --parameters '{
-              "commands": [
-                "export GHCR_TOKEN='"'$GHCR_TOKEN'"' && /home/angple/k8s/prod/deploy.sh web '"$IMAGE_TAG"' --skip-canary"
+            --parameters "{
+              \"commands\": [
+                \"export GHCR_TOKEN='${{ secrets.GITHUB_TOKEN }}' && /home/angple/k8s/prod/deploy.sh web $IMAGE_TAG --skip-canary\"
               ]
-            }' \
+            }" \
             --timeout-seconds 300 \
             --query "Command.CommandId" \
             --output text)
