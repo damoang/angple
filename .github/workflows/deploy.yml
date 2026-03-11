@@ -125,7 +125,14 @@ jobs:
             }" \
             --timeout-seconds 600 \
             --query "Command.CommandId" \
-            --output text)
+            --output text 2>&1)
+          
+          if [ -z "$COMMAND_ID" ] || [[ "$COMMAND_ID" == *"error"* ]]; then
+            echo "❌ SSM send-command failed: $COMMAND_ID"
+            exit 1
+          fi
+          
+          echo "SSM Command ID: $COMMAND_ID"
 
           for i in $(seq 1 30); do
             STATUS=$(aws ssm get-command-invocation \
@@ -218,7 +225,14 @@ jobs:
             }" \
             --timeout-seconds 600 \
             --query "Command.CommandId" \
-            --output text)
+            --output text 2>&1)
+          
+          if [ -z "$COMMAND_ID" ] || [[ "$COMMAND_ID" == *"error"* ]]; then
+            echo "❌ SSM send-command failed: $COMMAND_ID"
+            exit 1
+          fi
+          
+          echo "SSM Command ID: $COMMAND_ID"
 
           for i in $(seq 1 30); do
             STATUS=$(aws ssm get-command-invocation \
