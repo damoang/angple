@@ -1,323 +1,323 @@
 name: Deploy
 
 on:
-  push:
-    branches: [main]
-  workflow_dispatch:
+    push:
+        branches: [main]
+    workflow_dispatch:
 
 env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: ghcr.io/damoang/angple-web
+    REGISTRY: ghcr.io
+    IMAGE_NAME: ghcr.io/damoang/angple-web
 
 concurrency:
-  group: deploy-main-web
-  cancel-in-progress: true
+    group: deploy-main-web
+    cancel-in-progress: true
 
 jobs:
-  build:
-    runs-on: ubuntu-24.04-arm
-    outputs:
-      sha_tag: ${{ steps.tags.outputs.sha_tag }}
-      image_repo: ${{ env.IMAGE_NAME }}
-      image_digest: ${{ steps.build_image.outputs.digest }}
-    permissions:
-      contents: read
-      packages: write
-    steps:
-      - uses: actions/checkout@v6
+    build:
+        runs-on: ubuntu-24.04-arm
+        outputs:
+            sha_tag: ${{ steps.tags.outputs.sha_tag }}
+            image_repo: ${{ env.IMAGE_NAME }}
+            image_digest: ${{ steps.build_image.outputs.digest }}
+        permissions:
+            contents: read
+            packages: write
+        steps:
+            - uses: actions/checkout@v6
 
-      - name: Checkout premium
-        uses: actions/checkout@v6
-        with:
-          repository: damoang/angple-premium
-          token: ${{ secrets.PREMIUM_REPO_TOKEN }}
-          path: _premium
+            - name: Checkout premium
+              uses: actions/checkout@v6
+              with:
+                  repository: damoang/angple-premium
+                  token: ${{ secrets.PREMIUM_REPO_TOKEN }}
+                  path: _premium
 
-      - name: Install premium assets
-        run: |
-          chmod +x _premium/deploy/install.sh
-          _premium/deploy/install.sh .
+            - name: Install premium assets
+              run: |
+                  chmod +x _premium/deploy/install.sh
+                  _premium/deploy/install.sh .
 
-      - name: Setup directories
-        run: mkdir -p custom-themes custom-widgets extensions plugins widgets
+            - name: Setup directories
+              run: mkdir -p custom-themes custom-widgets extensions plugins widgets
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+            - name: Setup pnpm
+              uses: pnpm/action-setup@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: '22'
-          cache: 'pnpm'
-          cache-dependency-path: pnpm-lock.yaml
+            - name: Setup Node.js
+              uses: actions/setup-node@v6
+              with:
+                  node-version: '22'
+                  cache: 'pnpm'
+                  cache-dependency-path: pnpm-lock.yaml
 
-      - name: Install dependencies
-        run: |
-          pnpm fetch --frozen-lockfile
-          pnpm install --frozen-lockfile --prefer-offline
+            - name: Install dependencies
+              run: |
+                  pnpm fetch --frozen-lockfile
+                  pnpm install --frozen-lockfile --prefer-offline
 
-      - name: Build
-        env:
-          VITE_USE_MOCK: 'false'
-          VITE_GAM_NETWORK_CODE: '23338387889'
-          VITE_GAM_SITE_NAME: 'damoang'
-        run: |
-          pnpm --filter "./packages/*" build
-          echo "VITE_GAM_NETWORK_CODE=23338387889" > apps/web/.env
-          echo "VITE_GAM_SITE_NAME=damoang" >> apps/web/.env
-          pnpm --filter web build
+            - name: Build
+              env:
+                  VITE_USE_MOCK: 'false'
+                  VITE_GAM_NETWORK_CODE: '23338387889'
+                  VITE_GAM_SITE_NAME: 'damoang'
+              run: |
+                  pnpm --filter "./packages/*" build
+                  echo "VITE_GAM_NETWORK_CODE=23338387889" > apps/web/.env
+                  echo "VITE_GAM_SITE_NAME=damoang" >> apps/web/.env
+                  pnpm --filter web build
 
-      - name: Prepare deploy package
-        run: |
-          pnpm --filter web deploy --prod --legacy apps/web/deploy
-          cp -r apps/web/build apps/web/deploy/
-          rm -rf apps/web/deploy/{plugins,widgets,themes,custom-themes,custom-widgets,extensions}
-          for dir in plugins widgets themes custom-themes custom-widgets extensions; do
-            [ -d "$dir" ] && cp -r "$dir" apps/web/deploy/
-          done
+            - name: Prepare deploy package
+              run: |
+                  pnpm --filter web deploy --prod --legacy apps/web/deploy
+                  cp -r apps/web/build apps/web/deploy/
+                  rm -rf apps/web/deploy/{plugins,widgets,themes,custom-themes,custom-widgets,extensions}
+                  for dir in plugins widgets themes custom-themes custom-widgets extensions; do
+                    [ -d "$dir" ] && cp -r "$dir" apps/web/deploy/
+                  done
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+            - name: Set up Docker Buildx
+              uses: docker/setup-buildx-action@v3
 
-      - name: Log in to GHCR
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+            - name: Log in to GHCR
+              uses: docker/login-action@v3
+              with:
+                  registry: ghcr.io
+                  username: ${{ github.actor }}
+                  password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Set image tags
-        id: tags
-        run: echo "sha_tag=sha-${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+            - name: Set image tags
+              id: tags
+              run: echo "sha_tag=sha-${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
 
-      - name: Build and push
-        id: build_image
-        uses: docker/build-push-action@v6
-        with:
-          context: apps/web/deploy
-          file: apps/web/Dockerfile.prod
-          push: true
-          platforms: linux/arm64
-          tags: |
-            ${{ env.IMAGE_NAME }}:${{ steps.tags.outputs.sha_tag }}
-            ${{ env.IMAGE_NAME }}:latest
-          cache-from: type=gha,scope=web
-          cache-to: type=gha,mode=max,scope=web
+            - name: Build and push
+              id: build_image
+              uses: docker/build-push-action@v6
+              with:
+                  context: apps/web/deploy
+                  file: apps/web/Dockerfile.prod
+                  push: true
+                  platforms: linux/arm64
+                  tags: |
+                      ${{ env.IMAGE_NAME }}:${{ steps.tags.outputs.sha_tag }}
+                      ${{ env.IMAGE_NAME }}:latest
+                  cache-from: type=gha,scope=web
+                  cache-to: type=gha,mode=max,scope=web
 
-  deploy-canary:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: canary
-      url: https://canary.damoang.net
-    permissions:
-      id-token: write
-      contents: read
-      packages: read
-    steps:
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: arn:aws:iam::891376997084:role/GitHubActionsDeployRole
-          aws-region: ap-northeast-2
+    deploy-canary:
+        needs: build
+        runs-on: ubuntu-latest
+        environment:
+            name: canary
+            url: https://canary.damoang.net
+        permissions:
+            id-token: write
+            contents: read
+            packages: read
+        steps:
+            - name: Configure AWS credentials
+              uses: aws-actions/configure-aws-credentials@v4
+              with:
+                  role-to-assume: arn:aws:iam::891376997084:role/GitHubActionsDeployRole
+                  aws-region: ap-northeast-2
 
-      - name: Deploy canary via SSM
-        env:
-          IMAGE_TAG: ${{ needs.build.outputs.sha_tag }}
-          APPROVAL_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-        run: |
-          COMMAND_ID=$(aws ssm send-command \
-            --instance-ids "i-038a1d1f00798d94b" \
-            --document-name "AWS-RunShellScript" \
-            --parameters "{
-              \"commands\": [
-                \"export GHCR_TOKEN='${{ secrets.GITHUB_TOKEN }}' TELEGRAM_BOT_TOKEN='${{ secrets.TELEGRAM_BOT_TOKEN }}' TELEGRAM_DEPLOY_CHAT_ID='${{ secrets.TELEGRAM_DEPLOY_CHAT_ID }}' DISCORD_WEBHOOK_URL='https://discord.com/api/webhooks/1435940653375815730/${{ secrets.DISCORD_WEBHOOK_TOKEN_WEB }}' APPROVAL_URL='${APPROVAL_URL}' && /home/angple/k8s/prod/deploy.sh web $IMAGE_TAG --canary-only\"
-              ]
-            }" \
-            --timeout-seconds 600 \
-            --query "Command.CommandId" \
-            --output text 2>&1)
+            - name: Deploy canary via SSM
+              env:
+                  IMAGE_TAG: ${{ needs.build.outputs.sha_tag }}
+                  APPROVAL_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+              run: |
+                  COMMAND_ID=$(aws ssm send-command \
+                    --instance-ids "i-038a1d1f00798d94b" \
+                    --document-name "AWS-RunShellScript" \
+                    --parameters "{
+                      \"commands\": [
+                        \"export GHCR_TOKEN='${{ secrets.GITHUB_TOKEN }}' TELEGRAM_BOT_TOKEN='${{ secrets.TELEGRAM_BOT_TOKEN }}' TELEGRAM_DEPLOY_CHAT_ID='${{ secrets.TELEGRAM_DEPLOY_CHAT_ID }}' DISCORD_WEBHOOK_URL='https://discord.com/api/webhooks/1435940653375815730/${{ secrets.DISCORD_WEBHOOK_TOKEN_WEB }}' APPROVAL_URL='${APPROVAL_URL}' && /home/angple/k8s/prod/deploy.sh web $IMAGE_TAG --canary-only\"
+                      ]
+                    }" \
+                    --timeout-seconds 600 \
+                    --query "Command.CommandId" \
+                    --output text 2>&1)
 
-          if [ -z "$COMMAND_ID" ] || [[ "$COMMAND_ID" == *"error"* ]]; then
-            echo "❌ SSM send-command failed: $COMMAND_ID"
-            exit 1
-          fi
+                  if [ -z "$COMMAND_ID" ] || [[ "$COMMAND_ID" == *"error"* ]]; then
+                    echo "❌ SSM send-command failed: $COMMAND_ID"
+                    exit 1
+                  fi
 
-          echo "SSM Command ID: $COMMAND_ID"
+                  echo "SSM Command ID: $COMMAND_ID"
 
-          for i in $(seq 1 60); do
-            STATUS=$(aws ssm get-command-invocation \
-              --command-id "$COMMAND_ID" \
-              --instance-id "i-038a1d1f00798d94b" \
-              --query "Status" \
-              --output text 2>/dev/null || echo "Pending")
+                  for i in $(seq 1 60); do
+                    STATUS=$(aws ssm get-command-invocation \
+                      --command-id "$COMMAND_ID" \
+                      --instance-id "i-038a1d1f00798d94b" \
+                      --query "Status" \
+                      --output text 2>/dev/null || echo "Pending")
 
-            if [ "$STATUS" = "Success" ]; then
-              echo "✅ Canary deployed"
-              exit 0
-            elif [ "$STATUS" = "Failed" ]; then
-              echo "----- SSM STDOUT -----"
-              aws ssm get-command-invocation \
-                --command-id "$COMMAND_ID" \
-                --instance-id "i-038a1d1f00798d94b" \
-                --query "StandardOutputContent" \
-                --output text || true
-              echo "----- SSM STDERR -----"
-              aws ssm get-command-invocation \
-                --command-id "$COMMAND_ID" \
-                --instance-id "i-038a1d1f00798d94b" \
-                --query "StandardErrorContent" \
-                --output text || true
-              exit 1
-            fi
-            sleep 5
-          done
-          echo "Timeout"
-          exit 1
+                    if [ "$STATUS" = "Success" ]; then
+                      echo "✅ Canary deployed"
+                      exit 0
+                    elif [ "$STATUS" = "Failed" ]; then
+                      echo "----- SSM STDOUT -----"
+                      aws ssm get-command-invocation \
+                        --command-id "$COMMAND_ID" \
+                        --instance-id "i-038a1d1f00798d94b" \
+                        --query "StandardOutputContent" \
+                        --output text || true
+                      echo "----- SSM STDERR -----"
+                      aws ssm get-command-invocation \
+                        --command-id "$COMMAND_ID" \
+                        --instance-id "i-038a1d1f00798d94b" \
+                        --query "StandardErrorContent" \
+                        --output text || true
+                      exit 1
+                    fi
+                    sleep 5
+                  done
+                  echo "Timeout"
+                  exit 1
 
-      - name: Smoke test (via SSM)
-        run: |
-          COMMAND_ID=$(aws ssm send-command \
-            --instance-ids "i-038a1d1f00798d94b" \
-            --document-name "AWS-RunShellScript" \
-            --parameters "{
-              \"commands\": [
-                \"for i in {1..10}; do curl -I -s http://127.0.0.1:30082/ | head -n 1 | grep -q ' 200 ' && echo 'OK' && exit 0; sleep 2; done; exit 1\"
-              ]
-            }" \
-            --timeout-seconds 60 \
-            --query "Command.CommandId" \
-            --output text)
+            - name: Smoke test (via SSM)
+              run: |
+                  COMMAND_ID=$(aws ssm send-command \
+                    --instance-ids "i-038a1d1f00798d94b" \
+                    --document-name "AWS-RunShellScript" \
+                    --parameters "{
+                      \"commands\": [
+                        \"for i in {1..10}; do curl -I -s http://127.0.0.1:30082/ | head -n 1 | grep -q ' 200 ' && echo 'OK' && exit 0; sleep 2; done; exit 1\"
+                      ]
+                    }" \
+                    --timeout-seconds 60 \
+                    --query "Command.CommandId" \
+                    --output text)
 
-          for i in $(seq 1 12); do
-            STATUS=$(aws ssm get-command-invocation \
-              --command-id "$COMMAND_ID" \
-              --instance-id "i-038a1d1f00798d94b" \
-              --query "Status" \
-              --output text 2>/dev/null || echo "Pending")
+                  for i in $(seq 1 12); do
+                    STATUS=$(aws ssm get-command-invocation \
+                      --command-id "$COMMAND_ID" \
+                      --instance-id "i-038a1d1f00798d94b" \
+                      --query "Status" \
+                      --output text 2>/dev/null || echo "Pending")
 
-            if [ "$STATUS" = "Success" ]; then
-              echo "✅ Canary healthy"
-              exit 0
-            elif [ "$STATUS" = "Failed" ]; then
-              echo "❌ Canary smoke test failed"
-              aws ssm get-command-invocation \
-                --command-id "$COMMAND_ID" \
-                --instance-id "i-038a1d1f00798d94b" \
-                --query "StandardOutputContent" \
-                --output text || true
-              aws ssm get-command-invocation \
-                --command-id "$COMMAND_ID" \
-                --instance-id "i-038a1d1f00798d94b" \
-                --query "StandardErrorContent" \
-                --output text || true
-              exit 1
-            fi
-            sleep 5
-          done
-          echo "Timeout"
-          exit 1
+                    if [ "$STATUS" = "Success" ]; then
+                      echo "✅ Canary healthy"
+                      exit 0
+                    elif [ "$STATUS" = "Failed" ]; then
+                      echo "❌ Canary smoke test failed"
+                      aws ssm get-command-invocation \
+                        --command-id "$COMMAND_ID" \
+                        --instance-id "i-038a1d1f00798d94b" \
+                        --query "StandardOutputContent" \
+                        --output text || true
+                      aws ssm get-command-invocation \
+                        --command-id "$COMMAND_ID" \
+                        --instance-id "i-038a1d1f00798d94b" \
+                        --query "StandardErrorContent" \
+                        --output text || true
+                      exit 1
+                    fi
+                    sleep 5
+                  done
+                  echo "Timeout"
+                  exit 1
 
-      - name: Notify Discord (Canary)
-        if: always()
-        run: |
-          STATUS="${{ job.status }}"
-          COLOR=$([[ "$STATUS" == "success" ]] && echo "3066993" || echo "15158332")
-          curl -X POST "https://discord.com/api/webhooks/1435940653375815730/${{ secrets.DISCORD_WEBHOOK_TOKEN_WEB }}" -H "Content-Type: application/json" -d "{
-            \"embeds\": [{
-              \"title\": \"🚀 Canary Deploy $STATUS\",
-              \"color\": $COLOR,
-              \"fields\": [
-                {\"name\": \"Tag\", \"value\": \"\`${{ needs.build.outputs.sha_tag }}\`\"},
-                {\"name\": \"URL\", \"value\": \"https://canary.damoang.net\"}
-              ]
-            }]
-          }"
+            - name: Notify Discord (Canary)
+              if: always()
+              run: |
+                  STATUS="${{ job.status }}"
+                  COLOR=$([[ "$STATUS" == "success" ]] && echo "3066993" || echo "15158332")
+                  curl -X POST "https://discord.com/api/webhooks/1435940653375815730/${{ secrets.DISCORD_WEBHOOK_TOKEN_WEB }}" -H "Content-Type: application/json" -d "{
+                    \"embeds\": [{
+                      \"title\": \"🚀 Canary Deploy $STATUS\",
+                      \"color\": $COLOR,
+                      \"fields\": [
+                        {\"name\": \"Tag\", \"value\": \"\`${{ needs.build.outputs.sha_tag }}\`\"},
+                        {\"name\": \"URL\", \"value\": \"https://canary.damoang.net\"}
+                      ]
+                    }]
+                  }"
 
-      - name: Notify Telegram (Approval)
-        if: success()
-        run: |
-          RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-          curl -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
-            -d "chat_id=${{ secrets.TELEGRAM_DEPLOY_CHAT_ID }}" \
-            -d "text=✅ angple web canary ready%0A%0ARepo: ${{ github.repository }}%0ACommit: ${{ github.sha }}%0ATag: \`${{ needs.build.outputs.sha_tag }}\`%0ADigest: \`${{ needs.build.outputs.image_digest }}\`%0ACanary: https://canary.damoang.net%0AGate Approval: ${RUN_URL}%0A%0AEnvironment approval 후 production 배포가 진행됩니다." \
-            -d "reply_markup={\"inline_keyboard\":[[{\"text\":\"Canary 열기\",\"url\":\"https://canary.damoang.net\"},{\"text\":\"Gate Approval\",\"url\":\"${RUN_URL}\"}]]}"
+            - name: Notify Telegram (Approval)
+              if: success()
+              run: |
+                  RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+                  curl -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+                    -d "chat_id=${{ secrets.TELEGRAM_DEPLOY_CHAT_ID }}" \
+                    -d "text=✅ angple web canary ready%0A%0ARepo: ${{ github.repository }}%0ACommit: ${{ github.sha }}%0ATag: \`${{ needs.build.outputs.sha_tag }}\`%0ADigest: \`${{ needs.build.outputs.image_digest }}\`%0ACanary: https://canary.damoang.net%0AGate Approval: ${RUN_URL}%0A%0AEnvironment approval 후 production 배포가 진행됩니다." \
+                    -d "reply_markup={\"inline_keyboard\":[[{\"text\":\"Canary 열기\",\"url\":\"https://canary.damoang.net\"},{\"text\":\"Gate Approval\",\"url\":\"${RUN_URL}\"}]]}"
 
-  deploy-production:
-    needs: [build, deploy-canary]
-    runs-on: ubuntu-latest
-    environment:
-      name: production
-      url: https://damoang.net
-    permissions:
-      id-token: write
-      contents: read
-      packages: read
-    steps:
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: arn:aws:iam::891376997084:role/GitHubActionsDeployRole
-          aws-region: ap-northeast-2
+    deploy-production:
+        needs: [build, deploy-canary]
+        runs-on: ubuntu-latest
+        environment:
+            name: production
+            url: https://damoang.net
+        permissions:
+            id-token: write
+            contents: read
+            packages: read
+        steps:
+            - name: Configure AWS credentials
+              uses: aws-actions/configure-aws-credentials@v4
+              with:
+                  role-to-assume: arn:aws:iam::891376997084:role/GitHubActionsDeployRole
+                  aws-region: ap-northeast-2
 
-      - name: Deploy production via SSM
-        env:
-          IMAGE_TAG: ${{ needs.build.outputs.sha_tag }}
-        run: |
-          COMMAND_ID=$(aws ssm send-command \
-            --instance-ids "i-038a1d1f00798d94b" \
-            --document-name "AWS-RunShellScript" \
-            --parameters "{
-              \"commands\": [
-                \"export GHCR_TOKEN='${{ secrets.GITHUB_TOKEN }}' TELEGRAM_BOT_TOKEN='${{ secrets.TELEGRAM_BOT_TOKEN }}' TELEGRAM_DEPLOY_CHAT_ID='${{ secrets.TELEGRAM_DEPLOY_CHAT_ID }}' DISCORD_WEBHOOK_URL='https://discord.com/api/webhooks/1435940653375815730/${{ secrets.DISCORD_WEBHOOK_TOKEN_WEB }}' && /home/angple/k8s/prod/deploy.sh web $IMAGE_TAG --skip-canary\"
-              ]
-            }" \
-            --timeout-seconds 600 \
-            --query "Command.CommandId" \
-            --output text 2>&1)
+            - name: Deploy production via SSM
+              env:
+                  IMAGE_TAG: ${{ needs.build.outputs.sha_tag }}
+              run: |
+                  COMMAND_ID=$(aws ssm send-command \
+                    --instance-ids "i-038a1d1f00798d94b" \
+                    --document-name "AWS-RunShellScript" \
+                    --parameters "{
+                      \"commands\": [
+                        \"export GHCR_TOKEN='${{ secrets.GITHUB_TOKEN }}' TELEGRAM_BOT_TOKEN='${{ secrets.TELEGRAM_BOT_TOKEN }}' TELEGRAM_DEPLOY_CHAT_ID='${{ secrets.TELEGRAM_DEPLOY_CHAT_ID }}' DISCORD_WEBHOOK_URL='https://discord.com/api/webhooks/1435940653375815730/${{ secrets.DISCORD_WEBHOOK_TOKEN_WEB }}' && /home/angple/k8s/prod/deploy.sh web $IMAGE_TAG --skip-canary\"
+                      ]
+                    }" \
+                    --timeout-seconds 600 \
+                    --query "Command.CommandId" \
+                    --output text 2>&1)
 
-          if [ -z "$COMMAND_ID" ] || [[ "$COMMAND_ID" == *"error"* ]]; then
-            echo "❌ SSM send-command failed: $COMMAND_ID"
-            exit 1
-          fi
+                  if [ -z "$COMMAND_ID" ] || [[ "$COMMAND_ID" == *"error"* ]]; then
+                    echo "❌ SSM send-command failed: $COMMAND_ID"
+                    exit 1
+                  fi
 
-          echo "SSM Command ID: $COMMAND_ID"
+                  echo "SSM Command ID: $COMMAND_ID"
 
-          for i in $(seq 1 30); do
-            STATUS=$(aws ssm get-command-invocation \
-              --command-id "$COMMAND_ID" \
-              --instance-id "i-038a1d1f00798d94b" \
-              --query "Status" \
-              --output text 2>/dev/null || echo "Pending")
+                  for i in $(seq 1 30); do
+                    STATUS=$(aws ssm get-command-invocation \
+                      --command-id "$COMMAND_ID" \
+                      --instance-id "i-038a1d1f00798d94b" \
+                      --query "Status" \
+                      --output text 2>/dev/null || echo "Pending")
 
-            if [ "$STATUS" = "Success" ]; then
-              echo "✅ Production deployed"
-              exit 0
-            elif [ "$STATUS" = "Failed" ]; then
-              echo "----- SSM STDOUT -----"
-              aws ssm get-command-invocation \
-                --command-id "$COMMAND_ID" \
-                --instance-id "i-038a1d1f00798d94b" \
-                --query "StandardOutputContent" \
-                --output text || true
-              echo "----- SSM STDERR -----"
-              aws ssm get-command-invocation \
-                --command-id "$COMMAND_ID" \
-                --instance-id "i-038a1d1f00798d94b" \
-                --query "StandardErrorContent" \
-                --output text || true
-              exit 1
-            fi
-            sleep 5
-          done
-          echo "Timeout"
-          exit 1
+                    if [ "$STATUS" = "Success" ]; then
+                      echo "✅ Production deployed"
+                      exit 0
+                    elif [ "$STATUS" = "Failed" ]; then
+                      echo "----- SSM STDOUT -----"
+                      aws ssm get-command-invocation \
+                        --command-id "$COMMAND_ID" \
+                        --instance-id "i-038a1d1f00798d94b" \
+                        --query "StandardOutputContent" \
+                        --output text || true
+                      echo "----- SSM STDERR -----"
+                      aws ssm get-command-invocation \
+                        --command-id "$COMMAND_ID" \
+                        --instance-id "i-038a1d1f00798d94b" \
+                        --query "StandardErrorContent" \
+                        --output text || true
+                      exit 1
+                    fi
+                    sleep 5
+                  done
+                  echo "Timeout"
+                  exit 1
 
-      - name: Notify Telegram (Production)
-        if: always()
-        run: |
-          STATUS="${{ job.status }}"
-          EMOJI=$([[ "$STATUS" == "success" ]] && echo "🎉" || echo "❌")
-          curl -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
-            -d "chat_id=${{ secrets.TELEGRAM_DEPLOY_CHAT_ID }}" \
-            -d "text=${EMOJI} angple web production ${STATUS}%0A%0ATag: \`${{ needs.build.outputs.sha_tag }}\`%0ADigest: \`${{ needs.build.outputs.image_digest }}\`%0AURL: https://damoang.net"
+            - name: Notify Telegram (Production)
+              if: always()
+              run: |
+                  STATUS="${{ job.status }}"
+                  EMOJI=$([[ "$STATUS" == "success" ]] && echo "🎉" || echo "❌")
+                  curl -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+                    -d "chat_id=${{ secrets.TELEGRAM_DEPLOY_CHAT_ID }}" \
+                    -d "text=${EMOJI} angple web production ${STATUS}%0A%0ATag: \`${{ needs.build.outputs.sha_tag }}\`%0ADigest: \`${{ needs.build.outputs.image_digest }}\`%0AURL: https://damoang.net"
