@@ -6,6 +6,16 @@
  */
 import hljs from 'highlight.js/lib/common';
 
+function getLanguageClass(codeEl: HTMLElement): string | null {
+    for (const cls of Array.from(codeEl.classList)) {
+        if (cls.startsWith('language-')) {
+            return cls.slice('language-'.length);
+        }
+    }
+
+    return null;
+}
+
 /**
  * 줄번호 테이블 생성
  * highlight.js 처리 후의 <code> 내부 HTML을 줄 단위 테이블로 변환
@@ -78,7 +88,16 @@ export function highlightAllCodeBlocks(container: HTMLElement): void {
         // 이미 처리된 블록은 건너뜀
         if (code.dataset.highlighted === 'yes') continue;
 
-        hljs.highlightElement(code);
+        const source = code.textContent || '';
+        const language = getLanguageClass(code);
+
+        if (language && hljs.getLanguage(language)) {
+            code.innerHTML = hljs.highlight(source, { language, ignoreIllegals: true }).value;
+        } else {
+            code.innerHTML = hljs.highlightAuto(source).value;
+        }
+        code.dataset.highlighted = 'yes';
+
         addLineNumbers(code);
         addCopyButton(pre);
     }

@@ -199,7 +199,7 @@
         <div class="flex items-center">
             <button
                 onclick={toggleDrawer}
-                class="hover:bg-accent relative rounded-lg p-2 transition-all duration-200 ease-out md:hidden"
+                class="hover:bg-accent relative rounded-lg p-2 transition-all duration-200 ease-out 2xl:hidden"
                 aria-label="메뉴"
             >
                 <span class="absolute -inset-1"></span>
