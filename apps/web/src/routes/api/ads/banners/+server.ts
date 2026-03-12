@@ -6,6 +6,7 @@ import type { RequestHandler } from './$types';
 // 인메모리 캐시 (60초 TTL, singleflight 내장)
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const bannerProxyCache = createCache<any>({ ttl: 60_000, maxSize: 50 });
+const ADS_BANNER_TIMEOUT_MS = 1_200;
 
 // GET /api/ads/banners?position=board-head&limit=1
 // ads.damoang.net 프록시 (Cloudflare 우회, 60초 singleflight 캐시)
@@ -18,7 +19,8 @@ export const GET: RequestHandler = async ({ url }) => {
         const data = await bannerProxyCache.getOrSet(cacheKey, async () => {
             const adsServerUrl = getAdsServerUrl();
             const response = await fetch(
-                `${adsServerUrl}/api/v1/serve/banners?position=${encodeURIComponent(position)}&limit=${limit}`
+                `${adsServerUrl}/api/v1/serve/banners?position=${encodeURIComponent(position)}&limit=${limit}`,
+                { signal: AbortSignal.timeout(ADS_BANNER_TIMEOUT_MS) }
             );
             if (!response.ok) {
                 return { success: false, data: { banners: [], count: 0 } };

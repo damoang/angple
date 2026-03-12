@@ -9,6 +9,7 @@ import { getAdsServerUrl } from './config';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const bannerCache = createCache<Record<string, any[]>>({ ttl: 60_000, maxSize: 10 });
+const ADS_BANNER_TIMEOUT_MS = 1_200;
 
 /** ads 서버에서 배너 데이터 조회 (60초 캐시, singleflight) */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -26,7 +27,8 @@ export async function getCachedBannersByPositions(
             positions.map(async (position) => {
                 try {
                     const response = await fetch(
-                        `${adsServerUrl}/api/v1/serve/banners?position=${encodeURIComponent(position)}&limit=10`
+                        `${adsServerUrl}/api/v1/serve/banners?position=${encodeURIComponent(position)}&limit=10`,
+                        { signal: AbortSignal.timeout(ADS_BANNER_TIMEOUT_MS) }
                     );
                     if (response.ok) {
                         const data = await response.json();
