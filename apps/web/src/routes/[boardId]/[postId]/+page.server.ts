@@ -3,6 +3,7 @@ import type { PageServerLoad } from './$types.js';
 import type { FreePost } from '$lib/api/types.js';
 import { fetchPromotionPosts, fetchPromotionBoardPosts } from '$lib/server/ads/promotion.js';
 import { transformAffiliateContent } from '$lib/hooks/builtin/affiliate.js';
+import { convertAffiliateUrl } from '$plugins/affiliate-link/lib/affiliate-api.server';
 import { isScraped } from '$lib/server/scrap.js';
 import { backendFetch as bFetch, createAuthHeaders } from '$lib/server/backend-fetch.js';
 import { getCachedBoard } from '$lib/server/board-cache.js';
@@ -126,6 +127,45 @@ export const load: PageServerLoad = async ({
 
         // 본문 제휴 링크 변환은 2단계 스트리밍으로 이동 (초기 렌더 블로킹 방지)
         const affiliateContext = { bo_table: boardId, wr_id: Number(postId) };
+
+        // 링크1/링크2는 본문/댓글 Hook를 타지 않으므로 별도 제휴 변환한다.
+        if (post.link1 || post.link2) {
+            try {
+                const [link1Result, link2Result] = await Promise.race([
+                    Promise.allSettled([
+                        post.link1
+                            ? convertAffiliateUrl(post.link1, affiliateContext)
+                            : Promise.resolve(null),
+                        post.link2
+                            ? convertAffiliateUrl(post.link2, affiliateContext)
+                            : Promise.resolve(null)
+                    ]),
+                    new Promise<
+                        PromiseSettledResult<Awaited<
+                            ReturnType<typeof convertAffiliateUrl>
+                        > | null>[]
+                    >((resolve) => setTimeout(() => resolve([]), 1500))
+                ]);
+
+                if (
+                    link1Result?.status === 'fulfilled' &&
+                    link1Result.value?.converted &&
+                    link1Result.value.url
+                ) {
+                    post.link1 = link1Result.value.url;
+                }
+
+                if (
+                    link2Result?.status === 'fulfilled' &&
+                    link2Result.value?.converted &&
+                    link2Result.value.url
+                ) {
+                    post.link2 = link2Result.value.url;
+                }
+            } catch {
+                // 변환 실패 시 원본 링크 유지
+            }
+        }
 
         // 스크랩 여부는 2단계 스트리밍으로 이동 (초기 렌더 블로킹 방지)
 
