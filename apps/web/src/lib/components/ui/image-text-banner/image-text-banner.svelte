@@ -142,9 +142,12 @@
                 retryCount = 0;
             } else if (position === 'side-image-text-banner' && attempt < MAX_SIDE_RETRIES) {
                 retryCount = attempt + 1;
-                retryTimer = setTimeout(() => {
-                    void fetchBanners(attempt + 1);
-                }, SIDE_RETRY_DELAY_MS * (attempt + 1));
+                retryTimer = setTimeout(
+                    () => {
+                        void fetchBanners(attempt + 1);
+                    },
+                    SIDE_RETRY_DELAY_MS * (attempt + 1)
+                );
                 return;
             } else {
                 // side-image-text-banner는 빈 상태 유지, 다른 위치는 샘플 표시
@@ -153,15 +156,24 @@
         } catch {
             if (position === 'side-image-text-banner' && attempt < MAX_SIDE_RETRIES) {
                 retryCount = attempt + 1;
-                retryTimer = setTimeout(() => {
-                    void fetchBanners(attempt + 1);
-                }, SIDE_RETRY_DELAY_MS * (attempt + 1));
+                retryTimer = setTimeout(
+                    () => {
+                        void fetchBanners(attempt + 1);
+                    },
+                    SIDE_RETRY_DELAY_MS * (attempt + 1)
+                );
                 return;
             }
             // side-image-text-banner는 빈 상태 유지, 다른 위치는 샘플 표시
             banners = position === 'side-image-text-banner' ? stored : sampleBanners;
         } finally {
-            if (!(position === 'side-image-text-banner' && attempt < MAX_SIDE_RETRIES && banners.length === 0)) {
+            if (
+                !(
+                    position === 'side-image-text-banner' &&
+                    attempt < MAX_SIDE_RETRIES &&
+                    banners.length === 0
+                )
+            ) {
                 loading = false;
             }
         }
@@ -189,14 +201,16 @@
         <div class="grid grid-cols-2 gap-2">
             {#each [1, 2, 3, 4] as idx (idx)}
                 <div
-                    class="{position === 'side-image-text-banner'
+                    class={position === 'side-image-text-banner'
                         ? 'h-[78px] rounded-lg border border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800/70'
-                        : 'animate-pulse rounded-lg border-2 border-slate-200 bg-slate-100 dark:border-slate-700 dark:bg-slate-800'}"
+                        : 'animate-pulse rounded-lg border-2 border-slate-200 bg-slate-100 dark:border-slate-700 dark:bg-slate-800'}
                 >
                     {#if position === 'side-image-text-banner'}
                         <div class="flex h-full flex-col justify-between p-2">
                             <div class="h-10 rounded-md bg-slate-100 dark:bg-slate-700/60"></div>
-                            <div class="mx-auto h-2 w-16 rounded bg-slate-200 dark:bg-slate-600"></div>
+                            <div
+                                class="mx-auto h-2 w-16 rounded bg-slate-200 dark:bg-slate-600"
+                            ></div>
                         </div>
                     {:else}
                         <div class="h-[80px] bg-slate-200 dark:bg-slate-700"></div>
