@@ -128,12 +128,6 @@
 
     // 코어 레이아웃 초기화
     initCoreLayouts();
-    {
-        const p = '../../../../../../plugins/giving/hooks/register-layouts.js';
-        // @ts-ignore
-        import(p).then((m: { default: () => void }) => m.default()).catch(() => {});
-    }
-
     // 뷰 레이아웃 동적 resolve
     const viewLayoutId = $derived(data.board?.display_settings?.view_layout || 'basic');
     const viewEntry = $derived(layoutRegistry.resolveView(viewLayoutId));
@@ -207,6 +201,12 @@
                       ? 'economy'
                       : 'standard')
     );
+    $effect(() => {
+        if (boardType !== 'giving') return;
+        const p = '../../../../../../plugins/giving/hooks/register-layouts.js';
+        // @ts-ignore
+        import(p).then((m: { default: () => void }) => m.default()).catch(() => {});
+    });
     const isUsedMarket = $derived(boardType === 'used-market');
 
     // 플러그인 슬롯

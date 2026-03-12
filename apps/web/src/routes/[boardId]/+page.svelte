@@ -82,12 +82,6 @@
     import { layoutRegistry, initCoreLayouts } from '$lib/components/features/board/layouts';
     // 코어 레이아웃 초기화 (최초 1회)
     initCoreLayouts();
-    {
-        const p = '../../../../../plugins/giving/hooks/register-layouts.js';
-        // @ts-ignore
-        import(p).then((m: { default: () => void }) => m.default()).catch(() => {});
-    }
-
     let { data }: { data: PageData } = $props();
 
     // 게시판 정보
@@ -108,6 +102,12 @@
                       ? 'economy'
                       : 'standard')
     );
+    $effect(() => {
+        if (boardType !== 'giving') return;
+        const p = '../../../../../plugins/giving/hooks/register-layouts.js';
+        // @ts-ignore
+        import(p).then((m: { default: () => void }) => m.default()).catch(() => {});
+    });
     const isAngmapBoard = $derived(boardType === 'angmap');
     const isEconomyBoard = $derived(boardType === 'economy');
 
@@ -149,6 +149,22 @@
     // 하이드레이션 직후 즉시 변경하면 깜빡임 발생. 2프레임 대기 후 부드럽게 전환.
     let showSearch = $state(false);
     let showReadState = $state(false);
+    function scheduleAuthorLevelFetch(authorIds: string[]) {
+        const uniqueAuthorIds = [...new Set(authorIds)];
+        if (uniqueAuthorIds.length === 0) return;
+
+        const fetchTask = () => {
+            void memberLevelStore.fetchLevels(uniqueAuthorIds);
+        };
+
+        if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+            window.requestIdleCallback(fetchTask, { timeout: 1000 });
+            return;
+        }
+
+        setTimeout(fetchTask, 0);
+    }
+
     onMount(() => {
         requestAnimationFrame(() => {
             requestAnimationFrame(() => {
@@ -167,9 +183,7 @@
                 const authorIds = result.posts
                     .map((p) => p.author_id)
                     .filter((id): id is string => Boolean(id));
-                if (authorIds.length > 0) {
-                    memberLevelStore.fetchLevels(authorIds);
-                }
+                scheduleAuthorLevelFetch(authorIds);
 
                 // 훅: 게시글 목록 로드 완료 (플러그인 확장 포인트)
                 doAction('board_list_loaded', {
