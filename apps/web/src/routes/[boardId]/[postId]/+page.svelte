@@ -202,6 +202,12 @@
                       ? 'economy'
                       : 'standard')
     );
+    $effect(() => {
+        if (boardType !== 'giving') return;
+        const p = '../../../../../../plugins/giving/hooks/register-layouts.js';
+        // @ts-ignore
+        import(p).then((m: { default: () => void }) => m.default()).catch(() => {});
+    });
     const isUsedMarket = $derived(boardType === 'used-market');
 
     // 플러그인 슬롯

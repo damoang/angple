@@ -48,7 +48,7 @@ export async function getSiteTitle(): Promise<string> {
     if (rows[0]) {
         return (rows[0] as { cf_title: string }).cf_title;
     }
-    return env.VITE_SITE_NAME || 'Angple';
+    return env.VITE_SITE_NAME || '다모앙 - 종합 커뮤니티';
 }
 
 /** 컨텐츠 내 변수 치환 (PHP 호환) */

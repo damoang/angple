@@ -101,7 +101,7 @@
     });
 
     configureSeo({
-        siteName: import.meta.env.VITE_SITE_NAME || 'Angple',
+        siteName: import.meta.env.VITE_SITE_NAME || '다모앙 - 종합 커뮤니티',
         siteUrl
     });
 
