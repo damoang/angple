@@ -736,7 +736,11 @@
         <!-- 댓글 5개마다 GAM 인피드 광고 (루트 댓글 기준, 첫 번째 제외) -->
         {#if widgetLayoutStore.hasEnabledAds && commentIndex > 0 && commentIndex % 5 === 0 && depth === 0}
             <li class="list-none py-2">
-                <AdSlot position="comment-infeed" height="90px" />
+                <AdSlot
+                    position="comment-infeed"
+                    height="90px"
+                    slotKey={`comment-infeed-${comment.id}`}
+                />
             </li>
         {/if}
         <li
