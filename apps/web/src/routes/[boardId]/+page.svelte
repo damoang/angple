@@ -82,11 +82,6 @@
     import { layoutRegistry, initCoreLayouts } from '$lib/components/features/board/layouts';
     // 코어 레이아웃 초기화 (최초 1회)
     initCoreLayouts();
-    {
-        const p = '../../../../../plugins/giving/hooks/register-layouts.js';
-        // @ts-ignore
-        import(p).then((m: { default: () => void }) => m.default()).catch(() => {});
-    }
 
     let { data }: { data: PageData } = $props();
     let promotionPosts = $state<unknown[]>([]);

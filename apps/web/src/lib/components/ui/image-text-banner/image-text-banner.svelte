@@ -33,6 +33,11 @@
 
     let banners = $state<BannerItem[]>([]);
     let loading = $state(true);
+    let retryCount = $state(0);
+    let retryTimer: ReturnType<typeof setTimeout> | null = null;
+    const MAX_SIDE_RETRIES = 2;
+    const SIDE_RETRY_DELAY_MS = 1500;
+    const STORAGE_KEY_PREFIX = 'image-text-banner:';
 
     // 샘플 데이터 (API 실패 시 폴백 - side-image-text-banner 제외)
     const sampleBanners: BannerItem[] = [
@@ -68,9 +73,34 @@
 
     onMount(() => {
         fetchBanners();
+
+        return () => {
+            if (retryTimer) clearTimeout(retryTimer);
+        };
     });
 
-    async function fetchBanners() {
+    function readStoredBanners(): BannerItem[] {
+        if (!browser) return [];
+        try {
+            const raw = localStorage.getItem(`${STORAGE_KEY_PREFIX}${position}`);
+            if (!raw) return [];
+            const parsed = JSON.parse(raw) as BannerItem[];
+            return Array.isArray(parsed) ? parsed : [];
+        } catch {
+            return [];
+        }
+    }
+
+    function persistBanners(items: BannerItem[]): void {
+        if (!browser || items.length === 0) return;
+        try {
+            localStorage.setItem(`${STORAGE_KEY_PREFIX}${position}`, JSON.stringify(items));
+        } catch {
+            // 저장 실패 무시
+        }
+    }
+
+    async function fetchBanners(attempt = 0) {
         if (!browser) return;
 
         // app-init 캐시에서 먼저 확인
@@ -84,8 +114,14 @@
                 target: b.target || '_blank',
                 trackingId: b.trackingId
             }));
+            persistBanners(banners);
             loading = false;
             return;
+        }
+
+        const stored = readStoredBanners();
+        if (stored.length > 0) {
+            banners = stored;
         }
 
         try {
@@ -102,15 +138,32 @@
                     target: b.target || '_blank',
                     trackingId: b.trackingId
                 }));
+                persistBanners(banners);
+                retryCount = 0;
+            } else if (position === 'side-image-text-banner' && attempt < MAX_SIDE_RETRIES) {
+                retryCount = attempt + 1;
+                retryTimer = setTimeout(() => {
+                    void fetchBanners(attempt + 1);
+                }, SIDE_RETRY_DELAY_MS * (attempt + 1));
+                return;
             } else {
                 // side-image-text-banner는 빈 상태 유지, 다른 위치는 샘플 표시
-                banners = position === 'side-image-text-banner' ? [] : sampleBanners;
+                banners = position === 'side-image-text-banner' ? stored : sampleBanners;
             }
         } catch {
+            if (position === 'side-image-text-banner' && attempt < MAX_SIDE_RETRIES) {
+                retryCount = attempt + 1;
+                retryTimer = setTimeout(() => {
+                    void fetchBanners(attempt + 1);
+                }, SIDE_RETRY_DELAY_MS * (attempt + 1));
+                return;
+            }
             // side-image-text-banner는 빈 상태 유지, 다른 위치는 샘플 표시
-            banners = position === 'side-image-text-banner' ? [] : sampleBanners;
+            banners = position === 'side-image-text-banner' ? stored : sampleBanners;
         } finally {
-            loading = false;
+            if (!(position === 'side-image-text-banner' && attempt < MAX_SIDE_RETRIES && banners.length === 0)) {
+                loading = false;
+            }
         }
     }
 
@@ -125,27 +178,42 @@
     });
 </script>
 
-<div class="image-text-banner {className}" data-position={position}>
+<div
+    class="image-text-banner {className} {position === 'side-image-text-banner'
+        ? 'min-h-[164px]'
+        : ''}"
+    data-position={position}
+>
     {#if loading}
         <!-- 로딩 스켈레톤: 항상 4개 그리드 -->
         <div class="grid grid-cols-2 gap-2">
             {#each [1, 2, 3, 4] as idx (idx)}
                 <div
-                    class="animate-pulse rounded-lg border-2 border-slate-200 bg-slate-100 dark:border-slate-700 dark:bg-slate-800"
+                    class="{position === 'side-image-text-banner'
+                        ? 'h-[78px] rounded-lg border border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800/70'
+                        : 'animate-pulse rounded-lg border-2 border-slate-200 bg-slate-100 dark:border-slate-700 dark:bg-slate-800'}"
                 >
-                    <div
-                        class="{position === 'side-image-text-banner'
-                            ? 'h-[60px]'
-                            : 'h-[80px]'} bg-slate-200 dark:bg-slate-700"
-                    ></div>
-                    <div class="p-1.5">
-                        <div
-                            class="mx-auto h-2.5 w-2/3 rounded bg-slate-200 dark:bg-slate-600"
-                        ></div>
-                    </div>
+                    {#if position === 'side-image-text-banner'}
+                        <div class="flex h-full flex-col justify-between p-2">
+                            <div class="h-10 rounded-md bg-slate-100 dark:bg-slate-700/60"></div>
+                            <div class="mx-auto h-2 w-16 rounded bg-slate-200 dark:bg-slate-600"></div>
+                        </div>
+                    {:else}
+                        <div class="h-[80px] bg-slate-200 dark:bg-slate-700"></div>
+                        <div class="p-1.5">
+                            <div
+                                class="mx-auto h-2.5 w-2/3 rounded bg-slate-200 dark:bg-slate-600"
+                            ></div>
+                        </div>
+                    {/if}
                 </div>
             {/each}
         </div>
+        {#if position === 'side-image-text-banner' && retryCount > 0}
+            <p class="mt-2 text-center text-[10px] text-slate-400 dark:text-slate-500">
+                광고 불러오는 중...
+            </p>
+        {/if}
     {:else if position === 'side-image-text-banner'}
         <!-- 사이드바: 항상 4칸 그리드 (공실 포함) -->
         <div class="grid grid-cols-2 gap-2">
@@ -153,7 +221,7 @@
                 {#if slot}
                     <!-- 배너가 있는 슬롯 -->
                     <article
-                        class="overflow-hidden rounded-lg border-2 border-blue-100 bg-white transition-transform hover:-translate-y-0.5 hover:border-blue-400 dark:border-slate-700 dark:bg-slate-800 dark:hover:border-blue-500"
+                        class="h-[78px] overflow-hidden rounded-lg border border-blue-100 bg-white transition-transform hover:-translate-y-0.5 hover:border-blue-400 dark:border-slate-700 dark:bg-slate-800 dark:hover:border-blue-500"
                     >
                         <a
                             href={slot.linkUrl}
@@ -170,11 +238,11 @@
                             class="block"
                         >
                             {#if slot.imageUrl}
-                                <figure class="relative m-0">
+                                <figure class="relative m-0 h-[78px]">
                                     <img
                                         src={slot.imageUrl}
                                         alt={slot.altText || '광고'}
-                                        class="mx-auto h-[78px] w-[139px] object-fill"
+                                        class="mx-auto h-[78px] w-full object-fill"
                                         loading="lazy"
                                     />
                                     <figcaption
@@ -186,7 +254,7 @@
                                 </figure>
                             {:else}
                                 <div
-                                    class="flex h-[80px] items-center justify-center bg-slate-50 p-2 dark:bg-slate-700"
+                                    class="flex h-[78px] items-center justify-center bg-slate-50 p-2 dark:bg-slate-700"
                                 >
                                     <span
                                         class="text-center text-[10px] text-blue-600 dark:text-blue-400"
