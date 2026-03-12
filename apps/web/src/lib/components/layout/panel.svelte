@@ -32,7 +32,7 @@
     <div class="flex-1">
         <div class="sticky top-[64px]">
             <div class:hidden={!widgetLayoutStore.hasEnabledAds}>
-                <AdSlot position="sidebar-sticky" height="600px" />
+                <AdSlot position="sidebar-sticky" height="600px" slotKey="sidebar-sticky" />
             </div>
         </div>
     </div>

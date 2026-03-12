@@ -1210,7 +1210,7 @@
     <!-- 네비게이션 아래 GAM 광고 (알뜰구매/중고장터 등 특정 게시판에서만 표시) -->
     {#if widgetLayoutStore.hasEnabledAds && (boardType === 'economy' || boardType === 'used-market')}
         <div class="mb-6">
-            <AdSlot position="board-view-top" height="45px" />
+            <AdSlot position="board-view-top" height="45px" slotKey="board-view-top" />
         </div>
     {/if}
 
@@ -1319,7 +1319,11 @@
         <!-- 작성자 활동 패널 아래 GAM 광고 (비활성화: 본문 영역 광고 과다 방지)
         {#if widgetLayoutStore.hasEnabledAds}
             <div class="my-6">
-                <AdSlot position="board-before-comments" height="90px" />
+                <AdSlot
+                    position="board-before-comments"
+                    height="90px"
+                    slotKey="board-before-comments"
+                />
             </div>
         {/if}
         -->
@@ -1468,7 +1472,11 @@
         <!-- 댓글~목록 사이 GAM 광고 -->
         {#if widgetLayoutStore.hasEnabledAds}
             <div class="my-3 md:my-4">
-                <AdSlot position="board-after-comments" height="90px" />
+                <AdSlot
+                    position="board-after-comments"
+                    height="90px"
+                    slotKey="board-after-comments"
+                />
             </div>
         {/if}
     {/if}

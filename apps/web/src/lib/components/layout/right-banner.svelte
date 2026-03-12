@@ -31,7 +31,7 @@
     class="flex w-[160px] flex-col items-center justify-center gap-2"
     class:hidden={!widgetLayoutStore.hasEnabledAds}
 >
-    <AdSlot position="wing-right" height="600px" />
+    <AdSlot position="wing-right" height="600px" slotKey="wing-right" />
 </div>
 
 <!-- TOP 버튼 - 오른쪽 하단 -->

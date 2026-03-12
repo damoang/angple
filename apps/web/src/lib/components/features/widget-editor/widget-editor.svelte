@@ -68,7 +68,11 @@
                 <div animate:flip={{ duration: flipDurationMs }}>
                     <WidgetWrapper {widget}>
                         {#if widget.type === 'ad'}
-                            <AdSlot position={getAdPosition(widget)} height={getAdHeight(widget)} />
+                            <AdSlot
+                                position={getAdPosition(widget)}
+                                height={getAdHeight(widget)}
+                                slotKey={`widget-${widget.id}`}
+                            />
                         {:else if widget.type === 'recommended'}
                             <RecommendedPosts />
                         {:else if widget.type === 'new-board'}
@@ -97,7 +101,11 @@
         <!-- 일반 모드: 드래그 비활성화 -->
         {#each widgets.filter((w) => w.enabled) as widget (widget.id)}
             {#if widget.type === 'ad'}
-                <AdSlot position={getAdPosition(widget)} height={getAdHeight(widget)} />
+                <AdSlot
+                    position={getAdPosition(widget)}
+                    height={getAdHeight(widget)}
+                    slotKey={`widget-${widget.id}`}
+                />
             {:else if widget.type === 'recommended'}
                 <RecommendedPosts />
             {:else if widget.type === 'new-board'}

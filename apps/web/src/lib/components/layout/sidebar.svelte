@@ -363,10 +363,10 @@
         <div class:hidden={!widgetLayoutStore.hasEnabledAds}>
             {#if compact}
                 <div class="flex justify-center">
-                    <AdSlot position="sidebar-drawer" height="100px" />
+                    <AdSlot position="sidebar-drawer" height="100px" slotKey="sidebar-drawer" />
                 </div>
             {:else}
-                <AdSlot position="sidebar" height="250px" />
+                <AdSlot position="sidebar" height="250px" slotKey="sidebar-main" />
             {/if}
         </div>
         {#if compact}

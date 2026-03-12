@@ -257,7 +257,11 @@
             </div>
             {#if widgetLayoutStore.hasEnabledAds && i + 1 === 7}
                 <div class="py-2">
-                    <AdSlot position="board-list-infeed" height="90px" />
+                    <AdSlot
+                        position="board-list-infeed"
+                        height="90px"
+                        slotKey={`recent-posts-infeed-${i}`}
+                    />
                 </div>
             {/if}
             {#if shuffledPromos.length > 0 && i + 1 === 10}
@@ -311,7 +315,7 @@
     <!-- 페이징 아래 GAM 광고 (모바일만) -->
     {#if widgetLayoutStore.hasEnabledAds}
         <div class="mt-4 md:hidden">
-            <AdSlot position="board-footer" height="90px" />
+            <AdSlot position="board-footer" height="90px" slotKey="recent-posts-footer" />
         </div>
     {/if}
 {/if}

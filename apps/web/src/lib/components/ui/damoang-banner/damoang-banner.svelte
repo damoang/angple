@@ -241,7 +241,7 @@
             </div>
         {:else}
             <!-- GAM 폴백 -->
-            <AdSlot position={gamPosition} {height} />
+            <AdSlot position={gamPosition} {height} slotKey={`damoang-banner-${position}`} />
         {/if}
     {/if}
 </div>

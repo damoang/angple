@@ -866,7 +866,11 @@
                             {/if}
                             {#if widgetLayoutStore.hasEnabledAds && i + 1 === 7}
                                 <div class="py-2">
-                                    <AdSlot position="board-list-infeed" height="90px" />
+                                    <AdSlot
+                                        position="board-list-infeed"
+                                        height="90px"
+                                        slotKey={`board-list-infeed-${i}`}
+                                    />
                                 </div>
                             {/if}
                             {#if shuffledPromos.length > 0 && i + 1 === 12}
@@ -914,7 +918,11 @@
                     </p>
                     {#if widgetLayoutStore.hasEnabledAds}
                         <div class="mt-3">
-                            <AdSlot position="board-list-bottom" height="90px" />
+                            <AdSlot
+                                position="board-list-bottom"
+                                height="90px"
+                                slotKey="board-list-bottom"
+                            />
                         </div>
                     {/if}
                 {/if}

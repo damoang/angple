@@ -8,5 +8,5 @@
     class="flex w-[160px] flex-col items-center justify-center gap-2"
     class:hidden={!widgetLayoutStore.hasEnabledAds}
 >
-    <AdSlot position="wing-left" height="600px" />
+    <AdSlot position="wing-left" height="600px" slotKey="wing-left" />
 </div>

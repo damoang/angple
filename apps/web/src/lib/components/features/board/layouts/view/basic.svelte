@@ -313,7 +313,7 @@
 
         <!-- GAM 광고 -->
         {#if widgetLayoutStore.hasEnabledAds && (postContent?.length ?? 0) >= 500}
-            <AdSlot position="board-content" height="90px" />
+            <AdSlot position="board-content" height="90px" slotKey="board-content" />
         {/if}
 
         <!-- 알뜰구매 모든 링크열기 (GAM 바로 아래) -->
