@@ -15,6 +15,10 @@ interface PostsCacheData {
     error: string | null;
 }
 const postsCache = createCache<PostsCacheData>({ ttl: 15_000, maxSize: 100 });
+const inFlightPostsLoads = new Map<string, Promise<PostsCacheData>>();
+
+const DEFAULT_POSTS_TIMEOUT_MS = 3_000;
+const HOT_BOARD_POSTS_TIMEOUT_MS = 1_500;
 
 /**
  * 게시판 목록 페이지 — Streaming SSR
@@ -104,6 +108,7 @@ export const load: PageServerLoad = async ({ url, params, locals }) => {
 
     // 프로모션 게시판 전용: 광고주별 post_count 제한 적용 (검색/태그 필터 없을 때만)
     const isPromotionBoard = boardId === 'promotion' && !isSearching && !isTagFiltering;
+    const isHotBoard = boardId === 'free' || boardId === 'hello';
 
     // 비로그인 + 검색/태그 필터 없는 경우: 게시글 목록 캐시 사용 (15초)
     const usePostsCache = !locals.user && !isSearching && !isTagFiltering;
@@ -122,8 +127,7 @@ export const load: PageServerLoad = async ({ url, params, locals }) => {
         }
     }
 
-    // Promise (await 하지 않음 → SvelteKit이 스트리밍)
-    const postsDataPromise = (async () => {
+    const buildPostsData = async (): Promise<PostsCacheData> => {
         if (isPromotionBoard) {
             // 프로모션 게시판: ads 서버에서 광고주별 제한된 게시글 조회
             const [promoBoardResult, noticesResult] = await Promise.allSettled([
@@ -177,7 +181,10 @@ export const load: PageServerLoad = async ({ url, params, locals }) => {
 
         // 일반 게시판 (또는 프로모션 게시판 검색/태그 필터)
         const [postsResult, noticesResult] = await Promise.allSettled([
-            bFetch(buildPostsUrl(), { headers }).then(async (res) => {
+            bFetch(buildPostsUrl(), {
+                headers,
+                timeout: isHotBoard ? HOT_BOARD_POSTS_TIMEOUT_MS : DEFAULT_POSTS_TIMEOUT_MS
+            }).then(async (res) => {
                 if (!res.ok) throw new Error(`Posts API error: ${res.status}`);
                 return res.json();
             }),
@@ -227,7 +234,23 @@ export const load: PageServerLoad = async ({ url, params, locals }) => {
         }
 
         return result;
-    })();
+    };
+
+    // Promise (await 하지 않음 → SvelteKit이 스트리밍)
+    let postsDataPromise: Promise<PostsCacheData>;
+    if (usePostsCache) {
+        const inFlight = inFlightPostsLoads.get(postsCacheKey);
+        if (inFlight) {
+            postsDataPromise = inFlight;
+        } else {
+            postsDataPromise = buildPostsData().finally(() => {
+                inFlightPostsLoads.delete(postsCacheKey);
+            });
+            inFlightPostsLoads.set(postsCacheKey, postsDataPromise);
+        }
+    } else {
+        postsDataPromise = buildPostsData();
+    }
 
     const promotionDataPromise = (async () => {
         if (isSearching || isPromotionBoard) {
