@@ -8,6 +8,7 @@
  */
 import pool, { readPool } from '$lib/server/db.js';
 import type { RowDataPacket } from 'mysql2';
+import type { QueryError } from 'mysql2';
 
 /** 승급 조건 설정 타입 */
 export interface PromotionRule {
@@ -35,6 +36,11 @@ interface PromotionConfig extends RowDataPacket {
     settings_json: string | null;
 }
 
+function isMissingSiteSettingsTable(err: unknown): boolean {
+    if (!err || typeof err !== 'object') return false;
+    return (err as QueryError & { code?: string }).code === 'ER_NO_SUCH_TABLE';
+}
+
 /**
  * site_settings에서 승급 규칙 조회
  * 설정이 없으면 기본값 반환
@@ -52,6 +58,9 @@ export async function getPromotionRules(): Promise<PromotionRule[]> {
             }
         }
     } catch (err) {
+        if (isMissingSiteSettingsTable(err)) {
+            return DEFAULT_PROMOTION_RULES;
+        }
         console.error('[AutoPromotion] Failed to load rules:', err);
     }
 
