@@ -98,7 +98,7 @@ export const GET: RequestHandler = async ({ params, url, cookies }) => {
     } catch (error) {
         console.error('Comment likers GET error:', error);
         return json(
-            { success: false, message: '추천자 목록 조회에 실패했습니다.' },
+            { success: false, message: '공감한 사람 목록 조회에 실패했습니다.' },
             { status: 500 }
         );
     }

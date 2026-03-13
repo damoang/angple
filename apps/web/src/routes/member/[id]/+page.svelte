@@ -751,7 +751,7 @@
 
                             <!-- 추천/신고 -->
                             <div>
-                                <div class="mb-1 text-sm font-medium">추천 / 신고</div>
+                                <div class="mb-1 text-sm font-medium">공감 / 신고</div>
                                 <div class="flex gap-2">
                                     <div
                                         class="bg-muted flex h-4 flex-1 overflow-hidden rounded-full"
@@ -760,7 +760,7 @@
                                             class="flex items-center justify-center px-2 text-[10px] font-medium"
                                             style="width: 40%; background: oklch(0.80 0.08 250);"
                                         >
-                                            추천
+                                            공감
                                         </div>
                                         <div
                                             class="flex flex-1 items-center justify-center text-[10px] font-medium"

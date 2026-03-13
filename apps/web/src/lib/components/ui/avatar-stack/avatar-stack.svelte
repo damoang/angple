@@ -28,7 +28,7 @@
     type="button"
     class="flex items-center transition-opacity hover:opacity-80"
     {onclick}
-    title="추천한 사람들 보기"
+    title="공감한 사람들 보기"
 >
     <div class="flex items-center -space-x-1.5">
         {#each visibleItems as item (item.mb_id)}

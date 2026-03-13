@@ -821,7 +821,7 @@
                 goToCertification();
                 return;
             }
-            alert('추천에 실패했습니다.');
+            alert('공감에 실패했습니다.');
         } finally {
             isLiking = false;
         }
@@ -857,7 +857,7 @@
                 goToCertification();
                 return;
             }
-            alert('비추천에 실패했습니다.');
+            alert('비공감에 실패했습니다.');
         } finally {
             isDisliking = false;
         }
@@ -1519,9 +1519,9 @@
 >
     <Dialog.Content class="max-w-md">
         <Dialog.Header>
-            <Dialog.Title>추천한 사람들</Dialog.Title>
+            <Dialog.Title>공감한 사람들</Dialog.Title>
             <Dialog.Description>
-                이 게시글을 추천한 {likersTotal}명
+                이 게시글에 공감한 {likersTotal}명
             </Dialog.Description>
         </Dialog.Header>
         <div class="max-h-96 overflow-y-auto">
@@ -1529,7 +1529,7 @@
                 <div class="text-muted-foreground py-8 text-center">불러오는 중...</div>
             {:else if likers.length === 0}
                 <div class="text-muted-foreground py-8 text-center">
-                    아직 추천한 사람이 없습니다.
+                    아직 공감한 사람이 없습니다.
                 </div>
             {:else}
                 <ul class="divide-border divide-y">

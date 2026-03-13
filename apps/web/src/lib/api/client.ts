@@ -940,7 +940,7 @@ class ApiClient {
             body: JSON.stringify({ action: 'good' })
         });
         const json = await res.json();
-        if (!json.success) throw new Error(json.message || '추천에 실패했습니다.');
+        if (!json.success) throw new Error(json.message || '공감에 실패했습니다.');
         return json.data;
     }
 
@@ -956,7 +956,7 @@ class ApiClient {
             body: JSON.stringify({ action: 'nogood' })
         });
         const json = await res.json();
-        if (!json.success) throw new Error(json.message || '비추천에 실패했습니다.');
+        if (!json.success) throw new Error(json.message || '비공감에 실패했습니다.');
         return json.data;
     }
 
@@ -1048,7 +1048,7 @@ class ApiClient {
             }
         );
         const json = await res.json();
-        if (!json.success) throw new Error(json.message || '댓글 추천에 실패했습니다.');
+        if (!json.success) throw new Error(json.message || '댓글 공감에 실패했습니다.');
         return json.data;
     }
 
@@ -1071,7 +1071,7 @@ class ApiClient {
             }
         );
         const json = await res.json();
-        if (!json.success) throw new Error(json.message || '댓글 비추천에 실패했습니다.');
+        if (!json.success) throw new Error(json.message || '댓글 비공감에 실패했습니다.');
         return json.data;
     }
 

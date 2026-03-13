@@ -273,7 +273,7 @@
                         <span
                             class="mobile-likes-pill mobile-meta-sep inline-flex items-center gap-0.5"
                             ><img
-                                alt="추천"
+                                alt="공감"
                                 class="size-3.5"
                                 src="/images/thumbup.png?v=2"
                             />{post.likes}</span
@@ -282,7 +282,7 @@
                         <span
                             class="{mobileLikesClass} mobile-meta-sep inline-flex items-center gap-0.5"
                             ><img
-                                alt="추천"
+                                alt="공감"
                                 class="size-3.5"
                                 src="/images/thumbup.png?v=2"
                             />{post.likes}</span

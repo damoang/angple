@@ -314,7 +314,7 @@
                 class="text-secondary-foreground ml-auto flex gap-2 text-[13px] sm:gap-4 sm:text-[15px]"
             >
                 <span>조회 {post.views.toLocaleString()}</span>
-                <span>추천 {likeCount.toLocaleString()}</span>
+                <span>공감 {likeCount.toLocaleString()}</span>
                 <span>댓글 {post.comments_count.toLocaleString()}</span>
             </div>
         </div>

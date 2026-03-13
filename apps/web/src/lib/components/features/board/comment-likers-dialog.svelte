@@ -82,9 +82,9 @@
 >
     <Dialog.Content class="max-w-md">
         <Dialog.Header>
-            <Dialog.Title>추천한 사람들</Dialog.Title>
+            <Dialog.Title>공감한 사람들</Dialog.Title>
             <Dialog.Description>
-                이 댓글을 추천한 {total}명
+                이 댓글에 공감한 {total}명
             </Dialog.Description>
         </Dialog.Header>
         <div class="max-h-96 overflow-y-auto">
@@ -92,7 +92,7 @@
                 <div class="text-muted-foreground py-8 text-center text-sm">불러오는 중...</div>
             {:else if likers.length === 0}
                 <div class="text-muted-foreground py-8 text-center text-sm">
-                    아직 추천한 사람이 없습니다.
+                    아직 공감한 사람이 없습니다.
                 </div>
             {:else}
                 <ul class="divide-border divide-y">

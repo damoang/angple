@@ -1280,9 +1280,9 @@
                             <Card.Content class="space-y-5">
                                 <div class="flex items-center justify-between">
                                     <div>
-                                        <p class="text-sm font-medium">추천 기능</p>
+                                        <p class="text-sm font-medium">공감 기능</p>
                                         <p class="text-muted-foreground text-xs">
-                                            게시글에 추천 버튼을 표시합니다.
+                                            게시글에 공감 버튼을 표시합니다.
                                         </p>
                                     </div>
                                     <Switch
@@ -1292,9 +1292,9 @@
                                 </div>
                                 <div class="flex items-center justify-between">
                                     <div>
-                                        <p class="text-sm font-medium">비추천 기능</p>
+                                        <p class="text-sm font-medium">비공감 기능</p>
                                         <p class="text-muted-foreground text-xs">
-                                            게시글에 비추천 버튼을 표시합니다.
+                                            게시글에 비공감 버튼을 표시합니다.
                                         </p>
                                     </div>
                                     <Switch
@@ -1455,7 +1455,7 @@
                             <Card.Header>
                                 <Card.Title>알림 설정</Card.Title>
                                 <Card.Description>
-                                    새 글/댓글/추천 알림을 설정합니다.
+                                    새 글/댓글/공감 알림을 설정합니다.
                                 </Card.Description>
                             </Card.Header>
                             <Card.Content class="space-y-4">
@@ -1463,7 +1463,7 @@
                                     <div>
                                         <p class="text-sm font-medium">알림 사용</p>
                                         <p class="text-muted-foreground text-xs">
-                                            답글/댓글/추천 알림을 사용합니다.
+                                            답글/댓글/공감 알림을 사용합니다.
                                         </p>
                                     </div>
                                     <Switch
@@ -1581,9 +1581,9 @@
                         <Card.Content class="space-y-5">
                             <div class="flex items-center justify-between">
                                 <div>
-                                    <p class="text-sm font-medium">댓글 추천</p>
+                                    <p class="text-sm font-medium">댓글 공감</p>
                                     <p class="text-muted-foreground text-xs">
-                                        댓글에 추천 기능을 사용합니다.
+                                        댓글에 공감 기능을 사용합니다.
                                     </p>
                                 </div>
                                 <Switch
@@ -1593,9 +1593,9 @@
                             </div>
                             <div class="flex items-center justify-between">
                                 <div>
-                                    <p class="text-sm font-medium">댓글 비추천</p>
+                                    <p class="text-sm font-medium">댓글 비공감</p>
                                     <p class="text-muted-foreground text-xs">
-                                        댓글에 비추천 기능을 사용합니다.
+                                        댓글에 비공감 기능을 사용합니다.
                                     </p>
                                 </div>
                                 <Switch
