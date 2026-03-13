@@ -352,7 +352,7 @@
     });
 </script>
 
-<svelte:window onkeyup={(e) => keyboardShortcutsMod?.keyboardShortcuts.handleKeyup(e)} />
+<svelte:window onkeydown={(e) => keyboardShortcutsMod?.keyboardShortcuts.handleKeydown(e)} />
 
 <svelte:head>
     <meta name="viewport" content="width=device-width, initial-scale=1" />

@@ -6,9 +6,6 @@
  *
  * event.code 기반으로 한영 전환과 무관하게 동작.
  * (예: 한글 'ㄹ' 입력 → event.code = 'KeyF' → 자유게시판)
- *
- * keyup 이벤트 사용: Linux IME(ibus/fcitx)에서 한글 입력 시
- * keydown의 event.code가 비정상(빈 문자열, keyCode=229)이 되는 문제 회피.
  */
 
 import { goto } from '$app/navigation';
@@ -150,9 +147,9 @@ class KeyboardShortcutService {
     }
 
     /**
-     * 글로벌 keyup 이벤트 핸들러
+     * 글로벌 keydown 이벤트 핸들러
      */
-    handleKeyup = (event: KeyboardEvent) => {
+    handleKeydown = (event: KeyboardEvent) => {
         // 입력 필드 안에서는 무시
         if (isInputElement(event.target)) return;
         // contentEditable 요소 안에서는 무시
