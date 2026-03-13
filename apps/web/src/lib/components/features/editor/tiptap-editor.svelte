@@ -60,6 +60,8 @@
     import PilcrowIcon from '@lucide/svelte/icons/pilcrow';
     import FileCodeIcon from '@lucide/svelte/icons/file-code';
     import HashIcon from '@lucide/svelte/icons/hash';
+    import SmileIcon from '@lucide/svelte/icons/smile';
+    import type { Component } from 'svelte';
 
     interface Props {
         content?: string;
@@ -128,6 +130,13 @@
 
     // 테이블 메뉴
     let showTableMenu = $state(false);
+
+    // 앙티콘 피커
+    let showEmoticonPicker = $state(false);
+    let EmoticonPickerComponent = $state<Component<{
+        onInsertEmoticon: (text: string) => void;
+        onClose: () => void;
+    }> | null>(null);
 
     // 글자 수
     let charCount = $state(0);
@@ -610,6 +619,30 @@
         youtubeUrl = '';
     }
 
+    // 앙티콘 피커
+    async function toggleEmoticonPicker(): Promise<void> {
+        if (!EmoticonPickerComponent) {
+            const mod = await import('../board/emoticon-picker.svelte');
+            EmoticonPickerComponent = mod.default;
+        }
+        showEmoticonPicker = !showEmoticonPicker;
+    }
+
+    function handleInsertEmoticon(text: string): void {
+        if (!editor) return;
+        const match = text.match(/^\{emo:([^}]+)\}$/);
+        if (match) {
+            editor
+                .chain()
+                .focus()
+                .setImage({ src: `/emoticons/${match[1]}`, alt: match[1] })
+                .run();
+        } else {
+            editor.chain().focus().insertContent(text).run();
+        }
+        showEmoticonPicker = false;
+    }
+
     // 동영상 파일 업로드 헬퍼
     async function insertVideoFile(file: File): Promise<void> {
         if (!onImageUpload || !editor) return;
@@ -979,6 +1012,27 @@
             >
                 <YoutubeIcon class="h-4 w-4" />
             </Button>
+            <div class="relative">
+                <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onclick={toggleEmoticonPicker}
+                    {disabled}
+                    class="h-8 w-8 p-0"
+                    title="앙티콘"
+                >
+                    <SmileIcon class="h-4 w-4" />
+                </Button>
+                {#if showEmoticonPicker && EmoticonPickerComponent}
+                    <div class="absolute bottom-full left-0 z-50 mb-2">
+                        <EmoticonPickerComponent
+                            onInsertEmoticon={handleInsertEmoticon}
+                            onClose={() => (showEmoticonPicker = false)}
+                        />
+                    </div>
+                {/if}
+            </div>
         </div>
 
         <div class="bg-border mx-1 h-6 w-px" role="separator"></div>
