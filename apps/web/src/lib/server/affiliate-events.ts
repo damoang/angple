@@ -93,7 +93,14 @@ export async function sendAffiliateEvents(
     const requestId = randomUUID();
     const events = list
         .map((result) =>
-            buildPayload(result, requestId, opts.source, opts.bo_table, opts.wr_id, opts.latency_ms ?? 0)
+            buildPayload(
+                result,
+                requestId,
+                opts.source,
+                opts.bo_table,
+                opts.wr_id,
+                opts.latency_ms ?? 0
+            )
         )
         .filter((event): event is AffiliateEventPayload => Boolean(event));
 
