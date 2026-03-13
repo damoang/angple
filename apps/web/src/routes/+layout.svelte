@@ -5,7 +5,7 @@
     import type { Component } from 'svelte';
     import { afterNavigate, onNavigate } from '$app/navigation';
     import { navigating } from '$app/state';
-    import { page, updated } from '$app/stores';
+    import { page } from '$app/stores';
     import { configureSeo } from '$lib/seo';
     import { authActions, authStore } from '$lib/stores/auth.svelte';
     import { themeStore } from '$lib/stores/theme.svelte';
@@ -164,18 +164,8 @@
     //     });
     // });
 
-    // afterNavigate 통합: 버전 감지 리로드 + GA4 페이지뷰 + 광고 observer 재설정
-    const UPDATED_RELOAD_KEY = '__angple_updated_reload__';
+    // afterNavigate 통합: GA4 페이지뷰 + 광고 observer 재설정
     afterNavigate(({ type, to }) => {
-        // 새 버전 감지 시 풀 리로드 (최대 2회, 무한 루프 방지)
-        if ($updated && type !== 'enter') {
-            const count = Number(sessionStorage.getItem(UPDATED_RELOAD_KEY) || '0');
-            if (count < 2) {
-                sessionStorage.setItem(UPDATED_RELOAD_KEY, String(count + 1));
-                location.reload();
-                return;
-            }
-        }
         // GA4 페이지뷰 추적
         if (to?.url) {
             trackPageView(to.url.pathname + to.url.search);
@@ -266,9 +256,6 @@
         if (data.ga4MeasurementId) {
             initGA4(data.ga4MeasurementId);
         }
-
-        // $updated 리로드 카운터 리셋 (정상 로드 확인 후)
-        setTimeout(() => sessionStorage.removeItem(UPDATED_RELOAD_KEY), 10000);
 
         // Built-in Hooks 초기화 (콘텐츠 임베딩, 게시판 필터 등)
         initBuiltinHooks();

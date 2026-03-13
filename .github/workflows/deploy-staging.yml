@@ -17,6 +17,7 @@ on:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/angple-web
+  STATIC_ASSET_BASE_ROOT: https://static.damoang.net/releases
 
 concurrency:
   group: staging-deploy
@@ -106,8 +107,31 @@ jobs:
         run: |
           SHA="${{ github.event.pull_request.head.sha || github.sha }}"
           SHORT_SHA="${SHA:0:7}"
-          echo "sha_tag=${SHORT_SHA}" >> "$GITHUB_OUTPUT"
+          echo "sha_tag=sha-${SHORT_SHA}" >> "$GITHUB_OUTPUT"
+          echo "image_tag=staging-${SHORT_SHA}" >> "$GITHUB_OUTPUT"
           echo "tags=${{ env.IMAGE_NAME }}:staging,${{ env.IMAGE_NAME }}:staging-${SHORT_SHA}" >> "$GITHUB_OUTPUT"
+
+      - name: Upload immutable assets to R2
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.CLOUDFLARE_R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.CLOUDFLARE_R2_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: auto
+          R2_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_R2_ACCOUNT_ID }}
+          R2_BUCKET: ${{ secrets.CLOUDFLARE_R2_BUCKET }}
+          SHA_TAG: ${{ steps.tags.outputs.sha_tag }}
+        run: |
+          for name in AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY R2_ACCOUNT_ID R2_BUCKET SHA_TAG; do
+            if [ -z "${!name}" ]; then
+              echo "Missing required R2 variable: $name"
+              exit 1
+            fi
+          done
+
+          aws s3 sync apps/web/build/client/_app/immutable/ \
+            "s3://${R2_BUCKET}/releases/${SHA_TAG}/_app/immutable/" \
+            --endpoint-url "https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com" \
+            --cache-control "public, max-age=31536000, immutable" \
+            --no-progress
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
@@ -135,7 +159,7 @@ jobs:
             echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
             # 이미지 pull
-            docker pull ${{ env.IMAGE_NAME }}:staging
+            docker pull ${{ env.IMAGE_NAME }}:${{ steps.tags.outputs.image_tag }}
 
             # 기존 컨테이너 강제 제거
             docker rm -f angple-staging 2>/dev/null || true
@@ -156,8 +180,10 @@ jobs:
               -v /home/damoang/angple-deploy/data-staging:/app/data \
               -e NODE_ENV=production \
               -e PORT=3011 \
+              -e ASSET_RELEASE_ID=${{ steps.tags.outputs.sha_tag }} \
+              -e ASSET_BASE_URL=${{ env.STATIC_ASSET_BASE_ROOT }}/${{ steps.tags.outputs.sha_tag }} \
               $ENV_FLAG \
-              ${{ env.IMAGE_NAME }}:staging
+              ${{ env.IMAGE_NAME }}:${{ steps.tags.outputs.image_tag }}
 
             # 헬스체크 대기
             echo "Waiting for health check..."
@@ -189,7 +215,8 @@ jobs:
               '### Staging 배포 완료',
               '',
               `**URL**: https://dev.damoang.net`,
-              `**이미지**: \`staging-${sha}\``,
+              `**이미지**: \`${{ steps.tags.outputs.image_tag }}\``,
+              `**Static Release**: \`${sha}\``,
               `**커밋**: ${context.payload.pull_request.head.sha}`,
               '',
               '> 변경사항을 dev.damoang.net에서 확인하세요.'

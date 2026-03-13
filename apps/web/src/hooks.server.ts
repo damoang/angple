@@ -62,6 +62,7 @@ const COOKIE_DOMAIN = env.COOKIE_DOMAIN || '';
 // CSP에 추가할 사이트별 도메인 (런타임 환경변수)
 const ADS_URL = env.ADS_URL || '';
 const LEGACY_URL = env.LEGACY_URL || '';
+const ASSET_BASE_URL = (env.ASSET_BASE_URL || '').replace(/\/+$/, '');
 
 /** CDN 캐시 가능한 공개 경로 (비로그인 시만 적용) */
 const PUBLIC_CACHEABLE_PATHS = ['/feed', '/games', '/info'];
@@ -112,6 +113,14 @@ function isBoardListPath(pathname: string, searchParams: URLSearchParams): boole
 const POST_DETAIL_REGEX = /^\/[a-z][a-z0-9_-]{1,20}\/\d+$/;
 function isPostDetailPath(pathname: string): boolean {
     return POST_DETAIL_REGEX.test(pathname);
+}
+
+function rewriteImmutableAssetUrls(html: string): string {
+    if (!ASSET_BASE_URL) return html;
+    return html.replace(
+        /(["'(])(?:\.\/|\/)?_app\/immutable\//g,
+        `$1${ASSET_BASE_URL}/_app/immutable/`
+    );
 }
 
 /**
@@ -264,16 +273,17 @@ function buildCsp(): string {
     // 사이트별 도메인을 CSP에 동적 추가
     const adsHost = ADS_URL ? ` ${ADS_URL}` : '';
     const legacyHost = LEGACY_URL ? ` ${LEGACY_URL}` : '';
+    const assetOrigin = ASSET_BASE_URL ? ` ${new URL(ASSET_BASE_URL).origin}` : '';
 
     const directives: string[] = [
         "default-src 'self' https://damoang.net https://*.damoang.net",
         // SvelteKit + GAM(GPT) + AdSense + Turnstile 스크립트 허용
-        `script-src 'self' 'unsafe-inline' 'unsafe-eval' https://challenges.cloudflare.com https://securepubads.g.doubleclick.net https://googleads.g.doubleclick.net https://pagead2.googlesyndication.com${adsHost} https://www.googletagservices.com https://www.googletagmanager.com https://adservice.google.com https://partner.googleadservices.com https://tpc.googlesyndication.com https://www.google.com https://fundingchoicesmessages.google.com https://*.googlesyndication.com https://*.doubleclick.net https://*.gstatic.com https://*.adtrafficquality.google https://cdn.ampproject.org`,
-        `style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com${adsHost}`,
-        "font-src 'self' https://cdn.jsdelivr.net https://fonts.gstatic.com",
-        "img-src 'self' data: blob: https:",
+        `script-src 'self' 'unsafe-inline' 'unsafe-eval' https://challenges.cloudflare.com https://securepubads.g.doubleclick.net https://googleads.g.doubleclick.net https://pagead2.googlesyndication.com${adsHost}${assetOrigin} https://www.googletagservices.com https://www.googletagmanager.com https://adservice.google.com https://partner.googleadservices.com https://tpc.googlesyndication.com https://www.google.com https://fundingchoicesmessages.google.com https://*.googlesyndication.com https://*.doubleclick.net https://*.gstatic.com https://*.adtrafficquality.google https://cdn.ampproject.org`,
+        `style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com${adsHost}${assetOrigin}`,
+        `font-src 'self' https://cdn.jsdelivr.net https://fonts.gstatic.com${assetOrigin}`,
+        `img-src 'self' data: blob: https:${assetOrigin}`,
         // API 및 광고 서버 연결 허용
-        `connect-src 'self' http://localhost:* ws://localhost:* https://*.damoang.net https://damoang.net${legacyHost}${adsHost} https://pagead2.googlesyndication.com https://securepubads.g.doubleclick.net https://www.google-analytics.com https://cdn.jsdelivr.net https://*.google.com https://*.googlesyndication.com https://*.doubleclick.net https://ep1.adtrafficquality.google https://ep2.adtrafficquality.google https://*.adtrafficquality.google https://*.gstatic.com https://cdn.ampproject.org`,
+        `connect-src 'self' http://localhost:* ws://localhost:* https://*.damoang.net https://damoang.net${legacyHost}${adsHost}${assetOrigin} https://pagead2.googlesyndication.com https://securepubads.g.doubleclick.net https://www.google-analytics.com https://cdn.jsdelivr.net https://*.google.com https://*.googlesyndication.com https://*.doubleclick.net https://ep1.adtrafficquality.google https://ep2.adtrafficquality.google https://*.adtrafficquality.google https://*.gstatic.com https://cdn.ampproject.org`,
         // YouTube, 임베드 플랫폼, Google 광고, Turnstile iframe 허용
         "frame-src 'self' https://challenges.cloudflare.com https://www.youtube.com https://www.youtube-nocookie.com https://platform.twitter.com https://player.vimeo.com https://clips.twitch.tv https://player.twitch.tv https://www.tiktok.com https://www.instagram.com https://www.redditmedia.com https://embed.bsky.app https://googleads.g.doubleclick.net https://securepubads.g.doubleclick.net https://tpc.googlesyndication.com https://www.google.com https://*.googlesyndication.com https://*.doubleclick.net https://*.adtrafficquality.google",
         "frame-ancestors 'self'",
@@ -401,7 +411,20 @@ export const handle: Handle = async ({ event, resolve }) => {
         !CSRF_EXEMPT_PATHS.some((p) => pathname.startsWith(p))
     ) {
         const csrfHeader = event.request.headers.get('x-csrf-token');
-        if (csrfHeader !== event.locals.csrfToken) {
+        let csrfFormValue: string | null = null;
+        const contentType = event.request.headers.get('content-type') || '';
+        if (
+            contentType.includes('application/x-www-form-urlencoded') ||
+            contentType.includes('multipart/form-data')
+        ) {
+            try {
+                const formData = await event.request.clone().formData();
+                csrfFormValue = String(formData.get('_csrf') || '');
+            } catch {
+                csrfFormValue = null;
+            }
+        }
+        if (csrfHeader !== event.locals.csrfToken && csrfFormValue !== event.locals.csrfToken) {
             return new Response(JSON.stringify({ error: 'CSRF 토큰이 유효하지 않습니다.' }), {
                 status: 403,
                 headers: { 'Content-Type': 'application/json' }
@@ -501,7 +524,9 @@ export const handle: Handle = async ({ event, resolve }) => {
                 transformPageChunk: ({ html }) => {
                     const cls = htmlClass ? ` class="${htmlClass}"` : '';
                     const sty = ` style="--row-pad-extra:${dPad};--comment-pad-extra:${dPad}"`;
-                    return html.replace('<html lang="ko">', `<html lang="ko"${cls}${sty}>`);
+                    return rewriteImmutableAssetUrls(
+                        html.replace('<html lang="ko">', `<html lang="ko"${cls}${sty}>`)
+                    );
                 }
             });
 
@@ -566,7 +591,9 @@ export const handle: Handle = async ({ event, resolve }) => {
         transformPageChunk: ({ html }) => {
             const cls = htmlClass ? ` class="${htmlClass}"` : '';
             const sty = ` style="--row-pad-extra:${dPad};--comment-pad-extra:${dPad}"`;
-            return html.replace('<html lang="ko">', `<html lang="ko"${cls}${sty}>`);
+            return rewriteImmutableAssetUrls(
+                html.replace('<html lang="ko">', `<html lang="ko"${cls}${sty}>`)
+            );
         }
     });
 

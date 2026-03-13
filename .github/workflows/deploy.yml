@@ -8,6 +8,7 @@ on:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ghcr.io/damoang/angple-web
+  STATIC_ASSET_BASE_ROOT: https://static.damoang.net/releases
 
 jobs:
   build:
@@ -60,6 +61,32 @@ jobs:
           echo "VITE_GAM_SITE_NAME=damoang" >> apps/web/.env
           pnpm --filter web build
 
+      - name: Set image tags
+        id: tags
+        run: echo "sha_tag=sha-${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+
+      - name: Upload immutable assets to R2
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.CLOUDFLARE_R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.CLOUDFLARE_R2_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: auto
+          R2_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_R2_ACCOUNT_ID }}
+          R2_BUCKET: ${{ secrets.CLOUDFLARE_R2_BUCKET }}
+          SHA_TAG: ${{ steps.tags.outputs.sha_tag }}
+        run: |
+          for name in AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY R2_ACCOUNT_ID R2_BUCKET SHA_TAG; do
+            if [ -z "${!name}" ]; then
+              echo "Missing required R2 variable: $name"
+              exit 1
+            fi
+          done
+
+          aws s3 sync apps/web/build/client/_app/immutable/ \
+            "s3://${R2_BUCKET}/releases/${SHA_TAG}/_app/immutable/" \
+            --endpoint-url "https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com" \
+            --cache-control "public, max-age=31536000, immutable" \
+            --no-progress
+
       - name: Prepare deploy package
         run: |
           pnpm --filter web deploy --prod --legacy apps/web/deploy
@@ -78,10 +105,6 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Set image tags
-        id: tags
-        run: echo "sha_tag=sha-${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
 
       - name: Build and push
         id: build_image
@@ -117,13 +140,15 @@ jobs:
       - name: Deploy canary via SSM
         env:
           IMAGE_TAG: ${{ needs.build.outputs.sha_tag }}
+          APPROVAL_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          ASSET_BASE_URL: ${{ env.STATIC_ASSET_BASE_ROOT }}/${{ needs.build.outputs.sha_tag }}
         run: |
           COMMAND_ID=$(aws ssm send-command \
             --instance-ids "i-038a1d1f00798d94b" \
             --document-name "AWS-RunShellScript" \
             --parameters "{
               \"commands\": [
-                \"export GHCR_TOKEN='${{ secrets.GITHUB_TOKEN }}' TELEGRAM_BOT_TOKEN='${{ secrets.TELEGRAM_BOT_TOKEN }}' TELEGRAM_DEPLOY_CHAT_ID='${{ secrets.TELEGRAM_DEPLOY_CHAT_ID }}' DISCORD_WEBHOOK_URL='https://discord.com/api/webhooks/1435940653375815730/${{ secrets.DISCORD_WEBHOOK_TOKEN_WEB }}' && /home/angple/k8s/prod/deploy.sh web $IMAGE_TAG --canary-only\"
+                \"export GHCR_TOKEN='${{ secrets.GITHUB_TOKEN }}' TELEGRAM_BOT_TOKEN='${{ secrets.TELEGRAM_BOT_TOKEN }}' TELEGRAM_DEPLOY_CHAT_ID='${{ secrets.TELEGRAM_DEPLOY_CHAT_ID }}' DISCORD_WEBHOOK_URL='https://discord.com/api/webhooks/1435940653375815730/${{ secrets.DISCORD_WEBHOOK_TOKEN_WEB }}' APPROVAL_URL='${APPROVAL_URL}' ASSET_BASE_URL='${ASSET_BASE_URL}' && /home/angple/k8s/prod/deploy.sh web $IMAGE_TAG --canary-only\"
               ]
             }" \
             --timeout-seconds 600 \
@@ -238,13 +263,14 @@ jobs:
       - name: Deploy production via SSM
         env:
           IMAGE_TAG: ${{ needs.build.outputs.sha_tag }}
+          ASSET_BASE_URL: ${{ env.STATIC_ASSET_BASE_ROOT }}/${{ needs.build.outputs.sha_tag }}
         run: |
           COMMAND_ID=$(aws ssm send-command \
             --instance-ids "i-038a1d1f00798d94b" \
             --document-name "AWS-RunShellScript" \
             --parameters "{
               \"commands\": [
-                \"export GHCR_TOKEN='${{ secrets.GITHUB_TOKEN }}' TELEGRAM_BOT_TOKEN='${{ secrets.TELEGRAM_BOT_TOKEN }}' TELEGRAM_DEPLOY_CHAT_ID='${{ secrets.TELEGRAM_DEPLOY_CHAT_ID }}' DISCORD_WEBHOOK_URL='https://discord.com/api/webhooks/1435940653375815730/${{ secrets.DISCORD_WEBHOOK_TOKEN_WEB }}' && /home/angple/k8s/prod/deploy.sh web $IMAGE_TAG --skip-canary\"
+                \"export GHCR_TOKEN='${{ secrets.GITHUB_TOKEN }}' TELEGRAM_BOT_TOKEN='${{ secrets.TELEGRAM_BOT_TOKEN }}' TELEGRAM_DEPLOY_CHAT_ID='${{ secrets.TELEGRAM_DEPLOY_CHAT_ID }}' DISCORD_WEBHOOK_URL='https://discord.com/api/webhooks/1435940653375815730/${{ secrets.DISCORD_WEBHOOK_TOKEN_WEB }}' ASSET_BASE_URL='${ASSET_BASE_URL}' && /home/angple/k8s/prod/deploy.sh web $IMAGE_TAG --skip-canary\"
               ]
             }" \
             --timeout-seconds 600 \
