@@ -196,51 +196,38 @@ function clearCachesAndReload(): void {
     });
 }
 
-function showUpdateNotice(): void {
-    if (document.getElementById('__angple_update_banner__')) return;
-    const banner = document.createElement('div');
-    banner.id = '__angple_update_banner__';
-    banner.setAttribute(
-        'style',
-        'position:fixed;top:0;left:0;right:0;z-index:99999;display:flex;flex-direction:column;align-items:center;padding:0;background:#2563eb;color:white;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;font-size:14px;box-shadow:0 2px 8px rgba(0,0,0,0.15)'
-    );
-    banner.innerHTML = `
-        <div style="display:flex;align-items:center;justify-content:center;gap:12px;padding:10px 16px;width:100%;flex-wrap:wrap">
-            <span>새 버전이 배포되었습니다.</span>
-            <button id="__angple_update_reload__" style="padding:5px 16px;font-size:13px;cursor:pointer;border-radius:4px;border:1px solid rgba(255,255,255,0.4);background:transparent;color:white;font-weight:500;white-space:nowrap">새로고침</button>
-            <button id="__angple_update_force_clear__" style="padding:5px 16px;font-size:13px;cursor:pointer;border-radius:4px;border:none;background:rgba(255,255,255,0.25);color:white;font-weight:600;white-space:nowrap">강력 캐시 삭제</button>
-            <button id="__angple_update_close__" style="padding:2px 6px;font-size:18px;cursor:pointer;border:none;background:transparent;color:white;line-height:1" aria-label="닫기">&times;</button>
-        </div>`;
-    document.body.prepend(banner);
-    document.getElementById('__angple_update_reload__')?.addEventListener('click', () => {
-        clearCachesAndReload();
-    });
-    document.getElementById('__angple_update_force_clear__')?.addEventListener('click', () => {
-        forceClearAllAndReload();
-    });
-    document.getElementById('__angple_update_close__')?.addEventListener('click', () => {
-        banner.remove();
-    });
+const CHUNK_FORCE_CLEAR_KEY = '__angple_chunk_force_clear__';
+
+function recoverChunkErrorSilently(): boolean {
+    try {
+        const count = Number(sessionStorage.getItem(CHUNK_FORCE_CLEAR_KEY) || '0');
+        if (count >= 1) return false;
+        sessionStorage.setItem(CHUNK_FORCE_CLEAR_KEY, String(count + 1));
+    } catch {
+        return false;
+    }
+    forceClearAllAndReload();
+    return true;
 }
 
-// app.html 통합 핸들러와 연동: exhausted 상태면 배너 표시
+// app.html 통합 핸들러와 연동: exhausted 상태면 상단 배너 대신 1회 강력 새로고침
 if (typeof window !== 'undefined') {
-    // 페이지 로드 시 exhausted 체크
     const chunkError = (window as any).__angpleChunkError;
     if (chunkError) {
         const state = chunkError.getState();
         if (state.exhausted) {
-            // DOM 준비 후 배너 표시
-            if (document.readyState === 'loading') {
-                document.addEventListener('DOMContentLoaded', () => showUpdateNotice());
-            } else {
-                showUpdateNotice();
-            }
+            recoverChunkErrorSilently();
         }
     }
-    // 리로드 한도 초과 이벤트 수신
     window.addEventListener('angple:chunk-error-exhausted', () => {
-        showUpdateNotice();
+        if (!recoverChunkErrorSilently()) {
+            guardedSend({
+                type: 'chunk_error_exhausted',
+                message: 'Chunk error recovery exhausted after forced clear reload',
+                url: window.location.href,
+                userAgent: navigator.userAgent
+            });
+        }
     });
 }
 
