@@ -428,7 +428,7 @@
             // 아바타 스택 갱신
             loadCommentLikerAvatarsBatch([commentId]);
         } catch (err) {
-            const msg = err instanceof Error ? err.message : '댓글 추천에 실패했습니다.';
+            const msg = err instanceof Error ? err.message : '댓글 공감에 실패했습니다.';
             toast.error(msg);
             console.error('Failed to like comment:', err);
         } finally {
@@ -464,7 +464,7 @@
             }
             commentDislikes.set(commentId, response.dislikes);
         } catch (err) {
-            const msg = err instanceof Error ? err.message : '댓글 비추천에 실패했습니다.';
+            const msg = err instanceof Error ? err.message : '댓글 비공감에 실패했습니다.';
             toast.error(msg);
             console.error('Failed to dislike comment:', err);
         } finally {
@@ -970,19 +970,19 @@
                                         onclick={() => handleLikeComment(String(comment.id))}
                                         disabled={likingComment === String(comment.id)}
                                         class="flex items-center px-1.5 py-1 transition-opacity hover:opacity-80"
-                                        title="추천"
+                                        title="공감"
                                     >
                                         <img
                                             src={isCommentLiked(String(comment.id))
                                                 ? '/images/thumbup-choose.gif?v=2'
                                                 : '/images/thumbup.png?v=2'}
-                                            alt="추천"
+                                            alt="공감"
                                             class="size-5"
                                         />
                                     </button>
                                 {:else}
                                     <span class="flex items-center px-1.5 py-1">
-                                        <img src="/images/thumbup.png" alt="추천" class="size-5" />
+                                        <img src="/images/thumbup.png" alt="공감" class="size-5" />
                                     </span>
                                 {/if}
                                 <button
@@ -993,7 +993,7 @@
                                     )
                                         ? 'border-liked/40 text-liked'
                                         : 'border-border'} px-2 py-1 text-xs font-medium transition-colors"
-                                    title="추천인 목록보기"
+                                    title="공감한 사람 보기"
                                     style={getCommentLikes(comment) === 0 ? 'opacity: 0.25;' : ''}
                                 >
                                     {getCommentLikes(comment).toLocaleString()}
@@ -1314,13 +1314,13 @@
                                         src={isCommentLiked(String(comment.id))
                                             ? '/images/thumbup-choose.gif?v=2'
                                             : '/images/thumbup.png?v=2'}
-                                        alt="추천"
+                                        alt="공감"
                                         class="size-4"
                                     />
                                 </button>
                             {:else}
                                 <span class="flex items-center px-1 py-0.5">
-                                    <img src="/images/thumbup.png" alt="추천" class="size-4" />
+                                    <img src="/images/thumbup.png" alt="공감" class="size-4" />
                                 </span>
                             {/if}
                             <button

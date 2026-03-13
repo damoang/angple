@@ -238,7 +238,7 @@
                 class="border-border bg-muted/30 text-muted-foreground hidden border-b px-4 py-1.5 text-sm font-medium md:block"
             >
                 <div class="grid grid-cols-[60px_1fr_auto_auto_auto] items-center gap-0">
-                    <div class="text-center">추천</div>
+                    <div class="text-center">공감</div>
                     <div>제목</div>
                     <div class="w-[120px] pl-1">이름</div>
                     <div class="w-[70px] pl-1 text-center">날짜</div>

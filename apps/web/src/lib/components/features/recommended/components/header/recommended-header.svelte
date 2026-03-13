@@ -8,5 +8,5 @@
     >
         <Flame class="h-4 w-4 text-orange-500" />
     </div>
-    <h3 class="text-foreground text-lg font-semibold">추천 글</h3>
+    <h3 class="text-foreground text-lg font-semibold">공감 글</h3>
 </div>

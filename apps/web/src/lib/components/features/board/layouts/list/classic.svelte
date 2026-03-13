@@ -273,7 +273,7 @@
                         <span
                             class="mobile-likes-pill mobile-meta-sep inline-flex items-center gap-0.5"
                             ><img
-                                alt="추천"
+                                alt="공감"
                                 class="size-3.5"
                                 src="/images/thumbup.png?v=2"
                             />{post.likes}</span
@@ -282,7 +282,7 @@
                         <span
                             class="{mobileLikesClass} mobile-meta-sep inline-flex items-center gap-0.5"
                             ><img
-                                alt="추천"
+                                alt="공감"
                                 class="size-3.5"
                                 src="/images/thumbup.png?v=2"
                             />{post.likes}</span
@@ -314,7 +314,7 @@
 
     .post-title,
     [class^='post-title-read-'] {
-        font-size: 1rem;
+        font-size: var(--list-font-size, 1rem);
         transition: color 0.8s ease-in-out;
     }
 

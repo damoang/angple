@@ -341,7 +341,7 @@ export const POSITION_MAP: Record<string, string> = {
 export const POSITION_LABELS: Record<string, string> = {
     'header-after': '메뉴 하단',
     'index-head': '상단 광고',
-    'index-top': '추천글 하단 광고',
+    'index-top': '공감글 하단 광고',
     'index-news-economy': '소식/구매 사이',
     'index-middle-1': '중간 광고 1',
     'index-middle-2': '중간 광고 2',

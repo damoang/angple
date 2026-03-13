@@ -32,7 +32,7 @@
     const filters = [
         { key: '', label: '전체' },
         { key: 'comment', label: '댓글' },
-        { key: 'like', label: '추천' },
+        { key: 'like', label: '공감' },
         { key: 'mention', label: '멘션' },
         { key: 'memo', label: '쪽지' },
         { key: 'system', label: '시스템' }

@@ -621,11 +621,11 @@
                 </div>
                 <div class="flex items-center gap-3">
                     <Switch bind:checked={formUseGood} disabled={saving} />
-                    <Label class="text-xs">추천 기능 사용</Label>
+                    <Label class="text-xs">공감 기능 사용</Label>
                 </div>
                 <div class="flex items-center gap-3">
                     <Switch bind:checked={formUseNogood} disabled={saving} />
-                    <Label class="text-xs">비추천 기능 사용</Label>
+                    <Label class="text-xs">비공감 기능 사용</Label>
                 </div>
                 <div class="flex items-center gap-3">
                     <Switch bind:checked={formUseCategory} disabled={saving} />

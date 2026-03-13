@@ -38,6 +38,7 @@
         type FontFamily,
         type LineHeight,
         type ContentFontSize,
+        type ListFontSize,
         type ShortcutButtonSize
     } from '$lib/stores/ui-settings.svelte.js';
     import { densityStore } from '$lib/stores/density.svelte.js';
@@ -95,6 +96,13 @@
         { value: 'xlarge', label: '아주 크게 (22px)' },
         { value: '2xlarge', label: '매우 크게 (24px)' },
         { value: '3xlarge', label: '최대 (28px)' }
+    ];
+
+    const listFontSizeOptions: { value: ListFontSize; label: string }[] = [
+        { value: 'small', label: '작게 (13px)' },
+        { value: 'base', label: '보통 (15px)' },
+        { value: 'large', label: '크게 (17px)' },
+        { value: 'xlarge', label: '아주 크게 (19px)' }
     ];
 
     const readStyleOptions: { value: ReadPostStyle; label: string }[] = [
@@ -349,6 +357,33 @@
             <Card>
                 <CardHeader>
                     <CardTitle class="flex items-center gap-2">
+                        <Type class="h-5 w-5" />
+                        공감글 글씨 크기
+                    </CardTitle>
+                    <CardDescription
+                        >메인화면 공감 컴포넌트의 글씨 크기를 조정합니다.</CardDescription
+                    >
+                </CardHeader>
+                <CardContent>
+                    <div class="flex flex-wrap gap-2">
+                        {#each listFontSizeOptions as opt (opt.value)}
+                            <button
+                                class="rounded-lg border px-4 py-2 text-sm transition-colors {uiSettingsStore.recommendFontSize ===
+                                opt.value
+                                    ? 'border-primary bg-primary/10 text-foreground'
+                                    : 'border-border text-muted-foreground hover:border-foreground/20 hover:text-foreground'}"
+                                onclick={() => uiSettingsStore.setRecommendFontSize(opt.value)}
+                            >
+                                {opt.label}
+                            </button>
+                        {/each}
+                    </div>
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle class="flex items-center gap-2">
                         <LayoutList class="h-5 w-5" />
                         목록 밀도
                     </CardTitle>
@@ -418,6 +453,26 @@
                             checked={uiSettingsStore.titleBold}
                             onCheckedChange={(v) => uiSettingsStore.setTitleBold(v)}
                         />
+                    </div>
+                    <Separator />
+                    <div>
+                        <Label>목록 글씨 크기</Label>
+                        <p class="text-muted-foreground mb-2 text-xs">
+                            게시판 목록에서 제목의 글씨 크기를 조정합니다
+                        </p>
+                        <div class="flex flex-wrap gap-2">
+                            {#each listFontSizeOptions as opt (opt.value)}
+                                <button
+                                    class="rounded-lg border px-4 py-2 text-sm transition-colors {uiSettingsStore.listFontSize ===
+                                    opt.value
+                                        ? 'border-primary bg-primary/10 text-foreground'
+                                        : 'border-border text-muted-foreground hover:border-foreground/20 hover:text-foreground'}"
+                                    onclick={() => uiSettingsStore.setListFontSize(opt.value)}
+                                >
+                                    {opt.label}
+                                </button>
+                            {/each}
+                        </div>
                     </div>
                 </CardContent>
             </Card>
@@ -818,7 +873,7 @@
                         <div>
                             <Label>터치 제스처 사용</Label>
                             <p class="text-muted-foreground text-xs">
-                                좌/우 스와이프: 다음/이전글, 더블탭: 추천
+                                좌/우 스와이프: 다음/이전글, 더블탭: 공감
                             </p>
                         </div>
                         <Switch
@@ -930,9 +985,9 @@
                         <Separator />
                         <div class="flex items-center justify-between">
                             <div>
-                                <Label>추천 알림</Label>
+                                <Label>공감 알림</Label>
                                 <p class="text-muted-foreground text-xs">
-                                    내 글이 추천을 받으면 알림을 받습니다
+                                    내 글이 공감을 받으면 알림을 받습니다
                                 </p>
                             </div>
                             <Switch
@@ -942,9 +997,9 @@
                         </div>
                         {#if notiPrefs.noti_like}
                             <div class="bg-muted/50 ml-4 rounded-md p-3">
-                                <Label>추천 임계값</Label>
+                                <Label>공감 임계값</Label>
                                 <p class="text-muted-foreground mb-2 text-xs">
-                                    추천 수가 이 값 이상일 때만 알림을 받습니다
+                                    공감 수가 이 값 이상일 때만 알림을 받습니다
                                 </p>
                                 <Input
                                     type="number"

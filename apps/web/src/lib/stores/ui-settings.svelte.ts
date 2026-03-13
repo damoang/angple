@@ -14,6 +14,7 @@ export type LineHeight = 'compact' | 'normal' | 'relaxed' | 'loose';
 export type ShortcutButtonSize = 'small' | 'medium' | 'large';
 export type ListViewMode = 'classic' | 'modern';
 export type ContentFontSize = 'small' | 'base' | 'large' | 'xlarge' | '2xlarge' | '3xlarge';
+export type ListFontSize = 'small' | 'base' | 'large' | 'xlarge';
 
 interface UiSettings {
     // 레이아웃
@@ -36,6 +37,9 @@ interface UiSettings {
     enableTouchGestures: boolean;
     swipeThreshold: number;
     doubleTapInterval: number;
+    // 글씨 크기
+    listFontSize: ListFontSize;
+    recommendFontSize: ListFontSize;
     // 기타 (메모)
     hideMemo: boolean;
     hideMemoInList: boolean;
@@ -56,6 +60,8 @@ const DEFAULTS: UiSettings = {
     showShortcutBadge: true,
     showShortcutButtons: false,
     shortcutButtonSize: 'medium',
+    listFontSize: 'base',
+    recommendFontSize: 'base',
     enableTouchGestures: false,
     swipeThreshold: 50,
     doubleTapInterval: 300,
@@ -77,6 +83,13 @@ const FONT_FAMILY_VALUES: Record<FontFamily, string> = {
         "'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto, 'Helvetica Neue', 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', sans-serif",
     'nanum-gothic': "'NanumGothic', 'Nanum Gothic', sans-serif",
     'noto-sans': "'Noto Sans KR', sans-serif"
+};
+
+export const LIST_FONT_SIZES: Record<ListFontSize, string> = {
+    small: '13px',
+    base: '15px',
+    large: '17px',
+    xlarge: '19px'
 };
 
 /** 본문 흐림 대상 키워드 (제목에 포함 시 블러 처리) */
@@ -113,6 +126,12 @@ function createUiSettingsStore() {
         const html = document.documentElement;
 
         html.style.setProperty('--content-line-height', LINE_HEIGHT_VALUES[settings.lineHeight]);
+
+        html.style.setProperty('--list-font-size', LIST_FONT_SIZES[settings.listFontSize]);
+        html.style.setProperty(
+            '--recommend-font-size',
+            LIST_FONT_SIZES[settings.recommendFontSize]
+        );
 
         const fontVal = FONT_FAMILY_VALUES[settings.fontFamily];
         if (fontVal) {
@@ -175,6 +194,22 @@ function createUiSettingsStore() {
                 }
             }
             save();
+        },
+        get listFontSize() {
+            return settings.listFontSize;
+        },
+        setListFontSize(v: ListFontSize) {
+            settings.listFontSize = v;
+            save();
+            applyCSS();
+        },
+        get recommendFontSize() {
+            return settings.recommendFontSize;
+        },
+        setRecommendFontSize(v: ListFontSize) {
+            settings.recommendFontSize = v;
+            save();
+            applyCSS();
         },
         get hideMyProfile() {
             return settings.hideMyProfile;

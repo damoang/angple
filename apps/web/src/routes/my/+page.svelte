@@ -29,7 +29,7 @@
     const tabs = [
         { id: 'posts', label: '내가 쓴 글', icon: FileText },
         { id: 'comments', label: '내가 쓴 댓글', icon: MessageSquare },
-        { id: 'liked', label: '추천한 글', icon: Heart },
+        { id: 'liked', label: '공감한 글', icon: Heart },
         { id: 'stats', label: '전체분석', icon: BarChart3 }
     ];
 
@@ -181,7 +181,7 @@
                                                 <span>·</span>
                                                 <span>조회 {post.views.toLocaleString()}</span>
                                                 <span>·</span>
-                                                <span>추천 {post.likes}</span>
+                                                <span>공감 {post.likes}</span>
                                                 <span>·</span>
                                                 <span>댓글 {post.comments_count}</span>
                                             </div>
@@ -264,7 +264,7 @@
                                                 <span>{formatDate(comment.created_at)}</span>
                                                 {#if comment.likes}
                                                     <span>·</span>
-                                                    <span>추천 {comment.likes}</span>
+                                                    <span>공감 {comment.likes}</span>
                                                 {/if}
                                             </div>
                                         </a>
@@ -305,13 +305,13 @@
                 {/if}
             {/if}
 
-            <!-- 추천한 글 -->
+            <!-- 공감한 글 -->
             {#if data.tab === 'liked'}
                 <Card class="bg-background">
                     <CardHeader>
                         <CardTitle class="flex items-center gap-2">
                             <Heart class="h-5 w-5" />
-                            추천한 글
+                            공감한 글
                             {#if result.likedPosts}
                                 <span class="text-muted-foreground text-sm font-normal">
                                     ({result.likedPosts.total}개)
@@ -340,7 +340,7 @@
                                                 <span>·</span>
                                                 <span>{formatDate(post.created_at)}</span>
                                                 <span>·</span>
-                                                <span>추천 {post.likes}</span>
+                                                <span>공감 {post.likes}</span>
                                             </div>
                                         </a>
                                     </li>
@@ -348,7 +348,7 @@
                             </ul>
                         {:else}
                             <p class="text-muted-foreground py-8 text-center">
-                                추천한 글이 없습니다.
+                                공감한 글이 없습니다.
                             </p>
                         {/if}
                     </CardContent>
