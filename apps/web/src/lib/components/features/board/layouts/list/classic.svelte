@@ -314,7 +314,7 @@
 
     .post-title,
     [class^='post-title-read-'] {
-        font-size: 1rem;
+        font-size: var(--list-font-size, 1rem);
         transition: color 0.8s ease-in-out;
     }
 

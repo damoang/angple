@@ -43,9 +43,10 @@
             </span>
             <!-- text-truncate -->
             <div
-                class="min-w-0 flex-1 truncate text-base leading-relaxed {getReadPostClasses(
+                class="min-w-0 flex-1 truncate leading-relaxed {getReadPostClasses(
                     showReadState && readPostsStore.isRead(getBoardId(post.url), post.id)
                 )}"
+                style="font-size: var(--recommend-font-size, 1rem)"
             >
                 {post.title}
             </div>

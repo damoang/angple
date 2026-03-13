@@ -38,6 +38,7 @@
         type FontFamily,
         type LineHeight,
         type ContentFontSize,
+        type ListFontSize,
         type ShortcutButtonSize
     } from '$lib/stores/ui-settings.svelte.js';
     import { densityStore } from '$lib/stores/density.svelte.js';
@@ -95,6 +96,13 @@
         { value: 'xlarge', label: '아주 크게 (22px)' },
         { value: '2xlarge', label: '매우 크게 (24px)' },
         { value: '3xlarge', label: '최대 (28px)' }
+    ];
+
+    const listFontSizeOptions: { value: ListFontSize; label: string }[] = [
+        { value: 'small', label: '작게 (13px)' },
+        { value: 'base', label: '보통 (15px)' },
+        { value: 'large', label: '크게 (17px)' },
+        { value: 'xlarge', label: '아주 크게 (19px)' }
     ];
 
     const readStyleOptions: { value: ReadPostStyle; label: string }[] = [
@@ -349,6 +357,33 @@
             <Card>
                 <CardHeader>
                     <CardTitle class="flex items-center gap-2">
+                        <Type class="h-5 w-5" />
+                        추천글 글씨 크기
+                    </CardTitle>
+                    <CardDescription
+                        >메인화면 추천 컴포넌트의 글씨 크기를 조정합니다.</CardDescription
+                    >
+                </CardHeader>
+                <CardContent>
+                    <div class="flex flex-wrap gap-2">
+                        {#each listFontSizeOptions as opt (opt.value)}
+                            <button
+                                class="rounded-lg border px-4 py-2 text-sm transition-colors {uiSettingsStore.recommendFontSize ===
+                                opt.value
+                                    ? 'border-primary bg-primary/10 text-foreground'
+                                    : 'border-border text-muted-foreground hover:border-foreground/20 hover:text-foreground'}"
+                                onclick={() => uiSettingsStore.setRecommendFontSize(opt.value)}
+                            >
+                                {opt.label}
+                            </button>
+                        {/each}
+                    </div>
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle class="flex items-center gap-2">
                         <LayoutList class="h-5 w-5" />
                         목록 밀도
                     </CardTitle>
@@ -418,6 +453,26 @@
                             checked={uiSettingsStore.titleBold}
                             onCheckedChange={(v) => uiSettingsStore.setTitleBold(v)}
                         />
+                    </div>
+                    <Separator />
+                    <div>
+                        <Label>목록 글씨 크기</Label>
+                        <p class="text-muted-foreground mb-2 text-xs">
+                            게시판 목록에서 제목의 글씨 크기를 조정합니다
+                        </p>
+                        <div class="flex flex-wrap gap-2">
+                            {#each listFontSizeOptions as opt (opt.value)}
+                                <button
+                                    class="rounded-lg border px-4 py-2 text-sm transition-colors {uiSettingsStore.listFontSize ===
+                                    opt.value
+                                        ? 'border-primary bg-primary/10 text-foreground'
+                                        : 'border-border text-muted-foreground hover:border-foreground/20 hover:text-foreground'}"
+                                    onclick={() => uiSettingsStore.setListFontSize(opt.value)}
+                                >
+                                    {opt.label}
+                                </button>
+                            {/each}
+                        </div>
                     </div>
                 </CardContent>
             </Card>
