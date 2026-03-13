@@ -630,10 +630,7 @@
                 {@const posts = result.posts}
                 {@const notices = result.notices || []}
                 {@const pagination = result.pagination}
-                {@const filteredPosts =
-                    selectedCategory === '전체'
-                        ? posts
-                        : posts.filter((p) => p.category === selectedCategory)}
+                {@const filteredPosts = posts}
                 {@const importantNotices = notices.filter((n) => n.notice_type === 'important')}
                 {@const normalNotices = notices.filter((n) => n.notice_type !== 'important')}
                 {@const hasNotices = notices.length > 0}
@@ -921,15 +918,9 @@
                         >
                     </div>
                     <p class="text-secondary-foreground mt-4 text-center text-sm">
-                        {#if selectedCategory !== '전체'}
-                            {filteredPosts.length}개 표시 · {pagination.page} / {pagination.totalPages}
-                            페이지
-                        {:else}
-                            {isSearching
-                                ? '검색결과 '
-                                : '전체 '}{pagination.total.toLocaleString()}개 중 {pagination.page}
-                            / {pagination.totalPages} 페이지
-                        {/if}
+                        {isSearching ? '검색결과 ' : '전체 '}{pagination.total.toLocaleString()}개
+                        중 {pagination.page}
+                        / {pagination.totalPages} 페이지
                     </p>
                     {#if widgetLayoutStore.hasEnabledAds}
                         <div class="mt-3">
