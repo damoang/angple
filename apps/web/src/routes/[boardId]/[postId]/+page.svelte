@@ -706,7 +706,7 @@
     // 공지 상태
     let noticeType = $state<'normal' | 'important' | null>(null);
     $effect(() => {
-        noticeType = data.post.notice_type ?? null;
+        noticeType = data.post.notice_type ?? (data.post.is_notice ? 'important' : null);
     });
     let isTogglingNotice = $state(false);
 
