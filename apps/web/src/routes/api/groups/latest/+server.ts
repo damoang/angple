@@ -1,6 +1,6 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { loadLatestPostsPaginated } from '../../../groups/+page.server.js';
+import { loadLatestPostsPaginated } from '../../../groups/groups-data.js';
 
 export const GET: RequestHandler = async ({ url }) => {
     const page = Math.max(1, Number(url.searchParams.get('page')) || 1);
