@@ -8,6 +8,7 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { convertAffiliateUrl } from '$plugins/affiliate-link/lib/affiliate-api.server';
+import { sendAffiliateEvents } from '$lib/server/affiliate-events';
 
 export const POST: RequestHandler = async ({ request }) => {
     try {
@@ -18,7 +19,14 @@ export const POST: RequestHandler = async ({ request }) => {
             return json({ error: 'URL is required' }, { status: 400 });
         }
 
+        const startedAt = Date.now();
         const result = await convertAffiliateUrl(url, { bo_table, wr_id });
+        void sendAffiliateEvents([result], {
+            source: 'api_convert',
+            bo_table,
+            wr_id,
+            latency_ms: Date.now() - startedAt
+        });
         return json(result);
     } catch (error) {
         console.error('[Affiliate Convert] Error:', error);
