@@ -33,19 +33,22 @@ const groupBoardsCache = new TieredCache<GroupBoard[]>('group-boards', 600_000, 
 /** 소모임 최근글 캐시: L1 3분, L2(Redis) 5분 */
 const groupLatestCache = new TieredCache<GroupLatestPost[]>('group-latest', 180_000, 300, 1);
 
+/** 소모임 추천글 캐시: L1 5분, L2(Redis) 15분 */
+const groupPopularCache = new TieredCache<GroupLatestPost[]>('group-popular', 300_000, 900, 1);
+
 export const load: PageServerLoad = async () => {
     const cacheKey = 'all';
 
     try {
-        // 게시판 목록과 최근글을 병렬 조회
-        const [boards, latestPosts] = await Promise.all([
+        const [boards, latestPosts, popularPosts] = await Promise.all([
             loadGroupBoards(cacheKey),
-            loadLatestPosts()
+            loadLatestPosts(),
+            loadPopularPosts()
         ]);
 
-        return { boards, latestPosts };
+        return { boards, latestPosts, popularPosts };
     } catch {
-        return { boards: [], latestPosts: [] };
+        return { boards: [], latestPosts: [], popularPosts: [] };
     }
 };
 
@@ -69,6 +72,28 @@ async function loadGroupBoards(cacheKey: string): Promise<GroupBoard[]> {
     const boards = rows as GroupBoard[];
     await groupBoardsCache.set(cacheKey, boards);
     return boards;
+}
+
+async function loadPopularPosts(): Promise<GroupLatestPost[]> {
+    const cached = await groupPopularCache.get('popular');
+    if (cached) return cached;
+
+    const [rows] = await readPool.query<RowDataPacket[]>(
+        `SELECT n.bo_table, b.bo_subject, n.wr_id, n.wr_subject,
+                n.mb_id, IFNULL(m.mb_nick, n.mb_id) AS mb_nick,
+                n.bn_datetime AS wr_datetime, n.wr_comment, n.wr_good
+		 FROM g5_board_new n
+		 JOIN g5_board b ON b.bo_table = n.bo_table AND b.gr_id = 'group'
+		 LEFT JOIN g5_member m ON m.mb_id = n.mb_id
+		 WHERE n.wr_parent = n.wr_id
+		   AND n.bn_datetime >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+		   AND n.wr_good >= 1
+		 ORDER BY n.wr_good DESC, n.bn_datetime DESC
+		 LIMIT 30`
+    );
+    const posts = rows as GroupLatestPost[];
+    await groupPopularCache.set('popular', posts);
+    return posts;
 }
 
 async function loadLatestPosts(): Promise<GroupLatestPost[]> {
