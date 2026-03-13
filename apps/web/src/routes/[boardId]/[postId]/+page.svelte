@@ -1141,6 +1141,20 @@
         </div>
     {/if}
 
+    <!-- 브레드크럼 -->
+    <nav
+        class="text-muted-foreground -mx-5 mb-1 flex items-center gap-1 px-5 text-sm md:mx-0 md:px-0"
+        aria-label="breadcrumb"
+    >
+        <a href="/" class="hover:text-foreground transition-colors">홈</a>
+        <span class="text-muted-foreground/50">/</span>
+        <a href="/{data.boardId}" class="hover:text-foreground transition-colors">{boardTitle}</a>
+        <span class="text-muted-foreground/50">/</span>
+        <span class="text-foreground max-w-[200px] truncate sm:max-w-[400px]"
+            >{data.post.title}</span
+        >
+    </nav>
+
     <!-- 상단 네비게이션 -->
     <div class="-mx-5 mb-2 flex items-center gap-3 px-5 py-2 md:mx-0 md:px-0">
         <Button variant="outline" size="sm" onclick={goBack} class="shrink-0">← 목록으로</Button>

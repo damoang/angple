@@ -71,6 +71,7 @@
     import { boardTypeRegistry } from '$lib/components/features/board/board-type-registry.js';
     import BoardMapHeader from '$lib/components/features/board/board-map-header.svelte';
     import EconomyShoppingBanner from '$lib/components/features/board/economy-shopping-banner.svelte';
+    import TagNav from '$lib/components/ui/tag-nav/tag-nav.svelte';
     import QAPostList from '$lib/components/features/board/qa-post-list.svelte';
     import BoardFavoriteButton from '$lib/components/features/board/board-favorite-button.svelte';
     import BoardSubscribeButton from '$lib/components/features/board/board-subscribe-button.svelte';
@@ -392,6 +393,11 @@
         </div>
     {:else}
         <div class="mx-auto pt-4">
+            <!-- 빠른 이동 네비게이션 -->
+            <div class="mb-4">
+                <TagNav />
+            </div>
+
             <!-- 최상단 배너 (슬롯 기반: 포크 시 slot-defaults.ts에서 커스터마이징) -->
             {#if widgetLayoutStore.hasEnabledAds}
                 <div class="mb-4">
@@ -416,6 +422,13 @@
                         <a
                             href="/{boardId}"
                             class="text-foreground hover:text-primary transition-colors"
+                            onclick={(e) => {
+                                if ($page.url.pathname === `/${boardId}` && !$page.url.search) {
+                                    e.preventDefault();
+                                    invalidateAll();
+                                    window.scrollTo(0, 0);
+                                }
+                            }}
                         >
                             {boardTitle}
                         </a>
@@ -569,11 +582,6 @@
                 <div class="mb-3" transition:slide={{ duration: 200 }}>
                     <SearchForm boardPath={`/${boardId}`} />
                 </div>
-            {/if}
-
-            <!-- 알뜰구매 쇼핑 바로가기 (검색 → GAM → 여기) -->
-            {#if boardId === 'economy'}
-                <EconomyShoppingBanner />
             {/if}
 
             <!-- 카테고리 탭 -->
