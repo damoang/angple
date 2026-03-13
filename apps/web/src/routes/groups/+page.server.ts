@@ -44,7 +44,8 @@ export const load: PageServerLoad = async () => {
         ]);
 
         return { boards, latestPosts };
-    } catch {
+    } catch (err) {
+        console.error('[groups] load error:', err);
         return { boards: [], latestPosts: [] };
     }
 };
@@ -75,18 +76,62 @@ async function loadLatestPosts(): Promise<GroupLatestPost[]> {
     const cached = await groupLatestCache.get('latest');
     if (cached) return cached;
 
+    // 1단계: g5_board_new에서 최근글 메타 정보 조회 (wr_subject는 이 테이블에 없음)
     const [rows] = await readPool.query<RowDataPacket[]>(
-        `SELECT n.bo_table, b.bo_subject, n.wr_id, n.wr_subject,
+        `SELECT n.bo_table, b.bo_subject, n.wr_id,
                 n.mb_id, IFNULL(m.mb_nick, n.mb_id) AS mb_nick,
                 n.bn_datetime AS wr_datetime, n.wr_comment, n.wr_good
-		 FROM g5_board_new n
-		 JOIN g5_board b ON b.bo_table = n.bo_table AND b.gr_id = 'group'
-		 LEFT JOIN g5_member m ON m.mb_id = n.mb_id
-		 WHERE n.wr_parent = n.wr_id
-		 ORDER BY n.bn_datetime DESC
-		 LIMIT 30`
+         FROM g5_board_new n
+         JOIN g5_board b ON b.bo_table = n.bo_table AND b.gr_id = 'group'
+         LEFT JOIN g5_member m ON m.mb_id = n.mb_id
+         WHERE n.wr_parent = n.wr_id
+         ORDER BY n.bn_datetime DESC
+         LIMIT 30`
     );
-    const posts = rows as GroupLatestPost[];
+
+    if (rows.length === 0) {
+        await groupLatestCache.set('latest', []);
+        return [];
+    }
+
+    // 2단계: 게시판별로 g5_write_{bo_table}에서 제목 조회
+    const byBoard = new Map<string, number[]>();
+    for (const row of rows) {
+        const ids = byBoard.get(row.bo_table) || [];
+        ids.push(row.wr_id);
+        byBoard.set(row.bo_table, ids);
+    }
+
+    const subjectMap = new Map<string, string>();
+    await Promise.all(
+        Array.from(byBoard.entries()).map(async ([boTable, wrIds]) => {
+            try {
+                const placeholders = wrIds.map(() => '?').join(',');
+                const [subRows] = await readPool.query<RowDataPacket[]>(
+                    `SELECT wr_id, wr_subject FROM g5_write_${boTable} WHERE wr_id IN (${placeholders})`,
+                    wrIds
+                );
+                for (const r of subRows) {
+                    subjectMap.set(`${boTable}:${r.wr_id}`, r.wr_subject);
+                }
+            } catch {
+                // 테이블이 없거나 에러 시 무시
+            }
+        })
+    );
+
+    const posts: GroupLatestPost[] = rows.map((row) => ({
+        bo_table: row.bo_table,
+        bo_subject: row.bo_subject,
+        wr_id: row.wr_id,
+        wr_subject: subjectMap.get(`${row.bo_table}:${row.wr_id}`) || '(제목 없음)',
+        mb_id: row.mb_id,
+        mb_nick: row.mb_nick,
+        wr_datetime: row.wr_datetime,
+        wr_comment: row.wr_comment,
+        wr_good: row.wr_good
+    }));
+
     await groupLatestCache.set('latest', posts);
     return posts;
 }

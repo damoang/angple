@@ -10,7 +10,7 @@
     let { data }: { data: PageData } = $props();
 
     let searchQuery = $state('');
-    let activeTab = $state<'list' | 'latest'>('list');
+    let activeTab = $state<'list' | 'latest'>('latest');
 
     let filteredBoards = $derived(
         searchQuery
@@ -43,14 +43,6 @@
     <!-- 탭 -->
     <div class="border-border mb-4 flex gap-1 border-b">
         <button
-            onclick={() => (activeTab = 'list')}
-            class="border-b-2 px-3 py-2 text-sm font-medium transition-colors {activeTab === 'list'
-                ? 'border-primary text-primary'
-                : 'text-muted-foreground hover:text-foreground border-transparent'}"
-        >
-            소모임 목록
-        </button>
-        <button
             onclick={() => (activeTab = 'latest')}
             class="border-b-2 px-3 py-2 text-sm font-medium transition-colors {activeTab ===
             'latest'
@@ -58,6 +50,14 @@
                 : 'text-muted-foreground hover:text-foreground border-transparent'}"
         >
             최근글
+        </button>
+        <button
+            onclick={() => (activeTab = 'list')}
+            class="border-b-2 px-3 py-2 text-sm font-medium transition-colors {activeTab === 'list'
+                ? 'border-primary text-primary'
+                : 'text-muted-foreground hover:text-foreground border-transparent'}"
+        >
+            소모임 목록
         </button>
     </div>
 
