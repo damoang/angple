@@ -4,13 +4,14 @@
     import MessageSquare from '@lucide/svelte/icons/message-square';
     import FileText from '@lucide/svelte/icons/file-text';
     import Clock from '@lucide/svelte/icons/clock';
+    import ThumbsUp from '@lucide/svelte/icons/thumbs-up';
     import { formatDate } from '$lib/utils/format-date.js';
     import type { PageData } from './$types';
 
     let { data }: { data: PageData } = $props();
 
     let searchQuery = $state('');
-    let activeTab = $state<'list' | 'latest'>('list');
+    let activeTab = $state<'latest' | 'popular' | 'list'>('latest');
 
     let filteredBoards = $derived(
         searchQuery
@@ -43,14 +44,6 @@
     <!-- 탭 -->
     <div class="border-border mb-4 flex gap-1 border-b">
         <button
-            onclick={() => (activeTab = 'list')}
-            class="border-b-2 px-3 py-2 text-sm font-medium transition-colors {activeTab === 'list'
-                ? 'border-primary text-primary'
-                : 'text-muted-foreground hover:text-foreground border-transparent'}"
-        >
-            소모임 목록
-        </button>
-        <button
             onclick={() => (activeTab = 'latest')}
             class="border-b-2 px-3 py-2 text-sm font-medium transition-colors {activeTab ===
             'latest'
@@ -58,6 +51,23 @@
                 : 'text-muted-foreground hover:text-foreground border-transparent'}"
         >
             최근글
+        </button>
+        <button
+            onclick={() => (activeTab = 'popular')}
+            class="border-b-2 px-3 py-2 text-sm font-medium transition-colors {activeTab ===
+            'popular'
+                ? 'border-primary text-primary'
+                : 'text-muted-foreground hover:text-foreground border-transparent'}"
+        >
+            추천글
+        </button>
+        <button
+            onclick={() => (activeTab = 'list')}
+            class="border-b-2 px-3 py-2 text-sm font-medium transition-colors {activeTab === 'list'
+                ? 'border-primary text-primary'
+                : 'text-muted-foreground hover:text-foreground border-transparent'}"
+        >
+            소모임 목록
         </button>
     </div>
 
@@ -121,6 +131,53 @@
                 {/each}
             </div>
         {/if}
+    {:else if activeTab === 'popular'}
+        <!-- 추천글 탭 -->
+        {#if !data.popularPosts || data.popularPosts.length === 0}
+            <div class="text-muted-foreground py-12 text-center">
+                <p>최근 7일간 추천받은 글이 없습니다.</p>
+            </div>
+        {:else}
+            <ul class="divide-border divide-y">
+                {#each data.popularPosts as post (post.bo_table + '-' + post.wr_id)}
+                    <li>
+                        <a
+                            href="/{post.bo_table}/{post.wr_id}"
+                            class="hover:bg-muted flex items-center gap-2 rounded px-2 py-1.5 transition-colors"
+                        >
+                            <span
+                                class="bg-muted text-muted-foreground shrink-0 rounded px-1.5 py-0.5 text-xs"
+                            >
+                                {post.bo_subject}
+                            </span>
+                            <span class="text-foreground min-w-0 truncate text-sm">
+                                {post.wr_subject}
+                            </span>
+                            {#if post.wr_comment > 0}
+                                <span class="text-primary shrink-0 text-xs"
+                                    >[{post.wr_comment}]</span
+                                >
+                            {/if}
+                            <span
+                                class="text-muted-foreground ml-auto flex shrink-0 items-center gap-2 text-xs"
+                            >
+                                {#if post.wr_good > 0}
+                                    <span class="text-primary flex items-center gap-0.5">
+                                        <ThumbsUp class="h-3 w-3" />
+                                        {post.wr_good}
+                                    </span>
+                                {/if}
+                                <span>{post.mb_nick}</span>
+                                <span class="hidden items-center gap-0.5 sm:flex">
+                                    <Clock class="h-3 w-3" />
+                                    {formatDate(post.wr_datetime)}
+                                </span>
+                            </span>
+                        </a>
+                    </li>
+                {/each}
+            </ul>
+        {/if}
     {:else}
         <!-- 최근글 탭 -->
         {#if data.latestPosts.length === 0}
@@ -133,39 +190,33 @@
                     <li>
                         <a
                             href="/{post.bo_table}/{post.wr_id}"
-                            class="hover:bg-muted flex items-start gap-3 rounded px-2 py-2.5 transition-colors"
+                            class="hover:bg-muted flex items-center gap-2 rounded px-2 py-1.5 transition-colors"
                         >
-                            <div class="min-w-0 flex-1">
-                                <div class="flex items-center gap-2">
-                                    <span
-                                        class="bg-muted text-muted-foreground shrink-0 rounded px-1.5 py-0.5 text-xs"
-                                    >
-                                        {post.bo_subject}
-                                    </span>
-                                    <span class="text-foreground min-w-0 truncate text-sm">
-                                        {post.wr_subject}
-                                    </span>
-                                    {#if post.wr_comment > 0}
-                                        <span class="text-primary shrink-0 text-xs"
-                                            >[{post.wr_comment}]</span
-                                        >
-                                    {/if}
-                                </div>
-                                <div
-                                    class="text-muted-foreground mt-1 flex items-center gap-2 text-xs"
+                            <span
+                                class="bg-muted text-muted-foreground shrink-0 rounded px-1.5 py-0.5 text-xs"
+                            >
+                                {post.bo_subject}
+                            </span>
+                            <span class="text-foreground min-w-0 truncate text-sm">
+                                {post.wr_subject}
+                            </span>
+                            {#if post.wr_comment > 0}
+                                <span class="text-primary shrink-0 text-xs"
+                                    >[{post.wr_comment}]</span
                                 >
-                                    <span>{post.mb_nick}</span>
-                                    <span>·</span>
-                                    <span class="flex items-center gap-0.5">
-                                        <Clock class="h-3 w-3" />
-                                        {formatDate(post.wr_datetime)}
-                                    </span>
-                                    {#if post.wr_good > 0}
-                                        <span>·</span>
-                                        <span>👍 {post.wr_good}</span>
-                                    {/if}
-                                </div>
-                            </div>
+                            {/if}
+                            <span
+                                class="text-muted-foreground ml-auto flex shrink-0 items-center gap-2 text-xs"
+                            >
+                                <span>{post.mb_nick}</span>
+                                <span class="hidden items-center gap-0.5 sm:flex">
+                                    <Clock class="h-3 w-3" />
+                                    {formatDate(post.wr_datetime)}
+                                </span>
+                                {#if post.wr_good > 0}
+                                    <span>👍 {post.wr_good}</span>
+                                {/if}
+                            </span>
                         </a>
                     </li>
                 {/each}
