@@ -133,7 +133,7 @@
         {/if}
     {:else if activeTab === 'popular'}
         <!-- 추천글 탭 -->
-        {#if data.popularPosts.length === 0}
+        {#if !data.popularPosts || data.popularPosts.length === 0}
             <div class="text-muted-foreground py-12 text-center">
                 <p>최근 7일간 추천받은 글이 없습니다.</p>
             </div>
