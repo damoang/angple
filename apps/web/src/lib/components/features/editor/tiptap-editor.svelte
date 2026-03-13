@@ -1025,7 +1025,15 @@
                     <SmileIcon class="h-4 w-4" />
                 </Button>
                 {#if showEmoticonPicker && EmoticonPickerComponent}
-                    <div class="absolute bottom-full left-0 z-50 mb-2">
+                    <!-- svelte-ignore a11y_no_static_element_interactions -->
+                    <div
+                        class="fixed inset-0 z-40 bg-black/20 sm:bg-transparent"
+                        onclick={() => (showEmoticonPicker = false)}
+                        onkeydown={(e) => e.key === 'Escape' && (showEmoticonPicker = false)}
+                    ></div>
+                    <div
+                        class="fixed inset-x-0 bottom-0 z-50 sm:absolute sm:inset-auto sm:bottom-full sm:right-0 sm:mb-2"
+                    >
                         <EmoticonPickerComponent
                             onInsertEmoticon={handleInsertEmoticon}
                             onClose={() => (showEmoticonPicker = false)}
