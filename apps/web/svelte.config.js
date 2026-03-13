@@ -45,8 +45,8 @@ const config = {
             preloadStrategy: 'modulepreload'
         },
         version: {
-            // 빌드 시 자동 생성되는 버전 해시로 새 배포 감지
-            pollInterval: 60000 // 60초마다 서버 버전 확인
+            // 주기적 버전 폴링은 배포 직후 불필요한 새로고침 UX를 유발할 수 있으므로 비활성화.
+            pollInterval: 0
         }
     },
     compilerOptions: {

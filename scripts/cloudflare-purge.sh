@@ -2,6 +2,15 @@
 
 set -euo pipefail
 
+DEFAULT_ENV_FILE="/home/angple/.cloudflare.env"
+
+if { [ -z "${CF_API_TOKEN:-}" ] || [ -z "${CF_ZONE_ID:-}" ]; } && [ -f "$DEFAULT_ENV_FILE" ]; then
+    set -a
+    # shellcheck disable=SC1090
+    source "$DEFAULT_ENV_FILE"
+    set +a
+fi
+
 SITE_URL="${DEPLOY_SITE_URL:-https://damoang.net}"
 DEFAULT_PATHS="/,/free"
 
