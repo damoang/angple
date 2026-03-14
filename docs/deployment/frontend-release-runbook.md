@@ -30,16 +30,28 @@
 3. canary에 같은 `<sha>` 이미지와 `ASSET_BASE_URL=https://static.damoang.net/releases/<sha>`를 배포한다.
 4. canary 검증을 통과하면 prod에 같은 `<sha>`를 승격한다.
 
+## 운영 필수 엔드포인트
+
+아래 경로는 단순 정적 파일이 아니라 운영 필수 엔드포인트로 관리한다.
+
+1. `/ads.txt`
+2. `/robots.txt`
+3. `/manifest.json`
+4. `/favicon.ico`
+
+배포 시 이 경로들이 `200` 이 아니면 배포 실패로 본다.
+
 ## canary 검증
 
 필수 확인:
 
 1. `https://canary.damoang.net` 또는 내부 NodePort `/` 가 `200`
-2. `/health` 가 `200`
-3. HTML 안에 `https://static.damoang.net/releases/<sha>/_app/immutable/...` 가 보인다
-4. HTML이 참조한 JS/CSS URL이 실제로 `200`
-5. CSP 헤더에 `https://static.damoang.net` 이 포함된다
-6. 브라우저 콘솔에 CSP/CORS 오류가 없다
+2. `/ads.txt` 가 `200`
+3. `/health` 가 `200`
+4. HTML 안에 `https://static.damoang.net/releases/<sha>/_app/immutable/...` 가 보인다
+5. HTML이 참조한 JS/CSS URL이 실제로 `200`
+6. CSP 헤더에 `https://static.damoang.net` 이 포함된다
+7. 브라우저 콘솔에 CSP/CORS 오류가 없다
 
 예시:
 
@@ -52,7 +64,7 @@ curl -I -sS https://static.damoang.net/releases/<sha>/_app/immutable/bundle.<has
 
 필수 확인:
 
-1. `/` 와 `/health` 가 `200`
+1. `/`, `/ads.txt`, `/health` 가 `200`
 2. HTML이 새 release SHA를 참조한다
 3. HTML이 참조한 bundle JS/CSS가 `200`
 4. CSP 헤더에 `https://static.damoang.net` 이 포함된다
@@ -66,6 +78,7 @@ curl -I -sS https://static.damoang.net/releases/<sha>/_app/immutable/bundle.<has
 2. 콘솔에 immutable JS/CSS `404`
 3. `Failed to fetch dynamically imported module`
 4. `Loading the script/style ... violates Content Security Policy`
+5. `/ads.txt` 가 `404` 이거나 AdSense에서 파일을 찾지 못함
 
 즉시 확인:
 
@@ -73,6 +86,7 @@ curl -I -sS https://static.damoang.net/releases/<sha>/_app/immutable/bundle.<has
 2. 해당 JS/CSS 파일이 R2에 존재하는지 확인
 3. CSP 헤더에 `static.damoang.net` 이 들어있는지 확인
 4. R2 CORS가 대상 origin을 허용하는지 확인
+5. `/ads.txt` 가 root에서 실제 `200` 으로 보이는지 확인
 
 즉시 조치:
 
@@ -100,3 +114,4 @@ curl -I -sS https://static.damoang.net/releases/<sha>/_app/immutable/bundle.<has
 2. `/home/angple/web/apps/web/src/hooks.server.ts`
 3. `/home/angple/web/scripts/cloudflare-purge.sh`
 4. `/home/angple/k8s/prod/deploy.sh`
+5. `/home/angple/web/apps/web/src/routes/ads.txt/+server.ts`
