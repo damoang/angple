@@ -70,9 +70,14 @@ export const actions: Actions = {
         const nickname = formData.get('nickname') as string;
         if (!nickname) return fail(400, { error: '닉네임을 입력해주세요.' });
 
-        const result = await updateNickname(locals.user.id!, nickname);
-        if (!result.success) {
-            return fail(400, { error: result.error });
+        try {
+            const result = await updateNickname(locals.user.id!, nickname);
+            if (!result.success) {
+                return fail(400, { error: result.error });
+            }
+        } catch (err) {
+            console.error('닉네임 변경 에러:', err);
+            return fail(500, { error: '닉네임 변경 중 오류가 발생했습니다.' });
         }
 
         return { success: true, message: '닉네임이 변경되었습니다.' };

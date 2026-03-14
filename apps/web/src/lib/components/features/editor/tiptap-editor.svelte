@@ -281,24 +281,27 @@
     // content prop 변경 감지 (edit mode에서 비동기 로드 시)
     // 이전 content 값을 추적 (일반 변수로 - $state 아님)
     let lastLoadedContent = '';
+    let isSettingContent = false;
 
     $effect(() => {
-        if (!editor || !content) return;
+        if (!editor) return;
+        const c = content ?? '';
+        if (!c || c === lastLoadedContent) return;
 
-        // 새로운 content가 로드되었을 때만 에디터 업데이트
-        // (사용자 입력과 구분하기 위해 lastLoadedContent와 비교)
-        if (content !== lastLoadedContent && content.length > 0) {
-            const currentHtml = editor.getHTML();
-            const isEmpty = currentHtml === '<p></p>' || currentHtml === '';
-            const isFirstLoad = lastLoadedContent === '';
-
-            // 에디터가 비어있거나 첫 로드일 때 content 반영
-            if (isEmpty || isFirstLoad) {
-                editor.commands.setContent(content);
-            }
-            // lastLoadedContent 업데이트 (다음 effect에서 중복 방지)
-            lastLoadedContent = content;
+        // 에디터에 이미 사용자 입력이 있으면 덮어쓰지 않음
+        const currentHtml = editor.getHTML();
+        const editorHasContent =
+            currentHtml !== '' && currentHtml !== '<p></p>' && currentHtml !== lastLoadedContent;
+        if (editorHasContent && lastLoadedContent !== '') {
+            lastLoadedContent = c;
+            return;
         }
+
+        // 비동기 로드된 content를 에디터에 반영
+        isSettingContent = true;
+        editor.commands.setContent(c);
+        isSettingContent = false;
+        lastLoadedContent = c;
     });
 
     // 이미지 파일 업로드 처리 (커서 위치에 삽입)

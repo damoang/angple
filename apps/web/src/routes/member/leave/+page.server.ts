@@ -35,9 +35,16 @@ export const actions: Actions = {
             return fail(400, { error: '"탈퇴합니다"를 정확히 입력해주세요.' });
         }
 
-        const result = await processMemberLeave(payload.sub);
-        if (!result.success) {
-            return fail(400, { error: result.error });
+        try {
+            const result = await processMemberLeave(payload.sub);
+            if (!result.success) {
+                return fail(400, { error: result.error });
+            }
+        } catch (err) {
+            console.error('회원탈퇴 처리 에러:', err);
+            return fail(500, {
+                error: '탈퇴 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.'
+            });
         }
 
         // 쿠키 삭제
