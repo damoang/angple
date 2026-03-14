@@ -2,9 +2,11 @@
     import * as DropdownMenu from '$lib/components/ui/dropdown-menu/index.js';
     import { authStore } from '$lib/stores/auth.svelte.js';
     import { goto } from '$app/navigation';
+    import { page } from '$app/stores';
     import { apiClient } from '$lib/api/index.js';
     import User from '@lucide/svelte/icons/user';
     import FileText from '@lucide/svelte/icons/file-text';
+    import Search from '@lucide/svelte/icons/search';
     import Mail from '@lucide/svelte/icons/mail';
     import Ban from '@lucide/svelte/icons/ban';
     import UserPlus from '@lucide/svelte/icons/user-plus';
@@ -138,6 +140,18 @@
                     <FileText class="h-3.5 w-3.5" />
                     전체 게시물
                 </DropdownMenu.Item>
+                {#if $page.params.boardId}
+                    <DropdownMenu.Item
+                        class="cursor-pointer gap-2"
+                        onclick={() =>
+                            goto(
+                                `/${$page.params.boardId}?sfl=author&stx=${encodeURIComponent(authorName)}&page=1`
+                            )}
+                    >
+                        <Search class="h-3.5 w-3.5" />
+                        게시판 내 검색
+                    </DropdownMenu.Item>
+                {/if}
 
                 {#if authStore.isAuthenticated && !isOwnProfile}
                     <DropdownMenu.Separator />

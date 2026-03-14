@@ -10,9 +10,7 @@
         shareToNaver,
         shareToPinterest,
         shareToTumblr,
-        copyUrl,
-        nativeShare,
-        canNativeShare
+        copyUrl
     } from '$lib/utils/share.js';
 
     interface Props {
@@ -30,13 +28,8 @@
         return `${window.location.origin}/${boardId}/${postId}`;
     }
 
-    async function handleShare() {
-        // 모바일: 네이티브 공유 시트, 데스크탑: 드롭다운
-        if (canNativeShare()) {
-            await nativeShare(title, getShareUrl());
-        } else {
-            open = !open;
-        }
+    function handleShare() {
+        open = !open;
     }
 
     function handleClickOutside(e: MouseEvent) {
