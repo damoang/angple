@@ -24,7 +24,8 @@ export async function getMemberById(mbId: string): Promise<MemberRow | null> {
 
     const [rows] = await pool.query<RowDataPacket[]>(
         `SELECT mb_id, mb_name, mb_nick, mb_email, mb_level, mb_point,
-		        mb_today_login, mb_login_ip, mb_leave_date, mb_intercept_date, mb_certify
+		        mb_today_login, mb_login_ip, mb_leave_date, mb_intercept_date, mb_certify,
+		        COALESCE(mb_image_url, '') AS mb_image_url
 		 FROM g5_member
 		 WHERE mb_id = ? LIMIT 1`,
         [mbId]
@@ -42,7 +43,8 @@ export async function findMemberByEmail(email: string): Promise<MemberRow | null
     if (!email) return null;
     const [rows] = await pool.query<RowDataPacket[]>(
         `SELECT mb_id, mb_name, mb_nick, mb_email, mb_level, mb_point,
-		        mb_today_login, mb_login_ip, mb_leave_date, mb_intercept_date, mb_certify
+		        mb_today_login, mb_login_ip, mb_leave_date, mb_intercept_date, mb_certify,
+		        COALESCE(mb_image_url, '') AS mb_image_url
 		 FROM g5_member
 		 WHERE mb_email = ? AND mb_leave_date = ''
 		 LIMIT 1`,
