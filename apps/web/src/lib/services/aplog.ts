@@ -2,10 +2,14 @@
 // PHP 원본: damoang/staging/theme/damoang/layout/basic/js/layout.js
 
 const APLOG_BASE = 'https://aplog.damoang.net/api/v1';
+const TAB_ID_KEY = 'aplog:tab-id';
+const CLICK_DEDUPE_WINDOW_MS = 3000;
 
 let observer: IntersectionObserver | null = null;
 let calledAdList: string[] = [];
 let currentMbId: string | null = null;
+const exposeDedupeKeys = new Set<string>();
+const clickDedupeUntil = new Map<string, number>();
 
 // _da 쿠키 (UUID 기반 디바이스 식별)
 function getCookie(name: string): string | null {
@@ -45,6 +49,44 @@ function cleanUrl(): string {
     return qIdx > -1 ? href.substring(0, qIdx) : href;
 }
 
+function getTabId(): string {
+    try {
+        const existing = sessionStorage.getItem(TAB_ID_KEY);
+        if (existing) return existing;
+        const next = crypto.randomUUID();
+        sessionStorage.setItem(TAB_ID_KEY, next);
+        return next;
+    } catch {
+        return crypto.randomUUID();
+    }
+}
+
+function getPageKey(): string {
+    return `${getTabId()}:${cleanUrl()}`;
+}
+
+function buildSlotKey(
+    adPos: string,
+    adId: string,
+    imgSrc: string,
+    explicitSlotKey?: string
+): string {
+    if (explicitSlotKey) return explicitSlotKey;
+    return [adPos || 'unknown', adId || 'unknown', imgSrc || 'unknown'].join(':');
+}
+
+function buildDedupeKey(eventType: 'expose' | 'click', slotKey: string): string {
+    return `${eventType}:${getPageKey()}:${slotKey}`;
+}
+
+function shouldSkipClick(dedupeKey: string): boolean {
+    const now = Date.now();
+    const until = clickDedupeUntil.get(dedupeKey) ?? 0;
+    if (until > now) return true;
+    clickDedupeUntil.set(dedupeKey, now + CLICK_DEDUPE_WINDOW_MS);
+    return false;
+}
+
 // 광고 로그 전송 (GET)
 function adLog(el: Element, imgSrc: string, click?: boolean) {
     const endpoint = click ? '/click?' : '/expose?';
@@ -52,6 +94,12 @@ function adLog(el: Element, imgSrc: string, click?: boolean) {
     const parent = el.parentElement;
     const adId = parent?.dataset.daBnId ?? '';
     const adPos = parent?.dataset.daBnPosition ?? '';
+    const slotKey = buildSlotKey(adPos, adId, imgSrc, (el as HTMLElement).dataset.daSlotKey);
+    const dedupeKey = buildDedupeKey(click ? 'click' : 'expose', slotKey);
+
+    if (!click && exposeDedupeKeys.has(dedupeKey)) return;
+    if (click && shouldSkipClick(dedupeKey)) return;
+
     const da = getDa();
 
     const params = new URLSearchParams();
@@ -63,7 +111,12 @@ function adLog(el: Element, imgSrc: string, click?: boolean) {
     params.set('mbId', currentMbId ?? 'null');
     params.set('board', extractBoard());
     params.set('url', cleanUrl());
+    params.set('slotKey', slotKey);
+    params.set('pageKey', getPageKey());
+    params.set('requestId', crypto.randomUUID());
+    params.set('dedupeKey', dedupeKey);
 
+    if (!click) exposeDedupeKeys.add(dedupeKey);
     fetch(APLOG_BASE + endpoint + params.toString(), { mode: 'cors' }).catch(() => {});
 }
 
@@ -149,13 +202,21 @@ export interface AplogTrackParams {
     imgSrc: string;
     adUserId?: string;
     mbId: string | null;
+    slotKey?: string;
 }
 
 export function sendAplogEvent(params: AplogTrackParams, click?: boolean) {
     const endpoint = click ? '/click?' : '/expose?';
     const da = getDa();
+    const imgSrc = params.imgSrc.split('/').pop() ?? '';
+    const slotKey = buildSlotKey(params.adPos, params.adId, imgSrc, params.slotKey);
+    const dedupeKey = buildDedupeKey(click ? 'click' : 'expose', slotKey);
+
+    if (!click && exposeDedupeKeys.has(dedupeKey)) return;
+    if (click && shouldSkipClick(dedupeKey)) return;
+
     const qs = new URLSearchParams();
-    qs.set('imgSrc', params.imgSrc.split('/').pop() ?? '');
+    qs.set('imgSrc', imgSrc);
     if (params.adUserId) qs.set('adUserId', params.adUserId);
     qs.set('adId', params.adId);
     qs.set('adPos', params.adPos);
@@ -163,7 +224,13 @@ export function sendAplogEvent(params: AplogTrackParams, click?: boolean) {
     qs.set('mbId', params.mbId ?? 'null');
     qs.set('board', extractBoard());
     qs.set('url', cleanUrl());
+    qs.set('slotKey', slotKey);
+    qs.set('pageKey', getPageKey());
+    qs.set('requestId', crypto.randomUUID());
+    qs.set('dedupeKey', dedupeKey);
     const url = APLOG_BASE + endpoint + qs.toString();
+
+    if (!click) exposeDedupeKeys.add(dedupeKey);
     fetch(url, { mode: 'cors', keepalive: true }).catch(() => {});
 }
 
