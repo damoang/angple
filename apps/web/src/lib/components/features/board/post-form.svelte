@@ -508,7 +508,9 @@
                 <Label for="content">내용 <span class="text-destructive">*</span></Label>
                 <TiptapEditor
                     {content}
-                    placeholder="내용을 입력하세요..."
+                    placeholder={board?.insert_content
+                        ? `/ 를 눌러 이미지와 앙티콘을 추가하세요\n${board.insert_content}`
+                        : undefined}
                     disabled={isLoading}
                     onUpdate={(html) => (content = html)}
                     onImageUpload={handleEditorImageUpload}
