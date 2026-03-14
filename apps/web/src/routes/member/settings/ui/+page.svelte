@@ -17,6 +17,10 @@
     import Star from '@lucide/svelte/icons/star';
     import Ban from '@lucide/svelte/icons/ban';
     import Type from '@lucide/svelte/icons/type';
+    import Moon from '@lucide/svelte/icons/moon';
+    import Sun from '@lucide/svelte/icons/sun';
+    import SmartphoneIcon from '@lucide/svelte/icons/smartphone';
+    import Monitor from '@lucide/svelte/icons/monitor';
     import LayoutDashboard from '@lucide/svelte/icons/layout-dashboard';
     import LayoutList from '@lucide/svelte/icons/layout-list';
     import EyeOff from '@lucide/svelte/icons/eye-off';
@@ -25,7 +29,6 @@
     import Plus from '@lucide/svelte/icons/plus';
     import Search from '@lucide/svelte/icons/search';
     import Keyboard from '@lucide/svelte/icons/keyboard';
-    import Smartphone from '@lucide/svelte/icons/smartphone';
     import Hand from '@lucide/svelte/icons/hand';
     import Trash2 from '@lucide/svelte/icons/trash-2';
     import Bell from '@lucide/svelte/icons/bell';
@@ -119,6 +122,51 @@
         { value: 'balanced', label: '보통' },
         { value: 'relaxed', label: '여유' }
     ];
+
+    type ThemeMode = 'system' | 'light' | 'dark' | 'amoled';
+    const themeModeOptions: {
+        value: ThemeMode;
+        label: string;
+        icon: typeof Sun;
+        desc: string;
+    }[] = [
+        { value: 'system', label: 'OS 설정', icon: Monitor, desc: '운영체제 설정 따름' },
+        { value: 'light', label: '라이트', icon: Sun, desc: '밝은 테마' },
+        { value: 'dark', label: '다크', icon: Moon, desc: '어두운 테마' },
+        { value: 'amoled', label: 'AMOLED', icon: SmartphoneIcon, desc: '순수 블랙 테마' }
+    ];
+
+    let currentThemeMode = $state<ThemeMode>('system');
+
+    function setThemeMode(mode: ThemeMode) {
+        currentThemeMode = mode;
+        const el = document.documentElement;
+        el.classList.remove('dark', 'amoled');
+
+        if (mode === 'system') {
+            // OS 설정 따르기: 명시적 설정 제거
+            try {
+                localStorage.removeItem('themeMode');
+            } catch {}
+            document.cookie = 'angple_theme_mode=;path=/;max-age=0;SameSite=Lax';
+            // OS가 다크모드면 적용
+            if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                el.classList.add('dark');
+            }
+        } else {
+            if (mode === 'dark') el.classList.add('dark');
+            else if (mode === 'amoled') el.classList.add('amoled');
+            try {
+                localStorage.setItem('themeMode', mode);
+            } catch {}
+            if (mode === 'light') {
+                document.cookie = 'angple_theme_mode=;path=/;max-age=0;SameSite=Lax';
+            } else {
+                document.cookie =
+                    'angple_theme_mode=' + mode + ';path=/;max-age=31536000;SameSite=Lax';
+            }
+        }
+    }
 
     const shortcutSizeOptions: { value: ShortcutButtonSize; label: string }[] = [
         { value: 'small', label: '작게' },
@@ -248,6 +296,22 @@
         loadSubscriptions();
         loadFollowing();
         loadNotiPrefs();
+
+        // 현재 테마 모드 복원
+        const cookieMatch = document.cookie.match(/angple_theme_mode=(\w+)/);
+        let saved: string | null = cookieMatch?.[1] || null;
+        if (!saved) {
+            try {
+                saved = localStorage.getItem('themeMode');
+            } catch {}
+        }
+        if (saved === 'dark' || saved === 'amoled') {
+            currentThemeMode = saved;
+        } else if (saved === 'light') {
+            currentThemeMode = 'light';
+        } else {
+            currentThemeMode = 'system';
+        }
     });
 </script>
 
@@ -277,6 +341,34 @@
     <div class="space-y-6">
         <!-- ========== 레이아웃 탭 ========== -->
         {#if activeTab === 'layout'}
+            <Card>
+                <CardHeader>
+                    <CardTitle class="flex items-center gap-2">
+                        <Moon class="h-5 w-5" />
+                        테마 모드
+                    </CardTitle>
+                    <CardDescription>라이트/다크/AMOLED 테마를 선택합니다.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div class="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                        {#each themeModeOptions as opt (opt.value)}
+                            {@const Icon = opt.icon}
+                            <button
+                                class="flex flex-col items-center gap-1.5 rounded-lg border px-3 py-3 text-sm transition-colors {currentThemeMode ===
+                                opt.value
+                                    ? 'border-primary bg-primary/10 text-foreground'
+                                    : 'border-border text-muted-foreground hover:border-foreground/20 hover:text-foreground'}"
+                                onclick={() => setThemeMode(opt.value)}
+                            >
+                                <Icon class="h-5 w-5" />
+                                <span class="font-medium">{opt.label}</span>
+                                <span class="text-muted-foreground text-xs">{opt.desc}</span>
+                            </button>
+                        {/each}
+                    </div>
+                </CardContent>
+            </Card>
+
             <Card>
                 <CardHeader>
                     <CardTitle class="flex items-center gap-2">
@@ -839,7 +931,7 @@
             <Card>
                 <CardHeader>
                     <CardTitle class="flex items-center gap-2">
-                        <Smartphone class="h-5 w-5" />
+                        <SmartphoneIcon class="h-5 w-5" />
                         단축 버튼
                     </CardTitle>
                     <CardDescription>화면 하단에 플로팅 바로가기 버튼을 표시합니다.</CardDescription
