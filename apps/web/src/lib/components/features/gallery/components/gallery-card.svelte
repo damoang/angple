@@ -20,7 +20,6 @@
 
 <a
     href={post.url}
-    rel="external"
     class="bg-card border-border group flex h-full flex-col overflow-hidden rounded-xl border shadow-sm transition-all duration-200 ease-out hover:shadow-md"
 >
     <!-- 16:9 이미지 -->

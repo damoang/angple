@@ -331,25 +331,25 @@
                         {#if result.likedPosts && result.likedPosts.items.length > 0}
                             <ul class="divide-border divide-y">
                                 {#each result.likedPosts.items as post (post.id)}
-                                    <li class="py-3 first:pt-0 last:pb-0">
+                                    <li>
                                         <a
                                             href="/{post.board_id || 'free'}/{post.id}"
-                                            class="hover:bg-accent -m-2 block w-full rounded-md p-2 no-underline transition-colors"
+                                            class="hover:bg-muted flex items-center gap-2.5 px-4 py-2 no-underline transition-all duration-200 ease-out"
                                         >
-                                            <h3
-                                                class="text-foreground mb-1 line-clamp-1 font-medium"
+                                            <span
+                                                class="bg-muted text-muted-foreground hidden shrink-0 rounded px-1.5 py-0.5 text-xs sm:inline-block"
                                             >
+                                                {post.board_name || post.board_id || 'free'}
+                                            </span>
+                                            <span class="min-w-0 flex-1 truncate leading-relaxed">
                                                 {post.title}
-                                            </h3>
-                                            <div
-                                                class="text-muted-foreground flex items-center gap-2 text-xs"
+                                            </span>
+                                            <span
+                                                class="text-muted-foreground hidden shrink-0 items-center gap-3 text-xs sm:flex"
                                             >
                                                 <span>{post.author}</span>
-                                                <span>·</span>
                                                 <span>{formatDate(post.created_at)}</span>
-                                                <span>·</span>
-                                                <span>공감 {post.likes}</span>
-                                            </div>
+                                            </span>
                                         </a>
                                     </li>
                                 {/each}

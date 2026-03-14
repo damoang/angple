@@ -69,6 +69,7 @@ export interface MemberRow {
     mb_intercept_date: string;
     mb_certify: string;
     mb_image_url: string;
+    mb_image_updated_at: string | null;
 }
 
 /** OAuth state 쿠키에 저장되는 데이터 */

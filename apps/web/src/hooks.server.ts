@@ -179,7 +179,8 @@ async function authenticateSSR(event: Parameters<Handle>[0]['event']): Promise<v
                         nickname: member.mb_nick || member.mb_name,
                         level: member.mb_level ?? 0,
                         mb_certify: member.mb_certify || '',
-                        mb_image: member.mb_image_url || undefined
+                        mb_image: member.mb_image_url || undefined,
+                        mb_image_updated_at: member.mb_image_updated_at || undefined
                     };
                     event.locals.sessionId = sessionId;
                     event.locals.csrfToken = session.csrfToken;

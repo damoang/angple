@@ -875,17 +875,25 @@
                     {:else}
                         <ul class="divide-border divide-y">
                             {#each likedPosts as liked (liked.wr_id)}
-                                <li class="py-2">
+                                <li>
                                     <a
                                         href={liked.href}
-                                        class="text-foreground hover:text-primary block text-sm transition-colors"
+                                        class="hover:bg-muted flex items-center gap-2.5 px-4 py-2 no-underline transition-all duration-200 ease-out"
                                     >
-                                        {liked.wr_subject}
+                                        <span
+                                            class="bg-muted text-muted-foreground hidden shrink-0 rounded px-1.5 py-0.5 text-xs sm:inline-block"
+                                        >
+                                            {liked.bo_subject}
+                                        </span>
+                                        <span class="min-w-0 flex-1 truncate leading-relaxed">
+                                            {liked.wr_subject}
+                                        </span>
+                                        <span
+                                            class="text-muted-foreground hidden shrink-0 text-xs sm:inline-block"
+                                        >
+                                            {formatDate(liked.bg_datetime)}
+                                        </span>
                                     </a>
-                                    <div class="text-muted-foreground mt-0.5 flex gap-2 text-xs">
-                                        <span class="text-primary/70">{liked.bo_subject}</span>
-                                        <span>{formatDate(liked.bg_datetime)}</span>
-                                    </div>
                                 </li>
                             {/each}
                         </ul>

@@ -48,7 +48,8 @@
                     nickname: d.user.nickname ?? '',
                     level: d.user.level,
                     mb_certify: d.user.mb_certify ?? '',
-                    mb_image: d.user.mb_image
+                    mb_image: d.user.mb_image,
+                    mb_image_updated_at: d.user.mb_image_updated_at
                 },
                 d.accessToken
             );
@@ -59,7 +60,8 @@
                     nickname: d.user.nickname ?? '',
                     level: d.user.level,
                     mb_certify: d.user.mb_certify ?? '',
-                    mb_image: d.user.mb_image
+                    mb_image: d.user.mb_image,
+                    mb_image_updated_at: d.user.mb_image_updated_at
                 },
                 ''
             );
