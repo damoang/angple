@@ -12,7 +12,8 @@
     import { Label } from '$lib/components/ui/label/index.js';
     import TriangleAlert from '@lucide/svelte/icons/triangle-alert';
     import CircleAlert from '@lucide/svelte/icons/circle-alert';
-    import { enhance } from '$app/forms';
+    import { enhance, applyAction } from '$app/forms';
+    import { goto } from '$app/navigation';
     import type { PageData } from './$types.js';
 
     let { data }: { data: PageData } = $props();
@@ -55,9 +56,13 @@
                     errorMsg = null;
                     return async ({ result }) => {
                         submitting = false;
-                        if (result.type === 'failure') {
+                        if (result.type === 'redirect') {
+                            goto(result.location, { replaceState: true, invalidateAll: true });
+                        } else if (result.type === 'failure') {
                             errorMsg =
                                 (result.data?.error as string) || '탈퇴 처리에 실패했습니다.';
+                        } else {
+                            await applyAction(result);
                         }
                     };
                 }}

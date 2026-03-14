@@ -18,6 +18,7 @@
         LevelupCelebration
     } from '$lib/components/features/notification/index.js';
     import { authStore } from '$lib/stores/auth.svelte.js';
+    import { uiSettingsStore } from '$lib/stores/ui-settings.svelte.js';
     import { getAvatarUrl, getMemberIconUrl } from '$lib/utils/member-icon';
     import { menuStore } from '$lib/stores/menu.svelte';
     import { getIcon } from '$lib/utils/icon-map';
@@ -305,30 +306,38 @@
                     href="/my"
                     class="hover:bg-accent flex items-center gap-1.5 rounded-lg px-2 py-1.5 transition-all duration-200 ease-out"
                 >
-                    <div
-                        class="h-6 w-6 shrink-0 overflow-hidden rounded-full {headerAvatarUrl &&
-                        !headerAvatarFailed
-                            ? ''
-                            : 'bg-primary/10 flex items-center justify-center'}"
-                    >
-                        {#if headerAvatarUrl && !headerAvatarFailed}
-                            <img
-                                src={headerAvatarUrl}
-                                alt={effectiveUser.mb_name}
-                                class="h-full w-full object-cover"
-                                onerror={() => {
-                                    headerAvatarFailed = true;
-                                }}
-                            />
-                        {:else}
-                            <span class="text-primary text-xs font-bold"
-                                >{effectiveUser.mb_name.charAt(0).toUpperCase()}</span
-                            >
-                        {/if}
-                    </div>
-                    <span class="text-foreground hidden text-sm font-medium md:inline">
-                        {effectiveUser.mb_name}
-                    </span>
+                    {#if uiSettingsStore.hideMyProfile}
+                        <div
+                            class="bg-primary/10 flex h-6 w-6 shrink-0 items-center justify-center overflow-hidden rounded-full"
+                        >
+                            <User class="text-primary h-3.5 w-3.5" />
+                        </div>
+                    {:else}
+                        <div
+                            class="h-6 w-6 shrink-0 overflow-hidden rounded-full {headerAvatarUrl &&
+                            !headerAvatarFailed
+                                ? ''
+                                : 'bg-primary/10 flex items-center justify-center'}"
+                        >
+                            {#if headerAvatarUrl && !headerAvatarFailed}
+                                <img
+                                    src={headerAvatarUrl}
+                                    alt={effectiveUser.mb_name}
+                                    class="h-full w-full object-cover"
+                                    onerror={() => {
+                                        headerAvatarFailed = true;
+                                    }}
+                                />
+                            {:else}
+                                <span class="text-primary text-xs font-bold"
+                                    >{effectiveUser.mb_name.charAt(0).toUpperCase()}</span
+                                >
+                            {/if}
+                        </div>
+                        <span class="text-foreground hidden text-sm font-medium md:inline">
+                            {effectiveUser.mb_name}
+                        </span>
+                    {/if}
                 </a>
             {:else}
                 <button

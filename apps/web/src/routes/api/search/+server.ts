@@ -52,19 +52,21 @@ function escapeSphinxMatch(str: string): string {
 }
 
 // 검색 필드별 Sphinx MATCH 표현식
+// 따옴표 없이 사용해야 부분 일치(토큰 매칭)가 동작함
+// 따옴표로 감싸면 정확 구문(phrase match)만 매칭됨
 function buildMatchExpr(query: string, field: string): string {
     const escaped = escapeSphinxMatch(query);
 
     switch (field) {
         case 'title':
-            return `@wr_subject "${escaped}"`;
+            return `@wr_subject ${escaped}`;
         case 'content':
-            return `@wr_content "${escaped}"`;
+            return `@wr_content ${escaped}`;
         case 'author':
-            return `@(mb_id,wr_name) "${escaped}"`;
+            return `@(mb_id,wr_name) ${escaped}`;
         case 'title_content':
         default:
-            return `@(wr_subject,wr_content) "${escaped}"`;
+            return `@(wr_subject,wr_content) ${escaped}`;
     }
 }
 
