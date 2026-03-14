@@ -14,6 +14,7 @@ import {
 } from '$lib/server/viewcount.js';
 import { fetchReactionsByParentId } from '$lib/server/reactions.js';
 import { fetchMemberLevels } from '$lib/server/member-levels.js';
+import { fetchMemberImages } from '$lib/server/member-images.js';
 import { fetchCommentLikeStatuses } from '$lib/server/comment-likes.js';
 import { fetchPostReportCount } from '$lib/server/report-count.js';
 
@@ -281,6 +282,28 @@ export const load: PageServerLoad = async ({
                 }
             } catch {
                 // 레벨 조회 실패 시 빈 맵 (클라이언트에서 fallback)
+            }
+
+            // 프로필 이미지 배치 조회 (DB mb_image_url)
+            try {
+                const imgIds = new Set<string>();
+                if (post.author_id) imgIds.add(post.author_id);
+                for (const c of comments.items || []) {
+                    if (c.author_id) imgIds.add(c.author_id);
+                }
+                if (imgIds.size > 0) {
+                    const imageMap = await fetchMemberImages([...imgIds]);
+                    if (post.author_id && imageMap[post.author_id]) {
+                        post.author_image = imageMap[post.author_id];
+                    }
+                    for (const c of comments.items || []) {
+                        if (c.author_id && imageMap[c.author_id]) {
+                            c.author_image = imageMap[c.author_id];
+                        }
+                    }
+                }
+            } catch {
+                // 이미지 조회 실패해도 정상 진행
             }
 
             // 댓글 좋아요/비추천 상태 배치 조회 (로그인 시만)

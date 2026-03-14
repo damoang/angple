@@ -4,6 +4,7 @@ import type { FreePost, Board, SearchField } from '$lib/api/types.js';
 import { fetchPromotionPosts, fetchPromotionBoardPosts } from '$lib/server/ads/promotion.js';
 import type { PromotionBoardPost } from '$lib/server/ads/promotion.js';
 import { backendFetch as bFetch, createAuthHeaders } from '$lib/server/backend-fetch.js';
+import { fetchMemberImages } from '$lib/server/member-images.js';
 import { createCache } from '$lib/server/cache.js';
 import { getCachedBoard } from '$lib/server/board-cache.js';
 
@@ -163,6 +164,23 @@ export const load: PageServerLoad = async ({ url, params, locals }) => {
             }
 
             const notices = noticesResult.status === 'fulfilled' ? noticesResult.value : [];
+
+            // 프로필 이미지 enrichment
+            const allPosts = [...posts, ...notices];
+            if (allPosts.length > 0) {
+                const mbIds = [...new Set(allPosts.map((p) => p.author_id).filter(Boolean))];
+                try {
+                    const imageMap = await fetchMemberImages(mbIds);
+                    for (const p of allPosts) {
+                        if (p.author_id && imageMap[p.author_id]) {
+                            p.author_image = imageMap[p.author_id];
+                        }
+                    }
+                } catch {
+                    // ignore
+                }
+            }
+
             const pagination = {
                 total: posts.length,
                 page: 1,
@@ -226,6 +244,22 @@ export const load: PageServerLoad = async ({ url, params, locals }) => {
         }
 
         const notices = noticesResult.status === 'fulfilled' ? noticesResult.value : [];
+
+        // 프로필 이미지 enrichment (DB mb_image_url 배치 조회)
+        const allPosts = [...posts, ...notices];
+        if (allPosts.length > 0) {
+            const mbIds = [...new Set(allPosts.map((p) => p.author_id).filter(Boolean))];
+            try {
+                const imageMap = await fetchMemberImages(mbIds);
+                for (const p of allPosts) {
+                    if (p.author_id && imageMap[p.author_id]) {
+                        p.author_image = imageMap[p.author_id];
+                    }
+                }
+            } catch {
+                // 이미지 조회 실패해도 게시글 표시는 정상 진행
+            }
+        }
 
         const result = { posts, notices, pagination, error };
 

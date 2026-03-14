@@ -8,7 +8,7 @@
         getCertificationBlockedMessage,
         goToCertification
     } from '$lib/utils/certification-gate.js';
-    import { getAvatarUrl, getMemberIconUrl } from '$lib/utils/member-icon.js';
+    import { getAvatarUrl } from '$lib/utils/member-icon.js';
     import type { BoardPermissions } from '$lib/api/types.js';
     import { apiClient } from '$lib/api/index.js';
     import Send from '@lucide/svelte/icons/send';
@@ -68,9 +68,7 @@
 
     const permissionMessage = $derived(`레벨 ${requiredCommentLevel} 이상 작성 가능`);
 
-    let commentAvatarUrl = $derived(
-        getAvatarUrl(authStore.user?.mb_image) || getMemberIconUrl(authStore.user?.mb_id) || null
-    );
+    let commentAvatarUrl = $derived(getAvatarUrl(authStore.user?.mb_image) || null);
     let commentAvatarFailed = $state(false);
 
     $effect(() => {

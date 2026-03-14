@@ -6,7 +6,7 @@
     import type { PageData } from './$types.js';
     import { authStore } from '$lib/stores/auth.svelte.js';
     import { getGradeName } from '$lib/utils/grade.js';
-    import { getAvatarUrl, getMemberIconUrl } from '$lib/utils/member-icon.js';
+    import { getAvatarUrl } from '$lib/utils/member-icon.js';
     import MySkeleton from '$lib/components/features/my/my-skeleton.svelte';
     import FileText from '@lucide/svelte/icons/file-text';
     import MessageSquare from '@lucide/svelte/icons/message-square';
@@ -16,9 +16,7 @@
 
     let { data }: { data: PageData } = $props();
 
-    let myAvatarUrl = $derived(
-        getAvatarUrl(authStore.user?.mb_image) || getMemberIconUrl(authStore.user?.mb_id) || null
-    );
+    let myAvatarUrl = $derived(getAvatarUrl(authStore.user?.mb_image) || null);
     let myAvatarFailed = $state(false);
 
     $effect(() => {

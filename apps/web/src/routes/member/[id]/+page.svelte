@@ -6,7 +6,7 @@
     import * as Tabs from '$lib/components/ui/tabs/index.js';
     import type { PageData } from './$types.js';
     import { authStore } from '$lib/stores/auth.svelte.js';
-    import { getAvatarUrl, getMemberIconUrl, handleIconError } from '$lib/utils/member-icon.js';
+    import { getAvatarUrl } from '$lib/utils/member-icon.js';
     import { apiClient } from '$lib/api/index.js';
     import { goto } from '$app/navigation';
     import { onMount } from 'svelte';
@@ -66,9 +66,7 @@
     const p = $derived(data.profile);
 
     let overrideImageUrl = $state<string | null>(null);
-    const profileIconUrl = $derived(
-        overrideImageUrl || getAvatarUrl(p?.mb_image) || getMemberIconUrl(p?.mb_id)
-    );
+    const profileIconUrl = $derived(overrideImageUrl || getAvatarUrl(p?.mb_image));
     let profileIconFailed = $state(false);
     $effect(() => {
         if (p) profileIconFailed = false;
@@ -387,8 +385,7 @@
                                 class="size-16 rounded-full object-cover"
                                 class:cursor-pointer={isOwnProfile}
                                 onclick={handleImageClick}
-                                onerror={(e) => {
-                                    handleIconError(e);
+                                onerror={() => {
                                     profileIconFailed = true;
                                 }}
                             />

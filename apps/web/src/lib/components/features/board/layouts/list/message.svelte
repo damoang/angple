@@ -9,7 +9,7 @@
      */
     import type { FreePost, BoardDisplaySettings } from '$lib/api/types.js';
     import Heart from '@lucide/svelte/icons/heart';
-    import { getMemberIconUrl } from '$lib/utils/member-icon.js';
+    import { getAvatarUrl } from '$lib/utils/member-icon.js';
     import AuthorLink from '$lib/components/ui/author-link/author-link.svelte';
     import { formatDate } from '$lib/utils/format-date.js';
     let {
@@ -25,7 +25,7 @@
     } = $props();
 
     let showIcon = $state(true);
-    const iconUrl = $derived(showIcon ? getMemberIconUrl(post.author_id) : null);
+    const iconUrl = $derived(showIcon ? getAvatarUrl(post.author_image) : null);
     const initial = $derived((post.author || '?').charAt(0).toUpperCase());
 
     const isDeleted = $derived(!!post.deleted_at);

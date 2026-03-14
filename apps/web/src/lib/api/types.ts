@@ -21,6 +21,7 @@ export interface FreePost {
     content: string;
     author: string;
     author_id: string;
+    author_image?: string; // 프로필 이미지 URL (mb_image_url)
     board_id?: string;
     author_ip?: string; // 작성자 IP (마스킹된 형태, 예: 123.456.*.*)
     views: number;
@@ -62,6 +63,7 @@ export interface FreeComment {
     content: string;
     author: string;
     author_id: string;
+    author_image?: string; // 프로필 이미지 URL (mb_image_url)
     author_ip?: string; // 작성자 IP (마스킹된 형태, 예: 123.456.*.*)
     likes?: number;
     dislikes?: number; // 비추천 수

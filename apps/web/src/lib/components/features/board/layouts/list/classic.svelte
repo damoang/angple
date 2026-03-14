@@ -6,7 +6,7 @@
     import ImageIcon from '@lucide/svelte/icons/image';
     import Play from '@lucide/svelte/icons/play';
     import Pin from '@lucide/svelte/icons/pin';
-    import { getMemberIconUrl, handleIconError } from '$lib/utils/member-icon.js';
+    import { getAvatarUrl } from '$lib/utils/member-icon.js';
     import AuthorLink from '$lib/components/ui/author-link/author-link.svelte';
     import { formatDate, isToday } from '$lib/utils/format-date.js';
     import { formatCompactNumber } from '$lib/utils/format-number.js';
@@ -38,7 +38,7 @@
     } = $props();
 
     // 회원 아이콘 URL
-    const iconUrl = $derived(getMemberIconUrl(post.author_id));
+    const iconUrl = $derived(getAvatarUrl(post.author_image));
 
     /**
      * 추천 색상 단계 — 레거시 rcmd-box 기반
@@ -228,7 +228,10 @@
                             src={iconUrl}
                             alt=""
                             class="h-5 w-5 shrink-0 rounded-full object-cover"
-                            onerror={handleIconError}
+                            onerror={(e) => {
+                                const img = e.currentTarget as HTMLImageElement;
+                                img.style.display = 'none';
+                            }}
                         />
                     {/if}
                     <AuthorLink authorId={post.author_id} authorName={post.author} />
@@ -260,7 +263,10 @@
                                 src={iconUrl}
                                 alt=""
                                 class="h-5 w-5 shrink-0 rounded-full object-cover"
-                                onerror={handleIconError}
+                                onerror={(e) => {
+                                    const img = e.currentTarget as HTMLImageElement;
+                                    img.style.display = 'none';
+                                }}
                             />
                         {/if}
                         <AuthorLink authorId={post.author_id} authorName={post.author} />

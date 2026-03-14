@@ -19,7 +19,7 @@
     } from '$lib/components/features/notification/index.js';
     import { authStore } from '$lib/stores/auth.svelte.js';
     import { uiSettingsStore } from '$lib/stores/ui-settings.svelte.js';
-    import { getAvatarUrl, getMemberIconUrl } from '$lib/utils/member-icon';
+    import { getAvatarUrl } from '$lib/utils/member-icon';
     import { menuStore } from '$lib/stores/menu.svelte';
     import { getIcon } from '$lib/utils/icon-map';
     import { page } from '$app/stores';
@@ -43,9 +43,7 @@
     const isEffectivelyLoggedIn = $derived(effectiveUser !== null && effectiveUser !== undefined);
 
     let headerAvatarUrl = $derived(
-        effectiveUser
-            ? getAvatarUrl(effectiveUser.mb_image) || getMemberIconUrl(effectiveUser.mb_id) || null
-            : null
+        effectiveUser ? getAvatarUrl(effectiveUser.mb_image) || null : null
     );
     let headerAvatarFailed = $state(false);
 
