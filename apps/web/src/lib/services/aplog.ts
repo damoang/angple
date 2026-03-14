@@ -65,7 +65,12 @@ function getPageKey(): string {
     return `${getTabId()}:${cleanUrl()}`;
 }
 
-function buildSlotKey(adPos: string, adId: string, imgSrc: string, explicitSlotKey?: string): string {
+function buildSlotKey(
+    adPos: string,
+    adId: string,
+    imgSrc: string,
+    explicitSlotKey?: string
+): string {
     if (explicitSlotKey) return explicitSlotKey;
     return [adPos || 'unknown', adId || 'unknown', imgSrc || 'unknown'].join(':');
 }
