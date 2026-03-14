@@ -175,10 +175,11 @@
                             >
                                 <!-- 추천수 배지 (기존 추천글 패턴) -->
                                 <span
-                                    class="inline-flex min-w-[2.5rem] flex-shrink-0 items-center justify-center rounded-full px-2 py-0.5 text-xs font-bold {getRecommendBadgeClass(
+                                    class="inline-flex min-w-[2.5rem] flex-shrink-0 items-center justify-center gap-0.5 rounded-full px-2 py-0.5 text-xs font-bold {getRecommendBadgeClass(
                                         post.recommend_count
                                     )}"
                                 >
+                                    <img alt="공감" class="size-3" src="/images/thumbup.png?v=2" />
                                     {formatNumber(post.recommend_count)}
                                 </span>
 
