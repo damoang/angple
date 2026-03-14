@@ -349,6 +349,7 @@
                     transformedPostContent?: string | null;
                     isScrapped?: boolean;
                     postReportCount?: number | string | null;
+                    postLikeStatus?: { userLiked: boolean; userDisliked: boolean };
                 }) => {
                     if (cancelled) return;
                     promotionPosts = result.promotionPosts || [];
@@ -376,6 +377,11 @@
 
                     if (result.postReportCount != null) {
                         postReportCount = result.postReportCount;
+                    }
+
+                    if (result.postLikeStatus) {
+                        isLiked = result.postLikeStatus.userLiked;
+                        isDisliked = result.postLikeStatus.userDisliked;
                     }
 
                     auxiliaryLoaded = true;
@@ -557,18 +563,20 @@
         };
         window.addEventListener('comment-refresh', handleCommentRefresh);
 
-        // 추천 상태 조회 (사용자별 데이터 — 클라이언트 전용)
-        (async () => {
-            try {
-                const status = await apiClient.getPostLikeStatus(boardId, String(data.post.id));
-                isLiked = status.user_liked;
-                isDisliked = status.user_disliked ?? false;
-                likeCount = status.likes;
-                dislikeCount = status.dislikes ?? 0;
-            } catch (err) {
-                console.error('Failed to load like status:', err);
-            }
-        })();
+        // 추천 상태 조회 (SSR 스트리밍으로 로드, fallback으로 클라이언트 호출)
+        if (!auxiliaryLoaded) {
+            (async () => {
+                try {
+                    const status = await apiClient.getPostLikeStatus(boardId, String(data.post.id));
+                    isLiked = status.user_liked;
+                    isDisliked = status.user_disliked ?? false;
+                    likeCount = status.likes;
+                    dislikeCount = status.dislikes ?? 0;
+                } catch (err) {
+                    console.error('Failed to load like status:', err);
+                }
+            })();
+        }
 
         return () => {
             window.removeEventListener('comment-refresh', handleCommentRefresh);
