@@ -246,7 +246,8 @@
                                       adId: slot.id,
                                       adPos: position,
                                       imgSrc: slot.imageUrl,
-                                      mbId: authStore.user?.mb_id || null
+                                      mbId: authStore.user?.mb_id || null,
+                                      slotKey: `${position}:${idx}`
                                   }
                                 : null}
                             class="block"
@@ -308,7 +309,8 @@
                                   adId: banner.id,
                                   adPos: position,
                                   imgSrc: banner.imageUrl,
-                                  mbId: authStore.user?.mb_id || null
+                                  mbId: authStore.user?.mb_id || null,
+                                  slotKey: `${position}:${banner.id}`
                               }
                             : null}
                         class="block"

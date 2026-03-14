@@ -218,7 +218,8 @@
                 adId: adsBanner.id,
                 adPos: adsPosition,
                 imgSrc: adsBanner.imageUrl,
-                mbId: authStore.user?.mb_id || null
+                mbId: authStore.user?.mb_id || null,
+                slotKey: `damoang-banner:${position}`
             }}
             class="border-border block overflow-hidden rounded-xl border transition-opacity hover:opacity-90"
         >
