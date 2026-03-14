@@ -219,6 +219,14 @@ export const POST: RequestHandler = async ({ params, request, cookies, getClient
                 `UPDATE ?? SET ${column} = GREATEST(${column} - 1, 0) WHERE wr_id = ?`,
                 [tableName, safePostId]
             );
+
+            // 추천 취소 시 해당 알림도 삭제 (중복 알림 방지)
+            if (action === 'good') {
+                pool.query(
+                    `DELETE FROM g5_na_noti WHERE bo_table = ? AND wr_id = ? AND rel_mb_id = ? AND ph_from_case = 'good'`,
+                    [safeBoardId, safePostId, user.mb_id]
+                ).catch(() => {});
+            }
         } else {
             // 추가 (INSERT + 카운트 증가)
             const clientIp = getClientAddress();
@@ -234,28 +242,35 @@ export const POST: RequestHandler = async ({ params, request, cookies, getClient
 
         await conn.commit();
 
-        // 좋아요 알림 (추가 시에만, 취소 시 알림 없음)
+        // 좋아요 알림 (추가 시에만)
         if (!alreadyExists && action === 'good') {
-            // 게시글 작성자에게 알림 (비동기, fire-and-forget)
             const postAuthorId = writeRows[0].mb_id;
             if (postAuthorId && postAuthorId !== user.mb_id) {
                 const userNick = user.mb_nick || user.mb_name || user.mb_id;
                 const postSubject = writeRows[0].wr_subject || '';
+                // 기존 알림 삭제 후 새 알림 (추천→취소→재추천 중복 방지)
                 pool.query(
-                    `INSERT INTO g5_na_noti (ph_to_case, ph_from_case, bo_table, wr_id, mb_id, rel_mb_id, rel_mb_nick, rel_msg, rel_url, ph_readed, ph_datetime, parent_subject, wr_parent)
+                    `DELETE FROM g5_na_noti WHERE bo_table = ? AND wr_id = ? AND rel_mb_id = ? AND ph_from_case = 'good'`,
+                    [safeBoardId, safePostId, user.mb_id]
+                )
+                    .then(() =>
+                        pool.query(
+                            `INSERT INTO g5_na_noti (ph_to_case, ph_from_case, bo_table, wr_id, mb_id, rel_mb_id, rel_mb_nick, rel_msg, rel_url, ph_readed, ph_datetime, parent_subject, wr_parent)
                      VALUES ('good', 'good', ?, ?, ?, ?, ?, ?, ?, 'N', CONVERT_TZ(UTC_TIMESTAMP(), '+00:00', '+09:00'), ?, ?)`,
-                    [
-                        safeBoardId,
-                        safePostId,
-                        postAuthorId,
-                        user.mb_id,
-                        userNick,
-                        `${userNick}님이 회원님의 글을 추천했습니다.`,
-                        `/${safeBoardId}/${safePostId}`,
-                        postSubject,
-                        safePostId
-                    ]
-                ).catch(() => {});
+                            [
+                                safeBoardId,
+                                safePostId,
+                                postAuthorId,
+                                user.mb_id,
+                                userNick,
+                                `${userNick}님이 회원님의 글을 추천했습니다.`,
+                                `/${safeBoardId}/${safePostId}`,
+                                postSubject,
+                                safePostId
+                            ]
+                        )
+                    )
+                    .catch(() => {});
             }
         }
 

@@ -215,6 +215,14 @@ export const POST: RequestHandler = async ({ params, request, cookies, getClient
                 `UPDATE ?? SET ${column} = GREATEST(${column} - 1, 0) WHERE wr_id = ?`,
                 [tableName, safeCommentId]
             );
+
+            // 추천 취소 시 해당 알림도 삭제 (중복 알림 방지)
+            if (action === 'good') {
+                pool.query(
+                    `DELETE FROM g5_na_noti WHERE bo_table = ? AND wr_id = ? AND rel_mb_id = ? AND ph_from_case = 'good'`,
+                    [safeBoardId, safeCommentId, user.mb_id]
+                ).catch(() => {});
+            }
         } else {
             // 추가
             const clientIp = getClientAddress();
@@ -235,14 +243,20 @@ export const POST: RequestHandler = async ({ params, request, cookies, getClient
             const commentAuthorId = writeRows[0].mb_id;
             if (commentAuthorId && commentAuthorId !== user.mb_id) {
                 const userNick = user.mb_nick || user.mb_name || user.mb_id;
-                // 부모 글 제목 조회
                 const safeParentPostId = parseInt(params.postId!, 10);
-                pool.query<WriteRow[]>(`SELECT wr_subject FROM ?? WHERE wr_id = ?`, [
-                    tableName,
-                    safeParentPostId
-                ])
+                // 기존 알림 삭제 후 새 알림 (추천→취소→재추천 중복 방지)
+                pool.query(
+                    `DELETE FROM g5_na_noti WHERE bo_table = ? AND wr_id = ? AND rel_mb_id = ? AND ph_from_case = 'good'`,
+                    [safeBoardId, safeCommentId, user.mb_id]
+                )
+                    .then(() =>
+                        pool.query<WriteRow[]>(`SELECT wr_subject FROM ?? WHERE wr_id = ?`, [
+                            tableName,
+                            safeParentPostId
+                        ])
+                    )
                     .then(([parentRows]) => {
-                        const parentSubject = (parentRows[0] as any)?.wr_subject || '';
+                        const parentSubject = (parentRows as WriteRow[])[0]?.wr_subject || '';
                         pool.query(
                             `INSERT INTO g5_na_noti (ph_to_case, ph_from_case, bo_table, wr_id, mb_id, rel_mb_id, rel_mb_nick, rel_msg, rel_url, ph_readed, ph_datetime, parent_subject, wr_parent)
                          VALUES ('good', 'good', ?, ?, ?, ?, ?, ?, ?, 'N', CONVERT_TZ(UTC_TIMESTAMP(), '+00:00', '+09:00'), ?, ?)`,
