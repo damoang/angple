@@ -123,6 +123,9 @@ export const load: PageServerLoad = async ({
             if (filesData.videos?.length) {
                 post.videos = filesData.videos;
             }
+            if (filesData.files?.length) {
+                post.files = filesData.files;
+            }
         }
 
         // 본문 제휴 링크 변환은 2단계 스트리밍으로 이동 (초기 렌더 블로킹 방지)

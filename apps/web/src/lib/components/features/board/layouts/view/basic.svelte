@@ -20,6 +20,7 @@
     import { Markdown } from '$lib/components/ui/markdown/index.js';
     import ExternalLink from '@lucide/svelte/icons/external-link';
     import Download from '@lucide/svelte/icons/download';
+    import Paperclip from '@lucide/svelte/icons/paperclip';
     import Video from '@lucide/svelte/icons/video';
     import Heart from '@lucide/svelte/icons/heart';
     import ThumbsDown from '@lucide/svelte/icons/thumbs-down';
@@ -412,6 +413,34 @@
                                 class="max-w-full rounded-lg border"
                                 loading="lazy"
                             />
+                        {/each}
+                    </div>
+                {/if}
+
+                {#if post.files && post.files.length > 0}
+                    <div class="mt-6 space-y-2">
+                        <p
+                            class="text-muted-foreground flex items-center gap-1.5 text-sm font-medium"
+                        >
+                            <Paperclip class="h-4 w-4" />
+                            첨부파일
+                        </p>
+                        {#each post.files as file, i (i)}
+                            <a
+                                href={file.url}
+                                download={file.filename}
+                                class="bg-muted/50 hover:bg-muted flex items-center gap-3 rounded-lg border px-4 py-2.5 transition-colors"
+                            >
+                                <Download class="text-muted-foreground h-4 w-4 shrink-0" />
+                                <span class="text-foreground min-w-0 truncate text-sm">
+                                    {file.filename}
+                                </span>
+                                {#if file.size}
+                                    <span class="text-muted-foreground ml-auto shrink-0 text-xs">
+                                        {formatFileSize(file.size)}
+                                    </span>
+                                {/if}
+                            </a>
                         {/each}
                     </div>
                 {/if}

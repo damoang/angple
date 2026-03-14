@@ -4,7 +4,8 @@
  * GET /api/boards/[boardId]/posts/[postId]/files
  * → {
  *     images: ["https://s3.damoang.net/data/file/free/xxx.jpg", ...],
- *     videos: [{ url: "...", filename: "원본파일명.mp4", size: 0 }, ...]
+ *     videos: [{ url: "...", filename: "원본파일명.mp4", size: 0 }, ...],
+ *     files: [{ url: "...", filename: "원본파일명.pdf", size: 12345 }, ...]
  *   }
  *
  * Go 백엔드 API가 images 필드를 반환하지 않아
@@ -33,14 +34,14 @@ export const GET: RequestHandler = async ({ params }) => {
     const { boardId, postId } = params;
 
     if (!boardId || !postId) {
-        return json({ images: [], videos: [] });
+        return json({ images: [], videos: [], files: [] });
     }
 
     const safeBoardId = boardId.replace(/[^a-zA-Z0-9_-]/g, '');
     const safePostId = parseInt(postId, 10);
 
     if (isNaN(safePostId)) {
-        return json({ images: [], videos: [] });
+        return json({ images: [], videos: [], files: [] });
     }
 
     try {
@@ -64,9 +65,23 @@ export const GET: RequestHandler = async ({ params }) => {
                 size: row.bf_filesize || 0
             }));
 
-        return json({ images, videos });
+        // 일반 첨부파일 (이미지/영상 제외, bf_type=0 첨부만)
+        const files = rows
+            .filter(
+                (row) =>
+                    !IMAGE_EXTENSIONS.test(row.bf_file) &&
+                    !VIDEO_EXTENSIONS.test(row.bf_file) &&
+                    row.bf_type === 0
+            )
+            .map((row) => ({
+                url: `${S3_BASE}/${safeBoardId}/${row.bf_file}`,
+                filename: row.bf_source || row.bf_file,
+                size: row.bf_filesize || 0
+            }));
+
+        return json({ images, videos, files });
     } catch (error) {
         console.error('Board files GET error:', error);
-        return json({ images: [], videos: [] });
+        return json({ images: [], videos: [], files: [] });
     }
 };
