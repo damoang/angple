@@ -43,12 +43,21 @@ async function fetchCurrentUser(): Promise<void> {
  * hooks.server.ts에서 설정한 user/accessToken을 +layout.server.ts 경유로 받음
  */
 function initFromSSR(
-    ssrUser: { id?: string; nickname: string; level: number; mb_certify?: string },
+    ssrUser: {
+        id?: string;
+        nickname: string;
+        level: number;
+        mb_certify?: string;
+        mb_image?: string;
+    },
     accessToken: string
 ): void {
     const mbId = ssrUser.id ?? '';
-    // 동일 사용자면 스킵 (SPA 네비게이션마다 불필요한 상태 갱신 방지)
+    // 동일 사용자면 이미지만 갱신 (SPA 네비게이션마다 불필요한 상태 갱신 방지)
     if (user && user.mb_id === mbId) {
+        if (ssrUser.mb_image && user.mb_image !== ssrUser.mb_image) {
+            user.mb_image = ssrUser.mb_image;
+        }
         isLoading = false;
         return;
     }
@@ -57,7 +66,8 @@ function initFromSSR(
         mb_name: ssrUser.nickname,
         mb_level: ssrUser.level,
         mb_email: '',
-        mb_certify: ssrUser.mb_certify || ''
+        mb_certify: ssrUser.mb_certify || '',
+        mb_image: ssrUser.mb_image
     };
     apiClient.setAccessToken(accessToken);
     isLoading = false;
