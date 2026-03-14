@@ -215,6 +215,49 @@ export interface RecommendedDataWithAI extends RecommendedData {
     ai_analysis?: AIAnalysis; // Optional - Gemini API 할당량 초과 시 없을 수 있음
 }
 
+// 날짜별 공감글 타입
+export interface DailyCalendarEntry {
+    date: string;
+    date_display: string;
+    total_posts: number;
+    max_recommend: number;
+    is_today: boolean;
+}
+
+export interface DailyCalendar {
+    generated_at: string;
+    available_dates: DailyCalendarEntry[];
+    oldest_date: string;
+    newest_date: string;
+    total_days: number;
+}
+
+export interface DailyRecommendedSection {
+    id: string;
+    name: string;
+    count: number;
+    posts: RecommendedPost[] | null;
+}
+
+export interface DailyRecommendedStats {
+    total_recommended_posts: number;
+    max_recommend_count: number;
+    avg_recommend_count: number;
+}
+
+export interface DailyRecommendedData {
+    generated_at: string;
+    date: string;
+    date_display: string;
+    is_today: boolean;
+    sections: {
+        community: DailyRecommendedSection;
+        group: DailyRecommendedSection;
+        info: DailyRecommendedSection;
+    };
+    stats: DailyRecommendedStats;
+}
+
 // 새로운 소식 탭 타입
 export type NewsTabId = 'new' | 'tip' | 'review' | 'notice';
 
