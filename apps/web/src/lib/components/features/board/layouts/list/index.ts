@@ -20,6 +20,7 @@ import NoticeLayout from './notice.svelte';
 import MessageLayout from './message.svelte';
 import GivingLayout from './giving.svelte';
 import TradeLayout from './trade.svelte';
+import ArchiveLayout from './archive.svelte';
 
 /** 코어 목록 레이아웃 매니페스트 */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -137,6 +138,16 @@ const coreListLayouts: { manifest: LayoutManifest; component: any }[] = [
             wrapperClass: 'grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5'
         },
         component: TradeLayout
+    },
+    {
+        manifest: {
+            id: 'archive',
+            name: '아카이브',
+            description: '신고잠금 아카이브 전용 (원작자, 내용 미리보기, 출처 배지)',
+            wrapperClass:
+                'space-y-2 -mx-5 md:mx-0 [&>a]:border-x-0 md:[&>a]:border-x [&>a]:rounded-none md:[&>a]:rounded-lg'
+        },
+        component: ArchiveLayout
     }
 ];
 
@@ -165,5 +176,6 @@ export {
     NoticeLayout,
     MessageLayout,
     GivingLayout,
-    TradeLayout
+    TradeLayout,
+    ArchiveLayout
 };

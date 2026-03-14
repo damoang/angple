@@ -339,7 +339,7 @@
                                             <span
                                                 class="bg-muted text-muted-foreground hidden shrink-0 rounded px-1.5 py-0.5 text-xs sm:inline-block"
                                             >
-                                                {post.board_name || post.board_id || 'free'}
+                                                {post.board_id || 'free'}
                                             </span>
                                             <span class="min-w-0 flex-1 truncate leading-relaxed">
                                                 {post.title}
