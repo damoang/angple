@@ -248,6 +248,7 @@
 
     // 댓글/프로모션/리비전 — Streaming SSR (2단계 데이터)
     let comments = $state<FreeComment[]>([]);
+    let truthroomCommentMap = $state<Record<number, number>>({});
     let promotionPosts = $state<unknown[]>([]);
     let revisions = $state<PostRevision[]>([]);
     let initialLikedCommentIds = $state<number[]>([]);
@@ -268,6 +269,7 @@
         comments = [];
         initialLikedCommentIds = [];
         initialDislikedCommentIds = [];
+        truthroomCommentMap = {};
         commentsLoaded = false;
         commentsError = false;
 
@@ -283,6 +285,7 @@
                     };
                     memberLevels?: Record<string, number>;
                     commentLikeStatuses?: { likedIds: number[]; dislikedIds: number[] };
+                    truthroomCommentMap?: Record<number, number>;
                 }) => {
                     if (cancelled) return;
                     comments = result.comments.items || [];
@@ -296,6 +299,10 @@
                     if (result.commentLikeStatuses) {
                         initialLikedCommentIds = result.commentLikeStatuses.likedIds || [];
                         initialDislikedCommentIds = result.commentLikeStatuses.dislikedIds || [];
+                    }
+                    // 잠긴 댓글 → 진실의방 매핑
+                    if (result.truthroomCommentMap) {
+                        truthroomCommentMap = result.truthroomCommentMap;
                     }
                     commentsLoaded = true;
                 }
@@ -1305,6 +1312,8 @@
                 pageData={data}
                 {postReactions}
                 {postReportCount}
+                truthroomPostId={data.truthroomPostId}
+                originalPostLink={data.originalPostLink}
             />
         {:else}
             <!-- 폴백: 레이아웃을 resolve할 수 없을 때 기본 메시지 -->
@@ -1433,6 +1442,7 @@
                         {reactionsMap}
                         {initialLikedCommentIds}
                         {initialDislikedCommentIds}
+                        {truthroomCommentMap}
                     />
 
                     <div class="border-border border-t pt-6">

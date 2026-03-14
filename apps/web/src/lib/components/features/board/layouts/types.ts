@@ -124,4 +124,10 @@ export interface ViewLayoutProps {
 
     /** 게시글 신고 횟수 (관리자만, wr_7 값) */
     postReportCount?: number | string | null;
+
+    /** 잠긴 게시글의 진실의방 참조 글 ID */
+    truthroomPostId?: number | null;
+
+    /** 진실의방 글에서 원본 게시글/댓글 링크 */
+    originalPostLink?: { boardId: string; postId: string; commentId?: string } | null;
 }

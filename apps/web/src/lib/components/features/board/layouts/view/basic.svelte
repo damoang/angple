@@ -94,7 +94,9 @@
         pageData,
         promotionExpired = false,
         postReactions,
-        postReportCount
+        postReportCount,
+        truthroomPostId,
+        originalPostLink
     }: ViewLayoutProps = $props();
 
     let hasAffiliateLinks = $derived(postContent?.includes('data-affiliate') ?? false);
@@ -304,6 +306,27 @@
         </div>
     </CardHeader>
     <CardContent class="space-y-6">
+        <!-- 진실의방: 원본 게시글/댓글 링크 -->
+        {#if originalPostLink}
+            <div
+                class="bg-muted/50 border-primary/20 flex items-center gap-2 rounded-lg border p-3 text-sm"
+            >
+                <span class="text-muted-foreground">
+                    {originalPostLink.commentId ? '원본 댓글:' : '원본 게시글:'}
+                </span>
+                <a
+                    href="/{originalPostLink.boardId}/{originalPostLink.postId}{originalPostLink.commentId
+                        ? `#c_${originalPostLink.commentId}`
+                        : ''}"
+                    class="text-primary hover:underline"
+                >
+                    /{originalPostLink.boardId}/{originalPostLink.postId}{originalPostLink.commentId
+                        ? ` (댓글 #${originalPostLink.commentId})`
+                        : ''}
+                </a>
+            </div>
+        {/if}
+
         <!-- 플러그인 슬롯: post.before_content (Q&A 상태 헤더 등) -->
         {#each beforeContentSlots as slot (slot.component)}
             {@const SlotComponent = slot.component}
