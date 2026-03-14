@@ -199,7 +199,7 @@
             </div>
         {:else}
             <!-- 신고 사유 선택 -->
-            <div class="space-y-4 py-4">
+            <div class="max-h-[60vh] space-y-4 overflow-y-auto py-4">
                 <!-- 관리자: 신고자 목록 버튼 (신고 있을 때만) -->
                 {#if isAdmin && reportCount > 0}
                     <Button

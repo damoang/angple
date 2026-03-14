@@ -528,11 +528,49 @@
     // 처리된 댓글 HTML 저장
     let processedComments = new SvelteMap<string | number, string>();
 
-    // SSR용: 기본 이스케이프된 댓글 내용 (플러그인 필터 없이 즉시 렌더링)
+    // SSR용: 산화된 댓글 내용 (플러그인 필터 없이 즉시 렌더링)
+    // TipTap 에디터로 작성된 댓글은 <p>, <strong> 등 HTML 태그를 포함하므로
+    // escapeHtml 대신 DOMPurify로 산화하여 안전한 태그는 보존
     const ssrCommentHtml = $derived.by(() => {
         const map = new Map<string | number, string>();
         for (const comment of commentTree) {
-            map.set(comment.id, comment.content ? escapeHtml(comment.content) : '');
+            if (!comment.content) {
+                map.set(comment.id, '');
+                continue;
+            }
+            const withBr = comment.content.replace(/\n/g, '<br>');
+            map.set(
+                comment.id,
+                DOMPurify.sanitize(withBr, {
+                    ALLOWED_TAGS: [
+                        'p',
+                        'img',
+                        'br',
+                        'div',
+                        'blockquote',
+                        'a',
+                        'span',
+                        'pre',
+                        'code',
+                        'strong',
+                        'em',
+                        'del',
+                        'details',
+                        'summary'
+                    ],
+                    ALLOWED_ATTR: [
+                        'src',
+                        'width',
+                        'alt',
+                        'loading',
+                        'class',
+                        'height',
+                        'href',
+                        'target',
+                        'rel'
+                    ]
+                })
+            );
         }
         return map;
     });
