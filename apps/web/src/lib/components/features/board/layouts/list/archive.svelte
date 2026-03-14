@@ -2,7 +2,6 @@
     import { Badge } from '$lib/components/ui/badge/index.js';
     import AuthorLink from '$lib/components/ui/author-link/author-link.svelte';
     import type { FreePost, BoardDisplaySettings } from '$lib/api/types.js';
-    import Lock from '@lucide/svelte/icons/lock';
     import { LevelBadge } from '$lib/components/ui/level-badge/index.js';
     import { memberLevelStore } from '$lib/stores/member-levels.svelte.js';
     import { formatDate } from '$lib/utils/format-date.js';
@@ -25,111 +24,81 @@
     const originalLink = $derived(post.link1 || '');
     const sourceBoard = $derived(post.extra_1 || '');
     const sourcePostId = $derived(post.extra_2 || '');
-
-    const contentPreview = $derived.by(() => {
-        if (!post.content) return '';
-        return post.content
-            .replace(/<[^>]+>/g, '')
-            .replace(/&nbsp;/g, ' ')
-            .replace(/&lt;/g, '<')
-            .replace(/&gt;/g, '>')
-            .replace(/&amp;/g, '&')
-            .replace(/\s+/g, ' ')
-            .trim()
-            .slice(0, 200);
-    });
 </script>
 
 {#if isDeleted}
-    <a
-        {href}
-        class="bg-background border-border block rounded-lg border px-4 py-3 no-underline opacity-50"
-    >
-        <span class="text-muted-foreground">[삭제된 게시물입니다]</span>
+    <a {href} class="text-muted-foreground block px-4 py-2 text-sm no-underline opacity-50">
+        [삭제된 게시물입니다]
     </a>
 {:else if isReportLock}
     <a
         href={originalLink || href}
-        class="bg-background border-border hover:bg-accent/50 group block rounded-lg border no-underline transition-all hover:shadow-sm"
+        class="hover:bg-accent flex items-center gap-2 px-4 py-2 no-underline transition-colors"
     >
-        <div class="border-border flex items-center justify-between border-b px-4 py-2">
-            <div class="flex items-center gap-2">
-                <Badge
-                    variant={isCommentEntry ? 'secondary' : 'default'}
-                    class="text-[11px] font-medium"
-                >
-                    {post.category}
-                </Badge>
-                {#if sourceBoard && sourcePostId}
-                    <span class="text-muted-foreground font-mono text-xs">
-                        {sourceBoard} #{sourcePostId}
-                    </span>
-                {/if}
-            </div>
-            <span class="text-muted-foreground text-xs">{formatDate(post.created_at)}</span>
-        </div>
+        <!-- 카테고리 배지 -->
+        <Badge
+            variant={isCommentEntry ? 'secondary' : 'default'}
+            class="shrink-0 px-1.5 py-0 text-[10px]"
+        >
+            {isCommentEntry ? '댓' : '글'}
+        </Badge>
 
-        <div class="px-4 py-3">
-            <h3
-                class="mb-1.5 flex items-center gap-2 {isRead
-                    ? 'text-muted-foreground font-normal'
-                    : 'text-foreground font-medium'}"
-            >
-                <Lock class="text-destructive/70 h-4 w-4 shrink-0" />
-                <span class="line-clamp-1">{post.title}</span>
-            </h3>
+        <!-- 출처 -->
+        {#if sourceBoard && sourcePostId}
+            <span class="text-muted-foreground hidden shrink-0 font-mono text-xs sm:inline">
+                {sourceBoard}#{sourcePostId}
+            </span>
+        {/if}
 
-            {#if contentPreview}
-                <p class="text-muted-foreground mb-2 line-clamp-2 text-sm leading-relaxed">
-                    {contentPreview}
-                </p>
-            {/if}
+        <!-- 제목 -->
+        <span
+            class="min-w-0 flex-1 truncate text-sm {isRead
+                ? 'text-muted-foreground'
+                : 'text-foreground'}"
+        >
+            {post.title}
+        </span>
 
-            <div class="text-muted-foreground flex items-center gap-2 text-xs">
-                <span class="text-foreground/50 font-medium">원작자</span>
-                <span class="inline-flex items-center gap-0.5">
-                    <LevelBadge level={memberLevelStore.getLevel(post.author_id)} size="sm" />
-                    <AuthorLink authorId={post.author_id} authorName={post.author} />
-                </span>
-                <span class="text-border">·</span>
-                <span>조회 {post.views.toLocaleString()}</span>
-            </div>
-        </div>
+        <!-- 원작자 -->
+        <span class="hidden shrink-0 items-center gap-1 text-xs sm:inline-flex">
+            <LevelBadge level={memberLevelStore.getLevel(post.author_id)} size="sm" />
+            <AuthorLink authorId={post.author_id} authorName={post.author} />
+        </span>
+
+        <!-- 날짜 -->
+        <span class="text-muted-foreground shrink-0 text-xs">
+            {formatDate(post.created_at)}
+        </span>
     </a>
 {:else}
+    <!-- 일반 글 -->
     <a
         {href}
-        class="bg-background border-border hover:bg-accent block rounded-lg border px-4 py-3 no-underline transition-all hover:shadow-sm"
+        class="hover:bg-accent flex items-center gap-2 px-4 py-2 no-underline transition-colors"
     >
-        <div class="min-w-0">
-            <h3
-                class="mb-1 flex items-center gap-1.5 truncate {isRead
-                    ? 'text-muted-foreground font-normal'
-                    : 'text-foreground font-medium'}"
+        {#if post.category}
+            <span
+                class="bg-primary/10 text-primary shrink-0 rounded px-1.5 py-0 text-[10px] font-medium"
             >
-                {post.title}
-            </h3>
-            <div class="text-muted-foreground flex flex-wrap items-center gap-2 text-sm">
-                {#if post.category}
-                    <span
-                        class="bg-primary/10 text-primary rounded-md px-2 py-0.5 text-[11px] font-medium"
-                    >
-                        {post.category}
-                    </span>
-                {/if}
-                <span class="inline-flex items-center gap-0.5">
-                    <LevelBadge level={memberLevelStore.getLevel(post.author_id)} size="sm" />
-                    <AuthorLink authorId={post.author_id} authorName={post.author} />
-                </span>
-                <span>·</span>
-                <span>{formatDate(post.created_at)}</span>
-                <span>·</span>
-                <span>조회 {post.views.toLocaleString()}</span>
-                {#if post.comments_count > 0}
-                    <span>·</span>
-                    <span>💬 {post.comments_count}</span>
-                {/if}
-            </div>
-        </div>
+                {post.category}
+            </span>
+        {/if}
+
+        <span
+            class="min-w-0 flex-1 truncate text-sm {isRead
+                ? 'text-muted-foreground'
+                : 'text-foreground'}"
+        >
+            {post.title}
+        </span>
+
+        <span class="hidden shrink-0 items-center gap-1 text-xs sm:inline-flex">
+            <LevelBadge level={memberLevelStore.getLevel(post.author_id)} size="sm" />
+            <AuthorLink authorId={post.author_id} authorName={post.author} />
+        </span>
+
+        <span class="text-muted-foreground shrink-0 text-xs">
+            {formatDate(post.created_at)}
+        </span>
     </a>
 {/if}
