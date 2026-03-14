@@ -150,7 +150,7 @@
 
     // 읽은 글 표시 지연 — SSR에서는 모든 글이 "안읽음"으로 렌더링되므로,
     // 하이드레이션 직후 즉시 변경하면 깜빡임 발생. 2프레임 대기 후 부드럽게 전환.
-    let showSearch = $state(false);
+    let showSearch = $state(uiSettingsStore.pinSearch);
     let showReadState = $state(false);
     function scheduleAuthorLevelFetch(authorIds: string[]) {
         const uniqueAuthorIds = [...new Set(authorIds)];
@@ -536,16 +536,41 @@
                             </DropdownMenuContent>
                         </DropdownMenu>
                     {/if}
-                    <Button
-                        variant="outline"
-                        size="icon"
-                        class="relative h-9 w-9 shrink-0"
-                        onclick={() => (showSearch = !showSearch)}
-                        title="검색"
-                    >
-                        <span class="absolute -inset-1.5"></span>
-                        <Search class="h-4 w-4" />
-                    </Button>
+                    <div class="relative flex shrink-0">
+                        <Button
+                            variant="outline"
+                            size="icon"
+                            class="h-9 w-9 {uiSettingsStore.pinSearch
+                                ? 'rounded-r-none border-r-0'
+                                : ''}"
+                            onclick={() => (showSearch = !showSearch)}
+                            title="검색"
+                        >
+                            <Search class="h-4 w-4" />
+                        </Button>
+                        {#if showSearch || isSearching}
+                            <Button
+                                variant="outline"
+                                size="icon"
+                                class="h-9 w-7 rounded-l-none px-0 {uiSettingsStore.pinSearch
+                                    ? 'bg-primary/10 text-primary'
+                                    : ''}"
+                                onclick={() => {
+                                    uiSettingsStore.setPinSearch(!uiSettingsStore.pinSearch);
+                                    if (uiSettingsStore.pinSearch) showSearch = true;
+                                }}
+                                title={uiSettingsStore.pinSearch
+                                    ? '검색창 고정 해제'
+                                    : '검색창 고정'}
+                            >
+                                <Pin
+                                    class="h-3 w-3 {uiSettingsStore.pinSearch
+                                        ? 'fill-current'
+                                        : ''}"
+                                />
+                            </Button>
+                        {/if}
+                    </div>
                     {#if canWrite}
                         <Button
                             onclick={goToWrite}
@@ -577,8 +602,8 @@
                 </div>
             {/if}
 
-            <!-- 검색 폼 (토글 or 검색 중) -->
-            {#if showSearch || isSearching}
+            <!-- 검색 폼 (토글 or 검색 중 or 핀 고정) -->
+            {#if showSearch || isSearching || uiSettingsStore.pinSearch}
                 <div class="mb-3" transition:slide={{ duration: 200 }}>
                     <SearchForm boardPath={`/${boardId}`} />
                 </div>

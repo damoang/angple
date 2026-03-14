@@ -33,6 +33,7 @@ export interface FreePost {
     tags?: string[];
     images?: string[];
     videos?: { url: string; filename: string; size: number }[];
+    files?: { url: string; filename: string; size: number }[]; // 일반 첨부파일 (PDF, ZIP 등)
     is_secret?: boolean; // 비밀글 여부
     is_notice?: boolean; // 공지사항 여부
     notice_type?: 'normal' | 'important'; // 공지 타입 (일반/필수)

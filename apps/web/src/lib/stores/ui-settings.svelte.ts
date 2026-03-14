@@ -40,6 +40,8 @@ interface UiSettings {
     // 글씨 크기
     listFontSize: ListFontSize;
     recommendFontSize: ListFontSize;
+    // 검색
+    pinSearch: boolean;
     // 기타 (메모)
     hideMemo: boolean;
     hideMemoInList: boolean;
@@ -62,6 +64,7 @@ const DEFAULTS: UiSettings = {
     shortcutButtonSize: 'medium',
     listFontSize: 'base',
     recommendFontSize: 'base',
+    pinSearch: false,
     enableTouchGestures: false,
     swipeThreshold: 50,
     doubleTapInterval: 300,
@@ -229,6 +232,14 @@ function createUiSettingsStore() {
         },
         setShowNewComments(v: boolean) {
             settings.showNewComments = v;
+            save();
+        },
+        // 검색
+        get pinSearch() {
+            return settings.pinSearch;
+        },
+        setPinSearch(v: boolean) {
+            settings.pinSearch = v;
             save();
         },
         // 단축키

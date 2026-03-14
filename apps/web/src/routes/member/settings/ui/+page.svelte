@@ -23,6 +23,7 @@
     import MessageSquare from '@lucide/svelte/icons/message-square';
     import XIcon from '@lucide/svelte/icons/x';
     import Plus from '@lucide/svelte/icons/plus';
+    import Search from '@lucide/svelte/icons/search';
     import Keyboard from '@lucide/svelte/icons/keyboard';
     import Smartphone from '@lucide/svelte/icons/smartphone';
     import Hand from '@lucide/svelte/icons/hand';
@@ -434,6 +435,29 @@
 
         <!-- ========== 게시판 탭 ========== -->
         {#if activeTab === 'board'}
+            <Card>
+                <CardHeader>
+                    <CardTitle class="flex items-center gap-2">
+                        <Search class="h-5 w-5" />
+                        검색
+                    </CardTitle>
+                </CardHeader>
+                <CardContent class="space-y-4">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <Label>검색창 고정</Label>
+                            <p class="text-muted-foreground text-xs">
+                                게시판 목록에서 검색창을 항상 열어둡니다
+                            </p>
+                        </div>
+                        <Switch
+                            checked={uiSettingsStore.pinSearch}
+                            onCheckedChange={(v) => uiSettingsStore.setPinSearch(v)}
+                        />
+                    </div>
+                </CardContent>
+            </Card>
+
             <Card>
                 <CardHeader>
                     <CardTitle class="flex items-center gap-2">
