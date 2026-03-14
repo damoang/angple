@@ -21,9 +21,13 @@ jobs:
       sha_tag: ${{ steps.tags.outputs.sha_tag }}
       image_repo: ${{ env.IMAGE_NAME }}
       image_digest: ${{ steps.build_image.outputs.digest }}
+      pr_title: ${{ steps.pr.outputs.pr_title }}
+      pr_title_b64: ${{ steps.pr.outputs.pr_title_b64 }}
+      pr_url: ${{ steps.pr.outputs.pr_url }}
     permissions:
       contents: read
       packages: write
+      pull-requests: read
     steps:
       - uses: actions/checkout@v6
 
@@ -71,6 +75,23 @@ jobs:
       - name: Set image tags
         id: tags
         run: echo "sha_tag=sha-${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+
+      - name: Resolve PR info
+        id: pr
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          pr_json=$(gh api "repos/${GITHUB_REPOSITORY}/commits/${GITHUB_SHA}/pulls" -H "Accept: application/vnd.github+json" 2>/dev/null || echo '[]')
+          pr_title=$(printf '%s' "$pr_json" | jq -r '.[0].title // empty')
+          pr_url=$(printf '%s' "$pr_json" | jq -r '.[0].html_url // empty')
+
+          {
+            echo "pr_title<<EOF"
+            printf '%s\n' "$pr_title"
+            echo "EOF"
+            echo "pr_url=${pr_url}"
+            echo "pr_title_b64=$(printf '%s' "$pr_title" | base64 -w0)"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Upload immutable assets to R2
         env:
@@ -149,13 +170,15 @@ jobs:
           IMAGE_TAG: ${{ needs.build.outputs.sha_tag }}
           APPROVAL_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           ASSET_BASE_URL: ${{ env.STATIC_ASSET_BASE_ROOT }}/${{ needs.build.outputs.sha_tag }}
+          PR_URL: ${{ needs.build.outputs.pr_url }}
+          PR_TITLE_B64: ${{ needs.build.outputs.pr_title_b64 }}
         run: |
           COMMAND_ID=$(aws ssm send-command \
             --instance-ids "i-038a1d1f00798d94b" \
             --document-name "AWS-RunShellScript" \
             --parameters "{
               \"commands\": [
-                \"export GHCR_TOKEN='${{ secrets.GITHUB_TOKEN }}' TELEGRAM_BOT_TOKEN='${{ secrets.TELEGRAM_BOT_TOKEN }}' TELEGRAM_DEPLOY_CHAT_ID='${{ secrets.TELEGRAM_DEPLOY_CHAT_ID }}' DISCORD_WEBHOOK_URL='https://discord.com/api/webhooks/1435940653375815730/${{ secrets.DISCORD_WEBHOOK_TOKEN_WEB }}' APPROVAL_URL='${APPROVAL_URL}' ASSET_BASE_URL='${ASSET_BASE_URL}' && /home/angple/k8s/prod/deploy.sh web $IMAGE_TAG --canary-only\"
+                \"export GHCR_TOKEN='${{ secrets.GITHUB_TOKEN }}' TELEGRAM_BOT_TOKEN='${{ secrets.TELEGRAM_BOT_TOKEN }}' TELEGRAM_DEPLOY_CHAT_ID='${{ secrets.TELEGRAM_DEPLOY_CHAT_ID }}' DISCORD_WEBHOOK_URL='https://discord.com/api/webhooks/1435940653375815730/${{ secrets.DISCORD_WEBHOOK_TOKEN_WEB }}' APPROVAL_URL='${APPROVAL_URL}' ASSET_BASE_URL='${ASSET_BASE_URL}' PR_URL='${PR_URL}' PR_TITLE_B64='${PR_TITLE_B64}' && /home/angple/k8s/prod/deploy.sh web $IMAGE_TAG --canary-only\"
               ]
             }" \
             --timeout-seconds 600 \
@@ -262,10 +285,19 @@ jobs:
         if: success()
         run: |
           RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          TEXT="✅ angple web canary ready%0A%0ARepo: ${{ github.repository }}%0ACommit: ${{ github.sha }}%0ATag: \`${{ needs.build.outputs.sha_tag }}\`%0ADigest: \`${{ needs.build.outputs.image_digest }}\`"
+          if [ -n "${{ needs.build.outputs.pr_url }}" ]; then
+            TEXT="${TEXT}%0APR: ${{ needs.build.outputs.pr_title }}%0ALink: ${{ needs.build.outputs.pr_url }}"
+          fi
+          TEXT="${TEXT}%0ACanary: https://canary.damoang.net%0AGate Approval: ${RUN_URL}%0A%0AEnvironment approval 후 production 배포가 진행됩니다."
+          BUTTONS='[[{"text":"Canary 열기","url":"https://canary.damoang.net"},{"text":"Gate Approval","url":"'"${RUN_URL}"'"}]]'
+          if [ -n "${{ needs.build.outputs.pr_url }}" ]; then
+            BUTTONS='[[{"text":"Canary 열기","url":"https://canary.damoang.net"},{"text":"Gate Approval","url":"'"${RUN_URL}"'"},{"text":"PR 보기","url":"${{ needs.build.outputs.pr_url }}"}]]'
+          fi
           curl -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
             -d "chat_id=${{ secrets.TELEGRAM_DEPLOY_CHAT_ID }}" \
-            -d "text=✅ angple web canary ready%0A%0ARepo: ${{ github.repository }}%0ACommit: ${{ github.sha }}%0ATag: \`${{ needs.build.outputs.sha_tag }}\`%0ADigest: \`${{ needs.build.outputs.image_digest }}\`%0ACanary: https://canary.damoang.net%0AGate Approval: ${RUN_URL}%0A%0AEnvironment approval 후 production 배포가 진행됩니다." \
-            -d "reply_markup={\"inline_keyboard\":[[{\"text\":\"Canary 열기\",\"url\":\"https://canary.damoang.net\"},{\"text\":\"Gate Approval\",\"url\":\"${RUN_URL}\"}]]}"
+            -d "text=${TEXT}" \
+            -d "reply_markup={\"inline_keyboard\":${BUTTONS}}"
 
   deploy-production:
     needs: [build, deploy-canary]
@@ -288,13 +320,15 @@ jobs:
         env:
           IMAGE_TAG: ${{ needs.build.outputs.sha_tag }}
           ASSET_BASE_URL: ${{ env.STATIC_ASSET_BASE_ROOT }}/${{ needs.build.outputs.sha_tag }}
+          PR_URL: ${{ needs.build.outputs.pr_url }}
+          PR_TITLE_B64: ${{ needs.build.outputs.pr_title_b64 }}
         run: |
           COMMAND_ID=$(aws ssm send-command \
             --instance-ids "i-038a1d1f00798d94b" \
             --document-name "AWS-RunShellScript" \
             --parameters "{
               \"commands\": [
-                \"export GHCR_TOKEN='${{ secrets.GITHUB_TOKEN }}' TELEGRAM_BOT_TOKEN='${{ secrets.TELEGRAM_BOT_TOKEN }}' TELEGRAM_DEPLOY_CHAT_ID='${{ secrets.TELEGRAM_DEPLOY_CHAT_ID }}' DISCORD_WEBHOOK_URL='https://discord.com/api/webhooks/1435940653375815730/${{ secrets.DISCORD_WEBHOOK_TOKEN_WEB }}' ASSET_BASE_URL='${ASSET_BASE_URL}' && /home/angple/k8s/prod/deploy.sh web $IMAGE_TAG --skip-canary\"
+                \"export GHCR_TOKEN='${{ secrets.GITHUB_TOKEN }}' TELEGRAM_BOT_TOKEN='${{ secrets.TELEGRAM_BOT_TOKEN }}' TELEGRAM_DEPLOY_CHAT_ID='${{ secrets.TELEGRAM_DEPLOY_CHAT_ID }}' DISCORD_WEBHOOK_URL='https://discord.com/api/webhooks/1435940653375815730/${{ secrets.DISCORD_WEBHOOK_TOKEN_WEB }}' ASSET_BASE_URL='${ASSET_BASE_URL}' PR_URL='${PR_URL}' PR_TITLE_B64='${PR_TITLE_B64}' && /home/angple/k8s/prod/deploy.sh web $IMAGE_TAG --skip-canary\"
               ]
             }" \
             --timeout-seconds 600 \
@@ -343,6 +377,11 @@ jobs:
         run: |
           STATUS="${{ job.status }}"
           EMOJI=$([[ "$STATUS" == "success" ]] && echo "🎉" || echo "❌")
+          TEXT="${EMOJI} angple web production ${STATUS}%0A%0ATag: \`${{ needs.build.outputs.sha_tag }}\`%0ADigest: \`${{ needs.build.outputs.image_digest }}\`"
+          if [ -n "${{ needs.build.outputs.pr_url }}" ]; then
+            TEXT="${TEXT}%0APR: ${{ needs.build.outputs.pr_title }}%0ALink: ${{ needs.build.outputs.pr_url }}"
+          fi
+          TEXT="${TEXT}%0AURL: https://damoang.net"
           curl -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
             -d "chat_id=${{ secrets.TELEGRAM_DEPLOY_CHAT_ID }}" \
-            -d "text=${EMOJI} angple web production ${STATUS}%0A%0ATag: \`${{ needs.build.outputs.sha_tag }}\`%0ADigest: \`${{ needs.build.outputs.image_digest }}\`%0AURL: https://damoang.net"
+            -d "text=${TEXT}"
