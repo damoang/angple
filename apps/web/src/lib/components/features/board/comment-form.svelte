@@ -11,6 +11,7 @@
     import { getAvatarUrl } from '$lib/utils/member-icon.js';
     import type { BoardPermissions } from '$lib/api/types.js';
     import { apiClient } from '$lib/api/index.js';
+    import { stripAdminMentions } from '$lib/utils/sanitize-mentions.js';
     import Send from '@lucide/svelte/icons/send';
     import RefreshCw from '@lucide/svelte/icons/refresh-cw';
     import X from '@lucide/svelte/icons/x';
@@ -133,7 +134,7 @@
         error = null;
 
         try {
-            const submitContent = convertEmoticonImages(content.trim());
+            const submitContent = await stripAdminMentions(convertEmoticonImages(content.trim()));
             await onSubmit(submitContent, parentId, isSecret);
             content = '';
             editorRef?.clear();

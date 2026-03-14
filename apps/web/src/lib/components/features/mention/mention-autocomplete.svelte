@@ -23,7 +23,9 @@
     let mentionStart = $state(-1);
     let query = $state('');
     let isLoading = $state(false);
+    let adminBlocked = $state(false);
     let searchTimeout: ReturnType<typeof setTimeout> | null = null;
+    let searchGeneration = 0;
     let dropdownEl: HTMLDivElement | undefined = $state();
 
     // textarea 이벤트 바인딩
@@ -70,6 +72,11 @@
         // @ 이후 텍스트에 공백이 있으면 멘션이 아님
         const afterAt = beforeCursor.substring(lastAtIndex + 1);
         if (/\s/.test(afterAt)) {
+            // 스페이스 직전 query가 admin이면 @텍스트 제거
+            const spaceQuery = afterAt.replace(/\s+$/, '');
+            if (spaceQuery.length >= 1) {
+                checkAdminAndRemove(lastAtIndex, spaceQuery);
+            }
             close();
             return;
         }
@@ -88,17 +95,28 @@
     async function searchMembers(q: string): Promise<void> {
         if (searchTimeout) clearTimeout(searchTimeout);
 
+        const gen = ++searchGeneration;
+
         searchTimeout = setTimeout(async () => {
             isLoading = true;
             try {
                 const res = await fetch(`/api/members/search?q=${encodeURIComponent(q)}&limit=8`);
-                if (res.ok) {
-                    results = await res.json();
-                    selectedIndex = 0;
-                    isOpen = true;
+                if (!res.ok || gen !== searchGeneration) return;
+
+                const data = await res.json();
+                results = data.members ?? [];
+                adminBlocked = data.adminBlocked ?? false;
+                selectedIndex = 0;
+                isOpen = true;
+
+                if (adminBlocked && results.length === 0) {
+                    setTimeout(() => {
+                        removeMentionText();
+                    }, 1000);
                 }
             } catch {
                 results = [];
+                adminBlocked = false;
             } finally {
                 isLoading = false;
             }
@@ -161,16 +179,65 @@
         textarea.focus();
     }
 
+    function removeMentionText(): void {
+        if (!textarea || mentionStart < 0) return;
+
+        const text = textarea.value;
+        const removeEnd = mentionStart + 1 + query.length; // @ + query
+        const before = text.substring(0, mentionStart);
+        const after = text.substring(removeEnd);
+
+        textarea.value = before + after;
+        textarea.selectionStart = mentionStart;
+        textarea.selectionEnd = mentionStart;
+        textarea.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+
+    async function checkAdminAndRemove(atIndex: number, q: string): Promise<void> {
+        try {
+            const res = await fetch(`/api/members/search?q=${encodeURIComponent(q)}&limit=1`);
+            if (!res.ok) return;
+            const data = await res.json();
+            if (data.adminBlocked && data.members.length === 0 && textarea) {
+                // 잠깐 메시지 표시
+                adminBlocked = true;
+                query = q;
+                mentionStart = atIndex;
+                results = [];
+                isOpen = true;
+
+                setTimeout(() => {
+                    if (!textarea) return;
+                    const text = textarea.value;
+                    // @ + query + 뒤따르는 공백까지 제거
+                    const removeStart = atIndex;
+                    let removeEnd = atIndex + 1 + q.length;
+                    while (removeEnd < text.length && /\s/.test(text[removeEnd])) removeEnd++;
+                    const before = text.substring(0, removeStart);
+                    const after = text.substring(removeEnd);
+                    textarea.value = before + after;
+                    textarea.selectionStart = removeStart;
+                    textarea.selectionEnd = removeStart;
+                    textarea.dispatchEvent(new Event('input', { bubbles: true }));
+                    close();
+                }, 800);
+            }
+        } catch {
+            // 무시
+        }
+    }
+
     function close(): void {
         isOpen = false;
         results = [];
+        adminBlocked = false;
         mentionStart = -1;
         query = '';
         selectedIndex = 0;
     }
 </script>
 
-{#if isOpen && (results.length > 0 || isLoading || query.length === 0)}
+{#if isOpen && (results.length > 0 || isLoading || query.length === 0 || adminBlocked)}
     <div
         bind:this={dropdownEl}
         class="bg-popover text-popover-foreground border-border absolute bottom-full z-50 mb-1 max-h-60 w-72 overflow-y-auto rounded-md border shadow-lg"
@@ -181,6 +248,8 @@
             <div class="text-muted-foreground px-3 py-2 text-sm">검색 중...</div>
         {:else if query.length === 0}
             <div class="text-muted-foreground px-3 py-2 text-sm">닉네임을 입력하세요</div>
+        {:else if results.length === 0 && adminBlocked}
+            <div class="px-3 py-2 text-sm text-red-500">멘션할 수 없는 아이디입니다</div>
         {:else if results.length === 0}
             <div class="text-muted-foreground px-3 py-2 text-sm">검색 결과가 없습니다</div>
         {:else}
