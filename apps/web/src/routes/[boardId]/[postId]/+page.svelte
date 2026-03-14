@@ -44,7 +44,7 @@
     import { onMount } from 'svelte';
     import { doAction } from '$lib/hooks/registry';
     import { page } from '$app/stores';
-    import { getMemberIconUrl } from '$lib/utils/member-icon.js';
+    import { getAvatarUrl } from '$lib/utils/member-icon.js';
     import { isEmbeddable } from '$lib/plugins/auto-embed';
     import AdminPostActions from '$lib/components/features/board/admin-post-actions.svelte';
     import AdSlot from '$lib/components/ui/ad-slot/ad-slot.svelte';
@@ -1537,9 +1537,9 @@
                         <li class="py-3">
                             <div class="flex items-center gap-3">
                                 <!-- 프로필 이미지 -->
-                                {#if getMemberIconUrl(liker.mb_id)}
+                                {#if getAvatarUrl(liker.mb_image)}
                                     <img
-                                        src={getMemberIconUrl(liker.mb_id)}
+                                        src={getAvatarUrl(liker.mb_image)}
                                         alt={liker.mb_nick || liker.mb_name}
                                         class="size-8 rounded-full object-cover"
                                         onerror={(e) => {

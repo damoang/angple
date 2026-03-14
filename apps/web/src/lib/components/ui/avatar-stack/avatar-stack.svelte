@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { getAvatarUrl, getMemberIconUrl, handleIconError } from '$lib/utils/member-icon.js';
+    import { getAvatarUrl } from '$lib/utils/member-icon.js';
 
     interface AvatarItem {
         mb_id: string;
@@ -32,7 +32,7 @@
 >
     <div class="flex items-center -space-x-1.5">
         {#each visibleItems as item (item.mb_id)}
-            {@const iconUrl = getAvatarUrl(item.mb_image) || getMemberIconUrl(item.mb_id)}
+            {@const iconUrl = getAvatarUrl(item.mb_image)}
             {@const nick = item.mb_nick || item.mb_name || item.mb_id}
             {#if iconUrl}
                 <img
@@ -41,9 +41,9 @@
                     title={nick}
                     class="{sizeClass} ring-background rounded-full object-cover ring-2"
                     onerror={(e) => {
-                        handleIconError(e);
-                        const fallback = (e.currentTarget as HTMLElement)
-                            .nextElementSibling as HTMLElement;
+                        const img = e.currentTarget as HTMLImageElement;
+                        img.style.display = 'none';
+                        const fallback = img.nextElementSibling as HTMLElement;
                         if (fallback) fallback.style.display = 'flex';
                     }}
                 />

@@ -40,7 +40,7 @@
     import { authStore } from '$lib/stores/auth.svelte.js';
     import { AdultBlur } from '$lib/components/features/adult/index.js';
     import { uiSettingsStore, type ContentFontSize } from '$lib/stores/ui-settings.svelte.js';
-    import { getMemberIconUrl } from '$lib/utils/member-icon.js';
+    import { getAvatarUrl } from '$lib/utils/member-icon.js';
     import AuthorLink from '$lib/components/ui/author-link/author-link.svelte';
     import { LevelBadge } from '$lib/components/ui/level-badge/index.js';
     import { memberLevelStore } from '$lib/stores/member-levels.svelte.js';
@@ -246,9 +246,9 @@
 
         <div class="border-border flex flex-wrap items-center gap-4 border-t pt-4">
             <div class="flex items-center gap-2">
-                {#if getMemberIconUrl(post.author_id)}
+                {#if getAvatarUrl(post.author_image)}
                     <img
-                        src={getMemberIconUrl(post.author_id)}
+                        src={getAvatarUrl(post.author_image)}
                         alt={post.author}
                         class="size-10 rounded-full object-cover"
                         onerror={(e) => {

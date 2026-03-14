@@ -19,7 +19,7 @@
     import { getHookVersion } from '$lib/hooks/hook-state.svelte';
     import { tick } from 'svelte';
     import { highlightAllCodeBlocks } from '$lib/utils/code-highlight';
-    import { getAvatarUrl, getMemberIconUrl, handleIconError } from '$lib/utils/member-icon.js';
+    import { getAvatarUrl } from '$lib/utils/member-icon.js';
     import { SvelteMap, SvelteSet } from 'svelte/reactivity';
     import type { Component } from 'svelte';
     import { pluginStore } from '$lib/stores/plugin.svelte';
@@ -768,8 +768,7 @@
         {@const isReply = depth > 0}
         {@const iconUrl = isDeleted
             ? null
-            : getAvatarUrl((comment as FreeComment & { author_image?: string }).author_image) ||
-              getMemberIconUrl(comment.author_id)}
+            : getAvatarUrl((comment as FreeComment & { author_image?: string }).author_image)}
 
         <!-- 댓글 5개마다 GAM 인피드 광고 (루트 댓글 기준, 첫 번째 제외) -->
         {#if widgetLayoutStore.hasEnabledAds && commentIndex > 0 && commentIndex % 5 === 0 && depth === 0}
@@ -814,7 +813,10 @@
                         src={iconUrl}
                         alt=""
                         class="size-8 shrink-0 rounded-full object-cover"
-                        onerror={handleIconError}
+                        onerror={(e) => {
+                            const img = e.currentTarget as HTMLImageElement;
+                            img.style.display = 'none';
+                        }}
                     />
                 {:else}
                     <div
