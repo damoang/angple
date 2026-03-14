@@ -966,7 +966,7 @@
 
         isCreatingComment = true;
         try {
-            await apiClient.createComment(boardId, String(data.post.id), {
+            const newComment = await apiClient.createComment(boardId, String(data.post.id), {
                 content,
                 author: authStore.user.mb_name,
                 parent_id: parentId,
@@ -984,6 +984,7 @@
                 postTitle: data.post.title,
                 boardId,
                 postId: data.post.id,
+                commentId: newComment?.id,
                 senderName: authStore.user.mb_name,
                 senderId: authStore.user.mb_id || ''
             });
@@ -1003,7 +1004,7 @@
             throw new Error('로그인이 필요합니다.');
         }
 
-        await apiClient.createComment(boardId, String(data.post.id), {
+        const replyComment = await apiClient.createComment(boardId, String(data.post.id), {
             content,
             author: authStore.user.mb_name,
             parent_id: parentId,
@@ -1021,6 +1022,7 @@
             postTitle: data.post.title,
             boardId,
             postId: data.post.id,
+            commentId: replyComment?.id,
             senderName: authStore.user.mb_name,
             senderId: authStore.user.mb_id || ''
         });
