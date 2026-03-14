@@ -3,8 +3,9 @@
  * - 잠긴 게시글/댓글 → 진실의방 참조 글 ID 조회
  */
 import { pool } from '$lib/server/db.js';
+import type { RowDataPacket } from 'mysql2';
 
-interface TruthroomRow {
+interface TruthroomRow extends RowDataPacket {
     wr_id: number;
     wr_1: string;
     wr_2: string;
