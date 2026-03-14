@@ -2,6 +2,8 @@
     import { onMount, onDestroy } from 'svelte';
     import { Editor } from '@tiptap/core';
     import StarterKit from '@tiptap/starter-kit';
+    import BoldExtension from '@tiptap/extension-bold';
+    import ItalicExtension from '@tiptap/extension-italic';
     import Image from '@tiptap/extension-image';
     import Link from '@tiptap/extension-link';
     import Placeholder from '@tiptap/extension-placeholder';
@@ -51,7 +53,19 @@
                     strike: false,
                     horizontalRule: false,
                     dropcursor: false,
-                    gapcursor: false
+                    gapcursor: false,
+                    bold: false,
+                    italic: false
+                }),
+                BoldExtension.extend({
+                    addInputRules() {
+                        return [];
+                    }
+                }),
+                ItalicExtension.extend({
+                    addInputRules() {
+                        return [];
+                    }
                 }),
                 Image.configure({ inline: true, allowBase64: false }),
                 Link.configure({ openOnClick: false }),

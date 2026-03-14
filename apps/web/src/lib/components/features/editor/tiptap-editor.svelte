@@ -2,6 +2,8 @@
     import { onMount, onDestroy, tick } from 'svelte';
     import { Editor } from '@tiptap/core';
     import StarterKit from '@tiptap/starter-kit';
+    import BoldExtension from '@tiptap/extension-bold';
+    import ItalicExtension from '@tiptap/extension-italic';
     import Link from '@tiptap/extension-link';
     import { LinkedImage } from './linked-image.js';
     import Placeholder from '@tiptap/extension-placeholder';
@@ -177,7 +179,20 @@
                     heading: {
                         levels: [1, 2, 3]
                     },
-                    codeBlock: false // CodeBlockLowlight로 대체
+                    codeBlock: false, // CodeBlockLowlight로 대체
+                    bold: false, // 마크다운 input rule 제거 위해 별도 추가
+                    italic: false // *^^* 등 입력 시 이탤릭 자동변환 방지
+                }),
+                // Bold/Italic: 툴바 기능은 유지, 마크다운 자동변환(**bold**, *italic*)만 비활성화
+                BoldExtension.extend({
+                    addInputRules() {
+                        return [];
+                    }
+                }),
+                ItalicExtension.extend({
+                    addInputRules() {
+                        return [];
+                    }
                 }),
                 Link.configure({
                     openOnClick: false,
