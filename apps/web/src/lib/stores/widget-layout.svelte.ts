@@ -82,9 +82,20 @@ class WidgetLayoutStore {
         | Array<{ key: string; text: string; url: string; show: boolean }>
         | undefined {
         const tagNav = this._widgets.find((w) => w.type === 'tag-nav');
-        return tagNav?.settings?.menus as
+        const menus = tagNav?.settings?.menus as
             | Array<{ key: string; text: string; url: string; show: boolean }>
             | undefined;
+        if (!menus) return undefined;
+        // DB에 저장된 옛 이름 마이그레이션
+        const nameMap: Record<string, string> = {
+            질문과답변: '질문답변',
+            새로운소식: '새소식',
+            알뜰: '알뜰구매',
+            홍보: '직접홍보',
+            강좌: '강좌팁',
+            '강좌&팁': '강좌팁'
+        };
+        return menus.map((m) => (nameMap[m.text] ? { ...m, text: nameMap[m.text] } : m));
     }
 
     // === Getters (광고) ===
