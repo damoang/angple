@@ -14,13 +14,13 @@
     }
 
     const DEFAULT_MENUS: TagNavMenu[] = [
+        { key: 'explore', text: '톺아보기', url: '/explore', show: true },
         { key: 'free', text: '자유게시판', url: '/free', show: true },
         { key: 'qa', text: '질문과답변', url: '/qa', show: true },
         { key: 'new', text: '새로운소식', url: '/new', show: true },
         { key: 'economy', text: '알뜰구매', url: '/economy', show: true },
         { key: 'promotion', text: '직접홍보', url: '/promotion', show: true },
         { key: 'lecture', text: '강좌&팁', url: '/lecture', show: true },
-        { key: 'explore', text: '톺아보기', url: '/explore', show: true },
         { key: 'group', text: '소모임', url: '/groups', show: true },
         { key: 'tutorial', text: '사용기', url: '/tutorial', show: true },
         { key: 'message', text: '축하메시지', url: '/message', show: true }
