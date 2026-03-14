@@ -107,7 +107,8 @@ export const load: PageServerLoad = async ({ url, params, locals }) => {
     };
 
     // 프로모션 게시판 전용: 광고주별 post_count 제한 적용 (검색/태그 필터 없을 때만)
-    const isPromotionBoard = boardId === 'promotion' && !isSearching && !isTagFiltering;
+    const isPromotionBoard =
+        boardId === 'promotion' && !isSearching && !isTagFiltering && !category;
     const isHotBoard = boardId === 'free' || boardId === 'hello';
 
     // 비로그인 + 검색/태그 필터 없는 경우: 게시글 목록 캐시 사용 (15초)
