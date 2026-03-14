@@ -95,12 +95,12 @@
         {#if showEmoticonPicker && LazyEmoticonPicker}
             <!-- svelte-ignore a11y_no_static_element_interactions -->
             <div
-                class="fixed inset-0 z-40 bg-black/20 sm:bg-transparent"
+                class="fixed inset-0 z-[9998] bg-black/20 sm:bg-transparent"
                 onclick={() => (showEmoticonPicker = false)}
                 onkeydown={(e) => e.key === 'Escape' && (showEmoticonPicker = false)}
             ></div>
             <div
-                class="fixed inset-x-0 bottom-0 z-50 sm:absolute sm:inset-auto sm:bottom-full sm:left-0 sm:mb-1"
+                class="fixed inset-x-0 bottom-0 z-[9999] sm:absolute sm:inset-auto sm:bottom-full sm:left-0 sm:mb-1"
             >
                 <LazyEmoticonPicker
                     onInsertEmoticon={handleInsertEmoticon}
