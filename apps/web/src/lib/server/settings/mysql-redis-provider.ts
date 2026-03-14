@@ -18,11 +18,11 @@ import type { RowDataPacket, ResultSetHeader } from 'mysql2';
 // 캐시 키 접두사
 const CACHE_PREFIX = 'angple:settings:';
 
-// 캐시 TTL (초)
+// 캐시 TTL (초) — 설정은 거의 안 바뀜. 변경 시 Redis DEL로 무효화
 const CACHE_TTL = {
-    THEME: 300, // 5분 - 테마 설정은 자주 안 바뀜
-    WIDGET_LAYOUT: 300, // 5분 - 레이아웃도 자주 안 바뀜
-    DEFAULT: 60 // 1분 - 기타 설정
+    THEME: 86_400, // 24시간 - 테마 변경 시 수동 무효화
+    WIDGET_LAYOUT: 604_800, // 7일 - 레이아웃 변경 시 수동 무효화
+    DEFAULT: 300 // 5분 - 기타 설정
 };
 
 // 설정 저장용 테이블 (없으면 자동 생성)

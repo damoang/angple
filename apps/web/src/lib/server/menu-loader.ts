@@ -14,7 +14,8 @@ import { TieredCache } from '$lib/server/cache';
 
 const BACKEND_URL = env.BACKEND_URL || 'http://localhost:8090';
 
-const menuCache = new TieredCache<MenuItem[]>('menus:sidebar', 60_000, 300);
+// 메뉴는 거의 안 바뀜 → L1 24시간, L2(Redis) 7일. 변경 시 invalidateMenuCache() 호출
+const menuCache = new TieredCache<MenuItem[]>('menus:sidebar', 86_400_000, 604_800);
 
 /**
  * 백엔드 연결 불가 시 최소한의 기본 메뉴

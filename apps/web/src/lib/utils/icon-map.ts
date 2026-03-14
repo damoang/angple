@@ -91,6 +91,7 @@ import LayoutGrid from '@lucide/svelte/icons/layout-grid';
 import User from '@lucide/svelte/icons/user';
 import GraduationCap from '@lucide/svelte/icons/graduation-cap';
 import Book from '@lucide/svelte/icons/book';
+import Compass from '@lucide/svelte/icons/compass';
 
 export const iconMap: Record<string, typeof Circle> = {
     // sidebar에서 사용하는 아이콘
@@ -180,7 +181,8 @@ export const iconMap: Record<string, typeof Circle> = {
     LayoutGrid,
     User,
     GraduationCap,
-    Book
+    Book,
+    Compass
 };
 
 /**
