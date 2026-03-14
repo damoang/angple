@@ -14,6 +14,7 @@
     }
 
     const DEFAULT_MENUS: TagNavMenu[] = [
+        { key: 'explore', text: '톺아보기', url: '/explore', show: true },
         { key: 'free', text: '자유게시판', url: '/free', show: true },
         { key: 'qa', text: '질문과답변', url: '/qa', show: true },
         { key: 'new', text: '새로운소식', url: '/new', show: true },
