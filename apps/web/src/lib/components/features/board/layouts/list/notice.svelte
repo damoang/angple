@@ -58,7 +58,11 @@
                     </h2>
                 </div>
                 <div class="text-muted-foreground flex flex-wrap items-center gap-3 text-sm">
-                    <AuthorLink authorId={post.author_id} authorName={post.author} />
+                    <AuthorLink
+                        authorId={post.author_id}
+                        authorName={post.author}
+                        isWithdrawn={!!post.is_left}
+                    />
                     <span>{formatDate(post.created_at)}</span>
                     <span class="flex items-center gap-1">
                         <Eye class="h-3.5 w-3.5" />

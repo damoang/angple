@@ -116,7 +116,11 @@
                         ><LevelBadge
                             level={memberLevelStore.getLevel(post.author_id)}
                             size="sm"
-                        /><AuthorLink authorId={post.author_id} authorName={post.author} /></span
+                        /><AuthorLink
+                            authorId={post.author_id}
+                            authorName={post.author}
+                            isWithdrawn={!!post.is_left}
+                        /></span
                     >
                     <span>{formatDate(post.created_at)}</span>
                     <span>조회 {post.views.toLocaleString()}</span>

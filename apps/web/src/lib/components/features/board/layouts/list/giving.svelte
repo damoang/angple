@@ -287,7 +287,11 @@
             <!-- 작성자 -->
             <div class="text-muted-foreground mt-2 flex items-center gap-2 pt-2 text-xs">
                 <span class="truncate">
-                    <AuthorLink authorId={post.author_id} authorName={post.author} />
+                    <AuthorLink
+                        authorId={post.author_id}
+                        authorName={post.author}
+                        isWithdrawn={!!post.is_left}
+                    />
                 </span>
             </div>
         </div>
