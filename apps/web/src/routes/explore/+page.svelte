@@ -175,7 +175,6 @@
                         <li>
                             <a
                                 href={post.url}
-                                rel="external"
                                 class="hover:bg-muted flex items-center gap-2.5 px-4 py-2 transition-all duration-200 ease-out"
                             >
                                 <!-- 추천수 배지 (기존 추천글 패턴) -->

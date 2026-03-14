@@ -49,6 +49,7 @@ function initFromSSR(
         level: number;
         mb_certify?: string;
         mb_image?: string;
+        mb_image_updated_at?: string;
     },
     accessToken: string
 ): void {
@@ -57,6 +58,7 @@ function initFromSSR(
     if (user && user.mb_id === mbId) {
         if (ssrUser.mb_image && user.mb_image !== ssrUser.mb_image) {
             user.mb_image = ssrUser.mb_image;
+            user.mb_image_updated_at = ssrUser.mb_image_updated_at;
         }
         isLoading = false;
         return;
@@ -67,7 +69,8 @@ function initFromSSR(
         mb_level: ssrUser.level,
         mb_email: '',
         mb_certify: ssrUser.mb_certify || '',
-        mb_image: ssrUser.mb_image
+        mb_image: ssrUser.mb_image,
+        mb_image_updated_at: ssrUser.mb_image_updated_at
     };
     apiClient.setAccessToken(accessToken);
     isLoading = false;

@@ -26,7 +26,6 @@
         </div>
         <a
             href="/gallery"
-            rel="external"
             class="text-muted-foreground hover:text-foreground flex shrink-0 items-center gap-1 text-[15px] transition-all duration-200 ease-out"
         >
             더보기

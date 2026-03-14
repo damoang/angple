@@ -8,16 +8,35 @@ const CDN_BASE_URL = 'https://s3.damoang.net';
 /**
  * mb_image_url(DB)로 전체 URL 생성
  * @param imageUrl API에서 받은 mb_image / author_image (예: data/member_image/ad/admin_1760156943.webp)
+ * @param updatedAt mb_image_updated_at (Unix timestamp 또는 ISO 문자열) — 캐시 버스팅용
  * @returns 전체 URL 또는 null
  */
-export function getAvatarUrl(imageUrl: string | null | undefined): string | null {
+export function getAvatarUrl(
+    imageUrl: string | null | undefined,
+    updatedAt?: number | string | null
+): string | null {
     if (!imageUrl) return null;
 
-    // 이미 전체 URL이면 그대로 반환
+    let url: string;
+
+    // 이미 전체 URL이면 그대로 사용
     if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
-        return imageUrl;
+        url = imageUrl;
+    } else {
+        // 상대 경로면 CDN 베이스 추가
+        url = `${CDN_BASE_URL}/${imageUrl}`;
     }
 
-    // 상대 경로면 CDN 베이스 추가
-    return `${CDN_BASE_URL}/${imageUrl}`;
+    // 캐시 버스팅: ?v=timestamp 추가
+    if (updatedAt) {
+        const v =
+            typeof updatedAt === 'number'
+                ? updatedAt
+                : Math.floor(new Date(updatedAt).getTime() / 1000);
+        if (v > 0) {
+            url += `${url.includes('?') ? '&' : '?'}v=${v}`;
+        }
+    }
+
+    return url;
 }
