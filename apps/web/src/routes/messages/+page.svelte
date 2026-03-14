@@ -351,7 +351,7 @@
 
 <!-- 쪽지 보내기 다이얼로그 -->
 <Dialog.Root bind:open={showSendDialog}>
-    <Dialog.Content class="sm:max-w-md">
+    <Dialog.Content class="flex max-h-[90vh] flex-col sm:max-w-md">
         <Dialog.Header>
             <Dialog.Title class="flex items-center gap-2">
                 <PenSquare class="h-5 w-5" />
@@ -360,7 +360,7 @@
             <Dialog.Description>회원에게 쪽지를 보냅니다.</Dialog.Description>
         </Dialog.Header>
 
-        <div class="space-y-4 py-4">
+        <div class="flex-1 space-y-4 overflow-y-auto py-4">
             <div class="space-y-2">
                 <Label for="send-to">받는 사람</Label>
                 <Input

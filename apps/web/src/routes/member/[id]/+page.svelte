@@ -441,7 +441,11 @@
 
                     <div class="min-w-0 flex-1">
                         <div class="flex items-center gap-2">
-                            <h1 class="text-foreground truncate text-xl font-bold">
+                            <h1
+                                class="text-foreground truncate text-xl font-bold {p.is_left
+                                    ? 'line-through opacity-60'
+                                    : ''}"
+                            >
                                 {p.mb_name}
                             </h1>
                             {#if p.mb_certify}
