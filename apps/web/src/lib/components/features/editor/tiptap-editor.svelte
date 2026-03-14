@@ -79,7 +79,7 @@
 
     let {
         content = '',
-        placeholder = '내용을 입력하세요...',
+        placeholder = '내용을 입력하세요... ( / 로 명령어 사용)',
         disabled = false,
         onUpdate,
         onImageUpload,
