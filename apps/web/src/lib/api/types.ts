@@ -229,6 +229,54 @@ export interface NewsPost {
     tab: NewsTabId;
 }
 
+// 톺아보기(Explore) 타입
+export type ExploreMode = 'hot' | 'new' | 'rising' | 'top';
+export type ExploreTopPeriod = '24h' | '7d' | '30d';
+
+export interface ExplorePost {
+    id: number;
+    title: string;
+    board: string;
+    board_name: string;
+    group_id: string;
+    url: string;
+    author: string;
+    created_at: string;
+    recommend_count: number;
+    nogood_count: number;
+    comment_count: number;
+    view_count: number;
+    hot_score?: number;
+    top_score?: number;
+    rising_score?: number;
+}
+
+export interface ExploreTopPeriods {
+    '24h': ExplorePost[];
+    '7d': ExplorePost[];
+    '30d': ExplorePost[];
+}
+
+export interface ExploreModeData {
+    id: string;
+    name: string;
+    count: number;
+    posts: ExplorePost[];
+    periods?: ExploreTopPeriods;
+}
+
+export interface ExploreData {
+    generated_at: string;
+    total_posts: number;
+    board_count: number;
+    modes: {
+        hot: ExploreModeData;
+        new: ExploreModeData;
+        rising: ExploreModeData;
+        top: ExploreModeData;
+    };
+}
+
 // 경제 탭 타입
 export type EconomyTabId = 'economy' | 'qa' | 'free' | 'angtt';
 
