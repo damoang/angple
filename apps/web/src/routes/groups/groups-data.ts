@@ -4,6 +4,7 @@
  */
 import { readPool } from '$lib/server/db.js';
 import type { RowDataPacket } from 'mysql2';
+import { TieredCache } from '$lib/server/cache.js';
 
 export interface GroupLatestPost {
     bo_table: string;
@@ -15,6 +16,32 @@ export interface GroupLatestPost {
     wr_datetime: string;
     wr_comment: number;
     wr_good: number;
+}
+
+/** 페이지별 캐시: L1 3분, L2(Redis) 5분 */
+const latestPageCache = new TieredCache<{ items: GroupLatestPost[]; total: number }>(
+    'group-latest-page',
+    180_000,
+    300,
+    1
+);
+
+/** COUNT 캐시: L1 3분, L2(Redis) 5분 */
+const latestCountCache = new TieredCache<number>('group-latest-count-shared', 180_000, 300, 1);
+
+async function getLatestCount(): Promise<number> {
+    const cached = await latestCountCache.get('count');
+    if (cached !== null) return cached;
+
+    const [rows] = await readPool.query<RowDataPacket[]>(
+        `SELECT COUNT(*) AS cnt
+		 FROM g5_board_new n
+		 JOIN g5_board b ON b.bo_table = n.bo_table AND b.gr_id = 'group'
+		 WHERE n.wr_parent = n.wr_id`
+    );
+    const count = (rows[0]?.cnt as number) || 0;
+    await latestCountCache.set('count', count);
+    return count;
 }
 
 /**
@@ -87,23 +114,25 @@ export async function fetchPostDetails(
     return results;
 }
 
-/** 페이지네이션 쿼리 (API에서 사용) */
+/** 페이지네이션 쿼리 (API에서 사용, 페이지별 캐시 적용) */
 export async function loadLatestPostsPaginated(
     page: number,
     limit: number
 ): Promise<{ items: GroupLatestPost[]; total: number; hasMore: boolean }> {
+    const cacheKey = `${page}:${limit}`;
+    const cached = await latestPageCache.get(cacheKey);
+    if (cached) {
+        return { items: cached.items, total: cached.total, hasMore: page * limit < cached.total };
+    }
+
     const offset = (page - 1) * limit;
 
-    const [totalResult] = await readPool.query<RowDataPacket[]>(
-        `SELECT COUNT(*) AS cnt
-		 FROM g5_board_new n
-		 JOIN g5_board b ON b.bo_table = n.bo_table AND b.gr_id = 'group'
-		 WHERE n.wr_parent = n.wr_id`
-    );
-    const total = (totalResult[0]?.cnt as number) || 0;
-
-    const [refs] = await readPool.query<RowDataPacket[]>(
-        `SELECT n.bo_table, b.bo_subject, n.wr_id, n.mb_id,
+    // COUNT는 별도 캐시 (모든 페이지가 공유)
+    const [total, refs] = await Promise.all([
+        getLatestCount(),
+        readPool
+            .query<RowDataPacket[]>(
+                `SELECT n.bo_table, b.bo_subject, n.wr_id, n.mb_id,
                 IFNULL(m.mb_nick, n.mb_id) AS mb_nick,
                 n.bn_datetime
 		 FROM g5_board_new n
@@ -112,8 +141,10 @@ export async function loadLatestPostsPaginated(
 		 WHERE n.wr_parent = n.wr_id
 		 ORDER BY n.bn_datetime DESC
 		 LIMIT ? OFFSET ?`,
-        [limit, offset]
-    );
+                [limit, offset]
+            )
+            .then(([rows]) => rows)
+    ]);
 
     const posts = await fetchPostDetails(
         refs.map((r) => ({
@@ -135,5 +166,6 @@ export async function loadLatestPostsPaginated(
         p.mb_nick = nickMap.get(`${p.bo_table}-${p.wr_id}`) || p.mb_id;
     }
 
+    await latestPageCache.set(cacheKey, { items: posts, total });
     return { items: posts, total, hasMore: offset + limit < total };
 }

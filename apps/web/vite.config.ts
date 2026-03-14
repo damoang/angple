@@ -18,6 +18,9 @@ export default defineConfig(({ mode }) => {
 
     return {
         plugins: [tailwindcss(), sveltekit()],
+        optimizeDeps: {
+            include: ['@tiptap/suggestion', '@tiptap/pm/state']
+        },
         build: {
             assetsInlineLimit: 0,
             chunkSizeWarningLimit: 1120
