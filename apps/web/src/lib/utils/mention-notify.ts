@@ -6,6 +6,7 @@ interface MentionNotifyParams {
     postTitle: string;
     boardId: string;
     postId: number | string;
+    commentId?: number | string;
     senderName: string;
     senderId: string;
 }
@@ -27,8 +28,11 @@ export async function sendMentionNotifications(params: MentionNotifyParams): Pro
                 mentions,
                 boardId: params.boardId,
                 postId: params.postId,
+                commentId: params.commentId,
                 content: params.content,
-                senderNick: params.senderName
+                senderNick: params.senderName,
+                senderId: params.senderId,
+                postTitle: params.postTitle
             })
         });
     } catch {

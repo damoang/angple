@@ -86,7 +86,7 @@
             sendMentionNotifications({
                 content: request.content || '',
                 postUrl: `/${boardId}/${newPost.id}`,
-                postTitle: request.title,
+                postTitle: request.title || '',
                 boardId,
                 postId: newPost.id,
                 senderName: authStore.user.mb_name,

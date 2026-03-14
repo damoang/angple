@@ -35,6 +35,7 @@ export const GET: RequestHandler = async ({ url }) => {
 			 WHERE (mb_nick LIKE ? OR mb_id LIKE ?)
 			   AND mb_leave_date = ''
 			   AND mb_intercept_date = ''
+			   AND mb_level < 10
 			 ORDER BY
 			   CASE WHEN mb_nick = ? THEN 0 WHEN mb_nick LIKE ? THEN 1 ELSE 2 END,
 			   mb_nick

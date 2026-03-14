@@ -1,14 +1,12 @@
 /**
  * 멘션 알림 생성 API
  * POST /api/mentions/notify
- * 멘션된 회원에게 Go 백엔드를 통해 알림을 생성
+ * 멘션된 회원에게 g5_na_noti 테이블에 직접 알림 INSERT
  */
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import type { RowDataPacket } from 'mysql2';
 import pool from '$lib/server/db';
-
-const INTERNAL_API_URL = process.env.INTERNAL_API_URL || 'http://localhost:8082/api/v1';
 
 interface NotifyRequest {
     mentions: string[]; // 닉네임 배열
@@ -17,6 +15,8 @@ interface NotifyRequest {
     commentId?: number;
     content: string; // 원본 내용 (발췌용)
     senderNick: string; // 발신자 닉네임
+    senderId: string; // 발신자 mb_id
+    postTitle?: string; // 게시글 제목
 }
 
 /** HTML 태그를 반복 제거 (중첩 태그 우회 방지) */
@@ -30,12 +30,9 @@ function stripHtmlTags(str: string): string {
     return result;
 }
 
-export const POST: RequestHandler = async ({ request, cookies }) => {
-    const accessToken =
-        cookies.get('access_token') || request.headers.get('authorization')?.replace('Bearer ', '');
-
+export const POST: RequestHandler = async ({ request }) => {
     const body: NotifyRequest = await request.json();
-    const { mentions, boardId, postId, commentId, content, senderNick } = body;
+    const { mentions, boardId, postId, commentId, content, senderNick, senderId, postTitle } = body;
 
     if (!mentions || mentions.length === 0) {
         return json({ sent: 0 });
@@ -43,6 +40,10 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 
     if (!boardId || !postId) {
         return json({ error: 'boardId, postId 필수' }, { status: 400 });
+    }
+
+    if (!senderId) {
+        return json({ error: 'senderId 필수' }, { status: 400 });
     }
 
     // 닉네임 유효성 검사
@@ -66,38 +67,65 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
             return json({ sent: 0 });
         }
 
-        // 각 멘션 대상에게 알림 생성 (Go 백엔드 호출)
+        // 자기 자신 제외
+        const receivers = rows.filter((row) => row.mb_id !== senderId);
+        if (receivers.length === 0) {
+            return json({ sent: 0 });
+        }
+
+        // 알림 설정 확인 (noti_mention = false인 유저 제외)
+        const receiverIds = receivers.map((r) => r.mb_id);
+        const prefPlaceholders = receiverIds.map(() => '?').join(',');
+        const [prefRows] = await pool.execute<RowDataPacket[]>(
+            `SELECT mb_id, noti_mention FROM g5_noti_preference WHERE mb_id IN (${prefPlaceholders})`,
+            receiverIds
+        );
+        const prefMap = new Map<string, boolean>();
+        for (const pref of prefRows) {
+            prefMap.set(pref.mb_id, Boolean(pref.noti_mention));
+        }
+
+        // 중복 알림 방지: 동일 게시글+댓글+발신자+mention 조합 체크
+        const wrId = commentId || postId;
+        const [existingRows] = await pool.execute<RowDataPacket[]>(
+            `SELECT mb_id FROM g5_na_noti WHERE bo_table = ? AND wr_id = ? AND rel_mb_id = ? AND ph_from_case = 'mention' AND mb_id IN (${prefPlaceholders})`,
+            [boardId, wrId, senderId, ...receiverIds]
+        );
+        const alreadyNotified = new Set(existingRows.map((r: RowDataPacket) => r.mb_id));
+
         const url = commentId
             ? `/${boardId}/${postId}#comment-${commentId}`
             : `/${boardId}/${postId}`;
-
         const excerpt = stripHtmlTags(content).substring(0, 80);
         let sentCount = 0;
 
-        for (const row of rows) {
+        for (const receiver of receivers) {
+            // 알림 설정 체크 (설정 없으면 기본 활성)
+            const mentionEnabled = prefMap.get(receiver.mb_id) ?? true;
+            if (!mentionEnabled) continue;
+
+            // 중복 체크
+            if (alreadyNotified.has(receiver.mb_id)) continue;
+
             try {
-                const notificationPayload = {
-                    type: 'mention',
-                    receiver_id: row.mb_id,
-                    title: `@${senderNick}님이 회원님을 멘션했습니다`,
-                    content: excerpt,
-                    url
-                };
-
-                const res = await fetch(`${INTERNAL_API_URL}/notifications`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {})
-                    },
-                    body: JSON.stringify(notificationPayload)
-                });
-
-                if (res.ok) {
-                    sentCount++;
-                }
+                await pool.execute(
+                    `INSERT INTO g5_na_noti (ph_to_case, ph_from_case, bo_table, wr_id, mb_id, rel_mb_id, rel_mb_nick, rel_msg, rel_url, ph_readed, ph_datetime, parent_subject, wr_parent)
+					 VALUES ('mention', 'mention', ?, ?, ?, ?, ?, ?, ?, 'N', NOW(), ?, ?)`,
+                    [
+                        boardId,
+                        wrId,
+                        receiver.mb_id,
+                        senderId,
+                        senderNick,
+                        excerpt,
+                        url,
+                        postTitle || '',
+                        postId
+                    ]
+                );
+                sentCount++;
             } catch (err) {
-                console.error('멘션 알림 전송 실패 (%s):', row.mb_nick, err);
+                console.error('멘션 알림 INSERT 실패 (%s):', receiver.mb_nick, err);
             }
         }
 
