@@ -24,20 +24,13 @@
             : data.boards
     );
 
-    // 무한 스크롤 상태
-    let latestPosts = $state<GroupLatestPost[]>([]);
+    // 무한 스크롤 상태 (SSR 데이터로 직접 초기화)
+    let latestPosts = $state<GroupLatestPost[]>(data.latestPosts);
     let currentPage = $state(1);
-    let hasMore = $state(false);
+    let hasMore = $state(data.latestHasMore);
     let isLoadingMore = $state(false);
     let loadError = $state(false);
     let sentinel: HTMLDivElement | undefined = $state();
-
-    // SSR 데이터 초기화
-    $effect(() => {
-        latestPosts = data.latestPosts;
-        hasMore = data.latestHasMore;
-        currentPage = 1;
-    });
 
     async function loadMore() {
         if (isLoadingMore || !hasMore) return;
