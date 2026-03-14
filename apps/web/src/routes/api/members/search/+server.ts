@@ -17,7 +17,7 @@ export const GET: RequestHandler = async ({ url }) => {
     const limitParam = parseInt(url.searchParams.get('limit') || String(DEFAULT_LIMIT), 10);
 
     if (!query || query.length < MIN_QUERY_LENGTH) {
-        return json([]);
+        return json({ members: [], adminBlocked: false });
     }
 
     const limit = Math.min(Math.max(1, limitParam), MAX_LIMIT);
@@ -28,6 +28,18 @@ export const GET: RequestHandler = async ({ url }) => {
     }
 
     try {
+        // 먼저 정확한 admin ID/닉네임 매칭 확인 (LIKE 검색보다 우선)
+        const [exactAdminRows] = await pool.query<RowDataPacket[]>(
+            `SELECT COUNT(*) as cnt FROM g5_member
+			 WHERE (mb_nick = ? OR mb_id = ?)
+			   AND mb_level >= 10
+			   AND mb_leave_date = ''`,
+            [query, query]
+        );
+        if (exactAdminRows[0]?.cnt > 0) {
+            return json({ members: [], adminBlocked: true });
+        }
+
         const searchPattern = `%${query}%`;
         const [rows] = await pool.query<RowDataPacket[]>(
             `SELECT mb_id, mb_nick, mb_name, IFNULL(as_level, 1) as as_level
@@ -50,7 +62,19 @@ export const GET: RequestHandler = async ({ url }) => {
             as_level: row.as_level
         }));
 
-        return json(members);
+        let adminBlocked = false;
+        if (members.length === 0) {
+            const [adminRows] = await pool.query<RowDataPacket[]>(
+                `SELECT COUNT(*) as cnt FROM g5_member
+				 WHERE (mb_nick LIKE ? OR mb_id LIKE ?)
+				   AND mb_level >= 10
+				   AND mb_leave_date = ''`,
+                [searchPattern, searchPattern]
+            );
+            adminBlocked = adminRows[0]?.cnt > 0;
+        }
+
+        return json({ members, adminBlocked });
     } catch (error) {
         console.error('Member search API error:', error);
         return json({ error: '회원 검색 실패' }, { status: 500 });
