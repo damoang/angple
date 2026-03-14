@@ -16,6 +16,11 @@
     import { CodeBlockLowlight } from '@tiptap/extension-code-block-lowlight';
     import { common, createLowlight } from 'lowlight';
     import { mentionSuggestion } from './mention-suggestion.js';
+    import {
+        SlashCommand,
+        createSlashCommandItems,
+        type SlashCommandItem
+    } from './slash-command.js';
     import { Button } from '$lib/components/ui/button/index.js';
     import { Input } from '$lib/components/ui/input/index.js';
     import {
@@ -220,6 +225,24 @@
                     lowlight,
                     HTMLAttributes: {
                         class: 'tiptap-code-block'
+                    }
+                }),
+                SlashCommand.configure({
+                    suggestion: {
+                        items: ({ query }: { query: string }): SlashCommandItem[] => {
+                            const allItems = createSlashCommandItems({
+                                onImageUpload: () => openImageDialog(),
+                                onEmoticon: () => toggleEmoticonPicker(),
+                                onYoutube: () => openYoutubeDialog()
+                            });
+                            if (!query) return allItems;
+                            const q = query.toLowerCase();
+                            return allItems.filter(
+                                (item) =>
+                                    item.title.toLowerCase().includes(q) ||
+                                    item.description.toLowerCase().includes(q)
+                            );
+                        }
                     }
                 })
             ],
