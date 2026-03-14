@@ -23,29 +23,25 @@
 
     const { date, dailyData, calendarDates, oldestDate, newestDate }: Props = $props();
 
-    let sections = $state<DailyRecommendedData['sections'] | null>(null);
-    let stats = $state<DailyRecommendedData['stats'] | null>(null);
-    let dateDisplay = $state('');
-    let isToday = $state(false);
+    // 폴링으로 갱신된 데이터 (오늘 데이터 자동 새로고침용)
+    let pollData = $state<DailyRecommendedData | null>(null);
+
+    // props(SSR/SPA) 또는 폴링 데이터 중 최신 사용
+    const activeData = $derived(pollData ?? dailyData);
+    const sections = $derived(activeData?.sections ?? null);
+    const stats = $derived(activeData?.stats ?? null);
+    const dateDisplay = $derived(activeData?.date_display ?? '');
+    const isToday = $derived(activeData?.is_today ?? false);
+
+    // SPA 네비게이션 시 폴링 데이터 초기화
+    $effect(() => {
+        date; // date 변경 추적
+        pollData = null;
+    });
 
     let activeTab = $state<'all' | 'community' | 'group' | 'info'>('all');
     let threshold = $state(0);
     let sortBy = $state<'recommend' | 'views' | 'comments' | 'latest'>('recommend');
-
-    // 데이터 변경 시 동기화 (SPA 네비게이션 대응)
-    $effect(() => {
-        if (dailyData) {
-            sections = dailyData.sections;
-            stats = dailyData.stats;
-            dateDisplay = dailyData.date_display;
-            isToday = dailyData.is_today;
-        } else {
-            sections = null;
-            stats = null;
-            dateDisplay = '';
-            isToday = false;
-        }
-    });
 
     // 필터 + 정렬 적용된 게시글 목록
     const filteredPosts = $derived.by(() => {
@@ -54,11 +50,19 @@
         let posts: RecommendedPost[] = [];
 
         if (activeTab === 'all') {
-            posts = [
+            const all = [
                 ...(sections.community.posts ?? []),
                 ...(sections.group.posts ?? []),
                 ...(sections.info.posts ?? [])
             ];
+            // 섹션 간 중복 게시글 제거 (id+board 기준)
+            const seen = new Set<string>();
+            posts = all.filter((p) => {
+                const key = `${p.id}-${p.board}`;
+                if (seen.has(key)) return false;
+                seen.add(key);
+                return true;
+            });
         } else {
             posts = [...(sections[activeTab]?.posts ?? [])];
         }
@@ -108,10 +112,7 @@
                     try {
                         const res = await fetch(`/api/recommended/daily?date=${date}`);
                         if (!res.ok) return;
-                        const newData: DailyRecommendedData = await res.json();
-                        sections = newData.sections;
-                        stats = newData.stats;
-                        dateDisplay = newData.date_display;
+                        pollData = await res.json();
                     } catch {
                         // 폴링 실패 무시
                     }
