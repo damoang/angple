@@ -17,6 +17,7 @@ import { fetchMemberLevels } from '$lib/server/member-levels.js';
 import { fetchMemberImages } from '$lib/server/member-images.js';
 import { fetchCommentLikeStatuses } from '$lib/server/comment-likes.js';
 import { fetchPostReportCount } from '$lib/server/report-count.js';
+import { fetchPostLikeStatus } from '$lib/server/post-like-status.js';
 
 /**
  * 게시글 상세 페이지 — Streaming SSR
@@ -341,7 +342,8 @@ export const load: PageServerLoad = async ({
                 likersResult,
                 postContentResult,
                 scrapResult,
-                postReportCountResult
+                postReportCountResult,
+                postLikeStatusResult
             ] = await Promise.allSettled([
                 // 직접홍보 사잇광고 (ads 서버 직접 호출 + 캐시)
                 fetchPromotionPosts(),
@@ -388,7 +390,14 @@ export const load: PageServerLoad = async ({
                 // 게시글 신고 횟수 (관리자만, PK 단건 조회)
                 (locals.user?.level ?? 0) >= 10
                     ? fetchPostReportCount(boardId, Number(postId)).catch(() => null)
-                    : Promise.resolve(null)
+                    : Promise.resolve(null),
+                // 게시글 추천/비추천 상태 (로그인 시만, DB 직접 조회)
+                locals.user?.id
+                    ? fetchPostLikeStatus(boardId, Number(postId), locals.user.id).catch(() => ({
+                          userLiked: false,
+                          userDisliked: false
+                      }))
+                    : Promise.resolve({ userLiked: false, userDisliked: false })
             ]);
 
             // 프로모션 사잇광고: board_exception에 포함된 게시판은 제외
@@ -424,6 +433,11 @@ export const load: PageServerLoad = async ({
             const postReportCount =
                 postReportCountResult.status === 'fulfilled' ? postReportCountResult.value : null;
 
+            const postLikeStatus =
+                postLikeStatusResult.status === 'fulfilled'
+                    ? postLikeStatusResult.value
+                    : { userLiked: false, userDisliked: false };
+
             return {
                 promotionPosts,
                 revisions,
@@ -431,7 +445,8 @@ export const load: PageServerLoad = async ({
                 likersData,
                 transformedPostContent,
                 isScrapped,
-                postReportCount
+                postReportCount,
+                postLikeStatus
             };
         })();
 
