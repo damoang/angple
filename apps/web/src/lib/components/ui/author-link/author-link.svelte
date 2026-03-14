@@ -135,7 +135,7 @@
                 </DropdownMenu.Item>
                 <DropdownMenu.Item
                     class="cursor-pointer gap-2"
-                    onclick={() => goto(`/search?sfl=author&q=${encodeURIComponent(authorName)}`)}
+                    onclick={() => goto(`/search?sfl=author&q=${encodeURIComponent(authorId)}`)}
                 >
                     <FileText class="h-3.5 w-3.5" />
                     전체 게시물
@@ -145,7 +145,7 @@
                         class="cursor-pointer gap-2"
                         onclick={() =>
                             goto(
-                                `/${$page.params.boardId}?sfl=author&stx=${encodeURIComponent(authorName)}&page=1`
+                                `/${$page.params.boardId}?sfl=author&stx=${encodeURIComponent(authorId)}&page=1`
                             )}
                     >
                         <Search class="h-3.5 w-3.5" />
