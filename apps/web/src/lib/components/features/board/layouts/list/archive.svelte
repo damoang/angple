@@ -89,7 +89,11 @@
                 <span class="text-foreground/50 font-medium">원작자</span>
                 <span class="inline-flex items-center gap-0.5">
                     <LevelBadge level={memberLevelStore.getLevel(post.author_id)} size="sm" />
-                    <AuthorLink authorId={post.author_id} authorName={post.author} />
+                    <AuthorLink
+                        authorId={post.author_id}
+                        authorName={post.author}
+                        isWithdrawn={!!post.is_left}
+                    />
                 </span>
                 <span class="text-border">·</span>
                 <span>조회 {post.views.toLocaleString()}</span>
@@ -119,7 +123,11 @@
                 {/if}
                 <span class="inline-flex items-center gap-0.5">
                     <LevelBadge level={memberLevelStore.getLevel(post.author_id)} size="sm" />
-                    <AuthorLink authorId={post.author_id} authorName={post.author} />
+                    <AuthorLink
+                        authorId={post.author_id}
+                        authorName={post.author}
+                        isWithdrawn={!!post.is_left}
+                    />
                 </span>
                 <span>·</span>
                 <span>{formatDate(post.created_at)}</span>

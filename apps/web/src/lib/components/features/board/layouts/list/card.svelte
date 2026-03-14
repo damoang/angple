@@ -106,6 +106,7 @@
                                         /><AuthorLink
                                             authorId={post.author_id}
                                             authorName={post.author}
+                                            isWithdrawn={!!post.is_left}
                                         /></span
                                     >
                                     {#if memoPluginActive && MemoBadge && !uiSettingsStore.hideMemoInList}

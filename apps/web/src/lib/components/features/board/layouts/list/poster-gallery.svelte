@@ -73,7 +73,11 @@
                 <div class="flex items-center gap-1.5 text-xs text-white/70">
                     <span class="inline-flex items-center gap-0.5">
                         <LevelBadge level={memberLevelStore.getLevel(post.author_id)} size="sm" />
-                        <AuthorLink authorId={post.author_id} authorName={post.author} />
+                        <AuthorLink
+                            authorId={post.author_id}
+                            authorName={post.author}
+                            isWithdrawn={!!post.is_left}
+                        />
                     </span>
                     <span>·</span>
                     <span>{formatDate(post.created_at)}</span>
