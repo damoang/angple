@@ -18,6 +18,7 @@ import { fetchMemberImages } from '$lib/server/member-images.js';
 import { fetchCommentLikeStatuses } from '$lib/server/comment-likes.js';
 import { fetchPostReportCount } from '$lib/server/report-count.js';
 import { fetchPostLikeStatus } from '$lib/server/post-like-status.js';
+import { fetchTruthroomPostId, fetchTruthroomCommentMap } from '$lib/server/truthroom.js';
 
 /**
  * 게시글 상세 페이지 — Streaming SSR
@@ -327,10 +328,31 @@ export const load: PageServerLoad = async ({
                 }
             }
 
+            // 잠긴 댓글 → 진실의방 매핑 배치 조회
+            let truthroomCommentMap: Record<number, number> = {};
+            if (comments.items?.length) {
+                try {
+                    const lockedCommentIds = comments.items
+                        .filter((c: { report_count: string | number }) => c.report_count === 'lock')
+                        .map((c: { id: number | string }) => Number(c.id))
+                        .filter((id: number) => !isNaN(id) && id > 0);
+                    if (lockedCommentIds.length > 0) {
+                        truthroomCommentMap = await fetchTruthroomCommentMap(
+                            boardId,
+                            postId,
+                            lockedCommentIds
+                        );
+                    }
+                } catch {
+                    // 실패 시 빈 맵
+                }
+            }
+
             return {
                 comments,
                 memberLevels,
-                commentLikeStatuses
+                commentLikeStatuses,
+                truthroomCommentMap
             };
         })();
 
@@ -466,6 +488,25 @@ export const load: PageServerLoad = async ({
             };
         }
 
+        // 잠긴 게시글 → 진실의방 글 ID 조회
+        let truthroomPostId: number | null = null;
+        if (post.extra_7 === 'lock') {
+            truthroomPostId = await fetchTruthroomPostId(boardId, postId);
+        }
+
+        // 진실의방 글 → 원본 게시글/댓글 링크
+        let originalPostLink: {
+            boardId: string;
+            postId: string;
+            commentId?: string;
+        } | null = null;
+        if (boardId === 'truthroom' && post.extra_1 && post.extra_2) {
+            originalPostLink = { boardId: post.extra_1, postId: post.extra_2 };
+            if (post.extra_3) {
+                originalPostLink.commentId = post.extra_3;
+            }
+        }
+
         return {
             boardId,
             post,
@@ -473,6 +514,8 @@ export const load: PageServerLoad = async ({
             isScrapped: false,
             promotionExpired,
             watermark,
+            truthroomPostId,
+            originalPostLink,
             /** 스트리밍: Promise로 반환 → 클라이언트에서 $effect로 수신 */
             streamed: {
                 commentsData: commentsDataPromise,

@@ -78,6 +78,7 @@
         reactionsMap?: Record<string, ReactionItem[]>; // 일괄 조회된 리액션 맵
         initialLikedCommentIds?: number[]; // SSR에서 전달된 좋아요한 댓글 ID 목록
         initialDislikedCommentIds?: number[]; // SSR에서 전달된 비추천한 댓글 ID 목록
+        truthroomCommentMap?: Record<number, number>; // 잠긴 댓글 → 진실의방 글 ID 매핑
     }
 
     let {
@@ -95,7 +96,8 @@
         commentLayout = 'flat',
         reactionsMap,
         initialLikedCommentIds = [],
-        initialDislikedCommentIds = []
+        initialDislikedCommentIds = [],
+        truthroomCommentMap = {}
     }: Props = $props();
 
     // 플러그인 활성화 여부
@@ -957,6 +959,14 @@
                                     신고잠금
                                 </span>
                             {/if}
+                            {#if truthroomCommentMap[Number(comment.id)]}
+                                <a
+                                    href="/truthroom/{truthroomCommentMap[Number(comment.id)]}"
+                                    class="bg-muted text-muted-foreground hover:text-foreground inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs transition-colors"
+                                >
+                                    진실의방 보기
+                                </a>
+                            {/if}
                         {:else if isSingoSuperAdmin && comment.report_count && Number(comment.report_count) > 0}
                             <button
                                 type="button"
@@ -1305,6 +1315,14 @@
                                     <Lock class="h-3 w-3" />
                                     신고잠금
                                 </span>
+                            {/if}
+                            {#if truthroomCommentMap[Number(comment.id)]}
+                                <a
+                                    href="/truthroom/{truthroomCommentMap[Number(comment.id)]}"
+                                    class="bg-muted text-muted-foreground hover:text-foreground mt-1.5 inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs transition-colors"
+                                >
+                                    진실의방 보기
+                                </a>
                             {/if}
                         {:else if comment.report_count && typeof comment.report_count === 'number' && comment.report_count > 0}
                             <button
