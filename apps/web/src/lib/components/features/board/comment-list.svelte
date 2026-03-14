@@ -1589,6 +1589,16 @@
         padding-bottom: calc(var(--comment-pad-extra, 3px) + 0.75rem);
     }
 
+    /* 긴 URL 레이아웃 깨짐 방지 */
+    :global(.comment-body) {
+        overflow-wrap: anywhere;
+        word-break: break-word;
+    }
+    :global(.comment-body a) {
+        overflow-wrap: anywhere;
+        word-break: break-all;
+    }
+
     /* 댓글 본문 문단 간격 축소 */
     :global(.comment-body p) {
         margin-bottom: 0.6em;
