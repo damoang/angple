@@ -157,7 +157,11 @@
             <div class="text-muted-foreground mt-1.5 flex items-center justify-between text-xs">
                 <span class="inline-flex items-center gap-0.5">
                     <LevelBadge level={memberLevelStore.getLevel(post.author_id)} size="sm" />
-                    <AuthorLink authorId={post.author_id} authorName={post.author} />
+                    <AuthorLink
+                        authorId={post.author_id}
+                        authorName={post.author}
+                        isWithdrawn={!!post.is_left}
+                    />
                 </span>
                 <div class="flex gap-2">
                     {#if post.likes > 0}

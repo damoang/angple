@@ -143,9 +143,9 @@ const coreListLayouts: { manifest: LayoutManifest; component: any }[] = [
         manifest: {
             id: 'archive',
             name: '아카이브',
-            description: '신고잠금 아카이브 전용 (원작자, 내용 미리보기, 출처 배지)',
+            description: '신고잠금 아카이브 전용 1줄 컴팩트 (배지 + 제목 + 원작자 + 날짜)',
             wrapperClass:
-                'space-y-2 -mx-5 md:mx-0 [&>a]:border-x-0 md:[&>a]:border-x [&>a]:rounded-none md:[&>a]:rounded-lg'
+                'border-y border-x-0 md:border-x border-border rounded-none md:rounded-lg divide-y divide-border overflow-hidden -mx-5 md:mx-0'
         },
         component: ArchiveLayout
     }

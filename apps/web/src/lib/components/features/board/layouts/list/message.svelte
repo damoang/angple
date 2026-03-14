@@ -115,7 +115,11 @@
                 {/if}
             </div>
             <span class="text-muted-foreground truncate text-xs">
-                <AuthorLink authorId={post.author_id} authorName={post.author || '익명'} />
+                <AuthorLink
+                    authorId={post.author_id}
+                    authorName={post.author || '익명'}
+                    isWithdrawn={!!post.is_left}
+                />
             </span>
             {#if post.created_at}
                 <span class="text-muted-foreground/60 ml-auto shrink-0 text-xs">

@@ -234,7 +234,11 @@
                             }}
                         />
                     {/if}
-                    <AuthorLink authorId={post.author_id} authorName={post.author} />
+                    <AuthorLink
+                        authorId={post.author_id}
+                        authorName={post.author}
+                        isWithdrawn={!!post.is_left}
+                    />
                 </span>
 
                 <!-- 날짜 (col 4, 데스크톱만) -->
@@ -269,7 +273,11 @@
                                 }}
                             />
                         {/if}
-                        <AuthorLink authorId={post.author_id} authorName={post.author} />
+                        <AuthorLink
+                            authorId={post.author_id}
+                            authorName={post.author}
+                            isWithdrawn={!!post.is_left}
+                        />
                     </span>
                     <span class="mobile-meta-sep {isToday(post.created_at) ? 'date-today' : ''}">
                         {formatDate(post.created_at)}

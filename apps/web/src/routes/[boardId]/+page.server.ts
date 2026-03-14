@@ -5,6 +5,7 @@ import { fetchPromotionPosts, fetchPromotionBoardPosts } from '$lib/server/ads/p
 import type { PromotionBoardPost } from '$lib/server/ads/promotion.js';
 import { backendFetch as bFetch, createAuthHeaders } from '$lib/server/backend-fetch.js';
 import { fetchMemberImages } from '$lib/server/member-images.js';
+import { fetchWithdrawnMemberIds } from '$lib/server/withdrawn-members.js';
 import { createCache } from '$lib/server/cache.js';
 import { getCachedBoard } from '$lib/server/board-cache.js';
 
@@ -165,15 +166,21 @@ export const load: PageServerLoad = async ({ url, params, locals }) => {
 
             const notices = noticesResult.status === 'fulfilled' ? noticesResult.value : [];
 
-            // 프로필 이미지 enrichment
+            // 프로필 이미지 + 탈퇴 여부 enrichment
             const allPosts = [...posts, ...notices];
             if (allPosts.length > 0) {
                 const mbIds = [...new Set(allPosts.map((p) => p.author_id).filter(Boolean))];
                 try {
-                    const imageMap = await fetchMemberImages(mbIds);
+                    const [imageMap, withdrawnIds] = await Promise.all([
+                        fetchMemberImages(mbIds),
+                        fetchWithdrawnMemberIds(mbIds)
+                    ]);
                     for (const p of allPosts) {
                         if (p.author_id && imageMap[p.author_id]) {
                             p.author_image = imageMap[p.author_id];
+                        }
+                        if (p.author_id && withdrawnIds.has(p.author_id)) {
+                            p.is_left = true;
                         }
                     }
                 } catch {
@@ -245,19 +252,25 @@ export const load: PageServerLoad = async ({ url, params, locals }) => {
 
         const notices = noticesResult.status === 'fulfilled' ? noticesResult.value : [];
 
-        // 프로필 이미지 enrichment (DB mb_image_url 배치 조회)
+        // 프로필 이미지 + 탈퇴 여부 enrichment (DB 배치 조회)
         const allPosts = [...posts, ...notices];
         if (allPosts.length > 0) {
             const mbIds = [...new Set(allPosts.map((p) => p.author_id).filter(Boolean))];
             try {
-                const imageMap = await fetchMemberImages(mbIds);
+                const [imageMap, withdrawnIds] = await Promise.all([
+                    fetchMemberImages(mbIds),
+                    fetchWithdrawnMemberIds(mbIds)
+                ]);
                 for (const p of allPosts) {
                     if (p.author_id && imageMap[p.author_id]) {
                         p.author_image = imageMap[p.author_id];
                     }
+                    if (p.author_id && withdrawnIds.has(p.author_id)) {
+                        p.is_left = true;
+                    }
                 }
             } catch {
-                // 이미지 조회 실패해도 게시글 표시는 정상 진행
+                // 조회 실패해도 게시글 표시는 정상 진행
             }
         }
 
