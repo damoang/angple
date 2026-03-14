@@ -34,7 +34,7 @@
     async function fetchMemberHistory(memberId: string) {
         try {
             const result = await getDisciplineLogs(1, 20, memberId);
-            memberHistory = result.data.filter((item) => item.id !== id);
+            memberHistory = result.data;
         } catch {
             memberHistory = [];
         }
@@ -279,7 +279,7 @@
                 <Card.Header>
                     <Card.Title class="flex items-center gap-2">
                         <History class="h-5 w-5" />
-                        이 회원의 이전 이용제한 내역
+                        이 회원의 전체 이용제한 내역
                     </Card.Title>
                 </Card.Header>
                 <Card.Content>
@@ -291,7 +291,10 @@
                             )}
                             <a
                                 href="/disciplinelog/{item.id}"
-                                class="hover:bg-muted/50 flex items-center justify-between rounded p-2 text-sm transition-all duration-200 ease-out"
+                                class="hover:bg-muted/50 flex items-center justify-between rounded p-2 text-sm transition-all duration-200 ease-out {item.id ===
+                                id
+                                    ? 'bg-primary/10 border-primary/30 border font-semibold'
+                                    : ''}"
                             >
                                 <div class="flex items-center gap-3">
                                     <span class="text-muted-foreground"

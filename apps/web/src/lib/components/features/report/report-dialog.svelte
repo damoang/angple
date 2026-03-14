@@ -177,7 +177,7 @@
 </script>
 
 <Dialog bind:open onOpenChange={(isOpen) => !isOpen && handleClose()}>
-    <DialogContent class="sm:max-w-md">
+    <DialogContent class="top-[5vh] max-h-[90vh] translate-y-0 overflow-y-auto sm:max-w-md">
         <DialogHeader>
             <DialogTitle class="flex items-center gap-2">
                 <AlertTriangle class="text-destructive h-5 w-5" />
@@ -199,7 +199,7 @@
             </div>
         {:else}
             <!-- 신고 사유 선택 -->
-            <div class="space-y-4 py-4">
+            <div class="space-y-3 py-3">
                 <!-- 관리자: 신고자 목록 버튼 (신고 있을 때만) -->
                 {#if isAdmin && reportCount > 0}
                     <Button
@@ -248,12 +248,12 @@
                             >(복수 선택 가능)</span
                         ></Label
                     >
-                    <div class="grid grid-cols-3 gap-2">
+                    <div class="grid grid-cols-4 gap-1.5">
                         {#each reportReasons as reason (reason.value)}
                             <button
                                 type="button"
                                 onclick={() => toggleReason(reason.value)}
-                                class="rounded-lg border px-3 py-2 text-center text-sm transition-colors {selectedReasons.has(
+                                class="rounded-md border px-2 py-1.5 text-center text-xs transition-colors {selectedReasons.has(
                                     reason.value
                                 )
                                     ? 'border-primary bg-primary/5 text-primary font-semibold'
@@ -274,7 +274,7 @@
                         id="report-detail"
                         bind:value={detail}
                         placeholder="신고 사유에 대한 추가 의견을 남겨주세요"
-                        class="min-h-[80px] resize-none"
+                        class="min-h-[60px] resize-none"
                     />
                 </div>
 
