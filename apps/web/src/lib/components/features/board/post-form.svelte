@@ -11,6 +11,7 @@
     import Clock from '@lucide/svelte/icons/clock';
     import RotateCcw from '@lucide/svelte/icons/rotate-ccw';
     import XIcon from '@lucide/svelte/icons/x';
+    import { stripAdminMentions } from '$lib/utils/sanitize-mentions.js';
     import type {
         FreePost,
         CreatePostRequest,
@@ -302,7 +303,7 @@
 
         // 첨부 이미지를 content 끝에 <img> 태그로 삽입 (Go 백엔드 호환)
         // 단, 에디터 드래그/드롭으로 이미 본문에 포함된 이미지는 제외
-        let finalContent = content.trim();
+        let finalContent = await stripAdminMentions(content.trim());
         const imageFiles = uploadedFiles.filter(
             (f) => f.mime_type.startsWith('image/') && !finalContent.includes(f.url)
         );
