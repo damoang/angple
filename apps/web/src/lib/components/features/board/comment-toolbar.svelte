@@ -100,7 +100,7 @@
                 onkeydown={(e) => e.key === 'Escape' && (showEmoticonPicker = false)}
             ></div>
             <div
-                class="fixed inset-x-0 bottom-0 z-[9999] sm:absolute sm:inset-auto sm:bottom-full sm:left-0 sm:mb-1"
+                class="fixed inset-x-0 bottom-0 z-[9999] sm:fixed sm:inset-x-auto sm:bottom-4 sm:left-1/2 sm:-translate-x-1/2"
             >
                 <LazyEmoticonPicker
                     onInsertEmoticon={handleInsertEmoticon}

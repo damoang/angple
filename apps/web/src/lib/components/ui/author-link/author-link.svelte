@@ -17,11 +17,18 @@
     interface Props {
         authorId: string;
         authorName: string;
+        isWithdrawn?: boolean;
         class?: string;
         children?: Snippet;
     }
 
-    let { authorId, authorName, class: className = '', children }: Props = $props();
+    let {
+        authorId,
+        authorName,
+        isWithdrawn = false,
+        class: className = '',
+        children
+    }: Props = $props();
 
     const isOwnProfile = $derived(authStore.user?.mb_id === authorId);
 
@@ -101,7 +108,7 @@
 </script>
 
 {#if !authorId}
-    <span class={className}>
+    <span class="{className} {isWithdrawn ? 'line-through opacity-60' : ''}">
         {#if children}
             {@render children()}
         {:else}
@@ -117,7 +124,9 @@
             }}
         >
             <DropdownMenu.Trigger
-                class="cursor-pointer text-left hover:underline focus:outline-none {className}"
+                class="cursor-pointer text-left hover:underline focus:outline-none {className} {isWithdrawn
+                    ? 'line-through opacity-60'
+                    : ''}"
             >
                 {#if children}
                     {@render children()}

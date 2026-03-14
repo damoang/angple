@@ -1165,7 +1165,8 @@
 
     <!-- 상단 네비게이션 -->
     <div class="-mx-5 mb-2 flex items-center gap-3 px-5 py-2 md:mx-0 md:px-0">
-        <Button variant="outline" size="sm" onclick={goBack} class="shrink-0">← 목록으로</Button>
+        <Button variant="ghost" size="sm" onclick={() => history.back()} class="shrink-0">←</Button>
+        <Button variant="outline" size="sm" onclick={goBack} class="shrink-0">목록으로</Button>
 
         <div class="flex-1"></div>
 
@@ -1465,8 +1466,10 @@
 
         <!-- 댓글 아래 네비게이션 -->
         <div class="-mx-5 mt-4 flex items-center gap-3 px-5 py-2 md:mx-0 md:px-0">
-            <Button variant="outline" size="sm" onclick={goBack} class="shrink-0">← 목록으로</Button
+            <Button variant="ghost" size="sm" onclick={() => history.back()} class="shrink-0"
+                >←</Button
             >
+            <Button variant="outline" size="sm" onclick={goBack} class="shrink-0">목록으로</Button>
             <div class="flex-1"></div>
             {#if authStore.isAuthenticated && checkPermission(data.board, 'can_write', authStore.user ?? null)}
                 <Button

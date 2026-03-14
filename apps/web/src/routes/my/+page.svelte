@@ -42,6 +42,16 @@
     }
 
     // 날짜 포맷
+    function stripHtml(html: string): string {
+        return html
+            .replace(/<[^>]*>/g, '')
+            .replace(/&nbsp;/g, ' ')
+            .replace(/&lt;/g, '<')
+            .replace(/&gt;/g, '>')
+            .replace(/&amp;/g, '&')
+            .trim();
+    }
+
     function formatDate(dateString: string): string {
         const date = new Date(dateString);
         return date.toLocaleDateString('ko-KR', {
@@ -254,7 +264,7 @@
                                                 </p>
                                             {/if}
                                             <p class="text-foreground mb-2 line-clamp-2">
-                                                {comment.content}
+                                                {stripHtml(comment.content)}
                                             </p>
                                             <div
                                                 class="text-muted-foreground flex items-center gap-2 text-xs"

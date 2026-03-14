@@ -16,7 +16,12 @@ export function isToday(dateString: string): boolean {
 }
 
 export function formatDate(dateString: string): string {
-    const date = new Date(dateString);
+    // Gnuboard YYYYMMDD 형식 (mb_leave_date 등) → ISO 변환
+    let normalized = dateString;
+    if (/^\d{8}$/.test(dateString)) {
+        normalized = `${dateString.slice(0, 4)}-${dateString.slice(4, 6)}-${dateString.slice(6, 8)}`;
+    }
+    const date = new Date(normalized);
     const now = new Date();
 
     // 서울 시간 기준 YYYY-MM-DD 문자열 추출

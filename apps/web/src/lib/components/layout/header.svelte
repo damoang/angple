@@ -332,9 +332,11 @@
                                 >
                             {/if}
                         </div>
-                        <span class="text-foreground hidden text-sm font-medium md:inline">
-                            {effectiveUser.mb_name}
-                        </span>
+                        {#if !uiSettingsStore.hideMyProfile}
+                            <span class="text-foreground hidden text-sm font-medium md:inline">
+                                {effectiveUser.mb_name}
+                            </span>
+                        {/if}
                     {/if}
                 </a>
             {:else}
