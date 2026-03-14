@@ -79,7 +79,7 @@
 
     let {
         content = '',
-        placeholder = '내용을 입력하세요... ( / 로 명령어 사용)',
+        placeholder = '/ 를 눌러 이미지와 앙티콘을 추가하세요',
         disabled = false,
         onUpdate,
         onImageUpload,
@@ -1440,6 +1440,7 @@
         float: left;
         height: 0;
         pointer-events: none;
+        white-space: pre-line;
     }
 
     /* 헤딩 스타일 */

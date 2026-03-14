@@ -15,6 +15,7 @@
     } from '$lib/components/features/recommended/utils/index.js';
     import { readPostsStore } from '$lib/stores/read-posts.svelte.js';
     import { getReadPostClasses } from '$lib/stores/read-post-style.svelte.js';
+    import TagNav from '$lib/components/ui/tag-nav/tag-nav.svelte';
     import type { PageData } from './$types';
     import type { ExploreMode, ExploreTopPeriod, ExplorePost } from '$lib/api/types.js';
 
@@ -89,6 +90,10 @@
 />
 
 <div class="mx-auto max-w-4xl px-4 py-6">
+    <div class="mb-4">
+        <TagNav />
+    </div>
+
     <Card class="gap-0">
         <CardHeader class="space-y-0 pb-0">
             <!-- 헤더 + 탭 한 줄 -->

@@ -587,6 +587,7 @@ export interface Board {
     display_settings: BoardDisplaySettings;
     permissions?: BoardPermissions; // 사용자별 권한 정보 (서버에서 계산, 인증 시에만 포함)
     board_type?: 'standard' | 'giving' | 'angtt' | 'angmap' | 'used-market' | 'qa'; // 특수 게시판 타입
+    insert_content?: string; // 게시판별 글쓰기 안내 텍스트 (placeholder)
 }
 
 // 파일 업로드 관련 타입

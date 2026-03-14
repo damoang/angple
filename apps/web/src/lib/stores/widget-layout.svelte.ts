@@ -75,6 +75,18 @@ class WidgetLayoutStore {
             .sort((a, b) => a.position - b.position);
     }
 
+    // === Getters (tag-nav 메뉴) ===
+
+    /** tag-nav 위젯의 메뉴 설정 반환 (DB 저장값 우선, 없으면 undefined) */
+    get tagNavMenus():
+        | Array<{ key: string; text: string; url: string; show: boolean }>
+        | undefined {
+        const tagNav = this._widgets.find((w) => w.type === 'tag-nav');
+        return tagNav?.settings?.menus as
+            | Array<{ key: string; text: string; url: string; show: boolean }>
+            | undefined;
+    }
+
     // === Getters (광고) ===
 
     get hasEnabledAds(): boolean {

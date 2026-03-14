@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { onMount } from 'svelte';
+    // import { onMount } from 'svelte';
     import { SeoHead } from '$lib/seo/index.js';
     import Users from '@lucide/svelte/icons/users';
     import MessageSquare from '@lucide/svelte/icons/message-square';
@@ -7,7 +7,7 @@
     import Clock from '@lucide/svelte/icons/clock';
     import ThumbsUp from '@lucide/svelte/icons/thumbs-up';
     import { formatDate } from '$lib/utils/format-date.js';
-    import { Skeleton } from '$lib/components/ui/skeleton/index.js';
+    // import { Skeleton } from '$lib/components/ui/skeleton/index.js';
     import type { PageData } from './$types';
     import type { GroupLatestPost } from './+page.server.js';
 
@@ -24,50 +24,52 @@
             : data.boards
     );
 
-    // 무한 스크롤 상태 (SSR 데이터로 직접 초기화)
+    // SSR 데이터만 표시 (무한 스크롤 비활성화)
     let latestPosts = $state<GroupLatestPost[]>(data.latestPosts);
-    let currentPage = $state(1);
-    let hasMore = $state(data.latestHasMore);
-    let isLoadingMore = $state(false);
-    let loadError = $state(false);
-    let sentinel: HTMLDivElement | undefined = $state();
 
-    async function loadMore() {
-        if (isLoadingMore || !hasMore) return;
-        isLoadingMore = true;
-        loadError = false;
-
-        try {
-            const nextPage = currentPage + 1;
-            const res = await fetch(`/api/groups/latest?page=${nextPage}&limit=20`);
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
-            const result: { items: GroupLatestPost[]; total: number; hasMore: boolean } =
-                await res.json();
-
-            latestPosts = [...latestPosts, ...result.items];
-            hasMore = result.hasMore;
-            currentPage = nextPage;
-        } catch {
-            loadError = true;
-        } finally {
-            isLoadingMore = false;
-        }
-    }
-
-    // IntersectionObserver
-    onMount(() => {
-        if (!sentinel) return;
-        const observer = new IntersectionObserver(
-            (entries) => {
-                if (entries[0]?.isIntersecting && activeTab === 'latest') {
-                    loadMore();
-                }
-            },
-            { rootMargin: '200px' }
-        );
-        observer.observe(sentinel);
-        return () => observer.disconnect();
-    });
+    // -- 무한 스크롤 비활성화 --
+    // let currentPage = $state(1);
+    // let hasMore = $state(data.latestHasMore);
+    // let isLoadingMore = $state(false);
+    // let loadError = $state(false);
+    // let sentinel: HTMLDivElement | undefined = $state();
+    //
+    // async function loadMore() {
+    //     if (isLoadingMore || !hasMore) return;
+    //     isLoadingMore = true;
+    //     loadError = false;
+    //
+    //     try {
+    //         const nextPage = currentPage + 1;
+    //         const res = await fetch(`/api/groups/latest?page=${nextPage}&limit=20`);
+    //         if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    //         const result: { items: GroupLatestPost[]; total: number; hasMore: boolean } =
+    //             await res.json();
+    //
+    //         latestPosts = [...latestPosts, ...result.items];
+    //         hasMore = result.hasMore;
+    //         currentPage = nextPage;
+    //     } catch {
+    //         loadError = true;
+    //     } finally {
+    //         isLoadingMore = false;
+    //     }
+    // }
+    //
+    // // IntersectionObserver
+    // onMount(() => {
+    //     if (!sentinel) return;
+    //     const observer = new IntersectionObserver(
+    //         (entries) => {
+    //             if (entries[0]?.isIntersecting && activeTab === 'latest') {
+    //                 loadMore();
+    //             }
+    //         },
+    //         { rootMargin: '200px' }
+    //     );
+    //     observer.observe(sentinel);
+    //     return () => observer.disconnect();
+    // });
 </script>
 
 <SeoHead
@@ -268,43 +270,10 @@
                         </a>
                     </li>
                 {/each}
+
+                <!-- 무한 스크롤 비활성화: 스켈레톤, 에러, 센티넬 제거 -->
             </ul>
-
-            <!-- 로딩 스켈레톤 -->
-            {#if isLoadingMore}
-                <ul class="divide-border divide-y">
-                    {#each Array(3) as _}
-                        <li class="flex items-center gap-2 px-2 py-1.5">
-                            <Skeleton class="h-5 w-16 shrink-0 rounded" />
-                            <Skeleton class="h-4 w-[60%]" />
-                            <div class="ml-auto flex items-center gap-2">
-                                <Skeleton class="h-3 w-12" />
-                                <Skeleton class="hidden h-3 w-20 sm:block" />
-                            </div>
-                        </li>
-                    {/each}
-                </ul>
-            {/if}
-
-            <!-- 에러 시 재시도 -->
-            {#if loadError}
-                <div class="py-4 text-center">
-                    <button onclick={loadMore} class="text-primary text-sm hover:underline">
-                        불러오기 실패. 다시 시도
-                    </button>
-                </div>
-            {/if}
-
-            <!-- 끝 표시 -->
-            {#if !hasMore && latestPosts.length > 0}
-                <div class="text-muted-foreground py-4 text-center text-sm">
-                    더 이상 글이 없습니다
-                </div>
-            {/if}
         {/if}
-
-        <!-- IntersectionObserver 센티넬 -->
-        <div bind:this={sentinel} class="h-1"></div>
     {/if}
 
     <!-- 소모임 개설 안내 -->

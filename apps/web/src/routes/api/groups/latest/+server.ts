@@ -8,7 +8,9 @@ export const GET: RequestHandler = async ({ url }) => {
 
     try {
         const result = await loadLatestPostsPaginated(page, limit);
-        return json(result);
+        return json(result, {
+            headers: { 'Cache-Control': 'public, max-age=60, stale-while-revalidate=120' }
+        });
     } catch (err) {
         console.error('[api/groups/latest] error:', err);
         return json({ items: [], total: 0, hasMore: false }, { status: 500 });
