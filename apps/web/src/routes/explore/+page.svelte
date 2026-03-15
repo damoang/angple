@@ -9,6 +9,7 @@
     import Crown from '@lucide/svelte/icons/crown';
     import MessageSquare from '@lucide/svelte/icons/message-square';
     import Eye from '@lucide/svelte/icons/eye';
+    import Heart from '@lucide/svelte/icons/heart';
     import {
         formatNumber,
         getRecommendBadgeClass
@@ -183,7 +184,7 @@
                                         post.recommend_count
                                     )}"
                                 >
-                                    <img alt="공감" class="size-3" src="/images/thumbup.png?v=2" />
+                                    <Heart class="size-3" />
                                     {formatNumber(post.recommend_count)}
                                 </span>
 

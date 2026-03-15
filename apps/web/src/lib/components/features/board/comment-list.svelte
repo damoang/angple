@@ -28,6 +28,7 @@
     import RevisionHistory from '$lib/components/post/revision-history.svelte';
     import type { PostRevision } from '$lib/api/types.js';
     import History from '@lucide/svelte/icons/history';
+    import Heart from '@lucide/svelte/icons/heart';
     import { uiSettingsStore } from '$lib/stores/ui-settings.svelte.js';
 
     // 동적 플러그인 임포트: member-memo
@@ -938,50 +939,42 @@
                                     />
                                 </div>
                             {/if}
-                            <!-- 댓글 좋아요 버튼 (PHP 호환: thumbup 이미지) -->
+                            <!-- 댓글 좋아요 버튼 -->
                             <div
                                 class="comment-good-group {reactionPluginActive
                                     ? ''
-                                    : 'ml-auto'} flex items-stretch rounded-lg border {isCommentLiked(
-                                    String(comment.id)
-                                )
-                                    ? 'border-liked/40 bg-liked/5'
-                                    : 'border-border'}"
+                                    : 'ml-auto'} flex items-center gap-2"
                             >
                                 {#if onLike && authStore.isAuthenticated}
-                                    <button
-                                        type="button"
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
                                         onclick={() => handleLikeComment(String(comment.id))}
                                         disabled={likingComment === String(comment.id)}
-                                        class="flex items-center px-1.5 py-1 transition-opacity hover:opacity-80"
-                                        title="공감"
+                                        class="h-8 gap-2 px-3"
                                     >
-                                        <img
-                                            src={isCommentLiked(String(comment.id))
-                                                ? '/images/thumbup-choose.gif?v=2'
-                                                : '/images/thumbup.png?v=2'}
-                                            alt="공감"
-                                            class="size-5"
+                                        <Heart
+                                            class="h-5 w-5 {isCommentLiked(String(comment.id))
+                                                ? 'fill-liked text-liked'
+                                                : ''}"
                                         />
-                                    </button>
+                                        <span class="font-semibold"
+                                            >{getCommentLikes(comment).toLocaleString()}</span
+                                        >
+                                    </Button>
                                 {:else}
-                                    <span class="flex items-center px-1.5 py-1">
-                                        <img src="/images/thumbup.png" alt="공감" class="size-5" />
-                                    </span>
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onclick={() => openLikersDialog(comment.id)}
+                                        class="h-8 gap-2 px-3"
+                                    >
+                                        <Heart class="h-5 w-5" />
+                                        <span class="font-semibold"
+                                            >{getCommentLikes(comment).toLocaleString()}</span
+                                        >
+                                    </Button>
                                 {/if}
-                                <button
-                                    type="button"
-                                    onclick={() => openLikersDialog(comment.id)}
-                                    class="text-muted-foreground hover:text-foreground border-l {isCommentLiked(
-                                        String(comment.id)
-                                    )
-                                        ? 'border-liked/40 text-liked'
-                                        : 'border-border'} px-2 py-1 text-xs font-medium transition-colors"
-                                    title="공감한 사람 보기"
-                                    style={getCommentLikes(comment) === 0 ? 'opacity: 0.25;' : ''}
-                                >
-                                    {getCommentLikes(comment).toLocaleString()}
-                                </button>
                             </div>
 
                             <!-- 댓글 추천자 아바타 스택 -->
@@ -1189,45 +1182,36 @@
                             : ''}"
                     >
                         <!-- 추천 -->
-                        <div
-                            class="flex items-center rounded-lg border text-xs {isCommentLiked(
-                                String(comment.id)
-                            )
-                                ? 'border-liked/40 bg-liked/5'
-                                : 'border-border'}"
-                        >
-                            {#if onLike && authStore.isAuthenticated}
-                                <button
-                                    type="button"
-                                    onclick={() => handleLikeComment(String(comment.id))}
-                                    disabled={likingComment === String(comment.id)}
-                                    class="flex items-center px-1 py-0.5 transition-opacity hover:opacity-80"
-                                >
-                                    <img
-                                        src={isCommentLiked(String(comment.id))
-                                            ? '/images/thumbup-choose.gif?v=2'
-                                            : '/images/thumbup.png?v=2'}
-                                        alt="공감"
-                                        class="size-4"
-                                    />
-                                </button>
-                            {:else}
-                                <span class="flex items-center px-1 py-0.5">
-                                    <img src="/images/thumbup.png" alt="공감" class="size-4" />
-                                </span>
-                            {/if}
-                            <button
-                                type="button"
-                                onclick={() => openLikersDialog(comment.id)}
-                                class="text-muted-foreground hover:text-foreground border-l px-1.5 py-0.5 font-medium transition-colors {isCommentLiked(
-                                    String(comment.id)
-                                )
-                                    ? 'border-liked/40 text-liked'
-                                    : 'border-border'}"
+                        {#if onLike && authStore.isAuthenticated}
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onclick={() => handleLikeComment(String(comment.id))}
+                                disabled={likingComment === String(comment.id)}
+                                class="h-6 gap-1 px-1.5 text-xs"
                             >
-                                {getCommentLikes(comment).toLocaleString()}
-                            </button>
-                        </div>
+                                <Heart
+                                    class="h-3.5 w-3.5 {isCommentLiked(String(comment.id))
+                                        ? 'fill-liked text-liked'
+                                        : ''}"
+                                />
+                                <span class="font-semibold"
+                                    >{getCommentLikes(comment).toLocaleString()}</span
+                                >
+                            </Button>
+                        {:else}
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onclick={() => openLikersDialog(comment.id)}
+                                class="h-6 gap-1 px-1.5 text-xs"
+                            >
+                                <Heart class="h-3.5 w-3.5" />
+                                <span class="font-semibold"
+                                    >{getCommentLikes(comment).toLocaleString()}</span
+                                >
+                            </Button>
+                        {/if}
 
                         <!-- 답글 -->
                         {#if onReply && authStore.isAuthenticated}

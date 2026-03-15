@@ -6,6 +6,7 @@
     import ImageIcon from '@lucide/svelte/icons/image';
     import Play from '@lucide/svelte/icons/play';
     import Pin from '@lucide/svelte/icons/pin';
+    import Heart from '@lucide/svelte/icons/heart';
     import { getAvatarUrl } from '$lib/utils/member-icon.js';
     import AuthorLink from '$lib/components/ui/author-link/author-link.svelte';
     import { formatDate, isToday } from '$lib/utils/format-date.js';
@@ -286,20 +287,12 @@
                     {#if mobileLikesPill}
                         <span
                             class="mobile-likes-pill mobile-meta-sep inline-flex items-center gap-0.5"
-                            ><img
-                                alt="공감"
-                                class="size-3.5"
-                                src="/images/thumbup.png?v=2"
-                            />{post.likes}</span
+                            ><Heart class="size-3.5" />{post.likes}</span
                         >
                     {:else}
                         <span
                             class="{mobileLikesClass} mobile-meta-sep inline-flex items-center gap-0.5"
-                            ><img
-                                alt="공감"
-                                class="size-3.5"
-                                src="/images/thumbup.png?v=2"
-                            />{post.likes}</span
+                            ><Heart class="size-3.5" />{post.likes}</span
                         >
                     {/if}
                 </div>
