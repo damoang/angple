@@ -187,13 +187,23 @@
                 <div class="space-y-2">
                     <div class="flex items-center justify-between text-sm">
                         <span class="text-muted-foreground">Lv.{expSummary.current_level}</span>
-                        <span class="text-muted-foreground">Lv.{expSummary.current_level + 1}</span>
+                        <span class="text-muted-foreground">
+                            {#if expSummary.exp_to_next <= 0}
+                                MAX
+                            {:else}
+                                Lv.{expSummary.current_level + 1}
+                            {/if}
+                        </span>
                     </div>
                     <Progress value={expSummary.level_progress} max={100} class="h-3" />
                     <p class="text-muted-foreground text-center text-sm">
-                        다음 레벨까지 <span class="text-foreground font-medium"
-                            >{formatNumber(expSummary.next_level_exp)}</span
-                        > 경험치 필요
+                        {#if expSummary.exp_to_next <= 0}
+                            최고 레벨 달성!
+                        {:else}
+                            다음 레벨까지 <span class="text-foreground font-medium"
+                                >{formatNumber(expSummary.exp_to_next)}</span
+                            > 경험치 필요
+                        {/if}
                     </p>
                 </div>
             </CardContent>

@@ -50,6 +50,50 @@ interface CountRow extends RowDataPacket {
     days: number;
 }
 
+// Level thresholds (cumulative exp required for each level) — synced with backend
+const levelThresholds = [
+    0, 1000, 3000, 6000, 10000, 15000, 21000, 28000, 36000, 45000, 55000, 66000, 78000, 91000,
+    105000, 120000, 136000, 153000, 171000, 190000, 210000, 231000, 253000, 276000, 300000, 325000,
+    351000, 378000, 406000, 435000, 466000, 499000, 534000, 571000, 610000, 651000, 694000, 739000,
+    786000, 835000, 887000, 941000, 998000, 1058000, 1121000, 1187000, 1256000, 1328000, 1403000,
+    1481000, 1563000, 1649000, 1739000, 1833000, 1931000, 2033000, 2139000, 2249000, 2363000,
+    2481000, 2604000, 2732000, 2865000, 3003000, 3146000, 3294000, 3447000, 3605000, 3768000,
+    3936000, 4110000, 4290000, 4476000, 4668000, 4866000, 5070000, 5280000, 5496000, 5718000,
+    5946000, 6181000, 6423000, 6672000, 6928000, 7191000, 7461000, 7738000, 8022000, 8313000,
+    8611000, 8917000, 9231000, 9553000, 9883000, 10221000, 10567000, 10921000, 11283000, 11653000,
+    12031000, 12418000, 12814000, 13219000, 13633000, 14056000, 14488000, 14929000, 15379000,
+    15838000
+];
+
+function calculateLevelInfo(totalExp: number) {
+    let currentLevel = 1;
+    for (let i = 0; i < levelThresholds.length; i++) {
+        if (totalExp >= levelThresholds[i]) {
+            currentLevel = i + 1;
+        } else {
+            break;
+        }
+    }
+
+    if (currentLevel >= levelThresholds.length) {
+        return {
+            currentLevel,
+            nextLevelExp: levelThresholds[levelThresholds.length - 1],
+            expToNext: 0,
+            progress: 100
+        };
+    }
+
+    const nextLevelExp = levelThresholds[currentLevel];
+    const prevLevelExp = currentLevel > 1 ? levelThresholds[currentLevel - 1] : 0;
+    const expToNext = nextLevelExp - totalExp;
+    const levelRange = nextLevelExp - prevLevelExp;
+    const progress =
+        levelRange > 0 ? Math.round(((totalExp - prevLevelExp) * 100) / levelRange) : 0;
+
+    return { currentLevel, nextLevelExp, expToNext, progress };
+}
+
 export const GET: RequestHandler = async ({ params }) => {
     const memberId = params.id;
 
@@ -151,10 +195,12 @@ export const GET: RequestHandler = async ({ params }) => {
                 is_left: isLeft,
                 mb_leave_date: member.mb_leave_date || '',
                 reg_days: regDays,
-                // 경험치
-                as_level: member.as_level || 0,
+                // 경험치 (levelThresholds 기반 계산)
+                as_level: calculateLevelInfo(member.as_exp || 0).currentLevel,
                 as_exp: member.as_exp || 0,
-                as_max: member.as_max || 1,
+                as_max: calculateLevelInfo(member.as_exp || 0).nextLevelExp,
+                exp_to_next: calculateLevelInfo(member.as_exp || 0).expToNext,
+                exp_progress: calculateLevelInfo(member.as_exp || 0).progress,
                 // 통계
                 stats: {
                     total_post_count: stats.total_post_count,

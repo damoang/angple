@@ -41,6 +41,7 @@
         type MemberMemo
     } from '$lib/api/admin-members.js';
     import { formatDate } from '$lib/utils/format-date.js';
+    import FollowListDialog from '$lib/components/features/member/follow-list-dialog.svelte';
 
     // 동적 플러그인 임포트: member-memo
     let memoPluginActive = $derived(pluginStore.isPluginActive('member-memo'));
@@ -128,6 +129,10 @@
     let isFollowing = $state(false);
     let followLoading = $state(false);
 
+    // 팔로워/팔로잉 다이얼로그
+    let followDialogOpen = $state(false);
+    let followDialogType = $state<'followers' | 'following'>('followers');
+
     // 차단 상태
     let isBlocking = $state(false);
     let isBlocked = $state(false);
@@ -184,12 +189,15 @@
     }
     let pluginMemos = $state<PluginMemo[]>([]);
 
-    const memoColorMap: Record<string, { bg: string; text: string }> = {
-        yellow: { bg: '#ffe69c', text: '#664d03' },
-        green: { bg: '#d1e7dd', text: '#0f5132' },
-        purple: { bg: '#e2d9f3', text: '#432874' },
-        red: { bg: '#f8d7da', text: '#dc3545' },
-        blue: { bg: '#cfe2ff', text: '#084298' }
+    const memoColorMap: Record<
+        string,
+        { bg: string; text: string; darkBg: string; darkText: string }
+    > = {
+        yellow: { bg: '#ffe69c', text: '#664d03', darkBg: '#664d03', darkText: '#ffe69c' },
+        green: { bg: '#d1e7dd', text: '#0f5132', darkBg: '#0f5132', darkText: '#d1e7dd' },
+        purple: { bg: '#e2d9f3', text: '#432874', darkBg: '#432874', darkText: '#e2d9f3' },
+        red: { bg: '#f8d7da', text: '#dc3545', darkBg: '#58151c', darkText: '#f8d7da' },
+        blue: { bg: '#cfe2ff', text: '#084298', darkBg: '#084298', darkText: '#cfe2ff' }
     };
 
     onMount(async () => {
@@ -271,10 +279,8 @@
         else if (tab === 'liked') loadLikedPosts();
     }
 
-    // 경험치 퍼센트
-    const expPercent = $derived(
-        p ? Math.round(((p.as_exp || 0) / Math.max(p.as_max || 1, 1)) * 100) : 0
-    );
+    // 경험치 퍼센트 (서버에서 계산된 값 사용)
+    const expPercent = $derived(p?.exp_progress ?? 0);
 
     // 통계 퍼센트 계산
     function pct(a: number, b: number): number {
@@ -478,7 +484,7 @@
                         </div>
                         <div
                             class="bg-muted h-3 overflow-hidden rounded-full"
-                            title="Next {(p.as_max - p.as_exp).toLocaleString()}"
+                            title="Next {(p.exp_to_next ?? 0).toLocaleString()}"
                         >
                             <div
                                 class="bg-primary h-full rounded-full transition-all"
@@ -494,12 +500,24 @@
 
                 <!-- 팔로워/팔로잉 + 액션 버튼 -->
                 <div class="mt-4 flex items-center gap-3">
-                    <span class="text-muted-foreground text-xs">
+                    <button
+                        class="text-muted-foreground hover:text-foreground cursor-pointer text-xs transition-colors"
+                        onclick={() => {
+                            followDialogType = 'followers';
+                            followDialogOpen = true;
+                        }}
+                    >
                         팔로워 <strong class="text-foreground">{p.follower_count}</strong>
-                    </span>
-                    <span class="text-muted-foreground text-xs">
+                    </button>
+                    <button
+                        class="text-muted-foreground hover:text-foreground cursor-pointer text-xs transition-colors"
+                        onclick={() => {
+                            followDialogType = 'following';
+                            followDialogOpen = true;
+                        }}
+                    >
                         팔로잉 <strong class="text-foreground">{p.following_count}</strong>
-                    </span>
+                    </button>
 
                     {#if authStore.isAuthenticated && !isOwnProfile}
                         <div class="ml-auto flex gap-1.5">
@@ -642,7 +660,7 @@
                                 <div class="bg-muted flex h-4 overflow-hidden rounded-full">
                                     {#if p.stats.total_post_count > 0}
                                         <div
-                                            class="flex items-center justify-center text-[10px] font-medium"
+                                            class="flex items-center justify-center bg-blue-200 text-[10px] font-medium text-blue-900 dark:bg-blue-800 dark:text-blue-100"
                                             style="width: {Math.max(
                                                 pct(
                                                     p.stats.total_post_count -
@@ -650,28 +668,27 @@
                                                     p.stats.total_post_count
                                                 ),
                                                 15
-                                            )}%; background: oklch(0.85 0.06 250);"
+                                            )}%;"
                                         >
                                             {(
                                                 p.stats.total_post_count - p.stats.delete_post_count
                                             ).toLocaleString()}
                                         </div>
                                         <div
-                                            class="flex items-center justify-center text-[10px] font-medium"
+                                            class="flex items-center justify-center bg-red-200 text-[10px] font-medium text-red-900 dark:bg-red-800 dark:text-red-100"
                                             style="width: {Math.max(
                                                 pct(
                                                     p.stats.delete_post_count,
                                                     p.stats.total_post_count
                                                 ),
                                                 15
-                                            )}%; background: oklch(0.88 0.08 15);"
+                                            )}%;"
                                         >
                                             {p.stats.delete_post_count.toLocaleString()}
                                         </div>
                                     {:else}
                                         <div
-                                            class="flex flex-1 items-center justify-center text-[10px]"
-                                            style="background: oklch(0.92 0.02 250);"
+                                            class="flex flex-1 items-center justify-center bg-blue-100 text-[10px] text-blue-800 dark:bg-blue-900/30 dark:text-blue-200"
                                         >
                                             0
                                         </div>
@@ -693,7 +710,7 @@
                                 <div class="bg-muted flex h-4 overflow-hidden rounded-full">
                                     {#if p.stats.total_comment_count > 0}
                                         <div
-                                            class="flex items-center justify-center text-[10px] font-medium"
+                                            class="flex items-center justify-center bg-blue-200 text-[10px] font-medium text-blue-900 dark:bg-blue-800 dark:text-blue-100"
                                             style="width: {Math.max(
                                                 pct(
                                                     p.stats.total_comment_count -
@@ -701,7 +718,7 @@
                                                     p.stats.total_comment_count
                                                 ),
                                                 15
-                                            )}%; background: oklch(0.85 0.06 250);"
+                                            )}%;"
                                         >
                                             {(
                                                 p.stats.total_comment_count -
@@ -709,21 +726,20 @@
                                             ).toLocaleString()}
                                         </div>
                                         <div
-                                            class="flex items-center justify-center text-[10px] font-medium"
+                                            class="flex items-center justify-center bg-red-200 text-[10px] font-medium text-red-900 dark:bg-red-800 dark:text-red-100"
                                             style="width: {Math.max(
                                                 pct(
                                                     p.stats.delete_comment_count,
                                                     p.stats.total_comment_count
                                                 ),
                                                 15
-                                            )}%; background: oklch(0.88 0.08 15);"
+                                            )}%;"
                                         >
                                             {p.stats.delete_comment_count.toLocaleString()}
                                         </div>
                                     {:else}
                                         <div
-                                            class="flex flex-1 items-center justify-center text-[10px]"
-                                            style="background: oklch(0.92 0.02 250);"
+                                            class="flex flex-1 items-center justify-center bg-blue-100 text-[10px] text-blue-800 dark:bg-blue-900/30 dark:text-blue-200"
                                         >
                                             0
                                         </div>
@@ -736,14 +752,12 @@
                                 <div class="mb-1 text-sm font-medium">관리자 삭제</div>
                                 <div class="bg-muted flex h-4 overflow-hidden rounded-full">
                                     <div
-                                        class="flex flex-1 items-center justify-center text-[10px] font-medium"
-                                        style="background: oklch(0.90 0.06 85);"
+                                        class="flex flex-1 items-center justify-center bg-yellow-200 text-[10px] font-medium text-yellow-900 dark:bg-yellow-800 dark:text-yellow-100"
                                     >
                                         게시글 {p.stats.delete_post_by_admin.toLocaleString()}
                                     </div>
                                     <div
-                                        class="flex flex-1 items-center justify-center text-[10px] font-medium"
-                                        style="background: oklch(0.88 0.06 210);"
+                                        class="flex flex-1 items-center justify-center bg-purple-200 text-[10px] font-medium text-purple-900 dark:bg-purple-800 dark:text-purple-100"
                                     >
                                         댓글 {p.stats.delete_comment_by_admin.toLocaleString()}
                                     </div>
@@ -758,14 +772,13 @@
                                         class="bg-muted flex h-4 flex-1 overflow-hidden rounded-full"
                                     >
                                         <div
-                                            class="flex items-center justify-center px-2 text-[10px] font-medium"
-                                            style="width: 40%; background: oklch(0.80 0.08 250);"
+                                            class="flex items-center justify-center bg-blue-300 px-2 text-[10px] font-medium text-blue-900 dark:bg-blue-700 dark:text-blue-100"
+                                            style="width: 40%;"
                                         >
                                             공감
                                         </div>
                                         <div
-                                            class="flex flex-1 items-center justify-center text-[10px] font-medium"
-                                            style="background: oklch(0.88 0.06 250);"
+                                            class="flex flex-1 items-center justify-center bg-blue-200 text-[10px] font-medium text-blue-900 dark:bg-blue-800 dark:text-blue-100"
                                         >
                                             {p.stats.total_rcmd_count.toLocaleString()}
                                         </div>
@@ -774,14 +787,13 @@
                                         class="bg-muted flex h-4 flex-1 overflow-hidden rounded-full"
                                     >
                                         <div
-                                            class="flex items-center justify-center px-2 text-[10px] font-medium"
-                                            style="width: 40%; background: oklch(0.80 0.10 15);"
+                                            class="flex items-center justify-center bg-red-300 px-2 text-[10px] font-medium text-red-900 dark:bg-red-700 dark:text-red-100"
+                                            style="width: 40%;"
                                         >
                                             신고
                                         </div>
                                         <div
-                                            class="flex flex-1 items-center justify-center text-[10px] font-medium"
-                                            style="background: oklch(0.88 0.08 15);"
+                                            class="flex flex-1 items-center justify-center bg-red-200 text-[10px] font-medium text-red-900 dark:bg-red-800 dark:text-red-100"
                                         >
                                             {p.stats.total_singo_count.toLocaleString()}
                                         </div>
@@ -923,12 +935,12 @@
                         {#each pluginMemos as memo}
                             {@const colors = memoColorMap[memo.color] || memoColorMap.yellow}
                             <div
-                                class="flex items-start gap-2 rounded-lg p-2.5"
-                                style="background-color: {colors.bg}20;"
+                                class="memo-color-card flex items-start gap-2 rounded-lg p-2.5"
+                                style="--memo-bg: {colors.bg}; --memo-bg-dark: {colors.darkBg};"
                             >
                                 <span
-                                    class="mt-0.5 inline-block h-3 w-3 shrink-0 rounded-full"
-                                    style="background-color: {colors.bg};"
+                                    class="memo-color-dot mt-0.5 inline-block h-3 w-3 shrink-0 rounded-full"
+                                    style="--memo-bg: {colors.bg}; --memo-bg-dark: {colors.darkBg};"
                                 ></span>
                                 <div class="min-w-0 flex-1">
                                     <p class="text-foreground text-sm">{memo.content}</p>
@@ -1007,3 +1019,29 @@
         </Card>
     {/if}
 </div>
+
+{#if p}
+    <FollowListDialog
+        bind:open={followDialogOpen}
+        memberId={p.mb_id}
+        type={followDialogType}
+        onClose={() => {
+            followDialogOpen = false;
+        }}
+    />
+{/if}
+
+<style>
+    .memo-color-card {
+        background-color: color-mix(in srgb, var(--memo-bg) 12%, transparent);
+    }
+    :global(.dark) .memo-color-card {
+        background-color: color-mix(in srgb, var(--memo-bg-dark) 25%, transparent);
+    }
+    .memo-color-dot {
+        background-color: var(--memo-bg);
+    }
+    :global(.dark) .memo-color-dot {
+        background-color: var(--memo-bg-dark);
+    }
+</style>
