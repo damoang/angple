@@ -52,6 +52,7 @@
     import EconomyShoppingBanner from '$lib/components/features/board/economy-shopping-banner.svelte';
     import Info from '@lucide/svelte/icons/info';
     import type { ViewLayoutProps } from '../types.js';
+    import ReportCharts from './report-charts.svelte';
 
     const FONT_SIZES: Record<ContentFontSize, string> = {
         small: '16px',
@@ -104,18 +105,41 @@
 
     let hasAffiliateLinks = $derived(postContent?.includes('data-affiliate') ?? false);
 
-    // extra_9에서 통계 데이터 파싱
+    // extra_9에서 통계 데이터 파싱 (PHP wr_9 JSON 키와 동일)
+    interface DailyStatEntry {
+        reports: number;
+        posts: number;
+        comments: number;
+    }
+
+    interface WeeklyStatEntry {
+        posts: number;
+        reports: number;
+        comments: number;
+        processed: number;
+    }
+
+    interface BoardStatEntry {
+        name: string;
+        count: number;
+    }
+
     interface ReportStats {
         date_from?: string;
         date_to?: string;
-        total_posts?: number;
-        total_comments?: number;
-        report_processed?: number;
-        sanctions?: number;
-        reported_posts?: number;
-        appeals?: number;
-        reported_comments?: number;
-        reporters?: number;
+        period_days?: number;
+        total_cases?: number;
+        total_month_cases?: number;
+        total_reports?: number;
+        completed_reports?: number;
+        report_count?: number;
+        claim_reports?: number;
+        report_month?: number;
+        reporter_count?: number;
+        report_types?: Record<string, number>;
+        daily_stats?: Record<string, DailyStatEntry>;
+        weekly_stats?: Record<string, WeeklyStatEntry>;
+        board_stats?: BoardStatEntry[];
     }
 
     const stats = $derived.by((): ReportStats => {
@@ -145,15 +169,15 @@
     // 주요 지표 카드 정의
     const primaryMetrics = $derived([
         {
-            label: '전체 글 수',
-            value: stats.total_posts ?? 0,
+            label: '전체 게시글',
+            value: stats.total_cases ?? 0,
             icon: FileText,
             color: 'text-blue-600 dark:text-blue-400',
             bg: 'bg-blue-50 dark:bg-blue-950/30'
         },
         {
-            label: '전체 댓글 수',
-            value: stats.total_comments ?? 0,
+            label: '전체 댓글',
+            value: stats.total_month_cases ?? 0,
             icon: MessageCircle,
             color: 'text-green-600 dark:text-green-400',
             bg: 'bg-green-50 dark:bg-green-950/30'
@@ -163,48 +187,56 @@
     // 보조 지표 카드 정의
     const secondaryMetrics = $derived([
         {
-            label: '신고처리',
-            value: stats.report_processed ?? 0,
+            label: '총 신고 처리',
+            value: stats.total_reports ?? 0,
             icon: Shield,
             color: 'text-purple-600 dark:text-purple-400',
             bg: 'bg-purple-50 dark:bg-purple-950/30'
         },
         {
-            label: '제재',
-            value: stats.sanctions ?? 0,
+            label: '이용제한',
+            value: stats.completed_reports ?? 0,
             icon: Gavel,
             color: 'text-red-600 dark:text-red-400',
             bg: 'bg-red-50 dark:bg-red-950/30'
         },
         {
-            label: '신고글',
-            value: stats.reported_posts ?? 0,
+            label: '신고된 게시글',
+            value: stats.report_count ?? 0,
             icon: AlertTriangle,
             color: 'text-orange-600 dark:text-orange-400',
             bg: 'bg-orange-50 dark:bg-orange-950/30'
         },
         {
-            label: '이의제기',
-            value: stats.appeals ?? 0,
+            label: '소명건수',
+            value: stats.claim_reports ?? 0,
             icon: Scale,
             color: 'text-teal-600 dark:text-teal-400',
             bg: 'bg-teal-50 dark:bg-teal-950/30'
         },
         {
-            label: '신고댓글',
-            value: stats.reported_comments ?? 0,
+            label: '신고된 댓글',
+            value: stats.report_month ?? 0,
             icon: MessageCircle,
             color: 'text-amber-600 dark:text-amber-400',
             bg: 'bg-amber-50 dark:bg-amber-950/30'
         },
         {
             label: '신고자 수',
-            value: stats.reporters ?? 0,
+            value: stats.reporter_count ?? 0,
             icon: Users,
             color: 'text-indigo-600 dark:text-indigo-400',
             bg: 'bg-indigo-50 dark:bg-indigo-950/30'
         }
     ]);
+
+    // 차트 데이터 유무
+    const hasChartData = $derived(
+        (stats.daily_stats && Object.keys(stats.daily_stats).length > 0) ||
+            (stats.weekly_stats && Object.keys(stats.weekly_stats).length > 0) ||
+            (stats.report_types && Object.keys(stats.report_types).length > 0) ||
+            (stats.board_stats && stats.board_stats.length > 0)
+    );
 </script>
 
 <!-- 운영 리포트 카드 -->
@@ -364,6 +396,17 @@
                     </div>
                 {/each}
             </div>
+
+            <!-- 차트 영역 -->
+            {#if hasChartData}
+                <ReportCharts
+                    dailyStats={stats.daily_stats}
+                    weeklyStats={stats.weekly_stats}
+                    reportTypes={stats.report_types}
+                    boardStats={stats.board_stats}
+                    periodDays={stats.period_days ?? 1}
+                />
+            {/if}
         {/if}
 
         <!-- GAM 광고 -->

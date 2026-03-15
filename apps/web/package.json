@@ -97,6 +97,7 @@
         "@types/turndown": "^5.0.6",
         "adm-zip": "^0.5.16",
         "bcryptjs": "^3.0.3",
+        "chart.js": "^4.5.1",
         "dompurify": "^3.3.2",
         "highlight.js": "^11.11.1",
         "ioredis": "^5.10.0",
