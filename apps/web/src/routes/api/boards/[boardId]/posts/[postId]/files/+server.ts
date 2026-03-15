@@ -67,13 +67,10 @@ export const GET: RequestHandler = async ({ params }) => {
                 size: row.bf_filesize || 0
             }));
 
-        // 일반 첨부파일 (이미지/영상 제외, bf_type=0 첨부만)
+        // 일반 첨부파일 (이미지/영상 제외)
         const files = rows
             .filter(
-                (row) =>
-                    !IMAGE_EXTENSIONS.test(row.bf_file) &&
-                    !VIDEO_EXTENSIONS.test(row.bf_file) &&
-                    row.bf_type === 0
+                (row) => !IMAGE_EXTENSIONS.test(row.bf_file) && !VIDEO_EXTENSIONS.test(row.bf_file)
             )
             .map((row) => ({
                 url: `${S3_BASE}/${safeBoardId}/${row.bf_file}`,

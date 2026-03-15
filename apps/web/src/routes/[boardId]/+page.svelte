@@ -644,7 +644,9 @@
                 {@const posts = result.posts}
                 {@const notices = result.notices || []}
                 {@const pagination = result.pagination}
-                {@const filteredPosts = posts}
+                {@const filteredPosts = posts.filter(
+                    (p) => !uiSettingsStore.isMuted(p.title || '')
+                )}
                 {@const importantNotices = notices.filter((n) => n.notice_type === 'important')}
                 {@const normalNotices = notices.filter((n) => n.notice_type !== 'important')}
                 {@const hasNotices = notices.length > 0}
