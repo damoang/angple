@@ -351,7 +351,7 @@
 
 <!-- 쪽지 보내기 다이얼로그 -->
 <Dialog.Root bind:open={showSendDialog}>
-    <Dialog.Content class="flex max-h-[90vh] flex-col sm:max-w-md">
+    <Dialog.Content class="flex max-h-[85vh] flex-col sm:max-w-md">
         <Dialog.Header>
             <Dialog.Title class="flex items-center gap-2">
                 <PenSquare class="h-5 w-5" />
@@ -389,7 +389,7 @@
             {/if}
         </div>
 
-        <Dialog.Footer>
+        <Dialog.Footer class="shrink-0">
             <Button variant="outline" onclick={() => (showSendDialog = false)} disabled={isSending}>
                 취소
             </Button>
