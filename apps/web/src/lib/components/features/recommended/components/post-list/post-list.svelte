@@ -4,21 +4,24 @@
 
     let { data }: { data: RecommendedDataWithAI } = $props();
 
-    // $derived 최적화: 섹션별로 포스트에 고유 키 부여
-    const allPosts = $derived([
-        ...(data.sections.community.posts ?? []).map((post, idx) => ({
-            ...post,
-            uniqueKey: `community-${idx}-${post.id}`
-        })),
-        ...(data.sections.group.posts ?? []).map((post, idx) => ({
-            ...post,
-            uniqueKey: `group-${idx}-${post.id}`
-        })),
-        ...(data.sections.info.posts ?? []).map((post, idx) => ({
-            ...post,
-            uniqueKey: `info-${idx}-${post.id}`
-        }))
-    ] as (RecommendedPost & { uniqueKey: string })[]);
+    // $derived 최적화: 섹션별로 포스트에 고유 키 부여 + 중복 제거
+    const allPosts = $derived.by(() => {
+        const seen = new Set<number>();
+        const result: (RecommendedPost & { uniqueKey: string })[] = [];
+        const sections = [
+            { key: 'community', posts: data.sections.community.posts },
+            { key: 'group', posts: data.sections.group.posts },
+            { key: 'info', posts: data.sections.info.posts }
+        ];
+        for (const section of sections) {
+            for (const post of section.posts ?? []) {
+                if (seen.has(post.id)) continue;
+                seen.add(post.id);
+                result.push({ ...post, uniqueKey: `${section.key}-${post.id}` });
+            }
+        }
+        return result;
+    });
 </script>
 
 {#if allPosts.length > 0}

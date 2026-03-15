@@ -727,15 +727,28 @@
 
         <!-- ========== 단축키 탭 ========== -->
         {#if activeTab === 'shortcut'}
-            <!-- 숫자 단축키 표시 -->
+            <!-- 글로벌 단축키 on/off -->
             <Card>
                 <CardHeader>
                     <CardTitle class="flex items-center gap-2">
                         <Keyboard class="h-5 w-5" />
-                        단축키 표시
+                        키보드 단축키
                     </CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent class="space-y-4">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <Label>글로벌 단축키 사용</Label>
+                            <p class="text-muted-foreground text-xs">
+                                글 목록에서 j/k(이동), f(새로고침), 숫자(즐겨찾기) 등 키보드
+                                단축키를 사용합니다
+                            </p>
+                        </div>
+                        <Switch
+                            checked={uiSettingsStore.enableKeyboardShortcuts}
+                            onCheckedChange={(v) => uiSettingsStore.setEnableKeyboardShortcuts(v)}
+                        />
+                    </div>
                     <div class="flex items-center justify-between">
                         <div>
                             <Label>사이드바 숫자 배지 표시</Label>

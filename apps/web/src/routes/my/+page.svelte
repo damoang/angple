@@ -92,12 +92,10 @@
                 </div>
                 <div>
                     <h1 class="text-foreground text-2xl font-bold">{authStore.user.mb_name}</h1>
+                    <p class="text-secondary-foreground">{getGradeName(authStore.user.mb_level)}</p>
                     <!-- 경험치 게이지: 스트리밍 데이터 도착 후 표시 -->
                     {#await data.streamed?.tabData then result}
                         {#if result.expSummary}
-                            <p class="text-secondary-foreground">
-                                Lv.{result.expSummary.current_level}
-                            </p>
                             <div class="mt-1 w-48">
                                 <div
                                     class="text-muted-foreground mb-0.5 flex items-center justify-between text-xs"
