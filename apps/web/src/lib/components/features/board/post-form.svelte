@@ -303,6 +303,9 @@
 
         // 첨부 이미지를 content 끝에 <img> 태그로 삽입 (Go 백엔드 호환)
         // 단, 에디터 드래그/드롭으로 이미 본문에 포함된 이미지는 제외
+        // 제목에서 @멘션 제거 (멘션은 본문/댓글에서만 허용)
+        const sanitizedTitle = title.trim().replace(/@/g, '');
+
         let finalContent = await stripAdminMentions(content.trim());
         const imageFiles = uploadedFiles.filter(
             (f) => f.mime_type.startsWith('image/') && !finalContent.includes(f.url)
@@ -320,7 +323,7 @@
         const data: CreatePostRequest | UpdatePostRequest =
             mode === 'create'
                 ? {
-                      title: title.trim(),
+                      title: sanitizedTitle,
                       content: finalContent,
                       category: category || undefined,
                       author: '', // 서버에서 JWT로 설정됨
@@ -330,7 +333,7 @@
                       link2: link2.trim() || undefined
                   }
                 : {
-                      title: title.trim(),
+                      title: sanitizedTitle,
                       content: finalContent,
                       category: category || undefined,
                       tags: tags.length > 0 ? tags : undefined,
