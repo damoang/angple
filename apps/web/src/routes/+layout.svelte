@@ -24,6 +24,7 @@
     import { initFromSSR as initAppData } from '$lib/stores/app-init.svelte';
     import { initFromData as initCelebrationFromData } from '$lib/stores/celebration.svelte';
     import { blockedUsersStore } from '$lib/stores/blocked-users.svelte';
+    import { uiSettingsStore } from '$lib/stores/ui-settings.svelte';
     import { initGA4, trackPageView } from '$lib/services/ga4';
 
     // 지연 로딩 모듈 참조
@@ -335,7 +336,13 @@
     });
 </script>
 
-<svelte:window onkeydown={(e) => keyboardShortcutsMod?.keyboardShortcuts.handleKeydown(e)} />
+<svelte:window
+    onkeydown={(e) => {
+        if (uiSettingsStore.enableKeyboardShortcuts) {
+            keyboardShortcutsMod?.keyboardShortcuts.handleKeydown(e);
+        }
+    }}
+/>
 
 <svelte:head>
     <meta name="viewport" content="width=device-width, initial-scale=1" />

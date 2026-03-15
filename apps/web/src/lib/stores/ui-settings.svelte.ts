@@ -30,6 +30,7 @@ interface UiSettings {
     muteKeywords: string[];
     showNewComments: boolean;
     // 단축키
+    enableKeyboardShortcuts: boolean;
     showShortcutBadge: boolean;
     showShortcutButtons: boolean;
     shortcutButtonSize: ShortcutButtonSize;
@@ -59,6 +60,7 @@ const DEFAULTS: UiSettings = {
     hidePostList: false,
     muteKeywords: [],
     showNewComments: true,
+    enableKeyboardShortcuts: true,
     showShortcutBadge: true,
     showShortcutButtons: false,
     shortcutButtonSize: 'medium',
@@ -243,6 +245,13 @@ function createUiSettingsStore() {
             save();
         },
         // 단축키
+        get enableKeyboardShortcuts() {
+            return settings.enableKeyboardShortcuts;
+        },
+        setEnableKeyboardShortcuts(v: boolean) {
+            settings.enableKeyboardShortcuts = v;
+            save();
+        },
         get showShortcutBadge() {
             return settings.showShortcutBadge;
         },
