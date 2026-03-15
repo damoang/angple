@@ -48,7 +48,6 @@
     import { AvatarStack } from '$lib/components/ui/avatar-stack/index.js';
     import { widgetLayoutStore } from '$lib/stores/widget-layout.svelte';
     import AdSlot from '$lib/components/ui/ad-slot/ad-slot.svelte';
-    import AdminViewLayoutSwitcher from '$lib/components/features/board/admin-view-layout-switcher.svelte';
     import EconomyShoppingBanner from '$lib/components/features/board/economy-shopping-banner.svelte';
     import Info from '@lucide/svelte/icons/info';
     import type { ViewLayoutProps } from '../types.js';
@@ -242,13 +241,6 @@
 <!-- 운영 리포트 카드 -->
 <Card class="bg-background mb-6">
     <CardHeader class="space-y-3">
-        <!-- 관리자 본문 레이아웃 스위처 -->
-        <div class="flex items-center justify-end">
-            <AdminViewLayoutSwitcher
-                {boardId}
-                currentLayout={board?.display_settings?.view_layout || 'report'}
-            />
-        </div>
         <div>
             {#if post.category}
                 <div class="mb-3 flex flex-wrap gap-1.5">

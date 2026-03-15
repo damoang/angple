@@ -292,7 +292,7 @@
                     />
 
                     <div class="ml-auto flex items-center gap-2">
-                        {#if authStore.user?.mb_level != null && authStore.user.mb_level >= 10}
+                        {#if (authStore.user?.mb_level ?? 0) >= 10}
                             <label
                                 class="text-muted-foreground flex cursor-pointer items-center gap-2 text-sm"
                             >

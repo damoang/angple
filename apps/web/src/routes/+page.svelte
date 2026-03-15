@@ -1,7 +1,6 @@
 <script lang="ts">
     import { page } from '$app/state';
     import { WidgetRenderer } from '$lib/components/widget-renderer';
-    import { CustomizerTrigger } from '$lib/components/features/admin-customizer';
     import { indexWidgetsStore } from '$lib/stores/index-widgets.svelte';
     import { widgetLayoutStore } from '$lib/stores/widget-layout.svelte';
     import { untrack } from 'svelte';
@@ -75,6 +74,3 @@
             : undefined
     }}
 />
-
-<!-- 편집 모드 토글 버튼 (서버 검증된 관리자만 표시) -->
-<CustomizerTrigger serverIsAdmin={data.isAdmin ?? false} />

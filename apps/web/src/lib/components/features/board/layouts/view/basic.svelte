@@ -38,7 +38,6 @@
     import { AvatarStack } from '$lib/components/ui/avatar-stack/index.js';
     import { widgetLayoutStore } from '$lib/stores/widget-layout.svelte';
     import AdSlot from '$lib/components/ui/ad-slot/ad-slot.svelte';
-    import AdminViewLayoutSwitcher from '$lib/components/features/board/admin-view-layout-switcher.svelte';
     import EconomyShoppingBanner from '$lib/components/features/board/economy-shopping-banner.svelte';
     import Info from '@lucide/svelte/icons/info';
     import ShareButton from '$lib/components/post/share-button.svelte';
@@ -130,13 +129,6 @@
 <!-- 게시글 카드 -->
 <Card class="bg-background mb-6 rounded-xl pb-5 pt-0">
     <CardHeader class="space-y-3">
-        <!-- 관리자 본문 레이아웃 스위처 -->
-        <div class="flex items-center justify-end">
-            <AdminViewLayoutSwitcher
-                {boardId}
-                currentLayout={board?.display_settings?.view_layout || 'basic'}
-            />
-        </div>
         <div>
             {#if post.category}
                 <div class="mb-3 flex flex-wrap gap-1.5">

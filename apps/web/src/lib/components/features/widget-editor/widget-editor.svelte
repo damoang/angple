@@ -11,7 +11,6 @@
     import { GroupTabs } from '$lib/components/features/group';
     import { AdSlot } from '$lib/components/ui/ad-slot';
     import WidgetWrapper from './widget-wrapper.svelte';
-    import EditModeToggle from './edit-mode-toggle.svelte';
 
     import type { NewsPost, EconomyPost, GalleryPost, GroupTabsData } from '$lib/api/types';
 
@@ -125,6 +124,3 @@
         {/each}
     {/if}
 </div>
-
-<!-- 편집 모드 토글 버튼 -->
-<EditModeToggle />

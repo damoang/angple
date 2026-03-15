@@ -33,9 +33,7 @@
     import Tag from '@lucide/svelte/icons/tag';
     import X from '@lucide/svelte/icons/x';
     import SearchForm from '$lib/components/features/board/search-form.svelte';
-    import AdminLayoutSwitcher from '$lib/components/features/board/admin-layout-switcher.svelte';
     import BulkActionsToolbar from '$lib/components/features/board/bulk-actions-toolbar.svelte';
-    import CheckSquare from '@lucide/svelte/icons/check-square';
     import { Checkbox } from '$lib/components/ui/checkbox/index.js';
     import AdSlot from '$lib/components/ui/ad-slot/ad-slot.svelte';
     import PluginSlot from '$lib/components/plugin/plugin-slot.svelte';
@@ -253,17 +251,9 @@
         goto(`/${boardId}/write`);
     }
 
-    // 관리자 여부 (레벨 10 이상)
-    const isAdmin = $derived((authStore.user?.mb_level ?? 0) >= 10);
-
-    // 일괄 선택 모드 (관리자 전용)
+    // 일괄 선택 모드
     let bulkSelectMode = $state(false);
     let selectedPostIds = $state<number[]>([]);
-
-    function toggleBulkSelect(): void {
-        bulkSelectMode = !bulkSelectMode;
-        if (!bulkSelectMode) selectedPostIds = [];
-    }
 
     function togglePostSelection(postId: number): void {
         if (selectedPostIds.includes(postId)) {
@@ -446,18 +436,6 @@
                     </h1>
                     <BoardFavoriteButton {boardId} {boardTitle} />
                     <BoardSubscribeButton {boardId} {boardTitle} />
-                    <AdminLayoutSwitcher {boardId} currentLayout={listLayoutId} />
-                    {#if isAdmin}
-                        <Button
-                            variant={bulkSelectMode ? 'default' : 'outline'}
-                            size="sm"
-                            onclick={toggleBulkSelect}
-                            class="h-8"
-                        >
-                            <CheckSquare class="mr-1 h-4 w-4" />
-                            선택
-                        </Button>
-                    {/if}
                 </div>
 
                 <div class="flex items-center gap-2">
