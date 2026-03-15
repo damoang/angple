@@ -990,16 +990,7 @@ class ApiClient {
         const response = await this.request<LikersResponse>(
             `/boards/${boardId}/posts/${postId}/likers?page=${page}&limit=${limit}`
         );
-        const data = response.data;
-        // Go 백엔드 mb_image_url → 프론트 mb_image 키 매핑
-        if (data.likers) {
-            for (const l of data.likers) {
-                if (!l.mb_image && (l as Record<string, unknown>).mb_image_url) {
-                    l.mb_image = (l as Record<string, unknown>).mb_image_url as string;
-                }
-            }
-        }
-        return data;
+        return response.data;
     }
 
     /**
