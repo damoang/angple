@@ -8,6 +8,7 @@ import type { RequestHandler } from './$types';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { getAuthUser, verifyToken } from '$lib/server/auth/index.js';
 import { env } from '$env/dynamic/private';
+import crypto from 'node:crypto';
 
 const S3_REGION = env.S3_REGION || 'ap-northeast-2';
 const S3_BUCKET = env.S3_BUCKET || 'damoang-data-v1';
@@ -66,8 +67,16 @@ function generateKey(filename: string): string {
     const now = new Date();
     const yy = String(now.getFullYear()).slice(2);
     const mm = String(now.getMonth() + 1).padStart(2, '0');
-    const safe = sanitize(filename);
-    return `data/editor/${yy}${mm}/${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}_${safe}`;
+    const ext = getExt(filename);
+    // 7자리 해시 (PHP S3Uploader와 동일 방식)
+    const hash = crypto.createHash('md5').update(Date.now().toString() + Math.random().toString()).digest('hex').slice(0, 7);
+    // raw/ 경로로 업로드 → Lambda S3 이벤트 트리거 → data/ 경로로 변환 + 썸네일 생성
+    return `raw/editor/${yy}${mm}/${hash}${ext}`;
+}
+
+/** raw/editor/... → data/editor/... 경로 변환 (Lambda 처리 후 최종 URL) */
+function rawKeyToFinalKey(rawKey: string): string {
+    return rawKey.replace(/^raw\//, 'data/');
 }
 
 export const POST: RequestHandler = async ({ request, cookies }) => {
@@ -115,7 +124,8 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
         error(400, `파일 크기가 너무 큽니다 (최대 ${MAX_SIZE / 1024 / 1024}MB)`);
     }
 
-    const key = generateKey(file.name);
+    const rawKey = generateKey(file.name);
+    const finalKey = rawKeyToFinalKey(rawKey);
     const contentType = file.type || 'application/octet-stream';
 
     try {
@@ -124,20 +134,21 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
         await s3.send(
             new PutObjectCommand({
                 Bucket: S3_BUCKET,
-                Key: key,
+                Key: rawKey,
                 Body: buffer,
                 ContentType: contentType,
                 CacheControl: 'public, max-age=31536000'
             })
         );
 
-        const cdnUrl = `${CDN_BASE}/${key}`;
+        // Lambda가 raw/ → data/ 변환 후 최종 URL
+        const cdnUrl = `${CDN_BASE}/${finalKey}`;
 
         return json({
             success: true,
             data: {
-                key,
-                url: `https://${S3_BUCKET}.s3.${S3_REGION}.amazonaws.com/${key}`,
+                key: finalKey,
+                url: `https://${S3_BUCKET}.s3.${S3_REGION}.amazonaws.com/${finalKey}`,
                 cdn_url: cdnUrl,
                 filename: file.name,
                 content_type: contentType,
