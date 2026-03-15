@@ -19,7 +19,7 @@
     import type { PageData } from './$types.js';
     import Pencil from '@lucide/svelte/icons/pencil';
     import Lock from '@lucide/svelte/icons/lock';
-    import Pin from '@lucide/svelte/icons/pin';
+
     import RefreshCw from '@lucide/svelte/icons/refresh-cw';
     import { authStore } from '$lib/stores/auth.svelte.js';
     import {
@@ -697,52 +697,17 @@
             authStore.user?.mb_name === data.post.author
     );
 
-    // 관리자 여부 (레벨 10 이상)
-    const isAdmin = $derived((authStore.user?.mb_level ?? 0) >= 10);
-
     // 직접홍보 게시판 만료 여부
-    const promotionExpired = $derived(data.promotionExpired === true && !isAuthor && !isAdmin);
+    const promotionExpired = $derived(data.promotionExpired === true && !isAuthor);
 
-    // 비밀글 접근 권한 (작성자 또는 관리자만 열람 가능, 홍보 만료 글도 차단)
-    const canViewSecret = $derived(
-        (!data.post.is_secret || isAuthor || isAdmin) && !promotionExpired
-    );
+    // 비밀글 접근 권한 (작성자만 열람 가능, 홍보 만료 글도 차단)
+    const canViewSecret = $derived((!data.post.is_secret || isAuthor) && !promotionExpired);
 
     // 댓글 레이아웃 (관리자 변경 시 즉시 반영용)
     let commentLayout = $state(data.board?.display_settings?.comment_layout || 'flat');
     $effect(() => {
         commentLayout = data.board?.display_settings?.comment_layout || 'flat';
     });
-
-    // 공지 상태
-    let noticeType = $state<'normal' | 'important' | null>(null);
-    $effect(() => {
-        noticeType = data.post.notice_type ?? (data.post.is_notice ? 'important' : null);
-    });
-    let isTogglingNotice = $state(false);
-
-    async function toggleNotice(type: 'normal' | 'important' | null): Promise<void> {
-        isTogglingNotice = true;
-        try {
-            const res = await fetch(`/api/boards/${boardId}/posts/${data.post.id}/notice`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ notice_type: type })
-            });
-            if (!res.ok) {
-                const err = await res.json().catch(() => null);
-                throw new Error(err?.error || '공지 설정에 실패했습니다.');
-            }
-            noticeType = type;
-            // 보드 캐시 무효화 → 목록 페이지에서 공지 변경 즉시 반영
-            await fetch(`/api/boards/${boardId}/invalidate-cache`, { method: 'POST' });
-        } catch (err) {
-            console.error('Failed to toggle notice:', err);
-            alert(err instanceof Error ? err.message : '공지 설정에 실패했습니다.');
-        } finally {
-            isTogglingNotice = false;
-        }
-    }
 
     // 게시글 삭제
     async function handleDelete(): Promise<void> {
@@ -782,7 +747,7 @@
         }
     }
 
-    // 삭제된 게시글 복구 (관리자)
+    // 삭제된 게시글 복구 (관리자 전용 — /admin에서만 접근)
     async function handleRestorePost(): Promise<void> {
         try {
             await apiClient.restorePost(boardId, String(data.post.id));
@@ -1183,36 +1148,13 @@
                     initialScrapped={isScrapped}
                 />
             {/if}
-            {#if isAdmin}
-                {#if noticeType}
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onclick={() => toggleNotice(null)}
-                        disabled={isTogglingNotice}
-                    >
-                        <Pin class="mr-1 h-4 w-4" />
-                        공지 해제
-                    </Button>
-                {:else}
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onclick={() => toggleNotice('important')}
-                        disabled={isTogglingNotice}
-                    >
-                        <Pin class="mr-1 h-4 w-4" />
-                        공지 고정
-                    </Button>
-                {/if}
-            {/if}
-            {#if isAuthor || isAdmin}
+            {#if isAuthor}
                 <Button variant="outline" size="sm" onclick={goToEdit}>
                     <Pencil class="mr-1 h-4 w-4" />
                     수정
                 </Button>
             {/if}
-            {#if isAuthor || isAdmin}
+            {#if isAuthor}
                 <DeleteConfirmDialog
                     title="게시글 삭제"
                     description="이 게시글을 삭제하시겠습니까? 댓글은 유지됩니다."
@@ -1253,12 +1195,7 @@
         <!-- 삭제된 게시물 배너 -->
         {#if data.post.deleted_at}
             <div class="mb-4">
-                <DeletedPostBanner
-                    postId={data.post.id}
-                    deletedAt={data.post.deleted_at}
-                    {isAdmin}
-                    onRestore={handleRestorePost}
-                />
+                <DeletedPostBanner postId={data.post.id} deletedAt={data.post.deleted_at} />
             </div>
         {/if}
 
@@ -1269,7 +1206,7 @@
                 board={data.board}
                 {boardId}
                 {isAuthor}
-                {isAdmin}
+                isAdmin={false}
                 {canViewSecret}
                 {promotionExpired}
                 {likeCount}
@@ -1314,7 +1251,7 @@
         {/if}
 
         <!-- 중고게시판 상태 변경 (작성자/관리자만) -->
-        {#if isUsedMarket && (isAuthor || isAdmin)}
+        {#if isUsedMarket && isAuthor}
             <div class="mb-6 flex items-center gap-3 rounded-lg border p-4">
                 <span class="text-[15px] font-medium">판매 상태:</span>
                 <div class="flex gap-2">

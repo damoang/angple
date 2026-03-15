@@ -16,7 +16,7 @@ import { fetchReactionsByParentId } from '$lib/server/reactions.js';
 import { fetchMemberLevels } from '$lib/server/member-levels.js';
 import { fetchMemberImages } from '$lib/server/member-images.js';
 import { fetchCommentLikeStatuses } from '$lib/server/comment-likes.js';
-import { fetchPostReportCount } from '$lib/server/report-count.js';
+
 import { fetchPostLikeStatus } from '$lib/server/post-like-status.js';
 import { fetchTruthroomPostId, fetchTruthroomCommentMap } from '$lib/server/truthroom.js';
 
@@ -80,12 +80,9 @@ export const load: PageServerLoad = async ({
             throw error(404, '게시글을 찾을 수 없습니다.');
         }
 
-        // 삭제된 게시글: 관리자는 본문+리비전 유지, 일반 유저는 본문 숨김
+        // 삭제된 게시글: 본문 숨김 (관리 기능은 /admin에서)
         if (post.deleted_at) {
-            const isAdmin = (locals.user?.level ?? 0) >= 10;
-            if (!isAdmin) {
-                post.content = '';
-            }
+            post.content = '';
         }
 
         let board = null;
@@ -369,17 +366,8 @@ export const load: PageServerLoad = async ({
             ] = await Promise.allSettled([
                 // 직접홍보 사잇광고 (ads 서버 직접 호출 + 캐시)
                 fetchPromotionPosts(),
-                // 리비전 히스토리 (관리자 level ≥ 10일 때만)
-                (locals.user?.level ?? 0) >= 10
-                    ? bFetch(`/api/v1/boards/${boardId}/posts/${postId}/revisions`, {
-                          headers,
-                          timeout: 3_000
-                      }).then(async (res) => {
-                          if (!res.ok) return [];
-                          const json = await res.json();
-                          return json.data || [];
-                      })
-                    : Promise.resolve([]),
+                // 리비전 히스토리 (관리 기능은 /admin에서)
+                Promise.resolve([]),
                 // 리액션 일괄 조회 (게시글 + 모든 댓글, DB 직접 호출 — CDN 요청 제거)
                 fetchReactionsByParentId(
                     `document:${boardId}:${postId}`,
@@ -409,10 +397,8 @@ export const load: PageServerLoad = async ({
                 locals.user?.id
                     ? isScraped(locals.user.id, boardId, postId).catch(() => false)
                     : Promise.resolve(false),
-                // 게시글 신고 횟수 (관리자만, PK 단건 조회)
-                (locals.user?.level ?? 0) >= 10
-                    ? fetchPostReportCount(boardId, Number(postId)).catch(() => null)
-                    : Promise.resolve(null),
+                // 게시글 신고 횟수 (관리 기능은 /admin에서)
+                Promise.resolve(null),
                 // 게시글 추천/비추천 상태 (로그인 시만, DB 직접 조회)
                 locals.user?.id
                     ? fetchPostLikeStatus(boardId, Number(postId), locals.user.id).catch(() => ({
