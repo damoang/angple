@@ -112,12 +112,8 @@
         try {
             localStorage.setItem('themeMode', themeMode);
         } catch {}
-        if (themeMode === 'light') {
-            document.cookie = 'angple_theme_mode=;path=/;max-age=0;SameSite=Lax';
-        } else {
-            document.cookie =
-                'angple_theme_mode=' + themeMode + ';path=/;max-age=31536000;SameSite=Lax';
-        }
+        document.cookie =
+            'angple_theme_mode=' + themeMode + ';path=/;max-age=31536000;SameSite=Lax';
     }
 
     // 컴포넌트 마운트 시 스크롤 이벤트 등록 + 테마 복원

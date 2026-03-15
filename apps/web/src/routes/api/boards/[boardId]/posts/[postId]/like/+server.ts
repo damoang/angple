@@ -249,12 +249,16 @@ export const POST: RequestHandler = async ({ params, request, cookies, getClient
                 const userNick = user.mb_nick || user.mb_name || user.mb_id;
                 const postSubject = writeRows[0].wr_subject || '';
 
-                // 글 작성자의 알림 임계값 조회
+                // 글 작성자의 알림 설정 조회
                 const [prefRows] = await pool.query<RowDataPacket[]>(
-                    `SELECT like_threshold FROM g5_noti_preference WHERE mb_id = ?`,
+                    `SELECT noti_like, like_threshold FROM g5_noti_preference WHERE mb_id = ?`,
                     [postAuthorId]
                 );
+                const notiLike = prefRows[0]?.noti_like ?? 1;
                 const likeThreshold = prefRows[0]?.like_threshold ?? 1;
+
+                // 좋아요 알림이 꺼져있으면 알림 생성 안 함
+                if (!notiLike) return;
 
                 // 현재 추천 수 조회
                 const [goodCountRows] = await pool.query<RowDataPacket[]>(

@@ -159,12 +159,7 @@
             try {
                 localStorage.setItem('themeMode', mode);
             } catch {}
-            if (mode === 'light') {
-                document.cookie = 'angple_theme_mode=;path=/;max-age=0;SameSite=Lax';
-            } else {
-                document.cookie =
-                    'angple_theme_mode=' + mode + ';path=/;max-age=31536000;SameSite=Lax';
-            }
+            document.cookie = 'angple_theme_mode=' + mode + ';path=/;max-age=31536000;SameSite=Lax';
         }
     }
 

@@ -66,11 +66,32 @@ export const GET: RequestHandler = async ({ params, url, locals }) => {
 
     const tableName = `g5_write_${safeBoardId}`;
 
+    // 차단 회원 목록 조회
+    let blockedMbIds: string[] = [];
+    if (locals.user?.id) {
+        try {
+            const [blockRows] = await pool.query<RowDataPacket[]>(
+                `SELECT blocked_mb_id FROM g5_member_block WHERE mb_id = ?`,
+                [locals.user.id]
+            );
+            blockedMbIds = blockRows.map((r) => r.blocked_mb_id);
+        } catch {
+            // 차단 테이블 없어도 계속 진행
+        }
+    }
+
     try {
+        // 차단 필터 조건
+        const blockFilter =
+            blockedMbIds.length > 0
+                ? ` AND mb_id NOT IN (${blockedMbIds.map(() => '?').join(',')})`
+                : '';
+        const blockParams = blockedMbIds.length > 0 ? blockedMbIds : [];
+
         // 전체 댓글 수
         const [countRows] = await pool.query<CountRow[]>(
-            `SELECT COUNT(*) AS total FROM ?? WHERE wr_parent = ? AND wr_is_comment = 1`,
-            [tableName, safePostId]
+            `SELECT COUNT(*) AS total FROM ?? WHERE wr_parent = ? AND wr_is_comment = 1${blockFilter}`,
+            [tableName, safePostId, ...blockParams]
         );
         const total = countRows[0]?.total ?? 0;
         const totalPages = Math.ceil(total / limit);
@@ -82,10 +103,10 @@ export const GET: RequestHandler = async ({ params, url, locals }) => {
 			        wr_good, wr_nogood, mb_id, wr_name, wr_ip, wr_datetime,
 			        wr_deleted_at, wr_deleted_by, wr_7
 			 FROM ??
-			 WHERE wr_parent = ? AND wr_is_comment = 1
+			 WHERE wr_parent = ? AND wr_is_comment = 1${blockFilter}
 			 ORDER BY wr_comment, wr_comment_reply
 			 LIMIT ? OFFSET ?`,
-            [tableName, safePostId, limit, (page - 1) * limit]
+            [tableName, safePostId, ...blockParams, limit, (page - 1) * limit]
         );
 
         // 닉네임 조회 (mb_id → mb_nick)

@@ -22,7 +22,7 @@
                 if (m === 'dark') document.documentElement.classList.add('dark');
                 else if (m === 'amoled') document.documentElement.classList.add('amoled');
                 // 쿠키에 기록 (SSR 동기화용, 1년 만료)
-                if (m === 'dark' || m === 'amoled') {
+                if (m) {
                     document.cookie =
                         'angple_theme_mode=' + m + ';path=/;max-age=31536000;SameSite=Lax';
                 }
