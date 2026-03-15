@@ -375,7 +375,7 @@
                         </h3>
                         <div class="bg-muted/50 overflow-hidden rounded-lg">
                             <img
-                                src="{CDN_BASE}/data/editor/2512/c5443e4.jpg"
+                                src={CDN_BASE + '/data/editor/2512/c5443e4.jpg'}
                                 alt="직접홍보게시판 샘플"
                                 class="h-auto w-full"
                                 loading="lazy"
