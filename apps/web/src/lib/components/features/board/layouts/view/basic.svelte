@@ -40,6 +40,7 @@
     import AdSlot from '$lib/components/ui/ad-slot/ad-slot.svelte';
     import EconomyShoppingBanner from '$lib/components/features/board/economy-shopping-banner.svelte';
     import Info from '@lucide/svelte/icons/info';
+    import Pin from '@lucide/svelte/icons/pin';
     import ShareButton from '$lib/components/post/share-button.svelte';
     import type { ViewLayoutProps } from '../types.js';
 
@@ -54,12 +55,15 @@
 
     const currentFontSize = $derived(uiSettingsStore.contentFontSize);
 
+    import { toast } from 'svelte-sonner';
+    import PinOff from '@lucide/svelte/icons/pin-off';
+
     let {
         post,
         board,
         boardId,
         isAuthor,
-        isAdmin: _isAdmin,
+        isAdmin,
         canViewSecret,
         likeCount,
         dislikeCount,
@@ -98,6 +102,32 @@
     let hasAffiliateLinks = $derived(postContent?.includes('data-affiliate') ?? false);
 
     const isLockedPost = $derived(postReportCount === 'lock' || post.extra_7 === 'lock');
+
+    // 공지 토글 (관리자 전용)
+    let isNotice = $state(post.is_notice ?? false);
+    let togglingNotice = $state(false);
+
+    async function toggleNotice(): Promise<void> {
+        if (togglingNotice) return;
+        togglingNotice = true;
+        try {
+            const newType = isNotice ? null : 'normal';
+            const res = await fetch(`/api/boards/${boardId}/posts/${post.id}/notice`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ notice_type: newType }),
+                credentials: 'same-origin'
+            });
+            if (res.ok) {
+                isNotice = !isNotice;
+                toast.success(isNotice ? '공지로 고정되었습니다.' : '공지 고정이 해제되었습니다.');
+            }
+        } catch {
+            toast.error('공지 설정에 실패했습니다.');
+        } finally {
+            togglingNotice = false;
+        }
+    }
 </script>
 
 <!-- 게시글 카드 -->
@@ -116,6 +146,25 @@
             <CardTitle
                 class="text-foreground flex items-center gap-2 text-xl font-bold sm:text-2xl"
             >
+                {#if isAdmin}
+                    <button
+                        type="button"
+                        onclick={toggleNotice}
+                        disabled={togglingNotice}
+                        class="shrink-0 transition-colors {isNotice
+                            ? 'text-primary hover:text-destructive'
+                            : 'text-muted-foreground/40 hover:text-primary'}"
+                        title={isNotice ? '공지 해제' : '공지 고정'}
+                    >
+                        {#if isNotice}
+                            <Pin class="h-5 w-5" />
+                        {:else}
+                            <PinOff class="h-5 w-5" />
+                        {/if}
+                    </button>
+                {:else if isNotice}
+                    <Pin class="text-primary h-5 w-5 shrink-0" />
+                {/if}
                 {#if post.is_secret}
                     <Lock class="text-muted-foreground h-6 w-6 shrink-0" />
                 {/if}
