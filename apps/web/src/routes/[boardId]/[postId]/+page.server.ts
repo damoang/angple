@@ -459,18 +459,10 @@ export const load: PageServerLoad = async ({
             const reactions =
                 reactionsResult.status === 'fulfilled' ? reactionsResult.value || {} : {};
 
-            const likersRaw =
+            const likersData =
                 likersResult.status === 'fulfilled'
                     ? likersResult.value || { likers: [], total: 0 }
                     : { likers: [], total: 0 };
-            // Go 백엔드 mb_image_url → 프론트 mb_image 키 매핑
-            const likersData = {
-                ...likersRaw,
-                likers: (likersRaw.likers || []).map((l: Record<string, unknown>) => ({
-                    ...l,
-                    mb_image: l.mb_image || l.mb_image_url || ''
-                }))
-            };
 
             // 본문 제휴 링크 변환 결과
             const transformedPostContent =
