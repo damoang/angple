@@ -6,6 +6,7 @@
     import Star from '@lucide/svelte/icons/star';
     import Ban from '@lucide/svelte/icons/ban';
     import Bookmark from '@lucide/svelte/icons/bookmark';
+    import NotepadText from '@lucide/svelte/icons/notepad-text';
     import Palette from '@lucide/svelte/icons/palette';
     import Settings from '@lucide/svelte/icons/settings';
 
@@ -15,6 +16,7 @@
         { href: '/my/exp', label: '경험치', icon: Star, exact: false },
         { href: '/my/blocked', label: '차단 목록', icon: Ban, exact: false },
         { href: '/my/scraps', label: '스크랩', icon: Bookmark, exact: false },
+        { href: '/my/memos', label: '회원 메모', icon: NotepadText, exact: false },
         { href: '/member/settings/ui', label: 'UI 설정', icon: Palette, exact: false },
         { href: '/member/settings', label: '설정', icon: Settings, exact: true }
     ];
