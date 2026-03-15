@@ -15,6 +15,7 @@ export type ShortcutButtonSize = 'small' | 'medium' | 'large';
 export type ListViewMode = 'classic' | 'modern';
 export type ContentFontSize = 'small' | 'base' | 'large' | 'xlarge' | '2xlarge' | '3xlarge';
 export type ListFontSize = 'small' | 'base' | 'large' | 'xlarge';
+export type DoubleTapAction = 'like' | 'back';
 
 interface UiSettings {
     // 레이아웃
@@ -37,6 +38,7 @@ interface UiSettings {
     enableTouchGestures: boolean;
     swipeThreshold: number;
     doubleTapInterval: number;
+    doubleTapAction: DoubleTapAction;
     // 글씨 크기
     listFontSize: ListFontSize;
     recommendFontSize: ListFontSize;
@@ -68,6 +70,7 @@ const DEFAULTS: UiSettings = {
     enableTouchGestures: false,
     swipeThreshold: 50,
     doubleTapInterval: 300,
+    doubleTapAction: 'like' as DoubleTapAction,
     hideMemo: false,
     hideMemoInList: false,
     blurMemo: false
@@ -284,6 +287,13 @@ function createUiSettingsStore() {
         },
         setDoubleTapInterval(v: number) {
             settings.doubleTapInterval = v;
+            save();
+        },
+        get doubleTapAction() {
+            return settings.doubleTapAction;
+        },
+        setDoubleTapAction(v: DoubleTapAction) {
+            settings.doubleTapAction = v;
             save();
         },
         // 메모

@@ -525,7 +525,11 @@
                         if (adjacentPosts.prev) goto(`/${boardId}/${adjacentPosts.prev.id}`);
                     },
                     onDoubleTap: () => {
-                        handleLike();
+                        if (uiSettingsStore.doubleTapAction === 'back') {
+                            history.back();
+                        } else {
+                            handleLike();
+                        }
                     }
                 },
                 {

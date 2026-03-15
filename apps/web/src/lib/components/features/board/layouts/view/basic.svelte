@@ -218,7 +218,13 @@
             >
                 <span>조회 {post.views.toLocaleString()}</span>
                 <span>공감 {likeCount.toLocaleString()}</span>
-                <span>댓글 {post.comments_count.toLocaleString()}</span>
+                <button
+                    type="button"
+                    class="hover:underline"
+                    onclick={() =>
+                        document.getElementById('comments')?.scrollIntoView({ behavior: 'smooth' })}
+                    >댓글 {post.comments_count.toLocaleString()}</button
+                >
             </div>
         </div>
     </CardHeader>

@@ -1036,6 +1036,35 @@
                                 />
                             </div>
                         </div>
+                        <Separator />
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <Label>더블탭 동작</Label>
+                                <p class="text-muted-foreground text-xs">
+                                    더블탭 시 실행할 동작을 선택합니다.
+                                </p>
+                            </div>
+                            <div class="flex gap-1">
+                                <Badge
+                                    variant={uiSettingsStore.doubleTapAction === 'like'
+                                        ? 'default'
+                                        : 'outline'}
+                                    class="cursor-pointer px-3 py-1"
+                                    onclick={() => uiSettingsStore.setDoubleTapAction('like')}
+                                >
+                                    공감
+                                </Badge>
+                                <Badge
+                                    variant={uiSettingsStore.doubleTapAction === 'back'
+                                        ? 'default'
+                                        : 'outline'}
+                                    class="cursor-pointer px-3 py-1"
+                                    onclick={() => uiSettingsStore.setDoubleTapAction('back')}
+                                >
+                                    뒤로가기
+                                </Badge>
+                            </div>
+                        </div>
                     {/if}
                 </CardContent>
             </Card>
