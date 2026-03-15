@@ -91,13 +91,6 @@ export async function grantLoginXP(mbId: string, dateStr?: string): Promise<void
         if (newLevel !== member.as_level) {
             await pool.query(`UPDATE g5_member SET as_level = ? WHERE mb_id = ?`, [newLevel, mbId]);
         }
-        // mb_level도 동기화 (as_level이 더 높으면 올려줌)
-        if (newLevel > member.mb_level) {
-            await pool.query(
-                `UPDATE g5_member SET mb_level = GREATEST(mb_level, ?) WHERE mb_id = ?`,
-                [newLevel, mbId]
-            );
-        }
     }
 }
 
