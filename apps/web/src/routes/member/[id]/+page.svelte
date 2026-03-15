@@ -864,18 +864,3 @@
         }}
     />
 {/if}
-
-<style>
-    .memo-color-card {
-        background-color: color-mix(in srgb, var(--memo-bg) 12%, transparent);
-    }
-    :global(.dark) .memo-color-card {
-        background-color: color-mix(in srgb, var(--memo-bg-dark) 25%, transparent);
-    }
-    .memo-color-dot {
-        background-color: var(--memo-bg);
-    }
-    :global(.dark) .memo-color-dot {
-        background-color: var(--memo-bg-dark);
-    }
-</style>
