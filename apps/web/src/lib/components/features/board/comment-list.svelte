@@ -1413,6 +1413,8 @@
     :global(.comment-body) {
         overflow-wrap: anywhere;
         word-break: break-word;
+        max-width: 100%;
+        overflow-x: hidden;
     }
     :global(.comment-body a) {
         overflow-wrap: anywhere;
