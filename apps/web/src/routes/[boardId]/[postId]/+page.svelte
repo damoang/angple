@@ -19,6 +19,7 @@
     import type { PageData } from './$types.js';
     import Pencil from '@lucide/svelte/icons/pencil';
     import Lock from '@lucide/svelte/icons/lock';
+    import Clock from '@lucide/svelte/icons/clock';
 
     import RefreshCw from '@lucide/svelte/icons/refresh-cw';
     import { authStore } from '$lib/stores/auth.svelte.js';
@@ -353,6 +354,12 @@
                     isScrapped?: boolean;
                     postReportCount?: number | string | null;
                     postLikeStatus?: { userLiked: boolean; userDisliked: boolean };
+                    scheduledDelete?: {
+                        scheduled: boolean;
+                        scheduled_at: string;
+                        requested_at: string;
+                        delay_minutes: number;
+                    } | null;
                 }) => {
                     if (cancelled) return;
                     promotionPosts = result.promotionPosts || [];
@@ -385,6 +392,10 @@
                     if (result.postLikeStatus) {
                         isLiked = result.postLikeStatus.userLiked;
                         isDisliked = result.postLikeStatus.userDisliked;
+                    }
+
+                    if (result.scheduledDelete) {
+                        scheduledDelete = result.scheduledDelete;
                     }
 
                     auxiliaryLoaded = true;
@@ -442,6 +453,14 @@
 
     // 게시글 삭제 상태
     let isDeleting = $state(false);
+
+    // 삭제 예약 상태
+    let scheduledDelete = $state<{
+        scheduled: boolean;
+        scheduled_at: string;
+        requested_at: string;
+        delay_minutes: number;
+    } | null>(null);
 
     // 리비전 히스토리 (Streaming SSR로 로드)
 
@@ -715,7 +734,14 @@
         try {
             const result = await apiClient.deletePost(boardId, String(data.post.id));
             if (result.scheduled) {
-                alert(result.message || `${result.delay_minutes}분 후 삭제됩니다.`);
+                // 지연 삭제: 현재 페이지에서 배너 표시
+                scheduledDelete = {
+                    scheduled: true,
+                    scheduled_at: result.scheduled_at || '',
+                    requested_at: new Date().toISOString(),
+                    delay_minutes: result.delay_minutes || 0
+                };
+                return;
             }
             goto(`/${boardId}`);
         } catch (err) {
@@ -1192,6 +1218,29 @@
             <p class="text-muted-foreground mt-2 text-sm">{readPermissionMessage}</p>
         </div>
     {:else}
+        <!-- 삭제 예약 배너 -->
+        {#if scheduledDelete?.scheduled}
+            <div
+                class="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-950/30"
+                role="status"
+            >
+                <div class="flex items-start gap-3">
+                    <Clock class="mt-0.5 h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400" />
+                    <div class="flex-1">
+                        <p class="font-medium text-amber-800 dark:text-amber-300">
+                            이 게시물은 삭제가 예약되어 있습니다.
+                        </p>
+                        <p class="mt-1 text-sm text-amber-600 dark:text-amber-400">
+                            삭제 예정: {new Date(scheduledDelete.scheduled_at).toLocaleString(
+                                'ko-KR'
+                            )}
+                            ({scheduledDelete.delay_minutes}분 지연)
+                        </p>
+                    </div>
+                </div>
+            </div>
+        {/if}
+
         <!-- 삭제된 게시물 배너 -->
         {#if data.post.deleted_at}
             <div class="mb-4">

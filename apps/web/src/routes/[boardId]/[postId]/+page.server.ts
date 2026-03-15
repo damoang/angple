@@ -362,7 +362,8 @@ export const load: PageServerLoad = async ({
                 postContentResult,
                 scrapResult,
                 postReportCountResult,
-                postLikeStatusResult
+                postLikeStatusResult,
+                scheduledDeleteResult
             ] = await Promise.allSettled([
                 // 직접홍보 사잇광고 (ads 서버 직접 호출 + 캐시)
                 fetchPromotionPosts(),
@@ -405,7 +406,26 @@ export const load: PageServerLoad = async ({
                           userLiked: false,
                           userDisliked: false
                       }))
-                    : Promise.resolve({ userLiked: false, userDisliked: false })
+                    : Promise.resolve({ userLiked: false, userDisliked: false }),
+                // 삭제 예약 상태 조회 (Go 백엔드)
+                bFetch(`/api/v1/boards/${boardId}/posts/${postId}/delete-status`, {
+                    headers,
+                    timeout: 2_000
+                })
+                    .then(async (res) => {
+                        if (!res.ok) return null;
+                        const json = await res.json();
+                        if (json.scheduled) {
+                            return {
+                                scheduled: true,
+                                scheduled_at: json.scheduled_at,
+                                requested_at: json.requested_at,
+                                delay_minutes: json.delay_minutes
+                            };
+                        }
+                        return null;
+                    })
+                    .catch(() => null)
             ]);
 
             // 프로모션 사잇광고: board_exception에 포함된 게시판은 제외
@@ -446,6 +466,9 @@ export const load: PageServerLoad = async ({
                     ? postLikeStatusResult.value
                     : { userLiked: false, userDisliked: false };
 
+            const scheduledDelete =
+                scheduledDeleteResult.status === 'fulfilled' ? scheduledDeleteResult.value : null;
+
             return {
                 promotionPosts,
                 revisions,
@@ -454,7 +477,8 @@ export const load: PageServerLoad = async ({
                 transformedPostContent,
                 isScrapped,
                 postReportCount,
-                postLikeStatus
+                postLikeStatus,
+                scheduledDelete
             };
         })();
 
