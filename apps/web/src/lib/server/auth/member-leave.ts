@@ -42,21 +42,29 @@ export async function processMemberLeave(
     const nextMemo = prependLeaveMemo(member.mb_memo ?? '', leaveDate);
 
     // 소프트 삭제: PHP member_leave.php 호환 필드 반영
-    await pool.query<ResultSetHeader>(
+    const [result] = await pool.query<ResultSetHeader>(
         `UPDATE g5_member
             SET mb_leave_date = ?,
                 mb_memo = ?,
                 mb_certify = '',
                 mb_adult = 0,
                 mb_dupinfo = ''
-          WHERE mb_id = ?`,
+          WHERE mb_id = ? AND mb_leave_date = ''`,
         [leaveDate, nextMemo, mbId]
     );
 
+    if (result.affectedRows === 0) {
+        return { success: false, error: '이미 탈퇴 처리된 회원입니다.' };
+    }
+
     // 소셜 프로필 삭제
-    await pool.query<ResultSetHeader>('DELETE FROM g5_member_social_profiles WHERE mb_id = ?', [
-        mbId
-    ]);
+    try {
+        await pool.query<ResultSetHeader>('DELETE FROM g5_member_social_profiles WHERE mb_id = ?', [
+            mbId
+        ]);
+    } catch {
+        // 소셜 프로필 없어도 탈퇴는 성공
+    }
 
     return { success: true };
 }
