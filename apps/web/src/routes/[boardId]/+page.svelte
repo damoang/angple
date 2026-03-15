@@ -75,6 +75,7 @@
     import QAPostList from '$lib/components/features/board/qa-post-list.svelte';
     import BoardFavoriteButton from '$lib/components/features/board/board-favorite-button.svelte';
     import BoardSubscribeButton from '$lib/components/features/board/board-subscribe-button.svelte';
+    import { Watermark } from '$lib/components/ui/watermark/index.js';
 
     // Q&A 게시판 타입 등록
     boardTypeRegistry.register('qa', QAPostList, 'core');
@@ -370,6 +371,16 @@
     <BoardTypeComponent {data} />
 {:else}
     <SeoHead config={seoConfig} />
+
+    {#if data.watermark}
+        <Watermark
+            nickname={data.watermark.nickname}
+            userId={data.watermark.userId}
+            clientIp={data.watermark.clientIp}
+            pageTitle={data.board?.name || data.boardId}
+            redirectUrl={'/' + data.boardId}
+        />
+    {/if}
 
     {#if !canList}
         <div class="mx-auto pt-4">

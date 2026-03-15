@@ -28,7 +28,7 @@ const HOT_BOARD_POSTS_TIMEOUT_MS = 1_500;
  * board 정보: 즉시 await (헤더, SEO, 권한 체크 필요)
  * posts/notices/promotions: 스트리밍 (스켈레톤 먼저 표시)
  */
-export const load: PageServerLoad = async ({ url, params, locals }) => {
+export const load: PageServerLoad = async ({ url, params, locals, getClientAddress }) => {
     const boardId = params.boardId;
     const page = Number(url.searchParams.get('page')) || 1;
     const limit = Number(url.searchParams.get('limit')) || 30;
@@ -321,11 +321,28 @@ export const load: PageServerLoad = async ({ url, params, locals }) => {
         }
     })();
 
+    // 진실의방 워터마크 데이터 (목록 페이지)
+    let watermark: { nickname: string; userId: string; clientIp: string } | null = null;
+    if (boardId === 'truthroom') {
+        let clientIp = '';
+        try {
+            clientIp = getClientAddress();
+        } catch {
+            clientIp = '';
+        }
+        watermark = {
+            nickname: locals.user?.nickname || '',
+            userId: locals.user?.id || '',
+            clientIp
+        };
+    }
+
     return {
         boardId,
         board,
         searchParams: isSearching ? { field: searchField!, query: searchQuery! } : null,
         activeTag: tag,
+        watermark,
         /** 스트리밍: Promise로 반환 → 클라이언트에서 {#await} 사용 */
         streamed: {
             postsData: postsDataPromise,
