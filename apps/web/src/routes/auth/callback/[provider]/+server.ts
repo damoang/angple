@@ -30,6 +30,7 @@ import type { OAuthUserProfile } from '$lib/server/auth/oauth/types.js';
 import { getCertConfig } from '$lib/server/auth/cert-inicis.js';
 import { checkAndPromoteMember } from '$lib/server/auth/auto-promotion.js';
 import { grantLoginXP } from '$lib/server/auth/xp-grant.js';
+import { grantLoginPoint } from '$lib/server/auth/point-grant.js';
 
 const COOKIE_DOMAIN = env.COOKIE_DOMAIN || undefined;
 
@@ -142,15 +143,12 @@ async function handleCallback(
         // 로그인 시각 업데이트
         await updateLoginTimestamp(mbId, clientIp);
 
-        // 로그인 XP 적립 (fire-and-forget, 로그인 지연 방지)
-        grantLoginXP(mbId).catch((err) => {
-            console.error('[OAuth Callback] Login XP grant failed:', err);
-        });
-
-        // 자동 등급 승급 체크 (fire-and-forget, 로그인 지연 방지)
-        checkAndPromoteMember(mbId).catch((err) => {
-            console.error('[OAuth Callback] Auto-promotion check failed:', err);
-        });
+        // 로그인 XP + 포인트 적립 + 자동 등급 승급 (await로 누락 방지)
+        await Promise.allSettled([
+            grantLoginXP(mbId),
+            grantLoginPoint(mbId),
+            checkAndPromoteMember(mbId)
+        ]);
 
         // 서버사이드 세션 생성
         const session = await createSession(member.mb_id, {

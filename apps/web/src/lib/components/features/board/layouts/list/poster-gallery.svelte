@@ -6,6 +6,7 @@
     import AuthorLink from '$lib/components/ui/author-link/author-link.svelte';
     import { memberLevelStore } from '$lib/stores/member-levels.svelte.js';
     import { formatDate } from '$lib/utils/format-date.js';
+    import { toThumbnailUrl } from '$lib/utils/thumbnail-url.js';
     let {
         post,
         displaySettings,
@@ -21,7 +22,8 @@
     // 삭제된 글
     const isDeleted = $derived(!!post.deleted_at);
 
-    const thumbnailUrl = $derived(post.thumbnail || post.images?.[0] || '');
+    const rawThumbnailUrl = $derived(post.thumbnail || post.images?.[0] || '');
+    const thumbnailUrl = $derived(toThumbnailUrl(rawThumbnailUrl));
     const hasImage = $derived(Boolean(thumbnailUrl));
 </script>
 
@@ -50,7 +52,11 @@
                     loading="lazy"
                     onerror={(e) => {
                         const target = e.target as HTMLImageElement;
-                        target.style.display = 'none';
+                        if (rawThumbnailUrl && target.src !== rawThumbnailUrl) {
+                            target.src = rawThumbnailUrl;
+                        } else {
+                            target.style.display = 'none';
+                        }
                     }}
                 />
             {:else}

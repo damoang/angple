@@ -2,6 +2,7 @@
     import type { GalleryPost } from '$lib/api/types.js';
     import { readPostsStore } from '$lib/stores/read-posts.svelte.js';
     import { browser } from '$app/environment';
+    import { toThumbnailUrl } from '$lib/utils/thumbnail-url.js';
 
     type Props = {
         post: GalleryPost;
@@ -26,10 +27,14 @@
     <div class="relative aspect-video w-full overflow-hidden">
         {#if post.thumbnail_url}
             <img
-                src={post.thumbnail_url}
+                src={toThumbnailUrl(post.thumbnail_url)}
                 loading="lazy"
                 class="h-full w-full object-cover transition-transform duration-200 ease-out group-hover:scale-105"
                 alt={post.title}
+                onerror={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    if (target.src !== post.thumbnail_url) target.src = post.thumbnail_url!;
+                }}
             />
         {:else}
             <div class="bg-muted flex h-full w-full items-center justify-center">

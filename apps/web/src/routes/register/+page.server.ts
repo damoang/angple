@@ -28,6 +28,8 @@ import { verifyTurnstile } from '$lib/server/captcha.js';
 import { checkRateLimit, recordAttempt } from '$lib/server/rate-limit.js';
 import { getCertConfig } from '$lib/server/auth/cert-inicis.js';
 import { getContent, getSiteTitle, replaceContentVariables } from '$lib/server/content.js';
+import { grantLoginXP } from '$lib/server/auth/xp-grant.js';
+import { grantLoginPoint } from '$lib/server/auth/point-grant.js';
 import { env } from '$env/dynamic/private';
 
 const COOKIE_DOMAIN = env.COOKIE_DOMAIN || undefined;
@@ -211,6 +213,9 @@ export const actions: Actions = {
 
             // 로그인 시각 업데이트
             await updateLoginTimestamp(mbId, clientIp);
+
+            // 가입 첫 로그인 XP + 포인트 적립
+            await Promise.allSettled([grantLoginXP(mbId), grantLoginPoint(mbId)]);
 
             // 회원 정보 조회 (JWT 생성용)
             const member = await getMemberById(mbId);
