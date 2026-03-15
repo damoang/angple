@@ -74,6 +74,10 @@
     <div
         class="border-border bg-background flex h-9 items-center justify-center rounded-lg border px-3 {className}"
     >
-        <span class="text-muted-foreground text-sm">축하메시지가 없습니다</span>
+        <a
+            href="/message"
+            class="text-muted-foreground hover:text-foreground text-sm transition-colors"
+            >축하메시지가 없습니다</a
+        >
     </div>
 {/if}
