@@ -29,6 +29,7 @@ import { TwitterProvider } from '$lib/server/auth/oauth/providers/twitter.js';
 import type { OAuthUserProfile } from '$lib/server/auth/oauth/types.js';
 import { getCertConfig } from '$lib/server/auth/cert-inicis.js';
 import { checkAndPromoteMember } from '$lib/server/auth/auto-promotion.js';
+import { grantLoginXP } from '$lib/server/auth/xp-grant.js';
 
 const COOKIE_DOMAIN = env.COOKIE_DOMAIN || undefined;
 
@@ -140,6 +141,11 @@ async function handleCallback(
 
         // 로그인 시각 업데이트
         await updateLoginTimestamp(mbId, clientIp);
+
+        // 로그인 XP 적립 (fire-and-forget, 로그인 지연 방지)
+        grantLoginXP(mbId).catch((err) => {
+            console.error('[OAuth Callback] Login XP grant failed:', err);
+        });
 
         // 자동 등급 승급 체크 (fire-and-forget, 로그인 지연 방지)
         checkAndPromoteMember(mbId).catch((err) => {

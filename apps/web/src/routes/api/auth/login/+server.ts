@@ -13,6 +13,7 @@ import { setDamoangSSOCookie } from '$lib/server/auth/sso-cookie.js';
 import { getMemberById } from '$lib/server/auth/oauth/member.js';
 import { checkRateLimit, recordAttempt, resetAttempts } from '$lib/server/rate-limit.js';
 import { checkAndPromoteMember } from '$lib/server/auth/auto-promotion.js';
+import { grantLoginXP } from '$lib/server/auth/xp-grant.js';
 
 const BACKEND_URL = env.BACKEND_URL || 'http://localhost:8090';
 const COOKIE_DOMAIN = env.COOKIE_DOMAIN || '';
@@ -155,6 +156,11 @@ export const POST: RequestHandler = async ({ request, cookies, getClientAddress 
         } catch (e) {
             console.error('[Login] SSO cookie 발급 실패:', e);
         }
+
+        // 로그인 XP 적립 (fire-and-forget, 로그인 응답 지연 방지)
+        grantLoginXP(mbId).catch((err) => {
+            console.error('[Login] Login XP grant failed:', err);
+        });
 
         // 자동 등급 승급 체크 (fire-and-forget, 로그인 응답 지연 방지)
         checkAndPromoteMember(mbId).catch((err) => {

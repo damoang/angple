@@ -902,6 +902,7 @@ export interface ExpSummary {
     total_exp: number; // 현재 경험치
     current_level: number; // 현재 레벨
     next_level_exp: number; // 다음 레벨까지 필요한 경험치
+    exp_to_next: number; // 다음 레벨까지 남은 경험치 (0이면 최고 레벨)
     level_progress: number; // 레벨 진행률 (0-100)
 }
 
