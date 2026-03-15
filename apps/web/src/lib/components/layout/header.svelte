@@ -35,7 +35,8 @@
                   mb_id: $page.data.user.id ?? '',
                   mb_name: $page.data.user.nickname ?? '',
                   mb_level: $page.data.user.level ?? 0,
-                  mb_image: $page.data.user.mb_image
+                  mb_image: $page.data.user.mb_image,
+                  mb_image_updated_at: $page.data.user.mb_image_updated_at
               }
             : null
     );
