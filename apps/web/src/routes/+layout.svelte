@@ -23,6 +23,7 @@
     import { getThemeLayout } from '$lib/themes/layout-registry';
     import { initFromSSR as initAppData } from '$lib/stores/app-init.svelte';
     import { initFromData as initCelebrationFromData } from '$lib/stores/celebration.svelte';
+    import { blockedUsersStore } from '$lib/stores/blocked-users.svelte';
     import { initGA4, trackPageView } from '$lib/services/ga4';
 
     // 지연 로딩 모듈 참조
@@ -267,6 +268,11 @@
         // 인증 상태 초기화 (클라이언트 전용 — SSR에서는 data.user를 직접 사용)
         syncAuth(data);
         authInitialized = true;
+
+        // 차단 회원 목록 로드 (로그인 상태일 때만)
+        if (data.user) {
+            blockedUsersStore.load();
+        }
 
         // postMessage 리스너 (Admin에서 테마 변경 시 리로드)
         function handleMessage(event: MessageEvent) {
