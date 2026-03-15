@@ -128,6 +128,18 @@ export const load: PageServerLoad = async ({
             }
         }
 
+        // 게시글 작성자 프로필 이미지 즉시 조회 (1단계 — 본문 렌더에 필요)
+        if (post.author_id && !post.author_image) {
+            try {
+                const imgMap = await fetchMemberImages([post.author_id]);
+                if (imgMap[post.author_id]) {
+                    post.author_image = imgMap[post.author_id];
+                }
+            } catch {
+                // 실패해도 정상 진행
+            }
+        }
+
         // 본문 제휴 링크 변환은 2단계 스트리밍으로 이동 (초기 렌더 블로킹 방지)
         const affiliateContext = { bo_table: boardId, wr_id: Number(postId) };
 
@@ -447,10 +459,18 @@ export const load: PageServerLoad = async ({
             const reactions =
                 reactionsResult.status === 'fulfilled' ? reactionsResult.value || {} : {};
 
-            const likersData =
+            const likersRaw =
                 likersResult.status === 'fulfilled'
                     ? likersResult.value || { likers: [], total: 0 }
                     : { likers: [], total: 0 };
+            // Go 백엔드 mb_image_url → 프론트 mb_image 키 매핑
+            const likersData = {
+                ...likersRaw,
+                likers: (likersRaw.likers || []).map((l: Record<string, unknown>) => ({
+                    ...l,
+                    mb_image: l.mb_image || l.mb_image_url || ''
+                }))
+            };
 
             // 본문 제휴 링크 변환 결과
             const transformedPostContent =
