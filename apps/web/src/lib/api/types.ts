@@ -517,6 +517,7 @@ export interface LikerInfo {
     mb_name: string;
     mb_nick: string; // 닉네임
     mb_image?: string; // 프로필 이미지 URL
+    mb_image_updated_at?: string; // 이미지 변경 시각 (캐시 버스팅용)
     bg_ip?: string; // 마스킹된 IP (로그인 사용자만)
     liked_at: string;
 }

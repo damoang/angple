@@ -74,6 +74,8 @@
     import BoardFavoriteButton from '$lib/components/features/board/board-favorite-button.svelte';
     import BoardSubscribeButton from '$lib/components/features/board/board-subscribe-button.svelte';
     import { Watermark } from '$lib/components/ui/watermark/index.js';
+    import { blockedUsersStore } from '$lib/stores/blocked-users.svelte';
+    import Trash2 from '@lucide/svelte/icons/trash-2';
 
     // Q&A 게시판 타입 등록
     boardTypeRegistry.register('qa', QAPostList, 'core');
@@ -644,7 +646,9 @@
                 {@const posts = result.posts}
                 {@const notices = result.notices || []}
                 {@const pagination = result.pagination}
-                {@const filteredPosts = posts}
+                {@const filteredPosts = posts.filter(
+                    (p) => !blockedUsersStore.isBlocked(p.author_id)
+                )}
                 {@const importantNotices = notices.filter((n) => n.notice_type === 'important')}
                 {@const normalNotices = notices.filter((n) => n.notice_type !== 'important')}
                 {@const hasNotices = notices.length > 0}
@@ -852,7 +856,14 @@
                         </Card>
                     {:else if LayoutComponent}
                         {#each filteredPosts as post, i (post.id)}
-                            {#if bulkSelectMode}
+                            {#if post.deleted_at}
+                                <div
+                                    class="text-muted-foreground flex items-center gap-2 px-4 py-3 text-sm"
+                                >
+                                    <Trash2 class="h-4 w-4 shrink-0" />
+                                    삭제된 글입니다.
+                                </div>
+                            {:else if bulkSelectMode}
                                 <div class="flex items-start gap-2">
                                     <div class="flex shrink-0 items-center pt-3">
                                         <Checkbox

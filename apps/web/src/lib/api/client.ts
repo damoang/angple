@@ -725,9 +725,15 @@ class ApiClient {
      * 🔒 인증 필요 + 작성자 본인만 가능
      */
     async deleteComment(boardId: string, postId: string, commentId: string): Promise<void> {
-        await this.request<void>(`/boards/${boardId}/posts/${postId}/comments/${commentId}`, {
-            method: 'DELETE'
+        // SvelteKit API 라우트로 직접 요청 (gnuboard 테이블 기반)
+        const res = await fetch(`/api/boards/${boardId}/posts/${postId}/comments/${commentId}`, {
+            method: 'DELETE',
+            credentials: 'same-origin'
         });
+        if (!res.ok) {
+            const data = await res.json().catch(() => ({}));
+            throw new Error(data.error || '댓글 삭제에 실패했습니다.');
+        }
     }
 
     async restoreComment(boardId: string, postId: string, commentId: string): Promise<void> {

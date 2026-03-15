@@ -6,6 +6,7 @@
         mb_nick?: string;
         mb_name?: string;
         mb_image?: string;
+        mb_image_updated_at?: string;
     }
 
     interface Props {
@@ -32,7 +33,7 @@
 >
     <div class="flex items-center -space-x-1.5">
         {#each visibleItems as item (item.mb_id)}
-            {@const iconUrl = getAvatarUrl(item.mb_image)}
+            {@const iconUrl = getAvatarUrl(item.mb_image, item.mb_image_updated_at)}
             {@const nick = item.mb_nick || item.mb_name || item.mb_id}
             {#if iconUrl}
                 <img

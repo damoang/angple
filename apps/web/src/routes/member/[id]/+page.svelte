@@ -8,6 +8,7 @@
     import { authStore } from '$lib/stores/auth.svelte.js';
     import { getAvatarUrl } from '$lib/utils/member-icon.js';
     import { apiClient } from '$lib/api/index.js';
+    import { blockedUsersStore } from '$lib/stores/blocked-users.svelte';
     import { goto } from '$app/navigation';
     import { onMount } from 'svelte';
     import User from '@lucide/svelte/icons/user';
@@ -260,6 +261,7 @@
         try {
             if (isBlocked) {
                 await apiClient.unblockMember(p.mb_id);
+                blockedUsersStore.remove(p.mb_id);
                 isBlocked = false;
             } else {
                 if (!confirm(`${p.mb_name}님을 차단하시겠습니까?`)) {
@@ -267,6 +269,7 @@
                     return;
                 }
                 await apiClient.blockMember(p.mb_id);
+                blockedUsersStore.add(p.mb_id);
                 isBlocked = true;
             }
         } catch {

@@ -26,6 +26,7 @@ interface LikerRow extends RowDataPacket {
     mb_nick: string;
     mb_name: string;
     mb_image_url: string;
+    mb_image_updated_at: string | null;
     bg_ip: string;
     bg_datetime: string;
 }
@@ -70,7 +71,7 @@ export const GET: RequestHandler = async ({ params, url, cookies }) => {
 
         // 추천자 목록 (최신순)
         const [likerRows] = await pool.query<LikerRow[]>(
-            `SELECT g.mb_id, m.mb_nick, m.mb_name, COALESCE(m.mb_image_url, '') as mb_image_url, g.bg_ip, g.bg_datetime
+            `SELECT g.mb_id, m.mb_nick, m.mb_name, COALESCE(m.mb_image_url, '') as mb_image_url, m.mb_image_updated_at, g.bg_ip, g.bg_datetime
 			 FROM g5_board_good g
 			 JOIN g5_member m ON g.mb_id = m.mb_id
 			 WHERE g.bo_table = ? AND g.wr_id = ? AND g.bg_flag = 'good'
@@ -84,6 +85,7 @@ export const GET: RequestHandler = async ({ params, url, cookies }) => {
             mb_name: row.mb_name,
             mb_nick: row.mb_nick,
             mb_image: row.mb_image_url || '',
+            mb_image_updated_at: row.mb_image_updated_at || undefined,
             bg_ip: isAuthenticated ? maskIp(row.bg_ip) : '',
             liked_at: String(row.bg_datetime).replace(' ', 'T') + 'Z'
         }));
