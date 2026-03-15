@@ -394,9 +394,7 @@
                         isDisliked = result.postLikeStatus.userDisliked;
                     }
 
-                    if (result.scheduledDelete) {
-                        scheduledDelete = result.scheduledDelete;
-                    }
+                    scheduledDelete = result.scheduledDelete ?? null;
 
                     auxiliaryLoaded = true;
                 }
@@ -615,6 +613,7 @@
         showLikersDialog = false;
         likersPage = 1;
         editingMemoFor = null;
+        scheduledDelete = null;
     });
 
     // 앵커 스크롤 + 하이라이트 헬퍼
