@@ -302,9 +302,15 @@
         return false;
     }
 
-    // 댓글 수정 권한 (작성자만, 대댓글이 달린 댓글은 수정 불가)
+    // 관리자 여부
+    function isAdmin(): boolean {
+        return (authStore.user?.mb_level ?? 0) >= 10;
+    }
+
+    // 댓글 수정/삭제 권한 (작성자 또는 관리자, 대댓글이 달린 댓글은 작성자도 수정 불가)
     function canEditComment(comment: FreeComment): boolean {
         if (!authStore.user) return false;
+        if (isAdmin()) return true;
         if (hasReplies(comment)) return false;
         return isCommentAuthor(comment);
     }

@@ -716,6 +716,10 @@
             authStore.user?.mb_name === data.post.author
     );
 
+    // 수정/삭제 권한 (작성자 또는 관리자)
+    const isAdmin = $derived((authStore.user?.mb_level ?? 0) >= 10);
+    const canModify = $derived(isAuthor || isAdmin);
+
     // 직접홍보 게시판 만료 여부
     const promotionExpired = $derived(data.promotionExpired === true && !isAuthor);
 
@@ -1174,13 +1178,13 @@
                     initialScrapped={isScrapped}
                 />
             {/if}
-            {#if isAuthor}
+            {#if canModify}
                 <Button variant="outline" size="sm" onclick={goToEdit}>
                     <Pencil class="mr-1 h-4 w-4" />
                     수정
                 </Button>
             {/if}
-            {#if isAuthor}
+            {#if canModify}
                 <DeleteConfirmDialog
                     title="게시글 삭제"
                     description="이 게시글을 삭제하시겠습니까? 댓글은 유지됩니다."
