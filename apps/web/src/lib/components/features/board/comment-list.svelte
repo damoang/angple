@@ -1162,23 +1162,12 @@
                     <!-- Chat: 신고 배지 (버블 안) -->
                     {#if commentLayout === 'chat' && !isDeleted}
                         {#if comment.report_count === 'lock'}
-                            {#if isSingoSuperAdmin}
-                                <button
-                                    type="button"
-                                    onclick={() => toggleCommentReportDetails(String(comment.id))}
-                                    class="bg-destructive/10 text-destructive hover:bg-destructive/20 mt-1.5 inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs font-medium transition-colors"
-                                >
-                                    <Lock class="h-3 w-3" />
-                                    신고잠금
-                                </button>
-                            {:else}
-                                <span
-                                    class="bg-destructive/10 text-destructive mt-1.5 inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs font-medium"
-                                >
-                                    <Lock class="h-3 w-3" />
-                                    신고잠금
-                                </span>
-                            {/if}
+                            <span
+                                class="bg-destructive/10 text-destructive mt-1.5 inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs font-medium"
+                            >
+                                <Lock class="h-3 w-3" />
+                                신고잠금
+                            </span>
                             {#if truthroomCommentMap[Number(comment.id)]}
                                 <a
                                     href="/truthroom/{truthroomCommentMap[Number(comment.id)]}"
@@ -1187,23 +1176,6 @@
                                     진실의방 보기
                                 </a>
                             {/if}
-                        {:else if comment.report_count && typeof comment.report_count === 'number' && comment.report_count > 0}
-                            <button
-                                type="button"
-                                onclick={() => toggleCommentReportDetails(String(comment.id))}
-                                class="bg-destructive/10 text-destructive hover:bg-destructive/20 mt-1.5 inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs font-medium transition-colors"
-                            >
-                                신고 {comment.report_count}건
-                            </button>
-                        {:else if isSingoSuperAdmin && commentReports.has(String(comment.id))}
-                            {@const reports = commentReports.get(String(comment.id)) || []}
-                            <button
-                                type="button"
-                                onclick={() => toggleCommentReportDetails(String(comment.id))}
-                                class="bg-destructive/10 text-destructive hover:bg-destructive/20 mt-1.5 inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs font-medium transition-colors"
-                            >
-                                신고 {reports.length}건
-                            </button>
                         {/if}
                     {/if}
                 </div>
@@ -1327,39 +1299,6 @@
                             </Button>
                         {/if}
                     </div>
-
-                    <!-- Chat: 신고 상세 내역 (관리자만) -->
-                    {#if isSingoSuperAdmin && expandedReportComments.has(String(comment.id))}
-                        {@const reports = commentReports.get(String(comment.id)) ?? []}
-                        <div
-                            class="bg-destructive/5 border-destructive/20 mt-2 rounded-md border p-3 text-xs"
-                        >
-                            {#if reports.length === 0}
-                                <p class="text-muted-foreground">신고 상세 내역이 없습니다.</p>
-                            {:else}
-                                <table class="w-full text-left">
-                                    <thead>
-                                        <tr class="text-muted-foreground border-b">
-                                            <th class="pb-1 pr-3">신고자</th>
-                                            <th class="pb-1 pr-3">사유</th>
-                                            <th class="pb-1">시간</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {#each reports as report}
-                                            <tr class="border-border/50 border-b last:border-0">
-                                                <td class="py-1 pr-3">{report.reporter_name}</td>
-                                                <td class="py-1 pr-3">{report.reason_label}</td>
-                                                <td class="text-muted-foreground py-1"
-                                                    >{report.created_at}</td
-                                                >
-                                            </tr>
-                                        {/each}
-                                    </tbody>
-                                </table>
-                            {/if}
-                        </div>
-                    {/if}
                 {/if}
 
                 <!-- 답글 폼 -->
