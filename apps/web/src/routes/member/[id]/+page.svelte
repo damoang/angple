@@ -902,8 +902,8 @@
             </Tabs.Root>
         </Card>
 
-        <!-- 상호작용 분석 (플러그인) -->
-        {#if pluginStore.isPluginActive('interaction-analysis') && InteractionPanel}
+        <!-- 상호작용 분석 (플러그인) — 관리자 또는 본인만 -->
+        {#if (isAdmin || isOwnProfile) && pluginStore.isPluginActive('interaction-analysis') && InteractionPanel}
             <div class="mt-4">
                 <InteractionPanel memberId={p.mb_id} />
             </div>
