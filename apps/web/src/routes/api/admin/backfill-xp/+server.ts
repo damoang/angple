@@ -187,12 +187,6 @@ export const POST: RequestHandler = async ({ locals }) => {
                             mbId
                         ]);
                     }
-                    if (newLevel > member.mb_level) {
-                        await pool.query(
-                            `UPDATE g5_member SET mb_level = GREATEST(mb_level, ?) WHERE mb_id = ?`,
-                            [newLevel, mbId]
-                        );
-                    }
                 }
             }
         }
