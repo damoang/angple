@@ -7,6 +7,5 @@
 export { default as WidgetEditor } from './widget-editor.svelte';
 export { default as WidgetWrapper } from './widget-wrapper.svelte';
 export { default as AddWidgetDialog } from './add-widget-dialog.svelte';
-export { default as EditModeToggle } from './edit-mode-toggle.svelte';
 
 export * from './registry';

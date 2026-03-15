@@ -30,7 +30,6 @@ export const load: LayoutServerLoad = async ({ locals, depends, url }) => {
             user: locals.user ?? null,
             accessToken: locals.accessToken ?? null,
             csrfToken: locals.csrfToken ?? null,
-            isAdmin: (locals.user?.level ?? 0) >= 10,
             singoRole: null,
             celebration: [],
             banners: {},
@@ -97,7 +96,6 @@ export const load: LayoutServerLoad = async ({ locals, depends, url }) => {
         user: locals.user ?? null,
         accessToken: locals.accessToken ?? null,
         csrfToken: locals.csrfToken ?? null,
-        isAdmin: (locals.user?.level ?? 0) >= 10,
         singoRole,
         // SSR에서 직접 로드 — 클라이언트 /api/init 호출 제거
         celebration,

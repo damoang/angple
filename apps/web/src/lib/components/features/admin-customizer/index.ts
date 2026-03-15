@@ -1,2 +1,2 @@
-export { default as AdminCustomizer } from './admin-customizer.svelte';
-export { default as CustomizerTrigger } from './customizer-trigger.svelte';
+// Admin customizer components removed from public pages.
+// Remaining files (customizer-header, sections/) are kept for /admin dashboard use.

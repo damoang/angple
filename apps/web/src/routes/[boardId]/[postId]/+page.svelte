@@ -31,13 +31,10 @@
     import DeleteConfirmDialog from '$lib/components/features/board/delete-confirm-dialog.svelte';
     import CommentForm from '$lib/components/features/board/comment-form.svelte';
     import CommentList from '$lib/components/features/board/comment-list.svelte';
-    import AdminCommentLayoutSwitcher from '$lib/components/features/board/admin-comment-layout-switcher.svelte';
-
     import RecentPosts from '$lib/components/features/board/recent-posts.svelte';
     import { ReportDialog } from '$lib/components/features/report/index.js';
     import type { FreeComment, FreePost, LikerInfo, PostRevision } from '$lib/api/types.js';
     import DeletedPostBanner from '$lib/components/post/deleted-post-banner.svelte';
-    import RevisionHistory from '$lib/components/post/revision-history.svelte';
     import { sendMentionNotifications } from '$lib/utils/mention-notify.js';
     import type { ReactionItem } from '$lib/types/reaction.js';
     import { generateParentId, generateDocumentTargetId } from '$lib/types/reaction.js';
@@ -46,7 +43,6 @@
     import { page } from '$app/stores';
     import { getAvatarUrl } from '$lib/utils/member-icon.js';
     import { isEmbeddable } from '$lib/plugins/auto-embed';
-    import AdminPostActions from '$lib/components/features/board/admin-post-actions.svelte';
     import AdSlot from '$lib/components/ui/ad-slot/ad-slot.svelte';
     import PluginSlot from '$lib/components/plugin/plugin-slot.svelte';
     import { widgetLayoutStore } from '$lib/stores/widget-layout.svelte';
@@ -1209,13 +1205,6 @@
                         공지 고정
                     </Button>
                 {/if}
-                <!-- 관리자 게시글 관리 (카테고리 변경, 이동) -->
-                <AdminPostActions
-                    {boardId}
-                    postId={data.post.id}
-                    currentCategory={data.post.category}
-                    categoryList={data.board?.category_list}
-                />
             {/if}
             {#if isAuthor || isAdmin}
                 <Button variant="outline" size="sm" onclick={goToEdit}>
@@ -1362,18 +1351,6 @@
         {/if}
         -->
 
-        <!-- 수정 이력 (리비전 히스토리) - 관리자 전용 (스트리밍 완료 후) -->
-        {#if isAdmin && auxiliaryLoaded && revisions.length > 0}
-            <div class="mb-6">
-                <RevisionHistory
-                    {revisions}
-                    {isAdmin}
-                    canRestore={isAdmin}
-                    onRestore={handleRestoreRevision}
-                />
-            </div>
-        {/if}
-
         <!-- 댓글 섹션 (비밀글 열람 가능 + 스트리밍 완료 시 표시) -->
         {#if canViewSecret && !commentsLoaded}
             <Card class="bg-background">
@@ -1419,13 +1396,6 @@
                             />
                         </button>
                     </div>
-                    <AdminCommentLayoutSwitcher
-                        {boardId}
-                        currentLayout={commentLayout}
-                        onLayoutChange={(layoutId) => {
-                            commentLayout = layoutId;
-                        }}
-                    />
                 </CardHeader>
                 <CardContent class="space-y-6">
                     <CommentList

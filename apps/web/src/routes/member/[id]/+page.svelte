@@ -24,22 +24,13 @@
     import UserMinus from '@lucide/svelte/icons/user-minus';
     import CheckCircle from '@lucide/svelte/icons/check-circle';
     import Loader2 from '@lucide/svelte/icons/loader-2';
-    import StickyNote from '@lucide/svelte/icons/sticky-note';
-    import Trash2 from '@lucide/svelte/icons/trash-2';
     import Camera from '@lucide/svelte/icons/camera';
     import X from '@lucide/svelte/icons/x';
-    import { Textarea } from '$lib/components/ui/textarea/index.js';
     import { LevelBadge } from '$lib/components/ui/level-badge/index.js';
     import type { Component } from 'svelte';
     import { pluginStore } from '$lib/stores/plugin.svelte';
     import { loadPluginComponent } from '$lib/utils/plugin-optional-loader';
     import { uiSettingsStore } from '$lib/stores/ui-settings.svelte.js';
-    import {
-        getMemberMemos,
-        createMemberMemo,
-        deleteMemberMemo,
-        type MemberMemo
-    } from '$lib/api/admin-members.js';
     import { formatDate } from '$lib/utils/format-date.js';
     import FollowListDialog from '$lib/components/features/member/follow-list-dialog.svelte';
 
@@ -123,8 +114,6 @@
 
     // 본인 프로필
     const isOwnProfile = $derived(authStore.user?.mb_id === p?.mb_id);
-    const isAdmin = $derived((authStore.user?.mb_level ?? 0) >= 10);
-
     // 팔로우 상태
     let isFollowing = $state(false);
     let followLoading = $state(false);
@@ -173,33 +162,6 @@
     let commentsLoaded = $state(false);
     let likedLoaded = $state(false);
 
-    // 관리자 메모
-    let adminMemos = $state<MemberMemo[]>([]);
-    let newMemoText = $state('');
-    let isSavingMemo = $state(false);
-
-    // 회원 메모 (member-memo 플러그인) — 관리자 전용 전체 목록
-    interface PluginMemo {
-        id: number;
-        mb_id: string;
-        mb_nick: string;
-        content: string;
-        color: string;
-        created_at: string;
-    }
-    let pluginMemos = $state<PluginMemo[]>([]);
-
-    const memoColorMap: Record<
-        string,
-        { bg: string; text: string; darkBg: string; darkText: string }
-    > = {
-        yellow: { bg: '#ffe69c', text: '#664d03', darkBg: '#664d03', darkText: '#ffe69c' },
-        green: { bg: '#d1e7dd', text: '#0f5132', darkBg: '#0f5132', darkText: '#d1e7dd' },
-        purple: { bg: '#e2d9f3', text: '#432874', darkBg: '#432874', darkText: '#e2d9f3' },
-        red: { bg: '#f8d7da', text: '#dc3545', darkBg: '#58151c', darkText: '#f8d7da' },
-        blue: { bg: '#cfe2ff', text: '#084298', darkBg: '#084298', darkText: '#cfe2ff' }
-    };
-
     onMount(async () => {
         if (!p?.mb_id) return;
 
@@ -212,21 +174,6 @@
                     if (d.success) isFollowing = d.data.is_following;
                 }
             } catch {}
-        }
-    });
-
-    // 관리자 메모 로딩 — $effect로 isAdmin 반응형 대기
-    let adminMemosLoaded = $state(false);
-    $effect(() => {
-        if (isAdmin && p?.mb_id && !adminMemosLoaded) {
-            adminMemosLoaded = true;
-            getMemberMemos(p.mb_id).then((m) => (adminMemos = m));
-            fetch(`/api/members/${p.mb_id}/memos`)
-                .then((r) => (r.ok ? r.json() : null))
-                .then((d) => {
-                    if (d?.success) pluginMemos = d.data;
-                })
-                .catch(() => {});
         }
     });
 
@@ -325,30 +272,6 @@
             alert('차단 처리에 실패했습니다.');
         }
         isBlocking = false;
-    }
-
-    // 관리자 메모
-    async function handleSaveMemo(): Promise<void> {
-        if (!newMemoText.trim() || !p) return;
-        isSavingMemo = true;
-        try {
-            await createMemberMemo(p.mb_id, { memo: newMemoText.trim() });
-            adminMemos = await getMemberMemos(p.mb_id);
-            newMemoText = '';
-        } catch {
-            alert('메모 저장에 실패했습니다.');
-        }
-        isSavingMemo = false;
-    }
-
-    async function handleDeleteMemo(memoId: number): Promise<void> {
-        if (!confirm('이 메모를 삭제하시겠습니까?')) return;
-        try {
-            await deleteMemberMemo(memoId);
-            adminMemos = adminMemos.filter((m) => m.id !== memoId);
-        } catch {
-            alert('메모 삭제에 실패했습니다.');
-        }
     }
 
     // 상대 시간
@@ -914,100 +837,11 @@
             </Tabs.Root>
         </Card>
 
-        <!-- 상호작용 분석 (플러그인) — 관리자 또는 본인만 -->
-        {#if (isAdmin || isOwnProfile) && pluginStore.isPluginActive('interaction-analysis') && InteractionPanel}
+        <!-- 상호작용 분석 (플러그인) — 본인만 -->
+        {#if isOwnProfile && pluginStore.isPluginActive('interaction-analysis') && InteractionPanel}
             <div class="mt-4">
                 <InteractionPanel memberId={p.mb_id} />
             </div>
-        {/if}
-
-        <!-- 회원 메모 (member-memo 플러그인) — 관리자 전용 전체 목록 -->
-        {#if isAdmin && pluginMemos.length > 0}
-            <Card class="bg-background mt-4">
-                <CardHeader class="pb-2">
-                    <CardTitle class="flex items-center gap-2 text-sm">
-                        <StickyNote class="h-4 w-4" />
-                        회원 메모 ({pluginMemos.length})
-                    </CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div class="space-y-2">
-                        {#each pluginMemos as memo}
-                            {@const colors = memoColorMap[memo.color] || memoColorMap.yellow}
-                            <div
-                                class="memo-color-card flex items-start gap-2 rounded-lg p-2.5"
-                                style="--memo-bg: {colors.bg}; --memo-bg-dark: {colors.darkBg};"
-                            >
-                                <span
-                                    class="memo-color-dot mt-0.5 inline-block h-3 w-3 shrink-0 rounded-full"
-                                    style="--memo-bg: {colors.bg}; --memo-bg-dark: {colors.darkBg};"
-                                ></span>
-                                <div class="min-w-0 flex-1">
-                                    <p class="text-foreground text-sm">{memo.content}</p>
-                                    <p class="text-muted-foreground mt-0.5 text-xs">
-                                        {memo.mb_nick || memo.mb_id} ({memo.mb_id}) · {formatDate(
-                                            memo.created_at
-                                        )}
-                                    </p>
-                                </div>
-                            </div>
-                        {/each}
-                    </div>
-                </CardContent>
-            </Card>
-        {/if}
-
-        <!-- 관리자 메모 -->
-        {#if isAdmin}
-            <Card class="bg-background mt-4">
-                <CardHeader class="pb-2">
-                    <CardTitle class="flex items-center gap-2 text-sm">
-                        <StickyNote class="h-4 w-4" />
-                        관리자 메모
-                    </CardTitle>
-                </CardHeader>
-                <CardContent>
-                    {#if adminMemos.length > 0}
-                        <div class="mb-3 space-y-2">
-                            {#each adminMemos as memo}
-                                <div class="bg-muted flex items-start gap-2 rounded-lg p-2.5">
-                                    <div class="min-w-0 flex-1">
-                                        <p class="text-foreground text-sm">{memo.memo}</p>
-                                        <p class="text-muted-foreground mt-0.5 text-xs">
-                                            {memo.member_id} · {new Date(
-                                                memo.created_at
-                                            ).toLocaleDateString('ko-KR')}
-                                        </p>
-                                    </div>
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        class="text-muted-foreground hover:text-destructive h-6 w-6 shrink-0 p-0"
-                                        onclick={() => handleDeleteMemo(memo.id)}
-                                    >
-                                        <Trash2 class="h-3 w-3" />
-                                    </Button>
-                                </div>
-                            {/each}
-                        </div>
-                    {/if}
-                    <div class="flex gap-2">
-                        <Textarea
-                            bind:value={newMemoText}
-                            placeholder="관리자 메모..."
-                            class="min-h-[50px] resize-none text-sm"
-                        />
-                        <Button
-                            size="sm"
-                            onclick={handleSaveMemo}
-                            disabled={!newMemoText.trim() || isSavingMemo}
-                            class="shrink-0 self-end"
-                        >
-                            {isSavingMemo ? '...' : '저장'}
-                        </Button>
-                    </div>
-                </CardContent>
-            </Card>
         {/if}
     {:else}
         <Card class="bg-background">
