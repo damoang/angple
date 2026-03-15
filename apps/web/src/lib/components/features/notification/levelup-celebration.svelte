@@ -1,113 +1,138 @@
 <script lang="ts">
     import { onMount } from 'svelte';
     import { sseStore } from '$lib/stores/sse.svelte.js';
+    import { authStore } from '$lib/stores/auth.svelte.js';
+    import { levelupDetect } from '$lib/stores/levelup-detect.svelte.js';
+    import * as Dialog from '$lib/components/ui/dialog/index.js';
+    import { Button } from '$lib/components/ui/button/index.js';
     import Star from '@lucide/svelte/icons/star';
+    import PartyPopper from '@lucide/svelte/icons/party-popper';
 
-    let show = $state(false);
-    let level = $state(0);
-    let particles = $state<{ id: number; x: number; y: number; color: string; delay: number }[]>(
-        []
-    );
+    let dialogOpen = $state(false);
 
-    const colors = [
-        '#FFD700',
-        '#FF6B6B',
-        '#4ECDC4',
-        '#45B7D1',
-        '#96CEB4',
-        '#FFEAA7',
-        '#DDA0DD',
-        '#98D8C8',
-        '#F7DC6F',
-        '#BB8FCE'
-    ];
+    // levelupDetect 상태 변경 감지
+    $effect(() => {
+        if (levelupDetect.showCelebration) {
+            dialogOpen = true;
+            launchConfetti();
+            playFanfare();
+        }
+    });
 
-    function triggerCelebration(newLevel: number) {
-        level = newLevel;
-        // 파티클 생성
-        particles = Array.from({ length: 60 }, (_, i) => ({
-            id: i,
-            x: Math.random() * 100,
-            y: Math.random() * 100,
-            color: colors[Math.floor(Math.random() * colors.length)],
-            delay: Math.random() * 0.5
-        }));
-        show = true;
-        setTimeout(() => {
-            show = false;
-            particles = [];
-        }, 4000);
+    // Dialog 닫힐 때 상태 정리
+    $effect(() => {
+        if (!dialogOpen && levelupDetect.showCelebration) {
+            levelupDetect.dismissCelebration();
+        }
+    });
+
+    async function launchConfetti() {
+        try {
+            const confetti = (await import('canvas-confetti')).default;
+            // 첫 번째 발사 — 왼쪽에서
+            confetti({
+                particleCount: 80,
+                spread: 70,
+                origin: { x: 0.2, y: 0.6 },
+                colors: ['#FFD700', '#FF6B6B', '#4ECDC4', '#45B7D1', '#DDA0DD']
+            });
+            // 두 번째 발사 — 오른쪽에서
+            setTimeout(() => {
+                confetti({
+                    particleCount: 80,
+                    spread: 70,
+                    origin: { x: 0.8, y: 0.6 },
+                    colors: ['#FFD700', '#FFEAA7', '#96CEB4', '#F7DC6F', '#BB8FCE']
+                });
+            }, 200);
+            // 세 번째 발사 — 위에서 쏟아지기
+            setTimeout(() => {
+                confetti({
+                    particleCount: 100,
+                    spread: 160,
+                    startVelocity: 30,
+                    origin: { x: 0.5, y: 0 },
+                    colors: ['#FFD700', '#FF6B6B', '#4ECDC4', '#45B7D1', '#DDA0DD', '#98D8C8']
+                });
+            }, 500);
+        } catch {
+            // canvas-confetti 로드 실패 시 무시
+        }
+    }
+
+    function playFanfare() {
+        try {
+            const audio = new Audio('/sounds/levelup-fanfare.mp3');
+            audio.volume = 0.5;
+            audio.play().catch(() => {
+                // autoplay 차단 시 무시 (모바일 등)
+            });
+        } catch {
+            // 사운드 재생 실패 시 무시
+        }
+    }
+
+    function handleClose() {
+        dialogOpen = false;
     }
 
     onMount(() => {
+        // localStorage 기반 레벨업 감지
+        if (authStore.user?.mb_level) {
+            levelupDetect.checkLevelUp(authStore.user.mb_level);
+        }
+
+        // SSE 보조 리스너 (관리자 수동 승급 시)
         const unsub = sseStore.onNotification((noti) => {
             if (noti.type === 'levelup') {
                 const match = noti.content?.match(/레벨\s*(\d+)/);
-                triggerCelebration(match ? parseInt(match[1]) : 0);
+                levelupDetect.triggerCelebration(match ? parseInt(match[1]) : 0);
             }
         });
         return unsub;
     });
 </script>
 
-{#if show}
-    <div class="pointer-events-none fixed inset-0 z-[9999]" aria-hidden="true">
-        <!-- 꽃가루/confetti 파티클 -->
-        {#each particles as p (p.id)}
-            <div
-                class="confetti-particle absolute"
-                style="left:{p.x}%;top:-5%;background:{p.color};animation-delay:{p.delay}s"
-            ></div>
-        {/each}
-
-        <!-- 중앙 배너 -->
-        <div class="flex h-full items-center justify-center">
-            <div class="levelup-banner rounded-2xl bg-black/80 px-8 py-6 text-center shadow-2xl">
-                <div class="mb-2 flex items-center justify-center gap-2">
-                    <Star class="h-8 w-8 text-yellow-400" />
-                    <Star class="h-6 w-6 text-yellow-300" />
-                    <Star class="h-8 w-8 text-yellow-400" />
-                </div>
-                <p class="text-lg font-bold text-white">레벨 업!</p>
-                {#if level > 0}
-                    <p class="mt-1 text-3xl font-black text-yellow-400">Lv. {level}</p>
-                {/if}
+<Dialog.Root bind:open={dialogOpen}>
+    <Dialog.Content
+        class="border-yellow-400/30 bg-gradient-to-b from-yellow-50 to-white sm:max-w-md dark:from-yellow-950/20 dark:to-zinc-950"
+    >
+        <Dialog.Header class="text-center">
+            <div class="mx-auto mb-3 flex items-center justify-center gap-2">
+                <Star class="h-7 w-7 animate-pulse text-yellow-400" />
+                <PartyPopper class="h-8 w-8 text-yellow-500" />
+                <Star class="h-7 w-7 animate-pulse text-yellow-400" />
             </div>
+            <Dialog.Title class="text-xl font-bold text-yellow-600 dark:text-yellow-400">
+                등급이 올랐어요!
+            </Dialog.Title>
+            <Dialog.Description class="text-muted-foreground mt-2 text-sm">
+                꾸준히 활동해주셔서 감사합니다
+            </Dialog.Description>
+        </Dialog.Header>
+
+        <div class="flex flex-col items-center gap-4 py-4">
+            <!-- 레벨 표시 -->
+            <div class="flex items-center gap-3">
+                {#if levelupDetect.previousLevel > 0}
+                    <span class="text-muted-foreground/50 text-2xl font-bold">
+                        Lv.{levelupDetect.previousLevel}
+                    </span>
+                    <span class="text-muted-foreground text-xl">→</span>
+                {/if}
+                <span class="text-4xl font-black text-yellow-500 dark:text-yellow-400">
+                    Lv.{levelupDetect.newLevel}
+                </span>
+            </div>
+
+            <!-- 축하 메시지 -->
+            <p class="text-muted-foreground text-center text-sm leading-relaxed">
+                축하드려요! 앞으로도 즐거운 활동 부탁드립니다.
+            </p>
         </div>
-    </div>
-{/if}
 
-<style>
-    .confetti-particle {
-        width: 8px;
-        height: 8px;
-        border-radius: 2px;
-        animation: confetti-fall 2.5s ease-in forwards;
-    }
-
-    @keyframes confetti-fall {
-        0% {
-            transform: translateY(0) rotate(0deg) scale(1);
-            opacity: 1;
-        }
-        100% {
-            transform: translateY(110vh) rotate(720deg) scale(0.3);
-            opacity: 0;
-        }
-    }
-
-    .levelup-banner {
-        animation: levelup-pop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-    }
-
-    @keyframes levelup-pop {
-        0% {
-            transform: scale(0);
-            opacity: 0;
-        }
-        100% {
-            transform: scale(1);
-            opacity: 1;
-        }
-    }
-</style>
+        <Dialog.Footer class="sm:justify-center">
+            <Button onclick={handleClose} class="min-w-[120px]">확인</Button>
+        </Dialog.Footer>
+    </Dialog.Content>
+</Dialog.Root>

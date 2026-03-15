@@ -60,6 +60,10 @@ function initFromSSR(
             user.mb_image = ssrUser.mb_image;
             user.mb_image_updated_at = ssrUser.mb_image_updated_at;
         }
+        // 레벨 변경 동기화 (승급 감지를 위해)
+        if (ssrUser.level !== user.mb_level) {
+            user.mb_level = ssrUser.level;
+        }
         isLoading = false;
         return;
     }
