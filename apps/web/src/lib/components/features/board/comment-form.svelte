@@ -1,7 +1,7 @@
 <script lang="ts">
     import { untrack } from 'svelte';
     import { Button } from '$lib/components/ui/button/index.js';
-    import { Checkbox } from '$lib/components/ui/checkbox/index.js';
+
     import { authStore } from '$lib/stores/auth.svelte.js';
     import {
         canUseCertifiedAction,
@@ -77,7 +77,6 @@
     });
 
     let content = $state('');
-    let isSecret = $state(false);
     let error = $state<string | null>(null);
     let editorRef = $state<any>(null);
     let fileInputRef = $state<HTMLInputElement | null>(null);
@@ -135,10 +134,9 @@
 
         try {
             const submitContent = await stripAdminMentions(convertEmoticonImages(content.trim()));
-            await onSubmit(submitContent, parentId, isSecret);
+            await onSubmit(submitContent, parentId, false);
             content = '';
             editorRef?.clear();
-            isSecret = false;
         } catch (err) {
             error = err instanceof Error ? err.message : '댓글 작성에 실패했습니다.';
         }
@@ -146,7 +144,6 @@
 
     function handleCancel(): void {
         content = '';
-        isSecret = false;
         error = null;
         onCancel?.();
     }
@@ -292,16 +289,6 @@
                     />
 
                     <div class="ml-auto flex items-center gap-2">
-                        {#if (authStore.user?.mb_level ?? 0) >= 10}
-                            <label
-                                class="text-muted-foreground flex cursor-pointer items-center gap-2 text-sm"
-                            >
-                                <Checkbox bind:checked={isSecret} disabled={isLoading} />
-                                <Lock class="h-3.5 w-3.5" />
-                                <span>비밀댓글</span>
-                            </label>
-                        {/if}
-
                         {#if isReplyMode}
                             <Button type="button" variant="ghost" size="sm" onclick={handleCancel}>
                                 <X class="mr-1 h-4 w-4" />

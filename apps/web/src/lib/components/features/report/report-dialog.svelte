@@ -12,16 +12,10 @@
     } from '$lib/components/ui/dialog/index.js';
     import { apiClient } from '$lib/api/index.js';
     import { authStore } from '$lib/stores/auth.svelte.js';
-    import type {
-        ReportTargetType,
-        ReportReason,
-        ReportReasonInfo,
-        CommentReportInfo
-    } from '$lib/api/types.js';
+    import type { ReportTargetType, ReportReason, ReportReasonInfo } from '$lib/api/types.js';
     import AlertTriangle from '@lucide/svelte/icons/alert-triangle';
     import Loader2 from '@lucide/svelte/icons/loader-2';
     import CheckCircle from '@lucide/svelte/icons/check-circle';
-    import Users from '@lucide/svelte/icons/users';
 
     interface Props {
         open?: boolean;
@@ -76,12 +70,6 @@
     let isSuccess = $state(false);
     let showConfirm = $state(false);
     let error = $state<string | null>(null);
-
-    // 관리자 신고자 목록
-    const isAdmin = $derived((authStore.user?.mb_level ?? 0) >= 10);
-    let showReporters = $state(false);
-    let reporters = $state<CommentReportInfo[]>([]);
-    let isLoadingReporters = $state(false);
 
     // 제출 가능 여부
     const canSubmit = $derived(selectedReasons.size > 0);
@@ -140,8 +128,6 @@
         isSuccess = false;
         showConfirm = false;
         error = null;
-        showReporters = false;
-        reporters = [];
         onClose?.();
     }
 
@@ -151,28 +137,6 @@
         if (next.has(reason)) next.delete(reason);
         else next.add(reason);
         selectedReasons = next;
-    }
-
-    // 관리자: 신고자 목록 로드
-    async function loadReporters(): Promise<void> {
-        if (showReporters) {
-            showReporters = false;
-            return;
-        }
-        isLoadingReporters = true;
-        try {
-            reporters = await apiClient.getCommentReports(boardId, postId);
-            // 해당 대상만 필터
-            if (targetType === 'comment') {
-                reporters = reporters.filter((r) => String(r.comment_id) === String(targetId));
-            }
-            showReporters = true;
-        } catch {
-            reporters = [];
-            showReporters = true;
-        } finally {
-            isLoadingReporters = false;
-        }
     }
 </script>
 
@@ -200,48 +164,6 @@
         {:else}
             <!-- 신고 사유 선택 -->
             <div class="space-y-3 py-3">
-                <!-- 관리자: 신고자 목록 버튼 (신고 있을 때만) -->
-                {#if isAdmin && reportCount > 0}
-                    <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        class="w-full gap-2"
-                        onclick={loadReporters}
-                        disabled={isLoadingReporters}
-                    >
-                        {#if isLoadingReporters}
-                            <Loader2 class="h-4 w-4 animate-spin" />
-                        {:else}
-                            <Users class="h-4 w-4" />
-                        {/if}
-                        신고자 목록 ({reportCount}건)
-                    </Button>
-
-                    {#if showReporters}
-                        <div class="bg-muted/50 max-h-40 space-y-1 overflow-y-auto rounded-lg p-3">
-                            {#if reporters.length === 0}
-                                <p class="text-muted-foreground text-center text-sm">
-                                    신고 내역이 없습니다.
-                                </p>
-                            {:else}
-                                {#each reporters as r}
-                                    <div class="flex items-center justify-between text-sm">
-                                        <span class="text-foreground font-medium"
-                                            >{r.reporter_name}</span
-                                        >
-                                        <span class="text-muted-foreground text-xs">
-                                            {r.reason_label} &middot; {new Date(
-                                                r.created_at
-                                            ).toLocaleDateString('ko-KR')}
-                                        </span>
-                                    </div>
-                                {/each}
-                            {/if}
-                        </div>
-                    {/if}
-                {/if}
-
                 <div class="space-y-2">
                     <Label
                         >신고 사유를 선택해주세요 <span class="text-muted-foreground font-normal"

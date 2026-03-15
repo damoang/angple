@@ -69,7 +69,7 @@
         board,
         boardId,
         isAuthor,
-        isAdmin,
+        isAdmin: _isAdmin,
         canViewSecret,
         likeCount,
         dislikeCount,

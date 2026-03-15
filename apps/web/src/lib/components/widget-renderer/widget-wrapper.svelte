@@ -7,7 +7,7 @@
      */
     import { widgetLayoutStore, type WidgetConfig } from '$lib/stores/widget-layout.svelte';
     import { getWidgetName } from '$lib/utils/widget-component-loader';
-    import { authStore } from '$lib/stores/auth.svelte';
+
     import GripVertical from '@lucide/svelte/icons/grip-vertical';
     import Trash2 from '@lucide/svelte/icons/trash-2';
     import EyeOff from '@lucide/svelte/icons/eye-off';
@@ -25,7 +25,6 @@
     const { widget, zone, children }: Props = $props();
 
     const isEditMode = $derived(widgetLayoutStore.isEditMode);
-    const isAdmin = $derived((authStore.user?.mb_level ?? 0) >= 10);
     let settingsOpen = $state(false);
 
     function handleRemove() {
@@ -95,20 +94,6 @@
                 </button>
             </div>
         </div>
-    {:else if isAdmin}
-        <!-- 관리자: 비편집 모드에서도 톱니바퀴 표시 -->
-        <div
-            class="absolute right-2 top-1 z-10 opacity-0 transition-opacity hover:opacity-100 group-hover/widget:opacity-100"
-        >
-            <button
-                type="button"
-                onclick={() => (settingsOpen = true)}
-                class="bg-muted/80 text-muted-foreground hover:bg-accent rounded p-1 transition-all duration-200 ease-out"
-                title="위젯 설정"
-            >
-                <SettingsIcon class="h-3.5 w-3.5" />
-            </button>
-        </div>
     {/if}
 
     <!-- 위젯 콘텐츠 -->
@@ -119,7 +104,7 @@
     </div>
 </div>
 
-{#if isEditMode || isAdmin}
+{#if isEditMode}
     <WidgetSettingsDialog
         {widget}
         {zone}

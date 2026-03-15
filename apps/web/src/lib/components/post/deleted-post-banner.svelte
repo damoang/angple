@@ -1,29 +1,13 @@
 <script lang="ts">
     import AlertTriangle from '@lucide/svelte/icons/alert-triangle';
-    import RotateCcw from '@lucide/svelte/icons/rotate-ccw';
-    import { Button } from '$lib/components/ui/button/index.js';
 
     interface Props {
         postId: string | number;
         deletedAt?: string;
         deletedBy?: string;
-        isAdmin?: boolean;
-        onRestore?: (postId: string | number) => Promise<void> | void;
     }
 
-    let { postId, deletedAt, deletedBy, isAdmin = false, onRestore }: Props = $props();
-
-    let isRestoring = $state(false);
-
-    async function handleRestore() {
-        if (!onRestore || isRestoring) return;
-        isRestoring = true;
-        try {
-            await onRestore(postId);
-        } finally {
-            isRestoring = false;
-        }
-    }
+    let { postId: _postId, deletedAt, deletedBy }: Props = $props();
 
     const formattedDate = $derived(deletedAt ? new Date(deletedAt).toLocaleString('ko-KR') : null);
 </script>
@@ -47,17 +31,5 @@
                 </p>
             {/if}
         </div>
-        {#if isAdmin && onRestore}
-            <Button
-                variant="outline"
-                size="sm"
-                onclick={handleRestore}
-                disabled={isRestoring}
-                class="shrink-0 border-red-300 text-red-700 hover:bg-red-100 dark:border-red-700 dark:text-red-300 dark:hover:bg-red-900"
-            >
-                <RotateCcw class="mr-1.5 h-4 w-4" />
-                {isRestoring ? '복구 중...' : '복구'}
-            </Button>
-        {/if}
     </div>
 </div>

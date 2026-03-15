@@ -64,7 +64,8 @@ export interface ViewLayoutProps {
 
     // 작성자/권한
     isAuthor: boolean;
-    isAdmin: boolean;
+    /** @deprecated 공개 페이지에서 관리자 분기 제거됨. 항상 false 전달. */
+    isAdmin?: boolean;
     canViewSecret: boolean;
     promotionExpired?: boolean;
 

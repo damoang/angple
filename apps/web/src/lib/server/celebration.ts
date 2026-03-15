@@ -7,6 +7,7 @@
 import type { RowDataPacket } from 'mysql2';
 import pool from '$lib/server/db';
 import { createCache } from '$lib/server/cache';
+import { env } from '$env/dynamic/private';
 
 export interface CelebrationBanner {
     id: number;
@@ -25,9 +26,11 @@ export interface CelebrationBanner {
     display_type: 'image' | 'text';
 }
 
+const CDN_BASE = (env.CDN_URL || env.VITE_S3_URL || 'https://s3.damoang.net').replace(/\/$/, '');
+
 function getMemberPhotoUrl(mbImageUrl: string | null | undefined): string | undefined {
     if (!mbImageUrl) return undefined;
-    return `https://s3.damoang.net/${mbImageUrl}`;
+    return `${CDN_BASE}/${mbImageUrl}`;
 }
 
 function extractFirstImage(content: string): string | null {
@@ -36,7 +39,7 @@ function extractFirstImage(content: string): string | null {
     if (imgMatch && imgMatch[1]) {
         let imgUrl = imgMatch[1];
         if (imgUrl.startsWith('/data/')) {
-            imgUrl = 'https://s3.damoang.net' + imgUrl;
+            imgUrl = CDN_BASE + imgUrl;
         }
         return imgUrl;
     }
