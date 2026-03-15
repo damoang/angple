@@ -40,6 +40,7 @@
     import AdSlot from '$lib/components/ui/ad-slot/ad-slot.svelte';
     import EconomyShoppingBanner from '$lib/components/features/board/economy-shopping-banner.svelte';
     import Info from '@lucide/svelte/icons/info';
+    import Pin from '@lucide/svelte/icons/pin';
     import ShareButton from '$lib/components/post/share-button.svelte';
     import type { ViewLayoutProps } from '../types.js';
 
@@ -116,6 +117,9 @@
             <CardTitle
                 class="text-foreground flex items-center gap-2 text-xl font-bold sm:text-2xl"
             >
+                {#if post.is_notice}
+                    <Pin class="text-primary h-5 w-5 shrink-0" />
+                {/if}
                 {#if post.is_secret}
                     <Lock class="text-muted-foreground h-6 w-6 shrink-0" />
                 {/if}
