@@ -108,6 +108,7 @@
     let likedComments = new SvelteSet<string>();
     let commentLikes = new SvelteMap<string, number>();
     let likingComment = $state<string | null>(null);
+    let animatingComments = new SvelteSet<string>();
 
     // 댓글별 비추천 상태 관리 (SSR 스트리밍 데이터 반영)
     let dislikedComments = new SvelteSet<string>();
@@ -415,6 +416,9 @@
             const response = await onLike(commentId);
             if (response.user_liked) {
                 likedComments.add(commentId);
+                // 좋아요 애니메이션 트리거
+                animatingComments.add(commentId);
+                setTimeout(() => animatingComments.delete(commentId), 1000);
             } else {
                 likedComments.delete(commentId);
             }
@@ -956,6 +960,8 @@
                                         <Heart
                                             class="h-5 w-5 {isCommentLiked(String(comment.id))
                                                 ? 'fill-liked text-liked'
+                                                : ''} {animatingComments.has(String(comment.id))
+                                                ? 'like-animation'
                                                 : ''}"
                                         />
                                         <span class="font-semibold"
@@ -1193,6 +1199,8 @@
                                 <Heart
                                     class="h-3.5 w-3.5 {isCommentLiked(String(comment.id))
                                         ? 'fill-liked text-liked'
+                                        : ''} {animatingComments.has(String(comment.id))
+                                        ? 'like-animation'
                                         : ''}"
                                 />
                                 <span class="font-semibold"
@@ -1516,5 +1524,25 @@
     }
     :global(.comment-body .spoiler-content) {
         padding: 0.5rem 0.625rem;
+    }
+
+    /* 좋아요 버튼 애니메이션 */
+    @keyframes da-thumbs-up {
+        0% {
+            transform: scale(1) translateX(0) rotate(0deg) translateY(0);
+        }
+        40% {
+            transform: scale(1.2) translateX(-1px) rotate(-19deg) translateY(-4px);
+        }
+        85% {
+            transform: scale(1) translateX(0) rotate(3deg) translateY(1px);
+        }
+        100% {
+            transform: scale(1) translateX(0) rotate(0deg) translateY(0);
+        }
+    }
+
+    :global(.like-animation) {
+        animation: da-thumbs-up 1s ease-in-out;
     }
 </style>
