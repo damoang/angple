@@ -13,7 +13,7 @@ import type { RequestHandler } from './$types';
 import type { RowDataPacket } from 'mysql2';
 import pool from '$lib/server/db';
 
-const S3_URL = import.meta.env.VITE_S3_URL || '';
+const S3_URL = (import.meta.env.VITE_S3_URL || 'https://s3.damoang.net').replace(/\/$/, '');
 
 interface BannerRow extends RowDataPacket {
     wr_id: number;
@@ -49,7 +49,9 @@ function normalizeImageUrl(url: string): string {
     if (path.startsWith('./')) path = path.slice(2);
     if (!path.startsWith('/')) path = '/' + path;
 
-    return `${S3_URL}${path}`;
+    if (path.startsWith('/data/')) return `${S3_URL}${path}`;
+
+    return path;
 }
 
 export const GET: RequestHandler = async ({ url }) => {
