@@ -122,14 +122,19 @@
         );
     }
 
+    let isSubmitting = $state(false);
+
     async function handleSubmit(e: Event): Promise<void> {
         e.preventDefault();
+
+        if (isSubmitting || isLoading) return;
 
         if (!canSubmit) {
             error = '댓글 내용을 입력해주세요.';
             return;
         }
 
+        isSubmitting = true;
         error = null;
 
         try {
@@ -139,6 +144,8 @@
             editorRef?.clear();
         } catch (err) {
             error = err instanceof Error ? err.message : '댓글 작성에 실패했습니다.';
+        } finally {
+            isSubmitting = false;
         }
     }
 
@@ -298,10 +305,10 @@
                         <Button
                             type="submit"
                             size="sm"
-                            disabled={isLoading || !canSubmit}
+                            disabled={isLoading || isSubmitting || !canSubmit}
                             title="Alt+Enter / Ctrl+Enter"
                         >
-                            {#if isLoading}
+                            {#if isLoading || isSubmitting}
                                 작성 중...
                             {:else}
                                 <Send class="mr-2 h-4 w-4" />

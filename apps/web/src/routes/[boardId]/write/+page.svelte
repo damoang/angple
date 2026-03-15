@@ -61,6 +61,7 @@
 
     // 글 작성 핸들러
     async function handleSubmit(formData: CreatePostRequest | UpdatePostRequest): Promise<void> {
+        if (isSubmitting) return;
         if (!authStore.user) {
             error = '로그인이 필요합니다.';
             return;
