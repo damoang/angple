@@ -861,7 +861,7 @@
                                     class="text-muted-foreground flex items-center gap-2 px-4 py-3 text-sm"
                                 >
                                     <Trash2 class="h-4 w-4 shrink-0" />
-                                    삭제된 메시지입니다.
+                                    삭제된 글입니다.
                                 </div>
                             {:else if bulkSelectMode}
                                 <div class="flex items-start gap-2">
