@@ -76,13 +76,17 @@
             <Home class={iconSize} />
         </button>
 
-        <!-- 고정 버튼: 댓글 새로고침 -->
+        <!-- 고정 버튼: 댓글로 이동 + 새로고침 -->
         <button
             type="button"
             class="shortcut-btn"
             style="width:{btnSize};height:{btnSize}"
-            title="댓글 새로고침"
-            onclick={() => window.dispatchEvent(new CustomEvent('comment-refresh'))}
+            title="댓글로 이동"
+            onclick={() => {
+                const el = document.getElementById('comments');
+                if (el) el.scrollIntoView({ behavior: 'smooth' });
+                window.dispatchEvent(new CustomEvent('comment-refresh'));
+            }}
         >
             <MessageSquare class={iconSize} />
         </button>
