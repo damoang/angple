@@ -27,6 +27,7 @@
     import Camera from '@lucide/svelte/icons/camera';
     import X from '@lucide/svelte/icons/x';
     import { LevelBadge } from '$lib/components/ui/level-badge/index.js';
+    import { getGradeName } from '$lib/utils/grade.js';
     import type { Component } from 'svelte';
     import { pluginStore } from '$lib/stores/plugin.svelte';
     import { loadPluginComponent } from '$lib/utils/plugin-optional-loader';
@@ -392,8 +393,9 @@
                             {/if}
                         </div>
                         <p class="text-muted-foreground text-sm">{p.mb_id}</p>
-                        <div class="mt-1">
-                            <LevelBadge level={p.mb_level} />
+                        <div class="mt-1 flex items-center gap-1.5">
+                            <LevelBadge level={p.as_level} />
+                            <span class="text-sm">{getGradeName(p.mb_level)}</span>
                         </div>
                     </div>
                 </div>

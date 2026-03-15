@@ -1,8 +1,11 @@
 import { redirect, type Handle, type HandleServerError } from '@sveltejs/kit';
 import { dev } from '$app/environment';
 import { env } from '$env/dynamic/private';
-import { getMemberById } from '$lib/server/auth/oauth/member.js';
+import { getMemberById, updateLoginTimestamp } from '$lib/server/auth/oauth/member.js';
 import { getSession, SESSION_COOKIE_NAME } from '$lib/server/auth/session-store.js';
+import { grantLoginXP } from '$lib/server/auth/xp-grant.js';
+import { grantLoginPoint } from '$lib/server/auth/point-grant.js';
+import { checkAndPromoteMember } from '$lib/server/auth/auto-promotion.js';
 import { generateAccessToken } from '$lib/server/auth/jwt.js';
 import { setDamoangSSOCookie } from '$lib/server/auth/sso-cookie.js';
 import { checkRateLimit, recordAttempt } from '$lib/server/rate-limit.js';
@@ -210,6 +213,31 @@ async function authenticateSSR(event: Parameters<Handle>[0]['event']): Promise<v
                             }
                         }
                         jwtCache.set(session.mbId, { token, expiry: now + JWT_CACHE_TTL });
+                    }
+
+                    // 일일 로그인 갱신: mb_today_login이 오늘이 아니면 업데이트 + XP/포인트/승급
+                    // 페이지 네비게이션 요청에서만 실행 (API/데이터 요청 제외)
+                    if (!event.url.pathname.startsWith('/api/') && !isSvelteKitDataRequest(event)) {
+                        const todayStr = new Date().toISOString().split('T')[0];
+                        const lastLogin = member.mb_today_login
+                            ? member.mb_today_login.split(' ')[0].split('T')[0]
+                            : '';
+                        if (lastLogin !== todayStr) {
+                            const clientIp = event.getClientAddress();
+                            // fire-and-forget: 응답 지연 방지
+                            void (async () => {
+                                try {
+                                    await updateLoginTimestamp(member.mb_id, clientIp);
+                                    await Promise.allSettled([
+                                        grantLoginXP(member.mb_id),
+                                        grantLoginPoint(member.mb_id),
+                                        checkAndPromoteMember(member.mb_id)
+                                    ]);
+                                } catch {
+                                    // 로그인 갱신 실패는 무시
+                                }
+                            })();
+                        }
                     }
 
                     // 서브도메인 SSO: damoang_jwt 쿠키 자동 갱신
