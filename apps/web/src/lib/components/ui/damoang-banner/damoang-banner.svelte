@@ -238,7 +238,11 @@
                 class="flex items-center justify-center rounded-lg border border-dashed border-slate-200 bg-slate-50/50 dark:border-slate-700 dark:bg-slate-800/30"
                 style:min-height="40px"
             >
-                <p class="text-[10px] text-slate-400 dark:text-slate-500">축하메시지가 없습니다</p>
+                <a
+                    href="/message"
+                    class="text-[10px] text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300"
+                    >축하메시지가 없습니다</a
+                >
             </div>
         {:else}
             <!-- GAM 폴백 -->
