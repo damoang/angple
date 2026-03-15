@@ -9,6 +9,7 @@ env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ghcr.io/damoang/angple-web
   STATIC_ASSET_BASE_ROOT: https://static.damoang.net/releases
+  MEDIA_CDN_BASE: https://cdn.damoang.net
 
 concurrency:
   group: deploy-main-web
@@ -66,10 +67,12 @@ jobs:
           VITE_USE_MOCK: 'false'
           VITE_GAM_NETWORK_CODE: '23338387889'
           VITE_GAM_SITE_NAME: 'damoang'
+          VITE_S3_URL: ${{ env.MEDIA_CDN_BASE }}
         run: |
           pnpm --filter "./packages/*" build
           echo "VITE_GAM_NETWORK_CODE=23338387889" > apps/web/.env
           echo "VITE_GAM_SITE_NAME=damoang" >> apps/web/.env
+          echo "VITE_S3_URL=${VITE_S3_URL}" >> apps/web/.env
           pnpm --filter web build
 
       - name: Set image tags

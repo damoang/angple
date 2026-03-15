@@ -14,6 +14,7 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import type { RowDataPacket } from 'mysql2';
+import { env } from '$env/dynamic/private';
 import pool from '$lib/server/db';
 
 interface FileRow extends RowDataPacket {
@@ -28,7 +29,8 @@ interface FileRow extends RowDataPacket {
 
 const IMAGE_EXTENSIONS = /\.(jpg|jpeg|png|gif|webp|bmp|svg|avif)$/i;
 const VIDEO_EXTENSIONS = /\.(mp4|m4v|webm|mov|avi|mkv|f4v|flv)$/i;
-const S3_BASE = 'https://s3.damoang.net/data/file';
+const CDN_BASE = (env.CDN_URL || env.VITE_S3_URL || 'https://s3.damoang.net').replace(/\/$/, '');
+const S3_BASE = `${CDN_BASE}/data/file`;
 
 export const GET: RequestHandler = async ({ params }) => {
     const { boardId, postId } = params;

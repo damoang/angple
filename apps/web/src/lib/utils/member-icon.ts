@@ -3,7 +3,7 @@
  * DB(mb_image_url)에 저장된 S3 경로만 사용. 추측 경로 없음.
  */
 
-const CDN_BASE_URL = 'https://s3.damoang.net';
+const CDN_BASE_URL = (import.meta.env.VITE_S3_URL || 'https://s3.damoang.net').replace(/\/$/, '');
 
 /**
  * mb_image_url(DB)로 전체 URL 생성

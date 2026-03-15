@@ -11,7 +11,7 @@ import { env } from '$env/dynamic/private';
 
 const S3_REGION = env.S3_REGION || 'ap-northeast-2';
 const S3_BUCKET = env.S3_BUCKET || 'damoang-data-v1';
-const CDN_BASE = 'https://s3.damoang.net';
+const CDN_BASE = (env.CDN_URL || env.VITE_S3_URL || 'https://s3.damoang.net').replace(/\/$/, '');
 
 // S3 클라이언트 (EC2 IAM Role 자동 인증)
 const s3 = new S3Client({ region: S3_REGION });
