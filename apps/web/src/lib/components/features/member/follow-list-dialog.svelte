@@ -8,6 +8,7 @@
         mb_id: string;
         mb_nick: string;
         mb_image: string;
+        mb_image_updated_at?: string;
         mb_level: number;
         followed_at: string;
     }
@@ -73,7 +74,10 @@
             {:else}
                 <ul class="divide-border divide-y">
                     {#each members as member (member.mb_id)}
-                        {@const avatarUrl = getAvatarUrl(member.mb_image)}
+                        {@const avatarUrl = getAvatarUrl(
+                            member.mb_image,
+                            member.mb_image_updated_at
+                        )}
                         <li class="py-3">
                             <div class="flex items-center gap-3">
                                 {#if avatarUrl}

@@ -755,7 +755,11 @@
         {@const isReply = depth > 0}
         {@const iconUrl = isDeleted
             ? null
-            : getAvatarUrl((comment as FreeComment & { author_image?: string }).author_image)}
+            : getAvatarUrl(
+                  (comment as FreeComment & { author_image?: string }).author_image,
+                  (comment as FreeComment & { author_image_updated_at?: string })
+                      .author_image_updated_at
+              )}
 
         <!-- 차단된 사용자 댓글 (접힌 상태) -->
         {#if isBlocked && !expandedBlockedComments.has(String(comment.id))}

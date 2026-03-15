@@ -1516,9 +1516,12 @@
                         <li class="py-3">
                             <div class="flex items-center gap-3">
                                 <!-- 프로필 이미지 -->
-                                {#if getAvatarUrl(liker.mb_image)}
+                                {#if getAvatarUrl(liker.mb_image, liker.mb_image_updated_at)}
                                     <img
-                                        src={getAvatarUrl(liker.mb_image)}
+                                        src={getAvatarUrl(
+                                            liker.mb_image,
+                                            liker.mb_image_updated_at
+                                        )}
                                         alt={liker.mb_nick || liker.mb_name}
                                         class="size-8 rounded-full object-cover"
                                         onerror={(e) => {

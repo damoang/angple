@@ -47,6 +47,7 @@ export const load: PageServerLoad = async ({ locals }) => {
                   mb_mailling: memberProfile.mb_mailling,
                   mb_level: memberProfile.mb_level,
                   mb_image_url: memberProfile.mb_image_url || '',
+                  mb_image_updated_at: memberProfile.mb_image_updated_at || '',
                   mb_certify: memberProfile.mb_certify || ''
               }
             : null,

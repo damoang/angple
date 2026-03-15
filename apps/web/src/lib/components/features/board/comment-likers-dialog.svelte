@@ -97,7 +97,7 @@
             {:else}
                 <ul class="divide-border divide-y">
                     {#each likers as liker (liker.mb_id)}
-                        {@const likerIcon = getAvatarUrl(liker.mb_image)}
+                        {@const likerIcon = getAvatarUrl(liker.mb_image, liker.mb_image_updated_at)}
                         <li class="py-3">
                             <div class="flex items-center gap-3">
                                 {#if likerIcon}

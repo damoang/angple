@@ -14,7 +14,7 @@ import {
 } from '$lib/server/viewcount.js';
 import { fetchReactionsByParentId } from '$lib/server/reactions.js';
 import { fetchMemberLevels } from '$lib/server/member-levels.js';
-import { fetchMemberImages } from '$lib/server/member-images.js';
+import { fetchMemberImagesWithTimestamp } from '$lib/server/member-images.js';
 import { fetchCommentLikeStatuses } from '$lib/server/comment-likes.js';
 
 import { fetchPostLikeStatus } from '$lib/server/post-like-status.js';
@@ -131,9 +131,10 @@ export const load: PageServerLoad = async ({
         // 게시글 작성자 프로필 이미지 즉시 조회 (1단계 — 본문 렌더에 필요)
         if (post.author_id && !post.author_image) {
             try {
-                const imgMap = await fetchMemberImages([post.author_id]);
+                const imgMap = await fetchMemberImagesWithTimestamp([post.author_id]);
                 if (imgMap[post.author_id]) {
-                    post.author_image = imgMap[post.author_id];
+                    post.author_image = imgMap[post.author_id].url;
+                    post.author_image_updated_at = imgMap[post.author_id].updated_at;
                 }
             } catch {
                 // 실패해도 정상 진행
@@ -303,13 +304,15 @@ export const load: PageServerLoad = async ({
                     if (c.author_id) imgIds.add(c.author_id);
                 }
                 if (imgIds.size > 0) {
-                    const imageMap = await fetchMemberImages([...imgIds]);
+                    const imageMap = await fetchMemberImagesWithTimestamp([...imgIds]);
                     if (post.author_id && imageMap[post.author_id]) {
-                        post.author_image = imageMap[post.author_id];
+                        post.author_image = imageMap[post.author_id].url;
+                        post.author_image_updated_at = imageMap[post.author_id].updated_at;
                     }
                     for (const c of comments.items || []) {
                         if (c.author_id && imageMap[c.author_id]) {
-                            c.author_image = imageMap[c.author_id];
+                            c.author_image = imageMap[c.author_id].url;
+                            c.author_image_updated_at = imageMap[c.author_id].updated_at;
                         }
                     }
                 }

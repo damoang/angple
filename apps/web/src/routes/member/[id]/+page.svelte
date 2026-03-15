@@ -60,7 +60,9 @@
     const p = $derived(data.profile);
 
     let overrideImageUrl = $state<string | null>(null);
-    const profileIconUrl = $derived(overrideImageUrl || getAvatarUrl(p?.mb_image));
+    const profileIconUrl = $derived(
+        overrideImageUrl || getAvatarUrl(p?.mb_image, p?.mb_image_updated_at)
+    );
     let profileIconFailed = $state(false);
     $effect(() => {
         if (p) profileIconFailed = false;

@@ -29,6 +29,7 @@ export interface MemberFullProfile {
     mb_intercept_date: string;
     mb_level: number;
     mb_image_url: string;
+    mb_image_updated_at: string;
     mb_certify: string;
 }
 
@@ -37,7 +38,7 @@ export async function getMemberFullProfile(mbId: string): Promise<MemberFullProf
     const [rows] = await pool.query<RowDataPacket[]>(
         `SELECT mb_id, mb_nick, mb_email, mb_homepage, mb_signature,
 		        mb_open, mb_mailling, mb_nick_date, mb_hp, mb_password,
-		        mb_leave_date, mb_intercept_date, mb_level, mb_image_url, mb_certify
+		        mb_leave_date, mb_intercept_date, mb_level, mb_image_url, mb_image_updated_at, mb_certify
 		 FROM g5_member WHERE mb_id = ? LIMIT 1`,
         [mbId]
     );

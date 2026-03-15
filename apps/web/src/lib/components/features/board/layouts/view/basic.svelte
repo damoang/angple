@@ -193,9 +193,9 @@
 
         <div class="border-border flex flex-wrap items-center gap-4 border-t pt-4">
             <div class="flex items-center gap-2">
-                {#if getAvatarUrl(post.author_image)}
+                {#if getAvatarUrl(post.author_image, post.author_image_updated_at)}
                     <img
-                        src={getAvatarUrl(post.author_image)}
+                        src={getAvatarUrl(post.author_image, post.author_image_updated_at)}
                         alt={post.author}
                         class="size-10 rounded-full object-cover"
                         onerror={(e) => {
