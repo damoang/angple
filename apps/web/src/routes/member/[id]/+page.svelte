@@ -532,10 +532,12 @@
                                     <span>{formatDate(p.mb_nick_date)} 닉네임 수정</span>
                                 </div>
                             {/if}
-                            <div class="flex items-center gap-2">
-                                <Clock class="h-4 w-4 shrink-0" />
-                                <span>{relativeTime(p.mb_today_login)} 최종 접속</span>
-                            </div>
+                            {#if p.mb_level < 10}
+                                <div class="flex items-center gap-2">
+                                    <Clock class="h-4 w-4 shrink-0" />
+                                    <span>{relativeTime(p.mb_today_login)} 최종 접속</span>
+                                </div>
+                            {/if}
                             {#if p.mb_homepage}
                                 <div class="flex items-center gap-2">
                                     <Link class="h-4 w-4 shrink-0" />
