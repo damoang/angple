@@ -25,7 +25,7 @@
     const originalLink = $derived(post.link1 || '');
     const sourceBoard = $derived(post.extra_1 || '');
     const sourcePostId = $derived(post.extra_2 || '');
-    const iconUrl = $derived(getAvatarUrl(post.author_image));
+    const iconUrl = $derived(getAvatarUrl(post.author_image, post.author_image_updated_at));
     const readClass = $derived(
         isRead ? `post-title-read-${readPostStyleStore.value}` : 'post-title'
     );

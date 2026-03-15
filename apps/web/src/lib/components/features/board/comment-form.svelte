@@ -69,7 +69,9 @@
 
     const permissionMessage = $derived(`레벨 ${requiredCommentLevel} 이상 작성 가능`);
 
-    let commentAvatarUrl = $derived(getAvatarUrl(authStore.user?.mb_image) || null);
+    let commentAvatarUrl = $derived(
+        getAvatarUrl(authStore.user?.mb_image, authStore.user?.mb_image_updated_at) || null
+    );
     let commentAvatarFailed = $state(false);
 
     $effect(() => {

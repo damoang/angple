@@ -60,7 +60,7 @@
     );
 
     // 아바타 URL (mb_image 우선 → avatar_url → member_image 경로 폴백)
-    let avatarUrl = $derived(getAvatarUrl(user?.mb_image) || null);
+    let avatarUrl = $derived(getAvatarUrl(user?.mb_image, user?.mb_image_updated_at) || null);
     let avatarFailed = $state(false);
 
     // user 변경 시 실패 상태 리셋

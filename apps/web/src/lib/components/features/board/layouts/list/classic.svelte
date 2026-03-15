@@ -39,7 +39,7 @@
     } = $props();
 
     // 회원 아이콘 URL
-    const iconUrl = $derived(getAvatarUrl(post.author_image));
+    const iconUrl = $derived(getAvatarUrl(post.author_image, post.author_image_updated_at));
 
     /**
      * 추천 색상 단계 — 레거시 rcmd-box 기반

@@ -16,7 +16,9 @@
 
     let { data }: { data: PageData } = $props();
 
-    let myAvatarUrl = $derived(getAvatarUrl(authStore.user?.mb_image) || null);
+    let myAvatarUrl = $derived(
+        getAvatarUrl(authStore.user?.mb_image, authStore.user?.mb_image_updated_at) || null
+    );
     let myAvatarFailed = $state(false);
 
     $effect(() => {

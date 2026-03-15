@@ -185,6 +185,7 @@ export const GET: RequestHandler = async ({ params }) => {
                 mb_level: member.mb_level,
                 mb_point: member.mb_point,
                 mb_image: imageUrl,
+                mb_image_updated_at: member.mb_image_updated_at || '',
                 mb_signature: member.mb_signature || '',
                 mb_homepage: member.mb_homepage || '',
                 mb_profile: member.mb_profile || '',

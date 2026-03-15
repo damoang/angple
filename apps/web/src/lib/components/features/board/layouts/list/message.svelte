@@ -25,7 +25,9 @@
     } = $props();
 
     let showIcon = $state(true);
-    const iconUrl = $derived(showIcon ? getAvatarUrl(post.author_image) : null);
+    const iconUrl = $derived(
+        showIcon ? getAvatarUrl(post.author_image, post.author_image_updated_at) : null
+    );
     const initial = $derived((post.author || '?').charAt(0).toUpperCase());
 
     const isDeleted = $derived(!!post.deleted_at);

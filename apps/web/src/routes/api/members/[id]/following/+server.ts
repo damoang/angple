@@ -11,6 +11,7 @@ interface FollowingRow extends RowDataPacket {
     mb_id: string;
     mb_nick: string;
     mb_image_url: string;
+    mb_image_updated_at: string;
     mb_level: number;
     followed_at: string;
 }
@@ -34,7 +35,7 @@ export const GET: RequestHandler = async ({ params }) => {
         const total = countRows[0]?.count ?? 0;
 
         const [rows] = await readPool.query<FollowingRow[]>(
-            `SELECT f.target_id as mb_id, m.mb_nick, m.mb_image_url, m.mb_level, f.created_at as followed_at
+            `SELECT f.target_id as mb_id, m.mb_nick, m.mb_image_url, m.mb_image_updated_at, m.mb_level, f.created_at as followed_at
 			 FROM g5_member_follow f
 			 JOIN g5_member m ON f.target_id = m.mb_id
 			 WHERE f.mb_id = ?
@@ -51,6 +52,7 @@ export const GET: RequestHandler = async ({ params }) => {
                     mb_id: r.mb_id,
                     mb_nick: r.mb_nick,
                     mb_image: r.mb_image_url || '',
+                    mb_image_updated_at: r.mb_image_updated_at || '',
                     mb_level: r.mb_level,
                     followed_at: r.followed_at
                 }))

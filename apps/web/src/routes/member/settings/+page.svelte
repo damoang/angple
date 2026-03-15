@@ -57,7 +57,9 @@
     let avatarSuccess = $state<string | null>(null);
     let avatarError = $state<string | null>(null);
     let currentAvatarUrl = $state(
-        data.profile?.mb_image_url ? getAvatarUrl(data.profile.mb_image_url) : null
+        data.profile?.mb_image_url
+            ? getAvatarUrl(data.profile.mb_image_url, data.profile?.mb_image_updated_at)
+            : null
     );
     let avatarFormRef = $state<HTMLFormElement | null>(null);
     let avatarUrlInput = $state('');

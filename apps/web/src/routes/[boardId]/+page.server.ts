@@ -4,7 +4,7 @@ import type { FreePost, Board, SearchField } from '$lib/api/types.js';
 import { fetchPromotionPosts, fetchPromotionBoardPosts } from '$lib/server/ads/promotion.js';
 import type { PromotionBoardPost } from '$lib/server/ads/promotion.js';
 import { backendFetch as bFetch, createAuthHeaders } from '$lib/server/backend-fetch.js';
-import { fetchMemberImages } from '$lib/server/member-images.js';
+import { fetchMemberImagesWithTimestamp } from '$lib/server/member-images.js';
 import { fetchWithdrawnMemberIds } from '$lib/server/withdrawn-members.js';
 import { createCache } from '$lib/server/cache.js';
 import { getCachedBoard } from '$lib/server/board-cache.js';
@@ -172,12 +172,13 @@ export const load: PageServerLoad = async ({ url, params, locals, getClientAddre
                 const mbIds = [...new Set(allPosts.map((p) => p.author_id).filter(Boolean))];
                 try {
                     const [imageMap, withdrawnIds] = await Promise.all([
-                        fetchMemberImages(mbIds),
+                        fetchMemberImagesWithTimestamp(mbIds),
                         fetchWithdrawnMemberIds(mbIds)
                     ]);
                     for (const p of allPosts) {
                         if (p.author_id && imageMap[p.author_id]) {
-                            p.author_image = imageMap[p.author_id];
+                            p.author_image = imageMap[p.author_id].url;
+                            p.author_image_updated_at = imageMap[p.author_id].updated_at;
                         }
                         if (p.author_id && withdrawnIds.has(p.author_id)) {
                             p.is_left = true;
@@ -258,12 +259,13 @@ export const load: PageServerLoad = async ({ url, params, locals, getClientAddre
             const mbIds = [...new Set(allPosts.map((p) => p.author_id).filter(Boolean))];
             try {
                 const [imageMap, withdrawnIds] = await Promise.all([
-                    fetchMemberImages(mbIds),
+                    fetchMemberImagesWithTimestamp(mbIds),
                     fetchWithdrawnMemberIds(mbIds)
                 ]);
                 for (const p of allPosts) {
                     if (p.author_id && imageMap[p.author_id]) {
-                        p.author_image = imageMap[p.author_id];
+                        p.author_image = imageMap[p.author_id].url;
+                        p.author_image_updated_at = imageMap[p.author_id].updated_at;
                     }
                     if (p.author_id && withdrawnIds.has(p.author_id)) {
                         p.is_left = true;
