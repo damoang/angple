@@ -129,13 +129,15 @@ export const GET: RequestHandler = async ({ params, url }) => {
             fetchRecentComments(commentsByTable, boardSubjects, limit)
         ]);
 
-        // 원래 순서(bn_id DESC) 유지
+        // 원래 순서(bn_id DESC = 최신순) 유지 + limit 적용 전 정렬
         const postOrder = postCandidates.map((r) => r.wr_id);
         const commentOrder = commentCandidates.map((r) => r.wr_id);
         recentPosts.sort((a, b) => postOrder.indexOf(a.wr_id) - postOrder.indexOf(b.wr_id));
+        recentPosts.splice(limit);
         recentComments.sort(
             (a, b) => commentOrder.indexOf(a.wr_id) - commentOrder.indexOf(b.wr_id)
         );
+        recentComments.splice(limit);
 
         return json({ recentPosts, recentComments });
     } catch (error) {
@@ -148,7 +150,7 @@ export const GET: RequestHandler = async ({ params, url }) => {
 async function fetchRecentPosts(
     postsByTable: Map<string, BoardNewRow[]>,
     boardSubjects: Map<string, string>,
-    limit: number
+    _limit: number
 ) {
     const results: Array<{
         bo_table: string;
@@ -194,14 +196,14 @@ async function fetchRecentPosts(
     }
     await Promise.all(queries);
 
-    return results.slice(0, limit);
+    return results;
 }
 
 /** 게시판별 배치로 최근 댓글 조회 (원글 비밀글/잠금 체크 포함) */
 async function fetchRecentComments(
     commentsByTable: Map<string, BoardNewRow[]>,
     boardSubjects: Map<string, string>,
-    limit: number
+    _limit: number
 ) {
     const results: Array<{
         bo_table: string;
@@ -264,5 +266,5 @@ async function fetchRecentComments(
     }
     await Promise.all(queries);
 
-    return results.slice(0, limit);
+    return results;
 }
