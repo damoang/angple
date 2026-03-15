@@ -242,35 +242,53 @@ export const POST: RequestHandler = async ({ params, request, cookies, getClient
 
         await conn.commit();
 
-        // 좋아요 알림 (추가 시에만)
+        // 좋아요 알림 (추가 시에만, 임계값 체크)
         if (!alreadyExists && action === 'good') {
             const postAuthorId = writeRows[0].mb_id;
             if (postAuthorId && postAuthorId !== user.mb_id) {
                 const userNick = user.mb_nick || user.mb_name || user.mb_id;
                 const postSubject = writeRows[0].wr_subject || '';
-                // 기존 알림 삭제 후 새 알림 (추천→취소→재추천 중복 방지)
-                pool.query(
-                    `DELETE FROM g5_na_noti WHERE bo_table = ? AND wr_id = ? AND rel_mb_id = ? AND ph_from_case = 'good'`,
-                    [safeBoardId, safePostId, user.mb_id]
-                )
-                    .then(() =>
-                        pool.query(
-                            `INSERT INTO g5_na_noti (ph_to_case, ph_from_case, bo_table, wr_id, mb_id, rel_mb_id, rel_mb_nick, rel_msg, rel_url, ph_readed, ph_datetime, parent_subject, wr_parent)
-                     VALUES ('good', 'good', ?, ?, ?, ?, ?, ?, ?, 'N', CONVERT_TZ(UTC_TIMESTAMP(), '+00:00', '+09:00'), ?, ?)`,
-                            [
-                                safeBoardId,
-                                safePostId,
-                                postAuthorId,
-                                user.mb_id,
-                                userNick,
-                                `${userNick}님이 회원님의 글을 추천했습니다.`,
-                                `/${safeBoardId}/${safePostId}`,
-                                postSubject,
-                                safePostId
-                            ]
-                        )
+
+                // 글 작성자의 알림 임계값 조회
+                const [prefRows] = await pool.query<RowDataPacket[]>(
+                    `SELECT like_threshold FROM g5_noti_preference WHERE mb_id = ?`,
+                    [postAuthorId]
+                );
+                const likeThreshold = prefRows[0]?.like_threshold ?? 1;
+
+                // 현재 추천 수 조회
+                const [goodCountRows] = await pool.query<RowDataPacket[]>(
+                    `SELECT wr_good FROM ?? WHERE wr_id = ?`,
+                    [tableName, safePostId]
+                );
+                const currentGood = goodCountRows[0]?.wr_good ?? 0;
+
+                // 추천 수가 임계값의 배수일 때만 알림 (1, threshold, threshold*2, ...)
+                if (likeThreshold <= 1 || currentGood % likeThreshold === 0) {
+                    // 기존 알림 삭제 후 새 알림 (추천→취소→재추천 중복 방지)
+                    pool.query(
+                        `DELETE FROM g5_na_noti WHERE bo_table = ? AND wr_id = ? AND rel_mb_id = ? AND ph_from_case = 'good'`,
+                        [safeBoardId, safePostId, user.mb_id]
                     )
-                    .catch(() => {});
+                        .then(() =>
+                            pool.query(
+                                `INSERT INTO g5_na_noti (ph_to_case, ph_from_case, bo_table, wr_id, mb_id, rel_mb_id, rel_mb_nick, rel_msg, rel_url, ph_readed, ph_datetime, parent_subject, wr_parent)
+                         VALUES ('good', 'good', ?, ?, ?, ?, ?, ?, ?, 'N', CONVERT_TZ(UTC_TIMESTAMP(), '+00:00', '+09:00'), ?, ?)`,
+                                [
+                                    safeBoardId,
+                                    safePostId,
+                                    postAuthorId,
+                                    user.mb_id,
+                                    userNick,
+                                    `${userNick}님이 회원님의 글을 추천했습니다.`,
+                                    `/${safeBoardId}/${safePostId}`,
+                                    postSubject,
+                                    safePostId
+                                ]
+                            )
+                        )
+                        .catch(() => {});
+                }
             }
         }
 
