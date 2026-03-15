@@ -285,8 +285,12 @@ export async function updateProfile(
     const values: (string | number)[] = [];
 
     if (fields.mb_image_url !== undefined) {
-        // 빈 문자열(삭제) 또는 S3 CDN URL만 허용
-        if (fields.mb_image_url && !fields.mb_image_url.startsWith('https://s3.damoang.net/')) {
+        // 빈 문자열(삭제) 또는 S3/CDN URL만 허용
+        const ALLOWED_CDN_PREFIXES = ['https://s3.damoang.net/', 'https://cdn.damoang.net/'];
+        if (
+            fields.mb_image_url &&
+            !ALLOWED_CDN_PREFIXES.some((p) => fields.mb_image_url!.startsWith(p))
+        ) {
             return { success: false, error: '유효하지 않은 이미지 URL입니다.' };
         }
         updates.push('mb_image_url = ?');
