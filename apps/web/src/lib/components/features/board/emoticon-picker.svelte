@@ -91,7 +91,9 @@
     }
 </script>
 
-<div class="bg-background w-full rounded-t-lg border p-3 shadow-lg sm:w-[340px] sm:rounded-lg">
+<div
+    class="bg-background max-h-[80vh] w-full overflow-y-auto rounded-t-lg border p-3 shadow-lg sm:w-[340px] sm:rounded-lg"
+>
     {#if loading}
         <div class="flex h-[280px] items-center justify-center">
             <span class="text-muted-foreground text-sm">로딩 중...</span>
