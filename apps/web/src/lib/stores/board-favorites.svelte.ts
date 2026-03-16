@@ -2,10 +2,12 @@
  * 게시판 즐겨찾기(단축키) 스토어
  *
  * 숫자키 1-0 (슬롯 1-10) + Shift+1-0 (슬롯 11-20) = 총 20슬롯
- * localStorage 기반, ang-gnu의 customUi shortcut 시스템 이식
+ * 로그인 시 서버 동기화, 비로그인 시 localStorage 기반
  */
 
 import { browser } from '$app/environment';
+import { apiClient } from '$lib/api/client';
+import { debounce } from '$lib/utils/autosave';
 
 const STORAGE_KEY = 'angple-board-favorites';
 
@@ -49,8 +51,37 @@ export function slotLabel(slot: SlotNumber): string {
     return shifted === 10 ? 'S+0' : `S+${shifted}`;
 }
 
+type FavoritesMap = Partial<Record<SlotNumber, FavoriteEntry>>;
+
+/** Record<string, FavoriteEntry> ↔ Partial<Record<SlotNumber, FavoriteEntry>> 변환 */
+function fromRecord(rec: Record<string, FavoriteEntry>): FavoritesMap {
+    const map: FavoritesMap = {};
+    for (const [key, val] of Object.entries(rec)) {
+        const slot = Number(key) as SlotNumber;
+        if (slot >= 1 && slot <= 20) {
+            map[slot] = val;
+        }
+    }
+    return map;
+}
+
+function toRecord(map: FavoritesMap): Record<string, FavoriteEntry> {
+    const rec: Record<string, FavoriteEntry> = {};
+    for (const [key, val] of Object.entries(map)) {
+        if (val) rec[key] = val;
+    }
+    return rec;
+}
+
 class BoardFavoritesStore {
-    private favorites = $state<Partial<Record<SlotNumber, FavoriteEntry>>>({});
+    private favorites = $state<FavoritesMap>({});
+    private loggedIn = false;
+    private syncing = false;
+
+    /** 서버 동기화 (debounce 500ms) */
+    private debouncedSync = debounce(() => {
+        this.syncToServer();
+    }, 500);
 
     constructor() {
         if (browser) {
@@ -78,8 +109,68 @@ class BoardFavoritesStore {
         }
     }
 
+    /** 로그인 상태 설정 + 서버 동기화 트리거 */
+    setLoggedIn(loggedIn: boolean): void {
+        this.loggedIn = loggedIn;
+        if (loggedIn && browser) {
+            this.syncFromServer();
+        }
+    }
+
+    /** 서버에서 즐겨찾기 로드 → $state + localStorage 동시 업데이트 */
+    async syncFromServer(): Promise<void> {
+        if (!browser || !this.loggedIn || this.syncing) return;
+        this.syncing = true;
+        try {
+            const serverData = await apiClient.getFavorites();
+            const hasServerData = Object.keys(serverData).length > 0;
+
+            if (hasServerData) {
+                // 서버 데이터 우선 (Last Write Wins)
+                this.favorites = fromRecord(serverData);
+                this.saveToStorage();
+            } else {
+                // 서버에 데이터 없고 localStorage에 있으면 마이그레이션
+                await this.migrateLocalToServer();
+            }
+        } catch {
+            // 서버 동기화 실패 시 localStorage 유지
+        } finally {
+            this.syncing = false;
+        }
+    }
+
+    /** localStorage → 서버로 마이그레이션 */
+    private async migrateLocalToServer(): Promise<void> {
+        const hasLocal = Object.keys(this.favorites).length > 0;
+        if (!hasLocal) return;
+        try {
+            await apiClient.saveFavorites(toRecord(this.favorites));
+        } catch {
+            // 마이그레이션 실패 시 무시 (다음 로그인 시 재시도)
+        }
+    }
+
+    /** 현재 상태를 서버에 저장 */
+    private async syncToServer(): Promise<void> {
+        if (!browser || !this.loggedIn) return;
+        try {
+            await apiClient.saveFavorites(toRecord(this.favorites));
+        } catch {
+            // 서버 저장 실패 시 무시 (localStorage에는 이미 저장됨)
+        }
+    }
+
+    /** 변경 후 공통 저장 로직 */
+    private persist(): void {
+        this.saveToStorage();
+        if (this.loggedIn) {
+            this.debouncedSync();
+        }
+    }
+
     /** 전체 즐겨찾기 조회 */
-    get all(): Partial<Record<SlotNumber, FavoriteEntry>> {
+    get all(): FavoritesMap {
         return this.favorites;
     }
 
@@ -130,7 +221,7 @@ class BoardFavoritesStore {
     /** 슬롯에 즐겨찾기 등록 */
     setSlot(slot: SlotNumber, boardId: string, title: string): void {
         this.favorites = { ...this.favorites, [slot]: { boardId, title } };
-        this.saveToStorage();
+        this.persist();
     }
 
     /** 슬롯 해제 */
@@ -138,7 +229,7 @@ class BoardFavoritesStore {
         const next = { ...this.favorites };
         delete next[slot];
         this.favorites = next;
-        this.saveToStorage();
+        this.persist();
     }
 
     /** boardId로 해제 */
@@ -191,7 +282,7 @@ class BoardFavoritesStore {
     /** 전체 초기화 */
     clear(): void {
         this.favorites = {};
-        this.saveToStorage();
+        this.persist();
     }
 }
 
