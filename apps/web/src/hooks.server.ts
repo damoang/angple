@@ -219,9 +219,9 @@ async function authenticateSSR(event: Parameters<Handle>[0]['event']): Promise<v
                     // 페이지 네비게이션 요청에서만 실행 (API/데이터 요청 제외)
                     if (!event.url.pathname.startsWith('/api/') && !isSvelteKitDataRequest(event)) {
                         const todayStr = new Date().toISOString().split('T')[0];
-                        const lastLogin = member.mb_today_login
-                            ? member.mb_today_login.split(' ')[0].split('T')[0]
-                            : '';
+                        const raw = member.mb_today_login;
+                        const lastLogin =
+                            raw && typeof raw === 'string' ? raw.split(' ')[0].split('T')[0] : '';
                         if (lastLogin !== todayStr) {
                             const clientIp = event.getClientAddress();
                             // fire-and-forget: 응답 지연 방지
@@ -338,13 +338,18 @@ export const handle: Handle = async ({ event, resolve }) => {
     const isDataRequest = isSvelteKitDataRequest(event);
 
     // --- 환경별 접근 제어 (hostname 기반) ---
+    // 로그인 관련 경로는 접근 제어 제외 (무한 리다이렉트 방지)
+    const ACCESS_CONTROL_BYPASS = ['/login', '/auth', '/api/auth'];
     const allowedMembers = ACCESS_CONTROL_MAP[event.url.hostname];
-    if (allowedMembers) {
+    if (
+        allowedMembers &&
+        !ACCESS_CONTROL_BYPASS.some((p) => pathname === p || pathname.startsWith(p + '/'))
+    ) {
         const jwt = event.cookies.get('damoang_jwt');
 
         if (!jwt) {
-            // 로그인 페이지로 리다이렉트
-            const loginUrl = `https://damoang.net/login?redirect=${encodeURIComponent(event.url.href)}`;
+            // 로그인 페이지로 리다이렉트 (같은 호스트로 — 운영으로 보내면 무한 루프)
+            const loginUrl = `${event.url.origin}/login?redirect=${encodeURIComponent(event.url.href)}`;
             return new Response(null, {
                 status: 302,
                 headers: { Location: loginUrl }
