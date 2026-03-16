@@ -156,6 +156,7 @@
             'data-bluesky-cid',
             'data-embed-height',
             'data-tweet-id',
+            'data-youtube-video',
             'frameborder',
             'allow',
             'allowfullscreen',
@@ -431,8 +432,22 @@
 
     /* YouTube iframe은 16:9 비율 유지 */
     .prose :global(iframe[src*='youtube']),
-    .prose :global(iframe[src*='youtu.be']) {
+    .prose :global(iframe[src*='youtu.be']),
+    .prose :global(iframe.tiptap-youtube[src]) {
         aspect-ratio: 16 / 9;
+        width: 100% !important;
+        height: auto !important;
+    }
+
+    /* Tiptap YouTube 래퍼 */
+    .prose :global(div[data-youtube-video]) {
+        margin: 1rem 0;
+    }
+
+    /* src 없는 iframe 숨김 (DB에 URL 누락된 경우) */
+    .prose :global(iframe.tiptap-youtube:not([src])),
+    .prose :global(iframe.tiptap-youtube[src='']) {
+        display: none;
     }
 
     .prose :global(.embed-container) {

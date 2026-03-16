@@ -68,14 +68,18 @@
     let link1 = $state('');
     let link2 = $state('');
 
+    // 수정 모드에서 post 데이터 최초 1회만 적용 (매번 덮어쓰면 에디터 content 리셋됨)
+    let postInitialized = false;
     $effect(() => {
-        title = post?.title || initialTitle || '';
-        content = post?.content || '';
-        category = post?.category || '';
-        isSecret = post?.is_secret || false;
-        tags = post?.tags || [];
-        link1 = post?.link1 || initialLink1 || '';
-        link2 = post?.link2 || '';
+        if (!post || postInitialized) return;
+        title = post.title || initialTitle || '';
+        content = post.content || '';
+        category = post.category || '';
+        isSecret = post.is_secret || false;
+        tags = post.tags || [];
+        link1 = post.link1 || initialLink1 || '';
+        link2 = post.link2 || '';
+        postInitialized = true;
     });
     let errors = $state<{ title?: string; content?: string; category?: string }>({});
 
