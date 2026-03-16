@@ -621,6 +621,23 @@
             </Card>
 
             <Card>
+                <CardContent class="pt-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <Label>읽은 공지 숨기기</Label>
+                            <p class="text-muted-foreground text-xs">
+                                이미 읽은 공지사항을 게시판 목록에서 숨깁니다
+                            </p>
+                        </div>
+                        <Switch
+                            checked={uiSettingsStore.hideReadNotices}
+                            onCheckedChange={(v) => uiSettingsStore.setHideReadNotices(v)}
+                        />
+                    </div>
+                </CardContent>
+            </Card>
+
+            <Card>
                 <CardHeader>
                     <CardTitle class="flex items-center gap-2">
                         <EyeOff class="h-5 w-5" />
