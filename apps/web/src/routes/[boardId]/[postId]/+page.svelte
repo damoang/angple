@@ -66,7 +66,6 @@
         type MarketStatus
     } from '$lib/types/used-market.js';
     import QAAnswerSection from '$lib/components/features/board/qa-answer-section.svelte';
-    import AuthorActivityPanel from '$lib/components/features/board/author-activity-panel.svelte';
     import EconomyShoppingBanner from '$lib/components/features/board/economy-shopping-banner.svelte';
     import EconomyOpenLinks from '$lib/components/features/board/economy-open-links.svelte';
     import {
@@ -96,15 +95,6 @@
         priority: 10
     });
 
-    // 작성자 활동 패널 슬롯 등록
-    postSlotRegistry.register('post.before_comments', {
-        id: 'core:author-activity-panel',
-        component: AuthorActivityPanel,
-        priority: 10,
-        propsMapper: (pageData: { post: FreePost; boardId: string }) => ({
-            post: pageData.post
-        })
-    });
     import { loadPluginComponent } from '$lib/utils/plugin-optional-loader';
     import { checkPermission, getPermissionMessage } from '$lib/utils/board-permissions.js';
     import { readPostsStore } from '$lib/stores/read-posts.svelte.js';
