@@ -235,7 +235,8 @@ async function proxyRequest(
             'connection',
             'upgrade',
             'keep-alive',
-            'transfer-encoding'
+            'transfer-encoding',
+            'origin'
         ]);
         request.headers.forEach((value, key) => {
             if (!skipHeaders.has(key.toLowerCase())) {

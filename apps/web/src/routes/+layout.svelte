@@ -140,6 +140,16 @@
         });
     });
 
+    // 로그인 상태 변경 시 즐겨찾기 서버 동기화
+    $effect(() => {
+        if (!boardFavoritesMod) return;
+        const isAuth = authStore.isAuthenticated;
+        const bfStore = boardFavoritesMod.boardFavoritesStore;
+        untrack(() => {
+            bfStore.setLoggedIn(isAuth);
+        });
+    });
+
     // 네비게이션 프로그레스바 (500ms 딜레이 — 빠른 전환에서는 숨김)
     let showNavProgress = $state(false);
     let navProgressTimeout: ReturnType<typeof setTimeout> | undefined;

@@ -1868,6 +1868,31 @@ class ApiClient {
         return res.json();
     }
 
+    // ==================== 즐겨찾기 API ====================
+
+    /**
+     * 게시판 즐겨찾기 조회
+     * 🔒 인증 필요
+     */
+    async getFavorites(): Promise<Record<string, { boardId: string; title: string }>> {
+        const response =
+            await this.request<Record<string, { boardId: string; title: string }>>('/my/favorites');
+        return response.data ?? {};
+    }
+
+    /**
+     * 게시판 즐겨찾기 저장 (전체 슬롯 덮어쓰기)
+     * 🔒 인증 필요
+     */
+    async saveFavorites(
+        favorites: Record<string, { boardId: string; title: string }>
+    ): Promise<void> {
+        await this.request<void>('/my/favorites', {
+            method: 'PUT',
+            body: JSON.stringify(favorites)
+        });
+    }
+
     // ==================== 댓글 신고 정보 (관리자) ====================
 
     /**
