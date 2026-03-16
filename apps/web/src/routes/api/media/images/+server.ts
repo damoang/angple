@@ -147,13 +147,15 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 
         // Lambda가 raw/ → data/ 변환 후 최종 URL
         const cdnUrl = `${CDN_BASE}/${finalKey}`;
+        const originUrl = `https://${S3_BUCKET}.s3.${S3_REGION}.amazonaws.com/${finalKey}`;
 
         return json({
             success: true,
             data: {
                 key: finalKey,
-                url: `https://${S3_BUCKET}.s3.${S3_REGION}.amazonaws.com/${finalKey}`,
+                url: cdnUrl,
                 cdn_url: cdnUrl,
+                origin_url: originUrl,
                 filename: file.name,
                 content_type: contentType,
                 size: file.size
