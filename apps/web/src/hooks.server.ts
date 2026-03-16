@@ -312,6 +312,7 @@ function buildCsp(): string {
         `style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com${adsHost}${assetOrigin}`,
         `font-src 'self' https://cdn.jsdelivr.net https://fonts.gstatic.com${assetOrigin}`,
         `img-src 'self' data: blob: https:${assetOrigin}`,
+        "worker-src 'self' blob:",
         // API 및 광고 서버 연결 허용
         `connect-src 'self' http://localhost:* ws://localhost:* https://*.damoang.net https://damoang.net${legacyHost}${adsHost}${assetOrigin} https://pagead2.googlesyndication.com https://securepubads.g.doubleclick.net https://www.google-analytics.com https://cdn.jsdelivr.net https://*.google.com https://*.googlesyndication.com https://*.doubleclick.net https://ep1.adtrafficquality.google https://ep2.adtrafficquality.google https://*.adtrafficquality.google https://*.gstatic.com https://cdn.ampproject.org`,
         // YouTube, 임베드 플랫폼, Google 광고, Turnstile iframe 허용
