@@ -42,11 +42,11 @@
 </script>
 
 {#if visibleMenus.length > 0}
-    <nav class="flex flex-wrap gap-1.5 {className}" aria-label="빠른 이동">
+    <nav class="flex gap-1.5 overflow-x-auto {className}" aria-label="빠른 이동">
         {#each visibleMenus as menu (menu.key)}
             <a
                 href={menu.url}
-                class="rounded-lg px-3 py-1.5 text-sm transition-all duration-200 ease-out
+                class="shrink-0 whitespace-nowrap rounded-lg px-3 py-1.5 text-sm transition-all duration-200 ease-out
                     {isActive(menu.url)
                     ? 'bg-primary text-primary-foreground font-medium'
                     : 'bg-muted text-muted-foreground hover:bg-accent hover:text-accent-foreground'}"
