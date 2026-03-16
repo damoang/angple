@@ -18,6 +18,7 @@
     import * as Dialog from '$lib/components/ui/dialog/index.js';
     import type { PageData } from './$types.js';
     import Pencil from '@lucide/svelte/icons/pencil';
+    import ListIcon from '@lucide/svelte/icons/list';
     import Lock from '@lucide/svelte/icons/lock';
     import Clock from '@lucide/svelte/icons/clock';
 
@@ -1679,13 +1680,22 @@
     onClose={() => (showReportDialog = false)}
 />
 
-<!-- 모바일 글쓰기 FAB -->
-{#if authStore.isAuthenticated && checkPermission(data.board, 'can_write', authStore.user ?? null)}
+<!-- 모바일 FAB 그룹 (목록 + 글쓰기) -->
+<div class="fixed bottom-4 right-4 z-50 flex flex-col gap-2 md:hidden">
     <a
-        href="/{boardId}/write"
-        class="bg-primary text-primary-foreground fixed bottom-4 right-4 z-50 flex h-10 w-10 items-center justify-center rounded-full shadow-lg transition-transform active:scale-95 md:hidden"
-        aria-label="글쓰기"
+        href="/{boardId}"
+        class="bg-muted text-muted-foreground flex h-10 w-10 items-center justify-center rounded-full shadow-lg transition-transform active:scale-95"
+        aria-label="목록으로"
     >
-        <Pencil class="h-4 w-4" />
+        <ListIcon class="h-4 w-4" />
     </a>
-{/if}
+    {#if authStore.isAuthenticated && checkPermission(data.board, 'can_write', authStore.user ?? null)}
+        <a
+            href="/{boardId}/write"
+            class="bg-primary text-primary-foreground flex h-10 w-10 items-center justify-center rounded-full shadow-lg transition-transform active:scale-95"
+            aria-label="글쓰기"
+        >
+            <Pencil class="h-4 w-4" />
+        </a>
+    {/if}
+</div>
