@@ -1876,7 +1876,7 @@ class ApiClient {
      */
     async getFavorites(): Promise<Record<string, { boardId: string; title: string }>> {
         const response = await this.request<Record<string, { boardId: string; title: string }>>(
-            '/members/me/favorites'
+            '/my/favorites'
         );
         return response.data ?? {};
     }
@@ -1888,7 +1888,7 @@ class ApiClient {
     async saveFavorites(
         favorites: Record<string, { boardId: string; title: string }>
     ): Promise<void> {
-        await this.request<void>('/members/me/favorites', {
+        await this.request<void>('/my/favorites', {
             method: 'PUT',
             body: JSON.stringify(favorites)
         });
