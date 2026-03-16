@@ -59,28 +59,14 @@
     const DRAFT_KEY = `draft_${boardId}_${mode === 'edit' && post ? post.id : 'new'}`;
     const AUTO_SAVE_INTERVAL = 30000; // 30초
 
-    // 폼 상태
-    let title = $state('');
-    let content = $state('');
-    let category = $state('');
-    let isSecret = $state(false);
-    let tags = $state<string[]>([]);
-    let link1 = $state('');
-    let link2 = $state('');
-
-    // 수정 모드에서 post 데이터 최초 1회만 적용 (매번 덮어쓰면 에디터 content 리셋됨)
-    let postInitialized = false;
-    $effect(() => {
-        if (!post || postInitialized) return;
-        title = post.title || initialTitle || '';
-        content = post.content || '';
-        category = post.category || '';
-        isSecret = post.is_secret || false;
-        tags = post.tags || [];
-        link1 = post.link1 || initialLink1 || '';
-        link2 = post.link2 || '';
-        postInitialized = true;
-    });
+    // 폼 상태 (post prop은 ssr=false이므로 초기 렌더 시 이미 사용 가능)
+    let title = $state(post?.title || initialTitle || '');
+    let content = $state(post?.content || '');
+    let category = $state(post?.category || '');
+    let isSecret = $state(post?.is_secret || false);
+    let tags = $state<string[]>(post?.tags || []);
+    let link1 = $state(post?.link1 || initialLink1 || '');
+    let link2 = $state(post?.link2 || '');
     let errors = $state<{ title?: string; content?: string; category?: string }>({});
 
     // 파일 업로드 상태 (이미지 + 파일 통합)
