@@ -9,21 +9,62 @@
     import ChevronLeft from '@lucide/svelte/icons/chevron-left';
     import ChevronRight from '@lucide/svelte/icons/chevron-right';
     import Info from '@lucide/svelte/icons/info';
+    import Search from '@lucide/svelte/icons/search';
+    import Pin from '@lucide/svelte/icons/pin';
+    import X from '@lucide/svelte/icons/x';
+    import { slide } from 'svelte/transition';
     import { pluginStore } from '$lib/stores/plugin.svelte';
     import { loadPluginLib } from '$lib/utils/plugin-optional-loader';
+    import { uiSettingsStore } from '$lib/stores/ui-settings.svelte';
     import type { PageData } from './$types.js';
 
-    const COLOR_STYLES: Record<string, { bg: string; text: string }> = {
-        yellow: { bg: '#ffe69c', text: '#664d03' },
-        green: { bg: '#d1e7dd', text: '#0f5132' },
-        purple: { bg: '#e2d9f3', text: '#432874' },
-        red: { bg: '#f8d7da', text: '#dc3545' },
-        blue: { bg: '#cfe2ff', text: '#084298' }
-    };
+    const COLOR_OPTIONS = [
+        { value: 'yellow', label: '노랑', bg: '#ffe69c', text: '#664d03' },
+        { value: 'green', label: '초록', bg: '#d1e7dd', text: '#0f5132' },
+        { value: 'purple', label: '보라', bg: '#e2d9f3', text: '#432874' },
+        { value: 'red', label: '빨강', bg: '#f8d7da', text: '#dc3545' },
+        { value: 'blue', label: '파랑', bg: '#cfe2ff', text: '#084298' }
+    ];
+
+    const COLOR_STYLES: Record<string, { bg: string; text: string }> = {};
+    for (const c of COLOR_OPTIONS) {
+        COLOR_STYLES[c.value] = { bg: c.bg, text: c.text };
+    }
 
     let { data }: { data: PageData } = $props();
 
     let deletingId = $state<string | null>(null);
+
+    // 검색 상태
+    let searchColor = $state(data.search?.color ?? '');
+    let searchMemo = $state(data.search?.memo ?? '');
+    let searchDetail = $state(data.search?.detail ?? '');
+    let searchTarget = $state(data.search?.target ?? '');
+
+    const hasActiveSearch = $derived(!!(searchColor || searchMemo || searchDetail || searchTarget));
+    const isSearching = $derived(
+        !!(data.search?.color || data.search?.memo || data.search?.detail || data.search?.target)
+    );
+    let showSearch = $state(uiSettingsStore.pinMemoSearch);
+
+    function handleSearch() {
+        // eslint-disable-next-line svelte/prefer-svelte-reactivity
+        const params = new URLSearchParams();
+        if (searchColor) params.set('color', searchColor);
+        if (searchMemo.trim()) params.set('memo', searchMemo.trim());
+        if (searchDetail.trim()) params.set('detail', searchDetail.trim());
+        if (searchTarget.trim()) params.set('target', searchTarget.trim());
+        const qs = params.toString();
+        goto(`/my/memos${qs ? `?${qs}` : ''}`);
+    }
+
+    function clearSearch() {
+        searchColor = '';
+        searchMemo = '';
+        searchDetail = '';
+        searchTarget = '';
+        goto('/my/memos');
+    }
 
     // memo-store 동적 로드
     type MemoStoreModule = {
@@ -101,7 +142,14 @@
     }
 
     function goToPage(pageNum: number): void {
-        goto(`/my/memos?page=${pageNum}`);
+        // eslint-disable-next-line svelte/prefer-svelte-reactivity
+        const params = new URLSearchParams();
+        params.set('page', String(pageNum));
+        if (searchColor) params.set('color', searchColor);
+        if (searchMemo.trim()) params.set('memo', searchMemo.trim());
+        if (searchDetail.trim()) params.set('detail', searchDetail.trim());
+        if (searchTarget.trim()) params.set('target', searchTarget.trim());
+        goto(`/my/memos?${params.toString()}`);
     }
 
     function getPageNumbers(current: number, total: number): (number | '...')[] {
@@ -138,31 +186,207 @@
 
 <div class="mx-auto max-w-4xl px-4">
     <!-- 헤더 -->
-    <div class="mb-6">
-        <h1 class="text-foreground text-2xl font-bold">회원 메모</h1>
-        <p class="text-muted-foreground mt-1 text-sm">
-            다른 회원에 대해 작성한 개인 메모 {data.total}건
-        </p>
+    <div class="mb-6 flex items-start justify-between">
+        <div>
+            <h1 class="text-foreground text-2xl font-bold">회원 메모</h1>
+            <p class="text-muted-foreground mt-1 text-sm">
+                다른 회원에 대해 작성한 개인 메모 {data.total}건
+            </p>
+        </div>
+        <div class="flex items-center gap-0">
+            <Button
+                variant="outline"
+                size="sm"
+                class="gap-1.5 {showSearch || isSearching || uiSettingsStore.pinMemoSearch
+                    ? 'rounded-r-none border-r-0'
+                    : ''}"
+                onclick={() => (showSearch = !showSearch)}
+            >
+                <Search class="h-3.5 w-3.5" />
+                검색
+            </Button>
+            {#if showSearch || isSearching || uiSettingsStore.pinMemoSearch}
+                <Button
+                    variant="outline"
+                    size="sm"
+                    class="rounded-l-none px-2 {uiSettingsStore.pinMemoSearch
+                        ? 'bg-primary/10 text-primary'
+                        : ''}"
+                    onclick={() => uiSettingsStore.setPinMemoSearch(!uiSettingsStore.pinMemoSearch)}
+                    title={uiSettingsStore.pinMemoSearch ? '검색 고정 해제' : '검색 고정'}
+                >
+                    <Pin
+                        class="h-3.5 w-3.5"
+                        fill={uiSettingsStore.pinMemoSearch ? 'currentColor' : 'none'}
+                    />
+                </Button>
+            {/if}
+        </div>
     </div>
 
-    <!-- 요약 카드 -->
-    <div class="mb-6">
-        <Card class="bg-primary/5 border-primary/20">
-            <CardContent class="pt-6">
-                <div class="flex items-center gap-3">
-                    <div class="bg-primary/10 rounded-full p-3">
-                        <NotepadText class="text-primary h-6 w-6" />
+    <!-- 색상별 분포 -->
+    {#if Object.values(data.colorDist ?? {}).reduce((s, n) => s + n, 0) > 0}
+        {@const totalMemos = Object.values(data.colorDist ?? {}).reduce((s, n) => s + n, 0)}
+        <div class="mb-6">
+            <Card class="bg-primary/5 border-primary/20">
+                <CardContent class="px-4 py-3">
+                    <div class="mb-2 flex items-center gap-2">
+                        <NotepadText class="text-primary h-4 w-4" />
+                        <span class="text-foreground text-sm font-medium">
+                            총 {totalMemos.toLocaleString()}건
+                        </span>
                     </div>
-                    <div>
-                        <p class="text-muted-foreground text-sm">메모 수</p>
-                        <p class="text-foreground text-2xl font-bold">
-                            {data.total.toLocaleString()}
-                        </p>
+                    <!-- 분포 바 -->
+                    <div class="mb-2 flex h-2.5 overflow-hidden rounded-full">
+                        {#each COLOR_OPTIONS as color}
+                            {@const count = data.colorDist?.[color.value] ?? 0}
+                            {#if count > 0}
+                                <div
+                                    style="width: {(count / totalMemos) *
+                                        100}%; background-color: {color.bg};"
+                                    title="{color.label} {count}건"
+                                ></div>
+                            {/if}
+                        {/each}
                     </div>
-                </div>
-            </CardContent>
-        </Card>
-    </div>
+                    <!-- 범례 -->
+                    <div class="flex flex-wrap gap-3">
+                        {#each COLOR_OPTIONS as color}
+                            {@const count = data.colorDist?.[color.value] ?? 0}
+                            {#if count > 0}
+                                <button
+                                    type="button"
+                                    class="flex items-center gap-1.5 text-xs transition-opacity hover:opacity-80"
+                                    onclick={() => {
+                                        searchColor =
+                                            searchColor === color.value ? '' : color.value;
+                                        showSearch = true;
+                                        handleSearch();
+                                    }}
+                                >
+                                    <span
+                                        class="inline-block h-2.5 w-2.5 rounded-full"
+                                        style="background-color: {color.bg}; border: 1px solid {color.text};"
+                                    ></span>
+                                    <span class="text-muted-foreground">
+                                        {color.label}
+                                        <span class="text-foreground font-medium">{count}</span>
+                                    </span>
+                                </button>
+                            {/if}
+                        {/each}
+                    </div>
+                </CardContent>
+            </Card>
+        </div>
+    {/if}
+
+    {#if showSearch || isSearching || uiSettingsStore.pinMemoSearch}
+        <div class="mb-6" transition:slide={{ duration: 200 }}>
+            <Card class="bg-background">
+                <CardContent class="pt-6">
+                    <form
+                        onsubmit={(e) => {
+                            e.preventDefault();
+                            handleSearch();
+                        }}
+                        class="space-y-4"
+                    >
+                        {#if searchColor}
+                            {@const activeColor = COLOR_OPTIONS.find(
+                                (c) => c.value === searchColor
+                            )}
+                            {#if activeColor}
+                                <div class="flex items-center gap-2">
+                                    <span class="text-muted-foreground text-xs">색상 필터</span>
+                                    <button
+                                        type="button"
+                                        class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium"
+                                        style="background-color: {activeColor.bg}; color: {activeColor.text};"
+                                        onclick={() => {
+                                            searchColor = '';
+                                            handleSearch();
+                                        }}
+                                        title="색상 필터 해제"
+                                    >
+                                        {activeColor.label}
+                                        <X class="h-3 w-3" />
+                                    </button>
+                                </div>
+                            {/if}
+                        {/if}
+                        <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                            <div>
+                                <label
+                                    for="search-target"
+                                    class="text-muted-foreground mb-1 block text-xs"
+                                >
+                                    대상 회원
+                                </label>
+                                <input
+                                    id="search-target"
+                                    type="text"
+                                    bind:value={searchTarget}
+                                    placeholder="닉네임 또는 ID"
+                                    class="border-input bg-background text-foreground placeholder:text-muted-foreground w-full rounded-md border px-3 py-1.5 text-sm"
+                                />
+                            </div>
+                            <div>
+                                <label
+                                    for="search-memo"
+                                    class="text-muted-foreground mb-1 block text-xs"
+                                >
+                                    메모
+                                </label>
+                                <input
+                                    id="search-memo"
+                                    type="text"
+                                    bind:value={searchMemo}
+                                    placeholder="메모 내용 검색"
+                                    class="border-input bg-background text-foreground placeholder:text-muted-foreground w-full rounded-md border px-3 py-1.5 text-sm"
+                                />
+                            </div>
+                            <div>
+                                <label
+                                    for="search-detail"
+                                    class="text-muted-foreground mb-1 block text-xs"
+                                >
+                                    상세 메모
+                                </label>
+                                <input
+                                    id="search-detail"
+                                    type="text"
+                                    bind:value={searchDetail}
+                                    placeholder="상세 메모 검색"
+                                    class="border-input bg-background text-foreground placeholder:text-muted-foreground w-full rounded-md border px-3 py-1.5 text-sm"
+                                />
+                            </div>
+                        </div>
+
+                        <!-- 버튼 -->
+                        <div class="flex items-center gap-2">
+                            <Button type="submit" size="sm" class="gap-1.5">
+                                <Search class="h-3.5 w-3.5" />
+                                검색
+                            </Button>
+                            {#if hasActiveSearch}
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    class="gap-1.5"
+                                    onclick={clearSearch}
+                                >
+                                    <X class="h-3.5 w-3.5" />
+                                    초기화
+                                </Button>
+                            {/if}
+                        </div>
+                    </form>
+                </CardContent>
+            </Card>
+        </div>
+    {/if}
 
     <!-- 메모 목록 -->
     <Card class="bg-background">
