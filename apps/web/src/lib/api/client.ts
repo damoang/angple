@@ -588,6 +588,23 @@ class ApiClient {
     }
 
     /**
+     * 게시글 삭제 예약 취소
+     * 🔒 인증 필요 + 작성자 본인 또는 관리자
+     */
+    async cancelScheduledDelete(
+        boardId: string,
+        postId: string
+    ): Promise<{ success: boolean; message: string }> {
+        const response = await this.request<{ success: boolean; message: string }>(
+            `/boards/${boardId}/posts/${postId}/cancel-delete`,
+            {
+                method: 'POST'
+            }
+        );
+        return response.data ?? { success: false, message: '' };
+    }
+
+    /**
      * 게시글 복구 (소프트 삭제 취소)
      * 🔒 관리자 전용
      */
