@@ -15,7 +15,8 @@
     import Sidebar from './sidebar.svelte';
     import {
         NotificationDropdown,
-        LevelupCelebration
+        LevelupCelebration,
+        XpLevelupToast
     } from '$lib/components/features/notification/index.js';
     import { authStore } from '$lib/stores/auth.svelte.js';
     import { uiSettingsStore } from '$lib/stores/ui-settings.svelte.js';
@@ -367,6 +368,7 @@
                 <!-- 알림 드롭다운 -->
                 <NotificationDropdown />
                 <LevelupCelebration />
+                <XpLevelupToast />
             {:else}
                 <!-- 알림 아이콘 (비로그인 시 단순 버튼) -->
                 <button

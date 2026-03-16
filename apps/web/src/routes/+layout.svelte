@@ -46,6 +46,7 @@
                     id: d.user.id,
                     nickname: d.user.nickname ?? '',
                     level: d.user.level,
+                    as_level: d.user.as_level,
                     mb_certify: d.user.mb_certify ?? '',
                     mb_image: d.user.mb_image,
                     mb_image_updated_at: d.user.mb_image_updated_at
@@ -58,6 +59,7 @@
                     id: d.user.id,
                     nickname: d.user.nickname ?? '',
                     level: d.user.level,
+                    as_level: d.user.as_level,
                     mb_certify: d.user.mb_certify ?? '',
                     mb_image: d.user.mb_image,
                     mb_image_updated_at: d.user.mb_image_updated_at

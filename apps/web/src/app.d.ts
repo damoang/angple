@@ -19,6 +19,7 @@ declare global {
                 id?: string;
                 nickname?: string;
                 level: number;
+                as_level?: number;
                 mb_certify?: string;
                 mb_image?: string;
                 mb_image_updated_at?: string;
