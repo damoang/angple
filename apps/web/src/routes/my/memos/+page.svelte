@@ -231,15 +231,15 @@
         {@const totalMemos = Object.values(data.colorDist ?? {}).reduce((s, n) => s + n, 0)}
         <div class="mb-6">
             <Card class="bg-primary/5 border-primary/20">
-                <CardContent class="pt-6">
-                    <div class="mb-3 flex items-center gap-2">
-                        <NotepadText class="text-primary h-5 w-5" />
+                <CardContent class="px-4 py-3">
+                    <div class="mb-2 flex items-center gap-2">
+                        <NotepadText class="text-primary h-4 w-4" />
                         <span class="text-foreground text-sm font-medium">
                             총 {totalMemos.toLocaleString()}건
                         </span>
                     </div>
                     <!-- 분포 바 -->
-                    <div class="mb-3 flex h-3 overflow-hidden rounded-full">
+                    <div class="mb-2 flex h-2.5 overflow-hidden rounded-full">
                         {#each COLOR_OPTIONS as color}
                             {@const count = data.colorDist?.[color.value] ?? 0}
                             {#if count > 0}
