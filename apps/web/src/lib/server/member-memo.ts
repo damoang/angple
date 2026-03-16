@@ -42,18 +42,51 @@ export interface MemoListResult {
     totalPages: number;
 }
 
+export interface MemoSearchParams {
+    color?: string;
+    memo?: string;
+    detail?: string;
+    target?: string;
+}
+
+const VALID_COLORS = new Set(['yellow', 'green', 'purple', 'red', 'blue']);
+
 export async function getMyMemos(
     memberId: string,
     page: number,
-    limit: number
+    limit: number,
+    search?: MemoSearchParams
 ): Promise<MemoListResult> {
     const offset = (page - 1) * limit;
 
+    const conditions = ['m.member_id = ?'];
+    const params: (string | number)[] = [memberId];
+
+    if (search?.color && VALID_COLORS.has(search.color)) {
+        conditions.push('m.color = ?');
+        params.push(search.color);
+    }
+    if (search?.memo) {
+        conditions.push('m.memo LIKE ?');
+        params.push(`%${search.memo}%`);
+    }
+    if (search?.detail) {
+        conditions.push('m.memo_detail LIKE ?');
+        params.push(`%${search.detail}%`);
+    }
+    if (search?.target) {
+        conditions.push('(m.target_member_id LIKE ? OR mb.mb_nick LIKE ?)');
+        params.push(`%${search.target}%`, `%${search.target}%`);
+    }
+
+    const where = conditions.join(' AND ');
+
+    const countQuery = search?.target
+        ? `SELECT COUNT(*) AS cnt FROM g5_member_memo m LEFT JOIN g5_member mb ON mb.mb_id = m.target_member_id WHERE ${where}`
+        : `SELECT COUNT(*) AS cnt FROM g5_member_memo m WHERE ${where}`;
+
     const [[countRows], [rows]] = await Promise.all([
-        readPool.query<CountRow[]>(
-            'SELECT COUNT(*) AS cnt FROM g5_member_memo WHERE member_id = ?',
-            [memberId]
-        ),
+        readPool.query<CountRow[]>(countQuery, params),
         readPool.query<MemoRow[]>(
             `SELECT m.id, m.member_id, m.target_member_id, m.memo, m.memo_detail, m.color,
 			        m.created_at, m.updated_at,
@@ -61,10 +94,10 @@ export async function getMyMemos(
 			        COALESCE(mb.mb_image_url, '') AS target_mb_image_url
 			 FROM g5_member_memo m
 			 LEFT JOIN g5_member mb ON mb.mb_id = m.target_member_id
-			 WHERE m.member_id = ?
+			 WHERE ${where}
 			 ORDER BY m.updated_at DESC, m.created_at DESC
 			 LIMIT ?, ?`,
-            [memberId, offset, limit]
+            [...params, offset, limit]
         )
     ]);
 
@@ -85,4 +118,24 @@ export async function getMyMemos(
     }));
 
     return { items, total, page, totalPages };
+}
+
+export type ColorDistribution = Record<string, number>;
+
+interface ColorCountRow extends RowDataPacket {
+    color: string;
+    cnt: number;
+}
+
+export async function getMemoColorDistribution(memberId: string): Promise<ColorDistribution> {
+    const [rows] = await readPool.query<ColorCountRow[]>(
+        'SELECT color, COUNT(*) AS cnt FROM g5_member_memo WHERE member_id = ? GROUP BY color',
+        [memberId]
+    );
+
+    const dist: ColorDistribution = {};
+    for (const row of rows) {
+        dist[row.color] = row.cnt;
+    }
+    return dist;
 }
