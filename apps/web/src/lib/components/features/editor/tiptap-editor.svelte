@@ -835,7 +835,7 @@
 <div class="tiptap-editor border-input relative rounded-md border {className}">
     <!-- 툴바 -->
     <div
-        class="border-border bg-muted/50 flex flex-wrap items-center gap-1 border-b p-2"
+        class="border-border bg-muted/50 sticky top-0 z-10 flex flex-wrap items-center gap-1 border-b p-2"
         role="toolbar"
         aria-label="텍스트 편집 도구"
     >
