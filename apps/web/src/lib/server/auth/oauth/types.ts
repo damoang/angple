@@ -70,6 +70,7 @@ export interface MemberRow {
     mb_certify: string;
     mb_image_url: string;
     mb_image_updated_at: string | null;
+    as_level: number;
 }
 
 /** OAuth state 쿠키에 저장되는 데이터 */

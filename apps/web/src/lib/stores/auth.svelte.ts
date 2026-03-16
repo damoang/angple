@@ -47,6 +47,7 @@ function initFromSSR(
         id?: string;
         nickname: string;
         level: number;
+        as_level?: number;
         mb_certify?: string;
         mb_image?: string;
         mb_image_updated_at?: string;
@@ -64,6 +65,10 @@ function initFromSSR(
         if (ssrUser.level !== user.mb_level) {
             user.mb_level = ssrUser.level;
         }
+        // XP 레벨 변경 동기화
+        if (ssrUser.as_level !== undefined && ssrUser.as_level !== user.as_level) {
+            user.as_level = ssrUser.as_level;
+        }
         isLoading = false;
         return;
     }
@@ -71,6 +76,7 @@ function initFromSSR(
         mb_id: mbId,
         mb_name: ssrUser.nickname,
         mb_level: ssrUser.level,
+        as_level: ssrUser.as_level,
         mb_email: '',
         mb_certify: ssrUser.mb_certify || '',
         mb_image: ssrUser.mb_image,

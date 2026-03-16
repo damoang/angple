@@ -181,6 +181,7 @@ async function authenticateSSR(event: Parameters<Handle>[0]['event']): Promise<v
                         id: member.mb_id,
                         nickname: member.mb_nick || member.mb_name,
                         level: member.mb_level ?? 0,
+                        as_level: member.as_level ?? 0,
                         mb_certify: member.mb_certify || '',
                         mb_image: member.mb_image_url || undefined,
                         mb_image_updated_at: member.mb_image_updated_at || undefined
