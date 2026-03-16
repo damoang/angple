@@ -101,6 +101,7 @@
         "canvas-confetti": "^1.9.4",
         "chart.js": "^4.5.1",
         "dompurify": "^3.3.2",
+        "heic2any": "^0.0.4",
         "highlight.js": "^11.11.1",
         "ioredis": "^5.10.0",
         "isomorphic-dompurify": "3.0.0",

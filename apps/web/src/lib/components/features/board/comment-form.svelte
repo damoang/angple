@@ -340,7 +340,7 @@
         <input
             bind:this={fileInputRef}
             type="file"
-            accept="image/jpeg,image/png,image/gif,image/webp"
+            accept="image/jpeg,image/png,image/gif,image/webp,image/heic,image/heif,.heic,.heif"
             multiple
             class="hidden"
             onchange={handleFileChange}

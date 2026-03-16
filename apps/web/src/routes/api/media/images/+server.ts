@@ -5,7 +5,7 @@
  */
 import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, HeadObjectCommand } from '@aws-sdk/client-s3';
 import { getAuthUser, verifyToken } from '$lib/server/auth/index.js';
 import { env } from '$env/dynamic/private';
 import crypto from 'node:crypto';
@@ -24,6 +24,8 @@ const ALLOWED_EXTENSIONS = new Set([
     '.gif',
     '.webp',
     '.svg',
+    '.heic',
+    '.heif',
     '.mp4',
     '.webm',
     '.mov',
@@ -81,6 +83,27 @@ function generateKey(filename: string): string {
 /** raw/editor/... → data/editor/... 경로 변환 (Lambda 처리 후 최종 URL) */
 function rawKeyToFinalKey(rawKey: string): string {
     return rawKey.replace(/^raw\//, 'data/');
+}
+
+/** Lambda 변환 완료 대기 — data/ 키에 HeadObject 폴링 (최대 3초, 200ms 간격) */
+async function waitForProcessed(
+    finalKey: string,
+    maxWaitMs = 3000,
+    intervalMs = 200
+): Promise<boolean> {
+    const maxAttempts = Math.ceil(maxWaitMs / intervalMs);
+    for (let i = 0; i < maxAttempts; i++) {
+        try {
+            await s3.send(new HeadObjectCommand({ Bucket: S3_BUCKET, Key: finalKey }));
+            return true;
+        } catch {
+            // 아직 변환 안 됨 — 대기 후 재시도
+            if (i < maxAttempts - 1) {
+                await new Promise((r) => setTimeout(r, intervalMs));
+            }
+        }
+    }
+    return false;
 }
 
 export const POST: RequestHandler = async ({ request, cookies }) => {
@@ -144,6 +167,14 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
                 CacheControl: 'public, max-age=31536000'
             })
         );
+
+        // Lambda 변환 완료 대기 (최대 3초) — race condition 방지
+        const isReady = await waitForProcessed(finalKey);
+        if (!isReady) {
+            console.warn(
+                `[media/images] Lambda processing not confirmed within timeout: ${finalKey}`
+            );
+        }
 
         // Lambda가 raw/ → data/ 변환 후 최종 URL
         const cdnUrl = `${CDN_BASE}/${finalKey}`;
