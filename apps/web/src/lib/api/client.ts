@@ -1875,9 +1875,8 @@ class ApiClient {
      * 🔒 인증 필요
      */
     async getFavorites(): Promise<Record<string, { boardId: string; title: string }>> {
-        const response = await this.request<Record<string, { boardId: string; title: string }>>(
-            '/my/favorites'
-        );
+        const response =
+            await this.request<Record<string, { boardId: string; title: string }>>('/my/favorites');
         return response.data ?? {};
     }
 
