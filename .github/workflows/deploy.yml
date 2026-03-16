@@ -256,18 +256,37 @@ jobs:
 
       - name: Verify canary endpoints (via SSM)
         run: |
+          cat > /tmp/web-canary-verify-params.json <<'JSON'
+          {
+            "commands": [
+              "set -eu",
+              "BASE='http://127.0.0.1:30082'",
+              "for i in 1 2 3 4 5 6; do",
+              "  echo \"VERIFY ROUND ${i}\"",
+              "  code=$(curl -sS -o /tmp/canary-health.out -w \"%{http_code}\" --max-time 10 \"${BASE}/health\")",
+              "  echo \"CHECK /health -> ${code}\"",
+              "  [ \"${code}\" = \"200\" ] || { cat /tmp/canary-health.out; exit 1; }",
+              "  code=$(curl -sS -o /tmp/canary-root.out -w \"%{http_code}\" --max-time 10 \"${BASE}/\")",
+              "  echo \"CHECK / -> ${code}\"",
+              "  [ \"${code}\" = \"200\" ] || { cat /tmp/canary-root.out; exit 1; }",
+              "  code=$(curl -sS -o /tmp/canary-free.out -w \"%{http_code}\" --max-time 10 \"${BASE}/free\")",
+              "  echo \"CHECK /free -> ${code}\"",
+              "  [ \"${code}\" = \"200\" ] || { cat /tmp/canary-free.out; exit 1; }",
+              "  code=$(curl -sS -o /tmp/canary-posts.out -w \"%{http_code}\" --max-time 10 \"${BASE}/api/v1/boards/free/posts?page=1&limit=5\")",
+              "  echo \"CHECK /api/v1/boards/free/posts?page=1&limit=5 -> ${code}\"",
+              "  [ \"${code}\" = \"200\" ] || { cat /tmp/canary-posts.out; exit 1; }",
+              "  grep -q '\"data\"' /tmp/canary-posts.out || { cat /tmp/canary-posts.out; exit 1; }",
+              "  echo \"MATCH /api/v1/boards/free/posts?page=1&limit=5 -> \\\"data\\\"\"",
+              "  sleep 5",
+              "done"
+            ]
+          }
+          JSON
+
           COMMAND_ID=$(aws ssm send-command \
             --instance-ids "i-038a1d1f00798d94b" \
             --document-name "AWS-RunShellScript" \
-            --parameters "{
-              \"commands\": [
-                \"set -eu\",
-                \"BASE='http://127.0.0.1:30082'\",
-                \"check_code() { path=\\\"$1\\\"; expected=\\\"$2\\\"; code=$(curl -sS -o /tmp/canary.out -w '%{http_code}' --max-time 10 \\\"${BASE}${path}\\\"); echo \\\"CHECK ${path} -> ${code}\\\"; [ \\\"${code}\\\" = \\\"${expected}\\\" ] || { cat /tmp/canary.out; return 1; }; }\",
-                \"check_body() { path=\\\"$1\\\"; pattern=\\\"$2\\\"; curl -sS --max-time 10 \\\"${BASE}${path}\\\" | tee /tmp/canary-body.out | grep -q \\\"${pattern}\\\" || { cat /tmp/canary-body.out; return 1; }; echo \\\"MATCH ${path} -> ${pattern}\\\"; }\",
-                \"for i in $(seq 1 6); do echo \\\"VERIFY ROUND ${i}\\\"; check_code '/health' '200'; check_code '/' '200'; check_code '/free' '200'; check_code '/api/v1/boards/free/posts?page=1&limit=5' '200'; check_body '/api/v1/boards/free/posts?page=1&limit=5' '\\\"data\\\"'; sleep 5; done\"
-              ]
-            }" \
+            --parameters file:///tmp/web-canary-verify-params.json \
             --timeout-seconds 180 \
             --query "Command.CommandId" \
             --output text)
