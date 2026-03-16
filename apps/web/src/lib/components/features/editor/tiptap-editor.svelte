@@ -1455,6 +1455,7 @@
     :global(.tiptap-content .tiptap) {
         outline: none;
         min-height: 250px;
+        font-size: var(--editor-font-size, 1rem);
     }
 
     :global(.tiptap-content .tiptap p.is-editor-empty:first-child::before) {

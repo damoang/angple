@@ -649,9 +649,17 @@
                 {@const filteredPosts = posts.filter(
                     (p) => !blockedUsersStore.isBlocked(p.author_id)
                 )}
-                {@const importantNotices = notices.filter((n) => n.notice_type === 'important')}
-                {@const normalNotices = notices.filter((n) => n.notice_type !== 'important')}
-                {@const hasNotices = notices.length > 0}
+                {@const importantNotices = notices.filter(
+                    (n) =>
+                        n.notice_type === 'important' &&
+                        !(uiSettingsStore.hideReadNotices && readPostsStore.isRead(boardId, n.id))
+                )}
+                {@const normalNotices = notices.filter(
+                    (n) =>
+                        n.notice_type !== 'important' &&
+                        !(uiSettingsStore.hideReadNotices && readPostsStore.isRead(boardId, n.id))
+                )}
+                {@const hasNotices = importantNotices.length > 0 || normalNotices.length > 0}
                 {@const shuffledPromos = (() => {
                     const arr = [...promotionPosts];
                     for (let i = arr.length - 1; i > 0; i--) {
@@ -740,7 +748,7 @@
                                                 >
                                                 <h3
                                                     class="text-foreground truncate font-medium"
-                                                    style="font-size: 0.9375rem;"
+                                                    style="font-size: var(--list-font-size, 0.9375rem);"
                                                 >
                                                     {notice.title}
                                                 </h3>
@@ -782,7 +790,7 @@
                                                 >
                                                 <h3
                                                     class="text-foreground truncate font-medium"
-                                                    style="font-size: 0.9375rem;"
+                                                    style="font-size: var(--list-font-size, 0.9375rem);"
                                                 >
                                                     {notice.title}
                                                 </h3>

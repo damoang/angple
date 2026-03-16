@@ -258,9 +258,13 @@
                         이용제한에 대해 이의가 있으시면 소명 게시판에서 소명하실 수 있습니다. 소명은
                         제재 시작 후 1일이 지난 시점부터 15일 이내에만 가능합니다.
                     </p>
-                    {#if isOwnPenalty(log)}
+                    {#if log.claim_post_id}
+                        <Button variant="outline" href="/claim/{log.claim_post_id}">
+                            소명글 보기
+                        </Button>
+                    {:else if isOwnPenalty(log)}
                         {#if isWithinAppealPeriod(log)}
-                            <Button variant="outline" href="/claim?disciplinelog_id={log.id}">
+                            <Button variant="outline" href="/claim/write?disciplinelog_id={log.id}">
                                 소명하기
                             </Button>
                         {:else}

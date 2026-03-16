@@ -22,6 +22,7 @@
     import Clock from '@lucide/svelte/icons/clock';
 
     import RefreshCw from '@lucide/svelte/icons/refresh-cw';
+    import FileText from '@lucide/svelte/icons/file-text';
     import { authStore } from '$lib/stores/auth.svelte.js';
     import {
         canUseCertifiedAction,
@@ -181,6 +182,14 @@
             ? `<p>${data.post.link1}</p>\n${data.post.content}`
             : data.post.content
     );
+
+    // 소명글 ↔ 이용제한 연동: link1에서 disciplinelog ID 추출
+    const linkedDisciplinelogId = $derived(() => {
+        const link = data.post?.link1;
+        if (!link) return null;
+        const match = link.match(/^disciplinelog:(\d+)$/);
+        return match ? match[1] : null;
+    });
 
     // 게시판 정보
     const boardId = $derived(data.boardId);
@@ -1273,6 +1282,22 @@
         {#if data.post.deleted_at}
             <div class="mb-4">
                 <DeletedPostBanner postId={data.post.id} deletedAt={data.post.deleted_at} />
+            </div>
+        {/if}
+
+        <!-- 소명글 ↔ 이용제한 연동 배너 -->
+        {#if boardId === 'claim' && linkedDisciplinelogId()}
+            <div
+                class="mb-4 flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-700 dark:border-blue-800 dark:bg-blue-950/30 dark:text-blue-300"
+            >
+                <FileText class="h-4 w-4 shrink-0" />
+                <span>이 글은 이용제한 기록과 연결되어 있습니다.</span>
+                <a
+                    href="/disciplinelog/{linkedDisciplinelogId()}"
+                    class="font-medium underline hover:no-underline"
+                >
+                    이용제한 기록 보기
+                </a>
             </div>
         {/if}
 

@@ -88,6 +88,7 @@ export interface DisciplineLogDetail {
     created_by: string;
     created_at: string;
     status: 'pending' | 'approved' | 'rejected';
+    claim_post_id?: number;
 }
 
 export interface DisciplineLogListResponse {

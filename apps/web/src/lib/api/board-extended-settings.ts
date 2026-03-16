@@ -73,6 +73,7 @@ export interface NotificationSettings {
 /** 글쓰기 제한 설정 */
 export interface WritingSettings {
     maxPosts?: number;
+    maxPostsTotal?: number;
     allowedLevels?: string;
     restrictedUsers?: boolean;
     memberOnly?: boolean;

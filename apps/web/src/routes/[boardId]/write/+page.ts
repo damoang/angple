@@ -9,6 +9,8 @@ export interface WritePermission {
     can_write: boolean;
     remaining: number; // -1 = 무제한
     daily_limit: number; // 0 = 무제한
+    total_limit: number; // 0 = 무제한
+    total_count: number;
     reason?: string;
 }
 
