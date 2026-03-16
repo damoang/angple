@@ -20,7 +20,7 @@ const postsCache = createCache<PostsCacheData>({ ttl: 15_000, maxSize: 100 });
 const inFlightPostsLoads = new Map<string, Promise<PostsCacheData>>();
 
 const DEFAULT_POSTS_TIMEOUT_MS = 3_000;
-const HOT_BOARD_POSTS_TIMEOUT_MS = 1_500;
+const HOT_BOARD_POSTS_TIMEOUT_MS = 2_000;
 
 /**
  * 게시판 목록 페이지 — Streaming SSR
