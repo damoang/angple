@@ -730,7 +730,7 @@
     $effect(() => {
         if (likerAvatarsLoaded || commentTree.length === 0 || !boardId || !postId) return;
 
-        const commentsWithLikes = commentTree.filter((c) => (c.likes ?? 0) > 0).slice(0, 10);
+        const commentsWithLikes = commentTree.filter((c) => (c.likes ?? 0) > 0).slice(0, 50);
 
         if (commentsWithLikes.length > 0) {
             likerAvatarsLoaded = true;
@@ -1285,6 +1285,17 @@
                                         >{getCommentLikes(comment).toLocaleString()}</span
                                     >
                                 </Button>
+                            {/if}
+
+                            <!-- 댓글 추천자 아바타 스택 -->
+                            {#if getCommentLikes(comment) > 0 && commentLikersList.has(String(comment.id))}
+                                <AvatarStack
+                                    items={commentLikersList.get(String(comment.id)) ?? []}
+                                    total={commentLikersTotal.get(String(comment.id)) ?? 0}
+                                    max={5}
+                                    size="sm"
+                                    onclick={() => openLikersDialog(comment.id)}
+                                />
                             {/if}
 
                             <!-- 답글 -->
