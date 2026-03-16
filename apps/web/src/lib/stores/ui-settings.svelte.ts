@@ -27,6 +27,7 @@ interface UiSettings {
     // 게시판
     contentBlur: boolean;
     hidePostList: boolean;
+    hideReadNotices: boolean;
     muteKeywords: string[];
     showNewComments: boolean;
     // 단축키
@@ -59,6 +60,7 @@ const DEFAULTS: UiSettings = {
     hideMyProfile: false,
     contentBlur: true,
     hidePostList: false,
+    hideReadNotices: false,
     muteKeywords: [],
     showNewComments: true,
     enableKeyboardShortcuts: true,
@@ -82,6 +84,15 @@ const LINE_HEIGHT_VALUES: Record<LineHeight, string> = {
     normal: '1.6',
     relaxed: '1.8',
     loose: '2.0'
+};
+
+const CONTENT_FONT_SIZES: Record<ContentFontSize, string> = {
+    small: '16px',
+    base: '18px',
+    large: '20px',
+    xlarge: '22px',
+    '2xlarge': '24px',
+    '3xlarge': '28px'
 };
 
 const FONT_FAMILY_VALUES: Record<FontFamily, string> = {
@@ -140,6 +151,10 @@ function createUiSettingsStore() {
             LIST_FONT_SIZES[settings.recommendFontSize]
         );
 
+        // 댓글·에디터 본문에 contentFontSize 연동
+        html.style.setProperty('--comment-font-size', CONTENT_FONT_SIZES[settings.contentFontSize]);
+        html.style.setProperty('--editor-font-size', CONTENT_FONT_SIZES[settings.contentFontSize]);
+
         const fontVal = FONT_FAMILY_VALUES[settings.fontFamily];
         if (fontVal) {
             html.style.setProperty('--user-font-family', fontVal);
@@ -180,6 +195,7 @@ function createUiSettingsStore() {
         setContentFontSize(v: ContentFontSize) {
             settings.contentFontSize = v;
             save();
+            applyCSS();
         },
         /** A-/A/A+ 버튼용: -1=작게, 0=기본, 1=크게 */
         changeContentFontSize(direction: -1 | 0 | 1) {
@@ -201,6 +217,7 @@ function createUiSettingsStore() {
                 }
             }
             save();
+            applyCSS();
         },
         get listFontSize() {
             return settings.listFontSize;
@@ -227,6 +244,13 @@ function createUiSettingsStore() {
         },
         get hidePostList() {
             return settings.hidePostList;
+        },
+        get hideReadNotices() {
+            return settings.hideReadNotices;
+        },
+        setHideReadNotices(v: boolean) {
+            settings.hideReadNotices = v;
+            save();
         },
         get muteKeywords() {
             return settings.muteKeywords;

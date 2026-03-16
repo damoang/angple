@@ -204,6 +204,7 @@
                                                 getPostId(post)
                                             )
                                     )}"
+                                    style="font-size: var(--list-font-size);"
                                 >
                                     {post.title}
                                 </span>
