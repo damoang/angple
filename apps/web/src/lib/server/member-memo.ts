@@ -15,7 +15,7 @@ interface MemoRow extends RowDataPacket {
     created_at: string;
     updated_at: string | null;
     target_mb_nick: string;
-    target_mb_icon_path: string;
+    target_mb_image_url: string;
 }
 
 interface CountRow extends RowDataPacket {
@@ -32,7 +32,7 @@ export interface MemoItem {
     created_at: string;
     updated_at: string | null;
     target_mb_nick: string;
-    target_mb_icon_path: string;
+    target_mb_image_url: string;
 }
 
 export interface MemoListResult {
@@ -58,7 +58,7 @@ export async function getMyMemos(
             `SELECT m.id, m.member_id, m.target_member_id, m.memo, m.memo_detail, m.color,
 			        m.created_at, m.updated_at,
 			        COALESCE(mb.mb_nick, m.target_member_id) AS target_mb_nick,
-			        COALESCE(mb.mb_icon_path, '') AS target_mb_icon_path
+			        COALESCE(mb.mb_image_url, '') AS target_mb_image_url
 			 FROM g5_member_memo m
 			 LEFT JOIN g5_member mb ON mb.mb_id = m.target_member_id
 			 WHERE m.member_id = ?
@@ -81,7 +81,7 @@ export async function getMyMemos(
         created_at: row.created_at,
         updated_at: row.updated_at,
         target_mb_nick: row.target_mb_nick,
-        target_mb_icon_path: row.target_mb_icon_path
+        target_mb_image_url: row.target_mb_image_url
     }));
 
     return { items, total, page, totalPages };
