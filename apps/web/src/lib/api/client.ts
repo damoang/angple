@@ -1368,6 +1368,9 @@ class ApiClient {
      * 🔒 인증 필요
      */
     async uploadFile(boardId: string, file: File, postId?: number): Promise<UploadedFile> {
+        const { convertHeicIfNeeded } = await import('$lib/utils/image-convert.js');
+        file = await convertHeicIfNeeded(file);
+
         const formData = new FormData();
         formData.append('file', file);
         if (postId) {
@@ -1431,10 +1434,14 @@ class ApiClient {
      * 🔒 인증 필요
      */
     async uploadImage(boardId: string, file: File, postId?: number): Promise<UploadedFile> {
-        // 이미지 파일인지 확인
-        if (!file.type.startsWith('image/')) {
+        const { convertHeicIfNeeded, isImageFile } = await import('$lib/utils/image-convert.js');
+
+        // 이미지 파일인지 확인 (HEIC 포함)
+        if (!isImageFile(file)) {
             throw new Error('이미지 파일만 업로드할 수 있습니다.');
         }
+
+        file = await convertHeicIfNeeded(file);
 
         const formData = new FormData();
         formData.append('file', file);

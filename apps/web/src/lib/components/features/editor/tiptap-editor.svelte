@@ -34,6 +34,7 @@
     } from '$lib/components/ui/dialog/index.js';
     import { marked } from 'marked';
     import TurndownService from 'turndown';
+    import { isImageFile } from '$lib/utils/image-convert.js';
 
     const lowlight = createLowlight(common);
     const turndown = new TurndownService({
@@ -322,7 +323,7 @@
     // 이미지 파일 업로드 처리 (커서 위치에 삽입)
     async function handleImageFile(file: File): Promise<void> {
         if (!onImageUpload || !editor) return;
-        if (!file.type.startsWith('image/')) return;
+        if (!isImageFile(file)) return;
 
         isUploading = true;
         try {
@@ -340,7 +341,7 @@
     // 특정 위치에 이미지 삽입 (드래그 앤 드롭용)
     async function handleImageFileAtPosition(file: File, pos: number): Promise<void> {
         if (!onImageUpload || !editor) return;
-        if (!file.type.startsWith('image/')) return;
+        if (!isImageFile(file)) return;
 
         isUploading = true;
         try {
@@ -367,7 +368,7 @@
         if (!files?.length) return;
 
         const mediaFiles = Array.from(files).filter(
-            (f) => f.type.startsWith('image/') || f.type.startsWith('video/')
+            (f) => isImageFile(f) || f.type.startsWith('video/')
         );
         if (mediaFiles.length > 0) {
             e.preventDefault();
@@ -416,7 +417,11 @@
         if (!items) return;
 
         for (const item of items) {
-            if (item.type.startsWith('image/')) {
+            if (
+                item.type.startsWith('image/') ||
+                item.type === 'image/heic' ||
+                item.type === 'image/heif'
+            ) {
                 e.preventDefault();
                 const file = item.getAsFile();
                 if (file) handleImageFile(file);
@@ -589,7 +594,7 @@
         if (!files?.length) return;
 
         for (const file of Array.from(files)) {
-            if (file.type.startsWith('image/')) {
+            if (isImageFile(file)) {
                 await handleImageFile(file);
             }
         }
@@ -609,7 +614,7 @@
         if (!files?.length) return;
 
         for (const file of Array.from(files)) {
-            if (file.type.startsWith('image/')) {
+            if (isImageFile(file)) {
                 await handleImageFile(file);
             }
         }
