@@ -731,6 +731,22 @@
         commentLayout = data.board?.display_settings?.comment_layout || 'flat';
     });
 
+    // 삭제 예약 취소
+    let isCancellingDelete = $state(false);
+    async function handleCancelDelete(): Promise<void> {
+        if (!confirm('삭제 예약을 취소하시겠습니까?')) return;
+        isCancellingDelete = true;
+        try {
+            await apiClient.cancelScheduledDelete(boardId, String(data.post.id));
+            scheduledDelete = null;
+        } catch (err) {
+            console.error('Failed to cancel scheduled delete:', err);
+            alert('삭제 예약 취소에 실패했습니다.');
+        } finally {
+            isCancellingDelete = false;
+        }
+    }
+
     // 게시글 삭제
     async function handleDelete(): Promise<void> {
         isDeleting = true;
@@ -1240,6 +1256,15 @@
                             ({scheduledDelete.delay_minutes}분 지연)
                         </p>
                     </div>
+                    {#if canModify}
+                        <button
+                            onclick={handleCancelDelete}
+                            disabled={isCancellingDelete}
+                            class="shrink-0 rounded-md border border-amber-300 bg-white px-3 py-1.5 text-sm font-medium text-amber-700 hover:bg-amber-50 disabled:opacity-50 dark:border-amber-700 dark:bg-amber-900/50 dark:text-amber-300 dark:hover:bg-amber-900"
+                        >
+                            {isCancellingDelete ? '취소 중...' : '삭제 취소'}
+                        </button>
+                    {/if}
                 </div>
             </div>
         {/if}
