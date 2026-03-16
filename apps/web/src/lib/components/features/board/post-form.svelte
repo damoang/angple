@@ -34,6 +34,8 @@
         boardId?: string; // 게시판 ID (임시저장 키에 사용)
         board?: Board; // 게시판 설정 (비밀글 옵션 등)
         attachments?: FileAttachment[]; // 기존 첨부파일 (수정 시)
+        initialTitle?: string; // 초기 제목 (소명 등)
+        initialLink1?: string; // 초기 link1 값 (disciplinelog_id 등)
         onSubmit: (data: CreatePostRequest | UpdatePostRequest) => Promise<void>;
         onCancel: () => void;
         isLoading?: boolean;
@@ -46,6 +48,8 @@
         boardId = 'free',
         board,
         attachments = [],
+        initialTitle = '',
+        initialLink1 = '',
         onSubmit,
         onCancel,
         isLoading = false
@@ -65,12 +69,12 @@
     let link2 = $state('');
 
     $effect(() => {
-        title = post?.title || '';
+        title = post?.title || initialTitle || '';
         content = post?.content || '';
         category = post?.category || '';
         isSecret = post?.is_secret || false;
         tags = post?.tags || [];
-        link1 = post?.link1 || '';
+        link1 = post?.link1 || initialLink1 || '';
         link2 = post?.link2 || '';
     });
     let errors = $state<{ title?: string; content?: string; category?: string }>({});

@@ -1,6 +1,7 @@
 <script lang="ts">
     import { goto } from '$app/navigation';
     import { browser } from '$app/environment';
+    import { page } from '$app/stores';
     import PostForm from '$lib/components/features/board/post-form.svelte';
     import { writeFormRegistry } from '$lib/components/features/board/write-form-registry.js';
     import { authStore } from '$lib/stores/auth.svelte.js';
@@ -12,6 +13,11 @@
     import { checkPermission, getPermissionMessage } from '$lib/utils/board-permissions.js';
 
     let { data }: { data: PageData } = $props();
+
+    // 소명 연동: disciplinelog_id 쿼리파라미터 처리
+    const disciplinelogId = $derived($page.url.searchParams.get('disciplinelog_id') ?? '');
+    const claimInitialTitle = $derived(disciplinelogId ? `[소명 #${disciplinelogId}]` : '');
+    const claimInitialLink1 = $derived(disciplinelogId ? `disciplinelog:${disciplinelogId}` : '');
 
     // 게시판 정보
     const boardId = $derived(data.boardId);
@@ -36,7 +42,7 @@
         writePermission !== null &&
             writePermission.can_write &&
             writePermission.remaining >= 0 &&
-            writePermission.daily_limit > 0
+            (writePermission.daily_limit > 0 || writePermission.total_limit > 0)
     );
 
     // 글쓰기 권한 체크
@@ -141,8 +147,13 @@
             <div
                 class="mb-4 rounded-md bg-blue-50 px-4 py-3 text-sm text-blue-700 dark:bg-blue-950/30 dark:text-blue-300"
             >
-                오늘 <strong>{writePermission?.remaining}</strong>/{writePermission?.daily_limit}회
-                작성 가능
+                {#if writePermission && writePermission.total_limit > 0}
+                    총 <strong>{writePermission.remaining}</strong>/{writePermission.total_limit}회
+                    작성 가능
+                {:else}
+                    오늘 <strong>{writePermission?.remaining}</strong
+                    >/{writePermission?.daily_limit}회 작성 가능
+                {/if}
             </div>
         {/if}
 
@@ -160,6 +171,8 @@
                 mode="create"
                 board={data.board ?? undefined}
                 categories={data.categories}
+                initialTitle={claimInitialTitle}
+                initialLink1={claimInitialLink1}
                 onSubmit={handleSubmit}
                 onCancel={handleCancel}
                 isLoading={isSubmitting}
