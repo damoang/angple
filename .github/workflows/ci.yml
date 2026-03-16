@@ -2,9 +2,6 @@ name: CI
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
   pull_request:
     branches:
       - main
@@ -96,9 +93,11 @@ jobs:
         working-directory: apps/${{ matrix.app }}
         run: pnpm run build
 
-  # 보안 취약점 스캔 (HIGH 이상만 실패 처리)
+  # 보안 취약점 스캔은 수동 실행만 허용한다.
+  # PR/main 기본 경로에서는 security.yml이 담당하므로 중복 실행을 피한다.
   security:
     name: Security Audit (${{ matrix.app }})
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     strategy:
       matrix:

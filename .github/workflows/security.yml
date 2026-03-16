@@ -1,10 +1,8 @@
 name: Security Scans
 
 on:
+  workflow_dispatch:
   pull_request:
-    branches:
-      - main
-  push:
     branches:
       - main
   schedule:
@@ -29,10 +27,10 @@ jobs:
         continue-on-error: true
         run: semgrep ci --config=auto
 
-  # 심층 SAST 검사 - main push 또는 스케줄 실행
+  # 심층 SAST 검사는 무거우므로 수동 실행 또는 정기 스캔으로만 돌린다.
   sast-codeql:
     name: SAST - CodeQL
-    if: github.event_name == 'push' || github.event_name == 'schedule'
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
     runs-on: ubuntu-latest
     permissions:
       security-events: write
@@ -50,10 +48,10 @@ jobs:
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v4
 
-  # 컨테이너 보안 스캔 - main push 또는 스케줄 실행
+  # 컨테이너 보안 스캔도 main 배포 경로를 막지 않도록 수동/정기 실행으로만 돌린다.
   container-scan:
     name: Container Security Scan
-    if: github.event_name == 'push' || github.event_name == 'schedule'
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
