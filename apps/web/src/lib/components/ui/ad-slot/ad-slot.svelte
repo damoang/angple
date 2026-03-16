@@ -30,7 +30,6 @@
     let isLoaded = $state(false);
     let hasAd = $state(false);
     let slotId = $state('');
-    let computedHeight = $state(height);
     let detached = false;
     let containerEl: HTMLDivElement | null = null;
     let visibilityObserver: IntersectionObserver | null = null;
@@ -54,23 +53,51 @@
         };
     }
 
-    function getResponsiveHeight(config: AdConfig): string {
-        if (typeof window === 'undefined') return height;
-        const width = window.innerWidth;
+    function parseHeightPx(value: string): number | null {
+        const match = /^(\d+(?:\.\d+)?)px$/.exec(value.trim());
+        if (!match) return null;
+        return Number(match[1]);
+    }
+
+    function maxHeight(sizes: Array<[number, number]>): number {
+        return Math.max(...sizes.map((size) => size[1]));
+    }
+
+    function getReservedHeights(config: AdConfig): {
+        base: string;
+        tablet: string;
+        desktop: string;
+    } {
+        const explicitHeight = parseHeightPx(height);
+        const fallback = explicitHeight ?? (config.sizes.length > 0 ? maxHeight(config.sizes) : 0);
+        let mobileHeight = fallback;
+        let tabletHeight: number | null = null;
+        let desktopHeight: number | null = null;
 
         if (config.responsive) {
             for (const [viewport, viewportSizes] of config.responsive) {
-                if (width >= viewport && viewportSizes.length > 0) {
-                    return `${Math.max(...viewportSizes.map((size) => size[1]))}px`;
+                if (viewportSizes.length === 0) continue;
+                const reserved = Math.max(maxHeight(viewportSizes), explicitHeight ?? 0);
+
+                if (viewport >= 970) {
+                    desktopHeight = Math.max(desktopHeight ?? fallback, reserved);
+                } else if (viewport >= 728) {
+                    tabletHeight = Math.max(tabletHeight ?? fallback, reserved);
+                } else {
+                    mobileHeight = Math.max(mobileHeight, reserved);
                 }
             }
         }
 
-        if (config.sizes.length > 0) {
-            return `${Math.max(...config.sizes.map((size) => size[1]))}px`;
-        }
+        const base = mobileHeight;
+        const tablet = tabletHeight ?? base;
+        const desktop = desktopHeight ?? tablet;
 
-        return height;
+        return {
+            base: `${base}px`,
+            tablet: `${tablet}px`,
+            desktop: `${desktop}px`
+        };
     }
 
     function handleRender(isEmpty: boolean) {
@@ -88,7 +115,6 @@
         const resolvedSlotKey = slotKey || position;
 
         slotId = buildSlotId(position, resolvedSlotKey);
-        computedHeight = getResponsiveHeight(config);
 
         await tick();
 
@@ -128,6 +154,8 @@
         updateSlotVisibility(slotId, false);
         detachSlot(slotId, handleRender);
     });
+
+    const reservedHeights = $derived(getReservedHeights(getAdConfig()));
 </script>
 
 <div
@@ -135,10 +163,17 @@
     class="ad-slot-container relative overflow-hidden rounded-lg transition-all duration-300 {className}"
     class:ad-slot-placeholder={!isLoaded}
     class:ad-slot-loaded={isLoaded && hasAd}
-    style:min-height={computedHeight}
+    style:--ad-slot-min-height={reservedHeights.base}
+    style:--ad-slot-min-height-tablet={reservedHeights.tablet}
+    style:--ad-slot-min-height-desktop={reservedHeights.desktop}
+    style:min-height="var(--ad-slot-min-height)"
 >
     {#if slotId}
-        <div id={slotId} class="gam-ad-slot w-full" style="min-height: {computedHeight};"></div>
+        <div
+            id={slotId}
+            class="gam-ad-slot w-full"
+            style="min-height: var(--ad-slot-min-height);"
+        ></div>
     {/if}
 
     {#if !isLoaded}
@@ -183,6 +218,20 @@
         align-items: center;
         max-width: 100%;
         overflow: hidden;
+    }
+
+    @media (min-width: 728px) {
+        .ad-slot-container,
+        .gam-ad-slot {
+            min-height: var(--ad-slot-min-height-tablet);
+        }
+    }
+
+    @media (min-width: 970px) {
+        .ad-slot-container,
+        .gam-ad-slot {
+            min-height: var(--ad-slot-min-height-desktop);
+        }
     }
 
     .gam-ad-slot:empty {
