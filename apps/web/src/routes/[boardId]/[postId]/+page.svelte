@@ -916,10 +916,10 @@
                 1,
                 LIKERS_PER_PAGE
             );
-            likers = response.likers;
-            likersTotal = response.total;
+            likers = response.likers ?? [];
+            likersTotal = response.total ?? 0;
             // 추천자 레벨 배치 로드
-            const likerIds = response.likers.map((l: LikerInfo) => l.mb_id).filter(Boolean);
+            const likerIds = likers.map((l: LikerInfo) => l.mb_id).filter(Boolean);
             if (likerIds.length > 0) {
                 memberLevelStore.fetchLevels(likerIds);
             }
@@ -942,11 +942,11 @@
                 nextPage,
                 LIKERS_PER_PAGE
             );
-            likers = [...likers, ...response.likers];
-            likersTotal = response.total;
+            likers = [...likers, ...(response.likers ?? [])];
+            likersTotal = response.total ?? 0;
             likersPage = nextPage;
             // 추가된 추천자 레벨 배치 로드
-            const likerIds = response.likers.map((l: LikerInfo) => l.mb_id).filter(Boolean);
+            const likerIds = (response.likers ?? []).map((l: LikerInfo) => l.mb_id).filter(Boolean);
             if (likerIds.length > 0) {
                 memberLevelStore.fetchLevels(likerIds);
             }
@@ -961,8 +961,8 @@
     async function loadLikerAvatars(): Promise<void> {
         try {
             const response = await apiClient.getPostLikers(boardId, String(data.post.id), 1, 5);
-            likers = response.likers;
-            likersTotal = response.total;
+            likers = response.likers ?? [];
+            likersTotal = response.total ?? 0;
         } catch (err) {
             console.error('Failed to load liker avatars:', err);
         }
