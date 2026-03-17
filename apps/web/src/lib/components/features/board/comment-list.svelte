@@ -11,6 +11,8 @@
     import Trash2 from '@lucide/svelte/icons/trash-2';
     import RotateCcw from '@lucide/svelte/icons/rotate-ccw';
     import CommentForm from './comment-form.svelte';
+    import CommentToolbar from './comment-toolbar.svelte';
+    import Loader2 from '@lucide/svelte/icons/loader-2';
     import { ReportDialog } from '$lib/components/features/report/index.js';
     import AdSlot from '$lib/components/ui/ad-slot/ad-slot.svelte';
     import { widgetLayoutStore } from '$lib/stores/widget-layout.svelte';
@@ -144,6 +146,70 @@
     let LazyCommentEditor = $state<Component | null>(null);
     let isDeleting = $state<string | null>(null);
     let isRestoring = $state<string | null>(null);
+
+    // 수정 폼 이미지 업로드
+    let editEditorRef = $state<any>(null);
+    let editFileInputRef = $state<HTMLInputElement | null>(null);
+    let editIsUploading = $state(false);
+    let editUploadError = $state<string | null>(null);
+
+    const EDIT_MAX_IMAGES = 3;
+    const EDIT_MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
+
+    function editTriggerFileSelect(): void {
+        editFileInputRef?.click();
+    }
+
+    function editInsertText(text: string): void {
+        editEditorRef?.insertContent(text);
+    }
+
+    async function editHandleFiles(files: FileList | File[]): Promise<void> {
+        const fileArray = Array.from(files);
+        const insertedImageCount = editEditorRef?.getImageCount() ?? 0;
+        const remaining = EDIT_MAX_IMAGES - insertedImageCount;
+        if (remaining <= 0) {
+            editUploadError = `이미지는 최대 ${EDIT_MAX_IMAGES}개까지 첨부할 수 있습니다.`;
+            return;
+        }
+
+        const toUpload = fileArray.slice(0, remaining);
+
+        for (const file of toUpload) {
+            if (!file.type.startsWith('image/')) {
+                editUploadError = '이미지 파일만 업로드할 수 있습니다.';
+                continue;
+            }
+            if (file.size > EDIT_MAX_IMAGE_SIZE) {
+                editUploadError = '이미지 크기는 10MB를 초과할 수 없습니다.';
+                continue;
+            }
+
+            editIsUploading = true;
+            editUploadError = null;
+            try {
+                const result = await apiClient.uploadImage(boardId, file);
+                if (!result?.url) {
+                    editUploadError = '이미지 URL을 받지 못했습니다.';
+                    continue;
+                }
+                editEditorRef?.insertImage(result.url, '첨부 이미지');
+            } catch (err) {
+                editUploadError =
+                    err instanceof Error ? err.message : '이미지 업로드에 실패했습니다.';
+            } finally {
+                editIsUploading = false;
+            }
+        }
+    }
+
+    function editHandleFileChange(e: Event): void {
+        const input = e.currentTarget as HTMLInputElement;
+        if (input.files && input.files.length > 0) {
+            editHandleFiles(input.files);
+            input.value = '';
+        }
+    }
 
     // 댓글 리비전 이력 상태 (관리자 전용)
     let revisionCommentId = $state<string | null>(null);
@@ -349,6 +415,8 @@
     function cancelEdit(): void {
         editingCommentId = null;
         editContent = '';
+        editUploadError = null;
+        editEditorRef = null;
     }
 
     // 수정 저장
@@ -725,16 +793,18 @@
         }
     }
 
-    // 좋아요 > 0인 댓글의 아바타 배치 로드 (최대 10개)
-    let likerAvatarsLoaded = $state(false);
+    // 좋아요 > 0인 댓글의 아바타 배치 로드 (댓글 추가 시 미로드 분만 재요청)
+    let likerAvatarsLoadedIds = new SvelteSet<string>();
     $effect(() => {
-        if (likerAvatarsLoaded || commentTree.length === 0 || !boardId || !postId) return;
+        if (commentTree.length === 0 || !boardId || !postId) return;
 
-        const commentsWithLikes = commentTree.filter((c) => (c.likes ?? 0) > 0).slice(0, 50);
+        const commentsWithLikes = commentTree.filter(
+            (c) => (c.likes ?? 0) > 0 && !likerAvatarsLoadedIds.has(String(c.id))
+        );
 
         if (commentsWithLikes.length > 0) {
-            likerAvatarsLoaded = true;
             const ids = commentsWithLikes.map((c) => String(c.id));
+            for (const id of ids) likerAvatarsLoadedIds.add(id);
             loadCommentLikerAvatarsBatch(ids);
         }
     });
@@ -1143,10 +1213,12 @@
                             <div class="mt-2 space-y-3">
                                 {#if LazyCommentEditor}
                                     <LazyCommentEditor
+                                        bind:this={editEditorRef}
                                         content={editContent}
                                         onUpdate={(html: string) => {
                                             editContent = html;
                                         }}
+                                        onImagePaste={(file: File) => editHandleFiles([file])}
                                         placeholder="댓글을 입력하세요..."
                                         disabled={isUpdating}
                                     />
@@ -1155,25 +1227,63 @@
                                         class="border-border bg-background min-h-24 animate-pulse rounded-lg border p-3"
                                     ></div>
                                 {/if}
-                                <div class="flex justify-end gap-2">
-                                    <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="sm"
-                                        onclick={cancelEdit}
+
+                                {#if editIsUploading}
+                                    <div
+                                        class="text-muted-foreground flex items-center gap-2 text-sm"
+                                    >
+                                        <Loader2 class="h-4 w-4 animate-spin" />
+                                        <span>이미지 업로드 중...</span>
+                                    </div>
+                                {/if}
+
+                                <div class="flex flex-wrap items-center gap-1">
+                                    <CommentToolbar
+                                        onInsertText={editInsertText}
+                                        onSelectImage={editTriggerFileSelect}
+                                        onInsertEmoticon={(filename) => {
+                                            editEditorRef?.insertImage(
+                                                `/emoticons/${filename}`,
+                                                filename
+                                            );
+                                        }}
                                         disabled={isUpdating}
-                                    >
-                                        취소
-                                    </Button>
-                                    <Button
-                                        type="button"
-                                        size="sm"
-                                        onclick={saveEdit}
-                                        disabled={isUpdating || !editContent.trim()}
-                                    >
-                                        {isUpdating ? '저장 중...' : '저장'}
-                                    </Button>
+                                        {boardId}
+                                    />
+
+                                    <div class="ml-auto flex items-center gap-2">
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="sm"
+                                            onclick={cancelEdit}
+                                            disabled={isUpdating}
+                                        >
+                                            취소
+                                        </Button>
+                                        <Button
+                                            type="button"
+                                            size="sm"
+                                            onclick={saveEdit}
+                                            disabled={isUpdating || !editContent.trim()}
+                                        >
+                                            {isUpdating ? '저장 중...' : '저장'}
+                                        </Button>
+                                    </div>
                                 </div>
+
+                                {#if editUploadError}
+                                    <p class="text-destructive text-sm">{editUploadError}</p>
+                                {/if}
+
+                                <input
+                                    bind:this={editFileInputRef}
+                                    type="file"
+                                    accept="image/jpeg,image/png,image/gif,image/webp,image/heic,image/heif,.heic,.heif"
+                                    multiple
+                                    class="hidden"
+                                    onchange={editHandleFileChange}
+                                />
                             </div>
                         {:else if comment.is_secret && !canViewSecretComment(comment)}
                             <div
