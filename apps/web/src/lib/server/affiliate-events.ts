@@ -83,7 +83,7 @@ function buildPayload(
 export async function sendAffiliateEvents(
     results: ConvertResponse[] | BatchConvertResponse,
     opts: {
-        source: 'api_convert' | 'api_batch';
+        source: 'api_convert' | 'api_batch' | 'server_content' | 'server_link_field';
         bo_table?: string;
         wr_id?: number;
         latency_ms?: number;

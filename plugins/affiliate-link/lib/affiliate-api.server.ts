@@ -151,7 +151,19 @@ export async function convertAffiliateLinks(
     boTable?: string,
     wrId?: number
 ): Promise<string> {
-    if (!content) return content;
+    const { content: convertedContent } = await convertAffiliateLinksDetailed(content, boTable, wrId);
+    return convertedContent;
+}
+
+/**
+ * HTML 콘텐츠 내 링크 변환 + 결과 반환
+ */
+export async function convertAffiliateLinksDetailed(
+    content: string,
+    boTable?: string,
+    wrId?: number
+): Promise<{ content: string; results: ConvertResponse[] }> {
+    if (!content) return { content, results: [] };
 
     // <a> 태그에서 URL 추출
     const linkRegex = /<a\s+([^>]*?)href=["']([^"']+)["']([^>]*)>([^<]*)<\/a>/gi;
@@ -169,12 +181,12 @@ export async function convertAffiliateLinks(
         });
     }
 
-    if (matches.length === 0) return content;
+    if (matches.length === 0) return { content, results: [] };
 
     // 제휴 대상 URL 필터링
     const affiliateMatches = matches.filter((m) => isAffiliateUrl(m.url));
 
-    if (affiliateMatches.length === 0) return content;
+    if (affiliateMatches.length === 0) return { content, results: [] };
 
     // 일괄 변환
     const context: ConvertContext = { bo_table: boTable, wr_id: wrId };
@@ -203,7 +215,7 @@ export async function convertAffiliateLinks(
         newContent = newContent.replace(m.full, newLink);
     }
 
-    return newContent;
+    return { content: newContent, results };
 }
 
 /**
