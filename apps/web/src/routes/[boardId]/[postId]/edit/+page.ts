@@ -18,10 +18,11 @@ export const load: PageLoad = async ({ params }) => {
     }
 
     try {
-        const [post, board, files] = await Promise.all([
+        const [post, board, files, deleteStatus] = await Promise.all([
             apiClient.getBoardPost(boardId, postId),
             apiClient.getBoard(boardId),
-            apiClient.getPostFiles(boardId, postId)
+            apiClient.getPostFiles(boardId, postId),
+            apiClient.getPostDeleteStatus(boardId, postId).catch(() => null)
         ]);
 
         // 카테고리 목록 파싱
@@ -35,7 +36,14 @@ export const load: PageLoad = async ({ params }) => {
             post,
             board,
             categories,
-            files
+            files,
+            scheduledDelete:
+                deleteStatus?.scheduled && deleteStatus.scheduled_at
+                    ? {
+                          scheduled_at: deleteStatus.scheduled_at,
+                          delay_minutes: deleteStatus.delay_minutes ?? 0
+                      }
+                    : null
         };
     } catch (err) {
         console.error('Failed to load post for editing:', boardId, postId, err);

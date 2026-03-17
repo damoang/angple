@@ -588,6 +588,27 @@ class ApiClient {
     }
 
     /**
+     * 게시글 삭제 예약 상태 조회
+     */
+    async getPostDeleteStatus(
+        boardId: string,
+        postId: string
+    ): Promise<{
+        scheduled: boolean;
+        scheduled_at?: string;
+        requested_at?: string;
+        delay_minutes?: number;
+    }> {
+        const response = await this.request<{
+            scheduled: boolean;
+            scheduled_at?: string;
+            requested_at?: string;
+            delay_minutes?: number;
+        }>(`/boards/${boardId}/posts/${postId}/delete-status`);
+        return response.data ?? { scheduled: false };
+    }
+
+    /**
      * 게시글 삭제 예약 취소
      * 🔒 인증 필요 + 작성자 본인 또는 관리자
      */
