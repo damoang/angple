@@ -93,6 +93,13 @@ class ApiClient {
     private _accessToken: string | null = null;
     private _fetchFn: typeof fetch | null = null;
 
+    private createIdempotencyKey(scope: string): string {
+        if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
+            return `${scope}:${crypto.randomUUID()}`;
+        }
+        return `${scope}:${Date.now()}:${Math.random().toString(36).slice(2, 10)}`;
+    }
+
     /** SvelteKit load 함수에서 제공하는 fetch를 임시 주입 (1회성) */
     withFetch(fn: typeof fetch): this {
         this._fetchFn = fn;
@@ -547,6 +554,9 @@ class ApiClient {
             `/boards/${boardId}/posts`,
             {
                 method: 'POST',
+                headers: {
+                    'X-Idempotency-Key': this.createIdempotencyKey(`post-create:${boardId}`)
+                },
                 body: JSON.stringify(request)
             },
             WRITE_REQUEST_CONFIG
@@ -568,6 +578,11 @@ class ApiClient {
             `/boards/${boardId}/posts/${postId}`,
             {
                 method: 'PUT',
+                headers: {
+                    'X-Idempotency-Key': this.createIdempotencyKey(
+                        `post-update:${boardId}:${postId}`
+                    )
+                },
                 body: JSON.stringify(request)
             },
             WRITE_REQUEST_CONFIG
@@ -743,6 +758,11 @@ class ApiClient {
             `/boards/${boardId}/posts/${postId}/comments`,
             {
                 method: 'POST',
+                headers: {
+                    'X-Idempotency-Key': this.createIdempotencyKey(
+                        `comment-create:${boardId}:${postId}`
+                    )
+                },
                 body: JSON.stringify(request)
             },
             WRITE_REQUEST_CONFIG
@@ -765,6 +785,11 @@ class ApiClient {
             `/boards/${boardId}/posts/${postId}/comments/${commentId}`,
             {
                 method: 'PUT',
+                headers: {
+                    'X-Idempotency-Key': this.createIdempotencyKey(
+                        `comment-update:${boardId}:${postId}:${commentId}`
+                    )
+                },
                 body: JSON.stringify(request)
             },
             WRITE_REQUEST_CONFIG
