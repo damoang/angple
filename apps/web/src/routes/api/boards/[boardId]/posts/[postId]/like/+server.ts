@@ -277,11 +277,12 @@ export const POST: RequestHandler = async ({ params, request, cookies, getClient
                 const userNick = user.mb_nick || user.mb_name || user.mb_id;
                 const postSubject = writeRows[0].wr_subject || '';
 
-                // 글 작성자의 알림 임계값 조회
+                // 글 작성자의 알림 설정 조회 (on/off + 임계값)
                 const [prefRows] = await pool.query<RowDataPacket[]>(
-                    `SELECT like_threshold FROM g5_noti_preference WHERE mb_id = ?`,
+                    `SELECT noti_like, like_threshold FROM g5_noti_preference WHERE mb_id = ?`,
                     [postAuthorId]
                 );
+                const notiLikeEnabled = prefRows[0]?.noti_like ?? 1;
                 const likeThreshold = prefRows[0]?.like_threshold ?? 1;
 
                 // 현재 추천 수 조회
@@ -291,8 +292,8 @@ export const POST: RequestHandler = async ({ params, request, cookies, getClient
                 );
                 const currentGood = goodCountRows[0]?.wr_good ?? 0;
 
-                // 추천 수가 임계값의 배수일 때만 알림 (1, threshold, threshold*2, ...)
-                if (likeThreshold <= 1 || currentGood % likeThreshold === 0) {
+                // 공감 알림이 켜져있고, 추천 수가 임계값 조건을 충족할 때만 알림
+                if (notiLikeEnabled && (likeThreshold <= 1 || currentGood % likeThreshold === 0)) {
                     // 기존 알림 삭제 후 새 알림 (추천→취소→재추천 중복 방지)
                     pool.query(
                         `DELETE FROM g5_na_noti WHERE bo_table = ? AND wr_id = ? AND rel_mb_id = ? AND ph_from_case = 'good'`,
