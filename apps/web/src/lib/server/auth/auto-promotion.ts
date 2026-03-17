@@ -101,13 +101,15 @@ export async function savePromotionRules(rules: PromotionRule[]): Promise<void> 
 }
 
 /**
- * 특정 회원의 로그인 일수 조회 (g5_na_xp 테이블에서 @login 액션 카운트)
+ * 특정 회원의 로그인 일수 조회
+ * 실제 로그인과 장애 보전 로그를 모두 포함해 날짜 기준으로 집계한다.
  */
 async function getLoginDays(mbId: string): Promise<number> {
     const [rows] = await readPool.query<RowDataPacket[]>(
         `SELECT COUNT(DISTINCT DATE(xp_datetime)) as login_days
          FROM g5_na_xp
-         WHERE mb_id = ? AND xp_rel_action = '@login'`,
+         WHERE mb_id = ?
+           AND xp_rel_table IN ('@login', '@login_backfill_v2', '@login_bf_v2_top', '@login_fix')`,
         [mbId]
     );
     return rows[0]?.login_days ?? 0;
@@ -205,7 +207,8 @@ export async function getPromotionCandidates(): Promise<
             `SELECT m.mb_id, m.mb_nick, m.mb_level, COALESCE(m.as_exp, 0) as as_exp,
                     (SELECT COUNT(DISTINCT DATE(xp_datetime))
                      FROM g5_na_xp
-                     WHERE mb_id = m.mb_id AND xp_rel_action = '@login') as login_days
+                     WHERE mb_id = m.mb_id
+                       AND xp_rel_table IN ('@login', '@login_backfill_v2', '@login_bf_v2_top', '@login_fix')) as login_days
              FROM g5_member m
              WHERE m.mb_level = ?
                AND COALESCE(m.as_exp, 0) >= ?

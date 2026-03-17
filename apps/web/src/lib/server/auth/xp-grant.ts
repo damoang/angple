@@ -60,7 +60,12 @@ export async function grantLoginXP(mbId: string, dateStr?: string): Promise<void
 
     // 1. 오늘 이미 적립했는지 확인 (중복 방지)
     const [existing] = await readPool.query<ExistingRow[]>(
-        `SELECT COUNT(*) as cnt FROM g5_na_xp WHERE mb_id = ? AND xp_rel_action = ? LIMIT 1`,
+        `SELECT COUNT(*) as cnt
+         FROM g5_na_xp
+         WHERE mb_id = ?
+           AND xp_rel_table = '@login'
+           AND xp_rel_action = ?
+         LIMIT 1`,
         [mbId, today]
     );
     if (existing[0]?.cnt > 0) return;
@@ -100,7 +105,12 @@ export async function grantLoginXP(mbId: string, dateStr?: string): Promise<void
 export async function grantLoginXPForDate(mbId: string, dateStr: string): Promise<boolean> {
     // 이미 적립했는지 확인
     const [existing] = await readPool.query<ExistingRow[]>(
-        `SELECT COUNT(*) as cnt FROM g5_na_xp WHERE mb_id = ? AND xp_rel_action = ? LIMIT 1`,
+        `SELECT COUNT(*) as cnt
+         FROM g5_na_xp
+         WHERE mb_id = ?
+           AND xp_rel_table = '@login'
+           AND xp_rel_action = ?
+         LIMIT 1`,
         [mbId, dateStr]
     );
     if (existing[0]?.cnt > 0) return false;
