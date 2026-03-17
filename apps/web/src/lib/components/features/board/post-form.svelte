@@ -223,7 +223,10 @@
         if (mode === 'create') {
             const draft = loadDraft();
             if (draft && (draft.title || draft.content)) {
-                draftSavedTime = new Date(draft.savedAt).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul', hour12: false });
+                draftSavedTime = new Date(draft.savedAt).toLocaleString('ko-KR', {
+                    timeZone: 'Asia/Seoul',
+                    hour12: false
+                });
                 showDraftBanner = true;
             }
         }
