@@ -11,6 +11,11 @@ import type { RowDataPacket } from 'mysql2';
 import pool from '$lib/server/db';
 import { canRestrictedUserReactToBoard, getAuthUser, isRestrictedUser } from '$lib/server/auth';
 import { checkCertification } from '$lib/server/certification';
+import { getRedis } from '$lib/server/redis';
+import {
+    invalidateReactionCaches,
+    syncFeedReactionCounts
+} from '$lib/server/member-activity-cache.js';
 
 interface GoodRow extends RowDataPacket {
     bg_flag: string;
@@ -21,6 +26,8 @@ interface WriteRow extends RowDataPacket {
     wr_nogood: number;
     mb_id: string;
 }
+
+const COMMENT_LIKE_API_CACHE_TTL_SEC = 15;
 
 /**
  * GET: 댓글 추천 상태 조회
@@ -43,6 +50,20 @@ export const GET: RequestHandler = async ({ params, cookies }) => {
     }
 
     try {
+        const user = await getAuthUser(cookies);
+        const cacheKey = `comment_like_api:${user?.mb_id || 'anon'}:${safeBoardId}:${safeCommentId}`;
+        try {
+            const cached = await getRedis().get(cacheKey);
+            if (cached) {
+                return new Response(cached, {
+                    status: 200,
+                    headers: { 'content-type': 'application/json; charset=utf-8' }
+                });
+            }
+        } catch {
+            // Redis 장애 시 DB fallback
+        }
+
         const tableName = `g5_write_${safeBoardId}`;
         const [writeRows] = await pool.query<WriteRow[]>(
             `SELECT wr_good, wr_nogood FROM ?? WHERE wr_id = ? AND wr_is_comment >= 1`,
@@ -59,7 +80,6 @@ export const GET: RequestHandler = async ({ params, cookies }) => {
         let userLiked = false;
         let userDisliked = false;
 
-        const user = await getAuthUser(cookies);
         if (user) {
             const [goodRows] = await pool.query<GoodRow[]>(
                 `SELECT bg_flag FROM g5_board_good WHERE bo_table = ? AND wr_id = ? AND mb_id = ?`,
@@ -72,10 +92,22 @@ export const GET: RequestHandler = async ({ params, cookies }) => {
             }
         }
 
-        return json({
+        const payload = {
             success: true,
             data: { likes, dislikes, user_liked: userLiked, user_disliked: userDisliked }
-        });
+        };
+
+        try {
+            await getRedis().setex(
+                cacheKey,
+                COMMENT_LIKE_API_CACHE_TTL_SEC,
+                JSON.stringify(payload)
+            );
+        } catch {
+            // Redis 장애 무시
+        }
+
+        return json(payload);
     } catch (error) {
         console.error('Comment like status GET error:', error);
         return json(
@@ -291,11 +323,31 @@ export const POST: RequestHandler = async ({ params, request, cookies, getClient
         const userLiked = userRows.some((r) => r.bg_flag === 'good');
         const userDisliked = userRows.some((r) => r.bg_flag === 'nogood');
 
+        const nextLikes = updatedRows[0]?.wr_good ?? 0;
+        const nextDislikes = updatedRows[0]?.wr_nogood ?? 0;
+
+        await Promise.all([
+            syncFeedReactionCounts({
+                boardId: safeBoardId,
+                writeId: safeCommentId,
+                activityType: 2,
+                likes: nextLikes,
+                dislikes: nextDislikes
+            }),
+            invalidateReactionCaches({
+                boardId: safeBoardId,
+                writeId: safeCommentId,
+                authorMbId: writeRows[0].mb_id,
+                actorMbId: user.mb_id,
+                isComment: true
+            })
+        ]);
+
         return json({
             success: true,
             data: {
-                likes: updatedRows[0]?.wr_good ?? 0,
-                dislikes: updatedRows[0]?.wr_nogood ?? 0,
+                likes: nextLikes,
+                dislikes: nextDislikes,
                 user_liked: userLiked,
                 user_disliked: userDisliked
             }

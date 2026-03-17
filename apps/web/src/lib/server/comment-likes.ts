@@ -5,6 +5,7 @@
  */
 import type { RowDataPacket } from 'mysql2';
 import pool from '$lib/server/db';
+import { getRedis } from '$lib/server/redis';
 
 interface GoodRow extends RowDataPacket {
     wr_id: number;
@@ -15,6 +16,8 @@ export interface CommentLikeStatuses {
     likedIds: number[];
     dislikedIds: number[];
 }
+
+const COMMENT_LIKE_STATUSES_CACHE_TTL_SEC = 30;
 
 /**
  * 댓글 좋아요/비추천 상태 배치 조회
@@ -32,6 +35,18 @@ export async function fetchCommentLikeStatuses(
     }
 
     const safeBoardId = boardId.replace(/[^a-zA-Z0-9_-]/g, '');
+    const sortedIds = [...commentIds].sort((a, b) => a - b);
+    const cacheKey = `comment_like_statuses:${userId}:${safeBoardId}:${sortedIds.join(',')}`;
+
+    try {
+        const cached = await getRedis().get(cacheKey);
+        if (cached) {
+            return JSON.parse(cached) as CommentLikeStatuses;
+        }
+    } catch {
+        // Redis 장애 시 DB fallback
+    }
+
     const placeholders = commentIds.map(() => '?').join(',');
 
     const [rows] = await pool.query<GoodRow[]>(
@@ -48,5 +63,16 @@ export async function fetchCommentLikeStatuses(
         if (row.bg_flag === 'nogood') dislikedIds.push(row.wr_id);
     }
 
-    return { likedIds, dislikedIds };
+    const result = { likedIds, dislikedIds };
+    try {
+        await getRedis().setex(
+            cacheKey,
+            COMMENT_LIKE_STATUSES_CACHE_TTL_SEC,
+            JSON.stringify(result)
+        );
+    } catch {
+        // Redis 장애 무시
+    }
+
+    return result;
 }

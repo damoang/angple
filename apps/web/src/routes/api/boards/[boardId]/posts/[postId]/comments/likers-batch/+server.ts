@@ -9,6 +9,9 @@ import type { RequestHandler } from './$types';
 import type { RowDataPacket } from 'mysql2';
 import pool from '$lib/server/db';
 import { getAuthUser } from '$lib/server/auth';
+import { getRedis } from '$lib/server/redis';
+
+const COMMENT_LIKERS_BATCH_CACHE_TTL_SEC = 15;
 
 function maskIp(ip: string | null | undefined): string {
     if (!ip) return '';
@@ -64,6 +67,19 @@ export const GET: RequestHandler = async ({ params, url, cookies }) => {
     try {
         const user = await getAuthUser(cookies);
         const isAuthenticated = !!user;
+        const cacheKey = `comment_likers_batch:${safeBoardId}:${commentIds.join(',')}:${limit}:${isAuthenticated ? 1 : 0}`;
+
+        try {
+            const cached = await getRedis().get(cacheKey);
+            if (cached) {
+                return new Response(cached, {
+                    status: 200,
+                    headers: { 'content-type': 'application/json; charset=utf-8' }
+                });
+            }
+        } catch {
+            // Redis 장애 시 DB fallback
+        }
 
         const placeholders = commentIds.map(() => '?').join(',');
 
@@ -134,7 +150,19 @@ export const GET: RequestHandler = async ({ params, url, cookies }) => {
             }
         }
 
-        return json({ success: true, data });
+        const payload = { success: true, data };
+
+        try {
+            await getRedis().setex(
+                cacheKey,
+                COMMENT_LIKERS_BATCH_CACHE_TTL_SEC,
+                JSON.stringify(payload)
+            );
+        } catch {
+            // Redis 장애 무시
+        }
+
+        return json(payload);
     } catch (error) {
         console.error('Comment likers batch GET error:', error);
         return json(
