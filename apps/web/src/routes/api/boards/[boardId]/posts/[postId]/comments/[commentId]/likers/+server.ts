@@ -10,6 +10,7 @@ import type { RowDataPacket } from 'mysql2';
 import pool from '$lib/server/db';
 import { getAuthUser } from '$lib/server/auth';
 import { getRedis } from '$lib/server/redis';
+import { getCommentLikersVersion } from '$lib/server/member-activity-cache';
 
 const COMMENT_LIKERS_CACHE_TTL_SEC = 15;
 
@@ -63,7 +64,8 @@ export const GET: RequestHandler = async ({ params, url, cookies }) => {
     try {
         const user = await getAuthUser(cookies);
         const isAuthenticated = !!user;
-        const cacheKey = `comment_likers:${safeBoardId}:${safeCommentId}:${page}:${limit}:${isAuthenticated ? 1 : 0}`;
+        const version = await getCommentLikersVersion(safeBoardId, safeCommentId);
+        const cacheKey = `comment_likers:${safeBoardId}:${safeCommentId}:${page}:${limit}:${isAuthenticated ? 1 : 0}:v${version}`;
 
         try {
             const cached = await getRedis().get(cacheKey);

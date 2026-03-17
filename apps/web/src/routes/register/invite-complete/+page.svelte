@@ -34,16 +34,16 @@
             <div class="border-border bg-muted/40 rounded-lg border p-4 text-sm leading-6">
                 <p class="font-semibold">등급 안내</p>
                 <p class="text-muted-foreground mt-2">
-                    닉네임 오른쪽은 <span class="font-medium text-foreground">앙님❤️</span>으로
+                    닉네임 오른쪽은 <span class="text-foreground font-medium">앙님❤️</span>으로
                     시작합니다.
                 </p>
                 <p class="text-muted-foreground">
-                    7일간 로그인하면 <span class="font-medium text-foreground">앙님💛</span>으로
+                    7일간 로그인하면 <span class="text-foreground font-medium">앙님💛</span>으로
                     승급됩니다.
                 </p>
                 <p class="text-muted-foreground">
-                    글쓰기와 댓글 작성은 <span class="font-medium text-foreground">앙님💛</span
-                    >부터 이용하실 수 있습니다.
+                    글쓰기와 댓글 작성은 <span class="text-foreground font-medium">앙님💛</span>부터
+                    이용하실 수 있습니다.
                 </p>
                 <p class="text-muted-foreground mt-2">
                     현재 시스템 안정화로 인해 자동 승급은 일시 중단되었으며, 매주 일요일 수동으로

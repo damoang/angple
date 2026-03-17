@@ -3,6 +3,86 @@ import { getRedis } from '$lib/server/redis';
 
 let feedReactionSyncDisabled = false;
 let feedReactionSyncWarningLogged = false;
+const CACHE_VERSION_TTL_SEC = 7 * 24 * 60 * 60;
+
+function getPostReactionVersionKey(boardId: string, writeId: number): string {
+    return `rv:post:${boardId}:${writeId}`;
+}
+
+function getCommentReactionVersionKey(boardId: string): string {
+    return `rv:comment-board:${boardId}`;
+}
+
+function getMemberLikedVersionKey(memberId: string): string {
+    return `rv:member-liked:${memberId}`;
+}
+
+function getMemberInteractionsVersionKey(memberId: string): string {
+    return `rv:member-interactions:${memberId}`;
+}
+
+function getCommentLikersVersionKey(boardId: string, commentId: number): string {
+    return `rv:comment-likers:${boardId}:${commentId}`;
+}
+
+function getCommentLikersBatchVersionKey(boardId: string): string {
+    return `rv:comment-likers-batch:${boardId}`;
+}
+
+function getPostLikersVersionKey(boardId: string, postId: number): string {
+    return `rv:post-likers:${boardId}:${postId}`;
+}
+
+async function getVersion(key: string): Promise<number> {
+    try {
+        const raw = await getRedis().get(key);
+        const parsed = raw ? Number.parseInt(raw, 10) : 0;
+        return Number.isFinite(parsed) ? parsed : 0;
+    } catch {
+        return 0;
+    }
+}
+
+async function bumpVersions(keys: string[]): Promise<void> {
+    if (keys.length === 0) return;
+
+    const uniqueKeys = [...new Set(keys)];
+    const redis = getRedis();
+    const pipeline = redis.pipeline();
+    for (const key of uniqueKeys) {
+        pipeline.incr(key);
+        pipeline.expire(key, CACHE_VERSION_TTL_SEC);
+    }
+    await pipeline.exec();
+}
+
+export async function getPostReactionVersion(boardId: string, writeId: number): Promise<number> {
+    return getVersion(getPostReactionVersionKey(boardId, writeId));
+}
+
+export async function getCommentReactionVersion(boardId: string): Promise<number> {
+    return getVersion(getCommentReactionVersionKey(boardId));
+}
+
+export async function getMemberLikedVersion(memberId: string): Promise<number> {
+    return getVersion(getMemberLikedVersionKey(memberId));
+}
+
+export async function getMemberInteractionsVersion(memberId: string): Promise<number> {
+    return getVersion(getMemberInteractionsVersionKey(memberId));
+}
+
+export async function getCommentLikersVersion(boardId: string, commentId: number): Promise<number> {
+    return getVersion(getCommentLikersVersionKey(boardId, commentId));
+}
+
+export async function getCommentLikersBatchVersion(boardId: string): Promise<number> {
+    return getVersion(getCommentLikersBatchVersionKey(boardId));
+}
+
+export async function getPostLikersVersion(boardId: string, postId: number): Promise<number> {
+    return getVersion(getPostLikersVersionKey(boardId, postId));
+}
 
 export async function invalidateReactionCaches(options: {
     boardId: string;
@@ -11,23 +91,35 @@ export async function invalidateReactionCaches(options: {
     actorMbId?: string;
     isComment?: boolean;
 }): Promise<void> {
-    // Hot path write requests must not trigger Redis-wide SCAN. Only invalidate
-    // exact keys we can derive here and let short TTL caches expire naturally.
-    const keys: string[] = [];
+    // Hot path write requests must not trigger Redis-wide SCAN. Invalidate via
+    // version keys so read paths naturally roll to fresh cache keys.
+    const versionKeys: string[] = [];
 
-    if (options.actorMbId) {
-        if (options.isComment) {
-            keys.push(`comment_like_api:${options.actorMbId}:${options.boardId}:${options.writeId}`);
-        } else {
-            keys.push(`post_like_api:${options.actorMbId}:${options.boardId}:${options.writeId}`);
-            keys.push(`post_like_status:${options.actorMbId}:${options.boardId}:${options.writeId}`);
-        }
+    if (options.isComment) {
+        versionKeys.push(getCommentReactionVersionKey(options.boardId));
+        versionKeys.push(getCommentLikersVersionKey(options.boardId, options.writeId));
+        versionKeys.push(getCommentLikersBatchVersionKey(options.boardId));
+    } else {
+        versionKeys.push(getPostReactionVersionKey(options.boardId, options.writeId));
+        versionKeys.push(getPostLikersVersionKey(options.boardId, options.writeId));
     }
 
-    if (keys.length === 0) return;
+    if (options.actorMbId && !options.isComment) {
+        versionKeys.push(getMemberLikedVersionKey(options.actorMbId));
+    }
+
+    if (options.actorMbId) {
+        versionKeys.push(getMemberInteractionsVersionKey(options.actorMbId));
+    }
+
+    if (options.authorMbId) {
+        versionKeys.push(getMemberInteractionsVersionKey(options.authorMbId));
+    }
+
+    if (versionKeys.length === 0) return;
 
     try {
-        await getRedis().del(...keys);
+        await bumpVersions(versionKeys);
     } catch (error) {
         console.error('[member-activity-cache] redis invalidation failed:', error);
     }

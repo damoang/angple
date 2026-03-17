@@ -19,6 +19,7 @@ import type { RowDataPacket } from 'mysql2';
 import pool from '$lib/server/db';
 import { getAuthUser } from '$lib/server/auth';
 import { getRedis } from '$lib/server/redis';
+import { getMemberInteractionsVersion } from '$lib/server/member-activity-cache';
 
 const MEMBER_INTERACTIONS_CACHE_TTL_SEC = 60;
 
@@ -104,7 +105,8 @@ export const GET: RequestHandler = async ({ params, url, cookies }) => {
     }
 
     try {
-        const cacheKey = `member_interactions:${targetId}:${period}:${type}:${direction}:${limit}`;
+        const version = await getMemberInteractionsVersion(targetId);
+        const cacheKey = `member_interactions:${targetId}:${period}:${type}:${direction}:${limit}:v${version}`;
         try {
             const cached = await getRedis().get(cacheKey);
             if (cached) {

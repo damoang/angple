@@ -149,10 +149,10 @@ async function dataJsonWithCircuitBreaker(request) {
     const now = Date.now();
     // 쿨다운 중이면 즉시 503 반환
     if (dataJsonFailCount >= DATA_JSON_MAX_FAILS && now < dataJsonCooldownUntil) {
-        return new Response(
-            JSON.stringify({ error: 'Circuit breaker open — too many failures' }),
-            { status: 503, headers: { 'Content-Type': 'application/json' } }
-        );
+        return new Response(JSON.stringify({ error: 'Circuit breaker open — too many failures' }), {
+            status: 503,
+            headers: { 'Content-Type': 'application/json' }
+        });
     }
     // 쿨다운 만료 시 리셋
     if (now >= dataJsonCooldownUntil && dataJsonFailCount >= DATA_JSON_MAX_FAILS) {
@@ -174,10 +174,10 @@ async function dataJsonWithCircuitBreaker(request) {
         if (dataJsonFailCount >= DATA_JSON_MAX_FAILS) {
             dataJsonCooldownUntil = Date.now() + DATA_JSON_COOLDOWN_MS;
         }
-        return new Response(
-            JSON.stringify({ error: 'Network error' }),
-            { status: 503, headers: { 'Content-Type': 'application/json' } }
-        );
+        return new Response(JSON.stringify({ error: 'Network error' }), {
+            status: 503,
+            headers: { 'Content-Type': 'application/json' }
+        });
     }
 }
 

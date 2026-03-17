@@ -6,6 +6,7 @@
 import type { RowDataPacket } from 'mysql2';
 import pool from '$lib/server/db';
 import { getRedis } from '$lib/server/redis';
+import { getPostReactionVersion } from '$lib/server/member-activity-cache';
 
 interface GoodRow extends RowDataPacket {
     bg_flag: string;
@@ -34,7 +35,8 @@ export async function fetchPostLikeStatus(
     }
 
     const safeBoardId = boardId.replace(/[^a-zA-Z0-9_-]/g, '');
-    const cacheKey = `post_like_status:${userId}:${safeBoardId}:${postId}`;
+    const version = await getPostReactionVersion(safeBoardId, postId);
+    const cacheKey = `post_like_status:${userId}:${safeBoardId}:${postId}:v${version}`;
 
     try {
         const cached = await getRedis().get(cacheKey);

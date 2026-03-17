@@ -13,6 +13,7 @@ import { canRestrictedUserReactToBoard, getAuthUser, isRestrictedUser } from '$l
 import { checkCertification } from '$lib/server/certification';
 import { getRedis } from '$lib/server/redis';
 import {
+    getPostReactionVersion,
     invalidateReactionCaches,
     syncFeedReactionCounts
 } from '$lib/server/member-activity-cache.js';
@@ -136,7 +137,8 @@ export const GET: RequestHandler = async ({ params, cookies }) => {
 
     try {
         const user = await getAuthUser(cookies);
-        const cacheKey = `post_like_api:${user?.mb_id || 'anon'}:${safeBoardId}:${safePostId}`;
+        const version = await getPostReactionVersion(safeBoardId, safePostId);
+        const cacheKey = `post_like_api:${user?.mb_id || 'anon'}:${safeBoardId}:${safePostId}:v${version}`;
         try {
             const cached = await getRedis().get(cacheKey);
             if (cached) {

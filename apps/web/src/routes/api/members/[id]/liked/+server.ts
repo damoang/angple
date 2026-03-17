@@ -9,6 +9,7 @@ import type { RequestHandler } from './$types';
 import type { RowDataPacket } from 'mysql2';
 import pool from '$lib/server/db';
 import { getRedis } from '$lib/server/redis';
+import { getMemberLikedVersion } from '$lib/server/member-activity-cache';
 
 interface GoodRow extends RowDataPacket {
     bg_id: number;
@@ -46,7 +47,8 @@ export const GET: RequestHandler = async ({ params, url }) => {
     const offset = (page - 1) * limit;
 
     try {
-        const cacheKey = `member_liked:${memberId}:${page}:${limit}`;
+        const version = await getMemberLikedVersion(memberId);
+        const cacheKey = `member_liked:${memberId}:${page}:${limit}:v${version}`;
         try {
             const cached = await getRedis().get(cacheKey);
             if (cached) {
