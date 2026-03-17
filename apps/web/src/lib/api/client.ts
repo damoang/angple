@@ -71,6 +71,11 @@ const API_BASE_URL = browser
 // v2 API URL (인증 관련 - exchange 등)
 const API_V2_URL = browser ? '/api/v2' : 'http://localhost:8090/api/v2';
 
+const WRITE_REQUEST_CONFIG: Partial<RetryConfig> = {
+    maxRetries: 0,
+    timeout: 30000
+};
+
 // v2 API URL은 세션 기반 인증에서는 SvelteKit 프록시가 내부 JWT를 주입하므로
 // 클라이언트에서 직접 사용할 일이 줄어듦 (exchangeToken 등 레거시 호환용으로 유지)
 
@@ -538,10 +543,14 @@ class ApiClient {
      * 🔒 인증 필요: Authorization 헤더에 Access Token 필요
      */
     async createPost(boardId: string, request: CreatePostRequest): Promise<FreePost> {
-        const response = await this.request<FreePost>(`/boards/${boardId}/posts`, {
-            method: 'POST',
-            body: JSON.stringify(request)
-        });
+        const response = await this.request<FreePost>(
+            `/boards/${boardId}/posts`,
+            {
+                method: 'POST',
+                body: JSON.stringify(request)
+            },
+            WRITE_REQUEST_CONFIG
+        );
 
         return response.data;
     }
@@ -555,10 +564,14 @@ class ApiClient {
         postId: string,
         request: UpdatePostRequest
     ): Promise<FreePost> {
-        const response = await this.request<FreePost>(`/boards/${boardId}/posts/${postId}`, {
-            method: 'PUT',
-            body: JSON.stringify(request)
-        });
+        const response = await this.request<FreePost>(
+            `/boards/${boardId}/posts/${postId}`,
+            {
+                method: 'PUT',
+                body: JSON.stringify(request)
+            },
+            WRITE_REQUEST_CONFIG
+        );
 
         return response.data;
     }
@@ -731,7 +744,8 @@ class ApiClient {
             {
                 method: 'POST',
                 body: JSON.stringify(request)
-            }
+            },
+            WRITE_REQUEST_CONFIG
         );
 
         return response.data;
@@ -752,7 +766,8 @@ class ApiClient {
             {
                 method: 'PUT',
                 body: JSON.stringify(request)
-            }
+            },
+            WRITE_REQUEST_CONFIG
         );
 
         return response.data;
