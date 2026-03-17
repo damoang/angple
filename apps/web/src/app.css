@@ -1,5 +1,22 @@
 @import 'tailwindcss';
 
+/* 폰트 swap CLS 방지: 시스템 폰트 fallback의 metric을 Wanted Sans에 맞춤 */
+@font-face {
+    font-family: 'Wanted Sans Fallback';
+    src: local('Apple SD Gothic Neo');
+    ascent-override: 105%;
+    descent-override: 27%;
+    line-gap-override: 0%;
+}
+
+@font-face {
+    font-family: 'Wanted Sans Fallback';
+    src: local('Malgun Gothic');
+    ascent-override: 105%;
+    descent-override: 27%;
+    line-gap-override: 0%;
+}
+
 /* Tailwind CSS 4: 스캔할 파일 경로 지정 */
 @source '../../../themes/**/*.{svelte,html,js,ts}';
 @source '../../../custom-themes/**/*.{svelte,html,js,ts}';
@@ -156,9 +173,9 @@
     --breakpoint-2xl: 1440px;
 
     /* 폰트 스택 */
-    --font-sans: 'Wanted Sans Variable', 'Wanted Sans', -apple-system, BlinkMacSystemFont, system-ui,
-        'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', 'Apple Color Emoji',
-        'Segoe UI Emoji', 'Segoe UI Symbol', sans-serif;
+    --font-sans: 'Wanted Sans Variable', 'Wanted Sans', 'Wanted Sans Fallback', -apple-system,
+        BlinkMacSystemFont, system-ui, 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR',
+        'Malgun Gothic', 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', sans-serif;
 }
 
 @theme inline {

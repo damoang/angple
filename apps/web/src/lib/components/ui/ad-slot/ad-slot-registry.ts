@@ -88,7 +88,6 @@ function ensureServices() {
     const registry = getRegistry();
     if (registry.servicesEnabled) return;
 
-    googletag.pubads().collapseEmptyDivs();
     googletag.pubads().enableLazyLoad({
         fetchMarginPercent: 200,
         renderMarginPercent: 100,
@@ -178,6 +177,10 @@ function scheduleAutoRefresh(state: SlotState, intervalMs: number) {
     state.refreshTimer = setInterval(() => {
         googletag.cmd.push(() => {
             if (!state.slot || state.empty || state.mountCount <= 0 || !state.visible) return;
+            const container = document.getElementById(state.slotId)?.parentElement;
+            if (container) {
+                container.style.minHeight = `${container.offsetHeight}px`;
+            }
             googletag.pubads().refresh([state.slot], { changeCorrelator: false });
         });
     }, intervalMs);
