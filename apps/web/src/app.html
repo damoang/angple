@@ -68,12 +68,22 @@
         <link rel="shortcut icon" href="/favicon.ico" />
         <link rel="apple-touch-icon" href="/icons/icon-192.png" />
         <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+        <link rel="preconnect" href="https://s3.damoang.net" crossorigin />
+        <link rel="dns-prefetch" href="https://s3.damoang.net" />
         <!-- nosemgrep: html.security.audit.missing-integrity.missing-integrity -->
         <link
-            rel="stylesheet"
+            rel="preload"
+            as="style"
             crossorigin
             href="https://cdn.jsdelivr.net/gh/wanteddev/wanted-sans@v1.0.3/packages/wanted-sans/fonts/webfonts/variable/split/WantedSansVariable.min.css"
+            onload="this.onload=null;this.rel='stylesheet'"
         />
+        <noscript
+            ><link
+                rel="stylesheet"
+                crossorigin
+                href="https://cdn.jsdelivr.net/gh/wanteddev/wanted-sans@v1.0.3/packages/wanted-sans/fonts/webfonts/variable/split/WantedSansVariable.min.css"
+        /></noscript>
         <!-- nosemgrep: html.security.audit.missing-integrity.missing-integrity -->
         <script
             src="https://challenges.cloudflare.com/turnstile/v0/api.js"

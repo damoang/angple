@@ -25,16 +25,20 @@ import { HookManager, hooks } from '@angple/hook-system';
 Action Hook을 등록합니다. Action은 부수효과를 실행하며, 반환값은 무시됩니다.
 
 ```typescript
-hooks.addAction('theme_activated', (themeId: string) => {
-    console.log('테마 활성화:', themeId);
-}, 10);
+hooks.addAction(
+    'theme_activated',
+    (themeId: string) => {
+        console.log('테마 활성화:', themeId);
+    },
+    10
+);
 ```
 
-| 파라미터   | 타입             | 기본값 | 설명                               |
-| ---------- | ---------------- | ------ | ---------------------------------- |
-| hookName   | `string`         | --     | Hook 이름                          |
-| callback   | `ActionCallback` | --     | `(...args: any[]) => void`         |
-| priority   | `number`         | `10`   | 우선순위 (낮을수록 먼저 실행)      |
+| 파라미터 | 타입             | 기본값 | 설명                          |
+| -------- | ---------------- | ------ | ----------------------------- |
+| hookName | `string`         | --     | Hook 이름                     |
+| callback | `ActionCallback` | --     | `(...args: any[]) => void`    |
+| priority | `number`         | `10`   | 우선순위 (낮을수록 먼저 실행) |
 
 #### doAction(hookName, ...args)
 
@@ -49,16 +53,20 @@ hooks.doAction('theme_activated', 'my-theme');
 Filter Hook을 등록합니다. Filter는 값을 변환하여 반환합니다.
 
 ```typescript
-hooks.addFilter('post_title', (title: string, post: any) => {
-    return `[공지] ${title}`;
-}, 5);
+hooks.addFilter(
+    'post_title',
+    (title: string, post: any) => {
+        return `[공지] ${title}`;
+    },
+    5
+);
 ```
 
-| 파라미터   | 타입             | 기본값 | 설명                                     |
-| ---------- | ---------------- | ------ | ---------------------------------------- |
-| hookName   | `string`         | --     | Hook 이름                                |
-| callback   | `FilterCallback` | --     | `(value: any, ...args: any[]) => any`    |
-| priority   | `number`         | `10`   | 우선순위                                 |
+| 파라미터 | 타입             | 기본값 | 설명                                  |
+| -------- | ---------------- | ------ | ------------------------------------- |
+| hookName | `string`         | --     | Hook 이름                             |
+| callback | `FilterCallback` | --     | `(value: any, ...args: any[]) => any` |
+| priority | `number`         | `10`   | 우선순위                              |
 
 #### applyFilters(hookName, value, ...args)
 
@@ -148,59 +156,59 @@ hooks.addFilter('post_content', wrapInContainer, 99);
 
 플랫폼에서 사전 정의된 Action Hook입니다.
 
-| Hook Name                   | 파라미터                              | 설명                     |
-| --------------------------- | ------------------------------------- | ------------------------ |
-| `before_page_render`        | --                                    | 페이지 렌더링 전         |
-| `after_page_render`         | --                                    | 페이지 렌더링 후         |
-| `page_loaded`               | --                                    | 페이지 로드 완료         |
-| `before_component_mount`    | `componentName: string`               | 컴포넌트 마운트 전       |
-| `after_component_mount`     | `componentName: string`               | 컴포넌트 마운트 후       |
-| `before_component_unmount`  | `componentName: string`               | 컴포넌트 언마운트 전     |
-| `after_component_unmount`   | `componentName: string`               | 컴포넌트 언마운트 후     |
-| `before_data_fetch`         | `endpoint: string`                    | 데이터 요청 전           |
-| `after_data_fetch`          | `endpoint: string, data: any`         | 데이터 요청 후           |
-| `data_fetch_error`          | `endpoint: string, error: Error`      | 데이터 요청 실패         |
-| `user_login`                | `userId: string`                      | 사용자 로그인            |
-| `user_logout`               | `userId: string`                      | 사용자 로그아웃          |
-| `user_register`             | `userId: string`                      | 사용자 가입              |
-| `before_post_create`        | `postData: any`                       | 게시글 생성 전           |
-| `after_post_create`         | `post: any`                           | 게시글 생성 후           |
-| `before_post_update`        | `postId: string, updateData: any`     | 게시글 수정 전           |
-| `after_post_update`         | `post: any`                           | 게시글 수정 후           |
-| `before_post_delete`        | `postId: string`                      | 게시글 삭제 전           |
-| `after_post_delete`         | `postId: string`                      | 게시글 삭제 후           |
-| `before_comment_create`     | `commentData: any`                    | 댓글 생성 전             |
-| `after_comment_create`      | `comment: any`                        | 댓글 생성 후             |
-| `before_comment_delete`     | `commentId: string`                   | 댓글 삭제 전             |
-| `after_comment_delete`      | `commentId: string`                   | 댓글 삭제 후             |
-| `theme_activated`           | `themeId: string`                     | 테마 활성화              |
-| `theme_deactivated`         | `themeId: string`                     | 테마 비활성화            |
-| `plugin_activated`          | `pluginId: string`                    | 플러그인 활성화          |
-| `plugin_deactivated`        | `pluginId: string`                    | 플러그인 비활성화        |
+| Hook Name                  | 파라미터                          | 설명                 |
+| -------------------------- | --------------------------------- | -------------------- |
+| `before_page_render`       | --                                | 페이지 렌더링 전     |
+| `after_page_render`        | --                                | 페이지 렌더링 후     |
+| `page_loaded`              | --                                | 페이지 로드 완료     |
+| `before_component_mount`   | `componentName: string`           | 컴포넌트 마운트 전   |
+| `after_component_mount`    | `componentName: string`           | 컴포넌트 마운트 후   |
+| `before_component_unmount` | `componentName: string`           | 컴포넌트 언마운트 전 |
+| `after_component_unmount`  | `componentName: string`           | 컴포넌트 언마운트 후 |
+| `before_data_fetch`        | `endpoint: string`                | 데이터 요청 전       |
+| `after_data_fetch`         | `endpoint: string, data: any`     | 데이터 요청 후       |
+| `data_fetch_error`         | `endpoint: string, error: Error`  | 데이터 요청 실패     |
+| `user_login`               | `userId: string`                  | 사용자 로그인        |
+| `user_logout`              | `userId: string`                  | 사용자 로그아웃      |
+| `user_register`            | `userId: string`                  | 사용자 가입          |
+| `before_post_create`       | `postData: any`                   | 게시글 생성 전       |
+| `after_post_create`        | `post: any`                       | 게시글 생성 후       |
+| `before_post_update`       | `postId: string, updateData: any` | 게시글 수정 전       |
+| `after_post_update`        | `post: any`                       | 게시글 수정 후       |
+| `before_post_delete`       | `postId: string`                  | 게시글 삭제 전       |
+| `after_post_delete`        | `postId: string`                  | 게시글 삭제 후       |
+| `before_comment_create`    | `commentData: any`                | 댓글 생성 전         |
+| `after_comment_create`     | `comment: any`                    | 댓글 생성 후         |
+| `before_comment_delete`    | `commentId: string`               | 댓글 삭제 전         |
+| `after_comment_delete`     | `commentId: string`               | 댓글 삭제 후         |
+| `theme_activated`          | `themeId: string`                 | 테마 활성화          |
+| `theme_deactivated`        | `themeId: string`                 | 테마 비활성화        |
+| `plugin_activated`         | `pluginId: string`                | 플러그인 활성화      |
+| `plugin_deactivated`       | `pluginId: string`                | 플러그인 비활성화    |
 
 ### FilterHookPoints
 
 플랫폼에서 사전 정의된 Filter Hook입니다. 첫 번째 파라미터가 변환 대상 값입니다.
 
-| Hook Name              | 파라미터                                     | 설명                   |
-| ---------------------- | -------------------------------------------- | ---------------------- |
-| `page_title`           | `title: string`                              | 페이지 제목 변환       |
-| `page_meta`            | `meta: Record<string, any>`                  | 페이지 메타 변환       |
-| `post_content`         | `content: string, post: any`                 | 게시글 본문 변환       |
-| `post_excerpt`         | `excerpt: string, post: any`                 | 게시글 요약 변환       |
-| `post_title`           | `title: string, post: any`                   | 게시글 제목 변환       |
-| `comment_content`      | `content: string, comment: any`              | 댓글 내용 변환         |
-| `comment_author_name`  | `name: string, comment: any`                 | 댓글 작성자명 변환     |
-| `post_permalink`       | `url: string, post: any`                     | 게시글 링크 변환       |
-| `asset_url`            | `url: string, assetPath: string`             | 에셋 URL 변환          |
-| `user_display_name`    | `name: string, user: any`                    | 사용자 표시명 변환     |
-| `user_avatar_url`      | `url: string, user: any`                     | 아바타 URL 변환        |
-| `api_response`         | `response: any, endpoint: string`            | API 응답 변환          |
-| `api_error_message`    | `message: string, error: Error`              | API 에러 메시지 변환   |
-| `search_query`         | `query: string`                              | 검색어 변환            |
-| `search_results`       | `results: any[], query: string`              | 검색 결과 변환         |
-| `component_props`      | `props: Record<string, any>, name: string`   | 컴포넌트 props 변환    |
-| `html_output`          | `html: string, context: string`              | HTML 출력 변환         |
+| Hook Name             | 파라미터                                   | 설명                 |
+| --------------------- | ------------------------------------------ | -------------------- |
+| `page_title`          | `title: string`                            | 페이지 제목 변환     |
+| `page_meta`           | `meta: Record<string, any>`                | 페이지 메타 변환     |
+| `post_content`        | `content: string, post: any`               | 게시글 본문 변환     |
+| `post_excerpt`        | `excerpt: string, post: any`               | 게시글 요약 변환     |
+| `post_title`          | `title: string, post: any`                 | 게시글 제목 변환     |
+| `comment_content`     | `content: string, comment: any`            | 댓글 내용 변환       |
+| `comment_author_name` | `name: string, comment: any`               | 댓글 작성자명 변환   |
+| `post_permalink`      | `url: string, post: any`                   | 게시글 링크 변환     |
+| `asset_url`           | `url: string, assetPath: string`           | 에셋 URL 변환        |
+| `user_display_name`   | `name: string, user: any`                  | 사용자 표시명 변환   |
+| `user_avatar_url`     | `url: string, user: any`                   | 아바타 URL 변환      |
+| `api_response`        | `response: any, endpoint: string`          | API 응답 변환        |
+| `api_error_message`   | `message: string, error: Error`            | API 에러 메시지 변환 |
+| `search_query`        | `query: string`                            | 검색어 변환          |
+| `search_results`      | `results: any[], query: string`            | 검색 결과 변환       |
+| `component_props`     | `props: Record<string, any>, name: string` | 컴포넌트 props 변환  |
+| `html_output`         | `html: string, context: string`            | HTML 출력 변환       |
 
 ---
 
@@ -230,11 +238,11 @@ Hook을 등록합니다.
 
 ```typescript
 registerHook(
-    'post_content',                    // Hook 이름
-    (html: unknown) => processContent(html as string),  // 콜백
-    10,                                // 우선순위 (기본: 10)
-    'my-plugin',                       // 소스 (제거 시 활용)
-    'filter'                           // 타입 (기본: 'action')
+    'post_content', // Hook 이름
+    (html: unknown) => processContent(html as string), // 콜백
+    10, // 우선순위 (기본: 10)
+    'my-plugin', // 소스 (제거 시 활용)
+    'filter' // 타입 (기본: 'action')
 );
 ```
 
@@ -304,7 +312,7 @@ export function initContentEmbed(): void {
         'post_content',
         (html: unknown) => processContent(html as string),
         10,
-        'core',      // source: 'core'로 등록
+        'core', // source: 'core'로 등록
         'filter'
     );
 }
@@ -330,7 +338,7 @@ export function initCategoryPrefix(): void {
             }
             return title;
         },
-        5,             // 다른 필터보다 먼저 실행
+        5, // 다른 필터보다 먼저 실행
         'category-prefix-plugin',
         'filter'
     );
@@ -359,7 +367,7 @@ export function initAnalyticsTracker(): void {
                 })
             });
         },
-        99,           // 다른 Hook 이후 실행
+        99, // 다른 Hook 이후 실행
         'analytics-plugin',
         'action'
     );
@@ -370,11 +378,11 @@ export function initAnalyticsTracker(): void {
 
 ## HookManager vs Frontend HookRegistry 비교
 
-| 특성              | HookManager (`@angple/hook-system`) | Frontend HookRegistry (`$lib/hooks/registry`) |
-| ----------------- | ----------------------------------- | --------------------------------------------- |
-| 실행 환경         | 서버 + 클라이언트                   | 클라이언트 전용                               |
-| 동기/비동기       | 동기                                | 비동기 (`async/await`)                        |
-| 에러 격리         | try/catch (계속 실행)               | try/catch (계속 실행)                          |
-| source 추적       | 없음                                | 있음 (`source` 파라미터)                      |
-| Svelte reactive   | 없음                                | 있음 (`incrementHookVersion()`)               |
-| 사용 패턴         | plugin-engine 내부                  | 테마/플러그인 프론트엔드 코드                 |
+| 특성            | HookManager (`@angple/hook-system`) | Frontend HookRegistry (`$lib/hooks/registry`) |
+| --------------- | ----------------------------------- | --------------------------------------------- |
+| 실행 환경       | 서버 + 클라이언트                   | 클라이언트 전용                               |
+| 동기/비동기     | 동기                                | 비동기 (`async/await`)                        |
+| 에러 격리       | try/catch (계속 실행)               | try/catch (계속 실행)                         |
+| source 추적     | 없음                                | 있음 (`source` 파라미터)                      |
+| Svelte reactive | 없음                                | 있음 (`incrementHookVersion()`)               |
+| 사용 패턴       | plugin-engine 내부                  | 테마/플러그인 프론트엔드 코드                 |

@@ -212,7 +212,12 @@ export function mapRhymixDocumentToAngple(d: RhymixDocument, boTable: string) {
     }
 
     // 태그 파싱
-    const tags = d.tags ? d.tags.split(',').map((t) => t.trim()).filter(Boolean) : [];
+    const tags = d.tags
+        ? d.tags
+              .split(',')
+              .map((t) => t.trim())
+              .filter(Boolean)
+        : [];
 
     return {
         wr_id: d.document_srl,

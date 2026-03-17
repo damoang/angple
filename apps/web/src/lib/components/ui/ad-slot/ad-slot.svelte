@@ -170,7 +170,7 @@
 
 <div
     bind:this={containerEl}
-    class="ad-slot-container relative overflow-hidden rounded-lg transition-all duration-300 {className}"
+    class="ad-slot-container relative overflow-hidden rounded-lg {className}"
     class:ad-slot-placeholder={!isLoaded}
     class:ad-slot-loaded={isLoaded && hasAd}
     class:ad-slot-btf={isBTF}
@@ -222,7 +222,7 @@
     }
 
     .ad-slot-loaded {
-        border: none;
+        border: 2px solid transparent;
         background: transparent;
     }
 

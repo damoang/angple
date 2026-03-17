@@ -2,9 +2,9 @@
 
 ## 현상
 
-- 브라우저 콘솔에서 `/_app/immutable/bundle.*.js` 또는 `entry/app.*.js` 가 `404` 로 실패한다.
-- 화면이 하얗게 보이거나 레이아웃이 깨진다.
-- 사용자에게 "새 버전이 배포되었습니다" 배너가 반복 노출된다.
+-   브라우저 콘솔에서 `/_app/immutable/bundle.*.js` 또는 `entry/app.*.js` 가 `404` 로 실패한다.
+-   화면이 하얗게 보이거나 레이아웃이 깨진다.
+-   사용자에게 "새 버전이 배포되었습니다" 배너가 반복 노출된다.
 
 예시:
 
@@ -23,9 +23,9 @@ curl -I -s https://damoang.net/_app/immutable/bundle.CcgrH9TJ.js
 
 아래 조건이면 Cloudflare가 오래된 `404` 를 캐시 중일 가능성이 높다.
 
-- `cf-cache-status: HIT`
-- `age: 0` 보다 큰 값
-- 상태 코드가 `404`
+-   `cf-cache-status: HIT`
+-   `age: 0` 보다 큰 값
+-   상태 코드가 `404`
 
 ## 원인
 
@@ -41,8 +41,8 @@ HTML과 문제 번들을 핀셋 purge 한다.
 
 대상 예시:
 
-- `https://damoang.net/free`
-- `https://damoang.net/_app/immutable/bundle.CcgrH9TJ.js`
+-   `https://damoang.net/free`
+-   `https://damoang.net/_app/immutable/bundle.CcgrH9TJ.js`
 
 Cloudflare API 예시:
 
@@ -64,28 +64,28 @@ curl -X POST "https://api.cloudflare.com/client/v4/zones/<ZONE_ID>/purge_cache" 
 
 ## 재발 방지
 
-- `/_app/immutable/*` 의 `200` 응답은 장기 캐시 유지
-- `/_app/immutable/*` 의 `404` 응답은 Cloudflare에서 캐시하지 않도록 규칙 적용
-- HTML(`/`, `/free`) 은 짧게 캐시하거나 배포 직후 핀셋 purge
-- 배포 후 origin smoke test로 HTML이 참조한 bundle `200` 확인
+-   `/_app/immutable/*` 의 `200` 응답은 장기 캐시 유지
+-   `/_app/immutable/*` 의 `404` 응답은 Cloudflare에서 캐시하지 않도록 규칙 적용
+-   HTML(`/`, `/free`) 은 짧게 캐시하거나 배포 직후 핀셋 purge
+-   배포 후 origin smoke test로 HTML이 참조한 bundle `200` 확인
 
 ## 적용 완료 사항
 
 2026-03-12 기준 Cloudflare `http_request_cache_settings` ruleset에 아래 규칙을 추가했다.
 
-- 경로: `/_app/immutable/*`
-- 동작: `set_cache_settings`
-- 정책:
-  - 일반 응답: origin cache control 존중
-  - `404`: 캐시하지 않음
+-   경로: `/_app/immutable/*`
+-   동작: `set_cache_settings`
+-   정책:
+    -   일반 응답: origin cache control 존중
+    -   `404`: 캐시하지 않음
 
 규칙 목적:
 
-- 배포 전환 중 잠깐 발생한 immutable `404` 가 CDN에 `HIT` 로 오래 남는 문제 방지
-- 이후 원본에 파일이 생겼을 때 CDN이 오래된 `404` 를 계속 반환하지 않도록 함
+-   배포 전환 중 잠깐 발생한 immutable `404` 가 CDN에 `HIT` 로 오래 남는 문제 방지
+-   이후 원본에 파일이 생겼을 때 CDN이 오래된 `404` 를 계속 반환하지 않도록 함
 
 ## 관련 구성
 
-- 배포 스크립트: `/home/angple/k8s/prod/deploy.sh`
-- 프론트 스모크 테스트: `/home/ec2-user/angple/scripts/smoke-test.sh`
-- Cloudflare purge: `/home/ec2-user/angple/scripts/cloudflare-purge.sh`
+-   배포 스크립트: `/home/angple/k8s/prod/deploy.sh`
+-   프론트 스모크 테스트: `/home/ec2-user/angple/scripts/smoke-test.sh`
+-   Cloudflare purge: `/home/ec2-user/angple/scripts/cloudflare-purge.sh`
