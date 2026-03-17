@@ -8,8 +8,7 @@
  * 클라이언트 hook 시스템과는 별도로 작동합니다.
  */
 
-import { sendAffiliateEvents } from '$lib/server/affiliate-events';
-import { convertAffiliateLinksDetailed } from '$plugins/affiliate-link/lib/affiliate-api.server';
+import { convertAffiliateLinks } from '$plugins/affiliate-link/lib/affiliate-api.server';
 
 /**
  * HTML 콘텐츠 내 제휴 링크 변환
@@ -25,19 +24,7 @@ export async function transformAffiliateContent(
     if (!html) return html;
 
     try {
-        const startedAt = Date.now();
-        const { content, results } = await convertAffiliateLinksDetailed(
-            html,
-            context?.bo_table,
-            context?.wr_id
-        );
-        void sendAffiliateEvents(results, {
-            source: 'server_content',
-            bo_table: context?.bo_table,
-            wr_id: context?.wr_id,
-            latency_ms: Date.now() - startedAt
-        });
-        return content;
+        return await convertAffiliateLinks(html, context?.bo_table, context?.wr_id);
     } catch (error) {
         console.error('[Affiliate Hook] 변환 오류:', error);
         return html; // 오류 시 원본 반환
