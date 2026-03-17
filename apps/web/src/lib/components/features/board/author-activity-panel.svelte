@@ -42,6 +42,8 @@
     let panelEl = $state<HTMLElement | null>(null);
     let panelHeight = $state(160);
     let mobileExpanded = $state(false);
+    let shouldLoad = $state(false);
+    let observer: IntersectionObserver | null = null;
 
     function enforceClipHeight(): void {
         if (!clipWrapper || panelHeight <= 20) return;
@@ -77,10 +79,14 @@
         }
     }
 
-    // SPA 네비게이션 시 author_id 변경을 감지하여 데이터 재로딩
+    // 패널이 실제로 보일 때만 활동 API 호출
     $effect(() => {
         const authorId = post.author_id;
         if (!browser || !authorId) {
+            loading = false;
+            return;
+        }
+        if (!shouldLoad) {
             loading = false;
             return;
         }
@@ -89,30 +95,50 @@
         recentPosts = [];
         recentComments = [];
 
-        let cancelled = false;
+        const controller = new AbortController();
         (async () => {
             try {
-                const res = await fetch(`/api/members/${authorId}/activity?limit=5`);
-                if (res.ok && !cancelled) {
+                const res = await fetch(`/api/members/${authorId}/activity?limit=5`, {
+                    signal: controller.signal
+                });
+                if (res.ok && !controller.signal.aborted) {
                     const data = await res.json();
                     recentPosts = data.recentPosts ?? [];
                     recentComments = data.recentComments ?? [];
                 }
-            } catch {
+            } catch (error) {
+                if (error instanceof DOMException && error.name === 'AbortError') return;
                 // 실패 시 조용히 처리
             } finally {
-                if (!cancelled) loading = false;
+                if (!controller.signal.aborted) loading = false;
             }
         })();
 
         return () => {
-            cancelled = true;
+            controller.abort();
         };
     });
 
     onMount(() => {
-        // 카드 높이 측정 후 광고 높이 맞추기 + AdSense 초기화
-        let observer: MutationObserver | undefined;
+        // 카드 높이 측정 후 광고 높이 맞추기
+        let mutationObserver: MutationObserver | undefined;
+
+        if (panelEl && typeof IntersectionObserver !== 'undefined') {
+            observer = new IntersectionObserver(
+                (entries) => {
+                    if (!entries.some((entry) => entry.isIntersecting)) return;
+                    shouldLoad = true;
+                    loadAdSense();
+                    observer?.disconnect();
+                    observer = null;
+                },
+                { rootMargin: '240px 0px' }
+            );
+            observer.observe(panelEl);
+        } else {
+            shouldLoad = true;
+            loadAdSense();
+        }
 
         requestAnimationFrame(() => {
             if (panelEl) {
@@ -122,16 +148,21 @@
                     if (cardHeight > 0) panelHeight = cardHeight;
                 }
             }
-            loadAdSense();
 
             if (clipWrapper) {
                 enforceClipHeight();
-                observer = new MutationObserver(() => enforceClipHeight());
-                observer.observe(clipWrapper, { attributes: true, attributeFilter: ['style'] });
+                mutationObserver = new MutationObserver(() => enforceClipHeight());
+                mutationObserver.observe(clipWrapper, {
+                    attributes: true,
+                    attributeFilter: ['style']
+                });
             }
         });
 
-        return () => observer?.disconnect();
+        return () => {
+            mutationObserver?.disconnect();
+            observer?.disconnect();
+        };
     });
 </script>
 
