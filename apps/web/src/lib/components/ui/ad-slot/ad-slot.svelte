@@ -27,12 +27,22 @@
 
     let { position, height = '90px', class: className = '', sizes, slotKey }: Props = $props();
 
+    const BTF_POSITIONS = new Set([
+        'board-list-bottom',
+        'board-after-comments',
+        'board-footer',
+        'index-bottom',
+        'board-list-infeed',
+        'comment-infeed'
+    ]);
+
     let isLoaded = $state(false);
     let hasAd = $state(false);
     let slotId = $state('');
     let detached = false;
     let containerEl: HTMLDivElement | null = null;
     let visibilityObserver: IntersectionObserver | null = null;
+    let isBTF = $derived(BTF_POSITIONS.has(position));
 
     function getAdConfig(): AdConfig {
         const configKey = POSITION_MAP[position];
@@ -163,6 +173,7 @@
     class="ad-slot-container relative overflow-hidden rounded-lg transition-all duration-300 {className}"
     class:ad-slot-placeholder={!isLoaded}
     class:ad-slot-loaded={isLoaded && hasAd}
+    class:ad-slot-btf={isBTF}
     style:--ad-slot-min-height={reservedHeights.base}
     style:--ad-slot-min-height-tablet={reservedHeights.tablet}
     style:--ad-slot-min-height-desktop={reservedHeights.desktop}
@@ -191,6 +202,15 @@
 </div>
 
 <style>
+    .ad-slot-container {
+        contain: layout style;
+    }
+
+    .ad-slot-btf {
+        content-visibility: auto;
+        contain-intrinsic-size: auto 728px 90px;
+    }
+
     .ad-slot-placeholder {
         background: linear-gradient(135deg, #f1f5f9 0%, #f8fafc 50%, #f1f5f9 100%);
         border: 2px dashed #cbd5e1;
@@ -232,10 +252,6 @@
         .gam-ad-slot {
             min-height: var(--ad-slot-min-height-desktop);
         }
-    }
-
-    .gam-ad-slot:empty {
-        display: none;
     }
 
     .gam-ad-slot :global(iframe) {
