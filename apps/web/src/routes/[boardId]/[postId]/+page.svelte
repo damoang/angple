@@ -1026,32 +1026,38 @@
         isSecret?: boolean,
         images?: string[]
     ): Promise<void> {
-        if (!authStore.user) {
-            throw new Error('로그인이 필요합니다.');
+        if (isCreatingComment) return;
+        isCreatingComment = true;
+        try {
+            if (!authStore.user) {
+                throw new Error('로그인이 필요합니다.');
+            }
+
+            const replyComment = await apiClient.createComment(boardId, String(data.post.id), {
+                content,
+                author: authStore.user.mb_name,
+                parent_id: parentId,
+                is_secret: isSecret,
+                images
+            });
+
+            // 서버에서 정렬된 댓글 목록 다시 가져오기
+            await refetchComments();
+
+            // @멘션 알림 전송 (fire-and-forget)
+            sendMentionNotifications({
+                content,
+                postUrl: `/${boardId}/${data.post.id}`,
+                postTitle: data.post.title,
+                boardId,
+                postId: data.post.id,
+                commentId: replyComment?.id,
+                senderName: authStore.user.mb_name,
+                senderId: authStore.user.mb_id || ''
+            });
+        } finally {
+            isCreatingComment = false;
         }
-
-        const replyComment = await apiClient.createComment(boardId, String(data.post.id), {
-            content,
-            author: authStore.user.mb_name,
-            parent_id: parentId,
-            is_secret: isSecret,
-            images
-        });
-
-        // 서버에서 정렬된 댓글 목록 다시 가져오기
-        await refetchComments();
-
-        // @멘션 알림 전송 (fire-and-forget)
-        sendMentionNotifications({
-            content,
-            postUrl: `/${boardId}/${data.post.id}`,
-            postTitle: data.post.title,
-            boardId,
-            postId: data.post.id,
-            commentId: replyComment?.id,
-            senderName: authStore.user.mb_name,
-            senderId: authStore.user.mb_id || ''
-        });
     }
 
     // 댓글 수정
@@ -1621,7 +1627,7 @@
                                         >
                                             {liker.mb_nick || liker.mb_name}
                                         </a>
-                                        {#if memoPluginActive && MemoBadge && !uiSettingsStore.hideMemo}
+                                        {#if authStore.isAuthenticated && memoPluginActive && MemoBadge && !uiSettingsStore.hideMemo}
                                             <MemoBadge
                                                 memberId={liker.mb_id}
                                                 showIcon={true}
@@ -1654,7 +1660,7 @@
                             </div>
 
                             <!-- 인라인 메모 편집기 -->
-                            {#if memoPluginActive && MemoInlineEditor && editingMemoFor === liker.mb_id}
+                            {#if authStore.isAuthenticated && memoPluginActive && MemoInlineEditor && editingMemoFor === liker.mb_id}
                                 <div class="ml-11 mt-2">
                                     <MemoInlineEditor
                                         memberId={liker.mb_id}

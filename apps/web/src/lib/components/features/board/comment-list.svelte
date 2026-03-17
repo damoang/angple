@@ -749,7 +749,12 @@
 
     // 회원 메모 배치 프리로드
     $effect(() => {
-        if (memoPluginActive && loadMemosForAuthors && commentTree.length > 0) {
+        if (
+            authStore.isAuthenticated &&
+            memoPluginActive &&
+            loadMemosForAuthors &&
+            commentTree.length > 0
+        ) {
             const fn = loadMemosForAuthors;
             const ids = [...new Set(commentTree.map((c) => c.author_id).filter(Boolean))];
             if (ids.length > 0) {
@@ -933,7 +938,7 @@
                             class="text-foreground mb-1 ml-1 flex items-center gap-1 text-xs font-semibold"
                         >
                             <AuthorLink authorId={comment.author_id} authorName={comment.author} />
-                            {#if memoPluginActive && MemoBadge && !uiSettingsStore.hideMemo}
+                            {#if authStore.isAuthenticated && memoPluginActive && MemoBadge && !uiSettingsStore.hideMemo}
                                 <MemoBadge
                                     memberId={comment.author_id}
                                     showIcon={true}
@@ -1007,7 +1012,7 @@
                                             authorId={comment.author_id}
                                             authorName={comment.author}
                                         />
-                                        {#if !isDeleted && memoPluginActive && MemoBadge && !uiSettingsStore.hideMemo}
+                                        {#if authStore.isAuthenticated && !isDeleted && memoPluginActive && MemoBadge && !uiSettingsStore.hideMemo}
                                             <MemoBadge
                                                 memberId={comment.author_id}
                                                 showIcon={true}

@@ -17,6 +17,14 @@ export const load: PageLoad = async ({ url, fetch }) => {
     try {
         const params = new URLSearchParams({ q: query, sfl: field, limit: '5' });
         const res = await fetch(`/api/search?${params.toString()}`);
+        if (res.status === 401) {
+            return {
+                searchResults: null,
+                query,
+                field,
+                error: '로그인 후 검색할 수 있습니다.'
+            };
+        }
         const json = await safeJson(res);
 
         return {
