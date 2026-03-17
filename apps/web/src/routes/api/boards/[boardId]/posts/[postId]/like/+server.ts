@@ -30,6 +30,92 @@ interface WriteRow extends RowDataPacket {
 
 const POST_LIKE_API_CACHE_TTL_SEC = 15;
 
+function fireAndForgetPostLikeSideEffects(options: {
+    alreadyExists: GoodRow | undefined;
+    action: 'good' | 'nogood';
+    boardId: string;
+    postId: number;
+    tableName: string;
+    authorMbId: string;
+    actorMbId: string;
+    actorNick: string;
+    postSubject: string;
+    nextLikes: number;
+    nextDislikes: number;
+}): void {
+    const tasks: Promise<unknown>[] = [
+        syncFeedReactionCounts({
+            boardId: options.boardId,
+            writeId: options.postId,
+            activityType: 1,
+            likes: options.nextLikes,
+            dislikes: options.nextDislikes
+        }),
+        invalidateReactionCaches({
+            boardId: options.boardId,
+            writeId: options.postId,
+            authorMbId: options.authorMbId,
+            actorMbId: options.actorMbId,
+            isComment: false
+        })
+    ];
+
+    if (options.alreadyExists && options.action === 'good') {
+        tasks.push(
+            pool
+                .query(
+                    `DELETE FROM g5_na_noti WHERE bo_table = ? AND wr_id = ? AND rel_mb_id = ? AND ph_from_case = 'good'`,
+                    [options.boardId, options.postId, options.actorMbId]
+                )
+                .catch(() => undefined)
+        );
+    }
+
+    if (!options.alreadyExists && options.action === 'good') {
+        tasks.push(
+            (async () => {
+                if (!options.authorMbId || options.authorMbId === options.actorMbId) return;
+
+                const [prefRows] = await pool.query<RowDataPacket[]>(
+                    `SELECT noti_like, like_threshold FROM g5_noti_preference WHERE mb_id = ?`,
+                    [options.authorMbId]
+                );
+                const notiLikeEnabled = prefRows[0]?.noti_like ?? 1;
+                const likeThreshold = prefRows[0]?.like_threshold ?? 1;
+
+                if (
+                    !notiLikeEnabled ||
+                    (likeThreshold > 1 && options.nextLikes % likeThreshold !== 0)
+                ) {
+                    return;
+                }
+
+                await pool.query(
+                    `DELETE FROM g5_na_noti WHERE bo_table = ? AND wr_id = ? AND rel_mb_id = ? AND ph_from_case = 'good'`,
+                    [options.boardId, options.postId, options.actorMbId]
+                );
+                await pool.query(
+                    `INSERT INTO g5_na_noti (ph_to_case, ph_from_case, bo_table, wr_id, mb_id, rel_mb_id, rel_mb_nick, rel_msg, rel_url, ph_readed, ph_datetime, parent_subject, wr_parent)
+                     VALUES ('good', 'good', ?, ?, ?, ?, ?, ?, ?, 'N', CONVERT_TZ(UTC_TIMESTAMP(), '+00:00', '+09:00'), ?, ?)`,
+                    [
+                        options.boardId,
+                        options.postId,
+                        options.authorMbId,
+                        options.actorMbId,
+                        options.actorNick,
+                        `${options.actorNick}님이 회원님의 글을 추천했습니다.`,
+                        `/${options.boardId}/${options.postId}`,
+                        options.postSubject,
+                        options.postId
+                    ]
+                );
+            })().catch(() => undefined)
+        );
+    }
+
+    void Promise.allSettled(tasks);
+}
+
 /**
  * GET: 추천 상태 조회
  * 비로그인 시에도 추천/비추천 수는 반환, user_liked/user_disliked는 false
@@ -237,6 +323,11 @@ export const POST: RequestHandler = async ({ params, request, cookies, getClient
 
         const alreadyExists = action === 'good' ? existingGood : existingNogood;
 
+        let nextLikes = writeRows[0].wr_good;
+        let nextDislikes = writeRows[0].wr_nogood;
+        let userLiked = existingGood !== undefined;
+        let userDisliked = existingNogood !== undefined;
+
         if (alreadyExists) {
             // 토글: 이미 있으면 취소 (DELETE + 카운트 감소)
             await conn.query(
@@ -247,13 +338,12 @@ export const POST: RequestHandler = async ({ params, request, cookies, getClient
                 `UPDATE ?? SET ${column} = GREATEST(${column} - 1, 0) WHERE wr_id = ?`,
                 [tableName, safePostId]
             );
-
-            // 추천 취소 시 해당 알림도 삭제 (중복 알림 방지)
             if (action === 'good') {
-                pool.query(
-                    `DELETE FROM g5_na_noti WHERE bo_table = ? AND wr_id = ? AND rel_mb_id = ? AND ph_from_case = 'good'`,
-                    [safeBoardId, safePostId, user.mb_id]
-                ).catch(() => {});
+                nextLikes = Math.max(writeRows[0].wr_good - 1, 0);
+                userLiked = false;
+            } else {
+                nextDislikes = Math.max(writeRows[0].wr_nogood - 1, 0);
+                userDisliked = false;
             }
         } else {
             // 추가 (INSERT + 카운트 증가)
@@ -266,95 +356,32 @@ export const POST: RequestHandler = async ({ params, request, cookies, getClient
                 tableName,
                 safePostId
             ]);
+            if (action === 'good') {
+                nextLikes = writeRows[0].wr_good + 1;
+                userLiked = true;
+                userDisliked = false;
+            } else {
+                nextDislikes = writeRows[0].wr_nogood + 1;
+                userDisliked = true;
+                userLiked = false;
+            }
         }
 
         await conn.commit();
 
-        // 좋아요 알림 (추가 시에만, 임계값 체크)
-        if (!alreadyExists && action === 'good') {
-            const postAuthorId = writeRows[0].mb_id;
-            if (postAuthorId && postAuthorId !== user.mb_id) {
-                const userNick = user.mb_nick || user.mb_name || user.mb_id;
-                const postSubject = writeRows[0].wr_subject || '';
-
-                // 글 작성자의 알림 설정 조회 (on/off + 임계값)
-                const [prefRows] = await pool.query<RowDataPacket[]>(
-                    `SELECT noti_like, like_threshold FROM g5_noti_preference WHERE mb_id = ?`,
-                    [postAuthorId]
-                );
-                const notiLikeEnabled = prefRows[0]?.noti_like ?? 1;
-                const likeThreshold = prefRows[0]?.like_threshold ?? 1;
-
-                // 현재 추천 수 조회
-                const [goodCountRows] = await pool.query<RowDataPacket[]>(
-                    `SELECT wr_good FROM ?? WHERE wr_id = ?`,
-                    [tableName, safePostId]
-                );
-                const currentGood = goodCountRows[0]?.wr_good ?? 0;
-
-                // 공감 알림이 켜져있고, 추천 수가 임계값 조건을 충족할 때만 알림
-                if (notiLikeEnabled && (likeThreshold <= 1 || currentGood % likeThreshold === 0)) {
-                    // 기존 알림 삭제 후 새 알림 (추천→취소→재추천 중복 방지)
-                    pool.query(
-                        `DELETE FROM g5_na_noti WHERE bo_table = ? AND wr_id = ? AND rel_mb_id = ? AND ph_from_case = 'good'`,
-                        [safeBoardId, safePostId, user.mb_id]
-                    )
-                        .then(() =>
-                            pool.query(
-                                `INSERT INTO g5_na_noti (ph_to_case, ph_from_case, bo_table, wr_id, mb_id, rel_mb_id, rel_mb_nick, rel_msg, rel_url, ph_readed, ph_datetime, parent_subject, wr_parent)
-                         VALUES ('good', 'good', ?, ?, ?, ?, ?, ?, ?, 'N', CONVERT_TZ(UTC_TIMESTAMP(), '+00:00', '+09:00'), ?, ?)`,
-                                [
-                                    safeBoardId,
-                                    safePostId,
-                                    postAuthorId,
-                                    user.mb_id,
-                                    userNick,
-                                    `${userNick}님이 회원님의 글을 추천했습니다.`,
-                                    `/${safeBoardId}/${safePostId}`,
-                                    postSubject,
-                                    safePostId
-                                ]
-                            )
-                        )
-                        .catch(() => {});
-                }
-            }
-        }
-
-        // 최신 값 다시 조회
-        const [updatedRows] = await pool.query<WriteRow[]>(
-            `SELECT wr_good, wr_nogood FROM ?? WHERE wr_id = ?`,
-            [tableName, safePostId]
-        );
-
-        // 현재 사용자 상태 다시 조회
-        const [userRows] = await pool.query<GoodRow[]>(
-            `SELECT bg_flag FROM g5_board_good WHERE bo_table = ? AND wr_id = ? AND mb_id = ?`,
-            [safeBoardId, safePostId, user.mb_id]
-        );
-
-        const userLiked = userRows.some((r) => r.bg_flag === 'good');
-        const userDisliked = userRows.some((r) => r.bg_flag === 'nogood');
-
-        const nextLikes = updatedRows[0]?.wr_good ?? 0;
-        const nextDislikes = updatedRows[0]?.wr_nogood ?? 0;
-
-        await Promise.all([
-            syncFeedReactionCounts({
-                boardId: safeBoardId,
-                writeId: safePostId,
-                activityType: 1,
-                likes: nextLikes,
-                dislikes: nextDislikes
-            }),
-            invalidateReactionCaches({
-                boardId: safeBoardId,
-                writeId: safePostId,
-                authorMbId: writeRows[0].mb_id,
-                actorMbId: user.mb_id,
-                isComment: false
-            })
-        ]);
+        fireAndForgetPostLikeSideEffects({
+            alreadyExists,
+            action,
+            boardId: safeBoardId,
+            postId: safePostId,
+            tableName,
+            authorMbId: writeRows[0].mb_id,
+            actorMbId: user.mb_id,
+            actorNick: user.mb_nick || user.mb_name || user.mb_id,
+            postSubject: writeRows[0].wr_subject || '',
+            nextLikes,
+            nextDislikes
+        });
 
         return json({
             success: true,

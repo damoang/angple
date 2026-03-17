@@ -221,7 +221,7 @@
                     <p class="text-foreground flex items-center gap-1.5 font-medium">
                         <LevelBadge level={memberLevelStore.getLevel(post.author_id)} />
                         <AuthorLink authorId={post.author_id} authorName={post.author} />
-                        {#if memoPluginActive && MemoBadge && !uiSettingsStore.hideMemo}
+                        {#if authStore.isAuthenticated && memoPluginActive && MemoBadge && !uiSettingsStore.hideMemo}
                             <MemoBadge
                                 memberId={post.author_id}
                                 showIcon={true}
@@ -516,19 +516,21 @@
                         />
                         <span class="font-semibold">{likeCount}</span>
                     </Button>
-                    <button
-                        type="button"
-                        onclick={onLoadLikers}
-                        class="border-l px-2 py-1 text-xs transition-colors {isLiked
-                            ? 'border-liked/40 text-liked'
-                            : 'text-muted-foreground hover:text-foreground border-border'}"
-                    >
-                        <Users class="h-4 w-4" />
-                    </button>
+                    {#if authStore.isAuthenticated}
+                        <button
+                            type="button"
+                            onclick={onLoadLikers}
+                            class="border-l px-2 py-1 text-xs transition-colors {isLiked
+                                ? 'border-liked/40 text-liked'
+                                : 'text-muted-foreground hover:text-foreground border-border'}"
+                        >
+                            <Users class="h-4 w-4" />
+                        </button>
+                    {/if}
                 </div>
 
                 <!-- 추천자 아바타 스택 (같은 줄) -->
-                {#if likers.length > 0}
+                {#if authStore.isAuthenticated && likers.length > 0}
                     <AvatarStack
                         items={likers}
                         total={likersTotal}
