@@ -70,7 +70,11 @@ function buildMatchExpr(query: string, field: string): string {
     }
 }
 
-export const GET: RequestHandler = async ({ url }) => {
+export const GET: RequestHandler = async ({ url, locals }) => {
+    if (!locals.user) {
+        return json({ success: false, error: '로그인이 필요합니다.' }, { status: 401 });
+    }
+
     const query = url.searchParams.get('q')?.trim();
     const field = url.searchParams.get('sfl') || 'title_content';
     const limitPerBoard = Math.min(Number(url.searchParams.get('limit')) || 5, 20);

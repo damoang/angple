@@ -41,6 +41,10 @@ export const load: PageServerLoad = async ({ url, params, locals, getClientAddre
     const isSearching = Boolean(searchField && searchQuery);
     const isTagFiltering = Boolean(tag);
 
+    if (isSearching && !locals.user) {
+        svelteError(403, '로그인 후 검색할 수 있습니다.');
+    }
+
     // 인증 헤더 (SSR에서 accessToken 사용)
     const headers = createAuthHeaders(locals.accessToken);
 
