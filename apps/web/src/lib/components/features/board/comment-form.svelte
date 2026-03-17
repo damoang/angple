@@ -245,7 +245,7 @@
                 {/if}
             </div>
 
-            <div class="relative flex-1 space-y-2">
+            <div class="relative min-w-0 flex-1 space-y-2">
                 {#if LazyCommentEditor}
                     <LazyCommentEditor
                         bind:this={editorRef}
