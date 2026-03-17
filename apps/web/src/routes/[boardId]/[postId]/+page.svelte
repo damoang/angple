@@ -1026,32 +1026,38 @@
         isSecret?: boolean,
         images?: string[]
     ): Promise<void> {
-        if (!authStore.user) {
-            throw new Error('로그인이 필요합니다.');
+        if (isCreatingComment) return;
+        isCreatingComment = true;
+        try {
+            if (!authStore.user) {
+                throw new Error('로그인이 필요합니다.');
+            }
+
+            const replyComment = await apiClient.createComment(boardId, String(data.post.id), {
+                content,
+                author: authStore.user.mb_name,
+                parent_id: parentId,
+                is_secret: isSecret,
+                images
+            });
+
+            // 서버에서 정렬된 댓글 목록 다시 가져오기
+            await refetchComments();
+
+            // @멘션 알림 전송 (fire-and-forget)
+            sendMentionNotifications({
+                content,
+                postUrl: `/${boardId}/${data.post.id}`,
+                postTitle: data.post.title,
+                boardId,
+                postId: data.post.id,
+                commentId: replyComment?.id,
+                senderName: authStore.user.mb_name,
+                senderId: authStore.user.mb_id || ''
+            });
+        } finally {
+            isCreatingComment = false;
         }
-
-        const replyComment = await apiClient.createComment(boardId, String(data.post.id), {
-            content,
-            author: authStore.user.mb_name,
-            parent_id: parentId,
-            is_secret: isSecret,
-            images
-        });
-
-        // 서버에서 정렬된 댓글 목록 다시 가져오기
-        await refetchComments();
-
-        // @멘션 알림 전송 (fire-and-forget)
-        sendMentionNotifications({
-            content,
-            postUrl: `/${boardId}/${data.post.id}`,
-            postTitle: data.post.title,
-            boardId,
-            postId: data.post.id,
-            commentId: replyComment?.id,
-            senderName: authStore.user.mb_name,
-            senderId: authStore.user.mb_id || ''
-        });
     }
 
     // 댓글 수정
