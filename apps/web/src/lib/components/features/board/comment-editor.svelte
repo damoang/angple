@@ -203,6 +203,8 @@
         min-height: 5rem;
         max-height: 40vh;
         overflow-y: auto;
+        overflow-x: hidden;
+        word-break: break-word;
         font-size: 0.875rem;
         line-height: 1.5;
     }

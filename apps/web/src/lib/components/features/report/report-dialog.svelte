@@ -141,7 +141,7 @@
 </script>
 
 <Dialog bind:open onOpenChange={(isOpen) => !isOpen && handleClose()}>
-    <DialogContent class="top-[5vh] max-h-[90vh] translate-y-0 overflow-y-auto sm:max-w-md">
+    <DialogContent class="top-[5vh] max-h-[90dvh] translate-y-0 overflow-y-auto sm:max-w-md">
         <DialogHeader>
             <DialogTitle class="flex items-center gap-2">
                 <AlertTriangle class="text-destructive h-5 w-5" />
@@ -170,7 +170,7 @@
                             >(복수 선택 가능)</span
                         ></Label
                     >
-                    <div class="grid grid-cols-4 gap-1.5">
+                    <div class="grid grid-cols-3 gap-1.5 sm:grid-cols-4">
                         {#each reportReasons as reason (reason.value)}
                             <button
                                 type="button"

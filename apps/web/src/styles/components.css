@@ -361,9 +361,10 @@ pre:hover .hljs-copy-btn {
 
 .comment-editor .tiptap img {
     max-width: 100%;
+    height: auto;
     border-radius: 0.5rem;
     margin: 0.25rem 0;
-    display: inline;
+    display: inline-block;
 }
 
 .comment-editor .tiptap img.ProseMirror-selectednode {
