@@ -32,7 +32,7 @@ export const GET: RequestHandler = async ({ url }) => {
 
     // mb_id 유효성 검사 (영문, 숫자, 언더스코어만 허용)
     for (const id of ids) {
-        if (!/^[a-zA-Z0-9_]+$/.test(id)) {
+        if (!/^[a-zA-Z0-9_-]+$/.test(id)) {
             return json({ error: `유효하지 않은 회원 ID: ${id}` }, { status: 400 });
         }
     }

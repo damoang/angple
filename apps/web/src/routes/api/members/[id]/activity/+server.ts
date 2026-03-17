@@ -11,7 +11,7 @@ const EMPTY_RESPONSE = { recentPosts: [], recentComments: [] };
 export const GET: RequestHandler = async ({ params, url }) => {
     const memberId = params.id;
 
-    if (!memberId || !/^[a-zA-Z0-9_]+$/.test(memberId)) {
+    if (!memberId || !/^[a-zA-Z0-9_-]+$/.test(memberId)) {
         return json(EMPTY_RESPONSE, { status: 400 });
     }
 
