@@ -6,6 +6,8 @@
     import { apiClient } from '$lib/api/index.js';
     import type { PageData } from './$types.js';
     import type { UpdatePostRequest } from '$lib/api/types.js';
+    import AlertTriangle from '@lucide/svelte/icons/alert-triangle';
+    import { Button } from '$lib/components/ui/button/index.js';
 
     let { data }: { data: PageData } = $props();
 
@@ -13,6 +15,7 @@
     const boardId = $derived(data.boardId);
     const postId = $derived(data.postId);
     const boardTitle = $derived(data.board?.subject || data.board?.name || boardId);
+    const scheduledDelete = $derived(data.scheduledDelete);
 
     let isSubmitting = $state(false);
     let error = $state<string | null>(null);
@@ -65,6 +68,21 @@
     {:else if !authStore.isAuthenticated}
         <div class="py-12 text-center">
             <p class="text-muted-foreground">로그인이 필요합니다. 로그인 페이지로 이동합니다...</p>
+        </div>
+    {:else if scheduledDelete}
+        <div
+            class="bg-warning/10 border-warning/30 flex flex-col items-center gap-4 rounded-lg border p-8 text-center"
+        >
+            <AlertTriangle class="text-warning h-12 w-12" />
+            <h2 class="text-lg font-semibold">이 게시물은 삭제가 예약되어 있습니다</h2>
+            <p class="text-muted-foreground">
+                삭제 예정: {new Date(scheduledDelete.scheduled_at).toLocaleString('ko-KR')}
+                ({scheduledDelete.delay_minutes}분 지연)
+            </p>
+            <p class="text-muted-foreground text-sm">
+                삭제 예약된 게시글은 수정할 수 없습니다. 수정하려면 먼저 삭제 예약을 취소해주세요.
+            </p>
+            <Button variant="outline" onclick={handleCancel}>게시글로 돌아가기</Button>
         </div>
     {:else}
         {#if error}
