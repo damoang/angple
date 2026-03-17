@@ -3,6 +3,7 @@ import type { PageServerLoad } from './$types.js';
 import type { FreePost } from '$lib/api/types.js';
 import { fetchPromotionPosts, fetchPromotionBoardPosts } from '$lib/server/ads/promotion.js';
 import { transformAffiliateContent } from '$lib/hooks/builtin/affiliate.js';
+import { sendAffiliateEvents } from '$lib/server/affiliate-events';
 import { convertAffiliateUrl } from '$plugins/affiliate-link/lib/affiliate-api.server';
 import { isScraped } from '$lib/server/scrap.js';
 import { backendFetch as bFetch, createAuthHeaders } from '$lib/server/backend-fetch.js';
@@ -147,6 +148,7 @@ export const load: PageServerLoad = async ({
         // 링크1/링크2는 본문/댓글 Hook를 타지 않으므로 별도 제휴 변환한다.
         if (post.link1 || post.link2) {
             try {
+                const startedAt = Date.now();
                 const [link1Result, link2Result] = await Promise.race([
                     Promise.allSettled([
                         post.link1
@@ -178,6 +180,24 @@ export const load: PageServerLoad = async ({
                 ) {
                     post.link2 = link2Result.value.url;
                 }
+
+                const directLinkResults = [link1Result, link2Result]
+                    .filter(
+                        (
+                            result
+                        ): result is PromiseFulfilledResult<Awaited<
+                            ReturnType<typeof convertAffiliateUrl>
+                        > | null> => result?.status === 'fulfilled' && Boolean(result.value)
+                    )
+                    .map((result) => result.value)
+                    .filter((result): result is NonNullable<typeof result> => Boolean(result));
+
+                void sendAffiliateEvents(directLinkResults, {
+                    source: 'server_link_field',
+                    bo_table: boardId,
+                    wr_id: Number(postId),
+                    latency_ms: Date.now() - startedAt
+                });
             } catch {
                 // 변환 실패 시 원본 링크 유지
             }
