@@ -6,6 +6,7 @@
 import type { RowDataPacket } from 'mysql2';
 import pool from '$lib/server/db';
 import { getRedis } from '$lib/server/redis';
+import { getCommentReactionVersion } from '$lib/server/member-activity-cache';
 
 interface GoodRow extends RowDataPacket {
     wr_id: number;
@@ -36,7 +37,8 @@ export async function fetchCommentLikeStatuses(
 
     const safeBoardId = boardId.replace(/[^a-zA-Z0-9_-]/g, '');
     const sortedIds = [...commentIds].sort((a, b) => a - b);
-    const cacheKey = `comment_like_statuses:${userId}:${safeBoardId}:${sortedIds.join(',')}`;
+    const version = await getCommentReactionVersion(safeBoardId);
+    const cacheKey = `comment_like_statuses:${userId}:${safeBoardId}:${sortedIds.join(',')}:v${version}`;
 
     try {
         const cached = await getRedis().get(cacheKey);
