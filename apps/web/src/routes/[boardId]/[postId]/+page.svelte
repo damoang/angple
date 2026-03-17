@@ -34,6 +34,7 @@
     import DeleteConfirmDialog from '$lib/components/features/board/delete-confirm-dialog.svelte';
     import CommentForm from '$lib/components/features/board/comment-form.svelte';
     import CommentList from '$lib/components/features/board/comment-list.svelte';
+    import AuthorActivityPanel from '$lib/components/features/board/author-activity-panel.svelte';
     import RecentPosts from '$lib/components/features/board/recent-posts.svelte';
     import { ReportDialog } from '$lib/components/features/report/index.js';
     import type { FreeComment, FreePost, LikerInfo, PostRevision } from '$lib/api/types.js';
@@ -94,6 +95,15 @@
         component: EconomyOpenLinks,
         condition: (boardType: string) => boardType === 'economy',
         priority: 10
+    });
+
+    postSlotRegistry.register('post.before_comments', {
+        id: 'core:author-activity-panel',
+        component: AuthorActivityPanel,
+        priority: 20,
+        propsMapper: (pageData: { post: FreePost }) => ({
+            post: pageData.post
+        })
     });
 
     import { loadPluginComponent } from '$lib/utils/plugin-optional-loader';
