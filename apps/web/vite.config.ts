@@ -22,7 +22,7 @@ export default defineConfig(({ mode }) => {
             include: ['@tiptap/suggestion', '@tiptap/pm/state']
         },
         build: {
-            assetsInlineLimit: 0,
+            assetsInlineLimit: 8192,
             chunkSizeWarningLimit: 1120
         },
         ssr: {
