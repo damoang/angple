@@ -1627,7 +1627,7 @@
                                         >
                                             {liker.mb_nick || liker.mb_name}
                                         </a>
-                                        {#if memoPluginActive && MemoBadge && !uiSettingsStore.hideMemo}
+                                        {#if authStore.isAuthenticated && memoPluginActive && MemoBadge && !uiSettingsStore.hideMemo}
                                             <MemoBadge
                                                 memberId={liker.mb_id}
                                                 showIcon={true}
@@ -1660,7 +1660,7 @@
                             </div>
 
                             <!-- 인라인 메모 편집기 -->
-                            {#if memoPluginActive && MemoInlineEditor && editingMemoFor === liker.mb_id}
+                            {#if authStore.isAuthenticated && memoPluginActive && MemoInlineEditor && editingMemoFor === liker.mb_id}
                                 <div class="ml-11 mt-2">
                                     <MemoInlineEditor
                                         memberId={liker.mb_id}

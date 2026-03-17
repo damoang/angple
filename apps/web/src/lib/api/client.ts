@@ -1028,7 +1028,11 @@ class ApiClient {
         const response = await this.request<LikersResponse>(
             `/boards/${boardId}/posts/${postId}/likers?page=${page}&limit=${limit}`
         );
-        return response.data;
+        const payload = response.data;
+        return {
+            likers: Array.isArray(payload?.likers) ? payload.likers : [],
+            total: typeof payload?.total === 'number' ? payload.total : 0
+        };
     }
 
     /**
