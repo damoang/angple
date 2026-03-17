@@ -5,6 +5,7 @@
  */
 import type { RowDataPacket } from 'mysql2';
 import pool from '$lib/server/db';
+import { getRedis } from '$lib/server/redis';
 
 interface GoodRow extends RowDataPacket {
     bg_flag: string;
@@ -14,6 +15,8 @@ export interface PostLikeStatus {
     userLiked: boolean;
     userDisliked: boolean;
 }
+
+const POST_LIKE_STATUS_CACHE_TTL_SEC = 30;
 
 /**
  * 게시글 추천/비추천 상태 조회
@@ -31,6 +34,16 @@ export async function fetchPostLikeStatus(
     }
 
     const safeBoardId = boardId.replace(/[^a-zA-Z0-9_-]/g, '');
+    const cacheKey = `post_like_status:${userId}:${safeBoardId}:${postId}`;
+
+    try {
+        const cached = await getRedis().get(cacheKey);
+        if (cached) {
+            return JSON.parse(cached) as PostLikeStatus;
+        }
+    } catch {
+        // Redis 장애 시 DB fallback
+    }
 
     const [rows] = await pool.query<GoodRow[]>(
         `SELECT bg_flag FROM g5_board_good
@@ -46,5 +59,12 @@ export async function fetchPostLikeStatus(
         if (row.bg_flag === 'nogood') userDisliked = true;
     }
 
-    return { userLiked, userDisliked };
+    const result = { userLiked, userDisliked };
+    try {
+        await getRedis().setex(cacheKey, POST_LIKE_STATUS_CACHE_TTL_SEC, JSON.stringify(result));
+    } catch {
+        // Redis 장애 무시
+    }
+
+    return result;
 }

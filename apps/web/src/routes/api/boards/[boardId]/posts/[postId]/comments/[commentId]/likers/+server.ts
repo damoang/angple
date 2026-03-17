@@ -9,6 +9,9 @@ import type { RequestHandler } from './$types';
 import type { RowDataPacket } from 'mysql2';
 import pool from '$lib/server/db';
 import { getAuthUser } from '$lib/server/auth';
+import { getRedis } from '$lib/server/redis';
+
+const COMMENT_LIKERS_CACHE_TTL_SEC = 15;
 
 /** IP 마스킹: 두 번째 옥텟을 ♡로 (예: 222.114.55.158 → 222.♡.55.158) */
 function maskIp(ip: string | null | undefined): string {
@@ -60,6 +63,19 @@ export const GET: RequestHandler = async ({ params, url, cookies }) => {
     try {
         const user = await getAuthUser(cookies);
         const isAuthenticated = !!user;
+        const cacheKey = `comment_likers:${safeBoardId}:${safeCommentId}:${page}:${limit}:${isAuthenticated ? 1 : 0}`;
+
+        try {
+            const cached = await getRedis().get(cacheKey);
+            if (cached) {
+                return new Response(cached, {
+                    status: 200,
+                    headers: { 'content-type': 'application/json; charset=utf-8' }
+                });
+            }
+        } catch {
+            // Redis 장애 시 DB fallback
+        }
 
         // 총 추천자 수
         const [countRows] = await pool.query<CountRow[]>(
@@ -90,13 +106,21 @@ export const GET: RequestHandler = async ({ params, url, cookies }) => {
             liked_at: String(row.bg_datetime).replace(' ', 'T') + 'Z'
         }));
 
-        return json({
+        const payload = {
             success: true,
             data: {
                 likers,
                 total
             }
-        });
+        };
+
+        try {
+            await getRedis().setex(cacheKey, COMMENT_LIKERS_CACHE_TTL_SEC, JSON.stringify(payload));
+        } catch {
+            // Redis 장애 무시
+        }
+
+        return json(payload);
     } catch (error) {
         console.error('Comment likers GET error:', error);
         return json(
