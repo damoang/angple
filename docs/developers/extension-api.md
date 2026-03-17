@@ -11,22 +11,22 @@ Angple Extension 시스템의 핵심 API 레퍼런스입니다. Extension은 플
 ```jsonc
 {
     // === 필수 필드 ===
-    "id": "my-extension",             // kebab-case, 영문자/숫자/하이픈 (3~50자)
-    "name": "My Extension",           // 표시 이름 (최대 100자)
-    "version": "1.0.0",               // semver 형식
-    "description": "Extension 설명",   // 최대 500자
+    "id": "my-extension", // kebab-case, 영문자/숫자/하이픈 (3~50자)
+    "name": "My Extension", // 표시 이름 (최대 100자)
+    "version": "1.0.0", // semver 형식
+    "description": "Extension 설명", // 최대 500자
     "author": {
-        "name": "Author Name",        // 필수
-        "email": "dev@example.com",   // 선택
+        "name": "Author Name", // 필수
+        "email": "dev@example.com", // 선택
         "url": "https://example.com", // 선택
-        "github": "username"          // 선택
+        "github": "username" // 선택
     },
     "license": "MIT",
-    "category": "plugin",             // "theme" | "plugin"
-    "main": "./dist/index.js",        // Entry point
+    "category": "plugin", // "theme" | "plugin"
+    "main": "./dist/index.js", // Entry point
 
     // === 선택 필드 ===
-    "pluginType": "board",            // category가 "plugin"일 때만 사용
+    "pluginType": "board", // category가 "plugin"일 때만 사용
     "tags": ["history", "admin"],
     "keywords": ["soft-delete", "restore"],
     "angpleVersion": ">=1.0.0",
@@ -113,19 +113,19 @@ Angple Extension 시스템의 핵심 API 레퍼런스입니다. Extension은 플
 
 `category`가 `"plugin"`일 때 `pluginType`으로 세부 분류합니다.
 
-| pluginType       | 설명                                                   |
-| ---------------- | ------------------------------------------------------ |
-| `board`          | 게시판 기능 확장 (추천/비추천, 익명 게시, 신고 등)     |
-| `editor`         | 에디터 확장 (마크다운, WYSIWYG, 코드 하이라이팅 등)    |
-| `auth`           | 인증/보안 확장 (OAuth, 2FA, reCAPTCHA, 스팸 필터 등)   |
-| `seo`            | SEO/마케팅 (메타태그, 사이트맵, Analytics, OG 이미지)  |
-| `media`          | 미디어 확장 (이미지 최적화, 동영상 임베드, 갤러리 등)  |
-| `social`         | 소셜 기능 (공유, 좋아요, 팔로우, 멘션 등)              |
-| `notification`   | 알림/메시징 (푸시, 이메일, 슬랙/디스코드 연동 등)      |
-| `analytics`      | 분석/통계 (방문자 추적, 대시보드, 리포트 등)           |
-| `payment`        | 결제/커머스 (정기구독, 포인트, 후원 등)                |
-| `ai`             | AI 통합 (GPT, Claude, 번역, 요약, 감정 분석 등)       |
-| `custom`         | 기타                                                   |
+| pluginType     | 설명                                                  |
+| -------------- | ----------------------------------------------------- |
+| `board`        | 게시판 기능 확장 (추천/비추천, 익명 게시, 신고 등)    |
+| `editor`       | 에디터 확장 (마크다운, WYSIWYG, 코드 하이라이팅 등)   |
+| `auth`         | 인증/보안 확장 (OAuth, 2FA, reCAPTCHA, 스팸 필터 등)  |
+| `seo`          | SEO/마케팅 (메타태그, 사이트맵, Analytics, OG 이미지) |
+| `media`        | 미디어 확장 (이미지 최적화, 동영상 임베드, 갤러리 등) |
+| `social`       | 소셜 기능 (공유, 좋아요, 팔로우, 멘션 등)             |
+| `notification` | 알림/메시징 (푸시, 이메일, 슬랙/디스코드 연동 등)     |
+| `analytics`    | 분석/통계 (방문자 추적, 대시보드, 리포트 등)          |
+| `payment`      | 결제/커머스 (정기구독, 포인트, 후원 등)               |
+| `ai`           | AI 통합 (GPT, Claude, 번역, 요약, 감정 분석 등)       |
+| `custom`       | 기타                                                  |
 
 ---
 
@@ -161,14 +161,22 @@ interface ExtensionContext {
 
 ```typescript
 // Action 등록
-context.hooks.addAction('after_post_create', (post) => {
-    context.logger.info('새 게시글 생성:', post.title);
-}, 10);
+context.hooks.addAction(
+    'after_post_create',
+    (post) => {
+        context.logger.info('새 게시글 생성:', post.title);
+    },
+    10
+);
 
 // Filter 등록
-context.hooks.addFilter('post_content', (content, post) => {
-    return content + '<p>Powered by My Extension</p>';
-}, 20);
+context.hooks.addFilter(
+    'post_content',
+    (content, post) => {
+        return content + '<p>Powered by My Extension</p>';
+    },
+    20
+);
 ```
 
 ### settings
@@ -210,7 +218,7 @@ context.ui.removeSlot('content-before');
 플러그인 ID가 prefix로 자동 포함되는 로거입니다.
 
 ```typescript
-context.logger.info('초기화 완료');   // [Plugin:my-extension] 초기화 완료
+context.logger.info('초기화 완료'); // [Plugin:my-extension] 초기화 완료
 context.logger.warn('주의 사항');
 context.logger.error('오류 발생', err);
 ```
@@ -246,8 +254,8 @@ interface PluginSettingField {
     default?: unknown;
     required?: boolean;
     options?: string[] | { label: string; value: string }[];
-    min?: number;        // number 타입에서 사용
-    max?: number;        // number 타입에서 사용
+    min?: number; // number 타입에서 사용
+    max?: number; // number 타입에서 사용
     placeholder?: string;
 }
 ```
@@ -367,27 +375,27 @@ await registry.unregister('my-extension');
 
 ### 전체 PluginPermission 값
 
-| Permission          | 설명                | 위험 등급 |
-| ------------------- | ------------------- | --------- |
-| `posts:read`        | 게시글 읽기         | safe      |
-| `posts:write`       | 게시글 쓰기         | safe      |
-| `posts:delete`      | 게시글 삭제         | safe      |
-| `comments:read`     | 댓글 읽기           | safe      |
-| `comments:write`    | 댓글 쓰기           | safe      |
-| `comments:delete`   | 댓글 삭제           | safe      |
-| `users:read`        | 사용자 읽기         | safe      |
-| `users:write`       | 사용자 쓰기         | dangerous |
-| `users:delete`      | 사용자 삭제         | dangerous |
-| `settings:read`     | 설정 읽기           | safe      |
-| `settings:write`    | 설정 쓰기           | safe      |
-| `files:read`        | 파일 읽기           | safe      |
-| `files:write`       | 파일 쓰기           | safe      |
-| `files:delete`      | 파일 삭제           | dangerous |
-| `api:external`      | 외부 API 호출       | dangerous |
-| `database:read`     | DB 직접 읽기        | safe      |
-| `database:write`    | DB 직접 쓰기        | dangerous |
-| `network:fetch`     | 네트워크 요청       | dangerous |
-| `network:websocket` | WebSocket 연결      | dangerous |
+| Permission          | 설명           | 위험 등급 |
+| ------------------- | -------------- | --------- |
+| `posts:read`        | 게시글 읽기    | safe      |
+| `posts:write`       | 게시글 쓰기    | safe      |
+| `posts:delete`      | 게시글 삭제    | safe      |
+| `comments:read`     | 댓글 읽기      | safe      |
+| `comments:write`    | 댓글 쓰기      | safe      |
+| `comments:delete`   | 댓글 삭제      | safe      |
+| `users:read`        | 사용자 읽기    | safe      |
+| `users:write`       | 사용자 쓰기    | dangerous |
+| `users:delete`      | 사용자 삭제    | dangerous |
+| `settings:read`     | 설정 읽기      | safe      |
+| `settings:write`    | 설정 쓰기      | safe      |
+| `files:read`        | 파일 읽기      | safe      |
+| `files:write`       | 파일 쓰기      | safe      |
+| `files:delete`      | 파일 삭제      | dangerous |
+| `api:external`      | 외부 API 호출  | dangerous |
+| `database:read`     | DB 직접 읽기   | safe      |
+| `database:write`    | DB 직접 쓰기   | dangerous |
+| `network:fetch`     | 네트워크 요청  | dangerous |
+| `network:websocket` | WebSocket 연결 | dangerous |
 
 ### DANGEROUS_PERMISSIONS
 
@@ -406,9 +414,10 @@ const DANGEROUS_PERMISSIONS: PluginPermission[] = [
 ```
 
 위험 등급 분석:
-- 위험 권한 0개: `low`
-- 위험 권한 1~2개: `medium`
-- 위험 권한 3개 이상: `high`
+
+-   위험 권한 0개: `low`
+-   위험 권한 1~2개: `medium`
+-   위험 권한 3개 이상: `high`
 
 ```typescript
 const analysis = PermissionManager.analyzeDangerousPermissions(manifest.permissions);
@@ -455,12 +464,12 @@ const HOOK_PERMISSION_MAP: Record<string, PluginPermission> = {
 import { createExtensionContext } from '@angple/plugin-engine';
 
 const context = createExtensionContext(
-    manifest,           // PluginManifestInfo
-    globalHooks,        // HookManager (전역)
-    permissionManager,  // PermissionManager
-    currentSettings,    // Record<string, unknown>
-    slotRegistry,       // Map<string, SlotRegistration[]>
-    onSettingsChange    // (pluginId, key, value) => void (선택)
+    manifest, // PluginManifestInfo
+    globalHooks, // HookManager (전역)
+    permissionManager, // PermissionManager
+    currentSettings, // Record<string, unknown>
+    slotRegistry, // Map<string, SlotRegistration[]>
+    onSettingsChange // (pluginId, key, value) => void (선택)
 );
 ```
 
@@ -483,9 +492,13 @@ export const init: PluginInitFunction = async (context) => {
     const maxVersions = context.settings.get('max_versions') as number;
 
     // Filter Hook 등록
-    context.hooks.addFilter('post_content', (content: string, post: any) => {
-        return `${content}<footer>Version tracking enabled (max: ${maxVersions})</footer>`;
-    }, 20);
+    context.hooks.addFilter(
+        'post_content',
+        (content: string, post: any) => {
+            return `${content}<footer>Version tracking enabled (max: ${maxVersions})</footer>`;
+        },
+        20
+    );
 
     // Action Hook 등록
     context.hooks.addAction('after_post_update', (post: any) => {
