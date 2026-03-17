@@ -1321,9 +1321,12 @@
                             이 게시물은 삭제가 예약되어 있습니다.
                         </p>
                         <p class="mt-1 text-sm text-amber-600 dark:text-amber-400">
-                            삭제 예정: {new Date(scheduledDelete.scheduled_at).toLocaleString(
-                                'ko-KR'
-                            )}
+                            삭제 예정: {new Date(
+                                scheduledDelete.scheduled_at
+                            ).toLocaleString('ko-KR', {
+                                timeZone: 'Asia/Seoul',
+                                hour12: false
+                            })}
                             ({scheduledDelete.delay_minutes}분 지연)
                         </p>
                     </div>

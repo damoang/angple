@@ -9,7 +9,7 @@
 
     let { postId: _postId, deletedAt, deletedBy }: Props = $props();
 
-    const formattedDate = $derived(deletedAt ? new Date(deletedAt).toLocaleString('ko-KR') : null);
+    const formattedDate = $derived(deletedAt ? new Date(deletedAt).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul', hour12: false }) : null);
 </script>
 
 <div

@@ -157,7 +157,7 @@
     }
 
     function formatDate(dateStr: string): string {
-        return new Date(dateStr).toLocaleString('ko-KR');
+        return new Date(dateStr).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul', hour12: false });
     }
 
     function toggleVersion(version: number) {
