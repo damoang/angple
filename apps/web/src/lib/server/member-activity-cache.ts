@@ -1,35 +1,8 @@
 import pool from '$lib/server/db';
 import { getRedis } from '$lib/server/redis';
 
-const CACHE_SCAN_COUNT = 100;
 let feedReactionSyncDisabled = false;
 let feedReactionSyncWarningLogged = false;
-
-async function deleteByPatterns(patterns: string[]): Promise<void> {
-    if (patterns.length === 0) return;
-
-    try {
-        const redis = getRedis();
-        for (const pattern of patterns) {
-            let cursor = '0';
-            do {
-                const [nextCursor, keys] = await redis.scan(
-                    cursor,
-                    'MATCH',
-                    pattern,
-                    'COUNT',
-                    CACHE_SCAN_COUNT
-                );
-                cursor = nextCursor;
-                if (keys.length > 0) {
-                    await redis.del(...keys);
-                }
-            } while (cursor !== '0');
-        }
-    } catch (error) {
-        console.error('[member-activity-cache] redis invalidation failed:', error);
-    }
-}
 
 export async function invalidateReactionCaches(options: {
     boardId: string;
@@ -38,33 +11,26 @@ export async function invalidateReactionCaches(options: {
     actorMbId?: string;
     isComment?: boolean;
 }): Promise<void> {
-    const patterns: string[] = [];
+    // Hot path write requests must not trigger Redis-wide SCAN. Only invalidate
+    // exact keys we can derive here and let short TTL caches expire naturally.
+    const keys: string[] = [];
 
     if (options.actorMbId) {
-        patterns.push(`my_liked_posts:${options.actorMbId}:*`);
-        patterns.push(`member_liked:${options.actorMbId}:*`);
-        patterns.push(`member_interactions:${options.actorMbId}:*`);
-        patterns.push(`post_like_status:${options.actorMbId}:*`);
-        patterns.push(`comment_like_statuses:${options.actorMbId}:*`);
-        patterns.push(`post_like_api:${options.actorMbId}:*`);
-        patterns.push(`comment_like_api:${options.actorMbId}:*`);
-    }
-    if (options.authorMbId) {
-        patterns.push(`member_interactions:${options.authorMbId}:*`);
         if (options.isComment) {
-            patterns.push(`my_comments:${options.authorMbId}:*`);
+            keys.push(`comment_like_api:${options.actorMbId}:${options.boardId}:${options.writeId}`);
         } else {
-            patterns.push(`my_posts:${options.authorMbId}:*`);
+            keys.push(`post_like_api:${options.actorMbId}:${options.boardId}:${options.writeId}`);
+            keys.push(`post_like_status:${options.actorMbId}:${options.boardId}:${options.writeId}`);
         }
     }
-    if (options.isComment) {
-        patterns.push(`comment_likers:${options.boardId}:${options.writeId}:*`);
-        patterns.push(`comment_likers_batch:${options.boardId}:*`);
-    } else {
-        patterns.push(`likers:${options.boardId}:${options.writeId}:*`);
-    }
 
-    await deleteByPatterns(patterns);
+    if (keys.length === 0) return;
+
+    try {
+        await getRedis().del(...keys);
+    } catch (error) {
+        console.error('[member-activity-cache] redis invalidation failed:', error);
+    }
 }
 
 export async function syncFeedReactionCounts(options: {
