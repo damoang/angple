@@ -2,6 +2,8 @@ import pool from '$lib/server/db';
 import { getRedis } from '$lib/server/redis';
 
 const CACHE_SCAN_COUNT = 100;
+let feedReactionSyncDisabled = false;
+let feedReactionSyncWarningLogged = false;
 
 async function deleteByPatterns(patterns: string[]): Promise<void> {
     if (patterns.length === 0) return;
@@ -72,6 +74,8 @@ export async function syncFeedReactionCounts(options: {
     likes: number;
     dislikes: number;
 }): Promise<void> {
+    if (feedReactionSyncDisabled) return;
+
     const writeTable = `g5_write_${options.boardId}`;
     try {
         await pool.query(
@@ -81,6 +85,26 @@ export async function syncFeedReactionCounts(options: {
             [options.likes, options.dislikes, writeTable, options.writeId, options.activityType]
         );
     } catch (error) {
+        const message =
+            error instanceof Error
+                ? error.message
+                : typeof error === 'object' && error && 'sqlMessage' in error
+                  ? String(error.sqlMessage)
+                  : '';
+        const missingReactionColumns =
+            message.includes("Unknown column 'like_count'") ||
+            message.includes("Unknown column 'dislike_count'");
+
+        if (missingReactionColumns) {
+            feedReactionSyncDisabled = true;
+            if (!feedReactionSyncWarningLogged) {
+                feedReactionSyncWarningLogged = true;
+                console.warn(
+                    '[member-activity-cache] feed reaction sync disabled: member_activity_feed reaction columns are missing in the current DB schema'
+                );
+            }
+            return;
+        }
         console.error('[member-activity-cache] feed reaction sync failed:', error);
     }
 }
