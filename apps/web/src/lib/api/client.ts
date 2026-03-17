@@ -92,6 +92,57 @@ class ApiClient {
     // 메모리 기반 액세스 토큰 (SSR에서 받은 내부 JWT, Go 백엔드 통신용)
     private _accessToken: string | null = null;
     private _fetchFn: typeof fetch | null = null;
+    private _idempotencyKeys = new Map<string, { key: string; expiresAt: number }>();
+
+    private stableSerialize(value: unknown): string {
+        if (value === null) return 'null';
+        if (value === undefined) return 'undefined';
+        if (Array.isArray(value)) {
+            return `[${value.map((item) => this.stableSerialize(item)).join(',')}]`;
+        }
+        if (typeof value === 'object') {
+            const entries = Object.entries(value as Record<string, unknown>)
+                .filter(([, entryValue]) => entryValue !== undefined)
+                .sort(([a], [b]) => a.localeCompare(b));
+            return `{${entries
+                .map(([key, entryValue]) => `${key}:${this.stableSerialize(entryValue)}`)
+                .join(',')}}`;
+        }
+        return String(value);
+    }
+
+    private createRandomIdempotencyKey(scope: string): string {
+        if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
+            return `${scope}:${crypto.randomUUID()}`;
+        }
+        return `${scope}:${Date.now()}:${Math.random().toString(36).slice(2, 10)}`;
+    }
+
+    private createIdempotencyKey(scope: string, payload?: unknown): string {
+        if (payload === undefined) {
+            return this.createRandomIdempotencyKey(scope);
+        }
+
+        const now = Date.now();
+        for (const [fingerprint, cached] of this._idempotencyKeys.entries()) {
+            if (cached.expiresAt <= now) {
+                this._idempotencyKeys.delete(fingerprint);
+            }
+        }
+
+        const fingerprint = `${scope}:${this.stableSerialize(payload)}`;
+        const cached = this._idempotencyKeys.get(fingerprint);
+        if (cached && cached.expiresAt > now) {
+            return cached.key;
+        }
+
+        const key = this.createRandomIdempotencyKey(scope);
+        this._idempotencyKeys.set(fingerprint, {
+            key,
+            expiresAt: now + 90_000
+        });
+        return key;
+    }
 
     /** SvelteKit load 함수에서 제공하는 fetch를 임시 주입 (1회성) */
     withFetch(fn: typeof fetch): this {
@@ -547,6 +598,12 @@ class ApiClient {
             `/boards/${boardId}/posts`,
             {
                 method: 'POST',
+                headers: {
+                    'X-Idempotency-Key': this.createIdempotencyKey(
+                        `post-create:${boardId}`,
+                        request
+                    )
+                },
                 body: JSON.stringify(request)
             },
             WRITE_REQUEST_CONFIG
@@ -568,6 +625,12 @@ class ApiClient {
             `/boards/${boardId}/posts/${postId}`,
             {
                 method: 'PUT',
+                headers: {
+                    'X-Idempotency-Key': this.createIdempotencyKey(
+                        `post-update:${boardId}:${postId}`,
+                        request
+                    )
+                },
                 body: JSON.stringify(request)
             },
             WRITE_REQUEST_CONFIG
@@ -743,6 +806,12 @@ class ApiClient {
             `/boards/${boardId}/posts/${postId}/comments`,
             {
                 method: 'POST',
+                headers: {
+                    'X-Idempotency-Key': this.createIdempotencyKey(
+                        `comment-create:${boardId}:${postId}`,
+                        request
+                    )
+                },
                 body: JSON.stringify(request)
             },
             WRITE_REQUEST_CONFIG
@@ -765,6 +834,12 @@ class ApiClient {
             `/boards/${boardId}/posts/${postId}/comments/${commentId}`,
             {
                 method: 'PUT',
+                headers: {
+                    'X-Idempotency-Key': this.createIdempotencyKey(
+                        `comment-update:${boardId}:${postId}:${commentId}`,
+                        request
+                    )
+                },
                 body: JSON.stringify(request)
             },
             WRITE_REQUEST_CONFIG
