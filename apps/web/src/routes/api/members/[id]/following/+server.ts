@@ -23,7 +23,7 @@ interface CountRow extends RowDataPacket {
 export const GET: RequestHandler = async ({ params }) => {
     const memberId = params.id;
 
-    if (!memberId || !/^[a-zA-Z0-9_]+$/.test(memberId)) {
+    if (!memberId || !/^[a-zA-Z0-9_-]+$/.test(memberId)) {
         return json({ success: false, error: '유효하지 않은 회원 ID입니다.' }, { status: 400 });
     }
 
