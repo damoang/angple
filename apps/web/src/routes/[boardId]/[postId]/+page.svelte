@@ -837,10 +837,21 @@
 
         if (isLiking) return;
 
+        const prevLiked = isLiked;
+        const prevDisliked = isDisliked;
+        const prevLikeCount = likeCount;
+        const prevDislikeCount = dislikeCount;
+        const canOptimisticallyToggle = !isDisliked;
+
         isLiking = true;
         try {
+            if (canOptimisticallyToggle) {
+                isLiked = !prevLiked;
+                likeCount = Math.max(prevLikeCount + (prevLiked ? -1 : 1), 0);
+            }
+
             const response = await apiClient.likePost(boardId, String(data.post.id));
-            const wasLiked = isLiked;
+            const wasLiked = prevLiked;
             isLiked = response.user_liked;
             isDisliked = response.user_disliked ?? false;
             likeCount = response.likes;
@@ -857,6 +868,10 @@
             // 아바타 스택 갱신
             loadLikerAvatars();
         } catch (err) {
+            isLiked = prevLiked;
+            isDisliked = prevDisliked;
+            likeCount = prevLikeCount;
+            dislikeCount = prevDislikeCount;
             console.error('Failed to like post:', err);
             if (err instanceof Error && err.message.includes('실명인증')) {
                 goToCertification();
@@ -906,6 +921,7 @@
 
     // 추천자 목록 로드
     async function loadLikers(): Promise<void> {
+        if (!authStore.isAuthenticated) return;
         showLikersDialog = true;
         isLoadingLikers = true;
         likersPage = 1;
@@ -932,6 +948,7 @@
 
     // 추천자 더보기 로드
     async function loadMoreLikers(): Promise<void> {
+        if (!authStore.isAuthenticated) return;
         if (isLoadingMoreLikers) return;
         isLoadingMoreLikers = true;
         const nextPage = likersPage + 1;
@@ -959,6 +976,11 @@
 
     // 추천자 아바타 미리 로드 (상위 5명)
     async function loadLikerAvatars(): Promise<void> {
+        if (!authStore.isAuthenticated) {
+            likers = [];
+            likersTotal = 0;
+            return;
+        }
         try {
             const response = await apiClient.getPostLikers(boardId, String(data.post.id), 1, 5);
             likers = response.likers ?? [];
@@ -1559,142 +1581,149 @@
     />
 {/if}
 
-<!-- 추천자 목록 다이얼로그 -->
-<Dialog.Root
-    bind:open={showLikersDialog}
-    onOpenChange={(open) => {
-        if (!open) editingMemoFor = null;
-    }}
->
-    <Dialog.Content class="max-w-md">
-        <Dialog.Header>
-            <Dialog.Title>공감한 사람들</Dialog.Title>
-            <Dialog.Description>
-                이 게시글에 공감한 {likersTotal}명
-            </Dialog.Description>
-        </Dialog.Header>
-        <div class="max-h-96 overflow-y-auto">
-            {#if isLoadingLikers}
-                <div class="text-muted-foreground py-8 text-center">불러오는 중...</div>
-            {:else if likers.length === 0}
-                <div class="text-muted-foreground py-8 text-center">
-                    아직 공감한 사람이 없습니다.
-                </div>
-            {:else}
-                <ul class="divide-border divide-y">
-                    {#each likers as liker (liker.mb_id)}
-                        <li class="py-3">
-                            <div class="flex items-center gap-3">
-                                <!-- 프로필 이미지 -->
-                                {#if getAvatarUrl(liker.mb_image, liker.mb_image_updated_at)}
-                                    <img
-                                        src={getAvatarUrl(
-                                            liker.mb_image,
-                                            liker.mb_image_updated_at
-                                        )}
-                                        alt={liker.mb_nick || liker.mb_name}
-                                        class="size-8 rounded-full object-cover"
-                                        onerror={(e) => {
-                                            const img = e.currentTarget as HTMLImageElement;
-                                            img.style.display = 'none';
-                                            const fallback = img.nextElementSibling as HTMLElement;
-                                            if (fallback) fallback.style.display = 'flex';
-                                        }}
-                                    />
-                                    <div
-                                        class="bg-primary text-primary-foreground hidden size-8 items-center justify-center rounded-full text-sm"
-                                    >
-                                        {(liker.mb_nick || liker.mb_name).charAt(0).toUpperCase()}
+{#if authStore.isAuthenticated}
+    <!-- 추천자 목록 다이얼로그 -->
+    <Dialog.Root
+        bind:open={showLikersDialog}
+        onOpenChange={(open) => {
+            if (!open) editingMemoFor = null;
+        }}
+    >
+        <Dialog.Content class="max-w-md">
+            <Dialog.Header>
+                <Dialog.Title>공감한 사람들</Dialog.Title>
+                <Dialog.Description>
+                    이 게시글에 공감한 {likersTotal}명
+                </Dialog.Description>
+            </Dialog.Header>
+            <div class="max-h-96 overflow-y-auto">
+                {#if isLoadingLikers}
+                    <div class="text-muted-foreground py-8 text-center">불러오는 중...</div>
+                {:else if likers.length === 0}
+                    <div class="text-muted-foreground py-8 text-center">
+                        아직 공감한 사람이 없습니다.
+                    </div>
+                {:else}
+                    <ul class="divide-border divide-y">
+                        {#each likers as liker (liker.mb_id)}
+                            <li class="py-3">
+                                <div class="flex items-center gap-3">
+                                    <!-- 프로필 이미지 -->
+                                    {#if getAvatarUrl(liker.mb_image, liker.mb_image_updated_at)}
+                                        <img
+                                            src={getAvatarUrl(
+                                                liker.mb_image,
+                                                liker.mb_image_updated_at
+                                            )}
+                                            alt={liker.mb_nick || liker.mb_name}
+                                            class="size-8 rounded-full object-cover"
+                                            onerror={(e) => {
+                                                const img = e.currentTarget as HTMLImageElement;
+                                                img.style.display = 'none';
+                                                const fallback =
+                                                    img.nextElementSibling as HTMLElement;
+                                                if (fallback) fallback.style.display = 'flex';
+                                            }}
+                                        />
+                                        <div
+                                            class="bg-primary text-primary-foreground hidden size-8 items-center justify-center rounded-full text-sm"
+                                        >
+                                            {(liker.mb_nick || liker.mb_name)
+                                                .charAt(0)
+                                                .toUpperCase()}
+                                        </div>
+                                    {:else}
+                                        <div
+                                            class="bg-primary text-primary-foreground flex size-8 items-center justify-center rounded-full text-sm"
+                                        >
+                                            {(liker.mb_nick || liker.mb_name)
+                                                .charAt(0)
+                                                .toUpperCase()}
+                                        </div>
+                                    {/if}
+
+                                    <!-- 닉네임 + 메모배지 + IP + 날짜 -->
+                                    <div class="min-w-0 flex-1">
+                                        <div class="flex items-center gap-1">
+                                            <LevelBadge
+                                                level={memberLevelStore.getLevel(liker.mb_id)}
+                                                size="sm"
+                                            />
+                                            <a
+                                                href="/member/{liker.mb_id}"
+                                                class="text-foreground hover:text-primary truncate text-sm font-medium"
+                                            >
+                                                {liker.mb_nick || liker.mb_name}
+                                            </a>
+                                            {#if authStore.isAuthenticated && memoPluginActive && MemoBadge && !uiSettingsStore.hideMemo}
+                                                <MemoBadge
+                                                    memberId={liker.mb_id}
+                                                    showIcon={true}
+                                                    blur={uiSettingsStore.blurMemo}
+                                                    onclick={() => {
+                                                        editingMemoFor =
+                                                            editingMemoFor === liker.mb_id
+                                                                ? null
+                                                                : liker.mb_id;
+                                                    }}
+                                                />
+                                            {/if}
+                                        </div>
+                                        <div class="text-muted-foreground text-xs">
+                                            {#if authStore.isAuthenticated && liker.bg_ip}
+                                                <span>({liker.bg_ip})</span>
+                                                <span class="mx-1">·</span>
+                                            {/if}
+                                            <span>{formatDate(liker.liked_at)}</span>
+                                        </div>
                                     </div>
-                                {:else}
-                                    <div
-                                        class="bg-primary text-primary-foreground flex size-8 items-center justify-center rounded-full text-sm"
+
+                                    <!-- 작성글 링크 -->
+                                    <a
+                                        href="/search?author_id={liker.mb_id}"
+                                        class="text-muted-foreground hover:text-foreground whitespace-nowrap text-xs"
                                     >
-                                        {(liker.mb_nick || liker.mb_name).charAt(0).toUpperCase()}
+                                        작성글
+                                    </a>
+                                </div>
+
+                                <!-- 인라인 메모 편집기 -->
+                                {#if authStore.isAuthenticated && memoPluginActive && MemoInlineEditor && editingMemoFor === liker.mb_id}
+                                    <div class="ml-11 mt-2">
+                                        <MemoInlineEditor
+                                            memberId={liker.mb_id}
+                                            onClose={() => {
+                                                editingMemoFor = null;
+                                            }}
+                                        />
                                     </div>
                                 {/if}
-
-                                <!-- 닉네임 + 메모배지 + IP + 날짜 -->
-                                <div class="min-w-0 flex-1">
-                                    <div class="flex items-center gap-1">
-                                        <LevelBadge
-                                            level={memberLevelStore.getLevel(liker.mb_id)}
-                                            size="sm"
-                                        />
-                                        <a
-                                            href="/member/{liker.mb_id}"
-                                            class="text-foreground hover:text-primary truncate text-sm font-medium"
-                                        >
-                                            {liker.mb_nick || liker.mb_name}
-                                        </a>
-                                        {#if authStore.isAuthenticated && memoPluginActive && MemoBadge && !uiSettingsStore.hideMemo}
-                                            <MemoBadge
-                                                memberId={liker.mb_id}
-                                                showIcon={true}
-                                                blur={uiSettingsStore.blurMemo}
-                                                onclick={() => {
-                                                    editingMemoFor =
-                                                        editingMemoFor === liker.mb_id
-                                                            ? null
-                                                            : liker.mb_id;
-                                                }}
-                                            />
-                                        {/if}
-                                    </div>
-                                    <div class="text-muted-foreground text-xs">
-                                        {#if authStore.isAuthenticated && liker.bg_ip}
-                                            <span>({liker.bg_ip})</span>
-                                            <span class="mx-1">·</span>
-                                        {/if}
-                                        <span>{formatDate(liker.liked_at)}</span>
-                                    </div>
-                                </div>
-
-                                <!-- 작성글 링크 -->
-                                <a
-                                    href="/search?author_id={liker.mb_id}"
-                                    class="text-muted-foreground hover:text-foreground whitespace-nowrap text-xs"
-                                >
-                                    작성글
-                                </a>
-                            </div>
-
-                            <!-- 인라인 메모 편집기 -->
-                            {#if authStore.isAuthenticated && memoPluginActive && MemoInlineEditor && editingMemoFor === liker.mb_id}
-                                <div class="ml-11 mt-2">
-                                    <MemoInlineEditor
-                                        memberId={liker.mb_id}
-                                        onClose={() => {
-                                            editingMemoFor = null;
-                                        }}
-                                    />
-                                </div>
-                            {/if}
-                        </li>
-                    {/each}
-                </ul>
-                <!-- 더보기 버튼 -->
-                {#if likers.length < likersTotal}
-                    <div class="flex justify-center pt-3">
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onclick={loadMoreLikers}
-                            disabled={isLoadingMoreLikers}
-                            class="w-full"
-                        >
-                            {#if isLoadingMoreLikers}
-                                불러오는 중...
-                            {:else}
-                                더보기 ({likers.length}/{likersTotal})
-                            {/if}
-                        </Button>
-                    </div>
+                            </li>
+                        {/each}
+                    </ul>
+                    <!-- 더보기 버튼 -->
+                    {#if likers.length < likersTotal}
+                        <div class="flex justify-center pt-3">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onclick={loadMoreLikers}
+                                disabled={isLoadingMoreLikers}
+                                class="w-full"
+                            >
+                                {#if isLoadingMoreLikers}
+                                    불러오는 중...
+                                {:else}
+                                    더보기 ({likers.length}/{likersTotal})
+                                {/if}
+                            </Button>
+                        </div>
+                    {/if}
                 {/if}
-            {/if}
-        </div>
-    </Dialog.Content>
-</Dialog.Root>
+            </div>
+        </Dialog.Content>
+    </Dialog.Root>
+{/if}
 
 <!-- 게시글 신고 다이얼로그 -->
 <ReportDialog

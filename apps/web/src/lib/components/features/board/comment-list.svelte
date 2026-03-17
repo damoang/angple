@@ -104,6 +104,10 @@
         truthroomCommentMap = {}
     }: Props = $props();
 
+    function findCommentById(commentId: string): FreeComment | null {
+        return comments.find((item) => String(item.id) === commentId) ?? null;
+    }
+
     // 플러그인 활성화 여부
     let memoPluginActive = $derived(pluginStore.isPluginActive('member-memo'));
     let reactionPluginActive = $derived(pluginStore.isPluginActive('da-reaction'));
@@ -502,8 +506,14 @@
             return;
         }
 
+        const wasLiked = likedComments.has(commentId);
+        const previousLikes = commentLikes.get(commentId) ?? findCommentById(commentId)?.likes ?? 0;
+
         likingComment = commentId;
         try {
+            likedComments[wasLiked ? 'delete' : 'add'](commentId);
+            commentLikes.set(commentId, Math.max(previousLikes + (wasLiked ? -1 : 1), 0));
+
             const response = await onLike(commentId);
             if (response.user_liked) {
                 likedComments.add(commentId);
@@ -517,6 +527,12 @@
             // 아바타 스택 갱신
             loadCommentLikerAvatarsBatch([commentId]);
         } catch (err) {
+            if (wasLiked) {
+                likedComments.add(commentId);
+            } else {
+                likedComments.delete(commentId);
+            }
+            commentLikes.set(commentId, previousLikes);
             const msg = err instanceof Error ? err.message : '댓글 공감에 실패했습니다.';
             toast.error(msg);
             console.error('Failed to like comment:', err);
