@@ -37,7 +37,13 @@ export const load: PageLoad = async ({ params }) => {
             board,
             categories,
             files,
-            scheduledDelete: deleteStatus?.scheduled ? deleteStatus : null
+            scheduledDelete:
+                deleteStatus?.scheduled && deleteStatus.scheduled_at
+                    ? {
+                          scheduled_at: deleteStatus.scheduled_at,
+                          delay_minutes: deleteStatus.delay_minutes ?? 0
+                      }
+                    : null
         };
     } catch (err) {
         console.error('Failed to load post for editing:', boardId, postId, err);
