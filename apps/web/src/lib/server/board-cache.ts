@@ -32,8 +32,11 @@ export async function getCachedBoard(
     boardId: string,
     headers: Record<string, string>
 ): Promise<BoardResult> {
-    const cached = boardInfoCache.get(boardId);
-    if (cached) return { board: cached, status: 200 };
+    const isAuthenticated = Boolean(headers.Authorization);
+    if (!isAuthenticated) {
+        const cached = boardInfoCache.get(boardId);
+        if (cached) return { board: cached, status: 200 };
+    }
 
     const [boardRes, displaySettingsRes] = await Promise.all([
         bFetch(`/api/v1/boards/${boardId}`, { headers, timeout: 3_000 }),
@@ -53,7 +56,7 @@ export async function getCachedBoard(
         board = { ...board, display_settings: displaySettings };
     }
 
-    if (board) {
+    if (board && !isAuthenticated) {
         boardInfoCache.set(boardId, board);
     }
 
