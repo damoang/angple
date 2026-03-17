@@ -138,7 +138,7 @@ export function transformBacktickCodeBlocks(text: string): string {
     if (!text || !text.includes('```')) return text;
 
     return text.replace(BACKTICK_CODE_BLOCK_PATTERN, (_match, lang: string, code: string) => {
-        let cleaned = code.replace(/<br\s*\/?>/gi, '\n');
+        let cleaned = code.replace(/<br\s*\/?>/gi, '\n').replace(/<\/?p>/gi, '\n');
         let prev;
         do {
             prev = cleaned;

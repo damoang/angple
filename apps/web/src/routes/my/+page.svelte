@@ -45,13 +45,18 @@
 
     // 날짜 포맷
     function stripHtml(html: string): string {
-        return html
-            .replace(/&lt;/g, '<')
-            .replace(/&gt;/g, '>')
-            .replace(/&amp;/g, '&')
-            .replace(/&nbsp;/g, ' ')
-            .replace(/<[^>]*>/g, '')
-            .trim();
+        // 이중 인코딩 대응: &amp;lt; → &lt; → < 순서로 반복 디코딩
+        let result = html;
+        let prev;
+        do {
+            prev = result;
+            result = result
+                .replace(/&amp;/g, '&')
+                .replace(/&lt;/g, '<')
+                .replace(/&gt;/g, '>')
+                .replace(/&nbsp;/g, ' ');
+        } while (result !== prev);
+        return result.replace(/<[^>]*>/g, '').trim();
     }
 
     function formatDate(dateString: string): string {

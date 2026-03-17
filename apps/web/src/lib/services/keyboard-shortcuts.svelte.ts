@@ -215,7 +215,9 @@ class KeyboardShortcutService {
         if (url.startsWith('http://') || url.startsWith('https://')) {
             window.location.href = url;
         } else {
-            goto(url, { invalidateAll: true });
+            goto(url, { invalidateAll: true }).catch(() => {
+                // 비로그인 시 인증 필요 페이지 이동 실패 무시
+            });
         }
     }
 }

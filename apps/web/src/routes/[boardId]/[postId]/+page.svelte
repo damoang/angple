@@ -642,15 +642,25 @@
                 ? '#c_' + hash.slice('#comment_'.length)
                 : hash;
 
-            setTimeout(() => {
-                if (normalizedHash.startsWith('#c_')) {
-                    const el = document.getElementById(normalizedHash.slice(1));
-                    if (el) scrollToAndHighlight(el);
-                } else if (normalizedHash === '#likes') {
-                    const el = document.getElementById('likes');
-                    if (el) scrollToAndHighlight(el);
+            // DOM 렌더링 완료까지 재시도 (스트리밍 로딩 대응)
+            const targetId = normalizedHash.startsWith('#c_')
+                ? normalizedHash.slice(1)
+                : normalizedHash === '#likes'
+                  ? 'likes'
+                  : null;
+            if (!targetId) return;
+
+            let attempts = 0;
+            const tryScroll = () => {
+                const el = document.getElementById(targetId);
+                if (el) {
+                    scrollToAndHighlight(el);
+                } else if (attempts < 10) {
+                    attempts++;
+                    requestAnimationFrame(tryScroll);
                 }
-            }, 100);
+            };
+            requestAnimationFrame(tryScroll);
         }
     });
 
