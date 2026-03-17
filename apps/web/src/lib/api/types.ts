@@ -36,6 +36,7 @@ export interface FreePost {
     images?: string[];
     videos?: { url: string; filename: string; size: number }[];
     files?: { url: string; filename: string; size: number }[]; // 일반 첨부파일 (PDF, ZIP 등)
+    downloads?: { url: string; filename: string; size: number }[]; // 전체 다운로드 목록 (이미지/영상 포함)
     is_secret?: boolean; // 비밀글 여부
     is_notice?: boolean; // 공지사항 여부
     notice_type?: 'normal' | 'important'; // 공지 타입 (일반/필수)

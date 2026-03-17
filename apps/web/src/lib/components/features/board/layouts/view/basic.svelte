@@ -412,7 +412,7 @@
                     </div>
                 {/if}
 
-                {#if post.files && post.files.length > 0}
+                {#if post.downloads && post.downloads.length > 0}
                     <div class="mt-6 space-y-2">
                         <p
                             class="text-muted-foreground flex items-center gap-1.5 text-sm font-medium"
@@ -420,7 +420,7 @@
                             <Paperclip class="h-4 w-4" />
                             첨부파일
                         </p>
-                        {#each post.files as file, i (i)}
+                        {#each post.downloads as file, i (i)}
                             <a
                                 href={file.url}
                                 download={file.filename}

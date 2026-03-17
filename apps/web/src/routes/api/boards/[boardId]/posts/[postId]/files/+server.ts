@@ -5,7 +5,8 @@
  * → {
  *     images: ["https://s3.damoang.net/data/file/free/xxx.jpg", ...],
  *     videos: [{ url: "...", filename: "원본파일명.mp4", size: 0 }, ...],
- *     files: [{ url: "...", filename: "원본파일명.pdf", size: 12345 }, ...]
+ *     files: [{ url: "...", filename: "원본파일명.pdf", size: 12345 }, ...],
+ *     downloads: [{ url: "...", filename: "원본파일명.png", size: 54321 }, ...]
  *   }
  *
  * Go 백엔드 API가 images 필드를 반환하지 않아
@@ -36,14 +37,14 @@ export const GET: RequestHandler = async ({ params }) => {
     const { boardId, postId } = params;
 
     if (!boardId || !postId) {
-        return json({ images: [], videos: [], files: [] });
+        return json({ images: [], videos: [], files: [], downloads: [] });
     }
 
     const safeBoardId = boardId.replace(/[^a-zA-Z0-9_-]/g, '');
     const safePostId = parseInt(postId, 10);
 
     if (isNaN(safePostId)) {
-        return json({ images: [], videos: [], files: [] });
+        return json({ images: [], videos: [], files: [], downloads: [] });
     }
 
     try {
@@ -67,13 +68,10 @@ export const GET: RequestHandler = async ({ params }) => {
                 size: row.bf_filesize || 0
             }));
 
-        // 일반 첨부파일 (이미지/영상 제외, bf_type=0 첨부만)
+        // 일반 첨부파일 (이미지/영상 제외)
         const files = rows
             .filter(
-                (row) =>
-                    !IMAGE_EXTENSIONS.test(row.bf_file) &&
-                    !VIDEO_EXTENSIONS.test(row.bf_file) &&
-                    row.bf_type === 0
+                (row) => !IMAGE_EXTENSIONS.test(row.bf_file) && !VIDEO_EXTENSIONS.test(row.bf_file)
             )
             .map((row) => ({
                 url: `${S3_BASE}/${safeBoardId}/${row.bf_file}`,
@@ -81,9 +79,16 @@ export const GET: RequestHandler = async ({ params }) => {
                 size: row.bf_filesize || 0
             }));
 
-        return json({ images, videos, files });
+        // 전체 다운로드 목록 (이미지/영상 포함, 원본 파일명)
+        const downloads = rows.map((row) => ({
+            url: `${S3_BASE}/${safeBoardId}/${row.bf_file}`,
+            filename: row.bf_source || row.bf_file,
+            size: row.bf_filesize || 0
+        }));
+
+        return json({ images, videos, files, downloads });
     } catch (error) {
         console.error('Board files GET error:', error);
-        return json({ images: [], videos: [], files: [] });
+        return json({ images: [], videos: [], files: [], downloads: [] });
     }
 };

@@ -127,6 +127,9 @@ export const load: PageServerLoad = async ({
             if (filesData.files?.length) {
                 post.files = filesData.files;
             }
+            if (filesData.downloads?.length) {
+                post.downloads = filesData.downloads;
+            }
         }
 
         // 게시글 작성자 프로필 이미지 즉시 조회 (1단계 — 본문 렌더에 필요)
