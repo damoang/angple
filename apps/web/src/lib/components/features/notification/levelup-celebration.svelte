@@ -3,6 +3,7 @@
     import { sseStore } from '$lib/stores/sse.svelte.js';
     import { authStore } from '$lib/stores/auth.svelte.js';
     import { levelupDetect } from '$lib/stores/levelup-detect.svelte.js';
+    import { getGradeName } from '$lib/utils/grade.js';
     import * as Dialog from '$lib/components/ui/dialog/index.js';
     import { Button } from '$lib/components/ui/button/index.js';
     import Star from '@lucide/svelte/icons/star';
@@ -116,12 +117,12 @@
             <div class="flex items-center gap-3">
                 {#if levelupDetect.previousLevel > 0}
                     <span class="text-muted-foreground/50 text-2xl font-bold">
-                        Lv.{levelupDetect.previousLevel}
+                        {getGradeName(levelupDetect.previousLevel)}
                     </span>
                     <span class="text-muted-foreground text-xl">→</span>
                 {/if}
                 <span class="text-4xl font-black text-yellow-500 dark:text-yellow-400">
-                    Lv.{levelupDetect.newLevel}
+                    {getGradeName(levelupDetect.newLevel)}
                 </span>
             </div>
 
