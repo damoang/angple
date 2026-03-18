@@ -110,7 +110,7 @@
             pollingTimer = setInterval(
                 async () => {
                     try {
-                        const res = await fetch(`/api/recommended/daily?date=${date}`);
+                        const res = await fetch(`/api/empathy?date=${date}`);
                         if (!res.ok) return;
                         pollData = await res.json();
                     } catch {
@@ -127,7 +127,7 @@
     });
 
     function handleDateChange(newDate: string) {
-        goto(`/recommended/daily/${newDate}`);
+        goto(`/empathy/${newDate}`);
     }
 </script>
 
