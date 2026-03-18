@@ -78,7 +78,10 @@
             <AlertTriangle class="text-warning h-12 w-12" />
             <h2 class="text-lg font-semibold">이 게시물은 삭제가 예약되어 있습니다</h2>
             <p class="text-muted-foreground">
-                삭제 예정: {new Date(scheduledDelete.scheduled_at).toLocaleString('ko-KR')}
+                삭제 예정: {new Date(scheduledDelete.scheduled_at).toLocaleString('ko-KR', {
+                    timeZone: 'Asia/Seoul',
+                    hour12: false
+                })}
                 ({scheduledDelete.delay_minutes}분 지연)
             </p>
             <p class="text-muted-foreground text-sm">

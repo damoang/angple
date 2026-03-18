@@ -223,7 +223,10 @@
         if (mode === 'create') {
             const draft = loadDraft();
             if (draft && (draft.title || draft.content)) {
-                draftSavedTime = new Date(draft.savedAt).toLocaleString('ko-KR');
+                draftSavedTime = new Date(draft.savedAt).toLocaleString('ko-KR', {
+                    timeZone: 'Asia/Seoul',
+                    hour12: false
+                });
                 showDraftBanner = true;
             }
         }
@@ -253,8 +256,10 @@
     function formatLastSaved(): string {
         if (!lastSavedAt) return '';
         return lastSavedAt.toLocaleTimeString('ko-KR', {
+            timeZone: 'Asia/Seoul',
             hour: '2-digit',
-            minute: '2-digit'
+            minute: '2-digit',
+            hour12: false
         });
     }
 

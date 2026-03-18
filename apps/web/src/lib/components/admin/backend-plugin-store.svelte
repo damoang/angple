@@ -191,7 +191,7 @@
 
     function formatDate(dateStr: string) {
         if (!dateStr) return '-';
-        return new Date(dateStr).toLocaleString('ko-KR');
+        return new Date(dateStr).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul', hour12: false });
     }
 
     // 통계

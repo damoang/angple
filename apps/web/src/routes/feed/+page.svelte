@@ -62,7 +62,12 @@
         const targetDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
 
         if (targetDate.getTime() === today.getTime()) {
-            return date.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
+            return date.toLocaleTimeString('ko-KR', {
+                timeZone: 'Asia/Seoul',
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false
+            });
         } else {
             return date.toLocaleDateString('ko-KR', { month: '2-digit', day: '2-digit' });
         }
