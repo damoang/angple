@@ -31,9 +31,10 @@
                 >
                     <div class="flex items-center gap-2">
                         <div
-                            class="min-w-0 flex-1 truncate text-base leading-relaxed {getReadPostClasses(
+                            class="min-w-0 flex-1 truncate leading-relaxed {getReadPostClasses(
                                 showReadState && readPostsStore.isRead(post.board, post.id)
                             )}"
+                            style="font-size: var(--list-font-size, 1rem);"
                         >
                             {post.title}
                         </div>
