@@ -7,6 +7,12 @@
     import { browser } from '$app/environment';
     import { highlightAllCodeBlocks } from '$lib/utils/code-highlight';
     import { transformEscapedMedia } from '$lib/utils/content-transform';
+    import { filterUnsafeStyles } from '$lib/utils/safe-css.js';
+
+    // CSS 필터 훅 등록 — style 속성에서 위험한 CSS 속성 제거
+    DOMPurify.addHook('afterSanitizeAttributes', (node) => {
+        filterUnsafeStyles(node as unknown as Element);
+    });
 
     interface Props {
         content: string;
@@ -251,7 +257,7 @@
 <div
     bind:this={proseEl}
     class="prose prose-neutral dark:prose-invert max-w-none {className}"
-    style="overflow-wrap: break-word; word-wrap: break-word; overflow-x: hidden;"
+    style="overflow-wrap: break-word; word-wrap: break-word; overflow-x: hidden; contain: layout style;"
 >
     <!-- eslint-disable-next-line svelte/no-at-html-tags -->
     {@html renderedHtml}

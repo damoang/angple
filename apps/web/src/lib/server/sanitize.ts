@@ -4,6 +4,7 @@
  * isomorphic-dompurify 사용 — SSR 환경에서 JSDOM 기반 동작
  */
 import DOMPurify from 'isomorphic-dompurify';
+import { filterUnsafeStyles } from '$lib/utils/safe-css.js';
 
 /**
  * URL에서 도메인 추출 (프로토콜, www, 경로 제거)
@@ -65,8 +66,14 @@ export function isLinkDomainMatch(href: string, text: string): boolean {
     return hrefRoot === textRoot;
 }
 
-/** YouTube 도메인 허용 패턴 */
-const YOUTUBE_REGEX = /^https:\/\/(www\.)?(youtube\.com|youtube-nocookie\.com)\//;
+// CSS 필터 훅 등록 — style 속성에서 위험한 CSS 속성 제거
+DOMPurify.addHook('afterSanitizeAttributes', (node) => {
+    filterUnsafeStyles(node as unknown as Element);
+});
+
+/** 허용 iframe 도메인 패턴 */
+const ALLOWED_IFRAME_REGEX =
+    /^https:\/\/(www\.)?(youtube\.com|youtube-nocookie\.com|platform\.twitter\.com|syndication\.twitter\.com|platform\.x\.com|embed\.bsky\.app|instagram\.com|player\.vimeo\.com|open\.spotify\.com|codepen\.io|tiktok\.com)\//;
 
 /**
  * 게시글 본문 HTML 정제
@@ -154,14 +161,14 @@ export function sanitizePostContent(html: string): string {
 export function sanitizePostContentStrict(html: string): string {
     let sanitized = sanitizePostContent(html);
 
-    // iframe src가 YouTube가 아닌 경우 반복 제거 (중첩 태그 우회 방지)
+    // iframe src가 허용 도메인이 아닌 경우 반복 제거 (중첩 태그 우회 방지)
     let prev;
     do {
         prev = sanitized;
         sanitized = sanitized.replace(
             /<iframe\s[^>]*src="([^"]*)"[^>]*>[\s\S]*?<\/iframe>/gi,
             (match, src: string) => {
-                if (YOUTUBE_REGEX.test(src)) {
+                if (ALLOWED_IFRAME_REGEX.test(src)) {
                     return match;
                 }
                 return '';
