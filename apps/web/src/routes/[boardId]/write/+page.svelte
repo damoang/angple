@@ -11,6 +11,7 @@
     import type { WritePermission } from './+page.js';
     import { sendMentionNotifications } from '$lib/utils/mention-notify.js';
     import { checkPermission, getPermissionMessage } from '$lib/utils/board-permissions.js';
+    import { trackEvent } from '$lib/services/ga4.js';
 
     let { data }: { data: PageData } = $props();
 
@@ -99,6 +100,8 @@
                 senderName: authStore.user.mb_name,
                 senderId: authStore.user.mb_id || ''
             });
+
+            trackEvent('post_write', { board_id: boardId, post_id: newPost.id });
 
             // 상세 페이지로 이동 (새 경로이므로 page load 자동 실행)
             goto(`/${boardId}/${newPost.id}`);

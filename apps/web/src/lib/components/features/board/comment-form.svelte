@@ -20,6 +20,7 @@
     import Loader2 from '@lucide/svelte/icons/loader-2';
     import type { Component } from 'svelte';
     import CommentToolbar from './comment-toolbar.svelte';
+    import { trackEvent } from '$lib/services/ga4.js';
 
     interface Props {
         onSubmit: (
@@ -142,6 +143,7 @@
         try {
             const submitContent = await stripAdminMentions(convertEmoticonImages(content.trim()));
             await onSubmit(submitContent, parentId, false);
+            trackEvent('comment_write', { board_id: boardId, is_reply: isReplyMode });
             content = '';
             editorRef?.clear();
         } catch (err) {

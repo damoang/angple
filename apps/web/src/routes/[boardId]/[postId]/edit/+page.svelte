@@ -8,6 +8,7 @@
     import type { UpdatePostRequest } from '$lib/api/types.js';
     import AlertTriangle from '@lucide/svelte/icons/alert-triangle';
     import { Button } from '$lib/components/ui/button/index.js';
+    import { trackEvent } from '$lib/services/ga4.js';
 
     let { data }: { data: PageData } = $props();
 
@@ -39,6 +40,7 @@
 
         try {
             await apiClient.updatePost(boardId, String(postId), formData);
+            trackEvent('post_edit', { board_id: boardId, post_id: String(postId) });
 
             // 상세 페이지로 이동 (page load 재실행됨)
             goto(`/${boardId}/${postId}`, { invalidateAll: true });

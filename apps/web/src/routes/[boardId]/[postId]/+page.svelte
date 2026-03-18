@@ -109,6 +109,7 @@
     import { loadPluginComponent } from '$lib/utils/plugin-optional-loader';
     import { checkPermission, getPermissionMessage } from '$lib/utils/board-permissions.js';
     import { readPostsStore } from '$lib/stores/read-posts.svelte.js';
+    import { trackEvent } from '$lib/services/ga4.js';
     import { uiSettingsStore } from '$lib/stores/ui-settings.svelte.js';
     import { commentTracker } from '$lib/stores/comment-tracker.svelte.js';
     import { onDestroy } from 'svelte';
@@ -576,6 +577,38 @@
         // 읽음 표시 (localStorage)
         readPostsStore.markAsRead(boardId, data.post.id);
 
+        // GA4: 게시글 조회 이벤트
+        trackEvent('post_view', {
+            board_id: boardId,
+            post_id: data.post.id,
+            post_title: data.post.title?.substring(0, 100)
+        });
+
+        // GA4: Scroll Depth 추적 (IntersectionObserver)
+        const scrollDepthFired = new Set<string>();
+        const sentinels = document.querySelectorAll<HTMLElement>('[data-scroll-depth]');
+        if (sentinels.length > 0) {
+            const scrollObserver = new IntersectionObserver(
+                (entries) => {
+                    for (const entry of entries) {
+                        if (!entry.isIntersecting) continue;
+                        const depth = (entry.target as HTMLElement).dataset.scrollDepth;
+                        if (depth && !scrollDepthFired.has(depth)) {
+                            scrollDepthFired.add(depth);
+                            trackEvent('scroll_depth', {
+                                board_id: boardId,
+                                post_id: data.post.id,
+                                depth: Number(depth)
+                            });
+                            scrollObserver.unobserve(entry.target);
+                        }
+                    }
+                },
+                { threshold: 0 }
+            );
+            sentinels.forEach((el) => scrollObserver.observe(el));
+        }
+
         // 훅: 게시글 렌더링 후 (플러그인 확장 포인트)
         doAction('after_post_render', { post: data.post, boardId, boardType });
 
@@ -859,6 +892,7 @@
 
             // 추천 성공 시 애니메이션 (취소가 아닌 경우만)
             if (!wasLiked && isLiked) {
+                trackEvent('like', { board_id: boardId, post_id: data.post.id });
                 isLikeAnimating = true;
                 setTimeout(() => {
                     isLikeAnimating = false;
@@ -904,6 +938,8 @@
             isDisliked = response.user_disliked ?? false;
             likeCount = response.likes;
             dislikeCount = response.dislikes ?? 0;
+
+            trackEvent('dislike', { board_id: boardId, post_id: data.post.id });
 
             // 아바타 스택 갱신
             loadLikerAvatars();
@@ -1391,6 +1427,10 @@
             </div>
         {/if}
 
+        <!-- GA4 Scroll Depth 센티넬 (25%, 50%) -->
+        <div data-scroll-depth="25" aria-hidden="true"></div>
+        <div data-scroll-depth="50" aria-hidden="true"></div>
+
         <!-- 중고게시판 상태 변경 (작성자/관리자만) -->
         {#if isUsedMarket && isAuthor}
             <div class="mb-6 flex items-center gap-3 rounded-lg border p-4">
@@ -1428,6 +1468,9 @@
             </div>
         {/if}
         -->
+
+        <!-- GA4 Scroll Depth 센티넬 (75%) -->
+        <div data-scroll-depth="75" aria-hidden="true"></div>
 
         <!-- 댓글 섹션 (비밀글 열람 가능 + 스트리밍 완료 시 표시) -->
         {#if canViewSecret && !commentsLoaded}
@@ -1553,6 +1596,9 @@
                 </Button>
             {/if}
         </div>
+
+        <!-- GA4 Scroll Depth 센티넬 (100%) -->
+        <div data-scroll-depth="100" aria-hidden="true"></div>
 
         <!-- 댓글~목록 사이 GAM 광고 -->
         {#if widgetLayoutStore.hasEnabledAds}

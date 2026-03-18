@@ -45,3 +45,9 @@ export function trackPageView(path: string): void {
         page_path: path
     });
 }
+
+/** 커스텀 이벤트 전송 */
+export function trackEvent(name: string, params?: Record<string, unknown>): void {
+    if (!initialized || typeof window === 'undefined' || !window.gtag) return;
+    window.gtag('event', name, params);
+}
