@@ -44,10 +44,12 @@
     let mobileExpanded = $state(false);
     let shouldLoad = $state(false);
     let observer: IntersectionObserver | null = null;
+    const MOBILE_AD_MAX_HEIGHT = 100;
 
     function enforceClipHeight(): void {
         if (!clipWrapper || panelHeight <= 20) return;
-        const h = panelHeight - 20;
+        const isMobile = browser ? window.matchMedia('(max-width: 639px)').matches : false;
+        const h = isMobile ? Math.min(panelHeight - 20, MOBILE_AD_MAX_HEIGHT) : panelHeight - 20;
         const target = `${h}px`;
         if (
             clipWrapper.style.getPropertyValue('height') === target &&
@@ -176,7 +178,7 @@
             <div
                 bind:this={clipWrapper}
                 class="ad-clip-wrapper overflow-hidden rounded-xl"
-                style="height: {panelHeight - 20}px; clip-path: inset(0); position: relative;"
+                style="clip-path: inset(0); position: relative;"
             >
                 <!-- AdSense가 이 div의 height를 !important로 바꿔도 외부 래퍼가 잘라냄 -->
                 <div bind:this={adContainer}>
@@ -347,7 +349,7 @@
 {/if}
 
 <style>
-    /* 모바일에서 AdSense 높이 제한 (페이지 상단 광고 크기 축소) */
+    /* 모바일에서는 JS가 100px 이하로 clamp하고, 데스크톱만 카드 높이에 맞춰 늘립니다. */
     .ad-clip-wrapper {
         max-height: 100px;
     }
