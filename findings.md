@@ -143,7 +143,21 @@
 -   GA4 + GAM 합동 진단표
 -   CLS 후속 조사 항목
 
----
+
+# 2026-03-18 — GA4 문맥 신호 후속 점검
+
+## 실제 확인된 병목
+
+-   GA4 property `434290661`에 custom dimensions 4개를 만들었지만 보고서 값이 비어 있었음
+-   원인은 custom definition이 아니라 이벤트 payload 누락이었음
+-   `page_view`는 `page_path`만 보내고 있었고 `page_type`, `board_id`는 보내지 않았음
+-   `ad_impression`은 `slot_id`, `is_empty`만 보내고 있었고 `slot_key`, `position`, `page_type`, `board_id`는 보내지 않았음
+-   최근 7일 광고 노출은 `/free`, `/`와 모바일 트래픽에 집중됨
+
+## 해석
+
+-   저 CPM 원인을 위치 단위로 분해하려면 `page_type + board_id + position + slot_key`가 함께 들어가야 함
+-   오늘 만든 custom dimensions는 맞는 설계였고, 이번 후속 패치는 실제 payload를 그 설계에 맞추는 작업임
 
 ---
 
