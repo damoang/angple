@@ -1007,6 +1007,17 @@ class ApiClient {
     }
 
     /**
+     * 게시글 잠금/해제
+     * 🔒 관리자 전용
+     */
+    async lockPost(boardId: string, postId: number | string, lock: boolean): Promise<void> {
+        await this.request(`/boards/${boardId}/posts/${postId}/lock`, {
+            method: 'PATCH',
+            body: JSON.stringify({ lock })
+        });
+    }
+
+    /**
      * 게시글 카테고리 변경
      * 🔒 관리자 전용
      */
