@@ -107,14 +107,21 @@
                                         >{log.penalty_date_from}</td
                                     >
                                     <td class="p-3 text-center">
-                                        <Badge
-                                            variant={getPenaltyBadgeVariant(
-                                                log.penalty_period,
-                                                penalty.released
-                                            )}
-                                        >
-                                            {penalty.text}
-                                        </Badge>
+                                        <div class="flex items-center justify-center gap-1">
+                                            <Badge
+                                                variant={getPenaltyBadgeVariant(
+                                                    log.penalty_period,
+                                                    penalty.released
+                                                )}
+                                            >
+                                                {penalty.text}
+                                            </Badge>
+                                            {#if penalty.released}
+                                                <Badge variant="secondary" class="text-xs"
+                                                    >해제</Badge
+                                                >
+                                            {/if}
+                                        </div>
                                     </td>
                                     <td class="p-3">
                                         <div class="flex flex-wrap gap-1">
@@ -153,14 +160,19 @@
                                             ? 'text-primary font-semibold'
                                             : ''}">{log.member_nickname}</span
                                     >
-                                    <Badge
-                                        variant={getPenaltyBadgeVariant(
-                                            log.penalty_period,
-                                            penalty.released
-                                        )}
-                                    >
-                                        {penalty.text}
-                                    </Badge>
+                                    <div class="flex items-center gap-1">
+                                        <Badge
+                                            variant={getPenaltyBadgeVariant(
+                                                log.penalty_period,
+                                                penalty.released
+                                            )}
+                                        >
+                                            {penalty.text}
+                                        </Badge>
+                                        {#if penalty.released}
+                                            <Badge variant="secondary" class="text-xs">해제</Badge>
+                                        {/if}
+                                    </div>
                                 </div>
                                 <div class="text-muted-foreground mb-2 text-sm">
                                     {log.member_id} · {log.penalty_date_from}
