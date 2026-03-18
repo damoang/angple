@@ -2,6 +2,44 @@
 
 ---
 
+# 2026-03-18 — GA4 + CPM 개선 메모
+
+## 공식 자료 핵심
+
+-   GA4는 `login`, `sign_up` 같은 권장 이벤트를 실제 성공 시점에 쓰는 것이 맞고, 클릭/리다이렉트 시작 단계는 별도 이벤트로 분리하는 편이 안전함
+-   Google은 Analytics로 PII를 보내지 말라고 명시하며, 검색창/폼의 사용자 입력도 전송 전에 제거하라고 안내함
+-   GPT는 `ImpressionViewableEvent`, `SlotVisibilityChangedEvent` 같은 이벤트를 제공하므로 refresh를 단순 타이머가 아니라 viewability 기반으로 설계할 수 있음
+-   Ad Manager는 refresh inventory 선언에서 event-driven refresh를 권장하고, 간격은 30초 이상이어야 하며 일반적으로 더 긴 간격이 더 바람직하다고 안내함
+-   Viewability 개선을 위해서는 콘텐츠 흐름 안의 광고 배치, 빠른 렌더링, 의미 없는 영역의 광고 남발 억제가 중요함
+
+## 현재 구현에서 보인 문제
+
+-   PR #696 원안은 `login` / `sign_up`을 성공 이벤트가 아니라 시작 이벤트로 사용하고 있었음
+-   `search_term`, `post_title`, `file_name` 같은 원문 값을 보내고 있었음
+-   광고 레지스트리는 활성 구현에서 `enableSingleRequest()`와 `collapseEmptyDivs()`를 사용하지 않고 있었음
+-   광고 refresh는 “화면에 보이는 상태면 30초마다” 방식이라 실제 viewable impression 기준보다 거칠었음
+-   슬롯 타겟팅이 사실상 `site`, `theme`뿐이라 가격 규칙과 수요 분석 세분화가 어려움
+-   여러 placement가 몇 개 안 되는 ad unit path를 공유해서 floor/pricing 전략이 뭉개질 가능성이 큼
+-   모바일 leg에서 `320x100` + `300x250`를 한 요청에 묶는 슬롯이 많아 가격 하방이 눌릴 가능성이 있음
+
+## 이번에 반영한 변경
+
+-   GA4 helper/sanitize 계층 추가
+-   `login_click`, `sign_up_start`로 시도 이벤트 분리
+-   검색은 길이만, 파일 다운로드는 타입/확장자만 전송
+-   GPT 활성 registry에 `collapseEmptyDivs()` / `enableSingleRequest()` 추가
+-   refresh를 `impressionViewable` 이후 60초 타이머로 변경
+-   slot-level targeting: `position`, `slot_key`
+
+## 남은 운영 과제
+
+-   Ad Manager UI에서 refresh declaration이 실제 코드와 동일하거나 더 짧게 선언되어 있는지 확인
+-   UPR / pricing rule을 최소 `top`, `article`, `infeed`, `sidebar`, `wing` 수준으로 분리
+-   request RPM, matched requests, Active View, fill rate, slot별 eCPM을 함께 봐야 원인 분리가 가능함
+-   모바일에서 `320x100`과 `300x250`를 같은 요청으로 묶는 자리들은 우선순위별로 분리 검토 필요
+
+---
+
 # ads.damoang.net 시스템 분석
 
 ## 시스템 구조

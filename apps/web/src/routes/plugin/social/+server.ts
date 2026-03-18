@@ -28,6 +28,7 @@ import { TwitterProvider } from '$lib/server/auth/oauth/providers/twitter.js';
 import type { OAuthUserProfile } from '$lib/server/auth/oauth/types.js';
 
 const COOKIE_DOMAIN = env.COOKIE_DOMAIN || undefined;
+const AUTH_EVENT_COOKIE = 'ga4_auth_event';
 
 /** 공통 콜백 처리 로직 */
 async function handleCallback(
@@ -179,6 +180,15 @@ async function handleCallback(
             sameSite: 'lax',
             secure: !dev,
             maxAge: 60 * 60 * 24 * 7,
+            ...domainOpt
+        });
+
+        cookies.set(AUTH_EVENT_COOKIE, `login:${providerName}`, {
+            path: '/',
+            httpOnly: false,
+            sameSite: 'lax',
+            secure: !dev,
+            maxAge: 120,
             ...domainOpt
         });
 
