@@ -199,13 +199,14 @@
         <!-- 축하메시지 배너 -->
         <a
             href={getCelebrationHref(celebrationBanner)}
-            class="border-border block overflow-hidden rounded-xl border transition-opacity hover:opacity-90"
+            class="border-border media-banner block overflow-hidden rounded-xl border transition-opacity hover:opacity-90"
+            style:min-height={height}
+            style:height
         >
             <img
                 src={celebrationBanner.image_url}
                 alt={celebrationBanner.alt_text || '축하메시지'}
-                class="w-full object-contain"
-                style:max-height={height}
+                class="media-banner__image w-full object-contain"
                 loading="lazy"
             />
         </a>
@@ -221,13 +222,14 @@
                 mbId: authStore.user?.mb_id || null,
                 slotKey: `damoang-banner:${position}`
             }}
-            class="border-border block overflow-hidden rounded-xl border transition-opacity hover:opacity-90"
+            class="border-border media-banner block overflow-hidden rounded-xl border transition-opacity hover:opacity-90"
+            style:min-height={height}
+            style:height
         >
             <img
                 src={adsBanner.imageUrl}
                 alt={adsBanner.altText || '광고'}
-                class="w-full object-contain"
-                style:max-height={height}
+                class="media-banner__image w-full object-contain"
                 loading="lazy"
             />
         </a>
@@ -250,3 +252,19 @@
         {/if}
     {/if}
 </div>
+
+<style>
+    .media-banner {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+    }
+
+    .media-banner__image {
+        display: block;
+        width: 100%;
+        height: 100%;
+        max-height: inherit;
+    }
+</style>

@@ -98,6 +98,22 @@
 
     // 편집 모드에서는 전체 위젯, 일반 모드에서는 활성화된(필터 적용) 위젯만
     const displayWidgets = $derived(isEditMode ? widgets : filteredEnabledWidgets);
+
+    const WIDGET_PLACEHOLDER_CLASS: Record<string, string> = {
+        'ad-slot': 'min-h-[90px]',
+        'tag-nav': 'min-h-[56px]',
+        recommended: 'min-h-[420px]',
+        explore: 'min-h-[420px]',
+        'post-list': 'min-h-[360px]',
+        celebration: 'min-h-[120px]',
+        notice: 'min-h-[240px]',
+        'image-text-banner': 'min-h-[164px]'
+    };
+
+    function getPlaceholderClass(widget: WidgetConfig): string {
+        const fallback = zone === 'sidebar' ? 'min-h-[180px]' : 'min-h-[280px]';
+        return WIDGET_PLACEHOLDER_CLASS[widget.type] || fallback;
+    }
 </script>
 
 {#if isEditMode}
@@ -146,6 +162,13 @@
                     isEditMode={false}
                     prefetchData={prefetchDataMap[widget.type]}
                 />
+            {:else}
+                <div
+                    class="border-border bg-background/70 {getPlaceholderClass(
+                        widget
+                    )} rounded-lg border"
+                    aria-hidden="true"
+                ></div>
             {/if}
         {/each}
     </div>

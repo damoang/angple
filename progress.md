@@ -1,5 +1,19 @@
 # Progress
 
+## 2026-03-18 — GA4 + CPM 개선
+
+-   PR #696 GA4 설계 검토 시작
+-   공식 Google 문서 기준으로 GA4 권장 이벤트/PII/고카디널리티 가이드 확인
+-   공식 Google 문서 기준으로 GPT event listener, refresh declaration, viewability 가이드 확인
+-   GA4 helper 계층 추가: sanitize, `trackPostView`, `trackSearch`, `trackFileDownload`, scroll depth observer
+-   `login_click`, `sign_up_start`로 이벤트 의미 수정
+-   검색어/제목/파일명 원문 전송 제거
+-   광고 구현 분석 결과: active registry에서 SRA, collapseEmptyDivs, slot-level targeting 부재 확인
+-   광고 registry 개선: `collapseEmptyDivs()`, `enableSingleRequest()`, `position`/`slot_key` targeting 추가
+-   광고 refresh를 viewable impression 기반으로 변경
+-   기본 refresh interval을 60초로 상향하고 `VITE_GAM_AD_REFRESH_INTERVAL` override 지원
+-   `pnpm exec svelte-check` 검증은 프로젝트 기존 `.svelte-kit/types/*` 권한 문제로 실패
+
 ## Session Log
 
 ### 2026-02-17 — B3 개발자 문서 + 테스트 보강 + 배포 준비

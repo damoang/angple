@@ -33,6 +33,7 @@ import { grantLoginPoint } from '$lib/server/auth/point-grant.js';
 import { env } from '$env/dynamic/private';
 
 const COOKIE_DOMAIN = env.COOKIE_DOMAIN || undefined;
+const AUTH_EVENT_COOKIE = 'ga4_auth_event';
 
 export const load: PageServerLoad = async ({ url, cookies }) => {
     const provider = url.searchParams.get('provider') || '';
@@ -262,6 +263,15 @@ export const actions: Actions = {
                 sameSite: 'lax',
                 secure: !dev,
                 maxAge: 60 * 60 * 24 * 7,
+                ...domainOpt
+            });
+
+            cookies.set(AUTH_EVENT_COOKIE, `sign_up:${socialProfile.provider}`, {
+                path: '/',
+                httpOnly: false,
+                sameSite: 'lax',
+                secure: !dev,
+                maxAge: 120,
                 ...domainOpt
             });
 
