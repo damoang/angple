@@ -8,8 +8,8 @@
 // 환경변수 기반 GAM 설정
 export const GAM_NETWORK_CODE = import.meta.env.VITE_GAM_NETWORK_CODE || '';
 export const GAM_SITE_NAME = import.meta.env.VITE_GAM_SITE_NAME || 'default';
-export const GAM_AD_REFRESH_INTERVAL = 30; // 초
-export const GAM_AD_EMPTY_RETRY_DELAY = 30; // 초
+export const GAM_AD_REFRESH_INTERVAL = 60; // 초
+export const GAM_AD_EMPTY_RETRY_DELAY = 60; // 초
 
 // 광고 단위 경로 (환경변수로 커스터마이징 가능)
 const unitMain = import.meta.env.VITE_GAM_UNIT_MAIN || 'banner-responsive_main';
