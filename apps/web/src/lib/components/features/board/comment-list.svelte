@@ -21,6 +21,7 @@
     import { getHookVersion } from '$lib/hooks/hook-state.svelte';
     import { tick } from 'svelte';
     import { highlightAllCodeBlocks } from '$lib/utils/code-highlight';
+    import { attachLightbox } from '$lib/components/ui/image-lightbox/index.js';
     import { getAvatarUrl } from '$lib/utils/member-icon.js';
     import { SvelteMap, SvelteSet } from 'svelte/reactivity';
     import type { Component } from 'svelte';
@@ -760,6 +761,13 @@
         void processedComments.size;
         if (commentListEl) {
             tick().then(() => highlightAllCodeBlocks(commentListEl));
+        }
+    });
+
+    // 댓글 이미지 라이트박스 연결 (이모티콘 제외)
+    $effect(() => {
+        if (commentListEl) {
+            return attachLightbox(commentListEl);
         }
     });
 
