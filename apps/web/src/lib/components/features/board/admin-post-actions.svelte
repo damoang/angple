@@ -4,6 +4,8 @@
     import * as Select from '$lib/components/ui/select/index.js';
     import ArrowRightLeft from '@lucide/svelte/icons/arrow-right-left';
     import FolderOpen from '@lucide/svelte/icons/folder-open';
+    import Lock from '@lucide/svelte/icons/lock';
+    import LockOpen from '@lucide/svelte/icons/lock-open';
     import { apiClient } from '$lib/api/index.js';
     import type { BoardGroup } from '$lib/api/types.js';
     import { goto } from '$app/navigation';
@@ -13,9 +15,10 @@
         postId: number;
         currentCategory?: string;
         categoryList?: string; // pipe-separated
+        isLocked?: boolean;
     }
 
-    let { boardId, postId, currentCategory, categoryList }: Props = $props();
+    let { boardId, postId, currentCategory, categoryList, isLocked = false }: Props = $props();
 
     // 카테고리 변경
     const categories = $derived(
@@ -34,6 +37,23 @@
             alert('카테고리 변경에 실패했습니다.');
         } finally {
             isChangingCategory = false;
+        }
+    }
+
+    // 게시글 잠금
+    let currentLocked = $state(isLocked);
+    let isTogglingLock = $state(false);
+
+    async function handleToggleLock(): Promise<void> {
+        isTogglingLock = true;
+        try {
+            await apiClient.lockPost(boardId, postId, !currentLocked);
+            currentLocked = !currentLocked;
+        } catch (err) {
+            console.error('잠금 처리 실패:', err);
+            alert('잠금 처리에 실패했습니다.');
+        } finally {
+            isTogglingLock = false;
         }
     }
 
@@ -94,6 +114,22 @@
             </Select.Content>
         </Select.Root>
     {/if}
+
+    <!-- 게시글 잠금 -->
+    <Button
+        variant={currentLocked ? 'destructive' : 'outline'}
+        size="sm"
+        onclick={handleToggleLock}
+        disabled={isTogglingLock}
+    >
+        {#if currentLocked}
+            <Lock class="mr-1 h-4 w-4" />
+            잠김
+        {:else}
+            <LockOpen class="mr-1 h-4 w-4" />
+            잠금
+        {/if}
+    </Button>
 
     <!-- 게시글 이동 -->
     <Button variant="outline" size="sm" onclick={openMoveDialog}>
