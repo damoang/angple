@@ -521,8 +521,11 @@
                             <a
                                 href={post.link1}
                                 target="_blank"
-                                rel="noopener noreferrer"
-                                class="text-primary truncate hover:underline">{post.link1}</a
+                                rel={post.link1_affiliate
+                                    ? 'nofollow noopener sponsored'
+                                    : 'noopener noreferrer'}
+                                class="text-primary truncate hover:underline"
+                                >{post.link1_display || post.link1}</a
                             >
                         </div>
                     {/if}
@@ -532,8 +535,11 @@
                             <a
                                 href={post.link2}
                                 target="_blank"
-                                rel="noopener noreferrer"
-                                class="text-primary truncate hover:underline">{post.link2}</a
+                                rel={post.link2_affiliate
+                                    ? 'nofollow noopener sponsored'
+                                    : 'noopener noreferrer'}
+                                class="text-primary truncate hover:underline"
+                                >{post.link2_display || post.link2}</a
                             >
                         </div>
                     {/if}

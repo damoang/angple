@@ -5,6 +5,7 @@
     import { Separator } from '$lib/components/ui/separator/index.js';
     import { authStore } from '$lib/stores/auth.svelte.js';
     import type { OAuthProvider } from '$lib/api/types.js';
+    import { trackEvent } from '$lib/services/ga4.js';
 
     // OAuth 에러 메시지 매핑
     const oauthErrorMessages: Record<string, string> = {
@@ -45,6 +46,7 @@
     });
 
     function handleOAuthLogin(provider: OAuthProvider): void {
+        trackEvent('login', { method: provider });
         const params = new URLSearchParams({
             provider,
             redirect: redirectUrl

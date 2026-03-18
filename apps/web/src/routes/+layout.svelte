@@ -25,7 +25,8 @@
     import { initFromData as initCelebrationFromData } from '$lib/stores/celebration.svelte';
     import { blockedUsersStore } from '$lib/stores/blocked-users.svelte';
     import { uiSettingsStore } from '$lib/stores/ui-settings.svelte';
-    import { initGA4, trackPageView } from '$lib/services/ga4';
+    import { updatePageTargeting } from '$lib/components/ui/ad-slot/ad-slot-registry.js';
+    import { consumePendingAuthEvent, initGA4, trackPageView } from '$lib/services/ga4';
 
     // 지연 로딩 모듈 참조
     let keyboardShortcutsMod: typeof import('$lib/services/keyboard-shortcuts.svelte') | null =
@@ -184,6 +185,8 @@
         // GA4 페이지뷰 추적
         if (to?.url) {
             trackPageView(to.url.pathname + to.url.search);
+            consumePendingAuthEvent();
+            updatePageTargeting(to.url.pathname);
         }
         // 광고 observer 재설정 (기존 observer 재활용, 새 광고만 추가 observe)
         untrack(() => {
@@ -270,7 +273,10 @@
         // GA4 초기화 (Measurement ID가 설정된 경우에만)
         if (data.ga4MeasurementId) {
             initGA4(data.ga4MeasurementId);
+            consumePendingAuthEvent();
         }
+
+        updatePageTargeting(window.location.pathname);
 
         // Built-in Hooks 초기화 (콘텐츠 임베딩, 게시판 필터 등)
         initBuiltinHooks();

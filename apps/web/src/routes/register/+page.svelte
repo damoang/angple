@@ -15,6 +15,7 @@
     import UserPlus from '@lucide/svelte/icons/user-plus';
     import { onMount } from 'svelte';
     import { env } from '$env/dynamic/public';
+    import { trackEvent } from '$lib/services/ga4.js';
 
     const PUBLIC_TURNSTILE_SITE_KEY = env.PUBLIC_TURNSTILE_SITE_KEY || '';
     import type { PageData, ActionData } from './$types.js';
@@ -195,6 +196,7 @@
                     isSubmitting = true;
                     return async ({ result, update }) => {
                         if (result.type === 'redirect') {
+                            trackEvent('sign_up', { method: 'oauth' });
                             window.location.href = result.location;
                             return;
                         }

@@ -173,7 +173,17 @@ export const load: PageServerLoad = async ({
                     link1Result.value?.converted &&
                     link1Result.value.url
                 ) {
-                    post.link1 = link1Result.value.url;
+                    // 원본 URL 보존 (표시용) + /go 리다이렉트 URL 생성
+                    const p1 = link1Result.value.platform || '';
+                    const go1 = new URLSearchParams({
+                        url: link1Result.value.url,
+                        p: p1,
+                        ...(boardId ? { b: boardId } : {}),
+                        ...(postId ? { w: postId } : {})
+                    });
+                    post.link1_display = post.link1;
+                    post.link1 = `/go?${go1.toString()}`;
+                    post.link1_affiliate = true;
                 }
 
                 if (
@@ -181,7 +191,16 @@ export const load: PageServerLoad = async ({
                     link2Result.value?.converted &&
                     link2Result.value.url
                 ) {
-                    post.link2 = link2Result.value.url;
+                    const p2 = link2Result.value.platform || '';
+                    const go2 = new URLSearchParams({
+                        url: link2Result.value.url,
+                        p: p2,
+                        ...(boardId ? { b: boardId } : {}),
+                        ...(postId ? { w: postId } : {})
+                    });
+                    post.link2_display = post.link2;
+                    post.link2 = `/go?${go2.toString()}`;
+                    post.link2_affiliate = true;
                 }
 
                 const directLinkResults = [link1Result, link2Result]

@@ -19,6 +19,7 @@
         getCertificationBlockedMessage,
         goToCertification
     } from '$lib/utils/certification-gate.js';
+    import { trackEvent } from '$lib/services/ga4.js';
 
     interface Props {
         boardId: string;
@@ -101,6 +102,7 @@
             const data = await res.json();
             if (data.status === 'success' && data.result[targetId]) {
                 reactions = data.result[targetId];
+                trackEvent('reaction', { board_id: boardId, reaction: finalReaction, target });
             }
         } catch (err) {
             console.error('Failed to react:', err);

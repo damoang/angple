@@ -11,13 +11,14 @@
     import type { WritePermission } from './+page.js';
     import { sendMentionNotifications } from '$lib/utils/mention-notify.js';
     import { checkPermission, getPermissionMessage } from '$lib/utils/board-permissions.js';
+    import { trackEvent } from '$lib/services/ga4.js';
 
     let { data }: { data: PageData } = $props();
 
     // 소명 연동: disciplinelog_id 쿼리파라미터 처리
     const disciplinelogId = $derived($page.url.searchParams.get('disciplinelog_id') ?? '');
     const claimInitialTitle = $derived(disciplinelogId ? `[소명 #${disciplinelogId}]` : '');
-    const claimInitialLink1 = $derived(disciplinelogId ? `disciplinelog:${disciplinelogId}` : '');
+    const claimInitialLink1 = $derived(disciplinelogId ? `disciplinelog/${disciplinelogId}` : '');
 
     // 게시판 정보
     const boardId = $derived(data.boardId);
@@ -29,6 +30,9 @@
 
     let isSubmitting = $state(false);
     let error = $state<string | null>(null);
+
+    // claim 게시판 직접 접근 차단: disciplinelog_id 없이는 소명 작성 불가
+    const isClaimWithoutDiscipline = $derived(boardId === 'claim' && !disciplinelogId);
 
     // 글쓰기 권한 조회 결과
     const writePermission = $derived(data.writePermission as WritePermission | null);
@@ -100,6 +104,8 @@
                 senderId: authStore.user.mb_id || ''
             });
 
+            trackEvent('post_write', { board_id: boardId, post_id: newPost.id });
+
             // 상세 페이지로 이동 (새 경로이므로 page load 자동 실행)
             goto(`/${boardId}/${newPost.id}`);
         } catch (err) {
@@ -128,6 +134,22 @@
     {:else if !authStore.isAuthenticated}
         <div class="py-12 text-center">
             <p class="text-muted-foreground">로그인이 필요합니다. 로그인 페이지로 이동합니다...</p>
+        </div>
+    {:else if isClaimWithoutDiscipline}
+        <div class="py-12 text-center">
+            <div class="bg-muted/50 mx-auto max-w-md rounded-lg p-8">
+                <p class="text-muted-foreground text-lg font-medium">
+                    소명 게시판은 직접 글을 작성할 수 없습니다
+                </p>
+                <p class="text-muted-foreground mt-2 text-sm">
+                    이용제한 기록 상세 페이지에서 소명하기 버튼을 눌러 작성해주세요.
+                </p>
+                <a
+                    href="/disciplinelog"
+                    class="text-primary mt-4 inline-block text-sm hover:underline"
+                    >이용제한 기록 목록 보기</a
+                >
+            </div>
         </div>
     {:else if !canWrite}
         <div class="py-12 text-center">
