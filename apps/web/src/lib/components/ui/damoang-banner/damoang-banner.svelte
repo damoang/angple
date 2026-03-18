@@ -183,7 +183,7 @@
     }
 </script>
 
-<div class="damoang-banner {className}" data-position={position}>
+<div class="damoang-banner {className}" data-position={position} style:min-height={height}>
     {#if loading}
         <!-- 로딩 중 플레이스홀더 -->
         <div

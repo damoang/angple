@@ -46,7 +46,7 @@
     });
 
     function handleOAuthLogin(provider: OAuthProvider): void {
-        trackEvent('login', { method: provider });
+        trackEvent('login_click', { method: provider });
         const params = new URLSearchParams({
             provider,
             redirect: redirectUrl

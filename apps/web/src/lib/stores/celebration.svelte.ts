@@ -27,6 +27,7 @@ let fetched = false;
 let fetchPromise: Promise<void> | null = null;
 let refCount = 0;
 let intervalId: ReturnType<typeof setInterval> | null = null;
+const CELEBRATION_ROTATION_INTERVAL_MS = 30_000;
 
 async function doFetch(): Promise<void> {
     if (!browser) return;
@@ -61,7 +62,7 @@ function startRotation(): void {
         if (celebrations.length > 1) {
             currentIndex = (currentIndex + 1) % celebrations.length;
         }
-    }, 5000);
+    }, CELEBRATION_ROTATION_INTERVAL_MS);
 }
 
 function stopRotation(): void {
