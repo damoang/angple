@@ -174,6 +174,9 @@
                         >
                             {penalty.text}
                         </Badge>
+                        {#if penalty.released}
+                            <Badge variant="secondary" class="text-xs">해제</Badge>
+                        {/if}
                         <span class="text-muted-foreground text-sm">
                             ({formatPeriodRange(log)})
                         </span>
@@ -312,6 +315,9 @@
                                     >
                                         {itemPenalty.text}
                                     </Badge>
+                                    {#if itemPenalty.released}
+                                        <Badge variant="secondary" class="text-xs">해제</Badge>
+                                    {/if}
                                 </div>
                                 <span class="text-muted-foreground max-w-[200px] truncate">
                                     {item.violation_titles.join(', ')}

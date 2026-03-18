@@ -126,17 +126,18 @@ export function getPenaltyDisplay(
     if (period === -1) {
         return { text: '영구', color: 'magenta', released: false };
     }
-    // 종료일이 있고 현재 날짜보다 과거이면 해제됨
+    // 기간은 항상 원래 값 표시, released 플래그로 해제 여부 구분
+    let released = false;
     if (penaltyDateTo) {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         const toDate = new Date(penaltyDateTo);
         toDate.setHours(0, 0, 0, 0);
         if (toDate < today) {
-            return { text: '해제됨', color: 'green', released: true };
+            released = true;
         }
     }
-    return { text: `${period}일`, color: 'red', released: false };
+    return { text: `${period}일`, color: released ? 'green' : 'red', released };
 }
 
 /**
