@@ -208,7 +208,7 @@
                     <p class="text-muted-foreground py-2 text-xs">자료 없음</p>
                 {:else}
                     <ul class="divide-border divide-y">
-                        {#each recentPosts as p (p.wr_id)}
+                        {#each recentPosts as p (`${p.bo_table}_${p.wr_id}`)}
                             <li class="py-1">
                                 <a
                                     href={p.href}
@@ -237,7 +237,7 @@
                     <p class="text-muted-foreground py-2 text-xs">자료 없음</p>
                 {:else}
                     <ul class="divide-border divide-y">
-                        {#each recentComments as c (c.wr_id)}
+                        {#each recentComments as c (`${c.bo_table}_${c.wr_id}`)}
                             <li class="py-1">
                                 <a
                                     href={c.href}
@@ -305,7 +305,7 @@
                             </CardHeader>
                             <CardContent class="pb-2 pt-0">
                                 <ul class="divide-border divide-y">
-                                    {#each recentPosts as p (p.wr_id)}
+                                    {#each recentPosts as p (`${p.bo_table}_${p.wr_id}`)}
                                         <li class="py-1">
                                             <a
                                                 href={p.href}
@@ -326,7 +326,7 @@
                             </CardHeader>
                             <CardContent class="pb-2 pt-0">
                                 <ul class="divide-border divide-y">
-                                    {#each recentComments as c (c.wr_id)}
+                                    {#each recentComments as c (`${c.bo_table}_${c.wr_id}`)}
                                         <li class="py-1">
                                             <a
                                                 href={c.href}

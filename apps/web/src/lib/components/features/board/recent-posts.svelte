@@ -174,15 +174,11 @@
     <div class="flex items-center gap-1">
         <!-- 보기 옵션 -->
         <DropdownMenu>
-            <DropdownMenuTrigger>
-                <Button
-                    variant="ghost"
-                    size="icon"
-                    class="hover:bg-accent-foreground/5 dark:hover:bg-primary-foreground/50 h-8 w-8"
-                    title="보기 옵션"
-                >
-                    <SlidersHorizontal class="h-4 w-4" />
-                </Button>
+            <DropdownMenuTrigger
+                class="hover:bg-accent-foreground/5 dark:hover:bg-primary-foreground/50 inline-flex h-8 w-8 items-center justify-center rounded-md"
+                title="보기 옵션"
+            >
+                <SlidersHorizontal class="h-4 w-4" />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
                 <DropdownMenuRadioGroup

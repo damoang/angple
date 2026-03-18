@@ -161,6 +161,15 @@ const CSRF_EXEMPT_PATHS = [
     '/cert/inicis/result' // KG이니시스 인증 콜백 (외부 POST)
 ];
 
+/** 타임아웃 래퍼: 지정 시간 내 미완료 시 null 반환 */
+const AUTH_TIMEOUT_MS = 3000;
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | null> {
+    return Promise.race([
+        promise,
+        new Promise<null>((resolve) => setTimeout(() => resolve(null), ms))
+    ]);
+}
+
 /** SSR 인증: 서버사이드 세션 only (JWT 미사용) */
 async function authenticateSSR(event: Parameters<Handle>[0]['event']): Promise<void> {
     event.locals.user = null;
@@ -173,9 +182,9 @@ async function authenticateSSR(event: Parameters<Handle>[0]['event']): Promise<v
 
     if (sessionId) {
         try {
-            const session = await getSession(sessionId);
+            const session = await withTimeout(getSession(sessionId), AUTH_TIMEOUT_MS);
             if (session) {
-                const member = await getMemberById(session.mbId);
+                const member = await withTimeout(getMemberById(session.mbId), AUTH_TIMEOUT_MS);
                 if (member) {
                     event.locals.user = {
                         id: member.mb_id,
@@ -497,7 +506,8 @@ export const handle: Handle = async ({ event, resolve }) => {
     const isHomePage = pathname === '/';
     const isBoardList = isBoardListPath(pathname, event.url.searchParams);
     const isPostDetail = isPostDetailPath(pathname);
-    if (!isDataRequest && !event.locals.user && (isHomePage || isBoardList || isPostDetail)) {
+    const hasSessionCookie = !!event.cookies.get(SESSION_COOKIE_NAME);
+    if (!isDataRequest && !hasSessionCookie && (isHomePage || isBoardList || isPostDetail)) {
         const cacheKey = isHomePage ? '/' : pathname;
         const cacheTtl = isHomePage
             ? SSR_CACHE_TTL_HOME
