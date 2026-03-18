@@ -196,7 +196,7 @@
                     isSubmitting = true;
                     return async ({ result, update }) => {
                         if (result.type === 'redirect') {
-                            trackEvent('sign_up', { method: 'oauth' });
+                            trackEvent('sign_up_start', { method: 'oauth' });
                             window.location.href = result.location;
                             return;
                         }

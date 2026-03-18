@@ -56,7 +56,7 @@
     const currentFontSize = $derived(uiSettingsStore.contentFontSize);
 
     import { toast } from 'svelte-sonner';
-    import { trackEvent } from '$lib/services/ga4.js';
+    import { trackFileDownload } from '$lib/services/ga4.js';
     import PinOff from '@lucide/svelte/icons/pin-off';
 
     let {
@@ -390,9 +390,7 @@
                                         href={video.url}
                                         download={video.filename}
                                         onclick={() =>
-                                            trackEvent('file_download', {
-                                                file_name: video.filename
-                                            })}
+                                            trackFileDownload(boardId, video.filename, 'video')}
                                         class="text-primary hover:text-primary/80 ml-auto flex shrink-0 items-center gap-1 text-sm font-medium"
                                     >
                                         <Download class="h-4 w-4" />
@@ -429,8 +427,7 @@
                             <a
                                 href={file.url}
                                 download={file.filename}
-                                onclick={() =>
-                                    trackEvent('file_download', { file_name: file.filename })}
+                                onclick={() => trackFileDownload(boardId, file.filename)}
                                 class="bg-muted/50 hover:bg-muted flex items-center gap-3 rounded-lg border px-4 py-2.5 transition-colors"
                             >
                                 <Download class="text-muted-foreground h-4 w-4 shrink-0" />

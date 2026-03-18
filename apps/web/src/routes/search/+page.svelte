@@ -15,7 +15,7 @@
     import X from '@lucide/svelte/icons/x';
     import { onMount } from 'svelte';
     import { browser } from '$app/environment';
-    import { trackEvent } from '$lib/services/ga4.js';
+    import { trackSearch } from '$lib/services/ga4.js';
 
     let { data }: { data: PageData } = $props();
 
@@ -92,7 +92,7 @@
         if (!searchQuery.trim()) return;
 
         saveRecentSearch(searchQuery.trim());
-        trackEvent('search', { search_term: searchQuery.trim(), search_field: searchField });
+        trackSearch(searchQuery, searchField);
 
         const url = new URL(window.location.origin + '/search');
         url.searchParams.set('q', searchQuery.trim());

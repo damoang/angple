@@ -177,6 +177,7 @@
     style:--ad-slot-min-height={reservedHeights.base}
     style:--ad-slot-min-height-tablet={reservedHeights.tablet}
     style:--ad-slot-min-height-desktop={reservedHeights.desktop}
+    style:--ad-slot-intrinsic-size={reservedHeights.desktop}
     style:min-height="var(--ad-slot-min-height)"
 >
     {#if slotId}
@@ -208,7 +209,7 @@
 
     .ad-slot-btf {
         content-visibility: auto;
-        contain-intrinsic-size: auto 728px 90px;
+        contain-intrinsic-size: auto var(--ad-slot-intrinsic-size);
     }
 
     .ad-slot-placeholder {

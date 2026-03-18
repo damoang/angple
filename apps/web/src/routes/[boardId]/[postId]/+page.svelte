@@ -109,7 +109,7 @@
     import { loadPluginComponent } from '$lib/utils/plugin-optional-loader';
     import { checkPermission, getPermissionMessage } from '$lib/utils/board-permissions.js';
     import { readPostsStore } from '$lib/stores/read-posts.svelte.js';
-    import { trackEvent } from '$lib/services/ga4.js';
+    import { createScrollDepthObserver, trackEvent, trackPostView } from '$lib/services/ga4.js';
     import { uiSettingsStore } from '$lib/stores/ui-settings.svelte.js';
     import { commentTracker } from '$lib/stores/comment-tracker.svelte.js';
     import { onDestroy } from 'svelte';
@@ -580,35 +580,19 @@
         readPostsStore.markAsRead(boardId, data.post.id);
 
         // GA4: 게시글 조회 이벤트
-        trackEvent('post_view', {
-            board_id: boardId,
-            post_id: data.post.id,
-            post_title: data.post.title?.substring(0, 100)
-        });
+        trackPostView(boardId, data.post.id);
 
         // GA4: Scroll Depth 추적 (IntersectionObserver)
-        const scrollDepthFired = new Set<string>();
         const sentinels = document.querySelectorAll<HTMLElement>('[data-scroll-depth]');
+        let cleanupScrollObserver: (() => void) | undefined;
         if (sentinels.length > 0) {
-            const scrollObserver = new IntersectionObserver(
-                (entries) => {
-                    for (const entry of entries) {
-                        if (!entry.isIntersecting) continue;
-                        const depth = (entry.target as HTMLElement).dataset.scrollDepth;
-                        if (depth && !scrollDepthFired.has(depth)) {
-                            scrollDepthFired.add(depth);
-                            trackEvent('scroll_depth', {
-                                board_id: boardId,
-                                post_id: data.post.id,
-                                depth: Number(depth)
-                            });
-                            scrollObserver.unobserve(entry.target);
-                        }
-                    }
-                },
-                { threshold: 0 }
-            );
-            sentinels.forEach((el) => scrollObserver.observe(el));
+            cleanupScrollObserver = createScrollDepthObserver(sentinels, (depth) => {
+                trackEvent('scroll_depth', {
+                    board_id: boardId,
+                    post_id: data.post.id,
+                    depth
+                });
+            });
         }
 
         // 훅: 게시글 렌더링 후 (플러그인 확장 포인트)
@@ -644,6 +628,7 @@
         }
 
         return () => {
+            cleanupScrollObserver?.();
             window.removeEventListener('comment-refresh', handleCommentRefresh);
         };
     });
