@@ -1,6 +1,6 @@
 import { browser } from '$app/environment';
 import { GAM_SITE_NAME, type AdConfig } from '$lib/config/ad-config.js';
-import { trackEvent } from '$lib/services/ga4.js';
+import { getCurrentPageContext, setCurrentPageContext, trackEvent } from '$lib/services/ga4.js';
 
 const REGISTRY_KEY = '__gam_slot_registry__';
 const DESTROY_DELAY_MS = 1500;
@@ -9,6 +9,7 @@ type SlotSizes = Array<[number, number]> | 'fluid';
 
 type SlotState = {
     key: string;
+    position: string;
     slotId: string;
     slot: googletag.Slot | null;
     config: AdConfig;
@@ -101,7 +102,15 @@ function ensureSlotListener() {
         state.loaded = true;
         state.empty = event.isEmpty;
         state.viewable = false;
-        trackEvent('ad_impression', { slot_id: slotId, is_empty: event.isEmpty });
+        const pageContext = getCurrentPageContext();
+        trackEvent('ad_impression', {
+            slot_id: slotId,
+            slot_key: state.key,
+            position: state.position,
+            page_type: pageContext.pageType,
+            board_id: pageContext.boardId,
+            is_empty: event.isEmpty
+        });
         emitRender(slotId, event.isEmpty);
     });
 
@@ -292,24 +301,6 @@ export function buildSlotId(position: string, slotKey: string) {
     return `gam-${position}-${slotKey}`;
 }
 
-function resolvePageTargeting(pathname: string): { pageType: string; boardId: string } {
-    if (pathname === '/') return { pageType: 'home', boardId: 'none' };
-    if (pathname === '/search') return { pageType: 'search', boardId: 'none' };
-    if (pathname.startsWith('/member')) return { pageType: 'member', boardId: 'none' };
-
-    const postMatch = pathname.match(/^\/([a-z0-9_-]{2,})\/\d+(?:\/.*)?$/i);
-    if (postMatch) {
-        return { pageType: 'board_view', boardId: postMatch[1] };
-    }
-
-    const boardMatch = pathname.match(/^\/([a-z0-9_-]{2,})$/i);
-    if (boardMatch) {
-        return { pageType: 'board_list', boardId: boardMatch[1] };
-    }
-
-    return { pageType: 'other', boardId: 'none' };
-}
-
 export async function attachSlot(options: SlotAttachOptions) {
     if (!browser) return null;
 
@@ -324,6 +315,7 @@ export async function attachSlot(options: SlotAttachOptions) {
     if (!state) {
         state = {
             key: options.key,
+            position: options.position,
             slotId,
             slot: null,
             config: options.config,
@@ -346,6 +338,7 @@ export async function attachSlot(options: SlotAttachOptions) {
     state.config = options.config;
     state.sizes = options.sizes;
     state.refreshIntervalMs = options.refreshIntervalMs;
+    state.position = options.position;
 
     if (!registry.callbacks.has(slotId)) {
         registry.callbacks.set(slotId, new Set());
@@ -468,7 +461,7 @@ export function updateSlotVisibility(slotId: string, visible: boolean) {
 export function updatePageTargeting(pathname: string) {
     if (!browser || !window.googletag) return;
 
-    const { pageType, boardId } = resolvePageTargeting(pathname);
+    const { pageType, boardId } = setCurrentPageContext(pathname);
 
     googletag.cmd.push(() => {
         googletag.pubads().setTargeting('page_type', pageType);

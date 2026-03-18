@@ -1,3 +1,54 @@
+# Task Plan: CPM 회복 + GA4/GAM 정밀화 + CLS 안정화 (2026-03-18)
+
+## 목표
+
+페이지 수가 충분한데도 CPM이 `$0.03` 수준으로 낮은 원인을 구조적으로 분리한다.  
+목표는 단순 광고 노출 증가가 아니라, `저가 인벤토리 제거`, `고가 placement 분리`, `GA4/GAM 지표 정합성 확보`, `CLS 0.13 개선`이다.
+
+## Step 1: 현재 상태 고정
+
+-   [x] GA4 이벤트 의미 정리: 클릭/시작 vs 성공 분리
+-   [x] 검색어/파일명 원문 전송 축소
+-   [x] 게시글 조회/스크롤/다운로드 추적 helper 경로 정리
+-   [x] GAM refresh 기본값 30초 재정렬
+-   [x] 축하/롤링 배너 회전 30초로 통일
+-   [x] 광고 슬롯/배너 높이 예약 보강
+
+## Step 2: 저 CPM 원인 분해
+
+-   [ ] 실제 저가 슬롯 후보 목록 작성
+-   [ ] `top / infeed / article / after-comments / sidebar / sticky` 단위로 수익 구조 분리
+-   [ ] 모바일 멀티사이즈 슬롯(`320x100`, `300x250`) 혼합 위치 식별
+-   [ ] viewability 저하 가능 위치와 과밀 위치 정리
+
+## Step 3: 운영 설계안 문서화
+
+-   [ ] GAM pricing rule / floor 설계안 작성
+-   [ ] 유지 슬롯 / 삭제 슬롯 / 분리 슬롯 제안안 작성
+-   [ ] `page_type`, `position`, `board_id` 기준 타겟팅 운영안 작성
+-   [ ] refresh declaration과 코드 설정 일치 여부 점검 항목 작성
+
+## Step 4: 측정 체계 정리
+
+-   [ ] GA4에서 봐야 할 핵심 이벤트/전환/세그먼트 정의
+-   [ ] GAM에서 봐야 할 핵심 지표(Active View, fill, matched requests, eCPM) 정의
+-   [ ] GA4 + GAM 같이 보는 진단 표 설계
+-   [ ] MCP로 확인할 보고서 목록 작성
+
+## Step 5: CLS 개선 후속
+
+-   [ ] 광고 슬롯별 reserved height 재검토
+-   [ ] 홈/상세/사이드바에서 시프트 가능 컴포넌트 점검
+-   [ ] 필드 데이터와 Lighthouse 결과 차이 정리
+
+## 이번 단계 산출물
+
+-   [ ] `findings.md`에 저 CPM 원인 가설과 운영안 누적
+-   [ ] `progress.md`에 시도/검증/실패 내역 누적
+-   [ ] PR/배포 전 최종 체크리스트 정리
+
+---
+
 # Task Plan: 프로덕션 준비 — console.log 정리 + Svelte 5 수정 + 보안 + README
 
 ---

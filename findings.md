@@ -2,6 +2,151 @@
 
 ---
 
+# 2026-03-18 — CPM 회복 작업 메모
+
+## 현재 가장 중요한 판단
+
+-   페이지 수가 많아도 CPM이 `$0.03`이면 문제는 트래픽 절대량보다 `인벤토리 품질`, `slot 분리`, `pricing rule`, `viewability`, `문맥 신호 부족` 쪽일 가능성이 높음
+-   오늘 한 GA4 작업은 직접 단가를 올리는 버튼은 아니지만, 어떤 페이지/행동/유저가 더 가치 있는지 덜 왜곡해서 보게 해주므로 수익 개선의 기초 데이터 품질을 올려줌
+-   지금 코어 웹 바이탈은 사실상 `CLS 0.13` 하나가 실패 원인이고, `LCP / INP / TTFB`는 크게 문제되지 않음
+
+## main 재점검 결과
+
+-   로그인 클릭 이벤트는 `login_click`으로 정리됨
+-   가입 시작 이벤트는 `sign_up_start`로 정리됨
+-   검색은 helper를 통해 길이 기반으로 전송되도록 정리됨
+-   파일 다운로드는 파일명 원문 대신 helper 기반 타입/확장자 전송으로 정리됨
+-   게시글 조회는 제목 원문 없이 helper 기반으로 정리됨
+-   스크롤 깊이 측정은 공통 observer helper로 정리됨
+
+## 광고/배너 정합성 재점검 결과
+
+-   GAM 기본 refresh interval은 코드상 30초로 맞춰졌음
+-   다만 실제 운영은 `VITE_GAM_AD_REFRESH_INTERVAL`와 Ad Manager refresh declaration이 동일해야 함
+-   축하/롤링 배너 회전은 기존 5초였고, 이번에 30초로 맞춤
+-   광고 슬롯의 BTF intrinsic size 예약은 기존 고정값보다 실제 reserved height를 따르도록 보강함
+-   배너 루트 컨테이너에도 최소 높이를 먼저 부여해 CLS 방어를 강화함
+
+## 저 CPM의 가능성 높은 구조적 원인
+
+-   저가 placement가 너무 많이 살아 있을 수 있음
+-   모바일에서 낮은 가치 사이즈 조합이 같은 슬롯에서 경쟁할 수 있음
+-   여러 placement가 같은 ad unit path를 공유하면 floor 전략이 뭉개짐
+-   request는 많아도 Active View가 낮으면 CPM이 계속 눌릴 수 있음
+-   `page_type`, `position`, `board_id`는 들어가도 운영에서 pricing rule을 안 쪼개면 효과가 제한적임
+
+## 우선 조사해야 할 운영 질문
+
+-   어떤 위치가 가장 낮은 eCPM을 만드는가
+-   어떤 위치가 fill은 높지만 viewability가 낮은가
+-   어떤 위치가 refresh inventory로만 유지되고 있는가
+-   어떤 보드/페이지군이 광고 단가를 끌어내리는가
+-   모바일 `320x100`과 `300x250`를 섞는 위치가 어디인가
+
+## GA4로 직접 할 수 있는 것
+
+-   페이지/이벤트/전환 성과 조회
+-   로그인/가입/검색/댓글/공유/다운로드 같은 행동 세그먼트 분석
+-   게시판별/디바이스별/유입원별 가치 비교
+-   광고 성과와 함께 볼 행동 신호 후보 정의
+
+## MCP 관련 메모
+
+-   user가 `googleanalytics/google-analytics-mcp` 사용 준비를 했고, Google Cloud에서 관련 API 2개를 활성화했다고 전달함
+-   user가 제공한 실제 접근 정보:
+    -   property ID: `434290661`
+    -   service account: `sheets-bot@damoang.iam.gserviceaccount.com`
+-   로컬에서 확인된 서비스 계정 키 후보:
+    -   `/home/angple/.claude/google-sheets-sa.json`
+    -   `/home/angple/.google_sheets_sa.json`
+-   예상 활용 범위:
+    -   property / account 조회
+    -   custom dimensions / metrics 조회
+    -   일반 report / realtime report 실행
+    -   Google Ads 링크 상태 확인
+-   MCP는 태깅 수정 도구가 아니라 `읽기/분석` 중심 도구로 보는 것이 맞음
+
+## 2026-03-18 실측 API 확인 결과
+
+-   서비스 계정 키로 Google Analytics Data API / Admin API 호출 성공
+-   property `434290661`에 대해 `runReport`와 custom definitions 조회가 실제로 동작함
+
+### 최근 7일 상위 페이지 경로
+
+-   `/free`: `4,949,654` page views
+-   `/`: `3,893,512` page views
+-   `/economy`: `141,347` page views
+-   `/car`: `88,420` page views
+-   `/my`: `87,035` page views
+-   `/new`: `59,947` page views
+-   `/search`: `43,127` page views
+-   `/login`: `38,599` page views
+
+### 최근 7일 상위 이벤트
+
+-   `page_view`: `18,835,550`
+-   `ad_impression`: `9,532,357`
+-   `user_engagement`: `2,075,784`
+-   `session_start`: `883,860`
+-   `scroll`: `472,380`
+-   `click`: `134,563`
+-   `ad_click`: `6,777`
+-   `file_download`: `75`
+
+### 최근 7일 디바이스 비중
+
+-   `mobile`: `12,479,473` page views / `217,045` active users / `639,047` sessions
+-   `desktop`: `5,997,745` page views / `64,088` active users / `226,353` sessions
+-   `tablet`: `358,200` page views / `20,426` active users / `30,019` sessions
+
+### 즉시 해석
+
+-   광고 수익 최적화는 모바일 중심으로 봐야 함. 모바일 비중이 압도적임
+-   `/free`와 홈(`/`)이 절대적인 트래픽 중심이므로, 수익 개선 우선순위도 목록/홈 placement가 가장 높음
+-   `/search`, `/login`, `/my`처럼 트래픽은 있지만 광고 가치가 낮거나 광고 밀도를 높이기 어려운 경로가 많으면 전체 평균 CPM을 누를 수 있음
+-   `ad_impression` 이벤트는 충분히 쌓이고 있어 측정 자체는 가능함
+-   그러나 GA4 `customDimensions`, `customMetrics`가 비어 있어 `page_type`, `board_id`, `position`, `slot_key` 같은 값은 보고서에서 제대로 활용하지 못하고 있을 가능성이 높음
+
+### 바로 필요한 후속
+
+-   GA4 custom definitions 등록 여부 확인 및 필요 시 생성
+-   `page_type`, `board_id`, `position`, `slot_key`를 리포트 가능하게 만들기
+-   모바일 중심 슬롯 분석부터 시작
+-   `/free`, `/`, `/economy` 관련 슬롯을 최우선 대상으로 수익 구조 재설계
+
+## 2026-03-18 custom dimensions 생성 완료
+
+-   서비스 계정 `sheets-bot@damoang.iam.gserviceaccount.com`에 property `434290661` Editor 권한 부여 후 Admin API로 생성 성공
+-   생성한 EVENT-scoped custom dimensions:
+    -   `page_type`
+    -   `board_id`
+    -   `position`
+    -   `slot_key`
+
+### 생성 결과
+
+-   `page_type` → `properties/434290661/customDimensions/13958842341`
+-   `board_id` → `properties/434290661/customDimensions/13958289954`
+-   `position` → `properties/434290661/customDimensions/13957169055`
+-   `slot_key` → `properties/434290661/customDimensions/13954154315`
+
+### 해석
+
+-   이제 GA4 보고서에서 페이지 문맥과 광고 placement 문맥을 쪼개서 볼 준비가 됨
+-   다만 custom definitions는 생성 직후 바로 전체 리포트에 완전히 반영되지 않을 수 있으므로 전파 시간 고려 필요
+-   이후 보고서에서 사용할 차원 이름은 일반적으로 event-scoped custom dimension 네이밍 규칙에 맞춰 확인이 필요함
+
+## 다음 문서화 대상
+
+-   슬롯별 유지/삭제/분리안
+-   GAM floor / pricing rule 설계안
+-   GA4 + GAM 합동 진단표
+-   CLS 후속 조사 항목
+
+---
+
+---
+
 # 2026-03-18 — GA4 + CPM 개선 메모
 
 ## 공식 자료 핵심

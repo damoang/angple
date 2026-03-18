@@ -1,5 +1,51 @@
 # Progress
 
+## 2026-03-18 — CPM 회복 작업 시작
+
+-   사용자 요청에 따라 `task_plan.md`, `findings.md`, `progress.md`를 이번 수익 개선 작업의 외부 두뇌로 계속 사용하기로 결정
+-   기존 문서를 보존한 채 이번 작업 전용 섹션을 상단에 추가하는 방식으로 정리 시작
+-   `main` 기준 GA4/GAM/CLS 관련 상태를 다시 확인
+-   확인 결과:
+    -   GA4 클릭/시작/성공 이벤트 구분은 대부분 정리됨
+    -   검색/다운로드/게시글 조회 helper 경로도 정리됨
+    -   광고 refresh 기본값은 30초로 맞춰짐
+    -   축하 배너 회전은 기존 5초였고 30초로 보강 커밋 추가
+-   CPM 개선 관점에서 “오늘 한 GA4 작업은 기반 품질 개선에는 도움이 되지만, 직접 단가 상승은 GAM 운영 설계가 더 중요”하다고 결론
+-   다음 단계는 코드보다 운영 설계 문서화 우선:
+
+    -   저 CPM 원인 분해
+    -   슬롯별 유지/삭제/분리안
+    -   pricing rule / floor 설계안
+    -   GA4 + GAM 같이 보는 지표 체계
+
+-   별도 하드닝 브랜치에서 정리한 항목:
+    -   `GA4 추적 정합성과 광고 안정성 보강`
+    -   축하/롤링 배너 30초 회전
+    -   광고 슬롯 intrinsic size 예약 강화
+    -   배너 루트 최소 높이 예약 강화
+-   이 변경은 PR #703으로 올렸고, 병합 가능 여부는 CI 결과에 따라 판단 중
+-   user가 GA4 property ID `434290661`과 service account `sheets-bot@damoang.iam.gserviceaccount.com` 제공
+-   로컬에 존재하던 서비스 계정 키와 이메일이 일치함을 확인
+-   실제 Google Analytics API 호출 성공:
+    -   top pagePath report
+    -   top eventName report
+    -   deviceCategory report
+    -   custom dimensions / metrics 조회
+-   주요 발견:
+    -   `/free`와 홈(`/`) 트래픽이 압도적
+    -   모바일 비중이 매우 큼
+    -   `ad_impression` 이벤트는 충분히 수집 중
+    -   custom definitions는 비어 있음
+-   다음 단계는 GA4 custom definitions와 GAM slot 구조를 연결해 분석 가능한 상태로 만드는 것
+-   이후 서비스 계정 권한이 Viewer -> Editor로 올라간 뒤, Admin API로 custom dimensions 4개 생성 완료:
+    -   `page_type`
+    -   `board_id`
+    -   `position`
+    -   `slot_key`
+-   이제 GA4에서 광고 placement 문맥 분석이 가능해질 기반이 마련됨
+
+---
+
 ## 2026-03-18 — GA4 + CPM 개선
 
 -   PR #696 GA4 설계 검토 시작
@@ -272,6 +318,9 @@
 -   task_plan.md, findings.md, progress.md 생성
 -   작업 시작 준비 완료
 -   Phase 1 (코드베이스 분석) 완료
+
     -   플러그인 시스템 이미 상당 부분 구현됨
     -   Phase 11은 "검증 및 개선" 작업으로 재정의
     -   findings.md 업데이트 완료
+
+-   사용자가 권한/실행 확인은 생략하고 바로 진행하길 원함

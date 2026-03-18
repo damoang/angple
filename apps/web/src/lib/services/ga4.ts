@@ -18,6 +18,15 @@ const AUTH_EVENT_COOKIE = 'ga4_auth_event';
 
 type EventParamValue = string | number | boolean | null | undefined;
 type EventParams = Record<string, EventParamValue>;
+type PageContext = {
+    pageType: string;
+    boardId: string;
+};
+
+let currentPageContext: PageContext = {
+    pageType: 'other',
+    boardId: 'none'
+};
 
 /** gtag.js 스크립트를 동적 로드하고 GA4를 초기화합니다 */
 export function initGA4(measurementId: string): void {
@@ -47,9 +56,39 @@ export function initGA4(measurementId: string): void {
 /** SPA 네비게이션 시 페이지뷰 이벤트를 전송합니다 */
 export function trackPageView(path: string): void {
     if (!initialized || typeof window === 'undefined' || !window.gtag) return;
+    const pageContext = setCurrentPageContext(path);
     window.gtag('event', 'page_view', {
-        page_path: path
+        page_path: path,
+        page_type: pageContext.pageType,
+        board_id: pageContext.boardId
     });
+}
+
+export function resolvePageContext(pathname: string): PageContext {
+    if (pathname === '/') return { pageType: 'home', boardId: 'none' };
+    if (pathname === '/search') return { pageType: 'search', boardId: 'none' };
+    if (pathname.startsWith('/member')) return { pageType: 'member', boardId: 'none' };
+
+    const postMatch = pathname.match(/^\/([a-z0-9_-]{2,})\/\d+(?:\/.*)?$/i);
+    if (postMatch) {
+        return { pageType: 'board_view', boardId: postMatch[1] };
+    }
+
+    const boardMatch = pathname.match(/^\/([a-z0-9_-]{2,})$/i);
+    if (boardMatch) {
+        return { pageType: 'board_list', boardId: boardMatch[1] };
+    }
+
+    return { pageType: 'other', boardId: 'none' };
+}
+
+export function setCurrentPageContext(pathname: string): PageContext {
+    currentPageContext = resolvePageContext(pathname);
+    return currentPageContext;
+}
+
+export function getCurrentPageContext(): PageContext {
+    return currentPageContext;
 }
 
 function getCookie(name: string): string | null {
