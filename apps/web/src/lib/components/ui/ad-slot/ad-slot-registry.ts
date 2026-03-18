@@ -12,14 +12,16 @@ type SlotState = {
     slot: googletag.Slot | null;
     config: AdConfig;
     sizes: SlotSizes;
+    refreshIntervalMs: number;
     mountCount: number;
     empty: boolean;
     loaded: boolean;
-    refreshTimer: ReturnType<typeof setInterval> | null;
+    refreshTimer: ReturnType<typeof setTimeout> | null;
     emptyRetryTimer: ReturnType<typeof setTimeout> | null;
     emptyRetryCount: number;
     destroyTimer: ReturnType<typeof setTimeout> | null;
     visible: boolean;
+    viewable: boolean;
 };
 
 type SlotAttachOptions = {
@@ -38,7 +40,7 @@ type Registry = {
     callbacks: Map<string, Set<(isEmpty: boolean) => void>>;
     servicesEnabled: boolean;
     listenerRegistered: boolean;
-    gptReadyPromise: Promise<void> | null;
+    gptReadyPromise: Promise<boolean> | null;
 };
 
 function createRegistry(): Registry {
@@ -49,6 +51,25 @@ function createRegistry(): Registry {
         listenerRegistered: false,
         gptReadyPromise: null
     };
+}
+
+function ensureAdNetworkPreconnect() {
+    if (!browser) return;
+
+    const origins = [
+        'https://securepubads.g.doubleclick.net',
+        'https://pagead2.googlesyndication.com',
+        'https://tpc.googlesyndication.com'
+    ];
+
+    for (const origin of origins) {
+        if (document.querySelector(`link[rel="preconnect"][href="${origin}"]`)) continue;
+        const link = document.createElement('link');
+        link.rel = 'preconnect';
+        link.href = origin;
+        link.crossOrigin = 'anonymous';
+        document.head.appendChild(link);
+    }
 }
 
 function getRegistry(): Registry {
@@ -78,7 +99,17 @@ function ensureSlotListener() {
 
         state.loaded = true;
         state.empty = event.isEmpty;
+        state.viewable = false;
         emitRender(slotId, event.isEmpty);
+    });
+
+    googletag.pubads().addEventListener('impressionViewable', (event) => {
+        const slotId = event.slot.getSlotElementId();
+        const state = registry.slots.get(slotId);
+        if (!state || state.empty) return;
+
+        state.viewable = true;
+        scheduleViewableRefresh(state, state.refreshIntervalMs);
     });
 
     registry.listenerRegistered = true;
@@ -88,6 +119,8 @@ function ensureServices() {
     const registry = getRegistry();
     if (registry.servicesEnabled) return;
 
+    googletag.pubads().collapseEmptyDivs();
+    googletag.pubads().enableSingleRequest();
     googletag.pubads().enableLazyLoad({
         fetchMarginPercent: 200,
         renderMarginPercent: 100,
@@ -101,7 +134,13 @@ function ensureServices() {
     registry.servicesEnabled = true;
 }
 
-function defineSlot(slotId: string, config: AdConfig, sizes: SlotSizes): googletag.Slot | null {
+function defineSlot(
+    slotId: string,
+    config: AdConfig,
+    sizes: SlotSizes,
+    position: string,
+    key: string
+): googletag.Slot | null {
     let slot: googletag.Slot | null;
 
     if (sizes === 'fluid') {
@@ -123,20 +162,34 @@ function defineSlot(slotId: string, config: AdConfig, sizes: SlotSizes): googlet
         }
     }
 
+    slot.setTargeting('position', position);
+    slot.setTargeting('slot_key', key);
     slot.addService(googletag.pubads());
     return slot;
 }
 
-async function ensureGPTReady() {
-    if (!browser) return;
+async function ensureGPTReady(): Promise<boolean> {
+    if (!browser) return false;
 
     const registry = getRegistry();
-    if (window.googletag?.apiReady) return;
+    if (window.googletag?.apiReady) return true;
+
+    ensureAdNetworkPreconnect();
 
     if (!registry.gptReadyPromise) {
-        registry.gptReadyPromise = new Promise<void>((resolve) => {
+        registry.gptReadyPromise = new Promise<boolean>((resolve) => {
+            const timeout = setTimeout(() => {
+                registry.gptReadyPromise = null;
+                resolve(false);
+            }, 10000);
+
+            const finish = (ready: boolean) => {
+                clearTimeout(timeout);
+                resolve(ready);
+            };
+
             if (window.googletag?.apiReady) {
-                resolve();
+                finish(true);
                 return;
             }
 
@@ -147,7 +200,7 @@ async function ensureGPTReady() {
                 const readyCheck = setInterval(() => {
                     if (window.googletag?.apiReady) {
                         clearInterval(readyCheck);
-                        resolve();
+                        finish(true);
                     }
                 }, 100);
                 return;
@@ -160,27 +213,45 @@ async function ensureGPTReady() {
                 const readyCheck = setInterval(() => {
                     if (window.googletag?.apiReady) {
                         clearInterval(readyCheck);
-                        resolve();
+                        finish(true);
                     }
                 }, 100);
+            };
+            script.onerror = () => {
+                registry.gptReadyPromise = null;
+                finish(false);
             };
             document.head.appendChild(script);
         });
     }
 
-    await registry.gptReadyPromise;
+    return await registry.gptReadyPromise;
 }
 
-function scheduleAutoRefresh(state: SlotState, intervalMs: number) {
+function scheduleViewableRefresh(state: SlotState, intervalMs = 0) {
     if (state.refreshTimer || intervalMs <= 0) return;
+    if (!state.slot || state.empty || state.mountCount <= 0 || !state.visible || !state.viewable)
+        return;
 
-    state.refreshTimer = setInterval(() => {
+    state.refreshTimer = setTimeout(() => {
+        state.refreshTimer = null;
+
         googletag.cmd.push(() => {
-            if (!state.slot || state.empty || state.mountCount <= 0 || !state.visible) return;
+            if (
+                !state.slot ||
+                state.empty ||
+                state.mountCount <= 0 ||
+                !state.visible ||
+                !state.viewable
+            )
+                return;
+
             const container = document.getElementById(state.slotId)?.parentElement;
             if (container) {
                 container.style.minHeight = `${container.offsetHeight}px`;
             }
+
+            state.viewable = false;
             googletag.pubads().refresh([state.slot], { changeCorrelator: false });
         });
     }, intervalMs);
@@ -188,7 +259,7 @@ function scheduleAutoRefresh(state: SlotState, intervalMs: number) {
 
 function clearSlotTimers(state: SlotState) {
     if (state.refreshTimer) {
-        clearInterval(state.refreshTimer);
+        clearTimeout(state.refreshTimer);
         state.refreshTimer = null;
     }
     if (state.emptyRetryTimer) {
@@ -219,10 +290,29 @@ export function buildSlotId(position: string, slotKey: string) {
     return `gam-${position}-${slotKey}`;
 }
 
+function resolvePageTargeting(pathname: string): { pageType: string; boardId: string } {
+    if (pathname === '/') return { pageType: 'home', boardId: 'none' };
+    if (pathname === '/search') return { pageType: 'search', boardId: 'none' };
+    if (pathname.startsWith('/member')) return { pageType: 'member', boardId: 'none' };
+
+    const postMatch = pathname.match(/^\/([a-z0-9_-]{2,})\/\d+(?:\/.*)?$/i);
+    if (postMatch) {
+        return { pageType: 'board_view', boardId: postMatch[1] };
+    }
+
+    const boardMatch = pathname.match(/^\/([a-z0-9_-]{2,})$/i);
+    if (boardMatch) {
+        return { pageType: 'board_list', boardId: boardMatch[1] };
+    }
+
+    return { pageType: 'other', boardId: 'none' };
+}
+
 export async function attachSlot(options: SlotAttachOptions) {
     if (!browser) return null;
 
-    await ensureGPTReady();
+    const gptReady = await ensureGPTReady();
+    if (!gptReady) return null;
 
     window.googletag = window.googletag || { cmd: [] };
     const registry = getRegistry();
@@ -236,6 +326,7 @@ export async function attachSlot(options: SlotAttachOptions) {
             slot: null,
             config: options.config,
             sizes: options.sizes,
+            refreshIntervalMs: options.refreshIntervalMs,
             mountCount: 0,
             empty: false,
             loaded: false,
@@ -243,7 +334,8 @@ export async function attachSlot(options: SlotAttachOptions) {
             emptyRetryTimer: null,
             emptyRetryCount: 0,
             destroyTimer: null,
-            visible: false
+            visible: false,
+            viewable: false
         };
         registry.slots.set(slotId, state);
     }
@@ -251,6 +343,7 @@ export async function attachSlot(options: SlotAttachOptions) {
     state.mountCount += 1;
     state.config = options.config;
     state.sizes = options.sizes;
+    state.refreshIntervalMs = options.refreshIntervalMs;
 
     if (!registry.callbacks.has(slotId)) {
         registry.callbacks.set(slotId, new Set());
@@ -267,14 +360,20 @@ export async function attachSlot(options: SlotAttachOptions) {
         ensureServices();
 
         if (!state!.slot) {
-            state!.slot = defineSlot(slotId, options.config, options.sizes);
+            state!.slot = defineSlot(
+                slotId,
+                options.config,
+                options.sizes,
+                options.position,
+                options.key
+            );
             if (!state!.slot) return;
             googletag.display(slotId);
         } else if (state!.loaded || state!.mountCount > 1) {
             googletag.pubads().refresh([state!.slot], { changeCorrelator: false });
         }
 
-        scheduleAutoRefresh(state!, options.refreshIntervalMs);
+        scheduleViewableRefresh(state!, state!.refreshIntervalMs);
         if (state!.loaded) {
             emitRender(slotId, state!.empty);
         }
@@ -352,4 +451,25 @@ export function updateSlotVisibility(slotId: string, visible: boolean) {
     const state = registry.slots.get(slotId);
     if (!state) return;
     state.visible = visible;
+
+    if (!visible && state.refreshTimer) {
+        clearTimeout(state.refreshTimer);
+        state.refreshTimer = null;
+        return;
+    }
+
+    if (visible) {
+        scheduleViewableRefresh(state, state.refreshIntervalMs);
+    }
+}
+
+export function updatePageTargeting(pathname: string) {
+    if (!browser || !window.googletag) return;
+
+    const { pageType, boardId } = resolvePageTargeting(pathname);
+
+    googletag.cmd.push(() => {
+        googletag.pubads().setTargeting('page_type', pageType);
+        googletag.pubads().setTargeting('board_id', boardId);
+    });
 }

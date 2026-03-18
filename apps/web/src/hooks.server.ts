@@ -469,6 +469,8 @@ export const handle: Handle = async ({ event, resolve }) => {
         }
     }
 
+    const publicHtmlCacheControl = 'public, s-maxage=30, stale-while-revalidate=60, max-age=0';
+
     // OPTIONS 요청 (CORS preflight) 처리
     if (event.request.method === 'OPTIONS') {
         const origin = event.request.headers.get('origin');
@@ -509,7 +511,7 @@ export const handle: Handle = async ({ event, resolve }) => {
                 status: 200,
                 headers: {
                     'Content-Type': 'text/html; charset=utf-8',
-                    'Cache-Control': 'private, no-store, no-cache, must-revalidate',
+                    'Cache-Control': publicHtmlCacheControl,
                     Vary: 'Cookie',
                     'X-Content-Type-Options': 'nosniff',
                     'X-Frame-Options': 'SAMEORIGIN',
@@ -534,7 +536,7 @@ export const handle: Handle = async ({ event, resolve }) => {
                         status: 200,
                         headers: {
                             'Content-Type': 'text/html; charset=utf-8',
-                            'Cache-Control': 'private, no-store, no-cache, must-revalidate',
+                            'Cache-Control': publicHtmlCacheControl,
                             Vary: 'Cookie',
                             'X-Content-Type-Options': 'nosniff',
                             'X-Frame-Options': 'SAMEORIGIN',
@@ -592,7 +594,7 @@ export const handle: Handle = async ({ event, resolve }) => {
                     status: 200,
                     headers: {
                         'Content-Type': 'text/html; charset=utf-8',
-                        'Cache-Control': 'private, no-store, no-cache, must-revalidate',
+                        'Cache-Control': publicHtmlCacheControl,
                         Vary: 'Cookie',
                         'X-Content-Type-Options': 'nosniff',
                         'X-Frame-Options': 'SAMEORIGIN',
@@ -672,24 +674,15 @@ export const handle: Handle = async ({ event, resolve }) => {
         // SvelteKit이 이미 설정 → 그대로 유지
     } else if (!event.locals.user && isPublicCacheablePath(pathname)) {
         // 비로그인 사용자의 공개 페이지: CDN 캐시 30초, stale 60초
-        response.headers.set(
-            'Cache-Control',
-            'public, s-maxage=30, stale-while-revalidate=60, max-age=0'
-        );
+        response.headers.set('Cache-Control', publicHtmlCacheControl);
         response.headers.set('Vary', 'Cookie');
     } else if (!event.locals.user && isBoardListPath(pathname, event.url.searchParams)) {
         // 비로그인 사용자의 게시판 목록: CDN 캐시 30초, stale 60초
-        response.headers.set(
-            'Cache-Control',
-            'public, s-maxage=30, stale-while-revalidate=60, max-age=0'
-        );
+        response.headers.set('Cache-Control', publicHtmlCacheControl);
         response.headers.set('Vary', 'Cookie');
     } else if (!event.locals.user && isPostDetailPath(pathname)) {
         // 비로그인 사용자의 글 상세: CDN 캐시 30초, stale 60초
-        response.headers.set(
-            'Cache-Control',
-            'public, s-maxage=30, stale-while-revalidate=60, max-age=0'
-        );
+        response.headers.set('Cache-Control', publicHtmlCacheControl);
         response.headers.set('Vary', 'Cookie');
     } else {
         response.headers.set('Cache-Control', 'private, max-age=2, must-revalidate');

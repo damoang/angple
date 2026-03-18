@@ -13,6 +13,75 @@
     import RotateCcw from '@lucide/svelte/icons/rotate-ccw';
     import ChevronDown from '@lucide/svelte/icons/chevron-down';
     import ChevronUp from '@lucide/svelte/icons/chevron-up';
+    import DOMPurify from 'isomorphic-dompurify';
+    import { filterUnsafeStyles } from '$lib/utils/safe-css.js';
+
+    // CSS 필터 훅 등록
+    DOMPurify.addHook('afterSanitizeAttributes', (node) => {
+        filterUnsafeStyles(node as unknown as Element);
+    });
+
+    const REVISION_PURIFY_CONFIG = {
+        ALLOWED_TAGS: [
+            'h1',
+            'h2',
+            'h3',
+            'h4',
+            'h5',
+            'h6',
+            'p',
+            'br',
+            'strong',
+            'b',
+            'em',
+            'i',
+            'u',
+            's',
+            'del',
+            'ul',
+            'ol',
+            'li',
+            'blockquote',
+            'code',
+            'pre',
+            'a',
+            'img',
+            'table',
+            'thead',
+            'tbody',
+            'tr',
+            'th',
+            'td',
+            'hr',
+            'div',
+            'span',
+            'figure',
+            'figcaption',
+            'video',
+            'audio',
+            'source',
+            'details',
+            'summary'
+        ],
+        ALLOWED_ATTR: [
+            'href',
+            'src',
+            'alt',
+            'title',
+            'class',
+            'target',
+            'rel',
+            'width',
+            'height',
+            'loading',
+            'style',
+            'colspan',
+            'rowspan',
+            'open'
+        ],
+        ALLOW_DATA_ATTR: false,
+        ALLOWED_URI_REGEXP: /^(?:(?:https?|mailto|tel):|[^a-z]|[a-z+.-]+(?:[^a-z+.\-:]|$))/i
+    };
 
     interface Props {
         revisions: PostRevision[];
@@ -242,7 +311,10 @@
                                 <div
                                     class="max-h-80 overflow-y-auto rounded-md border px-3 py-2 text-xs dark:border-neutral-700"
                                 >
-                                    {@html selectedRevision.content}
+                                    {@html DOMPurify.sanitize(
+                                        selectedRevision.content,
+                                        REVISION_PURIFY_CONFIG
+                                    )}
                                 </div>
                             </div>
                         {/if}

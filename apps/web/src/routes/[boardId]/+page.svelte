@@ -132,8 +132,10 @@
     );
 
     // 글쓰기 권한 체크 (서버 permissions 우선, 클라이언트 레벨 비교 폴백)
+    // claim 게시판은 직접 글쓰기 불가 (이용제한 상세에서만 소명 작성 가능)
     const canWrite = $derived.by(() => {
         if (!authStore.isAuthenticated) return false;
+        if (boardId === 'claim') return false;
         return checkPermission(data.board, 'can_write', authStore.user ?? null);
     });
 
