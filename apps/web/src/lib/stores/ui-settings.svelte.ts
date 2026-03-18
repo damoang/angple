@@ -111,7 +111,9 @@ export const LIST_FONT_SIZES: Record<ListFontSize, string> = {
 };
 
 /** 본문 흐림 대상 키워드 (제목에 포함 시 블러 처리) */
-export const BLUR_KEYWORDS = ['후방', '스포', '혐오', '혐짤', 'NSFW', 'nsfw', '스포일러'];
+export const BLUR_KEYWORDS = ['후방', '혐오', '혐짤', 'NSFW', 'nsfw', '스포일러'];
+/** 단어 경계 매칭 키워드 (뒤에 한글 음절이 오면 매칭 제외 — "스포티파이" 등 false positive 방지) */
+export const BLUR_KEYWORDS_BOUNDARY = ['스포'];
 
 function loadSettings(): UiSettings {
     if (!browser) return { ...DEFAULTS };
@@ -404,7 +406,17 @@ function createUiSettingsStore() {
         shouldBlurContent(title: string): boolean {
             if (!settings.contentBlur) return false;
             const lower = title.toLowerCase();
-            return BLUR_KEYWORDS.some((k) => lower.includes(k.toLowerCase()));
+            // 일반 키워드: 포함 매칭
+            if (BLUR_KEYWORDS.some((k) => lower.includes(k.toLowerCase()))) return true;
+            // 경계 매칭 키워드: 뒤에 한글 음절(가-힣)이 오면 단어 일부이므로 제외
+            return BLUR_KEYWORDS_BOUNDARY.some((k) => {
+                const kLower = k.toLowerCase();
+                const idx = lower.indexOf(kLower);
+                if (idx === -1) return false;
+                const after = lower[idx + kLower.length];
+                if (after && after >= '\uAC00' && after <= '\uD7A3') return false;
+                return true;
+            });
         }
     };
 }

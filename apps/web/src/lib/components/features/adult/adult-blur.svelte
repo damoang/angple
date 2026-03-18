@@ -30,8 +30,9 @@
         authStore.isAuthenticated && (authStore.user?.mb_level ?? 0) >= 2
     );
 
-    // 블러 적용 여부
-    const shouldBlur = $derived(isAdult && !isAdultVerified && !revealed);
+    // 블러 적용 여부 — 성인 인증 기능 hold (나중에 다시 활성화 가능)
+    // const shouldBlur = $derived(isAdult && !isAdultVerified && !revealed);
+    const shouldBlur = false;
 
     function handleReveal(): void {
         if (allowReveal) revealed = true;
