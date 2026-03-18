@@ -59,6 +59,8 @@
     import { toast } from 'svelte-sonner';
     import { trackFileDownload } from '$lib/services/ga4.js';
     import PinOff from '@lucide/svelte/icons/pin-off';
+    import { attachLightbox } from '$lib/components/ui/image-lightbox/index.js';
+    import { onMount } from 'svelte';
 
     let {
         post,
@@ -104,6 +106,15 @@
     let hasAffiliateLinks = $derived(postContent?.includes('data-affiliate') ?? false);
 
     const isLockedPost = $derived(postReportCount === 'lock' || post.extra_7 === 'lock');
+
+    // 첨부 이미지 라이트박스
+    let attachedImagesEl: HTMLDivElement;
+
+    onMount(() => {
+        if (!attachedImagesEl) return;
+        const cleanupLightbox = attachLightbox(attachedImagesEl);
+        return () => cleanupLightbox();
+    });
 
     // 공지 토글 (관리자 전용)
     let isNotice = $state(post.is_notice ?? false);
@@ -403,7 +414,7 @@
                     {/if}
 
                     {#if post.images && post.images.length > 0}
-                        <div class="mt-6 grid gap-4">
+                        <div bind:this={attachedImagesEl} class="mt-6 grid gap-4">
                             {#each post.images as image, i (i)}
                                 <img
                                     src={image}
