@@ -25,7 +25,8 @@
     }
 
     function getMessage(banner: { content?: string }): string {
-        return banner.content || '';
+        const raw = banner.content || '';
+        return raw.replace(/<[^>]*>/g, '').trim();
     }
 </script>
 
