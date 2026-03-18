@@ -178,9 +178,11 @@
     });
 
     // link1이 동영상 URL이면 본문 앞에 삽입 (그누보드 wr_link1 호환)
+    // link1_display: 제휴 변환 전 원본 URL (변환된 경우), 없으면 link1 자체가 원본
+    const link1Original = $derived(data.post.link1_display || data.post.link1);
     const postContent = $derived(
-        !data.post.deleted_at && data.post.link1 && isEmbeddable(data.post.link1)
-            ? `<p>${data.post.link1}</p>\n${data.post.content}`
+        !data.post.deleted_at && link1Original && isEmbeddable(link1Original)
+            ? `<p>${link1Original}</p>\n${data.post.content}`
             : data.post.content
     );
 
