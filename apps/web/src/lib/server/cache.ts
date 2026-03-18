@@ -173,7 +173,8 @@ export class TieredCache<T> {
                 return data;
             }
         } catch {
-            // Redis 장애 → null (DB fallback)
+            // Redis 장애 → stale L1 데이터가 있으면 반환 (graceful degradation)
+            if (l1Entry) return l1Entry.data;
         }
 
         return null;
