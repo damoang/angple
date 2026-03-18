@@ -2,6 +2,7 @@
     import Share2 from '@lucide/svelte/icons/share-2';
     import Link from '@lucide/svelte/icons/link';
     import { toast } from 'svelte-sonner';
+    import { trackEvent } from '$lib/services/ga4.js';
     import {
         shareToFacebook,
         shareToX,
@@ -42,6 +43,7 @@
     async function handleCopyUrl() {
         const success = await copyUrl(getShareUrl());
         if (success) {
+            trackEvent('share', { method: 'copy_url', board_id: boardId });
             toast.success('주소가 복사되었습니다.');
         } else {
             toast.error('주소 복사에 실패했습니다.');
@@ -50,6 +52,7 @@
     }
 
     async function handleKakao() {
+        trackEvent('share', { method: 'kakao', board_id: boardId });
         const success = await shareToKakao(title, getShareUrl(), imageUrl);
         if (!success) {
             toast.error('카카오톡 공유를 불러올 수 없습니다.');
@@ -58,6 +61,7 @@
     }
 
     function handlePlatform(platform: string) {
+        trackEvent('share', { method: platform, board_id: boardId });
         const url = getShareUrl();
         switch (platform) {
             case 'facebook':
