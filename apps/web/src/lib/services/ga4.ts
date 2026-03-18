@@ -70,15 +70,18 @@ function sanitizeEventParams(
 ): Record<string, string | number | boolean> | undefined {
     if (!params) return undefined;
 
-    const sanitizedEntries = Object.entries(params).flatMap(([key, value]) => {
-        if (value === null || value === undefined) return [];
+    const sanitizedEntries: Array<readonly [string, string | number | boolean]> = [];
+
+    for (const [key, value] of Object.entries(params)) {
+        if (value === null || value === undefined) continue;
         if (typeof value === 'string') {
             const trimmed = value.trim();
-            if (!trimmed) return [];
-            return [[key, trimmed.slice(0, MAX_EVENT_PARAM_LENGTH)] as const];
+            if (!trimmed) continue;
+            sanitizedEntries.push([key, trimmed.slice(0, MAX_EVENT_PARAM_LENGTH)] as const);
+            continue;
         }
-        return [[key, value] as const];
-    });
+        sanitizedEntries.push([key, value] as const);
+    }
 
     return sanitizedEntries.length > 0 ? Object.fromEntries(sanitizedEntries) : undefined;
 }
