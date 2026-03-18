@@ -33,7 +33,7 @@
 
     async function fetchMemberHistory(memberId: string) {
         try {
-            const result = await getDisciplineLogs(1, 20, memberId);
+            const result = await getDisciplineLogs(1, 100, memberId);
             memberHistory = result.data;
         } catch {
             memberHistory = [];
