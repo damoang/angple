@@ -209,8 +209,21 @@ export async function convertAffiliateLinksDetailed(
         const platformName = getPlatformNameKo(result.platform);
         const badge = `<span class="affiliate-badge" title="${platformName} 제휴 링크">💰</span>`;
 
-        // 새 링크 생성
-        const newLink = `<a ${m.beforeHref}href="${result.url}" data-affiliate="${result.platform}"${m.afterHref}>${m.text}${badge}</a>`;
+        // /go 리다이렉트 URL 생성 (클릭 로깅 + 감사 추적)
+        const goParams = new URLSearchParams({
+            url: result.url,
+            p: result.platform,
+            ...(boTable ? { b: boTable } : {}),
+            ...(wrId ? { w: String(wrId) } : {})
+        });
+        const goUrl = `/go?${goParams.toString()}`;
+
+        // 기존 rel 속성 제거 후 sponsored 포함 재설정
+        const cleanedBefore = m.beforeHref.replace(/\s*rel="[^"]*"/gi, '');
+        const cleanedAfter = m.afterHref.replace(/\s*rel="[^"]*"/gi, '');
+
+        // 새 링크 생성 (rel="nofollow noopener sponsored" + /go 리다이렉트)
+        const newLink = `<a ${cleanedBefore}href="${goUrl}" data-affiliate="${result.platform}" rel="nofollow noopener sponsored" data-original-url="${result.url}"${cleanedAfter}>${m.text}${badge}</a>`;
 
         newContent = newContent.replace(m.full, newLink);
     }
