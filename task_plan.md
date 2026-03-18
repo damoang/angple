@@ -53,6 +53,36 @@
 
 ---
 
+# Task Plan: GA4 문맥 신호 보강 + 저 CPM 진단 (2026-03-18)
+
+## 목표
+
+GA4 custom dimensions를 실제 분석 가능한 상태로 만들고, `page_view`와 `ad_impression`에 같은 문맥을 실어 저 CPM 원인을 위치 단위로 추적할 수 있게 한다.
+
+## Step 1: 측정 상태 확인
+
+-   [x] GA4 property `434290661` API 연결 확인
+-   [x] custom dimensions 4개 생성 (`page_type`, `board_id`, `position`, `slot_key`)
+-   [x] 최근 7일 페이지/디바이스/이벤트 분포 확인
+
+## Step 2: 병목 확인
+
+-   [x] custom dimension 값이 리포트에서 비어 있는 현상 확인
+-   [x] `page_view`에 `page_type`, `board_id` 누락 확인
+-   [x] `ad_impression`에 `position`, `slot_key`, `page_type`, `board_id` 누락 확인
+
+## Step 3: 코드 보강
+
+-   [x] GA4 page context helper 추가
+-   [x] 초기 page_view에도 문맥이 실리도록 layout 보강
+-   [x] `ad_impression` 문맥 파라미터 보강
+
+## Step 4: 배포 후 분석
+
+-   [ ] 새 custom dimensions 값이 GA4 리포트에 들어오기 시작하는지 확인
+-   [ ] `page_type + position + slot_key` 기준 진단 리포트 작성
+-   [ ] 저 CPM 슬롯 유지/삭제/분리안 정리
+
 # Task Plan: GA4 + CPM 개선 (2026-03-18)
 
 ## 목표

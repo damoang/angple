@@ -46,6 +46,15 @@
 
 ---
 
+## 2026-03-18 — GA4 문맥 신호 후속 보강
+
+-   `main` 기준 재확인 결과 `page_view`, `ad_impression`에 custom dimension용 문맥이 아직 누락된 상태 확인
+-   별도 작업 트리에서 후속 패치 진행 시작
+-   `ga4.ts`에 page context helper 추가
+-   초기 page_view에도 `page_type`, `board_id`가 실리도록 `+layout.svelte` 보강
+-   `ad-slot-registry.ts`에서 `ad_impression`에 `slot_key`, `position`, `page_type`, `board_id` 전송 보강
+-   다음 단계: 타입체크 후 PR 생성, 머지, GA4 리포트 반영 확인
+
 ## 2026-03-18 — GA4 + CPM 개선
 
 -   PR #696 GA4 설계 검토 시작
