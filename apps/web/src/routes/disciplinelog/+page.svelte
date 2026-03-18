@@ -76,11 +76,11 @@
                     <table class="w-full text-sm">
                         <thead>
                             <tr class="bg-muted/50 border-b">
-                                <th class="p-3 text-left font-medium">닉네임</th>
-                                <th class="p-3 text-left font-medium">아이디</th>
-                                <th class="p-3 text-left font-medium">시작일</th>
-                                <th class="p-3 text-center font-medium">기간</th>
-                                <th class="p-3 text-left font-medium">사유</th>
+                                <th class="px-4 py-2 text-left font-medium">닉네임</th>
+                                <th class="px-4 py-2 text-left font-medium">아이디</th>
+                                <th class="px-4 py-2 text-left font-medium">시작일</th>
+                                <th class="px-4 py-2 text-center font-medium">기간</th>
+                                <th class="px-4 py-2 text-left font-medium">사유</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -93,7 +93,7 @@
                                     class="hover:bg-muted/50 cursor-pointer border-b transition-all duration-200 ease-out"
                                     onclick={() => goto(`/disciplinelog/${log.id}`)}
                                 >
-                                    <td class="p-3">
+                                    <td class="px-4 py-2">
                                         <span
                                             class="{isToday(log.penalty_date_from)
                                                 ? 'text-primary font-semibold'
@@ -102,11 +102,11 @@
                                             {log.member_nickname}
                                         </span>
                                     </td>
-                                    <td class="text-muted-foreground p-3">{log.member_id}</td>
-                                    <td class="text-muted-foreground p-3"
+                                    <td class="text-muted-foreground px-4 py-2">{log.member_id}</td>
+                                    <td class="text-muted-foreground px-4 py-2"
                                         >{log.penalty_date_from}</td
                                     >
-                                    <td class="p-3 text-center">
+                                    <td class="px-4 py-2 text-center">
                                         <div class="flex items-center justify-center gap-1">
                                             <Badge
                                                 variant={getPenaltyBadgeVariant(
@@ -123,7 +123,7 @@
                                             {/if}
                                         </div>
                                     </td>
-                                    <td class="p-3">
+                                    <td class="px-4 py-2">
                                         <div class="flex flex-wrap gap-1">
                                             {#each log.violation_titles.slice(0, 3) as title}
                                                 <Badge variant="outline" class="text-xs"
@@ -152,7 +152,7 @@
                         )}
                         <a href="/disciplinelog/{log.id}" class="block">
                             <div
-                                class="hover:bg-muted/50 rounded-lg border p-4 transition-all duration-200 ease-out"
+                                class="hover:bg-muted/50 rounded-lg border p-3 transition-all duration-200 ease-out"
                             >
                                 <div class="mb-2 flex items-center justify-between">
                                     <span
