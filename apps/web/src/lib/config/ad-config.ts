@@ -9,9 +9,9 @@
 export const GAM_NETWORK_CODE = import.meta.env.VITE_GAM_NETWORK_CODE || '';
 export const GAM_SITE_NAME = import.meta.env.VITE_GAM_SITE_NAME || 'default';
 // Ad Manager UI의 refresh declaration과 동일하거나 더 보수적으로 맞춰야 합니다.
-// 현재 기본값은 30초이며, 실제 UI 선언도 최소 30초 이상으로 맞아야 합니다.
-export const GAM_AD_REFRESH_INTERVAL = Number(import.meta.env.VITE_GAM_AD_REFRESH_INTERVAL || 30); // 초
-export const GAM_AD_EMPTY_RETRY_DELAY = 30; // 초
+// CPM 개선을 위해 기본값 60초로 설정 (짧은 간격은 CPM 하락 원인)
+export const GAM_AD_REFRESH_INTERVAL = Number(import.meta.env.VITE_GAM_AD_REFRESH_INTERVAL || 60); // 초
+export const GAM_AD_EMPTY_RETRY_DELAY = 60; // 초
 
 // 광고 단위 경로 (환경변수로 커스터마이징 가능)
 const unitMain = import.meta.env.VITE_GAM_UNIT_MAIN || 'banner-responsive_main';

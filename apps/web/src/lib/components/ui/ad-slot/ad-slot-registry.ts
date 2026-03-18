@@ -1,5 +1,6 @@
 import { browser } from '$app/environment';
 import { GAM_SITE_NAME, type AdConfig } from '$lib/config/ad-config.js';
+import { trackEvent } from '$lib/services/ga4.js';
 
 const REGISTRY_KEY = '__gam_slot_registry__';
 const DESTROY_DELAY_MS = 1500;
@@ -100,6 +101,7 @@ function ensureSlotListener() {
         state.loaded = true;
         state.empty = event.isEmpty;
         state.viewable = false;
+        trackEvent('ad_impression', { slot_id: slotId, is_empty: event.isEmpty });
         emitRender(slotId, event.isEmpty);
     });
 
@@ -122,9 +124,9 @@ function ensureServices() {
     googletag.pubads().collapseEmptyDivs();
     googletag.pubads().enableSingleRequest();
     googletag.pubads().enableLazyLoad({
-        fetchMarginPercent: 200,
-        renderMarginPercent: 100,
-        mobileScaling: 2
+        fetchMarginPercent: 150,
+        renderMarginPercent: 75,
+        mobileScaling: 1.5
     });
     googletag.pubads().setCentering(true);
     googletag.pubads().setTargeting('site', GAM_SITE_NAME);
