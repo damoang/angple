@@ -7,6 +7,7 @@
     import { browser } from '$app/environment';
     import { highlightAllCodeBlocks } from '$lib/utils/code-highlight';
     import { transformEscapedMedia } from '$lib/utils/content-transform';
+    import { attachLightbox } from '$lib/components/ui/image-lightbox/index.js';
     import { filterUnsafeStyles } from '$lib/utils/safe-css.js';
 
     // CSS 필터 훅 등록 — style 속성에서 위험한 CSS 속성 제거
@@ -176,7 +177,8 @@
             'loop',
             'playsinline',
             'preload',
-            'open'
+            'open',
+            'data-original'
         ]
     };
 
@@ -224,7 +226,13 @@
         }
 
         window.addEventListener('message', handleTwitterResize);
-        return () => window.removeEventListener('message', handleTwitterResize);
+
+        const cleanupLightbox = attachLightbox(proseEl);
+
+        return () => {
+            window.removeEventListener('message', handleTwitterResize);
+            cleanupLightbox();
+        };
     });
 
     // 클라이언트에서 플러그인 필터 적용
