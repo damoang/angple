@@ -29,6 +29,7 @@
     import Flag from '@lucide/svelte/icons/flag';
     import { authStore } from '$lib/stores/auth.svelte.js';
     import { AdultBlur } from '$lib/components/features/adult/index.js';
+    import ContentBlur from '$lib/components/features/board/content-blur.svelte';
     import { uiSettingsStore, type ContentFontSize } from '$lib/stores/ui-settings.svelte.js';
     import { getAvatarUrl } from '$lib/utils/member-icon.js';
     import AuthorLink from '$lib/components/ui/author-link/author-link.svelte';
@@ -347,102 +348,104 @@
 
         <!-- 게시글 본문 -->
         {#if canViewSecret}
-            <AdultBlur
-                isAdult={(post.is_adult ?? false) || uiSettingsStore.shouldBlurContent(post.title)}
-            >
-                <div id="economy-post-content" style="font-size: {FONT_SIZES[currentFontSize]}">
-                    <Markdown content={postContent} />
-                </div>
+            <AdultBlur isAdult={post.is_adult ?? false}>
+                <ContentBlur shouldBlur={uiSettingsStore.shouldBlurContent(post.title)}>
+                    <div id="economy-post-content" style="font-size: {FONT_SIZES[currentFontSize]}">
+                        <Markdown content={postContent} />
+                    </div>
 
-                {#if hasAffiliateLinks}
-                    <p
-                        class="text-muted-foreground mt-4 flex items-start gap-1.5 text-xs leading-relaxed"
-                    >
-                        <Info class="mt-0.5 h-3 w-3 shrink-0" />
-                        <span
-                            >이 글에 포함된 일부 링크는 제휴 링크이며, 다모앙은 소정의 커미션을 제공
-                            받을 수 있습니다.</span
+                    {#if hasAffiliateLinks}
+                        <p
+                            class="text-muted-foreground mt-4 flex items-start gap-1.5 text-xs leading-relaxed"
                         >
-                    </p>
-                {/if}
+                            <Info class="mt-0.5 h-3 w-3 shrink-0" />
+                            <span
+                                >이 글에 포함된 일부 링크는 제휴 링크이며, 다모앙은 소정의 커미션을
+                                제공 받을 수 있습니다.</span
+                            >
+                        </p>
+                    {/if}
 
-                {#if post.videos && post.videos.length > 0}
-                    <div class="mt-6 space-y-4">
-                        {#each post.videos as video, i (i)}
-                            <div class="overflow-hidden rounded-lg border">
-                                <video controls preload="metadata" playsinline class="w-full">
-                                    <source src={video.url} />
-                                    동영상을 재생할 수 없습니다.
-                                </video>
-                                <div
-                                    class="bg-muted/50 flex items-center gap-3 border-t px-4 py-2.5"
+                    {#if post.videos && post.videos.length > 0}
+                        <div class="mt-6 space-y-4">
+                            {#each post.videos as video, i (i)}
+                                <div class="overflow-hidden rounded-lg border">
+                                    <video controls preload="metadata" playsinline class="w-full">
+                                        <source src={video.url} />
+                                        동영상을 재생할 수 없습니다.
+                                    </video>
+                                    <div
+                                        class="bg-muted/50 flex items-center gap-3 border-t px-4 py-2.5"
+                                    >
+                                        <Video class="text-muted-foreground h-4 w-4 shrink-0" />
+                                        <span class="text-foreground min-w-0 truncate text-sm">
+                                            {video.filename}
+                                        </span>
+                                        {#if video.size}
+                                            <span class="text-muted-foreground shrink-0 text-xs">
+                                                {formatFileSize(video.size)}
+                                            </span>
+                                        {/if}
+                                        <a
+                                            href={video.url}
+                                            download={video.filename}
+                                            onclick={() =>
+                                                trackFileDownload(boardId, video.filename, 'video')}
+                                            class="text-primary hover:text-primary/80 ml-auto flex shrink-0 items-center gap-1 text-sm font-medium"
+                                        >
+                                            <Download class="h-4 w-4" />
+                                            다운로드
+                                        </a>
+                                    </div>
+                                </div>
+                            {/each}
+                        </div>
+                    {/if}
+
+                    {#if post.images && post.images.length > 0}
+                        <div class="mt-6 grid gap-4">
+                            {#each post.images as image, i (i)}
+                                <img
+                                    src={image}
+                                    alt="게시글 이미지"
+                                    class="max-w-full rounded-lg border"
+                                    loading="lazy"
+                                />
+                            {/each}
+                        </div>
+                    {/if}
+
+                    {#if post.downloads && post.downloads.length > 0}
+                        <div class="mt-6 space-y-2">
+                            <p
+                                class="text-muted-foreground flex items-center gap-1.5 text-sm font-medium"
+                            >
+                                <Paperclip class="h-4 w-4" />
+                                첨부파일
+                            </p>
+                            {#each post.downloads as file, i (i)}
+                                <a
+                                    href={file.url}
+                                    download={file.filename}
+                                    onclick={() => trackFileDownload(boardId, file.filename)}
+                                    class="bg-muted/50 hover:bg-muted flex items-center gap-3 rounded-lg border px-4 py-2.5 transition-colors"
                                 >
-                                    <Video class="text-muted-foreground h-4 w-4 shrink-0" />
+                                    <Download class="text-muted-foreground h-4 w-4 shrink-0" />
                                     <span class="text-foreground min-w-0 truncate text-sm">
-                                        {video.filename}
+                                        {file.filename}
                                     </span>
-                                    {#if video.size}
-                                        <span class="text-muted-foreground shrink-0 text-xs">
-                                            {formatFileSize(video.size)}
+                                    {#if file.size}
+                                        <span
+                                            class="text-muted-foreground ml-auto shrink-0 text-xs"
+                                        >
+                                            {formatFileSize(file.size)}
                                         </span>
                                     {/if}
-                                    <a
-                                        href={video.url}
-                                        download={video.filename}
-                                        onclick={() =>
-                                            trackFileDownload(boardId, video.filename, 'video')}
-                                        class="text-primary hover:text-primary/80 ml-auto flex shrink-0 items-center gap-1 text-sm font-medium"
-                                    >
-                                        <Download class="h-4 w-4" />
-                                        다운로드
-                                    </a>
-                                </div>
-                            </div>
-                        {/each}
-                    </div>
-                {/if}
-
-                {#if post.images && post.images.length > 0}
-                    <div class="mt-6 grid gap-4">
-                        {#each post.images as image, i (i)}
-                            <img
-                                src={image}
-                                alt="게시글 이미지"
-                                class="max-w-full rounded-lg border"
-                                loading="lazy"
-                            />
-                        {/each}
-                    </div>
-                {/if}
-
-                {#if post.downloads && post.downloads.length > 0}
-                    <div class="mt-6 space-y-2">
-                        <p
-                            class="text-muted-foreground flex items-center gap-1.5 text-sm font-medium"
-                        >
-                            <Paperclip class="h-4 w-4" />
-                            첨부파일
-                        </p>
-                        {#each post.downloads as file, i (i)}
-                            <a
-                                href={file.url}
-                                download={file.filename}
-                                onclick={() => trackFileDownload(boardId, file.filename)}
-                                class="bg-muted/50 hover:bg-muted flex items-center gap-3 rounded-lg border px-4 py-2.5 transition-colors"
-                            >
-                                <Download class="text-muted-foreground h-4 w-4 shrink-0" />
-                                <span class="text-foreground min-w-0 truncate text-sm">
-                                    {file.filename}
-                                </span>
-                                {#if file.size}
-                                    <span class="text-muted-foreground ml-auto shrink-0 text-xs">
-                                        {formatFileSize(file.size)}
-                                    </span>
-                                {/if}
-                            </a>
-                        {/each}
-                    </div>
-                {/if}
+                                </a>
+                            {/each}
+                        </div>
+                    {/if}
+                </ContentBlur>
             </AdultBlur>
 
             {#if post.link1 || post.link2}
