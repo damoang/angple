@@ -136,7 +136,7 @@ function ensureServices() {
         lazyLoad: {
             fetchMarginPercent: 400,
             renderMarginPercent: 150,
-            mobileScaling: 2.0
+            mobileScaling: 0.75
         }
     });
     googletag.pubads().setCentering(true);
