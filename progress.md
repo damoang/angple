@@ -1,5 +1,12 @@
 # Progress
 
+## 2026-03-20 — PC 슬롯 회복용 코드 확대
+
+-   사용자 제보와 코드 분석을 바탕으로, 모바일 대비 PC가 약한 이유를 “강한 슬롯 조건 협소 + 데스크톱 대형 사이즈 고집”으로 정리
+-   `board-view-top`을 `economy`, `used-market` 한정에서 데스크톱 전체 게시글 상세로 확대
+-   `banner-halfpage`를 `300x600` 우선, `300x250` fallback으로 변경해 `sidebar-sticky` fill 여지 확대
+-   현재 기준 PC 회복 1차 수정은 모두 기존 `position` 재사용이어서 GAM 신규 key 없이 우선 적용 가능
+
 ## 2026-03-19 — 데스크톱 빈 슬롯 높이 접기
 
 -   데스크톱에서 광고가 비었을 때 GPT가 empty div를 collapse해도 상위 `AdSlot` 컨테이너가 예약 높이를 유지해 큰 빈 박스가 남는 문제를 확인

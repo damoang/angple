@@ -1,5 +1,31 @@
 # Findings
 
+## 2026-03-20 — PC GAM 회복 1차 하드닝
+
+### 실제 판단
+
+-   모바일이 잘 나오는데 PC만 약한 가장 큰 이유는 데스크톱 전용 강한 슬롯이 너무 좁은 조건에 묶여 있기 때문임
+-   `board-view-top`은 기존에 `economy`, `used-market`에서만 렌더되어 일반 게시판 상세에서는 PC 상단 고가 슬롯이 사실상 비어 있었음
+-   `sidebar-sticky`는 `300x600`만 고집하면 데스크톱 fill이 쉽게 약해질 수 있음
+-   따라서 PC 회복 1차는 “신규 position 추가”보다 “기존 고가 position을 더 넓게, 더 잘 채우게” 만드는 것이 맞음
+
+### 이번 수정
+
+-   `board-view-top`을 데스크톱(`lg` 이상)에서는 일반 게시판 상세에도 표시되도록 확대
+-   `sidebar-sticky`의 `banner-halfpage`를 `300x600` 우선, 불가 시 `300x250` fallback 구조로 변경
+-   현재 `ad-slot.svelte`의 빈 슬롯 높이 접기와 합치면, PC에서는
+    -   상단 슬롯 기회 증가
+    -   사이드 고정 슬롯 fill 완화
+    -   빈 슬롯 공백 체감 축소
+    로 이어지는 구조가 됨
+
+### 설계 판단
+
+-   이 3개는 모두 기존 `position`을 재사용하므로 우선 GAM 신규 key 추가 없이 적용 가능
+-   다만 추후 PC 전용 floor를 더 정교하게 쪼개려면 `board-view-top-desktop`, `header-after-desktop` 같은 신규 position 분리가 필요할 수 있음
+
+---
+
 ## 2026-03-19 — 데스크톱 빈광고 체감 완화
 
 ### 실제 판단

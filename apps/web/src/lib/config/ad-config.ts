@@ -176,7 +176,10 @@ export const AD_CONFIGS: Record<string, AdConfig> = {
             [300, 600],
             [300, 250]
         ],
-        responsive: null
+        responsive: [
+            [1280, [[300, 600]]],
+            [0, [[300, 250]]]
+        ]
     },
     'banner-medium': {
         unit: AD_UNIT_PATHS.sub,
