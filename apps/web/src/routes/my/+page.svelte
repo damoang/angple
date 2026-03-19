@@ -7,6 +7,7 @@
     import { authStore } from '$lib/stores/auth.svelte.js';
     import { getGradeName } from '$lib/utils/grade.js';
     import { getAvatarUrl } from '$lib/utils/member-icon.js';
+    import { LevelBadge } from '$lib/components/ui/level-badge/index.js';
     import MySkeleton from '$lib/components/features/my/my-skeleton.svelte';
     import FileText from '@lucide/svelte/icons/file-text';
     import MessageSquare from '@lucide/svelte/icons/message-square';
@@ -99,7 +100,10 @@
                 </div>
                 <div>
                     <h1 class="text-foreground text-2xl font-bold">{authStore.user.mb_name}</h1>
-                    <p class="text-secondary-foreground">{getGradeName(authStore.user.mb_level)}</p>
+                    <p class="text-secondary-foreground flex items-center gap-1">
+                        <LevelBadge level={authStore.user.as_level ?? 1} size="sm" />
+                        {getGradeName(authStore.user.mb_level)}
+                    </p>
                     <!-- 경험치 게이지: 스트리밍 데이터 도착 후 표시 -->
                     {#await data.streamed?.tabData then result}
                         {#if result.expSummary}
