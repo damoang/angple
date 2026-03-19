@@ -1,5 +1,6 @@
 import { redirect } from '@sveltejs/kit';
 import type { LayoutServerLoad } from './$types';
+import { safeRedirectUrl } from '$lib/server/safe-redirect';
 
 /**
  * Admin 레이아웃 서버 로드
@@ -22,7 +23,7 @@ export const load: LayoutServerLoad = async ({ locals, url }) => {
 
         if (isAdmin) {
             if (isLoginPage) {
-                const redirectTo = url.searchParams.get('redirect') || '/admin';
+                const redirectTo = safeRedirectUrl(url.searchParams.get('redirect'), '/admin');
                 throw redirect(303, redirectTo);
             }
             return { isAdmin: true, authChecked: true, nickname: user.nickname };

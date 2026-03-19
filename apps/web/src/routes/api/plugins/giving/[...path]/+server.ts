@@ -46,7 +46,7 @@ async function proxyRequest(
             headers.set('X-Internal-User-ID', locals.user.id);
             headers.set('X-Internal-User-Level', String(locals.user.level || 0));
             headers.set('X-Internal-Auth', 'sveltekit-session');
-            headers.set('X-Internal-Secret', 'angple-internal-dev-2026');
+            headers.set('X-Internal-Secret', env.INTERNAL_SECRET || '');
         }
 
         // Body 처리

@@ -8,6 +8,7 @@ import { dev } from '$app/environment';
 import { env } from '$env/dynamic/private';
 import { normalizeProviderName, getProvider } from '$lib/server/auth/oauth/provider-registry.js';
 import { resolveOrigin } from '$lib/server/auth/oauth/config.js';
+import { safeRedirectUrl } from '$lib/server/safe-redirect.js';
 import { validateOAuthState } from '$lib/server/auth/oauth/state.js';
 import { findSocialProfile, upsertSocialProfile } from '$lib/server/auth/oauth/social-profile.js';
 import {
@@ -192,8 +193,8 @@ async function handleCallback(
             ...domainOpt
         });
 
-        // 11. 원래 페이지로 리다이렉트
-        redirect(302, stateData.redirect || '/');
+        // 11. 원래 페이지로 리다이렉트 (open redirect 방지)
+        redirect(302, safeRedirectUrl(stateData.redirect));
     } catch (err) {
         // SvelteKit redirect/error는 다시 throw
         if (err && typeof err === 'object' && 'status' in err) {

@@ -97,10 +97,9 @@ export function buildJsonLd(data: JsonLdData[]): string {
         ...item
     }));
 
-    if (wrapped.length === 1) {
-        return JSON.stringify(wrapped[0]);
-    }
-    return JSON.stringify(wrapped);
+    const json = wrapped.length === 1 ? JSON.stringify(wrapped[0]) : JSON.stringify(wrapped);
+    // </script> 주입 방지
+    return json.replace(/<\//g, '<\\/');
 }
 
 /** WebSite JSON-LD 생성 헬퍼 */

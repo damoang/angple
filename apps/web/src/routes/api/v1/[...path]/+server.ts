@@ -256,7 +256,7 @@ async function proxyRequest(
             headers.set('X-Internal-User-ID', locals.user.id);
             headers.set('X-Internal-User-Level', String(locals.user.level || 0));
             headers.set('X-Internal-Auth', 'sveltekit-session');
-            headers.set('X-Internal-Secret', 'angple-internal-dev-2026');
+            headers.set('X-Internal-Secret', env.INTERNAL_SECRET || '');
         }
 
         // Body 처리 (GET, HEAD는 body 없음)
@@ -310,14 +310,7 @@ async function proxyRequest(
             });
         }
 
-        // CORS 헤더 (credentials: include 지원을 위해 구체적인 origin 사용)
-        const origin = request.headers.get('origin');
-        if (origin) {
-            responseHeaders.set('Access-Control-Allow-Origin', origin);
-            responseHeaders.set('Access-Control-Allow-Credentials', 'true');
-        } else {
-            responseHeaders.set('Access-Control-Allow-Origin', '*');
-        }
+        // CORS는 hooks.server.ts에서 통합 처리 (여기서 중복 설정 제거)
         responseHeaders.set(
             'Access-Control-Allow-Methods',
             'GET, POST, PUT, DELETE, PATCH, OPTIONS'
