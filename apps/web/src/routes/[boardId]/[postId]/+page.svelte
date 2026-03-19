@@ -278,6 +278,7 @@
         if (!promise) return;
 
         let cancelled = false;
+        const abortController = new AbortController();
 
         // 네비게이션 시 초기화
         comments = [];
@@ -327,10 +328,13 @@
                 if (browser) {
                     try {
                         const res = await fetch(
-                            `/api/boards/${boardId}/posts/${data.post.id}/comments?page=1&limit=200`
+                            `/api/boards/${boardId}/posts/${data.post.id}/comments?page=1&limit=200`,
+                            { signal: abortController.signal }
                         );
+                        if (cancelled) return;
                         if (res.ok) {
                             const json = await res.json();
+                            if (cancelled) return;
                             if (json.success && json.data) {
                                 comments = json.data.comments || [];
                                 commentsLoaded = true;
@@ -338,6 +342,7 @@
                             }
                         }
                     } catch {
+                        if (cancelled) return;
                         // 재시도도 실패
                     }
                 }
@@ -347,6 +352,7 @@
 
         return () => {
             cancelled = true;
+            abortController.abort();
         };
     });
 
