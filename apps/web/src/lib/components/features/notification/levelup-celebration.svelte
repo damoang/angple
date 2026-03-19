@@ -3,9 +3,9 @@
     import { sseStore } from '$lib/stores/sse.svelte.js';
     import { authStore } from '$lib/stores/auth.svelte.js';
     import { levelupDetect } from '$lib/stores/levelup-detect.svelte.js';
-    import { getGradeName } from '$lib/utils/grade.js';
     import * as Dialog from '$lib/components/ui/dialog/index.js';
     import { Button } from '$lib/components/ui/button/index.js';
+    import { LevelBadge } from '$lib/components/ui/level-badge/index.js';
     import Star from '@lucide/svelte/icons/star';
     import PartyPopper from '@lucide/svelte/icons/party-popper';
 
@@ -79,8 +79,8 @@
 
     onMount(() => {
         // localStorage 기반 레벨업 감지
-        if (authStore.user?.mb_level) {
-            levelupDetect.checkLevelUp(authStore.user.mb_level);
+        if (authStore.user?.as_level) {
+            levelupDetect.checkLevelUp(authStore.user.as_level);
         }
 
         // SSE 보조 리스너 (관리자 수동 승급 시)
@@ -105,7 +105,7 @@
                 <Star class="h-7 w-7 animate-pulse text-yellow-400" />
             </div>
             <Dialog.Title class="text-xl font-bold text-yellow-600 dark:text-yellow-400">
-                등급이 올랐어요!
+                레벨이 올랐어요!
             </Dialog.Title>
             <Dialog.Description class="text-muted-foreground mt-2 text-sm">
                 꾸준히 활동해주셔서 감사합니다
@@ -116,14 +116,20 @@
             <!-- 레벨 표시 -->
             <div class="flex items-center gap-3">
                 {#if levelupDetect.previousLevel > 0}
-                    <span class="text-muted-foreground/50 text-2xl font-bold">
-                        {getGradeName(levelupDetect.previousLevel)}
-                    </span>
+                    <div class="flex items-center gap-1 opacity-50">
+                        <LevelBadge level={levelupDetect.previousLevel} size="md" />
+                        <span class="text-muted-foreground text-2xl font-bold">
+                            Lv.{levelupDetect.previousLevel}
+                        </span>
+                    </div>
                     <span class="text-muted-foreground text-xl">→</span>
                 {/if}
-                <span class="text-4xl font-black text-yellow-500 dark:text-yellow-400">
-                    {getGradeName(levelupDetect.newLevel)}
-                </span>
+                <div class="flex items-center gap-1">
+                    <LevelBadge level={levelupDetect.newLevel} size="md" />
+                    <span class="text-4xl font-black text-yellow-500 dark:text-yellow-400">
+                        Lv.{levelupDetect.newLevel}
+                    </span>
+                </div>
             </div>
 
             <!-- 축하 메시지 -->
