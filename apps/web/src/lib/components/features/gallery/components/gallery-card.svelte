@@ -17,6 +17,9 @@
     }
 
     const isRead = $derived(browser && readPostsStore.isRead(getBoardId(post.url), post.id));
+
+    const rawThumbnailUrl = $derived(post.thumbnail_url || '');
+    const thumbnailUrl = $derived(toThumbnailUrl(rawThumbnailUrl));
 </script>
 
 <a
@@ -25,15 +28,19 @@
 >
     <!-- 16:9 이미지 -->
     <div class="relative aspect-video w-full overflow-hidden">
-        {#if post.thumbnail_url}
+        {#if rawThumbnailUrl}
             <img
-                src={toThumbnailUrl(post.thumbnail_url)}
+                src={thumbnailUrl}
                 loading="lazy"
                 class="h-full w-full object-cover transition-transform duration-200 ease-out group-hover:scale-105"
                 alt={post.title}
                 onerror={(e) => {
                     const target = e.target as HTMLImageElement;
-                    if (target.src !== post.thumbnail_url) target.src = post.thumbnail_url!;
+                    if (rawThumbnailUrl && target.src !== rawThumbnailUrl) {
+                        target.src = rawThumbnailUrl;
+                    } else {
+                        target.style.display = 'none';
+                    }
                 }}
             />
         {:else}

@@ -262,6 +262,28 @@
             tick().then(() => highlightAllCodeBlocks(proseEl));
         }
     });
+
+    // 본문 이미지 data-original 폴백 (최적화된 이미지 로드 실패 시 원본으로 대체)
+    $effect(() => {
+        void renderedHtml;
+        if (!browser || !proseEl) return;
+        tick().then(() => {
+            const imgs = proseEl.querySelectorAll<HTMLImageElement>('img[data-original]');
+            imgs.forEach((img) => {
+                const fallback = () => {
+                    const original = img.getAttribute('data-original');
+                    if (original && img.src !== original) {
+                        img.src = original;
+                    }
+                };
+                img.onerror = fallback;
+                // SSR 이미지가 hydration 전에 이미 에러난 경우 처리
+                if (img.complete && img.naturalWidth === 0) {
+                    fallback();
+                }
+            });
+        });
+    });
 </script>
 
 <div

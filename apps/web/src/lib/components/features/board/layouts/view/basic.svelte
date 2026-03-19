@@ -421,6 +421,10 @@
                                     alt="게시글 이미지"
                                     class="max-w-full rounded-lg border"
                                     loading="lazy"
+                                    onerror={(e) => {
+                                        const target = e.target as HTMLImageElement;
+                                        target.style.display = 'none';
+                                    }}
                                 />
                             {/each}
                         </div>
