@@ -24,14 +24,14 @@
 
 <Card class="gap-0">
     <CardHeader class="flex flex-row items-center justify-between space-y-0 py-3">
-        <div class="flex items-center gap-2">
+        <a href="/economy" class="hover:text-foreground flex items-center gap-2 transition-colors">
             <div
                 class="flex h-7 w-7 items-center justify-center rounded-lg bg-green-100 dark:bg-green-900/30"
             >
                 <ShoppingCart class="h-4 w-4 text-green-500" />
             </div>
             <h3 class="text-foreground text-lg font-semibold">알뜰구매</h3>
-        </div>
+        </a>
         <EconomyTabs bind:activeTab onTabChange={handleTabChange} />
     </CardHeader>
 

@@ -340,6 +340,12 @@ export interface EconomyPost {
     url: string;
     tab: EconomyTabId;
     author?: string;
+    board?: string;
+    board_name?: string;
+    comment_count?: number;
+    view_count?: number;
+    recommend_count?: number;
+    created_at?: string;
 }
 
 export interface EconomyTabsData {
@@ -371,6 +377,11 @@ export interface GroupPost {
     url: string;
     recommend_count: number;
     author: string;
+    board?: string;
+    board_name?: string;
+    comment_count?: number;
+    view_count?: number;
+    created_at?: string;
 }
 
 export interface GroupTabsData {

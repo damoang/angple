@@ -13,12 +13,12 @@
     const { show1H, show3H } = getCurrentTabVisibility();
 
     const tabs: { id: RecommendedPeriod; label: string; hidden?: boolean }[] = [
-        { id: '1h', label: '1시간', hidden: !show1H },
-        { id: '3h', label: '3시간', hidden: !show3H },
-        { id: '6h', label: '6시간' },
-        { id: '12h', label: '12시간' },
-        { id: '24h', label: '24시간' },
-        { id: '48h', label: '48시간' }
+        { id: '1h', label: '1h', hidden: !show1H },
+        { id: '3h', label: '3h', hidden: !show3H },
+        { id: '6h', label: '6h' },
+        { id: '12h', label: '12h' },
+        { id: '24h', label: '24h' },
+        { id: '48h', label: '48h' }
     ];
 
     function handleClick(tabId: RecommendedPeriod) {

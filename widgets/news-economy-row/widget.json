@@ -1,0 +1,12 @@
+{
+    "id": "news-economy-row",
+    "name": "새로운 소식 + 알뜰구매",
+    "version": "1.0.0",
+    "description": "새로운 소식과 알뜰구매를 나란히 표시하는 2컬럼 결합 위젯",
+    "author": { "name": "Angple" },
+    "category": "content",
+    "slots": ["main"],
+    "icon": "Columns2",
+    "allowMultiple": false,
+    "main": "index.svelte"
+}

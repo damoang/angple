@@ -10,9 +10,9 @@
 
     const tabs: { id: GroupTabId; label: string }[] = [
         // { id: 'all', label: '전체글' },
-        { id: '24h', label: '24시간' },
+        { id: '24h', label: '24h' },
         { id: 'week', label: '주간' },
-        { id: 'month', label: '이번 달' }
+        { id: 'month', label: '월간' }
     ];
 
     function handleTabClick(tabId: GroupTabId) {

@@ -24,14 +24,17 @@
 
 <Card class="gap-0">
     <CardHeader class="flex flex-row items-center justify-between gap-2 space-y-0 py-3">
-        <div class="flex shrink-0 items-center gap-2">
+        <a
+            href="/new"
+            class="hover:text-foreground flex shrink-0 items-center gap-2 transition-colors"
+        >
             <div
                 class="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900/30"
             >
                 <Newspaper class="h-4 w-4 text-blue-500" />
             </div>
             <h3 class="text-foreground text-lg font-semibold">새로운 소식</h3>
-        </div>
+        </a>
         <NewsTabs bind:activeTab onTabChange={handleTabChange} />
     </CardHeader>
 

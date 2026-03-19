@@ -1,7 +1,6 @@
 <script lang="ts">
     import type { GroupTabId, GroupTabsData } from '$lib/api/types.js';
     import { Card, CardHeader, CardContent } from '$lib/components/ui/card';
-    import ChevronRight from '@lucide/svelte/icons/chevron-right';
     import { GroupHeader } from './components/header';
     import { GroupTabs } from './components/tabs';
     import { GroupPostList } from './components/post-list';
@@ -26,16 +25,7 @@
 <Card class="gap-0">
     <CardHeader class="flex flex-row items-center justify-between space-y-0 py-3">
         <GroupHeader />
-        <div class="flex items-center gap-2">
-            <GroupTabs bind:activeTab onTabChange={handleTabChange} />
-            <a
-                href="/groups"
-                class="text-muted-foreground hover:text-foreground flex items-center gap-1 text-[15px] transition-all duration-200 ease-out"
-            >
-                더보기
-                <ChevronRight class="h-4 w-4" />
-            </a>
-        </div>
+        <GroupTabs bind:activeTab onTabChange={handleTabChange} />
     </CardHeader>
 
     <CardContent class="">

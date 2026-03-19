@@ -2,7 +2,6 @@
     import type { GalleryPost } from '$lib/api/types.js';
     import { Card, CardHeader, CardContent } from '$lib/components/ui/card';
     import Images from '@lucide/svelte/icons/images';
-    import ChevronRight from '@lucide/svelte/icons/chevron-right';
     import { GalleryCard } from './components';
 
     // Props로 데이터 받기 (SSR 지원)
@@ -15,21 +14,14 @@
 </script>
 
 <Card class="gap-0">
-    <CardHeader class="flex flex-row flex-nowrap items-center justify-between space-y-0 py-3">
-        <div class="flex items-center gap-2">
+    <CardHeader class="flex flex-row flex-nowrap items-center space-y-0 py-3">
+        <a href="/gallery" class="hover:text-foreground flex items-center gap-2 transition-colors">
             <div
                 class="flex h-7 w-7 items-center justify-center rounded-lg bg-purple-100 dark:bg-purple-900/30"
             >
                 <Images class="h-4 w-4 text-purple-500" />
             </div>
             <h3 class="text-foreground text-lg font-semibold">갤러리</h3>
-        </div>
-        <a
-            href="/gallery"
-            class="text-muted-foreground hover:text-foreground flex shrink-0 items-center gap-1 text-[15px] transition-all duration-200 ease-out"
-        >
-            더보기
-            <ChevronRight class="h-4 w-4" />
         </a>
     </CardHeader>
 
