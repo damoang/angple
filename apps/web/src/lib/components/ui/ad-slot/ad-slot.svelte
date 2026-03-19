@@ -45,6 +45,7 @@
     let containerEl: HTMLDivElement | null = null;
     let visibilityObserver: IntersectionObserver | null = null;
     let isBTF = $derived(BTF_POSITIONS.has(position));
+    let isEmpty = $derived(isLoaded && !hasAd);
 
     function getAdConfig(): AdConfig {
         const configKey = POSITION_MAP[position];
@@ -175,18 +176,19 @@
     class="ad-slot-container relative overflow-hidden rounded-lg {className}"
     class:ad-slot-placeholder={!isLoaded}
     class:ad-slot-loaded={isLoaded && hasAd}
+    class:ad-slot-empty={isEmpty}
     class:ad-slot-btf={isBTF}
     style:--ad-slot-min-height={reservedHeights.base}
     style:--ad-slot-min-height-tablet={reservedHeights.tablet}
     style:--ad-slot-min-height-desktop={reservedHeights.desktop}
     style:--ad-slot-intrinsic-size={reservedHeights.desktop}
-    style:min-height="var(--ad-slot-min-height)"
+    style:min-height={isEmpty ? '0px' : 'var(--ad-slot-min-height)'}
 >
     {#if slotId}
         <div
             id={slotId}
             class="gam-ad-slot w-full"
-            style="min-height: var(--ad-slot-min-height);"
+            style:min-height={isEmpty ? '0px' : 'var(--ad-slot-min-height)'}
         ></div>
     {/if}
 
@@ -229,6 +231,12 @@
         background: transparent;
     }
 
+    .ad-slot-empty {
+        min-height: 0 !important;
+        border: 0;
+        background: transparent;
+    }
+
     :global(.dark) .ad-slot-loaded,
     :global(.amoled) .ad-slot-loaded {
         border: 1px solid rgba(255, 255, 255, 0.06);
@@ -248,12 +256,22 @@
         .gam-ad-slot {
             min-height: var(--ad-slot-min-height-tablet);
         }
+
+        .ad-slot-empty,
+        .ad-slot-empty .gam-ad-slot {
+            min-height: 0 !important;
+        }
     }
 
     @media (min-width: 970px) {
         .ad-slot-container,
         .gam-ad-slot {
             min-height: var(--ad-slot-min-height-desktop);
+        }
+
+        .ad-slot-empty,
+        .ad-slot-empty .gam-ad-slot {
+            min-height: 0 !important;
         }
     }
 
