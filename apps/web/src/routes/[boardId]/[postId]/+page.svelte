@@ -582,16 +582,15 @@
         };
     });
 
-    // 초기 추천 상태 + 읽음 표시
+    // 읽음 표시 + GA4 이벤트 — SPA 네비게이션(하단 리스트 클릭)에서도 반응
+    $effect(() => {
+        readPostsStore.markAsRead(boardId, data.post.id);
+        trackPostView(boardId, data.post.id);
+    });
+
     // 조회수: SSR에서 처리 (CDN 요청 제거)
     // 레벨/리액션/추천자 아바타: SSR 스트리밍에서 로드 (CDN 요청 제거)
     onMount(() => {
-        // 읽음 표시 (localStorage)
-        readPostsStore.markAsRead(boardId, data.post.id);
-
-        // GA4: 게시글 조회 이벤트
-        trackPostView(boardId, data.post.id);
-
         // GA4: Scroll Depth 추적 (IntersectionObserver)
         const sentinels = document.querySelectorAll<HTMLElement>('[data-scroll-depth]');
         let cleanupScrollObserver: (() => void) | undefined;

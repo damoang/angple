@@ -104,7 +104,18 @@ export function transformVideos(html: string): string {
             /(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/|live\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/
         );
         if (ytMatch) {
-            return `<div class="embed-container" data-platform="youtube" style="--aspect-ratio: 56.25%; --max-width: 100%;"><iframe src="https://www.youtube-nocookie.com/embed/${ytMatch[1]}" frameborder="0" allowfullscreen allow="autoplay; clipboard-write; encrypted-media; picture-in-picture" style="position:absolute;top:0;left:0;width:100%;height:100%;"></iframe></div>`;
+            const isShorts = url.includes('/shorts/');
+            let embedSrc = `https://www.youtube-nocookie.com/embed/${ytMatch[1]}`;
+            const embedParams: string[] = [];
+            const timeMatch = url.match(/[?&]t=(\d+)/);
+            if (timeMatch) embedParams.push(`start=${timeMatch[1]}`);
+            const listMatch = url.match(/[?&]list=([a-zA-Z0-9_-]+)/);
+            if (listMatch) embedParams.push(`list=${listMatch[1]}`);
+            if (embedParams.length > 0) embedSrc += '?' + embedParams.join('&');
+            const platform = isShorts ? 'youtube-shorts' : 'youtube';
+            const aspectRatio = isShorts ? '177.78%' : '56.25%';
+            const maxWidth = isShorts ? '400px' : '100%';
+            return `<div class="embed-container" data-platform="${platform}" style="--aspect-ratio: ${aspectRatio}; --max-width: ${maxWidth};"><iframe src="${embedSrc}" frameborder="0" allowfullscreen allow="autoplay; clipboard-write; encrypted-media; picture-in-picture" style="position:absolute;top:0;left:0;width:100%;height:100%;"></iframe></div>`;
         }
 
         // Vimeo
