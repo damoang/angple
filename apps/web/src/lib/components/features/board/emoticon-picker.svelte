@@ -200,7 +200,7 @@
                                     <img
                                         src={thumbUrl(item)}
                                         alt={item.file}
-                                        class="size-10 object-contain transition-transform group-hover/emo:z-50 group-hover/emo:scale-[3]"
+                                        class="emoticon-inline size-10 object-contain transition-transform group-hover/emo:z-50 group-hover/emo:scale-[3]"
                                         loading="lazy"
                                     />
                                 </button>

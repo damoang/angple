@@ -1323,7 +1323,7 @@
                             </div>
                         {:else}
                             <div
-                                class="comment-body text-foreground whitespace-pre-wrap leading-normal"
+                                class="comment-body text-foreground overflow-hidden whitespace-pre-wrap break-words leading-normal"
                                 style="font-size: var(--comment-font-size, 1rem);"
                             >
                                 <!-- eslint-disable-next-line svelte/no-at-html-tags -->
