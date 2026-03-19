@@ -68,6 +68,7 @@
     let isSecret = $state(post?.is_secret || false);
     let tags = $state<string[]>(post?.tags || []);
     let link1 = $state(post?.link1 || initialLink1 || '');
+    const isClaimBoard = $derived(boardId === 'claim');
     let link2 = $state(post?.link2 || '');
     let errors = $state<{ title?: string; content?: string; category?: string }>({});
 
@@ -491,22 +492,37 @@
             {/if}
 
             <!-- 제목 입력 -->
-            <div class="space-y-2">
-                <Label for="title">제목 <span class="text-destructive">*</span></Label>
-                <Input
-                    id="title"
-                    type="text"
-                    bind:value={title}
-                    placeholder="제목을 입력하세요"
-                    maxlength={200}
-                    class={errors.title ? 'border-destructive' : ''}
-                    disabled={isLoading}
-                />
-                {#if errors.title}
-                    <p class="text-destructive text-sm">{errors.title}</p>
-                {/if}
-                <p class="text-muted-foreground text-xs">{title.length}/200</p>
-            </div>
+            {#if isClaimBoard}
+                <div class="space-y-2">
+                    <Label for="title">제목</Label>
+                    <Input
+                        id="title"
+                        type="text"
+                        value={title}
+                        readonly
+                        tabindex={-1}
+                        class="bg-muted cursor-not-allowed"
+                    />
+                    <p class="text-muted-foreground text-xs">소명 게시판 제목은 자동 생성됩니다.</p>
+                </div>
+            {:else}
+                <div class="space-y-2">
+                    <Label for="title">제목 <span class="text-destructive">*</span></Label>
+                    <Input
+                        id="title"
+                        type="text"
+                        bind:value={title}
+                        placeholder="제목을 입력하세요"
+                        maxlength={200}
+                        class={errors.title ? 'border-destructive' : ''}
+                        disabled={isLoading}
+                    />
+                    {#if errors.title}
+                        <p class="text-destructive text-sm">{errors.title}</p>
+                    {/if}
+                    <p class="text-muted-foreground text-xs">{title.length}/200</p>
+                </div>
+            {/if}
 
             <!-- 내용 입력 (WYSIWYG 에디터) -->
             <div class="space-y-2">
