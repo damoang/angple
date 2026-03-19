@@ -191,7 +191,7 @@
     const linkedDisciplinelogId = $derived(() => {
         const link = data.post?.link1;
         if (!link) return null;
-        const match = link.match(/^disciplinelog:(\d+)$/);
+        const match = link.match(/^disciplinelog[:/](\d+)$/);
         return match ? match[1] : null;
     });
 
