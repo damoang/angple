@@ -4,9 +4,11 @@
     import type {
         DailyCalendarEntry,
         DailyRecommendedData,
+        RecommendedComment,
         RecommendedPost
     } from '$lib/api/types.js';
     import { PostCard } from '$lib/components/ui/post-card';
+    import CommentCard from './comment-card.svelte';
     import DateNavigator from './date-navigator.svelte';
     import SectionTabs from './section-tabs.svelte';
     import ThresholdFilter from './threshold-filter.svelte';
@@ -40,9 +42,18 @@
         pollData = null;
     });
 
+    let viewMode = $state<'posts' | 'comments'>('posts');
     let activeTab = $state<'all' | 'community' | 'group' | 'info'>('all');
     let threshold = $state(0);
     let sortBy = $state<'recommend' | 'views' | 'comments' | 'latest'>('recommend');
+    const commentSections = $derived(activeData?.comments ?? null);
+    const hasComments = $derived(
+        commentSections != null &&
+            (commentSections.community?.count ?? 0) +
+                (commentSections.group?.count ?? 0) +
+                (commentSections.info?.count ?? 0) >
+                0
+    );
 
     // 필터 + 정렬 적용된 게시글 목록
     const filteredPosts = $derived.by(() => {
@@ -92,16 +103,65 @@
         return posts;
     });
 
-    // 섹션별 글 수 (필터 전)
-    const sectionCounts = $derived({
-        all:
-            (sections?.community.count ?? 0) +
-            (sections?.group.count ?? 0) +
-            (sections?.info.count ?? 0),
-        community: sections?.community.count ?? 0,
-        group: sections?.group.count ?? 0,
-        info: sections?.info.count ?? 0
+    // 필터 + 정렬 적용된 댓글 목록
+    const filteredComments = $derived.by(() => {
+        if (!commentSections) return [];
+
+        let comments: RecommendedComment[] = [];
+
+        if (activeTab === 'all') {
+            const all = [
+                ...(commentSections.community?.comments ?? []),
+                ...(commentSections.group?.comments ?? []),
+                ...(commentSections.info?.comments ?? [])
+            ];
+            const seen = new Set<string>();
+            comments = all.filter((c) => {
+                const key = `${c.id}-${c.board}`;
+                if (seen.has(key)) return false;
+                seen.add(key);
+                return true;
+            });
+        } else {
+            comments = [...(commentSections[activeTab]?.comments ?? [])];
+        }
+
+        if (threshold > 0) {
+            comments = comments.filter((c) => c.recommend_count >= threshold);
+        }
+
+        comments.sort((a, b) => {
+            if (sortBy === 'latest') {
+                return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+            }
+            return b.recommend_count - a.recommend_count;
+        });
+
+        return comments;
     });
+
+    // 섹션별 수 (필터 전)
+    const sectionCounts = $derived(
+        viewMode === 'comments' && commentSections
+            ? {
+                  all:
+                      (commentSections.community?.count ?? 0) +
+                      (commentSections.group?.count ?? 0) +
+                      (commentSections.info?.count ?? 0),
+                  community: commentSections.community?.count ?? 0,
+                  group: commentSections.group?.count ?? 0,
+                  info: commentSections.info?.count ?? 0
+              }
+            : {
+                  all:
+                      (sections?.community.count ?? 0) +
+                      (sections?.group.count ?? 0) +
+                      (sections?.info.count ?? 0),
+                  community: sections?.community.count ?? 0,
+                  group: sections?.group.count ?? 0,
+                  info: sections?.info.count ?? 0
+              }
+    );
 
     // 오늘 데이터 폴링 (5분 간격)
     let pollingTimer: ReturnType<typeof setInterval> | undefined;
@@ -166,40 +226,97 @@
             <DailyStatsBar {stats} />
         {/if}
 
+        <!-- 글/댓글 토글 -->
+        {#if hasComments}
+            <div class="mb-3 flex gap-1">
+                <button
+                    type="button"
+                    class="rounded-md px-3 py-1 text-sm font-medium transition-all {viewMode ===
+                    'posts'
+                        ? 'bg-primary text-primary-foreground'
+                        : 'text-muted-foreground hover:bg-muted hover:text-foreground'}"
+                    onclick={() => (viewMode = 'posts')}
+                >
+                    글
+                </button>
+                <button
+                    type="button"
+                    class="rounded-md px-3 py-1 text-sm font-medium transition-all {viewMode ===
+                    'comments'
+                        ? 'bg-primary text-primary-foreground'
+                        : 'text-muted-foreground hover:bg-muted hover:text-foreground'}"
+                    onclick={() => (viewMode = 'comments')}
+                >
+                    댓글
+                </button>
+            </div>
+        {/if}
+
         <!-- 필터 영역 -->
         <div class="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <SectionTabs bind:activeTab counts={sectionCounts} />
             <div class="flex items-center gap-2">
                 <ThresholdFilter bind:threshold />
-                <SortSelector bind:sortBy />
+                {#if viewMode === 'posts'}
+                    <SortSelector bind:sortBy />
+                {/if}
             </div>
         </div>
 
         <!-- 게시글 목록 -->
-        {#if filteredPosts.length > 0}
-            <ul class="grid grid-cols-1 gap-0 lg:grid-cols-2 lg:gap-x-4">
-                {#each filteredPosts as post (post.id + '-' + post.board)}
-                    <PostCard {post} />
-                {/each}
-            </ul>
-            <p class="text-muted-foreground mt-3 text-center text-xs">
-                {filteredPosts.length}건 표시
-                {#if threshold > 0}
-                    (추천 {threshold}+ 필터 적용)
-                {/if}
-            </p>
-        {:else}
-            <div
-                class="flex flex-col items-center justify-center rounded-lg border py-12 text-center"
-            >
-                <p class="text-muted-foreground text-sm">
+        {#if viewMode === 'posts'}
+            {#if filteredPosts.length > 0}
+                <ul class="grid grid-cols-1 gap-0 lg:grid-cols-2 lg:gap-x-4">
+                    {#each filteredPosts as post (post.id + '-' + post.board)}
+                        <PostCard {post} />
+                    {/each}
+                </ul>
+                <p class="text-muted-foreground mt-3 text-center text-xs">
+                    {filteredPosts.length}건 표시
                     {#if threshold > 0}
-                        추천 {threshold}건 이상 글이 없습니다. 필터를 낮춰보세요.
-                    {:else}
-                        이 섹션에 글이 없습니다.
+                        (추천 {threshold}+ 필터 적용)
                     {/if}
                 </p>
-            </div>
+            {:else}
+                <div
+                    class="flex flex-col items-center justify-center rounded-lg border py-12 text-center"
+                >
+                    <p class="text-muted-foreground text-sm">
+                        {#if threshold > 0}
+                            추천 {threshold}건 이상 글이 없습니다. 필터를 낮춰보세요.
+                        {:else}
+                            이 섹션에 글이 없습니다.
+                        {/if}
+                    </p>
+                </div>
+            {/if}
+        {:else}
+            <!-- 댓글 목록 -->
+            {#if filteredComments.length > 0}
+                <ul class="grid grid-cols-1 gap-0 lg:grid-cols-2 lg:gap-x-4">
+                    {#each filteredComments as comment (comment.id + '-' + comment.board)}
+                        <CommentCard {comment} />
+                    {/each}
+                </ul>
+                <p class="text-muted-foreground mt-3 text-center text-xs">
+                    {filteredComments.length}건 표시
+                    {#if threshold > 0}
+                        (추천 {threshold}+ 필터 적용)
+                    {/if}
+                </p>
+            {:else}
+                <div
+                    class="flex flex-col items-center justify-center rounded-lg border py-12 text-center"
+                >
+                    <p class="text-muted-foreground text-sm">
+                        {#if threshold > 0}
+                            추천 {threshold}건 이상 댓글이 없습니다. 필터를 낮춰보세요.
+                        {:else}
+                            이 섹션에 공감 댓글이 없습니다.
+                        {/if}
+                    </p>
+                </div>
+            {/if}
         {/if}
 
         <div class="mt-6">
