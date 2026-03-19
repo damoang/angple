@@ -50,7 +50,7 @@ export const tiktok: EmbedPlatform = {
 			src="${embedUrl}"
 			title="TikTok video"
 			frameborder="0"
-			allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+			allow="autoplay; clipboard-write; encrypted-media; picture-in-picture"
 			allowfullscreen
 		></iframe>`;
     }
