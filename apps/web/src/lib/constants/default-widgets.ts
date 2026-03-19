@@ -11,48 +11,41 @@ import type { WidgetConfig } from '$lib/stores/widget-layout.svelte';
 
 /** 기본 메인 위젯 레이아웃 */
 export const DEFAULT_WIDGETS: WidgetConfig[] = [
-    {
-        id: 'ad-head',
-        type: 'ad-slot',
-        position: 0,
-        enabled: true,
-        settings: { position: 'index-head' }
-    },
-    { id: 'tag-nav', type: 'tag-nav', position: 1, enabled: true },
-    { id: 'recommended', type: 'recommended', position: 2, enabled: true },
-    { id: 'explore', type: 'explore', position: 3, enabled: true },
+    { id: 'tag-nav', type: 'tag-nav', position: 0, enabled: true },
+    { id: 'recommended', type: 'recommended', position: 1, enabled: true },
+    { id: 'explore', type: 'explore', position: 2, enabled: true },
     {
         id: 'ad-top',
         type: 'ad-slot',
-        position: 4,
+        position: 3,
         enabled: true,
         settings: { position: 'index-top' }
     },
     {
         id: 'new-board',
         type: 'post-list',
-        position: 5,
+        position: 4,
         enabled: true,
         settings: { boardId: 'notice', layout: 'list', sortBy: 'date', count: 10, showTitle: true }
     },
     {
         id: 'economy',
         type: 'post-list',
-        position: 6,
+        position: 5,
         enabled: true,
         settings: { boardId: 'economy', layout: 'list', sortBy: 'date', count: 10, showTitle: true }
     },
     {
         id: 'ad-middle-1',
         type: 'ad-slot',
-        position: 7,
+        position: 6,
         enabled: true,
         settings: { position: 'index-middle-1' }
     },
     {
         id: 'gallery',
         type: 'post-list',
-        position: 8,
+        position: 7,
         enabled: true,
         settings: {
             boardId: 'gallery',
@@ -61,6 +54,13 @@ export const DEFAULT_WIDGETS: WidgetConfig[] = [
             count: 12,
             showTitle: true
         }
+    },
+    {
+        id: 'ad-middle-2',
+        type: 'ad-slot',
+        position: 8,
+        enabled: true,
+        settings: { position: 'index-middle-2' }
     },
     {
         id: 'group',
