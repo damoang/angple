@@ -11,19 +11,21 @@ export const GAM_SITE_NAME = import.meta.env.VITE_GAM_SITE_NAME || 'default';
 // Ad Manager UI의 refresh declaration과 동일하게 맞춰야 합니다.
 // 기본값은 30초이며, 실제 운영값도 env와 Ad Manager 설정을 함께 맞춰야 합니다.
 export const GAM_AD_REFRESH_INTERVAL = Number(import.meta.env.VITE_GAM_AD_REFRESH_INTERVAL || 30); // 초
-export const GAM_AD_EMPTY_RETRY_DELAY = 60; // 초
+export const GAM_AD_EMPTY_RETRY_DELAY = 30; // 초
 
 // 광고 단위 경로 (환경변수로 커스터마이징 가능)
 const unitMain = import.meta.env.VITE_GAM_UNIT_MAIN || 'banner-responsive_main';
 const unitSub = import.meta.env.VITE_GAM_UNIT_SUB || 'banner-responsive_sub';
 const unitCuration = import.meta.env.VITE_GAM_UNIT_CURATION || 'banner-responsive_curation';
 const unitArticle = import.meta.env.VITE_GAM_UNIT_ARTICLE || 'banner-responsive_article';
+const unitWing = import.meta.env.VITE_GAM_UNIT_WING || 'banner-responsive_wing';
 
 export const AD_UNIT_PATHS: Record<string, string> = {
     main: `/${GAM_NETWORK_CODE}/${GAM_SITE_NAME}/${unitMain}`,
     sub: `/${GAM_NETWORK_CODE}/${GAM_SITE_NAME}/${unitSub}`,
     curation: `/${GAM_NETWORK_CODE}/${GAM_SITE_NAME}/${unitCuration}`,
-    article: `/${GAM_NETWORK_CODE}/${GAM_SITE_NAME}/${unitArticle}`
+    article: `/${GAM_NETWORK_CODE}/${GAM_SITE_NAME}/${unitArticle}`,
+    wing: `/${GAM_NETWORK_CODE}/${GAM_SITE_NAME}/${unitWing}`
 };
 
 // 광고 유형별 설정
@@ -291,7 +293,7 @@ export const AD_CONFIGS: Record<string, AdConfig> = {
         ]
     },
     'banner-vertical': {
-        unit: AD_UNIT_PATHS.sub,
+        unit: AD_UNIT_PATHS.wing,
         sizes: [[160, 600]],
         responsive: null
     }
