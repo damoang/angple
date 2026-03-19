@@ -36,6 +36,7 @@
         attachments?: FileAttachment[]; // 기존 첨부파일 (수정 시)
         initialTitle?: string; // 초기 제목 (소명 등)
         initialLink1?: string; // 초기 link1 값 (disciplinelog_id 등)
+        initialContent?: string; // 초기 본문 (소명 등)
         onSubmit: (data: CreatePostRequest | UpdatePostRequest) => Promise<void>;
         onCancel: () => void;
         isLoading?: boolean;
@@ -50,6 +51,7 @@
         attachments = [],
         initialTitle = '',
         initialLink1 = '',
+        initialContent = '',
         onSubmit,
         onCancel,
         isLoading = false
@@ -61,7 +63,7 @@
 
     // 폼 상태 (post prop은 ssr=false이므로 초기 렌더 시 이미 사용 가능)
     let title = $state(post?.title || initialTitle || '');
-    let content = $state(post?.content || '');
+    let content = $state(post?.content || initialContent || '');
     let category = $state(post?.category || '');
     let isSecret = $state(post?.is_secret || false);
     let tags = $state<string[]>(post?.tags || []);

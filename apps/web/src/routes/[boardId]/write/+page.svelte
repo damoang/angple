@@ -19,6 +19,11 @@
     const disciplinelogId = $derived($page.url.searchParams.get('disciplinelog_id') ?? '');
     const claimInitialTitle = $derived(disciplinelogId ? `[소명 #${disciplinelogId}]` : '');
     const claimInitialLink1 = $derived(disciplinelogId ? `disciplinelog/${disciplinelogId}` : '');
+    const claimInitialContent = $derived(
+        disciplinelogId
+            ? `<p>관련 이용제한 기록: <a href="/disciplinelog/${disciplinelogId}">이용제한 기록 #${disciplinelogId}</a></p><p></p>`
+            : ''
+    );
 
     // 게시판 정보
     const boardId = $derived(data.boardId);
@@ -195,6 +200,7 @@
                 categories={data.categories}
                 initialTitle={claimInitialTitle}
                 initialLink1={claimInitialLink1}
+                initialContent={claimInitialContent}
                 onSubmit={handleSubmit}
                 onCancel={handleCancel}
                 isLoading={isSubmitting}
