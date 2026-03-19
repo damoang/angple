@@ -28,9 +28,11 @@ import { verifyTurnstile } from '$lib/server/captcha.js';
 import { checkRateLimit, recordAttempt } from '$lib/server/rate-limit.js';
 import { getCertConfig } from '$lib/server/auth/cert-inicis.js';
 import { getContent, getSiteTitle, replaceContentVariables } from '$lib/server/content.js';
+import { sanitizePostContent } from '$lib/server/sanitize.js';
 import { grantLoginXP } from '$lib/server/auth/xp-grant.js';
 import { grantLoginPoint } from '$lib/server/auth/point-grant.js';
 import { env } from '$env/dynamic/private';
+import { safeRedirectUrl } from '$lib/server/safe-redirect.js';
 
 const COOKIE_DOMAIN = env.COOKIE_DOMAIN || undefined;
 const AUTH_EVENT_COOKIE = 'ga4_auth_event';
@@ -72,15 +74,17 @@ export const load: PageServerLoad = async ({ url, cookies }) => {
         displayName: socialProfile.displayName || '',
         redirectUrl,
         isInviteFlow,
-        termsHtml: termsContent ? replaceContentVariables(termsContent.co_content, siteTitle) : '',
+        termsHtml: termsContent
+            ? sanitizePostContent(replaceContentVariables(termsContent.co_content, siteTitle))
+            : '',
         privacyHtml: privacyContent
-            ? replaceContentVariables(privacyContent.co_content, siteTitle)
+            ? sanitizePostContent(replaceContentVariables(privacyContent.co_content, siteTitle))
             : '',
         policyHtml: policyContent
-            ? replaceContentVariables(policyContent.co_content, siteTitle)
+            ? sanitizePostContent(replaceContentVariables(policyContent.co_content, siteTitle))
             : '',
         contractHtml: contractContent
-            ? replaceContentVariables(contractContent.co_content, siteTitle)
+            ? sanitizePostContent(replaceContentVariables(contractContent.co_content, siteTitle))
             : ''
     };
 };
@@ -93,7 +97,7 @@ export const actions: Actions = {
         const nickname = (formData.get('nickname') as string)?.trim() || '';
         const agreeTerms = formData.get('agree_terms') === 'on';
         const agreePrivacy = formData.get('agree_privacy') === 'on';
-        const redirectUrl = (formData.get('redirect') as string) || '/';
+        const redirectUrl = safeRedirectUrl(formData.get('redirect') as string);
 
         // Rate limit 체크 (5회/시간)
         const rateCheck = checkRateLimit(clientIp, 'register', 5, 60 * 60 * 1000);

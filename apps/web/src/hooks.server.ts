@@ -62,6 +62,28 @@ import {
 // 쿠키 도메인: 서브도메인 간 공유 (예: ".damoang.net")
 const COOKIE_DOMAIN = env.COOKIE_DOMAIN || '';
 
+// CORS 허용 origin (credentials 포함 요청만 제한)
+function isAllowedOrigin(origin: string): boolean {
+    try {
+        const url = new URL(origin);
+        const host = url.hostname;
+        // 같은 사이트 + 서브도메인 허용
+        if (
+            host === 'damoang.net' ||
+            host.endsWith('.damoang.net') ||
+            host === 'localhost' ||
+            host === '127.0.0.1'
+        ) {
+            return true;
+        }
+        // 환경변수로 추가 origin 허용
+        const extra = env.ALLOWED_ORIGINS?.split(',').map((s: string) => s.trim()) || [];
+        return extra.includes(origin);
+    } catch {
+        return false;
+    }
+}
+
 // CSP에 추가할 사이트별 도메인 (런타임 환경변수)
 const ADS_URL = env.ADS_URL || '';
 const LEGACY_URL = env.LEGACY_URL || '';
@@ -666,13 +688,11 @@ export const handle: Handle = async ({ event, resolve }) => {
         }
     });
 
-    // CORS 헤더 (credentials: include 지원)
+    // CORS 헤더 (허용된 origin만 credentials 허용)
     const origin = event.request.headers.get('origin');
-    if (origin) {
+    if (origin && isAllowedOrigin(origin)) {
         response.headers.set('Access-Control-Allow-Origin', origin);
         response.headers.set('Access-Control-Allow-Credentials', 'true');
-    } else {
-        response.headers.set('Access-Control-Allow-Origin', '*');
     }
     response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
     response.headers.set(
