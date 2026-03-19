@@ -7,6 +7,9 @@
 export function toThumbnailUrl(url: string | undefined | null, size = '400x225'): string {
     if (!url) return '';
 
+    // 이미 썸네일 URL이면 이중 변환 방지
+    if (/-\d+x\d+\.webp$/i.test(url)) return url;
+
     // data/file/ 또는 data/editor/ S3 URL → Lambda 썸네일 변환
     const match = url.match(
         /^(https?:\/\/s3\.damoang\.net\/data\/(?:file|editor)\/.+)\.(jpg|jpeg|png|gif|webp)$/i

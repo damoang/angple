@@ -40,10 +40,10 @@
     const isDeleted = $derived(!!post.deleted_at);
 
     // 썸네일 표시 여부
-    const showThumbnail = $derived(
-        displaySettings?.show_thumbnail && post.images && post.images.length > 0
+    const rawThumbnailUrl = $derived(
+        post.thumbnail_raw || post.thumbnail || post.images?.[0] || ''
     );
-    const rawThumbnailUrl = $derived(post.images?.[0] || '');
+    const showThumbnail = $derived(displaySettings?.show_thumbnail && !!rawThumbnailUrl);
     const thumbnailUrl = $derived(toThumbnailUrl(rawThumbnailUrl));
 </script>
 

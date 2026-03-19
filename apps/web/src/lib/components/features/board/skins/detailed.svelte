@@ -4,6 +4,7 @@
     import type { FreePost, BoardDisplaySettings } from '$lib/api/types.js';
     import Lock from '@lucide/svelte/icons/lock';
     import { formatDate } from '$lib/utils/format-date.js';
+    import { toThumbnailUrl } from '$lib/utils/thumbnail-url.js';
 
     // Props
     let {
@@ -17,7 +18,10 @@
     } = $props();
 
     // 썸네일 이미지 추출 (첫 번째 이미지)
-    const thumbnailUrl = $derived(post.images && post.images.length > 0 ? post.images[0] : null);
+    const rawThumbnailUrl = $derived(
+        post.thumbnail_raw || post.thumbnail || post.images?.[0] || ''
+    );
+    const thumbnailUrl = $derived(toThumbnailUrl(rawThumbnailUrl));
 </script>
 
 <!-- Detailed 스킨: 제목 + 본문 미리보기 4-5줄 + 썸네일 + 메타데이터 + 태그 (뉴스 스타일) -->
@@ -63,7 +67,7 @@
     <CardContent>
         <div class="flex gap-4">
             <!-- 좌측: 썸네일 (있을 경우) -->
-            {#if thumbnailUrl && displaySettings?.show_thumbnail !== false}
+            {#if rawThumbnailUrl && displaySettings?.show_thumbnail !== false}
                 <div class="bg-muted relative h-32 w-32 shrink-0 overflow-hidden rounded-md">
                     <img
                         src={thumbnailUrl}
@@ -71,7 +75,11 @@
                         class="h-full w-full object-cover"
                         onerror={(e) => {
                             const target = e.target as HTMLImageElement;
-                            target.style.display = 'none';
+                            if (rawThumbnailUrl && target.src !== rawThumbnailUrl) {
+                                target.src = rawThumbnailUrl;
+                            } else {
+                                target.style.display = 'none';
+                            }
                         }}
                     />
                 </div>

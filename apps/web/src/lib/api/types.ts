@@ -41,7 +41,8 @@ export interface FreePost {
     is_notice?: boolean; // 공지사항 여부
     notice_type?: 'normal' | 'important'; // 공지 타입 (일반/필수)
     is_adult?: boolean; // 19금 콘텐츠 여부
-    thumbnail?: string; // 썸네일 URL
+    thumbnail?: string; // 썸네일 URL (Lambda 리사이즈)
+    thumbnail_raw?: string; // 원본 이미지 URL (폴백용)
     link1?: string; // 링크1 (동영상 URL 등, 제휴 변환 시 /go 리다이렉트 URL)
     link2?: string; // 링크2 (제휴 변환 시 /go 리다이렉트 URL)
     link1_display?: string; // 링크1 원본 URL (표시용)

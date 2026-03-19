@@ -8,6 +8,7 @@
     import { loadPluginComponent } from '$lib/utils/plugin-optional-loader';
     import { formatDate } from '$lib/utils/format-date.js';
     import { uiSettingsStore } from '$lib/stores/ui-settings.svelte.js';
+    import { toThumbnailUrl } from '$lib/utils/thumbnail-url.js';
 
     let memoPluginActive = $derived(pluginStore.isPluginActive('member-memo'));
 
@@ -32,10 +33,11 @@
     } = $props();
 
     // 썸네일 표시 여부
-    const showThumbnail = $derived(
-        displaySettings?.show_thumbnail && post.images && post.images.length > 0
+    const rawThumbnailUrl = $derived(
+        post.thumbnail_raw || post.thumbnail || post.images?.[0] || ''
     );
-    const thumbnailUrl = $derived(post.images?.[0] || '');
+    const thumbnailUrl = $derived(toThumbnailUrl(rawThumbnailUrl));
+    const showThumbnail = $derived(displaySettings?.show_thumbnail && !!rawThumbnailUrl);
 </script>
 
 <!-- Card 스킨: 제목 + 본문 미리보기 2줄 + 메타데이터 + 태그 -->
@@ -53,7 +55,11 @@
                     class="h-full w-full object-cover"
                     onerror={(e) => {
                         const target = e.target as HTMLImageElement;
-                        target.style.display = 'none';
+                        if (rawThumbnailUrl && target.src !== rawThumbnailUrl) {
+                            target.src = rawThumbnailUrl;
+                        } else {
+                            target.style.display = 'none';
+                        }
                     }}
                 />
             </div>

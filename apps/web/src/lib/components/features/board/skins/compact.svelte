@@ -4,6 +4,7 @@
     import Lock from '@lucide/svelte/icons/lock';
     import ImageIcon from '@lucide/svelte/icons/image';
     import { formatDate } from '$lib/utils/format-date.js';
+    import { toThumbnailUrl } from '$lib/utils/thumbnail-url.js';
 
     // Props
     let {
@@ -17,10 +18,11 @@
     } = $props();
 
     // 썸네일 표시 여부
-    const showThumbnail = $derived(
-        displaySettings?.show_thumbnail && post.images && post.images.length > 0
+    const rawThumbnailUrl = $derived(
+        post.thumbnail_raw || post.thumbnail || post.images?.[0] || ''
     );
-    const thumbnailUrl = $derived(post.images?.[0] || '');
+    const thumbnailUrl = $derived(toThumbnailUrl(rawThumbnailUrl));
+    const showThumbnail = $derived(displaySettings?.show_thumbnail && !!rawThumbnailUrl);
 </script>
 
 <!-- Compact 스킨: 제목 + 메타데이터 + 태그만 (심플) -->
@@ -41,7 +43,11 @@
                     class="h-full w-full object-cover"
                     onerror={(e) => {
                         const target = e.target as HTMLImageElement;
-                        target.style.display = 'none';
+                        if (rawThumbnailUrl && target.src !== rawThumbnailUrl) {
+                            target.src = rawThumbnailUrl;
+                        } else {
+                            target.style.display = 'none';
+                        }
                     }}
                 />
             </div>
