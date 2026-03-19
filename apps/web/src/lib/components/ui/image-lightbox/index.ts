@@ -41,7 +41,9 @@ export function attachLightbox(container: HTMLElement): () => void {
         // 기존 핸들러 정리
         cleanup();
 
-        const imgs = container.querySelectorAll<HTMLImageElement>('img:not(.emoticon-inline)');
+        const imgs = container.querySelectorAll<HTMLImageElement>(
+            'img:not(.emoticon-inline):not(button img)'
+        );
         if (imgs.length === 0) return;
 
         // 이미지 목록 구성 (data-original 우선, 없으면 src)
@@ -55,6 +57,8 @@ export function attachLightbox(container: HTMLElement): () => void {
             img.style.cursor = 'zoom-in';
 
             const handler = (e: Event) => {
+                const target = e.currentTarget as HTMLElement;
+                if (target.closest('button, a, [role="button"]')) return;
                 e.preventDefault();
                 e.stopPropagation();
                 const lightbox = getLightbox();
@@ -74,9 +78,11 @@ export function attachLightbox(container: HTMLElement): () => void {
         handlers.length = 0;
     }
 
-    // MutationObserver로 동적 콘텐츠 변경 감지
+    // MutationObserver로 동적 콘텐츠 변경 감지 (디바운스)
+    let debounceTimer: ReturnType<typeof setTimeout>;
     const observer = new MutationObserver(() => {
-        setup();
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(setup, 100);
     });
 
     observer.observe(container, { childList: true, subtree: true });
