@@ -11,7 +11,7 @@ export const GAM_SITE_NAME = import.meta.env.VITE_GAM_SITE_NAME || 'default';
 // Ad Manager UI의 refresh declaration과 동일하게 맞춰야 합니다.
 // 기본값은 30초이며, 실제 운영값도 env와 Ad Manager 설정을 함께 맞춰야 합니다.
 export const GAM_AD_REFRESH_INTERVAL = Number(import.meta.env.VITE_GAM_AD_REFRESH_INTERVAL || 30); // 초
-export const GAM_AD_EMPTY_RETRY_DELAY = 60; // 초
+export const GAM_AD_EMPTY_RETRY_DELAY = 30; // 초
 
 // 광고 단위 경로 (환경변수로 커스터마이징 가능)
 const unitMain = import.meta.env.VITE_GAM_UNIT_MAIN || 'banner-responsive_main';
@@ -40,8 +40,8 @@ export const AD_CONFIGS: Record<string, AdConfig> = {
             [970, 250],
             [970, 90],
             [728, 90],
-            [320, 100],
-            [300, 250]
+            [300, 250],
+            [320, 100]
         ],
         responsive: [
             [
@@ -52,7 +52,13 @@ export const AD_CONFIGS: Record<string, AdConfig> = {
                     [728, 90]
                 ]
             ],
-            [728, [[728, 90]]],
+            [
+                728,
+                [
+                    [728, 90],
+                    [300, 250]
+                ]
+            ],
             [
                 0,
                 [
@@ -68,8 +74,8 @@ export const AD_CONFIGS: Record<string, AdConfig> = {
             [970, 250],
             [970, 90],
             [728, 90],
-            [320, 100],
-            [300, 250]
+            [300, 250],
+            [320, 100]
         ],
         responsive: [
             [
@@ -79,7 +85,13 @@ export const AD_CONFIGS: Record<string, AdConfig> = {
                     [970, 90]
                 ]
             ],
-            [728, [[728, 90]]],
+            [
+                728,
+                [
+                    [728, 90],
+                    [300, 250]
+                ]
+            ],
             [
                 0,
                 [
@@ -93,10 +105,17 @@ export const AD_CONFIGS: Record<string, AdConfig> = {
         unit: AD_UNIT_PATHS.article,
         sizes: [
             [728, 90],
+            [300, 250],
             [320, 100]
         ],
         responsive: [
-            [728, [[728, 90]]],
+            [
+                728,
+                [
+                    [728, 90],
+                    [300, 250]
+                ]
+            ],
             [0, [[320, 100]]]
         ]
     },
@@ -104,11 +123,17 @@ export const AD_CONFIGS: Record<string, AdConfig> = {
         unit: AD_UNIT_PATHS.article,
         sizes: [
             [728, 90],
-            [320, 100],
-            [300, 250]
+            [300, 250],
+            [320, 100]
         ],
         responsive: [
-            [728, [[728, 90]]],
+            [
+                728,
+                [
+                    [728, 90],
+                    [300, 250]
+                ]
+            ],
             [
                 0,
                 [
@@ -122,11 +147,17 @@ export const AD_CONFIGS: Record<string, AdConfig> = {
         unit: AD_UNIT_PATHS.sub,
         sizes: [
             [728, 90],
-            [320, 100],
-            [300, 250]
+            [300, 250],
+            [320, 100]
         ],
         responsive: [
-            [728, [[728, 90]]],
+            [
+                728,
+                [
+                    [728, 90],
+                    [300, 250]
+                ]
+            ],
             [
                 0,
                 [
@@ -140,10 +171,17 @@ export const AD_CONFIGS: Record<string, AdConfig> = {
         unit: AD_UNIT_PATHS.sub,
         sizes: [
             [728, 90],
+            [300, 250],
             [320, 100]
         ],
         responsive: [
-            [728, [[728, 90]]],
+            [
+                728,
+                [
+                    [728, 90],
+                    [300, 250]
+                ]
+            ],
             [0, [[320, 100]]]
         ]
     },
@@ -151,10 +189,17 @@ export const AD_CONFIGS: Record<string, AdConfig> = {
         unit: AD_UNIT_PATHS.sub,
         sizes: [
             [728, 90],
+            [300, 250],
             [320, 100]
         ],
         responsive: [
-            [728, [[728, 90]]],
+            [
+                728,
+                [
+                    [728, 90],
+                    [300, 250]
+                ]
+            ],
             [0, [[320, 100]]]
         ]
     },
@@ -180,11 +225,17 @@ export const AD_CONFIGS: Record<string, AdConfig> = {
         unit: AD_UNIT_PATHS.sub,
         sizes: [
             [728, 90],
-            [320, 100],
-            [300, 250]
+            [300, 250],
+            [320, 100]
         ],
         responsive: [
-            [728, [[728, 90]]],
+            [
+                728,
+                [
+                    [728, 90],
+                    [300, 250]
+                ]
+            ],
             [
                 0,
                 [
@@ -198,10 +249,17 @@ export const AD_CONFIGS: Record<string, AdConfig> = {
         unit: AD_UNIT_PATHS.sub,
         sizes: [
             [728, 90],
+            [300, 250],
             [320, 100]
         ],
         responsive: [
-            [728, [[728, 90]]],
+            [
+                728,
+                [
+                    [728, 90],
+                    [300, 250]
+                ]
+            ],
             [0, [[320, 100]]]
         ]
     },
@@ -211,6 +269,7 @@ export const AD_CONFIGS: Record<string, AdConfig> = {
             [970, 250],
             [970, 90],
             [728, 90],
+            [300, 250],
             [320, 100]
         ],
         responsive: [
@@ -221,7 +280,13 @@ export const AD_CONFIGS: Record<string, AdConfig> = {
                     [970, 90]
                 ]
             ],
-            [728, [[728, 90]]],
+            [
+                728,
+                [
+                    [728, 90],
+                    [300, 250]
+                ]
+            ],
             [0, [[320, 100]]]
         ]
     },
@@ -229,11 +294,17 @@ export const AD_CONFIGS: Record<string, AdConfig> = {
         unit: AD_UNIT_PATHS.main,
         sizes: [
             [728, 90],
-            [320, 100],
-            [300, 250]
+            [300, 250],
+            [320, 100]
         ],
         responsive: [
-            [728, [[728, 90]]],
+            [
+                728,
+                [
+                    [728, 90],
+                    [300, 250]
+                ]
+            ],
             [
                 0,
                 [
@@ -247,11 +318,17 @@ export const AD_CONFIGS: Record<string, AdConfig> = {
         unit: AD_UNIT_PATHS.article,
         sizes: [
             [728, 90],
-            [320, 100],
-            [300, 250]
+            [300, 250],
+            [320, 100]
         ],
         responsive: [
-            [728, [[728, 90]]],
+            [
+                728,
+                [
+                    [728, 90],
+                    [300, 250]
+                ]
+            ],
             [
                 0,
                 [
@@ -265,11 +342,17 @@ export const AD_CONFIGS: Record<string, AdConfig> = {
         unit: AD_UNIT_PATHS.curation,
         sizes: [
             [728, 90],
-            [320, 100],
-            [300, 250]
+            [300, 250],
+            [320, 100]
         ],
         responsive: [
-            [728, [[728, 90]]],
+            [
+                728,
+                [
+                    [728, 90],
+                    [300, 250]
+                ]
+            ],
             [
                 0,
                 [
@@ -283,16 +366,26 @@ export const AD_CONFIGS: Record<string, AdConfig> = {
         unit: AD_UNIT_PATHS.curation,
         sizes: [
             [728, 90],
+            [300, 250],
             [320, 100]
         ],
         responsive: [
-            [728, [[728, 90]]],
+            [
+                728,
+                [
+                    [728, 90],
+                    [300, 250]
+                ]
+            ],
             [0, [[320, 100]]]
         ]
     },
     'banner-vertical': {
         unit: AD_UNIT_PATHS.sub,
-        sizes: [[160, 600]],
+        sizes: [
+            [160, 600],
+            [120, 600]
+        ],
         responsive: null
     }
 };

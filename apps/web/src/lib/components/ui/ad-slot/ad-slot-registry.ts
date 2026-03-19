@@ -132,10 +132,12 @@ function ensureServices() {
 
     googletag.pubads().collapseEmptyDivs();
     googletag.pubads().enableSingleRequest();
-    googletag.pubads().enableLazyLoad({
-        fetchMarginPercent: 150,
-        renderMarginPercent: 75,
-        mobileScaling: 1.5
+    googletag.setConfig({
+        lazyLoad: {
+            fetchMarginPercent: 400,
+            renderMarginPercent: 150,
+            mobileScaling: 2.0
+        }
     });
     googletag.pubads().setCentering(true);
     googletag.pubads().setTargeting('site', GAM_SITE_NAME);

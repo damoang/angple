@@ -117,7 +117,7 @@
         if (detached) return;
         isLoaded = true;
         hasAd = !isEmpty;
-        onSlotRendered(slotId, isEmpty, GAM_AD_EMPTY_RETRY_DELAY * 1000, 2);
+        onSlotRendered(slotId, isEmpty, GAM_AD_EMPTY_RETRY_DELAY * 1000, 4);
     }
 
     async function initAdSlot() {
@@ -151,7 +151,7 @@
             config,
             refreshIntervalMs: GAM_AD_REFRESH_INTERVAL * 1000,
             emptyRetryDelayMs: GAM_AD_EMPTY_RETRY_DELAY * 1000,
-            maxEmptyRetries: 2,
+            maxEmptyRetries: 4,
             onRender: handleRender
         });
     }
