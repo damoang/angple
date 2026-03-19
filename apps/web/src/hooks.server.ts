@@ -161,6 +161,22 @@ const CSRF_EXEMPT_PATHS = [
     '/cert/inicis/result' // KG이니시스 인증 콜백 (외부 POST)
 ];
 
+/**
+ * 클라이언트 IP 안전 조회
+ *
+ * adapter-node에서 ADDRESS_HEADER(x-real-ip)가 설정된 경우,
+ * SSR 내부 fetch(svelteKitFetch)로 호출된 요청에는 해당 헤더가 없어
+ * getClientAddress()가 throw합니다. 이 헬퍼로 통일하면
+ * 향후 getClientAddress() 호출 추가 시에도 같은 문제를 방지합니다.
+ */
+function safeGetClientAddress(event: Parameters<Handle>[0]['event']): string | null {
+    try {
+        return event.getClientAddress();
+    } catch {
+        return null;
+    }
+}
+
 /** 타임아웃 래퍼: 지정 시간 내 미완료 시 null 반환 */
 const AUTH_TIMEOUT_MS = 3000;
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | null> {
@@ -233,7 +249,7 @@ async function authenticateSSR(event: Parameters<Handle>[0]['event']): Promise<v
                         const lastLogin =
                             raw && typeof raw === 'string' ? raw.split(' ')[0].split('T')[0] : '';
                         if (lastLogin !== todayStr) {
-                            const clientIp = event.getClientAddress();
+                            const clientIp = safeGetClientAddress(event) || '';
                             // fire-and-forget: 응답 지연 방지
                             void (async () => {
                                 try {
@@ -381,31 +397,33 @@ export const handle: Handle = async ({ event, resolve }) => {
         return new Response('Not Found', { status: 404 });
     }
 
-    // 글로벌 API Rate Limiting
+    // 글로벌 API Rate Limiting (SSR 내부 fetch는 IP 없으므로 건너뜀)
     if (pathname.startsWith('/api/')) {
-        const clientIp = event.getClientAddress();
-        const isWrite = event.request.method !== 'GET' && event.request.method !== 'HEAD';
-        const rate = isWrite ? WRITE_API_RATE : GLOBAL_API_RATE;
-        const action = isWrite ? 'api_write' : 'api_read';
-        const { allowed, retryAfter } = checkRateLimit(
-            clientIp,
-            action,
-            rate.maxRequests,
-            rate.windowMs
-        );
-        if (!allowed) {
-            return new Response(
-                JSON.stringify({ error: '요청이 너무 많습니다. 잠시 후 다시 시도해주세요.' }),
-                {
-                    status: 429,
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Retry-After': String(retryAfter || 60)
-                    }
-                }
+        const clientIp = safeGetClientAddress(event);
+        if (clientIp) {
+            const isWrite = event.request.method !== 'GET' && event.request.method !== 'HEAD';
+            const rate = isWrite ? WRITE_API_RATE : GLOBAL_API_RATE;
+            const action = isWrite ? 'api_write' : 'api_read';
+            const { allowed, retryAfter } = checkRateLimit(
+                clientIp,
+                action,
+                rate.maxRequests,
+                rate.windowMs
             );
+            if (!allowed) {
+                return new Response(
+                    JSON.stringify({ error: '요청이 너무 많습니다. 잠시 후 다시 시도해주세요.' }),
+                    {
+                        status: 429,
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Retry-After': String(retryAfter || 60)
+                        }
+                    }
+                );
+            }
+            recordAttempt(clientIp, action);
         }
-        recordAttempt(clientIp, action);
     }
 
     // 그누보드/라이믹스 URL 호환 리다이렉트 (SEO 보존)
@@ -422,29 +440,31 @@ export const handle: Handle = async ({ event, resolve }) => {
         }
     }
 
-    // Rate limiting: 인증 관련 엔드포인트 보호
+    // Rate limiting: 인증 관련 엔드포인트 보호 (SSR 내부 fetch는 IP 없으므로 건너뜀)
     const rateLimitRule = RATE_LIMITED_PATHS.find((r) => pathname.startsWith(r.path));
     if (rateLimitRule) {
-        const clientIp = event.getClientAddress();
-        const { allowed, retryAfter } = checkRateLimit(
-            clientIp,
-            rateLimitRule.action,
-            rateLimitRule.maxAttempts,
-            rateLimitRule.windowMs
-        );
-        if (!allowed) {
-            return new Response(
-                JSON.stringify({ error: '요청이 너무 많습니다. 잠시 후 다시 시도해주세요.' }),
-                {
-                    status: 429,
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Retry-After': String(retryAfter || 60)
-                    }
-                }
+        const clientIp = safeGetClientAddress(event);
+        if (clientIp) {
+            const { allowed, retryAfter } = checkRateLimit(
+                clientIp,
+                rateLimitRule.action,
+                rateLimitRule.maxAttempts,
+                rateLimitRule.windowMs
             );
+            if (!allowed) {
+                return new Response(
+                    JSON.stringify({ error: '요청이 너무 많습니다. 잠시 후 다시 시도해주세요.' }),
+                    {
+                        status: 429,
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Retry-After': String(retryAfter || 60)
+                        }
+                    }
+                );
+            }
+            recordAttempt(clientIp, rateLimitRule.action);
         }
-        recordAttempt(clientIp, rateLimitRule.action);
     }
 
     // SSR 인증
