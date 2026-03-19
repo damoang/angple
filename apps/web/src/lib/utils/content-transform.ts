@@ -104,7 +104,7 @@ export function transformVideos(html: string): string {
             /(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/|live\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/
         );
         if (ytMatch) {
-            return `<div class="embed-container" data-platform="youtube" style="--aspect-ratio: 56.25%; --max-width: 100%;"><iframe src="https://www.youtube-nocookie.com/embed/${ytMatch[1]}" frameborder="0" allowfullscreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" style="position:absolute;top:0;left:0;width:100%;height:100%;"></iframe></div>`;
+            return `<div class="embed-container" data-platform="youtube" style="--aspect-ratio: 56.25%; --max-width: 100%;"><iframe src="https://www.youtube-nocookie.com/embed/${ytMatch[1]}" frameborder="0" allowfullscreen allow="autoplay; clipboard-write; encrypted-media; picture-in-picture" style="position:absolute;top:0;left:0;width:100%;height:100%;"></iframe></div>`;
         }
 
         // Vimeo
