@@ -1,5 +1,37 @@
 # Findings
 
+## 2026-03-19 — dev `/explore` 미반영, 윙 회귀, 홈 광고 공백 원인
+
+### 실제 판단
+
+-   `/explore`, `/empathy` GAM 추가 코드는 `main`에는 들어가 있지만, `dev.damoang.net/explore`에서 변화가 없다는 제보상 dev 배포 반영 여부를 먼저 확인해야 함
+-   데스크톱 윙은 “화면 끝 최소 24px 여백” 방식보다 기존 `calc(50% + 696px)` 좌표가 더 안정적이었다는 사용자 피드백이 있었고, 현재 3열 레이아웃에서는 새 계산식이 본문과 겹칠 수 있음
+-   따라서 윙은 최신 좌표 보정보다 기존 안정 좌표로 복구하는 편이 현재 구조에서 안전함
+-   홈 광고가 전혀 안 보이는 문제는 코드 부재보다는 GAM 운영 key-value 누락 가능성이 큼
+-   홈에는 이미 다음 position이 코드에 존재함:
+    -   `index-top`
+    -   `index-middle-1`
+    -   `index-middle-2`
+    -   `index-bottom`
+-   그러나 운영에서 추가한 `position` 값 목록에는 위 `index-*`가 빠져 있었으므로 홈 슬롯이 제대로 타겟팅/분석되지 않았을 가능성이 높음
+
+### 이번 정리
+
+-   `default-layout.svelte`의 윙 좌표를 기존 안정 좌표로 복구
+-   운영 반영 필요값으로 홈 `position` 4개를 명시
+    -   `index-top`
+    -   `index-middle-1`
+    -   `index-middle-2`
+    -   `index-bottom`
+
+### 설계 판단
+
+-   윙은 “더 바깥으로 밀기”보다 “충분한 폭에서만 기존 안정 좌표 유지”가 현재 레이아웃에 맞음
+-   홈 광고는 코드 추가보다 운영 key-value 정합성 보완이 먼저임
+-   `/explore`, `/empathy`는 코드 추가가 이미 끝났으므로 dev/prod 배포 반영 여부 확인이 우선임
+
+---
+
 ## 2026-03-19 — 데스크톱 노출 약화 및 `/explore`, `/empathy` GAM 공백
 
 ### 실제 확인 결과
