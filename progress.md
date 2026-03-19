@@ -1,5 +1,17 @@
 # Progress
 
+## 2026-03-19 — 윙 안정 좌표 복구 및 홈 `index-*` 운영 누락 정리
+
+-   사용자 피드백상 직전 윙 위치 변경은 수정 전보다 불안정했고, 일부 폭에서 본문과 겹치거나 절반만 보이는 회귀가 있었음
+-   그래서 `default-layout.svelte`의 윙 좌표를 기존 안정 좌표로 복구
+-   `/explore`, `/empathy` 슬롯 추가는 이미 `main`에 포함되어 있으므로 dev 미반영 문제는 배포 반영 여부를 먼저 확인해야 하는 상태
+-   홈 광고 미노출 원인은 코드 부재가 아니라 운영 `position` 값 누락 가능성으로 정리
+-   운영에서 추가해야 할 홈 position:
+    -   `index-top`
+    -   `index-middle-1`
+    -   `index-middle-2`
+    -   `index-bottom`
+
 ## 2026-03-19 — `/explore`, `/empathy` GAM 추가 및 데스크톱 윙 위치 보정
 
 -   모바일은 광고가 나오지만 데스크톱은 체감상 약하다는 사용자 제보를 바탕으로 desktop placement를 재분석

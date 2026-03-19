@@ -22,6 +22,8 @@
 -   [ ] viewability 저하 가능 위치와 과밀 위치 정리
 -   [x] `/explore`, `/empathy`의 GAM 공백 확인
 -   [x] 데스크톱 노출 약화 원인 1차 확인 (`board-view-top` 조건부, `sidebar-sticky` 레이아웃 의존, wing 1600px 이상)
+-   [x] 홈 `index-*` 광고 슬롯 코드 존재 및 운영 `position` 누락 가능성 확인
+-   [x] 윙 좌표 보정 회귀 확인 및 기존 안정 좌표 복구 방향 확정
 
 ## Step 3: 운영 설계안 문서화
 

@@ -70,18 +70,12 @@
             {/if}
         </div>
     </div>
-    <!-- 왼쪽 윙 배너 - 화면 끝에 너무 붙지 않도록 최소 여백 보장 -->
-    <aside
-        class="top-21 fixed hidden min-[1600px]:block"
-        style="left: max(24px, calc(50% - 794px));"
-    >
+    <!-- 왼쪽 윙 배너 - 기존 안정 좌표 유지 -->
+    <aside class="top-21 fixed hidden min-[1600px]:block" style="right: calc(50% + 696px);">
         <LeftBanner />
     </aside>
-    <!-- 오른쪽 윙 배너 - 화면 끝에 너무 붙지 않도록 최소 여백 보장 -->
-    <aside
-        class="top-21 fixed hidden min-[1600px]:block"
-        style="right: max(24px, calc(50% - 794px));"
-    >
+    <!-- 오른쪽 윙 배너 - 기존 안정 좌표 유지 -->
+    <aside class="top-21 fixed hidden min-[1600px]:block" style="left: calc(50% + 696px);">
         <RightBanner />
     </aside>
 
