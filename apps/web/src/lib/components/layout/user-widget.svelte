@@ -2,7 +2,7 @@
     import { browser } from '$app/environment';
     import { Button } from '$lib/components/ui/button';
     import { Skeleton } from '$lib/components/ui/skeleton';
-    import { Progress } from '$lib/components/ui/progress';
+
     import LogIn from '@lucide/svelte/icons/log-in';
     import LogOut from '@lucide/svelte/icons/log-out';
     import User from '@lucide/svelte/icons/user';
@@ -48,16 +48,6 @@
     let isLoading = $derived(getIsLoading());
 
     let gradeName = $derived(user ? getGradeName(user.mb_level) : '');
-
-    // 레벨 게이지 (user 데이터에서 직접 계산)
-    let levelProgress = $derived(
-        user?.as_max && user.as_max > 0 && user.mb_exp !== undefined
-            ? Math.round((user.mb_exp / user.as_max) * 100)
-            : 0
-    );
-    let nextLevelExp = $derived(
-        user?.as_max !== undefined && user.mb_exp !== undefined ? user.as_max - user.mb_exp : 0
-    );
 
     // 아바타 URL (mb_image 우선 → avatar_url → member_image 경로 폴백)
     let avatarUrl = $derived(getAvatarUrl(user?.mb_image, user?.mb_image_updated_at) || null);
@@ -144,29 +134,7 @@
             </button>
         </div>
 
-        <!-- 레벨 게이지 -->
-        {#if user.as_level !== undefined}
-            <a href="/my/exp" class={compact ? 'group mt-1 block' : 'group mt-2 block'}>
-                <div class="text-muted-foreground flex items-center justify-between text-[10px]">
-                    <span>Lv.{user.as_level}</span>
-                    {#if user.as_max && user.as_max > 0}
-                        <span
-                            >다음 레벨까지 <span class="text-foreground font-medium"
-                                >{nextLevelExp.toLocaleString()}</span
-                            ></span
-                        >
-                        <span>Lv.{user.as_level + 1}</span>
-                    {/if}
-                </div>
-                {#if user.as_max && user.as_max > 0}
-                    <Progress
-                        value={levelProgress}
-                        max={100}
-                        class="mt-0.5 h-1.5 transition-all group-hover:h-2"
-                    />
-                {/if}
-            </a>
-        {/if}
+        <!-- 레벨 게이지 (as_level 제거됨) -->
 
         <!-- 내글 / 내댓글 / 전체 + 포인트 -->
         <div class={compact ? 'mt-1 space-y-0.5 text-xs' : 'mt-2 space-y-1 text-xs'}>
