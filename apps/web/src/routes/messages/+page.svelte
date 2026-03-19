@@ -408,7 +408,7 @@
 
 <!-- 쪽지 보기 다이얼로그 -->
 <Dialog.Root bind:open={showViewDialog}>
-    <Dialog.Content class="sm:max-w-lg">
+    <Dialog.Content class="flex max-h-[85vh] flex-col sm:max-w-lg">
         {#if isLoadingMessage}
             <div class="flex items-center justify-center py-12">
                 <Loader2 class="text-primary h-8 w-8 animate-spin" />
@@ -421,7 +421,7 @@
                 </Dialog.Title>
             </Dialog.Header>
 
-            <div class="py-4">
+            <div class="flex-1 overflow-y-auto py-4">
                 <!-- 발신/수신 정보 -->
                 <div class="mb-4 flex items-center gap-3 border-b pb-4">
                     <div
@@ -447,7 +447,7 @@
                 </div>
             </div>
 
-            <Dialog.Footer class="flex-col gap-2 sm:flex-row">
+            <Dialog.Footer class="shrink-0 flex-col gap-2 sm:flex-row">
                 <Button
                     variant="outline"
                     class="text-destructive hover:text-destructive"

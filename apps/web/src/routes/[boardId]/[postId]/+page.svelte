@@ -5,7 +5,11 @@
     export const snapshot: Snapshot<{ scrollY: number }> = {
         capture: () => ({ scrollY: window.scrollY }),
         restore: (value) => {
+            // Safari 타이밍 이슈 대응: rAF + setTimeout 이중 보호
             requestAnimationFrame(() => window.scrollTo(0, value.scrollY));
+            setTimeout(() => {
+                requestAnimationFrame(() => window.scrollTo(0, value.scrollY));
+            }, 100);
         }
     };
 </script>
