@@ -1296,9 +1296,18 @@
         <PluginSlot name="board-view-rolling" />
     </div>
 
-    <!-- 네비게이션 아래 GAM 광고 (알뜰구매/중고장터 등 특정 게시판에서만 표시) -->
+    <!-- 네비게이션 아래 GAM 광고 -->
+    {#if widgetLayoutStore.hasEnabledAds}
+        <div class="mb-6 hidden lg:block">
+            <AdSlot
+                position="board-view-top-desktop"
+                height="45px"
+                slotKey="board-view-top-desktop"
+            />
+        </div>
+    {/if}
     {#if widgetLayoutStore.hasEnabledAds && (boardType === 'economy' || boardType === 'used-market')}
-        <div class="mb-6">
+        <div class="mb-6 lg:hidden">
             <AdSlot position="board-view-top" height="45px" slotKey="board-view-top" />
         </div>
     {/if}
