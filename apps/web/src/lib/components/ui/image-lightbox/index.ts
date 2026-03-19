@@ -41,13 +41,12 @@ export function attachLightbox(container: HTMLElement): () => void {
         // 기존 핸들러 정리
         cleanup();
 
-        const imgs = container.querySelectorAll<HTMLImageElement>(
-            'img:not(.emoticon-inline):not(button img)'
-        );
+        const allImgs = container.querySelectorAll<HTMLImageElement>('img:not(.emoticon-inline)');
+        const imgs = Array.from(allImgs).filter((img) => !img.closest('button'));
         if (imgs.length === 0) return;
 
         // 이미지 목록 구성 (data-original 우선, 없으면 src)
-        const imageList = Array.from(imgs).map((img) => ({
+        const imageList = imgs.map((img) => ({
             src: img.getAttribute('data-original') || img.src,
             alt: img.alt || ''
         }));

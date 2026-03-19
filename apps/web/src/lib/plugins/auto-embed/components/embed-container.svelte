@@ -85,6 +85,7 @@
         width: 100%;
         max-width: var(--max-width, 100%);
         margin: 1rem 0;
+        overflow: hidden;
     }
 
     /* 가로세로 비율 유지 (기본 16:9) */
