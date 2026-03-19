@@ -292,10 +292,7 @@ export const AD_CONFIGS: Record<string, AdConfig> = {
     },
     'banner-vertical': {
         unit: AD_UNIT_PATHS.sub,
-        sizes: [
-            [160, 600],
-            [120, 600]
-        ],
+        sizes: [[160, 600]],
         responsive: null
     }
 };
