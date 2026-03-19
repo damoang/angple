@@ -682,7 +682,8 @@
                         'target',
                         'rel',
                         'data-affiliate',
-                        'data-original-url'
+                        'data-original-url',
+                        'data-original'
                     ]
                 })
             );
@@ -757,7 +758,8 @@
                             'rel',
                             'data-mention',
                             'data-affiliate',
-                            'data-original-url'
+                            'data-original-url',
+                            'data-original'
                         ]
                     })
                 );
@@ -779,6 +781,24 @@
     $effect(() => {
         if (commentListEl) {
             return attachLightbox(commentListEl);
+        }
+    });
+
+    // 댓글 본문 이미지 data-original 폴백 (최적화된 이미지 로드 실패 시 원본으로 대체)
+    $effect(() => {
+        void processedComments.size;
+        if (commentListEl) {
+            tick().then(() => {
+                const imgs = commentListEl.querySelectorAll<HTMLImageElement>('img[data-original]');
+                imgs.forEach((img) => {
+                    img.onerror = () => {
+                        const original = img.getAttribute('data-original');
+                        if (original && img.src !== original) {
+                            img.src = original;
+                        }
+                    };
+                });
+            });
         }
     });
 

@@ -23,7 +23,9 @@
     // 삭제된 글
     const isDeleted = $derived(!!post.deleted_at);
 
-    const rawThumbnailUrl = $derived(post.thumbnail || post.images?.[0] || '');
+    const rawThumbnailUrl = $derived(
+        post.thumbnail_raw || post.thumbnail || post.images?.[0] || ''
+    );
     const thumbnailUrl = $derived(toThumbnailUrl(rawThumbnailUrl));
     const hasImage = $derived(Boolean(thumbnailUrl));
 </script>

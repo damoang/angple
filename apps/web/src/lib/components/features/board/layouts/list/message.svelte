@@ -10,6 +10,7 @@
     import type { FreePost, BoardDisplaySettings } from '$lib/api/types.js';
     import Heart from '@lucide/svelte/icons/heart';
     import { getAvatarUrl } from '$lib/utils/member-icon.js';
+    import { toThumbnailUrl } from '$lib/utils/thumbnail-url.js';
     import AuthorLink from '$lib/components/ui/author-link/author-link.svelte';
     import { formatDate } from '$lib/utils/format-date.js';
     let {
@@ -32,8 +33,11 @@
 
     const isDeleted = $derived(!!post.deleted_at);
 
-    const thumbnailUrl = $derived(post.thumbnail || post.images?.[0] || '');
-    const hasImage = $derived(Boolean(thumbnailUrl));
+    const rawThumbnailUrl = $derived(
+        post.thumbnail_raw || post.thumbnail || post.images?.[0] || ''
+    );
+    const thumbnailUrl = $derived(toThumbnailUrl(rawThumbnailUrl));
+    const hasImage = $derived(Boolean(rawThumbnailUrl));
 
     // 회원 아이디 기반 accent 색상 (dusty 팔레트)
     const accentColors = [
@@ -87,6 +91,14 @@
                         alt={post.title}
                         class="aspect-[6/1] w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
                         loading="lazy"
+                        onerror={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            if (rawThumbnailUrl && target.src !== rawThumbnailUrl) {
+                                target.src = rawThumbnailUrl;
+                            } else {
+                                target.style.display = 'none';
+                            }
+                        }}
                     />
                 </div>
             {:else}
