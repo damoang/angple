@@ -2,12 +2,14 @@
     import '../../app.css';
     import { onMount } from 'svelte';
     import Header from '$lib/components/layout/header.svelte';
+    import AdSlot from '$lib/components/ui/ad-slot/ad-slot.svelte';
     import Sidebar from '$lib/components/layout/sidebar.svelte';
     import Panel from '$lib/components/layout/panel.svelte';
     import Footer from '$lib/components/layout/footer.svelte';
     import LeftBanner from '$lib/components/layout/left-banner.svelte';
     import RightBanner from '$lib/components/layout/right-banner.svelte';
     import { authActions } from '$lib/stores/auth.svelte';
+    import { widgetLayoutStore } from '$lib/stores/widget-layout.svelte';
 
     /**
      * 기본 레이아웃 컴포넌트
@@ -33,6 +35,12 @@
 
     <div class="container relative z-10 flex w-full flex-1 flex-col">
         <Header />
+
+        {#if widgetLayoutStore.hasEnabledAds}
+            <div class="mx-auto hidden w-full px-5 pt-4 lg:block">
+                <AdSlot position="header-after" height="90px" slotKey="header-after" />
+            </div>
+        {/if}
 
         <div class="mx-auto flex w-full flex-1">
             {#if snbPosition === 'right'}

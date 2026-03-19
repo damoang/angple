@@ -1,5 +1,11 @@
 # Progress
 
+## 2026-03-20 — 공통 데스크톱 상단 슬롯 추가
+
+-   PC 공통 노출량을 늘리기 위해 `Header` 아래에 `header-after` 슬롯 추가
+-   `lg` 이상에서만 노출되며, 무거운 large slot이 아니라 `banner-medium-compact`로 가볍게 운영
+-   기존 조건부 슬롯(`board-view-top-desktop`, `sidebar-sticky-desktop`)만으로 부족한 PC inventory를 보강하는 목적
+
 ## 2026-03-20 — 홈 중간 728x90, 하단 large 정리
 
 -   사용자 판단에 맞춰 홈 중간 광고는 `728x90` 계열이 더 적절하다고 보고 반영

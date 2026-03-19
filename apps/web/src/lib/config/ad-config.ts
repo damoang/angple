@@ -310,7 +310,7 @@ export const POSITION_MAP: Record<string, string> = {
     'board-list-head': 'banner-medium-compact',
     'board-list-bottom': 'banner-large-compact',
     'board-footer': 'banner-compact',
-    'header-after': 'banner-horizontal',
+    'header-after': 'banner-medium-compact',
 
     // 본문 영역 — article 유닛 (본문 전용)
     'board-view-top': 'banner-article',

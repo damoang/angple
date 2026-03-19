@@ -1,5 +1,26 @@
 # Findings
 
+## 2026-03-20 — 공통 데스크톱 상단 GAM 슬롯 추가
+
+### 실제 판단
+
+-   현재 PC는 강한 슬롯이 `board-view-top-desktop`, `sidebar-sticky-desktop`처럼 특정 화면/조건에 묶여 있어 공통 노출량이 부족함
+-   따라서 전체 페이지에서 비교적 안정적으로 노출될 수 있는 공통 데스크톱 상단 슬롯이 하나 더 필요함
+-   메뉴 바로 아래는 시인성이 높고, 가벼운 `728x90` 계열을 두기 적합함
+
+### 이번 수정
+
+-   `default-layout.svelte`에서 `Header` 바로 아래에 `header-after` 슬롯 추가
+-   `lg` 이상에서만 보이도록 제한
+-   `header-after`는 `banner-medium-compact`로 매핑해 `728x90 / 320x100` 위주로 가볍게 운영
+
+### 운영 반영 필요
+
+-   GAM `position` key에 `header-after`가 없으면 추가
+-   desktop용 공통 상단 슬롯으로 리포트/관찰 대상에 포함
+
+---
+
 ## 2026-03-20 — 홈 중간/하단 슬롯 사이즈 정리
 
 ### 실제 판단
