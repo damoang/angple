@@ -1,5 +1,27 @@
 # Findings
 
+## 2026-03-20 — 홈 중간/하단 슬롯 사이즈 정리
+
+### 실제 판단
+
+-   홈 중간 슬롯에 `970x250`급 large creative가 허용되면 스크롤 중간 체감이 무거워지고 데스크톱 fill도 불안정해질 수 있음
+-   반면 홈 하단은 사용자가 이미 충분히 콘텐츠를 소비한 뒤라 large slot을 두기 가장 무난함
+-   따라서 “중간은 `728x90` 계열, 하단만 large”가 UX와 수익 균형상 더 적절함
+
+### 이번 수정
+
+-   `index-middle-1`, `index-middle-2`를 `banner-medium-compact`로 변경
+-   즉 홈 중간 슬롯은 `728x90 / 320x100` 위주로 제한
+-   `index-bottom`은 large slot 유지
+-   타입 정의의 `POSITION_SIZES`도 같은 방향으로 정렬
+
+### 운영 판단
+
+-   이 변경은 기존 `position` 재사용이라 GAM 신규 key 추가는 필요 없음
+-   다만 GAM inventory나 creative override에서 홈 중간 슬롯에 대형 사이즈를 강제하는 설정이 있다면 제거하는 편이 맞음
+
+---
+
 ## 2026-03-20 — PC 전용 position 분리
 
 ### 실제 판단
