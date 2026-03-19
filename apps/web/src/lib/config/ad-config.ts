@@ -335,8 +335,8 @@ export const POSITION_MAP: Record<string, string> = {
     'index-head': 'banner-small',
     'index-top': 'banner-responsive',
     'index-news-economy': 'banner-responsive',
-    'index-middle-1': 'banner-horizontal',
-    'index-middle-2': 'banner-horizontal',
+    'index-middle-1': 'banner-medium-compact',
+    'index-middle-2': 'banner-medium-compact',
     'index-bottom': 'banner-large',
 
     // 사이드바 — sub 유닛 (소형)

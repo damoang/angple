@@ -1,5 +1,12 @@
 # Progress
 
+## 2026-03-20 — 홈 중간 728x90, 하단 large 정리
+
+-   사용자 판단에 맞춰 홈 중간 광고는 `728x90` 계열이 더 적절하다고 보고 반영
+-   `index-middle-1`, `index-middle-2`를 `banner-medium-compact`로 변경
+-   `index-bottom`만 large slot 유지
+-   타입 정의의 `POSITION_SIZES`도 같은 방향으로 정리
+
 ## 2026-03-20 — PC 전용 position 분리
 
 -   desktop floor를 기존 position과 완전히 분리하기 위해 신규 position 2개를 추가

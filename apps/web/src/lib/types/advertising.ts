@@ -64,19 +64,21 @@ export const POSITION_SIZES: Record<string, number[][]> = {
     'index-top': [[728, 90]],
     'index-middle-1': [
         [728, 90],
-        [300, 250]
+        [320, 100]
     ],
     'index-middle-2': [
         [728, 90],
-        [300, 250]
+        [320, 100]
     ],
     'index-middle-3': [
         [728, 90],
         [300, 250]
     ],
     'index-bottom': [
+        [970, 250],
+        [970, 90],
         [728, 90],
-        [970, 90]
+        [320, 100]
     ],
     sidebar: [[300, 250]],
     halfpage: [
