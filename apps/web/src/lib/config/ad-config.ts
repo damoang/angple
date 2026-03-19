@@ -18,12 +18,14 @@ const unitMain = import.meta.env.VITE_GAM_UNIT_MAIN || 'banner-responsive_main';
 const unitSub = import.meta.env.VITE_GAM_UNIT_SUB || 'banner-responsive_sub';
 const unitCuration = import.meta.env.VITE_GAM_UNIT_CURATION || 'banner-responsive_curation';
 const unitArticle = import.meta.env.VITE_GAM_UNIT_ARTICLE || 'banner-responsive_article';
+const unitWing = import.meta.env.VITE_GAM_UNIT_WING || 'banner-responsive_wing';
 
 export const AD_UNIT_PATHS: Record<string, string> = {
     main: `/${GAM_NETWORK_CODE}/${GAM_SITE_NAME}/${unitMain}`,
     sub: `/${GAM_NETWORK_CODE}/${GAM_SITE_NAME}/${unitSub}`,
     curation: `/${GAM_NETWORK_CODE}/${GAM_SITE_NAME}/${unitCuration}`,
-    article: `/${GAM_NETWORK_CODE}/${GAM_SITE_NAME}/${unitArticle}`
+    article: `/${GAM_NETWORK_CODE}/${GAM_SITE_NAME}/${unitArticle}`,
+    wing: `/${GAM_NETWORK_CODE}/${GAM_SITE_NAME}/${unitWing}`
 };
 
 // 광고 유형별 설정
@@ -291,7 +293,7 @@ export const AD_CONFIGS: Record<string, AdConfig> = {
         ]
     },
     'banner-vertical': {
-        unit: AD_UNIT_PATHS.sub,
+        unit: AD_UNIT_PATHS.wing,
         sizes: [[160, 600]],
         responsive: null
     }
