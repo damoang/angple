@@ -65,6 +65,7 @@
     {size}
     onclick={toggleScrap}
     disabled={loading}
+    title={scrapped ? '스크랩 해제' : '스크랩'}
     aria-label={scrapped ? '스크랩 해제' : '스크랩'}
     aria-pressed={scrapped}
     class={scrapped ? 'text-yellow-500 hover:text-yellow-600' : ''}

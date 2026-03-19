@@ -1660,12 +1660,15 @@
         word-break: break-all;
     }
 
-    /* 댓글 본문 문단 간격 축소 */
+    /* 댓글 본문 문단 간격 */
     :global(.comment-body p) {
         margin-bottom: 0.6em;
     }
     :global(.comment-body p:last-child) {
         margin-bottom: 0;
+    }
+    :global(.comment-body p + p) {
+        margin-top: 0.75em;
     }
 
     /* 댓글 코드 블록 스타일 (게시글 본문 .prose와 동일) */
