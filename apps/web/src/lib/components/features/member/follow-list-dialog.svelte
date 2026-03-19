@@ -9,7 +9,7 @@
         mb_nick: string;
         mb_image: string;
         mb_image_updated_at?: string;
-        as_level: number;
+        mb_level: number;
         followed_at: string;
     }
 
@@ -107,7 +107,7 @@
 
                                 <div class="min-w-0 flex-1">
                                     <div class="flex items-center gap-1">
-                                        <LevelBadge level={member.as_level} size="sm" />
+                                        <LevelBadge level={member.mb_level} size="sm" />
                                         <a
                                             href="/member/{member.mb_id}"
                                             class="text-foreground hover:text-primary truncate text-sm font-medium"
