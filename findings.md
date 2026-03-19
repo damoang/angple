@@ -1,5 +1,31 @@
 # Findings
 
+## 2026-03-19 — CI `Test (web)` 병목 분석
+
+### 실제 원인
+
+-   느린 이유는 테스트 파일 수보다 CI 단계 중복이 큼
+-   `.github/workflows/ci.yml`의 `Test (web)` 잡은 다음을 한 번에 수행하고 있었음
+    -   백엔드 체크아웃 / Go 셋업 / DB 초기화 / 백엔드 빌드
+    -   Playwright 브라우저 설치
+    -   앱 빌드
+    -   unit tests with coverage
+    -   그 다음 다시 `pnpm run test`
+-   `apps/web/package.json`에서 `pnpm run test`는 `test:unit -- --run && test:e2e`라서, 유닛 테스트를 사실상 두 번 돌리고 있었음
+
+### 이번 수정
+
+-   CI에서 unit test는 `coverage` 포함 한 번만 실행하도록 유지
+-   이후 단계는 `pnpm run test:ci:e2e`로 E2E만 실행하도록 분리
+-   `continue-on-error: true` 제거
+-   백엔드가 준비되지 않으면 Playwright 브라우저 설치 / 앱 빌드 / E2E 단계를 건너뛰도록 조정
+
+### 기대 효과
+
+-   유닛 테스트 중복 실행 제거
+-   백엔드 비가용 시 불필요한 브라우저 설치/앱 빌드 낭비 제거
+-   실패 의미가 더 분명해짐 (coverage/unit 실패를 더 이상 묻어두지 않음)
+
 ---
 
 # 2026-03-18 — CPM 회복 작업 메모

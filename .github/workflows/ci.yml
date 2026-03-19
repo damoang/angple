@@ -225,32 +225,33 @@ jobs:
           echo "BACKEND_READY=false" >> $GITHUB_OUTPUT
 
       - name: Install Playwright browsers
+        if: ${{ matrix.app != 'web' || steps.backend.outputs.BACKEND_READY != 'false' }}
         working-directory: apps/${{ matrix.app }}
         run: pnpm exec playwright install --with-deps
 
       - name: Build app for E2E tests
+        if: ${{ matrix.app != 'web' || steps.backend.outputs.BACKEND_READY != 'false' }}
         working-directory: apps/${{ matrix.app }}
         run: pnpm run build
 
       - name: Create data directory for E2E tests
+        if: ${{ matrix.app != 'web' || steps.backend.outputs.BACKEND_READY != 'false' }}
         working-directory: apps/${{ matrix.app }}
         run: mkdir -p data
 
       - name: Run unit tests with coverage
         working-directory: apps/${{ matrix.app }}
         run: pnpm run test:unit -- --run --coverage
-        continue-on-error: true
 
-      - name: Run tests
+      - name: Run E2E tests
         working-directory: apps/${{ matrix.app }}
         env:
           BACKEND_READY: ${{ steps.backend.outputs.BACKEND_READY || 'true' }}
         run: |
           if [ "${{ matrix.app }}" = "web" ] && [ "$BACKEND_READY" = "false" ]; then
-            echo "⚠️ Backend not available, running unit tests only"
-            pnpm run test:unit -- --run
+            echo "⚠️ Backend not available, skipping e2e tests"
           else
-            pnpm run test
+            pnpm run test:ci:e2e
           fi
 
       - name: Upload coverage to Codecov

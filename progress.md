@@ -1,5 +1,22 @@
 # Progress
 
+## 2026-03-19 — CI 테스트 중복 제거
+
+-   `Test (web)`가 유독 느린 원인을 CI 단계 기준으로 분석
+-   실제 병목 확인:
+    -   `unit tests with coverage` 실행 후
+    -   `pnpm run test`에서 unit tests를 다시 실행
+    -   백엔드가 비가용이어도 Playwright 브라우저 설치와 앱 빌드를 먼저 수행
+-   수정:
+    -   `apps/web/package.json`에 `test:ci:e2e` 추가
+    -   `.github/workflows/ci.yml`에서 unit과 e2e 실행 경로 분리
+    -   `continue-on-error` 제거
+    -   백엔드가 준비되지 않으면 Playwright 설치 / 앱 빌드 / E2E를 스킵하도록 변경
+-   기대 효과:
+    -   unit 중복 실행 제거
+    -   실패 신호 명확화
+    -   백엔드 비가용 시 낭비 시간 감소
+
 ## 2026-03-18 — CPM 회복 작업 시작
 
 -   사용자 요청에 따라 `task_plan.md`, `findings.md`, `progress.md`를 이번 수익 개선 작업의 외부 두뇌로 계속 사용하기로 결정

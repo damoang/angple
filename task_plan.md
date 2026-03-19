@@ -47,6 +47,13 @@
 -   [ ] `progress.md`에 시도/검증/실패 내역 누적
 -   [ ] PR/배포 전 최종 체크리스트 정리
 
+## CI 후속
+
+-   [x] `Test (web)` 중복 실행 원인 분석
+-   [x] unit/e2e 실행 경로 분리
+-   [x] 백엔드 비가용 시 Playwright/E2E 낭비 단계 스킵
+-   [ ] 실제 PR 기준 테스트 시간 감소 폭 관찰
+
 ---
 
 # Task Plan: 프로덕션 준비 — console.log 정리 + Svelte 5 수정 + 보안 + README
