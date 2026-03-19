@@ -413,6 +413,11 @@
         margin: 1rem 0;
     }
 
+    /* 백엔드 썸네일 변환된 이미지: 본문 너비에 맞게 확장 (Retina 대응) */
+    .prose :global(img[data-original]) {
+        width: 100%;
+    }
+
     .prose :global(table) {
         display: block;
         width: 100%;

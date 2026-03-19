@@ -973,11 +973,6 @@
                             >&raquo;</Button
                         >
                     </div>
-                    <p class="text-secondary-foreground mt-4 text-center text-sm">
-                        {isSearching ? '검색결과 ' : '전체 '}{pagination.total.toLocaleString()}개
-                        중 {pagination.page}
-                        / {pagination.totalPages} 페이지
-                    </p>
                     {#if widgetLayoutStore.hasEnabledAds}
                         <div class="mt-3">
                             <AdSlot
