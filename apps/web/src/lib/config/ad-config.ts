@@ -40,8 +40,8 @@ export const AD_CONFIGS: Record<string, AdConfig> = {
             [970, 250],
             [970, 90],
             [728, 90],
-            [300, 250],
-            [320, 100]
+            [320, 100],
+            [300, 250]
         ],
         responsive: [
             [
@@ -52,13 +52,7 @@ export const AD_CONFIGS: Record<string, AdConfig> = {
                     [728, 90]
                 ]
             ],
-            [
-                728,
-                [
-                    [728, 90],
-                    [300, 250]
-                ]
-            ],
+            [728, [[728, 90]]],
             [
                 0,
                 [
@@ -74,8 +68,8 @@ export const AD_CONFIGS: Record<string, AdConfig> = {
             [970, 250],
             [970, 90],
             [728, 90],
-            [300, 250],
-            [320, 100]
+            [320, 100],
+            [300, 250]
         ],
         responsive: [
             [
@@ -85,13 +79,7 @@ export const AD_CONFIGS: Record<string, AdConfig> = {
                     [970, 90]
                 ]
             ],
-            [
-                728,
-                [
-                    [728, 90],
-                    [300, 250]
-                ]
-            ],
+            [728, [[728, 90]]],
             [
                 0,
                 [
@@ -105,17 +93,10 @@ export const AD_CONFIGS: Record<string, AdConfig> = {
         unit: AD_UNIT_PATHS.article,
         sizes: [
             [728, 90],
-            [300, 250],
             [320, 100]
         ],
         responsive: [
-            [
-                728,
-                [
-                    [728, 90],
-                    [300, 250]
-                ]
-            ],
+            [728, [[728, 90]]],
             [0, [[320, 100]]]
         ]
     },
@@ -123,17 +104,11 @@ export const AD_CONFIGS: Record<string, AdConfig> = {
         unit: AD_UNIT_PATHS.article,
         sizes: [
             [728, 90],
-            [300, 250],
-            [320, 100]
+            [320, 100],
+            [300, 250]
         ],
         responsive: [
-            [
-                728,
-                [
-                    [728, 90],
-                    [300, 250]
-                ]
-            ],
+            [728, [[728, 90]]],
             [
                 0,
                 [
@@ -147,17 +122,11 @@ export const AD_CONFIGS: Record<string, AdConfig> = {
         unit: AD_UNIT_PATHS.sub,
         sizes: [
             [728, 90],
-            [300, 250],
-            [320, 100]
+            [320, 100],
+            [300, 250]
         ],
         responsive: [
-            [
-                728,
-                [
-                    [728, 90],
-                    [300, 250]
-                ]
-            ],
+            [728, [[728, 90]]],
             [
                 0,
                 [
@@ -171,17 +140,10 @@ export const AD_CONFIGS: Record<string, AdConfig> = {
         unit: AD_UNIT_PATHS.sub,
         sizes: [
             [728, 90],
-            [300, 250],
             [320, 100]
         ],
         responsive: [
-            [
-                728,
-                [
-                    [728, 90],
-                    [300, 250]
-                ]
-            ],
+            [728, [[728, 90]]],
             [0, [[320, 100]]]
         ]
     },
@@ -189,17 +151,10 @@ export const AD_CONFIGS: Record<string, AdConfig> = {
         unit: AD_UNIT_PATHS.sub,
         sizes: [
             [728, 90],
-            [300, 250],
             [320, 100]
         ],
         responsive: [
-            [
-                728,
-                [
-                    [728, 90],
-                    [300, 250]
-                ]
-            ],
+            [728, [[728, 90]]],
             [0, [[320, 100]]]
         ]
     },
@@ -225,17 +180,11 @@ export const AD_CONFIGS: Record<string, AdConfig> = {
         unit: AD_UNIT_PATHS.sub,
         sizes: [
             [728, 90],
-            [300, 250],
-            [320, 100]
+            [320, 100],
+            [300, 250]
         ],
         responsive: [
-            [
-                728,
-                [
-                    [728, 90],
-                    [300, 250]
-                ]
-            ],
+            [728, [[728, 90]]],
             [
                 0,
                 [
@@ -249,17 +198,10 @@ export const AD_CONFIGS: Record<string, AdConfig> = {
         unit: AD_UNIT_PATHS.sub,
         sizes: [
             [728, 90],
-            [300, 250],
             [320, 100]
         ],
         responsive: [
-            [
-                728,
-                [
-                    [728, 90],
-                    [300, 250]
-                ]
-            ],
+            [728, [[728, 90]]],
             [0, [[320, 100]]]
         ]
     },
@@ -269,7 +211,6 @@ export const AD_CONFIGS: Record<string, AdConfig> = {
             [970, 250],
             [970, 90],
             [728, 90],
-            [300, 250],
             [320, 100]
         ],
         responsive: [
@@ -280,13 +221,7 @@ export const AD_CONFIGS: Record<string, AdConfig> = {
                     [970, 90]
                 ]
             ],
-            [
-                728,
-                [
-                    [728, 90],
-                    [300, 250]
-                ]
-            ],
+            [728, [[728, 90]]],
             [0, [[320, 100]]]
         ]
     },
@@ -294,17 +229,11 @@ export const AD_CONFIGS: Record<string, AdConfig> = {
         unit: AD_UNIT_PATHS.main,
         sizes: [
             [728, 90],
-            [300, 250],
-            [320, 100]
+            [320, 100],
+            [300, 250]
         ],
         responsive: [
-            [
-                728,
-                [
-                    [728, 90],
-                    [300, 250]
-                ]
-            ],
+            [728, [[728, 90]]],
             [
                 0,
                 [
@@ -318,17 +247,11 @@ export const AD_CONFIGS: Record<string, AdConfig> = {
         unit: AD_UNIT_PATHS.article,
         sizes: [
             [728, 90],
-            [300, 250],
-            [320, 100]
+            [320, 100],
+            [300, 250]
         ],
         responsive: [
-            [
-                728,
-                [
-                    [728, 90],
-                    [300, 250]
-                ]
-            ],
+            [728, [[728, 90]]],
             [
                 0,
                 [
@@ -342,17 +265,11 @@ export const AD_CONFIGS: Record<string, AdConfig> = {
         unit: AD_UNIT_PATHS.curation,
         sizes: [
             [728, 90],
-            [300, 250],
-            [320, 100]
+            [320, 100],
+            [300, 250]
         ],
         responsive: [
-            [
-                728,
-                [
-                    [728, 90],
-                    [300, 250]
-                ]
-            ],
+            [728, [[728, 90]]],
             [
                 0,
                 [
@@ -366,17 +283,10 @@ export const AD_CONFIGS: Record<string, AdConfig> = {
         unit: AD_UNIT_PATHS.curation,
         sizes: [
             [728, 90],
-            [300, 250],
             [320, 100]
         ],
         responsive: [
-            [
-                728,
-                [
-                    [728, 90],
-                    [300, 250]
-                ]
-            ],
+            [728, [[728, 90]]],
             [0, [[320, 100]]]
         ]
     },
