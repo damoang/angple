@@ -247,6 +247,26 @@ export interface DailyRecommendedSection {
     posts: RecommendedPost[] | null;
 }
 
+export interface RecommendedComment {
+    id: number;
+    content: string;
+    board: string;
+    board_name: string;
+    url: string;
+    parent_id: number;
+    parent_title: string;
+    recommend_count: number;
+    author: string;
+    created_at: string;
+}
+
+export interface DailyCommentSection {
+    id: string;
+    name: string;
+    count: number;
+    comments: RecommendedComment[] | null;
+}
+
 export interface DailyRecommendedStats {
     total_recommended_posts: number;
     max_recommend_count: number;
@@ -262,6 +282,11 @@ export interface DailyRecommendedData {
         community: DailyRecommendedSection;
         group: DailyRecommendedSection;
         info: DailyRecommendedSection;
+    };
+    comments?: {
+        community: DailyCommentSection;
+        group: DailyCommentSection;
+        info: DailyCommentSection;
     };
     stats: DailyRecommendedStats;
 }
