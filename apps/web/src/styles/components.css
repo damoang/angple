@@ -321,9 +321,12 @@ pre:hover .hljs-copy-btn {
 }
 
 /* 앙티콘(이모티콘) 인라인 표시 — 텍스트와 같은 줄에 배치 */
-.emoticon-inline {
+.emoticon-inline,
+img[src*="/emoticons/"] {
     display: inline;
     vertical-align: middle;
+    max-height: 2.5em;
+    width: auto;
 }
 
 /* 대괄호 이미지도 인라인 표시 */
