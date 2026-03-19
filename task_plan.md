@@ -20,6 +20,8 @@
 -   [ ] `top / infeed / article / after-comments / sidebar / sticky` 단위로 수익 구조 분리
 -   [ ] 모바일 멀티사이즈 슬롯(`320x100`, `300x250`) 혼합 위치 식별
 -   [ ] viewability 저하 가능 위치와 과밀 위치 정리
+-   [x] `/explore`, `/empathy`의 GAM 공백 확인
+-   [x] 데스크톱 노출 약화 원인 1차 확인 (`board-view-top` 조건부, `sidebar-sticky` 레이아웃 의존, wing 1600px 이상)
 
 ## Step 3: 운영 설계안 문서화
 
@@ -82,6 +84,7 @@ GA4 custom dimensions를 실제 분석 가능한 상태로 만들고, `page_view
 -   [ ] 새 custom dimensions 값이 GA4 리포트에 들어오기 시작하는지 확인
 -   [ ] `page_type + position + slot_key` 기준 진단 리포트 작성
 -   [ ] 저 CPM 슬롯 유지/삭제/분리안 정리
+-   [x] `explore`, `empathy`를 `other`가 아닌 별도 page_type으로 분리
 
 # Task Plan: GA4 + CPM 개선 (2026-03-18)
 

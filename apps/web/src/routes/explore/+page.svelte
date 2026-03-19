@@ -2,6 +2,7 @@
     import { onMount } from 'svelte';
     import { SeoHead } from '$lib/seo/index.js';
     import { Card, CardHeader, CardContent } from '$lib/components/ui/card';
+    import AdSlot from '$lib/components/ui/ad-slot/ad-slot.svelte';
     import Compass from '@lucide/svelte/icons/compass';
     import Flame from '@lucide/svelte/icons/flame';
     import Clock from '@lucide/svelte/icons/clock';
@@ -93,6 +94,10 @@
 <div class="mx-auto max-w-4xl px-4 py-6">
     <div class="mb-4">
         <TagNav />
+    </div>
+
+    <div class="mb-4">
+        <AdSlot position="explore-top" height="90px" slotKey="explore-top" />
     </div>
 
     <Card class="gap-0">
@@ -238,4 +243,8 @@
             {/if}
         </CardContent>
     </Card>
+
+    <div class="mt-6">
+        <AdSlot position="explore-bottom" height="90px" slotKey="explore-bottom" />
+    </div>
 </div>

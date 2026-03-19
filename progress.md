@@ -1,5 +1,21 @@
 # Progress
 
+## 2026-03-19 — `/explore`, `/empathy` GAM 추가 및 데스크톱 윙 위치 보정
+
+-   모바일은 광고가 나오지만 데스크톱은 체감상 약하다는 사용자 제보를 바탕으로 desktop placement를 재분석
+-   `/explore`, `/empathy`는 실제로 GAM 슬롯이 하나도 없는 공백 페이지였음을 확인
+-   그래서 보수적으로 다음 슬롯을 추가:
+    -   `explore-top`
+    -   `explore-bottom`
+    -   `empathy-top`
+    -   `empathy-bottom`
+-   `ga4.ts`에서 `/explore`, `/empathy*`를 `other`가 아닌 별도 page type으로 분리
+-   데스크톱 윙 배너는 기존 `min-[1600px]` 조건뿐 아니라 좌표 계산 자체가 화면 밖으로 밀릴 수 있던 상태였음을 확인
+-   `default-layout.svelte`에서 윙 배너 좌표를 구 테마 기준에 가깝게 다시 잡고, 화면 끝에는 최소 `24px` 여백이 남도록 조정
+-   검증:
+    -   `pnpm exec svelte-check`
+    -   결과: `0 errors`, 기존 warnings만 유지
+
 ## 2026-03-18 — CPM 회복 작업 시작
 
 -   사용자 요청에 따라 `task_plan.md`, `findings.md`, `progress.md`를 이번 수익 개선 작업의 외부 두뇌로 계속 사용하기로 결정

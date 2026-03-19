@@ -32,6 +32,8 @@
         'board-after-comments',
         'board-footer',
         'index-bottom',
+        'explore-bottom',
+        'empathy-bottom',
         'board-list-infeed',
         'comment-infeed'
     ]);

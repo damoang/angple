@@ -67,6 +67,10 @@ export function trackPageView(path: string): void {
 export function resolvePageContext(pathname: string): PageContext {
     if (pathname === '/') return { pageType: 'home', boardId: 'none' };
     if (pathname === '/search') return { pageType: 'search', boardId: 'none' };
+    if (pathname === '/explore') return { pageType: 'explore', boardId: 'none' };
+    if (pathname === '/empathy' || pathname.startsWith('/empathy/')) {
+        return { pageType: 'empathy', boardId: 'none' };
+    }
     if (pathname.startsWith('/member')) return { pageType: 'member', boardId: 'none' };
 
     const postMatch = pathname.match(/^\/([a-z0-9_-]{2,})\/\d+(?:\/.*)?$/i);
