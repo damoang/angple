@@ -1,5 +1,13 @@
 # Progress
 
+## 2026-03-20 — PC 전용 position 분리
+
+-   desktop floor를 기존 position과 완전히 분리하기 위해 신규 position 2개를 추가
+    -   `board-view-top-desktop`
+    -   `sidebar-sticky-desktop`
+-   게시글 상세 상단 데스크톱 슬롯과 패널 sticky 슬롯을 각각 신규 position으로 전환
+-   이제 GAM에서는 mobile과 desktop의 high value slot을 더 직접적으로 분리 운영 가능
+
 ## 2026-03-20 — PC 슬롯 회복용 코드 확대
 
 -   사용자 제보와 코드 분석을 바탕으로, 모바일 대비 PC가 약한 이유를 “강한 슬롯 조건 협소 + 데스크톱 대형 사이즈 고집”으로 정리

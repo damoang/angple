@@ -314,6 +314,7 @@ export const POSITION_MAP: Record<string, string> = {
 
     // 본문 영역 — article 유닛 (본문 전용)
     'board-view-top': 'banner-article',
+    'board-view-top-desktop': 'banner-article',
     'board-content': 'banner-article',
     'board-content-bottom': 'banner-view-content',
     'board-before-comments': 'banner-article',
@@ -340,6 +341,7 @@ export const POSITION_MAP: Record<string, string> = {
 
     // 사이드바 — sub 유닛 (소형)
     'sidebar-sticky': 'banner-halfpage',
+    'sidebar-sticky-desktop': 'banner-halfpage',
     sidebar: 'banner-square',
     'sidebar-drawer': 'banner-square-small',
     'sidebar-1': 'banner-square',
@@ -361,6 +363,7 @@ export const POSITION_LABELS: Record<string, string> = {
     'index-bottom': '하단 광고',
     'side-banner': '사이드 배너',
     'board-view-top': '본문 상단',
+    'board-view-top-desktop': '본문 상단 (PC)',
     'board-head': '게시판 상단',
     'board-list-head': '목록 상단',
     'board-list-bottom': '목록 하단',
@@ -372,6 +375,7 @@ export const POSITION_LABELS: Record<string, string> = {
     'board-list-infeed': '목록 인피드',
     'comment-infeed': '댓글 인피드',
     'sidebar-sticky': '사이드바 고정',
+    'sidebar-sticky-desktop': '사이드바 고정 (PC)',
     'sidebar-b2b': 'B2B 광고',
     'wing-left': '왼쪽 윙 배너',
     'wing-right': '오른쪽 윙 배너'

@@ -1297,12 +1297,17 @@
     </div>
 
     <!-- 네비게이션 아래 GAM 광고 -->
-    {#if widgetLayoutStore.hasEnabledAds && (boardType === 'economy' || boardType === 'used-market')}
-        <div class="mb-6">
-            <AdSlot position="board-view-top" height="45px" slotKey="board-view-top" />
-        </div>
-    {:else if widgetLayoutStore.hasEnabledAds}
+    {#if widgetLayoutStore.hasEnabledAds}
         <div class="mb-6 hidden lg:block">
+            <AdSlot
+                position="board-view-top-desktop"
+                height="45px"
+                slotKey="board-view-top-desktop"
+            />
+        </div>
+    {/if}
+    {#if widgetLayoutStore.hasEnabledAds && (boardType === 'economy' || boardType === 'used-market')}
+        <div class="mb-6 lg:hidden">
             <AdSlot position="board-view-top" height="45px" slotKey="board-view-top" />
         </div>
     {/if}

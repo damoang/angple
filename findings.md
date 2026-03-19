@@ -1,5 +1,31 @@
 # Findings
 
+## 2026-03-20 — PC 전용 position 분리
+
+### 실제 판단
+
+-   PC 수익 회복 1차에서 기존 position을 재사용해 확장했지만, 운영에서 desktop floor를 모바일/기존 슬롯과 완전히 분리하려면 전용 position이 필요함
+-   최소 분리 단위는 아래 두 개면 충분함
+    -   `board-view-top-desktop`
+    -   `sidebar-sticky-desktop`
+-   이 둘은 모두 PC에서만 렌더되는 강한 슬롯이라 floor, rule, 리포트 분리 효과가 큼
+
+### 이번 수정
+
+-   `board-view-top-desktop` position 추가
+-   `sidebar-sticky-desktop` position 추가
+-   게시글 상세 상단 데스크톱 슬롯은 신규 position으로 전환
+-   패널 sticky 슬롯도 신규 position으로 전환
+
+### 운영 반영 필요
+
+-   GAM `position` key에 아래 값 추가
+    -   `board-view-top-desktop`
+    -   `sidebar-sticky-desktop`
+-   기존 rule과 별도로 desktop high value rule을 이 두 값 기준으로 분리 가능
+
+---
+
 ## 2026-03-20 — PC GAM 회복 1차 하드닝
 
 ### 실제 판단
