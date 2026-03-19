@@ -605,10 +605,17 @@
     function autoLinkUrls(html: string): string {
         // 모든 HTML 태그를 분리하여 텍스트 노드에서만 URL 변환
         const parts = html.split(/(<[^>]+>)/g);
+        let insideAnchor = false;
         return parts
             .map((part) => {
-                // HTML 태그이면 건드리지 않음 (<a>, <img>, <div> 등 모든 태그)
-                if (part.startsWith('<')) return part;
+                if (part.startsWith('<')) {
+                    // <a> 태그 진입/탈출 추적 (서버에서 이미 변환된 어필리에이트 링크 보존)
+                    if (/^<a[\s>]/i.test(part)) insideAnchor = true;
+                    if (/^<\/a>/i.test(part)) insideAnchor = false;
+                    return part;
+                }
+                // <a> 태그 내부 텍스트는 건너뜀 (중첩 <a> 방지)
+                if (insideAnchor) return part;
                 // 텍스트 노드에서만 URL 패턴 매칭 (http/https)
                 return part.replace(/(https?:\/\/[^\s<>"']+)/gi, (url) => {
                     const isDamoang = /damoang\.net/i.test(url);
@@ -673,7 +680,9 @@
                         'height',
                         'href',
                         'target',
-                        'rel'
+                        'rel',
+                        'data-affiliate',
+                        'data-original-url'
                     ]
                 })
             );
@@ -746,7 +755,9 @@
                             'href',
                             'target',
                             'rel',
-                            'data-mention'
+                            'data-mention',
+                            'data-affiliate',
+                            'data-original-url'
                         ]
                     })
                 );

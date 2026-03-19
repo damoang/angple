@@ -178,7 +178,9 @@
             'playsinline',
             'preload',
             'open',
-            'data-original'
+            'data-original',
+            'data-affiliate',
+            'data-original-url'
         ]
     };
 
