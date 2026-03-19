@@ -1,8 +1,14 @@
 <script lang="ts">
     import { onMount } from 'svelte';
     import type { NewsPost } from '$lib/api/types.js';
+    import Heart from '@lucide/svelte/icons/heart';
     import { readPostsStore } from '$lib/stores/read-posts.svelte.js';
     import { getReadPostClasses } from '$lib/stores/read-post-style.svelte.js';
+    import {
+        formatNumber,
+        getRecommendBadgeClass,
+        shortenBoardName
+    } from '../../../recommended/utils/index.js';
 
     type Props = {
         posts: NewsPost[];
@@ -22,7 +28,7 @@
 </script>
 
 {#if posts.length > 0}
-    <ul class="grid grid-cols-1 gap-0 lg:grid-cols-2 lg:gap-x-4">
+    <ul>
         {#each posts as post (post.id)}
             <li>
                 <a
@@ -30,14 +36,34 @@
                     class="hover:bg-muted block rounded px-2 py-1.5 transition-all duration-200 ease-out"
                 >
                     <div class="flex items-center gap-2">
-                        <div
+                        <!-- 추천수 배지 -->
+                        <span
+                            class="inline-flex min-w-[2.5rem] flex-shrink-0 items-center justify-center gap-0.5 rounded-full px-2 py-0.5 text-xs font-bold {getRecommendBadgeClass(
+                                post.recommend_count
+                            )}"
+                        >
+                            <Heart class="size-3" />
+                            {formatNumber(post.recommend_count)}
+                        </span>
+
+                        <!-- 게시판 뱃지 -->
+                        {#if post.board_name}
+                            <span
+                                class="bg-muted text-muted-foreground hidden shrink-0 rounded px-1.5 py-0.5 text-xs sm:inline-block"
+                            >
+                                {shortenBoardName(post.board_name)}
+                            </span>
+                        {/if}
+
+                        <!-- 제목 -->
+                        <span
                             class="min-w-0 flex-1 truncate leading-relaxed {getReadPostClasses(
                                 showReadState && readPostsStore.isRead(post.board, post.id)
                             )}"
-                            style="font-size: var(--list-font-size, 1rem);"
+                            style="font-size: var(--list-font-size);"
                         >
                             {post.title}
-                        </div>
+                        </span>
                     </div>
                 </a>
             </li>

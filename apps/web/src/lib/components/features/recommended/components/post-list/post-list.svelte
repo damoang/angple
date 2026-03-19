@@ -1,10 +1,30 @@
 <script lang="ts">
+    import { onMount } from 'svelte';
     import type { RecommendedDataWithAI, RecommendedPost } from '$lib/api/types.js';
-    import { PostCard } from '$lib/components/ui/post-card';
+    import Heart from '@lucide/svelte/icons/heart';
+    import { formatNumber, getRecommendBadgeClass, shortenBoardName } from '../../utils/index.js';
+    import { readPostsStore } from '$lib/stores/read-posts.svelte.js';
+    import { getReadPostClasses } from '$lib/stores/read-post-style.svelte.js';
+
+    const PREVIEW_COUNT = 10;
 
     let { data }: { data: RecommendedDataWithAI } = $props();
 
-    // $derived 최적화: 섹션별로 포스트에 고유 키 부여 + 중복 제거
+    let showReadState = $state(false);
+    onMount(() => {
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                showReadState = true;
+            });
+        });
+    });
+
+    function getBoardId(url: string): string {
+        const parts = url.split('/').filter(Boolean);
+        return parts[0] || '';
+    }
+
+    // 섹션별로 포스트에 고유 키 부여 + 중복 제거 + 10개 제한
     const allPosts = $derived.by(() => {
         const seen = new Set<number>();
         const result: (RecommendedPost & { uniqueKey: string })[] = [];
@@ -20,15 +40,51 @@
                 result.push({ ...post, uniqueKey: `${section.key}-${post.id}` });
             }
         }
-        return result;
+        return result.slice(0, PREVIEW_COUNT);
     });
 </script>
 
 {#if allPosts.length > 0}
-    <!-- PHP 원본: row row-cols-1 row-cols-lg-2 (2컬럼 그리드) -->
-    <ul class="grid grid-cols-1 gap-0 lg:grid-cols-2 lg:gap-x-4">
+    <ul>
         {#each allPosts as post (post.uniqueKey)}
-            <PostCard {post} />
+            <li>
+                <a
+                    href={post.url}
+                    class="hover:bg-muted block rounded px-2 py-1.5 transition-all duration-200 ease-out"
+                >
+                    <div class="flex items-center gap-2">
+                        <!-- 추천수 배지 (Heart 아이콘 포함) -->
+                        <span
+                            class="inline-flex min-w-[2.5rem] flex-shrink-0 items-center justify-center gap-0.5 rounded-full px-2 py-0.5 text-xs font-bold {getRecommendBadgeClass(
+                                post.recommend_count
+                            )}"
+                        >
+                            <Heart class="size-3" />
+                            {formatNumber(post.recommend_count)}
+                        </span>
+
+                        <!-- 게시판 뱃지 -->
+                        {#if post.board_name}
+                            <span
+                                class="bg-muted text-muted-foreground hidden shrink-0 rounded px-1.5 py-0.5 text-xs sm:inline-block"
+                            >
+                                {shortenBoardName(post.board_name)}
+                            </span>
+                        {/if}
+
+                        <!-- 제목 -->
+                        <span
+                            class="min-w-0 flex-1 truncate leading-relaxed {getReadPostClasses(
+                                showReadState &&
+                                    readPostsStore.isRead(getBoardId(post.url), post.id)
+                            )}"
+                            style="font-size: var(--list-font-size);"
+                        >
+                            {post.title}
+                        </span>
+                    </div>
+                </a>
+            </li>
         {/each}
     </ul>
 {:else}

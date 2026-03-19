@@ -1,0 +1,12 @@
+{
+    "id": "empathy-explore-row",
+    "name": "공감글 + 톺아보기",
+    "version": "1.0.0",
+    "description": "공감 글과 톺아보기를 나란히 표시하는 2컬럼 결합 위젯",
+    "author": { "name": "Angple" },
+    "category": "content",
+    "slots": ["main"],
+    "icon": "Columns2",
+    "allowMultiple": false,
+    "main": "index.svelte"
+}

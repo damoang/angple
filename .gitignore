@@ -115,3 +115,8 @@ apps/web/src/lib/components/ui/podcast-player/
 .claude/
 CLAUDE.md
 local.txt
+
+# 3-file working notes (local only)
+task_plan.md
+findings.md
+progress.md

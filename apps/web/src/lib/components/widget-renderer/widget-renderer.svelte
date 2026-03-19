@@ -104,6 +104,8 @@
         'tag-nav': 'min-h-[56px]',
         recommended: 'min-h-[420px]',
         explore: 'min-h-[420px]',
+        'empathy-explore-row': 'min-h-[420px]',
+        'news-economy-row': 'min-h-[360px]',
         'post-list': 'min-h-[360px]',
         celebration: 'min-h-[120px]',
         notice: 'min-h-[240px]',

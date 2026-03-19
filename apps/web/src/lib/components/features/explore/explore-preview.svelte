@@ -2,16 +2,15 @@
     import { onMount } from 'svelte';
     import { Card, CardHeader, CardContent } from '$lib/components/ui/card';
     import Compass from '@lucide/svelte/icons/compass';
-    import ChevronRight from '@lucide/svelte/icons/chevron-right';
-    import MessageSquare from '@lucide/svelte/icons/message-square';
     import Heart from '@lucide/svelte/icons/heart';
     import {
         formatNumber,
-        getRecommendBadgeClass
+        getRecommendBadgeClass,
+        shortenBoardName
     } from '$lib/components/features/recommended/utils/index.js';
     import { readPostsStore } from '$lib/stores/read-posts.svelte.js';
     import { getReadPostClasses } from '$lib/stores/read-post-style.svelte.js';
-    import type { ExploreData, ExplorePost } from '$lib/api/types.js';
+    import type { ExploreData, ExploreMode, ExplorePost } from '$lib/api/types.js';
 
     interface Props {
         prefetchData?: { data: ExploreData } | unknown;
@@ -26,9 +25,24 @@
 
     const PREVIEW_COUNT = 10;
 
-    const hotPosts = $derived<ExplorePost[]>(
-        exploreData?.modes?.hot?.posts?.slice(0, PREVIEW_COUNT) ?? []
-    );
+    const modes: { id: ExploreMode; label: string }[] = [
+        { id: 'hot', label: '핫' },
+        { id: 'new', label: '최신' },
+        { id: 'rising', label: '급상승' },
+        { id: 'top', label: '인기' }
+    ];
+
+    let activeMode = $state<ExploreMode>('hot');
+
+    const modePosts = $derived.by<ExplorePost[]>(() => {
+        if (!exploreData?.modes) return [];
+        const modeData = exploreData.modes[activeMode];
+        if (!modeData) return [];
+        if (activeMode === 'top') {
+            return modeData.periods?.['24h']?.slice(0, PREVIEW_COUNT) ?? [];
+        }
+        return modeData.posts?.slice(0, PREVIEW_COUNT) ?? [];
+    });
 
     onMount(async () => {
         requestAnimationFrame(() => {
@@ -59,22 +73,31 @@
 
 <Card class="gap-0">
     <CardHeader class="flex flex-row items-center justify-between gap-2 space-y-0 py-3">
-        <div class="flex shrink-0 items-center gap-2">
+        <a
+            href="/explore"
+            class="hover:text-foreground flex shrink-0 items-center gap-2 transition-colors"
+        >
             <div
                 class="flex h-7 w-7 items-center justify-center rounded-lg bg-teal-100 dark:bg-teal-900/30"
             >
                 <Compass class="h-4 w-4 text-teal-500" />
             </div>
             <h3 class="text-foreground text-lg font-semibold">톺아보기</h3>
-            <span class="text-muted-foreground text-xs">핫</span>
-        </div>
-        <a
-            href="/explore"
-            class="text-muted-foreground hover:text-foreground flex items-center gap-0.5 text-xs transition-colors"
-        >
-            더보기
-            <ChevronRight class="h-3.5 w-3.5" />
         </a>
+        <div class="flex gap-1 overflow-x-auto">
+            {#each modes as mode (mode.id)}
+                <button
+                    type="button"
+                    class="shrink-0 rounded-md px-2 py-1 text-xs font-medium transition-all
+                        {activeMode === mode.id
+                        ? 'bg-primary text-primary-foreground'
+                        : 'text-muted-foreground hover:bg-muted hover:text-foreground'}"
+                    onclick={() => (activeMode = mode.id)}
+                >
+                    {mode.label}
+                </button>
+            {/each}
+        </div>
     </CardHeader>
 
     <CardContent class="">
@@ -87,13 +110,13 @@
                     </div>
                 {/each}
             </div>
-        {:else if hotPosts.length === 0}
+        {:else if modePosts.length === 0}
             <div class="text-muted-foreground py-6 text-center text-sm">
                 데이터를 준비하고 있습니다...
             </div>
         {:else}
             <ul>
-                {#each hotPosts as post (post.board + '-' + post.id)}
+                {#each modePosts as post (post.board + '-' + post.id)}
                     <li>
                         <a
                             href={post.url}
@@ -114,7 +137,7 @@
                                 <span
                                     class="bg-muted text-muted-foreground hidden shrink-0 rounded px-1.5 py-0.5 text-xs sm:inline-block"
                                 >
-                                    {post.board_name}
+                                    {shortenBoardName(post.board_name)}
                                 </span>
 
                                 <!-- 제목 -->
@@ -127,16 +150,6 @@
                                 >
                                     {post.title}
                                 </span>
-
-                                <!-- 댓글 수 -->
-                                {#if post.comment_count > 0}
-                                    <span
-                                        class="text-primary flex shrink-0 items-center gap-0.5 text-xs"
-                                    >
-                                        <MessageSquare class="h-3 w-3" />
-                                        {post.comment_count}
-                                    </span>
-                                {/if}
                             </div>
                         </a>
                     </li>
