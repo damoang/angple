@@ -42,8 +42,7 @@ export const AD_CONFIGS: Record<string, AdConfig> = {
             [970, 250],
             [970, 90],
             [728, 90],
-            [320, 100],
-            [300, 250]
+            [320, 100]
         ],
         responsive: [
             [
@@ -55,13 +54,7 @@ export const AD_CONFIGS: Record<string, AdConfig> = {
                 ]
             ],
             [728, [[728, 90]]],
-            [
-                0,
-                [
-                    [320, 100],
-                    [300, 250]
-                ]
-            ]
+            [0, [[320, 100]]]
         ]
     },
     'banner-large': {
@@ -70,8 +63,7 @@ export const AD_CONFIGS: Record<string, AdConfig> = {
             [970, 250],
             [970, 90],
             [728, 90],
-            [320, 100],
-            [300, 250]
+            [320, 100]
         ],
         responsive: [
             [
@@ -82,13 +74,7 @@ export const AD_CONFIGS: Record<string, AdConfig> = {
                 ]
             ],
             [728, [[728, 90]]],
-            [
-                0,
-                [
-                    [320, 100],
-                    [300, 250]
-                ]
-            ]
+            [0, [[320, 100]]]
         ]
     },
     'banner-article': {
@@ -106,36 +92,22 @@ export const AD_CONFIGS: Record<string, AdConfig> = {
         unit: AD_UNIT_PATHS.article,
         sizes: [
             [728, 90],
-            [320, 100],
-            [300, 250]
+            [320, 100]
         ],
         responsive: [
             [728, [[728, 90]]],
-            [
-                0,
-                [
-                    [320, 100],
-                    [300, 250]
-                ]
-            ]
+            [0, [[320, 100]]]
         ]
     },
     'banner-responsive': {
         unit: AD_UNIT_PATHS.sub,
         sizes: [
             [728, 90],
-            [320, 100],
-            [300, 250]
+            [320, 100]
         ],
         responsive: [
             [728, [[728, 90]]],
-            [
-                0,
-                [
-                    [320, 100],
-                    [300, 250]
-                ]
-            ]
+            [0, [[320, 100]]]
         ]
     },
     'banner-small': {
@@ -185,18 +157,11 @@ export const AD_CONFIGS: Record<string, AdConfig> = {
         unit: AD_UNIT_PATHS.sub,
         sizes: [
             [728, 90],
-            [320, 100],
-            [300, 250]
+            [320, 100]
         ],
         responsive: [
             [728, [[728, 90]]],
-            [
-                0,
-                [
-                    [320, 100],
-                    [300, 250]
-                ]
-            ]
+            [0, [[320, 100]]]
         ]
     },
     'banner-medium-compact': {
@@ -234,54 +199,33 @@ export const AD_CONFIGS: Record<string, AdConfig> = {
         unit: AD_UNIT_PATHS.main,
         sizes: [
             [728, 90],
-            [320, 100],
-            [300, 250]
+            [320, 100]
         ],
         responsive: [
             [728, [[728, 90]]],
-            [
-                0,
-                [
-                    [320, 100],
-                    [300, 250]
-                ]
-            ]
+            [0, [[320, 100]]]
         ]
     },
     'banner-horizontal-728': {
         unit: AD_UNIT_PATHS.article,
         sizes: [
             [728, 90],
-            [320, 100],
-            [300, 250]
+            [320, 100]
         ],
         responsive: [
             [728, [[728, 90]]],
-            [
-                0,
-                [
-                    [320, 100],
-                    [300, 250]
-                ]
-            ]
+            [0, [[320, 100]]]
         ]
     },
     infeed: {
         unit: AD_UNIT_PATHS.curation,
         sizes: [
             [728, 90],
-            [320, 100],
-            [300, 250]
+            [320, 100]
         ],
         responsive: [
             [728, [[728, 90]]],
-            [
-                0,
-                [
-                    [320, 100],
-                    [300, 250]
-                ]
-            ]
+            [0, [[320, 100]]]
         ]
     },
     'infeed-compact': {
