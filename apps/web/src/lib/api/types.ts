@@ -331,10 +331,30 @@ export interface ExplorePost {
     rising_score?: number;
 }
 
+export interface ExploreComment {
+    id: number;
+    content: string;
+    board: string;
+    board_name: string;
+    group_id: string;
+    url: string;
+    parent_id: number;
+    parent_title: string;
+    recommend_count: number;
+    author: string;
+    created_at: string;
+}
+
 export interface ExploreTopPeriods {
     '24h': ExplorePost[];
     '7d': ExplorePost[];
     '30d': ExplorePost[];
+}
+
+export interface ExploreTopCommentPeriods {
+    '24h': ExploreComment[];
+    '7d': ExploreComment[];
+    '30d': ExploreComment[];
 }
 
 export interface ExploreModeData {
@@ -343,11 +363,15 @@ export interface ExploreModeData {
     count: number;
     posts: ExplorePost[];
     periods?: ExploreTopPeriods;
+    comment_count?: number;
+    comments?: ExploreComment[];
+    comment_periods?: ExploreTopCommentPeriods;
 }
 
 export interface ExploreData {
     generated_at: string;
     total_posts: number;
+    total_comments: number;
     board_count: number;
     modes: {
         hot: ExploreModeData;
