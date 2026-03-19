@@ -273,7 +273,6 @@
         // GA4 초기화 (Measurement ID가 설정된 경우에만)
         if (data.ga4MeasurementId) {
             initGA4(data.ga4MeasurementId);
-            trackPageView(window.location.pathname + window.location.search);
             consumePendingAuthEvent();
         }
 
