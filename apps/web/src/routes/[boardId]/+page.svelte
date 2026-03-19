@@ -653,7 +653,9 @@
                 {@const notices = result.notices || []}
                 {@const pagination = result.pagination}
                 {@const filteredPosts = posts.filter(
-                    (p) => !blockedUsersStore.isBlocked(p.author_id)
+                    (p) =>
+                        !blockedUsersStore.isBlocked(p.author_id) &&
+                        !uiSettingsStore.isMuted(p.title)
                 )}
                 {@const importantNotices = notices.filter(
                     (n) =>
