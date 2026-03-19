@@ -934,6 +934,14 @@
                         <Button
                             variant="outline"
                             size="sm"
+                            disabled={pagination.page <= 5}
+                            title="5페이지 뒤로"
+                            onclick={() => goToPage(Math.max(1, pagination.page - 5))}
+                            >&laquo;</Button
+                        >
+                        <Button
+                            variant="outline"
+                            size="sm"
                             disabled={pagination.page === 1}
                             onclick={() => goToPage(pagination.page - 1)}>이전</Button
                         >
@@ -954,6 +962,15 @@
                             size="sm"
                             disabled={pagination.page === pagination.totalPages}
                             onclick={() => goToPage(pagination.page + 1)}>다음</Button
+                        >
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={pagination.page + 5 > pagination.totalPages}
+                            title="5페이지 앞으로"
+                            onclick={() =>
+                                goToPage(Math.min(pagination.totalPages, pagination.page + 5))}
+                            >&raquo;</Button
                         >
                     </div>
                     <p class="text-secondary-foreground mt-4 text-center text-sm">

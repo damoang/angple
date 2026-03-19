@@ -76,14 +76,16 @@ export function processContent(html: string): string {
         /<a\s[^>]*href=["'](https?:\/\/[^"']+)["'][^>]*>\s*(https?:\/\/[^\s<]+?)\s*<\/a>/gi;
 
     let result = html.replace(aTagPattern, (match, href, text) => {
+        // HTML 엔티티 디코딩 (&amp; → &) — 에디터가 URL 내 &를 &amp;로 인코딩
+        const decodedHref = href.trim().replace(/&amp;/g, '&');
         // href와 텍스트 URL이 실질적으로 같은지 확인
-        const cleanHref = href.trim().replace(/\/+$/, '');
-        const cleanText = text.trim().replace(/\/+$/, '');
+        const cleanHref = decodedHref.replace(/\/+$/, '');
+        const cleanText = text.trim().replace(/&amp;/g, '&').replace(/\/+$/, '');
         if (cleanHref !== cleanText) {
             return match; // 커스텀 텍스트 링크는 유지
         }
 
-        const embedded = embedUrl(href.trim());
+        const embedded = embedUrl(decodedHref);
         if (embedded) {
             return embedded;
         }

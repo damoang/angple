@@ -243,7 +243,11 @@
             </div>
         {/if}
         {#each posts as post, i (post.id)}
-            <div class={post.id === currentPostId ? 'current-post-highlight' : ''}>
+            <!-- svelte-ignore a11y_no_static_element_interactions -->
+            <div
+                class={post.id === currentPostId ? 'current-post-highlight' : ''}
+                onclick={() => readPostsStore.markAsRead(boardId, post.id)}
+            >
                 <LayoutComponent
                     {post}
                     {displaySettings}
@@ -277,6 +281,15 @@
             <Button
                 variant="outline"
                 size="sm"
+                disabled={currentPage <= 5}
+                title="5페이지 뒤로"
+                onclick={() => goToPage(Math.max(1, currentPage - 5))}
+            >
+                &laquo;
+            </Button>
+            <Button
+                variant="outline"
+                size="sm"
                 disabled={currentPage === 1}
                 onclick={() => goToPage(currentPage - 1)}
             >
@@ -301,6 +314,15 @@
             >
                 다음
             </Button>
+            <Button
+                variant="outline"
+                size="sm"
+                disabled={currentPage + 5 > totalPages}
+                title="5페이지 앞으로"
+                onclick={() => goToPage(Math.min(totalPages, currentPage + 5))}
+            >
+                &raquo;
+            </Button>
         </div>
 
         <p class="text-secondary-foreground mt-3 text-center text-sm">
@@ -319,8 +341,11 @@
 <style>
     /* 현재 읽고 있는 글 하이라이트 */
     .current-post-highlight {
-        background-color: color-mix(in srgb, var(--color-primary) 8%, transparent);
-        border-left: 3px solid var(--color-primary);
+        background-color: color-mix(in srgb, var(--color-primary) 12%, transparent);
+        border-left: 4px solid var(--color-primary);
         border-radius: 0.25rem;
+    }
+    :global(.current-post-highlight .line-clamp-1) {
+        font-weight: 600;
     }
 </style>
