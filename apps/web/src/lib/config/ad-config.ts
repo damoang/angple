@@ -319,6 +319,12 @@ export const POSITION_MAP: Record<string, string> = {
     'comment-infeed': 'infeed-compact',
     'comment-top': 'banner-compact',
 
+    // 큐레이션 페이지 — 전용 문맥 슬롯
+    'explore-top': 'banner-article',
+    'explore-bottom': 'banner-horizontal-728',
+    'empathy-top': 'banner-article',
+    'empathy-bottom': 'banner-horizontal-728',
+
     // 인덱스(홈) — main 유닛
     'index-head': 'banner-small',
     'index-top': 'banner-responsive',

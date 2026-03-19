@@ -12,6 +12,7 @@
     import ThresholdFilter from './threshold-filter.svelte';
     import SortSelector from './sort-selector.svelte';
     import DailyStatsBar from './daily-stats-bar.svelte';
+    import AdSlot from '$lib/components/ui/ad-slot/ad-slot.svelte';
 
     interface Props {
         date: string;
@@ -149,6 +150,10 @@
         />
     </div>
 
+    <div class="mb-4">
+        <AdSlot position="empathy-top" height="90px" slotKey="empathy-top" />
+    </div>
+
     {#if !sections}
         <!-- 데이터 없음 -->
         <div class="flex flex-col items-center justify-center rounded-lg border py-16 text-center">
@@ -196,5 +201,9 @@
                 </p>
             </div>
         {/if}
+
+        <div class="mt-6">
+            <AdSlot position="empathy-bottom" height="90px" slotKey="empathy-bottom" />
+        </div>
     {/if}
 </div>

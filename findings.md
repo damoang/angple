@@ -1,5 +1,36 @@
 # Findings
 
+## 2026-03-19 — 데스크톱 노출 약화 및 `/explore`, `/empathy` GAM 공백
+
+### 실제 확인 결과
+
+-   현재 `/explore`와 `/empathy`에는 `AdSlot`이 전혀 없어 GAM 수익화 공백이 있었음
+-   데스크톱 광고가 약하게 체감되는 이유는 단순 fill 문제만이 아니라, 현재 데스크톱 placement 자체가 강한 조건에 묶여 있기 때문임
+-   `board-view-top`은 특정 보드(`economy`, `used-market`)에서만 렌더됨
+-   `sidebar-sticky`는 `Panel`이 보이는 데스크톱 레이아웃에서만 렌더됨
+-   `wing-left`, `wing-right`는 `min-[1600px]` 이상에서만 렌더됨
+-   즉 일반 데스크톱 폭과 일반 게시판 동선에서는 데스크톱 광고가 적게 보이는 것이 구조적으로 설명됨
+
+### 이번 수정
+
+-   `/explore`에 전용 GAM 슬롯 2개 추가
+    -   `explore-top`
+    -   `explore-bottom`
+-   `/empathy`에 전용 GAM 슬롯 2개 추가
+    -   `empathy-top`
+    -   `empathy-bottom`
+-   `POSITION_MAP`에 위 4개 position을 추가해 기존 unit 체계 안에서 서빙되도록 정리
+-   `explore-bottom`, `empathy-bottom`은 below-the-fold 취급으로 intrinsic size 예약 적용
+-   GA4 page context도 `/explore` → `explore`, `/empathy*` → `empathy`로 분리해 이후 분석 축을 `other`에서 빼냄
+-   데스크톱 윙 배너는 `1600px` 이상 조건 외에도 위치 계산이 너무 공격적이라 실제로 화면 밖으로 밀릴 수 있었음
+-   `default-layout.svelte`에서 윙 위치를 구 테마의 `1200px 본문 + 180px 여백` 감각에 가깝게 보정하고, 화면 끝에는 최소 `24px` 여백을 남기도록 수정함
+
+### 설계 판단
+
+-   지금 시점에는 desktop 수익 회복을 위해 상단 1개 + 하단 1개 수준의 보수적 추가가 맞음
+-   기존 게시판/본문 placement는 그대로 두고, 수익화 공백 페이지부터 메우는 것이 원인 분리에 유리함
+-   `/explore`, `/empathy`는 큐레이션 성격이 강해 전용 position으로 분리하는 편이 `board-*` position 재사용보다 설계상 깔끔함
+
 ---
 
 # 2026-03-18 — CPM 회복 작업 메모
