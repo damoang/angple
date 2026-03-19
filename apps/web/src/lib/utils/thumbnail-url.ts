@@ -7,10 +7,16 @@
 export function toThumbnailUrl(url: string | undefined | null, size = '400x225'): string {
     if (!url) return '';
 
-    // 이미 썸네일 URL이면 이중 변환 방지
-    if (/-\d+x\d+\.webp$/i.test(url)) return url;
+    // 이미 요청한 크기와 동일하면 스킵
+    if (url.endsWith(`-${size}.webp`)) return url;
 
-    // data/file/ 또는 data/editor/ S3 URL → Lambda 썸네일 변환
+    // 다른 크기 썸네일이면 크기 교체
+    const thumbMatch = url.match(/^(.+)-\d+x\d+\.webp$/i);
+    if (thumbMatch) {
+        return `${thumbMatch[1]}-${size}.webp`;
+    }
+
+    // 일반 이미지 URL → 썸네일 변환
     const match = url.match(
         /^(https?:\/\/s3\.damoang\.net\/data\/(?:file|editor)\/.+)\.(jpg|jpeg|png|gif|webp)$/i
     );
