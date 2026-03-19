@@ -7,6 +7,7 @@
     import { LevelBadge } from '$lib/components/ui/level-badge/index.js';
     import { memberLevelStore } from '$lib/stores/member-levels.svelte.js';
     import { formatDate } from '$lib/utils/format-date.js';
+    import { toThumbnailUrl } from '$lib/utils/thumbnail-url.js';
     // Props
     let {
         post,
@@ -23,8 +24,11 @@
     // 삭제된 글
     const isDeleted = $derived(!!post.deleted_at);
 
-    // 썸네일 이미지 추출 (첫 번째 이미지)
-    const thumbnailUrl = $derived(post.images && post.images.length > 0 ? post.images[0] : null);
+    // 썸네일 이미지 추출 (thumbnail 우선, 없으면 첫 번째 이미지)
+    const rawThumbnailUrl = $derived(
+        post.thumbnail_raw || post.thumbnail || post.images?.[0] || ''
+    );
+    const thumbnailUrl = $derived(toThumbnailUrl(rawThumbnailUrl));
 </script>
 
 <!-- Detailed 스킨: 제목 + 본문 미리보기 4-5줄 + 썸네일 + 메타데이터 + 태그 (뉴스 스타일) -->
@@ -100,7 +104,7 @@
             <CardContent>
                 <div class="flex gap-4">
                     <!-- 좌측: 썸네일 (있을 경우) -->
-                    {#if thumbnailUrl && displaySettings?.show_thumbnail !== false}
+                    {#if rawThumbnailUrl && displaySettings?.show_thumbnail !== false}
                         <div
                             class="bg-muted relative h-20 w-20 shrink-0 overflow-hidden rounded-md sm:h-32 sm:w-32"
                         >
@@ -110,7 +114,11 @@
                                 class="h-full w-full object-cover"
                                 onerror={(e) => {
                                     const target = e.target as HTMLImageElement;
-                                    target.style.display = 'none';
+                                    if (rawThumbnailUrl && target.src !== rawThumbnailUrl) {
+                                        target.src = rawThumbnailUrl;
+                                    } else {
+                                        target.style.display = 'none';
+                                    }
                                 }}
                             />
                         </div>
