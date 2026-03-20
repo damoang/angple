@@ -15,6 +15,8 @@
     import SortSelector from './sort-selector.svelte';
     import DailyStatsBar from './daily-stats-bar.svelte';
     import AdSlot from '$lib/components/ui/ad-slot/ad-slot.svelte';
+    import { Card, CardHeader, CardContent } from '$lib/components/ui/card';
+    import Compass from '@lucide/svelte/icons/compass';
 
     interface Props {
         date: string;
@@ -193,121 +195,115 @@
 </script>
 
 <div class="mx-auto max-w-5xl px-4 py-4">
-    <!-- 헤더: 날짜 네비게이션 -->
-    <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div class="flex items-center gap-2">
-            <span class="text-lg font-bold">📅 날짜별 공감글</span>
-            {#if dateDisplay}
-                <span class="text-muted-foreground text-sm">{dateDisplay}</span>
-            {/if}
-        </div>
-        <DateNavigator
-            currentDate={date}
-            {calendarDates}
-            {oldestDate}
-            {newestDate}
-            onDateChange={handleDateChange}
-        />
-    </div>
-
     <div class="mb-4">
         <AdSlot position="empathy-top" height="90px" slotKey="empathy-top" />
     </div>
 
-    {#if !sections}
-        <!-- 데이터 없음 -->
-        <div class="flex flex-col items-center justify-center rounded-lg border py-16 text-center">
-            <p class="text-muted-foreground text-lg">이 날짜의 공감글 데이터가 없습니다</p>
-            <p class="text-muted-foreground mt-1 text-sm">다른 날짜를 선택해 주세요</p>
-        </div>
-    {:else}
-        <!-- 통계 바 -->
-        {#if stats}
-            <DailyStatsBar {stats} />
-        {/if}
-
-        <!-- 글/댓글 토글 -->
-        {#if hasComments}
-            <div class="mb-3 flex gap-1">
-                <button
-                    type="button"
-                    class="rounded-md px-3 py-1 text-sm font-medium transition-all {viewMode ===
-                    'posts'
-                        ? 'bg-primary text-primary-foreground'
-                        : 'text-muted-foreground hover:bg-muted hover:text-foreground'}"
-                    onclick={() => (viewMode = 'posts')}
-                >
-                    글
-                </button>
-                <button
-                    type="button"
-                    class="rounded-md px-3 py-1 text-sm font-medium transition-all {viewMode ===
-                    'comments'
-                        ? 'bg-primary text-primary-foreground'
-                        : 'text-muted-foreground hover:bg-muted hover:text-foreground'}"
-                    onclick={() => (viewMode = 'comments')}
-                >
-                    댓글
-                </button>
-            </div>
-        {/if}
-
-        <!-- 필터 영역 -->
-        <div class="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <SectionTabs bind:activeTab counts={sectionCounts} />
-            <div class="flex items-center gap-2">
-                <ThresholdFilter bind:threshold />
-                {#if viewMode === 'posts'}
-                    <SortSelector bind:sortBy />
-                {/if}
-            </div>
-        </div>
-
-        <!-- 게시글 목록 -->
-        {#if viewMode === 'posts'}
-            {#if filteredPosts.length > 0}
-                <ul class="grid grid-cols-1 gap-0 lg:grid-cols-2 lg:gap-x-4">
-                    {#each filteredPosts as post (post.id + '-' + post.board)}
-                        <PostCard {post} />
-                    {/each}
-                </ul>
-                <p class="text-muted-foreground mt-3 text-center text-xs">
-                    {filteredPosts.length}건 표시
-                    {#if threshold > 0}
-                        (추천 {threshold}+ 필터 적용)
+    <Card class="gap-0 overflow-hidden">
+        <CardHeader class="space-y-0 pb-0">
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div class="flex items-center gap-2">
+                    <Compass class="text-primary h-5 w-5" />
+                    <h1 class="text-foreground text-lg font-bold">날짜별 공감글</h1>
+                    {#if dateDisplay}
+                        <span class="text-muted-foreground text-xs">{dateDisplay}</span>
                     {/if}
-                </p>
-            {:else}
-                <div
-                    class="flex flex-col items-center justify-center rounded-lg border py-12 text-center"
-                >
-                    <p class="text-muted-foreground text-sm">
-                        {#if threshold > 0}
-                            추천 {threshold}건 이상 글이 없습니다. 필터를 낮춰보세요.
-                        {:else}
-                            이 섹션에 글이 없습니다.
-                        {/if}
-                    </p>
+                </div>
+                <DateNavigator
+                    currentDate={date}
+                    {calendarDates}
+                    {oldestDate}
+                    {newestDate}
+                    onDateChange={handleDateChange}
+                />
+            </div>
+
+            {#if stats}
+                <div class="mt-3">
+                    <DailyStatsBar {stats} />
                 </div>
             {/if}
-        {:else}
-            <!-- 댓글 목록 -->
-            {#if filteredComments.length > 0}
-                <ul class="grid grid-cols-1 gap-0 lg:grid-cols-2 lg:gap-x-4">
+
+            {#if hasComments}
+                <div class="mt-3 flex gap-1">
+                    <button
+                        type="button"
+                        class="rounded-md px-3 py-1 text-sm font-medium transition-all {viewMode ===
+                        'posts'
+                            ? 'bg-primary text-primary-foreground'
+                            : 'text-muted-foreground hover:bg-muted hover:text-foreground'}"
+                        onclick={() => (viewMode = 'posts')}
+                    >
+                        글
+                    </button>
+                    <button
+                        type="button"
+                        class="rounded-md px-3 py-1 text-sm font-medium transition-all {viewMode ===
+                        'comments'
+                            ? 'bg-primary text-primary-foreground'
+                            : 'text-muted-foreground hover:bg-muted hover:text-foreground'}"
+                        onclick={() => (viewMode = 'comments')}
+                    >
+                        댓글
+                    </button>
+                </div>
+            {/if}
+
+            <div class="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <SectionTabs bind:activeTab counts={sectionCounts} />
+                <div class="flex items-center gap-2">
+                    <ThresholdFilter bind:threshold />
+                    {#if viewMode === 'posts'}
+                        <SortSelector bind:sortBy />
+                    {/if}
+                </div>
+            </div>
+        </CardHeader>
+
+        <CardContent class="px-0 pb-0">
+            {#if !sections}
+                <div class="flex flex-col items-center justify-center py-16 text-center">
+                    <p class="text-muted-foreground text-lg">이 날짜의 공감글 데이터가 없습니다</p>
+                    <p class="text-muted-foreground mt-1 text-sm">다른 날짜를 선택해 주세요</p>
+                </div>
+            {:else if viewMode === 'posts'}
+                {#if filteredPosts.length > 0}
+                    <ul class="divide-border divide-y">
+                        {#each filteredPosts as post (post.id + '-' + post.board)}
+                            <PostCard {post} />
+                        {/each}
+                    </ul>
+                    <p class="text-muted-foreground px-4 py-3 text-center text-xs">
+                        {filteredPosts.length}건 표시
+                        {#if threshold > 0}
+                            (추천 {threshold}+ 필터 적용)
+                        {/if}
+                    </p>
+                {:else}
+                    <div class="flex flex-col items-center justify-center py-12 text-center">
+                        <p class="text-muted-foreground text-sm">
+                            {#if threshold > 0}
+                                추천 {threshold}건 이상 글이 없습니다. 필터를 낮춰보세요.
+                            {:else}
+                                이 섹션에 글이 없습니다.
+                            {/if}
+                        </p>
+                    </div>
+                {/if}
+            {:else if filteredComments.length > 0}
+                <ul class="divide-border divide-y">
                     {#each filteredComments as comment (comment.id + '-' + comment.board)}
                         <CommentCard {comment} />
                     {/each}
                 </ul>
-                <p class="text-muted-foreground mt-3 text-center text-xs">
+                <p class="text-muted-foreground px-4 py-3 text-center text-xs">
                     {filteredComments.length}건 표시
                     {#if threshold > 0}
                         (추천 {threshold}+ 필터 적용)
                     {/if}
                 </p>
             {:else}
-                <div
-                    class="flex flex-col items-center justify-center rounded-lg border py-12 text-center"
-                >
+                <div class="flex flex-col items-center justify-center py-12 text-center">
                     <p class="text-muted-foreground text-sm">
                         {#if threshold > 0}
                             추천 {threshold}건 이상 댓글이 없습니다. 필터를 낮춰보세요.
@@ -317,10 +313,10 @@
                     </p>
                 </div>
             {/if}
-        {/if}
+        </CardContent>
+    </Card>
 
-        <div class="mt-6">
-            <AdSlot position="empathy-bottom" height="90px" slotKey="empathy-bottom" />
-        </div>
-    {/if}
+    <div class="mt-6">
+        <AdSlot position="empathy-bottom" height="90px" slotKey="empathy-bottom" />
+    </div>
 </div>

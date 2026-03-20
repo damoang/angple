@@ -21,6 +21,8 @@ export interface NewPostItem {
     wr_hit: number;
 }
 
+export type FeedSort = 'latest' | 'comments' | 'views';
+
 export interface NewPostsResult {
     items: NewPostItem[];
     total: number;
@@ -77,10 +79,11 @@ export async function getNewPosts(
     grId: string,
     page: number,
     perPage: number = 30,
-    cursor?: number
+    cursor?: number,
+    sort: FeedSort = 'latest'
 ): Promise<NewPostsResult> {
     // Redis 2-tier 캐시 확인 (L1 30초, L2 60초)
-    const feedCacheKey = `${view}:${grId}:${page}:${cursor || 0}`;
+    const feedCacheKey = `${view}:${grId}:${page}:${cursor || 0}:${sort}`;
     const cached = await feedCache.get(feedCacheKey);
     if (cached) return cached;
 
@@ -103,8 +106,8 @@ export async function getNewPosts(
         params.push(grId);
     }
 
-    // 커서 기반 페이지네이션 (OFFSET 대신 인덱스 범위 스캔)
-    if (cursor && cursor > 0) {
+    // 최신순일 때만 커서 기반 페이지네이션 사용
+    if (sort === 'latest' && cursor && cursor > 0) {
         conditions.push('bn.bn_id < ?');
         params.push(cursor);
     }
@@ -143,11 +146,17 @@ export async function getNewPosts(
         countCache.set(cacheKey, { total, expiry: Date.now() + COUNT_CACHE_TTL });
     }
 
-    // 게시글 목록 조회 — 커서가 있으면 OFFSET 불필요
-    const useCursor = cursor && cursor > 0;
-    const listParams = useCursor
-        ? [...params, perPage]
-        : [...params, (page - 1) * perPage, perPage];
+    // 게시글 목록 조회
+    // 최신순은 기존 커서 기반, 그 외 정렬은 최근 후보군을 넓게 조회 후 서버에서 정렬
+    const useCursor = sort === 'latest' && cursor && cursor > 0;
+    const useCandidatePool = sort !== 'latest';
+    const offset = (page - 1) * perPage;
+    const candidateLimit = Math.min(Math.max(page * perPage + 120, 240), 1000);
+    const listParams = useCandidatePool
+        ? [...params, candidateLimit]
+        : useCursor
+          ? [...params, perPage]
+          : [...params, offset, perPage];
 
     const [rows] = await readPool.query<RowDataPacket[]>(
         `SELECT bn.bn_id, bn.bo_table, bn.wr_id, bn.wr_parent, bn.bn_datetime,
@@ -156,7 +165,7 @@ export async function getNewPosts(
 		 JOIN g5_board b ON bn.bo_table = b.bo_table
 		 ${whereClause}
 		 ORDER BY bn.bn_id DESC
-		 LIMIT ${useCursor ? '?' : '?, ?'}`,
+		 LIMIT ${useCandidatePool || useCursor ? '?' : '?, ?'}`,
         listParams
     );
 
@@ -201,7 +210,7 @@ export async function getNewPosts(
     await Promise.all(batchPromises);
 
     // 결과 조립 (원래 순서 유지)
-    const items: NewPostItem[] = [];
+    let items: NewPostItem[] = [];
     for (const row of rows) {
         const writeData = writeDataMap.get(`${row.bo_table}:${row.wr_id}`);
         if (writeData) {
@@ -222,8 +231,26 @@ export async function getNewPosts(
         }
     }
 
+    if (sort === 'comments') {
+        items.sort(
+            (a, b) =>
+                b.wr_comment - a.wr_comment ||
+                new Date(b.bn_datetime).getTime() - new Date(a.bn_datetime).getTime()
+        );
+    } else if (sort === 'views') {
+        items.sort(
+            (a, b) =>
+                b.wr_hit - a.wr_hit ||
+                new Date(b.bn_datetime).getTime() - new Date(a.bn_datetime).getTime()
+        );
+    }
+
+    if (useCandidatePool) {
+        items = items.slice(offset, offset + perPage);
+    }
+
     // 다음 페이지 커서: 마지막 항목의 bn_id
-    const nextCursor = items.length > 0 ? items[items.length - 1].bn_id : null;
+    const nextCursor = sort === 'latest' && items.length > 0 ? items[items.length - 1].bn_id : null;
 
     const result: NewPostsResult = { items, total, nextCursor };
 

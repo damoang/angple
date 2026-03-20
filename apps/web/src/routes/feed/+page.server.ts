@@ -5,11 +5,12 @@
  * posts: 스트리밍 (Promise, 스켈레톤 → 데이터)
  */
 import type { PageServerLoad } from './$types';
-import { getNewPosts, getBoardGroups } from '$lib/server/new-posts.js';
+import { getNewPosts, getBoardGroups, type FeedSort } from '$lib/server/new-posts.js';
 
 export const load: PageServerLoad = async ({ url }) => {
     const view = (url.searchParams.get('view') as string) || '';
     const grId = url.searchParams.get('gr_id') || '';
+    const sort = ((url.searchParams.get('sort') as FeedSort) || 'latest') as FeedSort;
     const page = Math.max(1, parseInt(url.searchParams.get('page') || '1', 10));
     const cursor = parseInt(url.searchParams.get('cursor') || '0', 10) || undefined;
     const perPage = 30;
@@ -18,7 +19,7 @@ export const load: PageServerLoad = async ({ url }) => {
     const groups = await getBoardGroups();
 
     // posts는 스트리밍 → await 하지 않음 (스켈레톤 먼저 보여줌)
-    const postsPromise = getNewPosts(view, grId, page, perPage, cursor);
+    const postsPromise = getNewPosts(view, grId, page, perPage, cursor, sort);
 
     return {
         /** 스트리밍: Promise로 반환 → 클라이언트에서 {#await} 사용 */
@@ -28,6 +29,7 @@ export const load: PageServerLoad = async ({ url }) => {
         groups,
         currentView: view,
         currentGroup: grId,
+        currentSort: sort,
         page,
         perPage
     };

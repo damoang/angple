@@ -16,6 +16,8 @@ export interface GroupBoard {
     bo_count_write: number;
     bo_count_comment: number;
     today_count: number;
+    weekly_count: number;
+    subscriber_count: number;
 }
 
 /** 소모임 목록 캐시: L1 10분, L2(Redis) 30분 */
@@ -68,7 +70,9 @@ async function loadGroupBoards(cacheKey: string): Promise<GroupBoard[]> {
 
     const [rows] = await readPool.query<RowDataPacket[]>(
         `SELECT b.bo_table, b.bo_subject, b.bo_count_write, b.bo_count_comment,
-                IFNULL(n.cnt, 0) AS today_count
+                IFNULL(n.cnt, 0) AS today_count,
+                IFNULL(w.cnt, 0) AS weekly_count,
+                IFNULL(s.cnt, 0) AS subscriber_count
 		 FROM g5_board b
 		 LEFT JOIN (
 		     SELECT bo_table, COUNT(*) AS cnt
@@ -76,6 +80,17 @@ async function loadGroupBoards(cacheKey: string): Promise<GroupBoard[]> {
 		     WHERE bn_datetime >= CURDATE()
 		     GROUP BY bo_table
 		 ) n ON n.bo_table = b.bo_table
+		 LEFT JOIN (
+		     SELECT bo_table, COUNT(*) AS cnt
+		     FROM g5_board_new
+		     WHERE bn_datetime >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+		     GROUP BY bo_table
+		 ) w ON w.bo_table = b.bo_table
+		 LEFT JOIN (
+		     SELECT bo_table, COUNT(*) AS cnt
+		     FROM g5_board_subscribe
+		     GROUP BY bo_table
+		 ) s ON s.bo_table = b.bo_table
 		 WHERE b.gr_id = 'group'
 		 ORDER BY b.bo_order, b.bo_table`
     );

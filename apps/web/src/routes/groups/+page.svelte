@@ -6,6 +6,7 @@
     import FileText from '@lucide/svelte/icons/file-text';
     import Clock from '@lucide/svelte/icons/clock';
     import ThumbsUp from '@lucide/svelte/icons/thumbs-up';
+    import Flame from '@lucide/svelte/icons/flame';
     import { formatDate } from '$lib/utils/format-date.js';
     import { formatCommentCountBadge } from '$lib/utils/comment-count.js';
     // import { Skeleton } from '$lib/components/ui/skeleton/index.js';
@@ -16,13 +17,57 @@
 
     let searchQuery = $state('');
     let activeTab = $state<'latest' | 'popular' | 'list'>('latest');
+    let activityFilter = $state<'all' | 'today' | 'week'>('all');
+    let sortBy = $state<'activity' | 'subscribers' | 'posts' | 'comments' | 'name'>('activity');
 
     let filteredBoards = $derived(
-        searchQuery
-            ? data.boards.filter((b) =>
-                  b.bo_subject.toLowerCase().includes(searchQuery.toLowerCase())
-              )
-            : data.boards
+        data.boards
+            .filter((board) => {
+                const matchesQuery = searchQuery
+                    ? board.bo_subject.toLowerCase().includes(searchQuery.toLowerCase())
+                    : true;
+
+                const matchesActivity =
+                    activityFilter === 'today'
+                        ? board.today_count > 0
+                        : activityFilter === 'week'
+                          ? board.weekly_count > 0
+                          : true;
+
+                return matchesQuery && matchesActivity;
+            })
+            .sort((a, b) => {
+                switch (sortBy) {
+                    case 'subscribers':
+                        return (
+                            b.subscriber_count - a.subscriber_count ||
+                            b.weekly_count - a.weekly_count ||
+                            a.bo_subject.localeCompare(b.bo_subject, 'ko')
+                        );
+                    case 'posts':
+                        return (
+                            b.bo_count_write - a.bo_count_write ||
+                            b.weekly_count - a.weekly_count ||
+                            a.bo_subject.localeCompare(b.bo_subject, 'ko')
+                        );
+                    case 'comments':
+                        return (
+                            b.bo_count_comment - a.bo_count_comment ||
+                            b.weekly_count - a.weekly_count ||
+                            a.bo_subject.localeCompare(b.bo_subject, 'ko')
+                        );
+                    case 'name':
+                        return a.bo_subject.localeCompare(b.bo_subject, 'ko');
+                    case 'activity':
+                    default:
+                        return (
+                            b.today_count - a.today_count ||
+                            b.weekly_count - a.weekly_count ||
+                            b.subscriber_count - a.subscriber_count ||
+                            a.bo_subject.localeCompare(b.bo_subject, 'ko')
+                        );
+                }
+            })
     );
 
     // SSR 데이터만 표시 (무한 스크롤 비활성화)
@@ -123,14 +168,58 @@
     </div>
 
     {#if activeTab === 'list'}
-        <!-- 검색 -->
-        <div class="mb-6">
-            <input
-                type="text"
-                placeholder="소모임 검색..."
-                class="border-border bg-canvas text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-primary w-full rounded-lg border px-4 py-2.5 text-sm focus:outline-none focus:ring-1"
-                bind:value={searchQuery}
-            />
+        <div class="mb-6 space-y-3">
+            <div class="flex flex-col gap-2 md:flex-row">
+                <input
+                    type="text"
+                    placeholder="소모임 검색..."
+                    class="border-border bg-canvas text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-primary w-full rounded-lg border px-4 py-2.5 text-sm focus:outline-none focus:ring-1"
+                    bind:value={searchQuery}
+                />
+                <select
+                    class="border-border bg-background text-foreground h-10 rounded-lg border px-3 text-sm outline-none"
+                    bind:value={sortBy}
+                >
+                    <option value="activity">활동순</option>
+                    <option value="subscribers">구독순</option>
+                    <option value="posts">글 많은 순</option>
+                    <option value="comments">댓글 많은 순</option>
+                    <option value="name">이름순</option>
+                </select>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-2">
+                <button
+                    type="button"
+                    class="rounded-full px-3 py-1.5 text-xs font-medium transition-all {activityFilter ===
+                    'all'
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-muted text-muted-foreground hover:text-foreground'}"
+                    onclick={() => (activityFilter = 'all')}
+                >
+                    전체
+                </button>
+                <button
+                    type="button"
+                    class="rounded-full px-3 py-1.5 text-xs font-medium transition-all {activityFilter ===
+                    'today'
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-muted text-muted-foreground hover:text-foreground'}"
+                    onclick={() => (activityFilter = 'today')}
+                >
+                    오늘 글 있음
+                </button>
+                <button
+                    type="button"
+                    class="rounded-full px-3 py-1.5 text-xs font-medium transition-all {activityFilter ===
+                    'week'
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-muted text-muted-foreground hover:text-foreground'}"
+                    onclick={() => (activityFilter = 'week')}
+                >
+                    이번 주 활동
+                </button>
+            </div>
         </div>
 
         <!-- 소모임 그리드 -->
@@ -166,8 +255,16 @@
                                 {/if}
                             </h2>
                             <div
-                                class="text-muted-foreground mt-0.5 flex items-center gap-3 text-xs"
+                                class="text-muted-foreground mt-0.5 flex flex-wrap items-center gap-3 text-xs"
                             >
+                                <span class="flex items-center gap-1">
+                                    <Users class="h-3 w-3" />
+                                    {board.subscriber_count.toLocaleString()}
+                                </span>
+                                <span class="flex items-center gap-1">
+                                    <Flame class="h-3 w-3" />
+                                    주간 {board.weekly_count.toLocaleString()}
+                                </span>
                                 <span class="flex items-center gap-1">
                                     <FileText class="h-3 w-3" />
                                     {board.bo_count_write.toLocaleString()}
