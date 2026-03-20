@@ -407,13 +407,6 @@
                 <TagNav />
             </div>
 
-            <!-- 최상단 배너 (슬롯 기반: 포크 시 slot-defaults.ts에서 커스터마이징) -->
-            {#if widgetLayoutStore.hasEnabledAds}
-                <div class="mb-4">
-                    <PluginSlot name="board-list-banner" />
-                </div>
-            {/if}
-
             <!-- 앙지도 헤더 -->
             {#if isAngmapBoard}
                 <BoardMapHeader />
