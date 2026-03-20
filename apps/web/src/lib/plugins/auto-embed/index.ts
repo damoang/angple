@@ -104,4 +104,22 @@ export const embedStyles = `
 	min-height: 250px;
 	height: auto;
 }
+
+/* Instagram 가변 높이 */
+.embed-container[data-platform="instagram"],
+.embed-container[data-platform="instagram-reel"] {
+	min-height: 400px;
+}
+
+.embed-container[data-platform="instagram"]::before,
+.embed-container[data-platform="instagram-reel"]::before {
+	display: none;
+}
+
+.embed-container[data-platform="instagram"] iframe,
+.embed-container[data-platform="instagram-reel"] iframe {
+	position: relative;
+	min-height: 400px;
+	height: auto;
+}
 `;
