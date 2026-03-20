@@ -175,11 +175,7 @@
             title={display.label}
         >
             {#if display.renderType === 'image' && display.url}
-                <img
-                    src={display.url}
-                    alt={display.label}
-                    class="h-5 w-5 object-scale-down transition-transform group-hover:scale-[2.5]"
-                />
+                <img src={display.url} alt={display.label} class="h-5 w-5 object-scale-down" />
             {:else}
                 <span class="text-base leading-none">{display.emoji}</span>
             {/if}
