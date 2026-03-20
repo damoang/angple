@@ -38,6 +38,19 @@
         'comment-infeed'
     ]);
 
+    const STABLE_RESERVED_POSITIONS = new Set([
+        'header-after',
+        'index-head',
+        'index-top',
+        'board-view-top',
+        'board-view-top-desktop',
+        'board-content',
+        'board-before-comments',
+        'board-after-comments',
+        'sidebar-sticky',
+        'sidebar-sticky-desktop'
+    ]);
+
     let isLoaded = $state(false);
     let hasAd = $state(false);
     let slotId = $state('');
@@ -46,6 +59,7 @@
     let visibilityObserver: IntersectionObserver | null = null;
     let isBTF = $derived(BTF_POSITIONS.has(position));
     let isWing = $derived(position === 'wing-left' || position === 'wing-right');
+    let preserveSpaceOnEmpty = $derived(STABLE_RESERVED_POSITIONS.has(position));
     let isEmpty = $derived(isLoaded && !hasAd);
 
     function getAdConfig(): AdConfig {
@@ -181,18 +195,22 @@
     class:ad-slot-placeholder={!isLoaded}
     class:ad-slot-loaded={isLoaded && hasAd}
     class:ad-slot-empty={isEmpty}
+    class:ad-slot-empty-preserved={isEmpty && preserveSpaceOnEmpty}
+    class:ad-slot-empty-collapsed={isEmpty && !preserveSpaceOnEmpty}
     class:ad-slot-btf={isBTF}
     style:--ad-slot-min-height={reservedHeights.base}
     style:--ad-slot-min-height-tablet={reservedHeights.tablet}
     style:--ad-slot-min-height-desktop={reservedHeights.desktop}
     style:--ad-slot-intrinsic-size={reservedHeights.desktop}
-    style:min-height={isEmpty ? '0px' : 'var(--ad-slot-min-height)'}
+    style:min-height={isEmpty && !preserveSpaceOnEmpty ? '0px' : 'var(--ad-slot-min-height)'}
 >
     {#if slotId}
         <div
             id={slotId}
             class="gam-ad-slot w-full"
-            style:min-height={isEmpty ? '0px' : 'var(--ad-slot-min-height)'}
+            style:min-height={isEmpty && !preserveSpaceOnEmpty
+                ? '0px'
+                : 'var(--ad-slot-min-height)'}
         ></div>
     {/if}
 
@@ -213,6 +231,9 @@
 <style>
     .ad-slot-container {
         contain: layout style;
+        transition:
+            min-height 180ms ease,
+            opacity 180ms ease;
     }
 
     .ad-slot-btf {
@@ -236,9 +257,16 @@
     }
 
     .ad-slot-empty {
-        min-height: 0 !important;
         border: 0;
         background: transparent;
+    }
+
+    .ad-slot-empty-preserved {
+        opacity: 0;
+    }
+
+    .ad-slot-empty-collapsed {
+        opacity: 0;
     }
 
     :global(.dark) .ad-slot-loaded,
