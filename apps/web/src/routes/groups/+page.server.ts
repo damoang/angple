@@ -37,64 +37,99 @@ const groupPopularCache = new TieredCache<GroupLatestPost[]>('group-popular', 30
 export const load: PageServerLoad = async () => {
     const cacheKey = 'all';
 
-    try {
-        const [boards, latestPosts, popularPosts, latestTotal] = await Promise.all([
-            loadGroupBoards(cacheKey),
-            loadLatestPosts(),
-            loadPopularPosts(),
-            loadLatestCount()
-        ]);
+    const [boardsResult, latestResult, popularResult, totalResult] = await Promise.allSettled([
+        loadGroupBoards(cacheKey),
+        loadLatestPosts(),
+        loadPopularPosts(),
+        loadLatestCount()
+    ]);
 
-        return {
-            boards,
-            latestPosts,
-            popularPosts,
-            latestTotal,
-            latestHasMore: latestTotal > LATEST_LIMIT
-        };
-    } catch (err) {
-        console.error('[groups] 데이터 로딩 에러:', err);
-        return {
-            boards: [],
-            latestPosts: [],
-            popularPosts: [],
-            latestTotal: 0,
-            latestHasMore: false
-        };
+    if (boardsResult.status === 'rejected') {
+        console.error('[groups] boards 로딩 에러:', boardsResult.reason);
     }
+    if (latestResult.status === 'rejected') {
+        console.error('[groups] latest 로딩 에러:', latestResult.reason);
+    }
+    if (popularResult.status === 'rejected') {
+        console.error('[groups] popular 로딩 에러:', popularResult.reason);
+    }
+    if (totalResult.status === 'rejected') {
+        console.error('[groups] total 로딩 에러:', totalResult.reason);
+    }
+
+    const boards = boardsResult.status === 'fulfilled' ? boardsResult.value : [];
+    const latestPosts = latestResult.status === 'fulfilled' ? latestResult.value : [];
+    const popularPosts = popularResult.status === 'fulfilled' ? popularResult.value : [];
+    const latestTotal = totalResult.status === 'fulfilled' ? totalResult.value : latestPosts.length;
+
+    return {
+        boards,
+        latestPosts,
+        popularPosts,
+        latestTotal,
+        latestHasMore: latestTotal > LATEST_LIMIT
+    };
 };
 
 async function loadGroupBoards(cacheKey: string): Promise<GroupBoard[]> {
     const cached = await groupBoardsCache.get(cacheKey);
     if (cached) return cached;
 
-    const [rows] = await readPool.query<RowDataPacket[]>(
-        `SELECT b.bo_table, b.bo_subject, b.bo_count_write, b.bo_count_comment,
-                IFNULL(n.cnt, 0) AS today_count,
-                IFNULL(w.cnt, 0) AS weekly_count,
-                IFNULL(s.cnt, 0) AS subscriber_count
-		 FROM g5_board b
-		 LEFT JOIN (
-		     SELECT bo_table, COUNT(*) AS cnt
-		     FROM g5_board_new
-		     WHERE bn_datetime >= CURDATE()
-		     GROUP BY bo_table
-		 ) n ON n.bo_table = b.bo_table
-		 LEFT JOIN (
-		     SELECT bo_table, COUNT(*) AS cnt
-		     FROM g5_board_new
-		     WHERE bn_datetime >= DATE_SUB(NOW(), INTERVAL 7 DAY)
-		     GROUP BY bo_table
-		 ) w ON w.bo_table = b.bo_table
-		 LEFT JOIN (
-		     SELECT bo_table, COUNT(*) AS cnt
-		     FROM g5_board_subscribe
-		     GROUP BY bo_table
-		 ) s ON s.bo_table = b.bo_table
-		 WHERE b.gr_id = 'group'
-		 ORDER BY b.bo_order, b.bo_table`
-    );
-    const boards = rows as GroupBoard[];
+    let boards: GroupBoard[];
+    try {
+        const [rows] = await readPool.query<RowDataPacket[]>(
+            `SELECT b.bo_table, b.bo_subject, b.bo_count_write, b.bo_count_comment,
+                    IFNULL(n.cnt, 0) AS today_count,
+                    IFNULL(w.cnt, 0) AS weekly_count,
+                    IFNULL(s.cnt, 0) AS subscriber_count
+    		 FROM g5_board b
+    		 LEFT JOIN (
+    		     SELECT bo_table, COUNT(*) AS cnt
+    		     FROM g5_board_new
+    		     WHERE bn_datetime >= CURDATE()
+    		     GROUP BY bo_table
+    		 ) n ON n.bo_table = b.bo_table
+    		 LEFT JOIN (
+    		     SELECT bo_table, COUNT(*) AS cnt
+    		     FROM g5_board_new
+    		     WHERE bn_datetime >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+    		     GROUP BY bo_table
+    		 ) w ON w.bo_table = b.bo_table
+    		 LEFT JOIN (
+    		     SELECT bo_table, COUNT(*) AS cnt
+    		     FROM g5_board_subscribe
+    		     GROUP BY bo_table
+    		 ) s ON s.bo_table = b.bo_table
+    		 WHERE b.gr_id = 'group'
+    		 ORDER BY b.bo_order, b.bo_table`
+        );
+        boards = rows as GroupBoard[];
+    } catch (err) {
+        console.warn('[groups] subscriber_count 쿼리 실패, fallback 사용:', err);
+        const [fallbackRows] = await readPool.query<RowDataPacket[]>(
+            `SELECT b.bo_table, b.bo_subject, b.bo_count_write, b.bo_count_comment,
+                    IFNULL(n.cnt, 0) AS today_count,
+                    IFNULL(w.cnt, 0) AS weekly_count,
+                    0 AS subscriber_count
+    		 FROM g5_board b
+    		 LEFT JOIN (
+    		     SELECT bo_table, COUNT(*) AS cnt
+    		     FROM g5_board_new
+    		     WHERE bn_datetime >= CURDATE()
+    		     GROUP BY bo_table
+    		 ) n ON n.bo_table = b.bo_table
+    		 LEFT JOIN (
+    		     SELECT bo_table, COUNT(*) AS cnt
+    		     FROM g5_board_new
+    		     WHERE bn_datetime >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+    		     GROUP BY bo_table
+    		 ) w ON w.bo_table = b.bo_table
+    		 WHERE b.gr_id = 'group'
+    		 ORDER BY b.bo_order, b.bo_table`
+        );
+        boards = fallbackRows as GroupBoard[];
+    }
+
     await groupBoardsCache.set(cacheKey, boards);
     return boards;
 }
