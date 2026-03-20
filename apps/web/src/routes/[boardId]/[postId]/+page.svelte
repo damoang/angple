@@ -1315,22 +1315,6 @@
         <PluginSlot name="board-view-rolling" />
     </div>
 
-    <!-- 네비게이션 아래 GAM 광고 -->
-    {#if widgetLayoutStore.hasEnabledAds}
-        <div class="mb-6 hidden lg:block">
-            <AdSlot
-                position="board-view-top-desktop"
-                height="45px"
-                slotKey="board-view-top-desktop"
-            />
-        </div>
-    {/if}
-    {#if widgetLayoutStore.hasEnabledAds && (boardType === 'economy' || boardType === 'used-market')}
-        <div class="mb-6 lg:hidden">
-            <AdSlot position="board-view-top" height="45px" slotKey="board-view-top" />
-        </div>
-    {/if}
-
     <!-- 읽기 권한 체크 -->
     {#if !canRead}
         <div class="bg-muted/50 mx-auto mt-12 max-w-md rounded-lg p-8 text-center">
@@ -1478,6 +1462,22 @@
                 {...slot.propsMapper ? slot.propsMapper({ post: data.post, boardId }) : {}}
             />
         {/each}
+
+        <!-- 기존 본문 상단 광고를 본문 하단으로 이동 -->
+        {#if widgetLayoutStore.hasEnabledAds}
+            <div class="my-6 hidden lg:block">
+                <AdSlot
+                    position="board-view-top-desktop"
+                    height="45px"
+                    slotKey="board-view-top-desktop"
+                />
+            </div>
+        {/if}
+        {#if widgetLayoutStore.hasEnabledAds && (boardType === 'economy' || boardType === 'used-market')}
+            <div class="my-6 lg:hidden">
+                <AdSlot position="board-view-top" height="45px" slotKey="board-view-top" />
+            </div>
+        {/if}
 
         <!-- 본문 직후, 댓글 직전 광고 -->
         {#if widgetLayoutStore.hasEnabledAds}

@@ -173,6 +173,10 @@
     });
 
     const reservedHeights = $derived(getReservedHeights(getAdConfig()));
+    const suppressPlaceholder = $derived(position === 'wing-right' || position.includes('sidebar'));
+    const effectiveMinHeight = $derived(
+        isEmpty || (!isLoaded && suppressPlaceholder) ? '0px' : 'var(--ad-slot-min-height)'
+    );
 </script>
 
 <div
@@ -187,17 +191,13 @@
     style:--ad-slot-min-height-tablet={reservedHeights.tablet}
     style:--ad-slot-min-height-desktop={reservedHeights.desktop}
     style:--ad-slot-intrinsic-size={reservedHeights.desktop}
-    style:min-height={isEmpty ? '0px' : 'var(--ad-slot-min-height)'}
+    style:min-height={effectiveMinHeight}
 >
     {#if slotId}
-        <div
-            id={slotId}
-            class="gam-ad-slot w-full"
-            style:min-height={isEmpty ? '0px' : 'var(--ad-slot-min-height)'}
-        ></div>
+        <div id={slotId} class="gam-ad-slot w-full" style:min-height={effectiveMinHeight}></div>
     {/if}
 
-    {#if !isLoaded}
+    {#if !isLoaded && !suppressPlaceholder}
         <div
             class="absolute inset-0 flex items-center justify-center rounded-lg border-2 border-dashed border-slate-300 bg-slate-50/50 dark:border-slate-600 dark:bg-slate-800/50"
         >

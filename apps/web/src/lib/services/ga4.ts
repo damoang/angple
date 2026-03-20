@@ -28,6 +28,17 @@ let currentPageContext: PageContext = {
     boardId: 'none'
 };
 
+function sanitizePagePath(path: string): string {
+    const [pathname, rawSearch = ''] = path.split('?', 2);
+    if (!rawSearch) return pathname;
+
+    const searchParams = new URLSearchParams(rawSearch);
+    searchParams.delete('_v');
+
+    const cleanedSearch = searchParams.toString();
+    return cleanedSearch ? `${pathname}?${cleanedSearch}` : pathname;
+}
+
 /** gtag.js 스크립트를 동적 로드하고 GA4를 초기화합니다 */
 export function initGA4(measurementId: string): void {
     if (initialized || !measurementId || typeof window === 'undefined') return;
@@ -56,29 +67,31 @@ export function initGA4(measurementId: string): void {
 /** SPA 네비게이션 시 페이지뷰 이벤트를 전송합니다 */
 export function trackPageView(path: string): void {
     if (!initialized || typeof window === 'undefined' || !window.gtag) return;
-    const pageContext = setCurrentPageContext(path);
+    const sanitizedPath = sanitizePagePath(path);
+    const pageContext = setCurrentPageContext(sanitizedPath);
     window.gtag('event', 'page_view', {
-        page_path: path,
+        page_path: sanitizedPath,
         page_type: pageContext.pageType,
         board_id: pageContext.boardId
     });
 }
 
 export function resolvePageContext(pathname: string): PageContext {
-    if (pathname === '/') return { pageType: 'home', boardId: 'none' };
-    if (pathname === '/search') return { pageType: 'search', boardId: 'none' };
-    if (pathname === '/explore') return { pageType: 'explore', boardId: 'none' };
-    if (pathname === '/empathy' || pathname.startsWith('/empathy/')) {
+    const cleanPathname = pathname.split('?', 1)[0] || '/';
+    if (cleanPathname === '/') return { pageType: 'home', boardId: 'none' };
+    if (cleanPathname === '/search') return { pageType: 'search', boardId: 'none' };
+    if (cleanPathname === '/explore') return { pageType: 'explore', boardId: 'none' };
+    if (cleanPathname === '/empathy' || cleanPathname.startsWith('/empathy/')) {
         return { pageType: 'empathy', boardId: 'none' };
     }
-    if (pathname.startsWith('/member')) return { pageType: 'member', boardId: 'none' };
+    if (cleanPathname.startsWith('/member')) return { pageType: 'member', boardId: 'none' };
 
-    const postMatch = pathname.match(/^\/([a-z0-9_-]{2,})\/\d+(?:\/.*)?$/i);
+    const postMatch = cleanPathname.match(/^\/([a-z0-9_-]{2,})\/\d+(?:\/.*)?$/i);
     if (postMatch) {
         return { pageType: 'board_view', boardId: postMatch[1] };
     }
 
-    const boardMatch = pathname.match(/^\/([a-z0-9_-]{2,})$/i);
+    const boardMatch = cleanPathname.match(/^\/([a-z0-9_-]{2,})$/i);
     if (boardMatch) {
         return { pageType: 'board_list', boardId: boardMatch[1] };
     }
