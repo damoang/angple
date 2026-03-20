@@ -9,6 +9,7 @@
     import LeftBanner from '$lib/components/layout/left-banner.svelte';
     import RightBanner from '$lib/components/layout/right-banner.svelte';
     import { authActions } from '$lib/stores/auth.svelte';
+    import { page } from '$app/stores';
     import { widgetLayoutStore } from '$lib/stores/widget-layout.svelte';
 
     /**
@@ -36,12 +37,6 @@
     <div class="container relative z-10 flex w-full flex-1 flex-col">
         <Header />
 
-        {#if widgetLayoutStore.hasEnabledAds}
-            <div class="mx-auto hidden w-full px-5 pt-4 lg:block">
-                <AdSlot position="header-after" height="90px" slotKey="header-after" />
-            </div>
-        {/if}
-
         <div class="mx-auto flex w-full flex-1">
             {#if snbPosition === 'right'}
                 <aside
@@ -57,11 +52,18 @@
                 </aside>
             {/if}
 
-            <main
-                class="box-content min-w-0 flex-1 px-5 pt-1 md:px-0 md:py-5 lg:pe-6 2xl:!px-9 [&_[data-slot='card']]:-mx-5 md:[&_[data-slot='card']]:mx-0"
-            >
-                {@render children()}
-            </main>
+            <div class="flex min-w-0 flex-1 flex-col">
+                {#if widgetLayoutStore.hasEnabledAds && $page.url.pathname !== '/'}
+                    <div class="hidden w-full px-5 pt-4 md:px-0 lg:block">
+                        <AdSlot position="header-after" height="90px" slotKey="header-after" />
+                    </div>
+                {/if}
+                <main
+                    class="box-content min-w-0 flex-1 px-5 pt-1 md:px-0 md:py-5 lg:pe-6 2xl:!px-9 [&_[data-slot='card']]:-mx-5 md:[&_[data-slot='card']]:mx-0"
+                >
+                    {@render children()}
+                </main>
+            </div>
             {#if snbPosition === 'right'}
                 <aside class="bg-background hidden 2xl:block 2xl:!w-[230px]">
                     <Sidebar />
