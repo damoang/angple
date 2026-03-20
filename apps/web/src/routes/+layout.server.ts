@@ -4,6 +4,7 @@ import { getActivePlugins } from '$lib/server/plugins';
 import { loadMenus } from '$lib/server/menu-loader';
 import { getCachedCelebrations } from '$lib/server/celebration';
 import { getCachedBannersByPositions } from '$lib/server/ads/banners';
+import { getCachedLogoData } from '$lib/server/logo';
 
 import { hooks } from '@angple/hook-system';
 import { env } from '$env/dynamic/private';
@@ -33,6 +34,7 @@ export const load: LayoutServerLoad = async ({ locals, depends, url }) => {
 
             celebration: [],
             banners: {},
+            logoData: { active: null, schedules: [] },
             ga4MeasurementId: ''
         };
 
@@ -40,13 +42,14 @@ export const load: LayoutServerLoad = async ({ locals, depends, url }) => {
     }
 
     // 병렬로 모든 데이터 로드 (allSettled: 개별 실패 허용)
-    const [themeResult, pluginsResult, menusResult, celebrationResult, bannersResult] =
+    const [themeResult, pluginsResult, menusResult, celebrationResult, bannersResult, logoResult] =
         await Promise.allSettled([
             getActiveTheme(),
             getActivePlugins(),
             loadMenus(),
             getCachedCelebrations(),
-            getCachedBannersByPositions(['index-top', 'board-head', 'sidebar'])
+            getCachedBannersByPositions(['index-top', 'board-head', 'sidebar']),
+            getCachedLogoData()
         ]);
 
     const activeTheme = themeResult.status === 'fulfilled' ? themeResult.value : null;
@@ -54,6 +57,8 @@ export const load: LayoutServerLoad = async ({ locals, depends, url }) => {
     const menus = menusResult.status === 'fulfilled' ? menusResult.value : [];
     const celebration = celebrationResult.status === 'fulfilled' ? celebrationResult.value : [];
     const banners = bannersResult.status === 'fulfilled' ? bannersResult.value : {};
+    const logoData =
+        logoResult.status === 'fulfilled' ? logoResult.value : { active: null, schedules: [] };
 
     // 실패 로깅 (크래시 안 함)
     for (const [name, r] of [
@@ -61,7 +66,8 @@ export const load: LayoutServerLoad = async ({ locals, depends, url }) => {
         ['Plugins', pluginsResult],
         ['Menus', menusResult],
         ['Celebration', celebrationResult],
-        ['Banners', bannersResult]
+        ['Banners', bannersResult],
+        ['Logo', logoResult]
     ] as const) {
         if (r.status === 'rejected') {
             console.error(`[Layout] ${name} load failed:`, r.reason);
@@ -86,6 +92,7 @@ export const load: LayoutServerLoad = async ({ locals, depends, url }) => {
         // SSR에서 직접 로드 — 클라이언트 /api/init 호출 제거
         celebration,
         banners,
+        logoData,
         // GA4 Measurement ID (env에서 로드, 미설정 시 미적용)
         ga4MeasurementId: env.GA4_MEASUREMENT_ID || ''
     };
