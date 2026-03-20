@@ -576,8 +576,16 @@
             return;
         }
 
+        if (!editor) return;
+
+        // 이미지 노드가 선택된 상태면 커서를 이미지 뒤로 이동 (기존 이미지 교체 방지)
+        if (editor.isActive('image')) {
+            const { to } = editor.state.selection;
+            editor.chain().focus().setTextSelection(to).run();
+        }
+
         editor
-            ?.chain()
+            .chain()
             .focus()
             .setImage({ src: imageUrl, alt: imageAlt || '' })
             .run();
