@@ -102,14 +102,12 @@ export async function savePromotionRules(rules: PromotionRule[]): Promise<void> 
 
 /**
  * 특정 회원의 로그인 일수 조회
- * 실제 로그인과 장애 보전 로그를 모두 포함해 날짜 기준으로 집계한다.
+ * g5_member.mb_login_days를 직접 사용 (Go 백엔드 + SvelteKit 누적값)
+ * 이전: g5_na_xp 기반 COUNT → SvelteKit 전환 후 데이터만 집계되어 과소 산정
  */
 async function getLoginDays(mbId: string): Promise<number> {
     const [rows] = await readPool.query<RowDataPacket[]>(
-        `SELECT COUNT(DISTINCT DATE(xp_datetime)) as login_days
-         FROM g5_na_xp
-         WHERE mb_id = ?
-           AND xp_rel_table IN ('@login', '@login_backfill_v2', '@login_bf_v2_top', '@login_fix')`,
+        `SELECT COALESCE(mb_login_days, 0) as login_days FROM g5_member WHERE mb_id = ? LIMIT 1`,
         [mbId]
     );
     return rows[0]?.login_days ?? 0;
@@ -124,9 +122,10 @@ export async function checkAndPromoteMember(mbId: string): Promise<{
     oldLevel?: number;
     newLevel?: number;
 } | null> {
-    // 회원 정보 조회
+    // 회원 정보 조회 (login_days도 함께 조회하여 별도 쿼리 제거)
     const [memberRows] = await readPool.query<MemberPromotionData[]>(
-        `SELECT mb_id, mb_level, COALESCE(as_exp, 0) as as_exp FROM g5_member WHERE mb_id = ? LIMIT 1`,
+        `SELECT mb_id, mb_level, COALESCE(as_exp, 0) as as_exp, COALESCE(mb_login_days, 0) as login_days
+         FROM g5_member WHERE mb_id = ? LIMIT 1`,
         [mbId]
     );
 
@@ -140,8 +139,7 @@ export async function checkAndPromoteMember(mbId: string): Promise<{
         return null;
     }
 
-    // 로그인 일수 조회
-    const loginDays = await getLoginDays(mbId);
+    const loginDays = member.login_days;
 
     // 승급 규칙 조회
     const rules = await getPromotionRules();
@@ -205,14 +203,13 @@ export async function getPromotionCandidates(): Promise<
         // 해당 등급 회원 중 XP 조건 충족자 조회
         const [rows] = await readPool.query<RowDataPacket[]>(
             `SELECT m.mb_id, m.mb_nick, m.mb_level, COALESCE(m.as_exp, 0) as as_exp,
-                    (SELECT COUNT(DISTINCT DATE(xp_datetime))
-                     FROM g5_na_xp
-                     WHERE mb_id = m.mb_id
-                       AND xp_rel_table IN ('@login', '@login_backfill_v2', '@login_bf_v2_top', '@login_fix')) as login_days
+                    COALESCE(m.mb_login_days, 0) as login_days
              FROM g5_member m
              WHERE m.mb_level = ?
                AND COALESCE(m.as_exp, 0) >= ?
-             HAVING login_days >= ?
+               AND COALESCE(m.mb_login_days, 0) >= ?
+               AND m.mb_leave_date = ''
+               AND m.mb_intercept_date = ''
              ORDER BY login_days DESC, as_exp DESC
              LIMIT 100`,
             [rule.fromLevel, rule.minXP, rule.minLoginDays]
