@@ -39,7 +39,6 @@
     import { AvatarStack } from '$lib/components/ui/avatar-stack/index.js';
     import { widgetLayoutStore } from '$lib/stores/widget-layout.svelte';
     import AdSlot from '$lib/components/ui/ad-slot/ad-slot.svelte';
-    import EconomyShoppingBanner from '$lib/components/features/board/economy-shopping-banner.svelte';
     import Info from '@lucide/svelte/icons/info';
     import Pin from '@lucide/svelte/icons/pin';
     import ShareButton from '$lib/components/post/share-button.svelte';
