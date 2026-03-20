@@ -96,7 +96,7 @@ export async function fetchCelebrations(isRecent: boolean = false): Promise<Cele
         }
     } catch (error) {
         // celebration_banners 테이블이 없을 수 있음
-        console.error('fetchCelebrations error' , error)
+        console.error('fetchCelebrations error', error);
     }
 
     // 2차: g5_write_message fallback (마이그레이션 전까지)
