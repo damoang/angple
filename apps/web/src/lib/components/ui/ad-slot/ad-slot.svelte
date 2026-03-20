@@ -181,6 +181,7 @@
     class:ad-slot-placeholder={!isLoaded}
     class:ad-slot-loaded={isLoaded && hasAd}
     class:ad-slot-empty={isEmpty}
+    class:ad-slot-empty-collapsed={isEmpty}
     class:ad-slot-btf={isBTF}
     style:--ad-slot-min-height={reservedHeights.base}
     style:--ad-slot-min-height-tablet={reservedHeights.tablet}
@@ -213,6 +214,9 @@
 <style>
     .ad-slot-container {
         contain: layout style;
+        transition:
+            min-height 180ms ease,
+            opacity 180ms ease;
     }
 
     .ad-slot-btf {
@@ -236,9 +240,12 @@
     }
 
     .ad-slot-empty {
-        min-height: 0 !important;
         border: 0;
         background: transparent;
+    }
+
+    .ad-slot-empty-collapsed {
+        opacity: 0;
     }
 
     :global(.dark) .ad-slot-loaded,
