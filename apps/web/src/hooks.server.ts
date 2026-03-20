@@ -560,9 +560,12 @@ export const handle: Handle = async ({ event, resolve }) => {
     const isHomePage = pathname === '/';
     const isBoardList = isBoardListPath(pathname, event.url.searchParams);
     const isPostDetail = isPostDetailPath(pathname);
-    const hasSessionCookie = !!event.cookies.get(SESSION_COOKIE_NAME);
+    const hasSessionCookie =
+        !!event.cookies.get(SESSION_COOKIE_NAME) || !!event.cookies.get('damoang_jwt');
     if (!isDataRequest && !hasSessionCookie && (isHomePage || isBoardList || isPostDetail)) {
-        const cacheKey = isHomePage ? '/' : pathname;
+        const themeMode = event.cookies.get('angple_theme_mode') || '';
+        const density = event.cookies.get('angple_ui_density') || 'balanced';
+        const cacheKey = `${isHomePage ? '/' : pathname}:${themeMode}:${density}`;
         const cacheTtl = isHomePage
             ? SSR_CACHE_TTL_HOME
             : isPostDetail
@@ -617,10 +620,8 @@ export const handle: Handle = async ({ event, resolve }) => {
         }
 
         const renderPromise = (async () => {
-            const themeMode = event.cookies.get('angple_theme_mode') || '';
             const htmlClass =
                 themeMode === 'dark' ? 'dark' : themeMode === 'amoled' ? 'amoled' : '';
-            const density = event.cookies.get('angple_ui_density') || 'balanced';
             const dPad = density === 'compact' ? '0px' : density === 'relaxed' ? '6px' : '3px';
 
             const response = await resolve(event, {
