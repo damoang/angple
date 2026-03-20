@@ -228,7 +228,12 @@
                     }
                 }}
             >
-                <img src={logoSrc} alt={logoAlt} class="h-10 md:h-12" />
+                <img
+                    src={logoSrc}
+                    alt={logoAlt}
+                    class="h-10 w-auto md:h-12"
+                    style="max-height:48px"
+                />
             </a>
         </div>
 
