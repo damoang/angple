@@ -98,8 +98,16 @@
         uploadedFiles = [...uploadedFiles, file];
     }
 
+    // 삭제된 첨부파일 URL 추적 (submit 시 content에서 제거)
+    let removedFileUrls = $state<string[]>([]);
+
     function handleFileRemove(fileId: string): void {
+        const removedFile = uploadedFiles.find((f) => f.id === fileId);
         uploadedFiles = uploadedFiles.filter((f) => f.id !== fileId);
+
+        if (removedFile?.url) {
+            removedFileUrls = [...removedFileUrls, removedFile.url];
+        }
     }
 
     // 에디터 미디어 업로드 핸들러 (이미지 + 동영상, 드래그앤드롭 / 붙여넣기 / 다이얼로그)
@@ -310,6 +318,16 @@
         const sanitizedTitle = title.trim().replace(/@/g, '');
 
         let finalContent = await stripAdminMentions(content.trim());
+
+        // 삭제된 첨부파일의 이미지를 본문에서 제거
+        for (const url of removedFileUrls) {
+            const escaped = url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            finalContent = finalContent.replace(
+                new RegExp(`<img[^>]*src=["']${escaped}["'][^>]*>`, 'g'),
+                ''
+            );
+        }
+
         const imageFiles = uploadedFiles.filter(
             (f) => f.mime_type.startsWith('image/') && !finalContent.includes(f.url)
         );
