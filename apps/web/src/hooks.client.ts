@@ -166,8 +166,9 @@ function forceClearAllAndReload(): void {
     } catch (_) {}
     // 4. 쿼리 버스팅으로 완전 새 요청
     Promise.all(tasks).finally(() => {
-        const url = location.href.split('?')[0];
-        location.replace(url + '?_v=' + Date.now());
+        const url = new URL(location.href);
+        url.searchParams.set('_v', String(Date.now()));
+        location.replace(url.toString());
     });
 }
 
@@ -191,8 +192,9 @@ function clearCachesAndReload(): void {
         );
     }
     Promise.all(tasks).finally(() => {
-        const url = location.href.split('?')[0];
-        location.replace(url + '?_v=' + Date.now());
+        const url = new URL(location.href);
+        url.searchParams.set('_v', String(Date.now()));
+        location.replace(url.toString());
     });
 }
 
@@ -225,6 +227,14 @@ function recoverStaleClientSilently(): boolean {
 
 // app.html 통합 핸들러와 연동: exhausted 상태면 상단 배너 대신 1회 강력 새로고침
 if (typeof window !== 'undefined') {
+    const currentUrl = new URL(window.location.href);
+    if (currentUrl.searchParams.has('_v')) {
+        currentUrl.searchParams.delete('_v');
+        const cleanUrl =
+            currentUrl.pathname + (currentUrl.search ? currentUrl.search : '') + currentUrl.hash;
+        window.history.replaceState(window.history.state, '', cleanUrl);
+    }
+
     const chunkError = (window as any).__angpleChunkError;
     if (chunkError) {
         const state = chunkError.getState();

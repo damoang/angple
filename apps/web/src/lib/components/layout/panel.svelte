@@ -19,6 +19,17 @@
     <!-- 사이드바 배너 (슬롯 기반) -->
     <PluginSlot name="sidebar-banner" />
 
+    <!-- 공지사항/나눔 아래의 핵심 보조 광고 자리 -->
+    <div class:hidden={!widgetLayoutStore.hasEnabledAds}>
+        <div class="sticky top-[64px]">
+            <AdSlot
+                position="sidebar-sticky-desktop"
+                height="600px"
+                slotKey="sidebar-sticky-desktop"
+            />
+        </div>
+    </div>
+
     <!-- 나머지 사이드바 위젯 -->
     <WidgetRenderer zone="sidebar" excludeIds={['notice']} />
 
@@ -27,17 +38,4 @@
         {@const Component = slotComp.component}
         <Component {...slotComp.props || {}} />
     {/each}
-
-    <!-- sidebar-sticky (GAM 300x600) -->
-    <div class="flex-1">
-        <div class="sticky top-[64px]">
-            <div class:hidden={!widgetLayoutStore.hasEnabledAds}>
-                <AdSlot
-                    position="sidebar-sticky-desktop"
-                    height="600px"
-                    slotKey="sidebar-sticky-desktop"
-                />
-            </div>
-        </div>
-    </div>
 </div>

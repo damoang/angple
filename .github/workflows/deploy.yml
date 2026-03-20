@@ -70,6 +70,7 @@ jobs:
           VITE_GAM_NETWORK_CODE: '23338387889'
           VITE_GAM_SITE_NAME: 'damoang'
           VITE_S3_URL: ${{ env.MEDIA_CDN_BASE }}
+          ASSET_BASE_URL: ${{ env.STATIC_ASSET_BASE_ROOT }}/sha-${{ github.sha }}
         run: |
           pnpm --filter "./packages/*" build
           echo "VITE_GAM_NETWORK_CODE=23338387889" > apps/web/.env
