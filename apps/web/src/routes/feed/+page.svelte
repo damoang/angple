@@ -7,6 +7,7 @@
     import MessageSquare from '@lucide/svelte/icons/message-square';
     import Eye from '@lucide/svelte/icons/eye';
     import FeedSkeleton from '$lib/components/features/feed/feed-skeleton.svelte';
+    import { formatCommentCountBadge } from '$lib/utils/comment-count.js';
     import type { PageData } from './$types.js';
 
     let { data }: { data: PageData } = $props();
@@ -210,7 +211,9 @@
                                                         <span
                                                             class="shrink-0 rounded-full bg-blue-100 px-1.5 py-0.5 text-[11px] font-semibold text-blue-600 dark:bg-blue-900/30 dark:text-blue-400"
                                                         >
-                                                            +{item.wr_comment}
+                                                            {formatCommentCountBadge(
+                                                                item.wr_comment
+                                                            )}
                                                         </span>
                                                     {/if}
                                                 {/if}

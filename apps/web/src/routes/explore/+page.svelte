@@ -8,7 +8,6 @@
     import Clock from '@lucide/svelte/icons/clock';
     import TrendingUp from '@lucide/svelte/icons/trending-up';
     import Crown from '@lucide/svelte/icons/crown';
-    import MessageSquare from '@lucide/svelte/icons/message-square';
     import Eye from '@lucide/svelte/icons/eye';
     import Heart from '@lucide/svelte/icons/heart';
     import {
@@ -18,6 +17,7 @@
     import { readPostsStore } from '$lib/stores/read-posts.svelte.js';
     import { getReadPostClasses } from '$lib/stores/read-post-style.svelte.js';
     import TagNav from '$lib/components/ui/tag-nav/tag-nav.svelte';
+    import { formatCommentCountBadge } from '$lib/utils/comment-count.js';
     import type { PageData } from './$types';
     import type {
         ExploreMode,
@@ -279,11 +279,8 @@
 
                                     <!-- 댓글 수 -->
                                     {#if post.comment_count > 0}
-                                        <span
-                                            class="text-primary flex shrink-0 items-center gap-0.5 text-xs"
-                                        >
-                                            <MessageSquare class="h-3 w-3" />
-                                            {post.comment_count}
+                                        <span class="text-primary shrink-0 text-xs font-medium">
+                                            {formatCommentCountBadge(post.comment_count)}
                                         </span>
                                     {/if}
 

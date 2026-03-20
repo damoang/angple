@@ -37,8 +37,6 @@
     import { memberLevelStore } from '$lib/stores/member-levels.svelte.js';
     import { ReactionBar } from '$lib/components/features/reaction/index.js';
     import { AvatarStack } from '$lib/components/ui/avatar-stack/index.js';
-    import { widgetLayoutStore } from '$lib/stores/widget-layout.svelte';
-    import AdSlot from '$lib/components/ui/ad-slot/ad-slot.svelte';
     import Info from '@lucide/svelte/icons/info';
     import Pin from '@lucide/svelte/icons/pin';
     import ShareButton from '$lib/components/post/share-button.svelte';
@@ -318,11 +316,6 @@
                 {...slot.propsMapper ? slot.propsMapper(pageData) : { data: pageData }}
             />
         {/each}
-
-        <!-- GAM 광고 -->
-        {#if widgetLayoutStore.hasEnabledAds && (postContent?.length ?? 0) >= 500}
-            <AdSlot position="board-content" height="90px" slotKey="board-content" />
-        {/if}
 
         <!-- 알뜰구매 모든 링크열기 (GAM 바로 아래) -->
         {#each afterContentSlots as slot (slot.component)}

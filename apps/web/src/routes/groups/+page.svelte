@@ -7,6 +7,7 @@
     import Clock from '@lucide/svelte/icons/clock';
     import ThumbsUp from '@lucide/svelte/icons/thumbs-up';
     import { formatDate } from '$lib/utils/format-date.js';
+    import { formatCommentCountBadge } from '$lib/utils/comment-count.js';
     // import { Skeleton } from '$lib/components/ui/skeleton/index.js';
     import type { PageData } from './$types';
     import type { GroupLatestPost } from './+page.server.js';
@@ -205,7 +206,7 @@
                             </span>
                             {#if post.wr_comment > 0}
                                 <span class="text-primary shrink-0 text-xs"
-                                    >[{post.wr_comment}]</span
+                                    >{formatCommentCountBadge(post.wr_comment)}</span
                                 >
                             {/if}
                             <span
@@ -252,7 +253,7 @@
                             </span>
                             {#if post.wr_comment > 0}
                                 <span class="text-primary shrink-0 text-xs"
-                                    >[{post.wr_comment}]</span
+                                    >{formatCommentCountBadge(post.wr_comment)}</span
                                 >
                             {/if}
                             <span
