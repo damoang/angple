@@ -791,12 +791,17 @@
             tick().then(() => {
                 const imgs = commentListEl.querySelectorAll<HTMLImageElement>('img[data-original]');
                 imgs.forEach((img) => {
-                    img.onerror = () => {
+                    const fallback = () => {
                         const original = img.getAttribute('data-original');
                         if (original && img.src !== original) {
                             img.src = original;
                         }
                     };
+                    img.onerror = fallback;
+                    // SSR 이미지가 hydration 전에 이미 에러난 경우 처리
+                    if (img.complete && img.naturalWidth === 0) {
+                        fallback();
+                    }
                 });
             });
         }
