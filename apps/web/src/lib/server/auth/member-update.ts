@@ -294,7 +294,7 @@ export async function updateProfile(
         ) {
             return { success: false, error: '유효하지 않은 이미지 URL입니다.' };
         }
-        updates.push('mb_image_url = ?');
+        updates.push('mb_image_url = ?', 'mb_image_updated_at = NOW()');
         values.push(fields.mb_image_url);
     }
 
