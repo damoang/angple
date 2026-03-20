@@ -45,6 +45,7 @@
     let containerEl: HTMLDivElement | null = null;
     let visibilityObserver: IntersectionObserver | null = null;
     let isBTF = $derived(BTF_POSITIONS.has(position));
+    let isWing = $derived(position === 'wing-left' || position === 'wing-right');
     let isEmpty = $derived(isLoaded && !hasAd);
 
     function getAdConfig(): AdConfig {
@@ -137,7 +138,10 @@
                 ([entry]) => {
                     updateSlotVisibility(slotId, entry.isIntersecting);
                 },
-                { threshold: 0.5 }
+                {
+                    threshold: isWing ? 0.1 : 0.5,
+                    rootMargin: isWing ? '200px 0px 200px 0px' : '0px'
+                }
             );
             visibilityObserver.observe(containerEl);
         } else {
