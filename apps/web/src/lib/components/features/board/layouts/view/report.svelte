@@ -49,7 +49,6 @@
     import { AvatarStack } from '$lib/components/ui/avatar-stack/index.js';
     import { widgetLayoutStore } from '$lib/stores/widget-layout.svelte';
     import AdSlot from '$lib/components/ui/ad-slot/ad-slot.svelte';
-    import EconomyShoppingBanner from '$lib/components/features/board/economy-shopping-banner.svelte';
     import Info from '@lucide/svelte/icons/info';
     import type { ViewLayoutProps } from '../types.js';
     import ReportCharts from './report-charts.svelte';

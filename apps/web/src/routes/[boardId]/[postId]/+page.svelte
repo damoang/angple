@@ -72,7 +72,6 @@
         type MarketStatus
     } from '$lib/types/used-market.js';
     import QAAnswerSection from '$lib/components/features/board/qa-answer-section.svelte';
-    import EconomyShoppingBanner from '$lib/components/features/board/economy-shopping-banner.svelte';
     import EconomyOpenLinks from '$lib/components/features/board/economy-open-links.svelte';
     import {
         layoutRegistry,
@@ -1330,13 +1329,6 @@
     {#if widgetLayoutStore.hasEnabledAds && (boardType === 'economy' || boardType === 'used-market')}
         <div class="mb-6 lg:hidden">
             <AdSlot position="board-view-top" height="45px" slotKey="board-view-top" />
-        </div>
-    {/if}
-
-    <!-- 알뜰구매 쇼핑 바로가기 (목록으로 버튼 → GAM → 여기 → 본문 카드) -->
-    {#if boardType === 'economy'}
-        <div class="mb-6">
-            <EconomyShoppingBanner />
         </div>
     {/if}
 
