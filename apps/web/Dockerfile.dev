@@ -1,0 +1,169 @@
+FROM node:lts-alpine AS base
+
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
+RUN corepack enable
+
+# -----------------------------
+# Development stage
+# -----------------------------
+FROM base AS development
+
+# Host UID/GID를 build args로 받아 dev user 권한을 맞춘다.
+ARG HOST_UID=1000
+ARG HOST_GID=1000
+
+# Create non-root user for development
+RUN set -eux; \
+    if ! awk -F: -v gid="${HOST_GID}" '$3 == gid { found=1 } END { exit !found }' /etc/group; then \
+      addgroup -g "${HOST_GID}" -S devgroup; \
+    fi; \
+    if ! awk -F: -v uid="${HOST_UID}" '$3 == uid { found=1 } END { exit !found }' /etc/passwd; then \
+      adduser -D -u "${HOST_UID}" -G "$(awk -F: -v gid="${HOST_GID}" '$3 == gid { print $1; exit }' /etc/group)" -s /bin/sh devuser; \
+    fi
+
+# Set working directory
+WORKDIR /app
+
+# Copy workspace configuration files
+COPY pnpm-workspace.yaml package.json pnpm-lock.yaml .npmrc ./
+
+# Copy packages (workspace dependencies)
+COPY packages ./packages
+
+# Copy themes (for $themes alias)
+COPY themes ./themes
+
+# Copy web app source
+COPY apps/web ./apps/web
+
+# Install dependencies
+RUN pnpm install --filter web...
+
+# Ensure writable paths for Vite/SvelteKit cache and deps
+RUN mkdir -p /app/apps/web/node_modules /app/apps/web/.svelte-kit \
+    && chown -R ${HOST_UID}:${HOST_GID} /app
+
+# Switch to non-root user
+USER ${HOST_UID}:${HOST_GID}
+
+WORKDIR /app/apps/web
+
+# 개발 서버 포트 (환경 변수로 제어 가능)
+ARG DEV_PORT=3010
+ENV DEV_PORT=$DEV_PORT
+
+# Bind mount 환경에서는 workspace 패키지 dist가 없을 수 있어 선빌드 후 dev 서버 실행
+#CMD ["sh", "-c", "pnpm dev --host 0.0.0.0 --port $DEV_PORT"]
+
+CMD ["sh", "-c", "cd /app && pnpm --filter @angple/types run build && pnpm --filter @angple/i18n run build && pnpm --filter @angple/hook-system run build && pnpm --filter @angple/theme-engine run build && cd /app/apps/web && pnpm dev --host 0.0.0.0 --port $DEV_PORT"]
+
+# -----------------------------
+# Dependencies stage (캐시 최적화)
+# -----------------------------
+FROM base AS deps
+
+WORKDIR /app
+
+# 의존성 파일만 먼저 복사 (소스 변경 시에도 이 레이어 캐시 유지)
+COPY pnpm-workspace.yaml package.json pnpm-lock.yaml .npmrc ./
+COPY packages/types/package.json ./packages/types/
+COPY packages/i18n/package.json ./packages/i18n/
+COPY packages/hook-system/package.json ./packages/hook-system/
+COPY packages/theme-engine/package.json ./packages/theme-engine/
+COPY apps/web/package.json ./apps/web/
+
+# Install dependencies (lock 파일 변경 시에만 재실행)
+RUN pnpm install --frozen-lockfile --filter web...
+
+# -----------------------------
+# Build stage
+# -----------------------------
+FROM base AS builder
+
+# Build arguments for Vite environment variables
+ARG VITE_USE_MOCK=false
+ARG VITE_SSR=true
+ARG VITE_GAM_NETWORK_CODE=""
+ARG VITE_GAM_SITE_NAME=""
+ENV VITE_USE_MOCK=$VITE_USE_MOCK
+ENV VITE_SSR=$VITE_SSR
+ENV VITE_GAM_NETWORK_CODE=$VITE_GAM_NETWORK_CODE
+ENV VITE_GAM_SITE_NAME=$VITE_GAM_SITE_NAME
+
+WORKDIR /app
+
+# 캐시된 node_modules 복사
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/packages/types/node_modules ./packages/types/node_modules
+COPY --from=deps /app/packages/i18n/node_modules ./packages/i18n/node_modules
+COPY --from=deps /app/packages/hook-system/node_modules ./packages/hook-system/node_modules
+COPY --from=deps /app/packages/theme-engine/node_modules ./packages/theme-engine/node_modules
+COPY --from=deps /app/apps/web/node_modules ./apps/web/node_modules
+
+# 소스 코드 복사
+COPY pnpm-workspace.yaml package.json pnpm-lock.yaml .npmrc ./
+COPY packages ./packages
+COPY themes ./themes
+COPY plugins ./plugins
+COPY widgets ./widgets
+COPY custom-themes ./custom-themes
+COPY custom-widgets ./custom-widgets
+COPY extensions ./extensions
+COPY apps/web ./apps/web
+
+# 워크스페이스 패키지 먼저 빌드 (의존성 순서대로)
+RUN pnpm --filter @angple/types run build \
+    && pnpm --filter @angple/i18n run build \
+    && pnpm --filter @angple/hook-system run build \
+    && pnpm --filter @angple/theme-engine run build \
+    && pnpm --filter web run build
+
+# Deploy as standalone package (resolves workspace:* dependencies)
+# --legacy: pnpm v10에서 inject-workspace-packages 없이 deploy 허용
+RUN pnpm --filter web deploy /app/deploy --prod --legacy
+
+# Copy build output to deploy directory
+RUN cp -r /app/apps/web/build /app/deploy/build
+
+# -----------------------------
+# Production stage (SSR Node.js)
+# -----------------------------
+FROM node:lts-alpine AS production
+
+# Create non-root user
+RUN adduser -D -u 1001 -s /bin/sh nodeuser
+
+WORKDIR /app
+
+# Copy deployed standalone package from builder
+COPY --from=builder --chown=nodeuser:nodeuser /app/deploy ./
+
+# Copy themes for runtime (theme scanner needs this)
+COPY --from=builder --chown=nodeuser:nodeuser /app/themes ./themes
+
+# Copy premium runtime assets
+COPY --from=builder --chown=nodeuser:nodeuser /app/plugins ./plugins
+COPY --from=builder --chown=nodeuser:nodeuser /app/widgets ./widgets
+COPY --from=builder --chown=nodeuser:nodeuser /app/custom-themes ./custom-themes
+COPY --from=builder --chown=nodeuser:nodeuser /app/custom-widgets ./custom-widgets
+COPY --from=builder --chown=nodeuser:nodeuser /app/extensions ./extensions
+
+# Create data directory for settings
+RUN mkdir -p /app/data && chown nodeuser:nodeuser /app/data
+
+# Switch to non-root user
+
+# Environment variables
+ENV NODE_ENV=production
+ENV PORT=3000
+
+# Expose port (런타임에서 PORT 환경변수로 오버라이드 가능)
+EXPOSE ${PORT}
+
+# Health check (PORT 환경변수 사용)
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD wget -q -O /dev/null http://127.0.0.1:${PORT}/health || exit 1
+
+# Start the application
+CMD ["node", "build"]

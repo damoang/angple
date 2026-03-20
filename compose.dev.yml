@@ -3,50 +3,33 @@ services:
   web-dev:
     build:
       context: .
-      dockerfile: apps/web/Dockerfile
+      dockerfile: apps/web/Dockerfile.dev
       target: development
       args:
         DEV_PORT: 3010
+        HOST_UID: ${HOST_UID:-1000}
+        HOST_GID: ${HOST_GID:-1000}
     container_name: angple-web-dev
+    user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
+    env_file:
+      - .env.dev
     ports:
       - "3010:3010"
     volumes:
-      # 소스 코드 마운트 (핫리로드)
-      - ./apps/web/src:/app/apps/web/src:ro
-      - ./apps/web/static:/app/apps/web/static:ro
-      - ./themes:/app/themes:ro
-      - ./widgets:/app/widgets:ro
-      - ./plugins:/app/plugins:ro
-      - ./packages:/app/packages:ro
+      # 프로젝트 루트 전체 마운트
+      - ./:/app
     environment:
       - NODE_ENV=development
       - DEV_PORT=3010
+      - REDIS_HOST=${REDIS_HOST:-redis}
+      - REDIS_PORT=${REDIS_PORT:-6379}
       # 개발용 API 엔드포인트 (개발 백엔드 사용)
       - PUBLIC_API_URL=http://localhost:8083
-    networks:
-      - angple-dev
     restart: unless-stopped
-
-  # Go 백엔드 개발 서버
-  backend-dev:
-    build:
-      context: ../angple-backend
-      dockerfile: deployments/docker/api.Dockerfile
-    container_name: angple-backend-dev
-    ports:
-      - "8083:8081"
-    environment:
-      - APP_ENV=development
-      - DB_HOST=host.docker.internal
-      - DB_PORT=5432
-      - REDIS_HOST=host.docker.internal
-      - REDIS_PORT=6379
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     networks:
-      - angple-dev
-    restart: unless-stopped
+      - angple-dev-network
 
 networks:
-  angple-dev:
-    driver: bridge
+  angple-dev-network:
+    name: angple-dev-network
+    external: true
