@@ -157,15 +157,12 @@ export const POST: RequestHandler = async ({ request, cookies, getClientAddress 
             console.error('[Login] SSO cookie 발급 실패:', e);
         }
 
-        // 로그인 XP 적립 (fire-and-forget, 로그인 응답 지연 방지)
-        grantLoginXP(mbId).catch((err) => {
-            console.error('[Login] Login XP grant failed:', err);
-        });
-
-        // 자동 등급 승급 체크 (fire-and-forget, 로그인 응답 지연 방지)
-        checkAndPromoteMember(mbId).catch((err) => {
-            console.error('[Login] Auto-promotion check failed:', err);
-        });
+        // 로그인 XP 적립 후 승급 체크 (fire-and-forget, 로그인 응답 지연 방지)
+        grantLoginXP(mbId)
+            .then(() => checkAndPromoteMember(mbId))
+            .catch((err) => {
+                console.error('[Login] Login XP/promotion failed:', err);
+            });
 
         return json({
             success: true,

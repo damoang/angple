@@ -144,12 +144,9 @@ async function handleCallback(
         // 로그인 시각 업데이트
         await updateLoginTimestamp(mbId, clientIp);
 
-        // 로그인 XP + 포인트 적립 + 자동 등급 승급 (await로 누락 방지)
-        await Promise.allSettled([
-            grantLoginXP(mbId),
-            grantLoginPoint(mbId),
-            checkAndPromoteMember(mbId)
-        ]);
+        // 로그인 XP + 포인트 적립 (mb_login_days 증가 후 승급 체크)
+        await Promise.allSettled([grantLoginXP(mbId), grantLoginPoint(mbId)]);
+        await checkAndPromoteMember(mbId);
 
         // 서버사이드 세션 생성
         const session = await createSession(member.mb_id, {

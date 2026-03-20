@@ -290,9 +290,9 @@ async function authenticateSSR(event: Parameters<Handle>[0]['event']): Promise<v
                                     await updateLoginTimestamp(member.mb_id, clientIp);
                                     await Promise.allSettled([
                                         grantLoginXP(member.mb_id),
-                                        grantLoginPoint(member.mb_id),
-                                        checkAndPromoteMember(member.mb_id)
+                                        grantLoginPoint(member.mb_id)
                                     ]);
+                                    await checkAndPromoteMember(member.mb_id);
                                 } catch {
                                     // 로그인 갱신 실패는 무시
                                 }
