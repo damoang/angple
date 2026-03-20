@@ -228,7 +228,6 @@
     $effect(() => {
         if (boardType !== 'giving') return;
         const p = '../../../../../../plugins/giving/hooks/register-layouts.js';
-        // @ts-expect-error dynamic plugin path is resolved at runtime
         import(p).then((m: { default: () => void }) => m.default()).catch(() => {});
     });
     const isUsedMarket = $derived(boardType === 'used-market');
@@ -383,61 +382,48 @@
         auxiliaryLoaded = false;
 
         promise
-            .then(
-                (result: {
-                    promotionPosts: PromotionPost[];
-                    revisions: PostRevision[];
-                    reactions?: Record<string, unknown>;
-                    likersData?: { likers: LikerInfo[]; total: number };
-                    transformedPostContent?: string | null;
-                    isScrapped?: boolean;
-                    postReportCount?: number | string | null;
-                    postLikeStatus?: { userLiked: boolean; userDisliked: boolean };
-                    scheduledDelete?: {
-                        scheduled: boolean;
-                        scheduled_at: string;
-                        requested_at: string;
-                        delay_minutes: number;
-                    } | null;
-                }) => {
-                    if (cancelled) return;
-                    promotionPosts = result.promotionPosts || [];
-                    revisions = result.revisions || [];
+            .then((result) => {
+                if (cancelled) return;
+                promotionPosts = Array.isArray(result.promotionPosts)
+                    ? (result.promotionPosts as PromotionPost[])
+                    : [];
+                revisions = Array.isArray(result.revisions)
+                    ? (result.revisions as PostRevision[])
+                    : [];
 
-                    if (result.reactions && Object.keys(result.reactions).length > 0) {
-                        reactionsMap = result.reactions as Record<string, ReactionItem[]>;
-                        const docTargetId = generateDocumentTargetId(boardId, data.post.id);
-                        postReactions =
-                            (result.reactions as Record<string, ReactionItem[]>)[docTargetId] || [];
-                    }
-
-                    if (result.likersData) {
-                        likers = result.likersData.likers || [];
-                        likersTotal = result.likersData.total || 0;
-                    }
-
-                    if (result.transformedPostContent) {
-                        data.post.content = result.transformedPostContent;
-                    }
-
-                    if (result.isScrapped) {
-                        isScrapped = result.isScrapped;
-                    }
-
-                    if (result.postReportCount != null) {
-                        postReportCount = result.postReportCount;
-                    }
-
-                    if (result.postLikeStatus) {
-                        isLiked = result.postLikeStatus.userLiked;
-                        isDisliked = result.postLikeStatus.userDisliked;
-                    }
-
-                    scheduledDelete = result.scheduledDelete ?? null;
-
-                    auxiliaryLoaded = true;
+                if (result.reactions && Object.keys(result.reactions).length > 0) {
+                    reactionsMap = result.reactions as Record<string, ReactionItem[]>;
+                    const docTargetId = generateDocumentTargetId(boardId, data.post.id);
+                    postReactions =
+                        (result.reactions as Record<string, ReactionItem[]>)[docTargetId] || [];
                 }
-            )
+
+                if (result.likersData) {
+                    likers = result.likersData.likers || [];
+                    likersTotal = result.likersData.total || 0;
+                }
+
+                if (result.transformedPostContent) {
+                    data.post.content = result.transformedPostContent;
+                }
+
+                if (result.isScrapped) {
+                    isScrapped = result.isScrapped;
+                }
+
+                if (result.postReportCount != null) {
+                    postReportCount = result.postReportCount;
+                }
+
+                if (result.postLikeStatus) {
+                    isLiked = result.postLikeStatus.userLiked;
+                    isDisliked = result.postLikeStatus.userDisliked;
+                }
+
+                scheduledDelete = result.scheduledDelete ?? null;
+
+                auxiliaryLoaded = true;
+            })
             .catch(() => {
                 if (cancelled) return;
                 auxiliaryLoaded = true;
