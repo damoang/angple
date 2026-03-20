@@ -27,11 +27,18 @@ PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 
 cd "$PROJECT_ROOT"
 
+# 컨테이너 유저 매핑용 UID/GID (compose.local.yml에서 사용)
+export HOST_UID="${HOST_UID:-$(id -u)}"
+export HOST_GID="${HOST_GID:-$(id -g)}"
+
 echo ""
 echo -e "${BLUE}============================================${NC}"
 echo -e "${BLUE}  Angple 로컬 개발 환경 시작${NC}"
 echo -e "${BLUE}============================================${NC}"
 echo ""
+echo -e "${GREEN}  [INFO]${NC} HOST_UID=${HOST_UID}, HOST_GID=${HOST_GID}"
+echo ""
+
 
 # ----------------------------------------
 # 1. 필수 도구 확인
