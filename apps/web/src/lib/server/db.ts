@@ -107,16 +107,13 @@ async function verifyDbConnection(): Promise<void> {
         }
     } catch (error) {
         const err = error as DbError;
-        console.error(
-            `${DB_LOG_PREFIX} Connection failed: ${host}:${port}/${dbName}`,
-            {
-                code: err.code,
-                errno: err.errno,
-                sqlState: err.sqlState,
-                sqlMessage: err.sqlMessage,
-                message: err.message
-            }
-        );
+        console.error(`${DB_LOG_PREFIX} Connection failed: ${host}:${port}/${dbName}`, {
+            code: err.code,
+            errno: err.errno,
+            sqlState: err.sqlState,
+            sqlMessage: err.sqlMessage,
+            message: err.message
+        });
     }
 }
 
