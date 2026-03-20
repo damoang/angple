@@ -266,17 +266,6 @@
                 <!-- 모바일 메타 (Line 2: Author · Date · 조회 · 추천) -->
                 <div class="mobile-meta" class:modern-view={isMobileView}>
                     <span class="inline-flex items-center gap-0.5">
-                        {#if iconUrl}
-                            <img
-                                src={iconUrl}
-                                alt=""
-                                class="h-5 w-5 shrink-0 rounded-full object-cover"
-                                onerror={(e) => {
-                                    const img = e.currentTarget as HTMLImageElement;
-                                    img.style.display = 'none';
-                                }}
-                            />
-                        {/if}
                         <AuthorLink
                             authorId={post.author_id}
                             authorName={post.author}
