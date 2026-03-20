@@ -108,8 +108,8 @@
         try {
             const postIdNum = post?.id ? Number(post.id) : undefined;
             const result = await apiClient.uploadFile(boardId, file, postIdNum);
-            // 업로드된 파일 목록에도 추가
-            uploadedFiles = [...uploadedFiles, result];
+            // 에디터에서 업로드한 이미지는 본문에 직접 삽입되므로
+            // uploadedFiles에 추가하지 않음 (submit 시 중복 삽입 방지)
             return result.url;
         } catch (err) {
             console.error('Media upload failed:', err);
