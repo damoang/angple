@@ -91,20 +91,7 @@
             defer
             crossorigin="anonymous"
         ></script>
-        %sveltekit.head%
-    </head>
-    <body>
-        <div style="display: contents">%sveltekit.body%</div>
-        <!-- Safari bfcache 복원 시 stale 상태 방지 -->
-        <script>
-            window.addEventListener('pageshow', function (e) {
-                if (e.persisted) {
-                    // bfcache에서 복원됨 — SvelteKit 라우터 상태 갱신 위해 리로드
-                    location.reload();
-                }
-            });
-        </script>
-        <!-- 통합 청크 에러 핸들러 (app.html + hooks.client.ts 공유) -->
+        <!-- 초기 부트스트랩 import 실패도 잡기 위해 head에서 먼저 설치 -->
         <script>
             (function () {
                 // dev 환경에서는 청크 에러 핸들러 비활성화 (HMR이 chunk error를 유발)
@@ -187,7 +174,6 @@
                 function handle() {
                     var s = getState();
                     var now = Date.now();
-                    // 윈도우 만료 시 리셋
                     if (now - s.ts > WINDOW_MS) {
                         s = { count: 0, ts: now, exhausted: false };
                     }
@@ -199,17 +185,14 @@
                     } else {
                         s.exhausted = true;
                         setState(s);
-                        // hooks.client.ts에서 배너 표시하도록 이벤트 발송
                         try {
                             window.dispatchEvent(new CustomEvent('angple:chunk-error-exhausted'));
                         } catch (e) {}
                     }
                 }
 
-                // 전역 노출 (hooks.client.ts와 공유)
                 window.__angpleChunkError = { getState: getState, handle: handle };
 
-                // <script>/<link> error 이벤트 캡처
                 window.addEventListener(
                     'error',
                     function (e) {
@@ -224,14 +207,12 @@
                     true
                 );
 
-                // 모듈 import 실패 감지
                 window.addEventListener('unhandledrejection', function (e) {
                     if (e.reason && e.reason.message && isChunkError(e.reason.message)) {
                         handle();
                     }
                 });
 
-                // 정상 로드 + hydration 완료 후 카운터 리셋 (10초 딜레이)
                 window.addEventListener('load', function () {
                     setTimeout(function () {
                         var s = getState();
@@ -243,6 +224,19 @@
                     }, 10000);
                 });
             })();
+        </script>
+        %sveltekit.head%
+    </head>
+    <body>
+        <div style="display: contents">%sveltekit.body%</div>
+        <!-- Safari bfcache 복원 시 stale 상태 방지 -->
+        <script>
+            window.addEventListener('pageshow', function (e) {
+                if (e.persisted) {
+                    // bfcache에서 복원됨 — SvelteKit 라우터 상태 갱신 위해 리로드
+                    location.reload();
+                }
+            });
         </script>
         <!-- Raw JSON 감지: JS 로드 실패 시 __data.json이 화면에 표시되는 것 방지 -->
         <script>
