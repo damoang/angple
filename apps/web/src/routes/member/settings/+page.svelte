@@ -52,6 +52,10 @@
     let profileSuccess = $state<string | null>(null);
     let profileError = $state<string | null>(null);
 
+    // Switch 상태 (bits-ui Switch는 네이티브 input이 아니므로 별도 추적)
+    let isOpen = $state(data.profile?.mb_open === 1);
+    let isMailling = $state(data.profile?.mb_mailling === 1);
+
     // 아바타 상태
     let avatarUploading = $state(false);
     let avatarSuccess = $state<string | null>(null);
@@ -366,6 +370,8 @@
                                 } else if (result.type === 'failure') {
                                     avatarError =
                                         (result.data?.error as string) || '저장에 실패했습니다.';
+                                } else if (result.type === 'error') {
+                                    avatarError = '서버 오류가 발생했습니다.';
                                 }
                             };
                         }}
@@ -586,9 +592,10 @@
                         use:enhance={() => {
                             profileSuccess = null;
                             profileError = null;
-                            return async ({ result }) => {
+                            return async ({ result, update }) => {
                                 if (result.type === 'success') {
                                     profileSuccess = '설정이 저장되었습니다.';
+                                    await update();
                                 } else if (result.type === 'failure') {
                                     profileError =
                                         (result.data?.error as string) || '저장에 실패했습니다.';
@@ -624,7 +631,8 @@
                                     다른 회원에게 프로필을 공개합니다
                                 </p>
                             </div>
-                            <Switch id="open" name="open" checked={data.profile.mb_open === 1} />
+                            <Switch id="open" bind:checked={isOpen} />
+                            <input type="hidden" name="open" value={isOpen ? 'on' : ''} />
                         </div>
                         <div class="flex items-center justify-between">
                             <div>
@@ -633,11 +641,8 @@
                                     이메일 뉴스레터를 수신합니다
                                 </p>
                             </div>
-                            <Switch
-                                id="mailling"
-                                name="mailling"
-                                checked={data.profile.mb_mailling === 1}
-                            />
+                            <Switch id="mailling" bind:checked={isMailling} />
+                            <input type="hidden" name="mailling" value={isMailling ? 'on' : ''} />
                         </div>
                         {#if profileSuccess}
                             <p class="flex items-center gap-1 text-xs text-green-600">
