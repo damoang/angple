@@ -341,11 +341,16 @@
 <style>
     /* 현재 읽고 있는 글 하이라이트 */
     .current-post-highlight {
-        background-color: color-mix(in srgb, var(--color-primary) 12%, transparent);
-        border-left: 4px solid var(--color-primary);
+        background-color: color-mix(in srgb, var(--color-primary) 8%, transparent);
+        border-left: 3px solid var(--color-primary);
         border-radius: 0.25rem;
+        position: relative;
     }
+    :global(.current-post-highlight .post-title),
+    :global(.current-post-highlight .post-title-read-dim),
+    :global(.current-post-highlight .post-title-read-strike),
     :global(.current-post-highlight .line-clamp-1) {
-        font-weight: 600;
+        font-weight: 700;
+        color: var(--color-primary);
     }
 </style>
