@@ -197,12 +197,25 @@ function clearCachesAndReload(): void {
 }
 
 const CHUNK_FORCE_CLEAR_KEY = '__angple_chunk_force_clear__';
+const STALE_CLIENT_RECOVERY_KEY = '__angple_stale_client_recovery__';
 
 function recoverChunkErrorSilently(): boolean {
     try {
         const count = Number(sessionStorage.getItem(CHUNK_FORCE_CLEAR_KEY) || '0');
         if (count >= 1) return false;
         sessionStorage.setItem(CHUNK_FORCE_CLEAR_KEY, String(count + 1));
+    } catch {
+        return false;
+    }
+    forceClearAllAndReload();
+    return true;
+}
+
+function recoverStaleClientSilently(): boolean {
+    try {
+        const count = Number(sessionStorage.getItem(STALE_CLIENT_RECOVERY_KEY) || '0');
+        if (count >= 1) return false;
+        sessionStorage.setItem(STALE_CLIENT_RECOVERY_KEY, String(count + 1));
     } catch {
         return false;
     }
@@ -224,6 +237,20 @@ if (typeof window !== 'undefined') {
             guardedSend({
                 type: 'chunk_error_exhausted',
                 message: 'Chunk error recovery exhausted after forced clear reload',
+                url: window.location.href,
+                userAgent: navigator.userAgent
+            });
+        }
+    });
+    window.addEventListener('angple:stale-client-recovery', (event) => {
+        const reason =
+            event instanceof CustomEvent && typeof event.detail?.reason === 'string'
+                ? event.detail.reason
+                : 'unknown';
+        if (!recoverStaleClientSilently()) {
+            guardedSend({
+                type: 'stale_client_recovery_exhausted',
+                message: `Stale client recovery exhausted: ${reason}`,
                 url: window.location.href,
                 userAgent: navigator.userAgent
             });

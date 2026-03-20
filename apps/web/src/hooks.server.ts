@@ -199,6 +199,18 @@ function safeGetClientAddress(event: Parameters<Handle>[0]['event']): string | n
     }
 }
 
+function getGlobalApiRateLimitKey(
+    event: Parameters<Handle>[0]['event'],
+    isWrite: boolean
+): string | null {
+    if (isWrite) {
+        const sessionId = event.cookies.get(SESSION_COOKIE_NAME);
+        if (sessionId) return `sid:${sessionId}`;
+    }
+    const clientIp = safeGetClientAddress(event);
+    return clientIp ? `ip:${clientIp}` : null;
+}
+
 /** 타임아웃 래퍼: 지정 시간 내 미완료 시 null 반환 */
 const AUTH_TIMEOUT_MS = 3000;
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | null> {
@@ -421,13 +433,13 @@ export const handle: Handle = async ({ event, resolve }) => {
 
     // 글로벌 API Rate Limiting (SSR 내부 fetch는 IP 없으므로 건너뜀)
     if (pathname.startsWith('/api/')) {
-        const clientIp = safeGetClientAddress(event);
-        if (clientIp) {
-            const isWrite = event.request.method !== 'GET' && event.request.method !== 'HEAD';
-            const rate = isWrite ? WRITE_API_RATE : GLOBAL_API_RATE;
-            const action = isWrite ? 'api_write' : 'api_read';
+        const isWrite = event.request.method !== 'GET' && event.request.method !== 'HEAD';
+        const rate = isWrite ? WRITE_API_RATE : GLOBAL_API_RATE;
+        const action = isWrite ? 'api_write' : 'api_read';
+        const rateLimitKey = getGlobalApiRateLimitKey(event, isWrite);
+        if (rateLimitKey) {
             const { allowed, retryAfter } = checkRateLimit(
-                clientIp,
+                rateLimitKey,
                 action,
                 rate.maxRequests,
                 rate.windowMs
@@ -444,7 +456,7 @@ export const handle: Handle = async ({ event, resolve }) => {
                     }
                 );
             }
-            recordAttempt(clientIp, action);
+            recordAttempt(rateLimitKey, action);
         }
     }
 

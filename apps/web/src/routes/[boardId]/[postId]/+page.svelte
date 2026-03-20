@@ -269,6 +269,7 @@
     let initialDislikedCommentIds = $state<number[]>([]);
     let commentsLoaded = $state(false);
     let commentsError = $state(false);
+    let commentsRecoveryVisible = $state(false);
     let auxiliaryLoaded = $state(false);
     let isScrapped = $state(false);
     let postReportCount = $state<number | string | null>(null);
@@ -287,6 +288,7 @@
         truthroomCommentMap = {};
         commentsLoaded = false;
         commentsError = false;
+        commentsRecoveryVisible = false;
 
         promise
             .then(
@@ -320,6 +322,7 @@
                         truthroomCommentMap = result.truthroomCommentMap;
                     }
                     commentsLoaded = true;
+                    commentsRecoveryVisible = false;
                 }
             )
             .catch(async () => {
@@ -338,6 +341,7 @@
                             if (json.success && json.data) {
                                 comments = json.data.comments || [];
                                 commentsLoaded = true;
+                                commentsRecoveryVisible = false;
                                 return;
                             }
                         }
@@ -348,6 +352,8 @@
                 }
                 commentsError = true;
                 commentsLoaded = true;
+                commentsRecoveryVisible = true;
+                requestStaleClientRecovery('comments-stream-failed');
             });
 
         return () => {
@@ -435,14 +441,30 @@
     let isCreatingComment = $state(false);
     let isRefreshingComments = $state(false);
 
+    function requestStaleClientRecovery(reason: string): void {
+        if (!browser) return;
+        window.dispatchEvent(
+            new CustomEvent('angple:stale-client-recovery', { detail: { reason } })
+        );
+    }
+
     async function refreshComments() {
         if (isRefreshingComments) return;
         isRefreshingComments = true;
         try {
             const result = await apiClient.getBoardComments(boardId, String(data.post.id));
+            const expectedComments = Number(data.post.comments_count || 0);
+            if (expectedComments > 0 && result.items.length === 0) {
+                commentsError = true;
+                commentsRecoveryVisible = true;
+                return;
+            }
             comments = result.items;
+            commentsError = false;
+            commentsRecoveryVisible = false;
         } catch {
-            // 실패 시 조용히 무시
+            commentsError = true;
+            commentsRecoveryVisible = true;
         } finally {
             isRefreshingComments = false;
         }
@@ -1503,8 +1525,28 @@
             </Card>
         {:else if canViewSecret && commentsError}
             <Card class="bg-background">
-                <CardContent class="py-8 text-center">
+                <CardContent class="space-y-4 py-8 text-center">
                     <p class="text-destructive text-sm">댓글을 불러오지 못했습니다.</p>
+                    {#if commentsRecoveryVisible}
+                        <p class="text-muted-foreground text-sm">
+                            오래된 캐시나 이전 배포 자산이 남아 있으면 댓글과 공감이 비정상 동작할
+                            수 있습니다.
+                        </p>
+                        <div class="flex justify-center gap-2">
+                            <Button
+                                variant="outline"
+                                onclick={refreshComments}
+                                disabled={isRefreshingComments}
+                            >
+                                다시 시도
+                            </Button>
+                            <Button
+                                onclick={() => requestStaleClientRecovery('comments-error-cta')}
+                            >
+                                강력 새로고침
+                            </Button>
+                        </div>
+                    {/if}
                 </CardContent>
             </Card>
         {:else if canViewSecret}
