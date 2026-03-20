@@ -56,17 +56,24 @@ function escapeSphinxMatch(str: string): string {
 // 따옴표로 감싸면 정확 구문(phrase match)만 매칭됨
 function buildMatchExpr(query: string, field: string): string {
     const escaped = escapeSphinxMatch(query);
+    // Add wildcard suffix to each token for prefix matching
+    // e.g. "검색 키워드" → "검색* 키워드*" so "검색어" also matches
+    const wildcarded = escaped
+        .split(/\s+/)
+        .filter(Boolean)
+        .map((t) => `${t}*`)
+        .join(' ');
 
     switch (field) {
         case 'title':
-            return `@wr_subject ${escaped}`;
+            return `@wr_subject ${wildcarded}`;
         case 'content':
-            return `@wr_content ${escaped}`;
+            return `@wr_content ${wildcarded}`;
         case 'author':
-            return `@(mb_id,wr_name) ${escaped}`;
+            return `@(mb_id,wr_name) ${wildcarded}`;
         case 'title_content':
         default:
-            return `@(wr_subject,wr_content) ${escaped}`;
+            return `@(wr_subject,wr_content) ${wildcarded}`;
     }
 }
 
