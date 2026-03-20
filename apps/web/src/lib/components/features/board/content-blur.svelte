@@ -60,15 +60,17 @@
         </button>
     </div>
 {:else if shouldBlur && revealed}
-    <div class="relative">
+    <div>
         {@render children()}
-        <button
-            type="button"
-            class="text-muted-foreground hover:text-foreground absolute right-2 top-2 rounded bg-black/5 px-2 py-1 text-xs backdrop-blur-sm dark:bg-white/10"
-            onclick={handleHide}
-        >
-            숨기기
-        </button>
+        <div class="sticky bottom-2 z-10 mt-2 flex justify-end">
+            <button
+                type="button"
+                class="text-muted-foreground hover:text-foreground rounded bg-black/5 px-2 py-1 text-xs shadow-sm backdrop-blur-sm dark:bg-white/10"
+                onclick={handleHide}
+            >
+                숨기기
+            </button>
+        </div>
     </div>
 {:else}
     {@render children()}
