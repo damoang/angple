@@ -18,6 +18,11 @@
         { value: 'w', label: '글만' },
         { value: 'c', label: '댓글만' }
     ];
+    const sortOptions = [
+        { value: 'latest', label: '최신순' },
+        { value: 'comments', label: '댓글순' },
+        { value: 'views', label: '조회순' }
+    ];
 
     const selectedViewLabel = $derived(
         viewOptions.find((o) => o.value === data.currentView)?.label || '전체'
@@ -28,6 +33,9 @@
             ? data.groups.find((g) => g.gr_id === data.currentGroup)?.gr_subject ||
                   data.currentGroup
             : '전체 그룹'
+    );
+    const selectedSortLabel = $derived(
+        sortOptions.find((o) => o.value === data.currentSort)?.label || '최신순'
     );
 
     // 필터 변경
@@ -47,7 +55,7 @@
     function goToPage(pageNum: number, nextCursor?: number | null): void {
         const url = new URL(window.location.href);
         url.searchParams.set('page', String(pageNum));
-        if (nextCursor && pageNum > data.page) {
+        if (data.currentSort === 'latest' && nextCursor && pageNum > data.page) {
             url.searchParams.set('cursor', String(nextCursor));
         } else {
             url.searchParams.delete('cursor');
@@ -146,6 +154,21 @@
                                 {#each data.groups as group (group.gr_id)}
                                     <Select.Item value={group.gr_id}>{group.gr_subject}</Select.Item
                                     >
+                                {/each}
+                            </Select.Content>
+                        </Select.Root>
+
+                        <Select.Root
+                            type="single"
+                            value={data.currentSort}
+                            onValueChange={(v) => updateFilter('sort', v || 'latest')}
+                        >
+                            <Select.Trigger class="h-9 w-[110px] text-sm"
+                                >{selectedSortLabel}</Select.Trigger
+                            >
+                            <Select.Content>
+                                {#each sortOptions as opt (opt.value)}
+                                    <Select.Item value={opt.value}>{opt.label}</Select.Item>
                                 {/each}
                             </Select.Content>
                         </Select.Root>

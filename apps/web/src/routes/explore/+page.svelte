@@ -31,6 +31,7 @@
     let activeMode = $state<ExploreMode>('hot');
     let topPeriod = $state<ExploreTopPeriod>('24h');
     let viewMode = $state<'posts' | 'comments'>('posts');
+    let selectedBoard = $state<string>('all');
     let showReadState = $state(false);
 
     onMount(() => {
@@ -49,9 +50,9 @@
     ];
 
     const topPeriods: { id: ExploreTopPeriod; label: string }[] = [
-        { id: '24h', label: '24시간' },
-        { id: '7d', label: '7일' },
-        { id: '30d', label: '30일' }
+        { id: '24h', label: '오늘' },
+        { id: '7d', label: '이번 주' },
+        { id: '30d', label: '이번 달' }
     ];
 
     const currentPosts = $derived.by((): ExplorePost[] => {
@@ -87,6 +88,37 @@
             );
         }
         return (modeData.comments?.length ?? 0) > 0;
+    });
+
+    const availableBoards = $derived.by(() => {
+        const items = viewMode === 'posts' ? currentPosts : currentComments;
+        const seenBoards = new Set<string>();
+        const boards: { id: string; label: string }[] = [];
+
+        for (const item of items) {
+            if (!seenBoards.has(item.board)) {
+                seenBoards.add(item.board);
+                boards.push({ id: item.board, label: item.board_name });
+            }
+        }
+
+        return [{ id: 'all', label: '전체' }, ...boards];
+    });
+
+    const filteredPosts = $derived.by((): ExplorePost[] => {
+        if (selectedBoard === 'all') return currentPosts;
+        return currentPosts.filter((post) => post.board === selectedBoard);
+    });
+
+    const filteredComments = $derived.by((): ExploreComment[] => {
+        if (selectedBoard === 'all') return currentComments;
+        return currentComments.filter((comment) => comment.board === selectedBoard);
+    });
+
+    $effect(() => {
+        if (!availableBoards.some((board) => board.id === selectedBoard)) {
+            selectedBoard = 'all';
+        }
     });
 
     function formatRelativeTime(dateString: string): string {
@@ -199,6 +231,23 @@
                 </div>
             {/if}
 
+            {#if availableBoards.length > 1}
+                <div class="mt-3 flex items-center gap-1 overflow-x-auto">
+                    {#each availableBoards as board (board.id)}
+                        <button
+                            type="button"
+                            onclick={() => (selectedBoard = board.id)}
+                            class="shrink-0 rounded-md px-2.5 py-1 text-xs transition-all duration-200 ease-out {selectedBoard ===
+                            board.id
+                                ? 'bg-accent text-accent-foreground font-medium'
+                                : 'text-muted-foreground hover:bg-muted hover:text-foreground'}"
+                        >
+                            {board.label}
+                        </button>
+                    {/each}
+                </div>
+            {/if}
+
             <!-- 글/댓글 토글 -->
             {#if hasComments}
                 <div class="mt-3 flex gap-1">
@@ -234,13 +283,13 @@
                 </div>
             {:else if viewMode === 'posts'}
                 <!-- 게시글 목록 -->
-                {#if currentPosts.length === 0}
+                {#if filteredPosts.length === 0}
                     <div class="text-muted-foreground py-16 text-center">
                         <p class="text-sm">표시할 글이 없습니다.</p>
                     </div>
                 {:else}
                     <ul class="divide-border divide-y">
-                        {#each currentPosts as post (post.board + '-' + post.id)}
+                        {#each filteredPosts as post (post.board + '-' + post.id)}
                             <li>
                                 <a
                                     href={post.url}
@@ -303,13 +352,13 @@
                 {/if}
             {:else}
                 <!-- 댓글 목록 -->
-                {#if currentComments.length === 0}
+                {#if filteredComments.length === 0}
                     <div class="text-muted-foreground py-16 text-center">
                         <p class="text-sm">표시할 댓글이 없습니다.</p>
                     </div>
                 {:else}
                     <ul class="divide-border divide-y">
-                        {#each currentComments as comment (comment.board + '-' + comment.id)}
+                        {#each filteredComments as comment (comment.board + '-' + comment.id)}
                             <li>
                                 <a
                                     href={comment.url}
