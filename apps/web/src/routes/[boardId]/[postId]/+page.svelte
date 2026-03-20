@@ -385,8 +385,8 @@
         promise
             .then((result) => {
                 if (cancelled) return;
-                promotionPosts = result.promotionPosts || [];
-                revisions = result.revisions || [];
+                promotionPosts = (result.promotionPosts || []) as PromotionPost[];
+                revisions = (result.revisions || []) as PostRevision[];
 
                 if (result.reactions && Object.keys(result.reactions).length > 0) {
                     reactionsMap = result.reactions as Record<string, ReactionItem[]>;
