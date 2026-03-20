@@ -12,7 +12,6 @@
         LayoutGrid,
         ShoppingCart,
         FolderOpen,
-        Trash2,
         Users,
         Layers,
         DatabaseZap,
@@ -93,11 +92,6 @@
             title: '투표 관리',
             href: '/admin/polls',
             icon: BarChart3
-        },
-        {
-            title: '삭제된 게시물',
-            href: '/admin/posts/deleted',
-            icon: Trash2
         },
         {
             title: '플러그인',

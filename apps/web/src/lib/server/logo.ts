@@ -26,10 +26,7 @@ export interface LogoData {
 const logoCache = createCache<LogoData>({ ttl: 60_000, maxSize: 10 });
 
 async function fetchLogoData(): Promise<LogoData> {
-    const backendUrl = (env.INTERNAL_API_URL || env.BACKEND_URL || 'http://localhost:8090').replace(
-        /\/$/,
-        ''
-    );
+    const backendUrl = (env.BACKEND_URL || 'http://localhost:8090').replace(/\/$/, '');
 
     try {
         const response = await fetch(`${backendUrl}/api/v1/logos/active`, {
