@@ -215,7 +215,20 @@
                         >
                     {/if}
                     {#if memoPluginActive && MemoBadge && !uiSettingsStore.hideMemoInList}
-                        <span class="ml-auto shrink-0">
+                        <!-- svelte-ignore a11y_no_static_element_interactions -->
+                        <span
+                            class="ml-auto shrink-0"
+                            onclick={(e) => {
+                                e.stopPropagation();
+                                e.preventDefault();
+                            }}
+                            onkeydown={(e) => {
+                                if (e.key === 'Enter') {
+                                    e.stopPropagation();
+                                    e.preventDefault();
+                                }
+                            }}
+                        >
                             <MemoBadge memberId={post.author_id} />
                         </span>
                     {/if}
