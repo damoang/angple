@@ -536,6 +536,7 @@ export interface CreatePostRequest {
     tags?: string[]; // 선택 (태그 목록)
     link1?: string; // 선택 (링크1)
     link2?: string; // 선택 (링크2)
+    files?: PostFileAttachment[]; // 선택 (첨부파일 목록)
     // 확장 필드 (플러그인용, PHP wr_1~wr_10 매핑)
     extra_1?: string;
     extra_2?: string;
@@ -543,6 +544,16 @@ export interface CreatePostRequest {
     extra_4?: string;
     extra_5?: string;
     extra_6?: string;
+}
+
+// 게시글 첨부파일 정보 (S3 업로드 후 게시글에 연결)
+export interface PostFileAttachment {
+    key: string; // S3 key
+    url: string; // S3 전체 URL
+    filename: string; // 원본 파일명
+    size: number; // 파일 크기 (bytes)
+    width?: number; // 이미지 가로 (px)
+    height?: number; // 이미지 세로 (px)
 }
 
 // 게시글 수정 요청
@@ -553,6 +564,7 @@ export interface UpdatePostRequest {
     tags?: string[]; // 선택 (태그 목록)
     link1?: string; // 선택 (링크1)
     link2?: string; // 선택 (링크2)
+    files?: PostFileAttachment[]; // 선택 (첨부파일 목록)
     extra_1?: string; // 확장 필드 (Q&A 상태 등)
     extra_2?: string;
     extra_3?: string;
