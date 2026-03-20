@@ -281,6 +281,8 @@ export const POSITION_MAP: Record<string, string> = {
     'comment-top': 'banner-compact',
 
     // 큐레이션 페이지 — 전용 문맥 슬롯
+    'feed-top': 'banner-article',
+    'groups-top': 'banner-article',
     'explore-top': 'banner-article',
     'explore-bottom': 'banner-horizontal-728',
     'empathy-top': 'banner-article',
@@ -329,6 +331,8 @@ export const POSITION_LABELS: Record<string, string> = {
     'board-footer': '게시판 하단',
     'board-list-infeed': '목록 인피드',
     'comment-infeed': '댓글 인피드',
+    'feed-top': '새글모음 상단',
+    'groups-top': '소모임 상단',
     'sidebar-sticky': '사이드바 고정',
     'sidebar-sticky-desktop': '사이드바 고정 (PC)',
     'sidebar-b2b': 'B2B 광고',

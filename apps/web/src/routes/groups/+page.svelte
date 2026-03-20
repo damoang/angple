@@ -1,6 +1,7 @@
 <script lang="ts">
     // import { onMount } from 'svelte';
     import { SeoHead } from '$lib/seo/index.js';
+    import AdSlot from '$lib/components/ui/ad-slot/ad-slot.svelte';
     import Users from '@lucide/svelte/icons/users';
     import MessageSquare from '@lucide/svelte/icons/message-square';
     import FileText from '@lucide/svelte/icons/file-text';
@@ -173,6 +174,10 @@
         </CardHeader>
 
         <CardContent class="px-0 pb-0">
+            <div class="px-6 pt-4">
+                <AdSlot position="groups-top" height="90px" slotKey="groups-top" />
+            </div>
+
             {#if activeTab === 'list'}
                 <div class="space-y-3 px-6 pt-4">
                     <div class="flex flex-col gap-2 md:flex-row">

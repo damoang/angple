@@ -1,6 +1,7 @@
 <script lang="ts">
     import { goto } from '$app/navigation';
     import { Card, CardContent, CardHeader } from '$lib/components/ui/card/index.js';
+    import AdSlot from '$lib/components/ui/ad-slot/ad-slot.svelte';
     import { Button } from '$lib/components/ui/button/index.js';
     import * as Select from '$lib/components/ui/select/index.js';
     import Newspaper from '@lucide/svelte/icons/newspaper';
@@ -98,6 +99,10 @@
 </svelte:head>
 
 <div class="mx-auto max-w-4xl pt-4">
+    <div class="mb-4">
+        <AdSlot position="feed-top" height="90px" slotKey="feed-top" />
+    </div>
+
     {#await data.streamed?.posts}
         <!-- 스켈레톤 (데이터 로딩 중) -->
         <FeedSkeleton />
