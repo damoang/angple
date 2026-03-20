@@ -24,6 +24,7 @@
     import { initFromSSR as initAppData } from '$lib/stores/app-init.svelte';
     import { initFromData as initCelebrationFromData } from '$lib/stores/celebration.svelte';
     import { blockedUsersStore } from '$lib/stores/blocked-users.svelte';
+    import { memberLevelStore } from '$lib/stores/member-levels.svelte';
     import { uiSettingsStore } from '$lib/stores/ui-settings.svelte';
     import { updatePageTargeting } from '$lib/components/ui/ad-slot/ad-slot-registry.js';
     import { consumePendingAuthEvent, initGA4, trackPageView } from '$lib/services/ga4';
@@ -54,6 +55,10 @@
                 },
                 d.accessToken
             );
+            // memberLevelStore에도 현재 사용자 레벨 동기화
+            if (d.user.id && d.user.as_level !== undefined) {
+                memberLevelStore.updateLevel(d.user.id, d.user.as_level);
+            }
         } else if (d.user) {
             authActions.initFromSSR(
                 {
@@ -67,6 +72,9 @@
                 },
                 ''
             );
+            if (d.user.id && d.user.as_level !== undefined) {
+                memberLevelStore.updateLevel(d.user.id, d.user.as_level);
+            }
         } else {
             authActions.initAuth();
         }

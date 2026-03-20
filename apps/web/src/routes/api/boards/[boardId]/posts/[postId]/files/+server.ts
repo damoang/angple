@@ -21,6 +21,7 @@ import pool from '$lib/server/db';
 interface FileRow extends RowDataPacket {
     bf_no: number;
     bf_file: string;
+    bf_fileurl: string;
     bf_source: string;
     bf_type: number; // 0: 일반 첨부, 1~2: 에디터 삽입 이미지
     bf_width: number;
@@ -49,21 +50,27 @@ export const GET: RequestHandler = async ({ params }) => {
 
     try {
         const [rows] = await pool.query<FileRow[]>(
-            `SELECT bf_no, bf_file, bf_source, bf_type, bf_width, bf_height, bf_filesize
+            `SELECT bf_no, bf_file, bf_fileurl, bf_source, bf_type, bf_width, bf_height, bf_filesize
 			 FROM g5_board_file
 			 WHERE bo_table = ? AND wr_id = ?
 			 ORDER BY bf_no`,
             [safeBoardId, safePostId]
         );
 
+        // bf_fileurl이 있으면 사용, 없으면 레거시 경로 구성
+        function getFileUrl(row: FileRow): string {
+            if (row.bf_fileurl) return row.bf_fileurl;
+            return `${S3_BASE}/${safeBoardId}/${row.bf_file}`;
+        }
+
         const images = rows
             .filter((row) => IMAGE_EXTENSIONS.test(row.bf_file))
-            .map((row) => `${S3_BASE}/${safeBoardId}/${row.bf_file}`);
+            .map((row) => getFileUrl(row));
 
         const videos = rows
             .filter((row) => VIDEO_EXTENSIONS.test(row.bf_file))
             .map((row) => ({
-                url: `${S3_BASE}/${safeBoardId}/${row.bf_file}`,
+                url: getFileUrl(row),
                 filename: row.bf_source || row.bf_file,
                 size: row.bf_filesize || 0
             }));
@@ -74,14 +81,14 @@ export const GET: RequestHandler = async ({ params }) => {
                 (row) => !IMAGE_EXTENSIONS.test(row.bf_file) && !VIDEO_EXTENSIONS.test(row.bf_file)
             )
             .map((row) => ({
-                url: `${S3_BASE}/${safeBoardId}/${row.bf_file}`,
+                url: getFileUrl(row),
                 filename: row.bf_source || row.bf_file,
                 size: row.bf_filesize || 0
             }));
 
         // 전체 다운로드 목록 (이미지/영상 포함, 원본 파일명)
         const downloads = rows.map((row) => ({
-            url: `${S3_BASE}/${safeBoardId}/${row.bf_file}`,
+            url: getFileUrl(row),
             filename: row.bf_source || row.bf_file,
             size: row.bf_filesize || 0
         }));

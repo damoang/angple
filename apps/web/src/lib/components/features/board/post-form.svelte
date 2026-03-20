@@ -18,7 +18,8 @@
         UpdatePostRequest,
         UploadedFile,
         Board,
-        FileAttachment
+        FileAttachment,
+        PostFileAttachment
     } from '$lib/api/types.js';
     import DraftList from './draft-list.svelte';
     import TagInput from './tag-input.svelte';
@@ -322,6 +323,16 @@
             finalContent = finalContent ? `${finalContent}\n${imgTags}` : imgTags;
         }
 
+        // 첨부파일 정보 구성 (S3 key + URL)
+        const fileAttachments: PostFileAttachment[] = uploadedFiles.map((f) => ({
+            key: f.id.startsWith('existing_') ? f.filename : f.id,
+            url: f.url,
+            filename: f.original_filename || f.filename,
+            size: f.size,
+            width: 0,
+            height: 0
+        }));
+
         const data: CreatePostRequest | UpdatePostRequest =
             mode === 'create'
                 ? {
@@ -332,7 +343,8 @@
                       is_secret: isSecret,
                       tags: tags.length > 0 ? tags : undefined,
                       link1: link1.trim() || undefined,
-                      link2: link2.trim() || undefined
+                      link2: link2.trim() || undefined,
+                      files: fileAttachments.length > 0 ? fileAttachments : undefined
                   }
                 : {
                       title: sanitizedTitle,
@@ -340,7 +352,8 @@
                       category: category || undefined,
                       tags: tags.length > 0 ? tags : undefined,
                       link1: link1.trim(),
-                      link2: link2.trim()
+                      link2: link2.trim(),
+                      files: fileAttachments
                   };
 
         try {

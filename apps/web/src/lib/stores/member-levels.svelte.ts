@@ -66,6 +66,18 @@ class MemberLevelStore {
     }
 
     /**
+     * 특정 회원의 레벨 업데이트 (authStore 동기화용)
+     */
+    updateLevel(mbId: string, level: number): void {
+        if (!mbId) return;
+        const current = this.levels.get(mbId);
+        if (current === level) return;
+        const updated = new Map(this.levels);
+        updated.set(mbId, level);
+        this.levels = updated;
+    }
+
+    /**
      * 전체 캐시 클리어
      */
     clear(): void {
