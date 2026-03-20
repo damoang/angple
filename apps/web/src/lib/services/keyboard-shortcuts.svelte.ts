@@ -181,11 +181,13 @@ class KeyboardShortcutService {
             return;
         }
 
-        // 시스템 단축키 체크 (A-Z 키)
+        // 시스템 단축키 체크 (A-Z 키) — 등록된 키만 처리
         if (code.startsWith('Key')) {
-            const systemUrl = this.systemShortcuts.get(code) ?? DEFAULT_URL;
-            event.preventDefault();
-            this.navigate(systemUrl);
+            const systemUrl = this.systemShortcuts.get(code);
+            if (systemUrl) {
+                event.preventDefault();
+                this.navigate(systemUrl);
+            }
             return;
         }
     };
