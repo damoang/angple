@@ -400,9 +400,10 @@
                         use:enhance={() => {
                             nickSuccess = null;
                             nickError = null;
-                            return async ({ result }) => {
+                            return async ({ result, update }) => {
                                 if (result.type === 'success') {
                                     nickSuccess = '닉네임이 변경되었습니다.';
+                                    await update();
                                 } else if (result.type === 'failure') {
                                     nickError =
                                         (result.data?.error as string) || '변경에 실패했습니다.';
