@@ -19,6 +19,8 @@ const adapter = isStatic
           envPrefix: ''
       });
 
+const assetBaseUrl = (process.env.ASSET_BASE_URL || '').replace(/\/+$/, '');
+
 /** @type {import('@sveltejs/kit').Config} */
 const config = {
     // Consult https://svelte.dev/docs/kit/integrations
@@ -27,6 +29,9 @@ const config = {
 
     kit: {
         adapter,
+        paths: {
+            assets: assetBaseUrl
+        },
         alias: {
             $widgets: '../../widgets',
             '$custom-widgets': '../../custom-widgets',
