@@ -3,6 +3,7 @@
     import type { FreePost, BoardDisplaySettings } from '$lib/api/types.js';
     import AuthorLink from '$lib/components/ui/author-link/author-link.svelte';
     import { getAvatarUrl } from '$lib/utils/member-icon.js';
+    import { formatCommentCountBadge } from '$lib/utils/comment-count.js';
     import { formatDate, isToday } from '$lib/utils/format-date.js';
     import { formatCompactNumber } from '$lib/utils/format-number.js';
     import { readPostStyleStore } from '$lib/stores/read-post-style.svelte.js';
@@ -104,7 +105,9 @@
                     </span>
 
                     {#if post.comments_count > 0}
-                        <span class="comment-count shrink-0">+{post.comments_count}</span>
+                        <span class="comment-count shrink-0"
+                            >{formatCommentCountBadge(post.comments_count)}</span
+                        >
                     {/if}
                 </div>
 

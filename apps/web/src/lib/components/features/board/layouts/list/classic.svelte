@@ -15,6 +15,7 @@
     import { loadPluginComponent } from '$lib/utils/plugin-optional-loader';
     import { readPostStyleStore } from '$lib/stores/read-post-style.svelte.js';
     import { uiSettingsStore } from '$lib/stores/ui-settings.svelte.js';
+    import { formatCommentCountBadge } from '$lib/utils/comment-count.js';
     // 메모 플러그인
     let memoPluginActive = $derived(pluginStore.isPluginActive('member-memo'));
     let MemoBadge = $state<Component | null>(null);
@@ -209,7 +210,9 @@
                         <ImageIcon class="text-muted-foreground h-3.5 w-3.5 shrink-0" />
                     {/if}
                     {#if post.comments_count > 0}
-                        <span class="comment-count shrink-0">+{post.comments_count}</span>
+                        <span class="comment-count shrink-0"
+                            >{formatCommentCountBadge(post.comments_count)}</span
+                        >
                     {/if}
                     {#if memoPluginActive && MemoBadge && !uiSettingsStore.hideMemoInList}
                         <span class="ml-auto shrink-0">

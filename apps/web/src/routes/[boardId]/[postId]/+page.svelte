@@ -126,6 +126,16 @@
         prev: AdjacentPost | null;
         next: AdjacentPost | null;
     }
+    interface PromotionPost {
+        wrId: number;
+        subject: string;
+        imageUrl: string;
+        linkUrl: string;
+        advertiserName: string;
+        memberId: string;
+        pinToTop: boolean;
+        createdAt: string;
+    }
 
     let { data }: { data: PageData } = $props();
 
@@ -218,7 +228,7 @@
     $effect(() => {
         if (boardType !== 'giving') return;
         const p = '../../../../../../plugins/giving/hooks/register-layouts.js';
-        // @ts-ignore
+        // @ts-expect-error dynamic plugin path is resolved at runtime
         import(p).then((m: { default: () => void }) => m.default()).catch(() => {});
     });
     const isUsedMarket = $derived(boardType === 'used-market');
@@ -231,6 +241,7 @@
     );
 
     // 중고게시판 상태 관리
+    // eslint-disable-next-line svelte/prefer-writable-derived -- board navigation resets state from streamed page data
     let marketStatus = $state<MarketStatus>('selling');
     $effect(() => {
         marketStatus = (data.post.extra_2 as MarketStatus) || 'selling';
@@ -262,7 +273,7 @@
     // 댓글/프로모션/리비전 — Streaming SSR (2단계 데이터)
     let comments = $state<FreeComment[]>([]);
     let truthroomCommentMap = $state<Record<number, number>>({});
-    let promotionPosts = $state<unknown[]>([]);
+    let promotionPosts = $state<PromotionPost[]>([]);
     let revisions = $state<PostRevision[]>([]);
     let initialLikedCommentIds = $state<number[]>([]);
     let initialDislikedCommentIds = $state<number[]>([]);
@@ -374,7 +385,7 @@
         promise
             .then(
                 (result: {
-                    promotionPosts: unknown[];
+                    promotionPosts: PromotionPost[];
                     revisions: PostRevision[];
                     reactions?: Record<string, unknown>;
                     likersData?: { likers: LikerInfo[]; total: number };
@@ -470,6 +481,7 @@
     }
 
     // 추천/비추천 상태
+    // eslint-disable-next-line svelte/prefer-writable-derived -- count is later updated optimistically after user actions
     let likeCount = $state(0);
     $effect(() => {
         likeCount = data.post.likes;
@@ -796,6 +808,7 @@
     const canViewSecret = $derived((!data.post.is_secret || isAuthor) && !promotionExpired);
 
     // 댓글 레이아웃 (관리자 변경 시 즉시 반영용)
+    // eslint-disable-next-line svelte/prefer-writable-derived -- layout must refresh from route data while remaining locally writable
     let commentLayout = $state(data.board?.display_settings?.comment_layout || 'flat');
     $effect(() => {
         commentLayout = data.board?.display_settings?.comment_layout || 'flat';
@@ -1480,7 +1493,7 @@
             />
         {/each}
 
-        <!-- 작성자 활동 패널 아래 GAM 광고 (비활성화: 본문 영역 광고 과다 방지)
+        <!-- 본문 직후, 댓글 직전 광고 -->
         {#if widgetLayoutStore.hasEnabledAds}
             <div class="my-6">
                 <AdSlot
@@ -1490,7 +1503,6 @@
                 />
             </div>
         {/if}
-        -->
 
         <!-- GA4 Scroll Depth 센티넬 (75%) -->
         <div data-scroll-depth="75" aria-hidden="true"></div>
@@ -1500,7 +1512,7 @@
             <Card class="bg-background">
                 <CardContent class="space-y-4 py-6">
                     <!-- 댓글 스켈레톤 -->
-                    {#each { length: 3 } as _}
+                    {#each Array.from({ length: 3 }) as _, i (i)}
                         <div class="flex gap-3">
                             <div class="bg-muted h-8 w-8 animate-pulse rounded-full"></div>
                             <div class="flex-1 space-y-2">
@@ -1642,17 +1654,6 @@
 
         <!-- GA4 Scroll Depth 센티넬 (100%) -->
         <div data-scroll-depth="100" aria-hidden="true"></div>
-
-        <!-- 댓글~목록 사이 GAM 광고 -->
-        {#if widgetLayoutStore.hasEnabledAds}
-            <div class="my-3 md:my-4">
-                <AdSlot
-                    position="board-after-comments"
-                    height="90px"
-                    slotKey="board-after-comments"
-                />
-            </div>
-        {/if}
     {/if}
     <!-- /canRead -->
 </div>
@@ -1665,7 +1666,7 @@
         currentPostId={data.post.id}
         limit={25}
         initialPage={Number($page.url.searchParams.get('page')) || 1}
-        promotionPosts={promotionPosts as any[]}
+        {promotionPosts}
         displaySettings={data.board?.display_settings}
     />
 {/if}
