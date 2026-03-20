@@ -175,6 +175,17 @@ export const AD_CONFIGS: Record<string, AdConfig> = {
             [0, [[320, 100]]]
         ]
     },
+    'banner-header-center': {
+        unit: AD_UNIT_PATHS.sub,
+        sizes: [
+            [728, 90],
+            [320, 100]
+        ],
+        responsive: [
+            [1280, [[728, 90]]],
+            [0, [[320, 100]]]
+        ]
+    },
     'banner-large-compact': {
         unit: AD_UNIT_PATHS.main,
         sizes: [
@@ -254,7 +265,7 @@ export const POSITION_MAP: Record<string, string> = {
     'board-list-head': 'banner-medium-compact',
     'board-list-bottom': 'banner-large-compact',
     'board-footer': 'banner-compact',
-    'header-after': 'banner-medium-compact',
+    'header-after': 'banner-header-center',
 
     // 본문 영역 — article 유닛 (본문 전용)
     'board-view-top': 'banner-article',
