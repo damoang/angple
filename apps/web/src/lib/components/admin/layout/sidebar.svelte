@@ -20,7 +20,8 @@
         Megaphone,
         StickyNote,
         TrendingUp,
-        Award
+        Award,
+        Image as ImageIcon
     } from '@lucide/svelte/icons';
 
     /**
@@ -62,6 +63,11 @@
             title: '내용 관리',
             href: '/admin/contents',
             icon: StickyNote
+        },
+        {
+            title: '로고 관리',
+            href: '/admin/logos',
+            icon: ImageIcon
         },
         {
             title: '프로모션',

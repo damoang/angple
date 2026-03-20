@@ -9,8 +9,9 @@
     import Sun from '@lucide/svelte/icons/sun';
     import Moon from '@lucide/svelte/icons/moon';
     import Smartphone from '@lucide/svelte/icons/smartphone';
-    import Logo from '$lib/assets/logo.svg';
+    import DefaultLogo from '$lib/assets/logo.svg';
     import AlignJustify from '@lucide/svelte/icons/align-justify';
+    import { resolveActiveLogo } from '$lib/utils/logo-resolver';
     import Mail from '@lucide/svelte/icons/mail';
     import Sidebar from './sidebar.svelte';
     import {
@@ -25,6 +26,15 @@
     import { getIcon } from '$lib/utils/icon-map';
     import { page } from '$app/stores';
     import { browser } from '$app/environment';
+
+    // 하이브리드 로고: SSR에서 KST 매칭, 클라이언트에서 현지 시간 재매칭
+    const clientLogo = $derived(
+        browser ? resolveActiveLogo($page.data.logoData?.schedules || []) : null
+    );
+    const logoSrc = $derived(
+        clientLogo?.logo_url || $page.data.logoData?.active?.logo_url || DefaultLogo
+    );
+    const logoAlt = $derived(clientLogo?.name || $page.data.logoData?.active?.name || 'Logo');
 
     // SSR 안전한 인증 상태:
     // - 서버(SSR): $page.data.user 사용 (요청별 안전, 모듈 레벨 상태 오염 없음)
@@ -218,7 +228,7 @@
                     }
                 }}
             >
-                <img src={Logo} alt="damoang" class="h-10 md:h-12" />
+                <img src={logoSrc} alt={logoAlt} class="h-10 md:h-12" />
             </a>
         </div>
 
