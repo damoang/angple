@@ -180,7 +180,7 @@
             const headers: Record<string, string> = {};
             if (token) headers['Authorization'] = `Bearer ${token}`;
 
-            const response = await fetch('/api/v2/media/images', {
+            const response = await fetch('/api/media/images', {
                 method: 'POST',
                 credentials: 'include',
                 headers,
