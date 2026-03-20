@@ -228,7 +228,6 @@
     $effect(() => {
         if (boardType !== 'giving') return;
         const p = '../../../../../../plugins/giving/hooks/register-layouts.js';
-        // @ts-ignore dynamic plugin path is resolved at runtime
         import(p).then((m: { default: () => void }) => m.default()).catch(() => {});
     });
     const isUsedMarket = $derived(boardType === 'used-market');
@@ -385,8 +384,12 @@
         promise
             .then((result) => {
                 if (cancelled) return;
-                promotionPosts = (result.promotionPosts || []) as PromotionPost[];
-                revisions = (result.revisions || []) as PostRevision[];
+                promotionPosts = Array.isArray(result.promotionPosts)
+                    ? (result.promotionPosts as PromotionPost[])
+                    : [];
+                revisions = Array.isArray(result.revisions)
+                    ? (result.revisions as PostRevision[])
+                    : [];
 
                 if (result.reactions && Object.keys(result.reactions).length > 0) {
                     reactionsMap = result.reactions as Record<string, ReactionItem[]>;

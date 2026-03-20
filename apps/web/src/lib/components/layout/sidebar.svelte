@@ -361,11 +361,7 @@
     <!-- 사이드바 메뉴 아래 광고 -->
     <div class={compact ? 'space-y-2 px-1' : 'space-y-2 px-2'}>
         <div class:hidden={!widgetLayoutStore.hasEnabledAds}>
-            {#if compact}
-                <div class="flex justify-center">
-                    <AdSlot position="sidebar-drawer" height="100px" slotKey="sidebar-drawer" />
-                </div>
-            {:else}
+            {#if compact}{:else}
                 <AdSlot position="sidebar" height="250px" slotKey="sidebar-main" />
             {/if}
         </div>

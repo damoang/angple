@@ -18,6 +18,8 @@
     const isSticky = $derived(config.settings?.sticky === true || position === 'sidebar-sticky');
 
     const isSidebar = $derived(slot === 'sidebar');
+    const isHomeTopBanner = $derived(position === 'index-head' || position === 'index-top');
+    const showCelebration = $derived(position === 'index-head');
 </script>
 
 {#if isSidebar}
@@ -32,9 +34,9 @@
             <AdSlot {position} height={isSticky ? '500px' : '250px'} />
         {/if}
     </div>
-{:else if position === 'index-head'}
-    <!-- 메인 상단: 축하메시지 → 프리미엄배너 → GAM 폴백 -->
-    <DamoangBanner position="index" showCelebration={true} {height} gamPosition="index-head" />
+{:else if isHomeTopBanner}
+    <!-- 홈 최상단: 자체 배너 우선, 없으면 같은 position으로 GAM 폴백 -->
+    <DamoangBanner position="index" {height} {showCelebration} gamPosition={position} />
 {:else}
     <!-- 메인 영역 광고 (GAM) -->
     <AdSlot {position} {height} />
