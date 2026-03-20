@@ -42,7 +42,6 @@ export const instagram: EmbedPlatform = {
 			src="${embedUrl}"
 			title="Instagram embed"
 			frameborder="0"
-			scrolling="no"
 			allowtransparency="true"
 			allowfullscreen
 		></iframe>`;
