@@ -1,0 +1,50 @@
+name: Safari Synthetic
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '*/15 * * * *'
+
+env:
+  NODE_VERSION: '22'
+
+jobs:
+  mobile-safari-synthetic:
+    name: Mobile Safari Synthetic
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright browsers
+        working-directory: apps/web
+        run: pnpm exec playwright install --with-deps webkit
+
+      - name: Run Mobile Safari synthetic monitor
+        working-directory: apps/web
+        env:
+          E2E_EXTERNAL_BASE_URL: https://damoang.net
+          E2E_SYNTHETIC_POST_PATH: /free/5998999
+        run: pnpm exec playwright test --config=playwright.synthetic.config.ts
+
+      - name: Upload synthetic report
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: playwright-report-safari-synthetic
+          path: apps/web/playwright-report-synthetic/
+          retention-days: 7
