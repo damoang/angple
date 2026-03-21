@@ -31,9 +31,16 @@
     const clientLogo = $derived(
         browser ? resolveActiveLogo($page.data.logoData?.schedules || []) : null
     );
-    const logoSrc = $derived(
-        clientLogo?.logo_url || $page.data.logoData?.active?.logo_url || DefaultLogo
-    );
+
+    function shouldUseDefaultLogo(src: string | null | undefined): boolean {
+        if (!src) return true;
+        return /^https?:\/\//i.test(src) && /\.svg(?:$|\?)/i.test(src);
+    }
+
+    const logoSrc = $derived.by(() => {
+        const candidate = clientLogo?.logo_url || $page.data.logoData?.active?.logo_url || null;
+        return shouldUseDefaultLogo(candidate) ? DefaultLogo : candidate;
+    });
     const logoAlt = $derived(clientLogo?.name || $page.data.logoData?.active?.name || 'Logo');
 
     // SSR 안전한 인증 상태:
