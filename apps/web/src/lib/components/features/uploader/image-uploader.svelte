@@ -6,6 +6,7 @@
     import X from '@lucide/svelte/icons/x';
     import Loader2 from '@lucide/svelte/icons/loader-2';
     import AlertCircle from '@lucide/svelte/icons/alert-circle';
+    import { safeRandomUUID } from '$lib/utils/uuid';
 
     interface Props {
         boardId?: string;
@@ -83,7 +84,7 @@
                 // 에러가 있는 파일도 미리보기에 표시 (에러 메시지와 함께)
                 const preview = await createPreview(file);
                 const uploadingFile: UploadingFile = {
-                    id: crypto.randomUUID(),
+                    id: safeRandomUUID(),
                     file,
                     preview,
                     progress: 0,
@@ -96,7 +97,7 @@
             // 미리보기 생성
             const preview = await createPreview(file);
             const uploadingFile: UploadingFile = {
-                id: crypto.randomUUID(),
+                id: safeRandomUUID(),
                 file,
                 preview,
                 progress: 0
