@@ -164,6 +164,8 @@
     // 네비게이션 프로그레스바 (500ms 딜레이 — 빠른 전환에서는 숨김)
     let showNavProgress = $state(false);
     let navProgressTimeout: ReturnType<typeof setTimeout> | undefined;
+    const NAVIGATION_STALL_TIMEOUT_MS = 4000;
+    const NAVIGATION_RECOVERY_KEY = '__angple_navigation_recovery__';
 
     $effect(() => {
         clearTimeout(navProgressTimeout);
@@ -176,17 +178,44 @@
         }
     });
 
-    // View Transitions API — 비활성화 (SPA 네비게이션 깜빡임 유발)
-    // onNavigate((navigation) => {
-    //     if (!document.startViewTransition || matchMedia('(prefers-reduced-motion: reduce)').matches)
-    //         return;
-    //     return new Promise((resolve) => {
-    //         document.startViewTransition(async () => {
-    //             resolve();
-    //             await navigation.complete;
-    //         });
-    //     });
-    // });
+    // SPA 내비게이션이 URL만 바뀌고 화면 갱신이 멈추는 경우를 대비해
+    // 일정 시간 안에 완료되지 않으면 대상 URL로 1회 강제 새로고침한다.
+    onNavigate((navigation) => {
+        if (!browser || navigation.willUnload || !navigation.to?.url) return;
+
+        const targetUrl = navigation.to.url.toString();
+        const timer = window.setTimeout(() => {
+            try {
+                const raw = sessionStorage.getItem(NAVIGATION_RECOVERY_KEY);
+                const prev = raw
+                    ? (JSON.parse(raw) as { url?: string; ts?: number })
+                    : { url: '', ts: 0 };
+                const now = Date.now();
+                if (prev.url === targetUrl && now - (prev.ts ?? 0) < 15_000) return;
+                sessionStorage.setItem(
+                    NAVIGATION_RECOVERY_KEY,
+                    JSON.stringify({ url: targetUrl, ts: now })
+                );
+            } catch {
+                // 저장소 접근 실패 시에도 복구는 진행
+            }
+            window.location.assign(targetUrl);
+        }, NAVIGATION_STALL_TIMEOUT_MS);
+
+        navigation.complete.finally(() => {
+            window.clearTimeout(timer);
+            try {
+                const raw = sessionStorage.getItem(NAVIGATION_RECOVERY_KEY);
+                if (!raw) return;
+                const prev = JSON.parse(raw) as { url?: string };
+                if (prev.url === targetUrl) {
+                    sessionStorage.removeItem(NAVIGATION_RECOVERY_KEY);
+                }
+            } catch {
+                // noop
+            }
+        });
+    });
 
     // afterNavigate 통합: GA4 페이지뷰 + 광고 observer 재설정
     afterNavigate(({ type, to }) => {
