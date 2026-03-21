@@ -271,7 +271,9 @@
 
     // 댓글/프로모션/리비전 — Streaming SSR (2단계 데이터)
     let comments = $state<FreeComment[]>(data.commentsData?.comments.items || []);
-    let truthroomCommentMap = $state<Record<number, number>>(data.commentsData?.truthroomCommentMap || {});
+    let truthroomCommentMap = $state<Record<number, number>>(
+        data.commentsData?.truthroomCommentMap || {}
+    );
     let promotionPosts = $state<PromotionPost[]>([]);
     let revisions = $state<PostRevision[]>([]);
     let initialLikedCommentIds = $state<number[]>(
@@ -286,14 +288,12 @@
     let commentsAutoRecoveryTriggered = $state(false);
     let commentsDirectFetchAttempted = $state(false);
     let commentsDirectFetchInFlight = $state(false);
-    let commentsLoadGeneration = $state(0);
     let auxiliaryLoaded = $state(false);
     let isScrapped = $state(false);
     let postReportCount = $state<number | string | null>(null);
 
     $effect(() => {
         const result = data.commentsData;
-        const generation = ++commentsLoadGeneration;
 
         comments = result?.comments.items || [];
         initialLikedCommentIds = result?.commentLikeStatuses?.likedIds || [];
@@ -309,8 +309,6 @@
         if (result?.memberLevels && Object.keys(result.memberLevels).length > 0) {
             memberLevelStore.initFromSSR(result.memberLevels);
         }
-
-        void generation;
     });
 
     $effect(() => {
@@ -739,9 +737,18 @@
         return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
     }
 
+    const backToListHref = $derived.by(() => {
+        const pageParam = $page.url.searchParams.get('page');
+        return pageParam ? `/${boardId}?page=${pageParam}` : `/${boardId}`;
+    });
+
     // 목록으로 돌아가기
     function goBack(): void {
-        goto(`/${boardId}`);
+        if (browser) {
+            window.location.assign(backToListHref);
+            return;
+        }
+        goto(backToListHref);
     }
 
     // 수정 페이지로 이동
@@ -1659,6 +1666,9 @@
         currentPostId={data.post.id}
         limit={25}
         initialPage={Number($page.url.searchParams.get('page')) || 1}
+        initialPosts={data.recentPostsData?.items || []}
+        initialTotal={data.recentPostsData?.total || 0}
+        initialTotalPages={data.recentPostsData?.total_pages || 1}
         {promotionPosts}
         displaySettings={data.board?.display_settings}
     />
