@@ -194,10 +194,17 @@
     // link1이 동영상 URL이면 본문 앞에 삽입 (그누보드 wr_link1 호환)
     // link1_display: 제휴 변환 전 원본 URL (변환된 경우), 없으면 link1 자체가 원본
     const link1Original = $derived(data.post.link1_display || data.post.link1);
+    let renderedPostContent = $state('');
+    let renderedPostContentPostId = 0;
+    $effect(() => {
+        if (renderedPostContentPostId === data.post.id) return;
+        renderedPostContentPostId = data.post.id;
+        renderedPostContent = data.post.content;
+    });
     const postContent = $derived(
         !data.post.deleted_at && link1Original && isEmbeddable(link1Original)
-            ? `<p>${link1Original}</p>\n${data.post.content}`
-            : data.post.content
+            ? `<p>${link1Original}</p>\n${renderedPostContent}`
+            : renderedPostContent
     );
 
     // 소명글 ↔ 이용제한 연동: link1에서 disciplinelog ID 추출
@@ -270,150 +277,50 @@
     }
 
     // 댓글/프로모션/리비전 — Streaming SSR (2단계 데이터)
-    let comments = $state<FreeComment[]>([]);
-    let truthroomCommentMap = $state<Record<number, number>>({});
+    let comments = $state<FreeComment[]>(data.commentsData?.comments.items || []);
+    let truthroomCommentMap = $state<Record<number, number>>(
+        data.commentsData?.truthroomCommentMap || {}
+    );
     let promotionPosts = $state<PromotionPost[]>([]);
     let revisions = $state<PostRevision[]>([]);
-    let initialLikedCommentIds = $state<number[]>([]);
-    let initialDislikedCommentIds = $state<number[]>([]);
-    let commentsLoaded = $state(false);
+    let initialLikedCommentIds = $state<number[]>(
+        data.commentsData?.commentLikeStatuses?.likedIds || []
+    );
+    let initialDislikedCommentIds = $state<number[]>(
+        data.commentsData?.commentLikeStatuses?.dislikedIds || []
+    );
+    let commentsLoaded = $state(true);
     let commentsError = $state(false);
     let commentsRecoveryVisible = $state(false);
     let commentsAutoRecoveryTriggered = $state(false);
     let commentsDirectFetchAttempted = $state(false);
     let commentsDirectFetchInFlight = $state(false);
-    let commentsLoadGeneration = $state(0);
     let auxiliaryLoaded = $state(false);
     let isScrapped = $state(false);
     let postReportCount = $state<number | string | null>(null);
+    let syncedCommentsPostId = $state<number | null>(null);
 
     $effect(() => {
-        const promise = data.streamed?.commentsData;
-        if (!promise) return;
+        const postId = data.post.id;
+        if (syncedCommentsPostId === postId) return;
 
-        let cancelled = false;
-        const generation = ++commentsLoadGeneration;
-        let fallbackTimer: number | null = null;
+        const result = data.commentsData;
+        syncedCommentsPostId = postId;
 
-        // 네비게이션 시 초기화
-        comments = [];
-        initialLikedCommentIds = [];
-        initialDislikedCommentIds = [];
-        truthroomCommentMap = {};
-        commentsLoaded = false;
+        comments = result?.comments.items || [];
+        initialLikedCommentIds = result?.commentLikeStatuses?.likedIds || [];
+        initialDislikedCommentIds = result?.commentLikeStatuses?.dislikedIds || [];
+        truthroomCommentMap = result?.truthroomCommentMap || {};
+        commentsLoaded = true;
         commentsError = false;
         commentsRecoveryVisible = false;
         commentsAutoRecoveryTriggered = false;
         commentsDirectFetchAttempted = false;
         commentsDirectFetchInFlight = false;
 
-        const applyCommentsResult = (items: FreeComment[]) => {
-            if (cancelled || generation !== commentsLoadGeneration) return false;
-            comments = items;
-            commentsLoaded = true;
-            commentsError = false;
-            commentsRecoveryVisible = false;
-            return true;
-        };
-
-        const loadCommentsDirectly = async () => {
-            if (!browser || cancelled || generation !== commentsLoadGeneration) return false;
-            if (commentsLoaded || commentsDirectFetchInFlight) return false;
-
-            commentsDirectFetchAttempted = true;
-            commentsDirectFetchInFlight = true;
-
-            const requestController = new AbortController();
-            const timeout = window.setTimeout(() => {
-                requestController.abort();
-            }, 4000);
-
-            try {
-                const res = await fetch(
-                    `/api/boards/${boardId}/posts/${data.post.id}/comments?page=1&limit=200`,
-                    { signal: requestController.signal }
-                );
-                if (!res.ok || cancelled || generation !== commentsLoadGeneration) return false;
-
-                const json = await res.json();
-                if (cancelled || generation !== commentsLoadGeneration) return false;
-
-                if (json.success && json.data) {
-                    return applyCommentsResult(json.data.comments || []);
-                }
-
-                return false;
-            } catch {
-                return false;
-            } finally {
-                window.clearTimeout(timeout);
-                if (!cancelled && generation === commentsLoadGeneration) {
-                    commentsDirectFetchInFlight = false;
-                }
-            }
-        };
-
-        // Streaming이 늦을 때는 바로 stale로 보지 말고, 짧은 direct fetch fallback을 먼저 시도한다.
-        if (browser) {
-            fallbackTimer = window.setTimeout(() => {
-                if (!cancelled && generation === commentsLoadGeneration && !commentsLoaded) {
-                    void loadCommentsDirectly();
-                }
-            }, 2500);
+        if (result?.memberLevels && Object.keys(result.memberLevels).length > 0) {
+            memberLevelStore.initFromSSR(result.memberLevels);
         }
-
-        promise
-            .then(
-                (result: {
-                    comments: {
-                        items: FreeComment[];
-                        total: number;
-                        page: number;
-                        limit: number;
-                        total_pages: number;
-                    };
-                    memberLevels?: Record<string, number>;
-                    commentLikeStatuses?: { likedIds: number[]; dislikedIds: number[] };
-                    truthroomCommentMap?: Record<number, number>;
-                }) => {
-                    if (cancelled) return;
-                    comments = result.comments.items || [];
-
-                    // SSR 회원 레벨 적용
-                    if (result.memberLevels && Object.keys(result.memberLevels).length > 0) {
-                        memberLevelStore.initFromSSR(result.memberLevels);
-                    }
-
-                    // SSR 댓글 좋아요 상태 적용
-                    if (result.commentLikeStatuses) {
-                        initialLikedCommentIds = result.commentLikeStatuses.likedIds || [];
-                        initialDislikedCommentIds = result.commentLikeStatuses.dislikedIds || [];
-                    }
-                    // 잠긴 댓글 → 진실의방 매핑
-                    if (result.truthroomCommentMap) {
-                        truthroomCommentMap = result.truthroomCommentMap;
-                    }
-                    applyCommentsResult(result.comments.items || []);
-                }
-            )
-            .catch(async () => {
-                if (cancelled) return;
-                // 스트리밍 실패 시 클라이언트 direct fetch fallback 결과를 먼저 본다.
-                if (await loadCommentsDirectly()) {
-                    return;
-                }
-                commentsError = true;
-                commentsLoaded = true;
-                commentsRecoveryVisible = true;
-                requestStaleClientRecovery('comments-stream-failed');
-            });
-
-        return () => {
-            cancelled = true;
-            if (fallbackTimer !== null) {
-                window.clearTimeout(fallbackTimer);
-            }
-        };
     });
 
     $effect(() => {
@@ -449,7 +356,7 @@
                 }
 
                 if (result.transformedPostContent) {
-                    data.post.content = result.transformedPostContent;
+                    renderedPostContent = result.transformedPostContent;
                 }
 
                 if (result.isScrapped) {
@@ -842,9 +749,18 @@
         return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
     }
 
+    const backToListHref = $derived.by(() => {
+        const pageParam = $page.url.searchParams.get('page');
+        return pageParam ? `/${boardId}?page=${pageParam}` : `/${boardId}`;
+    });
+
     // 목록으로 돌아가기
     function goBack(): void {
-        goto(`/${boardId}`);
+        if (browser) {
+            window.location.assign(backToListHref);
+            return;
+        }
+        goto(backToListHref);
     }
 
     // 수정 페이지로 이동
@@ -870,10 +786,7 @@
 
     // 댓글 레이아웃 (관리자 변경 시 즉시 반영용)
     // eslint-disable-next-line svelte/prefer-writable-derived -- layout must refresh from route data while remaining locally writable
-    let commentLayout = $state(data.board?.display_settings?.comment_layout || 'flat');
-    $effect(() => {
-        commentLayout = data.board?.display_settings?.comment_layout || 'flat';
-    });
+    const commentLayout = $derived(data.board?.display_settings?.comment_layout || 'flat');
 
     // 삭제 예약 취소
     let isCancellingDelete = $state(false);
@@ -1244,7 +1157,7 @@
     }
 
     // SEO 설정
-    const postDescription = $derived(data.post.content.replace(/<[^>]+>/g, '').slice(0, 160));
+    const postDescription = $derived(renderedPostContent.replace(/<[^>]+>/g, '').slice(0, 160));
 
     const seoConfig: SeoConfig = $derived.by(() => {
         const siteUrl = getSiteUrl();
@@ -1762,6 +1675,9 @@
         currentPostId={data.post.id}
         limit={25}
         initialPage={Number($page.url.searchParams.get('page')) || 1}
+        initialPosts={data.recentPostsData?.items || []}
+        initialTotal={data.recentPostsData?.total || 0}
+        initialTotalPages={data.recentPostsData?.total_pages || 1}
         {promotionPosts}
         displaySettings={data.board?.display_settings}
     />
