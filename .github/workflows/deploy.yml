@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       release_mode:
-        description: 'Deploy mode'
+        description: 'Deploy mode. Use canary_only by default. Use full only after dev/canary verification.'
         required: true
         type: choice
         default: canary_only
@@ -14,7 +14,7 @@ on:
           - canary_only
           - full
       image_tag:
-        description: 'Existing image tag to promote (example: sha-xxxxxxxx). Leave empty to build from current commit.'
+        description: 'Existing sha-* image tag to promote without rebuild. Leave empty to build from current commit.'
         required: false
         type: string
 
@@ -29,6 +29,11 @@ env:
 concurrency:
   group: deploy-main-web
   cancel-in-progress: true
+
+run-name: >-
+  Deploy
+  ${{ inputs.image_tag && format('promote {0}', inputs.image_tag) || format('{0}', github.sha) }}
+  (${{ github.event_name == 'workflow_dispatch' && inputs.release_mode || 'full' }})
 
 jobs:
   resolve-release:
@@ -48,6 +53,7 @@ jobs:
         env:
           INPUT_IMAGE_TAG: ${{ inputs.image_tag }}
         run: |
+          echo "Deploy standard: dev -> canary-only -> verify -> same artifact prod"
           if [ -n "${INPUT_IMAGE_TAG}" ]; then
             echo "sha_tag=${INPUT_IMAGE_TAG}" >> "$GITHUB_OUTPUT"
             echo "should_build=false" >> "$GITHUB_OUTPUT"
@@ -384,7 +390,7 @@ jobs:
           if [ -n "${{ needs.resolve-release.outputs.pr_url }}" ]; then
             TEXT="${TEXT}%0APR: ${{ needs.resolve-release.outputs.pr_title }}%0ALink: ${{ needs.resolve-release.outputs.pr_url }}"
           fi
-          TEXT="${TEXT}%0ACanary: https://canary.damoang.net%0AGate Approval: ${RUN_URL}%0A%0ACanary 검증 통과 후 Environment approval 을 하면 production 배포가 진행됩니다."
+          TEXT="${TEXT}%0ACanary: https://canary.damoang.net%0AGate Approval: ${RUN_URL}%0A%0A승인 전 체크:%0A- 상세 500 없음%0A- 목록으로 정상%0A- 댓글 목록/에디터 정상%0A- 뒤로가기/재진입 정상%0A- same artifact 승격 확인"
           BUTTONS='[[{"text":"Canary 열기","url":"https://canary.damoang.net"},{"text":"Gate Approval","url":"'"${RUN_URL}"'"}]]'
           if [ -n "${{ needs.resolve-release.outputs.pr_url }}" ]; then
             BUTTONS='[[{"text":"Canary 열기","url":"https://canary.damoang.net"},{"text":"Gate Approval","url":"'"${RUN_URL}"'"},{"text":"PR 보기","url":"${{ needs.resolve-release.outputs.pr_url }}"}]]'

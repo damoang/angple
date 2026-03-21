@@ -13,6 +13,7 @@
     import Loader2 from '@lucide/svelte/icons/loader-2';
     import AlertCircle from '@lucide/svelte/icons/alert-circle';
     import Download from '@lucide/svelte/icons/download';
+    import { safeRandomUUID } from '$lib/utils/uuid';
 
     interface Props {
         boardId?: string;
@@ -134,7 +135,7 @@
             const error = validateFile(file);
             if (error) {
                 const uploadingFile: UploadingFile = {
-                    id: crypto.randomUUID(),
+                    id: safeRandomUUID(),
                     file,
                     progress: 0,
                     error
@@ -144,7 +145,7 @@
             }
 
             const uploadingFile: UploadingFile = {
-                id: crypto.randomUUID(),
+                id: safeRandomUUID(),
                 file,
                 progress: 0
             };

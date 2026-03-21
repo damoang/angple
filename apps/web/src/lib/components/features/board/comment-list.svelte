@@ -124,21 +124,21 @@
     let dislikedComments = new SvelteSet<string>();
     let commentDislikes = new SvelteMap<string, number>();
     let dislikingComment = $state<string | null>(null);
+    let likedSignature = '';
+    let dislikedSignature = '';
 
     // SSR 스트리밍으로 좋아요/비추천 상태가 나중에 도착할 때 SvelteSet 업데이트
     $effect(() => {
-        if (initialLikedCommentIds.length > 0) {
-            for (const id of initialLikedCommentIds) {
-                likedComments.add(String(id));
-            }
-        }
+        const signature = initialLikedCommentIds.join(',');
+        if (likedSignature === signature) return;
+        likedSignature = signature;
+        likedComments = new SvelteSet(initialLikedCommentIds.map((id) => String(id)));
     });
     $effect(() => {
-        if (initialDislikedCommentIds.length > 0) {
-            for (const id of initialDislikedCommentIds) {
-                dislikedComments.add(String(id));
-            }
-        }
+        const signature = initialDislikedCommentIds.join(',');
+        if (dislikedSignature === signature) return;
+        dislikedSignature = signature;
+        dislikedComments = new SvelteSet(initialDislikedCommentIds.map((id) => String(id)));
     });
 
     // 댓글별 추천자 아바타 캐시

@@ -58,6 +58,7 @@ import type {
 import { browser } from '$app/environment';
 import { ApiRequestError } from './errors.js';
 import { fetchWithRetry, type RetryConfig, DEFAULT_RETRY_CONFIG } from './retry.js';
+import { safeRandomUUID } from '$lib/utils/uuid';
 
 // 서버/클라이언트 환경에 따라 API URL 분기
 // 클라이언트: 상대경로 (nginx 프록시)
@@ -112,10 +113,7 @@ class ApiClient {
     }
 
     private createRandomIdempotencyKey(scope: string): string {
-        if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
-            return `${scope}:${crypto.randomUUID()}`;
-        }
-        return `${scope}:${Date.now()}:${Math.random().toString(36).slice(2, 10)}`;
+        return `${scope}:${safeRandomUUID()}`;
     }
 
     private createIdempotencyKey(scope: string, payload?: unknown): string {

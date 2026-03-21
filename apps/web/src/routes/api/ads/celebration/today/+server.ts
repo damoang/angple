@@ -67,7 +67,8 @@ export const GET: RequestHandler = async () => {
                         m.mb_nick AS target_member_nick,
                         m.mb_image_url AS target_member_image_url
                  FROM celebration_banners cb
-                 LEFT JOIN g5_member m ON cb.target_member_id = m.mb_id
+                 LEFT JOIN g5_member m
+                   ON cb.target_member_id COLLATE utf8mb4_unicode_ci = m.mb_id COLLATE utf8mb4_unicode_ci
                  WHERE cb.is_active = 1
                    AND (cb.display_date = CURDATE()
                         OR (cb.yearly_repeat = 1

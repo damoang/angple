@@ -14,6 +14,7 @@ import { invalidateBoardCache } from '$lib/server/ssr-cache.js';
  */
 
 const BACKEND_URL = env.BACKEND_URL || 'http://localhost:8090';
+const PROXY_TIMEOUT_MS = 4_000;
 
 // 쿠키 도메인: Go 백엔드 cookieDomain()과 일치 (쿠키 충돌 방지)
 const COOKIE_DOMAIN = env.COOKIE_DOMAIN || '';
@@ -277,7 +278,7 @@ async function proxyRequest(
             method,
             headers,
             body,
-            signal: AbortSignal.timeout(10_000),
+            signal: AbortSignal.timeout(PROXY_TIMEOUT_MS),
             // @ts-expect-error - Node.js fetch specific option
             duplex: body instanceof ReadableStream ? 'half' : undefined
         });
@@ -358,13 +359,17 @@ async function proxyRequest(
     } catch (error) {
         console.error('[API Proxy] Error:', error);
 
+        const isTimeout = error instanceof DOMException && error.name === 'TimeoutError';
+
         return new Response(
             JSON.stringify({
-                error: 'Backend 서버에 연결할 수 없습니다.',
+                error: isTimeout
+                    ? `Backend 서버 응답 시간 초과 (${PROXY_TIMEOUT_MS}ms)`
+                    : 'Backend 서버에 연결할 수 없습니다.',
                 details: error instanceof Error ? error.message : 'Unknown error'
             }),
             {
-                status: 502,
+                status: isTimeout ? 504 : 502,
                 headers: { 'Content-Type': 'application/json' }
             }
         );

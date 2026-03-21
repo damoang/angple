@@ -1,6 +1,6 @@
 <script lang="ts">
     import { marked } from 'marked';
-    import DOMPurify from 'isomorphic-dompurify';
+    import { dompurify as DOMPurify } from '$lib/utils/dompurify.js';
     import { onMount, tick } from 'svelte';
     import { applyFilter } from '$lib/hooks/registry';
     import { getHookVersion } from '$lib/hooks/hook-state.svelte';

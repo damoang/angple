@@ -10,8 +10,8 @@ const env = process.env;
 
 const API_ENDPOINT = 'https://api-sg.aliexpress.com/sync';
 const API_METHOD = 'aliexpress.affiliate.link.generate';
-const ALIEXPRESS_SHORT_TIMEOUT_MS = 2000;
-const ALIEXPRESS_API_TIMEOUT_MS = 3000;
+const SHORT_URL_TIMEOUT_MS = 1_500;
+const API_TIMEOUT_MS = 3_000;
 
 /**
  * 알리익스프레스 API 서명 생성
@@ -41,7 +41,7 @@ async function resolveShortUrl(url: string): Promise<string> {
 			const response = await fetch(url, {
 				method: 'HEAD',
 				redirect: 'follow',
-				signal: AbortSignal.timeout(ALIEXPRESS_SHORT_TIMEOUT_MS),
+				signal: AbortSignal.timeout(SHORT_URL_TIMEOUT_MS),
 				headers: {
 					'User-Agent': 'Mozilla/5.0 (compatible; DamoangBot/1.0)'
 				}
@@ -105,7 +105,7 @@ async function callAliExpressApi(originalUrl: string): Promise<string | null> {
 	try {
 		const response = await fetch(API_ENDPOINT, {
 			method: 'POST',
-			signal: AbortSignal.timeout(ALIEXPRESS_API_TIMEOUT_MS),
+			signal: AbortSignal.timeout(API_TIMEOUT_MS),
 			headers: {
 				'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
 			},
@@ -138,7 +138,7 @@ async function callAliExpressApi(originalUrl: string): Promise<string | null> {
 		if (error instanceof Error && error.name === 'TimeoutError') {
 			console.warn('[AliExpress] API timeout:', {
 				originalUrl,
-				timeoutMs: ALIEXPRESS_API_TIMEOUT_MS
+				timeoutMs: API_TIMEOUT_MS
 			});
 			return null;
 		}
