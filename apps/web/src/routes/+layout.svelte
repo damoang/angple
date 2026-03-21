@@ -3,6 +3,7 @@
     import favicon from '$lib/assets/favicon.png';
     import { onMount, untrack } from 'svelte';
     import type { Component } from 'svelte';
+    import { browser } from '$app/environment';
     import { afterNavigate, onNavigate } from '$app/navigation';
     import { navigating } from '$app/state';
     import { page } from '$app/stores';
