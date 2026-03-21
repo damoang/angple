@@ -22,6 +22,7 @@ import { fetchCommentLikeStatuses } from '$lib/server/comment-likes.js';
 
 import { fetchPostLikeStatus } from '$lib/server/post-like-status.js';
 import { fetchTruthroomPostId, fetchTruthroomCommentMap } from '$lib/server/truthroom.js';
+import { enforceCanonicalBoardPath } from '$lib/server/board-slug.js';
 
 /**
  * 게시글 상세 페이지 — Streaming SSR
@@ -38,6 +39,7 @@ export const load: PageServerLoad = async ({
     getClientAddress
 }) => {
     const { boardId, postId } = params;
+    enforceCanonicalBoardPath(boardId, url);
     const currentPage = Number(url.searchParams.get('page')) || 1;
     const recentPostsLimit = 25;
 

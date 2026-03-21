@@ -8,6 +8,7 @@ import { fetchMemberImagesWithTimestamp } from '$lib/server/member-images.js';
 import { fetchWithdrawnMemberIds } from '$lib/server/withdrawn-members.js';
 import { createCache } from '$lib/server/cache.js';
 import { getCachedBoard } from '$lib/server/board-cache.js';
+import { enforceCanonicalBoardPath } from '$lib/server/board-slug.js';
 
 // --- 인메모리 캐시: 비로그인 게시글 목록 (15초 TTL) ---
 interface PostsCacheData {
@@ -30,6 +31,7 @@ const HOT_BOARD_POSTS_TIMEOUT_MS = 2_000;
  */
 export const load: PageServerLoad = async ({ url, params, locals, getClientAddress }) => {
     const boardId = params.boardId;
+    enforceCanonicalBoardPath(boardId, url);
     const page = Number(url.searchParams.get('page')) || 1;
     const limit = Number(url.searchParams.get('limit')) || 30;
 
