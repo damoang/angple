@@ -155,6 +155,11 @@ cd apps/web && pnpm test:e2e             # E2E 테스트
 cd apps/web && pnpm test                 # 전체 테스트
 ```
 
+## 운영 배포
+
+- 운영 웹 배포 표준 절차: [`docs/deploy-runbook.md`](./docs/deploy-runbook.md)
+- 원칙: `dev 확인 -> canary-only -> 핵심 시나리오 확인 -> same artifact prod 승격`
+
 ## 사용 사례
 
 Angple은 다양한 형태의 커뮤니티에 활용할 수 있습니다:
