@@ -222,7 +222,7 @@
                 imgSrc: adsBanner.imageUrl,
                 mbId: authStore.user?.mb_id || null,
                 slotKey: `damoang-banner:${position}`,
-                adUserId: adsBanner.advertiserId || null
+                adUserId: adsBanner.advertiserId ?? undefined
             }}
             class="border-border media-banner block overflow-hidden rounded-xl border transition-opacity hover:opacity-90"
             style:min-height={height}
