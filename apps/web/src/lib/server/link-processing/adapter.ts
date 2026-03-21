@@ -18,21 +18,9 @@ let privateAffiliatePluginPromise: Promise<LinkProcessingPluginRuntime> | null =
 
 async function loadPrivateAffiliatePlugin(): Promise<LinkProcessingPluginRuntime> {
     if (!privateAffiliatePluginPromise) {
-        privateAffiliatePluginPromise = (async () => {
-            try {
-                return (await import(
-                    '$plugins/affiliate-link-private'
-                )) as LinkProcessingPluginRuntime;
-            } catch (installedPluginError) {
-                console.warn(
-                    '[LinkProcessing] installed private plugin import failed, trying premium fallback',
-                    installedPluginError
-                );
-                return (await import(
-                    '$premium-plugins/affiliate-link-private'
-                )) as LinkProcessingPluginRuntime;
-            }
-        })();
+        privateAffiliatePluginPromise = import(
+            '$plugins/affiliate-link-private'
+        ) as Promise<LinkProcessingPluginRuntime>;
     }
 
     const plugin = await privateAffiliatePluginPromise;
