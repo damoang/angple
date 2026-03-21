@@ -1,0 +1,61 @@
+{
+    "id": "affiliate-link-private",
+    "name": "Affiliate Link Private",
+    "version": "0.1.0",
+    "description": "다모앙 전용 비공개 수익 링크 변환 플러그인",
+    "author": {
+        "name": "Damoang",
+        "url": "https://damoang.net"
+    },
+    "license": "UNLICENSED",
+    "category": "plugin",
+    "main": "index.ts",
+    "hooks": [
+        {
+            "name": "post_content",
+            "type": "filter",
+            "callback": "hooks/post-content-filter.ts",
+            "priority": 15
+        },
+        {
+            "name": "comment_content",
+            "type": "filter",
+            "callback": "hooks/comment-content-filter.ts",
+            "priority": 15
+        },
+        {
+            "name": "post_link_field",
+            "type": "filter",
+            "callback": "hooks/post-link-field-filter.ts",
+            "priority": 15
+        },
+        {
+            "name": "comment_link_field",
+            "type": "filter",
+            "callback": "hooks/comment-link-field-filter.ts",
+            "priority": 15
+        }
+    ],
+    "settings": {
+        "enabled": {
+            "label": "활성화",
+            "type": "boolean",
+            "default": true,
+            "description": "비공개 수익 링크 플러그인 활성화 여부"
+        },
+        "showBadge": {
+            "label": "배지 표시",
+            "type": "boolean",
+            "default": true,
+            "description": "본문/댓글 링크에 제휴 배지를 표시할지 여부"
+        },
+        "logDenied": {
+            "label": "거부 로그 기록",
+            "type": "boolean",
+            "default": true,
+            "description": "승인거부 등 변환 실패 사유를 로그에 남길지 여부"
+        }
+    },
+    "tags": ["private", "affiliate", "redirect", "damoang"],
+    "downloads": 0
+}
