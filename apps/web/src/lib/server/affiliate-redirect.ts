@@ -93,3 +93,13 @@ export async function buildAffiliateRedirectUrl(
     const id = await storeAffiliateRedirect(payload);
     return `/go/${id}`;
 }
+
+export async function buildAffiliateRedirectRecord(
+    payload: AffiliateRedirectPayload
+): Promise<{ redirectUrl: string; redirectId: string }> {
+    const redirectId = await storeAffiliateRedirect(payload);
+    return {
+        redirectUrl: `/go/${redirectId}`,
+        redirectId
+    };
+}
