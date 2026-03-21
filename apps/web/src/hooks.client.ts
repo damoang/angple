@@ -57,7 +57,18 @@ const IGNORED_PATTERNS = [
     'window.ethereum',
     'hover` was not found',
     'Failed to update the ServiceWorker',
-    'Failed to update a ServiceWorker'
+    'Failed to update a ServiceWorker',
+    // Legacy PHP 잔재 (브라우저 캐시에서 발생, 사용자 영향 없음)
+    'daReactionContainer',
+    'find variable: $',
+    'jQuery is not defined',
+    'find variable: jQuery',
+    'find variable: get_cookie',
+    'find variable: customuiConfig',
+    'find variable: bootstrap',
+    'window.da.inspect',
+    'window.customUi',
+    'find variable: affiliateDomainData'
 ];
 
 function shouldIgnore(message: string, source?: string, stack?: string): boolean {
