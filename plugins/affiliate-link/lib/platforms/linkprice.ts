@@ -8,6 +8,7 @@ import { PLATFORM_DOMAINS, matchesPlatform, LINKPRICE_MERCHANTS, extractHost } f
 const env = process.env;
 
 const API_ENDPOINT = 'https://api.linkprice.com/ci/service/custom_link_xml';
+const API_TIMEOUT_MS = 2_500;
 
 /**
  * 클릭 ID 생성 (추적용)
@@ -50,6 +51,7 @@ async function callLinkPriceApi(originalUrl: string, context?: ConvertContext): 
 	try {
 		const response = await fetch(apiUrl, {
 			method: 'GET',
+			signal: AbortSignal.timeout(API_TIMEOUT_MS),
 			headers: {
 				'User-Agent': 'Mozilla/5.0 (compatible; DamoangBot/1.0)'
 			}

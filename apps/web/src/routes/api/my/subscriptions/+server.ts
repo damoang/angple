@@ -23,8 +23,9 @@ export const GET: RequestHandler = async ({ cookies }) => {
         const [rows] = await readPool.query<SubBoardRow[]>(
             `SELECT s.bo_table AS board_id, b.bo_subject AS board_name
 			 FROM g5_board_subscribe s
-			 JOIN g5_board b ON s.bo_table = b.bo_table
-			 WHERE s.mb_id = ?
+			 JOIN g5_board b
+			   ON s.bo_table COLLATE utf8mb4_unicode_ci = b.bo_table COLLATE utf8mb4_unicode_ci
+			 WHERE s.mb_id COLLATE utf8mb4_unicode_ci = CAST(? AS CHAR CHARACTER SET utf8mb4) COLLATE utf8mb4_unicode_ci
 			 ORDER BY s.id DESC`,
             [user.mb_id]
         );

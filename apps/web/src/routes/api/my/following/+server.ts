@@ -24,8 +24,9 @@ export const GET: RequestHandler = async ({ cookies }) => {
         const [rows] = await readPool.query<FollowMemberRow[]>(
             `SELECT f.target_id AS mb_id, m.mb_name, m.mb_nick
 			 FROM g5_member_follow f
-			 JOIN g5_member m ON f.target_id = m.mb_id
-			 WHERE f.mb_id = ?
+			 JOIN g5_member m
+			   ON f.target_id COLLATE utf8mb4_unicode_ci = m.mb_id COLLATE utf8mb4_unicode_ci
+			 WHERE f.mb_id COLLATE utf8mb4_unicode_ci = CAST(? AS CHAR CHARACTER SET utf8mb4) COLLATE utf8mb4_unicode_ci
 			 ORDER BY f.created_at DESC`,
             [user.mb_id]
         );
