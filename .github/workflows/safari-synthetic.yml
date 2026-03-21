@@ -48,3 +48,17 @@ jobs:
           name: playwright-report-safari-synthetic
           path: apps/web/playwright-report-synthetic/
           retention-days: 7
+
+  notify:
+    name: Notify Telegram
+    needs: mobile-safari-synthetic
+    if: always() && needs.mobile-safari-synthetic.result == 'failure'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Send Telegram notification
+        run: |
+          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+            -d "chat_id=${{ secrets.TELEGRAM_DEPLOY_CHAT_ID }}" \
+            -d "parse_mode=Markdown" \
+            -d "text=🚨 *Safari Synthetic failure*%0A%0AWorkflow: ${{ github.workflow }}%0ABranch: ${{ github.ref_name }}%0AEvent: ${{ github.event_name }}%0A%0A[Actions](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
