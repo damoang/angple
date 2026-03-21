@@ -1,4 +1,5 @@
 import type { HandleClientError } from '@sveltejs/kit';
+import { replaceState } from '$app/navigation';
 
 const DANTRY_URL = 'https://aplog.damoang.net/api/v1/dantry';
 
@@ -322,7 +323,7 @@ if (typeof window !== 'undefined') {
         currentUrl.searchParams.delete('_v');
         const cleanUrl =
             currentUrl.pathname + (currentUrl.search ? currentUrl.search : '') + currentUrl.hash;
-        window.history.replaceState(window.history.state, '', cleanUrl);
+        replaceState(cleanUrl, window.history.state);
     }
 
     const chunkError = (window as any).__angpleChunkError;
