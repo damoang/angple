@@ -4,6 +4,19 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      release_mode:
+        description: 'Deploy mode'
+        required: true
+        type: choice
+        default: canary_only
+        options:
+          - canary_only
+          - full
+      image_tag:
+        description: 'Existing image tag to promote (example: sha-xxxxxxxx). Leave empty to build from current commit.'
+        required: false
+        type: string
 
 env:
   REGISTRY: ghcr.io
@@ -18,15 +31,59 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build:
-    runs-on: ubuntu-24.04-arm
+  resolve-release:
+    runs-on: ubuntu-latest
     outputs:
-      sha_tag: ${{ steps.tags.outputs.sha_tag }}
-      image_repo: ${{ env.IMAGE_NAME }}
-      image_digest: ${{ steps.build_image.outputs.digest }}
+      sha_tag: ${{ steps.release.outputs.sha_tag }}
+      should_build: ${{ steps.release.outputs.should_build }}
       pr_title: ${{ steps.pr.outputs.pr_title }}
       pr_title_b64: ${{ steps.pr.outputs.pr_title_b64 }}
       pr_url: ${{ steps.pr.outputs.pr_url }}
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - name: Resolve release mode
+        id: release
+        env:
+          INPUT_IMAGE_TAG: ${{ inputs.image_tag }}
+        run: |
+          if [ -n "${INPUT_IMAGE_TAG}" ]; then
+            echo "sha_tag=${INPUT_IMAGE_TAG}" >> "$GITHUB_OUTPUT"
+            echo "should_build=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "sha_tag=sha-${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+            echo "should_build=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Resolve PR info
+        id: pr
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          pr_json=$(gh api "repos/${GITHUB_REPOSITORY}/commits/${GITHUB_SHA}/pulls" -H "Accept: application/vnd.github+json" 2>/dev/null || echo '[]')
+          pr_title=$(printf '%s' "$pr_json" | jq -r '.[0].title // empty')
+          pr_url=$(printf '%s' "$pr_json" | jq -r '.[0].html_url // empty')
+
+          {
+            echo "pr_title<<EOF"
+            printf '%s\n' "$pr_title"
+            echo "EOF"
+            echo "pr_url=${pr_url}"
+            echo "pr_title_b64=$(printf '%s' "$pr_title" | base64 -w0)"
+          } >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: resolve-release
+    if: needs.resolve-release.outputs.should_build == 'true'
+    runs-on: ubuntu-24.04-arm
+    outputs:
+      sha_tag: ${{ needs.resolve-release.outputs.sha_tag }}
+      image_repo: ${{ env.IMAGE_NAME }}
+      image_digest: ${{ steps.build_image.outputs.digest }}
+      pr_title: ${{ needs.resolve-release.outputs.pr_title }}
+      pr_title_b64: ${{ needs.resolve-release.outputs.pr_title_b64 }}
+      pr_url: ${{ needs.resolve-release.outputs.pr_url }}
     permissions:
       contents: read
       packages: write
@@ -70,34 +127,13 @@ jobs:
           VITE_GAM_NETWORK_CODE: '23338387889'
           VITE_GAM_SITE_NAME: 'damoang'
           VITE_S3_URL: ${{ env.MEDIA_CDN_BASE }}
-          ASSET_BASE_URL: ${{ env.STATIC_ASSET_BASE_ROOT }}/sha-${{ github.sha }}
+          ASSET_BASE_URL: ${{ env.STATIC_ASSET_BASE_ROOT }}/${{ needs.resolve-release.outputs.sha_tag }}
         run: |
           pnpm --filter "./packages/*" build
           echo "VITE_GAM_NETWORK_CODE=23338387889" > apps/web/.env
           echo "VITE_GAM_SITE_NAME=damoang" >> apps/web/.env
           echo "VITE_S3_URL=${VITE_S3_URL}" >> apps/web/.env
           pnpm --filter web build
-
-      - name: Set image tags
-        id: tags
-        run: echo "sha_tag=sha-${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
-
-      - name: Resolve PR info
-        id: pr
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          pr_json=$(gh api "repos/${GITHUB_REPOSITORY}/commits/${GITHUB_SHA}/pulls" -H "Accept: application/vnd.github+json" 2>/dev/null || echo '[]')
-          pr_title=$(printf '%s' "$pr_json" | jq -r '.[0].title // empty')
-          pr_url=$(printf '%s' "$pr_json" | jq -r '.[0].html_url // empty')
-
-          {
-            echo "pr_title<<EOF"
-            printf '%s\n' "$pr_title"
-            echo "EOF"
-            echo "pr_url=${pr_url}"
-            echo "pr_title_b64=$(printf '%s' "$pr_title" | base64 -w0)"
-          } >> "$GITHUB_OUTPUT"
 
       - name: Upload immutable assets to R2
         env:
@@ -106,7 +142,7 @@ jobs:
           AWS_DEFAULT_REGION: auto
           R2_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_R2_ACCOUNT_ID }}
           R2_BUCKET: ${{ secrets.CLOUDFLARE_R2_BUCKET }}
-          SHA_TAG: ${{ steps.tags.outputs.sha_tag }}
+          SHA_TAG: ${{ needs.resolve-release.outputs.sha_tag }}
         run: |
           for name in AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY R2_ACCOUNT_ID R2_BUCKET SHA_TAG; do
             if [ -z "${!name}" ]; then
@@ -149,13 +185,14 @@ jobs:
           push: true
           platforms: linux/arm64
           tags: |
-            ${{ env.IMAGE_NAME }}:${{ steps.tags.outputs.sha_tag }}
+            ${{ env.IMAGE_NAME }}:${{ needs.resolve-release.outputs.sha_tag }}
             ${{ env.IMAGE_NAME }}:latest
           cache-from: type=gha,scope=web
           cache-to: type=gha,mode=max,scope=web
 
   deploy-canary:
-    needs: build
+    needs: [resolve-release, build]
+    if: needs.resolve-release.result == 'success' && (needs.build.result == 'success' || needs.build.result == 'skipped')
     runs-on: ubuntu-latest
     environment:
       name: canary
@@ -173,11 +210,11 @@ jobs:
 
       - name: Deploy canary via SSM
         env:
-          IMAGE_TAG: ${{ needs.build.outputs.sha_tag }}
+          IMAGE_TAG: ${{ needs.resolve-release.outputs.sha_tag }}
           APPROVAL_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          ASSET_BASE_URL: ${{ env.STATIC_ASSET_BASE_ROOT }}/${{ needs.build.outputs.sha_tag }}
-          PR_URL: ${{ needs.build.outputs.pr_url }}
-          PR_TITLE_B64: ${{ needs.build.outputs.pr_title_b64 }}
+          ASSET_BASE_URL: ${{ env.STATIC_ASSET_BASE_ROOT }}/${{ needs.resolve-release.outputs.sha_tag }}
+          PR_URL: ${{ needs.resolve-release.outputs.pr_url }}
+          PR_TITLE_B64: ${{ needs.resolve-release.outputs.pr_title_b64 }}
         run: |
           COMMAND_ID=$(aws ssm send-command \
             --instance-ids "i-038a1d1f00798d94b" \
@@ -238,14 +275,15 @@ jobs:
               \"title\": \"🚀 Canary Deploy $STATUS\",
               \"color\": $COLOR,
               \"fields\": [
-                {\"name\": \"Tag\", \"value\": \"\`${{ needs.build.outputs.sha_tag }}\`\"},
+                {\"name\": \"Tag\", \"value\": \"\`${{ needs.resolve-release.outputs.sha_tag }}\`\"},
                 {\"name\": \"URL\", \"value\": \"https://canary.damoang.net\"}
               ]
             }]
           }"
 
   verify-canary:
-    needs: [build, deploy-canary]
+    needs: [resolve-release, build, deploy-canary]
+    if: needs.deploy-canary.result == 'success'
     runs-on: ubuntu-latest
     permissions:
       id-token: write
@@ -339,14 +377,17 @@ jobs:
         if: success()
         run: |
           RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-          TEXT="✅ angple web canary verified%0A%0ARepo: ${{ github.repository }}%0ACommit: ${{ github.sha }}%0ATag: \`${{ needs.build.outputs.sha_tag }}\`%0ADigest: \`${{ needs.build.outputs.image_digest }}\`"
-          if [ -n "${{ needs.build.outputs.pr_url }}" ]; then
-            TEXT="${TEXT}%0APR: ${{ needs.build.outputs.pr_title }}%0ALink: ${{ needs.build.outputs.pr_url }}"
+          TEXT="✅ angple web canary verified%0A%0ARepo: ${{ github.repository }}%0ACommit: ${{ github.sha }}%0ATag: \`${{ needs.resolve-release.outputs.sha_tag }}\`"
+          if [ -n "${{ needs.build.outputs.image_digest }}" ]; then
+            TEXT="${TEXT}%0ADigest: \`${{ needs.build.outputs.image_digest }}\`"
+          fi
+          if [ -n "${{ needs.resolve-release.outputs.pr_url }}" ]; then
+            TEXT="${TEXT}%0APR: ${{ needs.resolve-release.outputs.pr_title }}%0ALink: ${{ needs.resolve-release.outputs.pr_url }}"
           fi
           TEXT="${TEXT}%0ACanary: https://canary.damoang.net%0AGate Approval: ${RUN_URL}%0A%0ACanary 검증 통과 후 Environment approval 을 하면 production 배포가 진행됩니다."
           BUTTONS='[[{"text":"Canary 열기","url":"https://canary.damoang.net"},{"text":"Gate Approval","url":"'"${RUN_URL}"'"}]]'
-          if [ -n "${{ needs.build.outputs.pr_url }}" ]; then
-            BUTTONS='[[{"text":"Canary 열기","url":"https://canary.damoang.net"},{"text":"Gate Approval","url":"'"${RUN_URL}"'"},{"text":"PR 보기","url":"${{ needs.build.outputs.pr_url }}"}]]'
+          if [ -n "${{ needs.resolve-release.outputs.pr_url }}" ]; then
+            BUTTONS='[[{"text":"Canary 열기","url":"https://canary.damoang.net"},{"text":"Gate Approval","url":"'"${RUN_URL}"'"},{"text":"PR 보기","url":"${{ needs.resolve-release.outputs.pr_url }}"}]]'
           fi
           curl -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
             -d "chat_id=${{ secrets.TELEGRAM_DEPLOY_CHAT_ID }}" \
@@ -354,7 +395,8 @@ jobs:
             -d "reply_markup={\"inline_keyboard\":${BUTTONS}}"
 
   deploy-production:
-    needs: [build, deploy-canary, verify-canary]
+    needs: [resolve-release, build, deploy-canary, verify-canary]
+    if: needs.verify-canary.result == 'success' && (github.event_name == 'push' || inputs.release_mode == 'full')
     runs-on: ubuntu-latest
     environment:
       name: production
@@ -372,12 +414,12 @@ jobs:
 
       - name: Deploy production via SSM
         env:
-          IMAGE_TAG: ${{ needs.build.outputs.sha_tag }}
-          ASSET_BASE_URL: ${{ env.STATIC_ASSET_BASE_ROOT }}/${{ needs.build.outputs.sha_tag }}
+          IMAGE_TAG: ${{ needs.resolve-release.outputs.sha_tag }}
+          ASSET_BASE_URL: ${{ env.STATIC_ASSET_BASE_ROOT }}/${{ needs.resolve-release.outputs.sha_tag }}
           DEPLOY_SITE_URL: ${{ env.DEPLOY_SITE_URL }}
           DEPLOY_PURGE_PATHS: ${{ env.DEPLOY_PURGE_PATHS }}
-          PR_URL: ${{ needs.build.outputs.pr_url }}
-          PR_TITLE_B64: ${{ needs.build.outputs.pr_title_b64 }}
+          PR_URL: ${{ needs.resolve-release.outputs.pr_url }}
+          PR_TITLE_B64: ${{ needs.resolve-release.outputs.pr_title_b64 }}
         run: |
           COMMAND_ID=$(aws ssm send-command \
             --instance-ids "i-038a1d1f00798d94b" \
@@ -433,9 +475,12 @@ jobs:
         run: |
           STATUS="${{ job.status }}"
           EMOJI=$([[ "$STATUS" == "success" ]] && echo "🎉" || echo "❌")
-          TEXT="${EMOJI} angple web production ${STATUS}%0A%0ATag: \`${{ needs.build.outputs.sha_tag }}\`%0ADigest: \`${{ needs.build.outputs.image_digest }}\`"
-          if [ -n "${{ needs.build.outputs.pr_url }}" ]; then
-            TEXT="${TEXT}%0APR: ${{ needs.build.outputs.pr_title }}%0ALink: ${{ needs.build.outputs.pr_url }}"
+          TEXT="${EMOJI} angple web production ${STATUS}%0A%0ATag: \`${{ needs.resolve-release.outputs.sha_tag }}\`"
+          if [ -n "${{ needs.build.outputs.image_digest }}" ]; then
+            TEXT="${TEXT}%0ADigest: \`${{ needs.build.outputs.image_digest }}\`"
+          fi
+          if [ -n "${{ needs.resolve-release.outputs.pr_url }}" ]; then
+            TEXT="${TEXT}%0APR: ${{ needs.resolve-release.outputs.pr_title }}%0ALink: ${{ needs.resolve-release.outputs.pr_url }}"
           fi
           TEXT="${TEXT}%0AURL: https://damoang.net"
           curl -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
@@ -443,7 +488,8 @@ jobs:
             -d "text=${TEXT}"
 
   verify-production:
-    needs: [build, deploy-production]
+    needs: [resolve-release, build, deploy-production]
+    if: needs.deploy-production.result == 'success'
     runs-on: ubuntu-latest
     permissions:
       id-token: write
