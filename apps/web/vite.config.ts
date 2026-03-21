@@ -33,7 +33,8 @@ export default defineConfig(({ mode }) => {
             alias: {
                 $themes: path.resolve(__dirname, '../../themes'),
                 $widgets: path.resolve(__dirname, '../../widgets'),
-                '$custom-widgets': path.resolve(__dirname, '../../custom-widgets')
+                '$custom-widgets': path.resolve(__dirname, '../../custom-widgets'),
+                '$premium-plugins': path.resolve(__dirname, '../../../premium/plugins')
             }
         },
         preview: {

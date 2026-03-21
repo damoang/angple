@@ -36,7 +36,8 @@ const config = {
             $widgets: '../../widgets',
             '$custom-widgets': '../../custom-widgets',
             $themes: '../../themes',
-            $plugins: '../../plugins'
+            $plugins: '../../plugins',
+            '$premium-plugins': '../../../premium/plugins'
         },
         csrf: {
             // 자체 CSRF 보호 사용 (세션 기반 double-submit cookie, hooks.server.ts)

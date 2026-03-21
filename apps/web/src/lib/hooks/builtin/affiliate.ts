@@ -1,32 +1,65 @@
-/**
- * 제휴 링크 자동 변환 Hook (서버사이드)
- *
- * post_content / comment_content 필터에 등록하여
- * 본문/댓글의 쇼핑 링크를 수익링크로 자동 변환합니다.
- *
- * 이 hook은 서버사이드에서만 동작하며 (+page.server.ts에서 직접 호출),
- * 클라이언트 hook 시스템과는 별도로 작동합니다.
- */
+import {
+    processCommentContentLinks,
+    processLinkField,
+    processPostContentLinks
+} from '$lib/server/link-processing/adapter';
 
-import { convertAffiliateLinks } from '$plugins/affiliate-link/lib/affiliate-api.server';
-
-/**
- * HTML 콘텐츠 내 제휴 링크 변환
- *
- * @param html - 변환할 HTML 콘텐츠
- * @param context - 게시판/게시글 컨텍스트
- * @returns 수익링크로 변환된 HTML
- */
 export async function transformAffiliateContent(
     html: string,
     context?: { bo_table?: string; wr_id?: number }
 ): Promise<string> {
-    if (!html) return html;
+    return processPostContentLinks(html, {
+        boardId: context?.bo_table,
+        postId: context?.wr_id
+    });
+}
 
-    try {
-        return await convertAffiliateLinks(html, context?.bo_table, context?.wr_id);
-    } catch (error) {
-        console.error('[Affiliate Hook] 변환 오류:', error);
-        return html; // 오류 시 원본 반환
-    }
+export async function transformAffiliateCommentContent(
+    html: string,
+    context?: { bo_table?: string; wr_id?: number; comment_id?: number }
+): Promise<string> {
+    return processCommentContentLinks(html, {
+        boardId: context?.bo_table,
+        postId: context?.wr_id,
+        commentId: context?.comment_id
+    });
+}
+
+export async function transformAffiliateLinkField(input: {
+    url: string;
+    boardId?: string;
+    postId?: number;
+    commentId?: number;
+    source: 'post_link1' | 'post_link2' | 'comment_link1' | 'comment_link2';
+    field: 'link1' | 'link2';
+}): Promise<{
+    href: string;
+    displayUrl: string;
+    decision: {
+        status: 'converted' | 'passthrough' | 'unsupported' | 'denied' | 'error';
+        reasonCode: string;
+        network: string;
+        originalUrl: string;
+        normalizedUrl: string;
+    };
+}> {
+    const result = await processLinkField(input);
+    return {
+        href: result.href,
+        displayUrl: result.displayUrl,
+        decision: {
+            status:
+                result.result.outcome === 'transformed'
+                    ? 'converted'
+                    : result.result.outcome === 'blocked'
+                      ? 'denied'
+                      : result.result.outcome === 'failed'
+                        ? 'error'
+                        : result.result.outcome,
+            reasonCode: result.result.code,
+            network: result.result.provider ?? 'none',
+            originalUrl: result.result.inputUrl,
+            normalizedUrl: result.result.normalizedUrl
+        }
+    };
 }

@@ -69,6 +69,12 @@ export interface FreePost {
 export interface FreeComment {
     id: number | string; // v2 API는 number, v1은 string
     content: string;
+    link1?: string;
+    link2?: string;
+    link1_display?: string;
+    link2_display?: string;
+    link1_affiliate?: boolean;
+    link2_affiliate?: boolean;
     author: string;
     author_id: string;
     author_image?: string; // 프로필 이미지 URL (mb_image_url)

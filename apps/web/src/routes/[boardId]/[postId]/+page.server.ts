@@ -2,9 +2,11 @@ import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types.js';
 import type { FreePost } from '$lib/api/types.js';
 import { fetchPromotionPosts, fetchPromotionBoardPosts } from '$lib/server/ads/promotion.js';
-import { transformAffiliateContent } from '$lib/hooks/builtin/affiliate.js';
-import { sendAffiliateEvents } from '$lib/server/affiliate-events';
-import { convertAffiliateUrl } from '$plugins/affiliate-link/lib/affiliate-api.server';
+import {
+    processCommentContentLinks,
+    processLinkField,
+    processPostContentLinks
+} from '$lib/server/link-processing/adapter.js';
 import { isScraped } from '$lib/server/scrap.js';
 import { backendFetch as bFetch, createAuthHeaders } from '$lib/server/backend-fetch.js';
 import { getCachedBoard } from '$lib/server/board-cache.js';
@@ -48,6 +50,45 @@ export const load: PageServerLoad = async ({
     const headers = createAuthHeaders(locals.accessToken);
 
     try {
+        const applyAffiliateLinkField = async <
+            T extends {
+                link1?: string;
+                link2?: string;
+                link1_display?: string;
+                link2_display?: string | undefined;
+                link1_affiliate?: boolean | string;
+                link2_affiliate?: boolean | string;
+                id?: number;
+            }
+        >(
+            target: T,
+            field: 'link1' | 'link2',
+            source: 'post_link1' | 'post_link2' | 'comment_link1' | 'comment_link2'
+        ): Promise<boolean> => {
+            const displayField = `${field}_display` as const;
+            const affiliateField = `${field}_affiliate` as const;
+            const originalUrl = target[field];
+            if (!originalUrl) return false;
+
+            const result = await processLinkField({
+                url: originalUrl,
+                boardId,
+                postId: Number(postId),
+                commentId: source.startsWith('comment_')
+                    ? Number(target.id) || undefined
+                    : undefined,
+                source,
+                field
+            });
+
+            if (result.href === originalUrl) return false;
+
+            target[displayField] = result.displayUrl;
+            target[field] = result.href;
+            target[affiliateField] = result.result.provider !== null;
+            return true;
+        };
+
         // --- 1단계: 필수 데이터 즉시 await (본문, SEO, 권한 체크) ---
         // board는 공유 캐시(300초 TTL)에서 조회, post/files는 병렬로 fetch
         const [postResult, boardResult, filesResult] = await Promise.allSettled([
@@ -153,75 +194,23 @@ export const load: PageServerLoad = async ({
         // 링크1/링크2는 본문/댓글 Hook를 타지 않으므로 별도 제휴 변환한다.
         if (post.link1 || post.link2) {
             try {
-                const startedAt = Date.now();
                 const [link1Result, link2Result] = await Promise.race([
                     Promise.allSettled([
-                        post.link1
-                            ? convertAffiliateUrl(post.link1, affiliateContext)
-                            : Promise.resolve(null),
-                        post.link2
-                            ? convertAffiliateUrl(post.link2, affiliateContext)
-                            : Promise.resolve(null)
+                        post.link1 ? Promise.resolve(post.link1) : Promise.resolve(null),
+                        post.link2 ? Promise.resolve(post.link2) : Promise.resolve(null)
                     ]),
-                    new Promise<
-                        PromiseSettledResult<Awaited<
-                            ReturnType<typeof convertAffiliateUrl>
-                        > | null>[]
-                    >((resolve) => setTimeout(() => resolve([]), 1500))
+                    new Promise<PromiseSettledResult<string | null>[]>((resolve) =>
+                        setTimeout(() => resolve([]), 1500)
+                    )
                 ]);
 
-                if (
-                    link1Result?.status === 'fulfilled' &&
-                    link1Result.value?.converted &&
-                    link1Result.value.url
-                ) {
-                    // 원본 URL 보존 (표시용) + /go 리다이렉트 URL 생성
-                    const p1 = link1Result.value.platform || '';
-                    const go1 = new URLSearchParams({
-                        url: link1Result.value.url,
-                        p: p1,
-                        ...(boardId ? { b: boardId } : {}),
-                        ...(postId ? { w: postId } : {})
-                    });
-                    post.link1_display = post.link1;
-                    post.link1 = `/go?${go1.toString()}`;
-                    post.link1_affiliate = true;
+                if (link1Result?.status === 'fulfilled') {
+                    await applyAffiliateLinkField(post, 'link1', 'post_link1');
                 }
 
-                if (
-                    link2Result?.status === 'fulfilled' &&
-                    link2Result.value?.converted &&
-                    link2Result.value.url
-                ) {
-                    const p2 = link2Result.value.platform || '';
-                    const go2 = new URLSearchParams({
-                        url: link2Result.value.url,
-                        p: p2,
-                        ...(boardId ? { b: boardId } : {}),
-                        ...(postId ? { w: postId } : {})
-                    });
-                    post.link2_display = post.link2;
-                    post.link2 = `/go?${go2.toString()}`;
-                    post.link2_affiliate = true;
+                if (link2Result?.status === 'fulfilled') {
+                    await applyAffiliateLinkField(post, 'link2', 'post_link2');
                 }
-
-                const directLinkResults = [link1Result, link2Result]
-                    .filter(
-                        (
-                            result
-                        ): result is PromiseFulfilledResult<Awaited<
-                            ReturnType<typeof convertAffiliateUrl>
-                        > | null> => result?.status === 'fulfilled' && Boolean(result.value)
-                    )
-                    .map((result) => result.value)
-                    .filter((result): result is NonNullable<typeof result> => Boolean(result));
-
-                void sendAffiliateEvents(directLinkResults, {
-                    source: 'server_link_field',
-                    bo_table: boardId,
-                    wr_id: Number(postId),
-                    latency_ms: Date.now() - startedAt
-                });
             } catch {
                 // 변환 실패 시 원본 링크 유지
             }
@@ -304,21 +293,52 @@ export const load: PageServerLoad = async ({
                 try {
                     const transformPromises: Promise<void>[] = [];
                     for (const comment of comments.items) {
-                        if (comment.content) {
-                            transformPromises.push(
-                                transformAffiliateContent(comment.content, affiliateContext).then(
-                                    (html) => {
-                                        comment.content = html;
+                        if (!comment.content && !comment.link1 && !comment.link2) continue;
+
+                        transformPromises.push(
+                            (async () => {
+                                if (comment.content) {
+                                    comment.content = await processCommentContentLinks(
+                                        comment.content,
+                                        {
+                                            boardId: affiliateContext.bo_table,
+                                            postId: affiliateContext.wr_id,
+                                            commentId: Number(comment.id)
+                                        }
+                                    );
+                                }
+
+                                if (comment.link1 || comment.link2) {
+                                    const [link1Result, link2Result] = await Promise.allSettled([
+                                        comment.link1
+                                            ? Promise.resolve(comment.link1)
+                                            : Promise.resolve(null),
+                                        comment.link2
+                                            ? Promise.resolve(comment.link2)
+                                            : Promise.resolve(null)
+                                    ]);
+
+                                    if (link1Result.status === 'fulfilled') {
+                                        await applyAffiliateLinkField(
+                                            comment,
+                                            'link1',
+                                            'comment_link1'
+                                        );
                                     }
-                                )
-                            );
-                        }
+
+                                    if (link2Result.status === 'fulfilled') {
+                                        await applyAffiliateLinkField(
+                                            comment,
+                                            'link2',
+                                            'comment_link2'
+                                        );
+                                    }
+                                }
+                            })()
+                        );
                     }
                     if (transformPromises.length > 0) {
-                        await Promise.race([
-                            Promise.allSettled(transformPromises),
-                            new Promise((resolve) => setTimeout(resolve, 3000))
-                        ]);
+                        await Promise.allSettled(transformPromises);
                     }
                 } catch {
                     // 변환 실패 시 원본 유지
@@ -482,12 +502,10 @@ export const load: PageServerLoad = async ({
                     .catch(() => ({ likers: [], total: 0 })),
                 // 본문 제휴 링크 변환 (스트리밍 — 초기 렌더 블로킹 방지)
                 post.content
-                    ? Promise.race([
-                          transformAffiliateContent(post.content, affiliateContext),
-                          new Promise<string>((_, reject) =>
-                              setTimeout(() => reject(new Error('timeout')), 3000)
-                          )
-                      ]).catch(() => null)
+                    ? processPostContentLinks(post.content, {
+                          boardId: affiliateContext.bo_table,
+                          postId: affiliateContext.wr_id
+                      }).catch(() => null)
                     : Promise.resolve(null),
                 // 스크랩 여부 (로그인 시만, 스트리밍 — 초기 렌더 블로킹 방지)
                 locals.user?.id

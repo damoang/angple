@@ -8,6 +8,7 @@ import { PLATFORM_DOMAINS, matchesPlatform, LINKPRICE_MERCHANTS, extractHost } f
 const env = process.env;
 
 const API_ENDPOINT = 'https://api.linkprice.com/ci/service/custom_link_xml';
+const LINKPRICE_TIMEOUT_MS = 2500;
 
 /**
  * 클릭 ID 생성 (추적용)
@@ -35,7 +36,7 @@ function generateClickId(context?: ConvertContext): string {
  * 링크프라이스 API 호출
  */
 async function callLinkPriceApi(originalUrl: string, context?: ConvertContext): Promise<string | null> {
-	const affiliateId = env.AFFI_AFFILIATE_ID;
+	const affiliateId = env.AFFI_LINKPRICE_AFF_ID || env.AFFI_AFFILIATE_ID;
 
 	if (!affiliateId) {
 		console.warn('[LinkPrice] Affiliate ID가 설정되지 않음');
@@ -50,6 +51,7 @@ async function callLinkPriceApi(originalUrl: string, context?: ConvertContext): 
 	try {
 		const response = await fetch(apiUrl, {
 			method: 'GET',
+			signal: AbortSignal.timeout(LINKPRICE_TIMEOUT_MS),
 			headers: {
 				'User-Agent': 'Mozilla/5.0 (compatible; DamoangBot/1.0)'
 			}
@@ -76,8 +78,24 @@ async function callLinkPriceApi(originalUrl: string, context?: ConvertContext): 
 		}
 
 		// 승인거부(-6), 유효하지 않은 URL(-4) 등은 정상 응답 — 로그 생략
+		if (isLinkPriceMerchant(originalUrl)) {
+			console.warn('[LinkPrice] conversion miss', {
+				originalUrl,
+				clickId,
+				result: data?.result,
+				message: data?.message || data?.msg || null
+			});
+		}
 		return null;
 	} catch (error) {
+		if (error instanceof Error && error.name === 'TimeoutError') {
+			console.warn('[LinkPrice] API timeout', {
+				originalUrl,
+				clickId,
+				timeoutMs: LINKPRICE_TIMEOUT_MS
+			});
+			return null;
+		}
 		console.error('[LinkPrice] API 호출 실패:', error);
 		return null;
 	}

@@ -9,6 +9,7 @@ import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import type { RowDataPacket } from 'mysql2';
 import pool from '$lib/server/db';
+import { processCommentContentLinks, processLinkField } from '$lib/server/link-processing/adapter';
 
 interface CommentRow extends RowDataPacket {
     wr_id: number;
@@ -16,6 +17,8 @@ interface CommentRow extends RowDataPacket {
     wr_comment: number;
     wr_comment_reply: string;
     wr_content: string;
+    wr_link1: string;
+    wr_link2: string;
     wr_option: string;
     wr_good: number;
     wr_nogood: number;
@@ -44,6 +47,31 @@ function maskIp(ip: string): string {
         return `${parts[0]}.♡.${parts[2]}.${parts[3]}`;
     }
     return ip;
+}
+
+async function applyAffiliateLinkField(
+    target: Record<string, unknown>,
+    field: 'link1' | 'link2',
+    context: { boardId: string; postId: number; commentId: number }
+): Promise<void> {
+    const originalUrl = target[field];
+    if (typeof originalUrl !== 'string' || !originalUrl) return;
+
+    const displayField = `${field}_display`;
+    const affiliateField = `${field}_affiliate`;
+
+    const result = await processLinkField({
+        url: originalUrl,
+        boardId: context.boardId,
+        postId: context.postId,
+        commentId: context.commentId,
+        source: field === 'link1' ? 'comment_link1' : 'comment_link2',
+        field
+    });
+
+    target[displayField] = result.displayUrl;
+    target[field] = result.href;
+    target[affiliateField] = result.result.provider ?? '';
 }
 
 export const GET: RequestHandler = async ({ params, url, locals }) => {
@@ -78,7 +106,7 @@ export const GET: RequestHandler = async ({ params, url, locals }) => {
         // 댓글 조회 (wr_comment + wr_comment_reply 순으로 정렬 — Go 백엔드와 동일)
         // 삭제된 댓글도 포함하여 조회 (프론트엔드에서 "삭제된 댓글입니다" 표시용)
         const [rows] = await pool.query<CommentRow[]>(
-            `SELECT wr_id, wr_parent, wr_comment, wr_comment_reply, wr_content, wr_option,
+            `SELECT wr_id, wr_parent, wr_comment, wr_comment_reply, wr_content, wr_link1, wr_link2, wr_option,
 			        wr_good, wr_nogood, mb_id, wr_name, wr_ip, wr_datetime,
 			        wr_deleted_at, wr_deleted_by, wr_7
 			 FROM ??
@@ -122,6 +150,8 @@ export const GET: RequestHandler = async ({ params, url, locals }) => {
         const comments = rows.map((row) => ({
             id: row.wr_id,
             content: row.wr_deleted_at ? (isAdmin ? row.wr_content : '') : row.wr_content,
+            link1: row.wr_deleted_at ? (isAdmin ? row.wr_link1 || '' : '') : row.wr_link1 || '',
+            link2: row.wr_deleted_at ? (isAdmin ? row.wr_link2 || '' : '') : row.wr_link2 || '',
             author: row.wr_deleted_at
                 ? isAdmin
                     ? nickMap.get(row.mb_id) || row.wr_name || row.mb_id
@@ -161,6 +191,35 @@ export const GET: RequestHandler = async ({ params, url, locals }) => {
                   }
                 : {})
         }));
+
+        const affiliateContext = { bo_table: safeBoardId, wr_id: safePostId };
+        await Promise.allSettled(
+            comments.map(async (comment) => {
+                if (typeof comment.content === 'string' && comment.content) {
+                    comment.content = await processCommentContentLinks(comment.content, {
+                        boardId: affiliateContext.bo_table,
+                        postId: affiliateContext.wr_id,
+                        commentId: Number(comment.id)
+                    });
+                }
+
+                if (comment.link1) {
+                    await applyAffiliateLinkField(comment, 'link1', {
+                        boardId: safeBoardId,
+                        postId: safePostId,
+                        commentId: Number(comment.id)
+                    });
+                }
+
+                if (comment.link2) {
+                    await applyAffiliateLinkField(comment, 'link2', {
+                        boardId: safeBoardId,
+                        postId: safePostId,
+                        commentId: Number(comment.id)
+                    });
+                }
+            })
+        );
 
         return json({
             success: true,
