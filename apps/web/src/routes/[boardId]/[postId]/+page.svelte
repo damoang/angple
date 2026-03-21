@@ -291,9 +291,14 @@
     let auxiliaryLoaded = $state(false);
     let isScrapped = $state(false);
     let postReportCount = $state<number | string | null>(null);
+    let syncedCommentsPostId = $state<number | null>(null);
 
     $effect(() => {
+        const postId = data.post.id;
+        if (syncedCommentsPostId === postId) return;
+
         const result = data.commentsData;
+        syncedCommentsPostId = postId;
 
         comments = result?.comments.items || [];
         initialLikedCommentIds = result?.commentLikeStatuses?.likedIds || [];
