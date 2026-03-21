@@ -16,6 +16,7 @@
         wr_subject: string;
         wr_datetime: string;
         href: string;
+        deleted_at?: string | null;
     }
 
     interface RecentComment {
@@ -26,6 +27,8 @@
         preview: string;
         wr_datetime: string;
         href: string;
+        deleted_at?: string | null;
+        post_deleted_at?: string | null;
     }
 
     interface Props {
@@ -45,6 +48,16 @@
     let shouldLoad = $state(false);
     let observer: IntersectionObserver | null = null;
     const MOBILE_AD_MAX_HEIGHT = 100;
+
+    function getRecentPostLabel(post: RecentPost): string {
+        return post.deleted_at ? '삭제된 글입니다.' : post.wr_subject || '(제목 없음)';
+    }
+
+    function getRecentCommentLabel(comment: RecentComment): string {
+        if (comment.deleted_at) return '삭제된 댓글입니다.';
+        if (comment.post_deleted_at) return `[삭제된 글] ${comment.preview || '(내용 없음)'}`;
+        return comment.preview || '(내용 없음)';
+    }
 
     function enforceClipHeight(): void {
         if (!clipWrapper || panelHeight <= 20) return;
@@ -216,7 +229,7 @@
                                     href={p.href}
                                     class="text-foreground hover:text-primary block min-w-0 truncate text-xs"
                                 >
-                                    {p.wr_subject || '(제목 없음)'}
+                                    {getRecentPostLabel(p)}
                                 </a>
                             </li>
                         {/each}
@@ -274,7 +287,7 @@
                                         }
                                     }}
                                 >
-                                    {c.preview || '(내용 없음)'}
+                                    {getRecentCommentLabel(c)}
                                 </a>
                             </li>
                         {/each}
@@ -313,7 +326,7 @@
                                                 href={p.href}
                                                 class="text-foreground hover:text-primary block min-w-0 truncate text-xs"
                                             >
-                                                {p.wr_subject || '(제목 없음)'}
+                                                {getRecentPostLabel(p)}
                                             </a>
                                         </li>
                                     {/each}
@@ -334,7 +347,7 @@
                                                 href={c.href}
                                                 class="text-foreground hover:text-primary block min-w-0 truncate text-xs"
                                             >
-                                                {c.preview || '(내용 없음)'}
+                                                {getRecentCommentLabel(c)}
                                             </a>
                                         </li>
                                     {/each}
