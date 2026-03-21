@@ -14,6 +14,32 @@ const GPT_SCRIPT_URL = 'https://securepubads.g.doubleclick.net/tag/js/gpt.js';
 let loadPromise: Promise<GoogleTagInterface> | null = null;
 let isLoaded = false;
 
+function ensureGoogleTag(): GoogleTagInterface | null {
+    if (!browser) return null;
+
+    const current = window.googletag as Partial<GoogleTagInterface> | undefined;
+    const cmd = current?.cmd;
+
+    if (!current || !cmd || typeof cmd.push !== 'function') {
+        window.googletag = {
+            ...(current ?? {}),
+            cmd: []
+        } as GoogleTagInterface;
+    }
+
+    return window.googletag ?? null;
+}
+
+export function queueGoogleTagCommand(callback: () => void): boolean {
+    const googletag = ensureGoogleTag();
+    if (!googletag || typeof googletag.cmd?.push !== 'function') {
+        return false;
+    }
+
+    googletag.cmd.push(callback);
+    return true;
+}
+
 /**
  * GPT 스크립트 로드
  * @returns Promise<GoogleTagInterface> - googletag 객체
@@ -35,13 +61,18 @@ export function loadGPT(): Promise<GoogleTagInterface> {
 
     loadPromise = new Promise((resolve, reject) => {
         // googletag 초기화
-        window.googletag = window.googletag || ({ cmd: [] } as unknown as GoogleTagInterface);
+        const googletag = ensureGoogleTag();
+        if (!googletag) {
+            loadPromise = null;
+            reject(new Error('GPT 초기화 실패'));
+            return;
+        }
 
         // 이미 로드된 스크립트 확인
         const existingScript = document.querySelector(`script[src="${GPT_SCRIPT_URL}"]`);
         if (existingScript) {
             // 스크립트가 있지만 아직 로드 안됨
-            window.googletag!.cmd.push(() => {
+            queueGoogleTagCommand(() => {
                 isLoaded = true;
                 resolve(window.googletag!);
             });
@@ -54,7 +85,7 @@ export function loadGPT(): Promise<GoogleTagInterface> {
         script.async = true;
 
         script.onload = () => {
-            window.googletag!.cmd.push(() => {
+            queueGoogleTagCommand(() => {
                 isLoaded = true;
                 resolve(window.googletag!);
             });
@@ -106,7 +137,7 @@ export function initializeGPT(
         targeting = {}
     } = options;
 
-    window.googletag.cmd.push(() => {
+    queueGoogleTagCommand(() => {
         const pubads = window.googletag!.pubads();
 
         // 빈 슬롯 축소
@@ -147,7 +178,7 @@ export function initializeGPT(
 export function updateThemeTargeting(theme: 'light' | 'dark'): void {
     if (!browser || !window.googletag) return;
 
-    window.googletag.cmd.push(() => {
+    queueGoogleTagCommand(() => {
         window.googletag!.pubads().setTargeting('theme', theme);
     });
 }
@@ -158,7 +189,7 @@ export function updateThemeTargeting(theme: 'light' | 'dark'): void {
 export function refreshAllSlots(): void {
     if (!browser || !window.googletag) return;
 
-    window.googletag.cmd.push(() => {
+    queueGoogleTagCommand(() => {
         window.googletag!.pubads().refresh();
     });
 }

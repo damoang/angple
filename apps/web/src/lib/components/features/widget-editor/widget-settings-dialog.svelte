@@ -6,6 +6,7 @@
     import { widgetLayoutStore, type WidgetConfig } from '$lib/stores/widget-layout.svelte';
     import { AVAILABLE_BOARDS, BOARD_FILTERABLE_WIDGET_TYPES } from '$lib/types/widget-settings';
     import type { TagNavMenu } from '$lib/components/ui/tag-nav';
+    import { safeStructuredClone } from '$lib/utils/clone';
     import Save from '@lucide/svelte/icons/save';
     import Plus from '@lucide/svelte/icons/plus';
     import Trash2 from '@lucide/svelte/icons/trash-2';
@@ -74,7 +75,7 @@
     }
 
     function resetMenus() {
-        tagNavMenus = structuredClone(DEFAULT_TAG_NAV_MENUS);
+        tagNavMenus = safeStructuredClone(DEFAULT_TAG_NAV_MENUS);
     }
 
     // widget이 변경되면 로컬 상태도 업데이트
