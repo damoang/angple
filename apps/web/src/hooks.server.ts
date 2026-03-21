@@ -140,12 +140,40 @@ function isPostDetailPath(pathname: string): boolean {
     return POST_DETAIL_REGEX.test(pathname);
 }
 
-function rewriteImmutableAssetUrls(html: string): string {
-    if (!ASSET_BASE_URL) return html;
-    return html.replace(
-        /(["'(])(?:\.\/|\/)?_app\/immutable\//g,
-        `$1${ASSET_BASE_URL}/_app/immutable/`
-    );
+function escapeRegExp(value: string): string {
+    return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function appendImmutableAssetCacheBust(html: string, cacheBust: string): string {
+    if (!cacheBust) return html;
+
+    const encoded = encodeURIComponent(cacheBust);
+    const patterns = [
+        ASSET_BASE_URL
+            ? new RegExp(
+                  `(${escapeRegExp(ASSET_BASE_URL)}/_app/immutable/[^"'()\\s?]+)(?=(["')]))`,
+                  'g'
+              )
+            : null,
+        /((?:\.\/|\/)?_app\/immutable\/[^"'()\s?]+)(?=(["')]))/g
+    ].filter((pattern): pattern is RegExp => pattern instanceof RegExp);
+
+    let nextHtml = html;
+    for (const pattern of patterns) {
+        nextHtml = nextHtml.replace(pattern, `$1?_v=${encoded}`);
+    }
+    return nextHtml;
+}
+
+function rewriteImmutableAssetUrls(html: string, cacheBust = ''): string {
+    let nextHtml = html;
+    if (ASSET_BASE_URL) {
+        nextHtml = nextHtml.replace(
+            /(["'(])(?:\.\/|\/)?_app\/immutable\//g,
+            `$1${ASSET_BASE_URL}/_app/immutable/`
+        );
+    }
+    return appendImmutableAssetCacheBust(nextHtml, cacheBust);
 }
 
 /**
@@ -562,7 +590,14 @@ export const handle: Handle = async ({ event, resolve }) => {
     const isPostDetail = isPostDetailPath(pathname);
     const hasSessionCookie =
         !!event.cookies.get(SESSION_COOKIE_NAME) || !!event.cookies.get('damoang_jwt');
-    if (!isDataRequest && !hasSessionCookie && (isHomePage || isBoardList || isPostDetail)) {
+    const assetRecoveryBust = event.url.searchParams.get('_v') || '';
+    const bypassSsrCacheForRecovery = assetRecoveryBust.length > 0;
+    if (
+        !isDataRequest &&
+        !hasSessionCookie &&
+        !bypassSsrCacheForRecovery &&
+        (isHomePage || isBoardList || isPostDetail)
+    ) {
         const themeMode = event.cookies.get('angple_theme_mode') || '';
         const density = event.cookies.get('angple_ui_density') || 'balanced';
         const cacheKey = `${isHomePage ? '/' : pathname}:${themeMode}:${density}`;
@@ -696,7 +731,8 @@ export const handle: Handle = async ({ event, resolve }) => {
             const cls = htmlClass ? ` class="${htmlClass}"` : '';
             const sty = ` style="--row-pad-extra:${dPad};--comment-pad-extra:${dPad}"`;
             return rewriteImmutableAssetUrls(
-                html.replace('<html lang="ko">', `<html lang="ko"${cls}${sty}>`)
+                html.replace('<html lang="ko">', `<html lang="ko"${cls}${sty}>`),
+                assetRecoveryBust
             );
         }
     });
