@@ -194,10 +194,17 @@
     // link1이 동영상 URL이면 본문 앞에 삽입 (그누보드 wr_link1 호환)
     // link1_display: 제휴 변환 전 원본 URL (변환된 경우), 없으면 link1 자체가 원본
     const link1Original = $derived(data.post.link1_display || data.post.link1);
+    let renderedPostContent = $state('');
+    let renderedPostContentPostId = 0;
+    $effect(() => {
+        if (renderedPostContentPostId === data.post.id) return;
+        renderedPostContentPostId = data.post.id;
+        renderedPostContent = data.post.content;
+    });
     const postContent = $derived(
         !data.post.deleted_at && link1Original && isEmbeddable(link1Original)
-            ? `<p>${link1Original}</p>\n${data.post.content}`
-            : data.post.content
+            ? `<p>${link1Original}</p>\n${renderedPostContent}`
+            : renderedPostContent
     );
 
     // 소명글 ↔ 이용제한 연동: link1에서 disciplinelog ID 추출
@@ -349,7 +356,7 @@
                 }
 
                 if (result.transformedPostContent) {
-                    data.post.content = result.transformedPostContent;
+                    renderedPostContent = result.transformedPostContent;
                 }
 
                 if (result.isScrapped) {
@@ -779,10 +786,7 @@
 
     // 댓글 레이아웃 (관리자 변경 시 즉시 반영용)
     // eslint-disable-next-line svelte/prefer-writable-derived -- layout must refresh from route data while remaining locally writable
-    let commentLayout = $state(data.board?.display_settings?.comment_layout || 'flat');
-    $effect(() => {
-        commentLayout = data.board?.display_settings?.comment_layout || 'flat';
-    });
+    const commentLayout = $derived(data.board?.display_settings?.comment_layout || 'flat');
 
     // 삭제 예약 취소
     let isCancellingDelete = $state(false);
@@ -1153,7 +1157,7 @@
     }
 
     // SEO 설정
-    const postDescription = $derived(data.post.content.replace(/<[^>]+>/g, '').slice(0, 160));
+    const postDescription = $derived(renderedPostContent.replace(/<[^>]+>/g, '').slice(0, 160));
 
     const seoConfig: SeoConfig = $derived.by(() => {
         const siteUrl = getSiteUrl();
