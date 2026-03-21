@@ -286,14 +286,12 @@
     let commentsAutoRecoveryTriggered = $state(false);
     let commentsDirectFetchAttempted = $state(false);
     let commentsDirectFetchInFlight = $state(false);
-    let commentsLoadGeneration = $state(0);
     let auxiliaryLoaded = $state(false);
     let isScrapped = $state(false);
     let postReportCount = $state<number | string | null>(null);
 
     $effect(() => {
         const result = data.commentsData;
-        const generation = ++commentsLoadGeneration;
 
         comments = result?.comments.items || [];
         initialLikedCommentIds = result?.commentLikeStatuses?.likedIds || [];
@@ -309,8 +307,6 @@
         if (result?.memberLevels && Object.keys(result.memberLevels).length > 0) {
             memberLevelStore.initFromSSR(result.memberLevels);
         }
-
-        void generation;
     });
 
     $effect(() => {
