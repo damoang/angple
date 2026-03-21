@@ -11,7 +11,7 @@ const env = process.env;
 const API_ENDPOINT = 'https://api-sg.aliexpress.com/sync';
 const API_METHOD = 'aliexpress.affiliate.link.generate';
 const SHORT_URL_TIMEOUT_MS = 1_500;
-const API_TIMEOUT_MS = 2_500;
+const API_TIMEOUT_MS = 3_000;
 
 /**
  * 알리익스프레스 API 서명 생성
@@ -128,9 +128,20 @@ async function callAliExpressApi(originalUrl: string): Promise<string | null> {
 			return result;
 		}
 
-		console.warn('[AliExpress] 변환 실패:', data);
+		console.warn('[AliExpress] conversion miss:', {
+			originalUrl,
+			processedUrl,
+			response: data
+		});
 		return null;
 	} catch (error) {
+		if (error instanceof Error && error.name === 'TimeoutError') {
+			console.warn('[AliExpress] API timeout:', {
+				originalUrl,
+				timeoutMs: API_TIMEOUT_MS
+			});
+			return null;
+		}
 		console.error('[AliExpress] API 호출 실패:', error);
 		return null;
 	}

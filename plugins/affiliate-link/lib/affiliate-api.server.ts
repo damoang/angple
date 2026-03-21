@@ -3,9 +3,16 @@
  */
 
 import type { AffiliatePlatform, ConvertContext, ConvertResponse, BatchConvertResponse } from './types';
-import { detectPlatform, isAffiliateUrl, getPlatformNameKo } from './domain-matcher';
+import { detectPlatform, isAffiliateUrl, getPlatformNameKo, normalizeUrl } from './domain-matcher';
 import { findConverter } from './platforms/index';
 import { getFromCache, setSuccessCache, setErrorCache } from './cache.server';
+import { buildAffiliateRedirectUrl } from '$lib/server/affiliate-redirect';
+
+const inFlightConversions = new Map<string, Promise<ConvertResponse>>();
+
+function getInFlightKey(url: string, context?: ConvertContext): string {
+    return `${url}:${context?.bo_table || ''}:${context?.wr_id || ''}:${context?.mb_no || ''}`;
+}
 
 /**
  * 단일 URL 변환
@@ -14,10 +21,29 @@ export async function convertAffiliateUrl(
     url: string,
     context?: ConvertContext
 ): Promise<ConvertResponse> {
+    const inFlightKey = getInFlightKey(url, context);
+    const inFlight = inFlightConversions.get(inFlightKey);
+    if (inFlight) {
+        return inFlight;
+    }
+
+    const conversionPromise = convertAffiliateUrlInternal(url, context).finally(() => {
+        inFlightConversions.delete(inFlightKey);
+    });
+
+    inFlightConversions.set(inFlightKey, conversionPromise);
+    return conversionPromise;
+}
+
+async function convertAffiliateUrlInternal(
+    url: string,
+    context?: ConvertContext
+): Promise<ConvertResponse> {
     const original = url;
+    const candidate = normalizeUrl(url) ?? url;
 
     // 1. 제휴 대상 URL인지 확인
-    const platform = detectPlatform(url);
+    const platform = detectPlatform(candidate);
     if (!platform) {
         return {
             url: original,
@@ -29,8 +55,14 @@ export async function convertAffiliateUrl(
     }
 
     // 2. 캐시 확인
-    const cached = getFromCache(url, context?.bo_table, context?.wr_id);
+    const cached = getFromCache(candidate, context?.bo_table, context?.wr_id);
     if (cached === 'error') {
+        console.warn('[AffiliateAPI] cached error hit', {
+            url: candidate,
+            platform,
+            bo_table: context?.bo_table,
+            wr_id: context?.wr_id
+        });
         return {
             url: original,
             original,
@@ -51,7 +83,7 @@ export async function convertAffiliateUrl(
     }
 
     // 3. 변환기 찾기
-    const converter = findConverter(url);
+    const converter = findConverter(candidate);
     if (!converter) {
         return {
             url: original,
@@ -65,11 +97,11 @@ export async function convertAffiliateUrl(
 
     // 4. 변환 시도
     try {
-        const convertedUrl = await converter.convert(url, context);
+        const convertedUrl = await converter.convert(candidate, context);
 
         if (convertedUrl) {
             // 성공 - 캐시 저장
-            setSuccessCache(url, convertedUrl, platform, context?.bo_table, context?.wr_id);
+            setSuccessCache(candidate, convertedUrl, platform, context?.bo_table, context?.wr_id);
             return {
                 url: convertedUrl,
                 original,
@@ -79,7 +111,13 @@ export async function convertAffiliateUrl(
             };
         } else {
             // 실패 - 에러 캐시 저장
-            setErrorCache(url, context?.bo_table, context?.wr_id);
+            setErrorCache(candidate, context?.bo_table, context?.wr_id);
+            console.warn('[AffiliateAPI] conversion failed', {
+                url: candidate,
+                platform,
+                bo_table: context?.bo_table,
+                wr_id: context?.wr_id
+            });
             return {
                 url: original,
                 original,
@@ -91,7 +129,7 @@ export async function convertAffiliateUrl(
         }
     } catch (error) {
         console.error(`[AffiliateAPI] 변환 오류 (${platform}):`, error);
-        setErrorCache(url, context?.bo_table, context?.wr_id);
+        setErrorCache(candidate, context?.bo_table, context?.wr_id);
         return {
             url: original,
             original,
@@ -166,8 +204,14 @@ export async function convertAffiliateLinksDetailed(
     if (!content) return { content, results: [] };
 
     // <a> 태그에서 URL 추출
-    const linkRegex = /<a\s+([^>]*?)href=["']([^"']+)["']([^>]*)>([^<]*)<\/a>/gi;
-    const matches: Array<{ full: string; beforeHref: string; url: string; afterHref: string; text: string }> =
+    const linkRegex = /<a\s+([^>]*?)href=["']([^"']+)["']([^>]*)>([\s\S]*?)<\/a>/gi;
+    const matches: Array<{
+        full: string;
+        beforeHref: string;
+        url: string;
+        afterHref: string;
+        innerHtml: string;
+    }> =
         [];
 
     let match;
@@ -177,7 +221,7 @@ export async function convertAffiliateLinksDetailed(
             beforeHref: match[1],
             url: match[2],
             afterHref: match[3],
-            text: match[4]
+            innerHtml: match[4]
         });
     }
 
@@ -210,20 +254,19 @@ export async function convertAffiliateLinksDetailed(
         const badge = `<span class="affiliate-badge" title="${platformName} 제휴 링크">💰</span>`;
 
         // /go 리다이렉트 URL 생성 (클릭 로깅 + 감사 추적)
-        const goParams = new URLSearchParams({
+        const goUrl = await buildAffiliateRedirectUrl({
             url: result.url,
-            p: result.platform,
-            ...(boTable ? { b: boTable } : {}),
-            ...(wrId ? { w: String(wrId) } : {})
+            platform: result.platform,
+            ...(boTable ? { board: boTable } : {}),
+            ...(wrId ? { postId: wrId } : {})
         });
-        const goUrl = `/go?${goParams.toString()}`;
 
         // 기존 rel 속성 제거 후 sponsored 포함 재설정
         const cleanedBefore = m.beforeHref.replace(/\s*rel="[^"]*"/gi, '');
         const cleanedAfter = m.afterHref.replace(/\s*rel="[^"]*"/gi, '');
 
         // 새 링크 생성 (rel="nofollow noopener sponsored" + /go 리다이렉트)
-        const newLink = `<a ${cleanedBefore}href="${goUrl}" data-affiliate="${result.platform}" rel="nofollow noopener sponsored" data-original-url="${result.url}"${cleanedAfter}>${m.text}${badge}</a>`;
+        const newLink = `<a ${cleanedBefore}href="${goUrl}" data-affiliate="${result.platform}" rel="nofollow noopener sponsored"${cleanedAfter}>${m.innerHtml}${badge}</a>`;
 
         newContent = newContent.replace(m.full, newLink);
     }

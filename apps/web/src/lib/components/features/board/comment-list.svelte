@@ -7,6 +7,7 @@
     import Lock from '@lucide/svelte/icons/lock';
     import Flag from '@lucide/svelte/icons/flag';
     import Link2 from '@lucide/svelte/icons/link-2';
+    import ExternalLink from '@lucide/svelte/icons/external-link';
     import Pencil from '@lucide/svelte/icons/pencil';
     import Trash2 from '@lucide/svelte/icons/trash-2';
     import RotateCcw from '@lucide/svelte/icons/rotate-ccw';
@@ -214,6 +215,12 @@
             editHandleFiles(input.files);
             input.value = '';
         }
+    }
+
+    function getCommentLinkRel(
+        isAffiliate?: boolean
+    ): 'nofollow noopener sponsored' | 'noopener noreferrer' {
+        return isAffiliate ? 'nofollow noopener sponsored' : 'noopener noreferrer';
     }
 
     // 댓글 리비전 이력 상태 (관리자 전용)
@@ -682,7 +689,6 @@
                         'target',
                         'rel',
                         'data-affiliate',
-                        'data-original-url',
                         'data-original'
                     ]
                 })
@@ -758,7 +764,6 @@
                             'rel',
                             'data-mention',
                             'data-affiliate',
-                            'data-original-url',
                             'data-original'
                         ]
                     })
@@ -1367,6 +1372,38 @@
                                     ssrCommentHtml.get(comment.id) ??
                                     ''}
                             </div>
+                            {#if comment.link1 || comment.link2}
+                                <div class="mt-3 space-y-1.5">
+                                    {#if comment.link1}
+                                        <div class="flex items-center gap-1.5 text-sm">
+                                            <ExternalLink
+                                                class="text-muted-foreground h-3.5 w-3.5 shrink-0"
+                                            />
+                                            <a
+                                                href={comment.link1}
+                                                target="_blank"
+                                                rel={getCommentLinkRel(comment.link1_affiliate)}
+                                                class="text-primary truncate hover:underline"
+                                                >{comment.link1_display || comment.link1}</a
+                                            >
+                                        </div>
+                                    {/if}
+                                    {#if comment.link2}
+                                        <div class="flex items-center gap-1.5 text-sm">
+                                            <ExternalLink
+                                                class="text-muted-foreground h-3.5 w-3.5 shrink-0"
+                                            />
+                                            <a
+                                                href={comment.link2}
+                                                target="_blank"
+                                                rel={getCommentLinkRel(comment.link2_affiliate)}
+                                                class="text-primary truncate hover:underline"
+                                                >{comment.link2_display || comment.link2}</a
+                                            >
+                                        </div>
+                                    {/if}
+                                </div>
+                            {/if}
                         {/if}
 
                         <!-- 댓글 수정이력 (관리자 전용) -->

@@ -36,7 +36,7 @@ function generateClickId(context?: ConvertContext): string {
  * 링크프라이스 API 호출
  */
 async function callLinkPriceApi(originalUrl: string, context?: ConvertContext): Promise<string | null> {
-	const affiliateId = env.AFFI_AFFILIATE_ID;
+	const affiliateId = env.AFFI_LINKPRICE_AFF_ID || env.AFFI_AFFILIATE_ID;
 
 	if (!affiliateId) {
 		console.warn('[LinkPrice] Affiliate ID가 설정되지 않음');
@@ -78,8 +78,24 @@ async function callLinkPriceApi(originalUrl: string, context?: ConvertContext): 
 		}
 
 		// 승인거부(-6), 유효하지 않은 URL(-4) 등은 정상 응답 — 로그 생략
+		if (isLinkPriceMerchant(originalUrl)) {
+			console.warn('[LinkPrice] conversion miss', {
+				originalUrl,
+				clickId,
+				result: data?.result,
+				message: data?.message || data?.msg || null
+			});
+		}
 		return null;
 	} catch (error) {
+		if (error instanceof Error && error.name === 'TimeoutError') {
+			console.warn('[LinkPrice] API timeout', {
+				originalUrl,
+				clickId,
+				timeoutMs: API_TIMEOUT_MS
+			});
+			return null;
+		}
 		console.error('[LinkPrice] API 호출 실패:', error);
 		return null;
 	}

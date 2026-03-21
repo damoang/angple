@@ -117,7 +117,7 @@ export const LINKPRICE_MERCHANTS: string[] = [
     'dyson.co.kr',
     'samsung.com',
     'lg.co.kr',
-    'apple.com',
+    // 'apple.com', // LinkPrice 승인거부 — 제외
     'adobe.com',
     'udemy.com',
     'nordvpn.com',
@@ -126,11 +126,36 @@ export const LINKPRICE_MERCHANTS: string[] = [
 ];
 
 /**
+ * URL 정규화
+ * - 스키마가 없으면 https://를 붙여 파싱 가능하게 만든다.
+ */
+export function normalizeUrl(url: string): string | null {
+    const trimmed = url.trim();
+    if (!trimmed) return null;
+
+    if (/^\/\//.test(trimmed)) {
+        return `https:${trimmed}`;
+    }
+
+    if (/^[a-z][a-z0-9+.-]*:/i.test(trimmed)) {
+        return trimmed;
+    }
+
+    if (/^[a-z0-9.-]+\.[a-z]{2,}(?:[/:?#]|$)/i.test(trimmed)) {
+        return `https://${trimmed}`;
+    }
+
+    return null;
+}
+
+/**
  * URL에서 호스트 추출 (www. 제거)
  */
 export function extractHost(url: string): string | null {
     try {
-        const parsed = new URL(url);
+        const normalized = normalizeUrl(url);
+        if (!normalized) return null;
+        const parsed = new URL(normalized);
         return parsed.hostname.replace(/^www\./, '').toLowerCase();
     } catch {
         return null;

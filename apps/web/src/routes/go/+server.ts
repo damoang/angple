@@ -1,11 +1,9 @@
 /**
- * 어필리에이트 리다이렉트 엔드포인트
+ * 레거시 어필리에이트 리다이렉트 엔드포인트
  * GET /go?url=<encoded_url>&p=<platform>&b=<board>&w=<wr_id>
  *
- * 1. 클릭 이벤트 로깅 (ads 서버로 fire-and-forget)
- * 2. 302 리다이렉트
- *
- * 모든 어필리에이트 클릭에 대한 감사 추적(audit trail) 제공
+ * 신규 생성 경로는 반드시 /go/<id> 를 사용한다.
+ * 이 라우트는 과거 링크 호환만 담당한다.
  */
 
 import type { RequestHandler } from './$types';
@@ -16,26 +14,33 @@ import { logAffiliateClick } from '$lib/server/affiliate-click-log';
 const ALLOWED_PROTOCOLS = ['https:', 'http:'];
 
 export const GET: RequestHandler = async ({ url, locals, getClientAddress, request }) => {
-    const targetUrl = url.searchParams.get('url');
+    const targetUrl = url.searchParams.get('url') || '';
     const platform = url.searchParams.get('p') || '';
     const board = url.searchParams.get('b') || '';
     const postId = parseInt(url.searchParams.get('w') || '0', 10);
 
+    console.warn('[AffiliateRedirect] legacy /go?url fallback used', {
+        platform,
+        board,
+        postId: isNaN(postId) ? 0 : postId,
+        hasTargetUrl: Boolean(targetUrl)
+    });
+
     // URL 검증
     if (!targetUrl) {
-        redirect(302, '/');
+        throw redirect(302, '/');
     }
 
     let parsed: URL;
     try {
         parsed = new URL(targetUrl);
     } catch {
-        redirect(302, '/');
+        throw redirect(302, '/');
     }
 
     // open redirect 방지: https/http만 허용
     if (!ALLOWED_PROTOCOLS.includes(parsed.protocol)) {
-        redirect(302, '/');
+        throw redirect(302, '/');
     }
 
     // 클릭 로깅 (fire-and-forget — 리다이렉트를 블로킹하지 않음)
@@ -57,5 +62,5 @@ export const GET: RequestHandler = async ({ url, locals, getClientAddress, reque
         postId: isNaN(postId) ? 0 : postId
     });
 
-    redirect(302, targetUrl);
+    throw redirect(302, targetUrl);
 };
