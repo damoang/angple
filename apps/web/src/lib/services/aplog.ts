@@ -1,5 +1,6 @@
 // 광고 노출(impression) 및 클릭(click) 추적 서비스
 // PHP 원본: damoang/staging/theme/damoang/layout/basic/js/layout.js
+import { safeRandomUUID } from '$lib/utils/uuid';
 
 const APLOG_BASE = 'https://aplog.damoang.net/api/v1';
 const TAB_ID_KEY = 'aplog:tab-id';
@@ -30,7 +31,7 @@ function setCookie(name: string, value: string, days: number) {
 function getDa(): string {
     let da = getCookie('_da');
     if (!da) {
-        da = crypto.randomUUID();
+        da = safeRandomUUID();
         setCookie('_da', da, 365);
     }
     return da;
@@ -53,11 +54,11 @@ function getTabId(): string {
     try {
         const existing = sessionStorage.getItem(TAB_ID_KEY);
         if (existing) return existing;
-        const next = crypto.randomUUID();
+        const next = safeRandomUUID();
         sessionStorage.setItem(TAB_ID_KEY, next);
         return next;
     } catch {
-        return crypto.randomUUID();
+        return safeRandomUUID();
     }
 }
 
@@ -113,7 +114,7 @@ function adLog(el: Element, imgSrc: string, click?: boolean) {
     params.set('url', cleanUrl());
     params.set('slotKey', slotKey);
     params.set('pageKey', getPageKey());
-    params.set('requestId', crypto.randomUUID());
+    params.set('requestId', safeRandomUUID());
     params.set('dedupeKey', dedupeKey);
 
     if (!click) exposeDedupeKeys.add(dedupeKey);
@@ -226,7 +227,7 @@ export function sendAplogEvent(params: AplogTrackParams, click?: boolean) {
     qs.set('url', cleanUrl());
     qs.set('slotKey', slotKey);
     qs.set('pageKey', getPageKey());
-    qs.set('requestId', crypto.randomUUID());
+    qs.set('requestId', safeRandomUUID());
     qs.set('dedupeKey', dedupeKey);
     const url = APLOG_BASE + endpoint + qs.toString();
 
