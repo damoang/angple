@@ -59,12 +59,9 @@ export function getFromCache(
     const age = (now - cached.timestamp) / 1000;
 
     if ('isError' in cached) {
-        // 에러 캐시
-        if (age > TTL.TEMPORARY_ERROR) {
-            memoryCache.delete(key);
-            return null;
-        }
-        return 'error';
+        // 실패 결과는 재시도를 막지 않도록 즉시 폐기한다.
+        memoryCache.delete(key);
+        return null;
     }
 
     // 성공 캐시
@@ -98,11 +95,10 @@ export function setSuccessCache(
  * 에러 캐시 저장
  */
 export function setErrorCache(url: string, boTable?: string, wrId?: number): void {
-    const key = getCacheKey(url, boTable, wrId);
-    memoryCache.set(key, {
-        isError: true,
-        timestamp: Date.now()
-    });
+    // 실패는 캐시하지 않는다. 일시적인 API 문제로 링크가 오래 원본 상태에 머무르면 안 된다.
+    void url;
+    void boTable;
+    void wrId;
 }
 
 /**
