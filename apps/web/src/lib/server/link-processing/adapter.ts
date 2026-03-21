@@ -6,6 +6,7 @@ import { detectPlatform, normalizeUrl } from '$plugins/affiliate-link/lib/domain
 import { buildAffiliateRedirectRecord } from '$lib/server/affiliate-redirect';
 import { isLinkProcessingPluginEnabled } from './runtime';
 import { logLinkProcessingContentResolution, logLinkProcessingResult } from './observability';
+import type { LinkProcessingPluginDecision, LinkProcessingPluginRuntime } from './plugin-contract';
 import type {
     LinkFieldProcessingInput,
     LinkFieldProcessingOutput,
@@ -13,88 +14,23 @@ import type {
     LinkProcessingResult
 } from './types';
 
-type PrivateAffiliatePlugin = {
-    configureAffiliateRuntime?: (deps: {
-        convertAffiliateUrl: typeof convertAffiliateUrl;
-        convertAffiliateLinksDetailed: typeof convertAffiliateLinksDetailed;
-        normalizeUrl: typeof normalizeUrl;
-        detectPlatform: (url: string) => ReturnType<typeof detectPlatform> | null;
-        buildAffiliateRedirectRecord: (input: {
-            url: string;
-            platform: string;
-            boardId?: string;
-            postId?: number;
-        }) => Promise<{ redirectUrl: string; redirectId?: string }>;
-    }) => void;
-    resolveAffiliateContentDetailed: (
-        html: string,
-        context: {
-            source: 'post_body' | 'comment_body';
-            boardId?: string;
-            postId?: number;
-            commentId?: number;
-        }
-    ) => Promise<{
-        content: string;
-        decisions: Array<{
-            status: 'converted' | 'passthrough' | 'unsupported' | 'denied' | 'error';
-            reasonCode: string;
-            network: string;
-            originalUrl: string;
-            normalizedUrl: string;
-            affiliateUrl?: string;
-            redirectUrl?: string;
-            redirectId?: string;
-            metadata?: Record<string, string | number | boolean | null>;
-        }>;
-        summary: {
-            total: number;
-            converted: number;
-            unsupported: number;
-            denied: number;
-            error: number;
-            passthrough: number;
-        };
-    }>;
-    resolveAffiliateLinkField: (input: {
-        url: string;
-        boardId?: string;
-        postId?: number;
-        commentId?: number;
-        source: 'post_link1' | 'post_link2' | 'comment_link1' | 'comment_link2';
-        field: 'link1' | 'link2';
-    }) => Promise<{
-        href: string;
-        displayUrl: string;
-        decision: {
-            status: 'converted' | 'passthrough' | 'unsupported' | 'denied' | 'error';
-            reasonCode: string;
-            network: string;
-            originalUrl: string;
-            normalizedUrl: string;
-            affiliateUrl?: string;
-            redirectUrl?: string;
-            redirectId?: string;
-            metadata?: Record<string, string | number | boolean | null>;
-        };
-    }>;
-};
+let privateAffiliatePluginPromise: Promise<LinkProcessingPluginRuntime> | null = null;
 
-let privateAffiliatePluginPromise: Promise<PrivateAffiliatePlugin> | null = null;
-
-async function loadPrivateAffiliatePlugin(): Promise<PrivateAffiliatePlugin> {
+async function loadPrivateAffiliatePlugin(): Promise<LinkProcessingPluginRuntime> {
     if (!privateAffiliatePluginPromise) {
         privateAffiliatePluginPromise = (async () => {
             try {
                 return (await import(
-                    '$premium-plugins/affiliate-link-private'
-                )) as PrivateAffiliatePlugin;
-            } catch (premiumError) {
+                    '$plugins/affiliate-link-private'
+                )) as LinkProcessingPluginRuntime;
+            } catch (installedPluginError) {
                 console.warn(
-                    '[LinkProcessing] premium plugin import failed, using installed plugin fallback',
-                    premiumError
+                    '[LinkProcessing] installed private plugin import failed, trying premium fallback',
+                    installedPluginError
                 );
-                return (await import('$plugins/affiliate-link-private')) as PrivateAffiliatePlugin;
+                return (await import(
+                    '$premium-plugins/affiliate-link-private'
+                )) as LinkProcessingPluginRuntime;
             }
         })();
     }
@@ -164,17 +100,7 @@ function linkifyPlainTextUrls(html: string): string {
         .join('');
 }
 
-function mapDecisionToResult(decision: {
-    status: 'converted' | 'passthrough' | 'unsupported' | 'denied' | 'error';
-    reasonCode: string;
-    network: string;
-    originalUrl: string;
-    normalizedUrl: string;
-    affiliateUrl?: string;
-    redirectUrl?: string;
-    redirectId?: string;
-    metadata?: Record<string, string | number | boolean | null>;
-}): LinkProcessingResult {
+function mapDecisionToResult(decision: LinkProcessingPluginDecision): LinkProcessingResult {
     return {
         outcome:
             decision.status === 'converted'
