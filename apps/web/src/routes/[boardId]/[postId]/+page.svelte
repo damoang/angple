@@ -739,9 +739,18 @@
         return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
     }
 
+    const backToListHref = $derived.by(() => {
+        const pageParam = $page.url.searchParams.get('page');
+        return pageParam ? `/${boardId}?page=${pageParam}` : `/${boardId}`;
+    });
+
     // 목록으로 돌아가기
     function goBack(): void {
-        goto(`/${boardId}`);
+        if (browser) {
+            window.location.assign(backToListHref);
+            return;
+        }
+        goto(backToListHref);
     }
 
     // 수정 페이지로 이동
@@ -1659,6 +1668,9 @@
         currentPostId={data.post.id}
         limit={25}
         initialPage={Number($page.url.searchParams.get('page')) || 1}
+        initialPosts={data.recentPostsData?.items || []}
+        initialTotal={data.recentPostsData?.total || 0}
+        initialTotalPages={data.recentPostsData?.total_pages || 1}
         {promotionPosts}
         displaySettings={data.board?.display_settings}
     />

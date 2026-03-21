@@ -43,6 +43,9 @@
         currentPostId: number;
         limit?: number;
         initialPage?: number;
+        initialPosts?: FreePost[];
+        initialTotal?: number;
+        initialTotalPages?: number;
         promotionPosts?: PromotionPost[];
         displaySettings?: BoardDisplaySettings;
     }
@@ -53,6 +56,9 @@
         currentPostId,
         limit = 10,
         initialPage = 1,
+        initialPosts = [],
+        initialTotal = 0,
+        initialTotalPages = 1,
         promotionPosts = [],
         displaySettings
     }: Props = $props();
@@ -72,8 +78,8 @@
         }
         return arr;
     });
-    let posts = $state<FreePost[]>([]);
-    let loading = $state(true);
+    let posts = $state<FreePost[]>(initialPosts);
+    let loading = $state(initialPosts.length === 0);
     let error = $state<string | null>(null);
 
     // 읽은 글 표시 (하이드레이션 깜빡임 방지)
@@ -87,9 +93,9 @@
     });
 
     // 페이지네이션
-    let currentPage = $state(1);
-    let totalPages = $state(1);
-    let totalItems = $state(0);
+    let currentPage = $state(initialPage);
+    let totalPages = $state(initialTotalPages);
+    let totalItems = $state(initialTotal);
 
     // 목록 컨테이너 참조
     let listContainer: HTMLElement | undefined = $state();
@@ -125,6 +131,7 @@
 
     onMount(async () => {
         if (!browser) return;
+        if (posts.length > 0) return;
 
         try {
             const startPage = Math.max(1, initialPage);
