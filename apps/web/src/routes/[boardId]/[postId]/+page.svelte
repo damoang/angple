@@ -280,6 +280,9 @@
     let commentsError = $state(false);
     let commentsRecoveryVisible = $state(false);
     let commentsAutoRecoveryTriggered = $state(false);
+    let commentsDirectFetchAttempted = $state(false);
+    let commentsDirectFetchInFlight = $state(false);
+    let commentsLoadGeneration = $state(0);
     let auxiliaryLoaded = $state(false);
     let isScrapped = $state(false);
     let postReportCount = $state<number | string | null>(null);
@@ -289,7 +292,8 @@
         if (!promise) return;
 
         let cancelled = false;
-        const abortController = new AbortController();
+        const generation = ++commentsLoadGeneration;
+        let fallbackTimer: number | null = null;
 
         // 네비게이션 시 초기화
         comments = [];
@@ -300,6 +304,63 @@
         commentsError = false;
         commentsRecoveryVisible = false;
         commentsAutoRecoveryTriggered = false;
+        commentsDirectFetchAttempted = false;
+        commentsDirectFetchInFlight = false;
+
+        const applyCommentsResult = (items: FreeComment[]) => {
+            if (cancelled || generation !== commentsLoadGeneration) return false;
+            comments = items;
+            commentsLoaded = true;
+            commentsError = false;
+            commentsRecoveryVisible = false;
+            return true;
+        };
+
+        const loadCommentsDirectly = async () => {
+            if (!browser || cancelled || generation !== commentsLoadGeneration) return false;
+            if (commentsLoaded || commentsDirectFetchInFlight) return false;
+
+            commentsDirectFetchAttempted = true;
+            commentsDirectFetchInFlight = true;
+
+            const requestController = new AbortController();
+            const timeout = window.setTimeout(() => {
+                requestController.abort();
+            }, 4000);
+
+            try {
+                const res = await fetch(
+                    `/api/boards/${boardId}/posts/${data.post.id}/comments?page=1&limit=200`,
+                    { signal: requestController.signal }
+                );
+                if (!res.ok || cancelled || generation !== commentsLoadGeneration) return false;
+
+                const json = await res.json();
+                if (cancelled || generation !== commentsLoadGeneration) return false;
+
+                if (json.success && json.data) {
+                    return applyCommentsResult(json.data.comments || []);
+                }
+
+                return false;
+            } catch {
+                return false;
+            } finally {
+                window.clearTimeout(timeout);
+                if (!cancelled && generation === commentsLoadGeneration) {
+                    commentsDirectFetchInFlight = false;
+                }
+            }
+        };
+
+        // Streaming이 늦을 때는 바로 stale로 보지 말고, 짧은 direct fetch fallback을 먼저 시도한다.
+        if (browser) {
+            fallbackTimer = window.setTimeout(() => {
+                if (!cancelled && generation === commentsLoadGeneration && !commentsLoaded) {
+                    void loadCommentsDirectly();
+                }
+            }, 2500);
+        }
 
         promise
             .then(
@@ -332,34 +393,14 @@
                     if (result.truthroomCommentMap) {
                         truthroomCommentMap = result.truthroomCommentMap;
                     }
-                    commentsLoaded = true;
-                    commentsRecoveryVisible = false;
+                    applyCommentsResult(result.comments.items || []);
                 }
             )
             .catch(async () => {
                 if (cancelled) return;
-                // 스트리밍 실패 시 클라이언트에서 댓글만 직접 재시도 (1회)
-                if (browser) {
-                    try {
-                        const res = await fetch(
-                            `/api/boards/${boardId}/posts/${data.post.id}/comments?page=1&limit=200`,
-                            { signal: abortController.signal }
-                        );
-                        if (cancelled) return;
-                        if (res.ok) {
-                            const json = await res.json();
-                            if (cancelled) return;
-                            if (json.success && json.data) {
-                                comments = json.data.comments || [];
-                                commentsLoaded = true;
-                                commentsRecoveryVisible = false;
-                                return;
-                            }
-                        }
-                    } catch {
-                        if (cancelled) return;
-                        // 재시도도 실패
-                    }
+                // 스트리밍 실패 시 클라이언트 direct fetch fallback 결과를 먼저 본다.
+                if (await loadCommentsDirectly()) {
+                    return;
                 }
                 commentsError = true;
                 commentsLoaded = true;
@@ -369,7 +410,9 @@
 
         return () => {
             cancelled = true;
-            abortController.abort();
+            if (fallbackTimer !== null) {
+                window.clearTimeout(fallbackTimer);
+            }
         };
     });
 
@@ -452,10 +495,16 @@
         if (commentsLoaded || commentsError || commentsAutoRecoveryTriggered) return;
 
         const timer = window.setTimeout(() => {
+            if (document.visibilityState === 'hidden' || navigator.onLine === false) {
+                return;
+            }
+            if (!commentsDirectFetchAttempted || commentsDirectFetchInFlight) {
+                return;
+            }
             commentsRecoveryVisible = true;
             commentsAutoRecoveryTriggered = true;
             requestStaleClientRecovery('comments-skeleton-timeout');
-        }, 8000);
+        }, 12000);
 
         return () => {
             window.clearTimeout(timer);
