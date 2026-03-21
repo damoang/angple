@@ -200,12 +200,73 @@ function clearCachesAndReload(): void {
 
 const CHUNK_FORCE_CLEAR_KEY = '__angple_chunk_force_clear__';
 const STALE_CLIENT_RECOVERY_KEY = '__angple_stale_client_recovery__';
+const RECOVERY_PENDING_KEY = '__angple_recovery_pending__';
+
+function markRecoveryPending(type: 'chunk' | 'stale', reason: string, count: number): void {
+    try {
+        sessionStorage.setItem(
+            RECOVERY_PENDING_KEY,
+            JSON.stringify({
+                type,
+                reason,
+                count,
+                ts: Date.now(),
+                from: window.location.href
+            })
+        );
+    } catch {}
+
+    guardedSend({
+        type: `${type}_recovery_started`,
+        message: `${type} recovery started: ${reason}`,
+        reason,
+        count,
+        url: window.location.href,
+        userAgent: navigator.userAgent
+    });
+}
+
+function flushRecoverySuccessIfNeeded(): void {
+    try {
+        const raw = sessionStorage.getItem(RECOVERY_PENDING_KEY);
+        if (!raw) return;
+        const pending = JSON.parse(raw) as {
+            type?: 'chunk' | 'stale';
+            reason?: string;
+            count?: number;
+            ts?: number;
+            from?: string;
+        };
+
+        if (!pending?.type || !pending?.reason) {
+            sessionStorage.removeItem(RECOVERY_PENDING_KEY);
+            return;
+        }
+
+        guardedSend({
+            type: `${pending.type}_recovery_succeeded`,
+            message: `${pending.type} recovery succeeded: ${pending.reason}`,
+            reason: pending.reason,
+            count: pending.count ?? 0,
+            recoveryLatencyMs: pending.ts ? Date.now() - pending.ts : null,
+            recoveredFrom: pending.from || '(unknown)',
+            url: window.location.href,
+            userAgent: navigator.userAgent
+        });
+        sessionStorage.removeItem(RECOVERY_PENDING_KEY);
+    } catch {
+        try {
+            sessionStorage.removeItem(RECOVERY_PENDING_KEY);
+        } catch {}
+    }
+}
 
 function recoverChunkErrorSilently(): boolean {
     try {
         const count = Number(sessionStorage.getItem(CHUNK_FORCE_CLEAR_KEY) || '0');
         if (count >= 1) return false;
         sessionStorage.setItem(CHUNK_FORCE_CLEAR_KEY, String(count + 1));
+        markRecoveryPending('chunk', 'bootstrap-chunk-error', count + 1);
     } catch {
         return false;
     }
@@ -213,11 +274,12 @@ function recoverChunkErrorSilently(): boolean {
     return true;
 }
 
-function recoverStaleClientSilently(): boolean {
+function recoverStaleClientSilently(reason: string): boolean {
     try {
         const count = Number(sessionStorage.getItem(STALE_CLIENT_RECOVERY_KEY) || '0');
         if (count >= 1) return false;
         sessionStorage.setItem(STALE_CLIENT_RECOVERY_KEY, String(count + 1));
+        markRecoveryPending('stale', reason, count + 1);
     } catch {
         return false;
     }
@@ -228,6 +290,10 @@ function recoverStaleClientSilently(): boolean {
 // app.html 통합 핸들러와 연동: exhausted 상태면 상단 배너 대신 1회 강력 새로고침
 if (typeof window !== 'undefined') {
     const currentUrl = new URL(window.location.href);
+    const recoveredWithCacheBust = currentUrl.searchParams.get('_v');
+    if (recoveredWithCacheBust) {
+        flushRecoverySuccessIfNeeded();
+    }
     if (currentUrl.searchParams.has('_v')) {
         currentUrl.searchParams.delete('_v');
         const cleanUrl =
@@ -257,7 +323,7 @@ if (typeof window !== 'undefined') {
             event instanceof CustomEvent && typeof event.detail?.reason === 'string'
                 ? event.detail.reason
                 : 'unknown';
-        if (!recoverStaleClientSilently()) {
+        if (!recoverStaleClientSilently(reason)) {
             guardedSend({
                 type: 'stale_client_recovery_exhausted',
                 message: `Stale client recovery exhausted: ${reason}`,

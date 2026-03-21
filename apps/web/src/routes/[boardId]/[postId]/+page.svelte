@@ -279,6 +279,7 @@
     let commentsLoaded = $state(false);
     let commentsError = $state(false);
     let commentsRecoveryVisible = $state(false);
+    let commentsAutoRecoveryTriggered = $state(false);
     let auxiliaryLoaded = $state(false);
     let isScrapped = $state(false);
     let postReportCount = $state<number | string | null>(null);
@@ -298,6 +299,7 @@
         commentsLoaded = false;
         commentsError = false;
         commentsRecoveryVisible = false;
+        commentsAutoRecoveryTriggered = false;
 
         promise
             .then(
@@ -444,6 +446,21 @@
             new CustomEvent('angple:stale-client-recovery', { detail: { reason } })
         );
     }
+
+    $effect(() => {
+        if (!browser || !canViewSecret) return;
+        if (commentsLoaded || commentsError || commentsAutoRecoveryTriggered) return;
+
+        const timer = window.setTimeout(() => {
+            commentsRecoveryVisible = true;
+            commentsAutoRecoveryTriggered = true;
+            requestStaleClientRecovery('comments-skeleton-timeout');
+        }, 8000);
+
+        return () => {
+            window.clearTimeout(timer);
+        };
+    });
 
     async function refreshComments() {
         if (isRefreshingComments) return;
@@ -1531,6 +1548,10 @@
                             오래된 캐시나 이전 배포 자산이 남아 있으면 댓글과 공감이 비정상 동작할
                             수 있습니다.
                         </p>
+                        <p class="text-muted-foreground text-xs">
+                            다른 사이트 로그인을 풀지 않으려면 브라우저 전체 쿠키 삭제보다 이
+                            사이트만 새로고침 복구하는 편이 안전합니다.
+                        </p>
                         <div class="flex justify-center gap-2">
                             <Button
                                 variant="outline"
@@ -1568,6 +1589,37 @@
                         </button>
                     </div>
                 </CardHeader>
+                {#if commentsRecoveryVisible}
+                    <div class="border-b px-6 pb-4">
+                        <div
+                            class="bg-muted/40 text-muted-foreground flex flex-col gap-2 rounded-lg p-3 text-sm"
+                        >
+                            <p>
+                                댓글 로딩이 오래 걸리면 오래된 브라우저 상태를 자동 복구 중일 수
+                                있습니다.
+                            </p>
+                            <div class="flex gap-2">
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onclick={refreshComments}
+                                    disabled={isRefreshingComments}
+                                >
+                                    댓글 다시 시도
+                                </Button>
+                                <Button
+                                    size="sm"
+                                    onclick={() =>
+                                        requestStaleClientRecovery(
+                                            'comments-loaded-recovery-banner'
+                                        )}
+                                >
+                                    강력 새로고침
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
+                {/if}
                 <CardContent class="space-y-6">
                     <CommentList
                         {comments}
