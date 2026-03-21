@@ -15,5 +15,6 @@ export default defineConfig({
     use: {
         baseURL: `http://localhost:${port}`
     },
-    testDir: 'e2e'
+    testDir: 'e2e',
+    testIgnore: ['synthetic/**']
 });
