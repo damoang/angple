@@ -71,18 +71,7 @@ const IGNORED_PATTERNS = [
     'window.ethereum',
     'hover` was not found',
     'Failed to update the ServiceWorker',
-    'Failed to update a ServiceWorker',
-    // Legacy PHP 잔재 (브라우저 캐시에서 발생, 사용자 영향 없음)
-    'daReactionContainer',
-    'find variable: $',
-    'jQuery is not defined',
-    'find variable: jQuery',
-    'find variable: get_cookie',
-    'find variable: customuiConfig',
-    'find variable: bootstrap',
-    'window.da.inspect',
-    'window.customUi',
-    'find variable: affiliateDomainData'
+    'Failed to update a ServiceWorker'
 ];
 
 function shouldIgnore(message: string, source?: string, stack?: string): boolean {
@@ -374,14 +363,14 @@ export const handleError: HandleClientError = ({ error, event, status }) => {
 
     if (shouldIgnore(err.message, undefined, err.stack)) return;
 
-    // [임시 비활성화] guardedSend({
-    //     type: 'sveltekit_error',
-    //     message: err.message,
-    //     stack: err.stack || '(no stack)',
-    //     url: event.url.href,
-    //     status,
-    //     userAgent: navigator.userAgent
-    // });
+    guardedSend({
+        type: 'sveltekit_error',
+        message: err.message,
+        stack: err.stack || '(no stack)',
+        url: event.url.href,
+        status,
+        userAgent: navigator.userAgent
+    });
 };
 
 // 전역 JS 에러 (SvelteKit 밖에서 발생하는 에러)
@@ -389,16 +378,16 @@ if (typeof window !== 'undefined') {
     window.addEventListener('error', (event) => {
         if (shouldIgnore(event.message, event.filename, event.error?.stack)) return;
 
-        // [임시 비활성화] guardedSend({
-        //     type: event.type,
-        //     message: event.message,
-        //     source: event.filename,
-        //     lineno: event.lineno,
-        //     colno: event.colno,
-        //     stack: event.error?.stack || '(no stack)',
-        //     url: window.location.href,
-        //     userAgent: navigator.userAgent
-        // });
+        guardedSend({
+            type: event.type,
+            message: event.message,
+            source: event.filename,
+            lineno: event.lineno,
+            colno: event.colno,
+            stack: event.error?.stack || '(no stack)',
+            url: window.location.href,
+            userAgent: navigator.userAgent
+        });
     });
 
     window.addEventListener('unhandledrejection', (event) => {
@@ -416,6 +405,6 @@ if (typeof window !== 'undefined') {
         if (stack) {
             payload.stack = stack;
         }
-        // [임시 비활성화] guardedSend(payload);
+        guardedSend(payload);
     });
 }
