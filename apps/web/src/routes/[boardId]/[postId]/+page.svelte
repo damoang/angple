@@ -249,7 +249,11 @@
     // 중고게시판 상태 관리
     // eslint-disable-next-line svelte/prefer-writable-derived -- board navigation resets state from streamed page data
     let marketStatus = $state<MarketStatus>('selling');
+    let syncedMarketStatusPostId: number | null = null;
     $effect(() => {
+        const postId = data.post.id;
+        if (syncedMarketStatusPostId === postId) return;
+        syncedMarketStatusPostId = postId;
         marketStatus = (data.post.extra_2 as MarketStatus) || 'selling';
     });
     let isChangingMarketStatus = $state(false);
@@ -298,7 +302,10 @@
     let auxiliaryLoaded = $state(false);
     let isScrapped = $state(false);
     let postReportCount = $state<number | string | null>(null);
-    let syncedCommentsPostId = $state<number | null>(null);
+    let syncedCommentsPostId: number | null = null;
+    let syncedReactionStatePostId: number | null = null;
+    let trackedPostViewKey = '';
+    let resetDetailUiPostId: number | null = null;
 
     $effect(() => {
         const postId = data.post.id;
@@ -443,10 +450,14 @@
     // 추천/비추천 상태
     // eslint-disable-next-line svelte/prefer-writable-derived -- count is later updated optimistically after user actions
     let likeCount = $state(0);
-    $effect(() => {
-        likeCount = data.post.likes;
-    });
     let dislikeCount = $state(0);
+    $effect(() => {
+        const postId = data.post.id;
+        if (syncedReactionStatePostId === postId) return;
+        syncedReactionStatePostId = postId;
+        likeCount = data.post.likes;
+        dislikeCount = data.post.dislikes ?? 0;
+    });
     let isLiked = $state(false);
     let isDisliked = $state(false);
     let isLiking = $state(false);
@@ -577,6 +588,9 @@
 
     // 읽음 표시 + GA4 이벤트 — SPA 네비게이션(하단 리스트 클릭)에서도 반응
     $effect(() => {
+        const postViewKey = `${boardId}:${data.post.id}`;
+        if (trackedPostViewKey === postViewKey) return;
+        trackedPostViewKey = postViewKey;
         readPostsStore.markAsRead(boardId, data.post.id);
         trackPostView(boardId, data.post.id);
     });
@@ -645,9 +659,9 @@
 
     // 글 이동 시 상태 리셋 (같은 레이아웃 내 다른 글로 이동할 때)
     $effect(() => {
-        // data.post.id 변경 감지
-        void data.post.id;
-        // 추천자 목록 리셋
+        const postId = data.post.id;
+        if (resetDetailUiPostId === postId) return;
+        resetDetailUiPostId = postId;
         likers = [];
         likersTotal = 0;
         showLikersDialog = false;
