@@ -8,7 +8,9 @@ import {
     transformCodeBlocks,
     transformOembed,
     transformEscapedMedia,
-    transformSpoilers
+    transformSpoilers,
+    transformEmoticons,
+    transformBracketImages
 } from '$lib/utils/content-transform';
 
 /**
@@ -56,6 +58,24 @@ export function initContentVideo(): void {
         'post_content',
         (html: unknown) => transformSpoilers(html as string),
         3.5,
+        'core',
+        'filter'
+    );
+
+    // 이모티콘 {emo:filename:size} → <img>
+    registerHook(
+        'post_content',
+        (html: unknown) => transformEmoticons(html as string),
+        1,
+        'core',
+        'filter'
+    );
+
+    // 대괄호 이미지 [https://...jpg] → <img>
+    registerHook(
+        'post_content',
+        (html: unknown) => transformBracketImages(html as string),
+        1.5,
         'core',
         'filter'
     );

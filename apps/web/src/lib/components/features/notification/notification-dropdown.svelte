@@ -88,8 +88,8 @@
         try {
             const summary = await apiClient.getUnreadNotificationCount();
             unreadCount = summary?.total_unread ?? 0;
-        } catch (err) {
-            console.error('Failed to load unread count:', err);
+        } catch {
+            // 401(토큰 만료/도메인 불일치) 등은 조용히 무시
         }
     }
 
