@@ -277,7 +277,7 @@ export const load: PageServerLoad = async ({
         }
 
         // --- 2단계: 핵심/보조 데이터를 분리해 스트리밍 ---
-        const commentsDataPromise = (async () => {
+        const commentsData = await (async () => {
             const commentsResult = await svelteKitFetch(
                 `${url.origin}/api/boards/${boardId}/posts/${postId}/comments?page=1&limit=200`
             ).then(async (res) => {
@@ -578,6 +578,7 @@ export const load: PageServerLoad = async ({
             boardId,
             post,
             board,
+            commentsData,
             isScrapped: false,
             promotionExpired,
             watermark,
@@ -585,7 +586,6 @@ export const load: PageServerLoad = async ({
             originalPostLink,
             /** 스트리밍: Promise로 반환 → 클라이언트에서 $effect로 수신 */
             streamed: {
-                commentsData: commentsDataPromise,
                 auxiliaryData: auxiliaryDataPromise
             }
         };

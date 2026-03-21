@@ -270,13 +270,17 @@
     }
 
     // 댓글/프로모션/리비전 — Streaming SSR (2단계 데이터)
-    let comments = $state<FreeComment[]>([]);
-    let truthroomCommentMap = $state<Record<number, number>>({});
+    let comments = $state<FreeComment[]>(data.commentsData?.comments.items || []);
+    let truthroomCommentMap = $state<Record<number, number>>(data.commentsData?.truthroomCommentMap || {});
     let promotionPosts = $state<PromotionPost[]>([]);
     let revisions = $state<PostRevision[]>([]);
-    let initialLikedCommentIds = $state<number[]>([]);
-    let initialDislikedCommentIds = $state<number[]>([]);
-    let commentsLoaded = $state(false);
+    let initialLikedCommentIds = $state<number[]>(
+        data.commentsData?.commentLikeStatuses?.likedIds || []
+    );
+    let initialDislikedCommentIds = $state<number[]>(
+        data.commentsData?.commentLikeStatuses?.dislikedIds || []
+    );
+    let commentsLoaded = $state(true);
     let commentsError = $state(false);
     let commentsRecoveryVisible = $state(false);
     let commentsAutoRecoveryTriggered = $state(false);
@@ -288,132 +292,25 @@
     let postReportCount = $state<number | string | null>(null);
 
     $effect(() => {
-        const promise = data.streamed?.commentsData;
-        if (!promise) return;
-
-        let cancelled = false;
+        const result = data.commentsData;
         const generation = ++commentsLoadGeneration;
-        let fallbackTimer: number | null = null;
 
-        // 네비게이션 시 초기화
-        comments = [];
-        initialLikedCommentIds = [];
-        initialDislikedCommentIds = [];
-        truthroomCommentMap = {};
-        commentsLoaded = false;
+        comments = result?.comments.items || [];
+        initialLikedCommentIds = result?.commentLikeStatuses?.likedIds || [];
+        initialDislikedCommentIds = result?.commentLikeStatuses?.dislikedIds || [];
+        truthroomCommentMap = result?.truthroomCommentMap || {};
+        commentsLoaded = true;
         commentsError = false;
         commentsRecoveryVisible = false;
         commentsAutoRecoveryTriggered = false;
         commentsDirectFetchAttempted = false;
         commentsDirectFetchInFlight = false;
 
-        const applyCommentsResult = (items: FreeComment[]) => {
-            if (cancelled || generation !== commentsLoadGeneration) return false;
-            comments = items;
-            commentsLoaded = true;
-            commentsError = false;
-            commentsRecoveryVisible = false;
-            return true;
-        };
-
-        const loadCommentsDirectly = async () => {
-            if (!browser || cancelled || generation !== commentsLoadGeneration) return false;
-            if (commentsLoaded || commentsDirectFetchInFlight) return false;
-
-            commentsDirectFetchAttempted = true;
-            commentsDirectFetchInFlight = true;
-
-            const requestController = new AbortController();
-            const timeout = window.setTimeout(() => {
-                requestController.abort();
-            }, 4000);
-
-            try {
-                const res = await fetch(
-                    `/api/boards/${boardId}/posts/${data.post.id}/comments?page=1&limit=200`,
-                    { signal: requestController.signal }
-                );
-                if (!res.ok || cancelled || generation !== commentsLoadGeneration) return false;
-
-                const json = await res.json();
-                if (cancelled || generation !== commentsLoadGeneration) return false;
-
-                if (json.success && json.data) {
-                    return applyCommentsResult(json.data.comments || []);
-                }
-
-                return false;
-            } catch {
-                return false;
-            } finally {
-                window.clearTimeout(timeout);
-                if (!cancelled && generation === commentsLoadGeneration) {
-                    commentsDirectFetchInFlight = false;
-                }
-            }
-        };
-
-        // Streaming이 늦을 때는 바로 stale로 보지 말고, 짧은 direct fetch fallback을 먼저 시도한다.
-        if (browser) {
-            fallbackTimer = window.setTimeout(() => {
-                if (!cancelled && generation === commentsLoadGeneration && !commentsLoaded) {
-                    void loadCommentsDirectly();
-                }
-            }, 2500);
+        if (result?.memberLevels && Object.keys(result.memberLevels).length > 0) {
+            memberLevelStore.initFromSSR(result.memberLevels);
         }
 
-        promise
-            .then(
-                (result: {
-                    comments: {
-                        items: FreeComment[];
-                        total: number;
-                        page: number;
-                        limit: number;
-                        total_pages: number;
-                    };
-                    memberLevels?: Record<string, number>;
-                    commentLikeStatuses?: { likedIds: number[]; dislikedIds: number[] };
-                    truthroomCommentMap?: Record<number, number>;
-                }) => {
-                    if (cancelled) return;
-                    comments = result.comments.items || [];
-
-                    // SSR 회원 레벨 적용
-                    if (result.memberLevels && Object.keys(result.memberLevels).length > 0) {
-                        memberLevelStore.initFromSSR(result.memberLevels);
-                    }
-
-                    // SSR 댓글 좋아요 상태 적용
-                    if (result.commentLikeStatuses) {
-                        initialLikedCommentIds = result.commentLikeStatuses.likedIds || [];
-                        initialDislikedCommentIds = result.commentLikeStatuses.dislikedIds || [];
-                    }
-                    // 잠긴 댓글 → 진실의방 매핑
-                    if (result.truthroomCommentMap) {
-                        truthroomCommentMap = result.truthroomCommentMap;
-                    }
-                    applyCommentsResult(result.comments.items || []);
-                }
-            )
-            .catch(async () => {
-                if (cancelled) return;
-                // 스트리밍 실패 시 클라이언트 direct fetch fallback 결과를 먼저 본다.
-                if (await loadCommentsDirectly()) {
-                    return;
-                }
-                commentsError = true;
-                commentsLoaded = true;
-                commentsRecoveryVisible = true;
-                requestStaleClientRecovery('comments-stream-failed');
-            });
-
-        return () => {
-            cancelled = true;
-            if (fallbackTimer !== null) {
-                window.clearTimeout(fallbackTimer);
-            }
-        };
+        void generation;
     });
 
     $effect(() => {
