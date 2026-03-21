@@ -13,7 +13,7 @@
     import RotateCcw from '@lucide/svelte/icons/rotate-ccw';
     import ChevronDown from '@lucide/svelte/icons/chevron-down';
     import ChevronUp from '@lucide/svelte/icons/chevron-up';
-    import DOMPurify from 'isomorphic-dompurify';
+    import { dompurify as DOMPurify } from '$lib/utils/dompurify.js';
     import { filterUnsafeStyles } from '$lib/utils/safe-css.js';
 
     // CSS 필터 훅 등록

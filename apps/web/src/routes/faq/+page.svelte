@@ -2,7 +2,7 @@
     import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card/index.js';
     import { Badge } from '$lib/components/ui/badge/index.js';
     import * as Accordion from '$lib/components/ui/accordion/index.js';
-    import DOMPurify from 'isomorphic-dompurify';
+    import { dompurify as DOMPurify } from '$lib/utils/dompurify.js';
     import CircleHelp from '@lucide/svelte/icons/circle-help';
     import type { PageData } from './$types.js';
 

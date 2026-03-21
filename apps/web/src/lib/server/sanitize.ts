@@ -3,7 +3,7 @@
  *
  * isomorphic-dompurify 사용 — SSR 환경에서 JSDOM 기반 동작
  */
-import DOMPurify from 'isomorphic-dompurify';
+import { dompurify as DOMPurify } from '$lib/utils/dompurify.js';
 import { filterUnsafeStyles } from '$lib/utils/safe-css.js';
 
 /**

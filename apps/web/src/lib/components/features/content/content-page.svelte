@@ -1,5 +1,5 @@
 <script lang="ts">
-    import DOMPurify from 'isomorphic-dompurify';
+    import { dompurify as DOMPurify } from '$lib/utils/dompurify.js';
     import { SeoHead } from '$lib/seo/index.js';
     import type { SeoConfig } from '$lib/seo/types.js';
 

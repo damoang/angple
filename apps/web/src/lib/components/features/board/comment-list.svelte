@@ -16,7 +16,7 @@
     import { ReportDialog } from '$lib/components/features/report/index.js';
     import AdSlot from '$lib/components/ui/ad-slot/ad-slot.svelte';
     import { widgetLayoutStore } from '$lib/stores/widget-layout.svelte';
-    import DOMPurify from 'dompurify';
+    import { dompurify as DOMPurify } from '$lib/utils/dompurify.js';
     import { applyFilter } from '$lib/hooks/registry';
     import { getHookVersion } from '$lib/hooks/hook-state.svelte';
     import { tick } from 'svelte';
