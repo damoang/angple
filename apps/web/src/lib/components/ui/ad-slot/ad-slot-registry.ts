@@ -1,6 +1,7 @@
 import { browser } from '$app/environment';
 import { GAM_SITE_NAME, type AdConfig } from '$lib/config/ad-config.js';
 import { getCurrentPageContext, setCurrentPageContext, trackEvent } from '$lib/services/ga4.js';
+import { queueGoogleTagCommand } from '$lib/utils/gpt-loader';
 
 const REGISTRY_KEY = '__gam_slot_registry__';
 const DESTROY_DELAY_MS = 1500;
@@ -249,7 +250,7 @@ function scheduleViewableRefresh(state: SlotState, intervalMs = 0) {
     state.refreshTimer = setTimeout(() => {
         state.refreshTimer = null;
 
-        googletag.cmd.push(() => {
+        queueGoogleTagCommand(() => {
             if (
                 !state.slot ||
                 state.empty ||
@@ -292,7 +293,7 @@ function scheduleEmptyRetry(state: SlotState, delayMs: number, maxRetries: numbe
         state.emptyRetryTimer = null;
         state.emptyRetryCount += 1;
 
-        googletag.cmd.push(() => {
+        queueGoogleTagCommand(() => {
             if (!state.slot || state.mountCount <= 0) return;
             googletag.pubads().refresh([state.slot], { changeCorrelator: false });
         });
@@ -352,7 +353,7 @@ export async function attachSlot(options: SlotAttachOptions) {
         state.destroyTimer = null;
     }
 
-    googletag.cmd.push(() => {
+    queueGoogleTagCommand(() => {
         ensureSlotListener();
         ensureServices();
 
@@ -430,7 +431,7 @@ export function detachSlot(slotId: string, onRender: (isEmpty: boolean) => void)
     }
 
     state.destroyTimer = setTimeout(() => {
-        googletag.cmd.push(() => {
+        queueGoogleTagCommand(() => {
             if (!state.slot || state.mountCount > 0) return;
 
             clearSlotTimers(state);
@@ -465,7 +466,7 @@ export function updatePageTargeting(pathname: string) {
 
     const { pageType, boardId } = setCurrentPageContext(pathname);
 
-    googletag.cmd.push(() => {
+    queueGoogleTagCommand(() => {
         googletag.pubads().setTargeting('page_type', pageType);
         googletag.pubads().setTargeting('board_id', boardId);
     });

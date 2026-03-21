@@ -1,11 +1,12 @@
 import { DEFAULT_SITE_SETTINGS, type SiteSettings } from '$lib/types/admin-settings.js';
+import { safeStructuredClone } from '$lib/utils/clone';
 import { toast } from 'svelte-sonner';
 
 /**
  * Admin 사이트 설정 Store (Svelte 5 Rune 모드)
  */
 class AdminSettingsStore {
-    settings = $state<SiteSettings>(structuredClone(DEFAULT_SITE_SETTINGS));
+    settings = $state<SiteSettings>(safeStructuredClone(DEFAULT_SITE_SETTINGS));
     isLoading = $state(false);
     isSaving = $state(false);
 

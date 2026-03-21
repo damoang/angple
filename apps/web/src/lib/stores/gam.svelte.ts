@@ -12,7 +12,8 @@ import {
     loadGPT,
     initializeGPT,
     updateThemeTargeting,
-    addDnsPrefetch
+    addDnsPrefetch,
+    queueGoogleTagCommand
 } from '$lib/utils/gpt-loader';
 
 // GAM 네트워크 코드 (환경변수로 설정)
@@ -76,7 +77,7 @@ export async function initGAM(): Promise<boolean> {
         });
 
         // 슬롯 렌더 이벤트 리스너 등록
-        window.googletag!.cmd.push(() => {
+        queueGoogleTagCommand(() => {
             window.googletag!.pubads().addEventListener('slotRenderEnded', handleSlotRenderEnded);
         });
 
@@ -131,7 +132,7 @@ export function defineSlot(
 
     let slot: GoogleTagSlot | null = null;
 
-    window.googletag.cmd.push(() => {
+    queueGoogleTagCommand(() => {
         const adUnitPath = `/${NETWORK_CODE}/${position}`;
 
         // 슬롯 정의
@@ -169,7 +170,7 @@ export function defineResponsiveSlot(
 
     let slot: GoogleTagSlot | null = null;
 
-    window.googletag.cmd.push(() => {
+    queueGoogleTagCommand(() => {
         const adUnitPath = `/${NETWORK_CODE}/${position}`;
 
         // 모든 사이즈 수집
@@ -221,7 +222,7 @@ export function destroySlot(divId: string): boolean {
     const slot = state.slots.get(divId);
     if (!slot) return false;
 
-    window.googletag.cmd.push(() => {
+    queueGoogleTagCommand(() => {
         window.googletag!.destroySlots([slot]);
         state.slots.delete(divId);
         state.emptySlots.delete(divId);
@@ -240,7 +241,7 @@ export function refreshSlot(divId: string): void {
     const slot = state.slots.get(divId);
     if (!slot) return;
 
-    window.googletag.cmd.push(() => {
+    queueGoogleTagCommand(() => {
         window.googletag!.pubads().refresh([slot], { changeCorrelator: false });
     });
 }
