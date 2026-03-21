@@ -271,7 +271,9 @@
 
     // 댓글/프로모션/리비전 — Streaming SSR (2단계 데이터)
     let comments = $state<FreeComment[]>(data.commentsData?.comments.items || []);
-    let truthroomCommentMap = $state<Record<number, number>>(data.commentsData?.truthroomCommentMap || {});
+    let truthroomCommentMap = $state<Record<number, number>>(
+        data.commentsData?.truthroomCommentMap || {}
+    );
     let promotionPosts = $state<PromotionPost[]>([]);
     let revisions = $state<PostRevision[]>([]);
     let initialLikedCommentIds = $state<number[]>(
