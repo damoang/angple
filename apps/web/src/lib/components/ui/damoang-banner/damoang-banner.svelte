@@ -40,6 +40,7 @@
         altText?: string;
         target?: string;
         trackingId?: string;
+        advertiserId?: string;
     }
 
     // 공유 스토어에서 축하메시지 가져오기
@@ -220,7 +221,8 @@
                 adPos: adsPosition,
                 imgSrc: adsBanner.imageUrl,
                 mbId: authStore.user?.mb_id || null,
-                slotKey: `damoang-banner:${position}`
+                slotKey: `damoang-banner:${position}`,
+                adUserId: adsBanner.advertiserId || null
             }}
             class="border-border media-banner block overflow-hidden rounded-xl border transition-opacity hover:opacity-90"
             style:min-height={height}
