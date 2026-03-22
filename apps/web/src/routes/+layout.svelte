@@ -329,6 +329,9 @@
         });
     });
 
+    // 기본 슬롯은 SSR 시점부터 등록되어야 상단 배너/롤링이 하이드레이션 뒤 늦게 뜨지 않는다.
+    registerDefaultSlots();
+
     onMount(() => {
         // GA4 초기화 (Measurement ID가 설정된 경우에만)
         if (data.ga4MeasurementId) {
@@ -340,9 +343,6 @@
 
         // Built-in Hooks 초기화 (콘텐츠 임베딩, 게시판 필터 등)
         initBuiltinHooks();
-
-        // 슬롯 기본 컴포넌트 등록 (포크 시 slot-defaults.ts 수정으로 커스터마이징)
-        registerDefaultSlots();
 
         // 인증 상태 초기화 (클라이언트 전용 — SSR에서는 data.user를 직접 사용)
         syncAuth(data);

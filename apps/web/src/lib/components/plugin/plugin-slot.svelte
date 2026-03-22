@@ -12,8 +12,8 @@
 
     let { name, ...extraProps }: Props = $props();
 
-    let components = $state<SlotComponent[]>([]);
-    let slotVersion = $state(0);
+    let components = $state<SlotComponent[]>(getComponentsForSlot(name));
+    let slotVersion = $state(getSlotVersion());
     let errors = $state<Map<string, string>>(new Map());
 
     // 슬롯 변경 감지 및 컴포넌트 목록 갱신
