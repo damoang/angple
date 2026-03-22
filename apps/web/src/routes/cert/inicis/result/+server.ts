@@ -3,7 +3,6 @@
  * 이니시스에서 POST로 결과를 전송하면 처리 후 팝업 창에 결과 표시
  */
 import type { RequestHandler } from './$types';
-import { KISA_SEED_CBC } from 'kisa-seed';
 import {
     getSeedIV,
     buildDupinfo,
@@ -12,6 +11,26 @@ import {
     checkDupinfo,
     getCertPendingMbId
 } from '$lib/server/auth/cert-inicis.js';
+
+type SeedCipher = {
+    decrypt: (seedKey: string, seedIV: string, encrypted: string) => string;
+};
+
+let cachedSeedCipher: SeedCipher | null = null;
+
+async function getSeedCipher(): Promise<SeedCipher> {
+    if (cachedSeedCipher) return cachedSeedCipher;
+
+    const moduleName = 'kisa-seed';
+    const mod = (await import(/* @vite-ignore */ moduleName)) as {
+        KISA_SEED_CBC?: SeedCipher;
+    };
+    if (!mod?.KISA_SEED_CBC?.decrypt) {
+        throw new Error('kisa-seed module is missing KISA_SEED_CBC.decrypt');
+    }
+    cachedSeedCipher = mod.KISA_SEED_CBC;
+    return cachedSeedCipher;
+}
 
 export const POST: RequestHandler = async ({ request, locals, cookies }) => {
     const formData = await request.formData();
@@ -69,10 +88,11 @@ export const POST: RequestHandler = async ({ request, locals, cookies }) => {
             return certResultPage(false, '인증 서버 설정 오류입니다.');
         }
         try {
-            userName = KISA_SEED_CBC.decrypt(seedKey, seedIV, userName);
-            userPhone = KISA_SEED_CBC.decrypt(seedKey, seedIV, userPhone);
-            userBirthday = KISA_SEED_CBC.decrypt(seedKey, seedIV, userBirthday);
-            userCi = KISA_SEED_CBC.decrypt(seedKey, seedIV, userCi);
+            const seedCipher = await getSeedCipher();
+            userName = seedCipher.decrypt(seedKey, seedIV, userName);
+            userPhone = seedCipher.decrypt(seedKey, seedIV, userPhone);
+            userBirthday = seedCipher.decrypt(seedKey, seedIV, userBirthday);
+            userCi = seedCipher.decrypt(seedKey, seedIV, userCi);
         } catch (err) {
             console.error('[Cert] SEED decrypt error:', err);
             return certResultPage(false, '인증 데이터 복호화에 실패했습니다.');

@@ -15,7 +15,7 @@
         Users,
         Layers,
         DatabaseZap,
-        BarChart3,
+        ChartBar,
         Megaphone,
         StickyNote,
         TrendingUp,
@@ -91,7 +91,7 @@
         {
             title: '투표 관리',
             href: '/admin/polls',
-            icon: BarChart3
+            icon: ChartBar
         },
         {
             title: '플러그인',

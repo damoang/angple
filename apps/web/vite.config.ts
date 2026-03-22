@@ -30,12 +30,28 @@ export default defineConfig(({ mode }) => {
             noExternal: ['@aws-sdk/**', '@smithy/**']
         },
         resolve: {
-            alias: {
-                $themes: path.resolve(__dirname, '../../themes'),
-                $widgets: path.resolve(__dirname, '../../widgets'),
-                '$custom-widgets': path.resolve(__dirname, '../../custom-widgets'),
-                '$premium-plugins': path.resolve(__dirname, '../../../premium/plugins')
-            }
+            alias: [
+                {
+                    find: /^@lucide\/svelte\/icons\/(.+)$/,
+                    replacement: path.resolve(__dirname, 'node_modules/@lucide/svelte/dist/icons/$1')
+                },
+                {
+                    find: '$themes',
+                    replacement: path.resolve(__dirname, '../../themes')
+                },
+                {
+                    find: '$widgets',
+                    replacement: path.resolve(__dirname, '../../widgets')
+                },
+                {
+                    find: '$custom-widgets',
+                    replacement: path.resolve(__dirname, '../../custom-widgets')
+                },
+                {
+                    find: '$premium-plugins',
+                    replacement: path.resolve(__dirname, '../../../premium/plugins')
+                }
+            ]
         },
         preview: {
             port,

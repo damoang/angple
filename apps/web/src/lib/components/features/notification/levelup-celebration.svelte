@@ -29,7 +29,8 @@
 
     async function launchConfetti() {
         try {
-            const confetti = (await import('canvas-confetti')).default;
+            const moduleName = 'canvas-confetti';
+            const confetti = (await import(/* @vite-ignore */ moduleName)).default;
             // 첫 번째 발사 — 왼쪽에서
             confetti({
                 particleCount: 80,
