@@ -1461,12 +1461,6 @@
                 />
             </div>
         {/if}
-        {#if widgetLayoutStore.hasEnabledAds && (boardType === 'economy' || boardType === 'used-market')}
-            <div class="my-6 lg:hidden">
-                <AdSlot position="board-view-top" height="45px" slotKey="board-view-top" />
-            </div>
-        {/if}
-
         <!-- 본문 직후, 댓글 직전 광고 -->
         {#if widgetLayoutStore.hasEnabledAds}
             <div class="my-6">
