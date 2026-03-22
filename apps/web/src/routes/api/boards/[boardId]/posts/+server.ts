@@ -6,6 +6,7 @@ import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import type { RowDataPacket } from 'mysql2';
 import pool from '$lib/server/db';
+import { isInternalAppRequest } from '$lib/server/internal-api.js';
 
 interface Post {
     wr_id: number;
@@ -15,10 +16,29 @@ interface Post {
     wr_hit: number;
 }
 
-export const GET: RequestHandler = async ({ params, url }) => {
+const INTERNAL_POST_LIST_LIMIT = 50;
+const EXTERNAL_POST_LIST_LIMIT = 10;
+const MAX_EXTERNAL_POST_LIST_OFFSET = 0;
+
+export const GET: RequestHandler = async ({ params, url, request }) => {
     const { boardId } = params;
-    const limit = Math.min(parseInt(url.searchParams.get('limit') || '10'), 50);
-    const offset = parseInt(url.searchParams.get('offset') || '0');
+    const isInternalRequest = isInternalAppRequest(request);
+    const requestedLimit = Math.max(1, parseInt(url.searchParams.get('limit') || '10', 10));
+    const limit = Math.min(
+        requestedLimit,
+        isInternalRequest ? INTERNAL_POST_LIST_LIMIT : EXTERNAL_POST_LIST_LIMIT
+    );
+    const requestedOffset = Math.max(0, parseInt(url.searchParams.get('offset') || '0', 10));
+    const offset = isInternalRequest
+        ? requestedOffset
+        : Math.min(requestedOffset, MAX_EXTERNAL_POST_LIST_OFFSET);
+
+    if (!isInternalRequest && requestedOffset > 0) {
+        return json(
+            { success: false, error: '외부 요청은 첫 페이지 목록만 조회할 수 있습니다.' },
+            { status: 403 }
+        );
+    }
 
     // boardId 유효성 검사 (영문, 숫자, 언더스코어만 허용)
     if (!/^[a-zA-Z0-9_]+$/.test(boardId)) {

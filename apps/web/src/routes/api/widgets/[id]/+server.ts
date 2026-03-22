@@ -17,6 +17,7 @@ import {
     scanWidgets,
     getCustomWidgetsDir
 } from '$lib/server/widgets';
+import { internalOnlyErrorResponse, isInternalAppRequest } from '$lib/server/internal-api.js';
 
 /** 커스텀 위젯 디렉터리 */
 const CUSTOM_WIDGETS_DIR = getCustomWidgetsDir();
@@ -26,7 +27,11 @@ const CUSTOM_WIDGETS_DIR = getCustomWidgetsDir();
  *
  * 특정 위젯 정보 조회
  */
-export const GET: RequestHandler = async ({ params }) => {
+export const GET: RequestHandler = async ({ params, request }) => {
+    if (!isInternalAppRequest(request)) {
+        return internalOnlyErrorResponse();
+    }
+
     try {
         const widgetId = sanitizePath(params.id);
         const manifest = getWidgetManifest(widgetId);
@@ -60,7 +65,11 @@ export const GET: RequestHandler = async ({ params }) => {
  *
  * 위젯 삭제 (커스텀 위젯만)
  */
-export const DELETE: RequestHandler = async ({ params, locals }) => {
+export const DELETE: RequestHandler = async ({ params, locals, request }) => {
+    if (!isInternalAppRequest(request)) {
+        return internalOnlyErrorResponse();
+    }
+
     // 관리자 권한 검증
     if (!locals.user) {
         return json({ success: false, error: '인증이 필요합니다.' }, { status: 401 });

@@ -9,6 +9,7 @@ import type { RequestHandler } from './$types';
 import type { RowDataPacket, ResultSetHeader } from 'mysql2';
 import pool from '$lib/server/db';
 import { getAuthUser } from '$lib/server/auth';
+import { isInternalAppRequest } from '$lib/server/internal-api.js';
 
 interface SubRow extends RowDataPacket {
     id: number;
@@ -19,14 +20,15 @@ interface CountRow extends RowDataPacket {
 }
 
 /** GET: 구독 상태 + 구독자 수 */
-export const GET: RequestHandler = async ({ params, cookies }) => {
+export const GET: RequestHandler = async ({ params, cookies, request }) => {
     const boardId = params.boardId?.replace(/[^a-zA-Z0-9_-]/g, '');
     if (!boardId) {
         return json({ success: false, message: 'boardId가 필요합니다.' }, { status: 400 });
     }
 
     try {
-        const user = await getAuthUser(cookies);
+        const isInternalRequest = isInternalAppRequest(request);
+        const user = isInternalRequest ? await getAuthUser(cookies) : null;
         let isSubscribed = false;
 
         if (user) {
