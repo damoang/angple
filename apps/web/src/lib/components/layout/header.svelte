@@ -11,7 +11,6 @@
     import Smartphone from '@lucide/svelte/icons/smartphone';
     import DefaultLogo from '$lib/assets/logo.svg';
     import AlignJustify from '@lucide/svelte/icons/align-justify';
-    import { resolveActiveLogo } from '$lib/utils/logo-resolver';
     import Mail from '@lucide/svelte/icons/mail';
     import Sidebar from './sidebar.svelte';
     import {
@@ -27,21 +26,29 @@
     import { page } from '$app/stores';
     import { browser } from '$app/environment';
 
-    // 하이브리드 로고: SSR에서 KST 매칭, 클라이언트에서 현지 시간 재매칭
-    const clientLogo = $derived(
-        browser ? resolveActiveLogo($page.data.logoData?.schedules || []) : null
-    );
-
-    function shouldUseDefaultLogo(src: string | null | undefined): boolean {
-        if (!src) return true;
+    function isAnimatedSVGLogo(src: string | null | undefined): boolean {
+        if (!src) return false;
         return /^https?:\/\//i.test(src) && /\.svg(?:$|\?)/i.test(src);
     }
 
-    const logoSrc = $derived.by(() => {
-        const candidate = clientLogo?.logo_url || $page.data.logoData?.active?.logo_url || null;
-        return shouldUseDefaultLogo(candidate) ? DefaultLogo : candidate;
+    const activeLogoSrc = $derived($page.data.logoData?.active?.logo_url || DefaultLogo);
+    const activeLogoAlt = $derived($page.data.logoData?.active?.name || 'Logo');
+    let headerLogoFailed = $state(false);
+    let prefersReducedMotion = $state(false);
+
+    $effect(() => {
+        activeLogoSrc;
+        untrack(() => {
+            headerLogoFailed = false;
+        });
     });
-    const logoAlt = $derived(clientLogo?.name || $page.data.logoData?.active?.name || 'Logo');
+
+    const logoSrc = $derived.by(() => {
+        if (headerLogoFailed) return DefaultLogo;
+        if (prefersReducedMotion && isAnimatedSVGLogo(activeLogoSrc)) return DefaultLogo;
+        return activeLogoSrc;
+    });
+    const logoAlt = $derived(headerLogoFailed ? 'Logo' : activeLogoAlt);
 
     // SSR 안전한 인증 상태:
     // - 서버(SSR): $page.data.user 사용 (요청별 안전, 모듈 레벨 상태 오염 없음)
@@ -143,6 +150,9 @@
 
     // 컴포넌트 마운트 시 스크롤 이벤트 등록 + 테마 복원
     onMount(() => {
+        const reducedMotionMq = window.matchMedia('(prefers-reduced-motion: reduce)');
+        prefersReducedMotion = reducedMotionMq.matches;
+
         // 테마 모드 복원: 쿠키 → localStorage → prefers-color-scheme
         let savedMode: string | null = null;
         const cookieMatch = document.cookie.match(/angple_theme_mode=(\w+)/);
@@ -195,6 +205,10 @@
             }
         }
         darkMq.addEventListener('change', handleSystemThemeChange);
+        function handleReducedMotionChange(e: MediaQueryListEvent) {
+            prefersReducedMotion = e.matches;
+        }
+        reducedMotionMq.addEventListener('change', handleReducedMotionChange);
 
         window.addEventListener('storage', handleStorageChange);
         window.addEventListener('scroll', handleScroll, { passive: true });
@@ -202,6 +216,7 @@
 
         return () => {
             darkMq.removeEventListener('change', handleSystemThemeChange);
+            reducedMotionMq.removeEventListener('change', handleReducedMotionChange);
             window.removeEventListener('storage', handleStorageChange);
             window.removeEventListener('scroll', handleScroll);
             window.removeEventListener('keydown', handleKeydown);
@@ -239,7 +254,14 @@
                     src={logoSrc}
                     alt={logoAlt}
                     class="h-10 w-auto md:h-12"
-                    style="max-height:48px"
+                    width="98"
+                    height="48"
+                    decoding="async"
+                    fetchpriority="high"
+                    style="max-height:48px; max-width:min(45vw, 180px); contain:paint;"
+                    onerror={() => {
+                        headerLogoFailed = true;
+                    }}
                 />
             </a>
         </div>
