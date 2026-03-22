@@ -5,7 +5,8 @@
         "auto-embed",
         "member-memo",
         "interaction-analysis",
-        "da-reaction"
+        "da-reaction",
+        "affiliate-link-private"
     ],
     "plugins": {
         "ad-widget": {
@@ -41,6 +42,12 @@
                 "allowSelfReaction": false
             },
             "activatedAt": "2026-02-09T15:00:00.000Z"
+        },
+        "affiliate-link-private": {
+            "settings": {
+                "enabled": true
+            },
+            "activatedAt": "2026-03-22T13:50:00.000Z"
         }
     },
     "version": "1.0.0"
