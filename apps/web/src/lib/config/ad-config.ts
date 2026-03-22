@@ -268,8 +268,6 @@ export const POSITION_MAP: Record<string, string> = {
     'header-after': 'banner-header-center',
 
     // 본문 영역 — article 유닛 (본문 전용)
-    'board-view-top': 'banner-article',
-    'board-view-top-desktop': 'banner-article',
     'board-content': 'banner-article',
     'board-content-bottom': 'banner-view-content',
     'board-before-comments': 'banner-article',
@@ -319,8 +317,6 @@ export const POSITION_LABELS: Record<string, string> = {
     'index-middle-2': '중간 광고 2',
     'index-bottom': '하단 광고',
     'side-banner': '사이드 배너',
-    'board-view-top': '본문 상단',
-    'board-view-top-desktop': '본문 상단 (PC)',
     'board-head': '게시판 상단',
     'board-list-head': '목록 상단',
     'board-list-bottom': '목록 하단',
