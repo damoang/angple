@@ -186,16 +186,7 @@
 
 <div class="damoang-banner {className}" data-position={position} style:min-height={height}>
     {#if loading}
-        <!-- 로딩 중 플레이스홀더 -->
-        <div
-            class="flex items-center justify-center rounded-lg border-2 border-dashed border-slate-300 bg-slate-50/50 dark:border-slate-600 dark:bg-slate-800/50"
-            style:min-height={height}
-        >
-            <div class="flex flex-col items-center gap-1.5 text-center">
-                <span class="text-xs font-semibold text-slate-500 dark:text-slate-400">AD</span>
-                <span class="text-[10px] text-slate-400 dark:text-slate-500">로딩 중...</span>
-            </div>
-        </div>
+        <div aria-hidden="true" class="pointer-events-none invisible" style:min-height={height}></div>
     {:else if celebrationBanner}
         <!-- 축하메시지 배너 -->
         <a
