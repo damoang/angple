@@ -31,6 +31,7 @@
     let notifications = $state<GroupedNotification[]>([]);
     let unreadCount = $state(0);
     let isLoading = $state(false);
+    let isOpen = $state(false);
 
     function readUnreadCache(): { count: number; fetchedAt: number } | null {
         if (typeof window === 'undefined') return null;
