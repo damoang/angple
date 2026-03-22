@@ -4,7 +4,8 @@
         mount,
         getCelebrations,
         getCurrentIndex,
-        getLink
+        getLink,
+        isReady
     } from '$lib/stores/celebration.svelte';
 
     interface Props {
@@ -15,6 +16,7 @@
 
     let celebrations = $derived(getCelebrations());
     let currentIndex = $derived(getCurrentIndex());
+    let ready = $derived(isReady());
 
     onMount(() => {
         return mount();
@@ -71,7 +73,7 @@
         </div>
         <span class="text-muted-foreground shrink-0 text-xs">&rarr;</span>
     </a>
-{:else}
+{:else if ready}
     <div
         class="border-border bg-background flex h-9 items-center justify-center rounded-lg border px-3 {className}"
     >
@@ -81,4 +83,6 @@
             >축하메시지가 없습니다</a
         >
     </div>
+{:else}
+    <div aria-hidden="true" class="pointer-events-none invisible h-9 {className}"></div>
 {/if}

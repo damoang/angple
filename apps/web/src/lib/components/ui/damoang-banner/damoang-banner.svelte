@@ -9,6 +9,7 @@
         getCelebrations,
         getCurrentIndex,
         getLink as getCelebrationLink,
+        isReady as isCelebrationReady,
         type CelebrationBanner
     } from '$lib/stores/celebration.svelte';
     import { getCachedBanners } from '$lib/stores/app-init.svelte';
@@ -46,10 +47,12 @@
     // 공유 스토어에서 축하메시지 가져오기
     let storeCelebrations = $derived(getCelebrations());
     let storeIndex = $derived(getCurrentIndex());
+    let celebrationReady = $derived(isCelebrationReady());
     // 최종 선택된 배너 (축하메시지 or 프리미엄 광고)
     let adsBanner = $state<AdsBanner | null>(null);
     let loading = $state(true);
     let useFallback = $state(false);
+    let adsResolved = $state(false);
 
     // 텍스트 롤링과 동일한 인덱스 사용 (싱크)
     let celebrationBanner = $derived.by<CelebrationBanner | null>(() => {
@@ -80,6 +83,13 @@
     const adsPosition = $derived(ADS_POSITION_MAP[position] || position);
     const gamPosition = $derived(gamPositionProp || GAM_POSITION_MAP[position] || 'board-head');
 
+    $effect(() => {
+        if (!showCelebration || !adsResolved) return;
+
+        loading = !adsBanner && !celebrationReady;
+        useFallback = !adsBanner && celebrationReady && storeCelebrations.length === 0;
+    });
+
     onMount(() => {
         // 축하메시지: 공유 스토어에서 관리 (CelebrationRolling과 싱크)
         let cleanupCelebration: (() => void) | undefined;
@@ -103,27 +113,18 @@
             if (ads.length > 0) {
                 adsBanner = ads[Math.floor(Math.random() * ads.length)];
             }
-            // celebrationBanner는 $derived로 스토어에서 자동 반영
-            loading = false;
-            // 축하메시지도 광고도 없으면 GAM 폴백
-            // 스토어가 아직 안 불렸을 수 있으므로 짧게 대기 후 체크
-            if (!adsBanner && storeCelebrations.length === 0) {
-                // 100ms만 대기 후 재확인 (기존 500ms → 빠른 폴백)
-                await new Promise((r) => setTimeout(r, 100));
-                if (!adsBanner && storeCelebrations.length === 0) {
-                    useFallback = true;
-                }
-            }
+            adsResolved = true;
+            loading = !adsBanner && !celebrationReady;
+            useFallback = !adsBanner && celebrationReady && storeCelebrations.length === 0;
         } else {
             // 게시판 페이지: 프리미엄 + 일반 배너만 (축하메시지 없음)
             const ads = await fetchAdsBanners();
             if (ads.length > 0) {
                 adsBanner = ads[Math.floor(Math.random() * ads.length)];
-                loading = false;
-                return;
             }
-            useFallback = true;
+            adsResolved = true;
             loading = false;
+            useFallback = !adsBanner;
         }
     }
 
