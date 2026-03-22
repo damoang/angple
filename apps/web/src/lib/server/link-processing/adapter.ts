@@ -31,20 +31,16 @@ async function loadPrivateAffiliatePlugin(): Promise<LinkProcessingPluginRuntime
             normalizeUrl,
             detectPlatform: (url) => detectPlatform(url) ?? null,
             buildAffiliateRedirectRecord: async ({ url, platform, boardId, postId }) => {
-                const redirectUrl = await buildAffiliateRedirectRecord({
+                const redirect = await buildAffiliateRedirectRecord({
                     url,
                     platform,
                     ...(boardId ? { board: boardId } : {}),
                     ...(postId ? { postId } : {})
                 });
 
-                const redirectId = redirectUrl.startsWith('/go/')
-                    ? redirectUrl.slice(4)
-                    : undefined;
-
                 return {
-                    redirectUrl,
-                    redirectId
+                    redirectUrl: redirect.redirectUrl,
+                    redirectId: redirect.redirectId
                 };
             }
         });
