@@ -323,7 +323,7 @@ jobs:
               "  code=$(curl -sS -H \"${HDR}\" -o /tmp/canary-free-page2.out -w \"%{http_code}\" --max-time 10 \"${BASE}/free?page=2\")",
               "  echo \"CHECK /free?page=2 -> ${code}\"",
               "  [ \"${code}\" = \"200\" ] || { cat /tmp/canary-free-page2.out; exit 1; }",
-              "  post_path=$(grep -oE 'href=\"/free/[0-9]+\"' /tmp/canary-free.out | head -1 | cut -d '\"' -f2)",
+              "  post_path=$(grep -oE '/free/[0-9]+' /tmp/canary-free.out | head -1)",
               "  [ -n \"${post_path}\" ] || { echo 'no /free/<postId> link found in /free'; exit 1; }",
               "  post_id=$(printf '%s' \"${post_path}\" | sed 's#^/free/##')",
               "  code=$(curl -sS -H \"${HDR}\" -o /tmp/canary-post-page.out -w \"%{http_code}\" --max-time 10 \"${BASE}${post_path}\")",
