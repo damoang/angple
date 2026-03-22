@@ -39,7 +39,7 @@ export const load: PageServerLoad = async ({
 }) => {
     const { boardId, postId } = params;
     const currentPage = Number(url.searchParams.get('page')) || 1;
-    const recentPostsLimit = 25;
+    const recentPostsLimit = 12;
 
     // postId가 숫자인지 검증 (레거시 PHP URL 방어: /bbs/board.php 등)
     if (!/^\d+$/.test(postId)) {
