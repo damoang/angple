@@ -48,6 +48,9 @@
     let shouldLoad = $state(false);
     let observer: IntersectionObserver | null = null;
     const MOBILE_AD_MAX_HEIGHT = 100;
+    const ADSENSE_ACTIVITY_CLIENT =
+        import.meta.env.VITE_ADSENSE_ACTIVITY_CLIENT || 'ca-pub-2456249131797827';
+    const ADSENSE_ACTIVITY_SLOT = import.meta.env.VITE_ADSENSE_ACTIVITY_SLOT || '1893595467';
 
     function getRecentPostLabel(post: RecentPost): string {
         return post.deleted_at ? '삭제된 글입니다.' : post.wr_subject || '(제목 없음)';
@@ -76,7 +79,7 @@
     function loadAdSense(): void {
         if (!browser || !adContainer) return;
 
-        const adsenseClient = import.meta.env.VITE_ADSENSE_ACTIVITY_CLIENT || '';
+        const adsenseClient = ADSENSE_ACTIVITY_CLIENT;
         if (!adsenseClient) return; // 환경변수 미설정 시 광고 미표시
 
         if (!document.querySelector(`script[src*="${adsenseClient}"]`)) {
@@ -195,12 +198,12 @@
             >
                 <!-- AdSense가 이 div의 height를 !important로 바꿔도 외부 래퍼가 잘라냄 -->
                 <div bind:this={adContainer}>
-                    {#if import.meta.env.VITE_ADSENSE_ACTIVITY_CLIENT}
+                    {#if ADSENSE_ACTIVITY_CLIENT && ADSENSE_ACTIVITY_SLOT}
                         <ins
                             class="adsbygoogle"
                             style="display:block;"
-                            data-ad-client={import.meta.env.VITE_ADSENSE_ACTIVITY_CLIENT}
-                            data-ad-slot={import.meta.env.VITE_ADSENSE_ACTIVITY_SLOT || ''}
+                            data-ad-client={ADSENSE_ACTIVITY_CLIENT}
+                            data-ad-slot={ADSENSE_ACTIVITY_SLOT}
                             data-ad-format="auto"
                             data-full-width-responsive="true"
                         ></ins>
