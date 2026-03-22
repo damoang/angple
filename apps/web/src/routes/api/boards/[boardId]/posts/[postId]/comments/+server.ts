@@ -10,6 +10,7 @@ import type { RequestHandler } from './$types';
 import type { RowDataPacket } from 'mysql2';
 import pool from '$lib/server/db';
 import { processCommentContentLinks, processLinkField } from '$lib/server/link-processing/adapter';
+import { isInternalAppRequest } from '$lib/server/internal-api.js';
 
 interface CommentRow extends RowDataPacket {
     wr_id: number;
@@ -74,9 +75,14 @@ async function applyAffiliateLinkField(
     target[affiliateField] = result.result.provider ?? '';
 }
 
-export const GET: RequestHandler = async ({ params, url, locals }) => {
+const INTERNAL_COMMENT_LIMIT = 200;
+const EXTERNAL_COMMENT_LIMIT = 20;
+const MAX_EXTERNAL_COMMENT_PAGE = 1;
+
+export const GET: RequestHandler = async ({ params, url, locals, request }) => {
     const { boardId, postId } = params;
     const isAdmin = (locals.user?.level ?? 0) >= 10;
+    const isInternalRequest = isInternalAppRequest(request);
 
     if (!boardId || !postId) {
         return json({ success: false, message: 'boardId와 postId가 필요합니다.' }, { status: 400 });
@@ -90,7 +96,20 @@ export const GET: RequestHandler = async ({ params, url, locals }) => {
     }
 
     const page = Math.max(1, parseInt(url.searchParams.get('page') || '1', 10));
-    const limit = Math.min(500, Math.max(1, parseInt(url.searchParams.get('limit') || '200', 10)));
+    const requestedLimit = Math.max(1, parseInt(url.searchParams.get('limit') || '200', 10));
+    const limit = Math.min(
+        requestedLimit,
+        isInternalRequest ? INTERNAL_COMMENT_LIMIT : EXTERNAL_COMMENT_LIMIT
+    );
+
+    if (!isInternalRequest && page > MAX_EXTERNAL_COMMENT_PAGE) {
+        return json(
+            { success: false, message: '외부 요청은 첫 페이지 댓글만 조회할 수 있습니다.' },
+            { status: 403 }
+        );
+    }
+
+    const effectivePage = isInternalRequest ? page : Math.min(page, MAX_EXTERNAL_COMMENT_PAGE);
 
     const tableName = `g5_write_${safeBoardId}`;
 
@@ -113,7 +132,7 @@ export const GET: RequestHandler = async ({ params, url, locals }) => {
 			 WHERE wr_parent = ? AND wr_is_comment = 1
 			 ORDER BY wr_comment, wr_comment_reply
 			 LIMIT ? OFFSET ?`,
-            [tableName, safePostId, limit, (page - 1) * limit]
+            [tableName, safePostId, limit, (effectivePage - 1) * limit]
         );
 
         // 닉네임 조회 (mb_id → mb_nick)
@@ -226,7 +245,7 @@ export const GET: RequestHandler = async ({ params, url, locals }) => {
             data: {
                 comments,
                 total,
-                page,
+                page: effectivePage,
                 limit,
                 total_pages: totalPages
             }

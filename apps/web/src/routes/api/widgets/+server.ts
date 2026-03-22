@@ -9,13 +9,18 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { scanWidgets } from '$lib/server/widgets';
+import { internalOnlyErrorResponse, isInternalAppRequest } from '$lib/server/internal-api.js';
 
 /**
  * GET /api/widgets
  *
  * 설치된 위젯 목록 조회
  */
-export const GET: RequestHandler = async () => {
+export const GET: RequestHandler = async ({ request }) => {
+    if (!isInternalAppRequest(request)) {
+        return internalOnlyErrorResponse();
+    }
+
     try {
         const widgetsMap = scanWidgets();
         const widgets = Array.from(widgetsMap.values());
