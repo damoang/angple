@@ -242,7 +242,7 @@
             </button>
             <a
                 href="/"
-                class="relative z-10 flex shrink-0 items-center rounded-md ps-1 md:ps-0"
+                class="relative z-10 flex h-10 shrink-0 cursor-pointer items-center rounded-md ps-1 md:h-12 md:ps-0"
                 aria-label="홈"
                 onclick={(e: MouseEvent) => {
                     if (window.location.pathname === '/') {
@@ -254,12 +254,12 @@
                 <img
                     src={logoSrc}
                     alt={logoAlt}
-                    class="h-10 w-auto md:h-12"
+                    class="pointer-events-none h-10 w-auto select-none md:h-12"
                     width="98"
                     height="48"
                     decoding="async"
                     fetchpriority="high"
-                    style="max-height:48px; max-width:min(45vw, 180px); contain:paint;"
+                    style="max-height:48px; max-width:min(45vw, 180px);"
                     onerror={() => {
                         headerLogoFailed = true;
                     }}
