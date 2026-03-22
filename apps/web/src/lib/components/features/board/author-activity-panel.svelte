@@ -43,7 +43,6 @@
     let adContainer = $state<HTMLElement | null>(null);
     let clipWrapper = $state<HTMLElement | null>(null);
     let panelEl = $state<HTMLElement | null>(null);
-    let panelHeight = $state(160);
     let mobileExpanded = $state(false);
     let shouldLoad = $state(false);
     let observer: IntersectionObserver | null = null;
@@ -63,19 +62,25 @@
         return comment.preview || '(내용 없음)';
     }
 
+    function getTargetHeight(): number {
+        if (!browser) return DESKTOP_AD_MAX_HEIGHT;
+        return window.matchMedia('(max-width: 639px)').matches
+            ? MOBILE_AD_MAX_HEIGHT
+            : DESKTOP_AD_MAX_HEIGHT;
+    }
+
     function enforceClipHeight(): void {
-        if (!clipWrapper || panelHeight <= 20) return;
-        const isMobile = browser ? window.matchMedia('(max-width: 639px)').matches : false;
-        const availableHeight = Math.max(panelHeight - 20, 0);
-        const h = isMobile
-            ? Math.min(availableHeight, MOBILE_AD_MAX_HEIGHT)
-            : Math.min(availableHeight, DESKTOP_AD_MAX_HEIGHT);
+        if (!clipWrapper) return;
+        const h = getTargetHeight();
         const target = `${h}px`;
         if (
             clipWrapper.style.getPropertyValue('height') === target &&
-            clipWrapper.style.getPropertyPriority('height') === 'important'
+            clipWrapper.style.getPropertyPriority('height') === 'important' &&
+            clipWrapper.style.getPropertyValue('max-height') === target &&
+            clipWrapper.style.getPropertyValue('min-height') === target
         )
             return;
+        clipWrapper.style.setProperty('min-height', target, 'important');
         clipWrapper.style.setProperty('height', target, 'important');
         clipWrapper.style.setProperty('max-height', target, 'important');
     }
@@ -142,8 +147,9 @@
     });
 
     onMount(() => {
-        // 카드 높이 측정 후 광고 높이 맞추기
         let mutationObserver: MutationObserver | undefined;
+        let resizeObserver: ResizeObserver | undefined;
+        const handleResize = () => enforceClipHeight();
 
         if (panelEl && typeof IntersectionObserver !== 'undefined') {
             observer = new IntersectionObserver(
@@ -163,27 +169,28 @@
         }
 
         requestAnimationFrame(() => {
-            if (panelEl) {
-                const cards = panelEl.querySelectorAll('[data-slot="card"]');
-                if (cards.length > 0) {
-                    const cardHeight = (cards[0] as HTMLElement).offsetHeight;
-                    if (cardHeight > 0) panelHeight = cardHeight;
-                }
-            }
+            if (!clipWrapper) return;
+            enforceClipHeight();
+            mutationObserver = new MutationObserver(() => enforceClipHeight());
+            mutationObserver.observe(clipWrapper, {
+                attributes: true,
+                attributeFilter: ['style']
+            });
 
-            if (clipWrapper) {
-                enforceClipHeight();
-                mutationObserver = new MutationObserver(() => enforceClipHeight());
-                mutationObserver.observe(clipWrapper, {
-                    attributes: true,
-                    attributeFilter: ['style']
-                });
+            if (typeof ResizeObserver !== 'undefined') {
+                resizeObserver = new ResizeObserver(() => enforceClipHeight());
+                resizeObserver.observe(clipWrapper);
+                if (panelEl) resizeObserver.observe(panelEl);
+            } else {
+                window.addEventListener('resize', handleResize);
             }
         });
 
         return () => {
             mutationObserver?.disconnect();
+            resizeObserver?.disconnect();
             observer?.disconnect();
+            window.removeEventListener('resize', handleResize);
         };
     });
 </script>
@@ -198,7 +205,7 @@
             <div
                 bind:this={clipWrapper}
                 class="ad-clip-wrapper overflow-hidden rounded-xl"
-                style="clip-path: inset(0); position: relative;"
+                style="position: relative;"
             >
                 <!-- AdSense가 이 div의 height를 !important로 바꿔도 외부 래퍼가 잘라냄 -->
                 <div bind:this={adContainer}>
@@ -371,10 +378,16 @@
 <style>
     /* 모바일은 낮게, 데스크톱은 카드형 비율로 보이도록 높이를 제한합니다. */
     .ad-clip-wrapper {
+        min-height: 88px;
+        height: 88px;
         max-height: 88px;
+        background: hsl(var(--background));
+        isolation: isolate;
     }
     @media (min-width: 640px) {
         .ad-clip-wrapper {
+            min-height: 190px;
+            height: 190px;
             max-height: 190px;
         }
     }
