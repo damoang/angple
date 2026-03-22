@@ -16,12 +16,12 @@ export {
     resolveAffiliateContent,
     resolveAffiliateContentDetailed,
     resolveAffiliateLinkField
-} from './lib/resolver';
+} from './lib/resolver.server';
 
 export {
     buildAffiliateRedirectRecord,
     resolveAffiliateRedirectRecord
-} from './lib/redirect-store';
+} from './lib/redirect-store.server';
 
 export { default as postContentFilter } from './hooks/post-content-filter';
 export { default as commentContentFilter } from './hooks/comment-content-filter';

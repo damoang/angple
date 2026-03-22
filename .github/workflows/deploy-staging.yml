@@ -41,7 +41,7 @@ jobs:
       - name: Checkout angple-premium
         uses: actions/checkout@v6
         with:
-          repository: angple/angple-premium
+          repository: damoang/angple-premium
           token: ${{ secrets.PREMIUM_REPO_TOKEN }}
           path: _premium
         continue-on-error: true
