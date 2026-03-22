@@ -138,6 +138,7 @@
         wr_subject: string;
         wr_datetime: string;
         href: string;
+        deleted_at?: string | null;
     }
     interface RecentComment {
         bo_table: string;
@@ -146,6 +147,8 @@
         preview: string;
         wr_datetime: string;
         href: string;
+        deleted_at?: string | null;
+        post_deleted_at?: string | null;
     }
     interface LikedPost {
         bo_table: string;
@@ -165,6 +168,16 @@
     let postsLoaded = $state(false);
     let commentsLoaded = $state(false);
     let likedLoaded = $state(false);
+
+    function getRecentPostTitle(post: RecentPost): string {
+        return post.deleted_at ? '삭제된 글입니다.' : post.wr_subject;
+    }
+
+    function getRecentCommentPreview(comment: RecentComment): string {
+        if (comment.deleted_at) return '삭제된 댓글입니다.';
+        if (comment.post_deleted_at) return `[삭제된 글] ${comment.preview || '(내용 없음)'}`;
+        return comment.preview || '(내용 없음)';
+    }
 
     onMount(async () => {
         if (!p?.mb_id) return;
@@ -764,7 +777,7 @@
                                         href={post.href}
                                         class="text-foreground hover:text-primary block text-sm transition-colors"
                                     >
-                                        {post.wr_subject}
+                                        {getRecentPostTitle(post)}
                                     </a>
                                     <div class="text-muted-foreground mt-0.5 flex gap-2 text-xs">
                                         <span class="text-primary/70">{post.bo_subject}</span>
@@ -794,7 +807,7 @@
                                         href={comment.href}
                                         class="text-foreground hover:text-primary block text-sm transition-colors"
                                     >
-                                        {comment.preview || '(내용 없음)'}
+                                        {getRecentCommentPreview(comment)}
                                     </a>
                                     <div class="text-muted-foreground mt-0.5 flex gap-2 text-xs">
                                         <span class="text-primary/70">{comment.bo_subject}</span>

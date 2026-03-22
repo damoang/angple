@@ -67,6 +67,20 @@
             day: 'numeric'
         });
     }
+
+    function getMyPostTitle(post: { title: string; deleted_at?: string | null }): string {
+        return post.deleted_at ? '삭제된 글입니다.' : post.title;
+    }
+
+    function getMyCommentContent(comment: {
+        content: string;
+        deleted_at?: string | null;
+        post_deleted_at?: string | null;
+    }): string {
+        if (comment.deleted_at) return '삭제된 댓글입니다.';
+        if (comment.post_deleted_at) return `[삭제된 글] ${stripHtml(comment.content)}`;
+        return stripHtml(comment.content);
+    }
 </script>
 
 <svelte:head>
@@ -187,7 +201,7 @@
                                             <h3
                                                 class="text-foreground mb-1 line-clamp-1 font-medium"
                                             >
-                                                {post.title}
+                                                {getMyPostTitle(post)}
                                             </h3>
                                             <div
                                                 class="text-muted-foreground flex items-center gap-2 text-xs"
@@ -271,7 +285,7 @@
                                                 </p>
                                             {/if}
                                             <p class="text-foreground mb-2 line-clamp-2">
-                                                {stripHtml(comment.content)}
+                                                {getMyCommentContent(comment)}
                                             </p>
                                             <div
                                                 class="text-muted-foreground flex items-center gap-2 text-xs"
