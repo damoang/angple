@@ -5,6 +5,7 @@ import { fetchPromotionPosts, fetchPromotionBoardPosts } from '$lib/server/ads/p
 import { transformAffiliateContent } from '$lib/hooks/builtin/affiliate.js';
 import { sendAffiliateEvents } from '$lib/server/affiliate-events';
 import { convertAffiliateUrl } from '$plugins/affiliate-link/lib/affiliate-api.server';
+import { buildAffiliateRedirectUrl } from '$lib/server/affiliate-redirect';
 import { isScraped } from '$lib/server/scrap.js';
 import { backendFetch as bFetch, createAuthHeaders } from '$lib/server/backend-fetch.js';
 import { getCachedBoard } from '$lib/server/board-cache.js';
@@ -154,20 +155,13 @@ export const load: PageServerLoad = async ({
         if (post.link1 || post.link2) {
             try {
                 const startedAt = Date.now();
-                const [link1Result, link2Result] = await Promise.race([
-                    Promise.allSettled([
-                        post.link1
-                            ? convertAffiliateUrl(post.link1, affiliateContext)
-                            : Promise.resolve(null),
-                        post.link2
-                            ? convertAffiliateUrl(post.link2, affiliateContext)
-                            : Promise.resolve(null)
-                    ]),
-                    new Promise<
-                        PromiseSettledResult<Awaited<
-                            ReturnType<typeof convertAffiliateUrl>
-                        > | null>[]
-                    >((resolve) => setTimeout(() => resolve([]), 1500))
+                const [link1Result, link2Result] = await Promise.allSettled([
+                    post.link1
+                        ? convertAffiliateUrl(post.link1, affiliateContext)
+                        : Promise.resolve(null),
+                    post.link2
+                        ? convertAffiliateUrl(post.link2, affiliateContext)
+                        : Promise.resolve(null)
                 ]);
 
                 if (
@@ -175,16 +169,14 @@ export const load: PageServerLoad = async ({
                     link1Result.value?.converted &&
                     link1Result.value.url
                 ) {
-                    // 원본 URL 보존 (표시용) + /go 리다이렉트 URL 생성
-                    const p1 = link1Result.value.platform || '';
-                    const go1 = new URLSearchParams({
+                    const redirectUrl = await buildAffiliateRedirectUrl({
                         url: link1Result.value.url,
-                        p: p1,
-                        ...(boardId ? { b: boardId } : {}),
-                        ...(postId ? { w: postId } : {})
+                        platform: link1Result.value.platform || '',
+                        ...(boardId ? { board: boardId } : {}),
+                        ...(postId ? { postId: Number(postId) } : {})
                     });
                     post.link1_display = post.link1;
-                    post.link1 = `/go?${go1.toString()}`;
+                    post.link1 = redirectUrl;
                     post.link1_affiliate = true;
                 }
 
@@ -193,15 +185,14 @@ export const load: PageServerLoad = async ({
                     link2Result.value?.converted &&
                     link2Result.value.url
                 ) {
-                    const p2 = link2Result.value.platform || '';
-                    const go2 = new URLSearchParams({
+                    const redirectUrl = await buildAffiliateRedirectUrl({
                         url: link2Result.value.url,
-                        p: p2,
-                        ...(boardId ? { b: boardId } : {}),
-                        ...(postId ? { w: postId } : {})
+                        platform: link2Result.value.platform || '',
+                        ...(boardId ? { board: boardId } : {}),
+                        ...(postId ? { postId: Number(postId) } : {})
                     });
                     post.link2_display = post.link2;
-                    post.link2 = `/go?${go2.toString()}`;
+                    post.link2 = redirectUrl;
                     post.link2_affiliate = true;
                 }
 
