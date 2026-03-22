@@ -5,7 +5,7 @@
  */
 import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { loadExploreData } from '$lib/server/explore-loader';
+import { buildExplorePreviewData, loadExploreData } from '$lib/server/explore-loader';
 
 export const GET: RequestHandler = async () => {
     const data = await loadExploreData();
@@ -14,7 +14,7 @@ export const GET: RequestHandler = async () => {
         error(404, '톺아보기 캐시 파일을 찾을 수 없습니다');
     }
 
-    return json(data, {
+    return json(buildExplorePreviewData(data), {
         headers: {
             'Cache-Control': 'public, max-age=60'
         }
