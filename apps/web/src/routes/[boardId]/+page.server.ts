@@ -40,6 +40,7 @@ export const load: PageServerLoad = async ({ url, params, locals, getClientAddre
     const category = url.searchParams.get('category') || null;
     const isSearching = Boolean(searchField && searchQuery);
     const isTagFiltering = Boolean(tag);
+    const includeNotices = !isSearching && page === 1;
 
     if (isSearching && !locals.user) {
         svelteError(403, '로그인 후 검색할 수 있습니다.');
@@ -219,15 +220,15 @@ export const load: PageServerLoad = async ({ url, params, locals, getClientAddre
                 if (!res.ok) throw new Error(`Posts API error: ${res.status}`);
                 return res.json();
             }),
-            isSearching
-                ? Promise.resolve([])
-                : bFetch(`/api/v1/boards/${boardId}/notices`, { headers, timeout: 3_000 }).then(
+            includeNotices
+                ? bFetch(`/api/v1/boards/${boardId}/notices`, { headers, timeout: 3_000 }).then(
                       async (res) => {
                           if (!res.ok) return [];
                           const json = await res.json();
                           return (json.data as FreePost[]) || [];
                       }
                   )
+                : Promise.resolve([])
         ]);
 
         // 게시글
