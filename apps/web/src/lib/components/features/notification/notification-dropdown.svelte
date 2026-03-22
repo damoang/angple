@@ -19,6 +19,7 @@
     import Settings from '@lucide/svelte/icons/settings';
 
     const UNREAD_CACHE_TTL_MS = 30_000;
+    const UNREAD_CACHE_STORAGE_KEY = 'angple_notification_unread_cache_v1';
 
     let unreadCache = {
         count: 0,
@@ -29,7 +30,36 @@
     let notifications = $state<GroupedNotification[]>([]);
     let unreadCount = $state(0);
     let isLoading = $state(false);
-    let isOpen = $state(false);
+
+    function readUnreadCache(): { count: number; fetchedAt: number } | null {
+        if (typeof window === 'undefined') return null;
+
+        try {
+            const raw = window.sessionStorage.getItem(UNREAD_CACHE_STORAGE_KEY);
+            if (!raw) return null;
+
+            const parsed = JSON.parse(raw) as { count?: unknown; fetchedAt?: unknown };
+            const count = typeof parsed.count === 'number' ? parsed.count : null;
+            const fetchedAt = typeof parsed.fetchedAt === 'number' ? parsed.fetchedAt : null;
+
+            if (count === null || fetchedAt === null) return null;
+            return { count, fetchedAt };
+        } catch {
+            return null;
+        }
+    }
+
+    function writeUnreadCache(count: number): void {
+        unreadCache = { count, fetchedAt: Date.now() };
+
+        if (typeof window === 'undefined') return;
+
+        try {
+            window.sessionStorage.setItem(UNREAD_CACHE_STORAGE_KEY, JSON.stringify(unreadCache));
+        } catch {
+            // ignore storage quota / private mode failures
+        }
+    }
 
     function getNotificationIcon(type: string) {
         switch (type) {
@@ -95,6 +125,13 @@
 
         try {
             const now = Date.now();
+            const storedCache = readUnreadCache();
+            if (storedCache && now - storedCache.fetchedAt < UNREAD_CACHE_TTL_MS) {
+                unreadCache = storedCache;
+                unreadCount = storedCache.count;
+                return;
+            }
+
             if (now - unreadCache.fetchedAt < UNREAD_CACHE_TTL_MS) {
                 unreadCount = unreadCache.count;
                 return;
@@ -105,7 +142,7 @@
                     .getUnreadNotificationCount()
                     .then((summary) => {
                         const count = summary?.total_unread ?? 0;
-                        unreadCache = { count, fetchedAt: Date.now() };
+                        writeUnreadCache(count);
                         return count;
                     })
                     .finally(() => {
@@ -127,7 +164,7 @@
             const response = await apiClient.getGroupedNotifications(1, 10);
             notifications = response.items;
             unreadCount = response.unread_count;
-            unreadCache = { count: response.unread_count, fetchedAt: Date.now() };
+            writeUnreadCache(response.unread_count);
         } catch (err) {
             console.error('Failed to load notifications:', err);
         } finally {
@@ -145,7 +182,7 @@
                 );
                 notification.has_unread = false;
                 unreadCount = Math.max(0, unreadCount - notification.unread_count);
-                unreadCache = { count: unreadCount, fetchedAt: Date.now() };
+                writeUnreadCache(unreadCount);
                 notification.unread_count = 0;
             } catch (err) {
                 console.error('Failed to mark as read:', err);
@@ -171,16 +208,15 @@
                 unread_count: 0
             }));
             unreadCount = 0;
-            unreadCache = { count: 0, fetchedAt: Date.now() };
+            writeUnreadCache(0);
         } catch (err) {
             console.error('Failed to mark all as read:', err);
         }
     }
 
     function handleOpenChange(open: boolean): void {
-        isOpen = open;
         if (open) {
-            loadNotifications();
+            void loadNotifications();
         }
     }
 
@@ -257,7 +293,7 @@
             {:else if notifications.length === 0}
                 <div class="text-muted-foreground py-8 text-center text-sm">알림이 없습니다</div>
             {:else}
-                {#each notifications as notification, i}
+                {#each notifications as notification (notification.bo_table + ':' + notification.wr_id + ':' + notification.from_case)}
                     {@const Icon = getNotificationIcon(notification.type)}
                     <DropdownMenu.Item
                         class="flex cursor-pointer items-start gap-2.5 px-3 py-2 {notification.has_unread
