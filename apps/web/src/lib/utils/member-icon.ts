@@ -5,6 +5,12 @@
 
 const CDN_BASE_URL = (import.meta.env.VITE_S3_URL || 'https://s3.damoang.net').replace(/\/$/, '');
 
+function shouldUpgradeToHttps(hostname: string): boolean {
+    const host = hostname.toLowerCase();
+    if (host === 'localhost' || host === '127.0.0.1' || host === '::1') return false;
+    return true;
+}
+
 /**
  * mb_image_url(DB)로 전체 URL 생성
  * @param imageUrl API에서 받은 mb_image / author_image (예: data/member_image/ad/admin_1760156943.webp)
@@ -21,7 +27,17 @@ export function getAvatarUrl(
 
     // 이미 전체 URL이면 그대로 사용
     if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
-        url = imageUrl;
+        try {
+            const parsed = new URL(imageUrl);
+            if (parsed.protocol === 'http:' && shouldUpgradeToHttps(parsed.hostname)) {
+                parsed.protocol = 'https:';
+                url = parsed.toString();
+            } else {
+                url = imageUrl;
+            }
+        } catch {
+            url = imageUrl;
+        }
     } else {
         // 상대 경로면 CDN 베이스 추가
         url = `${CDN_BASE_URL}/${imageUrl}`;

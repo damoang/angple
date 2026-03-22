@@ -136,12 +136,13 @@
                     notification.wr_id,
                     notification.from_case
                 );
+                const unreadDelta = notification.unread_count;
                 notification.has_unread = false;
                 notification.unread_count = 0;
                 if (notificationData) {
                     notificationData.unread_count = Math.max(
                         0,
-                        notificationData.unread_count - notification.unread_count
+                        notificationData.unread_count - unreadDelta
                     );
                 }
             } catch (err) {
@@ -150,11 +151,27 @@
         }
 
         if (notification.url) {
-            let url = notification.url;
+            let url = notification.url.replaceAll('&amp;', '&').trim();
             if (notification.type === 'like' && !url.includes('#')) {
                 url += '#likes';
             }
-            goto(url);
+            try {
+                const absolute = new URL(url, window.location.origin);
+                const isLocalhost =
+                    absolute.hostname === 'localhost' ||
+                    absolute.hostname === '127.0.0.1' ||
+                    absolute.hostname === '::1';
+                if (absolute.protocol === 'http:' && !isLocalhost) {
+                    absolute.protocol = 'https:';
+                }
+                if (absolute.origin === window.location.origin) {
+                    await goto(`${absolute.pathname}${absolute.search}${absolute.hash}`);
+                } else {
+                    window.location.href = absolute.toString();
+                }
+            } catch {
+                await goto(url);
+            }
         }
     }
 
