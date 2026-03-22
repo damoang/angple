@@ -47,7 +47,8 @@
     let mobileExpanded = $state(false);
     let shouldLoad = $state(false);
     let observer: IntersectionObserver | null = null;
-    const MOBILE_AD_MAX_HEIGHT = 100;
+    const MOBILE_AD_MAX_HEIGHT = 88;
+    const DESKTOP_AD_MAX_HEIGHT = 190;
     const ADSENSE_ACTIVITY_CLIENT =
         import.meta.env.VITE_ADSENSE_ACTIVITY_CLIENT || 'ca-pub-2456249131797827';
     const ADSENSE_ACTIVITY_SLOT = import.meta.env.VITE_ADSENSE_ACTIVITY_SLOT || '1893595467';
@@ -65,7 +66,10 @@
     function enforceClipHeight(): void {
         if (!clipWrapper || panelHeight <= 20) return;
         const isMobile = browser ? window.matchMedia('(max-width: 639px)').matches : false;
-        const h = isMobile ? Math.min(panelHeight - 20, MOBILE_AD_MAX_HEIGHT) : panelHeight - 20;
+        const availableHeight = Math.max(panelHeight - 20, 0);
+        const h = isMobile
+            ? Math.min(availableHeight, MOBILE_AD_MAX_HEIGHT)
+            : Math.min(availableHeight, DESKTOP_AD_MAX_HEIGHT);
         const target = `${h}px`;
         if (
             clipWrapper.style.getPropertyValue('height') === target &&
@@ -365,13 +369,13 @@
 {/if}
 
 <style>
-    /* 모바일에서는 JS가 100px 이하로 clamp하고, 데스크톱만 카드 높이에 맞춰 늘립니다. */
+    /* 모바일은 낮게, 데스크톱은 카드형 비율로 보이도록 높이를 제한합니다. */
     .ad-clip-wrapper {
-        max-height: 100px;
+        max-height: 88px;
     }
     @media (min-width: 640px) {
         .ad-clip-wrapper {
-            max-height: none;
+            max-height: 190px;
         }
     }
 </style>
