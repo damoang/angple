@@ -24,6 +24,7 @@ export interface CelebrationBanner {
 let celebrations = $state<CelebrationBanner[]>([]);
 let currentIndex = $state(0);
 let fetched = false;
+let ready = false;
 let fetchPromise: Promise<void> | null = null;
 let refCount = 0;
 let intervalId: ReturnType<typeof setInterval> | null = null;
@@ -80,6 +81,10 @@ export function getCurrentIndex(): number {
     return currentIndex;
 }
 
+export function isReady(): boolean {
+    return ready;
+}
+
 export function setCurrentIndex(index: number): void {
     currentIndex = index;
 }
@@ -103,16 +108,18 @@ export function getLink(banner: CelebrationBanner): string {
 
 /** 외부 데이터로 초기화 (app-init 스토어에서 주입 시 fetch 스킵) */
 export function initFromData(data: CelebrationBanner[]): void {
-    if (fetched || data.length === 0) return;
+    if (fetched) return;
 
-    // Fisher-Yates 셔플
-    const arr = [...data];
-    for (let i = arr.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [arr[i], arr[j]] = [arr[j], arr[i]];
+    if (data.length > 0) {
+        const arr = [...data];
+        for (let i = arr.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [arr[i], arr[j]] = [arr[j], arr[i]];
+        }
+        celebrations = arr;
     }
-    celebrations = arr;
     fetched = true;
+    ready = true;
 }
 
 /** 컴포넌트 마운트 시 호출. fetch + rotation 시작. cleanup 함수 반환 */
@@ -122,6 +129,7 @@ export function mount(): () => void {
     if (!fetched && !fetchPromise) {
         fetchPromise = doFetch().then(() => {
             fetched = true;
+            ready = true;
             fetchPromise = null;
         });
     }
