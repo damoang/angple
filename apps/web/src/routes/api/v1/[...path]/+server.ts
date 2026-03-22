@@ -4,6 +4,7 @@ import { env } from '$env/dynamic/private';
 import pool from '$lib/server/db';
 import type { RowDataPacket } from 'mysql2';
 import { invalidateBoardCache } from '$lib/server/ssr-cache.js';
+import { internalOnlyErrorResponse, isInternalAppRequest } from '$lib/server/internal-api.js';
 
 /**
  * API v1 프록시 핸들러
@@ -14,6 +15,22 @@ import { invalidateBoardCache } from '$lib/server/ssr-cache.js';
  */
 
 const BACKEND_URL = env.BACKEND_URL || 'http://localhost:8090';
+const INTERNAL_ONLY_V1_PREFIXES = ['my/', 'admin/'];
+
+function isExternalBoardReadPath(path: string, method: string): boolean {
+    if (method !== 'GET') return false;
+
+    return (
+        /^boards\/[a-zA-Z0-9_-]+$/.test(path) ||
+        /^boards\/[a-zA-Z0-9_-]+\/display-settings$/.test(path) ||
+        /^boards\/[a-zA-Z0-9_-]+\/notices$/.test(path) ||
+        /^boards\/[a-zA-Z0-9_-]+\/posts$/.test(path) ||
+        /^boards\/[a-zA-Z0-9_-]+\/posts\/\d+$/.test(path) ||
+        /^boards\/[a-zA-Z0-9_-]+\/posts\/\d+\/files$/.test(path) ||
+        /^boards\/[a-zA-Z0-9_-]+\/posts\/\d+\/likers$/.test(path) ||
+        /^boards\/[a-zA-Z0-9_-]+\/posts\/\d+\/revisions$/.test(path)
+    );
+}
 
 // 쿠키 도메인: Go 백엔드 cookieDomain()과 일치 (쿠키 충돌 방지)
 const COOKIE_DOMAIN = env.COOKIE_DOMAIN || '';
@@ -207,6 +224,23 @@ async function proxyRequest(
     const path = params.path || '';
     const url = new URL(request.url);
     const targetUrl = `${BACKEND_URL}/api/v1/${path}${url.search}`;
+    const isInternalRequest = isInternalAppRequest(request);
+
+    if (
+        INTERNAL_ONLY_V1_PREFIXES.some(
+            (prefix) => path === prefix.slice(0, -1) || path.startsWith(prefix)
+        )
+    ) {
+        if (!isInternalRequest) {
+            return internalOnlyErrorResponse();
+        }
+    }
+
+    if (!isInternalRequest && isExternalBoardReadPath(path, method)) {
+        return internalOnlyErrorResponse(
+            '외부 요청은 게시판 목록/상세 API를 직접 호출할 수 없습니다.'
+        );
+    }
 
     // 댓글 수정 시 대댓글 존재 확인 (관리자 포함 모두 차단)
     if (method === 'PUT') {

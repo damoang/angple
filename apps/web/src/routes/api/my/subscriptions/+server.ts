@@ -7,13 +7,18 @@ import type { RequestHandler } from './$types';
 import type { RowDataPacket } from 'mysql2';
 import { readPool } from '$lib/server/db.js';
 import { getAuthUser } from '$lib/server/auth';
+import { internalOnlyErrorResponse, isInternalAppRequest } from '$lib/server/internal-api.js';
 
 interface SubBoardRow extends RowDataPacket {
     board_id: string;
     board_name: string;
 }
 
-export const GET: RequestHandler = async ({ cookies }) => {
+export const GET: RequestHandler = async ({ cookies, request }) => {
+    if (!isInternalAppRequest(request)) {
+        return internalOnlyErrorResponse();
+    }
+
     const user = await getAuthUser(cookies);
     if (!user) {
         return json({ success: false, message: '로그인이 필요합니다.' }, { status: 401 });

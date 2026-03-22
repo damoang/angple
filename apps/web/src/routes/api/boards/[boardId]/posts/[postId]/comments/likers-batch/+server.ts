@@ -10,9 +10,14 @@ import type { RowDataPacket } from 'mysql2';
 import pool from '$lib/server/db';
 import { getAuthUser } from '$lib/server/auth';
 import { getRedis } from '$lib/server/redis';
+import { isInternalAppRequest } from '$lib/server/internal-api.js';
 import { getCommentLikersBatchVersion } from '$lib/server/member-activity-cache';
 
 const COMMENT_LIKERS_BATCH_CACHE_TTL_SEC = 15;
+const INTERNAL_COMMENT_LIKERS_BATCH_LIMIT = 50;
+const EXTERNAL_COMMENT_LIKERS_BATCH_LIMIT = 5;
+const INTERNAL_COMMENT_LIKERS_BATCH_IDS = 20;
+const EXTERNAL_COMMENT_LIKERS_BATCH_IDS = 10;
 
 function maskIp(ip: string | null | undefined): string {
     if (!ip) return '';
@@ -40,10 +45,17 @@ interface CountRow extends RowDataPacket {
     total: number;
 }
 
-export const GET: RequestHandler = async ({ params, url, cookies }) => {
+export const GET: RequestHandler = async ({ params, url, cookies, request }) => {
     const { boardId } = params;
+    const isInternalRequest = isInternalAppRequest(request);
     const commentIdsParam = url.searchParams.get('commentIds');
-    const limit = Math.min(50, Math.max(1, parseInt(url.searchParams.get('limit') || '5', 10)));
+    const requestedLimit = Math.max(1, parseInt(url.searchParams.get('limit') || '5', 10));
+    const limit = Math.min(
+        requestedLimit,
+        isInternalRequest
+            ? INTERNAL_COMMENT_LIKERS_BATCH_LIMIT
+            : EXTERNAL_COMMENT_LIKERS_BATCH_LIMIT
+    );
 
     if (!boardId || !commentIdsParam) {
         return json(
@@ -54,12 +66,17 @@ export const GET: RequestHandler = async ({ params, url, cookies }) => {
 
     const safeBoardId = boardId.replace(/[^a-zA-Z0-9_-]/g, '');
 
-    // commentIds 파싱 및 검증 (최대 20개)
+    // commentIds 파싱 및 검증
     const commentIds = commentIdsParam
         .split(',')
         .map((id) => parseInt(id.trim(), 10))
         .filter((id) => !isNaN(id))
-        .slice(0, 20);
+        .slice(
+            0,
+            isInternalRequest
+                ? INTERNAL_COMMENT_LIKERS_BATCH_IDS
+                : EXTERNAL_COMMENT_LIKERS_BATCH_IDS
+        );
 
     if (commentIds.length === 0) {
         return json({ success: false, message: '유효한 commentIds가 없습니다.' }, { status: 400 });
