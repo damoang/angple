@@ -3,7 +3,7 @@ import {
     convertAffiliateUrl
 } from '../../affiliate-link/lib/affiliate-api.server';
 import { detectPlatform, normalizeUrl } from '../../affiliate-link/lib/domain-matcher';
-import { buildAffiliateRedirectRecord, attachRedirectToDecision } from './redirect-store';
+import { buildAffiliateRedirectRecord, attachRedirectToDecision } from './redirect-store.server';
 import { createErrorDecision, createPassthroughDecision } from './policies';
 import {
     createAliExpressApiErrorDecision,
