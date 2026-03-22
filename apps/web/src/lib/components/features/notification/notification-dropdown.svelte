@@ -6,6 +6,7 @@
     import type { GroupedNotification } from '$lib/api/types.js';
     import { onMount } from 'svelte';
     import { goto } from '$app/navigation';
+    import { browser } from '$app/environment';
     import Bell from '@lucide/svelte/icons/bell';
     import MessageSquare from '@lucide/svelte/icons/message-square';
     import Reply from '@lucide/svelte/icons/reply';
@@ -58,6 +59,35 @@
             window.sessionStorage.setItem(UNREAD_CACHE_STORAGE_KEY, JSON.stringify(unreadCache));
         } catch {
             // ignore storage quota / private mode failures
+        }
+    }
+
+    function normalizeNotificationUrl(rawUrl: string, type: string): string {
+        let url = rawUrl.replaceAll('&amp;', '&').trim();
+        if (type === 'like' && !url.includes('#')) {
+            url += '#likes';
+        }
+
+        if (!browser) return url;
+
+        try {
+            const absolute = new URL(url, window.location.origin);
+            const isLocalhost =
+                absolute.hostname === 'localhost' ||
+                absolute.hostname === '127.0.0.1' ||
+                absolute.hostname === '::1';
+
+            if (absolute.protocol === 'http:' && !isLocalhost) {
+                absolute.protocol = 'https:';
+            }
+
+            if (absolute.origin === window.location.origin) {
+                return `${absolute.pathname}${absolute.search}${absolute.hash}`;
+            }
+
+            return absolute.toString();
+        } catch {
+            return url;
         }
     }
 
@@ -190,12 +220,13 @@
         }
 
         if (notification.url) {
+            const targetUrl = normalizeNotificationUrl(notification.url, notification.type);
             isOpen = false;
-            let url = notification.url;
-            if (notification.type === 'like' && !url.includes('#')) {
-                url += '#likes';
+            if (targetUrl.startsWith('http://') || targetUrl.startsWith('https://')) {
+                window.location.href = targetUrl;
+                return;
             }
-            goto(url);
+            await goto(targetUrl);
         }
     }
 
@@ -258,7 +289,7 @@
     });
 </script>
 
-<DropdownMenu.Root onOpenChange={handleOpenChange}>
+<DropdownMenu.Root bind:open={isOpen} onOpenChange={handleOpenChange}>
     <DropdownMenu.Trigger
         class="hover:bg-muted relative inline-flex items-center justify-center rounded-lg p-2 transition-colors"
     >
@@ -299,6 +330,7 @@
                         class="flex cursor-pointer items-start gap-2.5 px-3 py-2 {notification.has_unread
                             ? 'bg-muted/30'
                             : 'opacity-60'}"
+                        onSelect={() => handleNotificationClick(notification)}
                         onclick={() => handleNotificationClick(notification)}
                     >
                         <div class="mt-0.5 shrink-0">
@@ -332,12 +364,22 @@
                 <a
                     href="/notifications"
                     class="hover:bg-accent flex-1 rounded-md py-1.5 text-center text-sm transition-colors"
+                    onclick={(e: MouseEvent) => {
+                        e.preventDefault();
+                        isOpen = false;
+                        goto('/notifications');
+                    }}
                 >
                     모든 알림 보기
                 </a>
                 <a
                     href="/member/settings/ui?tab=notification"
                     class="hover:bg-accent flex flex-1 items-center justify-center gap-1 rounded-md py-1.5 text-center text-sm transition-colors"
+                    onclick={(e: MouseEvent) => {
+                        e.preventDefault();
+                        isOpen = false;
+                        goto('/member/settings/ui?tab=notification');
+                    }}
                 >
                     <Settings class="h-3.5 w-3.5" />
                     알림설정

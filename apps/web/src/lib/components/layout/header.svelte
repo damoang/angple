@@ -237,12 +237,13 @@
                 class="hover:bg-accent relative rounded-lg p-2 transition-all duration-200 ease-out 2xl:hidden"
                 aria-label="메뉴"
             >
-                <span class="absolute -inset-1"></span>
+                <span class="pointer-events-none absolute -inset-1"></span>
                 <AlignJustify class="text-muted-foreground h-5 w-5" />
             </button>
             <a
                 href="/"
-                class="flex items-center ps-1 md:ps-0"
+                class="relative z-10 flex shrink-0 items-center rounded-md ps-1 md:ps-0"
+                aria-label="홈"
                 onclick={(e: MouseEvent) => {
                     if (window.location.pathname === '/') {
                         e.preventDefault();
@@ -326,7 +327,7 @@
                       ? 'AMOLED'
                       : '라이트모드'}
             >
-                <span class="absolute -inset-1"></span>
+                <span class="pointer-events-none absolute -inset-1"></span>
                 {#if themeMode === 'amoled'}
                     <Sun class="h-5 w-5 text-orange-400" />
                 {:else if themeMode === 'dark'}
@@ -342,7 +343,7 @@
                 class="hover:bg-accent relative rounded-lg p-2 transition-all duration-200 ease-out"
                 aria-label="검색"
             >
-                <span class="absolute -inset-1"></span>
+                <span class="pointer-events-none absolute -inset-1"></span>
                 <Search class="text-muted-foreground h-5 w-5" />
             </button>
 
@@ -393,7 +394,7 @@
                     class="hover:bg-accent relative rounded-lg p-2 transition-all duration-200 ease-out"
                     aria-label="로그인"
                 >
-                    <span class="absolute -inset-1"></span>
+                    <span class="pointer-events-none absolute -inset-1"></span>
                     <User class="text-primary h-5 w-5" />
                 </button>
             {/if}
@@ -405,7 +406,7 @@
                     class="hover:bg-accent relative rounded-lg p-2 transition-all duration-200 ease-out"
                     aria-label="쪽지"
                 >
-                    <span class="absolute -inset-1"></span>
+                    <span class="pointer-events-none absolute -inset-1"></span>
                     <Mail class="text-muted-foreground h-5 w-5" />
                 </button>
 
@@ -419,7 +420,7 @@
                     class="hover:bg-accent relative rounded-lg p-2 transition-all duration-200 ease-out"
                     aria-label="알림"
                 >
-                    <span class="absolute -inset-1"></span>
+                    <span class="pointer-events-none absolute -inset-1"></span>
                     <Bell class="text-muted-foreground h-5 w-5" />
                 </button>
             {/if}
