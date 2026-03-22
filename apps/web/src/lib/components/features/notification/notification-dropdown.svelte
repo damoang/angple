@@ -18,6 +18,14 @@
     import Loader2 from '@lucide/svelte/icons/loader-2';
     import Settings from '@lucide/svelte/icons/settings';
 
+    const UNREAD_CACHE_TTL_MS = 30_000;
+
+    let unreadCache = {
+        count: 0,
+        fetchedAt: 0
+    };
+    let unreadInflight: Promise<number> | null = null;
+
     let notifications = $state<GroupedNotification[]>([]);
     let unreadCount = $state(0);
     let isLoading = $state(false);
@@ -86,8 +94,26 @@
         if (!authStore.isAuthenticated) return;
 
         try {
-            const summary = await apiClient.getUnreadNotificationCount();
-            unreadCount = summary?.total_unread ?? 0;
+            const now = Date.now();
+            if (now - unreadCache.fetchedAt < UNREAD_CACHE_TTL_MS) {
+                unreadCount = unreadCache.count;
+                return;
+            }
+
+            if (!unreadInflight) {
+                unreadInflight = apiClient
+                    .getUnreadNotificationCount()
+                    .then((summary) => {
+                        const count = summary?.total_unread ?? 0;
+                        unreadCache = { count, fetchedAt: Date.now() };
+                        return count;
+                    })
+                    .finally(() => {
+                        unreadInflight = null;
+                    });
+            }
+
+            unreadCount = await unreadInflight;
         } catch {
             // 401(토큰 만료/도메인 불일치) 등은 조용히 무시
         }
@@ -101,6 +127,7 @@
             const response = await apiClient.getGroupedNotifications(1, 10);
             notifications = response.items;
             unreadCount = response.unread_count;
+            unreadCache = { count: response.unread_count, fetchedAt: Date.now() };
         } catch (err) {
             console.error('Failed to load notifications:', err);
         } finally {
@@ -118,6 +145,7 @@
                 );
                 notification.has_unread = false;
                 unreadCount = Math.max(0, unreadCount - notification.unread_count);
+                unreadCache = { count: unreadCount, fetchedAt: Date.now() };
                 notification.unread_count = 0;
             } catch (err) {
                 console.error('Failed to mark as read:', err);
@@ -143,6 +171,7 @@
                 unread_count: 0
             }));
             unreadCount = 0;
+            unreadCache = { count: 0, fetchedAt: Date.now() };
         } catch (err) {
             console.error('Failed to mark all as read:', err);
         }

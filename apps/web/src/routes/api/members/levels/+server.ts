@@ -5,8 +5,7 @@
  */
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import type { RowDataPacket } from 'mysql2';
-import pool from '$lib/server/db';
+import { fetchMemberLevels } from '$lib/server/member-levels';
 
 const MAX_IDS = 100;
 
@@ -38,20 +37,11 @@ export const GET: RequestHandler = async ({ url }) => {
     }
 
     try {
-        const placeholders = ids.map(() => '?').join(',');
-        const [rows] = await pool.query<RowDataPacket[]>(
-            `SELECT mb_id, IFNULL(as_level, 1) as as_level FROM g5_member WHERE mb_id IN (${placeholders})`,
-            ids
-        );
-
-        const levels: Record<string, number> = {};
-        for (const row of rows) {
-            levels[row.mb_id] = row.as_level;
-        }
+        const levels = await fetchMemberLevels(ids);
 
         return json(levels, {
             headers: {
-                'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=120'
+                'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600'
             }
         });
     } catch (error) {
