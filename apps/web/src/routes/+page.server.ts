@@ -3,15 +3,14 @@ import { getWidgetLayout, getSidebarWidgetLayout } from '$lib/server/settings/in
 import { DEFAULT_WIDGETS, DEFAULT_SIDEBAR_WIDGETS } from '$lib/constants/default-widgets';
 import { buildIndexWidgets } from '$lib/server/index-widgets-builder';
 import { getDefaultPeriod, loadRecommendedData } from '$lib/server/recommended-loader';
-import { loadExploreData } from '$lib/server/explore-loader';
 import { getCachedCelebrations } from '$lib/server/celebration';
 import { env } from '$env/dynamic/private';
 
 const BACKEND_URL = env.BACKEND_URL || 'http://localhost:8090';
 
 export const load: PageServerLoad = async () => {
-    // 위젯 데이터, 레이아웃, 추천글, 축하메시지를 병렬로 로드
-    const [indexWidgetsResult, layoutResult, recommendedResult, exploreResult, celebrationResult] =
+    // 메인 SSR 페이로드를 줄이기 위해 explore는 클라이언트 fallback에 맡긴다.
+    const [indexWidgetsResult, layoutResult, recommendedResult, celebrationResult] =
         await Promise.allSettled([
             buildIndexWidgets(BACKEND_URL),
             (async () => {
@@ -26,8 +25,6 @@ export const load: PageServerLoad = async () => {
             })(),
             // 추천글 기본 탭 SSR 프리페치 (로딩 없이 즉시 표시)
             loadRecommendedData(getDefaultPeriod()),
-            // 톺아보기 SSR 프리페치
-            loadExploreData(),
             // 인덱스 전용: 최근 축하메시지 (오늘뿐 아니라 최근 8건)
             getCachedCelebrations(true)
         ]);
@@ -40,7 +37,6 @@ export const load: PageServerLoad = async () => {
             : { widgetLayout: DEFAULT_WIDGETS, sidebarWidgetLayout: DEFAULT_SIDEBAR_WIDGETS };
     const recommendedData =
         recommendedResult.status === 'fulfilled' ? recommendedResult.value : null;
-    const exploreData = exploreResult.status === 'fulfilled' ? exploreResult.value : null;
     const celebrationRecent =
         celebrationResult.status === 'fulfilled' ? celebrationResult.value : null;
 
@@ -54,7 +50,7 @@ export const load: PageServerLoad = async () => {
         sidebarWidgetLayout: layoutData.sidebarWidgetLayout,
         recommendedData,
         recommendedPeriod: getDefaultPeriod(),
-        exploreData,
+        exploreData: null,
         celebrationRecent
     };
 };
