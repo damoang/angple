@@ -43,6 +43,15 @@ export function isInternalAppRequest(request: Request): boolean {
         return true;
     }
 
+    const requestUrl = new URL(request.url);
+    const forwardedIp = request.headers.get('x-real-ip') || request.headers.get('x-forwarded-for') || '';
+    if (
+        (requestUrl.hostname == '127.0.0.1' || requestUrl.hostname == 'localhost') &&
+        forwardedIp.startsWith('127.0.0.1')
+    ) {
+        return true;
+    }
+
     return false;
 }
 
