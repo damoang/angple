@@ -78,6 +78,8 @@
     import BoardSubscribeButton from '$lib/components/features/board/board-subscribe-button.svelte';
     import { Watermark } from '$lib/components/ui/watermark/index.js';
     import { blockedUsersStore } from '$lib/stores/blocked-users.svelte';
+    import { pluginStore } from '$lib/stores/plugin.svelte';
+    import { loadPluginLib } from '$lib/utils/plugin-optional-loader';
     import Trash2 from '@lucide/svelte/icons/trash-2';
 
     // Q&A 게시판 타입 등록
@@ -174,6 +176,30 @@
         setTimeout(fetchTask, 0);
     }
 
+    let loadMemosForAuthors = $state<((memberIds: string[]) => Promise<void>) | null>(null);
+
+    $effect(() => {
+        if (!authStore.isAuthenticated || !pluginStore.isPluginActive('member-memo')) {
+            loadMemosForAuthors = null;
+            return;
+        }
+
+        let cancelled = false;
+
+        loadPluginLib<{ loadMemosForAuthors: (ids: string[]) => Promise<void> }>(
+            'member-memo',
+            'memo-store'
+        ).then((module) => {
+            if (!cancelled) {
+                loadMemosForAuthors = module?.loadMemosForAuthors ?? null;
+            }
+        });
+
+        return () => {
+            cancelled = true;
+        };
+    });
+
     onMount(() => {
         requestAnimationFrame(() => {
             requestAnimationFrame(() => {
@@ -187,10 +213,13 @@
         const result = data.postsData;
         if (!result) return;
 
-        const authorIds = result.posts
+        const authorIds = [...result.posts, ...(result.notices || [])]
             .map((p) => p.author_id)
             .filter((id): id is string => Boolean(id));
         scheduleAuthorLevelFetch(authorIds);
+        if (authStore.isAuthenticated && loadMemosForAuthors && authorIds.length > 0) {
+            void loadMemosForAuthors(authorIds);
+        }
 
         doAction('board_list_loaded', {
             boardId,
