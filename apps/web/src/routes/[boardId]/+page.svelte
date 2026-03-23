@@ -227,6 +227,38 @@
 
     // 활성 태그 필터
     const activeTag = $derived(data.activeTag || null);
+    const postsResult = $derived(data.postsData);
+    const posts = $derived(postsResult.posts);
+    const notices = $derived(postsResult.notices || []);
+    const pagination = $derived(postsResult.pagination);
+    const filteredPosts = $derived(
+        posts.filter(
+            (p) => !blockedUsersStore.isBlocked(p.author_id) && !uiSettingsStore.isMuted(p.title)
+        )
+    );
+    const importantNotices = $derived(
+        notices.filter(
+            (n) =>
+                n.notice_type === 'important' &&
+                !(uiSettingsStore.hideReadNotices && readPostsStore.isRead(boardId, n.id))
+        )
+    );
+    const normalNotices = $derived(
+        notices.filter(
+            (n) =>
+                n.notice_type !== 'important' &&
+                !(uiSettingsStore.hideReadNotices && readPostsStore.isRead(boardId, n.id))
+        )
+    );
+    const hasNotices = $derived(importantNotices.length > 0 || normalNotices.length > 0);
+    const shuffledPromos = $derived.by(() => {
+        const arr = [...promotionPosts];
+        for (let i = arr.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [arr[i], arr[j]] = [arr[j], arr[i]];
+        }
+        return arr;
+    });
 
     // 태그 필터 적용
     function filterByTag(tagName: string): void {
@@ -632,69 +664,40 @@
                 </div>
             {/if}
 
-            {@const result = data.postsData}
-                {@const posts = result.posts}
-                {@const notices = result.notices || []}
-                {@const pagination = result.pagination}
-                {@const filteredPosts = posts.filter(
-                    (p) =>
-                        !blockedUsersStore.isBlocked(p.author_id) &&
-                        !uiSettingsStore.isMuted(p.title)
-                )}
-                {@const importantNotices = notices.filter(
-                    (n) =>
-                        n.notice_type === 'important' &&
-                        !(uiSettingsStore.hideReadNotices && readPostsStore.isRead(boardId, n.id))
-                )}
-                {@const normalNotices = notices.filter(
-                    (n) =>
-                        n.notice_type !== 'important' &&
-                        !(uiSettingsStore.hideReadNotices && readPostsStore.isRead(boardId, n.id))
-                )}
-                {@const hasNotices = importantNotices.length > 0 || normalNotices.length > 0}
-                {@const shuffledPromos = (() => {
-                    const arr = [...promotionPosts];
-                    for (let i = arr.length - 1; i > 0; i--) {
-                        const j = Math.floor(Math.random() * (i + 1));
-                        [arr[i], arr[j]] = [arr[j], arr[i]];
-                    }
-                    return arr;
-                })()}
-
-                <!-- 에러 메시지 -->
-                {#if result.error}
+            <!-- 에러 메시지 -->
+            {#if postsResult.error}
                     <Card class="border-destructive mb-6">
                         <CardContent class="pt-6">
-                            <p class="text-destructive text-center">{result.error}</p>
+                            <p class="text-destructive text-center">{postsResult.error}</p>
                         </CardContent>
                     </Card>
-                {/if}
+            {/if}
 
-                <!-- 일괄 작업 툴바 (관리자 선택 모드) -->
-                {#if bulkSelectMode}
-                    <div class="mb-3">
-                        <BulkActionsToolbar
-                            {boardId}
-                            selectedIds={selectedPostIds}
-                            onClearSelection={clearSelection}
-                            onActionComplete={handleBulkActionComplete}
-                        />
-                        {#if selectedPostIds.length === 0}
-                            <div class="mt-2 flex items-center gap-2">
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onclick={() => selectAllVisible(filteredPosts)}
-                                    >현재 페이지 전체 선택</Button
-                                >
-                            </div>
-                        {/if}
-                    </div>
-                {/if}
+            <!-- 일괄 작업 툴바 (관리자 선택 모드) -->
+            {#if bulkSelectMode}
+                <div class="mb-3">
+                    <BulkActionsToolbar
+                        {boardId}
+                        selectedIds={selectedPostIds}
+                        onClearSelection={clearSelection}
+                        onActionComplete={handleBulkActionComplete}
+                    />
+                    {#if selectedPostIds.length === 0}
+                        <div class="mt-2 flex items-center gap-2">
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onclick={() => selectAllVisible(filteredPosts)}
+                                >현재 페이지 전체 선택</Button
+                            >
+                        </div>
+                    {/if}
+                </div>
+            {/if}
 
-                <!-- 게시글 목록 -->
-                <div class={wrapperClass}>
-                    {#if listLayoutId === 'classic' && uiSettingsStore.listView !== 'modern'}
+            <!-- 게시글 목록 -->
+            <div class={wrapperClass}>
+                {#if listLayoutId === 'classic' && uiSettingsStore.listView !== 'modern'}
                         <div
                             class="border-border bg-muted/30 text-muted-foreground hidden border-b px-4 py-1.5 text-sm font-medium md:block"
                         >
