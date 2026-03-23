@@ -25,8 +25,40 @@ import { TwitterProvider } from '$lib/server/auth/oauth/providers/twitter.js';
 import type { OAuthUserProfile } from '$lib/server/auth/oauth/types.js';
 import { getCertConfig } from '$lib/server/auth/cert-inicis.js';
 import { runSocialLoginPostProcess } from '$lib/server/auth/social-login-postprocess.js';
+import {
+    generateSocialMbId,
+    isMbIdTaken,
+    isNicknameTaken,
+    createMember
+} from '$lib/server/auth/register.js';
 
 const COOKIE_DOMAIN = env.COOKIE_DOMAIN || undefined;
+
+const AUTH_EVENT_COOKIE = 'ga4_auth_event';
+
+function isAdsInviteFlow(redirectUrl: string | null | undefined): boolean {
+    return !!redirectUrl && redirectUrl.includes('ads.damoang.net/invite/');
+}
+
+function buildInviteTempNickname(provider: string): string {
+    const randomPart = crypto.randomUUID().replace(/-/g, '').slice(0, 6);
+    const providerPart =
+        provider
+            .toLowerCase()
+            .replace(/[^a-z0-9]/g, '')
+            .slice(0, 6) || 'social';
+    return `tmp_${providerPart}_${randomPart}`.slice(0, 20);
+}
+
+async function generateInviteTempNickname(provider: string): Promise<string> {
+    for (let i = 0; i < 20; i++) {
+        const candidate = buildInviteTempNickname(provider);
+        if (!(await isNicknameTaken(candidate))) {
+            return candidate;
+        }
+    }
+    throw new Error('초대 임시 닉네임 생성에 실패했습니다.');
+}
 
 /** 공통 콜백 처리 로직 */
 async function handleCallback(
@@ -94,35 +126,51 @@ async function handleCallback(
             }
         }
 
-        // 회원 없으면 회원가입 페이지로 리다이렉트
+        // 회원 없으면 초대 플로우는 즉시 임시 계정 생성 후 복귀, 일반 플로우만 register로 이동
         if (!mbId) {
-            cookies.set(
-                'pending_social_register',
-                JSON.stringify({
-                    provider: providerName,
-                    identifier: profile.identifier,
-                    email: profile.email || '',
-                    displayName: profile.displayName || '',
-                    photoUrl: profile.photoUrl || '',
-                    profileUrl: profile.profileUrl || ''
-                }),
-                {
-                    path: '/',
-                    httpOnly: true,
-                    sameSite: 'lax',
-                    secure: !dev,
-                    maxAge: 60 * 10
+            if (isAdsInviteFlow(stateData.redirect)) {
+                const nickname = await generateInviteTempNickname(providerName);
+                mbId = generateSocialMbId(providerName, profile.identifier);
+                if (await isMbIdTaken(mbId)) {
+                    mbId = `${mbId}_${crypto.randomUUID().replace(/-/g, '').slice(0, 8)}`;
                 }
-            );
 
-            const params = new URLSearchParams({ provider: providerName });
-            if (profile.email) {
-                params.set('email', profile.email);
+                await createMember({
+                    mb_id: mbId,
+                    mb_nick: nickname,
+                    mb_email: profile.email || '',
+                    mb_name: nickname,
+                    mb_ip: clientIp
+                });
+            } else {
+                cookies.set(
+                    'pending_social_register',
+                    JSON.stringify({
+                        provider: providerName,
+                        identifier: profile.identifier,
+                        email: profile.email || '',
+                        displayName: profile.displayName || '',
+                        photoUrl: profile.photoUrl || '',
+                        profileUrl: profile.profileUrl || ''
+                    }),
+                    {
+                        path: '/',
+                        httpOnly: true,
+                        sameSite: 'lax',
+                        secure: !dev,
+                        maxAge: 60 * 10
+                    }
+                );
+
+                const params = new URLSearchParams({ provider: providerName });
+                if (profile.email) {
+                    params.set('email', profile.email);
+                }
+                if (stateData.redirect) {
+                    params.set('redirect', stateData.redirect);
+                }
+                redirect(302, `/register?${params.toString()}`);
             }
-            if (stateData.redirect) {
-                params.set('redirect', stateData.redirect);
-            }
-            redirect(302, `/register?${params.toString()}`);
         }
 
         // 회원 정보 조회 및 활성 상태 확인
@@ -164,6 +212,19 @@ async function handleCallback(
             ...domainOpt
         });
 
+        cookies.set(
+            AUTH_EVENT_COOKIE,
+            `${existingProfile || mbId ? 'login' : 'sign_up'}:${providerName}`,
+            {
+                path: '/',
+                httpOnly: false,
+                sameSite: 'lax',
+                secure: !dev,
+                maxAge: 120,
+                ...domainOpt
+            }
+        );
+
         // 레거시 호환: refresh_token 생성 (서브도메인 인증용)
         const { token: refreshToken } = await generateRefreshToken(member.mb_id, {
             ip: clientIp,
@@ -190,8 +251,8 @@ async function handleCallback(
             console.error('[OAuth Callback] SSO cookie 발급 실패:', e);
         }
 
-        // 실명인증 미완료 시 인증 페이지로 리다이렉트
-        if (!member.mb_certify) {
+        // 실명인증 미완료 시 인증 페이지로 리다이렉트 (초대 플로우는 제외)
+        if (!isAdsInviteFlow(stateData.redirect) && !member.mb_certify) {
             try {
                 const certConfig = await getCertConfig();
                 if (certConfig.certUse > 0) {
