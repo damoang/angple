@@ -9,7 +9,14 @@ import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import type { RowDataPacket } from 'mysql2';
 import pool from '$lib/server/db';
-import { processCommentContentLinks, processLinkField } from '$lib/server/link-processing/adapter';
+import {
+    applyAffiliateField,
+    fetchCommentAffiliateLinks,
+    findAffiliateFieldRow,
+    groupAffiliateLinksByCommentId,
+    renderAffiliateContent
+} from '$lib/server/affiliate-links';
+import { isLinkProcessingPluginEnabled } from '$lib/server/link-processing/runtime';
 import { isInternalAppRequest } from '$lib/server/internal-api.js';
 
 interface CommentRow extends RowDataPacket {
@@ -41,6 +48,32 @@ interface EditCountRow extends RowDataPacket {
     cnt: number;
 }
 
+interface CommentResponseItem {
+    id: number;
+    content: string;
+    link1: string;
+    link2: string;
+    author: string;
+    author_id: string;
+    author_image: string;
+    author_image_updated_at: string;
+    author_ip: string;
+    likes: number;
+    dislikes: number;
+    depth: number;
+    parent_id: number;
+    created_at: string;
+    is_secret: boolean;
+    deleted_at: string | null;
+    deleted_by: string | null;
+    edit_count: number;
+    link1_display?: string;
+    link2_display?: string;
+    link1_affiliate?: boolean;
+    link2_affiliate?: boolean;
+    report_count?: string | number;
+}
+
 function maskIp(ip: string): string {
     if (!ip) return '';
     const parts = ip.split('.');
@@ -48,31 +81,6 @@ function maskIp(ip: string): string {
         return `${parts[0]}.♡.${parts[2]}.${parts[3]}`;
     }
     return ip;
-}
-
-async function applyAffiliateLinkField(
-    target: Record<string, unknown>,
-    field: 'link1' | 'link2',
-    context: { boardId: string; postId: number; commentId: number }
-): Promise<void> {
-    const originalUrl = target[field];
-    if (typeof originalUrl !== 'string' || !originalUrl) return;
-
-    const displayField = `${field}_display`;
-    const affiliateField = `${field}_affiliate`;
-
-    const result = await processLinkField({
-        url: originalUrl,
-        boardId: context.boardId,
-        postId: context.postId,
-        commentId: context.commentId,
-        source: field === 'link1' ? 'comment_link1' : 'comment_link2',
-        field
-    });
-
-    target[displayField] = result.displayUrl;
-    target[field] = result.href;
-    target[affiliateField] = result.result.provider ?? '';
 }
 
 const INTERNAL_COMMENT_LIMIT = 200;
@@ -166,7 +174,7 @@ export const GET: RequestHandler = async ({ params, url, locals, request }) => {
             }
         }
 
-        const comments = rows.map((row) => ({
+        const comments: CommentResponseItem[] = rows.map((row) => ({
             id: row.wr_id,
             content: row.wr_deleted_at ? (isAdmin ? row.wr_content : '') : row.wr_content,
             link1: row.wr_deleted_at ? (isAdmin ? row.wr_link1 || '' : '') : row.wr_link1 || '',
@@ -211,34 +219,51 @@ export const GET: RequestHandler = async ({ params, url, locals, request }) => {
                 : {})
         }));
 
-        const affiliateContext = { bo_table: safeBoardId, wr_id: safePostId };
-        await Promise.allSettled(
-            comments.map(async (comment) => {
-                if (typeof comment.content === 'string' && comment.content) {
-                    comment.content = await processCommentContentLinks(comment.content, {
-                        boardId: affiliateContext.bo_table,
-                        postId: affiliateContext.wr_id,
-                        commentId: Number(comment.id)
-                    });
-                }
+        const affiliateEnabled = await isLinkProcessingPluginEnabled().catch(() => false);
+        const commentAffiliateRows = affiliateEnabled
+            ? await fetchCommentAffiliateLinks(
+                  safeBoardId,
+                  safePostId,
+                  comments.map((comment) => Number(comment.id)).filter((id) => !isNaN(id) && id > 0)
+              ).catch(() => [])
+            : [];
+        const affiliateRowsByCommentId = groupAffiliateLinksByCommentId(commentAffiliateRows);
 
-                if (comment.link1) {
-                    await applyAffiliateLinkField(comment, 'link1', {
-                        boardId: safeBoardId,
-                        postId: safePostId,
-                        commentId: Number(comment.id)
-                    });
-                }
+        for (const comment of comments) {
+            const rowsForComment = affiliateRowsByCommentId.get(Number(comment.id)) || [];
 
-                if (comment.link2) {
-                    await applyAffiliateLinkField(comment, 'link2', {
-                        boardId: safeBoardId,
-                        postId: safePostId,
-                        commentId: Number(comment.id)
-                    });
+            if (affiliateEnabled && typeof comment.content === 'string' && comment.content) {
+                comment.content = renderAffiliateContent(
+                    comment.content,
+                    rowsForComment,
+                    'comment_body'
+                );
+            }
+
+            if (affiliateEnabled && comment.link1) {
+                const result = applyAffiliateField(
+                    comment.link1,
+                    findAffiliateFieldRow(rowsForComment, 'comment_link1')
+                );
+                if (result.href !== comment.link1) {
+                    comment.link1_display = result.displayUrl;
+                    comment.link1 = result.href;
+                    comment.link1_affiliate = result.affiliate;
                 }
-            })
-        );
+            }
+
+            if (affiliateEnabled && comment.link2) {
+                const result = applyAffiliateField(
+                    comment.link2,
+                    findAffiliateFieldRow(rowsForComment, 'comment_link2')
+                );
+                if (result.href !== comment.link2) {
+                    comment.link2_display = result.displayUrl;
+                    comment.link2 = result.href;
+                    comment.link2_affiliate = result.affiliate;
+                }
+            }
+        }
 
         return json({
             success: true,

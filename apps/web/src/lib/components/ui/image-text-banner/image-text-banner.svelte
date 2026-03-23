@@ -29,6 +29,7 @@
         altText: string;
         target: string;
         trackingId?: string;
+        trackable?: boolean;
     }
 
     let banners = $state<BannerItem[]>([]);
@@ -112,7 +113,8 @@
                 linkUrl: b.landingUrl,
                 altText: b.altText || '',
                 target: b.target || '_blank',
-                trackingId: b.trackingId
+                trackingId: b.trackingId,
+                trackable: true
             }));
             persistBanners(banners);
             loading = false;
@@ -136,7 +138,8 @@
                     linkUrl: b.landingUrl,
                     altText: b.altText || '',
                     target: b.target || '_blank',
-                    trackingId: b.trackingId
+                    trackingId: b.trackingId,
+                    trackable: true
                 }));
                 persistBanners(banners);
                 retryCount = 0;
@@ -241,7 +244,7 @@
                             href={slot.linkUrl}
                             target={slot.target || '_blank'}
                             rel="nofollow noopener"
-                            use:aplogTrack={slot.trackingId
+                            use:aplogTrack={slot.trackable
                                 ? {
                                       adId: slot.id,
                                       adPos: position,
@@ -304,7 +307,7 @@
                         href={banner.linkUrl}
                         target={banner.target || '_blank'}
                         rel="nofollow noopener"
-                        use:aplogTrack={banner.trackingId
+                        use:aplogTrack={banner.trackable
                             ? {
                                   adId: banner.id,
                                   adPos: position,
