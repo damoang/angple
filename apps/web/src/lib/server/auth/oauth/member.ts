@@ -35,6 +35,39 @@ export async function getMemberById(mbId: string): Promise<MemberRow | null> {
     const member = (rows[0] as MemberRow) || null;
 
     if (member) {
+        if (member.mb_level === 5) {
+            const [promotionRows] = await pool.query<RowDataPacket[]>(
+                `SELECT end_date AS advertiser_end_date,
+                        CASE
+                            WHEN is_active = 1 AND start_date <= CURDATE() AND end_date >= CURDATE() THEN 'ongoing'
+                            WHEN end_date < CURDATE() THEN 'expired'
+                            WHEN is_active = 1 AND start_date > CURDATE() THEN 'scheduled'
+                            ELSE 'inactive'
+                        END AS advertiser_status
+                 FROM promotions
+                 WHERE member_id = ?
+                 ORDER BY
+                     CASE
+                         WHEN is_active = 1 AND start_date <= CURDATE() AND end_date >= CURDATE() THEN 0
+                         WHEN is_active = 1 AND end_date >= CURDATE() THEN 1
+                         ELSE 2
+                     END,
+                     end_date DESC
+                 LIMIT 1`,
+                [mbId]
+            );
+
+            const promotion = (promotionRows[0] as
+                | Pick<MemberRow, 'advertiser_end_date' | 'advertiser_status'>
+                | undefined) ?? {
+                advertiser_end_date: null,
+                advertiser_status: null
+            };
+
+            member.advertiser_end_date = promotion.advertiser_end_date ?? null;
+            member.advertiser_status = promotion.advertiser_status ?? null;
+        }
+
         await memberCache.set(mbId, member);
     }
     return member;

@@ -486,6 +486,8 @@ export interface DamoangUser {
     mb_image_updated_at?: string; // 프로필 이미지 갱신 시각
     as_level?: number; // 나리야 경험치 레벨
     as_max?: number; // 현재 레벨 최대 경험치
+    advertiser_end_date?: string; // 광고주 프로모션 종료일 (yyyy-mm-dd)
+    advertiser_status?: 'ongoing' | 'expired' | 'scheduled' | 'inactive';
 }
 
 // 회원 프로필 타입 (공개 정보)
