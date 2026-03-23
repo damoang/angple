@@ -21,6 +21,7 @@
     import ChevronLeft from '@lucide/svelte/icons/chevron-left';
     import ChevronRight from '@lucide/svelte/icons/chevron-right';
     import Settings from '@lucide/svelte/icons/settings';
+    import { normalizeWebUrl, toRelativeIfSameOrigin } from '$lib/utils/url-normalizer';
 
     let { data }: { data: PageData } = $props();
 
@@ -155,23 +156,13 @@
             if (notification.type === 'like' && !url.includes('#')) {
                 url += '#likes';
             }
-            try {
-                const absolute = new URL(url, window.location.origin);
-                const isLocalhost =
-                    absolute.hostname === 'localhost' ||
-                    absolute.hostname === '127.0.0.1' ||
-                    absolute.hostname === '::1';
-                if (absolute.protocol === 'http:' && !isLocalhost) {
-                    absolute.protocol = 'https:';
-                }
-                if (absolute.origin === window.location.origin) {
-                    await goto(`${absolute.pathname}${absolute.search}${absolute.hash}`);
-                } else {
-                    window.location.href = absolute.toString();
-                }
-            } catch {
-                await goto(url);
+            const normalized = normalizeWebUrl(url, { baseOrigin: window.location.origin });
+            const targetUrl = toRelativeIfSameOrigin(normalized, window.location.origin);
+            if (targetUrl.startsWith('http://') || targetUrl.startsWith('https://')) {
+                window.location.href = targetUrl;
+                return;
             }
+            await goto(targetUrl);
         }
     }
 

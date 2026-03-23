@@ -23,6 +23,7 @@
     import { getAvatarUrl } from '$lib/utils/member-icon';
     import { menuStore } from '$lib/stores/menu.svelte';
     import { getIcon } from '$lib/utils/icon-map';
+    import { normalizeWebUrl } from '$lib/utils/url-normalizer';
     import { page } from '$app/stores';
     import { browser } from '$app/environment';
 
@@ -46,7 +47,10 @@
     const logoSrc = $derived.by(() => {
         if (headerLogoFailed) return DefaultLogo;
         if (prefersReducedMotion && isAnimatedSVGLogo(activeLogoSrc)) return DefaultLogo;
-        return activeLogoSrc;
+
+        return browser
+            ? normalizeWebUrl(activeLogoSrc, { baseOrigin: window.location.origin })
+            : normalizeWebUrl(activeLogoSrc);
     });
     const logoAlt = $derived(headerLogoFailed ? 'Logo' : activeLogoAlt);
 

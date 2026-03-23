@@ -7,6 +7,7 @@
     import { onMount } from 'svelte';
     import { goto } from '$app/navigation';
     import { browser } from '$app/environment';
+    import { normalizeWebUrl, toRelativeIfSameOrigin } from '$lib/utils/url-normalizer';
     import Bell from '@lucide/svelte/icons/bell';
     import MessageSquare from '@lucide/svelte/icons/message-square';
     import Reply from '@lucide/svelte/icons/reply';
@@ -71,25 +72,8 @@
 
         if (!browser) return url;
 
-        try {
-            const absolute = new URL(url, window.location.origin);
-            const isLocalhost =
-                absolute.hostname === 'localhost' ||
-                absolute.hostname === '127.0.0.1' ||
-                absolute.hostname === '::1';
-
-            if (absolute.protocol === 'http:' && !isLocalhost) {
-                absolute.protocol = 'https:';
-            }
-
-            if (absolute.origin === window.location.origin) {
-                return `${absolute.pathname}${absolute.search}${absolute.hash}`;
-            }
-
-            return absolute.toString();
-        } catch {
-            return url;
-        }
+        const normalized = normalizeWebUrl(url, { baseOrigin: window.location.origin });
+        return toRelativeIfSameOrigin(normalized, window.location.origin);
     }
 
     function getNotificationIcon(type: string) {
