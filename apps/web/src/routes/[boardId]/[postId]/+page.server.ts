@@ -38,9 +38,6 @@ export const load: PageServerLoad = async ({
     getClientAddress
 }) => {
     const { boardId, postId } = params;
-    const currentPage = Number(url.searchParams.get('page')) || 1;
-    const recentPostsLimit = 12;
-
     // postId가 숫자인지 검증 (레거시 PHP URL 방어: /bbs/board.php 등)
     if (!/^\d+$/.test(postId)) {
         throw error(404, '잘못된 게시글 주소입니다.');
@@ -432,42 +429,6 @@ export const load: PageServerLoad = async ({
             };
         })();
 
-        const recentPostsData = await bFetch(
-            `/api/v1/boards/${boardId}/posts?page=${currentPage}&limit=${recentPostsLimit}`,
-            {
-                headers,
-                timeout: 5_000
-            }
-        )
-            .then(async (res) => {
-                if (!res.ok) {
-                    return {
-                        items: [],
-                        total: 0,
-                        page: currentPage,
-                        limit: recentPostsLimit,
-                        total_pages: 0
-                    };
-                }
-                const json = await res.json();
-                const items = (json.data as FreePost[]) || [];
-                const meta = json.meta || {};
-                return {
-                    items,
-                    total: meta.total || 0,
-                    page: meta.page || currentPage,
-                    limit: meta.limit || recentPostsLimit,
-                    total_pages: meta.limit ? Math.ceil(meta.total / meta.limit) : 0
-                };
-            })
-            .catch(() => ({
-                items: [],
-                total: 0,
-                page: currentPage,
-                limit: recentPostsLimit,
-                total_pages: 0
-            }));
-
         const auxiliaryDataPromise = (async () => {
             const [
                 promotionResult,
@@ -635,7 +596,6 @@ export const load: PageServerLoad = async ({
             post,
             board,
             commentsData,
-            recentPostsData,
             isScrapped: false,
             promotionExpired,
             watermark,

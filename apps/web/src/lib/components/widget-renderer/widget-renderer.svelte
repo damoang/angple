@@ -13,6 +13,14 @@
     import { SvelteMap } from 'svelte/reactivity';
     import WidgetWrapper from './widget-wrapper.svelte';
     import { hooks } from '@angple/hook-system';
+    import TagNavWidget from '../../../../../../widgets/tag-nav/index.svelte';
+    import EmpathyExploreRowWidget from '../../../../../../widgets/empathy-explore-row/index.svelte';
+    import NewsEconomyRowWidget from '../../../../../../widgets/news-economy-row/index.svelte';
+    import CelebrationWidget from '../../../../../../widgets/celebration/index.svelte';
+    import AdSlotWidget from '../../../../../../widgets/ad-slot/index.svelte';
+    import PostListWidget from '../../../../../../widgets/post-list/index.svelte';
+    import NoticeWidget from '../../../../../../widgets/notice/index.svelte';
+    import ImageTextBannerWidget from '../../../../../../widgets/image-text-banner/index.svelte';
 
     interface Props {
         /** 렌더링할 위젯 존 */
@@ -26,6 +34,16 @@
     }
 
     const { zone, prefetchDataMap = {}, onlyIds, excludeIds = [] }: Props = $props();
+    const STATIC_WIDGET_COMPONENTS: Record<string, Component> = {
+        'tag-nav': TagNavWidget,
+        'empathy-explore-row': EmpathyExploreRowWidget,
+        'news-economy-row': NewsEconomyRowWidget,
+        celebration: CelebrationWidget,
+        'ad-slot': AdSlotWidget,
+        'post-list': PostListWidget,
+        notice: NoticeWidget,
+        'image-text-banner': ImageTextBannerWidget
+    };
 
     // 존별 위젯 목록
     const allWidgets = $derived(
@@ -77,6 +95,14 @@
     $effect(() => {
         const types = new Set(widgets.map((w) => w.type));
         for (const type of types) {
+            const staticComponent = STATIC_WIDGET_COMPONENTS[type];
+            if (staticComponent) {
+                if (!componentCache.has(type)) {
+                    componentCache.set(type, staticComponent);
+                    loadedComponents.set(type, staticComponent);
+                }
+                continue;
+            }
             if (!componentCache.has(type)) {
                 loadWidgetComponent(type).then((component) => {
                     componentCache.set(type, component);
@@ -165,12 +191,7 @@
                     prefetchData={prefetchDataMap[widget.type]}
                 />
             {:else}
-                <div
-                    class="border-border bg-background/70 {getPlaceholderClass(
-                        widget
-                    )} rounded-lg border"
-                    aria-hidden="true"
-                ></div>
+                <div class={getPlaceholderClass(widget)} aria-hidden="true"></div>
             {/if}
         {/each}
     </div>

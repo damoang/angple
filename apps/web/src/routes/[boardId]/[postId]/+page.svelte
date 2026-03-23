@@ -1666,15 +1666,12 @@
 
 <!-- 게시판 최근글 목록 -->
 {#if canRead}
-    <RecentPosts
+<RecentPosts
         {boardId}
         {boardTitle}
         currentPostId={data.post.id}
         limit={25}
         initialPage={Number($page.url.searchParams.get('page')) || 1}
-        initialPosts={data.recentPostsData?.items || []}
-        initialTotal={data.recentPostsData?.total || 0}
-        initialTotalPages={data.recentPostsData?.total_pages || 1}
         {promotionPosts}
         displaySettings={data.board?.display_settings}
     />

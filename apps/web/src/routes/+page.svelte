@@ -7,7 +7,7 @@
     import { SeoHead, createWebSiteJsonLd, getSiteUrl } from '$lib/seo/index.js';
     import type { SeoConfig } from '$lib/seo/types.js';
 
-    const { data } = $props();
+    let { data } = $props();
 
     // SSR 데이터 즉시 스토어 초기화 (hydration 전에 실행)
     indexWidgetsStore.initFromServer(data.indexWidgets);
