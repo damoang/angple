@@ -33,7 +33,10 @@ export default defineConfig(({ mode }) => {
             alias: [
                 {
                     find: /^@lucide\/svelte\/icons\/(.+)$/,
-                    replacement: path.resolve(__dirname, 'node_modules/@lucide/svelte/dist/icons/$1')
+                    replacement: path.resolve(
+                        __dirname,
+                        'node_modules/@lucide/svelte/dist/icons/$1'
+                    )
                 },
                 {
                     find: '$themes',

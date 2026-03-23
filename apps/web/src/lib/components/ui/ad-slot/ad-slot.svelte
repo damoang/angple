@@ -194,7 +194,6 @@
     {#if slotId}
         <div id={slotId} class="gam-ad-slot w-full" style:min-height={effectiveMinHeight}></div>
     {/if}
-
 </div>
 
 <style>

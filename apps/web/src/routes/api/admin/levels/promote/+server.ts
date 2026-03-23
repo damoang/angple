@@ -3,6 +3,7 @@
  */
 import { json, type RequestHandler } from '@sveltejs/kit';
 import { checkAndPromoteMember } from '$lib/server/auth/auto-promotion.js';
+import { LEVEL_HISTORY_REASONS } from '$lib/server/auth/member-level-history.js';
 
 export const POST: RequestHandler = async ({ locals, request }) => {
     // 관리자 권한 확인
@@ -24,7 +25,9 @@ export const POST: RequestHandler = async ({ locals, request }) => {
             );
         }
 
-        const result = await checkAndPromoteMember(mbId);
+        const result = await checkAndPromoteMember(mbId, {
+            reason: LEVEL_HISTORY_REASONS.ADMIN_MANUAL
+        });
 
         if (!result) {
             return json({ data: { promoted: false, message: '승급 조건을 충족하지 않습니다.' } });

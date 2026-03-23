@@ -107,9 +107,7 @@ class SlotRegistry {
             ((component as any)?.name as string | undefined)?.toLowerCase() || 'component';
         const occurrence = componentList.filter(
             (comp) =>
-                comp.source === source &&
-                comp.priority === priority &&
-                comp.component === component
+                comp.source === source && comp.priority === priority && comp.component === component
         ).length;
         const id = `${slotName}-${sourceKey}-${componentName}-${priority}-${occurrence}`;
 

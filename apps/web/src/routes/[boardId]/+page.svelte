@@ -666,11 +666,11 @@
 
             <!-- 에러 메시지 -->
             {#if postsResult.error}
-                    <Card class="border-destructive mb-6">
-                        <CardContent class="pt-6">
-                            <p class="text-destructive text-center">{postsResult.error}</p>
-                        </CardContent>
-                    </Card>
+                <Card class="border-destructive mb-6">
+                    <CardContent class="pt-6">
+                        <p class="text-destructive text-center">{postsResult.error}</p>
+                    </CardContent>
+                </Card>
             {/if}
 
             <!-- 일괄 작업 툴바 (관리자 선택 모드) -->
@@ -698,280 +698,267 @@
             <!-- 게시글 목록 -->
             <div class={wrapperClass}>
                 {#if listLayoutId === 'classic' && uiSettingsStore.listView !== 'modern'}
-                        <div
-                            class="border-border bg-muted/30 text-muted-foreground hidden border-b px-4 py-1.5 text-sm font-medium md:block"
-                        >
-                            <div
-                                class="grid grid-cols-[60px_1fr_auto_auto_auto] items-center gap-0"
-                            >
-                                <div class="text-center">공감</div>
-                                <div>제목</div>
-                                <div class="w-[120px] pl-1">이름</div>
-                                <div class="w-[70px] pl-1 text-center">날짜</div>
-                                <div class="w-[50px] pl-1 text-center">조회</div>
-                            </div>
+                    <div
+                        class="border-border bg-muted/30 text-muted-foreground hidden border-b px-4 py-1.5 text-sm font-medium md:block"
+                    >
+                        <div class="grid grid-cols-[60px_1fr_auto_auto_auto] items-center gap-0">
+                            <div class="text-center">공감</div>
+                            <div>제목</div>
+                            <div class="w-[120px] pl-1">이름</div>
+                            <div class="w-[70px] pl-1 text-center">날짜</div>
+                            <div class="w-[50px] pl-1 text-center">조회</div>
                         </div>
-                    {/if}
-                    <!-- 공지사항 (목록 내부) -->
-                    {#if hasNotices && !isSearching}
-                        {#if listLayoutId === 'classic'}
-                            {#each importantNotices as notice (notice.id)}
-                                <a
-                                    href="/{boardId}/{notice.id}"
-                                    class="hover:bg-destructive/10 block px-4 py-1.5 no-underline transition-colors"
-                                    style="background: rgba(239, 68, 68, 0.04);"
-                                >
-                                    <div class="flex items-center gap-2 md:gap-3">
-                                        <div class="hidden shrink-0 md:block" style="width: 60px;">
-                                            <div
-                                                class="mx-auto flex h-5 w-10 items-center justify-center rounded-lg"
-                                                style="background: rgba(239,68,68,0.1);"
-                                            >
-                                                <Megaphone
-                                                    class="h-3.5 w-3.5"
-                                                    style="color: orangered;"
-                                                />
-                                            </div>
-                                        </div>
-                                        <div class="min-w-0 flex-1">
-                                            <div class="flex items-center gap-1">
-                                                <Megaphone
-                                                    class="text-destructive h-3.5 w-3.5 shrink-0 md:hidden"
-                                                /><Badge
-                                                    variant="destructive"
-                                                    class="shrink-0 text-[10px]">필수</Badge
-                                                >
-                                                <h3
-                                                    class="text-foreground truncate font-medium"
-                                                    style="font-size: var(--list-font-size, 0.9375rem);"
-                                                >
-                                                    {notice.title}
-                                                </h3>
-                                            </div>
-                                        </div>
-                                        <span
-                                            class="text-muted-foreground hidden shrink-0 md:inline"
-                                            style="font-size: 13px;">{notice.author}</span
+                    </div>
+                {/if}
+                <!-- 공지사항 (목록 내부) -->
+                {#if hasNotices && !isSearching}
+                    {#if listLayoutId === 'classic'}
+                        {#each importantNotices as notice (notice.id)}
+                            <a
+                                href="/{boardId}/{notice.id}"
+                                class="hover:bg-destructive/10 block px-4 py-1.5 no-underline transition-colors"
+                                style="background: rgba(239, 68, 68, 0.04);"
+                            >
+                                <div class="flex items-center gap-2 md:gap-3">
+                                    <div class="hidden shrink-0 md:block" style="width: 60px;">
+                                        <div
+                                            class="mx-auto flex h-5 w-10 items-center justify-center rounded-lg"
+                                            style="background: rgba(239,68,68,0.1);"
                                         >
-                                    </div>
-                                </a>
-                            {/each}
-                            {#each normalNotices as notice (notice.id)}
-                                <a
-                                    href="/{boardId}/{notice.id}"
-                                    class="hover:bg-accent block px-4 py-1.5 no-underline transition-colors"
-                                    style="background: rgba(255, 255, 255, 0.03);"
-                                >
-                                    <div class="flex items-center gap-2 md:gap-3">
-                                        <div class="hidden shrink-0 md:block" style="width: 60px;">
-                                            <div
-                                                class="mx-auto flex h-5 w-10 items-center justify-center rounded-lg"
-                                                style="background: rgba(239,68,68,0.1);"
-                                            >
-                                                <Pin
-                                                    class="h-3.5 w-3.5"
-                                                    style="color: orangered;"
-                                                />
-                                            </div>
+                                            <Megaphone
+                                                class="h-3.5 w-3.5"
+                                                style="color: orangered;"
+                                            />
                                         </div>
-                                        <div class="min-w-0 flex-1">
-                                            <div class="flex items-center gap-1">
-                                                <Pin
-                                                    class="text-liked h-3.5 w-3.5 shrink-0 md:hidden"
-                                                /><Badge
-                                                    class="shrink-0 text-[10px] font-semibold"
-                                                    style="background: rgba(239, 68, 68, 0.15); color: rgb(239, 68, 68); border: 1px solid rgba(239, 68, 68, 0.2);"
-                                                    >공지</Badge
-                                                >
-                                                <h3
-                                                    class="text-foreground truncate font-medium"
-                                                    style="font-size: var(--list-font-size, 0.9375rem);"
-                                                >
-                                                    {notice.title}
-                                                </h3>
-                                            </div>
-                                        </div>
-                                        <span
-                                            class="text-muted-foreground hidden shrink-0 md:inline"
-                                            style="font-size: 13px;">{notice.author}</span
-                                        >
-                                    </div>
-                                </a>
-                            {/each}
-                        {:else}
-                            {#each importantNotices as notice (notice.id)}
-                                <a
-                                    href="/{boardId}/{notice.id}"
-                                    class="bg-destructive/5 border-destructive/20 hover:bg-destructive/10 block rounded-lg border px-4 py-3 no-underline transition-colors"
-                                >
-                                    <div class="flex items-center gap-3">
-                                        <div class="flex shrink-0 items-center gap-1.5">
-                                            <Megaphone class="text-destructive h-4 w-4" /><Badge
-                                                variant="destructive"
-                                                class="text-xs">필수</Badge
-                                            >
-                                        </div>
-                                        <h3 class="text-foreground flex-1 truncate font-medium">
-                                            {notice.title}
-                                        </h3>
-                                        <span class="text-muted-foreground shrink-0 text-xs"
-                                            >{notice.author}</span
-                                        >
-                                    </div>
-                                </a>
-                            {/each}
-                            {#each normalNotices as notice (notice.id)}
-                                <a
-                                    href="/{boardId}/{notice.id}"
-                                    class="bg-muted/50 border-border hover:bg-muted block rounded-lg border px-4 py-3 no-underline transition-colors"
-                                >
-                                    <div class="flex items-center gap-3">
-                                        <div class="flex shrink-0 items-center gap-1.5">
-                                            <Pin class="text-muted-foreground h-4 w-4" /><Badge
-                                                variant="secondary"
-                                                class="text-xs">공지</Badge
-                                            >
-                                        </div>
-                                        <h3 class="text-foreground flex-1 truncate font-medium">
-                                            {notice.title}
-                                        </h3>
-                                        <span class="text-muted-foreground shrink-0 text-xs"
-                                            >{notice.author}</span
-                                        >
-                                    </div>
-                                </a>
-                            {/each}
-                        {/if}
-                    {/if}
-                    {#if filteredPosts.length === 0}
-                        <Card
-                            class="bg-background {listLayoutId === 'gallery'
-                                ? 'col-span-full'
-                                : ''}"
-                        >
-                            <CardContent class="py-12 text-center">
-                                {#if isSearching}
-                                    <p class="text-secondary-foreground">검색 결과가 없습니다.</p>
-                                {:else}
-                                    <p class="text-secondary-foreground">게시글이 없습니다.</p>
-                                {/if}
-                            </CardContent>
-                        </Card>
-                    {:else if LayoutComponent}
-                        {#each filteredPosts as post, i (post.id)}
-                            {#if post.deleted_at}
-                                <div
-                                    class="text-muted-foreground flex items-center gap-2 px-4 py-3 text-sm"
-                                >
-                                    <Trash2 class="h-4 w-4 shrink-0" />
-                                    삭제된 글입니다.
-                                </div>
-                            {:else if bulkSelectMode}
-                                <div class="flex items-start gap-2">
-                                    <div class="flex shrink-0 items-center pt-3">
-                                        <Checkbox
-                                            checked={selectedPostIds.includes(post.id)}
-                                            onCheckedChange={() => togglePostSelection(post.id)}
-                                        />
                                     </div>
                                     <div class="min-w-0 flex-1">
-                                        <LayoutComponent
-                                            {post}
-                                            displaySettings={data.board?.display_settings}
-                                            href="/{boardId}/{post.id}{listPage > 1
-                                                ? `?page=${listPage}`
-                                                : ''}"
-                                            isRead={showReadState &&
-                                                readPostsStore.isRead(boardId, post.id)}
-                                        />
+                                        <div class="flex items-center gap-1">
+                                            <Megaphone
+                                                class="text-destructive h-3.5 w-3.5 shrink-0 md:hidden"
+                                            /><Badge
+                                                variant="destructive"
+                                                class="shrink-0 text-[10px]">필수</Badge
+                                            >
+                                            <h3
+                                                class="text-foreground truncate font-medium"
+                                                style="font-size: var(--list-font-size, 0.9375rem);"
+                                            >
+                                                {notice.title}
+                                            </h3>
+                                        </div>
                                     </div>
+                                    <span
+                                        class="text-muted-foreground hidden shrink-0 md:inline"
+                                        style="font-size: 13px;">{notice.author}</span
+                                    >
                                 </div>
-                            {:else}
-                                <LayoutComponent
-                                    {post}
-                                    displaySettings={data.board?.display_settings}
-                                    href="/{boardId}/{post.id}{listPage > 1
-                                        ? `?page=${listPage}`
-                                        : ''}"
-                                    isRead={showReadState &&
-                                        readPostsStore.isRead(boardId, post.id)}
-                                />
-                            {/if}
-                            {#if widgetLayoutStore.hasEnabledAds && i + 1 === 7}
-                                <div class="py-2">
-                                    <AdSlot
-                                        position="board-list-infeed"
-                                        height="90px"
-                                        slotKey={`board-list-infeed-${i}`}
-                                    />
+                            </a>
+                        {/each}
+                        {#each normalNotices as notice (notice.id)}
+                            <a
+                                href="/{boardId}/{notice.id}"
+                                class="hover:bg-accent block px-4 py-1.5 no-underline transition-colors"
+                                style="background: rgba(255, 255, 255, 0.03);"
+                            >
+                                <div class="flex items-center gap-2 md:gap-3">
+                                    <div class="hidden shrink-0 md:block" style="width: 60px;">
+                                        <div
+                                            class="mx-auto flex h-5 w-10 items-center justify-center rounded-lg"
+                                            style="background: rgba(239,68,68,0.1);"
+                                        >
+                                            <Pin class="h-3.5 w-3.5" style="color: orangered;" />
+                                        </div>
+                                    </div>
+                                    <div class="min-w-0 flex-1">
+                                        <div class="flex items-center gap-1">
+                                            <Pin
+                                                class="text-liked h-3.5 w-3.5 shrink-0 md:hidden"
+                                            /><Badge
+                                                class="shrink-0 text-[10px] font-semibold"
+                                                style="background: rgba(239, 68, 68, 0.15); color: rgb(239, 68, 68); border: 1px solid rgba(239, 68, 68, 0.2);"
+                                                >공지</Badge
+                                            >
+                                            <h3
+                                                class="text-foreground truncate font-medium"
+                                                style="font-size: var(--list-font-size, 0.9375rem);"
+                                            >
+                                                {notice.title}
+                                            </h3>
+                                        </div>
+                                    </div>
+                                    <span
+                                        class="text-muted-foreground hidden shrink-0 md:inline"
+                                        style="font-size: 13px;">{notice.author}</span
+                                    >
                                 </div>
-                            {/if}
-                            {#if shuffledPromos.length > 0 && i + 1 === 12}
-                                <PluginSlot
-                                    name="board-list-promotion"
-                                    posts={shuffledPromos}
-                                    variant={listLayoutId === 'classic' ? 'classic' : 'default'}
-                                />
-                            {/if}
+                            </a>
                         {/each}
-                    {/if}
-                </div>
-
-                <!-- 페이지네이션 -->
-                {#if pagination.totalPages > 1}
-                    <div class="mt-8 flex items-center justify-center gap-2">
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            disabled={pagination.page <= 5}
-                            title="5페이지 뒤로"
-                            onclick={() => goToPage(Math.max(1, pagination.page - 5))}
-                            >&laquo;</Button
-                        >
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            disabled={pagination.page === 1}
-                            onclick={() => goToPage(pagination.page - 1)}>이전</Button
-                        >
-                        {#each Array.from( { length: Math.min(5, pagination.totalPages) }, (_, i) => {
-                                const startPage = Math.max(1, pagination.page - 2);
-                                return startPage + i;
-                            } ) as pageNum (pageNum)}
-                            {#if pageNum <= pagination.totalPages}
-                                <Button
-                                    variant={pageNum === pagination.page ? 'default' : 'outline'}
-                                    size="sm"
-                                    onclick={() => goToPage(pageNum)}>{pageNum}</Button
-                                >
-                            {/if}
+                    {:else}
+                        {#each importantNotices as notice (notice.id)}
+                            <a
+                                href="/{boardId}/{notice.id}"
+                                class="bg-destructive/5 border-destructive/20 hover:bg-destructive/10 block rounded-lg border px-4 py-3 no-underline transition-colors"
+                            >
+                                <div class="flex items-center gap-3">
+                                    <div class="flex shrink-0 items-center gap-1.5">
+                                        <Megaphone class="text-destructive h-4 w-4" /><Badge
+                                            variant="destructive"
+                                            class="text-xs">필수</Badge
+                                        >
+                                    </div>
+                                    <h3 class="text-foreground flex-1 truncate font-medium">
+                                        {notice.title}
+                                    </h3>
+                                    <span class="text-muted-foreground shrink-0 text-xs"
+                                        >{notice.author}</span
+                                    >
+                                </div>
+                            </a>
                         {/each}
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            disabled={pagination.page === pagination.totalPages}
-                            onclick={() => goToPage(pagination.page + 1)}>다음</Button
-                        >
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            disabled={pagination.page + 5 > pagination.totalPages}
-                            title="5페이지 앞으로"
-                            onclick={() =>
-                                goToPage(Math.min(pagination.totalPages, pagination.page + 5))}
-                            >&raquo;</Button
-                        >
-                    </div>
-                    {#if widgetLayoutStore.hasEnabledAds}
-                        <div class="mt-3">
-                            <AdSlot
-                                position="board-list-bottom"
-                                height="90px"
-                                slotKey="board-list-bottom"
-                            />
-                        </div>
+                        {#each normalNotices as notice (notice.id)}
+                            <a
+                                href="/{boardId}/{notice.id}"
+                                class="bg-muted/50 border-border hover:bg-muted block rounded-lg border px-4 py-3 no-underline transition-colors"
+                            >
+                                <div class="flex items-center gap-3">
+                                    <div class="flex shrink-0 items-center gap-1.5">
+                                        <Pin class="text-muted-foreground h-4 w-4" /><Badge
+                                            variant="secondary"
+                                            class="text-xs">공지</Badge
+                                        >
+                                    </div>
+                                    <h3 class="text-foreground flex-1 truncate font-medium">
+                                        {notice.title}
+                                    </h3>
+                                    <span class="text-muted-foreground shrink-0 text-xs"
+                                        >{notice.author}</span
+                                    >
+                                </div>
+                            </a>
+                        {/each}
                     {/if}
                 {/if}
+                {#if filteredPosts.length === 0}
+                    <Card class="bg-background {listLayoutId === 'gallery' ? 'col-span-full' : ''}">
+                        <CardContent class="py-12 text-center">
+                            {#if isSearching}
+                                <p class="text-secondary-foreground">검색 결과가 없습니다.</p>
+                            {:else}
+                                <p class="text-secondary-foreground">게시글이 없습니다.</p>
+                            {/if}
+                        </CardContent>
+                    </Card>
+                {:else if LayoutComponent}
+                    {#each filteredPosts as post, i (post.id)}
+                        {#if post.deleted_at}
+                            <div
+                                class="text-muted-foreground flex items-center gap-2 px-4 py-3 text-sm"
+                            >
+                                <Trash2 class="h-4 w-4 shrink-0" />
+                                삭제된 글입니다.
+                            </div>
+                        {:else if bulkSelectMode}
+                            <div class="flex items-start gap-2">
+                                <div class="flex shrink-0 items-center pt-3">
+                                    <Checkbox
+                                        checked={selectedPostIds.includes(post.id)}
+                                        onCheckedChange={() => togglePostSelection(post.id)}
+                                    />
+                                </div>
+                                <div class="min-w-0 flex-1">
+                                    <LayoutComponent
+                                        {post}
+                                        displaySettings={data.board?.display_settings}
+                                        href="/{boardId}/{post.id}{listPage > 1
+                                            ? `?page=${listPage}`
+                                            : ''}"
+                                        isRead={showReadState &&
+                                            readPostsStore.isRead(boardId, post.id)}
+                                    />
+                                </div>
+                            </div>
+                        {:else}
+                            <LayoutComponent
+                                {post}
+                                displaySettings={data.board?.display_settings}
+                                href="/{boardId}/{post.id}{listPage > 1 ? `?page=${listPage}` : ''}"
+                                isRead={showReadState && readPostsStore.isRead(boardId, post.id)}
+                            />
+                        {/if}
+                        {#if widgetLayoutStore.hasEnabledAds && i + 1 === 7}
+                            <div class="py-2">
+                                <AdSlot
+                                    position="board-list-infeed"
+                                    height="90px"
+                                    slotKey={`board-list-infeed-${i}`}
+                                />
+                            </div>
+                        {/if}
+                        {#if shuffledPromos.length > 0 && i + 1 === 12}
+                            <PluginSlot
+                                name="board-list-promotion"
+                                posts={shuffledPromos}
+                                variant={listLayoutId === 'classic' ? 'classic' : 'default'}
+                            />
+                        {/if}
+                    {/each}
+                {/if}
+            </div>
+
+            <!-- 페이지네이션 -->
+            {#if pagination.totalPages > 1}
+                <div class="mt-8 flex items-center justify-center gap-2">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={pagination.page <= 5}
+                        title="5페이지 뒤로"
+                        onclick={() => goToPage(Math.max(1, pagination.page - 5))}>&laquo;</Button
+                    >
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={pagination.page === 1}
+                        onclick={() => goToPage(pagination.page - 1)}>이전</Button
+                    >
+                    {#each Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
+                        const startPage = Math.max(1, pagination.page - 2);
+                        return startPage + i;
+                    }) as pageNum (pageNum)}
+                        {#if pageNum <= pagination.totalPages}
+                            <Button
+                                variant={pageNum === pagination.page ? 'default' : 'outline'}
+                                size="sm"
+                                onclick={() => goToPage(pageNum)}>{pageNum}</Button
+                            >
+                        {/if}
+                    {/each}
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={pagination.page === pagination.totalPages}
+                        onclick={() => goToPage(pagination.page + 1)}>다음</Button
+                    >
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={pagination.page + 5 > pagination.totalPages}
+                        title="5페이지 앞으로"
+                        onclick={() =>
+                            goToPage(Math.min(pagination.totalPages, pagination.page + 5))}
+                        >&raquo;</Button
+                    >
+                </div>
+                {#if widgetLayoutStore.hasEnabledAds}
+                    <div class="mt-3">
+                        <AdSlot
+                            position="board-list-bottom"
+                            height="90px"
+                            slotKey="board-list-bottom"
+                        />
+                    </div>
+                {/if}
+            {/if}
         </div>
     {/if}
     <!-- /canList -->

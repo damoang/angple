@@ -50,4 +50,3 @@ export function toRelativeIfSameOrigin(url: string, origin: string): string {
         return url;
     }
 }
-

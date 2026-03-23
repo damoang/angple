@@ -187,7 +187,11 @@
 
 <div class="damoang-banner {className}" data-position={position} style:min-height={height}>
     {#if loading}
-        <div aria-hidden="true" class="pointer-events-none invisible" style:min-height={height}></div>
+        <div
+            aria-hidden="true"
+            class="pointer-events-none invisible"
+            style:min-height={height}
+        ></div>
     {:else if celebrationBanner}
         <!-- 축하메시지 배너 -->
         <a

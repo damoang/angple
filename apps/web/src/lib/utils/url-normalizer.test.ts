@@ -32,4 +32,3 @@ describe('toRelativeIfSameOrigin', () => {
         expect(result).toBe('https://example.com/a');
     });
 });
-
