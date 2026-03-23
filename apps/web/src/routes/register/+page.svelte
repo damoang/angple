@@ -389,10 +389,12 @@
                 {/if}
             </form>
 
-            <div class="mt-4 text-center text-sm">
-                <span class="text-muted-foreground">이미 계정이 있으신가요?</span>
-                <a href="/login" class="text-primary ml-1 hover:underline">로그인</a>
-            </div>
+            {#if !data.isInviteFlow}
+                <div class="mt-4 text-center text-sm">
+                    <span class="text-muted-foreground">이미 계정이 있으신가요?</span>
+                    <a href="/login" class="text-primary ml-1 hover:underline">로그인</a>
+                </div>
+            {/if}
         </CardContent>
     </Card>
 </div>
