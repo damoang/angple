@@ -7,13 +7,14 @@
     import { memberLevelStore } from '$lib/stores/member-levels.svelte.js';
     import type { Component } from 'svelte';
     import { pluginStore } from '$lib/stores/plugin.svelte';
-    import { loadPluginComponent } from '$lib/utils/plugin-optional-loader';
+    import { loadPluginComponent, loadPluginLib } from '$lib/utils/plugin-optional-loader';
     import { formatDate } from '$lib/utils/format-date.js';
     import { uiSettingsStore } from '$lib/stores/ui-settings.svelte.js';
 
     // 동적 플러그인 임포트: member-memo
     let MemoBadge = $state<Component | null>(null);
     let MemoInlineEditor = $state<Component | null>(null);
+    let loadMemosForAuthors = $state<((memberIds: string[]) => Promise<void>) | null>(null);
 
     $effect(() => {
         if (pluginStore.isPluginActive('member-memo')) {
@@ -21,6 +22,14 @@
             loadPluginComponent('member-memo', 'memo-inline-editor').then(
                 (c) => (MemoInlineEditor = c)
             );
+            loadPluginLib<{ loadMemosForAuthors: (ids: string[]) => Promise<void> }>(
+                'member-memo',
+                'memo-store'
+            ).then((module) => {
+                loadMemosForAuthors = module?.loadMemosForAuthors ?? null;
+            });
+        } else {
+            loadMemosForAuthors = null;
         }
     });
 
@@ -62,6 +71,9 @@
             const likerIds = likers.map((l: LikerInfo) => l.mb_id).filter(Boolean);
             if (likerIds.length > 0) {
                 memberLevelStore.fetchLevels(likerIds);
+                if (loadMemosForAuthors) {
+                    void loadMemosForAuthors(likerIds);
+                }
             }
         } catch (err) {
             console.error('Failed to load comment likers:', err);
