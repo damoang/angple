@@ -23,24 +23,36 @@ export function getAvatarUrl(
 ): string | null {
     if (!imageUrl) return null;
 
+    const normalizedImageUrl = imageUrl.trim().replaceAll('&amp;', '&');
     let url: string;
 
-    // 이미 전체 URL이면 그대로 사용
-    if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+    // protocol-relative URL
+    if (normalizedImageUrl.startsWith('//')) {
         try {
-            const parsed = new URL(imageUrl);
+            const parsed = new URL(`https:${normalizedImageUrl}`);
+            if (parsed.protocol === 'http:' && shouldUpgradeToHttps(parsed.hostname)) {
+                parsed.protocol = 'https:';
+            }
+            url = parsed.toString();
+        } catch {
+            url = normalizedImageUrl;
+        }
+    } else if (normalizedImageUrl.startsWith('http://') || normalizedImageUrl.startsWith('https://')) {
+        // 이미 전체 URL이면 그대로 사용
+        try {
+            const parsed = new URL(normalizedImageUrl);
             if (parsed.protocol === 'http:' && shouldUpgradeToHttps(parsed.hostname)) {
                 parsed.protocol = 'https:';
                 url = parsed.toString();
             } else {
-                url = imageUrl;
+                url = normalizedImageUrl;
             }
         } catch {
-            url = imageUrl;
+            url = normalizedImageUrl;
         }
     } else {
         // 상대 경로면 CDN 베이스 추가
-        url = `${CDN_BASE_URL}/${imageUrl}`;
+        url = `${CDN_BASE_URL}/${normalizedImageUrl.replace(/^\/+/, '')}`;
     }
 
     // 캐시 버스팅: ?v=timestamp 추가

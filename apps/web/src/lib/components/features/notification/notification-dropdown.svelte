@@ -331,8 +331,11 @@
                         class="flex cursor-pointer items-start gap-2.5 px-3 py-2 {notification.has_unread
                             ? 'bg-muted/30'
                             : 'opacity-60'}"
-                        onSelect={() => handleNotificationClick(notification)}
-                        onclick={() => handleNotificationClick(notification)}
+                        onSelect={(e) => {
+                            // Dropdown 기본 select 동작(즉시 닫힘/포커스 이동)과 라우팅 충돌을 방지
+                            e.preventDefault();
+                            void handleNotificationClick(notification);
+                        }}
                     >
                         <div class="mt-0.5 shrink-0">
                             <Icon class="h-4 w-4 {getNotificationColor(notification.type)}" />
