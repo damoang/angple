@@ -51,6 +51,8 @@ function initFromSSR(
         mb_certify?: string;
         mb_image?: string;
         mb_image_updated_at?: string;
+        advertiser_end_date?: string;
+        advertiser_status?: 'ongoing' | 'expired' | 'scheduled' | 'inactive';
     },
     accessToken: string
 ): void {
@@ -69,6 +71,8 @@ function initFromSSR(
         if (ssrUser.as_level !== undefined && ssrUser.as_level !== user.as_level) {
             user.as_level = ssrUser.as_level;
         }
+        user.advertiser_end_date = ssrUser.advertiser_end_date;
+        user.advertiser_status = ssrUser.advertiser_status;
         isLoading = false;
         return;
     }
@@ -80,7 +84,9 @@ function initFromSSR(
         mb_email: '',
         mb_certify: ssrUser.mb_certify || '',
         mb_image: ssrUser.mb_image,
-        mb_image_updated_at: ssrUser.mb_image_updated_at
+        mb_image_updated_at: ssrUser.mb_image_updated_at,
+        advertiser_end_date: ssrUser.advertiser_end_date,
+        advertiser_status: ssrUser.advertiser_status
     };
     apiClient.setAccessToken(accessToken);
     isLoading = false;

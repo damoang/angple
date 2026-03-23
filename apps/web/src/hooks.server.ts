@@ -271,7 +271,9 @@ async function authenticateSSR(event: Parameters<Handle>[0]['event']): Promise<v
                         as_level: member.as_level ?? 0,
                         mb_certify: member.mb_certify || '',
                         mb_image: member.mb_image_url || undefined,
-                        mb_image_updated_at: member.mb_image_updated_at || undefined
+                        mb_image_updated_at: member.mb_image_updated_at || undefined,
+                        advertiser_end_date: member.advertiser_end_date || undefined,
+                        advertiser_status: member.advertiser_status || undefined
                     };
                     event.locals.sessionId = sessionId;
                     event.locals.csrfToken = session.csrfToken;

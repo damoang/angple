@@ -71,6 +71,8 @@ export interface MemberRow {
     mb_image_url: string;
     mb_image_updated_at: string | null;
     as_level: number;
+    advertiser_end_date?: string | null;
+    advertiser_status?: 'ongoing' | 'expired' | 'scheduled' | 'inactive' | null;
 }
 
 /** OAuth state 쿠키에 저장되는 데이터 */

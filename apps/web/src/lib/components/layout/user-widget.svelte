@@ -52,6 +52,21 @@
     // 아바타 URL (mb_image 우선 → avatar_url → member_image 경로 폴백)
     let avatarUrl = $derived(getAvatarUrl(user?.mb_image, user?.mb_image_updated_at) || null);
     let avatarFailed = $state(false);
+    const isAdvertiser = $derived((user?.mb_level ?? 0) === 5);
+    const advertiserStatusLabel = $derived.by(() => {
+        switch (user?.advertiser_status) {
+            case 'ongoing':
+                return '진행중';
+            case 'expired':
+                return '만료됨';
+            case 'scheduled':
+                return '예정';
+            case 'inactive':
+                return '비활성';
+            default:
+                return '';
+        }
+    });
 
     // user 변경 시 실패 상태 리셋
     $effect(() => {
@@ -138,6 +153,19 @@
 
         <!-- 내글 / 내댓글 / 전체 + 포인트 -->
         <div class={compact ? 'mt-1 space-y-0.5 text-xs' : 'mt-2 space-y-1 text-xs'}>
+            {#if isAdvertiser}
+                <div class="border-border rounded-md border px-2 py-1.5 text-xs">
+                    <div class="flex items-center justify-between gap-2">
+                        <span class="text-muted-foreground">광고 종료일</span>
+                        <span class="font-medium">{user.advertiser_end_date || '-'}</span>
+                    </div>
+                    {#if advertiserStatusLabel}
+                        <div class="text-muted-foreground mt-1 text-[11px]">
+                            상태: {advertiserStatusLabel}
+                        </div>
+                    {/if}
+                </div>
+            {/if}
             <div class="text-muted-foreground flex items-center justify-center gap-1.5">
                 <a href="/my?tab=posts" class="hover:text-primary transition-colors">내글</a>
                 <span class="text-border">·</span>

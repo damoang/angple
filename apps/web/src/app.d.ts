@@ -23,6 +23,8 @@ declare global {
                 mb_certify?: string;
                 mb_image?: string;
                 mb_image_updated_at?: string;
+                advertiser_end_date?: string;
+                advertiser_status?: 'ongoing' | 'expired' | 'scheduled' | 'inactive';
             } | null;
             accessToken: string | null;
             /** 서버사이드 세션 ID (angple_sid 쿠키 원본값) */

@@ -97,8 +97,10 @@ jobs:
 
       - name: Install Gitleaks
         run: |
-          GITLEAKS_VERSION=$(curl -s https://api.github.com/repos/gitleaks/gitleaks/releases/latest | grep '"tag_name"' | sed 's/.*"v\(.*\)".*/\1/')
-          curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" | tar -xz -C /usr/local/bin gitleaks
+          RELEASE_JSON=$(curl -fsSL https://api.github.com/repos/gitleaks/gitleaks/releases/latest)
+          ASSET_URL=$(printf '%s' "$RELEASE_JSON" | grep -o 'https://[^"]*gitleaks_[^"]*_linux_x64\.tar\.gz' | head -n1)
+          test -n "$ASSET_URL"
+          curl -fsSL "$ASSET_URL" | tar -xz -C /usr/local/bin gitleaks
 
       - name: Run Gitleaks
         run: gitleaks detect --source=. -v

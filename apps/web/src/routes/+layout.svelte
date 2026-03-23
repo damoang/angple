@@ -52,7 +52,9 @@
                     as_level: d.user.as_level,
                     mb_certify: d.user.mb_certify ?? '',
                     mb_image: d.user.mb_image,
-                    mb_image_updated_at: d.user.mb_image_updated_at
+                    mb_image_updated_at: d.user.mb_image_updated_at,
+                    advertiser_end_date: d.user.advertiser_end_date,
+                    advertiser_status: d.user.advertiser_status
                 },
                 d.accessToken
             );
@@ -69,7 +71,9 @@
                     as_level: d.user.as_level,
                     mb_certify: d.user.mb_certify ?? '',
                     mb_image: d.user.mb_image,
-                    mb_image_updated_at: d.user.mb_image_updated_at
+                    mb_image_updated_at: d.user.mb_image_updated_at,
+                    advertiser_end_date: d.user.advertiser_end_date,
+                    advertiser_status: d.user.advertiser_status
                 },
                 ''
             );
@@ -84,8 +88,6 @@
     // $effect: SPA 네비게이션 시 data.user 변경 감지 → 인증 상태 동기화
     let authInitialized = false;
     $effect(() => {
-        const u = data.user;
-        const t = data.accessToken;
         if (authInitialized) {
             untrack(() => syncAuth(data));
         }
@@ -241,7 +243,7 @@
     });
 
     // afterNavigate 통합: GA4 페이지뷰 + 광고 observer 재설정
-    afterNavigate(({ type, to }) => {
+    afterNavigate(({ to }) => {
         // GA4 페이지뷰 추적
         if (to?.url) {
             trackPageView(to.url.pathname + to.url.search);

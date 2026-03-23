@@ -68,6 +68,21 @@
         });
     }
 
+    function getAdvertiserStatusLabel(status?: string): string {
+        switch (status) {
+            case 'ongoing':
+                return '진행중';
+            case 'expired':
+                return '만료됨';
+            case 'scheduled':
+                return '예정';
+            case 'inactive':
+                return '비활성';
+            default:
+                return '';
+        }
+    }
+
     function getMyPostTitle(post: { title: string; deleted_at?: string | null }): string {
         return post.deleted_at ? '삭제된 글입니다.' : post.title;
     }
@@ -114,6 +129,19 @@
                 <div>
                     <h1 class="text-foreground text-2xl font-bold">{authStore.user.mb_name}</h1>
                     <p class="text-secondary-foreground">{getGradeName(authStore.user.mb_level)}</p>
+                    {#if authStore.user.mb_level === 5}
+                        <div class="mt-1 text-sm">
+                            <span class="text-muted-foreground">광고 종료일</span>
+                            <span class="ml-2 font-medium">
+                                {authStore.user.advertiser_end_date || '-'}
+                            </span>
+                            {#if getAdvertiserStatusLabel(authStore.user.advertiser_status)}
+                                <span class="text-muted-foreground ml-2">
+                                    {getAdvertiserStatusLabel(authStore.user.advertiser_status)}
+                                </span>
+                            {/if}
+                        </div>
+                    {/if}
                     <!-- 경험치 게이지: 스트리밍 데이터 도착 후 표시 -->
                     {#await data.streamed?.tabData then result}
                         {#if result.expSummary}
