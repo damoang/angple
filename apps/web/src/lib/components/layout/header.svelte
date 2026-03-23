@@ -233,9 +233,11 @@
     class:shadow-sm={isScrolled}
     class:border-b={isScrolled}
 >
-    <div class="container mx-auto flex h-12 items-center justify-between !px-2.5 md:h-16 md:!px-6">
+    <div
+        class="container mx-auto flex h-12 items-center justify-between gap-2 !px-2.5 md:h-16 md:gap-3 md:!px-6"
+    >
         <!-- 햄버거 메뉴 + 로고 -->
-        <div class="flex items-center">
+        <div class="flex min-w-0 items-center pr-1 md:pr-2">
             <button
                 onclick={toggleDrawer}
                 class="hover:bg-accent relative rounded-lg p-2 transition-all duration-200 ease-out 2xl:hidden"
@@ -263,7 +265,7 @@
                     height="48"
                     decoding="async"
                     fetchpriority="high"
-                    style="max-height:48px; max-width:min(45vw, 180px);"
+                    style="max-height:48px; max-width:min(38vw, 160px);"
                     onerror={() => {
                         headerLogoFailed = true;
                     }}
@@ -315,7 +317,7 @@
         </nav>
 
         <!-- 우측 아이콘 버튼들 -->
-        <div class="flex items-center space-x-1">
+        <div class="flex shrink-0 items-center space-x-1">
             <!-- 테마 모드 토글: light → dark → amoled -->
             <button
                 onclick={cycleThemeMode}
