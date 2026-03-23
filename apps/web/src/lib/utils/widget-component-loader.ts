@@ -9,11 +9,13 @@ import type { Component } from 'svelte';
 import type { WidgetManifest } from '$lib/types/widget-manifest';
 import { safeValidateWidgetManifest } from '$lib/types/widget-manifest';
 
+type WidgetComponent = Component<any>;
+
 export interface ScannedWidget {
     manifest: WidgetManifest;
     isCustom: boolean;
     /** 위젯 컴포넌트를 lazy load하는 함수 */
-    load: () => Promise<{ default: Component }>;
+    load: () => Promise<{ default: WidgetComponent }>;
 }
 
 // Vite import.meta.glob으로 빌트인 위젯 발견
@@ -62,7 +64,7 @@ function scanWidgets(): Map<string, ScannedWidget> {
             widgets.set(id, {
                 manifest: result.data,
                 isCustom: false,
-                load: builtinComponents[componentPath] as () => Promise<{ default: Component }>
+                load: builtinComponents[componentPath] as () => Promise<{ default: WidgetComponent }>
             });
         }
     }
@@ -87,7 +89,7 @@ function scanWidgets(): Map<string, ScannedWidget> {
             widgets.set(id, {
                 manifest: result.data,
                 isCustom: true,
-                load: customComponents[componentPath] as () => Promise<{ default: Component }>
+                load: customComponents[componentPath] as () => Promise<{ default: WidgetComponent }>
             });
         }
     }
@@ -111,7 +113,7 @@ export function getScannedWidgets(): Map<string, ScannedWidget> {
 /**
  * 위젯 컴포넌트를 동적으로 로드
  */
-export async function loadWidgetComponent(type: string): Promise<Component | null> {
+export async function loadWidgetComponent(type: string): Promise<WidgetComponent | null> {
     const widgets = getScannedWidgets();
     const widget = widgets.get(type);
 

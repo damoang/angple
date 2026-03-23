@@ -20,6 +20,75 @@
     import MessageView from './layouts/message-view.svelte';
     import GivingView from './layouts/giving-view.svelte';
     import TradeView from './layouts/trade-view.svelte';
+    import type { EconomyPost, GalleryPost, GroupTabsData, NewsPost } from '$lib/api/types';
+
+    interface DefaultLayoutPost {
+        id: number;
+        title: string;
+        url?: string;
+        thumbnail_url?: string;
+        author?: string;
+        created_at?: string;
+        comment_count?: number;
+        view_count?: number;
+        recommend_count?: number;
+    }
+
+    interface MessageLayoutPost {
+        id: number;
+        title: string;
+        url?: string;
+        thumbnail_url?: string;
+        author?: {
+            id?: string;
+            nickname?: string;
+            avatar_url?: string;
+            profile_url?: string;
+        };
+        external_link?: string;
+        created_at?: string;
+    }
+
+    interface GivingLayoutPost {
+        id: number;
+        title: string;
+        url?: string;
+        thumbnail_url?: string;
+        author?: {
+            id?: string;
+            nickname?: string;
+            avatar_url?: string;
+        };
+        giving_start?: string;
+        giving_end?: string;
+        is_paused?: boolean;
+        bid_count?: number;
+        comment_count?: number;
+        created_at?: string;
+    }
+
+    interface TradeLayoutPost {
+        id: number;
+        title: string;
+        url?: string;
+        thumbnail_url?: string;
+        author?: {
+            id?: string;
+            nickname?: string;
+            avatar_url?: string;
+        };
+        price?: number;
+        original_price?: number;
+        status?: 'selling' | 'reserved' | 'sold';
+        trade_type?: 'direct' | 'shipping' | 'both';
+        location?: string;
+        like_count?: number;
+        view_count?: number;
+        comment_count?: number;
+        created_at?: string;
+        is_free?: boolean;
+        is_negotiable?: boolean;
+    }
 
     let { config, slot, isEditMode = false, prefetchData }: WidgetProps = $props();
 
@@ -51,9 +120,26 @@
     }
 
     // API fetch 데이터 (기존 스토어에 없는 경우)
-    let fetchedPosts = $state<unknown[]>([]);
+    let fetchedPosts = $state<
+        DefaultLayoutPost[] | MessageLayoutPost[] | GivingLayoutPost[] | TradeLayoutPost[]
+    >([]);
     let loading = $state(false);
     let error = $state<string | null>(null);
+
+    const noticePosts = $derived((prefetchData as NewsPost[] | undefined) ?? indexWidgetsStore.newsTabs);
+    const economyPosts = $derived(
+        (prefetchData as EconomyPost[] | undefined) ?? indexWidgetsStore.economyTabs
+    );
+    const galleryPosts = $derived(
+        (prefetchData as GalleryPost[] | undefined) ?? indexWidgetsStore.gallery
+    );
+    const groupTabsData = $derived(
+        (prefetchData as GroupTabsData | null | undefined) ?? indexWidgetsStore.groupTabs
+    );
+    const defaultPosts = $derived(fetchedPosts as DefaultLayoutPost[]);
+    const messagePosts = $derived(fetchedPosts as MessageLayoutPost[]);
+    const givingPosts = $derived(fetchedPosts as GivingLayoutPost[]);
+    const tradePosts = $derived(fetchedPosts as TradeLayoutPost[]);
 
     // 기존 스토어 데이터가 아닌 경우 API에서 fetch
     $effect(() => {
@@ -90,13 +176,13 @@
 {#if useNativeComponent}
     <!-- 기존 feature 컴포넌트 그대로 렌더링 (호환성 유지) -->
     {#if boardId === 'notice'}
-        <NewBoard posts={prefetchData ?? indexWidgetsStore.newsTabs} />
+        <NewBoard posts={noticePosts} />
     {:else if boardId === 'economy'}
-        <EconomyTabs posts={prefetchData ?? indexWidgetsStore.economyTabs} />
+        <EconomyTabs posts={economyPosts} />
     {:else if boardId === 'gallery'}
-        <GalleryGrid posts={prefetchData ?? indexWidgetsStore.gallery} />
+        <GalleryGrid posts={galleryPosts} />
     {:else if boardId === 'group'}
-        <GroupTabs data={prefetchData ?? indexWidgetsStore.groupTabs} />
+        <GroupTabs data={groupTabsData} />
     {/if}
 {:else}
     <!-- 범용 레이아웃 렌더링 -->
@@ -109,18 +195,18 @@
             <div class="text-sm text-red-600 dark:text-red-400">{error}</div>
         </div>
     {:else if layout === 'gallery'}
-        <GalleryView posts={fetchedPosts} {showTitle} {boardId} />
+        <GalleryView posts={defaultPosts} {showTitle} {boardId} />
     {:else if layout === 'grid'}
-        <GridView posts={fetchedPosts} {showTitle} {boardId} />
+        <GridView posts={defaultPosts} {showTitle} {boardId} />
     {:else if layout === 'card'}
-        <CardView posts={fetchedPosts} {showTitle} {boardId} />
+        <CardView posts={defaultPosts} {showTitle} {boardId} />
     {:else if layout === 'message'}
-        <MessageView posts={fetchedPosts} {showTitle} {boardId} />
+        <MessageView posts={messagePosts} {showTitle} {boardId} />
     {:else if layout === 'giving'}
-        <GivingView posts={fetchedPosts} {showTitle} {boardId} />
+        <GivingView posts={givingPosts} {showTitle} {boardId} />
     {:else if layout === 'trade'}
-        <TradeView posts={fetchedPosts} {showTitle} {boardId} />
+        <TradeView posts={tradePosts} {showTitle} {boardId} />
     {:else}
-        <ListView posts={fetchedPosts} {showTitle} {boardId} />
+        <ListView posts={defaultPosts} {showTitle} {boardId} />
     {/if}
 {/if}

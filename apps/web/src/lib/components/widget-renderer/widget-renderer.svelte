@@ -34,7 +34,9 @@
     }
 
     const { zone, prefetchDataMap = {}, onlyIds, excludeIds = [] }: Props = $props();
-    const STATIC_WIDGET_COMPONENTS: Record<string, Component> = {
+    type WidgetComponent = Component<any>;
+
+    const STATIC_WIDGET_COMPONENTS: Record<string, WidgetComponent> = {
         'tag-nav': TagNavWidget,
         'empathy-explore-row': EmpathyExploreRowWidget,
         'news-economy-row': NewsEconomyRowWidget,
@@ -88,8 +90,8 @@
     }
 
     // 위젯 컴포넌트 캐시
-    const componentCache = new SvelteMap<string, Component | null>();
-    let loadedComponents = new SvelteMap<string, Component | null>();
+    const componentCache = new SvelteMap<string, WidgetComponent | null>();
+    let loadedComponents = new SvelteMap<string, WidgetComponent | null>();
 
     // 위젯 타입이 변경될 때마다 컴포넌트 로드
     $effect(() => {
@@ -113,7 +115,7 @@
         }
     });
 
-    function getComponent(type: string): Component | null {
+    function getComponent(type: string): WidgetComponent | null {
         return loadedComponents.get(type) ?? null;
     }
 
