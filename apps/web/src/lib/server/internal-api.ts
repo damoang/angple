@@ -1,4 +1,5 @@
 import { json } from '@sveltejs/kit';
+import { env } from '$env/dynamic/private';
 
 function isTrustedAppOrigin(origin: string, requestOrigin: string): boolean {
     try {
@@ -22,6 +23,11 @@ function isTrustedAppOrigin(origin: string, requestOrigin: string): boolean {
 }
 
 export function isInternalAppRequest(request: Request): boolean {
+    const secret = env.INTERNAL_SECRET || '';
+    if (secret && request.headers.get('x-internal-secret') === secret) {
+        return true;
+    }
+
     const requestOrigin = new URL(request.url).origin;
     const origin = request.headers.get('origin');
     if (origin) {

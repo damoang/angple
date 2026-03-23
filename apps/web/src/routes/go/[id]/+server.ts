@@ -1,12 +1,12 @@
 import type { RequestHandler } from './$types';
 import { redirect } from '@sveltejs/kit';
 import { logAffiliateClick } from '$lib/server/affiliate-click-log';
-import { resolveAffiliateRedirect } from '$lib/server/affiliate-redirect';
+import { resolveAffiliateRedirectFromStorage } from '$lib/server/affiliate-links';
 
 const ALLOWED_PROTOCOLS = ['https:', 'http:'];
 
 export const GET: RequestHandler = async ({ params, locals, getClientAddress, request }) => {
-    const decoded = await resolveAffiliateRedirect(params.id);
+    const decoded = await resolveAffiliateRedirectFromStorage(params.id);
     if (!decoded?.url) {
         throw redirect(302, '/');
     }

@@ -3,10 +3,12 @@ import type { PageServerLoad } from './$types.js';
 import type { FreePost } from '$lib/api/types.js';
 import { fetchPromotionPosts, fetchPromotionBoardPosts } from '$lib/server/ads/promotion.js';
 import {
-    processCommentContentLinks,
-    processLinkField,
-    processPostContentLinks
-} from '$lib/server/link-processing/adapter.js';
+    applyAffiliateField,
+    fetchPostAffiliateLinks,
+    findAffiliateFieldRow,
+    renderAffiliateContent
+} from '$lib/server/affiliate-links.js';
+import { isLinkProcessingPluginEnabled } from '$lib/server/link-processing/runtime.js';
 import { isScraped } from '$lib/server/scrap.js';
 import { backendFetch as bFetch, createAuthHeaders } from '$lib/server/backend-fetch.js';
 import { getCachedBoard } from '$lib/server/board-cache.js';
@@ -48,45 +50,6 @@ export const load: PageServerLoad = async ({
     const headers = createAuthHeaders(locals.accessToken);
 
     try {
-        const applyAffiliateLinkField = async <
-            T extends {
-                link1?: string;
-                link2?: string;
-                link1_display?: string;
-                link2_display?: string | undefined;
-                link1_affiliate?: boolean | string;
-                link2_affiliate?: boolean | string;
-                id?: number;
-            }
-        >(
-            target: T,
-            field: 'link1' | 'link2',
-            source: 'post_link1' | 'post_link2' | 'comment_link1' | 'comment_link2'
-        ): Promise<boolean> => {
-            const displayField = `${field}_display` as const;
-            const affiliateField = `${field}_affiliate` as const;
-            const originalUrl = target[field];
-            if (!originalUrl) return false;
-
-            const result = await processLinkField({
-                url: originalUrl,
-                boardId,
-                postId: Number(postId),
-                commentId: source.startsWith('comment_')
-                    ? Number(target.id) || undefined
-                    : undefined,
-                source,
-                field
-            });
-
-            if (result.href === originalUrl) return false;
-
-            target[displayField] = result.displayUrl;
-            target[field] = result.href;
-            target[affiliateField] = result.result.provider !== null;
-            return true;
-        };
-
         // --- 1단계: 필수 데이터 즉시 await (본문, SEO, 권한 체크) ---
         // board는 공유 캐시(300초 TTL)에서 조회, post/files는 병렬로 fetch
         const [postResult, boardResult, filesResult] = await Promise.allSettled([
@@ -188,6 +151,10 @@ export const load: PageServerLoad = async ({
 
         // 본문 제휴 링크 변환은 2단계 스트리밍으로 이동 (초기 렌더 블로킹 방지)
         const affiliateContext = { bo_table: boardId, wr_id: Number(postId) };
+        const affiliateEnabled = await isLinkProcessingPluginEnabled().catch(() => false);
+        const postAffiliateRows = affiliateEnabled
+            ? await fetchPostAffiliateLinks(boardId, Number(postId)).catch(() => [])
+            : [];
 
         // 링크1/링크2는 본문/댓글 Hook를 타지 않으므로 별도 제휴 변환한다.
         if (post.link1 || post.link2) {
@@ -203,11 +170,29 @@ export const load: PageServerLoad = async ({
                 ]);
 
                 if (link1Result?.status === 'fulfilled') {
-                    await applyAffiliateLinkField(post, 'link1', 'post_link1');
+                    const row = findAffiliateFieldRow(postAffiliateRows, 'post_link1');
+                    const originalLink = post.link1;
+                    if (originalLink) {
+                        const result = applyAffiliateField(originalLink, row);
+                        if (result.href !== originalLink) {
+                            post.link1_display = result.displayUrl;
+                            post.link1 = result.href;
+                            post.link1_affiliate = result.affiliate;
+                        }
+                    }
                 }
 
                 if (link2Result?.status === 'fulfilled') {
-                    await applyAffiliateLinkField(post, 'link2', 'post_link2');
+                    const row = findAffiliateFieldRow(postAffiliateRows, 'post_link2');
+                    const originalLink = post.link2;
+                    if (originalLink) {
+                        const result = applyAffiliateField(originalLink, row);
+                        if (result.href !== originalLink) {
+                            post.link2_display = result.displayUrl;
+                            post.link2 = result.href;
+                            post.link2_affiliate = result.affiliate;
+                        }
+                    }
                 }
             } catch {
                 // 변환 실패 시 원본 링크 유지
@@ -298,63 +283,6 @@ export const load: PageServerLoad = async ({
             });
 
             const comments = commentsResult;
-
-            // 댓글 제휴 링크 서버사이드 변환
-            if (comments.items?.length) {
-                try {
-                    const transformPromises: Promise<void>[] = [];
-                    for (const comment of comments.items) {
-                        if (!comment.content && !comment.link1 && !comment.link2) continue;
-
-                        transformPromises.push(
-                            (async () => {
-                                if (comment.content) {
-                                    comment.content = await processCommentContentLinks(
-                                        comment.content,
-                                        {
-                                            boardId: affiliateContext.bo_table,
-                                            postId: affiliateContext.wr_id,
-                                            commentId: Number(comment.id)
-                                        }
-                                    );
-                                }
-
-                                if (comment.link1 || comment.link2) {
-                                    const [link1Result, link2Result] = await Promise.allSettled([
-                                        comment.link1
-                                            ? Promise.resolve(comment.link1)
-                                            : Promise.resolve(null),
-                                        comment.link2
-                                            ? Promise.resolve(comment.link2)
-                                            : Promise.resolve(null)
-                                    ]);
-
-                                    if (link1Result.status === 'fulfilled') {
-                                        await applyAffiliateLinkField(
-                                            comment,
-                                            'link1',
-                                            'comment_link1'
-                                        );
-                                    }
-
-                                    if (link2Result.status === 'fulfilled') {
-                                        await applyAffiliateLinkField(
-                                            comment,
-                                            'link2',
-                                            'comment_link2'
-                                        );
-                                    }
-                                }
-                            })()
-                        );
-                    }
-                    if (transformPromises.length > 0) {
-                        await Promise.allSettled(transformPromises);
-                    }
-                } catch {
-                    // 변환 실패 시 원본 유지
-                }
-            }
 
             // 회원 레벨 배치 조회 (작성자 + 댓글 작성자, DB 직접 — CDN 요청 제거)
             let memberLevels: Record<string, number> = {};
@@ -464,12 +392,11 @@ export const load: PageServerLoad = async ({
                     locals.user?.id || ''
                 ).catch(() => ({}) as Record<string, unknown>),
                 // 본문 제휴 링크 변환 (스트리밍 — 초기 렌더 블로킹 방지)
-                post.content
-                    ? processPostContentLinks(post.content, {
-                          boardId: affiliateContext.bo_table,
-                          postId: affiliateContext.wr_id
-                      }).catch(() => null)
-                    : Promise.resolve(null),
+                Promise.resolve(
+                    affiliateEnabled && post.content
+                        ? renderAffiliateContent(post.content, postAffiliateRows, 'post_body')
+                        : null
+                ),
                 // 스크랩 여부 (로그인 시만, 스트리밍 — 초기 렌더 블로킹 방지)
                 locals.user?.id
                     ? isScraped(locals.user.id, boardId, postId).catch(() => false)
