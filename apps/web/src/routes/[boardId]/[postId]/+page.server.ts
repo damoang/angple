@@ -448,7 +448,6 @@ export const load: PageServerLoad = async ({
                 promotionResult,
                 revisionsResult,
                 reactionsResult,
-                likersResult,
                 postContentResult,
                 scrapResult,
                 postReportCountResult,
@@ -464,17 +463,6 @@ export const load: PageServerLoad = async ({
                     `document:${boardId}:${postId}`,
                     locals.user?.id || ''
                 ).catch(() => ({}) as Record<string, unknown>),
-                // 추천자 아바타 상위 5명 (Go 백엔드 직접 호출 — CDN 요청 제거)
-                bFetch(`/api/v1/boards/${boardId}/posts/${postId}/likers?page=1&limit=5`, {
-                    headers,
-                    timeout: 3_000
-                })
-                    .then(async (res) => {
-                        if (!res.ok) return { likers: [], total: 0 };
-                        const json = await res.json();
-                        return json.data || { likers: [], total: 0 };
-                    })
-                    .catch(() => ({ likers: [], total: 0 })),
                 // 본문 제휴 링크 변환 (스트리밍 — 초기 렌더 블로킹 방지)
                 post.content
                     ? processPostContentLinks(post.content, {
@@ -535,11 +523,6 @@ export const load: PageServerLoad = async ({
             const reactions =
                 reactionsResult.status === 'fulfilled' ? reactionsResult.value || {} : {};
 
-            const likersData =
-                likersResult.status === 'fulfilled'
-                    ? likersResult.value || { likers: [], total: 0 }
-                    : { likers: [], total: 0 };
-
             // 본문 제휴 링크 변환 결과
             const transformedPostContent =
                 postContentResult.status === 'fulfilled' ? postContentResult.value : null;
@@ -561,7 +544,6 @@ export const load: PageServerLoad = async ({
                 promotionPosts,
                 revisions,
                 reactions,
-                likersData,
                 transformedPostContent,
                 isScrapped,
                 postReportCount,

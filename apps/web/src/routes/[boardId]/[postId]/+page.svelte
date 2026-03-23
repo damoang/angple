@@ -359,11 +359,6 @@
                         (result.reactions as Record<string, ReactionItem[]>)[docTargetId] || [];
                 }
 
-                if (result.likersData) {
-                    likers = result.likersData.likers || [];
-                    likersTotal = result.likersData.total || 0;
-                }
-
                 if (result.transformedPostContent) {
                     renderedPostContent = result.transformedPostContent;
                 }
@@ -1682,7 +1677,7 @@
 
 <!-- 게시판 최근글 목록 -->
 {#if canRead}
-<RecentPosts
+    <RecentPosts
         {boardId}
         {boardTitle}
         currentPostId={data.post.id}
