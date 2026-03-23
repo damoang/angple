@@ -1,4 +1,4 @@
-import { error as svelteError } from '@sveltejs/kit';
+import { error as svelteError, redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types.js';
 import type { FreePost, Board, SearchField } from '$lib/api/types.js';
 import { fetchPromotionPosts, fetchPromotionBoardPosts } from '$lib/server/ads/promotion.js';
@@ -7,7 +7,7 @@ import { backendFetch as bFetch, createAuthHeaders } from '$lib/server/backend-f
 import { fetchMemberImagesWithTimestamp } from '$lib/server/member-images.js';
 import { fetchWithdrawnMemberIds } from '$lib/server/withdrawn-members.js';
 import { createCache } from '$lib/server/cache.js';
-import { getCachedBoard } from '$lib/server/board-cache.js';
+import { getCachedBoard, resolveCanonicalBoardId } from '$lib/server/board-cache.js';
 
 // --- 인메모리 캐시: 비로그인 게시글 목록 (15초 TTL) ---
 interface PostsCacheData {
@@ -85,7 +85,12 @@ const HOT_BOARD_POSTS_TIMEOUT_MS = 2_000;
  * promotions: 스트리밍 (핵심 본문과 분리)
  */
 export const load: PageServerLoad = async ({ url, params, locals, getClientAddress }) => {
-    const boardId = params.boardId;
+    const canonicalBoardId = await resolveCanonicalBoardId(params.boardId);
+    if (canonicalBoardId !== params.boardId) {
+        redirect(301, `/${canonicalBoardId}${url.search}`);
+    }
+
+    const boardId = canonicalBoardId;
     const page = Number(url.searchParams.get('page')) || 1;
     const limit = Number(url.searchParams.get('limit')) || 30;
 

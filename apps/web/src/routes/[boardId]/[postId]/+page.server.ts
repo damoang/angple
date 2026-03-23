@@ -1,4 +1,4 @@
-import { error } from '@sveltejs/kit';
+import { error, redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types.js';
 import type { FreePost } from '$lib/api/types.js';
 import { fetchPromotionPosts, fetchPromotionBoardPosts } from '$lib/server/ads/promotion.js';
@@ -11,7 +11,7 @@ import {
 import { isLinkProcessingPluginEnabled } from '$lib/server/link-processing/runtime.js';
 import { isScraped } from '$lib/server/scrap.js';
 import { backendFetch as bFetch, createAuthHeaders } from '$lib/server/backend-fetch.js';
-import { getCachedBoard } from '$lib/server/board-cache.js';
+import { getCachedBoard, resolveCanonicalBoardId } from '$lib/server/board-cache.js';
 import {
     increment as incrementViewcount,
     hasRecentlyViewed,
@@ -39,7 +39,13 @@ export const load: PageServerLoad = async ({
     cookies,
     getClientAddress
 }) => {
-    const { boardId, postId } = params;
+    const postId = params.postId;
+    const canonicalBoardId = await resolveCanonicalBoardId(params.boardId);
+    if (canonicalBoardId !== params.boardId) {
+        redirect(301, `/${canonicalBoardId}/${postId}${url.search}`);
+    }
+
+    const boardId = canonicalBoardId;
     const initialCommentsLimit = 30;
     const recentPostsLimit = 10;
     // postId가 숫자인지 검증 (레거시 PHP URL 방어: /bbs/board.php 등)
