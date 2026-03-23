@@ -38,6 +38,7 @@ export const load: PageServerLoad = async ({
     getClientAddress
 }) => {
     const { boardId, postId } = params;
+    const initialCommentsLimit = 50;
     // postId가 숫자인지 검증 (레거시 PHP URL 방어: /bbs/board.php 등)
     if (!/^\d+$/.test(postId)) {
         throw error(404, '잘못된 게시글 주소입니다.');
@@ -267,18 +268,31 @@ export const load: PageServerLoad = async ({
         // --- 2단계: 핵심/보조 데이터를 분리해 스트리밍 ---
         const commentsData = await (async () => {
             const commentsResult = await svelteKitFetch(
-                `${url.origin}/api/boards/${boardId}/posts/${postId}/comments?page=1&limit=200`
+                `${url.origin}/api/boards/${boardId}/posts/${postId}/comments?page=1&limit=${initialCommentsLimit}`
             ).then(async (res) => {
-                if (!res.ok) return { items: [], total: 0, page: 1, limit: 200, total_pages: 0 };
+                if (!res.ok)
+                    return {
+                        items: [],
+                        total: 0,
+                        page: 1,
+                        limit: initialCommentsLimit,
+                        total_pages: 0
+                    };
                 const json = await res.json();
                 if (!json.success)
-                    return { items: [], total: 0, page: 1, limit: 200, total_pages: 0 };
+                    return {
+                        items: [],
+                        total: 0,
+                        page: 1,
+                        limit: initialCommentsLimit,
+                        total_pages: 0
+                    };
                 const data = json.data;
                 return {
                     items: data.comments || [],
                     total: data.total || 0,
                     page: data.page || 1,
-                    limit: data.limit || 200,
+                    limit: data.limit || initialCommentsLimit,
                     total_pages: data.total_pages || 1
                 };
             });
