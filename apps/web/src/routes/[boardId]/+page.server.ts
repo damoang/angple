@@ -23,10 +23,11 @@ const DEFAULT_POSTS_TIMEOUT_MS = 3_000;
 const HOT_BOARD_POSTS_TIMEOUT_MS = 2_000;
 
 /**
- * 게시판 목록 페이지 — Streaming SSR
+ * 게시판 목록 페이지
  *
  * board 정보: 즉시 await (헤더, SEO, 권한 체크 필요)
- * posts/notices/promotions: 스트리밍 (스켈레톤 먼저 표시)
+ * posts/notices: SSR에서 완료 후 반환
+ * promotions: 스트리밍 (핵심 본문과 분리)
  */
 export const load: PageServerLoad = async ({ url, params, locals, getClientAddress }) => {
     const boardId = params.boardId;
@@ -130,7 +131,8 @@ export const load: PageServerLoad = async ({ url, params, locals, getClientAddre
                 board,
                 searchParams: null,
                 activeTag: null,
-                streamed: { postsData: Promise.resolve(cachedPosts) }
+                postsData: cachedPosts,
+                streamed: { promotionData: Promise.resolve([] as unknown[]) }
             };
         }
     }
@@ -291,7 +293,6 @@ export const load: PageServerLoad = async ({ url, params, locals, getClientAddre
         return result;
     };
 
-    // Promise (await 하지 않음 → SvelteKit이 스트리밍)
     let postsDataPromise: Promise<PostsCacheData>;
     if (usePostsCache) {
         const inFlight = inFlightPostsLoads.get(postsCacheKey);
@@ -306,6 +307,7 @@ export const load: PageServerLoad = async ({ url, params, locals, getClientAddre
     } else {
         postsDataPromise = buildPostsData();
     }
+    const postsData = await postsDataPromise;
 
     const promotionDataPromise = (async () => {
         if (isSearching || isPromotionBoard) {
@@ -350,9 +352,8 @@ export const load: PageServerLoad = async ({ url, params, locals, getClientAddre
         searchParams: isSearching ? { field: searchField!, query: searchQuery! } : null,
         activeTag: tag,
         watermark,
-        /** 스트리밍: Promise로 반환 → 클라이언트에서 {#await} 사용 */
+        postsData,
         streamed: {
-            postsData: postsDataPromise,
             promotionData: promotionDataPromise
         }
     };

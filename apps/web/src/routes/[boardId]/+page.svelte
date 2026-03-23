@@ -56,7 +56,6 @@
     import { densityStore } from '$lib/stores/density.svelte.js';
     import { readPostStyleStore, type ReadPostStyle } from '$lib/stores/read-post-style.svelte.js';
     import { uiSettingsStore } from '$lib/stores/ui-settings.svelte.js';
-    import BoardListSkeleton from '$lib/components/features/board/board-list-skeleton.svelte';
     import {
         DropdownMenu,
         DropdownMenuContent,
@@ -183,27 +182,22 @@
         });
     });
 
-    // 스트리밍 데이터 도착 시 레벨 배치 로드 + 훅 발행
+    // 목록 데이터 반영 시 레벨 배치 로드 + 훅 발행
     $effect(() => {
-        const promise = data.streamed?.postsData;
-        if (!promise) return;
+        const result = data.postsData;
+        if (!result) return;
 
-        promise
-            .then((result: { posts: { author_id?: string }[] }) => {
-                const authorIds = result.posts
-                    .map((p) => p.author_id)
-                    .filter((id): id is string => Boolean(id));
-                scheduleAuthorLevelFetch(authorIds);
+        const authorIds = result.posts
+            .map((p) => p.author_id)
+            .filter((id): id is string => Boolean(id));
+        scheduleAuthorLevelFetch(authorIds);
 
-                // 훅: 게시글 목록 로드 완료 (플러그인 확장 포인트)
-                doAction('board_list_loaded', {
-                    boardId,
-                    boardType,
-                    posts: result.posts,
-                    notices: (result as any).notices || []
-                });
-            })
-            .catch(() => {});
+        doAction('board_list_loaded', {
+            boardId,
+            boardType,
+            posts: result.posts,
+            notices: result.notices || []
+        });
     });
 
     $effect(() => {
@@ -638,10 +632,7 @@
                 </div>
             {/if}
 
-            <!-- Streaming SSR: 게시글 목록 (스켈레톤 → 데이터) -->
-            {#await data.streamed?.postsData}
-                <BoardListSkeleton />
-            {:then result}
+            {@const result = data.postsData}
                 {@const posts = result.posts}
                 {@const notices = result.notices || []}
                 {@const pagination = result.pagination}
@@ -978,19 +969,6 @@
                         </div>
                     {/if}
                 {/if}
-            {:catch}
-                <Card class="border-destructive">
-                    <CardContent class="py-8 text-center">
-                        <p class="text-destructive">게시글을 불러오지 못했습니다.</p>
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            class="mt-4"
-                            onclick={() => invalidateAll()}>다시 시도</Button
-                        >
-                    </CardContent>
-                </Card>
-            {/await}
         </div>
     {/if}
     <!-- /canList -->
