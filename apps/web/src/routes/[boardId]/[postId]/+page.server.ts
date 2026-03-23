@@ -15,6 +15,7 @@ import {
     hasRecentlyViewed,
     markViewed
 } from '$lib/server/viewcount.js';
+import { fetchReactionsByParentId } from '$lib/server/reactions.js';
 import { fetchMemberLevels } from '$lib/server/member-levels.js';
 import { fetchMemberImagesWithTimestamp } from '$lib/server/member-images.js';
 import { fetchCommentLikeStatuses } from '$lib/server/comment-likes.js';
@@ -608,4 +609,3 @@ export const load: PageServerLoad = async ({
         throw error(404, '게시글을 찾을 수 없습니다.');
     }
 };
-import { fetchReactionsByParentId } from '$lib/server/reactions.js';
