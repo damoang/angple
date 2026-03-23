@@ -1,15 +1,11 @@
+import { normalizeWebUrl } from '$lib/utils/url-normalizer';
+
 /**
  * 회원 프로필 이미지 URL 유틸리티
  * DB(mb_image_url)에 저장된 S3 경로만 사용. 추측 경로 없음.
  */
 
 const CDN_BASE_URL = (import.meta.env.VITE_S3_URL || 'https://s3.damoang.net').replace(/\/$/, '');
-
-function shouldUpgradeToHttps(hostname: string): boolean {
-    const host = hostname.toLowerCase();
-    if (host === 'localhost' || host === '127.0.0.1' || host === '::1') return false;
-    return true;
-}
 
 /**
  * mb_image_url(DB)로 전체 URL 생성
@@ -26,30 +22,13 @@ export function getAvatarUrl(
     const normalizedImageUrl = imageUrl.trim().replaceAll('&amp;', '&');
     let url: string;
 
-    // protocol-relative URL
-    if (normalizedImageUrl.startsWith('//')) {
-        try {
-            const parsed = new URL(`https:${normalizedImageUrl}`);
-            if (parsed.protocol === 'http:' && shouldUpgradeToHttps(parsed.hostname)) {
-                parsed.protocol = 'https:';
-            }
-            url = parsed.toString();
-        } catch {
-            url = normalizedImageUrl;
-        }
-    } else if (normalizedImageUrl.startsWith('http://') || normalizedImageUrl.startsWith('https://')) {
-        // 이미 전체 URL이면 그대로 사용
-        try {
-            const parsed = new URL(normalizedImageUrl);
-            if (parsed.protocol === 'http:' && shouldUpgradeToHttps(parsed.hostname)) {
-                parsed.protocol = 'https:';
-                url = parsed.toString();
-            } else {
-                url = normalizedImageUrl;
-            }
-        } catch {
-            url = normalizedImageUrl;
-        }
+    // 이미 전체 URL 또는 protocol-relative URL
+    if (
+        normalizedImageUrl.startsWith('//') ||
+        normalizedImageUrl.startsWith('http://') ||
+        normalizedImageUrl.startsWith('https://')
+    ) {
+        url = normalizeWebUrl(normalizedImageUrl);
     } else {
         // 상대 경로면 CDN 베이스 추가
         url = `${CDN_BASE_URL}/${normalizedImageUrl.replace(/^\/+/, '')}`;
