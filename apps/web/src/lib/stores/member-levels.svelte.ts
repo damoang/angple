@@ -4,13 +4,70 @@
  * 게시글/댓글 작성자의 나리야 경험치 레벨(as_level)을 배치로 조회하고 캐시합니다.
  * /api/members/levels 엔드포인트를 사용합니다.
  */
+import { SvelteMap } from 'svelte/reactivity';
 
 class MemberLevelStore {
     /** mb_id → as_level 캐시 */
-    private levels = $state<Map<string, number>>(new Map());
+    private levels = new SvelteMap<string, number>();
 
     /** 현재 로딩 중인 ID Set (중복 요청 방지) */
     private pendingIds = new Set<string>();
+    private queuedIds = new Set<string>();
+    private flushTimer: ReturnType<typeof setTimeout> | null = null;
+    private flushPromise: Promise<void> | null = null;
+    private resolveFlush: (() => void) | null = null;
+
+    private ensureFlushScheduled(): Promise<void> {
+        if (!this.flushPromise) {
+            this.flushPromise = new Promise<void>((resolve) => {
+                this.resolveFlush = resolve;
+            });
+        }
+
+        if (!this.flushTimer) {
+            this.flushTimer = setTimeout(() => {
+                void this.flushQueuedIds();
+            }, 25);
+        }
+
+        return this.flushPromise;
+    }
+
+    private async flushQueuedIds(): Promise<void> {
+        const ids = [...this.queuedIds];
+        this.queuedIds.clear();
+
+        if (this.flushTimer) {
+            clearTimeout(this.flushTimer);
+            this.flushTimer = null;
+        }
+
+        try {
+            for (let i = 0; i < ids.length; i += 100) {
+                const chunk = ids.slice(i, i + 100);
+                if (chunk.length === 0) continue;
+
+                const response = await fetch(`/api/members/levels?ids=${chunk.join(',')}`);
+                if (!response.ok) continue;
+
+                const data: Record<string, number> = await response.json();
+                for (const [mbId, level] of Object.entries(data)) {
+                    this.levels.set(mbId, level);
+                }
+            }
+        } catch (err) {
+            console.error('회원 레벨 조회 실패:', err);
+        } finally {
+            for (const id of ids) {
+                this.pendingIds.delete(id);
+            }
+
+            const resolve = this.resolveFlush;
+            this.resolveFlush = null;
+            this.flushPromise = null;
+            resolve?.();
+        }
+    }
 
     /**
      * 레벨 배치 조회
@@ -23,28 +80,10 @@ class MemberLevelStore {
 
         for (const id of newIds) {
             this.pendingIds.add(id);
+            this.queuedIds.add(id);
         }
 
-        try {
-            const response = await fetch(`/api/members/levels?ids=${newIds.join(',')}`);
-
-            if (!response.ok) return;
-
-            const data: Record<string, number> = await response.json();
-
-            // 기존 맵 복사 + 새 데이터 병합 (반응성 트리거)
-            const updated = new Map(this.levels);
-            for (const [mbId, level] of Object.entries(data)) {
-                updated.set(mbId, level);
-            }
-            this.levels = updated;
-        } catch (err) {
-            console.error('회원 레벨 조회 실패:', err);
-        } finally {
-            for (const id of newIds) {
-                this.pendingIds.delete(id);
-            }
-        }
+        await this.ensureFlushScheduled();
     }
 
     /**
@@ -58,11 +97,9 @@ class MemberLevelStore {
      * SSR 데이터로 캐시 초기화 (fetch 없이)
      */
     initFromSSR(data: Record<string, number>): void {
-        const updated = new Map(this.levels);
         for (const [mbId, level] of Object.entries(data)) {
-            updated.set(mbId, level);
+            this.levels.set(mbId, level);
         }
-        this.levels = updated;
     }
 
     /**
@@ -72,17 +109,16 @@ class MemberLevelStore {
         if (!mbId) return;
         const current = this.levels.get(mbId);
         if (current === level) return;
-        const updated = new Map(this.levels);
-        updated.set(mbId, level);
-        this.levels = updated;
+        this.levels.set(mbId, level);
     }
 
     /**
      * 전체 캐시 클리어
      */
     clear(): void {
-        this.levels = new Map();
+        this.levels.clear();
         this.pendingIds.clear();
+        this.queuedIds.clear();
     }
 }
 

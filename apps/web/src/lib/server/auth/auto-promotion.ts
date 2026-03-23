@@ -17,7 +17,6 @@ import {
     type MemberLevelHistoryReason
 } from './member-level-history.js';
 
-/** 승급 조건 설정 타입 */
 export interface PromotionRule {
     fromLevel: number;
     toLevel: number;
@@ -32,11 +31,8 @@ export interface PromotionEligibility {
     mb_certify?: string | null;
 }
 
-/** 기본 승급 규칙 (현재 등급3 승급만, 등급4 이상은 추후 설정) */
 export const DEFAULT_PROMOTION_RULES: PromotionRule[] = [
     { fromLevel: 2, toLevel: 3, minLoginDays: 7, minXP: 3000 }
-    // 등급4 이상 승급 규칙은 추후 추가 예정
-    // 등급5(광고앙)는 광고주 전용으로 자동 승급 대상 아님
 ];
 
 interface MemberPromotionData extends RowDataPacket {
@@ -51,15 +47,15 @@ interface PromotionConfig extends RowDataPacket {
     settings_json: string | null;
 }
 
+interface CheckAndPromoteOptions {
+    reason?: MemberLevelHistoryReason;
+}
+
 function isMissingSiteSettingsTable(err: unknown): boolean {
     if (!err || typeof err !== 'object') return false;
     return (err as QueryError & { code?: string }).code === 'ER_NO_SUCH_TABLE';
 }
 
-/**
- * site_settings에서 승급 규칙 조회
- * 설정이 없으면 기본값 반환
- */
 export async function getPromotionRules(): Promise<PromotionRule[]> {
     try {
         const [rows] = await readPool.query<PromotionConfig[]>(
@@ -82,11 +78,7 @@ export async function getPromotionRules(): Promise<PromotionRule[]> {
     return DEFAULT_PROMOTION_RULES;
 }
 
-/**
- * site_settings에 승급 규칙 저장
- */
 export async function savePromotionRules(rules: PromotionRule[]): Promise<void> {
-    // 기존 설정 로드
     const [rows] = await readPool.query<PromotionConfig[]>(
         `SELECT settings_json FROM site_settings WHERE site_id = 'default' LIMIT 1`
     );
@@ -115,21 +107,12 @@ export async function savePromotionRules(rules: PromotionRule[]): Promise<void> 
     }
 }
 
-/**
- * 특정 회원의 로그인 일수 조회
- * g5_member.mb_login_days를 직접 사용 (Go 백엔드 + SvelteKit 누적값)
- * 이전: g5_na_xp 기반 COUNT → SvelteKit 전환 후 데이터만 집계되어 과소 산정
- */
 async function getLoginDays(mbId: string): Promise<number> {
     const [rows] = await readPool.query<RowDataPacket[]>(
         `SELECT COALESCE(mb_login_days, 0) as login_days FROM g5_member WHERE mb_id = ? LIMIT 1`,
         [mbId]
     );
     return rows[0]?.login_days ?? 0;
-}
-
-interface CheckAndPromoteOptions {
-    reason?: MemberLevelHistoryReason;
 }
 
 export function findApplicablePromotionRule(
@@ -150,10 +133,6 @@ export function findApplicablePromotionRule(
     );
 }
 
-/**
- * 회원의 승급 가능 여부 확인 및 승급 실행
- * @returns 승급 결과 (null: 승급 안됨, object: 승급됨)
- */
 export async function checkAndPromoteMember(
     mbId: string,
     options: CheckAndPromoteOptions = {}
@@ -258,10 +237,6 @@ export async function checkAndPromoteMember(
     }
 }
 
-/**
- * 승급 대상 회원 목록 조회 (관리자용)
- * 조건 충족했지만 아직 승급 안 된 회원들
- */
 export async function getPromotionCandidates(): Promise<
     Array<{
         mb_id: string;
@@ -283,7 +258,6 @@ export async function getPromotionCandidates(): Promise<
     }> = [];
 
     for (const rule of rules) {
-        // 해당 등급 회원 중 XP 조건 충족자 조회
         const [rows] = await readPool.query<RowDataPacket[]>(
             `SELECT m.mb_id, m.mb_nick, m.mb_level, COALESCE(m.as_exp, 0) as as_exp,
                     COALESCE(m.mb_login_days, 0) as login_days
@@ -314,9 +288,6 @@ export async function getPromotionCandidates(): Promise<
     return candidates;
 }
 
-/**
- * 모든 승급 대상 회원 일괄 승급 (관리자용)
- */
 export async function promoteAllEligible(): Promise<{
     promoted: number;
     failed: number;

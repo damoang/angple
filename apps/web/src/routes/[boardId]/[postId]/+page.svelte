@@ -282,6 +282,7 @@
 
     // 댓글/프로모션/리비전 — Streaming SSR (2단계 데이터)
     let comments = $state<FreeComment[]>(data.commentsData?.comments.items || []);
+    let commentsTotal = $state<number>(data.commentsData?.comments.total || comments.length);
     let truthroomCommentMap = $state<Record<number, number>>(
         data.commentsData?.truthroomCommentMap || {}
     );
@@ -315,6 +316,7 @@
         syncedCommentsPostId = postId;
 
         comments = result?.comments.items || [];
+        commentsTotal = result?.comments.total || comments.length;
         initialLikedCommentIds = result?.commentLikeStatuses?.likedIds || [];
         initialDislikedCommentIds = result?.commentLikeStatuses?.dislikedIds || [];
         truthroomCommentMap = result?.truthroomCommentMap || {};
@@ -355,11 +357,6 @@
                     const docTargetId = generateDocumentTargetId(boardId, data.post.id);
                     postReactions =
                         (result.reactions as Record<string, ReactionItem[]>)[docTargetId] || [];
-                }
-
-                if (result.likersData) {
-                    likers = result.likersData.likers || [];
-                    likersTotal = result.likersData.total || 0;
                 }
 
                 if (result.transformedPostContent) {
@@ -1052,8 +1049,22 @@
         const json = await res.json();
         if (json.success) {
             comments = json.data.comments;
+            commentsTotal = json.data.total || json.data.comments?.length || comments.length;
         }
     }
+
+    onMount(() => {
+        if (!canViewSecret) return;
+        if (commentsTotal <= comments.length) return;
+
+        const timer = window.setTimeout(() => {
+            void refetchComments();
+        }, 1500);
+
+        return () => {
+            window.clearTimeout(timer);
+        };
+    });
 
     // 댓글 작성
     async function handleCreateComment(
@@ -1464,23 +1475,6 @@
                 {...slot.propsMapper ? slot.propsMapper({ post: data.post, boardId }) : {}}
             />
         {/each}
-
-        <!-- 기존 본문 상단 광고를 본문 하단으로 이동 -->
-        {#if widgetLayoutStore.hasEnabledAds}
-            <div class="my-6 hidden lg:block">
-                <AdSlot
-                    position="board-view-top-desktop"
-                    height="45px"
-                    slotKey="board-view-top-desktop"
-                />
-            </div>
-        {/if}
-        {#if widgetLayoutStore.hasEnabledAds && (boardType === 'economy' || boardType === 'used-market')}
-            <div class="my-6 lg:hidden">
-                <AdSlot position="board-view-top" height="45px" slotKey="board-view-top" />
-            </div>
-        {/if}
-
         <!-- 본문 직후, 댓글 직전 광고 -->
         {#if widgetLayoutStore.hasEnabledAds}
             <div class="my-6">
@@ -1550,7 +1544,7 @@
                 <CardHeader class="flex flex-row items-center justify-between">
                     <div class="flex items-center gap-2">
                         <h3 class="text-foreground text-lg font-semibold">
-                            댓글 <span class="text-muted-foreground">({comments.length})</span>
+                            댓글 <span class="text-muted-foreground">({commentsTotal})</span>
                         </h3>
                         <button
                             type="button"
@@ -1689,9 +1683,6 @@
         currentPostId={data.post.id}
         limit={25}
         initialPage={Number($page.url.searchParams.get('page')) || 1}
-        initialPosts={data.recentPostsData?.items || []}
-        initialTotal={data.recentPostsData?.total || 0}
-        initialTotalPages={data.recentPostsData?.total_pages || 1}
         {promotionPosts}
         displaySettings={data.board?.display_settings}
     />

@@ -6,6 +6,8 @@
     import type { GroupedNotification } from '$lib/api/types.js';
     import { onMount } from 'svelte';
     import { goto } from '$app/navigation';
+    import { browser } from '$app/environment';
+    import { normalizeWebUrl, toRelativeIfSameOrigin } from '$lib/utils/url-normalizer';
     import Bell from '@lucide/svelte/icons/bell';
     import MessageSquare from '@lucide/svelte/icons/message-square';
     import Reply from '@lucide/svelte/icons/reply';
@@ -18,10 +20,61 @@
     import Loader2 from '@lucide/svelte/icons/loader-2';
     import Settings from '@lucide/svelte/icons/settings';
 
+    const UNREAD_CACHE_TTL_MS = 30_000;
+    const UNREAD_CACHE_STORAGE_KEY = 'angple_notification_unread_cache_v1';
+
+    let unreadCache = {
+        count: 0,
+        fetchedAt: 0
+    };
+    let unreadInflight: Promise<number> | null = null;
+
     let notifications = $state<GroupedNotification[]>([]);
     let unreadCount = $state(0);
     let isLoading = $state(false);
     let isOpen = $state(false);
+
+    function readUnreadCache(): { count: number; fetchedAt: number } | null {
+        if (typeof window === 'undefined') return null;
+
+        try {
+            const raw = window.sessionStorage.getItem(UNREAD_CACHE_STORAGE_KEY);
+            if (!raw) return null;
+
+            const parsed = JSON.parse(raw) as { count?: unknown; fetchedAt?: unknown };
+            const count = typeof parsed.count === 'number' ? parsed.count : null;
+            const fetchedAt = typeof parsed.fetchedAt === 'number' ? parsed.fetchedAt : null;
+
+            if (count === null || fetchedAt === null) return null;
+            return { count, fetchedAt };
+        } catch {
+            return null;
+        }
+    }
+
+    function writeUnreadCache(count: number): void {
+        unreadCache = { count, fetchedAt: Date.now() };
+
+        if (typeof window === 'undefined') return;
+
+        try {
+            window.sessionStorage.setItem(UNREAD_CACHE_STORAGE_KEY, JSON.stringify(unreadCache));
+        } catch {
+            // ignore storage quota / private mode failures
+        }
+    }
+
+    function normalizeNotificationUrl(rawUrl: string, type: string): string {
+        let url = rawUrl.replaceAll('&amp;', '&').trim();
+        if (type === 'like' && !url.includes('#')) {
+            url += '#likes';
+        }
+
+        if (!browser) return url;
+
+        const normalized = normalizeWebUrl(url, { baseOrigin: window.location.origin });
+        return toRelativeIfSameOrigin(normalized, window.location.origin);
+    }
 
     function getNotificationIcon(type: string) {
         switch (type) {
@@ -86,8 +139,33 @@
         if (!authStore.isAuthenticated) return;
 
         try {
-            const summary = await apiClient.getUnreadNotificationCount();
-            unreadCount = summary?.total_unread ?? 0;
+            const now = Date.now();
+            const storedCache = readUnreadCache();
+            if (storedCache && now - storedCache.fetchedAt < UNREAD_CACHE_TTL_MS) {
+                unreadCache = storedCache;
+                unreadCount = storedCache.count;
+                return;
+            }
+
+            if (now - unreadCache.fetchedAt < UNREAD_CACHE_TTL_MS) {
+                unreadCount = unreadCache.count;
+                return;
+            }
+
+            if (!unreadInflight) {
+                unreadInflight = apiClient
+                    .getUnreadNotificationCount()
+                    .then((summary) => {
+                        const count = summary?.total_unread ?? 0;
+                        writeUnreadCache(count);
+                        return count;
+                    })
+                    .finally(() => {
+                        unreadInflight = null;
+                    });
+            }
+
+            unreadCount = await unreadInflight;
         } catch {
             // 401(토큰 만료/도메인 불일치) 등은 조용히 무시
         }
@@ -101,6 +179,7 @@
             const response = await apiClient.getGroupedNotifications(1, 10);
             notifications = response.items;
             unreadCount = response.unread_count;
+            writeUnreadCache(response.unread_count);
         } catch (err) {
             console.error('Failed to load notifications:', err);
         } finally {
@@ -118,6 +197,7 @@
                 );
                 notification.has_unread = false;
                 unreadCount = Math.max(0, unreadCount - notification.unread_count);
+                writeUnreadCache(unreadCount);
                 notification.unread_count = 0;
             } catch (err) {
                 console.error('Failed to mark as read:', err);
@@ -125,12 +205,13 @@
         }
 
         if (notification.url) {
+            const targetUrl = normalizeNotificationUrl(notification.url, notification.type);
             isOpen = false;
-            let url = notification.url;
-            if (notification.type === 'like' && !url.includes('#')) {
-                url += '#likes';
+            if (targetUrl.startsWith('http://') || targetUrl.startsWith('https://')) {
+                window.location.href = targetUrl;
+                return;
             }
-            goto(url);
+            await goto(targetUrl);
         }
     }
 
@@ -143,15 +224,15 @@
                 unread_count: 0
             }));
             unreadCount = 0;
+            writeUnreadCache(0);
         } catch (err) {
             console.error('Failed to mark all as read:', err);
         }
     }
 
     function handleOpenChange(open: boolean): void {
-        isOpen = open;
         if (open) {
-            loadNotifications();
+            void loadNotifications();
         }
     }
 
@@ -193,7 +274,7 @@
     });
 </script>
 
-<DropdownMenu.Root onOpenChange={handleOpenChange}>
+<DropdownMenu.Root bind:open={isOpen} onOpenChange={handleOpenChange}>
     <DropdownMenu.Trigger
         class="hover:bg-muted relative inline-flex items-center justify-center rounded-lg p-2 transition-colors"
     >
@@ -228,13 +309,17 @@
             {:else if notifications.length === 0}
                 <div class="text-muted-foreground py-8 text-center text-sm">알림이 없습니다</div>
             {:else}
-                {#each notifications as notification, i}
+                {#each notifications as notification (notification.bo_table + ':' + notification.wr_id + ':' + notification.from_case)}
                     {@const Icon = getNotificationIcon(notification.type)}
                     <DropdownMenu.Item
                         class="flex cursor-pointer items-start gap-2.5 px-3 py-2 {notification.has_unread
                             ? 'bg-muted/30'
                             : 'opacity-60'}"
-                        onclick={() => handleNotificationClick(notification)}
+                        onSelect={(e) => {
+                            // Dropdown 기본 select 동작(즉시 닫힘/포커스 이동)과 라우팅 충돌을 방지
+                            e.preventDefault();
+                            void handleNotificationClick(notification);
+                        }}
                     >
                         <div class="mt-0.5 shrink-0">
                             <Icon class="h-4 w-4 {getNotificationColor(notification.type)}" />
@@ -267,12 +352,22 @@
                 <a
                     href="/notifications"
                     class="hover:bg-accent flex-1 rounded-md py-1.5 text-center text-sm transition-colors"
+                    onclick={(e: MouseEvent) => {
+                        e.preventDefault();
+                        isOpen = false;
+                        goto('/notifications');
+                    }}
                 >
                     모든 알림 보기
                 </a>
                 <a
                     href="/member/settings/ui?tab=notification"
                     class="hover:bg-accent flex flex-1 items-center justify-center gap-1 rounded-md py-1.5 text-center text-sm transition-colors"
+                    onclick={(e: MouseEvent) => {
+                        e.preventDefault();
+                        isOpen = false;
+                        goto('/member/settings/ui?tab=notification');
+                    }}
                 >
                     <Settings class="h-3.5 w-3.5" />
                     알림설정

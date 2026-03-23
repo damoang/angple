@@ -240,6 +240,10 @@
             <p class="text-muted-foreground text-sm">
                 사이트 로고를 관리하고 특별한 날짜에 자동으로 로고를 변경할 수 있습니다.
             </p>
+            <p class="text-muted-foreground mt-1 text-xs">
+                헤더 로고는 모바일 40px, 데스크톱 48px 높이의 고정 영역에 계속 노출됩니다. SVG
+                애니메이션을 사용할 경우 Safari와 모바일 실기기에서 CPU 사용량을 꼭 확인해 주세요.
+            </p>
         </div>
         <Button onclick={openCreate}>
             <Plus class="mr-1.5 h-4 w-4" />

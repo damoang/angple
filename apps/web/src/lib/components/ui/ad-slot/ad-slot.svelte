@@ -5,7 +5,6 @@
         AD_UNIT_PATHS,
         GAM_AD_EMPTY_RETRY_DELAY,
         GAM_AD_REFRESH_INTERVAL,
-        POSITION_LABELS,
         POSITION_MAP,
         type AdConfig
     } from '$lib/config/ad-config.js';
@@ -182,7 +181,6 @@
 <div
     bind:this={containerEl}
     class="ad-slot-container relative overflow-hidden rounded-lg {className}"
-    class:ad-slot-placeholder={!isLoaded}
     class:ad-slot-loaded={isLoaded && hasAd}
     class:ad-slot-empty={isEmpty}
     class:ad-slot-empty-collapsed={isEmpty}
@@ -195,19 +193,6 @@
 >
     {#if slotId}
         <div id={slotId} class="gam-ad-slot w-full" style:min-height={effectiveMinHeight}></div>
-    {/if}
-
-    {#if !isLoaded && !suppressPlaceholder}
-        <div
-            class="absolute inset-0 flex items-center justify-center rounded-lg border-2 border-dashed border-slate-300 bg-slate-50/50 dark:border-slate-600 dark:bg-slate-800/50"
-        >
-            <div class="flex flex-col items-center gap-1.5 text-center">
-                <span class="text-xs font-semibold text-slate-500 dark:text-slate-400">AD</span>
-                <span class="text-[10px] text-slate-400 dark:text-slate-500">
-                    {POSITION_LABELS[position] || position}
-                </span>
-            </div>
-        </div>
     {/if}
 </div>
 
@@ -222,16 +207,6 @@
     .ad-slot-btf {
         content-visibility: auto;
         contain-intrinsic-size: auto var(--ad-slot-intrinsic-size);
-    }
-
-    .ad-slot-placeholder {
-        background: linear-gradient(135deg, #f1f5f9 0%, #f8fafc 50%, #f1f5f9 100%);
-        border: 2px dashed #cbd5e1;
-    }
-
-    :global(.dark) .ad-slot-placeholder {
-        background: linear-gradient(135deg, #334155 0%, #475569 50%, #334155 100%);
-        border-color: #475569;
     }
 
     .ad-slot-loaded {

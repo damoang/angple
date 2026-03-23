@@ -10,9 +10,13 @@ import type { RowDataPacket } from 'mysql2';
 import pool from '$lib/server/db';
 import { getAuthUser } from '$lib/server/auth';
 import { getRedis } from '$lib/server/redis';
+import { isInternalAppRequest } from '$lib/server/internal-api.js';
 import { getCommentLikersVersion } from '$lib/server/member-activity-cache';
 
 const COMMENT_LIKERS_CACHE_TTL_SEC = 15;
+const INTERNAL_COMMENT_LIKERS_LIMIT = 50;
+const EXTERNAL_COMMENT_LIKERS_LIMIT = 10;
+const MAX_EXTERNAL_COMMENT_LIKERS_PAGE = 1;
 
 /** IP 마스킹: 두 번째 옥텟을 ♡로 (예: 222.114.55.158 → 222.♡.55.158) */
 function maskIp(ip: string | null | undefined): string {
@@ -39,7 +43,7 @@ interface CountRow extends RowDataPacket {
     total: number;
 }
 
-export const GET: RequestHandler = async ({ params, url, cookies }) => {
+export const GET: RequestHandler = async ({ params, url, cookies, request }) => {
     const { boardId, commentId } = params;
 
     if (!boardId || !commentId) {
@@ -57,15 +61,31 @@ export const GET: RequestHandler = async ({ params, url, cookies }) => {
         return json({ success: false, message: '유효하지 않은 commentId입니다.' }, { status: 400 });
     }
 
+    const isInternalRequest = isInternalAppRequest(request);
     const page = Math.max(1, parseInt(url.searchParams.get('page') || '1', 10));
-    const limit = Math.min(50, Math.max(1, parseInt(url.searchParams.get('limit') || '20', 10)));
-    const offset = (page - 1) * limit;
+    const requestedLimit = Math.max(1, parseInt(url.searchParams.get('limit') || '20', 10));
+    const limit = Math.min(
+        requestedLimit,
+        isInternalRequest ? INTERNAL_COMMENT_LIKERS_LIMIT : EXTERNAL_COMMENT_LIKERS_LIMIT
+    );
+
+    if (!isInternalRequest && page > MAX_EXTERNAL_COMMENT_LIKERS_PAGE) {
+        return json(
+            { success: false, message: '외부 요청은 첫 페이지 추천자만 조회할 수 있습니다.' },
+            { status: 403 }
+        );
+    }
+
+    const effectivePage = isInternalRequest
+        ? page
+        : Math.min(page, MAX_EXTERNAL_COMMENT_LIKERS_PAGE);
+    const offset = (effectivePage - 1) * limit;
 
     try {
         const user = await getAuthUser(cookies);
         const isAuthenticated = !!user;
         const version = await getCommentLikersVersion(safeBoardId, safeCommentId);
-        const cacheKey = `comment_likers:${safeBoardId}:${safeCommentId}:${page}:${limit}:${isAuthenticated ? 1 : 0}:v${version}`;
+        const cacheKey = `comment_likers:${safeBoardId}:${safeCommentId}:${effectivePage}:${limit}:${isAuthenticated ? 1 : 0}:v${version}`;
 
         try {
             const cached = await getRedis().get(cacheKey);

@@ -39,6 +39,17 @@ function fingerprint(key: string, value: unknown): string {
                 .map(([k, v]) => k + ':' + v.length)
                 .sort()
                 .join('|');
+        case 'logoData': {
+            const logo = value as {
+                active?: { id?: number; logo_url?: string } | null;
+                schedules?: { id: number }[];
+            };
+            return [
+                logo.active?.id ?? 'none',
+                logo.active?.logo_url ?? '',
+                (logo.schedules ?? []).map((s) => s.id).join(',')
+            ].join('|');
+        }
         case 'user':
             if (value && typeof value === 'object' && 'id' in (value as Record<string, unknown>)) {
                 return (value as { id?: string }).id ?? '';
@@ -60,6 +71,7 @@ const STABLE_KEYS = [
     'menus',
     'celebration',
     'banners',
+    'logoData',
     'ga4MeasurementId',
     'user',
     'accessToken'

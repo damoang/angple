@@ -38,9 +38,7 @@ export const load: PageServerLoad = async ({
     getClientAddress
 }) => {
     const { boardId, postId } = params;
-    const currentPage = Number(url.searchParams.get('page')) || 1;
-    const recentPostsLimit = 25;
-
+    const initialCommentsLimit = 50;
     // postId가 숫자인지 검증 (레거시 PHP URL 방어: /bbs/board.php 등)
     if (!/^\d+$/.test(postId)) {
         throw error(404, '잘못된 게시글 주소입니다.');
@@ -270,18 +268,31 @@ export const load: PageServerLoad = async ({
         // --- 2단계: 핵심/보조 데이터를 분리해 스트리밍 ---
         const commentsData = await (async () => {
             const commentsResult = await svelteKitFetch(
-                `${url.origin}/api/boards/${boardId}/posts/${postId}/comments?page=1&limit=200`
+                `${url.origin}/api/boards/${boardId}/posts/${postId}/comments?page=1&limit=${initialCommentsLimit}`
             ).then(async (res) => {
-                if (!res.ok) return { items: [], total: 0, page: 1, limit: 200, total_pages: 0 };
+                if (!res.ok)
+                    return {
+                        items: [],
+                        total: 0,
+                        page: 1,
+                        limit: initialCommentsLimit,
+                        total_pages: 0
+                    };
                 const json = await res.json();
                 if (!json.success)
-                    return { items: [], total: 0, page: 1, limit: 200, total_pages: 0 };
+                    return {
+                        items: [],
+                        total: 0,
+                        page: 1,
+                        limit: initialCommentsLimit,
+                        total_pages: 0
+                    };
                 const data = json.data;
                 return {
                     items: data.comments || [],
                     total: data.total || 0,
                     page: data.page || 1,
-                    limit: data.limit || 200,
+                    limit: data.limit || initialCommentsLimit,
                     total_pages: data.total_pages || 1
                 };
             });
@@ -432,48 +443,11 @@ export const load: PageServerLoad = async ({
             };
         })();
 
-        const recentPostsData = await bFetch(
-            `/api/v1/boards/${boardId}/posts?page=${currentPage}&limit=${recentPostsLimit}`,
-            {
-                headers,
-                timeout: 5_000
-            }
-        )
-            .then(async (res) => {
-                if (!res.ok) {
-                    return {
-                        items: [],
-                        total: 0,
-                        page: currentPage,
-                        limit: recentPostsLimit,
-                        total_pages: 0
-                    };
-                }
-                const json = await res.json();
-                const items = (json.data as FreePost[]) || [];
-                const meta = json.meta || {};
-                return {
-                    items,
-                    total: meta.total || 0,
-                    page: meta.page || currentPage,
-                    limit: meta.limit || recentPostsLimit,
-                    total_pages: meta.limit ? Math.ceil(meta.total / meta.limit) : 0
-                };
-            })
-            .catch(() => ({
-                items: [],
-                total: 0,
-                page: currentPage,
-                limit: recentPostsLimit,
-                total_pages: 0
-            }));
-
         const auxiliaryDataPromise = (async () => {
             const [
                 promotionResult,
                 revisionsResult,
                 reactionsResult,
-                likersResult,
                 postContentResult,
                 scrapResult,
                 postReportCountResult,
@@ -489,17 +463,6 @@ export const load: PageServerLoad = async ({
                     `document:${boardId}:${postId}`,
                     locals.user?.id || ''
                 ).catch(() => ({}) as Record<string, unknown>),
-                // 추천자 아바타 상위 5명 (Go 백엔드 직접 호출 — CDN 요청 제거)
-                bFetch(`/api/v1/boards/${boardId}/posts/${postId}/likers?page=1&limit=5`, {
-                    headers,
-                    timeout: 3_000
-                })
-                    .then(async (res) => {
-                        if (!res.ok) return { likers: [], total: 0 };
-                        const json = await res.json();
-                        return json.data || { likers: [], total: 0 };
-                    })
-                    .catch(() => ({ likers: [], total: 0 })),
                 // 본문 제휴 링크 변환 (스트리밍 — 초기 렌더 블로킹 방지)
                 post.content
                     ? processPostContentLinks(post.content, {
@@ -560,11 +523,6 @@ export const load: PageServerLoad = async ({
             const reactions =
                 reactionsResult.status === 'fulfilled' ? reactionsResult.value || {} : {};
 
-            const likersData =
-                likersResult.status === 'fulfilled'
-                    ? likersResult.value || { likers: [], total: 0 }
-                    : { likers: [], total: 0 };
-
             // 본문 제휴 링크 변환 결과
             const transformedPostContent =
                 postContentResult.status === 'fulfilled' ? postContentResult.value : null;
@@ -586,7 +544,6 @@ export const load: PageServerLoad = async ({
                 promotionPosts,
                 revisions,
                 reactions,
-                likersData,
                 transformedPostContent,
                 isScrapped,
                 postReportCount,
@@ -635,7 +592,6 @@ export const load: PageServerLoad = async ({
             post,
             board,
             commentsData,
-            recentPostsData,
             isScrapped: false,
             promotionExpired,
             watermark,

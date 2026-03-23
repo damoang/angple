@@ -1,3 +1,5 @@
+import { normalizeWebUrl } from '$lib/utils/url-normalizer';
+
 /**
  * 회원 프로필 이미지 URL 유틸리티
  * DB(mb_image_url)에 저장된 S3 경로만 사용. 추측 경로 없음.
@@ -17,14 +19,19 @@ export function getAvatarUrl(
 ): string | null {
     if (!imageUrl) return null;
 
+    const normalizedImageUrl = imageUrl.trim().replaceAll('&amp;', '&');
     let url: string;
 
-    // 이미 전체 URL이면 그대로 사용
-    if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
-        url = imageUrl;
+    // 이미 전체 URL 또는 protocol-relative URL
+    if (
+        normalizedImageUrl.startsWith('//') ||
+        normalizedImageUrl.startsWith('http://') ||
+        normalizedImageUrl.startsWith('https://')
+    ) {
+        url = normalizeWebUrl(normalizedImageUrl);
     } else {
         // 상대 경로면 CDN 베이스 추가
-        url = `${CDN_BASE_URL}/${imageUrl}`;
+        url = `${CDN_BASE_URL}/${normalizedImageUrl.replace(/^\/+/, '')}`;
     }
 
     // 캐시 버스팅: ?v=timestamp 추가

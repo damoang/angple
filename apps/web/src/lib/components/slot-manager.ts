@@ -101,8 +101,15 @@ class SlotRegistry {
         }
 
         const componentList = this.slots.get(slotName)!;
-
-        const id = `${slotName}-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+        const sourceKey = source || 'anonymous';
+        const componentName =
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            ((component as any)?.name as string | undefined)?.toLowerCase() || 'component';
+        const occurrence = componentList.filter(
+            (comp) =>
+                comp.source === source && comp.priority === priority && comp.component === component
+        ).length;
+        const id = `${slotName}-${sourceKey}-${componentName}-${priority}-${occurrence}`;
 
         componentList.push({
             id,

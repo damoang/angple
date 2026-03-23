@@ -11,7 +11,6 @@
     import Smartphone from '@lucide/svelte/icons/smartphone';
     import DefaultLogo from '$lib/assets/logo.svg';
     import AlignJustify from '@lucide/svelte/icons/align-justify';
-    import { resolveActiveLogo } from '$lib/utils/logo-resolver';
     import Mail from '@lucide/svelte/icons/mail';
     import Sidebar from './sidebar.svelte';
     import {
@@ -24,24 +23,36 @@
     import { getAvatarUrl } from '$lib/utils/member-icon';
     import { menuStore } from '$lib/stores/menu.svelte';
     import { getIcon } from '$lib/utils/icon-map';
+    import { normalizeWebUrl } from '$lib/utils/url-normalizer';
     import { page } from '$app/stores';
     import { browser } from '$app/environment';
 
-    // 하이브리드 로고: SSR에서 KST 매칭, 클라이언트에서 현지 시간 재매칭
-    const clientLogo = $derived(
-        browser ? resolveActiveLogo($page.data.logoData?.schedules || []) : null
-    );
-
-    function shouldUseDefaultLogo(src: string | null | undefined): boolean {
-        if (!src) return true;
+    function isAnimatedSVGLogo(src: string | null | undefined): boolean {
+        if (!src) return false;
         return /^https?:\/\//i.test(src) && /\.svg(?:$|\?)/i.test(src);
     }
 
-    const logoSrc = $derived.by(() => {
-        const candidate = clientLogo?.logo_url || $page.data.logoData?.active?.logo_url || null;
-        return shouldUseDefaultLogo(candidate) ? DefaultLogo : candidate;
+    const activeLogoSrc = $derived($page.data.logoData?.active?.logo_url || DefaultLogo);
+    const activeLogoAlt = $derived($page.data.logoData?.active?.name || 'Logo');
+    let headerLogoFailed = $state(false);
+    let prefersReducedMotion = $state(false);
+
+    $effect(() => {
+        activeLogoSrc;
+        untrack(() => {
+            headerLogoFailed = false;
+        });
     });
-    const logoAlt = $derived(clientLogo?.name || $page.data.logoData?.active?.name || 'Logo');
+
+    const logoSrc = $derived.by(() => {
+        if (headerLogoFailed) return DefaultLogo;
+        if (prefersReducedMotion && isAnimatedSVGLogo(activeLogoSrc)) return DefaultLogo;
+
+        return browser
+            ? normalizeWebUrl(activeLogoSrc, { baseOrigin: window.location.origin })
+            : normalizeWebUrl(activeLogoSrc);
+    });
+    const logoAlt = $derived(headerLogoFailed ? 'Logo' : activeLogoAlt);
 
     // SSR 안전한 인증 상태:
     // - 서버(SSR): $page.data.user 사용 (요청별 안전, 모듈 레벨 상태 오염 없음)
@@ -143,6 +154,9 @@
 
     // 컴포넌트 마운트 시 스크롤 이벤트 등록 + 테마 복원
     onMount(() => {
+        const reducedMotionMq = window.matchMedia('(prefers-reduced-motion: reduce)');
+        prefersReducedMotion = reducedMotionMq.matches;
+
         // 테마 모드 복원: 쿠키 → localStorage → prefers-color-scheme
         let savedMode: string | null = null;
         const cookieMatch = document.cookie.match(/angple_theme_mode=(\w+)/);
@@ -195,6 +209,10 @@
             }
         }
         darkMq.addEventListener('change', handleSystemThemeChange);
+        function handleReducedMotionChange(e: MediaQueryListEvent) {
+            prefersReducedMotion = e.matches;
+        }
+        reducedMotionMq.addEventListener('change', handleReducedMotionChange);
 
         window.addEventListener('storage', handleStorageChange);
         window.addEventListener('scroll', handleScroll, { passive: true });
@@ -202,6 +220,7 @@
 
         return () => {
             darkMq.removeEventListener('change', handleSystemThemeChange);
+            reducedMotionMq.removeEventListener('change', handleReducedMotionChange);
             window.removeEventListener('storage', handleStorageChange);
             window.removeEventListener('scroll', handleScroll);
             window.removeEventListener('keydown', handleKeydown);
@@ -222,12 +241,13 @@
                 class="hover:bg-accent relative rounded-lg p-2 transition-all duration-200 ease-out 2xl:hidden"
                 aria-label="메뉴"
             >
-                <span class="absolute -inset-1"></span>
+                <span class="pointer-events-none absolute -inset-1"></span>
                 <AlignJustify class="text-muted-foreground h-5 w-5" />
             </button>
             <a
                 href="/"
-                class="flex items-center ps-1 md:ps-0"
+                class="relative z-10 flex h-10 shrink-0 cursor-pointer items-center rounded-md ps-1 md:h-12 md:ps-0"
+                aria-label="홈"
                 onclick={(e: MouseEvent) => {
                     if (window.location.pathname === '/') {
                         e.preventDefault();
@@ -238,8 +258,15 @@
                 <img
                     src={logoSrc}
                     alt={logoAlt}
-                    class="h-10 w-auto md:h-12"
-                    style="max-height:48px"
+                    class="pointer-events-none h-10 w-auto select-none md:h-12"
+                    width="98"
+                    height="48"
+                    decoding="async"
+                    fetchpriority="high"
+                    style="max-height:48px; max-width:min(45vw, 180px);"
+                    onerror={() => {
+                        headerLogoFailed = true;
+                    }}
                 />
             </a>
         </div>
@@ -304,7 +331,7 @@
                       ? 'AMOLED'
                       : '라이트모드'}
             >
-                <span class="absolute -inset-1"></span>
+                <span class="pointer-events-none absolute -inset-1"></span>
                 {#if themeMode === 'amoled'}
                     <Sun class="h-5 w-5 text-orange-400" />
                 {:else if themeMode === 'dark'}
@@ -320,7 +347,7 @@
                 class="hover:bg-accent relative rounded-lg p-2 transition-all duration-200 ease-out"
                 aria-label="검색"
             >
-                <span class="absolute -inset-1"></span>
+                <span class="pointer-events-none absolute -inset-1"></span>
                 <Search class="text-muted-foreground h-5 w-5" />
             </button>
 
@@ -371,7 +398,7 @@
                     class="hover:bg-accent relative rounded-lg p-2 transition-all duration-200 ease-out"
                     aria-label="로그인"
                 >
-                    <span class="absolute -inset-1"></span>
+                    <span class="pointer-events-none absolute -inset-1"></span>
                     <User class="text-primary h-5 w-5" />
                 </button>
             {/if}
@@ -383,7 +410,7 @@
                     class="hover:bg-accent relative rounded-lg p-2 transition-all duration-200 ease-out"
                     aria-label="쪽지"
                 >
-                    <span class="absolute -inset-1"></span>
+                    <span class="pointer-events-none absolute -inset-1"></span>
                     <Mail class="text-muted-foreground h-5 w-5" />
                 </button>
 
@@ -397,7 +424,7 @@
                     class="hover:bg-accent relative rounded-lg p-2 transition-all duration-200 ease-out"
                     aria-label="알림"
                 >
-                    <span class="absolute -inset-1"></span>
+                    <span class="pointer-events-none absolute -inset-1"></span>
                     <Bell class="text-muted-foreground h-5 w-5" />
                 </button>
             {/if}

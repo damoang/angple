@@ -21,6 +21,7 @@
     import ChevronLeft from '@lucide/svelte/icons/chevron-left';
     import ChevronRight from '@lucide/svelte/icons/chevron-right';
     import Settings from '@lucide/svelte/icons/settings';
+    import { normalizeWebUrl, toRelativeIfSameOrigin } from '$lib/utils/url-normalizer';
 
     let { data }: { data: PageData } = $props();
 
@@ -136,12 +137,13 @@
                     notification.wr_id,
                     notification.from_case
                 );
+                const unreadDelta = notification.unread_count;
                 notification.has_unread = false;
                 notification.unread_count = 0;
                 if (notificationData) {
                     notificationData.unread_count = Math.max(
                         0,
-                        notificationData.unread_count - notification.unread_count
+                        notificationData.unread_count - unreadDelta
                     );
                 }
             } catch (err) {
@@ -150,11 +152,17 @@
         }
 
         if (notification.url) {
-            let url = notification.url;
+            let url = notification.url.replaceAll('&amp;', '&').trim();
             if (notification.type === 'like' && !url.includes('#')) {
                 url += '#likes';
             }
-            goto(url);
+            const normalized = normalizeWebUrl(url, { baseOrigin: window.location.origin });
+            const targetUrl = toRelativeIfSameOrigin(normalized, window.location.origin);
+            if (targetUrl.startsWith('http://') || targetUrl.startsWith('https://')) {
+                window.location.href = targetUrl;
+                return;
+            }
+            await goto(targetUrl);
         }
     }
 
