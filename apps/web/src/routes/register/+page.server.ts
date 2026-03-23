@@ -9,13 +9,13 @@ import { randomBytes } from 'crypto';
 import {
     generateSocialMbId,
     validateNickname,
-    validateMbId,
+    isNicknameTaken,
     isMbIdTaken,
     createMember
 } from '$lib/server/auth/register.js';
 import { upsertSocialProfile } from '$lib/server/auth/oauth/social-profile.js';
 import { getMemberById, updateLoginTimestamp } from '$lib/server/auth/oauth/member.js';
-import { generateRefreshToken, generateDamoangJWT } from '$lib/server/auth/jwt.js';
+import { generateRefreshToken } from '$lib/server/auth/jwt.js';
 import {
     createSession,
     SESSION_COOKIE_NAME,
@@ -36,6 +36,27 @@ import { safeRedirectUrl } from '$lib/server/safe-redirect.js';
 
 const COOKIE_DOMAIN = env.COOKIE_DOMAIN || undefined;
 const AUTH_EVENT_COOKIE = 'ga4_auth_event';
+
+function buildInviteTempNickname(provider: string): string {
+    const providerPart =
+        provider
+            .toLowerCase()
+            .replace(/[^a-z0-9]/g, '')
+            .slice(0, 6) || 'social';
+    const randomPart = randomBytes(3).toString('hex');
+    return `tmp_${providerPart}_${randomPart}`.slice(0, 20);
+}
+
+async function generateInviteTempNickname(provider: string): Promise<string> {
+    for (let i = 0; i < 20; i++) {
+        const candidate = buildInviteTempNickname(provider);
+        if (!(await isNicknameTaken(candidate))) {
+            return candidate;
+        }
+    }
+
+    throw new Error('초대 임시 닉네임 생성에 실패했습니다.');
+}
 
 export const load: PageServerLoad = async ({ url, cookies }) => {
     const provider = url.searchParams.get('provider') || '';
@@ -94,10 +115,11 @@ export const actions: Actions = {
         console.log('[Register] Action started');
         const clientIp = getClientAddress();
         const formData = await request.formData();
-        const nickname = (formData.get('nickname') as string)?.trim() || '';
+        const redirectUrl = safeRedirectUrl(formData.get('redirect') as string);
+        const isInviteFlow = redirectUrl.includes('ads.damoang.net/invite/');
+        let nickname = (formData.get('nickname') as string)?.trim() || '';
         const agreeTerms = formData.get('agree_terms') === 'on';
         const agreePrivacy = formData.get('agree_privacy') === 'on';
-        const redirectUrl = safeRedirectUrl(formData.get('redirect') as string);
 
         // Rate limit 체크 (5회/시간)
         const rateCheck = checkRateLimit(clientIp, 'register', 5, 60 * 60 * 1000);
@@ -110,7 +132,6 @@ export const actions: Actions = {
         recordAttempt(clientIp, 'register');
 
         // Turnstile CAPTCHA 검증 (초대 플로우는 소셜 인증 완료 상태이므로 스킵)
-        const isInviteFlow = redirectUrl.includes('ads.damoang.net/invite/');
         if (!isInviteFlow) {
             const turnstileToken = (formData.get('cf-turnstile-response') as string) || '';
             const captchaValid = await verifyTurnstile(turnstileToken, clientIp);
@@ -148,47 +169,31 @@ export const actions: Actions = {
             });
         }
 
-        // 약관 동의 확인
-        if (!agreeTerms || !agreePrivacy) {
-            return fail(400, {
-                error: '이용약관과 개인정보처리방침에 동의해주세요.',
-                nickname
-            });
-        }
-
-        // 초대 플로우: 광고주 약관 동의 확인
-        if (isInviteFlow) {
-            const agreeContract = formData.get('agree_contract') === 'on';
-            if (!agreeContract) {
-                return fail(400, {
-                    error: '광고주 약관에 동의해주세요.',
-                    nickname
-                });
-            }
-        }
-
-        // 닉네임 검증
-        const nicknameResult = await validateNickname(nickname);
-        if (!nicknameResult.valid) {
-            return fail(400, {
-                error: nicknameResult.error,
-                nickname
-            });
-        }
-
-        // mb_id: 초대 플로우는 사용자 입력, 일반은 소셜 프로바이더 기반 자동 생성
         let mbId: string;
         if (isInviteFlow) {
-            const customMbId = (formData.get('mb_id') as string)?.trim().toLowerCase() || '';
-            const mbIdResult = await validateMbId(customMbId);
-            if (!mbIdResult.valid) {
+            nickname = await generateInviteTempNickname(socialProfile.provider);
+            mbId = generateSocialMbId(socialProfile.provider, socialProfile.identifier);
+            if (await isMbIdTaken(mbId)) {
+                mbId = mbId + '_' + randomBytes(4).toString('hex');
+            }
+        } else {
+            // 약관 동의 확인
+            if (!agreeTerms || !agreePrivacy) {
                 return fail(400, {
-                    error: mbIdResult.error,
+                    error: '이용약관과 개인정보처리방침에 동의해주세요.',
                     nickname
                 });
             }
-            mbId = customMbId;
-        } else {
+
+            // 닉네임 검증
+            const nicknameResult = await validateNickname(nickname);
+            if (!nicknameResult.valid) {
+                return fail(400, {
+                    error: nicknameResult.error,
+                    nickname
+                });
+            }
+
             mbId = generateSocialMbId(socialProfile.provider, socialProfile.identifier);
             if (await isMbIdTaken(mbId)) {
                 mbId = mbId + '_' + randomBytes(4).toString('hex');
@@ -306,51 +311,8 @@ export const actions: Actions = {
             });
         }
 
-        // 초대 플로우: ads API 서버사이드 호출 후 완료 페이지로 리다이렉트
+        // 초대 플로우: 임시 소셜 계정 로그인만 완료하고 ads 초대 페이지로 복귀
         if (isInviteFlow) {
-            const tokenMatch = redirectUrl.match(/invite\/([a-f0-9]+)/);
-            const inviteToken = tokenMatch?.[1];
-
-            if (inviteToken) {
-                try {
-                    const inviteMember = await getMemberById(mbId);
-                    const jwtToken = await generateDamoangJWT({
-                        mb_id: mbId,
-                        mb_level: inviteMember?.mb_level ?? 0,
-                        mb_name: inviteMember?.mb_name || nickname,
-                        mb_email: socialProfile.email
-                    });
-
-                    const confirmRes = await fetch(
-                        `https://ads.damoang.net/api/v1/invite/${inviteToken}/confirm`,
-                        {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                Cookie: `damoang_jwt=${jwtToken}`
-                            },
-                            body: JSON.stringify({
-                                type: 'create_account',
-                                mbId: mbId,
-                                mbNick: nickname
-                            })
-                        }
-                    );
-
-                    const result = await confirmRes.json();
-                    if (result.success) {
-                        redirect(302, '/register/invite-complete');
-                    }
-                    console.error('[Register] Invite confirm failed:', result.message);
-                } catch (err) {
-                    // SvelteKit redirect는 다시 throw
-                    if (err && typeof err === 'object' && 'status' in err) {
-                        throw err;
-                    }
-                    console.error('[Register] Invite confirm error:', err);
-                }
-            }
-            // 실패 시 기존 동작 (ads 초대페이지로 리다이렉트)
             redirect(302, redirectUrl);
         }
 
