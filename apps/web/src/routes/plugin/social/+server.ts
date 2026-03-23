@@ -11,12 +11,7 @@ import { resolveOrigin } from '$lib/server/auth/oauth/config.js';
 import { safeRedirectUrl } from '$lib/server/safe-redirect.js';
 import { validateOAuthState } from '$lib/server/auth/oauth/state.js';
 import { findSocialProfile, upsertSocialProfile } from '$lib/server/auth/oauth/social-profile.js';
-import {
-    getMemberById,
-    findMemberByEmail,
-    updateLoginTimestamp,
-    isMemberActive
-} from '$lib/server/auth/oauth/member.js';
+import { getMemberById, findMemberByEmail, isMemberActive } from '$lib/server/auth/oauth/member.js';
 import { generateRefreshToken } from '$lib/server/auth/jwt.js';
 import {
     createSession,
@@ -27,6 +22,7 @@ import {
 import { AppleProvider } from '$lib/server/auth/oauth/providers/apple.js';
 import { TwitterProvider } from '$lib/server/auth/oauth/providers/twitter.js';
 import type { OAuthUserProfile } from '$lib/server/auth/oauth/types.js';
+import { runSocialLoginPostProcess } from '$lib/server/auth/social-login-postprocess.js';
 
 const COOKIE_DOMAIN = env.COOKIE_DOMAIN || undefined;
 const AUTH_EVENT_COOKIE = 'ga4_auth_event';
@@ -140,8 +136,7 @@ async function handleCallback(
         // 소셜 프로필 업데이트
         await upsertSocialProfile(mbId, providerName, profile);
 
-        // 로그인 시각 업데이트
-        await updateLoginTimestamp(mbId, clientIp);
+        await runSocialLoginPostProcess(mbId, clientIp);
 
         // 9. 서버사이드 세션 생성
         const session = await createSession(member.mb_id, {

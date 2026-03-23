@@ -11,12 +11,7 @@ import { resolveOrigin } from '$lib/server/auth/oauth/config.js';
 import { safeRedirectUrl } from '$lib/server/safe-redirect.js';
 import { validateOAuthState } from '$lib/server/auth/oauth/state.js';
 import { findSocialProfile, upsertSocialProfile } from '$lib/server/auth/oauth/social-profile.js';
-import {
-    getMemberById,
-    findMemberByEmail,
-    updateLoginTimestamp,
-    isMemberActive
-} from '$lib/server/auth/oauth/member.js';
+import { getMemberById, findMemberByEmail, isMemberActive } from '$lib/server/auth/oauth/member.js';
 import {
     createSession,
     SESSION_COOKIE_NAME,
@@ -29,9 +24,7 @@ import { AppleProvider } from '$lib/server/auth/oauth/providers/apple.js';
 import { TwitterProvider } from '$lib/server/auth/oauth/providers/twitter.js';
 import type { OAuthUserProfile } from '$lib/server/auth/oauth/types.js';
 import { getCertConfig } from '$lib/server/auth/cert-inicis.js';
-import { checkAndPromoteMember } from '$lib/server/auth/auto-promotion.js';
-import { grantLoginXP } from '$lib/server/auth/xp-grant.js';
-import { grantLoginPoint } from '$lib/server/auth/point-grant.js';
+import { runSocialLoginPostProcess } from '$lib/server/auth/social-login-postprocess.js';
 
 const COOKIE_DOMAIN = env.COOKIE_DOMAIN || undefined;
 
@@ -141,12 +134,7 @@ async function handleCallback(
         // 소셜 프로필 업데이트
         await upsertSocialProfile(mbId, providerName, profile);
 
-        // 로그인 시각 업데이트
-        await updateLoginTimestamp(mbId, clientIp);
-
-        // 로그인 XP + 포인트 적립 (mb_login_days 증가 후 승급 체크)
-        await Promise.allSettled([grantLoginXP(mbId), grantLoginPoint(mbId)]);
-        await checkAndPromoteMember(mbId);
+        await runSocialLoginPostProcess(mbId, clientIp);
 
         // 서버사이드 세션 생성
         const session = await createSession(member.mb_id, {

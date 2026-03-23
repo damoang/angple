@@ -178,7 +178,8 @@
                 {GRADE_NAMES[2]} → {GRADE_NAMES[3]} 승급 조건
             </Card.Title>
             <Card.Description>
-                아래 조건을 모두 충족하면 로그인 시 자동으로 등급3으로 승급됩니다.
+                실명인증을 완료하고 아래 조건을 모두 충족하면 로그인 시 자동으로 등급3으로
+                승급됩니다.
             </Card.Description>
         </Card.Header>
         <Card.Content>
@@ -244,6 +245,7 @@
                     <!-- 참고 -->
                     <div class="bg-muted/50 rounded-lg p-3">
                         <p class="text-muted-foreground text-xs">
+                            * 실명인증 완료 회원만 자동 승급 대상입니다.<br />
                             * 등급4 이상의 자동 승급 조건은 추후 설정됩니다.<br />
                             * 등급5(광고앙💚)는 광고주 전용으로, 자동 승급 대상이 아닙니다.
                         </p>
@@ -279,7 +281,7 @@
                         승급 대상 회원
                     </Card.Title>
                     <Card.Description>
-                        조건을 충족했지만 아직 승급되지 않은 회원 목록
+                        실명인증과 승급 조건을 충족했지만 아직 승급되지 않은 회원 목록
                     </Card.Description>
                 </div>
                 <div class="flex items-center gap-2">

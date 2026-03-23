@@ -18,6 +18,13 @@ export interface PromotionRule {
     minXP: number;
 }
 
+export interface PromotionEligibility {
+    mb_level: number;
+    as_exp: number;
+    login_days: number;
+    mb_certify?: string | null;
+}
+
 /** 기본 승급 규칙 (현재 등급3 승급만, 등급4 이상은 추후 설정) */
 export const DEFAULT_PROMOTION_RULES: PromotionRule[] = [
     { fromLevel: 2, toLevel: 3, minLoginDays: 7, minXP: 3000 }
@@ -30,6 +37,7 @@ interface MemberPromotionData extends RowDataPacket {
     mb_level: number;
     as_exp: number;
     login_days: number;
+    mb_certify: string;
 }
 
 interface PromotionConfig extends RowDataPacket {
@@ -113,6 +121,24 @@ async function getLoginDays(mbId: string): Promise<number> {
     return rows[0]?.login_days ?? 0;
 }
 
+export function findApplicablePromotionRule(
+    member: PromotionEligibility,
+    rules: PromotionRule[]
+): PromotionRule | null {
+    if ((member.mb_certify || '').trim() === '') {
+        return null;
+    }
+
+    return (
+        rules.find(
+            (rule) =>
+                rule.fromLevel === member.mb_level &&
+                member.login_days >= rule.minLoginDays &&
+                member.as_exp >= rule.minXP
+        ) || null
+    );
+}
+
 /**
  * 회원의 승급 가능 여부 확인 및 승급 실행
  * @returns 승급 결과 (null: 승급 안됨, object: 승급됨)
@@ -124,7 +150,8 @@ export async function checkAndPromoteMember(mbId: string): Promise<{
 } | null> {
     // 회원 정보 조회 (login_days도 함께 조회하여 별도 쿼리 제거)
     const [memberRows] = await readPool.query<MemberPromotionData[]>(
-        `SELECT mb_id, mb_level, COALESCE(as_exp, 0) as as_exp, COALESCE(mb_login_days, 0) as login_days
+        `SELECT mb_id, mb_level, COALESCE(as_exp, 0) as as_exp,
+                COALESCE(mb_login_days, 0) as login_days, COALESCE(mb_certify, '') as mb_certify
          FROM g5_member WHERE mb_id = ? LIMIT 1`,
         [mbId]
     );
@@ -145,11 +172,14 @@ export async function checkAndPromoteMember(mbId: string): Promise<{
     const rules = await getPromotionRules();
 
     // 현재 등급에 적용 가능한 규칙 찾기
-    const applicableRule = rules.find(
-        (rule) =>
-            rule.fromLevel === member.mb_level &&
-            loginDays >= rule.minLoginDays &&
-            member.as_exp >= rule.minXP
+    const applicableRule = findApplicablePromotionRule(
+        {
+            mb_level: member.mb_level,
+            as_exp: member.as_exp,
+            login_days: loginDays,
+            mb_certify: member.mb_certify
+        },
+        rules
     );
 
     if (!applicableRule) {
@@ -208,6 +238,7 @@ export async function getPromotionCandidates(): Promise<
              WHERE m.mb_level = ?
                AND COALESCE(m.as_exp, 0) >= ?
                AND COALESCE(m.mb_login_days, 0) >= ?
+               AND COALESCE(m.mb_certify, '') <> ''
                AND m.mb_leave_date = ''
                AND m.mb_intercept_date = ''
              ORDER BY login_days DESC, as_exp DESC
