@@ -126,7 +126,9 @@
     let loading = $state(false);
     let error = $state<string | null>(null);
 
-    const noticePosts = $derived((prefetchData as NewsPost[] | undefined) ?? indexWidgetsStore.newsTabs);
+    const noticePosts = $derived(
+        (prefetchData as NewsPost[] | undefined) ?? indexWidgetsStore.newsTabs
+    );
     const economyPosts = $derived(
         (prefetchData as EconomyPost[] | undefined) ?? indexWidgetsStore.economyTabs
     );

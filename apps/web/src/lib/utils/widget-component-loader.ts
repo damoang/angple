@@ -64,7 +64,9 @@ function scanWidgets(): Map<string, ScannedWidget> {
             widgets.set(id, {
                 manifest: result.data,
                 isCustom: false,
-                load: builtinComponents[componentPath] as () => Promise<{ default: WidgetComponent }>
+                load: builtinComponents[componentPath] as () => Promise<{
+                    default: WidgetComponent;
+                }>
             });
         }
     }
