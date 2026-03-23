@@ -40,7 +40,7 @@ export const load: PageServerLoad = async ({
     getClientAddress
 }) => {
     const { boardId, postId } = params;
-    const initialCommentsLimit = 50;
+    const initialCommentsLimit = 30;
     const recentPostsLimit = 10;
     // postId가 숫자인지 검증 (레거시 PHP URL 방어: /bbs/board.php 등)
     if (!/^\d+$/.test(postId)) {
