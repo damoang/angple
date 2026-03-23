@@ -23,14 +23,31 @@ function trimFreeListPayload(post: FreePost): FreePost {
     return {
         ...post,
         content: '',
+        updated_at: undefined,
+        board_id: undefined,
+        author_ip: undefined,
+        tags: undefined,
         images: undefined,
         videos: undefined,
         files: undefined,
         downloads: undefined,
+        thumbnail: undefined,
+        thumbnail_raw: undefined,
+        link1: undefined,
+        link2: undefined,
         link1_display: undefined,
         link2_display: undefined,
         link1_affiliate: undefined,
-        link2_affiliate: undefined
+        link2_affiliate: undefined,
+        deleted_by: undefined,
+        extra_1: undefined,
+        extra_2: undefined,
+        extra_3: undefined,
+        extra_4: undefined,
+        extra_5: undefined,
+        extra_6: undefined,
+        extra_7: undefined,
+        extra_8: undefined
     };
 }
 
