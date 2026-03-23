@@ -55,6 +55,7 @@
     import PluginSlot from '$lib/components/plugin/plugin-slot.svelte';
     import { widgetLayoutStore } from '$lib/stores/widget-layout.svelte';
     import { pluginStore } from '$lib/stores/plugin.svelte';
+    import { loadPluginLib } from '$lib/utils/plugin-optional-loader';
     import {
         SeoHead,
         createArticleJsonLd,
@@ -181,6 +182,7 @@
     import type { Component } from 'svelte';
     let MemoBadge = $state<Component | null>(null);
     let MemoInlineEditor = $state<Component | null>(null);
+    let loadMemosForAuthors = $state<((memberIds: string[]) => Promise<void>) | null>(null);
 
     $effect(() => {
         if (memoPluginActive) {
@@ -188,6 +190,14 @@
             loadPluginComponent('member-memo', 'memo-inline-editor').then(
                 (c) => (MemoInlineEditor = c)
             );
+            loadPluginLib<{ loadMemosForAuthors: (ids: string[]) => Promise<void> }>(
+                'member-memo',
+                'memo-store'
+            ).then((module) => {
+                loadMemosForAuthors = module?.loadMemosForAuthors ?? null;
+            });
+        } else {
+            loadMemosForAuthors = null;
         }
     });
 
@@ -989,6 +999,9 @@
             const likerIds = likers.map((l: LikerInfo) => l.mb_id).filter(Boolean);
             if (likerIds.length > 0) {
                 memberLevelStore.fetchLevels(likerIds);
+                if (loadMemosForAuthors) {
+                    void loadMemosForAuthors(likerIds);
+                }
             }
         } catch (err) {
             console.error('Failed to load likers:', err);
@@ -1017,6 +1030,9 @@
             const likerIds = (response.likers ?? []).map((l: LikerInfo) => l.mb_id).filter(Boolean);
             if (likerIds.length > 0) {
                 memberLevelStore.fetchLevels(likerIds);
+                if (loadMemosForAuthors) {
+                    void loadMemosForAuthors(likerIds);
+                }
             }
         } catch (err) {
             console.error('Failed to load more likers:', err);
