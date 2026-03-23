@@ -282,6 +282,7 @@
 
     // 댓글/프로모션/리비전 — Streaming SSR (2단계 데이터)
     let comments = $state<FreeComment[]>(data.commentsData?.comments.items || []);
+    let commentsTotal = $state<number>(data.commentsData?.comments.total || comments.length);
     let truthroomCommentMap = $state<Record<number, number>>(
         data.commentsData?.truthroomCommentMap || {}
     );
@@ -315,6 +316,7 @@
         syncedCommentsPostId = postId;
 
         comments = result?.comments.items || [];
+        commentsTotal = result?.comments.total || comments.length;
         initialLikedCommentIds = result?.commentLikeStatuses?.likedIds || [];
         initialDislikedCommentIds = result?.commentLikeStatuses?.dislikedIds || [];
         truthroomCommentMap = result?.truthroomCommentMap || {};
@@ -1052,8 +1054,22 @@
         const json = await res.json();
         if (json.success) {
             comments = json.data.comments;
+            commentsTotal = json.data.total || json.data.comments?.length || comments.length;
         }
     }
+
+    onMount(() => {
+        if (!canViewSecret) return;
+        if (commentsTotal <= comments.length) return;
+
+        const timer = window.setTimeout(() => {
+            void refetchComments();
+        }, 1500);
+
+        return () => {
+            window.clearTimeout(timer);
+        };
+    });
 
     // 댓글 작성
     async function handleCreateComment(
@@ -1533,7 +1549,7 @@
                 <CardHeader class="flex flex-row items-center justify-between">
                     <div class="flex items-center gap-2">
                         <h3 class="text-foreground text-lg font-semibold">
-                            댓글 <span class="text-muted-foreground">({comments.length})</span>
+                            댓글 <span class="text-muted-foreground">({commentsTotal})</span>
                         </h3>
                         <button
                             type="button"
