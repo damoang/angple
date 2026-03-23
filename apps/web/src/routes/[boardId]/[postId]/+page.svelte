@@ -359,11 +359,6 @@
                         (result.reactions as Record<string, ReactionItem[]>)[docTargetId] || [];
                 }
 
-                if (result.likersData) {
-                    likers = result.likersData.likers || [];
-                    likersTotal = result.likersData.total || 0;
-                }
-
                 if (result.transformedPostContent) {
                     renderedPostContent = result.transformedPostContent;
                 }
@@ -650,6 +645,7 @@
                     console.error('Failed to load like status:', err);
                 }
             })();
+
         }
 
         return () => {
