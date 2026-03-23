@@ -150,8 +150,8 @@
             </CardDescription>
         </CardHeader>
         <CardContent>
-            <!-- 일반 에러 메시지 (닉네임/아이디 외) -->
-            {#if form?.error && !isNicknameError}
+            <!-- 일반 에러 메시지 (초대 플로우 제외) -->
+            {#if !data.isInviteFlow && form?.error && !isNicknameError}
                 <div class="bg-destructive/10 text-destructive mb-4 rounded-md p-3 text-sm">
                     {form.error}
                 </div>
