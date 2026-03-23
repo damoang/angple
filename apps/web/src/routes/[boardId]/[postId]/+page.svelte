@@ -645,7 +645,6 @@
                     console.error('Failed to load like status:', err);
                 }
             })();
-
         }
 
         return () => {
@@ -1678,7 +1677,7 @@
 
 <!-- 게시판 최근글 목록 -->
 {#if canRead}
-<RecentPosts
+    <RecentPosts
         {boardId}
         {boardTitle}
         currentPostId={data.post.id}
