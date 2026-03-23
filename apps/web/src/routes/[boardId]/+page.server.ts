@@ -16,6 +16,44 @@ interface PostsCacheData {
     pagination: { total: number; page: number; limit: number; totalPages: number };
     error: string | null;
 }
+
+const CONTENT_HEAVY_LIST_LAYOUTS = new Set(['detailed', 'webzine', 'card']);
+
+function trimFreeListPayload(post: FreePost): FreePost {
+    return {
+        ...post,
+        content: '',
+        images: undefined,
+        videos: undefined,
+        files: undefined,
+        downloads: undefined,
+        link1_display: undefined,
+        link2_display: undefined,
+        link1_affiliate: undefined,
+        link2_affiliate: undefined
+    };
+}
+
+function maybeTrimBoardListPayload(
+    boardId: string,
+    board: Board | null,
+    posts: FreePost[],
+    notices: FreePost[]
+): { posts: FreePost[]; notices: FreePost[] } {
+    const listLayoutId =
+        board?.display_settings?.list_layout || board?.display_settings?.list_style || 'classic';
+    const shouldTrim = boardId === 'free' && !CONTENT_HEAVY_LIST_LAYOUTS.has(listLayoutId);
+
+    if (!shouldTrim) {
+        return { posts, notices };
+    }
+
+    return {
+        posts: posts.map(trimFreeListPayload),
+        notices: notices.map(trimFreeListPayload)
+    };
+}
+
 const postsCache = createCache<PostsCacheData>({ ttl: 15_000, maxSize: 100 });
 const inFlightPostsLoads = new Map<string, Promise<PostsCacheData>>();
 
@@ -142,13 +180,16 @@ export const load: PageServerLoad = async ({ url, params, locals, getClientAddre
             // 프로모션 게시판: ads 서버에서 광고주별 제한된 게시글 조회
             const [promoBoardResult, noticesResult] = await Promise.allSettled([
                 fetchPromotionBoardPosts(),
-                bFetch(`/api/v1/boards/${boardId}/notices`, { headers, timeout: 3_000 }).then(
-                    async (res) => {
-                        if (!res.ok) return [];
-                        const json = await res.json();
-                        return (json.data as FreePost[]) || [];
-                    }
-                )
+                includeNotices
+                    ? bFetch(`/api/v1/boards/${boardId}/notices`, {
+                          headers,
+                          timeout: 3_000
+                      }).then(async (res) => {
+                          if (!res.ok) return [];
+                          const json = await res.json();
+                          return (json.data as FreePost[]) || [];
+                      })
+                    : Promise.resolve([])
             ]);
 
             let posts: FreePost[] = [];
@@ -203,7 +244,13 @@ export const load: PageServerLoad = async ({ url, params, locals, getClientAddre
                 totalPages: 1
             };
 
-            const result = { posts, notices, pagination, error };
+            const trimmed = maybeTrimBoardListPayload(boardId, board, posts, notices);
+            const result = {
+                posts: trimmed.posts,
+                notices: trimmed.notices,
+                pagination,
+                error
+            };
 
             // 비로그인 + 에러 없는 경우만 캐시 저장
             if (usePostsCache && !error) {
@@ -283,7 +330,13 @@ export const load: PageServerLoad = async ({ url, params, locals, getClientAddre
             }
         }
 
-        const result = { posts, notices, pagination, error };
+        const trimmed = maybeTrimBoardListPayload(boardId, board, posts, notices);
+        const result = {
+            posts: trimmed.posts,
+            notices: trimmed.notices,
+            pagination,
+            error
+        };
 
         // 비로그인 + 에러 없는 경우만 캐시 저장
         if (usePostsCache && !error) {
