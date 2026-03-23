@@ -40,6 +40,15 @@ function isAdsInviteFlow(redirectUrl: string | null | undefined): boolean {
     return !!redirectUrl && redirectUrl.includes('ads.damoang.net/invite/');
 }
 
+function isPromotionRedirectFlow(redirectUrl: string | null | undefined): boolean {
+    if (!redirectUrl) return false;
+    return (
+        redirectUrl.startsWith('/promotion') ||
+        redirectUrl.includes('://damoang.net/promotion') ||
+        redirectUrl.includes('://www.damoang.net/promotion')
+    );
+}
+
 function buildInviteTempNickname(provider: string): string {
     const randomPart = crypto.randomUUID().replace(/-/g, '').slice(0, 6);
     const providerPart =
@@ -251,8 +260,13 @@ async function handleCallback(
             console.error('[OAuth Callback] SSO cookie 발급 실패:', e);
         }
 
-        // 실명인증 미완료 시 인증 페이지로 리다이렉트 (초대 플로우는 제외)
-        if (!isAdsInviteFlow(stateData.redirect) && !member.mb_certify) {
+        const skipCertification =
+            isAdsInviteFlow(stateData.redirect) ||
+            isPromotionRedirectFlow(stateData.redirect) ||
+            Number(member.mb_level ?? 0) >= 5;
+
+        // 직접홍보/광고주 로그인은 실명인증 없이 진행
+        if (!skipCertification && !member.mb_certify) {
             try {
                 const certConfig = await getCertConfig();
                 if (certConfig.certUse > 0) {
