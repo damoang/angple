@@ -1681,7 +1681,7 @@
         {boardId}
         {boardTitle}
         currentPostId={data.post.id}
-        limit={25}
+        limit={10}
         initialPage={Number($page.url.searchParams.get('page')) || 1}
         {promotionPosts}
         displaySettings={data.board?.display_settings}
