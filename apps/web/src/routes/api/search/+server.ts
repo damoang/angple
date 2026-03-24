@@ -51,17 +51,23 @@ function escapeSphinxMatch(str: string): string {
     return str.replace(/([\\()|\-!@~"&/^$=<>])/g, '\\$1');
 }
 
+/** CJK 문자 포함 여부 확인 (한글, 한자, 일본어) */
+function containsCJK(s: string): boolean {
+    return /[\u4E00-\u9FFF\uAC00-\uD7AF\u3040-\u309F\u30A0-\u30FF]/.test(s);
+}
+
 // 검색 필드별 Sphinx MATCH 표현식
-// 따옴표 없이 사용해야 부분 일치(토큰 매칭)가 동작함
-// 따옴표로 감싸면 정확 구문(phrase match)만 매칭됨
+// CJK 토큰은 구문 검색("*token*")으로 인접 ngram 강제
 function buildMatchExpr(query: string, field: string): string {
     const escaped = escapeSphinxMatch(query);
-    // Add wildcard suffix to each token for prefix matching
-    // e.g. "검색 키워드" → "검색* 키워드*" so "검색어" also matches
-    const wildcarded = escaped
-        .split(/\s+/)
-        .filter(Boolean)
-        .map((t) => `${t}*`)
+    const tokens = escaped.split(/\s+/).filter(Boolean);
+    const wildcarded = tokens
+        .map((t) => {
+            if (containsCJK(t) && [...t].length >= 2) {
+                return `"*${t}*"`;
+            }
+            return `*${t}*`;
+        })
         .join(' ');
 
     switch (field) {

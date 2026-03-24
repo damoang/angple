@@ -25,7 +25,8 @@
         { value: 'title_content', label: '제목+내용' },
         { value: 'title', label: '제목' },
         { value: 'content', label: '내용' },
-        { value: 'author', label: '작성자' }
+        { value: 'author', label: '작성자' },
+        { value: 'google', label: 'Google' }
     ];
 
     // URL에서 현재 검색 파라미터 가져오기
@@ -49,15 +50,22 @@
         e.preventDefault();
 
         if (!searchQuery.trim()) {
-            // 검색어가 비어있으면 검색 파라미터 제거
             handleReset();
+            return;
+        }
+
+        // Google 사이트 검색: 새 탭에서 열기
+        if (searchField === 'google') {
+            const boardSlug = boardPath.replace(/^\//, '');
+            const q = encodeURIComponent(`site:damoang.net/${boardSlug} ${searchQuery.trim()}`);
+            window.open(`https://www.google.com/search?q=${q}`, '_blank');
             return;
         }
 
         const url = new URL(window.location.href);
         url.searchParams.set('sfl', searchField);
         url.searchParams.set('stx', searchQuery.trim());
-        url.searchParams.set('page', '1'); // 검색 시 1페이지로
+        url.searchParams.set('page', '1');
         goto(url.pathname + url.search);
     }
 
