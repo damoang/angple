@@ -24,7 +24,8 @@
         { value: 'title_content', label: '제목+내용' },
         { value: 'title', label: '제목' },
         { value: 'content', label: '내용' },
-        { value: 'author', label: '작성자' }
+        { value: 'author', label: '작성자' },
+        { value: 'google', label: 'Google' }
     ];
 
     // 로컬 상태
@@ -93,6 +94,13 @@
 
         saveRecentSearch(searchQuery.trim());
         trackSearch(searchQuery, searchField);
+
+        // Google 사이트 검색: 새 탭에서 열기
+        if (searchField === 'google') {
+            const q = encodeURIComponent(`site:damoang.net ${searchQuery.trim()}`);
+            window.open(`https://www.google.com/search?q=${q}`, '_blank');
+            return;
+        }
 
         const url = new URL(window.location.origin + '/search');
         url.searchParams.set('q', searchQuery.trim());
