@@ -432,4 +432,39 @@
             padding-bottom: calc(6px + var(--row-pad-extra, 3px));
         }
     }
+
+    /* 메모 배지 색상 (인라인 렌더링용) */
+    .memo-badge {
+        display: inline-block;
+        padding: 0 0.375rem;
+        border-radius: 0.25rem;
+        font-size: 0.6875rem;
+        line-height: 1.25rem;
+        white-space: nowrap;
+    }
+
+    :global(.memo-color--yellow) {
+        background-color: #ffe69c;
+        color: #664d03;
+    }
+
+    :global(.memo-color--green) {
+        background-color: #d1e7dd;
+        color: #0f5132;
+    }
+
+    :global(.memo-color--purple) {
+        background-color: #e2d9f3;
+        color: #432874;
+    }
+
+    :global(.memo-color--red) {
+        background-color: #f8d7da;
+        color: #dc3545;
+    }
+
+    :global(.memo-color--blue) {
+        background-color: #cfe2ff;
+        color: #084298;
+    }
 </style>
