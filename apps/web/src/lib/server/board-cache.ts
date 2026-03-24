@@ -68,30 +68,61 @@ export async function getCachedBoard(
 ): Promise<BoardResult> {
     const canonicalBoardId = await resolveCanonicalBoardId(boardId);
     const isAuthenticated = Boolean(headers.Authorization);
-    if (!isAuthenticated) {
-        const cached = boardInfoCache.get(canonicalBoardId);
-        if (cached) return { board: cached, status: 200 };
+    const freshCached = boardInfoCache.get(canonicalBoardId);
+    if (!isAuthenticated && freshCached) {
+        return { board: freshCached, status: 200 };
     }
 
-    const [boardRes, displaySettingsRes] = await Promise.all([
-        bFetch(`/api/v1/boards/${canonicalBoardId}`, { headers, timeout: 3_000 }),
-        bFetch(`/api/v1/boards/${canonicalBoardId}/display-settings`, { headers, timeout: 3_000 })
-    ]);
+    const staleCached = boardInfoCache.getStale(canonicalBoardId);
+
+    let boardRes: Response;
+    let displaySettingsRes: Response | null = null;
+
+    try {
+        [boardRes, displaySettingsRes] = await Promise.all([
+            bFetch(`/api/v1/boards/${canonicalBoardId}`, {
+                headers,
+                timeout: 3_000,
+                bypassCircuitBreaker: true
+            }),
+            bFetch(`/api/v1/boards/${canonicalBoardId}/display-settings`, {
+                headers,
+                timeout: 3_000,
+                bypassCircuitBreaker: true
+            })
+        ]);
+    } catch (error) {
+        if (staleCached) {
+            console.warn('[board-cache] stale board cache fallback:', canonicalBoardId, error);
+            return { board: staleCached, status: 200 };
+        }
+        throw error;
+    }
 
     if (!boardRes.ok) {
+        if (staleCached && boardRes.status >= 500) {
+            console.warn(
+                '[board-cache] stale board cache fallback on backend error:',
+                canonicalBoardId,
+                boardRes.status
+            );
+            return { board: staleCached, status: 200 };
+        }
         return { board: null, status: boardRes.status };
     }
 
     let board: Board | null = (await safeJson<{ data: Board }>(boardRes)).data;
 
-    if (board && displaySettingsRes.ok) {
+    if (board && displaySettingsRes?.ok) {
         const displaySettings = (
             await safeJson<{ data: Board['display_settings'] }>(displaySettingsRes)
         ).data;
         board = { ...board, display_settings: displaySettings };
+    } else if (board && staleCached?.display_settings) {
+        board = { ...board, display_settings: staleCached.display_settings };
     }
 
-    if (board && !isAuthenticated) {
+    if (board) {
         boardInfoCache.set(canonicalBoardId, board);
     }
 

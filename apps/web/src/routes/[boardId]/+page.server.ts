@@ -218,7 +218,8 @@ export const load: PageServerLoad = async ({ url, params, locals, getClientAddre
                 includeNotices
                     ? bFetch(`/api/v1/boards/${boardId}/notices`, {
                           headers,
-                          timeout: 3_000
+                          timeout: 3_000,
+                          bypassCircuitBreaker: true
                       }).then(async (res) => {
                           if (!res.ok) return [];
                           const json = await res.json();
@@ -299,13 +300,18 @@ export const load: PageServerLoad = async ({ url, params, locals, getClientAddre
         const [postsResult, noticesResult] = await Promise.allSettled([
             bFetch(buildPostsUrl(), {
                 headers,
-                timeout: isHotBoard ? HOT_BOARD_POSTS_TIMEOUT_MS : DEFAULT_POSTS_TIMEOUT_MS
+                timeout: isHotBoard ? HOT_BOARD_POSTS_TIMEOUT_MS : DEFAULT_POSTS_TIMEOUT_MS,
+                bypassCircuitBreaker: true
             }).then(async (res) => {
                 if (!res.ok) throw new Error(`Posts API error: ${res.status}`);
                 return res.json();
             }),
             includeNotices
-                ? bFetch(`/api/v1/boards/${boardId}/notices`, { headers, timeout: 3_000 }).then(
+                ? bFetch(`/api/v1/boards/${boardId}/notices`, {
+                      headers,
+                      timeout: 3_000,
+                      bypassCircuitBreaker: true
+                  }).then(
                       async (res) => {
                           if (!res.ok) return [];
                           const json = await res.json();
