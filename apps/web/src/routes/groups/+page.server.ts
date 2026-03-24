@@ -12,6 +12,7 @@ export type { GroupLatestPost };
 
 export interface GroupBoard {
     bo_table: string;
+    board_path: string;
     bo_subject: string;
     bo_count_write: number;
     bo_count_comment: number;
@@ -130,8 +131,14 @@ async function loadGroupBoards(cacheKey: string): Promise<GroupBoard[]> {
         boards = fallbackRows as GroupBoard[];
     }
 
-    await groupBoardsCache.set(cacheKey, boards);
-    return boards;
+    const normalizedBoards = boards.map((board) => ({
+        ...board,
+        // 소모임 링크는 소문자 경로로 통일하고 라우트에서 canonical redirect 처리한다.
+        board_path: board.bo_table.toLowerCase()
+    }));
+
+    await groupBoardsCache.set(cacheKey, normalizedBoards);
+    return normalizedBoards;
 }
 
 async function loadLatestPosts(): Promise<GroupLatestPost[]> {
@@ -170,8 +177,13 @@ async function loadLatestPosts(): Promise<GroupLatestPost[]> {
         p.mb_nick = nickMap.get(`${p.bo_table}-${p.wr_id}`) || p.mb_id;
     }
 
-    await groupLatestCache.set('latest', posts);
-    return posts;
+    const normalizedPosts = posts.map((post) => ({
+        ...post,
+        bo_table: post.bo_table.toLowerCase()
+    }));
+
+    await groupLatestCache.set('latest', normalizedPosts);
+    return normalizedPosts;
 }
 
 async function loadPopularPosts(): Promise<GroupLatestPost[]> {
@@ -218,8 +230,13 @@ async function loadPopularPosts(): Promise<GroupLatestPost[]> {
         p.mb_nick = nickMap.get(`${p.bo_table}-${p.wr_id}`) || p.mb_id;
     }
 
-    await groupPopularCache.set('popular', popular);
-    return popular;
+    const normalizedPopular = popular.map((post) => ({
+        ...post,
+        bo_table: post.bo_table.toLowerCase()
+    }));
+
+    await groupPopularCache.set('popular', normalizedPopular);
+    return normalizedPopular;
 }
 
 async function loadLatestCount(): Promise<number> {
