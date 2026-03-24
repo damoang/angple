@@ -15,7 +15,7 @@ fi
 
 # Plugins that intentionally exist in both core (shared lib) and premium (platform-specific impl).
 # Premium install.sh merges these — core provides types/interfaces, premium adds private logic.
-ALLOWED_OVERLAPS=("affiliate-link")
+ALLOWED_OVERLAPS=("affiliate-link" "auto-embed")
 
 conflicts=()
 
