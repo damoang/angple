@@ -24,6 +24,7 @@ import { fetchCommentLikeStatuses } from '$lib/server/comment-likes.js';
 
 import { fetchPostLikeStatus } from '$lib/server/post-like-status.js';
 import { fetchTruthroomPostId, fetchTruthroomCommentMap } from '$lib/server/truthroom.js';
+import { BackendUnavailableError } from '$lib/server/backend-fetch.js';
 
 /**
  * 게시글 상세 페이지 — Streaming SSR
@@ -82,6 +83,10 @@ export const load: PageServerLoad = async ({
 
         // 게시글 필수 — 실패 시 404
         if (postResult.status === 'rejected') {
+            const reason = postResult.reason;
+            if (reason instanceof BackendUnavailableError) {
+                throw error(503, reason.message);
+            }
             throw error(404, '게시글을 찾을 수 없습니다.');
         }
 
@@ -537,6 +542,9 @@ export const load: PageServerLoad = async ({
             }
         };
     } catch (err) {
+        if (err instanceof BackendUnavailableError) {
+            throw error(503, err.message);
+        }
         if (err && typeof err === 'object' && 'status' in err) {
             throw err; // SvelteKit error() already thrown
         }
