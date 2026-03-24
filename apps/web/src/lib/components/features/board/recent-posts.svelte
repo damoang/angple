@@ -262,7 +262,7 @@
                     isRead={showReadState && readPostsStore.isRead(boardId, post.id)}
                 />
             </div>
-            {#if widgetLayoutStore.hasEnabledAds && i + 1 === 7}
+            {#if widgetLayoutStore.hasEnabledAds && i + 1 === 12}
                 <div class="py-2">
                     <AdSlot
                         position="board-list-infeed"
