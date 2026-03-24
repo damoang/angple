@@ -413,6 +413,16 @@
     // 제목 (mode에 따라)
     const formTitle = $derived(mode === 'create' ? '새 글 작성' : '글 수정');
     const submitText = $derived(mode === 'create' ? '작성하기' : '수정하기');
+
+    function handleTitleKeydown(event: KeyboardEvent): void {
+        if (event.key !== 'Enter') return;
+        if (event.isComposing || event.shiftKey || event.ctrlKey || event.altKey || event.metaKey) {
+            return;
+        }
+
+        // 제목 입력 중 Enter가 폼 submit으로 이어지지 않도록 막는다.
+        event.preventDefault();
+    }
 </script>
 
 {#if showDraftBanner}
@@ -547,6 +557,7 @@
                         maxlength={200}
                         class={errors.title ? 'border-destructive' : ''}
                         disabled={isLoading}
+                        onkeydown={handleTitleKeydown}
                     />
                     {#if errors.title}
                         <p class="text-destructive text-sm">{errors.title}</p>

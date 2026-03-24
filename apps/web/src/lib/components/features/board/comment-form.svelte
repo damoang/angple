@@ -131,6 +131,10 @@
         e.preventDefault();
 
         if (isSubmitting || isLoading) return;
+        if (isUploading) {
+            error = '이미지 업로드가 끝난 뒤 댓글을 작성해주세요.';
+            return;
+        }
 
         if (!canSubmit) {
             error = '댓글 내용을 입력해주세요.';
@@ -258,7 +262,8 @@
                         }}
                         onImagePaste={(file: File) => handleFiles([file])}
                         onSubmitShortcut={() => {
-                            if (canSubmit && !isLoading) handleSubmit(new Event('submit'));
+                            if (canSubmit && !isLoading && !isUploading)
+                                handleSubmit(new Event('submit'));
                         }}
                         class={error ? 'border-destructive' : ''}
                     />
@@ -295,7 +300,7 @@
                         onInsertEmoticon={(filename) => {
                             editorRef?.insertImage(`/emoticons/${filename}`, filename);
                         }}
-                        disabled={isLoading}
+                        disabled={isLoading || isUploading}
                         {boardId}
                     />
 
@@ -309,7 +314,7 @@
                         <Button
                             type="submit"
                             size="sm"
-                            disabled={isLoading || isSubmitting || !canSubmit}
+                            disabled={isLoading || isSubmitting || isUploading || !canSubmit}
                             title="Alt+Enter / Ctrl+Enter"
                         >
                             {#if isLoading || isSubmitting}
