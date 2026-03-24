@@ -87,8 +87,8 @@ function enrichGivingPosts(posts: FreePost[]): void {
 const postsCache = createCache<PostsCacheData>({ ttl: 15_000, maxSize: 100 });
 const inFlightPostsLoads = new Map<string, Promise<PostsCacheData>>();
 
-const DEFAULT_POSTS_TIMEOUT_MS = 3_000;
-const HOT_BOARD_POSTS_TIMEOUT_MS = 2_000;
+const DEFAULT_POSTS_TIMEOUT_MS = 12_000;
+const HOT_BOARD_POSTS_TIMEOUT_MS = 8_000;
 
 /**
  * 게시판 목록 페이지

@@ -2,7 +2,7 @@
  * Backend Fetch Wrapper — 모든 서버사이드 Go 백엔드 fetch를 감싸는 표준 래퍼
  *
  * 기능:
- * - 기본 timeout 5초 (AbortSignal.timeout)
+ * - 기본 timeout 15초 (AbortSignal.timeout)
  * - Circuit breaker 자동 연동
  * - 5xx 응답 시 failure 카운트
  * - 구조화된 에러 (BackendUnavailableError)
@@ -12,7 +12,7 @@ import { env } from '$env/dynamic/private';
 import { backendCircuitBreaker } from './circuit-breaker.js';
 
 const BACKEND_URL = env.BACKEND_URL || 'http://localhost:8090';
-const DEFAULT_TIMEOUT_MS = 5_000;
+const DEFAULT_TIMEOUT_MS = 15_000;
 
 export class BackendUnavailableError extends Error {
     readonly status = 503;
@@ -23,7 +23,7 @@ export class BackendUnavailableError extends Error {
 }
 
 export interface BackendFetchOptions {
-    /** 요청 timeout (ms). 기본 5000ms */
+    /** 요청 timeout (ms). 기본 15000ms */
     timeout?: number;
     /** HTTP 헤더 */
     headers?: Record<string, string>;
