@@ -2,11 +2,7 @@ import {
     convertAffiliateLinksDetailed,
     convertAffiliateUrl
 } from '../../affiliate-link/lib/affiliate-api.server';
-import {
-    classifyAffiliateInput,
-    detectPlatform,
-    normalizeUrl
-} from '../../affiliate-link/lib/domain-matcher';
+import { detectPlatform, extractHost, normalizeUrl } from '../../affiliate-link/lib/domain-matcher';
 import { buildAffiliateRedirectRecord, attachRedirectToDecision } from './redirect-store.server';
 import { createErrorDecision, createPassthroughDecision } from './policies';
 import {
@@ -24,6 +20,60 @@ import type {
     AffiliateLinkFieldInput,
     AffiliateLinkFieldOutput
 } from './types';
+
+function classifyAffiliateInput(
+    url: string,
+    platform?: NonNullable<ReturnType<typeof detectPlatform>> | null
+): AffiliateInputKind | null {
+    const normalizedPlatform = platform ?? detectPlatform(url);
+    if (!normalizedPlatform) return null;
+
+    const host = extractHost(url);
+    if (!host) return null;
+
+    switch (normalizedPlatform) {
+        case 'coupang': {
+            if (/^link\.coupang\.com$/i.test(host)) {
+                try {
+                    const parsed = new URL(url);
+                    const pathname = parsed.pathname.toLowerCase();
+                    if (pathname.startsWith('/re/affsdp')) {
+                        return parsed.searchParams.has('pageKey')
+                            ? 'affiliate_url_rebindable'
+                            : 'affiliate_url_non_rebindable';
+                    }
+                    if (pathname.startsWith('/a/')) {
+                        return 'affiliate_url_non_rebindable';
+                    }
+                } catch {
+                    return 'affiliate_url_non_rebindable';
+                }
+            }
+
+            if (/^coupa\.ng$/i.test(host)) {
+                return 'affiliate_url_non_rebindable';
+            }
+
+            return 'merchant_url';
+        }
+        case 'aliexpress':
+            return /(^|\.)(s\.click|click|a)\.aliexpress\.com$/i.test(host)
+                ? 'affiliate_url_rebindable'
+                : 'merchant_url';
+        case 'linkprice':
+            return /(^|\.)(click\.linkprice\.com|lase\.kr|lpweb\.kr|app\.ac)$/i.test(host)
+                ? 'affiliate_url_non_rebindable'
+                : 'merchant_url';
+        case 'amazon':
+            return /(^|\.)(amzn\.to|amzn\.asia)$/i.test(host)
+                ? 'affiliate_url_non_rebindable'
+                : 'merchant_url';
+        case 'kkday':
+            return 'merchant_url';
+        default:
+            return 'merchant_url';
+    }
+}
 
 function getRebindFailureReason(input: {
     platform: NonNullable<ReturnType<typeof detectPlatform>>;

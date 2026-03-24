@@ -125,11 +125,6 @@ export const LINKPRICE_MERCHANTS: string[] = [
     'airalo.com'
 ];
 
-export type AffiliateInputKind =
-    | 'merchant_url'
-    | 'affiliate_url_rebindable'
-    | 'affiliate_url_non_rebindable';
-
 /**
  * URL 정규화
  * - 스키마가 없으면 https://를 붙여 파싱 가능하게 만든다.
@@ -223,54 +218,6 @@ export function detectPlatform(url: string): AffiliatePlatform | null {
     }
 
     return null;
-}
-
-export function classifyAffiliateInput(
-    url: string,
-    platform?: AffiliatePlatform | null
-): AffiliateInputKind | null {
-    const normalizedPlatform = platform ?? detectPlatform(url);
-    if (!normalizedPlatform) return null;
-
-    const host = extractHost(url);
-    if (!host) return null;
-
-    switch (normalizedPlatform) {
-        case 'coupang': {
-            if (/^link\.coupang\.com$/i.test(host)) {
-                if (/\/re\/AFFSDP/i.test(url) && /[?&]pageKey=/i.test(url)) {
-                    return 'affiliate_url_rebindable';
-                }
-                return 'affiliate_url_non_rebindable';
-            }
-            if (/^coupa\.ng$/i.test(host)) {
-                return 'affiliate_url_non_rebindable';
-            }
-            return 'merchant_url';
-        }
-        case 'aliexpress': {
-            if (/^(s\.click|click|a)\.aliexpress\.com$/i.test(host)) {
-                return 'affiliate_url_rebindable';
-            }
-            return 'merchant_url';
-        }
-        case 'linkprice': {
-            if (/^(click\.linkprice\.com|lase\.kr|lpweb\.kr|app\.ac)$/i.test(host)) {
-                return 'affiliate_url_non_rebindable';
-            }
-            return 'merchant_url';
-        }
-        case 'amazon': {
-            if (/^amzn\.(to|asia)$/i.test(host)) {
-                return 'affiliate_url_non_rebindable';
-            }
-            return 'merchant_url';
-        }
-        case 'kkday':
-            return 'merchant_url';
-        default:
-            return 'merchant_url';
-    }
 }
 
 /**
