@@ -1419,305 +1419,312 @@
             </div>
         {/if}
 
-        <!-- 삭제된 게시물 배너 -->
+        <!-- 삭제된 게시물: 배너만 표시, 본문 숨김 -->
         {#if data.post.deleted_at}
             <div class="mb-4">
                 <DeletedPostBanner postId={data.post.id} deletedAt={data.post.deleted_at} />
             </div>
-        {/if}
-
-        <!-- 소명글 ↔ 이용제한 연동 배너 -->
-        {#if boardId === 'claim' && linkedDisciplinelogId()}
-            <div
-                class="mb-4 flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-700 dark:border-blue-800 dark:bg-blue-950/30 dark:text-blue-300"
-            >
-                <FileText class="h-4 w-4 shrink-0" />
-                <span>이 글은 이용제한 기록과 연결되어 있습니다.</span>
-                <a
-                    href="/disciplinelog/{linkedDisciplinelogId()}"
-                    class="font-medium underline hover:no-underline"
-                >
-                    이용제한 기록 보기
-                </a>
-            </div>
-        {/if}
-
-        <!-- 게시글 카드 (뷰 레이아웃) -->
-        {#if ViewComponent}
-            <ViewComponent
-                post={data.post}
-                board={data.board}
-                {boardId}
-                {isAuthor}
-                isAdmin={authStore.user?.mb_id === 'admin'}
-                {canViewSecret}
-                {promotionExpired}
-                {likeCount}
-                {dislikeCount}
-                {isLiked}
-                {isDisliked}
-                {isLiking}
-                {isDisliking}
-                {isLikeAnimating}
-                {likers}
-                {likersTotal}
-                {fontSize}
-                fontSizeLabel={fontSize}
-                onLike={handleLike}
-                onDislike={handleDislike}
-                onLoadLikers={loadLikers}
-                onReport={() => {
-                    showReportDialog = true;
-                }}
-                onChangeFontSize={changeFontSize}
-                {memoPluginActive}
-                {reactionPluginActive}
-                {MemoBadge}
-                {beforeContentSlots}
-                {afterContentSlots}
-                {formatDate}
-                {formatTimeShort}
-                editCount={revisions.filter((r) => r.change_type === 'update').length}
-                {formatFileSize}
-                {postContent}
-                pageData={data}
-                {postReactions}
-                {postReportCount}
-                truthroomPostId={data.truthroomPostId}
-                originalPostLink={data.originalPostLink}
-            />
         {:else}
-            <!-- 폴백: 레이아웃을 resolve할 수 없을 때 기본 메시지 -->
-            <div class="text-muted-foreground py-12 text-center">
-                레이아웃을 불러올 수 없습니다.
-            </div>
-        {/if}
-
-        <!-- GA4 Scroll Depth 센티넬 (25%, 50%) -->
-        <div data-scroll-depth="25" aria-hidden="true"></div>
-        <div data-scroll-depth="50" aria-hidden="true"></div>
-
-        <!-- 중고게시판 상태 변경 (작성자/관리자만) -->
-        {#if isUsedMarket && isAuthor}
-            <div class="mb-6 flex items-center gap-3 rounded-lg border p-4">
-                <span class="text-[15px] font-medium">판매 상태:</span>
-                <div class="flex gap-2">
-                    {#each ['selling', 'reserved', 'sold'] as const as status (status)}
-                        <Button
-                            variant={marketStatus === status ? 'default' : 'outline'}
-                            size="sm"
-                            onclick={() => changeMarketStatus(status)}
-                            disabled={isChangingMarketStatus || marketStatus === status}
-                        >
-                            {MARKET_STATUS_LABELS[status]}
-                        </Button>
-                    {/each}
+            <!-- 소명글 ↔ 이용제한 연동 배너 -->
+            {#if boardId === 'claim' && linkedDisciplinelogId()}
+                <div
+                    class="mb-4 flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-700 dark:border-blue-800 dark:bg-blue-950/30 dark:text-blue-300"
+                >
+                    <FileText class="h-4 w-4 shrink-0" />
+                    <span>이 글은 이용제한 기록과 연결되어 있습니다.</span>
+                    <a
+                        href="/disciplinelog/{linkedDisciplinelogId()}"
+                        class="font-medium underline hover:no-underline"
+                    >
+                        이용제한 기록 보기
+                    </a>
                 </div>
-            </div>
-        {/if}
+            {/if}
 
-        {#each beforeCommentsSlots as slot (slot.component)}
-            {@const SlotComponent = slot.component}
-            <SlotComponent
-                {...slot.propsMapper ? slot.propsMapper({ post: data.post, boardId }) : {}}
-            />
-        {/each}
-        <!-- 본문 직후, 댓글 직전 광고 -->
-        {#if widgetLayoutStore.hasEnabledAds}
-            <div class="my-6">
-                <AdSlot
-                    position="board-before-comments"
-                    height="90px"
-                    slotKey="board-before-comments"
+            <!-- 게시글 카드 (뷰 레이아웃) -->
+            {#if ViewComponent}
+                <ViewComponent
+                    post={data.post}
+                    board={data.board}
+                    {boardId}
+                    {isAuthor}
+                    isAdmin={authStore.user?.mb_id === 'admin'}
+                    {canViewSecret}
+                    {promotionExpired}
+                    {likeCount}
+                    {dislikeCount}
+                    {isLiked}
+                    {isDisliked}
+                    {isLiking}
+                    {isDisliking}
+                    {isLikeAnimating}
+                    {likers}
+                    {likersTotal}
+                    {fontSize}
+                    fontSizeLabel={fontSize}
+                    onLike={handleLike}
+                    onDislike={handleDislike}
+                    onLoadLikers={loadLikers}
+                    onReport={() => {
+                        showReportDialog = true;
+                    }}
+                    onChangeFontSize={changeFontSize}
+                    {memoPluginActive}
+                    {reactionPluginActive}
+                    {MemoBadge}
+                    {beforeContentSlots}
+                    {afterContentSlots}
+                    {formatDate}
+                    {formatTimeShort}
+                    editCount={revisions.filter((r) => r.change_type === 'update').length}
+                    {formatFileSize}
+                    {postContent}
+                    pageData={data}
+                    {postReactions}
+                    {postReportCount}
+                    truthroomPostId={data.truthroomPostId}
+                    originalPostLink={data.originalPostLink}
                 />
-            </div>
-        {/if}
+            {:else}
+                <!-- 폴백: 레이아웃을 resolve할 수 없을 때 기본 메시지 -->
+                <div class="text-muted-foreground py-12 text-center">
+                    레이아웃을 불러올 수 없습니다.
+                </div>
+            {/if}
 
-        <!-- GA4 Scroll Depth 센티넬 (75%) -->
-        <div data-scroll-depth="75" aria-hidden="true"></div>
+            <!-- GA4 Scroll Depth 센티넬 (25%, 50%) -->
+            <div data-scroll-depth="25" aria-hidden="true"></div>
+            <div data-scroll-depth="50" aria-hidden="true"></div>
 
-        <!-- 댓글 섹션 (비밀글 열람 가능 + 스트리밍 완료 시 표시) -->
-        {#if canViewSecret && !commentsLoaded}
-            <Card class="bg-background">
-                <CardContent class="space-y-4 py-6">
-                    <!-- 댓글 스켈레톤 -->
-                    {#each Array.from({ length: 3 }) as _, i (i)}
-                        <div class="flex gap-3">
-                            <div class="bg-muted h-8 w-8 animate-pulse rounded-full"></div>
-                            <div class="flex-1 space-y-2">
-                                <div class="flex items-center gap-2">
-                                    <div class="bg-muted h-3.5 w-20 animate-pulse rounded"></div>
-                                    <div class="bg-muted h-3 w-16 animate-pulse rounded"></div>
-                                </div>
-                                <div class="bg-muted h-4 w-full animate-pulse rounded"></div>
-                                <div class="bg-muted h-4 w-3/4 animate-pulse rounded"></div>
-                            </div>
-                        </div>
-                    {/each}
-                </CardContent>
-            </Card>
-        {:else if canViewSecret && commentsError}
-            <Card class="bg-background">
-                <CardContent class="space-y-4 py-8 text-center">
-                    <p class="text-destructive text-sm">댓글을 불러오지 못했습니다.</p>
-                    {#if commentsRecoveryVisible}
-                        <p class="text-muted-foreground text-sm">
-                            오래된 캐시나 이전 배포 자산이 남아 있으면 댓글과 공감이 비정상 동작할
-                            수 있습니다.
-                        </p>
-                        <p class="text-muted-foreground text-xs">
-                            다른 사이트 로그인을 풀지 않으려면 브라우저 전체 쿠키 삭제보다 이
-                            사이트만 새로고침 복구하는 편이 안전합니다.
-                        </p>
-                        <div class="flex justify-center gap-2">
+            <!-- 중고게시판 상태 변경 (작성자/관리자만) -->
+            {#if isUsedMarket && isAuthor}
+                <div class="mb-6 flex items-center gap-3 rounded-lg border p-4">
+                    <span class="text-[15px] font-medium">판매 상태:</span>
+                    <div class="flex gap-2">
+                        {#each ['selling', 'reserved', 'sold'] as const as status (status)}
                             <Button
-                                variant="outline"
-                                onclick={refreshComments}
-                                disabled={isRefreshingComments}
+                                variant={marketStatus === status ? 'default' : 'outline'}
+                                size="sm"
+                                onclick={() => changeMarketStatus(status)}
+                                disabled={isChangingMarketStatus || marketStatus === status}
                             >
-                                다시 시도
+                                {MARKET_STATUS_LABELS[status]}
                             </Button>
-                            <Button
-                                onclick={() => requestStaleClientRecovery('comments-error-cta')}
-                            >
-                                강력 새로고침
-                            </Button>
-                        </div>
-                    {/if}
-                </CardContent>
-            </Card>
-        {:else if canViewSecret}
-            <Card id="comments" class="bg-background rounded-xl">
-                <CardHeader class="flex flex-row items-center justify-between">
-                    <div class="flex items-center gap-2">
-                        <h3 class="text-foreground text-lg font-semibold">
-                            댓글 <span class="text-muted-foreground">({commentsTotal})</span>
-                        </h3>
-                        <button
-                            type="button"
-                            onclick={refreshComments}
-                            disabled={isRefreshingComments}
-                            class="text-muted-foreground hover:text-foreground rounded-md p-1 transition-colors disabled:opacity-50"
-                            title="댓글 새로고침"
-                        >
-                            <RefreshCw
-                                class="size-4 {isRefreshingComments ? 'animate-spin' : ''}"
-                            />
-                        </button>
+                        {/each}
                     </div>
-                </CardHeader>
-                {#if commentsRecoveryVisible}
-                    <div class="border-b px-6 pb-4">
-                        <div
-                            class="bg-muted/40 text-muted-foreground flex flex-col gap-2 rounded-lg p-3 text-sm"
-                        >
-                            <p>
-                                댓글 로딩이 오래 걸리면 오래된 브라우저 상태를 자동 복구 중일 수
-                                있습니다.
+                </div>
+            {/if}
+
+            {#each beforeCommentsSlots as slot (slot.component)}
+                {@const SlotComponent = slot.component}
+                <SlotComponent
+                    {...slot.propsMapper ? slot.propsMapper({ post: data.post, boardId }) : {}}
+                />
+            {/each}
+            <!-- 본문 직후, 댓글 직전 광고 -->
+            {#if widgetLayoutStore.hasEnabledAds}
+                <div class="my-6">
+                    <AdSlot
+                        position="board-before-comments"
+                        height="90px"
+                        slotKey="board-before-comments"
+                    />
+                </div>
+            {/if}
+
+            <!-- GA4 Scroll Depth 센티넬 (75%) -->
+            <div data-scroll-depth="75" aria-hidden="true"></div>
+
+            <!-- 댓글 섹션 (비밀글 열람 가능 + 스트리밍 완료 시 표시) -->
+            {#if canViewSecret && !commentsLoaded}
+                <Card class="bg-background">
+                    <CardContent class="space-y-4 py-6">
+                        <!-- 댓글 스켈레톤 -->
+                        {#each Array.from({ length: 3 }) as _, i (i)}
+                            <div class="flex gap-3">
+                                <div class="bg-muted h-8 w-8 animate-pulse rounded-full"></div>
+                                <div class="flex-1 space-y-2">
+                                    <div class="flex items-center gap-2">
+                                        <div
+                                            class="bg-muted h-3.5 w-20 animate-pulse rounded"
+                                        ></div>
+                                        <div class="bg-muted h-3 w-16 animate-pulse rounded"></div>
+                                    </div>
+                                    <div class="bg-muted h-4 w-full animate-pulse rounded"></div>
+                                    <div class="bg-muted h-4 w-3/4 animate-pulse rounded"></div>
+                                </div>
+                            </div>
+                        {/each}
+                    </CardContent>
+                </Card>
+            {:else if canViewSecret && commentsError}
+                <Card class="bg-background">
+                    <CardContent class="space-y-4 py-8 text-center">
+                        <p class="text-destructive text-sm">댓글을 불러오지 못했습니다.</p>
+                        {#if commentsRecoveryVisible}
+                            <p class="text-muted-foreground text-sm">
+                                오래된 캐시나 이전 배포 자산이 남아 있으면 댓글과 공감이 비정상
+                                동작할 수 있습니다.
                             </p>
-                            <div class="flex gap-2">
+                            <p class="text-muted-foreground text-xs">
+                                다른 사이트 로그인을 풀지 않으려면 브라우저 전체 쿠키 삭제보다 이
+                                사이트만 새로고침 복구하는 편이 안전합니다.
+                            </p>
+                            <div class="flex justify-center gap-2">
                                 <Button
                                     variant="outline"
-                                    size="sm"
                                     onclick={refreshComments}
                                     disabled={isRefreshingComments}
                                 >
-                                    댓글 다시 시도
+                                    다시 시도
                                 </Button>
                                 <Button
-                                    size="sm"
-                                    onclick={() =>
-                                        requestStaleClientRecovery(
-                                            'comments-loaded-recovery-banner'
-                                        )}
+                                    onclick={() => requestStaleClientRecovery('comments-error-cta')}
                                 >
                                     강력 새로고침
                                 </Button>
                             </div>
-                        </div>
-                    </div>
-                {/if}
-                <CardContent class="space-y-6">
-                    <CommentList
-                        {comments}
-                        onUpdate={handleUpdateComment}
-                        onDelete={handleDeleteComment}
-                        onRestore={handleRestoreComment}
-                        onReply={handleReplyComment}
-                        onLike={handleLikeComment}
-                        onDislike={handleDislikeComment}
-                        postAuthorId={data.post.author_id}
-                        {boardId}
-                        postId={data.post.id}
-                        useNogood={!!data.board?.use_nogood}
-                        {commentLayout}
-                        {reactionsMap}
-                        {initialLikedCommentIds}
-                        {initialDislikedCommentIds}
-                        {truthroomCommentMap}
-                    />
-
-                    <div class="border-border border-t pt-6">
-                        <div class="mb-3 flex justify-end">
+                        {/if}
+                    </CardContent>
+                </Card>
+            {:else if canViewSecret}
+                <Card id="comments" class="bg-background rounded-xl">
+                    <CardHeader class="flex flex-row items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <h3 class="text-foreground text-lg font-semibold">
+                                댓글 <span class="text-muted-foreground">({commentsTotal})</span>
+                            </h3>
                             <button
                                 type="button"
                                 onclick={refreshComments}
                                 disabled={isRefreshingComments}
-                                class="text-muted-foreground hover:text-foreground flex items-center gap-1 rounded-md px-2 py-1 text-xs transition-colors disabled:opacity-50"
+                                class="text-muted-foreground hover:text-foreground rounded-md p-1 transition-colors disabled:opacity-50"
                                 title="댓글 새로고침"
                             >
                                 <RefreshCw
-                                    class="size-3.5 {isRefreshingComments ? 'animate-spin' : ''}"
+                                    class="size-4 {isRefreshingComments ? 'animate-spin' : ''}"
                                 />
-                                새로고침
                             </button>
                         </div>
-                        <CommentForm
-                            onSubmit={handleCreateComment}
-                            isLoading={isCreatingComment}
-                            permissions={data.board?.permissions}
-                            requiredCommentLevel={data.board?.comment_level ?? 3}
+                    </CardHeader>
+                    {#if commentsRecoveryVisible}
+                        <div class="border-b px-6 pb-4">
+                            <div
+                                class="bg-muted/40 text-muted-foreground flex flex-col gap-2 rounded-lg p-3 text-sm"
+                            >
+                                <p>
+                                    댓글 로딩이 오래 걸리면 오래된 브라우저 상태를 자동 복구 중일 수
+                                    있습니다.
+                                </p>
+                                <div class="flex gap-2">
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onclick={refreshComments}
+                                        disabled={isRefreshingComments}
+                                    >
+                                        댓글 다시 시도
+                                    </Button>
+                                    <Button
+                                        size="sm"
+                                        onclick={() =>
+                                            requestStaleClientRecovery(
+                                                'comments-loaded-recovery-banner'
+                                            )}
+                                    >
+                                        강력 새로고침
+                                    </Button>
+                                </div>
+                            </div>
+                        </div>
+                    {/if}
+                    <CardContent class="space-y-6">
+                        <CommentList
+                            {comments}
+                            onUpdate={handleUpdateComment}
+                            onDelete={handleDeleteComment}
+                            onRestore={handleRestoreComment}
+                            onReply={handleReplyComment}
+                            onLike={handleLikeComment}
+                            onDislike={handleDislikeComment}
+                            postAuthorId={data.post.author_id}
                             {boardId}
-                            onRefresh={refreshComments}
-                            isRefreshing={isRefreshingComments}
+                            postId={data.post.id}
+                            useNogood={!!data.board?.use_nogood}
+                            {commentLayout}
+                            {reactionsMap}
+                            {initialLikedCommentIds}
+                            {initialDislikedCommentIds}
+                            {truthroomCommentMap}
                         />
-                    </div>
-                </CardContent>
-            </Card>
-        {/if}
 
-        <!-- 댓글 아래 네비게이션 -->
-        <div class="-mx-5 mt-4 flex items-center gap-3 px-5 py-2 md:mx-0 md:px-0">
-            <Button variant="ghost" size="sm" onclick={() => history.back()} class="shrink-0"
-                >←</Button
-            >
-            <Button variant="outline" size="sm" onclick={goBack} class="shrink-0">목록으로</Button>
-            <div class="flex-1"></div>
-            {#if authStore.isAuthenticated && checkPermission(data.board, 'can_write', authStore.user ?? null)}
-                <Button
-                    variant="default"
-                    size="sm"
-                    href={canUseCertifiedAction(authStore.user, boardId)
-                        ? `/${boardId}/write`
-                        : undefined}
-                    onclick={(e) => {
-                        if (!canUseCertifiedAction(authStore.user, boardId)) {
-                            e.preventDefault();
-                            goToCertification();
-                        }
-                    }}
-                    title={!canUseCertifiedAction(authStore.user, boardId)
-                        ? getCertificationBlockedMessage(boardId)
-                        : undefined}
-                    class="shrink-0"
-                >
-                    {#if !canUseCertifiedAction(authStore.user, boardId)}실명인증{:else}글쓰기{/if}
-                </Button>
+                        <div class="border-border border-t pt-6">
+                            <div class="mb-3 flex justify-end">
+                                <button
+                                    type="button"
+                                    onclick={refreshComments}
+                                    disabled={isRefreshingComments}
+                                    class="text-muted-foreground hover:text-foreground flex items-center gap-1 rounded-md px-2 py-1 text-xs transition-colors disabled:opacity-50"
+                                    title="댓글 새로고침"
+                                >
+                                    <RefreshCw
+                                        class="size-3.5 {isRefreshingComments
+                                            ? 'animate-spin'
+                                            : ''}"
+                                    />
+                                    새로고침
+                                </button>
+                            </div>
+                            <CommentForm
+                                onSubmit={handleCreateComment}
+                                isLoading={isCreatingComment}
+                                permissions={data.board?.permissions}
+                                requiredCommentLevel={data.board?.comment_level ?? 3}
+                                {boardId}
+                                onRefresh={refreshComments}
+                                isRefreshing={isRefreshingComments}
+                            />
+                        </div>
+                    </CardContent>
+                </Card>
             {/if}
-        </div>
 
-        <!-- GA4 Scroll Depth 센티넬 (100%) -->
-        <div data-scroll-depth="100" aria-hidden="true"></div>
+            <!-- 댓글 아래 네비게이션 -->
+            <div class="-mx-5 mt-4 flex items-center gap-3 px-5 py-2 md:mx-0 md:px-0">
+                <Button variant="ghost" size="sm" onclick={() => history.back()} class="shrink-0"
+                    >←</Button
+                >
+                <Button variant="outline" size="sm" onclick={goBack} class="shrink-0"
+                    >목록으로</Button
+                >
+                <div class="flex-1"></div>
+                {#if authStore.isAuthenticated && checkPermission(data.board, 'can_write', authStore.user ?? null)}
+                    <Button
+                        variant="default"
+                        size="sm"
+                        href={canUseCertifiedAction(authStore.user, boardId)
+                            ? `/${boardId}/write`
+                            : undefined}
+                        onclick={(e) => {
+                            if (!canUseCertifiedAction(authStore.user, boardId)) {
+                                e.preventDefault();
+                                goToCertification();
+                            }
+                        }}
+                        title={!canUseCertifiedAction(authStore.user, boardId)
+                            ? getCertificationBlockedMessage(boardId)
+                            : undefined}
+                        class="shrink-0"
+                    >
+                        {#if !canUseCertifiedAction(authStore.user, boardId)}실명인증{:else}글쓰기{/if}
+                    </Button>
+                {/if}
+            </div>
+
+            <!-- GA4 Scroll Depth 센티넬 (100%) -->
+            <div data-scroll-depth="100" aria-hidden="true"></div>
+        {/if}
+        <!-- /삭제된 게시물 분기 -->
     {/if}
     <!-- /canRead -->
 </div>
