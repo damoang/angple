@@ -16,7 +16,7 @@
 
 <script lang="ts">
     import { browser } from '$app/environment';
-    import { goto } from '$app/navigation';
+    import { afterNavigate, goto } from '$app/navigation';
     import { Card, CardHeader, CardContent } from '$lib/components/ui/card/index.js';
     import { Button } from '$lib/components/ui/button/index.js';
     import * as Dialog from '$lib/components/ui/dialog/index.js';
@@ -692,37 +692,68 @@
         }, 2000);
     }
 
+    function getAnchorTargetId(hash: string): string | null {
+        if (!hash) return null;
+
+        if (hash.startsWith('#comment_')) {
+            return `c_${hash.slice('#comment_'.length)}`;
+        }
+        if (hash.startsWith('#comment-')) {
+            return `c_${hash.slice('#comment-'.length)}`;
+        }
+        if (hash.startsWith('#c_')) {
+            return hash.slice(1);
+        }
+        if (hash === '#likes') {
+            return 'likes';
+        }
+
+        return null;
+    }
+
+    function scheduleAnchorScroll(hash = browser ? window.location.hash : ''): void {
+        const targetId = getAnchorTargetId(hash);
+        if (!targetId) return;
+
+        let attempts = 0;
+        const tryScroll = () => {
+            const el = document.getElementById(targetId);
+            if (el) {
+                scrollToAndHighlight(el);
+            } else if (attempts < 20) {
+                attempts++;
+                requestAnimationFrame(tryScroll);
+            }
+        };
+
+        requestAnimationFrame(tryScroll);
+    }
+
     // 앵커 스크롤 (#c_댓글ID, #comment_댓글ID, #likes) — 스트리밍 완료 후 실행
     $effect(() => {
         if (commentsLoaded && browser) {
-            const hash = window.location.hash;
-            if (!hash) return;
-
-            // #comment_XXX → #c_XXX 호환
-            const normalizedHash = hash.startsWith('#comment_')
-                ? '#c_' + hash.slice('#comment_'.length)
-                : hash;
-
-            // DOM 렌더링 완료까지 재시도 (스트리밍 로딩 대응)
-            const targetId = normalizedHash.startsWith('#c_')
-                ? normalizedHash.slice(1)
-                : normalizedHash === '#likes'
-                  ? 'likes'
-                  : null;
-            if (!targetId) return;
-
-            let attempts = 0;
-            const tryScroll = () => {
-                const el = document.getElementById(targetId);
-                if (el) {
-                    scrollToAndHighlight(el);
-                } else if (attempts < 10) {
-                    attempts++;
-                    requestAnimationFrame(tryScroll);
-                }
-            };
-            requestAnimationFrame(tryScroll);
+            scheduleAnchorScroll();
         }
+    });
+
+    onMount(() => {
+        const onHashChange = () => {
+            if (commentsLoaded) {
+                scheduleAnchorScroll();
+            }
+        };
+
+        afterNavigate(() => {
+            if (commentsLoaded) {
+                scheduleAnchorScroll();
+            }
+        });
+
+        window.addEventListener('hashchange', onHashChange);
+
+        return () => {
+            window.removeEventListener('hashchange', onHashChange);
+        };
     });
 
     // 날짜 포맷 헬퍼
