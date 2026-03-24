@@ -18,6 +18,52 @@ const BACKEND_URL = env.BACKEND_URL || 'http://localhost:8090';
 const PROXY_TIMEOUT_MS = 4_000;
 const INTERNAL_ONLY_V1_PREFIXES = ['my/', 'admin/'];
 
+function buildOptionalFallback(path: string): Response | null {
+    if (path === 'my/favorites') {
+        return new Response(JSON.stringify({ success: true, data: {} }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' }
+        });
+    }
+
+    if (path === 'my/blocked') {
+        return new Response(JSON.stringify({ success: true, data: [] }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' }
+        });
+    }
+
+    if (path === 'notifications/unread-count') {
+        return new Response(JSON.stringify({ success: true, data: { total_unread: 0 } }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' }
+        });
+    }
+
+    if (path === 'messages/unread-count') {
+        return new Response(JSON.stringify({ success: true, data: { count: 0 } }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' }
+        });
+    }
+
+    if (/^boards\/[a-zA-Z0-9_-]+\/notices$/.test(path)) {
+        return new Response(JSON.stringify({ success: true, data: [] }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' }
+        });
+    }
+
+    if (/^members\/[a-zA-Z0-9_-]+\/memo$/.test(path)) {
+        return new Response(JSON.stringify({ success: true, data: null }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' }
+        });
+    }
+
+    return null;
+}
+
 function isExternalBoardReadPath(path: string, method: string): boolean {
     if (method !== 'GET') return false;
 
@@ -392,6 +438,11 @@ async function proxyRequest(
         });
     } catch (error) {
         console.error('[API Proxy] Error:', error);
+
+        const fallback = method === 'GET' ? buildOptionalFallback(path) : null;
+        if (fallback) {
+            return fallback;
+        }
 
         const isTimeout = error instanceof DOMException && error.name === 'TimeoutError';
 

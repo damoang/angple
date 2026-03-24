@@ -64,7 +64,8 @@ export const load: PageServerLoad = async ({
             // 게시글 (Go 백엔드 직접 호출)
             bFetch(`/api/v1/boards/${boardId}/posts/${postId}`, {
                 headers,
-                timeout: 5_000
+                timeout: 5_000,
+                bypassCircuitBreaker: true
             }).then(async (res) => {
                 if (!res.ok) throw new Error(`Post API error: ${res.status}`);
                 const json = await res.json();

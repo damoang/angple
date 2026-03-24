@@ -11,6 +11,17 @@ import { env } from '$env/dynamic/private';
 const BACKEND_URL = env.BACKEND_URL || 'http://localhost:8090';
 const COOKIE_DOMAIN = env.COOKIE_DOMAIN || '';
 
+function buildGivingFallback(path: string): Response | null {
+    if (path === 'list' || path.startsWith('list/')) {
+        return new Response(JSON.stringify({ success: true, data: [] }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' }
+        });
+    }
+
+    return null;
+}
+
 async function proxyRequest(
     method: string,
     params: { path: string },
@@ -124,6 +135,11 @@ async function proxyRequest(
         });
     } catch (error) {
         console.error('[Giving API Proxy] Error:', error);
+
+        const fallback = method === 'GET' ? buildGivingFallback(path) : null;
+        if (fallback) {
+            return fallback;
+        }
 
         return new Response(
             JSON.stringify({
