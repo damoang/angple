@@ -739,7 +739,12 @@
             {#if postsResult.error}
                 <Card class="border-destructive mb-6">
                     <CardContent class="pt-6">
-                        <p class="text-destructive text-center">{postsResult.error}</p>
+                        <div class="flex flex-col items-center gap-3 text-center">
+                            <p class="text-destructive">{postsResult.error}</p>
+                            <Button variant="outline" size="sm" onclick={() => invalidateAll()}
+                                >다시 시도</Button
+                            >
+                        </div>
                     </CardContent>
                 </Card>
             {/if}
@@ -909,7 +914,7 @@
                         {/each}
                     {/if}
                 {/if}
-                {#if filteredPosts.length === 0}
+                {#if !postsResult.error && filteredPosts.length === 0}
                     <Card class="bg-background {listLayoutId === 'gallery' ? 'col-span-full' : ''}">
                         <CardContent class="py-12 text-center">
                             {#if isSearching}
