@@ -13,12 +13,26 @@ if [ ! -d "$premium_plugins_dir" ]; then
     exit 0
 fi
 
+# Plugins that intentionally exist in both core (shared lib) and premium (platform-specific impl).
+# Premium install.sh merges these — core provides types/interfaces, premium adds private logic.
+ALLOWED_OVERLAPS=("affiliate-link")
+
 conflicts=()
 
 while IFS= read -r premium_plugin; do
     plugin_name="$(basename "$premium_plugin")"
     if [ -d "${core_plugins_dir}/${plugin_name}" ]; then
-        conflicts+=("$plugin_name")
+        # Skip allowed overlaps
+        skip=false
+        for allowed in "${ALLOWED_OVERLAPS[@]}"; do
+            if [ "$plugin_name" = "$allowed" ]; then
+                skip=true
+                break
+            fi
+        done
+        if [ "$skip" = false ]; then
+            conflicts+=("$plugin_name")
+        fi
     fi
 done < <(find "$premium_plugins_dir" -mindepth 1 -maxdepth 1 -type d | sort)
 
