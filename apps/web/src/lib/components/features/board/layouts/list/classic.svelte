@@ -31,12 +31,14 @@
         post,
         displaySettings,
         href,
-        isRead = false
+        isRead = false,
+        memo = null
     }: {
         post: FreePost;
         displaySettings?: BoardDisplaySettings;
         href: string;
         isRead?: boolean;
+        memo?: { content: string; color: string } | null;
     } = $props();
 
     // 회원 아이콘 URL
@@ -214,23 +216,35 @@
                             >{formatCommentCountBadge(post.comments_count)}</span
                         >
                     {/if}
-                    {#if memoPluginActive && MemoBadge && !uiSettingsStore.hideMemoInList}
-                        <!-- svelte-ignore a11y_no_static_element_interactions -->
-                        <span
-                            class="ml-auto shrink-0"
-                            onclick={(e) => {
-                                e.stopPropagation();
-                                e.preventDefault();
-                            }}
-                            onkeydown={(e) => {
-                                if (e.key === 'Enter') {
+                    {#if memoPluginActive && !uiSettingsStore.hideMemoInList}
+                        {#if memo?.content}
+                            <span
+                                class="memo-badge memo-color--{memo.color ||
+                                    'yellow'} ml-auto shrink-0"
+                                title={memo.content}
+                            >
+                                {memo.content.length > 6
+                                    ? memo.content.slice(0, 6) + '\u2026'
+                                    : memo.content}
+                            </span>
+                        {:else if MemoBadge}
+                            <!-- svelte-ignore a11y_no_static_element_interactions -->
+                            <span
+                                class="ml-auto shrink-0"
+                                onclick={(e) => {
                                     e.stopPropagation();
                                     e.preventDefault();
-                                }
-                            }}
-                        >
-                            <MemoBadge memberId={post.author_id} />
-                        </span>
+                                }}
+                                onkeydown={(e) => {
+                                    if (e.key === 'Enter') {
+                                        e.stopPropagation();
+                                        e.preventDefault();
+                                    }
+                                }}
+                            >
+                                <MemoBadge memberId={post.author_id} />
+                            </span>
+                        {/if}
                     {/if}
                 </div>
 
