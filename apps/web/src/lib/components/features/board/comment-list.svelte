@@ -20,7 +20,7 @@
     import { dompurify as DOMPurify } from '$lib/utils/dompurify.js';
     import { applyFilter } from '$lib/hooks/registry';
     import { getHookVersion } from '$lib/hooks/hook-state.svelte';
-    import { tick } from 'svelte';
+    import { onMount, tick } from 'svelte';
     import { highlightAllCodeBlocks } from '$lib/utils/code-highlight';
     import { attachLightbox } from '$lib/components/ui/image-lightbox/index.js';
     import { getAvatarUrl } from '$lib/utils/member-icon.js';
@@ -787,6 +787,38 @@
         if (commentListEl) {
             return attachLightbox(commentListEl);
         }
+    });
+
+    onMount(() => {
+        function handleTwitterResize(event: MessageEvent) {
+            if (event.origin !== 'https://platform.twitter.com') return;
+            try {
+                const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+                const resizeData = data?.['twttr.private.resize'];
+                if (!resizeData || !Array.isArray(resizeData)) return;
+
+                const height = resizeData[0]?.height;
+                if (!height || typeof height !== 'number' || !commentListEl) return;
+
+                const iframes =
+                    commentListEl.querySelectorAll<HTMLIFrameElement>('iframe[data-tweet-id]');
+                for (const iframe of iframes) {
+                    if (iframe.contentWindow === event.source) {
+                        const container = iframe.closest<HTMLElement>('.embed-container');
+                        iframe.style.height = `${height}px`;
+                        iframe.setAttribute('height', String(height));
+                        container?.style.setProperty('--twitter-embed-height', `${height}px`);
+                        container?.setAttribute('data-embed-height', String(height));
+                        break;
+                    }
+                }
+            } catch {
+                // ignore
+            }
+        }
+
+        window.addEventListener('message', handleTwitterResize);
+        return () => window.removeEventListener('message', handleTwitterResize);
     });
 
     // 댓글 본문 이미지 data-original 폴백 (최적화된 이미지 로드 실패 시 원본으로 대체)
@@ -1667,7 +1699,9 @@
 
     /* Twitter 가변 높이 */
     :global(.embed-container[data-platform='twitter']) {
+        height: var(--twitter-embed-height, auto);
         min-height: 200px;
+        overflow: visible;
     }
 
     :global(.embed-container[data-platform='twitter'])::before {
@@ -1676,8 +1710,9 @@
 
     :global(.embed-container[data-platform='twitter'] iframe) {
         position: relative;
-        min-height: 200px;
-        height: auto;
+        display: block;
+        min-height: var(--twitter-embed-height, 200px);
+        height: var(--twitter-embed-height, auto);
     }
 
     /* 댓글 밀도 설정 (--comment-pad-extra CSS 변수로 제어) */

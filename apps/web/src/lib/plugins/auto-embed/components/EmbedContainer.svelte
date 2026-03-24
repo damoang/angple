@@ -115,7 +115,9 @@
 
     /* Twitter는 높이가 가변적 */
     .embed-container[data-platform='twitter'] {
+        height: var(--twitter-embed-height, auto);
         min-height: 250px;
+        overflow: visible;
     }
 
     .embed-container[data-platform='twitter']::before {
@@ -124,7 +126,8 @@
 
     .embed-container[data-platform='twitter'] :global(iframe) {
         position: relative;
-        min-height: 250px;
-        height: auto;
+        display: block;
+        min-height: var(--twitter-embed-height, 250px);
+        height: var(--twitter-embed-height, auto);
     }
 </style>
