@@ -64,6 +64,12 @@ export interface FreePost {
     extra_8?: string; // wr_8 - 나눔: 일시정지 시작시간
     extra_9?: string; // wr_9 - 동영상 URL
     extra_10?: string; // wr_10 - 이미지 URL
+    giving_start?: string | null;
+    giving_end?: string | null;
+    giving_status?: 'active' | 'waiting' | 'paused' | 'ended' | 'no_giving';
+    participant_count?: number;
+    is_paused?: boolean;
+    is_giving_post?: boolean;
 }
 
 // 자유게시판 댓글 타입

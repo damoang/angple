@@ -5,15 +5,15 @@
      */
     import type { WidgetProps } from '$lib/types/widget-props';
     import { onMount } from 'svelte';
-    import { Gift, Clock, Users } from '../lucide.js';
+    import { Gift } from '../lucide.js';
 
     let { config, slot, isEditMode = false }: WidgetProps = $props();
 
     interface GivingItem {
         id: number;
         title: string;
-        extra_5: string; // end time
-        participant_count: string;
+        giving_end?: string | null;
+        participant_count?: number;
         is_urgent: boolean;
     }
 
@@ -92,13 +92,13 @@
                     >
                         • {item.title}
                     </a>
-                    {#if item.extra_5}
+                    {#if item.giving_end}
                         <span
                             class="shrink-0 font-mono text-[10px] {item.is_urgent
                                 ? 'font-semibold text-red-500'
                                 : 'text-muted-foreground'}"
                         >
-                            {formatCountdown(item.extra_5)}
+                            {formatCountdown(item.giving_end)}
                         </span>
                     {/if}
                 </li>
