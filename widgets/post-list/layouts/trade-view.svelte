@@ -13,14 +13,16 @@
      */
     import { Card } from '$lib/components/ui/card';
     import { Badge } from '$lib/components/ui/badge';
-    import ShoppingBag from '@lucide/svelte/icons/shopping-bag';
-    import MapPin from '@lucide/svelte/icons/map-pin';
-    import Heart from '@lucide/svelte/icons/heart';
-    import Truck from '@lucide/svelte/icons/truck';
-    import UserCircle from '@lucide/svelte/icons/user-circle';
-    import Clock from '@lucide/svelte/icons/clock';
-    import CheckCircle from '@lucide/svelte/icons/check-circle';
-    import Tag from '@lucide/svelte/icons/tag';
+    import {
+        ShoppingBag,
+        MapPin,
+        Heart,
+        Truck,
+        UserCircle,
+        Clock,
+        CheckCircle,
+        Tag
+    } from '../../lucide.js';
 
     interface TradePost {
         id: number;

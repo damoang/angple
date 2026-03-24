@@ -2,13 +2,20 @@ import { redirect, error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types.js';
 import type { Board } from '$lib/api/types.js';
 import { backendFetch, createAuthHeaders } from '$lib/server/backend-fetch.js';
+import { resolveCanonicalBoardId } from '$lib/server/board-cache.js';
 
 /**
  * 게시글 수정 페이지 서버 로드
  * 인증 체크 (로그인 필수) + write_level 권한 체크 + 작성자 본인 확인
  */
 export const load: PageServerLoad = async ({ locals, params }) => {
-    const { boardId, postId } = params;
+    const postId = params.postId;
+    const canonicalBoardId = await resolveCanonicalBoardId(params.boardId);
+    if (canonicalBoardId !== params.boardId) {
+        redirect(301, `/${canonicalBoardId}/${postId}/edit`);
+    }
+
+    const boardId = canonicalBoardId;
 
     // 서버 사이드 인증 검증 — 미인증 사용자는 로그인 페이지로 리다이렉트
     if (!locals.user) {

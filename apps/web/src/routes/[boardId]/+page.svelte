@@ -879,14 +879,7 @@
                     </Card>
                 {:else if LayoutComponent}
                     {#each filteredPosts as post, i (post.id)}
-                        {#if post.deleted_at}
-                            <div
-                                class="text-muted-foreground flex items-center gap-2 px-4 py-3 text-sm"
-                            >
-                                <Trash2 class="h-4 w-4 shrink-0" />
-                                삭제된 글입니다.
-                            </div>
-                        {:else if bulkSelectMode}
+                        {#if bulkSelectMode}
                             <div class="flex items-start gap-2">
                                 <div class="flex shrink-0 items-center pt-3">
                                     <Checkbox

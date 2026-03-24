@@ -1,8 +1,7 @@
 <script lang="ts">
     import { browser } from '$app/environment';
     import { Card, CardHeader, CardContent } from '$lib/components/ui/card';
-    import PartyPopper from '@lucide/svelte/icons/party-popper';
-    import ChevronRight from '@lucide/svelte/icons/chevron-right';
+    import { PartyPopper, ChevronRight } from '../lucide.js';
     import type { WidgetConfig } from '$lib/stores/widget-layout.svelte';
 
     interface Banner {

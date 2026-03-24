@@ -7,8 +7,7 @@
     import type { FreePost } from '$lib/api/types';
     import { apiClient } from '$lib/api';
     import { onMount } from 'svelte';
-    import Info from '@lucide/svelte/icons/info';
-    import Eye from '@lucide/svelte/icons/eye';
+    import { Info, Eye } from '../lucide.js';
 
     let { config, slot, isEditMode = false, prefetchData }: WidgetProps = $props();
 
