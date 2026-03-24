@@ -1,0 +1,47 @@
+{
+    "id": "affiliate-link",
+    "name": "제휴 링크 자동 변환",
+    "version": "1.0.0",
+    "description": "쿠팡, 알리익스프레스, 아마존, KKday, 링크프라이스 등 제휴 링크를 자동 변환합니다.",
+    "author": {
+        "name": "Damoang Team",
+        "url": "https://damoang.net"
+    },
+    "license": "UNLICENSED",
+    "category": "plugin",
+    "main": "index.ts",
+    "hooks": [
+        {
+            "name": "post_content",
+            "type": "filter",
+            "callback": "hooks/content-filter.ts",
+            "priority": 15
+        },
+        {
+            "name": "comment_content",
+            "type": "filter",
+            "callback": "hooks/content-filter.ts",
+            "priority": 15
+        }
+    ],
+    "settings": {
+        "enabled": {
+            "label": "활성화",
+            "type": "boolean",
+            "default": true
+        },
+        "showBadge": {
+            "label": "제휴 배지 표시",
+            "type": "boolean",
+            "default": true
+        },
+        "platforms": {
+            "label": "활성화된 플랫폼",
+            "type": "multiselect",
+            "options": ["coupang", "aliexpress", "amazon", "kkday", "linkprice"],
+            "default": ["coupang", "aliexpress", "amazon", "kkday", "linkprice"]
+        }
+    },
+    "tags": ["제휴", "수익화", "쿠팡", "알리익스프레스", "아마존"],
+    "downloads": 0
+}
