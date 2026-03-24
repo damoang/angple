@@ -5,9 +5,7 @@
      */
     import type { WidgetProps } from '$lib/types/widget-props';
     import { onMount } from 'svelte';
-    import Gift from '@lucide/svelte/icons/gift';
-    import Clock from '@lucide/svelte/icons/clock';
-    import Users from '@lucide/svelte/icons/users';
+    import { Gift, Clock, Users } from '../lucide.js';
 
     let { config, slot, isEditMode = false }: WidgetProps = $props();
 

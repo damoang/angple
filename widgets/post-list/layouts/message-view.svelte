@@ -10,9 +10,7 @@
      * Design System: "Soft Modern" - 부드러운 카드, 호버 리프트 효과
      */
     import { Card } from '$lib/components/ui/card';
-    import User from '@lucide/svelte/icons/user';
-    import Heart from '@lucide/svelte/icons/heart';
-    import ExternalLink from '@lucide/svelte/icons/external-link';
+    import { User, Heart, ExternalLink } from '../../lucide.js';
 
     interface MessagePost {
         id: number;

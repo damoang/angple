@@ -12,12 +12,7 @@
     import { Card } from '$lib/components/ui/card';
     import { Badge } from '$lib/components/ui/badge';
     import * as Tabs from '$lib/components/ui/tabs';
-    import Gift from '@lucide/svelte/icons/gift';
-    import Clock from '@lucide/svelte/icons/clock';
-    import Users from '@lucide/svelte/icons/users';
-    import Pause from '@lucide/svelte/icons/pause';
-    import PlayCircle from '@lucide/svelte/icons/play-circle';
-    import Timer from '@lucide/svelte/icons/timer';
+    import { Gift, Clock, Users, Pause, PlayCircle, Timer } from '../../lucide.js';
 
     interface GivingPost {
         id: number;

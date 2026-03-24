@@ -5,8 +5,7 @@
      */
     import type { WidgetProps } from '$lib/types/widget-props';
     import { onMount } from 'svelte';
-    import LayoutGrid from '@lucide/svelte/icons/layout-grid';
-    import ImageIcon from '@lucide/svelte/icons/image';
+    import { LayoutGrid, Image as ImageIcon } from '../lucide.js';
 
     let { config, slot, isEditMode = false, prefetchData }: WidgetProps = $props();
 
