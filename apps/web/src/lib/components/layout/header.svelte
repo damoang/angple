@@ -237,7 +237,7 @@
         class="container mx-auto flex h-12 items-center justify-between gap-2 !px-2.5 md:h-16 md:gap-3 md:!px-6"
     >
         <!-- 햄버거 메뉴 + 로고 -->
-        <div class="flex min-w-0 items-center pr-1.5 md:pr-2">
+        <div class="flex min-w-0 flex-1 items-center pr-1.5 md:flex-none md:pr-2">
             <button
                 onclick={toggleDrawer}
                 class="hover:bg-accent relative rounded-lg p-2 transition-all duration-200 ease-out 2xl:hidden"
@@ -248,7 +248,7 @@
             </button>
             <a
                 href="/"
-                class="relative z-10 flex h-10 shrink-0 cursor-pointer items-center rounded-md pe-1 ps-1 md:h-12 md:pe-0 md:ps-0"
+                class="relative z-20 flex h-10 max-w-[clamp(88px,28vw,112px)] shrink-0 cursor-pointer items-center overflow-hidden rounded-md pe-1 ps-1 md:h-12 md:max-w-none md:pe-0 md:ps-0"
                 aria-label="홈"
                 onclick={(e: MouseEvent) => {
                     if (window.location.pathname === '/') {
@@ -260,12 +260,12 @@
                 <img
                     src={logoSrc}
                     alt={logoAlt}
-                    class="pointer-events-none h-10 w-auto select-none md:h-12"
+                    class="pointer-events-none block h-10 w-auto max-w-full select-none md:h-12"
                     width="98"
                     height="48"
                     decoding="async"
                     fetchpriority="high"
-                    style="max-height:48px; max-width:min(38vw, 160px);"
+                    style="max-height:48px;"
                     onerror={() => {
                         headerLogoFailed = true;
                     }}
