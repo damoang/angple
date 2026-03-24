@@ -2,7 +2,11 @@ import {
     convertAffiliateLinksDetailed,
     convertAffiliateUrl
 } from '../../affiliate-link/lib/affiliate-api.server';
-import { detectPlatform, normalizeUrl } from '../../affiliate-link/lib/domain-matcher';
+import {
+    classifyAffiliateInput,
+    detectPlatform,
+    normalizeUrl
+} from '../../affiliate-link/lib/domain-matcher';
 import { buildAffiliateRedirectRecord, attachRedirectToDecision } from './redirect-store.server';
 import { createErrorDecision, createPassthroughDecision } from './policies';
 import {
@@ -16,15 +20,43 @@ import type {
     AffiliateContentContext,
     AffiliateContentResolution,
     AffiliateDecision,
+    AffiliateInputKind,
     AffiliateLinkFieldInput,
     AffiliateLinkFieldOutput
 } from './types';
+
+function getRebindFailureReason(input: {
+    platform: NonNullable<ReturnType<typeof detectPlatform>>;
+    inputKind: AffiliateInputKind;
+    upstreamError?: string;
+}):
+    | 'rebind_not_supported'
+    | 'rebind_failed_short_affiliate'
+    | 'rebind_failed_upstream_blocked'
+    | 'api_error' {
+    if (input.inputKind === 'affiliate_url_non_rebindable') {
+        if (input.platform === 'coupang') {
+            return 'rebind_failed_short_affiliate';
+        }
+        return 'rebind_not_supported';
+    }
+
+    if (
+        input.inputKind === 'affiliate_url_rebindable' &&
+        input.upstreamError === 'Conversion failed'
+    ) {
+        return 'rebind_failed_upstream_blocked';
+    }
+
+    return 'api_error';
+}
 
 export async function resolveAffiliateCandidate(
     candidate: AffiliateCandidate
 ): Promise<AffiliateDecision> {
     const normalizedUrl = normalizeUrl(candidate.originalUrl) ?? candidate.originalUrl;
     const platform = detectPlatform(normalizedUrl);
+    const inputKind = classifyAffiliateInput(normalizedUrl, platform);
 
     if (!platform) {
         return createPassthroughDecision(
@@ -45,15 +77,47 @@ export async function resolveAffiliateCandidate(
 
     if (!result.converted || !result.platform) {
         if (platform === 'linkprice') {
-            return classifyLinkPriceFailure({
+            const decision = classifyLinkPriceFailure({
                 originalUrl: candidate.originalUrl,
                 normalizedUrl,
                 upstreamError: result.error
             });
+            return inputKind && inputKind !== 'merchant_url'
+                ? {
+                      ...decision,
+                      reasonCode:
+                          getRebindFailureReason({
+                              platform,
+                              inputKind,
+                              upstreamError: result.error
+                          }) === 'api_error'
+                              ? decision.reasonCode
+                              : getRebindFailureReason({
+                                    platform,
+                                    inputKind,
+                                    upstreamError: result.error
+                                }),
+                      metadata: {
+                          ...(decision.metadata || {}),
+                          inputKind,
+                          rebindAttempted: true
+                      }
+                  }
+                : decision;
         }
 
         if (platform === 'aliexpress') {
-            return createAliExpressApiErrorDecision(candidate.originalUrl, normalizedUrl);
+            return createAliExpressApiErrorDecision(
+                candidate.originalUrl,
+                normalizedUrl,
+                inputKind && inputKind !== 'merchant_url'
+                    ? getRebindFailureReason({
+                          platform,
+                          inputKind,
+                          upstreamError: result.error
+                      })
+                    : 'api_error'
+            );
         }
 
         if (result.error === 'No converter found') {
@@ -64,10 +128,22 @@ export async function resolveAffiliateCandidate(
             );
         }
 
-        return createErrorDecision(candidate.originalUrl, normalizedUrl, 'api_error', {
-            platform,
-            upstreamError: result.error || null
-        });
+        return createErrorDecision(
+            candidate.originalUrl,
+            normalizedUrl,
+            inputKind && inputKind !== 'merchant_url'
+                ? getRebindFailureReason({
+                      platform,
+                      inputKind,
+                      upstreamError: result.error
+                  })
+                : 'api_error',
+            {
+                platform,
+                upstreamError: result.error || null,
+                ...(inputKind ? { inputKind, rebindAttempted: inputKind !== 'merchant_url' } : {})
+            }
+        );
     }
 
     const { redirectUrl, redirectId } = await buildAffiliateRedirectRecord({
@@ -80,11 +156,19 @@ export async function resolveAffiliateCandidate(
     return attachRedirectToDecision(
         {
             status: 'converted',
-            reasonCode: 'converted',
+            reasonCode: inputKind && inputKind !== 'merchant_url' ? 'rebind_success' : 'converted',
             network: result.platform,
             originalUrl: candidate.originalUrl,
             normalizedUrl,
-            affiliateUrl: result.url
+            affiliateUrl: result.url,
+            metadata:
+                inputKind && inputKind !== 'merchant_url'
+                    ? {
+                          inputKind,
+                          rebindAttempted: true,
+                          rebindSucceeded: true
+                      }
+                    : undefined
         },
         redirectUrl,
         redirectId

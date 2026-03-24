@@ -21,11 +21,12 @@ export function createAliExpressEnvMissingDecision(
 
 export function createAliExpressApiErrorDecision(
     originalUrl: string,
-    normalizedUrl: string
+    normalizedUrl: string,
+    reasonCode: AffiliateDecision['reasonCode'] = 'api_error'
 ): AffiliateDecision {
     return {
         status: 'error',
-        reasonCode: 'api_error',
+        reasonCode,
         network: 'aliexpress',
         originalUrl,
         normalizedUrl
