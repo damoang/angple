@@ -248,7 +248,7 @@
                     >
                         {#each filteredBoards as board (board.bo_table)}
                             <a
-                                href="/{board.bo_table}"
+                                href="/{board.board_path}"
                                 class="border-border hover:border-primary/40 bg-canvas flex items-center gap-3 rounded-lg border p-4 transition-all hover:shadow-sm"
                             >
                                 <div
