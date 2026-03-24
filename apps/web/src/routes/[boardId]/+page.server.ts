@@ -311,13 +311,11 @@ export const load: PageServerLoad = async ({ url, params, locals, getClientAddre
                       headers,
                       timeout: 3_000,
                       bypassCircuitBreaker: true
-                  }).then(
-                      async (res) => {
-                          if (!res.ok) return [];
-                          const json = await res.json();
-                          return (json.data as FreePost[]) || [];
-                      }
-                  )
+                  }).then(async (res) => {
+                      if (!res.ok) return [];
+                      const json = await res.json();
+                      return (json.data as FreePost[]) || [];
+                  })
                 : Promise.resolve([])
         ]);
 
