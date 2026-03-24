@@ -1,7 +1,6 @@
 <script lang="ts">
     import { Badge } from '$lib/components/ui/badge/index.js';
     import type { FreePost, BoardDisplaySettings } from '$lib/api/types.js';
-    import type { Component } from 'svelte';
     import Lock from '@lucide/svelte/icons/lock';
     import ImageIcon from '@lucide/svelte/icons/image';
     import Play from '@lucide/svelte/icons/play';
@@ -12,19 +11,11 @@
     import { formatDate, isToday } from '$lib/utils/format-date.js';
     import { formatCompactNumber } from '$lib/utils/format-number.js';
     import { pluginStore } from '$lib/stores/plugin.svelte';
-    import { loadPluginComponent } from '$lib/utils/plugin-optional-loader';
     import { readPostStyleStore } from '$lib/stores/read-post-style.svelte.js';
     import { uiSettingsStore } from '$lib/stores/ui-settings.svelte.js';
     import { formatCommentCountBadge } from '$lib/utils/comment-count.js';
     // 메모 플러그인
     let memoPluginActive = $derived(pluginStore.isPluginActive('member-memo'));
-    let MemoBadge = $state<Component | null>(null);
-
-    $effect(() => {
-        if (memoPluginActive) {
-            loadPluginComponent('member-memo', 'memo-badge').then((c) => (MemoBadge = c));
-        }
-    });
 
     // Props
     let {
@@ -226,23 +217,6 @@
                                 {memo.content.length > 6
                                     ? memo.content.slice(0, 6) + '\u2026'
                                     : memo.content}
-                            </span>
-                        {:else if MemoBadge}
-                            <!-- svelte-ignore a11y_no_static_element_interactions -->
-                            <span
-                                class="ml-auto shrink-0"
-                                onclick={(e) => {
-                                    e.stopPropagation();
-                                    e.preventDefault();
-                                }}
-                                onkeydown={(e) => {
-                                    if (e.key === 'Enter') {
-                                        e.stopPropagation();
-                                        e.preventDefault();
-                                    }
-                                }}
-                            >
-                                <MemoBadge memberId={post.author_id} />
                             </span>
                         {/if}
                     {/if}
