@@ -331,10 +331,6 @@
                 &raquo;
             </Button>
         </div>
-
-        <p class="text-secondary-foreground mt-3 text-center text-sm">
-            전체 {totalItems.toLocaleString()}개 중 {currentPage} / {totalPages} 페이지
-        </p>
     {/if}
 
     <!-- 페이징 아래 GAM 광고 (모바일만) -->
