@@ -160,6 +160,7 @@
     // 하이드레이션 직후 즉시 변경하면 깜빡임 발생. 2프레임 대기 후 부드럽게 전환.
     let showSearch = $state(uiSettingsStore.pinSearch);
     let showReadState = $state(false);
+    let memoByAuthorId = $state<Record<string, { content: string; color: string } | null>>({});
     function scheduleAuthorLevelFetch(authorIds: string[]) {
         const uniqueAuthorIds = [...new Set(authorIds)];
         if (uniqueAuthorIds.length === 0) return;
@@ -174,6 +175,46 @@
         }
 
         setTimeout(fetchTask, 0);
+    }
+
+    async function loadBoardListMemos(authorIds: string[]): Promise<void> {
+        if (!authStore.isAuthenticated || !pluginStore.isPluginActive('member-memo')) {
+            memoByAuthorId = {};
+            return;
+        }
+
+        const uniqueAuthorIds = [...new Set(authorIds)].filter(Boolean);
+        if (uniqueAuthorIds.length === 0) {
+            memoByAuthorId = {};
+            return;
+        }
+
+        try {
+            const response = await fetch(
+                `/api/v1/members/batch/memo?ids=${uniqueAuthorIds.map(encodeURIComponent).join(',')}`,
+                { credentials: 'include' }
+            );
+
+            if (!response.ok) {
+                memoByAuthorId = {};
+                return;
+            }
+
+            const json = await response.json();
+            const data = (json?.data ?? {}) as Record<string, { content?: string; color?: string }>;
+            const next: Record<string, { content: string; color: string } | null> = {};
+
+            for (const id of uniqueAuthorIds) {
+                const memo = data[id];
+                next[id] = memo?.content
+                    ? { content: memo.content, color: memo.color ?? 'yellow' }
+                    : null;
+            }
+
+            memoByAuthorId = next;
+        } catch {
+            memoByAuthorId = {};
+        }
     }
 
     let loadMemosForAuthors = $state<((memberIds: string[]) => Promise<void>) | null>(null);
@@ -217,6 +258,7 @@
             .map((p) => p.author_id)
             .filter((id): id is string => Boolean(id));
         scheduleAuthorLevelFetch(authorIds);
+        void loadBoardListMemos(authorIds);
         if (authStore.isAuthenticated && loadMemosForAuthors && authorIds.length > 0) {
             void loadMemosForAuthors(authorIds);
         }
@@ -891,6 +933,7 @@
                                     <LayoutComponent
                                         {post}
                                         displaySettings={data.board?.display_settings}
+                                        memo={memoByAuthorId[post.author_id] ?? null}
                                         href="/{boardId}/{post.id}{listPage > 1
                                             ? `?page=${listPage}`
                                             : ''}"
@@ -903,6 +946,7 @@
                             <LayoutComponent
                                 {post}
                                 displaySettings={data.board?.display_settings}
+                                memo={memoByAuthorId[post.author_id] ?? null}
                                 href="/{boardId}/{post.id}{listPage > 1 ? `?page=${listPage}` : ''}"
                                 isRead={showReadState && readPostsStore.isRead(boardId, post.id)}
                             />
