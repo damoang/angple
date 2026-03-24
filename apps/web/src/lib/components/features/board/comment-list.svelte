@@ -1715,6 +1715,57 @@
         height: var(--twitter-embed-height, auto);
     }
 
+    /* Instagram 가변 높이 */
+    :global(.embed-container[data-platform='instagram']),
+    :global(.embed-container[data-platform='instagram-reel']) {
+        min-height: 400px;
+        overflow: visible;
+    }
+
+    :global(.embed-container[data-platform='instagram'])::before,
+    :global(.embed-container[data-platform='instagram-reel'])::before {
+        display: none;
+    }
+
+    :global(.embed-container[data-platform='instagram'] iframe),
+    :global(.embed-container[data-platform='instagram-reel'] iframe) {
+        position: relative;
+        min-height: 400px;
+        height: auto;
+    }
+
+    /* Bluesky 가변 높이 */
+    :global(.embed-container[data-platform='bluesky']) {
+        min-height: 200px;
+        overflow: visible;
+    }
+
+    :global(.embed-container[data-platform='bluesky'])::before {
+        display: none;
+    }
+
+    :global(.embed-container[data-platform='bluesky'] iframe) {
+        position: relative;
+        min-height: 200px;
+        height: auto;
+    }
+
+    /* Reddit 가변 높이 */
+    :global(.embed-container[data-platform='reddit']) {
+        min-height: 300px;
+        overflow: visible;
+    }
+
+    :global(.embed-container[data-platform='reddit'])::before {
+        display: none;
+    }
+
+    :global(.embed-container[data-platform='reddit'] iframe) {
+        position: relative;
+        min-height: 300px;
+        height: auto;
+    }
+
     /* 댓글 밀도 설정 (--comment-pad-extra CSS 변수로 제어) */
     .comment-item {
         padding-top: calc(var(--comment-pad-extra, 3px) + 0.75rem);

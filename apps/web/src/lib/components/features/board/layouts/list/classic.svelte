@@ -264,30 +264,28 @@
                     {formatCompactNumber(post.views)}
                 </span>
 
-                <!-- 모바일 메타 (Line 2: Author · Date · 조회 · 추천) -->
+                <!-- 모바일 메타 (Line 2: 추천 · Date · 조회 · Author) -->
                 <div class="mobile-meta" class:modern-view={isMobileView}>
-                    <span class="inline-flex items-center gap-0.5">
+                    {#if mobileLikesPill}
+                        <span class="mobile-likes-pill inline-flex items-center gap-0.5"
+                            ><Heart class="size-3.5" />{post.likes}</span
+                        >
+                    {:else}
+                        <span class="{mobileLikesClass} inline-flex items-center gap-0.5"
+                            ><Heart class="size-3.5" />{post.likes}</span
+                        >
+                    {/if}
+                    <span class="mobile-meta-sep {isToday(post.created_at) ? 'date-today' : ''}">
+                        {formatDate(post.created_at)}
+                    </span>
+                    <span class="mobile-meta-sep">{formatCompactNumber(post.views)}</span>
+                    <span class="mobile-meta-sep inline-flex items-center gap-0.5">
                         <AuthorLink
                             authorId={post.author_id}
                             authorName={post.author}
                             isWithdrawn={!!post.is_left}
                         />
                     </span>
-                    <span class="mobile-meta-sep {isToday(post.created_at) ? 'date-today' : ''}">
-                        {formatDate(post.created_at)}
-                    </span>
-                    <span class="mobile-meta-sep">{formatCompactNumber(post.views)}</span>
-                    {#if mobileLikesPill}
-                        <span
-                            class="mobile-likes-pill mobile-meta-sep inline-flex items-center gap-0.5"
-                            ><Heart class="size-3.5" />{post.likes}</span
-                        >
-                    {:else}
-                        <span
-                            class="{mobileLikesClass} mobile-meta-sep inline-flex items-center gap-0.5"
-                            ><Heart class="size-3.5" />{post.likes}</span
-                        >
-                    {/if}
                 </div>
             </div>
         </div>
