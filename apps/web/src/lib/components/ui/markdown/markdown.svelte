@@ -216,7 +216,14 @@
                             document.querySelectorAll<HTMLIFrameElement>('iframe[data-tweet-id]');
                         for (const iframe of iframes) {
                             if (iframe.contentWindow === event.source) {
+                                const container = iframe.closest<HTMLElement>('.embed-container');
                                 iframe.style.height = `${height}px`;
+                                iframe.setAttribute('height', String(height));
+                                container?.style.setProperty(
+                                    '--twitter-embed-height',
+                                    `${height}px`
+                                );
+                                container?.setAttribute('data-embed-height', String(height));
                                 break;
                             }
                         }
@@ -529,7 +536,9 @@
 
     /* Twitter 가변 높이 */
     .prose :global(.embed-container[data-platform='twitter']) {
+        height: var(--twitter-embed-height, auto);
         min-height: 250px;
+        overflow: visible;
     }
 
     .prose :global(.embed-container[data-platform='twitter'])::before {
@@ -538,8 +547,9 @@
 
     .prose :global(.embed-container[data-platform='twitter'] iframe) {
         position: relative;
-        min-height: 250px;
-        height: auto;
+        display: block;
+        min-height: var(--twitter-embed-height, 250px);
+        height: var(--twitter-embed-height, auto);
     }
 
     /* 스포일러 블록 [spoiler]...[/spoiler] */

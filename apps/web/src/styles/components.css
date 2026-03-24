@@ -405,14 +405,17 @@ img[src*='/emoticons/'] {
 
 /* Twitter/X 임베드: 높이 가변적 */
 .embed-container[data-platform='twitter'] {
+    height: var(--twitter-embed-height, auto);
     padding-bottom: 0;
     min-height: 250px;
+    overflow: visible;
 }
 
 .embed-container[data-platform='twitter'] iframe {
     position: relative;
-    min-height: 250px;
-    height: auto;
+    display: block;
+    min-height: var(--twitter-embed-height, 250px);
+    height: var(--twitter-embed-height, auto);
 }
 
 /* 스포일러 블록 */
