@@ -47,7 +47,7 @@ export const load: PageServerLoad = async ({
     }
 
     const boardId = canonicalBoardId;
-    const initialCommentsLimit = 200;
+    const initialCommentsLimit = 10;
     const recentPostsLimit = 5;
     // postId가 숫자인지 검증 (레거시 PHP URL 방어: /bbs/board.php 등)
     if (!/^\d+$/.test(postId)) {
