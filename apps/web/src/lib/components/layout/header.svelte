@@ -237,7 +237,7 @@
         class="container mx-auto flex h-12 items-center justify-between gap-2 !px-2.5 md:h-16 md:gap-3 md:!px-6"
     >
         <!-- 햄버거 메뉴 + 로고 -->
-        <div class="flex min-w-0 items-center pr-1 md:pr-2">
+        <div class="flex min-w-0 items-center pr-1.5 md:pr-2">
             <button
                 onclick={toggleDrawer}
                 class="hover:bg-accent relative rounded-lg p-2 transition-all duration-200 ease-out 2xl:hidden"
@@ -248,7 +248,7 @@
             </button>
             <a
                 href="/"
-                class="relative z-10 flex h-10 shrink-0 cursor-pointer items-center rounded-md ps-1 md:h-12 md:ps-0"
+                class="relative z-10 flex h-10 shrink-0 cursor-pointer items-center rounded-md pe-1 ps-1 md:h-12 md:pe-0 md:ps-0"
                 aria-label="홈"
                 onclick={(e: MouseEvent) => {
                     if (window.location.pathname === '/') {
@@ -317,7 +317,7 @@
         </nav>
 
         <!-- 우측 아이콘 버튼들 -->
-        <div class="flex shrink-0 items-center space-x-1">
+        <div class="flex shrink-0 items-center gap-1">
             <!-- 테마 모드 토글: light → dark → amoled -->
             <button
                 onclick={cycleThemeMode}
@@ -349,7 +349,7 @@
                 class="hover:bg-accent relative rounded-lg p-2 transition-all duration-200 ease-out"
                 aria-label="검색"
             >
-                <span class="pointer-events-none absolute -inset-1"></span>
+                <span class="pointer-events-none absolute inset-0 md:-inset-1"></span>
                 <Search class="text-muted-foreground h-5 w-5" />
             </button>
 
