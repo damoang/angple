@@ -987,11 +987,13 @@
                         disabled={pagination.page === 1}
                         onclick={() => goToPage(pagination.page - 1)}>이전</Button
                     >
-                    {#each Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
-                        const startPage = Math.max(1, pagination.page - 2);
-                        return startPage + i;
-                    }) as pageNum (pageNum)}
-                        {#if pageNum <= pagination.totalPages}
+                    {#each (() => {
+                        const count = Math.min(5, pagination.totalPages);
+                        const raw = pagination.page - Math.floor(count / 2);
+                        const start = Math.max(1, Math.min(raw, pagination.totalPages - count + 1));
+                        return Array.from({ length: count }, (_, i) => start + i);
+                    })() as pageNum (pageNum)}
+                        {#if pageNum >= 1 && pageNum <= pagination.totalPages}
                             <Button
                                 variant={pageNum === pagination.page ? 'default' : 'outline'}
                                 size="sm"

@@ -416,11 +416,11 @@
 
     function handleTitleKeydown(event: KeyboardEvent): void {
         if (event.key !== 'Enter') return;
-        if (event.isComposing || event.shiftKey || event.ctrlKey || event.altKey || event.metaKey) {
+        // Shift/Ctrl/Alt/Meta + Enter는 허용 (줄바꿈 등)
+        if (event.shiftKey || event.ctrlKey || event.altKey || event.metaKey) {
             return;
         }
-
-        // 제목 입력 중 Enter가 폼 submit으로 이어지지 않도록 막는다.
+        // 한글 조합 중(isComposing)이든 아니든 Enter는 항상 막아야 form submit 방지
         event.preventDefault();
     }
 </script>
