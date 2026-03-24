@@ -35,6 +35,11 @@ jobs:
           token: ${{ secrets.PREMIUM_REPO_TOKEN }}
           path: _premium
 
+      - name: Check premium plugin conflicts
+        run: |
+          chmod +x scripts/check-premium-plugin-conflicts.sh
+          scripts/check-premium-plugin-conflicts.sh . _premium
+
       - name: Install premium assets
         run: |
           if [ ! -f "_premium/deploy/install.sh" ]; then

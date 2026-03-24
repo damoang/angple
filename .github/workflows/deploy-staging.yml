@@ -46,6 +46,12 @@ jobs:
           path: _premium
         continue-on-error: true
 
+      - name: Check premium plugin conflicts
+        if: hashFiles('_premium/deploy/install.sh') != ''
+        run: |
+          chmod +x scripts/check-premium-plugin-conflicts.sh
+          scripts/check-premium-plugin-conflicts.sh . _premium
+
       - name: Install premium assets
         if: hashFiles('_premium/deploy/install.sh') != ''
         run: |
