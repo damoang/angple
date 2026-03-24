@@ -13,8 +13,13 @@
     import { Badge } from '$lib/components/ui/badge';
     import * as Tabs from '$lib/components/ui/tabs';
     import { Gift, Clock, Users, Pause, PlayCircle, Timer } from '../../lucide.js';
+    import {
+        resolveGivingMeta,
+        type GivingMetaSource,
+        type GivingStatus
+    } from '../../../apps/web/src/lib/features/giving/model';
 
-    interface GivingPost {
+    interface GivingPost extends GivingMetaSource {
         id: number;
         title: string;
         url?: string;
@@ -51,60 +56,59 @@
         return () => clearInterval(interval);
     });
 
-    // 나눔 상태 계산
-    type GivingStatus = 'active' | 'waiting' | 'paused' | 'ended' | 'no_giving';
-
     function getGivingStatus(post: GivingPost): {
         status: GivingStatus;
         text: string;
         icon: typeof Gift;
         class: string;
     } {
-        if (!post.giving_start || !post.giving_end) {
-            return {
-                status: 'no_giving',
-                text: '일반글',
-                icon: Gift,
-                class: 'bg-muted text-muted-foreground'
-            };
+        const meta = resolveGivingMeta(
+            {
+                extra_4: post.giving_start,
+                extra_5: post.giving_end,
+                extra_7: post.is_paused ? '1' : undefined,
+                participant_count: post.bid_count
+            },
+            now
+        );
+
+        switch (meta.status) {
+            case 'paused':
+                return {
+                    status: 'paused',
+                    text: '일시정지',
+                    icon: Pause,
+                    class: 'bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-400'
+                };
+            case 'active':
+                return {
+                    status: 'active',
+                    text: '진행중',
+                    icon: PlayCircle,
+                    class: 'bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-400'
+                };
+            case 'ended':
+                return {
+                    status: 'ended',
+                    text: '종료',
+                    icon: Clock,
+                    class: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
+                };
+            case 'waiting':
+                return {
+                    status: 'waiting',
+                    text: '대기중',
+                    icon: Timer,
+                    class: 'bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-400'
+                };
+            default:
+                return {
+                    status: 'no_giving',
+                    text: '일반글',
+                    icon: Gift,
+                    class: 'bg-muted text-muted-foreground'
+                };
         }
-
-        const start = new Date(post.giving_start).getTime();
-        const end = new Date(post.giving_end).getTime();
-
-        if (post.is_paused) {
-            return {
-                status: 'paused',
-                text: '일시정지',
-                icon: Pause,
-                class: 'bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-400'
-            };
-        }
-
-        if (now >= start && now <= end) {
-            return {
-                status: 'active',
-                text: '진행중',
-                icon: PlayCircle,
-                class: 'bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-400'
-            };
-        }
-
-        if (now > end) {
-            return {
-                status: 'ended',
-                text: '종료',
-                icon: Clock,
-                class: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
-            };
-        }
-
-        return {
-            status: 'waiting',
-            text: '대기중',
-            icon: Timer,
-            class: 'bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-400'
-        };
     }
 
     // 활성/종료 목록 분류

@@ -24,6 +24,7 @@
     import PlayCircle from '@lucide/svelte/icons/play-circle';
     import Timer from '@lucide/svelte/icons/timer';
     import MessageSquare from '@lucide/svelte/icons/message-square';
+    import { resolveGivingMeta, type GivingStatus } from '$lib/features/giving/model.js';
     let {
         post,
         displaySettings,
@@ -43,12 +44,10 @@
     const thumbnailUrl = $derived(post.thumbnail || post.images?.[0] || '');
     const hasImage = $derived(Boolean(thumbnailUrl));
 
-    // 나눔 확장 필드 (wr_1 ~ wr_10 매핑)
-    // extra_4: 시작일시, extra_5: 종료일시, extra_7: 상태, extra_2: 응모수
-    const givingStart = $derived(post.extra_4);
-    const givingEnd = $derived(post.extra_5);
-    const isPaused = $derived(post.extra_7 === '1');
-    const bidCount = $derived(parseInt(post.extra_2 || '0', 10) || 0);
+    const givingMeta = $derived(resolveGivingMeta(post));
+    const givingStart = $derived(post.giving_start ?? givingMeta.givingStart);
+    const givingEnd = $derived(post.giving_end ?? givingMeta.givingEnd);
+    const bidCount = $derived(post.participant_count ?? givingMeta.participantCount);
 
     // 현재 시간 (반응형)
     let now = $state(Date.now());
@@ -60,59 +59,50 @@
     });
 
     // 나눔 상태 계산
-    type GivingStatus = 'active' | 'waiting' | 'paused' | 'ended' | 'no_giving';
-
     function getGivingStatus(): {
         status: GivingStatus;
         text: string;
         icon: typeof Gift;
         class: string;
     } {
-        if (!givingStart || !givingEnd) {
-            return {
-                status: 'no_giving',
-                text: '일반글',
-                icon: Gift,
-                class: 'bg-muted text-muted-foreground'
-            };
+        const meta = resolveGivingMeta(post, now);
+        switch (meta.status) {
+            case 'paused':
+                return {
+                    status: 'paused',
+                    text: '일시정지',
+                    icon: Pause,
+                    class: 'bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-400'
+                };
+            case 'active':
+                return {
+                    status: 'active',
+                    text: '진행중',
+                    icon: PlayCircle,
+                    class: 'bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-400'
+                };
+            case 'ended':
+                return {
+                    status: 'ended',
+                    text: '종료',
+                    icon: Clock,
+                    class: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
+                };
+            case 'waiting':
+                return {
+                    status: 'waiting',
+                    text: '대기중',
+                    icon: Timer,
+                    class: 'bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-400'
+                };
+            default:
+                return {
+                    status: 'no_giving',
+                    text: '일반글',
+                    icon: Gift,
+                    class: 'bg-muted text-muted-foreground'
+                };
         }
-
-        const start = new Date(givingStart).getTime();
-        const end = new Date(givingEnd).getTime();
-
-        if (isPaused) {
-            return {
-                status: 'paused',
-                text: '일시정지',
-                icon: Pause,
-                class: 'bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-400'
-            };
-        }
-
-        if (now >= start && now <= end) {
-            return {
-                status: 'active',
-                text: '진행중',
-                icon: PlayCircle,
-                class: 'bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-400'
-            };
-        }
-
-        if (now > end) {
-            return {
-                status: 'ended',
-                text: '종료',
-                icon: Clock,
-                class: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
-            };
-        }
-
-        return {
-            status: 'waiting',
-            text: '대기중',
-            icon: Timer,
-            class: 'bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-400'
-        };
     }
 
     const statusInfo = $derived(getGivingStatus());

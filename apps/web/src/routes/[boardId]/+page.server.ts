@@ -8,6 +8,7 @@ import { fetchMemberImagesWithTimestamp } from '$lib/server/member-images.js';
 import { fetchWithdrawnMemberIds } from '$lib/server/withdrawn-members.js';
 import { createCache } from '$lib/server/cache.js';
 import { getCachedBoard, resolveCanonicalBoardId } from '$lib/server/board-cache.js';
+import { resolveGivingMeta } from '$lib/features/giving/model.js';
 
 // --- 인메모리 캐시: 비로그인 게시글 목록 (15초 TTL) ---
 interface PostsCacheData {
@@ -69,6 +70,18 @@ function maybeTrimBoardListPayload(
         posts: posts.map(trimFreeListPayload),
         notices: notices.map(trimFreeListPayload)
     };
+}
+
+function enrichGivingPosts(posts: FreePost[]): void {
+    for (const post of posts) {
+        const giving = resolveGivingMeta(post);
+        post.giving_start = giving.givingStart;
+        post.giving_end = giving.givingEnd;
+        post.giving_status = giving.status;
+        post.participant_count = giving.participantCount;
+        post.is_paused = giving.isPaused;
+        post.is_giving_post = giving.isGivingPost;
+    }
 }
 
 const postsCache = createCache<PostsCacheData>({ ttl: 15_000, maxSize: 100 });
@@ -331,6 +344,9 @@ export const load: PageServerLoad = async ({ url, params, locals, getClientAddre
 
         // 프로필 이미지 + 탈퇴 여부 enrichment (DB 배치 조회)
         const allPosts = [...posts, ...notices];
+        if (boardId === 'giving') {
+            enrichGivingPosts(allPosts);
+        }
         if (allPosts.length > 0) {
             const mbIds = [...new Set(allPosts.map((p) => p.author_id).filter(Boolean))];
             try {
