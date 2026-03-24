@@ -35,7 +35,15 @@ export function createDeniedDecision(
 export function createErrorDecision(
     originalUrl: string,
     normalizedUrl: string,
-    reasonCode: Extract<AffiliateReasonCode, 'env_missing' | 'api_error' | 'unknown'>,
+    reasonCode: Extract<
+        AffiliateReasonCode,
+        | 'env_missing'
+        | 'api_error'
+        | 'unknown'
+        | 'rebind_not_supported'
+        | 'rebind_failed_short_affiliate'
+        | 'rebind_failed_upstream_blocked'
+    >,
     metadata?: AffiliateDecision['metadata']
 ): AffiliateDecision {
     return {

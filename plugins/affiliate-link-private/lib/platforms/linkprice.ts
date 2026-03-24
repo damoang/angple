@@ -9,7 +9,14 @@ export function getLinkPriceAffiliateId(): string {
 export function createLinkPriceFailureDecision(
     originalUrl: string,
     normalizedUrl: string,
-    reasonCode: Extract<AffiliateReasonCode, 'env_missing' | 'merchant_denied' | 'api_error'>
+    reasonCode: Extract<
+        AffiliateReasonCode,
+        | 'env_missing'
+        | 'merchant_denied'
+        | 'api_error'
+        | 'rebind_not_supported'
+        | 'rebind_failed_upstream_blocked'
+    >
 ): AffiliateDecision {
     const network: AffiliateNetwork = 'linkprice';
     return {

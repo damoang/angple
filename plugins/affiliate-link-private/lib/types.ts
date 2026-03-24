@@ -15,6 +15,11 @@ export type AffiliateDecisionStatus =
 
 export type AffiliateReasonCode =
     | 'converted'
+    | 'rebind_success'
+    | 'rebind_required'
+    | 'rebind_not_supported'
+    | 'rebind_failed_short_affiliate'
+    | 'rebind_failed_upstream_blocked'
     | 'unsupported_domain'
     | 'already_affiliate'
     | 'invalid_url'
@@ -32,6 +37,11 @@ export type AffiliateNetwork =
     | 'none';
 
 export type LinkFieldName = 'link1' | 'link2';
+
+export type AffiliateInputKind =
+    | 'merchant_url'
+    | 'affiliate_url_rebindable'
+    | 'affiliate_url_non_rebindable';
 
 export interface AffiliateCandidate {
     originalUrl: string;
