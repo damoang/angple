@@ -17,6 +17,37 @@ export interface AdminMember {
     comment_count?: number;
 }
 
+export interface AnonymizeMemberInput {
+    replacementNickname?: string;
+    targets: string[];
+    searchTexts?: string[];
+}
+
+export interface AnonymizeMemberResult {
+    member_id: number;
+    username: string;
+    replacement_nickname: string;
+    search_texts: string[];
+    resolved_targets: Array<{
+        url: string;
+        board_id: string;
+        post_id: number;
+        comment_id?: number;
+    }>;
+    updated_rows: Array<{
+        table: string;
+        row_id: string;
+        reason: string;
+    }>;
+    skipped_rows: Array<{
+        table: string;
+        row_id: string;
+        reason: string;
+    }>;
+    backup_file: string;
+    manifest_file: string;
+}
+
 export interface MemberListParams {
     page?: number;
     limit?: number;
@@ -25,6 +56,13 @@ export interface MemberListParams {
     level?: number;
     sortBy?: 'datetime' | 'name' | 'level' | 'point' | 'login';
     sortOrder?: 'asc' | 'desc';
+    status?: 'active' | 'banned' | 'left';
+    dateFrom?: string;
+    dateTo?: string;
+    pointMin?: number;
+    pointMax?: number;
+    loginFrom?: string;
+    loginTo?: string;
 }
 
 export interface MemberListResponse {
@@ -57,6 +95,13 @@ export async function listMembers(params: MemberListParams = {}): Promise<Member
         if (params.level !== undefined) searchParams.set('level', String(params.level));
         if (params.sortBy) searchParams.set('sort_by', params.sortBy);
         if (params.sortOrder) searchParams.set('sort_order', params.sortOrder);
+        if (params.status) searchParams.set('status', params.status);
+        if (params.dateFrom) searchParams.set('date_from', params.dateFrom);
+        if (params.dateTo) searchParams.set('date_to', params.dateTo);
+        if (params.pointMin !== undefined) searchParams.set('point_min', String(params.pointMin));
+        if (params.pointMax !== undefined) searchParams.set('point_max', String(params.pointMax));
+        if (params.loginFrom) searchParams.set('login_from', params.loginFrom);
+        if (params.loginTo) searchParams.set('login_to', params.loginTo);
 
         const url = searchParams.toString() ? `${API_BASE}?${searchParams}` : API_BASE;
         const response = await fetch(url, { credentials: 'include' });
@@ -154,6 +199,36 @@ export async function bulkUpdateLevel(memberIds: string[], level: number): Promi
         }
     } catch (error) {
         console.error('❌ 일괄 레벨 변경 실패:', error);
+        throw error;
+    }
+}
+
+export async function anonymizeMemberByUsername(
+    username: string,
+    input: AnonymizeMemberInput
+): Promise<AnonymizeMemberResult> {
+    try {
+        const response = await fetch(
+            `/api/v2/admin/members/by-username/${encodeURIComponent(username)}/anonymize`,
+            {
+                method: 'POST',
+                credentials: 'include',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    replacement_nickname: input.replacementNickname?.trim() || undefined,
+                    targets: input.targets,
+                    search_texts: input.searchTexts?.filter((value) => value.trim().length > 0)
+                })
+            }
+        );
+        if (!response.ok) {
+            const errorResult = await safeJson(response);
+            throw new Error(errorResult.error?.message || `HTTP ${response.status}`);
+        }
+        const result: APIResponse<AnonymizeMemberResult> = await safeJson(response);
+        return result.data;
+    } catch (error) {
+        console.error('❌ 회원 익명화 실패:', error);
         throw error;
     }
 }
