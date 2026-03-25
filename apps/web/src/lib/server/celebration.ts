@@ -102,37 +102,41 @@ export async function fetchCelebrations(isRecent: boolean = false): Promise<Cele
 
     // 2차: g5_write_message fallback (마이그레이션 전까지)
     if (banners.length === 0) {
-        const legacyDateFilter = isRecent
-            ? ''
-            : "AND (wm.wr_subject = DATE_FORMAT(NOW(),'%Y.%m.%d') OR wm.wr_subject = DATE_FORMAT(NOW(),'%Y-%m-%d'))";
-        const [rows] = await pool.execute<RowDataPacket[]>(
-            `SELECT wm.wr_id, wm.wr_subject, wm.wr_content, wm.wr_link2, wm.mb_id,
-					m.mb_nick, m.mb_image_url
-			 FROM g5_write_message wm
-			 LEFT JOIN g5_member m ON wm.mb_id = m.mb_id
-			 WHERE wm.wr_is_comment = 0 ${legacyDateFilter}
-			 ORDER BY wm.wr_id DESC
-			 LIMIT 8`
-        );
+        try {
+            const legacyDateFilter = isRecent
+                ? ''
+                : "AND (wm.wr_subject = DATE_FORMAT(NOW(),'%Y.%m.%d') OR wm.wr_subject = DATE_FORMAT(NOW(),'%Y-%m-%d'))";
+            const [rows] = await pool.query<RowDataPacket[]>(
+                `SELECT wm.wr_id, wm.wr_subject, wm.wr_content, wm.wr_link2, wm.mb_id,
+                        m.mb_nick, m.mb_image_url
+                 FROM g5_write_message wm
+                 LEFT JOIN g5_member m ON wm.mb_id = m.mb_id
+                 WHERE wm.wr_is_comment = 0 ${legacyDateFilter}
+                 ORDER BY wm.wr_id DESC
+                 LIMIT 8`
+            );
 
-        for (const row of rows as RowDataPacket[]) {
-            const imageUrl = extractFirstImage(row.wr_content);
-            if (imageUrl) {
-                banners.push({
-                    id: row.wr_id,
-                    title: row.wr_subject,
-                    content: row.wr_content,
-                    image_url: imageUrl,
-                    link_url: row.wr_link2 || `/message/${row.wr_id}`,
-                    display_date: row.wr_subject,
-                    is_active: true,
-                    target_member_id: row.mb_id || undefined,
-                    target_member_nick: row.mb_nick || undefined,
-                    target_member_photo: getMemberPhotoUrl(row.mb_image_url),
-                    external_link: row.wr_link2 || undefined,
-                    display_type: 'image'
-                });
+            for (const row of rows as RowDataPacket[]) {
+                const imageUrl = extractFirstImage(row.wr_content);
+                if (imageUrl) {
+                    banners.push({
+                        id: row.wr_id,
+                        title: row.wr_subject,
+                        content: row.wr_content,
+                        image_url: imageUrl,
+                        link_url: row.wr_link2 || `/message/${row.wr_id}`,
+                        display_date: row.wr_subject,
+                        is_active: true,
+                        target_member_id: row.mb_id || undefined,
+                        target_member_nick: row.mb_nick || undefined,
+                        target_member_photo: getMemberPhotoUrl(row.mb_image_url),
+                        external_link: row.wr_link2 || undefined,
+                        display_type: 'image'
+                    });
+                }
             }
+        } catch (error) {
+            console.error('fetchCelebrations fallback error', error);
         }
     }
 
