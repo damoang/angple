@@ -10,6 +10,67 @@ const env = process.env;
 
 const API_ENDPOINT = 'https://api-gateway.coupang.com';
 const API_PATH = '/v2/providers/affiliate_open_api/apis/openapi/v1/deeplink';
+const COUPANG_ALLOWED_HOSTS = ['coupang.com', 'shop.coupang.com'];
+
+function isAllowedCoupangHost(url: string): boolean {
+	try {
+		const { hostname } = new URL(url);
+		return COUPANG_ALLOWED_HOSTS.some((host) => hostname === host || hostname.endsWith(`.${host}`));
+	} catch {
+		return false;
+	}
+}
+
+function isCoupangShortLink(url: string): boolean {
+	try {
+		const { hostname, pathname } = new URL(url);
+		return hostname === 'link.coupang.com'
+			? pathname.startsWith('/a/') || pathname.startsWith('/re/')
+			: hostname === 'coupa.ng' || hostname.endsWith('.coupa.ng');
+	} catch {
+		return false;
+	}
+}
+
+function buildCoupangFallbackUrl(url: string): string | null {
+	const partnerId = env.AFFI_COUPANG_PARTNER_ID?.trim();
+	if (!partnerId) {
+		return null;
+	}
+
+	try {
+		const parsed = new URL(url);
+		if (parsed.hostname !== 'shop.coupang.com') {
+			return null;
+		}
+
+		const query = parsed.searchParams;
+		for (const key of [
+			'src',
+			'spec',
+			'addtag',
+			'ctag',
+			'itime',
+			'traceid',
+			'influencer_id',
+			'channel_id',
+			'campaign_id',
+			'mcid',
+			'wPcid',
+			'wRef',
+			'wTime',
+			'pageType',
+			'pageValue',
+			'redirect'
+		]) {
+			query.delete(key);
+		}
+		query.set('lptag', partnerId);
+		return parsed.toString();
+	} catch {
+		return null;
+	}
+}
 
 /**
  * 쿠팡 API 서명 생성
@@ -25,23 +86,34 @@ function generateSignature(datetime: string, method: string, path: string): stri
  */
 async function resolveShortUrl(url: string): Promise<string> {
 	// link.coupang.com/re/AFFSDP?... 형태에서 pageKey 추출
-	const affsdpMatch = url.match(/link\.coupang\.com\/re\/AFFSDP.*?pageKey=([^&]+)/i);
+	const affsdpMatch = url.match(
+		/link\.coupang\.com\/re\/AFFSDP.*?pageKey=([^&]+)(?:.*?vendorItemId=([^&]+))?/i
+	);
 	if (affsdpMatch) {
-		return `https://www.coupang.com/vp/products/${affsdpMatch[1]}`;
+		const vendorItemId = affsdpMatch[2];
+		return vendorItemId
+			? `https://www.coupang.com/vp/products/${affsdpMatch[1]}?vendorItemId=${vendorItemId}`
+			: `https://www.coupang.com/vp/products/${affsdpMatch[1]}`;
 	}
 
 	// link.coupang.com/a/xxx 또는 coupa.ng/xxx 형태는 리다이렉트 따라가기
-	if (/link\.coupang\.com\/a\/|coupa\.ng\//i.test(url)) {
+	if (isCoupangShortLink(url)) {
 		try {
+			const controller = new AbortController();
+			const timer = setTimeout(() => controller.abort(), 5_000);
 			const response = await fetch(url, {
-				method: 'HEAD',
+				method: 'GET',
 				redirect: 'follow',
 				headers: {
-					'User-Agent': 'Mozilla/5.0 (compatible; DamoangBot/1.0)'
-				}
+					'User-Agent':
+						'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36'
+				},
+				signal: controller.signal
 			});
+			clearTimeout(timer);
+			await response.body?.cancel();
 			const finalUrl = response.url;
-			if (finalUrl.includes('coupang.com')) {
+			if (isAllowedCoupangHost(finalUrl)) {
 				return finalUrl;
 			}
 		} catch {
@@ -95,7 +167,8 @@ async function callCoupangApi(originalUrl: string): Promise<string | null> {
 				'Content-Type': 'application/json;charset=UTF-8',
 				Authorization: authorization
 			},
-			body: JSON.stringify(requestBody)
+			body: JSON.stringify(requestBody),
+			signal: AbortSignal.timeout(5_000)
 		});
 
 		if (!response.ok) {
@@ -109,11 +182,16 @@ async function callCoupangApi(originalUrl: string): Promise<string | null> {
 			return data.data[0].shortenUrl;
 		}
 
+		const fallbackUrl = buildCoupangFallbackUrl(resolvedUrl);
+		if (fallbackUrl) {
+			return fallbackUrl;
+		}
+
 		console.warn('[Coupang] 변환 실패:', data.rMessage || 'Unknown error');
 		return null;
 	} catch (error) {
 		console.error('[Coupang] API 호출 실패:', error);
-		return null;
+		return buildCoupangFallbackUrl(resolvedUrl);
 	}
 }
 
