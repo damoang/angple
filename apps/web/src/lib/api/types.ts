@@ -44,6 +44,8 @@ export interface FreePost {
     created_at: string;
     updated_at?: string;
     has_file?: boolean;
+    has_video?: boolean;
+    has_image?: boolean;
     category?: string; // 게시글 카테고리 (예: "일상", "음식", "맛집")
     tags?: string[];
     images?: string[];
