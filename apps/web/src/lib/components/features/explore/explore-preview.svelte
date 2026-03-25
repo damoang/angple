@@ -82,7 +82,7 @@
             >
                 <Compass class="h-4 w-4 text-teal-500" />
             </div>
-            <h3 class="text-foreground text-lg font-semibold">톺아보기</h3>
+            <h3 class="text-foreground text-lg font-semibold">모아보기</h3>
         </a>
         <div class="flex gap-1 overflow-x-auto">
             {#each modes as mode (mode.id)}
@@ -121,6 +121,7 @@
                         <a
                             href={post.url}
                             class="hover:bg-muted block rounded px-2 py-1.5 transition-all duration-200 ease-out"
+                            style="padding-top: calc(0.375rem + var(--row-pad-extra, 0px)); padding-bottom: calc(0.375rem + var(--row-pad-extra, 0px));"
                         >
                             <div class="flex items-center gap-2">
                                 <!-- 추천수 배지 -->

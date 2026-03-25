@@ -1,6 +1,6 @@
 {
     "id": "explore",
-    "name": "톺아보기",
+    "name": "모아보기",
     "version": "1.0.0",
     "description": "전체 게시판 통합 피드 (핫 상위 10건)",
     "author": { "name": "Angple" },
