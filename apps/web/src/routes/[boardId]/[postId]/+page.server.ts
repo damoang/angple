@@ -48,7 +48,7 @@ export const load: PageServerLoad = async ({
     }
 
     const boardId = canonicalBoardId;
-    const initialCommentsLimit = 5;
+    const initialCommentsLimit = 10;
     // postId가 숫자인지 검증 (레거시 PHP URL 방어: /bbs/board.php 등)
     if (!/^\d+$/.test(postId)) {
         throw error(404, '잘못된 게시글 주소입니다.');
