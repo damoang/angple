@@ -38,6 +38,7 @@
         showSecretOption?: boolean;
         permissions?: BoardPermissions;
         requiredCommentLevel?: number;
+        isRestricted?: boolean;
         boardId?: string;
         onRefresh?: () => void;
         isRefreshing?: boolean;
@@ -54,6 +55,7 @@
         showSecretOption = true,
         permissions,
         requiredCommentLevel = 3,
+        isRestricted = false,
         boardId = 'free',
         onRefresh,
         isRefreshing = false
@@ -61,6 +63,7 @@
 
     const canComment = $derived.by(() => {
         if (!authStore.isAuthenticated) return false;
+        if (isRestricted) return false;
         if (permissions) {
             return isReplyMode ? permissions.can_reply : permissions.can_comment;
         }
@@ -68,7 +71,11 @@
         return userLevel >= requiredCommentLevel;
     });
 
-    const permissionMessage = $derived(`레벨 ${requiredCommentLevel} 이상 작성 가능`);
+    const permissionMessage = $derived(
+        isRestricted
+            ? '이용제한 중에는 댓글을 작성할 수 없습니다.'
+            : `레벨 ${requiredCommentLevel} 이상 작성 가능`
+    );
 
     let commentAvatarUrl = $derived(
         getAvatarUrl(authStore.user?.mb_image, authStore.user?.mb_image_updated_at) || null

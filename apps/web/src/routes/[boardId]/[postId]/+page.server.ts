@@ -11,6 +11,7 @@ import {
 import { isLinkProcessingPluginEnabled } from '$lib/server/link-processing/runtime.js';
 import { isScraped } from '$lib/server/scrap.js';
 import { backendFetch as bFetch, createAuthHeaders } from '$lib/server/backend-fetch.js';
+import { isRestrictedUser, type AuthUser } from '$lib/server/auth/index.js';
 import { getCachedBoard, resolveCanonicalBoardId } from '$lib/server/board-cache.js';
 import {
     increment as incrementViewcount,
@@ -525,6 +526,7 @@ export const load: PageServerLoad = async ({
             board,
             commentsData,
             isScrapped: false,
+            isRestricted: isRestrictedUser(locals.user as AuthUser | null),
             promotionExpired,
             watermark,
             truthroomPostId,
