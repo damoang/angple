@@ -9,6 +9,7 @@
     import { Input } from '$lib/components/ui/input/index.js';
     import { Label } from '$lib/components/ui/label/index.js';
     import { Badge } from '$lib/components/ui/badge/index.js';
+    import { Textarea } from '$lib/components/ui/textarea/index.js';
     import * as Dialog from '$lib/components/ui/dialog/index.js';
     import { Checkbox } from '$lib/components/ui/checkbox/index.js';
     import Users from '@lucide/svelte/icons/users';
@@ -18,15 +19,20 @@
     import ShieldCheck from '@lucide/svelte/icons/shield-check';
     import ChevronLeft from '@lucide/svelte/icons/chevron-left';
     import ChevronRight from '@lucide/svelte/icons/chevron-right';
+    import ChevronDown from '@lucide/svelte/icons/chevron-down';
+    import ChevronUp from '@lucide/svelte/icons/chevron-up';
+    import Filter from '@lucide/svelte/icons/filter';
     import Loader2 from '@lucide/svelte/icons/loader-2';
     import {
         listMembers,
         updateMember,
         banMember,
         unbanMember,
+        anonymizeMemberByUsername,
         bulkUpdateLevel,
         type AdminMember,
-        type MemberListParams
+        type MemberListParams,
+        type AnonymizeMemberResult
     } from '$lib/api/admin-members';
 
     let members = $state<AdminMember[]>([]);
@@ -41,6 +47,14 @@
     let levelFilter = $state<number | undefined>(undefined);
     let sortBy = $state<'datetime' | 'name' | 'level' | 'point'>('datetime');
     let sortOrder = $state<'asc' | 'desc'>('desc');
+    let statusFilter = $state<'active' | 'banned' | 'left' | undefined>(undefined);
+    let dateFrom = $state('');
+    let dateTo = $state('');
+    let pointMin = $state('');
+    let pointMax = $state('');
+    let loginFrom = $state('');
+    let loginTo = $state('');
+    let showAdvancedFilter = $state(false);
 
     // 선택
     let selectedIds = $state<Set<string>>(new Set());
@@ -54,10 +68,19 @@
     let editLevel = $state(1);
     let editPoint = $state(0);
     let saving = $state(false);
+    let anonymizing = $state(false);
 
     // 일괄 레벨 변경
     let showBulkDialog = $state(false);
     let bulkLevel = $state(1);
+
+    // 익명화 다이얼로그
+    let showAnonymizeDialog = $state(false);
+    let anonymizeMember = $state<AdminMember | null>(null);
+    let anonymizeReplacementNickname = $state('탈퇴사용자');
+    let anonymizeTargetsText = $state('');
+    let anonymizeSearchTextsText = $state('');
+    let anonymizeResult = $state<AnonymizeMemberResult | null>(null);
 
     const totalPages = $derived(Math.max(1, Math.ceil(total / pageSize)));
 
@@ -77,6 +100,15 @@
             if (levelFilter !== undefined) {
                 params.level = levelFilter;
             }
+            if (statusFilter) {
+                params.status = statusFilter;
+            }
+            if (dateFrom) params.dateFrom = dateFrom;
+            if (dateTo) params.dateTo = dateTo;
+            if (pointMin) params.pointMin = Number(pointMin);
+            if (pointMax) params.pointMax = Number(pointMax);
+            if (loginFrom) params.loginFrom = loginFrom;
+            if (loginTo) params.loginTo = loginTo;
             const result = await listMembers(params);
             members = result.members;
             total = result.total;
@@ -174,6 +206,54 @@
         }
     }
 
+    function openAnonymizeDialog(member: AdminMember) {
+        anonymizeMember = member;
+        anonymizeReplacementNickname = '탈퇴사용자';
+        anonymizeTargetsText = '';
+        anonymizeSearchTextsText = member.mb_name || '';
+        anonymizeResult = null;
+        showAnonymizeDialog = true;
+    }
+
+    function parseMultilineInput(value: string): string[] {
+        return value
+            .split('\n')
+            .map((line) => line.trim())
+            .filter((line) => line.length > 0);
+    }
+
+    async function handleAnonymize() {
+        if (!anonymizeMember) return;
+        const targets = parseMultilineInput(anonymizeTargetsText);
+        const searchTexts = parseMultilineInput(anonymizeSearchTextsText);
+        if (targets.length === 0) {
+            alert('치환할 URL을 한 줄에 하나씩 입력해 주세요.');
+            return;
+        }
+        if (
+            !confirm(
+                `"${anonymizeMember.mb_name}" (${anonymizeMember.mb_id}) 회원의 지정 URL을 익명화하시겠습니까?\n백업 후 치환됩니다.`
+            )
+        ) {
+            return;
+        }
+
+        anonymizing = true;
+        anonymizeResult = null;
+        try {
+            anonymizeResult = await anonymizeMemberByUsername(anonymizeMember.mb_id, {
+                replacementNickname: anonymizeReplacementNickname,
+                targets,
+                searchTexts
+            });
+            await fetchMembers();
+        } catch (err) {
+            alert(err instanceof Error ? err.message : '익명화에 실패했습니다.');
+        } finally {
+            anonymizing = false;
+        }
+    }
+
     function getLevelBadge(level: number) {
         if (level >= 10) return { label: '관리자', variant: 'destructive' as const };
         if (level >= 5) return { label: `Lv.${level}`, variant: 'default' as const };
@@ -253,7 +333,110 @@
                     {/each}
                 </select>
                 <Button type="submit">검색</Button>
+                <Button
+                    variant="outline"
+                    type="button"
+                    onclick={() => (showAdvancedFilter = !showAdvancedFilter)}
+                >
+                    <Filter class="mr-1 h-4 w-4" />
+                    필터
+                    {#if showAdvancedFilter}
+                        <ChevronUp class="ml-1 h-3 w-3" />
+                    {:else}
+                        <ChevronDown class="ml-1 h-3 w-3" />
+                    {/if}
+                </Button>
             </form>
+
+            {#if showAdvancedFilter}
+                <div
+                    class="mt-3 grid grid-cols-2 gap-3 border-t pt-3 sm:grid-cols-3 lg:grid-cols-4"
+                >
+                    <div>
+                        <Label class="text-muted-foreground mb-1 text-xs">상태</Label>
+                        <select
+                            bind:value={statusFilter}
+                            onchange={() => handleSearch()}
+                            class="border-input bg-background ring-offset-background focus-visible:ring-ring flex h-9 w-full rounded-md border px-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+                        >
+                            <option value={undefined}>전체</option>
+                            <option value="active">정상</option>
+                            <option value="banned">차단</option>
+                            <option value="left">탈퇴</option>
+                        </select>
+                    </div>
+                    <div>
+                        <Label class="text-muted-foreground mb-1 text-xs">가입일 (시작)</Label>
+                        <Input
+                            type="date"
+                            bind:value={dateFrom}
+                            onchange={() => handleSearch()}
+                            class="h-9"
+                        />
+                    </div>
+                    <div>
+                        <Label class="text-muted-foreground mb-1 text-xs">가입일 (종료)</Label>
+                        <Input
+                            type="date"
+                            bind:value={dateTo}
+                            onchange={() => handleSearch()}
+                            class="h-9"
+                        />
+                    </div>
+                    <div>
+                        <Label class="text-muted-foreground mb-1 text-xs">정렬</Label>
+                        <select
+                            bind:value={sortBy}
+                            onchange={() => handleSearch()}
+                            class="border-input bg-background ring-offset-background focus-visible:ring-ring flex h-9 w-full rounded-md border px-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+                        >
+                            <option value="datetime">가입일</option>
+                            <option value="login">최근 로그인</option>
+                            <option value="name">이름</option>
+                            <option value="level">레벨</option>
+                            <option value="point">포인트</option>
+                        </select>
+                    </div>
+                    <div>
+                        <Label class="text-muted-foreground mb-1 text-xs">포인트 (최소)</Label>
+                        <Input
+                            type="number"
+                            bind:value={pointMin}
+                            onchange={() => handleSearch()}
+                            placeholder="0"
+                            class="h-9"
+                        />
+                    </div>
+                    <div>
+                        <Label class="text-muted-foreground mb-1 text-xs">포인트 (최대)</Label>
+                        <Input
+                            type="number"
+                            bind:value={pointMax}
+                            onchange={() => handleSearch()}
+                            placeholder="∞"
+                            class="h-9"
+                        />
+                    </div>
+                    <div>
+                        <Label class="text-muted-foreground mb-1 text-xs">최근 로그인 (시작)</Label>
+                        <Input
+                            type="date"
+                            bind:value={loginFrom}
+                            onchange={() => handleSearch()}
+                            class="h-9"
+                        />
+                    </div>
+                    <div>
+                        <Label class="text-muted-foreground mb-1 text-xs">최근 로그인 (종료)</Label>
+                        <Input
+                            type="date"
+                            bind:value={loginTo}
+                            onchange={() => handleSearch()}
+                            class="h-9"
+                        />
+                    </div>
+                </div>
+            {/if}
         </Card.Content>
     </Card.Root>
 
@@ -373,6 +556,14 @@
                                             {:else}
                                                 <Ban class="h-4 w-4 text-red-500" />
                                             {/if}
+                                        </Button>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            onclick={() => openAnonymizeDialog(member)}
+                                            title="익명화"
+                                        >
+                                            <Users class="h-4 w-4 text-amber-600" />
                                         </Button>
                                     </div>
                                 </td>
@@ -511,6 +702,98 @@
                 </Button>
                 <Button type="submit" disabled={saving}>
                     {saving ? '변경 중...' : '변경'}
+                </Button>
+            </Dialog.Footer>
+        </form>
+    </Dialog.Content>
+</Dialog.Root>
+
+<!-- 회원 익명화 다이얼로그 -->
+<Dialog.Root bind:open={showAnonymizeDialog}>
+    <Dialog.Content class="sm:max-w-2xl">
+        <Dialog.Header>
+            <Dialog.Title>회원 익명화</Dialog.Title>
+            <Dialog.Description>
+                {anonymizeMember?.mb_name} ({anonymizeMember?.mb_id})의 지정 URL을 백업 후
+                익명화합니다.
+            </Dialog.Description>
+        </Dialog.Header>
+        <form
+            class="space-y-4"
+            onsubmit={(e) => {
+                e.preventDefault();
+                handleAnonymize();
+            }}
+        >
+            <div class="grid gap-2">
+                <Label for="replacement-nickname">노출 닉네임</Label>
+                <Input
+                    id="replacement-nickname"
+                    bind:value={anonymizeReplacementNickname}
+                    disabled={anonymizing}
+                    placeholder="탈퇴사용자"
+                />
+                <p class="text-muted-foreground text-xs">
+                    비워두면 기본값 `탈퇴사용자`가 사용됩니다.
+                </p>
+            </div>
+
+            <div class="grid gap-2">
+                <Label for="anonymize-urls">대상 URL</Label>
+                <Textarea
+                    id="anonymize-urls"
+                    bind:value={anonymizeTargetsText}
+                    disabled={anonymizing}
+                    rows={8}
+                    placeholder={'https://damoang.net/free/5936618\nhttps://damoang.net/free/5915381#c_5942893'}
+                />
+                <p class="text-muted-foreground text-xs">
+                    여러 줄 입력 가능. URL 한 줄당 1개씩 입력하세요.
+                </p>
+            </div>
+
+            <div class="grid gap-2">
+                <Label for="anonymize-search-texts">치환할 문자열</Label>
+                <Textarea
+                    id="anonymize-search-texts"
+                    bind:value={anonymizeSearchTextsText}
+                    disabled={anonymizing}
+                    rows={4}
+                    placeholder={'전동운\n기타 노출 닉네임'}
+                />
+                <p class="text-muted-foreground text-xs">
+                    여러 줄 입력 가능. 비워두면 현재 회원명이 기본 치환 대상으로 포함됩니다.
+                </p>
+            </div>
+
+            {#if anonymizeResult}
+                <div class="bg-muted/40 space-y-2 rounded-lg border p-4 text-sm">
+                    <div class="font-medium">실행 결과</div>
+                    <div>내부 식별: {anonymizeResult.member_id} / {anonymizeResult.username}</div>
+                    <div>
+                        처리: 수정 {anonymizeResult.updated_rows.length}건, 건너뜀 {anonymizeResult
+                            .skipped_rows.length}건
+                    </div>
+                    <div class="break-all text-xs text-slate-600">
+                        백업: {anonymizeResult.backup_file}
+                    </div>
+                    <div class="break-all text-xs text-slate-600">
+                        매니페스트: {anonymizeResult.manifest_file}
+                    </div>
+                </div>
+            {/if}
+
+            <Dialog.Footer>
+                <Button
+                    variant="outline"
+                    type="button"
+                    onclick={() => (showAnonymizeDialog = false)}
+                    disabled={anonymizing}
+                >
+                    취소
+                </Button>
+                <Button type="submit" disabled={anonymizing}>
+                    {anonymizing ? '익명화 중...' : '백업 후 익명화'}
                 </Button>
             </Dialog.Footer>
         </form>
