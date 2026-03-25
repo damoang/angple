@@ -916,11 +916,15 @@
     bind:this={commentListEl}
     class={commentLayout === 'chat'
         ? 'space-y-0.5'
-        : commentLayout === 'compact'
-          ? 'space-y-1'
-          : commentLayout === 'bordered' || commentLayout === 'bubble'
-            ? 'space-y-2'
-            : 'space-y-3'}
+        : commentLayout === 'discussion'
+          ? 'space-y-0'
+          : commentLayout === 'compact'
+            ? 'space-y-1'
+            : commentLayout === 'feed'
+              ? 'space-y-0.5'
+              : commentLayout === 'bordered' || commentLayout === 'bubble'
+                ? 'space-y-2'
+                : 'space-y-3'}
 >
     {#each commentTree as comment, commentIndex (comment.id)}
         {@const isDeleted = !!comment.deleted_at}
@@ -931,6 +935,8 @@
         {@const isReplyingTo = replyingToCommentId === String(comment.id)}
         {@const depth = comment.depth ?? 0}
         {@const isReply = depth > 0}
+        {@const isDiscussion = commentLayout === 'discussion'}
+        {@const isFeed = commentLayout === 'feed'}
         {@const iconUrl = isDeleted
             ? null
             : getAvatarUrl(
@@ -948,7 +954,11 @@
                 commentLayout !== 'bordered' &&
                 commentLayout !== 'bubble' &&
                 commentLayout !== 'chat'
-                    ? 'border-border/60 border-l-2 pl-3'
+                    ? isDiscussion
+                        ? 'border-border/50 border-l-2 pl-4'
+                        : isFeed
+                          ? 'border-border/40 border-l pl-3'
+                          : 'border-border/60 border-l-2 pl-3'
                     : ''}"
             >
                 <button
@@ -976,22 +986,30 @@
                 class="comment-item overflow-hidden transition-colors duration-200
                 {commentLayout === 'chat'
                     ? 'flex items-start gap-2.5' + (isAuthor ? ' flex-row-reverse' : '')
-                    : commentLayout === 'bordered'
-                      ? 'bg-card rounded-lg border border-black/[0.06] p-4 shadow-[0_1px_3px_rgba(0,0,0,0.06)] dark:border-white/[0.08] dark:bg-white/[0.05] dark:shadow-none'
-                      : commentLayout === 'divided'
-                        ? 'border-border border-b py-3 last:border-b-0'
-                        : commentLayout === 'bubble'
-                          ? isAuthor
-                              ? 'bg-primary/10 rounded-xl rounded-br-sm p-4'
-                              : 'bg-muted rounded-xl rounded-bl-sm p-4'
-                          : commentLayout === 'compact'
-                            ? 'py-1.5'
-                            : 'py-3 first:pt-0 last:pb-0'}
+                    : isDiscussion
+                      ? 'border-border/70 border-b py-4 last:border-b-0'
+                      : isFeed
+                        ? 'py-2.5'
+                        : commentLayout === 'bordered'
+                          ? 'bg-card/80 border-border/70 rounded-lg border p-3.5 shadow-sm dark:bg-white/[0.03] dark:shadow-none'
+                          : commentLayout === 'divided'
+                            ? 'border-border border-b py-3 last:border-b-0'
+                            : commentLayout === 'bubble'
+                              ? isAuthor
+                                  ? 'bg-primary/10 rounded-xl rounded-br-sm p-4'
+                                  : 'bg-muted rounded-xl rounded-bl-sm p-4'
+                              : commentLayout === 'compact'
+                                ? 'py-1.5'
+                                : 'py-3 first:pt-0 last:pb-0'}
                 {isReply &&
                 commentLayout !== 'bordered' &&
                 commentLayout !== 'bubble' &&
                 commentLayout !== 'chat'
-                    ? 'border-border/60 border-l-2 pl-3'
+                    ? isDiscussion
+                        ? 'border-border/50 border-l-2 pl-4'
+                        : isFeed
+                          ? 'border-border/40 border-l pl-3'
+                          : 'border-border/60 border-l-2 pl-3'
                     : isReply && commentLayout === 'bordered'
                       ? 'border-border/60 border-l-2'
                       : ''}"
@@ -1028,7 +1046,7 @@
                     {/if}
                 {/if}
 
-                <div class={commentLayout === 'chat' ? 'min-w-0 max-w-[80%]' : ''}>
+                <div class={commentLayout === 'chat' ? 'min-w-0 max-w-[80%]' : 'min-w-0'}>
                     <!-- Chat: 이름 라벨 + 메모 + IP (타인 댓글만) -->
                     {#if commentLayout === 'chat' && !isAuthor && !isDeleted}
                         <p
@@ -1063,7 +1081,9 @@
                         <div
                             class="{commentLayout === 'chat'
                                 ? 'hidden'
-                                : 'mb-1.5'} flex flex-wrap items-start gap-1 sm:gap-1.5"
+                                : isFeed
+                                  ? 'mb-1'
+                                  : 'mb-1.5'} flex flex-wrap items-start gap-1 sm:gap-1.5"
                         >
                             <!-- 존1: 정체성 (아바타 + 이름/레벨/메모/잠금 + 날짜/IP/수정이력) -->
                             <div class="flex items-start gap-2">
@@ -1071,9 +1091,13 @@
                                     <img
                                         src={iconUrl}
                                         alt={comment.author}
-                                        class="mt-0.5 rounded-full object-cover {isReply
-                                            ? 'size-7'
-                                            : 'size-8'}"
+                                        class="mt-0.5 rounded-full object-cover {isFeed
+                                            ? isReply
+                                                ? 'size-6'
+                                                : 'size-7'
+                                            : isReply
+                                              ? 'size-7'
+                                              : 'size-8'}"
                                         onerror={(e) => {
                                             const img = e.currentTarget as HTMLImageElement;
                                             img.style.display = 'none';
@@ -1082,24 +1106,34 @@
                                         }}
                                     />
                                     <div
-                                        class="bg-primary text-primary-foreground mt-0.5 hidden items-center justify-center rounded-full {isReply
-                                            ? 'size-7 text-xs'
-                                            : 'size-8 text-sm'}"
+                                        class="bg-primary text-primary-foreground mt-0.5 hidden items-center justify-center rounded-full {isFeed
+                                            ? isReply
+                                                ? 'size-6 text-[10px]'
+                                                : 'size-7 text-xs'
+                                            : isReply
+                                              ? 'size-7 text-xs'
+                                              : 'size-8 text-sm'}"
                                     >
                                         {comment.author.charAt(0).toUpperCase()}
                                     </div>
                                 {:else}
                                     <div
-                                        class="bg-primary text-primary-foreground mt-0.5 flex items-center justify-center rounded-full {isReply
-                                            ? 'size-7 text-xs'
-                                            : 'size-8 text-sm'}"
+                                        class="bg-primary text-primary-foreground mt-0.5 flex items-center justify-center rounded-full {isFeed
+                                            ? isReply
+                                                ? 'size-6 text-[10px]'
+                                                : 'size-7 text-xs'
+                                            : isReply
+                                              ? 'size-7 text-xs'
+                                              : 'size-8 text-sm'}"
                                     >
                                         {comment.author.charAt(0).toUpperCase()}
                                     </div>
                                 {/if}
                                 <div>
                                     <p
-                                        class="text-foreground flex items-center gap-1.5 text-sm font-medium"
+                                        class="text-foreground flex items-center gap-1.5 {isFeed
+                                            ? 'text-[13px]'
+                                            : 'text-sm'} font-medium"
                                     >
                                         <LevelBadge
                                             level={memberLevelStore.getLevel(comment.author_id)}
@@ -1121,7 +1155,9 @@
                                         {/if}
                                     </p>
                                     <p
-                                        class="text-muted-foreground flex items-center gap-1 text-xs"
+                                        class="text-muted-foreground flex items-center gap-1 {isFeed
+                                            ? 'text-[11px]'
+                                            : 'text-xs'}"
                                     >
                                         {formatDate(comment.created_at)}
                                         {#if comment.author_ip}
@@ -1181,7 +1217,7 @@
                                 <div
                                     class="comment-good-group {reactionPluginActive
                                         ? ''
-                                        : 'ml-auto'} flex items-center gap-2"
+                                        : 'ml-auto'} flex items-center {isFeed ? 'gap-1' : 'gap-2'}"
                                 >
                                     {#if onLike && authStore.isAuthenticated}
                                         <Button
@@ -1189,10 +1225,12 @@
                                             size="sm"
                                             onclick={() => handleLikeComment(String(comment.id))}
                                             disabled={likingComment === String(comment.id)}
-                                            class="h-8 gap-2 px-3"
+                                            class={isFeed ? 'h-7 gap-1.5 px-2' : 'h-8 gap-2 px-3'}
                                         >
                                             <Heart
-                                                class="h-5 w-5 {isCommentLiked(String(comment.id))
+                                                class="{isFeed
+                                                    ? 'h-4 w-4'
+                                                    : 'h-5 w-5'} {isCommentLiked(String(comment.id))
                                                     ? 'fill-liked text-liked'
                                                     : ''} {animatingComments.has(String(comment.id))
                                                     ? 'like-animation'
@@ -1207,9 +1245,9 @@
                                             variant="ghost"
                                             size="sm"
                                             onclick={() => openLikersDialog(comment.id)}
-                                            class="h-8 gap-2 px-3"
+                                            class={isFeed ? 'h-7 gap-1.5 px-2' : 'h-8 gap-2 px-3'}
                                         >
-                                            <Heart class="h-5 w-5" />
+                                            <Heart class={isFeed ? 'h-4 w-4' : 'h-5 w-5'} />
                                             <span class="font-semibold"
                                                 >{getCommentLikes(comment).toLocaleString()}</span
                                             >
@@ -1238,7 +1276,7 @@
                                                     variant="ghost"
                                                     size="sm"
                                                     onclick={() => startReply(comment)}
-                                                    class="h-7 px-2"
+                                                    class={isFeed ? 'h-6 px-1.5' : 'h-7 px-2'}
                                                     disabled={isReplyingTo}
                                                 >
                                                     <Reply class="h-3.5 w-3.5" />
@@ -1253,7 +1291,9 @@
                                                 variant="ghost"
                                                 size="sm"
                                                 onclick={() => copyCommentLink(comment.id)}
-                                                class="comment-action-secondary h-7 px-1.5 opacity-50 transition-opacity hover:opacity-90"
+                                                class="comment-action-secondary {isFeed
+                                                    ? 'h-6 px-1.5'
+                                                    : 'h-7 px-1.5'} opacity-50 transition-opacity hover:opacity-90"
                                                 title="이 댓글의 링크를 복사합니다"
                                             >
                                                 <Link2 class="h-3.5 w-3.5" />
@@ -1268,7 +1308,9 @@
                                                     variant="ghost"
                                                     size="sm"
                                                     onclick={() => startEdit(comment)}
-                                                    class="comment-action-secondary h-7 px-2 opacity-50 transition-opacity hover:opacity-90"
+                                                    class="comment-action-secondary {isFeed
+                                                        ? 'h-6 px-1.5'
+                                                        : 'h-7 px-2'} opacity-50 transition-opacity hover:opacity-90"
                                                 >
                                                     <Pencil class="h-4 w-4" />
                                                 </Button>
@@ -1277,7 +1319,9 @@
                                                     size="sm"
                                                     onclick={() => handleDelete(String(comment.id))}
                                                     disabled={isDeleting === String(comment.id)}
-                                                    class="comment-action-secondary text-destructive hover:text-destructive h-7 px-2 opacity-50 transition-opacity hover:opacity-90"
+                                                    class="comment-action-secondary text-destructive hover:text-destructive {isFeed
+                                                        ? 'h-6 px-1.5'
+                                                        : 'h-7 px-2'} opacity-50 transition-opacity hover:opacity-90"
                                                 >
                                                     <Trash2 class="h-4 w-4" />
                                                 </Button>
@@ -1288,7 +1332,9 @@
                                                     variant="ghost"
                                                     size="sm"
                                                     onclick={() => startReport(comment)}
-                                                    class="comment-action-secondary text-muted-foreground hover:text-destructive h-7 px-2 opacity-50 transition-opacity hover:opacity-90"
+                                                    class="comment-action-secondary text-muted-foreground hover:text-destructive {isFeed
+                                                        ? 'h-6 px-1.5'
+                                                        : 'h-7 px-2'} opacity-50 transition-opacity hover:opacity-90"
                                                     title="신고"
                                                 >
                                                     <Flag class="h-4 w-4" />
@@ -1396,7 +1442,9 @@
                             </div>
                         {:else}
                             <div
-                                class="comment-body text-foreground overflow-hidden whitespace-pre-wrap break-words leading-normal"
+                                class="comment-body text-foreground overflow-hidden whitespace-pre-wrap break-words {isFeed
+                                    ? 'text-[15px] leading-snug'
+                                    : 'leading-normal'}"
                                 style="font-size: var(--comment-font-size, 1rem);"
                             >
                                 <!-- eslint-disable-next-line svelte/no-at-html-tags -->
