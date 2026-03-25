@@ -168,6 +168,7 @@
     }
 
     function triggerFileSelect(): void {
+        if (fileInputRef) fileInputRef.value = '';
         fileInputRef?.click();
     }
 
@@ -213,7 +214,6 @@
         const input = e.currentTarget as HTMLInputElement;
         if (input.files && input.files.length > 0) {
             handleFiles(input.files);
-            input.value = '';
         }
     }
 </script>

@@ -163,6 +163,7 @@
     const EDIT_MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
 
     function editTriggerFileSelect(): void {
+        if (editFileInputRef) editFileInputRef.value = '';
         editFileInputRef?.click();
     }
 
@@ -213,7 +214,6 @@
         const input = e.currentTarget as HTMLInputElement;
         if (input.files && input.files.length > 0) {
             editHandleFiles(input.files);
-            input.value = '';
         }
     }
 
