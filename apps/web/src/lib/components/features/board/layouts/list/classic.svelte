@@ -74,12 +74,13 @@
         return now - created < 24 * 60 * 60 * 1000;
     });
 
-    // 동영상 여부 (extra_9에 유튜브 URL)
-    const hasVideo = $derived(!!post.extra_9);
+    // 목록 summary 응답은 raw URL 대신 불린 플래그만 내려준다.
+    const hasVideo = $derived(post.has_video ?? !!post.extra_9);
 
     // 이미지 첨부 여부
     const hasImage = $derived(
-        post.has_file || (post.images && post.images.length > 0) || !!post.extra_10
+        post.has_image ??
+            !!(post.has_file || (post.images && post.images.length > 0) || post.extra_10)
     );
 
     // 홍보 게시글 여부
