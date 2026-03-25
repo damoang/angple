@@ -212,6 +212,15 @@
                 return;
             }
             await goto(targetUrl);
+            // 해시가 있으면 수동 스크롤 (SvelteKit goto는 같은 페이지 해시 이동을 처리하지 않음)
+            const hash = targetUrl.split('#')[1];
+            if (hash) {
+                requestAnimationFrame(() => {
+                    document
+                        .getElementById(hash)
+                        ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                });
+            }
         }
     }
 

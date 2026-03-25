@@ -41,8 +41,14 @@ export function attachLightbox(container: HTMLElement): () => void {
         // 기존 핸들러 정리
         cleanup();
 
-        const allImgs = container.querySelectorAll<HTMLImageElement>('img:not(.emoticon-inline)');
-        const imgs = Array.from(allImgs).filter((img) => !img.closest('button'));
+        const allImgs = container.querySelectorAll<HTMLImageElement>(
+            'img:not(.emoticon-inline):not(.no-lightbox)'
+        );
+        const imgs = Array.from(allImgs).filter(
+            (img) =>
+                !img.closest('button') &&
+                !img.closest('.comment-author, .author-info, .avatar-wrapper')
+        );
         if (imgs.length === 0) return;
 
         // 이미지 목록 구성 (data-original 우선, 없으면 src)
