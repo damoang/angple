@@ -325,9 +325,8 @@
         const banners = data.banners;
         untrack(() => {
             initAppData({ celebration: celebration || [], banners: banners || {} });
-            if (celebration && celebration.length > 0) {
-                initCelebrationFromData(celebration);
-            }
+            // 빈 배열도 ready 상태로 초기화해야 모든 위치에서 fallback 문구가 즉시 보인다.
+            initCelebrationFromData(celebration || []);
         });
     });
 

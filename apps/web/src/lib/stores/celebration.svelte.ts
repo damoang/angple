@@ -118,6 +118,7 @@ export function initFromData(data: CelebrationBanner[]): void {
         }
         celebrations = arr;
     }
+    // 빈 배열로 초기화되더라도 ready=true 여야 fallback 문구를 렌더할 수 있다.
     fetched = true;
     ready = true;
 }
