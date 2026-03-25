@@ -89,6 +89,20 @@
         }
     }
 
+    // 검색 정렬 (최신순/관련성순)
+    const currentSort = $derived($page.url.searchParams.get('sort') || 'date');
+
+    function toggleSort(sort: string): void {
+        const url = new URL(window.location.href);
+        if (sort === 'relevance') {
+            url.searchParams.set('sort', 'relevance');
+        } else {
+            url.searchParams.delete('sort');
+        }
+        url.searchParams.set('page', '1');
+        goto(url.pathname + url.search);
+    }
+
     // 현재 선택된 필드의 라벨
     const selectedFieldLabel = $derived(
         searchFieldOptions.find((opt) => opt.value === searchField)?.label || '제목+내용'
@@ -157,10 +171,28 @@
     {/if}
 </form>
 
-<!-- 검색 결과 안내 -->
+<!-- 검색 결과 안내 + 정렬 옵션 -->
 {#if isSearching}
-    <div class="text-muted-foreground mt-2 text-sm">
-        <span class="text-foreground font-medium">"{currentQuery}"</span>
-        검색 결과 ({selectedFieldLabel})
+    <div class="text-muted-foreground mt-2 flex items-center justify-between text-sm">
+        <span>
+            <span class="text-foreground font-medium">"{currentQuery}"</span>
+            검색 결과 ({selectedFieldLabel})
+        </span>
+        <span class="flex items-center gap-1">
+            <button
+                type="button"
+                class="rounded px-1.5 py-0.5 text-xs transition-colors {currentSort !== 'relevance'
+                    ? 'bg-primary/10 text-primary font-medium'
+                    : 'hover:text-foreground'}"
+                onclick={() => toggleSort('date')}>최신순</button
+            >
+            <button
+                type="button"
+                class="rounded px-1.5 py-0.5 text-xs transition-colors {currentSort === 'relevance'
+                    ? 'bg-primary/10 text-primary font-medium'
+                    : 'hover:text-foreground'}"
+                onclick={() => toggleSort('relevance')}>관련성순</button
+            >
+        </span>
     </div>
 {/if}

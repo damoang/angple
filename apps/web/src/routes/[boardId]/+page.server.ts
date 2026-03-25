@@ -118,6 +118,7 @@ export const load: PageServerLoad = async ({ url, params, locals, getClientAddre
     // 검색 파라미터
     const searchField = (url.searchParams.get('sfl') as SearchField) || null;
     const searchQuery = url.searchParams.get('stx') || null;
+    const searchSort = url.searchParams.get('sort') || null;
     const tag = url.searchParams.get('tag') || null;
     const category = url.searchParams.get('category') || null;
     const isSearching = Boolean(searchField && searchQuery);
@@ -187,6 +188,9 @@ export const load: PageServerLoad = async ({ url, params, locals, getClientAddre
         if (isSearching) {
             queryParams.set('sfl', searchField!);
             queryParams.set('stx', searchQuery!);
+            if (searchSort) {
+                queryParams.set('sort', searchSort);
+            }
         }
         if (tag) {
             queryParams.set('tag', tag);
