@@ -92,6 +92,7 @@ export async function updateNickname(
         [trimmed, mbId]
     );
 
+    await invalidateMemberCache(mbId);
     return { success: true };
 }
 
