@@ -100,25 +100,41 @@
         }
     }
 
+    function prefetchPeriod(period: RecommendedPeriod) {
+        if (dataCache.has(period)) return;
+
+        fetch(`/api/widgets/recommended/data?period=${period}`)
+            .then((res) => (res.ok ? res.json() : null))
+            .then((nextData) => {
+                if (nextData) {
+                    dataCache.set(period, nextData as RecommendedDataWithAI);
+                }
+            })
+            .catch(() => {});
+    }
+
+    function prefetchNeighborTabs(period: RecommendedPeriod) {
+        const allPeriods: RecommendedPeriod[] = ['1h', '3h', '6h', '12h', '24h', '48h'];
+        const currentIndex = allPeriods.indexOf(period);
+        if (currentIndex === -1) return;
+
+        const candidates = [allPeriods[currentIndex - 1], allPeriods[currentIndex + 1]].filter(
+            (value): value is RecommendedPeriod => Boolean(value)
+        );
+
+        for (const candidate of candidates) {
+            prefetchPeriod(candidate);
+        }
+    }
+
     onMount(() => {
         // SSR 데이터가 없거나 저장된 탭과 다르면 클라이언트에서 fetch
         if (!canUseSSR) {
             loadData(activeTab, true);
         }
 
-        // 나머지 탭 백그라운드 프리페치 (탭 전환 시 즉시 표시)
-        const allPeriods: RecommendedPeriod[] = ['1h', '3h', '6h', '12h', '24h', '48h'];
         setTimeout(() => {
-            for (const period of allPeriods) {
-                if (!dataCache.has(period)) {
-                    fetch(`/api/widgets/recommended/data?period=${period}`)
-                        .then((res) => (res.ok ? res.json() : null))
-                        .then((d) => {
-                            if (d) dataCache.set(period, d);
-                        })
-                        .catch(() => {});
-                }
-            }
+            prefetchNeighborTabs(activeTab);
         }, 500);
     });
 </script>
