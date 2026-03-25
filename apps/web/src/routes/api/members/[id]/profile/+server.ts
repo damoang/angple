@@ -102,7 +102,7 @@ export const GET: RequestHandler = async ({ params }) => {
     }
 
     try {
-        const [rows] = await pool.execute<MemberRow[]>(
+        const [rows] = await pool.query<MemberRow[]>(
             `SELECT mb_id, mb_name, mb_nick, mb_level, mb_point,
 			        mb_signature, mb_homepage, mb_profile,
 			        mb_datetime, mb_today_login, mb_nick_date,
