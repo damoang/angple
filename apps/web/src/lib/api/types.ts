@@ -14,6 +14,18 @@ export interface PaginatedResponse<T> {
     total_pages: number;
 }
 
+export interface AnniversaryDrawResponse {
+    event_code: string;
+    participated: boolean;
+    already_participated: boolean;
+    draw_result?: string;
+    point_amount?: number;
+    deferred_grant_message: string;
+    grant_scheduled_date_kst: string;
+    granted_at?: string | null;
+    created_at?: string | null;
+}
+
 // 자유게시판 게시글 타입
 export interface FreePost {
     id: number;

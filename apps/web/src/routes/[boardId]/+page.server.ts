@@ -14,7 +14,13 @@ import { resolveGivingMeta } from '$lib/features/giving/model.js';
 interface PostsCacheData {
     posts: FreePost[];
     notices: FreePost[];
-    pagination: { total: number; page: number; limit: number; totalPages: number };
+    pagination: {
+        page: number;
+        limit: number;
+        total?: number;
+        totalPages?: number;
+        hasNext?: boolean;
+    };
     error: string | null;
 }
 
@@ -274,10 +280,11 @@ export const load: PageServerLoad = async ({ url, params, locals, getClientAddre
             }
 
             const pagination = {
-                total: posts.length,
                 page: 1,
                 limit: posts.length || 1,
-                totalPages: 1
+                total: posts.length,
+                totalPages: 1,
+                hasNext: false
             };
 
             const trimmed = maybeTrimBoardListPayload(boardId, board, posts, notices);
@@ -321,7 +328,7 @@ export const load: PageServerLoad = async ({ url, params, locals, getClientAddre
 
         // 게시글
         let posts: FreePost[] = [];
-        let pagination = { total: 0, page, limit, totalPages: 0 };
+        let pagination: PostsCacheData['pagination'] = { page, limit, total: 0, totalPages: 0 };
         let error: string | null = null;
 
         if (postsResult.status === 'fulfilled') {
@@ -329,10 +336,14 @@ export const load: PageServerLoad = async ({ url, params, locals, getClientAddre
             posts = postsData.data || [];
             const meta = postsData.meta || {};
             pagination = {
-                total: meta.total || 0,
                 page: meta.page || page,
                 limit: meta.limit || limit,
-                totalPages: meta.limit ? Math.ceil(meta.total / meta.limit) : 0
+                total: typeof meta.total === 'number' ? meta.total : undefined,
+                totalPages:
+                    typeof meta.total === 'number' && meta.limit
+                        ? Math.ceil(meta.total / meta.limit)
+                        : undefined,
+                hasNext: meta.has_next === true
             };
         } else {
             console.error('게시판 로딩 에러:', boardId, postsResult.reason);

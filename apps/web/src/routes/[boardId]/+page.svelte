@@ -302,6 +302,26 @@
     const posts = $derived(postsResult.posts);
     const notices = $derived(postsResult.notices || []);
     const pagination = $derived(postsResult.pagination);
+    const paginationHasNext = $derived(pagination.hasNext ?? false);
+    const paginationTotalPages = $derived(pagination.totalPages ?? 0);
+    const shouldShowPagination = $derived(
+        paginationHasNext || pagination.page > 1 || paginationTotalPages > 1
+    );
+    const visiblePageNumbers = $derived.by(() => {
+        if (paginationTotalPages > 0) {
+            const startPage = Math.max(1, pagination.page - 2);
+            const endPage = Math.min(paginationTotalPages, startPage + 4);
+            return Array.from({ length: endPage - startPage + 1 }, (_, i) => startPage + i);
+        }
+
+        if (paginationHasNext) {
+            const startPage = Math.max(1, pagination.page - 2);
+            return Array.from({ length: 5 }, (_, i) => startPage + i);
+        }
+
+        const startPage = Math.max(1, pagination.page - 4);
+        return Array.from({ length: pagination.page - startPage + 1 }, (_, i) => startPage + i);
+    });
     const filteredPosts = $derived(
         posts.filter(
             (p) => !blockedUsersStore.isBlocked(p.author_id) && !uiSettingsStore.isMuted(p.title)
@@ -977,49 +997,26 @@
             </div>
 
             <!-- 페이지네이션 -->
-            {#if pagination.totalPages > 1}
+            {#if shouldShowPagination}
                 <div class="mt-8 flex items-center justify-center gap-2">
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        disabled={pagination.page <= 5}
-                        title="5페이지 뒤로"
-                        onclick={() => goToPage(Math.max(1, pagination.page - 5))}>&laquo;</Button
-                    >
                     <Button
                         variant="outline"
                         size="sm"
                         disabled={pagination.page === 1}
                         onclick={() => goToPage(pagination.page - 1)}>이전</Button
                     >
-                    {#each (() => {
-                        const count = Math.min(5, pagination.totalPages);
-                        const raw = pagination.page - Math.floor(count / 2);
-                        const start = Math.max(1, Math.min(raw, pagination.totalPages - count + 1));
-                        return Array.from({ length: count }, (_, i) => start + i);
-                    })() as pageNum (pageNum)}
-                        {#if pageNum >= 1 && pageNum <= pagination.totalPages}
-                            <Button
-                                variant={pageNum === pagination.page ? 'default' : 'outline'}
-                                size="sm"
-                                onclick={() => goToPage(pageNum)}>{pageNum}</Button
-                            >
-                        {/if}
+                    {#each visiblePageNumbers as pageNum (pageNum)}
+                        <Button
+                            variant={pageNum === pagination.page ? 'default' : 'outline'}
+                            size="sm"
+                            onclick={() => goToPage(pageNum)}>{pageNum}</Button
+                        >
                     {/each}
                     <Button
                         variant="outline"
                         size="sm"
-                        disabled={pagination.page === pagination.totalPages}
+                        disabled={!paginationHasNext}
                         onclick={() => goToPage(pagination.page + 1)}>다음</Button
-                    >
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        disabled={pagination.page + 5 > pagination.totalPages}
-                        title="5페이지 앞으로"
-                        onclick={() =>
-                            goToPage(Math.min(pagination.totalPages, pagination.page + 5))}
-                        >&raquo;</Button
                     >
                 </div>
                 {#if widgetLayoutStore.hasEnabledAds}
