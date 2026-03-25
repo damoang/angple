@@ -215,7 +215,7 @@
         data.post.deleted_at
             ? ''
             : link1Original && isEmbeddable(link1Original)
-              ? `<p>${link1Original}</p>\n${renderedPostContent}`
+              ? `${link1Original}\n${renderedPostContent}`
               : renderedPostContent
     );
 
