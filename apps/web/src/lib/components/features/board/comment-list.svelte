@@ -991,7 +991,7 @@
                       : isFeed
                         ? 'py-2.5'
                         : commentLayout === 'bordered'
-                          ? 'bg-card/80 border-border/70 rounded-lg border p-3.5 shadow-sm dark:bg-white/[0.03] dark:shadow-none'
+                          ? 'bg-card/80 border-border/70 rounded-lg border p-3 dark:bg-white/[0.03]'
                           : commentLayout === 'divided'
                             ? 'border-border border-b py-3 last:border-b-0'
                             : commentLayout === 'bubble'
@@ -1081,7 +1081,7 @@
                         <div
                             class="{commentLayout === 'chat'
                                 ? 'hidden'
-                                : isFeed
+                                : isFeed || commentLayout === 'bordered'
                                   ? 'mb-1'
                                   : 'mb-1.5'} flex flex-wrap items-start gap-1 sm:gap-1.5"
                         >
@@ -1225,7 +1225,11 @@
                                             size="sm"
                                             onclick={() => handleLikeComment(String(comment.id))}
                                             disabled={likingComment === String(comment.id)}
-                                            class={isFeed ? 'h-7 gap-1.5 px-2' : 'h-8 gap-2 px-3'}
+                                            class={isFeed
+                                                ? 'h-7 gap-1.5 px-2'
+                                                : commentLayout === 'bordered'
+                                                  ? 'h-7 gap-1.5 px-2.5'
+                                                  : 'h-8 gap-2 px-3'}
                                         >
                                             <Heart
                                                 class="{isFeed
@@ -1245,7 +1249,11 @@
                                             variant="ghost"
                                             size="sm"
                                             onclick={() => openLikersDialog(comment.id)}
-                                            class={isFeed ? 'h-7 gap-1.5 px-2' : 'h-8 gap-2 px-3'}
+                                            class={isFeed
+                                                ? 'h-7 gap-1.5 px-2'
+                                                : commentLayout === 'bordered'
+                                                  ? 'h-7 gap-1.5 px-2.5'
+                                                  : 'h-8 gap-2 px-3'}
                                         >
                                             <Heart class={isFeed ? 'h-4 w-4' : 'h-5 w-5'} />
                                             <span class="font-semibold"
@@ -1276,7 +1284,11 @@
                                                     variant="ghost"
                                                     size="sm"
                                                     onclick={() => startReply(comment)}
-                                                    class={isFeed ? 'h-6 px-1.5' : 'h-7 px-2'}
+                                                    class={isFeed
+                                                        ? 'h-6 px-1.5'
+                                                        : commentLayout === 'bordered'
+                                                          ? 'h-6 px-1.5'
+                                                          : 'h-7 px-2'}
                                                     disabled={isReplyingTo}
                                                 >
                                                     <Reply class="h-3.5 w-3.5" />
@@ -1293,7 +1305,9 @@
                                                 onclick={() => copyCommentLink(comment.id)}
                                                 class="comment-action-secondary {isFeed
                                                     ? 'h-6 px-1.5'
-                                                    : 'h-7 px-1.5'} opacity-50 transition-opacity hover:opacity-90"
+                                                    : commentLayout === 'bordered'
+                                                      ? 'h-6 px-1.5'
+                                                      : 'h-7 px-1.5'} opacity-50 transition-opacity hover:opacity-90"
                                                 title="이 댓글의 링크를 복사합니다"
                                             >
                                                 <Link2 class="h-3.5 w-3.5" />
@@ -1310,7 +1324,9 @@
                                                     onclick={() => startEdit(comment)}
                                                     class="comment-action-secondary {isFeed
                                                         ? 'h-6 px-1.5'
-                                                        : 'h-7 px-2'} opacity-50 transition-opacity hover:opacity-90"
+                                                        : commentLayout === 'bordered'
+                                                          ? 'h-6 px-1.5'
+                                                          : 'h-7 px-2'} opacity-50 transition-opacity hover:opacity-90"
                                                 >
                                                     <Pencil class="h-4 w-4" />
                                                 </Button>
@@ -1321,7 +1337,9 @@
                                                     disabled={isDeleting === String(comment.id)}
                                                     class="comment-action-secondary text-destructive hover:text-destructive {isFeed
                                                         ? 'h-6 px-1.5'
-                                                        : 'h-7 px-2'} opacity-50 transition-opacity hover:opacity-90"
+                                                        : commentLayout === 'bordered'
+                                                          ? 'h-6 px-1.5'
+                                                          : 'h-7 px-2'} opacity-50 transition-opacity hover:opacity-90"
                                                 >
                                                     <Trash2 class="h-4 w-4" />
                                                 </Button>
@@ -1334,7 +1352,9 @@
                                                     onclick={() => startReport(comment)}
                                                     class="comment-action-secondary text-muted-foreground hover:text-destructive {isFeed
                                                         ? 'h-6 px-1.5'
-                                                        : 'h-7 px-2'} opacity-50 transition-opacity hover:opacity-90"
+                                                        : commentLayout === 'bordered'
+                                                          ? 'h-6 px-1.5'
+                                                          : 'h-7 px-2'} opacity-50 transition-opacity hover:opacity-90"
                                                     title="신고"
                                                 >
                                                     <Flag class="h-4 w-4" />
@@ -1444,7 +1464,9 @@
                             <div
                                 class="comment-body text-foreground overflow-hidden whitespace-pre-wrap break-words {isFeed
                                     ? 'text-[15px] leading-snug'
-                                    : 'leading-normal'}"
+                                    : commentLayout === 'bordered'
+                                      ? 'leading-snug'
+                                      : 'leading-normal'}"
                                 style="font-size: var(--comment-font-size, 1rem);"
                             >
                                 <!-- eslint-disable-next-line svelte/no-at-html-tags -->
