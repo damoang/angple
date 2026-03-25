@@ -608,6 +608,10 @@
         border: 1px solid var(--border);
         border-radius: 0.5rem;
         margin: 0.75rem 0;
+        overflow: visible;
+    }
+
+    .prose :global(.spoiler-block:not([open])) {
         overflow: hidden;
     }
 

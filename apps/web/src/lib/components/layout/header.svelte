@@ -265,7 +265,7 @@
                     height="48"
                     decoding="async"
                     fetchpriority="high"
-                    style="max-height:48px;"
+                    style="max-height:48px; contain:layout style paint;"
                     onerror={() => {
                         headerLogoFailed = true;
                     }}

@@ -50,7 +50,7 @@
             <li>
                 <a
                     href={post.url}
-                    class="hover:bg-muted block rounded px-2 py-1.5 transition-all duration-200 ease-out"
+                    class="hover:bg-muted block rounded px-2 py-2.5 transition-all duration-200 ease-out"
                 >
                     <div class="flex items-center gap-2">
                         <!-- 추천수 배지 (Heart 아이콘 포함) -->
