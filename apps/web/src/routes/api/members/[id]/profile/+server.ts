@@ -27,7 +27,6 @@ interface MemberRow extends RowDataPacket {
     mb_leave_date: string;
     as_level: number;
     as_exp: number;
-    as_max: number;
 }
 
 interface StatsRow extends RowDataPacket {
@@ -108,7 +107,7 @@ export const GET: RequestHandler = async ({ params }) => {
 			        mb_signature, mb_homepage, mb_profile,
 			        mb_datetime, mb_today_login, mb_nick_date,
 			        mb_image_url, mb_image_updated_at, mb_certify, mb_leave_date,
-			        as_level, as_exp, as_max
+			        as_level, as_exp
 			 FROM g5_member
 			 WHERE mb_id = ?`,
             [memberId]
@@ -166,14 +165,20 @@ export const GET: RequestHandler = async ({ params }) => {
         }
 
         // 팔로워/팔로잉 수
-        const [followerRows] = await pool.query<CountRow[]>(
-            'SELECT COUNT(*) AS count FROM g5_member_follow WHERE target_id = ?',
-            [memberId]
-        );
-        const [followingRows] = await pool.query<CountRow[]>(
-            'SELECT COUNT(*) AS count FROM g5_member_follow WHERE mb_id = ?',
-            [memberId]
-        );
+        let followerRows: CountRow[] = [];
+        let followingRows: CountRow[] = [];
+        try {
+            [followerRows] = await pool.query<CountRow[]>(
+                'SELECT COUNT(*) AS count FROM g5_member_follow WHERE target_id = ?',
+                [memberId]
+            );
+            [followingRows] = await pool.query<CountRow[]>(
+                'SELECT COUNT(*) AS count FROM g5_member_follow WHERE mb_id = ?',
+                [memberId]
+            );
+        } catch {
+            // 테이블 없으면 무시
+        }
 
         // 이미지 URL: 원본 값 그대로 전달 (프론트에서 getAvatarUrl로 CDN URL 변환)
         const imageUrl = member.mb_image_url || '';
