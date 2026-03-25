@@ -7,6 +7,7 @@ import type { RowDataPacket, ResultSetHeader } from 'mysql2';
 import bcrypt from 'bcryptjs';
 import { randomBytes } from 'crypto';
 import { validateNickname } from './register.js';
+import { invalidateMemberCache } from './oauth/member.js';
 import { sendMail } from '$lib/server/mailer.js';
 import { env } from '$env/dynamic/private';
 
@@ -339,5 +340,6 @@ export async function updateProfile(
         values
     );
 
+    await invalidateMemberCache(mbId);
     return { success: true };
 }
