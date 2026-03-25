@@ -680,7 +680,15 @@ export type ListLayout =
 export type ViewLayout = 'basic' | (string & {});
 
 // 댓글 레이아웃 타입
-export type CommentLayout = 'flat' | 'bordered' | 'divided' | 'bubble' | 'compact' | (string & {});
+export type CommentLayout =
+    | 'flat'
+    | 'bordered'
+    | 'divided'
+    | 'bubble'
+    | 'compact'
+    | 'discussion'
+    | 'feed'
+    | (string & {});
 
 // 게시판 표시 설정
 export interface BoardDisplaySettings {
