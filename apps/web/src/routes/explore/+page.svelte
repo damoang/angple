@@ -153,8 +153,8 @@
 
 <SeoHead
     config={{
-        meta: { title: '톺아보기', description: '다모앙 전체 게시판 통합 피드' },
-        og: { title: '톺아보기 - 다모앙', type: 'website' }
+        meta: { title: '모아보기', description: '다모앙 전체 게시판 통합 피드' },
+        og: { title: '모아보기 - 다모앙', type: 'website' }
     }}
 />
 
@@ -173,7 +173,7 @@
             <div class="flex items-center justify-between gap-3">
                 <div class="flex items-center gap-2">
                     <Compass class="text-primary h-5 w-5" />
-                    <h1 class="text-foreground text-lg font-bold">톺아보기</h1>
+                    <h1 class="text-foreground text-lg font-bold">모아보기</h1>
                     {#if data.exploreData}
                         <span class="text-muted-foreground text-xs">
                             {data.exploreData.board_count}개 게시판

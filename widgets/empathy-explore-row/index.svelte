@@ -1,6 +1,6 @@
 <script lang="ts">
     /**
-     * 공감글 + 톺아보기 2컬럼 결합 위젯
+     * 공감글 + 모아보기 2컬럼 결합 위젯
      * PC(lg+): 나란히 배치, 모바일: 세로 스택
      */
     import type { WidgetProps } from '$lib/types/widget-props';

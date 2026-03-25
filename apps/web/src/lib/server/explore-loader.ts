@@ -1,5 +1,5 @@
 /**
- * 톺아보기(Explore) 캐시 파일 로더 (서버 전용)
+ * 모아보기(Explore) 캐시 파일 로더 (서버 전용)
  *
  * Go generator가 5분마다 생성하는 explore.json 파일을 읽어 반환.
  * SSR (+page.server.ts) 및 API 엔드포인트에서 공용 사용.

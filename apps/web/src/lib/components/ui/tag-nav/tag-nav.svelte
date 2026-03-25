@@ -15,7 +15,7 @@
     }
 
     const DEFAULT_MENUS: TagNavMenu[] = [
-        { key: 'explore', text: '톺아보기', url: '/explore', show: true },
+        { key: 'explore', text: '모아보기', url: '/explore', show: true },
         { key: 'empathy', text: '공감글', url: '/empathy', show: true },
         { key: 'group', text: '소모임', url: '/groups', show: true },
         { key: 'free', text: '자유게시판', url: '/free', show: true },

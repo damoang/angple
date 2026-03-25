@@ -336,7 +336,7 @@ export interface NewsPost {
     tab: NewsTabId;
 }
 
-// 톺아보기(Explore) 타입
+// 모아보기(Explore) 타입
 export type ExploreMode = 'hot' | 'new' | 'rising' | 'top';
 export type ExploreTopPeriod = '24h' | '7d' | '30d';
 
