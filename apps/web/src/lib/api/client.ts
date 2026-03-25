@@ -342,7 +342,8 @@ class ApiClient {
                 board_id: string;
                 page: number;
                 limit: number;
-                total: number;
+                total?: number;
+                has_next?: boolean;
             };
         }
 
@@ -351,15 +352,25 @@ class ApiClient {
         );
 
         const backendData = response as unknown as BackendResponse;
+        const meta = backendData.meta;
+        const currentPage = meta?.page || page;
+
+        // total이 있으면 정확한 total_pages, 없으면 has_next 기반
+        let totalPages = 0;
+        if (meta?.total && meta?.limit) {
+            totalPages = Math.ceil(meta.total / meta.limit);
+        } else if (meta?.has_next) {
+            totalPages = currentPage + 1;
+        } else {
+            totalPages = currentPage;
+        }
 
         const result: PaginatedResponse<FreePost> = {
             items: backendData.data || [],
-            total: backendData.meta?.total || 0,
-            page: backendData.meta?.page || page,
-            limit: backendData.meta?.limit || limit,
-            total_pages: backendData.meta
-                ? Math.ceil(backendData.meta.total / backendData.meta.limit)
-                : 0
+            total: meta?.total || 0,
+            page: currentPage,
+            limit: meta?.limit || limit,
+            total_pages: totalPages
         };
 
         return result;
