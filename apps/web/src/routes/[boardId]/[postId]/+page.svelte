@@ -1241,7 +1241,8 @@
             meta: {
                 title: `${data.post.title} - ${boardTitle}`,
                 description: postDescription,
-                canonicalUrl: postUrl
+                canonicalUrl: postUrl,
+                noIndex: data.post.is_secret || !!data.post.deleted_at
             },
             og: {
                 title: data.post.title,
