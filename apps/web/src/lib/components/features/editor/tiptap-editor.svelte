@@ -564,9 +564,13 @@
     }
 
     // 이미지 삽입
+    let savedImageInsertPos: number | null = null;
+
     function openImageDialog(): void {
         imageUrl = '';
         imageAlt = '';
+        // 다이얼로그 열기 전 커서 위치 저장 (포커스 잃어도 복원 가능)
+        savedImageInsertPos = editor?.state.selection.anchor ?? null;
         showImageDialog = true;
     }
 
@@ -577,6 +581,13 @@
         }
 
         if (!editor) return;
+
+        // 저장된 커서 위치로 복원 후 삽입
+        if (savedImageInsertPos !== null) {
+            editor.chain().focus().setTextSelection(savedImageInsertPos).run();
+        } else {
+            editor.chain().focus().run();
+        }
 
         // 이미지 노드가 선택된 상태면 커서를 이미지 뒤로 이동 (기존 이미지 교체 방지)
         if (editor.isActive('image')) {
