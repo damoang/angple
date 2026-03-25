@@ -127,15 +127,7 @@ export const GET: RequestHandler = async ({ params }) => {
         const regDays = daysRows[0]?.days ?? 0;
 
         // 통계 (g5_member_board_status)
-        const [statsRows] = await pool.query<StatsRow[]>(
-            `SELECT total_post_count, delete_post_count,
-			        total_comment_count, delete_comment_count,
-			        delete_post_by_admin, delete_comment_by_admin,
-			        total_rcmd_count, total_singo_count
-			 FROM g5_member_board_status WHERE mb_id = ?`,
-            [memberId]
-        );
-        const stats = statsRows[0] || {
+        const defaultStats = {
             total_post_count: 0,
             delete_post_count: 0,
             total_comment_count: 0,
@@ -145,6 +137,20 @@ export const GET: RequestHandler = async ({ params }) => {
             total_rcmd_count: 0,
             total_singo_count: 0
         };
+        let stats = defaultStats;
+        try {
+            const [statsRows] = await pool.query<StatsRow[]>(
+                `SELECT total_post_count, delete_post_count,
+                        total_comment_count, delete_comment_count,
+                        delete_post_by_admin, delete_comment_by_admin,
+                        total_rcmd_count, total_singo_count
+                 FROM g5_member_board_status WHERE mb_id = ?`,
+                [memberId]
+            );
+            stats = statsRows[0] || defaultStats;
+        } catch {
+            // 테이블 없으면 기본값 사용
+        }
 
         // 이용제한 정보
         let discipline = null;
