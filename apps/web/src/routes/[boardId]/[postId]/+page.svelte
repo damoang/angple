@@ -360,9 +360,6 @@
                 promotionPosts = Array.isArray(result.promotionPosts)
                     ? (result.promotionPosts as PromotionPost[])
                     : [];
-                revisions = Array.isArray(result.revisions)
-                    ? (result.revisions as PostRevision[])
-                    : [];
 
                 if (result.reactions && Object.keys(result.reactions).length > 0) {
                     reactionsMap = result.reactions as Record<string, ReactionItem[]>;

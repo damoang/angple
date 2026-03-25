@@ -105,6 +105,21 @@
         if (!canUseSSR) {
             loadData(activeTab, true);
         }
+
+        // 나머지 탭 백그라운드 프리페치 (탭 전환 시 즉시 표시)
+        const allPeriods: RecommendedPeriod[] = ['1h', '3h', '6h', '12h', '24h', '48h'];
+        setTimeout(() => {
+            for (const period of allPeriods) {
+                if (!dataCache.has(period)) {
+                    fetch(`/api/widgets/recommended/data?period=${period}`)
+                        .then((res) => (res.ok ? res.json() : null))
+                        .then((d) => {
+                            if (d) dataCache.set(period, d);
+                        })
+                        .catch(() => {});
+                }
+            }
+        }, 500);
     });
 </script>
 

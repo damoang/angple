@@ -66,7 +66,9 @@ function maybeTrimBoardListPayload(
 ): { posts: FreePost[]; notices: FreePost[] } {
     const listLayoutId =
         board?.display_settings?.list_layout || board?.display_settings?.list_style || 'classic';
-    const shouldTrim = boardId === 'free' && !CONTENT_HEAVY_LIST_LAYOUTS.has(listLayoutId);
+    const shouldTrim =
+        (boardId === 'free' || boardId === 'hello') &&
+        !CONTENT_HEAVY_LIST_LAYOUTS.has(listLayoutId);
 
     if (!shouldTrim) {
         return { posts, notices };
@@ -111,7 +113,7 @@ export const load: PageServerLoad = async ({ url, params, locals, getClientAddre
 
     const boardId = canonicalBoardId;
     const page = Number(url.searchParams.get('page')) || 1;
-    const limit = Number(url.searchParams.get('limit')) || 30;
+    const limit = Number(url.searchParams.get('limit')) || 24;
 
     // 검색 파라미터
     const searchField = (url.searchParams.get('sfl') as SearchField) || null;
@@ -171,6 +173,12 @@ export const load: PageServerLoad = async ({ url, params, locals, getClientAddre
     }
 
     // --- 2단계: posts/notices/promotions 스트리밍 (await 안 함) ---
+    // free/hello 목록은 summary 응답으로 고정해 목록 바이트를 줄인다.
+    const isPromotionBoard =
+        boardId === 'promotion' && !isSearching && !isTagFiltering && !category;
+    const isHotBoard = boardId === 'free' || boardId === 'hello';
+    const useSummaryListResponse = isHotBoard && !isSearching;
+
     const buildPostsUrl = (): string => {
         const queryParams = new URLSearchParams({
             page: String(page),
@@ -190,17 +198,15 @@ export const load: PageServerLoad = async ({ url, params, locals, getClientAddre
             queryParams.set('sfl', 'title_content');
             queryParams.set('stx', '');
         }
+        if (useSummaryListResponse) {
+            queryParams.set('summary', '1');
+        }
         return `/api/v1/boards/${boardId}/posts?${queryParams.toString()}`;
     };
 
-    // 프로모션 게시판 전용: 광고주별 post_count 제한 적용 (검색/태그 필터 없을 때만)
-    const isPromotionBoard =
-        boardId === 'promotion' && !isSearching && !isTagFiltering && !category;
-    const isHotBoard = boardId === 'free' || boardId === 'hello';
-
     // 비로그인 + 검색/태그 필터 없는 경우: 게시글 목록 캐시 사용 (15초)
     const usePostsCache = !locals.user && !isSearching && !isTagFiltering;
-    const postsCacheKey = `${boardId}:p${page}:l${limit}${category ? `:c${category}` : ''}`;
+    const postsCacheKey = `${boardId}:p${page}:l${limit}${category ? `:c${category}` : ''}${useSummaryListResponse ? ':summary1' : ''}`;
 
     if (usePostsCache) {
         const cachedPosts = postsCache.get(postsCacheKey);
@@ -222,11 +228,14 @@ export const load: PageServerLoad = async ({ url, params, locals, getClientAddre
             const [promoBoardResult, noticesResult] = await Promise.allSettled([
                 fetchPromotionBoardPosts(),
                 includeNotices
-                    ? bFetch(`/api/v1/boards/${boardId}/notices`, {
-                          headers,
-                          timeout: 3_000,
-                          bypassCircuitBreaker: true
-                      }).then(async (res) => {
+                    ? bFetch(
+                          `/api/v1/boards/${boardId}/notices${useSummaryListResponse ? '?summary=1' : ''}`,
+                          {
+                              headers,
+                              timeout: 3_000,
+                              bypassCircuitBreaker: true
+                          }
+                      ).then(async (res) => {
                           if (!res.ok) return [];
                           const json = await res.json();
                           return (json.data as FreePost[]) || [];
@@ -314,11 +323,14 @@ export const load: PageServerLoad = async ({ url, params, locals, getClientAddre
                 return res.json();
             }),
             includeNotices
-                ? bFetch(`/api/v1/boards/${boardId}/notices`, {
-                      headers,
-                      timeout: 3_000,
-                      bypassCircuitBreaker: true
-                  }).then(async (res) => {
+                ? bFetch(
+                      `/api/v1/boards/${boardId}/notices${useSummaryListResponse ? '?summary=1' : ''}`,
+                      {
+                          headers,
+                          timeout: 3_000,
+                          bypassCircuitBreaker: true
+                      }
+                  ).then(async (res) => {
                       if (!res.ok) return [];
                       const json = await res.json();
                       return (json.data as FreePost[]) || [];
