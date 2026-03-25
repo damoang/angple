@@ -87,10 +87,17 @@ export async function updateNickname(
     }
 
     // UPDATE
-    await pool.query<ResultSetHeader>(
-        'UPDATE g5_member SET mb_nick = ?, mb_nick_date = CURDATE() WHERE mb_id = ?',
-        [trimmed, mbId]
-    );
+    try {
+        const [result] = await pool.query<ResultSetHeader>(
+            'UPDATE g5_member SET mb_nick = ?, mb_nick_date = CURDATE() WHERE mb_id = ?',
+            [trimmed, mbId]
+        );
+        if (result.affectedRows === 0) {
+            return { success: false, error: '회원 정보를 찾을 수 없습니다.' };
+        }
+    } catch {
+        return { success: false, error: '닉네임 변경에 실패했습니다.' };
+    }
 
     await invalidateMemberCache(mbId);
     return { success: true };

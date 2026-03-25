@@ -442,10 +442,14 @@ export async function syncCommentAffiliateLinks(
 }
 
 export async function deletePostAffiliateLinks(boardId: string, postId: number): Promise<void> {
-    await pool.query(`DELETE FROM g5_affiliate_links WHERE board_slug = ? AND post_id = ?`, [
-        sanitizeBoardId(boardId),
-        postId
-    ]);
+    try {
+        await pool.query(`DELETE FROM g5_affiliate_links WHERE board_slug = ? AND post_id = ?`, [
+            sanitizeBoardId(boardId),
+            postId
+        ]);
+    } catch {
+        // 테이블 없으면 무시
+    }
 }
 
 export async function deleteCommentAffiliateLinks(
@@ -453,21 +457,29 @@ export async function deleteCommentAffiliateLinks(
     postId: number,
     commentId: number
 ): Promise<void> {
-    await pool.query(
-        `DELETE FROM g5_affiliate_links WHERE board_slug = ? AND post_id = ? AND comment_id = ?`,
-        [sanitizeBoardId(boardId), postId, commentId]
-    );
+    try {
+        await pool.query(
+            `DELETE FROM g5_affiliate_links WHERE board_slug = ? AND post_id = ? AND comment_id = ?`,
+            [sanitizeBoardId(boardId), postId, commentId]
+        );
+    } catch {
+        // 테이블 없으면 무시
+    }
 }
 
 export async function fetchPostAffiliateLinks(
     boardId: string,
     postId: number
 ): Promise<AffiliateLinkRow[]> {
-    const [rows] = await pool.query<AffiliateLinkRow[]>(
-        `SELECT * FROM g5_affiliate_links WHERE board_slug = ? AND post_id = ? AND comment_id = 0 ORDER BY entity_type, link_index`,
-        [sanitizeBoardId(boardId), postId]
-    );
-    return rows;
+    try {
+        const [rows] = await pool.query<AffiliateLinkRow[]>(
+            `SELECT * FROM g5_affiliate_links WHERE board_slug = ? AND post_id = ? AND comment_id = 0 ORDER BY entity_type, link_index`,
+            [sanitizeBoardId(boardId), postId]
+        );
+        return rows;
+    } catch {
+        return [];
+    }
 }
 
 export async function fetchCommentAffiliateLinks(
@@ -476,11 +488,15 @@ export async function fetchCommentAffiliateLinks(
     commentIds: number[]
 ): Promise<AffiliateLinkRow[]> {
     if (commentIds.length === 0) return [];
-    const [rows] = await pool.query<AffiliateLinkRow[]>(
-        `SELECT * FROM g5_affiliate_links WHERE board_slug = ? AND post_id = ? AND comment_id IN (?) ORDER BY comment_id, entity_type, link_index`,
-        [sanitizeBoardId(boardId), postId, commentIds]
-    );
-    return rows;
+    try {
+        const [rows] = await pool.query<AffiliateLinkRow[]>(
+            `SELECT * FROM g5_affiliate_links WHERE board_slug = ? AND post_id = ? AND comment_id IN (?) ORDER BY comment_id, entity_type, link_index`,
+            [sanitizeBoardId(boardId), postId, commentIds]
+        );
+        return rows;
+    } catch {
+        return [];
+    }
 }
 
 export function groupAffiliateLinksByCommentId(
