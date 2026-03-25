@@ -271,7 +271,6 @@ export const POSITION_MAP: Record<string, string> = {
     'board-content': 'banner-article',
     'board-content-bottom': 'banner-view-content',
     'board-before-comments': 'banner-article',
-    'board-after-comments': 'banner-horizontal-728',
 
     // 인피드 — curation 유닛
     'board-list-infeed': 'infeed-compact',
@@ -323,7 +322,6 @@ export const POSITION_LABELS: Record<string, string> = {
     'board-content': '본문 광고',
     'board-content-bottom': '본문 하단',
     'board-before-comments': '댓글 상단',
-    'board-after-comments': '댓글 하단',
     'board-footer': '게시판 하단',
     'board-list-infeed': '목록 인피드',
     'comment-infeed': '댓글 인피드',
