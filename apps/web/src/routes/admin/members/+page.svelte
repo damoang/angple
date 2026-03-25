@@ -504,12 +504,15 @@
                                         >
                                             {member.mb_name.charAt(0)}
                                         </div>
-                                        <div>
+                                        <a
+                                            href="/admin/members/{member.mb_id}"
+                                            class="hover:underline"
+                                        >
                                             <div class="font-medium">{member.mb_name}</div>
                                             <div class="text-muted-foreground text-xs">
                                                 {member.mb_email}
                                             </div>
-                                        </div>
+                                        </a>
                                     </div>
                                 </td>
                                 <td class="p-3 text-center">
