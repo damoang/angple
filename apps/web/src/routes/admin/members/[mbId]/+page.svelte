@@ -23,7 +23,7 @@
         type AdminMember
     } from '$lib/api/admin-members';
 
-    const mbId = $derived($page.params.mbId);
+    const mbId = $derived($page.params.mbId ?? '');
 
     let member = $state<AdminMember | null>(null);
     let loading = $state(true);
@@ -178,11 +178,13 @@
                     <div class="flex-1 space-y-3">
                         <div class="flex flex-wrap items-center gap-2">
                             <h2 class="text-xl font-bold">{member.mb_name}</h2>
-                            {@const level = getLevelBadge(member.mb_level)}
-                            <Badge variant={level.variant}>{level.label}</Badge>
-                            {@const status = getStatusBadge(member)}
-                            {#if status.label !== '정상'}
-                                <Badge variant={status.variant}>{status.label}</Badge>
+                            <Badge variant={getLevelBadge(member.mb_level).variant}
+                                >{getLevelBadge(member.mb_level).label}</Badge
+                            >
+                            {#if getStatusBadge(member).label !== '정상'}
+                                <Badge variant={getStatusBadge(member).variant}
+                                    >{getStatusBadge(member).label}</Badge
+                                >
                             {/if}
                         </div>
                         <div
