@@ -70,12 +70,19 @@ export function embedUrl(url: string): string | null {
  * 3. 문장 중간의 URL은 변환하지 않음
  */
 export function processContent(html: string): string {
+    // 코드블록 보호: <pre>...</pre> 영역을 플레이스홀더로 치환 후 복원
+    const codeBlocks: string[] = [];
+    let result = html.replace(/<pre[\s>][\s\S]*?<\/pre>/gi, (match) => {
+        codeBlocks.push(match);
+        return `<!--CODE_BLOCK_${codeBlocks.length - 1}-->`;
+    });
+
     // 1단계: <a> 태그로 감싸진 URL 처리 (그누보드 에디터 자동 링크)
     // href와 텍스트가 동일한 경우만 임베드로 변환
     const aTagPattern =
         /<a\s[^>]*href=["'](https?:\/\/[^"']+)["'][^>]*>\s*(https?:\/\/[^\s<]+?)\s*<\/a>/gi;
 
-    let result = html.replace(aTagPattern, (match, href, text) => {
+    result = result.replace(aTagPattern, (match, href, text) => {
         // HTML 엔티티 디코딩 (&amp; → &) — 에디터가 URL 내 &를 &amp;로 인코딩
         const decodedHref = href.trim().replace(/&amp;/g, '&');
         // href와 텍스트 URL이 실질적으로 같은지 확인
@@ -102,6 +109,9 @@ export function processContent(html: string): string {
         }
         return match;
     });
+
+    // 코드블록 복원
+    result = result.replace(/<!--CODE_BLOCK_(\d+)-->/g, (_, i) => codeBlocks[Number(i)]);
 
     return result;
 }
