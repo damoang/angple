@@ -29,6 +29,7 @@
     import ExternalLink from '@lucide/svelte/icons/external-link';
     import type { PageData } from './$types.js';
     import { enhance } from '$app/forms';
+    import { invalidateAll } from '$app/navigation';
     import { getAvatarUrl } from '$lib/utils/member-icon';
     import MyNav from '$lib/components/features/my/my-nav.svelte';
 
@@ -322,6 +323,7 @@
                                             if (result.type === 'success') {
                                                 avatarSuccess = '프로필 사진이 삭제되었습니다.';
                                                 currentAvatarUrl = null;
+                                                await invalidateAll();
                                             } else if (result.type === 'failure') {
                                                 avatarError =
                                                     (result.data?.error as string) ||
@@ -367,6 +369,7 @@
                                 if (result.type === 'success') {
                                     avatarSuccess = '프로필 사진이 변경되었습니다.';
                                     currentAvatarUrl = avatarUrlInput;
+                                    await invalidateAll();
                                 } else if (result.type === 'failure') {
                                     avatarError =
                                         (result.data?.error as string) || '저장에 실패했습니다.';

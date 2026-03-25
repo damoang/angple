@@ -187,31 +187,32 @@
                             {post.category}
                         </span>
                     {/if}
-                    <span
-                        class="truncate {readClass}"
-                        class:font-semibold={uiSettingsStore.titleBold}
-                    >
-                        {post.title}
-                    </span>
-                    <!-- 부가 아이콘: N, 이미지, 동영상, 댓글 -->
-                    {#if isNew}
-                        <span class="text-liked shrink-0 text-[10px] font-bold">N</span>
-                    {/if}
-                    {#if hasVideo}
-                        <Play class="text-destructive h-3.5 w-3.5 shrink-0" />
-                    {:else if hasImage}
-                        <ImageIcon class="text-muted-foreground h-3.5 w-3.5 shrink-0" />
-                    {/if}
-                    {#if post.comments_count > 0}
-                        <span class="comment-count shrink-0"
-                            >{formatCommentCountBadge(post.comments_count)}</span
+                    <!-- 제목 + 부가 아이콘 wrapper: min-w-0으로 truncate 강제 -->
+                    <span class="inline-flex min-w-0 flex-1 items-center gap-1">
+                        <span
+                            class="truncate {readClass}"
+                            class:font-semibold={uiSettingsStore.titleBold}
                         >
-                    {/if}
+                            {post.title}
+                        </span>
+                        {#if isNew}
+                            <span class="text-liked shrink-0 text-[10px] font-bold">N</span>
+                        {/if}
+                        {#if hasVideo}
+                            <Play class="text-destructive h-3.5 w-3.5 shrink-0" />
+                        {:else if hasImage}
+                            <ImageIcon class="text-muted-foreground h-3.5 w-3.5 shrink-0" />
+                        {/if}
+                        {#if post.comments_count > 0}
+                            <span class="comment-count shrink-0"
+                                >{formatCommentCountBadge(post.comments_count)}</span
+                            >
+                        {/if}
+                    </span>
                     {#if memoPluginActive && !uiSettingsStore.hideMemoInList}
                         {#if memo?.content}
                             <span
-                                class="memo-badge memo-color--{memo.color ||
-                                    'yellow'} ml-auto shrink-0"
+                                class="memo-badge memo-color--{memo.color || 'yellow'} shrink-0"
                                 title={memo.content}
                             >
                                 {memo.content.length > 6
