@@ -407,6 +407,7 @@
                                 if (result.type === 'success') {
                                     nickSuccess = '닉네임이 변경되었습니다.';
                                     await update();
+                                    await invalidateAll();
                                 } else if (result.type === 'failure') {
                                     nickError =
                                         (result.data?.error as string) || '변경에 실패했습니다.';

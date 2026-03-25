@@ -22,6 +22,7 @@ interface MemberRow extends RowDataPacket {
     mb_today_login: string;
     mb_nick_date: string;
     mb_image_url: string;
+    mb_image_updated_at: string;
     mb_certify: string;
     mb_leave_date: string;
     as_level: number;
@@ -106,7 +107,7 @@ export const GET: RequestHandler = async ({ params }) => {
             `SELECT mb_id, mb_name, mb_nick, mb_level, mb_point,
 			        mb_signature, mb_homepage, mb_profile,
 			        mb_datetime, mb_today_login, mb_nick_date,
-			        mb_image_url, mb_certify, mb_leave_date,
+			        mb_image_url, mb_image_updated_at, mb_certify, mb_leave_date,
 			        as_level, as_exp, as_max
 			 FROM g5_member
 			 WHERE mb_id = ?`,
