@@ -28,7 +28,6 @@
 
     const BTF_POSITIONS = new Set([
         'board-list-bottom',
-        'board-after-comments',
         'board-footer',
         'index-bottom',
         'explore-bottom',
