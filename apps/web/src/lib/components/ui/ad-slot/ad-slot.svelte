@@ -17,8 +17,10 @@
     } from './ad-slot-registry.js';
     import { page } from '$app/stores';
 
-    /** 삭제된 글 상세 페이지에서는 모든 광고를 숨김 (애드센스 정책) */
+    /** 삭제된 글/비밀글 상세 페이지에서는 모든 광고를 숨김 (애드센스 정책) */
     const isDeletedPost = $derived(!!($page as any).data?.post?.deleted_at);
+    const isSecretPost = $derived(!!($page as any).data?.post?.is_secret);
+    const suppressAds = $derived(isDeletedPost || isSecretPost);
 
     interface Props {
         position: string;
@@ -181,7 +183,7 @@
     );
 </script>
 
-{#if !isDeletedPost}
+{#if !suppressAds}
     <div
         bind:this={containerEl}
         class="ad-slot-container relative overflow-hidden rounded-lg {className}"
