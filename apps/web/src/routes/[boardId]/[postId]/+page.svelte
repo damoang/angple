@@ -1265,8 +1265,8 @@
                 createDiscussionForumPostingJsonLd({
                     headline: data.post.title,
                     text: postDescription,
-                    author: data.post.author,
-                    authorUrl,
+                    author: data.post.deleted_at ? '' : data.post.author,
+                    authorUrl: data.post.deleted_at ? undefined : authorUrl,
                     datePublished: data.post.created_at,
                     dateModified: data.post.updated_at || undefined,
                     url: postUrl,
@@ -1277,7 +1277,7 @@
                 // Article - 일반 검색 결과용 (폴백)
                 createArticleJsonLd({
                     headline: data.post.title,
-                    author: data.post.author,
+                    author: data.post.deleted_at ? '' : data.post.author,
                     datePublished: data.post.created_at,
                     dateModified: data.post.updated_at || data.post.created_at,
                     image: data.post.thumbnail || data.post.images?.[0],

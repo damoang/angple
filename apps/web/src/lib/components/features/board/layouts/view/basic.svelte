@@ -202,75 +202,91 @@
         </div>
 
         <div class="border-border flex flex-wrap items-center gap-4 border-t pt-4">
-            <div class="flex items-center gap-2">
-                {#if getAvatarUrl(post.author_image, post.author_image_updated_at)}
-                    <img
-                        src={getAvatarUrl(post.author_image, post.author_image_updated_at)}
-                        alt={post.author}
-                        class="size-10 rounded-full object-cover"
-                        onerror={(e) => {
-                            const img = e.currentTarget as HTMLImageElement;
-                            img.style.display = 'none';
-                            const fallback = img.nextElementSibling as HTMLElement;
-                            if (fallback) fallback.style.display = 'flex';
-                        }}
-                    />
+            {#if post.deleted_at}
+                <div class="flex items-center gap-2">
                     <div
-                        class="bg-primary text-primary-foreground hidden size-10 items-center justify-center rounded-full"
+                        class="bg-muted text-muted-foreground flex size-10 items-center justify-center rounded-full"
                     >
-                        {post.author.charAt(0).toUpperCase()}
+                        ?
                     </div>
-                {:else}
-                    <div
-                        class="bg-primary text-primary-foreground flex size-10 items-center justify-center rounded-full"
-                    >
-                        {post.author.charAt(0).toUpperCase()}
+                    <div>
+                        <p class="text-muted-foreground font-medium">작성자 정보 비공개</p>
                     </div>
-                {/if}
-                <div>
-                    <p class="text-foreground flex items-center gap-1.5 font-medium">
-                        <LevelBadge level={memberLevelStore.getLevel(post.author_id)} />
-                        <AuthorLink authorId={post.author_id} authorName={post.author} />
-                        {#if authStore.isAuthenticated && memoPluginActive && MemoBadge && !uiSettingsStore.hideMemo}
-                            <MemoBadge
-                                memberId={post.author_id}
-                                showIcon={true}
-                                blur={uiSettingsStore.blurMemo}
-                            />
-                        {/if}
-                        {#if post.author_ip}
-                            <span class="text-muted-foreground ml-1 text-xs font-normal"
-                                >({post.author_ip})</span
-                            >
-                        {/if}
-                    </p>
-                    <p class="text-secondary-foreground text-[15px]">
-                        {formatDate(post.created_at)}
-                        {#if post.updated_at && post.updated_at !== post.created_at && formatTimeShort && new Date(post.updated_at).getTime() - new Date(post.created_at).getTime() > 5 * 60 * 1000}
-                            {#if editCount > 0}
-                                <span class="text-muted-foreground/70"
-                                    >· 수정 {editCount}회({formatTimeShort(
-                                        post.updated_at,
-                                        post.created_at
-                                    )})</span
-                                >
-                            {:else}
-                                <span class="text-muted-foreground/70"
-                                    >· 수정됨({formatTimeShort(
-                                        post.updated_at,
-                                        post.created_at
-                                    )})</span
+                </div>
+            {:else}
+                <div class="flex items-center gap-2">
+                    {#if getAvatarUrl(post.author_image, post.author_image_updated_at)}
+                        <img
+                            src={getAvatarUrl(post.author_image, post.author_image_updated_at)}
+                            alt={post.author}
+                            class="size-10 rounded-full object-cover"
+                            onerror={(e) => {
+                                const img = e.currentTarget as HTMLImageElement;
+                                img.style.display = 'none';
+                                const fallback = img.nextElementSibling as HTMLElement;
+                                if (fallback) fallback.style.display = 'flex';
+                            }}
+                        />
+                        <div
+                            class="bg-primary text-primary-foreground hidden size-10 items-center justify-center rounded-full"
+                        >
+                            {post.author.charAt(0).toUpperCase()}
+                        </div>
+                    {:else}
+                        <div
+                            class="bg-primary text-primary-foreground flex size-10 items-center justify-center rounded-full"
+                        >
+                            {post.author.charAt(0).toUpperCase()}
+                        </div>
+                    {/if}
+                    <div>
+                        <p class="text-foreground flex items-center gap-1.5 font-medium">
+                            <LevelBadge level={memberLevelStore.getLevel(post.author_id)} />
+                            <AuthorLink authorId={post.author_id} authorName={post.author} />
+                            {#if authStore.isAuthenticated && memoPluginActive && MemoBadge && !uiSettingsStore.hideMemo}
+                                <MemoBadge
+                                    memberId={post.author_id}
+                                    showIcon={true}
+                                    blur={uiSettingsStore.blurMemo}
+                                />
+                            {/if}
+                            {#if post.author_ip}
+                                <span class="text-muted-foreground ml-1 text-xs font-normal"
+                                    >({post.author_ip})</span
                                 >
                             {/if}
-                        {/if}
-                        {#if post.deleted_at && formatTimeShort}
-                            <span class="text-red-500/70"
-                                >· 삭제됨 {formatTimeShort(post.deleted_at, post.created_at)}</span
-                            >
-                        {/if}
-                    </p>
+                        </p>
+                        <p class="text-secondary-foreground text-[15px]">
+                            {formatDate(post.created_at)}
+                            {#if post.updated_at && post.updated_at !== post.created_at && formatTimeShort && new Date(post.updated_at).getTime() - new Date(post.created_at).getTime() > 5 * 60 * 1000}
+                                {#if editCount > 0}
+                                    <span class="text-muted-foreground/70"
+                                        >· 수정 {editCount}회({formatTimeShort(
+                                            post.updated_at,
+                                            post.created_at
+                                        )})</span
+                                    >
+                                {:else}
+                                    <span class="text-muted-foreground/70"
+                                        >· 수정됨({formatTimeShort(
+                                            post.updated_at,
+                                            post.created_at
+                                        )})</span
+                                    >
+                                {/if}
+                            {/if}
+                            {#if post.deleted_at && formatTimeShort}
+                                <span class="text-red-500/70"
+                                    >· 삭제됨 {formatTimeShort(
+                                        post.deleted_at,
+                                        post.created_at
+                                    )}</span
+                                >
+                            {/if}
+                        </p>
+                    </div>
                 </div>
-            </div>
+            {/if}
 
             <div
                 class="text-secondary-foreground ml-auto flex gap-2 text-[13px] sm:gap-4 sm:text-[15px]"

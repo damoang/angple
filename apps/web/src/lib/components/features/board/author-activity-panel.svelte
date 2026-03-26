@@ -195,7 +195,7 @@
     });
 </script>
 
-{#if post.author_id}
+{#if post.author_id && !post.deleted_at}
     <div class="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3" bind:this={panelEl}>
         <!-- AdSense 광고 -->
         <div class="flex flex-col gap-1">
