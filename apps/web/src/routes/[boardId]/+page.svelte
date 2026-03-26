@@ -217,6 +217,28 @@
         }
     }
 
+    function scheduleBoardListMemos(authorIds: string[]): void {
+        const uniqueAuthorIds = [...new Set(authorIds)].filter(Boolean);
+        if (uniqueAuthorIds.length === 0) {
+            memoByAuthorId = {};
+            return;
+        }
+
+        const loadTask = () => {
+            if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
+                return;
+            }
+            void loadBoardListMemos(uniqueAuthorIds);
+        };
+
+        if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+            window.requestIdleCallback(loadTask, { timeout: 1500 });
+            return;
+        }
+
+        setTimeout(loadTask, 250);
+    }
+
     let loadMemosForAuthors = $state<((memberIds: string[]) => Promise<void>) | null>(null);
 
     $effect(() => {
@@ -261,7 +283,7 @@
         const usesInlineListMemo = listLayoutId === 'classic';
 
         if (usesInlineListMemo) {
-            void loadBoardListMemos(authorIds);
+            scheduleBoardListMemos(authorIds);
         } else {
             memoByAuthorId = {};
         }
