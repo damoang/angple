@@ -19,7 +19,7 @@
     );
 </script>
 
-<div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
+<div class="grid grid-cols-1 gap-2 lg:grid-cols-2">
     <RecommendedPosts prefetchData={typedData?.recommended} />
     <ExplorePreview prefetchData={typedData?.explore} />
 </div>
