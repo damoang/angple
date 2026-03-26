@@ -375,10 +375,6 @@
                     isDisliked = result.postLikeStatus.userDisliked;
                 }
 
-                if (result.memberLevels && Object.keys(result.memberLevels).length > 0) {
-                    memberLevelStore.initFromSSR(result.memberLevels);
-                }
-
                 if (result.commentLikeStatuses) {
                     initialLikedCommentIds = result.commentLikeStatuses.likedIds || [];
                     initialDislikedCommentIds = result.commentLikeStatuses.dislikedIds || [];
@@ -400,6 +396,12 @@
         return () => {
             cancelled = true;
         };
+    });
+
+    $effect(() => {
+        const authorId = data.post.author_id;
+        if (!authorId) return;
+        void memberLevelStore.fetchLevels([authorId]);
     });
 
     let isCreatingComment = $state(false);

@@ -19,7 +19,6 @@ import {
     markViewed
 } from '$lib/server/viewcount.js';
 import { fetchReactionsByParentId } from '$lib/server/reactions.js';
-import { fetchMemberLevels } from '$lib/server/member-levels.js';
 import { fetchMemberImagesWithTimestamp } from '$lib/server/member-images.js';
 import { fetchCommentLikeStatuses } from '$lib/server/comment-likes.js';
 
@@ -337,7 +336,6 @@ export const load: PageServerLoad = async ({
                 postReportCountResult,
                 postLikeStatusResult,
                 scheduledDeleteResult,
-                memberLevelsResult,
                 commentLikeStatusesResult,
                 truthroomCommentMapResult
             ] = await Promise.allSettled([
@@ -386,15 +384,6 @@ export const load: PageServerLoad = async ({
                         return null;
                     })
                     .catch(() => null),
-                (() => {
-                    const authorIds = new Set<string>();
-                    if (post.author_id) authorIds.add(post.author_id);
-                    for (const c of commentsData.comments.items || []) {
-                        if (c.author_id) authorIds.add(c.author_id);
-                    }
-                    if (authorIds.size === 0) return Promise.resolve({});
-                    return fetchMemberLevels([...authorIds]).catch(() => ({}));
-                })(),
                 (() => {
                     if (!locals.user?.id || !commentsData.comments.items?.length) {
                         return Promise.resolve({ likedIds: [], dislikedIds: [] });
@@ -462,9 +451,6 @@ export const load: PageServerLoad = async ({
             const scheduledDelete =
                 scheduledDeleteResult.status === 'fulfilled' ? scheduledDeleteResult.value : null;
 
-            const memberLevels =
-                memberLevelsResult.status === 'fulfilled' ? memberLevelsResult.value : {};
-
             const commentLikeStatuses =
                 commentLikeStatusesResult.status === 'fulfilled'
                     ? commentLikeStatusesResult.value
@@ -483,7 +469,6 @@ export const load: PageServerLoad = async ({
                 postReportCount,
                 postLikeStatus,
                 scheduledDelete,
-                memberLevels,
                 commentLikeStatuses,
                 truthroomCommentMap
             };
