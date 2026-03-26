@@ -295,17 +295,11 @@
     // 댓글/프로모션/리비전 — Streaming SSR (2단계 데이터)
     let comments = $state<FreeComment[]>(data.commentsData?.comments.items || []);
     let commentsTotal = $state<number>(data.commentsData?.comments.total || comments.length);
-    let truthroomCommentMap = $state<Record<number, number>>(
-        data.commentsData?.truthroomCommentMap || {}
-    );
+    let truthroomCommentMap = $state<Record<number, number>>({});
     let promotionPosts = $state<PromotionPost[]>([]);
     let revisions = $state<PostRevision[]>([]);
-    let initialLikedCommentIds = $state<number[]>(
-        data.commentsData?.commentLikeStatuses?.likedIds || []
-    );
-    let initialDislikedCommentIds = $state<number[]>(
-        data.commentsData?.commentLikeStatuses?.dislikedIds || []
-    );
+    let initialLikedCommentIds = $state<number[]>([]);
+    let initialDislikedCommentIds = $state<number[]>([]);
     let commentsLoaded = $state(true);
     let commentsError = $state(false);
     let commentsRecoveryVisible = $state(false);
@@ -329,19 +323,15 @@
 
         comments = result?.comments.items || [];
         commentsTotal = result?.comments.total || comments.length;
-        initialLikedCommentIds = result?.commentLikeStatuses?.likedIds || [];
-        initialDislikedCommentIds = result?.commentLikeStatuses?.dislikedIds || [];
-        truthroomCommentMap = result?.truthroomCommentMap || {};
+        initialLikedCommentIds = [];
+        initialDislikedCommentIds = [];
+        truthroomCommentMap = {};
         commentsLoaded = true;
         commentsError = false;
         commentsRecoveryVisible = false;
         commentsAutoRecoveryTriggered = false;
         commentsDirectFetchAttempted = false;
         commentsDirectFetchInFlight = false;
-
-        if (result?.memberLevels && Object.keys(result.memberLevels).length > 0) {
-            memberLevelStore.initFromSSR(result.memberLevels);
-        }
     });
 
     $effect(() => {
@@ -383,6 +373,19 @@
                 if (result.postLikeStatus) {
                     isLiked = result.postLikeStatus.userLiked;
                     isDisliked = result.postLikeStatus.userDisliked;
+                }
+
+                if (result.memberLevels && Object.keys(result.memberLevels).length > 0) {
+                    memberLevelStore.initFromSSR(result.memberLevels);
+                }
+
+                if (result.commentLikeStatuses) {
+                    initialLikedCommentIds = result.commentLikeStatuses.likedIds || [];
+                    initialDislikedCommentIds = result.commentLikeStatuses.dislikedIds || [];
+                }
+
+                if (result.truthroomCommentMap) {
+                    truthroomCommentMap = result.truthroomCommentMap;
                 }
 
                 scheduledDelete = result.scheduledDelete ?? null;

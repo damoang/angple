@@ -258,8 +258,20 @@
             .map((p) => p.author_id)
             .filter((id): id is string => Boolean(id));
         scheduleAuthorLevelFetch(authorIds);
-        void loadBoardListMemos(authorIds);
-        if (authStore.isAuthenticated && loadMemosForAuthors && authorIds.length > 0) {
+        const usesInlineListMemo = listLayoutId === 'classic';
+
+        if (usesInlineListMemo) {
+            void loadBoardListMemos(authorIds);
+        } else {
+            memoByAuthorId = {};
+        }
+
+        if (
+            authStore.isAuthenticated &&
+            loadMemosForAuthors &&
+            authorIds.length > 0 &&
+            !usesInlineListMemo
+        ) {
             void loadMemosForAuthors(authorIds);
         }
 
