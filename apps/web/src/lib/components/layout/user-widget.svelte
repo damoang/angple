@@ -56,7 +56,7 @@
     const advertiserStatusLabel = $derived.by(() => {
         switch (user?.advertiser_status) {
             case 'ongoing':
-                return '진행중';
+                return '진행 중';
             case 'expired':
                 return '만료됨';
             case 'scheduled':
@@ -157,7 +157,18 @@
                 <div class="border-border rounded-md border px-2 py-1.5 text-xs">
                     <div class="flex items-center justify-between gap-2">
                         <span class="text-muted-foreground">광고 종료일</span>
-                        <span class="font-medium">{user.advertiser_end_date || '-'}</span>
+                        <span class="font-medium"
+                            >{user.advertiser_end_date
+                                ? new Date(user.advertiser_end_date)
+                                      .toLocaleDateString('ko-KR', {
+                                          year: 'numeric',
+                                          month: '2-digit',
+                                          day: '2-digit'
+                                      })
+                                      .replace(/\. /g, '-')
+                                      .replace('.', '')
+                                : '-'}</span
+                        >
                     </div>
                     {#if advertiserStatusLabel}
                         <div class="text-muted-foreground mt-1 text-[11px]">
