@@ -62,7 +62,20 @@ export const PLATFORM_DOMAINS: Record<AffiliatePlatform, PlatformInfo> = {
     }
 };
 
-/** 링크프라이스 지원 머천트 도메인 */
+/**
+ * DB에서 읽은 도메인을 LINKPRICE_MERCHANTS에 병합.
+ * 서버 전용 코드에서 호출해야 함 (domain-matcher는 클라이언트에서도 사용).
+ */
+export function mergeMerchantDomains(domains: string[]): void {
+    const existing = new Set(LINKPRICE_MERCHANTS);
+    for (const domain of domains) {
+        if (domain && !existing.has(domain)) {
+            LINKPRICE_MERCHANTS.push(domain);
+        }
+    }
+}
+
+/** 링크프라이스 지원 머천트 도메인 (DB 동기화로 자동 추가됨) */
 export const LINKPRICE_MERCHANTS: string[] = [
     // 쇼핑
     'gmarket.co.kr',

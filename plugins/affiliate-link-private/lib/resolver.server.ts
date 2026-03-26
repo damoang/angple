@@ -2,7 +2,8 @@ import {
     convertAffiliateLinksDetailed,
     convertAffiliateUrl
 } from '../../affiliate-link/lib/affiliate-api.server';
-import { detectPlatform, extractHost, normalizeUrl } from '../../affiliate-link/lib/domain-matcher';
+import { detectPlatform, extractHost, normalizeUrl, mergeMerchantDomains } from '../../affiliate-link/lib/domain-matcher';
+import pool from '$lib/server/db.js';
 import { buildAffiliateRedirectRecord, attachRedirectToDecision } from './redirect-store.server';
 import { createErrorDecision, createPassthroughDecision } from './policies';
 import {
@@ -20,6 +21,23 @@ import type {
     AffiliateLinkFieldInput,
     AffiliateLinkFieldOutput
 } from './types';
+
+/** DB affiliate_merchants에서 linkprice 도메인을 읽어 LINKPRICE_MERCHANTS에 병합 (최초 1회) */
+let _merchantsSynced = false;
+async function _syncMerchants(): Promise<void> {
+    if (_merchantsSynced) return;
+    _merchantsSynced = true;
+    try {
+        const [rows] = await pool.query(
+            "SELECT domain FROM affiliate_merchants WHERE platform = 'linkprice' AND is_active = 1"
+        );
+        mergeMerchantDomains(
+            (rows as Array<{ domain: string }>).map((r) => r.domain)
+        );
+    } catch {
+        // DB 미연결 시 하드코딩 폴백
+    }
+}
 
 function classifyAffiliateInput(
     url: string,
@@ -104,6 +122,7 @@ function getRebindFailureReason(input: {
 export async function resolveAffiliateCandidate(
     candidate: AffiliateCandidate
 ): Promise<AffiliateDecision> {
+    await _syncMerchants();
     const normalizedUrl = normalizeUrl(candidate.originalUrl) ?? candidate.originalUrl;
     const platform = detectPlatform(normalizedUrl);
     const inputKind = classifyAffiliateInput(normalizedUrl, platform);
