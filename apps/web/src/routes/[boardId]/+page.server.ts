@@ -28,34 +28,27 @@ const CONTENT_HEAVY_LIST_LAYOUTS = new Set(['detailed', 'webzine', 'card']);
 
 function trimFreeListPayload(post: FreePost): FreePost {
     return {
-        ...post,
-        content: '',
-        updated_at: undefined,
-        board_id: undefined,
-        author_ip: undefined,
-        tags: undefined,
-        images: undefined,
-        videos: undefined,
-        files: undefined,
-        downloads: undefined,
-        thumbnail: undefined,
-        thumbnail_raw: undefined,
-        link1: undefined,
-        link2: undefined,
-        link1_display: undefined,
-        link2_display: undefined,
-        link1_affiliate: undefined,
-        link2_affiliate: undefined,
-        deleted_by: undefined,
-        extra_1: undefined,
-        extra_2: undefined,
-        extra_3: undefined,
-        extra_4: undefined,
-        extra_5: undefined,
-        extra_6: undefined,
-        extra_7: undefined,
-        extra_8: undefined
-    };
+        id: post.id,
+        title: post.title,
+        author: post.author,
+        author_id: post.author_id,
+        author_image: post.author_image,
+        author_image_updated_at: post.author_image_updated_at,
+        created_at: post.created_at,
+        views: post.views,
+        likes: post.likes,
+        dislikes: post.dislikes,
+        comments_count: post.comments_count,
+        category: post.category,
+        is_notice: post.is_notice,
+        is_secret: post.is_secret,
+        is_adult: post.is_adult,
+        has_file: post.has_file,
+        has_video: post.has_video ?? !!post.extra_9,
+        has_image: post.has_image ?? !!(post.has_file || post.extra_10),
+        deleted_at: post.deleted_at,
+        content: ''
+    } as FreePost;
 }
 
 function maybeTrimBoardListPayload(
