@@ -1323,7 +1323,7 @@
 
 <div class="mx-auto pt-2">
     <!-- 상단 배너 (슬롯 기반) -->
-    {#if widgetLayoutStore.hasEnabledAds && showBoardViewBanner}
+    {#if widgetLayoutStore.hasEnabledAds && showBoardViewBanner && !data.post.deleted_at}
         <div class="mb-6">
             <PluginSlot name="board-view-banner" />
         </div>

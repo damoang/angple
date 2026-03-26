@@ -15,6 +15,10 @@
         onSlotRendered,
         updateSlotVisibility
     } from './ad-slot-registry.js';
+    import { page } from '$app/stores';
+
+    /** 삭제된 글 상세 페이지에서는 모든 광고를 숨김 (애드센스 정책) */
+    const isDeletedPost = $derived(!!($page as any).data?.post?.deleted_at);
 
     interface Props {
         position: string;
@@ -177,23 +181,25 @@
     );
 </script>
 
-<div
-    bind:this={containerEl}
-    class="ad-slot-container relative overflow-hidden rounded-lg {className}"
-    class:ad-slot-loaded={isLoaded && hasAd}
-    class:ad-slot-empty={isEmpty}
-    class:ad-slot-empty-collapsed={isEmpty}
-    class:ad-slot-btf={isBTF}
-    style:--ad-slot-min-height={reservedHeights.base}
-    style:--ad-slot-min-height-tablet={reservedHeights.tablet}
-    style:--ad-slot-min-height-desktop={reservedHeights.desktop}
-    style:--ad-slot-intrinsic-size={reservedHeights.desktop}
-    style:min-height={effectiveMinHeight}
->
-    {#if slotId}
-        <div id={slotId} class="gam-ad-slot w-full" style:min-height={effectiveMinHeight}></div>
-    {/if}
-</div>
+{#if !isDeletedPost}
+    <div
+        bind:this={containerEl}
+        class="ad-slot-container relative overflow-hidden rounded-lg {className}"
+        class:ad-slot-loaded={isLoaded && hasAd}
+        class:ad-slot-empty={isEmpty}
+        class:ad-slot-empty-collapsed={isEmpty}
+        class:ad-slot-btf={isBTF}
+        style:--ad-slot-min-height={reservedHeights.base}
+        style:--ad-slot-min-height-tablet={reservedHeights.tablet}
+        style:--ad-slot-min-height-desktop={reservedHeights.desktop}
+        style:--ad-slot-intrinsic-size={reservedHeights.desktop}
+        style:min-height={effectiveMinHeight}
+    >
+        {#if slotId}
+            <div id={slotId} class="gam-ad-slot w-full" style:min-height={effectiveMinHeight}></div>
+        {/if}
+    </div>
+{/if}
 
 <style>
     .ad-slot-container {
