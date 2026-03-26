@@ -279,7 +279,10 @@
         const authorIds = [...result.posts, ...(result.notices || [])]
             .map((p) => p.author_id)
             .filter((id): id is string => Boolean(id));
-        scheduleAuthorLevelFetch(authorIds);
+        const needsLevels = listLayoutId !== 'classic' && listLayoutId !== 'archive';
+        if (needsLevels) {
+            scheduleAuthorLevelFetch(authorIds);
+        }
         const usesInlineListMemo = listLayoutId === 'classic';
 
         if (usesInlineListMemo) {
