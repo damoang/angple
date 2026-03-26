@@ -40,7 +40,7 @@ function buildCoupangFallbackUrl(url: string): string | null {
 
 	try {
 		const parsed = new URL(url);
-		if (parsed.hostname !== 'shop.coupang.com') {
+		if (!isAllowedCoupangHost(url)) {
 			return null;
 		}
 
