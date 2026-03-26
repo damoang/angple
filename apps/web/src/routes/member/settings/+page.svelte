@@ -332,6 +332,11 @@
                                         };
                                     }}
                                 >
+                                    <input
+                                        type="hidden"
+                                        name="_csrf"
+                                        value={data.csrfToken ?? ''}
+                                    />
                                     <input type="hidden" name="avatar_url" value="" />
                                     <Button
                                         type="submit"
@@ -379,6 +384,7 @@
                             };
                         }}
                     >
+                        <input type="hidden" name="_csrf" value={data.csrfToken ?? ''} />
                         <input type="hidden" name="avatar_url" value={avatarUrlInput} />
                     </form>
                 </CardContent>
@@ -415,6 +421,7 @@
                             };
                         }}
                     >
+                        <input type="hidden" name="_csrf" value={data.csrfToken ?? ''} />
                         <div class="space-y-2">
                             <Label for="nickname">닉네임</Label>
                             <div class="flex gap-2">
@@ -472,6 +479,7 @@
                             };
                         }}
                     >
+                        <input type="hidden" name="_csrf" value={data.csrfToken ?? ''} />
                         <div class="space-y-2">
                             <Label for="email">이메일</Label>
                             <div class="flex gap-2">
@@ -536,6 +544,7 @@
                         }}
                         class="space-y-4"
                     >
+                        <input type="hidden" name="_csrf" value={data.csrfToken ?? ''} />
                         <div class="space-y-2">
                             <Label for="currentPassword">현재 비밀번호</Label>
                             <Input
@@ -600,7 +609,7 @@
                             return async ({ result, update }) => {
                                 if (result.type === 'success') {
                                     profileSuccess = '설정이 저장되었습니다.';
-                                    await update();
+                                    await update({ reset: false });
                                 } else if (result.type === 'failure') {
                                     profileError =
                                         (result.data?.error as string) || '저장에 실패했습니다.';
@@ -609,6 +618,7 @@
                         }}
                         class="space-y-4"
                     >
+                        <input type="hidden" name="_csrf" value={data.csrfToken ?? ''} />
                         <div class="space-y-2">
                             <Label for="homepage">홈페이지</Label>
                             <Input
