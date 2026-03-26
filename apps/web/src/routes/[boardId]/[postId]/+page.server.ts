@@ -23,6 +23,7 @@ import { fetchMemberImagesWithTimestamp } from '$lib/server/member-images.js';
 import { fetchCommentLikeStatuses } from '$lib/server/comment-likes.js';
 
 import { fetchPostLikeStatus } from '$lib/server/post-like-status.js';
+import { fetchMemberLevels } from '$lib/server/member-levels.js';
 import { fetchTruthroomPostId, fetchTruthroomCommentMap } from '$lib/server/truthroom.js';
 import { BackendUnavailableError } from '$lib/server/backend-fetch.js';
 
@@ -509,11 +510,20 @@ export const load: PageServerLoad = async ({
             }
         }
 
+        // 글 작성자 + 초기 댓글 작성자 레벨 SSR 프리로드 (클라이언트 /api/members/levels 호출 제거)
+        const levelIds = [
+            post.author_id,
+            ...(commentsData?.comments?.items ?? []).map((c: { author_id?: string }) => c.author_id)
+        ].filter((id): id is string => Boolean(id));
+        const memberLevels =
+            levelIds.length > 0 ? await fetchMemberLevels(levelIds).catch(() => ({})) : {};
+
         return {
             boardId,
             post,
             board,
             commentsData,
+            memberLevels,
             isScrapped: false,
             isRestricted: isRestrictedUser(locals.user as AuthUser | null),
             promotionExpired,
