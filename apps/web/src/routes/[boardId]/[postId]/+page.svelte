@@ -1525,8 +1525,8 @@
                 {...slot.propsMapper ? slot.propsMapper({ post: data.post, boardId }) : {}}
             />
         {/each}
-        <!-- 본문 직후, 댓글 직전 광고 -->
-        {#if widgetLayoutStore.hasEnabledAds}
+        <!-- 본문 직후, 댓글 직전 광고 (삭제된 글에서는 비표시) -->
+        {#if widgetLayoutStore.hasEnabledAds && !data.post.deleted_at}
             <div class="my-6">
                 <AdSlot
                     position="board-before-comments"

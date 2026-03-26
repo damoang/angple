@@ -39,7 +39,8 @@ export const load: PageServerLoad = async ({
     locals,
     url,
     cookies,
-    getClientAddress
+    getClientAddress,
+    setHeaders
 }) => {
     const postId = params.postId;
     const canonicalBoardId = await resolveCanonicalBoardId(params.boardId);
@@ -98,9 +99,10 @@ export const load: PageServerLoad = async ({
             throw error(404, '게시글을 찾을 수 없습니다.');
         }
 
-        // 삭제된 게시글: 본문 숨김 (관리 기능은 /admin에서)
+        // 삭제된 게시글: 본문 숨김 + 검색엔진 색인 차단
         if (post.deleted_at) {
             post.content = '';
+            setHeaders({ 'X-Robots-Tag': 'noindex, noarchive' });
         }
 
         let board = null;
