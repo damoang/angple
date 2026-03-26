@@ -23,7 +23,8 @@ export {
     extractHost,
     matchesPlatform,
     PLATFORM_DOMAINS,
-    LINKPRICE_MERCHANTS
+    LINKPRICE_MERCHANTS,
+    mergeMerchantDomains
 } from './lib/domain-matcher';
 
 // API
