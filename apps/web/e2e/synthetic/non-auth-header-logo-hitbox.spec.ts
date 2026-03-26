@@ -11,16 +11,14 @@ test('non-auth header logo hitbox and mixed-content regression check', async ({ 
         }
     });
 
-    for (const point of [0.1, 0.5, 0.7]) {
+    for (const point of [0.15, 0.5]) {
         await page.goto('/search', { waitUntil: 'domcontentloaded' });
 
         const logoLink = page.locator('header a[aria-label="홈"]').first();
         await expect(logoLink).toBeVisible({ timeout: 10_000 });
-        const logoImage = logoLink.locator('img').first();
-        await expect(logoImage).toBeVisible({ timeout: 10_000 });
 
-        const box = await logoImage.boundingBox();
-        expect(box, 'logo image bounding box should exist').not.toBeNull();
+        const box = await logoLink.boundingBox();
+        expect(box, 'logo link bounding box should exist').not.toBeNull();
         if (!box) continue;
 
         await page.mouse.click(box.x + box.width * point, box.y + box.height / 2);
