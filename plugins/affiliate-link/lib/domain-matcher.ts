@@ -111,7 +111,8 @@ export const LINKPRICE_MERCHANTS: string[] = [
     'ssense.com',
     'mytheresa.com',
 
-    // 기타
+    // 식품/생활
+    'thirtymall.com',
     'dominos.co.kr',
     'baskinrobbins.co.kr',
     'dyson.co.kr',
