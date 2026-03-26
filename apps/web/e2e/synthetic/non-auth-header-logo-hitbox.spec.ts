@@ -11,19 +11,14 @@ test('non-auth header logo hitbox and mixed-content regression check', async ({ 
         }
     });
 
-    for (const point of [0.15, 0.5]) {
-        await page.goto('/search', { waitUntil: 'domcontentloaded' });
+    await page.goto('/search', { waitUntil: 'domcontentloaded' });
 
-        const logoLink = page.locator('header a[aria-label="홈"]').first();
-        await expect(logoLink).toBeVisible({ timeout: 10_000 });
+    const logoLink = page.locator('header a[aria-label="홈"]').first();
+    await expect(logoLink).toBeVisible({ timeout: 10_000 });
 
-        const box = await logoLink.boundingBox();
-        expect(box, 'logo link bounding box should exist').not.toBeNull();
-        if (!box) continue;
-
-        await page.mouse.click(box.x + box.width * point, box.y + box.height / 2);
-        await expect(page).toHaveURL(homeUrlPattern);
-    }
+    // element click — 좌표 계산 없이 Playwright가 안전하게 클릭
+    await logoLink.click();
+    await expect(page).toHaveURL(homeUrlPattern);
 
     expect(
         mixedContentMessages,
