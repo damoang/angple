@@ -41,6 +41,19 @@ export class PaycoProvider extends BaseOAuthProvider {
         };
     }
 
+    /** PAYCO는 serviceProviderCode=FRIENDS 필수 */
+    override getAuthorizationUrl(state: string): string {
+        const params = new URLSearchParams({
+            response_type: 'code',
+            client_id: this.config.clientId,
+            redirect_uri: this.config.callbackUrl,
+            state,
+            serviceProviderCode: 'FRIENDS',
+            userLocale: 'ko_KR'
+        });
+        return `${this.config.authorizeUrl}?${params.toString()}`;
+    }
+
     /** PAYCO는 client_id를 헤더에 전달 */
     async getUserProfile(accessToken: string): Promise<OAuthUserProfile> {
         const response = await fetch(this.config.profileUrl, {
