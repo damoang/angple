@@ -297,21 +297,6 @@ export const load: PageServerLoad = async ({
 
             const comments = commentsResult;
 
-            // 회원 레벨 배치 조회 (작성자 + 댓글 작성자, DB 직접 — CDN 요청 제거)
-            let memberLevels: Record<string, number> = {};
-            try {
-                const authorIds = new Set<string>();
-                if (post.author_id) authorIds.add(post.author_id);
-                for (const c of comments.items || []) {
-                    if (c.author_id) authorIds.add(c.author_id);
-                }
-                if (authorIds.size > 0) {
-                    memberLevels = await fetchMemberLevels([...authorIds]);
-                }
-            } catch {
-                // 레벨 조회 실패 시 빈 맵 (클라이언트에서 fallback)
-            }
-
             // 프로필 이미지 배치 조회 (DB mb_image_url)
             try {
                 const imgIds = new Set<string>();
@@ -336,51 +321,8 @@ export const load: PageServerLoad = async ({
                 // 이미지 조회 실패해도 정상 진행
             }
 
-            // 댓글 좋아요/비추천 상태 배치 조회 (로그인 시만)
-            let commentLikeStatuses: { likedIds: number[]; dislikedIds: number[] } = {
-                likedIds: [],
-                dislikedIds: []
-            };
-            if (locals.user?.id && comments.items?.length) {
-                try {
-                    const commentIds = comments.items
-                        .map((c: { id: number | string }) => Number(c.id))
-                        .filter((id: number) => !isNaN(id));
-                    commentLikeStatuses = await fetchCommentLikeStatuses(
-                        boardId,
-                        commentIds,
-                        locals.user.id
-                    );
-                } catch {
-                    // 실패 시 빈 상태 (클라이언트에서 fallback)
-                }
-            }
-
-            // 잠긴 댓글 → 진실의방 매핑 배치 조회
-            let truthroomCommentMap: Record<number, number> = {};
-            if (comments.items?.length) {
-                try {
-                    const lockedCommentIds = comments.items
-                        .filter((c: { report_count: string | number }) => c.report_count === 'lock')
-                        .map((c: { id: number | string }) => Number(c.id))
-                        .filter((id: number) => !isNaN(id) && id > 0);
-                    if (lockedCommentIds.length > 0) {
-                        truthroomCommentMap = await fetchTruthroomCommentMap(
-                            boardId,
-                            postId,
-                            lockedCommentIds
-                        );
-                    }
-                } catch {
-                    // 실패 시 빈 맵
-                }
-            }
-
             return {
-                comments,
-                memberLevels,
-                commentLikeStatuses,
-                truthroomCommentMap
+                comments
             };
         })();
 
@@ -392,7 +334,10 @@ export const load: PageServerLoad = async ({
                 scrapResult,
                 postReportCountResult,
                 postLikeStatusResult,
-                scheduledDeleteResult
+                scheduledDeleteResult,
+                memberLevelsResult,
+                commentLikeStatusesResult,
+                truthroomCommentMapResult
             ] = await Promise.allSettled([
                 // 직접홍보 사잇광고 (ads 서버 직접 호출 + 캐시)
                 fetchPromotionPosts(),
@@ -438,7 +383,48 @@ export const load: PageServerLoad = async ({
                         }
                         return null;
                     })
-                    .catch(() => null)
+                    .catch(() => null),
+                (() => {
+                    const authorIds = new Set<string>();
+                    if (post.author_id) authorIds.add(post.author_id);
+                    for (const c of commentsData.comments.items || []) {
+                        if (c.author_id) authorIds.add(c.author_id);
+                    }
+                    if (authorIds.size === 0) return Promise.resolve({});
+                    return fetchMemberLevels([...authorIds]).catch(() => ({}));
+                })(),
+                (() => {
+                    if (!locals.user?.id || !commentsData.comments.items?.length) {
+                        return Promise.resolve({ likedIds: [], dislikedIds: [] });
+                    }
+                    const commentIds = commentsData.comments.items
+                        .map((c: { id: number | string }) => Number(c.id))
+                        .filter((id: number) => !isNaN(id));
+                    if (commentIds.length === 0) {
+                        return Promise.resolve({ likedIds: [], dislikedIds: [] });
+                    }
+                    return fetchCommentLikeStatuses(boardId, commentIds, locals.user.id).catch(
+                        () => ({
+                            likedIds: [],
+                            dislikedIds: []
+                        })
+                    );
+                })(),
+                (() => {
+                    if (!commentsData.comments.items?.length) {
+                        return Promise.resolve({});
+                    }
+                    const lockedCommentIds = commentsData.comments.items
+                        .filter((c: { report_count: string | number }) => c.report_count === 'lock')
+                        .map((c: { id: number | string }) => Number(c.id))
+                        .filter((id: number) => !isNaN(id) && id > 0);
+                    if (lockedCommentIds.length === 0) {
+                        return Promise.resolve({});
+                    }
+                    return fetchTruthroomCommentMap(boardId, postId, lockedCommentIds).catch(
+                        () => ({})
+                    );
+                })()
             ]);
 
             // 프로모션 사잇광고: board_exception에 포함된 게시판은 제외
@@ -474,6 +460,19 @@ export const load: PageServerLoad = async ({
             const scheduledDelete =
                 scheduledDeleteResult.status === 'fulfilled' ? scheduledDeleteResult.value : null;
 
+            const memberLevels =
+                memberLevelsResult.status === 'fulfilled' ? memberLevelsResult.value : {};
+
+            const commentLikeStatuses =
+                commentLikeStatusesResult.status === 'fulfilled'
+                    ? commentLikeStatusesResult.value
+                    : { likedIds: [], dislikedIds: [] };
+
+            const truthroomCommentMap =
+                truthroomCommentMapResult.status === 'fulfilled'
+                    ? truthroomCommentMapResult.value
+                    : {};
+
             return {
                 promotionPosts,
                 reactions,
@@ -481,7 +480,10 @@ export const load: PageServerLoad = async ({
                 isScrapped,
                 postReportCount,
                 postLikeStatus,
-                scheduledDelete
+                scheduledDelete,
+                memberLevels,
+                commentLikeStatuses,
+                truthroomCommentMap
             };
         })();
 
