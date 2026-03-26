@@ -5,9 +5,12 @@
 export interface AdminMember {
     mb_id: string;
     mb_name: string;
+    mb_real_name: string;
     mb_email: string;
     mb_level: number;
     mb_point: number;
+    mb_signature: string;
+    mb_memo: string;
     mb_datetime: string;
     mb_today_login?: string;
     mb_image?: string;
@@ -134,7 +137,16 @@ export async function getMember(memberId: string): Promise<AdminMember> {
 
 export async function updateMember(
     memberId: string,
-    data: { mb_level?: number; mb_point?: number; mb_name?: string }
+    data: {
+        mb_level?: number;
+        mb_point?: number;
+        mb_name?: string;
+        mb_real_name?: string;
+        mb_email?: string;
+        mb_signature?: string;
+        mb_memo?: string;
+        mb_leave?: boolean;
+    }
 ): Promise<void> {
     try {
         const response = await fetch(`${API_BASE}/${memberId}`, {

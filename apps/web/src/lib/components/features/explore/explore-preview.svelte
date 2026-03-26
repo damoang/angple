@@ -23,7 +23,7 @@
     let loading = $state(!ssrData?.data);
     let showReadState = $state(false);
 
-    const PREVIEW_COUNT = 10;
+    const PREVIEW_COUNT = 15;
 
     const modes: { id: ExploreMode; label: string }[] = [
         { id: 'hot', label: '핫' },

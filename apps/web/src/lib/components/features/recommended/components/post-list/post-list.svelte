@@ -6,7 +6,7 @@
     import { readPostsStore } from '$lib/stores/read-posts.svelte.js';
     import { getReadPostClasses } from '$lib/stores/read-post-style.svelte.js';
 
-    const PREVIEW_COUNT = 10;
+    const PREVIEW_COUNT = 15;
 
     let { data }: { data: RecommendedDataWithAI } = $props();
 

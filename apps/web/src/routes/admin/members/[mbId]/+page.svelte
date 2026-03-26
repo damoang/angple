@@ -7,11 +7,14 @@
     import { Input } from '$lib/components/ui/input/index.js';
     import { Label } from '$lib/components/ui/label/index.js';
     import { Badge } from '$lib/components/ui/badge/index.js';
+    import { Textarea } from '$lib/components/ui/textarea/index.js';
     import * as Dialog from '$lib/components/ui/dialog/index.js';
     import ArrowLeft from '@lucide/svelte/icons/arrow-left';
     import Pencil from '@lucide/svelte/icons/pencil';
     import Ban from '@lucide/svelte/icons/ban';
     import ShieldCheck from '@lucide/svelte/icons/shield-check';
+    import UserX from '@lucide/svelte/icons/user-x';
+    import UserCheck from '@lucide/svelte/icons/user-check';
     import FileText from '@lucide/svelte/icons/file-text';
     import MessageSquare from '@lucide/svelte/icons/message-square';
     import Loader2 from '@lucide/svelte/icons/loader-2';
@@ -35,8 +38,13 @@
     let activeTab = $state<'posts' | 'comments'>('posts');
 
     let showEditDialog = $state(false);
+    let editRealName = $state('');
+    let editName = $state('');
+    let editEmail = $state('');
     let editLevel = $state(1);
     let editPoint = $state(0);
+    let editSignature = $state('');
+    let editMemo = $state('');
     let saving = $state(false);
 
     async function fetchMember() {
@@ -71,8 +79,13 @@
 
     function openEditDialog() {
         if (!member) return;
+        editRealName = member.mb_real_name || '';
+        editName = member.mb_name;
+        editEmail = member.mb_email;
         editLevel = member.mb_level;
         editPoint = member.mb_point;
+        editSignature = member.mb_signature || '';
+        editMemo = member.mb_memo || '';
         showEditDialog = true;
     }
 
@@ -80,7 +93,15 @@
         if (!member) return;
         saving = true;
         try {
-            await updateMember(member.mb_id, { mb_level: editLevel, mb_point: editPoint });
+            await updateMember(member.mb_id, {
+                mb_real_name: editRealName,
+                mb_name: editName,
+                mb_email: editEmail,
+                mb_level: editLevel,
+                mb_point: editPoint,
+                mb_signature: editSignature,
+                mb_memo: editMemo
+            });
             showEditDialog = false;
             await fetchMember();
         } catch (err) {
@@ -101,6 +122,19 @@
             } else {
                 await banMember(member.mb_id);
             }
+            await fetchMember();
+        } catch (err) {
+            alert(err instanceof Error ? err.message : `${action}에 실패했습니다.`);
+        }
+    }
+
+    async function handleLeave() {
+        if (!member) return;
+        const isLeft = !!member.mb_leave_date;
+        const action = isLeft ? '탈퇴 취소' : '탈퇴 처리';
+        if (!confirm(`"${member.mb_name}" (${member.mb_id})님을 ${action}하시겠습니까?`)) return;
+        try {
+            await updateMember(member.mb_id, { mb_leave: !isLeft });
             await fetchMember();
         } catch (err) {
             alert(err instanceof Error ? err.message : `${action}에 실패했습니다.`);
@@ -191,6 +225,10 @@
                             class="text-muted-foreground grid grid-cols-1 gap-2 text-sm sm:grid-cols-2"
                         >
                             <div><span class="font-medium">아이디:</span> {member.mb_id}</div>
+                            <div>
+                                <span class="font-medium">이름:</span>
+                                {member.mb_real_name || '-'}
+                            </div>
                             <div><span class="font-medium">이메일:</span> {member.mb_email}</div>
                             <div>
                                 <span class="font-medium">포인트:</span>
@@ -204,8 +242,20 @@
                                 <span class="font-medium">최근 로그인:</span>
                                 {formatDate(member.mb_today_login)}
                             </div>
+                            {#if member.mb_signature}
+                                <div class="sm:col-span-2">
+                                    <span class="font-medium">서명:</span>
+                                    {member.mb_signature}
+                                </div>
+                            {/if}
+                            {#if member.mb_memo}
+                                <div class="sm:col-span-2">
+                                    <span class="font-medium">관리자 메모:</span>
+                                    {member.mb_memo}
+                                </div>
+                            {/if}
                         </div>
-                        <div class="flex gap-2 pt-2">
+                        <div class="flex flex-wrap gap-2 pt-2">
                             <Button size="sm" variant="outline" onclick={openEditDialog}>
                                 <Pencil class="mr-1 h-4 w-4" />
                                 수정
@@ -219,6 +269,22 @@
                                 <Button size="sm" variant="destructive" onclick={handleBan}>
                                     <Ban class="mr-1 h-4 w-4" />
                                     차단
+                                </Button>
+                            {/if}
+                            {#if member.mb_leave_date}
+                                <Button size="sm" variant="outline" onclick={handleLeave}>
+                                    <UserCheck class="mr-1 h-4 w-4" />
+                                    탈퇴 취소
+                                </Button>
+                            {:else}
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    class="text-orange-600 hover:text-orange-700"
+                                    onclick={handleLeave}
+                                >
+                                    <UserX class="mr-1 h-4 w-4" />
+                                    탈퇴 처리
                                 </Button>
                             {/if}
                         </div>
@@ -333,7 +399,7 @@
 </div>
 
 <Dialog.Root bind:open={showEditDialog}>
-    <Dialog.Content class="sm:max-w-md">
+    <Dialog.Content class="sm:max-w-lg">
         <Dialog.Header>
             <Dialog.Title>회원 정보 수정</Dialog.Title>
             <Dialog.Description>{member?.mb_name} ({member?.mb_id})</Dialog.Description>
@@ -345,13 +411,37 @@
                 handleSaveEdit();
             }}
         >
-            <div class="space-y-2">
-                <Label for="edit-level">레벨 (1~10)</Label>
-                <Input id="edit-level" type="number" min={1} max={10} bind:value={editLevel} />
+            <div class="grid grid-cols-2 gap-4">
+                <div class="space-y-2">
+                    <Label for="edit-real-name">이름</Label>
+                    <Input id="edit-real-name" type="text" bind:value={editRealName} />
+                </div>
+                <div class="space-y-2">
+                    <Label for="edit-name">닉네임</Label>
+                    <Input id="edit-name" type="text" bind:value={editName} required />
+                </div>
             </div>
             <div class="space-y-2">
-                <Label for="edit-point">포인트</Label>
-                <Input id="edit-point" type="number" bind:value={editPoint} />
+                <Label for="edit-email">이메일</Label>
+                <Input id="edit-email" type="email" bind:value={editEmail} required />
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <div class="space-y-2">
+                    <Label for="edit-level">레벨 (1~10)</Label>
+                    <Input id="edit-level" type="number" min={1} max={10} bind:value={editLevel} />
+                </div>
+                <div class="space-y-2">
+                    <Label for="edit-point">포인트</Label>
+                    <Input id="edit-point" type="number" bind:value={editPoint} />
+                </div>
+            </div>
+            <div class="space-y-2">
+                <Label for="edit-signature">서명</Label>
+                <Input id="edit-signature" type="text" bind:value={editSignature} />
+            </div>
+            <div class="space-y-2">
+                <Label for="edit-memo">관리자 메모</Label>
+                <Textarea id="edit-memo" bind:value={editMemo} rows={3} />
             </div>
             <Dialog.Footer>
                 <Button variant="outline" type="button" onclick={() => (showEditDialog = false)}>
