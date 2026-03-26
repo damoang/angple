@@ -17,7 +17,9 @@
 
     // 소명 연동: disciplinelog_id 쿼리파라미터 처리
     const disciplinelogId = $derived($page.url.searchParams.get('disciplinelog_id') ?? '');
-    const claimInitialTitle = $derived(disciplinelogId ? `[소명 #${disciplinelogId}]` : '');
+    const claimInitialTitle = $derived(
+        disciplinelogId ? `이용제한 ${disciplinelogId}번에 대한 소명` : ''
+    );
     const claimInitialLink1 = $derived(disciplinelogId ? `disciplinelog/${disciplinelogId}` : '');
     const claimInitialContent = $derived(
         disciplinelogId
