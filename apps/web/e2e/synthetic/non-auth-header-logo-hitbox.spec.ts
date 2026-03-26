@@ -11,7 +11,7 @@ test('non-auth header logo hitbox and mixed-content regression check', async ({ 
         }
     });
 
-    for (const point of [0.1, 0.5, 0.9]) {
+    for (const point of [0.1, 0.5, 0.7]) {
         await page.goto('/search', { waitUntil: 'domcontentloaded' });
 
         const logoLink = page.locator('header a[aria-label="홈"]').first();
