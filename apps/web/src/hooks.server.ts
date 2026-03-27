@@ -594,15 +594,12 @@ export const handle: Handle = async ({ event, resolve }) => {
         !!event.cookies.get(SESSION_COOKIE_NAME) || !!event.cookies.get('damoang_jwt');
     const assetRecoveryBust = event.url.searchParams.get('_v') || '';
     const bypassSsrCacheForRecovery = assetRecoveryBust.length > 0;
-    if (
-        !isDataRequest &&
+    const isAnonymousPublicHtml =
         !hasSessionCookie &&
         !bypassSsrCacheForRecovery &&
-        (isHomePage || isBoardList || isPostDetail)
-    ) {
-        const themeMode = event.cookies.get('angple_theme_mode') || '';
-        const density = event.cookies.get('angple_ui_density') || 'balanced';
-        const cacheKey = `${isHomePage ? '/' : pathname}:${themeMode}:${density}`;
+        (isHomePage || isBoardList || isPostDetail);
+    if (!isDataRequest && isAnonymousPublicHtml) {
+        const cacheKey = isHomePage ? '/' : pathname;
         const cacheTtl = isHomePage
             ? SSR_CACHE_TTL_HOME
             : isPostDetail
@@ -616,7 +613,6 @@ export const handle: Handle = async ({ event, resolve }) => {
                 headers: {
                     'Content-Type': 'text/html; charset=utf-8',
                     'Cache-Control': publicHtmlCacheControl,
-                    Vary: 'Cookie',
                     'X-Content-Type-Options': 'nosniff',
                     'X-Frame-Options': 'SAMEORIGIN',
                     'Referrer-Policy': 'strict-origin-when-cross-origin',
@@ -641,7 +637,6 @@ export const handle: Handle = async ({ event, resolve }) => {
                         headers: {
                             'Content-Type': 'text/html; charset=utf-8',
                             'Cache-Control': publicHtmlCacheControl,
-                            Vary: 'Cookie',
                             'X-Content-Type-Options': 'nosniff',
                             'X-Frame-Options': 'SAMEORIGIN',
                             'Referrer-Policy': 'strict-origin-when-cross-origin',
@@ -657,18 +652,8 @@ export const handle: Handle = async ({ event, resolve }) => {
         }
 
         const renderPromise = (async () => {
-            const htmlClass =
-                themeMode === 'dark' ? 'dark' : themeMode === 'amoled' ? 'amoled' : '';
-            const dPad = density === 'compact' ? '0px' : density === 'relaxed' ? '6px' : '3px';
-
             const response = await resolve(event, {
-                transformPageChunk: ({ html }) => {
-                    const cls = htmlClass ? ` class="${htmlClass}"` : '';
-                    const sty = ` style="--row-pad-extra:${dPad};--comment-pad-extra:${dPad}"`;
-                    return rewriteImmutableAssetUrls(
-                        html.replace('<html lang="ko">', `<html lang="ko"${cls}${sty}>`)
-                    );
-                }
+                transformPageChunk: ({ html }) => rewriteImmutableAssetUrls(html)
             });
 
             const contentType = response.headers.get('Content-Type') || '';
@@ -697,7 +682,6 @@ export const handle: Handle = async ({ event, resolve }) => {
                     headers: {
                         'Content-Type': 'text/html; charset=utf-8',
                         'Cache-Control': publicHtmlCacheControl,
-                        Vary: 'Cookie',
                         'X-Content-Type-Options': 'nosniff',
                         'X-Frame-Options': 'SAMEORIGIN',
                         'Referrer-Policy': 'strict-origin-when-cross-origin',
@@ -776,15 +760,12 @@ export const handle: Handle = async ({ event, resolve }) => {
     } else if (!event.locals.user && isPublicCacheablePath(pathname)) {
         // 비로그인 사용자의 공개 페이지: CDN 캐시 30초, stale 60초
         response.headers.set('Cache-Control', publicHtmlCacheControl);
-        response.headers.set('Vary', 'Cookie');
     } else if (!event.locals.user && isBoardListPath(pathname, event.url.searchParams)) {
         // 비로그인 사용자의 게시판 목록: CDN 캐시 30초, stale 60초
         response.headers.set('Cache-Control', publicHtmlCacheControl);
-        response.headers.set('Vary', 'Cookie');
     } else if (!event.locals.user && isPostDetailPath(pathname)) {
         // 비로그인 사용자의 글 상세: CDN 캐시 30초, stale 60초
         response.headers.set('Cache-Control', publicHtmlCacheControl);
-        response.headers.set('Vary', 'Cookie');
     } else {
         response.headers.set('Cache-Control', 'private, max-age=2, must-revalidate');
         response.headers.set('Vary', 'Cookie');
