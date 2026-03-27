@@ -98,9 +98,16 @@ export const load: PageServerLoad = async ({
             throw error(404, '게시글을 찾을 수 없습니다.');
         }
 
-        // 삭제된 게시글: 본문 숨김 + 검색엔진 색인 차단
+        // 삭제된 게시글: 본문+메타데이터 숨김 + 검색엔진 색인 차단
         if (post.deleted_at) {
             post.content = '';
+            post.tags = [];
+            post.link1 = '';
+            post.link2 = '';
+            post.images = [];
+            post.videos = [];
+            post.downloads = [];
+            post.files = [];
             setHeaders({ 'X-Robots-Tag': 'noindex, noarchive' });
         }
 
