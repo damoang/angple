@@ -95,14 +95,10 @@
         width: min(100%, 36rem);
         border-radius: 1.25rem;
         border: 2px solid color-mix(in srgb, var(--primary) 40%, var(--border));
-        background: linear-gradient(
-            180deg,
-            color-mix(in srgb, var(--primary) 4%, var(--background)),
-            color-mix(in srgb, var(--background) 86%, var(--color-dusty-100))
-        );
+        background: var(--background);
         padding: 2rem;
         box-shadow:
-            0 24px 56px color-mix(in srgb, var(--foreground) 12%, transparent),
+            0 24px 56px color-mix(in srgb, var(--foreground) 16%, transparent),
             0 0 0 1px color-mix(in srgb, var(--primary) 8%, transparent);
         animation: popup-enter 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
