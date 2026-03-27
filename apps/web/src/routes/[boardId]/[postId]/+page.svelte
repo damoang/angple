@@ -398,15 +398,10 @@
         };
     });
 
-    // SSR에서 내려준 memberLevels로 스토어 초기화 (클라이언트 /api/members/levels 호출 제거)
     $effect(() => {
-        if (data.memberLevels && Object.keys(data.memberLevels).length > 0) {
-            memberLevelStore.initFromSSR(data.memberLevels);
-        } else {
-            const authorId = data.post.author_id;
-            if (authorId) {
-                void memberLevelStore.fetchLevels([authorId]);
-            }
+        const authorId = data.post.author_id;
+        if (authorId) {
+            void memberLevelStore.fetchLevels([authorId]);
         }
     });
 
