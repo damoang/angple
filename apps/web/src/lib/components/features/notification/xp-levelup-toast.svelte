@@ -1,5 +1,4 @@
 <script lang="ts">
-    import { onMount } from 'svelte';
     import { authStore } from '$lib/stores/auth.svelte.js';
     import { xpLevelupDetect } from '$lib/stores/xp-levelup-detect.svelte.js';
     import * as Dialog from '$lib/components/ui/dialog/index.js';
@@ -9,6 +8,17 @@
     import Sparkles from '@lucide/svelte/icons/sparkles';
 
     let dialogOpen = $state(false);
+    let checked = false;
+
+    // authStore 로딩 완료 후 XP 레벨업 감지 (onMount 타이밍 버그 수정)
+    $effect(() => {
+        if (checked) return;
+        if (authStore.isLoading) return;
+        if (!authStore.user?.as_level) return;
+
+        checked = true;
+        xpLevelupDetect.checkXpLevelUp(authStore.user.as_level);
+    });
 
     // xpLevelupDetect 상태 변경 감지
     $effect(() => {
@@ -27,13 +37,6 @@
     function handleClose() {
         dialogOpen = false;
     }
-
-    onMount(() => {
-        // localStorage 기반 XP 레벨업 감지
-        if (authStore.user?.as_level) {
-            xpLevelupDetect.checkXpLevelUp(authStore.user.as_level);
-        }
-    });
 </script>
 
 <Dialog.Root bind:open={dialogOpen}>
