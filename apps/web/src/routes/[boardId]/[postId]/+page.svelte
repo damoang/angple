@@ -1662,16 +1662,18 @@
                                 새로고침
                             </button>
                         </div>
-                        <CommentForm
-                            onSubmit={handleCreateComment}
-                            isLoading={isCreatingComment}
-                            permissions={data.board?.permissions}
-                            requiredCommentLevel={data.board?.comment_level ?? 3}
-                            isRestricted={data.isRestricted}
-                            {boardId}
-                            onRefresh={refreshComments}
-                            isRefreshing={isRefreshingComments}
-                        />
+                        {#key data.post.id}
+                            <CommentForm
+                                onSubmit={handleCreateComment}
+                                isLoading={isCreatingComment}
+                                permissions={data.board?.permissions}
+                                requiredCommentLevel={data.board?.comment_level ?? 3}
+                                isRestricted={data.isRestricted}
+                                {boardId}
+                                onRefresh={refreshComments}
+                                isRefreshing={isRefreshingComments}
+                            />
+                        {/key}
                     </div>
                 </CardContent>
             </Card>

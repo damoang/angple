@@ -83,7 +83,7 @@
         }
 
         // 차단된 사용자 글 필터
-        posts = posts.filter((p) => !blockedUsersStore.isBlocked(p.author_id));
+        posts = posts.filter((p) => !blockedUsersStore.isBlocked(p.author));
 
         // 최소 추천수 필터
         if (threshold > 0) {
@@ -133,7 +133,7 @@
         }
 
         // 차단된 사용자 댓글 필터
-        comments = comments.filter((c) => !blockedUsersStore.isBlocked(c.author_id));
+        comments = comments.filter((c) => !blockedUsersStore.isBlocked(c.author));
 
         if (threshold > 0) {
             comments = comments.filter((c) => c.recommend_count >= threshold);
