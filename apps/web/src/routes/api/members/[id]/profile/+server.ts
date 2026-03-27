@@ -152,7 +152,7 @@ export const GET: RequestHandler = async ({ params }) => {
             // 테이블 없으면 기본값 사용
         }
 
-        // 이용제한 정보
+        // 이용제한 정보 (g5_da_member_discipline → g5_write_disciplinelog fallback)
         let discipline = null;
         try {
             const [discRows] = await pool.query<DisciplineRow[]>(
@@ -168,6 +168,29 @@ export const GET: RequestHandler = async ({ params }) => {
             }
         } catch {
             // 테이블 없으면 무시
+        }
+
+        // fallback: disciplinelog 게시판에서 최신 기록 조회
+        if (!discipline) {
+            try {
+                const [logRows] = await pool.query<RowDataPacket[]>(
+                    `SELECT wr_content FROM g5_write_disciplinelog
+                     WHERE penalty_mb_id = ? AND wr_is_comment = 0
+                     ORDER BY wr_id DESC LIMIT 1`,
+                    [memberId]
+                );
+                if (logRows.length > 0 && logRows[0].wr_content) {
+                    const parsed = JSON.parse(logRows[0].wr_content);
+                    if (parsed.penalty_period !== undefined) {
+                        discipline = {
+                            penalty_period: parsed.penalty_period,
+                            penalty_date_from: parsed.penalty_date_from
+                        };
+                    }
+                }
+            } catch {
+                // 파싱 실패 시 무시
+            }
         }
 
         // 팔로워/팔로잉 수
