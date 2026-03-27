@@ -167,8 +167,6 @@
     // 네비게이션 프로그레스바 (500ms 딜레이 — 빠른 전환에서는 숨김)
     let showNavProgress = $state(false);
     let navProgressTimeout: ReturnType<typeof setTimeout> | undefined;
-    let showRouteTransitionCover = $state(false);
-    let routeTransitionCoverTimeout: ReturnType<typeof setTimeout> | undefined;
     const NAVIGATION_STALL_TIMEOUT_MS = 4000;
     const NAVIGATION_RECOVERY_KEY = '__angple_navigation_recovery__';
 
@@ -181,26 +179,6 @@
         } else {
             showNavProgress = false;
         }
-    });
-
-    // 느린 SPA 전환 동안 이전 화면이 새 URL 아래에 남아 보이지 않도록
-    // 짧은 딜레이 후 전환 커버를 표시한다.
-    $effect(() => {
-        clearTimeout(routeTransitionCoverTimeout);
-        const currentPath = $page.url.pathname;
-        const nextPath = navigating.to?.url?.pathname;
-
-        if (nextPath && nextPath !== currentPath) {
-            routeTransitionCoverTimeout = setTimeout(() => {
-                showRouteTransitionCover = true;
-            }, 120);
-        } else {
-            showRouteTransitionCover = false;
-        }
-
-        return () => {
-            clearTimeout(routeTransitionCoverTimeout);
-        };
     });
 
     // SPA 내비게이션이 URL만 바뀌고 화면 갱신이 멈추는 경우를 대비해
@@ -431,22 +409,6 @@
 <!-- 네비게이션 프로그레스바 (500ms 이상 걸리는 전환에서만 표시) -->
 {#if showNavProgress}
     <div class="nav-progress" aria-hidden="true"></div>
-{/if}
-
-{#if showRouteTransitionCover}
-    <div class="bg-background/96 pointer-events-none fixed inset-0 z-[70]" aria-hidden="true">
-        <div class="mx-auto flex h-full w-full max-w-5xl items-start px-4 pt-24">
-            <div class="w-full space-y-4">
-                <div class="bg-muted h-8 w-40 animate-pulse rounded-md"></div>
-                <div class="bg-muted h-12 w-full animate-pulse rounded-xl"></div>
-                <div class="space-y-3">
-                    <div class="bg-muted h-28 w-full animate-pulse rounded-xl"></div>
-                    <div class="bg-muted h-28 w-full animate-pulse rounded-xl"></div>
-                    <div class="bg-muted h-28 w-full animate-pulse rounded-xl"></div>
-                </div>
-            </div>
-        </div>
-    </div>
 {/if}
 
 <!-- /admin, /install 경로는 테마 레이아웃 없이 렌더링 -->
