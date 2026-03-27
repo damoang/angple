@@ -51,11 +51,11 @@
     </section>
 
     <section class="video-section">
-        <h2>다모앙 소개 영상</h2>
+        <h2>다모앙 가이드 영상</h2>
         <div class="video-container">
             <iframe
                 src="https://www.youtube-nocookie.com/embed/d9FESnvUX_I"
-                title="다모앙 소개 영상"
+                title="다모앙 가이드 영상"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                 allowfullscreen
             ></iframe>
