@@ -1,7 +1,11 @@
 import { error as svelteError, redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types.js';
 import type { FreePost, Board, SearchField } from '$lib/api/types.js';
-import { fetchPromotionPosts, fetchPromotionBoardPosts } from '$lib/server/ads/promotion.js';
+import {
+    fetchPromotionPosts,
+    fetchPromotionBoardPosts,
+    isPromotionCacheWarm
+} from '$lib/server/ads/promotion.js';
 import type { PromotionBoardPost } from '$lib/server/ads/promotion.js';
 import { backendFetch as bFetch, createAuthHeaders } from '$lib/server/backend-fetch.js';
 import { fetchMemberImagesWithTimestamp } from '$lib/server/member-images.js';
@@ -424,11 +428,10 @@ export const load: PageServerLoad = async ({ url, params, locals, getClientAddre
     }
     const postsData = await postsDataPromise;
 
-    const promotionDataPromise = (async () => {
+    const fetchFilteredPromotionPosts = async (): Promise<unknown[]> => {
         if (isSearching || isPromotionBoard) {
-            return [] as unknown[];
+            return [];
         }
-
         try {
             const promotionResult = await fetchPromotionPosts();
             const promoData = (promotionResult as Record<string, unknown>)?.data as
@@ -437,13 +440,18 @@ export const load: PageServerLoad = async ({ url, params, locals, getClientAddre
             const boardException = (promoData?.board_exception || '') as string;
             const excludedBoards = boardException.split(',').map((s: string) => s.trim());
             if (excludedBoards.includes(boardId)) {
-                return [] as unknown[];
+                return [];
             }
             return (promoData?.posts as unknown[]) || [];
         } catch {
-            return [] as unknown[];
+            return [];
         }
-    })();
+    };
+
+    // 캐시 warm → SSR 직접 포함 (스켈레톤 없음), cold → 스트리밍
+    const cacheWarm = !isSearching && !isPromotionBoard && isPromotionCacheWarm();
+    const promotionData = cacheWarm ? await fetchFilteredPromotionPosts() : null;
+    const promotionDataPromise = cacheWarm ? null : fetchFilteredPromotionPosts();
 
     // 진실의방 워터마크 데이터 (목록 페이지)
     let watermark: { nickname: string; userId: string; clientIp: string } | null = null;
@@ -468,8 +476,9 @@ export const load: PageServerLoad = async ({ url, params, locals, getClientAddre
         activeTag: tag,
         watermark,
         postsData,
+        promotionData,
         streamed: {
-            promotionData: promotionDataPromise
+            promotionData: promotionDataPromise ?? Promise.resolve([] as unknown[])
         }
     };
 };

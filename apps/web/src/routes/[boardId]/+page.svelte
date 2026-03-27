@@ -91,7 +91,7 @@
     initCoreLayouts();
 
     let { data }: { data: PageData } = $props();
-    let promotionPosts = $state<unknown[]>([]);
+    let promotionPosts = $state<unknown[]>(data.promotionData || []);
 
     // 게시판 정보
     const boardId = $derived(data.boardId);
@@ -309,6 +309,13 @@
     });
 
     $effect(() => {
+        // SSR에서 직접 포함된 데이터가 있으면 사용 (캐시 warm 시)
+        if (data.promotionData && data.promotionData.length > 0) {
+            promotionPosts = data.promotionData;
+            return;
+        }
+
+        // 캐시 cold 시 스트리밍 fallback
         const promise = data.streamed?.promotionData;
         if (!promise) {
             promotionPosts = [];
@@ -316,7 +323,6 @@
         }
 
         let cancelled = false;
-        promotionPosts = [];
 
         promise
             .then((result: unknown[]) => {

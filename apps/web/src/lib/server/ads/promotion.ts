@@ -3,12 +3,12 @@
  *
  * ads 서버에서 프로모션 게시글을 직접 가져옵니다.
  * SvelteKit self-call 프록시를 거치지 않아 hooks.server.ts 재진입을 방지합니다.
- * 30초 TTL 인메모리 캐시로 반복 호출을 최소화합니다.
+ * 1시간 TTL 인메모리 캐시 + 글 작성 시 무효화로 반복 호출을 최소화합니다.
  */
 
 import { getAdsServerUrl } from './config';
 
-const PROMOTION_CACHE_TTL = 30_000; // 30초
+const PROMOTION_CACHE_TTL = 3_600_000; // 1시간 (직접홍보 하루 20건 미만)
 const PROMOTION_POSTS_TIMEOUT_MS = 500;
 const PROMOTION_BOARD_TIMEOUT_MS = 1_500;
 
@@ -68,6 +68,17 @@ export async function fetchPromotionBoardPosts(): Promise<PromotionBoardPostsRes
 }
 
 export type { PromotionBoardPost, PromotionBoardPostsResponse };
+
+/** 캐시가 warm인지 확인 (SSR 직접 포함 여부 판단용) */
+export function isPromotionCacheWarm(): boolean {
+    return promotionCache !== null && Date.now() < promotionCache.expiresAt;
+}
+
+/** promotion 게시판 글 작성/수정/삭제 시 호출 */
+export function invalidatePromotionCache(): void {
+    promotionCache = null;
+    promotionBoardCache = null;
+}
 
 export async function fetchPromotionPosts(): Promise<unknown> {
     const now = Date.now();
