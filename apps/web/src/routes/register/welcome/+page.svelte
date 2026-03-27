@@ -3,7 +3,7 @@
     import MessageCircleHeart from '@lucide/svelte/icons/message-circle-heart';
     import ShieldAlert from '@lucide/svelte/icons/shield-alert';
     import Sparkles from '@lucide/svelte/icons/sparkles';
-    import ShieldCheck from '@lucide/svelte/icons/shield-check';
+
     import TrendingUp from '@lucide/svelte/icons/trending-up';
 </script>
 
@@ -49,17 +49,6 @@
             </div>
             <h3>청정 커뮤니티</h3>
             <p>건전하고 청정한 커뮤니티를 함께 만들어 갑시다. 여러분의 참여가 다모앙을 만듭니다.</p>
-        </div>
-
-        <div class="rule-card">
-            <div class="rule-icon privacy">
-                <ShieldCheck class="h-7 w-7" />
-            </div>
-            <h3>실명 닉네임 사용 주의</h3>
-            <p>
-                개인정보 보호를 위해 실명 닉네임 사용을 지양해 주세요. 닉네임은 모든 회원에게
-                공개됩니다.
-            </p>
         </div>
     </section>
 
@@ -187,11 +176,6 @@
     .rule-icon.clean {
         background: color-mix(in srgb, #f59e0b 12%, var(--background));
         color: #f59e0b;
-    }
-
-    .rule-icon.privacy {
-        background: color-mix(in srgb, #8b5cf6 12%, var(--background));
-        color: #8b5cf6;
     }
 
     .rule-card h3 {
@@ -341,7 +325,7 @@
         }
 
         .rules {
-            grid-template-columns: repeat(2, 1fr);
+            grid-template-columns: repeat(3, 1fr);
         }
     }
 </style>
