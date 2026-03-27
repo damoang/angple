@@ -1105,9 +1105,13 @@
         }
     }
 
-    onMount(() => {
-        if (!canViewSecret) return;
-        if (commentsTotal <= comments.length) return;
+    // 댓글 backfill: SSR에서 일부만 로드된 경우 전체 댓글 가져오기
+    // onMount 대신 $effect로 SPA 네비게이션에서도 동작하도록
+    $effect(() => {
+        if (!browser || !canViewSecret) return;
+        const total = commentsTotal;
+        const loaded = comments.length;
+        if (total <= loaded) return;
 
         const timer = window.setTimeout(() => {
             void refetchComments();
