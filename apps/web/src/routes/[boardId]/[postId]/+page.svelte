@@ -1547,27 +1547,8 @@
         <!-- GA4 Scroll Depth 센티넬 (75%) -->
         <div data-scroll-depth="75" aria-hidden="true"></div>
 
-        <!-- 댓글 섹션 (비밀글 열람 가능 + 스트리밍 완료 시 표시) -->
-        {#if canViewSecret && !commentsLoaded}
-            <Card class="bg-background">
-                <CardContent class="space-y-4 py-6">
-                    <!-- 댓글 스켈레톤 -->
-                    {#each Array.from({ length: 3 }) as _, i (i)}
-                        <div class="flex gap-3">
-                            <div class="bg-muted h-8 w-8 animate-pulse rounded-full"></div>
-                            <div class="flex-1 space-y-2">
-                                <div class="flex items-center gap-2">
-                                    <div class="bg-muted h-3.5 w-20 animate-pulse rounded"></div>
-                                    <div class="bg-muted h-3 w-16 animate-pulse rounded"></div>
-                                </div>
-                                <div class="bg-muted h-4 w-full animate-pulse rounded"></div>
-                                <div class="bg-muted h-4 w-3/4 animate-pulse rounded"></div>
-                            </div>
-                        </div>
-                    {/each}
-                </CardContent>
-            </Card>
-        {:else if canViewSecret && commentsError}
+        <!-- 댓글 섹션 -->
+        {#if canViewSecret && commentsError}
             <Card class="bg-background">
                 <CardContent class="space-y-4 py-8 text-center">
                     <p class="text-destructive text-sm">댓글을 불러오지 못했습니다.</p>
@@ -1649,6 +1630,9 @@
                     </div>
                 {/if}
                 <CardContent class="space-y-6">
+                    {#if !commentsLoaded}
+                        <p class="text-muted-foreground text-sm">댓글을 불러오는 중입니다.</p>
+                    {/if}
                     <CommentList
                         {comments}
                         onUpdate={handleUpdateComment}
