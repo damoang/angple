@@ -537,7 +537,10 @@ export const load: PageServerLoad = async ({
                     items: (listJson.data as FreePost[]) || [],
                     total,
                     totalPages:
-                        listJson.meta?.total_pages || Math.ceil(total / RECENT_POSTS_LIMIT) || 1,
+                        listJson.meta?.total_pages ||
+                        (total > 0 ? Math.ceil(total / RECENT_POSTS_LIMIT) : 0) ||
+                        (listJson.meta?.has_next ? listPage + 1 : listPage) ||
+                        1,
                     page: listPage
                 };
             }
