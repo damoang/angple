@@ -10,6 +10,17 @@
     import PartyPopper from '@lucide/svelte/icons/party-popper';
 
     let dialogOpen = $state(false);
+    let levelChecked = false;
+
+    // authStore 로딩 완료 후 등급 승급 감지 (onMount 타이밍 버그 수정)
+    $effect(() => {
+        if (levelChecked) return;
+        if (authStore.isLoading) return;
+        if (!authStore.user?.mb_level) return;
+
+        levelChecked = true;
+        levelupDetect.checkLevelUp(authStore.user.mb_level);
+    });
 
     // levelupDetect 상태 변경 감지
     $effect(() => {
@@ -29,16 +40,13 @@
 
     async function launchConfetti() {
         try {
-            const moduleName = 'canvas-confetti';
-            const confetti = (await import(/* @vite-ignore */ moduleName)).default;
-            // 첫 번째 발사 — 왼쪽에서
+            const confetti = (await import('canvas-confetti')).default;
             confetti({
                 particleCount: 80,
                 spread: 70,
                 origin: { x: 0.2, y: 0.6 },
                 colors: ['#FFD700', '#FF6B6B', '#4ECDC4', '#45B7D1', '#DDA0DD']
             });
-            // 두 번째 발사 — 오른쪽에서
             setTimeout(() => {
                 confetti({
                     particleCount: 80,
@@ -47,7 +55,6 @@
                     colors: ['#FFD700', '#FFEAA7', '#96CEB4', '#F7DC6F', '#BB8FCE']
                 });
             }, 200);
-            // 세 번째 발사 — 위에서 쏟아지기
             setTimeout(() => {
                 confetti({
                     particleCount: 100,
@@ -66,9 +73,7 @@
         try {
             const audio = new Audio('/sounds/levelup-fanfare.mp3');
             audio.volume = 0.5;
-            audio.play().catch(() => {
-                // autoplay 차단 시 무시 (모바일 등)
-            });
+            audio.play().catch(() => {});
         } catch {
             // 사운드 재생 실패 시 무시
         }
@@ -79,11 +84,6 @@
     }
 
     onMount(() => {
-        // localStorage 기반 레벨업 감지
-        if (authStore.user?.mb_level) {
-            levelupDetect.checkLevelUp(authStore.user.mb_level);
-        }
-
         // SSE 보조 리스너 (관리자 수동 승급 시)
         const unsub = sseStore.onNotification((noti) => {
             if (noti.type === 'levelup') {
