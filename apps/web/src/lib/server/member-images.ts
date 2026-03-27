@@ -5,9 +5,15 @@
  * 게시글 목록/상세에서 author_image를 enrichment할 때 사용.
  */
 import type { RowDataPacket } from 'mysql2';
+import { createCache } from '$lib/server/cache.js';
 import pool from '$lib/server/db';
 
 const MAX_IDS = 200;
+const MEMBER_IMAGE_CACHE_TTL_MS = 300_000;
+const memberImageCache = createCache<MemberImageInfo | null>({
+    ttl: MEMBER_IMAGE_CACHE_TTL_MS,
+    maxSize: 20_000
+});
 
 export interface MemberImageInfo {
     url: string;
@@ -20,22 +26,15 @@ export interface MemberImageInfo {
  * @returns { [mb_id]: mb_image_url } 맵 (이미지 없는 회원은 포함 안 됨)
  */
 export async function fetchMemberImages(ids: string[]): Promise<Record<string, string>> {
-    const validIds = ids.filter((id) => id && /^[a-zA-Z0-9_]+$/.test(id)).slice(0, MAX_IDS);
-
-    if (validIds.length === 0) return {};
-
-    const placeholders = validIds.map(() => '?').join(',');
-    const [rows] = await pool.query<RowDataPacket[]>(
-        `SELECT mb_id, mb_image_url FROM g5_member WHERE mb_id IN (${placeholders}) AND mb_image_url != ''`,
-        validIds
-    );
-
     const images: Record<string, string> = {};
-    for (const row of rows) {
-        if (row.mb_image_url) {
-            images[row.mb_id] = row.mb_image_url;
+    const imageMap = await fetchMemberImagesWithTimestamp(ids);
+
+    for (const [memberId, image] of Object.entries(imageMap)) {
+        if (image.url) {
+            images[memberId] = image.url;
         }
     }
+
     return images;
 }
 
@@ -51,20 +50,45 @@ export async function fetchMemberImagesWithTimestamp(
 
     if (validIds.length === 0) return {};
 
-    const placeholders = validIds.map(() => '?').join(',');
-    const [rows] = await pool.query<RowDataPacket[]>(
-        `SELECT mb_id, mb_image_url, mb_image_updated_at FROM g5_member WHERE mb_id IN (${placeholders}) AND mb_image_url != ''`,
-        validIds
-    );
-
     const images: Record<string, MemberImageInfo> = {};
-    for (const row of rows) {
-        if (row.mb_image_url) {
-            images[row.mb_id] = {
-                url: row.mb_image_url,
-                updated_at: row.mb_image_updated_at ? String(row.mb_image_updated_at) : undefined
-            };
+    const missingIds: string[] = [];
+
+    for (const id of validIds) {
+        const cached = memberImageCache.get(id);
+        if (cached === undefined) {
+            missingIds.push(id);
+            continue;
+        }
+        if (cached) {
+            images[id] = cached;
         }
     }
+
+    if (missingIds.length === 0) return images;
+
+    const placeholders = missingIds.map(() => '?').join(',');
+    const [rows] = await pool.query<RowDataPacket[]>(
+        `SELECT mb_id, mb_image_url, mb_image_updated_at FROM g5_member WHERE mb_id IN (${placeholders}) AND mb_image_url != ''`,
+        missingIds
+    );
+
+    const foundIds = new Set<string>();
+    for (const row of rows) {
+        if (!row.mb_image_url) continue;
+        foundIds.add(row.mb_id);
+        const image = {
+            url: row.mb_image_url,
+            updated_at: row.mb_image_updated_at ? String(row.mb_image_updated_at) : undefined
+        };
+        memberImageCache.set(row.mb_id, image);
+        images[row.mb_id] = image;
+    }
+
+    for (const id of missingIds) {
+        if (!foundIds.has(id)) {
+            memberImageCache.set(id, null);
+        }
+    }
+
     return images;
 }
