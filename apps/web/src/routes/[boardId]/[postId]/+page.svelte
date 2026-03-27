@@ -1724,8 +1724,11 @@
         {boardId}
         {boardTitle}
         currentPostId={data.post.id}
-        limit={10}
-        initialPage={Number($page.url.searchParams.get('page')) || 1}
+        limit={20}
+        initialPage={data.recentPosts?.page || Number($page.url.searchParams.get('page')) || 1}
+        initialPosts={data.recentPosts?.items || []}
+        initialTotal={data.recentPosts?.total || 0}
+        initialTotalPages={data.recentPosts?.totalPages || 1}
         {promotionPosts}
         displaySettings={data.board?.display_settings}
     />
