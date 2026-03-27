@@ -216,9 +216,9 @@ export const load: PageServerLoad = async ({
 
         // 스크랩 여부는 2단계 스트리밍으로 이동 (초기 렌더 블로킹 방지)
 
-        // 직접홍보 게시판: 활성 목록에 없는 글은 만료 처리
+        // 직접홍보 게시판: 활성 목록에 없는 글은 만료 처리 (공지글 제외)
         let promotionExpired = false;
-        if (boardId === 'promotion') {
+        if (boardId === 'promotion' && !post.is_notice) {
             try {
                 const promoBoard = await fetchPromotionBoardPosts();
                 if (promoBoard.success && promoBoard.data.length > 0) {
