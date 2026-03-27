@@ -106,7 +106,7 @@
                 <Star class="h-7 w-7 animate-pulse text-yellow-400" />
             </div>
             <Dialog.Title class="text-xl font-bold text-yellow-600 dark:text-yellow-400">
-                등급이 올랐어요!
+                축하합니다! 🎉
             </Dialog.Title>
             <Dialog.Description class="text-muted-foreground mt-2 text-sm">
                 꾸준히 활동해주셔서 감사합니다
