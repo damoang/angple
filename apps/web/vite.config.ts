@@ -17,7 +17,21 @@ export default defineConfig(({ mode }) => {
     const allowedHosts = (env.VITE_ALLOWED_HOSTS || 'localhost').split(',');
 
     return {
-        plugins: [tailwindcss(), sveltekit()],
+        plugins: [
+            tailwindcss(),
+            sveltekit(),
+            // Svelte 5 rune 모듈의 HMR 초기화 순서 버그 방지
+            // $state를 export하는 .svelte.ts 모듈이 HMR 시 'updated_listener' 에러 유발
+            {
+                name: 'svelte-rune-hmr-fix',
+                handleHotUpdate({ file, server }) {
+                    if (file.endsWith('.svelte.ts') || file.endsWith('.svelte.js')) {
+                        server.ws.send({ type: 'full-reload' });
+                        return [];
+                    }
+                }
+            }
+        ],
         optimizeDeps: {
             include: ['@tiptap/suggestion', '@tiptap/pm/state']
         },
