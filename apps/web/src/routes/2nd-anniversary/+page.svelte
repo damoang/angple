@@ -51,8 +51,8 @@
 
     const cardImages = [
         'https://damoang.net/emoticons/damoang-emo-028.gif',
-        'https://damoang.net/emoticons/DINKIssTyle-ang-025.webp',
-        'https://damoang.net/emoticons/DINKIssTyle-3d-ang-025.webp'
+        'https://damoang.net/emoticons/damoang-emo-029.gif',
+        'https://damoang.net/emoticons/DINKIssTyle-3d-ang-027.webp'
     ];
     const isAuthReady = $derived(!authStore.isLoading);
     const drawStorageKey = $derived(
@@ -185,9 +185,7 @@
                                         selectedCard = i;
                                         handleDraw();
                                     }}
-                                    disabled={isFlipped ||
-                                        isSubmitting ||
-                                        (selectedCard !== null && selectedCard !== i)}
+                                    disabled={isFlipped || isSubmitting}
                                 >
                                     <div class="card-back-deco">
                                         <Sparkles class="sparkle s1" />
@@ -227,9 +225,7 @@
                     <p class="error-message">{submitError}</p>
                 {/if}
 
-                {#if !isFlipped && !isAuthReady}
-                    <p class="draw-done-note">로딩 중...</p>
-                {:else if !isFlipped && !isLoggedIn}
+                {#if !isFlipped && !isLoggedIn && isAuthReady}
                     <div class="draw-actions">
                         <Button
                             size="lg"
