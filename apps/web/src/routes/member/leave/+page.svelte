@@ -40,13 +40,29 @@
         </CardHeader>
         <CardContent>
             <!-- 경고 사항 -->
-            <div class="bg-destructive/5 mb-6 rounded-lg p-4 text-sm">
-                <ul class="space-y-2 text-red-700">
+            <div
+                class="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800 dark:border-red-800 dark:bg-red-950 dark:text-red-200"
+            >
+                <ul class="space-y-2">
                     <li>- 탈퇴 후 동일 아이디로 재가입이 불가합니다.</li>
                     <li>- 작성한 게시글과 댓글은 삭제되지 않습니다.</li>
                     <li>- 연결된 소셜 계정이 모두 해제됩니다.</li>
                     <li>- 보유 포인트가 소멸됩니다.</li>
                 </ul>
+                <div class="mt-3 border-t border-red-200 pt-3 dark:border-red-800">
+                    <p class="font-semibold">게시물 삭제 관련 안내</p>
+                    <ul class="mt-1 space-y-1">
+                        <li>- 탈퇴 전에 게시글과 댓글은 직접 삭제해 주세요.</li>
+                        <li>
+                            - 탈퇴 후에는 삭제 요청을 받지 않습니다. (<a
+                                href="https://damoang.net/notice/18204"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                class="underline underline-offset-2">공지사항</a
+                            >)
+                        </li>
+                    </ul>
+                </div>
             </div>
 
             <form

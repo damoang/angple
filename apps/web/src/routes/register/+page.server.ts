@@ -331,6 +331,6 @@ export const actions: Actions = {
             console.error('[Register] getCertConfig error:', err);
         }
 
-        redirect(302, redirectUrl);
+        redirect(302, '/register/welcome');
     }
 };

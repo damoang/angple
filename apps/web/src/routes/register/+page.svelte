@@ -351,6 +351,9 @@
                         <p class="text-muted-foreground text-xs">
                             한글, 영문, 숫자, 점(.), 밑줄(_) 사용 가능 (2~20자)
                         </p>
+                        <p class="text-muted-foreground text-xs">
+                            ⚠️ 개인정보 보호를 위해 실명 닉네임 사용을 지양해 주세요.
+                        </p>
                     </div>
 
                     <!-- 체크박스 값 전송용 hidden input -->

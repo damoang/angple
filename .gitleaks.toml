@@ -12,3 +12,7 @@ paths = [
   '''\.env\.example$''',
   '''\.github/workflows/ci\.yml$''',
 ]
+commits = [
+  # localStorage key constants (false positive: damoang_2nd_anniversary_visit_count)
+  "7b77b9d348a5515b2624c604aba438cd626bb3f8",
+]
