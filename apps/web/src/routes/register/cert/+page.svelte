@@ -128,8 +128,8 @@
                         </p>
                     </div>
                 </div>
-                <Button class="w-full" onclick={() => (window.location.href = '/')}>
-                    메인으로 이동
+                <Button class="w-full" onclick={() => (window.location.href = '/register/welcome')}>
+                    다음으로
                 </Button>
             {:else}
                 <!-- 인증 필요 상태 -->
