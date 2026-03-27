@@ -273,7 +273,7 @@
                 updateActiveState();
             },
             onTransaction: () => {
-                setTimeout(() => updateActiveState(), 0);
+                requestAnimationFrame(() => updateActiveState());
             }
         });
 
