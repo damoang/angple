@@ -518,6 +518,33 @@ export const load: PageServerLoad = async ({
         const memberLevels =
             levelIds.length > 0 ? await fetchMemberLevels(levelIds).catch(() => ({})) : {};
 
+        // 하단 게시글 목록 SSR 프리로드 (클라이언트 API 호출 제거 → 스켈레톤 제거)
+        const listPage = Number(url.searchParams.get('page')) || 1;
+        const RECENT_POSTS_LIMIT = 20;
+        let recentPosts: { items: FreePost[]; total: number; totalPages: number; page: number } = {
+            items: [],
+            total: 0,
+            totalPages: 1,
+            page: listPage
+        };
+        try {
+            const listRes = await bFetch(
+                `/api/v1/boards/${boardId}/posts?page=${listPage}&limit=${RECENT_POSTS_LIMIT}`,
+                { headers, timeout: 3_000 }
+            );
+            if (listRes.ok) {
+                const listJson = await listRes.json();
+                recentPosts = {
+                    items: (listJson.data as FreePost[]) || [],
+                    total: listJson.meta?.total || 0,
+                    totalPages: listJson.meta?.total_pages || 1,
+                    page: listPage
+                };
+            }
+        } catch {
+            // 실패 시 클라이언트에서 onMount로 로드 (기존 동작)
+        }
+
         return {
             boardId,
             post,
@@ -530,6 +557,7 @@ export const load: PageServerLoad = async ({
             watermark,
             truthroomPostId,
             originalPostLink,
+            recentPosts,
             /** 스트리밍: Promise로 반환 → 클라이언트에서 $effect로 수신 */
             streamed: {
                 auxiliaryData: auxiliaryDataPromise
