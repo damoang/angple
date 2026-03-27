@@ -3,6 +3,7 @@
     import MessageCircleHeart from '@lucide/svelte/icons/message-circle-heart';
     import ShieldAlert from '@lucide/svelte/icons/shield-alert';
     import Sparkles from '@lucide/svelte/icons/sparkles';
+    import TrendingUp from '@lucide/svelte/icons/trending-up';
 </script>
 
 <svelte:head>
@@ -47,6 +48,30 @@
             </div>
             <h3>청정 커뮤니티</h3>
             <p>건전하고 청정한 커뮤니티를 함께 만들어 갑시다. 여러분의 참여가 다모앙을 만듭니다.</p>
+        </div>
+    </section>
+
+    <section class="level-guide">
+        <div class="level-header">
+            <TrendingUp class="h-5 w-5" />
+            <h2>등급 안내</h2>
+        </div>
+        <div class="level-steps">
+            <div class="level-step">
+                <div class="level-badge current">앙님❤️</div>
+                <div class="level-info">
+                    <p class="level-title">가입 직후</p>
+                    <p class="level-desc">게시글 읽기가 가능합니다.</p>
+                </div>
+            </div>
+            <div class="level-arrow">→</div>
+            <div class="level-step">
+                <div class="level-badge next">앙님💛</div>
+                <div class="level-info">
+                    <p class="level-title">7일 로그인 + 실명인증</p>
+                    <p class="level-desc">글쓰기와 댓글 작성이 가능합니다.</p>
+                </div>
+            </div>
         </div>
     </section>
 
@@ -164,6 +189,91 @@
         color: color-mix(in srgb, var(--foreground) 76%, var(--muted-foreground));
         font-size: 0.95rem;
         line-height: 1.7;
+    }
+
+    .level-guide {
+        margin-bottom: 2.5rem;
+        border: 1px solid color-mix(in srgb, var(--border) 80%, var(--color-dusty-300));
+        background: linear-gradient(
+            135deg,
+            color-mix(in srgb, var(--background) 96%, var(--canvas)),
+            color-mix(in srgb, var(--background) 90%, var(--color-dusty-100))
+        );
+        border-radius: 1.25rem;
+        padding: 1.5rem;
+        box-shadow: 0 4px 16px color-mix(in srgb, var(--foreground) 4%, transparent);
+    }
+
+    .level-header {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 1.25rem;
+        color: var(--foreground);
+    }
+
+    .level-header h2 {
+        margin: 0;
+        font-size: 1.1rem;
+        font-weight: 700;
+    }
+
+    .level-steps {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    .level-step {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        flex: 1;
+        min-width: 200px;
+        padding: 1rem;
+        border-radius: 0.85rem;
+        background: color-mix(in srgb, var(--background) 80%, var(--muted));
+    }
+
+    .level-badge {
+        flex-shrink: 0;
+        padding: 0.35rem 0.75rem;
+        border-radius: 999px;
+        font-size: 0.9rem;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
+    .level-badge.current {
+        background: color-mix(in srgb, #ef4444 12%, var(--background));
+        color: #ef4444;
+    }
+
+    .level-badge.next {
+        background: color-mix(in srgb, #f59e0b 12%, var(--background));
+        color: #f59e0b;
+    }
+
+    .level-title {
+        margin: 0;
+        font-size: 0.88rem;
+        font-weight: 700;
+        color: var(--foreground);
+    }
+
+    .level-desc {
+        margin: 0.15rem 0 0;
+        font-size: 0.82rem;
+        color: var(--muted-foreground);
+        line-height: 1.5;
+    }
+
+    .level-arrow {
+        color: var(--muted-foreground);
+        font-size: 1.2rem;
+        font-weight: 700;
     }
 
     .video-section {
