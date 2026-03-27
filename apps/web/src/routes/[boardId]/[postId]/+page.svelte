@@ -1102,6 +1102,8 @@
         if (json.success) {
             comments = json.data.comments;
             commentsTotal = json.data.total || json.data.comments?.length || comments.length;
+            // backfill 완료 후 앵커 스크롤 재시도 (#c_댓글ID로 접근 시)
+            requestAnimationFrame(() => scheduleAnchorScroll());
         }
     }
 
