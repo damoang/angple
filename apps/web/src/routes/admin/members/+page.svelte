@@ -255,6 +255,7 @@
     }
 
     function getLevelBadge(level: number) {
+        if (level === -1) return { label: '공식 AI 봇', variant: 'outline' as const };
         if (level >= 10) return { label: '관리자', variant: 'destructive' as const };
         if (level >= 5) return { label: `Lv.${level}`, variant: 'default' as const };
         return { label: `Lv.${level}`, variant: 'secondary' as const };
