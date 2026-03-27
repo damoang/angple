@@ -95,15 +95,29 @@
 
     .popup {
         width: min(100%, 36rem);
-        border-radius: 1rem;
-        border: 1px solid color-mix(in srgb, var(--border) 78%, var(--primary));
+        border-radius: 1.25rem;
+        border: 2px solid color-mix(in srgb, var(--primary) 40%, var(--border));
         background: linear-gradient(
             180deg,
-            color-mix(in srgb, var(--background) 94%, var(--canvas)),
+            color-mix(in srgb, var(--primary) 4%, var(--background)),
             color-mix(in srgb, var(--background) 86%, var(--color-dusty-100))
         );
-        padding: 1.5rem;
-        box-shadow: 0 24px 56px color-mix(in srgb, var(--foreground) 12%, transparent);
+        padding: 2rem;
+        box-shadow:
+            0 24px 56px color-mix(in srgb, var(--foreground) 12%, transparent),
+            0 0 0 1px color-mix(in srgb, var(--primary) 8%, transparent);
+        animation: popup-enter 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    @keyframes popup-enter {
+        from {
+            opacity: 0;
+            transform: scale(0.9) translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+        }
     }
 
     .popup__header {
@@ -112,9 +126,13 @@
 
     .popup__header h2 {
         margin: 0;
-        font-size: 1.35rem;
+        font-size: 1.5rem;
         font-weight: 800;
         letter-spacing: -0.02em;
+        background: linear-gradient(135deg, #0f766e, #14b8a6);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
     }
 
     .popup__header p {
@@ -128,14 +146,25 @@
         flex-direction: column;
         align-items: center;
         gap: 1rem;
-        padding: 0.5rem 0 0.25rem;
+        padding: 1rem 0 0.5rem;
     }
 
     .popup__image {
-        width: min(100%, 180px);
+        width: min(100%, 240px);
         height: auto;
         object-fit: contain;
-        filter: drop-shadow(0 12px 24px color-mix(in srgb, var(--foreground) 16%, transparent));
+        filter: drop-shadow(0 16px 32px color-mix(in srgb, var(--foreground) 18%, transparent));
+        animation: image-float 3s ease-in-out infinite;
+    }
+
+    @keyframes image-float {
+        0%,
+        100% {
+            transform: translateY(0);
+        }
+        50% {
+            transform: translateY(-8px);
+        }
     }
 
     .popup__copy {

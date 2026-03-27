@@ -4,13 +4,13 @@
     import type { AnniversaryDrawResponse } from '$lib/api/types.js';
     import { authStore } from '$lib/stores/auth.svelte.js';
     import { Button } from '$lib/components/ui/button/index.js';
-    import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card/index.js';
     import CommemorativePage from '$lib/components/features/content/commemorative-page.svelte';
-    import { launchSidesConfetti } from '$lib/utils/confetti.js';
+    import { launchCelebrationConfetti } from '$lib/utils/confetti.js';
     import type { CommemorativePageContent } from '$lib/types/commemorative-page.js';
     import Gift from '@lucide/svelte/icons/gift';
     import PartyPopper from '@lucide/svelte/icons/party-popper';
     import CalendarCheck from '@lucide/svelte/icons/calendar-check';
+    import Sparkles from '@lucide/svelte/icons/sparkles';
 
     const VISIT_COUNT_KEY = 'damoang_2nd_anniversary_visit_count';
     const CONFETTI_DONE_KEY = 'damoang_2nd_anniversary_confetti_done';
@@ -44,7 +44,16 @@
     let drawEntry = $state<AnniversaryDrawResponse | null>(initialDrawEntry);
     let isSubmitting = $state(false);
     let submitError = $state<string | null>(null);
+    let isFlipped = $state(initialDrawEntry?.participated ?? false);
+    let isRevealing = $state(false);
+    let selectedCard = $state<number | null>(initialDrawEntry?.participated ? 0 : null);
     const isLoggedIn = $derived(Boolean(authStore.user?.mb_id));
+
+    const cardImages = [
+        'https://damoang.net/emoticons/damoang-emo-028.gif',
+        'https://damoang.net/emoticons/damoang-emo-029.gif',
+        'https://damoang.net/emoticons/DINKIssTyle-3d-ang-027.webp'
+    ];
     const isAuthReady = $derived(!authStore.isLoading);
     const drawStorageKey = $derived(
         authStore.user?.mb_id ? `${DRAW_STATE_PREFIX}:${authStore.user.mb_id}` : null
@@ -62,7 +71,7 @@
         localStorage.setItem(VISIT_COUNT_KEY, String(currentCount));
 
         if (currentCount === 2) {
-            await launchSidesConfetti();
+            await launchCelebrationConfetti();
             localStorage.setItem(CONFETTI_DONE_KEY, '1');
         }
     }
@@ -74,7 +83,9 @@
         if (!cached) return;
 
         try {
-            drawEntry = JSON.parse(cached) as AnniversaryDrawResponse;
+            const restored = JSON.parse(cached) as AnniversaryDrawResponse;
+            drawEntry = restored;
+            if (restored.participated) isFlipped = true;
         } catch {
             localStorage.removeItem(drawStorageKey);
         }
@@ -107,7 +118,17 @@
             }
 
             drawEntry = json.data as AnniversaryDrawResponse;
-            await launchSidesConfetti();
+
+            // 카드 뒤집기 연출
+            isRevealing = true;
+            await new Promise((r) => setTimeout(r, 300));
+            isFlipped = true;
+
+            // 뒤집기 완료 후 confetti
+            setTimeout(() => {
+                launchCelebrationConfetti();
+                isRevealing = false;
+            }, 800);
         } catch (error) {
             submitError = error instanceof Error ? error.message : '이벤트 참여에 실패했습니다.';
         } finally {
@@ -133,62 +154,90 @@
 
             <div class="draw-content">
                 <p class="draw-intro">
-                    로그인 회원은 1회 참여할 수 있습니다. 결과는 바로 확인할 수 있고, 포인트는 4월
-                    1일 이후 순차 지급됩니다.
+                    로그인 회원은 1회 참여할 수 있습니다. 카드를 뽑아 결과를 확인하세요!
                 </p>
 
-                {#if drawEntry?.participated}
-                    <div class="result-panel success">
-                        <div class="result-icon">
-                            <PartyPopper class="h-8 w-8" />
-                        </div>
-                        <p class="result-kicker">당신의 2주년 뽑기 결과</p>
-                        <div class="result-main">{drawEntry.draw_result}</div>
-                        <div class="result-points">
-                            {drawEntry.point_amount?.toLocaleString()} 포인트
-                        </div>
-                        <div class="result-schedule">
-                            <CalendarCheck class="h-4 w-4" />
-                            <span>4월 1일 이후 순차 지급 예정</span>
-                        </div>
-                    </div>
-                {:else}
-                    <div class="result-panel pending">
-                        <div class="result-icon pending-icon">
-                            <Gift class="h-8 w-8" />
-                        </div>
-                        <p class="result-kicker">참여 안내</p>
-                        <div class="result-main">가볍게 한 번 뽑아 보세요</div>
-                        <p class="result-note">
-                            회원당 1회 참여 가능하며, 포인트는 4월 1일 이후 순차 지급됩니다.
-                        </p>
-                    </div>
+                <!-- 카드 3장 선택 -->
+                {#if !isFlipped}
+                    <p class="pick-label">카드 한 장을 선택하세요</p>
                 {/if}
+
+                <div class="cards-row">
+                    {#each cardImages as img, i}
+                        <div
+                            class="flip-scene"
+                            class:selected={selectedCard === i}
+                            class:unselected={selectedCard !== null &&
+                                selectedCard !== i &&
+                                isFlipped}
+                        >
+                            <div
+                                class="flip-card"
+                                class:flipped={selectedCard === i && isFlipped}
+                                class:revealing={selectedCard === i && isRevealing}
+                            >
+                                <!-- 카드 뒷면 -->
+                                <button
+                                    class="flip-face flip-back"
+                                    onclick={() => {
+                                        if (isFlipped || isSubmitting || selectedCard !== null)
+                                            return;
+                                        selectedCard = i;
+                                        handleDraw();
+                                    }}
+                                    disabled={isFlipped || isSubmitting}
+                                >
+                                    <div class="card-back-deco">
+                                        <Sparkles class="sparkle s1" />
+                                        <Sparkles class="sparkle s2" />
+                                    </div>
+                                    <div class="card-back-content">
+                                        <img src={img} alt="카드 {i + 1}" class="card-back-image" />
+                                        <span class="card-back-question">?</span>
+                                    </div>
+                                    <div class="card-back-label">카드 {i + 1}</div>
+                                </button>
+
+                                <!-- 카드 앞면 (결과) -->
+                                <div class="flip-face flip-front">
+                                    {#if drawEntry?.participated && selectedCard === i}
+                                        <div class="card-front-content">
+                                            <PartyPopper class="front-icon" />
+                                            <p class="front-kicker">뽑기 결과</p>
+                                            <div class="front-result">{drawEntry.draw_result}</div>
+                                            <div class="front-points">
+                                                {drawEntry.point_amount?.toLocaleString()}
+                                                <span class="points-unit">P</span>
+                                            </div>
+                                            <div class="front-schedule">
+                                                <CalendarCheck class="h-3.5 w-3.5" />
+                                                <span>4/1 이후 지급</span>
+                                            </div>
+                                        </div>
+                                    {/if}
+                                </div>
+                            </div>
+                        </div>
+                    {/each}
+                </div>
 
                 {#if submitError}
                     <p class="error-message">{submitError}</p>
                 {/if}
 
-                <div class="draw-actions">
-                    <Button
-                        size="lg"
-                        class="draw-button"
-                        onclick={handleDraw}
-                        disabled={isSubmitting || drawEntry?.participated || !isAuthReady}
-                    >
-                        {#if isSubmitting}
-                            참여 처리 중...
-                        {:else if drawEntry?.participated}
-                            이미 참여했습니다
-                        {:else if !isAuthReady}
-                            로딩 중...
-                        {:else if isLoggedIn}
-                            뽑기 참여하기
-                        {:else}
+                {#if !isFlipped && !isLoggedIn && isAuthReady}
+                    <div class="draw-actions">
+                        <Button
+                            size="lg"
+                            class="draw-button"
+                            href="/login?redirect=%2F2nd-anniversary"
+                        >
                             로그인 후 참여하기
-                        {/if}
-                    </Button>
-                </div>
+                        </Button>
+                    </div>
+                {:else if isFlipped}
+                    <p class="draw-done-note">참여해 주셔서 감사합니다!</p>
+                {/if}
             </div>
         </div>
     </section>
@@ -247,6 +296,7 @@
     .draw-content {
         display: flex;
         flex-direction: column;
+        align-items: center;
         gap: 1.25rem;
     }
 
@@ -255,44 +305,250 @@
         color: color-mix(in srgb, var(--foreground) 78%, var(--muted-foreground));
         line-height: 1.85;
         font-size: 1.02rem;
-    }
-
-    .result-panel {
-        border-radius: 1.25rem;
-        padding: 1.75rem;
         text-align: center;
     }
 
-    .result-panel.success {
-        border: 1px solid color-mix(in srgb, var(--primary) 40%, var(--border));
-        background: linear-gradient(
-            135deg,
-            color-mix(in srgb, var(--primary) 6%, var(--background)),
-            color-mix(in srgb, var(--primary) 3%, var(--canvas))
-        );
+    .pick-label {
+        margin: 0;
+        color: var(--foreground);
+        font-size: 1.05rem;
+        font-weight: 700;
+        text-align: center;
     }
 
-    .result-panel.pending {
-        border: 1px solid color-mix(in srgb, var(--border) 78%, var(--primary));
-        background: linear-gradient(
-            135deg,
-            color-mix(in srgb, var(--background) 94%, var(--color-dusty-100)),
-            color-mix(in srgb, var(--canvas) 86%, var(--color-dusty-200))
-        );
+    .cards-row {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0.75rem;
+        width: 100%;
+        max-width: 540px;
     }
 
-    .result-icon {
+    /* === 카드 뒤집기 === */
+    .flip-scene {
+        perspective: 1000px;
+        width: 100%;
+        aspect-ratio: 3 / 4;
+        transition:
+            opacity 0.5s,
+            transform 0.5s;
+    }
+
+    .flip-scene.unselected {
+        opacity: 0.35;
+        transform: scale(0.92);
+        pointer-events: none;
+    }
+
+    .flip-scene.selected {
+        transform: scale(1.04);
+    }
+
+    .flip-card {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        transform-style: preserve-3d;
+    }
+
+    .flip-card.flipped {
+        transform: rotateY(180deg);
+    }
+
+    .flip-card.revealing {
+        animation: card-wobble 0.3s ease-in-out;
+    }
+
+    @keyframes card-wobble {
+        0%,
+        100% {
+            transform: rotateZ(0deg);
+        }
+        25% {
+            transform: rotateZ(-3deg) scale(1.02);
+        }
+        75% {
+            transform: rotateZ(3deg) scale(1.02);
+        }
+    }
+
+    .flip-face {
+        position: absolute;
+        inset: 0;
+        backface-visibility: hidden;
+        border-radius: 1.25rem;
+        overflow: hidden;
+    }
+
+    /* 카드 뒷면 */
+    .flip-back {
+        background: linear-gradient(145deg, #0f766e, #14b8a6 40%, #0ea5e9);
         display: flex;
+        flex-direction: column;
+        align-items: center;
         justify-content: center;
-        margin-bottom: 1rem;
+        gap: 0.5rem;
+        box-shadow:
+            0 8px 32px rgba(15, 118, 110, 0.3),
+            inset 0 1px 0 rgba(255, 255, 255, 0.15);
+        border: none;
+        cursor: pointer;
+        padding: 0;
+        color: inherit;
+        font: inherit;
+        transition: box-shadow 0.2s;
+    }
+
+    .flip-back:not(:disabled):hover {
+        box-shadow:
+            0 12px 40px rgba(15, 118, 110, 0.45),
+            inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    }
+
+    .flip-back:disabled {
+        cursor: default;
+    }
+
+    .card-back-deco {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+    }
+
+    .sparkle {
+        position: absolute;
+        color: rgba(255, 255, 255, 0.5);
+        animation: sparkle-float 3s ease-in-out infinite;
+    }
+
+    .sparkle.s1 {
+        top: 12%;
+        left: 15%;
+        width: 20px;
+        height: 20px;
+        animation-delay: 0s;
+    }
+    .sparkle.s2 {
+        top: 18%;
+        right: 12%;
+        width: 16px;
+        height: 16px;
+        animation-delay: 0.8s;
+    }
+    .sparkle.s3 {
+        bottom: 20%;
+        left: 10%;
+        width: 14px;
+        height: 14px;
+        animation-delay: 1.6s;
+    }
+    .sparkle.s4 {
+        bottom: 15%;
+        right: 18%;
+        width: 18px;
+        height: 18px;
+        animation-delay: 2.4s;
+    }
+
+    @keyframes sparkle-float {
+        0%,
+        100% {
+            opacity: 0.3;
+            transform: scale(0.8) rotate(0deg);
+        }
+        50% {
+            opacity: 1;
+            transform: scale(1.2) rotate(180deg);
+        }
+    }
+
+    .card-back-content {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .card-back-image {
+        width: min(80px, 50%);
+        height: auto;
+        filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.2));
+    }
+
+    .card-back-question {
+        font-size: 2.2rem;
+        font-weight: 900;
+        color: rgba(255, 255, 255, 0.9);
+        text-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        animation: question-pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes question-pulse {
+        0%,
+        100% {
+            transform: scale(1);
+            opacity: 0.85;
+        }
+        50% {
+            transform: scale(1.1);
+            opacity: 1;
+        }
+    }
+
+    .card-back-label {
+        color: rgba(255, 255, 255, 0.7);
+        font-size: 0.88rem;
+        font-weight: 600;
+        letter-spacing: 0.05em;
+    }
+
+    /* 카드 앞면 */
+    .flip-front {
+        transform: rotateY(180deg);
+        background: linear-gradient(
+            145deg,
+            color-mix(in srgb, var(--background) 94%, var(--primary)),
+            color-mix(in srgb, var(--background) 98%, var(--canvas))
+        );
+        border: 2px solid color-mix(in srgb, var(--primary) 30%, var(--border));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow:
+            0 8px 32px color-mix(in srgb, var(--primary) 15%, transparent),
+            inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    }
+
+    .card-front-content {
+        text-align: center;
+        padding: 1rem;
+    }
+
+    :global(.front-icon) {
+        width: 2rem;
+        height: 2rem;
         color: var(--primary);
+        margin: 0 auto 1rem;
+        animation: icon-bounce 0.6s ease-out;
     }
 
-    .pending-icon {
-        color: var(--muted-foreground);
+    @keyframes icon-bounce {
+        0% {
+            transform: scale(0);
+            opacity: 0;
+        }
+        60% {
+            transform: scale(1.3);
+        }
+        100% {
+            transform: scale(1);
+            opacity: 1;
+        }
     }
 
-    .result-kicker {
+    .front-kicker {
         margin: 0 0 0.5rem;
         color: var(--primary);
         font-size: 0.85rem;
@@ -301,22 +557,28 @@
         text-transform: uppercase;
     }
 
-    .result-main {
+    .front-result {
         color: var(--foreground);
-        font-size: clamp(1.5rem, 3.2vw, 2.2rem);
+        font-size: clamp(1rem, 3vw, 1.4rem);
         font-weight: 800;
-        line-height: 1.2;
+        line-height: 1.3;
         letter-spacing: -0.02em;
     }
 
-    .result-points {
-        margin-top: 0.75rem;
+    .front-points {
+        margin-top: 0.5rem;
         color: color-mix(in srgb, var(--primary) 88%, var(--foreground));
-        font-size: 1.2rem;
-        font-weight: 800;
+        font-size: 1.3rem;
+        font-weight: 900;
     }
 
-    .result-schedule {
+    .points-unit {
+        font-size: 0.9rem;
+        font-weight: 600;
+        opacity: 0.8;
+    }
+
+    .front-schedule {
         display: inline-flex;
         align-items: center;
         gap: 0.4rem;
@@ -325,17 +587,11 @@
         border-radius: 999px;
         background: color-mix(in srgb, var(--primary) 10%, var(--background));
         color: var(--primary);
-        font-size: 0.88rem;
+        font-size: 0.82rem;
         font-weight: 600;
     }
 
-    .result-note {
-        margin: 0.85rem 0 0;
-        color: color-mix(in srgb, var(--foreground) 68%, var(--muted-foreground));
-        line-height: 1.7;
-        font-size: 0.95rem;
-    }
-
+    /* === 버튼 & 하단 === */
     .draw-actions {
         display: flex;
         flex-direction: column;
@@ -345,11 +601,18 @@
 
     :global(.draw-button) {
         width: 100%;
-        max-width: 320px;
+        max-width: 300px;
         height: 3.2rem;
         font-size: 1.05rem;
         font-weight: 700;
         border-radius: 0.85rem;
+    }
+
+    .draw-done-note {
+        margin: 0;
+        text-align: center;
+        color: var(--muted-foreground);
+        font-size: 0.95rem;
     }
 
     .error-message {
@@ -367,6 +630,10 @@
 
         .draw-card {
             padding: 2.5rem;
+        }
+
+        .cards-row {
+            gap: 1.25rem;
         }
     }
 </style>
