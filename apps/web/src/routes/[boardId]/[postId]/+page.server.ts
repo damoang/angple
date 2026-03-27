@@ -532,10 +532,12 @@ export const load: PageServerLoad = async ({
             );
             if (listRes.ok) {
                 const listJson = await listRes.json();
+                const total = listJson.meta?.total || 0;
                 recentPosts = {
                     items: (listJson.data as FreePost[]) || [],
-                    total: listJson.meta?.total || 0,
-                    totalPages: listJson.meta?.total_pages || 1,
+                    total,
+                    totalPages:
+                        listJson.meta?.total_pages || Math.ceil(total / RECENT_POSTS_LIMIT) || 1,
                     page: listPage
                 };
             }
