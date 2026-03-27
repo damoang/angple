@@ -30,12 +30,10 @@
 {#if open}
     <div
         class="backdrop"
-        role="button"
-        tabindex="0"
-        aria-label="2주년 안내 닫기"
+        role="presentation"
         onclick={close}
         onkeydown={(e) => {
-            if (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ') {
+            if (e.key === 'Escape') {
                 e.preventDefault();
                 close();
             }
