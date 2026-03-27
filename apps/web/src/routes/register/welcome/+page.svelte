@@ -54,7 +54,7 @@
     <section class="level-guide">
         <div class="level-header">
             <TrendingUp class="h-5 w-5" />
-            <h2>등급 안내</h2>
+            <h2>첫 걸음 안내</h2>
         </div>
         <div class="level-steps">
             <div class="level-step">
