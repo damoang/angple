@@ -4,6 +4,7 @@
  */
 
 export const GRADE_NAMES: Record<number, string> = {
+    [-1]: '공식 AI 봇🤖',
     1: '앙님💔',
     2: '앙님❤️',
     3: '앙님💛',
