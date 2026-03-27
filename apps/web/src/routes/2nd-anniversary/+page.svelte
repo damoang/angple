@@ -6,6 +6,7 @@
     import { Button } from '$lib/components/ui/button/index.js';
     import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card/index.js';
     import CommemorativePage from '$lib/components/features/content/commemorative-page.svelte';
+    import { launchSidesConfetti } from '$lib/utils/confetti.js';
     import type { CommemorativePageContent } from '$lib/types/commemorative-page.js';
 
     const VISIT_COUNT_KEY = 'damoang_2nd_anniversary_visit_count';
@@ -53,45 +54,19 @@
     });
 
     async function handleVisitConfetti() {
-        if (typeof localStorage === 'undefined') return;
         if (localStorage.getItem(CONFETTI_DONE_KEY) === '1') return;
 
         const currentCount = Number(localStorage.getItem(VISIT_COUNT_KEY) || '0') + 1;
         localStorage.setItem(VISIT_COUNT_KEY, String(currentCount));
 
         if (currentCount === 2) {
-            await launchConfetti();
+            await launchSidesConfetti();
             localStorage.setItem(CONFETTI_DONE_KEY, '1');
         }
     }
 
-    async function launchConfetti() {
-        try {
-            const confetti = (await import('canvas-confetti')).default;
-
-            confetti({
-                particleCount: 90,
-                spread: 72,
-                origin: { x: 0.18, y: 0.6 },
-                colors: ['#0f766e', '#14b8a6', '#f59e0b', '#fb923c', '#fef3c7']
-            });
-
-            setTimeout(() => {
-                confetti({
-                    particleCount: 110,
-                    spread: 92,
-                    origin: { x: 0.82, y: 0.58 },
-                    colors: ['#0f766e', '#0ea5e9', '#facc15', '#fb923c', '#fff7ed']
-                });
-            }, 180);
-        } catch {
-            // ignore
-        }
-    }
-
     function restoreCachedDrawState() {
-        if (drawEntry?.participated || !drawStorageKey || typeof localStorage === 'undefined')
-            return;
+        if (drawEntry?.participated || !drawStorageKey) return;
 
         const cached = localStorage.getItem(drawStorageKey);
         if (!cached) return;
@@ -104,8 +79,7 @@
     }
 
     $effect(() => {
-        if (!drawEntry?.participated || !drawStorageKey || typeof localStorage === 'undefined')
-            return;
+        if (!drawEntry?.participated || !drawStorageKey) return;
         localStorage.setItem(drawStorageKey, JSON.stringify(drawEntry));
     });
 
@@ -120,7 +94,7 @@
 
         isSubmitting = true;
         try {
-            const response = await fetch('/api/v1/events/anniversary-draw', {
+            const response = await fetch('/api/events/anniversary-draw', {
                 method: 'POST',
                 credentials: 'include',
                 headers: { 'Content-Type': 'application/json' }
@@ -131,7 +105,7 @@
             }
 
             drawEntry = json.data as AnniversaryDrawResponse;
-            await launchConfetti();
+            await launchSidesConfetti();
         } catch (error) {
             submitError = error instanceof Error ? error.message : '이벤트 참여에 실패했습니다.';
         } finally {
@@ -145,68 +119,72 @@
     <meta name="description" content={pageContent.description} />
 </svelte:head>
 
-<CommemorativePage content={pageContent} />
+<div class="anniversary-wrapper">
+    <CommemorativePage content={pageContent} />
 
-<section class="draw-shell">
-    <Card class="draw-card">
-        <CardHeader>
-            <CardTitle>2주년 랜덤 포인트 뽑기</CardTitle>
-        </CardHeader>
-        <CardContent class="draw-content">
-            <p class="draw-intro">
-                로그인 회원은 1회 참여할 수 있습니다. 결과는 바로 확인할 수 있고, 포인트는 이벤트
-                종료 후 순차 지급됩니다.
-            </p>
-
-            {#if drawEntry?.participated}
-                <div class="result-panel">
-                    <p class="result-kicker">당신의 2주년 뽑기 결과</p>
-                    <div class="result-main">{drawEntry.draw_result}</div>
-                    <div class="result-points">
-                        {drawEntry.point_amount?.toLocaleString()} 포인트 예정
-                    </div>
-                    <p class="result-note">{drawEntry.deferred_grant_message}</p>
-                </div>
-            {:else}
-                <div class="result-panel pending">
-                    <p class="result-kicker">참여 안내</p>
-                    <div class="result-main">가볍게 한 번 뽑아 보세요</div>
-                    <p class="result-note">
-                        회원당 1회 참여 가능하며, 포인트는 이벤트 종료 후 순차 지급됩니다.
+    <section class="draw-shell">
+        <Card>
+            <CardHeader>
+                <CardTitle>2주년 랜덤 포인트 뽑기</CardTitle>
+            </CardHeader>
+            <CardContent>
+                <div class="draw-content">
+                    <p class="draw-intro">
+                        로그인 회원은 1회 참여할 수 있습니다. 결과는 바로 확인할 수 있고, 포인트는
+                        이벤트 종료 후 순차 지급됩니다.
                     </p>
-                </div>
-            {/if}
 
-            {#if submitError}
-                <p class="error-message">{submitError}</p>
-            {/if}
-
-            <div class="draw-actions">
-                <Button
-                    size="lg"
-                    onclick={handleDraw}
-                    disabled={isSubmitting || drawEntry?.participated}
-                >
-                    {#if isSubmitting}
-                        참여 처리 중...
-                    {:else if drawEntry?.participated}
-                        이미 참여했습니다
-                    {:else if isLoggedIn}
-                        뽑기 참여하기
+                    {#if drawEntry?.participated}
+                        <div class="result-panel">
+                            <p class="result-kicker">당신의 2주년 뽑기 결과</p>
+                            <div class="result-main">{drawEntry.draw_result}</div>
+                            <div class="result-points">
+                                {drawEntry.point_amount?.toLocaleString()} 포인트 예정
+                            </div>
+                            <p class="result-note">{drawEntry.deferred_grant_message}</p>
+                        </div>
                     {:else}
-                        로그인 후 참여하기
+                        <div class="result-panel pending">
+                            <p class="result-kicker">참여 안내</p>
+                            <div class="result-main">가볍게 한 번 뽑아 보세요</div>
+                            <p class="result-note">
+                                회원당 1회 참여 가능하며, 포인트는 이벤트 종료 후 순차 지급됩니다.
+                            </p>
+                        </div>
                     {/if}
-                </Button>
-                <p class="draw-caption">
-                    포인트는 이벤트 종료 후 KST 기준으로 순차 지급 예정입니다.
-                </p>
-            </div>
-        </CardContent>
-    </Card>
-</section>
+
+                    {#if submitError}
+                        <p class="error-message">{submitError}</p>
+                    {/if}
+
+                    <div class="draw-actions">
+                        <Button
+                            size="lg"
+                            onclick={handleDraw}
+                            disabled={isSubmitting || drawEntry?.participated}
+                        >
+                            {#if isSubmitting}
+                                참여 처리 중...
+                            {:else if drawEntry?.participated}
+                                이미 참여했습니다
+                            {:else if isLoggedIn}
+                                뽑기 참여하기
+                            {:else}
+                                로그인 후 참여하기
+                            {/if}
+                        </Button>
+                        <p class="draw-caption">
+                            포인트는 이벤트 종료 후 KST 기준으로 순차 지급 예정입니다.
+                        </p>
+                    </div>
+                </div>
+            </CardContent>
+        </Card>
+    </section>
+</div>
 
 <style>
-    :global(body) {
+    .anniversary-wrapper {
         background: radial-gradient(
                 circle at top,
                 color-mix(in srgb, var(--color-dusty-500) 14%, transparent),
@@ -226,18 +204,7 @@
         padding: 0 1rem;
     }
 
-    :global(.draw-card) {
-        border-radius: 1.25rem;
-        border: 1px solid color-mix(in srgb, var(--border) 82%, var(--primary));
-        background: linear-gradient(
-            180deg,
-            color-mix(in srgb, var(--background) 94%, var(--canvas)),
-            color-mix(in srgb, var(--background) 86%, var(--color-dusty-100))
-        );
-        box-shadow: 0 14px 36px color-mix(in srgb, var(--foreground) 8%, transparent);
-    }
-
-    :global(.draw-content) {
+    .draw-content {
         display: flex;
         flex-direction: column;
         gap: 1rem;
