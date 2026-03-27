@@ -154,9 +154,15 @@
         justify-content: center;
     }
 
-    .hero-image,
+    .hero-image {
+        width: min(100%, 320px);
+        height: auto;
+        object-fit: contain;
+        filter: drop-shadow(0 16px 28px rgba(15, 23, 42, 0.12));
+    }
+
     .closing-image {
-        width: min(100%, 240px);
+        width: min(100%, 280px);
         height: auto;
         object-fit: contain;
         filter: drop-shadow(0 16px 28px rgba(15, 23, 42, 0.12));
