@@ -164,22 +164,8 @@
         });
     });
 
-    // 네비게이션 프로그레스바 (500ms 딜레이 — 빠른 전환에서는 숨김)
-    let showNavProgress = $state(false);
-    let navProgressTimeout: ReturnType<typeof setTimeout> | undefined;
     const NAVIGATION_STALL_TIMEOUT_MS = 4000;
     const NAVIGATION_RECOVERY_KEY = '__angple_navigation_recovery__';
-
-    $effect(() => {
-        clearTimeout(navProgressTimeout);
-        if (navigating.to) {
-            navProgressTimeout = setTimeout(() => {
-                showNavProgress = true;
-            }, 500);
-        } else {
-            showNavProgress = false;
-        }
-    });
 
     // SPA 내비게이션이 URL만 바뀌고 화면 갱신이 멈추는 경우를 대비해
     // 일정 시간 안에 완료되지 않으면 대상 URL로 1회 강제 새로고침한다.
@@ -405,11 +391,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="icon" href={favicon} />
 </svelte:head>
-
-<!-- 네비게이션 프로그레스바 (500ms 이상 걸리는 전환에서만 표시) -->
-{#if showNavProgress}
-    <div class="nav-progress" aria-hidden="true"></div>
-{/if}
 
 <!-- /admin, /install 경로는 테마 레이아웃 없이 렌더링 -->
 {#if isAdminRoute || isInstallRoute}
