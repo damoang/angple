@@ -198,8 +198,7 @@
 {#if post.author_id && !post.deleted_at}
     <div class="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3" bind:this={panelEl}>
         <!-- AdSense 광고 -->
-        <div class="flex flex-col gap-1">
-            <span class="text-xs font-medium text-slate-500">AD</span>
+        <div class="flex flex-col">
             <!-- 외부 클리핑 래퍼: MutationObserver로 AdSense의 height 덮어쓰기 방어 -->
             <!-- 모바일: max-height 100px로 제한 / 데스크톱: 카드 높이에 맞춤 -->
             <div
@@ -378,17 +377,17 @@
 <style>
     /* 모바일은 낮게, 데스크톱은 카드형 비율로 보이도록 높이를 제한합니다. */
     .ad-clip-wrapper {
-        min-height: 88px;
-        height: 88px;
-        max-height: 88px;
+        min-height: 110px;
+        height: 110px;
+        max-height: 110px;
         background: hsl(var(--background));
         isolation: isolate;
     }
     @media (min-width: 640px) {
         .ad-clip-wrapper {
-            min-height: 190px;
-            height: 190px;
-            max-height: 190px;
+            min-height: 214px;
+            height: 214px;
+            max-height: 214px;
         }
     }
 </style>
