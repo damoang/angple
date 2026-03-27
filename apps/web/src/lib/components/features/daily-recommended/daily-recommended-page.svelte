@@ -13,6 +13,7 @@
     import SectionTabs from './section-tabs.svelte';
     import ThresholdFilter from './threshold-filter.svelte';
     import SortSelector from './sort-selector.svelte';
+    import { blockedUsersStore } from '$lib/stores/blocked-users.svelte.js';
     import DailyStatsBar from './daily-stats-bar.svelte';
     import AdSlot from '$lib/components/ui/ad-slot/ad-slot.svelte';
     import { Card, CardHeader, CardContent } from '$lib/components/ui/card';
@@ -81,6 +82,9 @@
             posts = [...(sections[activeTab]?.posts ?? [])];
         }
 
+        // 차단된 사용자 글 필터
+        posts = posts.filter((p) => !blockedUsersStore.isBlocked(p.author_id));
+
         // 최소 추천수 필터
         if (threshold > 0) {
             posts = posts.filter((p) => p.recommend_count >= threshold);
@@ -127,6 +131,9 @@
         } else {
             comments = [...(commentSections[activeTab]?.comments ?? [])];
         }
+
+        // 차단된 사용자 댓글 필터
+        comments = comments.filter((c) => !blockedUsersStore.isBlocked(c.author_id));
 
         if (threshold > 0) {
             comments = comments.filter((c) => c.recommend_count >= threshold);

@@ -283,7 +283,11 @@
                     isBlocking = false;
                     return;
                 }
-                await apiClient.blockMember(p.mb_id);
+                try {
+                    await apiClient.blockMember(p.mb_id);
+                } catch {
+                    // 이미 차단된 경우(409) 등 → 무시하고 차단 상태로 처리
+                }
                 blockedUsersStore.add(p.mb_id);
                 isBlocked = true;
             }
