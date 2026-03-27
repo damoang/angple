@@ -47,7 +47,7 @@
     let {
         onSubmit,
         onCancel,
-        placeholder = '댓글을 입력하세요...',
+        placeholder = '댓글을 입력하세요. 경어체 사용은 필수이며, 초성 비속어도 이용제한 대상입니다.',
         isLoading = false,
         parentId,
         parentAuthor,
