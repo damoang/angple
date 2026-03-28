@@ -4,8 +4,6 @@
     import type { FreePost, BoardDisplaySettings } from '$lib/api/types.js';
     import ImageIcon from '@lucide/svelte/icons/image';
     import Lock from '@lucide/svelte/icons/lock';
-    import { LevelBadge } from '$lib/components/ui/level-badge/index.js';
-    import { memberLevelStore } from '$lib/stores/member-levels.svelte.js';
     import { formatDate } from '$lib/utils/format-date.js';
     // Props (동일 인터페이스)
     let {
@@ -113,10 +111,7 @@
                     <span>👍 {post.likes}</span>
                     <span>💬 {post.comments_count}</span>
                     <span class="inline-flex items-center gap-0.5 font-medium"
-                        ><LevelBadge
-                            level={memberLevelStore.getLevel(post.author_id)}
-                            size="sm"
-                        /><AuthorLink
+                        ><AuthorLink
                             authorId={post.author_id}
                             authorName={post.author}
                             isWithdrawn={!!post.is_left}

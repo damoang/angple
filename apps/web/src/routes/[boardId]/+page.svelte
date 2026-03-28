@@ -50,7 +50,6 @@
         getPageSeoConfig
     } from '$lib/seo/index.js';
     import type { SeoConfig } from '$lib/seo/types.js';
-    import { memberLevelStore } from '$lib/stores/member-levels.svelte.js';
     import { checkPermission, getPermissionMessage } from '$lib/utils/board-permissions.js';
     import { readPostsStore } from '$lib/stores/read-posts.svelte.js';
     import { densityStore } from '$lib/stores/density.svelte.js';
@@ -161,22 +160,6 @@
     let showSearch = $state(uiSettingsStore.pinSearch);
     let showReadState = $state(false);
     let memoByAuthorId = $state<Record<string, { content: string; color: string } | null>>({});
-    function scheduleAuthorLevelFetch(authorIds: string[]) {
-        const uniqueAuthorIds = [...new Set(authorIds)];
-        if (uniqueAuthorIds.length === 0) return;
-
-        const fetchTask = () => {
-            void memberLevelStore.fetchLevels(uniqueAuthorIds);
-        };
-
-        if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
-            window.requestIdleCallback(fetchTask, { timeout: 1000 });
-            return;
-        }
-
-        setTimeout(fetchTask, 0);
-    }
-
     async function loadBoardListMemos(authorIds: string[]): Promise<void> {
         if (!authStore.isAuthenticated || !pluginStore.isPluginActive('member-memo')) {
             memoByAuthorId = {};
@@ -271,7 +254,7 @@
         });
     });
 
-    // 목록 데이터 반영 시 레벨 배치 로드 + 훅 발행
+    // 목록 데이터 반영 시 메모 배치 로드 + 훅 발행
     $effect(() => {
         const result = data.postsData;
         if (!result) return;
@@ -279,10 +262,6 @@
         const authorIds = [...result.posts, ...(result.notices || [])]
             .map((p) => p.author_id)
             .filter((id): id is string => Boolean(id));
-        const needsLevels = listLayoutId !== 'classic' && listLayoutId !== 'archive';
-        if (needsLevels) {
-            scheduleAuthorLevelFetch(authorIds);
-        }
         const usesInlineListMemo = listLayoutId === 'classic';
 
         if (usesInlineListMemo) {

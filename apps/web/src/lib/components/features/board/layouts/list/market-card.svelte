@@ -11,8 +11,6 @@
     import ImageIcon from '@lucide/svelte/icons/image';
     import MapPin from '@lucide/svelte/icons/map-pin';
     import Truck from '@lucide/svelte/icons/truck';
-    import { LevelBadge } from '$lib/components/ui/level-badge/index.js';
-    import { memberLevelStore } from '$lib/stores/member-levels.svelte.js';
     import { formatDate } from '$lib/utils/format-date.js';
     let {
         post,
@@ -156,7 +154,6 @@
             <!-- 작성자 + 댓글/좋아요 -->
             <div class="text-muted-foreground mt-1.5 flex items-center justify-between text-xs">
                 <span class="inline-flex items-center gap-0.5">
-                    <LevelBadge level={memberLevelStore.getLevel(post.author_id)} size="sm" />
                     <AuthorLink
                         authorId={post.author_id}
                         authorName={post.author}

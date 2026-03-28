@@ -2,9 +2,7 @@
     import { Badge } from '$lib/components/ui/badge/index.js';
     import type { FreePost, BoardDisplaySettings } from '$lib/api/types.js';
     import ImageIcon from '@lucide/svelte/icons/image';
-    import { LevelBadge } from '$lib/components/ui/level-badge/index.js';
     import AuthorLink from '$lib/components/ui/author-link/author-link.svelte';
-    import { memberLevelStore } from '$lib/stores/member-levels.svelte.js';
     import { formatDate } from '$lib/utils/format-date.js';
     import { toThumbnailUrl } from '$lib/utils/thumbnail-url.js';
     let {
@@ -80,7 +78,6 @@
                 </h3>
                 <div class="flex items-center gap-1.5 text-xs text-white/70">
                     <span class="inline-flex items-center gap-0.5">
-                        <LevelBadge level={memberLevelStore.getLevel(post.author_id)} size="sm" />
                         <AuthorLink
                             authorId={post.author_id}
                             authorName={post.author}
