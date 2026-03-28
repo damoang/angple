@@ -94,7 +94,9 @@ export const embedStyles = `
 
 /* Twitter 가변 높이 */
 .embed-container[data-platform="twitter"] {
-	min-height: 250px;
+	min-height: 500px;
+	overflow: visible;
+	padding-bottom: 0;
 }
 
 .embed-container[data-platform="twitter"]::before {
@@ -102,9 +104,9 @@ export const embedStyles = `
 }
 
 .embed-container[data-platform="twitter"] iframe {
-	position: relative;
+	position: relative !important;
 	display: block;
-	min-height: 250px;
+	min-height: 500px;
 	height: var(--twitter-embed-height, auto) !important;
 }
 

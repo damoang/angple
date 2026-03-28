@@ -409,14 +409,14 @@ img[src*='/emoticons/'] {
 .embed-container[data-platform='twitter'] {
     height: var(--twitter-embed-height, auto);
     padding-bottom: 0;
-    min-height: 250px;
+    min-height: 500px;
     overflow: visible;
 }
 
 .embed-container[data-platform='twitter'] iframe {
-    position: relative;
+    position: relative !important;
     display: block;
-    min-height: var(--twitter-embed-height, 250px);
+    min-height: var(--twitter-embed-height, 500px);
     height: var(--twitter-embed-height, auto) !important;
 }
 
