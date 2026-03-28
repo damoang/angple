@@ -13,13 +13,13 @@ import {
 import type { SupportedLocale } from '@angple/i18n';
 
 // Import all message files
-import en from '@angple/i18n/messages/en.json';
-import ko from '@angple/i18n/messages/ko.json';
-import ja from '@angple/i18n/messages/ja.json';
-import zh from '@angple/i18n/messages/zh.json';
-import es from '@angple/i18n/messages/es.json';
-import ar from '@angple/i18n/messages/ar.json';
-import vi from '@angple/i18n/messages/vi.json';
+import en from '../../../../../packages/i18n/messages/en.json';
+import ko from '../../../../../packages/i18n/messages/ko.json';
+import ja from '../../../../../packages/i18n/messages/ja.json';
+import zh from '../../../../../packages/i18n/messages/zh.json';
+import es from '../../../../../packages/i18n/messages/es.json';
+import ar from '../../../../../packages/i18n/messages/ar.json';
+import vi from '../../../../../packages/i18n/messages/vi.json';
 
 // All messages
 const messages: Record<SupportedLocale, Record<string, string>> = {
