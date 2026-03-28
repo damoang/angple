@@ -6,8 +6,6 @@
     import AuthorLink from '$lib/components/ui/author-link/author-link.svelte';
     import type { Component } from 'svelte';
     import { pluginStore } from '$lib/stores/plugin.svelte';
-    import { LevelBadge } from '$lib/components/ui/level-badge/index.js';
-    import { memberLevelStore } from '$lib/stores/member-levels.svelte.js';
     import { loadPluginComponent } from '$lib/utils/plugin-optional-loader';
     import { formatDate } from '$lib/utils/format-date.js';
     import { uiSettingsStore } from '$lib/stores/ui-settings.svelte.js';
@@ -106,10 +104,7 @@
                                     <span>💬 {post.comments_count}</span>
                                     <span>•</span>
                                     <span class="inline-flex items-center gap-0.5"
-                                        ><LevelBadge
-                                            level={memberLevelStore.getLevel(post.author_id)}
-                                            size="sm"
-                                        /><AuthorLink
+                                        ><AuthorLink
                                             authorId={post.author_id}
                                             authorName={post.author}
                                             isWithdrawn={!!post.is_left}

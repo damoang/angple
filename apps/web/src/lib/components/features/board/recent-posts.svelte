@@ -3,7 +3,6 @@
     import { browser } from '$app/environment';
     import { apiClient } from '$lib/api/index.js';
     import type { FreePost, BoardDisplaySettings } from '$lib/api/types.js';
-    import { memberLevelStore } from '$lib/stores/member-levels.svelte.js';
     import { readPostsStore } from '$lib/stores/read-posts.svelte.js';
     import { Button } from '$lib/components/ui/button/index.js';
     import Search from '@lucide/svelte/icons/search';
@@ -100,25 +99,6 @@
     // 목록 컨테이너 참조
     let listContainer: HTMLElement | undefined = $state();
 
-    function scheduleRecentPostAuthorLevelFetch(authorIds: string[]): void {
-        if (authorIds.length === 0) return;
-
-        const task = () => {
-            if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
-                return;
-            }
-
-            void memberLevelStore.fetchLevels(authorIds);
-        };
-
-        if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
-            window.requestIdleCallback(task, { timeout: 1200 });
-            return;
-        }
-
-        setTimeout(task, 150);
-    }
-
     // 페이지 변경
     async function goToPage(page: number): Promise<void> {
         if (page < 1 || page > totalPages || page === currentPage) return;
@@ -130,12 +110,6 @@
             currentPage = response.page;
             totalPages = response.total_pages;
             totalItems = response.total;
-
-            // 작성자 레벨 배치 로드
-            const authorIds = [...new Set(posts.map((p) => p.author_id).filter(Boolean))];
-            if (authorIds.length > 0) {
-                scheduleRecentPostAuthorLevelFetch(authorIds);
-            }
 
             // 목록 영역으로 스크롤 (본문이 다시 보이는 문제 방지)
             if (listContainer) {
@@ -159,12 +133,6 @@
             currentPage = response.page;
             totalPages = response.total_pages;
             totalItems = response.total;
-
-            // 작성자 레벨 배치 로드
-            const authorIds = [...new Set(posts.map((p) => p.author_id).filter(Boolean))];
-            if (authorIds.length > 0) {
-                scheduleRecentPostAuthorLevelFetch(authorIds);
-            }
         } catch (err) {
             console.error('[RecentPosts] 최근글 로드 실패:', err);
             error = '최근글을 불러올 수 없습니다.';

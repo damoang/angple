@@ -27,7 +27,6 @@
     import { SvelteMap, SvelteSet } from 'svelte/reactivity';
     import type { Component } from 'svelte';
     import { pluginStore } from '$lib/stores/plugin.svelte';
-    import { LevelBadge } from '$lib/components/ui/level-badge/index.js';
     import { loadPluginComponent, loadPluginLib } from '$lib/utils/plugin-optional-loader';
     import RevisionHistory from '$lib/components/post/revision-history.svelte';
     import type { PostRevision } from '$lib/api/types.js';
@@ -50,7 +49,6 @@
             });
         }
     });
-    import { memberLevelStore } from '$lib/stores/member-levels.svelte.js';
     import { highlightMentions } from '$lib/utils/mention-parser.js';
     import { formatDate } from '$lib/utils/format-date.js';
     import { ReactionBar } from '$lib/components/features/reaction/index.js';
@@ -860,35 +858,6 @@
         }
     });
 
-    // 회원 레벨 배치 프리로드
-    function scheduleCommentAuthorLevelFetch(ids: string[]): void {
-        if (ids.length === 0) return;
-
-        const task = () => {
-            if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
-                return;
-            }
-
-            void memberLevelStore.fetchLevels(ids);
-        };
-
-        if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
-            window.requestIdleCallback(task, { timeout: 1200 });
-            return;
-        }
-
-        setTimeout(task, 150);
-    }
-
-    $effect(() => {
-        if (commentTree.length > 0) {
-            const ids = [...new Set(commentTree.map((c) => c.author_id).filter(Boolean))];
-            if (ids.length > 0) {
-                scheduleCommentAuthorLevelFetch(ids);
-            }
-        }
-    });
-
     // 신고 다이얼로그 닫기
     function closeReportDialog(): void {
         showReportDialog = false;
@@ -1154,10 +1123,6 @@
                                             ? 'text-[13px]'
                                             : 'text-sm'} font-medium"
                                     >
-                                        <LevelBadge
-                                            level={memberLevelStore.getLevel(comment.author_id)}
-                                            size="md"
-                                        />
                                         <AuthorLink
                                             authorId={comment.author_id}
                                             authorName={comment.author}

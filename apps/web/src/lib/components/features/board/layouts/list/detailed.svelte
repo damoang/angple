@@ -4,8 +4,6 @@
     import type { FreePost, BoardDisplaySettings } from '$lib/api/types.js';
     import Lock from '@lucide/svelte/icons/lock';
     import AuthorLink from '$lib/components/ui/author-link/author-link.svelte';
-    import { LevelBadge } from '$lib/components/ui/level-badge/index.js';
-    import { memberLevelStore } from '$lib/stores/member-levels.svelte.js';
     import { formatDate } from '$lib/utils/format-date.js';
     import { toThumbnailUrl } from '$lib/utils/thumbnail-url.js';
     // Props
@@ -69,10 +67,7 @@
                             <span>💬 {post.comments_count}</span>
                             <span>•</span>
                             <span class="inline-flex items-center gap-0.5"
-                                ><LevelBadge
-                                    level={memberLevelStore.getLevel(post.author_id)}
-                                    size="sm"
-                                /><AuthorLink
+                                ><AuthorLink
                                     authorId={post.author_id}
                                     authorName={post.author}
                                     isWithdrawn={!!post.is_left}
