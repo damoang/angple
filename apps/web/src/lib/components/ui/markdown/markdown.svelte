@@ -520,8 +520,10 @@
         position: absolute;
         top: 0;
         left: 0;
-        width: 100%;
-        height: 100%;
+        display: block;
+        width: 100% !important;
+        height: 100% !important;
+        max-width: 100% !important;
         border: 0;
         border-radius: 0.5rem;
     }
@@ -549,7 +551,7 @@
         position: relative;
         display: block;
         min-height: var(--twitter-embed-height, 250px);
-        height: var(--twitter-embed-height, auto);
+        height: var(--twitter-embed-height, auto) !important;
     }
 
     /* Instagram 가변 높이 */
@@ -567,8 +569,9 @@
     .prose :global(.embed-container[data-platform='instagram'] iframe),
     .prose :global(.embed-container[data-platform='instagram-reel'] iframe) {
         position: relative;
+        display: block;
         min-height: 400px;
-        height: auto;
+        height: auto !important;
     }
 
     /* Bluesky 가변 높이 */
@@ -583,8 +586,9 @@
 
     .prose :global(.embed-container[data-platform='bluesky'] iframe) {
         position: relative;
+        display: block;
         min-height: 200px;
-        height: auto;
+        height: auto !important;
     }
 
     /* Reddit 가변 높이 */
@@ -599,8 +603,9 @@
 
     .prose :global(.embed-container[data-platform='reddit'] iframe) {
         position: relative;
+        display: block;
         min-height: 300px;
-        height: auto;
+        height: auto !important;
     }
 
     /* 스포일러 블록 [spoiler]...[/spoiler] */

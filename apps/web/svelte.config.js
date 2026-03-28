@@ -37,7 +37,12 @@ const config = {
             '$custom-widgets': '../../custom-widgets',
             $themes: '../../themes',
             $plugins: '../../plugins',
-            '$premium-plugins': '../../../premium/plugins'
+            '$premium-plugins': '../../../premium/plugins',
+            '@angple/types': '../../packages/types/src',
+            '@angple/hook-system': '../../packages/hook-system/src',
+            '@angple/i18n': '../../packages/i18n/src',
+            '@angple/i18n/messages': '../../packages/i18n/messages',
+            '@angple/theme-engine': '../../packages/theme-engine/src'
         },
         csrf: {
             // 자체 CSRF 보호 사용 (세션 기반 double-submit cookie, hooks.server.ts)

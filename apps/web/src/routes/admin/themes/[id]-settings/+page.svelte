@@ -17,6 +17,7 @@
     import { toast } from 'svelte-sonner';
     import { ChevronLeft, Save, Monitor, Tablet, Smartphone } from '@lucide/svelte/icons';
     import * as adminThemesApi from '$lib/api/admin-themes';
+    import type { ThemeSettings } from '@angple/types';
 
     /**
      * 테마 설정 페이지
@@ -27,6 +28,7 @@
 
     const themeId = $derived($page.params.id || '');
     const theme = $derived(adminThemeStore.getThemeById(themeId));
+    const themeSettings = $derived(theme?.manifest.settings);
 
     // 설정값 상태 (현재 설정값으로 초기화)
     let settings = $state<Record<string, Record<string, unknown>>>({});
@@ -44,6 +46,18 @@
         mobile: '375px'
     };
 
+    type ThemeSettingField = ThemeSettings[string][string];
+
+    function getSettingsEntries(
+        settingsSchema: ThemeSettings
+    ): Array<[string, ThemeSettings[string]]> {
+        return Object.entries(settingsSchema);
+    }
+
+    function getFieldEntries(group: ThemeSettings[string]): Array<[string, ThemeSettingField]> {
+        return Object.entries(group);
+    }
+
     // 테마가 없으면 목록으로 이동
     onMount(() => {
         if (!theme) {
@@ -59,8 +73,8 @@
         }
 
         // 카테고리가 없으면 생성
-        if (theme.manifest.settings) {
-            for (const category of Object.keys(theme.manifest.settings)) {
+        if (themeSettings) {
+            for (const category of Object.keys(themeSettings)) {
                 if (!settings[category]) {
                     settings[category] = {};
                 }
@@ -100,13 +114,13 @@
      * 기본값으로 초기화
      */
     function resetToDefaults() {
-        if (!theme?.manifest.settings) return;
+        if (!themeSettings) return;
 
         settings = {};
 
-        for (const [category, fields] of Object.entries(theme.manifest.settings)) {
+        for (const [category, fields] of getSettingsEntries(themeSettings)) {
             settings[category] = {};
-            for (const [key, field] of Object.entries(fields)) {
+            for (const [key, field] of getFieldEntries(fields)) {
                 settings[category][key] = field.default;
             }
         }
@@ -142,8 +156,8 @@
     <div class="space-y-8">
         <!-- 설정 폼 -->
         <div class="space-y-6">
-            {#if theme?.manifest.settings}
-                {#each Object.entries(theme.manifest.settings) as [category, fields] (category)}
+            {#if themeSettings}
+                {#each getSettingsEntries(themeSettings) as [category, fields] (category)}
                     <Card>
                         <CardHeader>
                             <CardTitle class="capitalize">{category}</CardTitle>
@@ -154,7 +168,7 @@
                             </CardDescription>
                         </CardHeader>
                         <CardContent class="space-y-6">
-                            {#each Object.entries(fields) as [key, field] (`${category}-${key}`)}
+                            {#each getFieldEntries(fields) as [key, field] (`${category}-${key}`)}
                                 {#if settings[category]}
                                     <div class="space-y-2">
                                         <!-- 텍스트 입력 -->
@@ -219,21 +233,9 @@
                                                 id={`${category}-${key}`}
                                                 type="number"
                                                 bind:value={settings[category][key]}
-                                                min={typeof field === 'object' &&
-                                                field &&
-                                                'min' in field
-                                                    ? (field.min as number)
-                                                    : undefined}
-                                                max={typeof field === 'object' &&
-                                                field &&
-                                                'max' in field
-                                                    ? (field.max as number)
-                                                    : undefined}
-                                                step={typeof field === 'object' &&
-                                                field &&
-                                                'step' in field
-                                                    ? (field.step as number)
-                                                    : 1}
+                                                min={field.validation?.min}
+                                                max={field.validation?.max}
+                                                step={1}
                                             />
                                         {/if}
                                     </div>

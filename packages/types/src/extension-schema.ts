@@ -6,12 +6,8 @@
  */
 
 import { z } from 'zod';
-import {
-    ExtensionCategory,
-    PluginType,
-    ExtensionPermission,
-    ExtensionSettingType
-} from './extension';
+import { PluginType, ExtensionPermission } from './extension';
+import type { ExtensionCategory, ExtensionSettingType } from './extension';
 
 // ============================================================================
 // 기본 스키마

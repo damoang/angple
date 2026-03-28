@@ -76,8 +76,10 @@ export const embedStyles = `
 	position: absolute;
 	top: 0;
 	left: 0;
-	width: 100%;
-	height: 100%;
+	display: block;
+	width: 100% !important;
+	height: 100% !important;
+	max-width: 100% !important;
 	border: 0;
 	border-radius: 0.5rem;
 }
@@ -101,8 +103,9 @@ export const embedStyles = `
 
 .embed-container[data-platform="twitter"] iframe {
 	position: relative;
+	display: block;
 	min-height: 250px;
-	height: auto;
+	height: var(--twitter-embed-height, auto) !important;
 }
 
 /* Instagram 가변 높이 */
@@ -119,7 +122,8 @@ export const embedStyles = `
 .embed-container[data-platform="instagram"] iframe,
 .embed-container[data-platform="instagram-reel"] iframe {
 	position: relative;
+	display: block;
 	min-height: 400px;
-	height: auto;
+	height: auto !important;
 }
 `;
