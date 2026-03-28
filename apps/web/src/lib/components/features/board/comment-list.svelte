@@ -861,11 +861,30 @@
     });
 
     // 회원 레벨 배치 프리로드
+    function scheduleCommentAuthorLevelFetch(ids: string[]): void {
+        if (ids.length === 0) return;
+
+        const task = () => {
+            if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
+                return;
+            }
+
+            void memberLevelStore.fetchLevels(ids);
+        };
+
+        if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+            window.requestIdleCallback(task, { timeout: 1200 });
+            return;
+        }
+
+        setTimeout(task, 150);
+    }
+
     $effect(() => {
         if (commentTree.length > 0) {
             const ids = [...new Set(commentTree.map((c) => c.author_id).filter(Boolean))];
             if (ids.length > 0) {
-                void memberLevelStore.fetchLevels(ids);
+                scheduleCommentAuthorLevelFetch(ids);
             }
         }
     });
