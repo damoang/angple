@@ -140,6 +140,12 @@ const ROOT_ALIAS_REDIRECTS: Record<string, string> = {
     '/indexphp': '/'
 };
 
+function isMalformedExternalImagePath(pathname: string): boolean {
+    if (!pathname.startsWith('/http')) return false;
+    if (pathname.includes('/', 1)) return false;
+    return /(avif|gif|jpe?g|png|webp)$/i.test(pathname);
+}
+
 function isPublicCacheablePath(pathname: string): boolean {
     return PUBLIC_CACHEABLE_PATHS.some((p) => pathname === p || pathname.startsWith(p + '/'));
 }
@@ -445,6 +451,15 @@ const WRITE_API_RATE = { maxRequests: 60, windowMs: 60_000 }; // 쓰기 분당 6
 export const handle: Handle = async ({ event, resolve }) => {
     const { pathname } = event.url;
     const isDataRequest = isSvelteKitDataRequest(event);
+
+    if (isMalformedExternalImagePath(pathname)) {
+        return new Response(null, {
+            status: 204,
+            headers: {
+                'cache-control': 'public, max-age=86400, s-maxage=86400'
+            }
+        });
+    }
 
     // --- 환경별 접근 제어 (hostname 기반) ---
     // 로그인 관련 경로는 접근 제어 제외 (무한 리다이렉트 방지)

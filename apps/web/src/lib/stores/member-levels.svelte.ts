@@ -7,6 +7,9 @@
 import { SvelteMap } from 'svelte/reactivity';
 
 class MemberLevelStore {
+    private static readonly STORAGE_KEY = 'angple:member-levels:v1';
+    private static readonly MAX_CACHE_ENTRIES = 500;
+
     /** mb_id → as_level 캐시 */
     private levels = new SvelteMap<string, number>();
 
@@ -16,8 +19,45 @@ class MemberLevelStore {
     private flushTimer: ReturnType<typeof setTimeout> | null = null;
     private flushPromise: Promise<void> | null = null;
     private resolveFlush: (() => void) | null = null;
+    private storageHydrated = false;
+
+    private hydrateFromSessionStorage(): void {
+        if (this.storageHydrated || typeof window === 'undefined') return;
+        this.storageHydrated = true;
+
+        try {
+            const raw = window.sessionStorage.getItem(MemberLevelStore.STORAGE_KEY);
+            if (!raw) return;
+
+            const parsed = JSON.parse(raw) as Record<string, number>;
+            for (const [mbId, level] of Object.entries(parsed)) {
+                if (!mbId || typeof level !== 'number') continue;
+                this.levels.set(mbId, level);
+            }
+        } catch {
+            // 스토리지 파싱 실패 시 캐시 무시
+        }
+    }
+
+    private persistToSessionStorage(): void {
+        if (typeof window === 'undefined') return;
+
+        try {
+            const recentEntries = [...this.levels.entries()].slice(
+                -MemberLevelStore.MAX_CACHE_ENTRIES
+            );
+            window.sessionStorage.setItem(
+                MemberLevelStore.STORAGE_KEY,
+                JSON.stringify(Object.fromEntries(recentEntries))
+            );
+        } catch {
+            // 스토리지 기록 실패 시 캐시만 유지
+        }
+    }
 
     private ensureFlushScheduled(): Promise<void> {
+        this.hydrateFromSessionStorage();
+
         if (!this.flushPromise) {
             this.flushPromise = new Promise<void>((resolve) => {
                 this.resolveFlush = resolve;
@@ -55,6 +95,7 @@ class MemberLevelStore {
                     this.levels.set(mbId, level);
                 }
             }
+            this.persistToSessionStorage();
         } catch (err) {
             console.error('회원 레벨 조회 실패:', err);
         } finally {
@@ -74,6 +115,8 @@ class MemberLevelStore {
      * 이미 캐시된 ID는 건너뛰고 새로운 ID만 요청
      */
     async fetchLevels(ids: string[]): Promise<void> {
+        this.hydrateFromSessionStorage();
+
         const newIds = ids.filter((id) => id && !this.levels.has(id) && !this.pendingIds.has(id));
 
         if (newIds.length === 0) return;
@@ -90,6 +133,7 @@ class MemberLevelStore {
      * 특정 회원의 레벨 반환
      */
     getLevel(mbId: string): number | undefined {
+        this.hydrateFromSessionStorage();
         return this.levels.get(mbId);
     }
 
@@ -97,19 +141,23 @@ class MemberLevelStore {
      * SSR 데이터로 캐시 초기화 (fetch 없이)
      */
     initFromSSR(data: Record<string, number>): void {
+        this.hydrateFromSessionStorage();
         for (const [mbId, level] of Object.entries(data)) {
             this.levels.set(mbId, level);
         }
+        this.persistToSessionStorage();
     }
 
     /**
      * 특정 회원의 레벨 업데이트 (authStore 동기화용)
      */
     updateLevel(mbId: string, level: number): void {
+        this.hydrateFromSessionStorage();
         if (!mbId) return;
         const current = this.levels.get(mbId);
         if (current === level) return;
         this.levels.set(mbId, level);
+        this.persistToSessionStorage();
     }
 
     /**
@@ -119,6 +167,9 @@ class MemberLevelStore {
         this.levels.clear();
         this.pendingIds.clear();
         this.queuedIds.clear();
+        if (typeof window !== 'undefined') {
+            window.sessionStorage.removeItem(MemberLevelStore.STORAGE_KEY);
+        }
     }
 }
 
