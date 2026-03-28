@@ -3,8 +3,6 @@
     import type { LikerInfo } from '$lib/api/types.js';
     import { getAvatarUrl } from '$lib/utils/member-icon.js';
     import { authStore } from '$lib/stores/auth.svelte.js';
-    import { LevelBadge } from '$lib/components/ui/level-badge/index.js';
-    import { memberLevelStore } from '$lib/stores/member-levels.svelte.js';
     import type { Component } from 'svelte';
     import { pluginStore } from '$lib/stores/plugin.svelte';
     import { loadPluginComponent, loadPluginLib } from '$lib/utils/plugin-optional-loader';
@@ -69,11 +67,8 @@
             likers = data.likers ?? [];
             total = data.total ?? 0;
             const likerIds = likers.map((l: LikerInfo) => l.mb_id).filter(Boolean);
-            if (likerIds.length > 0) {
-                memberLevelStore.fetchLevels(likerIds);
-                if (loadMemosForAuthors) {
-                    void loadMemosForAuthors(likerIds);
-                }
+            if (likerIds.length > 0 && loadMemosForAuthors) {
+                void loadMemosForAuthors(likerIds);
             }
         } catch (err) {
             console.error('Failed to load comment likers:', err);
@@ -139,10 +134,6 @@
 
                                 <div class="min-w-0 flex-1">
                                     <div class="flex items-center gap-1">
-                                        <LevelBadge
-                                            level={memberLevelStore.getLevel(liker.mb_id)}
-                                            size="sm"
-                                        />
                                         <a
                                             href="/member/{liker.mb_id}"
                                             class="text-foreground hover:text-primary truncate text-sm font-medium"

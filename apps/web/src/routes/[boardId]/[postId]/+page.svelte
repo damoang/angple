@@ -1033,11 +1033,8 @@
             likersTotal = response.total ?? 0;
             // 추천자 레벨 배치 로드
             const likerIds = likers.map((l: LikerInfo) => l.mb_id).filter(Boolean);
-            if (likerIds.length > 0) {
-                memberLevelStore.fetchLevels(likerIds);
-                if (loadMemosForAuthors) {
-                    void loadMemosForAuthors(likerIds);
-                }
+            if (likerIds.length > 0 && loadMemosForAuthors) {
+                void loadMemosForAuthors(likerIds);
             }
         } catch (err) {
             console.error('Failed to load likers:', err);
@@ -1064,11 +1061,8 @@
             likersPage = nextPage;
             // 추가된 추천자 레벨 배치 로드
             const likerIds = (response.likers ?? []).map((l: LikerInfo) => l.mb_id).filter(Boolean);
-            if (likerIds.length > 0) {
-                memberLevelStore.fetchLevels(likerIds);
-                if (loadMemosForAuthors) {
-                    void loadMemosForAuthors(likerIds);
-                }
+            if (likerIds.length > 0 && loadMemosForAuthors) {
+                void loadMemosForAuthors(likerIds);
             }
         } catch (err) {
             console.error('Failed to load more likers:', err);
@@ -1801,10 +1795,6 @@
                                     <!-- 닉네임 + 메모배지 + IP + 날짜 -->
                                     <div class="min-w-0 flex-1">
                                         <div class="flex items-center gap-1">
-                                            <LevelBadge
-                                                level={memberLevelStore.getLevel(liker.mb_id)}
-                                                size="sm"
-                                            />
                                             <a
                                                 href="/member/{liker.mb_id}"
                                                 class="text-foreground hover:text-primary truncate text-sm font-medium"
