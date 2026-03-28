@@ -45,7 +45,7 @@
     let panelEl = $state<HTMLElement | null>(null);
     let mobileExpanded = $state(false);
     let shouldLoad = $state(false);
-    let observer: IntersectionObserver | null = null;
+    let desktopExpanded = $state(false);
     const MOBILE_AD_MAX_HEIGHT = 88;
     const DESKTOP_AD_MAX_HEIGHT = 190;
     const ADSENSE_ACTIVITY_CLIENT =
@@ -106,7 +106,7 @@
         }
     }
 
-    // 패널이 실제로 보일 때만 활동 API 호출
+    // 사용자가 패널을 직접 펼칠 때만 활동 API 호출
     $effect(() => {
         const authorId = post.author_id;
         if (!browser || !authorId) {
@@ -146,27 +146,26 @@
         };
     });
 
+    function toggleDesktopExpanded(): void {
+        desktopExpanded = !desktopExpanded;
+        if (desktopExpanded) {
+            shouldLoad = true;
+        }
+    }
+
+    function toggleMobileExpanded(): void {
+        mobileExpanded = !mobileExpanded;
+        if (mobileExpanded) {
+            shouldLoad = true;
+        }
+    }
+
     onMount(() => {
         let mutationObserver: MutationObserver | undefined;
         let resizeObserver: ResizeObserver | undefined;
         const handleResize = () => enforceClipHeight();
 
-        if (panelEl && typeof IntersectionObserver !== 'undefined') {
-            observer = new IntersectionObserver(
-                (entries) => {
-                    if (!entries.some((entry) => entry.isIntersecting)) return;
-                    shouldLoad = true;
-                    loadAdSense();
-                    observer?.disconnect();
-                    observer = null;
-                },
-                { rootMargin: '240px 0px' }
-            );
-            observer.observe(panelEl);
-        } else {
-            shouldLoad = true;
-            loadAdSense();
-        }
+        loadAdSense();
 
         requestAnimationFrame(() => {
             if (!clipWrapper) return;
@@ -189,7 +188,6 @@
         return () => {
             mutationObserver?.disconnect();
             resizeObserver?.disconnect();
-            observer?.disconnect();
             window.removeEventListener('resize', handleResize);
         };
     });
@@ -222,156 +220,176 @@
             </div>
         </div>
 
-        <!-- 최근 글 (데스크톱: 항상 표시) -->
         <Card class="hidden gap-0 sm:flex">
-            <CardHeader class="pb-0 pt-2">
-                <h4 class="text-foreground text-sm font-semibold">작성자 최근 글</h4>
+            <CardHeader class="pb-2 pt-2">
+                <button
+                    type="button"
+                    class="text-foreground flex w-full items-center justify-between text-sm font-semibold"
+                    onclick={toggleDesktopExpanded}
+                >
+                    작성자 최근 활동
+                    {#if desktopExpanded}
+                        <ChevronUp class="h-4 w-4" />
+                    {:else}
+                        <ChevronDown class="h-4 w-4" />
+                    {/if}
+                </button>
             </CardHeader>
-            <CardContent class="pb-2 pt-0">
-                {#if loading}
-                    <div class="flex justify-center py-4">
-                        <Loader2 class="text-muted-foreground h-4 w-4 animate-spin" />
+            {#if desktopExpanded}
+                <CardContent class="grid grid-cols-2 gap-4 pb-2 pt-0">
+                    <div>
+                        <h4 class="text-foreground mb-2 text-sm font-semibold">최근 글</h4>
+                        {#if loading}
+                            <div class="flex justify-center py-4">
+                                <Loader2 class="text-muted-foreground h-4 w-4 animate-spin" />
+                            </div>
+                        {:else if recentPosts.length === 0}
+                            <p class="text-muted-foreground py-2 text-xs">자료 없음</p>
+                        {:else}
+                            <ul class="divide-border divide-y">
+                                {#each recentPosts as p (`${p.bo_table}_${p.wr_id}`)}
+                                    <li class="py-1">
+                                        <a
+                                            href={p.href}
+                                            class="text-foreground hover:text-primary block min-w-0 truncate text-xs"
+                                        >
+                                            {getRecentPostLabel(p)}
+                                        </a>
+                                    </li>
+                                {/each}
+                            </ul>
+                        {/if}
                     </div>
-                {:else if recentPosts.length === 0}
-                    <p class="text-muted-foreground py-2 text-xs">자료 없음</p>
-                {:else}
-                    <ul class="divide-border divide-y">
-                        {#each recentPosts as p (`${p.bo_table}_${p.wr_id}`)}
-                            <li class="py-1">
-                                <a
-                                    href={p.href}
-                                    class="text-foreground hover:text-primary block min-w-0 truncate text-xs"
-                                >
-                                    {getRecentPostLabel(p)}
-                                </a>
-                            </li>
-                        {/each}
-                    </ul>
-                {/if}
-            </CardContent>
-        </Card>
-
-        <!-- 최근 댓글 (데스크톱: 항상 표시) -->
-        <Card class="hidden gap-0 sm:flex">
-            <CardHeader class="pb-0 pt-2">
-                <h4 class="text-foreground text-sm font-semibold">작성자 최근 댓글</h4>
-            </CardHeader>
-            <CardContent class="pb-2 pt-0">
-                {#if loading}
-                    <div class="flex justify-center py-4">
-                        <Loader2 class="text-muted-foreground h-4 w-4 animate-spin" />
+                    <div>
+                        <h4 class="text-foreground mb-2 text-sm font-semibold">최근 댓글</h4>
+                        {#if loading}
+                            <div class="flex justify-center py-4">
+                                <Loader2 class="text-muted-foreground h-4 w-4 animate-spin" />
+                            </div>
+                        {:else if recentComments.length === 0}
+                            <p class="text-muted-foreground py-2 text-xs">자료 없음</p>
+                        {:else}
+                            <ul class="divide-border divide-y">
+                                {#each recentComments as c (`${c.bo_table}_${c.wr_id}`)}
+                                    <li class="py-1">
+                                        <a
+                                            href={c.href}
+                                            class="text-foreground hover:text-primary block min-w-0 truncate text-xs"
+                                            onclick={(e) => {
+                                                const hash = c.href.split('#')[1];
+                                                if (
+                                                    hash &&
+                                                    window.location.pathname ===
+                                                        c.href.split('#')[0]
+                                                ) {
+                                                    e.preventDefault();
+                                                    const el = document.getElementById(hash);
+                                                    if (el) {
+                                                        el.scrollIntoView({
+                                                            behavior: 'smooth',
+                                                            block: 'start'
+                                                        });
+                                                        el.style.transition =
+                                                            'background-color 0.3s ease';
+                                                        el.style.backgroundColor =
+                                                            'hsl(var(--primary) / 0.1)';
+                                                        el.style.borderRadius = '0.5rem';
+                                                        setTimeout(() => {
+                                                            el.style.backgroundColor = '';
+                                                            setTimeout(() => {
+                                                                el.style.transition = '';
+                                                                el.style.borderRadius = '';
+                                                            }, 300);
+                                                        }, 2000);
+                                                    }
+                                                }
+                                            }}
+                                        >
+                                            {getRecentCommentLabel(c)}
+                                        </a>
+                                    </li>
+                                {/each}
+                            </ul>
+                        {/if}
                     </div>
-                {:else if recentComments.length === 0}
-                    <p class="text-muted-foreground py-2 text-xs">자료 없음</p>
-                {:else}
-                    <ul class="divide-border divide-y">
-                        {#each recentComments as c (`${c.bo_table}_${c.wr_id}`)}
-                            <li class="py-1">
-                                <a
-                                    href={c.href}
-                                    class="text-foreground hover:text-primary block min-w-0 truncate text-xs"
-                                    onclick={(e) => {
-                                        // 같은 페이지 내 앵커 클릭 시 스크롤 처리
-                                        const hash = c.href.split('#')[1];
-                                        if (
-                                            hash &&
-                                            window.location.pathname === c.href.split('#')[0]
-                                        ) {
-                                            e.preventDefault();
-                                            const el = document.getElementById(hash);
-                                            if (el) {
-                                                el.scrollIntoView({
-                                                    behavior: 'smooth',
-                                                    block: 'start'
-                                                });
-                                                // 하이라이트 효과
-                                                el.style.transition = 'background-color 0.3s ease';
-                                                el.style.backgroundColor =
-                                                    'hsl(var(--primary) / 0.1)';
-                                                el.style.borderRadius = '0.5rem';
-                                                setTimeout(() => {
-                                                    el.style.backgroundColor = '';
-                                                    setTimeout(() => {
-                                                        el.style.transition = '';
-                                                        el.style.borderRadius = '';
-                                                    }, 300);
-                                                }, 2000);
-                                            }
-                                        }
-                                    }}
-                                >
-                                    {getRecentCommentLabel(c)}
-                                </a>
-                            </li>
-                        {/each}
-                    </ul>
-                {/if}
-            </CardContent>
+                </CardContent>
+            {/if}
         </Card>
     </div>
 
     <!-- 모바일: 작성자 활동 접기/펼치기 -->
-    {#if !loading && (recentPosts.length > 0 || recentComments.length > 0)}
-        <div class="mb-4 sm:hidden">
-            <button
-                onclick={() => (mobileExpanded = !mobileExpanded)}
-                class="text-muted-foreground hover:text-foreground flex w-full items-center justify-center gap-1 py-1.5 text-xs transition-colors"
-            >
-                작성자 최근 활동
-                {#if mobileExpanded}
-                    <ChevronUp class="h-3.5 w-3.5" />
-                {:else}
-                    <ChevronDown class="h-3.5 w-3.5" />
-                {/if}
-            </button>
+    <div class="mb-4 sm:hidden">
+        <button
+            type="button"
+            onclick={toggleMobileExpanded}
+            class="text-muted-foreground hover:text-foreground flex w-full items-center justify-center gap-1 py-1.5 text-xs transition-colors"
+        >
+            작성자 최근 활동
             {#if mobileExpanded}
-                <div class="grid grid-cols-2 gap-2" transition:slide={{ duration: 200 }}>
-                    {#if recentPosts.length > 0}
-                        <Card class="gap-0">
-                            <CardHeader class="pb-0 pt-2">
-                                <h4 class="text-foreground text-xs font-semibold">최근 글</h4>
-                            </CardHeader>
-                            <CardContent class="pb-2 pt-0">
-                                <ul class="divide-border divide-y">
-                                    {#each recentPosts as p (`${p.bo_table}_${p.wr_id}`)}
-                                        <li class="py-1">
-                                            <a
-                                                href={p.href}
-                                                class="text-foreground hover:text-primary block min-w-0 truncate text-xs"
-                                            >
-                                                {getRecentPostLabel(p)}
-                                            </a>
-                                        </li>
-                                    {/each}
-                                </ul>
-                            </CardContent>
-                        </Card>
-                    {/if}
-                    {#if recentComments.length > 0}
-                        <Card class="gap-0">
-                            <CardHeader class="pb-0 pt-2">
-                                <h4 class="text-foreground text-xs font-semibold">최근 댓글</h4>
-                            </CardHeader>
-                            <CardContent class="pb-2 pt-0">
-                                <ul class="divide-border divide-y">
-                                    {#each recentComments as c (`${c.bo_table}_${c.wr_id}`)}
-                                        <li class="py-1">
-                                            <a
-                                                href={c.href}
-                                                class="text-foreground hover:text-primary block min-w-0 truncate text-xs"
-                                            >
-                                                {getRecentCommentLabel(c)}
-                                            </a>
-                                        </li>
-                                    {/each}
-                                </ul>
-                            </CardContent>
-                        </Card>
-                    {/if}
-                </div>
+                <ChevronUp class="h-3.5 w-3.5" />
+            {:else}
+                <ChevronDown class="h-3.5 w-3.5" />
             {/if}
-        </div>
-    {/if}
+        </button>
+        {#if mobileExpanded}
+            <div class="grid grid-cols-2 gap-2" transition:slide={{ duration: 200 }}>
+                <Card class="gap-0">
+                    <CardHeader class="pb-0 pt-2">
+                        <h4 class="text-foreground text-xs font-semibold">최근 글</h4>
+                    </CardHeader>
+                    <CardContent class="pb-2 pt-0">
+                        {#if loading}
+                            <div class="flex justify-center py-4">
+                                <Loader2 class="text-muted-foreground h-4 w-4 animate-spin" />
+                            </div>
+                        {:else if recentPosts.length === 0}
+                            <p class="text-muted-foreground py-2 text-xs">자료 없음</p>
+                        {:else}
+                            <ul class="divide-border divide-y">
+                                {#each recentPosts as p (`${p.bo_table}_${p.wr_id}`)}
+                                    <li class="py-1">
+                                        <a
+                                            href={p.href}
+                                            class="text-foreground hover:text-primary block min-w-0 truncate text-xs"
+                                        >
+                                            {getRecentPostLabel(p)}
+                                        </a>
+                                    </li>
+                                {/each}
+                            </ul>
+                        {/if}
+                    </CardContent>
+                </Card>
+                <Card class="gap-0">
+                    <CardHeader class="pb-0 pt-2">
+                        <h4 class="text-foreground text-xs font-semibold">최근 댓글</h4>
+                    </CardHeader>
+                    <CardContent class="pb-2 pt-0">
+                        {#if loading}
+                            <div class="flex justify-center py-4">
+                                <Loader2 class="text-muted-foreground h-4 w-4 animate-spin" />
+                            </div>
+                        {:else if recentComments.length === 0}
+                            <p class="text-muted-foreground py-2 text-xs">자료 없음</p>
+                        {:else}
+                            <ul class="divide-border divide-y">
+                                {#each recentComments as c (`${c.bo_table}_${c.wr_id}`)}
+                                    <li class="py-1">
+                                        <a
+                                            href={c.href}
+                                            class="text-foreground hover:text-primary block min-w-0 truncate text-xs"
+                                        >
+                                            {getRecentCommentLabel(c)}
+                                        </a>
+                                    </li>
+                                {/each}
+                            </ul>
+                        {/if}
+                    </CardContent>
+                </Card>
+            </div>
+        {/if}
+    </div>
 {/if}
 
 <style>

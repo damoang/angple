@@ -334,7 +334,8 @@ class ApiClient {
     async getBoardPosts(
         boardId: string,
         page = 1,
-        limit = 10
+        limit = 10,
+        options?: { summary?: boolean }
     ): Promise<PaginatedResponse<FreePost>> {
         interface BackendResponse {
             data: FreePost[];
@@ -347,9 +348,15 @@ class ApiClient {
             };
         }
 
-        const response = await this.request<BackendResponse>(
-            `/boards/${boardId}/posts?page=${page}&limit=${limit}`
-        );
+        const params = new URLSearchParams({
+            page: String(page),
+            limit: String(limit)
+        });
+        if (options?.summary) {
+            params.set('summary', '1');
+        }
+
+        const response = await this.request<BackendResponse>(`/boards/${boardId}/posts?${params}`);
 
         const backendData = response as unknown as BackendResponse;
         const meta = backendData.meta;
