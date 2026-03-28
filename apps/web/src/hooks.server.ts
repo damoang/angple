@@ -122,6 +122,24 @@ const NON_BOARD_PATHS = new Set([
     '/sw'
 ]);
 
+const ROOT_ALIAS_REDIRECTS: Record<string, string> = {
+    '/apple-touch-icon.png': '/icons/icon-192.png',
+    '/apple-touch-iconpng': '/icons/icon-192.png',
+    '/apple-touch-icon-precomposed.png': '/icons/icon-192.png',
+    '/apple-touch-icon-precomposedpng': '/icons/icon-192.png',
+    '/apple-touch-icon-120x120.png': '/icons/icon-192.png',
+    '/apple-touch-icon-120x120png': '/icons/icon-192.png',
+    '/apple-touch-icon-120x120-precomposed.png': '/icons/icon-192.png',
+    '/apple-touch-icon-120x120-precomposedpng': '/icons/icon-192.png',
+    '/apple-touch-icon-152x152.png': '/icons/icon-192.png',
+    '/apple-touch-icon-152x152png': '/icons/icon-192.png',
+    '/apple-touch-icon-152x152-precomposed.png': '/icons/icon-192.png',
+    '/apple-touch-icon-152x152-precomposedpng': '/icons/icon-192.png',
+    '/site.webmanifest': '/manifest.json',
+    '/sitewebmanifest': '/manifest.json',
+    '/indexphp': '/'
+};
+
 function isPublicCacheablePath(pathname: string): boolean {
     return PUBLIC_CACHEABLE_PATHS.some((p) => pathname === p || pathname.startsWith(p + '/'));
 }
@@ -491,16 +509,21 @@ export const handle: Handle = async ({ event, resolve }) => {
     }
 
     // 그누보드/라이믹스 URL 호환 리다이렉트 (SEO 보존)
+    const rootAliasRedirect = ROOT_ALIAS_REDIRECTS[pathname];
+    if (rootAliasRedirect) {
+        throw redirect(301, rootAliasRedirect);
+    }
+
     if (pathname.startsWith('/bbs/')) {
         const redirectUrl = mapGnuboardUrl(pathname, event.url.searchParams);
         if (redirectUrl) {
-            redirect(301, redirectUrl);
+            throw redirect(301, redirectUrl);
         }
     }
     if (pathname === '/index.php' && event.url.searchParams.has('mid')) {
         const redirectUrl = mapRhymixUrl(pathname, event.url.searchParams);
         if (redirectUrl) {
-            redirect(301, redirectUrl);
+            throw redirect(301, redirectUrl);
         }
     }
 
