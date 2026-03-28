@@ -99,8 +99,10 @@
         position: absolute;
         top: 0;
         left: 0;
-        width: 100%;
-        height: 100%;
+        display: block;
+        width: 100% !important;
+        height: 100% !important;
+        max-width: 100% !important;
         border: 0;
         border-radius: 0.5rem;
     }
@@ -128,6 +130,25 @@
         position: relative;
         display: block;
         min-height: var(--twitter-embed-height, 250px);
-        height: var(--twitter-embed-height, auto);
+        height: var(--twitter-embed-height, auto) !important;
+    }
+
+    .embed-container[data-platform='instagram'],
+    .embed-container[data-platform='instagram-reel'] {
+        min-height: 400px;
+        overflow: visible;
+    }
+
+    .embed-container[data-platform='instagram']::before,
+    .embed-container[data-platform='instagram-reel']::before {
+        display: none;
+    }
+
+    .embed-container[data-platform='instagram'] :global(iframe),
+    .embed-container[data-platform='instagram-reel'] :global(iframe) {
+        position: relative;
+        display: block;
+        min-height: 400px;
+        height: auto !important;
     }
 </style>
