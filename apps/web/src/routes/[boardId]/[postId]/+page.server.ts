@@ -519,6 +519,7 @@ export const load: PageServerLoad = async ({
         // 하단 게시글 목록 SSR 프리로드 (클라이언트 API 호출 제거 → 스켈레톤 제거)
         const listPage = Number(url.searchParams.get('page')) || 1;
         const RECENT_POSTS_LIMIT = 20;
+        const useSummaryListResponse = boardId === 'free' || boardId === 'hello';
         let recentPosts: { items: FreePost[]; total: number; totalPages: number; page: number } = {
             items: [],
             total: 0,
@@ -527,7 +528,7 @@ export const load: PageServerLoad = async ({
         };
         try {
             const listRes = await bFetch(
-                `/api/v1/boards/${boardId}/posts?page=${listPage}&limit=${RECENT_POSTS_LIMIT}`,
+                `/api/v1/boards/${boardId}/posts?page=${listPage}&limit=${RECENT_POSTS_LIMIT}${useSummaryListResponse ? '&summary=1' : ''}`,
                 { headers, timeout: 3_000 }
             );
             if (listRes.ok) {

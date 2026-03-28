@@ -95,6 +95,7 @@
     let currentPage = $state(initialPage);
     let totalPages = $state(initialTotalPages);
     let totalItems = $state(initialTotal);
+    const useSummaryListResponse = $derived(boardId === 'free' || boardId === 'hello');
 
     // 목록 컨테이너 참조
     let listContainer: HTMLElement | undefined = $state();
@@ -105,7 +106,9 @@
 
         loading = true;
         try {
-            const response = await apiClient.getBoardPosts(boardId, page, limit);
+            const response = await apiClient.getBoardPosts(boardId, page, limit, {
+                summary: useSummaryListResponse
+            });
             posts = response.items;
             currentPage = response.page;
             totalPages = response.total_pages;
@@ -128,7 +131,9 @@
 
         try {
             const startPage = Math.max(1, initialPage);
-            const response = await apiClient.getBoardPosts(boardId, startPage, limit);
+            const response = await apiClient.getBoardPosts(boardId, startPage, limit, {
+                summary: useSummaryListResponse
+            });
             posts = response.items;
             currentPage = response.page;
             totalPages = response.total_pages;
