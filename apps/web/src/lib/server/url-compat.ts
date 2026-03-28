@@ -104,6 +104,28 @@ export function mapGnuboardUrl(pathname: string, searchParams: URLSearchParams):
         return '/qa/write';
     }
 
+    // /bbs/rss.php → RSS
+    if (pathname === '/bbs/rss.php') {
+        const boTable = searchParams.get('bo_table');
+        return boTable ? `/rss/${boTable}` : '/rss';
+    }
+
+    // /bbs/new.php → 새글 모아보기
+    if (pathname === '/bbs/new.php') {
+        return '/feed';
+    }
+
+    // /bbs/tag.php → 태그 검색
+    if (pathname === '/bbs/tag.php') {
+        const tag = searchParams.get('tag') || searchParams.get('stx');
+        return tag ? `/search?tag=${encodeURIComponent(tag)}` : '/search';
+    }
+
+    // /bbs/group.php → 그룹 목록
+    if (pathname === '/bbs/group.php') {
+        return '/groups';
+    }
+
     return null;
 }
 
