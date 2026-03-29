@@ -61,6 +61,13 @@ export const load: PageServerLoad = async () => {
                 commentXP: r.bo_comment_xp
             });
         }
+
+        // 직접홍보를 2번째로 이동
+        const promoIdx = boardPoints.findIndex((b) => b.slug === 'promotion');
+        if (promoIdx > 1) {
+            const [promo] = boardPoints.splice(promoIdx, 1);
+            boardPoints.splice(1, 0, promo);
+        }
     } catch {
         // DB 오류 시 빈 배열
     }
