@@ -1,6 +1,8 @@
 <script lang="ts">
     import { LevelBadge } from '$lib/components/ui/level-badge/index.js';
     import { Card, CardContent } from '$lib/components/ui/card/index.js';
+    import { authStore } from '$lib/stores/auth.svelte.js';
+    import Lock from '@lucide/svelte/icons/lock';
     import LogIn from '@lucide/svelte/icons/log-in';
     import PenLine from '@lucide/svelte/icons/pen-line';
     import MessageCircle from '@lucide/svelte/icons/message-circle';
@@ -12,6 +14,7 @@
     import ArrowUpCircle from '@lucide/svelte/icons/arrow-up-circle';
 
     const levels = Array.from({ length: 110 }, (_, i) => i);
+    const userLevel = $derived(authStore.user?.as_level ?? 0);
 
     // 등급 (mb_level) 정보
     const grades = [
@@ -235,13 +238,30 @@
     <!-- 레벨 뱃지 갤러리 -->
     <section>
         <h2 class="text-foreground mb-4 text-xl font-semibold">레벨 뱃지 목록</h2>
+        <p class="text-muted-foreground mb-4 text-sm">
+            본인 레벨까지 공개됩니다. 다음 뱃지는 레벨을 올려서 확인해 보세요!
+        </p>
         <div class="grid grid-cols-5 gap-3 sm:grid-cols-8 md:grid-cols-10">
             {#each levels as level (level)}
-                <div class="border-border flex flex-col items-center gap-1 rounded-md border p-2">
-                    <LevelBadge {level} size="md" />
-                    <span class="text-muted-foreground text-xs">Lv.{level}</span>
-                </div>
+                {#if level <= userLevel}
+                    <div
+                        class="border-border flex flex-col items-center gap-1 rounded-md border p-2"
+                    >
+                        <LevelBadge {level} size="md" />
+                        <span class="text-muted-foreground text-xs">Lv.{level}</span>
+                    </div>
+                {:else}
+                    <div
+                        class="border-border bg-muted/50 flex flex-col items-center justify-center gap-1 rounded-md border p-2 opacity-40"
+                    >
+                        <div class="flex h-8 w-8 items-center justify-center">
+                            <Lock class="text-muted-foreground h-4 w-4" />
+                        </div>
+                        <span class="text-muted-foreground text-xs">Lv.{level}</span>
+                    </div>
+                {/if}
             {/each}
         </div>
+        <p class="text-muted-foreground mt-4 text-center text-xs">뱃지 디자인 : Playonly</p>
     </section>
 </div>
