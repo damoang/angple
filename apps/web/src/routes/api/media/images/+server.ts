@@ -85,11 +85,11 @@ function rawKeyToFinalKey(rawKey: string): string {
     return rawKey.replace(/^raw\//, 'data/');
 }
 
-/** Lambda 변환 완료 대기 — data/ 키에 HeadObject 폴링 (최대 3초, 200ms 간격) */
+/** Lambda 변환 완료 대기 — data/ 키에 HeadObject 폴링 (최대 8초, 300ms 간격) */
 async function waitForProcessed(
     finalKey: string,
-    maxWaitMs = 3000,
-    intervalMs = 200
+    maxWaitMs = 8000,
+    intervalMs = 300
 ): Promise<boolean> {
     const maxAttempts = Math.ceil(maxWaitMs / intervalMs);
     for (let i = 0; i < maxAttempts; i++) {

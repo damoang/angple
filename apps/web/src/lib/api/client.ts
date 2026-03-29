@@ -1614,12 +1614,37 @@ class ApiClient {
             headers['Authorization'] = `Bearer ${token}`;
         }
 
-        const response = await fetch('/api/media/images', {
-            method: 'POST',
-            headers,
-            body: formData,
-            credentials: 'include'
-        });
+        const MAX_RETRIES = 2;
+        const UPLOAD_TIMEOUT_MS = 30_000;
+        let lastError: Error | null = null;
+        let response: Response | null = null;
+
+        for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), UPLOAD_TIMEOUT_MS);
+
+                response = await fetch('/api/media/images', {
+                    method: 'POST',
+                    headers,
+                    body: formData,
+                    credentials: 'include',
+                    signal: controller.signal
+                });
+                clearTimeout(timeoutId);
+                break;
+            } catch (err) {
+                lastError = err instanceof Error ? err : new Error('업로드 실패');
+                if (attempt < MAX_RETRIES) {
+                    await new Promise((r) => setTimeout(r, 1000 * (attempt + 1)));
+                    continue;
+                }
+            }
+        }
+
+        if (!response) {
+            throw lastError ?? new Error('이미지 업로드에 실패했습니다. 네트워크를 확인해 주세요.');
+        }
 
         if (!response.ok) {
             const errorBody = await response.text().catch(() => '');
