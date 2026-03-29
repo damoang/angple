@@ -246,7 +246,21 @@
     }
 
     onMount(() => {
-        loadUnreadCount();
+        const scheduleUnreadLoad = () => {
+            const task = () => {
+                if (document.visibilityState !== 'visible') return;
+                void loadUnreadCount();
+            };
+
+            if (typeof window.requestIdleCallback === 'function') {
+                window.requestIdleCallback(task, { timeout: 2000 });
+                return;
+            }
+
+            globalThis.setTimeout(task, 250);
+        };
+
+        scheduleUnreadLoad();
 
         let interval: ReturnType<typeof setInterval> | null = null;
 
@@ -264,7 +278,7 @@
 
         function handleVisibilityChange() {
             if (document.visibilityState === 'visible') {
-                loadUnreadCount();
+                scheduleUnreadLoad();
                 startPolling();
             } else {
                 stopPolling();

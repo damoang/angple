@@ -400,9 +400,22 @@
 
     $effect(() => {
         const authorId = data.post.author_id;
-        if (authorId) {
+        if (!browser || !authorId) return;
+
+        const loadTask = () => {
+            if (document.visibilityState === 'hidden') return;
             void memberLevelStore.fetchLevels([authorId]);
+        };
+
+        if (typeof window.requestIdleCallback === 'function') {
+            const idleId = window.requestIdleCallback(loadTask, { timeout: 1500 });
+            return () => window.cancelIdleCallback?.(idleId);
         }
+
+        const timer = globalThis.setTimeout(loadTask, 200);
+        return () => {
+            globalThis.clearTimeout(timer);
+        };
     });
 
     let isCreatingComment = $state(false);
@@ -1723,9 +1736,6 @@
         currentPostId={data.post.id}
         limit={20}
         initialPage={data.recentPosts?.page || Number($page.url.searchParams.get('page')) || 1}
-        initialPosts={data.recentPosts?.items || []}
-        initialTotal={data.recentPosts?.total || 0}
-        initialTotalPages={data.recentPosts?.totalPages || 1}
         {promotionPosts}
         displaySettings={data.board?.display_settings}
     />
