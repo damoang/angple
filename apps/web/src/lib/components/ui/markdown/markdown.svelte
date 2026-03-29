@@ -203,43 +203,29 @@
     let proseEl: HTMLDivElement;
 
     onMount(() => {
-        // Twitter iframe postMessage resize 수신
-        function handleTwitterResize(event: MessageEvent) {
-            if (event.origin !== 'https://platform.twitter.com') return;
-            try {
-                const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
-                const resizeData = data?.['twttr.private.resize'];
-                if (resizeData && Array.isArray(resizeData)) {
-                    const height = resizeData[0]?.height;
-                    if (height && typeof height === 'number') {
-                        const iframes =
-                            document.querySelectorAll<HTMLIFrameElement>('iframe[data-tweet-id]');
-                        for (const iframe of iframes) {
-                            if (iframe.contentWindow === event.source) {
-                                const container = iframe.closest<HTMLElement>('.embed-container');
-                                iframe.style.height = `${height}px`;
-                                iframe.setAttribute('height', String(height));
-                                container?.style.setProperty(
-                                    '--twitter-embed-height',
-                                    `${height}px`
-                                );
-                                container?.setAttribute('data-embed-height', String(height));
-                                break;
-                            }
-                        }
-                    }
+        // Twitter 공식 widgets.js 로드 (blockquote → 실제 트윗으로 변환)
+        function loadTwitterWidgets() {
+            if (proseEl?.querySelector('.twitter-tweet')) {
+                const w = window as unknown as {
+                    twttr?: { widgets?: { load?: (el: HTMLElement) => void } };
+                };
+                if (w.twttr?.widgets?.load) {
+                    w.twttr.widgets.load(proseEl);
+                } else if (
+                    !document.querySelector('script[src*="platform.twitter.com/widgets.js"]')
+                ) {
+                    const s = document.createElement('script');
+                    s.src = 'https://platform.twitter.com/widgets.js';
+                    s.async = true;
+                    document.head.appendChild(s);
                 }
-            } catch {
-                // 무시
             }
         }
-
-        window.addEventListener('message', handleTwitterResize);
+        loadTwitterWidgets();
 
         const cleanupLightbox = attachLightbox(proseEl);
 
         return () => {
-            window.removeEventListener('message', handleTwitterResize);
             cleanupLightbox();
         };
     });
