@@ -5,6 +5,7 @@
     import { formatNumber, getRecommendBadgeClass, shortenBoardName } from '../../utils/index.js';
     import { readPostsStore } from '$lib/stores/read-posts.svelte.js';
     import { getReadPostClasses } from '$lib/stores/read-post-style.svelte.js';
+    import { blockedUsersStore } from '$lib/stores/blocked-users.svelte.js';
 
     const PREVIEW_COUNT = 15;
 
@@ -36,6 +37,7 @@
         for (const section of sections) {
             for (const post of section.posts ?? []) {
                 if (seen.has(post.id)) continue;
+                if (blockedUsersStore.isBlocked(post.author)) continue;
                 seen.add(post.id);
                 result.push({ ...post, uniqueKey: `${section.key}-${post.id}` });
             }

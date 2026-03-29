@@ -11,6 +11,7 @@
     } from '$lib/components/features/recommended/utils/index.js';
     import { readPostsStore } from '$lib/stores/read-posts.svelte.js';
     import { getReadPostClasses } from '$lib/stores/read-post-style.svelte.js';
+    import { blockedUsersStore } from '$lib/stores/blocked-users.svelte.js';
     import type { ExploreData, ExploreMode, ExplorePost } from '$lib/api/types.js';
 
     interface Props {
@@ -41,10 +42,13 @@
         if (!exploreData?.modes) return [];
         const modeData = exploreData.modes[activeMode];
         if (!modeData) return [];
+        let posts: ExplorePost[];
         if (activeMode === 'top') {
-            return modeData.periods?.['24h']?.slice(0, PREVIEW_COUNT) ?? [];
+            posts = modeData.periods?.['24h'] ?? [];
+        } else {
+            posts = modeData.posts ?? [];
         }
-        return modeData.posts?.slice(0, PREVIEW_COUNT) ?? [];
+        return posts.filter((p) => !blockedUsersStore.isBlocked(p.author)).slice(0, PREVIEW_COUNT);
     });
 
     async function loadExploreData(): Promise<void> {
