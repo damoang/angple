@@ -152,12 +152,14 @@ export const GET: RequestHandler = async ({ params }) => {
             // 테이블 없으면 기본값 사용
         }
 
-        // 이용제한 정보 (g5_da_member_discipline → g5_write_disciplinelog fallback)
+        // 이용제한 정보 (g5_da_member_discipline에서 최신 1건 + 이력 5건)
         let discipline = null;
+        let disciplineHistory: { penalty_period: number; penalty_date_from: string }[] = [];
         try {
             const [discRows] = await pool.query<DisciplineRow[]>(
                 `SELECT penalty_period, penalty_date_from
-				 FROM g5_da_member_discipline WHERE penalty_mb_id = ?`,
+				 FROM g5_da_member_discipline WHERE penalty_mb_id = ?
+                 ORDER BY penalty_date_from DESC LIMIT 5`,
                 [memberId]
             );
             if (discRows.length > 0) {
@@ -165,31 +167,41 @@ export const GET: RequestHandler = async ({ params }) => {
                     penalty_period: discRows[0].penalty_period,
                     penalty_date_from: discRows[0].penalty_date_from
                 };
+                disciplineHistory = discRows.map((r) => ({
+                    penalty_period: r.penalty_period,
+                    penalty_date_from: r.penalty_date_from
+                }));
             }
         } catch {
             // 테이블 없으면 무시
         }
 
-        // fallback: disciplinelog 게시판에서 최신 기록 조회
+        // fallback: disciplinelog 게시판에서 최근 기록 조회
         if (!discipline) {
             try {
                 const [logRows] = await pool.query<RowDataPacket[]>(
                     `SELECT wr_content FROM g5_write_disciplinelog
                      WHERE penalty_mb_id = ? AND wr_is_comment = 0
-                     ORDER BY wr_id DESC LIMIT 1`,
+                     ORDER BY wr_id DESC LIMIT 5`,
                     [memberId]
                 );
-                if (logRows.length > 0 && logRows[0].wr_content) {
-                    const parsed = JSON.parse(logRows[0].wr_content);
-                    if (parsed.penalty_period !== undefined) {
-                        discipline = {
-                            penalty_period: parsed.penalty_period,
-                            penalty_date_from: parsed.penalty_date_from
-                        };
+                for (const row of logRows) {
+                    try {
+                        const parsed = JSON.parse(row.wr_content);
+                        if (parsed.penalty_period !== undefined) {
+                            const entry = {
+                                penalty_period: parsed.penalty_period,
+                                penalty_date_from: parsed.penalty_date_from
+                            };
+                            if (!discipline) discipline = entry;
+                            disciplineHistory.push(entry);
+                        }
+                    } catch {
+                        // 파싱 실패 건 스킵
                     }
                 }
             } catch {
-                // 파싱 실패 시 무시
+                // 테이블 없으면 무시
             }
         }
 
@@ -250,6 +262,7 @@ export const GET: RequestHandler = async ({ params }) => {
                 },
                 // 이용제한
                 discipline,
+                discipline_history: disciplineHistory,
                 // 팔로우
                 follower_count: followerRows[0]?.count ?? 0,
                 following_count: followingRows[0]?.count ?? 0
