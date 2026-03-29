@@ -7,11 +7,9 @@
     import Coins from '@lucide/svelte/icons/coins';
     import ShieldAlert from '@lucide/svelte/icons/shield-alert';
     import Info from '@lucide/svelte/icons/info';
-    import ChevronDown from '@lucide/svelte/icons/chevron-down';
     import type { PageData } from './$types.js';
 
     let { data }: { data: PageData } = $props();
-    let showBoardPoints = $state(false);
 
     const earnMethods = [
         {
@@ -33,16 +31,16 @@
         {
             icon: PenLine,
             label: '글 작성',
-            point: '+777',
-            desc: '게시글 1건당 (게시판마다 상이)',
+            point: '',
+            desc: '게시판마다 상이 (아래 상세 참고)',
             color: 'text-blue-500',
             bg: 'bg-blue-100 dark:bg-blue-900/30'
         },
         {
             icon: MessageCircle,
             label: '댓글 작성',
-            point: '+33',
-            desc: '댓글 1건당 (게시판마다 상이)',
+            point: '',
+            desc: '게시판마다 상이 (아래 상세 참고)',
             color: 'text-purple-500',
             bg: 'bg-purple-100 dark:bg-purple-900/30'
         }
@@ -82,11 +80,13 @@
                         <div>
                             <div class="flex items-center gap-2">
                                 <span class="text-foreground font-semibold">{method.label}</span>
-                                <span
-                                    class="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-bold text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
-                                >
-                                    {method.point}P
-                                </span>
+                                {#if method.point}
+                                    <span
+                                        class="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-bold text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+                                    >
+                                        {method.point}P
+                                    </span>
+                                {/if}
                             </div>
                             <p class="text-muted-foreground mt-0.5 text-sm">{method.desc}</p>
                         </div>
@@ -99,56 +99,43 @@
     <!-- 게시판별 포인트 상세 -->
     {#if data.boardPoints?.length > 0}
         <section class="mb-10">
-            <button
-                type="button"
-                class="text-foreground flex w-full items-center justify-between text-left text-xl font-semibold"
-                onclick={() => (showBoardPoints = !showBoardPoints)}
-            >
-                <span>게시판별 포인트 상세</span>
-                <ChevronDown
-                    class="text-muted-foreground h-5 w-5 transition-transform {showBoardPoints
-                        ? 'rotate-180'
-                        : ''}"
-                />
-            </button>
-            {#if showBoardPoints}
-                <div class="mt-4 overflow-x-auto">
-                    <table class="w-full text-sm">
-                        <thead>
-                            <tr class="border-border border-b">
-                                <th class="text-muted-foreground px-3 py-2 text-left font-medium"
-                                    >게시판</th
+            <h2 class="text-foreground text-xl font-semibold">게시판별 포인트 상세</h2>
+            <div class="mt-4 overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="border-border border-b">
+                            <th class="text-muted-foreground px-3 py-2 text-left font-medium"
+                                >게시판</th
+                            >
+                            <th class="text-muted-foreground px-3 py-2 text-right font-medium"
+                                >글쓰기</th
+                            >
+                            <th class="text-muted-foreground px-3 py-2 text-right font-medium"
+                                >댓글</th
+                            >
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {#each data.boardPoints as bp}
+                            <tr class="border-border border-b last:border-0">
+                                <td class="text-foreground px-3 py-1.5">{bp.name}</td>
+                                <td
+                                    class="px-3 py-1.5 text-right font-medium text-blue-600 dark:text-blue-400"
+                                    >{bp.writePoint > 0
+                                        ? '+'
+                                        : ''}{bp.writePoint.toLocaleString()}</td
                                 >
-                                <th class="text-muted-foreground px-3 py-2 text-right font-medium"
-                                    >글쓰기</th
-                                >
-                                <th class="text-muted-foreground px-3 py-2 text-right font-medium"
-                                    >댓글</th
+                                <td
+                                    class="px-3 py-1.5 text-right font-medium text-purple-600 dark:text-purple-400"
+                                    >{bp.commentPoint > 0
+                                        ? '+'
+                                        : ''}{bp.commentPoint.toLocaleString()}</td
                                 >
                             </tr>
-                        </thead>
-                        <tbody>
-                            {#each data.boardPoints as bp}
-                                <tr class="border-border border-b last:border-0">
-                                    <td class="text-foreground px-3 py-1.5">{bp.name}</td>
-                                    <td
-                                        class="px-3 py-1.5 text-right font-medium text-blue-600 dark:text-blue-400"
-                                        >{bp.writePoint > 0
-                                            ? '+'
-                                            : ''}{bp.writePoint.toLocaleString()}</td
-                                    >
-                                    <td
-                                        class="px-3 py-1.5 text-right font-medium text-purple-600 dark:text-purple-400"
-                                        >{bp.commentPoint > 0
-                                            ? '+'
-                                            : ''}{bp.commentPoint.toLocaleString()}</td
-                                    >
-                                </tr>
-                            {/each}
-                        </tbody>
-                    </table>
-                </div>
-            {/if}
+                        {/each}
+                    </tbody>
+                </table>
+            </div>
         </section>
     {/if}
 
