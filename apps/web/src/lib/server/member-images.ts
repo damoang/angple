@@ -9,7 +9,7 @@ import { createCache } from '$lib/server/cache.js';
 import pool from '$lib/server/db';
 
 const MAX_IDS = 200;
-const MEMBER_IMAGE_CACHE_TTL_MS = 300_000;
+const MEMBER_IMAGE_CACHE_TTL_MS = 30_000; // 30초 (프로필 사진 변경 시 빠른 반영)
 const memberImageCache = createCache<MemberImageInfo | null>({
     ttl: MEMBER_IMAGE_CACHE_TTL_MS,
     maxSize: 20_000
