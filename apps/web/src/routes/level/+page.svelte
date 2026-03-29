@@ -15,7 +15,7 @@
 
     // 등급 (mb_level) 정보
     const grades = [
-        { level: 1, name: '앙님💔', desc: '가입 직후', perm: '읽기만 가능' },
+        { level: 1, name: '앙님💔', desc: '비회원', perm: '읽기만 가능' },
         { level: 2, name: '앙님❤️', desc: '가입 시 기본 등급', perm: '읽기만 가능' },
         { level: 3, name: '앙님💛', desc: '7일 로그인 후 자동 승급', perm: '글쓰기, 댓글 가능' },
         { level: 4, name: '앙님💙', desc: '활동 기반 승급', perm: '전체 기능 이용 가능' }
