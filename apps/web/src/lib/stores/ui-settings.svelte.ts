@@ -14,7 +14,7 @@ export type LineHeight = 'compact' | 'normal' | 'relaxed' | 'loose';
 export type ShortcutButtonSize = 'small' | 'medium' | 'large';
 export type ListViewMode = 'classic' | 'modern';
 export type ContentFontSize = 'small' | 'base' | 'large' | 'xlarge' | '2xlarge' | '3xlarge';
-export type ListFontSize = 'small' | 'base' | 'large' | 'xlarge';
+export type ListFontSize = 'xsmall' | 'small' | 'base' | 'large' | 'xlarge';
 
 interface UiSettings {
     // 레이아웃
@@ -104,6 +104,7 @@ const FONT_FAMILY_VALUES: Record<FontFamily, string> = {
 };
 
 export const LIST_FONT_SIZES: Record<ListFontSize, string> = {
+    xsmall: '13px',
     small: '15px',
     base: '17px',
     large: '19px',
