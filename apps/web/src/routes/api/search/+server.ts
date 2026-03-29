@@ -29,6 +29,7 @@ interface SphinxRow extends RowDataPacket {
     wr_comment: number;
     wr_datetime: number;
     wr_is_comment: number;
+    wr_parent?: number;
 }
 
 interface BoardRow extends RowDataPacket {
@@ -77,6 +78,10 @@ function buildMatchExpr(query: string, field: string): string {
             return `@wr_content ${wildcarded}`;
         case 'author':
             return `@(mb_id,wr_name) ${wildcarded}`;
+        case 'comment':
+            return `@wr_content ${wildcarded}`;
+        case 'comment_author':
+            return `@(mb_id,wr_name) ${wildcarded}`;
         case 'title_content':
         default:
             return `@(wr_subject,wr_content) ${wildcarded}`;
@@ -102,15 +107,16 @@ export const GET: RequestHandler = async ({ url, locals }) => {
     try {
         const matchExpr = buildMatchExpr(query, field);
 
-        // 1) Sphinx에서 검색 (최대 200건, 댓글 제외)
+        // 1) Sphinx에서 검색 (최대 200건)
         // mb_id, wr_name은 full-text field only (stored attribute 아님) → SELECT 불가
         // 싱글쿼트 이스케이프 for SphinxQL
+        const isCommentSearch = field === 'comment' || field === 'comment_author';
         const safeMatch = matchExpr.replace(/'/g, "\\'");
         const sphinxSql =
             `SELECT id, bo_table, wr_id, wr_subject, wr_content, ` +
-            `wr_hit, wr_good, wr_comment, wr_datetime ` +
+            `wr_hit, wr_good, wr_comment, wr_datetime, wr_is_comment, wr_parent ` +
             `FROM all_boards_unified_dist ` +
-            `WHERE MATCH('${safeMatch}') AND wr_is_comment = 0 ` +
+            `WHERE MATCH('${safeMatch}') AND wr_is_comment = ${isCommentSearch ? 1 : 0} ` +
             `ORDER BY wr_datetime DESC ` +
             `LIMIT 200`;
 
@@ -199,11 +205,12 @@ export const GET: RequestHandler = async ({ url, locals }) => {
                     board_id: boardId,
                     board_name: boardNameMap.get(boardId) || boardId,
                     total: rows.length,
+                    is_comment: isCommentSearch,
                     posts: rows.slice(0, limitPerBoard).map((row) => {
                         const author = authorMap.get(`${boardId}:${row.wr_id}`);
                         return {
                             id: row.wr_id,
-                            title: row.wr_subject,
+                            title: isCommentSearch ? '' : row.wr_subject,
                             content: stripHtml(row.wr_content).slice(0, 200),
                             author: author?.wr_name || '',
                             author_id: author?.mb_id || '',
@@ -211,8 +218,9 @@ export const GET: RequestHandler = async ({ url, locals }) => {
                             views: row.wr_hit,
                             likes: row.wr_good,
                             comments_count: row.wr_comment,
-                            created_at: new Date((row.wr_datetime - 9 * 3600) * 1000).toISOString(),
-                            has_file: fileSet.has(`${boardId}:${row.wr_id}`)
+                            created_at: new Date(row.wr_datetime * 1000).toISOString(),
+                            has_file: fileSet.has(`${boardId}:${row.wr_id}`),
+                            parent_id: isCommentSearch ? row.wr_parent || 0 : undefined
                         };
                     })
                 };

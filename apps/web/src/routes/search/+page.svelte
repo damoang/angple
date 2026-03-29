@@ -25,6 +25,8 @@
         { value: 'title', label: '제목' },
         { value: 'content', label: '내용' },
         { value: 'author', label: '작성자' },
+        { value: 'comment', label: '댓글' },
+        { value: 'comment_author', label: '작성자(댓글)' },
         { value: 'google', label: 'Google' }
     ];
 
@@ -278,31 +280,44 @@
                     <CardContent>
                         <ul class="divide-border divide-y">
                             {#each result.posts as post (post.id)}
+                                {@const isComment = result.is_comment && post.parent_id}
                                 <li class="py-3 first:pt-0 last:pb-0">
                                     <a
-                                        href="/{result.board_id}/{post.id}"
+                                        href={isComment
+                                            ? `/${result.board_id}/${post.parent_id}#c_${post.id}`
+                                            : `/${result.board_id}/${post.id}`}
                                         class="hover:bg-accent -m-2 block w-full rounded-md p-2 no-underline transition-colors"
                                     >
-                                        <h3 class="text-foreground mb-1 line-clamp-1 font-medium">
-                                            {@html highlightQuery(post.title, data.query)}
-                                        </h3>
-                                        <p
-                                            class="text-secondary-foreground mb-2 line-clamp-2 text-sm"
-                                        >
-                                            {@html highlightQuery(post.content, data.query)}
-                                        </p>
+                                        {#if isComment}
+                                            <p class="text-foreground mb-1 line-clamp-2 text-sm">
+                                                {@html highlightQuery(post.content, data.query)}
+                                            </p>
+                                        {:else}
+                                            <h3
+                                                class="text-foreground mb-1 line-clamp-1 font-medium"
+                                            >
+                                                {@html highlightQuery(post.title, data.query)}
+                                            </h3>
+                                            <p
+                                                class="text-secondary-foreground mb-2 line-clamp-2 text-sm"
+                                            >
+                                                {@html highlightQuery(post.content, data.query)}
+                                            </p>
+                                        {/if}
                                         <div
                                             class="text-muted-foreground flex items-center gap-2 text-xs"
                                         >
                                             <span>{post.author}</span>
                                             <span>·</span>
                                             <span>{formatDate(post.created_at)}</span>
-                                            <span>·</span>
-                                            <span>조회 {post.views.toLocaleString()}</span>
-                                            <span>·</span>
-                                            <span>추천 {post.likes}</span>
-                                            <span>·</span>
-                                            <span>댓글 {post.comments_count}</span>
+                                            {#if !isComment}
+                                                <span>·</span>
+                                                <span>조회 {post.views.toLocaleString()}</span>
+                                                <span>·</span>
+                                                <span>추천 {post.likes}</span>
+                                                <span>·</span>
+                                                <span>댓글 {post.comments_count}</span>
+                                            {/if}
                                         </div>
                                     </a>
                                 </li>
