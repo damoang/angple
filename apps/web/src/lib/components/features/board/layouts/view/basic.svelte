@@ -154,7 +154,7 @@
                 </div>
             {/if}
             <CardTitle
-                class="text-foreground flex items-center gap-2 text-xl font-bold sm:text-2xl"
+                class="text-foreground flex flex-wrap items-center gap-2 break-words text-xl font-bold sm:text-2xl"
             >
                 {#if isAdmin}
                     <button

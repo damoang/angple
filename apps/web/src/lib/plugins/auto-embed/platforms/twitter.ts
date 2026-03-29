@@ -35,18 +35,12 @@ export const twitter: EmbedPlatform = {
     },
 
     render(info: EmbedInfo): string {
-        const embedUrl = `https://platform.twitter.com/embed/Tweet.html?id=${info.id}&theme=light`;
+        const username = info.params?.username || 'twitter';
+        const tweetUrl = `https://x.com/${username}/status/${info.id}`;
 
-        return `<iframe
-			class="twitter-embed-iframe"
-			src="${embedUrl}"
-			title="Twitter post"
-			data-tweet-id="${info.id}"
-			frameborder="0"
-			scrolling="auto"
-			allowtransparency="true"
-			allowfullscreen
-			style="width: 100%; max-width: 550px; min-height: 500px; height: auto; position: relative; display: block; border: none;"
-		></iframe>`;
+        // Twitter 공식 blockquote + widgets.js 방식: 자동 리사이즈, 테마 지원
+        return `<blockquote class="twitter-tweet" data-tweet-id="${info.id}">
+			<a href="${tweetUrl}">트윗 보기</a>
+		</blockquote>`;
     }
 };
