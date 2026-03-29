@@ -1,6 +1,8 @@
 <script lang="ts">
     import { LevelBadge } from '$lib/components/ui/level-badge/index.js';
     import { Card, CardContent } from '$lib/components/ui/card/index.js';
+    import { authStore } from '$lib/stores/auth.svelte.js';
+    import Lock from '@lucide/svelte/icons/lock';
     import LogIn from '@lucide/svelte/icons/log-in';
     import PenLine from '@lucide/svelte/icons/pen-line';
     import MessageCircle from '@lucide/svelte/icons/message-circle';
@@ -12,10 +14,11 @@
     import ArrowUpCircle from '@lucide/svelte/icons/arrow-up-circle';
 
     const levels = Array.from({ length: 110 }, (_, i) => i);
+    const userLevel = $derived(authStore.user?.as_level ?? 0);
 
     // 등급 (mb_level) 정보
     const grades = [
-        { level: 1, name: '앙님💔', desc: '가입 직후', perm: '읽기만 가능' },
+        { level: 1, name: '앙님💔', desc: '비회원', perm: '읽기만 가능' },
         { level: 2, name: '앙님❤️', desc: '가입 시 기본 등급', perm: '읽기만 가능' },
         { level: 3, name: '앙님💛', desc: '7일 로그인 후 자동 승급', perm: '글쓰기, 댓글 가능' },
         { level: 4, name: '앙님💙', desc: '활동 기반 승급', perm: '전체 기능 이용 가능' }
@@ -74,7 +77,7 @@
             icon: PenLine,
             label: '글 작성',
             xp: '+100',
-            desc: '게시글 1건당',
+            desc: '게시글 1건당 (게시판마다 상이)',
             color: 'text-blue-500',
             bg: 'bg-blue-100 dark:bg-blue-900/30'
         },
@@ -82,7 +85,7 @@
             icon: MessageCircle,
             label: '댓글 작성',
             xp: '+50',
-            desc: '댓글 1건당',
+            desc: '댓글 1건당 (게시판마다 상이)',
             color: 'text-purple-500',
             bg: 'bg-purple-100 dark:bg-purple-900/30'
         }
@@ -92,7 +95,7 @@
 </script>
 
 <svelte:head>
-    <title>등급 및 레벨 안내 | {import.meta.env.VITE_SITE_NAME || '다모앙'}</title>
+    <title>뱃지 & 레벨 안내 | {import.meta.env.VITE_SITE_NAME || '다모앙'}</title>
 </svelte:head>
 
 <div class="mx-auto max-w-4xl px-4 pb-12 pt-6">
@@ -103,10 +106,9 @@
             alt="다모앙 캐릭터"
             class="mx-auto mb-4 h-24 w-24"
         />
-        <h1 class="text-foreground mb-2 text-3xl font-bold">등급 및 레벨 안내</h1>
+        <h1 class="text-foreground mb-2 text-3xl font-bold">뱃지 & 레벨 안내</h1>
         <p class="text-muted-foreground text-lg">
-            다모앙에는 <strong>등급</strong>(게시판 이용 권한)과 <strong>레벨</strong>(활동 경험치)
-            두 가지 시스템이 있습니다.
+            다모앙에는 <strong>이용 권한</strong>과 <strong>활동 레벨</strong> 두 가지 시스템이 있습니다.
         </p>
     </div>
 
@@ -114,7 +116,7 @@
     <section class="mb-12">
         <div class="mb-4 flex items-center gap-2">
             <ShieldCheck class="text-primary h-6 w-6" />
-            <h2 class="text-foreground text-xl font-semibold">등급 시스템</h2>
+            <h2 class="text-foreground text-xl font-semibold">이용 권한</h2>
         </div>
         <p class="text-muted-foreground mb-4 text-sm">
             등급은 닉네임 옆에 표시되며, 게시판 이용 권한을 결정합니다.
@@ -153,7 +155,7 @@
     <section class="mb-10">
         <div class="mb-4 flex items-center gap-2">
             <ArrowUpCircle class="h-6 w-6 text-indigo-500" />
-            <h2 class="text-foreground text-xl font-semibold">레벨 시스템 (경험치)</h2>
+            <h2 class="text-foreground text-xl font-semibold">활동 레벨 (경험치)</h2>
         </div>
         <p class="text-muted-foreground mb-4 text-sm">
             레벨은 활동량을 나타내는 지표입니다. 등급과 별개로, 경험치(XP)가 쌓이면 레벨이
@@ -219,8 +221,8 @@
                 <h3 class="text-foreground font-semibold">참고 사항</h3>
                 <ul class="text-muted-foreground list-inside list-disc space-y-1 text-sm">
                     <li>
-                        <strong>등급</strong>은 게시판 이용 권한, <strong>레벨</strong>은 활동량
-                        지표입니다. 두 시스템은 별개입니다.
+                        <strong>이용 권한</strong>과 <strong>활동 레벨</strong>은 별개의
+                        시스템입니다.
                     </li>
                     <li>
                         레벨 80 이상부터는 <strong>로그인(출석)으로만</strong> 경험치가 적립됩니다.
@@ -232,16 +234,54 @@
         </Card>
     </section>
 
-    <!-- 레벨 뱃지 갤러리 -->
-    <section>
-        <h2 class="text-foreground mb-4 text-xl font-semibold">레벨 뱃지 목록</h2>
-        <div class="grid grid-cols-5 gap-3 sm:grid-cols-8 md:grid-cols-10">
-            {#each levels as level (level)}
-                <div class="border-border flex flex-col items-center gap-1 rounded-md border p-2">
-                    <LevelBadge {level} size="md" />
-                    <span class="text-muted-foreground text-xs">Lv.{level}</span>
+    <!-- 스페셜 뱃지 -->
+    <section class="mb-10">
+        <h2 class="text-foreground mb-4 text-xl font-semibold">스페셜 뱃지</h2>
+        <p class="text-muted-foreground mb-4 text-sm">
+            특별한 역할이나 기여를 한 회원에게 부여되는 뱃지입니다.
+        </p>
+        <div class="grid grid-cols-3 gap-4 sm:grid-cols-6">
+            {#each [{ src: '/images/level/special.svg', name: '스페셜' }, { src: '/images/level/ang.svg', name: '앙' }, { src: '/images/level/a_ang.svg', name: '에이앙' }, { src: '/images/level/A.svg', name: 'A' }, { src: '/images/level/admin.svg', name: '관리자' }, { src: '/images/level/a_sponser.svg', name: '스폰서' }] as badge}
+                <div class="border-border flex items-center justify-center rounded-md border p-3">
+                    <img
+                        src={badge.src}
+                        alt={badge.name}
+                        width="20"
+                        height="20"
+                        class="inline-block"
+                    />
                 </div>
             {/each}
         </div>
+    </section>
+
+    <!-- 레벨 뱃지 갤러리 -->
+    <section>
+        <h2 class="text-foreground mb-4 text-xl font-semibold">레벨 뱃지 목록</h2>
+        <p class="text-muted-foreground mb-4 text-sm">
+            본인 레벨까지 공개됩니다. 다음 뱃지는 레벨을 올려서 확인해 보세요!
+        </p>
+        <div class="grid grid-cols-5 gap-3 sm:grid-cols-8 md:grid-cols-10">
+            {#each levels as level (level)}
+                {#if level <= userLevel}
+                    <div
+                        class="border-border flex flex-col items-center gap-1 rounded-md border p-2"
+                    >
+                        <LevelBadge {level} size="md" />
+                        <span class="text-muted-foreground text-xs">Lv.{level}</span>
+                    </div>
+                {:else}
+                    <div
+                        class="border-border bg-muted/50 flex flex-col items-center justify-center gap-1 rounded-md border p-2 opacity-40"
+                    >
+                        <div class="flex h-8 w-8 items-center justify-center">
+                            <Lock class="text-muted-foreground h-4 w-4" />
+                        </div>
+                        <span class="text-muted-foreground text-xs">Lv.{level}</span>
+                    </div>
+                {/if}
+            {/each}
+        </div>
+        <p class="text-muted-foreground mt-4 text-center text-xs">뱃지 디자인 : Playonly</p>
     </section>
 </div>
