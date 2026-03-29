@@ -4,6 +4,7 @@
     import { goto } from '$app/navigation';
     import { page } from '$app/stores';
     import { apiClient } from '$lib/api/index.js';
+    import { blockedUsersStore } from '$lib/stores/blocked-users.svelte.js';
     import User from '@lucide/svelte/icons/user';
     import FileText from '@lucide/svelte/icons/file-text';
     import Search from '@lucide/svelte/icons/search';
@@ -75,17 +76,25 @@
         }
     }
 
+    let blockLoading = $state(false);
+
     async function handleBlock(): Promise<void> {
         if (!authStore.isAuthenticated) {
             authStore.redirectToLogin();
             return;
         }
+        if (blockLoading) return;
         if (!confirm(`${authorName}님을 차단하시겠습니까?`)) return;
+        blockLoading = true;
         try {
             await apiClient.blockMember(authorId);
+            blockedUsersStore.add(authorId);
             alert(`${authorName}님을 차단했습니다.`);
-        } catch {
-            alert('차단 처리에 실패했습니다.');
+        } catch (err) {
+            console.error('[Block] Failed:', authorId, err);
+            alert('차단 처리에 실패했습니다. 잠시 후 다시 시도해 주세요.');
+        } finally {
+            blockLoading = false;
         }
     }
 
@@ -190,9 +199,10 @@
                     <DropdownMenu.Item
                         class="text-destructive cursor-pointer gap-2"
                         onclick={handleBlock}
+                        disabled={blockLoading}
                     >
                         <Ban class="h-3.5 w-3.5" />
-                        차단하기
+                        {blockLoading ? '처리 중...' : '차단하기'}
                     </DropdownMenu.Item>
                 {/if}
             </DropdownMenu.Content>
