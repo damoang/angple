@@ -29,9 +29,11 @@
         type UpdateLogoRequest
     } from '$lib/api/admin-logos';
     import { apiClient } from '$lib/api';
+    import { buildLogoPreviews } from '$lib/utils/logo-schedule';
 
     let isLoading = $state(true);
     let logos = $state<SiteLogo[]>([]);
+    let previewNow = $state(new Date());
 
     // 다이얼로그 상태
     let showDialog = $state(false);
@@ -48,6 +50,12 @@
     let formEndDate = $state('');
     let formPriority = $state(0);
     let formIsActive = $state(true);
+    const previews = $derived(
+        buildLogoPreviews(
+            logos.filter((logo) => logo.is_active),
+            previewNow
+        )
+    );
 
     function resetForm() {
         formName = '';
@@ -216,7 +224,9 @@
     function getScheduleDetail(logo: SiteLogo): string {
         switch (logo.schedule_type) {
             case 'recurring':
-                return logo.recurring_date || '';
+                return logo.recurring_date?.includes('~')
+                    ? `매년 ${logo.recurring_date}`
+                    : logo.recurring_date || '';
             case 'date_range':
                 return `${logo.start_date || ''} ~ ${logo.end_date || ''}`;
             default:
@@ -224,7 +234,18 @@
         }
     }
 
-    onMount(loadLogos);
+    function isPreviewActive(logo: SiteLogo): boolean {
+        return previews.some((preview) => preview.activeLogoId === logo.id);
+    }
+
+    onMount(() => {
+        loadLogos();
+        const timer = window.setInterval(() => {
+            previewNow = new Date();
+        }, 60_000);
+
+        return () => window.clearInterval(timer);
+    });
 </script>
 
 <svelte:head>
@@ -244,12 +265,46 @@
                 헤더 로고는 모바일 40px, 데스크톱 48px 높이의 고정 영역에 계속 노출됩니다. SVG
                 애니메이션을 사용할 경우 Safari와 모바일 실기기에서 CPU 사용량을 꼭 확인해 주세요.
             </p>
+            <p class="text-muted-foreground mt-1 text-xs">
+                매년 반복은 하루(`03-01`) 또는 기간(`03-20~04-02`)으로 등록할 수 있습니다.
+            </p>
         </div>
         <Button onclick={openCreate}>
             <Plus class="mr-1.5 h-4 w-4" />
             로고 추가
         </Button>
     </div>
+
+    <Card.Root class="mb-6">
+        <Card.Content class="py-5">
+            <div class="mb-3 flex items-center justify-between gap-3">
+                <div>
+                    <h2 class="text-base font-semibold">시간대별 현재 로고</h2>
+                    <p class="text-muted-foreground text-xs">
+                        같은 로고 스케줄도 각 지역의 현지 날짜에 따라 지금 보이는 결과가 달라집니다.
+                    </p>
+                </div>
+                <p class="text-muted-foreground text-xs">
+                    기준 시각: {previewNow.toLocaleString()}
+                </p>
+            </div>
+            <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                {#each previews as preview}
+                    <div class="bg-muted/40 rounded-lg border p-3">
+                        <div class="mb-1 flex items-center justify-between gap-2">
+                            <span class="text-sm font-medium">{preview.flag} {preview.label}</span>
+                            <span class="text-muted-foreground text-xs">{preview.region}</span>
+                        </div>
+                        <p class="text-sm font-semibold">{preview.currentDate}</p>
+                        <p class="text-muted-foreground text-xs">
+                            {preview.currentTime} · {preview.timeZone}
+                        </p>
+                        <p class="mt-2 text-sm">{preview.activeLogoName || '노출 로고 없음'}</p>
+                    </div>
+                {/each}
+            </div>
+        </Card.Content>
+    </Card.Root>
 
     {#if isLoading}
         <div class="flex items-center justify-center py-24">
@@ -308,6 +363,11 @@
                                 {getScheduleDetail(logo)}
                             </p>
                             <p class="text-muted-foreground text-xs">우선순위: {logo.priority}</p>
+                            {#if isPreviewActive(logo)}
+                                <p class="mt-1 text-xs font-medium text-emerald-600">
+                                    현재 일부 시간대에서 노출 중
+                                </p>
+                            {/if}
                         </div>
 
                         <!-- 액션 -->
@@ -411,22 +471,23 @@
                         class="border-input bg-background ring-offset-background flex h-10 w-full rounded-md border px-3 py-2 text-sm"
                     >
                         <option value="default">기본 로고 (폴백)</option>
-                        <option value="recurring">매년 반복 (MM-DD)</option>
+                        <option value="recurring">매년 반복 (MM-DD 또는 MM-DD~MM-DD)</option>
                         <option value="date_range">기간 지정</option>
                     </select>
                 </div>
 
                 {#if formScheduleType === 'recurring'}
                     <div class="grid gap-2">
-                        <Label for="recurring-date">반복 날짜 (MM-DD)</Label>
+                        <Label for="recurring-date">반복 날짜</Label>
                         <Input
                             id="recurring-date"
                             bind:value={formRecurringDate}
-                            placeholder="03-01"
-                            maxlength={5}
+                            placeholder="03-01 또는 03-20~04-02"
+                            maxlength={13}
                         />
                         <p class="text-muted-foreground text-xs">
-                            매년 이 날짜에 자동으로 로고가 변경됩니다. (예: 03-01 = 삼일절)
+                            매년 하루는 `MM-DD`, 절기처럼 기간 반복은 `MM-DD~MM-DD` 형식으로
+                            입력합니다.
                         </p>
                     </div>
                 {:else if formScheduleType === 'date_range'}

@@ -6,6 +6,13 @@
  */
 import { createCache } from '$lib/server/cache';
 import { env } from '$env/dynamic/private';
+import {
+    buildLogoPreviews,
+    getLogoTimeZone,
+    resolveActiveLogo,
+    type LogoPreview
+} from '$lib/utils/logo-schedule';
+import type { SupportedLocale } from '@angple/i18n';
 
 export interface SiteLogoSchedule {
     id: number;
@@ -18,14 +25,21 @@ export interface SiteLogoSchedule {
     priority: number;
 }
 
-export interface LogoData {
-    active: SiteLogoSchedule | null;
+interface RawLogoData {
     schedules: SiteLogoSchedule[];
 }
 
-const logoCache = createCache<LogoData>({ ttl: 60_000, maxSize: 10 });
+export interface LogoData {
+    active: SiteLogoSchedule | null;
+    schedules: SiteLogoSchedule[];
+    previews: LogoPreview[];
+    requestLocale: SupportedLocale;
+    requestTimeZone: string;
+}
 
-async function fetchLogoData(): Promise<LogoData> {
+const logoCache = createCache<RawLogoData>({ ttl: 60_000, maxSize: 10 });
+
+async function fetchLogoData(): Promise<RawLogoData> {
     const backendUrl = (env.BACKEND_URL || 'http://localhost:8090').replace(/\/$/, '');
 
     try {
@@ -34,22 +48,30 @@ async function fetchLogoData(): Promise<LogoData> {
         });
 
         if (!response.ok) {
-            return { active: null, schedules: [] };
+            return { schedules: [] };
         }
 
         const result = await response.json();
         const data = result.data;
 
         return {
-            active: data?.active || null,
             schedules: data?.schedules || []
         };
     } catch {
-        return { active: null, schedules: [] };
+        return { schedules: [] };
     }
 }
 
-/** 캐시된 로고 데이터 조회 (60초 TTL, singleflight) */
-export async function getCachedLogoData(): Promise<LogoData> {
-    return logoCache.getOrSet('logo', fetchLogoData);
+/** 캐시된 로고 스케줄 조회 후 요청 locale 기준으로 활성 로고를 계산 */
+export async function getCachedLogoData(requestLocale: SupportedLocale): Promise<LogoData> {
+    const rawData = await logoCache.getOrSet('logo', fetchLogoData);
+    const requestTimeZone = getLogoTimeZone(requestLocale);
+
+    return {
+        active: resolveActiveLogo(rawData.schedules, { timeZone: requestTimeZone }),
+        schedules: rawData.schedules,
+        previews: buildLogoPreviews(rawData.schedules),
+        requestLocale,
+        requestTimeZone
+    };
 }

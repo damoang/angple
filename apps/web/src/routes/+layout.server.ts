@@ -5,6 +5,7 @@ import { loadMenus } from '$lib/server/menu-loader';
 import { getCachedCelebrations } from '$lib/server/celebration';
 import { getCachedBannersByPositions } from '$lib/server/ads/banners';
 import { getCachedLogoData } from '$lib/server/logo';
+import { resolveLogoRequestLocale } from '$lib/utils/logo-schedule';
 
 import { hooks } from '@angple/hook-system';
 import { env } from '$env/dynamic/private';
@@ -17,8 +18,13 @@ import { env } from '$env/dynamic/private';
  *
  * celebration + banners: SSR에서 직접 로드하여 클라이언트 /api/init CDN 요청 제거
  */
-export const load: LayoutServerLoad = async ({ locals, depends, url }) => {
+export const load: LayoutServerLoad = async ({ locals, depends, url, cookies, request }) => {
     depends('app:layout');
+    const requestLocale = resolveLogoRequestLocale({
+        pathname: url.pathname,
+        cookieLocale: cookies.get('angple_locale'),
+        acceptLanguage: request.headers.get('accept-language')
+    });
 
     // Install wizard must not depend on runtime infra such as Redis, menus, banners, or MySQL.
     // CI/E2E runs this route before the full stack is provisioned.
@@ -34,7 +40,13 @@ export const load: LayoutServerLoad = async ({ locals, depends, url }) => {
 
             celebration: [],
             banners: {},
-            logoData: { active: null, schedules: [] },
+            logoData: {
+                active: null,
+                schedules: [],
+                previews: [],
+                requestLocale,
+                requestTimeZone: 'UTC'
+            },
             ga4MeasurementId: ''
         };
 
@@ -49,7 +61,7 @@ export const load: LayoutServerLoad = async ({ locals, depends, url }) => {
             loadMenus(),
             getCachedCelebrations(),
             getCachedBannersByPositions(['index-top', 'board-head', 'sidebar']),
-            getCachedLogoData()
+            getCachedLogoData(requestLocale)
         ]);
 
     const activeTheme = themeResult.status === 'fulfilled' ? themeResult.value : null;
@@ -58,7 +70,15 @@ export const load: LayoutServerLoad = async ({ locals, depends, url }) => {
     const celebration = celebrationResult.status === 'fulfilled' ? celebrationResult.value : [];
     const banners = bannersResult.status === 'fulfilled' ? bannersResult.value : {};
     const logoData =
-        logoResult.status === 'fulfilled' ? logoResult.value : { active: null, schedules: [] };
+        logoResult.status === 'fulfilled'
+            ? logoResult.value
+            : {
+                  active: null,
+                  schedules: [],
+                  previews: [],
+                  requestLocale,
+                  requestTimeZone: 'UTC'
+              };
 
     // 실패 로깅 (크래시 안 함)
     for (const [name, r] of [
