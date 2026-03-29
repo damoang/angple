@@ -41,7 +41,9 @@
             <div class="hidden w-[50px] shrink-0 md:block">
                 <span class="text-muted-foreground text-xs">-</span>
             </div>
-            <span class="text-muted-foreground text-[15px]">[삭제된 게시물입니다]</span>
+            <span class="text-muted-foreground" style="font-size: var(--list-font-size);"
+                >[삭제된 게시물입니다]</span
+            >
         </div>
     </a>
 {:else}
@@ -226,19 +228,19 @@
     }
 
     .post-meta-text {
-        font-size: 15px;
+        font-size: 0.9em;
         color: var(--color-muted-foreground);
     }
 
     .comment-count {
-        font-size: 13px;
+        font-size: 0.85em;
         font-weight: 600;
         color: var(--color-liked, orangered);
     }
 
     .mobile-meta {
         display: none;
-        font-size: 13px;
+        font-size: 0.85em;
         color: var(--color-muted-foreground);
     }
 

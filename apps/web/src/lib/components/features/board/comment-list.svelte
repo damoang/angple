@@ -1447,7 +1447,7 @@
                         {:else}
                             <div
                                 class="comment-body text-foreground overflow-hidden whitespace-pre-wrap break-words {isFeed
-                                    ? 'text-[15px] leading-snug'
+                                    ? 'leading-snug'
                                     : commentLayout === 'bordered'
                                       ? 'leading-snug'
                                       : 'leading-normal'}"
