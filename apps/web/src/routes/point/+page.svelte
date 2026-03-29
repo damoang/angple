@@ -154,7 +154,9 @@
     <!-- 게시판별 포인트 상세 -->
     {#if data.boardPoints?.length > 0}
         <section class="mt-10">
-            <h2 class="text-foreground mb-4 text-xl font-semibold">게시판별 포인트 상세</h2>
+            <h2 class="text-foreground mb-4 text-xl font-semibold">
+                게시판별 포인트 · 경험치 상세
+            </h2>
             <div class="overflow-x-auto">
                 <table class="w-full text-sm">
                     <thead>
@@ -163,10 +165,16 @@
                                 >게시판</th
                             >
                             <th class="text-muted-foreground px-3 py-2 text-right font-medium"
-                                >글쓰기</th
+                                >글쓰기<br /><span class="text-xs font-normal">포인트</span></th
                             >
                             <th class="text-muted-foreground px-3 py-2 text-right font-medium"
-                                >댓글</th
+                                >댓글<br /><span class="text-xs font-normal">포인트</span></th
+                            >
+                            <th class="text-muted-foreground px-3 py-2 text-right font-medium"
+                                >글쓰기<br /><span class="text-xs font-normal">XP</span></th
+                            >
+                            <th class="text-muted-foreground px-3 py-2 text-right font-medium"
+                                >댓글<br /><span class="text-xs font-normal">XP</span></th
                             >
                         </tr>
                     </thead>
@@ -185,6 +193,12 @@
                                     >{bp.commentPoint > 0
                                         ? '+'
                                         : ''}{bp.commentPoint.toLocaleString()}</td
+                                >
+                                <td class="text-muted-foreground px-3 py-1.5 text-right text-xs"
+                                    >+{data.writeXP}</td
+                                >
+                                <td class="text-muted-foreground px-3 py-1.5 text-right text-xs"
+                                    >+{data.commentXP}</td
                                 >
                             </tr>
                         {/each}

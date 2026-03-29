@@ -10,9 +10,35 @@ interface BoardPointRow extends RowDataPacket {
     bo_comment_point: number;
 }
 
+interface SettingsRow extends RowDataPacket {
+    settings_json: string;
+}
+
 export const load: PageServerLoad = async () => {
     let boardPoints: { name: string; slug: string; writePoint: number; commentPoint: number }[] =
         [];
+    let writeXP = 100;
+    let commentXP = 50;
+
+    try {
+        // XP 전역 설정 조회
+        const [settingsRows] = await pool.query<SettingsRow[]>(
+            `SELECT settings_json FROM site_settings WHERE site_id = 'default' LIMIT 1`
+        );
+        if (settingsRows.length > 0 && settingsRows[0].settings_json) {
+            try {
+                const settings = JSON.parse(settingsRows[0].settings_json);
+                if (settings.xp_config) {
+                    writeXP = settings.xp_config.write_xp ?? 100;
+                    commentXP = settings.xp_config.comment_xp ?? 50;
+                }
+            } catch {
+                // 파싱 실패 시 기본값
+            }
+        }
+    } catch {
+        // 테이블 없으면 기본값
+    }
 
     try {
         const [rows] = await pool.query<BoardPointRow[]>(
@@ -49,5 +75,5 @@ export const load: PageServerLoad = async () => {
         // DB 오류 시 빈 배열
     }
 
-    return { boardPoints };
+    return { boardPoints, writeXP, commentXP };
 };
