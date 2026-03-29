@@ -74,7 +74,7 @@
             icon: PenLine,
             label: '글 작성',
             xp: '+100',
-            desc: '게시글 1건당',
+            desc: '게시글 1건당 (게시판마다 상이)',
             color: 'text-blue-500',
             bg: 'bg-blue-100 dark:bg-blue-900/30'
         },
@@ -82,7 +82,7 @@
             icon: MessageCircle,
             label: '댓글 작성',
             xp: '+50',
-            desc: '댓글 1건당',
+            desc: '댓글 1건당 (게시판마다 상이)',
             color: 'text-purple-500',
             bg: 'bg-purple-100 dark:bg-purple-900/30'
         }
