@@ -96,49 +96,6 @@
         </div>
     </section>
 
-    <!-- 게시판별 포인트 상세 -->
-    {#if data.boardPoints?.length > 0}
-        <section class="mb-10">
-            <h2 class="text-foreground text-xl font-semibold">게시판별 포인트 상세</h2>
-            <div class="mt-4 overflow-x-auto">
-                <table class="w-full text-sm">
-                    <thead>
-                        <tr class="border-border border-b">
-                            <th class="text-muted-foreground px-3 py-2 text-left font-medium"
-                                >게시판</th
-                            >
-                            <th class="text-muted-foreground px-3 py-2 text-right font-medium"
-                                >글쓰기</th
-                            >
-                            <th class="text-muted-foreground px-3 py-2 text-right font-medium"
-                                >댓글</th
-                            >
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {#each data.boardPoints as bp}
-                            <tr class="border-border border-b last:border-0">
-                                <td class="text-foreground px-3 py-1.5">{bp.name}</td>
-                                <td
-                                    class="px-3 py-1.5 text-right font-medium text-blue-600 dark:text-blue-400"
-                                    >{bp.writePoint > 0
-                                        ? '+'
-                                        : ''}{bp.writePoint.toLocaleString()}</td
-                                >
-                                <td
-                                    class="px-3 py-1.5 text-right font-medium text-purple-600 dark:text-purple-400"
-                                    >{bp.commentPoint > 0
-                                        ? '+'
-                                        : ''}{bp.commentPoint.toLocaleString()}</td
-                                >
-                            </tr>
-                        {/each}
-                    </tbody>
-                </table>
-            </div>
-        </section>
-    {/if}
-
     <!-- 포인트 사용 -->
     <section class="mb-10">
         <h2 class="text-foreground mb-4 text-xl font-semibold">포인트 사용</h2>
@@ -193,4 +150,47 @@
             </CardContent>
         </Card>
     </section>
+
+    <!-- 게시판별 포인트 상세 -->
+    {#if data.boardPoints?.length > 0}
+        <section class="mt-10">
+            <h2 class="text-foreground mb-4 text-xl font-semibold">게시판별 포인트 상세</h2>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="border-border border-b">
+                            <th class="text-muted-foreground px-3 py-2 text-left font-medium"
+                                >게시판</th
+                            >
+                            <th class="text-muted-foreground px-3 py-2 text-right font-medium"
+                                >글쓰기</th
+                            >
+                            <th class="text-muted-foreground px-3 py-2 text-right font-medium"
+                                >댓글</th
+                            >
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {#each data.boardPoints as bp}
+                            <tr class="border-border border-b last:border-0">
+                                <td class="text-foreground px-3 py-1.5">{bp.name}</td>
+                                <td
+                                    class="px-3 py-1.5 text-right font-medium text-blue-600 dark:text-blue-400"
+                                    >{bp.writePoint > 0
+                                        ? '+'
+                                        : ''}{bp.writePoint.toLocaleString()}</td
+                                >
+                                <td
+                                    class="px-3 py-1.5 text-right font-medium text-purple-600 dark:text-purple-400"
+                                    >{bp.commentPoint > 0
+                                        ? '+'
+                                        : ''}{bp.commentPoint.toLocaleString()}</td
+                                >
+                            </tr>
+                        {/each}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    {/if}
 </div>
