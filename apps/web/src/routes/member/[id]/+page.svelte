@@ -572,8 +572,38 @@
                             {/if}
                         </div>
 
-                        <!-- 이용제한 -->
-                        {#if p.discipline}
+                        <!-- 이용제한 이력 -->
+                        {#if p.discipline_history?.length > 0}
+                            <div class="border-border rounded-lg border p-3">
+                                <div class="flex items-center gap-2 text-sm">
+                                    <Shield class="text-destructive h-4 w-4" />
+                                    <span class="text-foreground font-medium">이용제한 내역</span>
+                                </div>
+                                <ul class="mt-2 space-y-1">
+                                    {#each p.discipline_history as d, i}
+                                        <li
+                                            class="text-muted-foreground flex items-center gap-2 text-xs"
+                                        >
+                                            <span
+                                                class={i === 0
+                                                    ? 'text-destructive font-medium'
+                                                    : ''}
+                                            >
+                                                {#if d.penalty_period > 0}
+                                                    {d.penalty_period}일 이용제한
+                                                {:else if d.penalty_period === 0}
+                                                    주의
+                                                {:else}
+                                                    영구정지
+                                                {/if}
+                                            </span>
+                                            <span>·</span>
+                                            <span>{d.penalty_date_from?.split(' ')[0] || ''}</span>
+                                        </li>
+                                    {/each}
+                                </ul>
+                            </div>
+                        {:else if p.discipline}
                             <div class="border-border rounded-lg border p-3">
                                 <div class="flex items-center gap-2 text-sm">
                                     <Shield class="text-destructive h-4 w-4" />

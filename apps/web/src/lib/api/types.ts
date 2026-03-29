@@ -67,6 +67,7 @@ export interface FreePost {
     deleted_at?: string | null; // 소프트 삭제 시점
     deleted_by?: string | null; // 삭제한 사용자 ID
     is_left?: boolean; // 작성자 탈퇴 여부 (SSR enrichment)
+    report_count?: number | string; // wr_7 값: 숫자(신고수) 또는 "lock"(잠김)
     // 확장 필드 (PHP wr_1~wr_10 매핑)
     extra_1?: string; // wr_1 - 회원전용 등
     extra_2?: string; // wr_2 - 나눔: 포인트/숫자

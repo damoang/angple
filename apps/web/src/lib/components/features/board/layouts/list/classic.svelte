@@ -194,7 +194,13 @@
                             class="truncate {readClass}"
                             class:font-semibold={uiSettingsStore.titleBold}
                         >
-                            {post.title}
+                            {#if post.report_count === 'lock'}
+                                <span class="text-muted-foreground italic"
+                                    >신고에 의해 숨겨진 게시글입니다</span
+                                >
+                            {:else}
+                                {post.title}
+                            {/if}
                         </span>
                         {#if isNew}
                             <span class="text-liked shrink-0 text-[10px] font-bold">N</span>

@@ -58,7 +58,13 @@
                             {#if post.is_secret}
                                 <Lock class="text-muted-foreground h-4 w-4 shrink-0" />
                             {/if}
-                            {post.title}
+                            {#if post.report_count === 'lock'}
+                                <span class="text-muted-foreground italic"
+                                    >신고에 의해 숨겨진 게시글입니다</span
+                                >
+                            {:else}
+                                {post.title}
+                            {/if}
                         </CardTitle>
                         <div
                             class="text-secondary-foreground flex flex-wrap items-center gap-2 text-sm"
