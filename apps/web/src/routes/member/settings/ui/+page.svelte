@@ -94,20 +94,20 @@
     ];
 
     const contentFontSizeOptions: { value: ContentFontSize; label: string }[] = [
-        { value: 'small', label: '작게 (17px)' },
-        { value: 'base', label: '보통 (19px)' },
-        { value: 'large', label: '크게 (21px)' },
-        { value: 'xlarge', label: '아주 크게 (23px)' },
-        { value: '2xlarge', label: '매우 크게 (25px)' },
+        { value: 'small', label: '작게 (16px)' },
+        { value: 'base', label: '보통 (18px)' },
+        { value: 'large', label: '크게 (20px)' },
+        { value: 'xlarge', label: '아주 크게 (22px)' },
+        { value: '2xlarge', label: '매우 크게 (24px)' },
         { value: '3xlarge', label: '최대 (28px)' }
     ];
 
     const listFontSizeOptions: { value: ListFontSize; label: string }[] = [
-        { value: 'xsmall', label: '아주 작게 (13px)' },
-        { value: 'small', label: '작게 (15px)' },
-        { value: 'base', label: '보통 (17px)' },
-        { value: 'large', label: '크게 (19px)' },
-        { value: 'xlarge', label: '아주 크게 (21px)' }
+        { value: 'xsmall', label: '아주 작게 (14px)' },
+        { value: 'small', label: '작게 (16px)' },
+        { value: 'base', label: '보통 (18px)' },
+        { value: 'large', label: '크게 (20px)' },
+        { value: 'xlarge', label: '아주 크게 (22px)' }
     ];
 
     const readStyleOptions: { value: ReadPostStyle; label: string }[] = [
