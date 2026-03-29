@@ -225,7 +225,7 @@
                                                         type="button"
                                                         onclick={() => toggleSubGroup(child.id)}
                                                         class={cn(
-                                                            'flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors',
+                                                            'flex w-full items-center gap-2 rounded-md px-3 py-2 text-base font-medium transition-colors',
                                                             'hover:bg-accent text-muted-foreground'
                                                         )}
                                                     >
@@ -285,7 +285,7 @@
                                                                             : 'ghost'}
                                                                         size="sm"
                                                                         class={cn(
-                                                                            'h-8 w-full justify-start gap-2 text-xs',
+                                                                            'h-8 w-full justify-start gap-2 text-sm',
                                                                             gcActive
                                                                                 ? 'bg-primary text-primary-foreground hover:bg-primary/90'
                                                                                 : 'hover:bg-accent'
