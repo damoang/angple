@@ -35,7 +35,7 @@
         {@const isExpanded = expandedGroups.has(group.id)}
         <div>
             <button
-                class="text-muted-foreground hover:text-foreground hover:bg-muted flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors"
+                class="text-muted-foreground hover:text-foreground hover:bg-muted flex w-full items-center gap-2 rounded-md px-3 py-2 text-base font-medium transition-colors"
                 onclick={() => toggleGroup(group.id)}
                 aria-expanded={isExpanded}
             >
@@ -54,7 +54,7 @@
                         {@const isActive = currentBoardId === board.board_id}
                         <a
                             href="/{board.board_id}"
-                            class="block rounded-md px-3 py-1.5 text-sm transition-colors"
+                            class="block rounded-md px-3 py-1.5 text-base transition-colors"
                             class:bg-primary={isActive}
                             class:text-primary-foreground={isActive}
                             class:text-muted-foreground={!isActive}
