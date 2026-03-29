@@ -33,7 +33,7 @@
             <li>
                 <a
                     href={post.url}
-                    class="hover:bg-muted block rounded px-2 py-1.5 transition-all duration-200 ease-out"
+                    class="hover:bg-muted block rounded px-1 py-1.5 transition-all duration-200 ease-out"
                     style="padding-top: calc(0.0625rem + var(--row-pad-extra, 0px)); padding-bottom: calc(0.0625rem + var(--row-pad-extra, 0px));"
                 >
                     <div class="flex items-center gap-2">
