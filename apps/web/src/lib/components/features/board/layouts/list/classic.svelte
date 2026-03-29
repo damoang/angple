@@ -358,14 +358,14 @@
     /* ===== 메타데이터 텍스트 (이름, 날짜, 조회) ===== */
 
     .post-meta-text {
-        font-size: 15px;
+        font-size: 0.9em;
         color: var(--color-muted-foreground);
     }
 
     /* ===== 댓글 수 ===== */
 
     .comment-count {
-        font-size: 0.8125rem;
+        font-size: 0.85em;
         font-weight: 600;
         color: var(--color-liked, orangered);
     }
@@ -378,7 +378,7 @@
 
     .mobile-meta {
         display: none;
-        font-size: 0.8125rem;
+        font-size: 0.85em;
         color: var(--color-muted-foreground);
     }
 
@@ -418,7 +418,7 @@
 
     /* 모바일 10+ 추천 */
     .mobile-likes-pill {
-        font-size: 0.8125rem;
+        font-size: 0.85em;
         font-weight: 600;
         color: var(--color-liked, #f97316);
     }
