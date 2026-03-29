@@ -220,7 +220,7 @@
             </div>
         </div>
 
-        <Card class="hidden gap-0 sm:flex">
+        <Card class="hidden gap-0 sm:col-span-2 sm:flex">
             <CardHeader class="pb-2 pt-2">
                 <button
                     type="button"
