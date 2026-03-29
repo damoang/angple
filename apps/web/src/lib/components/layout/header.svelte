@@ -23,6 +23,7 @@
     import { getAvatarUrl } from '$lib/utils/member-icon';
     import { menuStore } from '$lib/stores/menu.svelte';
     import { getIcon } from '$lib/utils/icon-map';
+    import { resolveActiveLogo, resolveBrowserLogoTimeZone } from '$lib/utils/logo-schedule';
     import { normalizeWebUrl } from '$lib/utils/url-normalizer';
     import { page } from '$app/stores';
     import { browser } from '$app/environment';
@@ -32,8 +33,19 @@
         return /^https?:\/\//i.test(src) && /\.svg(?:$|\?)/i.test(src);
     }
 
-    const activeLogoSrc = $derived($page.data.logoData?.active?.logo_url || DefaultLogo);
-    const activeLogoAlt = $derived($page.data.logoData?.active?.name || 'Logo');
+    let logoNow = $state(new Date());
+    const resolvedActiveLogo = $derived.by(() => {
+        const logoData = $page.data.logoData;
+        if (!logoData) return null;
+        if (!browser) return logoData.active;
+
+        return resolveActiveLogo(logoData.schedules || [], {
+            now: logoNow,
+            timeZone: resolveBrowserLogoTimeZone(logoData.requestLocale)
+        });
+    });
+    const activeLogoSrc = $derived(resolvedActiveLogo?.logo_url || DefaultLogo);
+    const activeLogoAlt = $derived(resolvedActiveLogo?.name || 'Logo');
     let headerLogoFailed = $state(false);
     let prefersReducedMotion = $state(false);
 
@@ -154,6 +166,9 @@
 
     // 컴포넌트 마운트 시 스크롤 이벤트 등록 + 테마 복원
     onMount(() => {
+        const logoTimer = window.setInterval(() => {
+            logoNow = new Date();
+        }, 60_000);
         const reducedMotionMq = window.matchMedia('(prefers-reduced-motion: reduce)');
         prefersReducedMotion = reducedMotionMq.matches;
 
@@ -219,6 +234,7 @@
         window.addEventListener('keydown', handleKeydown);
 
         return () => {
+            window.clearInterval(logoTimer);
             darkMq.removeEventListener('change', handleSystemThemeChange);
             reducedMotionMq.removeEventListener('change', handleReducedMotionChange);
             window.removeEventListener('storage', handleStorageChange);

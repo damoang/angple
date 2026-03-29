@@ -43,11 +43,22 @@ function fingerprint(key: string, value: unknown): string {
             const logo = value as {
                 active?: { id?: number; logo_url?: string } | null;
                 schedules?: { id: number }[];
+                previews?: { locale: string; activeLogoId: number | null; currentDate: string }[];
+                requestLocale?: string;
+                requestTimeZone?: string;
             };
             return [
                 logo.active?.id ?? 'none',
                 logo.active?.logo_url ?? '',
-                (logo.schedules ?? []).map((s) => s.id).join(',')
+                (logo.schedules ?? []).map((s) => s.id).join(','),
+                (logo.previews ?? [])
+                    .map(
+                        (preview) =>
+                            `${preview.locale}:${preview.currentDate}:${preview.activeLogoId}`
+                    )
+                    .join(','),
+                logo.requestLocale ?? '',
+                logo.requestTimeZone ?? ''
             ].join('|');
         }
         case 'user':
