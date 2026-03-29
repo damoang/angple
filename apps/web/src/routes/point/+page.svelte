@@ -194,11 +194,13 @@
                                         ? '+'
                                         : ''}{bp.commentPoint.toLocaleString()}</td
                                 >
-                                <td class="text-muted-foreground px-3 py-1.5 text-right text-xs"
-                                    >+{data.writeXP}</td
+                                <td
+                                    class="px-3 py-1.5 text-right font-medium text-green-600 dark:text-green-400"
+                                    >+{bp.writeXP}</td
                                 >
-                                <td class="text-muted-foreground px-3 py-1.5 text-right text-xs"
-                                    >+{data.commentXP}</td
+                                <td
+                                    class="px-3 py-1.5 text-right font-medium text-emerald-600 dark:text-emerald-400"
+                                    >+{bp.commentXP}</td
                                 >
                             </tr>
                         {/each}
