@@ -31,9 +31,13 @@ export const load: PageServerLoad = async () => {
              ORDER BY bo_write_point DESC, bo_subject ASC`
         );
 
+        // 비공개/특수 게시판 제외
+        const hiddenBoards = new Set(['promotion', 'archive']);
+
         // group 게시판은 "소모임" 1건으로 통합
         let groupAdded = false;
         for (const r of rows) {
+            if (hiddenBoards.has(r.bo_table)) continue;
             if (r.gr_id === 'group') {
                 if (!groupAdded) {
                     boardPoints.push({
