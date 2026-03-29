@@ -76,6 +76,7 @@
                     class="mb-1 flex items-center gap-1.5 truncate {isRead
                         ? 'text-muted-foreground font-normal'
                         : 'text-foreground font-medium'}"
+                    style="font-size: var(--list-font-size);"
                 >
                     {#if post.is_adult}
                         <Badge variant="destructive" class="shrink-0 px-1.5 py-0 text-[10px]"

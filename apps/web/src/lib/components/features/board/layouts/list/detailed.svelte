@@ -48,6 +48,7 @@
                             class="mb-2 flex items-center gap-1.5 {isRead
                                 ? 'text-muted-foreground font-normal'
                                 : 'text-foreground'}"
+                            style="font-size: var(--list-font-size);"
                         >
                             {#if post.is_adult}
                                 <Badge

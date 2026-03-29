@@ -14,7 +14,7 @@ export type LineHeight = 'compact' | 'normal' | 'relaxed' | 'loose';
 export type ShortcutButtonSize = 'small' | 'medium' | 'large';
 export type ListViewMode = 'classic' | 'modern';
 export type ContentFontSize = 'small' | 'base' | 'large' | 'xlarge' | '2xlarge' | '3xlarge';
-export type ListFontSize = 'small' | 'base' | 'large' | 'xlarge';
+export type ListFontSize = 'xsmall' | 'small' | 'base' | 'large' | 'xlarge';
 
 interface UiSettings {
     // 레이아웃
@@ -104,10 +104,11 @@ const FONT_FAMILY_VALUES: Record<FontFamily, string> = {
 };
 
 export const LIST_FONT_SIZES: Record<ListFontSize, string> = {
-    small: '13px',
-    base: '15px',
-    large: '17px',
-    xlarge: '19px'
+    xsmall: '14px',
+    small: '16px',
+    base: '18px',
+    large: '20px',
+    xlarge: '22px'
 };
 
 /** 본문 흐림 대상 키워드 (제목에 포함 시 블러 처리) */

@@ -103,10 +103,11 @@
     ];
 
     const listFontSizeOptions: { value: ListFontSize; label: string }[] = [
-        { value: 'small', label: '작게 (13px)' },
-        { value: 'base', label: '보통 (15px)' },
-        { value: 'large', label: '크게 (17px)' },
-        { value: 'xlarge', label: '아주 크게 (19px)' }
+        { value: 'xsmall', label: '아주 작게 (14px)' },
+        { value: 'small', label: '작게 (16px)' },
+        { value: 'base', label: '보통 (18px)' },
+        { value: 'large', label: '크게 (20px)' },
+        { value: 'xlarge', label: '아주 크게 (22px)' }
     ];
 
     const readStyleOptions: { value: ReadPostStyle; label: string }[] = [
