@@ -117,20 +117,21 @@
         margin-right: auto;
     }
 
-    /* Twitter는 높이가 가변적 */
+    /* Twitter는 높이가 가변적 — aspect-ratio 패딩 비활성화 */
     .embed-container[data-platform='twitter'] {
         height: var(--twitter-embed-height, auto);
+        padding-bottom: 0 !important;
         min-height: 250px;
         overflow: visible;
     }
 
     .embed-container[data-platform='twitter']::before {
-        display: none;
+        display: none !important;
     }
 
     .embed-container[data-platform='twitter'] :global(iframe) {
-        position: relative;
-        display: block;
+        position: relative !important;
+        display: block !important;
         min-height: var(--twitter-embed-height, 250px);
         height: var(--twitter-embed-height, auto) !important;
     }

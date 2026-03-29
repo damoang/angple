@@ -536,20 +536,21 @@
         margin-right: auto;
     }
 
-    /* Twitter 가변 높이 */
+    /* Twitter 가변 높이 — aspect-ratio 패딩 비활성화 */
     .prose :global(.embed-container[data-platform='twitter']) {
         height: var(--twitter-embed-height, auto);
+        padding-bottom: 0 !important;
         min-height: 250px;
         overflow: visible;
     }
 
     .prose :global(.embed-container[data-platform='twitter'])::before {
-        display: none;
+        display: none !important;
     }
 
     .prose :global(.embed-container[data-platform='twitter'] iframe) {
-        position: relative;
-        display: block;
+        position: relative !important;
+        display: block !important;
         min-height: var(--twitter-embed-height, 250px);
         height: var(--twitter-embed-height, auto) !important;
     }
