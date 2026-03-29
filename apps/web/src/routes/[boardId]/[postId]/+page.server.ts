@@ -516,41 +516,15 @@ export const load: PageServerLoad = async ({
             }
         }
 
-        // 하단 게시글 목록 SSR 프리로드 (클라이언트 API 호출 제거 → 스켈레톤 제거)
+        // 하단 게시글 목록은 클라이언트에서 로드한다.
+        // 개수(20개)는 유지하되 상세 __data.json을 줄이기 위해 SSR 프리로드는 하지 않는다.
         const listPage = Number(url.searchParams.get('page')) || 1;
-        const RECENT_POSTS_LIMIT = 20;
-        const useSummaryListResponse = boardId === 'free' || boardId === 'hello';
-        const shouldPreloadRecentPosts = !useSummaryListResponse;
         let recentPosts: { items: FreePost[]; total: number; totalPages: number; page: number } = {
             items: [],
             total: 0,
             totalPages: 1,
             page: listPage
         };
-        if (shouldPreloadRecentPosts) {
-            try {
-                const listRes = await bFetch(
-                    `/api/v1/boards/${boardId}/posts?page=${listPage}&limit=${RECENT_POSTS_LIMIT}`,
-                    { headers, timeout: 3_000 }
-                );
-                if (listRes.ok) {
-                    const listJson = await listRes.json();
-                    const total = listJson.meta?.total || 0;
-                    recentPosts = {
-                        items: (listJson.data as FreePost[]) || [],
-                        total,
-                        totalPages:
-                            listJson.meta?.total_pages ||
-                            (total > 0 ? Math.ceil(total / RECENT_POSTS_LIMIT) : 0) ||
-                            (listJson.meta?.has_next ? listPage + 1 : listPage) ||
-                            1,
-                        page: listPage
-                    };
-                }
-            } catch {
-                // 실패 시 클라이언트에서 onMount로 로드 (기존 동작)
-            }
-        }
 
         return {
             boardId,

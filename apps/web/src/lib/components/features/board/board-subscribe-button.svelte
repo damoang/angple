@@ -23,7 +23,7 @@
     let loading = $state(false);
     let initialized = $state(false);
 
-    onMount(async () => {
+    async function loadSubscribeState(): Promise<void> {
         try {
             const res = await fetch(`/api/boards/${boardId}/subscribe`);
             if (res.ok) {
@@ -35,8 +35,29 @@
             }
         } catch {
             // 조회 실패 시 무시
+        } finally {
+            initialized = true;
         }
-        initialized = true;
+    }
+
+    onMount(() => {
+        const task = () => {
+            if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
+                initialized = true;
+                return;
+            }
+            void loadSubscribeState();
+        };
+
+        if (typeof window !== 'undefined' && typeof window.requestIdleCallback === 'function') {
+            window.requestIdleCallback(task, { timeout: 2000 });
+            return;
+        }
+
+        const timer = globalThis.setTimeout(task, 300);
+        return () => {
+            globalThis.clearTimeout(timer);
+        };
     });
 
     async function toggle(): Promise<void> {
