@@ -1,5 +1,6 @@
 <script lang="ts">
     import { untrack } from 'svelte';
+    import { afterNavigate } from '$app/navigation';
     import { Button } from '$lib/components/ui/button/index.js';
 
     import { authStore } from '$lib/stores/auth.svelte.js';
@@ -90,6 +91,14 @@
     let error = $state<string | null>(null);
     let editorRef = $state<any>(null);
     let fileInputRef = $state<HTMLInputElement | null>(null);
+
+    // 페이지 이동 시 에디터 내용 초기화 (Safari bfcache 대응)
+    afterNavigate(() => {
+        if (content) {
+            content = '';
+            editorRef?.clear?.();
+        }
+    });
 
     // === CommentEditor 동적 로드 ===
     let LazyCommentEditor = $state<Component | null>(null);
