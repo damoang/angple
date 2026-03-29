@@ -95,7 +95,7 @@
 </script>
 
 <svelte:head>
-    <title>등급 및 레벨 안내 | {import.meta.env.VITE_SITE_NAME || '다모앙'}</title>
+    <title>뱃지 & 레벨 안내 | {import.meta.env.VITE_SITE_NAME || '다모앙'}</title>
 </svelte:head>
 
 <div class="mx-auto max-w-4xl px-4 pb-12 pt-6">
@@ -106,10 +106,9 @@
             alt="다모앙 캐릭터"
             class="mx-auto mb-4 h-24 w-24"
         />
-        <h1 class="text-foreground mb-2 text-3xl font-bold">등급 및 레벨 안내</h1>
+        <h1 class="text-foreground mb-2 text-3xl font-bold">뱃지 & 레벨 안내</h1>
         <p class="text-muted-foreground text-lg">
-            다모앙에는 <strong>등급</strong>(게시판 이용 권한)과 <strong>레벨</strong>(활동 경험치)
-            두 가지 시스템이 있습니다.
+            다모앙에는 <strong>이용 권한</strong>과 <strong>활동 레벨</strong> 두 가지 시스템이 있습니다.
         </p>
     </div>
 
@@ -117,7 +116,7 @@
     <section class="mb-12">
         <div class="mb-4 flex items-center gap-2">
             <ShieldCheck class="text-primary h-6 w-6" />
-            <h2 class="text-foreground text-xl font-semibold">등급 시스템</h2>
+            <h2 class="text-foreground text-xl font-semibold">이용 권한</h2>
         </div>
         <p class="text-muted-foreground mb-4 text-sm">
             등급은 닉네임 옆에 표시되며, 게시판 이용 권한을 결정합니다.
@@ -156,7 +155,7 @@
     <section class="mb-10">
         <div class="mb-4 flex items-center gap-2">
             <ArrowUpCircle class="h-6 w-6 text-indigo-500" />
-            <h2 class="text-foreground text-xl font-semibold">레벨 시스템 (경험치)</h2>
+            <h2 class="text-foreground text-xl font-semibold">활동 레벨 (경험치)</h2>
         </div>
         <p class="text-muted-foreground mb-4 text-sm">
             레벨은 활동량을 나타내는 지표입니다. 등급과 별개로, 경험치(XP)가 쌓이면 레벨이
@@ -222,8 +221,8 @@
                 <h3 class="text-foreground font-semibold">참고 사항</h3>
                 <ul class="text-muted-foreground list-inside list-disc space-y-1 text-sm">
                     <li>
-                        <strong>등급</strong>은 게시판 이용 권한, <strong>레벨</strong>은 활동량
-                        지표입니다. 두 시스템은 별개입니다.
+                        <strong>이용 권한</strong>과 <strong>활동 레벨</strong>은 별개의
+                        시스템입니다.
                     </li>
                     <li>
                         레벨 80 이상부터는 <strong>로그인(출석)으로만</strong> 경험치가 적립됩니다.

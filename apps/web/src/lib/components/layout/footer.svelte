@@ -36,7 +36,7 @@
     // 시스템 메뉴
     const systemLinks: FooterLink[] = [
         { name: '포인트 안내', href: '/content/info' },
-        { name: '등급/레벨 안내', href: '/level' },
+        { name: '뱃지/레벨 안내', href: '/level' },
         { name: '새글모음', href: '/feed' }
     ];
 
