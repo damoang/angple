@@ -34,7 +34,7 @@
                 <a
                     href={post.url}
                     class="hover:bg-muted block rounded px-0.5 py-1.5 transition-all duration-200 ease-out"
-                    style="padding-top: calc(0.0625rem + var(--row-pad-extra, 0px)); padding-bottom: calc(0.0625rem + var(--row-pad-extra, 0px));"
+                    style="padding-top: var(--row-pad-extra, 0px); padding-bottom: var(--row-pad-extra, 0px);"
                 >
                     <div class="flex items-center gap-1">
                         <!-- 추천수 배지 -->

@@ -7,7 +7,7 @@
     import { getReadPostClasses } from '$lib/stores/read-post-style.svelte.js';
     import { blockedUsersStore } from '$lib/stores/blocked-users.svelte.js';
 
-    const PREVIEW_COUNT = 15;
+    const PREVIEW_COUNT = 17;
 
     let { data }: { data: RecommendedDataWithAI } = $props();
 
@@ -53,7 +53,7 @@
                 <a
                     href={post.url}
                     class="hover:bg-muted block rounded px-0.5 py-2 transition-all duration-200 ease-out"
-                    style="padding-top: calc(0.0625rem + var(--row-pad-extra, 0px)); padding-bottom: calc(0.0625rem + var(--row-pad-extra, 0px));"
+                    style="padding-top: var(--row-pad-extra, 0px); padding-bottom: var(--row-pad-extra, 0px);"
                 >
                     <div class="flex items-center gap-1">
                         <!-- 추천수 배지 (Heart 아이콘 포함) -->
