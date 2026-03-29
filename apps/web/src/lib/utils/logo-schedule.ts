@@ -20,6 +20,7 @@ export interface LogoScheduleLike {
 }
 
 const MMDD_REGEX = /^\d{2}-\d{2}$/;
+const RECURRING_RANGE_REGEX = /^(\d{2}-\d{2})~(\d{2}-\d{2})$/;
 
 export interface LogoPreview {
     locale: SupportedLocale;
@@ -98,6 +99,42 @@ function isValidMmdd(value: string): boolean {
     return MMDD_REGEX.test(value);
 }
 
+export function isValidRecurringDateInput(value: string): boolean {
+    if (isValidMmdd(value)) return true;
+
+    const normalized = value.replace(/\s+/g, '');
+    const match = normalized.match(RECURRING_RANGE_REGEX);
+    if (!match) return false;
+
+    return isValidMmdd(match[1]) && isValidMmdd(match[2]);
+}
+
+export function normalizeRecurringDateInput(value: string): string {
+    const trimmed = value.trim();
+    if (isValidMmdd(trimmed)) {
+        return trimmed;
+    }
+
+    const normalized = trimmed.replace(/\s+/g, '');
+    const match = normalized.match(RECURRING_RANGE_REGEX);
+    if (!match) return trimmed;
+
+    return `${match[1]}~${match[2]}`;
+}
+
+export function dateInputToRecurringMmdd(value: string): string {
+    if (!value) return '';
+    const [, month, day] = value.split('-');
+    if (!month || !day) return '';
+    return `${month}-${day}`;
+}
+
+export function recurringMmddToDateInput(value: string, year: number): string {
+    if (!value || !isValidMmdd(value)) return '';
+    const [month, day] = value.split('-');
+    return `${String(year)}-${month}-${day}`;
+}
+
 function normalizeRecurringRange(
     recurringDate?: string
 ): { start: string; end: string; wrapsYear: boolean } | null {
@@ -115,11 +152,12 @@ function normalizeRecurringRange(
 
 function matchesRecurringSchedule(recurringDate: string | undefined, currentMmdd: string): boolean {
     if (!recurringDate) return false;
-    if (isValidMmdd(recurringDate)) {
-        return recurringDate === currentMmdd;
+    const normalized = normalizeRecurringDateInput(recurringDate);
+    if (isValidMmdd(normalized)) {
+        return normalized === currentMmdd;
     }
 
-    const range = normalizeRecurringRange(recurringDate);
+    const range = normalizeRecurringRange(normalized);
     if (!range) return false;
 
     if (!range.wrapsYear) {

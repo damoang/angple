@@ -31,7 +31,12 @@
         type UpdateLogoRequest
     } from '$lib/api/admin-logos';
     import { apiClient } from '$lib/api';
-    import { buildLogoPreviews } from '$lib/utils/logo-schedule';
+    import {
+        buildLogoPreviews,
+        dateInputToRecurringMmdd,
+        normalizeRecurringDateInput,
+        recurringMmddToDateInput
+    } from '$lib/utils/logo-schedule';
 
     let isLoading = $state(true);
     let logos = $state<SiteLogo[]>([]);
@@ -49,9 +54,14 @@
     let formName = $state('');
     let formLogoUrl = $state('');
     let formScheduleType = $state<'recurring' | 'date_range' | 'default'>('default');
-    let formRecurringDate = $state('');
     let formStartDate = $state('');
     let formEndDate = $state('');
+    let formRecurringMode = $state<'single' | 'range'>('single');
+    let formRecurringSingleDate = $state('');
+    let formRecurringStartDate = $state('');
+    let formRecurringEndDate = $state('');
+    let formDateRangeMode = $state<'single' | 'range'>('range');
+    let formSingleDate = $state('');
     let formPriority = $state(0);
     let formIsActive = $state(true);
     let presetLogoUrl = $state('');
@@ -70,14 +80,85 @@
     const selectedPresets = $derived(
         SEASONAL_PRESETS.filter((preset) => selectedPresetKeys.includes(preset.key))
     );
+    const pickerYear = new Date().getFullYear();
+
+    function resetRecurringForm() {
+        formRecurringMode = 'single';
+        formRecurringSingleDate = '';
+        formRecurringStartDate = '';
+        formRecurringEndDate = '';
+    }
+
+    function resetDateRangeForm() {
+        formDateRangeMode = 'range';
+        formSingleDate = '';
+        formStartDate = '';
+        formEndDate = '';
+    }
+
+    function populateRecurringForm(recurringDate?: string) {
+        resetRecurringForm();
+        if (!recurringDate) return;
+
+        const normalized = normalizeRecurringDateInput(recurringDate);
+        if (normalized.includes('~')) {
+            const [start, end] = normalized.split('~');
+            formRecurringMode = 'range';
+            formRecurringStartDate = recurringMmddToDateInput(start, pickerYear);
+            formRecurringEndDate = recurringMmddToDateInput(end, pickerYear);
+            return;
+        }
+
+        formRecurringMode = 'single';
+        formRecurringSingleDate = recurringMmddToDateInput(normalized, pickerYear);
+    }
+
+    function populateDateRangeForm(startDate?: string, endDate?: string) {
+        resetDateRangeForm();
+        if (!startDate || !endDate) return;
+
+        if (startDate === endDate) {
+            formDateRangeMode = 'single';
+            formSingleDate = startDate;
+            return;
+        }
+
+        formDateRangeMode = 'range';
+        formStartDate = startDate;
+        formEndDate = endDate;
+    }
+
+    function getRecurringDateForSave(): string {
+        if (formRecurringMode === 'single') {
+            return dateInputToRecurringMmdd(formRecurringSingleDate);
+        }
+
+        const start = dateInputToRecurringMmdd(formRecurringStartDate);
+        const end = dateInputToRecurringMmdd(formRecurringEndDate);
+        if (!start || !end) return '';
+        return `${start}~${end}`;
+    }
+
+    function getDateRangeForSave(): { start: string; end: string } {
+        if (formDateRangeMode === 'single') {
+            return {
+                start: formSingleDate,
+                end: formSingleDate
+            };
+        }
+
+        return {
+            start: formStartDate,
+            end: formEndDate
+        };
+    }
 
     function resetForm() {
         formName = '';
         formLogoUrl = '';
         formScheduleType = 'default';
-        formRecurringDate = '';
-        formStartDate = '';
-        formEndDate = '';
+        resetRecurringForm();
+        resetDateRangeForm();
         formPriority = 0;
         formIsActive = true;
         editingLogo = null;
@@ -93,9 +174,8 @@
         formName = logo.name;
         formLogoUrl = logo.logo_url;
         formScheduleType = logo.schedule_type;
-        formRecurringDate = logo.recurring_date || '';
-        formStartDate = logo.start_date || '';
-        formEndDate = logo.end_date || '';
+        populateRecurringForm(logo.recurring_date);
+        populateDateRangeForm(logo.start_date, logo.end_date);
         formPriority = logo.priority;
         formIsActive = logo.is_active;
         showDialog = true;
@@ -114,8 +194,30 @@
 
     async function handleSave() {
         if (!formName.trim() || !formLogoUrl.trim()) {
-            toast.error('이름과 로고 URL은 필수입니다.');
+            toast.error('제목과 로고 URL은 필수입니다.');
             return;
+        }
+
+        let recurringDateValue = '';
+        let startDateValue = '';
+        let endDateValue = '';
+
+        if (formScheduleType === 'recurring') {
+            recurringDateValue = getRecurringDateForSave();
+            if (!recurringDateValue) {
+                toast.error('매년 반복 일정의 날짜 또는 기간을 선택해 주세요.');
+                return;
+            }
+        }
+
+        if (formScheduleType === 'date_range') {
+            const range = getDateRangeForSave();
+            startDateValue = range.start;
+            endDateValue = range.end;
+            if (!startDateValue || !endDateValue) {
+                toast.error('기간 지정 일정의 날짜를 선택해 주세요.');
+                return;
+            }
         }
 
         isSaving = true;
@@ -125,10 +227,9 @@
                     name: formName,
                     logo_url: formLogoUrl,
                     schedule_type: formScheduleType,
-                    recurring_date:
-                        formScheduleType === 'recurring' ? formRecurringDate : undefined,
-                    start_date: formScheduleType === 'date_range' ? formStartDate : undefined,
-                    end_date: formScheduleType === 'date_range' ? formEndDate : undefined,
+                    recurring_date: formScheduleType === 'recurring' ? recurringDateValue : '',
+                    start_date: formScheduleType === 'date_range' ? startDateValue : '',
+                    end_date: formScheduleType === 'date_range' ? endDateValue : '',
                     priority: formPriority,
                     is_active: formIsActive
                 };
@@ -139,10 +240,9 @@
                     name: formName,
                     logo_url: formLogoUrl,
                     schedule_type: formScheduleType,
-                    recurring_date:
-                        formScheduleType === 'recurring' ? formRecurringDate : undefined,
-                    start_date: formScheduleType === 'date_range' ? formStartDate : undefined,
-                    end_date: formScheduleType === 'date_range' ? formEndDate : undefined,
+                    recurring_date: formScheduleType === 'recurring' ? recurringDateValue : '',
+                    start_date: formScheduleType === 'date_range' ? startDateValue : '',
+                    end_date: formScheduleType === 'date_range' ? endDateValue : '',
                     priority: formPriority,
                     is_active: formIsActive
                 };
@@ -362,6 +462,9 @@
                     ? `매년 ${logo.recurring_date}`
                     : logo.recurring_date || '';
             case 'date_range':
+                if (logo.start_date && logo.end_date && logo.start_date === logo.end_date) {
+                    return logo.start_date;
+                }
                 return `${logo.start_date || ''} ~ ${logo.end_date || ''}`;
             default:
                 return '항상';
@@ -704,7 +807,7 @@
 
             <div class="space-y-4">
                 <div class="grid gap-2">
-                    <Label for="logo-name">이름</Label>
+                    <Label for="logo-name">제목</Label>
                     <Input id="logo-name" bind:value={formName} placeholder="삼일절 로고" />
                 </div>
 
@@ -761,29 +864,101 @@
                 </div>
 
                 {#if formScheduleType === 'recurring'}
-                    <div class="grid gap-2">
-                        <Label for="recurring-date">반복 날짜</Label>
-                        <Input
-                            id="recurring-date"
-                            bind:value={formRecurringDate}
-                            placeholder="03-01 또는 03-20~04-02"
-                            maxlength={13}
-                        />
+                    <div class="grid gap-3">
+                        <div class="grid gap-2">
+                            <Label>반복 방식</Label>
+                            <div class="grid grid-cols-2 gap-2">
+                                <Button
+                                    type="button"
+                                    variant={formRecurringMode === 'single' ? 'default' : 'outline'}
+                                    onclick={() => (formRecurringMode = 'single')}
+                                >
+                                    하루
+                                </Button>
+                                <Button
+                                    type="button"
+                                    variant={formRecurringMode === 'range' ? 'default' : 'outline'}
+                                    onclick={() => (formRecurringMode = 'range')}
+                                >
+                                    기간
+                                </Button>
+                            </div>
+                        </div>
+
+                        {#if formRecurringMode === 'single'}
+                            <div class="grid gap-2">
+                                <Label for="recurring-single-date">매년 반복 날짜</Label>
+                                <Input
+                                    id="recurring-single-date"
+                                    type="date"
+                                    bind:value={formRecurringSingleDate}
+                                />
+                            </div>
+                        {:else}
+                            <div class="grid grid-cols-2 gap-4">
+                                <div class="grid gap-2">
+                                    <Label for="recurring-start-date">반복 시작일</Label>
+                                    <Input
+                                        id="recurring-start-date"
+                                        type="date"
+                                        bind:value={formRecurringStartDate}
+                                    />
+                                </div>
+                                <div class="grid gap-2">
+                                    <Label for="recurring-end-date">반복 종료일</Label>
+                                    <Input
+                                        id="recurring-end-date"
+                                        type="date"
+                                        bind:value={formRecurringEndDate}
+                                    />
+                                </div>
+                            </div>
+                        {/if}
+
                         <p class="text-muted-foreground text-xs">
-                            매년 하루는 `MM-DD`, 절기처럼 기간 반복은 `MM-DD~MM-DD` 형식으로
-                            입력합니다.
+                            연도는 저장하지 않고 월-일만 사용합니다. 저장 형식:
+                            {getRecurringDateForSave() || '03-01 또는 03-20~04-02'}
                         </p>
                     </div>
                 {:else if formScheduleType === 'date_range'}
-                    <div class="grid grid-cols-2 gap-4">
+                    <div class="grid gap-3">
                         <div class="grid gap-2">
-                            <Label for="start-date">시작일</Label>
-                            <Input id="start-date" type="date" bind:value={formStartDate} />
+                            <Label>기간 방식</Label>
+                            <div class="grid grid-cols-2 gap-2">
+                                <Button
+                                    type="button"
+                                    variant={formDateRangeMode === 'single' ? 'default' : 'outline'}
+                                    onclick={() => (formDateRangeMode = 'single')}
+                                >
+                                    하루
+                                </Button>
+                                <Button
+                                    type="button"
+                                    variant={formDateRangeMode === 'range' ? 'default' : 'outline'}
+                                    onclick={() => (formDateRangeMode = 'range')}
+                                >
+                                    기간
+                                </Button>
+                            </div>
                         </div>
-                        <div class="grid gap-2">
-                            <Label for="end-date">종료일</Label>
-                            <Input id="end-date" type="date" bind:value={formEndDate} />
-                        </div>
+
+                        {#if formDateRangeMode === 'single'}
+                            <div class="grid gap-2">
+                                <Label for="single-date">날짜</Label>
+                                <Input id="single-date" type="date" bind:value={formSingleDate} />
+                            </div>
+                        {:else}
+                            <div class="grid grid-cols-2 gap-4">
+                                <div class="grid gap-2">
+                                    <Label for="start-date">시작일</Label>
+                                    <Input id="start-date" type="date" bind:value={formStartDate} />
+                                </div>
+                                <div class="grid gap-2">
+                                    <Label for="end-date">종료일</Label>
+                                    <Input id="end-date" type="date" bind:value={formEndDate} />
+                                </div>
+                            </div>
+                        {/if}
                     </div>
                 {/if}
 
