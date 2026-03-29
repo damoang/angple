@@ -40,7 +40,7 @@
                 <a
                     href={post.url}
                     class="hover:bg-muted block rounded px-2 py-2 transition-all duration-200 ease-out"
-                    style="padding-top: calc(0.375rem + var(--row-pad-extra, 0px)); padding-bottom: calc(0.375rem + var(--row-pad-extra, 0px));"
+                    style="padding-top: calc(0.25rem + var(--row-pad-extra, 0px)); padding-bottom: calc(0.25rem + var(--row-pad-extra, 0px));"
                 >
                     <div class="flex items-center gap-2">
                         <!-- 추천수 배지 -->
