@@ -1,5 +1,11 @@
 @import 'tailwindcss';
 
+/* 시스템 폰트 크기 확대 시 브라우저 임의 텍스트 리사이즈 방지 (#9264) */
+html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+}
+
 /* 폰트 swap CLS 방지: 시스템 폰트 fallback의 metric을 Wanted Sans에 맞춤 */
 @font-face {
     font-family: 'Wanted Sans Fallback';

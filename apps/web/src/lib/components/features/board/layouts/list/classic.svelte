@@ -116,7 +116,7 @@
         <div class="flex items-center gap-2 md:gap-3">
             <div class="hidden shrink-0 md:block">
                 <div
-                    class="flex h-5 w-10 items-center justify-center rounded-lg text-xs font-semibold leading-5"
+                    class="flex min-h-5 min-w-10 items-center justify-center rounded-lg text-xs font-semibold"
                     style="background: color-mix(in oklch, var(--foreground) 4%, transparent); color: color-mix(in oklch, var(--foreground) 20%, transparent);"
                 >
                     -
@@ -145,14 +145,14 @@
             >
                 {#if post.is_notice}
                     <div
-                        class="flex h-5 w-10 items-center justify-center rounded-lg"
+                        class="flex min-h-5 min-w-10 items-center justify-center rounded-lg"
                         style="background: rgba(239,68,68,0.1);"
                     >
                         <Pin class="h-3.5 w-3.5" style="color: rgb(239,68,68);" />
                     </div>
                 {:else}
                     <div
-                        class="flex h-5 w-10 items-center justify-center rounded-lg text-xs font-semibold leading-5"
+                        class="flex min-h-5 min-w-10 items-center justify-center rounded-lg text-xs font-semibold"
                         style={likesStepStyle}
                     >
                         {post.likes.toLocaleString()}
@@ -365,7 +365,7 @@
     /* ===== 댓글 수 ===== */
 
     .comment-count {
-        font-size: 13px;
+        font-size: 0.8125rem;
         font-weight: 600;
         color: var(--color-liked, orangered);
     }
@@ -378,7 +378,7 @@
 
     .mobile-meta {
         display: none;
-        font-size: 13px;
+        font-size: 0.8125rem;
         color: var(--color-muted-foreground);
     }
 
@@ -418,7 +418,7 @@
 
     /* 모바일 10+ 추천 */
     .mobile-likes-pill {
-        font-size: 13px;
+        font-size: 0.8125rem;
         font-weight: 600;
         color: var(--color-liked, #f97316);
     }
@@ -430,14 +430,14 @@
 
     /* ===== 행 높이 (density toggle) ===== */
     .post-row {
-        padding-top: calc(10px + var(--row-pad-extra, 3px));
-        padding-bottom: calc(10px + var(--row-pad-extra, 3px));
+        padding-top: calc(0.625em + var(--row-pad-extra, 0.1875em));
+        padding-bottom: calc(0.625em + var(--row-pad-extra, 0.1875em));
     }
 
     @media (min-width: 768px) {
         .post-row {
-            padding-top: calc(6px + var(--row-pad-extra, 3px));
-            padding-bottom: calc(6px + var(--row-pad-extra, 3px));
+            padding-top: calc(0.375em + var(--row-pad-extra, 0.1875em));
+            padding-bottom: calc(0.375em + var(--row-pad-extra, 0.1875em));
         }
     }
 
