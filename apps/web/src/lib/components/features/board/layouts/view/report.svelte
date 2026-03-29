@@ -304,7 +304,7 @@
                             />
                         {/if}
                     </p>
-                    <p class="text-secondary-foreground text-[15px]">
+                    <p class="text-secondary-foreground" style="font-size: 0.9em;">
                         {formatDate(post.created_at)}
                         {#if post.updated_at && post.updated_at !== post.created_at && formatTimeShort && new Date(post.updated_at).getTime() - new Date(post.created_at).getTime() > 5 * 60 * 1000}
                             {#if editCount > 0}
@@ -333,7 +333,8 @@
             </div>
 
             <div
-                class="text-secondary-foreground ml-auto flex gap-2 text-[13px] sm:gap-4 sm:text-[15px]"
+                class="text-secondary-foreground ml-auto flex gap-2 sm:gap-4"
+                style="font-size: 0.85em;"
             >
                 <span>조회 {post.views.toLocaleString()}</span>
                 <span>공감 {likeCount.toLocaleString()}</span>

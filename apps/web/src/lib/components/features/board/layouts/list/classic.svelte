@@ -123,7 +123,9 @@
                 </div>
             </div>
             <div class="min-w-0 flex-1">
-                <span class="text-muted-foreground text-[15px]">[삭제된 게시물입니다]</span>
+                <span class="text-muted-foreground" style="font-size: var(--list-font-size);"
+                    >[삭제된 게시물입니다]</span
+                >
             </div>
         </div>
     </a>
