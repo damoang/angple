@@ -172,6 +172,8 @@
             </div>
         {/if}
 
+        <h1 class="text-foreground mb-4 text-xl font-bold">{boardTitle} — 새 글 작성</h1>
+
         {#if showRemainingBadge}
             <div
                 class="mb-4 rounded-md bg-blue-50 px-4 py-3 text-sm text-blue-700 dark:bg-blue-950/30 dark:text-blue-300"

@@ -1022,6 +1022,10 @@
             <!-- 페이지네이션 -->
             {#if shouldShowPagination}
                 <div class="mt-8 flex items-center justify-center gap-2">
+                    {#if pagination.page > 3}
+                        <Button variant="outline" size="sm" onclick={() => goToPage(1)}>처음</Button
+                        >
+                    {/if}
                     <Button
                         variant="outline"
                         size="sm"
