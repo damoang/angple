@@ -226,19 +226,19 @@
     }
 
     .post-meta-text {
-        font-size: 15px;
+        font-size: 0.9em;
         color: var(--color-muted-foreground);
     }
 
     .comment-count {
-        font-size: 13px;
+        font-size: 0.85em;
         font-weight: 600;
         color: var(--color-liked, orangered);
     }
 
     .mobile-meta {
         display: none;
-        font-size: 13px;
+        font-size: 0.85em;
         color: var(--color-muted-foreground);
     }
 

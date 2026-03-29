@@ -67,7 +67,7 @@
                     >
                     <span
                         class="text-foreground truncate font-medium"
-                        style="font-size: 0.9375rem;"
+                        style="font-size: var(--list-font-size, 0.9375rem);"
                     >
                         {post.subject}
                     </span>
@@ -77,7 +77,7 @@
             <!-- 광고주 (col 3, 데스크톱만) -->
             <span
                 class="text-muted-foreground hidden w-[120px] truncate pl-1 md:inline-flex"
-                style="font-size: 15px;"
+                style="font-size: 0.9em;"
             >
                 {post.advertiserName}
             </span>
@@ -85,7 +85,7 @@
             <!-- 날짜 (col 4, 데스크톱만) -->
             <span
                 class="text-muted-foreground hidden w-[70px] pl-1 text-center md:inline"
-                style="font-size: 15px;"
+                style="font-size: 0.9em;"
             >
                 {formatDate(post.createdAt)}
             </span>

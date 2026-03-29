@@ -862,7 +862,7 @@
                                     </div>
                                     <span
                                         class="text-muted-foreground hidden shrink-0 md:inline"
-                                        style="font-size: 13px;">{notice.author}</span
+                                        style="font-size: 0.85em;">{notice.author}</span
                                     >
                                 </div>
                             </a>
@@ -901,7 +901,7 @@
                                     </div>
                                     <span
                                         class="text-muted-foreground hidden shrink-0 md:inline"
-                                        style="font-size: 13px;">{notice.author}</span
+                                        style="font-size: 0.85em;">{notice.author}</span
                                     >
                                 </div>
                             </a>

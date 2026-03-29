@@ -205,7 +205,7 @@
         overflow-y: auto;
         overflow-x: hidden;
         word-break: break-word;
-        font-size: 1rem;
+        font-size: var(--editor-font-size, 1rem);
         line-height: 1.6;
     }
 </style>
