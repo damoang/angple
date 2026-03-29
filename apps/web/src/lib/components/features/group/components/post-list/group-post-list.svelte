@@ -39,10 +39,10 @@
             <li>
                 <a
                     href={post.url}
-                    class="hover:bg-muted block rounded px-2 py-1.5 transition-all duration-200 ease-out"
-                    style="padding-top: calc(0.375rem + var(--row-pad-extra, 0px)); padding-bottom: calc(0.375rem + var(--row-pad-extra, 0px));"
+                    class="hover:bg-muted block rounded px-0.5 py-1.5 transition-all duration-200 ease-out"
+                    style="padding-top: var(--row-pad-extra, 0px); padding-bottom: var(--row-pad-extra, 0px);"
                 >
-                    <div class="flex items-center gap-2">
+                    <div class="flex items-center gap-1">
                         <!-- 추천수 배지 -->
                         <span
                             class="inline-flex min-w-[2.5rem] flex-shrink-0 items-center justify-center gap-0.5 rounded-full px-2 py-0.5 text-xs font-bold {getRecommendBadgeClass(
