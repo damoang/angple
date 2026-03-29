@@ -22,8 +22,10 @@
     import {
         listLogos,
         createLogo,
+        createPresetLogos,
         updateLogo,
         deleteLogo,
+        SEASONAL_PRESETS,
         type SiteLogo,
         type CreateLogoRequest,
         type UpdateLogoRequest
@@ -40,6 +42,8 @@
     let editingLogo = $state<SiteLogo | null>(null);
     let isSaving = $state(false);
     let isUploading = $state(false);
+    let isPresetSaving = $state(false);
+    let isPresetUploading = $state(false);
 
     // 폼 상태
     let formName = $state('');
@@ -50,11 +54,21 @@
     let formEndDate = $state('');
     let formPriority = $state(0);
     let formIsActive = $state(true);
+    let presetLogoUrl = $state('');
+    let presetPriority = $state(0);
+    let presetIsActive = $state(true);
+    let selectedPresetKeys = $state<string[]>([]);
+    let presetNames = $state<Record<string, string>>(
+        Object.fromEntries(SEASONAL_PRESETS.map((preset) => [preset.key, preset.default_name]))
+    );
     const previews = $derived(
         buildLogoPreviews(
             logos.filter((logo) => logo.is_active),
             previewNow
         )
+    );
+    const selectedPresets = $derived(
+        SEASONAL_PRESETS.filter((preset) => selectedPresetKeys.includes(preset.key))
     );
 
     function resetForm() {
@@ -208,6 +222,126 @@
         }
     }
 
+    async function handlePresetImageUpload(e: Event) {
+        const input = e.target as HTMLInputElement;
+        const file = input.files?.[0];
+        if (!file) return;
+
+        const validTypes = ['image/png', 'image/jpeg', 'image/gif', 'image/svg+xml', 'image/webp'];
+        if (!validTypes.includes(file.type)) {
+            toast.error('이미지 파일만 업로드 가능합니다.');
+            return;
+        }
+        if (file.size > 5 * 1024 * 1024) {
+            toast.error('파일 크기는 5MB를 초과할 수 없습니다.');
+            return;
+        }
+
+        isPresetUploading = true;
+        try {
+            const formData = new FormData();
+            formData.append('file', file);
+            const token = apiClient.getAccessToken();
+            const headers: Record<string, string> = {};
+            if (token) headers['Authorization'] = `Bearer ${token}`;
+
+            const response = await fetch('/api/media/images', {
+                method: 'POST',
+                credentials: 'include',
+                headers,
+                body: formData
+            });
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            const result = await response.json();
+            presetLogoUrl = result.data?.url || result.url || '';
+            if (presetLogoUrl) {
+                toast.success('절기 프리셋 이미지가 업로드되었습니다.');
+            }
+        } catch {
+            toast.error('이미지 업로드에 실패했습니다.');
+        } finally {
+            isPresetUploading = false;
+            input.value = '';
+        }
+    }
+
+    function togglePreset(key: string) {
+        if (selectedPresetKeys.includes(key)) {
+            selectedPresetKeys = selectedPresetKeys.filter((presetKey) => presetKey !== key);
+            return;
+        }
+
+        selectedPresetKeys = [...selectedPresetKeys, key];
+    }
+
+    function updatePresetName(key: string, value: string) {
+        presetNames = { ...presetNames, [key]: value };
+    }
+
+    async function handlePresetSave() {
+        if (!presetLogoUrl.trim()) {
+            toast.error('절기 프리셋 공통 로고 URL은 필수입니다.');
+            return;
+        }
+        if (selectedPresets.length === 0) {
+            toast.error('등록할 절기 프리셋을 하나 이상 선택해 주세요.');
+            return;
+        }
+
+        const items = selectedPresets.map((preset) => ({
+            name: (presetNames[preset.key] || '').trim(),
+            recurring_date: preset.recurring_date
+        }));
+
+        if (items.some((item) => !item.name)) {
+            toast.error('선택한 절기 프리셋 이름은 비워둘 수 없습니다.');
+            return;
+        }
+
+        isPresetSaving = true;
+        try {
+            const result = await createPresetLogos({
+                logo_url: presetLogoUrl,
+                priority: presetPriority,
+                is_active: presetIsActive,
+                items
+            });
+
+            const createdCount = result.created.length;
+            const skippedCount = result.skipped.length;
+
+            if (createdCount > 0 && skippedCount > 0) {
+                toast.success(
+                    `${createdCount}개 생성, ${skippedCount}개는 중복으로 건너뛰었습니다.`
+                );
+            } else if (createdCount > 0) {
+                toast.success(`${createdCount}개의 절기 로고를 생성했습니다.`);
+            } else {
+                toast.error('생성된 절기 로고가 없습니다. 이미 등록된 날짜인지 확인해 주세요.');
+            }
+
+            if (skippedCount > 0) {
+                const skippedSummary = result.skipped
+                    .map((item) => `${item.recurring_date} ${item.name}`)
+                    .join(', ');
+                toast.info(`건너뜀: ${skippedSummary}`);
+            }
+
+            selectedPresetKeys = [];
+            presetLogoUrl = '';
+            presetPriority = 0;
+            presetIsActive = true;
+            presetNames = Object.fromEntries(
+                SEASONAL_PRESETS.map((preset) => [preset.key, preset.default_name])
+            );
+            await loadLogos();
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : '절기 프리셋 생성에 실패했습니다.');
+        } finally {
+            isPresetSaving = false;
+        }
+    }
+
     function getScheduleLabel(type: string): string {
         switch (type) {
             case 'recurring':
@@ -302,6 +436,156 @@
                         <p class="mt-2 text-sm">{preview.activeLogoName || '노출 로고 없음'}</p>
                     </div>
                 {/each}
+            </div>
+        </Card.Content>
+    </Card.Root>
+
+    <Card.Root class="mb-6">
+        <Card.Content class="py-5">
+            <div class="mb-4">
+                <h2 class="text-base font-semibold">절기 프리셋 등록</h2>
+                <p class="text-muted-foreground text-xs">
+                    삼일절, 4.16 기억일, 어린이날 같은 고정 날짜 로고를 미리 한 번에 등록합니다.
+                </p>
+            </div>
+
+            <div class="grid gap-4 lg:grid-cols-[1.3fr_1fr]">
+                <div class="space-y-4">
+                    <div class="grid gap-2">
+                        <Label for="preset-logo-url">공통 로고 이미지</Label>
+                        <div class="flex gap-2">
+                            <Input
+                                id="preset-logo-url"
+                                bind:value={presetLogoUrl}
+                                placeholder="https://..."
+                                class="flex-1"
+                            />
+                            <Button variant="outline" disabled={isPresetUploading} class="shrink-0">
+                                <label class="flex cursor-pointer items-center gap-1.5">
+                                    {#if isPresetUploading}
+                                        <Loader2 class="h-4 w-4 animate-spin" />
+                                    {:else}
+                                        <Image class="h-4 w-4" />
+                                    {/if}
+                                    업로드
+                                    <input
+                                        type="file"
+                                        accept="image/*"
+                                        class="hidden"
+                                        onchange={handlePresetImageUpload}
+                                    />
+                                </label>
+                            </Button>
+                        </div>
+                        {#if presetLogoUrl}
+                            <div
+                                class="bg-muted flex h-20 items-center justify-center overflow-hidden rounded-lg border"
+                            >
+                                <img
+                                    src={presetLogoUrl}
+                                    alt="절기 프리셋 미리보기"
+                                    class="max-h-full max-w-full object-contain"
+                                />
+                            </div>
+                        {/if}
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="grid gap-2">
+                            <Label for="preset-priority">우선순위</Label>
+                            <Input
+                                id="preset-priority"
+                                type="number"
+                                bind:value={presetPriority}
+                                min="0"
+                            />
+                        </div>
+                        <div class="flex items-center gap-3 pt-6">
+                            <Switch bind:checked={presetIsActive} />
+                            <Label>활성</Label>
+                        </div>
+                    </div>
+
+                    <div class="grid gap-2">
+                        <Label>절기 선택</Label>
+                        <div class="grid gap-2 sm:grid-cols-2">
+                            {#each SEASONAL_PRESETS as preset}
+                                <button
+                                    type="button"
+                                    class={`rounded-lg border p-3 text-left transition ${
+                                        selectedPresetKeys.includes(preset.key)
+                                            ? 'border-emerald-500 bg-emerald-50'
+                                            : 'hover:bg-muted/40'
+                                    }`}
+                                    onclick={() => togglePreset(preset.key)}
+                                >
+                                    <div class="flex items-center justify-between gap-2">
+                                        <span class="text-sm font-medium">{preset.label}</span>
+                                        <span class="text-muted-foreground text-xs">
+                                            {preset.recurring_date}
+                                        </span>
+                                    </div>
+                                    <p class="text-muted-foreground mt-1 text-xs">
+                                        기본 이름: {preset.default_name}
+                                    </p>
+                                </button>
+                            {/each}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="space-y-3">
+                    <div>
+                        <h3 class="text-sm font-semibold">생성 예정 항목</h3>
+                        <p class="text-muted-foreground text-xs">
+                            선택한 절기별 이름을 저장 전에 수정할 수 있습니다.
+                        </p>
+                    </div>
+
+                    {#if selectedPresets.length === 0}
+                        <div
+                            class="text-muted-foreground rounded-lg border border-dashed p-4 text-sm"
+                        >
+                            아직 선택한 절기가 없습니다.
+                        </div>
+                    {:else}
+                        <div class="space-y-3">
+                            {#each selectedPresets as preset}
+                                <div class="rounded-lg border p-3">
+                                    <div class="mb-2 flex items-center justify-between gap-2">
+                                        <span class="text-sm font-medium">{preset.label}</span>
+                                        <span class="text-muted-foreground text-xs">
+                                            {preset.recurring_date}
+                                        </span>
+                                    </div>
+                                    <Input
+                                        value={presetNames[preset.key]}
+                                        oninput={(event) =>
+                                            updatePresetName(
+                                                preset.key,
+                                                (event.currentTarget as HTMLInputElement).value
+                                            )}
+                                        placeholder="로고 이름"
+                                    />
+                                </div>
+                            {/each}
+                        </div>
+                    {/if}
+
+                    <Button
+                        class="w-full"
+                        onclick={handlePresetSave}
+                        disabled={isPresetSaving || selectedPresets.length === 0}
+                    >
+                        {#if isPresetSaving}
+                            <Loader2 class="mr-1.5 h-4 w-4 animate-spin" />
+                            생성 중...
+                        {:else}
+                            <Plus class="mr-1.5 h-4 w-4" />
+                            절기 프리셋 일괄 생성
+                        {/if}
+                    </Button>
+                </div>
             </div>
         </Card.Content>
     </Card.Root>
