@@ -87,11 +87,11 @@ const LINE_HEIGHT_VALUES: Record<LineHeight, string> = {
 };
 
 const CONTENT_FONT_SIZES: Record<ContentFontSize, string> = {
-    small: '16px',
-    base: '18px',
-    large: '20px',
-    xlarge: '22px',
-    '2xlarge': '24px',
+    small: '17px',
+    base: '19px',
+    large: '21px',
+    xlarge: '23px',
+    '2xlarge': '25px',
     '3xlarge': '28px'
 };
 
@@ -104,10 +104,10 @@ const FONT_FAMILY_VALUES: Record<FontFamily, string> = {
 };
 
 export const LIST_FONT_SIZES: Record<ListFontSize, string> = {
-    small: '13px',
-    base: '15px',
-    large: '17px',
-    xlarge: '19px'
+    small: '15px',
+    base: '17px',
+    large: '19px',
+    xlarge: '21px'
 };
 
 /** 본문 흐림 대상 키워드 (제목에 포함 시 블러 처리) */
