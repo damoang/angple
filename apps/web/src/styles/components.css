@@ -405,17 +405,24 @@ img[src*='/emoticons/'] {
     border-radius: 0.5rem;
 }
 
-/* Twitter/X 임베드: 높이 가변적 */
+/* Twitter/X 임베드: 높이 가변적 — aspect-ratio 패딩 비활성화 */
 .embed-container[data-platform='twitter'] {
     height: var(--twitter-embed-height, auto);
-    padding-bottom: 0;
+    padding-bottom: 0 !important;
     min-height: 500px;
     overflow: visible;
 }
 
+.embed-container[data-platform='twitter']::before {
+    display: none !important;
+    padding-bottom: 0 !important;
+}
+
 .embed-container[data-platform='twitter'] iframe {
     position: relative !important;
-    display: block;
+    display: block !important;
+    width: 100% !important;
+    max-width: 550px;
     min-height: var(--twitter-embed-height, 500px);
     height: var(--twitter-embed-height, auto) !important;
 }
