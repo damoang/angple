@@ -76,7 +76,6 @@
     import BoardFavoriteButton from '$lib/components/features/board/board-favorite-button.svelte';
     import BoardSubscribeButton from '$lib/components/features/board/board-subscribe-button.svelte';
     import { Watermark } from '$lib/components/ui/watermark/index.js';
-    import { blockedUsersStore } from '$lib/stores/blocked-users.svelte';
     import { pluginStore } from '$lib/stores/plugin.svelte';
     import { loadPluginLib } from '$lib/utils/plugin-optional-loader';
     import Trash2 from '@lucide/svelte/icons/trash-2';
@@ -344,11 +343,7 @@
         const startPage = Math.max(1, pagination.page - 4);
         return Array.from({ length: pagination.page - startPage + 1 }, (_, i) => startPage + i);
     });
-    const filteredPosts = $derived(
-        posts.filter(
-            (p) => !blockedUsersStore.isBlocked(p.author_id) && !uiSettingsStore.isMuted(p.title)
-        )
-    );
+    const filteredPosts = $derived(posts);
     const importantNotices = $derived(
         notices.filter(
             (n) =>
@@ -968,8 +963,9 @@
                     </Card>
                 {:else if LayoutComponent}
                     {#each filteredPosts as post, i (post.id)}
+                        {@const muted = uiSettingsStore.isMuted(post.title)}
                         {#if bulkSelectMode}
-                            <div class="flex items-start gap-2">
+                            <div class="flex items-start gap-2" class:opacity-30={muted}>
                                 <div class="flex shrink-0 items-center pt-3">
                                     <Checkbox
                                         checked={selectedPostIds.includes(post.id)}
@@ -990,13 +986,18 @@
                                 </div>
                             </div>
                         {:else}
-                            <LayoutComponent
-                                {post}
-                                displaySettings={data.board?.display_settings}
-                                memo={memoByAuthorId[post.author_id] ?? null}
-                                href="/{boardId}/{post.id}{listPage > 1 ? `?page=${listPage}` : ''}"
-                                isRead={showReadState && readPostsStore.isRead(boardId, post.id)}
-                            />
+                            <div class:opacity-30={muted}>
+                                <LayoutComponent
+                                    {post}
+                                    displaySettings={data.board?.display_settings}
+                                    memo={memoByAuthorId[post.author_id] ?? null}
+                                    href="/{boardId}/{post.id}{listPage > 1
+                                        ? `?page=${listPage}`
+                                        : ''}"
+                                    isRead={showReadState &&
+                                        readPostsStore.isRead(boardId, post.id)}
+                                />
+                            </div>
                         {/if}
                         {#if widgetLayoutStore.hasEnabledAds && i + 1 === 7}
                             <div class="py-2">
