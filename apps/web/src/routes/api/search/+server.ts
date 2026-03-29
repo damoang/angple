@@ -211,7 +211,7 @@ export const GET: RequestHandler = async ({ url, locals }) => {
                             views: row.wr_hit,
                             likes: row.wr_good,
                             comments_count: row.wr_comment,
-                            created_at: new Date((row.wr_datetime - 9 * 3600) * 1000).toISOString(),
+                            created_at: new Date(row.wr_datetime * 1000).toISOString(),
                             has_file: fileSet.has(`${boardId}:${row.wr_id}`)
                         };
                     })
