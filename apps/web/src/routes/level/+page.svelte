@@ -235,6 +235,28 @@
         </Card>
     </section>
 
+    <!-- 스페셜 뱃지 -->
+    <section class="mb-10">
+        <h2 class="text-foreground mb-4 text-xl font-semibold">스페셜 뱃지</h2>
+        <p class="text-muted-foreground mb-4 text-sm">
+            특별한 역할이나 기여를 한 회원에게 부여되는 뱃지입니다.
+        </p>
+        <div class="grid grid-cols-3 gap-4 sm:grid-cols-6">
+            {#each [{ src: '/images/level/special.svg', name: '스페셜' }, { src: '/images/level/ang.svg', name: '앙' }, { src: '/images/level/a_ang.svg', name: '에이앙' }, { src: '/images/level/A.svg', name: 'A' }, { src: '/images/level/admin.svg', name: '관리자' }, { src: '/images/level/a_sponser.svg', name: '스폰서' }] as badge}
+                <div class="border-border flex flex-col items-center gap-1.5 rounded-md border p-3">
+                    <img
+                        src={badge.src}
+                        alt={badge.name}
+                        width="20"
+                        height="20"
+                        class="inline-block"
+                    />
+                    <span class="text-muted-foreground text-xs">{badge.name}</span>
+                </div>
+            {/each}
+        </div>
+    </section>
+
     <!-- 레벨 뱃지 갤러리 -->
     <section>
         <h2 class="text-foreground mb-4 text-xl font-semibold">레벨 뱃지 목록</h2>

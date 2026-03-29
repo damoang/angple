@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="a" xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 13 13" width="13" height="13">
+  <defs>
+    <style>
+      .cls-1 {
+        fill: #334155;
+      }
+
+      .cls-1, .cls-2, .cls-3 {
+        stroke-width: 0px;
+      }
+
+      .cls-4 {
+        opacity: .9;
+      }
+
+      .cls-2 {
+        fill: #a1a1aa;
+      }
+
+      .cls-3 {
+        fill: #fff;
+        opacity: .9;
+      }
+    </style>
+  </defs>
+  <g class="cls-4">
+    <rect class="cls-3" x=".5" y=".5" width="12" height="12" rx="1.5" ry="1.5"/>
+    <path class="cls-2" d="M11,1c.6,0,1,.5,1,1v9c0,.6-.4,1-1,1H2c-.5,0-1-.4-1-1V2c0-.5.5-1,1-1h9M11,0H2C.9,0,0,.9,0,2v9c0,1.1.9,2,2,2h9c1.1,0,2-.9,2-2V2c0-1.1-.9-2-2-2h0Z"/>
+  </g>
+  <path class="cls-1" d="M8,9.8l-.5-1.7h-2.1l-.5,1.7h-1.2l2-6.6h1.4l2,6.6h-1.2,0ZM6.5,4.3h0l-.8,2.7h1.6l-.8-2.7Z"/>
+</svg>
