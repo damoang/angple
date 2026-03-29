@@ -26,6 +26,8 @@
         { value: 'title', label: '제목' },
         { value: 'content', label: '내용' },
         { value: 'author', label: '작성자' },
+        { value: 'comment', label: '댓글' },
+        { value: 'comment_author', label: '작성자(댓글)' },
         { value: 'google', label: 'Google' }
     ];
 

@@ -638,7 +638,14 @@ export interface LikersResponse {
 }
 
 // 검색 필드 타입
-export type SearchField = 'title' | 'content' | 'title_content' | 'author' | 'google';
+export type SearchField =
+    | 'title'
+    | 'content'
+    | 'title_content'
+    | 'author'
+    | 'comment'
+    | 'comment_author'
+    | 'google';
 
 // 검색 요청 파라미터
 export interface SearchParams {
