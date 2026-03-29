@@ -32,7 +32,7 @@ export const load: PageServerLoad = async () => {
         );
 
         // 비공개/특수 게시판 제외
-        const hiddenBoards = new Set(['promotion', 'archive', 'promotion_archive', 'promotion_my']);
+        const hiddenBoards = new Set(['archive', 'promotion_archive', 'promotion_my']);
 
         // group 게시판은 "소모임" 1건으로 통합
         let groupAdded = false;
