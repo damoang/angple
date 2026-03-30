@@ -378,14 +378,18 @@ jobs:
 
       - name: Notify Telegram (Approval)
         if: success()
+        env:
+          PR_TITLE: ${{ needs.resolve-release.outputs.pr_title }}
+          PR_URL: ${{ needs.resolve-release.outputs.pr_url }}
         run: |
           RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           TEXT="✅ angple web canary verified%0A%0ARepo: ${{ github.repository }}%0ACommit: ${{ github.sha }}%0ATag: \`${{ needs.resolve-release.outputs.sha_tag }}\`"
           if [ -n "${{ needs.build.outputs.image_digest }}" ]; then
             TEXT="${TEXT}%0ADigest: \`${{ needs.build.outputs.image_digest }}\`"
           fi
-          if [ -n "${{ needs.resolve-release.outputs.pr_url }}" ]; then
-            TEXT="${TEXT}%0APR: ${{ needs.resolve-release.outputs.pr_title }}%0ALink: ${{ needs.resolve-release.outputs.pr_url }}"
+          if [ -n "${PR_URL}" ]; then
+            SAFE_TITLE=$(echo "${PR_TITLE}" | sed 's/[()]/\\&/g')
+            TEXT="${TEXT}%0APR: ${SAFE_TITLE}%0ALink: ${PR_URL}"
           fi
           TEXT="${TEXT}%0ACanary: https://canary.damoang.net%0AGate Approval: ${RUN_URL}%0A%0A승인 전 체크:%0A- 상세 500 없음%0A- 목록으로 정상%0A- 댓글 목록/에디터 정상%0A- 뒤로가기/재진입 정상%0A- same artifact 승격 확인"
           BUTTONS='[[{"text":"Canary 열기","url":"https://canary.damoang.net"},{"text":"Gate Approval","url":"'"${RUN_URL}"'"}]]'
@@ -475,6 +479,9 @@ jobs:
 
       - name: Notify Telegram (Production)
         if: always()
+        env:
+          PR_TITLE: ${{ needs.resolve-release.outputs.pr_title }}
+          PR_URL: ${{ needs.resolve-release.outputs.pr_url }}
         run: |
           STATUS="${{ job.status }}"
           EMOJI=$([[ "$STATUS" == "success" ]] && echo "🎉" || echo "❌")
@@ -482,8 +489,9 @@ jobs:
           if [ -n "${{ needs.build.outputs.image_digest }}" ]; then
             TEXT="${TEXT}%0ADigest: \`${{ needs.build.outputs.image_digest }}\`"
           fi
-          if [ -n "${{ needs.resolve-release.outputs.pr_url }}" ]; then
-            TEXT="${TEXT}%0APR: ${{ needs.resolve-release.outputs.pr_title }}%0ALink: ${{ needs.resolve-release.outputs.pr_url }}"
+          if [ -n "${PR_URL}" ]; then
+            SAFE_TITLE=$(echo "${PR_TITLE}" | sed 's/[()]/\\&/g')
+            TEXT="${TEXT}%0APR: ${SAFE_TITLE}%0ALink: ${PR_URL}"
           fi
           TEXT="${TEXT}%0AURL: https://damoang.net"
           curl -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
