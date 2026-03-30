@@ -70,9 +70,10 @@
                 class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-3 pt-12"
             >
                 <h3
-                    class="mb-1 line-clamp-2 text-sm {isRead
+                    class="mb-1 line-clamp-2 {isRead
                         ? 'font-normal text-white/70'
                         : 'font-medium text-white'}"
+                    style="font-size: var(--list-font-size);"
                 >
                     {post.title}
                 </h3>
