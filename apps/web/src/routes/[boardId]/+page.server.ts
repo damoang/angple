@@ -449,7 +449,7 @@ export const load: PageServerLoad = async ({ url, params, locals, getClientAddre
     };
 
     // 캐시 warm → SSR 직접 포함 (스켈레톤 없음), cold → 스트리밍
-    const cacheWarm = !isSearching && !isPromotionBoard && isPromotionCacheWarm();
+    const cacheWarm = !isSearching && !isPromotionBoard && (await isPromotionCacheWarm());
     const promotionData = cacheWarm ? await fetchFilteredPromotionPosts() : null;
     const promotionDataPromise = cacheWarm ? null : fetchFilteredPromotionPosts();
 

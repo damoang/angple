@@ -8,7 +8,7 @@ export const POST: RequestHandler = async ({ params }) => {
     const { boardId } = params;
     invalidateBoardCache(boardId);
     if (boardId === 'promotion') {
-        invalidatePromotionCache();
+        await invalidatePromotionCache();
     }
     return json({ ok: true });
 };
