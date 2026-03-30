@@ -224,7 +224,8 @@ export const load: PageServerLoad = async ({
 
         // 직접홍보 게시판: 활성 광고주가 아닌 글은 만료 처리 (공지글 제외)
         let promotionExpired = false;
-        if (boardId === 'promotion' && !post.is_notice) {
+        const promotionExemptPosts = new Set([181367, 180884]);
+        if (boardId === 'promotion' && !post.is_notice && !promotionExemptPosts.has(post.id)) {
             try {
                 const promoBoard = await fetchPromotionBoardPosts();
                 if (promoBoard.success && promoBoard.data.length > 0) {
