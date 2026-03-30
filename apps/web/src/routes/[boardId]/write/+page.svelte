@@ -38,6 +38,12 @@
     let isSubmitting = $state(false);
     let error = $state<string | null>(null);
 
+    // 다시 쓰기 (repost) 프리필
+    const repostTitle = $derived(data.repostData?.title || '');
+    const repostContent = $derived(data.repostData?.content || '');
+    const repostLink1 = $derived(data.repostData?.link1 || '');
+    const repostLink2 = $derived(data.repostData?.link2 || '');
+
     // claim 게시판 직접 접근 차단: disciplinelog_id 없이는 소명 작성 불가
     const isClaimWithoutDiscipline = $derived(boardId === 'claim' && !disciplinelogId);
 
@@ -207,9 +213,10 @@
                 mode="create"
                 board={data.board ?? undefined}
                 categories={data.categories}
-                initialTitle={claimInitialTitle}
-                initialLink1={claimInitialLink1}
-                initialContent={claimInitialContent}
+                initialTitle={repostTitle || claimInitialTitle}
+                initialLink1={repostLink1 || claimInitialLink1}
+                initialLink2={repostLink2}
+                initialContent={repostContent || claimInitialContent}
                 onSubmit={handleSubmit}
                 onCancel={handleCancel}
                 isLoading={isSubmitting}

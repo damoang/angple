@@ -37,6 +37,7 @@
         attachments?: FileAttachment[]; // 기존 첨부파일 (수정 시)
         initialTitle?: string; // 초기 제목 (소명 등)
         initialLink1?: string; // 초기 link1 값 (disciplinelog_id 등)
+        initialLink2?: string; // 초기 link2 값 (다시 쓰기 등)
         initialContent?: string; // 초기 본문 (소명 등)
         onSubmit: (data: CreatePostRequest | UpdatePostRequest) => Promise<void>;
         onCancel: () => void;
@@ -52,6 +53,7 @@
         attachments = [],
         initialTitle = '',
         initialLink1 = '',
+        initialLink2 = '',
         initialContent = '',
         onSubmit,
         onCancel,
@@ -70,7 +72,7 @@
     let tags = $state<string[]>(post?.tags || []);
     let link1 = $state(post?.link1 || initialLink1 || '');
     const isClaimBoard = $derived(boardId === 'claim');
-    let link2 = $state(post?.link2 || '');
+    let link2 = $state(post?.link2 || initialLink2 || '');
     let errors = $state<{ title?: string; content?: string; category?: string }>({});
 
     // 파일 업로드 상태 (이미지 + 파일 통합)

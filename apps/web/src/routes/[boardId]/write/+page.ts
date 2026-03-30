@@ -18,7 +18,7 @@ export interface WritePermission {
  * 글쓰기 페이지 데이터 로드
  * 게시판 정보 (카테고리 목록 등) + 글쓰기 권한 조회
  */
-export const load: PageLoad = async ({ params, fetch }) => {
+export const load: PageLoad = async ({ params, fetch, url }) => {
     const { boardId } = params;
 
     try {
@@ -41,11 +41,32 @@ export const load: PageLoad = async ({ params, fetch }) => {
             // 권한 조회 실패 시 무시 (서버에서 재검증)
         }
 
+        // 다시 쓰기 (repost): 기존 글 내용 프리필
+        let repostData: { title: string; content: string; link1?: string; link2?: string } | null =
+            null;
+        const repostId = url.searchParams.get('repost');
+        if (repostId && boardId === 'promotion') {
+            try {
+                const post = await apiClient.getBoardPost(boardId, repostId);
+                if (post) {
+                    repostData = {
+                        title: post.title,
+                        content: post.content,
+                        link1: post.link1,
+                        link2: post.link2
+                    };
+                }
+            } catch {
+                // 원글 조회 실패 시 무시
+            }
+        }
+
         return {
             boardId,
             board,
             categories,
-            writePermission
+            writePermission,
+            repostData
         };
     } catch (error) {
         console.error('Failed to load board info:', boardId, error);
@@ -53,7 +74,8 @@ export const load: PageLoad = async ({ params, fetch }) => {
             boardId,
             board: null,
             categories: [],
-            writePermission: null
+            writePermission: null,
+            repostData: null
         };
     }
 };

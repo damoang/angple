@@ -27,6 +27,7 @@
     import Clock from '@lucide/svelte/icons/clock';
 
     import RefreshCw from '@lucide/svelte/icons/refresh-cw';
+    import ArrowUpCircle from '@lucide/svelte/icons/arrow-up-circle';
     import FileText from '@lucide/svelte/icons/file-text';
     import { authStore } from '$lib/stores/auth.svelte.js';
     import {
@@ -838,6 +839,24 @@
         goto(`/${boardId}/${data.post.id}/edit`);
     }
 
+    // 직접홍보 끌어올리기
+    let isBumping = $state(false);
+    async function handleBump(): Promise<void> {
+        if (isBumping) return;
+        if (!confirm('이 글을 끌어올리시겠습니까? 목록에서 최상단으로 이동합니다.')) return;
+        isBumping = true;
+        try {
+            await apiClient.bumpPost(boardId, String(data.post.id));
+            fetch('/api/boards/promotion/invalidate-cache', { method: 'POST' }).catch(() => {});
+            alert('끌어올리기 완료! 목록에서 최상단으로 이동했습니다.');
+        } catch (err) {
+            alert('끌어올리기에 실패했습니다. 잠시 후 다시 시도해 주세요.');
+            console.error('[bump]', err);
+        } finally {
+            isBumping = false;
+        }
+    }
+
     // 작성자 확인
     const isAuthor = $derived(
         authStore.user?.mb_id === data.post.author_id ||
@@ -1385,6 +1404,20 @@
                     onConfirm={handleDelete}
                     isLoading={isDeleting}
                 />
+            {/if}
+            {#if boardId === 'promotion' && isAuthor}
+                <Button
+                    variant="outline"
+                    size="sm"
+                    onclick={() => goto(`/promotion/write?repost=${data.post.id}`)}
+                >
+                    <RefreshCw class="mr-1 h-4 w-4" />
+                    다시 쓰기
+                </Button>
+                <Button variant="outline" size="sm" onclick={handleBump} disabled={isBumping}>
+                    <ArrowUpCircle class="mr-1 h-4 w-4" />
+                    {isBumping ? '처리 중...' : '끌어올리기'}
+                </Button>
             {/if}
         </div>
     </div>
