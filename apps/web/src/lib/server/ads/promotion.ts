@@ -8,7 +8,7 @@
 
 import { getAdsServerUrl } from './config';
 
-const PROMOTION_CACHE_TTL = 3_600_000; // 1시간 (직접홍보 하루 20건 미만)
+const PROMOTION_CACHE_TTL = 120_000; // 2분 (하루 20건 미만, 글 작성 후 빠른 반영)
 const PROMOTION_POSTS_TIMEOUT_MS = 500;
 const PROMOTION_BOARD_TIMEOUT_MS = 1_500;
 
@@ -62,7 +62,11 @@ export async function fetchPromotionBoardPosts(): Promise<PromotionBoardPostsRes
         const data = await res.json();
         promotionBoardCache = { data, expiresAt: now + PROMOTION_CACHE_TTL };
         return data;
-    } catch {
+    } catch (err) {
+        console.error(
+            '[promotion] board posts fetch failed:',
+            err instanceof Error ? err.message : err
+        );
         return EMPTY_BOARD_RESPONSE;
     }
 }
@@ -93,7 +97,8 @@ export async function fetchPromotionPosts(): Promise<unknown> {
         const data = await res.json();
         promotionCache = { data, expiresAt: now + PROMOTION_CACHE_TTL };
         return data;
-    } catch {
+    } catch (err) {
+        console.error('[promotion] posts fetch failed:', err instanceof Error ? err.message : err);
         return EMPTY_RESPONSE;
     }
 }

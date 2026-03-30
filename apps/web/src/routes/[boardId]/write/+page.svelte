@@ -113,6 +113,11 @@
 
             trackEvent('post_write', { board_id: boardId, post_id: newPost.id });
 
+            // 직접홍보 게시판: 캐시 무효화 (글 작성 후 즉시 반영)
+            if (boardId === 'promotion') {
+                fetch('/api/boards/promotion/invalidate-cache', { method: 'POST' }).catch(() => {});
+            }
+
             // 상세 페이지로 이동 (새 경로이므로 page load 자동 실행)
             goto(`/${boardId}/${newPost.id}`);
         } catch (err) {
