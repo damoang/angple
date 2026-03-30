@@ -6,7 +6,6 @@
     import { untrack } from 'svelte';
     import { SeoHead, createWebSiteJsonLd, getSiteUrl } from '$lib/seo/index.js';
     import type { SeoConfig } from '$lib/seo/types.js';
-    import AnniversaryHomePopup from '$lib/components/features/anniversary/anniversary-home-popup.svelte';
 
     let { data } = $props();
 
@@ -61,8 +60,6 @@
         </div>
     </div>
 {/if}
-
-<AnniversaryHomePopup />
 
 <!-- 통합 위젯 렌더러로 메인 영역 렌더링 (추천글 SSR 프리페치 포함) -->
 <WidgetRenderer
