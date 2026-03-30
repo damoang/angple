@@ -1,18 +1,20 @@
 /**
- * 직접홍보 광고 데이터 fetcher (인메모리 캐시)
+ * 직접홍보 광고 데이터 fetcher (Redis 캐시)
  *
  * ads 서버에서 프로모션 게시글을 직접 가져옵니다.
- * SvelteKit self-call 프록시를 거치지 않아 hooks.server.ts 재진입을 방지합니다.
- * 1시간 TTL 인메모리 캐시 + 글 작성 시 무효화로 반복 호출을 최소화합니다.
+ * Redis 캐시로 모든 Pod에서 즉시 무효화 가능.
+ * 글 작성/수정/삭제 시 invalidatePromotionCache()로 Redis 키 삭제.
  */
 
 import { getAdsServerUrl } from './config';
+import { getRedis } from '$lib/server/redis';
 
-const PROMOTION_CACHE_TTL = 120_000; // 2분 (하루 20건 미만, 글 작성 후 빠른 반영)
+const PROMOTION_CACHE_TTL_SEC = 86_400; // 24시간 (글 작성 시 무효화)
 const PROMOTION_POSTS_TIMEOUT_MS = 500;
 const PROMOTION_BOARD_TIMEOUT_MS = 1_500;
 
-let promotionCache: { data: unknown; expiresAt: number } | null = null;
+const REDIS_KEY_BOARD = 'promotion:board_posts';
+const REDIS_KEY_POSTS = 'promotion:posts';
 
 const EMPTY_RESPONSE = { success: false, data: { posts: [] } };
 
@@ -41,8 +43,6 @@ interface PromotionBoardPost {
     file_count: number;
 }
 
-let promotionBoardCache: { data: PromotionBoardPostsResponse; expiresAt: number } | null = null;
-
 const EMPTY_BOARD_RESPONSE: PromotionBoardPostsResponse = {
     success: false,
     data: [],
@@ -50,17 +50,28 @@ const EMPTY_BOARD_RESPONSE: PromotionBoardPostsResponse = {
 };
 
 export async function fetchPromotionBoardPosts(): Promise<PromotionBoardPostsResponse> {
-    const now = Date.now();
-    if (promotionBoardCache && now < promotionBoardCache.expiresAt) {
-        return promotionBoardCache.data;
+    try {
+        const redis = getRedis();
+        const cached = await redis.get(REDIS_KEY_BOARD);
+        if (cached) return JSON.parse(cached);
+    } catch {
+        // Redis 실패 시 ads 서버 직접 호출
     }
+
     try {
         const res = await fetch(`${getAdsServerUrl()}/api/v1/serve/promotion-board-posts`, {
             signal: AbortSignal.timeout(PROMOTION_BOARD_TIMEOUT_MS)
         });
         if (!res.ok) return EMPTY_BOARD_RESPONSE;
         const data = await res.json();
-        promotionBoardCache = { data, expiresAt: now + PROMOTION_CACHE_TTL };
+
+        try {
+            const redis = getRedis();
+            await redis.set(REDIS_KEY_BOARD, JSON.stringify(data), 'EX', PROMOTION_CACHE_TTL_SEC);
+        } catch {
+            // Redis 저장 실패 무시
+        }
+
         return data;
     } catch (err) {
         console.error(
@@ -74,28 +85,48 @@ export async function fetchPromotionBoardPosts(): Promise<PromotionBoardPostsRes
 export type { PromotionBoardPost, PromotionBoardPostsResponse };
 
 /** 캐시가 warm인지 확인 (SSR 직접 포함 여부 판단용) */
-export function isPromotionCacheWarm(): boolean {
-    return promotionCache !== null && Date.now() < promotionCache.expiresAt;
+export async function isPromotionCacheWarm(): Promise<boolean> {
+    try {
+        const redis = getRedis();
+        return (await redis.exists(REDIS_KEY_POSTS)) === 1;
+    } catch {
+        return false;
+    }
 }
 
-/** promotion 게시판 글 작성/수정/삭제 시 호출 */
-export function invalidatePromotionCache(): void {
-    promotionCache = null;
-    promotionBoardCache = null;
+/** promotion 게시판 글 작성/수정/삭제 시 호출 — 전 Pod 즉시 반영 */
+export async function invalidatePromotionCache(): Promise<void> {
+    try {
+        const redis = getRedis();
+        await redis.del(REDIS_KEY_BOARD, REDIS_KEY_POSTS);
+    } catch {
+        // Redis 실패 시 무시
+    }
 }
 
 export async function fetchPromotionPosts(): Promise<unknown> {
-    const now = Date.now();
-    if (promotionCache && now < promotionCache.expiresAt) {
-        return promotionCache.data;
+    try {
+        const redis = getRedis();
+        const cached = await redis.get(REDIS_KEY_POSTS);
+        if (cached) return JSON.parse(cached);
+    } catch {
+        // Redis 실패 시 ads 서버 직접 호출
     }
+
     try {
         const res = await fetch(`${getAdsServerUrl()}/api/v1/serve/promotion-posts`, {
             signal: AbortSignal.timeout(PROMOTION_POSTS_TIMEOUT_MS)
         });
         if (!res.ok) return EMPTY_RESPONSE;
         const data = await res.json();
-        promotionCache = { data, expiresAt: now + PROMOTION_CACHE_TTL };
+
+        try {
+            const redis = getRedis();
+            await redis.set(REDIS_KEY_POSTS, JSON.stringify(data), 'EX', PROMOTION_CACHE_TTL_SEC);
+        } catch {
+            // Redis 저장 실패 무시
+        }
+
         return data;
     } catch (err) {
         console.error('[promotion] posts fetch failed:', err instanceof Error ? err.message : err);

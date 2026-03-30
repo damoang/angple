@@ -222,14 +222,15 @@ export const load: PageServerLoad = async ({
 
         // 스크랩 여부는 2단계 스트리밍으로 이동 (초기 렌더 블로킹 방지)
 
-        // 직접홍보 게시판: 활성 목록에 없는 글은 만료 처리 (공지글 제외)
+        // 직접홍보 게시판: 활성 광고주가 아닌 글은 만료 처리 (공지글 제외)
         let promotionExpired = false;
         if (boardId === 'promotion' && !post.is_notice) {
             try {
                 const promoBoard = await fetchPromotionBoardPosts();
                 if (promoBoard.success && promoBoard.data.length > 0) {
-                    const activeIds = new Set(promoBoard.data.map((p) => p.wr_id));
-                    if (!activeIds.has(Number(postId))) {
+                    // 활성 광고주의 mb_id 목록으로 체크 (post_count 제한 무관)
+                    const activeMbIds = new Set(promoBoard.data.map((p) => p.mb_id));
+                    if (!activeMbIds.has(post.author_id)) {
                         promotionExpired = true;
                     }
                 }
