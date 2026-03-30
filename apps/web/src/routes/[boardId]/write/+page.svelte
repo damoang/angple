@@ -12,6 +12,10 @@
     import { sendMentionNotifications } from '$lib/utils/mention-notify.js';
     import { checkPermission, getPermissionMessage } from '$lib/utils/board-permissions.js';
     import { trackEvent } from '$lib/services/ga4.js';
+    import type { FreePost } from '$lib/api/types.js';
+    import FileText from '@lucide/svelte/icons/file-text';
+    import ChevronDown from '@lucide/svelte/icons/chevron-down';
+    import { Button } from '$lib/components/ui/button/index.js';
 
     let { data }: { data: PageData } = $props();
 
@@ -37,6 +41,12 @@
 
     let isSubmitting = $state(false);
     let error = $state<string | null>(null);
+
+    // 다시 쓰기 (repost) 프리필
+    const repostTitle = $derived(data.repostData?.title || '');
+    const repostContent = $derived(data.repostData?.content || '');
+    const repostLink1 = $derived(data.repostData?.link1 || '');
+    const repostLink2 = $derived(data.repostData?.link2 || '');
 
     // claim 게시판 직접 접근 차단: disciplinelog_id 없이는 소명 작성 불가
     const isClaimWithoutDiscipline = $derived(boardId === 'claim' && !disciplinelogId);
@@ -132,6 +142,43 @@
     function handleCancel(): void {
         goto(`/${boardId}`);
     }
+
+    // 기존 글 불러오기 (promotion 전용)
+    const isPromotion = $derived(boardId === 'promotion');
+    let showMyPosts = $state(false);
+    let myPosts = $state<FreePost[]>([]);
+    let isLoadingMyPosts = $state(false);
+
+    async function loadMyPosts(): Promise<void> {
+        if (!authStore.user?.mb_name) return;
+        if (myPosts.length > 0) {
+            showMyPosts = !showMyPosts;
+            return;
+        }
+        isLoadingMyPosts = true;
+        try {
+            const result = await apiClient.searchPosts('promotion', {
+                field: 'author',
+                query: authStore.user.mb_name,
+                page: 1,
+                limit: 20
+            });
+            myPosts = result.items;
+            showMyPosts = true;
+        } catch {
+            // 조회 실패 시 무시
+        } finally {
+            isLoadingMyPosts = false;
+        }
+    }
+
+    function selectMyPost(postId: number | string): void {
+        showMyPosts = false;
+        goto(`/promotion/write?repost=${postId}`);
+    }
+
+    // repost key: PostForm 재생성 강제
+    const repostKey = $derived(data.repostData ? JSON.stringify(data.repostData) : 'new');
 </script>
 
 <svelte:head>
@@ -179,6 +226,43 @@
 
         <h1 class="text-foreground mb-4 text-xl font-bold">{boardTitle} — 새 글 작성</h1>
 
+        {#if isPromotion}
+            <div class="mb-4">
+                <Button
+                    variant="outline"
+                    size="sm"
+                    onclick={loadMyPosts}
+                    disabled={isLoadingMyPosts}
+                >
+                    <FileText class="mr-1 h-4 w-4" />
+                    {isLoadingMyPosts ? '불러오는 중...' : '기존 글 불러오기'}
+                    <ChevronDown
+                        class="ml-1 h-3 w-3 transition-transform {showMyPosts ? 'rotate-180' : ''}"
+                    />
+                </Button>
+                {#if showMyPosts && myPosts.length > 0}
+                    <div
+                        class="border-border bg-background mt-2 max-h-60 overflow-y-auto rounded-lg border shadow-sm"
+                    >
+                        {#each myPosts as post (post.id)}
+                            <button
+                                type="button"
+                                class="hover:bg-muted text-foreground border-border/50 w-full border-b px-4 py-2.5 text-left text-sm last:border-b-0"
+                                onclick={() => selectMyPost(post.id)}
+                            >
+                                <span class="line-clamp-1 font-medium">{post.title}</span>
+                                <span class="text-muted-foreground text-xs">
+                                    {new Date(post.created_at).toLocaleDateString('ko-KR')}
+                                </span>
+                            </button>
+                        {/each}
+                    </div>
+                {:else if showMyPosts && myPosts.length === 0}
+                    <p class="text-muted-foreground mt-2 text-sm">작성한 글이 없습니다.</p>
+                {/if}
+            </div>
+        {/if}
+
         {#if showRemainingBadge}
             <div
                 class="mb-4 rounded-md bg-blue-50 px-4 py-3 text-sm text-blue-700 dark:bg-blue-950/30 dark:text-blue-300"
@@ -203,17 +287,20 @@
                 isLoading={isSubmitting}
             />
         {:else}
-            <PostForm
-                mode="create"
-                board={data.board ?? undefined}
-                categories={data.categories}
-                initialTitle={claimInitialTitle}
-                initialLink1={claimInitialLink1}
-                initialContent={claimInitialContent}
-                onSubmit={handleSubmit}
-                onCancel={handleCancel}
-                isLoading={isSubmitting}
-            />
+            {#key repostKey}
+                <PostForm
+                    mode="create"
+                    board={data.board ?? undefined}
+                    categories={data.categories}
+                    initialTitle={repostTitle || claimInitialTitle}
+                    initialLink1={repostLink1 || claimInitialLink1}
+                    initialLink2={repostLink2}
+                    initialContent={repostContent || claimInitialContent}
+                    onSubmit={handleSubmit}
+                    onCancel={handleCancel}
+                    isLoading={isSubmitting}
+                />
+            {/key}
         {/if}
     {/if}
 </div>

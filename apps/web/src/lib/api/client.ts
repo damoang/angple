@@ -680,6 +680,16 @@ class ApiClient {
     }
 
     /**
+     * 직접홍보 게시글 끌어올리기
+     * 🔒 인증 필요, promotion 게시판 전용
+     */
+    async bumpPost(boardId: string, postId: string): Promise<void> {
+        await this.request<void>(`/boards/${boardId}/posts/${postId}/bump`, {
+            method: 'PATCH'
+        });
+    }
+
+    /**
      * 게시글 삭제 예약 상태 조회
      */
     async getPostDeleteStatus(
