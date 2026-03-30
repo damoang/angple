@@ -92,9 +92,10 @@
         <!-- 정보 영역 -->
         <div class="p-3">
             <h3
-                class="mb-1.5 truncate text-sm {isRead
+                class="mb-1.5 truncate {isRead
                     ? 'text-muted-foreground font-normal'
                     : 'text-foreground font-medium'}"
+                style="font-size: var(--list-font-size);"
             >
                 {post.title}
             </h3>

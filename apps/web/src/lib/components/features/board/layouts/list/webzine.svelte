@@ -93,9 +93,10 @@
                     </div>
 
                     <h3
-                        class="mb-2 line-clamp-2 text-lg leading-snug {isRead
+                        class="mb-2 line-clamp-2 leading-snug {isRead
                             ? 'text-muted-foreground font-normal'
                             : 'text-foreground font-semibold'}"
+                        style="font-size: var(--list-font-size);"
                     >
                         {post.title}
                     </h3>
