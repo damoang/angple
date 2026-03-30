@@ -73,9 +73,9 @@
             <!-- 좌측: 제목 + 메타데이터 -->
             <div class="min-w-0 flex-1">
                 <h3
-                    class="mb-1 flex items-center gap-1.5 truncate {isRead
-                        ? 'text-muted-foreground font-normal'
-                        : 'text-foreground font-medium'}"
+                    class="mb-1 flex items-center gap-1.5 truncate font-medium {isRead
+                        ? 'text-muted-foreground'
+                        : 'text-foreground'}"
                     style="font-size: var(--list-font-size);"
                 >
                     {#if post.is_adult}
