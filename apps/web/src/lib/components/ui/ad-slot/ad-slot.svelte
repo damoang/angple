@@ -42,14 +42,25 @@
         'comment-infeed'
     ]);
 
+    // 모바일 목록처럼 터치가 빈번한 위치: no fill이어도 즉시 축소하지 않음 (CLS 방지)
+    const TOUCH_SAFE_POSITIONS = new Set([
+        'header-after',
+        'board-list-infeed',
+        'board-list-top',
+        'board-list-bottom',
+        'index-top'
+    ]);
+
     let isLoaded = $state(false);
     let hasAd = $state(false);
     let slotId = $state('');
     let detached = false;
     let containerEl: HTMLDivElement | null = null;
     let visibilityObserver: IntersectionObserver | null = null;
+    let isOutOfView = $state(false); // 뷰포트 밖으로 나갔는지
     let isBTF = $derived(BTF_POSITIONS.has(position));
     let isWing = $derived(position === 'wing-left' || position === 'wing-right');
+    let isTouchSafe = $derived(TOUCH_SAFE_POSITIONS.has(position));
     let isEmpty = $derived(isLoaded && !hasAd);
 
     function getAdConfig(): AdConfig {
@@ -141,6 +152,10 @@
             visibilityObserver = new IntersectionObserver(
                 ([entry]) => {
                     updateSlotVisibility(slotId, entry.isIntersecting);
+                    // 터치 안전 위치: 뷰포트 밖으로 나가면 빈 슬롯 collapse 허용
+                    if (isTouchSafe && isEmpty) {
+                        isOutOfView = !entry.isIntersecting;
+                    }
                 },
                 {
                     threshold: isWing ? 0.1 : 0.5,
@@ -178,9 +193,15 @@
 
     const reservedHeights = $derived(getReservedHeights(getAdConfig()));
     const suppressPlaceholder = $derived(position === 'wing-right' || position.includes('sidebar'));
-    const effectiveMinHeight = $derived(
-        isEmpty || (!isLoaded && suppressPlaceholder) ? '0px' : 'var(--ad-slot-min-height)'
-    );
+    const effectiveMinHeight = $derived.by(() => {
+        // 로드 전 + 사이드바 → 높이 예약 안 함
+        if (!isLoaded && suppressPlaceholder) return '0px';
+        // 터치 빈번한 목록 위치: 빈 광고라도 뷰포트 안에 있으면 높이 유지 (CLS 방지)
+        if (isEmpty && isTouchSafe && !isOutOfView) return 'var(--ad-slot-min-height)';
+        // 일반: 빈 광고 → 축소
+        if (isEmpty) return '0px';
+        return 'var(--ad-slot-min-height)';
+    });
 </script>
 
 {#if !suppressAds}
@@ -196,6 +217,7 @@
         style:--ad-slot-min-height-desktop={reservedHeights.desktop}
         style:--ad-slot-intrinsic-size={reservedHeights.desktop}
         style:min-height={effectiveMinHeight}
+        style:transition="min-height 300ms ease-out"
     >
         {#if slotId}
             <div id={slotId} class="gam-ad-slot w-full" style:min-height={effectiveMinHeight}></div>
