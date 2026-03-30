@@ -121,9 +121,9 @@
         <!-- 상품 정보 -->
         <div class="p-3">
             <h3
-                class="mb-1 truncate {isSold ? 'line-through' : ''} {isRead
-                    ? 'text-muted-foreground font-normal'
-                    : 'text-foreground font-medium'}"
+                class="mb-1 truncate font-medium {isSold ? 'line-through' : ''} {isRead
+                    ? 'text-muted-foreground'
+                    : 'text-foreground'}"
                 style="font-size: var(--list-font-size);"
             >
                 {post.title}
