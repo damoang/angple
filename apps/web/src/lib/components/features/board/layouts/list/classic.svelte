@@ -220,9 +220,14 @@
                     </span>
                     {#if memoPluginActive && !uiSettingsStore.hideMemoInList}
                         {#if memo?.content}
+                            <!-- svelte-ignore a11y_no_static_element_interactions -->
                             <span
                                 class="memo-badge memo-color--{memo.color || 'yellow'} shrink-0"
                                 title={memo.content}
+                                onclick={(e: MouseEvent) => {
+                                    e.stopPropagation();
+                                    e.preventDefault();
+                                }}
                             >
                                 {memo.content.length > 6
                                     ? memo.content.slice(0, 6) + '\u2026'
