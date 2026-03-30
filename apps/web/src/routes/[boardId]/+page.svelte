@@ -77,7 +77,6 @@
     import BoardSubscribeButton from '$lib/components/features/board/board-subscribe-button.svelte';
     import { Watermark } from '$lib/components/ui/watermark/index.js';
     import { pluginStore } from '$lib/stores/plugin.svelte';
-    import { loadPluginLib } from '$lib/utils/plugin-optional-loader';
     import Trash2 from '@lucide/svelte/icons/trash-2';
 
     // Q&A 게시판 타입 등록
@@ -221,30 +220,6 @@
         setTimeout(loadTask, 250);
     }
 
-    let loadMemosForAuthors = $state<((memberIds: string[]) => Promise<void>) | null>(null);
-
-    $effect(() => {
-        if (!authStore.isAuthenticated || !pluginStore.isPluginActive('member-memo')) {
-            loadMemosForAuthors = null;
-            return;
-        }
-
-        let cancelled = false;
-
-        loadPluginLib<{ loadMemosForAuthors: (ids: string[]) => Promise<void> }>(
-            'member-memo',
-            'memo-store'
-        ).then((module) => {
-            if (!cancelled) {
-                loadMemosForAuthors = module?.loadMemosForAuthors ?? null;
-            }
-        });
-
-        return () => {
-            cancelled = true;
-        };
-    });
-
     onMount(() => {
         requestAnimationFrame(() => {
             requestAnimationFrame(() => {
@@ -267,15 +242,6 @@
             scheduleBoardListMemos(authorIds);
         } else {
             memoByAuthorId = {};
-        }
-
-        if (
-            authStore.isAuthenticated &&
-            loadMemosForAuthors &&
-            authorIds.length > 0 &&
-            !usesInlineListMemo
-        ) {
-            void loadMemosForAuthors(authorIds);
         }
 
         doAction('board_list_loaded', {

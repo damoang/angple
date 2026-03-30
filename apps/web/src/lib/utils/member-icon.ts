@@ -1,4 +1,4 @@
-import { normalizeWebUrl } from '$lib/utils/url-normalizer';
+import { normalizeMediaUrl } from '$lib/utils/media-url';
 
 /**
  * 회원 프로필 이미지 URL 유틸리티
@@ -19,20 +19,8 @@ export function getAvatarUrl(
 ): string | null {
     if (!imageUrl) return null;
 
-    const normalizedImageUrl = imageUrl.trim().replaceAll('&amp;', '&');
-    let url: string;
-
-    // 이미 전체 URL 또는 protocol-relative URL
-    if (
-        normalizedImageUrl.startsWith('//') ||
-        normalizedImageUrl.startsWith('http://') ||
-        normalizedImageUrl.startsWith('https://')
-    ) {
-        url = normalizeWebUrl(normalizedImageUrl);
-    } else {
-        // 상대 경로면 CDN 베이스 추가
-        url = `${CDN_BASE_URL}/${normalizedImageUrl.replace(/^\/+/, '')}`;
-    }
+    const url = normalizeMediaUrl(imageUrl, CDN_BASE_URL);
+    if (!url) return null;
 
     // 캐시 버스팅: ?v=timestamp 추가
     if (updatedAt) {
@@ -41,7 +29,7 @@ export function getAvatarUrl(
                 ? updatedAt
                 : Math.floor(new Date(updatedAt).getTime() / 1000);
         if (v > 0) {
-            url += `${url.includes('?') ? '&' : '?'}v=${v}`;
+            return `${url}${url.includes('?') ? '&' : '?'}v=${v}`;
         }
     }
 

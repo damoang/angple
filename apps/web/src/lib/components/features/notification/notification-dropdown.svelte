@@ -33,6 +33,7 @@
     let unreadCount = $state(0);
     let isLoading = $state(false);
     let isOpen = $state(false);
+    let unreadPrimed = $state(false);
 
     function readUnreadCache(): { count: number; fetchedAt: number } | null {
         if (typeof window === 'undefined') return null;
@@ -171,6 +172,15 @@
         }
     }
 
+    function primeUnreadCount(): void {
+        if (!authStore.isAuthenticated || unreadPrimed) return;
+        unreadPrimed = true;
+        if (typeof document !== 'undefined' && document.visibilityState !== 'visible') {
+            return;
+        }
+        void loadUnreadCount();
+    }
+
     async function loadNotifications(): Promise<void> {
         if (!authStore.isAuthenticated) return;
 
@@ -241,31 +251,16 @@
 
     function handleOpenChange(open: boolean): void {
         if (open) {
+            primeUnreadCount();
             void loadNotifications();
         }
     }
 
     onMount(() => {
-        const scheduleUnreadLoad = () => {
-            const task = () => {
-                if (document.visibilityState !== 'visible') return;
-                void loadUnreadCount();
-            };
-
-            if (typeof window.requestIdleCallback === 'function') {
-                window.requestIdleCallback(task, { timeout: 2000 });
-                return;
-            }
-
-            globalThis.setTimeout(task, 250);
-        };
-
-        scheduleUnreadLoad();
-
         let interval: ReturnType<typeof setInterval> | null = null;
 
         function startPolling() {
-            if (interval) return;
+            if (interval || !unreadPrimed) return;
             interval = setInterval(loadUnreadCount, 600000);
         }
 
@@ -278,14 +273,16 @@
 
         function handleVisibilityChange() {
             if (document.visibilityState === 'visible') {
-                scheduleUnreadLoad();
+                if (unreadPrimed) {
+                    void loadUnreadCount();
+                }
                 startPolling();
             } else {
                 stopPolling();
             }
         }
 
-        if (document.visibilityState === 'visible') {
+        if (document.visibilityState === 'visible' && unreadPrimed) {
             startPolling();
         }
         document.addEventListener('visibilitychange', handleVisibilityChange);
@@ -300,6 +297,8 @@
 <DropdownMenu.Root bind:open={isOpen} onOpenChange={handleOpenChange}>
     <DropdownMenu.Trigger
         class="hover:bg-muted relative inline-flex items-center justify-center rounded-lg p-2 transition-colors"
+        onmouseenter={primeUnreadCount}
+        onfocus={primeUnreadCount}
     >
         <span class={unreadCount > 0 ? 'bell-ring' : ''}>
             <Bell class="text-muted-foreground h-5 w-5" />

@@ -9,7 +9,6 @@
     import BellOff from '@lucide/svelte/icons/bell-off';
     import { authStore } from '$lib/stores/auth.svelte.js';
     import { toast } from 'svelte-sonner';
-    import { onMount } from 'svelte';
 
     interface Props {
         boardId: string;
@@ -21,9 +20,12 @@
     let isSubscribed = $state(false);
     let subscriberCount = $state(0);
     let loading = $state(false);
-    let initialized = $state(false);
+    let stateLoaded = $state(false);
+    let stateLoading = $state(false);
 
     async function loadSubscribeState(): Promise<void> {
+        if (stateLoaded || stateLoading) return;
+        stateLoading = true;
         try {
             const res = await fetch(`/api/boards/${boardId}/subscribe`);
             if (res.ok) {
@@ -36,34 +38,26 @@
         } catch {
             // 조회 실패 시 무시
         } finally {
-            initialized = true;
+            stateLoaded = true;
+            stateLoading = false;
         }
     }
 
-    onMount(() => {
-        const task = () => {
-            if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
-                initialized = true;
-                return;
-            }
-            void loadSubscribeState();
-        };
-
-        if (typeof window !== 'undefined' && typeof window.requestIdleCallback === 'function') {
-            window.requestIdleCallback(task, { timeout: 2000 });
+    function primeSubscribeState(): void {
+        if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
             return;
         }
-
-        const timer = globalThis.setTimeout(task, 300);
-        return () => {
-            globalThis.clearTimeout(timer);
-        };
-    });
+        void loadSubscribeState();
+    }
 
     async function toggle(): Promise<void> {
         if (!authStore.isAuthenticated) {
             authStore.redirectToLogin();
             return;
+        }
+
+        if (!stateLoaded) {
+            await loadSubscribeState();
         }
 
         loading = true;
@@ -90,26 +84,26 @@
     }
 </script>
 
-{#if initialized}
-    <Button
-        variant="ghost"
-        size="icon"
-        onclick={toggle}
-        disabled={loading}
-        aria-label={isSubscribed ? '구독 해제' : '새 글 알림 구독'}
-        aria-pressed={isSubscribed}
-        title={isSubscribed
-            ? `'${boardTitle}' 구독 중 (${subscriberCount}명) — 클릭하여 해제`
-            : `'${boardTitle}' 구독하기 — 새 글 알림 받기${subscriberCount > 0 ? ` (${subscriberCount}명 구독 중)` : ''}`}
-        class="relative h-8 w-8 {isSubscribed
-            ? 'text-primary hover:text-primary/80'
-            : 'text-muted-foreground hover:text-primary'}"
-    >
-        <span class="absolute -inset-2"></span>
-        {#if isSubscribed}
-            <Bell class="h-4 w-4" fill="currentColor" />
-        {:else}
-            <BellOff class="h-4 w-4" />
-        {/if}
-    </Button>
-{/if}
+<Button
+    variant="ghost"
+    size="icon"
+    onclick={toggle}
+    onmouseenter={primeSubscribeState}
+    onfocus={primeSubscribeState}
+    disabled={loading}
+    aria-label={isSubscribed ? '구독 해제' : '새 글 알림 구독'}
+    aria-pressed={isSubscribed}
+    title={isSubscribed
+        ? `'${boardTitle}' 구독 중 (${subscriberCount}명) — 클릭하여 해제`
+        : `'${boardTitle}' 구독하기 — 새 글 알림 받기${subscriberCount > 0 ? ` (${subscriberCount}명 구독 중)` : ''}`}
+    class="relative h-8 w-8 {isSubscribed
+        ? 'text-primary hover:text-primary/80'
+        : 'text-muted-foreground hover:text-primary'}"
+>
+    <span class="absolute -inset-2"></span>
+    {#if isSubscribed}
+        <Bell class="h-4 w-4" fill="currentColor" />
+    {:else}
+        <BellOff class="h-4 w-4" />
+    {/if}
+</Button>

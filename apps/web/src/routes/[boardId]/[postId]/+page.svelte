@@ -1063,11 +1063,6 @@
             );
             likers = response.likers ?? [];
             likersTotal = response.total ?? 0;
-            // 추천자 레벨 배치 로드
-            const likerIds = likers.map((l: LikerInfo) => l.mb_id).filter(Boolean);
-            if (likerIds.length > 0 && loadMemosForAuthors) {
-                void loadMemosForAuthors(likerIds);
-            }
         } catch (err) {
             console.error('Failed to load likers:', err);
         } finally {
@@ -1091,11 +1086,6 @@
             likers = [...likers, ...(response.likers ?? [])];
             likersTotal = response.total ?? 0;
             likersPage = nextPage;
-            // 추가된 추천자 레벨 배치 로드
-            const likerIds = (response.likers ?? []).map((l: LikerInfo) => l.mb_id).filter(Boolean);
-            if (likerIds.length > 0 && loadMemosForAuthors) {
-                void loadMemosForAuthors(likerIds);
-            }
         } catch (err) {
             console.error('Failed to load more likers:', err);
         } finally {
