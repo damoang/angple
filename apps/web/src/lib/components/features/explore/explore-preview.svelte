@@ -107,7 +107,7 @@
             (entries) => {
                 if (entries.some((entry) => entry.isIntersecting)) {
                     observer.disconnect();
-                    scheduleLoad();
+                    void loadExploreData();
                 }
             },
             { rootMargin: '200px 0px' }

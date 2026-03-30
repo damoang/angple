@@ -140,10 +140,16 @@ const ROOT_ALIAS_REDIRECTS: Record<string, string> = {
     '/indexphp': '/'
 };
 
+const CDN_MEDIA_BASE_URL = (env.CDN_URL || env.VITE_S3_URL || '').replace(/\/+$/, '');
+
 function isMalformedExternalImagePath(pathname: string): boolean {
     if (!pathname.startsWith('/http')) return false;
     if (pathname.includes('/', 1)) return false;
     return /(avif|gif|jpe?g|png|webp)$/i.test(pathname);
+}
+
+function isLegacyMediaPath(pathname: string): boolean {
+    return pathname === '/data' || pathname.startsWith('/data/');
 }
 
 function isPublicCacheablePath(pathname: string): boolean {
@@ -459,6 +465,10 @@ export const handle: Handle = async ({ event, resolve }) => {
                 'cache-control': 'public, max-age=86400, s-maxage=86400'
             }
         });
+    }
+
+    if (CDN_MEDIA_BASE_URL && isLegacyMediaPath(pathname)) {
+        throw redirect(301, `${CDN_MEDIA_BASE_URL}${pathname}${event.url.search}`);
     }
 
     // --- 환경별 접근 제어 (hostname 기반) ---
