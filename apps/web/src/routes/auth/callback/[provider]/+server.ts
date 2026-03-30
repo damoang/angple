@@ -132,7 +132,17 @@ async function handleCallback(
             const memberByEmail = await findMemberByEmail(profile.email);
             if (memberByEmail) {
                 mbId = memberByEmail.mb_id;
+                // identifier가 변경된 경우: 기존 계정에 소셜 프로필 재연결
+                console.log(
+                    `[oauth] identifier mismatch for ${providerName}, linking email ${profile.email} to existing ${mbId}`
+                );
             }
+        }
+
+        if (!mbId && !profile.email) {
+            console.warn(
+                `[oauth] no email from ${providerName} for identifier ${profile.identifier}, new account will be created`
+            );
         }
 
         // 회원 없으면 초대 플로우는 즉시 임시 계정 생성 후 복귀, 일반 플로우만 register로 이동
