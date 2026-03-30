@@ -62,7 +62,7 @@
 {:else if shouldBlur && revealed}
     <div>
         {@render children()}
-        <div class="sticky bottom-2 z-10 mt-2 flex justify-end">
+        <div class="mt-4 flex justify-end">
             <button
                 type="button"
                 class="text-muted-foreground hover:text-foreground rounded bg-black/5 px-2 py-1 text-xs shadow-sm backdrop-blur-sm dark:bg-white/10"
