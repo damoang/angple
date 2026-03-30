@@ -13,7 +13,7 @@ export async function findSocialProfile(
     identifier: string
 ): Promise<SocialProfileRow | null> {
     const [rows] = await pool.query<RowDataPacket[]>(
-        'SELECT * FROM g5_member_social_profiles WHERE provider = ? AND identifier = ? AND mb_id != "" LIMIT 1',
+        'SELECT * FROM g5_member_social_profiles WHERE provider = ? AND identifier = ? AND mb_id != "" ORDER BY mp_register_day ASC LIMIT 1',
         [provider.toLowerCase(), identifier]
     );
     return (rows[0] as SocialProfileRow) || null;

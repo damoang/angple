@@ -137,6 +137,14 @@ async function handleCallback(
 
         // 회원 없으면 초대 플로우는 즉시 임시 계정 생성 후 복귀, 일반 플로우만 register로 이동
         if (!mbId) {
+            // 이메일 중복 체크 (초대 플로우 포함): 같은 이메일 계정이 있으면 가입 차단
+            if (profile.email) {
+                const existingByEmail = await findMemberByEmail(profile.email);
+                if (existingByEmail) {
+                    redirect(302, '/login?error=email_exists');
+                }
+            }
+
             if (isAdsInviteFlow(stateData.redirect)) {
                 const nickname = await generateInviteTempNickname(providerName);
                 mbId = generateSocialMbId(providerName, profile.identifier);

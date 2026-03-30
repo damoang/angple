@@ -84,6 +84,7 @@ export async function findMemberByEmail(email: string): Promise<MemberRow | null
 		        COALESCE(as_level, 0) AS as_level
 		 FROM g5_member
 		 WHERE mb_email = ? AND mb_leave_date = ''
+		 ORDER BY mb_datetime ASC
 		 LIMIT 1`,
         [email]
     );
