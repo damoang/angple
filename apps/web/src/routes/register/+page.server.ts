@@ -14,7 +14,11 @@ import {
     createMember
 } from '$lib/server/auth/register.js';
 import { upsertSocialProfile } from '$lib/server/auth/oauth/social-profile.js';
-import { getMemberById, updateLoginTimestamp } from '$lib/server/auth/oauth/member.js';
+import {
+    getMemberById,
+    updateLoginTimestamp,
+    findMemberByEmail
+} from '$lib/server/auth/oauth/member.js';
 import { generateRefreshToken } from '$lib/server/auth/jwt.js';
 import {
     createSession,
@@ -197,6 +201,18 @@ export const actions: Actions = {
             mbId = generateSocialMbId(socialProfile.provider, socialProfile.identifier);
             if (await isMbIdTaken(mbId)) {
                 mbId = mbId + '_' + randomBytes(4).toString('hex');
+            }
+        }
+
+        // 이메일 중복 체크: 같은 이메일로 가입된 계정이 있으면 가입 차단
+        if (socialProfile.email) {
+            const existingByEmail = await findMemberByEmail(socialProfile.email);
+            if (existingByEmail) {
+                cookies.delete('pending_social_register', { path: '/' });
+                return fail(400, {
+                    error: '이미 이 이메일로 가입된 계정이 있습니다. 기존 소셜 계정으로 로그인해주세요.',
+                    nickname
+                });
             }
         }
 
