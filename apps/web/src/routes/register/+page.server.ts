@@ -14,7 +14,11 @@ import {
     createMember
 } from '$lib/server/auth/register.js';
 import { upsertSocialProfile } from '$lib/server/auth/oauth/social-profile.js';
-import { getMemberById, updateLoginTimestamp } from '$lib/server/auth/oauth/member.js';
+import {
+    getMemberById,
+    updateLoginTimestamp,
+    findMemberByEmail
+} from '$lib/server/auth/oauth/member.js';
 import { generateRefreshToken } from '$lib/server/auth/jwt.js';
 import {
     createSession,
@@ -201,7 +205,52 @@ export const actions: Actions = {
         }
 
         try {
-            // g5_member INSERT
+            // 이메일 중복 체크: 같은 이메일의 기존 회원이 있으면 새 가입 대신 기존 계정에 소셜 연결
+            const oauthProfile: OAuthUserProfile = {
+                provider: socialProfile.provider as SocialProvider,
+                identifier: socialProfile.identifier,
+                displayName: socialProfile.displayName,
+                email: socialProfile.email,
+                photoUrl: socialProfile.photoUrl,
+                profileUrl: socialProfile.profileUrl
+            };
+
+            if (socialProfile.email) {
+                const existingByEmail = await findMemberByEmail(socialProfile.email);
+                if (existingByEmail) {
+                    // 기존 계정에 소셜 프로필 연결 후 로그인 처리
+                    mbId = existingByEmail.mb_id;
+                    await upsertSocialProfile(mbId, socialProfile.provider, oauthProfile);
+                    await updateLoginTimestamp(mbId, clientIp);
+
+                    const member = await getMemberById(mbId);
+                    if (member) {
+                        const session = await createSession(member.mb_id, { ip: clientIp });
+                        const domainOpt = COOKIE_DOMAIN ? { domain: COOKIE_DOMAIN } : {};
+                        cookies.set(SESSION_COOKIE_NAME, session.sessionId, {
+                            path: '/',
+                            httpOnly: true,
+                            sameSite: 'lax',
+                            secure: !dev,
+                            maxAge: SESSION_COOKIE_MAX_AGE,
+                            ...domainOpt
+                        });
+                        cookies.set(CSRF_COOKIE_NAME, session.csrfToken, {
+                            path: '/',
+                            httpOnly: false,
+                            sameSite: 'lax',
+                            secure: !dev,
+                            maxAge: SESSION_COOKIE_MAX_AGE,
+                            ...domainOpt
+                        });
+                    }
+
+                    cookies.delete('pending_social_register', { path: '/' });
+                    redirect(303, '/');
+                }
+            }
+
+            // g5_member INSERT (이메일 중복 없는 경우만)
             await createMember({
                 mb_id: mbId,
                 mb_nick: nickname,
@@ -211,14 +260,6 @@ export const actions: Actions = {
             });
 
             // 소셜 프로필 연결
-            const oauthProfile: OAuthUserProfile = {
-                provider: socialProfile.provider as SocialProvider,
-                identifier: socialProfile.identifier,
-                displayName: socialProfile.displayName,
-                email: socialProfile.email,
-                photoUrl: socialProfile.photoUrl,
-                profileUrl: socialProfile.profileUrl
-            };
             await upsertSocialProfile(mbId, socialProfile.provider, oauthProfile);
 
             // 로그인 시각 업데이트
