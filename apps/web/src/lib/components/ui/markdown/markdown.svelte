@@ -282,7 +282,7 @@
 <div
     bind:this={proseEl}
     class="prose prose-neutral dark:prose-invert max-w-none {className}"
-    style="overflow-wrap: break-word; word-wrap: break-word; overflow-x: hidden; contain: layout style;"
+    style="font-size: var(--content-font-size, 16px); overflow-wrap: break-word; word-wrap: break-word; overflow-x: hidden; contain: layout style;"
 >
     <!-- eslint-disable-next-line svelte/no-at-html-tags -->
     {@html renderedHtml}
@@ -291,21 +291,21 @@
 <style>
     /* Tailwind Typography 플러그인이 없을 경우를 위한 기본 스타일 */
     .prose :global(h1) {
-        font-size: 2rem;
+        font-size: 1.75em;
         font-weight: 700;
         margin-top: 1.5rem;
         margin-bottom: 1rem;
     }
 
     .prose :global(h2) {
-        font-size: 1.5rem;
+        font-size: 1.375em;
         font-weight: 600;
         margin-top: 1.25rem;
         margin-bottom: 0.75rem;
     }
 
     .prose :global(h3) {
-        font-size: 1.25rem;
+        font-size: 1.125em;
         font-weight: 600;
         margin-top: 1rem;
         margin-bottom: 0.5rem;
