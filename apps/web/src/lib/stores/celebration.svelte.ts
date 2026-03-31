@@ -67,10 +67,8 @@ function startRotation(): void {
 }
 
 function stopRotation(): void {
-    if (intervalId) {
-        clearInterval(intervalId);
-        intervalId = null;
-    }
+    // 로테이션을 멈추지 않음 — 페이지 전환 시에도 계속 회전
+    // 첫 화면 ↔ 게시판 이동 시 멈춤 방지
 }
 
 export function getCelebrations(): CelebrationBanner[] {
