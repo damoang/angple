@@ -775,6 +775,14 @@
                 </div>
             {/if}
 
+            <!-- 상단 배너 영역: 자체 배너 + 구글 광고 -->
+            {#if widgetLayoutStore.hasEnabledAds}
+                <div class="mb-3 space-y-2">
+                    <PluginSlot name="board-list-banner" />
+                    <AdSlot position="board-list-head" height="90px" slotKey="board-list-head" />
+                </div>
+            {/if}
+
             <!-- 검색 폼 (토글 or 검색 중 or 핀 고정) -->
             {#if showSearch || isSearching || uiSettingsStore.pinSearch}
                 <div class="mb-3" transition:slide={{ duration: 200 }}>

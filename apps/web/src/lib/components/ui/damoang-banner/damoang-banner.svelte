@@ -19,6 +19,7 @@
         showCelebration?: boolean; // 축하메시지 표시 여부 (메인만 true)
         height?: string;
         gamPosition?: string; // GAM 폴백 시 사용할 슬롯 이름 (위젯에서 전달)
+        gamFallback?: boolean; // 자체 배너 없을 때 GAM 폴백 여부 (기본 true)
         class?: string;
     }
 
@@ -27,6 +28,7 @@
         showCelebration = true,
         height = '90px',
         gamPosition: gamPositionProp,
+        gamFallback = true,
         class: className = ''
     }: Props = $props();
 
@@ -244,8 +246,8 @@
                     >축하메시지가 없습니다</a
                 >
             </div>
-        {:else}
-            <!-- GAM 폴백 -->
+        {:else if gamFallback}
+            <!-- GAM 폴백 (gamFallback=true일 때만) -->
             <AdSlot position={gamPosition} {height} slotKey={`damoang-banner-${position}`} />
         {/if}
     {/if}
