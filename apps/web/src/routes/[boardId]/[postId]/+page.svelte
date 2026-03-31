@@ -841,21 +841,26 @@
 
     // 직접홍보 끌어올리기
     let isBumping = $state(false);
+    let showBumpDialog = $state(false);
     async function handleBump(): Promise<void> {
         if (isBumping) return;
-        if (!confirm('이 글을 끌어올리시겠습니까? 목록에서 최상단으로 이동합니다.')) return;
         isBumping = true;
         try {
             await apiClient.bumpPost(boardId, String(data.post.id));
             fetch('/api/boards/promotion/invalidate-cache', { method: 'POST' }).catch(() => {});
+            showBumpDialog = false;
             alert('끌어올리기 완료! 목록에서 최상단으로 이동했습니다.');
-        } catch (err) {
-            alert('끌어올리기에 실패했습니다. 잠시 후 다시 시도해 주세요.');
+        } catch (err: unknown) {
+            const message = err instanceof Error ? err.message : '끌어올리기에 실패했습니다.';
+            alert(message);
             console.error('[bump]', err);
         } finally {
             isBumping = false;
         }
     }
+
+    // 직접홍보 다시 쓰기 확인
+    let showRepostDialog = $state(false);
 
     // 작성자 확인
     const isAuthor = $derived(
@@ -1396,18 +1401,72 @@
                 />
             {/if}
             {#if boardId === 'promotion' && isAuthor}
-                <Button
-                    variant="outline"
-                    size="sm"
-                    onclick={() => goto(`/promotion/write?repost=${data.post.id}`)}
-                >
-                    <RefreshCw class="mr-1 h-4 w-4" />
-                    다시 쓰기
-                </Button>
-                <Button variant="outline" size="sm" onclick={handleBump} disabled={isBumping}>
-                    <ArrowUpCircle class="mr-1 h-4 w-4" />
-                    {isBumping ? '처리 중...' : '끌어올리기'}
-                </Button>
+                <Dialog.Root bind:open={showRepostDialog}>
+                    <Dialog.Trigger>
+                        <Button variant="outline" size="sm">
+                            <RefreshCw class="mr-1 h-4 w-4" />
+                            다시 쓰기
+                        </Button>
+                    </Dialog.Trigger>
+                    <Dialog.Content>
+                        <Dialog.Header>
+                            <Dialog.Title>이전 글 복제</Dialog.Title>
+                            <Dialog.Description>
+                                이전 글의 내용을 복사하여 새 글을 작성합니다.
+                            </Dialog.Description>
+                        </Dialog.Header>
+                        <div
+                            class="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800"
+                        >
+                            이전 글 복제 시 <strong>1일 글쓰기 1회가 차감</strong>됩니다.
+                        </div>
+                        <Dialog.Footer>
+                            <Button variant="outline" onclick={() => (showRepostDialog = false)}
+                                >취소</Button
+                            >
+                            <Button
+                                onclick={() => {
+                                    showRepostDialog = false;
+                                    goto(`/promotion/write?repost=${data.post.id}`);
+                                }}
+                            >
+                                복제하여 새 글 쓰기
+                            </Button>
+                        </Dialog.Footer>
+                    </Dialog.Content>
+                </Dialog.Root>
+                <Dialog.Root bind:open={showBumpDialog}>
+                    <Dialog.Trigger>
+                        <Button variant="outline" size="sm" disabled={isBumping}>
+                            <ArrowUpCircle class="mr-1 h-4 w-4" />
+                            {isBumping ? '처리 중...' : '끌어올리기'}
+                        </Button>
+                    </Dialog.Trigger>
+                    <Dialog.Content>
+                        <Dialog.Header>
+                            <Dialog.Title>글 끌어올리기</Dialog.Title>
+                            <Dialog.Description>
+                                이 글을 목록 최상단으로 이동합니다.
+                            </Dialog.Description>
+                        </Dialog.Header>
+                        <div
+                            class="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800"
+                        >
+                            끌어올리기 시 <strong>1일 글쓰기 1회가 차감</strong>됩니다.<br />
+                            하루 2회, 1시간 간격으로 사용 가능합니다.
+                        </div>
+                        <Dialog.Footer>
+                            <Button
+                                variant="outline"
+                                onclick={() => (showBumpDialog = false)}
+                                disabled={isBumping}>취소</Button
+                            >
+                            <Button onclick={handleBump} disabled={isBumping}>
+                                {isBumping ? '처리 중...' : '끌어올리기'}
+                            </Button>
+                        </Dialog.Footer>
+                    </Dialog.Content>
+                </Dialog.Root>
             {/if}
         </div>
     </div>

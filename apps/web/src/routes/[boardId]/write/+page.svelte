@@ -287,6 +287,13 @@
                 isLoading={isSubmitting}
             />
         {:else}
+            {#if data.repostData && boardId === 'promotion'}
+                <div
+                    class="mb-4 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800"
+                >
+                    <strong>이전 글 복제</strong> — 글 작성권 1회가 차감됩니다.
+                </div>
+            {/if}
             {#key repostKey}
                 <PostForm
                     mode="create"
