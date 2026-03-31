@@ -45,7 +45,7 @@ export function registerDefaultSlots(): void {
         'board-view-banner',
         DamoangBanner,
         10,
-        { position: 'board-view', showCelebration: false, height: '45px', gamFallback: false },
+        { position: 'board-view', showCelebration: false, height: '90px', gamFallback: false },
         'core-damoang'
     );
 
