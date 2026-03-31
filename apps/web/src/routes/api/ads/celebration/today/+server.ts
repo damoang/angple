@@ -33,6 +33,9 @@ const CDN_BASE = (env.CDN_URL || env.VITE_S3_URL || 'https://s3.damoang.net').re
  */
 function getMemberPhotoUrl(mbImageUrl: string | null | undefined): string | undefined {
     if (!mbImageUrl) return undefined;
+    if (mbImageUrl.startsWith('http://') || mbImageUrl.startsWith('https://')) {
+        return mbImageUrl;
+    }
     return `${CDN_BASE}/${mbImageUrl}`;
 }
 
