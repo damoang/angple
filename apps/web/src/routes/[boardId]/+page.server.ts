@@ -35,9 +35,8 @@ const CONTENT_HEAVY_LIST_LAYOUTS = new Set([
     'gallery',
     'message',
     'giving',
-    'angmap',
-    'angtt',
-    'trade'
+    'trade',
+    'poster-gallery'
 ]);
 
 function trimFreeListPayload(post: FreePost): FreePost {
