@@ -28,7 +28,7 @@ interface PostsCacheData {
     error: string | null;
 }
 
-const CONTENT_HEAVY_LIST_LAYOUTS = new Set(['detailed', 'webzine', 'card']);
+const CONTENT_HEAVY_LIST_LAYOUTS = new Set(['detailed', 'webzine', 'card', 'gallery']);
 
 function trimFreeListPayload(post: FreePost): FreePost {
     return {
