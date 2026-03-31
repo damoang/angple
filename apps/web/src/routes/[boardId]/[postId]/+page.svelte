@@ -1341,11 +1341,10 @@
 {/if}
 
 <div class="mx-auto pt-2">
-    <!-- 상단 배너 영역: 자체 배너 + 구글 광고 -->
+    <!-- 최상단 자체 배너 (없으면 GAM 폴백) -->
     {#if widgetLayoutStore.hasEnabledAds && !data.post.deleted_at}
-        <div class="mb-6 space-y-2">
+        <div class="mb-3">
             <PluginSlot name="board-view-banner" />
-            <AdSlot position="board-content" height="90px" slotKey="board-view-head-ad" />
         </div>
     {/if}
 
@@ -1467,6 +1466,13 @@
     <div class="mb-4">
         <PluginSlot name="board-view-rolling" />
     </div>
+
+    <!-- 축하메시지 아래 구글 광고 -->
+    {#if widgetLayoutStore.hasEnabledAds && !data.post.deleted_at}
+        <div class="mb-3">
+            <AdSlot position="board-content" height="90px" slotKey="board-view-head-ad" />
+        </div>
+    {/if}
 
     <!-- 읽기 권한 체크 -->
     {#if !canRead}
