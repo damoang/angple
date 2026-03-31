@@ -261,7 +261,7 @@
 
         function startPolling() {
             if (interval || !unreadPrimed) return;
-            interval = setInterval(loadUnreadCount, 600000);
+            interval = setInterval(loadUnreadCount, 1800000);
         }
 
         function stopPolling() {
@@ -271,13 +271,22 @@
             }
         }
 
+        let visibilityDebounce: ReturnType<typeof setTimeout> | null = null;
+
         function handleVisibilityChange() {
             if (document.visibilityState === 'visible') {
-                if (unreadPrimed) {
-                    void loadUnreadCount();
-                }
-                startPolling();
+                if (visibilityDebounce) clearTimeout(visibilityDebounce);
+                visibilityDebounce = setTimeout(() => {
+                    if (unreadPrimed) {
+                        void loadUnreadCount();
+                    }
+                    startPolling();
+                }, 5000);
             } else {
+                if (visibilityDebounce) {
+                    clearTimeout(visibilityDebounce);
+                    visibilityDebounce = null;
+                }
                 stopPolling();
             }
         }

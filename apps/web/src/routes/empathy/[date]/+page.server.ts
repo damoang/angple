@@ -18,9 +18,12 @@ export const load: PageServerLoad = async ({ params }) => {
         loadDailyRecommended(date)
     ]);
 
+    // comments를 SSR payload에서 제거 (비용 절감)
+    const { comments, ...dailyDataWithoutComments } = dailyData ?? {};
+
     return {
         date,
         calendar,
-        dailyData
+        dailyData: dailyData ? (dailyDataWithoutComments as typeof dailyData) : null
     };
 };
