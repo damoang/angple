@@ -768,6 +768,13 @@
                 </div>
             </div>
 
+            <!-- 최상단 자체 배너 (자체 배너 없으면 안 보임) -->
+            {#if widgetLayoutStore.hasEnabledAds}
+                <div class="mb-3">
+                    <PluginSlot name="board-list-banner" />
+                </div>
+            {/if}
+
             <!-- 축하 메시지 롤링 (슬롯 기반) -->
             {#if !isSearching}
                 <div class="mb-4">
@@ -775,10 +782,9 @@
                 </div>
             {/if}
 
-            <!-- 상단 배너 영역: 자체 배너 + 구글 광고 -->
+            <!-- 축하메시지 아래 구글 광고 -->
             {#if widgetLayoutStore.hasEnabledAds}
-                <div class="mb-3 space-y-2">
-                    <PluginSlot name="board-list-banner" />
+                <div class="mb-3">
                     <AdSlot position="board-list-head" height="90px" slotKey="board-list-head" />
                 </div>
             {/if}
