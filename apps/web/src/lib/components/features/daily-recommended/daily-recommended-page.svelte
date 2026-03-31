@@ -49,7 +49,40 @@
     let activeTab = $state<'all' | 'community' | 'group' | 'info'>('all');
     let threshold = $state(0);
     let sortBy = $state<'recommend' | 'views' | 'comments' | 'latest'>('recommend');
-    const commentSections = $derived(activeData?.comments ?? null);
+
+    // 댓글: lazy-load (SSR payload에서 제거됨, 비용 절감)
+    let lazyComments = $state<DailyRecommendedData['comments'] | null>(null);
+    let commentsLoading = $state(false);
+
+    async function loadComments() {
+        if (lazyComments || commentsLoading) return;
+        commentsLoading = true;
+        try {
+            const res = await fetch(`/api/empathy/comments?date=${date}`);
+            if (res.ok) {
+                lazyComments = await res.json();
+            }
+        } catch {
+            // 로드 실패 무시
+        } finally {
+            commentsLoading = false;
+        }
+    }
+
+    // viewMode가 comments로 변경되면 lazy-load
+    $effect(() => {
+        if (viewMode === 'comments' && !lazyComments && !commentsLoading) {
+            loadComments();
+        }
+    });
+
+    // SPA 네비게이션 시 댓글 데이터도 초기화
+    $effect(() => {
+        date;
+        lazyComments = null;
+    });
+
+    const commentSections = $derived(lazyComments ?? activeData?.comments ?? null);
     const hasComments = $derived(
         commentSections != null &&
             (commentSections.community?.count ?? 0) +
