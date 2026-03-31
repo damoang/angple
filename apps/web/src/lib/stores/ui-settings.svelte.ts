@@ -87,12 +87,12 @@ const LINE_HEIGHT_VALUES: Record<LineHeight, string> = {
 };
 
 const CONTENT_FONT_SIZES: Record<ContentFontSize, string> = {
-    small: '16px',
-    base: '18px',
-    large: '20px',
-    xlarge: '22px',
-    '2xlarge': '24px',
-    '3xlarge': '28px'
+    small: '14px',
+    base: '16px',
+    large: '18px',
+    xlarge: '20px',
+    '2xlarge': '22px',
+    '3xlarge': '26px'
 };
 
 const FONT_FAMILY_VALUES: Record<FontFamily, string> = {
@@ -104,11 +104,11 @@ const FONT_FAMILY_VALUES: Record<FontFamily, string> = {
 };
 
 export const LIST_FONT_SIZES: Record<ListFontSize, string> = {
-    xsmall: '14px',
-    small: '16px',
-    base: '18px',
-    large: '20px',
-    xlarge: '22px'
+    xsmall: '13px',
+    small: '14px',
+    base: '16px',
+    large: '18px',
+    xlarge: '20px'
 };
 
 /** 본문 흐림 대상 키워드 (제목에 포함 시 블러 처리) */
@@ -154,7 +154,8 @@ function createUiSettingsStore() {
             LIST_FONT_SIZES[settings.recommendFontSize]
         );
 
-        // 댓글·에디터 본문에 contentFontSize 연동
+        // 본문·댓글·에디터에 contentFontSize 연동
+        html.style.setProperty('--content-font-size', CONTENT_FONT_SIZES[settings.contentFontSize]);
         html.style.setProperty('--comment-font-size', CONTENT_FONT_SIZES[settings.contentFontSize]);
         html.style.setProperty('--editor-font-size', CONTENT_FONT_SIZES[settings.contentFontSize]);
 
