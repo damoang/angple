@@ -50,7 +50,8 @@ function trimFreeListPayload(post: FreePost): FreePost {
         has_file: post.has_file,
         has_video: post.has_video ?? !!post.extra_9,
         has_image: post.has_image ?? !!(post.has_file || post.extra_10),
-        deleted_at: post.deleted_at
+        deleted_at: post.deleted_at,
+        thumbnail: post.thumbnail
     } as FreePost;
 }
 
