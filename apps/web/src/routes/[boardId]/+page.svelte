@@ -158,52 +158,133 @@
     let showSearch = $state(uiSettingsStore.pinSearch);
     let showReadState = $state(false);
     let memoByAuthorId = $state<Record<string, { content: string; color: string } | null>>({});
+    let lastMemoRequestKey = $state('');
+    let memoScheduleToken: number | ReturnType<typeof setTimeout> | null = null;
+
+    const MEMO_CACHE_TTL_MS = 30_000;
+    const memoBatchCache = new Map<
+        string,
+        {
+            expiresAt: number;
+            value: Record<string, { content: string; color: string } | null>;
+        }
+    >();
+    const memoBatchPending = new Map<
+        string,
+        Promise<Record<string, { content: string; color: string } | null>>
+    >();
+
+    function clearMemoSchedule(): void {
+        if (memoScheduleToken === null || typeof window === 'undefined') return;
+
+        if (typeof memoScheduleToken === 'number' && typeof cancelIdleCallback === 'function') {
+            cancelIdleCallback(memoScheduleToken);
+        } else {
+            clearTimeout(memoScheduleToken);
+        }
+        memoScheduleToken = null;
+    }
+
+    function buildMemoState(
+        authorIds: string[],
+        data: Record<string, { content?: string; color?: string }>
+    ): Record<string, { content: string; color: string } | null> {
+        const next: Record<string, { content: string; color: string } | null> = {};
+
+        for (const id of authorIds) {
+            const memo = data[id];
+            next[id] = memo?.content
+                ? { content: memo.content, color: memo.color ?? 'yellow' }
+                : null;
+        }
+
+        return next;
+    }
+
     async function loadBoardListMemos(authorIds: string[]): Promise<void> {
         if (!authStore.isAuthenticated || !pluginStore.isPluginActive('member-memo')) {
+            clearMemoSchedule();
+            lastMemoRequestKey = '';
             memoByAuthorId = {};
             return;
         }
 
         const uniqueAuthorIds = [...new Set(authorIds)].filter(Boolean);
         if (uniqueAuthorIds.length === 0) {
+            clearMemoSchedule();
+            lastMemoRequestKey = '';
             memoByAuthorId = {};
             return;
         }
 
-        try {
+        const memoKey = uniqueAuthorIds.join(',');
+        const cached = memoBatchCache.get(memoKey);
+        if (cached && cached.expiresAt > Date.now()) {
+            lastMemoRequestKey = memoKey;
+            memoByAuthorId = cached.value;
+            return;
+        }
+
+        const pending = memoBatchPending.get(memoKey);
+        if (pending) {
+            lastMemoRequestKey = memoKey;
+            memoByAuthorId = await pending;
+            return;
+        }
+
+        const loadPromise = (async () => {
             const response = await fetch(
                 `/api/v1/members/batch/memo?ids=${uniqueAuthorIds.map(encodeURIComponent).join(',')}`,
                 { credentials: 'include' }
             );
 
             if (!response.ok) {
-                memoByAuthorId = {};
-                return;
+                return {};
             }
 
             const json = await response.json();
-            const data = (json?.data ?? {}) as Record<string, { content?: string; color?: string }>;
-            const next: Record<string, { content: string; color: string } | null> = {};
+            const payload = (json?.data ?? {}) as Record<
+                string,
+                { content?: string; color?: string }
+            >;
+            const next = buildMemoState(uniqueAuthorIds, payload);
+            memoBatchCache.set(memoKey, {
+                expiresAt: Date.now() + MEMO_CACHE_TTL_MS,
+                value: next
+            });
 
-            for (const id of uniqueAuthorIds) {
-                const memo = data[id];
-                next[id] = memo?.content
-                    ? { content: memo.content, color: memo.color ?? 'yellow' }
-                    : null;
-            }
+            return next;
+        })();
 
+        memoBatchPending.set(memoKey, loadPromise);
+
+        try {
+            const next = await loadPromise;
+            lastMemoRequestKey = memoKey;
             memoByAuthorId = next;
         } catch {
+            lastMemoRequestKey = '';
             memoByAuthorId = {};
+        } finally {
+            memoBatchPending.delete(memoKey);
         }
     }
 
     function scheduleBoardListMemos(authorIds: string[]): void {
         const uniqueAuthorIds = [...new Set(authorIds)].filter(Boolean);
         if (uniqueAuthorIds.length === 0) {
+            clearMemoSchedule();
+            lastMemoRequestKey = '';
             memoByAuthorId = {};
             return;
         }
+
+        const memoKey = uniqueAuthorIds.join(',');
+        if (memoKey === lastMemoRequestKey) {
+            return;
+        }
+
+        clearMemoSchedule();
 
         const loadTask = () => {
             if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
@@ -213,11 +294,11 @@
         };
 
         if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
-            window.requestIdleCallback(loadTask, { timeout: 1500 });
+            memoScheduleToken = window.requestIdleCallback(loadTask, { timeout: 1500 });
             return;
         }
 
-        setTimeout(loadTask, 250);
+        memoScheduleToken = globalThis.setTimeout(loadTask, 250);
     }
 
     onMount(() => {
@@ -241,6 +322,8 @@
         if (usesInlineListMemo) {
             scheduleBoardListMemos(authorIds);
         } else {
+            clearMemoSchedule();
+            lastMemoRequestKey = '';
             memoByAuthorId = {};
         }
 
