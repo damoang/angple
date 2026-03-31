@@ -421,7 +421,6 @@
 
     let isCreatingComment = $state(false);
     let isRefreshingComments = $state(false);
-    let showBoardViewBanner = $state(!browser);
 
     function requestStaleClientRecovery(reason: string): void {
         if (!browser) return;
@@ -624,13 +623,6 @@
     // 조회수: SSR에서 처리 (CDN 요청 제거)
     // 레벨/리액션/추천자 아바타: SSR 스트리밍에서 로드 (CDN 요청 제거)
     onMount(() => {
-        const boardViewBannerMq = window.matchMedia('(max-width: 1023px)');
-        const syncBoardViewBanner = () => {
-            showBoardViewBanner = boardViewBannerMq.matches;
-        };
-        syncBoardViewBanner();
-        boardViewBannerMq.addEventListener('change', syncBoardViewBanner);
-
         // GA4: Scroll Depth 추적 (IntersectionObserver)
         const sentinels = document.querySelectorAll<HTMLElement>('[data-scroll-depth]');
         let cleanupScrollObserver: (() => void) | undefined;
@@ -677,7 +669,6 @@
         }
 
         return () => {
-            boardViewBannerMq.removeEventListener('change', syncBoardViewBanner);
             cleanupScrollObserver?.();
             window.removeEventListener('comment-refresh', handleCommentRefresh);
         };
@@ -1350,10 +1341,11 @@
 {/if}
 
 <div class="mx-auto pt-2">
-    <!-- 상단 배너 (슬롯 기반) -->
-    {#if widgetLayoutStore.hasEnabledAds && showBoardViewBanner && !data.post.deleted_at}
-        <div class="mb-6">
+    <!-- 상단 배너 영역: 자체 배너 + 구글 광고 -->
+    {#if widgetLayoutStore.hasEnabledAds && !data.post.deleted_at}
+        <div class="mb-6 space-y-2">
             <PluginSlot name="board-view-banner" />
+            <AdSlot position="board-content" height="90px" slotKey="board-view-head-ad" />
         </div>
     {/if}
 
