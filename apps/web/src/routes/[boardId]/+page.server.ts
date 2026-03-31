@@ -63,9 +63,7 @@ function maybeTrimBoardListPayload(
 ): { posts: FreePost[]; notices: FreePost[] } {
     const listLayoutId =
         board?.display_settings?.list_layout || board?.display_settings?.list_style || 'classic';
-    const shouldTrim =
-        (boardId === 'free' || boardId === 'hello') &&
-        !CONTENT_HEAVY_LIST_LAYOUTS.has(listLayoutId);
+    const shouldTrim = !CONTENT_HEAVY_LIST_LAYOUTS.has(listLayoutId);
 
     if (!shouldTrim) {
         return { posts, notices };
@@ -175,7 +173,10 @@ export const load: PageServerLoad = async ({ url, params, locals, getClientAddre
     const isPromotionBoard =
         boardId === 'promotion' && !isSearching && !isTagFiltering && !category;
     const isHotBoard = boardId === 'free' || boardId === 'hello';
-    const useSummaryListResponse = isHotBoard && !isSearching;
+    const listLayoutId =
+        board?.display_settings?.list_layout || board?.display_settings?.list_style || 'classic';
+    const useSummaryListResponse =
+        !isSearching && !CONTENT_HEAVY_LIST_LAYOUTS.has(listLayoutId) && boardId !== 'promotion';
 
     const buildPostsUrl = (): string => {
         const queryParams = new URLSearchParams({

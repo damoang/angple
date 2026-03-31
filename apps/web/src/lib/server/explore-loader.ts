@@ -17,7 +17,7 @@ const EXPLORE_FILE = 'explore.json';
 let cache: { data: ExploreData; timestamp: number } | null = null;
 const CACHE_TTL_MS = 60_000; // 60초
 
-const PREVIEW_POST_COUNT = 17;
+const PREVIEW_POST_COUNT = 10;
 
 function trimExploreModeData(mode: ExploreModeData, topOnly = false): ExploreModeData {
     return {
