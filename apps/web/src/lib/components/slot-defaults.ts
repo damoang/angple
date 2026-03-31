@@ -33,7 +33,7 @@ export function registerDefaultSlots(): void {
         'board-list-banner',
         DamoangBanner,
         10,
-        { position: 'board-list', height: '90px', showCelebration: false, gamFallback: false },
+        { position: 'board-list', height: '90px', showCelebration: false },
         'core-damoang'
     );
 
@@ -45,7 +45,7 @@ export function registerDefaultSlots(): void {
         'board-view-banner',
         DamoangBanner,
         10,
-        { position: 'board-view', showCelebration: false, height: '90px', gamFallback: false },
+        { position: 'board-view', showCelebration: false, height: '90px' },
         'core-damoang'
     );
 
