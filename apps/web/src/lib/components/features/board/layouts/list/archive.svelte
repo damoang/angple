@@ -107,8 +107,11 @@
                     </span>
 
                     {#if post.comments_count > 0}
-                        <span class="comment-count shrink-0"
-                            >{formatCommentCountBadge(post.comments_count)}</span
+                        <a
+                            href="{href}#comments"
+                            class="comment-count shrink-0"
+                            onclick={(e) => e.stopPropagation()}
+                            >{formatCommentCountBadge(post.comments_count)}</a
                         >
                     {/if}
                 </div>
