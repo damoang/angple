@@ -213,8 +213,11 @@
                             <ImageIcon class="text-muted-foreground h-3.5 w-3.5 shrink-0" />
                         {/if}
                         {#if post.comments_count > 0}
-                            <span class="comment-count shrink-0"
-                                >{formatCommentCountBadge(post.comments_count)}</span
+                            <a
+                                href="{href}#comments"
+                                class="comment-count shrink-0"
+                                onclick={(e) => e.stopPropagation()}
+                                >{formatCommentCountBadge(post.comments_count)}</a
                             >
                         {/if}
                     </span>
