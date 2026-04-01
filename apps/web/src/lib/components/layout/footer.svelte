@@ -217,6 +217,15 @@
                     </svg>
                 </a>
             </div>
+
+            <p class="text-muted-foreground mt-3 text-xs">
+                Powered by <a
+                    href="https://angple.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="hover:text-primary transition-colors">angple.com</a
+                >
+            </p>
         </div>
     </div>
 </footer>
