@@ -1396,7 +1396,7 @@
                     <Dialog.Trigger>
                         <Button variant="outline" size="sm">
                             <RefreshCw class="mr-1 h-4 w-4" />
-                            다시 쓰기
+                            이 글 복제
                         </Button>
                     </Dialog.Trigger>
                     <Dialog.Content>
