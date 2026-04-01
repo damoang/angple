@@ -98,7 +98,7 @@
 
     // 스크롤 상태 관리
     let isDrawerOpen = $state(false);
-    let themeMode = $state<'light' | 'dark' | 'amoled'>('light');
+    let themeMode = $state<'system' | 'light' | 'dark' | 'amoled'>('light');
     let isScrolled = $state(false);
 
     // 스크롤 이벤트 핸들러
