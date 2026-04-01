@@ -1,14 +1,10 @@
 import type { LayoutServerLoad } from './$types';
 import { getActiveTheme } from '$lib/server/themes';
-import { getActivePlugins } from '$lib/server/plugins';
 import { loadMenus } from '$lib/server/menu-loader';
-import { getCachedCelebrations } from '$lib/server/celebration';
-import { getCachedBannersByPositions } from '$lib/server/ads/banners';
 import { getCachedLogoData } from '$lib/server/logo';
 import { resolveLogoRequestLocale } from '$lib/utils/logo-schedule';
 
 import { hooks } from '@angple/hook-system';
-import { env } from '$env/dynamic/private';
 
 /**
  * 서버 사이드 데이터 로드
@@ -53,22 +49,16 @@ export const load: LayoutServerLoad = async ({ locals, depends, url, cookies, re
         return hooks.applyFilters('layout_server_data', installLayoutData);
     }
 
-    // 병렬로 모든 데이터 로드 (allSettled: 개별 실패 허용)
-    const [themeResult, pluginsResult, menusResult, celebrationResult, bannersResult, logoResult] =
-        await Promise.allSettled([
-            getActiveTheme(),
-            getActivePlugins(),
-            loadMenus(),
-            getCachedCelebrations(),
-            getCachedBannersByPositions(['index-top', 'board-head', 'sidebar']),
-            getCachedLogoData(requestLocale)
-        ]);
+    // 병렬로 SSR 필수 데이터만 로드 (allSettled: 개별 실패 허용)
+    // celebration, banners, plugins, ga4는 /api/layout/init에서 클라이언트 로드 (비용 절감)
+    const [themeResult, menusResult, logoResult] = await Promise.allSettled([
+        getActiveTheme(),
+        loadMenus(),
+        getCachedLogoData(requestLocale)
+    ]);
 
     const activeTheme = themeResult.status === 'fulfilled' ? themeResult.value : null;
-    const activePlugins = pluginsResult.status === 'fulfilled' ? pluginsResult.value : [];
     const menus = menusResult.status === 'fulfilled' ? menusResult.value : [];
-    const celebration = celebrationResult.status === 'fulfilled' ? celebrationResult.value : [];
-    const banners = bannersResult.status === 'fulfilled' ? bannersResult.value : {};
     const logoData =
         logoResult.status === 'fulfilled'
             ? logoResult.value
@@ -83,10 +73,7 @@ export const load: LayoutServerLoad = async ({ locals, depends, url, cookies, re
     // 실패 로깅 (크래시 안 함)
     for (const [name, r] of [
         ['Theme', themeResult],
-        ['Plugins', pluginsResult],
         ['Menus', menusResult],
-        ['Celebration', celebrationResult],
-        ['Banners', bannersResult],
         ['Logo', logoResult]
     ] as const) {
         if (r.status === 'rejected') {
@@ -97,24 +84,22 @@ export const load: LayoutServerLoad = async ({ locals, depends, url, cookies, re
     const layoutData = {
         activeTheme: activeTheme?.manifest.id || null,
         themeSettings: activeTheme?.currentSettings || {},
-        activePlugins: activePlugins.map((plugin) => ({
-            id: plugin.manifest.id,
-            name: plugin.manifest.name,
-            version: plugin.manifest.version,
-            hooks: plugin.manifest.hooks || [],
-            components: plugin.manifest.components || [],
-            settings: plugin.currentSettings || {}
-        })),
+        activePlugins: [] as Array<{
+            id: string;
+            name: string;
+            version: string;
+            hooks: unknown[];
+            components: unknown[];
+            settings: Record<string, unknown>;
+        }>,
         menus,
         user: locals.user ?? null,
         accessToken: locals.accessToken ?? null,
         csrfToken: locals.csrfToken ?? null,
-        // SSR에서 직접 로드 — 클라이언트 /api/init 호출 제거
-        celebration,
-        banners,
+        celebration: [] as unknown[],
+        banners: {} as Record<string, unknown>,
         logoData,
-        // GA4 Measurement ID (env에서 로드, 미설정 시 미적용)
-        ga4MeasurementId: env.GA4_MEASUREMENT_ID || ''
+        ga4MeasurementId: ''
     };
 
     // 훅: 레이아웃 데이터 필터 (플러그인이 SSR 데이터를 수정/확장 가능)

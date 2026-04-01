@@ -122,14 +122,13 @@
         siteUrl
     });
 
-    // SSR에서 받은 테마/플러그인/메뉴로 스토어 초기화 (깜박임 방지!)
+    // SSR에서 받은 테마/메뉴로 스토어 초기화 (깜박임 방지!)
+    // plugins는 /api/layout/init에서 클라이언트 로드 (비용 절감)
     $effect(() => {
         const theme = data.activeTheme;
-        const plugins = data.activePlugins || [];
         const menus = data.menus || [];
         untrack(() => {
             themeStore.initFromServer(theme);
-            pluginStore.initFromServer(plugins);
             menuStore.initFromServer(menus);
         });
     });
@@ -298,7 +297,32 @@
     registerDefaultSlots();
 
     onMount(() => {
-        // GA4 초기화 (Measurement ID가 설정된 경우에만)
+        // 부분 layout 데이터 로드 (banners, celebration, plugins, GA4)
+        // SSR payload에서 분리하여 __data.json 바이트 절감
+        fetch('/api/layout/init')
+            .then((res) => (res.ok ? res.json() : null))
+            .then((initData) => {
+                if (!initData) return;
+                if (initData.celebration?.length || initData.banners) {
+                    initAppData({
+                        celebration: initData.celebration || [],
+                        banners: initData.banners || {}
+                    });
+                    initCelebrationFromData(initData.celebration || []);
+                }
+                if (initData.activePlugins?.length) {
+                    pluginStore.initFromServer(initData.activePlugins);
+                }
+                if (initData.ga4MeasurementId) {
+                    initGA4(initData.ga4MeasurementId);
+                    consumePendingAuthEvent();
+                }
+            })
+            .catch(() => {
+                // layout init 실패해도 사이트 동작에 영향 없음
+            });
+
+        // GA4 초기화 (SSR fallback — layout/init 전에 이미 설정된 경우)
         if (data.ga4MeasurementId) {
             initGA4(data.ga4MeasurementId);
             consumePendingAuthEvent();
