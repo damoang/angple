@@ -148,15 +148,25 @@
             themeMode = 'amoled';
             el.classList.remove('dark');
             el.classList.add('amoled');
+        } else if (themeMode === 'amoled') {
+            // 시스템 모드: OS 설정에 따름
+            themeMode = 'system';
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            el.classList.toggle('dark', prefersDark);
+            el.classList.remove('amoled');
         } else {
             themeMode = 'light';
             el.classList.remove('dark', 'amoled');
         }
         // localStorage + 쿠키 동시 기록 (SSR 동기화)
         try {
-            localStorage.setItem('themeMode', themeMode);
+            if (themeMode === 'system') {
+                localStorage.removeItem('themeMode');
+            } else {
+                localStorage.setItem('themeMode', themeMode);
+            }
         } catch {}
-        if (themeMode === 'light') {
+        if (themeMode === 'light' || themeMode === 'system') {
             document.cookie = 'angple_theme_mode=;path=/;max-age=0;SameSite=Lax';
         } else {
             document.cookie =

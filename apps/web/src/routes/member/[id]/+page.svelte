@@ -199,7 +199,7 @@
         if (postsLoaded || !p?.mb_id) return;
         loadingPosts = true;
         try {
-            const res = await fetch(`/api/members/${p.mb_id}/activity?limit=20`);
+            const res = await fetch(`/api/members/${p.mb_id}/activity?limit=50`);
             if (res.ok) {
                 const d = await res.json();
                 recentPosts = d.recentPosts ?? [];
@@ -213,7 +213,7 @@
         if (commentsLoaded || !p?.mb_id) return;
         loadingComments = true;
         try {
-            const res = await fetch(`/api/members/${p.mb_id}/activity?limit=20`);
+            const res = await fetch(`/api/members/${p.mb_id}/activity?limit=50`);
             if (res.ok) {
                 const d = await res.json();
                 recentComments = d.recentComments ?? [];
@@ -227,7 +227,7 @@
         if (likedLoaded || !p?.mb_id) return;
         loadingLiked = true;
         try {
-            const res = await fetch(`/api/members/${p.mb_id}/liked?limit=20`);
+            const res = await fetch(`/api/members/${p.mb_id}/liked?limit=50`);
             if (res.ok) {
                 const d = await res.json();
                 likedPosts = d.data ?? [];

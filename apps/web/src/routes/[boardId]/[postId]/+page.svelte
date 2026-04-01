@@ -462,6 +462,7 @@
                 return;
             }
             comments = result.items;
+            data.post.comments_count = result.items.length;
             commentsError = false;
             commentsRecoveryVisible = false;
         } catch {
