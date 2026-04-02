@@ -1,0 +1,63 @@
+name: PR Up-to-date
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened]
+    branches: [main]
+
+concurrency:
+  group: pr-up-to-date-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  ensure-up-to-date:
+    name: PR Up-to-date
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Check and auto-update PR branch
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const pull_number = pr.number;
+            const baseSha = pr.base.sha;
+            const headSha = pr.head.sha;
+
+            const compare = await github.rest.repos.compareCommitsWithBasehead({
+              owner,
+              repo,
+              basehead: `${baseSha}...${headSha}`
+            });
+
+            const status = compare.data.status;
+            if (status === 'ahead' || status === 'identical') {
+              core.notice(`PR branch already includes latest base commit: ${baseSha}`);
+              return;
+            }
+
+            core.notice(
+              `PR branch is out of date (status=${status}). Requesting automatic update from ${pr.base.ref}.`
+            );
+
+            try {
+              await github.rest.pulls.updateBranch({
+                owner,
+                repo,
+                pull_number,
+                expected_head_sha: headSha
+              });
+              core.notice(
+                'Automatic branch update requested successfully. A synchronize event will rerun CI on the updated branch.'
+              );
+            } catch (error) {
+              const message = error instanceof Error ? error.message : String(error);
+              core.setFailed(
+                `Automatic branch update failed. Rebase or merge ${pr.base.ref} into ${pr.head.ref} manually and rerun checks. Base SHA: ${baseSha}, Head SHA: ${headSha}. ${message}`
+              );
+            }

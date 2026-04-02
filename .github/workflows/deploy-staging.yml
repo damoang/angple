@@ -39,25 +39,6 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha || github.event.inputs.ref || github.sha }}
           fetch-depth: 0
 
-      - name: Check PR branch freshness
-        if: github.event_name == 'pull_request'
-        run: |
-          BASE_SHA="${{ github.event.pull_request.base.sha }}"
-          HEAD_SHA="${{ github.event.pull_request.head.sha }}"
-
-          if ! git cat-file -e "${BASE_SHA}^{commit}" 2>/dev/null; then
-            git fetch --no-tags origin "${{ github.event.pull_request.base.ref }}"
-          fi
-
-          if ! git merge-base --is-ancestor "$BASE_SHA" HEAD; then
-            echo "::error title=PR branch is out of date::This PR does not include the latest main branch. Merge or rebase main into ${HEAD_SHA} and rerun staging deploy."
-            echo "Base SHA: $BASE_SHA"
-            echo "Head SHA: $HEAD_SHA"
-            exit 1
-          fi
-
-          echo "PR branch includes latest base commit: $BASE_SHA"
-
       - name: Checkout angple-premium
         uses: actions/checkout@v6
         with:
