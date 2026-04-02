@@ -17,6 +17,17 @@
 
     const CDN_BASE = (import.meta.env.VITE_S3_URL || 'https://s3.damoang.net').replace(/\/$/, '');
 
+    let lightboxSrc = $state('');
+    let lightboxAlt = $state('');
+
+    function openLightbox(src: string, alt: string) {
+        lightboxSrc = src;
+        lightboxAlt = alt;
+    }
+    function closeLightbox() {
+        lightboxSrc = '';
+    }
+
     type PricingPlan = {
         title: string;
         spec: string;
@@ -315,74 +326,257 @@
     <section class="mb-12">
         <h2 class="section-title">실제 노출 예시</h2>
         <p class="text-muted-foreground mb-6 text-center text-sm">
-            아래는 실제로 노출되는 광고 샘플입니다. 클릭하면 광고주 페이지로 이동합니다.
+            단가 낮은 순서대로 실제 노출 화면을 확인하세요.
         </p>
 
-        <div class="space-y-4">
-            <!-- 긴배너 -->
+        <div class="space-y-6">
+            <!-- 1. 미니배너 (30만원/월) -->
             <div class="bg-card border-border rounded-xl border p-5 shadow-sm">
-                <h3
-                    class="text-foreground border-primary mb-3 inline-block border-b-2 pb-1 font-semibold"
-                >
-                    긴배너
-                </h3>
-                <div class="bg-muted/50 flex items-center justify-center rounded-lg p-4">
-                    <span class="text-muted-foreground text-sm">770 x 90px 배너 영역</span>
+                <div class="mb-4 flex items-center justify-between">
+                    <h3
+                        class="text-foreground border-primary inline-block border-b-2 pb-1 font-semibold"
+                    >
+                        1. 미니배너
+                    </h3>
+                    <span
+                        class="text-primary bg-primary/10 rounded-full px-3 py-1 text-sm font-bold"
+                        >30만원/월</span
+                    >
+                </div>
+                <div class="mb-4">
+                    <p class="text-muted-foreground mb-2 text-xs font-medium">
+                        PC — 사이드바 고정 노출 <span class="text-muted-foreground/50"
+                            >(클릭하여 확대)</span
+                        >
+                    </p>
+                    <button
+                        class="block w-full cursor-zoom-in"
+                        onclick={() =>
+                            openLightbox(
+                                `${CDN_BASE}/data/editor/2604/61adf0d.png`,
+                                '미니배너 PC 노출 예시'
+                            )}
+                    >
+                        <img
+                            src="{CDN_BASE}/data/editor/2604/61adf0d.png"
+                            alt="미니배너 PC 노출 예시"
+                            class="w-full rounded-lg border transition-shadow hover:shadow-lg"
+                            loading="lazy"
+                        />
+                    </button>
+                </div>
+                <div class="grid items-start gap-4 md:grid-cols-[auto_1fr]">
+                    <button
+                        class="cursor-zoom-in"
+                        onclick={() =>
+                            openLightbox(
+                                `${CDN_BASE}/data/editor/2604/34e17c4.png`,
+                                '미니배너 모바일 노출 예시'
+                            )}
+                    >
+                        <img
+                            src="{CDN_BASE}/data/editor/2604/34e17c4.png"
+                            alt="미니배너 모바일 노출 예시"
+                            class="max-h-[360px] rounded-lg border transition-shadow hover:shadow-lg"
+                            loading="lazy"
+                        />
+                    </button>
+                    <div class="flex flex-col justify-center py-2">
+                        <p class="text-foreground mb-2 text-sm font-semibold">모바일 노출 위치</p>
+                        <p class="text-muted-foreground text-sm">
+                            햄버거 메뉴(≡) 클릭 시 메뉴 하단에 2×2 그리드로 노출됩니다.
+                        </p>
+                        <ul class="text-muted-foreground mt-3 space-y-1.5 text-xs">
+                            <li>PC: 125 × 90px (사이드바 고정)</li>
+                            <li>모바일: 139 × 78px (햄버거 메뉴 내)</li>
+                            <li>CPM 약 37원 · 월 800만 노출</li>
+                            <li>이미지 + 텍스트 형태</li>
+                        </ul>
+                    </div>
                 </div>
             </div>
 
-            <div class="grid gap-4 md:grid-cols-5">
-                <!-- 왼쪽: 네모배너 + 미니배너 -->
-                <div class="space-y-4 md:col-span-2">
-                    <div class="bg-card border-border rounded-xl border p-5 shadow-sm">
-                        <h3
-                            class="text-foreground border-primary mb-3 inline-block border-b-2 pb-1 font-semibold"
+            <!-- 2. 네모배너 (70만원/월) -->
+            <div class="bg-card border-border rounded-xl border p-5 shadow-sm">
+                <div class="mb-4 flex items-center justify-between">
+                    <h3
+                        class="text-foreground border-primary inline-block border-b-2 pb-1 font-semibold"
+                    >
+                        2. 네모배너
+                    </h3>
+                    <span
+                        class="text-primary bg-primary/10 rounded-full px-3 py-1 text-sm font-bold"
+                        >70만원/월</span
+                    >
+                </div>
+                <div class="mb-4">
+                    <p class="text-muted-foreground mb-2 text-xs font-medium">
+                        PC — 사이드바 정사각 노출 <span class="text-muted-foreground/50"
+                            >(클릭하여 확대)</span
                         >
-                            네모배너
-                        </h3>
-                        <div
-                            class="bg-muted/50 flex flex-col items-center justify-center gap-1 rounded-lg p-4"
-                        >
-                            <span class="text-muted-foreground text-sm">PC: 200 x 200px</span>
-                            <span class="text-muted-foreground text-xs">모바일: 320 x 100px</span>
-                        </div>
-                    </div>
-
-                    <div class="bg-card border-border rounded-xl border p-5 shadow-sm">
-                        <h3
-                            class="text-foreground border-primary mb-3 inline-block border-b-2 pb-1 font-semibold"
-                        >
-                            미니배너
-                        </h3>
-                        <div
-                            class="bg-muted/50 flex flex-col items-center justify-center gap-1 rounded-lg p-4"
-                        >
-                            <span class="text-muted-foreground text-sm">PC: 125 x 90px</span>
-                            <span class="text-muted-foreground text-xs"
-                                >모바일: 139 x 78px (햄버거 메뉴 내)</span
-                            >
-                        </div>
+                    </p>
+                    <button
+                        class="block w-full cursor-zoom-in"
+                        onclick={() =>
+                            openLightbox(
+                                `${CDN_BASE}/data/editor/2604/e3376d7.png`,
+                                '네모배너 PC 노출 예시'
+                            )}
+                    >
+                        <img
+                            src="{CDN_BASE}/data/editor/2604/e3376d7.png"
+                            alt="네모배너 PC 노출 예시"
+                            class="w-full rounded-lg border transition-shadow hover:shadow-lg"
+                            loading="lazy"
+                        />
+                    </button>
+                </div>
+                <div class="grid items-start gap-4 md:grid-cols-[auto_1fr]">
+                    <button
+                        class="cursor-zoom-in"
+                        onclick={() =>
+                            openLightbox(
+                                `${CDN_BASE}/data/editor/2604/0b48bcf.png`,
+                                '네모배너 모바일 노출 예시'
+                            )}
+                    >
+                        <img
+                            src="{CDN_BASE}/data/editor/2604/0b48bcf.png"
+                            alt="네모배너 모바일 노출 예시"
+                            class="max-h-[360px] rounded-lg border transition-shadow hover:shadow-lg"
+                            loading="lazy"
+                        />
+                    </button>
+                    <div class="flex flex-col justify-center py-2">
+                        <p class="text-foreground mb-2 text-sm font-semibold">모바일 노출 위치</p>
+                        <p class="text-muted-foreground text-sm">
+                            햄버거 메뉴(≡) 클릭 시 가로 배너 형태로 노출됩니다.
+                        </p>
+                        <ul class="text-muted-foreground mt-3 space-y-1.5 text-xs">
+                            <li>PC: 200 × 200px (사이드바 정사각)</li>
+                            <li>모바일: 320 × 100px (가로 배너)</li>
+                            <li>CPM 약 35원 · 월 2,000만 노출</li>
+                            <li>PC/모바일 모두 노출</li>
+                        </ul>
                     </div>
                 </div>
+            </div>
 
-                <!-- 오른쪽: 직접홍보게시판 -->
-                <div class="md:col-span-3">
-                    <div class="bg-card border-border h-full rounded-xl border p-5 shadow-sm">
-                        <h3
-                            class="text-foreground border-primary mb-3 inline-block border-b-2 pb-1 font-semibold"
+            <!-- 3. 스탠다드 긴배너 (100만원/월) -->
+            <div class="bg-card border-border rounded-xl border p-5 shadow-sm">
+                <div class="mb-4 flex items-center justify-between">
+                    <h3
+                        class="text-foreground border-primary inline-block border-b-2 pb-1 font-semibold"
+                    >
+                        3. 스탠다드 긴배너
+                    </h3>
+                    <span
+                        class="text-primary bg-primary/10 rounded-full px-3 py-1 text-sm font-bold"
+                        >100만원/월</span
+                    >
+                </div>
+                <div class="mb-4">
+                    <p class="text-muted-foreground mb-2 text-xs font-medium">
+                        PC — 전체 페이지 노출 <span class="text-muted-foreground/50"
+                            >(클릭하여 확대)</span
                         >
-                            직접홍보게시판
-                        </h3>
-                        <div class="bg-muted/50 overflow-hidden rounded-lg">
-                            <img
-                                src={CDN_BASE + '/data/editor/2512/c5443e4.jpg'}
-                                alt="직접홍보게시판 샘플"
-                                class="h-auto w-full"
-                                loading="lazy"
-                            />
-                        </div>
+                    </p>
+                    <button
+                        class="block w-full cursor-zoom-in"
+                        onclick={() =>
+                            openLightbox(
+                                `${CDN_BASE}/data/editor/2604/e97e696.png`,
+                                '스탠다드 긴배너 PC 노출 예시'
+                            )}
+                    >
+                        <img
+                            src="{CDN_BASE}/data/editor/2604/e97e696.png"
+                            alt="스탠다드 긴배너 PC 노출 예시"
+                            class="w-full rounded-lg border transition-shadow hover:shadow-lg"
+                            loading="lazy"
+                        />
+                    </button>
+                </div>
+                <div class="grid items-start gap-4 md:grid-cols-[auto_1fr]">
+                    <button
+                        class="cursor-zoom-in"
+                        onclick={() =>
+                            openLightbox(
+                                `${CDN_BASE}/data/editor/2604/682ad6f.png`,
+                                '스탠다드 긴배너 모바일 노출 예시'
+                            )}
+                    >
+                        <img
+                            src="{CDN_BASE}/data/editor/2604/682ad6f.png"
+                            alt="스탠다드 긴배너 모바일 노출 예시"
+                            class="max-h-[360px] rounded-lg border transition-shadow hover:shadow-lg"
+                            loading="lazy"
+                        />
+                    </button>
+                    <div class="flex flex-col justify-center py-2">
+                        <p class="text-foreground mb-2 text-sm font-semibold">모바일 노출 위치</p>
+                        <p class="text-muted-foreground text-sm">
+                            전체 페이지 상단에 가로 배너로 노출됩니다.
+                        </p>
+                        <ul class="text-muted-foreground mt-3 space-y-1.5 text-xs">
+                            <li>사이즈: 770 × 90px</li>
+                            <li>전체 페이지 노출</li>
+                            <li>애니메이션 이미지 사용 가능</li>
+                            <li>CPM 약 33원 · 월 3,000만 노출</li>
+                        </ul>
                     </div>
                 </div>
+            </div>
+
+            <!-- 4. 프리미엄 긴배너 (150만원/월) -->
+            <div class="bg-card border-primary/30 rounded-xl border-2 p-5 shadow-sm">
+                <div class="mb-4 flex items-center justify-between">
+                    <h3
+                        class="text-foreground border-primary inline-block border-b-2 pb-1 font-semibold"
+                    >
+                        4. 프리미엄 긴배너
+                    </h3>
+                    <span class="bg-primary rounded-full px-3 py-1 text-sm font-bold text-white"
+                        >150만원/월</span
+                    >
+                </div>
+                <div class="bg-primary/5 rounded-lg p-4">
+                    <p class="text-foreground text-sm font-medium">
+                        PC와 모바일 각각의 대문(첫 페이지)에 게시되며, 모든 페이지에 노출됩니다.
+                    </p>
+                    <ul class="text-muted-foreground mt-2 list-disc space-y-1 pl-5 text-sm">
+                        <li>PC/모바일 첫 페이지 최상단 노출</li>
+                        <li>전체 페이지 노출</li>
+                        <li>애니메이션 이미지 사용 가능</li>
+                        <li>CPM 약 30원 · 월 5,000만 노출</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- 직접홍보게시판 -->
+            <div class="bg-card border-border rounded-xl border p-5 shadow-sm">
+                <div class="mb-4 flex items-center justify-between">
+                    <h3
+                        class="text-foreground border-primary inline-block border-b-2 pb-1 font-semibold"
+                    >
+                        직접홍보게시판
+                    </h3>
+                    <span
+                        class="text-primary bg-primary/10 rounded-full px-3 py-1 text-sm font-bold"
+                        >9만원/월</span
+                    >
+                </div>
+                <div class="overflow-hidden rounded-lg">
+                    <img
+                        src={CDN_BASE + '/data/editor/2512/c5443e4.jpg'}
+                        alt="직접홍보게시판 샘플"
+                        class="h-auto w-full rounded-lg border"
+                        loading="lazy"
+                    />
+                </div>
+                <p class="text-muted-foreground mt-3 text-xs">
+                    게시글 형태 · 모든 게시판 2줄 랜덤 노출 · 하루 1회 홍보글 작성
+                </p>
             </div>
         </div>
     </section>
@@ -510,6 +704,22 @@
         </ul>
     </div>
 </div>
+
+<!-- 라이트박스 (이미지 확대 보기) -->
+{#if lightboxSrc}
+    <button
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm"
+        onclick={closeLightbox}
+        onkeydown={(e) => e.key === 'Escape' && closeLightbox()}
+    >
+        <img
+            src={lightboxSrc}
+            alt={lightboxAlt}
+            class="max-h-[90vh] max-w-[95vw] rounded-lg shadow-2xl"
+        />
+        <span class="absolute right-6 top-6 text-2xl text-white/80 hover:text-white">✕</span>
+    </button>
+{/if}
 
 <style>
     .section-title {
