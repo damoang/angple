@@ -1260,8 +1260,7 @@
                                         total={commentLikersTotal.get(String(comment.id)) ?? 0}
                                         max={5}
                                         size="sm"
-                                        onclick={(e) => {
-                                            e.stopPropagation();
+                                        onclick={() => {
                                             openLikersDialog(comment.id);
                                         }}
                                     />
@@ -1608,8 +1607,7 @@
                                     total={commentLikersTotal.get(String(comment.id)) ?? 0}
                                     max={5}
                                     size="sm"
-                                    onclick={(e) => {
-                                        e.stopPropagation();
+                                    onclick={() => {
                                         openLikersDialog(comment.id);
                                     }}
                                 />

@@ -182,6 +182,18 @@
     <!-- 저작권 및 연락처 섹션 -->
     <div class="bg-canvas">
         <div class="mx-auto max-w-[1200px] px-4 py-6 text-center">
+            <!-- 사업자 정보 -->
+            <div class="text-muted-foreground mb-4 text-xs leading-relaxed">
+                <p>
+                    주식회사 에스디케이(SDK) | 대표: SDK | 사업자등록번호: 871-81-03242 |
+                    통신판매업신고: 2024-고양일산서-1820
+                </p>
+                <p>
+                    주소: 제주특별자치도 제주시 남성로 127, 4층 | 이메일: contact@damoang.net |
+                    호스팅 제공자: Amazon Web Services
+                </p>
+            </div>
+
             <div class="text-muted-foreground space-y-2 text-sm">
                 <p>
                     <a
