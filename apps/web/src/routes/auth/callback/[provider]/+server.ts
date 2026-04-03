@@ -29,7 +29,8 @@ import {
     generateSocialMbId,
     isMbIdTaken,
     isNicknameTaken,
-    createMember
+    createMember,
+    findExistingTempAccount
 } from '$lib/server/auth/register.js';
 
 const COOKIE_DOMAIN = env.COOKIE_DOMAIN || undefined;
@@ -146,19 +147,27 @@ async function handleCallback(
             }
 
             if (isAdsInviteFlow(stateData.redirect)) {
-                const nickname = await generateInviteTempNickname(providerName);
-                mbId = generateSocialMbId(providerName, profile.identifier);
-                if (await isMbIdTaken(mbId)) {
-                    mbId = `${mbId}_${crypto.randomUUID().replace(/-/g, '').slice(0, 8)}`;
-                }
+                const baseMbId = generateSocialMbId(providerName, profile.identifier);
+                const existingTemp = await findExistingTempAccount(baseMbId);
 
-                await createMember({
-                    mb_id: mbId,
-                    mb_nick: nickname,
-                    mb_email: profile.email || '',
-                    mb_name: nickname,
-                    mb_ip: clientIp
-                });
+                if (existingTemp) {
+                    // 이전 초대 시도에서 생성된 임시 계정 재사용 (중복 방지)
+                    mbId = existingTemp.mb_id;
+                } else {
+                    const nickname = await generateInviteTempNickname(providerName);
+                    mbId = baseMbId;
+                    if (await isMbIdTaken(mbId)) {
+                        mbId = `${mbId}_${crypto.randomUUID().replace(/-/g, '').slice(0, 8)}`;
+                    }
+
+                    await createMember({
+                        mb_id: mbId,
+                        mb_nick: nickname,
+                        mb_email: profile.email || '',
+                        mb_name: nickname,
+                        mb_ip: clientIp
+                    });
+                }
             } else {
                 cookies.set(
                     'pending_social_register',
