@@ -1232,7 +1232,13 @@
                                         <Button
                                             variant="ghost"
                                             size="sm"
-                                            onclick={() => openLikersDialog(comment.id)}
+                                            onclick={() => {
+                                                if (onLike) {
+                                                    authStore.redirectToLogin();
+                                                } else {
+                                                    openLikersDialog(comment.id);
+                                                }
+                                            }}
                                             class={isFeed
                                                 ? 'h-7 gap-1.5 px-2'
                                                 : commentLayout === 'bordered'
@@ -1254,7 +1260,10 @@
                                         total={commentLikersTotal.get(String(comment.id)) ?? 0}
                                         max={5}
                                         size="sm"
-                                        onclick={() => openLikersDialog(comment.id)}
+                                        onclick={(e) => {
+                                            e.stopPropagation();
+                                            openLikersDialog(comment.id);
+                                        }}
                                     />
                                 {/if}
 
@@ -1576,7 +1585,13 @@
                                 <Button
                                     variant="ghost"
                                     size="sm"
-                                    onclick={() => openLikersDialog(comment.id)}
+                                    onclick={() => {
+                                        if (onLike) {
+                                            authStore.redirectToLogin();
+                                        } else {
+                                            openLikersDialog(comment.id);
+                                        }
+                                    }}
                                     class="h-6 gap-1 px-1.5 text-xs"
                                 >
                                     <Heart class="h-3.5 w-3.5" />
@@ -1593,7 +1608,10 @@
                                     total={commentLikersTotal.get(String(comment.id)) ?? 0}
                                     max={5}
                                     size="sm"
-                                    onclick={() => openLikersDialog(comment.id)}
+                                    onclick={(e) => {
+                                        e.stopPropagation();
+                                        openLikersDialog(comment.id);
+                                    }}
                                 />
                             {/if}
 
