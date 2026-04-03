@@ -73,6 +73,20 @@ export async function isMbIdTaken(mbId: string): Promise<boolean> {
 }
 
 /**
+ * 광고주 초대 플로우에서 이전에 생성된 임시 계정 찾기.
+ * 같은 소셜 identifier로 생성된 tmp_ 닉네임 계정이 있으면 재사용하여 중복 방지.
+ */
+export async function findExistingTempAccount(baseMbId: string): Promise<{ mb_id: string } | null> {
+    const [rows] = await pool.query<RowDataPacket[]>(
+        `SELECT mb_id FROM g5_member
+         WHERE (mb_id = ? OR mb_id LIKE ?) AND mb_nick LIKE 'tmp\\_%' AND mb_leave_date = ''
+         ORDER BY mb_datetime DESC LIMIT 1`,
+        [baseMbId, `${baseMbId}_%`]
+    );
+    return rows[0] ? { mb_id: rows[0].mb_id as string } : null;
+}
+
+/**
  * 닉네임 검증 (PHP register.lib.php 호환)
  * - 빈 값 불가
  * - 2~20자
