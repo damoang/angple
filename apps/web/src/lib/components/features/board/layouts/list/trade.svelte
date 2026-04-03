@@ -184,7 +184,7 @@
                 {post.title}
             </h4>
 
-            <!-- 가격 -->
+            <!-- 가격 + 배지 -->
             <div class="mt-2">
                 <span
                     class="text-base font-bold {market.price === 0
@@ -193,7 +193,19 @@
                 >
                     {formatPrice(market.price)}
                 </span>
+                {#if market.isNegotiable && market.price > 0}
+                    <span class="text-muted-foreground ml-1 text-xs">협상가능</span>
+                {/if}
             </div>
+            {#if market.condition && market.condition !== 'good'}
+                <span class="text-muted-foreground mt-1 text-xs">
+                    {market.condition === 'new'
+                        ? '새상품'
+                        : market.condition === 'like-new'
+                          ? '거의 새것'
+                          : '많이 사용함'}
+                </span>
+            {/if}
 
             <!-- 메타 정보 -->
             <div
