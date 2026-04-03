@@ -573,9 +573,7 @@
                 <Label for="content">내용 <span class="text-destructive">*</span></Label>
                 <TiptapEditor
                     {content}
-                    placeholder={board?.insert_content
-                        ? `/ 를 눌러 이미지와 앙티콘을 추가하세요\n\n${board.insert_content}`
-                        : '/ 를 눌러 이미지와 앙티콘을 추가하세요\n\n경어체 사용은 필수이며, 초성 비속어도 이용제한 대상입니다.'}
+                    placeholder={`/ 를 눌러 이미지와 앙티콘을 추가하세요\n\n경어체 사용은 필수이며, 초성 비속어도 이용제한 대상입니다.${board?.insert_content ? `\n\n${board.insert_content}` : ''}`}
                     disabled={isLoading}
                     onUpdate={(html) => (content = html)}
                     onImageUpload={handleEditorImageUpload}
