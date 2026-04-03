@@ -287,9 +287,6 @@
         clearMemoSchedule();
 
         const loadTask = () => {
-            if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
-                return;
-            }
             void loadBoardListMemos(uniqueAuthorIds);
         };
 
