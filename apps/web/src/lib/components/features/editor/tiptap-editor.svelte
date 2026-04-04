@@ -266,14 +266,17 @@
             editable: !disabled,
             onUpdate: ({ editor: ed }) => {
                 onUpdate?.(ed.getHTML());
-                updateActiveState();
-                updateCounts(ed);
+                // Svelte $state 변경은 Tiptap 트랜잭션 밖에서 실행 (state_unsafe_mutation 방지)
+                setTimeout(() => {
+                    updateActiveState();
+                    updateCounts(ed);
+                }, 0);
             },
             onSelectionUpdate: () => {
-                updateActiveState();
+                setTimeout(updateActiveState, 0);
             },
             onTransaction: () => {
-                requestAnimationFrame(() => updateActiveState());
+                setTimeout(updateActiveState, 0);
             }
         });
 
