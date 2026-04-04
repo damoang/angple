@@ -147,10 +147,14 @@
         }
     }
 
-    // initialReactions 반응적 감시 (SSR 스트리밍 데이터 도착 시 자동 적용)
+    // initialReactions 반응적 감시 + 글 변경 시 리셋
     $effect(() => {
+        // targetId를 참조하여 글 변경 감지
+        const _tid = targetId;
         if (initialReactions !== undefined) {
             reactions = initialReactions;
+        } else {
+            reactions = [];
         }
     });
 
