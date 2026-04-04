@@ -265,8 +265,20 @@ function scheduleViewableRefresh(state: SlotState, intervalMs = 0) {
                 container.style.minHeight = `${container.offsetHeight}px`;
             }
 
+            // CLS best practice: 광고 리프레시 시 포커스 보존
+            const activeEl = document.activeElement as HTMLElement | null;
+            const hadFocus = activeEl && activeEl !== document.body;
+
             state.viewable = false;
             googletag.pubads().refresh([state.slot], { changeCorrelator: false });
+
+            if (hadFocus && activeEl) {
+                requestAnimationFrame(() => {
+                    if (document.activeElement === document.body && activeEl.isConnected) {
+                        activeEl.focus({ preventScroll: true });
+                    }
+                });
+            }
         });
     }, intervalMs);
 }
