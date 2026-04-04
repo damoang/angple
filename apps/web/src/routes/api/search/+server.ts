@@ -14,23 +14,9 @@
  */
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types.js';
-import sphinxPool from '$lib/server/sphinx.js';
 import { readPool } from '$lib/server/db.js';
+import { searchAllBoards, buildMatchExpr } from '$lib/server/sphinx-search.js';
 import type { RowDataPacket } from 'mysql2';
-
-interface SphinxRow extends RowDataPacket {
-    id: number;
-    bo_table: string;
-    wr_id: number;
-    wr_subject: string;
-    wr_content: string;
-    wr_hit: number;
-    wr_good: number;
-    wr_comment: number;
-    wr_datetime: number;
-    wr_is_comment: number;
-    wr_parent?: number;
-}
 
 interface BoardRow extends RowDataPacket {
     bo_table: string;
@@ -45,47 +31,6 @@ interface PostAuthorRow extends RowDataPacket {
 
 interface BoardFileRow extends RowDataPacket {
     wr_id: number;
-}
-
-/** SphinxQL MATCH용 이스케이프 */
-function escapeSphinxMatch(str: string): string {
-    return str.replace(/([\\()|\-!@~"&/^$=<>])/g, '\\$1');
-}
-
-/** CJK 문자 포함 여부 확인 (한글, 한자, 일본어) */
-function containsCJK(s: string): boolean {
-    return /[\u4E00-\u9FFF\uAC00-\uD7AF\u3040-\u309F\u30A0-\u30FF]/.test(s);
-}
-
-// 검색 필드별 Sphinx MATCH 표현식
-// CJK 토큰은 구문 검색("*token*")으로 인접 ngram 강제
-function buildMatchExpr(query: string, field: string): string {
-    const escaped = escapeSphinxMatch(query);
-    const tokens = escaped.split(/\s+/).filter(Boolean);
-    const wildcarded = tokens
-        .map((t) => {
-            if (containsCJK(t) && [...t].length >= 2) {
-                return `"*${t}*"`;
-            }
-            return `*${t}*`;
-        })
-        .join(' ');
-
-    switch (field) {
-        case 'title':
-            return `@wr_subject ${wildcarded}`;
-        case 'content':
-            return `@wr_content ${wildcarded}`;
-        case 'author':
-            return `@(mb_id,wr_name) ${wildcarded}`;
-        case 'comment':
-            return `@wr_content ${wildcarded}`;
-        case 'comment_author':
-            return `@(mb_id,wr_name) ${wildcarded}`;
-        case 'title_content':
-        default:
-            return `@(wr_subject,wr_content) ${wildcarded}`;
-    }
 }
 
 export const GET: RequestHandler = async ({ url, locals }) => {
@@ -105,22 +50,10 @@ export const GET: RequestHandler = async ({ url, locals }) => {
     }
 
     try {
-        const matchExpr = buildMatchExpr(query, field);
+        const isCommentSearch = field === 'comment' || field === 'comment_author';
 
         // 1) Sphinx에서 검색 (최대 200건)
-        // mb_id, wr_name은 full-text field only (stored attribute 아님) → SELECT 불가
-        // 싱글쿼트 이스케이프 for SphinxQL
-        const isCommentSearch = field === 'comment' || field === 'comment_author';
-        const safeMatch = matchExpr.replace(/'/g, "\\'");
-        const sphinxSql =
-            `SELECT id, bo_table, wr_id, wr_subject, wr_content, ` +
-            `wr_hit, wr_good, wr_comment, wr_datetime, wr_is_comment, wr_parent ` +
-            `FROM all_boards_unified_dist ` +
-            `WHERE MATCH('${safeMatch}') AND wr_is_comment = ${isCommentSearch ? 1 : 0} ` +
-            `ORDER BY wr_datetime DESC ` +
-            `LIMIT 200`;
-
-        const [sphinxRows] = await sphinxPool.query<SphinxRow[]>(sphinxSql);
+        const { rows: sphinxRows } = await searchAllBoards(field, query, 200);
 
         if (!sphinxRows.length) {
             return json({
@@ -130,7 +63,7 @@ export const GET: RequestHandler = async ({ url, locals }) => {
         }
 
         // 2) 게시판별 그룹핑
-        const boardMap = new Map<string, SphinxRow[]>();
+        const boardMap = new Map<string, typeof sphinxRows>();
         for (const row of sphinxRows) {
             const boardId = row.bo_table;
             if (!boardMap.has(boardId)) {
