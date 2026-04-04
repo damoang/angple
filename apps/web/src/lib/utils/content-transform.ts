@@ -129,7 +129,7 @@ export function transformVideos(html: string): string {
         if (videoExtMatch) {
             const ext = videoExtMatch[1].toLowerCase();
             const mimeType = ext === 'mov' || ext === 'm4v' || ext === 'f4v' ? 'mp4' : ext;
-            return `<div class="na-video-direct"><video controls preload="metadata" playsinline style="max-width:100%;"><source src="${url}" type="video/${mimeType}">동영상을 재생할 수 없습니다.</video></div>`;
+            return `<div class="na-video-direct"><video controls preload="none" playsinline style="max-width:100%;"><source src="${url}" type="video/${mimeType}">동영상을 재생할 수 없습니다.</video></div>`;
         }
 
         // 기타: 링크로 표시

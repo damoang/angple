@@ -9,6 +9,7 @@
     import { transformEscapedMedia } from '$lib/utils/content-transform';
     import { attachLightbox } from '$lib/components/ui/image-lightbox/index.js';
     import { filterUnsafeStyles } from '$lib/utils/safe-css.js';
+    import { isTransformableMediaImage, toThumbnailUrl } from '$lib/utils/thumbnail-url.js';
 
     // CSS 필터 훅 등록 — style 속성에서 위험한 CSS 속성 제거
     DOMPurify.addHook('afterSanitizeAttributes', (node) => {
@@ -104,6 +105,35 @@
         return doc.body.innerHTML;
     }
 
+    function optimizeMediaHtml(html: string): string {
+        if (!html) return html;
+
+        const withPreviewImages = html.replace(
+            /<img\b([^>]*?)\bsrc=(["'])([^"']+)\2([^>]*)>/gi,
+            (match, before: string, quote: string, src: string, after: string) => {
+                if (!isTransformableMediaImage(src) || /data-original\s*=/i.test(match)) {
+                    return match;
+                }
+
+                const preview = toThumbnailUrl(src, '835x626');
+                if (!preview || preview === src) {
+                    return match;
+                }
+
+                const attrs = `${before}${after}`;
+                const withoutLoading = attrs.replace(/\sloading=(["']).*?\1/gi, '');
+                const withoutDecoding = withoutLoading.replace(/\sdecoding=(["']).*?\1/gi, '');
+                return `<img${withoutDecoding} src=${quote}${preview}${quote} data-original=${quote}${src}${quote} loading=${quote}lazy${quote} decoding=${quote}async${quote}>`;
+            }
+        );
+
+        return withPreviewImages.replace(/<video\b([^>]*)>/gi, (_match, attrs: string) => {
+            const withoutPreload = attrs.replace(/\spreload=(["']).*?\1/gi, '');
+            const withoutAutoplay = withoutPreload.replace(/\sautoplay(?:=(["']).*?\1)?/gi, '');
+            return `<video${withoutAutoplay} preload="none">`;
+        });
+    }
+
     // DOMPurify 설정
     const PURIFY_CONFIG = {
         ALLOWED_TAGS: [
@@ -195,6 +225,7 @@
         if (!content) return '';
         let rawHtml = marked.parse(content) as string;
         rawHtml = transformEscapedMedia(rawHtml);
+        rawHtml = optimizeMediaHtml(rawHtml);
         return DOMPurify.sanitize(rawHtml, PURIFY_CONFIG);
     }
 
@@ -239,7 +270,7 @@
             const rawHtml = marked.parse(content) as string;
 
             applyFilter<string>('post_content', rawHtml).then((filtered) => {
-                let sanitized = DOMPurify.sanitize(filtered, PURIFY_CONFIG);
+                let sanitized = DOMPurify.sanitize(optimizeMediaHtml(filtered), PURIFY_CONFIG);
                 // 링크 텍스트/URL 불일치 경고 추가
                 sanitized = addLinkMismatchWarnings(sanitized);
                 renderedHtml = sanitized;

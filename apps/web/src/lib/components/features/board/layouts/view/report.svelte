@@ -22,6 +22,7 @@
     import { Badge } from '$lib/components/ui/badge/index.js';
     import { Button } from '$lib/components/ui/button/index.js';
     import { Markdown } from '$lib/components/ui/markdown/index.js';
+    import { isTransformableMediaImage, toThumbnailUrl } from '$lib/utils/thumbnail-url.js';
     import ExternalLink from '@lucide/svelte/icons/external-link';
     import Download from '@lucide/svelte/icons/download';
     import Video from '@lucide/svelte/icons/video';
@@ -101,6 +102,9 @@
     }: ViewLayoutProps = $props();
 
     let hasAffiliateLinks = $derived(postContent?.includes('data-affiliate') ?? false);
+    function getAttachmentPreview(url: string): string {
+        return isTransformableMediaImage(url) ? toThumbnailUrl(url, '835x626') : url;
+    }
 
     // extra_9에서 통계 데이터 파싱 (PHP wr_9 JSON 키와 동일)
     interface DailyStatEntry {
@@ -462,7 +466,7 @@
                         <div class="mt-6 space-y-4">
                             {#each post.videos as video, i (i)}
                                 <div class="overflow-hidden rounded-lg border">
-                                    <video controls preload="metadata" playsinline class="w-full">
+                                    <video controls preload="none" playsinline class="w-full">
                                         <source src={video.url} />
                                         동영상을 재생할 수 없습니다.
                                     </video>
@@ -496,10 +500,19 @@
                         <div class="mt-6 grid gap-4">
                             {#each post.images as image, i (i)}
                                 <img
-                                    src={image}
+                                    src={getAttachmentPreview(image)}
+                                    data-original={image}
                                     alt="게시글 이미지"
                                     class="max-w-full rounded-lg border"
                                     loading="lazy"
+                                    decoding="async"
+                                    onerror={(e) => {
+                                        const target = e.target as HTMLImageElement;
+                                        const original = target.getAttribute('data-original');
+                                        if (original && target.src !== original) {
+                                            target.src = original;
+                                        }
+                                    }}
                                 />
                             {/each}
                         </div>
