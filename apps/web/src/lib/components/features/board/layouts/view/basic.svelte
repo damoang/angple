@@ -58,6 +58,7 @@
     import PinOff from '@lucide/svelte/icons/pin-off';
     import { attachLightbox } from '$lib/components/ui/image-lightbox/index.js';
     import { onMount } from 'svelte';
+    import { isTransformableMediaImage, toThumbnailUrl } from '$lib/utils/thumbnail-url.js';
 
     let {
         post,
@@ -106,6 +107,10 @@
 
     // 첨부 이미지 라이트박스
     let attachedImagesEl: HTMLDivElement;
+
+    function getAttachmentPreview(url: string): string {
+        return isTransformableMediaImage(url) ? toThumbnailUrl(url, '835x626') : url;
+    }
 
     onMount(() => {
         if (!attachedImagesEl) return;
@@ -390,7 +395,7 @@
                         <div class="mt-6 space-y-4">
                             {#each post.videos as video, i (i)}
                                 <div class="overflow-hidden rounded-lg border">
-                                    <video controls preload="metadata" playsinline class="w-full">
+                                    <video controls preload="none" playsinline class="w-full">
                                         <source src={video.url} />
                                         동영상을 재생할 수 없습니다.
                                     </video>
@@ -426,12 +431,19 @@
                         <div bind:this={attachedImagesEl} class="mt-6 grid gap-4">
                             {#each post.images as image, i (i)}
                                 <img
-                                    src={image}
+                                    src={getAttachmentPreview(image)}
+                                    data-original={image}
                                     alt="게시글 이미지"
                                     class="max-w-full rounded-lg border"
                                     loading="lazy"
+                                    decoding="async"
                                     onerror={(e) => {
                                         const target = e.target as HTMLImageElement;
+                                        const original = target.getAttribute('data-original');
+                                        if (original && target.src !== original) {
+                                            target.src = original;
+                                            return;
+                                        }
                                         target.style.display = 'none';
                                     }}
                                 />
