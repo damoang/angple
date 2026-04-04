@@ -17,6 +17,7 @@ export interface UsedMarketPost extends FreePost {
         condition: ItemCondition; // extra_3
         location: string; // extra_4
         shippingAvailable: boolean; // extra_5
+        isNegotiable: boolean; // extra_7
     };
 }
 
@@ -42,7 +43,8 @@ export function parseMarketInfo(post: FreePost): UsedMarketPost['market'] {
         status: (post.extra_2 as MarketStatus) || 'selling',
         condition: (post.extra_3 as ItemCondition) || 'good',
         location: post.extra_4 || '',
-        shippingAvailable: post.extra_5 === '1' || post.extra_5 === 'true'
+        shippingAvailable: post.extra_5 === '1' || post.extra_5 === 'true',
+        isNegotiable: post.extra_7 === '1'
     };
 }
 
