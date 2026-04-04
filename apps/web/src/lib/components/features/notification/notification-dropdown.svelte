@@ -4,7 +4,7 @@
     import { apiClient } from '$lib/api/index.js';
     import { authStore } from '$lib/stores/auth.svelte.js';
     import type { GroupedNotification } from '$lib/api/types.js';
-    import { onMount } from 'svelte';
+    import { onMount, tick } from 'svelte';
     import { goto } from '$app/navigation';
     import { browser } from '$app/environment';
     import { normalizeWebUrl, toRelativeIfSameOrigin } from '$lib/utils/url-normalizer';
@@ -217,6 +217,7 @@
         if (notification.url) {
             const targetUrl = normalizeNotificationUrl(notification.url, notification.type);
             isOpen = false;
+            await tick(); // 드롭다운이 닫힌 후 네비게이션
             if (targetUrl.startsWith('http://') || targetUrl.startsWith('https://')) {
                 window.location.href = targetUrl;
                 return;
@@ -351,9 +352,8 @@
                         class="flex cursor-pointer items-start gap-2.5 px-3 py-2 {notification.has_unread
                             ? 'bg-muted/30'
                             : 'opacity-60'}"
-                        onSelect={(e) => {
-                            // Dropdown 기본 select 동작(즉시 닫힘/포커스 이동)과 라우팅 충돌을 방지
-                            e.preventDefault();
+                        onclick={() => {
+                            isOpen = false;
                             void handleNotificationClick(notification);
                         }}
                     >
