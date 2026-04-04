@@ -475,7 +475,7 @@
 {#if isDrawerOpen}
     <!-- svelte-ignore a11y_no_static_element_interactions -->
     <div
-        class="bg-foreground/50 fixed inset-0 z-[60] transition-opacity duration-300"
+        class="bg-foreground/50 fixed inset-0 z-[60] transition-opacity duration-300 2xl:hidden"
         onclick={toggleDrawer}
         aria-hidden="true"
     ></div>

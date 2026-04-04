@@ -228,9 +228,7 @@
 <style>
     .ad-slot-container {
         contain: layout style;
-        transition:
-            min-height 180ms ease,
-            opacity 180ms ease;
+        /* transition은 inline style로 통일 (300ms ease-out) — CSS와 충돌 방지 */
     }
 
     .ad-slot-btf {
