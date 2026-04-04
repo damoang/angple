@@ -19,14 +19,19 @@ import type { Component } from 'svelte';
 // Eager import: 빌드 시점에 모든 공식 테마 레이아웃 번들 포함
 // 경로: src/lib/themes → ../../../../../../themes/*/layouts/main-layout.svelte
 const themeLayoutModules = import.meta.glob(
-    '../../../../../../themes/*/layouts/main-layout.svelte',
+    [
+        '../../../../../../themes/*/layouts/main-layout.svelte',
+        '../../../../../themes/*/layouts/main-layout.svelte'
+    ],
     { eager: true }
 ) as Record<string, { default: Component }>;
 
 // Eager import: 빌드 시점에 모든 커스텀 테마 레이아웃 번들 포함
-// 경로: src/lib/themes → ../../../../../../custom-themes/*/layouts/main-layout.svelte
 const customThemeLayoutModules = import.meta.glob(
-    '../../../../../../custom-themes/*/layouts/main-layout.svelte',
+    [
+        '../../../../../../custom-themes/*/layouts/main-layout.svelte',
+        '../../../../../custom-themes/*/layouts/main-layout.svelte'
+    ],
     { eager: true }
 ) as Record<string, { default: Component }>;
 
