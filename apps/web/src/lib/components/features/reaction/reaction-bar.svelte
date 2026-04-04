@@ -149,13 +149,9 @@
 
     // initialReactions 반응적 감시 + 글 변경 시 리셋
     $effect(() => {
-        // targetId를 참조하여 글 변경 감지
-        const _tid = targetId;
-        if (initialReactions !== undefined) {
-            reactions = initialReactions;
-        } else {
-            reactions = [];
-        }
+        // targetId 변경 시(글 이동) reactions를 즉시 리셋
+        void targetId;
+        reactions = initialReactions ?? [];
     });
 
     onMount(() => {

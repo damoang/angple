@@ -341,8 +341,19 @@
 
         let cancelled = false;
 
+        // 글 변경 시 이전 스트리밍 데이터 즉시 리셋
+        postReactions = undefined;
+        reactionsMap = undefined;
         promotionPosts = [];
         revisions = [];
+        isScrapped = false;
+        postReportCount = null;
+        isLiked = false;
+        isDisliked = false;
+        initialLikedCommentIds = [];
+        initialDislikedCommentIds = [];
+        truthroomCommentMap = {};
+        scheduledDelete = null;
         auxiliaryLoaded = false;
 
         promise
