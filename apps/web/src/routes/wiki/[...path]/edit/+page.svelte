@@ -178,19 +178,10 @@
 
         <!-- 액션 버튼 -->
         <div class="edit-actions">
-            <Button
-                type="button"
-                variant="outline"
-                onclick={handleCancel}
-                disabled={isSaving}
-            >
+            <Button type="button" variant="outline" onclick={handleCancel} disabled={isSaving}>
                 취소
             </Button>
-            <Button
-                type="button"
-                onclick={handleSave}
-                disabled={isSaving}
-            >
+            <Button type="button" onclick={handleSave} disabled={isSaving}>
                 {#if isSaving}
                     저장 중...
                 {:else}

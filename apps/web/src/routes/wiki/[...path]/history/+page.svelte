@@ -46,17 +46,21 @@
     }
 
     // 간단한 diff 표시 (줄 단위 비교)
-    function computeDiff(oldText: string | null, newText: string | null): Array<{type: 'same' | 'add' | 'remove', line: string}> {
+    function computeDiff(
+        oldText: string | null,
+        newText: string | null
+    ): Array<{ type: 'same' | 'add' | 'remove'; line: string }> {
         const oldLines = (oldText || '').split('\n');
         const newLines = (newText || '').split('\n');
-        const result: Array<{type: 'same' | 'add' | 'remove', line: string}> = [];
+        const result: Array<{ type: 'same' | 'add' | 'remove'; line: string }> = [];
 
         // 간단한 LCS 기반 diff (성능상 최대 500줄만 처리)
         const maxLines = 500;
         const oldSlice = oldLines.slice(0, maxLines);
         const newSlice = newLines.slice(0, maxLines);
 
-        let i = 0, j = 0;
+        let i = 0,
+            j = 0;
         while (i < oldSlice.length || j < newSlice.length) {
             if (i >= oldSlice.length) {
                 result.push({ type: 'add', line: newSlice[j] });
@@ -117,9 +121,8 @@
                     {#if data.diffData.old && data.diffData.new}
                         <p>
                             버전 {data.diffData.old.version_number}
-                            ({formatDate(data.diffData.old.version_date)})
-                            &rarr;
-                            버전 {data.diffData.new.version_number}
+                            ({formatDate(data.diffData.old.version_date)}) &rarr; 버전 {data
+                                .diffData.new.version_number}
                             ({formatDate(data.diffData.new.version_date)})
                         </p>
                     {/if}
@@ -146,8 +149,7 @@
         <!-- 리비전 목록 모드 -->
         <section class="revision-section">
             <p class="revision-intro">
-                이 문서의 편집 이력입니다.
-                두 리비전을 선택하여 비교할 수 있습니다.
+                이 문서의 편집 이력입니다. 두 리비전을 선택하여 비교할 수 있습니다.
             </p>
 
             {#if data.revisions.length > 0}
@@ -182,7 +184,7 @@
                                             name="oldid"
                                             value={revision.id}
                                             checked={selectedOld === revision.id}
-                                            onchange={() => selectedOld = revision.id}
+                                            onchange={() => (selectedOld = revision.id)}
                                         />
                                     {/if}
                                 </td>
@@ -193,7 +195,7 @@
                                             name="diff"
                                             value={revision.id}
                                             checked={selectedNew === revision.id}
-                                            onchange={() => selectedNew = revision.id}
+                                            onchange={() => (selectedNew = revision.id)}
                                         />
                                     {/if}
                                 </td>

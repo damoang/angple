@@ -24,7 +24,12 @@ type SpecialPageData =
     | { type: 'RecentChanges'; pages: WikiPageSummary[] }
     | { type: 'AllPages'; result: PaginatedResult<WikiPageSummary>; sort: string }
     | { type: 'Categories'; categories: WikiCategory[] }
-    | { type: 'Category'; category: WikiCategory | null; categoryId: number; result: PaginatedResult<WikiPageSummary> }
+    | {
+          type: 'Category';
+          category: WikiCategory | null;
+          categoryId: number;
+          result: PaginatedResult<WikiPageSummary>;
+      }
     | { type: 'Tags'; tags: WikiTag[] }
     | { type: 'Tag'; tag: WikiTag | null; tagId: number; result: PaginatedResult<WikiPageSummary> }
     | { type: 'Search'; query: string; result: PaginatedResult<WikiSearchResult> }
@@ -120,7 +125,7 @@ async function handleSpecialPage(pageName: string, url: URL): Promise<SpecialPag
                         getCategories(),
                         getPagesByCategory(categoryId, offset, limit)
                     ]);
-                    const category = categories.find(c => c.id === categoryId) || null;
+                    const category = categories.find((c) => c.id === categoryId) || null;
                     return { type: 'Category', category, categoryId, result };
                 }
             }
@@ -133,7 +138,7 @@ async function handleSpecialPage(pageName: string, url: URL): Promise<SpecialPag
                         getTags(),
                         getPagesByTag(tagId, offset, limit)
                     ]);
-                    const tag = tags.find(t => t.id === tagId) || null;
+                    const tag = tags.find((t) => t.id === tagId) || null;
                     return { type: 'Tag', tag, tagId, result };
                 }
             }

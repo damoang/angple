@@ -62,17 +62,17 @@
             {:else}
                 <p class="empty-message">변경된 문서가 없습니다.</p>
             {/if}
-
         {:else if data.specialData.type === 'AllPages'}
             <h1>모든 문서</h1>
             <p class="page-description">
-                위키앙의 모든 문서 목록입니다.
-                (총 {data.specialData.result.total}개)
+                위키앙의 모든 문서 목록입니다. (총 {data.specialData.result.total}개)
             </p>
 
             <div class="sort-options">
                 <a href="?sort=title" class:active={data.specialData.sort === 'title'}>제목순</a>
-                <a href="?sort=updated" class:active={data.specialData.sort === 'updated'}>최근 수정순</a>
+                <a href="?sort=updated" class:active={data.specialData.sort === 'updated'}
+                    >최근 수정순</a
+                >
             </div>
 
             {#if data.specialData.result.items.length > 0}
@@ -90,14 +90,22 @@
 
                 {#if data.specialData.result.hasMore}
                     <div class="pagination">
-                        <a href="?offset={data.specialData.result.offset + data.specialData.result.limit}&sort={data.specialData.sort}">
+                        <a
+                            href="?offset={data.specialData.result.offset +
+                                data.specialData.result.limit}&sort={data.specialData.sort}"
+                        >
                             다음 페이지 &rarr;
                         </a>
                     </div>
                 {/if}
                 {#if data.specialData.result.offset > 0}
                     <div class="pagination">
-                        <a href="?offset={Math.max(0, data.specialData.result.offset - data.specialData.result.limit)}&sort={data.specialData.sort}">
+                        <a
+                            href="?offset={Math.max(
+                                0,
+                                data.specialData.result.offset - data.specialData.result.limit
+                            )}&sort={data.specialData.sort}"
+                        >
                             &larr; 이전 페이지
                         </a>
                     </div>
@@ -105,7 +113,6 @@
             {:else}
                 <p class="empty-message">문서가 없습니다.</p>
             {/if}
-
         {:else if data.specialData.type === 'Categories'}
             <h1>분류 목록</h1>
             <p class="page-description">위키앙의 모든 분류입니다.</p>
@@ -127,7 +134,6 @@
             {:else}
                 <p class="empty-message">분류가 없습니다.</p>
             {/if}
-
         {:else if data.specialData.type === 'Category'}
             <h1>분류:{data.specialData.category?.name || `ID ${data.specialData.categoryId}`}</h1>
             {#if data.specialData.category?.description}
@@ -146,7 +152,6 @@
             {:else}
                 <p class="empty-message">이 분류에 속한 문서가 없습니다.</p>
             {/if}
-
         {:else if data.specialData.type === 'Tags'}
             <h1>태그 목록</h1>
             <p class="page-description">위키앙의 모든 태그입니다.</p>
@@ -163,7 +168,6 @@
             {:else}
                 <p class="empty-message">태그가 없습니다.</p>
             {/if}
-
         {:else if data.specialData.type === 'Tag'}
             <h1>태그: #{data.specialData.tag?.tag || `ID ${data.specialData.tagId}`}</h1>
             <p class="page-description">이 태그가 붙은 문서 {data.specialData.result.total}개</p>
@@ -179,7 +183,6 @@
             {:else}
                 <p class="empty-message">이 태그가 붙은 문서가 없습니다.</p>
             {/if}
-
         {:else if data.specialData.type === 'Search'}
             <h1>검색 결과</h1>
 
@@ -204,7 +207,9 @@
                         {#each data.specialData.result.items as result}
                             <li>
                                 <a href="/wiki{result.path}" class="page-link">{result.title}</a>
-                                <span class="page-time">{formatRelativeTime(result.updated_at)}</span>
+                                <span class="page-time"
+                                    >{formatRelativeTime(result.updated_at)}</span
+                                >
                                 {#if result.description}
                                     <p class="page-desc">{result.description}</p>
                                 {:else if result.snippet}
@@ -216,7 +221,10 @@
 
                     {#if data.specialData.result.hasMore}
                         <div class="pagination">
-                            <a href="?q={encodeURIComponent(data.specialData.query)}&offset={data.specialData.result.offset + data.specialData.result.limit}">
+                            <a
+                                href="?q={encodeURIComponent(data.specialData.query)}&offset={data
+                                    .specialData.result.offset + data.specialData.result.limit}"
+                            >
                                 더 보기 &rarr;
                             </a>
                         </div>
@@ -227,7 +235,6 @@
             {:else}
                 <p class="empty-message">검색어를 입력하세요.</p>
             {/if}
-
         {:else}
             <h1>특수:{data.specialData.name}</h1>
             <p class="page-description">이 특수 페이지는 아직 구현되지 않았습니다.</p>
@@ -290,24 +297,30 @@
     }
 
     /* 페이지 목록 */
-    .page-list, .category-list, .search-results {
+    .page-list,
+    .category-list,
+    .search-results {
         list-style: none;
         padding: 0;
         margin: 0;
     }
 
-    .page-list li, .category-list li, .search-results li {
+    .page-list li,
+    .category-list li,
+    .search-results li {
         padding: 0.75rem 0;
         border-bottom: 1px solid var(--border);
     }
 
-    .page-link, .category-link {
+    .page-link,
+    .category-link {
         color: var(--primary);
         text-decoration: none;
         font-weight: 500;
     }
 
-    .page-link:hover, .category-link:hover {
+    .page-link:hover,
+    .category-link:hover {
         text-decoration: underline;
     }
 

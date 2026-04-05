@@ -125,7 +125,10 @@ const revisionCache = createCache<WikiRevision[]>({ ttl: 30_000, maxSize: 50 });
 /**
  * 페이지의 리비전 목록 조회
  */
-export async function getPageRevisions(pageId: number, limit: number = 50): Promise<WikiRevision[]> {
+export async function getPageRevisions(
+    pageId: number,
+    limit: number = 50
+): Promise<WikiRevision[]> {
     const safeLimit = Math.max(1, Math.min(500, Math.floor(limit)));
 
     return revisionCache.getOrSet(`revisions:${pageId}:${safeLimit}`, async () => {
@@ -173,10 +176,7 @@ export async function getRevisionPair(
     revId1: number,
     revId2: number
 ): Promise<{ old: WikiRevision | null; new: WikiRevision | null }> {
-    const [rev1, rev2] = await Promise.all([
-        getRevisionById(revId1),
-        getRevisionById(revId2)
-    ]);
+    const [rev1, rev2] = await Promise.all([getRevisionById(revId1), getRevisionById(revId2)]);
 
     // 버전 순서 정렬 (낮은 번호가 old)
     if (rev1 && rev2 && rev1.version_number > rev2.version_number) {
@@ -496,7 +496,15 @@ export async function createWikiPage(
             `INSERT INTO wikiang_pages
              (path, title, content, content_raw, content_type, description, author_id, is_published, namespace_id, created_at, updated_at)
              VALUES (?, ?, ?, ?, ?, ?, ?, 1, 0, NOW(), NOW())`,
-            [normalizedPath, input.title, input.content, input.content_raw, contentType, input.description || null, authorId]
+            [
+                normalizedPath,
+                input.title,
+                input.content,
+                input.content_raw,
+                contentType,
+                input.description || null,
+                authorId
+            ]
         );
         const pageId = pageResult.insertId;
 
@@ -505,7 +513,17 @@ export async function createWikiPage(
             `INSERT INTO wikiang_revisions
              (page_id, content, content_raw, content_type, version_number, version_date, comment, is_minor, author_id, size, delta)
              VALUES (?, ?, ?, ?, 1, NOW(), ?, ?, ?, ?, ?)`,
-            [pageId, input.content, input.content_raw, contentType, input.comment || '문서 생성', input.is_minor || false, authorId, size, size]
+            [
+                pageId,
+                input.content,
+                input.content_raw,
+                contentType,
+                input.comment || '문서 생성',
+                input.is_minor || false,
+                authorId,
+                size,
+                size
+            ]
         );
 
         await connection.commit();
@@ -562,7 +580,14 @@ export async function updateWikiPage(
             `UPDATE wikiang_pages
              SET title = ?, content = ?, content_raw = ?, content_type = ?, description = ?, updated_at = NOW()
              WHERE id = ?`,
-            [input.title, input.content, input.content_raw, contentType, input.description || null, pageId]
+            [
+                input.title,
+                input.content,
+                input.content_raw,
+                contentType,
+                input.description || null,
+                pageId
+            ]
         );
 
         // 4. 새 리비전 생성
@@ -570,7 +595,18 @@ export async function updateWikiPage(
             `INSERT INTO wikiang_revisions
              (page_id, content, content_raw, content_type, version_number, version_date, comment, is_minor, author_id, size, delta)
              VALUES (?, ?, ?, ?, ?, NOW(), ?, ?, ?, ?, ?)`,
-            [pageId, input.content, input.content_raw, contentType, newVersionNumber, input.comment || '', input.is_minor || false, authorId, newSize, delta]
+            [
+                pageId,
+                input.content,
+                input.content_raw,
+                contentType,
+                newVersionNumber,
+                input.comment || '',
+                input.is_minor || false,
+                authorId,
+                newSize,
+                delta
+            ]
         );
 
         await connection.commit();

@@ -123,7 +123,9 @@
                         <button
                             type="button"
                             onclick={() => scrollToHeading(item.id)}
-                            class="block w-full text-left text-sm leading-relaxed transition-colors {getIndentClass(item.level)} {activeId === item.id
+                            class="block w-full text-left text-sm leading-relaxed transition-colors {getIndentClass(
+                                item.level
+                            )} {activeId === item.id
                                 ? 'text-primary font-medium'
                                 : 'text-muted-foreground hover:text-foreground'}"
                         >
