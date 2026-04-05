@@ -127,11 +127,14 @@
 
     .embed-container[data-platform='twitter']::before {
         display: none !important;
+        padding-bottom: 0 !important;
     }
 
     .embed-container[data-platform='twitter'] :global(iframe) {
         position: relative !important;
         display: block !important;
+        width: 100% !important;
+        max-width: 100% !important;
         min-height: var(--twitter-embed-height, 250px);
         height: var(--twitter-embed-height, auto) !important;
     }
@@ -144,7 +147,8 @@
 
     .embed-container[data-platform='instagram']::before,
     .embed-container[data-platform='instagram-reel']::before {
-        display: none;
+        display: none !important;
+        padding-bottom: 0 !important;
     }
 
     .embed-container[data-platform='instagram'] :global(iframe),

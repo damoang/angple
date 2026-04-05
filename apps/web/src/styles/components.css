@@ -422,7 +422,7 @@ img[src*='/emoticons/'] {
     position: relative !important;
     display: block !important;
     width: 100% !important;
-    max-width: 550px;
+    max-width: 100% !important;
     min-height: var(--twitter-embed-height, 500px);
     height: var(--twitter-embed-height, auto) !important;
 }
@@ -435,7 +435,8 @@ img[src*='/emoticons/'] {
 
 .embed-container[data-platform='instagram']::before,
 .embed-container[data-platform='instagram-reel']::before {
-    display: none;
+    display: none !important;
+    padding-bottom: 0 !important;
 }
 
 .embed-container[data-platform='instagram'] iframe,

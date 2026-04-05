@@ -447,15 +447,10 @@
         margin: 1rem 0;
     }
 
-    /* 백엔드 썸네일 변환된 이미지: 모바일 원본 크기, PC 전폭 */
+    /* 백엔드 썸네일 변환된 이미지: 모바일/PC 모두 본문 폭에 맞춤 */
     .prose :global(img[data-original]) {
-        width: auto;
-    }
-
-    @media (min-width: 768px) {
-        .prose :global(img[data-original]) {
-            width: 100%;
-        }
+        display: block;
+        width: 100%;
     }
 
     .prose :global(table) {
@@ -579,11 +574,14 @@
 
     .prose :global(.embed-container[data-platform='twitter'])::before {
         display: none !important;
+        padding-bottom: 0 !important;
     }
 
     .prose :global(.embed-container[data-platform='twitter'] iframe) {
         position: relative !important;
         display: block !important;
+        width: 100% !important;
+        max-width: 100% !important;
         min-height: var(--twitter-embed-height, 250px);
         height: var(--twitter-embed-height, auto) !important;
     }
@@ -597,7 +595,8 @@
 
     .prose :global(.embed-container[data-platform='instagram'])::before,
     .prose :global(.embed-container[data-platform='instagram-reel'])::before {
-        display: none;
+        display: none !important;
+        padding-bottom: 0 !important;
     }
 
     .prose :global(.embed-container[data-platform='instagram'] iframe),
@@ -615,7 +614,8 @@
     }
 
     .prose :global(.embed-container[data-platform='bluesky'])::before {
-        display: none;
+        display: none !important;
+        padding-bottom: 0 !important;
     }
 
     .prose :global(.embed-container[data-platform='bluesky'] iframe) {
@@ -632,7 +632,8 @@
     }
 
     .prose :global(.embed-container[data-platform='reddit'])::before {
-        display: none;
+        display: none !important;
+        padding-bottom: 0 !important;
     }
 
     .prose :global(.embed-container[data-platform='reddit'] iframe) {
@@ -648,7 +649,8 @@
     }
 
     .prose :global(.embed-container[data-platform='spotify'])::before {
-        display: none;
+        display: none !important;
+        padding-bottom: 0 !important;
     }
 
     .prose :global(.embed-container[data-platform='spotify'] iframe) {

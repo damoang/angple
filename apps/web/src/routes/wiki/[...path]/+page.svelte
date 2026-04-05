@@ -40,10 +40,6 @@
             <h1>최근 변경</h1>
             <p class="text-gray-600">최근 변경된 문서 목록입니다.</p>
             <p class="mt-4 text-sm text-gray-500">이 기능은 준비 중입니다.</p>
-        {:else if data.specialType === 'Random'}
-            <h1>임의 문서</h1>
-            <p class="text-gray-600">임의의 문서로 이동합니다.</p>
-            <p class="mt-4 text-sm text-gray-500">이 기능은 준비 중입니다.</p>
         {:else if data.specialType === 'AllPages'}
             <h1>모든 문서</h1>
             <p class="text-gray-600">위키앙의 모든 문서 목록입니다.</p>
