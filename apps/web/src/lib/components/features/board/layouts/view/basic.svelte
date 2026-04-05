@@ -58,7 +58,11 @@
     import PinOff from '@lucide/svelte/icons/pin-off';
     import { attachLightbox } from '$lib/components/ui/image-lightbox/index.js';
     import { onMount } from 'svelte';
-    import { isTransformableMediaImage, toThumbnailUrl } from '$lib/utils/thumbnail-url.js';
+    import {
+        buildThumbnailSrcSet,
+        isTransformableMediaImage,
+        toThumbnailUrl
+    } from '$lib/utils/thumbnail-url.js';
 
     let {
         post,
@@ -110,6 +114,11 @@
 
     function getAttachmentPreview(url: string): string {
         return isTransformableMediaImage(url) ? toThumbnailUrl(url, '835x626') : url;
+    }
+
+    function getAttachmentPreviewSrcSet(url: string): string | undefined {
+        const srcset = buildThumbnailSrcSet(url, ['400x225', '835x626']);
+        return srcset || undefined;
     }
 
     onMount(() => {
@@ -432,6 +441,8 @@
                             {#each post.images as image, i (i)}
                                 <img
                                     src={getAttachmentPreview(image)}
+                                    srcset={getAttachmentPreviewSrcSet(image)}
+                                    sizes="(max-width: 768px) 100vw, 835px"
                                     data-original={image}
                                     alt="게시글 이미지"
                                     class="max-w-full rounded-lg border"
