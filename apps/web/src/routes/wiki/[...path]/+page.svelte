@@ -445,6 +445,46 @@
 
     .wiki-content {
         line-height: 1.75;
+        color: var(--foreground);
+    }
+
+    /* wiki-content 내부 요소들의 색상 - 인라인 스타일 오버라이드 */
+    .wiki-content :global(p),
+    .wiki-content :global(li),
+    .wiki-content :global(span),
+    .wiki-content :global(div),
+    .wiki-content :global(td),
+    .wiki-content :global(th),
+    .wiki-content :global(blockquote) {
+        color: var(--foreground) !important;
+    }
+
+    .wiki-content :global(a) {
+        color: var(--primary) !important;
+    }
+
+    .wiki-content :global(h1),
+    .wiki-content :global(h2),
+    .wiki-content :global(h3),
+    .wiki-content :global(h4),
+    .wiki-content :global(h5),
+    .wiki-content :global(h6) {
+        color: var(--foreground) !important;
+    }
+
+    .wiki-content :global(code) {
+        color: var(--foreground);
+        background-color: var(--muted);
+    }
+
+    .wiki-content :global(pre) {
+        background-color: var(--muted);
+        color: var(--foreground);
+    }
+
+    .wiki-content :global(pre code) {
+        color: inherit;
+        background-color: transparent;
     }
 
     .article-footer {
