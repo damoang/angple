@@ -16,12 +16,12 @@
     }
 </script>
 
-<header class="sticky top-0 z-50 border-b border-gray-200 bg-white">
+<header class="bg-background border-border sticky top-0 z-50 border-b">
     <div class="mx-auto max-w-7xl px-4">
         <div class="flex h-14 items-center justify-between">
             <!-- Logo -->
             <a href="/" class="flex items-center gap-2">
-                <span class="text-xl font-bold text-blue-600">위키앙</span>
+                <span class="text-primary text-xl font-bold">위키앙</span>
             </a>
 
             <!-- Search (Desktop) -->
@@ -31,11 +31,11 @@
                         type="text"
                         bind:value={searchQuery}
                         placeholder="문서 검색..."
-                        class="w-full rounded-lg border border-gray-300 bg-gray-50 px-4 py-2 pr-10 text-sm focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        class="border-border bg-muted focus:bg-background focus:border-primary focus:ring-primary w-full rounded-lg border px-4 py-2 pr-10 text-sm focus:outline-none focus:ring-1"
                     />
                     <button
                         type="submit"
-                        class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-blue-600"
+                        class="text-muted-foreground hover:text-primary absolute right-2 top-1/2 -translate-y-1/2"
                     >
                         <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -49,7 +49,7 @@
                 <!-- Mobile Menu Button -->
                 <button
                     onclick={toggleMobileMenu}
-                    class="rounded-lg p-2 text-gray-600 hover:bg-gray-100 md:hidden"
+                    class="text-foreground hover:bg-muted rounded-lg p-2 md:hidden"
                 >
                     <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         {#if isMobileMenuOpen}
@@ -63,12 +63,12 @@
                 <!-- Auth Actions (Desktop) -->
                 <div class="hidden items-center gap-2 md:flex">
                     {#if authStore.user}
-                        <span class="text-sm text-gray-600">{authStore.user.nickname || authStore.user.username}</span>
-                        <a href="/logout" class="rounded-lg px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100">
+                        <span class="text-muted-foreground text-sm">{authStore.user.nickname || authStore.user.username}</span>
+                        <a href="/logout" class="text-foreground hover:bg-muted rounded-lg px-3 py-1.5 text-sm">
                             로그아웃
                         </a>
                     {:else}
-                        <a href="/login" class="rounded-lg px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100">
+                        <a href="/login" class="text-foreground hover:bg-muted rounded-lg px-3 py-1.5 text-sm">
                             로그인
                         </a>
                     {/if}
@@ -78,31 +78,31 @@
 
         <!-- Mobile Menu -->
         {#if isMobileMenuOpen}
-            <div class="border-t border-gray-200 py-4 md:hidden">
+            <div class="border-border border-t py-4 md:hidden">
                 <!-- Mobile Search -->
                 <form onsubmit={handleSearch} class="mb-4">
                     <input
                         type="text"
                         bind:value={searchQuery}
                         placeholder="문서 검색..."
-                        class="w-full rounded-lg border border-gray-300 bg-gray-50 px-4 py-2 text-sm focus:border-blue-500 focus:outline-none"
+                        class="border-border bg-muted focus:border-primary w-full rounded-lg border px-4 py-2 text-sm focus:outline-none"
                     />
                 </form>
 
                 <!-- Mobile Nav -->
                 <nav class="space-y-2">
-                    <a href="/" class="block rounded-lg px-3 py-2 text-sm text-gray-700 hover:bg-gray-100">대문</a>
-                    <a href="/wiki/Special:RecentChanges" class="block rounded-lg px-3 py-2 text-sm text-gray-700 hover:bg-gray-100">최근 변경</a>
-                    <a href="/wiki/Special:Random" class="block rounded-lg px-3 py-2 text-sm text-gray-700 hover:bg-gray-100">임의 문서</a>
+                    <a href="/" class="text-foreground hover:bg-muted block rounded-lg px-3 py-2 text-sm">대문</a>
+                    <a href="/wiki/Special:RecentChanges" class="text-foreground hover:bg-muted block rounded-lg px-3 py-2 text-sm">최근 변경</a>
+                    <a href="/wiki/Special:Random" class="text-foreground hover:bg-muted block rounded-lg px-3 py-2 text-sm">임의 문서</a>
                 </nav>
 
                 <!-- Mobile Auth -->
-                <div class="mt-4 border-t border-gray-200 pt-4">
+                <div class="border-border mt-4 border-t pt-4">
                     {#if authStore.user}
-                        <span class="block px-3 py-2 text-sm text-gray-600">{authStore.user.nickname || authStore.user.username}</span>
-                        <a href="/logout" class="block rounded-lg px-3 py-2 text-sm text-gray-700 hover:bg-gray-100">로그아웃</a>
+                        <span class="text-muted-foreground block px-3 py-2 text-sm">{authStore.user.nickname || authStore.user.username}</span>
+                        <a href="/logout" class="text-foreground hover:bg-muted block rounded-lg px-3 py-2 text-sm">로그아웃</a>
                     {:else}
-                        <a href="/login" class="block rounded-lg px-3 py-2 text-sm text-gray-700 hover:bg-gray-100">로그인</a>
+                        <a href="/login" class="text-foreground hover:bg-muted block rounded-lg px-3 py-2 text-sm">로그인</a>
                     {/if}
                 </div>
             </div>

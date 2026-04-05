@@ -29,7 +29,7 @@
     <meta name="description" content="위키앙 - 자유로운 백과사전" />
 </svelte:head>
 
-<div class="flex min-h-screen flex-col bg-white">
+<div class="bg-background flex min-h-screen flex-col">
     <!-- Header -->
     <WikiHeader />
 
@@ -42,7 +42,7 @@
 
         <!-- Page Content -->
         <main class="min-w-0 flex-1">
-            <article class="prose prose-blue max-w-none">
+            <article class="prose prose-blue dark:prose-invert max-w-none">
                 {@render children()}
             </article>
         </main>
@@ -55,17 +55,17 @@
 <style>
     /* Wiki-specific prose styles */
     :global(.prose h1) {
-        border-bottom: 1px solid #e5e7eb;
+        border-bottom: 1px solid var(--border);
         padding-bottom: 0.5rem;
     }
 
     :global(.prose h2) {
-        border-bottom: 1px solid #f3f4f6;
+        border-bottom: 1px solid var(--border);
         padding-bottom: 0.25rem;
     }
 
     :global(.prose a) {
-        color: #2563eb;
+        color: var(--primary);
         text-decoration: none;
     }
 
@@ -75,16 +75,16 @@
 
     :global(.prose table) {
         border-collapse: collapse;
-        border: 1px solid #d1d5db;
+        border: 1px solid var(--border);
     }
 
     :global(.prose th),
     :global(.prose td) {
-        border: 1px solid #d1d5db;
+        border: 1px solid var(--border);
         padding: 0.5rem 0.75rem;
     }
 
     :global(.prose th) {
-        background-color: #f3f4f6;
+        background-color: var(--muted);
     }
 </style>
