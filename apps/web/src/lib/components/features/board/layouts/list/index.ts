@@ -98,7 +98,7 @@ const coreListLayouts: { manifest: LayoutManifest; component: any }[] = [
             name: '클래식',
             description: 'PHP 게시판 스킨과 동일한 추천/제목/이름/날짜/조회 테이블형 목록',
             wrapperClass:
-                'border-y border-x-0 md:border-x border-border rounded-none md:rounded-lg divide-y divide-border overflow-hidden -mx-5 md:mx-0'
+                'border-y border-x-0 md:border-x border-border rounded-none md:rounded-lg divide-y divide-border md:overflow-hidden -mx-5 md:mx-0'
         },
         component: ClassicLayout
     },
@@ -145,7 +145,7 @@ const coreListLayouts: { manifest: LayoutManifest; component: any }[] = [
             name: '아카이브',
             description: '신고잠금 아카이브 전용 1줄 컴팩트 (배지 + 제목 + 원작자 + 날짜)',
             wrapperClass:
-                'border-y border-x-0 md:border-x border-border rounded-none md:rounded-lg divide-y divide-border overflow-hidden -mx-5 md:mx-0'
+                'border-y border-x-0 md:border-x border-border rounded-none md:rounded-lg divide-y divide-border md:overflow-hidden -mx-5 md:mx-0'
         },
         component: ArchiveLayout
     }
