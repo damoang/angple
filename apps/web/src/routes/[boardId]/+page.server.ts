@@ -133,7 +133,21 @@ export const load: PageServerLoad = async ({ url, params, locals, getClientAddre
     const includeNotices = !isSearching && page === 1;
 
     if (isSearching && !locals.user) {
-        svelteError(403, '로그인 후 검색할 수 있습니다.');
+        return {
+            boardId,
+            board: null,
+            searchParams: { field: searchField!, query: searchQuery! },
+            activeTag: null,
+            watermark: null,
+            postsData: {
+                posts: [],
+                notices: [],
+                pagination: { page, limit, total: 0, totalPages: 0 },
+                error: '로그인 후 검색할 수 있습니다.'
+            },
+            promotionData: [],
+            streamed: { promotionData: Promise.resolve([] as unknown[]) }
+        };
     }
 
     // 인증 헤더 (SSR에서 accessToken 사용)
@@ -328,45 +342,61 @@ export const load: PageServerLoad = async ({ url, params, locals, getClientAddre
 
         // 일반 게시판 (또는 프로모션 게시판 검색/태그 필터)
         // 검색 시 Sphinx 경유, 비검색 시 기존 Go 백엔드 호출
+        const fetchPostsViaGoBackend = async () => {
+            const res = await bFetch(buildPostsUrl(), {
+                headers,
+                timeout: isHotBoard ? HOT_BOARD_POSTS_TIMEOUT_MS : DEFAULT_POSTS_TIMEOUT_MS,
+                bypassCircuitBreaker: true
+            });
+            if (!res.ok) throw new Error(`Posts API error: ${res.status}`);
+            return res.json();
+        };
+
         const fetchPostsViaSphinx = async () => {
-            const sort = (searchSort === 'relevance' ? 'relevance' : 'date') as
-                | 'date'
-                | 'relevance';
-            const sphinxResult = await searchByBoard(
-                boardId,
-                searchField!,
-                searchQuery!,
-                page,
-                limit,
-                sort
-            );
-            if (sphinxResult.ids.length === 0) {
-                return { data: [], meta: { page, limit, total: sphinxResult.total } };
+            try {
+                const sort = (searchSort === 'relevance' ? 'relevance' : 'date') as
+                    | 'date'
+                    | 'relevance';
+                const sphinxResult = await searchByBoard(
+                    boardId,
+                    searchField!,
+                    searchQuery!,
+                    page,
+                    limit,
+                    sort
+                );
+                if (sphinxResult.ids.length === 0) {
+                    return { data: [], meta: { page, limit, total: sphinxResult.total } };
+                }
+                // Sphinx에서 가져온 ID로 DB 직접 조회
+                const tableName = `g5_write_${boardId}`;
+                const ph = sphinxResult.ids.map(() => '?').join(',');
+                const [rows] = await readPool.execute<RowDataPacket[]>(
+                    `SELECT wr_id AS id, wr_subject AS title, wr_content AS content,
+                            wr_name AS author, mb_id AS author_id, wr_hit AS views,
+                            wr_good AS likes, wr_nogood AS dislikes, wr_comment AS comments_count,
+                            wr_datetime AS created_at, wr_last AS updated_at, ca_name AS category,
+                            wr_option, wr_is_notice AS is_notice,
+                            wr_1 AS extra_1, wr_2 AS extra_2, wr_3 AS extra_3,
+                            wr_4 AS extra_4, wr_5 AS extra_5, wr_6 AS extra_6, wr_7 AS extra_7
+                     FROM ${tableName}
+                     WHERE wr_id IN (${ph}) AND wr_is_comment = 0`,
+                    sphinxResult.ids
+                );
+                // Sphinx 결과 순서 유지
+                const rowMap = new Map(rows.map((r) => [r.id, r]));
+                const ordered = sphinxResult.ids
+                    .map((id) => rowMap.get(id))
+                    .filter(Boolean) as RowDataPacket[];
+                return {
+                    data: ordered,
+                    meta: { page, limit, total: sphinxResult.total }
+                };
+            } catch (err) {
+                // Sphinx/DB 실패 시 Go 백엔드 LIKE 검색으로 fallback
+                console.error('Sphinx search failed, falling back to backend:', err);
+                return fetchPostsViaGoBackend();
             }
-            // Sphinx에서 가져온 ID로 DB 직접 조회
-            const tableName = `g5_write_${boardId}`;
-            const ph = sphinxResult.ids.map(() => '?').join(',');
-            const [rows] = await readPool.execute<RowDataPacket[]>(
-                `SELECT wr_id AS id, wr_subject AS title, wr_content AS content,
-                        wr_name AS author, mb_id AS author_id, wr_hit AS views,
-                        wr_good AS likes, wr_nogood AS dislikes, wr_comment AS comments_count,
-                        wr_datetime AS created_at, wr_last AS updated_at, ca_name AS category,
-                        wr_option, wr_is_notice AS is_notice,
-                        wr_1 AS extra_1, wr_2 AS extra_2, wr_3 AS extra_3,
-                        wr_4 AS extra_4, wr_5 AS extra_5, wr_6 AS extra_6, wr_7 AS extra_7
-                 FROM ${tableName}
-                 WHERE wr_id IN (${ph}) AND wr_is_comment = 0`,
-                sphinxResult.ids
-            );
-            // Sphinx 결과 순서 유지
-            const rowMap = new Map(rows.map((r) => [r.id, r]));
-            const ordered = sphinxResult.ids
-                .map((id) => rowMap.get(id))
-                .filter(Boolean) as RowDataPacket[];
-            return {
-                data: ordered,
-                meta: { page, limit, total: sphinxResult.total }
-            };
         };
 
         const [postsResult, noticesResult] = await Promise.allSettled([

@@ -707,38 +707,40 @@
                         </DropdownMenu>
                     {/if}
                     <div class="relative flex shrink-0">
-                        <Button
-                            variant="outline"
-                            size="icon"
-                            class="h-9 w-9 {uiSettingsStore.pinSearch
-                                ? 'rounded-r-none border-r-0'
-                                : ''}"
-                            onclick={() => (showSearch = !showSearch)}
-                            title="검색"
-                        >
-                            <Search class="h-4 w-4" />
-                        </Button>
-                        {#if showSearch || isSearching}
+                        {#if authStore.isAuthenticated}
                             <Button
                                 variant="outline"
                                 size="icon"
-                                class="h-9 w-7 rounded-l-none px-0 {uiSettingsStore.pinSearch
-                                    ? 'bg-primary/10 text-primary'
+                                class="h-9 w-9 {uiSettingsStore.pinSearch
+                                    ? 'rounded-r-none border-r-0'
                                     : ''}"
-                                onclick={() => {
-                                    uiSettingsStore.setPinSearch(!uiSettingsStore.pinSearch);
-                                    if (uiSettingsStore.pinSearch) showSearch = true;
-                                }}
-                                title={uiSettingsStore.pinSearch
-                                    ? '검색창 고정 해제'
-                                    : '검색창 고정'}
+                                onclick={() => (showSearch = !showSearch)}
+                                title="검색"
                             >
-                                <Pin
-                                    class="h-3 w-3 {uiSettingsStore.pinSearch
-                                        ? 'fill-current'
-                                        : ''}"
-                                />
+                                <Search class="h-4 w-4" />
                             </Button>
+                            {#if showSearch || isSearching}
+                                <Button
+                                    variant="outline"
+                                    size="icon"
+                                    class="h-9 w-7 rounded-l-none px-0 {uiSettingsStore.pinSearch
+                                        ? 'bg-primary/10 text-primary'
+                                        : ''}"
+                                    onclick={() => {
+                                        uiSettingsStore.setPinSearch(!uiSettingsStore.pinSearch);
+                                        if (uiSettingsStore.pinSearch) showSearch = true;
+                                    }}
+                                    title={uiSettingsStore.pinSearch
+                                        ? '검색창 고정 해제'
+                                        : '검색창 고정'}
+                                >
+                                    <Pin
+                                        class="h-3 w-3 {uiSettingsStore.pinSearch
+                                            ? 'fill-current'
+                                            : ''}"
+                                    />
+                                </Button>
+                            {/if}
                         {/if}
                     </div>
                     {#if canWrite}
