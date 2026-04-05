@@ -500,7 +500,7 @@
     /* YouTube iframe은 16:9 비율 유지 */
     .prose :global(iframe[src*='youtube']),
     .prose :global(iframe[src*='youtu.be']),
-    .prose :global(iframe.tiptap-youtube[src]) {
+    .prose :global(iframe.tiptap-youtube) {
         aspect-ratio: 16 / 9;
         width: 100% !important;
         height: auto !important;
