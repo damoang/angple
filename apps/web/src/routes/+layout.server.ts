@@ -81,9 +81,20 @@ export const load: LayoutServerLoad = async ({ locals, depends, url, cookies, re
         }
     }
 
+    // 도메인별 테마 오버라이드
+    const host = url.host;
+    let resolvedThemeId = activeTheme?.manifest.id || null;
+    let resolvedThemeSettings = activeTheme?.currentSettings || {};
+
+    // wikiang.org 도메인은 wiki-theme 강제 적용
+    if (host === 'wikiang.org' || host === 'www.wikiang.org') {
+        resolvedThemeId = 'wiki-theme';
+        resolvedThemeSettings = {};
+    }
+
     const layoutData = {
-        activeTheme: activeTheme?.manifest.id || null,
-        themeSettings: activeTheme?.currentSettings || {},
+        activeTheme: resolvedThemeId,
+        themeSettings: resolvedThemeSettings,
         menus,
         user: locals.user ?? null,
         accessToken: locals.accessToken ?? null,
