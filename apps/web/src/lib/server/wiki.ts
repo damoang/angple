@@ -4,7 +4,7 @@
  * Sprint 1: 전체 API 계층 완성
  * - 페이지 조회, 리비전 조회/비교, 카테고리/태그, 검색
  */
-import type { RowDataPacket } from 'mysql2';
+import type { RowDataPacket, ResultSetHeader } from 'mysql2';
 import { readPool, pool } from '$lib/server/db';
 import { createCache } from '$lib/server/cache';
 
@@ -473,11 +473,6 @@ export interface WikiPageInput {
     description?: string;
     comment?: string;
     is_minor?: boolean;
-}
-
-interface ResultSetHeader {
-    insertId: number;
-    affectedRows: number;
 }
 
 /**

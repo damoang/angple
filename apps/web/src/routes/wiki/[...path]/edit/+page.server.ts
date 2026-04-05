@@ -23,15 +23,17 @@ export const load: PageServerLoad = async ({ params, locals }) => {
     // 경로에서 제목 추출 (신규 문서용)
     const titleFromPath = decodeURIComponent(path.split('/').pop() || path);
 
+    // user.id는 string이므로 number로 변환 (위키 API에서 필요)
+    const userId = locals.user.id ? parseInt(locals.user.id, 10) : 0;
+
     return {
         wikiPage,
         isNew: !wikiPage,
         path: `/${path}`,
         suggestedTitle: wikiPage?.title || titleFromPath,
         user: {
-            id: locals.user.id,
-            username: locals.user.username,
-            nickname: locals.user.nickname
+            id: userId,
+            nickname: locals.user.nickname || '익명'
         }
     };
 };
