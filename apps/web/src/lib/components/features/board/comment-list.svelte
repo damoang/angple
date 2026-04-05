@@ -1741,6 +1741,7 @@
         width: 100%;
         max-width: var(--max-width, 100%);
         margin: 0.75rem 0;
+        overflow: hidden;
     }
 
     :global(.embed-container)::before {
@@ -1774,17 +1775,21 @@
     /* Twitter 가변 높이 */
     :global(.embed-container[data-platform='twitter']) {
         height: var(--twitter-embed-height, auto);
+        padding-bottom: 0 !important;
         min-height: 200px;
         overflow: visible;
     }
 
     :global(.embed-container[data-platform='twitter'])::before {
-        display: none;
+        display: none !important;
+        padding-bottom: 0 !important;
     }
 
     :global(.embed-container[data-platform='twitter'] iframe) {
-        position: relative;
-        display: block;
+        position: relative !important;
+        display: block !important;
+        width: 100% !important;
+        max-width: 100% !important;
         min-height: var(--twitter-embed-height, 200px);
         height: var(--twitter-embed-height, auto) !important;
     }
@@ -1798,7 +1803,8 @@
 
     :global(.embed-container[data-platform='instagram'])::before,
     :global(.embed-container[data-platform='instagram-reel'])::before {
-        display: none;
+        display: none !important;
+        padding-bottom: 0 !important;
     }
 
     :global(.embed-container[data-platform='instagram'] iframe),
@@ -1816,7 +1822,8 @@
     }
 
     :global(.embed-container[data-platform='bluesky'])::before {
-        display: none;
+        display: none !important;
+        padding-bottom: 0 !important;
     }
 
     :global(.embed-container[data-platform='bluesky'] iframe) {
@@ -1833,7 +1840,8 @@
     }
 
     :global(.embed-container[data-platform='reddit'])::before {
-        display: none;
+        display: none !important;
+        padding-bottom: 0 !important;
     }
 
     :global(.embed-container[data-platform='reddit'] iframe) {

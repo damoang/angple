@@ -62,6 +62,7 @@ export const embedStyles = `
 	width: 100%;
 	max-width: var(--max-width, 100%);
 	margin: 1rem 0;
+	overflow: hidden;
 }
 
 .embed-container::before {
@@ -107,6 +108,8 @@ export const embedStyles = `
 .embed-container[data-platform="twitter"] iframe {
 	position: relative !important;
 	display: block !important;
+	width: 100% !important;
+	max-width: 100% !important;
 	min-height: 500px;
 	height: var(--twitter-embed-height, auto) !important;
 }
@@ -119,7 +122,8 @@ export const embedStyles = `
 
 .embed-container[data-platform="instagram"]::before,
 .embed-container[data-platform="instagram-reel"]::before {
-	display: none;
+	display: none !important;
+	padding-bottom: 0 !important;
 }
 
 .embed-container[data-platform="instagram"] iframe,

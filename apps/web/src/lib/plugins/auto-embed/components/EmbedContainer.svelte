@@ -84,6 +84,7 @@
         width: 100%;
         max-width: var(--max-width, 100%);
         margin: 1rem 0;
+        overflow: hidden;
     }
 
     /* 가로세로 비율 유지 (기본 16:9) */
@@ -118,17 +119,21 @@
     /* Twitter는 높이가 가변적 */
     .embed-container[data-platform='twitter'] {
         height: var(--twitter-embed-height, auto);
+        padding-bottom: 0 !important;
         min-height: 250px;
         overflow: visible;
     }
 
     .embed-container[data-platform='twitter']::before {
-        display: none;
+        display: none !important;
+        padding-bottom: 0 !important;
     }
 
     .embed-container[data-platform='twitter'] :global(iframe) {
-        position: relative;
-        display: block;
+        position: relative !important;
+        display: block !important;
+        width: 100% !important;
+        max-width: 100% !important;
         min-height: var(--twitter-embed-height, 250px);
         height: var(--twitter-embed-height, auto) !important;
     }
@@ -141,7 +146,8 @@
 
     .embed-container[data-platform='instagram']::before,
     .embed-container[data-platform='instagram-reel']::before {
-        display: none;
+        display: none !important;
+        padding-bottom: 0 !important;
     }
 
     .embed-container[data-platform='instagram'] :global(iframe),
