@@ -8,8 +8,13 @@ import { createWikiPage } from '$lib/server/wiki';
 export const POST: RequestHandler = async ({ request, locals }) => {
     // 인증 확인
     const user = locals.user;
-    if (!user) {
+    if (!user || !user.id) {
         error(401, { message: '로그인이 필요합니다.' });
+    }
+
+    const authorId = parseInt(user.id, 10);
+    if (isNaN(authorId)) {
+        error(401, { message: '유효하지 않은 사용자입니다.' });
     }
 
     try {
@@ -31,7 +36,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
                 description,
                 comment: comment || '문서 생성'
             },
-            user.id
+            authorId
         );
 
         return json({

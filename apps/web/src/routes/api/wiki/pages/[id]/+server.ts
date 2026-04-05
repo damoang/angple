@@ -8,8 +8,13 @@ import { updateWikiPage, getWikiPageById } from '$lib/server/wiki';
 export const PUT: RequestHandler = async ({ params, request, locals }) => {
     // 인증 확인
     const user = locals.user;
-    if (!user) {
+    if (!user || !user.id) {
         error(401, { message: '로그인이 필요합니다.' });
+    }
+
+    const authorId = parseInt(user.id, 10);
+    if (isNaN(authorId)) {
+        error(401, { message: '유효하지 않은 사용자입니다.' });
     }
 
     const pageId = parseInt(params.id, 10);
@@ -43,7 +48,7 @@ export const PUT: RequestHandler = async ({ params, request, locals }) => {
                 comment: comment || '',
                 is_minor: is_minor || false
             },
-            user.id
+            authorId
         );
 
         return json({
