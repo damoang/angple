@@ -18,7 +18,10 @@
                     라이선스로 배포됩니다.
                 </p>
                 <p class="text-muted-foreground mt-1 text-xs">
-                    &copy; {new Date().getFullYear()} Wikiang. All rights reserved.
+                    &copy; {new Date().getFullYear()} WIKIANG LLC. All rights reserved.
+                </p>
+                <p class="text-muted-foreground mt-1 text-xs">
+                    EIN: 30-1443167
                 </p>
             </div>
 
