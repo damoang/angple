@@ -787,36 +787,38 @@
         }
     });
 
-    onMount(() => {
-        function handleTwitterResize(event: MessageEvent) {
-            if (event.origin !== 'https://platform.twitter.com') return;
-            try {
-                const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
-                const resizeData = data?.['twttr.private.resize'];
-                if (!resizeData || !Array.isArray(resizeData)) return;
-
-                const height = resizeData[0]?.height;
-                if (!height || typeof height !== 'number' || !commentListEl) return;
-
-                const iframes =
-                    commentListEl.querySelectorAll<HTMLIFrameElement>('iframe[data-tweet-id]');
-                for (const iframe of iframes) {
-                    if (iframe.contentWindow === event.source) {
-                        const container = iframe.closest<HTMLElement>('.embed-container');
-                        iframe.style.height = `${height}px`;
-                        iframe.setAttribute('height', String(height));
-                        container?.style.setProperty('--twitter-embed-height', `${height}px`);
-                        container?.setAttribute('data-embed-height', String(height));
-                        break;
-                    }
-                }
-            } catch {
-                // ignore
-            }
+    // 댓글 내 Twitter/X 트윗 임베드 (widgets.js 로드)
+    function loadTwitterWidgetsInComments() {
+        if (!commentListEl?.querySelector('.twitter-tweet')) return;
+        const w = window as unknown as {
+            twttr?: { widgets?: { load?: (el: HTMLElement) => void } };
+        };
+        if (w.twttr?.widgets?.load) {
+            w.twttr.widgets.load(commentListEl);
+        } else if (!document.querySelector('script[src*="platform.twitter.com/widgets.js"]')) {
+            const s = document.createElement('script');
+            s.src = 'https://platform.twitter.com/widgets.js';
+            s.async = true;
+            s.onload = () => {
+                const tw = window as unknown as {
+                    twttr?: { widgets?: { load?: (el: HTMLElement) => void } };
+                };
+                tw.twttr?.widgets?.load?.(commentListEl);
+            };
+            document.head.appendChild(s);
         }
+    }
 
-        window.addEventListener('message', handleTwitterResize);
-        return () => window.removeEventListener('message', handleTwitterResize);
+    onMount(() => {
+        loadTwitterWidgetsInComments();
+    });
+
+    // 댓글 추가/변경 시 Twitter 임베드 재로드
+    $effect(() => {
+        void processedComments.size;
+        if (commentListEl) {
+            tick().then(() => loadTwitterWidgetsInComments());
+        }
     });
 
     // 댓글 본문 이미지 data-original 폴백 (최적화된 이미지 로드 실패 시 원본으로 대체)
