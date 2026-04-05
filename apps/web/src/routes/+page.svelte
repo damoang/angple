@@ -1,34 +1,15 @@
 <script lang="ts">
-    import { page } from '$app/state';
-    import { WidgetRenderer } from '$lib/components/widget-renderer';
-    import { indexWidgetsStore } from '$lib/stores/index-widgets.svelte';
-    import { widgetLayoutStore } from '$lib/stores/widget-layout.svelte';
-    import { untrack } from 'svelte';
-    import { SeoHead, createWebSiteJsonLd, getSiteUrl } from '$lib/seo/index.js';
+    import { SeoHead, getSiteUrl } from '$lib/seo/index.js';
     import type { SeoConfig } from '$lib/seo/types.js';
 
     let { data } = $props();
 
-    // SSR 데이터 즉시 스토어 초기화 (hydration 전에 실행)
-    indexWidgetsStore.initFromServer(data.indexWidgets);
-    widgetLayoutStore.initFromServer(data.widgetLayout, data.sidebarWidgetLayout);
-
-    // SSR 데이터 변경 시 스토어 동기화 (SPA 내비게이션 대응)
-    $effect(() => {
-        const widgets = data.indexWidgets;
-        const layout = data.widgetLayout;
-        const sidebarLayout = data.sidebarWidgetLayout;
-        untrack(() => {
-            indexWidgetsStore.initFromServer(widgets);
-            widgetLayoutStore.initFromServer(layout, sidebarLayout);
-        });
-    });
-
-    // SEO 설정 (홈페이지)
-    const siteName = import.meta.env.VITE_SITE_NAME || '다모앙';
-    const siteTagline = '종합 포털 커뮤니티';
-    const homeTitle = `${siteName} | ${siteTagline}`;
-    const homeDescription = `${siteName} ${siteTagline} - 자유로운 소통의 공간 | Damoang Community Portal`;
+    const siteName = '위키앙';
+    const siteTagline = '자유로운 위키 백과';
+    const homeTitle = data.mainPage?.title
+        ? `${data.mainPage.title} - ${siteName}`
+        : `${siteName} | ${siteTagline}`;
+    const homeDescription = data.mainPage?.description || `${siteName} - ${siteTagline}`;
 
     const seoConfig: SeoConfig = $derived({
         meta: {
@@ -42,41 +23,72 @@
             description: homeDescription,
             type: 'website',
             url: getSiteUrl()
-        },
-        jsonLd: [createWebSiteJsonLd(`${getSiteUrl()}/search?stx={search_term_string}`)]
+        }
     });
 
-    const leftMessageVisible = $derived(page.url.searchParams.get('left') === '1');
+    function formatDate(date: Date | string): string {
+        const d = typeof date === 'string' ? new Date(date) : date;
+        return d.toLocaleDateString('ko-KR', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        });
+    }
 </script>
 
 <SeoHead config={seoConfig} />
 
-{#if leftMessageVisible}
-    <div class="mx-auto mb-4 max-w-5xl px-4 pt-4">
-        <div
-            class="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800"
-        >
-            회원 탈퇴가 완료되었습니다. 안전하게 로그아웃되었습니다.
-        </div>
-    </div>
-{/if}
+<div class="mx-auto max-w-4xl px-4 py-6">
+    <!-- 메인 페이지 (대문) -->
+    {#if data.mainPage}
+        <article>
+            <h1 class="mb-4 border-b-2 border-blue-600 pb-2 text-3xl font-bold text-gray-900">
+                {data.mainPage.title}
+            </h1>
 
-<!-- 통합 위젯 렌더러로 메인 영역 렌더링 (추천글 SSR 프리페치 포함) -->
-<WidgetRenderer
-    zone="main"
-    prefetchDataMap={{
-        recommended: data.recommendedData
-            ? { data: data.recommendedData, period: data.recommendedPeriod }
-            : undefined,
-        explore: data.exploreData ? { data: data.exploreData } : undefined,
-        'empathy-explore-row': {
-            recommended: data.recommendedData
-                ? { data: data.recommendedData, period: data.recommendedPeriod }
-                : undefined,
-            explore: data.exploreData ? { data: data.exploreData } : undefined
-        },
-        celebration: (data.celebrationRecent ?? data.celebration)?.length
-            ? { data: data.celebrationRecent ?? data.celebration }
-            : undefined
-    }}
-/>
+            <div class="prose prose-lg max-w-none">
+                {#if data.mainPage.content}
+                    {@html data.mainPage.content}
+                {:else if data.mainPage.content_raw}
+                    <pre class="whitespace-pre-wrap">{data.mainPage.content_raw}</pre>
+                {:else}
+                    <p class="text-gray-500">내용이 없습니다.</p>
+                {/if}
+            </div>
+
+            <div class="mt-6 text-sm text-gray-500">
+                마지막 수정: {formatDate(data.mainPage.updated_at)}
+            </div>
+        </article>
+    {:else}
+        <div class="rounded-lg border border-yellow-200 bg-yellow-50 p-6 text-center">
+            <h1 class="mb-2 text-2xl font-bold text-yellow-800">위키앙에 오신 것을 환영합니다</h1>
+            <p class="text-yellow-700">대문 페이지가 아직 생성되지 않았습니다.</p>
+        </div>
+    {/if}
+
+    <!-- 최근 문서 목록 -->
+    {#if data.recentPages && data.recentPages.length > 0}
+        <section class="mt-10">
+            <h2 class="mb-4 border-b border-gray-200 pb-2 text-xl font-semibold text-gray-800">
+                최근 문서
+            </h2>
+            <ul class="divide-y divide-gray-100">
+                {#each data.recentPages as page}
+                    <li class="py-3">
+                        <a
+                            href="/wiki{page.path}"
+                            class="text-blue-600 hover:text-blue-800 hover:underline"
+                        >
+                            {page.title}
+                        </a>
+                        {#if page.description}
+                            <p class="mt-1 text-sm text-gray-600">{page.description}</p>
+                        {/if}
+                        <span class="text-xs text-gray-400">{formatDate(page.updated_at)}</span>
+                    </li>
+                {/each}
+            </ul>
+        </section>
+    {/if}
+</div>

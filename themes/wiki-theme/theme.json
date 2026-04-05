@@ -1,0 +1,33 @@
+{
+    "id": "wiki-theme",
+    "name": "Wiki Theme",
+    "version": "1.0.0",
+    "author": {
+        "name": "Wikiang Team",
+        "email": "team@wikiang.org"
+    },
+    "description": "위키앙 전용 테마. 나무위키/위키피디아 스타일의 깔끔하고 단순한 위키 레이아웃.",
+    "screenshot": "screenshot.png",
+    "angpleVersion": "0.1.0",
+    "tags": ["wiki", "minimal", "clean", "documentation"],
+    "settings": {
+        "appearance": {
+            "primaryColor": {
+                "label": "Primary Color",
+                "type": "color",
+                "default": "#3b82f6"
+            },
+            "sidebarPosition": {
+                "label": "Sidebar Position",
+                "type": "select",
+                "options": ["left", "right"],
+                "default": "left"
+            }
+        }
+    },
+    "hooks": [],
+    "components": [],
+    "category": "theme",
+    "license": "MIT",
+    "main": "./dist/index.js"
+}
