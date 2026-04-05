@@ -310,9 +310,7 @@ if (typeof window !== 'undefined') {
     }
     if (currentUrl.searchParams.has('_v')) {
         currentUrl.searchParams.delete('_v');
-        const cleanUrl =
-            currentUrl.pathname + (currentUrl.search ? currentUrl.search : '') + currentUrl.hash;
-        replaceState(cleanUrl, window.history.state);
+        replaceState(currentUrl.href, window.history.state);
     }
 
     const chunkError = (window as any).__angpleChunkError;
