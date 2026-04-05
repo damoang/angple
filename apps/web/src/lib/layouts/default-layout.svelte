@@ -59,7 +59,7 @@
                     </div>
                 {/if}
                 <main
-                    class="box-content min-w-0 flex-1 overflow-x-visible px-5 pt-1 md:px-0 md:py-5 lg:pe-2 2xl:!px-4 [&_[data-slot='card']]:-mx-5 md:[&_[data-slot='card']]:mx-0"
+                    class="box-content min-w-0 flex-1 px-5 pt-1 md:px-0 md:py-5 lg:pe-2 2xl:!px-4 [&_[data-slot='card']]:-mx-5 md:[&_[data-slot='card']]:mx-0"
                 >
                     {@render children()}
                 </main>
