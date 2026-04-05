@@ -473,7 +473,7 @@
                 return;
             }
             comments = result.items;
-            data.post.comments_count = result.items.length;
+            data.post.comments_count = result.total || result.items.length;
             commentsError = false;
             commentsRecoveryVisible = false;
         } catch {
