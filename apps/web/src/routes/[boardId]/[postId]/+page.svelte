@@ -1767,18 +1767,24 @@
                                 새로고침
                             </button>
                         </div>
-                        {#key data.post.id}
-                            <CommentForm
-                                onSubmit={handleCreateComment}
-                                isLoading={isCreatingComment}
-                                permissions={data.board?.permissions}
-                                requiredCommentLevel={data.board?.comment_level ?? 3}
-                                isRestricted={data.isRestricted}
-                                {boardId}
-                                onRefresh={refreshComments}
-                                isRefreshing={isRefreshingComments}
-                            />
-                        {/key}
+                        {#if boardId === 'claim' && authStore.user?.mb_id !== data.post.author_id && (authStore.user?.level ?? 0) < 10}
+                            <p class="text-muted-foreground py-4 text-center text-sm">
+                                소명 게시판에서는 관리자와 글 작성자만 댓글을 작성할 수 있습니다.
+                            </p>
+                        {:else}
+                            {#key data.post.id}
+                                <CommentForm
+                                    onSubmit={handleCreateComment}
+                                    isLoading={isCreatingComment}
+                                    permissions={data.board?.permissions}
+                                    requiredCommentLevel={data.board?.comment_level ?? 3}
+                                    isRestricted={data.isRestricted}
+                                    {boardId}
+                                    onRefresh={refreshComments}
+                                    isRefreshing={isRefreshingComments}
+                                />
+                            {/key}
+                        {/if}
                     </div>
                 </CardContent>
             </Card>

@@ -88,13 +88,6 @@ const FALLBACK_MENUS: MenuItem[] = [
 let lastKnownMenus: MenuItem[] | null = null;
 
 /**
- * 메뉴 캐시 무효화 (관리자가 메뉴 변경 시 호출)
- */
-export async function invalidateMenuCache(): Promise<void> {
-    await menuCache.delete('all');
-}
-
-/**
  * 메뉴 데이터를 서버에서 로드 (L1 60초 + L2 300초 TieredCache)
  */
 export async function loadMenus(): Promise<MenuItem[]> {
@@ -124,4 +117,15 @@ export async function loadMenus(): Promise<MenuItem[]> {
         // 캐시도 없으면 fallback 메뉴 반환 (App Shell 패턴 — 네비게이션은 항상 표시)
         return lastKnownMenus ?? FALLBACK_MENUS;
     }
+}
+
+/**
+ * 메뉴 캐시 무효화 — 관리자 메뉴 변경 시 호출
+ * L1(인메모리) + L2(Redis) 모두 삭제 후 즉시 재로드
+ */
+export async function invalidateMenuCache(): Promise<void> {
+    await menuCache.delete('all');
+    lastKnownMenus = null;
+    // 즉시 재로드하여 새 데이터로 캐시 채움
+    await loadMenus();
 }
