@@ -22,7 +22,11 @@
     import { Badge } from '$lib/components/ui/badge/index.js';
     import { Button } from '$lib/components/ui/button/index.js';
     import { Markdown } from '$lib/components/ui/markdown/index.js';
-    import { isTransformableMediaImage, toThumbnailUrl } from '$lib/utils/thumbnail-url.js';
+    import {
+        buildThumbnailSrcSet,
+        isTransformableMediaImage,
+        toThumbnailUrl
+    } from '$lib/utils/thumbnail-url.js';
     import ExternalLink from '@lucide/svelte/icons/external-link';
     import Download from '@lucide/svelte/icons/download';
     import Video from '@lucide/svelte/icons/video';
@@ -104,6 +108,10 @@
     let hasAffiliateLinks = $derived(postContent?.includes('data-affiliate') ?? false);
     function getAttachmentPreview(url: string): string {
         return isTransformableMediaImage(url) ? toThumbnailUrl(url, '835x626') : url;
+    }
+    function getAttachmentPreviewSrcSet(url: string): string | undefined {
+        const srcset = buildThumbnailSrcSet(url, ['400x225', '835x626']);
+        return srcset || undefined;
     }
 
     // extra_9에서 통계 데이터 파싱 (PHP wr_9 JSON 키와 동일)
@@ -501,6 +509,8 @@
                             {#each post.images as image, i (i)}
                                 <img
                                     src={getAttachmentPreview(image)}
+                                    srcset={getAttachmentPreviewSrcSet(image)}
+                                    sizes="(max-width: 768px) 100vw, 835px"
                                     data-original={image}
                                     alt="게시글 이미지"
                                     class="max-w-full rounded-lg border"

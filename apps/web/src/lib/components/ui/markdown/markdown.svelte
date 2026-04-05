@@ -9,7 +9,11 @@
     import { transformEscapedMedia } from '$lib/utils/content-transform';
     import { attachLightbox } from '$lib/components/ui/image-lightbox/index.js';
     import { filterUnsafeStyles } from '$lib/utils/safe-css.js';
-    import { isTransformableMediaImage, toThumbnailUrl } from '$lib/utils/thumbnail-url.js';
+    import {
+        buildThumbnailSrcSet,
+        isTransformableMediaImage,
+        toThumbnailUrl
+    } from '$lib/utils/thumbnail-url.js';
 
     // CSS 필터 훅 등록 — style 속성에서 위험한 CSS 속성 제거
     DOMPurify.addHook('afterSanitizeAttributes', (node) => {
@@ -119,11 +123,15 @@
                 if (!preview || preview === src) {
                     return match;
                 }
+                const srcset = buildThumbnailSrcSet(src, ['400x225', '835x626']);
+                const sizes = '(max-width: 768px) 100vw, 835px';
 
                 const attrs = `${before}${after}`;
                 const withoutLoading = attrs.replace(/\sloading=(["']).*?\1/gi, '');
                 const withoutDecoding = withoutLoading.replace(/\sdecoding=(["']).*?\1/gi, '');
-                return `<img${withoutDecoding} src=${quote}${preview}${quote} data-original=${quote}${src}${quote} loading=${quote}lazy${quote} decoding=${quote}async${quote}>`;
+                const withoutSrcset = withoutDecoding.replace(/\ssrcset=(["']).*?\1/gi, '');
+                const withoutSizes = withoutSrcset.replace(/\ssizes=(["']).*?\1/gi, '');
+                return `<img${withoutSizes} src=${quote}${preview}${quote} srcset=${quote}${srcset}${quote} sizes=${quote}${sizes}${quote} data-original=${quote}${src}${quote} loading=${quote}lazy${quote} decoding=${quote}async${quote}>`;
             }
         );
 
@@ -187,6 +195,8 @@
             'width',
             'loading',
             'height',
+            'srcset',
+            'sizes',
             'style',
             'data-platform',
             'data-bluesky-uri',

@@ -26,3 +26,14 @@ export function toThumbnailUrl(url: string | undefined | null, size = '400x225')
 export function isTransformableMediaImage(url: string | undefined | null): url is string {
     return Boolean(url && THUMBNAIL_SOURCE_REGEX.test(url));
 }
+
+export function buildThumbnailSrcSet(url: string | undefined | null, sizes: string[]): string {
+    if (!isTransformableMediaImage(url)) return '';
+
+    return sizes
+        .map((size) => {
+            const [width] = size.split('x');
+            return `${toThumbnailUrl(url, size)} ${width}w`;
+        })
+        .join(', ');
+}
