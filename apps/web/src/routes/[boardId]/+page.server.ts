@@ -13,6 +13,9 @@ import { fetchWithdrawnMemberIds } from '$lib/server/withdrawn-members.js';
 import { createCache } from '$lib/server/cache.js';
 import { getCachedBoard, resolveCanonicalBoardId } from '$lib/server/board-cache.js';
 import { resolveGivingMeta } from '$lib/features/giving/model.js';
+import { searchByBoard } from '$lib/server/sphinx-search.js';
+import { readPool } from '$lib/server/db.js';
+import type { RowDataPacket } from 'mysql2';
 
 // --- 인메모리 캐시: 비로그인 게시글 목록 (15초 TTL) ---
 interface PostsCacheData {
@@ -324,15 +327,59 @@ export const load: PageServerLoad = async ({ url, params, locals, getClientAddre
         }
 
         // 일반 게시판 (또는 프로모션 게시판 검색/태그 필터)
+        // 검색 시 Sphinx 경유, 비검색 시 기존 Go 백엔드 호출
+        const fetchPostsViaSphinx = async () => {
+            const sort = (searchSort === 'relevance' ? 'relevance' : 'date') as
+                | 'date'
+                | 'relevance';
+            const sphinxResult = await searchByBoard(
+                boardId,
+                searchField!,
+                searchQuery!,
+                page,
+                limit,
+                sort
+            );
+            if (sphinxResult.ids.length === 0) {
+                return { data: [], meta: { page, limit, total: sphinxResult.total } };
+            }
+            // Sphinx에서 가져온 ID로 DB 직접 조회
+            const tableName = `g5_write_${boardId}`;
+            const ph = sphinxResult.ids.map(() => '?').join(',');
+            const [rows] = await readPool.execute<RowDataPacket[]>(
+                `SELECT wr_id AS id, wr_subject AS title, wr_content AS content,
+                        wr_name AS author, mb_id AS author_id, wr_hit AS views,
+                        wr_good AS likes, wr_nogood AS dislikes, wr_comment AS comments_count,
+                        wr_datetime AS created_at, wr_last AS updated_at, ca_name AS category,
+                        wr_option, wr_is_notice AS is_notice,
+                        wr_1 AS extra_1, wr_2 AS extra_2, wr_3 AS extra_3,
+                        wr_4 AS extra_4, wr_5 AS extra_5, wr_6 AS extra_6, wr_7 AS extra_7
+                 FROM ${tableName}
+                 WHERE wr_id IN (${ph}) AND wr_is_comment = 0`,
+                sphinxResult.ids
+            );
+            // Sphinx 결과 순서 유지
+            const rowMap = new Map(rows.map((r) => [r.id, r]));
+            const ordered = sphinxResult.ids
+                .map((id) => rowMap.get(id))
+                .filter(Boolean) as RowDataPacket[];
+            return {
+                data: ordered,
+                meta: { page, limit, total: sphinxResult.total }
+            };
+        };
+
         const [postsResult, noticesResult] = await Promise.allSettled([
-            bFetch(buildPostsUrl(), {
-                headers,
-                timeout: isHotBoard ? HOT_BOARD_POSTS_TIMEOUT_MS : DEFAULT_POSTS_TIMEOUT_MS,
-                bypassCircuitBreaker: true
-            }).then(async (res) => {
-                if (!res.ok) throw new Error(`Posts API error: ${res.status}`);
-                return res.json();
-            }),
+            isSearching
+                ? fetchPostsViaSphinx()
+                : bFetch(buildPostsUrl(), {
+                      headers,
+                      timeout: isHotBoard ? HOT_BOARD_POSTS_TIMEOUT_MS : DEFAULT_POSTS_TIMEOUT_MS,
+                      bypassCircuitBreaker: true
+                  }).then(async (res) => {
+                      if (!res.ok) throw new Error(`Posts API error: ${res.status}`);
+                      return res.json();
+                  }),
             includeNotices
                 ? bFetch(
                       `/api/v1/boards/${boardId}/notices${useSummaryListResponse ? '?summary=1' : ''}`,
