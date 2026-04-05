@@ -437,9 +437,15 @@
         margin: 1rem 0;
     }
 
-    /* 백엔드 썸네일 변환된 이미지: max-width만 적용, 강제 확대 안 함 */
+    /* 백엔드 썸네일 변환된 이미지: 모바일 원본 크기, PC 전폭 */
     .prose :global(img[data-original]) {
         width: auto;
+    }
+
+    @media (min-width: 768px) {
+        .prose :global(img[data-original]) {
+            width: 100%;
+        }
     }
 
     .prose :global(table) {
