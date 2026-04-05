@@ -371,8 +371,8 @@
                       content: finalContent,
                       category: category || undefined,
                       tags: tags.length > 0 ? tags : undefined,
-                      link1: link1.trim(),
-                      link2: link2.trim(),
+                      link1: link1.trim() || undefined,
+                      link2: link2.trim() || undefined,
                       files: fileAttachments
                   };
 
