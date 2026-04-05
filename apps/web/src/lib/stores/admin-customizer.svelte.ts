@@ -142,6 +142,9 @@ class AdminCustomizerStore {
      */
     async refreshFrontMenus(): Promise<void> {
         try {
+            // SSR 메뉴 캐시 무효화 (L1 인메모리 + L2 Redis)
+            await fetch('/api/admin/invalidate-menu-cache', { method: 'POST' });
+
             const response = await fetch('/api/v1/menus/sidebar');
             if (!response.ok) return;
             const result = await response.json();
