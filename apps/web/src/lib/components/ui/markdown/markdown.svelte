@@ -437,9 +437,9 @@
         margin: 1rem 0;
     }
 
-    /* 백엔드 썸네일 변환된 이미지: 본문 너비에 맞게 확장 (Retina 대응) */
+    /* 백엔드 썸네일 변환된 이미지: max-width만 적용, 강제 확대 안 함 */
     .prose :global(img[data-original]) {
-        width: 100%;
+        width: auto;
     }
 
     .prose :global(table) {
