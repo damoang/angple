@@ -575,7 +575,7 @@
     /* Instagram 가변 높이 */
     .prose :global(.embed-container[data-platform='instagram']),
     .prose :global(.embed-container[data-platform='instagram-reel']) {
-        min-height: 400px;
+        min-height: 600px;
         overflow: visible;
     }
 
@@ -588,7 +588,7 @@
     .prose :global(.embed-container[data-platform='instagram-reel'] iframe) {
         position: relative;
         display: block;
-        min-height: 400px;
+        min-height: 600px;
         height: auto !important;
     }
 
@@ -611,7 +611,7 @@
 
     /* Reddit 가변 높이 */
     .prose :global(.embed-container[data-platform='reddit']) {
-        min-height: 300px;
+        min-height: 500px;
         overflow: visible;
     }
 
@@ -622,8 +622,22 @@
     .prose :global(.embed-container[data-platform='reddit'] iframe) {
         position: relative;
         display: block;
-        min-height: 300px;
+        min-height: 500px;
         height: auto !important;
+    }
+
+    /* Spotify — 직접 height 사용, aspect-ratio padding 불필요 */
+    .prose :global(.embed-container[data-platform='spotify']) {
+        overflow: visible;
+    }
+
+    .prose :global(.embed-container[data-platform='spotify'])::before {
+        display: none;
+    }
+
+    .prose :global(.embed-container[data-platform='spotify'] iframe) {
+        position: relative;
+        display: block;
     }
 
     /* 스포일러 블록 [spoiler]...[/spoiler] */
