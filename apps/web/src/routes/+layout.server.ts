@@ -107,10 +107,13 @@ export const load: LayoutServerLoad = async ({ locals, depends, url, cookies, re
         user: locals.user ?? null,
         accessToken: locals.accessToken ?? null,
         csrfToken: locals.csrfToken ?? null,
-        celebration: [] as unknown[],
-        banners: {} as Record<string, unknown>,
-        logoData,
-        ga4MeasurementId: ''
+        // logoData: previews 제거 (SSR 불필요), schedules는 header 로고에서 사용
+        logoData: {
+            active: logoData.active,
+            schedules: logoData.schedules ?? [],
+            requestLocale: logoData.requestLocale,
+            requestTimeZone: logoData.requestTimeZone
+        }
     };
 
     // 훅: 레이아웃 데이터 필터 (플러그인이 SSR 데이터를 수정/확장 가능)

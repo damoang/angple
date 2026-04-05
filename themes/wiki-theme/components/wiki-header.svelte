@@ -7,7 +7,8 @@
     function handleSearch(e: Event) {
         e.preventDefault();
         if (searchQuery.trim()) {
-            window.location.href = `/wiki/${encodeURIComponent(searchQuery.trim())}`;
+            // 검색 결과 페이지로 이동
+            window.location.href = `/wiki/Special:Search?q=${encodeURIComponent(searchQuery.trim())}`;
         }
     }
 

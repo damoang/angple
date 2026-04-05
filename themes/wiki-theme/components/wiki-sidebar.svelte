@@ -1,5 +1,48 @@
 <script lang="ts">
-    // Wiki Sidebar Navigation
+    import { page } from '$app/stores';
+    import { onMount } from 'svelte';
+
+    interface RecentPage {
+        path: string;
+        title: string;
+        updated_at: string;
+    }
+
+    let recentPages: RecentPage[] = $state([]);
+    let isLoading = $state(true);
+
+    onMount(async () => {
+        try {
+            const res = await fetch('/api/wiki/recent?limit=5');
+            if (res.ok) {
+                recentPages = await res.json();
+            }
+        } catch (err) {
+            console.error('Failed to load recent pages:', err);
+        } finally {
+            isLoading = false;
+        }
+    });
+
+    function isActive(href: string): boolean {
+        const pathname = $page.url.pathname;
+        return pathname === href || (href !== '/' && pathname.startsWith(href));
+    }
+
+    function formatRelativeTime(dateStr: string): string {
+        const now = new Date();
+        const then = new Date(dateStr);
+        const diffMs = now.getTime() - then.getTime();
+        const diffMins = Math.floor(diffMs / 60000);
+        const diffHours = Math.floor(diffMs / 3600000);
+        const diffDays = Math.floor(diffMs / 86400000);
+
+        if (diffMins < 1) return '방금 전';
+        if (diffMins < 60) return `${diffMins}분 전`;
+        if (diffHours < 24) return `${diffHours}시간 전`;
+        if (diffDays < 7) return `${diffDays}일 전`;
+        return then.toLocaleDateString('ko-KR');
+    }
 </script>
 
 <aside class="w-52 flex-shrink-0">
@@ -15,7 +58,7 @@
                 <li>
                     <a
                         href="/"
-                        class="text-foreground hover:bg-muted flex items-center gap-2 rounded-lg px-3 py-2 text-sm"
+                        class="flex items-center gap-2 rounded-lg px-3 py-2 text-sm {isActive('/') ? 'bg-primary/10 text-primary font-medium' : 'text-foreground hover:bg-muted'}"
                     >
                         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path
@@ -31,7 +74,7 @@
                 <li>
                     <a
                         href="/wiki/Special:RecentChanges"
-                        class="text-foreground hover:bg-muted flex items-center gap-2 rounded-lg px-3 py-2 text-sm"
+                        class="flex items-center gap-2 rounded-lg px-3 py-2 text-sm {isActive('/wiki/Special:RecentChanges') ? 'bg-primary/10 text-primary font-medium' : 'text-foreground hover:bg-muted'}"
                     >
                         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path
@@ -47,7 +90,7 @@
                 <li>
                     <a
                         href="/wiki/Special:Random"
-                        class="text-foreground hover:bg-muted flex items-center gap-2 rounded-lg px-3 py-2 text-sm"
+                        class="flex items-center gap-2 rounded-lg px-3 py-2 text-sm {isActive('/wiki/Special:Random') ? 'bg-primary/10 text-primary font-medium' : 'text-foreground hover:bg-muted'}"
                     >
                         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path
@@ -63,6 +106,34 @@
             </ul>
         </div>
 
+        <!-- Recent Changes (Dynamic) -->
+        <div>
+            <h3
+                class="text-muted-foreground mb-2 px-3 text-xs font-semibold uppercase tracking-wider"
+            >
+                최근 문서
+            </h3>
+            {#if isLoading}
+                <p class="text-muted-foreground px-3 text-xs">불러오는 중...</p>
+            {:else if recentPages.length > 0}
+                <ul class="space-y-1">
+                    {#each recentPages as recentPage}
+                        <li>
+                            <a
+                                href="/wiki{recentPage.path}"
+                                class="group flex flex-col rounded-lg px-3 py-1.5 text-sm {isActive(`/wiki${recentPage.path}`) ? 'bg-primary/10' : 'hover:bg-muted'}"
+                            >
+                                <span class="{isActive(`/wiki${recentPage.path}`) ? 'text-primary font-medium' : 'text-foreground'} truncate">{recentPage.title}</span>
+                                <span class="text-muted-foreground text-xs">{formatRelativeTime(recentPage.updated_at)}</span>
+                            </a>
+                        </li>
+                    {/each}
+                </ul>
+            {:else}
+                <p class="text-muted-foreground px-3 text-xs">최근 변경된 문서가 없습니다.</p>
+            {/if}
+        </div>
+
         <!-- Tools -->
         <div>
             <h3
@@ -74,7 +145,7 @@
                 <li>
                     <a
                         href="/wiki/Special:AllPages"
-                        class="text-foreground hover:bg-muted flex items-center gap-2 rounded-lg px-3 py-2 text-sm"
+                        class="flex items-center gap-2 rounded-lg px-3 py-2 text-sm {isActive('/wiki/Special:AllPages') ? 'bg-primary/10 text-primary font-medium' : 'text-foreground hover:bg-muted'}"
                     >
                         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path
@@ -90,7 +161,7 @@
                 <li>
                     <a
                         href="/wiki/Help:Contents"
-                        class="text-foreground hover:bg-muted flex items-center gap-2 rounded-lg px-3 py-2 text-sm"
+                        class="flex items-center gap-2 rounded-lg px-3 py-2 text-sm {isActive('/wiki/Help:Contents') ? 'bg-primary/10 text-primary font-medium' : 'text-foreground hover:bg-muted'}"
                     >
                         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path
@@ -117,7 +188,7 @@
                 <li>
                     <a
                         href="/wiki/Wikiang:Portal"
-                        class="text-foreground hover:bg-muted flex items-center gap-2 rounded-lg px-3 py-2 text-sm"
+                        class="flex items-center gap-2 rounded-lg px-3 py-2 text-sm {isActive('/wiki/Wikiang:Portal') ? 'bg-primary/10 text-primary font-medium' : 'text-foreground hover:bg-muted'}"
                     >
                         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path
