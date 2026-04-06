@@ -14,6 +14,9 @@
         prefetchData?: { data: RecommendedDataWithAI; period: RecommendedPeriod } | unknown;
     }
 
+    const STORAGE_KEY = 'angple:recommended:data:v1';
+    const STORAGE_TTL_MS = 5 * 60 * 1000;
+
     const { prefetchData }: Props = $props();
 
     const { defaultTab } = getCurrentTabVisibility();
@@ -53,10 +56,55 @@
     // 탭별 데이터 캐시
     const dataCache = new SvelteMap<RecommendedPeriod, RecommendedDataWithAI>();
 
+    function hydrateCacheFromSessionStorage() {
+        if (typeof window === 'undefined') return;
+
+        try {
+            const raw = sessionStorage.getItem(STORAGE_KEY);
+            if (!raw) return;
+
+            const parsed = JSON.parse(raw) as Record<
+                string,
+                { data: RecommendedDataWithAI; expiresAt: number }
+            >;
+            const now = Date.now();
+
+            for (const [period, entry] of Object.entries(parsed)) {
+                if (!entry || typeof entry !== 'object' || entry.expiresAt <= now || !entry.data) {
+                    continue;
+                }
+                if (['1h', '3h', '6h', '12h', '24h', '48h'].includes(period)) {
+                    dataCache.set(period as RecommendedPeriod, entry.data);
+                }
+            }
+        } catch {
+            /* ignore */
+        }
+    }
+
+    function persistCacheToSessionStorage() {
+        if (typeof window === 'undefined') return;
+
+        try {
+            const now = Date.now();
+            const payload: Record<string, { data: RecommendedDataWithAI; expiresAt: number }> = {};
+
+            for (const [period, value] of dataCache.entries()) {
+                payload[period] = { data: value, expiresAt: now + STORAGE_TTL_MS };
+            }
+
+            sessionStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+        } catch {
+            /* ignore */
+        }
+    }
+
     // SSR 데이터를 캐시에 등록
     if (hasSSRData) {
         dataCache.set(ssrData!.period, ssrData!.data);
     }
+
+    hydrateCacheFromSessionStorage();
 
     async function loadData(period: RecommendedPeriod, isInitial = false) {
         // 캐시에 데이터가 있으면 즉시 표시
@@ -77,6 +125,7 @@
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             const newData: RecommendedDataWithAI = await res.json();
             dataCache.set(period, newData);
+            persistCacheToSessionStorage();
             // 현재 선택된 탭의 데이터만 업데이트
             if (activeTab === period) {
                 data = newData;
@@ -100,42 +149,11 @@
         }
     }
 
-    function prefetchPeriod(period: RecommendedPeriod) {
-        if (dataCache.has(period)) return;
-
-        fetch(`/api/widgets/recommended/data?period=${period}`)
-            .then((res) => (res.ok ? res.json() : null))
-            .then((nextData) => {
-                if (nextData) {
-                    dataCache.set(period, nextData as RecommendedDataWithAI);
-                }
-            })
-            .catch(() => {});
-    }
-
-    function prefetchNeighborTabs(period: RecommendedPeriod) {
-        const allPeriods: RecommendedPeriod[] = ['1h', '3h', '6h', '12h', '24h', '48h'];
-        const currentIndex = allPeriods.indexOf(period);
-        if (currentIndex === -1) return;
-
-        const candidates = [allPeriods[currentIndex - 1], allPeriods[currentIndex + 1]].filter(
-            (value): value is RecommendedPeriod => Boolean(value)
-        );
-
-        for (const candidate of candidates) {
-            prefetchPeriod(candidate);
-        }
-    }
-
     onMount(() => {
         // SSR 데이터가 없거나 저장된 탭과 다르면 클라이언트에서 fetch
         if (!canUseSSR) {
             loadData(activeTab, true);
         }
-
-        setTimeout(() => {
-            prefetchNeighborTabs(activeTab);
-        }, 500);
     });
 </script>
 

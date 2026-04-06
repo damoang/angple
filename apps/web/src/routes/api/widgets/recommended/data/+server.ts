@@ -26,7 +26,7 @@ export const GET: RequestHandler = async ({ url }) => {
 
     return json(data, {
         headers: {
-            'Cache-Control': 'public, max-age=60'
+            'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=1800, max-age=60'
         }
     });
 };

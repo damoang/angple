@@ -11,6 +11,7 @@
     import { authActions, authStore } from '$lib/stores/auth.svelte';
     import { themeStore } from '$lib/stores/theme.svelte';
     import { pluginStore } from '$lib/stores/plugin.svelte';
+    import type { ActivePlugin } from '$lib/stores/plugin.svelte';
     import { menuStore } from '$lib/stores/menu.svelte';
     import { loadThemeHooks } from '$lib/hooks/theme-loader';
     import { loadThemeComponents } from '$lib/utils/theme-component-loader';
@@ -24,11 +25,22 @@
     import { getThemeLayout } from '$lib/themes/layout-registry';
     import { initFromSSR as initAppData } from '$lib/stores/app-init.svelte';
     import { initFromData as initCelebrationFromData } from '$lib/stores/celebration.svelte';
+    import type { CelebrationBanner } from '$lib/stores/celebration.svelte';
     import { blockedUsersStore } from '$lib/stores/blocked-users.svelte';
     import { memberLevelStore } from '$lib/stores/member-levels.svelte';
     import { uiSettingsStore } from '$lib/stores/ui-settings.svelte';
     import { updatePageTargeting } from '$lib/components/ui/ad-slot/ad-slot-registry.js';
     import { consumePendingAuthEvent, initGA4, trackPageView } from '$lib/services/ga4';
+
+    const LAYOUT_INIT_STORAGE_KEY = 'angple:layout-init:v1';
+    const LAYOUT_INIT_STORAGE_TTL_MS = 5 * 60 * 1000;
+
+    type LayoutInitPayload = {
+        celebration?: CelebrationBanner[];
+        banners?: Record<string, any[]>;
+        activePlugins?: ActivePlugin[];
+        ga4MeasurementId?: string;
+    };
 
     // 지연 로딩 모듈 참조
     let keyboardShortcutsMod: typeof import('$lib/services/keyboard-shortcuts.svelte') | null =
@@ -296,31 +308,76 @@
     // 기본 슬롯은 SSR 시점부터 등록되어야 상단 배너/롤링이 하이드레이션 뒤 늦게 뜨지 않는다.
     registerDefaultSlots();
 
+    function readLayoutInitCache(): LayoutInitPayload | null {
+        if (!browser) return null;
+
+        try {
+            const raw = sessionStorage.getItem(LAYOUT_INIT_STORAGE_KEY);
+            if (!raw) return null;
+
+            const parsed = JSON.parse(raw) as { expiresAt: number; data: LayoutInitPayload };
+            if (!parsed?.data || parsed.expiresAt <= Date.now()) {
+                sessionStorage.removeItem(LAYOUT_INIT_STORAGE_KEY);
+                return null;
+            }
+
+            return parsed.data;
+        } catch {
+            return null;
+        }
+    }
+
+    function writeLayoutInitCache(data: LayoutInitPayload) {
+        if (!browser) return;
+
+        try {
+            sessionStorage.setItem(
+                LAYOUT_INIT_STORAGE_KEY,
+                JSON.stringify({
+                    expiresAt: Date.now() + LAYOUT_INIT_STORAGE_TTL_MS,
+                    data
+                })
+            );
+        } catch {
+            // ignore
+        }
+    }
+
+    function applyLayoutInitPayload(initData: LayoutInitPayload) {
+        if (initData.celebration?.length || initData.banners) {
+            initAppData({
+                celebration: initData.celebration || [],
+                banners: initData.banners || {}
+            });
+            initCelebrationFromData(initData.celebration || []);
+        }
+        if (initData.activePlugins?.length) {
+            pluginStore.initFromServer(initData.activePlugins);
+        }
+        if (initData.ga4MeasurementId) {
+            initGA4(initData.ga4MeasurementId);
+            consumePendingAuthEvent();
+        }
+    }
+
     onMount(() => {
         // 부분 layout 데이터 로드 (banners, celebration, plugins, GA4)
         // SSR payload에서 분리하여 __data.json 바이트 절감
-        fetch('/api/layout/init')
-            .then((res) => (res.ok ? res.json() : null))
-            .then((initData) => {
-                if (!initData) return;
-                if (initData.celebration?.length || initData.banners) {
-                    initAppData({
-                        celebration: initData.celebration || [],
-                        banners: initData.banners || {}
-                    });
-                    initCelebrationFromData(initData.celebration || []);
-                }
-                if (initData.activePlugins?.length) {
-                    pluginStore.initFromServer(initData.activePlugins);
-                }
-                if (initData.ga4MeasurementId) {
-                    initGA4(initData.ga4MeasurementId);
-                    consumePendingAuthEvent();
-                }
-            })
-            .catch(() => {
-                // layout init 실패해도 사이트 동작에 영향 없음
-            });
+        const cachedLayoutInit = readLayoutInitCache();
+        if (cachedLayoutInit) {
+            applyLayoutInitPayload(cachedLayoutInit);
+        } else {
+            fetch('/api/layout/init')
+                .then((res) => (res.ok ? res.json() : null))
+                .then((initData) => {
+                    if (!initData) return;
+                    writeLayoutInitCache(initData);
+                    applyLayoutInitPayload(initData);
+                })
+                .catch(() => {
+                    // layout init 실패해도 사이트 동작에 영향 없음
+                });
+        }
 
         // GA4 초기화 (SSR fallback — layout/init 전에 이미 설정된 경우)
         if (data.ga4MeasurementId) {

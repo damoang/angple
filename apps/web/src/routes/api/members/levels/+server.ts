@@ -41,7 +41,7 @@ export const GET: RequestHandler = async ({ url }) => {
 
         return json(levels, {
             headers: {
-                'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600'
+                'Cache-Control': 'public, s-maxage=900, stale-while-revalidate=3600, max-age=300'
             }
         });
     } catch (error) {
