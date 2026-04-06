@@ -447,7 +447,7 @@
         margin: 1rem 0;
     }
 
-    /* 백엔드 썸네일 변환된 이미지: 모바일/PC 모두 본문 폭에 맞춤 */
+    /* 백엔드 썸네일 변환된 이미지: 컨테이너 전폭 */
     .prose :global(img[data-original]) {
         display: block;
         width: 100%;
