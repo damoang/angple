@@ -1,5 +1,5 @@
 const THUMBNAIL_SOURCE_REGEX =
-    /^(https?:\/\/(?:cdn|s3)\.damoang\.net\/data\/(?:file|editor)\/.+)\.(jpg|jpeg|png|gif|webp)$/i;
+    /^(https?:\/\/(?:cdn|s3)\.damoang\.net\/data\/(?:file|editor)\/.+)\.(jpg|jpeg|png|webp)$/i;
 
 /**
  * data/file/ 및 data/editor/ 경로 모두 Lambda 썸네일 지원
