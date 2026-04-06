@@ -131,8 +131,8 @@
                 const withoutDecoding = withoutLoading.replace(/\sdecoding=(["']).*?\1/gi, '');
                 const withoutSrcset = withoutDecoding.replace(/\ssrcset=(["']).*?\1/gi, '');
                 const withoutSizes = withoutSrcset.replace(/\ssizes=(["']).*?\1/gi, '');
-                // <picture> + <source> fallback: 썸네일 실패 시 브라우저가 자동으로 원본 표시
-                return `<picture><source srcset=${quote}${srcset}${quote} sizes=${quote}${sizes}${quote} type=${quote}image/webp${quote}><img${withoutSizes} src=${quote}${src}${quote} data-original=${quote}${src}${quote} loading=${quote}lazy${quote} decoding=${quote}async${quote}></picture>`;
+                // srcset에 썸네일, src에 원본 — srcset 실패 시 src fallback
+                return `<img${withoutSizes} src=${quote}${src}${quote} srcset=${quote}${srcset}${quote} sizes=${quote}${sizes}${quote} data-original=${quote}${src}${quote} loading=${quote}lazy${quote} decoding=${quote}async${quote}>`;
             }
         );
 
@@ -175,7 +175,6 @@
             'td',
             'hr',
             'div',
-            'picture',
             'figure',
             'figcaption',
             'iframe',
