@@ -1044,6 +1044,7 @@
                                             : ''}"
                                         isRead={showReadState &&
                                             readPostsStore.isRead(boardId, post.id)}
+                                        searchQuery={data.searchParams?.query || ''}
                                     />
                                 </div>
                             </div>
@@ -1058,6 +1059,7 @@
                                         : ''}"
                                     isRead={showReadState &&
                                         readPostsStore.isRead(boardId, post.id)}
+                                    searchQuery={data.searchParams?.query || ''}
                                 />
                             </div>
                         {/if}

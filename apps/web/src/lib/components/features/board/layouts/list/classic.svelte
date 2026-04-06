@@ -23,14 +23,26 @@
         displaySettings,
         href,
         isRead = false,
-        memo = null
+        memo = null,
+        searchQuery = ''
     }: {
         post: FreePost;
         displaySettings?: BoardDisplaySettings;
         href: string;
         isRead?: boolean;
         memo?: { content: string; color: string } | null;
+        searchQuery?: string;
     } = $props();
+
+    function highlightText(text: string): string {
+        if (!searchQuery || !text) return text;
+        const escaped = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        const q = searchQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        return escaped.replace(
+            new RegExp(`(${q})`, 'gi'),
+            '<mark class="bg-yellow-200 dark:bg-yellow-800 rounded px-0.5">$1</mark>'
+        );
+    }
 
     // 회원 아이콘 URL
     const iconUrl = $derived(getAvatarUrl(post.author_image, post.author_image_updated_at));
@@ -200,6 +212,8 @@
                                 <span class="text-muted-foreground italic"
                                     >신고에 의해 숨겨진 게시글입니다</span
                                 >
+                            {:else if searchQuery}
+                                {@html highlightText(post.title)}
                             {:else}
                                 {post.title}
                             {/if}
