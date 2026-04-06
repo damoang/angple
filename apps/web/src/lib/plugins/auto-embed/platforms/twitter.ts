@@ -39,7 +39,7 @@ export const twitter: EmbedPlatform = {
         const tweetUrl = `https://x.com/${username}/status/${info.id}`;
 
         // Twitter 공식 blockquote + widgets.js 방식: 자동 리사이즈, 테마 지원
-        return `<blockquote class="twitter-tweet" data-tweet-id="${info.id}">
+        return `<blockquote class="twitter-tweet" data-tweet-id="${info.id}" data-conversation="none" data-dnt="true">
 			<a href="${tweetUrl}">트윗 보기</a>
 		</blockquote>`;
     }

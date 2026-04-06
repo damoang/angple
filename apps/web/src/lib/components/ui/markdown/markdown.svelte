@@ -565,26 +565,20 @@
         margin-right: auto;
     }
 
-    /* Twitter 가변 높이 — aspect-ratio 패딩 비활성화 */
+    /* Twitter — widgets.js가 iframe 높이를 자유롭게 설정하도록 제한 해제 */
     .prose :global(.embed-container[data-platform='twitter']) {
-        height: var(--twitter-embed-height, auto);
         padding-bottom: 0 !important;
-        min-height: 250px;
         overflow: visible;
     }
 
     .prose :global(.embed-container[data-platform='twitter'])::before {
         display: none !important;
-        padding-bottom: 0 !important;
     }
 
     .prose :global(.embed-container[data-platform='twitter'] iframe) {
         position: relative !important;
         display: block !important;
         width: 100% !important;
-        max-width: 100% !important;
-        min-height: var(--twitter-embed-height, 250px);
-        height: var(--twitter-embed-height, auto) !important;
     }
 
     /* Instagram 가변 높이 */
