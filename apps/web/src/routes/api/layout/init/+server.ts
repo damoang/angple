@@ -41,7 +41,7 @@ export const GET: RequestHandler = async () => {
         },
         {
             headers: {
-                'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=60, max-age=0'
+                'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=1800, max-age=60'
             }
         }
     );

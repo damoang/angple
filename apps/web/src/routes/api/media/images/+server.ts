@@ -51,6 +51,17 @@ const ALLOWED_EXTENSIONS = new Set([
     '.json'
 ]);
 const MAX_SIZE = 50 * 1024 * 1024; // 50MB
+const MAX_IMAGE_SIZE = 20 * 1024 * 1024; // 20MB
+const MAX_GIF_SIZE = 8 * 1024 * 1024; // 8MB
+const MAX_VIDEO_SIZE = 40 * 1024 * 1024; // 40MB
+
+function isImageExt(ext: string): boolean {
+    return ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg', '.heic', '.heif'].includes(ext);
+}
+
+function isVideoExt(ext: string): boolean {
+    return ['.mp4', '.webm', '.mov', '.avi', '.mkv', '.wmv', '.flv', '.m4v'].includes(ext);
+}
 
 function getExt(filename: string): string {
     const dot = filename.lastIndexOf('.');
@@ -147,8 +158,16 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
     }
 
     // 크기 검증
-    if (file.size > MAX_SIZE) {
-        error(400, `파일 크기가 너무 큽니다 (최대 ${MAX_SIZE / 1024 / 1024}MB)`);
+    const sizeLimit =
+        ext === '.gif'
+            ? MAX_GIF_SIZE
+            : isImageExt(ext)
+              ? MAX_IMAGE_SIZE
+              : isVideoExt(ext)
+                ? MAX_VIDEO_SIZE
+                : MAX_SIZE;
+    if (file.size > sizeLimit) {
+        error(400, `파일 크기가 너무 큽니다 (최대 ${Math.floor(sizeLimit / 1024 / 1024)}MB)`);
     }
 
     const rawKey = generateKey(file.name);
@@ -164,7 +183,7 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
                 Key: rawKey,
                 Body: buffer,
                 ContentType: contentType,
-                CacheControl: 'public, max-age=31536000'
+                CacheControl: 'public, max-age=31536000, immutable'
             })
         );
 
