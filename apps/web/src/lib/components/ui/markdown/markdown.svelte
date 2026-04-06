@@ -236,7 +236,7 @@
         if (!content) return '';
         let rawHtml = marked.parse(content) as string;
         rawHtml = transformEscapedMedia(rawHtml);
-        rawHtml = optimizeMediaHtml(rawHtml);
+        // rawHtml = optimizeMediaHtml(rawHtml); // 썸네일 대체 비활성화 — 원본 이미지 표시
         return DOMPurify.sanitize(rawHtml, PURIFY_CONFIG);
     }
 
@@ -281,7 +281,7 @@
             const rawHtml = marked.parse(content) as string;
 
             applyFilter<string>('post_content', rawHtml).then((filtered) => {
-                let sanitized = DOMPurify.sanitize(optimizeMediaHtml(filtered), PURIFY_CONFIG);
+                let sanitized = DOMPurify.sanitize(filtered, PURIFY_CONFIG); // 썸네일 대체 비활성화
                 // 링크 텍스트/URL 불일치 경고 추가
                 sanitized = addLinkMismatchWarnings(sanitized);
                 renderedHtml = sanitized;
