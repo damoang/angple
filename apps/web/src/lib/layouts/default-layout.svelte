@@ -80,12 +80,12 @@
             {/if}
         </div>
     </div>
-    <!-- 왼쪽 윙 배너 - 본문과 겹치지 않는 충분한 폭에서만 노출 -->
-    <aside class="top-21 fixed hidden min-[1820px]:block" style="left: calc(50% - 904px);">
+    <!-- 왼쪽 윙 배너 - 1600px 이상에서 다시 노출 -->
+    <aside class="top-21 fixed hidden min-[1600px]:block" style="right: calc(50% + 640px);">
         <LeftBanner />
     </aside>
-    <!-- 오른쪽 윙 배너 - 본문과 겹치지 않는 충분한 폭에서만 노출 -->
-    <aside class="top-21 fixed hidden min-[1820px]:block" style="right: calc(50% - 904px);">
+    <!-- 오른쪽 윙 배너 - 1600px 이상에서 다시 노출 -->
+    <aside class="top-21 fixed hidden min-[1600px]:block" style="left: calc(50% + 640px);">
         <RightBanner />
     </aside>
 
