@@ -48,7 +48,9 @@
         'board-list-infeed',
         'board-list-top',
         'board-list-bottom',
-        'index-top'
+        'index-top',
+        'board-content',
+        'board-before-comments'
     ]);
 
     let isLoaded = $state(false);

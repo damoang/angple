@@ -174,6 +174,10 @@
             </div>
         {:else if data}
             <PostList {data} />
+        {:else}
+            <div class="flex items-center justify-center py-8">
+                <p class="text-muted-foreground text-sm">데이터를 불러오지 못했어요</p>
+            </div>
         {/if}
     </CardContent>
 </Card>
