@@ -155,7 +155,7 @@
 </script>
 
 <!-- 게시글 카드 -->
-<Card class="bg-background mb-6 rounded-xl px-3 pb-5 pt-4 md:px-1">
+<Card class="bg-background mb-6 rounded-xl px-3 pb-5 pt-4 md:px-3">
     <CardHeader class="space-y-3">
         <div>
             {#if post.category}
