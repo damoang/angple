@@ -21,6 +21,8 @@
     import PostListWidget from '../../../../../../widgets/post-list/index.svelte';
     import NoticeWidget from '../../../../../../widgets/notice/index.svelte';
     import ImageTextBannerWidget from '../../../../../../widgets/image-text-banner/index.svelte';
+    import RecommendedWidget from '../../../../../../widgets/recommended/index.svelte';
+    import ExploreWidget from '../../../../../../widgets/explore/index.svelte';
 
     interface Props {
         /** 렌더링할 위젯 존 */
@@ -44,7 +46,9 @@
         'ad-slot': AdSlotWidget,
         'post-list': PostListWidget,
         notice: NoticeWidget,
-        'image-text-banner': ImageTextBannerWidget
+        'image-text-banner': ImageTextBannerWidget,
+        recommended: RecommendedWidget,
+        explore: ExploreWidget
     };
 
     // 존별 위젯 목록
