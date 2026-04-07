@@ -22,7 +22,7 @@
                 <a href="/company" class="hover:text-gray-600">회사소개</a>
             </div>
             <p class="mt-1 text-xs text-gray-400">
-                주식회사 에스디케이랩스 &middot; 서울특별시 서초구 우면동 &middot; 사업자등록번호: 424-86-03401
+                주식회사 에스디케이랩스 &middot; 대표: 김선도 &middot; 서울특별시 서초구 우면동 &middot; 사업자등록번호: 424-86-03401
             </p>
             <p class="mt-0.5 text-xs text-gray-400">
                 &copy; {new Date().getFullYear()} Muzia. All rights reserved.

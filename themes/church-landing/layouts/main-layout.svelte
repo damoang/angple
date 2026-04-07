@@ -186,7 +186,7 @@
         </section>
 
         <footer class="border-t py-8 text-center text-xs text-gray-400">
-            <p>주식회사 에스디케이랩스 | 서울특별시 서초구 우면동 | 사업자등록번호: 424-86-03401</p>
+            <p>주식회사 에스디케이랩스 | 대표: 김선도 | 서울특별시 서초구 우면동 | 사업자등록번호: 424-86-03401</p>
             <p class="mt-1">&copy; 2026 처치레(ChurchRe) All rights reserved.</p>
         </footer>
     </div>
@@ -268,7 +268,7 @@
                             <p><strong>처치레(ChurchRe) 고객센터</strong></p>
                             <p>이메일: <a href="mailto:support@church.re.kr" class="text-violet-600 underline">support@church.re.kr</a></p>
                             <p>운영시간: 평일 09:00 ~ 18:00 (공휴일 제외)</p>
-                            <p>사업자: 주식회사 에스디케이랩스 (424-86-03401)</p>
+                            <p>사업자: 주식회사 에스디케이랩스 | 대표: 김선도 (424-86-03401)</p>
                         </div>
                     </section>
                 </div>
@@ -276,7 +276,7 @@
         </section>
 
         <footer class="border-t py-8 text-center text-xs text-gray-400">
-            <p>주식회사 에스디케이랩스 | 서울특별시 서초구 우면동 | 사업자등록번호: 424-86-03401</p>
+            <p>주식회사 에스디케이랩스 | 대표: 김선도 | 서울특별시 서초구 우면동 | 사업자등록번호: 424-86-03401</p>
             <p class="mt-1">&copy; 2026 처치레(ChurchRe) All rights reserved.</p>
         </footer>
     </div>
@@ -508,7 +508,7 @@
                 <span class="text-xl">⛪</span>
                 <span class="bg-gradient-to-r from-violet-600 to-blue-500 bg-clip-text font-bold text-transparent">처치레(ChurchRe)</span>
             </div>
-            <p class="text-xs text-gray-400">주식회사 에스디케이랩스 | 서울특별시 서초구 우면동 | 사업자등록번호: 424-86-03401</p>
+            <p class="text-xs text-gray-400">주식회사 에스디케이랩스 | 대표: 김선도 | 서울특별시 서초구 우면동 | 사업자등록번호: 424-86-03401</p>
             <p class="mt-1 text-xs text-gray-400">&copy; 2026 처치레(ChurchRe) All rights reserved.</p>
         </div>
     </footer>
