@@ -27,27 +27,9 @@
         | undefined;
     const hasSSRData = !!ssrData?.data;
 
-    // 마지막 선택 탭 복원 (localStorage > SSR period > 시간대 기본값)
-    function getSavedTab(): RecommendedPeriod | null {
-        if (typeof window === 'undefined') return null;
-        try {
-            const saved = localStorage.getItem(
-                'angple_recommended_tab'
-            ) as RecommendedPeriod | null;
-            if (saved && ['1h', '3h', '6h', '12h', '24h', '48h'].includes(saved)) {
-                return saved;
-            }
-        } catch {
-            /* ignore */
-        }
-        return null;
-    }
-
-    const savedTab = getSavedTab();
-    // SSR 데이터가 있으면 SSR period로 시작 (스켈레톤 방지), 없으면 저장된 탭 사용
-    const initialTab = hasSSRData
-        ? (ssrData!.period as RecommendedPeriod)
-        : (savedTab ?? defaultTab);
+    // SSR 데이터가 있으면 SSR period로 시작 (스켈레톤 방지)
+    // localStorage 탭 저장 제거 — SSR 불일치로 인한 스켈레톤 원인이었음
+    const initialTab = hasSSRData ? (ssrData!.period as RecommendedPeriod) : defaultTab;
     const canUseSSR = hasSSRData;
 
     let activeTab = $state<RecommendedPeriod>(initialTab);
@@ -143,22 +125,11 @@
     function handleTabChange(tabId: RecommendedPeriod) {
         activeTab = tabId;
         loadData(tabId);
-        // 탭 선택 저장 (뒤로가기 시 복원)
-        try {
-            localStorage.setItem('angple_recommended_tab', tabId);
-        } catch {
-            /* ignore */
-        }
     }
 
     onMount(() => {
         if (!canUseSSR) {
-            // SSR 데이터 없으면 클라이언트에서 fetch
             loadData(activeTab, true);
-        } else if (savedTab && savedTab !== ssrData!.period) {
-            // SSR 데이터로 일단 표시 중 → 저장된 탭으로 백그라운드 전환
-            loadData(savedTab as RecommendedPeriod);
-            activeTab = savedTab as RecommendedPeriod;
         }
     });
 </script>
