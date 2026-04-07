@@ -1362,7 +1362,7 @@
 
     <!-- 브레드크럼 -->
     <nav
-        class="text-muted-foreground -mx-5 mb-1 flex items-center gap-1 px-5 text-sm md:mx-0 md:px-0"
+        class="text-muted-foreground -mx-2 mb-1 flex items-center gap-1 px-2 text-sm md:mx-0 md:px-0"
         aria-label="breadcrumb"
     >
         <a href="/" class="hover:text-foreground transition-colors">홈</a>
@@ -1375,7 +1375,7 @@
     </nav>
 
     <!-- 상단 네비게이션 -->
-    <div class="-mx-5 mb-2 flex items-center gap-3 px-5 py-2 md:mx-0 md:px-0">
+    <div class="-mx-2 mb-2 flex items-center gap-3 px-2 py-2 md:mx-0 md:px-0">
         <Button variant="ghost" size="sm" onclick={() => history.back()} class="shrink-0">←</Button>
         <Button variant="outline" size="sm" onclick={goBack} class="shrink-0">목록으로</Button>
 
@@ -1791,7 +1791,7 @@
         {/if}
 
         <!-- 댓글 아래 네비게이션 -->
-        <div class="-mx-5 mt-4 flex items-center gap-3 px-5 py-2 md:mx-0 md:px-0">
+        <div class="-mx-2 mt-4 flex items-center gap-3 px-2 py-2 md:mx-0 md:px-0">
             <Button variant="ghost" size="sm" onclick={() => history.back()} class="shrink-0"
                 >←</Button
             >
