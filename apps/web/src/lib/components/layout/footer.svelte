@@ -37,14 +37,14 @@
     const sections = [
         { title: '서비스', links: serviceLinks },
         { title: '커뮤니티', links: communityLinks },
-        { title: '운영', links: operationLinks }
+        { title: '안내', links: operationLinks }
     ];
 
     // 외부 링크 (아이콘 한 줄)
     const externalLinks = [
         { name: '스마트스토어', href: 'https://smartstore.naver.com/damoang-net/' },
         { name: '마플샵', href: 'https://marpple.shop/kr/dma' },
-        { name: '앙팡팡', href: 'https://www.youtube.com/@AngPangPang' },
+        { name: '유튜브', href: 'https://www.youtube.com/@damoangnet' },
         { name: 'X', href: 'https://x.com/@damoang_net' }
     ];
 
