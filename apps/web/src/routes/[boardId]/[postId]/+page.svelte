@@ -1772,7 +1772,7 @@
                                 새로고침
                             </button>
                         </div>
-                        {#if boardId === 'claim' && authStore.user?.mb_id !== data.post.author_id && (authStore.user?.as_level ?? 0) < 10}
+                        {#if boardId === 'claim' && authStore.user?.mb_id !== data.post.author_id && (authStore.user?.mb_level ?? 0) < 10}
                             <p class="text-muted-foreground py-4 text-center text-sm">
                                 소명 게시판에서는 관리자와 글 작성자만 댓글을 작성할 수 있습니다.
                             </p>
