@@ -6,8 +6,14 @@
     // TOP 버튼 표시 여부
     let showTopButton = $state(false);
 
+    let scrollRafPending = false;
     function handleScroll() {
-        showTopButton = window.scrollY > 300;
+        if (scrollRafPending) return;
+        scrollRafPending = true;
+        requestAnimationFrame(() => {
+            showTopButton = window.scrollY > 300;
+            scrollRafPending = false;
+        });
     }
 
     function scrollToTop() {

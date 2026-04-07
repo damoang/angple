@@ -158,6 +158,14 @@
                 <li class="text-border">·</li>
                 <li>
                     <a
+                        href="/content/operation_policy_add"
+                        class="text-muted-foreground hover:text-primary transition-colors"
+                        >이용제한사유 안내</a
+                    >
+                </li>
+                <li class="text-border">·</li>
+                <li>
+                    <a
                         href="/content/contract"
                         class="text-muted-foreground hover:text-primary transition-colors"
                         >광고 운영정책</a
