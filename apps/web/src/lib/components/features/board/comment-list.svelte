@@ -160,7 +160,10 @@
     const EDIT_MAX_IMAGES = 3;
     const EDIT_MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
 
-    function editTriggerFileSelect(): void {
+    async function editTriggerFileSelect(): Promise<void> {
+        if (!LazyCommentEditor) {
+            await ensureEditEditorLoaded();
+        }
         if (editFileInputRef) editFileInputRef.value = '';
         editFileInputRef?.click();
     }
@@ -170,6 +173,10 @@
     }
 
     async function editHandleFiles(files: FileList | File[]): Promise<void> {
+        if (!editEditorRef) {
+            await ensureEditEditorLoaded();
+            await tick();
+        }
         const fileArray = Array.from(files);
         const insertedImageCount = editEditorRef?.getImageCount() ?? 0;
         const remaining = EDIT_MAX_IMAGES - insertedImageCount;
@@ -408,17 +415,24 @@
         return false;
     }
 
+    let editEditorLoadPromise: Promise<void> | null = null;
+
+    function ensureEditEditorLoaded(): Promise<void> {
+        if (LazyCommentEditor) return Promise.resolve();
+        if (editEditorLoadPromise) return editEditorLoadPromise;
+        editEditorLoadPromise = import('./comment-editor.svelte').then((m) => {
+            LazyCommentEditor = m.default;
+        });
+        return editEditorLoadPromise;
+    }
+
     // 수정 모드 시작
     function startEdit(comment: FreeComment): void {
         const target = commentTree.find((c) => c.id === comment.id) ?? comment;
         editingCommentId = String(target.id);
         editContent = target.content;
         replyingToCommentId = null;
-        if (!LazyCommentEditor) {
-            import('./comment-editor.svelte').then((m) => {
-                LazyCommentEditor = m.default;
-            });
-        }
+        ensureEditEditorLoaded();
     }
 
     // 수정 취소
