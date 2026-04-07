@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { untrack } from 'svelte';
+    import { untrack, tick } from 'svelte';
     import { afterNavigate } from '$app/navigation';
     import { Button } from '$lib/components/ui/button/index.js';
 
@@ -104,13 +104,17 @@
     let LazyCommentEditor = $state<Component | null>(null);
     let editorLoading = $state(false);
 
-    function loadEditor(): void {
-        if (LazyCommentEditor || editorLoading) return;
+    let editorLoadPromise: Promise<void> | null = null;
+
+    function loadEditor(): Promise<void> {
+        if (LazyCommentEditor) return Promise.resolve();
+        if (editorLoadPromise) return editorLoadPromise;
         editorLoading = true;
-        import('./comment-editor.svelte').then((m) => {
+        editorLoadPromise = import('./comment-editor.svelte').then((m) => {
             LazyCommentEditor = m.default;
             editorLoading = false;
         });
+        return editorLoadPromise;
     }
 
     // 대댓글: 폼이 마운트되면 바로 에디터 로드 시작
@@ -183,12 +187,19 @@
         editorRef?.insertContent(text);
     }
 
-    function triggerFileSelect(): void {
+    async function triggerFileSelect(): Promise<void> {
+        await loadEditor();
         if (fileInputRef) fileInputRef.value = '';
         fileInputRef?.click();
     }
 
     async function handleFiles(files: FileList | File[]): Promise<void> {
+        // 에디터가 아직 초기화 안 됐으면 로드 대기
+        if (!editorRef) {
+            await loadEditor();
+            // 에디터 컴포넌트 마운트 대기 (tick)
+            await tick();
+        }
         const fileArray = Array.from(files);
         const insertedImageCount = editorRef?.getImageCount() ?? 0;
         const remaining = MAX_IMAGES - insertedImageCount;
