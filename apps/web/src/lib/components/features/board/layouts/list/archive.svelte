@@ -211,21 +211,25 @@
     }
 
     .post-title-read-dimmed {
+        font-size: var(--list-font-size, 1rem);
         color: var(--color-muted-foreground);
         opacity: 0.55;
     }
 
     .post-title-read-bold {
+        font-size: var(--list-font-size, 1rem);
         color: var(--color-muted-foreground);
         font-weight: 700;
     }
 
     .post-title-read-italic {
+        font-size: var(--list-font-size, 1rem);
         color: var(--color-muted-foreground);
         font-style: italic;
     }
 
     .post-title-read-strikethrough {
+        font-size: var(--list-font-size, 1rem);
         color: var(--color-muted-foreground);
         text-decoration: line-through;
     }
