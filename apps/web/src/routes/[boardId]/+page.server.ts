@@ -31,6 +31,25 @@ interface PostsCacheData {
     error: string | null;
 }
 
+type ListBoardPayload = Pick<
+    Board,
+    | 'board_id'
+    | 'subject'
+    | 'name'
+    | 'list_level'
+    | 'read_level'
+    | 'write_level'
+    | 'reply_level'
+    | 'comment_level'
+    | 'upload_level'
+    | 'download_level'
+    | 'use_nogood'
+    | 'category_list'
+    | 'display_settings'
+    | 'permissions'
+    | 'board_type'
+>;
+
 const CONTENT_HEAVY_LIST_LAYOUTS = new Set([
     'detailed',
     'webzine',
@@ -87,6 +106,28 @@ function maybeTrimBoardListPayload(
     };
 }
 
+function toListBoardPayload(board: Board | null): ListBoardPayload | null {
+    if (!board) return null;
+
+    return {
+        board_id: board.board_id,
+        subject: board.subject,
+        name: board.name,
+        list_level: board.list_level,
+        read_level: board.read_level,
+        write_level: board.write_level,
+        reply_level: board.reply_level,
+        comment_level: board.comment_level,
+        upload_level: board.upload_level,
+        download_level: board.download_level,
+        use_nogood: board.use_nogood,
+        category_list: board.category_list,
+        display_settings: board.display_settings,
+        permissions: board.permissions,
+        board_type: board.board_type
+    };
+}
+
 function enrichGivingPosts(posts: FreePost[]): void {
     for (const post of posts) {
         const giving = resolveGivingMeta(post);
@@ -112,7 +153,13 @@ const HOT_BOARD_POSTS_TIMEOUT_MS = 8_000;
  * posts/notices: SSR에서 완료 후 반환
  * promotions: 스트리밍 (핵심 본문과 분리)
  */
-export const load: PageServerLoad = async ({ url, params, locals, getClientAddress }) => {
+export const load: PageServerLoad = async ({
+    url,
+    params,
+    locals,
+    getClientAddress,
+    isDataRequest
+}) => {
     const canonicalBoardId = await resolveCanonicalBoardId(params.boardId);
     if (canonicalBoardId !== params.boardId) {
         redirect(301, `/${canonicalBoardId}${url.search}`);
@@ -536,7 +583,8 @@ export const load: PageServerLoad = async ({ url, params, locals, getClientAddre
     };
 
     // 캐시 warm → SSR 직접 포함 (스켈레톤 없음), cold → 스트리밍
-    const cacheWarm = !isSearching && !isPromotionBoard && (await isPromotionCacheWarm());
+    const cacheWarm =
+        !isDataRequest && !isSearching && !isPromotionBoard && (await isPromotionCacheWarm());
     const promotionData = cacheWarm ? await fetchFilteredPromotionPosts() : null;
     const promotionDataPromise = cacheWarm ? null : fetchFilteredPromotionPosts();
 
@@ -558,7 +606,7 @@ export const load: PageServerLoad = async ({ url, params, locals, getClientAddre
 
     return {
         boardId,
-        board,
+        board: toListBoardPayload(board),
         searchParams: isSearching ? { field: searchField!, query: searchQuery! } : null,
         activeTag: tag,
         watermark,

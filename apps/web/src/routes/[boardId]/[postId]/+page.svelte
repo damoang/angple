@@ -1139,6 +1139,11 @@
         const loaded = comments.length;
         if (total <= loaded) return;
 
+        if (loaded === 0) {
+            void refetchComments();
+            return;
+        }
+
         const timer = window.setTimeout(() => {
             void refetchComments();
         }, 1500);

@@ -1,6 +1,6 @@
 import { error, redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types.js';
-import type { FreePost } from '$lib/api/types.js';
+import type { Board, FreePost } from '$lib/api/types.js';
 import { fetchPromotionPosts, fetchPromotionBoardPosts } from '$lib/server/ads/promotion.js';
 import {
     applyAffiliateField,
@@ -32,6 +32,44 @@ import { BackendUnavailableError } from '$lib/server/backend-fetch.js';
  * 1단계 (즉시 await): post, board, displaySettings, files → 본문, SEO, 권한
  * 2단계 (스트리밍):   comments, promotions, revisions → 스켈레톤 먼저 표시
  */
+
+type DetailBoardPayload = Pick<
+    Board,
+    | 'board_id'
+    | 'subject'
+    | 'name'
+    | 'read_level'
+    | 'write_level'
+    | 'reply_level'
+    | 'comment_level'
+    | 'upload_level'
+    | 'download_level'
+    | 'use_nogood'
+    | 'display_settings'
+    | 'permissions'
+    | 'board_type'
+>;
+
+function toDetailBoardPayload(board: Board | null): DetailBoardPayload | null {
+    if (!board) return null;
+
+    return {
+        board_id: board.board_id,
+        subject: board.subject,
+        name: board.name,
+        read_level: board.read_level,
+        write_level: board.write_level,
+        reply_level: board.reply_level,
+        comment_level: board.comment_level,
+        upload_level: board.upload_level,
+        download_level: board.download_level,
+        use_nogood: board.use_nogood,
+        display_settings: board.display_settings,
+        permissions: board.permissions,
+        board_type: board.board_type
+    };
+}
+
 export const load: PageServerLoad = async ({
     params,
     fetch: svelteKitFetch,
@@ -39,7 +77,8 @@ export const load: PageServerLoad = async ({
     url,
     cookies,
     getClientAddress,
-    setHeaders
+    setHeaders,
+    isDataRequest
 }) => {
     const postId = params.postId;
     const canonicalBoardId = await resolveCanonicalBoardId(params.boardId);
@@ -275,6 +314,21 @@ export const load: PageServerLoad = async ({
 
         // --- 2단계: 핵심/보조 데이터를 분리해 스트리밍 ---
         const commentsData = await (async () => {
+            if (isDataRequest) {
+                return {
+                    comments: {
+                        items: [],
+                        total: post.comments_count ?? 0,
+                        page: 1,
+                        limit: initialCommentsLimit,
+                        total_pages:
+                            (post.comments_count ?? 0) > 0
+                                ? Math.ceil((post.comments_count ?? 0) / initialCommentsLimit)
+                                : 0
+                    }
+                };
+            }
+
             const commentsResult = await svelteKitFetch(
                 `${url.origin}/api/boards/${boardId}/posts/${postId}/comments?page=1&limit=${initialCommentsLimit}`
             ).then(async (res) => {
@@ -531,7 +585,7 @@ export const load: PageServerLoad = async ({
         return {
             boardId,
             post,
-            board,
+            board: toDetailBoardPayload(board),
             commentsData,
             isScrapped: false,
             isRestricted: isRestrictedUser(locals.user as AuthUser | null),
