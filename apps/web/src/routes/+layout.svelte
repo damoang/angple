@@ -31,9 +31,12 @@
     import { uiSettingsStore } from '$lib/stores/ui-settings.svelte';
     import { updatePageTargeting } from '$lib/components/ui/ad-slot/ad-slot-registry.js';
     import { consumePendingAuthEvent, initGA4, trackPageView } from '$lib/services/ga4';
+    import type { MenuItem } from '$lib/api/types';
 
     const LAYOUT_INIT_STORAGE_KEY = 'angple:layout-init:v1';
     const LAYOUT_INIT_STORAGE_TTL_MS = 5 * 60 * 1000;
+    const MENU_STORAGE_KEY = 'angple:layout-menus:v1';
+    const MENU_STORAGE_TTL_MS = 60 * 60 * 1000;
 
     type LayoutInitPayload = {
         celebration?: CelebrationBanner[];
@@ -41,6 +44,48 @@
         activePlugins?: ActivePlugin[];
         ga4MeasurementId?: string;
     };
+
+    type CachedMenusPayload = {
+        menus: MenuItem[];
+        savedAt: number;
+    };
+
+    function readCachedMenus(): MenuItem[] | null {
+        if (!browser) return null;
+
+        try {
+            const raw = localStorage.getItem(MENU_STORAGE_KEY);
+            if (!raw) return null;
+
+            const parsed = JSON.parse(raw) as CachedMenusPayload;
+            if (
+                !Array.isArray(parsed.menus) ||
+                typeof parsed.savedAt !== 'number' ||
+                Date.now() - parsed.savedAt > MENU_STORAGE_TTL_MS
+            ) {
+                localStorage.removeItem(MENU_STORAGE_KEY);
+                return null;
+            }
+
+            return parsed.menus;
+        } catch {
+            return null;
+        }
+    }
+
+    function writeCachedMenus(menus: MenuItem[]) {
+        if (!browser || menus.length === 0) return;
+
+        try {
+            const payload: CachedMenusPayload = {
+                menus,
+                savedAt: Date.now()
+            };
+            localStorage.setItem(MENU_STORAGE_KEY, JSON.stringify(payload));
+        } catch {
+            // noop
+        }
+    }
 
     // 지연 로딩 모듈 참조
     let keyboardShortcutsMod: typeof import('$lib/services/keyboard-shortcuts.svelte') | null =
@@ -141,7 +186,10 @@
         const menus = data.menus || [];
         untrack(() => {
             themeStore.initFromServer(theme);
-            menuStore.initFromServer(menus);
+            if (menus.length > 0) {
+                menuStore.initFromServer(menus);
+                writeCachedMenus(menus);
+            }
         });
     });
 
@@ -361,6 +409,28 @@
     }
 
     onMount(() => {
+        const cachedMenus = readCachedMenus();
+        if (cachedMenus) {
+            menuStore.initFromServer(cachedMenus);
+        }
+
+        if ((data.menus?.length ?? 0) === 0 && !cachedMenus) {
+            fetch('/api/layout/menus', {
+                headers: { accept: 'application/json' }
+            })
+                .then((res) => (res.ok ? res.json() : null))
+                .then((payload: { menus?: MenuItem[] } | null) => {
+                    if (!payload) return;
+                    const menus = Array.isArray(payload.menus) ? payload.menus : [];
+                    if (menus.length === 0) return;
+                    menuStore.initFromServer(menus);
+                    writeCachedMenus(menus);
+                })
+                .catch(() => {
+                    // 메뉴 로드 실패해도 기존 네비게이션은 유지
+                });
+        }
+
         // 부분 layout 데이터 로드 (banners, celebration, plugins, GA4)
         // SSR payload에서 분리하여 __data.json 바이트 절감
         const cachedLayoutInit = readLayoutInitCache();
