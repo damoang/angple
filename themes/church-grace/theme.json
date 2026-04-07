@@ -1,0 +1,26 @@
+{
+    "id": "church-grace",
+    "name": "은혜의 교회",
+    "version": "1.0.0",
+    "author": { "name": "SDKLabs", "email": "sdk@sdk.kr" },
+    "description": "따뜻한 우드톤의 전통적인 교회 테마",
+    "angpleVersion": "0.1.0",
+    "tags": ["church", "community", "religious"],
+    "settings": {
+        "church": {
+            "churchName": { "label": "교회 이름", "type": "text", "default": "우리교회" },
+            "serviceTime": { "label": "예배 시간", "type": "text", "default": "주일 오전 11시" },
+            "address": { "label": "교회 주소", "type": "text", "default": "" },
+            "phone": { "label": "연락처", "type": "text", "default": "" },
+            "pastor": { "label": "담임목사", "type": "text", "default": "" }
+        },
+        "appearance": {
+            "primaryColor": { "label": "메인 색상", "type": "color", "default": "#8B4513" },
+            "accentColor": { "label": "강조 색상", "type": "color", "default": "#D4A574" }
+        }
+    },
+    "components": [],
+    "hooks": [],
+    "category": "theme",
+    "license": "MIT"
+}

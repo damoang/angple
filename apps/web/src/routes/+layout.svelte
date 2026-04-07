@@ -27,7 +27,10 @@
     // Vite의 import.meta.glob으로 모든 테마 레이아웃 패턴 정의
     // 상대 경로로 프로젝트 루트의 themes 디렉터리 참조
     // (Vite glob은 alias를 지원하지 않아 상대 경로 필수)
-    const themeLayouts = import.meta.glob('../../../../themes/*/layouts/main-layout.svelte');
+    const themeLayouts = import.meta.glob([
+        '../../../../themes/*/layouts/main-layout.svelte',
+        '../../../../custom-themes/*/layouts/main-layout.svelte'
+    ]);
 
     /**
      * 테마 레이아웃 동적 로드
@@ -42,23 +45,25 @@
         }
 
         try {
-            // Vite glob 패턴과 일치하는 상대 경로 사용
-            const layoutPath = `../../../../themes/${themeId}/layouts/main-layout.svelte`;
-            console.log(`📁 [loadThemeLayout] 레이아웃 경로: ${layoutPath}`);
-            const keys = Object.keys(themeLayouts);
-            console.log(`🔎 [loadThemeLayout] themeLayouts 키 목록:`, keys);
-            console.log(`🔍 [loadThemeLayout] 첫 번째 키 예시:`, keys[0]);
+            // glob 키에서 themeId와 매칭되는 모든 경로 찾기 (themes/ 및 custom-themes/)
+            const suffix = `/${themeId}/layouts/main-layout.svelte`;
+            const candidates = Object.keys(themeLayouts).filter((k) => k.endsWith(suffix));
+            console.log(`📁 [loadThemeLayout] 후보 경로:`, candidates);
 
-            // glob 패턴에 매칭되는 경로가 있는지 확인
-            if (layoutPath in themeLayouts) {
-                console.log(`✨ [loadThemeLayout] 레이아웃 발견! 로딩 시작...`);
-                const module = (await themeLayouts[layoutPath]()) as { default: Component };
-                ThemeLayout = module.default;
-                console.log(`✅ [Layout] 테마 레이아웃 로드: ${themeId}`);
-                console.log(`🎯 [Layout] ThemeLayout 컴포넌트:`, ThemeLayout);
-                console.log(`🔢 [Layout] ThemeLayout이 null인가?`, ThemeLayout === null);
-            } else {
-                // 테마 레이아웃이 없으면 기본 레이아웃 사용
+            let loaded = false;
+            for (const layoutPath of candidates) {
+                try {
+                    const module = (await themeLayouts[layoutPath]()) as { default: Component };
+                    ThemeLayout = module.default;
+                    console.log(`✅ [Layout] 테마 레이아웃 로드: ${themeId} (${layoutPath})`);
+                    loaded = true;
+                    break;
+                } catch {
+                    console.log(`⚠️ [Layout] 경로 실패, 다음 시도: ${layoutPath}`);
+                }
+            }
+
+            if (!loaded) {
                 ThemeLayout = null;
                 console.log(`ℹ️ [Layout] 테마 레이아웃 없음, 기본 레이아웃 사용: ${themeId}`);
             }
@@ -82,8 +87,12 @@
 
     onMount(() => {
         console.log('🚀 [onMount] 컴포넌트 마운트됨');
-        // 테마는 이미 SSR에서 로드되었으므로 loadActiveTheme() 호출 불필요
-        // (깜박임 방지!)
+
+        // SSR에서 테마를 못 받았으면 (CSR 모드) API에서 로드
+        if (!themeStore.currentTheme.activeTheme) {
+            console.log('🔄 [onMount] SSR 테마 없음, API에서 로드');
+            themeStore.loadActiveTheme();
+        }
 
         // 인증 상태 초기화
         authActions.initAuth();
@@ -141,10 +150,20 @@
 </script>
 
 <svelte:head>
-    <title>다모앙</title>
+    <title>{data.siteTitle || '다모앙'}</title>
+    {#if data.siteDescription}
+        <meta name="description" content={data.siteDescription} />
+        <meta property="og:title" content={data.siteTitle} />
+        <meta property="og:description" content={data.siteDescription} />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="{data.siteUrl}{data.pathname}" />
+        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:title" content={data.siteTitle} />
+        <meta name="twitter:description" content={data.siteDescription} />
+        <link rel="canonical" href="{data.siteUrl}{data.pathname}" />
+    {/if}
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="icon" href={favicon} />
-    <!-- Wanted Sans Font -->
     <link
         rel="stylesheet"
         href="https://cdn.jsdelivr.net/gh/wanteddev/wanted-sans@v1.0.3/packages/wanted-sans/fonts/webfonts/static/split/WantedSans.min.css"

@@ -80,7 +80,10 @@ export async function loadThemeComponents(themeId: string): Promise<boolean> {
                 );
 
                 // 동적 import (Vite glob import 사용)
-                const modules = import.meta.glob('../../../../../themes/**/*.svelte');
+                const modules = import.meta.glob([
+                    '../../../../../themes/**/*.svelte',
+                    '../../../../../custom-themes/**/*.svelte'
+                ]);
                 const moduleKey = componentPath;
 
                 console.log(

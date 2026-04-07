@@ -1,3 +1,3 @@
-// 개발: CSR, 배포: SSR (.env 파일에서 제어)
-export const ssr = import.meta.env.PUBLIC_SSR === 'true';
+// SSR 기본 활성화 (angple-web 공식 이미지와 동일)
+export const ssr = import.meta.env.VITE_SSR !== 'false';
 export const prerender = false;

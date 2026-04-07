@@ -62,6 +62,9 @@ COPY packages ./packages
 # Copy themes (for $themes alias in vite.config.ts)
 COPY themes ./themes
 
+# Copy custom themes (user-uploaded / muzia etc.)
+COPY custom-themes ./custom-themes
+
 # Copy application source
 COPY apps/web ./apps/web
 
@@ -93,6 +96,9 @@ COPY --from=builder --chown=nodeuser:nodeuser /app/deploy ./
 
 # Copy themes for runtime (theme scanner needs this)
 COPY --from=builder --chown=nodeuser:nodeuser /app/themes ./themes
+
+# Copy custom themes for runtime
+COPY --from=builder --chown=nodeuser:nodeuser /app/custom-themes ./custom-themes
 
 # Create data directory for settings
 RUN mkdir -p /app/data && chown nodeuser:nodeuser /app/data

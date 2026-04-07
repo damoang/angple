@@ -21,15 +21,29 @@ async function proxyRequest(
 ): Promise<Response> {
     const path = params.path || '';
     const url = new URL(request.url);
-    const targetUrl = `${BACKEND_URL}/api/v2/${path}${url.search}`;
+
+    // 차단된 게시판 접근 거부
+    const blockedBoards = ['black', 'archive', 'cp_qna', 'cp_forum', 'cp_forum2', 'piano'];
+    const boardMatch = path.match(/^boards\/([^/]+)/);
+    if (boardMatch && blockedBoards.includes(boardMatch[1])) {
+        return new Response(JSON.stringify({ success: false, error: '접근할 수 없는 게시판입니다' }), {
+            status: 403, headers: { 'Content-Type': 'application/json' }
+        });
+    }
+
+    // v2 boards/posts → v1로 리라이팅 (v2 스키마 미지원 시)
+    const isV1Board = path.startsWith('boards/') && !path.startsWith('boards/create');
+    const apiVersion = isV1Board ? 'v1' : 'v2';
+    const targetUrl = `${BACKEND_URL}/api/${apiVersion}/${path}${url.search}`;
 
     console.log(`[API Proxy] ${method} ${url.pathname} → ${targetUrl}`);
 
     try {
-        // 헤더 복사 (host 제외)
+        // 헤더 복사 (hop-by-hop 헤더 제외)
         const headers = new Headers();
+        const skipHeaders = new Set(['host', 'connection', 'keep-alive', 'transfer-encoding', 'upgrade', 'origin', 'referer']);
         request.headers.forEach((value, key) => {
-            if (key.toLowerCase() !== 'host') {
+            if (!skipHeaders.has(key.toLowerCase())) {
                 headers.set(key, value);
             }
         });
@@ -49,13 +63,66 @@ async function proxyRequest(
             }
         }
 
+        // OAuth 리다이렉트는 따라가지 않고 클라이언트에 전달
+        const isOAuth = path.startsWith('auth/oauth');
+
         const response = await fetch(targetUrl, {
             method,
             headers,
             body,
+            redirect: isOAuth ? 'manual' : 'follow',
             // @ts-expect-error - Node.js fetch specific option
             duplex: body instanceof ReadableStream ? 'half' : undefined
         });
+
+        // OAuth 리다이렉트 → 클라이언트에 302로 전달 (모든 Set-Cookie 포함)
+        if (isOAuth && (response.status === 301 || response.status === 302 || response.status === 307 || response.status === 308)) {
+            const location = response.headers.get('location');
+            if (location) {
+                const redirectHeaders = new Headers({ 'Location': location });
+                // getSetCookie()로 모든 Set-Cookie 헤더 전달 (oauth_state 등)
+                const cookies = response.headers.getSetCookie?.() ?? [];
+                if (cookies.length > 0) {
+                    cookies.forEach(c => redirectHeaders.append('Set-Cookie', c));
+                } else {
+                    const fallback = response.headers.get('set-cookie');
+                    if (fallback) redirectHeaders.append('Set-Cookie', fallback);
+                }
+                return new Response(null, { status: 302, headers: redirectHeaders });
+            }
+        }
+
+        // OAuth 콜백 성공 → access_token을 쿠키에 저장하고 홈으로 리다이렉트
+        if (isOAuth && path.includes('/callback') && response.status === 200) {
+            try {
+                const data = await response.json();
+                if (data?.data?.access_token) {
+                    const token = data.data.access_token;
+                    // XSS 방지: JSON.stringify로 안전하게 토큰 삽입
+                    const safeToken = JSON.stringify(token);
+
+                    const html = `<!DOCTYPE html><html><head><title>로그인 중...</title></head><body>
+                        <script>
+                            try {
+                                var t = ${safeToken};
+                                localStorage.setItem('access_token', t);
+                                document.cookie = 'damoang_jwt=' + t + '; path=/; max-age=${7 * 24 * 3600}; SameSite=Lax';
+                            } catch(e) { console.error('Token storage failed:', e); }
+                            window.location.replace('/');
+                        </script>
+                        <p>로그인 중입니다...</p>
+                    </body></html>`;
+
+                    const respHeaders = new Headers({
+                        'Content-Type': 'text/html; charset=utf-8',
+                    });
+                    // damoang_jwt 쿠키도 서버 측에서 설정 (JS 차단 대비)
+                    respHeaders.append('Set-Cookie', `damoang_jwt=${token}; Path=/; Max-Age=${7 * 24 * 3600}; SameSite=Lax`);
+
+                    return new Response(html, { status: 200, headers: respHeaders });
+                }
+            } catch { /* JSON 파싱 실패 시 원본 응답 반환 */ }
+        }
 
         // 응답 헤더 복사
         const responseHeaders = new Headers();

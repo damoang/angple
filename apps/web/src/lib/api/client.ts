@@ -73,6 +73,9 @@ console.log('[API Client] Final API_BASE_URL:', API_BASE_URL);
  * 4. 로그아웃: Backend가 쿠키 만료 처리
  */
 class ApiClient {
+    // 토큰 갱신 중복 방지
+    private refreshPromise: Promise<string | null> | null = null;
+
     // 액세스 토큰 가져오기 헬퍼
     private getAccessToken(): string | null {
         if (!browser) return null;
@@ -93,11 +96,49 @@ class ApiClient {
         return accessToken;
     }
 
-    // HTTP 요청 헬퍼
-    private async request<T>(endpoint: string, options: RequestInit = {}): Promise<ApiResponse<T>> {
+    // 토큰 갱신 (중복 요청 방지)
+    private async refreshAccessToken(): Promise<string | null> {
+        if (this.refreshPromise) return this.refreshPromise;
+
+        this.refreshPromise = (async () => {
+            try {
+                console.log('[API] Refreshing access token...');
+                const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include' // refresh_token httpOnly 쿠키 전송
+                });
+
+                if (!response.ok) {
+                    console.warn('[API] Token refresh failed:', response.status);
+                    return null;
+                }
+
+                const data = await response.json();
+                const newToken = data?.data?.access_token || data?.access_token;
+                if (newToken && browser) {
+                    localStorage.setItem('access_token', newToken);
+                    console.log('[API] Access token refreshed successfully');
+                }
+                return newToken || null;
+            } catch (err) {
+                console.error('[API] Token refresh error:', err);
+                return null;
+            } finally {
+                this.refreshPromise = null;
+            }
+        })();
+
+        return this.refreshPromise;
+    }
+
+    // 자동 갱신 제외 대상
+    private static NO_REFRESH_ENDPOINTS = ['/auth/login', '/auth/logout', '/auth/refresh', '/auth/register'];
+
+    // HTTP 요청 실행
+    private async doFetch<T>(endpoint: string, options: RequestInit = {}): Promise<{ response: Response; data?: any }> {
         const url = `${API_BASE_URL}${endpoint}`;
 
-        // 서버/클라이언트 환경 로깅
         console.log(`[API] ${browser ? 'Client' : 'Server'} → ${url}`);
 
         const headers: Record<string, string> = {
@@ -105,59 +146,75 @@ class ApiClient {
             ...(options.headers as Record<string, string>)
         };
 
-        // 브라우저 환경에서 access_token을 자동으로 헤더에 추가
         const accessToken = this.getAccessToken();
         if (accessToken) {
             headers['Authorization'] = `Bearer ${accessToken}`;
         }
 
+        const response = await fetch(url, {
+            ...options,
+            headers,
+            credentials: 'include'
+        });
+
+        console.log(`[API] Response status:`, response.status, response.statusText);
+
+        if (response.status === 204 || response.headers.get('content-length') === '0') {
+            return { response };
+        }
+
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+            try {
+                const data = await response.json();
+                console.log(`[API] Response data:`, JSON.stringify(data).substring(0, 200));
+                return { response, data };
+            } catch (parseError) {
+                console.error('[API] JSON 파싱 에러:', parseError);
+                throw new Error('서버 응답을 처리할 수 없습니다.');
+            }
+        }
+
+        return { response };
+    }
+
+    // HTTP 요청 헬퍼 (401 시 자동 토큰 갱신)
+    private async request<T>(endpoint: string, options: RequestInit = {}): Promise<ApiResponse<T>> {
         try {
-            const response = await fetch(url, {
-                ...options,
-                headers,
-                credentials: 'include' // httpOnly 쿠키 자동 전송
-            });
+            let { response, data } = await this.doFetch<T>(endpoint, options);
 
-            console.log(`[API] Response status:`, response.status, response.statusText);
-
-            // 204 No Content 또는 빈 응답 처리
-            if (response.status === 204 || response.headers.get('content-length') === '0') {
-                console.log(`[API] Empty response (204 or no content)`);
-                if (!response.ok) {
-                    throw new Error('요청 실패');
+            // 401이고 refresh 가능한 엔드포인트면 토큰 갱신 후 재시도
+            if (response.status === 401 && browser && !ApiClient.NO_REFRESH_ENDPOINTS.some(e => endpoint.startsWith(e))) {
+                const newToken = await this.refreshAccessToken();
+                if (newToken) {
+                    // 갱신된 토큰으로 원래 요청 재시도
+                    const retryResult = await this.doFetch<T>(endpoint, options);
+                    response = retryResult.response;
+                    data = retryResult.data;
                 }
+            }
+
+            // 204 / 빈 응답
+            if (response.status === 204 || (!data && response.ok)) {
                 return { data: undefined as T } as ApiResponse<T>;
             }
 
-            // JSON 파싱 시도
-            let data;
-            const contentType = response.headers.get('content-type');
-            if (contentType && contentType.includes('application/json')) {
-                try {
-                    data = await response.json();
-                    console.log(`[API] Response data:`, JSON.stringify(data).substring(0, 200));
-                } catch (parseError) {
-                    console.error('[API] JSON 파싱 에러:', parseError);
-                    throw new Error('서버 응답을 처리할 수 없습니다.');
-                }
-            } else {
-                // JSON이 아닌 응답 (HTML 등)
-                if (!response.ok) {
-                    throw new Error(`서버 에러 (${response.status})`);
-                }
+            // JSON 아닌 응답
+            if (data === undefined) {
+                if (!response.ok) throw new Error(`서버 에러 (${response.status})`);
                 return { data: undefined as T } as ApiResponse<T>;
             }
 
             if (!response.ok) {
                 console.error(`[API] Error response:`, data);
-                throw new Error((data as ApiError).error || '요청 실패');
+                const apiErr = (data as ApiError).error;
+                const errMsg = typeof apiErr === 'string' ? apiErr : (apiErr as any)?.message || '요청 실패';
+                throw new Error(errMsg);
             }
 
             return data as ApiResponse<T>;
         } catch (error) {
             console.error('[API] 요청 에러:', error);
-            console.error('[API] URL:', url);
-            console.error('[API] Options:', options);
             throw error;
         }
     }

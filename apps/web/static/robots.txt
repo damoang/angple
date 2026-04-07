@@ -1,3 +1,15 @@
-# allow crawling everything by default
+# muzia.net robots.txt
 User-agent: *
-Disallow:
+Disallow: /black
+Disallow: /black/
+Disallow: /archive
+Disallow: /archive/
+Disallow: /cp_qna
+Disallow: /cp_forum
+Disallow: /cp_forum2
+Disallow: /admin
+Disallow: /install
+Disallow: /piano
+Disallow: /piano/
+
+Sitemap: https://muzia.net/sitemap.xml
