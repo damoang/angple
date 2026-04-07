@@ -1649,7 +1649,7 @@
 
         <!-- 댓글 섹션 -->
         {#if canViewSecret && commentsError}
-            <Card class="bg-background px-1 md:px-5">
+            <Card class="bg-background px-3 md:px-5">
                 <CardContent class="space-y-4 py-8 text-center">
                     <p class="text-destructive text-sm">댓글을 불러오지 못했습니다.</p>
                     {#if commentsRecoveryVisible}
@@ -1679,7 +1679,7 @@
                 </CardContent>
             </Card>
         {:else if canViewSecret}
-            <Card id="comments" class="bg-background rounded-xl px-1 md:px-5">
+            <Card id="comments" class="bg-background rounded-xl px-3 md:px-5">
                 <CardHeader class="flex flex-row items-center justify-between">
                     <div class="flex items-center gap-2">
                         <h3 class="text-foreground text-lg font-semibold">
