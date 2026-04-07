@@ -106,11 +106,16 @@
                 continue;
             }
             if (!componentCache.has(type)) {
-                loadWidgetComponent(type).then((component) => {
-                    componentCache.set(type, component);
-                    // SvelteMap is reactive, just copy entries to trigger updates
-                    loadedComponents.set(type, component);
-                });
+                loadWidgetComponent(type)
+                    .then((component) => {
+                        componentCache.set(type, component);
+                        // SvelteMap is reactive, just copy entries to trigger updates
+                        loadedComponents.set(type, component);
+                    })
+                    .catch(() => {
+                        componentCache.set(type, null);
+                        loadedComponents.set(type, null);
+                    });
             }
         }
     });

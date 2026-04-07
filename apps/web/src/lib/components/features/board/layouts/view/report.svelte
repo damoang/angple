@@ -249,7 +249,7 @@
 </script>
 
 <!-- 운영 리포트 카드 -->
-<Card class="bg-background mb-6">
+<Card class="bg-background mb-6 px-3 md:px-5">
     <CardHeader class="space-y-3">
         <div>
             {#if post.category}
