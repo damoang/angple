@@ -358,26 +358,25 @@
 
         <!-- 글자 크기 조절 -->
         <div class="mb-1 flex items-center justify-end gap-1">
-            <span class="text-muted-foreground mr-1 text-xs font-medium">글자크기</span>
             <button
                 type="button"
-                class="text-muted-foreground hover:text-foreground active:bg-muted border-border hover:bg-muted rounded border px-3 py-1.5 text-xs transition-colors disabled:opacity-30"
+                class="text-muted-foreground hover:text-foreground active:bg-muted border-border hover:bg-muted rounded border px-2.5 py-1.5 text-xs transition-colors disabled:opacity-30"
                 disabled={currentFontSize === 'small'}
                 onclick={() => uiSettingsStore.changeContentFontSize(-1)}
-                aria-label="글자 작게">작게</button
+                aria-label="글자 작게">- 작게</button
             >
             <button
                 type="button"
-                class="text-muted-foreground hover:text-foreground active:bg-muted border-border hover:bg-muted rounded border px-3 py-1.5 text-xs transition-colors"
+                class="text-muted-foreground hover:text-foreground active:bg-muted border-border hover:bg-muted rounded border px-2.5 py-1.5 text-xs transition-colors"
                 onclick={() => uiSettingsStore.changeContentFontSize(0)}
                 aria-label="글자 기본">보통</button
             >
             <button
                 type="button"
-                class="text-muted-foreground hover:text-foreground active:bg-muted border-border hover:bg-muted rounded border px-3 py-1.5 text-xs transition-colors disabled:opacity-30"
+                class="text-muted-foreground hover:text-foreground active:bg-muted border-border hover:bg-muted rounded border px-2.5 py-1.5 text-xs transition-colors disabled:opacity-30"
                 disabled={currentFontSize === '3xlarge'}
                 onclick={() => uiSettingsStore.changeContentFontSize(1)}
-                aria-label="글자 크게">크게</button
+                aria-label="글자 크게">크게 +</button
             >
         </div>
 
