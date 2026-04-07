@@ -352,29 +352,34 @@
         color: var(--color-foreground);
     }
 
-    /* 읽은 글 스타일 옵션 */
+    /* 읽은 글 스타일 옵션 — font-size 명시 (CSS 특이성 문제 방지) */
     .post-title-read-dimmed {
+        font-size: var(--list-font-size, 1rem);
         color: var(--color-muted-foreground);
         opacity: 0.55;
     }
 
     .post-title-read-bold {
+        font-size: var(--list-font-size, 1rem);
         color: var(--color-muted-foreground);
         font-weight: 700;
     }
 
     .post-title-read-italic {
+        font-size: var(--list-font-size, 1rem);
         color: var(--color-muted-foreground);
         font-style: italic;
         font-synthesis: style;
     }
 
     .post-title-read-underline {
+        font-size: var(--list-font-size, 1rem);
         color: var(--color-muted-foreground);
         text-decoration: underline;
     }
 
     .post-title-read-strikethrough {
+        font-size: var(--list-font-size, 1rem);
         color: var(--color-muted-foreground);
         text-decoration: line-through;
     }
