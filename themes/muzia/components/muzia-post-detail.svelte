@@ -2,6 +2,7 @@
     /**
      * Muzia 게시글 상세 — 코어 우회, DB 직접 조회
      * [URL] → <img>, {emo:xxx.gif:50} → 이모지, YouTube → 임베드
+     * 대댓글: wr_comment + wr_comment_reply 기반 계층 표시
      */
     import { browser } from '$app/environment';
     import { Button } from '$lib/components/ui/button';
@@ -18,6 +19,7 @@
     interface Comment {
         id: number; content: string; author: string; author_id: string;
         created_at: string; likes: number; ip: string;
+        wr_comment: number; wr_comment_reply: string;
     }
     interface FileInfo { bf_no: number; bf_file: string; bf_source: string; bf_filesize: number; }
 
@@ -35,6 +37,14 @@
     let fileInput: HTMLInputElement;
     const emojiCount = 160;
     const emojis = Array.from({ length: emojiCount }, (_, i) => `onion-${String(i + 1).padStart(3, '0')}.gif`);
+
+    // 대댓글
+    let replyTo = $state<Comment | null>(null);
+    let replyText = $state('');
+    let replySubmitting = $state(false);
+    let showReplyEmoji = $state(false);
+    let replyUploading = $state(false);
+    let replyFileInput: HTMLInputElement;
 
     function authHeaders(): Record<string, string> {
         if (!browser) return {};
@@ -56,6 +66,10 @@
             .catch(() => error = '게시글을 불러올 수 없습니다')
             .finally(() => loading = false);
     });
+
+    function getDepth(c: Comment): number {
+        return (c.wr_comment_reply || '').length;
+    }
 
     /** [URL] → <img> 변환 */
     function convertBracketImages(html: string): string {
@@ -98,9 +112,37 @@
         finally { isUploading = false; input.value = ''; }
     }
 
+    async function uploadReplyImage(e: Event) {
+        const input = e.target as HTMLInputElement;
+        const file = input.files?.[0];
+        if (!file) return;
+        replyUploading = true;
+        try {
+            const formData = new FormData();
+            formData.append('file', file);
+            const r = await fetch('/api/muzia/upload', { method: 'POST', headers: authHeaders(), body: formData });
+            const d = await r.json();
+            if (d.success) {
+                replyText += `[${d.data.url}]`;
+            } else { alert(typeof d.error === 'object' ? d.error.message : d.error); }
+        } catch { alert('업로드 실패'); }
+        finally { replyUploading = false; input.value = ''; }
+    }
+
     function insertEmoji(emoFile: string) {
-        commentText += `{emo:${emoFile}:50}`;
-        showEmojiPicker = false;
+        if (replyTo) {
+            replyText += `{emo:${emoFile}:50}`;
+            showReplyEmoji = false;
+        } else {
+            commentText += `{emo:${emoFile}:50}`;
+            showEmojiPicker = false;
+        }
+    }
+
+    async function refreshComments() {
+        const r = await fetch(`/api/muzia/post?board=${boardId}&id=${postId}`, { headers: authHeaders() });
+        const d = await r.json();
+        if (d.success) comments = d.data.comments;
     }
 
     async function submitComment() {
@@ -115,13 +157,42 @@
             const d = await r.json();
             if (d.success) {
                 commentText = '';
-                // 댓글 목록 새로고침
-                const r2 = await fetch(`/api/muzia/post?board=${boardId}&id=${postId}`, { headers: authHeaders() });
-                const d2 = await r2.json();
-                if (d2.success) comments = d2.data.comments;
+                await refreshComments();
             } else { alert(typeof d.error === 'object' ? d.error.message : d.error); }
         } catch { alert('댓글 등록 중 오류'); }
         finally { isSubmitting = false; }
+    }
+
+    async function submitReply() {
+        if (!replyText.trim() || replySubmitting || !replyTo) return;
+        replySubmitting = true;
+        try {
+            const r = await fetch('/api/muzia/comment', {
+                method: 'POST',
+                headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+                body: JSON.stringify({ board_id: boardId, post_id: postId, content: replyText, comment_id: replyTo.id })
+            });
+            const d = await r.json();
+            if (d.success) {
+                replyText = '';
+                replyTo = null;
+                showReplyEmoji = false;
+                await refreshComments();
+            } else { alert(typeof d.error === 'object' ? d.error.message : d.error); }
+        } catch { alert('답글 등록 중 오류'); }
+        finally { replySubmitting = false; }
+    }
+
+    function startReply(c: Comment) {
+        replyTo = c;
+        replyText = '';
+        showReplyEmoji = false;
+    }
+
+    function cancelReply() {
+        replyTo = null;
+        replyText = '';
+        showReplyEmoji = false;
     }
 
     function getColor(name: string) {
@@ -213,10 +284,16 @@
 
             <!-- 댓글 목록 -->
             <div class="divide-y">
-                {#each comments as c}
-                    <div class="p-4">
+                {#each comments as c (c.id)}
+                    {@const depth = getDepth(c)}
+                    <div class="p-4" style={depth > 0 ? `padding-left: ${1 + depth * 2}rem` : ''}>
+                        {#if depth > 0}
+                            <div class="mb-2 flex items-center gap-1 text-xs text-muted-foreground">
+                                <span class="text-pink-400">↳</span> 답글
+                            </div>
+                        {/if}
                         <div class="mb-2 flex items-center gap-2">
-                            <div class="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-r {getColor(c.author)} text-xs font-bold text-white">{c.author?.[0]}</div>
+                            <div class="flex {depth > 0 ? 'h-6 w-6' : 'h-7 w-7'} items-center justify-center rounded-full bg-gradient-to-r {getColor(c.author)} text-xs font-bold text-white">{c.author?.[0]}</div>
                             <span class="text-sm font-medium">{c.author}</span>
                             <span class="text-xs text-muted-foreground">{new Date(c.created_at).toLocaleDateString('ko-KR')} {new Date(c.created_at).toLocaleTimeString('ko-KR', {hour:'2-digit',minute:'2-digit'})}</span>
                             {#if c.ip}<span class="text-xs text-muted-foreground">({c.ip})</span>{/if}
@@ -224,14 +301,52 @@
                         <div class="prose prose-sm max-w-none text-sm dark:prose-invert">
                             {@html processContent(c.content)}
                         </div>
-                        {#if c.likes > 0}
-                            <div class="mt-1 text-xs text-muted-foreground">👍 {c.likes}</div>
+                        <div class="mt-1 flex items-center gap-3">
+                            {#if c.likes > 0}
+                                <span class="text-xs text-muted-foreground">👍 {c.likes}</span>
+                            {/if}
+                            <button class="text-xs text-muted-foreground hover:text-pink-500" onclick={() => startReply(c)}>답글</button>
+                        </div>
+
+                        <!-- 인라인 답글 입력 -->
+                        {#if replyTo?.id === c.id}
+                            <div class="mt-3 rounded-lg border bg-muted/30 p-3">
+                                <div class="mb-2 flex items-center justify-between">
+                                    <span class="text-xs text-muted-foreground"><span class="text-pink-400">↳</span> {c.author}님에게 답글</span>
+                                    <button class="text-xs text-muted-foreground hover:text-foreground" onclick={cancelReply}>취소</button>
+                                </div>
+                                <textarea bind:value={replyText} placeholder="답글을 입력하세요..." rows="2"
+                                    class="w-full resize-none rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-pink-400"></textarea>
+                                <div class="mt-2 flex items-center justify-between">
+                                    <div class="flex items-center gap-2">
+                                        <button class="rounded-lg px-2 py-1 text-lg hover:bg-accent" title="이모지" onclick={() => showReplyEmoji = !showReplyEmoji}>😊</button>
+                                        <button class="rounded-lg px-2 py-1 text-lg hover:bg-accent" title="이미지" onclick={() => replyFileInput?.click()}>
+                                            {replyUploading ? '⏳' : '📷'}
+                                        </button>
+                                        <input type="file" accept="image/*" class="hidden" bind:this={replyFileInput} onchange={uploadReplyImage} />
+                                    </div>
+                                    <Button size="sm" class="bg-gradient-to-r from-pink-500 to-purple-600 text-white" onclick={submitReply} disabled={replySubmitting || !replyText.trim()}>
+                                        {replySubmitting ? '등록 중...' : '답글 등록'}
+                                    </Button>
+                                </div>
+                                {#if showReplyEmoji}
+                                    <div class="mt-2 max-h-48 overflow-y-auto rounded-lg border bg-background p-2">
+                                        <div class="grid grid-cols-10 gap-1">
+                                            {#each emojis as emo}
+                                                <button class="rounded p-1 hover:bg-accent" onclick={() => insertEmoji(emo)} title={emo}>
+                                                    <img src="https://muzia.net/nariya/skin/emo/{emo}" alt={emo} class="h-6 w-6" />
+                                                </button>
+                                            {/each}
+                                        </div>
+                                    </div>
+                                {/if}
+                            </div>
                         {/if}
                     </div>
                 {/each}
             </div>
 
-            <!-- 댓글 입력 (목록 아래) -->
+            <!-- 루트 댓글 입력 -->
             <div class="border-t p-4">
                 <div class="flex items-start gap-3">
                     <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-r from-pink-200 to-purple-200 text-xs font-medium text-purple-700">U</div>

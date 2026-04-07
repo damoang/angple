@@ -33,9 +33,9 @@ export const GET: RequestHandler = async ({ url }) => {
             [boardId, postId]
         );
 
-        // 댓글 (created_at ASC — 최신이 아래로)
+        // 댓글 (wr_comment, wr_comment_reply 순 — 대댓글이 부모 아래 위치)
         const [comments] = await pool.query(
-            'SELECT wr_id as id, wr_parent as parent_id, wr_content as content, wr_name as author, mb_id as author_id, wr_datetime as created_at, wr_good as likes, wr_ip as ip FROM `' + tableName + '` WHERE wr_parent = ? AND wr_is_comment > 0 ORDER BY wr_datetime ASC',
+            'SELECT wr_id as id, wr_parent as parent_id, wr_content as content, wr_name as author, mb_id as author_id, wr_datetime as created_at, wr_good as likes, wr_ip as ip, wr_comment, wr_comment_reply FROM `' + tableName + '` WHERE wr_parent = ? AND wr_is_comment > 0 ORDER BY wr_comment, wr_comment_reply',
             [postId]
         );
 
