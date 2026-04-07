@@ -1,13 +1,12 @@
-/* 모바일 좌우 스크롤 방지 (긴 URL, 광고 등으로 인한 레이아웃 밀림 차단) */
+/* 스크롤바 공간 예약 — 드롭다운/모달 열릴 때 콘텐츠 밀림 방지 */
 html {
-    overflow-x: hidden;
     overflow-y: scroll;
-    /* 스크롤바 공간 예약 — 드롭다운/모달 열릴 때 콘텐츠 밀림 방지 */
     scrollbar-gutter: stable;
 }
 
-body {
-    overflow-x: hidden;
+/* 수평 오버플로는 컨테이너 레벨에서 차단 (html/body에서 하면 GPU 스크롤 비활성화) */
+body > div {
+    overflow-x: clip;
 }
 
 @layer components {

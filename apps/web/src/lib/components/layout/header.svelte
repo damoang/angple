@@ -102,8 +102,14 @@
     let isScrolled = $state(false);
 
     // 스크롤 이벤트 핸들러
+    let scrollRafPending = false;
     function handleScroll() {
-        isScrolled = window.scrollY > 0;
+        if (scrollRafPending) return;
+        scrollRafPending = true;
+        requestAnimationFrame(() => {
+            isScrolled = window.scrollY > 0;
+            scrollRafPending = false;
+        });
     }
 
     // 드로워 메뉴 토글
@@ -255,7 +261,7 @@
 </script>
 
 <header
-    class="bg-background border-border fixed left-0 right-0 top-0 z-50"
+    class="bg-background border-border fixed left-0 right-0 top-0 z-50 will-change-[box-shadow,border-color] contain-paint"
     class:shadow-sm={isScrolled}
     class:border-b={isScrolled}
 >
