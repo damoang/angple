@@ -14,7 +14,14 @@ import { hooks } from '@angple/hook-system';
  *
  * celebration + banners: SSR에서 직접 로드하여 클라이언트 /api/init CDN 요청 제거
  */
-export const load: LayoutServerLoad = async ({ locals, depends, url, cookies, request }) => {
+export const load: LayoutServerLoad = async ({
+    locals,
+    depends,
+    url,
+    cookies,
+    request,
+    isDataRequest
+}) => {
     depends('app:layout');
     const requestLocale = resolveLogoRequestLocale({
         pathname: url.pathname,
@@ -53,7 +60,7 @@ export const load: LayoutServerLoad = async ({ locals, depends, url, cookies, re
     // celebration, banners, plugins, ga4는 /api/layout/init에서 클라이언트 로드 (비용 절감)
     const [themeResult, menusResult, logoResult] = await Promise.allSettled([
         getActiveTheme(),
-        loadMenus(),
+        isDataRequest ? Promise.resolve([]) : loadMenus(),
         getCachedLogoData(requestLocale)
     ]);
 
