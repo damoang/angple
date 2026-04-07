@@ -44,9 +44,11 @@
     }
 
     const savedTab = getSavedTab();
-    const initialTab = savedTab ?? (hasSSRData ? ssrData!.period : defaultTab);
-    // SSR 데이터가 초기 탭과 같은 period인 경우에만 즉시 사용
-    const canUseSSR = hasSSRData && ssrData!.period === initialTab;
+    // SSR 데이터가 있으면 SSR period로 시작 (스켈레톤 방지), 없으면 저장된 탭 사용
+    const initialTab = hasSSRData
+        ? (ssrData!.period as RecommendedPeriod)
+        : (savedTab ?? defaultTab);
+    const canUseSSR = hasSSRData;
 
     let activeTab = $state<RecommendedPeriod>(initialTab);
     let data = $state<RecommendedDataWithAI | null>(canUseSSR ? ssrData!.data : null);
@@ -150,9 +152,13 @@
     }
 
     onMount(() => {
-        // SSR 데이터가 없거나 저장된 탭과 다르면 클라이언트에서 fetch
         if (!canUseSSR) {
+            // SSR 데이터 없으면 클라이언트에서 fetch
             loadData(activeTab, true);
+        } else if (savedTab && savedTab !== ssrData!.period) {
+            // SSR 데이터로 일단 표시 중 → 저장된 탭으로 백그라운드 전환
+            loadData(savedTab as RecommendedPeriod);
+            activeTab = savedTab as RecommendedPeriod;
         }
     });
 </script>
