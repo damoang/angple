@@ -13,6 +13,7 @@
     const product = $derived(data.product);
 
     let isOrdering = $state(false);
+    let isAddingToCart = $state(false);
     let selectedImage = $state(0);
     let activeTab = $state<'desc' | 'shipping' | 'refund'>('desc');
 
@@ -53,6 +54,31 @@
             alert(err instanceof Error ? err.message : '주문 생성에 실패했습니다');
         } finally {
             isOrdering = false;
+        }
+    }
+
+    async function handleAddToCart(): Promise<void> {
+        if (!authStore.isAuthenticated) {
+            authStore.redirectToLogin();
+            return;
+        }
+        if (isAddingToCart) return;
+        isAddingToCart = true;
+        try {
+            const res = await fetch('/api/commerce/cart', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ product_id: product.id, quantity: 1 })
+            });
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                throw new Error(err.message || '장바구니 추가에 실패했습니다');
+            }
+            alert('장바구니에 담았습니다');
+        } catch (err: unknown) {
+            alert(err instanceof Error ? err.message : '장바구니 추가에 실패했습니다');
+        } finally {
+            isAddingToCart = false;
         }
     }
 
@@ -196,15 +222,30 @@
                     onclick={handleBuy}
                     disabled={isOrdering || product.stock_status === 'out_of_stock'}
                 >
-                    <ShoppingCart class="mr-2 h-5 w-5" />
                     {#if product.stock_status === 'out_of_stock'}
                         품절
                     {:else if isOrdering}
                         주문 생성 중...
                     {:else}
-                        구매하기
+                        바로 구매하기
                     {/if}
                 </Button>
+                {#if product.stock_status !== 'out_of_stock'}
+                    <Button
+                        variant="outline"
+                        class="w-full"
+                        size="lg"
+                        onclick={handleAddToCart}
+                        disabled={isAddingToCart}
+                    >
+                        <ShoppingCart class="mr-2 h-5 w-5" />
+                        {#if isAddingToCart}
+                            담는 중...
+                        {:else}
+                            장바구니 담기
+                        {/if}
+                    </Button>
+                {/if}
             </div>
         </div>
     </div>
