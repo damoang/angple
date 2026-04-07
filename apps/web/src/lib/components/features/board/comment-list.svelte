@@ -1057,6 +1057,12 @@
                             class="text-foreground mb-1 ml-1 flex items-center gap-1 text-xs font-semibold"
                         >
                             <AuthorLink authorId={comment.author_id} authorName={comment.author} />
+                            {#if postAuthorId && comment.author_id === postAuthorId}
+                                <span
+                                    class="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-800 dark:bg-amber-900/30 dark:text-amber-200"
+                                    >작성자</span
+                                >
+                            {/if}
                             {#if authStore.isAuthenticated && memoPluginActive && MemoBadge && !uiSettingsStore.hideMemo}
                                 <MemoBadge
                                     memberId={comment.author_id}
@@ -1143,6 +1149,12 @@
                                             authorId={comment.author_id}
                                             authorName={comment.author}
                                         />
+                                        {#if postAuthorId && comment.author_id === postAuthorId}
+                                            <span
+                                                class="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-800 dark:bg-amber-900/30 dark:text-amber-200"
+                                                >작성자</span
+                                            >
+                                        {/if}
                                         {#if authStore.isAuthenticated && !isDeleted && memoPluginActive && MemoBadge && !uiSettingsStore.hideMemo}
                                             <MemoBadge
                                                 memberId={comment.author_id}
