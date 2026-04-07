@@ -1,8 +1,8 @@
 {
     "id": "recommended",
-    "name": "추천 글",
+    "name": "공감글",
     "version": "1.0.0",
-    "description": "인기 있는 추천 게시글 목록",
+    "description": "공감 많은 인기 게시글 목록",
     "author": { "name": "Angple" },
     "category": "content",
     "slots": ["main"],
