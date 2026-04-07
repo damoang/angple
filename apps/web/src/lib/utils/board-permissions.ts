@@ -9,7 +9,21 @@ export type PermissionAction =
     | 'can_upload'
     | 'can_download';
 
-const ACTION_LEVEL_MAP: Record<PermissionAction, keyof Board> = {
+type BoardPermissionTarget = Partial<
+    Pick<
+        Board,
+        | 'list_level'
+        | 'read_level'
+        | 'write_level'
+        | 'reply_level'
+        | 'comment_level'
+        | 'upload_level'
+        | 'download_level'
+        | 'permissions'
+    >
+>;
+
+const ACTION_LEVEL_MAP: Record<PermissionAction, keyof BoardPermissionTarget> = {
     can_list: 'list_level',
     can_read: 'read_level',
     can_write: 'write_level',
@@ -33,7 +47,7 @@ const ACTION_NAMES: Record<PermissionAction, string> = {
  * 서버 permissions 우선, 없으면 클라이언트 레벨 비교 폴백
  */
 export function checkPermission(
-    board: Board | undefined | null,
+    board: BoardPermissionTarget | undefined | null,
     action: PermissionAction,
     user: DamoangUser | null
 ): boolean {
@@ -55,7 +69,7 @@ export function checkPermission(
  * 권한 부족 시 안내 메시지 생성
  */
 export function getPermissionMessage(
-    board: Board | undefined | null,
+    board: BoardPermissionTarget | undefined | null,
     action: PermissionAction,
     user: DamoangUser | null
 ): string {
@@ -74,7 +88,7 @@ export function getPermissionMessage(
  * 해당 action에 필요한 레벨 반환
  */
 export function getRequiredLevel(
-    board: Board | undefined | null,
+    board: BoardPermissionTarget | undefined | null,
     action: PermissionAction
 ): number {
     const levelKey = ACTION_LEVEL_MAP[action];
@@ -85,7 +99,7 @@ export function getRequiredLevel(
  * 서버 permissions 객체에서 모든 권한을 한번에 확인
  */
 export function getAllPermissions(
-    board: Board | undefined | null,
+    board: BoardPermissionTarget | undefined | null,
     user: DamoangUser | null
 ): BoardPermissions {
     return {
