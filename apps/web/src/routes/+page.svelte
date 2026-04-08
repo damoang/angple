@@ -65,15 +65,15 @@
 <WidgetRenderer
     zone="main"
     prefetchDataMap={{
-        recommended: data.recommendedData
-            ? { data: data.recommendedData, period: data.recommendedPeriod }
+        empathy: data.empathyData
+            ? { data: data.empathyData, period: data.empathyPeriod }
             : undefined,
-        explore: data.exploreData ? { data: data.exploreData } : undefined,
-        'empathy-explore-row': {
-            recommended: data.recommendedData
-                ? { data: data.recommendedData, period: data.recommendedPeriod }
+        discover: data.discoverData ? { data: data.discoverData } : undefined,
+        'empathy-discover-row': {
+            empathy: data.empathyData
+                ? { data: data.empathyData, period: data.empathyPeriod }
                 : undefined,
-            explore: data.exploreData ? { data: data.exploreData } : undefined
+            discover: data.discoverData ? { data: data.discoverData } : undefined
         },
         celebration: (data.celebrationRecent ?? data.celebration)?.length
             ? { data: data.celebrationRecent ?? data.celebration }

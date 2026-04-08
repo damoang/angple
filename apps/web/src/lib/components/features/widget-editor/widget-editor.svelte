@@ -4,7 +4,7 @@
     import { widgetLayoutStore, type WidgetConfig } from '$lib/stores/widget-layout.svelte';
 
     // 위젯 컴포넌트들
-    import { RecommendedPosts } from '$lib/components/features/recommended';
+    import { EmpathyPosts } from '$lib/components/features/empathy';
     import { NewBoard } from '$lib/components/features/new-board';
     import { EconomyTabs } from '$lib/components/features/economy';
     import { GalleryGrid } from '$lib/components/features/gallery';
@@ -72,8 +72,8 @@
                                 height={getAdHeight(widget)}
                                 slotKey={`widget-${widget.id}`}
                             />
-                        {:else if widget.type === 'recommended'}
-                            <RecommendedPosts />
+                        {:else if widget.type === 'empathy'}
+                            <EmpathyPosts />
                         {:else if widget.type === 'new-board'}
                             <NewBoard posts={newsTabs} />
                         {:else if widget.type === 'economy'}
@@ -105,8 +105,8 @@
                     height={getAdHeight(widget)}
                     slotKey={`widget-${widget.id}`}
                 />
-            {:else if widget.type === 'recommended'}
-                <RecommendedPosts />
+            {:else if widget.type === 'empathy'}
+                <EmpathyPosts />
             {:else if widget.type === 'new-board'}
                 <NewBoard posts={newsTabs} />
             {:else if widget.type === 'economy'}

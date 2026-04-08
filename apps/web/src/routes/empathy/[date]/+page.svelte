@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { DailyRecommendedPage } from '$lib/components/features/daily-recommended';
+    import { DailyEmpathyPage } from '$lib/components/features/daily-empathy';
 
     const { data } = $props();
 </script>
@@ -8,7 +8,7 @@
     <title>{data.dailyData?.date_display ?? data.date} 공감글 | 다모앙</title>
 </svelte:head>
 
-<DailyRecommendedPage
+<DailyEmpathyPage
     date={data.date}
     dailyData={data.dailyData}
     calendarDates={data.calendar?.available_dates ?? []}

@@ -1,16 +1,13 @@
 <script lang="ts">
     import { onMount } from 'svelte';
-    import type { RecommendedPost } from '$lib/api/types.js';
-    import {
-        formatNumber,
-        getRecommendBadgeClass
-    } from '../../features/recommended/utils/index.js';
+    import type { EmpathyPost } from '$lib/api/types.js';
+    import { formatNumber, getRecommendBadgeClass } from '../../features/empathy/utils/index.js';
     import Eye from '@lucide/svelte/icons/eye';
     import { readPostsStore } from '$lib/stores/read-posts.svelte.js';
     import { getReadPostClasses } from '$lib/stores/read-post-style.svelte.js';
     import { formatCommentCountBadge } from '$lib/utils/comment-count.js';
 
-    let { post }: { post: RecommendedPost } = $props();
+    let { post }: { post: EmpathyPost } = $props();
 
     function getBoardId(url: string): string {
         const parts = url.split('/').filter(Boolean);

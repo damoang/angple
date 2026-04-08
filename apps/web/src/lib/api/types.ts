@@ -194,9 +194,9 @@ export interface ApiError {
 }
 
 // 추천 글 타입
-export type RecommendedPeriod = '1h' | '3h' | '6h' | '12h' | '24h' | '48h';
+export type EmpathyPeriod = '1h' | '3h' | '6h' | '12h' | '24h' | '48h';
 
-export interface RecommendedPost {
+export interface EmpathyPost {
     id: number;
     title: string;
     board: string;
@@ -209,22 +209,22 @@ export interface RecommendedPost {
     created_at: string;
 }
 
-export interface RecommendedSection {
+export interface EmpathySection {
     id: string;
     name: string;
     group_id: string;
     count: number;
-    posts: RecommendedPost[] | null;
+    posts: EmpathyPost[] | null;
 }
 
-export interface RecommendedData {
+export interface EmpathyData {
     generated_at: string;
     period: string;
     period_hours: number;
     sections: {
-        community: RecommendedSection;
-        group: RecommendedSection;
-        info: RecommendedSection;
+        community: EmpathySection;
+        group: EmpathySection;
+        info: EmpathySection;
     };
 }
 
@@ -247,7 +247,7 @@ export interface AIAnalysis {
     friendly_update_time: string;
 }
 
-export interface RecommendedDataWithAI extends RecommendedData {
+export interface EmpathyDataWithAI extends EmpathyData {
     ai_analysis?: AIAnalysis; // Optional - Gemini API 할당량 초과 시 없을 수 있음
 }
 
@@ -268,14 +268,14 @@ export interface DailyCalendar {
     total_days: number;
 }
 
-export interface DailyRecommendedSection {
+export interface DailyEmpathySection {
     id: string;
     name: string;
     count: number;
-    posts: RecommendedPost[] | null;
+    posts: EmpathyPost[] | null;
 }
 
-export interface RecommendedComment {
+export interface EmpathyComment {
     id: number;
     content: string;
     board: string;
@@ -292,31 +292,31 @@ export interface DailyCommentSection {
     id: string;
     name: string;
     count: number;
-    comments: RecommendedComment[] | null;
+    comments: EmpathyComment[] | null;
 }
 
-export interface DailyRecommendedStats {
-    total_recommended_posts: number;
+export interface DailyEmpathyStats {
+    total_empathy_posts: number;
     max_recommend_count: number;
     avg_recommend_count: number;
 }
 
-export interface DailyRecommendedData {
+export interface DailyEmpathyData {
     generated_at: string;
     date: string;
     date_display: string;
     is_today: boolean;
     sections: {
-        community: DailyRecommendedSection;
-        group: DailyRecommendedSection;
-        info: DailyRecommendedSection;
+        community: DailyEmpathySection;
+        group: DailyEmpathySection;
+        info: DailyEmpathySection;
     };
     comments?: {
         community: DailyCommentSection;
         group: DailyCommentSection;
         info: DailyCommentSection;
     };
-    stats: DailyRecommendedStats;
+    stats: DailyEmpathyStats;
 }
 
 // 새로운 소식 탭 타입
@@ -337,11 +337,11 @@ export interface NewsPost {
     tab: NewsTabId;
 }
 
-// 모아보기(Explore) 타입
-export type ExploreMode = 'hot' | 'new' | 'rising' | 'top';
-export type ExploreTopPeriod = '24h' | '7d' | '30d';
+// 모아보기(Discover) 타입
+export type DiscoverMode = 'hot' | 'new' | 'rising' | 'top';
+export type DiscoverTopPeriod = '24h' | '7d' | '30d';
 
-export interface ExplorePost {
+export interface DiscoverPost {
     id: number;
     title: string;
     board: string;
@@ -359,7 +359,7 @@ export interface ExplorePost {
     rising_score?: number;
 }
 
-export interface ExploreComment {
+export interface DiscoverComment {
     id: number;
     content: string;
     board: string;
@@ -373,39 +373,39 @@ export interface ExploreComment {
     created_at: string;
 }
 
-export interface ExploreTopPeriods {
-    '24h': ExplorePost[];
-    '7d': ExplorePost[];
-    '30d': ExplorePost[];
+export interface DiscoverTopPeriods {
+    '24h': DiscoverPost[];
+    '7d': DiscoverPost[];
+    '30d': DiscoverPost[];
 }
 
-export interface ExploreTopCommentPeriods {
-    '24h': ExploreComment[];
-    '7d': ExploreComment[];
-    '30d': ExploreComment[];
+export interface DiscoverTopCommentPeriods {
+    '24h': DiscoverComment[];
+    '7d': DiscoverComment[];
+    '30d': DiscoverComment[];
 }
 
-export interface ExploreModeData {
+export interface DiscoverModeData {
     id: string;
     name: string;
     count: number;
-    posts: ExplorePost[];
-    periods?: ExploreTopPeriods;
+    posts: DiscoverPost[];
+    periods?: DiscoverTopPeriods;
     comment_count?: number;
-    comments?: ExploreComment[];
-    comment_periods?: ExploreTopCommentPeriods;
+    comments?: DiscoverComment[];
+    comment_periods?: DiscoverTopCommentPeriods;
 }
 
-export interface ExploreData {
+export interface DiscoverData {
     generated_at: string;
     total_posts: number;
     total_comments: number;
     board_count: number;
     modes: {
-        hot: ExploreModeData;
-        new: ExploreModeData;
-        rising: ExploreModeData;
-        top: ExploreModeData;
+        hot: DiscoverModeData;
+        new: DiscoverModeData;
+        rising: DiscoverModeData;
+        top: DiscoverModeData;
     };
 }
 
