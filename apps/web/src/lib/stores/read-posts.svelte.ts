@@ -60,7 +60,7 @@ function createReadPostsStore() {
          */
         markAsRead(boardId: string, postId: number): void {
             const key = `${boardId}:${postId}`;
-            data.posts[key] = Date.now();
+            data.posts = { ...data.posts, [key]: Date.now() };
             cleanup();
             save();
         },

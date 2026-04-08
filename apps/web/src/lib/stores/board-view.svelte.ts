@@ -91,7 +91,7 @@ class BoardViewStore {
      * 사용자 뷰 모드 선호 설정
      */
     setViewMode(boardId: string, mode: BoardViewMode): void {
-        this.userPrefs[boardId] = mode;
+        this.userPrefs = { ...this.userPrefs, [boardId]: mode };
         this.saveToStorage();
     }
 
@@ -99,7 +99,8 @@ class BoardViewStore {
      * 사용자 선호 초기화 (서버 기본값으로 복귀)
      */
     resetViewMode(boardId: string): void {
-        delete this.userPrefs[boardId];
+        const { [boardId]: _, ...rest } = this.userPrefs;
+        this.userPrefs = rest;
         this.saveToStorage();
     }
 
@@ -107,7 +108,7 @@ class BoardViewStore {
      * 게시판 서버 기본 뷰 모드 설정 (관리자)
      */
     setBoardDefault(boardId: string, mode: BoardViewMode): void {
-        this.boardDefaults[boardId] = mode;
+        this.boardDefaults = { ...this.boardDefaults, [boardId]: mode };
     }
 
     /**
@@ -128,7 +129,7 @@ class BoardViewStore {
      * 전역 기본 뷰 모드 설정
      */
     setGlobalViewMode(mode: BoardViewMode): void {
-        this.userPrefs['__global'] = mode;
+        this.userPrefs = { ...this.userPrefs, __global: mode };
         this.saveToStorage();
     }
 }
