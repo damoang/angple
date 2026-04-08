@@ -1212,7 +1212,7 @@
                                 <!-- 삭제된 댓글: 버튼 없음 -->
                             {:else}
                                 <!-- 리액션 (da-reaction 플러그인) — 따봉 옆 배치 -->
-                                {#if reactionPluginActive && !isEditing && boardId && postId}
+                                {#if reactionPluginActive && !isEditing && boardId && postId && boardId !== 'claim'}
                                     <div class="ml-auto">
                                         <ReactionBar
                                             {boardId}
@@ -1231,7 +1231,7 @@
                                         ? ''
                                         : 'ml-auto'} flex items-center {isFeed ? 'gap-1' : 'gap-2'}"
                                 >
-                                    {#if onLike && authStore.isAuthenticated}
+                                    {#if onLike && authStore.isAuthenticated && boardId !== 'claim'}
                                         <Button
                                             variant="ghost"
                                             size="sm"
@@ -1666,7 +1666,7 @@
                             </Button>
 
                             <!-- 리액션 (da-reaction 플러그인) -->
-                            {#if reactionPluginActive && boardId && postId}
+                            {#if reactionPluginActive && boardId && postId && boardId !== 'claim'}
                                 <ReactionBar
                                     {boardId}
                                     {postId}

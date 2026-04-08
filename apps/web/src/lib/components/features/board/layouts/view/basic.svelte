@@ -559,64 +559,66 @@
                 class="flex w-full flex-wrap items-center gap-3"
                 style="scroll-margin-top: 100px"
             >
-                <!-- 추천 버튼 -->
-                <div
-                    class="flex items-center rounded-lg border {isLiked
-                        ? 'border-liked/40 bg-liked/5'
-                        : 'border-border'}"
-                >
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        onclick={onLike}
-                        disabled={isLiking}
-                        class="gap-2 {isLiked ? 'text-liked' : ''}"
+                {#if boardId !== 'claim'}
+                    <!-- 추천 버튼 -->
+                    <div
+                        class="flex items-center rounded-lg border {isLiked
+                            ? 'border-liked/40 bg-liked/5'
+                            : 'border-border'}"
                     >
-                        <Heart
-                            class="h-5 w-5 {isLiked ? 'fill-liked' : ''} {isLikeAnimating
-                                ? 'like-animation'
-                                : ''}"
-                        />
-                        <span class="font-semibold">{likeCount}</span>
-                    </Button>
-                    {#if authStore.isAuthenticated}
-                        <button
-                            type="button"
-                            onclick={onLoadLikers}
-                            class="border-l px-2 py-1 text-xs transition-colors {isLiked
-                                ? 'border-liked/40 text-liked'
-                                : 'text-muted-foreground hover:text-foreground border-border'}"
-                        >
-                            <Users class="h-4 w-4" />
-                        </button>
-                    {/if}
-                </div>
-
-                <!-- 추천자 아바타 스택 (같은 줄) -->
-                {#if authStore.isAuthenticated && likers.length > 0}
-                    <AvatarStack
-                        items={likers}
-                        total={likersTotal}
-                        max={5}
-                        size="sm"
-                        onclick={onLoadLikers}
-                    />
-                {/if}
-
-                <!-- 비추천 버튼 (게시판 설정에서 활성화된 경우만) -->
-                {#if board?.use_nogood}
-                    <div class="border-border flex items-center rounded-lg border">
                         <Button
                             variant="ghost"
                             size="sm"
-                            onclick={onDislike}
-                            disabled={isDisliking}
-                            class="gap-2 {isDisliked ? 'text-disliked' : ''}"
+                            onclick={onLike}
+                            disabled={isLiking}
+                            class="gap-2 {isLiked ? 'text-liked' : ''}"
                         >
-                            <ThumbsDown class="h-5 w-5 {isDisliked ? 'fill-disliked' : ''}" />
-                            <span class="font-semibold">{dislikeCount}</span>
+                            <Heart
+                                class="h-5 w-5 {isLiked ? 'fill-liked' : ''} {isLikeAnimating
+                                    ? 'like-animation'
+                                    : ''}"
+                            />
+                            <span class="font-semibold">{likeCount}</span>
                         </Button>
+                        {#if authStore.isAuthenticated}
+                            <button
+                                type="button"
+                                onclick={onLoadLikers}
+                                class="border-l px-2 py-1 text-xs transition-colors {isLiked
+                                    ? 'border-liked/40 text-liked'
+                                    : 'text-muted-foreground hover:text-foreground border-border'}"
+                            >
+                                <Users class="h-4 w-4" />
+                            </button>
+                        {/if}
                     </div>
+
+                    <!-- 추천자 아바타 스택 (같은 줄) -->
+                    {#if authStore.isAuthenticated && likers.length > 0}
+                        <AvatarStack
+                            items={likers}
+                            total={likersTotal}
+                            max={5}
+                            size="sm"
+                            onclick={onLoadLikers}
+                        />
+                    {/if}
+
+                    <!-- 비추천 버튼 (게시판 설정에서 활성화된 경우만) -->
+                    {#if board?.use_nogood}
+                        <div class="border-border flex items-center rounded-lg border">
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onclick={onDislike}
+                                disabled={isDisliking}
+                                class="gap-2 {isDisliked ? 'text-disliked' : ''}"
+                            >
+                                <ThumbsDown class="h-5 w-5 {isDisliked ? 'fill-disliked' : ''}" />
+                                <span class="font-semibold">{dislikeCount}</span>
+                            </Button>
+                        </div>
+                    {/if}
                 {/if}
 
                 <!-- 스크랩 + 공유 + 신고 (우측 정렬) -->
@@ -647,8 +649,8 @@
                 </div>
             </div>
 
-            <!-- 리액션 (da-reaction 플러그인) -->
-            {#if reactionPluginActive}
+            <!-- 리액션 (da-reaction 플러그인, 소명게시판 제외) -->
+            {#if reactionPluginActive && boardId !== 'claim'}
                 <ReactionBar
                     {boardId}
                     postId={post.id}
