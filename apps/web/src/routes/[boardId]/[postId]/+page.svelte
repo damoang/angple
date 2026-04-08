@@ -766,9 +766,7 @@
         };
 
         afterNavigate(() => {
-            if (commentsLoaded) {
-                scheduleAnchorScroll();
-            }
+            scheduleAnchorScroll();
         });
 
         window.addEventListener('hashchange', onHashChange);
