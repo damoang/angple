@@ -1777,7 +1777,12 @@
                                 새로고침
                             </button>
                         </div>
-                        {#if boardId === 'claim' && authStore.user?.mb_id !== data.post.author_id && (authStore.user?.mb_level ?? 0) < 10}
+                        {#if data.post.is_comments_disabled}
+                            <p class="text-muted-foreground py-6 text-center text-sm">
+                                본 게시물은 공지 읽기 전용으로 설정되어 공감과 이모지로 많이 응원해
+                                주세요.
+                            </p>
+                        {:else if boardId === 'claim' && authStore.user?.mb_id !== data.post.author_id && (authStore.user?.mb_level ?? 0) < 10}
                             <p class="text-muted-foreground py-4 text-center text-sm">
                                 소명 게시판에서는 관리자와 글 작성자만 댓글을 작성할 수 있습니다.
                             </p>
