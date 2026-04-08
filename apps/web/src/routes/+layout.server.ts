@@ -57,11 +57,13 @@ export const load: LayoutServerLoad = async ({
     }
 
     // 병렬로 SSR 필수 데이터만 로드 (allSettled: 개별 실패 허용)
-    // celebration, banners, plugins, ga4는 /api/layout/init에서 클라이언트 로드 (비용 절감)
-    const [themeResult, menusResult, logoResult] = await Promise.allSettled([
+    // celebration, banners, ga4는 /api/layout/init에서 클라이언트 로드 (비용 절감)
+    const { getActivePlugins } = await import('$lib/server/plugins/index.js');
+    const [themeResult, menusResult, logoResult, pluginsResult] = await Promise.allSettled([
         getActiveTheme(),
         isDataRequest ? Promise.resolve([]) : loadMenus(),
-        getCachedLogoData(requestLocale)
+        getCachedLogoData(requestLocale),
+        getActivePlugins()
     ]);
 
     const activeTheme = themeResult.status === 'fulfilled' ? themeResult.value : null;
@@ -78,10 +80,13 @@ export const load: LayoutServerLoad = async ({
               };
 
     // 실패 로깅 (크래시 안 함)
+    const activePlugins = pluginsResult.status === 'fulfilled' ? pluginsResult.value : [];
+
     for (const [name, r] of [
         ['Theme', themeResult],
         ['Menus', menusResult],
-        ['Logo', logoResult]
+        ['Logo', logoResult],
+        ['Plugins', pluginsResult]
     ] as const) {
         if (r.status === 'rejected') {
             console.error(`[Layout] ${name} load failed:`, r.reason);
@@ -102,6 +107,7 @@ export const load: LayoutServerLoad = async ({
     const layoutData = {
         activeTheme: resolvedThemeId,
         themeSettings: resolvedThemeSettings,
+        activePlugins,
         menus,
         user: locals.user ?? null,
         accessToken: locals.accessToken ?? null,
