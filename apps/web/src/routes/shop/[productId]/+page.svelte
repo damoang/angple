@@ -15,7 +15,27 @@
     let isOrdering = $state(false);
     let isAddingToCart = $state(false);
     let selectedImage = $state(0);
-    let activeTab = $state<'desc' | 'shipping' | 'refund'>('desc');
+    let activeTab = $state<'desc' | 'reviews' | 'shipping' | 'refund'>('desc');
+    let reviews = $state<any[]>([]);
+    let reviewsLoading = $state(false);
+    let reviewsLoaded = $state(false);
+
+    async function loadReviews(): Promise<void> {
+        if (reviewsLoaded || reviewsLoading) return;
+        reviewsLoading = true;
+        try {
+            const res = await fetch(`/api/commerce/products/${product.id}/reviews`);
+            if (res.ok) {
+                const data = await res.json();
+                reviews = data.data?.items ?? data.data ?? [];
+            }
+        } catch {
+            /* ignore */
+        } finally {
+            reviewsLoading = false;
+            reviewsLoaded = true;
+        }
+    }
 
     const allImages = $derived(() => {
         const imgs: string[] = [];
@@ -262,6 +282,17 @@
                 상품설명
             </button>
             <button
+                class="px-6 py-3 text-sm font-medium transition-colors {activeTab === 'reviews'
+                    ? 'border-b-2 border-black text-black dark:border-white dark:text-white'
+                    : 'text-muted-foreground hover:text-foreground'}"
+                onclick={() => {
+                    activeTab = 'reviews';
+                    loadReviews();
+                }}
+            >
+                리뷰 ({product.rating_count || 0})
+            </button>
+            <button
                 class="px-6 py-3 text-sm font-medium transition-colors {activeTab === 'shipping'
                     ? 'border-b-2 border-black text-black dark:border-white dark:text-white'
                     : 'text-muted-foreground hover:text-foreground'}"
@@ -299,6 +330,55 @@
                                     class="w-full rounded-lg"
                                 />
                             {/if}
+                        {/each}
+                    </div>
+                {/if}
+            {:else if activeTab === 'reviews'}
+                <!-- 리뷰 -->
+                {#if reviewsLoading}
+                    <div class="text-muted-foreground py-8 text-center text-sm">
+                        리뷰 불러오는 중...
+                    </div>
+                {:else if reviews.length === 0}
+                    <div class="text-muted-foreground py-8 text-center text-sm">
+                        아직 리뷰가 없습니다
+                    </div>
+                {:else}
+                    <div class="space-y-4">
+                        {#each reviews as review (review.id)}
+                            <div class="rounded-lg border p-4">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-yellow-500"
+                                            >{'★'.repeat(review.rating)}{'☆'.repeat(
+                                                5 - review.rating
+                                            )}</span
+                                        >
+                                        <span class="text-sm font-medium"
+                                            >{review.author_name || '구매자'}</span
+                                        >
+                                        {#if review.verified_purchase}
+                                            <span
+                                                class="rounded bg-green-100 px-1.5 py-0.5 text-[10px] font-semibold text-green-800 dark:bg-green-900/30 dark:text-green-200"
+                                                >구매인증</span
+                                            >
+                                        {/if}
+                                    </div>
+                                    <span class="text-muted-foreground text-xs"
+                                        >{new Date(review.created_at).toLocaleDateString(
+                                            'ko-KR'
+                                        )}</span
+                                    >
+                                </div>
+                                {#if review.content}
+                                    <p class="mt-2 text-sm">{review.content}</p>
+                                {/if}
+                                {#if review.helpful_count > 0}
+                                    <p class="text-muted-foreground mt-2 text-xs">
+                                        👍 {review.helpful_count}명에게 도움됨
+                                    </p>
+                                {/if}
+                            </div>
                         {/each}
                     </div>
                 {/if}

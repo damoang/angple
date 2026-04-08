@@ -47,7 +47,10 @@
     {:else}
         <div class="space-y-4">
             {#each data.orders as order}
-                <div class="rounded-lg border p-4">
+                <a
+                    href="/member/orders/{order.id}"
+                    class="hover:bg-muted/50 block rounded-lg border p-4 transition-colors"
+                >
                     <div class="flex items-center justify-between">
                         <div>
                             <p class="text-sm font-medium">{order.order_number}</p>
@@ -81,7 +84,7 @@
                             상세보기
                         </Button>
                     </div>
-                </div>
+                </a>
             {/each}
         </div>
     {/if}
