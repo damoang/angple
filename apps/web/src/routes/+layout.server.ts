@@ -80,7 +80,17 @@ export const load: LayoutServerLoad = async ({
               };
 
     // 실패 로깅 (크래시 안 함)
-    const activePlugins = pluginsResult.status === 'fulfilled' ? pluginsResult.value : [];
+    const activePlugins =
+        pluginsResult.status === 'fulfilled'
+            ? pluginsResult.value.map((p) => ({
+                  id: p.manifest.id,
+                  name: p.manifest.name,
+                  version: p.manifest.version,
+                  hooks: p.manifest.hooks || [],
+                  components: p.manifest.components || [],
+                  settings: p.currentSettings || {}
+              }))
+            : [];
 
     for (const [name, r] of [
         ['Theme', themeResult],
