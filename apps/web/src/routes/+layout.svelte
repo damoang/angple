@@ -322,7 +322,11 @@
                     }
                 }))
             ).then(() => {
-                doAction('board.layout.register');
+                try {
+                    doAction('board.layout.register');
+                } catch (err) {
+                    console.error('[layout] board.layout.register hook error:', err);
+                }
             });
 
             // 플러그인 Component 로드

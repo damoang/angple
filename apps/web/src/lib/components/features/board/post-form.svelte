@@ -62,7 +62,7 @@
 
     // 임시저장 키
     const DRAFT_KEY = `draft_${boardId}_${mode === 'edit' && post ? post.id : 'new'}`;
-    const AUTO_SAVE_INTERVAL = 30000; // 30초
+    const AUTO_SAVE_INTERVAL = 10000; // 10초
 
     // 폼 상태 (post prop은 ssr=false이므로 초기 렌더 시 이미 사용 가능)
     let title = $state(post?.title || initialTitle || '');
