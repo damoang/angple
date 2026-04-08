@@ -223,14 +223,20 @@
                 return;
             }
             await goto(targetUrl);
-            // 해시가 있으면 수동 스크롤 (SvelteKit goto는 같은 페이지 해시 이동을 처리하지 않음)
+            // 해시가 있으면 재시도 스크롤 (댓글 스트리밍으로 DOM이 늦게 생성될 수 있음)
             const hash = targetUrl.split('#')[1];
             if (hash) {
-                requestAnimationFrame(() => {
-                    document
-                        .getElementById(hash)
-                        ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                });
+                let attempts = 0;
+                const tryScroll = () => {
+                    const el = document.getElementById(hash);
+                    if (el) {
+                        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    } else if (attempts < 30) {
+                        attempts++;
+                        requestAnimationFrame(tryScroll);
+                    }
+                };
+                requestAnimationFrame(tryScroll);
             }
         }
     }

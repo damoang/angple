@@ -163,6 +163,20 @@
                 return;
             }
             await goto(targetUrl);
+            const hash = targetUrl.split('#')[1];
+            if (hash) {
+                let attempts = 0;
+                const tryScroll = () => {
+                    const el = document.getElementById(hash);
+                    if (el) {
+                        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    } else if (attempts < 30) {
+                        attempts++;
+                        requestAnimationFrame(tryScroll);
+                    }
+                };
+                requestAnimationFrame(tryScroll);
+            }
         }
     }
 
