@@ -6,16 +6,19 @@
     import AuthorLink from '$lib/components/ui/author-link/author-link.svelte';
     import Pin from '@lucide/svelte/icons/pin';
     import { formatDate } from '$lib/utils/format-date.js';
+    import { highlightQuery } from '$lib/utils/highlight.js';
     let {
         post,
         displaySettings,
         href,
-        isRead = false
+        isRead = false,
+        searchQuery = ''
     }: {
         post: FreePost;
         displaySettings?: BoardDisplaySettings;
         href: string;
         isRead?: boolean;
+        searchQuery?: string;
     } = $props();
 
     const isDeleted = $derived(!!post.deleted_at);
@@ -54,7 +57,11 @@
                             ? 'text-muted-foreground font-normal'
                             : 'text-foreground font-medium'}"
                     >
-                        {post.title}
+                        {#if searchQuery}
+                            {@html highlightQuery(post.title, searchQuery)}
+                        {:else}
+                            {post.title}
+                        {/if}
                     </h2>
                 </div>
                 <div class="text-muted-foreground flex flex-wrap items-center gap-3 text-sm">

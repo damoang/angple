@@ -6,17 +6,20 @@
     import ImageIcon from '@lucide/svelte/icons/image';
     import { formatDate } from '$lib/utils/format-date.js';
     import { toThumbnailUrl } from '$lib/utils/thumbnail-url.js';
+    import { highlightQuery } from '$lib/utils/highlight.js';
     // Props
     let {
         post,
         displaySettings,
         href,
-        isRead = false
+        isRead = false,
+        searchQuery = ''
     }: {
         post: FreePost;
         displaySettings?: BoardDisplaySettings;
         href: string;
         isRead?: boolean;
+        searchQuery?: string;
     } = $props();
 
     // 삭제된 글
@@ -90,6 +93,8 @@
                         <span class="text-muted-foreground italic"
                             >신고에 의해 숨겨진 게시글입니다</span
                         >
+                    {:else if searchQuery}
+                        {@html highlightQuery(post.title, searchQuery)}
                     {:else}
                         {post.title}
                     {/if}
