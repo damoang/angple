@@ -80,7 +80,7 @@ export function resolvePageContext(pathname: string): PageContext {
     const cleanPathname = pathname.split('?', 1)[0] || '/';
     if (cleanPathname === '/') return { pageType: 'home', boardId: 'none' };
     if (cleanPathname === '/search') return { pageType: 'search', boardId: 'none' };
-    if (cleanPathname === '/discover') return { pageType: 'discover', boardId: 'none' };
+    if (cleanPathname === '/explore') return { pageType: 'explore', boardId: 'none' };
     if (cleanPathname === '/empathy' || cleanPathname.startsWith('/empathy/')) {
         return { pageType: 'empathy', boardId: 'none' };
     }

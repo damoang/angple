@@ -36,7 +36,7 @@
         'board-list-bottom',
         'board-footer',
         'index-bottom',
-        'discover-bottom',
+        'explore-bottom',
         'empathy-bottom',
         'board-list-infeed',
         'comment-infeed'
