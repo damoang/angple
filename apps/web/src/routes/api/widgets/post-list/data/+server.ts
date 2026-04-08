@@ -52,7 +52,7 @@ export const GET: RequestHandler = async ({ url }) => {
         }
 
         // 필터
-        if (filter === 'empathy') {
+        if (filter === 'recommended') {
             posts = posts.filter((p) => (p.recommend_count ?? 0) > 0);
         } else if (filter === 'has-image') {
             posts = posts.filter((p) => p.thumbnail_url);

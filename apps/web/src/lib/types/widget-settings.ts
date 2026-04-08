@@ -7,7 +7,7 @@ export interface BoardWidgetSettings {
     boardId?: string;
     boardIds?: string[];
     limit?: number;
-    sortBy?: 'latest' | 'popular' | 'empathy';
+    sortBy?: 'latest' | 'popular' | 'recommended';
 }
 
 /** 광고 위젯 설정 */

@@ -30,7 +30,7 @@ const customManifests = import.meta.glob('../../../../../custom-widgets/*/widget
 
 /**
  * glob 경로에서 위젯 ID 추출
- * 예: "../../../../widgets/empathy/index.svelte" → "empathy"
+ * 예: "../../../../widgets/recommended/index.svelte" → "recommended"
  */
 function extractWidgetId(path: string): string {
     const parts = path.split('/');

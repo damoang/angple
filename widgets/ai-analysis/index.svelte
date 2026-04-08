@@ -2,18 +2,18 @@
     /**
      * AI 트렌드 분석 위젯
      *
-     * empathy 위젯에서 AI 분석 부분만 독립시킨 위젯.
+     * recommended 위젯에서 AI 분석 부분만 독립시킨 위젯.
      * Gemini API를 통해 커뮤니티 트렌드를 분석하여 표시합니다.
      */
     import type { WidgetProps } from '$lib/types/widget-props';
-    import type { EmpathyDataWithAI, EmpathyPeriod, AIAnalysis } from '$lib/api/types.js';
+    import type { RecommendedDataWithAI, RecommendedPeriod, AIAnalysis } from '$lib/api/types.js';
     import { onMount } from 'svelte';
     import { apiClient } from '$lib/api';
-    import { AITrendCard } from '$lib/components/features/empathy/components/ai-trend';
+    import { AITrendCard } from '$lib/components/features/recommended/components/ai-trend';
 
     let { config, slot, isEditMode = false }: WidgetProps = $props();
 
-    const period = $derived((config.settings?.period as EmpathyPeriod) ?? '6h');
+    const period = $derived((config.settings?.period as RecommendedPeriod) ?? '6h');
     const showKeywords = $derived((config.settings?.showKeywords as boolean) ?? true);
     const showStats = $derived((config.settings?.showStats as boolean) ?? true);
 
@@ -22,7 +22,7 @@
     let loading = $state(true);
     let error = $state<string | null>(null);
 
-    function calculateStats(data: EmpathyDataWithAI) {
+    function calculateStats(data: RecommendedDataWithAI) {
         let total_recommends = 0;
         let total_comments = 0;
 
@@ -44,7 +44,7 @@
         loading = true;
         error = null;
         try {
-            const data = await apiClient.getEmpathyPostsWithAI(period);
+            const data = await apiClient.getRecommendedPostsWithAI(period);
             analysis = data.ai_analysis ?? null;
             if (analysis && showStats) {
                 stats = calculateStats(data);

@@ -14,15 +14,15 @@
     import WidgetWrapper from './widget-wrapper.svelte';
     import { hooks } from '@angple/hook-system';
     import TagNavWidget from '../../../../../../widgets/tag-nav/index.svelte';
-    import EmpathyDiscoverRowWidget from '../../../../../../widgets/empathy-discover-row/index.svelte';
+    import EmpathyExploreRowWidget from '../../../../../../widgets/empathy-explore-row/index.svelte';
     import NewsEconomyRowWidget from '../../../../../../widgets/news-economy-row/index.svelte';
     import CelebrationWidget from '../../../../../../widgets/celebration/index.svelte';
     import AdSlotWidget from '../../../../../../widgets/ad-slot/index.svelte';
     import PostListWidget from '../../../../../../widgets/post-list/index.svelte';
     import NoticeWidget from '../../../../../../widgets/notice/index.svelte';
     import ImageTextBannerWidget from '../../../../../../widgets/image-text-banner/index.svelte';
-    import EmpathyWidget from '../../../../../../widgets/empathy/index.svelte';
-    import DiscoverWidget from '../../../../../../widgets/discover/index.svelte';
+    import RecommendedWidget from '../../../../../../widgets/recommended/index.svelte';
+    import ExploreWidget from '../../../../../../widgets/explore/index.svelte';
 
     interface Props {
         /** 렌더링할 위젯 존 */
@@ -40,15 +40,15 @@
 
     const STATIC_WIDGET_COMPONENTS: Record<string, WidgetComponent> = {
         'tag-nav': TagNavWidget,
-        'empathy-discover-row': EmpathyDiscoverRowWidget,
+        'empathy-explore-row': EmpathyExploreRowWidget,
         'news-economy-row': NewsEconomyRowWidget,
         celebration: CelebrationWidget,
         'ad-slot': AdSlotWidget,
         'post-list': PostListWidget,
         notice: NoticeWidget,
         'image-text-banner': ImageTextBannerWidget,
-        empathy: EmpathyWidget,
-        discover: DiscoverWidget
+        recommended: RecommendedWidget,
+        explore: ExploreWidget
     };
 
     // 존별 위젯 목록
@@ -139,9 +139,9 @@
     const WIDGET_PLACEHOLDER_CLASS: Record<string, string> = {
         'ad-slot': 'min-h-[90px]',
         'tag-nav': 'min-h-[56px]',
-        empathy: 'min-h-[420px]',
-        discover: 'min-h-[420px]',
-        'empathy-discover-row': 'min-h-[420px]',
+        recommended: 'min-h-[420px]',
+        explore: 'min-h-[420px]',
+        'empathy-explore-row': 'min-h-[420px]',
         'news-economy-row': 'min-h-[360px]',
         'post-list': 'min-h-[360px]',
         celebration: 'min-h-[120px]',

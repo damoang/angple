@@ -78,7 +78,7 @@
         const labels: Record<string, string> = {
             'post-list': '게시글 목록',
             'ad-slot': '광고',
-            empathy: '공감글',
+            recommended: '공감글',
             celebration: '축하메시지',
             'latest-posts': '최신글',
             'popular-posts': '인기글',
