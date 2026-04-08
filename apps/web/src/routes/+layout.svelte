@@ -179,6 +179,11 @@
         siteUrl
     });
 
+    // SSR에서 받은 플러그인으로 즉시 초기화 (리액션 등 플러그인 SSR 렌더 보장)
+    if (data.activePlugins?.length) {
+        pluginStore.initFromServer(data.activePlugins);
+    }
+
     // SSR에서 받은 테마/메뉴로 스토어 초기화 (깜박임 방지!)
     // plugins는 /api/layout/init에서 클라이언트 로드 (비용 절감)
     $effect(() => {
