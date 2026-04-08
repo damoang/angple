@@ -6,8 +6,8 @@ import type {
     ApiKeyResponse,
     RefreshTokenRequest,
     ApiError,
-    RecommendedDataWithAI,
-    RecommendedPeriod,
+    EmpathyDataWithAI,
+    EmpathyPeriod,
     FreeComment,
     MenuItem,
     DamoangUser,
@@ -498,10 +498,10 @@ class ApiClient {
     }
 
     // 추천 글 데이터 가져오기 (AI 분석 포함)
-    async getRecommendedPostsWithAI(period: RecommendedPeriod): Promise<RecommendedDataWithAI> {
-        const response = await this.request<RecommendedDataWithAI>(`/recommended/ai/${period}`);
+    async getEmpathyPostsWithAI(period: EmpathyPeriod): Promise<EmpathyDataWithAI> {
+        const response = await this.request<EmpathyDataWithAI>(`/empathy/ai/${period}`);
         // API가 직접 데이터를 반환하는지 { data: ... }로 감싸는지 확인
-        const data = response as unknown as RecommendedDataWithAI;
+        const data = response as unknown as EmpathyDataWithAI;
         if (data?.sections !== undefined) {
             return data;
         }
@@ -587,7 +587,7 @@ class ApiClient {
     // 참고: 이 API는 다른 엔드포인트와 달리 { data: ... } 래퍼 없이 직접 데이터를 반환함
     async getIndexWidgets(): Promise<IndexWidgetsData | null> {
         try {
-            const response = await this.request<IndexWidgetsData>('/recommended/index-widgets');
+            const response = await this.request<IndexWidgetsData>('/empathy/index-widgets');
             // API가 데이터를 직접 반환하거나 { data: ... } 형태로 반환하는 경우 모두 처리
             const data = response as unknown as IndexWidgetsData;
             // news_tabs 필드가 있으면 직접 반환된 데이터, 없으면 response.data 시도

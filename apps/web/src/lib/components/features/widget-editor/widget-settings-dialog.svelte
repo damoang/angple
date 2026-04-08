@@ -199,7 +199,7 @@
                     >
                         <option value="latest">최신순</option>
                         <option value="popular">인기순</option>
-                        <option value="recommended">공감순</option>
+                        <option value="empathy">공감순</option>
                     </select>
                 </div>
             {:else}

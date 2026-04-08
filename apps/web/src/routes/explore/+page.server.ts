@@ -1,10 +1,6 @@
-import type { PageServerLoad } from './$types';
-import { loadExploreData } from '$lib/server/explore-loader';
+import { redirect } from '@sveltejs/kit';
+import type { PageServerLoad } from './$types.js';
 
 export const load: PageServerLoad = async () => {
-    const exploreData = await loadExploreData();
-
-    return {
-        exploreData
-    };
+    throw redirect(301, '/discover');
 };

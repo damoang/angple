@@ -5,11 +5,7 @@
  */
 import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import {
-    loadDailyRecommended,
-    getTodayKST,
-    isValidDate
-} from '$lib/server/daily-recommended-loader';
+import { loadDailyEmpathy, getTodayKST, isValidDate } from '$lib/server/daily-empathy-loader';
 
 export const GET: RequestHandler = async ({ url }) => {
     const date = url.searchParams.get('date') || getTodayKST();
@@ -18,7 +14,7 @@ export const GET: RequestHandler = async ({ url }) => {
         error(400, `잘못된 날짜 형식: ${date}. YYYY-MM-DD 형식을 사용하세요.`);
     }
 
-    const data = await loadDailyRecommended(date);
+    const data = await loadDailyEmpathy(date);
 
     if (!data) {
         error(404, `${date} 공감글 데이터를 찾을 수 없습니다`);

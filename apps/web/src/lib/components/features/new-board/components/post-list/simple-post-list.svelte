@@ -8,7 +8,7 @@
         formatNumber,
         getRecommendBadgeClass,
         shortenBoardName
-    } from '../../../recommended/utils/index.js';
+    } from '../../../empathy/utils/index.js';
 
     type Props = {
         posts: NewsPost[];

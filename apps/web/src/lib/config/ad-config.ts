@@ -280,8 +280,8 @@ export const POSITION_MAP: Record<string, string> = {
     // 큐레이션 페이지 — 전용 문맥 슬롯
     'feed-top': 'banner-article',
     'groups-top': 'banner-article',
-    'explore-top': 'banner-article',
-    'explore-bottom': 'banner-horizontal-728',
+    'discover-top': 'banner-article',
+    'discover-bottom': 'banner-horizontal-728',
     'empathy-top': 'banner-article',
     'empathy-bottom': 'banner-horizontal-728',
 

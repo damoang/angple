@@ -12,7 +12,7 @@ import type { WidgetConfig } from '$lib/stores/widget-layout.svelte';
 /** 기본 메인 위젯 레이아웃 */
 export const DEFAULT_WIDGETS: WidgetConfig[] = [
     { id: 'tag-nav', type: 'tag-nav', position: 0, enabled: true },
-    { id: 'empathy-explore-row', type: 'empathy-explore-row', position: 1, enabled: true },
+    { id: 'empathy-discover-row', type: 'empathy-discover-row', position: 1, enabled: true },
     {
         id: 'ad-top',
         type: 'ad-slot',
@@ -183,22 +183,22 @@ export function migrateNewsEconomyRow(widgets: WidgetConfig[]): WidgetConfig[] {
 }
 
 /**
- * recommended + explore를 empathy-explore-row로 결합
+ * empathy + discover를 empathy-discover-row로 결합
  */
-export function migrateEmpathyExploreRow(widgets: WidgetConfig[]): WidgetConfig[] {
-    const hasRecommended = widgets.some((w) => w.type === 'recommended');
-    const hasExplore = widgets.some((w) => w.type === 'explore');
-    const hasCombined = widgets.some((w) => w.type === 'empathy-explore-row');
+export function migrateEmpathyDiscoverRow(widgets: WidgetConfig[]): WidgetConfig[] {
+    const hasEmpathy = widgets.some((w) => w.type === 'empathy');
+    const hasDiscover = widgets.some((w) => w.type === 'discover');
+    const hasCombined = widgets.some((w) => w.type === 'empathy-discover-row');
 
-    if (!hasRecommended || !hasExplore || hasCombined) return widgets;
+    if (!hasEmpathy || !hasDiscover || hasCombined) return widgets;
 
-    const recommended = widgets.find((w) => w.type === 'recommended')!;
-    const result = widgets.filter((w) => w.type !== 'recommended' && w.type !== 'explore');
+    const empathy = widgets.find((w) => w.type === 'empathy')!;
+    const result = widgets.filter((w) => w.type !== 'empathy' && w.type !== 'discover');
     result.push({
-        id: 'empathy-explore-row',
-        type: 'empathy-explore-row',
-        position: recommended.position,
-        enabled: recommended.enabled
+        id: 'empathy-discover-row',
+        type: 'empathy-discover-row',
+        position: empathy.position,
+        enabled: empathy.enabled
     });
     return result;
 }
@@ -209,8 +209,8 @@ export function migrateEmpathyExploreRow(widgets: WidgetConfig[]): WidgetConfig[
 export function migrateWidgets(widgets: WidgetConfig[]): WidgetConfig[] {
     let migrated = widgets.map((w) => migrateWidgetConfig(w));
 
-    // recommended + explore → empathy-explore-row
-    migrated = migrateEmpathyExploreRow(migrated);
+    // empathy + discover → empathy-discover-row
+    migrated = migrateEmpathyDiscoverRow(migrated);
 
     // new-board + economy → news-economy-row
     migrated = migrateNewsEconomyRow(migrated);

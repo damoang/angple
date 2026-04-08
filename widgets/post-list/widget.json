@@ -60,7 +60,7 @@
             "default": "none",
             "options": [
                 { "label": "전체", "value": "none" },
-                { "label": "추천글만", "value": "recommended" },
+                { "label": "추천글만", "value": "empathy" },
                 { "label": "이미지 포함", "value": "has-image" }
             ]
         },

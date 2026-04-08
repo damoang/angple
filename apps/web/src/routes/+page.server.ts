@@ -2,7 +2,7 @@ import type { PageServerLoad } from './$types';
 import { getWidgetLayout, getSidebarWidgetLayout } from '$lib/server/settings/index';
 import { DEFAULT_WIDGETS, DEFAULT_SIDEBAR_WIDGETS } from '$lib/constants/default-widgets';
 import { buildIndexWidgets } from '$lib/server/index-widgets-builder';
-import { getDefaultPeriod, loadRecommendedData } from '$lib/server/recommended-loader';
+import { getDefaultPeriod, loadEmpathyData } from '$lib/server/empathy-loader';
 import { getCachedCelebrations } from '$lib/server/celebration';
 import { env } from '$env/dynamic/private';
 
@@ -13,9 +13,9 @@ interface HomePageData {
     indexWidgets: Awaited<ReturnType<typeof buildIndexWidgets>> | null;
     widgetLayout: typeof DEFAULT_WIDGETS;
     sidebarWidgetLayout: typeof DEFAULT_SIDEBAR_WIDGETS;
-    recommendedData: Awaited<ReturnType<typeof loadRecommendedData>> | null;
-    recommendedPeriod: ReturnType<typeof getDefaultPeriod>;
-    exploreData: null;
+    empathyData: Awaited<ReturnType<typeof loadEmpathyData>> | null;
+    empathyPeriod: ReturnType<typeof getDefaultPeriod>;
+    discoverData: null;
     celebrationRecent: Awaited<ReturnType<typeof getCachedCelebrations>> | null;
 }
 
@@ -24,9 +24,9 @@ let cachedHomePageDataAt = 0;
 let pendingHomePageLoad: Promise<HomePageData> | null = null;
 
 async function buildHomePageData(): Promise<HomePageData> {
-    const recommendedPeriod = getDefaultPeriod();
-    // 메인 SSR 페이로드를 줄이기 위해 explore는 클라이언트 fallback에 맡긴다.
-    const [indexWidgetsResult, layoutResult, celebrationResult, recommendedResult] =
+    const empathyPeriod = getDefaultPeriod();
+    // 메인 SSR 페이로드를 줄이기 위해 discover는 클라이언트 fallback에 맡긴다.
+    const [indexWidgetsResult, layoutResult, celebrationResult, empathyResult] =
         await Promise.allSettled([
             buildIndexWidgets(BACKEND_URL),
             (async () => {
@@ -42,7 +42,7 @@ async function buildHomePageData(): Promise<HomePageData> {
             // 인덱스 전용: 최근 축하메시지 (오늘뿐 아니라 최근 8건)
             getCachedCelebrations(true),
             // 공감글 SSR 프리페치 (스켈레톤 제거)
-            loadRecommendedData(recommendedPeriod)
+            loadEmpathyData(empathyPeriod)
         ]);
 
     const indexWidgets =
@@ -62,9 +62,9 @@ async function buildHomePageData(): Promise<HomePageData> {
         indexWidgets,
         widgetLayout: layoutData.widgetLayout,
         sidebarWidgetLayout: layoutData.sidebarWidgetLayout,
-        recommendedData: recommendedResult.status === 'fulfilled' ? recommendedResult.value : null,
-        recommendedPeriod,
-        exploreData: null,
+        empathyData: empathyResult.status === 'fulfilled' ? empathyResult.value : null,
+        empathyPeriod,
+        discoverData: null,
         celebrationRecent
     };
 }
