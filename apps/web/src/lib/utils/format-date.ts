@@ -41,7 +41,14 @@ export function formatDate(dateString: string): string {
             hour12: false
         });
     } else if (dateStr === yesterdayStr) {
-        return '어제';
+        // 어제: 어제 HH:MM
+        const time = date.toLocaleTimeString('ko-KR', {
+            timeZone: 'Asia/Seoul',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
+        });
+        return `어제 ${time}`;
     } else if (dateStr.slice(0, 4) === nowStr.slice(0, 4)) {
         // 올해: MM.DD
         return `${dateStr.slice(5, 7)}.${dateStr.slice(8, 10)}`;

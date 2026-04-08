@@ -157,7 +157,9 @@
                 onclick={toggleZoom}
                 onload={handleImageLoad}
                 draggable="false"
-                style="touch-action: pinch-zoom; cursor: {isZoomed ? 'zoom-out' : 'zoom-in'};"
+                style="touch-action: {isZoomed ? 'none' : 'pinch-zoom'}; cursor: {isZoomed
+                    ? 'zoom-out'
+                    : 'zoom-in'};"
             />
         </div>
 
