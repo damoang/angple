@@ -284,6 +284,8 @@
                     <img
                         src={getAvatarUrl(post.author_image, post.author_image_updated_at)}
                         alt={post.author}
+                        loading="lazy"
+                        decoding="async"
                         class="size-10 rounded-full object-cover"
                         onerror={(e) => {
                             const img = e.currentTarget as HTMLImageElement;
