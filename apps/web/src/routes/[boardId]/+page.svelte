@@ -91,9 +91,9 @@
     let promotionPosts = $state<unknown[]>(data.promotionData || []);
 
     // 게시판 정보
-    const boardId = $derived(data.boardId);
+    const boardId = $derived($page.params.boardId || '');
     // subject(프론트엔드 타입) 또는 name(백엔드 API 응답) 사용
-    const boardTitle = $derived(data.board?.subject || data.board?.name || boardId);
+    const boardTitle = $derived(data.board?.subject || data.board?.name || boardId || '');
 
     // 특수 게시판 타입 감지 (board_type 또는 boardId로 판단)
     const boardType = $derived(
@@ -148,7 +148,8 @@
     });
 
     // 검색 중인지 여부
-    const isSearching = $derived(Boolean(data.searchParams));
+    const searchQuery = $derived($page.url.searchParams.get('stx') || '');
+    const isSearching = $derived(Boolean(searchQuery));
 
     // 현재 페이지 번호 (글 링크에 전달용)
     const listPage = $derived(Number($page.url.searchParams.get('page')) || 1);
@@ -364,7 +365,7 @@
     });
 
     // 활성 태그 필터
-    const activeTag = $derived(data.activeTag || null);
+    const activeTag = $derived($page.url.searchParams.get('tag'));
     const postsResult = $derived(data.postsData);
     const posts = $derived(postsResult.posts);
     const notices = $derived(postsResult.notices || []);
@@ -508,7 +509,7 @@
         return {
             meta: {
                 title: isSearching
-                    ? `"${data.searchParams?.query}" 검색 - ${boardTitle}`
+                    ? `"${searchQuery}" 검색 - ${boardTitle}`
                     : currentPage > 1
                       ? `${boardTitle} - ${currentPage}페이지`
                       : boardTitle,
@@ -555,8 +556,8 @@
             nickname={data.watermark.nickname}
             userId={data.watermark.userId}
             clientIp={data.watermark.clientIp}
-            pageTitle={data.board?.name || data.boardId}
-            redirectUrl={'/' + data.boardId}
+            pageTitle={data.board?.name || boardId}
+            redirectUrl={'/' + boardId}
         />
     {/if}
 
@@ -1044,7 +1045,7 @@
                                             : ''}"
                                         isRead={showReadState &&
                                             readPostsStore.isRead(boardId, post.id)}
-                                        searchQuery={data.searchParams?.query || ''}
+                                        {searchQuery}
                                     />
                                 </div>
                             </div>
@@ -1059,7 +1060,7 @@
                                         : ''}"
                                     isRead={showReadState &&
                                         readPostsStore.isRead(boardId, post.id)}
-                                    searchQuery={data.searchParams?.query || ''}
+                                    {searchQuery}
                                 />
                             </div>
                         {/if}

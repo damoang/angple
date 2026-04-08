@@ -181,10 +181,7 @@ export const load: PageServerLoad = async ({
 
     if (isSearching && !locals.user) {
         return {
-            boardId,
             board: null,
-            searchParams: { field: searchField!, query: searchQuery! },
-            activeTag: null,
             watermark: null,
             postsData: {
                 posts: [],
@@ -287,10 +284,7 @@ export const load: PageServerLoad = async ({
         const cachedPosts = postsCache.get(postsCacheKey);
         if (cachedPosts) {
             return {
-                boardId,
                 board,
-                searchParams: null,
-                activeTag: null,
                 postsData: cachedPosts,
                 streamed: { promotionData: Promise.resolve([] as unknown[]) }
             };
@@ -605,10 +599,7 @@ export const load: PageServerLoad = async ({
     }
 
     return {
-        boardId,
         board: toListBoardPayload(board),
-        searchParams: isSearching ? { field: searchField!, query: searchQuery! } : null,
-        activeTag: tag,
         watermark,
         postsData,
         promotionData,
