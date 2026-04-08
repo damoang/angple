@@ -252,7 +252,7 @@
                 <h3 class="text-foreground text-lg font-semibold">축하메시지</h3>
                 <p class="text-muted-foreground mt-1 text-sm">특별한 날을 함께 축하해요</p>
                 <span
-                    class="bg-primary mt-4 inline-block rounded-full px-5 py-2 text-sm font-semibold text-white"
+                    class="bg-primary text-primary-foreground mt-4 inline-block rounded-full px-5 py-2 text-sm font-semibold"
                     >신청하기</span
                 >
             </a>
@@ -271,7 +271,7 @@
                 <h3 class="text-foreground text-lg font-semibold">광고 신청</h3>
                 <p class="text-muted-foreground mt-1 text-sm">배너 광고로 브랜드를 알리세요</p>
                 <span
-                    class="bg-primary mt-4 inline-block rounded-full px-5 py-2 text-sm font-semibold text-white"
+                    class="bg-primary text-primary-foreground mt-4 inline-block rounded-full px-5 py-2 text-sm font-semibold"
                     >신청하기</span
                 >
             </a>
@@ -536,7 +536,8 @@
                     >
                         4. 프리미엄 긴배너
                     </h3>
-                    <span class="bg-primary rounded-full px-3 py-1 text-sm font-bold text-white"
+                    <span
+                        class="text-primary bg-primary/10 rounded-full px-3 py-1 text-sm font-bold"
                         >150만원/월</span
                     >
                 </div>
@@ -717,7 +718,9 @@
             alt={lightboxAlt}
             class="max-h-[90vh] max-w-[95vw] rounded-lg shadow-2xl"
         />
-        <span class="absolute right-6 top-6 text-2xl text-white/80 hover:text-white">✕</span>
+        <span class="text-foreground/80 hover:text-foreground absolute right-6 top-6 text-2xl"
+            >✕</span
+        >
     </button>
 {/if}
 
