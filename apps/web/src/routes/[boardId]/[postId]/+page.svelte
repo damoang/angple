@@ -1127,6 +1127,8 @@
             // backfill 완료 후 앵커 스크롤 재시도 (#c_댓글ID로 접근 시)
             requestAnimationFrame(() => scheduleAnchorScroll());
         }
+        // 리액션도 함께 로드 (SPA 내비게이션 시 auxiliaryData가 없을 수 있음)
+        fetchBatchReactions();
     }
 
     // 댓글 backfill: SSR에서 일부만 로드된 경우 전체 댓글 가져오기
