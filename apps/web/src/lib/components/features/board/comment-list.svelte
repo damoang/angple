@@ -1589,7 +1589,7 @@
                                 : ''}"
                         >
                             <!-- 추천 -->
-                            {#if onLike && authStore.isAuthenticated}
+                            {#if onLike && authStore.isAuthenticated && boardId !== 'claim'}
                                 <Button
                                     variant="ghost"
                                     size="sm"
