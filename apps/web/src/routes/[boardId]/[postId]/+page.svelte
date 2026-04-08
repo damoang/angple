@@ -337,13 +337,18 @@
 
     $effect(() => {
         const promise = data.streamed?.auxiliaryData;
-        if (!promise) return;
-
-        let cancelled = false;
 
         // 글 변경 시 이전 스트리밍 데이터 즉시 리셋
         postReactions = undefined;
         reactionsMap = undefined;
+
+        if (!promise) {
+            // SPA 내비게이션: auxiliaryData 없음 → 리액션 직접 fetch
+            if (browser) fetchBatchReactions();
+            return;
+        }
+
+        let cancelled = false;
         promotionPosts = [];
         revisions = [];
         isScrapped = false;
