@@ -184,11 +184,15 @@
     $effect(() => {
         const theme = data.activeTheme;
         const menus = data.menus || [];
+        const plugins = data.activePlugins || [];
         untrack(() => {
             themeStore.initFromServer(theme);
             if (menus.length > 0) {
                 menuStore.initFromServer(menus);
                 writeCachedMenus(menus);
+            }
+            if (plugins.length > 0) {
+                pluginStore.initFromServer(plugins);
             }
         });
     });
