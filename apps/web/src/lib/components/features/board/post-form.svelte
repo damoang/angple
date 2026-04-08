@@ -69,6 +69,7 @@
     let content = $state(post?.content || initialContent || '');
     let category = $state(post?.category || '');
     let isSecret = $state(post?.is_secret || false);
+    let isCommentsDisabled = $state(post?.is_comments_disabled || false);
     let tags = $state<string[]>(post?.tags || []);
     let link1 = $state(post?.link1 || initialLink1 || '');
     const isClaimBoard = $derived(boardId === 'claim');
@@ -361,6 +362,7 @@
                       category: category || undefined,
                       author: '', // 서버에서 JWT로 설정됨
                       is_secret: isSecret,
+                      is_comments_disabled: isCommentsDisabled || undefined,
                       tags: tags.length > 0 ? tags : undefined,
                       link1: link1.trim() || undefined,
                       link2: link2.trim() || undefined,
@@ -637,6 +639,26 @@
                     </div>
                     <p class="text-muted-foreground ml-auto text-xs">
                         비밀글은 작성자와 관리자만 볼 수 있습니다
+                    </p>
+                </div>
+            {/if}
+
+            <!-- 댓글 비활성화 옵션 (admin만) -->
+            {#if (authStore.user?.mb_level ?? 0) >= 10}
+                <div class="border-border flex items-center gap-3 rounded-lg border p-4">
+                    <Checkbox
+                        id="is_comments_disabled"
+                        bind:checked={isCommentsDisabled}
+                        disabled={isLoading}
+                    />
+                    <div class="flex items-center gap-2">
+                        <Lock class="text-muted-foreground h-4 w-4" />
+                        <Label for="is_comments_disabled" class="cursor-pointer font-normal"
+                            >댓글 비활성화 (읽기 전용)</Label
+                        >
+                    </div>
+                    <p class="text-muted-foreground ml-auto text-xs">
+                        댓글 대신 공감/이모지만 가능합니다
                     </p>
                 </div>
             {/if}

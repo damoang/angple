@@ -53,6 +53,7 @@ export interface FreePost {
     files?: { url: string; filename: string; size: number }[]; // 일반 첨부파일 (PDF, ZIP 등)
     downloads?: { url: string; filename: string; size: number }[]; // 전체 다운로드 목록 (이미지/영상 포함)
     is_secret?: boolean; // 비밀글 여부
+    is_comments_disabled?: boolean; // 댓글 비활성화 (읽기 전용 공지)
     is_notice?: boolean; // 공지사항 여부
     notice_type?: 'normal' | 'important'; // 공지 타입 (일반/필수)
     is_adult?: boolean; // 19금 콘텐츠 여부
@@ -563,6 +564,7 @@ export interface CreatePostRequest {
     author: string; // 필수, 1-50자
     password?: string; // 선택 (비회원 글 비밀번호)
     is_secret?: boolean; // 선택 (비밀글)
+    is_comments_disabled?: boolean; // 선택 (댓글 비활성화, admin만)
     tags?: string[]; // 선택 (태그 목록)
     link1?: string; // 선택 (링크1)
     link2?: string; // 선택 (링크2)
