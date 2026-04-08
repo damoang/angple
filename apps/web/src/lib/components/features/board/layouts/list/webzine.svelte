@@ -5,17 +5,20 @@
     import ImageIcon from '@lucide/svelte/icons/image';
     import Lock from '@lucide/svelte/icons/lock';
     import { formatDate } from '$lib/utils/format-date.js';
+    import { highlightQuery } from '$lib/utils/highlight.js';
     // Props (동일 인터페이스)
     let {
         post,
         displaySettings,
         href,
-        isRead = false
+        isRead = false,
+        searchQuery = ''
     }: {
         post: FreePost;
         displaySettings?: BoardDisplaySettings;
         href: string;
         isRead?: boolean;
+        searchQuery?: string;
     } = $props();
 
     // 삭제된 글
@@ -98,7 +101,11 @@
                             : 'text-foreground'}"
                         style="font-size: var(--list-font-size);"
                     >
-                        {post.title}
+                        {#if searchQuery}
+                            {@html highlightQuery(post.title, searchQuery)}
+                        {:else}
+                            {post.title}
+                        {/if}
                     </h3>
 
                     <!-- 본문 미리보기 -->

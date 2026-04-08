@@ -5,6 +5,7 @@
     import { getAvatarUrl } from '$lib/utils/member-icon.js';
     import { formatCommentCountBadge } from '$lib/utils/comment-count.js';
     import { formatDate, isToday } from '$lib/utils/format-date.js';
+    import { highlightQuery } from '$lib/utils/highlight.js';
     import { formatCompactNumber } from '$lib/utils/format-number.js';
     import { readPostStyleStore } from '$lib/stores/read-post-style.svelte.js';
 
@@ -12,12 +13,14 @@
         post,
         displaySettings,
         href,
-        isRead = false
+        isRead = false,
+        searchQuery = ''
     }: {
         post: FreePost;
         displaySettings?: BoardDisplaySettings;
         href: string;
         isRead?: boolean;
+        searchQuery?: string;
     } = $props();
 
     const isDeleted = $derived(!!post.deleted_at);
@@ -103,7 +106,11 @@
                     {/if}
 
                     <span class="truncate {readClass}">
-                        {post.title}
+                        {#if searchQuery}
+                            {@html highlightQuery(post.title, searchQuery)}
+                        {:else}
+                            {post.title}
+                        {/if}
                     </span>
 
                     {#if post.comments_count > 0}
