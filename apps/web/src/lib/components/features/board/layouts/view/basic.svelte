@@ -27,6 +27,7 @@
     import Users from '@lucide/svelte/icons/users';
     import Lock from '@lucide/svelte/icons/lock';
     import Flag from '@lucide/svelte/icons/flag';
+    import ScrapButton from '$lib/components/post/scrap-button.svelte';
     import { authStore } from '$lib/stores/auth.svelte.js';
     import { AdultBlur } from '$lib/components/features/adult/index.js';
     import ContentBlur from '$lib/components/features/board/content-blur.svelte';
@@ -618,8 +619,11 @@
                     </div>
                 {/if}
 
-                <!-- 공유 + 신고 (우측 정렬) -->
+                <!-- 스크랩 + 공유 + 신고 (우측 정렬) -->
                 <div class="ml-auto flex items-center gap-1">
+                    {#if authStore.isAuthenticated}
+                        <ScrapButton {boardId} postId={post.id} size="sm" variant="ghost" />
+                    {/if}
                     {#if board?.use_sns}
                         <ShareButton {boardId} postId={post.id} title={post.title || ''} />
                     {/if}
