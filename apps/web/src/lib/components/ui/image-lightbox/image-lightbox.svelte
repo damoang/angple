@@ -14,6 +14,9 @@
     let hasMultiple = $derived(images.length > 1);
     let counter = $derived(`${currentIndex + 1} / ${images.length}`);
 
+    // 뒤로가기로 닫혔는지 추적 (history.back 중복 방지)
+    let closedByPopstate = false;
+
     // 라이트박스 열기
     export function open(imageList: { src: string; alt: string }[], index: number) {
         images = imageList;
@@ -21,6 +24,9 @@
         isZoomed = false;
         isLoading = true;
         isOpen = true;
+        closedByPopstate = false;
+        // 브라우저 뒤로가기로 닫을 수 있도록 history state 추가
+        history.pushState({ lightbox: true }, '');
         // 다음 프레임에서 opacity 전환 시작
         requestAnimationFrame(() => {
             opacity = 1;
@@ -36,6 +42,11 @@
             isZoomed = false;
             document.body.style.overflow = '';
         }, 200);
+        // popstate로 닫힌 게 아니면 pushState한 항목 제거
+        if (!closedByPopstate) {
+            history.back();
+        }
+        closedByPopstate = false;
     }
 
     // 이전/다음 이미지
@@ -93,6 +104,18 @@
             const handler = untrack(() => handleKeydown);
             window.addEventListener('keydown', handler);
             return () => window.removeEventListener('keydown', handler);
+        }
+    });
+
+    // 브라우저 뒤로가기 시 라이트박스 닫기
+    $effect(() => {
+        if (isOpen) {
+            const onPopstate = () => {
+                closedByPopstate = true;
+                close();
+            };
+            window.addEventListener('popstate', onPopstate);
+            return () => window.removeEventListener('popstate', onPopstate);
         }
     });
 </script>
