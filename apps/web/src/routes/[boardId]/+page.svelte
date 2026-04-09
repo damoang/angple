@@ -367,7 +367,13 @@
     const activeTag = $derived(data.activeTag || null);
     const postsResult = $derived(data.postsData);
     const posts = $derived(postsResult.posts);
-    const notices = $derived((postsResult.notices || []) as FreePost[]);
+    const notices = $derived(
+        (postsResult.notices || []) as Array<{
+            id: number;
+            notice_type?: string;
+            [key: string]: unknown;
+        }>
+    );
     const pagination = $derived(postsResult.pagination);
     const paginationHasNext = $derived(pagination.hasNext ?? false);
     const paginationTotalPages = $derived(pagination.totalPages ?? 0);
