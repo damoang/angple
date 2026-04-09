@@ -948,6 +948,15 @@
         {@const isReplyingTo = replyingToCommentId === String(comment.id)}
         {@const depth = comment.depth ?? 0}
         {@const isReply = depth > 0}
+        {@const replyToAuthor = isReply
+            ? (() => {
+                  for (let i = commentIndex - 1; i >= 0; i--) {
+                      const prev = commentTree[i];
+                      if ((prev.depth ?? 0) < depth) return prev.author;
+                  }
+                  return null;
+              })()
+            : null}
         {@const isDiscussion = commentLayout === 'discussion'}
         {@const isFeed = commentLayout === 'feed'}
         {@const iconUrl = isDeleted
@@ -1168,6 +1177,11 @@
                                         <LevelBadge
                                             level={memberLevelStore.getLevel(comment.author_id)}
                                         />
+                                        {#if replyToAuthor}
+                                            <span class="text-muted-foreground text-xs font-normal"
+                                                >→ {replyToAuthor}</span
+                                            >
+                                        {/if}
                                         {#if postAuthorId && comment.author_id === postAuthorId}
                                             <span
                                                 class="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-800 dark:bg-amber-900/30 dark:text-amber-200"
