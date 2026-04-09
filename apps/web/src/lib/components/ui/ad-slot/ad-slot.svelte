@@ -6,6 +6,7 @@
         GAM_AD_EMPTY_RETRY_DELAY,
         GAM_AD_REFRESH_INTERVAL,
         POSITION_MAP,
+        POSITION_REFRESH_INTERVALS,
         type AdConfig
     } from '$lib/config/ad-config.js';
     import {
@@ -183,7 +184,8 @@
             position,
             sizes: adSizes,
             config,
-            refreshIntervalMs: GAM_AD_REFRESH_INTERVAL * 1000,
+            refreshIntervalMs:
+                (POSITION_REFRESH_INTERVALS[position] ?? GAM_AD_REFRESH_INTERVAL) * 1000,
             emptyRetryDelayMs: GAM_AD_EMPTY_RETRY_DELAY * 1000,
             maxEmptyRetries: 4,
             onRender: handleRender
