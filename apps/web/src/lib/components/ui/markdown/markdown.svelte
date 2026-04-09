@@ -301,7 +301,7 @@
         }
     });
 
-    // Twitter/X 임베드: renderedHtml 변경 시 widgets.js 재호출
+    // Twitter/X 임베드: renderedHtml 변경 시 widgets.js 로드 + 재호출
     $effect(() => {
         void renderedHtml;
         if (!browser || !proseEl) return;
@@ -312,11 +312,35 @@
             };
             if (w.twttr?.widgets?.load) {
                 w.twttr.widgets.load(proseEl);
-            } else if (!document.querySelector('script[src*="platform.twitter.com/widgets.js"]')) {
-                const s = document.createElement('script');
-                s.src = 'https://platform.twitter.com/widgets.js';
-                s.async = true;
-                document.head.appendChild(s);
+            } else {
+                // widgets.js가 아직 없으면 삽입하고 onload 시 load() 호출
+                const existing = document.querySelector(
+                    'script[src*="platform.twitter.com/widgets.js"]'
+                );
+                if (!existing) {
+                    const s = document.createElement('script');
+                    s.src = 'https://platform.twitter.com/widgets.js';
+                    s.async = true;
+                    s.onload = () => {
+                        const tw = window as unknown as {
+                            twttr?: { widgets?: { load?: (el: HTMLElement) => void } };
+                        };
+                        tw.twttr?.widgets?.load?.(proseEl);
+                    };
+                    document.head.appendChild(s);
+                } else {
+                    // 스크립트는 삽입됐지만 아직 로드 중 — 로드 완료 대기
+                    existing.addEventListener(
+                        'load',
+                        () => {
+                            const tw = window as unknown as {
+                                twttr?: { widgets?: { load?: (el: HTMLElement) => void } };
+                            };
+                            tw.twttr?.widgets?.load?.(proseEl);
+                        },
+                        { once: true }
+                    );
+                }
             }
         });
     });
