@@ -1,0 +1,26 @@
+{
+    "id": "church-classic",
+    "name": "클래식 교회",
+    "version": "1.0.0",
+    "author": { "name": "SDKLabs", "email": "sdk@sdk.kr" },
+    "description": "와인색 전통적 교회 테마",
+    "angpleVersion": "0.1.0",
+    "tags": ["church", "community", "religious"],
+    "settings": {
+        "church": {
+            "churchName": { "label": "교회 이름", "type": "text", "default": "우리교회" },
+            "serviceTime": { "label": "예배 시간", "type": "text", "default": "주일 오전 11시" },
+            "address": { "label": "교회 주소", "type": "text", "default": "" },
+            "phone": { "label": "연락처", "type": "text", "default": "" },
+            "pastor": { "label": "담임목사", "type": "text", "default": "" }
+        },
+        "appearance": {
+            "primaryColor": { "label": "메인 색상", "type": "color", "default": "#991B1B" },
+            "accentColor": { "label": "강조 색상", "type": "color", "default": "#DC2626" }
+        }
+    },
+    "components": [],
+    "hooks": [],
+    "category": "theme",
+    "license": "MIT"
+}

@@ -1,0 +1,14 @@
+{
+    "id": "church-hdbc",
+    "name": "흥덕침례교회",
+    "version": "1.0.0",
+    "author": { "name": "SDKLabs", "email": "sdk@sdk.kr" },
+    "description": "흥덕침례교회 전용 테마. 따뜻한 브라운톤, 나무 질감, 가족적 분위기.",
+    "angpleVersion": "0.1.0",
+    "tags": ["church", "baptist", "warm", "traditional"],
+    "settings": {},
+    "components": [],
+    "hooks": [],
+    "category": "theme",
+    "license": "MIT"
+}
