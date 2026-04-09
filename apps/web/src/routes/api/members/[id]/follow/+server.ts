@@ -114,6 +114,13 @@ export const DELETE: RequestHandler = async ({ params, cookies }) => {
         return json({ success: false, message: '로그인이 필요합니다.' }, { status: 401 });
     }
 
+    if (isRestrictedUser(user)) {
+        return json(
+            { success: false, message: '이용제한 중에는 이 기능을 사용할 수 없습니다.' },
+            { status: 403 }
+        );
+    }
+
     if (!targetId) {
         return json({ success: false, message: 'id가 필요합니다.' }, { status: 400 });
     }
