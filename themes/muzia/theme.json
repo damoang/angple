@@ -1,0 +1,119 @@
+{
+    "id": "muzia",
+    "name": "Muzia",
+    "version": "1.0.0",
+    "author": {
+        "name": "SDK",
+        "email": "sdk@sdk.kr"
+    },
+    "description": "뮤지아 뮤직 커뮤니티 테마. 다크 퍼플 + 핑크-퍼플 그래디언트 액센트. SNS 피드, 미니홈피, 콘텐츠 마켓 등 muzia.net 전용 기능 포함.",
+    "screenshot": "screenshot.png",
+    "angpleVersion": "0.1.0",
+    "tags": ["music", "community", "dark", "gradient", "feed", "social", "y2k"],
+    "settings": {
+        "branding": {
+            "siteName": {
+                "label": "사이트 이름",
+                "type": "text",
+                "default": "Muzia",
+                "description": "사이트 표시 이름"
+            },
+            "tagline": {
+                "label": "태그라인",
+                "type": "text",
+                "default": "Music & Community",
+                "description": "사이트 슬로건"
+            },
+            "heroTitle": {
+                "label": "히어로 타이틀",
+                "type": "text",
+                "default": "당신의 음악을, 모두와 함께",
+                "description": "메인 히어로 섹션 타이틀"
+            },
+            "heroSubtitle": {
+                "label": "히어로 서브타이틀",
+                "type": "text",
+                "default": "음악을 사랑하는 사람들의 커뮤니티",
+                "description": "히어로 서브타이틀"
+            }
+        },
+        "appearance": {
+            "primaryColor": {
+                "label": "메인 색상",
+                "type": "color",
+                "default": "#030213",
+                "description": "다크 퍼플 메인 색상"
+            },
+            "accentFrom": {
+                "label": "그래디언트 시작",
+                "type": "color",
+                "default": "#ec4899",
+                "description": "핑크 그래디언트 시작 색상"
+            },
+            "accentTo": {
+                "label": "그래디언트 끝",
+                "type": "color",
+                "default": "#9333ea",
+                "description": "퍼플 그래디언트 끝 색상"
+            },
+            "enableDarkMode": {
+                "label": "다크 모드 토글",
+                "type": "boolean",
+                "default": true,
+                "description": "다크 모드 토글 활성화"
+            }
+        },
+        "layout": {
+            "layoutMode": {
+                "label": "레이아웃 모드",
+                "type": "select",
+                "options": [
+                    { "label": "랜딩 페이지만", "value": "landing" },
+                    { "label": "하이브리드 (랜딩 + 커뮤니티)", "value": "hybrid" },
+                    { "label": "커뮤니티만", "value": "community" }
+                ],
+                "default": "community",
+                "description": "레이아웃 모드 선택"
+            }
+        },
+        "features": {
+            "showFeed": {
+                "label": "피드 페이지",
+                "type": "boolean",
+                "default": true,
+                "description": "SNS+게시판 통합 피드 활성화"
+            },
+            "showMiniHomepage": {
+                "label": "미니홈피",
+                "type": "boolean",
+                "default": true,
+                "description": "Y2K 미니홈피 활성화"
+            },
+            "showContentMarket": {
+                "label": "콘텐츠 마켓",
+                "type": "boolean",
+                "default": true,
+                "description": "디지털 콘텐츠 마켓 활성화"
+            }
+        }
+    },
+    "components": [
+        {
+            "id": "muzia-background",
+            "name": "Muzia Background",
+            "slot": "background",
+            "path": "components/muzia-background.svelte",
+            "priority": 1
+        },
+        {
+            "id": "muzia-landing-hero",
+            "name": "Muzia Landing Hero",
+            "slot": "landing-hero",
+            "path": "components/muzia-landing-hero.svelte",
+            "priority": 10
+        }
+    ],
+    "hooks": [],
+    "category": "theme",
+    "license": "MIT"
+}
