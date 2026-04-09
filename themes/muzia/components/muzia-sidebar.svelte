@@ -4,6 +4,7 @@
      * 원본과 동일한 클래스/구조/데이터
      */
     import { Button } from '$lib/components/ui/button';
+    import MuziaAdSlot from './muzia-ad-slot.svelte';
 
     const menuItems = [
         { icon: '🏠', label: '홈', href: '/' },
@@ -80,4 +81,7 @@
             {/each}
         </div>
     </div>
+
+    <!-- 사이드바 광고 -->
+    <MuziaAdSlot position="sidebar" class="mt-4" />
 </div>

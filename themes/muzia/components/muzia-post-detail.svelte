@@ -6,6 +6,7 @@
      */
     import { browser } from '$app/environment';
     import { Button } from '$lib/components/ui/button';
+    import MuziaAdSlot from './muzia-ad-slot.svelte';
 
     interface Props { boardId: string; postId: string; }
     const { boardId, postId }: Props = $props();
@@ -210,6 +211,9 @@
         <!-- 뒤로가기 -->
         <a href="/{boardId}" class="mb-4 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">← 목록으로</a>
 
+        <!-- 광고: 본문 위 리더보드 -->
+        <MuziaAdSlot position="leaderboard" />
+
         <!-- 게시글 카드 -->
         <div class="overflow-hidden rounded-lg border bg-card shadow-sm">
             <!-- 헤더 -->
@@ -275,6 +279,9 @@
                 </button>
             </div>
         </div>
+
+        <!-- 광고: 본문과 댓글 사이 -->
+        <MuziaAdSlot position="content" />
 
         <!-- 댓글 -->
         <div class="mt-6 overflow-hidden rounded-lg border bg-card shadow-sm">

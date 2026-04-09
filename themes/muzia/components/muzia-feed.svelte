@@ -3,6 +3,7 @@
      * Muzia Feed — React FeedSection 디자인 그대로 + DB 실제 데이터만
      */
     import { Button } from '$lib/components/ui/button';
+    import MuziaAdSlot from './muzia-ad-slot.svelte';
 
     interface FeedPost {
         id: number; board_id: string; board_name: string; title: string;
@@ -59,6 +60,9 @@
         </div>
     </div>
 
+    <!-- 피드 상단 광고 -->
+    <MuziaAdSlot position="leaderboard" />
+
     {#if loading}
         <div class="py-20 text-center text-muted-foreground">로딩 중...</div>
     {:else if selectedTab === 'gallery'}
@@ -85,8 +89,11 @@
     {:else}
         <!-- 통합 피드 (React FeedSection 디자인 그대로) -->
         <div class="mx-auto max-w-2xl space-y-6">
-            {#each posts as post (post.id)}
+            {#each posts as post, i (post.id)}
                 {@const liked = likedIds.has(post.id)}
+                {#if i === 3 || i === 8}
+                    <MuziaAdSlot position="content" />
+                {/if}
                 <div class="overflow-hidden rounded-lg border bg-card shadow-sm">
                     <!-- 유저 정보 -->
                     <div class="flex items-center justify-between p-4">

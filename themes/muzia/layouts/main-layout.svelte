@@ -45,8 +45,7 @@
 <svelte:head>
     <title>Muzia — 음악을 사랑하는 사람들의 커뮤니티</title>
 
-    <!-- Google AdSense -->
-    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2456249131797827" crossorigin="anonymous"></script>
+    <!-- Google AdSense: 온디맨드 로딩 (muzia-ad-slot.svelte에서 처리) -->
 
     <!-- Google Analytics (GA4) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-790ERG9C3J"></script>
