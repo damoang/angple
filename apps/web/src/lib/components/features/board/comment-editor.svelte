@@ -150,6 +150,7 @@
 
     export function clear(): void {
         editor?.commands.clearContent(true);
+        editor?.commands.unsetLink();
     }
 
     export function focus(): void {
