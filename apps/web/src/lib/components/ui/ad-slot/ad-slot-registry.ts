@@ -25,6 +25,7 @@ type SlotState = {
     destroyTimer: ReturnType<typeof setTimeout> | null;
     visible: boolean;
     viewable: boolean;
+    fallbackTriggered: boolean;
 };
 
 type SlotAttachOptions = {
@@ -36,11 +37,13 @@ type SlotAttachOptions = {
     emptyRetryDelayMs: number;
     maxEmptyRetries: number;
     onRender: (isEmpty: boolean) => void;
+    onFallback?: () => void;
 };
 
 type Registry = {
     slots: Map<string, SlotState>;
     callbacks: Map<string, Set<(isEmpty: boolean) => void>>;
+    fallbackCallbacks: Map<string, () => void>;
     servicesEnabled: boolean;
     listenerRegistered: boolean;
     gptReadyPromise: Promise<boolean> | null;
@@ -50,6 +53,7 @@ function createRegistry(): Registry {
     return {
         slots: new Map(),
         callbacks: new Map(),
+        fallbackCallbacks: new Map(),
         servicesEnabled: false,
         listenerRegistered: false,
         gptReadyPromise: null
@@ -307,7 +311,17 @@ function clearSlotTimers(state: SlotState) {
 }
 
 function scheduleEmptyRetry(state: SlotState, delayMs: number, maxRetries: number) {
-    if (state.emptyRetryTimer || state.emptyRetryCount >= maxRetries) return;
+    if (state.emptyRetryTimer) return;
+    if (state.emptyRetryCount >= maxRetries) {
+        // retry 소진 → 애드핏 폴백 트리거
+        if (!state.fallbackTriggered) {
+            state.fallbackTriggered = true;
+            const registry = getRegistry();
+            const fallbackCb = registry.fallbackCallbacks.get(state.slotId);
+            fallbackCb?.();
+        }
+        return;
+    }
 
     state.emptyRetryTimer = setTimeout(() => {
         state.emptyRetryTimer = null;
@@ -352,7 +366,8 @@ export async function attachSlot(options: SlotAttachOptions) {
             emptyRetryCount: 0,
             destroyTimer: null,
             visible: false,
-            viewable: false
+            viewable: false,
+            fallbackTriggered: false
         };
         registry.slots.set(slotId, state);
     }
@@ -367,6 +382,10 @@ export async function attachSlot(options: SlotAttachOptions) {
         registry.callbacks.set(slotId, new Set());
     }
     registry.callbacks.get(slotId)!.add(options.onRender);
+
+    if (options.onFallback) {
+        registry.fallbackCallbacks.set(slotId, options.onFallback);
+    }
 
     if (state.destroyTimer) {
         clearTimeout(state.destroyTimer);
@@ -458,6 +477,7 @@ export function detachSlot(slotId: string, onRender: (isEmpty: boolean) => void)
             googletag.destroySlots([state.slot]);
             registry.slots.delete(slotId);
             registry.callbacks.delete(slotId);
+            registry.fallbackCallbacks.delete(slotId);
         });
     }, DESTROY_DELAY_MS);
 }

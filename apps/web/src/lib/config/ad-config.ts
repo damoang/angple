@@ -27,6 +27,36 @@ export const POSITION_REFRESH_INTERVALS: Record<string, number> = {
     'index-bottom': 45
 };
 
+// GAM 빈 슬롯 → 카카오 애드핏 폴백 설정
+export const ADFIT_FALLBACK_MAX_RETRIES = 2; // GAM 재시도 횟수 (2회 후 애드핏 전환)
+
+export type AdfitUnit = { unitId: string; width: number; height: number };
+export type AdfitFallback = { desktop: AdfitUnit; mobile: AdfitUnit };
+
+const ADFIT = {
+    desktop_banner: { unitId: 'DAN-9qdD2GVgW3AXbClR', width: 728, height: 90 },
+    mobile_banner: { unitId: 'DAN-ry6MhSvNcdUCMwtP', width: 320, height: 100 },
+    mobile_small: { unitId: 'DAN-NPSIJ0trXOPAXpuM', width: 320, height: 50 },
+    medium_rect: { unitId: 'DAN-eAXFNdHYsuiUQoFs', width: 300, height: 250 },
+    square: { unitId: 'DAN-cVaSnUSwfqmUnOAH', width: 250, height: 250 },
+    skyscraper: { unitId: 'DAN-LXOsjqjRz52xL3Ti', width: 160, height: 600 }
+} as const;
+
+// GAM position → 애드핏 폴백 유닛 매핑
+export const ADFIT_FALLBACK_MAP: Record<string, AdfitFallback> = {
+    'board-content': { desktop: ADFIT.desktop_banner, mobile: ADFIT.mobile_banner },
+    'board-before-comments': { desktop: ADFIT.desktop_banner, mobile: ADFIT.mobile_banner },
+    'board-list-bottom': { desktop: ADFIT.desktop_banner, mobile: ADFIT.mobile_banner },
+    'board-list-infeed': { desktop: ADFIT.desktop_banner, mobile: ADFIT.mobile_small },
+    'comment-infeed': { desktop: ADFIT.desktop_banner, mobile: ADFIT.mobile_small },
+    'index-top': { desktop: ADFIT.desktop_banner, mobile: ADFIT.mobile_banner },
+    'index-middle-1': { desktop: ADFIT.desktop_banner, mobile: ADFIT.mobile_banner },
+    'sidebar-sticky-desktop': { desktop: ADFIT.medium_rect, mobile: ADFIT.medium_rect },
+    sidebar: { desktop: ADFIT.medium_rect, mobile: ADFIT.medium_rect },
+    'wing-left': { desktop: ADFIT.skyscraper, mobile: ADFIT.skyscraper },
+    'wing-right': { desktop: ADFIT.skyscraper, mobile: ADFIT.skyscraper }
+};
+
 // 광고 단위 경로 (환경변수로 커스터마이징 가능)
 const unitMain = import.meta.env.VITE_GAM_UNIT_MAIN || 'banner-responsive_main';
 const unitSub = import.meta.env.VITE_GAM_UNIT_SUB || 'banner-responsive_sub';

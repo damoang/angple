@@ -7,8 +7,12 @@
         GAM_AD_REFRESH_INTERVAL,
         POSITION_MAP,
         POSITION_REFRESH_INTERVALS,
+        ADFIT_FALLBACK_MAP,
+        ADFIT_FALLBACK_MAX_RETRIES,
         type AdConfig
     } from '$lib/config/ad-config.js';
+    import AdfitSlot from '$lib/components/ui/adfit-slot/adfit-slot.svelte';
+    import { adDensityStore } from '$lib/stores/ad-density.svelte.js';
     import {
         attachSlot,
         buildSlotId,
@@ -56,6 +60,7 @@
 
     let isLoaded = $state(false);
     let hasAd = $state(false);
+    let showAdfit = $state(false);
     let slotId = $state('');
     let detached = false;
     let containerEl: HTMLDivElement | null = null;
@@ -71,7 +76,21 @@
     let isBTF = $derived(BTF_POSITIONS.has(position));
     let isWing = $derived(position === 'wing-left' || position === 'wing-right');
     let isTouchSafe = $derived(TOUCH_SAFE_POSITIONS.has(position));
-    let isEmpty = $derived(isLoaded && !hasAd);
+    let isEmpty = $derived(isLoaded && !hasAd && !showAdfit);
+
+    // 애드핏 폴백 유닛 (반응형: 데스크톱/모바일 구분)
+    const adfitConfig = $derived(ADFIT_FALLBACK_MAP[position] ?? null);
+    const adfitUnit = $derived.by(() => {
+        if (!adfitConfig) return null;
+        if (typeof window === 'undefined') return adfitConfig.desktop;
+        return window.innerWidth >= 728 ? adfitConfig.desktop : adfitConfig.mobile;
+    });
+
+    function handleFallback() {
+        if (detached || !adfitUnit) return;
+        if (!adDensityStore.canShowMore) return;
+        showAdfit = true;
+    }
 
     function getAdConfig(): AdConfig {
         const configKey = POSITION_MAP[position];
@@ -143,7 +162,16 @@
         if (detached) return;
         isLoaded = true;
         hasAd = !isEmpty;
-        onSlotRendered(slotId, isEmpty, GAM_AD_EMPTY_RETRY_DELAY * 1000, 4);
+        // GAM이 나중에 채워지면 애드핏 숨기기
+        if (!isEmpty && showAdfit) {
+            showAdfit = false;
+        }
+        // 광고 밀도 관리
+        if (!isEmpty) {
+            adDensityStore.register(slotId);
+        }
+        const maxRetries = adfitConfig ? ADFIT_FALLBACK_MAX_RETRIES : 4;
+        onSlotRendered(slotId, isEmpty, GAM_AD_EMPTY_RETRY_DELAY * 1000, maxRetries);
     }
 
     async function initAdSlot() {
@@ -187,8 +215,9 @@
             refreshIntervalMs:
                 (POSITION_REFRESH_INTERVALS[position] ?? GAM_AD_REFRESH_INTERVAL) * 1000,
             emptyRetryDelayMs: GAM_AD_EMPTY_RETRY_DELAY * 1000,
-            maxEmptyRetries: 4,
-            onRender: handleRender
+            maxEmptyRetries: adfitConfig ? ADFIT_FALLBACK_MAX_RETRIES : 4,
+            onRender: handleRender,
+            onFallback: adfitConfig ? handleFallback : undefined
         });
     }
 
@@ -200,6 +229,7 @@
         detached = true;
         visibilityObserver?.disconnect();
         if (!slotId) return;
+        adDensityStore.unregister(slotId);
         updateSlotVisibility(slotId, false);
         detachSlot(slotId, handleRender);
     });
@@ -232,8 +262,16 @@
         style:min-height={effectiveMinHeight}
         style:transition="min-height 0ms"
     >
+        {#if showAdfit && adfitUnit}
+            <AdfitSlot unit={adfitUnit} id={slotId || position} />
+        {/if}
         {#if slotId}
-            <div id={slotId} class="gam-ad-slot w-full" style:min-height={effectiveMinHeight}></div>
+            <div
+                id={slotId}
+                class="gam-ad-slot w-full"
+                style:min-height={effectiveMinHeight}
+                style:display={showAdfit ? 'none' : undefined}
+            ></div>
         {/if}
     </div>
 {/if}
