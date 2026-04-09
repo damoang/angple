@@ -682,7 +682,9 @@
             showYoutubeDialog = false;
             return;
         }
-        editor?.chain().focus().setYoutubeVideo({ src: youtubeUrl }).run();
+        const timeMatch = youtubeUrl.match(/[?&]t=(\d+)/);
+        const start = timeMatch ? parseInt(timeMatch[1], 10) : 0;
+        editor?.chain().focus().setYoutubeVideo({ src: youtubeUrl, start }).run();
         showYoutubeDialog = false;
         youtubeUrl = '';
     }
