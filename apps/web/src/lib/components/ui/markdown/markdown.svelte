@@ -7,6 +7,7 @@
     import { browser } from '$app/environment';
     import { highlightAllCodeBlocks } from '$lib/utils/code-highlight';
     import { transformEscapedMedia } from '$lib/utils/content-transform';
+    import { processContent as processEmbeds } from '$lib/plugins/auto-embed/embedder.js';
     import { attachLightbox } from '$lib/components/ui/image-lightbox/index.js';
     import { filterUnsafeStyles } from '$lib/utils/safe-css.js';
     import {
@@ -204,6 +205,8 @@
             'data-bluesky-cid',
             'data-embed-height',
             'data-tweet-id',
+            'data-conversation',
+            'data-dnt',
             'data-youtube-video',
             'frameborder',
             'allow',
@@ -231,12 +234,12 @@
         breaks: true
     });
 
-    // SSR용 기본 HTML (플러그인 필터 없이, 이스케이프된 미디어 태그는 복원)
+    // SSR용 기본 HTML (이스케이프된 미디어 태그 복원 + URL 자동 임베딩)
     function getInitialHtml(content: string): string {
         if (!content) return '';
         let rawHtml = marked.parse(content) as string;
         rawHtml = transformEscapedMedia(rawHtml);
-        // rawHtml = optimizeMediaHtml(rawHtml); // 썸네일 대체 비활성화 — 원본 이미지 표시
+        if (enableEmbed) rawHtml = processEmbeds(rawHtml);
         return DOMPurify.sanitize(rawHtml, PURIFY_CONFIG);
     }
 
