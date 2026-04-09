@@ -258,7 +258,6 @@
 
     function handleOpenChange(open: boolean): void {
         if (open) {
-            primeUnreadCount();
             void loadNotifications();
         }
     }
@@ -266,7 +265,7 @@
     onMount(() => {
         // 페이지 로드 시 자동 prime (hover 없이도 알림 수 표시)
         if (!unreadPrimed && document.visibilityState === 'visible') {
-            setTimeout(() => primeUnreadCount(), 1000);
+            primeUnreadCount();
         }
 
         let interval: ReturnType<typeof setInterval> | null = null;
