@@ -74,11 +74,4 @@
     .adsense-multiplex {
         overflow: hidden;
     }
-
-    /* 모바일: 멀티플렉스 높이 제한 */
-    @media (max-width: 727px) {
-        .adsense-multiplex {
-            max-height: 400px;
-        }
-    }
 </style>
