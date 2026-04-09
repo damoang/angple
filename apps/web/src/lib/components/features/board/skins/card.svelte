@@ -6,7 +6,7 @@
     import type { Component } from 'svelte';
     import { pluginStore } from '$lib/stores/plugin.svelte';
     import { loadPluginComponent } from '$lib/utils/plugin-optional-loader';
-    import { formatDate } from '$lib/utils/format-date.js';
+    import { formatDateCompact } from '$lib/utils/format-date.js';
     import { uiSettingsStore } from '$lib/stores/ui-settings.svelte.js';
     import { toThumbnailUrl } from '$lib/utils/thumbnail-url.js';
 
@@ -89,7 +89,7 @@
                                 <MemoBadge memberId={post.author_id} />
                             {/if}
                             <span>•</span>
-                            <span>{formatDate(post.created_at)}</span>
+                            <span>{formatDateCompact(post.created_at)}</span>
                             <span>•</span>
                             <span>조회 {post.views.toLocaleString()}</span>
                         </div>
