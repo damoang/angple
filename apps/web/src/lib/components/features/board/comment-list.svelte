@@ -1016,7 +1016,7 @@
                               : commentLayout === 'card'
                                 ? 'p-4'
                                 : commentLayout === 'muzia'
-                                  ? 'border-border border-b px-1 py-3 last:border-b-0'
+                                  ? 'muzia-comment border-border px-1 py-3'
                                   : commentLayout === 'compact'
                                     ? 'py-1.5'
                                     : 'py-3 first:pt-0 last:pb-0'}
@@ -2054,5 +2054,12 @@
 
     :global(.like-animation) {
         animation: da-thumbs-up 1s ease-in-out;
+    }
+
+    :global(.muzia-comment) {
+        border-bottom: 1px solid var(--border) !important;
+    }
+    :global(.muzia-comment:last-child) {
+        border-bottom: none !important;
     }
 </style>
