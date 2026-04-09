@@ -48,6 +48,7 @@ type DetailBoardPayload = Pick<
     | 'display_settings'
     | 'permissions'
     | 'board_type'
+    | 'use_sns'
 >;
 
 function toDetailBoardPayload(board: Board | null): DetailBoardPayload | null {
@@ -66,7 +67,8 @@ function toDetailBoardPayload(board: Board | null): DetailBoardPayload | null {
         use_nogood: board.use_nogood,
         display_settings: board.display_settings,
         permissions: board.permissions,
-        board_type: board.board_type
+        board_type: board.board_type,
+        use_sns: board.use_sns
     };
 }
 
