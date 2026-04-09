@@ -13,6 +13,20 @@ export const GAM_SITE_NAME = import.meta.env.VITE_GAM_SITE_NAME || 'default';
 export const GAM_AD_REFRESH_INTERVAL = Number(import.meta.env.VITE_GAM_AD_REFRESH_INTERVAL || 30); // 초
 export const GAM_AD_EMPTY_RETRY_DELAY = 30; // 초
 
+// 위치별 refresh 간격 (초) — viewability 기반 차등화
+// 기본값(GAM_AD_REFRESH_INTERVAL)을 override
+export const POSITION_REFRESH_INTERVALS: Record<string, number> = {
+    'sidebar-sticky-desktop': 25,
+    sidebar: 25,
+    'wing-left': 25,
+    'wing-right': 25,
+    'board-list-infeed': 40,
+    'comment-infeed': 40,
+    'index-middle-1': 45,
+    'index-middle-2': 45,
+    'index-bottom': 45
+};
+
 // 광고 단위 경로 (환경변수로 커스터마이징 가능)
 const unitMain = import.meta.env.VITE_GAM_UNIT_MAIN || 'banner-responsive_main';
 const unitSub = import.meta.env.VITE_GAM_UNIT_SUB || 'banner-responsive_sub';

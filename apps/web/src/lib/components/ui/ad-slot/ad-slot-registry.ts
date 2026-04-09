@@ -1,5 +1,5 @@
 import { browser } from '$app/environment';
-import { GAM_SITE_NAME, type AdConfig } from '$lib/config/ad-config.js';
+import { GAM_SITE_NAME, POSITION_REFRESH_INTERVALS, type AdConfig } from '$lib/config/ad-config.js';
 import { getCurrentPageContext, setCurrentPageContext, trackEvent } from '$lib/services/ga4.js';
 import { queueGoogleTagCommand } from '$lib/utils/gpt-loader';
 
@@ -144,6 +144,14 @@ function ensureServices() {
     googletag.pubads().setTargeting('site', GAM_SITE_NAME);
     const theme = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
     googletag.pubads().setTargeting('theme', theme);
+    // 시간대/디바이스 targeting — GAM Pricing Rule에서 동적 floor 설정에 활용
+    googletag.pubads().setTargeting('hour', String(new Date().getHours()));
+    googletag
+        .pubads()
+        .setTargeting(
+            'device',
+            window.innerWidth >= 1024 ? 'desktop' : window.innerWidth >= 728 ? 'tablet' : 'mobile'
+        );
     googletag.enableServices();
     registry.servicesEnabled = true;
 }
