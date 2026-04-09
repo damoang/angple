@@ -85,6 +85,7 @@
         initialLikedCommentIds?: number[]; // SSR에서 전달된 좋아요한 댓글 ID 목록
         initialDislikedCommentIds?: number[]; // SSR에서 전달된 비추천한 댓글 ID 목록
         truthroomCommentMap?: Record<number, number>; // 잠긴 댓글 → 진실의방 글 ID 매핑
+        isRestricted?: boolean; // 제한된 유저 (영구정지 등)
     }
 
     let {
@@ -103,7 +104,8 @@
         reactionsMap,
         initialLikedCommentIds = [],
         initialDislikedCommentIds = [],
-        truthroomCommentMap = {}
+        truthroomCommentMap = {},
+        isRestricted = false
     }: Props = $props();
 
     function findCommentById(commentId: string): FreeComment | null {
@@ -616,6 +618,7 @@
             authStore.redirectToLogin();
             return;
         }
+        if (isRestricted) return;
         reportingCommentId = comment.id;
         showReportDialog = true;
     }

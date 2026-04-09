@@ -1593,6 +1593,7 @@
                 onDislike={handleDislike}
                 onLoadLikers={loadLikers}
                 onReport={() => {
+                    if (data.isRestricted) return;
                     showReportDialog = true;
                 }}
                 onChangeFontSize={changeFontSize}
@@ -1765,6 +1766,7 @@
                         {initialLikedCommentIds}
                         {initialDislikedCommentIds}
                         {truthroomCommentMap}
+                        isRestricted={data.isRestricted}
                     />
 
                     <div class="border-border border-t pt-6">
