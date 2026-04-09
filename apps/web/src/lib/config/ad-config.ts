@@ -24,7 +24,8 @@ export const POSITION_REFRESH_INTERVALS: Record<string, number> = {
     'comment-infeed': 40,
     'index-middle-1': 45,
     'index-middle-2': 45,
-    'index-bottom': 45
+    'index-bottom': 45,
+    'board-after-comments': 45
 };
 
 // GAM 빈 슬롯 → 카카오 애드핏 폴백 설정
@@ -46,6 +47,7 @@ const ADFIT = {
 export const ADFIT_FALLBACK_MAP: Record<string, AdfitFallback> = {
     'board-content': { desktop: ADFIT.desktop_banner, mobile: ADFIT.mobile_banner },
     'board-before-comments': { desktop: ADFIT.desktop_banner, mobile: ADFIT.mobile_banner },
+    'board-after-comments': { desktop: ADFIT.desktop_banner, mobile: ADFIT.medium_rect },
     'board-list-bottom': { desktop: ADFIT.desktop_banner, mobile: ADFIT.mobile_banner },
     'board-list-infeed': { desktop: ADFIT.desktop_banner, mobile: ADFIT.mobile_small },
     'comment-infeed': { desktop: ADFIT.desktop_banner, mobile: ADFIT.mobile_small },
@@ -315,6 +317,7 @@ export const POSITION_MAP: Record<string, string> = {
     'board-content': 'banner-article',
     'board-content-bottom': 'banner-view-content',
     'board-before-comments': 'banner-article',
+    'board-after-comments': 'banner-square',
 
     // 인피드 — curation 유닛
     'board-list-infeed': 'infeed-compact',
@@ -366,6 +369,7 @@ export const POSITION_LABELS: Record<string, string> = {
     'board-content': '본문 광고',
     'board-content-bottom': '본문 하단',
     'board-before-comments': '댓글 상단',
+    'board-after-comments': '댓글 하단',
     'board-footer': '게시판 하단',
     'board-list-infeed': '목록 인피드',
     'comment-infeed': '댓글 인피드',

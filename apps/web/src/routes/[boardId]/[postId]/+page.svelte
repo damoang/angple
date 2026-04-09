@@ -1813,9 +1813,16 @@
             </Card>
         {/if}
 
-        <!-- 댓글 아래 멀티플렉스 광고 -->
+        <!-- 댓글 아래 광고: 모바일 300x250 GAM+Adfit / 데스크톱 멀티플렉스 -->
         {#if widgetLayoutStore.hasEnabledAds && !data.post.deleted_at}
-            <div class="mt-2">
+            <div class="mt-2 block md:hidden">
+                <AdSlot
+                    position="board-after-comments"
+                    height="250px"
+                    slotKey="board-after-comments"
+                />
+            </div>
+            <div class="mt-2 hidden md:block">
                 <AdsenseMultiplex />
             </div>
         {/if}

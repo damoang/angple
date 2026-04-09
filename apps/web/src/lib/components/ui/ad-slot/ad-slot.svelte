@@ -44,7 +44,8 @@
         'explore-bottom',
         'empathy-bottom',
         'board-list-infeed',
-        'comment-infeed'
+        'comment-infeed',
+        'board-after-comments'
     ]);
 
     // 모바일 목록처럼 터치가 빈번한 위치: no fill이어도 즉시 축소하지 않음 (CLS 방지)
