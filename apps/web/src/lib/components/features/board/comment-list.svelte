@@ -2057,7 +2057,7 @@
     }
 
     :global(.muzia-comment) {
-        border-bottom: 1px solid var(--border) !important;
+        border-bottom: 2px solid red !important;
     }
     :global(.muzia-comment:last-child) {
         border-bottom: none !important;
