@@ -931,7 +931,7 @@
               : commentLayout === 'card'
                 ? 'bg-card divide-y overflow-hidden rounded-lg border shadow-sm'
                 : commentLayout === 'muzia'
-                  ? 'divide-border/60 divide-y'
+                  ? ''
                   : commentLayout === 'bordered' || commentLayout === 'bubble'
                     ? 'space-y-2'
                     : 'space-y-3'}
@@ -1011,7 +1011,7 @@
                               : commentLayout === 'card'
                                 ? 'p-4'
                                 : commentLayout === 'muzia'
-                                  ? 'px-1 py-3'
+                                  ? 'border-border border-b px-1 py-3 last:border-b-0'
                                   : commentLayout === 'compact'
                                     ? 'py-1.5'
                                     : 'py-3 first:pt-0 last:pb-0'}
