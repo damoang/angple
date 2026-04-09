@@ -298,6 +298,26 @@
         }
     });
 
+    // Twitter/X 임베드: renderedHtml 변경 시 widgets.js 재호출
+    $effect(() => {
+        void renderedHtml;
+        if (!browser || !proseEl) return;
+        tick().then(() => {
+            if (!proseEl?.querySelector('.twitter-tweet')) return;
+            const w = window as unknown as {
+                twttr?: { widgets?: { load?: (el: HTMLElement) => void } };
+            };
+            if (w.twttr?.widgets?.load) {
+                w.twttr.widgets.load(proseEl);
+            } else if (!document.querySelector('script[src*="platform.twitter.com/widgets.js"]')) {
+                const s = document.createElement('script');
+                s.src = 'https://platform.twitter.com/widgets.js';
+                s.async = true;
+                document.head.appendChild(s);
+            }
+        });
+    });
+
     // 본문 이미지 data-original 폴백 (최적화된 이미지 로드 실패 시 원본으로 대체)
     $effect(() => {
         void renderedHtml;
