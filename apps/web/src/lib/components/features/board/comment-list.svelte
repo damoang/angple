@@ -996,7 +996,9 @@
             <li
                 id="c_{comment.id}"
                 style="margin-left: {Math.min(depth, 2) * 1}rem; scroll-margin-top: 100px"
-                class="comment-item overflow-hidden transition-colors duration-200
+                class="comment-item {commentLayout === 'muzia'
+                    ? ''
+                    : 'overflow-hidden'} transition-colors duration-200
                 {commentLayout === 'chat'
                     ? 'flex items-start gap-2.5' + (isAuthor ? ' flex-row-reverse' : '')
                     : isDiscussion
