@@ -1815,7 +1815,7 @@
 
         <!-- 댓글 아래 멀티플렉스 광고 -->
         {#if widgetLayoutStore.hasEnabledAds && !data.post.deleted_at}
-            <div class="mt-4">
+            <div class="mt-2">
                 <AdsenseMultiplex />
             </div>
         {/if}

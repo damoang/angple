@@ -45,7 +45,6 @@
     });
 
     function pushAd() {
-        // ins 엘리먼트가 DOM에 렌더링된 후 push
         requestAnimationFrame(() => {
             if (destroyed) return;
             if (!insEl || !document.body.contains(insEl)) return;
@@ -70,3 +69,16 @@
         ></ins>
     {/if}
 </div>
+
+<style>
+    .adsense-multiplex {
+        overflow: hidden;
+    }
+
+    /* 모바일: 멀티플렉스 높이 제한 */
+    @media (max-width: 727px) {
+        .adsense-multiplex {
+            max-height: 400px;
+        }
+    }
+</style>
