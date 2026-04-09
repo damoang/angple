@@ -16,10 +16,10 @@ export const GAM_AD_EMPTY_RETRY_DELAY = 30; // 초
 // 위치별 refresh 간격 (초) — viewability 기반 차등화
 // 기본값(GAM_AD_REFRESH_INTERVAL)을 override
 export const POSITION_REFRESH_INTERVALS: Record<string, number> = {
-    'sidebar-sticky-desktop': 25,
-    sidebar: 25,
-    'wing-left': 25,
-    'wing-right': 25,
+    'sidebar-sticky-desktop': 30,
+    sidebar: 30,
+    'wing-left': 30,
+    'wing-right': 30,
     'board-list-infeed': 40,
     'comment-infeed': 40,
     'index-middle-1': 45,
