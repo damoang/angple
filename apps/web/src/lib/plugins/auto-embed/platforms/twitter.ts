@@ -35,12 +35,7 @@ export const twitter: EmbedPlatform = {
     },
 
     render(info: EmbedInfo): string {
-        const username = info.params?.username || 'twitter';
-        const tweetUrl = `https://x.com/${username}/status/${info.id}`;
-
-        // Twitter 공식 blockquote + widgets.js 방식: 자동 리사이즈, 테마 지원
-        return `<blockquote class="twitter-tweet" data-tweet-id="${info.id}" data-conversation="none" data-dnt="true">
-			<a href="${tweetUrl}">트윗 보기</a>
-		</blockquote>`;
+        // iframe 직접 임베드 — widgets.js 불필요, CSP script-src 제약 없음
+        return `<iframe src="https://platform.twitter.com/embed/Tweet.html?id=${info.id}&dnt=true" style="width:100%;min-height:300px;border:0;" allowfullscreen></iframe>`;
     }
 };
