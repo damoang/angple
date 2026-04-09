@@ -1063,7 +1063,7 @@
                                 />
                             </div>
                         {/if}
-                        {#if widgetLayoutStore.hasEnabledAds && i + 1 === 7}
+                        {#if widgetLayoutStore.hasEnabledAds && (i + 1 === 7 || i + 1 === 17)}
                             <div class="py-2">
                                 <AdSlot
                                     position="board-list-infeed"

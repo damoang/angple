@@ -20,14 +20,14 @@ export const DEFAULT_WIDGETS: WidgetConfig[] = [
         enabled: true,
         settings: { position: 'index-top' }
     },
-    { id: 'news-economy-row', type: 'news-economy-row', position: 3, enabled: true },
     {
         id: 'ad-middle-1',
         type: 'ad-slot',
-        position: 4,
+        position: 3,
         enabled: true,
         settings: { position: 'index-middle-1' }
     },
+    { id: 'news-economy-row', type: 'news-economy-row', position: 4, enabled: true },
     {
         id: 'gallery',
         type: 'post-list',
