@@ -36,6 +36,6 @@ export const twitter: EmbedPlatform = {
 
     render(info: EmbedInfo): string {
         // iframe 직접 임베드 — widgets.js 불필요, CSP script-src 제약 없음
-        return `<iframe src="https://platform.twitter.com/embed/Tweet.html?id=${info.id}&dnt=true" style="width:100%;min-height:300px;border:0;" allowfullscreen></iframe>`;
+        return `<iframe src="https://platform.twitter.com/embed/Tweet.html?id=${info.id}&dnt=true" style="width:100%;height:100%;min-height:300px;border:0;" allowfullscreen></iframe>`;
     }
 };
