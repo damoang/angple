@@ -8,6 +8,7 @@
     import MuziaAttendance from '../components/muzia-attendance.svelte';
     import MuziaContentPage from '../components/muzia-content-page.svelte';
     import MuziaPostDetail from '../components/muzia-post-detail.svelte';
+    import MuziaAdSlot from '../components/muzia-ad-slot.svelte';
 
     interface Props {
         children: Snippet;
@@ -188,7 +189,9 @@
                     <MuziaPostDetail boardId={match.boardId} postId={match.postId} />
                 {/if}
             {:else}
+                <MuziaAdSlot position="leaderboard" />
                 {@render children()}
+                <MuziaAdSlot position="content" />
             {/if}
         </main>
     </div>

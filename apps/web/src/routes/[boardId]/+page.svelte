@@ -10,44 +10,6 @@
     import Megaphone from '@lucide/svelte/icons/megaphone';
     import Pin from '@lucide/svelte/icons/pin';
     import SearchForm from '$lib/components/features/board/search-form.svelte';
-    import { onMount } from 'svelte';
-    import { browser } from '$app/environment';
-
-    // 카카오 애드핏 광고 (인라인 - 테마 컴포넌트 접근 불가하므로 직접 구현)
-    let adTopEl: HTMLDivElement;
-    let adMidEl: HTMLDivElement;
-
-    onMount(() => {
-        if (!browser) return;
-        // 카카오 애드핏 스크립트 로드
-        if (!document.querySelector('script[src*="ba.min.js"]')) {
-            const s = document.createElement('script');
-            s.src = '//t1.daumcdn.net/kas/static/ba.min.js';
-            s.async = true;
-            document.head.appendChild(s);
-        }
-        // 상단 리더보드 (728x90)
-        if (adTopEl) {
-            const ins = document.createElement('ins');
-            ins.className = 'kakao_ad_area';
-            ins.style.display = 'none';
-            ins.setAttribute('data-ad-unit', 'DAN-1ji7auwb2addc');
-            ins.setAttribute('data-ad-width', '728');
-            ins.setAttribute('data-ad-height', '90');
-            adTopEl.appendChild(ins);
-        }
-        // 목록 중간 (300x250)
-        if (adMidEl) {
-            const ins = document.createElement('ins');
-            ins.className = 'kakao_ad_area';
-            ins.style.display = 'none';
-            ins.setAttribute('data-ad-unit', 'DAN-1h82kvvvd6alv');
-            ins.setAttribute('data-ad-width', '300');
-            ins.setAttribute('data-ad-height', '250');
-            adMidEl.appendChild(ins);
-        }
-        setTimeout(() => { try { (window as any).kakaoAdfit?.init?.(); } catch {} }, 500);
-    });
 
     // 스킨 컴포넌트 import
     import CompactSkin from '$lib/components/features/board/skins/compact.svelte';
@@ -154,9 +116,6 @@
         <SearchForm boardPath={`/${boardId}`} />
     </div>
 
-    <!-- 광고: 목록 상단 리더보드 -->
-    <div bind:this={adTopEl} class="mb-4 flex justify-center"></div>
-
     <!-- 카테고리 탭 -->
     {#if categories.length > 0 && !isSearching}
         <div class="mb-6 flex flex-wrap gap-2">
@@ -254,16 +213,12 @@
                 </CardContent>
             </Card>
         {:else}
-            {#each filteredPosts as post, i (post.id)}
+            {#each filteredPosts as post (post.id)}
                 <SkinComponent
                     {post}
                     displaySettings={data.board?.display_settings}
                     onclick={() => goToPost(post.id)}
                 />
-                {#if i === 4}
-                    <!-- 광고: 목록 중간 -->
-                    <div bind:this={adMidEl} class="my-3 flex justify-center"></div>
-                {/if}
             {/each}
         {/if}
     </div>
