@@ -281,11 +281,12 @@
         const _hv = getHookVersion();
 
         if (browser && content) {
-            const rawHtml = marked.parse(content) as string;
+            let rawHtml = marked.parse(content) as string;
+            rawHtml = transformEscapedMedia(rawHtml);
+            if (enableEmbed) rawHtml = processEmbeds(rawHtml);
 
             applyFilter<string>('post_content', rawHtml).then((filtered) => {
-                let sanitized = DOMPurify.sanitize(filtered, PURIFY_CONFIG); // 썸네일 대체 비활성화
-                // 링크 텍스트/URL 불일치 경고 추가
+                let sanitized = DOMPurify.sanitize(filtered, PURIFY_CONFIG);
                 sanitized = addLinkMismatchWarnings(sanitized);
                 renderedHtml = sanitized;
             });
@@ -307,39 +308,35 @@
         if (!browser || !proseEl) return;
         tick().then(() => {
             if (!proseEl?.querySelector('.twitter-tweet')) return;
-            const w = window as unknown as {
-                twttr?: { widgets?: { load?: (el: HTMLElement) => void } };
-            };
-            if (w.twttr?.widgets?.load) {
-                w.twttr.widgets.load(proseEl);
+
+            type TwttrWindow = { twttr?: { widgets?: { load?: (el: HTMLElement) => void } } };
+
+            function tryLoad() {
+                (window as unknown as TwttrWindow).twttr?.widgets?.load?.(proseEl);
+            }
+
+            if ((window as unknown as TwttrWindow).twttr?.widgets?.load) {
+                tryLoad();
             } else {
-                // widgets.js가 아직 없으면 삽입하고 onload 시 load() 호출
-                const existing = document.querySelector(
-                    'script[src*="platform.twitter.com/widgets.js"]'
-                );
-                if (!existing) {
+                // widgets.js 스크립트가 없으면 삽입
+                if (!document.querySelector('script[src*="platform.twitter.com/widgets.js"]')) {
                     const s = document.createElement('script');
                     s.src = 'https://platform.twitter.com/widgets.js';
                     s.async = true;
-                    s.onload = () => {
-                        const tw = window as unknown as {
-                            twttr?: { widgets?: { load?: (el: HTMLElement) => void } };
-                        };
-                        tw.twttr?.widgets?.load?.(proseEl);
-                    };
+                    s.onload = tryLoad;
                     document.head.appendChild(s);
                 } else {
-                    // 스크립트는 삽입됐지만 아직 로드 중 — 로드 완료 대기
-                    existing.addEventListener(
-                        'load',
-                        () => {
-                            const tw = window as unknown as {
-                                twttr?: { widgets?: { load?: (el: HTMLElement) => void } };
-                            };
-                            tw.twttr?.widgets?.load?.(proseEl);
-                        },
-                        { once: true }
-                    );
+                    // 스크립트 삽입됨 but twttr 아직 없음 → 폴링 대기
+                    let tries = 0;
+                    const poll = setInterval(() => {
+                        tries++;
+                        if ((window as unknown as TwttrWindow).twttr?.widgets?.load) {
+                            clearInterval(poll);
+                            tryLoad();
+                        } else if (tries > 50) {
+                            clearInterval(poll);
+                        }
+                    }, 100);
                 }
             }
         });
