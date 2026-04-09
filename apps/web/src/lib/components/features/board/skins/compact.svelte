@@ -3,7 +3,7 @@
     import type { FreePost, BoardDisplaySettings } from '$lib/api/types.js';
     import Lock from '@lucide/svelte/icons/lock';
     import ImageIcon from '@lucide/svelte/icons/image';
-    import { formatDate } from '$lib/utils/format-date.js';
+    import { formatDateCompact } from '$lib/utils/format-date.js';
     import { toThumbnailUrl } from '$lib/utils/thumbnail-url.js';
 
     // Props
@@ -72,7 +72,7 @@
             <div class="text-muted-foreground flex flex-wrap items-center gap-2 text-sm">
                 <span>{post.author}</span>
                 <span>•</span>
-                <span>{formatDate(post.created_at)}</span>
+                <span>{formatDateCompact(post.created_at)}</span>
                 <span>•</span>
                 <span>조회 {post.views.toLocaleString()}</span>
                 <span>•</span>
