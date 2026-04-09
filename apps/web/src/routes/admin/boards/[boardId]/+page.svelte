@@ -1048,7 +1048,7 @@
                                 </Card.Description>
                             </Card.Header>
                             <Card.Content class="space-y-3">
-                                {#each [{ id: 'flat', icon: AlignJustify, label: '기본', description: '구분선 없이 평면적으로 나열' }, { id: 'bordered', icon: LayoutGrid, label: '카드형', description: '각 댓글을 테두리가 있는 카드로 표시' }, { id: 'divided', icon: List, label: '구분선형', description: '댓글 사이에 구분선으로 분리' }, { id: 'bubble', icon: MessageCircle, label: '말풍선형', description: '채팅 앱처럼 말풍선 스타일로 표시' }, { id: 'compact', icon: AlignJustify, label: '컴팩트', description: '간격을 줄여 밀집된 레이아웃' }, { id: 'discussion', icon: LayoutDashboard, label: '토론형', description: '차분한 구분선과 여백으로 토론 흐름을 강조' }, { id: 'feed', icon: List, label: '피드형', description: '더 촘촘한 간격으로 빠르게 훑는 흐름' }] as layout (layout.id)}
+                                {#each [{ id: 'flat', icon: AlignJustify, label: '기본', description: '구분선 없이 평면적으로 나열' }, { id: 'bordered', icon: LayoutGrid, label: '카드형', description: '각 댓글을 테두리가 있는 카드로 표시' }, { id: 'divided', icon: List, label: '구분선형', description: '댓글 사이에 구분선으로 분리' }, { id: 'bubble', icon: MessageCircle, label: '말풍선형', description: '채팅 앱처럼 말풍선 스타일로 표시' }, { id: 'compact', icon: AlignJustify, label: '컴팩트', description: '간격을 줄여 밀집된 레이아웃' }, { id: 'discussion', icon: LayoutDashboard, label: '토론형', description: '차분한 구분선과 여백으로 토론 흐름을 강조' }, { id: 'feed', icon: List, label: '피드형', description: '더 촘촘한 간격으로 빠르게 훑는 흐름' }, { id: 'card', icon: LayoutGrid, label: '카드(뮤지아)', description: '깔끔한 카드형 댓글 (뮤지아 스타일)' }] as layout (layout.id)}
                                     {@const Icon = layout.icon}
                                     <button
                                         type="button"

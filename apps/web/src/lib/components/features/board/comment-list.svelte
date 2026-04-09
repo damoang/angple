@@ -928,9 +928,11 @@
             ? 'space-y-1'
             : commentLayout === 'feed'
               ? 'space-y-0.5'
-              : commentLayout === 'bordered' || commentLayout === 'bubble'
-                ? 'space-y-2'
-                : 'space-y-3'}
+              : commentLayout === 'card'
+                ? 'bg-card divide-y overflow-hidden rounded-lg border shadow-sm'
+                : commentLayout === 'bordered' || commentLayout === 'bubble'
+                  ? 'space-y-2'
+                  : 'space-y-3'}
 >
     {#each commentTree as comment, commentIndex (comment.id)}
         {@const isDeleted = !!comment.deleted_at}
@@ -1004,9 +1006,11 @@
                               ? isAuthor
                                   ? 'bg-primary/10 rounded-xl rounded-br-sm p-4'
                                   : 'bg-muted rounded-xl rounded-bl-sm p-4'
-                              : commentLayout === 'compact'
-                                ? 'py-1.5'
-                                : 'py-3 first:pt-0 last:pb-0'}
+                              : commentLayout === 'card'
+                                ? 'p-4'
+                                : commentLayout === 'compact'
+                                  ? 'py-1.5'
+                                  : 'py-3 first:pt-0 last:pb-0'}
                 {isReply &&
                 commentLayout !== 'bordered' &&
                 commentLayout !== 'bubble' &&
