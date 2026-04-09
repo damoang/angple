@@ -1134,6 +1134,11 @@
         }
         // 리액션도 함께 로드 (SPA 내비게이션 시 auxiliaryData가 없을 수 있음)
         fetchBatchReactions();
+        // 댓글 작성자 레벨 batch fetch
+        if (comments.length > 0) {
+            const authorIds = [...new Set(comments.map((c: { author_id: string }) => c.author_id))];
+            memberLevelStore.fetchLevels(authorIds);
+        }
     }
 
     // 댓글 backfill: SSR에서 일부만 로드된 경우 전체 댓글 가져오기

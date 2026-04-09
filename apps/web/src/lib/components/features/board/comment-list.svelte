@@ -3,6 +3,8 @@
     import type { FreeComment } from '$lib/api/types.js';
     import { authStore } from '$lib/stores/auth.svelte.js';
     import AuthorLink from '$lib/components/ui/author-link/author-link.svelte';
+    import { LevelBadge } from '$lib/components/ui/level-badge/index.js';
+    import { memberLevelStore } from '$lib/stores/member-levels.svelte.js';
     import Reply from '@lucide/svelte/icons/reply';
     import Lock from '@lucide/svelte/icons/lock';
     import Flag from '@lucide/svelte/icons/flag';
@@ -1057,6 +1059,7 @@
                             class="text-foreground mb-1 ml-1 flex items-center gap-1 text-xs font-semibold"
                         >
                             <AuthorLink authorId={comment.author_id} authorName={comment.author} />
+                            <LevelBadge level={memberLevelStore.getLevel(comment.author_id)} />
                             {#if postAuthorId && comment.author_id === postAuthorId}
                                 <span
                                     class="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-800 dark:bg-amber-900/30 dark:text-amber-200"
@@ -1148,6 +1151,9 @@
                                         <AuthorLink
                                             authorId={comment.author_id}
                                             authorName={comment.author}
+                                        />
+                                        <LevelBadge
+                                            level={memberLevelStore.getLevel(comment.author_id)}
                                         />
                                         {#if postAuthorId && comment.author_id === postAuthorId}
                                             <span
