@@ -59,7 +59,6 @@
     let detached = false;
     let containerEl: HTMLDivElement | null = null;
     let visibilityObserver: IntersectionObserver | null = null;
-    let isOutOfView = $state(false); // 뷰포트 밖으로 나갔는지
     let isBTF = $derived(BTF_POSITIONS.has(position));
     let isWing = $derived(position === 'wing-left' || position === 'wing-right');
     let isTouchSafe = $derived(TOUCH_SAFE_POSITIONS.has(position));
@@ -154,10 +153,6 @@
             visibilityObserver = new IntersectionObserver(
                 ([entry]) => {
                     updateSlotVisibility(slotId, entry.isIntersecting);
-                    // 터치 안전 위치: 뷰포트 밖으로 나가면 빈 슬롯 collapse 허용
-                    if (isTouchSafe && isEmpty) {
-                        isOutOfView = !entry.isIntersecting;
-                    }
                 },
                 {
                     threshold: isWing ? 0.1 : 0.5,
@@ -198,8 +193,8 @@
     const effectiveMinHeight = $derived.by(() => {
         // 로드 전 + 사이드바 → 높이 예약 안 함
         if (!isLoaded && suppressPlaceholder) return '0px';
-        // 터치 빈번한 목록 위치: 빈 광고라도 뷰포트 안에 있으면 높이 유지 (CLS 방지)
-        if (isEmpty && isTouchSafe && !isOutOfView) return 'var(--ad-slot-min-height)';
+        // 터치 빈번한 목록 위치: 빈 광고라도 높이 유지 (CLS 방지)
+        if (isEmpty && isTouchSafe) return 'var(--ad-slot-min-height)';
         // 일반: 빈 광고 → 축소
         if (isEmpty) return '0px';
         return 'var(--ad-slot-min-height)';
@@ -219,7 +214,7 @@
         style:--ad-slot-min-height-desktop={reservedHeights.desktop}
         style:--ad-slot-intrinsic-size={reservedHeights.desktop}
         style:min-height={effectiveMinHeight}
-        style:transition="min-height 300ms ease-out"
+        style:transition="min-height 0ms"
     >
         {#if slotId}
             <div id={slotId} class="gam-ad-slot w-full" style:min-height={effectiveMinHeight}></div>
@@ -230,7 +225,7 @@
 <style>
     .ad-slot-container {
         contain: layout style;
-        /* transition은 inline style로 통일 (300ms ease-out) — CSS와 충돌 방지 */
+        /* transition은 inline style로 통일 (0ms) — CLS 방지 위해 즉시 적용 */
     }
 
     .ad-slot-btf {
