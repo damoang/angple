@@ -53,6 +53,7 @@
     import { getAvatarUrl } from '$lib/utils/member-icon.js';
     import { isEmbeddable } from '$lib/plugins/auto-embed';
     import AdSlot from '$lib/components/ui/ad-slot/ad-slot.svelte';
+    import AdsenseMultiplex from '$lib/components/ui/adsense-multiplex/adsense-multiplex.svelte';
     import PluginSlot from '$lib/components/plugin/plugin-slot.svelte';
     import { widgetLayoutStore } from '$lib/stores/widget-layout.svelte';
     import { pluginStore } from '$lib/stores/plugin.svelte';
@@ -1810,6 +1811,13 @@
                     </div>
                 </CardContent>
             </Card>
+        {/if}
+
+        <!-- 댓글 아래 멀티플렉스 광고 -->
+        {#if widgetLayoutStore.hasEnabledAds && !data.post.deleted_at}
+            <div class="mt-4">
+                <AdsenseMultiplex />
+            </div>
         {/if}
 
         <!-- 댓글 아래 네비게이션 -->

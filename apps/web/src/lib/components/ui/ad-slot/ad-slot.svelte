@@ -59,6 +59,14 @@
     let detached = false;
     let containerEl: HTMLDivElement | null = null;
     let visibilityObserver: IntersectionObserver | null = null;
+    // 데스크톱 전용 position: 모바일/태블릿에서 GPT slot 초기화를 차단하여 무의미한 impression 방지
+    const DESKTOP_ONLY_POSITIONS: Record<string, number> = {
+        'wing-left': 1600,
+        'wing-right': 1600,
+        'sidebar-sticky-desktop': 1024,
+        sidebar: 1536
+    };
+
     let isBTF = $derived(BTF_POSITIONS.has(position));
     let isWing = $derived(position === 'wing-left' || position === 'wing-right');
     let isTouchSafe = $derived(TOUCH_SAFE_POSITIONS.has(position));
@@ -139,6 +147,12 @@
 
     async function initAdSlot() {
         detached = false;
+
+        // 데스크톱 전용 슬롯: viewport가 임계값 미만이면 GPT 호출 차단
+        const minWidth = DESKTOP_ONLY_POSITIONS[position];
+        if (minWidth && typeof window !== 'undefined' && window.innerWidth < minWidth) {
+            return;
+        }
 
         const config = getAdConfig();
         const adSizes = sizes || config.sizes;
