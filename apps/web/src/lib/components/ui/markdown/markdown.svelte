@@ -626,6 +626,8 @@
         position: relative !important;
         display: block !important;
         width: 100% !important;
+        height: auto !important;
+        min-height: 500px !important;
     }
 
     /* Instagram 가변 높이 */
