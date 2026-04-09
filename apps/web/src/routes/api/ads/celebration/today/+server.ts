@@ -66,7 +66,7 @@ export const GET: RequestHandler = async () => {
                 `SELECT cb.id, cb.title, cb.content, cb.image_url, cb.link_url,
                         cb.external_url, cb.display_date, cb.target_member_id,
                         cb.link_target, cb.sort_order, cb.display_type,
-                        cb.source_wr_id,
+                        cb.source_wr_id, cb.updated_at AS cb_updated_at,
                         m.mb_nick AS target_member_nick,
                         m.mb_image_url AS target_member_image_url
                  FROM celebration_banners cb
@@ -89,7 +89,9 @@ export const GET: RequestHandler = async () => {
                     id: row.source_wr_id || row.id,
                     title: row.title,
                     content: row.content || '',
-                    image_url: row.image_url || '',
+                    image_url: row.image_url
+                        ? `${row.image_url}${row.image_url.includes('?') ? '&' : '?'}t=${new Date(row.cb_updated_at || 0).getTime()}`
+                        : '',
                     link_url: linkUrl,
                     display_date: row.display_date,
                     is_active: true,
@@ -140,10 +142,10 @@ export const GET: RequestHandler = async () => {
             }
         }
 
-        return json({
-            success: true,
-            data: banners
-        });
+        return json(
+            { success: true, data: banners },
+            { headers: { 'Cache-Control': 'public, max-age=60, stale-while-revalidate=300' } }
+        );
     } catch (error) {
         console.error('Banner API error:', error);
         return json(
