@@ -68,10 +68,13 @@ export const GET: RequestHandler = async () => {
                         cb.link_target, cb.sort_order, cb.display_type,
                         cb.source_wr_id, cb.updated_at AS cb_updated_at,
                         m.mb_nick AS target_member_nick,
-                        m.mb_image_url AS target_member_image_url
+                        m.mb_image_url AS target_member_image_url,
+                        wm.wr_content AS source_content
                  FROM celebration_banners cb
                  LEFT JOIN g5_member m
                    ON cb.target_member_id COLLATE utf8mb4_unicode_ci = m.mb_id COLLATE utf8mb4_unicode_ci
+                 LEFT JOIN g5_write_message wm
+                   ON cb.source_wr_id = wm.wr_id AND wm.wr_is_comment = 0
                  WHERE cb.is_active = 1
                    AND (cb.display_date = CURDATE()
                         OR (cb.yearly_repeat = 1
@@ -85,13 +88,23 @@ export const GET: RequestHandler = async () => {
                     row.external_url ||
                     (row.source_wr_id ? `/message/${row.source_wr_id}` : row.link_url || '');
 
+                // source_wr_id가 있으면 원본 게시글에서 최신 이미지 추출 (동기화)
+                let imageUrl = row.image_url || '';
+                if (row.source_content) {
+                    const freshImage = extractFirstImage(row.source_content);
+                    if (freshImage) imageUrl = freshImage;
+                }
+                // 캐시버스팅: updated_at 타임스탬프 추가
+                if (imageUrl) {
+                    const ts = new Date(row.cb_updated_at || 0).getTime();
+                    imageUrl += `${imageUrl.includes('?') ? '&' : '?'}t=${ts}`;
+                }
+
                 banners.push({
                     id: row.source_wr_id || row.id,
                     title: row.title,
                     content: row.content || '',
-                    image_url: row.image_url
-                        ? `${row.image_url}${row.image_url.includes('?') ? '&' : '?'}t=${new Date(row.cb_updated_at || 0).getTime()}`
-                        : '',
+                    image_url: imageUrl,
                     link_url: linkUrl,
                     display_date: row.display_date,
                     is_active: true,
