@@ -80,7 +80,7 @@
         boardId?: string; // 신고 기능용
         postId?: number; // 신고 기능용
         useNogood?: boolean; // 비추천 기능 사용 여부 (게시판 설정)
-        commentLayout?: string; // 댓글 레이아웃 (flat, bordered, divided, bubble, compact)
+        commentLayout?: string; // 댓글 레이아웃 (flat, bordered, divided, bubble, compact, muzia)
         reactionsMap?: Record<string, ReactionItem[]>; // 일괄 조회된 리액션 맵
         initialLikedCommentIds?: number[]; // SSR에서 전달된 좋아요한 댓글 ID 목록
         initialDislikedCommentIds?: number[]; // SSR에서 전달된 비추천한 댓글 ID 목록
@@ -930,9 +930,11 @@
               ? 'space-y-0.5'
               : commentLayout === 'card'
                 ? 'bg-card divide-y overflow-hidden rounded-lg border shadow-sm'
-                : commentLayout === 'bordered' || commentLayout === 'bubble'
-                  ? 'space-y-2'
-                  : 'space-y-3'}
+                : commentLayout === 'muzia'
+                  ? 'divide-border/60 divide-y'
+                  : commentLayout === 'bordered' || commentLayout === 'bubble'
+                    ? 'space-y-2'
+                    : 'space-y-3'}
 >
     {#each commentTree as comment, commentIndex (comment.id)}
         {@const isDeleted = !!comment.deleted_at}
@@ -1008,9 +1010,11 @@
                                   : 'bg-muted rounded-xl rounded-bl-sm p-4'
                               : commentLayout === 'card'
                                 ? 'p-4'
-                                : commentLayout === 'compact'
-                                  ? 'py-1.5'
-                                  : 'py-3 first:pt-0 last:pb-0'}
+                                : commentLayout === 'muzia'
+                                  ? 'px-1 py-3'
+                                  : commentLayout === 'compact'
+                                    ? 'py-1.5'
+                                    : 'py-3 first:pt-0 last:pb-0'}
                 {isReply &&
                 commentLayout !== 'bordered' &&
                 commentLayout !== 'bubble' &&
