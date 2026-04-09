@@ -368,7 +368,7 @@
     const postsResult = $derived(data.postsData);
     const posts = $derived(postsResult.posts);
     const notices = $derived(
-        (postsResult.notices || []) as Array<{
+        (postsResult.notices || []) as unknown as Array<{
             id: number;
             notice_type?: string;
             [key: string]: unknown;
