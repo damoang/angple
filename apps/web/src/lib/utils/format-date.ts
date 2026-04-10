@@ -7,8 +7,11 @@
  */
 
 /**
- * 목록용 날짜 포맷 (MM.DD HH:MM 통일)
- * 행 높이가 일정하게 유지됨
+ * 목록용 날짜 포맷 (한국 커뮤니티 표준)
+ * - 오늘: HH:MM (예: 14:30)
+ * - 올해: MM.DD (예: 04.09)
+ * - 작년 이전: YY.MM.DD (예: 25.12.03)
+ * 항상 1줄, 고정 폭 — 행 높이 일관
  */
 export function formatDateCompact(dateString: string): string {
     let normalized = dateString;
@@ -22,19 +25,20 @@ export function formatDateCompact(dateString: string): string {
     const dateStr = toSeoulDateStr(date);
     const nowStr = toSeoulDateStr(now);
 
-    const time = date.toLocaleTimeString('ko-KR', {
-        timeZone: 'Asia/Seoul',
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: false
-    });
-
-    if (dateStr.slice(0, 4) === nowStr.slice(0, 4)) {
-        // 올해: MM.DD HH:MM
-        return `${dateStr.slice(5, 7)}.${dateStr.slice(8, 10)} ${time}`;
+    if (dateStr === nowStr) {
+        // 오늘: HH:MM
+        return date.toLocaleTimeString('ko-KR', {
+            timeZone: 'Asia/Seoul',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
+        });
+    } else if (dateStr.slice(0, 4) === nowStr.slice(0, 4)) {
+        // 올해: MM.DD
+        return `${dateStr.slice(5, 7)}.${dateStr.slice(8, 10)}`;
     } else {
-        // 작년 이전: YY.MM.DD HH:MM
-        return `${dateStr.slice(2, 4)}.${dateStr.slice(5, 7)}.${dateStr.slice(8, 10)} ${time}`;
+        // 작년 이전: YY.MM.DD
+        return `${dateStr.slice(2, 4)}.${dateStr.slice(5, 7)}.${dateStr.slice(8, 10)}`;
     }
 }
 /**
