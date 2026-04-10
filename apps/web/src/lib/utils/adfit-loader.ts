@@ -3,7 +3,7 @@
  * GAM이 빈 슬롯일 때만 로드하여 불필요한 네트워크 요청 방지
  */
 
-const ADFIT_SDK_URL = '//t1.daumcdn.net/kas/static/ba.min.js';
+const ADFIT_SDK_URL = 'https://t1.daumcdn.net/kas/static/ba.min.js';
 let loadPromise: Promise<void> | null = null;
 const activeAds = new Set<string>();
 
