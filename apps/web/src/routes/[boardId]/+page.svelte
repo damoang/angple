@@ -605,8 +605,8 @@
             {/if}
 
             <!-- 헤더 -->
-            <div class="mb-4 flex items-center justify-between">
-                <div class="flex shrink-0 items-center gap-2">
+            <div class="mb-4 flex min-w-0 flex-wrap items-center justify-between gap-2">
+                <div class="flex min-w-0 shrink items-center gap-2">
                     <h1 class="text-2xl font-bold sm:text-3xl">
                         <a
                             href="/{boardId}"
