@@ -367,7 +367,7 @@
                 <!-- 애드핏 심사용 (GAM 아래 배치) -->
                 <div class="mt-2">
                     <AdfitSlot
-                        unit={{ unitId: 'DAN-eAXFNdHYsuiUQoFs', width: 300, height: 250 }}
+                        unit={{ unitId: 'DAN-LXOsjqjRz52xL3Ti', width: 160, height: 600 }}
                         id="sidebar-adfit-review"
                     />
                 </div>

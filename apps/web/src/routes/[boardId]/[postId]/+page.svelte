@@ -343,6 +343,7 @@
         // 글 변경 시 이전 스트리밍 데이터 즉시 리셋
         postReactions = undefined;
         reactionsMap = undefined;
+        lastFetchedReactionsKey = '';
 
         if (!promise) {
             // SPA 내비게이션: auxiliaryData 없음 → 리액션 직접 fetch
@@ -540,10 +541,15 @@
     let postReactions = $state<ReactionItem[] | undefined>(undefined);
     let reactionsMap = $state<Record<string, ReactionItem[]> | undefined>(undefined);
 
+    let lastFetchedReactionsKey = '';
+
     async function fetchBatchReactions(): Promise<void> {
         if (!reactionPluginActive) return;
+        const parentId = generateParentId(boardId, data.post.id);
+        // 동일 parentId 중복 호출 방지 (SPA 네비게이션 시 이중 fetch 제거)
+        if (lastFetchedReactionsKey === parentId && reactionsMap) return;
+        lastFetchedReactionsKey = parentId;
         try {
-            const parentId = generateParentId(boardId, data.post.id);
             const res = await fetch(`/api/reactions?parentId=${encodeURIComponent(parentId)}`);
             const json = await res.json();
             if (json.status === 'success' && json.result) {
