@@ -40,7 +40,6 @@
     import BulkActionsToolbar from '$lib/components/features/board/bulk-actions-toolbar.svelte';
     import { Checkbox } from '$lib/components/ui/checkbox/index.js';
     import AdSlot from '$lib/components/ui/ad-slot/ad-slot.svelte';
-    import AdfitResponsiveSlot from '$lib/components/ui/adfit-slot/adfit-responsive-slot.svelte';
     import PluginSlot from '$lib/components/plugin/plugin-slot.svelte';
     import { doAction } from '$lib/hooks/registry';
     import { widgetLayoutStore } from '$lib/stores/widget-layout.svelte';
@@ -1123,14 +1122,6 @@
                             position="board-list-bottom"
                             height="90px"
                             slotKey="board-list-bottom"
-                        />
-                    </div>
-                    <!-- AdFit 전용 슬롯 (모바일+PC) -->
-                    <div class="mt-2">
-                        <AdfitResponsiveSlot
-                            desktop={{ unitId: 'DAN-9qdD2GVgW3AXbClR', width: 728, height: 90 }}
-                            mobile={{ unitId: 'DAN-ry6MhSvNcdUCMwtP', width: 320, height: 100 }}
-                            id="board-list-bottom-adfit"
                         />
                     </div>
                 {/if}
