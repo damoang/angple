@@ -239,7 +239,7 @@
         if (!content) return '';
         let rawHtml = marked.parse(content) as string;
         rawHtml = transformEscapedMedia(rawHtml);
-        if (enableEmbed) rawHtml = processEmbeds(rawHtml);
+        // processEmbeds는 클라이언트 $effect에서만 실행 (SSR 부하 방지)
         return DOMPurify.sanitize(rawHtml, PURIFY_CONFIG);
     }
 
