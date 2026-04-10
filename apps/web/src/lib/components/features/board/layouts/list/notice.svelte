@@ -5,7 +5,7 @@
     import MessageSquare from '@lucide/svelte/icons/message-square';
     import AuthorLink from '$lib/components/ui/author-link/author-link.svelte';
     import Pin from '@lucide/svelte/icons/pin';
-    import { formatDate } from '$lib/utils/format-date.js';
+    import { formatDate, formatDateCompact } from '$lib/utils/format-date.js';
     import { highlightQuery } from '$lib/utils/highlight.js';
     let {
         post,
@@ -70,7 +70,7 @@
                         authorName={post.author}
                         isWithdrawn={!!post.is_left}
                     />
-                    <span>{formatDate(post.created_at)}</span>
+                    <span>{formatDateCompact(post.created_at)}</span>
                     <span class="flex items-center gap-1">
                         <Eye class="h-3.5 w-3.5" />
                         {post.views.toLocaleString()}

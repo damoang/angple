@@ -4,7 +4,7 @@
     import AuthorLink from '$lib/components/ui/author-link/author-link.svelte';
     import { getAvatarUrl } from '$lib/utils/member-icon.js';
     import { formatCommentCountBadge } from '$lib/utils/comment-count.js';
-    import { formatDate, isToday } from '$lib/utils/format-date.js';
+    import { formatDate, formatDateCompact, isToday } from '$lib/utils/format-date.js';
     import { highlightQuery } from '$lib/utils/highlight.js';
     import { formatCompactNumber } from '$lib/utils/format-number.js';
     import { readPostStyleStore } from '$lib/stores/read-post-style.svelte.js';
@@ -153,7 +153,7 @@
                         ? 'date-today'
                         : ''}"
                 >
-                    {formatDate(post.created_at)}
+                    {formatDateCompact(post.created_at)}
                 </span>
 
                 <!-- 조회수 (col 5, 데스크톱) -->
@@ -182,7 +182,7 @@
                         />
                     </span>
                     <span class="mobile-meta-sep {isToday(post.created_at) ? 'date-today' : ''}">
-                        {formatDate(post.created_at)}
+                        {formatDateCompact(post.created_at)}
                     </span>
                     <span class="mobile-meta-sep">{formatCompactNumber(post.views)}</span>
                     {#if isReportLock && sourceBoard}
