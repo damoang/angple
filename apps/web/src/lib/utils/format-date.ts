@@ -22,19 +22,20 @@ export function formatDateCompact(dateString: string): string {
     const dateStr = toSeoulDateStr(date);
     const nowStr = toSeoulDateStr(now);
 
-    const time = date.toLocaleTimeString('ko-KR', {
-        timeZone: 'Asia/Seoul',
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: false
-    });
-
-    if (dateStr.slice(0, 4) === nowStr.slice(0, 4)) {
-        // 올해: MM.DD HH:MM
-        return `${dateStr.slice(5, 7)}.${dateStr.slice(8, 10)} ${time}`;
+    if (dateStr === nowStr) {
+        // 오늘: HH:MM
+        return date.toLocaleTimeString('ko-KR', {
+            timeZone: 'Asia/Seoul',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
+        });
+    } else if (dateStr.slice(0, 4) === nowStr.slice(0, 4)) {
+        // 올해: MM.DD
+        return `${dateStr.slice(5, 7)}.${dateStr.slice(8, 10)}`;
     } else {
-        // 작년 이전: YY.MM.DD HH:MM
-        return `${dateStr.slice(2, 4)}.${dateStr.slice(5, 7)}.${dateStr.slice(8, 10)} ${time}`;
+        // 작년 이전: YY.MM.DD
+        return `${dateStr.slice(2, 4)}.${dateStr.slice(5, 7)}.${dateStr.slice(8, 10)}`;
     }
 }
 /**
