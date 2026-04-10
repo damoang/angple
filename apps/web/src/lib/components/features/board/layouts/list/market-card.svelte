@@ -11,7 +11,7 @@
     import ImageIcon from '@lucide/svelte/icons/image';
     import MapPin from '@lucide/svelte/icons/map-pin';
     import Truck from '@lucide/svelte/icons/truck';
-    import { formatDate } from '$lib/utils/format-date.js';
+    import { formatDate, formatDateCompact, formatDateCompact } from '$lib/utils/format-date.js';
     let {
         post,
         displaySettings,
@@ -149,7 +149,7 @@
                     </span>
                     <span>·</span>
                 {/if}
-                <span>{formatDate(post.created_at)}</span>
+                <span>{formatDateCompact(post.created_at)}</span>
             </div>
 
             <!-- 작성자 + 댓글/좋아요 -->

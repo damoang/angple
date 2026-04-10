@@ -4,7 +4,7 @@
     import type { FreePost, BoardDisplaySettings } from '$lib/api/types.js';
     import Lock from '@lucide/svelte/icons/lock';
     import AuthorLink from '$lib/components/ui/author-link/author-link.svelte';
-    import { formatDate } from '$lib/utils/format-date.js';
+    import { formatDate, formatDateCompact, formatDateCompact } from '$lib/utils/format-date.js';
     import { toThumbnailUrl } from '$lib/utils/thumbnail-url.js';
     import { highlightQuery } from '$lib/utils/highlight.js';
     // Props
@@ -86,7 +86,7 @@
                                 /></span
                             >
                             <span>•</span>
-                            <span>{formatDate(post.created_at)}</span>
+                            <span>{formatDateCompact(post.created_at)}</span>
                             <span>•</span>
                             <span>조회 {post.views.toLocaleString()}</span>
                         </div>
