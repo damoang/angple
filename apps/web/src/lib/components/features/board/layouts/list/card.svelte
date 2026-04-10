@@ -7,7 +7,7 @@
     import type { Component } from 'svelte';
     import { pluginStore } from '$lib/stores/plugin.svelte';
     import { loadPluginComponent } from '$lib/utils/plugin-optional-loader';
-    import { formatDate, formatDateCompact, formatDateCompact } from '$lib/utils/format-date.js';
+    import { formatDate, formatDateCompact } from '$lib/utils/format-date.js';
     import { uiSettingsStore } from '$lib/stores/ui-settings.svelte.js';
     import { toThumbnailUrl } from '$lib/utils/thumbnail-url.js';
     import { highlightQuery } from '$lib/utils/highlight.js';

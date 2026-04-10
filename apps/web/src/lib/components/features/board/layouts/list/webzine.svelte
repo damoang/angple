@@ -4,7 +4,7 @@
     import type { FreePost, BoardDisplaySettings } from '$lib/api/types.js';
     import ImageIcon from '@lucide/svelte/icons/image';
     import Lock from '@lucide/svelte/icons/lock';
-    import { formatDate, formatDateCompact, formatDateCompact } from '$lib/utils/format-date.js';
+    import { formatDate, formatDateCompact } from '$lib/utils/format-date.js';
     import { highlightQuery } from '$lib/utils/highlight.js';
     // Props (동일 인터페이스)
     let {

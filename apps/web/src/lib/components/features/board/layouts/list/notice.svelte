@@ -5,7 +5,7 @@
     import MessageSquare from '@lucide/svelte/icons/message-square';
     import AuthorLink from '$lib/components/ui/author-link/author-link.svelte';
     import Pin from '@lucide/svelte/icons/pin';
-    import { formatDate, formatDateCompact, formatDateCompact } from '$lib/utils/format-date.js';
+    import { formatDate, formatDateCompact } from '$lib/utils/format-date.js';
     import { highlightQuery } from '$lib/utils/highlight.js';
     let {
         post,

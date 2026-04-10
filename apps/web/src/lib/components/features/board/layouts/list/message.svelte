@@ -12,7 +12,7 @@
     import { getAvatarUrl } from '$lib/utils/member-icon.js';
     import { toThumbnailUrl } from '$lib/utils/thumbnail-url.js';
     import AuthorLink from '$lib/components/ui/author-link/author-link.svelte';
-    import { formatDate, formatDateCompact, formatDateCompact } from '$lib/utils/format-date.js';
+    import { formatDate, formatDateCompact } from '$lib/utils/format-date.js';
     let {
         post,
         displaySettings,

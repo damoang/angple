@@ -3,7 +3,7 @@
     import type { FreePost, BoardDisplaySettings } from '$lib/api/types.js';
     import ImageIcon from '@lucide/svelte/icons/image';
     import AuthorLink from '$lib/components/ui/author-link/author-link.svelte';
-    import { formatDate, formatDateCompact, formatDateCompact } from '$lib/utils/format-date.js';
+    import { formatDate, formatDateCompact } from '$lib/utils/format-date.js';
     import { toThumbnailUrl } from '$lib/utils/thumbnail-url.js';
     // Props (동일 인터페이스)
     let {

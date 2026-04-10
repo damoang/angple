@@ -11,7 +11,7 @@
     import ImageIcon from '@lucide/svelte/icons/image';
     import MapPin from '@lucide/svelte/icons/map-pin';
     import Truck from '@lucide/svelte/icons/truck';
-    import { formatDate, formatDateCompact, formatDateCompact } from '$lib/utils/format-date.js';
+    import { formatDate, formatDateCompact } from '$lib/utils/format-date.js';
     let {
         post,
         displaySettings,
