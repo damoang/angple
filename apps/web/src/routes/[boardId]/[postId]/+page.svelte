@@ -54,6 +54,7 @@
     import { isEmbeddable } from '$lib/plugins/auto-embed';
     import AdSlot from '$lib/components/ui/ad-slot/ad-slot.svelte';
     import AdsenseMultiplex from '$lib/components/ui/adsense-multiplex/adsense-multiplex.svelte';
+    import AdfitResponsiveSlot from '$lib/components/ui/adfit-slot/adfit-responsive-slot.svelte';
     import PluginSlot from '$lib/components/plugin/plugin-slot.svelte';
     import { widgetLayoutStore } from '$lib/stores/widget-layout.svelte';
     import { pluginStore } from '$lib/stores/plugin.svelte';
@@ -1824,6 +1825,14 @@
             </div>
             <div class="mt-2 hidden md:block">
                 <AdsenseMultiplex />
+            </div>
+            <!-- AdFit 전용 슬롯 (모바일+PC) -->
+            <div class="mt-2">
+                <AdfitResponsiveSlot
+                    desktop={{ unitId: 'DAN-9qdD2GVgW3AXbClR', width: 728, height: 90 }}
+                    mobile={{ unitId: 'DAN-ry6MhSvNcdUCMwtP', width: 320, height: 100 }}
+                    id="post-after-comments-adfit"
+                />
             </div>
         {/if}
 
