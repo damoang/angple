@@ -175,7 +175,7 @@
 
             <div class="text-muted-foreground mt-3 text-xs leading-relaxed">
                 <p>
-                    주식회사 에스디케이(SDK) | 대표: SDK | 사업자등록번호: 871-81-03242 |
+                    주식회사 에스디케이(SDK) | 대표: 김선도 | 사업자등록번호: 871-81-03242 |
                     통신판매업신고: 2024-고양일산서-1820
                 </p>
                 <p>
