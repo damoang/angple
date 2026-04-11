@@ -252,6 +252,7 @@
                     {displaySettings}
                     href="/{boardId}/{post.id}{currentPage > 1 ? `?page=${currentPage}` : ''}"
                     isRead={showReadState && readPostsStore.isRead(boardId, post.id)}
+                    isPriority={i === 0}
                 />
             </div>
             {#if widgetLayoutStore.hasEnabledAds && i + 1 === 12}
