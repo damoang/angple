@@ -28,8 +28,13 @@
     const hasSSRData = !!ssrData?.data;
 
     // SSR 데이터가 있으면 SSR period로 시작 (스켈레톤 방지)
-    // localStorage 탭 저장 제거 — SSR 불일치로 인한 스켈레톤 원인이었음
-    const initialTab = hasSSRData ? (ssrData!.period as RecommendedPeriod) : defaultTab;
+    // 클라이언트 복귀 시 sessionStorage에서 이전 탭 복원 (뒤로가기 대응)
+    const savedTab =
+        typeof window !== 'undefined'
+            ? (sessionStorage.getItem('recommended_active_tab') as RecommendedPeriod | null)
+            : null;
+    const initialTab =
+        savedTab || (hasSSRData ? (ssrData!.period as RecommendedPeriod) : defaultTab);
     const canUseSSR = hasSSRData;
 
     let activeTab = $state<RecommendedPeriod>(initialTab);
@@ -124,6 +129,9 @@
 
     function handleTabChange(tabId: RecommendedPeriod) {
         activeTab = tabId;
+        if (typeof window !== 'undefined') {
+            sessionStorage.setItem('recommended_active_tab', tabId);
+        }
         loadData(tabId);
     }
 
