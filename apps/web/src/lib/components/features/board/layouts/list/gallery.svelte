@@ -10,12 +10,14 @@
         post,
         displaySettings,
         href,
-        isRead = false
+        isRead = false,
+        isPriority = false
     }: {
         post: FreePost;
         displaySettings?: BoardDisplaySettings;
         href: string;
         isRead?: boolean;
+        isPriority?: boolean;
     } = $props();
 
     // 삭제된 글
@@ -50,7 +52,8 @@
                     src={thumbnailUrl}
                     alt=""
                     class="h-full w-full object-cover transition-transform group-hover:scale-105"
-                    loading="lazy"
+                    loading={isPriority ? 'eager' : 'lazy'}
+                    fetchpriority={isPriority ? 'high' : 'auto'}
                     decoding="async"
                     width="400"
                     height="225"
