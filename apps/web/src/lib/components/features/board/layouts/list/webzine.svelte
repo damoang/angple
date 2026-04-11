@@ -6,6 +6,7 @@
     import Lock from '@lucide/svelte/icons/lock';
     import { formatDate, formatDateCompact } from '$lib/utils/format-date.js';
     import { highlightQuery } from '$lib/utils/highlight.js';
+    import { toThumbnailUrl } from '$lib/utils/thumbnail-url.js';
     // Props (동일 인터페이스)
     let {
         post,
@@ -24,8 +25,11 @@
     // 삭제된 글
     const isDeleted = $derived(!!post.deleted_at);
 
-    const thumbnailUrl = $derived(post.thumbnail || post.images?.[0] || '');
-    const hasImage = $derived(Boolean(thumbnailUrl));
+    const rawThumbnailUrl = $derived(
+        post.thumbnail_raw || post.thumbnail || post.images?.[0] || ''
+    );
+    const thumbnailUrl = $derived(toThumbnailUrl(rawThumbnailUrl, '835x626'));
+    const hasImage = $derived(Boolean(rawThumbnailUrl));
 
     // HTML 태그 제거하여 미리보기 텍스트 생성
     const previewText = $derived.by(() => {
@@ -61,9 +65,14 @@
                         alt=""
                         class="h-full w-full object-cover"
                         loading="lazy"
+                        decoding="async"
                         onerror={(e) => {
                             const target = e.target as HTMLImageElement;
-                            target.style.display = 'none';
+                            if (rawThumbnailUrl && target.src !== rawThumbnailUrl) {
+                                target.src = rawThumbnailUrl;
+                            } else {
+                                target.style.display = 'none';
+                            }
                         }}
                     />
                 </div>

@@ -27,6 +27,7 @@
     import CheckCircle from '@lucide/svelte/icons/check-circle';
     import Tag from '@lucide/svelte/icons/tag';
     import MessageSquare from '@lucide/svelte/icons/message-square';
+    import { toThumbnailUrl } from '$lib/utils/thumbnail-url.js';
     let {
         post,
         displaySettings,
@@ -42,9 +43,12 @@
     // 삭제된 글
     const isDeleted = $derived(!!post.deleted_at);
 
-    // 썸네일 표시
-    const thumbnailUrl = $derived(post.thumbnail || post.images?.[0] || '');
-    const hasImage = $derived(Boolean(thumbnailUrl));
+    // 썸네일 표시 (원본 대신 400x225.webp 로드 → 대역폭 절감)
+    const rawThumbnailUrl = $derived(
+        post.thumbnail_raw || post.thumbnail || post.images?.[0] || ''
+    );
+    const thumbnailUrl = $derived(toThumbnailUrl(rawThumbnailUrl, '400x225'));
+    const hasImage = $derived(Boolean(rawThumbnailUrl));
 
     // 중고 마켓 정보 파싱
     const market = $derived(parseMarketInfo(post));
@@ -116,6 +120,15 @@
                         ? 'grayscale'
                         : 'group-hover:scale-105'}"
                     loading="lazy"
+                    decoding="async"
+                    onerror={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        if (rawThumbnailUrl && target.src !== rawThumbnailUrl) {
+                            target.src = rawThumbnailUrl;
+                        } else {
+                            target.style.display = 'none';
+                        }
+                    }}
                 />
             {:else}
                 <div class="text-muted-foreground flex h-full w-full items-center justify-center">
