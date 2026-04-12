@@ -273,7 +273,7 @@
 
         function startPolling() {
             if (interval || !unreadPrimed) return;
-            interval = setInterval(loadUnreadCount, 60_000);
+            interval = setInterval(loadUnreadCount, 180_000);
         }
 
         function stopPolling() {
