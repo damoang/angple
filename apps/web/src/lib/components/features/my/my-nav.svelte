@@ -7,6 +7,7 @@
     import Ban from '@lucide/svelte/icons/ban';
     import Bookmark from '@lucide/svelte/icons/bookmark';
     import NotepadText from '@lucide/svelte/icons/notepad-text';
+    import Users from '@lucide/svelte/icons/users';
     import Palette from '@lucide/svelte/icons/palette';
     import Settings from '@lucide/svelte/icons/settings';
     import type { Component } from 'svelte';
@@ -42,13 +43,19 @@
             label: '활동내역',
             icon: Bookmark,
             match: (pathname) =>
-                ['/my/points', '/my/exp', '/my/blocked', '/my/scraps', '/my/memos'].some((href) =>
-                    pathname.startsWith(href)
-                ),
+                [
+                    '/my/points',
+                    '/my/exp',
+                    '/my/blocked',
+                    '/my/scraps',
+                    '/my/memos',
+                    '/my/following'
+                ].some((href) => pathname.startsWith(href)),
             children: [
                 { href: '/my/points', label: '포인트', icon: Coins, exact: false },
                 { href: '/my/exp', label: '경험치', icon: Star, exact: false },
                 { href: '/my/scraps', label: '스크랩', icon: Bookmark, exact: false },
+                { href: '/my/following', label: '팔로잉', icon: Users, exact: false },
                 { href: '/my/blocked', label: '차단목록', icon: Ban, exact: false },
                 { href: '/my/memos', label: '회원메모', icon: NotepadText, exact: false }
             ]
