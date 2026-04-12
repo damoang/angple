@@ -264,8 +264,9 @@
 
     onMount(() => {
         // 페이지 로드 시 자동 prime (hover 없이도 알림 수 표시)
+        // auth 초기화(layout onMount)가 완료된 후 호출해야 하므로 200ms 대기
         if (!unreadPrimed && document.visibilityState === 'visible') {
-            primeUnreadCount();
+            setTimeout(() => primeUnreadCount(), 200);
         }
 
         let interval: ReturnType<typeof setInterval> | null = null;
