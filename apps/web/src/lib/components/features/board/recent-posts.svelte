@@ -256,7 +256,7 @@
                 />
             </div>
             {#if widgetLayoutStore.hasEnabledAds && i + 1 === 12}
-                <div class="py-2">
+                <div class="py-2" style="min-height: 90px; contain: layout;">
                     <AdSlot
                         position="board-list-infeed"
                         height="90px"
@@ -265,12 +265,14 @@
                 </div>
             {/if}
             {#if shuffledPromos.length > 0 && i + 1 === 10}
-                {#each shuffledPromos.slice(0, 2) as promo (promo.wrId)}
-                    <PromotionInlinePost
-                        post={promo}
-                        variant={listLayoutId === 'classic' ? 'classic' : 'default'}
-                    />
-                {/each}
+                <div style="contain: layout;">
+                    {#each shuffledPromos.slice(0, 2) as promo (promo.wrId)}
+                        <PromotionInlinePost
+                            post={promo}
+                            variant={listLayoutId === 'classic' ? 'classic' : 'default'}
+                        />
+                    {/each}
+                </div>
             {/if}
         {/each}
     </div>
