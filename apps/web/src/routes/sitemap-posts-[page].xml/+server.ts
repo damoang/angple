@@ -51,7 +51,8 @@ export const GET: RequestHandler = async ({ params, url }) => {
                 }
 
                 const [posts] = await pool.query<RowDataPacket[]>(
-                    `SELECT wr_id, wr_datetime, wr_last FROM g5_write_${boTable}
+                    `SELECT wr_id, wr_datetime, wr_last, LEFT(wr_content, 1000) AS content_head
+                     FROM g5_write_${boTable}
 					 WHERE wr_is_comment = 0
 					 ORDER BY wr_id DESC
 					 LIMIT ? OFFSET ?`,
@@ -62,16 +63,20 @@ export const GET: RequestHandler = async ({ params, url }) => {
                     wr_id: number;
                     wr_datetime: string;
                     wr_last: string;
+                    content_head: string;
                 }>) {
-                    // lastmod: 수정일(wr_last)이 있으면 수정일, 없으면 작성일
                     const lastmod = post.wr_last || post.wr_datetime;
                     const lastmodDate = new Date(lastmod).toISOString().split('T')[0];
+                    const imageUrl = extractFirstImage(post.content_head);
+                    const imageTag = imageUrl
+                        ? `\n    <image:image>\n      <image:loc>${escapeXml(imageUrl)}</image:loc>\n    </image:image>`
+                        : '';
 
                     postUrls.push(`  <url>
     <loc>${siteUrl}/${boTable}/${post.wr_id}</loc>
     <lastmod>${lastmodDate}</lastmod>
     <changefreq>weekly</changefreq>
-    <priority>0.5</priority>
+    <priority>0.5</priority>${imageTag}
   </url>`);
                     totalCollected++;
                 }
@@ -87,7 +92,7 @@ export const GET: RequestHandler = async ({ params, url }) => {
     }
 
     const xml = `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
 ${postUrls.join('\n')}
 </urlset>`;
 
@@ -98,3 +103,23 @@ ${postUrls.join('\n')}
         }
     });
 };
+
+const CDN_BASE = 'https://s3.damoang.net';
+
+function extractFirstImage(content: string | null): string | null {
+    if (!content) return null;
+    const match = content.match(/<img[^>]+src=["']([^"']+)["']/i);
+    if (!match?.[1]) return null;
+    let url = match[1];
+    if (url.startsWith('/data/')) url = CDN_BASE + url;
+    return url;
+}
+
+function escapeXml(str: string): string {
+    return str
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&apos;');
+}
