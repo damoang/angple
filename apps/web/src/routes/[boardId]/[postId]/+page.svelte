@@ -1294,6 +1294,11 @@
         const authorUrl = data.post.author_id
             ? `${siteUrl}/member/${data.post.author_id}`
             : undefined;
+        // OG 이미지: 캐시버스팅으로 소셜 미디어 stale preview 방지
+        const rawOgImage = data.post.thumbnail || data.post.images?.[0];
+        const ogImageUrl = rawOgImage
+            ? `${rawOgImage}${rawOgImage.includes('?') ? '&' : '?'}v=${new Date(data.post.updated_at || data.post.created_at).getTime()}`
+            : undefined;
 
         return {
             meta: {
@@ -1307,16 +1312,13 @@
                 description: postDescription,
                 type: 'article',
                 url: postUrl,
-                image: data.post.thumbnail || data.post.images?.[0]
+                image: ogImageUrl
             },
             twitter: {
-                card:
-                    data.post.thumbnail || data.post.images?.[0]
-                        ? 'summary_large_image'
-                        : 'summary',
+                card: rawOgImage ? 'summary_large_image' : 'summary',
                 title: data.post.title,
                 description: postDescription,
-                image: data.post.thumbnail || data.post.images?.[0]
+                image: ogImageUrl
             },
             jsonLd: [
                 // DiscussionForumPosting - 커뮤니티 게시글에 최적화된 구조화 데이터
@@ -1330,7 +1332,7 @@
                     url: postUrl,
                     commentCount: comments.length,
                     upvoteCount: data.post.likes || 0,
-                    image: data.post.thumbnail || data.post.images?.[0]
+                    image: ogImageUrl
                 }),
                 // Article - 일반 검색 결과용 (폴백)
                 createArticleJsonLd({
@@ -1338,7 +1340,7 @@
                     author: data.post.deleted_at ? '' : data.post.author,
                     datePublished: data.post.created_at,
                     dateModified: data.post.updated_at || data.post.created_at,
-                    image: data.post.thumbnail || data.post.images?.[0],
+                    image: ogImageUrl,
                     description: postDescription
                 }),
                 // Breadcrumb

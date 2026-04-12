@@ -26,6 +26,7 @@ export const GET: RequestHandler = async ({ url }) => {
             author: string;
             pubDate: string;
             boardSubject: string;
+            imageUrl: string;
         }> = [];
 
         for (const board of boards as Array<{ bo_table: string; bo_subject: string }>) {
@@ -52,7 +53,8 @@ export const GET: RequestHandler = async ({ url }) => {
                         description: escapeXml(stripHtmlTags(post.wr_content).slice(0, 200)),
                         author: escapeXml(post.wr_name),
                         pubDate: new Date(post.wr_datetime).toUTCString(),
-                        boardSubject: escapeXml(board.bo_subject)
+                        boardSubject: escapeXml(board.bo_subject),
+                        imageUrl: extractFirstImage(post.wr_content) || ''
                     });
                 }
             } catch {
@@ -73,8 +75,7 @@ export const GET: RequestHandler = async ({ url }) => {
       <author>${post.author}</author>
       <pubDate>${post.pubDate}</pubDate>
       <category>${post.boardSubject}</category>
-      <guid isPermaLink="true">${post.link}</guid>
-    </item>`
+      <guid isPermaLink="true">${post.link}</guid>${post.imageUrl ? `\n      <media:content url="${escapeXml(post.imageUrl)}" medium="image" />` : ''}`
             )
             .join('\n');
     } catch (err) {
@@ -82,7 +83,7 @@ export const GET: RequestHandler = async ({ url }) => {
     }
 
     const xml = `<?xml version="1.0" encoding="UTF-8"?>
-<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:media="http://search.yahoo.com/mrss/">
   <channel>
     <title>${siteTitle}</title>
     <link>${siteUrl}</link>
@@ -111,6 +112,18 @@ function stripHtmlTags(str: string): string {
         result = result.replace(/<[^>]+>/g, '');
     } while (result !== prev);
     return result;
+}
+
+const CDN_BASE = 'https://s3.damoang.net';
+
+/** 본문 HTML에서 첫 번째 이미지 URL 추출 */
+function extractFirstImage(content: string): string | null {
+    if (!content) return null;
+    const match = content.match(/<img[^>]+src=["']([^"']+)["']/i);
+    if (!match?.[1]) return null;
+    let url = match[1];
+    if (url.startsWith('/data/')) url = CDN_BASE + url;
+    return url;
 }
 
 function escapeXml(str: string): string {
