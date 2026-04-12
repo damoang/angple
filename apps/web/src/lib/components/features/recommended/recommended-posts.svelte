@@ -138,6 +138,9 @@
     onMount(() => {
         if (!canUseSSR) {
             loadData(activeTab, true);
+        } else if (savedTab && savedTab !== ssrData?.period) {
+            // SSR 데이터와 복원된 탭이 다르면 해당 탭 데이터 fetch
+            loadData(savedTab);
         }
     });
 </script>
