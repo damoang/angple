@@ -23,7 +23,7 @@ export const load: PageServerLoad = async ({ parent }) => {
 			   ON f.target_id COLLATE utf8mb4_unicode_ci = m.mb_id COLLATE utf8mb4_unicode_ci
 			 WHERE f.mb_id COLLATE utf8mb4_unicode_ci = CAST(? AS CHAR CHARACTER SET utf8mb4) COLLATE utf8mb4_unicode_ci
 			 ORDER BY f.created_at DESC`,
-            [user.mb_id]
+            [user.id]
         );
 
         return {
