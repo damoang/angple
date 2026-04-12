@@ -1758,25 +1758,27 @@
                     {#if !commentsLoaded}
                         <p class="text-muted-foreground text-sm">댓글을 불러오는 중입니다.</p>
                     {/if}
-                    <CommentList
-                        {comments}
-                        onUpdate={handleUpdateComment}
-                        onDelete={handleDeleteComment}
-                        onRestore={handleRestoreComment}
-                        onReply={handleReplyComment}
-                        onLike={handleLikeComment}
-                        onDislike={handleDislikeComment}
-                        postAuthorId={data.post.author_id}
-                        {boardId}
-                        postId={data.post.id}
-                        useNogood={!!data.board?.use_nogood}
-                        {commentLayout}
-                        {reactionsMap}
-                        {initialLikedCommentIds}
-                        {initialDislikedCommentIds}
-                        {truthroomCommentMap}
-                        isRestricted={data.isRestricted}
-                    />
+                    {#if !data.post.is_comments_disabled}
+                        <CommentList
+                            {comments}
+                            onUpdate={handleUpdateComment}
+                            onDelete={handleDeleteComment}
+                            onRestore={handleRestoreComment}
+                            onReply={handleReplyComment}
+                            onLike={handleLikeComment}
+                            onDislike={handleDislikeComment}
+                            postAuthorId={data.post.author_id}
+                            {boardId}
+                            postId={data.post.id}
+                            useNogood={!!data.board?.use_nogood}
+                            {commentLayout}
+                            {reactionsMap}
+                            {initialLikedCommentIds}
+                            {initialDislikedCommentIds}
+                            {truthroomCommentMap}
+                            isRestricted={data.isRestricted}
+                        />
+                    {/if}
 
                     <div class="border-border border-t pt-6">
                         <div class="mb-3 flex justify-end">
