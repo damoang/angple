@@ -187,8 +187,6 @@
                             <PinOff class="h-5 w-5" />
                         {/if}
                     </button>
-                {:else if isNotice}
-                    <Pin class="text-primary h-5 w-5 shrink-0" />
                 {/if}
                 {#if post.is_secret}
                     <Lock class="text-muted-foreground h-6 w-6 shrink-0" />
