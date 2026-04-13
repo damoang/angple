@@ -226,7 +226,7 @@
                         {:else if hasImage}
                             <ImageIcon class="text-muted-foreground h-3.5 w-3.5 shrink-0" />
                         {/if}
-                        {#if post.comments_count > 0}
+                        {#if post.comments_count > 0 && !post.is_comments_disabled}
                             <a
                                 href="{href}#comments"
                                 class="comment-count shrink-0"

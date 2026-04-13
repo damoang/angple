@@ -83,7 +83,7 @@
             {/if}
 
             <!-- 댓글 수 (이미지 위) -->
-            {#if post.comments_count > 0}
+            {#if post.comments_count > 0 && !post.is_comments_disabled}
                 <div class="absolute bottom-2 right-2">
                     <Badge variant="secondary" class="bg-background/80 text-xs backdrop-blur-sm">
                         💬 {post.comments_count}
