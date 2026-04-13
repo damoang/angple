@@ -95,7 +95,7 @@
                 <div class="text-center text-white">
                     <div class="mb-2 flex items-center justify-center gap-3 text-sm">
                         <span>👍 {post.likes}</span>
-                        <span>💬 {post.comments_count}</span>
+                        {#if !post.is_comments_disabled}<span>💬 {post.comments_count}</span>{/if}
                         <span>👁 {post.views.toLocaleString()}</span>
                     </div>
                 </div>
@@ -114,7 +114,7 @@
             {/if}
 
             <!-- 댓글 수 배지 (우상단) -->
-            {#if post.comments_count > 0}
+            {#if post.comments_count > 0 && !post.is_comments_disabled}
                 <div class="absolute right-2 top-2">
                     <Badge
                         variant="secondary"

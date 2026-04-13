@@ -238,7 +238,7 @@
             >
                 {post.title}
             </h4>
-            {#if post.comments_count > 0}
+            {#if post.comments_count > 0 && !post.is_comments_disabled}
                 <span class="text-primary ml-1 inline-flex items-center gap-0.5 text-xs">
                     <MessageSquare class="h-3 w-3" />
                     {post.comments_count}

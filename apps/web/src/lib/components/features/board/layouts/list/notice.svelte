@@ -75,7 +75,7 @@
                         <Eye class="h-3.5 w-3.5" />
                         {post.views.toLocaleString()}
                     </span>
-                    {#if post.comments_count > 0}
+                    {#if post.comments_count > 0 && !post.is_comments_disabled}
                         <span class="text-primary flex items-center gap-1">
                             <MessageSquare class="h-3.5 w-3.5" />
                             {post.comments_count}

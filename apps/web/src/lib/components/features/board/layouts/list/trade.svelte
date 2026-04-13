@@ -243,7 +243,7 @@
                             {post.likes}
                         </span>
                     {/if}
-                    {#if post.comments_count > 0}
+                    {#if post.comments_count > 0 && !post.is_comments_disabled}
                         <span class="inline-flex items-center gap-0.5">
                             <MessageSquare class="h-3 w-3" />
                             {post.comments_count}

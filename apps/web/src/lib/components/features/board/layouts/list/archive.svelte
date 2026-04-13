@@ -113,7 +113,7 @@
                         {/if}
                     </span>
 
-                    {#if post.comments_count > 0}
+                    {#if post.comments_count > 0 && !post.is_comments_disabled}
                         <a
                             href="{href}#comments"
                             class="comment-count shrink-0"

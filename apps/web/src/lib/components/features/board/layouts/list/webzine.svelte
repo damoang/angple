@@ -126,7 +126,7 @@
                 <!-- 하단 메타 정보 -->
                 <div class="text-muted-foreground flex flex-wrap items-center gap-3 text-xs">
                     <span>👍 {post.likes}</span>
-                    <span>💬 {post.comments_count}</span>
+                    {#if !post.is_comments_disabled}<span>💬 {post.comments_count}</span>{/if}
                     <span class="inline-flex items-center gap-0.5 font-medium"
                         ><AuthorLink
                             authorId={post.author_id}

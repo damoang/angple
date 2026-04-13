@@ -617,7 +617,11 @@
 
         for (const file of Array.from(files)) {
             if (isImageFile(file)) {
-                await handleImageFile(file);
+                try {
+                    await handleImageFile(file);
+                } catch (e) {
+                    console.error('이미지 업로드 실패:', file.name, e);
+                }
             }
         }
 
@@ -637,7 +641,11 @@
 
         for (const file of Array.from(files)) {
             if (isImageFile(file)) {
-                await handleImageFile(file);
+                try {
+                    await handleImageFile(file);
+                } catch (e) {
+                    console.error('이미지 업로드 실패:', file.name, e);
+                }
             }
         }
 

@@ -174,7 +174,7 @@
                     {#if post.likes > 0}
                         <span>👍 {post.likes}</span>
                     {/if}
-                    {#if post.comments_count > 0}
+                    {#if post.comments_count > 0 && !post.is_comments_disabled}
                         <span>💬 {post.comments_count}</span>
                     {/if}
                 </div>
