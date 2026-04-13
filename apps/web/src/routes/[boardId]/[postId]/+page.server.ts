@@ -303,14 +303,18 @@ export const load: PageServerLoad = async ({
             if (!alreadyViewedByCookie && !alreadyViewedByIp) {
                 incrementViewcount(boardId, Number(postId));
                 if (clientIp) await markViewed(clientIp, boardId, Number(postId));
-                viewed.push(vcKey);
-                if (viewed.length > 100) viewed.splice(0, viewed.length - 100);
-                cookies.set('viewed_posts', viewed.join(','), {
-                    path: '/',
-                    httpOnly: true,
-                    sameSite: 'lax',
-                    maxAge: 60 * 60 * 24
-                });
+                // __data.json 응답에서는 Set-Cookie 생략 → nginx SSR 캐시 허용
+                // HTML 요청에서만 쿠키 설정 (IP 기반 dedup이 SPA 네비게이션 커버)
+                if (!isDataRequest) {
+                    viewed.push(vcKey);
+                    if (viewed.length > 100) viewed.splice(0, viewed.length - 100);
+                    cookies.set('viewed_posts', viewed.join(','), {
+                        path: '/',
+                        httpOnly: true,
+                        sameSite: 'lax',
+                        maxAge: 60 * 60 * 24
+                    });
+                }
             }
         }
 
