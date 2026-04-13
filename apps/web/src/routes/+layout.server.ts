@@ -5,6 +5,7 @@ import { getCachedLogoData } from '$lib/server/logo';
 import { resolveLogoRequestLocale } from '$lib/utils/logo-schedule';
 
 import { hooks } from '@angple/hook-system';
+import { env } from '$env/dynamic/private';
 
 /**
  * 서버 사이드 데이터 로드
@@ -37,9 +38,10 @@ export const load: LayoutServerLoad = async ({
             themeSettings: {},
             activePlugins: [],
             menus: [],
-            user: locals.user ?? null,
-            accessToken: locals.accessToken ?? null,
-            csrfToken: locals.csrfToken ?? null,
+            // SSR_STRIP_USER=true 시 user 제거 → SSR 캐시 가능 (클라이언트 /api/auth/me로 로드)
+            user: env.SSR_STRIP_USER === 'true' ? null : (locals.user ?? null),
+            accessToken: env.SSR_STRIP_USER === 'true' ? null : (locals.accessToken ?? null),
+            csrfToken: env.SSR_STRIP_USER === 'true' ? null : (locals.csrfToken ?? null),
 
             celebration: [],
             banners: {},
@@ -119,9 +121,10 @@ export const load: LayoutServerLoad = async ({
         themeSettings: resolvedThemeSettings,
         activePlugins,
         menus,
-        user: locals.user ?? null,
-        accessToken: locals.accessToken ?? null,
-        csrfToken: locals.csrfToken ?? null,
+        // SSR_STRIP_USER=true 시 user 제거 → SSR 캐시 가능 (클라이언트 /api/auth/me로 로드)
+        user: env.SSR_STRIP_USER === 'true' ? null : (locals.user ?? null),
+        accessToken: env.SSR_STRIP_USER === 'true' ? null : (locals.accessToken ?? null),
+        csrfToken: env.SSR_STRIP_USER === 'true' ? null : (locals.csrfToken ?? null),
         // logoData: previews 제거 (SSR 불필요), schedules는 header 로고에서 사용
         logoData: {
             active: logoData.active,
