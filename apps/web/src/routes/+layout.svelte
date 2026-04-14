@@ -479,8 +479,10 @@
             syncAuth(data);
             authInitialized = true;
             if (authStore.isAuthenticated) blockedUsersStore.load();
-        } else if (document.cookie.includes('angple_sid=')) {
-            // SSR에서 user 없지만 쿠키 있음 (SSR_STRIP_USER=true) → API로 fetch
+        } else {
+            // SSR에서 user 없음 (SSR_STRIP_USER=true 또는 비로그인)
+            // HttpOnly 쿠키는 document.cookie로 읽을 수 없으므로 항상 /api/auth/me 시도
+            // credentials: 'same-origin'이 HttpOnly 쿠키를 자동 전송
             fetch('/api/auth/me', { credentials: 'same-origin' })
                 .then((res) => (res.ok ? res.json() : null))
                 .then((meData) => {
@@ -496,10 +498,6 @@
                     authActions.initAuth();
                     authInitialized = true;
                 });
-        } else {
-            // 비로그인
-            authActions.initAuth();
-            authInitialized = true;
         }
 
         // postMessage 리스너 (Admin에서 테마 변경 시 리로드)
