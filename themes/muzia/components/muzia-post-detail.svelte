@@ -296,7 +296,7 @@
                     <div class="p-4" style={depth > 0 ? `padding-left: ${1 + depth * 2}rem` : ''}>
                         {#if depth > 0}
                             <div class="mb-2 flex items-center gap-1 text-xs text-muted-foreground">
-                                <span class="text-pink-400">↳</span> 답글
+                                <span class="text-indigo-400">↳</span> 답글
                             </div>
                         {/if}
                         <div class="mb-2 flex items-center gap-2">
@@ -312,18 +312,18 @@
                             {#if c.likes > 0}
                                 <span class="text-xs text-muted-foreground">👍 {c.likes}</span>
                             {/if}
-                            <button class="text-xs text-muted-foreground hover:text-pink-500" onclick={() => startReply(c)}>답글</button>
+                            <button class="text-xs text-muted-foreground hover:text-indigo-500" onclick={() => startReply(c)}>답글</button>
                         </div>
 
                         <!-- 인라인 답글 입력 -->
                         {#if replyTo?.id === c.id}
                             <div class="mt-3 rounded-lg border bg-muted/30 p-3">
                                 <div class="mb-2 flex items-center justify-between">
-                                    <span class="text-xs text-muted-foreground"><span class="text-pink-400">↳</span> {c.author}님에게 답글</span>
+                                    <span class="text-xs text-muted-foreground"><span class="text-indigo-400">↳</span> {c.author}님에게 답글</span>
                                     <button class="text-xs text-muted-foreground hover:text-foreground" onclick={cancelReply}>취소</button>
                                 </div>
                                 <textarea bind:value={replyText} placeholder="답글을 입력하세요..." rows="2"
-                                    class="w-full resize-none rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-pink-400"></textarea>
+                                    class="w-full resize-none rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-400"></textarea>
                                 <div class="mt-2 flex items-center justify-between">
                                     <div class="flex items-center gap-2">
                                         <button class="rounded-lg px-2 py-1 text-lg hover:bg-accent" title="이모지" onclick={() => showReplyEmoji = !showReplyEmoji}>😊</button>
@@ -332,7 +332,7 @@
                                         </button>
                                         <input type="file" accept="image/*" class="hidden" bind:this={replyFileInput} onchange={uploadReplyImage} />
                                     </div>
-                                    <Button size="sm" class="bg-gradient-to-r from-pink-500 to-purple-600 text-white" onclick={submitReply} disabled={replySubmitting || !replyText.trim()}>
+                                    <Button size="sm" class="bg-gradient-to-r from-indigo-500 to-violet-500 text-white" onclick={submitReply} disabled={replySubmitting || !replyText.trim()}>
                                         {replySubmitting ? '등록 중...' : '답글 등록'}
                                     </Button>
                                 </div>
@@ -356,10 +356,10 @@
             <!-- 루트 댓글 입력 -->
             <div class="border-t p-4">
                 <div class="flex items-start gap-3">
-                    <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-r from-pink-200 to-purple-200 text-xs font-medium text-purple-700">U</div>
+                    <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-r from-indigo-100 to-violet-100 text-xs font-medium text-indigo-700">U</div>
                     <div class="flex-1">
                         <textarea bind:value={commentText} placeholder="댓글을 입력하세요..." rows="3"
-                            class="w-full resize-none rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-pink-400"></textarea>
+                            class="w-full resize-none rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-400"></textarea>
                         <div class="mt-2 flex items-center justify-between">
                             <div class="flex items-center gap-2">
                                 <button class="rounded-lg px-2 py-1 text-lg hover:bg-accent" title="이모지" onclick={() => showEmojiPicker = !showEmojiPicker}>😊</button>
@@ -368,7 +368,7 @@
                                 </button>
                                 <input type="file" accept="image/*" class="hidden" bind:this={fileInput} onchange={uploadImage} />
                             </div>
-                            <Button size="sm" class="bg-gradient-to-r from-pink-500 to-purple-600 text-white" onclick={submitComment} disabled={isSubmitting || !commentText.trim()}>
+                            <Button size="sm" class="bg-gradient-to-r from-indigo-500 to-violet-500 text-white" onclick={submitComment} disabled={isSubmitting || !commentText.trim()}>
                                 {isSubmitting ? '등록 중...' : '등록'}
                             </Button>
                         </div>

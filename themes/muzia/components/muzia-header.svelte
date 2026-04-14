@@ -116,7 +116,7 @@
                 </div>
             {:else}
                 <a href="/login">
-                    <Button variant="default" size="sm" class="bg-gradient-to-r from-pink-500 to-purple-600 text-white">
+                    <Button variant="outline" size="sm" class="border-foreground/20 font-medium hover:bg-accent">
                         로그인
                     </Button>
                 </a>

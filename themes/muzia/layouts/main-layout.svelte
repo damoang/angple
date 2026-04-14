@@ -129,8 +129,8 @@
             --sidebar-ring: oklch(0.708 0 0);
 
             /* Muzia 전용 */
-            --muzia-gradient-from: #ec4899;
-            --muzia-gradient-to: #9333ea;
+            --muzia-gradient-from: #6366f1;
+            --muzia-gradient-to: #8b5cf6;
         }
 
         .dark {
