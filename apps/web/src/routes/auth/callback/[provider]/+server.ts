@@ -11,7 +11,12 @@ import { resolveOrigin } from '$lib/server/auth/oauth/config.js';
 import { safeRedirectUrl } from '$lib/server/safe-redirect.js';
 import { validateOAuthState } from '$lib/server/auth/oauth/state.js';
 import { findSocialProfile, upsertSocialProfile } from '$lib/server/auth/oauth/social-profile.js';
-import { getMemberById, findMemberByEmail, isMemberActive } from '$lib/server/auth/oauth/member.js';
+import {
+    getMemberById,
+    findMemberByEmail,
+    isMemberActive,
+    invalidateMemberCache
+} from '$lib/server/auth/oauth/member.js';
 import {
     createSession,
     SESSION_COOKIE_NAME,
@@ -39,6 +44,14 @@ const AUTH_EVENT_COOKIE = 'ga4_auth_event';
 
 function isAdsInviteFlow(redirectUrl: string | null | undefined): boolean {
     return !!redirectUrl && redirectUrl.includes('ads.damoang.net/invite/');
+}
+
+function isOpsInviteFlow(redirectUrl: string | null | undefined): boolean {
+    return !!redirectUrl && redirectUrl.includes('ops.damoang.net/invite/');
+}
+
+function isInviteFlow(redirectUrl: string | null | undefined): boolean {
+    return isAdsInviteFlow(redirectUrl) || isOpsInviteFlow(redirectUrl);
 }
 
 function isPromotionRedirectFlow(redirectUrl: string | null | undefined): boolean {
@@ -146,7 +159,7 @@ async function handleCallback(
                 }
             }
 
-            if (isAdsInviteFlow(stateData.redirect)) {
+            if (isInviteFlow(stateData.redirect)) {
                 const baseMbId = generateSocialMbId(providerName, profile.identifier);
                 const existingTemp = await findExistingTempAccount(baseMbId);
 
@@ -200,9 +213,42 @@ async function handleCallback(
         }
 
         // 회원 정보 조회 및 활성 상태 확인
-        const member = await getMemberById(mbId);
+        let member = await getMemberById(mbId);
+
+        // 초대 플로우에서 캐시 무효화 후 재조회 (관리자가 복구한 계정의 캐시 지연 대응)
+        if (isInviteFlow(stateData.redirect) && member && !isMemberActive(member)) {
+            await invalidateMemberCache(mbId);
+            member = await getMemberById(mbId);
+        }
+
         if (!member || !isMemberActive(member)) {
-            redirect(302, '/login?error=account_inactive');
+            if (isInviteFlow(stateData.redirect)) {
+                // 비활성 회원 → 임시 계정 생성 (ads 초대 패턴 동일)
+                const baseMbId = generateSocialMbId(providerName, profile.identifier);
+                const existingTemp = await findExistingTempAccount(baseMbId);
+                if (existingTemp) {
+                    mbId = existingTemp.mb_id;
+                } else {
+                    const nickname = await generateInviteTempNickname(providerName);
+                    mbId = baseMbId;
+                    if (await isMbIdTaken(mbId)) {
+                        mbId = `${mbId}_${crypto.randomUUID().replace(/-/g, '').slice(0, 8)}`;
+                    }
+                    await createMember({
+                        mb_id: mbId,
+                        mb_nick: nickname,
+                        mb_email: profile.email || '',
+                        mb_name: nickname,
+                        mb_ip: clientIp
+                    });
+                }
+                member = await getMemberById(mbId);
+                if (!member) {
+                    redirect(302, '/login?error=account_inactive');
+                }
+            } else {
+                redirect(302, '/login?error=account_inactive');
+            }
         }
 
         // 소셜 프로필 업데이트
@@ -278,7 +324,7 @@ async function handleCallback(
         }
 
         const skipCertification =
-            isAdsInviteFlow(stateData.redirect) ||
+            isInviteFlow(stateData.redirect) ||
             isPromotionRedirectFlow(stateData.redirect) ||
             Number(member.mb_level ?? 0) >= 5;
 
