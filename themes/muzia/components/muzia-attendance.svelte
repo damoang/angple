@@ -179,7 +179,7 @@
                             </div>
                             <div class="text-right">
                                 <span class="text-sm font-bold text-primary">+{att.point}P</span>
-                                <div class="text-xs text-muted-foreground">{new Date(att.datetime).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}</div>
+                                <div class="text-xs text-muted-foreground">{new Date(att.datetime).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Seoul' })}</div>
                             </div>
                         </div>
                     {:else}
@@ -266,7 +266,7 @@
                                         </div>
                                         <div class="flex items-center gap-2">
                                             <span class="text-xs font-medium text-primary">+{att.point}P</span>
-                                            <span class="text-xs text-muted-foreground">{new Date(att.datetime).toLocaleTimeString('ko-KR', {hour:'2-digit',minute:'2-digit'})}</span>
+                                            <span class="text-xs text-muted-foreground">{new Date(att.datetime).toLocaleTimeString('ko-KR', {hour:'2-digit',minute:'2-digit',timeZone:'Asia/Seoul'})}</span>
                                         </div>
                                     </div>
                                 {/each}

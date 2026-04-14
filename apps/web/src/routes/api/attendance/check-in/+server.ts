@@ -1,6 +1,6 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { getPool, getKSTDate, getKSTYesterday } from '$lib/server/db/mysql';
+import { getPool, getKSTDate, getKSTYesterday, getKSTDatetime } from '$lib/server/db/mysql';
 import { getUserFromRequest, getMbId } from '$lib/server/db/auth';
 
 // 포인트 설정 (레거시 _setup.php와 동일)
@@ -27,7 +27,7 @@ export const POST: RequestHandler = async ({ request }) => {
     try {
         await conn.beginTransaction();
 
-        const now = new Date();  // DB에 저장할 때는 KST datetime 사용
+        const now = getKSTDatetime();  // KST 시간으로 저장
         const today = getKSTDate();
         const yesterday = getKSTYesterday();
 

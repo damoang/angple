@@ -5,6 +5,13 @@
      */
     import { Button } from '$lib/components/ui/button';
     import MuziaAdSlot from './muzia-ad-slot.svelte';
+    import { page } from '$app/stores';
+
+    function isActive(href: string): boolean {
+        const p = $page.url.pathname;
+        if (href === '/') return p === '/';
+        return p === href || p.startsWith(href + '/');
+    }
 
     const menuItems = [
         { icon: '🏠', label: '홈', href: '/' },
@@ -36,7 +43,8 @@
     <!-- 네비게이션 (React 원본과 동일) -->
     <nav class="mb-6 space-y-1">
         {#each menuItems as item}
-            <a href={item.href} class="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-base transition-colors hover:bg-accent">
+            <a href={item.href} class="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-base transition-colors
+                {isActive(item.href) ? 'bg-primary text-primary-foreground font-medium' : 'hover:bg-accent'}">
                 <span>{item.icon}</span>
                 {item.label}
             </a>
