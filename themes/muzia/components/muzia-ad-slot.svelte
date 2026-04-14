@@ -1,7 +1,8 @@
 <script lang="ts">
     /**
-     * Muzia 광고 슬롯 — 구글 애드센스 + 카카오 애드핏 로테이션/폴백
-     * 4/12 이전: 카카오만, 이후: AdSense 우선 + 카카오 폴백
+     * Muzia 광고 슬롯 — 카카오 애드핏 + 구글 애드센스
+     * - 초기 로드 시 min-height로 공간 확보 (CLS/깜빡임 방지)
+     * - 30초마다 광고 리프레시
      */
     import { browser } from '$app/environment';
     import { onMount } from 'svelte';
@@ -17,6 +18,7 @@
 
     const ADSENSE_CLIENT = 'ca-pub-2456249131797827';
     const ADSENSE_APPROVAL_DATE = '2026-04-12';
+    const REFRESH_INTERVAL = 30000; // 30초
 
     const AD_CONFIG: Record<string, {
         kakao: { unit: string; width: number; height: number };
@@ -48,12 +50,10 @@
         },
     };
 
-    let currentNetwork = $state<'kakao' | 'adsense' | null>(null);
-    let filled = $state(false);
     let hidden = $state(false);
     let adContainer: HTMLDivElement;
 
-    // 스크립트 로딩 상태 (모듈 레벨)
+    // 모듈 레벨 스크립트 로딩
     let kakaoLoaded = false;
     let kakaoLoading: Promise<void> | null = null;
     let adsenseLoaded = false;
@@ -90,24 +90,22 @@
 
     function resolveStrategy(): 'kakao-only' | 'adsense-only' | 'fallback' | 'rotate' {
         if (strategy !== 'auto') return strategy as any;
-        const now = new Date();
-        const approvalDate = new Date(ADSENSE_APPROVAL_DATE);
-        return now < approvalDate ? 'kakao-only' : 'fallback';
+        return new Date() < new Date(ADSENSE_APPROVAL_DATE) ? 'kakao-only' : 'fallback';
     }
 
     function pickFirstNetwork(resolved: string): 'kakao' | 'adsense' {
         if (resolved === 'kakao-only') return 'kakao';
         if (resolved === 'adsense-only') return 'adsense';
         if (resolved === 'rotate') return Math.random() * 100 < ratio ? 'adsense' : 'kakao';
-        // fallback: adsense first
         return 'adsense';
     }
 
-    async function renderKakao() {
+    async function renderKakao(): Promise<boolean> {
         const config = AD_CONFIG[position].kakao;
         await loadKakaoScript();
+        if (!adContainer) return false;
 
-        if (!adContainer) return;
+        // 기존 ins 제거 후 새로 생성
         adContainer.innerHTML = '';
         const ins = document.createElement('ins');
         ins.className = 'kakao_ad_area';
@@ -117,23 +115,18 @@
         ins.setAttribute('data-ad-height', String(config.height));
         adContainer.appendChild(ins);
 
-        // 카카오 SDK가 새로 삽입된 ins를 감지하도록 init 호출
         try { (window as any).kakaoAdfit?.init?.(); } catch {}
 
-        // 미채움 감지 (3초)
-        return new Promise<boolean>((resolve) => {
-            setTimeout(() => {
-                const h = ins.offsetHeight;
-                resolve(h > 0);
-            }, 3000);
+        return new Promise((resolve) => {
+            setTimeout(() => resolve(ins.offsetHeight > 0), 3000);
         });
     }
 
-    async function renderAdsense() {
+    async function renderAdsense(): Promise<boolean> {
         const config = AD_CONFIG[position].adsense;
         await loadAdsenseScript();
-
         if (!adContainer) return false;
+
         adContainer.innerHTML = '';
         const ins = document.createElement('ins');
         ins.className = 'adsbygoogle';
@@ -146,8 +139,7 @@
 
         try { ((window as any).adsbygoogle = (window as any).adsbygoogle || []).push({}); } catch {}
 
-        // 미채움 감지 (3초)
-        return new Promise<boolean>((resolve) => {
+        return new Promise((resolve) => {
             setTimeout(() => {
                 const status = ins.getAttribute('data-ad-status');
                 resolve(status !== 'unfilled' && ins.offsetHeight > 0);
@@ -155,44 +147,49 @@
         });
     }
 
-    onMount(async () => {
-        if (!browser) return;
+    async function loadAd() {
+        if (!browser || !adContainer) return;
 
         const resolved = resolveStrategy();
         const first = pickFirstNetwork(resolved);
-        currentNetwork = first;
 
         const renderFn = first === 'kakao' ? renderKakao : renderAdsense;
-        const isFilled = await renderFn();
+        const filled = await renderFn();
+        if (filled) return;
 
-        if (isFilled) {
-            filled = true;
-            return;
-        }
-
-        // 폴백 시도 (kakao-only, adsense-only 는 폴백 없음)
+        // 폴백
         if (resolved === 'kakao-only' || resolved === 'adsense-only') {
             hidden = true;
             return;
         }
 
-        const fallbackNetwork = first === 'kakao' ? 'adsense' : 'kakao';
-        currentNetwork = fallbackNetwork;
-        const fallbackFn = fallbackNetwork === 'kakao' ? renderKakao : renderAdsense;
+        const fallbackFn = first === 'kakao' ? renderAdsense : renderKakao;
         const fallbackFilled = await fallbackFn();
+        if (!fallbackFilled) hidden = true;
+    }
 
-        if (fallbackFilled) {
-            filled = true;
-        } else {
-            hidden = true;
-        }
+    onMount(() => {
+        if (!browser) return;
+
+        // 최초 로드
+        loadAd();
+
+        // 30초마다 리프레시 (광고 교체)
+        const interval = setInterval(() => {
+            if (adContainer && !hidden) loadAd();
+        }, REFRESH_INTERVAL);
+
+        return () => clearInterval(interval);
     });
+
+    const config = AD_CONFIG[position];
 </script>
 
 {#if !hidden}
     <div class="muzia-ad-slot flex items-center justify-center {className}"
          class:my-4={!['sidebar', 'left-wing', 'right-wing', 'mobile-bottom'].includes(position)}
          class:mt-4={position === 'sidebar'}
+         style="min-height:{config.kakao.height}px"
          bind:this={adContainer}>
     </div>
 {/if}
