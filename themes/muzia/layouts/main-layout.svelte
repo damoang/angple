@@ -46,6 +46,21 @@
 <svelte:head>
     <title>Muzia — 음악을 사랑하는 사람들의 커뮤니티</title>
 
+    <!-- Pretendard 폰트 -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
+
+    <!-- 테마 모드 깜빡임 방지 (SSR 시 즉시 적용) -->
+    <script>
+        (function() {
+            var m = localStorage.getItem('muzia-theme-mode') || 'system';
+            var h = document.documentElement;
+            h.classList.remove('dark', 'amoled');
+            if (m === 'dark') h.classList.add('dark');
+            else if (m === 'amoled') { h.classList.add('dark'); h.classList.add('amoled'); }
+            else if (m === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches) h.classList.add('dark');
+        })();
+    </script>
+
     <!-- Google AdSense: 온디맨드 로딩 (muzia-ad-slot.svelte에서 처리) -->
 
     <!-- Google Analytics (GA4) -->
@@ -78,7 +93,6 @@
     <link rel="canonical" href="https://muzia.io{$page.url.pathname}" />
 
     <style>
-        /* React muzia globals.css 그대로 적용 */
         :root {
             --font-size: 16px;
             --background: #ffffff;
@@ -149,14 +163,42 @@
             --sidebar-ring: oklch(0.439 0 0);
         }
 
+        .amoled {
+            --background: #000000;
+            --foreground: #e8e8e8;
+            --card: #0a0a0a;
+            --card-foreground: #e8e8e8;
+            --popover: #000000;
+            --popover-foreground: #e8e8e8;
+            --primary: #e8e8e8;
+            --primary-foreground: #000000;
+            --secondary: #111111;
+            --secondary-foreground: #e8e8e8;
+            --muted: #111111;
+            --muted-foreground: #888888;
+            --accent: #111111;
+            --accent-foreground: #e8e8e8;
+            --border: #1a1a1a;
+            --input: #1a1a1a;
+            --ring: #333333;
+            --sidebar: #000000;
+            --sidebar-foreground: #e8e8e8;
+            --sidebar-primary: #e8e8e8;
+            --sidebar-primary-foreground: #000000;
+            --sidebar-accent: #0a0a0a;
+            --sidebar-accent-foreground: #e8e8e8;
+            --sidebar-border: #1a1a1a;
+            --sidebar-ring: #333333;
+        }
+
         html {
             font-size: var(--font-size);
+            font-family: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui, 'Segoe UI', sans-serif;
         }
 
         .muzia-theme h1 {
             font-size: 18px !important;
         }
-
     </style>
 </svelte:head>
 
