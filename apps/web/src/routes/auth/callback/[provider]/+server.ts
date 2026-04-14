@@ -47,7 +47,11 @@ function isAdsInviteFlow(redirectUrl: string | null | undefined): boolean {
 }
 
 function isOpsInviteFlow(redirectUrl: string | null | undefined): boolean {
-    return !!redirectUrl && redirectUrl.includes('ops.damoang.net/invite/');
+    if (!redirectUrl) return false;
+    return (
+        redirectUrl.includes('://ops.damoang.net/invite/') ||
+        redirectUrl.includes('://damoang.net/invite/')
+    );
 }
 
 function isInviteFlow(redirectUrl: string | null | undefined): boolean {
