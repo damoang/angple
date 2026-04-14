@@ -45,7 +45,6 @@
     });
 
     function pushAd() {
-        // ins 엘리먼트가 DOM에 렌더링된 후 push
         requestAnimationFrame(() => {
             if (destroyed) return;
             if (!insEl || !document.body.contains(insEl)) return;
@@ -70,3 +69,9 @@
         ></ins>
     {/if}
 </div>
+
+<style>
+    .adsense-multiplex {
+        overflow: hidden;
+    }
+</style>

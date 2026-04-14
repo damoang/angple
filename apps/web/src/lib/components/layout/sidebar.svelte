@@ -16,6 +16,7 @@
     import UserWidget from './user-widget.svelte';
     import { getComponentsForSlot } from '$lib/components/slot-manager';
     import AdSlot from '$lib/components/ui/ad-slot/ad-slot.svelte';
+    import AdfitSlot from '$lib/components/ui/adfit-slot/adfit-slot.svelte';
     import ImageTextBanner from '$lib/components/ui/image-text-banner/image-text-banner.svelte';
     import { CelebrationRolling } from '$lib/components/ui/celebration-rolling';
     import { widgetLayoutStore } from '$lib/stores/widget-layout.svelte';
@@ -363,6 +364,13 @@
         <div class:hidden={!widgetLayoutStore.hasEnabledAds}>
             {#if compact}{:else}
                 <AdSlot position="sidebar" height="250px" slotKey="sidebar-main" />
+                <!-- 애드핏 심사용 (GAM 아래 배치) -->
+                <div class="mt-2">
+                    <AdfitSlot
+                        unit={{ unitId: 'DAN-LXOsjqjRz52xL3Ti', width: 160, height: 600 }}
+                        id="sidebar-adfit-review"
+                    />
+                </div>
             {/if}
         </div>
         {#if compact}

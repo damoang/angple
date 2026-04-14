@@ -11,7 +11,8 @@
     import ImageIcon from '@lucide/svelte/icons/image';
     import MapPin from '@lucide/svelte/icons/map-pin';
     import Truck from '@lucide/svelte/icons/truck';
-    import { formatDate } from '$lib/utils/format-date.js';
+    import { formatDate, formatDateCompact } from '$lib/utils/format-date.js';
+    import { toThumbnailUrl } from '$lib/utils/thumbnail-url.js';
     let {
         post,
         displaySettings,
@@ -28,7 +29,9 @@
     const isDeleted = $derived(!!post.deleted_at);
 
     const market = $derived(parseMarketInfo(post));
-    const thumbnailUrl = $derived(post.thumbnail || post.images?.[0] || '');
+    // market card는 aspect-square, 화면에서 200~400px 크기로 표시 → 400x225 썸네일 충분
+    const rawImageUrl = $derived(post.thumbnail || post.images?.[0] || '');
+    const thumbnailUrl = $derived(toThumbnailUrl(rawImageUrl, '400x225'));
     const hasImage = $derived(Boolean(thumbnailUrl));
     const isSold = $derived(market.status === 'sold');
 
@@ -85,9 +88,15 @@
                     alt=""
                     class="h-full w-full object-cover transition-transform group-hover:scale-105"
                     loading="lazy"
+                    decoding="async"
                     onerror={(e) => {
+                        // 썸네일 없으면 원본으로 폴백, 원본도 실패하면 숨김
                         const target = e.target as HTMLImageElement;
-                        target.style.display = 'none';
+                        if (rawImageUrl && target.src !== rawImageUrl) {
+                            target.src = rawImageUrl;
+                        } else {
+                            target.style.display = 'none';
+                        }
                     }}
                 />
             {:else}
@@ -149,7 +158,7 @@
                     </span>
                     <span>·</span>
                 {/if}
-                <span>{formatDate(post.created_at)}</span>
+                <span>{formatDateCompact(post.created_at)}</span>
             </div>
 
             <!-- 작성자 + 댓글/좋아요 -->
@@ -165,7 +174,7 @@
                     {#if post.likes > 0}
                         <span>👍 {post.likes}</span>
                     {/if}
-                    {#if post.comments_count > 0}
+                    {#if post.comments_count > 0 && !post.is_comments_disabled}
                         <span>💬 {post.comments_count}</span>
                     {/if}
                 </div>

@@ -25,6 +25,7 @@
     import Timer from '@lucide/svelte/icons/timer';
     import MessageSquare from '@lucide/svelte/icons/message-square';
     import { resolveGivingMeta, type GivingStatus } from '$lib/features/giving/model.js';
+    import { toThumbnailUrl } from '$lib/utils/thumbnail-url.js';
     let {
         post,
         displaySettings,
@@ -40,9 +41,12 @@
     // 삭제된 글
     const isDeleted = $derived(!!post.deleted_at);
 
-    // 썸네일 표시
-    const thumbnailUrl = $derived(post.thumbnail || post.images?.[0] || '');
-    const hasImage = $derived(Boolean(thumbnailUrl));
+    // 썸네일 표시 (원본 대신 400x225.webp 로드 → 대역폭 절감)
+    const rawThumbnailUrl = $derived(
+        post.thumbnail_raw || post.thumbnail || post.images?.[0] || ''
+    );
+    const thumbnailUrl = $derived(toThumbnailUrl(rawThumbnailUrl, '400x225'));
+    const hasImage = $derived(Boolean(rawThumbnailUrl));
 
     const givingMeta = $derived(resolveGivingMeta(post));
     const givingStart = $derived(post.giving_start ?? givingMeta.givingStart);
@@ -176,6 +180,15 @@
                         ? ''
                         : 'group-hover:scale-105'}"
                     loading="lazy"
+                    decoding="async"
+                    onerror={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        if (rawThumbnailUrl && target.src !== rawThumbnailUrl) {
+                            target.src = rawThumbnailUrl;
+                        } else {
+                            target.style.display = 'none';
+                        }
+                    }}
                 />
             {:else}
                 <div class="text-muted-foreground flex h-full w-full items-center justify-center">
@@ -225,7 +238,7 @@
             >
                 {post.title}
             </h4>
-            {#if post.comments_count > 0}
+            {#if post.comments_count > 0 && !post.is_comments_disabled}
                 <span class="text-primary ml-1 inline-flex items-center gap-0.5 text-xs">
                     <MessageSquare class="h-3 w-3" />
                     {post.comments_count}

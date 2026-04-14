@@ -258,22 +258,22 @@
 
     function handleOpenChange(open: boolean): void {
         if (open) {
-            primeUnreadCount();
             void loadNotifications();
         }
     }
 
     onMount(() => {
         // 페이지 로드 시 자동 prime (hover 없이도 알림 수 표시)
+        // auth 초기화(layout onMount)가 완료된 후 호출해야 하므로 200ms 대기
         if (!unreadPrimed && document.visibilityState === 'visible') {
-            setTimeout(() => primeUnreadCount(), 1000);
+            setTimeout(() => primeUnreadCount(), 200);
         }
 
         let interval: ReturnType<typeof setInterval> | null = null;
 
         function startPolling() {
             if (interval || !unreadPrimed) return;
-            interval = setInterval(loadUnreadCount, 1800000);
+            interval = setInterval(loadUnreadCount, 180_000);
         }
 
         function stopPolling() {

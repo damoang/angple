@@ -12,7 +12,7 @@
     import { getAvatarUrl } from '$lib/utils/member-icon.js';
     import { toThumbnailUrl } from '$lib/utils/thumbnail-url.js';
     import AuthorLink from '$lib/components/ui/author-link/author-link.svelte';
-    import { formatDate } from '$lib/utils/format-date.js';
+    import { formatDate, formatDateCompact } from '$lib/utils/format-date.js';
     let {
         post,
         displaySettings,
@@ -137,7 +137,7 @@
             </span>
             {#if post.created_at}
                 <span class="text-muted-foreground/60 ml-auto shrink-0 text-xs">
-                    {formatDate(post.created_at)}
+                    {formatDateCompact(post.created_at)}
                 </span>
             {/if}
         </div>

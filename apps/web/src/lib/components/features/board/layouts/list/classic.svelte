@@ -8,7 +8,7 @@
     import Heart from '@lucide/svelte/icons/heart';
     import { getAvatarUrl } from '$lib/utils/member-icon.js';
     import AuthorLink from '$lib/components/ui/author-link/author-link.svelte';
-    import { formatDate, isToday } from '$lib/utils/format-date.js';
+    import { formatDate, formatDateCompact, isToday } from '$lib/utils/format-date.js';
     import { formatCompactNumber } from '$lib/utils/format-number.js';
     import { pluginStore } from '$lib/stores/plugin.svelte';
     import { readPostStyleStore } from '$lib/stores/read-post-style.svelte.js';
@@ -226,7 +226,7 @@
                         {:else if hasImage}
                             <ImageIcon class="text-muted-foreground h-3.5 w-3.5 shrink-0" />
                         {/if}
-                        {#if post.comments_count > 0}
+                        {#if post.comments_count > 0 && !post.is_comments_disabled}
                             <a
                                 href="{href}#comments"
                                 class="comment-count shrink-0"
@@ -284,7 +284,7 @@
                         ? 'hidden'
                         : `post-meta-text hidden md:inline md:w-[70px] md:pl-1 md:text-center ${isToday(post.created_at) ? 'date-today' : ''}`}
                 >
-                    {formatDate(post.created_at)}
+                    {formatDateCompact(post.created_at)}
                 </span>
 
                 <!-- 조회수 (col 5, 데스크톱만) -->
@@ -308,7 +308,7 @@
                         >
                     {/if}
                     <span class="mobile-meta-sep {isToday(post.created_at) ? 'date-today' : ''}">
-                        {formatDate(post.created_at)}
+                        {formatDateCompact(post.created_at)}
                     </span>
                     <span class="mobile-meta-sep">{formatCompactNumber(post.views)}</span>
                     <span class="mobile-meta-sep inline-flex items-center gap-0.5">

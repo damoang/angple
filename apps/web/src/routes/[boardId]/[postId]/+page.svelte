@@ -206,8 +206,8 @@
     // link1이 동영상 URL이면 본문 앞에 삽입 (그누보드 wr_link1 호환)
     // link1_display: 제휴 변환 전 원본 URL (변환된 경우), 없으면 link1 자체가 원본
     const link1Original = $derived(data.post.link1_display || data.post.link1);
-    let renderedPostContent = $state('');
-    let renderedPostContentPostId = 0;
+    let renderedPostContent = $state(data.post.content);
+    let renderedPostContentPostId = data.post.id;
     $effect(() => {
         if (renderedPostContentPostId === data.post.id) return;
         renderedPostContentPostId = data.post.id;
@@ -342,6 +342,7 @@
         // 글 변경 시 이전 스트리밍 데이터 즉시 리셋
         postReactions = undefined;
         reactionsMap = undefined;
+        lastFetchedReactionsKey = '';
 
         if (!promise) {
             // SPA 내비게이션: auxiliaryData 없음 → 리액션 직접 fetch
@@ -539,10 +540,15 @@
     let postReactions = $state<ReactionItem[] | undefined>(undefined);
     let reactionsMap = $state<Record<string, ReactionItem[]> | undefined>(undefined);
 
+    let lastFetchedReactionsKey = '';
+
     async function fetchBatchReactions(): Promise<void> {
         if (!reactionPluginActive) return;
+        const parentId = generateParentId(boardId, data.post.id);
+        // 동일 parentId 중복 호출 방지 (SPA 네비게이션 시 이중 fetch 제거)
+        if (lastFetchedReactionsKey === parentId && reactionsMap) return;
+        lastFetchedReactionsKey = parentId;
         try {
-            const parentId = generateParentId(boardId, data.post.id);
             const res = await fetch(`/api/reactions?parentId=${encodeURIComponent(parentId)}`);
             const json = await res.json();
             if (json.status === 'success' && json.result) {
@@ -1288,6 +1294,11 @@
         const authorUrl = data.post.author_id
             ? `${siteUrl}/member/${data.post.author_id}`
             : undefined;
+        // OG 이미지: 캐시버스팅으로 소셜 미디어 stale preview 방지
+        const rawOgImage = data.post.thumbnail || data.post.images?.[0];
+        const ogImageUrl = rawOgImage
+            ? `${rawOgImage}${rawOgImage.includes('?') ? '&' : '?'}v=${new Date(data.post.updated_at || data.post.created_at).getTime()}`
+            : undefined;
 
         return {
             meta: {
@@ -1301,16 +1312,13 @@
                 description: postDescription,
                 type: 'article',
                 url: postUrl,
-                image: data.post.thumbnail || data.post.images?.[0]
+                image: ogImageUrl
             },
             twitter: {
-                card:
-                    data.post.thumbnail || data.post.images?.[0]
-                        ? 'summary_large_image'
-                        : 'summary',
+                card: rawOgImage ? 'summary_large_image' : 'summary',
                 title: data.post.title,
                 description: postDescription,
-                image: data.post.thumbnail || data.post.images?.[0]
+                image: ogImageUrl
             },
             jsonLd: [
                 // DiscussionForumPosting - 커뮤니티 게시글에 최적화된 구조화 데이터
@@ -1324,7 +1332,7 @@
                     url: postUrl,
                     commentCount: comments.length,
                     upvoteCount: data.post.likes || 0,
-                    image: data.post.thumbnail || data.post.images?.[0]
+                    image: ogImageUrl
                 }),
                 // Article - 일반 검색 결과용 (폴백)
                 createArticleJsonLd({
@@ -1332,7 +1340,7 @@
                     author: data.post.deleted_at ? '' : data.post.author,
                     datePublished: data.post.created_at,
                     dateModified: data.post.updated_at || data.post.created_at,
-                    image: data.post.thumbnail || data.post.images?.[0],
+                    image: ogImageUrl,
                     description: postDescription
                 }),
                 // Breadcrumb
@@ -1750,25 +1758,27 @@
                     {#if !commentsLoaded}
                         <p class="text-muted-foreground text-sm">댓글을 불러오는 중입니다.</p>
                     {/if}
-                    <CommentList
-                        {comments}
-                        onUpdate={handleUpdateComment}
-                        onDelete={handleDeleteComment}
-                        onRestore={handleRestoreComment}
-                        onReply={handleReplyComment}
-                        onLike={handleLikeComment}
-                        onDislike={handleDislikeComment}
-                        postAuthorId={data.post.author_id}
-                        {boardId}
-                        postId={data.post.id}
-                        useNogood={!!data.board?.use_nogood}
-                        {commentLayout}
-                        {reactionsMap}
-                        {initialLikedCommentIds}
-                        {initialDislikedCommentIds}
-                        {truthroomCommentMap}
-                        isRestricted={data.isRestricted}
-                    />
+                    {#if !data.post.is_comments_disabled}
+                        <CommentList
+                            {comments}
+                            onUpdate={handleUpdateComment}
+                            onDelete={handleDeleteComment}
+                            onRestore={handleRestoreComment}
+                            onReply={handleReplyComment}
+                            onLike={handleLikeComment}
+                            onDislike={handleDislikeComment}
+                            postAuthorId={data.post.author_id}
+                            {boardId}
+                            postId={data.post.id}
+                            useNogood={!!data.board?.use_nogood}
+                            {commentLayout}
+                            {reactionsMap}
+                            {initialLikedCommentIds}
+                            {initialDislikedCommentIds}
+                            {truthroomCommentMap}
+                            isRestricted={data.isRestricted}
+                        />
+                    {/if}
 
                     <div class="border-border border-t pt-6">
                         <div class="mb-3 flex justify-end">
@@ -1813,9 +1823,16 @@
             </Card>
         {/if}
 
-        <!-- 댓글 아래 멀티플렉스 광고 -->
+        <!-- 댓글 아래 광고: 모바일 300x250 GAM+Adfit / 데스크톱 멀티플렉스 -->
         {#if widgetLayoutStore.hasEnabledAds && !data.post.deleted_at}
-            <div class="mt-4">
+            <div class="mt-2 block md:hidden">
+                <AdSlot
+                    position="board-after-comments"
+                    height="250px"
+                    slotKey="board-after-comments"
+                />
+            </div>
+            <div class="mt-2 hidden md:block">
                 <AdsenseMultiplex />
             </div>
         {/if}

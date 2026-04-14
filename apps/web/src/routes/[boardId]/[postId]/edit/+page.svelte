@@ -42,8 +42,8 @@
             await apiClient.updatePost(boardId, String(postId), formData);
             trackEvent('post_edit', { board_id: boardId, post_id: String(postId) });
 
-            // 상세 페이지로 이동 (page load 재실행됨)
-            goto(`/${boardId}/${postId}`, { invalidateAll: true });
+            // 상세 페이지로 풀 리로드 (SPA 캐시로 이전 내용 표시 방지)
+            window.location.href = `/${boardId}/${postId}`;
         } catch (err) {
             console.error('Failed to update post:', err);
             error = err instanceof Error ? err.message : '게시글 수정에 실패했습니다.';

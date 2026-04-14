@@ -1,10 +1,43 @@
 /**
  * 날짜 포맷 유틸리티 (서울 시간 기준)
  * - 오늘: HH:MM (예: 14:30)
- * - 어제: 어제
+ * - 어제: 어제 HH:MM
  * - 올해: MM.DD (예: 02.19)
  * - 작년 이전: YY.MM.DD (예: 25.02.19)
  */
+
+/**
+ * 목록용 날짜 포맷 (MM.DD HH:MM 통일)
+ * 행 높이가 일정하게 유지됨
+ */
+export function formatDateCompact(dateString: string): string {
+    let normalized = dateString;
+    if (/^\d{8}$/.test(dateString)) {
+        normalized = `${dateString.slice(0, 4)}-${dateString.slice(4, 6)}-${dateString.slice(6, 8)}`;
+    }
+    const date = new Date(normalized);
+    const now = new Date();
+
+    const toSeoulDateStr = (d: Date) => d.toLocaleDateString('sv-SE', { timeZone: 'Asia/Seoul' });
+    const dateStr = toSeoulDateStr(date);
+    const nowStr = toSeoulDateStr(now);
+
+    if (dateStr === nowStr) {
+        // 오늘: HH:MM
+        return date.toLocaleTimeString('ko-KR', {
+            timeZone: 'Asia/Seoul',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
+        });
+    } else if (dateStr.slice(0, 4) === nowStr.slice(0, 4)) {
+        // 올해: MM.DD
+        return `${dateStr.slice(5, 7)}.${dateStr.slice(8, 10)}`;
+    } else {
+        // 작년 이전: YY.MM.DD
+        return `${dateStr.slice(2, 4)}.${dateStr.slice(5, 7)}.${dateStr.slice(8, 10)}`;
+    }
+}
 /**
  * 주어진 날짜가 오늘(서울 시간 기준)인지 확인
  */
@@ -41,14 +74,8 @@ export function formatDate(dateString: string): string {
             hour12: false
         });
     } else if (dateStr === yesterdayStr) {
-        // 어제: 어제 HH:MM
-        const time = date.toLocaleTimeString('ko-KR', {
-            timeZone: 'Asia/Seoul',
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: false
-        });
-        return `어제 ${time}`;
+        // 어제: MM.DD (목록 2줄 방지)
+        return `${dateStr.slice(5, 7)}.${dateStr.slice(8, 10)}`;
     } else if (dateStr.slice(0, 4) === nowStr.slice(0, 4)) {
         // 올해: MM.DD
         return `${dateStr.slice(5, 7)}.${dateStr.slice(8, 10)}`;

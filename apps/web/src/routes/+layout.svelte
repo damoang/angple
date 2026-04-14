@@ -473,13 +473,31 @@
         // Built-in Hooks 초기화 (콘텐츠 임베딩, 게시판 필터 등)
         initBuiltinHooks();
 
-        // 인증 상태 초기화 (클라이언트 전용 — SSR에서는 data.user를 직접 사용)
-        syncAuth(data);
-        authInitialized = true;
-
-        // 차단 회원 목록 로드 (로그인 상태일 때만)
+        // 인증 상태 초기화
         if (data.user) {
-            blockedUsersStore.load();
+            // SSR에서 user 전달됨 (SSR_STRIP_USER=false 또는 미설정)
+            syncAuth(data);
+            authInitialized = true;
+            if (authStore.isAuthenticated) blockedUsersStore.load();
+        } else {
+            // SSR에서 user 없음 (SSR_STRIP_USER=true 또는 비로그인)
+            // HttpOnly 쿠키는 document.cookie로 읽을 수 없으므로 항상 /api/auth/me 시도
+            // credentials: 'same-origin'이 HttpOnly 쿠키를 자동 전송
+            fetch('/api/auth/me', { credentials: 'same-origin' })
+                .then((res) => (res.ok ? res.json() : null))
+                .then((meData) => {
+                    if (meData?.user) {
+                        syncAuth({ ...data, ...meData });
+                        blockedUsersStore.load();
+                    } else {
+                        authActions.initAuth();
+                    }
+                    authInitialized = true;
+                })
+                .catch(() => {
+                    authActions.initAuth();
+                    authInitialized = true;
+                });
         }
 
         // postMessage 리스너 (Admin에서 테마 변경 시 리로드)

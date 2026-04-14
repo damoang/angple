@@ -4,7 +4,7 @@
     import type { FreePost, BoardDisplaySettings } from '$lib/api/types.js';
     import Lock from '@lucide/svelte/icons/lock';
     import AuthorLink from '$lib/components/ui/author-link/author-link.svelte';
-    import { formatDate } from '$lib/utils/format-date.js';
+    import { formatDate, formatDateCompact } from '$lib/utils/format-date.js';
     import { toThumbnailUrl } from '$lib/utils/thumbnail-url.js';
     import { highlightQuery } from '$lib/utils/highlight.js';
     // Props
@@ -76,7 +76,8 @@
                             class="text-secondary-foreground flex flex-wrap items-center gap-2 text-sm"
                         >
                             <span>👍 {post.likes}</span>
-                            <span>💬 {post.comments_count}</span>
+                            {#if !post.is_comments_disabled}<span>💬 {post.comments_count}</span
+                                >{/if}
                             <span>•</span>
                             <span class="inline-flex items-center gap-0.5"
                                 ><AuthorLink
@@ -86,7 +87,7 @@
                                 /></span
                             >
                             <span>•</span>
-                            <span>{formatDate(post.created_at)}</span>
+                            <span>{formatDateCompact(post.created_at)}</span>
                             <span>•</span>
                             <span>조회 {post.views.toLocaleString()}</span>
                         </div>

@@ -3,19 +3,21 @@
     import type { FreePost, BoardDisplaySettings } from '$lib/api/types.js';
     import ImageIcon from '@lucide/svelte/icons/image';
     import AuthorLink from '$lib/components/ui/author-link/author-link.svelte';
-    import { formatDate } from '$lib/utils/format-date.js';
+    import { formatDate, formatDateCompact } from '$lib/utils/format-date.js';
     import { toThumbnailUrl } from '$lib/utils/thumbnail-url.js';
     // Props (동일 인터페이스)
     let {
         post,
         displaySettings,
         href,
-        isRead = false
+        isRead = false,
+        isPriority = false
     }: {
         post: FreePost;
         displaySettings?: BoardDisplaySettings;
         href: string;
         isRead?: boolean;
+        isPriority?: boolean;
     } = $props();
 
     // 삭제된 글
@@ -50,7 +52,8 @@
                     src={thumbnailUrl}
                     alt=""
                     class="h-full w-full object-cover transition-transform group-hover:scale-105"
-                    loading="lazy"
+                    loading={isPriority ? 'eager' : 'lazy'}
+                    fetchpriority={isPriority ? 'high' : 'auto'}
                     decoding="async"
                     width="400"
                     height="225"
@@ -80,7 +83,7 @@
             {/if}
 
             <!-- 댓글 수 (이미지 위) -->
-            {#if post.comments_count > 0}
+            {#if post.comments_count > 0 && !post.is_comments_disabled}
                 <div class="absolute bottom-2 right-2">
                     <Badge variant="secondary" class="bg-background/80 text-xs backdrop-blur-sm">
                         💬 {post.comments_count}
@@ -110,7 +113,7 @@
                     /></span
                 >
                 <span>·</span>
-                <span>{formatDate(post.created_at)}</span>
+                <span>{formatDateCompact(post.created_at)}</span>
             </div>
         </div>
     </a>

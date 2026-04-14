@@ -1,7 +1,8 @@
 const ALLOWED_ABSOLUTE_REDIRECT_HOSTS = new Set([
     'damoang.net',
     'www.damoang.net',
-    'ads.damoang.net'
+    'ads.damoang.net',
+    'ops.damoang.net'
 ]);
 
 /**

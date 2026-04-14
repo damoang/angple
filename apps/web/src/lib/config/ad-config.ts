@@ -16,15 +16,47 @@ export const GAM_AD_EMPTY_RETRY_DELAY = 30; // 초
 // 위치별 refresh 간격 (초) — viewability 기반 차등화
 // 기본값(GAM_AD_REFRESH_INTERVAL)을 override
 export const POSITION_REFRESH_INTERVALS: Record<string, number> = {
-    'sidebar-sticky-desktop': 25,
-    sidebar: 25,
-    'wing-left': 25,
-    'wing-right': 25,
+    'sidebar-sticky-desktop': 30,
+    sidebar: 30,
+    'wing-left': 30,
+    'wing-right': 30,
     'board-list-infeed': 40,
     'comment-infeed': 40,
     'index-middle-1': 45,
     'index-middle-2': 45,
-    'index-bottom': 45
+    'index-bottom': 45,
+    'board-after-comments': 45
+};
+
+// GAM 빈 슬롯 → 카카오 애드핏 폴백 설정
+export const ADFIT_FALLBACK_MAX_RETRIES = 2; // GAM 재시도 횟수 (2회 후 애드핏 전환)
+
+export type AdfitUnit = { unitId: string; width: number; height: number };
+export type AdfitFallback = { desktop: AdfitUnit; mobile: AdfitUnit };
+
+const ADFIT = {
+    desktop_banner: { unitId: 'DAN-9qdD2GVgW3AXbClR', width: 728, height: 90 },
+    mobile_banner: { unitId: 'DAN-ry6MhSvNcdUCMwtP', width: 320, height: 100 },
+    mobile_small: { unitId: 'DAN-NPSIJ0trXOPAXpuM', width: 320, height: 50 },
+    medium_rect: { unitId: 'DAN-eAXFNdHYsuiUQoFs', width: 300, height: 250 },
+    square: { unitId: 'DAN-cVaSnUSwfqmUnOAH', width: 250, height: 250 },
+    skyscraper: { unitId: 'DAN-LXOsjqjRz52xL3Ti', width: 160, height: 600 }
+} as const;
+
+// GAM position → 애드핏 폴백 유닛 매핑
+export const ADFIT_FALLBACK_MAP: Record<string, AdfitFallback> = {
+    'board-content': { desktop: ADFIT.desktop_banner, mobile: ADFIT.mobile_banner },
+    'board-before-comments': { desktop: ADFIT.desktop_banner, mobile: ADFIT.mobile_banner },
+    'board-after-comments': { desktop: ADFIT.desktop_banner, mobile: ADFIT.medium_rect },
+    'board-list-bottom': { desktop: ADFIT.desktop_banner, mobile: ADFIT.mobile_banner },
+    'board-list-infeed': { desktop: ADFIT.desktop_banner, mobile: ADFIT.mobile_small },
+    'comment-infeed': { desktop: ADFIT.desktop_banner, mobile: ADFIT.mobile_small },
+    'index-top': { desktop: ADFIT.desktop_banner, mobile: ADFIT.mobile_banner },
+    'index-middle-1': { desktop: ADFIT.desktop_banner, mobile: ADFIT.mobile_banner },
+    'sidebar-sticky-desktop': { desktop: ADFIT.medium_rect, mobile: ADFIT.medium_rect },
+    sidebar: { desktop: ADFIT.medium_rect, mobile: ADFIT.medium_rect },
+    'wing-left': { desktop: ADFIT.skyscraper, mobile: ADFIT.skyscraper },
+    'wing-right': { desktop: ADFIT.skyscraper, mobile: ADFIT.skyscraper }
 };
 
 // 광고 단위 경로 (환경변수로 커스터마이징 가능)
@@ -285,6 +317,7 @@ export const POSITION_MAP: Record<string, string> = {
     'board-content': 'banner-article',
     'board-content-bottom': 'banner-view-content',
     'board-before-comments': 'banner-article',
+    'board-after-comments': 'banner-square',
 
     // 인피드 — curation 유닛
     'board-list-infeed': 'infeed-compact',
@@ -336,6 +369,7 @@ export const POSITION_LABELS: Record<string, string> = {
     'board-content': '본문 광고',
     'board-content-bottom': '본문 하단',
     'board-before-comments': '댓글 상단',
+    'board-after-comments': '댓글 하단',
     'board-footer': '게시판 하단',
     'board-list-infeed': '목록 인피드',
     'comment-infeed': '댓글 인피드',
