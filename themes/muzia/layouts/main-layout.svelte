@@ -80,7 +80,7 @@
     <style>
         /* React muzia globals.css 그대로 적용 */
         :root {
-            --font-size: 14px;
+            --font-size: 16px;
             --background: #ffffff;
             --foreground: oklch(0.145 0 0);
             --card: #ffffff;
@@ -151,6 +151,10 @@
 
         html {
             font-size: var(--font-size);
+        }
+
+        .muzia-theme h1 {
+            font-size: 18px !important;
         }
     </style>
 </svelte:head>
