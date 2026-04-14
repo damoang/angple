@@ -7,7 +7,7 @@
     import { onMount } from 'svelte';
 
     interface Props {
-        position: 'leaderboard' | 'content' | 'sidebar';
+        position: 'leaderboard' | 'content' | 'sidebar' | 'left-wing' | 'right-wing' | 'mobile-bottom';
         strategy?: 'kakao-only' | 'adsense-only' | 'fallback' | 'rotate' | 'auto';
         ratio?: number;
         class?: string;
@@ -33,6 +33,18 @@
         sidebar: {
             kakao: { unit: 'DAN-P6m7sqPyMNOFUWQd', width: 250, height: 250 },
             adsense: { slot: '7466402991', format: 'rectangle' },
+        },
+        'left-wing': {
+            kakao: { unit: 'DAN-trtmw7twmjhv', width: 160, height: 600 },
+            adsense: { slot: '7466402991', format: 'vertical' },
+        },
+        'right-wing': {
+            kakao: { unit: 'DAN-tofp4ts9th0k', width: 160, height: 600 },
+            adsense: { slot: '7466402991', format: 'vertical' },
+        },
+        'mobile-bottom': {
+            kakao: { unit: 'DAN-r3uIPALR2P7oBL1f', width: 320, height: 50 },
+            adsense: { slot: '7466402991', format: 'horizontal' },
         },
     };
 
@@ -179,7 +191,7 @@
 
 {#if !hidden}
     <div class="muzia-ad-slot flex items-center justify-center {className}"
-         class:my-4={position !== 'sidebar'}
+         class:my-4={!['sidebar', 'left-wing', 'right-wing', 'mobile-bottom'].includes(position)}
          class:mt-4={position === 'sidebar'}
          bind:this={adContainer}>
     </div>

@@ -319,6 +319,16 @@
 <div class="muzia-theme flex min-h-screen flex-col bg-background text-foreground">
     <MuziaHeader />
 
+    <!-- 좌측 윙 배너 (1440px+ only, fixed) -->
+    <div class="hidden 2xl:block" style="position:fixed;left:max(0px,calc((100vw - 1440px)/2 - 180px));top:80px;z-index:10;">
+        <MuziaAdSlot position="left-wing" />
+    </div>
+
+    <!-- 우측 윙 배너 (1440px+ only, fixed) -->
+    <div class="hidden 2xl:block" style="position:fixed;right:max(0px,calc((100vw - 1440px)/2 - 180px));top:80px;z-index:10;">
+        <MuziaAdSlot position="right-wing" />
+    </div>
+
     <div class="container mx-auto flex flex-1">
         <!-- 사이드바 (데스크톱) -->
         <aside class="hidden w-80 flex-shrink-0 border-r border-border lg:block">
@@ -358,4 +368,10 @@
     </div>
 
     <MuziaFooter />
+
+    <!-- 모바일 하단 고정 배너 (lg 미만만) -->
+    <div class="fixed bottom-0 left-0 right-0 z-50 flex justify-center bg-background/95 py-1 shadow-[0_-2px_10px_rgba(0,0,0,0.1)] backdrop-blur lg:hidden" id="mobile-bottom-ad">
+        <MuziaAdSlot position="mobile-bottom" />
+        <button class="absolute -top-6 right-2 flex h-6 w-6 items-center justify-center rounded-full bg-background text-xs text-muted-foreground shadow" onclick="document.getElementById('mobile-bottom-ad').style.display='none'">✕</button>
+    </div>
 </div>
