@@ -33,9 +33,25 @@
     let recentPosts = $state<RecentPost[]>([]);
     let recentComments = $state<RecentComment[]>([]);
 
+    // 모듈 레벨 캐시 (네비게이션 시 재호출 방지, 5분 TTL)
+    let _cache: { posts: RecentPost[]; comments: RecentComment[]; ts: number } | null = null;
+    const CACHE_TTL = 5 * 60 * 1000;
+
     $effect(() => {
-        fetch('/api/muzia/recent?type=posts&limit=5').then(r => r.json()).then(d => { if (d.success) recentPosts = d.data; });
-        fetch('/api/muzia/recent?type=comments&limit=5').then(r => r.json()).then(d => { if (d.success) recentComments = d.data; });
+        const now = Date.now();
+        if (_cache && now - _cache.ts < CACHE_TTL) {
+            recentPosts = _cache.posts;
+            recentComments = _cache.comments;
+            return;
+        }
+        Promise.all([
+            fetch('/api/muzia/recent?type=posts&limit=5').then(r => r.json()),
+            fetch('/api/muzia/recent?type=comments&limit=5').then(r => r.json())
+        ]).then(([p, c]) => {
+            if (p.success) recentPosts = p.data;
+            if (c.success) recentComments = c.data;
+            _cache = { posts: recentPosts, comments: recentComments, ts: Date.now() };
+        });
     });
 </script>
 

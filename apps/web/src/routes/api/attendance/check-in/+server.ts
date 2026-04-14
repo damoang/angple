@@ -31,10 +31,11 @@ export const POST: RequestHandler = async ({ request }) => {
         const today = getKSTDate();
         const yesterday = getKSTYesterday();
 
-        // 1. 중복 체크
+        // 1. 중복 체크 (UTC 저장 기준으로 KST 날짜 범위 비교)
+        const todayStart = today + ' 00:00:00';
         const [existing] = await conn.query(
-            'SELECT id FROM g5_attendance2 WHERE mb_id = ? AND DATE(datetime) = ?',
-            [getMbId(user), today]
+            'SELECT id FROM g5_attendance2 WHERE mb_id = ? AND datetime >= DATE_SUB(?, INTERVAL 9 HOUR) AND datetime < DATE_SUB(? + INTERVAL 1 DAY, INTERVAL 9 HOUR)',
+            [getMbId(user), todayStart, todayStart]
         ) as any;
 
         if (existing.length > 0) {
@@ -43,9 +44,10 @@ export const POST: RequestHandler = async ({ request }) => {
         }
 
         // 2. 연속 출석일 계산
+        const yesterdayStart = yesterday + ' 00:00:00';
         const [yesterdayRow] = await conn.query(
-            'SELECT day, reset, reset2, reset3 FROM g5_attendance2 WHERE mb_id = ? AND DATE(datetime) = ?',
-            [getMbId(user), yesterday]
+            'SELECT day, reset, reset2, reset3 FROM g5_attendance2 WHERE mb_id = ? AND datetime >= DATE_SUB(?, INTERVAL 9 HOUR) AND datetime < DATE_SUB(? + INTERVAL 1 DAY, INTERVAL 9 HOUR)',
+            [getMbId(user), yesterdayStart, yesterdayStart]
         ) as any;
 
         let day = 1;
@@ -63,8 +65,8 @@ export const POST: RequestHandler = async ({ request }) => {
 
         // 3. 오늘 순위 계산
         const [todayCount] = await conn.query(
-            'SELECT COUNT(*) as cnt FROM g5_attendance2 WHERE DATE(datetime) = ?',
-            [today]
+            'SELECT COUNT(DISTINCT mb_id) as cnt FROM g5_attendance2 WHERE datetime >= DATE_SUB(?, INTERVAL 9 HOUR) AND datetime < DATE_SUB(? + INTERVAL 1 DAY, INTERVAL 9 HOUR)',
+            [todayStart, todayStart]
         ) as any;
         const rank = todayCount[0].cnt + 1;
 
