@@ -9,7 +9,7 @@ export const GET: RequestHandler = async () => {
         const today = getKSTDate();
 
         const [rows] = await pool.query(
-            'SELECT a.id, a.mb_id, a.`rank` as att_rank, a.subject, a.day, a.point, a.datetime, m.mb_nick as nickname FROM g5_attendance2 a LEFT JOIN g5_member m ON a.mb_id = m.mb_id WHERE DATE(a.datetime) = ? ORDER BY a.datetime ASC',
+            'SELECT a.id, a.mb_id, a.`rank` as att_rank, a.subject, a.day, a.point, a.datetime, m.mb_nick as nickname FROM g5_attendance2 a INNER JOIN (SELECT mb_id, MIN(datetime) as min_dt FROM g5_attendance2 WHERE DATE(datetime) = ? GROUP BY mb_id) t ON a.mb_id = t.mb_id AND a.datetime = t.min_dt LEFT JOIN g5_member m ON a.mb_id = m.mb_id ORDER BY a.datetime ASC',
             [today]
         );
 

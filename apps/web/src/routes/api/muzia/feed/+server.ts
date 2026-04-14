@@ -9,7 +9,7 @@ export const GET: RequestHandler = async ({ url }) => {
         const perPage = Math.min(30, parseInt(url.searchParams.get('per_page') || '20'));
         const tab = url.searchParams.get('tab') || 'all';
 
-        const boards = ['qna', 'forum', 'music', 'sibelius', 'tip', 'notice', 'hello', 'violin', 'piano', 'sheet'];
+        const boards = ['qna', 'forum', 'music', 'sibelius', 'dorico', 'tip', 'notice', 'hello', 'violin', 'piano', 'sheet'];
         const allPosts: any[] = [];
 
         // 인기 게시글 (best 탭) vs 최신 게시글

@@ -14,6 +14,8 @@
         { id: 'qna', label: 'Q&A', icon: '💬', href: '/qna' },
         { id: 'forum', label: '포럼', icon: '📝', href: '/forum' },
         { id: 'music', label: '음악', icon: '🎵', href: '/music' },
+        { id: 'dorico', label: '도리코', icon: '🎹', href: '/dorico' },
+        { id: 'attendance', label: '출석', icon: '📅', href: '/attendance' },
         { id: 'notice', label: '공지', icon: '📢', href: '/notice' },
     ];
 

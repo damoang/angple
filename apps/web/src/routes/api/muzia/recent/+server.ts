@@ -8,7 +8,7 @@ export const GET: RequestHandler = async ({ url }) => {
         const pool = getPool();
         const type = url.searchParams.get('type') || 'posts';
         const limit = Math.min(parseInt(url.searchParams.get('limit') || '5'), 20);
-        const boards = ['qna', 'forum', 'music', 'sibelius', 'tip', 'notice', 'hello', 'violin', 'piano'];
+        const boards = ['qna', 'forum', 'music', 'sibelius', 'dorico', 'tip', 'notice', 'hello', 'violin', 'piano'];
 
         if (type === 'comments') {
             const allComments: any[] = [];
