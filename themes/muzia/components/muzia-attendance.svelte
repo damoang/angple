@@ -2,6 +2,7 @@
     import { browser } from '$app/environment';
     import { Button } from '$lib/components/ui/button';
     import { authStore } from '$lib/stores/auth.svelte';
+    import MuziaAdSlot from './muzia-ad-slot.svelte';
 
     interface Attendee {
         id: number; mb_id: string; nickname: string; att_rank: string;
@@ -99,6 +100,8 @@
     <!-- 헤더 + 내 통계 (React Card 스타일) -->
     <div class="mx-auto max-w-2xl">
         <h1 class="mb-6 text-2xl font-bold">📅 출석부</h1>
+
+        <MuziaAdSlot position="leaderboard" />
 
         {#if authStore.isAuthenticated && myStats}
             <div class="mb-6 overflow-hidden rounded-lg border bg-card shadow-sm">
@@ -278,5 +281,7 @@
                 {/if}
             </div>
         {/if}
+
+        <MuziaAdSlot position="content" />
     </div>
 </div>
