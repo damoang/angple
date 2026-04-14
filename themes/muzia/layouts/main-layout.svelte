@@ -199,6 +199,27 @@
         .muzia-theme h1 {
             font-size: 18px !important;
         }
+
+        /* 다크 모드 전역 색상 강제 */
+        .dark body, .dark .muzia-theme {
+            color: #e8e8e8;
+        }
+
+        .dark .muzia-theme a {
+            color: inherit;
+        }
+
+        .dark .text-foreground,
+        .dark .text-gray-900,
+        .dark .text-gray-800,
+        .dark .text-gray-700 {
+            color: #e8e8e8 !important;
+        }
+
+        .dark .bg-white,
+        .dark .bg-gray-50 {
+            background-color: var(--background) !important;
+        }
     </style>
 </svelte:head>
 
