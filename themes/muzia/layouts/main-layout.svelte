@@ -54,7 +54,7 @@
 </script>
 
 <svelte:head>
-    <title>Muzia — 음악을 사랑하는 사람들의 커뮤니티</title>
+    <title>뮤지아(Muzia) — 음악을 사랑하는 사람들의 커뮤니티 | Since 2002</title>
 
     <!-- SEO: 구조화된 데이터 (Organization + WebSite + SiteNavigationElement) -->
     <script type="application/ld+json">
@@ -82,7 +82,7 @@
             {
                 "@type": "WebSite",
                 "@id": "https://muzia.net/#website",
-                "name": "Muzia — 음악을 사랑하는 사람들의 커뮤니티",
+                "name": "뮤지아(Muzia) — 음악을 사랑하는 사람들의 커뮤니티",
                 "url": "https://muzia.net",
                 "publisher": { "@id": "https://muzia.net/#organization" },
                 "potentialAction": {
@@ -134,26 +134,26 @@
         gtag('js', new Date());
         gtag('config', 'G-790ERG9C3J');
     </script>
-    <meta name="description" content="Muzia는 음악을 사랑하는 사람들의 커뮤니티입니다. SNS 피드, 게시판, 미니홈피, 콘텐츠 마켓을 제공합니다." />
-    <meta name="keywords" content="뮤지아, muzia, 음악, 커뮤니티, SNS, 게시판, 미니홈피" />
+    <meta name="description" content="뮤지아(Muzia)는 2002년부터 이어져 온 대한민국 대표 음악 커뮤니티입니다. 시벨리우스, 피날레, 도리코 등 사보 프로그램과 작곡, 편곡, MIDI, 음악 이론을 다루는 전문 커뮤니티." />
+    <meta name="keywords" content="뮤지아, muzia, 음악 커뮤니티, 시벨리우스, 피날레, 도리코, 사보 프로그램, 작곡, 편곡, MIDI, DAW" />
 
     <!-- Open Graph -->
     <meta property="og:type" content="website" />
-    <meta property="og:site_name" content="Muzia" />
-    <meta property="og:title" content="Muzia — 음악을 사랑하는 사람들의 커뮤니티" />
-    <meta property="og:description" content="음악을 사랑하는 사람들의 커뮤니티. SNS 피드, 게시판, 미니홈피, 콘텐츠 마켓." />
-    <meta property="og:url" content="https://muzia.io{$page.url.pathname}" />
-    <meta property="og:image" content="https://muzia.net/theme/Muzia/storage/image/logo-muzia.png" />
+    <meta property="og:site_name" content="뮤지아(Muzia)" />
+    <meta property="og:title" content="뮤지아(Muzia) — 음악을 사랑하는 사람들의 커뮤니티 | Since 2002" />
+    <meta property="og:description" content="2002년부터 이어져 온 대한민국 대표 음악 커뮤니티. 시벨리우스, 피날레, 도리코 등 사보 프로그램 전문." />
+    <meta property="og:url" content="https://muzia.net{$page.url.pathname}" />
+    <meta property="og:image" content="https://muzia.net/logo-muzia.png" />
     <meta property="og:locale" content="ko_KR" />
 
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Muzia — 음악을 사랑하는 사람들의 커뮤니티" />
-    <meta name="twitter:description" content="음악을 사랑하는 사람들의 커뮤니티" />
-    <meta name="twitter:image" content="https://muzia.net/theme/Muzia/storage/image/logo-muzia.png" />
+    <meta name="twitter:title" content="뮤지아(Muzia) — 음악을 사랑하는 사람들의 커뮤니티 | Since 2002" />
+    <meta name="twitter:description" content="2002년부터 이어져 온 대한민국 대표 음악 커뮤니티" />
+    <meta name="twitter:image" content="https://muzia.net/logo-muzia.png" />
 
     <!-- Canonical -->
-    <link rel="canonical" href="https://muzia.io{$page.url.pathname}" />
+    <link rel="canonical" href="https://muzia.net{$page.url.pathname}" />
 
     <style>
         :root {
