@@ -1110,7 +1110,7 @@
                         onkeydown={(e) => e.key === 'Escape' && (showEmoticonPicker = false)}
                     ></div>
                     <div
-                        class="fixed inset-x-0 bottom-0 z-50 sm:absolute sm:inset-auto sm:bottom-full sm:right-0 sm:mb-2"
+                        class="fixed inset-x-0 bottom-0 z-50 sm:absolute sm:inset-auto sm:right-0 sm:top-full sm:mt-2"
                     >
                         <EmoticonPickerComponent
                             onInsertEmoticon={handleInsertEmoticon}
