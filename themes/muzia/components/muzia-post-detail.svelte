@@ -197,9 +197,17 @@
     }
 
     function getColor(name: string) {
-        const c = ['from-pink-400 to-rose-500','from-purple-400 to-indigo-500','from-blue-400 to-cyan-500','from-emerald-400 to-teal-500','from-amber-400 to-orange-500'];
+        const c = ['bg-slate-600','bg-indigo-600','bg-sky-600','bg-emerald-600','bg-amber-600'];
         let h = 0; for (const x of (name||'?')) h = x.charCodeAt(0) + ((h << 5) - h); return c[Math.abs(h) % c.length];
     }
+
+    function getAvatarUrl(authorId: string): string {
+        if (!authorId) return '';
+        const prefix = authorId.slice(0, 2);
+        return `/data/member/${prefix}/${authorId}.gif`;
+    }
+
+    let avatarErrors = $state<Set<string>>(new Set());
 </script>
 
 <div class="container mx-auto max-w-4xl px-4 py-6">
@@ -221,9 +229,11 @@
                 <h1 class="mb-3 text-xl font-bold">{post.title}</h1>
                 <div class="flex items-center justify-between">
                     <div class="flex items-center gap-3">
-                        <div class="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-r {getColor(post.author)} text-sm font-bold text-white">
-                            {post.author?.[0] || '?'}
-                        </div>
+                        {#if post.author_id && !avatarErrors.has(post.author_id)}
+                            <img src={getAvatarUrl(post.author_id)} alt={post.author} class="h-10 w-10 rounded-full object-cover" onerror={() => { avatarErrors = new Set([...avatarErrors, post.author_id]); }} />
+                        {:else}
+                            <div class="flex h-10 w-10 items-center justify-center rounded-full {getColor(post.author)} text-sm font-bold text-white">{post.author?.[0] || '?'}</div>
+                        {/if}
                         <div>
                             <span class="font-medium">{post.author}</span>
                             <div class="flex items-center gap-3 text-xs text-muted-foreground">
@@ -300,7 +310,11 @@
                             </div>
                         {/if}
                         <div class="mb-2 flex items-center gap-2">
-                            <div class="flex {depth > 0 ? 'h-6 w-6' : 'h-7 w-7'} items-center justify-center rounded-full bg-gradient-to-r {getColor(c.author)} text-xs font-bold text-white">{c.author?.[0]}</div>
+                            {#if c.author_id && !avatarErrors.has(c.author_id)}
+                                <img src={getAvatarUrl(c.author_id)} alt={c.author} class="{depth > 0 ? 'h-6 w-6' : 'h-7 w-7'} rounded-full object-cover" onerror={() => { avatarErrors = new Set([...avatarErrors, c.author_id]); }} />
+                            {:else}
+                                <div class="flex {depth > 0 ? 'h-6 w-6' : 'h-7 w-7'} items-center justify-center rounded-full {getColor(c.author)} text-xs font-bold text-white">{c.author?.[0]}</div>
+                            {/if}
                             <span class="text-sm font-medium">{c.author}</span>
                             <span class="text-xs text-muted-foreground">{new Date(c.created_at).toLocaleDateString('ko-KR')} {new Date(c.created_at).toLocaleTimeString('ko-KR', {hour:'2-digit',minute:'2-digit'})}</span>
                             {#if c.ip}<span class="text-xs text-muted-foreground">({c.ip})</span>{/if}
@@ -332,7 +346,7 @@
                                         </button>
                                         <input type="file" accept="image/*" class="hidden" bind:this={replyFileInput} onchange={uploadReplyImage} />
                                     </div>
-                                    <Button size="sm" class="bg-gradient-to-r from-indigo-500 to-violet-500 text-white" onclick={submitReply} disabled={replySubmitting || !replyText.trim()}>
+                                    <Button size="sm" class="bg-indigo-600 text-white" onclick={submitReply} disabled={replySubmitting || !replyText.trim()}>
                                         {replySubmitting ? '등록 중...' : '답글 등록'}
                                     </Button>
                                 </div>
@@ -356,7 +370,7 @@
             <!-- 루트 댓글 입력 -->
             <div class="border-t p-4">
                 <div class="flex items-start gap-3">
-                    <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-r from-indigo-100 to-violet-100 text-xs font-medium text-indigo-700">U</div>
+                    <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-indigo-50 dark:bg-indigo-950 text-xs font-medium text-indigo-700">U</div>
                     <div class="flex-1">
                         <textarea bind:value={commentText} placeholder="댓글을 입력하세요..." rows="3"
                             class="w-full resize-none rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-400"></textarea>
@@ -368,7 +382,7 @@
                                 </button>
                                 <input type="file" accept="image/*" class="hidden" bind:this={fileInput} onchange={uploadImage} />
                             </div>
-                            <Button size="sm" class="bg-gradient-to-r from-indigo-500 to-violet-500 text-white" onclick={submitComment} disabled={isSubmitting || !commentText.trim()}>
+                            <Button size="sm" class="bg-indigo-600 text-white" onclick={submitComment} disabled={isSubmitting || !commentText.trim()}>
                                 {isSubmitting ? '등록 중...' : '등록'}
                             </Button>
                         </div>

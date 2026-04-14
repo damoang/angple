@@ -56,6 +56,58 @@
 <svelte:head>
     <title>Muzia — 음악을 사랑하는 사람들의 커뮤니티</title>
 
+    <!-- SEO: 구조화된 데이터 (Organization + WebSite + SiteNavigationElement) -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@graph": [
+            {
+                "@type": "Organization",
+                "@id": "https://muzia.net/#organization",
+                "name": "Muzia",
+                "alternateName": "뮤지아",
+                "url": "https://muzia.net",
+                "logo": {
+                    "@type": "ImageObject",
+                    "url": "https://muzia.net/logo-muzia.png"
+                },
+                "foundingDate": "2002-03-15",
+                "description": "2002년부터 이어져 온 대한민국 대표 음악 커뮤니티. 시벨리우스, 피날레, 도리코 등 사보 프로그램 전문.",
+                "contactPoint": {
+                    "@type": "ContactPoint",
+                    "email": "help@muzia.net",
+                    "contactType": "customer service"
+                }
+            },
+            {
+                "@type": "WebSite",
+                "@id": "https://muzia.net/#website",
+                "name": "Muzia — 음악을 사랑하는 사람들의 커뮤니티",
+                "url": "https://muzia.net",
+                "publisher": { "@id": "https://muzia.net/#organization" },
+                "potentialAction": {
+                    "@type": "SearchAction",
+                    "target": "https://muzia.net/search?q={search_term_string}",
+                    "query-input": "required name=search_term_string"
+                }
+            },
+            {
+                "@type": "SiteNavigationElement",
+                "name": ["Q&A", "포럼", "음악", "시벨리우스", "도리코", "바이올린", "출석부"],
+                "url": [
+                    "https://muzia.net/qna",
+                    "https://muzia.net/forum",
+                    "https://muzia.net/music",
+                    "https://muzia.net/sibelius",
+                    "https://muzia.net/dorico",
+                    "https://muzia.net/violin",
+                    "https://muzia.net/attendance"
+                ]
+            }
+        ]
+    }
+    </script>
+
     <!-- Pretendard 폰트 -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
 

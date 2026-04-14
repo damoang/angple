@@ -102,7 +102,7 @@
 
         {#if authStore.isAuthenticated && myStats}
             <div class="mb-6 overflow-hidden rounded-lg border bg-card shadow-sm">
-                <div class="bg-gradient-to-r from-indigo-500 to-violet-500 p-4 text-white">
+                <div class="bg-indigo-600 p-4 text-white">
                     <div class="flex items-center justify-between">
                         <div>
                             <p class="text-sm opacity-80">나의 출석 현황</p>
@@ -130,7 +130,7 @@
                     <div class="space-y-3">
                         <input type="text" bind:value={greeting} placeholder="출석 인사말을 입력하세요 (선택)"
                             class="w-full rounded-lg border bg-background px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-indigo-400" />
-                        <Button class="w-full bg-gradient-to-r from-indigo-500 to-violet-500 py-3 text-white" onclick={checkIn} disabled={isChecking}>
+                        <Button class="w-full bg-indigo-600 py-3 text-white" onclick={checkIn} disabled={isChecking}>
                             {isChecking ? '출석 중...' : '🙋 출석하기'}
                         </Button>
                     </div>
@@ -142,7 +142,7 @@
         {:else}
             <div class="mb-6 overflow-hidden rounded-lg border bg-card p-6 text-center shadow-sm">
                 <p class="mb-3 text-muted-foreground">출석하려면 로그인이 필요합니다</p>
-                <a href="/login"><Button class="bg-gradient-to-r from-indigo-500 to-violet-500 text-white">로그인</Button></a>
+                <a href="/login"><Button class="bg-indigo-600 text-white">로그인</Button></a>
             </div>
         {/if}
 
@@ -168,7 +168,7 @@
                                 <span class="w-8 text-center font-bold {i < 3 ? 'text-lg' : 'text-sm text-muted-foreground'}">
                                     {i < 3 ? ['🥇', '🥈', '🥉'][i] : `${i + 1}`}
                                 </span>
-                                <div class="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-r from-indigo-100 to-violet-100 text-xs font-medium text-indigo-700">
+                                <div class="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-50 dark:bg-indigo-950 text-xs font-medium text-indigo-700">
                                     {(att.nickname || att.mb_id)?.[0]}
                                 </div>
                                 <div>
@@ -200,7 +200,7 @@
                                 <span class="w-8 text-center font-bold {i < 3 ? 'text-lg' : 'text-sm text-muted-foreground'}">
                                     {i < 3 ? ['🥇', '🥈', '🥉'][i] : `${i + 1}`}
                                 </span>
-                                <div class="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-r from-indigo-100 to-violet-100 text-xs font-medium text-indigo-700">
+                                <div class="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-50 dark:bg-indigo-950 text-xs font-medium text-indigo-700">
                                     {(r.nickname || r.mb_id)?.[0]}
                                 </div>
                                 <div>
@@ -237,7 +237,7 @@
                             {@const isToday = dateStr === new Date().toISOString().slice(0,10)}
                             <button
                                 class="relative flex h-12 flex-col items-center justify-center rounded-lg text-sm transition-all
-                                    {selectedDate === dateStr ? 'bg-gradient-to-r from-indigo-500 to-violet-500 text-white shadow-md' : ''}
+                                    {selectedDate === dateStr ? 'bg-indigo-600 text-white shadow-md' : ''}
                                     {isToday && selectedDate !== dateStr ? 'ring-2 ring-indigo-300' : ''}
                                     {!selectedDate || selectedDate !== dateStr ? 'hover:bg-accent' : ''}"
                                 onclick={() => selectDate(d + 1)}
