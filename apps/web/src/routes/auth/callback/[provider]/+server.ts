@@ -11,7 +11,12 @@ import { resolveOrigin } from '$lib/server/auth/oauth/config.js';
 import { safeRedirectUrl } from '$lib/server/safe-redirect.js';
 import { validateOAuthState } from '$lib/server/auth/oauth/state.js';
 import { findSocialProfile, upsertSocialProfile } from '$lib/server/auth/oauth/social-profile.js';
-import { getMemberById, findMemberByEmail, isMemberActive, invalidateMemberCache } from '$lib/server/auth/oauth/member.js';
+import {
+    getMemberById,
+    findMemberByEmail,
+    isMemberActive,
+    invalidateMemberCache
+} from '$lib/server/auth/oauth/member.js';
 import {
     createSession,
     SESSION_COOKIE_NAME,
