@@ -14,6 +14,7 @@
         { icon: '🎵', label: '음악', href: '/music' },
         { icon: '🎻', label: '바이올린', href: '/violin' },
         { icon: '🎼', label: '시벨리우스', href: '/sibelius' },
+        { icon: '🎹', label: '도리코', href: '/dorico' },
         { icon: '💡', label: '강좌/팁', href: '/tip' },
         { icon: '📢', label: '공지사항', href: '/notice' },
         { icon: '👋', label: '가입인사', href: '/hello' },

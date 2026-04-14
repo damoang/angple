@@ -8,6 +8,7 @@
     import MuziaAttendance from '../components/muzia-attendance.svelte';
     import MuziaContentPage from '../components/muzia-content-page.svelte';
     import MuziaPostDetail from '../components/muzia-post-detail.svelte';
+    import MuziaAdSlot from '../components/muzia-ad-slot.svelte';
 
     interface Props {
         children: Snippet;
@@ -40,10 +41,88 @@
         return null;
     });
     const isPostDetail = $derived(postMatch() !== null);
+
+    // 타이틀에서 "다모앙" → "Muzia" 교체
+    $effect(() => {
+        if (typeof document !== 'undefined') {
+            const t = document.title;
+            if (t && t.includes('다모앙')) {
+                document.title = t.replace(/다모앙/g, 'Muzia');
+            }
+        }
+    });
 </script>
 
 <svelte:head>
     <title>Muzia — 음악을 사랑하는 사람들의 커뮤니티</title>
+
+    <!-- SEO: 구조화된 데이터 (Organization + WebSite + SiteNavigationElement) -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@graph": [
+            {
+                "@type": "Organization",
+                "@id": "https://muzia.net/#organization",
+                "name": "Muzia",
+                "alternateName": "뮤지아",
+                "url": "https://muzia.net",
+                "logo": {
+                    "@type": "ImageObject",
+                    "url": "https://muzia.net/logo-muzia.png"
+                },
+                "foundingDate": "2002-03-15",
+                "description": "2002년부터 이어져 온 대한민국 대표 음악 커뮤니티. 시벨리우스, 피날레, 도리코 등 사보 프로그램 전문.",
+                "contactPoint": {
+                    "@type": "ContactPoint",
+                    "email": "help@muzia.net",
+                    "contactType": "customer service"
+                }
+            },
+            {
+                "@type": "WebSite",
+                "@id": "https://muzia.net/#website",
+                "name": "Muzia — 음악을 사랑하는 사람들의 커뮤니티",
+                "url": "https://muzia.net",
+                "publisher": { "@id": "https://muzia.net/#organization" },
+                "potentialAction": {
+                    "@type": "SearchAction",
+                    "target": "https://muzia.net/search?q={search_term_string}",
+                    "query-input": "required name=search_term_string"
+                }
+            },
+            {
+                "@type": "SiteNavigationElement",
+                "name": ["Q&A", "포럼", "음악", "시벨리우스", "도리코", "바이올린", "출석부"],
+                "url": [
+                    "https://muzia.net/qna",
+                    "https://muzia.net/forum",
+                    "https://muzia.net/music",
+                    "https://muzia.net/sibelius",
+                    "https://muzia.net/dorico",
+                    "https://muzia.net/violin",
+                    "https://muzia.net/attendance"
+                ]
+            }
+        ]
+    }
+    </script>
+
+    <!-- Pretendard 폰트 (preload로 렌더링 차단 방지) -->
+    <link rel="preload" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" as="style" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
+
+    <!-- 테마 모드 깜빡임 방지 (SSR 시 즉시 적용) -->
+    <script>
+        (function() {
+            var m = localStorage.getItem('muzia-theme-mode') || 'system';
+            var h = document.documentElement;
+            h.classList.remove('dark', 'amoled');
+            if (m === 'dark') h.classList.add('dark');
+            else if (m === 'amoled') { h.classList.add('dark'); h.classList.add('amoled'); }
+            else if (m === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches) h.classList.add('dark');
+        })();
+    </script>
 
     <!-- Google AdSense: 온디맨드 로딩 (muzia-ad-slot.svelte에서 처리) -->
 
@@ -77,9 +156,8 @@
     <link rel="canonical" href="https://muzia.io{$page.url.pathname}" />
 
     <style>
-        /* React muzia globals.css 그대로 적용 */
         :root {
-            --font-size: 14px;
+            --font-size: 16px;
             --background: #ffffff;
             --foreground: oklch(0.145 0 0);
             --card: #ffffff;
@@ -114,8 +192,8 @@
             --sidebar-ring: oklch(0.708 0 0);
 
             /* Muzia 전용 */
-            --muzia-gradient-from: #ec4899;
-            --muzia-gradient-to: #9333ea;
+            --muzia-gradient-from: #6366f1;
+            --muzia-gradient-to: #8b5cf6;
         }
 
         .dark {
@@ -148,8 +226,62 @@
             --sidebar-ring: oklch(0.439 0 0);
         }
 
+        .amoled {
+            --background: #000000;
+            --foreground: #e8e8e8;
+            --card: #0a0a0a;
+            --card-foreground: #e8e8e8;
+            --popover: #000000;
+            --popover-foreground: #e8e8e8;
+            --primary: #e8e8e8;
+            --primary-foreground: #000000;
+            --secondary: #111111;
+            --secondary-foreground: #e8e8e8;
+            --muted: #111111;
+            --muted-foreground: #888888;
+            --accent: #111111;
+            --accent-foreground: #e8e8e8;
+            --border: #1a1a1a;
+            --input: #1a1a1a;
+            --ring: #333333;
+            --sidebar: #000000;
+            --sidebar-foreground: #e8e8e8;
+            --sidebar-primary: #e8e8e8;
+            --sidebar-primary-foreground: #000000;
+            --sidebar-accent: #0a0a0a;
+            --sidebar-accent-foreground: #e8e8e8;
+            --sidebar-border: #1a1a1a;
+            --sidebar-ring: #333333;
+        }
+
         html {
             font-size: var(--font-size);
+            font-family: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui, 'Segoe UI', sans-serif;
+        }
+
+        .muzia-theme h1 {
+            font-size: 18px !important;
+        }
+
+        /* 다크 모드 전역 색상 강제 */
+        .dark body, .dark .muzia-theme {
+            color: #e8e8e8;
+        }
+
+        .dark .muzia-theme a {
+            color: inherit;
+        }
+
+        .dark .text-foreground,
+        .dark .text-gray-900,
+        .dark .text-gray-800,
+        .dark .text-gray-700 {
+            color: #e8e8e8 !important;
+        }
+
+        .dark .bg-white,
+        .dark .bg-gray-50 {
+            background-color: var(--background) !important;
         }
     </style>
 </svelte:head>
@@ -188,7 +320,9 @@
                     <MuziaPostDetail boardId={match.boardId} postId={match.postId} />
                 {/if}
             {:else}
+                <MuziaAdSlot position="leaderboard" />
                 {@render children()}
+                <MuziaAdSlot position="content" />
             {/if}
         </main>
     </div>

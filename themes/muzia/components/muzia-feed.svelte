@@ -37,9 +37,14 @@
         else { likedIds.add(id); likedIds = new Set(likedIds); }
     }
     function getColor(name: string) {
-        const c = ['from-pink-400 to-rose-500','from-purple-400 to-indigo-500','from-blue-400 to-cyan-500','from-emerald-400 to-teal-500','from-amber-400 to-orange-500','from-red-400 to-pink-500'];
+        const c = ['bg-slate-600','bg-indigo-600','bg-sky-600','bg-emerald-600','bg-amber-600','bg-rose-600'];
         let h = 0; for (const x of (name||'?')) h = x.charCodeAt(0) + ((h << 5) - h); return c[Math.abs(h) % c.length];
     }
+    function getAvatarUrl(authorId: string): string {
+        if (!authorId) return '';
+        return `/data/member/${authorId.slice(0,2)}/${authorId}.gif`;
+    }
+    let avatarErrors = $state<Set<string>>(new Set());
     function timeAgo(d: string) {
         const diff = Date.now() - new Date(d).getTime(); const m = Math.floor(diff/60000);
         if (m < 1) return '방금'; if (m < 60) return `${m}분 전`;
@@ -98,15 +103,17 @@
                     <!-- 유저 정보 -->
                     <div class="flex items-center justify-between p-4">
                         <div class="flex items-center gap-3">
-                            <div class="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-r {getColor(post.author)} text-sm font-bold text-white">
-                                {post.author?.[0] || '?'}
-                            </div>
+                            {#if post.author_id && !avatarErrors.has(post.author_id)}
+                                <img src={getAvatarUrl(post.author_id)} alt={post.author} class="h-10 w-10 rounded-full object-cover" onerror={() => { avatarErrors = new Set([...avatarErrors, post.author_id]); }} />
+                            {:else}
+                                <div class="flex h-10 w-10 items-center justify-center rounded-full {getColor(post.author)} text-sm font-bold text-white">{post.author?.[0] || '?'}</div>
+                            {/if}
                             <div>
                                 <div class="flex items-center gap-2">
                                     <span class="font-medium">{post.author}</span>
                                     <span class="rounded border px-1.5 py-0.5 text-xs text-muted-foreground">{post.board_name}</span>
                                     {#if post.likes >= 3}
-                                        <span class="rounded bg-gradient-to-r from-yellow-400 to-orange-500 px-2 py-0.5 text-xs font-medium text-white">👑 BEST</span>
+                                        <span class="rounded bg-amber-500 px-2 py-0.5 text-xs font-medium text-white">👑 BEST</span>
                                     {/if}
                                 </div>
                                 <span class="text-xs text-muted-foreground">{timeAgo(post.created_at)}</span>
