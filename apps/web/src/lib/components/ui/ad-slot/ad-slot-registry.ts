@@ -274,7 +274,14 @@ function scheduleViewableRefresh(state: SlotState, intervalMs = 0) {
 
             const container = document.getElementById(state.slotId)?.parentElement;
             if (container) {
-                container.style.minHeight = `${container.offsetHeight}px`;
+                // CLS 방지: 리프레시 시 현재 높이를 min+max로 고정해 광고 확장/축소 시 스크롤 점프 차단
+                const currentHeight = container.offsetHeight;
+                container.style.minHeight = `${currentHeight}px`;
+                container.style.maxHeight = `${currentHeight}px`;
+                // 5초 후 maxHeight 해제 (새 광고 로딩 후 충분한 시간)
+                setTimeout(() => {
+                    container.style.maxHeight = '';
+                }, 5000);
             }
 
             // CLS best practice: 광고 리프레시 시 포커스 보존
