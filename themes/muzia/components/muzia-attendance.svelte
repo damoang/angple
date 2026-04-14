@@ -238,7 +238,7 @@
                             <button
                                 class="relative flex h-12 flex-col items-center justify-center rounded-lg text-sm transition-all
                                     {selectedDate === dateStr ? 'bg-gradient-to-r from-indigo-500 to-violet-500 text-white shadow-md' : ''}
-                                    {isToday && selectedDate !== dateStr ? 'ring-2 ring-pink-300' : ''}
+                                    {isToday && selectedDate !== dateStr ? 'ring-2 ring-indigo-300' : ''}
                                     {!selectedDate || selectedDate !== dateStr ? 'hover:bg-accent' : ''}"
                                 onclick={() => selectDate(d + 1)}
                             >

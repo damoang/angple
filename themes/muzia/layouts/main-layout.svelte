@@ -41,6 +41,16 @@
         return null;
     });
     const isPostDetail = $derived(postMatch() !== null);
+
+    // 타이틀에서 "다모앙" → "Muzia" 교체
+    $effect(() => {
+        if (typeof document !== 'undefined') {
+            const t = document.title;
+            if (t && t.includes('다모앙')) {
+                document.title = t.replace(/다모앙/g, 'Muzia');
+            }
+        }
+    });
 </script>
 
 <svelte:head>
