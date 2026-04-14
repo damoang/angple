@@ -60,7 +60,7 @@
     <nav class="mb-6 space-y-1">
         {#each menuItems as item}
             <a href={item.href} class="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-base transition-colors
-                {isActive(item.href) ? 'bg-primary text-primary-foreground font-medium' : 'hover:bg-accent'}">
+                {isActive(item.href) ? 'bg-indigo-600 text-white font-medium' : 'hover:bg-accent'}">
                 <span>{item.icon}</span>
                 {item.label}
             </a>

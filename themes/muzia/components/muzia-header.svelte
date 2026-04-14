@@ -60,6 +60,74 @@
         }
         return 'feed';
     }
+
+    // 알림
+    let unreadCount = $state(0);
+    let notifications = $state<any[]>([]);
+    let showNotiDropdown = $state(false);
+    let notiLoading = $state(false);
+
+    function authHeaders(): Record<string, string> {
+        if (!browser) return {};
+        try { const t = localStorage.getItem('access_token'); return t ? { 'Authorization': `Bearer ${t}` } : {}; }
+        catch { return {}; }
+    }
+
+    async function loadUnreadCount() {
+        if (!authStore.isAuthenticated) return;
+        try {
+            const r = await fetch('/api/muzia/notifications?action=unread-count', { headers: authHeaders() });
+            const d = await r.json();
+            if (d.total_unread !== undefined) unreadCount = d.total_unread;
+        } catch {}
+    }
+
+    async function loadNotifications() {
+        if (!authStore.isAuthenticated) return;
+        notiLoading = true;
+        try {
+            const r = await fetch('/api/muzia/notifications?page=1&limit=10', { headers: authHeaders() });
+            const d = await r.json();
+            if (d.items) { notifications = d.items; unreadCount = d.unread_count || 0; }
+        } catch {}
+        finally { notiLoading = false; }
+    }
+
+    async function markRead(id: number) {
+        try { await fetch(`/api/muzia/notifications?action=read&id=${id}`, { method: 'POST', headers: authHeaders() }); } catch {}
+    }
+
+    async function markAllRead() {
+        try {
+            await fetch('/api/muzia/notifications?action=read-all', { method: 'POST', headers: authHeaders() });
+            notifications = notifications.map(n => ({ ...n, is_read: true }));
+            unreadCount = 0;
+        } catch {}
+    }
+
+    function toggleNoti() {
+        showNotiDropdown = !showNotiDropdown;
+        if (showNotiDropdown) loadNotifications();
+    }
+
+    function formatTime(ds: string): string {
+        const diff = Date.now() - new Date(ds).getTime();
+        const m = Math.floor(diff / 60000);
+        if (m < 1) return '방금';
+        if (m < 60) return `${m}분 전`;
+        const h = Math.floor(m / 60);
+        if (h < 24) return `${h}시간 전`;
+        const dy = Math.floor(h / 24);
+        return dy < 7 ? `${dy}일 전` : new Date(ds).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' });
+    }
+
+    // 30초마다 미읽은 수 갱신
+    $effect(() => {
+        if (!browser) return;
+        loadUnreadCount();
+        const iv = setInterval(loadUnreadCount, 30000);
+        return () => clearInterval(iv);
+    });
 </script>
 
 <header class="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -84,7 +152,7 @@
                     href={tab.href}
                     class="inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-base font-medium transition-colors
                         {getActiveTab($page.url.pathname) === tab.id
-                            ? 'bg-primary text-primary-foreground'
+                            ? 'bg-indigo-600 text-white'
                             : 'text-muted-foreground hover:bg-accent hover:text-foreground'}"
                 >
                     <span>{tab.icon}</span>
@@ -108,6 +176,47 @@
             >
                 {modeIcons[themeMode]}
             </button>
+
+            <!-- 알림 벨 (로그인 시만) -->
+            {#if authStore.isAuthenticated}
+                <div class="relative">
+                    <button class="flex h-9 w-9 items-center justify-center rounded-lg transition-colors hover:bg-accent" onclick={toggleNoti}>
+                        <svg class="h-5 w-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+                        {#if unreadCount > 0}
+                            <span class="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">{unreadCount > 9 ? '9+' : unreadCount}</span>
+                        {/if}
+                    </button>
+                    {#if showNotiDropdown}
+                        <div class="absolute right-0 top-full mt-2 w-80 overflow-hidden rounded-lg border bg-background shadow-lg">
+                            <div class="flex items-center justify-between border-b px-3 py-2">
+                                <span class="font-semibold">알림</span>
+                                {#if unreadCount > 0}
+                                    <button class="text-xs text-muted-foreground hover:text-foreground" onclick={markAllRead}>모두 읽음</button>
+                                {/if}
+                            </div>
+                            <div class="max-h-80 overflow-y-auto">
+                                {#if notiLoading}
+                                    <div class="py-8 text-center text-sm text-muted-foreground">로딩 중...</div>
+                                {:else if notifications.length === 0}
+                                    <div class="py-8 text-center text-sm text-muted-foreground">알림이 없습니다</div>
+                                {:else}
+                                    {#each notifications as n}
+                                        <a href={n.url || '#'} class="flex items-start gap-3 border-b px-3 py-3 transition-colors hover:bg-accent {n.is_read ? 'opacity-60' : ''}"
+                                            onclick={() => { markRead(n.id); showNotiDropdown = false; }}>
+                                            <div class="min-w-0 flex-1">
+                                                <p class="text-sm font-medium line-clamp-1">{n.title}</p>
+                                                <p class="mt-0.5 text-xs text-muted-foreground line-clamp-1">{n.content}</p>
+                                                <p class="mt-1 text-xs text-muted-foreground">{formatTime(n.created_at)}</p>
+                                            </div>
+                                            {#if !n.is_read}<div class="mt-1 h-2 w-2 shrink-0 rounded-full bg-indigo-500"></div>{/if}
+                                        </a>
+                                    {/each}
+                                {/if}
+                            </div>
+                        </div>
+                    {/if}
+                </div>
+            {/if}
 
             {#if authStore.isAuthenticated && authStore.user}
                 <div class="flex items-center gap-2">
