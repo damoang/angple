@@ -27,7 +27,7 @@ export const POST: RequestHandler = async ({ request }) => {
     try {
         await conn.beginTransaction();
 
-        const now = getKSTDatetime();  // KST 시간으로 저장
+        const now = new Date();  // UTC로 저장 (쿼리에서 KST 변환)
         const today = getKSTDate();
         const yesterday = getKSTYesterday();
 
