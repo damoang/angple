@@ -108,7 +108,8 @@
     }
     </script>
 
-    <!-- Pretendard 폰트 -->
+    <!-- Pretendard 폰트 (preload로 렌더링 차단 방지) -->
+    <link rel="preload" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" as="style" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
 
     <!-- 테마 모드 깜빡임 방지 (SSR 시 즉시 적용) -->
