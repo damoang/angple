@@ -156,6 +156,10 @@
         .muzia-theme h1 {
             font-size: 18px !important;
         }
+
+        .muzia-theme .prose {
+            font-size: 18px !important;
+        }
     </style>
 </svelte:head>
 
