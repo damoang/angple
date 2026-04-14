@@ -283,6 +283,36 @@
         .dark .bg-gray-50 {
             background-color: var(--background) !important;
         }
+
+        /* 다크모드: DB 저장 HTML (인라인 스타일) 강제 오버라이드 */
+        .dark .prose td,
+        .dark .prose th,
+        .dark .prose p,
+        .dark .prose li,
+        .dark .prose div,
+        .dark .prose span,
+        .dark .prose h2,
+        .dark .prose h3,
+        .dark .prose h4 {
+            color: #e8e8e8 !important;
+        }
+
+        .dark .prose a {
+            color: #93c5fd !important;
+        }
+
+        .dark .prose table {
+            border-color: #333 !important;
+        }
+
+        .dark .prose tr {
+            border-color: #333 !important;
+        }
+
+        .dark .prose [style*="background:#f9fafb"],
+        .dark .prose [style*="background-color"] {
+            background-color: #1a1a1a !important;
+        }
     </style>
 </svelte:head>
 

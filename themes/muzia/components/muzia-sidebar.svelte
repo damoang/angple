@@ -36,7 +36,7 @@
     <!-- 네비게이션 (React 원본과 동일) -->
     <nav class="mb-6 space-y-1">
         {#each menuItems as item}
-            <a href={item.href} class="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors hover:bg-accent">
+            <a href={item.href} class="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-base transition-colors hover:bg-accent">
                 <span>{item.icon}</span>
                 {item.label}
             </a>

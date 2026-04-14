@@ -73,21 +73,23 @@
                 <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
             </button>
             <a href="/" class="flex items-center gap-2">
-                <img src="/logo-muzia.png" alt="Muzia" class="h-10" />
+                <img src="/logo-muzia.png" alt="Muzia" class="h-12" />
             </a>
         </div>
 
-        <!-- 탭 네비게이션 -->
+        <!-- 탭 네비게이션 (SvelteKit 클라이언트 네비게이션) -->
         <nav class="hidden items-center gap-1 md:flex">
             {#each tabs as tab}
-                <Button
-                    variant={getActiveTab($page.url.pathname) === tab.id ? 'default' : 'ghost'}
-                    class="gap-1.5 text-base"
-                    onclick={() => { window.location.href = tab.href; }}
+                <a
+                    href={tab.href}
+                    class="inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-base font-medium transition-colors
+                        {getActiveTab($page.url.pathname) === tab.id
+                            ? 'bg-primary text-primary-foreground'
+                            : 'text-muted-foreground hover:bg-accent hover:text-foreground'}"
                 >
                     <span>{tab.icon}</span>
                     {tab.label}
-                </Button>
+                </a>
             {/each}
         </nav>
 
