@@ -17,7 +17,7 @@ const memberImageCache = createCache<MemberImageInfo | null>({
 
 export interface MemberImageInfo {
     url: string;
-    updated_at?: string;
+    updated_at?: number;
 }
 
 /**
@@ -78,7 +78,9 @@ export async function fetchMemberImagesWithTimestamp(
         foundIds.add(row.mb_id);
         const image = {
             url: row.mb_image_url,
-            updated_at: row.mb_image_updated_at ? String(row.mb_image_updated_at) : undefined
+            updated_at: row.mb_image_updated_at
+                ? Math.floor(new Date(row.mb_image_updated_at).getTime() / 1000)
+                : undefined
         };
         memberImageCache.set(row.mb_id, image);
         images[row.mb_id] = image;

@@ -56,7 +56,7 @@ interface CommentResponseItem {
     author: string;
     author_id: string;
     author_image: string;
-    author_image_updated_at: string;
+    author_image_updated_at?: number;
     author_ip: string;
     likes: number;
     dislikes: number;
@@ -147,7 +147,7 @@ export const GET: RequestHandler = async ({ params, url, locals, request }) => {
         const mbIds = [...new Set(rows.map((r) => r.mb_id).filter(Boolean))];
         const nickMap = new Map<string, string>();
         const imageMap = new Map<string, string>();
-        const imageUpdatedMap = new Map<string, string>();
+        const imageUpdatedMap = new Map<string, number>();
         if (mbIds.length > 0) {
             const [members] = await pool.query<RowDataPacket[]>(
                 `SELECT mb_id, mb_nick, mb_image_url, mb_image_updated_at FROM g5_member WHERE mb_id IN (?)`,
@@ -157,7 +157,10 @@ export const GET: RequestHandler = async ({ params, url, locals, request }) => {
                 nickMap.set(m.mb_id, m.mb_nick);
                 if (m.mb_image_url) imageMap.set(m.mb_id, m.mb_image_url);
                 if (m.mb_image_updated_at)
-                    imageUpdatedMap.set(m.mb_id, String(m.mb_image_updated_at));
+                    imageUpdatedMap.set(
+                        m.mb_id,
+                        Math.floor(new Date(m.mb_image_updated_at).getTime() / 1000)
+                    );
             }
         }
 
@@ -192,9 +195,9 @@ export const GET: RequestHandler = async ({ params, url, locals, request }) => {
                 : imageMap.get(row.mb_id) || '',
             author_image_updated_at: row.wr_deleted_at
                 ? isAdmin
-                    ? imageUpdatedMap.get(row.mb_id) || ''
-                    : ''
-                : imageUpdatedMap.get(row.mb_id) || '',
+                    ? imageUpdatedMap.get(row.mb_id)
+                    : undefined
+                : imageUpdatedMap.get(row.mb_id),
             author_ip: row.wr_deleted_at
                 ? isAdmin
                     ? row.wr_ip

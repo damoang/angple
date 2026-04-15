@@ -34,7 +34,7 @@ export interface FreePost {
     author: string;
     author_id: string;
     author_image?: string; // 프로필 이미지 URL (mb_image_url)
-    author_image_updated_at?: string; // 프로필 이미지 갱신 시각 (캐시 버스팅용)
+    author_image_updated_at?: number; // 프로필 이미지 갱신 시각 unix epoch (캐시 버스팅용)
     board_id?: string;
     author_ip?: string; // 작성자 IP (마스킹된 형태, 예: 123.456.*.*)
     views: number;
@@ -101,7 +101,7 @@ export interface FreeComment {
     author: string;
     author_id: string;
     author_image?: string; // 프로필 이미지 URL (mb_image_url)
-    author_image_updated_at?: string; // 프로필 이미지 갱신 시각 (캐시 버스팅용)
+    author_image_updated_at?: number; // 프로필 이미지 갱신 시각 unix epoch (캐시 버스팅용)
     author_ip?: string; // 작성자 IP (마스킹된 형태, 예: 123.456.*.*)
     likes?: number;
     dislikes?: number; // 비추천 수
