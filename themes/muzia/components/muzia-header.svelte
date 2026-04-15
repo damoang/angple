@@ -220,7 +220,7 @@
 
             {#if authStore.isAuthenticated && authStore.user}
                 <div class="flex items-center gap-2">
-                    <span class="hidden text-sm font-medium sm:inline">{authStore.user.nickname || authStore.user.username}</span>
+                    <a href="/my" class="hidden text-sm font-medium hover:text-indigo-600 sm:inline">{authStore.user.nickname || authStore.user.username}</a>
                     <Button variant="ghost" size="sm" onclick={() => authActions.logout()}>
                         로그아웃
                     </Button>
