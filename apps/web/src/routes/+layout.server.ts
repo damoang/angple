@@ -110,9 +110,12 @@ export const load: LayoutServerLoad = async ({
     let resolvedThemeId = activeTheme?.manifest.id || null;
     let resolvedThemeSettings = activeTheme?.currentSettings || {};
 
-    // wikiang.org 도메인은 wiki-theme 강제 적용
+    // 도메인별 테마 오버라이드
     if (host === 'wikiang.org' || host === 'www.wikiang.org') {
         resolvedThemeId = 'wiki-theme';
+        resolvedThemeSettings = {};
+    } else if (host === 'angple.com' || host === 'www.angple.com') {
+        resolvedThemeId = 'corporate-landing';
         resolvedThemeSettings = {};
     }
 
