@@ -708,16 +708,34 @@
 
     function handleInsertEmoticon(text: string): void {
         if (!editor) return;
-        const match = text.match(/^\{emo:([^}]+)\}$/);
-        if (match) {
+
+        // 팩 이모티콘: {emo:filename}
+        const emoMatch = text.match(/^\{emo:([^}]+)\}$/);
+        if (emoMatch) {
             editor
                 .chain()
                 .focus()
-                .setImage({ src: `/emoticons/${match[1]}`, alt: match[1] })
+                .setImage({ src: `/emoticons/${emoMatch[1]}`, alt: emoMatch[1] })
                 .run();
-        } else {
-            editor.chain().focus().insertContent(text).run();
+            showEmoticonPicker = false;
+            return;
         }
+
+        // Noto 움직이는 이모지: noto-animoji:CODEPOINT
+        const notoMatch = text.match(/^noto-animoji:([0-9a-fA-F_-]+)$/);
+        if (notoMatch) {
+            const url = `https://fonts.gstatic.com/s/e/notoemoji/latest/${notoMatch[1]}/512.webp`;
+            editor
+                .chain()
+                .focus()
+                .setImage({ src: url, alt: `noto-${notoMatch[1]}` })
+                .run();
+            showEmoticonPicker = false;
+            return;
+        }
+
+        // 일반 유니코드 이모지
+        editor.chain().focus().insertContent(text).run();
         showEmoticonPicker = false;
     }
 
