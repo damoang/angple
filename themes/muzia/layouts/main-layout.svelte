@@ -73,7 +73,7 @@
                     "url": "https://muzia.net/logo-muzia.png"
                 },
                 "foundingDate": "2002-03-15",
-                "description": "2002년부터 이어져 온 대한민국 대표 음악 커뮤니티. 시벨리우스, 피날레, 도리코 등 사보 프로그램 전문.",
+                "description": "2002년부터 이어져 온 대한민국 대표 음악 커뮤니티. 시벨리우스, 피날레, 도리코 등 악보사보 프로그램 전문.",
                 "contactPoint": {
                     "@type": "ContactPoint",
                     "email": "help@muzia.net",
@@ -135,14 +135,14 @@
         gtag('js', new Date());
         gtag('config', 'G-790ERG9C3J');
     </script>
-    <meta name="description" content="뮤지아(Muzia)는 2002년부터 이어져 온 대한민국 대표 음악 커뮤니티입니다. 시벨리우스, 피날레, 도리코 등 사보 프로그램과 작곡, 편곡, MIDI, 음악 이론을 다루는 전문 커뮤니티." />
-    <meta name="keywords" content="뮤지아, muzia, 음악 커뮤니티, 시벨리우스, 피날레, 도리코, 사보 프로그램, 작곡, 편곡, MIDI, DAW" />
+    <meta name="description" content="뮤지아(Muzia)는 2002년부터 이어져 온 대한민국 대표 음악 커뮤니티입니다. 시벨리우스, 피날레, 도리코 등 악보사보 프로그램과 작곡, 편곡, MIDI, 음악 이론을 다루는 전문 커뮤니티." />
+    <meta name="keywords" content="뮤지아, muzia, 악보사보, 음악 커뮤니티, 시벨리우스, 피날레, 도리코, 사보 프로그램, 악보 제작, 작곡, 편곡, MIDI, DAW" />
 
     <!-- Open Graph -->
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="뮤지아(Muzia)" />
     <meta property="og:title" content="뮤지아(Muzia) — 음악을 사랑하는 사람들의 커뮤니티 | Since 2002" />
-    <meta property="og:description" content="2002년부터 이어져 온 대한민국 대표 음악 커뮤니티. 시벨리우스, 피날레, 도리코 등 사보 프로그램 전문." />
+    <meta property="og:description" content="2002년부터 이어져 온 대한민국 대표 음악 커뮤니티. 시벨리우스, 피날레, 도리코 등 악보사보 프로그램 전문." />
     <meta property="og:url" content="https://muzia.net{$page.url.pathname}" />
     <meta property="og:image" content="https://muzia.net/logo-muzia.png" />
     <meta property="og:locale" content="ko_KR" />

@@ -7,6 +7,7 @@
     import { browser } from '$app/environment';
     import { Button } from '$lib/components/ui/button';
     import MuziaAdSlot from './muzia-ad-slot.svelte';
+    import { authStore } from '$lib/stores/auth.svelte';
 
     interface Props { boardId: string; postId: string; }
     const { boardId, postId }: Props = $props();
@@ -208,6 +209,12 @@
     }
 
     let avatarErrors = $state<Set<string>>(new Set());
+
+    // 작성자 확인 (수정 버튼 표시용)
+    const canEdit = $derived(
+        post && authStore.user &&
+        (authStore.user.mb_id === post.author_id || (authStore.user.mb_level ?? 0) >= 10)
+    );
 </script>
 
 <div class="container mx-auto max-w-4xl px-4 py-6">
@@ -243,6 +250,11 @@
                             </div>
                         </div>
                     </div>
+                    {#if canEdit}
+                        <a href="/{boardId}/{postId}/edit" class="rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground dark:border-zinc-600">
+                            수정
+                        </a>
+                    {/if}
                 </div>
             </div>
 
