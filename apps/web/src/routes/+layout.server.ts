@@ -117,6 +117,24 @@ export const load: LayoutServerLoad = async ({
     } else if (host === 'angple.com' || host === 'www.angple.com') {
         resolvedThemeId = 'corporate-landing';
         resolvedThemeSettings = {};
+    } else if (host.endsWith('.angple.com')) {
+        const sub = host.split('.')[0];
+        const angpleThemes: Record<string, string> = {
+            official: 'damoang-official',
+            classic: 'damoang-classic',
+            basic: 'damoang-basic',
+            dev: 'damoang-dev',
+            legacy: 'damoang-legacy',
+            colorful: 'colorful-blog',
+            minimal: 'minimal-light',
+            modern: 'modern-dark',
+            corporate: 'corporate-landing',
+            sample: 'sample-theme',
+        };
+        if (angpleThemes[sub]) {
+            resolvedThemeId = angpleThemes[sub];
+            resolvedThemeSettings = {};
+        }
     }
 
     const layoutData = {
