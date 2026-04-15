@@ -17,6 +17,8 @@ const STATIC_OVERRIDES: Record<string, string> = {
     'simple.church.re.kr': 'church-simple',
     'hdbc.kr': 'church-hdbc',
     'www.hdbc.kr': 'church-hdbc',
+    'angple.com': 'corporate-landing',
+    'www.angple.com': 'corporate-landing',
 };
 
 /** DB에서 동적 서브도메인 → 테마 조회 (church_sites) */
@@ -56,6 +58,7 @@ const SITE_META: Record<string, { title: string; description: string; url: strin
     'muzia.io': { title: 'Muzia — 음악을 사랑하는 사람들의 커뮤니티', description: 'Muzia는 음악을 사랑하는 사람들의 커뮤니티입니다.', url: 'https://muzia.io' },
     'church.re.kr': { title: '처치레(ChurchRe) — 교회 홈페이지, 쉽고 빠르게', description: '월 1만원으로 교회 홈페이지를 만들어 드립니다. 10가지 테마, 설교 영상, 주보, 캘린더.', url: 'https://church.re.kr' },
     'hdbc.kr': { title: '흥덕침례교회 — 함께하는 은혜, 나누는 사랑', description: '흥덕침례교회에 오신 것을 환영합니다. 청주에서 하나님의 사랑을 나누는 공동체입니다.', url: 'https://hdbc.kr' },
+    'angple.com': { title: 'Angple — Open Source Community Platform Engine', description: 'Build any community with themes, plugins, and modern web technology. 24 themes, self-hosted, plugin-ready. Like WordPress, but for communities.', url: 'https://angple.com' },
 };
 
 /**
