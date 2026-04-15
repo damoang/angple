@@ -52,6 +52,30 @@
         catch { return {}; }
     }
 
+    /** 토큰 만료 확인 + 자동 리프레시 후 인증 헤더 반환 */
+    async function ensureAuth(): Promise<Record<string, string>> {
+        if (!browser) return {};
+        const token = localStorage.getItem('access_token');
+        if (!token) return {};
+        try {
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            if (payload.exp && payload.exp < Date.now() / 1000) {
+                // 만료 → 리프레시
+                const r = await fetch('/api/v2/auth/refresh', { method: 'POST', credentials: 'include' });
+                if (r.ok) {
+                    const d = await r.json();
+                    const newToken = d?.data?.access_token || d?.access_token;
+                    if (newToken) {
+                        localStorage.setItem('access_token', newToken);
+                        return { 'Authorization': `Bearer ${newToken}` };
+                    }
+                }
+                return {};
+            }
+        } catch {}
+        return { 'Authorization': `Bearer ${token}` };
+    }
+
     $effect(() => {
         loading = true;
         fetch(`/api/muzia/post?board=${boardId}&id=${postId}`, { headers: authHeaders() })
@@ -149,9 +173,11 @@
         if (!commentText.trim() || isSubmitting) return;
         isSubmitting = true;
         try {
+            const auth = await ensureAuth();
+            if (!auth['Authorization']) { alert('로그인이 필요합니다'); isSubmitting = false; return; }
             const r = await fetch('/api/muzia/comment', {
                 method: 'POST',
-                headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+                headers: { ...auth, 'Content-Type': 'application/json' },
                 body: JSON.stringify({ board_id: boardId, post_id: postId, content: commentText })
             });
             const d = await r.json();
@@ -167,9 +193,11 @@
         if (!replyText.trim() || replySubmitting || !replyTo) return;
         replySubmitting = true;
         try {
+            const auth = await ensureAuth();
+            if (!auth['Authorization']) { alert('로그인이 필요합니다'); replySubmitting = false; return; }
             const r = await fetch('/api/muzia/comment', {
                 method: 'POST',
-                headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+                headers: { ...auth, 'Content-Type': 'application/json' },
                 body: JSON.stringify({ board_id: boardId, post_id: postId, content: replyText, comment_id: replyTo.id })
             });
             const d = await r.json();
@@ -221,7 +249,12 @@
     }
 
     let currentUser = $state<{ mb_id: string; username: string; level: number } | null>(null);
-    $effect(() => { currentUser = getCurrentUser(); });
+    $effect(() => {
+        // 토큰 리프레시 후 사용자 정보 갱신
+        if (browser) {
+            ensureAuth().then(() => { currentUser = getCurrentUser(); });
+        }
+    });
 
     // 작성자 확인 (수정 버튼 표시용)
     const canEdit = $derived(
@@ -305,7 +338,9 @@
             <div class="flex items-center justify-center gap-6 border-t py-4">
                 <button class="flex items-center gap-2 rounded-lg px-4 py-2 text-sm transition-colors hover:bg-accent"
                     onclick={async () => {
-                        const r = await fetch('/api/muzia/good', { method:'POST', headers:{...authHeaders(),'Content-Type':'application/json'}, body:JSON.stringify({board_id:boardId,post_id:postId,type:'good'}) });
+                        const auth = await ensureAuth();
+                        if (!auth['Authorization']) { alert('로그인이 필요합니다'); return; }
+                        const r = await fetch('/api/muzia/good', { method:'POST', headers:{...auth,'Content-Type':'application/json'}, body:JSON.stringify({board_id:boardId,post_id:postId,type:'good'}) });
                         const d = await r.json();
                         if (d.success && post) { post = {...post, likes: d.data.likes, dislikes: d.data.dislikes}; }
                         else { alert((typeof d.error === 'object' ? d.error.message : d.error) || '추천 실패'); }
