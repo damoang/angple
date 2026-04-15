@@ -7,8 +7,6 @@
     import { browser } from '$app/environment';
     import { Button } from '$lib/components/ui/button';
     import MuziaAdSlot from './muzia-ad-slot.svelte';
-    import { authStore } from '$lib/stores/auth.svelte';
-
     interface Props { boardId: string; postId: string; }
     const { boardId, postId }: Props = $props();
 
@@ -210,10 +208,25 @@
 
     let avatarErrors = $state<Set<string>>(new Set());
 
+    // muzia JWT에서 현재 사용자 정보 추출
+    function getCurrentUser(): { mb_id: string; username: string; level: number } | null {
+        if (!browser) return null;
+        try {
+            const token = localStorage.getItem('access_token');
+            if (!token) return null;
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            if (payload.exp && payload.exp < Date.now() / 1000) return null;
+            return { mb_id: payload.username || payload.user_id, username: payload.username, level: payload.level || 0 };
+        } catch { return null; }
+    }
+
+    let currentUser = $state<{ mb_id: string; username: string; level: number } | null>(null);
+    $effect(() => { currentUser = getCurrentUser(); });
+
     // 작성자 확인 (수정 버튼 표시용)
     const canEdit = $derived(
-        post && authStore.user &&
-        (authStore.user.mb_id === post.author_id || (authStore.user.mb_level ?? 0) >= 10)
+        post && currentUser &&
+        (currentUser.mb_id === post.author_id || currentUser.level >= 10)
     );
 </script>
 
