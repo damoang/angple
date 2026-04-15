@@ -64,13 +64,9 @@
 </script>
 
 <svelte:head>
-    <title>Angple — Open Source Community Platform Engine</title>
+    <title>Corporate Landing - Powered by Angple</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="description" content="Build any community with themes, plugins, and modern web technology. The open-source platform engine for bulletin-board communities. Like WordPress, but for communities." />
-    <meta property="og:title" content="Angple — Build Communities, Not Infrastructure" />
-    <meta property="og:description" content="24 themes, plugin-ready, self-hosted. The open-source community platform engine." />
-    <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://angple.com" />
+    <meta name="description" content="Modern corporate landing page with community features" />
 </svelte:head>
 
 {#if isHomePage}

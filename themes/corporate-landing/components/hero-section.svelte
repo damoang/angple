@@ -1,65 +1,107 @@
 <script lang="ts">
-    import { browser } from '$app/environment';
-    let copied = $state(false);
-    function copyCommand() {
-        if (browser) navigator.clipboard.writeText('npx create-angple@latest');
-        copied = true;
-        setTimeout(() => copied = false, 2000);
-    }
+    import { onMount } from 'svelte';
+
+    /**
+     * Hero Section Component
+     *
+     * sdkcorp 디자인을 Svelte로 변환
+     * - 다크 그라디언트 배경
+     * - 그라디언트 텍스트 효과
+     * - CTA 버튼
+     * - 페이드인 애니메이션
+     */
+
+    // TODO: Phase 3에서 theme settings/blocks.json 연동
+    const companyName = 'SDK Corp.';
+    const subtitle =
+        '혁신적인 IT 솔루션과 대한민국 대표 커뮤니티를 운영하며 디지털 혁신을 선도합니다.';
+
+    const navigation = [
+        { name: 'About', href: '/about' },
+        { name: 'Projects', href: '/projects' },
+        { name: 'Services', href: '/services' },
+        { name: 'Contact', href: '/contact' }
+    ];
+
+    onMount(() => {
+        console.log('🚀 Hero Section 마운트됨');
+    });
 </script>
 
-<div class="relative flex min-h-screen w-full flex-col items-center justify-center px-4 text-center">
-    <!-- Nav -->
-    <nav class="fixed left-0 right-0 top-0 z-50 flex items-center justify-between px-6 py-4 backdrop-blur-md bg-black/30">
-        <span class="text-xl font-bold text-white">angple</span>
-        <div class="hidden items-center gap-6 text-sm text-zinc-400 md:flex">
-            <a href="#features" class="hover:text-white transition-colors">Features</a>
-            <a href="#showcase" class="hover:text-white transition-colors">Showcase</a>
-            <a href="#pricing" class="hover:text-white transition-colors">Pricing</a>
-            <a href="https://github.com/damoang/angple" target="_blank" rel="noopener" class="rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-1.5 text-white hover:bg-zinc-700 transition-colors">GitHub</a>
-        </div>
+<!-- 애니메이션은 제거하고 Tailwind만 사용 -->
+
+<!-- sdkcorp Hero Section 디자인 -->
+<div
+    class="relative flex min-h-screen w-screen flex-col items-center justify-center overflow-x-hidden bg-gradient-to-br from-black via-zinc-900/50 to-black"
+>
+    <!-- Background gradient mesh -->
+    <div
+        class="absolute inset-0 bg-gradient-to-br from-blue-600/10 via-transparent to-purple-600/10 opacity-50"
+    ></div>
+
+    <!-- Navigation -->
+    <nav class="z-10 my-16">
+        <ul class="flex items-center justify-center gap-6">
+            {#each navigation as item}
+                <a
+                    href={item.href}
+                    class="transform text-sm font-medium !text-zinc-400 transition-all duration-300 hover:scale-110 hover:!text-white"
+                >
+                    {item.name}
+                </a>
+            {/each}
+        </ul>
     </nav>
 
-    <!-- Badge -->
-    <span class="mb-6 rounded-full border border-zinc-700 bg-zinc-900/50 px-4 py-1.5 text-xs font-medium text-zinc-300 backdrop-blur">Open Source Community Platform</span>
+    <!-- Top divider -->
+    <div
+        class="hidden h-px w-screen bg-gradient-to-r from-transparent via-blue-500/50 to-transparent md:block"
+    ></div>
 
-    <!-- Divider -->
-    <div class="mb-8 h-px w-full max-w-md bg-gradient-to-r from-transparent via-teal-500/50 to-transparent hidden md:block"></div>
-
-    <!-- Headline -->
-    <h1 class="text-4xl font-bold text-white sm:text-6xl md:text-7xl lg:text-8xl">
-        Build Communities,<br />Not Infrastructure.
+    <!-- Main title with gradient -->
+    <h1
+        class="z-10 cursor-default whitespace-nowrap bg-gradient-to-r from-white via-blue-200 to-white bg-clip-text px-0.5 py-3.5 !text-5xl font-bold !text-transparent transition-all duration-1000 hover:from-blue-400 hover:via-white hover:to-blue-400 sm:!text-7xl md:!text-9xl"
+    >
+        {companyName}
     </h1>
 
-    <!-- Sub -->
-    <p class="mt-6 max-w-2xl text-lg text-zinc-400">
-        The open-source platform engine for bulletin-board communities.<br class="hidden sm:block" />
-        24 themes, plugin-ready, self-hosted. Like WordPress, but for communities.
-    </p>
+    <!-- Bottom divider -->
+    <div
+        class="hidden h-px w-screen bg-gradient-to-r from-transparent via-blue-500/50 to-transparent md:block"
+    ></div>
 
-    <!-- Divider -->
-    <div class="mt-8 h-px w-full max-w-md bg-gradient-to-r from-transparent via-teal-500/50 to-transparent hidden md:block"></div>
+    <!-- Subtitle -->
+    <div class="my-8 max-w-2xl px-6 text-center">
+        <h2 class="!text-lg leading-relaxed !text-zinc-300 md:!text-xl">
+            {subtitle}
+        </h2>
+    </div>
 
-    <!-- CTAs -->
-    <div class="mt-8 flex flex-wrap items-center justify-center gap-4">
-        <a href="https://github.com/damoang/angple" target="_blank" rel="noopener"
-            class="rounded-lg bg-teal-600 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-teal-600/25 transition-all hover:bg-teal-500 hover:scale-105">
-            Get Started
+    <!-- CTA Buttons -->
+    <div class="mt-8 flex gap-4">
+        <a
+            href="/services"
+            class="transform rounded-lg bg-blue-600 px-6 py-3 font-semibold !text-white shadow-lg shadow-blue-600/25 transition-all duration-300 hover:scale-105 hover:bg-blue-500"
+        >
+            서비스 알아보기
         </a>
-        <a href="https://damoang.net" target="_blank" rel="noopener"
-            class="rounded-lg border border-zinc-700 bg-zinc-800 px-6 py-3 text-sm font-semibold text-white transition-all hover:bg-zinc-700 hover:scale-105">
-            Live Demo
+        <a
+            href="/contact"
+            class="transform rounded-lg border border-zinc-700 bg-zinc-800 px-6 py-3 font-semibold !text-white transition-all duration-300 hover:scale-105 hover:bg-zinc-700"
+        >
+            문의하기
         </a>
     </div>
 
-    <!-- Code block -->
-    <button class="mt-8 flex items-center gap-3 rounded-xl border border-zinc-800 bg-zinc-900/80 px-5 py-3 font-mono text-sm text-zinc-300 transition-colors hover:border-zinc-600" onclick={copyCommand}>
-        <span class="text-teal-400">$</span> npx create-angple@latest
-        <span class="text-xs text-zinc-500">{copied ? 'Copied!' : 'Click to copy'}</span>
-    </button>
-
     <!-- Scroll indicator -->
     <div class="absolute bottom-8 animate-bounce">
-        <svg class="h-6 w-6 text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"/></svg>
+        <svg class="h-6 w-6 !text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width={2}
+                d="M19 14l-7 7m0 0l-7-7m7 7V3"
+            />
+        </svg>
     </div>
 </div>
