@@ -254,81 +254,25 @@
             "priority": 10
         },
         {
-            "id": "stats-bar",
-            "name": "Stats Bar",
+            "id": "services-section",
+            "name": "Services Section",
             "slot": "landing-content",
-            "path": "components/stats-bar.svelte",
-            "priority": 15
-        },
-        {
-            "id": "explainer-section",
-            "name": "Explainer Section",
-            "slot": "landing-content",
-            "path": "components/explainer-section.svelte",
+            "path": "components/services-section.svelte",
             "priority": 20
         },
         {
-            "id": "features-section",
-            "name": "Features Section",
+            "id": "projects-section",
+            "name": "Projects Section",
             "slot": "landing-content",
-            "path": "components/features-section.svelte",
-            "priority": 25
-        },
-        {
-            "id": "showcase-section",
-            "name": "Showcase Section",
-            "slot": "landing-content",
-            "path": "components/showcase-section.svelte",
+            "path": "components/projects-section.svelte",
             "priority": 30
         },
         {
-            "id": "use-cases-section",
-            "name": "Use Cases Section",
+            "id": "contact-section",
+            "name": "Contact Section",
             "slot": "landing-content",
-            "path": "components/use-cases-section.svelte",
-            "priority": 35
-        },
-        {
-            "id": "tech-stack-section",
-            "name": "Tech Stack Section",
-            "slot": "landing-content",
-            "path": "components/tech-stack-section.svelte",
+            "path": "components/contact-section.svelte",
             "priority": 40
-        },
-        {
-            "id": "getting-started-section",
-            "name": "Getting Started Section",
-            "slot": "landing-content",
-            "path": "components/getting-started-section.svelte",
-            "priority": 45
-        },
-        {
-            "id": "pricing-section",
-            "name": "Pricing Section",
-            "slot": "landing-content",
-            "path": "components/pricing-section.svelte",
-            "priority": 50
-        },
-        {
-            "id": "faq-section",
-            "name": "FAQ Section",
-            "slot": "landing-content",
-            "path": "components/faq-section.svelte",
-            "priority": 55
-        },
-        {
-            "id": "final-cta-section",
-            "name": "Final CTA Section",
-            "slot": "landing-content",
-            "path": "components/final-cta-section.svelte",
-            "priority": 60
-        },
-        {
-            "id": "footer-section",
-            "name": "Footer Section",
-            "slot": "landing-content",
-            "path": "components/footer-section.svelte",
-            "priority": 70
         }
     ],
     "hooks": [
