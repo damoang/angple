@@ -1,7 +1,6 @@
 <script lang="ts">
     import { browser } from '$app/environment';
     import { Button } from '$lib/components/ui/button';
-    import { page } from '$app/stores';
 
     interface Props { boardId: string; postId: string; }
     const { boardId, postId }: Props = $props();
@@ -10,8 +9,11 @@
     let content = $state('');
     let loading = $state(true);
     let saving = $state(false);
+    let uploading = $state(false);
     let error = $state('');
     let success = $state(false);
+    let fileInput: HTMLInputElement;
+    let contentArea: HTMLTextAreaElement;
 
     function authHeaders(): Record<string, string> {
         if (!browser) return {};
@@ -29,6 +31,32 @@
             .catch(() => error = '불러오기 실패')
             .finally(() => loading = false);
     });
+
+    async function uploadImage(e: Event) {
+        const input = e.target as HTMLInputElement;
+        const file = input.files?.[0];
+        if (!file) return;
+        uploading = true;
+        try {
+            const formData = new FormData();
+            formData.append('file', file);
+            const r = await fetch('/api/muzia/upload', { method: 'POST', headers: authHeaders(), body: formData });
+            const d = await r.json();
+            if (d.success && d.data?.url) {
+                // 커서 위치에 이미지 태그 삽입
+                const imgTag = `[${d.data.url}]`;
+                if (contentArea) {
+                    const start = contentArea.selectionStart;
+                    content = content.slice(0, start) + imgTag + content.slice(contentArea.selectionEnd);
+                } else {
+                    content += '\n' + imgTag;
+                }
+            } else {
+                alert(typeof d.error === 'object' ? d.error.message : (d.error || '업로드 실패'));
+            }
+        } catch { alert('업로드 실패'); }
+        finally { uploading = false; input.value = ''; }
+    }
 
     async function handleSave() {
         if (!title.trim()) { error = '제목을 입력해주세요'; return; }
@@ -75,8 +103,15 @@
                 </div>
                 <div class="mb-4">
                     <label class="mb-1 block text-sm font-medium">내용</label>
-                    <textarea bind:value={content} rows="15"
-                        class="w-full resize-y rounded-lg border bg-background px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-indigo-400"></textarea>
+                    <textarea bind:value={content} bind:this={contentArea} rows="15"
+                        class="w-full resize-y rounded-lg border bg-background px-4 py-3 font-mono text-sm outline-none focus:ring-2 focus:ring-indigo-400"></textarea>
+                    <div class="mt-2 flex items-center gap-2">
+                        <button class="rounded-lg border px-3 py-1.5 text-sm text-muted-foreground hover:bg-accent" onclick={() => fileInput?.click()}>
+                            {uploading ? '⏳ 업로드 중...' : '📷 이미지 첨부'}
+                        </button>
+                        <input type="file" accept="image/*" class="hidden" bind:this={fileInput} onchange={uploadImage} />
+                        <span class="text-xs text-muted-foreground">이미지를 첨부하면 [URL] 형태로 삽입됩니다</span>
+                    </div>
                 </div>
                 <div class="flex justify-end gap-2">
                     <a href="/{boardId}/{postId}">
