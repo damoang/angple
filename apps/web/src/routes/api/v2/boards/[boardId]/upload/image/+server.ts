@@ -5,9 +5,9 @@ import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
 
-// SvelteKit body 크기 제한 해제 (20MB)
+// SvelteKit body 크기 제한 (20MB, 바이트 단위)
 export const config = {
-    body: { maxSize: '20mb' }
+    body: { maxSize: 20971520 }
 };
 
 const UPLOAD_DIR = '/app/gnuboard-data/editor';
@@ -57,8 +57,9 @@ export const POST: RequestHandler = async ({ request, params }) => {
                 type: file.type
             }
         });
-    } catch (error) {
-        console.error('[Upload Image] error:', error);
-        return json({ success: false, error: { code: 'SERVER_ERROR', message: '업로드 실패' } }, { status: 500 });
+    } catch (error: any) {
+        console.error('[Upload Image] error:', error?.message || error);
+        const msg = error?.message?.includes('exceeds limit') ? '파일 크기가 너무 큽니다 (최대 20MB)' : '업로드 실패';
+        return json({ success: false, error: { code: 'SERVER_ERROR', message: msg } }, { status: 500 });
     }
 };

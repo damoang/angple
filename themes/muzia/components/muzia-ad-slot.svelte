@@ -53,6 +53,10 @@
     let hidden = $state(false);
     let adContainer: HTMLDivElement;
 
+    // 카카오 페이지당 4개 제한
+    let kakaoRenderedCount = 0;
+    const MAX_KAKAO_PER_PAGE = 4;
+
     // 모듈 레벨 스크립트 로딩
     let kakaoLoaded = false;
     let kakaoLoading: Promise<void> | null = null;
@@ -101,9 +105,11 @@
     }
 
     async function renderKakao(): Promise<boolean> {
+        if (kakaoRenderedCount >= MAX_KAKAO_PER_PAGE) return false;
         const config = AD_CONFIG[position].kakao;
         await loadKakaoScript();
         if (!adContainer) return false;
+        kakaoRenderedCount++;
 
         // 기존 ins 제거 후 새로 생성
         adContainer.innerHTML = '';
