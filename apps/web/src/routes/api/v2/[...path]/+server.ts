@@ -31,6 +31,33 @@ async function proxyRequest(
         });
     }
 
+    // 이미지 업로드 가로채기 (muzia 전용 — core 프록시 대신 직접 처리)
+    if (path.match(/^boards\/[^/]+\/upload\/image$/) && method === 'POST') {
+        try {
+            const { getUserFromRequest, getMbId } = await import('$lib/server/db/auth');
+            const crypto = await import('crypto');
+            const fs = await import('fs');
+            const pathMod = await import('path');
+            const user = getUserFromRequest(request);
+            if (!user) return new Response(JSON.stringify({ success: false, error: { code: 'UNAUTHORIZED', message: '로그인 필요' } }), { status: 401, headers: { 'Content-Type': 'application/json' } });
+            const formData = await request.formData();
+            const file = formData.get('file') as File | null;
+            if (!file || !file.size) return new Response(JSON.stringify({ success: false, error: { code: 'BAD_REQUEST', message: '파일 없음' } }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+            const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg';
+            const dateDir = new Date().toISOString().slice(0, 7).replace('-', '');
+            const fileName = `cmt_${Date.now()}_${crypto.randomBytes(4).toString('hex')}.${ext}`;
+            const UPLOAD_DIR = '/app/gnuboard-data/editor';
+            const dirPath = pathMod.join(UPLOAD_DIR, dateDir);
+            if (!fs.existsSync(dirPath)) fs.mkdirSync(dirPath, { recursive: true });
+            fs.writeFileSync(pathMod.join(dirPath, fileName), Buffer.from(await file.arrayBuffer()));
+            const fileUrl = `https://muzia.net/data/editor/${dateDir}/${fileName}`;
+            return new Response(JSON.stringify({ success: true, data: { url: fileUrl, filename: fileName, size: file.size } }), { headers: { 'Content-Type': 'application/json' } });
+        } catch (e: any) {
+            console.error('[Upload via Proxy] error:', e?.message);
+            return new Response(JSON.stringify({ success: false, error: { code: 'SERVER_ERROR', message: '업로드 실패' } }), { status: 500, headers: { 'Content-Type': 'application/json' } });
+        }
+    }
+
     // v2 boards/posts → v1로 리라이팅 (v2 스키마 미지원 시)
     const isV1Board = path.startsWith('boards/') && !path.startsWith('boards/create');
     const apiVersion = isV1Board ? 'v1' : 'v2';
