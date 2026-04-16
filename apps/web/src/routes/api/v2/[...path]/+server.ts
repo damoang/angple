@@ -41,7 +41,7 @@ async function proxyRequest(
             const user = getUserFromRequest(request);
             if (!user) return new Response(JSON.stringify({ success: false, error: { code: 'UNAUTHORIZED', message: '로그인 필요' } }), { status: 401, headers: { 'Content-Type': 'application/json' } });
             const formData = await request.formData();
-            const file = formData.get('file') as File | null;
+            const file = (formData.get('image') || formData.get('file')) as File | null;
             if (!file || !file.size) return new Response(JSON.stringify({ success: false, error: { code: 'BAD_REQUEST', message: '파일 없음' } }), { status: 400, headers: { 'Content-Type': 'application/json' } });
             const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg';
             const dateDir = new Date().toISOString().slice(0, 7).replace('-', '');
