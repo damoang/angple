@@ -166,37 +166,7 @@
             <meta property="og:site_name" content="뮤지아(Muzia)" />
             <meta property="og:image" content="https://muzia.net/logo-muzia.png" />
             <meta property="og:locale" content="ko_KR" />
-            <script type="application/ld+json">
-            {JSON.stringify({
-                "@context": "https://schema.org",
-                "@graph": [
-                    {
-                        "@type": "Organization",
-                        "@id": "https://muzia.net/#organization",
-                        "name": "뮤지아",
-                        "alternateName": ["Muzia", "musia", "abwldk", "뮤지아닷넷"],
-                        "url": "https://muzia.net",
-                        "logo": {"@type": "ImageObject", "url": "https://muzia.net/logo-muzia.png"},
-                        "foundingDate": "2002-03-15",
-                        "description": "2002년 취미로 시작하여 24년간 운영해온 대한민국 대표 음악 커뮤니티. 시벨리우스, 피날레, 도리코 등 악보사보 프로그램 전문.",
-                        "contactPoint": {"@type": "ContactPoint", "email": "help@muzia.net", "contactType": "customer service"}
-                    },
-                    {
-                        "@type": "WebSite",
-                        "@id": "https://muzia.net/#website",
-                        "name": "뮤지아(Muzia)",
-                        "url": "https://muzia.net",
-                        "publisher": {"@id": "https://muzia.net/#organization"},
-                        "potentialAction": {"@type": "SearchAction", "target": "https://muzia.net/search?q={search_term_string}", "query-input": "required name=search_term_string"}
-                    },
-                    {
-                        "@type": "SiteNavigationElement",
-                        "name": ["Q&A", "포럼", "음악", "시벨리우스", "도리코", "바이올린", "출석부"],
-                        "url": ["https://muzia.net/qna", "https://muzia.net/forum", "https://muzia.net/music", "https://muzia.net/sibelius", "https://muzia.net/dorico", "https://muzia.net/violin", "https://muzia.net/attendance"]
-                    }
-                ]
-            })}
-            </script>
+            {@html `<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"Organization","@id":"https://muzia.net/#organization","name":"뮤지아","alternateName":["Muzia","musia","abwldk","뮤지아닷넷"],"url":"https://muzia.net","logo":{"@type":"ImageObject","url":"https://muzia.net/logo-muzia.png"},"foundingDate":"2002-03-15","description":"2002년 취미로 시작하여 24년간 운영해온 대한민국 대표 음악 커뮤니티. 시벨리우스, 피날레, 도리코 등 악보사보 프로그램 전문.","contactPoint":{"@type":"ContactPoint","email":"help@muzia.net","contactType":"customer service"}},{"@type":"WebSite","@id":"https://muzia.net/#website","name":"뮤지아(Muzia)","url":"https://muzia.net","publisher":{"@id":"https://muzia.net/#organization"},"potentialAction":{"@type":"SearchAction","target":"https://muzia.net/search?q={search_term_string}","query-input":"required name=search_term_string"}},{"@type":"SiteNavigationElement","name":["Q&A","포럼","음악","시벨리우스","도리코","바이올린","출석부"],"url":["https://muzia.net/qna","https://muzia.net/forum","https://muzia.net/music","https://muzia.net/sibelius","https://muzia.net/dorico","https://muzia.net/violin","https://muzia.net/attendance"]}]}</script>`}
         {/if}
     {/if}
     <meta name="viewport" content="width=device-width, initial-scale=1" />
