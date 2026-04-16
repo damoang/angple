@@ -11,6 +11,7 @@
     import MuziaAdSlot from '../components/muzia-ad-slot.svelte';
     import MuziaForgotPassword from '../components/muzia-forgot-password.svelte';
     import MuziaResetPassword from '../components/muzia-reset-password.svelte';
+    import MuziaLinkAccount from '../components/muzia-link-account.svelte';
 
     interface Props {
         children: Snippet;
@@ -23,6 +24,7 @@
     const isAttendancePage = $derived(pathname === '/attendance');
     const isForgotPassword = $derived(pathname === '/forgot-password');
     const isResetPassword = $derived(pathname === '/reset-password');
+    const isLinkAccount = $derived(pathname === '/link-account');
 
     // 차단된 게시판 (정책 위반 콘텐츠)
     const blockedBoards = ['black', 'archive', 'cp_qna', 'cp_forum', 'cp_forum2', 'piano'];
@@ -361,6 +363,8 @@
                 <MuziaForgotPassword />
             {:else if isResetPassword}
                 <MuziaResetPassword />
+            {:else if isLinkAccount}
+                <MuziaLinkAccount />
             {:else if contentPageId}
                 <MuziaContentPage contentId={contentPageId} />
             {:else if isPostDetail}
