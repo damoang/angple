@@ -444,6 +444,17 @@
                 });
         }
 
+        // 플러그인 hooks/components 지연 로드 (SSR에서는 빈 배열로 전달하여 __data.json 축소)
+        if ((data.activePlugins?.length ?? 0) > 0) {
+            fetch('/api/layout/hooks')
+                .then((res) => (res.ok ? res.json() : null))
+                .then((payload: { activePlugins?: typeof data.activePlugins } | null) => {
+                    if (!payload?.activePlugins?.length) return;
+                    pluginStore.initFromServer(payload.activePlugins);
+                })
+                .catch(() => {});
+        }
+
         // 부분 layout 데이터 로드 (banners, celebration, plugins, GA4)
         // SSR payload에서 분리하여 __data.json 바이트 절감
         const cachedLayoutInit = readLayoutInitCache();

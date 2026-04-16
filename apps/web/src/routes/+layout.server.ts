@@ -88,9 +88,9 @@ export const load: LayoutServerLoad = async ({
                   id: p.manifest.id,
                   name: p.manifest.name,
                   version: p.manifest.version,
-                  hooks: p.manifest.hooks || [],
-                  components: p.manifest.components || [],
-                  settings: p.currentSettings || {}
+                  hooks: [],
+                  components: [],
+                  settings: p.currentSettings || null
               }))
             : [];
 
