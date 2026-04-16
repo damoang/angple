@@ -1,10 +1,14 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { getUserFromRequest, getMbId } from '$lib/server/db/auth';
-import { getConnection } from '$lib/server/db/mysql';
 import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
+
+// SvelteKit body 크기 제한 해제 (20MB)
+export const config = {
+    body: { maxSize: '20mb' }
+};
 
 const UPLOAD_DIR = '/app/gnuboard-data/editor';
 
