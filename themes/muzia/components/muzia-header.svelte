@@ -73,13 +73,17 @@
         catch { return {}; }
     }
 
+    let notiStopped = false;
     async function loadUnreadCount() {
-        if (!authStore.isAuthenticated) return;
+        if (!authStore.isAuthenticated || notiStopped) return;
+        const headers = authHeaders();
+        if (!headers['Authorization']) { notiStopped = true; return; }
         try {
-            const r = await fetch('/api/muzia/notifications?action=unread-count', { headers: authHeaders() });
+            const r = await fetch('/api/muzia/notifications?action=unread-count', { headers });
+            if (r.status === 401 || r.status === 403) { notiStopped = true; return; }
             const d = await r.json();
             if (d.total_unread !== undefined) unreadCount = d.total_unread;
-        } catch {}
+        } catch { notiStopped = true; }
     }
 
     async function loadNotifications() {
