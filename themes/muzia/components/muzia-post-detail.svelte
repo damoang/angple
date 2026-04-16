@@ -143,12 +143,25 @@
         return html.replace(/@([a-zA-Z0-9_가-힣]+)/g, '<span class="text-indigo-600 dark:text-indigo-400 font-medium">@$1</span>');
     }
 
+    /** iframe/embed를 반응형으로 변환 */
+    function makeResponsive(html: string): string {
+        // width/height 하드코딩된 iframe을 반응형으로
+        return html
+            .replace(/<iframe([^>]*)\s+width=["']?\d+["']?([^>]*)\s+height=["']?\d+["']?/gi,
+                '<iframe$1$2 style="max-width:100%;width:100%;aspect-ratio:16/9"')
+            .replace(/<iframe([^>]*)\s+height=["']?\d+["']?([^>]*)\s+width=["']?\d+["']?/gi,
+                '<iframe$1$2 style="max-width:100%;width:100%;aspect-ratio:16/9"')
+            // width만 있는 img/embed도 처리
+            .replace(/(<(?:img|embed|video|object)[^>]*)\s+width=["']?\d+["']?/gi, '$1 style="max-width:100%;height:auto"');
+    }
+
     function processContent(html: string): string {
         if (!html) return '';
         let result = html;
         result = convertBracketImages(result);
         result = convertEmoji(result);
         result = highlightMentions(result);
+        result = makeResponsive(result);
         return result;
     }
 
