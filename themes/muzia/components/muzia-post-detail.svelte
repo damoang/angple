@@ -155,9 +155,15 @@
             .replace(/(<(?:img|embed|video|object)[^>]*)\s+width=["']?\d+["']?/gi, '$1 style="max-width:100%;height:auto"');
     }
 
+    /** 이스케이프된 iframe 코드 블록 제거 (YouTube는 별도 임베드로 표시) */
+    function removeEscapedIframes(html: string): string {
+        return html.replace(/<pre><code>&lt;iframe[^]*?&lt;\/iframe&gt;<\/code><\/pre>/gi, '');
+    }
+
     function processContent(html: string): string {
         if (!html) return '';
         let result = html;
+        result = removeEscapedIframes(result);
         result = convertBracketImages(result);
         result = convertEmoji(result);
         result = highlightMentions(result);
