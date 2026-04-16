@@ -12,6 +12,7 @@
     import MuziaForgotPassword from '../components/muzia-forgot-password.svelte';
     import MuziaResetPassword from '../components/muzia-reset-password.svelte';
     import MuziaLinkAccount from '../components/muzia-link-account.svelte';
+    import MuziaEditPost from '../components/muzia-edit-post.svelte';
 
     interface Props {
         children: Snippet;
@@ -47,6 +48,17 @@
         return null;
     });
     const isPostDetail = $derived(postMatch() !== null);
+
+    // 게시글 수정 감지: /boardId/postId/edit
+    const editMatch = $derived(() => {
+        const parts = pathname.split('/').filter(Boolean);
+        if (parts.length === 3 && /^\d+$/.test(parts[1]) && parts[2] === 'edit') {
+            return { boardId: parts[0], postId: parts[1] };
+        }
+        return null;
+    });
+    const isEditPost = $derived(editMatch() !== null);
+
     let mobileAdClosed = $state(false);
 
     // 타이틀에서 "다모앙" → "뮤지아" 교체 (CSR에서 실행)
@@ -396,6 +408,11 @@
                 <MuziaLinkAccount />
             {:else if contentPageId}
                 <MuziaContentPage contentId={contentPageId} />
+            {:else if isEditPost}
+                {@const match = editMatch()}
+                {#if match}
+                    <MuziaEditPost boardId={match.boardId} postId={match.postId} />
+                {/if}
             {:else if isPostDetail}
                 {@const match = postMatch()}
                 {#if match}
