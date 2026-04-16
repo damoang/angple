@@ -96,11 +96,17 @@
         });
     }
 
+    /** @멘션 하이라이트 */
+    function highlightMentions(html: string): string {
+        return html.replace(/@([a-zA-Z0-9_가-힣]+)/g, '<span class="text-indigo-600 dark:text-indigo-400 font-medium">@$1</span>');
+    }
+
     function processContent(html: string): string {
         if (!html) return '';
         let result = html;
         result = convertBracketImages(result);
         result = convertEmoji(result);
+        result = highlightMentions(result);
         return result;
     }
 

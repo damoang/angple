@@ -2,6 +2,7 @@ import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { getConnection } from '$lib/server/db/mysql';
 import { getUserFromRequest, getMbId } from '$lib/server/db/auth';
+import { createNotification } from '$lib/server/db/notification';
 
 /** POST /api/muzia/good — 게시글 추천/비추천 */
 export const POST: RequestHandler = async ({ request }) => {
@@ -49,6 +50,28 @@ export const POST: RequestHandler = async ({ request }) => {
             'SELECT wr_good as likes, wr_nogood as dislikes FROM `' + tableName + '` WHERE wr_id = ?',
             [post_id]
         ) as any;
+
+        // 추천 알림 (good만)
+        if (goodType === 'good') {
+            try {
+                const [postRows] = await conn.query(
+                    'SELECT mb_id, wr_subject FROM `' + tableName + '` WHERE wr_id = ? AND wr_is_comment = 0', [post_id]
+                ) as any;
+                if (postRows[0]?.mb_id) {
+                    const [senderRows] = await conn.query('SELECT mb_nick FROM g5_member WHERE mb_id = ?', [getMbId(user)]) as any;
+                    const senderNick = senderRows[0]?.mb_nick || getMbId(user);
+                    await createNotification(conn, {
+                        mb_id: postRows[0].mb_id,
+                        type: 'like',
+                        sender_id: getMbId(user),
+                        sender_name: senderNick,
+                        title: `${senderNick}님이 "${postRows[0].wr_subject}" 글을 추천했습니다`,
+                        content: '',
+                        url: `/${board_id}/${post_id}`,
+                    });
+                }
+            } catch {}
+        }
 
         conn.release();
         return json({ success: true, data: { type: goodType, likes: counts[0]?.likes || 0, dislikes: counts[0]?.dislikes || 0 } });
