@@ -613,12 +613,15 @@
     async function handleImageFileFromDialog(e: Event): Promise<void> {
         const input = e.currentTarget as HTMLInputElement;
         const files = input.files;
-        if (!files?.length) return;
+        if (!files?.length || !editor) return;
+
+        let insertPos = editor.state.selection.from;
 
         for (const file of Array.from(files)) {
             if (isImageFile(file)) {
                 try {
-                    await handleImageFile(file);
+                    await handleImageFileAtPosition(file, insertPos);
+                    insertPos += 1;
                 } catch (e) {
                     console.error('이미지 업로드 실패:', file.name, e);
                 }
@@ -637,12 +640,15 @@
         e.preventDefault();
         imageDialogDragOver = false;
         const files = e.dataTransfer?.files;
-        if (!files?.length) return;
+        if (!files?.length || !editor) return;
+
+        let insertPos = editor.state.selection.from;
 
         for (const file of Array.from(files)) {
             if (isImageFile(file)) {
                 try {
-                    await handleImageFile(file);
+                    await handleImageFileAtPosition(file, insertPos);
+                    insertPos += 1;
                 } catch (e) {
                     console.error('이미지 업로드 실패:', file.name, e);
                 }
