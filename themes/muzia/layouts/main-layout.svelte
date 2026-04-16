@@ -49,12 +49,15 @@
     const isPostDetail = $derived(postMatch() !== null);
     let mobileAdClosed = $state(false);
 
-    // 타이틀에서 "다모앙" → "Muzia" 교체
+    // 타이틀에서 "다모앙" → "뮤지아" 교체 (CSR에서 실행)
     $effect(() => {
         if (typeof document !== 'undefined') {
             const t = document.title;
-            if (t && t.includes('다모앙')) {
-                document.title = t.replace(/다모앙/g, 'Muzia');
+            if (t && (t.includes('다모앙') || t.includes('Angple'))) {
+                document.title = t
+                    .replace(/\| 다모앙$/g, '| 뮤지아(Muzia)')
+                    .replace(/다모앙/g, '뮤지아(Muzia)')
+                    .replace(/Angple/g, '뮤지아(Muzia)');
             }
         }
     });
