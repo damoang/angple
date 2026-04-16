@@ -54,8 +54,8 @@ async function getChurchTheme(hostname: string): Promise<string | null> {
 
 /** 도메인별 SEO 메타데이터 */
 const SITE_META: Record<string, { title: string; description: string; url: string }> = {
-    'muzia.net': { title: 'Muzia — 음악을 사랑하는 사람들의 커뮤니티', description: 'Muzia는 음악을 사랑하는 사람들의 커뮤니티입니다. 시벨리우스, 피날레, 악보, 음악 토론, 설교 영상 등을 제공합니다.', url: 'https://muzia.net' },
-    'muzia.io': { title: 'Muzia — 음악을 사랑하는 사람들의 커뮤니티', description: 'Muzia는 음악을 사랑하는 사람들의 커뮤니티입니다.', url: 'https://muzia.io' },
+    'muzia.net': { title: '뮤지아(Muzia) — 음악을 사랑하는 사람들의 커뮤니티 | Since 2002', description: '뮤지아(Muzia)는 2002년부터 이어져 온 대한민국 대표 음악 커뮤니티. 시벨리우스, 피날레, 도리코 등 악보사보 프로그램 전문. 작곡, 편곡, MIDI, 음악 이론.', url: 'https://muzia.net' },
+    'muzia.io': { title: '뮤지아(Muzia) — 음악을 사랑하는 사람들의 커뮤니티 | Since 2002', description: '뮤지아(Muzia)는 2002년부터 이어져 온 대한민국 대표 음악 커뮤니티.', url: 'https://muzia.io' },
     'church.re.kr': { title: '처치레(ChurchRe) — 교회 홈페이지, 쉽고 빠르게', description: '월 1만원으로 교회 홈페이지를 만들어 드립니다. 10가지 테마, 설교 영상, 주보, 캘린더.', url: 'https://church.re.kr' },
     'hdbc.kr': { title: '흥덕침례교회 — 함께하는 은혜, 나누는 사랑', description: '흥덕침례교회에 오신 것을 환영합니다. 청주에서 하나님의 사랑을 나누는 공동체입니다.', url: 'https://hdbc.kr' },
     'angple.com': { title: 'Angple — Open Source Community Platform Engine', description: 'Build any community with themes, plugins, and modern web technology. 24 themes, self-hosted, plugin-ready. Like WordPress, but for communities.', url: 'https://angple.com' },
