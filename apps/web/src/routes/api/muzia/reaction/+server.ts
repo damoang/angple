@@ -2,6 +2,7 @@ import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { getConnection, getPool } from '$lib/server/db/mysql';
 import { getUserFromRequest, getMbId } from '$lib/server/db/auth';
+import { createNotification } from '$lib/server/db/notification';
 
 const EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🔥'];
 
@@ -79,6 +80,37 @@ export const POST: RequestHandler = async ({ request }) => {
                 'INSERT INTO g5_da_reaction (target_id, parent_id, reaction, reaction_count) VALUES (?, ?, ?, 1) ON DUPLICATE KEY UPDATE reaction_count = reaction_count + 1',
                 [target_id, parent_id || '', reaction]
             );
+            // 리액션 알림 (추가 시에만)
+            try {
+                // target_id 파싱: document:{board}:{id} 또는 comment:{board}:{id}
+                const parts = target_id.split(':');
+                if (parts.length >= 3) {
+                    const [targetType, boardId, targetPostId] = parts;
+                    const tableName = 'g5_write_' + boardId;
+                    const [targetRows] = await conn.query(
+                        'SELECT mb_id, wr_subject, wr_parent FROM `' + tableName + '` WHERE wr_id = ?', [targetPostId]
+                    ) as any;
+                    if (targetRows[0]?.mb_id) {
+                        const [senderRows] = await conn.query('SELECT mb_nick FROM g5_member WHERE mb_id = ?', [mbId]) as any;
+                        const senderNick = senderRows[0]?.mb_nick || mbId;
+                        const label = targetType === 'comment' ? '댓글' : '글';
+                        // 댓글이면 부모 게시글 ID 찾기
+                        let postId = targetPostId;
+                        if (targetType === 'comment') {
+                            postId = String(targetRows[0]?.wr_parent || targetPostId);
+                        }
+                        await createNotification(conn, {
+                            mb_id: targetRows[0].mb_id,
+                            type: 'like',
+                            sender_id: mbId,
+                            sender_name: senderNick,
+                            title: `${senderNick}님이 회원님의 ${label}에 ${reaction} 리액션했습니다`,
+                            content: '',
+                            url: `/${boardId}/${postId}`,
+                        });
+                    }
+                }
+            } catch {}
         }
 
         // 현재 상태 반환
