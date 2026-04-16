@@ -186,10 +186,10 @@
 </script>
 
 {#if !hidden}
-    <div class="muzia-ad-slot flex items-center justify-center {className}"
+    <div class="muzia-ad-slot flex items-center justify-center overflow-hidden {className}"
          class:my-4={!['sidebar', 'left-wing', 'right-wing', 'mobile-bottom'].includes(position)}
          class:mt-4={position === 'sidebar'}
-         style="min-height:{config.kakao.height}px"
+         style="min-height:{config.kakao.height}px;max-width:100%"
          bind:this={adContainer}>
     </div>
 {/if}

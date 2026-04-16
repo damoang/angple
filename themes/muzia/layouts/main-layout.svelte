@@ -270,6 +270,32 @@
             font-size: 18px !important;
         }
 
+        /* 모바일 가로 스크롤 방지 */
+        .muzia-theme {
+            overflow-x: hidden;
+            max-width: 100vw;
+        }
+
+        .muzia-theme .prose {
+            overflow-x: auto;
+        }
+
+        .muzia-theme .prose img {
+            max-width: 100% !important;
+            height: auto !important;
+        }
+
+        .muzia-theme .prose table {
+            display: block;
+            overflow-x: auto;
+            max-width: 100%;
+        }
+
+        .muzia-theme .prose pre {
+            overflow-x: auto;
+            max-width: 100%;
+        }
+
         /* 다크 모드 전역 색상 강제 */
         .dark body, .dark .muzia-theme {
             color: #e8e8e8;
