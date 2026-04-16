@@ -52,6 +52,46 @@
         catch { return {}; }
     }
 
+    // 리액션
+    const reactionEmojis = ['👍', '❤️', '😂', '😮', '😢', '🔥'];
+    let postReactions = $state<Record<string, number>>({});
+    let myPostReactions = $state<string[]>([]);
+
+    async function loadReactions(targetId: string) {
+        try {
+            const mbId = currentUser?.mb_id || '';
+            const r = await fetch(`/api/muzia/reaction?target_id=${targetId}&mb_id=${mbId}`);
+            const d = await r.json();
+            if (d.success) {
+                postReactions = {};
+                for (const r of d.data.reactions as any[]) postReactions[r.reaction] = r.reaction_count;
+                myPostReactions = d.data.myReactions || [];
+            }
+        } catch {}
+    }
+
+    async function toggleReaction(targetId: string, emoji: string) {
+        const auth = await ensureAuth();
+        if (!auth['Authorization']) { alert('로그인이 필요합니다'); return; }
+        try {
+            const r = await fetch('/api/muzia/reaction', {
+                method: 'POST',
+                headers: { ...auth, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ target_id: targetId, parent_id: '', reaction: emoji })
+            });
+            const d = await r.json();
+            if (d.success) {
+                postReactions = {};
+                for (const r of d.data.reactions as any[]) postReactions[r.reaction] = r.reaction_count;
+                if (d.data.toggled === 'added') {
+                    if (!myPostReactions.includes(emoji)) myPostReactions = [...myPostReactions, emoji];
+                } else {
+                    myPostReactions = myPostReactions.filter(e => e !== emoji);
+                }
+            }
+        } catch {}
+    }
+
     /** 토큰 만료 확인 + 자동 리프레시 후 인증 헤더 반환 */
     async function ensureAuth(): Promise<Record<string, string>> {
         if (!browser) return {};
@@ -70,6 +110,8 @@
                     post = d.data.post;
                     comments = d.data.comments;
                     files = d.data.files;
+                    // 리액션 로드
+                    loadReactions(`document:${boardId}:${postId}`);
                 } else { error = typeof d.error === 'object' ? d.error.message : d.error; }
             })
             .catch(() => error = '게시글을 불러올 수 없습니다')
@@ -339,6 +381,26 @@
                     👍 추천 <span class="font-bold">{post.likes}</span>
                 </button>
             </div>
+
+            <!-- 리액션 바 -->
+            {#if post}
+                {@const targetId = `document:${boardId}:${postId}`}
+                <div class="border-t px-4 py-3">
+                    <div class="flex flex-wrap items-center justify-center gap-2">
+                        {#each reactionEmojis as emoji}
+                            {@const count = postReactions[emoji] || 0}
+                            {@const isActive = myPostReactions.includes(emoji)}
+                            <button
+                                class="flex items-center gap-1 rounded-full border px-3 py-1.5 text-sm transition-all {isActive ? 'border-indigo-300 bg-indigo-50 dark:border-indigo-700 dark:bg-indigo-950' : 'border-transparent hover:bg-accent'}"
+                                onclick={() => toggleReaction(targetId, emoji)}
+                            >
+                                <span>{emoji}</span>
+                                {#if count > 0}<span class="text-xs font-medium text-muted-foreground">{count}</span>{/if}
+                            </button>
+                        {/each}
+                    </div>
+                </div>
+            {/if}
         </div>
 
         <!-- 광고: 본문과 댓글 사이 -->
