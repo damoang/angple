@@ -88,8 +88,8 @@ export const load: LayoutServerLoad = async ({
                   id: p.manifest.id,
                   name: p.manifest.name,
                   version: p.manifest.version,
-                  hooks: isDataRequest ? [] : p.manifest.hooks || [],
-                  components: isDataRequest ? [] : p.manifest.components || [],
+                  hooks: p.manifest.hooks || [],
+                  components: p.manifest.components || [],
                   settings: p.currentSettings || {}
               }))
             : [];
@@ -128,7 +128,7 @@ export const load: LayoutServerLoad = async ({
         // logoData: previews 제거 (SSR 불필요), schedules는 header 로고에서 사용
         logoData: {
             active: logoData.active,
-            schedules: isDataRequest ? [] : (logoData.schedules ?? []),
+            schedules: logoData.schedules ?? [],
             requestLocale: logoData.requestLocale,
             requestTimeZone: logoData.requestTimeZone
         }
