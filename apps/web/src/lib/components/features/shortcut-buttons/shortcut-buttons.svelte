@@ -21,7 +21,7 @@
         large: 'h-5 w-5'
     };
 
-    let hidden = $state(false);
+    let dimmed = $state(false);
 
     function handleFocusIn(e: FocusEvent) {
         const el = e.target;
@@ -34,7 +34,7 @@
                 el.contentEditable === 'true'
             ) {
                 queueMicrotask(() => {
-                    hidden = true;
+                    dimmed = true;
                 });
             }
         }
@@ -42,7 +42,7 @@
 
     function handleFocusOut() {
         queueMicrotask(() => {
-            hidden = false;
+            dimmed = false;
         });
     }
 
@@ -60,9 +60,11 @@
     let favorites = $derived(boardFavoritesStore.normalSlots.slice(0, 5));
 </script>
 
-{#if browser && uiSettingsStore.showShortcutButtons && !hidden}
+{#if browser && uiSettingsStore.showShortcutButtons}
     <nav
-        class="border-border bg-background/95 fixed bottom-[4.5rem] left-1/2 z-40 flex -translate-x-1/2 items-center gap-1 rounded-full border px-2 py-1.5 shadow-lg backdrop-blur-sm md:bottom-4"
+        class="border-border bg-background/95 fixed bottom-[4.5rem] left-1/2 z-40 flex -translate-x-1/2 items-center gap-1 rounded-full border px-2 py-1.5 shadow-lg backdrop-blur-sm transition-opacity duration-200 md:bottom-4 {dimmed
+            ? 'pointer-events-none opacity-30'
+            : 'opacity-100'}"
         aria-label="단축 버튼"
     >
         <!-- 고정 버튼: 홈 -->
