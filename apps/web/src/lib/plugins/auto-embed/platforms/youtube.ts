@@ -44,7 +44,7 @@ export const youtube: EmbedPlatform = {
                     id: videoId,
                     url,
                     aspectRatio: isShorts ? 177.78 : 56.25, // 9:16 vs 16:9
-                    maxWidth: isShorts ? 400 : undefined,
+                    maxWidth: isShorts ? 400 : 560,
                     params: Object.keys(params).length > 0 ? params : undefined
                 };
             }
