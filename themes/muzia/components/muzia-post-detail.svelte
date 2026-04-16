@@ -57,22 +57,7 @@
         if (!browser) return {};
         const token = localStorage.getItem('access_token');
         if (!token) return {};
-        try {
-            const payload = JSON.parse(atob(token.split('.')[1]));
-            if (payload.exp && payload.exp < Date.now() / 1000) {
-                // 만료 → 리프레시
-                const r = await fetch('/api/v2/auth/refresh', { method: 'POST', credentials: 'include' });
-                if (r.ok) {
-                    const d = await r.json();
-                    const newToken = d?.data?.access_token || d?.access_token;
-                    if (newToken) {
-                        localStorage.setItem('access_token', newToken);
-                        return { 'Authorization': `Bearer ${newToken}` };
-                    }
-                }
-                return {};
-            }
-        } catch {}
+        // 토큰이 있으면 바로 반환 (만료 체크는 서버에서)
         return { 'Authorization': `Bearer ${token}` };
     }
 

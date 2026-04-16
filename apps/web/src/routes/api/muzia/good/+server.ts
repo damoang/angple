@@ -6,7 +6,11 @@ import { getUserFromRequest, getMbId } from '$lib/server/db/auth';
 /** POST /api/muzia/good — 게시글 추천/비추천 */
 export const POST: RequestHandler = async ({ request }) => {
     const user = getUserFromRequest(request);
-    if (!user) return json({ success: false, error: '로그인 필요' }, { status: 401 });
+    if (!user) {
+        const auth = request.headers.get('authorization');
+        console.error('[Good] Auth failed. Header:', auth ? 'Bearer ...' + auth.slice(-10) : 'NONE');
+        return json({ success: false, error: '로그인이 필요합니다. 새로고침 후 다시 시도해주세요.' }, { status: 401 });
+    }
 
     const conn = await getConnection();
     try {
