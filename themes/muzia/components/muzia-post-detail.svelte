@@ -376,9 +376,9 @@
                         const r = await fetch('/api/muzia/good', { method:'POST', headers:{...auth,'Content-Type':'application/json'}, body:JSON.stringify({board_id:boardId,post_id:postId,type:'good'}) });
                         const d = await r.json();
                         if (d.success && post) { post = {...post, likes: d.data.likes, dislikes: d.data.dislikes}; }
-                        else { alert((typeof d.error === 'object' ? d.error.message : d.error) || '추천 실패'); }
+                        else { alert((typeof d.error === 'object' ? d.error.message : d.error) || '공감 실패'); }
                     }}>
-                    👍 추천 <span class="font-bold">{post.likes}</span>
+                    ❤️ 공감 <span class="font-bold">{post.likes}</span>
                 </button>
             </div>
 
@@ -437,9 +437,13 @@
                         </div>
                         <div class="mt-1 flex items-center gap-3">
                             {#if c.likes > 0}
-                                <span class="text-xs text-muted-foreground">👍 {c.likes}</span>
+                                <span class="text-xs text-muted-foreground">❤️ {c.likes}</span>
                             {/if}
                             <button class="text-xs text-muted-foreground hover:text-indigo-500" onclick={() => startReply(c)}>답글</button>
+                            <!-- 댓글 리액션 (간소화) -->
+                            {#each ['❤️', '😂', '👍'] as emoji}
+                                <button class="text-xs opacity-50 hover:opacity-100 transition-opacity" onclick={() => toggleReaction(`comment:${boardId}:${c.id}`, emoji)}>{emoji}</button>
+                            {/each}
                         </div>
 
                         <!-- 인라인 답글 입력 -->
