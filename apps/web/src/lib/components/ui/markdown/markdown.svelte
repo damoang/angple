@@ -248,26 +248,6 @@
     let proseEl: HTMLDivElement;
 
     onMount(() => {
-        // Twitter 공식 widgets.js 로드 (blockquote → 실제 트윗으로 변환)
-        function loadTwitterWidgets() {
-            if (proseEl?.querySelector('.twitter-tweet')) {
-                const w = window as unknown as {
-                    twttr?: { widgets?: { load?: (el: HTMLElement) => void } };
-                };
-                if (w.twttr?.widgets?.load) {
-                    w.twttr.widgets.load(proseEl);
-                } else if (
-                    !document.querySelector('script[src*="platform.twitter.com/widgets.js"]')
-                ) {
-                    const s = document.createElement('script');
-                    s.src = 'https://platform.twitter.com/widgets.js';
-                    s.async = true;
-                    document.head.appendChild(s);
-                }
-            }
-        }
-        loadTwitterWidgets();
-
         const cleanupLightbox = attachLightbox(proseEl);
 
         return () => {
@@ -300,46 +280,6 @@
         if (browser && proseEl) {
             tick().then(() => highlightAllCodeBlocks(proseEl));
         }
-    });
-
-    // Twitter/X 임베드: renderedHtml 변경 시 widgets.js 로드 + 재호출
-    $effect(() => {
-        void renderedHtml;
-        if (!browser || !proseEl) return;
-        tick().then(() => {
-            if (!proseEl?.querySelector('.twitter-tweet')) return;
-
-            type TwttrWindow = { twttr?: { widgets?: { load?: (el: HTMLElement) => void } } };
-
-            function tryLoad() {
-                (window as unknown as TwttrWindow).twttr?.widgets?.load?.(proseEl);
-            }
-
-            if ((window as unknown as TwttrWindow).twttr?.widgets?.load) {
-                tryLoad();
-            } else {
-                // widgets.js 스크립트가 없으면 삽입
-                if (!document.querySelector('script[src*="platform.twitter.com/widgets.js"]')) {
-                    const s = document.createElement('script');
-                    s.src = 'https://platform.twitter.com/widgets.js';
-                    s.async = true;
-                    s.onload = tryLoad;
-                    document.head.appendChild(s);
-                } else {
-                    // 스크립트 삽입됨 but twttr 아직 없음 → 폴링 대기
-                    let tries = 0;
-                    const poll = setInterval(() => {
-                        tries++;
-                        if ((window as unknown as TwttrWindow).twttr?.widgets?.load) {
-                            clearInterval(poll);
-                            tryLoad();
-                        } else if (tries > 50) {
-                            clearInterval(poll);
-                        }
-                    }, 100);
-                }
-            }
-        });
     });
 
     // 본문 이미지 data-original 폴백 (최적화된 이미지 로드 실패 시 원본으로 대체)

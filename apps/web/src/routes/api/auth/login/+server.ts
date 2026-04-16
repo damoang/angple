@@ -106,7 +106,7 @@ export const POST: RequestHandler = async ({ request, cookies, getClientAddress 
         cookies.set(CSRF_COOKIE_NAME, session.csrfToken, {
             path: '/',
             httpOnly: false,
-            sameSite: 'strict',
+            sameSite: 'lax',
             secure: true,
             maxAge: SESSION_COOKIE_MAX_AGE,
             ...domainOpt
