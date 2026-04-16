@@ -380,7 +380,7 @@
     <div class="container mx-auto flex flex-1">
         <!-- 사이드바 (데스크톱) -->
         <aside class="hidden w-80 flex-shrink-0 border-r border-border lg:block">
-            <div class="sticky top-16 h-[calc(100vh-4rem)] overflow-y-auto">
+            <div class="sticky top-16 max-h-[calc(100vh-4rem)] overflow-y-auto">
                 <MuziaSidebar />
             </div>
         </aside>
