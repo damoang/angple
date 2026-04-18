@@ -30,6 +30,14 @@ export const load: LayoutServerLoad = async ({
         acceptLanguage: request.headers.get('accept-language')
     });
 
+    // CSRF 토큰이 필요한 경로 (form POST 액션) — SSR_STRIP_USER여도 csrfToken 유지
+    // 그렇지 않으면 form submit 시 빈 토큰으로 403 발생 (서명 저장, 탈퇴 등)
+    const needsCsrf =
+        url.pathname.startsWith('/member/') ||
+        url.pathname.startsWith('/admin/') ||
+        url.pathname.startsWith('/my/');
+    const stripUser = env.SSR_STRIP_USER === 'true' && !needsCsrf;
+
     // Install wizard must not depend on runtime infra such as Redis, menus, banners, or MySQL.
     // CI/E2E runs this route before the full stack is provisioned.
     if (url.pathname.startsWith('/install')) {
@@ -39,9 +47,10 @@ export const load: LayoutServerLoad = async ({
             activePlugins: [],
             menus: [],
             // SSR_STRIP_USER=true 시 user 제거 → SSR 캐시 가능 (클라이언트 /api/auth/me로 로드)
-            user: env.SSR_STRIP_USER === 'true' ? null : (locals.user ?? null),
-            accessToken: env.SSR_STRIP_USER === 'true' ? null : (locals.accessToken ?? null),
-            csrfToken: env.SSR_STRIP_USER === 'true' ? null : (locals.csrfToken ?? null),
+            // 단, CSRF 필요 경로(/member, /admin, /my)는 stripUser=false로 토큰 유지
+            user: stripUser ? null : (locals.user ?? null),
+            accessToken: stripUser ? null : (locals.accessToken ?? null),
+            csrfToken: stripUser ? null : (locals.csrfToken ?? null),
 
             celebration: [],
             banners: {},
@@ -122,9 +131,10 @@ export const load: LayoutServerLoad = async ({
         activePlugins,
         menus,
         // SSR_STRIP_USER=true 시 user 제거 → SSR 캐시 가능 (클라이언트 /api/auth/me로 로드)
-        user: env.SSR_STRIP_USER === 'true' ? null : (locals.user ?? null),
-        accessToken: env.SSR_STRIP_USER === 'true' ? null : (locals.accessToken ?? null),
-        csrfToken: env.SSR_STRIP_USER === 'true' ? null : (locals.csrfToken ?? null),
+        // 단, CSRF 필요 경로(/member, /admin, /my)는 stripUser=false로 토큰 유지
+        user: stripUser ? null : (locals.user ?? null),
+        accessToken: stripUser ? null : (locals.accessToken ?? null),
+        csrfToken: stripUser ? null : (locals.csrfToken ?? null),
         // logoData: previews 제거 (SSR 불필요), schedules는 header 로고에서 사용
         logoData: {
             active: logoData.active,
