@@ -239,7 +239,8 @@ const CSRF_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 
 /** CSRF 검증에서 제외할 경로 */
 const CSRF_EXEMPT_PATHS = [
-    '/plugin/social/', // OAuth 콜백 (프로바이더가 POST)
+    '/auth/callback/', // OAuth 콜백 (Apple response_mode=form_post 포함 외부 프로바이더 POST)
+    '/plugin/social/', // OAuth 콜백 (레거시 경로)
     '/api/', // SvelteKit 내부 API 라우트 (same-origin, SvelteKit Origin 검증으로 보호)
     '/cert/inicis/result' // KG이니시스 인증 콜백 (외부 POST)
 ];
