@@ -395,7 +395,8 @@
         const startPage = Math.max(1, pagination.page - 4);
         return Array.from({ length: pagination.page - startPage + 1 }, (_, i) => startPage + i);
     });
-    const filteredPosts = $derived(posts);
+    // 차단 키워드 적용: 차단된 글은 목록에서 완전 제외 (#11935)
+    const filteredPosts = $derived(posts.filter((p) => !uiSettingsStore.isMuted(p.title)));
     const importantNotices = $derived(
         notices.filter(
             (n) =>
@@ -1031,9 +1032,8 @@
                     </Card>
                 {:else if LayoutComponent}
                     {#each filteredPosts as post, i (post.id)}
-                        {@const muted = uiSettingsStore.isMuted(post.title)}
                         {#if bulkSelectMode}
-                            <div class="flex items-start gap-2" class:opacity-30={muted}>
+                            <div class="flex items-start gap-2">
                                 <div class="flex shrink-0 items-center pt-3">
                                     <Checkbox
                                         checked={selectedPostIds.includes(post.id)}
@@ -1055,7 +1055,7 @@
                                 </div>
                             </div>
                         {:else}
-                            <div class:opacity-30={muted}>
+                            <div>
                                 <LayoutComponent
                                     {post}
                                     displaySettings={data.board?.display_settings}
