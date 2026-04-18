@@ -20,6 +20,8 @@
     import AdSlot from '$lib/components/ui/ad-slot/ad-slot.svelte';
     import { widgetLayoutStore } from '$lib/stores/widget-layout.svelte';
     import { uiSettingsStore, type ListViewMode } from '$lib/stores/ui-settings.svelte.js';
+    import { authStore } from '$lib/stores/auth.svelte.js';
+    import { pluginStore } from '$lib/stores/plugin.svelte.js';
 
     // 코어 레이아웃 초기화 (중복 호출 안전)
     initCoreLayouts();
@@ -68,6 +70,45 @@
     const LayoutComponent = $derived(layoutEntry?.component || CompactLayout);
     const wrapperClass = $derived(layoutEntry?.manifest.wrapperClass || 'space-y-1');
 
+    // 회원 메모 (#11949: 목록과 동일하게 상세 페이지 하단 목록에도 표시)
+    let memoByAuthorId = $state<Record<string, { content: string; color: string } | null>>({});
+    let lastMemoKey = '';
+    async function loadMemos(posts: FreePost[]): Promise<void> {
+        if (!browser) return;
+        if (!authStore.isAuthenticated || !pluginStore.isPluginActive('member-memo')) {
+            memoByAuthorId = {};
+            return;
+        }
+        const ids = [...new Set(posts.map((p) => p.author_id).filter(Boolean))];
+        if (ids.length === 0) {
+            memoByAuthorId = {};
+            return;
+        }
+        const key = ids.sort().join(',');
+        if (key === lastMemoKey) return;
+        lastMemoKey = key;
+        try {
+            const res = await fetch(
+                `/api/v1/members/batch/memo?ids=${ids.map(encodeURIComponent).join(',')}`,
+                { credentials: 'include' }
+            );
+            if (!res.ok) return;
+            const json = await res.json();
+            const payload = (json?.data ?? {}) as Record<
+                string,
+                { content?: string; color?: string }
+            >;
+            const next: Record<string, { content: string; color: string } | null> = {};
+            for (const id of ids) {
+                const m = payload[id];
+                next[id] = m?.content ? { content: m.content, color: m.color ?? 'yellow' } : null;
+            }
+            memoByAuthorId = next;
+        } catch {
+            // 실패 시 메모 표시 안 함 (기능 저하만, 에러 무시)
+        }
+    }
+
     // 프로모션 셔플 (매 렌더마다 랜덤)
     let shuffledPromos = $derived.by(() => {
         const arr = [...promotionPosts];
@@ -78,6 +119,11 @@
         return arr;
     });
     let posts = $state<FreePost[]>(initialPosts);
+
+    // posts 변경 시 메모 로드 (#11949)
+    $effect(() => {
+        loadMemos(posts);
+    });
     let loading = $state(initialPosts.length === 0);
     let error = $state<string | null>(null);
 
@@ -250,6 +296,7 @@
                 <LayoutComponent
                     {post}
                     {displaySettings}
+                    memo={memoByAuthorId[post.author_id] ?? null}
                     href="/{boardId}/{post.id}{currentPage > 1 ? `?page=${currentPage}` : ''}"
                     isRead={showReadState && readPostsStore.isRead(boardId, post.id)}
                     isPriority={i === 0}
