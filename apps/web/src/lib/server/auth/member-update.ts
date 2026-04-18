@@ -32,6 +32,7 @@ export interface MemberFullProfile {
     mb_image_url: string;
     mb_image_updated_at: string;
     mb_certify: string;
+    mb_datetime: string;
 }
 
 /** 프로필 전체 정보 조회 */
@@ -39,7 +40,8 @@ export async function getMemberFullProfile(mbId: string): Promise<MemberFullProf
     const [rows] = await pool.query<RowDataPacket[]>(
         `SELECT mb_id, mb_nick, mb_email, mb_homepage, mb_signature,
 		        mb_open, mb_mailling, mb_nick_date, mb_hp, mb_password,
-		        mb_leave_date, mb_intercept_date, mb_level, mb_image_url, mb_image_updated_at, mb_certify
+		        mb_leave_date, mb_intercept_date, mb_level, mb_image_url, mb_image_updated_at, mb_certify,
+		        mb_datetime
 		 FROM g5_member WHERE mb_id = ? LIMIT 1`,
         [mbId]
     );
@@ -66,8 +68,8 @@ export async function updateNickname(
         return { success: false, error: '현재 닉네임과 동일합니다.' };
     }
 
-    // 30일 쿨다운 체크
-    if (profile.mb_nick_date) {
+    // 30일 쿨다운 체크 (단, 신규 회원의 첫 변경은 예외)
+    if (profile.mb_nick_date && !isFirstNickChange(profile)) {
         const lastChange = new Date(profile.mb_nick_date);
         const now = new Date();
         const diffDays = Math.floor((now.getTime() - lastChange.getTime()) / (1000 * 60 * 60 * 24));
@@ -86,7 +88,7 @@ export async function updateNickname(
         return { success: false, error: validation.error };
     }
 
-    // UPDATE
+    // UPDATE + 이력 저장
     try {
         const [result] = await pool.query<ResultSetHeader>(
             'UPDATE g5_member SET mb_nick = ?, mb_nick_date = CURDATE() WHERE mb_id = ?',
@@ -95,12 +97,56 @@ export async function updateNickname(
         if (result.affectedRows === 0) {
             return { success: false, error: '회원 정보를 찾을 수 없습니다.' };
         }
+
+        // 닉네임 변경 이력 저장 (실패해도 변경 자체는 성공)
+        try {
+            await pool.query(
+                'INSERT INTO g5_member_nick_history (mb_id, old_nick, new_nick) VALUES (?, ?, ?)',
+                [mbId, profile.mb_nick, trimmed]
+            );
+        } catch (e) {
+            console.error('[updateNickname] 이력 저장 실패:', e);
+        }
     } catch {
         return { success: false, error: '닉네임 변경에 실패했습니다.' };
     }
 
     await invalidateMemberCache(mbId);
     return { success: true };
+}
+
+/**
+ * 신규 회원의 첫 닉네임 변경 여부 판단
+ * - mb_nick_date가 비어있거나 '0000-00-00'이거나
+ * - mb_nick_date가 가입일(mb_datetime)과 같은 날이면 → 아직 한 번도 변경 안 함
+ */
+export function isFirstNickChange(profile: {
+    mb_nick_date?: string | null;
+    mb_datetime?: string | null;
+}): boolean {
+    const nickDate = profile.mb_nick_date || '';
+    if (!nickDate || nickDate.startsWith('0000')) return true;
+    if (!profile.mb_datetime) return false;
+    const regDate = String(profile.mb_datetime).slice(0, 10); // 'YYYY-MM-DD'
+    return nickDate.slice(0, 10) === regDate;
+}
+
+/**
+ * 회원 닉네임 변경 이력 조회 (최신순)
+ */
+export async function getNickHistory(
+    mbId: string,
+    limit = 20
+): Promise<Array<{ old_nick: string; new_nick: string; changed_at: string }>> {
+    const [rows] = await pool.query<RowDataPacket[]>(
+        `SELECT old_nick, new_nick, changed_at
+         FROM g5_member_nick_history
+         WHERE mb_id = ?
+         ORDER BY id DESC
+         LIMIT ?`,
+        [mbId, limit]
+    );
+    return rows as Array<{ old_nick: string; new_nick: string; changed_at: string }>;
 }
 
 /**
