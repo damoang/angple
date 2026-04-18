@@ -1191,7 +1191,21 @@
                 images
             });
 
-            // 서버에서 정렬된 댓글 목록 다시 가져오기
+            // Optimistic update: 서버 응답 즉시 목록에 추가 (#11946)
+            if (newComment && newComment.id) {
+                const optimistic = {
+                    ...newComment,
+                    author_id: authStore.user.mb_id || '',
+                    author_image_url: authStore.user.mb_image || '',
+                    author_level: authStore.user.mb_level ?? 0
+                } as unknown as FreeComment;
+                if (!comments.some((c) => c.id === optimistic.id)) {
+                    comments = [...comments, optimistic];
+                    commentsTotal = commentsTotal + 1;
+                }
+            }
+
+            // 서버에서 정렬된 댓글 목록 다시 가져오기 (중복 제거 포함)
             await refetchComments();
 
             // @멘션 알림 전송 (fire-and-forget)
@@ -1231,6 +1245,20 @@
                 is_secret: isSecret,
                 images
             });
+
+            // Optimistic update: 대댓글도 즉시 목록에 추가 (#11946)
+            if (replyComment && replyComment.id) {
+                const optimistic = {
+                    ...replyComment,
+                    author_id: authStore.user.mb_id || '',
+                    author_image_url: authStore.user.mb_image || '',
+                    author_level: authStore.user.mb_level ?? 0
+                } as unknown as FreeComment;
+                if (!comments.some((c) => c.id === optimistic.id)) {
+                    comments = [...comments, optimistic];
+                    commentsTotal = commentsTotal + 1;
+                }
+            }
 
             // 서버에서 정렬된 댓글 목록 다시 가져오기
             await refetchComments();
