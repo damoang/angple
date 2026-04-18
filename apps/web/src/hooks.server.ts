@@ -705,7 +705,8 @@ export const handle: Handle = async ({ event, resolve }) => {
 
         const renderPromise = (async () => {
             const response = await resolve(event, {
-                transformPageChunk: ({ html }) => rewriteImmutableAssetUrls(html)
+                transformPageChunk: ({ html }) => rewriteImmutableAssetUrls(html),
+                filterSerializedResponseHeaders: (name) => name.toLowerCase() === 'content-type'
             });
 
             const contentType = response.headers.get('Content-Type') || '';
@@ -772,7 +773,8 @@ export const handle: Handle = async ({ event, resolve }) => {
                 html.replace('<html lang="ko">', `<html lang="ko"${cls}${sty}>`),
                 assetRecoveryBust
             );
-        }
+        },
+        filterSerializedResponseHeaders: (name) => name.toLowerCase() === 'content-type'
     });
 
     // CORS 헤더 (허용된 origin만 credentials 허용)
