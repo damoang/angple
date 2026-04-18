@@ -651,7 +651,9 @@ export const handle: Handle = async ({ event, resolve }) => {
         !bypassSsrCacheForRecovery &&
         (isHomePage || isBoardList || isPostDetail);
     if (!isDataRequest && isAnonymousPublicHtml) {
-        const cacheKey = isHomePage ? '/' : pathname;
+        // 캐시 키에 query string 포함 — pathname만 쓰면 ?page=N 요청이
+        // ?page=1 캐시에 섞여 "뒤로 간 것처럼" 보이는 교차 오염 발생.
+        const cacheKey = isHomePage ? '/' : pathname + event.url.search;
         const cacheTtl = isHomePage
             ? SSR_CACHE_TTL_HOME
             : isPostDetail
