@@ -196,6 +196,7 @@
             'rel',
             'width',
             'loading',
+            'decoding',
             'height',
             'srcset',
             'sizes',
