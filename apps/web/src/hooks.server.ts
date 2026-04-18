@@ -1,3 +1,6 @@
+// OpenTelemetry 초기화 (최상단 — 다른 import 전에 로드)
+import '$lib/server/telemetry.js';
+
 import { redirect, type Handle, type HandleServerError } from '@sveltejs/kit';
 import { dev } from '$app/environment';
 import { env } from '$env/dynamic/private';
