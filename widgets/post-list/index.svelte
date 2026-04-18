@@ -21,6 +21,7 @@
     import GivingView from './layouts/giving-view.svelte';
     import TradeView from './layouts/trade-view.svelte';
     import type { EconomyPost, GalleryPost, GroupTabsData, NewsPost } from '$lib/api/types';
+    import { uiSettingsStore } from '$lib/stores/ui-settings.svelte';
 
     interface DefaultLayoutPost {
         id: number;
@@ -138,10 +139,19 @@
     const groupTabsData = $derived(
         (prefetchData as GroupTabsData | null | undefined) ?? indexWidgetsStore.groupTabs
     );
-    const defaultPosts = $derived(fetchedPosts as DefaultLayoutPost[]);
-    const messagePosts = $derived(fetchedPosts as MessageLayoutPost[]);
-    const givingPosts = $derived(fetchedPosts as GivingLayoutPost[]);
-    const tradePosts = $derived(fetchedPosts as TradeLayoutPost[]);
+    // 키워드 차단 필터: 대문 위젯에도 설정된 차단 키워드 반영
+    const defaultPosts = $derived(
+        (fetchedPosts as DefaultLayoutPost[]).filter((p) => !uiSettingsStore.isMuted(p.title ?? ''))
+    );
+    const messagePosts = $derived(
+        (fetchedPosts as MessageLayoutPost[]).filter((p) => !uiSettingsStore.isMuted(p.title ?? ''))
+    );
+    const givingPosts = $derived(
+        (fetchedPosts as GivingLayoutPost[]).filter((p) => !uiSettingsStore.isMuted(p.title ?? ''))
+    );
+    const tradePosts = $derived(
+        (fetchedPosts as TradeLayoutPost[]).filter((p) => !uiSettingsStore.isMuted(p.title ?? ''))
+    );
 
     // 기존 스토어 데이터가 아닌 경우 API에서 fetch
     $effect(() => {
