@@ -458,6 +458,25 @@
                         </div>
                     </form>
 
+                    <!-- 닉네임 변경 이력 -->
+                    {#if data.nickHistory && data.nickHistory.length > 0}
+                        <div class="space-y-2 pt-2">
+                            <p class="text-muted-foreground text-xs font-medium">변경 이력</p>
+                            <ul class="text-muted-foreground space-y-1 text-xs">
+                                {#each data.nickHistory as item (item.changed_at)}
+                                    <li class="flex items-center gap-2">
+                                        <span class="line-through">{item.old_nick}</span>
+                                        <span>→</span>
+                                        <span class="text-foreground">{item.new_nick}</span>
+                                        <span class="text-muted-foreground/70 ml-auto">
+                                            {new Date(item.changed_at).toLocaleDateString('ko-KR')}
+                                        </span>
+                                    </li>
+                                {/each}
+                            </ul>
+                        </div>
+                    {/if}
+
                     <Separator />
 
                     <!-- 이메일 변경 (인증 메일 발송) -->

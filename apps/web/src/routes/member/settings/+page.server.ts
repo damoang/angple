@@ -9,7 +9,9 @@ import {
     updateNickname,
     updateEmail,
     changePassword,
-    updateProfile
+    updateProfile,
+    isFirstNickChange,
+    getNickHistory
 } from '$lib/server/auth/member-update.js';
 
 export const load: PageServerLoad = async ({ locals }) => {
@@ -26,14 +28,17 @@ export const load: PageServerLoad = async ({ locals }) => {
         getMemberFullProfile(mbId)
     ]);
 
-    // 닉네임 변경 가능일 계산
+    // 닉네임 변경 가능일 계산 (신규 회원의 첫 변경은 예외 → 0일)
     let nickChangeDaysLeft = 0;
-    if (memberProfile?.mb_nick_date) {
+    if (memberProfile?.mb_nick_date && !isFirstNickChange(memberProfile)) {
         const lastChange = new Date(memberProfile.mb_nick_date);
         const now = new Date();
         const diffDays = Math.floor((now.getTime() - lastChange.getTime()) / (1000 * 60 * 60 * 24));
         nickChangeDaysLeft = Math.max(0, 30 - diffDays);
     }
+
+    // 닉네임 변경 이력 (최근 20건)
+    const nickHistory = await getNickHistory(mbId, 20).catch(() => []);
 
     return {
         mbId,
@@ -52,6 +57,7 @@ export const load: PageServerLoad = async ({ locals }) => {
               }
             : null,
         nickChangeDaysLeft,
+        nickHistory,
         socialProfiles: profiles.map((p) => ({
             mpNo: p.mp_no,
             provider: p.provider,
