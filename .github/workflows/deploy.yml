@@ -45,6 +45,17 @@ jobs:
       contents: read
       pull-requests: read
     steps:
+      # Premium SHA를 IMAGE_TAG에 포함하기 위해 resolve 단계에서도 premium checkout
+      # 2026-04-19 incident: premium-only 변경 시 web git SHA 동일 → IMAGE_TAG 동일 → K8s rollout no-op
+      - name: Checkout premium (for SHA only)
+        if: ${{ !inputs.image_tag }}
+        uses: actions/checkout@v6
+        with:
+          repository: damoang/angple-premium
+          token: ${{ secrets.PREMIUM_REPO_TOKEN }}
+          path: _premium_sha
+          fetch-depth: 1
+
       - name: Resolve release mode
         id: release
         env:
@@ -69,7 +80,11 @@ jobs:
             echo "sha_tag=${INPUT_IMAGE_TAG}" >> "$GITHUB_OUTPUT"
             echo "should_build=false" >> "$GITHUB_OUTPUT"
           else
-            echo "sha_tag=sha-${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+            WEB_SHA="${GITHUB_SHA:0:7}"
+            PREM_SHA=$(git -C _premium_sha rev-parse --short=7 HEAD 2>/dev/null || echo "none")
+            SHA_TAG="sha-${WEB_SHA}-p${PREM_SHA}"
+            echo "Computed IMAGE_TAG: ${SHA_TAG} (web=${WEB_SHA}, premium=${PREM_SHA})"
+            echo "sha_tag=${SHA_TAG}" >> "$GITHUB_OUTPUT"
             echo "should_build=true" >> "$GITHUB_OUTPUT"
           fi
 
