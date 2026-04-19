@@ -1,15 +1,45 @@
 <script lang="ts" module>
     import type { Snapshot } from './$types.js';
 
-    // 뒤로가기 시 스크롤 위치 즉시 복원 (서버 재요청 대기 중에도 이전 위치 유지)
+    // 뒤로가기 시 스크롤 위치 복원. 이미지/광고 로드로 문서 높이가 뒤늦게 확장되는 케이스
+    // (특히 iOS Safari) 까지 커버하기 위해 ResizeObserver 로 목표 위치에 도달할 때까지
+    // 반복 재시도 (#9401 — 상세에서 뒤로가기 시 목록 최하단으로 떨어지는 현상).
     export const snapshot: Snapshot<{ scrollY: number }> = {
         capture: () => ({ scrollY: window.scrollY }),
         restore: (value) => {
-            // 데이터 로드 + 렌더링 완료까지 점진적으로 스크롤 복원 시도
-            const scrollTo = () => window.scrollTo(0, value.scrollY);
-            requestAnimationFrame(scrollTo);
-            setTimeout(() => requestAnimationFrame(scrollTo), 100);
-            setTimeout(() => requestAnimationFrame(scrollTo), 300);
+            const target = value.scrollY;
+            if (target <= 0) return;
+
+            let tries = 0;
+            let done = false;
+            const maxTries = 60; // ~2s 에 걸쳐 33ms 간격
+
+            const attempt = () => {
+                if (done) return;
+                window.scrollTo(0, target);
+                // 목표 위치 ± 2px 도달 + 문서 높이가 충분하면 완료
+                if (
+                    Math.abs(window.scrollY - target) <= 2 &&
+                    document.documentElement.scrollHeight >= target + window.innerHeight - 1
+                ) {
+                    done = true;
+                }
+                tries++;
+                if (!done && tries < maxTries) requestAnimationFrame(attempt);
+            };
+            requestAnimationFrame(attempt);
+
+            // 이미지/광고가 로드돼 문서 높이가 변경될 때마다 재시도
+            if (typeof ResizeObserver !== 'undefined') {
+                const ro = new ResizeObserver(() => {
+                    if (!done) window.scrollTo(0, target);
+                });
+                ro.observe(document.documentElement);
+                setTimeout(() => {
+                    done = true;
+                    ro.disconnect();
+                }, 3000);
+            }
         }
     };
 </script>
