@@ -16,8 +16,19 @@ import { getCommentLikersBatchVersion } from '$lib/server/member-activity-cache'
 const COMMENT_LIKERS_BATCH_CACHE_TTL_SEC = 15;
 const INTERNAL_COMMENT_LIKERS_BATCH_LIMIT = 50;
 const EXTERNAL_COMMENT_LIKERS_BATCH_LIMIT = 5;
-const INTERNAL_COMMENT_LIKERS_BATCH_IDS = 20;
-const EXTERNAL_COMMENT_LIKERS_BATCH_IDS = 10;
+const INTERNAL_COMMENT_LIKERS_BATCH_IDS = 50;
+// 외부 배치 IDs 한도. 과거 10이면 11번째 이후 댓글은 preview/팝업 데이터가 아예 비어,
+// 사용자가 해당 댓글의 공감자 리스트를 열 수 없었음.
+const EXTERNAL_COMMENT_LIKERS_BATCH_IDS = 50;
+
+// bg_datetime 이 null / '' / '0000-00-00 00:00:00' 일 때 new Date() 가
+// Invalid Date 를 반환하며, 이후 toLocaleString() 결과가 minify 돼서
+// "va.id.Da" 같은 값으로 노출됨.
+function toSafeIso(raw: unknown): string {
+    const s = typeof raw === 'string' ? raw : raw == null ? '' : String(raw);
+    if (!s || s.startsWith('0000')) return '';
+    return s.replace(' ', 'T') + 'Z';
+}
 
 function maskIp(ip: string | null | undefined): string {
     if (!ip) return '';
@@ -164,7 +175,7 @@ export const GET: RequestHandler = async ({ params, url, cookies, request }) => 
                     mb_image: row.mb_image_url || '',
                     mb_image_updated_at: row.mb_image_updated_at || undefined,
                     bg_ip: isAuthenticated ? maskIp(row.bg_ip) : '',
-                    liked_at: String(row.bg_datetime).replace(' ', 'T') + 'Z'
+                    liked_at: toSafeIso(row.bg_datetime)
                 });
             }
         }

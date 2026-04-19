@@ -15,8 +15,16 @@ import { getCommentLikersVersion } from '$lib/server/member-activity-cache';
 
 const COMMENT_LIKERS_CACHE_TTL_SEC = 15;
 const INTERNAL_COMMENT_LIKERS_LIMIT = 50;
-const EXTERNAL_COMMENT_LIKERS_LIMIT = 10;
-const MAX_EXTERNAL_COMMENT_LIKERS_PAGE = 1;
+const EXTERNAL_COMMENT_LIKERS_LIMIT = 50;
+const MAX_EXTERNAL_COMMENT_LIKERS_PAGE = 5;
+
+// bg_datetime 이 null / '' / '0000-...' 일 때 Invalid Date 로 렌더되어
+// "va.id.Da" (minified "Invalid Date") 로 보이는 버그 방지.
+function toSafeIso(raw: unknown): string {
+    const s = typeof raw === 'string' ? raw : raw == null ? '' : String(raw);
+    if (!s || s.startsWith('0000')) return '';
+    return s.replace(' ', 'T') + 'Z';
+}
 
 /** IP 마스킹: 두 번째 옥텟을 ♡로 (예: 222.114.55.158 → 222.♡.55.158) */
 function maskIp(ip: string | null | undefined): string {
@@ -125,7 +133,7 @@ export const GET: RequestHandler = async ({ params, url, cookies, request }) => 
             mb_image: row.mb_image_url || '',
             mb_image_updated_at: row.mb_image_updated_at || undefined,
             bg_ip: isAuthenticated ? maskIp(row.bg_ip) : '',
-            liked_at: String(row.bg_datetime).replace(' ', 'T') + 'Z'
+            liked_at: toSafeIso(row.bg_datetime)
         }));
 
         const payload = {
