@@ -91,6 +91,8 @@ export const load: LayoutServerLoad = async ({
               };
 
     // 실패 로깅 (크래시 안 함)
+    // settings는 /admin 경로에서만 필요 (관리자 UI) → 일반 페이지에서 null로 축소 (__data.json 절감)
+    const isAdminPath = url.pathname.startsWith('/admin');
     const activePlugins =
         pluginsResult.status === 'fulfilled'
             ? pluginsResult.value.map((p) => ({
@@ -99,7 +101,7 @@ export const load: LayoutServerLoad = async ({
                   version: p.manifest.version,
                   hooks: [],
                   components: [],
-                  settings: p.currentSettings || null
+                  settings: isAdminPath ? p.currentSettings || null : null
               }))
             : [];
 
