@@ -10,6 +10,7 @@ import type { PromotionBoardPost } from '$lib/server/ads/promotion.js';
 import { backendFetch as bFetch, createAuthHeaders } from '$lib/server/backend-fetch.js';
 import { fetchMemberImagesWithTimestamp } from '$lib/server/member-images.js';
 import { fetchWithdrawnMemberIds } from '$lib/server/withdrawn-members.js';
+import { fetchScheduledDeletes } from '$lib/server/scheduled-deletes.js';
 import { createCache } from '$lib/server/cache.js';
 import { getCachedBoard, resolveCanonicalBoardId } from '$lib/server/board-cache.js';
 import { resolveGivingMeta } from '$lib/features/giving/model.js';
@@ -344,10 +345,12 @@ export const load: PageServerLoad = async ({
             const allPosts = [...posts, ...notices];
             if (allPosts.length > 0) {
                 const mbIds = [...new Set(allPosts.map((p) => p.author_id).filter(Boolean))];
+                const postIds = allPosts.map((p) => Number(p.id)).filter((n) => Number.isFinite(n));
                 try {
-                    const [imageMap, withdrawnIds] = await Promise.all([
+                    const [imageMap, withdrawnIds, scheduledMap] = await Promise.all([
                         fetchMemberImagesWithTimestamp(mbIds),
-                        fetchWithdrawnMemberIds(mbIds)
+                        fetchWithdrawnMemberIds(mbIds),
+                        fetchScheduledDeletes(boardId, postIds)
                     ]);
                     for (const p of allPosts) {
                         if (p.author_id && imageMap[p.author_id]) {
@@ -357,6 +360,8 @@ export const load: PageServerLoad = async ({
                         if (p.author_id && withdrawnIds.has(p.author_id)) {
                             p.is_left = true;
                         }
+                        const sched = scheduledMap.get(Number(p.id));
+                        if (sched) p.scheduled_delete_at = sched;
                     }
                 } catch {
                     // ignore
@@ -528,10 +533,12 @@ export const load: PageServerLoad = async ({
         }
         if (allPosts.length > 0) {
             const mbIds = [...new Set(allPosts.map((p) => p.author_id).filter(Boolean))];
+            const postIds = allPosts.map((p) => Number(p.id)).filter((n) => Number.isFinite(n));
             try {
-                const [imageMap, withdrawnIds] = await Promise.all([
+                const [imageMap, withdrawnIds, scheduledMap] = await Promise.all([
                     fetchMemberImagesWithTimestamp(mbIds),
-                    fetchWithdrawnMemberIds(mbIds)
+                    fetchWithdrawnMemberIds(mbIds),
+                    fetchScheduledDeletes(boardId, postIds)
                 ]);
                 for (const p of allPosts) {
                     if (p.author_id && imageMap[p.author_id]) {
@@ -541,6 +548,8 @@ export const load: PageServerLoad = async ({
                     if (p.author_id && withdrawnIds.has(p.author_id)) {
                         p.is_left = true;
                     }
+                    const sched = scheduledMap.get(Number(p.id));
+                    if (sched) p.scheduled_delete_at = sched;
                 }
             } catch {
                 // 조회 실패해도 게시글 표시는 정상 진행
