@@ -12,7 +12,7 @@
         { id: 'new', label: '소식' },
         { id: 'tip', label: '정보' },
         { id: 'review', label: '사용기' },
-        { id: 'notice', label: '공지' }
+        { id: 'qa', label: 'Q&A' }
     ];
 
     function handleTabClick(tabId: NewsTabId) {

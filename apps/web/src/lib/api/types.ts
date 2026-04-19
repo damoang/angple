@@ -329,7 +329,7 @@ export interface DailyRecommendedData {
 }
 
 // 새로운 소식 탭 타입
-export type NewsTabId = 'new' | 'tip' | 'review' | 'notice';
+export type NewsTabId = 'new' | 'tip' | 'review' | 'qa';
 
 export interface NewsPost {
     id: number;
