@@ -67,7 +67,14 @@ export interface FreePost {
     link2_affiliate?: boolean; // 링크2 제휴 변환 여부
     deleted_at?: string | null; // 소프트 삭제 시점
     deleted_by?: string | null; // 삭제한 사용자 ID
-    scheduled_delete_at?: string | null; // 삭제 예약된 시점 (g5_scheduled_deletes.scheduled_at, SSR enrichment)
+    scheduled_delete_at?: string | null; // 삭제 예약된 시점 (g5_scheduled_deletes.scheduled_at, SSR enrichment, 게시판 목록용)
+    scheduled_delete?: {
+        // 글 상세 응답에 백엔드가 inline 포함 (PR #430), 별도 /delete-status fetch 회피
+        scheduled_at: string;
+        requested_at: string;
+        requested_by?: string;
+        delay_minutes: number;
+    } | null;
     is_left?: boolean; // 작성자 탈퇴 여부 (SSR enrichment)
     report_count?: number | string; // wr_7 값: 숫자(신고수) 또는 "lock"(잠김)
     // 확장 필드 (PHP wr_1~wr_10 매핑)
