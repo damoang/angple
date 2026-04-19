@@ -23,7 +23,7 @@ export interface MemberFullProfile {
     mb_signature: string;
     mb_open: number;
     mb_mailling: number;
-    mb_nick_date: string;
+    mb_nick_date: string | Date | null; // mysql2 DATE → Date 객체로 반환
     mb_hp: string;
     mb_password: string;
     mb_leave_date: string;
@@ -32,7 +32,7 @@ export interface MemberFullProfile {
     mb_image_url: string;
     mb_image_updated_at: string;
     mb_certify: string;
-    mb_datetime: string;
+    mb_datetime: string | Date | null; // mysql2 DATETIME → Date 객체로 반환
 }
 
 /** 프로필 전체 정보 조회 */
@@ -116,19 +116,32 @@ export async function updateNickname(
 }
 
 /**
+ * Date | string | null | undefined → 'YYYY-MM-DD' 문자열로 정규화
+ * mysql2 는 DATE/DATETIME 컬럼을 Date 객체로 반환하므로 직접 string 메서드 호출 금지.
+ */
+function toYmd(value: unknown): string {
+    if (!value) return '';
+    if (value instanceof Date) {
+        if (isNaN(value.getTime())) return '';
+        return value.toISOString().slice(0, 10);
+    }
+    return String(value).slice(0, 10);
+}
+
+/**
  * 신규 회원의 첫 닉네임 변경 여부 판단
  * - mb_nick_date가 비어있거나 '0000-00-00'이거나
  * - mb_nick_date가 가입일(mb_datetime)과 같은 날이면 → 아직 한 번도 변경 안 함
  */
 export function isFirstNickChange(profile: {
-    mb_nick_date?: string | null;
-    mb_datetime?: string | null;
+    mb_nick_date?: string | Date | null;
+    mb_datetime?: string | Date | null;
 }): boolean {
-    const nickDate = profile.mb_nick_date || '';
+    const nickDate = toYmd(profile.mb_nick_date);
     if (!nickDate || nickDate.startsWith('0000')) return true;
-    if (!profile.mb_datetime) return false;
-    const regDate = String(profile.mb_datetime).slice(0, 10); // 'YYYY-MM-DD'
-    return nickDate.slice(0, 10) === regDate;
+    const regDate = toYmd(profile.mb_datetime);
+    if (!regDate) return false;
+    return nickDate === regDate;
 }
 
 /**
