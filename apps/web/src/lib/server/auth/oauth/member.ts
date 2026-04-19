@@ -91,10 +91,10 @@ export async function findMemberByEmail(email: string): Promise<MemberRow | null
     return (rows[0] as MemberRow) || null;
 }
 
-/** 로그인 시각/IP 업데이트 */
+/** 로그인 시각/IP 업데이트 — 재로그인 시 mb_leave_date 도 클리어(복귀 처리) */
 export async function updateLoginTimestamp(mbId: string, ip: string): Promise<void> {
     await pool.query(
-        'UPDATE g5_member SET mb_today_login = NOW(), mb_login_ip = ? WHERE mb_id = ?',
+        "UPDATE g5_member SET mb_today_login = NOW(), mb_login_ip = ?, mb_leave_date = '' WHERE mb_id = ?",
         [ip, mbId]
     );
     await invalidateMemberCache(mbId);
