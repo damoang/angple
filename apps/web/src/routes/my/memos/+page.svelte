@@ -66,6 +66,24 @@
         goto('/my/memos');
     }
 
+    // 메모 텍스트 내 URL 을 클릭 가능한 링크 세그먼트로 분리 (XSS 안전: 텍스트 그대로 바인딩)
+    const URL_RE = /https?:\/\/[^\s<>"'`]+/g;
+    function tokenizeMemo(
+        s: string | null | undefined
+    ): Array<{ type: 'text' | 'link'; value: string }> {
+        if (!s) return [];
+        const out: Array<{ type: 'text' | 'link'; value: string }> = [];
+        let last = 0;
+        for (const m of s.matchAll(URL_RE)) {
+            const start = m.index ?? 0;
+            if (start > last) out.push({ type: 'text', value: s.slice(last, start) });
+            out.push({ type: 'link', value: m[0] });
+            last = start + m[0].length;
+        }
+        if (last < s.length) out.push({ type: 'text', value: s.slice(last) });
+        return out;
+    }
+
     // memo-store 동적 로드
     type MemoStoreModule = {
         openModal: (memberId: string) => void;
@@ -440,7 +458,18 @@
                                                 <p
                                                     class="text-muted-foreground whitespace-pre-wrap text-xs"
                                                 >
-                                                    {memo.memo_detail}
+                                                    {#each tokenizeMemo(memo.memo_detail) as seg, i (i)}
+                                                        {#if seg.type === 'link'}
+                                                            <a
+                                                                href={seg.value}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer nofollow"
+                                                                class="text-primary underline"
+                                                                onclick={(e) => e.stopPropagation()}
+                                                                >{seg.value}</a
+                                                            >
+                                                        {:else}{seg.value}{/if}
+                                                    {/each}
                                                 </p>
                                             </PopoverContent>
                                         </Popover>
