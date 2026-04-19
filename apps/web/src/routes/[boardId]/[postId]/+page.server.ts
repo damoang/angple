@@ -434,25 +434,17 @@ export const load: PageServerLoad = async ({
                           userDisliked: false
                       }))
                     : Promise.resolve({ userLiked: false, userDisliked: false }),
-                // 삭제 예약 상태 조회 (Go 백엔드)
-                bFetch(`/api/v1/boards/${boardId}/posts/${postId}/delete-status`, {
-                    headers,
-                    timeout: 2_000
-                })
-                    .then(async (res) => {
-                        if (!res.ok) return null;
-                        const json = await res.json();
-                        if (json.scheduled) {
-                            return {
-                                scheduled: true,
-                                scheduled_at: json.scheduled_at,
-                                requested_at: json.requested_at,
-                                delay_minutes: json.delay_minutes
-                            };
-                        }
-                        return null;
-                    })
-                    .catch(() => null),
+                // 삭제 예약 상태 — Posts API 응답에 inline 포함 (별도 fetch 제거, 백엔드 PR #430)
+                Promise.resolve(
+                    post.scheduled_delete
+                        ? {
+                              scheduled: true,
+                              scheduled_at: post.scheduled_delete.scheduled_at,
+                              requested_at: post.scheduled_delete.requested_at,
+                              delay_minutes: post.scheduled_delete.delay_minutes
+                          }
+                        : null
+                ),
                 (() => {
                     if (!locals.user?.id || !commentsData.comments.items?.length) {
                         return Promise.resolve({ likedIds: [], dislikedIds: [] });
