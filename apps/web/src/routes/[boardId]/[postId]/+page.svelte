@@ -1404,7 +1404,10 @@
     />
 {/if}
 
-<div class="mx-auto pt-2">
+<!-- overflow-x: clip — 모바일 Safari/Firefox 에서 일부 비-/free 경로에 미세한 좌우 스크롤이
+     발생하던 문제 방어 (#11970). clip 은 scroll container 를 만들지 않아 position:sticky 가
+     깨지지 않고, overflow: hidden 과 달리 자식의 transform 등 영향도 최소. -->
+<div class="mx-auto overflow-x-clip pt-2">
     <!-- 최상단 자체 배너 (없으면 GAM 폴백) -->
     {#if widgetLayoutStore.hasEnabledAds && !data.post.deleted_at}
         <div class="mb-3">
