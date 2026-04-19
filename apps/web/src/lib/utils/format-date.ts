@@ -11,11 +11,13 @@
  * 행 높이가 일정하게 유지됨
  */
 export function formatDateCompact(dateString: string): string {
+    if (!dateString) return '';
     let normalized = dateString;
     if (/^\d{8}$/.test(dateString)) {
         normalized = `${dateString.slice(0, 4)}-${dateString.slice(4, 6)}-${dateString.slice(6, 8)}`;
     }
     const date = new Date(normalized);
+    if (isNaN(date.getTime())) return '';
     const now = new Date();
 
     const toSeoulDateStr = (d: Date) => d.toLocaleDateString('sv-SE', { timeZone: 'Asia/Seoul' });
@@ -49,12 +51,17 @@ export function isToday(dateString: string): boolean {
 }
 
 export function formatDate(dateString: string): string {
+    // 빈 값/무효 입력은 빈 문자열 반환. 과거 Invalid Date → toLocaleTimeString 이
+    // "Invalid Date" (production minify 시 "va.id.Da" 등)로 노출되던 문제 방지.
+    if (!dateString) return '';
+
     // Gnuboard YYYYMMDD 형식 (mb_leave_date 등) → ISO 변환
     let normalized = dateString;
     if (/^\d{8}$/.test(dateString)) {
         normalized = `${dateString.slice(0, 4)}-${dateString.slice(4, 6)}-${dateString.slice(6, 8)}`;
     }
     const date = new Date(normalized);
+    if (isNaN(date.getTime())) return '';
     const now = new Date();
 
     // 서울 시간 기준 YYYY-MM-DD 문자열 추출
