@@ -9,10 +9,10 @@
     let { activeTab = $bindable(), onTabChange }: Props = $props();
 
     const tabs: { id: EconomyTabId; label: string }[] = [
-        { id: 'economy', label: '구매' },
-        { id: 'qa', label: 'Q&A' },
-        { id: 'free', label: '앙지도' },
-        { id: 'angtt', label: '평점' }
+        { id: 'economy', label: '알뜰' },
+        { id: 'giving', label: '나눔' },
+        { id: 'trade', label: '장터' },
+        { id: 'review', label: '사용기' }
     ];
 
     function handleTabClick(tabId: EconomyTabId) {
