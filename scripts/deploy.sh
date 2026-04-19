@@ -113,8 +113,10 @@ echo -e "${BLUE}[2/5] 복사...${NC}"
 # immutable 파일(content-hash) 보존: 이전 클라이언트가 아직 로드하지 않은 chunk 404 방지
 rsync -a "$DEV_DIR/apps/web/build/" "$PROD_DIR/build/"
 rsync -a --delete --exclude='_app/immutable/' "$DEV_DIR/apps/web/build/" "$PROD_DIR/build/"
-# 2일 이상 된 이전 immutable 파일 정리 (백그라운드)
-(find "$PROD_DIR/build/_app/immutable/" -type f -mtime +2 -delete 2>/dev/null &)
+# 30일 이상 된 이전 immutable 파일 정리 (백그라운드)
+# 2026-04-19 incident: 2일로는 "이전 release bundle 404" 스모크 실패 발생
+# SvelteKit SSR이 구 HTML 서빙 → 활성 클라이언트가 구 chunk 요청 → 충분한 grace period 필요
+(find "$PROD_DIR/build/_app/immutable/" -type f -mtime +30 -delete 2>/dev/null &)
 rsync -a "$DEV_DIR/data/" "$PROD_DIR/data/"
 
 # .env 동기화
