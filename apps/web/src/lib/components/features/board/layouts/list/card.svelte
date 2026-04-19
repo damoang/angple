@@ -96,6 +96,14 @@
                                             class="shrink-0 px-1.5 py-0 text-[10px]">19</Badge
                                         >
                                     {/if}
+                                    {#if post.scheduled_delete_at}
+                                        <Badge
+                                            variant="outline"
+                                            class="shrink-0 border-amber-300 bg-amber-50 px-1.5 py-0 text-[10px] text-amber-700 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300"
+                                            title={`삭제 예정: ${post.scheduled_delete_at}`}
+                                            >삭제예정</Badge
+                                        >
+                                    {/if}
                                     {#if post.is_secret}
                                         <Lock class="text-muted-foreground h-4 w-4 shrink-0" />
                                     {/if}
