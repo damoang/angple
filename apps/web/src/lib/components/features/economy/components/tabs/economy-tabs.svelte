@@ -12,7 +12,7 @@
         { id: 'economy', label: '알뜰' },
         { id: 'giving', label: '나눔' },
         { id: 'trade', label: '장터' },
-        { id: 'review', label: '사용기' }
+        { id: 'promotion', label: '홍보' }
     ];
 
     function handleTabClick(tabId: EconomyTabId) {
