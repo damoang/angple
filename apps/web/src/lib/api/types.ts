@@ -419,7 +419,7 @@ export interface ExploreData {
 }
 
 // 경제 탭 타입
-export type EconomyTabId = 'economy' | 'qa' | 'free' | 'angtt';
+export type EconomyTabId = 'economy' | 'giving' | 'trade' | 'review';
 
 export interface EconomyPost {
     id: number;
