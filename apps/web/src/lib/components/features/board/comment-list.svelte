@@ -39,15 +39,24 @@
     // 동적 플러그인 임포트: member-memo
     let MemoBadge = $state<Component | null>(null);
     let loadMemosForAuthors: ((authors: string[]) => void) | null = null;
+    // W4-X Phase 2: backend inline author_memo로 cache 채우기 (별도 fetch 회피)
+    let preloadMemos:
+        | ((items: Array<{ author_id?: string; author_memo?: unknown }>) => void)
+        | null = null;
 
     $effect(() => {
         if (pluginStore.isPluginActive('member-memo')) {
             loadPluginComponent('member-memo', 'memo-badge').then((c) => (MemoBadge = c));
-            loadPluginLib<{ loadMemosForAuthors: (ids: string[]) => void }>(
-                'member-memo',
-                'memo-store'
-            ).then((m) => {
-                if (m) loadMemosForAuthors = m.loadMemosForAuthors;
+            loadPluginLib<{
+                loadMemosForAuthors: (ids: string[]) => void;
+                preloadMemos?: (
+                    items: Array<{ author_id?: string; author_memo?: unknown }>
+                ) => void;
+            }>('member-memo', 'memo-store').then((m) => {
+                if (m) {
+                    loadMemosForAuthors = m.loadMemosForAuthors;
+                    preloadMemos = m.preloadMemos ?? null;
+                }
             });
         }
     });
@@ -830,13 +839,18 @@
     });
 
     // 회원 메모 배치 프리로드
+    // W4-X Phase 2: backend가 응답에 author_memo를 inline 포함 (PR #438)
+    // 1순위: preloadMemos(items) — inline 데이터로 cache 채움 (fetch 0)
+    // 2순위 fallback: loadMemosForAuthors(ids) — 별도 batch fetch
     $effect(() => {
-        if (
-            authStore.isAuthenticated &&
-            memoPluginActive &&
-            loadMemosForAuthors &&
-            commentTree.length > 0
-        ) {
+        if (!authStore.isAuthenticated || !memoPluginActive || commentTree.length === 0) {
+            return;
+        }
+        if (preloadMemos) {
+            preloadMemos(commentTree);
+            return;
+        }
+        if (loadMemosForAuthors) {
             const fn = loadMemosForAuthors;
             const ids = [...new Set(commentTree.map((c) => c.author_id).filter(Boolean))];
             if (ids.length > 0) {
