@@ -105,7 +105,9 @@ export const load: PageServerLoad = async ({
             // 게시글 (Go 백엔드 직접 호출)
             bFetch(`/api/v1/boards/${boardId}/posts/${postId}`, {
                 headers,
-                timeout: 5_000,
+                // 2초: 5초는 백엔드 장애 시 사용자 체감 대기를 과도하게 늘림.
+                // 실패 분기(BackendUnavailableError → 503, 그 외 → 404)는 기존 동일.
+                timeout: 2_000,
                 bypassCircuitBreaker: true
             }).then(async (res) => {
                 if (!res.ok) throw new Error(`Post API error: ${res.status}`);
@@ -211,57 +213,10 @@ export const load: PageServerLoad = async ({
             }
         }
 
-        // 본문 제휴 링크 변환은 2단계 스트리밍으로 이동 (초기 렌더 블로킹 방지)
-        const affiliateContext = { bo_table: boardId, wr_id: Number(postId) };
-        const affiliateEnabled = await isLinkProcessingPluginEnabled().catch(() => false);
-        const postAffiliateRows = affiliateEnabled
-            ? await fetchPostAffiliateLinks(boardId, Number(postId)).catch(() => [])
-            : [];
-
-        // 링크1/링크2는 본문/댓글 Hook를 타지 않으므로 별도 제휴 변환한다.
-        if (post.link1 || post.link2) {
-            try {
-                const [link1Result, link2Result] = await Promise.race([
-                    Promise.allSettled([
-                        post.link1 ? Promise.resolve(post.link1) : Promise.resolve(null),
-                        post.link2 ? Promise.resolve(post.link2) : Promise.resolve(null)
-                    ]),
-                    new Promise<PromiseSettledResult<string | null>[]>((resolve) =>
-                        setTimeout(() => resolve([]), 1500)
-                    )
-                ]);
-
-                if (link1Result?.status === 'fulfilled') {
-                    const row = findAffiliateFieldRow(postAffiliateRows, 'post_link1');
-                    const originalLink = post.link1;
-                    if (originalLink) {
-                        const result = applyAffiliateField(originalLink, row);
-                        if (result.href !== originalLink) {
-                            post.link1_display = result.displayUrl;
-                            post.link1 = result.href;
-                            post.link1_affiliate = result.affiliate;
-                        }
-                    }
-                }
-
-                if (link2Result?.status === 'fulfilled') {
-                    const row = findAffiliateFieldRow(postAffiliateRows, 'post_link2');
-                    const originalLink = post.link2;
-                    if (originalLink) {
-                        const result = applyAffiliateField(originalLink, row);
-                        if (result.href !== originalLink) {
-                            post.link2_display = result.displayUrl;
-                            post.link2 = result.href;
-                            post.link2_affiliate = result.affiliate;
-                        }
-                    }
-                }
-            } catch {
-                // 변환 실패 시 원본 링크 유지
-            }
-        }
-
-        // 스크랩 여부는 2단계 스트리밍으로 이동 (초기 렌더 블로킹 방지)
+        // 본문/링크 제휴 변환은 auxiliaryDataPromise(2단계 스트리밍) 로 이동.
+        // 1단계에서 isLinkProcessingPluginEnabled + fetchPostAffiliateLinks 2회 DB 왕복으로
+        // 본문 렌더가 블로킹되던 문제 해소. 클라이언트는 streamed 결과 도착 시 link 값을 업데이트.
+        // 스크랩 여부도 2단계 스트리밍에 포함 (초기 렌더 블로킹 방지)
 
         // 직접홍보 게시판: 활성 광고주가 아닌 글은 만료 처리 (공지글 제외)
         let promotionExpired = false;
@@ -397,6 +352,41 @@ export const load: PageServerLoad = async ({
         })();
 
         const auxiliaryDataPromise = (async () => {
+            // 제휴 변환에 필요한 plugin flag + row 를 이 스트리밍 단계에서 조회.
+            // (이전에는 1단계에서 await 하여 본문 SSR 을 블로킹)
+            const affiliateEnabled = await isLinkProcessingPluginEnabled().catch(() => false);
+            const postAffiliateRows = affiliateEnabled
+                ? await fetchPostAffiliateLinks(boardId, Number(postId)).catch(() => [])
+                : [];
+
+            // link1/link2 제휴 변환 결과 계산 (post 객체는 mutate 하지 않고 별도 payload 로 전달).
+            const linkAffiliate: {
+                link1?: string;
+                link2?: string;
+                link1_display?: string;
+                link2_display?: string;
+                link1_affiliate?: boolean;
+                link2_affiliate?: boolean;
+            } = {};
+            if (post.link1) {
+                const row = findAffiliateFieldRow(postAffiliateRows, 'post_link1');
+                const result = applyAffiliateField(post.link1, row);
+                if (result.href !== post.link1) {
+                    linkAffiliate.link1 = result.href;
+                    linkAffiliate.link1_display = result.displayUrl;
+                    linkAffiliate.link1_affiliate = result.affiliate;
+                }
+            }
+            if (post.link2) {
+                const row = findAffiliateFieldRow(postAffiliateRows, 'post_link2');
+                const result = applyAffiliateField(post.link2, row);
+                if (result.href !== post.link2) {
+                    linkAffiliate.link2 = result.href;
+                    linkAffiliate.link2_display = result.displayUrl;
+                    linkAffiliate.link2_affiliate = result.affiliate;
+                }
+            }
+
             const [
                 promotionResult,
                 reactionsResult,
@@ -531,7 +521,8 @@ export const load: PageServerLoad = async ({
                 postLikeStatus,
                 scheduledDelete,
                 commentLikeStatuses,
-                truthroomCommentMap
+                truthroomCommentMap,
+                linkAffiliate
             };
         })();
 
