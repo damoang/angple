@@ -203,6 +203,16 @@
         }
     });
 
+    // 제휴 변환된 link1/link2 필드 (auxiliaryDataPromise 에서 스트리밍으로 도착)
+    let linkAffiliate = $state<{
+        link1?: string;
+        link2?: string;
+        link1_display?: string;
+        link2_display?: string;
+        link1_affiliate?: boolean;
+        link2_affiliate?: boolean;
+    }>({});
+
     // 제휴 변환 결과를 data.post 위에 덮은 derived — streamed linkAffiliate 가 도착하면 반영.
     // ViewComponent 와 link1Original 모두 이 값을 사용해 제휴 변환 후 링크 버튼 href 가 올바르게 갱신됨.
     const displayPost = $derived({ ...data.post, ...linkAffiliate });
@@ -302,15 +312,6 @@
     let comments = $state<FreeComment[]>(data.commentsData?.comments.items || []);
     let commentsTotal = $state<number>(data.commentsData?.comments.total || comments.length);
     let truthroomCommentMap = $state<Record<number, number>>({});
-    // 제휴 변환된 link1/link2 필드 (auxiliaryDataPromise 에서 스트리밍으로 도착)
-    let linkAffiliate = $state<{
-        link1?: string;
-        link2?: string;
-        link1_display?: string;
-        link2_display?: string;
-        link1_affiliate?: boolean;
-        link2_affiliate?: boolean;
-    }>({});
     let promotionPosts = $state<PromotionPost[]>([]);
     let revisions = $state<PostRevision[]>([]);
     let initialLikedCommentIds = $state<number[]>([]);
