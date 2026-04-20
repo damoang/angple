@@ -203,9 +203,23 @@
         }
     });
 
+    // 제휴 변환된 link1/link2 필드 (auxiliaryDataPromise 에서 스트리밍으로 도착)
+    let linkAffiliate = $state<{
+        link1?: string;
+        link2?: string;
+        link1_display?: string;
+        link2_display?: string;
+        link1_affiliate?: boolean;
+        link2_affiliate?: boolean;
+    }>({});
+
+    // 제휴 변환 결과를 data.post 위에 덮은 derived — streamed linkAffiliate 가 도착하면 반영.
+    // ViewComponent 와 link1Original 모두 이 값을 사용해 제휴 변환 후 링크 버튼 href 가 올바르게 갱신됨.
+    const displayPost = $derived({ ...data.post, ...linkAffiliate });
+
     // link1이 동영상 URL이면 본문 앞에 삽입 (그누보드 wr_link1 호환)
     // link1_display: 제휴 변환 전 원본 URL (변환된 경우), 없으면 link1 자체가 원본
-    const link1Original = $derived(data.post.link1_display || data.post.link1);
+    const link1Original = $derived(displayPost.link1_display || displayPost.link1);
     let renderedPostContent = $state(data.post.content);
     let renderedPostContentPostId = data.post.id;
     $effect(() => {
@@ -343,6 +357,7 @@
         postReactions = undefined;
         reactionsMap = undefined;
         lastFetchedReactionsKey = '';
+        linkAffiliate = {};
 
         if (!promise) {
             // SPA 내비게이션: auxiliaryData 없음 → 리액션 직접 fetch
@@ -379,6 +394,10 @@
 
                 if (result.transformedPostContent) {
                     renderedPostContent = result.transformedPostContent;
+                }
+
+                if (result.linkAffiliate && typeof result.linkAffiliate === 'object') {
+                    linkAffiliate = result.linkAffiliate as typeof linkAffiliate;
                 }
 
                 if (result.isScrapped) {
@@ -1611,7 +1630,7 @@
         <!-- 게시글 카드 (뷰 레이아웃) -->
         {#if ViewComponent}
             <ViewComponent
-                post={data.post}
+                post={displayPost}
                 board={data.board}
                 {boardId}
                 {isAuthor}
