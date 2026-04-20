@@ -185,6 +185,10 @@
     let MemoBadge = $state<Component | null>(null);
     let MemoInlineEditor = $state<Component | null>(null);
     let loadMemosForAuthors = $state<((memberIds: string[]) => Promise<void>) | null>(null);
+    // W4-X3: backend inline author_memo cache 채우기 → memo-badge mount 시 fetch 0
+    let preloadMemos = $state<
+        ((items: Array<{ author_id?: string; author_memo?: unknown }>) => void) | null
+    >(null);
 
     $effect(() => {
         if (memoPluginActive) {
@@ -192,14 +196,25 @@
             loadPluginComponent('member-memo', 'memo-inline-editor').then(
                 (c) => (MemoInlineEditor = c)
             );
-            loadPluginLib<{ loadMemosForAuthors: (ids: string[]) => Promise<void> }>(
-                'member-memo',
-                'memo-store'
-            ).then((module) => {
+            loadPluginLib<{
+                loadMemosForAuthors: (ids: string[]) => Promise<void>;
+                preloadMemos?: (
+                    items: Array<{ author_id?: string; author_memo?: unknown }>
+                ) => void;
+            }>('member-memo', 'memo-store').then((module) => {
                 loadMemosForAuthors = module?.loadMemosForAuthors ?? null;
+                preloadMemos = module?.preloadMemos ?? null;
             });
         } else {
             loadMemosForAuthors = null;
+            preloadMemos = null;
+        }
+    });
+
+    // 글 상세 post의 author_memo로 cache 채우기 (backend PR #438 inline embed 활용)
+    $effect(() => {
+        if (preloadMemos && data.post) {
+            preloadMemos([data.post]);
         }
     });
 
