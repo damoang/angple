@@ -337,22 +337,24 @@
                             </AccordionContent>
                         </AccordionItem>
                     {:else}
-                        <!-- 하위 메뉴가 없는 단독 메뉴 -->
+                        <!-- 하위 메뉴가 없는 단독 메뉴 (accordion trigger 와 시각적 정렬 일치) -->
                         {@const active = isActive(menu.url)}
-                        <Button
-                            variant={active ? 'default' : 'ghost'}
-                            class={cn(
-                                'w-full justify-start gap-2',
-                                active
-                                    ? 'bg-primary text-primary-foreground hover:bg-primary/90'
-                                    : 'hover:bg-accent'
-                            )}
+                        {@const external = menu.target === '_blank'}
+                        <a
                             href={menu.url}
-                            rel="external"
+                            target={external ? '_blank' : undefined}
+                            rel={external ? 'noopener noreferrer' : 'external'}
+                            class={cn(
+                                'flex w-full items-center gap-2 rounded-md py-4 text-sm font-semibold transition-colors',
+                                active
+                                    ? 'bg-primary text-primary-foreground hover:bg-primary/90 px-2'
+                                    : 'hover:bg-accent hover:text-accent-foreground px-0',
+                                isCollapsed && 'justify-center px-0'
+                            )}
                         >
-                            <IconComponent class="size-5" />
+                            <IconComponent class="text-muted-foreground size-5" />
                             <span class={cn(isCollapsed && 'hidden')}>{menu.title}</span>
-                        </Button>
+                        </a>
                     {/if}
                 {/each}
             </Accordion>
