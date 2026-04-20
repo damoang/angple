@@ -19,6 +19,8 @@ import MapPin from '@lucide/svelte/icons/map-pin';
 import Star from '@lucide/svelte/icons/star';
 import TrendingUp from '@lucide/svelte/icons/trending-up';
 import ShoppingCart from '@lucide/svelte/icons/shopping-cart';
+import ShoppingBag from '@lucide/svelte/icons/shopping-bag';
+import Package from '@lucide/svelte/icons/package';
 import Megaphone from '@lucide/svelte/icons/megaphone';
 import Sparkles from '@lucide/svelte/icons/sparkles';
 import Coffee from '@lucide/svelte/icons/coffee';
@@ -109,6 +111,8 @@ export const iconMap: Record<string, typeof Circle> = {
     Star,
     TrendingUp,
     ShoppingCart,
+    ShoppingBag,
+    Package,
     Megaphone,
     Sparkles,
     Coffee,
