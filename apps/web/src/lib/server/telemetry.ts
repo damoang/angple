@@ -57,6 +57,28 @@ if (OTEL_ENABLED) {
     // eslint-disable-next-line no-console
     console.log(`[telemetry] OTel started: endpoint=${endpoint} sampler=${samplerArg}`);
 
+    // Heap metrics logger — 4/22 OOM 이후 추가.
+    // process.memoryUsage()를 60초마다 stdout에 JSON으로 출력 → OTel collector filelog receiver가
+    // otel.logs 테이블에 수집 → Grafana 패널에서 heap 추이 관찰.
+    // 별도 metrics 파이프라인 없이 기존 logs 파이프라인 재활용.
+    const HEAP_LOG_INTERVAL_MS = 60_000;
+    const heapLogTimer = setInterval(() => {
+        const m = process.memoryUsage();
+        // eslint-disable-next-line no-console
+        console.log(
+            JSON.stringify({
+                event: 'heap_metrics',
+                rss: m.rss,
+                heapTotal: m.heapTotal,
+                heapUsed: m.heapUsed,
+                external: m.external,
+                arrayBuffers: m.arrayBuffers,
+                uptime_s: Math.round(process.uptime())
+            })
+        );
+    }, HEAP_LOG_INTERVAL_MS);
+    heapLogTimer.unref?.();
+
     process.on('SIGTERM', async () => {
         try {
             await sdk.shutdown();
