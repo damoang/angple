@@ -114,7 +114,7 @@ export function transformVideos(html: string): string {
             if (embedParams.length > 0) embedSrc += '?' + embedParams.join('&');
             const platform = isShorts ? 'youtube-shorts' : 'youtube';
             const aspectRatio = isShorts ? '177.78%' : '56.25%';
-            const maxWidth = isShorts ? '400px' : '100%';
+            const maxWidth = isShorts ? '400px' : '560px';
             return `<div class="embed-container" data-platform="${platform}" style="--aspect-ratio: ${aspectRatio}; --max-width: ${maxWidth};"><iframe src="${embedSrc}" frameborder="0" allowfullscreen allow="autoplay; clipboard-write; encrypted-media; picture-in-picture" style="position:absolute;top:0;left:0;width:100%;height:100%;"></iframe></div>`;
         }
 
