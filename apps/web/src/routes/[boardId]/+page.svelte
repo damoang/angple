@@ -107,6 +107,7 @@
     import BoardSubscribeButton from '$lib/components/features/board/board-subscribe-button.svelte';
     import { Watermark } from '$lib/components/ui/watermark/index.js';
     import { pluginStore } from '$lib/stores/plugin.svelte';
+    import { loadPluginLib } from '$lib/utils/plugin-optional-loader';
     import Trash2 from '@lucide/svelte/icons/trash-2';
 
     // Q&A 게시판 타입 등록
@@ -190,6 +191,25 @@
     let memoByAuthorId = $state<Record<string, { content: string; color: string } | null>>({});
     let lastMemoRequestKey = $state('');
     let memoScheduleToken: number | ReturnType<typeof setTimeout> | null = null;
+    // W4-X4: backend inline author_memo로 memo-store memoCache 채우기
+    // (memo-badge 컴포넌트 내부 loadMemo 호출 시 cache hit → individual fetch 0)
+    let preloadMemos = $state<
+        ((items: Array<{ author_id?: string; author_memo?: unknown }>) => void) | null
+    >(null);
+
+    $effect(() => {
+        if (pluginStore.isPluginActive('member-memo')) {
+            loadPluginLib<{
+                preloadMemos?: (
+                    items: Array<{ author_id?: string; author_memo?: unknown }>
+                ) => void;
+            }>('member-memo', 'memo-store').then((m) => {
+                preloadMemos = m?.preloadMemos ?? null;
+            });
+        } else {
+            preloadMemos = null;
+        }
+    });
 
     const MEMO_CACHE_TTL_MS = 30_000;
     const memoBatchCache = new Map<
@@ -341,9 +361,15 @@
         const result = data.postsData;
         if (!result) return;
 
-        const authorIds = [...result.posts, ...(result.notices || [])]
-            .map((p) => p.author_id)
-            .filter((id): id is string => Boolean(id));
+        const items = [...result.posts, ...(result.notices || [])];
+
+        // W4-X4: backend inline author_memo로 memo-store cache 채우기 (PR #438 + #37 활용)
+        // memo-badge 컴포넌트가 loadMemo() 호출해도 cache hit → /members/{id}/memo individual fetch 0
+        if (preloadMemos) {
+            preloadMemos(items);
+        }
+
+        const authorIds = items.map((p) => p.author_id).filter((id): id is string => Boolean(id));
         const usesInlineListMemo = listLayoutId === 'classic';
 
         if (usesInlineListMemo) {
