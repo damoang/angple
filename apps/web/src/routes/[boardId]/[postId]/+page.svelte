@@ -1463,8 +1463,10 @@
         >
     </nav>
 
-    <!-- 상단 네비게이션 -->
-    <div class="-mx-2 mb-2 flex items-center gap-3 px-2 py-2 md:mx-0 md:px-0">
+    <!-- 상단 네비게이션 — 모바일 터치 타겟 44px(#12016) -->
+    <div
+        class="-mx-2 mb-2 flex items-center gap-3 px-2 py-2 md:mx-0 md:px-0 [&_a]:min-h-11 md:[&_a]:min-h-0 [&_button]:min-h-11 md:[&_button]:min-h-0"
+    >
         <Button variant="ghost" size="sm" onclick={() => history.back()} class="shrink-0">←</Button>
         <Button variant="outline" size="sm" onclick={goBack} class="shrink-0">목록으로</Button>
 
@@ -1902,8 +1904,10 @@
             </div>
         {/if}
 
-        <!-- 댓글 아래 네비게이션 -->
-        <div class="-mx-2 mt-4 flex items-center gap-3 px-2 py-2 md:mx-0 md:px-0">
+        <!-- 댓글 아래 네비게이션 — 모바일 터치 타겟 44px(#12016) -->
+        <div
+            class="-mx-2 mt-4 flex items-center gap-3 px-2 py-2 md:mx-0 md:px-0 [&_a]:min-h-11 md:[&_a]:min-h-0 [&_button]:min-h-11 md:[&_button]:min-h-0"
+        >
             <Button variant="ghost" size="sm" onclick={() => history.back()} class="shrink-0"
                 >←</Button
             >
