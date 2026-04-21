@@ -865,19 +865,26 @@
         reportingCommentId = null;
     }
 
-    // 댓글 추천자 아바타 배치 로드
+    // 댓글 추천자 아바타 배치 로드 — 서버 batch IDs 한도(50)에 맞춰 청크 분할
+    // 50개 초과 시 한 번에 보내면 뒤쪽 댓글이 조용히 잘려 나가 "특정번째 이후 댓글 공감자 미노출" 제보(#11996) 재현됨
+    const COMMENT_LIKERS_BATCH_CHUNK = 50;
     async function loadCommentLikerAvatarsBatch(commentIds: string[]): Promise<void> {
         if (!boardId || !postId || commentIds.length === 0) return;
         try {
-            const result = await apiClient.getCommentLikersBatch(
-                boardId,
-                String(postId),
-                commentIds,
-                5
+            const chunks: string[][] = [];
+            for (let i = 0; i < commentIds.length; i += COMMENT_LIKERS_BATCH_CHUNK) {
+                chunks.push(commentIds.slice(i, i + COMMENT_LIKERS_BATCH_CHUNK));
+            }
+            const results = await Promise.all(
+                chunks.map((chunk) =>
+                    apiClient.getCommentLikersBatch(boardId, String(postId), chunk, 5)
+                )
             );
-            for (const [commentId, data] of Object.entries(result)) {
-                commentLikersList.set(commentId, data.likers);
-                commentLikersTotal.set(commentId, data.total);
+            for (const result of results) {
+                for (const [commentId, data] of Object.entries(result)) {
+                    commentLikersList.set(commentId, data.likers);
+                    commentLikersTotal.set(commentId, data.total);
+                }
             }
         } catch (err) {
             console.error('Failed to load comment liker avatars:', err);
