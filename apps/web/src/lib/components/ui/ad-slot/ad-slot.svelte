@@ -49,12 +49,15 @@
     ]);
 
     // 모바일 목록처럼 터치가 빈번한 위치: no fill이어도 즉시 축소하지 않음 (CLS 방지)
+    // 홈 공감글 터치 오인식(#11998) — 공감글 아래 위젯들이 index-middle 광고 높이 변화로 밀리는 것을 방지
     const TOUCH_SAFE_POSITIONS = new Set([
         'header-after',
         'board-list-infeed',
         'board-list-top',
         'board-list-bottom',
         'index-top',
+        'index-middle-1',
+        'index-middle-2',
         'board-content',
         'board-before-comments'
     ]);

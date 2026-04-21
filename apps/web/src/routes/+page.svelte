@@ -75,8 +75,10 @@
                 : undefined,
             explore: data.exploreData ? { data: data.exploreData } : undefined
         },
-        celebration: (data.celebrationRecent ?? data.celebration)?.length
-            ? { data: data.celebrationRecent ?? data.celebration }
-            : undefined
+        // 홈 공감글 터치 오인식(#11998) — SSR 데이터가 빈 배열일 때 undefined 를 넘기면
+        // 클라이언트 $effect 가 재요청을 보내 축하메시지 Card 가 hydration 직후 삽입되며
+        // 그 아래 위젯이 밀리는 레이아웃 shift 를 유발. 빈 배열이라도 항상 prefetchData 로
+        // 넘겨서 클라이언트 재요청을 차단함.
+        celebration: { data: data.celebrationRecent ?? data.celebration ?? [] }
     }}
 />

@@ -35,6 +35,8 @@
             src="{import.meta.env
                 .VITE_S3_URL}/data/editor/2509/5770b-68ca37f63464f-24fb734ab222da3cff7aee7898aedce5e1c3c360.webp"
             alt="앙 AI 캐릭터"
+            width="48"
+            height="48"
             class="size-12 object-contain"
             loading="lazy"
         />
