@@ -91,6 +91,7 @@ function isAllowedOrigin(origin: string): boolean {
 const ADS_URL = env.ADS_URL || '';
 const LEGACY_URL = env.LEGACY_URL || '';
 const ASSET_BASE_URL = (env.ASSET_BASE_URL || '').replace(/\/+$/, '');
+const STATIC_ASSET_ORIGIN = 'https://static.damoang.net';
 
 /** CDN 캐시 가능한 공개 경로 (비로그인 시만 적용) */
 const PUBLIC_CACHEABLE_PATHS = ['/feed', '/games', '/info'];
@@ -427,7 +428,13 @@ function buildCsp(): string {
     // 사이트별 도메인을 CSP에 동적 추가
     const adsHost = ADS_URL ? ` ${ADS_URL}` : '';
     const legacyHost = LEGACY_URL ? ` ${LEGACY_URL}` : '';
-    const assetOrigin = ASSET_BASE_URL ? ` ${new URL(ASSET_BASE_URL).origin}` : '';
+    const assetOrigins = new Set<string>([STATIC_ASSET_ORIGIN]);
+
+    if (ASSET_BASE_URL) {
+        assetOrigins.add(new URL(ASSET_BASE_URL).origin);
+    }
+
+    const assetOrigin = assetOrigins.size > 0 ? ` ${Array.from(assetOrigins).join(' ')}` : '';
 
     const directives: string[] = [
         "default-src 'self' https://damoang.net https://*.damoang.net",
