@@ -1047,16 +1047,42 @@
             // 아바타 스택 갱신
             loadLikerAvatars();
         } catch (err) {
+            console.error('Failed to like post:', err);
+            if (err instanceof Error && err.message.includes('실명인증')) {
+                // 실명인증 미완 → 원래대로 롤백 후 인증 페이지로 이동
+                isLiked = prevLiked;
+                isDisliked = prevDisliked;
+                likeCount = prevLikeCount;
+                dislikeCount = prevDislikeCount;
+                goToCertification();
+                return;
+            }
+            // #12004: 모바일 네트워크 등에서 서버는 처리됐으나 응답 수신이 실패한 경우
+            // 서버 실제 상태를 재조회해서 사용자 의도와 일치하면 silent success 로 처리.
+            // 그렇지 않은 경우에만 롤백 + 알림.
+            try {
+                const status = await apiClient.getPostLikeStatus(boardId, String(data.post.id));
+                const intendedLiked = !prevLiked;
+                if (status.user_liked === intendedLiked) {
+                    isLiked = status.user_liked;
+                    isDisliked = status.user_disliked ?? false;
+                    likeCount = status.likes;
+                    dislikeCount = status.dislikes ?? 0;
+                    if (!prevLiked && isLiked) {
+                        trackEvent('like', { board_id: boardId, post_id: data.post.id });
+                    }
+                    loadLikerAvatars();
+                    return;
+                }
+            } catch {
+                // 재조회도 실패 → 기본 실패 경로로 폴백
+            }
             isLiked = prevLiked;
             isDisliked = prevDisliked;
             likeCount = prevLikeCount;
             dislikeCount = prevDislikeCount;
-            console.error('Failed to like post:', err);
-            if (err instanceof Error && err.message.includes('실명인증')) {
-                goToCertification();
-                return;
-            }
-            alert('공감에 실패했습니다.');
+            const msg = err instanceof Error && err.message ? err.message : '공감에 실패했습니다.';
+            alert(msg);
         } finally {
             isLiking = false;
         }
@@ -1076,6 +1102,7 @@
 
         if (isDisliking) return;
 
+        const prevDislikedForReconcile = isDisliked;
         isDisliking = true;
         try {
             const response = await apiClient.dislikePost(boardId, String(data.post.id));
@@ -1094,7 +1121,23 @@
                 goToCertification();
                 return;
             }
-            alert('비공감에 실패했습니다.');
+            // #12004: 서버는 처리됐으나 응답 수신이 실패한 경우 상태 재조회로 확인
+            try {
+                const status = await apiClient.getPostLikeStatus(boardId, String(data.post.id));
+                const intendedDisliked = !prevDislikedForReconcile;
+                if ((status.user_disliked ?? false) === intendedDisliked) {
+                    isLiked = status.user_liked;
+                    isDisliked = status.user_disliked ?? false;
+                    likeCount = status.likes;
+                    dislikeCount = status.dislikes ?? 0;
+                    return;
+                }
+            } catch {
+                // 재조회도 실패 → fallback
+            }
+            const msg =
+                err instanceof Error && err.message ? err.message : '비공감에 실패했습니다.';
+            alert(msg);
         } finally {
             isDisliking = false;
         }
