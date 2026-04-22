@@ -1943,16 +1943,20 @@
 </div>
 
 <!-- 게시판 최근글 목록 -->
+<!-- #12040: boardId 변경 시 RecentPosts 를 강제 재생성하여 이전 게시판의
+     posts state 가 남아있다가 잘못된 URL 로 이동하는 문제 방지 -->
 {#if canRead}
-    <RecentPosts
-        {boardId}
-        {boardTitle}
-        currentPostId={data.post.id}
-        limit={20}
-        initialPage={data.recentPosts?.page || Number($page.url.searchParams.get('page')) || 1}
-        {promotionPosts}
-        displaySettings={data.board?.display_settings}
-    />
+    {#key boardId}
+        <RecentPosts
+            {boardId}
+            {boardTitle}
+            currentPostId={data.post.id}
+            limit={20}
+            initialPage={data.recentPosts?.page || Number($page.url.searchParams.get('page')) || 1}
+            {promotionPosts}
+            displaySettings={data.board?.display_settings}
+        />
+    {/key}
 {/if}
 
 {#if authStore.isAuthenticated}
