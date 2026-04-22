@@ -42,6 +42,17 @@ const jwtCache = new Map<string, { token: string; expiry: number }>();
 const JWT_CACHE_TTL = 5 * 60 * 1000; // 5분
 const MAX_JWT_CACHE_SIZE = 50000;
 
+// 만료 entry 주기적 정리 — 4/22 prod 메모리 누수 근본 원인.
+// 기존 eviction은 size >= MAX일 때만 실행되어, size < MAX면 만료된 entry가
+// 무한 누적 (9h 기준 pod당 RSS ~900Mi). 60s 주기로 만료분만 제거해 누수 차단.
+const jwtCleanupTimer = setInterval(() => {
+    const now = Date.now();
+    for (const [key, entry] of jwtCache) {
+        if (now >= entry.expiry) jwtCache.delete(key);
+    }
+}, 60_000);
+jwtCleanupTimer.unref?.();
+
 // --- SSR 응답 캐시 (비로그인: 홈 + 게시판 목록 + 글 상세) ---
 import {
     ssrCache,
