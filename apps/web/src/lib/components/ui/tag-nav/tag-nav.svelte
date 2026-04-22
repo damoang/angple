@@ -1,5 +1,6 @@
 <script lang="ts">
     import { page } from '$app/stores';
+    import { invalidateAll } from '$app/navigation';
     import { widgetLayoutStore } from '$lib/stores/widget-layout.svelte';
 
     export interface TagNavMenu {
@@ -47,6 +48,16 @@
         {#each visibleMenus as menu (menu.key)}
             <a
                 href={menu.url}
+                onclick={(e) => {
+                    // 현재 페이지와 동일한 메뉴 클릭 시 SvelteKit 이 navigation 을 생략해
+                    // "클릭해도 아무 반응 없음" 처럼 보이는 문제(#12027) 방지.
+                    // 좌측 카테고리 링크와 동일하게 invalidateAll() 로 새로고침.
+                    if (isActive(menu.url)) {
+                        e.preventDefault();
+                        invalidateAll();
+                        window.scrollTo(0, 0);
+                    }
+                }}
                 class="shrink-0 whitespace-nowrap rounded-lg px-3 py-1.5 text-sm transition-all duration-200 ease-out
                     {isActive(menu.url)
                     ? 'bg-primary text-primary-foreground font-medium'
