@@ -469,6 +469,33 @@ function buildCsp(): string {
 
 const cspHeader = buildCsp();
 
+/**
+ * SSR auth cookie sync — CDN cache key normalization.
+ *
+ * CDN이 수많은 사용자 쿠키(angple_sid, damoang_jwt 등)로 cache key를 분산시키는 대신,
+ * 단일 binary cookie `ssr_auth=1`(로그인) / 없음(익명)으로 normalize.
+ * CDN cache rule에서 ssr_auth만 vary key로 포함하면 auth/anon 2개 cache entry로 통합.
+ *
+ * 조건: event.locals.user 여부 기준. authenticateSSR() 실행 직후 호출.
+ */
+function syncSsrAuthCookie(event: Parameters<Handle>[0]['event']): void {
+    const authed = !!event.locals.user;
+    const current = event.cookies.get('ssr_auth');
+    const domainOpt = COOKIE_DOMAIN ? { domain: COOKIE_DOMAIN } : {};
+    if (authed && current !== '1') {
+        event.cookies.set('ssr_auth', '1', {
+            path: '/',
+            sameSite: 'lax',
+            secure: !dev,
+            httpOnly: false,
+            maxAge: 60 * 60 * 24 * 30,
+            ...domainOpt
+        });
+    } else if (!authed && current) {
+        event.cookies.delete('ssr_auth', { path: '/', ...domainOpt });
+    }
+}
+
 /** 개발/내부 전용 경로 — 프로덕션에서 차단 */
 const DEV_ONLY_PATHS = ['/api-test', '/api-docs', '/api-doc', '/install'];
 
@@ -603,6 +630,9 @@ export const handle: Handle = async ({ event, resolve }) => {
 
     // SSR 인증
     await authenticateSSR(event);
+
+    // CDN cache key normalization — ssr_auth=1 / 없음 2-state로 쿠키 다양성 축소
+    syncSsrAuthCookie(event);
 
     // CSRF 검증: 세션 기반 double-submit cookie
     if (
