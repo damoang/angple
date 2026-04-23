@@ -11,6 +11,7 @@ import { grantLoginPoint } from '$lib/server/auth/point-grant.js';
 import { checkAndPromoteMember } from '$lib/server/auth/auto-promotion.js';
 import { generateAccessToken } from '$lib/server/auth/jwt.js';
 import { setDamoangSSOCookie } from '$lib/server/auth/sso-cookie.js';
+import { parseUserBasicCookie } from '$lib/server/auth/user-basic.js';
 import { checkRateLimit, recordAttempt } from '$lib/server/rate-limit.js';
 import { mapGnuboardUrl, mapRhymixUrl } from '$lib/server/url-compat.js';
 
@@ -308,6 +309,36 @@ async function authenticateSSR(event: Parameters<Handle>[0]['event']): Promise<v
         try {
             const session = await withTimeout(getSession(sessionId), AUTH_TIMEOUT_MS);
             if (session) {
+                // FAST PATH: user_basic 쿠키 + JWT cache hit → DB 조회 0 (Phase B wire-up)
+                // feature flag USER_BASIC_FAST_PATH=true 시 활성화. default off.
+                if (env.USER_BASIC_FAST_PATH === 'true') {
+                    const basic = parseUserBasicCookie(event.cookies.get('user_basic'));
+                    const cachedJwt = jwtCache.get(session.mbId);
+                    const nowFp = Date.now();
+                    if (
+                        basic &&
+                        basic.id === session.mbId &&
+                        cachedJwt &&
+                        nowFp < cachedJwt.expiry
+                    ) {
+                        event.locals.user = {
+                            id: basic.id,
+                            nickname: basic.nickname,
+                            level: basic.mb_level,
+                            as_level: basic.as_level,
+                            mb_certify: '',
+                            mb_image: basic.mb_image || undefined,
+                            mb_image_updated_at: basic.mb_image_updated_at || undefined,
+                            advertiser_end_date: undefined,
+                            advertiser_status: undefined
+                        };
+                        event.locals.sessionId = sessionId;
+                        event.locals.csrfToken = session.csrfToken;
+                        event.locals.accessToken = cachedJwt.token;
+                        return;
+                    }
+                }
+
                 const member = await withTimeout(getMemberById(session.mbId), AUTH_TIMEOUT_MS);
                 if (member) {
                     event.locals.user = {
