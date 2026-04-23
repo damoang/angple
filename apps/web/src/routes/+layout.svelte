@@ -32,6 +32,8 @@
     import { updatePageTargeting } from '$lib/components/ui/ad-slot/ad-slot-registry.js';
     import { consumePendingAuthEvent, initGA4, trackPageView } from '$lib/services/ga4';
     import type { MenuItem } from '$lib/api/types';
+    import { readUserBasicFromCookie } from '$lib/utils/user-basic-client';
+    import { env } from '$env/dynamic/public';
 
     const LAYOUT_INIT_STORAGE_KEY = 'angple:layout-init:v1';
     const LAYOUT_INIT_STORAGE_TTL_MS = 5 * 60 * 1000;
@@ -492,23 +494,55 @@
             if (authStore.isAuthenticated) blockedUsersStore.load();
         } else {
             // SSR에서 user 없음 (SSR_STRIP_USER=true 또는 비로그인)
-            // HttpOnly 쿠키는 document.cookie로 읽을 수 없으므로 항상 /api/auth/me 시도
-            // credentials: 'same-origin'이 HttpOnly 쿠키를 자동 전송
-            fetch('/api/auth/me', { credentials: 'same-origin' })
-                .then((res) => (res.ok ? res.json() : null))
-                .then((meData) => {
-                    if (meData?.user) {
-                        syncAuth({ ...data, ...meData });
+
+            // Phase C: user_basic 쿠키 (JS-readable) 우선 시도
+            // PUBLIC_USER_BASIC_CLIENT_READ=true 활성화 시 /api/auth/me fetch 생략
+            let fastPathApplied = false;
+            if (env.PUBLIC_USER_BASIC_CLIENT_READ === 'true') {
+                try {
+                    const basic = readUserBasicFromCookie(document.cookie);
+                    if (basic) {
+                        syncAuth({
+                            ...data,
+                            user: {
+                                id: basic.id,
+                                nickname: basic.nickname,
+                                level: basic.mb_level,
+                                as_level: basic.as_level,
+                                mb_certify: '',
+                                mb_image: basic.mb_image ?? undefined,
+                                mb_image_updated_at: basic.mb_image_updated_at ?? undefined,
+                                advertiser_end_date: undefined,
+                                advertiser_status: undefined
+                            }
+                        });
                         blockedUsersStore.load();
-                    } else {
-                        authActions.initAuth();
+                        authInitialized = true;
+                        fastPathApplied = true;
                     }
-                    authInitialized = true;
-                })
-                .catch(() => {
-                    authActions.initAuth();
-                    authInitialized = true;
-                });
+                } catch {
+                    // cookie parse 실패 시 /api/auth/me fallback
+                }
+            }
+
+            if (!fastPathApplied) {
+                // 전통 경로: HttpOnly 세션 쿠키로 /api/auth/me fetch
+                fetch('/api/auth/me', { credentials: 'same-origin' })
+                    .then((res) => (res.ok ? res.json() : null))
+                    .then((meData) => {
+                        if (meData?.user) {
+                            syncAuth({ ...data, ...meData });
+                            blockedUsersStore.load();
+                        } else {
+                            authActions.initAuth();
+                        }
+                        authInitialized = true;
+                    })
+                    .catch(() => {
+                        authActions.initAuth();
+                        authInitialized = true;
+                    });
+            }
         }
 
         // postMessage 리스너 (Admin에서 테마 변경 시 리로드)
