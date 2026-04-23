@@ -7,8 +7,36 @@ import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { env } from '$env/dynamic/private';
 import { getAuthUser, verifyToken } from '$lib/server/auth/index.js';
+import { getMemberById } from '$lib/server/auth/oauth/member.js';
+import { issueUserBasicCookie } from '$lib/server/auth/user-basic.js';
 
 const BACKEND_URL = env.BACKEND_URL || 'http://localhost:8090';
+
+/**
+ * 프로필 변경 후 user_basic 쿠키 재발행 (Phase A 확장).
+ * 실패해도 API 성공에 영향 없음 (best-effort).
+ */
+async function refreshUserBasic(
+    token: string,
+    cookies: import('@sveltejs/kit').Cookies
+): Promise<void> {
+    try {
+        const payload = await verifyToken(token);
+        if (!payload?.sub) return;
+        const member = await getMemberById(payload.sub);
+        if (!member) return;
+        issueUserBasicCookie(cookies, {
+            id: member.mb_id,
+            nickname: member.mb_nick || member.mb_name,
+            mb_level: member.mb_level ?? 0,
+            as_level: member.as_level ?? 0,
+            mb_image: member.mb_image_url || null,
+            mb_image_updated_at: member.mb_image_updated_at || null
+        });
+    } catch {
+        // user_basic 재발행 실패는 무시 — 다음 로그인 때 복구
+    }
+}
 
 async function getAccessToken(
     request: Request,
@@ -67,6 +95,9 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
         error(res.status, body.error || '이미지 업로드에 실패했습니다.');
     }
 
+    // Phase A 확장: 이미지 변경됨 → user_basic 쿠키 재발행 (stale 방지)
+    await refreshUserBasic(token, cookies);
+
     return json(body);
 };
 
@@ -85,6 +116,9 @@ export const DELETE: RequestHandler = async ({ request, cookies }) => {
     if (!res.ok) {
         error(res.status, body.error || '이미지 삭제에 실패했습니다.');
     }
+
+    // Phase A 확장: 이미지 삭제됨 → user_basic 쿠키 재발행
+    await refreshUserBasic(token, cookies);
 
     return json(body);
 };
