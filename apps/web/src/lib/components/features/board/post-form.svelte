@@ -424,7 +424,7 @@
         tags?: string[];
         link1?: string;
         link2?: string;
-        uploadedFiles?: UploadedFile[];
+        uploadedFiles?: unknown[];
     }): void {
         title = draft.title;
         content = draft.content;
@@ -433,9 +433,9 @@
         tags = draft.tags || [];
         link1 = draft.link1 || '';
         link2 = draft.link2 || '';
-        // #12029: 첨부파일 목록도 복원
+        // #12029: 첨부파일 목록도 복원 (DraftList의 DraftItem은 unknown[]로 type)
         if (draft.uploadedFiles && draft.uploadedFiles.length > 0) {
-            uploadedFiles = draft.uploadedFiles;
+            uploadedFiles = draft.uploadedFiles as UploadedFile[];
         }
         hasUnsavedChanges = true;
     }
