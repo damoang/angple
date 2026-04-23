@@ -2,7 +2,7 @@
     import { Badge } from '$lib/components/ui/badge/index.js';
     import type { FreePost, BoardDisplaySettings } from '$lib/api/types.js';
     import AuthorLink from '$lib/components/ui/author-link/author-link.svelte';
-    import { getAvatarUrl } from '$lib/utils/member-icon.js';
+    import Avatar from '$lib/components/ui/Avatar.svelte';
     import { formatCommentCountBadge } from '$lib/utils/comment-count.js';
     import { formatDate, formatDateCompact, isToday } from '$lib/utils/format-date.js';
     import { highlightQuery } from '$lib/utils/highlight.js';
@@ -29,7 +29,6 @@
     const originalLink = $derived(post.link1 || '');
     const sourceBoard = $derived(post.extra_1 || '');
     const sourcePostId = $derived(post.extra_2 || '');
-    const iconUrl = $derived(getAvatarUrl(post.author_image, post.author_image_updated_at));
     const readClass = $derived(
         isRead ? `post-title-read-${readPostStyleStore.value}` : 'post-title'
     );
@@ -127,17 +126,12 @@
                 <span
                     class="post-meta-text hidden items-center gap-1 truncate md:inline-flex md:w-[120px] md:pl-1"
                 >
-                    {#if iconUrl}
-                        <img
-                            src={iconUrl}
-                            alt=""
-                            class="h-5 w-5 shrink-0 rounded-full object-cover"
-                            onerror={(e) => {
-                                const img = e.currentTarget as HTMLImageElement;
-                                img.style.display = 'none';
-                            }}
-                        />
-                    {/if}
+                    <Avatar
+                        path={post.author_image}
+                        updatedAt={post.author_image_updated_at}
+                        alt=""
+                        class="h-5 w-5 shrink-0 rounded-full object-cover"
+                    />
                     <AuthorLink
                         authorId={post.author_id}
                         authorName={post.author}
@@ -164,17 +158,12 @@
                 <!-- 모바일 메타 (Line 2) -->
                 <div class="mobile-meta">
                     <span class="inline-flex items-center gap-0.5">
-                        {#if iconUrl}
-                            <img
-                                src={iconUrl}
-                                alt=""
-                                class="h-5 w-5 shrink-0 rounded-full object-cover"
-                                onerror={(e) => {
-                                    const img = e.currentTarget as HTMLImageElement;
-                                    img.style.display = 'none';
-                                }}
-                            />
-                        {/if}
+                        <Avatar
+                            path={post.author_image}
+                            updatedAt={post.author_image_updated_at}
+                            alt=""
+                            class="h-5 w-5 shrink-0 rounded-full object-cover"
+                        />
                         <AuthorLink
                             authorId={post.author_id}
                             authorName={post.author}
