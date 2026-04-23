@@ -112,6 +112,34 @@ export const POST: RequestHandler = async ({ request, cookies, getClientAddress 
             ...domainOpt
         });
 
+        // user_basic 쿠키 — SSR/client 공유용 최소 프로필 정보
+        // /api/auth/me 호출 제거 + CDN cache key normalization 목표
+        // 민감 정보(email/token) 제외, nickname/level/avatar만
+        try {
+            const member = await getMemberById(mbId);
+            if (member) {
+                const userBasic = {
+                    id: member.mb_id,
+                    nickname: member.mb_nick || member.mb_name,
+                    mb_level: member.mb_level ?? 0,
+                    as_level: member.as_level ?? 0,
+                    mb_image: member.mb_image_url || null,
+                    mb_image_updated_at: member.mb_image_updated_at || null
+                };
+                const encoded = Buffer.from(JSON.stringify(userBasic), 'utf-8').toString('base64');
+                cookies.set('user_basic', encoded, {
+                    path: '/',
+                    httpOnly: false, // client JS 읽기 가능
+                    sameSite: 'lax',
+                    secure: true,
+                    maxAge: SESSION_COOKIE_MAX_AGE,
+                    ...domainOpt
+                });
+            }
+        } catch {
+            // user_basic 발행 실패는 로그인 성공을 막지 않음 (fallback: /api/auth/me)
+        }
+
         // 레거시 호환: refresh_token도 생성
         const { token: refreshToken } = await generateRefreshToken(mbId, {
             ip: clientIp,
