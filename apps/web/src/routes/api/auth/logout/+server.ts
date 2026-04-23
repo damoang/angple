@@ -75,6 +75,9 @@ export const POST: RequestHandler = async ({ cookies, fetch, locals }) => {
     cookies.delete('damoang_jwt', { ...cookieOpts, httpOnly: false });
     cookies.delete('access_token', { ...cookieOpts, httpOnly: false });
 
+    // user_basic 쿠키 (SSR/client 공유 프로필, login에서 발행)
+    cookies.delete('user_basic', { ...cookieOpts, httpOnly: false });
+
     // 서브도메인 SSO 쿠키 삭제 (.damoang.net 도메인)
     clearDamoangSSOCookie(cookies);
 
