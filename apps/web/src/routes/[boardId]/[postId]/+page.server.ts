@@ -25,6 +25,7 @@ import { fetchCommentLikeStatuses } from '$lib/server/comment-likes.js';
 import { fetchPostLikeStatus } from '$lib/server/post-like-status.js';
 import { fetchTruthroomPostId, fetchTruthroomCommentMap } from '$lib/server/truthroom.js';
 import { BackendUnavailableError } from '$lib/server/backend-fetch.js';
+import { applyFilter } from '$lib/hooks/registry.js';
 
 /**
  * 게시글 상세 페이지 — Streaming SSR
@@ -571,9 +572,14 @@ export const load: PageServerLoad = async ({
             page: listPage
         };
 
+        // Phase 1C: 플러그인 enrich filter (member-memo author_memo 등).
+        // 미설치 시 pass-through. (premium PR #43 기준 stub)
+        const enrichedPostList = (await applyFilter('post.list.enrich', [post])) as FreePost[];
+        const enrichedPost = enrichedPostList[0] ?? post;
+
         return {
             boardId,
-            post,
+            post: enrichedPost,
             board: toDetailBoardPayload(board),
             commentsData,
             isScrapped: false,
