@@ -24,6 +24,11 @@
         isSecret: boolean;
         savedAt: string;
         boardId: string;
+        tags?: string[];
+        link1?: string;
+        link2?: string;
+        // #12029: 첨부파일 목록도 draft 에 포함시켜 복원 시 소실 방지
+        uploadedFiles?: unknown[];
     }
 
     // 임시저장 목록
@@ -53,7 +58,11 @@
                             category: data.category || '',
                             isSecret: data.isSecret || false,
                             savedAt: data.savedAt,
-                            boardId
+                            boardId,
+                            tags: data.tags,
+                            link1: data.link1,
+                            link2: data.link2,
+                            uploadedFiles: data.uploadedFiles
                         });
                     }
                 } catch {
