@@ -6,7 +6,7 @@
     import Play from '@lucide/svelte/icons/play';
     import Pin from '@lucide/svelte/icons/pin';
     import Heart from '@lucide/svelte/icons/heart';
-    import { getAvatarUrl } from '$lib/utils/member-icon.js';
+    import Avatar from '$lib/components/ui/Avatar.svelte';
     import AuthorLink from '$lib/components/ui/author-link/author-link.svelte';
     import { formatDate, formatDateCompact, isToday } from '$lib/utils/format-date.js';
     import { formatCompactNumber } from '$lib/utils/format-number.js';
@@ -43,9 +43,6 @@
             '<mark class="bg-yellow-200 dark:bg-yellow-800 rounded px-0.5">$1</mark>'
         );
     }
-
-    // 회원 아이콘 URL
-    const iconUrl = $derived(getAvatarUrl(post.author_image, post.author_image_updated_at));
 
     /**
      * 추천 색상 단계 — 레거시 rcmd-box 기반
@@ -267,17 +264,12 @@
                         ? 'hidden'
                         : 'post-meta-text hidden items-center gap-1 truncate md:inline-flex md:w-[120px] md:pl-1'}
                 >
-                    {#if iconUrl}
-                        <img
-                            src={iconUrl}
-                            alt=""
-                            class="h-5 w-5 shrink-0 rounded-full object-cover"
-                            onerror={(e) => {
-                                const img = e.currentTarget as HTMLImageElement;
-                                img.style.display = 'none';
-                            }}
-                        />
-                    {/if}
+                    <Avatar
+                        path={post.author_image}
+                        updatedAt={post.author_image_updated_at}
+                        alt=""
+                        class="h-5 w-5 shrink-0 rounded-full object-cover"
+                    />
                     <AuthorLink
                         authorId={post.author_id}
                         authorName={post.author}
