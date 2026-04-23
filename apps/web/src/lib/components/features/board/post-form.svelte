@@ -148,7 +148,11 @@
         link1: string;
         link2: string;
         savedAt: string;
+        uploadedFiles?: UploadedFile[];
     }
+
+    // #12029: localStorage quota 초과 시 사용자에게 한 번만 안내 (자동저장 매번 경고 방지)
+    let quotaWarned = false;
 
     // 임시저장 저장
     function saveDraft(): void {
@@ -164,7 +168,9 @@
             tags,
             link1,
             link2,
-            savedAt: new Date().toISOString()
+            savedAt: new Date().toISOString(),
+            // #12029: FileUploader 로 첨부한 파일이 draft 복원 시 소실되지 않도록 저장
+            uploadedFiles
         };
 
         try {
@@ -173,6 +179,17 @@
             hasUnsavedChanges = false;
         } catch (err) {
             console.error('임시저장 실패:', err);
+            // QuotaExceededError — silent 실패로 이전 draft 만 남아 사용자가
+            // 제목만 남은 것처럼 보이는 문제(#12029) 방지
+            const isQuota =
+                err instanceof DOMException &&
+                (err.name === 'QuotaExceededError' || err.name === 'NS_ERROR_DOM_QUOTA_REACHED');
+            if (isQuota && !quotaWarned) {
+                quotaWarned = true;
+                alert(
+                    '임시저장 용량이 가득 찼습니다.\n본문에 붙여넣기한 이미지는 서버 업로드가 완료되어야 용량이 줄어듭니다.\n바로 정식 등록하시거나 이미지를 먼저 업로드 후 다시 시도해 주세요.'
+                );
+            }
         } finally {
             isSaving = false;
         }
@@ -211,6 +228,10 @@
             tags = draft.tags || [];
             link1 = draft.link1 || '';
             link2 = draft.link2 || '';
+            // #12029: 업로드된 첨부파일 목록도 함께 복원
+            if (draft.uploadedFiles && draft.uploadedFiles.length > 0) {
+                uploadedFiles = draft.uploadedFiles;
+            }
             lastSavedAt = new Date(draft.savedAt);
             hasUnsavedChanges = false;
         }
@@ -403,6 +424,7 @@
         tags?: string[];
         link1?: string;
         link2?: string;
+        uploadedFiles?: UploadedFile[];
     }): void {
         title = draft.title;
         content = draft.content;
@@ -411,6 +433,10 @@
         tags = draft.tags || [];
         link1 = draft.link1 || '';
         link2 = draft.link2 || '';
+        // #12029: 첨부파일 목록도 복원
+        if (draft.uploadedFiles && draft.uploadedFiles.length > 0) {
+            uploadedFiles = draft.uploadedFiles;
+        }
         hasUnsavedChanges = true;
     }
 
