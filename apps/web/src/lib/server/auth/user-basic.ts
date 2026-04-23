@@ -1,14 +1,18 @@
 /**
- * user_basic 쿠키 파싱 유틸리티 (Phase B of split cookie).
+ * user_basic 쿠키 파싱 + 발행 유틸리티 (Phase A/B/C of split cookie).
  *
- * login 시 base64 JSON 으로 emit된 user_basic 쿠키를 서버사이드에서 파싱.
- * 이 파일은 **Phase B 스캐폴딩** — 실제 authenticateSSR 통합은 별도 PR에서.
+ * login 시 base64 JSON 으로 emit된 user_basic 쿠키를 서버사이드에서 파싱/갱신.
+ * 프로필 변경(이미지/닉네임/레벨) 시 이 모듈의 issueUserBasicCookie() 로 재발행.
  *
  * 보안:
  * - user_basic은 HttpOnly=false → client JS 접근 허용 (XSS 주의)
  * - **민감 정보(email/accessToken) 제외** — 단순 profile 표시용
  * - 권한 판단은 기존 session 검증에서 수행, 이 쿠키를 신뢰 X
  */
+
+import { dev } from '$app/environment';
+import { env } from '$env/dynamic/private';
+import type { Cookies } from '@sveltejs/kit';
 
 export interface UserBasic {
     id: string;
@@ -49,4 +53,41 @@ export function parseUserBasicCookie(encoded: string | null | undefined): UserBa
     } catch {
         return null;
     }
+}
+
+/**
+ * user_basic 쿠키 발행.
+ *
+ * 사용처:
+ * - login 직후 (api/auth/login/+server.ts) — 초기 발행
+ * - 프로필 변경 API 직후 (image/nickname/level) — stale 방지 재발행
+ *
+ * Cookie 속성: SameSite=Lax, Secure(!dev), HttpOnly=false, 30d.
+ */
+const USER_BASIC_COOKIE_MAX_AGE = 60 * 60 * 24 * 30; // 30d
+
+export function issueUserBasicCookie(cookies: Cookies, basic: UserBasic): void {
+    const payload = {
+        id: basic.id,
+        nickname: basic.nickname,
+        mb_level: basic.mb_level,
+        as_level: basic.as_level,
+        mb_image: basic.mb_image,
+        mb_image_updated_at: basic.mb_image_updated_at
+    };
+    const encoded = Buffer.from(JSON.stringify(payload), 'utf-8').toString('base64');
+    const domainOpt = env.COOKIE_DOMAIN ? { domain: env.COOKIE_DOMAIN } : {};
+    cookies.set('user_basic', encoded, {
+        path: '/',
+        httpOnly: false,
+        sameSite: 'lax',
+        secure: !dev,
+        maxAge: USER_BASIC_COOKIE_MAX_AGE,
+        ...domainOpt
+    });
+}
+
+export function clearUserBasicCookie(cookies: Cookies): void {
+    const domainOpt = env.COOKIE_DOMAIN ? { domain: env.COOKIE_DOMAIN } : {};
+    cookies.delete('user_basic', { path: '/', ...domainOpt });
 }
