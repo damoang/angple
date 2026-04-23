@@ -25,13 +25,16 @@ async function refreshUserBasic(
         if (!payload?.sub) return;
         const member = await getMemberById(payload.sub);
         if (!member) return;
+        const updatedAtTs = member.mb_image_updated_at
+            ? Math.floor(new Date(member.mb_image_updated_at).getTime() / 1000)
+            : null;
         issueUserBasicCookie(cookies, {
             id: member.mb_id,
             nickname: member.mb_nick || member.mb_name,
             mb_level: member.mb_level ?? 0,
             as_level: member.as_level ?? 0,
             mb_image: member.mb_image_url || null,
-            mb_image_updated_at: member.mb_image_updated_at || null
+            mb_image_updated_at: updatedAtTs
         });
     } catch {
         // user_basic 재발행 실패는 무시 — 다음 로그인 때 복구
