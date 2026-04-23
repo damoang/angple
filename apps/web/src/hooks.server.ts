@@ -321,6 +321,11 @@ async function authenticateSSR(event: Parameters<Handle>[0]['event']): Promise<v
                         cachedJwt &&
                         nowFp < cachedJwt.expiry
                     ) {
+                        // basic.mb_image_updated_at은 Unix timestamp (number)이나
+                        // locals.user.mb_image_updated_at은 ISO string. 변환 후 할당.
+                        const basicUpdatedIso = basic.mb_image_updated_at
+                            ? new Date(basic.mb_image_updated_at * 1000).toISOString()
+                            : undefined;
                         event.locals.user = {
                             id: basic.id,
                             nickname: basic.nickname,
@@ -328,7 +333,7 @@ async function authenticateSSR(event: Parameters<Handle>[0]['event']): Promise<v
                             as_level: basic.as_level,
                             mb_certify: '',
                             mb_image: basic.mb_image || undefined,
-                            mb_image_updated_at: basic.mb_image_updated_at || undefined,
+                            mb_image_updated_at: basicUpdatedIso,
                             advertiser_end_date: undefined,
                             advertiser_status: undefined
                         };
