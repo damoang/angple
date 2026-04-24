@@ -47,7 +47,10 @@ function parseJWTPayload(token: string): { mb_id?: string } | null {
 // --- JWT 인메모리 캐시 (세션별, 5분 TTL) ---
 const jwtCache = new Map<string, { token: string; expiry: number }>();
 const JWT_CACHE_TTL = 5 * 60 * 1000; // 5분
-const MAX_JWT_CACHE_SIZE = 50000;
+// Cap 50000 → 10000 (2026-04-24 postmortem 후속 defensive).
+// 5분 TTL + 60s cleanup이면 정상 운영 동시 세션 < 5000,
+// 10000이면 최악의 경우에도 ~8 MB (entry ~800B × 10k) 로 상한 고정.
+const MAX_JWT_CACHE_SIZE = 10000;
 
 // 만료 entry 주기적 정리 — 4/22 prod 메모리 누수 근본 원인.
 // 기존 eviction은 size >= MAX일 때만 실행되어, size < MAX면 만료된 entry가
