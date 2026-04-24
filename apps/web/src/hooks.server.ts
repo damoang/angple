@@ -12,6 +12,12 @@ import { checkAndPromoteMember } from '$lib/server/auth/auto-promotion.js';
 import { generateAccessToken } from '$lib/server/auth/jwt.js';
 import { setDamoangSSOCookie } from '$lib/server/auth/sso-cookie.js';
 import { parseUserBasicCookie } from '$lib/server/auth/user-basic.js';
+import { loadAllPluginServerHooks } from '$lib/server/plugin-server-loader.js';
+
+// Phase 1A (open-core separation) — plugin server hooks 로드.
+// Fire-and-forget: load 실패해도 앱 전체가 멈추지 않음.
+// 모듈 load 시점 1회 실행 (최초 요청 전 ready).
+void loadAllPluginServerHooks();
 import { checkRateLimit, recordAttempt } from '$lib/server/rate-limit.js';
 import { mapGnuboardUrl, mapRhymixUrl } from '$lib/server/url-compat.js';
 
