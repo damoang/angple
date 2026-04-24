@@ -64,6 +64,8 @@ jwtCleanupTimer.unref?.();
 import {
     ssrCache,
     ssrCachePending,
+    compressSsrBody,
+    decompressSsrBody,
     SSR_CACHE_TTL_HOME,
     SSR_CACHE_TTL_BOARD,
     SSR_CACHE_TTL_POST,
@@ -752,7 +754,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 
         const cached = ssrCache.get(cacheKey);
         if (cached && Date.now() - cached.timestamp < cacheTtl) {
-            return new Response(cached.body, {
+            return new Response(decompressSsrBody(cached.body), {
                 status: 200,
                 headers: {
                     'Content-Type': 'text/html; charset=utf-8',
@@ -776,7 +778,7 @@ export const handle: Handle = async ({ event, resolve }) => {
                 // (원본 Response body가 이미 소비되어 clone() 실패하는 버그 방지)
                 const freshCached = ssrCache.get(cacheKey);
                 if (freshCached) {
-                    return new Response(freshCached.body, {
+                    return new Response(decompressSsrBody(freshCached.body), {
                         status: 200,
                         headers: {
                             'Content-Type': 'text/html; charset=utf-8',
@@ -820,7 +822,7 @@ export const handle: Handle = async ({ event, resolve }) => {
                         if (now - entry.timestamp > ttl) ssrCache.delete(key);
                     }
                 }
-                ssrCache.set(cacheKey, { body, timestamp: Date.now() });
+                ssrCache.set(cacheKey, { body: compressSsrBody(body), timestamp: Date.now() });
 
                 return new Response(body, {
                     status: 200,
