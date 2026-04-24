@@ -13,6 +13,19 @@ type MemoSearchParams = {
     target?: string;
 };
 
+interface MemoItem {
+    id: number;
+    member_id: string;
+    target_member_id: string;
+    memo: string;
+    memo_detail: string | null;
+    color: string;
+    created_at: string;
+    updated_at: string | null;
+    target_mb_nick: string;
+    target_mb_image_url: string;
+}
+
 interface MemoModule {
     getMyMemos: (
         memberId: string,
@@ -20,7 +33,7 @@ interface MemoModule {
         limit: number,
         search?: MemoSearchParams
     ) => Promise<{
-        items: unknown[];
+        items: MemoItem[];
         total: number;
         page: number;
         totalPages: number;
