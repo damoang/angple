@@ -71,3 +71,53 @@ export function getLoadedServerHookCount(): number {
 export function getLoadedServerHookPaths(): string[] {
     return Array.from(loadedPaths);
 }
+
+// ────────────────────────────────────────────────────────────────────────────
+// Plugin server lib loader — server route에서 plugin module을 동적 import.
+// hook과 다르게 explicit lookup 패턴 (필요 시점에 호출).
+// 사용처 예: routes/my/memos/+page.server.ts → plugin queries 모듈
+// ────────────────────────────────────────────────────────────────────────────
+
+const serverLibs = import.meta.glob('../../../../../plugins/**/server/*.{ts,js}');
+const customServerLibs = import.meta.glob('../../../../../custom-plugins/**/server/*.{ts,js}');
+const allServerLibs = { ...serverLibs, ...customServerLibs };
+
+/**
+ * Plugin의 server lib 모듈을 동적 로드.
+ * Plugin 미설치 또는 모듈 미존재 시 null 반환 → 호출 측에서 graceful fallback.
+ *
+ * @param pluginId   `member-memo` 같은 plugin id
+ * @param libName    `queries` 같은 모듈 이름 (.ts/.js 확장자 제외)
+ * @returns 모듈 exports 객체 또는 null
+ *
+ * @example
+ * const queries = await loadPluginServerLib<{
+ *     getMyMemos: (mb: string, p: number, l: number) => Promise<unknown>;
+ * }>('member-memo', 'queries');
+ * if (!queries) return { items: [], total: 0 };
+ * const result = await queries.getMyMemos(memberId, 1, 20);
+ */
+export async function loadPluginServerLib<T = Record<string, unknown>>(
+    pluginId: string,
+    libName: string
+): Promise<T | null> {
+    const candidates = [
+        `../../../../../plugins/${pluginId}/server/${libName}.ts`,
+        `../../../../../plugins/${pluginId}/server/${libName}.js`,
+        `../../../../../custom-plugins/${pluginId}/server/${libName}.ts`,
+        `../../../../../custom-plugins/${pluginId}/server/${libName}.js`
+    ];
+
+    for (const path of candidates) {
+        const loader = allServerLibs[path];
+        if (!loader) continue;
+        try {
+            const module = (await loader()) as T;
+            return module;
+        } catch (err) {
+            console.error(`[Plugin Server Lib] Failed: ${path}`, err);
+            return null;
+        }
+    }
+    return null;
+}
