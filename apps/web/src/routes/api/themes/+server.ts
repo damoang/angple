@@ -67,7 +67,9 @@ export const GET: RequestHandler = async () => {
             },
             {
                 headers: {
-                    'Cache-Control': 'public, max-age=120'
+                    // 2026-04-24: CF edge hit% 52% → s-maxage + swr 추가로 hit% 개선.
+                    // 다른 layout API 패턴과 일치 (s-maxage=300, swr=1800, max-age=60).
+                    'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=1800, max-age=60'
                 }
             }
         );
