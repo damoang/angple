@@ -840,11 +840,25 @@ export const handle: Handle = async ({ event, resolve }) => {
             return response;
         })();
 
-        ssrCachePending.set(cacheKey, renderPromise);
+        // 15s 하드 타임아웃 — render가 오래 걸려도 pending 누수 방지 (postmortem 2026-04-24)
+        const SSR_RENDER_TIMEOUT_MS = 15_000;
+        let timeoutHandle: ReturnType<typeof setTimeout> | undefined;
+        const guardedPromise = new Promise<Response>((resolveP, rejectP) => {
+            timeoutHandle = setTimeout(() => {
+                rejectP(
+                    new Error(`[SSR] render timeout ${SSR_RENDER_TIMEOUT_MS}ms for ${cacheKey}`)
+                );
+            }, SSR_RENDER_TIMEOUT_MS);
+            timeoutHandle.unref?.();
+            renderPromise.then(resolveP, rejectP);
+        });
+
+        ssrCachePending.set(cacheKey, guardedPromise);
         try {
-            const result = await renderPromise;
+            const result = await guardedPromise;
             return result;
         } finally {
+            if (timeoutHandle) clearTimeout(timeoutHandle);
             ssrCachePending.delete(cacheKey);
         }
     }
