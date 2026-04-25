@@ -53,7 +53,7 @@
         </div>
     {:else if showSidebar}
         <div class="flex h-screen overflow-hidden">
-            <AdminSidebar />
+            <AdminSidebar pluginEntries={data.pluginAdminMenuEntries ?? []} />
             <main class="flex-1 overflow-y-auto p-6">
                 {@render children?.()}
             </main>
