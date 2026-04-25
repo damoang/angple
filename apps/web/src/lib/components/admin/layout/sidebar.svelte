@@ -20,12 +20,28 @@
         StickyNote,
         TrendingUp,
         Award,
+        Plug,
         Image as ImageIcon
     } from '@lucide/svelte/icons';
 
     /**
      * Admin 사이드바 네비게이션
+     *
+     * Phase 1 (issue #1289): 활성 plugin 의 admin.menu 항목을 자동 추가.
+     * `pluginEntries` 가 없거나 빈 배열이면 기존 동작과 동일.
      */
+
+    interface PluginEntry {
+        pluginId: string;
+        title: string;
+        href: string;
+        icon?: string;
+        position?: number;
+    }
+
+    let { pluginEntries = [] as PluginEntry[] } = $props<{
+        pluginEntries?: PluginEntry[];
+    }>();
 
     const menuItems = [
         {
@@ -140,7 +156,7 @@
     </div>
 
     <!-- 메뉴 영역 -->
-    <nav class="flex-1 space-y-1 p-4">
+    <nav class="flex-1 space-y-1 overflow-y-auto p-4">
         {#each menuItems as item (item.href)}
             {@const Icon = item.icon}
             <a
@@ -156,6 +172,28 @@
                 <span>{item.title}</span>
             </a>
         {/each}
+
+        {#if pluginEntries.length > 0}
+            <div class="border-border my-3 border-t"></div>
+            <div class="text-muted-foreground px-3 pb-1 text-xs font-semibold uppercase">
+                플러그인
+            </div>
+            {#each pluginEntries as entry (entry.pluginId)}
+                <a
+                    href={entry.href}
+                    class={cn(
+                        'hover:bg-accent hover:text-accent-foreground flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                        isActive(entry.href)
+                            ? 'bg-accent text-accent-foreground'
+                            : 'text-muted-foreground'
+                    )}
+                    title={entry.pluginId}
+                >
+                    <Plug class="h-5 w-5" />
+                    <span>{entry.title}</span>
+                </a>
+            {/each}
+        {/if}
     </nav>
 
     <!-- 하단 정보 -->
