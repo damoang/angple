@@ -1,6 +1,8 @@
 // See https://svelte.dev/docs/kit/types#app.d.ts
 // for information about these interfaces
 
+import type { SiteContext } from '$lib/server/site-resolver/index.js';
+
 // DamoangAds 타입 정의
 interface DamoangAdsInterface {
     render: (position: string) => void;
@@ -31,6 +33,8 @@ declare global {
             sessionId: string | null;
             /** CSRF 토큰 (세션에 연결, double-submit cookie 검증용) */
             csrfToken: string | null;
+            /** Phase 1: site-resolver 가 host 기반으로 주입한 site 컨텍스트. miss 시 null (기본 테마 사용). */
+            site: SiteContext | null;
         }
         // interface PageData {}
         // interface PageState {}

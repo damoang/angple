@@ -31,3 +31,6 @@ vite.config.ts.timestamp-*
 /custom-themes
 /data/settings.json
 /data/uploads
+
+# Multisite Site-Resolver (premium install.sh 가 site-overrides.json 배치)
+/.angple/

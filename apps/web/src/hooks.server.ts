@@ -13,11 +13,31 @@ import { generateAccessToken } from '$lib/server/auth/jwt.js';
 import { setDamoangSSOCookie } from '$lib/server/auth/sso-cookie.js';
 import { parseUserBasicCookie } from '$lib/server/auth/user-basic.js';
 import { loadAllPluginServerHooks } from '$lib/server/plugin-server-loader.js';
+import { CompositeSiteResolver } from '$lib/server/site-resolver/composite.js';
+import { ConfigSiteResolver } from '$lib/server/site-resolver/config.js';
 
 // Phase 1A (open-core separation) — plugin server hooks 로드.
 // Fire-and-forget: load 실패해도 앱 전체가 멈추지 않음.
 // 모듈 load 시점 1회 실행 (최초 요청 전 ready).
 void loadAllPluginServerHooks();
+
+// Phase 1 (multisite domain → theme/SEO resolver) — Strategy 패턴.
+// 부팅 시 1회 ConfigSiteResolver 가 host-overrides JSON 로드. miss 시 null → 기본 테마.
+// USE_SITE_RESOLVER=false 면 resolver bypass.
+//
+// 경로 우선순위 (각 ConfigSiteResolver 가 ENOENT 시 silent skip → CompositeSiteResolver 가 다음 사용):
+//   1. env SITE_OVERRIDES_PATH (배포/테스트 환경 명시 override)
+//   2. process.cwd() + '/.angple/site-overrides.json' (install.sh 가 angple core 에 배치)
+//
+// open-core 코어에 환경별 hardcode 0 — 운영자가 자체 site-overrides 배치 가능.
+const siteResolverPaths: string[] = [];
+if (env.SITE_OVERRIDES_PATH) siteResolverPaths.push(env.SITE_OVERRIDES_PATH);
+siteResolverPaths.push(`${process.cwd()}/.angple/site-overrides.json`);
+const siteResolver = new CompositeSiteResolver(
+    siteResolverPaths.map((p) => new ConfigSiteResolver(p))
+);
+void siteResolver.resolve('').catch(() => {}); // warm-up: load() 강제 실행
+
 import { checkRateLimit, recordAttempt } from '$lib/server/rate-limit.js';
 import { mapGnuboardUrl, mapRhymixUrl } from '$lib/server/url-compat.js';
 
@@ -553,6 +573,19 @@ const WRITE_API_RATE = { maxRequests: 60, windowMs: 60_000 }; // 쓰기 분당 6
 export const handle: Handle = async ({ event, resolve }) => {
     const { pathname } = event.url;
     const isDataRequest = isSvelteKitDataRequest(event);
+
+    // Phase 1: site-resolver 가 host → SiteContext 매핑. miss 시 null (기본 테마 fallback).
+    // USE_SITE_RESOLVER=false 면 bypass (옛 하드코딩 경로만 사용).
+    if (env.USE_SITE_RESOLVER !== 'false') {
+        try {
+            event.locals.site = await siteResolver.resolve(event.url.host);
+        } catch (err) {
+            console.error('[site-resolver] resolve failed:', err);
+            event.locals.site = null;
+        }
+    } else {
+        event.locals.site = null;
+    }
 
     if (isMalformedExternalImagePath(pathname)) {
         return new Response(null, {
