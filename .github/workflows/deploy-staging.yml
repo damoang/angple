@@ -165,8 +165,9 @@ jobs:
 
             echo "=== Staging Deploy Start ==="
 
-            # GHCR 로그인
-            echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+            # GHCR 로그인 — workflow 의 GITHUB_TOKEN 사용 (만료 X, packages:write 권한 보유)
+            # 기존 secrets.GHCR_TOKEN 은 만료/철회로 4-24 부터 staging deploy 모두 실패
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
             # 이미지 pull
             docker pull ${{ env.IMAGE_NAME }}:${{ steps.tags.outputs.image_tag }}
