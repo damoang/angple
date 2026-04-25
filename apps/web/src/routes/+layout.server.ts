@@ -116,14 +116,15 @@ export const load: LayoutServerLoad = async ({
         }
     }
 
-    // 도메인별 테마 오버라이드
-    const host = url.host;
+    // 도메인별 테마 오버라이드 (Phase 1, Path D′ — site-resolver 단독 소스)
+    // hooks.server.ts 의 CompositeSiteResolver 가 host → locals.site 주입.
+    // miss 시 locals.site === null → 기본 테마 적용.
+    // 도메인-특이 매핑은 premium/site-overrides.json (open-core 코드에 도메인 hardcode 0).
     let resolvedThemeId = activeTheme?.manifest.id || null;
     let resolvedThemeSettings = activeTheme?.currentSettings || {};
 
-    // 도메인별 테마 오버라이드
-    if (host === 'wikiang.org' || host === 'www.wikiang.org') {
-        resolvedThemeId = 'wiki-theme';
+    if (locals.site?.theme_id) {
+        resolvedThemeId = locals.site.theme_id;
         resolvedThemeSettings = {};
     }
 
@@ -143,7 +144,9 @@ export const load: LayoutServerLoad = async ({
             schedules: logoData.schedules ?? [],
             requestLocale: logoData.requestLocale,
             requestTimeZone: logoData.requestTimeZone
-        }
+        },
+        // Phase 1 (Path D′): site-resolver 결과. miss 시 null. svelte:head 가 og:*/favicon 변수화에 사용.
+        site: locals.site ?? null
     };
 
     // 훅: 레이아웃 데이터 필터 (플러그인이 SSR 데이터를 수정/확장 가능)

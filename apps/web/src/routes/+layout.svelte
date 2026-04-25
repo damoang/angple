@@ -616,7 +616,25 @@
 
 <svelte:head>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link rel="icon" href={favicon} />
+    <!-- Phase 1 (Path D′): data.site 가 있으면 site-resolver 의 SEO 메타 사용. 없으면 기본 favicon. -->
+    {#if data.site?.favicon_url}
+        <link rel="icon" href={data.site.favicon_url} />
+    {:else}
+        <link rel="icon" href={favicon} />
+    {/if}
+    {#if data.site?.title}
+        <meta property="og:title" content={data.site.title} />
+    {/if}
+    {#if data.site?.description}
+        <meta name="description" content={data.site.description} />
+        <meta property="og:description" content={data.site.description} />
+    {/if}
+    {#if data.site?.logo_url}
+        <meta property="og:image" content={data.site.logo_url} />
+    {/if}
+    {#if data.site?.keywords?.length}
+        <meta name="keywords" content={data.site.keywords.join(', ')} />
+    {/if}
 </svelte:head>
 
 <!-- /admin, /install 경로는 테마 레이아웃 없이 렌더링 -->
