@@ -23,9 +23,19 @@ void loadAllPluginServerHooks();
 
 // Phase 1 (multisite domain → theme/SEO resolver) — Strategy 패턴.
 // 부팅 시 1회 ConfigSiteResolver 가 host-overrides JSON 로드. miss 시 null → 기본 테마.
-// USE_SITE_RESOLVER=false 면 resolver bypass (옛 하드코딩 폴백 경로 사용).
-const SITE_OVERRIDES_PATH = env.SITE_OVERRIDES_PATH ?? '/home/angple/premium/site-overrides.json';
-const siteResolver = new CompositeSiteResolver([new ConfigSiteResolver(SITE_OVERRIDES_PATH)]);
+// USE_SITE_RESOLVER=false 면 resolver bypass.
+//
+// 경로 우선순위 (각 ConfigSiteResolver 가 ENOENT 시 silent skip → CompositeSiteResolver 가 다음 사용):
+//   1. env SITE_OVERRIDES_PATH (배포/테스트 환경 명시 override)
+//   2. process.cwd() + '/.angple/site-overrides.json' (install.sh 가 angple core 에 배치)
+//
+// open-core 코어에 환경별 hardcode 0 — 운영자가 자체 site-overrides 배치 가능.
+const siteResolverPaths: string[] = [];
+if (env.SITE_OVERRIDES_PATH) siteResolverPaths.push(env.SITE_OVERRIDES_PATH);
+siteResolverPaths.push(`${process.cwd()}/.angple/site-overrides.json`);
+const siteResolver = new CompositeSiteResolver(
+    siteResolverPaths.map((p) => new ConfigSiteResolver(p))
+);
 void siteResolver.resolve('').catch(() => {}); // warm-up: load() 강제 실행
 
 import { checkRateLimit, recordAttempt } from '$lib/server/rate-limit.js';
