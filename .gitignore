@@ -120,3 +120,6 @@ local.txt
 task_plan.md
 findings.md
 progress.md
+
+# Playwright synthetic test artifacts (auto-generated)
+apps/web/playwright-report-synthetic/
