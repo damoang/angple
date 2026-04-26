@@ -211,8 +211,12 @@
         </a>
     {:else if adsBanner}
         <!-- 다모앙 자체 광고 배너 -->
+        <!-- 광고 클릭은 새 탭으로 열어 사용자가 뒤로가기로 본 페이지로 복귀할 수 있게 함
+             (기획팀 피드백: 광고 클릭 시 새 탭이 일반적이고 다모앙 이탈을 줄임) -->
         <a
             href={toLocalHref(adsBanner.landingUrl)}
+            target="_blank"
+            rel="noopener noreferrer"
             onclick={handleAdsClick}
             use:aplogTrack={{
                 adId: adsBanner.id,
