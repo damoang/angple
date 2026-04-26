@@ -963,7 +963,12 @@
             goto(`/${boardId}`);
         } catch (err) {
             console.error('Failed to delete post:', err);
-            alert('게시글 삭제에 실패했습니다.');
+            // #12098: 백엔드의 구체 사유(예: '질문게시판은 답변이 있으면 삭제가 불가능합니다',
+            // '소명글은 삭제할 수 없습니다' 등) 가 사용자에게 안내되도록 err.message 우선 노출.
+            // err.message 가 비어있을 때만 generic fallback.
+            const msg =
+                err instanceof Error && err.message ? err.message : '게시글 삭제에 실패했습니다.';
+            alert(msg);
         } finally {
             isDeleting = false;
         }
