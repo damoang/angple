@@ -8,8 +8,10 @@ import { TieredCache } from '$lib/server/cache.js';
 import type { RowDataPacket } from 'mysql2';
 import type { MemberRow } from './types.js';
 
-// L1: 1분, L2: 5분(300초), 최대 5,000 항목
-const memberCache = new TieredCache<MemberRow>('member', 60_000, 300, 5000);
+// L1: 1분, L2: 5분(300초), 최대 1,000 항목
+// 2026-04-26: maxL1 5000 → 1000 (pod 메모리 -20~50 MB).
+// L2 Redis fallback 으로 hit% 영향 미미 (실 동시 활성 멤버 < 2000).
+const memberCache = new TieredCache<MemberRow>('member', 60_000, 300, 1000);
 
 /** 멤버 캐시 무효화 (로그아웃, 회원정보 변경 시 호출) */
 export async function invalidateMemberCache(mbId: string): Promise<void> {
