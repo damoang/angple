@@ -81,7 +81,7 @@
                                 showReadState &&
                                     readPostsStore.isRead(getBoardId(post.url), post.id)
                             )}"
-                            style="font-size: var(--list-font-size);"
+                            style="font-size: var(--recommend-font-size, 1rem);"
                         >
                             {post.title}
                         </span>
