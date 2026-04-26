@@ -177,11 +177,14 @@
     </div>
 
     <!-- 탭 네비게이션 (즉시 렌더링) -->
-    <div class="border-border mb-6 flex gap-2 border-b pb-2">
+    <div
+        class="border-border -mx-4 mb-6 flex gap-2 overflow-x-auto whitespace-nowrap border-b px-4 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+    >
         {#each tabs as tab (tab.id)}
             <Button
                 variant={data.tab === tab.id ? 'default' : 'ghost'}
                 size="sm"
+                class="shrink-0"
                 onclick={() => changeTab(tab.id)}
             >
                 <tab.icon class="mr-1.5 h-4 w-4" />
