@@ -413,23 +413,42 @@
     }
 
     // 붙여넣기 핸들러
+    // #12065: 모바일 일부 브라우저(엣지·스타곤·삼성인터넷 등) 에서 TipTap Youtube 확장의
+    // 기본 addPasteHandler 가 안정적으로 트리거되지 않아 본문에 빈 iframe 만 남던 문제 대응.
+    // 자체 paste handler 에서 YouTube URL 감지 시 명시적으로 setYoutubeVideo 호출.
+    const YOUTUBE_PASTE_PATTERN =
+        /^https?:\/\/(?:www\.|m\.)?(?:youtube(?:-nocookie)?\.com\/(?:watch\?v=|embed\/|shorts\/|live\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})(?:[?&][^\s]*)?$/;
+
     function handlePaste(e: ClipboardEvent): void {
-        if (!onImageUpload || disabled) return;
+        if (disabled) return;
 
         const items = e.clipboardData?.items;
         if (!items) return;
 
-        for (const item of items) {
-            if (
-                item.type.startsWith('image/') ||
-                item.type === 'image/heic' ||
-                item.type === 'image/heif'
-            ) {
-                e.preventDefault();
-                const file = item.getAsFile();
-                if (file) handleImageFile(file);
-                break;
+        // 이미지 우선 처리 (기존 동작 유지)
+        if (onImageUpload) {
+            for (const item of items) {
+                if (
+                    item.type.startsWith('image/') ||
+                    item.type === 'image/heic' ||
+                    item.type === 'image/heif'
+                ) {
+                    e.preventDefault();
+                    const file = item.getAsFile();
+                    if (file) handleImageFile(file);
+                    return;
+                }
             }
+        }
+
+        // 단독 YouTube URL 붙여넣기 → 명시적으로 임베드 삽입 (#12065)
+        const text = e.clipboardData?.getData('text/plain')?.trim();
+        if (text && YOUTUBE_PASTE_PATTERN.test(text)) {
+            e.preventDefault();
+            const timeMatch = text.match(/[?&]t=(\d+)/);
+            const start = timeMatch ? parseInt(timeMatch[1], 10) : 0;
+            editor?.chain().focus().setYoutubeVideo({ src: text, start }).run();
+            return;
         }
     }
 
