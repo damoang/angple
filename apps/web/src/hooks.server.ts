@@ -317,13 +317,22 @@ function getGlobalApiRateLimitKey(
     return clientIp ? `ip:${clientIp}` : null;
 }
 
-/** 타임아웃 래퍼: 지정 시간 내 미완료 시 null 반환 */
+/** 타임아웃 래퍼: 지정 시간 내 미완료 시 null 반환
+ *
+ * 2026-04-26: setTimeout clearTimeout 누락 수정.
+ * Promise.race 가 promise winner 일 때 timer 가 살아있어 매 SSR 요청 누적
+ * (12h × 수만 요청 = pod 메모리 +수백 MB). Serena Round A #2 발견.
+ */
 const AUTH_TIMEOUT_MS = 3000;
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | null> {
-    return Promise.race([
-        promise,
-        new Promise<null>((resolve) => setTimeout(() => resolve(null), ms))
-    ]);
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const timeoutPromise = new Promise<null>((resolve) => {
+        timer = setTimeout(() => resolve(null), ms);
+        timer.unref?.();
+    });
+    return Promise.race([promise, timeoutPromise]).finally(() => {
+        if (timer) clearTimeout(timer);
+    });
 }
 
 /** SSR 인증: 서버사이드 세션 only (JWT 미사용) */
