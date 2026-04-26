@@ -44,8 +44,9 @@ interface SessionRow extends RowDataPacket {
 }
 
 // --- 2-tier 세션 캐시: L1(Map) → L2(Redis) ---
-// L1: 1분, L2: 5분 (Redis), 최대 10,000 항목
-const sessionCache = new TieredCache<SessionData>('sess', 60_000, 300, 10000);
+// 2026-04-26: maxL1 10000 → 2000 (pod 메모리 -30~100 MB).
+// L1 miss 시 Redis L2 fallback 정상 동작 (실 동시세션 < 5000).
+const sessionCache = new TieredCache<SessionData>('sess', 60_000, 300, 2000);
 
 // last_active_at DB 업데이트 추적 (L1 전용, Redis 불필요)
 const lastDbUpdateMap = new Map<string, number>();
