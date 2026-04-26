@@ -1488,8 +1488,13 @@
 
 <!-- overflow-x: clip — 모바일 Safari/Firefox 에서 일부 비-/free 경로에 미세한 좌우 스크롤이
      발생하던 문제 방어 (#11970). clip 은 scroll container 를 만들지 않아 position:sticky 가
-     깨지지 않고, overflow: hidden 과 달리 자식의 transform 등 영향도 최소. -->
-<div class="mx-auto overflow-x-clip pt-2">
+     깨지지 않고, overflow: hidden 과 달리 자식의 transform 등 영향도 최소.
+     #12096: Samsung Internet / 다뷰 등 일부 모바일 환경에서 overflow-x: clip 만으로
+     클리핑이 안 되어 -mx-2 액션바 등이 viewport 를 넘어 가로 스크롤이 그대로 발생.
+     동일 선언에 hidden 폴백을 먼저 두고 clip 으로 덮는 방식으로 cascade 처리:
+     - clip 미지원 브라우저: hidden 적용 (이 wrapper 내부에는 position:sticky 가 없어 안전)
+     - clip 지원 브라우저: clip 이 hidden 을 덮어 기존 동작 유지 -->
+<div class="mx-auto pt-2" style="overflow-x: hidden; overflow-x: clip;">
     <!-- 최상단 자체 배너 (없으면 GAM 폴백) -->
     {#if widgetLayoutStore.hasEnabledAds && !data.post.deleted_at}
         <div class="mb-3">
