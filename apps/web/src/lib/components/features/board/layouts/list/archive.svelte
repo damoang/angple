@@ -129,6 +129,7 @@
                     <Avatar
                         path={post.author_image}
                         updatedAt={post.author_image_updated_at}
+                        size="list"
                         alt=""
                         class="h-5 w-5 shrink-0 rounded-full object-cover"
                     />
@@ -161,6 +162,7 @@
                         <Avatar
                             path={post.author_image}
                             updatedAt={post.author_image_updated_at}
+                            size="list"
                             alt=""
                             class="h-5 w-5 shrink-0 rounded-full object-cover"
                         />
