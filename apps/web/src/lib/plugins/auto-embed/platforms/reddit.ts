@@ -54,7 +54,10 @@ export const reddit: EmbedPlatform = {
         }
 
         const slug = info.params?.slug ? `/${info.params.slug}` : '';
-        const embedUrl = `https://www.redditmedia.com/${info.params?.type}/${info.params?.subreddit}/comments/${info.id}${slug}/?ref_source=embed&embed=true&theme=dark`;
+        // #12044: redditmedia.com 은 embed.reddit.com 으로 301 redirect 되며, 이 redirect 가
+        // sandbox/CSP 환경에서 정상 처리되지 않아 임베드가 비어있는 채로 남는 문제 발생.
+        // 처음부터 최종 도메인(embed.reddit.com)을 사용하도록 변경.
+        const embedUrl = `https://embed.reddit.com/${info.params?.type}/${info.params?.subreddit}/comments/${info.id}${slug}/?ref_source=embed&embed=true&theme=dark`;
 
         return `<iframe
 			src="${embedUrl}"
