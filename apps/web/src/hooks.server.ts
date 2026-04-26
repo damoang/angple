@@ -943,6 +943,9 @@ export const handle: Handle = async ({ event, resolve }) => {
     response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
 
     // 캐시 제어:
+    // - 301/308 영구 redirect → CDN 1일 캐시 (예: /free/ → /free, trailing slash 제거)
+    //   2026-04-26: CloudFront 통계상 /free/ 등 trailing slash 308 응답이 origin
+    //   매번 도달 (2.6M req/3d, hit 0.6%). 영구 redirect 는 거의 안 변하므로 안전.
     // - _app/immutable/ → SvelteKit 기본 장기 캐시 유지 (content-hash)
     // - 비로그인 + 공개 페이지 → CDN stale-while-revalidate (ISR-like)
     // - 나머지 → 캐시 금지 (인증 데이터 포함)
@@ -951,7 +954,13 @@ export const handle: Handle = async ({ event, resolve }) => {
     const hasExplicitPublicCache =
         existingCacheControl?.includes('public') && pathname.startsWith('/api/');
 
-    if (hasExplicitPublicCache) {
+    if (response.status === 301 || response.status === 308) {
+        // 영구 redirect: CDN 24h + browser 1h, swr 7d
+        response.headers.set(
+            'Cache-Control',
+            'public, s-maxage=86400, max-age=3600, stale-while-revalidate=604800'
+        );
+    } else if (hasExplicitPublicCache) {
         // API 핸들러가 설정한 Cache-Control 유지 (celebration, banners, levels, reactions, init 등)
     } else if (event.url.pathname.startsWith('/_app/immutable')) {
         // SvelteKit이 이미 설정 → 그대로 유지
