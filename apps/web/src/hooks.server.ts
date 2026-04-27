@@ -854,7 +854,7 @@ export const handle: Handle = async ({ event, resolve }) => {
             if (response.status === 200 && isHtml) {
                 const body = await response.text();
 
-                // 캐시 크기 제한: 오래된 항목 정리
+                // 캐시 크기 제한: 오래된 항목 정리 + cap 강제
                 if (ssrCache.size >= MAX_SSR_CACHE_SIZE) {
                     const now = Date.now();
                     for (const [key, entry] of ssrCache) {
@@ -865,6 +865,16 @@ export const handle: Handle = async ({ event, resolve }) => {
                                   ? SSR_CACHE_TTL_POST
                                   : SSR_CACHE_TTL_BOARD;
                         if (now - entry.timestamp > ttl) ssrCache.delete(key);
+                    }
+                    // 만료 청소 후에도 cap 도달 시 oldest forced evict (insertion order).
+                    // 피크 시간 set 빈도 > 만료 빈도 시 cap 우회 누수 방지.
+                    if (ssrCache.size >= MAX_SSR_CACHE_SIZE) {
+                        const targetSize = Math.floor(MAX_SSR_CACHE_SIZE / 2);
+                        let toDrop = ssrCache.size - targetSize;
+                        for (const k of ssrCache.keys()) {
+                            if (toDrop-- <= 0) break;
+                            ssrCache.delete(k);
+                        }
                     }
                 }
                 ssrCache.set(cacheKey, { body: compressSsrBody(body), timestamp: Date.now() });
