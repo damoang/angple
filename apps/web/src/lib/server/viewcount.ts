@@ -15,6 +15,12 @@ import { getRedis } from './redis';
 /** 키: `{boardId}:{postId}` → 누적 조회수 */
 const viewCounts = new Map<string, number>();
 
+/**
+ * 누수 backstop — cron(/api/viewcount/sync) 실패/지연 시 OOM 방지.
+ * 정상 운영(3분 cron) 시 절대 도달 안 함. 도달 = cron 미스 알람.
+ */
+const MAX_VIEW_COUNTS = 50_000;
+
 /** Redis 키 접두사 */
 const VIEWED_PREFIX = 'vc:';
 const VIEWED_TTL_SEC = 600; // 10분
@@ -48,6 +54,20 @@ export async function markViewed(ip: string, boardId: string, postId: number): P
 export function increment(boardId: string, postId: number): void {
     const key = `${boardId}:${postId}`;
     viewCounts.set(key, (viewCounts.get(key) || 0) + 1);
+
+    // Backstop: cron 실패 시 누수 방지 (oldest 50% bulk evict, insertion order)
+    if (viewCounts.size > MAX_VIEW_COUNTS) {
+        const targetSize = Math.floor(MAX_VIEW_COUNTS / 2);
+        const beforeSize = viewCounts.size;
+        let toDrop = beforeSize - targetSize;
+        for (const k of viewCounts.keys()) {
+            if (toDrop-- <= 0) break;
+            viewCounts.delete(k);
+        }
+        console.warn(
+            `[viewcount] cron miss 의심 — ${beforeSize - targetSize} entries evicted (size ${beforeSize} → ${targetSize}). /api/viewcount/sync cron 점검 필요.`
+        );
+    }
 }
 
 /** 모든 카운트를 스냅샷으로 반환하고 Map 초기화 */
