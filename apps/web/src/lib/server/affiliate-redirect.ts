@@ -10,6 +10,7 @@ export interface AffiliateRedirectPayload {
 
 const REDIRECT_PREFIX = 'affiliate:go:';
 const REDIRECT_TTL_SEC = 60 * 60 * 24 * 180;
+const L1_CACHE_MAX = 1_000; // 180일 TTL — 누수 방지 cap
 
 const l1Cache = new Map<string, { payload: AffiliateRedirectPayload; expiresAt: number }>();
 
@@ -33,6 +34,15 @@ function buildRedirectId(payload: AffiliateRedirectPayload): string {
 }
 
 function setL1(id: string, payload: AffiliateRedirectPayload): void {
+    // Backstop: 180일 TTL 이라 lazy evict 만으로는 부족 — cap 도달 시 oldest 50% bulk evict
+    if (l1Cache.size >= L1_CACHE_MAX) {
+        const targetSize = Math.floor(L1_CACHE_MAX / 2);
+        let toDrop = l1Cache.size - targetSize;
+        for (const k of l1Cache.keys()) {
+            if (toDrop-- <= 0) break;
+            l1Cache.delete(k);
+        }
+    }
     l1Cache.set(id, {
         payload,
         expiresAt: Date.now() + REDIRECT_TTL_SEC * 1000
