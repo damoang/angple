@@ -29,6 +29,8 @@ export interface SessionData {
     createdAt: Date;
     lastActiveAt: Date;
     expiresAt: Date;
+    /** 마지막 last_active_at DB UPDATE 시각 (epoch ms). sessionCache lifecycle 와 묶여 자동 cleanup. */
+    lastDbUpdate?: number;
 }
 
 interface SessionRow extends RowDataPacket {
@@ -46,10 +48,11 @@ interface SessionRow extends RowDataPacket {
 // --- 2-tier 세션 캐시: L1(Map) → L2(Redis) ---
 // 2026-04-26: maxL1 10000 → 2000 (pod 메모리 -30~100 MB).
 // L1 miss 시 Redis L2 fallback 정상 동작 (실 동시세션 < 5000).
+//
+// 2026-04-27: lastDbUpdate 를 SessionData entry 안으로 merge (PR #1303).
+// 기존 별도 unbounded Map(lastDbUpdateMap) 이 12h+ 누수 source 였음 — 익명/크롤러 트래픽이
+// 영원히 누적. 이제 sessionCache 의 LRU evict 시 자동 cleanup.
 const sessionCache = new TieredCache<SessionData>('sess', 60_000, 300, 2000);
-
-// last_active_at DB 업데이트 추적 (L1 전용, Redis 불필요)
-const lastDbUpdateMap = new Map<string, number>();
 
 /** 세션 ID 생성 (32 bytes → 64 hex chars) */
 function generateSessionId(): string {
@@ -109,9 +112,10 @@ export async function getSession(sessionId: string): Promise<SessionData | null>
     const cached = await sessionCache.get(sessionIdHash);
     if (cached) {
         // last_active_at 비동기 업데이트 (5분 간격, fire-and-forget)
-        const lastUpdate = lastDbUpdateMap.get(sessionIdHash) || 0;
+        // L1 entry mutate — sessionCache evict 시 자연 cleanup. L2(Redis) 는 다음 miss 후 fresh set.
+        const lastUpdate = cached.lastDbUpdate ?? 0;
         if (now - lastUpdate > LAST_ACTIVE_UPDATE_INTERVAL) {
-            lastDbUpdateMap.set(sessionIdHash, now);
+            cached.lastDbUpdate = now;
             pool.query<ResultSetHeader>(
                 `UPDATE angple_sessions SET last_active_at = NOW() WHERE session_id_hash = ?`,
                 [sessionIdHash]
@@ -169,12 +173,12 @@ export async function getSession(sessionId: string): Promise<SessionData | null>
         userAgent: row.user_agent,
         createdAt: new Date(row.created_at),
         lastActiveAt: new Date(row.last_active_at),
-        expiresAt: new Date(row.expires_at)
+        expiresAt: new Date(row.expires_at),
+        lastDbUpdate: now
     };
 
     // 3. 2-tier 캐시에 저장 (L1 + L2)
     await sessionCache.set(sessionIdHash, sessionData);
-    lastDbUpdateMap.set(sessionIdHash, now);
 
     return sessionData;
 }
@@ -185,7 +189,6 @@ export async function getSession(sessionId: string): Promise<SessionData | null>
 export async function destroySession(sessionId: string): Promise<void> {
     const sessionIdHash = hashSessionId(sessionId);
     await sessionCache.delete(sessionIdHash);
-    lastDbUpdateMap.delete(sessionIdHash);
     await pool.query<ResultSetHeader>(`DELETE FROM angple_sessions WHERE session_id_hash = ?`, [
         sessionIdHash
     ]);
