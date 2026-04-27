@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseDisciplineLogContent } from './+server';
+import { parseDisciplineLogContent } from './_parse-discipline';
 
 describe('parseDisciplineLogContent', () => {
     it('정상 JSON: penalty_period / penalty_date_from / sg_types 추출', () => {
