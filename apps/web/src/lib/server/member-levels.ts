@@ -14,6 +14,7 @@ import { calculateLevelFromExp } from '$lib/utils/level-thresholds';
 
 const MAX_IDS = 100;
 const CACHE_TTL_MS = 5 * 60 * 1000;
+const LEVEL_CACHE_MAX = 5_000; // mbId 별 entry — 회원수 증가 시 누수 방지
 
 type CacheEntry = {
     level: number;
@@ -22,6 +23,16 @@ type CacheEntry = {
 
 const levelCache = new Map<string, CacheEntry>();
 const inflightBatches = new Map<string, Promise<Record<string, number>>>();
+
+function evictLevelCacheIfFull(): void {
+    if (levelCache.size < LEVEL_CACHE_MAX) return;
+    const targetSize = Math.floor(LEVEL_CACHE_MAX / 2);
+    let toDrop = levelCache.size - targetSize;
+    for (const k of levelCache.keys()) {
+        if (toDrop-- <= 0) break;
+        levelCache.delete(k);
+    }
+}
 
 function normalizeIds(ids: string[]): string[] {
     return [...new Set(ids.filter((id) => id && /^[a-zA-Z0-9_-]+$/.test(id)).slice(0, MAX_IDS))];
@@ -50,6 +61,7 @@ async function queryMemberLevels(ids: string[]): Promise<Record<string, number>>
 
     const expiresAt = Date.now() + CACHE_TTL_MS;
     for (const [mbId, level] of Object.entries(levels)) {
+        evictLevelCacheIfFull();
         levelCache.set(mbId, { level, expiresAt });
     }
 

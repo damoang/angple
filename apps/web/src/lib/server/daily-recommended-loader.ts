@@ -17,6 +17,19 @@ const DAILY_CACHE_DIR =
 const cache = new Map<string, { data: unknown; timestamp: number }>();
 const TODAY_TTL_MS = 60_000; // 오늘 데이터: 60초
 const PAST_TTL_MS = 3_600_000; // 과거 데이터: 1시간
+const CACHE_MAX = 200; // date 키 — 365일 이상 누적 시 cap (insertion order evict)
+
+function setCacheBounded(key: string, data: unknown, timestamp: number): void {
+    if (cache.size >= CACHE_MAX) {
+        const targetSize = Math.floor(CACHE_MAX / 2);
+        let toDrop = cache.size - targetSize;
+        for (const k of cache.keys()) {
+            if (toDrop-- <= 0) break;
+            cache.delete(k);
+        }
+    }
+    cache.set(key, { data, timestamp });
+}
 
 /** KST 기준 오늘 날짜 (YYYY-MM-DD) */
 export function getTodayKST(): string {
@@ -44,7 +57,7 @@ export async function loadDailyCalendar(): Promise<DailyCalendar | null> {
     try {
         const content = await readFile(filePath, 'utf-8');
         const data: DailyCalendar = JSON.parse(content);
-        cache.set(cacheKey, { data, timestamp: Date.now() });
+        setCacheBounded(cacheKey, data, Date.now());
         return data;
     } catch (err) {
         console.error('[daily-recommended-loader] calendar.json 읽기 실패:', err);
