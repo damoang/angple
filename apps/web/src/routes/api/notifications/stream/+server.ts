@@ -12,10 +12,43 @@ import type { RequestHandler } from './$types.js';
  * - notification: 새 알림 (data: JSON)
  * - online_count: 접속자 수 (data: number)
  * - heartbeat: 연결 유지 ping (data: timestamp)
+ *
+ * ## 누수 방지 (2026-04-28)
+ * Tier 3 audit (Plan agent) 의 진단:
+ * - 클라이언트 갑작 종료 시 cancel() 미호출 → controller + heartbeatInterval closure 영원히 retain
+ * - hot pod 만 SSE sticky 분산 → p95-only 누수 패턴 정확 매치
+ *
+ * 5가지 hardening:
+ * 1. SSEEntry struct 로 controller + heartbeatInterval + lastActivity 묶음 (cancel/cleanup 모두에서 clear 가능)
+ * 2. cap MAX_CONNECTIONS 도달 시 oldest forced close (insertion order)
+ * 3. module-level cleanup interval (60s) — idle 5분 초과 entry 강제 close
+ * 4. enqueue 실패 시 controller.close() + delete (silent retain 차단)
+ * 5. 익명 키는 그대로 두되 idle/cap 으로 처리 (UX 호환)
  */
 
+interface SSEEntry {
+    controller: ReadableStreamDefaultController;
+    heartbeatInterval: ReturnType<typeof setInterval>;
+    lastActivity: number;
+}
+
 /** 활성 SSE 연결 관리 */
-const connections = new Map<string, ReadableStreamDefaultController>();
+const connections = new Map<string, SSEEntry>();
+
+const MAX_CONNECTIONS = 5_000;
+const IDLE_TIMEOUT_MS = 5 * 60 * 1000; // 5분 (heartbeat 30초 × 10)
+const CLEANUP_INTERVAL_MS = 60_000; // 1분마다 idle sweep
+
+/** entry 강제 종료 (heartbeat clear + controller close + delete) */
+function closeEntry(userId: string, entry: SSEEntry): void {
+    clearInterval(entry.heartbeatInterval);
+    try {
+        entry.controller.close();
+    } catch {
+        // 이미 닫혀있으면 무시
+    }
+    connections.delete(userId);
+}
 
 /** 접속자 수 */
 export function _getOnlineCount(): number {
@@ -27,13 +60,14 @@ export function _pushNotification(
     userId: string,
     data: { type: string; title: string; content: string; url?: string }
 ): void {
-    const controller = connections.get(userId);
-    if (controller) {
+    const entry = connections.get(userId);
+    if (entry) {
         try {
             const event = `event: notification\ndata: ${JSON.stringify(data)}\n\n`;
-            controller.enqueue(new TextEncoder().encode(event));
+            entry.controller.enqueue(new TextEncoder().encode(event));
+            entry.lastActivity = Date.now();
         } catch {
-            connections.delete(userId);
+            closeEntry(userId, entry);
         }
     }
 }
@@ -44,23 +78,71 @@ function broadcastOnlineCount(): void {
     const event = `event: online_count\ndata: ${count}\n\n`;
     const encoded = new TextEncoder().encode(event);
 
-    for (const [userId, controller] of connections) {
+    for (const [userId, entry] of connections) {
         try {
-            controller.enqueue(encoded);
+            entry.controller.enqueue(encoded);
+            entry.lastActivity = Date.now();
         } catch {
-            connections.delete(userId);
+            closeEntry(userId, entry);
         }
     }
 }
 
+/**
+ * Idle 연결 sweep (60s 주기).
+ * 5분 이상 lastActivity 없으면 강제 close — 클라이언트 갑작 종료 (cancel 미호출) 누수 방지.
+ */
+const cleanupTimer = setInterval(() => {
+    const now = Date.now();
+    for (const [userId, entry] of connections) {
+        if (now - entry.lastActivity > IDLE_TIMEOUT_MS) {
+            closeEntry(userId, entry);
+        }
+    }
+}, CLEANUP_INTERVAL_MS);
+cleanupTimer.unref?.();
+
 export const GET: RequestHandler = async ({ locals }) => {
-    // 인증된 사용자만 SSE 연결 허용
+    // 인증된 사용자: nickname / 비인증: 시각 기반 익명 (재접속 시 새 entry — idle/cap 으로 정리)
     const userId = locals.user?.nickname || `anon-${Date.now()}`;
 
     const stream = new ReadableStream({
         start(controller) {
-            // 연결 등록
-            connections.set(userId, controller);
+            // Cap 도달 시 oldest 강제 close (insertion order, 새 연결 우선)
+            if (connections.size >= MAX_CONNECTIONS) {
+                const oldestKey = connections.keys().next().value;
+                if (oldestKey !== undefined) {
+                    const oldestEntry = connections.get(oldestKey);
+                    if (oldestEntry) closeEntry(oldestKey, oldestEntry);
+                }
+            }
+
+            // 같은 userId 기존 entry 있으면 강제 close (재접속 시 stale 정리)
+            const existing = connections.get(userId);
+            if (existing) closeEntry(userId, existing);
+
+            // 30초마다 heartbeat (연결 유지)
+            const heartbeatInterval = setInterval(() => {
+                const entry = connections.get(userId);
+                if (!entry) {
+                    clearInterval(heartbeatInterval);
+                    return;
+                }
+                try {
+                    const heartbeat = `event: heartbeat\ndata: ${Date.now()}\n\n`;
+                    entry.controller.enqueue(new TextEncoder().encode(heartbeat));
+                    entry.lastActivity = Date.now();
+                } catch {
+                    closeEntry(userId, entry);
+                }
+            }, 30_000);
+            heartbeatInterval.unref?.();
+
+            connections.set(userId, {
+                controller,
+                heartbeatInterval,
+                lastActivity: Date.now()
+            });
 
             // 초기 접속자 수 전송
             const initEvent = `event: online_count\ndata: ${connections.size}\n\n`;
@@ -68,23 +150,10 @@ export const GET: RequestHandler = async ({ locals }) => {
 
             // 접속자 수 변경 broadcast
             broadcastOnlineCount();
-
-            // 30초마다 heartbeat 전송 (연결 유지)
-            const heartbeatInterval = setInterval(() => {
-                try {
-                    const heartbeat = `event: heartbeat\ndata: ${Date.now()}\n\n`;
-                    controller.enqueue(new TextEncoder().encode(heartbeat));
-                } catch {
-                    clearInterval(heartbeatInterval);
-                    connections.delete(userId);
-                }
-            }, 30000);
-
-            // 연결 종료 시 정리 (controller가 close/error 될 때)
-            // ReadableStream cancel 시 호출됨
         },
         cancel() {
-            connections.delete(userId);
+            const entry = connections.get(userId);
+            if (entry) closeEntry(userId, entry);
             broadcastOnlineCount();
         }
     });
