@@ -57,6 +57,7 @@ export async function fetchCelebrations(isRecent: boolean = false): Promise<Cele
         const [rows] = await pool.execute<RowDataPacket[]>(
             `SELECT cb.id, cb.title, cb.content, cb.image_url, cb.link_url,
 					cb.external_url, cb.display_date, cb.target_member_id,
+					cb.is_anonymous,
 					cb.link_target, cb.sort_order, cb.display_type,
 					cb.source_wr_id,
 					m.mb_nick AS target_member_nick,
@@ -73,6 +74,7 @@ export async function fetchCelebrations(isRecent: boolean = false): Promise<Cele
             const linkUrl =
                 row.external_url ||
                 (row.source_wr_id ? `/message/${row.source_wr_id}` : row.link_url || '');
+            const anonymous = !!row.is_anonymous;
 
             banners.push({
                 id: row.source_wr_id || row.id,
@@ -82,9 +84,9 @@ export async function fetchCelebrations(isRecent: boolean = false): Promise<Cele
                 link_url: linkUrl,
                 display_date: row.display_date,
                 is_active: true,
-                target_member_id: row.target_member_id || undefined,
-                target_member_nick: row.target_member_nick || undefined,
-                target_member_photo: getMemberPhotoUrl(row.target_member_image_url),
+                target_member_id: anonymous ? undefined : (row.target_member_id || undefined),
+                target_member_nick: anonymous ? undefined : (row.target_member_nick || undefined),
+                target_member_photo: anonymous ? undefined : getMemberPhotoUrl(row.target_member_image_url),
                 external_link: row.external_url || undefined,
                 link_target: row.link_target || '_blank',
                 sort_order: row.sort_order || 0,
