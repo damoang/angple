@@ -40,10 +40,13 @@ interface StatsRow extends RowDataPacket {
     total_singo_count: number;
 }
 
-interface DisciplineRow extends RowDataPacket {
-    penalty_period: number;
-    penalty_date_from: string;
+interface DisciplineLogRow extends RowDataPacket {
+    wr_id: number;
+    wr_content: string;
+    wr_datetime: string;
 }
+
+import { parseDisciplineLogContent, type DisciplineEntry } from './_parse-discipline';
 
 interface CountRow extends RowDataPacket {
     count: number;
@@ -104,12 +107,12 @@ export const GET: RequestHandler = async ({ params }) => {
     try {
         const [rows] = await pool.query<MemberRow[]>(
             `SELECT mb_id, mb_name, mb_nick, mb_level, mb_point,
-			        mb_signature, mb_homepage, mb_profile,
-			        mb_datetime, mb_today_login, mb_nick_date,
-			        mb_image_url, mb_image_updated_at, mb_certify, mb_leave_date,
-			        as_level, as_exp
-			 FROM g5_member
-			 WHERE mb_id = ?`,
+                    mb_signature, mb_homepage, mb_profile,
+                    mb_datetime, mb_today_login, mb_nick_date,
+                    mb_image_url, mb_image_updated_at, mb_certify, mb_leave_date,
+                    as_level, as_exp
+             FROM g5_member
+             WHERE mb_id = ?`,
             [memberId]
         );
 
@@ -152,57 +155,34 @@ export const GET: RequestHandler = async ({ params }) => {
             // 테이블 없으면 기본값 사용
         }
 
-        // 이용제한 정보 (g5_da_member_discipline에서 최신 1건 + 이력 5건)
-        let discipline = null;
-        let disciplineHistory: { penalty_period: number; penalty_date_from: string }[] = [];
+        // 이용제한 내역 (옵션 A: g5_write_disciplinelog 단일 출처)
+        // - wr_subject 매칭은 PHP `mb_id(닉네임)` / Go `mb_id` 두 형식 모두 처리
+        // - wr_content (JSON) 파싱 → penalty_period / penalty_date_from / sg_types 추출
+        // - 파싱 실패 row 는 skip
+        // 분석 보고서: /home/angple/docs/2026-04-28-discipline-data-flow-analysis.md (옵션 A)
+        let discipline: DisciplineEntry | null = null;
+        let disciplineHistory: DisciplineEntry[] = [];
         try {
-            const [discRows] = await pool.query<DisciplineRow[]>(
-                `SELECT penalty_period, penalty_date_from
-				 FROM g5_da_member_discipline WHERE penalty_mb_id = ?
-                 ORDER BY penalty_date_from DESC LIMIT 5`,
-                [memberId]
+            const [logRows] = await pool.query<DisciplineLogRow[]>(
+                `SELECT wr_id, wr_content, wr_datetime FROM g5_write_disciplinelog
+                 WHERE (wr_subject = ? OR wr_subject LIKE CONCAT(?, '(%'))
+                   AND wr_is_comment = 0
+                 ORDER BY wr_datetime DESC LIMIT 10`,
+                [memberId, memberId]
             );
-            if (discRows.length > 0) {
-                discipline = {
-                    penalty_period: discRows[0].penalty_period,
-                    penalty_date_from: discRows[0].penalty_date_from
-                };
-                disciplineHistory = discRows.map((r) => ({
-                    penalty_period: r.penalty_period,
-                    penalty_date_from: r.penalty_date_from
-                }));
+            for (const row of logRows) {
+                const entry = parseDisciplineLogContent(row);
+                if (entry) {
+                    disciplineHistory.push(entry);
+                }
+            }
+            if (disciplineHistory.length > 0) {
+                discipline = disciplineHistory[0];
             }
         } catch {
-            // 테이블 없으면 무시
-        }
-
-        // fallback: disciplinelog 게시판에서 최근 기록 조회
-        if (!discipline) {
-            try {
-                const [logRows] = await pool.query<RowDataPacket[]>(
-                    `SELECT wr_content FROM g5_write_disciplinelog
-                     WHERE penalty_mb_id = ? AND wr_is_comment = 0
-                     ORDER BY wr_id DESC LIMIT 5`,
-                    [memberId]
-                );
-                for (const row of logRows) {
-                    try {
-                        const parsed = JSON.parse(row.wr_content);
-                        if (parsed.penalty_period !== undefined) {
-                            const entry = {
-                                penalty_period: parsed.penalty_period,
-                                penalty_date_from: parsed.penalty_date_from
-                            };
-                            if (!discipline) discipline = entry;
-                            disciplineHistory.push(entry);
-                        }
-                    } catch {
-                        // 파싱 실패 건 스킵
-                    }
-                }
-            } catch {
-                // 테이블 없으면 무시
-            }
+            // 테이블 없으면 무시 (e.g. 신규 환경)
+            discipline = null;
+            disciplineHistory = [];
         }
 
         // 팔로워/팔로잉 수

@@ -618,7 +618,7 @@
                                     </span>
                                 </div>
                                 <p class="text-muted-foreground mt-1 text-xs">
-                                    {p.discipline.penalty_date_from}
+                                    {p.discipline.penalty_date_from?.split(' ')[0] || ''}
                                 </p>
                             </div>
                         {/if}
