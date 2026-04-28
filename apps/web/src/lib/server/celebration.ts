@@ -84,9 +84,11 @@ export async function fetchCelebrations(isRecent: boolean = false): Promise<Cele
                 link_url: linkUrl,
                 display_date: row.display_date,
                 is_active: true,
-                target_member_id: anonymous ? undefined : (row.target_member_id || undefined),
-                target_member_nick: anonymous ? undefined : (row.target_member_nick || undefined),
-                target_member_photo: anonymous ? undefined : getMemberPhotoUrl(row.target_member_image_url),
+                target_member_id: anonymous ? undefined : row.target_member_id || undefined,
+                target_member_nick: anonymous ? undefined : row.target_member_nick || undefined,
+                target_member_photo: anonymous
+                    ? undefined
+                    : getMemberPhotoUrl(row.target_member_image_url),
                 external_link: row.external_url || undefined,
                 link_target: row.link_target || '_blank',
                 sort_order: row.sort_order || 0,
