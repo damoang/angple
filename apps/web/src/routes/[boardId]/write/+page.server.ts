@@ -22,6 +22,11 @@ export const load: PageServerLoad = async ({ locals, params }) => {
         redirect(302, `/login?redirect=/${boardId}/write`);
     }
 
+    // 광고주 계정은 promotion 외 일반 게시판 글쓰기 차단
+    if (boardId !== 'promotion' && locals.user.advertiser_status === 'ongoing') {
+        error(403, '광고주 계정은 일반 게시판에 글을 작성할 수 없습니다.');
+    }
+
     const certError = await checkCertification(boardId, locals.user.id);
     if (certError) {
         redirect(302, '/register/cert');
