@@ -12,7 +12,27 @@
 
 export {};
 
+import { writeHeapSnapshot } from 'node:v8';
+import { ssrCache } from '$lib/server/ssr-cache.js';
+
 const OTEL_ENABLED = process.env.OTEL_ENABLED === 'true';
+
+/**
+ * SIGUSR2 → heap snapshot 강제 캡처 (Tier 4 audit, 2026-04-28)
+ * 사용: kubectl exec <pod> -- kill -USR2 1   →  /tmp/heap-{ts}.heapsnapshot
+ * Chrome DevTools Memory > Load 로 분석. avg vs p95 spike pod 비교.
+ */
+process.on('SIGUSR2', () => {
+    const filename = `/tmp/heap-${Date.now()}.heapsnapshot`;
+    try {
+        writeHeapSnapshot(filename);
+        // eslint-disable-next-line no-console
+        console.log(`[telemetry] heap snapshot saved: ${filename}`);
+    } catch (err) {
+        // eslint-disable-next-line no-console
+        console.error('[telemetry] heap snapshot error:', err);
+    }
+});
 
 if (OTEL_ENABLED) {
     const { NodeSDK } = await import('@opentelemetry/sdk-node');
@@ -64,6 +84,7 @@ if (OTEL_ENABLED) {
     const HEAP_LOG_INTERVAL_MS = 60_000;
     const heapLogTimer = setInterval(() => {
         const m = process.memoryUsage();
+        const externalRatio = m.heapUsed > 0 ? m.external / m.heapUsed : 0;
         // eslint-disable-next-line no-console
         console.log(
             JSON.stringify({
@@ -73,9 +94,21 @@ if (OTEL_ENABLED) {
                 heapUsed: m.heapUsed,
                 external: m.external,
                 arrayBuffers: m.arrayBuffers,
-                uptime_s: Math.round(process.uptime())
+                uptime_s: Math.round(process.uptime()),
+                // Tier 4 audit (2026-04-28): cache size + external ratio diagnostic
+                ssrCacheSize: ssrCache.size,
+                externalRatio: Number(externalRatio.toFixed(3))
             })
         );
+        // Alert: external > heap*0.5 + heap > 200MB → Buffer/gzip/SDK 외부 메모리 의심
+        if (externalRatio > 0.5 && m.heapUsed > 200_000_000) {
+            // eslint-disable-next-line no-console
+            console.warn(
+                `[telemetry] external/heap=${externalRatio.toFixed(2)} ` +
+                    `(external=${(m.external / 1e6).toFixed(0)}MB heap=${(m.heapUsed / 1e6).toFixed(0)}MB) ` +
+                    `— gzip/Buffer/AWS SDK/OTel BSP 외부 메모리 의심`
+            );
+        }
     }, HEAP_LOG_INTERVAL_MS);
     heapLogTimer.unref?.();
 
