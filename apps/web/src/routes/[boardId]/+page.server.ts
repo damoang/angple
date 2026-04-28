@@ -567,6 +567,19 @@ export const load: PageServerLoad = async ({
             }
         }
 
+        // 축하메시지(message) 게시판: 익명 글 프로필 정보 숨김
+        // PublishToGnuboard()에서 익명 시 wr_name=""으로 설정 → author가 빈 문자열
+        if (boardId === 'message') {
+            for (const p of allPosts) {
+                if (!p.author) {
+                    p.author_image = undefined;
+                    p.author_image_updated_at = undefined;
+                    p.author_id = '';
+                    p.author = '익명';
+                }
+            }
+        }
+
         const trimmed = maybeTrimBoardListPayload(boardId, board, posts, notices);
         // Phase 1C: 플러그인 enrich filter 호출 (member-memo author_memo 등).
         // 미설치 시 pass-through. (premium PR #43 기준 stub)

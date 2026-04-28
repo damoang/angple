@@ -201,6 +201,14 @@ export const load: PageServerLoad = async ({
             }
         }
 
+        // 축하메시지(message) 게시판: 익명 글 프로필 정보 숨김
+        if (boardId === 'message' && !post.author) {
+            post.author_image = undefined;
+            post.author_image_updated_at = undefined;
+            post.author_id = '';
+            post.author = '익명';
+        }
+
         // 게시글 작성자 프로필 이미지 즉시 조회 (1단계 — 본문 렌더에 필요)
         if (post.author_id && !post.author_image) {
             try {
