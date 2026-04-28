@@ -66,7 +66,7 @@ export const GET: RequestHandler = async () => {
                 `SELECT cb.id, cb.title, cb.content, cb.image_url, cb.link_url,
                         cb.external_url, cb.display_date, cb.target_member_id,
                         cb.link_target, cb.sort_order, cb.display_type,
-                        cb.source_wr_id, cb.updated_at AS cb_updated_at,
+                        cb.source_wr_id, cb.updated_at AS cb_updated_at, cb.is_anonymous,
                         m.mb_nick AS target_member_nick,
                         m.mb_image_url AS target_member_image_url,
                         wm.wr_content AS source_content
@@ -87,6 +87,7 @@ export const GET: RequestHandler = async () => {
                 const linkUrl =
                     row.external_url ||
                     (row.source_wr_id ? `/message/${row.source_wr_id}` : row.link_url || '');
+                const anonymous = !!row.is_anonymous;
 
                 // source_wr_id가 있으면 원본 게시글에서 최신 이미지 추출 (동기화)
                 let imageUrl = row.image_url || '';
@@ -108,9 +109,11 @@ export const GET: RequestHandler = async () => {
                     link_url: linkUrl,
                     display_date: row.display_date,
                     is_active: true,
-                    target_member_id: row.target_member_id || undefined,
-                    target_member_nick: row.target_member_nick || undefined,
-                    target_member_photo: getMemberPhotoUrl(row.target_member_image_url),
+                    target_member_id: anonymous ? undefined : row.target_member_id || undefined,
+                    target_member_nick: anonymous ? undefined : row.target_member_nick || undefined,
+                    target_member_photo: anonymous
+                        ? undefined
+                        : getMemberPhotoUrl(row.target_member_image_url),
                     external_link: row.external_url || undefined,
                     link_target: row.link_target || '_blank',
                     sort_order: row.sort_order || 0,
