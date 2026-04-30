@@ -20,6 +20,13 @@
         onSlotRendered,
         updateSlotVisibility
     } from './ad-slot-registry.js';
+    import {
+        isInCanary,
+        PHASE_B1_SLOTS,
+        PREBID_BIDDERS_DEFAULT,
+        PREBID_SIZES_BY_POSITION
+    } from '$lib/ads/prebid-config.js';
+    import { runPrebidAuction } from '$lib/ads/prebid-loader.js';
     import { page } from '$app/stores';
 
     /** 삭제된 글/비밀글 상세 페이지에서는 모든 광고를 숨김 (애드센스 정책) */
@@ -209,6 +216,23 @@
             visibilityObserver.observe(containerEl);
         } else {
             updateSlotVisibility(slotId, true);
+        }
+
+        // Phase B-1: canary 그룹 + 적용 대상 slot 인 경우 Prebid auction 먼저 실행.
+        // 실패/timeout 시 silent fallback → GAM 만 사용 (기존 동작 유지).
+        if (PHASE_B1_SLOTS.has(position)) {
+            const userKey = ($page as any).data?.user?.mb_id ?? slotId;
+            if (isInCanary(userKey)) {
+                try {
+                    await runPrebidAuction({
+                        code: slotId,
+                        sizes: PREBID_SIZES_BY_POSITION[position] ?? adSizes,
+                        bidders: PREBID_BIDDERS_DEFAULT
+                    });
+                } catch {
+                    /* GAM 폴백 */
+                }
+            }
         }
 
         await attachSlot({

@@ -310,6 +310,7 @@ export const POSITION_MAP: Record<string, string> = {
     'board-head': 'banner-horizontal',
     'board-list-head': 'banner-medium-compact',
     'board-list-bottom': 'banner-large-compact',
+    'board-list-row-top': 'banner-compact', // Phase B-1: 게시글 N번째 row 상단 ATF (매니저 권고 4/30)
     'board-footer': 'banner-compact',
     'header-after': 'banner-header-center',
 
