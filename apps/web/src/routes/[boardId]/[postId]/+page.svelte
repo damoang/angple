@@ -52,6 +52,7 @@
     import { page } from '$app/stores';
     import { getAvatarUrl } from '$lib/utils/member-icon.js';
     import { isEmbeddable } from '$lib/plugins/auto-embed';
+    import { embedAsTiptapYoutube } from '$lib/utils/link1-embed';
     import AdSlot from '$lib/components/ui/ad-slot/ad-slot.svelte';
     import AdsenseMultiplex from '$lib/components/ui/adsense-multiplex/adsense-multiplex.svelte';
     import PluginSlot from '$lib/components/plugin/plugin-slot.svelte';
@@ -246,7 +247,9 @@
         data.post.deleted_at
             ? ''
             : link1Original && isEmbeddable(link1Original)
-              ? `${link1Original}\n${renderedPostContent}`
+              ? // YouTube 는 TipTap 형식으로 통일해 에디터 직접 삽입과 레이아웃 일치 (#12111).
+                // 그 외 플랫폼 (vimeo 등) 은 기존 auto-embed 경로 (plain URL → embed-container) 유지.
+                `${embedAsTiptapYoutube(link1Original) ?? link1Original}\n${renderedPostContent}`
               : renderedPostContent
     );
 
