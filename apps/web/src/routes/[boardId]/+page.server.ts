@@ -445,7 +445,8 @@ export const load: PageServerLoad = async ({
                                 wr_1 AS extra_1, wr_2 AS extra_2, wr_3 AS extra_3,
                                 wr_4 AS extra_4, wr_5 AS extra_5, wr_6 AS extra_6, wr_7 AS extra_7
                          FROM ${tableName}
-                         WHERE wr_id IN (${ph}) AND wr_is_comment = 0`,
+                         WHERE wr_id IN (${ph}) AND wr_is_comment = 0
+                           AND (wr_deleted_at IS NULL OR wr_deleted_at = '0000-00-00 00:00:00')`,
                         sphinxResult.ids
                     ),
                     readPool.execute<RowDataPacket[]>(
