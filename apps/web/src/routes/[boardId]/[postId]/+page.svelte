@@ -1511,7 +1511,7 @@
         <span class="text-muted-foreground/50">/</span>
         <a href="/{data.boardId}" class="hover:text-foreground transition-colors">{boardTitle}</a>
         <span class="text-muted-foreground/50">/</span>
-        <span class="text-foreground max-w-[200px] truncate sm:max-w-[400px]"
+        <span class="text-foreground min-w-0 break-words" title={data.post.title}
             >{data.post.title}</span
         >
     </nav>

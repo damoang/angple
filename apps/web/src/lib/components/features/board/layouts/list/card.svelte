@@ -89,6 +89,7 @@
                                         ? 'text-muted-foreground font-normal'
                                         : 'text-foreground'}"
                                     style="font-size: var(--list-font-size);"
+                                    title={post.title}
                                 >
                                     {#if post.is_adult}
                                         <Badge

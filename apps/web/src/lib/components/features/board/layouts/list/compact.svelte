@@ -80,6 +80,7 @@
                         ? 'text-muted-foreground'
                         : 'text-foreground'}"
                     style="font-size: var(--list-font-size);"
+                    title={post.title}
                 >
                     {#if post.is_adult}
                         <Badge variant="destructive" class="shrink-0 px-1.5 py-0 text-[10px]"
