@@ -1930,6 +1930,12 @@
         margin-top: 0.75em;
     }
 
+    /* 빈 <p></p> 및 <p><br></p> 태그도 줄바꿈으로 표시 (에디터 엔터키 반영, #12169) */
+    :global(.comment-body p:empty),
+    :global(.comment-body p:has(> br:only-child)) {
+        min-height: 1em;
+    }
+
     /* 댓글 코드 블록 스타일 (게시글 본문 .prose와 동일) */
     :global(.comment-body pre) {
         background-color: var(--muted);
