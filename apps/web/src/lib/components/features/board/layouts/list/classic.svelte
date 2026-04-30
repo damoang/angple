@@ -211,6 +211,7 @@
                         <span
                             class="truncate {readClass}"
                             class:font-semibold={uiSettingsStore.titleBold}
+                            title={post.title}
                         >
                             {#if post.report_count === 'lock'}
                                 <span class="text-muted-foreground italic"

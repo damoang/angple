@@ -109,6 +109,7 @@
                             ? 'text-muted-foreground'
                             : 'text-foreground'}"
                         style="font-size: var(--list-font-size);"
+                        title={post.title}
                     >
                         {#if searchQuery}
                             {@html highlightQuery(post.title, searchQuery)}
