@@ -27,6 +27,7 @@ interface PostAuthorRow extends RowDataPacket {
     wr_id: number;
     wr_name: string;
     mb_id: string;
+    wr_deleted_at: string | null;
 }
 
 interface BoardFileRow extends RowDataPacket {
@@ -90,6 +91,9 @@ export const GET: RequestHandler = async ({ url, locals }) => {
         // 게시판별 작성자 정보 + 첨부파일 병렬 조회
         const authorMap = new Map<string, { wr_name: string; mb_id: string }>();
         const fileSet = new Set<string>();
+        // Sphinx 인덱스가 소프트 삭제된 글을 즉시 반영하지 못해 검색 결과에 노출되는 문제(#12173)
+        // 방지를 위해 MySQL 에서 wr_deleted_at 가 설정되었거나 행이 사라진 글을 추적해 제외한다.
+        const deletedSet = new Set<string>();
 
         const perBoardPromises = boardIds.map(async (boardId) => {
             const rows = boardMap.get(boardId)!;
@@ -98,17 +102,33 @@ export const GET: RequestHandler = async ({ url, locals }) => {
 
             const ph = wrIds.map(() => '?').join(',');
 
-            // 작성자 정보 조회
+            // 작성자 정보 + 삭제 상태 조회
             try {
                 const [authorRows] = await readPool.execute<PostAuthorRow[]>(
-                    `SELECT wr_id, wr_name, mb_id FROM g5_write_${boardId} WHERE wr_id IN (${ph})`,
+                    `SELECT wr_id, wr_name, mb_id, wr_deleted_at FROM g5_write_${boardId} WHERE wr_id IN (${ph})`,
                     wrIds
                 );
+                const seen = new Set<number>();
                 for (const a of authorRows) {
+                    seen.add(a.wr_id);
+                    const deletedAt = a.wr_deleted_at;
+                    const isDeleted =
+                        deletedAt !== null &&
+                        deletedAt !== undefined &&
+                        String(deletedAt) !== '0000-00-00 00:00:00' &&
+                        String(deletedAt) !== '';
+                    if (isDeleted) {
+                        deletedSet.add(`${boardId}:${a.wr_id}`);
+                        continue;
+                    }
                     authorMap.set(`${boardId}:${a.wr_id}`, {
                         wr_name: a.wr_name,
                         mb_id: a.mb_id
                     });
+                }
+                // MySQL 에 존재하지 않는 wr_id (이미 hard delete 된 글)도 노출하지 않는다.
+                for (const id of wrIds) {
+                    if (!seen.has(id)) deletedSet.add(`${boardId}:${id}`);
                 }
             } catch {
                 // 테이블 없는 경우 무시
@@ -131,15 +151,24 @@ export const GET: RequestHandler = async ({ url, locals }) => {
         const [boardNameMap] = await Promise.all([boardNamePromise, ...perBoardPromises]);
 
         // 4) 결과 조립 (게시판별 limitPerBoard개, 총 결과 수 기준 내림차순)
+        //    Sphinx 인덱스가 소프트 삭제 반영 전이거나 hard delete 직후인 wr_id 는 deletedSet 으로 걸러낸다 (#12173).
+        let totalAfterFilter = 0;
         const results = boardIds
             .map((boardId) => {
                 const rows = boardMap.get(boardId)!;
+                const liveRows = rows
+                    .slice(0, limitPerBoard)
+                    .filter((row) => !deletedSet.has(`${boardId}:${row.wr_id}`));
+                const liveTotal = rows.filter(
+                    (row) => !deletedSet.has(`${boardId}:${row.wr_id}`)
+                ).length;
+                totalAfterFilter += liveTotal;
                 return {
                     board_id: boardId,
                     board_name: boardNameMap.get(boardId) || boardId,
-                    total: rows.length,
+                    total: liveTotal,
                     is_comment: isCommentSearch,
-                    posts: rows.slice(0, limitPerBoard).map((row) => {
+                    posts: liveRows.map((row) => {
                         const author = authorMap.get(`${boardId}:${row.wr_id}`);
                         return {
                             id: row.wr_id,
@@ -158,13 +187,14 @@ export const GET: RequestHandler = async ({ url, locals }) => {
                     })
                 };
             })
+            .filter((board) => board.posts.length > 0)
             .sort((a, b) => b.total - a.total);
 
         return json({
             success: true,
             data: {
                 results,
-                total: sphinxRows.length,
+                total: totalAfterFilter,
                 query
             }
         });
