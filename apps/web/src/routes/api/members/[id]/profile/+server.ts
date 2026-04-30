@@ -47,6 +47,7 @@ interface DisciplineLogRow extends RowDataPacket {
 }
 
 import { parseDisciplineLogContent, type DisciplineEntry } from './_parse-discipline';
+import { calculateDeletePostCount } from './_recompute-counts';
 
 interface CountRow extends RowDataPacket {
     count: number;
@@ -153,6 +154,22 @@ export const GET: RequestHandler = async ({ params }) => {
             stats = statsRows[0] || defaultStats;
         } catch {
             // 테이블 없으면 기본값 사용
+        }
+
+        // delete_post_count 실시간 보강 (#12113)
+        // g5_member_board_status.delete_post_count 는 갱신 cron 부재로 stale.
+        // bo_use_search 보드들에 대해 UNION ALL COUNT 로 실시간 합산.
+        try {
+            // pool.query 와 시그니처 호환: <T>(sql, params) => [rows, fields]
+            const realDeleteCount = await calculateDeletePostCount(
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                (sql: string, params?: unknown[]) => pool.query(sql, params) as any,
+                memberId
+            );
+            stats = { ...stats, delete_post_count: realDeleteCount };
+        } catch (err) {
+            // 실시간 합산 실패 시 기존 stale 값 유지 (안전장치)
+            console.error('[Member Profile API] delete_post_count recompute failed:', err);
         }
 
         // 이용제한 내역 (옵션 A: g5_write_disciplinelog 단일 출처)
