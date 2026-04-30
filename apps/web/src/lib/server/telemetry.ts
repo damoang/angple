@@ -133,6 +133,8 @@ if (OTEL_ENABLED) {
         console.log(
             JSON.stringify({
                 event: 'heap_metrics',
+                // pod 식별 (4/30 cluster-wide alert pod-level 분리용). K8s 가 HOSTNAME = pod name 자동 set.
+                pod: process.env.HOSTNAME || 'unknown',
                 rss: m.rss,
                 heapTotal: m.heapTotal,
                 heapUsed: m.heapUsed,
