@@ -34,6 +34,50 @@ process.on('SIGUSR2', () => {
     }
 });
 
+/**
+ * Auto heap-watch — 4/30 OOM 사고 후속 (수동 SIGUSR2 영구 폐기, 1+ GB pod OOMKill 위험).
+ *
+ * 임계 OR 조건:
+ *   - rss > HEAP_RSS_THRESHOLD_MB MB (default 1280, container limit 1536 Mi 의 83%)
+ *   - heapUsed + external > HEAP_HEAP_THRESHOLD_MB MB (default 935, max-old 1100 의 85%)
+ *
+ * heapUsed 단독은 Buffer/external 누수 (4/24 gzip Buffer 누수 케이스) 못 잡음 — smoke test 검증.
+ * 두 임계 OR 로 V8 JS heap 누수 + external memory 누수 모두 capture.
+ *
+ * HEAP_WATCH_DIR 미설정 시 비활성 (feature flag, dev/test 환경 영향 0).
+ * 12h cooldown — pod 당 반복 fire 방지.
+ */
+const HEAP_WATCH_INTERVAL_MS = 30_000;
+const HEAP_RSS_THRESHOLD = parseInt(process.env.HEAP_RSS_THRESHOLD_MB || '1280', 10) * 1024 * 1024;
+const HEAP_HEAP_THRESHOLD = parseInt(process.env.HEAP_HEAP_THRESHOLD_MB || '935', 10) * 1024 * 1024;
+const HEAP_WATCH_COOLDOWN_MS = 12 * 60 * 60 * 1000;
+const HEAP_WATCH_DIR = process.env.HEAP_WATCH_DIR;
+let lastHeapDumpAt = 0;
+
+if (HEAP_WATCH_DIR) {
+    const heapWatchTimer = setInterval(() => {
+        const m = process.memoryUsage();
+        const now = Date.now();
+        const trigger = m.rss > HEAP_RSS_THRESHOLD || m.heapUsed + m.external > HEAP_HEAP_THRESHOLD;
+        if (!trigger) return;
+        if (now - lastHeapDumpAt < HEAP_WATCH_COOLDOWN_MS) return;
+        lastHeapDumpAt = now;
+        const filename = `${HEAP_WATCH_DIR}/heap-${process.env.HOSTNAME || 'unknown'}-${now}.heapsnapshot`;
+        try {
+            writeHeapSnapshot(filename);
+            // eslint-disable-next-line no-console
+            console.log(
+                `[telemetry] auto heap-watch dump: ${filename} ` +
+                    `(rss=${(m.rss / 1e6).toFixed(0)}MB heapUsed=${(m.heapUsed / 1e6).toFixed(0)}MB external=${(m.external / 1e6).toFixed(0)}MB)`
+            );
+        } catch (err) {
+            // eslint-disable-next-line no-console
+            console.error('[telemetry] auto heap-watch error:', err);
+        }
+    }, HEAP_WATCH_INTERVAL_MS);
+    heapWatchTimer.unref?.();
+}
+
 if (OTEL_ENABLED) {
     const { NodeSDK } = await import('@opentelemetry/sdk-node');
     const { OTLPTraceExporter } = await import('@opentelemetry/exporter-trace-otlp-grpc');
