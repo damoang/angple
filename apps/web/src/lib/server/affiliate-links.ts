@@ -134,8 +134,14 @@ function mapDecisionToRow(
 export function linkifyPlainTextUrls(html: string): string {
     const parts = html.split(/(<[^>]+>)/g);
     let insideAnchor = false;
-    const urlPattern =
-        /(^|[\s(>])((?:https?:\/\/|\/\/|www\.)[^\s<>"']+|(?:[a-z0-9-]+\.)+[a-z]{2,}[^\s<>"']*)/gi;
+    // URL 본문은 RFC 3986 호환 ASCII 만 허용 (한글/CJK 가 URL 의 path 로 흡수되어
+    // false-positive 자동 링크가 만들어지는 #12175 회귀 방지).
+    // 허용 문자: 영숫자, 그리고 - . _ ~ : / ? # [ ] @ ! $ & ' ( ) * + , ; = %
+    const URL_BODY = "[A-Za-z0-9\\-._~:/?#\\[\\]@!$&'()*+,;=%]";
+    const urlPattern = new RegExp(
+        `(^|[\\s(>])((?:https?:\\/\\/|\\/\\/|www\\.)${URL_BODY}+|(?:[a-z0-9-]+\\.)+[a-z]{2,}(?:${URL_BODY}*))`,
+        'gi'
+    );
 
     return parts
         .map((part) => {
