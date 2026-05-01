@@ -102,6 +102,20 @@
         { value: '3xlarge', label: '최대 (26px)' }
     ];
 
+    // #9365: 댓글 글씨 크기 — '본문과 동일' 옵션 + 본문 사이즈 옵션 재사용
+    const commentFontSizeOptions: {
+        value: ContentFontSize | 'inherit';
+        label: string;
+    }[] = [
+        { value: 'inherit', label: '본문과 동일' },
+        { value: 'small', label: '작게 (14px)' },
+        { value: 'base', label: '보통 (16px)' },
+        { value: 'large', label: '크게 (18px)' },
+        { value: 'xlarge', label: '아주 크게 (20px)' },
+        { value: '2xlarge', label: '매우 크게 (22px)' },
+        { value: '3xlarge', label: '최대 (26px)' }
+    ];
+
     const listFontSizeOptions: { value: ListFontSize; label: string }[] = [
         { value: 'xsmall', label: '아주 작게 (13px)' },
         { value: 'small', label: '작게 (14px)' },
@@ -440,6 +454,34 @@
                                     ? 'border-primary bg-primary/10 text-foreground'
                                     : 'border-border text-muted-foreground hover:border-foreground/20 hover:text-foreground'}"
                                 onclick={() => uiSettingsStore.setContentFontSize(opt.value)}
+                            >
+                                {opt.label}
+                            </button>
+                        {/each}
+                    </div>
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle class="flex items-center gap-2">
+                        <MessageSquare class="h-5 w-5" />
+                        댓글 글씨 크기
+                    </CardTitle>
+                    <CardDescription
+                        >댓글 영역의 글씨 크기를 본문과 별도로 설정합니다. 모바일에서 본문은 크게,
+                        댓글은 작게 보고 싶을 때 유용합니다. (#9365)</CardDescription
+                    >
+                </CardHeader>
+                <CardContent>
+                    <div class="flex flex-wrap gap-2">
+                        {#each commentFontSizeOptions as opt (opt.value)}
+                            <button
+                                class="rounded-lg border px-4 py-2 text-sm transition-colors {uiSettingsStore.commentFontSize ===
+                                opt.value
+                                    ? 'border-primary bg-primary/10 text-foreground'
+                                    : 'border-border text-muted-foreground hover:border-foreground/20 hover:text-foreground'}"
+                                onclick={() => uiSettingsStore.setCommentFontSize(opt.value)}
                             >
                                 {opt.label}
                             </button>

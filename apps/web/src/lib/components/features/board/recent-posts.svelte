@@ -22,6 +22,8 @@
     import { uiSettingsStore, type ListViewMode } from '$lib/stores/ui-settings.svelte.js';
     import { authStore } from '$lib/stores/auth.svelte.js';
     import { pluginStore } from '$lib/stores/plugin.svelte.js';
+    import { goto } from '$app/navigation';
+    import { page as pageStore } from '$app/stores';
 
     // 코어 레이아웃 초기화 (중복 호출 안전)
     initCoreLayouts();
@@ -146,9 +148,28 @@
     // 목록 컨테이너 참조
     let listContainer: HTMLElement | undefined = $state();
 
-    // 페이지 변경
+    // 게시글 상세 하단의 페이지네이션은 목록 페이지(/[boardId]?page=N)로 이동
+    // (#11972) — 본문 + 목록 동시 로드 회피, 사용자가 목록 컨텍스트로 명확히 전환
+    const isOnPostDetail = $derived.by(() => {
+        if (!browser) return false;
+        // /[boardId]/[postId] 형태 — boardId 뒤에 추가 segment 가 있으면 상세 페이지
+        const path = $pageStore.url.pathname;
+        return path.startsWith(`/${boardId}/`) && path.length > boardId.length + 1;
+    });
+
+    function pageHref(page: number): string {
+        return page > 1 ? `/${boardId}?page=${page}` : `/${boardId}`;
+    }
+
+    // 페이지 변경 (목록 페이지에서는 AJAX, 상세 페이지에서는 list 로 navigate)
     async function goToPage(page: number): Promise<void> {
         if (page < 1 || page > totalPages || page === currentPage) return;
+
+        if (isOnPostDetail) {
+            // #11972: 본문 SSR 없이 목록 페이지로 이동
+            await goto(pageHref(page));
+            return;
+        }
 
         loading = true;
         try {

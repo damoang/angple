@@ -1147,11 +1147,16 @@
 
             <!-- 페이지네이션 -->
             {#if shouldShowPagination}
-                <div class="mt-8 flex items-center justify-center gap-2">
-                    {#if pagination.page > 3}
-                        <Button variant="outline" size="sm" onclick={() => goToPage(1)}>처음</Button
-                        >
-                    {/if}
+                <div class="mt-8 flex items-center justify-center gap-1 sm:gap-2">
+                    <!-- #11941: 첫페이지 단축 — 항상 노출 (1페이지일 때만 비활성) -->
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        title="처음으로"
+                        aria-label="첫 페이지"
+                        disabled={pagination.page === 1}
+                        onclick={() => goToPage(1)}>&laquo;</Button
+                    >
                     <Button
                         variant="outline"
                         size="sm"
@@ -1171,6 +1176,17 @@
                         disabled={!paginationHasNext}
                         onclick={() => goToPage(pagination.page + 1)}>다음</Button
                     >
+                    <!-- #11941: 끝페이지 단축 — totalPages 알 때만 -->
+                    {#if paginationTotalPages > 0}
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            title="마지막으로"
+                            aria-label="마지막 페이지"
+                            disabled={pagination.page === paginationTotalPages}
+                            onclick={() => goToPage(paginationTotalPages)}>&raquo;</Button
+                        >
+                    {/if}
                 </div>
                 {#if widgetLayoutStore.hasEnabledAds}
                     <div class="mt-3">
