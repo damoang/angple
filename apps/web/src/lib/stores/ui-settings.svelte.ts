@@ -23,6 +23,11 @@ interface UiSettings {
     lineHeight: LineHeight;
     fontFamily: FontFamily;
     contentFontSize: ContentFontSize;
+    /**
+     * 댓글 글씨 크기 (#9365). 'inherit' 이면 contentFontSize 를 따라가고,
+     * 그 외 값이면 본문과 독립적으로 적용됩니다.
+     */
+    commentFontSize: ContentFontSize | 'inherit';
     hideMyProfile: boolean;
     // 게시판
     contentBlur: boolean;
@@ -57,6 +62,7 @@ const DEFAULTS: UiSettings = {
     lineHeight: 'normal',
     fontFamily: 'default',
     contentFontSize: 'base',
+    commentFontSize: 'inherit',
     hideMyProfile: false,
     contentBlur: true,
     hidePostList: false,
@@ -154,10 +160,16 @@ function createUiSettingsStore() {
             LIST_FONT_SIZES[settings.recommendFontSize]
         );
 
-        // 본문·댓글·에디터에 contentFontSize 연동
+        // 본문·에디터에 contentFontSize 연동
         html.style.setProperty('--content-font-size', CONTENT_FONT_SIZES[settings.contentFontSize]);
-        html.style.setProperty('--comment-font-size', CONTENT_FONT_SIZES[settings.contentFontSize]);
         html.style.setProperty('--editor-font-size', CONTENT_FONT_SIZES[settings.contentFontSize]);
+
+        // 댓글 글씨 크기 (#9365): 'inherit' 이면 본문과 동일, 그 외엔 독립값
+        const commentSize =
+            settings.commentFontSize === 'inherit'
+                ? CONTENT_FONT_SIZES[settings.contentFontSize]
+                : CONTENT_FONT_SIZES[settings.commentFontSize];
+        html.style.setProperty('--comment-font-size', commentSize);
 
         const fontVal = FONT_FAMILY_VALUES[settings.fontFamily];
         if (fontVal) {
@@ -220,6 +232,14 @@ function createUiSettingsStore() {
                     settings.contentFontSize = order[next];
                 }
             }
+            save();
+            applyCSS();
+        },
+        get commentFontSize() {
+            return settings.commentFontSize;
+        },
+        setCommentFontSize(v: ContentFontSize | 'inherit') {
+            settings.commentFontSize = v;
             save();
             applyCSS();
         },
