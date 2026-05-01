@@ -18,6 +18,7 @@ import {
 } from '$lib/server/affiliate-links';
 import { isLinkProcessingPluginEnabled } from '$lib/server/link-processing/runtime';
 import { isInternalAppRequest } from '$lib/server/internal-api.js';
+import { prefetchBlueskyDIDs } from '$lib/server/bluesky/transform.js';
 
 interface CommentRow extends RowDataPacket {
     wr_id: number;
@@ -221,6 +222,26 @@ export const GET: RequestHandler = async ({ params, url, locals, request }) => {
                   }
                 : {})
         }));
+
+        // Bluesky handle → DID prefetch (#12050).
+        // 댓글 본문 내 `bsky.app/profile/<handle>/post/<id>` URL 의 handle 을 DID 로
+        // 일괄 치환. content-transform (affiliate, embed) 단계 전에 수행한다.
+        // Redis 30일 TTL 캐시로 동일 handle 재요청 부담 최소.
+        // 실패 시 원본 본문 유지 → UX 악화 없음.
+        try {
+            const transformed = await Promise.all(
+                comments.map((c) =>
+                    typeof c.content === 'string' && c.content
+                        ? prefetchBlueskyDIDs(c.content).catch(() => c.content)
+                        : Promise.resolve(c.content)
+                )
+            );
+            comments.forEach((c, i) => {
+                c.content = transformed[i];
+            });
+        } catch (e) {
+            console.warn('[bluesky] prefetchBlueskyDIDs(comments) failed:', e);
+        }
 
         const affiliateEnabled = await isLinkProcessingPluginEnabled().catch(() => false);
         const commentAffiliateRows = affiliateEnabled
