@@ -1,0 +1,21 @@
+CREATE TABLE IF NOT EXISTS payment_orders (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    site_id INT NOT NULL DEFAULT 0,
+    user_id INT NOT NULL,
+    order_uid VARCHAR(64) NOT NULL UNIQUE,
+    provider VARCHAR(32) NOT NULL,
+    pg_order_id VARCHAR(128) NULL,
+    pg_transaction_id VARCHAR(128) NULL,
+    amount DECIMAL(18,2) NOT NULL,
+    currency CHAR(3) NOT NULL DEFAULT 'KRW',
+    status ENUM('pending','prepared','paid','cancelled','refunded','failed') NOT NULL DEFAULT 'pending',
+    description VARCHAR(255) NULL,
+    metadata_json JSON NULL,
+    paid_at DATETIME NULL,
+    refunded_at DATETIME NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_site_user (site_id, user_id),
+    INDEX idx_provider_pg_order (provider, pg_order_id),
+    INDEX idx_status_created (status, created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
