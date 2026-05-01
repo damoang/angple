@@ -19,10 +19,32 @@ export const ssrCache = new Map<string, { body: Uint8Array; timestamp: number }>
 /** Singleflight 중복 요청 방지용 */
 export const ssrCachePending = new Map<string, Promise<Response>>();
 
-export const SSR_CACHE_TTL_HOME = 60_000; // 홈 60초
-export const SSR_CACHE_TTL_BOARD = 30_000; // 게시판 목록 30초 (120초 → 30초 단축)
-export const SSR_CACHE_TTL_POST = 60_000; // 글 상세 60초
-export const MAX_SSR_CACHE_SIZE = 500;
+// 4/30 누수 분석 후속 (단계 2): TTL 통일 30s + cap 500→200 + 자동 cleanup (LRU + lazy expire).
+// 기존 hooks.server.ts 의 cap 강제와 별개로 ssr-cache.ts 자체에서 정리 — defense-in-depth.
+export const SSR_CACHE_TTL_HOME = 30_000; // 홈 60→30초 (단계 2)
+export const SSR_CACHE_TTL_BOARD = 30_000; // 게시판 목록 30초
+export const SSR_CACHE_TTL_POST = 30_000; // 글 상세 60→30초 (단계 2)
+export const MAX_SSR_CACHE_SIZE = 200; // 500→200 (단계 2, fire 분석 후 미세조정)
+const SSR_CACHE_TTL_MAX = 30_000; // cleanup 기준 (모든 path TTL 통일)
+const SSR_CACHE_CLEANUP_INTERVAL = 10_000; // 10s 자동 sweep
+
+// 자동 sweep — TTL 만료 entry + cap 초과 시 oldest (Map insertion order = LRU) 제거
+const ssrCacheCleanupTimer = setInterval(() => {
+    const now = Date.now();
+    // 1. TTL 만료 entry 제거 (lazy expire)
+    for (const [key, entry] of ssrCache) {
+        if (now - entry.timestamp > SSR_CACHE_TTL_MAX) {
+            ssrCache.delete(key);
+        }
+    }
+    // 2. cap 초과 시 oldest 제거 (LRU)
+    while (ssrCache.size > MAX_SSR_CACHE_SIZE) {
+        const oldestKey = ssrCache.keys().next().value;
+        if (oldestKey === undefined) break;
+        ssrCache.delete(oldestKey);
+    }
+}, SSR_CACHE_CLEANUP_INTERVAL);
+ssrCacheCleanupTimer.unref?.();
 
 /** HTML string → gzip compressed bytes (저장용) */
 export function compressSsrBody(html: string): Uint8Array {
