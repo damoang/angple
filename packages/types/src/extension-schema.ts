@@ -41,6 +41,16 @@ export const ExtensionEnginesSchema = z.object({
     angple: z.string().optional()
 });
 
+/**
+ * DB 마이그레이션 정의 (플러그인 전용)
+ */
+export const ExtensionMigrationSchema = z.object({
+    version: z.string().min(1, '마이그레이션 version은 필수입니다'),
+    description: z.string().min(1, '마이그레이션 설명은 필수입니다'),
+    up: z.string().min(1, 'up SQL 파일 경로는 필수입니다'),
+    down: z.string().optional()
+});
+
 // ============================================================================
 // 설정 필드 스키마
 // ============================================================================
@@ -257,6 +267,7 @@ const BaseExtensionManifestSchema = z.object({
     api: ExtensionAPISchema.optional(),
     ui: ExtensionUISchema.optional(),
     settings: z.record(z.string(), ExtensionSettingFieldSchema).optional(),
+    migrations: z.array(ExtensionMigrationSchema).optional(),
     dependencies: z.record(z.string(), z.string()).optional(),
     devDependencies: z.record(z.string(), z.string()).optional(),
     homepage: z.string().url().optional(),
