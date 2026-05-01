@@ -44,7 +44,7 @@
 </script>
 
 {#if visibleMenus.length > 0}
-    <nav class="flex gap-1.5 overflow-x-auto {className}" aria-label="빠른 이동">
+    <nav class="tag-nav flex gap-1.5 overflow-x-auto {className}" aria-label="빠른 이동">
         {#each visibleMenus as menu (menu.key)}
             <a
                 href={menu.url}
@@ -68,3 +68,13 @@
         {/each}
     </nav>
 {/if}
+
+<style>
+    /* #11769 메인 바로가기 가로 스크롤바 숨김 (스크롤 동작은 유지) */
+    .tag-nav {
+        scrollbar-width: none;
+    }
+    .tag-nav::-webkit-scrollbar {
+        display: none;
+    }
+</style>
