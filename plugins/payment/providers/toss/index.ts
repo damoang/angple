@@ -84,10 +84,7 @@ export const tossProvider: PaymentProvider = {
         };
     },
 
-    async refund(
-        config: ProviderConfig<TossCreds>,
-        input: RefundInput
-    ): Promise<RefundResult> {
+    async refund(config: ProviderConfig<TossCreds>, input: RefundInput): Promise<RefundResult> {
         const json = await tossFetch(
             config.credentials.secretKey,
             `/payments/${encodeURIComponent(input.pgTransactionId)}/cancel`,

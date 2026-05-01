@@ -57,7 +57,12 @@ export async function listSiteProviders(siteId: number): Promise<ProviderConfig[
 export async function upsertProviderConfig(
     siteId: number,
     provider: PaymentProviderId,
-    update: { sandbox: boolean; active: boolean; credentials: Record<string, string>; config?: Record<string, unknown> }
+    update: {
+        sandbox: boolean;
+        active: boolean;
+        credentials: Record<string, string>;
+        config?: Record<string, unknown>;
+    }
 ): Promise<void> {
     await pool.query<ResultSetHeader>(
         `INSERT INTO payment_provider_configs (site_id, provider, sandbox, active, credentials_json, config_json)

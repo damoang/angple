@@ -59,9 +59,7 @@
                 {/each}
             </tbody>
         </table>
-        <p class="todo">
-            상세 키 입력 / 거래 조회 / 환불 기능은 후속 PR에서 추가됩니다.
-        </p>
+        <p class="todo">상세 키 입력 / 거래 조회 / 환불 기능은 후속 PR에서 추가됩니다.</p>
     {/if}
 </div>
 

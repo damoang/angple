@@ -120,12 +120,10 @@ export const paypalProvider: PaymentProvider = {
             `/v2/checkout/orders/${encodeURIComponent(input.pgOrderId)}/capture`,
             { method: 'POST' }
         );
-        const purchaseUnits =
-            (captured.purchase_units as Array<Record<string, unknown>>) ?? [];
-        const captures =
-            (purchaseUnits[0]?.payments as Record<string, unknown>)?.captures as
-                | Array<Record<string, unknown>>
-                | undefined;
+        const purchaseUnits = (captured.purchase_units as Array<Record<string, unknown>>) ?? [];
+        const captures = (purchaseUnits[0]?.payments as Record<string, unknown>)?.captures as
+            | Array<Record<string, unknown>>
+            | undefined;
         const capture = captures?.[0];
         return {
             pgTransactionId: (capture?.id as string) ?? (captured.id as string),
@@ -134,10 +132,7 @@ export const paypalProvider: PaymentProvider = {
         };
     },
 
-    async refund(
-        config: ProviderConfig<PayPalCreds>,
-        input: RefundInput
-    ): Promise<RefundResult> {
+    async refund(config: ProviderConfig<PayPalCreds>, input: RefundInput): Promise<RefundResult> {
         const refund = await paypalFetch<Record<string, unknown>>(
             config,
             `/v2/payments/captures/${encodeURIComponent(input.pgTransactionId)}/refund`,

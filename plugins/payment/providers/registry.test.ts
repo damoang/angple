@@ -39,7 +39,13 @@ describe('payment provider verifyWebhook', () => {
     it('paypal: event_type+id 없는 페이로드는 false', () => {
         expect.hasAssertions();
         const result = getProvider('paypal').verifyWebhook(
-            { siteId: 0, provider: 'paypal', sandbox: true, active: true, credentials: {} as never },
+            {
+                siteId: 0,
+                provider: 'paypal',
+                sandbox: true,
+                active: true,
+                credentials: {} as never
+            },
             { rawBody: '{"foo":"bar"}', headers: {} }
         );
         expect(result).toBe(false);
@@ -53,7 +59,12 @@ describe('payment provider verifyWebhook', () => {
                 provider: 'naver',
                 sandbox: true,
                 active: true,
-                credentials: { clientId: 'c', clientSecret: 's', chainId: 'x', webhookSecret: 'w' } as never
+                credentials: {
+                    clientId: 'c',
+                    clientSecret: 's',
+                    chainId: 'x',
+                    webhookSecret: 'w'
+                } as never
             },
             { rawBody: '{}', headers: {} }
         );

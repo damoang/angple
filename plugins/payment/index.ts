@@ -10,4 +10,9 @@ export { naverProvider } from './providers/naver/index.js';
 export { paypalProvider } from './providers/paypal/index.js';
 export { getProvider, listProviders } from './providers/registry.js';
 
-export type { PaymentProvider, PaymentProviderId, PaymentOrder, ProviderConfig } from './types/index.js';
+export type {
+    PaymentProvider,
+    PaymentProviderId,
+    PaymentOrder,
+    ProviderConfig
+} from './types/index.js';

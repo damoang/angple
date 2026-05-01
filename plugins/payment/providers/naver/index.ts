@@ -94,10 +94,7 @@ export const naverProvider: PaymentProvider = {
         };
     },
 
-    async refund(
-        config: ProviderConfig<NaverCreds>,
-        input: RefundInput
-    ): Promise<RefundResult> {
+    async refund(config: ProviderConfig<NaverCreds>, input: RefundInput): Promise<RefundResult> {
         const body = await naverFetch(config, '/cancel', {
             paymentId: input.pgTransactionId,
             cancelAmount: String(input.amount),
@@ -113,7 +110,8 @@ export const naverProvider: PaymentProvider = {
 
     verifyWebhook(config: ProviderConfig<NaverCreds>, input: VerifyWebhookInput): boolean {
         const secret = config.credentials.webhookSecret;
-        const signature = input.headers['x-naverpay-signature'] ?? input.headers['X-NaverPay-Signature'];
+        const signature =
+            input.headers['x-naverpay-signature'] ?? input.headers['X-NaverPay-Signature'];
         if (!secret || !signature) return false;
         const expected = createHmac('sha256', secret).update(input.rawBody).digest('hex');
         const sig = signature.toLowerCase();

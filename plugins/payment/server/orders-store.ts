@@ -1,11 +1,6 @@
 import type { RowDataPacket, ResultSetHeader } from 'mysql2/promise';
 import { pool } from '$lib/server/db';
-import type {
-    Currency,
-    PaymentOrder,
-    PaymentProviderId,
-    PaymentStatus
-} from '../types/index.js';
+import type { Currency, PaymentOrder, PaymentProviderId, PaymentStatus } from '../types/index.js';
 
 interface OrderRow extends RowDataPacket {
     id: number;
