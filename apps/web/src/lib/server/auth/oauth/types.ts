@@ -81,4 +81,10 @@ export interface OAuthStateData {
     provider: SocialProvider;
     redirect: string;
     timestamp: number;
+    /**
+     * 추가 연결(link) 모드일 때 연결 대상 mb_id.
+     * 서버 세션에서 직접 채워 넣으며, 클라이언트가 임의로 주입할 수 없음.
+     * 콜백에서 `locals.user.id === linkTo` 를 재검증한다.
+     */
+    linkTo?: string;
 }

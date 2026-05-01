@@ -10,7 +10,11 @@ import { normalizeProviderName, getProvider } from '$lib/server/auth/oauth/provi
 import { resolveOrigin } from '$lib/server/auth/oauth/config.js';
 import { safeRedirectUrl } from '$lib/server/safe-redirect.js';
 import { validateOAuthState } from '$lib/server/auth/oauth/state.js';
-import { findSocialProfile, upsertSocialProfile } from '$lib/server/auth/oauth/social-profile.js';
+import {
+    findSocialProfile,
+    linkSocialProfile,
+    upsertSocialProfile
+} from '$lib/server/auth/oauth/social-profile.js';
 import {
     getMemberById,
     findMemberByEmail,
@@ -91,6 +95,7 @@ async function generateInviteTempNickname(provider: string): Promise<string> {
 async function handleCallback(
     providerSlug: string,
     cookies: Parameters<RequestHandler>[0]['cookies'],
+    locals: Parameters<RequestHandler>[0]['locals'],
     code: string,
     stateParam: string,
     clientIp: string,
@@ -137,6 +142,41 @@ async function handleCallback(
             );
         } else {
             profile = await provider.getUserProfile(tokenResponse.access_token);
+        }
+
+        // 4-link. 추가 연결 모드(link)면 신규가입/세션재발급 로직을 모두 우회 (#12037)
+        if (stateData.linkTo) {
+            // 세션 재검증: state.linkTo 와 현재 로그인 세션이 정확히 일치해야 함
+            const sessionMbId = locals.user?.id;
+            if (!sessionMbId) {
+                redirect(
+                    302,
+                    `/login?redirect=${encodeURIComponent(stateData.redirect || '/member/settings')}`
+                );
+            }
+            if (sessionMbId !== stateData.linkTo) {
+                redirect(302, '/member/settings?error=link_session_mismatch');
+            }
+
+            try {
+                await linkSocialProfile(stateData.linkTo, providerName, profile);
+            } catch (linkErr) {
+                if (
+                    linkErr instanceof Error &&
+                    (linkErr as Error & { code?: string }).code === 'already_linked_other'
+                ) {
+                    redirect(
+                        302,
+                        `/member/settings?error=already_linked_other&provider=${providerName}`
+                    );
+                }
+                console.error('[OAuth Link]', providerName, linkErr);
+                redirect(302, `/member/settings?error=link_failed&provider=${providerName}`);
+            }
+
+            // 회원 캐시 무효화 후 세션 유지하며 설정 페이지로
+            await invalidateMemberCache(stateData.linkTo);
+            redirect(302, `/member/settings?linked=${providerName}`);
         }
 
         // 5. g5_member_social_profiles에서 기존 연결 확인
@@ -361,7 +401,14 @@ async function handleCallback(
 }
 
 /** GET 콜백 (대부분의 프로바이더) */
-export const GET: RequestHandler = async ({ url, cookies, request, getClientAddress, params }) => {
+export const GET: RequestHandler = async ({
+    url,
+    cookies,
+    request,
+    getClientAddress,
+    params,
+    locals
+}) => {
     const code = url.searchParams.get('code');
     const stateParam = url.searchParams.get('state');
     const errorParam = url.searchParams.get('error');
@@ -376,11 +423,17 @@ export const GET: RequestHandler = async ({ url, cookies, request, getClientAddr
 
     const clientIp = getClientAddress();
     const origin = resolveOrigin(request);
-    return handleCallback(params.provider!, cookies, code, stateParam, clientIp, origin);
+    return handleCallback(params.provider!, cookies, locals, code, stateParam, clientIp, origin);
 };
 
 /** POST 콜백 (Apple response_mode=form_post) */
-export const POST: RequestHandler = async ({ cookies, request, getClientAddress, params }) => {
+export const POST: RequestHandler = async ({
+    cookies,
+    request,
+    getClientAddress,
+    params,
+    locals
+}) => {
     const formData = await request.formData();
     const code = formData.get('code') as string;
     const stateParam = formData.get('state') as string;
@@ -396,5 +449,5 @@ export const POST: RequestHandler = async ({ cookies, request, getClientAddress,
 
     const clientIp = getClientAddress();
     const origin = resolveOrigin(request);
-    return handleCallback(params.provider!, cookies, code, stateParam, clientIp, origin);
+    return handleCallback(params.provider!, cookies, locals, code, stateParam, clientIp, origin);
 };
