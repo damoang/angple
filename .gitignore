@@ -106,7 +106,13 @@ SESSION_NOTES.md
 
 # Dev-linked premium assets (symlinks to angple-premium)
 themes/damoang-default
-plugins/
+# 1단계 패턴(plugins/*)으로 두어, 트래킹할 플러그인만 명시 예외로 추가한다.
+# 기존 추적 플러그인은 ignore 추가 후에도 유지되지만, 그 안에 새 파일을 추가하려면 예외 등록 필요.
+plugins/*
+!plugins/affiliate-link/
+!plugins/affiliate-link-private/
+!plugins/auto-embed/
+!plugins/payment/
 !apps/web/src/routes/api/plugins/
 !apps/web/src/routes/admin/plugins/
 !apps/web/src/lib/plugins/
