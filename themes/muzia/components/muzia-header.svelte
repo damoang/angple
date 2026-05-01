@@ -8,8 +8,12 @@
     import { authStore, authActions } from '$lib/stores/auth.svelte';
     import { browser } from '$app/environment';
     import { onMount } from 'svelte';
+    import { getLang, setLang, LANGS } from '$lib/i18n/store.svelte';
+    import { LANG_LABEL, LANG_FLAG } from '$lib/i18n/messages';
 
     let isMobileMenuOpen = $state(false);
+    let isLangOpen = $state(false);
+    let isToolsMenuOpen = $state(false);
 
     // 테마 모드
     const modes = ['light', 'dark', 'amoled', 'system'] as const;
@@ -43,15 +47,38 @@
         });
     });
 
-    const tabs = [
-        { id: 'feed', label: '피드', icon: '❤️', href: '/' },
-        { id: 'qna', label: 'Q&A', icon: '💬', href: '/qna' },
-        { id: 'forum', label: '포럼', icon: '📝', href: '/forum' },
-        { id: 'music', label: '음악', icon: '🎵', href: '/music' },
-        { id: 'dorico', label: '도리코', icon: '🎹', href: '/dorico' },
-        { id: 'attendance', label: '출석', icon: '📅', href: '/attendance' },
-        { id: 'notice', label: '공지', icon: '📢', href: '/notice' },
-    ];
+    import { MESSAGES } from '$lib/i18n/messages';
+    const tabs = $derived.by(() => {
+        const m = MESSAGES[getLang()].nav;
+        return [
+            { id: 'feed', label: m.feed, icon: '❤️', href: '/' },
+            { id: 'qna', label: m.qna, icon: '💬', href: '/qna' },
+            { id: 'forum', label: m.forum, icon: '📝', href: '/forum' },
+            { id: 'music', label: m.music, icon: '🎵', href: '/music' },
+            { id: 'dorico', label: m.dorico, icon: '🎹', href: '/dorico' },
+            { id: 'tools', label: m.tools, icon: '🛠️', href: '/tools' },
+            { id: 'attendance', label: m.attendance, icon: '📅', href: '/attendance' },
+            { id: 'notice', label: m.notice, icon: '📢', href: '/notice' }
+        ];
+    });
+
+    const toolsMega = $derived.by(() => {
+        const c = MESSAGES[getLang()].cards;
+        return [
+            { icon: '🎵', title: c.metronome.title, desc: c.metronome.desc, href: '/tools/metronome' },
+            { icon: '🎸', title: c.tuner.title, desc: c.tuner.desc, href: '/tools/tuner' },
+            { icon: '⏱️', title: c.bpmTap.title, desc: c.bpmTap.desc, href: '/tools/bpm-tap' },
+            { icon: '🎹', title: c.chordProgression.title, desc: c.chordProgression.desc, href: '/tools/chord-progression' },
+            { icon: '📚', title: c.musicTheory.title, desc: c.musicTheory.desc, href: '/tools/music-theory' },
+            { icon: '🎹', title: c.pianoRoll.title, desc: c.pianoRoll.desc, href: '/tools/piano-roll' },
+            { icon: '🎼', title: c.abcNotation.title, desc: c.abcNotation.desc, href: '/tools/abc-notation' },
+            { icon: '📜', title: c.scoreEditor.title, desc: c.scoreEditor.desc, href: '/tools/score-editor' },
+            { icon: '🎚️', title: c.midiSequencer.title, desc: c.midiSequencer.desc, href: '/tools/midi-sequencer' },
+            { icon: '📖', title: c.scaleDictionary.title, desc: c.scaleDictionary.desc, href: '/tools/scale-dictionary' },
+            { icon: '📚', title: c.chordDictionary.title, desc: c.chordDictionary.desc, href: '/tools/chord-dictionary' },
+            { icon: '👂', title: c.intervalTrainer.title, desc: c.intervalTrainer.desc, href: '/tools/interval-trainer' }
+        ];
+    });
 
     function getActiveTab(pathname: string): string {
         if (pathname === '/') return 'feed';
@@ -144,24 +171,61 @@
             >
                 <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
             </button>
-            <a href="/" class="flex items-center gap-2">
-                <img src="/logo-muzia.png" alt="Muzia" class="h-12" />
+            <a href="/" class="flex items-center gap-2 lg:ml-4">
+                <img src="/logo-muzia.png" alt="Muzia" class="h-16" />
             </a>
         </div>
 
-        <!-- 탭 네비게이션 (SvelteKit 클라이언트 네비게이션) -->
+        <!-- 탭 네비게이션 + 도구 메가 메뉴 -->
         <nav class="hidden items-center gap-1 md:flex">
             {#each tabs as tab}
-                <a
-                    href={tab.href}
-                    class="inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-base font-medium transition-colors
-                        {getActiveTab($page.url.pathname) === tab.id
-                            ? 'bg-indigo-600 text-white'
-                            : 'text-muted-foreground hover:bg-accent hover:text-foreground'}"
-                >
-                    <span>{tab.icon}</span>
-                    {tab.label}
-                </a>
+                {#if tab.id === 'tools'}
+                    <div
+                        class="relative"
+                        onmouseenter={() => isToolsMenuOpen = true}
+                        onmouseleave={() => isToolsMenuOpen = false}
+                        role="presentation"
+                    >
+                        <a
+                            href={tab.href}
+                            class="inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-base font-medium transition-colors
+                                {getActiveTab($page.url.pathname) === tab.id
+                                    ? 'bg-indigo-600 text-white'
+                                    : 'text-muted-foreground hover:bg-accent hover:text-foreground'}"
+                        >
+                            <span>{tab.icon}</span>
+                            {tab.label}
+                            <span class="text-xs opacity-70">▾</span>
+                        </a>
+                        {#if isToolsMenuOpen}
+                            <div class="absolute left-0 top-full z-50 mt-1 w-[640px] grid grid-cols-3 gap-1 rounded-lg border bg-background p-3 shadow-2xl">
+                                {#each toolsMega as t}
+                                    <a
+                                        href={t.href}
+                                        class="flex items-start gap-3 rounded-md p-3 transition-colors hover:bg-accent group"
+                                    >
+                                        <span class="text-2xl">{t.icon}</span>
+                                        <div class="flex-1 min-w-0">
+                                            <div class="text-sm font-bold text-foreground group-hover:text-indigo-600 truncate">{t.title}</div>
+                                            <div class="text-xs text-muted-foreground line-clamp-2">{t.desc}</div>
+                                        </div>
+                                    </a>
+                                {/each}
+                            </div>
+                        {/if}
+                    </div>
+                {:else}
+                    <a
+                        href={tab.href}
+                        class="inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-base font-medium transition-colors
+                            {getActiveTab($page.url.pathname) === tab.id
+                                ? 'bg-indigo-600 text-white'
+                                : 'text-muted-foreground hover:bg-accent hover:text-foreground'}"
+                    >
+                        <span>{tab.icon}</span>
+                        {tab.label}
+                    </a>
+                {/if}
             {/each}
         </nav>
 
@@ -170,6 +234,37 @@
             <div class="relative hidden sm:block">
                 <svg class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
                 <Input placeholder="검색..." class="w-56 pl-10" />
+            </div>
+
+            <!-- 언어 드롭다운 (8 언어) -->
+            <div class="relative">
+                <button
+                    class="flex h-9 items-center gap-1.5 rounded-lg border border-border bg-background px-2.5 text-xs font-bold transition-colors hover:bg-accent"
+                    onclick={() => isLangOpen = !isLangOpen}
+                    title="Language / 언어 / 言語 / 语言"
+                    aria-label="Switch language"
+                    aria-expanded={isLangOpen}
+                >
+                    <span>{LANG_FLAG[getLang()]}</span>
+                    <span>{getLang().toUpperCase()}</span>
+                    <span class="text-muted-foreground">▾</span>
+                </button>
+                {#if isLangOpen}
+                    <div class="absolute right-0 top-full mt-1 w-44 overflow-hidden rounded-lg border border-border bg-background shadow-lg z-50">
+                        {#each LANGS as l}
+                            <button
+                                class="flex w-full items-center gap-2 px-3 py-2 text-sm transition-colors hover:bg-accent {getLang() === l ? 'bg-indigo-50 text-indigo-700 font-bold' : ''}"
+                                onclick={() => { setLang(l); isLangOpen = false; }}
+                            >
+                                <span class="text-base">{LANG_FLAG[l]}</span>
+                                <span>{LANG_LABEL[l]}</span>
+                                {#if getLang() === l}
+                                    <span class="ml-auto text-indigo-600">✓</span>
+                                {/if}
+                            </button>
+                        {/each}
+                    </div>
+                {/if}
             </div>
 
             <!-- 테마 모드 토글 -->

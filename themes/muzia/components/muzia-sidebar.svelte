@@ -6,6 +6,8 @@
     import { Button } from '$lib/components/ui/button';
     import MuziaAdSlot from './muzia-ad-slot.svelte';
     import { page } from '$app/stores';
+    import { getLang } from '$lib/i18n/store.svelte';
+    import { MESSAGES } from '$lib/i18n/messages';
 
     function isActive(href: string): boolean {
         const p = $page.url.pathname;
@@ -13,19 +15,51 @@
         return p === href || p.startsWith(href + '/');
     }
 
-    const menuItems = [
-        { icon: '🏠', label: '홈', href: '/' },
-        { icon: '📅', label: '출석부', href: '/attendance' },
-        { icon: '💬', label: 'Q&A', href: '/qna' },
-        { icon: '📝', label: '포럼', href: '/forum' },
-        { icon: '🎵', label: '음악', href: '/music' },
-        { icon: '🎻', label: '바이올린', href: '/violin' },
-        { icon: '🎼', label: '시벨리우스', href: '/sibelius' },
-        { icon: '🎹', label: '도리코', href: '/dorico' },
-        { icon: '💡', label: '강좌/팁', href: '/tip' },
-        { icon: '📢', label: '공지사항', href: '/notice' },
-        { icon: '👋', label: '가입인사', href: '/hello' },
-    ];
+    interface MenuItem {
+        icon: string;
+        label: string;
+        href: string;
+        children?: { icon: string; label: string; href: string }[];
+    }
+
+    const menuItems = $derived.by<MenuItem[]>(() => {
+        const m = MESSAGES[getLang()].nav;
+        const c = MESSAGES[getLang()].cards;
+        return [
+            { icon: '🏠', label: m.home, href: '/' },
+            { icon: '📅', label: m.attendance, href: '/attendance' },
+            { icon: '💬', label: m.qna, href: '/qna' },
+            { icon: '📝', label: m.forum, href: '/forum' },
+            { icon: '🎵', label: m.music, href: '/music' },
+            { icon: '🎻', label: m.violin, href: '/violin' },
+            { icon: '🎼', label: m.sibelius, href: '/sibelius' },
+            { icon: '🎹', label: m.dorico, href: '/dorico' },
+            {
+                icon: '🛠️', label: m.tools, href: '/tools',
+                children: [
+                    { icon: '🎵', label: c.metronome.title, href: '/tools/metronome' },
+                    { icon: '🎸', label: c.tuner.title, href: '/tools/tuner' },
+                    { icon: '⏱️', label: c.bpmTap.title, href: '/tools/bpm-tap' },
+                    { icon: '🎹', label: c.chordProgression.title, href: '/tools/chord-progression' },
+                    { icon: '📚', label: c.musicTheory.title, href: '/tools/music-theory' },
+                    { icon: '🎹', label: c.pianoRoll.title, href: '/tools/piano-roll' },
+                    { icon: '🎼', label: c.abcNotation.title, href: '/tools/abc-notation' },
+                    { icon: '📜', label: c.scoreEditor.title, href: '/tools/score-editor' },
+                    { icon: '🎚️', label: c.midiSequencer.title, href: '/tools/midi-sequencer' },
+                    { icon: '📖', label: c.scaleDictionary.title, href: '/tools/scale-dictionary' },
+                    { icon: '📚', label: c.chordDictionary.title, href: '/tools/chord-dictionary' },
+                    { icon: '👂', label: c.intervalTrainer.title, href: '/tools/interval-trainer' }
+                ]
+            },
+            { icon: '💡', label: m.tip, href: '/tip' },
+            { icon: '📢', label: m.notice, href: '/notice' },
+            { icon: '👋', label: m.hello, href: '/hello' }
+        ];
+    });
+
+    let toolsExpanded = $state(false);
+    const isOnTools = $derived($page.url.pathname.startsWith('/tools'));
+    const showToolsChildren = $derived(toolsExpanded || isOnTools);
 
     interface RecentPost { id: number; board_id: string; title: string; author: string; created_at: string; comments_count: number; }
     interface RecentComment { id: number; board_id: string; parent_id: number; author: string; content: string; created_at: string; }
@@ -56,14 +90,48 @@
 </script>
 
 <div class="h-full overflow-y-auto border-r bg-background p-4">
-    <!-- 네비게이션 (React 원본과 동일) -->
+    <!-- 네비게이션 (2-depth 도구 메뉴 지원) -->
     <nav class="mb-6 space-y-1">
         {#each menuItems as item}
-            <a href={item.href} class="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-base transition-colors
-                {isActive(item.href) ? 'bg-indigo-600 text-white font-medium' : 'hover:bg-accent'}">
-                <span>{item.icon}</span>
-                {item.label}
-            </a>
+            {#if item.children}
+                <div class="space-y-1">
+                    <div class="flex items-center gap-1">
+                        <a href={item.href} class="flex flex-1 items-center gap-3 rounded-lg px-3 py-2.5 text-base transition-colors
+                            {isActive(item.href) ? 'bg-indigo-600 text-white font-medium' : 'hover:bg-accent'}">
+                            <span>{item.icon}</span>
+                            {item.label}
+                        </a>
+                        <button
+                            class="rounded-lg px-2 py-2.5 text-xs hover:bg-accent transition-colors"
+                            onclick={() => toolsExpanded = !toolsExpanded}
+                            aria-label="Toggle submenu"
+                            aria-expanded={showToolsChildren}
+                        >
+                            {showToolsChildren ? '▴' : '▾'}
+                        </button>
+                    </div>
+                    {#if showToolsChildren}
+                        <div class="ml-4 space-y-0.5 border-l border-border pl-3 py-1">
+                            {#each item.children as child}
+                                <a
+                                    href={child.href}
+                                    class="flex items-center gap-2 rounded-md px-2.5 py-1.5 text-sm transition-colors
+                                        {isActive(child.href) ? 'bg-indigo-50 text-indigo-700 font-medium dark:bg-indigo-950 dark:text-indigo-300' : 'text-muted-foreground hover:bg-accent hover:text-foreground'}"
+                                >
+                                    <span class="text-sm">{child.icon}</span>
+                                    <span class="truncate">{child.label}</span>
+                                </a>
+                            {/each}
+                        </div>
+                    {/if}
+                </div>
+            {:else}
+                <a href={item.href} class="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-base transition-colors
+                    {isActive(item.href) ? 'bg-indigo-600 text-white font-medium' : 'hover:bg-accent'}">
+                    <span>{item.icon}</span>
+                    {item.label}
+                </a>
+            {/if}
         {/each}
     </nav>
 

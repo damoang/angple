@@ -5,6 +5,9 @@ export const GET: RequestHandler = async ({ url }) => {
     const site = `https://${hostname}`;
     const now = new Date().toISOString().slice(0, 10);
 
+    const isMuzia = hostname === 'muzia.net' || hostname === 'muzia.io'
+        || hostname === 'www.muzia.net' || hostname === 'www.muzia.io';
+
     // 정적 페이지
     const staticPages = [
         { loc: '/', changefreq: 'daily', priority: '1.0' },
@@ -25,10 +28,43 @@ export const GET: RequestHandler = async ({ url }) => {
         { loc: '/terms', changefreq: 'monthly', priority: '0.3' },
     ];
 
+    // muzia 전용 음악 도구 (host 분기)
+    if (isMuzia) {
+        staticPages.push(
+            { loc: '/tools', changefreq: 'weekly', priority: '0.95' },
+            { loc: '/tools/metronome', changefreq: 'monthly', priority: '0.85' },
+            { loc: '/tools/tuner', changefreq: 'monthly', priority: '0.85' },
+            { loc: '/tools/bpm-tap', changefreq: 'monthly', priority: '0.85' },
+            { loc: '/tools/chord-progression', changefreq: 'monthly', priority: '0.85' },
+            { loc: '/tools/music-theory', changefreq: 'monthly', priority: '0.85' },
+            { loc: '/tools/piano-roll', changefreq: 'monthly', priority: '0.85' },
+            { loc: '/tools/abc-notation', changefreq: 'monthly', priority: '0.85' },
+            { loc: '/tools/score-editor', changefreq: 'monthly', priority: '0.85' },
+            { loc: '/tools/midi-sequencer', changefreq: 'monthly', priority: '0.85' },
+            { loc: '/tools/scale-dictionary', changefreq: 'monthly', priority: '0.85' },
+            { loc: '/tools/chord-dictionary', changefreq: 'monthly', priority: '0.85' },
+            { loc: '/tools/interval-trainer', changefreq: 'monthly', priority: '0.85' },
+            // Track C 학습 가이드 9 종 (긴 한국어 본문, AdSense 색인용)
+            { loc: '/tools/metronome/guide', changefreq: 'monthly', priority: '0.75' },
+            { loc: '/tools/tuner/guide', changefreq: 'monthly', priority: '0.75' },
+            { loc: '/tools/bpm-tap/guide', changefreq: 'monthly', priority: '0.75' },
+            { loc: '/tools/chord-progression/guide', changefreq: 'monthly', priority: '0.75' },
+            { loc: '/tools/music-theory/guide', changefreq: 'monthly', priority: '0.75' },
+            { loc: '/tools/piano-roll/guide', changefreq: 'monthly', priority: '0.75' },
+            { loc: '/tools/abc-notation/guide', changefreq: 'monthly', priority: '0.75' },
+            { loc: '/tools/score-editor/guide', changefreq: 'monthly', priority: '0.75' },
+            { loc: '/tools/midi-sequencer/guide', changefreq: 'monthly', priority: '0.75' },
+            // 사보 프로그램별 깊은 가이드 (한국 사보 사용자 본진)
+            { loc: '/tools/score-editor/sibelius-guide', changefreq: 'monthly', priority: '0.85' },
+            { loc: '/tools/score-editor/dorico-guide', changefreq: 'monthly', priority: '0.85' },
+            { loc: '/tools/score-editor/musescore-guide', changefreq: 'monthly', priority: '0.85' }
+        );
+    }
+
     // 동적 게시글 (DB에서 최근 게시글 조회)
     let dynamicUrls: { loc: string; lastmod: string; priority: string }[] = [];
 
-    if (hostname === 'muzia.net' || hostname === 'muzia.io') {
+    if (isMuzia) {
         try {
             // muzia DB에서 최근 게시글 가져오기
             const mysql = await import('mysql2/promise');
@@ -40,7 +76,11 @@ export const GET: RequestHandler = async ({ url }) => {
                 database: process.env.ATTENDANCE_DB_NAME || 'newcomposer',
             });
 
-            const boards = ['qna', 'forum', 'music', 'sibelius', 'dorico', 'violin', 'tip', 'notice', 'hello'];
+            const boards = [
+                'qna', 'forum', 'music', 'sibelius', 'dorico', 'violin', 'tip', 'notice', 'hello',
+                // 2026-04-25 복구된 옛 게시판 (DB/이미지 보존)
+                'history', 'pds', 'midi', 'future', 'event', 'creative', 'tutor', 'video', 'score'
+            ];
             for (const board of boards) {
                 try {
                     const [rows] = await conn.query(
