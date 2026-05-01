@@ -39,6 +39,9 @@ export function extractMentions(content: string): string[] {
  * plain text의 @닉네임을 클릭 가능한 링크로 변환
  * DOMPurify를 통과할 수 있도록 <a> 태그 사용
  * HTML 태그 내부 및 URL/이메일 내 @는 변환하지 않음
+ *
+ * 라우트 주의: 회원 프로필 라우트는 `/member/[id]` 이며 `[id]` 는 mb_id 이다.
+ * `/profile/...` 라우트는 존재하지 않으므로 사용 금지 (#9266).
  */
 export function highlightMentions(content: string): string {
     if (!content) return content;
@@ -51,7 +54,7 @@ export function highlightMentions(content: string): string {
             return part.replace(
                 /(?<![a-zA-Z0-9.+_\-/])@([a-zA-Z0-9_가-힣]+)/g,
                 (_match, nick) =>
-                    `<a href="/profile/${encodeURIComponent(nick)}" class="mention-link text-primary font-medium hover:underline" data-mention="${nick}">@${nick}</a>`
+                    `<a href="/member/${encodeURIComponent(nick)}" class="mention-link text-primary font-medium hover:underline" data-mention="${nick}">@${nick}</a>`
             );
         })
         .join('');
