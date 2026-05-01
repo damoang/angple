@@ -264,6 +264,22 @@
             ],
             content,
             editable: !disabled,
+            // #9223: 편집 모드에서 링크(<a>) 클릭 시 외부 이동 방지.
+            // Link extension 의 openOnClick:false 는 mark 만 처리하므로,
+            // LinkedImage 가 렌더하는 <a><img></a> 구조에서는 브라우저 기본 동작이 살아있음.
+            // ProseMirror DOM 이벤트로 anchor 클릭을 일괄 차단한다.
+            editorProps: {
+                handleDOMEvents: {
+                    click: (_view, event) => {
+                        const target = event.target as HTMLElement | null;
+                        const anchor = target?.closest?.('a');
+                        if (anchor) {
+                            event.preventDefault();
+                        }
+                        return false;
+                    }
+                }
+            },
             onUpdate: ({ editor: ed }) => {
                 onUpdate?.(ed.getHTML());
                 // Svelte $state 변경은 Tiptap 트랜잭션 밖에서 실행 (state_unsafe_mutation 방지)
@@ -332,7 +348,8 @@
         try {
             const imageUrl = await onImageUpload(file);
             if (imageUrl) {
-                editor.chain().focus().setImage({ src: imageUrl }).run();
+                // #9328: 이미지 삽입 후 빈 paragraph 추가 — 사용자가 이미지 다음 줄에 바로 입력 가능하도록
+                editor.chain().focus().setImage({ src: imageUrl }).createParagraphNear().run();
             }
         } catch (err) {
             console.error('Image upload failed:', err);
@@ -351,9 +368,13 @@
             const imageUrl = await onImageUpload(file);
             if (imageUrl) {
                 // 특정 위치에 이미지 삽입 (기존 내용 유지)
+                // #9328: 이미지 다음에 빈 paragraph 함께 삽입 — 사용자가 이미지 아래 줄에 바로 입력 가능하도록
                 editor
                     .chain()
-                    .insertContentAt(pos, { type: 'image', attrs: { src: imageUrl } })
+                    .insertContentAt(pos, [
+                        { type: 'image', attrs: { src: imageUrl } },
+                        { type: 'paragraph' }
+                    ])
                     .run();
             }
         } catch (err) {
@@ -617,10 +638,12 @@
             editor.chain().focus().setTextSelection(to).run();
         }
 
+        // #9328: 이미지 삽입 후 빈 paragraph 추가 — 사용자가 이미지 다음 줄에 바로 입력 가능하도록
         editor
             .chain()
             .focus()
             .setImage({ src: imageUrl, alt: imageAlt || '' })
+            .createParagraphNear()
             .run();
 
         showImageDialog = false;
