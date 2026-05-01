@@ -16,12 +16,25 @@ import { TwitterProvider } from '$lib/server/auth/oauth/providers/twitter.js';
 
 const COOKIE_DOMAIN = env.COOKIE_DOMAIN || undefined;
 
-export const GET: RequestHandler = async ({ url, cookies, request }) => {
+export const GET: RequestHandler = async ({ url, cookies, request, locals }) => {
     const providerParam = url.searchParams.get('provider');
     const redirectUrl = url.searchParams.get('redirect') || '/';
+    // 추가 연결(link) 모드 — 쿼리 파라미터는 단순 플래그이며,
+    // 실제 연결 대상 mb_id 는 서버 세션에서만 결정한다 (#12037).
+    const isLinkMode = url.searchParams.get('link') === '1';
 
     if (!providerParam || !isValidProvider(providerParam)) {
         return new Response('지원하지 않는 로그인 방식입니다', { status: 400 });
+    }
+
+    // link=1 인데 비로그인이면 차단. 클라이언트가 임의 linkTo 를 박아도 무시된다.
+    let linkTo: string | undefined;
+    if (isLinkMode) {
+        const sessionMbId = locals.user?.id;
+        if (!sessionMbId) {
+            return new Response('로그인이 필요합니다', { status: 401 });
+        }
+        linkTo = sessionMbId;
     }
 
     const providerName = providerParam.toLowerCase() as SocialProvider;
@@ -29,7 +42,7 @@ export const GET: RequestHandler = async ({ url, cookies, request }) => {
     try {
         const origin = resolveOrigin(request);
         const provider = await getProvider(providerName, origin);
-        const state = createOAuthState(cookies, providerName, redirectUrl);
+        const state = createOAuthState(cookies, providerName, redirectUrl, linkTo);
 
         // Twitter는 PKCE 사용
         if (provider instanceof TwitterProvider) {

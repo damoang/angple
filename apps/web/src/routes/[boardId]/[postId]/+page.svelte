@@ -2001,18 +2001,24 @@
 <!-- 게시판 최근글 목록 -->
 <!-- #12040: boardId 변경 시 RecentPosts 를 강제 재생성하여 이전 게시판의
      posts state 가 남아있다가 잘못된 URL 로 이동하는 문제 방지 -->
+<!-- #12048: 본문 wrapper 외부의 RecentPosts 가 일부 모바일 환경(Samsung Internet/다뷰)
+     에서 가로 스크롤 유발. 동일한 overflow-x cascade 폴백 + clip 적용. -->
 {#if canRead}
-    {#key boardId}
-        <RecentPosts
-            {boardId}
-            {boardTitle}
-            currentPostId={data.post.id}
-            limit={20}
-            initialPage={data.recentPosts?.page || Number($page.url.searchParams.get('page')) || 1}
-            {promotionPosts}
-            displaySettings={data.board?.display_settings}
-        />
-    {/key}
+    <div style="overflow-x: hidden; overflow-x: clip;">
+        {#key boardId}
+            <RecentPosts
+                {boardId}
+                {boardTitle}
+                currentPostId={data.post.id}
+                limit={20}
+                initialPage={data.recentPosts?.page ||
+                    Number($page.url.searchParams.get('page')) ||
+                    1}
+                {promotionPosts}
+                displaySettings={data.board?.display_settings}
+            />
+        {/key}
+    </div>
 {/if}
 
 {#if authStore.isAuthenticated}
