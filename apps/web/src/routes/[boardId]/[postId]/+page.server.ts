@@ -26,6 +26,7 @@ import { fetchPostLikeStatus } from '$lib/server/post-like-status.js';
 import { fetchTruthroomPostId, fetchTruthroomCommentMap } from '$lib/server/truthroom.js';
 import { BackendUnavailableError } from '$lib/server/backend-fetch.js';
 import { applyFilter } from '$lib/hooks/registry.js';
+import { prefetchBlueskyDIDs } from '$lib/server/bluesky/transform.js';
 
 /**
  * 게시글 상세 페이지 — Streaming SSR
@@ -198,6 +199,18 @@ export const load: PageServerLoad = async ({
             }
             if (filesData.downloads?.length) {
                 post.downloads = filesData.downloads;
+            }
+        }
+
+        // Bluesky handle → DID prefetch (#12050).
+        // content-transform 직전에 본문 내 `bsky.app/profile/<handle>/post/<id>`
+        // URL 의 handle 을 DID 로 일괄 치환. 실패 시 원본 유지 → UX 악화 없음.
+        if (post.content) {
+            try {
+                post.content = await prefetchBlueskyDIDs(post.content);
+            } catch (e) {
+                // graceful degradation — 본문 보존, 운영 모니터링용 로그만.
+                console.warn('[bluesky] prefetchBlueskyDIDs(post) failed:', e);
             }
         }
 
