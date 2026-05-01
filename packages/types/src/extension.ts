@@ -351,6 +351,25 @@ export interface ExtensionUI {
 }
 
 /**
+ * DB 마이그레이션 정의.
+ * 플러그인 활성화 시 `up` 파일이 순서대로 실행되며, 비활성화/롤백 시 `down` 파일이 사용됩니다.
+ * `plugin_migrations` 추적 테이블이 중복 실행을 방지합니다.
+ */
+export interface ExtensionMigration {
+    /** 마이그레이션 버전 (예: "001", "20260501-add-payments") */
+    version: string;
+
+    /** 마이그레이션 설명 */
+    description: string;
+
+    /** Up SQL 파일 경로 (플러그인 루트 기준 상대 경로) */
+    up: string;
+
+    /** Down SQL 파일 경로 (롤백용, 선택) */
+    down?: string;
+}
+
+/**
  * Extension 엔진 요구사항
  */
 export interface ExtensionEngines {
@@ -435,6 +454,15 @@ export interface ExtensionManifest {
 
     /** Extension 설정 필드 */
     settings?: Record<string, ExtensionSettingField>;
+
+    /**
+     * DB 마이그레이션 정의 (플러그인 활성화 시 자동 실행).
+     * 각 항목의 `up` 파일이 순서대로 실행되며, `down`은 비활성화/롤백 시 사용됩니다.
+     * `plugin_migrations` 추적 테이블로 중복 실행을 방지합니다.
+     *
+     * 플러그인 전용 필드 — 테마는 일반적으로 사용하지 않습니다.
+     */
+    migrations?: ExtensionMigration[];
 
     /** npm 의존성 (package.json처럼) */
     dependencies?: Record<string, string>;

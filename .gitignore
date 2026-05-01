@@ -108,7 +108,9 @@ SESSION_NOTES.md
 themes/damoang-default
 plugins/
 !apps/web/src/routes/api/plugins/
+!apps/web/src/routes/admin/plugins/
 !apps/web/src/lib/plugins/
+!apps/web/src/lib/server/plugins/
 apps/web/src/lib/components/ui/podcast-player/
 
 # Claude Code

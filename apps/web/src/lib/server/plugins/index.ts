@@ -19,6 +19,8 @@ import {
 import { pluginSettingsProvider } from '../settings/plugin-settings-provider';
 import { TieredCache } from '$lib/server/cache';
 import type { ExtensionManifest } from '@angple/types';
+import { runPluginMigrations, rollbackPluginMigrations } from './migration-runner';
+import { invalidateHandlerCache } from './route-dispatcher';
 
 /**
  * 설치된 플러그인의 전체 정보
@@ -130,18 +132,32 @@ export async function invalidateActivePluginsCache(): Promise<void> {
 /**
  * 플러그인 활성화
  *
- * settings.json의 activePlugins 배열에 플러그인 ID를 추가합니다.
+ * settings.json의 activePlugins 배열에 플러그인 ID를 추가하고,
+ * 매니페스트의 migrations를 실행합니다 (#1289).
  */
 export async function activatePlugin(pluginId: string): Promise<boolean> {
-    // 플러그인이 설치되어 있는지 확인
     if (!(await isPluginInstalled(pluginId))) {
         console.error(`[Plugin API] 플러그인이 설치되지 않음: ${pluginId}`);
         return false;
     }
 
-    // Provider를 통해 플러그인 활성화
+    const manifest = await getPluginManifest(pluginId);
+    if (manifest?.migrations && manifest.migrations.length > 0) {
+        const pluginPath = await getPluginPath(pluginId);
+        try {
+            const result = await runPluginMigrations(pluginId, pluginPath, manifest.migrations);
+            console.info(
+                `[Plugin API] ${pluginId} migrations: applied=${result.applied.length}, skipped=${result.skipped.length}`
+            );
+        } catch (err) {
+            console.error(`[Plugin API] migration 실패: ${pluginId}`, err);
+            return false;
+        }
+    }
+
     await pluginSettingsProvider.activatePlugin(pluginId);
     await invalidateActivePluginsCache();
+    invalidateHandlerCache();
 
     return true;
 }
@@ -150,12 +166,49 @@ export async function activatePlugin(pluginId: string): Promise<boolean> {
  * 플러그인 비활성화
  *
  * settings.json의 activePlugins 배열에서 플러그인 ID를 제거합니다.
+ * 데이터 보존을 위해 migration은 자동으로 롤백되지 않습니다.
+ * 명시적 롤백은 `rollbackPlugin` 사용.
  */
 export async function deactivatePlugin(pluginId: string): Promise<boolean> {
-    // Provider를 통해 플러그인 비활성화
     await pluginSettingsProvider.deactivatePlugin(pluginId);
     await invalidateActivePluginsCache();
+    invalidateHandlerCache();
 
+    return true;
+}
+
+/**
+ * 플러그인 명시적 롤백 (관리자 액션).
+ * 비활성화 + migration down 실행.
+ */
+export async function rollbackPlugin(pluginId: string): Promise<boolean> {
+    const manifest = await getPluginManifest(pluginId);
+    if (!manifest) {
+        console.error(`[Plugin API] 매니페스트 없음: ${pluginId}`);
+        return false;
+    }
+
+    await pluginSettingsProvider.deactivatePlugin(pluginId);
+
+    if (manifest.migrations && manifest.migrations.length > 0) {
+        const pluginPath = await getPluginPath(pluginId);
+        try {
+            const result = await rollbackPluginMigrations(
+                pluginId,
+                pluginPath,
+                manifest.migrations
+            );
+            console.info(
+                `[Plugin API] ${pluginId} rollback: rolledBack=${result.rolledBack.length}`
+            );
+        } catch (err) {
+            console.error(`[Plugin API] rollback 실패: ${pluginId}`, err);
+            return false;
+        }
+    }
+
+    await invalidateActivePluginsCache();
+    invalidateHandlerCache();
     return true;
 }
 
