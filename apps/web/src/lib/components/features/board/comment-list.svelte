@@ -1781,6 +1781,22 @@
 {/if}
 
 <style>
+    /* 댓글 내 iframe/video 폭 제한 (인라인 width/height 속성 오버라이드) */
+    :global(.comment-body iframe),
+    :global(.comment-body video) {
+        max-width: 100% !important;
+        height: auto !important;
+    }
+
+    /* 댓글 내 YouTube iframe 16:9 비율 유지 (#11904, #12081 회귀 방지) */
+    :global(.comment-body iframe[src*='youtube']),
+    :global(.comment-body iframe[src*='youtu.be']),
+    :global(.comment-body iframe.tiptap-youtube) {
+        aspect-ratio: 16 / 9;
+        width: 100% !important;
+        height: auto !important;
+    }
+
     /* 댓글 내 임베드 컨테이너 스타일 */
     :global(.embed-container) {
         position: relative;
