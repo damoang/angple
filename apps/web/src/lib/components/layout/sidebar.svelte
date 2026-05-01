@@ -139,7 +139,7 @@
                 )}
                 <details class="mt-1" open={hasShiftActive || undefined}>
                     <summary
-                        class="text-muted-foreground hover:text-foreground flex cursor-pointer select-none items-center gap-1 px-2 py-1 text-[10px] transition-colors"
+                        class="text-muted-foreground hover:text-foreground flex cursor-pointer select-none items-center gap-1 px-2 py-1 text-xs transition-colors"
                     >
                         <ChevronRight
                             class="h-3 w-3 transition-transform duration-200 [[open]_&]:rotate-90"
@@ -152,7 +152,7 @@
                             <a
                                 href="/{entry.boardId}"
                                 class={cn(
-                                    'flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs transition-colors',
+                                    'flex items-center gap-1.5 rounded-md px-2 py-1.5 text-sm transition-colors',
                                     active
                                         ? 'bg-primary text-primary-foreground'
                                         : 'hover:bg-accent text-muted-foreground'
