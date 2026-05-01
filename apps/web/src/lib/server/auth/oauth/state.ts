@@ -20,7 +20,8 @@ function generateRandomState(): string {
 export function createOAuthState(
     cookies: Cookies,
     provider: SocialProvider,
-    redirectUrl: string
+    redirectUrl: string,
+    linkTo?: string
 ): string {
     const state = generateRandomState();
 
@@ -28,7 +29,8 @@ export function createOAuthState(
         state,
         provider,
         redirect: redirectUrl,
-        timestamp: Date.now()
+        timestamp: Date.now(),
+        ...(linkTo ? { linkTo } : {})
     };
 
     cookies.set(STATE_COOKIE_NAME, JSON.stringify(data), {
