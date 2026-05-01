@@ -122,9 +122,13 @@
     });
     let posts = $state<FreePost[]>(initialPosts);
 
-    // posts 변경 시 메모 로드 (#11949)
+    // 차단 키워드 적용: 차단된 글은 목록에서 완전 제외 (#12215)
+    // 게시판 목록(`[boardId]/+page.svelte`)과 동일한 필터 (#11935)
+    const filteredPosts = $derived(posts.filter((p) => !uiSettingsStore.isMuted(p.title)));
+
+    // posts 변경 시 메모 로드 (#11949) — 필터링된 결과 기준으로 불필요한 메모 호출 방지
     $effect(() => {
-        loadMemos(posts);
+        loadMemos(filteredPosts);
     });
     let loading = $state(initialPosts.length === 0);
     let error = $state<string | null>(null);
@@ -288,7 +292,7 @@
     <div class="py-8 text-center">
         <p class="text-muted-foreground text-sm">{error}</p>
     </div>
-{:else if posts.length === 0}
+{:else if filteredPosts.length === 0}
     <div class="py-8 text-center">
         <p class="text-muted-foreground text-sm">최근 글이 없습니다.</p>
     </div>
@@ -308,7 +312,7 @@
                 </div>
             </div>
         {/if}
-        {#each posts as post, i (post.id)}
+        {#each filteredPosts as post, i (post.id)}
             <!-- svelte-ignore a11y_no_static_element_interactions -->
             <div
                 class={post.id === currentPostId ? 'current-post-highlight' : ''}
