@@ -68,10 +68,10 @@ export async function runPluginMigrations(
             for (const stmt of splitStatements(sql)) {
                 await conn.query(stmt);
             }
-            await conn.query(
-                'INSERT INTO plugin_migrations (plugin_id, version) VALUES (?, ?)',
-                [pluginId, m.version]
-            );
+            await conn.query('INSERT INTO plugin_migrations (plugin_id, version) VALUES (?, ?)', [
+                pluginId,
+                m.version
+            ]);
             await conn.commit();
             result.applied.push(m.version);
             console.info(`${LOG_PREFIX} applied ${pluginId}@${m.version} (${m.description})`);
@@ -122,10 +122,10 @@ export async function rollbackPluginMigrations(
             for (const stmt of splitStatements(sql)) {
                 await conn.query(stmt);
             }
-            await conn.query(
-                'DELETE FROM plugin_migrations WHERE plugin_id = ? AND version = ?',
-                [pluginId, m.version]
-            );
+            await conn.query('DELETE FROM plugin_migrations WHERE plugin_id = ? AND version = ?', [
+                pluginId,
+                m.version
+            ]);
             await conn.commit();
             result.rolledBack.push(m.version);
             console.info(`${LOG_PREFIX} rolled back ${pluginId}@${m.version}`);
