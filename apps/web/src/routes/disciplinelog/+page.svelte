@@ -5,10 +5,13 @@
     import { goto } from '$app/navigation';
     import * as Card from '$lib/components/ui/card/index.js';
     import { Button } from '$lib/components/ui/button/index.js';
+    import { Input } from '$lib/components/ui/input/index.js';
     import { Badge } from '$lib/components/ui/badge/index.js';
     import ChevronLeft from '@lucide/svelte/icons/chevron-left';
     import ChevronRight from '@lucide/svelte/icons/chevron-right';
     import Shield from '@lucide/svelte/icons/shield';
+    import Search from '@lucide/svelte/icons/search';
+    import X from '@lucide/svelte/icons/x';
     import { getPenaltyDisplay } from '$lib/api/discipline-log.js';
     import BoardFavoriteButton from '$lib/components/features/board/board-favorite-button.svelte';
     import BoardSubscribeButton from '$lib/components/features/board/board-subscribe-button.svelte';
@@ -19,14 +22,41 @@
     const logs = $derived(data.logs || []);
     const total = $derived(data.total || 0);
     const currentPage = $derived(data.page || 1);
+    const memberIdFilter = $derived(data.memberId || '');
     const pageSize = 20;
     const totalPages = $derived(Math.max(1, Math.ceil(total / pageSize)));
+
+    // 필터 입력값 (URL query 와 동기화)
+    let searchInput = $state('');
+    $effect(() => {
+        searchInput = memberIdFilter;
+    });
 
     function goToPage(page: number) {
         if (page < 1 || page > totalPages) return;
         const url = new URL(window.location.href);
         url.searchParams.set('page', String(page));
         goto(url.pathname + url.search);
+    }
+
+    function applyFilter() {
+        const value = searchInput.trim();
+        const params = new URLSearchParams();
+        if (value) params.set('member_id', value);
+        const qs = params.toString();
+        goto(`/disciplinelog${qs ? `?${qs}` : ''}`);
+    }
+
+    function clearFilter() {
+        searchInput = '';
+        goto('/disciplinelog');
+    }
+
+    function handleSearchKeydown(e: KeyboardEvent) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            applyFilter();
+        }
     }
 
     function getPenaltyBadgeVariant(
@@ -66,6 +96,39 @@
             <Card.Description>규정을 위반한 회원에 대한 제재 기록입니다.</Card.Description>
         </Card.Header>
         <Card.Content>
+            <!-- 회원 필터 (아이디/닉네임은 백엔드 검색 키 동일 — member_id 기준) -->
+            <div class="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center">
+                <div class="relative flex-1">
+                    <Search
+                        class="text-muted-foreground pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2"
+                    />
+                    <Input
+                        type="text"
+                        placeholder="회원 아이디로 검색"
+                        class="pl-9"
+                        bind:value={searchInput}
+                        onkeydown={handleSearchKeydown}
+                    />
+                </div>
+                <div class="flex gap-2">
+                    <Button onclick={applyFilter} class="gap-1">
+                        <Search class="h-4 w-4" />
+                        검색
+                    </Button>
+                    {#if memberIdFilter}
+                        <Button variant="outline" onclick={clearFilter} class="gap-1">
+                            <X class="h-4 w-4" />
+                            전체
+                        </Button>
+                    {/if}
+                </div>
+            </div>
+            {#if memberIdFilter}
+                <div class="text-muted-foreground mb-4 text-sm">
+                    <span class="font-medium">{memberIdFilter}</span> 회원의 이용제한 기록만 표시 중
+                    (총 {total}건)
+                </div>
+            {/if}
             {#if logs.length === 0}
                 <div class="text-muted-foreground flex flex-col items-center justify-center py-12">
                     <p>이용제한 기록이 없습니다.</p>

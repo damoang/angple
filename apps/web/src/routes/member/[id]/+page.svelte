@@ -575,9 +575,23 @@
                         <!-- 이용제한 이력 -->
                         {#if p.discipline_history?.length > 0}
                             <div class="border-border rounded-lg border p-3">
-                                <div class="flex items-center gap-2 text-sm">
-                                    <Shield class="text-destructive h-4 w-4" />
-                                    <span class="text-foreground font-medium">이용제한 내역</span>
+                                <div class="flex items-center justify-between gap-2 text-sm">
+                                    <div class="flex items-center gap-2">
+                                        <Shield class="text-destructive h-4 w-4" />
+                                        <span class="text-foreground font-medium"
+                                            >이용제한 내역</span
+                                        >
+                                    </div>
+                                    {#if p.mb_id}
+                                        <a
+                                            href="/disciplinelog?member_id={encodeURIComponent(
+                                                p.mb_id
+                                            )}"
+                                            class="text-primary text-xs hover:underline"
+                                        >
+                                            전체 보기
+                                        </a>
+                                    {/if}
                                 </div>
                                 <ul class="mt-2 space-y-1">
                                     {#each p.discipline_history as d, i}
@@ -605,17 +619,29 @@
                             </div>
                         {:else if p.discipline}
                             <div class="border-border rounded-lg border p-3">
-                                <div class="flex items-center gap-2 text-sm">
-                                    <Shield class="text-destructive h-4 w-4" />
-                                    <span class="text-destructive font-medium">
-                                        {#if p.discipline.penalty_period > 0}
-                                            {p.discipline.penalty_period}일 이용제한
-                                        {:else if p.discipline.penalty_period === 0}
-                                            주의
-                                        {:else}
-                                            영구정지
-                                        {/if}
-                                    </span>
+                                <div class="flex items-center justify-between gap-2 text-sm">
+                                    <div class="flex items-center gap-2">
+                                        <Shield class="text-destructive h-4 w-4" />
+                                        <span class="text-destructive font-medium">
+                                            {#if p.discipline.penalty_period > 0}
+                                                {p.discipline.penalty_period}일 이용제한
+                                            {:else if p.discipline.penalty_period === 0}
+                                                주의
+                                            {:else}
+                                                영구정지
+                                            {/if}
+                                        </span>
+                                    </div>
+                                    {#if p.mb_id}
+                                        <a
+                                            href="/disciplinelog?member_id={encodeURIComponent(
+                                                p.mb_id
+                                            )}"
+                                            class="text-primary text-xs hover:underline"
+                                        >
+                                            전체 보기
+                                        </a>
+                                    {/if}
                                 </div>
                                 <p class="text-muted-foreground mt-1 text-xs">
                                     {p.discipline.penalty_date_from?.split(' ')[0] || ''}

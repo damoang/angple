@@ -3,7 +3,6 @@
      * 이용제한 기록 상세 페이지
      */
     import { page } from '$app/state';
-    import { onMount } from 'svelte';
     import * as Card from '$lib/components/ui/card/index.js';
     import { Button } from '$lib/components/ui/button/index.js';
     import { Badge } from '$lib/components/ui/badge/index.js';
@@ -31,29 +30,36 @@
 
     const id = $derived(Number(page.params.id));
 
-    async function fetchMemberHistory(memberId: string) {
+    async function fetchMemberHistory(memberId: string, currentId: number) {
         try {
             const result = await getDisciplineLogs(1, 100, memberId);
+            // race-condition 방지: 이미 다른 id 로 이동했으면 폐기
+            if (currentId !== id) return;
             memberHistory = result.data;
         } catch {
+            if (currentId !== id) return;
             memberHistory = [];
         }
     }
 
-    async function fetchLog() {
+    async function fetchLog(targetId: number) {
         loading = true;
         error = null;
+        memberHistory = [];
         try {
-            const result = await getDisciplineLog(id);
+            const result = await getDisciplineLog(targetId);
+            // 비동기 응답 도착 시점에 id 가 바뀌었으면 폐기 (race-condition 방지)
+            if (targetId !== id) return;
             log = result.data;
             if (log.member_id) {
-                fetchMemberHistory(log.member_id);
+                fetchMemberHistory(log.member_id, targetId);
             }
-        } catch (e) {
+        } catch {
+            if (targetId !== id) return;
             error = '이용제한 기록을 불러오는데 실패했습니다.';
             log = null;
         } finally {
-            loading = false;
+            if (targetId === id) loading = false;
         }
     }
 
@@ -112,8 +118,11 @@
         return !!authStore.user && log.member_id === authStore.user.mb_id;
     }
 
-    onMount(() => {
-        fetchLog();
+    // id 가 바뀔 때마다 재조회 (목록/회원 이력에서 다른 row 클릭 시에도 반영)
+    $effect(() => {
+        if (Number.isFinite(id) && id > 0) {
+            fetchLog(id);
+        }
     });
 </script>
 
@@ -141,7 +150,9 @@
             >
                 <AlertTriangle class="mb-4 h-12 w-12" />
                 <p>{error || '이용제한 기록을 찾을 수 없습니다.'}</p>
-                <Button variant="outline" class="mt-4" onclick={() => fetchLog()}>다시 시도</Button>
+                <Button variant="outline" class="mt-4" onclick={() => fetchLog(id)}
+                    >다시 시도</Button
+                >
             </Card.Content>
         </Card.Root>
     {:else}
