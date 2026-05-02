@@ -66,6 +66,8 @@
     import Pin from '@lucide/svelte/icons/pin';
     import Tag from '@lucide/svelte/icons/tag';
     import X from '@lucide/svelte/icons/x';
+    import User from '@lucide/svelte/icons/user';
+    import MessageSquare from '@lucide/svelte/icons/message-square';
     import SearchForm from '$lib/components/features/board/search-form.svelte';
     import BulkActionsToolbar from '$lib/components/features/board/bulk-actions-toolbar.svelte';
     import { Checkbox } from '$lib/components/ui/checkbox/index.js';
@@ -183,6 +185,42 @@
 
     // 현재 페이지 번호 (글 링크에 전달용)
     const listPage = $derived(Number($page.url.searchParams.get('page')) || 1);
+
+    // #12012: 보드별 "내가 쓴 글/댓글" 빠른 필터
+    // 백엔드 ?sfl=author|comment_author&stx={mb_id} 재사용 (Sphinx @(mb_id,wr_name) 매칭)
+    const currentSfl = $derived($page.url.searchParams.get('sfl') || '');
+    const currentStx = $derived($page.url.searchParams.get('stx') || '');
+    const isMyPostsActive = $derived(
+        authStore.isAuthenticated &&
+            currentSfl === 'author' &&
+            currentStx === (authStore.user?.mb_id ?? '')
+    );
+    const isMyCommentsActive = $derived(
+        authStore.isAuthenticated &&
+            currentSfl === 'comment_author' &&
+            currentStx === (authStore.user?.mb_id ?? '')
+    );
+
+    function applyMyFilter(sfl: 'author' | 'comment_author'): void {
+        const mbId = authStore.user?.mb_id;
+        if (!mbId) return;
+        const url = new URL(window.location.href);
+        url.searchParams.set('sfl', sfl);
+        url.searchParams.set('stx', mbId);
+        url.searchParams.set('page', '1');
+        url.searchParams.delete('category');
+        url.searchParams.delete('tag');
+        goto(url.pathname + url.search);
+    }
+
+    function clearMyFilter(): void {
+        const url = new URL(window.location.href);
+        url.searchParams.delete('sfl');
+        url.searchParams.delete('stx');
+        url.searchParams.delete('sop');
+        url.searchParams.set('page', '1');
+        goto(url.pathname + url.search);
+    }
 
     // 읽은 글 표시 지연 — SSR에서는 모든 글이 "안읽음"으로 렌더링되므로,
     // 하이드레이션 직후 즉시 변경하면 깜빡임 발생. 2프레임 대기 후 부드럽게 전환.
@@ -855,6 +893,45 @@
             {#if showSearch || isSearching || uiSettingsStore.pinSearch}
                 <div class="mb-3" transition:slide={{ duration: 200 }}>
                     <SearchForm boardPath={`/${boardId}`} />
+                </div>
+            {/if}
+
+            <!-- #12012: 내가 쓴 글/댓글 빠른 필터 (로그인 시) -->
+            {#if authStore.isAuthenticated}
+                <div class="mb-3 flex flex-wrap items-center gap-2">
+                    <Button
+                        variant={isMyPostsActive ? 'default' : 'outline'}
+                        size="sm"
+                        class="h-8"
+                        onclick={() =>
+                            isMyPostsActive ? clearMyFilter() : applyMyFilter('author')}
+                        title="이 게시판에서 내가 쓴 글만 보기"
+                    >
+                        <User class="mr-1.5 h-3.5 w-3.5" />
+                        내가 쓴 글
+                    </Button>
+                    <Button
+                        variant={isMyCommentsActive ? 'default' : 'outline'}
+                        size="sm"
+                        class="h-8"
+                        onclick={() =>
+                            isMyCommentsActive ? clearMyFilter() : applyMyFilter('comment_author')}
+                        title="이 게시판에서 내가 쓴 댓글만 보기"
+                    >
+                        <MessageSquare class="mr-1.5 h-3.5 w-3.5" />
+                        내가 쓴 댓글
+                    </Button>
+                    {#if isMyPostsActive || isMyCommentsActive}
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            class="h-8 px-2"
+                            onclick={clearMyFilter}
+                            title="필터 해제"
+                        >
+                            <X class="h-3.5 w-3.5" />
+                        </Button>
+                    {/if}
                 </div>
             {/if}
 
