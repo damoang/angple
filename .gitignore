@@ -113,7 +113,6 @@ plugins/*
 !plugins/affiliate-link-private/
 !plugins/auto-embed/
 !plugins/payment/
-!plugins/brickang/
 !apps/web/src/routes/api/plugins/
 !apps/web/src/routes/admin/plugins/
 !apps/web/src/lib/plugins/
