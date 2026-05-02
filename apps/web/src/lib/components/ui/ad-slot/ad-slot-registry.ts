@@ -79,6 +79,39 @@ function ensureAdNetworkPreconnect() {
     }
 }
 
+/**
+ * GAM `gpt.js` <link rel="preload"> 삽입 (canary 사용자만 호출됨).
+ * audit P0-B (4-2, 5/22 미팅 직결). preconnect 와 별도로 LCP 직후 즉시 사용 가능하도록.
+ * CSP `script-src` 가 `securepubads.g.doubleclick.net` 이미 허용 (hooks.server.ts:528) → 추가 변경 불필요.
+ */
+export function ensureGAMPreload() {
+    if (!browser) return;
+    const href = 'https://securepubads.g.doubleclick.net/tag/js/gpt.js';
+    if (document.querySelector(`link[rel="preload"][href="${href}"]`)) return;
+    const link = document.createElement('link');
+    link.rel = 'preload';
+    link.as = 'script';
+    link.href = href;
+    link.crossOrigin = 'anonymous';
+    document.head.appendChild(link);
+}
+
+/**
+ * Watchdog 강제 empty render — `slotRenderEnded` 가 N초 내 도착하지 않을 때 호출.
+ * 이미 loaded 된 slot 은 무시. AdFit fallback 트리거를 위해 emptyRetry max 까지 누적.
+ * audit §2-4 / §5-D / P0-B.
+ */
+export function forceEmptyRender(slotId: string) {
+    if (!browser) return;
+    const registry = getRegistry();
+    const state = registry.slots.get(slotId);
+    if (!state) return;
+    if (state.loaded) return;
+    state.loaded = true;
+    state.empty = true;
+    emitRender(slotId, true);
+}
+
 function getRegistry(): Registry {
     if (!browser) return createRegistry();
     const win = window as Window & { [REGISTRY_KEY]?: Registry };

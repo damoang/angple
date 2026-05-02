@@ -22,12 +22,22 @@
     } from './ad-slot-registry.js';
     import {
         isInCanary,
+        isInPreloadCanary,
         PHASE_B1_SLOTS,
         PREBID_BIDDERS_DEFAULT,
         PREBID_SIZES_BY_POSITION
     } from '$lib/ads/prebid-config.js';
     import { runPrebidAuction } from '$lib/ads/prebid-loader.js';
+    import { ensureGAMPreload } from './ad-slot-registry.js';
     import { page } from '$app/stores';
+
+    /**
+     * Watchdog: `attachSlot` 후 N ms 내 `slotRenderEnded` 가 도착하지 않으면
+     * 강제 `handleRender(true)` 호출 → empty path → emptyRetry → AdFit fallback.
+     * audit §2-4 / §5-D / P0-B (5/22 미팅 직결: fill rate 측정 정확도 ↑).
+     * 12s 는 audit 권장값. lazyLoad fetchMargin=400% 이라 일반 광고는 충분히 먼저 응답.
+     */
+    const AD_WATCHDOG_MS = 12_000;
 
     /** 삭제된 글/비밀글 상세 페이지에서는 모든 광고를 숨김 (애드센스 정책) */
     const isDeletedPost = $derived(!!($page as any).data?.post?.deleted_at);
@@ -76,6 +86,7 @@
     let detached = false;
     let containerEl: HTMLDivElement | null = null;
     let visibilityObserver: IntersectionObserver | null = null;
+    let watchdogTimer: ReturnType<typeof setTimeout> | null = null;
     // 데스크톱 전용 position: 모바일/태블릿에서 GPT slot 초기화를 차단하여 무의미한 impression 방지
     const DESKTOP_ONLY_POSITIONS: Record<string, number> = {
         'wing-left': 1600,
@@ -169,8 +180,16 @@
         };
     }
 
+    function clearWatchdog() {
+        if (watchdogTimer) {
+            clearTimeout(watchdogTimer);
+            watchdogTimer = null;
+        }
+    }
+
     function handleRender(isEmpty: boolean) {
         if (detached) return;
+        clearWatchdog();
         isLoaded = true;
         hasAd = !isEmpty;
         // GAM이 나중에 채워지면 애드핏 숨기기
@@ -235,6 +254,14 @@
             }
         }
 
+        // P0-B canary 5%: GAM gpt.js <link rel="preload"> 삽입 (5/22 미팅 직결).
+        // hash(mb_id) 기반 안정적 분류 — 같은 사용자는 항상 같은 결과.
+        // 비로그인은 slotId 사용 (페이지/포지션마다 분산되어 통계적으로 ~5%).
+        const preloadKey = ($page as any).data?.user?.mb_id ?? slotId;
+        if (isInPreloadCanary(preloadKey)) {
+            ensureGAMPreload();
+        }
+
         await attachSlot({
             key: resolvedSlotKey,
             position,
@@ -247,6 +274,17 @@
             onRender: handleRender,
             onFallback: adfitConfig ? handleFallback : undefined
         });
+
+        // P0-B watchdog: attachSlot 후 12s 내 slotRenderEnded 안 오면 강제 empty.
+        // 이미 detached 또는 loaded 상태면 setup 자체 skip.
+        if (!detached && !isLoaded) {
+            clearWatchdog();
+            watchdogTimer = setTimeout(() => {
+                watchdogTimer = null;
+                if (detached || isLoaded) return;
+                handleRender(true);
+            }, AD_WATCHDOG_MS);
+        }
     }
 
     onMount(() => {
@@ -255,6 +293,7 @@
 
     onDestroy(() => {
         detached = true;
+        clearWatchdog();
         visibilityObserver?.disconnect();
         if (!slotId) return;
         adDensityStore.unregister(slotId);
