@@ -73,7 +73,9 @@ export async function exchangeGitHubCode(
             client_secret: config.clientSecret,
             code,
             redirect_uri: callbackUrl
-        })
+        }),
+        // 외부 OAuth 서버 hang 시 closure heap retain 방지 (Round 3 후속)
+        signal: AbortSignal.timeout(5000)
     });
 
     if (!response.ok) {

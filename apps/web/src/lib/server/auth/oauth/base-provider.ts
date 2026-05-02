@@ -40,7 +40,9 @@ export abstract class BaseOAuthProvider {
         const response = await fetch(this.config.tokenUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: body.toString()
+            body: body.toString(),
+            // 외부 OAuth 서버 hang 시 closure heap retain 방지 (Round 3 후속)
+            signal: AbortSignal.timeout(5000)
         });
 
         if (!response.ok) {
@@ -57,7 +59,9 @@ export abstract class BaseOAuthProvider {
     /** 액세스 토큰으로 사용자 프로필 조회 */
     async getUserProfile(accessToken: string): Promise<OAuthUserProfile> {
         const response = await fetch(this.config.profileUrl, {
-            headers: { Authorization: `Bearer ${accessToken}` }
+            headers: { Authorization: `Bearer ${accessToken}` },
+            // 외부 OAuth 서버 hang 시 closure heap retain 방지 (Round 3 후속)
+            signal: AbortSignal.timeout(5000)
         });
 
         if (!response.ok) {

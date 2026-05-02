@@ -29,7 +29,9 @@ export async function verifyTurnstile(token: string, ip: string): Promise<boolea
                 secret: TURNSTILE_SECRET_KEY,
                 response: token,
                 remoteip: ip
-            })
+            }),
+            // Cloudflare Turnstile hang 시 closure heap retain 방지 (Round 3 후속)
+            signal: AbortSignal.timeout(5000)
         });
 
         if (!res.ok) {
@@ -41,7 +43,13 @@ export async function verifyTurnstile(token: string, ip: string): Promise<boolea
 
         return data.success;
     } catch (err) {
-        console.error('[Captcha] Turnstile 검증 중 예외:', err);
+        // AbortError/TimeoutError 포함 — 명확한 로그 + false 반환 (보수적)
+        const name = (err as { name?: string })?.name;
+        if (name === 'AbortError' || name === 'TimeoutError') {
+            console.error('[Captcha] Turnstile 검증 timeout (5s)');
+        } else {
+            console.error('[Captcha] Turnstile 검증 중 예외:', err);
+        }
         return false;
     }
 }

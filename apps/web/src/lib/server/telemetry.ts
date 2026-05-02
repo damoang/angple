@@ -82,7 +82,7 @@ if (OTEL_ENABLED) {
     const { NodeSDK } = await import('@opentelemetry/sdk-node');
     const { OTLPTraceExporter } = await import('@opentelemetry/exporter-trace-otlp-grpc');
     const { resourceFromAttributes } = await import('@opentelemetry/resources');
-    const { TraceIdRatioBasedSampler, ParentBasedSampler } = await import(
+    const { TraceIdRatioBasedSampler, ParentBasedSampler, BatchSpanProcessor } = await import(
         '@opentelemetry/sdk-trace-node'
     );
     const semconv = await import('@opentelemetry/semantic-conventions');
@@ -95,6 +95,23 @@ if (OTEL_ENABLED) {
         'otel-collector.observability.svc.cluster.local:4317';
     const samplerArg = parseFloat(process.env.OTEL_TRACES_SAMPLER_ARG || '0.1');
 
+    // BSP queue/timeout 인하 — Round 3 후속 (2026-05-02 audit High).
+    // OTel default: maxQueueSize=2048, maxExportBatchSize=512, scheduledDelayMillis=5000, exportTimeoutMillis=30000.
+    // collector 장애 시 2048 span queue 항시 점유 + timeout 동안 export blocking → external 메모리 ↑.
+    // queue 1/2 + batch 1/4 + delay 2.5배 빠르게 + timeout 1/3 → external 메모리 영향 완화 (4/24 RCA 정합).
+    // 손실: 정상 collector 환경에선 더 자주 flush 하므로 데이터 손실 거의 없음.
+    // 회귀: maxExportBatchSize 인하 → export 횟수 ↑ (CPU 미미 영향, 10% 샘플링 + HTTP 만 계측이라 무시 가능).
+    const traceExporter = new OTLPTraceExporter({
+        url: endpoint.startsWith('http') ? endpoint : `http://${endpoint}`,
+        timeoutMillis: parseInt(process.env.OTEL_BSP_EXPORT_TIMEOUT_MS || '10000', 10)
+    });
+    const spanProcessor = new BatchSpanProcessor(traceExporter, {
+        maxQueueSize: parseInt(process.env.OTEL_BSP_MAX_QUEUE_SIZE || '1024', 10),
+        maxExportBatchSize: parseInt(process.env.OTEL_BSP_MAX_EXPORT_BATCH_SIZE || '128', 10),
+        scheduledDelayMillis: parseInt(process.env.OTEL_BSP_SCHEDULE_DELAY_MS || '2000', 10),
+        exportTimeoutMillis: parseInt(process.env.OTEL_BSP_EXPORT_TIMEOUT_MS || '10000', 10)
+    });
+
     const sdk = new NodeSDK({
         resource: resourceFromAttributes({
             [semconv.ATTR_SERVICE_NAME]: 'damoang-web',
@@ -104,9 +121,7 @@ if (OTEL_ENABLED) {
         sampler: new ParentBasedSampler({
             root: new TraceIdRatioBasedSampler(samplerArg)
         }),
-        traceExporter: new OTLPTraceExporter({
-            url: endpoint.startsWith('http') ? endpoint : `http://${endpoint}`
-        }),
+        spanProcessors: [spanProcessor],
         instrumentations: [
             getNodeAutoInstrumentations({
                 // 과도한 span 방지 — fs 계측 비활성
@@ -119,7 +134,10 @@ if (OTEL_ENABLED) {
 
     sdk.start();
     // eslint-disable-next-line no-console
-    console.log(`[telemetry] OTel started: endpoint=${endpoint} sampler=${samplerArg}`);
+    console.log(
+        `[telemetry] OTel started: endpoint=${endpoint} sampler=${samplerArg} ` +
+            `bsp(queue=1024 batch=128 delay=2000ms timeout=10000ms)`
+    );
 
     // Heap metrics logger — 4/22 OOM 이후 추가.
     // process.memoryUsage()를 60초마다 stdout에 JSON으로 출력 → OTel collector filelog receiver가

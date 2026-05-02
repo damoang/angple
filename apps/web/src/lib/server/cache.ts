@@ -135,10 +135,26 @@ interface L1Entry<T> {
     expiry: number;
 }
 
+interface PendingEntry<T> {
+    promise: Promise<T>;
+    timer: ReturnType<typeof setTimeout>;
+    createdAt: number;
+}
+
+/** pending Map 의 entry 별 timeout (ms). 외부 fetch 가 hang 해도 closure 가 영원히 retain 되지 않도록 강제 reject */
+const PENDING_TIMEOUT_MS = 30_000;
+
+/** pending Map 최대 entry 수. 초과 시 가장 오래된 entry 제거 (LRU-ish) */
+const PENDING_MAX_SIZE = 5_000;
+
 /**
  * 2-tier 캐시: L1(Map, 0ms) → L2(Redis, 1-3ms)
  *
  * Redis 장애 시 L1만으로 동작 (graceful degradation).
+ *
+ * Singleflight (`pending` Map) 은 두 가지 안전 장치를 가짐 (memory leak 방지):
+ * 1. Per-entry timeout (PENDING_TIMEOUT_MS): factory 가 hang 하면 강제 reject + entry 제거
+ * 2. Map size cap (PENDING_MAX_SIZE): 초과 시 oldest entry timer cleanup 후 제거
  */
 export class TieredCache<T> {
     private l1: Map<string, L1Entry<T>>;
@@ -146,15 +162,26 @@ export class TieredCache<T> {
     private readonly l1TtlMs: number;
     private readonly l2TtlSec: number;
     private readonly maxL1Size: number;
-    private readonly pending: Map<string, Promise<T>>;
+    private readonly pending: Map<string, PendingEntry<T>>;
+    private readonly pendingTimeoutMs: number;
+    private readonly pendingMaxSize: number;
 
-    constructor(prefix: string, l1TtlMs: number, l2TtlSec: number, maxL1Size = 5000) {
+    constructor(
+        prefix: string,
+        l1TtlMs: number,
+        l2TtlSec: number,
+        maxL1Size = 5000,
+        pendingTimeoutMs: number = PENDING_TIMEOUT_MS,
+        pendingMaxSize: number = PENDING_MAX_SIZE
+    ) {
         this.l1 = new Map();
         this.pending = new Map();
         this.prefix = prefix;
         this.l1TtlMs = l1TtlMs;
         this.l2TtlSec = l2TtlSec;
         this.maxL1Size = maxL1Size;
+        this.pendingTimeoutMs = pendingTimeoutMs;
+        this.pendingMaxSize = pendingMaxSize;
     }
 
     /** L1 → L2 조회 */
@@ -211,20 +238,62 @@ export class TieredCache<T> {
 
         // Singleflight: 동일 key에 대한 중복 factory 실행 방지
         const inflight = this.pending.get(key);
-        if (inflight) return inflight;
+        if (inflight) return inflight.promise;
 
-        const promise = factory()
-            .then(async (data) => {
-                await this.set(key, data);
+        // pending Map size cap — 초과 시 가장 오래된 entry 의 timer cleanup 후 제거
+        // Map 은 insertion order 유지하므로 keys().next() 가 oldest
+        if (this.pending.size >= this.pendingMaxSize) {
+            const oldestKey = this.pending.keys().next().value;
+            if (oldestKey !== undefined) {
+                const oldest = this.pending.get(oldestKey);
+                if (oldest) clearTimeout(oldest.timer);
+                this.pending.delete(oldestKey);
+            }
+        }
+
+        // 외부에서 entry 를 강제 정리할 수 있도록 timer reference 를 미리 만들고 closure 로 전달
+        let timer: ReturnType<typeof setTimeout>;
+        const cleanup = () => {
+            const entry = this.pending.get(key);
+            // 같은 promise 인 경우에만 삭제 (덮어쓰여진 경우 새 entry 보존)
+            if (entry && entry.promise === promise) {
+                clearTimeout(entry.timer);
                 this.pending.delete(key);
+            }
+        };
+
+        const timeoutPromise = new Promise<never>((_, reject) => {
+            timer = setTimeout(() => {
+                this.pending.delete(key);
+                reject(
+                    new Error(
+                        `TieredCache[${this.prefix}] pending timeout (${this.pendingTimeoutMs}ms) for key=${key}`
+                    )
+                );
+            }, this.pendingTimeoutMs);
+        });
+
+        const factoryPromise = factory().then(async (data) => {
+            await this.set(key, data);
+            return data;
+        });
+
+        // timeout 후 factory 가 reject 되어도 unhandled rejection 이 되지 않도록 catch 부착
+        // (factory 결과는 race 에서 이미 무시되므로 silently swallow)
+        factoryPromise.catch(() => {});
+
+        // factory 와 timeout 중 먼저 settle 되는 쪽 사용. timeout 발생 시 factory 결과는 무시
+        const promise = Promise.race([factoryPromise, timeoutPromise])
+            .then((data) => {
+                cleanup();
                 return data;
             })
             .catch((err) => {
-                this.pending.delete(key);
+                cleanup();
                 throw err;
             });
 
-        this.pending.set(key, promise);
+        this.pending.set(key, { promise, timer: timer!, createdAt: Date.now() });
         return promise;
     }
 
@@ -236,6 +305,19 @@ export class TieredCache<T> {
     /** L1 전체 삭제 */
     clearL1(): void {
         this.l1.clear();
+    }
+
+    /** pending Map 크기 (모니터링/테스트 용) */
+    pendingSize(): number {
+        return this.pending.size;
+    }
+
+    /** pending Map 전체 정리 — 모든 timer cleanup. 테스트/shutdown 용 */
+    clearPending(): void {
+        for (const entry of this.pending.values()) {
+            clearTimeout(entry.timer);
+        }
+        this.pending.clear();
     }
 
     private setL1(key: string, data: T): void {

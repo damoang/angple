@@ -56,7 +56,9 @@ export class KakaoProvider extends BaseOAuthProvider {
         const response = await fetch(this.config.tokenUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: new URLSearchParams(params).toString()
+            body: new URLSearchParams(params).toString(),
+            // 외부 OAuth 서버 hang 시 closure heap retain 방지 (Round 3 후속)
+            signal: AbortSignal.timeout(5000)
         });
 
         if (!response.ok) {
