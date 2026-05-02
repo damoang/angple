@@ -45,6 +45,7 @@
     import type { FreeComment, FreePost, LikerInfo, PostRevision } from '$lib/api/types.js';
     import DeletedPostBanner from '$lib/components/post/deleted-post-banner.svelte';
     import { sendMentionNotifications } from '$lib/utils/mention-notify.js';
+    import { insertReplyAfterParent, type CommentLike } from '$lib/utils/comment-insert.js';
     import type { ReactionItem } from '$lib/types/reaction.js';
     import { generateParentId, generateDocumentTargetId } from '$lib/types/reaction.js';
     import { onMount } from 'svelte';
@@ -1331,16 +1332,35 @@
                 images
             });
 
-            // Optimistic update: 대댓글도 즉시 목록에 추가 (#11946)
+            // Optimistic update: 대댓글도 즉시 목록에 추가 (#11946, #12228)
+            // 백엔드 v1 createComment 응답에 parent_id / wr_comment_reply 가 없어
+            // 단순 push 시 commentTree 의 hasApiDepth 분기에서 부모 다음이 아닌
+            // 배열 맨 끝에 렌더되어 회귀로 안 보이는 것처럼 인지됨.
+            // → 프론트에서 parent_id, depth 를 명시적으로 채우고
+            //   부모 댓글의 마지막 자식 다음 위치에 삽입한다.
             if (replyComment && replyComment.id) {
+                const parentComment = comments.find((c) => String(c.id) === String(parentId));
+                const parentDepth = parentComment?.depth ?? 0;
                 const optimistic = {
                     ...replyComment,
+                    parent_id: (replyComment as Partial<FreeComment>).parent_id ?? parentId,
+                    depth:
+                        typeof (replyComment as Partial<FreeComment>).depth === 'number'
+                            ? (replyComment as Partial<FreeComment>).depth
+                            : parentDepth + 1,
                     author_id: authStore.user.mb_id || '',
                     author_image_url: authStore.user.mb_image || '',
                     author_level: authStore.user.mb_level ?? 0
                 } as unknown as FreeComment;
-                if (!comments.some((c) => c.id === optimistic.id)) {
-                    comments = [...comments, optimistic];
+
+                const before = comments as unknown as CommentLike[];
+                const next = insertReplyAfterParent(
+                    before,
+                    parentId,
+                    optimistic as unknown as CommentLike
+                );
+                if (next !== before) {
+                    comments = next as unknown as FreeComment[];
                     commentsTotal = commentsTotal + 1;
                 }
             }
