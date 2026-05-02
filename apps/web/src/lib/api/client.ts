@@ -59,6 +59,7 @@ import { browser } from '$app/environment';
 import { ApiRequestError } from './errors.js';
 import { fetchWithRetry, type RetryConfig, DEFAULT_RETRY_CONFIG } from './retry.js';
 import { safeRandomUUID } from '$lib/utils/uuid';
+import { timedFetch, TimedFetchError } from '$lib/utils/timed-fetch';
 
 // 서버/클라이언트 환경에 따라 API URL 분기
 // 클라이언트: 상대경로 (nginx 프록시)
@@ -1965,15 +1966,28 @@ class ApiClient {
      */
     async login(request: LoginRequest): Promise<LoginResponse> {
         // SvelteKit 프록시 경유: 세션 생성 + 쿠키 설정을 서버가 처리
-        const response = await fetch('/api/auth/login', {
-            method: 'POST',
-            headers: this.buildHeaders({ 'Content-Type': 'application/json' }),
-            credentials: 'include',
-            body: JSON.stringify({
-                username: request.username,
-                password: request.password
-            })
-        });
+        // timedFetch: 12s timeout — auth fetch hang 시 user-widget skeleton 영구화 방지 (audit P1-A)
+        let response: Response;
+        try {
+            response = await timedFetch(
+                '/api/auth/login',
+                {
+                    method: 'POST',
+                    headers: this.buildHeaders({ 'Content-Type': 'application/json' }),
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        username: request.username,
+                        password: request.password
+                    })
+                },
+                { timeout: 12_000, retries: 0 }
+            );
+        } catch (err) {
+            if (err instanceof TimedFetchError && err.kind === 'timeout') {
+                throw new Error('로그인 요청 시간 초과 (12초). 네트워크 상태를 확인하세요.');
+            }
+            throw new Error(err instanceof Error ? err.message : '네트워크 오류');
+        }
 
         if (!response.ok) {
             const errorData = await response.json().catch(() => null);
@@ -2124,11 +2138,27 @@ class ApiClient {
      * NOTE: 이 엔드포인트는 v2 API에만 존재
      */
     async exchangeToken(): Promise<LoginResponse> {
-        const response = await fetch(`${API_V2_URL}/auth/exchange`, {
-            method: 'POST',
-            headers: this.buildHeaders(),
-            credentials: 'include'
-        });
+        // timedFetch: 12s timeout — auth fetch hang 시 user-widget skeleton 영구화 방지 (audit P1-A)
+        let response: Response;
+        try {
+            response = await timedFetch(
+                `${API_V2_URL}/auth/exchange`,
+                {
+                    method: 'POST',
+                    headers: this.buildHeaders(),
+                    credentials: 'include'
+                },
+                { timeout: 12_000, retries: 0 }
+            );
+        } catch (err) {
+            if (err instanceof TimedFetchError && err.kind === 'timeout') {
+                throw {
+                    response: { status: 504 },
+                    data: { message: '토큰 교환 시간 초과 (12초)' }
+                };
+            }
+            throw { response: { status: 0 }, data: { message: '네트워크 오류' } };
+        }
 
         if (!response.ok) {
             const error = await response.json().catch(() => ({}));
