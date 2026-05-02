@@ -7,8 +7,9 @@
      */
     import type { WidgetProps } from '$lib/types/widget-props';
     import type { RecommendedDataWithAI, RecommendedPeriod, AIAnalysis } from '$lib/api/types.js';
-    import { onMount } from 'svelte';
+    import { onMount, onDestroy } from 'svelte';
     import { apiClient } from '$lib/api';
+    import { ApiRequestError } from '$lib/api/errors';
     import { AITrendCard } from '$lib/components/features/recommended/components/ai-trend';
 
     let { config, slot, isEditMode = false }: WidgetProps = $props();
@@ -22,24 +23,11 @@
     let loading = $state(true);
     let error = $state<string | null>(null);
 
-    // apiClient 는 자체 abort 를 노출하지 않으므로 Promise.race 타임가드 적용.
-    // (audit 2026-05-01 §3-1)
+    // P0 leak fix (2026-05-02): Promise.race(timeout, apiClient.x) 패턴 제거.
+    // apiClient 가 AbortSignal 을 받으므로 AbortController 로 통합 관리.
     const FETCH_TIMEOUT_MS = 12_000;
-    function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
-        return new Promise((resolve, reject) => {
-            const timer = setTimeout(() => reject(new Error('timeout')), ms);
-            p.then(
-                (v) => {
-                    clearTimeout(timer);
-                    resolve(v);
-                },
-                (e) => {
-                    clearTimeout(timer);
-                    reject(e);
-                }
-            );
-        });
-    }
+    let controller: AbortController | null = null;
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
 
     function calculateStats(data: RecommendedDataWithAI) {
         let total_recommends = 0;
@@ -62,25 +50,49 @@
     async function loadAnalysis() {
         loading = true;
         error = null;
+
+        // 이전 in-flight 요청 정리 (period 재호출 등 대비)
+        controller?.abort();
+        if (timeoutId !== null) clearTimeout(timeoutId);
+
+        controller = new AbortController();
+        const signal = controller.signal;
+        timeoutId = setTimeout(() => controller?.abort(), FETCH_TIMEOUT_MS);
+
         try {
-            const data = await withTimeout(
-                apiClient.getRecommendedPostsWithAI(period),
-                FETCH_TIMEOUT_MS
-            );
+            const data = await apiClient.getRecommendedPostsWithAI(period, { signal });
             analysis = data.ai_analysis ?? null;
             if (analysis && showStats) {
                 stats = calculateStats(data);
             }
         } catch (err) {
-            const msg = err instanceof Error ? err.message : '분석 데이터 로드 실패';
-            error = msg === 'timeout' ? '응답이 늦어지고 있어요. 잠시 후 다시 시도해 주세요.' : msg;
+            // unmount/재호출 abort 는 사용자에게 노출하지 않음
+            if (err instanceof ApiRequestError && err.type === 'aborted') return;
+            if (err instanceof ApiRequestError && err.type === 'timeout') {
+                error = '응답이 늦어지고 있어요. 잠시 후 다시 시도해 주세요.';
+            } else {
+                error = err instanceof Error ? err.message : '분석 데이터 로드 실패';
+            }
         } finally {
+            if (timeoutId !== null) {
+                clearTimeout(timeoutId);
+                timeoutId = null;
+            }
             loading = false;
         }
     }
 
     onMount(() => {
         loadAnalysis();
+    });
+
+    onDestroy(() => {
+        if (timeoutId !== null) {
+            clearTimeout(timeoutId);
+            timeoutId = null;
+        }
+        controller?.abort();
+        controller = null;
     });
 </script>
 

@@ -25,7 +25,16 @@ function getDelay(attempt: number, baseDelay: number): number {
     return baseDelay * Math.pow(2, attempt) + Math.random() * 500;
 }
 
-/** 타임아웃이 적용된 fetch */
+/** 타임아웃이 적용된 fetch
+ *
+ * 외부 `options.signal` 이 들어오면 내부 timeout controller 와 합성한다.
+ * - 외부 abort → 내부 fetch 도 즉시 abort (호출 측 'aborted' 처리)
+ * - 내부 timeout → 외부 호출 측 abort 와 무관 (timeout 전파)
+ *
+ * 이 합성은 P0 leak fix (2026-05-02): 호출 측이 widget unmount 등으로
+ * abort 하면 underlying fetch closure 가 즉시 정리된다 (Promise.race 가
+ * timeout reject 후에도 fetch promise 가 살아남던 패턴 제거).
+ */
 export async function fetchWithTimeout(
     url: string,
     options: RequestInit,
@@ -33,21 +42,45 @@ export async function fetchWithTimeout(
     fetchFn: typeof fetch = fetch
 ): Promise<Response> {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+    const externalSignal = options.signal as AbortSignal | undefined;
+
+    // 외부 signal 이 이미 abort 상태면 즉시 종료
+    if (externalSignal?.aborted) {
+        throw ApiRequestError.aborted();
+    }
+
+    const onExternalAbort = () => controller.abort();
+    externalSignal?.addEventListener('abort', onExternalAbort, { once: true });
+
+    let timedOut = false;
+    const timeoutId = setTimeout(() => {
+        timedOut = true;
+        controller.abort();
+    }, timeoutMs);
 
     try {
+        // signal 은 합성된 controller.signal 을 사용 (외부 옵션 signal 은 위에서 listener 로 위임)
+        const { signal: _ignore, ...rest } = options;
         const response = await fetchFn(url, {
-            ...options,
+            ...rest,
             signal: controller.signal
         });
         return response;
     } catch (error) {
-        if (error instanceof DOMException && error.name === 'AbortError') {
-            throw ApiRequestError.timeout();
+        // AbortError: DOMException (브라우저) 또는 name='AbortError' Error (테스트/일부 런타임)
+        const isAbort =
+            (error instanceof DOMException && error.name === 'AbortError') ||
+            (error instanceof Error && error.name === 'AbortError') ||
+            controller.signal.aborted;
+        if (isAbort) {
+            if (timedOut) throw ApiRequestError.timeout();
+            // 외부 abort — retry 금지
+            throw ApiRequestError.aborted();
         }
         throw ApiRequestError.network();
     } finally {
         clearTimeout(timeoutId);
+        externalSignal?.removeEventListener('abort', onExternalAbort);
     }
 }
 

@@ -5,6 +5,7 @@
 export type ApiErrorType =
     | 'network' // 네트워크 연결 실패
     | 'timeout' // 요청 타임아웃
+    | 'aborted' // 호출 측 AbortSignal 로 인한 취소 (재시도 금지)
     | 'auth' // 인증 실패 (401)
     | 'forbidden' // 권한 없음 (403)
     | 'not_found' // 리소스 없음 (404)
@@ -39,6 +40,10 @@ export class ApiRequestError extends Error {
 
     static timeout(message = '요청 시간이 초과되었습니다.'): ApiRequestError {
         return new ApiRequestError(message, 'timeout');
+    }
+
+    static aborted(message = '요청이 취소되었습니다.'): ApiRequestError {
+        return new ApiRequestError(message, 'aborted');
     }
 }
 
