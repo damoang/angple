@@ -132,8 +132,11 @@
                 const withoutDecoding = withoutLoading.replace(/\sdecoding=(["']).*?\1/gi, '');
                 const withoutSrcset = withoutDecoding.replace(/\ssrcset=(["']).*?\1/gi, '');
                 const withoutSizes = withoutSrcset.replace(/\ssizes=(["']).*?\1/gi, '');
+                // 기존 style 제거 후 aspect-ratio 주입 (중복 style 속성 방지)
+                const withoutStyle = withoutSizes.replace(/\sstyle=(["']).*?\1/gi, '');
                 // srcset에 썸네일, src에 원본 — srcset 실패 시 src fallback
-                return `<img${withoutSizes} src=${quote}${src}${quote} srcset=${quote}${srcset}${quote} sizes=${quote}${sizes}${quote} data-original=${quote}${src}${quote} loading=${quote}lazy${quote} decoding=${quote}async${quote}>`;
+                // CLS 방지: aspect-ratio 'auto 4 / 3'로 로드 전 4:3 박스 예약, 로드 후 intrinsic 비율 적용
+                return `<img${withoutStyle} src=${quote}${src}${quote} srcset=${quote}${srcset}${quote} sizes=${quote}${sizes}${quote} data-original=${quote}${src}${quote} loading=${quote}lazy${quote} decoding=${quote}async${quote} style=${quote}aspect-ratio: auto 4 / 3${quote}>`;
             }
         );
 
