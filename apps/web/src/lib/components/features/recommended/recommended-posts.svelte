@@ -8,6 +8,7 @@
     import { PostList } from './components/post-list';
     import { SkeletonLoader } from './components/loading';
     import { getCurrentTabVisibility } from './utils/index.js';
+    import { TimedFetchError, timedFetch } from '$lib/utils/timed-fetch';
 
     interface Props {
         /** SSR prefetch 데이터 (있으면 즉시 표시, 없으면 클라이언트 fetch) */
@@ -110,8 +111,12 @@
 
         try {
             // PHP 크론이 생성한 JSON 캐시 파일을 SvelteKit API를 통해 읽음
-            const res = await fetch(`/api/widgets/recommended/data?period=${period}`);
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            // timed-fetch: 12s 타임아웃 + 1회 retry → skeleton 영구 대기 방지 (audit 2-1)
+            const res = await timedFetch(
+                `/api/widgets/recommended/data?period=${period}`,
+                {},
+                { timeout: 12_000, retries: 1, throwOnHTTPError: true }
+            );
             const newData: RecommendedDataWithAI = await res.json();
             dataCache.set(period, newData);
             persistCacheToSessionStorage();
@@ -120,11 +125,29 @@
                 data = newData;
             }
         } catch (err) {
-            error = err instanceof Error ? err.message : '데이터 로드 실패';
+            if (err instanceof TimedFetchError) {
+                if (err.kind === 'timeout') {
+                    error = '응답이 늦어지고 있어요. 잠시 후 다시 시도해 주세요.';
+                } else if (err.kind === 'network') {
+                    error = '네트워크 오류로 불러오지 못했어요.';
+                } else if (err.kind === 'http') {
+                    error = `데이터를 불러오지 못했어요 (HTTP ${err.status ?? '?'})`;
+                } else {
+                    error = '요청이 취소되었어요.';
+                }
+            } else {
+                error = err instanceof Error ? err.message : '데이터 로드 실패';
+            }
             console.error('추천 글 로드 실패:', err);
         } finally {
             loading = false;
         }
+    }
+
+    function retryLoad() {
+        // 캐시 무효화 후 현재 탭 재시도
+        dataCache.delete(activeTab);
+        loadData(activeTab, true);
     }
 
     function handleTabChange(tabId: RecommendedPeriod) {
@@ -158,6 +181,13 @@
             <div class="flex items-center justify-center py-8">
                 <div class="text-center">
                     <p class="text-destructive text-sm">{error}</p>
+                    <button
+                        type="button"
+                        class="text-primary mt-2 text-xs underline-offset-2 hover:underline"
+                        onclick={retryLoad}
+                    >
+                        다시 불러오기
+                    </button>
                 </div>
             </div>
         {:else if data}

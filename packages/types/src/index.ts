@@ -44,6 +44,7 @@ export type {
     ExtensionEditorUI,
     ExtensionUI,
     ExtensionEngines,
+    ExtensionMigration,
     ExtensionManifest,
     ExtensionRuntime,
     ExtensionInstallOptions,
@@ -69,7 +70,8 @@ export {
     ExtensionAdminMenuSchema,
     ExtensionAdminUISchema,
     ExtensionEditorUISchema,
-    ExtensionUISchema
+    ExtensionUISchema,
+    ExtensionMigrationSchema
 } from './extension-schema.js';
 
 export type { ExtensionManifestValidated, PartialExtensionManifest } from './extension-schema.js';

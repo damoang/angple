@@ -13,6 +13,7 @@
     import { getReadPostClasses } from '$lib/stores/read-post-style.svelte.js';
     import { blockedUsersStore } from '$lib/stores/blocked-users.svelte.js';
     import type { ExploreData, ExploreMode, ExplorePost } from '$lib/api/types.js';
+    import { TimedFetchError, timedFetch } from '$lib/utils/timed-fetch';
 
     interface Props {
         prefetchData?: { data: ExploreData } | unknown;
@@ -37,6 +38,10 @@
     let activeMode = $state<ExploreMode>('hot');
     let rootEl = $state<HTMLElement | null>(null);
     let requested = $state(false);
+    let loadStatus = $state<'idle' | 'loading' | 'success' | 'error'>(
+        ssrData?.data ? 'success' : 'idle'
+    );
+    let errorMessage = $state<string | null>(null);
 
     const modePosts = $derived.by<ExplorePost[]>(() => {
         if (!exploreData?.modes) return [];
@@ -52,22 +57,54 @@
     });
 
     async function loadExploreData(): Promise<void> {
-        if (requested || exploreData) {
+        if (loadStatus === 'loading') return;
+        if (exploreData) {
             loading = false;
+            loadStatus = 'success';
             return;
         }
+
         requested = true;
+        loadStatus = 'loading';
+        errorMessage = null;
 
         try {
-            const res = await fetch('/api/widgets/explore/data');
-            if (res.ok) {
-                exploreData = await res.json();
+            // timed-fetch: 12s 타임아웃 + 1회 retry → silent fail / 영구 placeholder 방지 (audit 2-2)
+            const res = await timedFetch(
+                '/api/widgets/explore/data',
+                {},
+                { timeout: 12_000, retries: 1, throwOnHTTPError: true }
+            );
+            exploreData = await res.json();
+            loadStatus = 'success';
+        } catch (err) {
+            if (err instanceof TimedFetchError) {
+                if (err.kind === 'timeout') {
+                    errorMessage = '응답이 늦어지고 있어요.';
+                } else if (err.kind === 'network') {
+                    errorMessage = '네트워크 오류로 불러오지 못했어요.';
+                } else if (err.kind === 'http') {
+                    errorMessage = `데이터를 불러오지 못했어요 (HTTP ${err.status ?? '?'})`;
+                } else {
+                    errorMessage = '요청이 취소되었어요.';
+                }
+            } else {
+                errorMessage = '데이터를 불러오지 못했어요.';
             }
-        } catch {
-            // silent fail
+            loadStatus = 'error';
+            console.error('모아보기 위젯 로드 실패:', err);
         } finally {
             loading = false;
         }
+    }
+
+    function retryExplore(): void {
+        // 재시도 가능하도록 requested 플래그 리셋
+        requested = false;
+        loadStatus = 'idle';
+        errorMessage = null;
+        loading = true;
+        void loadExploreData();
     }
 
     function scheduleLoad(): void {
@@ -165,6 +202,18 @@
                             <div class="bg-muted h-4 flex-1 animate-pulse rounded"></div>
                         </div>
                     {/each}
+                </div>
+            {:else if loadStatus === 'error'}
+                <div class="text-muted-foreground py-6 text-center text-sm">
+                    <p>{errorMessage ?? '데이터를 불러오지 못했어요.'}</p>
+                    <button
+                        type="button"
+                        class="text-primary mt-2 inline-flex items-center gap-1 text-xs underline-offset-2 hover:underline"
+                        onclick={retryExplore}
+                    >
+                        <Compass class="h-3 w-3" />
+                        다시 불러오기
+                    </button>
                 </div>
             {:else if modePosts.length === 0}
                 <div class="text-muted-foreground py-6 text-center text-sm">

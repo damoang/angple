@@ -1,0 +1,113 @@
+{
+    "id": "payment",
+    "name": "결제",
+    "version": "0.1.0",
+    "author": {
+        "name": "Angple",
+        "url": "https://angple.com"
+    },
+    "category": "plugin",
+    "pluginType": "PAYMENT",
+    "license": "MIT",
+    "main": "index.ts",
+    "description": "다중 PG (토스/네이버페이/페이팔) 통합 결제 플러그인. 멀티사이트 키 분리.",
+    "tags": ["payment", "toss", "naver-pay", "paypal", "결제", "commerce"],
+    "migrations": [
+        {
+            "version": "001",
+            "description": "payment_orders: 주문/결제 메인 테이블",
+            "up": "migrations/001_payment_orders.up.sql",
+            "down": "migrations/001_payment_orders.down.sql"
+        },
+        {
+            "version": "002",
+            "description": "payment_provider_configs: 사이트별 PG 키 분리",
+            "up": "migrations/002_payment_provider_configs.up.sql",
+            "down": "migrations/002_payment_provider_configs.down.sql"
+        },
+        {
+            "version": "003",
+            "description": "payment_events: webhook/이벤트 로그",
+            "up": "migrations/003_payment_events.up.sql",
+            "down": "migrations/003_payment_events.down.sql"
+        }
+    ],
+    "api": {
+        "rest": {
+            "prefix": "/api/plugins/payment",
+            "routes": [
+                {
+                    "method": "POST",
+                    "path": "/checkout/start",
+                    "handler": "routes/checkout/start.ts",
+                    "authenticated": true
+                },
+                {
+                    "method": "POST",
+                    "path": "/checkout/complete",
+                    "handler": "routes/checkout/complete.ts",
+                    "authenticated": true
+                },
+                {
+                    "method": "POST",
+                    "path": "/webhook/toss",
+                    "handler": "routes/webhook/toss.ts"
+                },
+                {
+                    "method": "POST",
+                    "path": "/webhook/naver",
+                    "handler": "routes/webhook/naver.ts"
+                },
+                {
+                    "method": "POST",
+                    "path": "/webhook/paypal",
+                    "handler": "routes/webhook/paypal.ts"
+                },
+                {
+                    "method": "POST",
+                    "path": "/refund",
+                    "handler": "routes/refund/index.ts",
+                    "authenticated": true
+                }
+            ]
+        }
+    },
+    "ui": {
+        "admin": {
+            "menu": {
+                "title": "결제 관리",
+                "icon": "credit-card",
+                "position": 60,
+                "component": "admin/index.svelte"
+            }
+        }
+    },
+    "settings": {
+        "toss_enabled": {
+            "label": "토스 페이먼츠 활성화",
+            "type": "boolean",
+            "default": false,
+            "description": "토스 결제 모듈을 사용 중지/활성화합니다 (사이트별 키는 admin에서 관리)."
+        },
+        "naver_enabled": {
+            "label": "네이버페이 활성화",
+            "type": "boolean",
+            "default": false
+        },
+        "paypal_enabled": {
+            "label": "PayPal 활성화",
+            "type": "boolean",
+            "default": false
+        },
+        "default_currency": {
+            "label": "기본 통화",
+            "type": "select",
+            "default": "KRW",
+            "options": [
+                { "label": "원 (KRW)", "value": "KRW" },
+                { "label": "달러 (USD)", "value": "USD" }
+            ],
+            "description": "기본 표시/계산 통화. PayPal 등 다통화 지원 PG에 영향."
+        }
+    }
+}

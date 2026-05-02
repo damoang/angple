@@ -6,6 +6,7 @@
     import type { WidgetProps } from '$lib/types/widget-props';
     import { onMount } from 'svelte';
     import { LayoutGrid, Image as ImageIcon } from '../lucide.js';
+    import { timedFetch, TimedFetchError } from '$lib/utils/timed-fetch';
 
     let { config, slot, isEditMode = false, prefetchData }: WidgetProps = $props();
 
@@ -28,15 +29,22 @@
         }
 
         try {
-            const res = await fetch('/api/widgets/image-text-banner?limit=4');
+            // timedFetch: 12s timeout + 1회 retry. fetch hang 시 skeleton 무한 대기 방지.
+            // (audit 2026-05-01 §3-1)
+            const res = await timedFetch('/api/widgets/image-text-banner?limit=4');
             if (res.ok) {
                 const data = await res.json();
                 banners = data.data ?? [];
             } else {
                 error = true;
             }
-        } catch {
-            error = true;
+        } catch (err) {
+            // TimedFetchError(timeout/network) 모두 silent 에러 UI 로 fallback.
+            if (err instanceof TimedFetchError || err instanceof Error) {
+                error = true;
+            } else {
+                error = true;
+            }
         } finally {
             loading = false;
         }

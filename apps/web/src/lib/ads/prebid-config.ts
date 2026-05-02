@@ -16,6 +16,16 @@ export const CANARY_PCT = Number(
         ?.PUBLIC_PHASE_B1_CANARY_PCT ?? '0'
 );
 
+/**
+ * GAM `gpt.js` preload canary 비율 (audit P0-B, 5/22 미팅 직결).
+ * `PUBLIC_GAM_PRELOAD_CANARY_PCT` env: 0~100 정수. 기본 0 (OFF).
+ * Prebid canary 와 분리 — GAM preload 는 first-impression 지연 측정 용도.
+ */
+export const GAM_PRELOAD_CANARY_PCT = Number(
+    (import.meta as ImportMeta & { env?: Record<string, string> }).env
+        ?.PUBLIC_GAM_PRELOAD_CANARY_PCT ?? '0'
+);
+
 export const PREBID_BIDDER_TIMEOUT_MS = 1000;
 
 export const PHASE_B1_SLOTS = new Set<string>([
@@ -81,4 +91,22 @@ export function isInCanary(userKey: string | null | undefined): boolean {
             (hash + ((hash << 1) + (hash << 4) + (hash << 7) + (hash << 8) + (hash << 24))) >>> 0;
     }
     return hash % 100 < CANARY_PCT;
+}
+
+/**
+ * GAM gpt.js preload canary 그룹 결정 (Prebid 와 분리된 hash salt 사용).
+ * Prebid canary 와 같은 사용자 hash 충돌을 피하기 위해 prefix 추가.
+ */
+export function isInPreloadCanary(userKey: string | null | undefined): boolean {
+    if (!GAM_PRELOAD_CANARY_PCT || GAM_PRELOAD_CANARY_PCT <= 0 || GAM_PRELOAD_CANARY_PCT > 100)
+        return false;
+    if (GAM_PRELOAD_CANARY_PCT >= 100) return true;
+    const salted = `gam-preload:${userKey ?? ''}`;
+    let hash = 0x811c9dc5;
+    for (let i = 0; i < salted.length; i++) {
+        hash ^= salted.charCodeAt(i);
+        hash =
+            (hash + ((hash << 1) + (hash << 4) + (hash << 7) + (hash << 8) + (hash << 24))) >>> 0;
+    }
+    return hash % 100 < GAM_PRELOAD_CANARY_PCT;
 }

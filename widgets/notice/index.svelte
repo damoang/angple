@@ -16,6 +16,25 @@
     let loading = $state(true);
     let error = $state(false);
 
+    // apiClient 는 자체 abort 를 노출하지 않으므로 Promise.race 타임가드로 skeleton 무한 대기 방지.
+    // (audit 2026-05-01 §3-1)
+    const FETCH_TIMEOUT_MS = 12_000;
+    function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
+        return new Promise((resolve, reject) => {
+            const timer = setTimeout(() => reject(new Error('timeout')), ms);
+            p.then(
+                (v) => {
+                    clearTimeout(timer);
+                    resolve(v);
+                },
+                (e) => {
+                    clearTimeout(timer);
+                    reject(e);
+                }
+            );
+        });
+    }
+
     onMount(async () => {
         if (prefetchData) {
             notices = prefetchData as FreePost[];
@@ -24,10 +43,13 @@
         }
 
         try {
-            const [noticesData, latestData] = await Promise.all([
-                apiClient.getBoardNotices('free'),
-                apiClient.getBoardPosts('notice', 1, 1).catch(() => null)
-            ]);
+            const [noticesData, latestData] = await withTimeout(
+                Promise.all([
+                    apiClient.getBoardNotices('free'),
+                    apiClient.getBoardPosts('notice', 1, 1).catch(() => null)
+                ]),
+                FETCH_TIMEOUT_MS
+            );
             notices = noticesData.slice(0, 5);
             if (latestData?.items?.length) {
                 latestNotice = latestData.items[0];
