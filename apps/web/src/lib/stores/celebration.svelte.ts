@@ -3,6 +3,12 @@
  *
  * CelebrationRolling(텍스트)과 DamoangBanner(이미지)가
  * 동일한 데이터와 인덱스를 공유하여 싱크 롤링
+ *
+ * 표시 순서 정책:
+ *   - shuffledOrder 가 celebrations 배열의 인덱스 순열을 보관한다.
+ *   - 매 tick 마다 position 을 증가시키고 shuffledOrder[position] 을 currentIndex 로 발행한다.
+ *   - position 이 shuffledOrder.length 에 도달하면 (= 풀 로테이션 완료)
+ *     재셔플 후 position=0 부터 다시 시작 → 모든 메시지의 균등 노출 보장.
  */
 import { browser } from '$app/environment';
 
@@ -23,12 +29,42 @@ export interface CelebrationBanner {
 
 let celebrations = $state<CelebrationBanner[]>([]);
 let currentIndex = $state(0);
+// 셔플된 표시 순서. celebrations 배열의 인덱스를 가리킨다.
+// 풀 로테이션이 끝나면 재셔플하여 모든 메시지가 균등하게 노출되도록 한다.
+let shuffledOrder: number[] = [];
+let position = 0; // shuffledOrder 내의 현재 위치
 let fetched = false;
 let ready = false;
 let fetchPromise: Promise<void> | null = null;
 let refCount = 0;
 let intervalId: ReturnType<typeof setInterval> | null = null;
-const CELEBRATION_ROTATION_INTERVAL_MS = 30_000;
+// 롤링 주기. 사용자 요청으로 기존 30s → 15s 로 절반 단축.
+const CELEBRATION_ROTATION_INTERVAL_MS = 15_000;
+
+/** Fisher-Yates 셔플 (in-place). length<=1 이면 변경 없이 반환 */
+function fisherYatesShuffle<T>(arr: T[]): T[] {
+    for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+}
+
+/** celebrations 길이에 맞춰 shuffledOrder 를 새로 셔플하고 position/currentIndex 를 첫 항목으로 리셋 */
+function reshuffleOrder(): void {
+    const len = celebrations.length;
+    if (len === 0) {
+        shuffledOrder = [];
+        position = 0;
+        currentIndex = 0;
+        return;
+    }
+    const order = Array.from({ length: len }, (_, i) => i);
+    fisherYatesShuffle(order);
+    shuffledOrder = order;
+    position = 0;
+    currentIndex = order[0] ?? 0;
+}
 
 async function doFetch(): Promise<void> {
     if (!browser) return;
@@ -44,13 +80,9 @@ async function doFetch(): Promise<void> {
         const result = await response.json();
 
         if (result.data?.length > 0) {
-            // Fisher-Yates 셔플 (랜덤 순서)
-            const arr = [...result.data];
-            for (let i = arr.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [arr[i], arr[j]] = [arr[j], arr[i]];
-            }
-            celebrations = arr;
+            // 원본 배열은 안정적으로 유지하고 표시 순서는 shuffledOrder 로 제어한다.
+            celebrations = [...result.data];
+            reshuffleOrder();
         }
     } catch (error) {
         console.warn('CelebrationStore: 축하메시지 로드 실패', error);
@@ -60,8 +92,15 @@ async function doFetch(): Promise<void> {
 function startRotation(): void {
     if (intervalId) return;
     intervalId = setInterval(() => {
-        if (celebrations.length > 1) {
-            currentIndex = (currentIndex + 1) % celebrations.length;
+        const len = celebrations.length;
+        if (len <= 1) return;
+        // 다음 위치로 이동. shuffledOrder 의 끝에 도달하면 재셔플(풀 로테이션 후 새 셔플).
+        const nextPos = position + 1;
+        if (nextPos >= shuffledOrder.length) {
+            reshuffleOrder();
+        } else {
+            position = nextPos;
+            currentIndex = shuffledOrder[nextPos] ?? 0;
         }
     }, CELEBRATION_ROTATION_INTERVAL_MS);
 }
@@ -109,12 +148,8 @@ export function initFromData(data: CelebrationBanner[]): void {
     if (fetched) return;
 
     if (data.length > 0) {
-        const arr = [...data];
-        for (let i = arr.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [arr[i], arr[j]] = [arr[j], arr[i]];
-        }
-        celebrations = arr;
+        celebrations = [...data];
+        reshuffleOrder();
     }
     // 빈 배열로 초기화되더라도 ready=true 여야 fallback 문구를 렌더할 수 있다.
     fetched = true;
