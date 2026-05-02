@@ -6,6 +6,7 @@
     import type { WidgetProps } from '$lib/types/widget-props';
     import { onMount } from 'svelte';
     import { Gift } from '../lucide.js';
+    import { timedFetch } from '$lib/utils/timed-fetch';
 
     let { config, slot, isEditMode = false }: WidgetProps = $props();
 
@@ -32,7 +33,8 @@
 
     onMount(async () => {
         try {
-            const res = await fetch('/api/plugins/giving/list?tab=active&limit=5&sort=urgent');
+            // timedFetch: 12s timeout + 1회 retry. (audit 2026-05-01 §3-1)
+            const res = await timedFetch('/api/plugins/giving/list?tab=active&limit=5&sort=urgent');
             if (res.ok) {
                 const data = await res.json();
                 if (data.success) {

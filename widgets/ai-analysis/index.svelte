@@ -22,6 +22,25 @@
     let loading = $state(true);
     let error = $state<string | null>(null);
 
+    // apiClient 는 자체 abort 를 노출하지 않으므로 Promise.race 타임가드 적용.
+    // (audit 2026-05-01 §3-1)
+    const FETCH_TIMEOUT_MS = 12_000;
+    function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
+        return new Promise((resolve, reject) => {
+            const timer = setTimeout(() => reject(new Error('timeout')), ms);
+            p.then(
+                (v) => {
+                    clearTimeout(timer);
+                    resolve(v);
+                },
+                (e) => {
+                    clearTimeout(timer);
+                    reject(e);
+                }
+            );
+        });
+    }
+
     function calculateStats(data: RecommendedDataWithAI) {
         let total_recommends = 0;
         let total_comments = 0;
@@ -44,13 +63,17 @@
         loading = true;
         error = null;
         try {
-            const data = await apiClient.getRecommendedPostsWithAI(period);
+            const data = await withTimeout(
+                apiClient.getRecommendedPostsWithAI(period),
+                FETCH_TIMEOUT_MS
+            );
             analysis = data.ai_analysis ?? null;
             if (analysis && showStats) {
                 stats = calculateStats(data);
             }
         } catch (err) {
-            error = err instanceof Error ? err.message : '분석 데이터 로드 실패';
+            const msg = err instanceof Error ? err.message : '분석 데이터 로드 실패';
+            error = msg === 'timeout' ? '응답이 늦어지고 있어요. 잠시 후 다시 시도해 주세요.' : msg;
         } finally {
             loading = false;
         }

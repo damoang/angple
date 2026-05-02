@@ -4,6 +4,7 @@
     import { aplogTrack } from '$lib/services/aplog';
     import { authStore } from '$lib/stores/auth.svelte';
     import { getCachedBanners } from '$lib/stores/app-init.svelte';
+    import { timedFetch } from '$lib/utils/timed-fetch';
 
     interface Props {
         position?: string;
@@ -127,8 +128,13 @@
         }
 
         try {
-            // damoang-ads API 호출 - 항상 4개 요청
-            const response = await fetch(`/api/ads/banners?position=${position}&limit=4`);
+            // timedFetch: 각 시도마다 12s timeout 보장 → fetch hang 시 retry 무한 누적 방지.
+            // (audit 2026-05-01 §3-2). retries=0 으로 두고 외부 MAX_SIDE_RETRIES 로 상위 제어.
+            const response = await timedFetch(
+                `/api/ads/banners?position=${position}&limit=4`,
+                {},
+                { retries: 0 }
+            );
             const result = await response.json();
 
             if (result.success && result.data?.banners?.length > 0) {
