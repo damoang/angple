@@ -428,13 +428,20 @@ export const load: PageServerLoad = async ({
                     limit,
                     sort
                 );
-                if (sphinxResult.ids.length === 0) {
+                // 댓글 검색(comment / comment_author)이면 parentIds로 부모 글 fetch
+                // 한 글에 댓글 여러 개 매칭 시 dedupe 필요 (Set), 첫 등장 순서 유지
+                const refetchIds =
+                    sphinxResult.parentIds && sphinxResult.parentIds.length > 0
+                        ? Array.from(new Set(sphinxResult.parentIds))
+                        : sphinxResult.ids;
+
+                if (refetchIds.length === 0) {
                     return { data: [], meta: { page, limit, total: sphinxResult.total } };
                 }
                 // Sphinx에서 가져온 ID로 DB 직접 조회
                 // Gnuboard 스키마에는 wr_is_notice 컬럼이 없음 — g5_board.bo_notice (콤마 구분 wr_id)로 판단
                 const tableName = `g5_write_${boardId}`;
-                const ph = sphinxResult.ids.map(() => '?').join(',');
+                const ph = refetchIds.map(() => '?').join(',');
                 const [postRows, noticeRows] = await Promise.all([
                     readPool.execute<RowDataPacket[]>(
                         `SELECT wr_id AS id, wr_subject AS title, wr_content AS content,
@@ -447,7 +454,7 @@ export const load: PageServerLoad = async ({
                          FROM ${tableName}
                          WHERE wr_id IN (${ph}) AND wr_is_comment = 0
                            AND (wr_deleted_at IS NULL OR wr_deleted_at = '0000-00-00 00:00:00')`,
-                        sphinxResult.ids
+                        refetchIds
                     ),
                     readPool.execute<RowDataPacket[]>(
                         `SELECT bo_notice FROM g5_board WHERE bo_table = ?`,
@@ -462,11 +469,11 @@ export const load: PageServerLoad = async ({
                         .map((s) => Number(s.trim()))
                         .filter((n) => Number.isFinite(n) && n > 0)
                 );
-                // Sphinx 결과 순서 유지 + is_notice 주입
+                // Sphinx 결과 순서 유지 (refetchIds: parentIds dedupe or ids) + is_notice 주입
                 const rowMap = new Map(
                     rows.map((r) => [r.id, { ...r, is_notice: noticeIds.has(Number(r.id)) }])
                 );
-                const ordered = sphinxResult.ids
+                const ordered = refetchIds
                     .map((id) => rowMap.get(id))
                     .filter(Boolean) as RowDataPacket[];
                 return {
