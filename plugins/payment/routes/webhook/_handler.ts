@@ -16,7 +16,7 @@ export async function handleWebhook(
         headers[k.toLowerCase()] = v;
     });
 
-    const siteId = resolveSiteId(event.url.host);
+    const siteId = resolveSiteId(event);
     const config = await getProviderConfig(siteId, providerId);
 
     let valid: boolean | null = null;

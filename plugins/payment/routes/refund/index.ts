@@ -22,7 +22,7 @@ export async function POST(event: RequestEvent): Promise<Response> {
     if (order.status !== 'paid') throw error(400, `cannot refund order in status: ${order.status}`);
     if (!order.pgTransactionId) throw error(400, 'order has no pgTransactionId');
 
-    const siteId = resolveSiteId(event.url.host);
+    const siteId = resolveSiteId(event);
     const config = await getProviderConfig(siteId, order.provider);
     if (!config) throw error(400, 'provider not configured');
 
