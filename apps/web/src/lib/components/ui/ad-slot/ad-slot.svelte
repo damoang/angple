@@ -66,9 +66,9 @@
         'board-after-comments'
     ]);
 
-    // 이전 TOUCH_SAFE_POSITIONS 화이트리스트는 제거됨 — 모든 in-flow 슬롯이
-    // 빈 광고 상태에서도 예약 공간(min-height)을 유지하도록 정책 변경 (CLS 방지).
-    // 사이드바/윙 등 부유 광고만 suppressPlaceholder 분기로 collapse 허용.
+    // 모든 슬롯(in-flow + sidebar/wing)이 빈 광고 상태에서도 예약 공간을 유지한다 → CLS 완전 제거.
+    // sidebar/wing 은 모바일/좁은 뷰포트에서 stylesheet 미디어쿼리로 0px 로 무너져
+    // 모바일 사용자에게는 빈 공간이 보이지 않는다 (parent aside `hidden` 이중 안전장치).
 
     let isLoaded = $state(false);
     let hasAd = $state(false);
@@ -88,6 +88,13 @@
 
     let isBTF = $derived(BTF_POSITIONS.has(position));
     let isWing = $derived(position === 'wing-left' || position === 'wing-right');
+    let isSidebar = $derived(position.includes('sidebar'));
+    /**
+     * 부유(side/wing) 슬롯 — 모바일·좁은 뷰포트에서 부모 레이아웃이 `hidden`
+     * 처리하지만, 광고 영역 자체도 viewport 가 임계 미만일 때는 0px 로 무너져야
+     * 모바일 사용자에게 빈 공간이 보이지 않는다. (부모 hidden 이중 안전장치)
+     */
+    let isFloating = $derived(isWing || isSidebar);
     let isEmpty = $derived(isLoaded && !hasAd && !showAdfit);
 
     // 애드핏 폴백 유닛 (반응형: 데스크톱/모바일 구분)
@@ -298,19 +305,23 @@
         detachSlot(slotId, handleRender);
     });
 
+    /**
+     * 모든 슬롯(in-flow + sidebar/wing)에서 예약 공간 유지 → CLS 완전 제거.
+     *
+     * - in-flow 슬롯: 모든 viewport 에서 `--ad-slot-min-height` 유지.
+     * - 부유(sidebar/wing) 슬롯: 부모 레이아웃이 좁은 viewport 에서 `hidden` 처리하므로
+     *   거기서는 자연히 노출 없음. 부모가 마운트한 경우 (≥1024 sidebar / ≥1600 wing)
+     *   에만 reserved 사이즈만큼 공간 확보 (CSS 미디어쿼리로 활성화) → 광고 도착 시
+     *   위에 그대로 렌더(움직임 없음), 광고 부재 시 투명 빈 공간 유지.
+     *
+     * 디자인 결정: PR #1354 후속 — 사용자 요청 "CLS 아예 없애기".
+     * 빈 공간은 placeholder UI 없이 투명하게 두어 광고 부재가 거슬리지 않도록 한다.
+     *
+     * `min-height` 자체는 inline 으로 지정하지 않고 stylesheet 규칙에서 관리한다
+     * (floating 슬롯의 미디어쿼리 기반 0px ↔ reserved 전환을 inline 우선순위가
+     * 깨뜨리지 않도록).
+     */
     const reservedHeights = $derived(getReservedHeights(getAdConfig()));
-    const suppressPlaceholder = $derived(position === 'wing-right' || position.includes('sidebar'));
-    const effectiveMinHeight = $derived.by(() => {
-        // 사이드바/윙 등 부유 광고는 빈 공간이 UX 를 해치므로 collapse 허용 (예외)
-        if (suppressPlaceholder) {
-            if (!isLoaded) return '0px';
-            if (isEmpty) return '0px';
-            return 'var(--ad-slot-min-height)';
-        }
-        // 일반 in-flow 슬롯: 로드 전/빈 광고/AdFit 실패 시에도 예약 높이 유지 → CLS 방지
-        // (광고가 실제로 채워지면 그 위에 렌더되므로 영향 없음)
-        return 'var(--ad-slot-min-height)';
-    });
 </script>
 
 {#if !suppressAds}
@@ -321,11 +332,14 @@
         class:ad-slot-empty={isEmpty}
         class:ad-slot-empty-collapsed={isEmpty}
         class:ad-slot-btf={isBTF}
+        class:ad-slot-wing={isWing}
+        class:ad-slot-sidebar={isSidebar}
+        class:ad-slot-floating={isFloating}
         style:--ad-slot-min-height={reservedHeights.base}
         style:--ad-slot-min-height-tablet={reservedHeights.tablet}
         style:--ad-slot-min-height-desktop={reservedHeights.desktop}
+        style:--ad-slot-floating-reserved={reservedHeights.desktop}
         style:--ad-slot-intrinsic-size={reservedHeights.desktop}
-        style:min-height={effectiveMinHeight}
         style:transition="min-height 0ms"
     >
         {#if showAdfit && adfitUnit}
@@ -335,7 +349,6 @@
             <div
                 id={slotId}
                 class="gam-ad-slot w-full"
-                style:min-height={effectiveMinHeight}
                 style:display={showAdfit ? 'none' : undefined}
             ></div>
         {/if}
@@ -345,7 +358,12 @@
 <style>
     .ad-slot-container {
         contain: layout style;
+        /* 기본 (모바일/in-flow): inline 으로 주입된 --ad-slot-min-height 사용 */
+        min-height: var(--ad-slot-min-height);
         /* transition은 inline style로 통일 (0ms) — CLS 방지 위해 즉시 적용 */
+    }
+    .gam-ad-slot {
+        min-height: var(--ad-slot-min-height);
     }
 
     .ad-slot-btf {
@@ -361,8 +379,8 @@
     /*
      * 빈 광고 상태: collapse 하지 않고 예약 공간(min-height)을 유지하여 CLS 방지.
      * 시각적으로는 투명하므로 사용자에게는 빈 공간으로 보이며, 광고가 채워지면
-     * 그 위에 그대로 렌더된다. (사이드바/윙 등 suppressPlaceholder 위치는
-     * effectiveMinHeight 로 0px 반환되어 collapse 됨)
+     * 그 위에 그대로 렌더된다. (사이드바/윙 등 floating 위치도 동일하게 예약 공간을
+     * 유지하되, 모바일/좁은 뷰포트에서는 미디어쿼리로 0px 처리되어 자연 collapse.)
      */
     .ad-slot-empty {
         border: 0;
@@ -399,6 +417,34 @@
         .ad-slot-container,
         .gam-ad-slot {
             min-height: var(--ad-slot-min-height-desktop);
+        }
+    }
+
+    /*
+     * 부유 광고(side/wing) 모바일/좁은 뷰포트 보호:
+     * 부모 layout 이 `hidden` 처리하지만, 직접 렌더되더라도 viewport 가
+     * 임계 미만일 때는 0px 로 무너져 모바일에 빈 공간이 보이지 않는다.
+     *
+     * - 사이드바: 1024px(lg) 이상에서 노출 (parent aside `hidden lg:flex`)
+     * - 윙(left/right): 1600px 이상에서 노출 (parent aside `hidden min-[1600px]:block`)
+     *
+     * 위 728/970 미디어쿼리(in-flow tablet/desktop)는 in-flow 슬롯 전용이고
+     * floating 슬롯은 아래 규칙으로 덮어쓴다.
+     */
+    .ad-slot-floating,
+    .ad-slot-floating .gam-ad-slot {
+        min-height: 0;
+    }
+    @media (min-width: 1024px) {
+        .ad-slot-sidebar,
+        .ad-slot-sidebar .gam-ad-slot {
+            min-height: var(--ad-slot-floating-reserved);
+        }
+    }
+    @media (min-width: 1600px) {
+        .ad-slot-wing,
+        .ad-slot-wing .gam-ad-slot {
+            min-height: var(--ad-slot-floating-reserved);
         }
     }
 
