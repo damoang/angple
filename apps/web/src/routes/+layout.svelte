@@ -30,7 +30,13 @@
     import { memberLevelStore } from '$lib/stores/member-levels.svelte';
     import { uiSettingsStore } from '$lib/stores/ui-settings.svelte';
     import { updatePageTargeting } from '$lib/components/ui/ad-slot/ad-slot-registry.js';
-    import { consumePendingAuthEvent, initGA4, trackPageView } from '$lib/services/ga4';
+    import {
+        consumePendingAuthEvent,
+        initGA4,
+        resolvePageContext,
+        trackPageView
+    } from '$lib/services/ga4';
+    import { detectAdblockOnce } from '$lib/services/ad-telemetry';
     import type { MenuItem } from '$lib/api/types';
     import { readUserBasicFromCookie } from '$lib/utils/user-basic-client';
     import { env } from '$env/dynamic/public';
@@ -283,6 +289,13 @@
             trackPageView(to.url.pathname + to.url.search);
             consumePendingAuthEvent();
             updatePageTargeting(to.url.pathname);
+
+            // audit P3 (5/22 미팅 직결): 홈/게시판 진입 시 1회 adblock 감지
+            // path 단위 dedupe (ad-telemetry.ts 내부) → 같은 페이지 재진입 시 재송신 X
+            const ctx = resolvePageContext(to.url.pathname);
+            if (ctx.pageType === 'home' || ctx.pageType === 'board_list') {
+                detectAdblockOnce(ctx.pageType, ctx.boardId);
+            }
         }
         // 광고 observer 재설정 (기존 observer 재활용, 새 광고만 추가 observe)
         untrack(() => {

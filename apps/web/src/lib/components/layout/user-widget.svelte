@@ -47,6 +47,36 @@
     let isLoggedIn = $derived(getIsLoggedIn());
     let isLoading = $derived(getIsLoading());
 
+    // Skeleton guard (audit P1-A): auth fetch 가 12s 이상 hang 하면 fallback UI 표시.
+    // 강제 로그아웃은 하지 않고, 사용자가 새로고침 버튼으로 재시도할 수 있게 함.
+    const SKELETON_TIMEOUT_MS = 12_000;
+    let loadingTimedOut = $state(false);
+    let isRetrying = $state(false);
+
+    $effect(() => {
+        if (!isLoading) {
+            loadingTimedOut = false;
+            return;
+        }
+        const timer = setTimeout(() => {
+            loadingTimedOut = true;
+        }, SKELETON_TIMEOUT_MS);
+        return () => clearTimeout(timer);
+    });
+
+    async function handleRetry() {
+        if (isRetrying) return;
+        isRetrying = true;
+        loadingTimedOut = false;
+        try {
+            await authActions.fetchCurrentUser();
+        } catch {
+            // 실패 시 effect 가 다시 12s 후 fallback 노출
+        } finally {
+            isRetrying = false;
+        }
+    }
+
     let gradeName = $derived(user ? getGradeName(user.mb_level) : '');
 
     // 아바타 URL (mb_image 우선 → avatar_url → member_image 경로 폴백)
@@ -80,13 +110,30 @@
 </script>
 
 <div class={compact ? 'bg-card mb-1 rounded-lg border p-2' : 'bg-card mb-3 rounded-lg border p-3'}>
-    {#if isLoading}
-        <!-- 로딩 상태 -->
+    {#if isLoading && !loadingTimedOut}
+        <!-- 로딩 상태 (12s 이내) -->
         <div class="flex items-center gap-2">
             <Skeleton class="h-8 w-8 rounded-full" />
             <div class="flex-1 space-y-1">
                 <Skeleton class="h-3 w-20" />
                 <Skeleton class="h-2 w-14" />
+            </div>
+        </div>
+    {:else if isLoading && loadingTimedOut}
+        <!-- Skeleton timeout fallback (audit P1-A): 강제 로그아웃 X, 재시도만 제공 -->
+        <div class="flex items-center gap-2">
+            <div class="bg-muted flex h-8 w-8 shrink-0 items-center justify-center rounded-full">
+                <User class="text-muted-foreground h-4 w-4" />
+            </div>
+            <div class="min-w-0 flex-1">
+                <p class="text-muted-foreground truncate text-xs">로그인 정보 확인 지연</p>
+                <button
+                    onclick={handleRetry}
+                    disabled={isRetrying}
+                    class="text-primary text-xs hover:underline disabled:opacity-50"
+                >
+                    {isRetrying ? '확인 중…' : '새로고침'}
+                </button>
             </div>
         </div>
     {:else if isLoggedIn && user}

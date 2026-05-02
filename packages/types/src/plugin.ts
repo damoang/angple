@@ -4,7 +4,7 @@
 
 import type { HookDefinition } from './hook.js';
 import type { ComponentDefinition } from './theme.js';
-import type { ExtensionManifest, PluginType } from './extension.js';
+import type { ExtensionManifest, ExtensionMigration, PluginType } from './extension.js';
 
 /**
  * 플러그인 API 엔드포인트 정의
@@ -31,20 +31,10 @@ export interface ApiEndpoint {
 
 /**
  * 데이터베이스 마이그레이션 정의
+ *
+ * @deprecated `ExtensionMigration` (extension.ts)을 사용하세요. 하위 호환성을 위한 별칭입니다.
  */
-export interface Migration {
-    /** 마이그레이션 버전 */
-    version: string;
-
-    /** 마이그레이션 설명 */
-    description: string;
-
-    /** Up 스크립트 경로 */
-    up: string;
-
-    /** Down 스크립트 경로 */
-    down: string;
-}
+export type Migration = ExtensionMigration;
 
 /**
  * 플러그인 메타데이터 (plugin.json)

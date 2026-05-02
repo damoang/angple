@@ -1,32 +1,51 @@
 /**
  * 카카오 애드핏 SDK 지연 로딩
  * GAM이 빈 슬롯일 때만 로드하여 불필요한 네트워크 요청 방지
+ *
+ * audit P1-C: SDK 로드 결과를 status 로 반환 → adfit-slot 이 텔레메트리 송신.
+ * 8s timeout — 차단/네트워크 지연 케이스 검출 (5/22 미팅 fill rate 측정).
  */
 
 const ADFIT_SDK_URL = 'https://t1.daumcdn.net/kas/static/ba.min.js';
-let loadPromise: Promise<void> | null = null;
+const ADFIT_LOAD_TIMEOUT_MS = 8_000;
+
+export type AdfitLoadStatus = 'success' | 'failed' | 'timeout';
+
+let loadPromise: Promise<AdfitLoadStatus> | null = null;
 const activeAds = new Set<string>();
 
-export function loadAdfitSDK(): Promise<void> {
+export function loadAdfitSDK(): Promise<AdfitLoadStatus> {
     if (loadPromise) return loadPromise;
 
-    loadPromise = new Promise<void>((resolve) => {
+    loadPromise = new Promise<AdfitLoadStatus>((resolve) => {
         if (typeof window === 'undefined') {
-            resolve();
+            resolve('failed');
             return;
         }
 
         const existing = document.querySelector(`script[src*="kas/static/ba.min.js"]`);
         if (existing) {
-            resolve();
+            // 이미 삽입된 스크립트: adfit 함수 존재 여부로 success/failed 판정
+            resolve(typeof (window as any).adfit === 'function' ? 'success' : 'failed');
             return;
         }
 
         const script = document.createElement('script');
         script.src = ADFIT_SDK_URL;
         script.async = true;
-        script.onload = () => resolve();
-        script.onerror = () => resolve(); // 실패해도 resolve (폴백이 또 실패하면 빈 슬롯)
+
+        let settled = false;
+        const finish = (status: AdfitLoadStatus) => {
+            if (settled) return;
+            settled = true;
+            clearTimeout(timer);
+            resolve(status);
+        };
+
+        const timer = setTimeout(() => finish('timeout'), ADFIT_LOAD_TIMEOUT_MS);
+
+        script.onload = () => finish('success');
+        script.onerror = () => finish('failed');
         document.head.appendChild(script);
     });
 

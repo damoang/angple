@@ -22,12 +22,23 @@
     } from './ad-slot-registry.js';
     import {
         isInCanary,
+        isInPreloadCanary,
         PHASE_B1_SLOTS,
         PREBID_BIDDERS_DEFAULT,
         PREBID_SIZES_BY_POSITION
     } from '$lib/ads/prebid-config.js';
     import { runPrebidAuction } from '$lib/ads/prebid-loader.js';
+    import { ensureGAMPreload } from './ad-slot-registry.js';
+    import { trackAdEvent, isAdSdkBlocked } from '$lib/services/ad-telemetry.js';
     import { page } from '$app/stores';
+
+    /**
+     * Watchdog: `attachSlot` 후 N ms 내 `slotRenderEnded` 가 도착하지 않으면
+     * 강제 `handleRender(true)` 호출 → empty path → emptyRetry → AdFit fallback.
+     * audit §2-4 / §5-D / P0-B (5/22 미팅 직결: fill rate 측정 정확도 ↑).
+     * 12s 는 audit 권장값. lazyLoad fetchMargin=400% 이라 일반 광고는 충분히 먼저 응답.
+     */
+    const AD_WATCHDOG_MS = 12_000;
 
     /** 삭제된 글/비밀글 상세 페이지에서는 모든 광고를 숨김 (애드센스 정책) */
     const isDeletedPost = $derived(!!($page as any).data?.post?.deleted_at);
@@ -55,19 +66,9 @@
         'board-after-comments'
     ]);
 
-    // 모바일 목록처럼 터치가 빈번한 위치: no fill이어도 즉시 축소하지 않음 (CLS 방지)
-    // 홈 공감글 터치 오인식(#11998) — 공감글 아래 위젯들이 index-middle 광고 높이 변화로 밀리는 것을 방지
-    const TOUCH_SAFE_POSITIONS = new Set([
-        'header-after',
-        'board-list-infeed',
-        'board-list-top',
-        'board-list-bottom',
-        'index-top',
-        'index-middle-1',
-        'index-middle-2',
-        'board-content',
-        'board-before-comments'
-    ]);
+    // 이전 TOUCH_SAFE_POSITIONS 화이트리스트는 제거됨 — 모든 in-flow 슬롯이
+    // 빈 광고 상태에서도 예약 공간(min-height)을 유지하도록 정책 변경 (CLS 방지).
+    // 사이드바/윙 등 부유 광고만 suppressPlaceholder 분기로 collapse 허용.
 
     let isLoaded = $state(false);
     let hasAd = $state(false);
@@ -76,6 +77,7 @@
     let detached = false;
     let containerEl: HTMLDivElement | null = null;
     let visibilityObserver: IntersectionObserver | null = null;
+    let watchdogTimer: ReturnType<typeof setTimeout> | null = null;
     // 데스크톱 전용 position: 모바일/태블릿에서 GPT slot 초기화를 차단하여 무의미한 impression 방지
     const DESKTOP_ONLY_POSITIONS: Record<string, number> = {
         'wing-left': 1600,
@@ -86,7 +88,6 @@
 
     let isBTF = $derived(BTF_POSITIONS.has(position));
     let isWing = $derived(position === 'wing-left' || position === 'wing-right');
-    let isTouchSafe = $derived(TOUCH_SAFE_POSITIONS.has(position));
     let isEmpty = $derived(isLoaded && !hasAd && !showAdfit);
 
     // 애드핏 폴백 유닛 (반응형: 데스크톱/모바일 구분)
@@ -169,8 +170,16 @@
         };
     }
 
+    function clearWatchdog() {
+        if (watchdogTimer) {
+            clearTimeout(watchdogTimer);
+            watchdogTimer = null;
+        }
+    }
+
     function handleRender(isEmpty: boolean) {
         if (detached) return;
+        clearWatchdog();
         isLoaded = true;
         hasAd = !isEmpty;
         // GAM이 나중에 채워지면 애드핏 숨기기
@@ -235,6 +244,14 @@
             }
         }
 
+        // P0-B canary 5%: GAM gpt.js <link rel="preload"> 삽입 (5/22 미팅 직결).
+        // hash(mb_id) 기반 안정적 분류 — 같은 사용자는 항상 같은 결과.
+        // 비로그인은 slotId 사용 (페이지/포지션마다 분산되어 통계적으로 ~5%).
+        const preloadKey = ($page as any).data?.user?.mb_id ?? slotId;
+        if (isInPreloadCanary(preloadKey)) {
+            ensureGAMPreload();
+        }
+
         await attachSlot({
             key: resolvedSlotKey,
             position,
@@ -247,6 +264,24 @@
             onRender: handleRender,
             onFallback: adfitConfig ? handleFallback : undefined
         });
+
+        // P0-B watchdog: attachSlot 후 12s 내 slotRenderEnded 안 오면 강제 empty.
+        // 이미 detached 또는 loaded 상태면 setup 자체 skip.
+        if (!detached && !isLoaded) {
+            clearWatchdog();
+            watchdogTimer = setTimeout(() => {
+                watchdogTimer = null;
+                if (detached || isLoaded) return;
+                // P1-C (5/22 미팅 직결): GAM/AdFit SDK 둘 다 부재 → 광고 차단기 추정
+                if (isAdSdkBlocked()) {
+                    trackAdEvent('ad_sdk_blocked', {
+                        position,
+                        reason: 'no_googletag_no_adfit'
+                    });
+                }
+                handleRender(true);
+            }, AD_WATCHDOG_MS);
+        }
     }
 
     onMount(() => {
@@ -255,6 +290,7 @@
 
     onDestroy(() => {
         detached = true;
+        clearWatchdog();
         visibilityObserver?.disconnect();
         if (!slotId) return;
         adDensityStore.unregister(slotId);
@@ -265,12 +301,14 @@
     const reservedHeights = $derived(getReservedHeights(getAdConfig()));
     const suppressPlaceholder = $derived(position === 'wing-right' || position.includes('sidebar'));
     const effectiveMinHeight = $derived.by(() => {
-        // 로드 전 + 사이드바 → 높이 예약 안 함
-        if (!isLoaded && suppressPlaceholder) return '0px';
-        // 터치 빈번한 목록 위치: 빈 광고라도 높이 유지 (CLS 방지)
-        if (isEmpty && isTouchSafe) return 'var(--ad-slot-min-height)';
-        // 일반: 빈 광고 → 축소
-        if (isEmpty) return '0px';
+        // 사이드바/윙 등 부유 광고는 빈 공간이 UX 를 해치므로 collapse 허용 (예외)
+        if (suppressPlaceholder) {
+            if (!isLoaded) return '0px';
+            if (isEmpty) return '0px';
+            return 'var(--ad-slot-min-height)';
+        }
+        // 일반 in-flow 슬롯: 로드 전/빈 광고/AdFit 실패 시에도 예약 높이 유지 → CLS 방지
+        // (광고가 실제로 채워지면 그 위에 렌더되므로 영향 없음)
         return 'var(--ad-slot-min-height)';
     });
 </script>
@@ -291,7 +329,7 @@
         style:transition="min-height 0ms"
     >
         {#if showAdfit && adfitUnit}
-            <AdfitSlot unit={adfitUnit} id={slotId || position} />
+            <AdfitSlot unit={adfitUnit} id={slotId || position} {position} />
         {/if}
         {#if slotId}
             <div
@@ -320,12 +358,19 @@
         background: transparent;
     }
 
+    /*
+     * 빈 광고 상태: collapse 하지 않고 예약 공간(min-height)을 유지하여 CLS 방지.
+     * 시각적으로는 투명하므로 사용자에게는 빈 공간으로 보이며, 광고가 채워지면
+     * 그 위에 그대로 렌더된다. (사이드바/윙 등 suppressPlaceholder 위치는
+     * effectiveMinHeight 로 0px 반환되어 collapse 됨)
+     */
     .ad-slot-empty {
         border: 0;
         background: transparent;
     }
 
     .ad-slot-empty-collapsed {
+        /* 시각적 placeholder UI 없이 투명 빈 공간 유지 (가장 보수적) */
         opacity: 0;
     }
 
@@ -348,22 +393,12 @@
         .gam-ad-slot {
             min-height: var(--ad-slot-min-height-tablet);
         }
-
-        .ad-slot-empty,
-        .ad-slot-empty .gam-ad-slot {
-            min-height: 0 !important;
-        }
     }
 
     @media (min-width: 970px) {
         .ad-slot-container,
         .gam-ad-slot {
             min-height: var(--ad-slot-min-height-desktop);
-        }
-
-        .ad-slot-empty,
-        .ad-slot-empty .gam-ad-slot {
-            min-height: 0 !important;
         }
     }
 
