@@ -6,7 +6,8 @@
     import type { WidgetProps } from '$lib/types/widget-props';
     import type { FreePost } from '$lib/api/types';
     import { apiClient } from '$lib/api';
-    import { onMount } from 'svelte';
+    import { ApiRequestError } from '$lib/api/errors';
+    import { onMount, onDestroy } from 'svelte';
     import { Info, Eye } from '../lucide.js';
 
     let { config, slot, isEditMode = false, prefetchData }: WidgetProps = $props();
@@ -16,24 +17,13 @@
     let loading = $state(true);
     let error = $state(false);
 
-    // apiClient 는 자체 abort 를 노출하지 않으므로 Promise.race 타임가드로 skeleton 무한 대기 방지.
-    // (audit 2026-05-01 §3-1)
+    // P0 leak fix (2026-05-02): Promise.race(timeout, apiClient.x) 패턴은
+    // timeout reject 후에도 underlying fetch closure 가 살아남아 SSR/CSR 양쪽에서
+    // ~50 MiB/h 누적. apiClient 가 이제 AbortSignal 을 받으므로
+    // AbortController 로 timeout + unmount 통합 abort.
     const FETCH_TIMEOUT_MS = 12_000;
-    function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
-        return new Promise((resolve, reject) => {
-            const timer = setTimeout(() => reject(new Error('timeout')), ms);
-            p.then(
-                (v) => {
-                    clearTimeout(timer);
-                    resolve(v);
-                },
-                (e) => {
-                    clearTimeout(timer);
-                    reject(e);
-                }
-            );
-        });
-    }
+    let controller: AbortController | null = null;
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
 
     onMount(async () => {
         if (prefetchData) {
@@ -42,23 +32,44 @@
             return;
         }
 
+        controller = new AbortController();
+        const signal = controller.signal;
+        timeoutId = setTimeout(() => controller?.abort(), FETCH_TIMEOUT_MS);
+
         try {
-            const [noticesData, latestData] = await withTimeout(
-                Promise.all([
-                    apiClient.getBoardNotices('free'),
-                    apiClient.getBoardPosts('notice', 1, 1).catch(() => null)
-                ]),
-                FETCH_TIMEOUT_MS
-            );
+            const [noticesData, latestData] = await Promise.all([
+                apiClient.getBoardNotices('free', { signal }),
+                apiClient.getBoardPosts('notice', 1, 1, { signal }).catch((e) => {
+                    // abort 는 위로 전파, 그 외는 silently null
+                    if (e instanceof ApiRequestError && e.type === 'aborted') throw e;
+                    return null;
+                })
+            ]);
             notices = noticesData.slice(0, 5);
             if (latestData?.items?.length) {
                 latestNotice = latestData.items[0];
             }
         } catch (e) {
+            // unmount 로 인한 abort 면 state 업데이트 무의미
+            if (e instanceof ApiRequestError && e.type === 'aborted') return;
             error = true;
         } finally {
+            if (timeoutId !== null) {
+                clearTimeout(timeoutId);
+                timeoutId = null;
+            }
             loading = false;
         }
+    });
+
+    onDestroy(() => {
+        // unmount 시 in-flight fetch 즉시 정리 → closure leak 방지
+        if (timeoutId !== null) {
+            clearTimeout(timeoutId);
+            timeoutId = null;
+        }
+        controller?.abort();
+        controller = null;
     });
 </script>
 

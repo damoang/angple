@@ -186,6 +186,11 @@ class ApiClient {
     }
 
     // HTTP 요청 헬퍼
+    //
+    // `options.signal` (AbortSignal) 을 받으면 underlying fetch 까지 전달되어
+    // 호출 측 컴포넌트 unmount 등 cleanup 시 in-flight 요청이 즉시 정리된다.
+    // (P0 leak fix 2026-05-02: Promise.race(timeout, apiClient.x) 패턴이
+    //  timeout reject 후에도 fetch closure 를 leak 하던 문제 제거)
     private async request<T>(
         endpoint: string,
         options: RequestInit = {},
@@ -224,7 +229,9 @@ class ApiClient {
                 {
                     ...options,
                     headers,
-                    credentials: 'include'
+                    credentials: 'include',
+                    // 외부 signal 은 fetchWithTimeout 에서 합성되어 전달
+                    signal: options.signal
                 },
                 config,
                 fetchFn
@@ -296,17 +303,26 @@ class ApiClient {
     }
 
     // 게시판 공지사항 조회
-    async getBoardNotices(boardId: string): Promise<FreePost[]> {
+    async getBoardNotices(
+        boardId: string,
+        options?: { signal?: AbortSignal }
+    ): Promise<FreePost[]> {
         interface BackendResponse {
             data: FreePost[];
         }
 
         try {
-            const response = await this.request<BackendResponse>(`/boards/${boardId}/notices`);
+            const response = await this.request<BackendResponse>(`/boards/${boardId}/notices`, {
+                signal: options?.signal
+            });
 
             const backendData = response as unknown as BackendResponse;
             return backendData.data || [];
         } catch (error) {
+            // 호출 측이 abort 시킨 경우는 그대로 전파 (위젯 unmount 등 cleanup)
+            if (error instanceof ApiRequestError && error.type === 'aborted') {
+                throw error;
+            }
             // 공지사항 API가 없거나 에러 시 빈 배열 반환
             return [];
         }
@@ -336,7 +352,7 @@ class ApiClient {
         boardId: string,
         page = 1,
         limit = 10,
-        options?: { summary?: boolean }
+        options?: { summary?: boolean; signal?: AbortSignal }
     ): Promise<PaginatedResponse<FreePost>> {
         interface BackendResponse {
             data: FreePost[];
@@ -357,7 +373,9 @@ class ApiClient {
             params.set('summary', '1');
         }
 
-        const response = await this.request<BackendResponse>(`/boards/${boardId}/posts?${params}`);
+        const response = await this.request<BackendResponse>(`/boards/${boardId}/posts?${params}`, {
+            signal: options?.signal
+        });
 
         const backendData = response as unknown as BackendResponse;
         const meta = backendData.meta;
@@ -499,8 +517,13 @@ class ApiClient {
     }
 
     // 추천 글 데이터 가져오기 (AI 분석 포함)
-    async getRecommendedPostsWithAI(period: RecommendedPeriod): Promise<RecommendedDataWithAI> {
-        const response = await this.request<RecommendedDataWithAI>(`/recommended/ai/${period}`);
+    async getRecommendedPostsWithAI(
+        period: RecommendedPeriod,
+        options?: { signal?: AbortSignal }
+    ): Promise<RecommendedDataWithAI> {
+        const response = await this.request<RecommendedDataWithAI>(`/recommended/ai/${period}`, {
+            signal: options?.signal
+        });
         // API가 직접 데이터를 반환하는지 { data: ... }로 감싸는지 확인
         const data = response as unknown as RecommendedDataWithAI;
         if (data?.sections !== undefined) {
