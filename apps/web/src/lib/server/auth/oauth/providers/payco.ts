@@ -85,7 +85,9 @@ export class PaycoProvider extends BaseOAuthProvider {
             body: JSON.stringify({
                 client_id: this.config.clientId,
                 access_token: accessToken
-            })
+            }),
+            // 외부 OAuth 서버 hang 시 closure heap retain 방지 (Round 3 후속)
+            signal: AbortSignal.timeout(5000)
         });
 
         if (!response.ok) {
@@ -125,7 +127,9 @@ export class PaycoProvider extends BaseOAuthProvider {
                 access_token: accessToken,
                 Authorization: `Bearer ${accessToken}`
             },
-            body: body.toString()
+            body: body.toString(),
+            // 외부 OAuth 서버 hang 시 closure heap retain 방지 (Round 3 후속)
+            signal: AbortSignal.timeout(5000)
         });
 
         if (!response.ok) {
