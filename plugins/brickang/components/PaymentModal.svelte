@@ -31,6 +31,11 @@
     }: Props = $props();
 
     let provider = $state<'toss' | 'naver' | 'paypal'>('toss');
+    const allowedProviders: ReadonlyArray<'toss' | 'naver' | 'paypal'> = [
+        'toss',
+        'naver',
+        'paypal'
+    ];
     let busy = $state(false);
 
     // Phase 2: 자유 배치 (silver/gold/diamond)
