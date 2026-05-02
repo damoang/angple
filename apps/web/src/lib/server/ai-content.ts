@@ -67,7 +67,9 @@ async function callOpenAI(
             ],
             max_tokens: 300,
             temperature: 0.3
-        })
+        }),
+        // OpenAI hang 시 closure heap retain 방지 (Round 3 후속) — 긴 응답 가능성 고려해 30s
+        signal: AbortSignal.timeout(30000)
     });
 
     if (!response.ok) {
@@ -98,7 +100,9 @@ async function callAnthropic(
             max_tokens: 300,
             system: systemPrompt,
             messages: [{ role: 'user', content: userPrompt }]
-        })
+        }),
+        // Anthropic hang 시 closure heap retain 방지 (Round 3 후속) — 긴 응답 가능성 고려해 30s
+        signal: AbortSignal.timeout(30000)
     });
 
     if (!response.ok) {
