@@ -55,19 +55,9 @@
         'board-after-comments'
     ]);
 
-    // 모바일 목록처럼 터치가 빈번한 위치: no fill이어도 즉시 축소하지 않음 (CLS 방지)
-    // 홈 공감글 터치 오인식(#11998) — 공감글 아래 위젯들이 index-middle 광고 높이 변화로 밀리는 것을 방지
-    const TOUCH_SAFE_POSITIONS = new Set([
-        'header-after',
-        'board-list-infeed',
-        'board-list-top',
-        'board-list-bottom',
-        'index-top',
-        'index-middle-1',
-        'index-middle-2',
-        'board-content',
-        'board-before-comments'
-    ]);
+    // 이전 TOUCH_SAFE_POSITIONS 화이트리스트는 제거됨 — 모든 in-flow 슬롯이
+    // 빈 광고 상태에서도 예약 공간(min-height)을 유지하도록 정책 변경 (CLS 방지).
+    // 사이드바/윙 등 부유 광고만 suppressPlaceholder 분기로 collapse 허용.
 
     let isLoaded = $state(false);
     let hasAd = $state(false);
@@ -86,7 +76,6 @@
 
     let isBTF = $derived(BTF_POSITIONS.has(position));
     let isWing = $derived(position === 'wing-left' || position === 'wing-right');
-    let isTouchSafe = $derived(TOUCH_SAFE_POSITIONS.has(position));
     let isEmpty = $derived(isLoaded && !hasAd && !showAdfit);
 
     // 애드핏 폴백 유닛 (반응형: 데스크톱/모바일 구분)
@@ -265,12 +254,14 @@
     const reservedHeights = $derived(getReservedHeights(getAdConfig()));
     const suppressPlaceholder = $derived(position === 'wing-right' || position.includes('sidebar'));
     const effectiveMinHeight = $derived.by(() => {
-        // 로드 전 + 사이드바 → 높이 예약 안 함
-        if (!isLoaded && suppressPlaceholder) return '0px';
-        // 터치 빈번한 목록 위치: 빈 광고라도 높이 유지 (CLS 방지)
-        if (isEmpty && isTouchSafe) return 'var(--ad-slot-min-height)';
-        // 일반: 빈 광고 → 축소
-        if (isEmpty) return '0px';
+        // 사이드바/윙 등 부유 광고는 빈 공간이 UX 를 해치므로 collapse 허용 (예외)
+        if (suppressPlaceholder) {
+            if (!isLoaded) return '0px';
+            if (isEmpty) return '0px';
+            return 'var(--ad-slot-min-height)';
+        }
+        // 일반 in-flow 슬롯: 로드 전/빈 광고/AdFit 실패 시에도 예약 높이 유지 → CLS 방지
+        // (광고가 실제로 채워지면 그 위에 렌더되므로 영향 없음)
         return 'var(--ad-slot-min-height)';
     });
 </script>
@@ -320,12 +311,19 @@
         background: transparent;
     }
 
+    /*
+     * 빈 광고 상태: collapse 하지 않고 예약 공간(min-height)을 유지하여 CLS 방지.
+     * 시각적으로는 투명하므로 사용자에게는 빈 공간으로 보이며, 광고가 채워지면
+     * 그 위에 그대로 렌더된다. (사이드바/윙 등 suppressPlaceholder 위치는
+     * effectiveMinHeight 로 0px 반환되어 collapse 됨)
+     */
     .ad-slot-empty {
         border: 0;
         background: transparent;
     }
 
     .ad-slot-empty-collapsed {
+        /* 시각적 placeholder UI 없이 투명 빈 공간 유지 (가장 보수적) */
         opacity: 0;
     }
 
@@ -348,22 +346,12 @@
         .gam-ad-slot {
             min-height: var(--ad-slot-min-height-tablet);
         }
-
-        .ad-slot-empty,
-        .ad-slot-empty .gam-ad-slot {
-            min-height: 0 !important;
-        }
     }
 
     @media (min-width: 970px) {
         .ad-slot-container,
         .gam-ad-slot {
             min-height: var(--ad-slot-min-height-desktop);
-        }
-
-        .ad-slot-empty,
-        .ad-slot-empty .gam-ad-slot {
-            min-height: 0 !important;
         }
     }
 
