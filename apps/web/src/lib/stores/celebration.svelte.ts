@@ -38,8 +38,8 @@ let ready = false;
 let fetchPromise: Promise<void> | null = null;
 let refCount = 0;
 let intervalId: ReturnType<typeof setInterval> | null = null;
-// 롤링 주기. 사용자 요청으로 기존 30s → 15s 로 절반 단축.
-const CELEBRATION_ROTATION_INTERVAL_MS = 15_000;
+// 롤링 주기. 사용자 요청으로 기존 30s → 3s 로 단축 (메시지 6개 기준 한 바퀴 18s).
+const CELEBRATION_ROTATION_INTERVAL_MS = 3_000;
 
 /** Fisher-Yates 셔플 (in-place). length<=1 이면 변경 없이 반환 */
 function fisherYatesShuffle<T>(arr: T[]): T[] {
