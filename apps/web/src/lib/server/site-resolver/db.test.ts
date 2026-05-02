@@ -71,9 +71,7 @@ describe('DbSiteResolver', () => {
     });
 
     it('miss 는 60초 negative cache 되어 같은 host 재조회 시 DB를 다시 치지 않는다', async () => {
-        mockQuery
-            .mockResolvedValueOnce([[]])
-            .mockResolvedValueOnce([[]]);
+        mockQuery.mockResolvedValueOnce([[]]).mockResolvedValueOnce([[]]);
 
         const { DbSiteResolver } = await loadModule();
         const resolver = new DbSiteResolver();
