@@ -59,8 +59,27 @@ export const brickangApi = {
     },
     getMyStats: () => request('/me/stats'),
     getRankingsAll: (limit = 50) => request(`/rankings/all?limit=${limit}`),
-    getRankingsMonthly: (limit = 50) => request(`/rankings/monthly?limit=${limit}`)
+    getRankingsMonthly: (limit = 50) => request(`/rankings/monthly?limit=${limit}`),
+    acquireLock: (body: AcquireLockBody) =>
+        request<AcquireLockResponse>('/locks/acquire', {
+            method: 'POST',
+            body: JSON.stringify(body)
+        }),
+    releaseLock: (lockId: number) =>
+        request<{ released: boolean }>(`/locks/${lockId}`, { method: 'DELETE' })
 };
+
+export interface AcquireLockBody {
+    building_id: number;
+    brick_type_slug: string;
+    position: { x: number; y: number; z: number };
+}
+
+export interface AcquireLockResponse {
+    lock_id: number;
+    expires_at: string;
+    position: { x: number; y: number; z: number };
+}
 
 export interface BrickTypeDto {
     id: number;
@@ -107,6 +126,10 @@ export interface StartOrderBody {
     provider: 'toss' | 'naver' | 'paypal';
     returnUrl: string;
     cancelUrl: string;
+    /** Phase 2: 자유 배치 lock id */
+    lock_id?: number | null;
+    /** Phase 2: 자유 배치 좌표 */
+    position?: { x: number; y: number; z: number } | null;
 }
 
 export interface StartOrderResponse {
@@ -142,4 +165,6 @@ export interface ConfirmOrderResponse {
         type: string;
         nickname: string;
     }>;
+    /** Phase 2: 자유 배치 lock 만료 등으로 자동 배치 fallback 발생 시 true */
+    lock_fallback?: boolean;
 }

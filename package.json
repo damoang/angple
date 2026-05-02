@@ -20,6 +20,7 @@
     },
     "devDependencies": {
         "@changesets/cli": "^2.26.2",
+        "@types/three": "^0.171.0",
         "@typescript-eslint/eslint-plugin": "^6.0.0",
         "@typescript-eslint/parser": "^6.0.0",
         "concurrently": "^8.2.0",
@@ -31,6 +32,7 @@
         "prettier": "3.3.3",
         "prettier-plugin-svelte": "3.2.8",
         "prettier-plugin-tailwindcss": "^0.5.6",
+        "three": "^0.171.0",
         "typescript": "^5.0.0"
     },
     "engines": {

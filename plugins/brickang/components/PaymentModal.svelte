@@ -8,31 +8,104 @@
     import { brickStore } from '../stores/brick.svelte.js';
     import { paymentStore } from '../stores/payment.svelte.js';
     import BrickCard from './BrickCard.svelte';
+    import { brickangApi } from '../lib/api.js';
+    import type { BrickDto, BuildingDto } from '../lib/api.js';
 
     interface Props {
         buildingId: number;
         open: boolean;
+        building?: BuildingDto | null;
+        bricks?: BrickDto[];
         onclose?: () => void;
         oncomplete?: (
             bricks: Array<{ id: number; position: { x: number; y: number; z: number } }>
         ) => void;
     }
-    let { buildingId, open = $bindable(false), onclose, oncomplete }: Props = $props();
+    let {
+        buildingId,
+        open = $bindable(false),
+        building = null,
+        bricks = [],
+        onclose,
+        oncomplete
+    }: Props = $props();
 
     let provider = $state<'toss' | 'naver' | 'paypal'>('toss');
     let busy = $state(false);
 
-    let allowedProviders = $derived.by(() => {
-        const types = brickStore.selected;
-        if (!types) return ['toss', 'naver'] as const;
-        const list: Array<'toss' | 'naver' | 'paypal'> = ['toss', 'naver'];
-        if (types.price_krw >= 1000) list.push('paypal');
-        return list;
+    // Phase 2: 자유 배치 (silver/gold/diamond)
+    let isFreePlacement = $derived(
+        brickStore.selected
+            ? ['silver', 'gold', 'diamond'].includes(brickStore.selected.slug)
+            : false
+    );
+    let lockId = $state<number | null>(null);
+    let lockedPosition = $state<{ x: number; y: number; z: number } | null>(null);
+    let lockExpiresAt = $state<number | null>(null);
+    let lockCountdown = $state<number>(0);
+    let placeMode = $state(false);
+    let placeError = $state<string | null>(null);
+
+    // 카운트다운 갱신 (1s)
+    let countdownTimer: ReturnType<typeof setInterval> | null = null;
+    $effect(() => {
+        if (lockExpiresAt) {
+            countdownTimer = setInterval(() => {
+                const remain = Math.max(0, Math.floor((lockExpiresAt! - Date.now()) / 1000));
+                lockCountdown = remain;
+                if (remain <= 0) {
+                    placeError = '위치 lock 이 만료되었습니다. 다시 선택해 주세요.';
+                    lockId = null;
+                    lockedPosition = null;
+                    lockExpiresAt = null;
+                    if (countdownTimer) clearInterval(countdownTimer);
+                }
+            }, 1000);
+        }
+        return () => {
+            if (countdownTimer) clearInterval(countdownTimer);
+        };
     });
+
+    async function handlePositionPick(pos: { x: number; y: number; z: number }) {
+        const sel = brickStore.selected;
+        if (!sel) return;
+        placeError = null;
+        try {
+            // 기존 lock 이 있으면 해제 (UI 상 다른 좌표로 다시 클릭한 경우)
+            if (lockId) {
+                try {
+                    await brickangApi.releaseLock(lockId);
+                } catch {
+                    /* 무시 */
+                }
+            }
+            const r = await brickangApi.acquireLock({
+                building_id: buildingId,
+                brick_type_slug: sel.slug,
+                position: pos
+            });
+            lockId = r.lock_id;
+            lockedPosition = r.position;
+            lockExpiresAt = new Date(r.expires_at).getTime();
+            placeMode = false;
+        } catch (err) {
+            const msg = (err as Error).message;
+            if (msg.includes('409') || msg.includes('position_locked')) {
+                placeError = '이 좌표는 다른 사용자가 선점했습니다. 다른 좌표를 선택해 주세요.';
+            } else {
+                placeError = msg;
+            }
+        }
+    }
 
     async function handlePay() {
         const sel = brickStore.selected;
         if (!sel) return;
+        if (isFreePlacement && !lockId) {
+            placeError = '먼저 위치를 선택해 주세요.';
+            return;
+        }
         busy = true;
         try {
             const start = await paymentStore.start({
@@ -42,7 +115,9 @@
                 building_id: buildingId,
                 provider,
                 returnUrl: `${window.location.origin}/brickang/payment/return`,
-                cancelUrl: `${window.location.origin}/brickang/payment/cancel`
+                cancelUrl: `${window.location.origin}/brickang/payment/cancel`,
+                lock_id: isFreePlacement ? lockId : null,
+                position: isFreePlacement ? lockedPosition : null
             });
 
             if (start.payment.redirectUrl) {
@@ -60,6 +135,14 @@
                 pg_order_id: start.payment.pgOrderId,
                 amount: start.amount
             });
+            if (confirm.lock_fallback) {
+                placeError =
+                    '선택한 위치 lock 이 만료되어 자동 배치되었습니다. 다음번엔 더 빨리 결제해 주세요.';
+            }
+            // lock 행은 confirm 단일 tx 안에서 삭제되므로 별도 release 불필요
+            lockId = null;
+            lockedPosition = null;
+            lockExpiresAt = null;
             oncomplete?.(confirm.bricks);
             open = false;
             onclose?.();
@@ -134,6 +217,54 @@
                         {/each}
                     </div>
                 </div>
+
+                {#if isFreePlacement}
+                    <div class="modal__row modal__free-placement">
+                        <span>위치 선택</span>
+                        <div class="free-info">
+                            {#if lockedPosition}
+                                <p class="locked">
+                                    선택 좌표: ({lockedPosition.x}, {lockedPosition.y}, {lockedPosition.z})
+                                    {#if lockCountdown > 0}
+                                        <span class="countdown">남은 시간: {lockCountdown}초</span>
+                                    {/if}
+                                </p>
+                            {:else}
+                                <p class="hint">자유 배치 등급은 위치를 직접 선택해야 합니다.</p>
+                            {/if}
+                            <button
+                                type="button"
+                                class="place-btn"
+                                onclick={() => (placeMode = !placeMode)}
+                            >
+                                {placeMode
+                                    ? '위치 선택 종료'
+                                    : lockedPosition
+                                      ? '다시 선택'
+                                      : '위치 선택'}
+                            </button>
+                        </div>
+                    </div>
+
+                    {#if placeMode && building}
+                        {#await import('./BuildingViewer.svelte') then mod}
+                            <mod.default
+                                {building}
+                                {bricks}
+                                mode="place"
+                                placingType={brickStore.selected.slug as
+                                    | 'silver'
+                                    | 'gold'
+                                    | 'diamond'}
+                                onPositionPick={handlePositionPick}
+                            />
+                        {/await}
+                    {/if}
+
+                    {#if placeError}
+                        <p class="modal__error">{placeError}</p>
+                    {/if}
+                {/if}
 
                 <div class="modal__total">
                     합계: {brickStore.totalAmountKrw.toLocaleString()} 원
@@ -233,5 +364,38 @@
     .modal__error {
         color: #c00;
         margin-top: 0.5rem;
+    }
+    .modal__free-placement {
+        align-items: flex-start;
+    }
+    .free-info {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+    .free-info .locked {
+        margin: 0;
+        color: #2962ff;
+        font-weight: 500;
+    }
+    .free-info .countdown {
+        margin-left: 8px;
+        color: #c33;
+        font-size: 0.9em;
+    }
+    .free-info .hint {
+        margin: 0;
+        color: #666;
+        font-size: 0.9em;
+    }
+    .place-btn {
+        align-self: flex-start;
+        padding: 0.4rem 0.8rem;
+        background: #2962ff;
+        color: #fff;
+        border: 0;
+        border-radius: 4px;
+        cursor: pointer;
     }
 </style>

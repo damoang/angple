@@ -53,6 +53,16 @@ export default defineConfig(({ mode }) => {
                 {
                     find: '$premium-plugins',
                     replacement: path.resolve(__dirname, '../../../premium/plugins')
+                },
+                // brickang Phase 2: plugins/ 트리는 workspace 외부라 'three' resolve 가
+                // apps/web/node_modules 까지 올라오지 못한다. 명시 alias 로 강제 매핑.
+                {
+                    find: /^three$/,
+                    replacement: path.resolve(__dirname, 'node_modules/three')
+                },
+                {
+                    find: /^three\/(.+)$/,
+                    replacement: path.resolve(__dirname, 'node_modules/three/$1')
                 }
             ]
         },

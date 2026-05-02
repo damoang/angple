@@ -95,6 +95,19 @@ export interface BrickangOrderMetadata {
     building_id: number;
     is_anonymous: boolean;
     nickname_snapshot: string;
+    /** Phase 2: 자유 배치용 position lock id (silver/gold/diamond 자유 배치 시) */
+    lock_id?: number | null;
+    /** Phase 2: 사용자 지정 위치 (silver/gold/diamond 만) */
+    position?: BrickPosition | null;
+}
+
+export interface PositionLock {
+    id: number;
+    buildingId: number;
+    position: BrickPosition;
+    userId: number;
+    expiresAt: Date;
+    createdAt: Date;
 }
 
 export const MILESTONES = [100, 500, 1000, 5000, 10000] as const;

@@ -43,6 +43,12 @@
             "description": "brickang_events: 마일스톤/시즌 이벤트",
             "up": "migrations/005_brickang_events.up.sql",
             "down": "migrations/005_brickang_events.down.sql"
+        },
+        {
+            "version": "006",
+            "description": "brickang_position_locks: 자유 배치 5분 lock",
+            "up": "migrations/006_brickang_position_locks.up.sql",
+            "down": "migrations/006_brickang_position_locks.down.sql"
         }
     ],
     "api": {
@@ -126,6 +132,24 @@
                     "method": "GET",
                     "path": "/brick-types/:slug",
                     "handler": "routes/brick-types/detail.ts"
+                },
+                {
+                    "method": "POST",
+                    "path": "/locks/acquire",
+                    "handler": "routes/locks/acquire.ts",
+                    "authenticated": true
+                },
+                {
+                    "method": "DELETE",
+                    "path": "/locks/:lock_id",
+                    "handler": "routes/locks/release.ts",
+                    "authenticated": true
+                },
+                {
+                    "method": "POST",
+                    "path": "/locks/cleanup-expired",
+                    "handler": "routes/locks/cleanup.ts",
+                    "authenticated": true
                 }
             ]
         }
