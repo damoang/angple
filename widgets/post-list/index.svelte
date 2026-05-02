@@ -22,6 +22,9 @@
     import TradeView from './layouts/trade-view.svelte';
     import type { EconomyPost, GalleryPost, GroupTabsData, NewsPost } from '$lib/api/types';
     import { uiSettingsStore } from '$lib/stores/ui-settings.svelte';
+    import { timedFetch } from '$lib/utils/timed-fetch';
+    import { createWidgetState } from '$lib/utils/widget-state.svelte';
+    import { WidgetStateFallback } from '$lib/components/ui/widget-state-fallback';
 
     interface DefaultLayoutPost {
         id: number;
@@ -121,11 +124,41 @@
     }
 
     // API fetch 데이터 (기존 스토어에 없는 경우)
-    let fetchedPosts = $state<
-        DefaultLayoutPost[] | MessageLayoutPost[] | GivingLayoutPost[] | TradeLayoutPost[]
-    >([]);
-    let loading = $state(false);
-    let error = $state<string | null>(null);
+    // audit P2-B: 표준 WidgetState 머신 + timedFetch + retry UI 적용.
+    type FetchedPosts =
+        | DefaultLayoutPost[]
+        | MessageLayoutPost[]
+        | GivingLayoutPost[]
+        | TradeLayoutPost[];
+
+    const fetchMachine = createWidgetState<FetchedPosts>({
+        fetcher: async (signal) => {
+            const params = new URLSearchParams({
+                board: boardId,
+                sort: sortBy,
+                count: String(count),
+                filter
+            });
+            const res = await timedFetch(
+                `/api/widgets/post-list/data?${params}`,
+                { signal },
+                {
+                    signal,
+                    throwOnHTTPError: true
+                }
+            );
+            const data = await res.json();
+            return (data.posts ?? []) as FetchedPosts;
+        },
+        isEmpty: (posts) => !posts.length
+    });
+    const fetchedPosts = $derived(fetchMachine.state.data ?? ([] as FetchedPosts));
+    const loading = $derived(
+        fetchMachine.state.status === 'loading' || fetchMachine.state.status === 'idle'
+    );
+    const error = $derived(
+        fetchMachine.state.status === 'error' ? fetchMachine.state.message : null
+    );
 
     const noticePosts = $derived(
         (prefetchData as NewsPost[] | undefined) ?? indexWidgetsStore.newsTabs
@@ -153,36 +186,18 @@
         (fetchedPosts as TradeLayoutPost[]).filter((p) => !uiSettingsStore.isMuted(p.title ?? ''))
     );
 
-    // 기존 스토어 데이터가 아닌 경우 API에서 fetch
+    // 기존 스토어 데이터가 아닌 경우 API에서 fetch.
+    // useNativeComponent / boardId / sortBy / count / filter 가 변하면 머신을 다시 load.
     $effect(() => {
+        // 재실행 트리거를 위해 의존성을 명시적으로 읽는다.
+        void boardId;
+        void sortBy;
+        void count;
+        void filter;
         if (!useNativeComponent) {
-            fetchPosts();
+            void fetchMachine.load();
         }
     });
-
-    async function fetchPosts() {
-        loading = true;
-        error = null;
-        try {
-            const params = new URLSearchParams({
-                board: boardId,
-                sort: sortBy,
-                count: String(count),
-                filter
-            });
-            const res = await fetch(`/api/widgets/post-list/data?${params}`);
-            if (res.ok) {
-                const data = await res.json();
-                fetchedPosts = data.posts ?? [];
-            } else {
-                error = '데이터 로드 실패';
-            }
-        } catch (err) {
-            error = err instanceof Error ? err.message : '네트워크 오류';
-        } finally {
-            loading = false;
-        }
-    }
 </script>
 
 {#if useNativeComponent}
@@ -203,9 +218,11 @@
             <div class="text-muted-foreground text-sm">로딩 중...</div>
         </div>
     {:else if error}
-        <div class="flex items-center justify-center py-8">
-            <div class="text-sm text-red-600 dark:text-red-400">{error}</div>
-        </div>
+        <WidgetStateFallback
+            message={error}
+            onRetry={() => fetchMachine.retry()}
+            retrying={fetchMachine.state.status === 'loading'}
+        />
     {:else if layout === 'gallery'}
         <GalleryView posts={defaultPosts} {showTitle} {boardId} />
     {:else if layout === 'grid'}
