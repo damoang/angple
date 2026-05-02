@@ -1,0 +1,22 @@
+CREATE TABLE IF NOT EXISTS brickang_bricks (
+    id                  BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    building_id         INT UNSIGNED NOT NULL,
+    user_id             BIGINT UNSIGNED NOT NULL,
+    nickname            VARCHAR(50) NOT NULL,
+    message             VARCHAR(100) NULL,
+    brick_type_id       INT UNSIGNED NOT NULL,
+    color               VARCHAR(7) NULL,
+    position_x          INT NOT NULL,
+    position_y          INT NOT NULL,
+    position_z          INT NOT NULL,
+    placed_at           DATETIME(6) NOT NULL,
+    payment_order_id    BIGINT UNSIGNED NOT NULL,
+    created_at          DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    UNIQUE KEY uk_position (building_id, position_x, position_y, position_z),
+    KEY ix_user (user_id),
+    KEY ix_building (building_id),
+    KEY ix_payment (payment_order_id),
+    KEY ix_placed (placed_at),
+    CONSTRAINT fk_bricks_building   FOREIGN KEY (building_id)   REFERENCES brickang_buildings(id),
+    CONSTRAINT fk_bricks_brick_type FOREIGN KEY (brick_type_id) REFERENCES brickang_brick_types(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
