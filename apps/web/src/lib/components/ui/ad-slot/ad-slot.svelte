@@ -29,6 +29,7 @@
     } from '$lib/ads/prebid-config.js';
     import { runPrebidAuction } from '$lib/ads/prebid-loader.js';
     import { ensureGAMPreload } from './ad-slot-registry.js';
+    import { trackAdEvent, isAdSdkBlocked } from '$lib/services/ad-telemetry.js';
     import { page } from '$app/stores';
 
     /**
@@ -282,6 +283,13 @@
             watchdogTimer = setTimeout(() => {
                 watchdogTimer = null;
                 if (detached || isLoaded) return;
+                // P1-C (5/22 미팅 직결): GAM/AdFit SDK 둘 다 부재 → 광고 차단기 추정
+                if (isAdSdkBlocked()) {
+                    trackAdEvent('ad_sdk_blocked', {
+                        position,
+                        reason: 'no_googletag_no_adfit'
+                    });
+                }
                 handleRender(true);
             }, AD_WATCHDOG_MS);
         }
@@ -330,7 +338,7 @@
         style:transition="min-height 0ms"
     >
         {#if showAdfit && adfitUnit}
-            <AdfitSlot unit={adfitUnit} id={slotId || position} />
+            <AdfitSlot unit={adfitUnit} id={slotId || position} {position} />
         {/if}
         {#if slotId}
             <div
