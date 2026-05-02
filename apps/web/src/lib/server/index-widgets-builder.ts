@@ -95,29 +95,49 @@ export async function buildIndexWidgets(_backendUrl: string): Promise<IndexWidge
     }
 }
 
+/** 홈 SSR 위젯 백엔드 fetch timeout — 빠르게 fail-fast 해야 홈이 깨지지 않음 */
+const WIDGET_FETCH_TIMEOUT_MS = 3000;
+
 /**
  * 단일 게시판 데이터 조회 (post-list 위젯용)
+ *
+ * 백엔드 hang 시 3s 후 AbortSignal 로 강제 중단 → SSR pending closure heap retain 방지.
+ * 실패 시 빈 배열 fallback — 홈 페이지가 한 위젯 때문에 깨지지 않도록.
  */
 export async function fetchBoardPostsForWidget(
     backendUrl: string,
     boardId: string,
     limit: number
 ): Promise<BackendPost[]> {
-    const response = await fetch(
-        `${backendUrl}/api/v1/boards/${boardId}/posts?limit=${limit}&page=1`,
-        {
-            headers: {
-                Accept: 'application/json',
-                'User-Agent': 'Angple-Web-SSR/1.0'
+    try {
+        const response = await fetch(
+            `${backendUrl}/api/v1/boards/${boardId}/posts?limit=${limit}&page=1`,
+            {
+                headers: {
+                    Accept: 'application/json',
+                    'User-Agent': 'Angple-Web-SSR/1.0'
+                },
+                signal: AbortSignal.timeout(WIDGET_FETCH_TIMEOUT_MS)
             }
-        }
-    );
+        );
 
-    if (!response.ok) {
-        console.error('[index-widgets-builder]', boardId, 'API error:', response.status);
+        if (!response.ok) {
+            console.error('[index-widgets-builder]', boardId, 'API error:', response.status);
+            return [];
+        }
+
+        const result: BackendBoardResponse = await response.json();
+        return result.data ?? [];
+    } catch (err) {
+        // timeout 또는 network 에러 — 홈이 깨지지 않도록 빈 결과 fallback
+        const isTimeout =
+            err instanceof Error && (err.name === 'AbortError' || err.name === 'TimeoutError');
+        console.error(
+            '[index-widgets-builder]',
+            boardId,
+            isTimeout ? 'fetch timeout' : 'fetch failed:',
+            err
+        );
         return [];
     }
-
-    const result: BackendBoardResponse = await response.json();
-    return result.data ?? [];
 }
