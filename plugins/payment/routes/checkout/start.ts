@@ -24,7 +24,7 @@ export async function POST(event: RequestEvent): Promise<Response> {
         throw error(400, 'missing required fields');
     }
 
-    const siteId = resolveSiteId(event.url.host);
+    const siteId = resolveSiteId(event);
     const config = await getProviderConfig(siteId, body.provider);
     if (!config) throw error(400, `provider not configured: ${body.provider}`);
 

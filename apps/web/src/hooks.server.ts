@@ -15,6 +15,7 @@ import { parseUserBasicCookie } from '$lib/server/auth/user-basic.js';
 import { loadAllPluginServerHooks } from '$lib/server/plugin-server-loader.js';
 import { CompositeSiteResolver } from '$lib/server/site-resolver/composite.js';
 import { ConfigSiteResolver } from '$lib/server/site-resolver/config.js';
+import { DbSiteResolver } from '$lib/server/site-resolver/db.js';
 
 // Phase 1A (open-core separation) — plugin server hooks 로드.
 // Fire-and-forget: load 실패해도 앱 전체가 멈추지 않음.
@@ -25,17 +26,17 @@ void loadAllPluginServerHooks();
 // 부팅 시 1회 ConfigSiteResolver 가 host-overrides JSON 로드. miss 시 null → 기본 테마.
 // USE_SITE_RESOLVER=false 면 resolver bypass.
 //
-// 경로 우선순위 (각 ConfigSiteResolver 가 ENOENT 시 silent skip → CompositeSiteResolver 가 다음 사용):
-//   1. env SITE_OVERRIDES_PATH (배포/테스트 환경 명시 override)
-//   2. process.cwd() + '/.angple/site-overrides.json' (install.sh 가 angple core 에 배치)
+// 경로 우선순위 (각 resolver 가 null 반환 시 CompositeSiteResolver 가 다음 사용):
+//   1. env SITE_OVERRIDES_PATH (배포/테스트 환경 명시 override) — JSON
+//   2. process.cwd() + '/.angple/site-overrides.json' (install.sh 가 angple core 에 배치) — JSON
+//   3. DbSiteResolver (#1224) — angple_sites 테이블 조회
 //
-// open-core 코어에 환경별 hardcode 0 — 운영자가 자체 site-overrides 배치 가능.
+// open-core 코어에 환경별 hardcode 0 — 운영자가 자체 site-overrides 배치 또는 angple_sites 사용.
 const siteResolverPaths: string[] = [];
 if (env.SITE_OVERRIDES_PATH) siteResolverPaths.push(env.SITE_OVERRIDES_PATH);
 siteResolverPaths.push(`${process.cwd()}/.angple/site-overrides.json`);
-const siteResolver = new CompositeSiteResolver(
-    siteResolverPaths.map((p) => new ConfigSiteResolver(p))
-);
+const configResolvers = siteResolverPaths.map((p) => new ConfigSiteResolver(p));
+const siteResolver = new CompositeSiteResolver([...configResolvers, new DbSiteResolver()]);
 void siteResolver.resolve('').catch(() => {}); // warm-up: load() 강제 실행
 
 import { checkRateLimit, recordAttempt } from '$lib/server/rate-limit.js';
