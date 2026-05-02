@@ -16,7 +16,9 @@ import { readPool } from '../../server/db.js';
 import { getBrickTypeBySlug } from '../../server/brick-types.js';
 import { getBuildingById } from '../../server/buildings.js';
 import { requireUser } from '../../server/auth.js';
-import type { BrickTypeSlug } from '../../types/index.js';
+import { getLockById } from '../../server/locks.js';
+import { pickStrategy } from '../../server/placement.js';
+import type { BrickPosition, BrickTypeSlug } from '../../types/index.js';
 
 const DEFAULT_ANONYMOUS_DAILY_CAP = 100;
 
@@ -62,6 +64,10 @@ interface StartRequestBody {
     provider: 'toss' | 'naver' | 'paypal';
     returnUrl: string;
     cancelUrl: string;
+    /** Phase 2: 자유 배치(silver/gold/diamond) 시 사전 acquire 한 lock_id */
+    lock_id?: number | null;
+    /** Phase 2: 자유 배치 좌표 — lock 의 좌표와 일치해야 함 */
+    position?: BrickPosition | null;
 }
 
 function generateOrderUid(): string {
@@ -128,6 +134,40 @@ export async function POST(event: RequestEvent): Promise<Response> {
         throw error(400, 'PayPal not available for this brick type');
     }
 
+    // Phase 2: 자유 배치 등급은 lock_id + position 필수, 자동 배치 등급은 사용 금지
+    const picked = pickStrategy(brickType.slug);
+    let lockId: number | null = null;
+    let position: BrickPosition | null = null;
+    if (picked.kind === 'free') {
+        if (quantity !== 1) {
+            throw error(400, 'free placement supports quantity=1 only');
+        }
+        if (!body.lock_id || !body.position) {
+            throw error(400, 'lock_id and position required for free placement');
+        }
+        const lock = await getLockById(body.lock_id);
+        if (!lock) throw error(404, 'lock not found');
+        if (lock.userId !== user.userId) throw error(403, 'lock not owner');
+        if (lock.buildingId !== body.building_id) throw error(400, 'lock building mismatch');
+        if (
+            lock.position.x !== body.position.x ||
+            lock.position.y !== body.position.y ||
+            lock.position.z !== body.position.z
+        ) {
+            throw error(400, 'lock position mismatch');
+        }
+        if (lock.expiresAt.getTime() < Date.now()) {
+            throw error(410, 'lock expired');
+        }
+        lockId = lock.id;
+        position = lock.position;
+    } else {
+        // 자동 배치 등급은 lock 사용 금지 (오용 방지)
+        if (body.lock_id || body.position) {
+            throw error(400, 'this brick_type uses auto placement; remove lock_id/position');
+        }
+    }
+
     const orderUid = generateOrderUid();
     const amount = brickType.priceKrw * quantity;
     const currency = body.provider === 'paypal' ? 'USD' : 'KRW';
@@ -140,7 +180,9 @@ export async function POST(event: RequestEvent): Promise<Response> {
         message,
         building_id: body.building_id,
         is_anonymous: brickType.isAnonymous,
-        nickname_snapshot: nicknameSnapshot
+        nickname_snapshot: nicknameSnapshot,
+        lock_id: lockId,
+        position
     };
 
     // plugins/payment/checkout/start 위임 호출 (서버 내부 fetch)

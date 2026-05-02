@@ -154,3 +154,162 @@ export function findNextPositions(
     }
     return result;
 }
+
+// ─────────────────────────────────────────────────────────────────────
+// Phase 2: 자유 배치 전략
+// ─────────────────────────────────────────────────────────────────────
+
+import type { BrickTypeSlug } from '../types/index.js';
+
+/**
+ * 좌표 기반 검증 전략 (자유 배치).
+ *
+ * 사용자가 클릭한 좌표가 유효한지 검증한다. 유효하지 않으면 string 으로 사유 반환,
+ * 유효하면 null 반환.
+ */
+export interface FreePlacementStrategy {
+    /**
+     * @param building   현재 건축물
+     * @param pos        사용자가 지정한 좌표
+     * @param occupied   이미 점유된 좌표 세트
+     * @returns null = 통과, string = 거절 사유
+     */
+    validate(building: Building, pos: BrickPosition, occupied: Set<string>): string | null;
+}
+
+/**
+ * 좌표가 building 의 dimension 내부인지.
+ */
+function inBoundingBox(building: Building, pos: BrickPosition): boolean {
+    return (
+        pos.x >= 0 &&
+        pos.x < building.dimensionX &&
+        pos.y >= 0 &&
+        pos.y < building.dimensionY &&
+        pos.z >= 0 &&
+        pos.z < building.dimensionZ
+    );
+}
+
+/**
+ * 가장 위 미완성 층(active layer)을 반환한다. 모두 완성됐으면 dimensionY-1 반환.
+ *
+ * 활성 층 계산 규칙:
+ *   - currentBricks 가 0 이면 → y=0
+ *   - 누적 슬롯 카운트가 currentBricks 를 초과하는 첫 번째 층이 active
+ */
+export function activeLayer(building: Building): number {
+    const dimX = building.dimensionX;
+    const dimZ = building.dimensionZ;
+    const dimY = building.dimensionY;
+    let cumulative = 0;
+    for (let y = 0; y < dimY; y++) {
+        const f = getFloorConfig(building.blueprintData, y);
+        const slots = generateFloorSlots(dimX, dimZ, f?.holes ?? []);
+        cumulative += slots.length;
+        if (building.currentBricks < cumulative) {
+            return y;
+        }
+    }
+    return dimY - 1;
+}
+
+/**
+ * 6 방향 인접 1면 지지 검증 (뜬 벽돌 금지).
+ *
+ *  - y === 0  → 바닥에 닿음 → OK
+ *  - 6 방향 (+/-x, +/-y, +/-z) 중 1개라도 occupied 면 OK
+ *  - 그 외 → reject
+ */
+export function hasSupport(pos: BrickPosition, occupied: Set<string>): boolean {
+    if (pos.y === 0) return true;
+    const neighbors: BrickPosition[] = [
+        { x: pos.x + 1, y: pos.y, z: pos.z },
+        { x: pos.x - 1, y: pos.y, z: pos.z },
+        { x: pos.x, y: pos.y + 1, z: pos.z },
+        { x: pos.x, y: pos.y - 1, z: pos.z },
+        { x: pos.x, y: pos.y, z: pos.z + 1 },
+        { x: pos.x, y: pos.y, z: pos.z - 1 }
+    ];
+    return neighbors.some((n) => occupied.has(posKey(n.x, n.y, n.z)));
+}
+
+/**
+ * 좌표가 hole 인지 (배치 불가).
+ */
+function isHolePosition(building: Building, pos: BrickPosition): boolean {
+    const f = getFloorConfig(building.blueprintData, pos.y);
+    if (!f?.holes) return false;
+    return f.holes.some(
+        (h) => pos.x >= h.x_start && pos.x <= h.x_end && pos.z >= h.z && pos.z <= (h.z_end ?? h.z)
+    );
+}
+
+/**
+ * 은 등급: 활성 층 안에서만 자유 배치. 인접 1면 지지 필수.
+ */
+export class LayerFreeStrategy implements FreePlacementStrategy {
+    validate(building: Building, pos: BrickPosition, occupied: Set<string>): string | null {
+        if (!inBoundingBox(building, pos)) return 'position out of bounds';
+        if (isHolePosition(building, pos)) return 'position is a hole';
+        if (occupied.has(posKey(pos.x, pos.y, pos.z))) return 'position already occupied';
+        const active = activeLayer(building);
+        if (pos.y !== active) return `position must be on active layer (y=${active})`;
+        if (!hasSupport(pos, occupied)) return 'position has no adjacent support (floating brick)';
+        return null;
+    }
+}
+
+/**
+ * 금/다이아 등급: 건물 bbox 내 자유 배치. 인접 1면 지지 필수.
+ */
+export class BboxFreeStrategy implements FreePlacementStrategy {
+    validate(building: Building, pos: BrickPosition, occupied: Set<string>): string | null {
+        if (!inBoundingBox(building, pos)) return 'position out of bounds';
+        if (isHolePosition(building, pos)) return 'position is a hole';
+        if (occupied.has(posKey(pos.x, pos.y, pos.z))) return 'position already occupied';
+        if (!hasSupport(pos, occupied)) return 'position has no adjacent support (floating brick)';
+        return null;
+    }
+}
+
+/**
+ * 등급별 strategy 선택.
+ *
+ *   anonymous, normal → WallFirstStrategy (auto 배치)
+ *   silver            → LayerFreeStrategy (활성 층 내 자유)
+ *   gold, diamond     → BboxFreeStrategy (전체 bbox 자유)
+ */
+export type AnyStrategy =
+    | { kind: 'auto'; strategy: PlacementStrategy }
+    | { kind: 'free'; strategy: FreePlacementStrategy };
+
+export function pickStrategy(slug: BrickTypeSlug): AnyStrategy {
+    switch (slug) {
+        case 'silver':
+            return { kind: 'free', strategy: new LayerFreeStrategy() };
+        case 'gold':
+        case 'diamond':
+            return { kind: 'free', strategy: new BboxFreeStrategy() };
+        case 'anonymous':
+        case 'normal':
+        default:
+            return { kind: 'auto', strategy: new WallFirstStrategy() };
+    }
+}
+
+/**
+ * 자유 배치 검증 헬퍼 — slug + position 조합으로 1회 검증.
+ *
+ * @returns null = 통과, string = 사유
+ */
+export function validateFreePosition(
+    slug: BrickTypeSlug,
+    building: Building,
+    pos: BrickPosition,
+    occupied: Set<string>
+): string | null {
+    const picked = pickStrategy(slug);
+    if (picked.kind !== 'free') return 'brick_type does not support free placement';
+    return picked.strategy.validate(building, pos, occupied);
+}

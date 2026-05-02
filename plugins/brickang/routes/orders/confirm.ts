@@ -23,10 +23,11 @@ import {
     getOccupiedSet
 } from '../../server/buildings.js';
 import { getBrickTypeBySlug } from '../../server/brick-types.js';
-import { findNextPositions, posKey, WallFirstStrategy } from '../../server/placement.js';
+import { posKey, WallFirstStrategy, pickStrategy } from '../../server/placement.js';
+import { consumeLockInTx } from '../../server/locks.js';
 import { upsertUserStats, checkAndRecordMilestones } from '../../server/stats-aggregator.js';
 import { invalidateBuildingSnapshot, pushRecentBrick } from '../../server/snapshot.js';
-import type { BrickangOrderMetadata } from '../../types/index.js';
+import type { BrickangOrderMetadata, BrickPosition } from '../../types/index.js';
 
 interface ConfirmRequestBody {
     order_uid: string;
@@ -118,6 +119,7 @@ export async function POST(event: RequestEvent): Promise<Response> {
         type: string;
         nickname: string;
     }> = [];
+    let lockFallback = false;
 
     try {
         await conn.beginTransaction();
@@ -129,12 +131,40 @@ export async function POST(event: RequestEvent): Promise<Response> {
         // race-safe placement: building.currentBricks 는 FOR UPDATE 로 잠긴 최신값
         const occupied = await getOccupiedSet(buildingId);
         let cursor = building.currentBricks;
-        const strategy = new WallFirstStrategy();
+        const autoStrategy = new WallFirstStrategy();
+
+        // Phase 2: 자유 배치 lock 처리. lock_id 가 있으면 그 좌표 사용 + 행 삭제.
+        // lock 만료/없음 → 자동 배치(WallFirst) 로 fallback (결제는 이미 완료되어 환불 회피).
+        const picked = pickStrategy(metadata.brick_type_slug);
+        let lockedPosition: BrickPosition | null = null;
+        if (picked.kind === 'free' && metadata.lock_id) {
+            const lockReason = await consumeLockInTx(conn, user.userId, metadata.lock_id);
+            if (lockReason) {
+                console.warn(
+                    `[brickang/confirm] lock fallback for order=${body.order_uid} reason=${lockReason}`
+                );
+                lockFallback = true;
+            } else if (metadata.position) {
+                // lock 행 삭제 OK + 좌표 점유 검증 (race: 누가 같은 자리 INSERT 했을 가능성 차단)
+                const key = posKey(metadata.position.x, metadata.position.y, metadata.position.z);
+                if (occupied.has(key)) {
+                    lockFallback = true;
+                    console.warn(`[brickang/confirm] lock position already occupied — fallback`);
+                } else {
+                    lockedPosition = metadata.position;
+                }
+            }
+        }
 
         for (let i = 0; i < quantity; i++) {
             let inserted = false;
             for (let attempt = 0; attempt < MAX_INSERT_RETRY && !inserted; attempt++) {
-                const pos = strategy.nextPosition(building, occupied, cursor + attempt);
+                let pos: BrickPosition;
+                if (lockedPosition && i === 0 && attempt === 0) {
+                    pos = lockedPosition;
+                } else {
+                    pos = autoStrategy.nextPosition(building, occupied, cursor + attempt);
+                }
                 try {
                     const [result] = await conn.query<ResultSetHeader>(
                         `INSERT INTO brickang_bricks
@@ -169,6 +199,11 @@ export async function POST(event: RequestEvent): Promise<Response> {
                     if (e.code === 'ER_DUP_ENTRY') {
                         // race: 다음 슬롯으로 이동
                         occupied.add(posKey(pos.x, pos.y, pos.z));
+                        // lock 좌표가 race 충돌 시 즉시 자동 fallback 으로 전환
+                        if (lockedPosition && i === 0) {
+                            lockedPosition = null;
+                            lockFallback = true;
+                        }
                         continue;
                     }
                     throw err;
@@ -178,7 +213,6 @@ export async function POST(event: RequestEvent): Promise<Response> {
                 throw error(500, 'placement retry exhausted (UNIQUE conflict)');
             }
         }
-
         // 6) buildings.current_bricks 증가
         await incrementCurrentBricks(conn, buildingId, quantity);
 
@@ -217,5 +251,5 @@ export async function POST(event: RequestEvent): Promise<Response> {
         });
     }
 
-    return json({ success: true, bricks: insertedBricks });
+    return json({ success: true, bricks: insertedBricks, lock_fallback: lockFallback });
 }
