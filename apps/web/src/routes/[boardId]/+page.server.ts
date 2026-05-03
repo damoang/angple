@@ -575,10 +575,14 @@ export const load: PageServerLoad = async ({
             }
         }
 
-        // 축하메시지(message) 게시판: 익명 글 프로필 정보 숨김
-        // PublishToGnuboard()에서 익명 시 wr_name=""으로 설정 → author가 빈 문자열
+        // 축하메시지(message) 게시판:
+        //   1) soft-deleted(wr_deleted_at) 글 완전 숨김 — 프라이빗 영역이라 placeholder 미표시
+        //   2) 익명 글 프로필 정보 숨김 (PublishToGnuboard에서 익명 시 wr_name=""로 author가 빈 문자열)
+        // 페이지네이션 total은 백엔드 값을 그대로 두므로 페이지마다 표시 글 수가 1~2개 적을 수 있음 (허용)
         if (boardId === 'message') {
+            posts = posts.filter((p) => !p.deleted_at);
             for (const p of allPosts) {
+                if (p.deleted_at) continue;
                 if (!p.author) {
                     p.author_image = undefined;
                     p.author_image_updated_at = undefined;
