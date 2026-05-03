@@ -20,22 +20,43 @@
         showReset = true
     }: Props = $props();
 
-    // 검색 필드 옵션
+    // 검색 필드 옵션 — 기본/고급 분리
+    // 기본 5개: 모바일/PC 공통 노출 (UX 단순화)
+    // 고급 5개: 데스크톱-only 토글 펼침 시 노출 (닉네임/아이디 분리, 댓글 내용)
     // author / comment_author: 닉네임+아이디 모두 매칭 (legacy 호환)
     // *_nick: 닉네임만, *_id: 아이디만 (정확 매칭, false-positive 차단)
-    const searchFieldOptions: { value: SearchField; label: string }[] = [
+    const basicFieldOptions: { value: SearchField; label: string }[] = [
         { value: 'title_content', label: '제목+내용' },
         { value: 'title', label: '제목' },
         { value: 'content', label: '내용' },
-        { value: 'author', label: '작성자(모두)' },
+        { value: 'author', label: '작성자' },
+        { value: 'comment_author', label: '댓글 작성자' }
+    ];
+
+    const advancedFieldOptions: { value: SearchField; label: string }[] = [
         { value: 'author_nick', label: '작성자(닉네임)' },
         { value: 'author_id', label: '작성자(아이디)' },
-        { value: 'comment', label: '댓글 내용' },
-        { value: 'comment_author', label: '댓글 작성자(모두)' },
-        { value: 'comment_nick', label: '댓글 작성자(닉네임)' },
-        { value: 'comment_id', label: '댓글 작성자(아이디)' },
-        { value: 'google', label: 'Google' }
+        { value: 'comment_nick', label: '댓글(닉네임)' },
+        { value: 'comment_id', label: '댓글(아이디)' },
+        { value: 'comment', label: '댓글 내용' }
     ];
+
+    // Google 검색은 별도 옵션 (기본 노출 유지)
+    const googleFieldOption: { value: SearchField; label: string } = {
+        value: 'google',
+        label: 'Google'
+    };
+
+    // 전체 옵션 (라벨 조회용 — URL ?sfl=author_id 같은 직접 입력 호환)
+    const allFieldOptions: { value: SearchField; label: string }[] = [
+        ...basicFieldOptions,
+        ...advancedFieldOptions,
+        googleFieldOption
+    ];
+
+    // 데스크톱-only 고급 모드 토글
+    // URL이 고급 필드를 가리키면 자동으로 펼침 (북마크/링크 호환)
+    let showAdvanced = $state(false);
 
     // URL에서 현재 검색 파라미터 가져오기
     const currentField = $derived(
@@ -51,6 +72,13 @@
     $effect(() => {
         searchField = currentField;
         searchQuery = currentQuery;
+    });
+
+    // URL이 고급 필드를 가리키면 데스크톱에서 자동 펼침 (북마크/외부링크 호환)
+    $effect(() => {
+        if (advancedFieldOptions.some((opt) => opt.value === currentField)) {
+            showAdvanced = true;
+        }
     });
 
     // 검색 실행
@@ -111,21 +139,39 @@
         goto(url.pathname + url.search);
     }
 
-    // 현재 선택된 필드의 라벨
+    // 현재 선택된 필드의 라벨 (전체 옵션에서 조회 — 직접 URL 입력 호환)
     const selectedFieldLabel = $derived(
-        searchFieldOptions.find((opt) => opt.value === searchField)?.label || '제목+내용'
+        allFieldOptions.find((opt) => opt.value === searchField)?.label || '제목+내용'
     );
+
+    // 데스크톱 select 노출 옵션 (기본 + 고급 토글 + Google)
+    const desktopVisibleOptions = $derived([
+        ...basicFieldOptions,
+        ...(showAdvanced ? advancedFieldOptions : []),
+        googleFieldOption
+    ]);
+
+    // 모바일 select 노출 옵션 (기본 5개 + Google)
+    // 단, 현재 sfl이 고급 필드면 라벨 표시를 위해 해당 옵션 추가 (외부 링크 호환)
+    const mobileVisibleOptions = $derived.by(() => {
+        const advancedMatch = advancedFieldOptions.find((opt) => opt.value === searchField);
+        if (advancedMatch) {
+            // 현재 선택된 고급 필드를 모바일에도 노출 (URL 직접 입력 호환)
+            return [...basicFieldOptions, advancedMatch, googleFieldOption];
+        }
+        return [...basicFieldOptions, googleFieldOption];
+    });
 </script>
 
 <form onsubmit={handleSearch} class="flex items-center gap-2">
     <!-- 검색 필드 선택: 모바일=네이티브 select, 데스크톱=커스텀 Select -->
-    <!-- 모바일 네이티브 select (md 미만) -->
+    <!-- 모바일 네이티브 select (md 미만) — 기본 5개 + Google (현재 선택된 고급 필드는 노출 유지) -->
     <div class="relative shrink-0 md:hidden">
         <select
             class="border-input bg-background text-foreground focus:ring-ring h-9 w-full appearance-none rounded-md border px-2 pr-7 text-sm focus:outline-none focus:ring-1"
             bind:value={searchField}
         >
-            {#each searchFieldOptions as option (option.value)}
+            {#each mobileVisibleOptions as option (option.value)}
                 <option value={option.value}>{option.label}</option>
             {/each}
         </select>
@@ -139,19 +185,30 @@
             <path d="M6 9l6 6 6-6" />
         </svg>
     </div>
-    <!-- 데스크톱 커스텀 Select (md 이상) -->
+    <!-- 데스크톱 커스텀 Select (md 이상) — 기본 5개 + Google, 고급 토글 시 5개 추가 -->
     <div class="hidden md:block md:shrink-0">
         <Select.Root type="single" value={searchField} onValueChange={handleFieldChange}>
             <Select.Trigger class="w-[120px]">
                 {selectedFieldLabel}
             </Select.Trigger>
             <Select.Content>
-                {#each searchFieldOptions as option (option.value)}
+                {#each desktopVisibleOptions as option (option.value)}
                     <Select.Item value={option.value}>{option.label}</Select.Item>
                 {/each}
             </Select.Content>
         </Select.Root>
     </div>
+
+    <!-- 데스크톱-only 고급 토글 (md 이상) — 모바일은 노출 안 함 -->
+    <button
+        type="button"
+        onclick={() => (showAdvanced = !showAdvanced)}
+        class="border-input bg-background text-muted-foreground hover:bg-accent hover:text-foreground hidden h-9 shrink-0 items-center rounded-md border px-2 text-xs transition-colors md:inline-flex"
+        aria-expanded={showAdvanced}
+        title="작성자/댓글 닉네임·아이디 분리 검색"
+    >
+        고급 {showAdvanced ? '▴' : '▾'}
+    </button>
 
     <!-- 검색어 입력 -->
     <div class="relative min-w-0 flex-1">
