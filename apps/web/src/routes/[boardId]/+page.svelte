@@ -187,21 +187,21 @@
     const listPage = $derived(Number($page.url.searchParams.get('page')) || 1);
 
     // #12012: 보드별 "내가 쓴 글/댓글" 빠른 필터
-    // 백엔드 ?sfl=author|comment_author&stx={mb_id} 재사용 (Sphinx @(mb_id,wr_name) 매칭)
+    // 4단 분리 후: ?sfl=author_id|comment_id&stx={mb_id} (mb_id 정확 매칭, false-positive 차단)
     const currentSfl = $derived($page.url.searchParams.get('sfl') || '');
     const currentStx = $derived($page.url.searchParams.get('stx') || '');
     const isMyPostsActive = $derived(
         authStore.isAuthenticated &&
-            currentSfl === 'author' &&
+            currentSfl === 'author_id' &&
             currentStx === (authStore.user?.mb_id ?? '')
     );
     const isMyCommentsActive = $derived(
         authStore.isAuthenticated &&
-            currentSfl === 'comment_author' &&
+            currentSfl === 'comment_id' &&
             currentStx === (authStore.user?.mb_id ?? '')
     );
 
-    function applyMyFilter(sfl: 'author' | 'comment_author'): void {
+    function applyMyFilter(sfl: 'author_id' | 'comment_id'): void {
         const mbId = authStore.user?.mb_id;
         if (!mbId) return;
         const url = new URL(window.location.href);
@@ -904,7 +904,7 @@
                         size="sm"
                         class="h-8"
                         onclick={() =>
-                            isMyPostsActive ? clearMyFilter() : applyMyFilter('author')}
+                            isMyPostsActive ? clearMyFilter() : applyMyFilter('author_id')}
                         title="이 게시판에서 내가 쓴 글만 보기"
                     >
                         <User class="mr-1.5 h-3.5 w-3.5" />
@@ -915,7 +915,7 @@
                         size="sm"
                         class="h-8"
                         onclick={() =>
-                            isMyCommentsActive ? clearMyFilter() : applyMyFilter('comment_author')}
+                            isMyCommentsActive ? clearMyFilter() : applyMyFilter('comment_id')}
                         title="이 게시판에서 내가 쓴 댓글만 보기"
                     >
                         <MessageSquare class="mr-1.5 h-3.5 w-3.5" />

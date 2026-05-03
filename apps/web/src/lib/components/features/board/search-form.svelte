@@ -21,13 +21,19 @@
     }: Props = $props();
 
     // 검색 필드 옵션
+    // author / comment_author: 닉네임+아이디 모두 매칭 (legacy 호환)
+    // *_nick: 닉네임만, *_id: 아이디만 (정확 매칭, false-positive 차단)
     const searchFieldOptions: { value: SearchField; label: string }[] = [
         { value: 'title_content', label: '제목+내용' },
         { value: 'title', label: '제목' },
         { value: 'content', label: '내용' },
-        { value: 'author', label: '작성자' },
-        { value: 'comment', label: '댓글' },
-        { value: 'comment_author', label: '작성자(댓글)' },
+        { value: 'author', label: '작성자(모두)' },
+        { value: 'author_nick', label: '작성자(닉네임)' },
+        { value: 'author_id', label: '작성자(아이디)' },
+        { value: 'comment', label: '댓글 내용' },
+        { value: 'comment_author', label: '댓글 작성자(모두)' },
+        { value: 'comment_nick', label: '댓글 작성자(닉네임)' },
+        { value: 'comment_id', label: '댓글 작성자(아이디)' },
         { value: 'google', label: 'Google' }
     ];
 
