@@ -47,7 +47,8 @@ process.on('SIGUSR2', () => {
  * HEAP_WATCH_DIR 미설정 시 비활성 (feature flag, dev/test 환경 영향 0).
  * 12h cooldown — pod 당 반복 fire 방지.
  */
-const HEAP_WATCH_INTERVAL_MS = 30_000;
+// Fast OOM spikes can cross the threshold and hit SIGKILL between 30s polls.
+const HEAP_WATCH_INTERVAL_MS = 5_000;
 const HEAP_RSS_THRESHOLD = parseInt(process.env.HEAP_RSS_THRESHOLD_MB || '1280', 10) * 1024 * 1024;
 const HEAP_HEAP_THRESHOLD = parseInt(process.env.HEAP_HEAP_THRESHOLD_MB || '935', 10) * 1024 * 1024;
 const HEAP_WATCH_COOLDOWN_MS = 12 * 60 * 60 * 1000;
