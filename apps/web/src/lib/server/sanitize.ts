@@ -4,7 +4,6 @@
  * isomorphic-dompurify 사용 — SSR 환경에서 JSDOM 기반 동작
  */
 import { dompurify as DOMPurify } from '$lib/utils/dompurify.js';
-import { filterUnsafeStyles } from '$lib/utils/safe-css.js';
 
 /**
  * URL에서 도메인 추출 (프로토콜, www, 경로 제거)
@@ -65,11 +64,6 @@ export function isLinkDomainMatch(href: string, text: string): boolean {
 
     return hrefRoot === textRoot;
 }
-
-// CSS 필터 훅 등록 — style 속성에서 위험한 CSS 속성 제거
-DOMPurify.addHook('afterSanitizeAttributes', (node) => {
-    filterUnsafeStyles(node as unknown as Element);
-});
 
 /** 허용 iframe 도메인 패턴 */
 const ALLOWED_IFRAME_REGEX =

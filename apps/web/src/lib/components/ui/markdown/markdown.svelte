@@ -9,17 +9,11 @@
     import { transformEscapedMedia } from '$lib/utils/content-transform';
     import { processContent as processEmbeds } from '$lib/plugins/auto-embed/embedder.js';
     import { attachLightbox } from '$lib/components/ui/image-lightbox/index.js';
-    import { filterUnsafeStyles } from '$lib/utils/safe-css.js';
     import {
         buildThumbnailSrcSet,
         isTransformableMediaImage,
         toThumbnailUrl
     } from '$lib/utils/thumbnail-url.js';
-
-    // CSS 필터 훅 등록 — style 속성에서 위험한 CSS 속성 제거
-    DOMPurify.addHook('afterSanitizeAttributes', (node) => {
-        filterUnsafeStyles(node as unknown as Element);
-    });
 
     interface Props {
         content: string;
