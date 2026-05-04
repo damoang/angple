@@ -1,6 +1,6 @@
 import type { RowDataPacket } from 'mysql2/promise';
 import { pool } from '$lib/server/db';
-import { TieredCache } from '$lib/server/cache';
+import { createCache, TieredCache } from '$lib/server/cache';
 import type { SiteContext, SiteResolver } from './index.js';
 
 interface SiteRow extends RowDataPacket {
@@ -22,6 +22,19 @@ interface AliasRow extends RowDataPacket {
 }
 
 const cache = new TieredCache<SiteContext>('site:db', 60_000, 300, 200);
+const missCache = createCache<true>({ ttl: 60_000, maxSize: 2000 });
+const SCHEMA_RETRY_TTL_MS = 5 * 60_000;
+let schemaUnavailableUntil = 0;
+
+type ResolverDbError = Error & {
+    code?: string;
+    errno?: number | string;
+};
+
+function isMissingTableError(err: unknown): boolean {
+    const dbErr = err as ResolverDbError;
+    return dbErr?.code === 'ER_NO_SUCH_TABLE' || dbErr?.errno === 1146;
+}
 
 function rowToContext(row: SiteRow): SiteContext {
     let keywords: string[] | undefined;
@@ -76,15 +89,37 @@ async function lookupByHost(host: string): Promise<SiteContext | null> {
 export class DbSiteResolver implements SiteResolver {
     async resolve(host: string): Promise<SiteContext | null> {
         const key = host.toLowerCase();
+        if (missCache.get(key)) return null;
+        if (Date.now() < schemaUnavailableUntil) return null;
+
         const cached = await cache.get(key);
         if (cached) return cached;
 
-        const found = await lookupByHost(key);
-        if (found) await cache.set(key, found);
-        return found;
+        try {
+            const found = await lookupByHost(key);
+            if (found) {
+                await cache.set(key, found);
+                return found;
+            }
+
+            missCache.set(key, true);
+            return null;
+        } catch (err) {
+            if (isMissingTableError(err)) {
+                schemaUnavailableUntil = Date.now() + SCHEMA_RETRY_TTL_MS;
+                console.error(
+                    `[site-resolver] angple_sites tables unavailable, bypassing DbSiteResolver for ${SCHEMA_RETRY_TTL_MS / 1000}s`,
+                    err
+                );
+                return null;
+            }
+
+            throw err;
+        }
     }
 }
 
 export async function invalidateDbSiteCache(host: string): Promise<void> {
     await cache.delete(host.toLowerCase());
+    missCache.delete(host.toLowerCase());
 }
