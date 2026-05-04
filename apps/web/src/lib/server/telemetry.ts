@@ -16,23 +16,53 @@ import { writeHeapSnapshot } from 'node:v8';
 import { ssrCache } from '$lib/server/ssr-cache.js';
 
 const OTEL_ENABLED = process.env.OTEL_ENABLED === 'true';
+const IS_PRODUCTION = process.env.NODE_ENV === 'production';
+const HEAP_SNAPSHOT_ALLOW_PROD = process.env.HEAP_SNAPSHOT_ALLOW_PROD === 'true';
+const HEAP_SNAPSHOT_SIGNAL_ENABLED =
+    process.env.HEAP_SNAPSHOT_SIGNAL_ENABLED === 'true' &&
+    (!IS_PRODUCTION || HEAP_SNAPSHOT_ALLOW_PROD);
+
+if (IS_PRODUCTION && process.env.NODE_OPTIONS?.includes('--heapsnapshot-near-heap-limit')) {
+    // eslint-disable-next-line no-console
+    console.error(
+        '[telemetry] --heapsnapshot-near-heap-limit is unsafe in production traffic pods; ' +
+            'use an isolated debug pod with a higher memory limit instead.'
+    );
+}
 
 /**
  * SIGUSR2 → heap snapshot 강제 캡처 (Tier 4 audit, 2026-04-28)
+ *
+ * 2026-05-04 incident follow-up:
+ * production traffic pod에서 heap snapshot 생성이 0-byte 파일과 cgroup OOMKill을 유발했다.
+ * 따라서 수동 signal snapshot도 기본 비활성이고, debug pod에서만 명시적으로 켠다.
+ *
+ * 활성화:
+ *   - HEAP_SNAPSHOT_SIGNAL_ENABLED=true
+ *   - production 에서는 추가로 HEAP_SNAPSHOT_ALLOW_PROD=true 필요
+ *
  * 사용: kubectl exec <pod> -- kill -USR2 1   →  /tmp/heap-{ts}.heapsnapshot
  * Chrome DevTools Memory > Load 로 분석. avg vs p95 spike pod 비교.
  */
-process.on('SIGUSR2', () => {
-    const filename = `/tmp/heap-${Date.now()}.heapsnapshot`;
-    try {
-        writeHeapSnapshot(filename);
-        // eslint-disable-next-line no-console
-        console.log(`[telemetry] heap snapshot saved: ${filename}`);
-    } catch (err) {
-        // eslint-disable-next-line no-console
-        console.error('[telemetry] heap snapshot error:', err);
-    }
-});
+if (HEAP_SNAPSHOT_SIGNAL_ENABLED) {
+    process.on('SIGUSR2', () => {
+        const filename = `/tmp/heap-${Date.now()}.heapsnapshot`;
+        try {
+            writeHeapSnapshot(filename);
+            // eslint-disable-next-line no-console
+            console.log(`[telemetry] heap snapshot saved: ${filename}`);
+        } catch (err) {
+            // eslint-disable-next-line no-console
+            console.error('[telemetry] heap snapshot error:', err);
+        }
+    });
+} else if (process.env.HEAP_SNAPSHOT_SIGNAL_ENABLED === 'true') {
+    // eslint-disable-next-line no-console
+    console.error(
+        '[telemetry] SIGUSR2 heap snapshot disabled in production without ' +
+            'HEAP_SNAPSHOT_ALLOW_PROD=true'
+    );
+}
 
 /**
  * Auto heap-watch — 4/30 OOM 사고 후속 (수동 SIGUSR2 영구 폐기, 1+ GB pod OOMKill 위험).
@@ -44,7 +74,13 @@ process.on('SIGUSR2', () => {
  * heapUsed 단독은 Buffer/external 누수 (4/24 gzip Buffer 누수 케이스) 못 잡음 — smoke test 검증.
  * 두 임계 OR 로 V8 JS heap 누수 + external memory 누수 모두 capture.
  *
- * HEAP_WATCH_DIR 미설정 시 비활성 (feature flag, dev/test 환경 영향 0).
+ * 활성화:
+ *   - HEAP_WATCH_ENABLED=true
+ *   - HEAP_WATCH_DIR 설정
+ *   - production 에서는 추가로 HEAP_SNAPSHOT_ALLOW_PROD=true 필요
+ *
+ * HEAP_WATCH_DIR 만으로는 활성화하지 않는다. 2026-05-04에 production traffic pod에서
+ * snapshot 생성 자체가 0-byte 파일과 cgroup OOMKill을 유발했다.
  * 12h cooldown — pod 당 반복 fire 방지.
  */
 // Fast OOM spikes can cross the threshold and hit SIGKILL between 30s polls.
@@ -53,9 +89,11 @@ const HEAP_RSS_THRESHOLD = parseInt(process.env.HEAP_RSS_THRESHOLD_MB || '1280',
 const HEAP_HEAP_THRESHOLD = parseInt(process.env.HEAP_HEAP_THRESHOLD_MB || '935', 10) * 1024 * 1024;
 const HEAP_WATCH_COOLDOWN_MS = 12 * 60 * 60 * 1000;
 const HEAP_WATCH_DIR = process.env.HEAP_WATCH_DIR;
+const HEAP_WATCH_ENABLED =
+    process.env.HEAP_WATCH_ENABLED === 'true' && (!IS_PRODUCTION || HEAP_SNAPSHOT_ALLOW_PROD);
 let lastHeapDumpAt = 0;
 
-if (HEAP_WATCH_DIR) {
+if (HEAP_WATCH_DIR && HEAP_WATCH_ENABLED) {
     const heapWatchTimer = setInterval(() => {
         const m = process.memoryUsage();
         const now = Date.now();
@@ -77,6 +115,13 @@ if (HEAP_WATCH_DIR) {
         }
     }, HEAP_WATCH_INTERVAL_MS);
     heapWatchTimer.unref?.();
+} else if (HEAP_WATCH_DIR) {
+    // eslint-disable-next-line no-console
+    console.error(
+        '[telemetry] auto heap-watch disabled; set HEAP_WATCH_ENABLED=true' +
+            (IS_PRODUCTION ? ' and HEAP_SNAPSHOT_ALLOW_PROD=true' : '') +
+            ' only on an isolated debug pod with enough memory headroom.'
+    );
 }
 
 if (OTEL_ENABLED) {
