@@ -179,7 +179,14 @@ export const load: PageServerLoad = async ({
     const category = url.searchParams.get('category') || null;
     const isSearching = Boolean(searchField && searchQuery);
     const isTagFiltering = Boolean(tag);
-    const includeNotices = !isSearching && page === 1;
+    const rawMessagePeriod = url.searchParams.get('period') || 'today';
+    const messagePeriod =
+        boardId === 'message' && !isSearching && !isTagFiltering && !category
+            ? rawMessagePeriod === 'month' || rawMessagePeriod === 'upcoming'
+                ? rawMessagePeriod
+                : 'today'
+            : null;
+    const includeNotices = !isSearching && page === 1 && !messagePeriod;
 
     if (isSearching && !locals.user) {
         return {
@@ -278,12 +285,15 @@ export const load: PageServerLoad = async ({
         if (useSummaryListResponse) {
             queryParams.set('summary', '1');
         }
+        if (messagePeriod) {
+            queryParams.set('celebration_period', messagePeriod);
+        }
         return `/api/v1/boards/${boardId}/posts?${queryParams.toString()}`;
     };
 
     // 비로그인 + 검색/태그 필터 없는 경우: 게시글 목록 캐시 사용 (15초)
     const usePostsCache = !locals.user && !isSearching && !isTagFiltering;
-    const postsCacheKey = `${boardId}:p${page}:l${limit}${category ? `:c${category}` : ''}${useSummaryListResponse ? ':summary1' : ''}`;
+    const postsCacheKey = `${boardId}:p${page}:l${limit}${category ? `:c${category}` : ''}${messagePeriod ? `:period:${messagePeriod}` : ''}${useSummaryListResponse ? ':summary1' : ''}`;
 
     if (usePostsCache) {
         const cachedPosts = postsCache.get(postsCacheKey);
@@ -575,14 +585,10 @@ export const load: PageServerLoad = async ({
             }
         }
 
-        // 축하메시지(message) 게시판:
-        //   1) soft-deleted(wr_deleted_at) 글 완전 숨김 — 프라이빗 영역이라 placeholder 미표시
-        //   2) 익명 글 프로필 정보 숨김 (PublishToGnuboard에서 익명 시 wr_name=""로 author가 빈 문자열)
-        // 페이지네이션 total은 백엔드 값을 그대로 두므로 페이지마다 표시 글 수가 1~2개 적을 수 있음 (허용)
+        // 축하메시지(message) 게시판: 익명 글 프로필 정보 숨김
+        // PublishToGnuboard()에서 익명 시 wr_name=""으로 설정 → author가 빈 문자열
         if (boardId === 'message') {
-            posts = posts.filter((p) => !p.deleted_at);
             for (const p of allPosts) {
-                if (p.deleted_at) continue;
                 if (!p.author) {
                     p.author_image = undefined;
                     p.author_image_updated_at = undefined;
