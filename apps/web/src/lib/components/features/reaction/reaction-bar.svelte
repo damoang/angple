@@ -11,7 +11,8 @@
     import {
         REACTION_CATEGORIES,
         REACTION_EMOTICONS,
-        REACTION_REPLACE
+        REACTION_REPLACE,
+        isReactionBlocked
     } from '$lib/config/reaction-config.js';
     import SmilePlus from '@lucide/svelte/icons/smile-plus';
     import {
@@ -49,7 +50,9 @@
 
     // 현재 카테고리의 이모티콘
     const categoryEmoticons = $derived(
-        REACTION_EMOTICONS.filter((e) => e.category === activeCategory)
+        REACTION_EMOTICONS.filter(
+            (e) => e.category === activeCategory && !isReactionBlocked(e.reaction)
+        )
     );
 
     // 리액션 로드
@@ -87,6 +90,10 @@
 
         // 교체 맵 적용
         const finalReaction = REACTION_REPLACE[reaction] || reaction;
+        if (isReactionBlocked(finalReaction)) {
+            isReacting = false;
+            return;
+        }
 
         try {
             const res = await fetch('/api/reactions', {
@@ -113,6 +120,7 @@
 
     // 기존 리액션 클릭 (토글)
     function handleReactionClick(reaction: string): void {
+        if (isReactionBlocked(reaction)) return;
         react(reaction, 'toggle');
     }
 
@@ -164,15 +172,18 @@
     <!-- 기존 리액션 배지 -->
     {#each reactions as item (item.reaction)}
         {@const display = getReactionDisplay(item.reaction)}
+        {@const blocked = isReactionBlocked(item.reaction)}
         <button
             type="button"
             onclick={() => handleReactionClick(item.reaction)}
-            disabled={isReacting}
+            disabled={isReacting || blocked}
             class="da-reaction-badge group inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-sm transition-all
-				{item.choose
-                ? 'border-primary/50 bg-primary/10 text-primary ring-primary/20 ring-1'
-                : 'border-border bg-muted/50 text-muted-foreground hover:border-primary/30 hover:bg-primary/5'}"
-            title={display.label}
+				{blocked
+                ? 'border-border bg-muted/30 text-muted-foreground/70 cursor-not-allowed opacity-70'
+                : item.choose
+                  ? 'border-primary/50 bg-primary/10 text-primary ring-primary/20 ring-1'
+                  : 'border-border bg-muted/50 text-muted-foreground hover:border-primary/30 hover:bg-primary/5'}"
+            title={blocked ? '현재 사용할 수 없는 리액션입니다.' : display.label}
         >
             {#if display.renderType === 'image' && display.url}
                 <img src={display.url} alt={display.label} class="h-5 w-5 object-scale-down" />
@@ -213,7 +224,6 @@
 
 <!-- 이모티콘 피커 (fixed positioning으로 overflow-hidden 부모 탈출) -->
 {#if showPicker}
-    <!-- svelte-ignore a11y_no_static_element_interactions -->
     <div
         class="reaction-picker-fixed bg-popover border-border w-72 overflow-hidden rounded-xl border shadow-xl"
         style={pickerStyle}
