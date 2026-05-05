@@ -187,21 +187,21 @@
     const listPage = $derived(Number($page.url.searchParams.get('page')) || 1);
 
     // #12012: 보드별 "내가 쓴 글/댓글" 빠른 필터
-    // 4단 분리 후: ?sfl=author_id|comment_id&stx={mb_id} (mb_id 정확 매칭, false-positive 차단)
+    // 백엔드 ?sfl=author|comment_author&stx={mb_id} 재사용 (Sphinx @(mb_id,wr_name) 매칭)
     const currentSfl = $derived($page.url.searchParams.get('sfl') || '');
     const currentStx = $derived($page.url.searchParams.get('stx') || '');
     const isMyPostsActive = $derived(
         authStore.isAuthenticated &&
-            currentSfl === 'author_id' &&
+            currentSfl === 'author' &&
             currentStx === (authStore.user?.mb_id ?? '')
     );
     const isMyCommentsActive = $derived(
         authStore.isAuthenticated &&
-            currentSfl === 'comment_id' &&
+            currentSfl === 'comment_author' &&
             currentStx === (authStore.user?.mb_id ?? '')
     );
 
-    function applyMyFilter(sfl: 'author_id' | 'comment_id'): void {
+    function applyMyFilter(sfl: 'author' | 'comment_author'): void {
         const mbId = authStore.user?.mb_id;
         if (!mbId) return;
         const url = new URL(window.location.href);
@@ -584,6 +584,12 @@
 
     // 현재 선택된 카테고리 (URL 쿼리에서 가져오기)
     const selectedCategory = $derived($page.url.searchParams.get('category') || '전체');
+    const isMessageBoard = $derived(boardId === 'message');
+    const messagePeriod = $derived.by(() => {
+        const period = $page.url.searchParams.get('period');
+        if (period === 'month' || period === 'upcoming') return period;
+        return 'today';
+    });
 
     // 카테고리 변경
     function changeCategory(category: string): void {
@@ -593,6 +599,22 @@
         } else {
             url.searchParams.set('category', category);
         }
+        url.searchParams.set('page', '1');
+        goto(url.pathname + url.search);
+    }
+
+    function changeMessagePeriod(period: 'today' | 'month' | 'upcoming'): void {
+        const url = new URL(window.location.href);
+        if (period === 'today') {
+            url.searchParams.delete('period');
+        } else {
+            url.searchParams.set('period', period);
+        }
+        url.searchParams.delete('category');
+        url.searchParams.delete('tag');
+        url.searchParams.delete('sfl');
+        url.searchParams.delete('stx');
+        url.searchParams.delete('sop');
         url.searchParams.set('page', '1');
         goto(url.pathname + url.search);
     }
@@ -868,6 +890,32 @@
                 </div>
             </div>
 
+            {#if isMessageBoard && !isSearching}
+                <div class="mb-4 flex flex-wrap gap-2">
+                    <Button
+                        variant={messagePeriod === 'today' ? 'default' : 'outline'}
+                        size="sm"
+                        onclick={() => changeMessagePeriod('today')}
+                    >
+                        오늘 축하메시지
+                    </Button>
+                    <Button
+                        variant={messagePeriod === 'month' ? 'default' : 'outline'}
+                        size="sm"
+                        onclick={() => changeMessagePeriod('month')}
+                    >
+                        이번달 축하메시지
+                    </Button>
+                    <Button
+                        variant={messagePeriod === 'upcoming' ? 'default' : 'outline'}
+                        size="sm"
+                        onclick={() => changeMessagePeriod('upcoming')}
+                    >
+                        다가올 축하메시지
+                    </Button>
+                </div>
+            {/if}
+
             <!-- 최상단 자체 배너 (자체 배너 없으면 안 보임) -->
             {#if widgetLayoutStore.hasEnabledAds}
                 <div class="mb-3">
@@ -904,7 +952,7 @@
                         size="sm"
                         class="h-8"
                         onclick={() =>
-                            isMyPostsActive ? clearMyFilter() : applyMyFilter('author_id')}
+                            isMyPostsActive ? clearMyFilter() : applyMyFilter('author')}
                         title="이 게시판에서 내가 쓴 글만 보기"
                     >
                         <User class="mr-1.5 h-3.5 w-3.5" />
@@ -915,7 +963,7 @@
                         size="sm"
                         class="h-8"
                         onclick={() =>
-                            isMyCommentsActive ? clearMyFilter() : applyMyFilter('comment_id')}
+                            isMyCommentsActive ? clearMyFilter() : applyMyFilter('comment_author')}
                         title="이 게시판에서 내가 쓴 댓글만 보기"
                     >
                         <MessageSquare class="mr-1.5 h-3.5 w-3.5" />
@@ -1158,6 +1206,18 @@
                         <CardContent class="py-12 text-center">
                             {#if isSearching}
                                 <p class="text-secondary-foreground">검색 결과가 없습니다.</p>
+                            {:else if isMessageBoard && messagePeriod === 'today'}
+                                <p class="text-secondary-foreground">
+                                    오늘 등록된 축하메시지가 없습니다.
+                                </p>
+                            {:else if isMessageBoard && messagePeriod === 'month'}
+                                <p class="text-secondary-foreground">
+                                    이번달 축하메시지가 없습니다.
+                                </p>
+                            {:else if isMessageBoard && messagePeriod === 'upcoming'}
+                                <p class="text-secondary-foreground">
+                                    다가올 축하메시지가 없습니다.
+                                </p>
                             {:else}
                                 <p class="text-secondary-foreground">게시글이 없습니다.</p>
                             {/if}
