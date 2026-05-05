@@ -590,21 +590,10 @@
         if (period === 'month' || period === 'upcoming') return period;
         return 'today';
     });
+    type MessagePeriod = 'today' | 'month' | 'upcoming';
 
-    // 카테고리 변경
-    function changeCategory(category: string): void {
-        const url = new URL(window.location.href);
-        if (category === '전체') {
-            url.searchParams.delete('category');
-        } else {
-            url.searchParams.set('category', category);
-        }
-        url.searchParams.set('page', '1');
-        goto(url.pathname + url.search);
-    }
-
-    function changeMessagePeriod(period: 'today' | 'month' | 'upcoming'): void {
-        const url = new URL(window.location.href);
+    function buildMessagePeriodHref(period: MessagePeriod): string {
+        const url = new URL($page.url.href);
         if (period === 'today') {
             url.searchParams.delete('period');
         } else {
@@ -615,6 +604,24 @@
         url.searchParams.delete('sfl');
         url.searchParams.delete('stx');
         url.searchParams.delete('sop');
+        url.searchParams.set('page', '1');
+        return url.pathname + url.search;
+    }
+
+    const messagePeriodHref = $derived.by(() => ({
+        today: buildMessagePeriodHref('today'),
+        month: buildMessagePeriodHref('month'),
+        upcoming: buildMessagePeriodHref('upcoming')
+    }));
+
+    // 카테고리 변경
+    function changeCategory(category: string): void {
+        const url = new URL(window.location.href);
+        if (category === '전체') {
+            url.searchParams.delete('category');
+        } else {
+            url.searchParams.set('category', category);
+        }
         url.searchParams.set('page', '1');
         goto(url.pathname + url.search);
     }
@@ -895,21 +902,24 @@
                     <Button
                         variant={messagePeriod === 'today' ? 'default' : 'outline'}
                         size="sm"
-                        onclick={() => changeMessagePeriod('today')}
+                        href={messagePeriodHref.today}
+                        aria-current={messagePeriod === 'today' ? 'page' : undefined}
                     >
                         오늘 축하메시지
                     </Button>
                     <Button
                         variant={messagePeriod === 'month' ? 'default' : 'outline'}
                         size="sm"
-                        onclick={() => changeMessagePeriod('month')}
+                        href={messagePeriodHref.month}
+                        aria-current={messagePeriod === 'month' ? 'page' : undefined}
                     >
                         이번달 축하메시지
                     </Button>
                     <Button
                         variant={messagePeriod === 'upcoming' ? 'default' : 'outline'}
                         size="sm"
-                        onclick={() => changeMessagePeriod('upcoming')}
+                        href={messagePeriodHref.upcoming}
+                        aria-current={messagePeriod === 'upcoming' ? 'page' : undefined}
                     >
                         다가올 축하메시지
                     </Button>
