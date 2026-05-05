@@ -12,6 +12,7 @@ import pool from '$lib/server/db';
 import { canRestrictedUserReactToBoard, getAuthUser, isRestrictedUser } from '$lib/server/auth';
 import { checkCertification } from '$lib/server/certification';
 import { fetchReactionsByParentId } from '$lib/server/reactions';
+import { isReactionBlocked } from '$lib/config/reaction-config.js';
 
 const REACTION_LIMIT = 20;
 const VALID_REACTION_PATTERN = /^[a-zA-Z0-9:_-]+$/;
@@ -151,6 +152,13 @@ export const POST: RequestHandler = async ({ request, cookies, getClientAddress 
         const safeReaction = sanitizeId(reaction);
         const safeTargetId = sanitizeId(targetId);
         const safeParentId = parentId ? sanitizeId(parentId) : safeTargetId;
+
+        if (isReactionBlocked(safeReaction)) {
+            return json(
+                { status: 'error', message: '현재 사용할 수 없는 리액션입니다.' },
+                { status: 400 }
+            );
+        }
 
         if (safeReaction.length > 250 || safeTargetId.length > 250) {
             return json({ status: 'error', message: 'ID가 너무 깁니다.' }, { status: 400 });
