@@ -180,13 +180,6 @@ export const REACTION_REPLACE: Record<string, string> = {
     'emoji:1f389': 'import-image:ezgif-55990bc446328e'
 };
 
-/** 운영 정책상 신규 사용을 막는 리액션. 기존 DB 집계 표시는 유지한다. */
-export const BLOCKED_REACTIONS = new Set(['emoji:274c', 'emoji:2753']);
-
-export function isReactionBlocked(reaction: string): boolean {
-    return BLOCKED_REACTIONS.has(reaction);
-}
-
 /** 전체 이모티콘 목록 */
 export const REACTION_EMOTICONS: EmoticonDef[] = [...EMOJIS, ...ANGTICONS, ...NOTO_ANIMOJI];
 
