@@ -82,6 +82,28 @@ function isExternalBoardReadPath(path: string, method: string): boolean {
 // 쿠키 도메인: Go 백엔드 cookieDomain()과 일치 (쿠키 충돌 방지)
 const COOKIE_DOMAIN = env.COOKIE_DOMAIN || '';
 
+// CDN 캐시 가능 GET endpoint (5/5 P1: CloudFront/Cloudflare hit% ↑).
+// Backend 가 일괄 `private, max-age=2` 응답 → SvelteKit 에서 endpoint 별 override.
+// 회원별 응답 (auth/me, profile, my/*) 은 제외, 공개 read-only 만.
+// vary: cookie 로 로그인/비로그인 응답 격리 (damoang_auth=0/1, PR #45).
+const PUBLIC_CACHE_PATTERNS: RegExp[] = [
+    /^expose$/,
+    /^notice$/,
+    /^recommended(\/|$)/,
+    /^popular(\/|$)/,
+    /^boards\/[a-zA-Z0-9_-]+$/,
+    /^boards\/[a-zA-Z0-9_-]+\/notices$/,
+    /^boards\/[a-zA-Z0-9_-]+\/display-settings$/
+];
+const PUBLIC_CACHE_CONTROL =
+    'public, s-maxage=60, max-age=10, stale-while-revalidate=120, must-revalidate';
+const PUBLIC_CACHE_VARY = 'cookie, accept-encoding';
+
+function isPublicCacheable(path: string, method: string): boolean {
+    if (method !== 'GET') return false;
+    return PUBLIC_CACHE_PATTERNS.some((re) => re.test(path));
+}
+
 /**
  * 댓글 수정 시 대댓글 존재 여부 확인
  * 대댓글이 달린 댓글은 수정 불가 (삭제는 허용)
@@ -400,6 +422,19 @@ async function proxyRequest(
             'Access-Control-Allow-Headers',
             'Content-Type, Authorization, X-CSRF-Token'
         );
+
+        // 5/5 P1: 공개 read-only GET 응답을 CDN 캐시 가능하게 override.
+        // Backend 가 일괄 `private, max-age=2` 응답 → DYNAMIC (CDN 우회) 이었음.
+        // set-cookie 발생 시 또는 2xx 외 응답은 캐시 X (안전).
+        if (
+            isPublicCacheable(path, method) &&
+            response.status >= 200 &&
+            response.status < 300 &&
+            setCookies.length === 0
+        ) {
+            responseHeaders.set('cache-control', PUBLIC_CACHE_CONTROL);
+            responseHeaders.set('vary', PUBLIC_CACHE_VARY);
+        }
 
         // 글/댓글 작성 성공 시 g5_board_new에 INSERT (angple-backend에 누락된 로직 보완)
         if (method === 'POST' && response.status >= 200 && response.status < 300) {
