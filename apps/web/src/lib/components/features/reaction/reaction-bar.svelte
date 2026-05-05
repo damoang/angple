@@ -11,9 +11,9 @@
     import {
         REACTION_CATEGORIES,
         REACTION_EMOTICONS,
-        REACTION_REPLACE,
-        isReactionBlocked
+        REACTION_REPLACE
     } from '$lib/config/reaction-config.js';
+    import { loadPluginLib } from '$lib/utils/plugin-optional-loader';
     import SmilePlus from '@lucide/svelte/icons/smile-plus';
     import {
         canUseCertifiedAction,
@@ -30,9 +30,15 @@
         initialReactions?: ReactionItem[];
     }
 
+    interface ReactionPolicyModule {
+        getBlockedReactions?: () => string[];
+        isReactionBlocked?: (reaction: string) => boolean;
+    }
+
     let { boardId, postId, commentId, target, initialReactions }: Props = $props();
 
     let reactions = $state<ReactionItem[]>([]);
+    let blockedReactions = $state<string[]>([]);
     let isLoading = $state(false);
     let isReacting = $state(false);
     let showPicker = $state(false);
@@ -51,9 +57,31 @@
     // 현재 카테고리의 이모티콘
     const categoryEmoticons = $derived(
         REACTION_EMOTICONS.filter(
-            (e) => e.category === activeCategory && !isReactionBlocked(e.reaction)
+            (e) =>
+                e.category === activeCategory &&
+                !isReactionBlocked(REACTION_REPLACE[e.reaction] || e.reaction)
         )
     );
+
+    function isReactionBlocked(reaction: string): boolean {
+        return blockedReactions.includes(reaction);
+    }
+
+    async function loadReactionPolicy(): Promise<void> {
+        const policy = await loadPluginLib<ReactionPolicyModule>('da-reaction', 'reaction-policy');
+        if (!policy) return;
+
+        if (typeof policy.getBlockedReactions === 'function') {
+            blockedReactions = policy.getBlockedReactions();
+            return;
+        }
+
+        if (typeof policy.isReactionBlocked === 'function') {
+            blockedReactions = REACTION_EMOTICONS.map(
+                (e) => REACTION_REPLACE[e.reaction] || e.reaction
+            ).filter((reaction) => policy.isReactionBlocked?.(reaction));
+        }
+    }
 
     // 리액션 로드
     async function loadReactions(): Promise<void> {
@@ -163,6 +191,7 @@
     });
 
     onMount(() => {
+        void loadReactionPolicy();
         document.addEventListener('click', handleClickOutside);
         return () => document.removeEventListener('click', handleClickOutside);
     });

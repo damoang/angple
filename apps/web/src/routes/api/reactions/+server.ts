@@ -12,7 +12,7 @@ import pool from '$lib/server/db';
 import { canRestrictedUserReactToBoard, getAuthUser, isRestrictedUser } from '$lib/server/auth';
 import { checkCertification } from '$lib/server/certification';
 import { fetchReactionsByParentId } from '$lib/server/reactions';
-import { isReactionBlocked } from '$lib/config/reaction-config.js';
+import { loadPluginServerLib } from '$lib/server/plugin-server-loader.js';
 
 const REACTION_LIMIT = 20;
 const VALID_REACTION_PATTERN = /^[a-zA-Z0-9:_-]+$/;
@@ -34,6 +34,36 @@ interface CountRow extends RowDataPacket {
 
 interface ChooseCountRow extends RowDataPacket {
     count: number;
+}
+
+interface ReactionPolicyModule {
+    getBlockedReactions?: () => string[];
+    isReactionBlocked?: (reaction: string) => boolean;
+}
+
+let reactionPolicyPromise: Promise<ReactionPolicyModule | null> | null = null;
+
+function loadReactionPolicy(): Promise<ReactionPolicyModule | null> {
+    reactionPolicyPromise ??= loadPluginServerLib<ReactionPolicyModule>(
+        'da-reaction',
+        'reaction-policy'
+    );
+    return reactionPolicyPromise;
+}
+
+async function isReactionBlockedByPolicy(reaction: string): Promise<boolean> {
+    const policy = await loadReactionPolicy();
+    if (!policy) return false;
+
+    if (typeof policy.isReactionBlocked === 'function') {
+        return policy.isReactionBlocked(reaction);
+    }
+
+    if (typeof policy.getBlockedReactions === 'function') {
+        return policy.getBlockedReactions().includes(reaction);
+    }
+
+    return false;
 }
 
 function parseReaction(reaction: string, count: number, choose: boolean) {
@@ -153,7 +183,7 @@ export const POST: RequestHandler = async ({ request, cookies, getClientAddress 
         const safeTargetId = sanitizeId(targetId);
         const safeParentId = parentId ? sanitizeId(parentId) : safeTargetId;
 
-        if (isReactionBlocked(safeReaction)) {
+        if (await isReactionBlockedByPolicy(safeReaction)) {
             return json(
                 { status: 'error', message: '현재 사용할 수 없는 리액션입니다.' },
                 { status: 400 }
