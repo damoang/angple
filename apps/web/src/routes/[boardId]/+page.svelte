@@ -149,6 +149,7 @@
     });
     const isAngmapBoard = $derived(boardType === 'angmap');
     const isEconomyBoard = $derived(boardType === 'economy');
+    const isMessageBoard = $derived(boardId === 'message');
 
     // 플러그인 레지스트리에서 특수 게시판 컴포넌트 resolve
     const boardTypeComponent = $derived(boardTypeRegistry.resolve(boardType));
@@ -584,13 +585,12 @@
 
     // 현재 선택된 카테고리 (URL 쿼리에서 가져오기)
     const selectedCategory = $derived($page.url.searchParams.get('category') || '전체');
-    const isMessageBoard = $derived(boardId === 'message');
-    const messagePeriod = $derived.by(() => {
+    type MessagePeriod = 'today' | 'month' | 'upcoming' | 'past';
+    const messagePeriod = $derived.by<MessagePeriod>(() => {
         const period = $page.url.searchParams.get('period');
-        if (period === 'month' || period === 'upcoming') return period;
+        if (period === 'month' || period === 'upcoming' || period === 'past') return period;
         return 'today';
     });
-    type MessagePeriod = 'today' | 'month' | 'upcoming';
 
     function buildMessagePeriodHref(period: MessagePeriod): string {
         const url = new URL($page.url.href);
@@ -608,11 +608,7 @@
         return url.pathname + url.search;
     }
 
-    const messagePeriodHref = $derived.by(() => ({
-        today: buildMessagePeriodHref('today'),
-        month: buildMessagePeriodHref('month'),
-        upcoming: buildMessagePeriodHref('upcoming')
-    }));
+    const selectedMessagePeriod = $derived(messagePeriod);
 
     // 카테고리 변경
     function changeCategory(category: string): void {
@@ -897,35 +893,6 @@
                 </div>
             </div>
 
-            {#if isMessageBoard && !isSearching}
-                <div class="mb-4 flex flex-wrap gap-2">
-                    <Button
-                        variant={messagePeriod === 'today' ? 'default' : 'outline'}
-                        size="sm"
-                        href={messagePeriodHref.today}
-                        aria-current={messagePeriod === 'today' ? 'page' : undefined}
-                    >
-                        오늘 축하메시지
-                    </Button>
-                    <Button
-                        variant={messagePeriod === 'month' ? 'default' : 'outline'}
-                        size="sm"
-                        href={messagePeriodHref.month}
-                        aria-current={messagePeriod === 'month' ? 'page' : undefined}
-                    >
-                        이번달 축하메시지
-                    </Button>
-                    <Button
-                        variant={messagePeriod === 'upcoming' ? 'default' : 'outline'}
-                        size="sm"
-                        href={messagePeriodHref.upcoming}
-                        aria-current={messagePeriod === 'upcoming' ? 'page' : undefined}
-                    >
-                        다가올 축하메시지
-                    </Button>
-                </div>
-            {/if}
-
             <!-- 최상단 자체 배너 (자체 배너 없으면 안 보임) -->
             {#if widgetLayoutStore.hasEnabledAds}
                 <div class="mb-3">
@@ -990,6 +957,48 @@
                             <X class="h-3.5 w-3.5" />
                         </Button>
                     {/if}
+                </div>
+            {/if}
+
+            <!-- 축하메시지 기간 탭 -->
+            {#if isMessageBoard && !isSearching}
+                <div class="mb-6 flex flex-wrap gap-2">
+                    <Button
+                        href={buildMessagePeriodHref('today')}
+                        variant={selectedMessagePeriod === 'today' ? 'default' : 'outline'}
+                        size="sm"
+                        class="h-8 rounded-full px-4"
+                        aria-current={selectedMessagePeriod === 'today' ? 'page' : undefined}
+                    >
+                        오늘 축하메시지
+                    </Button>
+                    <Button
+                        href={buildMessagePeriodHref('month')}
+                        variant={selectedMessagePeriod === 'month' ? 'default' : 'outline'}
+                        size="sm"
+                        class="h-8 rounded-full px-4"
+                        aria-current={selectedMessagePeriod === 'month' ? 'page' : undefined}
+                    >
+                        이번달 축하메시지
+                    </Button>
+                    <Button
+                        href={buildMessagePeriodHref('upcoming')}
+                        variant={selectedMessagePeriod === 'upcoming' ? 'default' : 'outline'}
+                        size="sm"
+                        class="h-8 rounded-full px-4"
+                        aria-current={selectedMessagePeriod === 'upcoming' ? 'page' : undefined}
+                    >
+                        다가올 축하메시지
+                    </Button>
+                    <Button
+                        href={buildMessagePeriodHref('past')}
+                        variant={selectedMessagePeriod === 'past' ? 'default' : 'outline'}
+                        size="sm"
+                        class="h-8 rounded-full px-4"
+                        aria-current={selectedMessagePeriod === 'past' ? 'page' : undefined}
+                    >
+                        추억의 축하메시지
+                    </Button>
                 </div>
             {/if}
 

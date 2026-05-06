@@ -177,15 +177,18 @@ export const load: PageServerLoad = async ({
     const searchSort = url.searchParams.get('sort') || null;
     const tag = url.searchParams.get('tag') || null;
     const category = url.searchParams.get('category') || null;
+    const rawMessagePeriod = boardId === 'message' ? url.searchParams.get('period') : null;
+    const messagePeriod =
+        boardId === 'message' &&
+        (rawMessagePeriod === 'month' ||
+            rawMessagePeriod === 'upcoming' ||
+            rawMessagePeriod === 'past')
+            ? rawMessagePeriod
+            : boardId === 'message'
+              ? 'today'
+              : null;
     const isSearching = Boolean(searchField && searchQuery);
     const isTagFiltering = Boolean(tag);
-    const rawMessagePeriod = url.searchParams.get('period') || 'today';
-    const messagePeriod =
-        boardId === 'message' && !isSearching && !isTagFiltering && !category
-            ? rawMessagePeriod === 'month' || rawMessagePeriod === 'upcoming'
-                ? rawMessagePeriod
-                : 'today'
-            : null;
     const includeNotices = !isSearching && page === 1 && !messagePeriod;
 
     if (isSearching && !locals.user) {
@@ -278,15 +281,15 @@ export const load: PageServerLoad = async ({
         if (category) {
             queryParams.set('category', category);
         }
+        if (messagePeriod) {
+            queryParams.set('celebration_period', messagePeriod);
+        }
         if (isTagFiltering && !isSearching) {
             queryParams.set('sfl', 'title_content');
             queryParams.set('stx', '');
         }
         if (useSummaryListResponse) {
             queryParams.set('summary', '1');
-        }
-        if (messagePeriod) {
-            queryParams.set('celebration_period', messagePeriod);
         }
         return `/api/v1/boards/${boardId}/posts?${queryParams.toString()}`;
     };
