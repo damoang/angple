@@ -610,6 +610,27 @@
 
     const selectedMessagePeriod = $derived(messagePeriod);
 
+    type MessagePeriod = 'today' | 'month' | 'upcoming' | 'past';
+
+    const selectedMessagePeriod = $derived.by<MessagePeriod>(() => {
+        if (!isMessageBoard) return 'today';
+        const period = $page.url.searchParams.get('period');
+        if (period === 'month' || period === 'upcoming' || period === 'past') return period;
+        return 'today';
+    });
+
+    function buildMessagePeriodHref(period: MessagePeriod): string {
+        const url = new URL($page.url.href);
+        url.searchParams.set('period', period);
+        url.searchParams.set('page', '1');
+        url.searchParams.delete('category');
+        url.searchParams.delete('tag');
+        url.searchParams.delete('sfl');
+        url.searchParams.delete('stx');
+        url.searchParams.delete('sort');
+        return url.pathname + url.search;
+    }
+
     // 카테고리 변경
     function changeCategory(category: string): void {
         const url = new URL(window.location.href);
