@@ -24,7 +24,8 @@ import { TwitterProvider } from '$lib/server/auth/oauth/providers/twitter.js';
 import type { OAuthUserProfile } from '$lib/server/auth/oauth/types.js';
 import { runSocialLoginPostProcess } from '$lib/server/auth/social-login-postprocess.js';
 
-const COOKIE_DOMAIN = env.COOKIE_DOMAIN || undefined;
+// 미설정 시 prod 에서 .damoang.net 으로 폴백 — host-only 쿠키 시 새 탭/PWA 세션 격리 (#12260, #12179).
+const COOKIE_DOMAIN = env.COOKIE_DOMAIN || (dev ? undefined : '.damoang.net');
 const AUTH_EVENT_COOKIE = 'ga4_auth_event';
 
 /** 공통 콜백 처리 로직 */
@@ -157,10 +158,12 @@ async function handleCallback(
         });
 
         // CSRF 토큰 쿠키 (non-httpOnly, JS에서 읽어 헤더로 전송)
+        // 'strict' 는 OAuth/cross-site 진입 시 토큰 미전송으로 검증 실패를 야기함.
+        // 토큰은 헤더로 명시 전송되므로 'lax' 로도 CSRF 보호가 유지됨 (#12260, #12179).
         cookies.set(CSRF_COOKIE_NAME, session.csrfToken, {
             path: '/',
             httpOnly: false,
-            sameSite: 'strict',
+            sameSite: 'lax',
             secure: !dev,
             maxAge: SESSION_COOKIE_MAX_AGE,
             ...domainOpt

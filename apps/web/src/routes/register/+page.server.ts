@@ -38,7 +38,8 @@ import { grantLoginPoint } from '$lib/server/auth/point-grant.js';
 import { env } from '$env/dynamic/private';
 import { safeRedirectUrl } from '$lib/server/safe-redirect.js';
 
-const COOKIE_DOMAIN = env.COOKIE_DOMAIN || undefined;
+// 미설정 시 prod 에서 .damoang.net 으로 폴백 — host-only 쿠키 시 새 탭/PWA 세션 격리 (#12260, #12179).
+const COOKIE_DOMAIN = env.COOKIE_DOMAIN || (dev ? undefined : '.damoang.net');
 const AUTH_EVENT_COOKIE = 'ga4_auth_event';
 
 function buildInviteTempNickname(provider: string): string {
@@ -269,10 +270,12 @@ export const actions: Actions = {
                 ...domainOpt
             });
 
+            // CSRF 토큰 쿠키: 'strict' 는 OAuth/외부 콜백 후 cross-site 진입 시
+            // 미전송으로 검증 실패를 야기함. 토큰은 헤더로 명시 전송되므로 'lax' 로 충분 (#12260, #12179).
             cookies.set(CSRF_COOKIE_NAME, session.csrfToken, {
                 path: '/',
                 httpOnly: false,
-                sameSite: 'strict',
+                sameSite: 'lax',
                 secure: !dev,
                 maxAge: SESSION_COOKIE_MAX_AGE,
                 ...domainOpt
