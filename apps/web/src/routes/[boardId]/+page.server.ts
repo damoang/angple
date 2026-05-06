@@ -177,9 +177,19 @@ export const load: PageServerLoad = async ({
     const searchSort = url.searchParams.get('sort') || null;
     const tag = url.searchParams.get('tag') || null;
     const category = url.searchParams.get('category') || null;
+    const rawMessagePeriod = boardId === 'message' ? url.searchParams.get('period') : null;
+    const messagePeriod =
+        boardId === 'message' &&
+        (rawMessagePeriod === 'month' ||
+            rawMessagePeriod === 'upcoming' ||
+            rawMessagePeriod === 'past')
+            ? rawMessagePeriod
+            : boardId === 'message'
+              ? 'today'
+              : null;
     const isSearching = Boolean(searchField && searchQuery);
     const isTagFiltering = Boolean(tag);
-    const includeNotices = !isSearching && page === 1;
+    const includeNotices = !isSearching && page === 1 && boardId !== 'message';
 
     if (isSearching && !locals.user) {
         return {
@@ -271,6 +281,9 @@ export const load: PageServerLoad = async ({
         if (category) {
             queryParams.set('category', category);
         }
+        if (messagePeriod) {
+            queryParams.set('celebration_period', messagePeriod);
+        }
         if (isTagFiltering && !isSearching) {
             queryParams.set('sfl', 'title_content');
             queryParams.set('stx', '');
@@ -283,7 +296,7 @@ export const load: PageServerLoad = async ({
 
     // 비로그인 + 검색/태그 필터 없는 경우: 게시글 목록 캐시 사용 (15초)
     const usePostsCache = !locals.user && !isSearching && !isTagFiltering;
-    const postsCacheKey = `${boardId}:p${page}:l${limit}${category ? `:c${category}` : ''}${useSummaryListResponse ? ':summary1' : ''}`;
+    const postsCacheKey = `${boardId}:p${page}:l${limit}${category ? `:c${category}` : ''}${messagePeriod ? `:period:${messagePeriod}` : ''}${useSummaryListResponse ? ':summary1' : ''}`;
 
     if (usePostsCache) {
         const cachedPosts = postsCache.get(postsCacheKey);
