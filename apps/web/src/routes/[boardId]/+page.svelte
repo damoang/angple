@@ -149,6 +149,7 @@
     });
     const isAngmapBoard = $derived(boardType === 'angmap');
     const isEconomyBoard = $derived(boardType === 'economy');
+    const isMessageBoard = $derived(boardId === 'message');
 
     // 플러그인 레지스트리에서 특수 게시판 컴포넌트 resolve
     const boardTypeComponent = $derived(boardTypeRegistry.resolve(boardType));
@@ -584,6 +585,30 @@
 
     // 현재 선택된 카테고리 (URL 쿼리에서 가져오기)
     const selectedCategory = $derived($page.url.searchParams.get('category') || '전체');
+    type MessagePeriod = 'today' | 'month' | 'upcoming' | 'past';
+    const messagePeriod = $derived.by<MessagePeriod>(() => {
+        const period = $page.url.searchParams.get('period');
+        if (period === 'month' || period === 'upcoming' || period === 'past') return period;
+        return 'today';
+    });
+
+    function buildMessagePeriodHref(period: MessagePeriod): string {
+        const url = new URL($page.url.href);
+        if (period === 'today') {
+            url.searchParams.delete('period');
+        } else {
+            url.searchParams.set('period', period);
+        }
+        url.searchParams.delete('category');
+        url.searchParams.delete('tag');
+        url.searchParams.delete('sfl');
+        url.searchParams.delete('stx');
+        url.searchParams.delete('sop');
+        url.searchParams.set('page', '1');
+        return url.pathname + url.search;
+    }
+
+    const selectedMessagePeriod = $derived(messagePeriod);
 
     // 카테고리 변경
     function changeCategory(category: string): void {
@@ -935,6 +960,48 @@
                 </div>
             {/if}
 
+            <!-- 축하메시지 기간 탭 -->
+            {#if isMessageBoard && !isSearching}
+                <div class="mb-6 flex flex-wrap gap-2">
+                    <Button
+                        href={buildMessagePeriodHref('today')}
+                        variant={selectedMessagePeriod === 'today' ? 'default' : 'outline'}
+                        size="sm"
+                        class="h-8 rounded-full px-4"
+                        aria-current={selectedMessagePeriod === 'today' ? 'page' : undefined}
+                    >
+                        오늘 축하메시지
+                    </Button>
+                    <Button
+                        href={buildMessagePeriodHref('month')}
+                        variant={selectedMessagePeriod === 'month' ? 'default' : 'outline'}
+                        size="sm"
+                        class="h-8 rounded-full px-4"
+                        aria-current={selectedMessagePeriod === 'month' ? 'page' : undefined}
+                    >
+                        이번달 축하메시지
+                    </Button>
+                    <Button
+                        href={buildMessagePeriodHref('upcoming')}
+                        variant={selectedMessagePeriod === 'upcoming' ? 'default' : 'outline'}
+                        size="sm"
+                        class="h-8 rounded-full px-4"
+                        aria-current={selectedMessagePeriod === 'upcoming' ? 'page' : undefined}
+                    >
+                        다가올 축하메시지
+                    </Button>
+                    <Button
+                        href={buildMessagePeriodHref('past')}
+                        variant={selectedMessagePeriod === 'past' ? 'default' : 'outline'}
+                        size="sm"
+                        class="h-8 rounded-full px-4"
+                        aria-current={selectedMessagePeriod === 'past' ? 'page' : undefined}
+                    >
+                        추억의 축하메시지
+                    </Button>
+                </div>
+            {/if}
+
             <!-- 카테고리 탭 -->
             {#if categories.length > 0 && !isSearching}
                 <div class="mb-6 flex flex-wrap gap-2">
@@ -1158,6 +1225,18 @@
                         <CardContent class="py-12 text-center">
                             {#if isSearching}
                                 <p class="text-secondary-foreground">검색 결과가 없습니다.</p>
+                            {:else if isMessageBoard && messagePeriod === 'today'}
+                                <p class="text-secondary-foreground">
+                                    오늘 등록된 축하메시지가 없습니다.
+                                </p>
+                            {:else if isMessageBoard && messagePeriod === 'month'}
+                                <p class="text-secondary-foreground">
+                                    이번달 축하메시지가 없습니다.
+                                </p>
+                            {:else if isMessageBoard && messagePeriod === 'upcoming'}
+                                <p class="text-secondary-foreground">
+                                    다가올 축하메시지가 없습니다.
+                                </p>
                             {:else}
                                 <p class="text-secondary-foreground">게시글이 없습니다.</p>
                             {/if}
