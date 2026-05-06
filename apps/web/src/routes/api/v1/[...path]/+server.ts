@@ -15,18 +15,8 @@ import { internalOnlyErrorResponse, isInternalAppRequest } from '$lib/server/int
  */
 
 const BACKEND_URL = env.BACKEND_URL || 'http://localhost:8090';
-const LEGACY_BACKEND_URL =
-    env.LEGACY_BACKEND_URL || 'http://damoang-backend-svc.damoang.svc.cluster.local:8090';
 const PROXY_TIMEOUT_MS = 4_000;
 const INTERNAL_ONLY_V1_PREFIXES = ['my/', 'admin/'];
-
-function getBackendUrlForPath(path: string): string {
-    if (path.startsWith('social-invite/') || path === 'member-recovery/social-invite') {
-        return LEGACY_BACKEND_URL;
-    }
-
-    return BACKEND_URL;
-}
 
 function buildOptionalFallback(path: string): Response | null {
     if (path === 'my/favorites') {
@@ -302,7 +292,7 @@ async function proxyRequest(
 ): Promise<Response> {
     const path = params.path || '';
     const url = new URL(request.url);
-    const targetUrl = `${getBackendUrlForPath(path)}/api/v1/${path}${url.search}`;
+    const targetUrl = `${BACKEND_URL}/api/v1/${path}${url.search}`;
     const isInternalRequest = isInternalAppRequest(request);
 
     if (
