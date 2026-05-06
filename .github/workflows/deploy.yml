@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       release_mode:
-        description: 'Deploy mode. Use canary_only by default. Use full only after dev/canary verification.'
+        description: 'Deploy mode. canary_only runs a single-pod canary gate. Use full only after canary verification.'
         required: true
         type: choice
         default: canary_only
@@ -63,7 +63,7 @@ jobs:
           INPUT_RELEASE_MODE: ${{ inputs.release_mode }}
           INPUT_IMAGE_TAG: ${{ inputs.image_tag }}
         run: |
-          echo "Deploy standard: dev -> canary-only -> verify -> same artifact prod"
+          echo "Deploy standard: dev -> single-pod canary gate -> verify -> same artifact prod"
           if [ "${EVENT_NAME}" = "workflow_dispatch" ]; then
             EFFECTIVE_RELEASE_MODE="${INPUT_RELEASE_MODE}"
           else
@@ -248,7 +248,7 @@ jobs:
           role-to-assume: arn:aws:iam::891376997084:role/GitHubActionsDeployRole
           aws-region: ap-northeast-2
 
-      - name: Deploy canary via SSM
+      - name: Deploy canary via SSM (single-pod gate)
         env:
           IMAGE_TAG: ${{ needs.resolve-release.outputs.sha_tag }}
           APPROVAL_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
@@ -274,6 +274,7 @@ jobs:
           fi
 
           echo "SSM Command ID: $COMMAND_ID"
+          echo "Canary mode: single-pod gate"
 
           for i in $(seq 1 90); do
             STATUS=$(aws ssm get-command-invocation \
@@ -302,7 +303,7 @@ jobs:
             fi
             sleep 10
           done
-          echo "Timeout"
+          echo "Timeout waiting for single-pod canary gate"
           exit 1
 
       - name: Notify Discord (Canary)

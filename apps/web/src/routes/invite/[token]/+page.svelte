@@ -35,6 +35,13 @@
             bgClass: 'bg-white border border-border',
             textClass: 'text-gray-700',
             hoverClass: 'hover:bg-gray-50'
+        },
+        {
+            id: 'payco',
+            label: 'PAYCO로 로그인',
+            bgClass: 'bg-[#E42529]',
+            textClass: 'text-white',
+            hoverClass: 'hover:bg-[#E42529]/90'
         }
     ] as const;
 
@@ -57,7 +64,8 @@
             naver: '네이버',
             kakao: '카카오',
             google: '구글',
-            apple: '애플'
+            apple: '애플',
+            payco: 'PAYCO'
         };
         return labels[provider] || provider;
     }
@@ -77,6 +85,11 @@
             const json = await res.json();
             if (!res.ok || json.error) {
                 error = json.error?.message || json.message || '초대 정보를 불러올 수 없습니다';
+                return;
+            }
+            if (!json.data) {
+                error =
+                    '초대 링크가 만료되었거나 사용할 수 없습니다. 관리자에게 새 링크 발급을 요청해주세요.';
                 return;
             }
             inviteInfo = json.data;
@@ -219,6 +232,8 @@
                                         d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
                                     />
                                 </svg>
+                            {:else if provider.id === 'payco'}
+                                <span class="text-base font-black leading-none">P</span>
                             {/if}
                             {provider.label}
                         </button>
