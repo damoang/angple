@@ -69,7 +69,8 @@ export const GET: RequestHandler = async () => {
                         cb.source_wr_id, cb.updated_at AS cb_updated_at, cb.is_anonymous,
                         m.mb_nick AS target_member_nick,
                         m.mb_image_url AS target_member_image_url,
-                        wm.wr_content AS source_content
+                        wm.wr_content AS source_content,
+                        wm.wr_name AS source_wr_name
                  FROM celebration_banners cb
                  LEFT JOIN g5_member m
                    ON cb.target_member_id COLLATE utf8mb4_unicode_ci = m.mb_id COLLATE utf8mb4_unicode_ci
@@ -87,7 +88,8 @@ export const GET: RequestHandler = async () => {
                 const linkUrl =
                     row.external_url ||
                     (row.source_wr_id ? `/message/${row.source_wr_id}` : row.link_url || '');
-                const anonymous = !!row.is_anonymous;
+                const sourceWrName = (row.source_wr_name ?? '').toString().trim();
+                const anonymous = !!row.is_anonymous || (!!row.source_wr_id && sourceWrName === '');
 
                 // source_wr_id가 있으면 원본 게시글에서 최신 이미지 추출 (동기화)
                 let imageUrl = row.image_url || '';
@@ -128,7 +130,7 @@ export const GET: RequestHandler = async () => {
         if (banners.length === 0) {
             const [rows] = await pool.execute<RowDataPacket[]>(
                 `SELECT wm.wr_id, wm.wr_subject, wm.wr_content, wm.wr_link2, wm.mb_id,
-                        m.mb_nick, m.mb_image_url
+                        wm.wr_name, m.mb_nick, m.mb_image_url
                  FROM g5_write_message wm
                  LEFT JOIN g5_member m ON wm.mb_id = m.mb_id
                  WHERE wm.wr_is_comment = 0
@@ -142,6 +144,7 @@ export const GET: RequestHandler = async () => {
             for (const row of rows as RowDataPacket[]) {
                 const imageUrl = extractFirstImage(row.wr_content);
                 if (imageUrl) {
+                    const anonymous = (row.wr_name ?? '').toString().trim() === '';
                     banners.push({
                         id: row.wr_id,
                         title: row.wr_subject,
@@ -150,9 +153,11 @@ export const GET: RequestHandler = async () => {
                         link_url: `/message/${row.wr_id}`,
                         display_date: row.wr_subject,
                         is_active: true,
-                        target_member_id: row.mb_id || undefined,
-                        target_member_nick: row.mb_nick || undefined,
-                        target_member_photo: getMemberPhotoUrl(row.mb_image_url),
+                        target_member_id: anonymous ? undefined : row.mb_id || undefined,
+                        target_member_nick: anonymous ? undefined : row.mb_nick || undefined,
+                        target_member_photo: anonymous
+                            ? undefined
+                            : getMemberPhotoUrl(row.mb_image_url),
                         external_link: row.wr_link2 || undefined,
                         display_type: 'image'
                     });

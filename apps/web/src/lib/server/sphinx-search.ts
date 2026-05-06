@@ -57,15 +57,31 @@ export function buildMatchExpr(query: string, field: string): string {
             return `@wr_content ${wildcarded}`;
         case 'author':
             return `@(mb_id,wr_name) ${wildcarded}`;
+        case 'author_nick':
+            return `@wr_name ${wildcarded}`;
+        case 'author_id':
+            return `@mb_id ${wildcarded}`;
         case 'comment':
             return `@wr_content ${wildcarded}`;
         case 'comment_author':
             return `@(mb_id,wr_name) ${wildcarded}`;
+        case 'comment_nick':
+            return `@wr_name ${wildcarded}`;
+        case 'comment_id':
+            return `@mb_id ${wildcarded}`;
         case 'title_content':
         default:
             return `@(wr_subject,wr_content) ${wildcarded}`;
     }
 }
+
+/** 댓글 인덱스(wr_is_comment=1)를 검색해야 하는 sfl 필드 집합 */
+const COMMENT_SEARCH_FIELDS = new Set<string>([
+    'comment',
+    'comment_author',
+    'comment_nick',
+    'comment_id'
+]);
 
 /**
  * 보드별 Sphinx 검색
@@ -82,7 +98,7 @@ export async function searchByBoard(
     sort: 'date' | 'relevance' = 'date'
 ): Promise<SphinxSearchResult> {
     const matchExpr = buildMatchExpr(query, field);
-    const isCommentSearch = field === 'comment' || field === 'comment_author';
+    const isCommentSearch = COMMENT_SEARCH_FIELDS.has(field);
 
     const safeMatch = matchExpr.replace(/'/g, "\\'");
     const offset = (page - 1) * limit;
@@ -148,7 +164,7 @@ export async function searchAllBoards(
     total: number;
 }> {
     const matchExpr = buildMatchExpr(query, field);
-    const isCommentSearch = field === 'comment' || field === 'comment_author';
+    const isCommentSearch = COMMENT_SEARCH_FIELDS.has(field);
     const safeMatch = matchExpr.replace(/'/g, "\\'");
 
     const sphinxSql =

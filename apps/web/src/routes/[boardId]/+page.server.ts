@@ -189,7 +189,7 @@ export const load: PageServerLoad = async ({
               : null;
     const isSearching = Boolean(searchField && searchQuery);
     const isTagFiltering = Boolean(tag);
-    const includeNotices = !isSearching && page === 1 && boardId !== 'message';
+    const includeNotices = !isSearching && page === 1 && !messagePeriod;
 
     if (isSearching && !locals.user) {
         return {

@@ -649,13 +649,20 @@ export interface LikersResponse {
 }
 
 // 검색 필드 타입
+// - author / comment_author: mb_id + wr_name 모두 매칭 (legacy 호환 유지)
+// - author_nick / comment_nick: wr_name (닉네임)만 매칭
+// - author_id / comment_id: mb_id (아이디)만 매칭 — 정확 매칭 (false-positive 차단)
 export type SearchField =
     | 'title'
     | 'content'
     | 'title_content'
     | 'author'
+    | 'author_nick'
+    | 'author_id'
     | 'comment'
     | 'comment_author'
+    | 'comment_nick'
+    | 'comment_id'
     | 'google';
 
 // 검색 요청 파라미터

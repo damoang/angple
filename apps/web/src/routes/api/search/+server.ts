@@ -51,7 +51,11 @@ export const GET: RequestHandler = async ({ url, locals }) => {
     }
 
     try {
-        const isCommentSearch = field === 'comment' || field === 'comment_author';
+        const isCommentSearch =
+            field === 'comment' ||
+            field === 'comment_author' ||
+            field === 'comment_nick' ||
+            field === 'comment_id';
 
         // 1) Sphinx에서 검색 (최대 200건)
         const { rows: sphinxRows } = await searchAllBoards(field, query, 200);

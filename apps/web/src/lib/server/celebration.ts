@@ -61,10 +61,13 @@ export async function fetchCelebrations(isRecent: boolean = false): Promise<Cele
 					cb.link_target, cb.sort_order, cb.display_type,
 					cb.source_wr_id,
 					m.mb_nick AS target_member_nick,
-					m.mb_image_url AS target_member_image_url
+					m.mb_image_url AS target_member_image_url,
+					wm.wr_name AS source_wr_name
 			 FROM celebration_banners cb
 			 LEFT JOIN g5_member m
 			   ON cb.target_member_id COLLATE utf8mb4_unicode_ci = m.mb_id COLLATE utf8mb4_unicode_ci
+			 LEFT JOIN g5_write_message wm
+			   ON cb.source_wr_id = wm.wr_id AND wm.wr_is_comment = 0
 			 WHERE cb.is_active = 1 ${dateFilter}
 			 ORDER BY cb.display_date DESC, cb.sort_order ASC, cb.id DESC
 			 LIMIT 8`
@@ -74,7 +77,8 @@ export async function fetchCelebrations(isRecent: boolean = false): Promise<Cele
             const linkUrl =
                 row.external_url ||
                 (row.source_wr_id ? `/message/${row.source_wr_id}` : row.link_url || '');
-            const anonymous = !!row.is_anonymous;
+            const sourceWrName = (row.source_wr_name ?? '').toString().trim();
+            const anonymous = !!row.is_anonymous || (!!row.source_wr_id && sourceWrName === '');
 
             banners.push({
                 id: row.source_wr_id || row.id,
@@ -107,7 +111,7 @@ export async function fetchCelebrations(isRecent: boolean = false): Promise<Cele
                 ? ''
                 : "AND (wm.wr_subject = DATE_FORMAT(NOW(),'%Y.%m.%d') OR wm.wr_subject = DATE_FORMAT(NOW(),'%Y-%m-%d') OR wm.wr_subject = DATE_FORMAT(NOW(),'%Y.%c.%e') OR wm.wr_subject = DATE_FORMAT(NOW(),'%Y-%c-%e'))";
             const [rows] = await pool.query<RowDataPacket[]>(
-                `SELECT wm.wr_id, wm.wr_subject, wm.wr_content, wm.wr_link2, wm.mb_id,
+                `SELECT wm.wr_id, wm.wr_subject, wm.wr_content, wm.wr_link2, wm.mb_id, wm.wr_name,
                         m.mb_nick, m.mb_image_url
                  FROM g5_write_message wm
                  LEFT JOIN g5_member m ON wm.mb_id = m.mb_id
@@ -119,6 +123,7 @@ export async function fetchCelebrations(isRecent: boolean = false): Promise<Cele
             for (const row of rows as RowDataPacket[]) {
                 const imageUrl = extractFirstImage(row.wr_content);
                 if (imageUrl) {
+                    const anonymous = (row.wr_name ?? '').toString().trim() === '';
                     banners.push({
                         id: row.wr_id,
                         title: row.wr_subject,
@@ -127,9 +132,11 @@ export async function fetchCelebrations(isRecent: boolean = false): Promise<Cele
                         link_url: row.wr_link2 || `/message/${row.wr_id}`,
                         display_date: row.wr_subject,
                         is_active: true,
-                        target_member_id: row.mb_id || undefined,
-                        target_member_nick: row.mb_nick || undefined,
-                        target_member_photo: getMemberPhotoUrl(row.mb_image_url),
+                        target_member_id: anonymous ? undefined : row.mb_id || undefined,
+                        target_member_nick: anonymous ? undefined : row.mb_nick || undefined,
+                        target_member_photo: anonymous
+                            ? undefined
+                            : getMemberPhotoUrl(row.mb_image_url),
                         external_link: row.wr_link2 || undefined,
                         display_type: 'image'
                     });

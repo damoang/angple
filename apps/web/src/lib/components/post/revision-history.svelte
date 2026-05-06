@@ -14,12 +14,6 @@
     import ChevronDown from '@lucide/svelte/icons/chevron-down';
     import ChevronUp from '@lucide/svelte/icons/chevron-up';
     import { dompurify as DOMPurify } from '$lib/utils/dompurify.js';
-    import { filterUnsafeStyles } from '$lib/utils/safe-css.js';
-
-    // CSS 필터 훅 등록
-    DOMPurify.addHook('afterSanitizeAttributes', (node) => {
-        filterUnsafeStyles(node as unknown as Element);
-    });
 
     const REVISION_PURIFY_CONFIG = {
         ALLOWED_TAGS: [

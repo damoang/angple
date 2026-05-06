@@ -585,6 +585,30 @@
 
     // 현재 선택된 카테고리 (URL 쿼리에서 가져오기)
     const selectedCategory = $derived($page.url.searchParams.get('category') || '전체');
+    type MessagePeriod = 'today' | 'month' | 'upcoming' | 'past';
+    const messagePeriod = $derived.by<MessagePeriod>(() => {
+        const period = $page.url.searchParams.get('period');
+        if (period === 'month' || period === 'upcoming' || period === 'past') return period;
+        return 'today';
+    });
+
+    function buildMessagePeriodHref(period: MessagePeriod): string {
+        const url = new URL($page.url.href);
+        if (period === 'today') {
+            url.searchParams.delete('period');
+        } else {
+            url.searchParams.set('period', period);
+        }
+        url.searchParams.delete('category');
+        url.searchParams.delete('tag');
+        url.searchParams.delete('sfl');
+        url.searchParams.delete('stx');
+        url.searchParams.delete('sop');
+        url.searchParams.set('page', '1');
+        return url.pathname + url.search;
+    }
+
+    const selectedMessagePeriod = $derived(messagePeriod);
 
     type MessagePeriod = 'today' | 'month' | 'upcoming' | 'past';
 
@@ -1222,6 +1246,18 @@
                         <CardContent class="py-12 text-center">
                             {#if isSearching}
                                 <p class="text-secondary-foreground">검색 결과가 없습니다.</p>
+                            {:else if isMessageBoard && messagePeriod === 'today'}
+                                <p class="text-secondary-foreground">
+                                    오늘 등록된 축하메시지가 없습니다.
+                                </p>
+                            {:else if isMessageBoard && messagePeriod === 'month'}
+                                <p class="text-secondary-foreground">
+                                    이번달 축하메시지가 없습니다.
+                                </p>
+                            {:else if isMessageBoard && messagePeriod === 'upcoming'}
+                                <p class="text-secondary-foreground">
+                                    다가올 축하메시지가 없습니다.
+                                </p>
                             {:else}
                                 <p class="text-secondary-foreground">게시글이 없습니다.</p>
                             {/if}
