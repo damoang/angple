@@ -124,7 +124,7 @@ export async function generateDamoangJWT(user: {
     })
         .setProtectedHeader({ alg: 'HS256', typ: 'JWT' })
         .setIssuedAt()
-        .setExpirationTime('1h')
+        .setExpirationTime('24h')
         .setIssuer('damoang.net')
         .setAudience('ads.damoang.net')
         .sign(damoangSecret);
