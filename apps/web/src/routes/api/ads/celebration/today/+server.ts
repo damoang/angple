@@ -133,7 +133,9 @@ export const GET: RequestHandler = async () => {
                  LEFT JOIN g5_member m ON wm.mb_id = m.mb_id
                  WHERE wm.wr_is_comment = 0
                    AND (wm.wr_subject = DATE_FORMAT(NOW(), '%Y.%m.%d')
-                        OR wm.wr_subject = DATE_FORMAT(NOW(), '%Y-%m-%d'))
+                        OR wm.wr_subject = DATE_FORMAT(NOW(), '%Y-%m-%d')
+                       OR wm.wr_subject = DATE_FORMAT(NOW(), '%Y.%c.%e')
+                       OR wm.wr_subject = DATE_FORMAT(NOW(), '%Y-%c-%e'))
                  ORDER BY wm.wr_id DESC`
             );
 

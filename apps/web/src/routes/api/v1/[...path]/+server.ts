@@ -180,6 +180,16 @@ async function checkWriteAuthor(path: string, userId: string): Promise<Response 
     return null;
 }
 
+function normalizeLegacyCelebrationDate(subject: string | null | undefined): string | null {
+    if (!subject) return null;
+    const compact = subject.trim().replace(/\s+/g, '');
+    const normalized = compact.replace(/[./]/g, '-');
+    const match = normalized.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+    if (!match) return null;
+    const [, year, month, day] = match;
+    return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+}
+
 /**
  * message 게시판 글 수정 시 celebration_banners 동기화
  * wr_subject(날짜), wr_content, wr_9(이미지) → celebration_banners
@@ -199,9 +209,8 @@ async function syncCelebrationBanner(path: string): Promise<void> {
 
     const { wr_subject, wr_content, wr_9 } = rows[0];
 
-    // wr_subject → display_date (2026.03.07 → 2026-03-07)
-    const displayDate = wr_subject?.replace(/\./g, '-');
-    if (!displayDate || !/^\d{4}-\d{2}-\d{2}$/.test(displayDate)) return;
+    const displayDate = normalizeLegacyCelebrationDate(wr_subject);
+    if (!displayDate) return;
 
     // wr_content에서 텍스트만 추출 (HTML 태그 제거)
     const textContent = wr_content

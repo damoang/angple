@@ -105,7 +105,7 @@ export async function fetchCelebrations(isRecent: boolean = false): Promise<Cele
         try {
             const legacyDateFilter = isRecent
                 ? ''
-                : "AND (wm.wr_subject = DATE_FORMAT(NOW(),'%Y.%m.%d') OR wm.wr_subject = DATE_FORMAT(NOW(),'%Y-%m-%d'))";
+                : "AND (wm.wr_subject = DATE_FORMAT(NOW(),'%Y.%m.%d') OR wm.wr_subject = DATE_FORMAT(NOW(),'%Y-%m-%d') OR wm.wr_subject = DATE_FORMAT(NOW(),'%Y.%c.%e') OR wm.wr_subject = DATE_FORMAT(NOW(),'%Y-%c-%e'))";
             const [rows] = await pool.query<RowDataPacket[]>(
                 `SELECT wm.wr_id, wm.wr_subject, wm.wr_content, wm.wr_link2, wm.mb_id,
                         m.mb_nick, m.mb_image_url
