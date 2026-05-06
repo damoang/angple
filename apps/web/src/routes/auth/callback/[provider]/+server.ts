@@ -42,7 +42,8 @@ import {
     findExistingTempAccount
 } from '$lib/server/auth/register.js';
 
-const COOKIE_DOMAIN = env.COOKIE_DOMAIN || undefined;
+// 미설정 시 .damoang.net 으로 폴백 — host-only 쿠키가 되면 새 탭/PWA 에서 세션이 격리됨 (#12260, #12179).
+const COOKIE_DOMAIN = env.COOKIE_DOMAIN || (dev ? undefined : '.damoang.net');
 
 const AUTH_EVENT_COOKIE = 'ga4_auth_event';
 
@@ -319,10 +320,13 @@ async function handleCallback(
         });
 
         // CSRF 토큰 쿠키 (non-httpOnly, JS에서 읽어 헤더로 전송)
+        // sameSite=strict 는 OAuth cross-site 콜백에서 쿠키 설정을 차단해 검증 실패를
+        // 야기했음 (#12260, #12179). 'lax' 로 완화해도 GET 외 요청은 여전히
+        // 차단되며, 본 토큰은 항상 헤더로 명시 전송되므로 CSRF 보호는 유지된다.
         cookies.set(CSRF_COOKIE_NAME, session.csrfToken, {
             path: '/',
             httpOnly: false,
-            sameSite: 'strict',
+            sameSite: 'lax',
             secure: !dev,
             maxAge: SESSION_COOKIE_MAX_AGE,
             ...domainOpt

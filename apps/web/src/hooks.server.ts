@@ -106,8 +106,9 @@ import {
  * 5. CSP 설정: XSS 및 데이터 인젝션 공격 방지
  */
 
-// 쿠키 도메인: 서브도메인 간 공유 (예: ".damoang.net")
-const COOKIE_DOMAIN = env.COOKIE_DOMAIN || '';
+// 쿠키 도메인: 서브도메인 간 공유 (예: ".damoang.net").
+// 미설정 시 prod 에선 ".damoang.net" 으로 폴백 — host-only 쿠키 시 새 탭/PWA 세션 격리 (#12260, #12179).
+const COOKIE_DOMAIN = env.COOKIE_DOMAIN || (dev ? '' : '.damoang.net');
 
 // CORS 허용 origin (credentials 포함 요청만 제한)
 function isAllowedOrigin(origin: string): boolean {

@@ -16,7 +16,8 @@ import { checkAndPromoteMember } from '$lib/server/auth/auto-promotion.js';
 import { grantLoginXP } from '$lib/server/auth/xp-grant.js';
 
 const BACKEND_URL = env.BACKEND_URL || 'http://localhost:8090';
-const COOKIE_DOMAIN = env.COOKIE_DOMAIN || '';
+// 미설정 시 .damoang.net 으로 폴백 — host-only 쿠키 시 새 탭/PWA 세션 격리 (#12260, #12179).
+const COOKIE_DOMAIN = env.COOKIE_DOMAIN || '.damoang.net';
 
 /**
  * POST /api/auth/login
