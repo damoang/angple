@@ -6,7 +6,7 @@ import { generateDamoangJWT } from './jwt.js';
 
 const SSO_COOKIE_NAME = 'damoang_jwt';
 const SSO_COOKIE_DOMAIN = '.damoang.net';
-const SSO_COOKIE_MAX_AGE = 3600; // 1시간
+const SSO_COOKIE_MAX_AGE = 86400; // 24시간
 
 /** 로그인 성공 시 damoang_jwt 쿠키 설정 */
 export async function setDamoangSSOCookie(

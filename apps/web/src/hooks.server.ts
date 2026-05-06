@@ -499,7 +499,7 @@ async function authenticateSSR(event: Parameters<Handle>[0]['event']): Promise<v
     // 세션 없으면 잔여 JWT 쿠키 정리 (로그아웃 후 도메인 불일치로 남은 쿠키)
     const domainOpt = COOKIE_DOMAIN ? { domain: COOKIE_DOMAIN } : {};
     const cleanupOpts = { path: '/', secure: !dev, httpOnly: true, ...domainOpt } as const;
-    const staleNames = ['refresh_token', 'damoang_jwt', 'access_token'];
+    const staleNames = ['refresh_token', 'access_token'];
     for (const name of staleNames) {
         if (event.cookies.get(name)) {
             try {
