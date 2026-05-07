@@ -757,6 +757,10 @@ export const handle: Handle = async ({ event, resolve }) => {
     // 30s + stale 60s 였을 때 사용자가 새 글을 최대 90s 동안 못 보거나, 글 상세에 들어갔다 돌아왔을 때
     // 1~2분 전 list 가 그대로 노출되는 신고가 누적됨. s-maxage 와 stale 시간을 모두 단축한다.
     const publicHtmlCacheControl = 'public, s-maxage=10, stale-while-revalidate=5, max-age=0';
+    // Vary 헤더: 같은 URL 이라도 User-Agent (PC vs 모바일) / Accept-Encoding / 인증 쿠키별로
+    // CDN 이 다른 응답을 캐시하도록 명시. 이전엔 Cookie 만 vary 해서 PC 사용자가 모바일 캐시를
+    // 받거나 그 반대인 신고 (gouryella 2026-05-07) 가 발생했다.
+    const publicVaryHeader = 'Cookie, User-Agent, Accept-Encoding';
 
     // OPTIONS 요청 (CORS preflight) 처리
     if (event.request.method === 'OPTIONS') {
@@ -990,17 +994,20 @@ export const handle: Handle = async ({ event, resolve }) => {
     } else if (event.url.pathname.startsWith('/_app/immutable')) {
         // SvelteKit이 이미 설정 → 그대로 유지
     } else if (!event.locals.user && isPublicCacheablePath(pathname)) {
-        // 비로그인 사용자의 공개 페이지: CDN 캐시 30초, stale 60초
+        // 비로그인 사용자의 공개 페이지
         response.headers.set('Cache-Control', publicHtmlCacheControl);
+        response.headers.set('Vary', publicVaryHeader);
     } else if (!event.locals.user && isBoardListPath(pathname, event.url.searchParams)) {
-        // 비로그인 사용자의 게시판 목록: CDN 캐시 30초, stale 60초
+        // 비로그인 사용자의 게시판 목록
         response.headers.set('Cache-Control', publicHtmlCacheControl);
+        response.headers.set('Vary', publicVaryHeader);
     } else if (!event.locals.user && isPostDetailPath(pathname)) {
-        // 비로그인 사용자의 글 상세: CDN 캐시 30초, stale 60초
+        // 비로그인 사용자의 글 상세
         response.headers.set('Cache-Control', publicHtmlCacheControl);
+        response.headers.set('Vary', publicVaryHeader);
     } else {
         response.headers.set('Cache-Control', 'private, max-age=2, must-revalidate');
-        response.headers.set('Vary', 'Cookie');
+        response.headers.set('Vary', publicVaryHeader);
     }
 
     // SvelteKit modulepreload Link 헤더 제거 (8KB+ → 응답 헤더 축소)
