@@ -1198,11 +1198,11 @@
                                         {#if comment.edit_count && comment.edit_count > 0 && comment.updated_at && new Date(comment.updated_at).getTime() - new Date(comment.created_at).getTime() > 5 * 60 * 1000}
                                             <span
                                                 class="text-muted-foreground/70"
-                                                title={comment.updated_at
-                                                    ? `최종 수정: ${formatDate(comment.updated_at)}`
-                                                    : ''}
+                                                title={`최종 수정: ${formatDate(comment.updated_at)}`}
                                             >
-                                                · 수정됨 ({comment.edit_count}회)
+                                                · 수정됨{comment.edit_count > 1
+                                                    ? ` (${comment.edit_count}회)`
+                                                    : ''} · {formatDate(comment.updated_at)}
                                             </span>
                                         {/if}
                                     </p>
@@ -1574,6 +1574,15 @@
                                     {formatDate(comment.created_at)}
                                     {#if comment.author_ip}
                                         · {comment.author_ip}
+                                    {/if}
+                                    {#if comment.edit_count && comment.edit_count > 0 && comment.updated_at && new Date(comment.updated_at).getTime() - new Date(comment.created_at).getTime() > 5 * 60 * 1000}
+                                        <span
+                                            title={`최종 수정: ${formatDate(comment.updated_at)}`}
+                                        >
+                                            · 수정됨{comment.edit_count > 1
+                                                ? ` (${comment.edit_count}회)`
+                                                : ''} · {formatDate(comment.updated_at)}
+                                        </span>
                                     {/if}
                                 </span>
                             </p>
