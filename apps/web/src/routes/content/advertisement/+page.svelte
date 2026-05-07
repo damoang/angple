@@ -93,14 +93,6 @@
             unit: '만원/월',
             cpm: 'CPM 약 33원 · 월 3,000만 노출',
             features: ['전체 페이지 노출', '애니메이션 이미지 사용']
-        },
-        {
-            title: '프리미엄 긴배너',
-            spec: '770 x 90px',
-            price: '150',
-            unit: '만원/월',
-            cpm: 'CPM 약 30원 · 월 5,000만 노출',
-            features: ['PC/모바일 첫 페이지 노출', '전체 페이지 노출', '애니메이션 이미지 사용']
         }
     ];
 
@@ -528,32 +520,6 @@
                 </div>
             </div>
 
-            <!-- 4. 프리미엄 긴배너 (150만원/월) -->
-            <div class="bg-card border-primary/30 rounded-xl border-2 p-5 shadow-sm">
-                <div class="mb-4 flex items-center justify-between">
-                    <h3
-                        class="text-foreground border-primary inline-block border-b-2 pb-1 font-semibold"
-                    >
-                        4. 프리미엄 긴배너
-                    </h3>
-                    <span
-                        class="text-primary bg-primary/10 rounded-full px-3 py-1 text-sm font-bold"
-                        >150만원/월</span
-                    >
-                </div>
-                <div class="bg-primary/5 rounded-lg p-4">
-                    <p class="text-foreground text-sm font-medium">
-                        PC와 모바일 각각의 대문(첫 페이지)에 게시되며, 모든 페이지에 노출됩니다.
-                    </p>
-                    <ul class="text-muted-foreground mt-2 list-disc space-y-1 pl-5 text-sm">
-                        <li>PC/모바일 첫 페이지 최상단 노출</li>
-                        <li>전체 페이지 노출</li>
-                        <li>애니메이션 이미지 사용 가능</li>
-                        <li>CPM 약 30원 · 월 5,000만 노출</li>
-                    </ul>
-                </div>
-            </div>
-
             <!-- 직접홍보게시판 -->
             <div class="bg-card border-border rounded-xl border p-5 shadow-sm">
                 <div class="mb-4 flex items-center justify-between">
@@ -660,10 +626,10 @@
                             </p>
                             <div class="space-y-2 text-xs">
                                 <div>
-                                    <strong>긴배너 Premium+Standard 합산</strong>
+                                    <strong>긴배너 (Standard)</strong>
                                     <ul class="list-disc pl-5">
-                                        <li>전체 슬롯: 3,400만 노출</li>
-                                        <li>광고주 2개: 각 1,700만 노출</li>
+                                        <li>전체 슬롯: 3,000만 노출</li>
+                                        <li>광고주 1개: 3,000만 노출</li>
                                     </ul>
                                 </div>
                                 <div>
