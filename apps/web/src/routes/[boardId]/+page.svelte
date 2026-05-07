@@ -999,6 +999,14 @@
                     >
                         추억의 축하메시지
                     </Button>
+                    <Button
+                        href="/message/144"
+                        variant="outline"
+                        size="sm"
+                        class="h-8 rounded-full px-4"
+                    >
+                        축하메시지 신청
+                    </Button>
                 </div>
             {/if}
 
