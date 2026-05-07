@@ -753,7 +753,10 @@ export const handle: Handle = async ({ event, resolve }) => {
         }
     }
 
-    const publicHtmlCacheControl = 'public, s-maxage=30, stale-while-revalidate=60, max-age=0';
+    // CDN 캐시 정책: 게시판 목록·홈처럼 새 글이 즉시 반영돼야 하는 페이지에서
+    // 30s + stale 60s 였을 때 사용자가 새 글을 최대 90s 동안 못 보거나, 글 상세에 들어갔다 돌아왔을 때
+    // 1~2분 전 list 가 그대로 노출되는 신고가 누적됨. s-maxage 와 stale 시간을 모두 단축한다.
+    const publicHtmlCacheControl = 'public, s-maxage=10, stale-while-revalidate=5, max-age=0';
 
     // OPTIONS 요청 (CORS preflight) 처리
     if (event.request.method === 'OPTIONS') {
