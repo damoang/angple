@@ -223,7 +223,8 @@ async function handleCallback(
                         mb_nick: nickname,
                         mb_email: profile.email || '',
                         mb_name: nickname,
-                        mb_ip: clientIp
+                        mb_ip: clientIp,
+                        skipNickLock: true
                     });
                 }
             } else {
@@ -284,7 +285,8 @@ async function handleCallback(
                         mb_nick: nickname,
                         mb_email: profile.email || '',
                         mb_name: nickname,
-                        mb_ip: clientIp
+                        mb_ip: clientIp,
+                        skipNickLock: true
                     });
                 }
                 member = await getMemberById(mbId);
