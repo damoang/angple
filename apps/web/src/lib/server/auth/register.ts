@@ -178,6 +178,7 @@ export async function createMember(params: {
     mb_email: string;
     mb_name: string;
     mb_ip: string;
+    skipNickLock?: boolean;
 }): Promise<void> {
     const registerLevel = await getRegisterLevel();
 
@@ -197,7 +198,7 @@ export async function createMember(params: {
 			) VALUES (
 				?, ?, ?, ?, ?,
 				?, NOW(), ?, ?, NOW(),
-				CURDATE(), CURDATE(), NOW(),
+				?, CURDATE(), NOW(),
 				0, 0, 0, '', '',
 				'', '', '', '', '', '', '',
 				'', '', '', '',
@@ -211,7 +212,8 @@ export async function createMember(params: {
                 params.mb_email,
                 registerLevel,
                 params.mb_ip,
-                params.mb_ip
+                params.mb_ip,
+                params.skipNickLock ? '' : new Date().toISOString().slice(0, 10)
             ]
         );
     } catch (err: unknown) {
