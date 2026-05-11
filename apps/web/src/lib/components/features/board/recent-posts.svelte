@@ -362,12 +362,14 @@
     <!-- 페이지네이션 -->
     {#if totalPages > 1}
         <div class="mt-4 flex items-center justify-center gap-2">
+            <!-- #12234: 게시판 목록(#11941)과 동일한 첫/끝 페이지 단축 — 5페이지 점프 대신 처음/마지막 이동으로 통일 -->
             <Button
                 variant="outline"
                 size="sm"
-                disabled={currentPage <= 5}
-                title="5페이지 뒤로"
-                onclick={() => goToPage(Math.max(1, currentPage - 5))}
+                disabled={currentPage === 1}
+                title="처음으로"
+                aria-label="첫 페이지"
+                onclick={() => goToPage(1)}
             >
                 &laquo;
             </Button>
@@ -401,9 +403,10 @@
             <Button
                 variant="outline"
                 size="sm"
-                disabled={currentPage + 5 > totalPages}
-                title="5페이지 앞으로"
-                onclick={() => goToPage(Math.min(totalPages, currentPage + 5))}
+                disabled={currentPage === totalPages}
+                title="마지막으로"
+                aria-label="마지막 페이지"
+                onclick={() => goToPage(totalPages)}
             >
                 &raquo;
             </Button>
