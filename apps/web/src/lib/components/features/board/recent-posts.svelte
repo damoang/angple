@@ -147,6 +147,16 @@
     let currentPage = $state(initialPage);
     let totalPages = $state(initialTotalPages);
     let totalItems = $state(initialTotal);
+
+    // SvelteKit SPA 네비게이션으로 같은 boardId 의 다른 글로 이동 시
+    // initial* props 가 새 값으로 들어와도 위 $state 초기화는 컴포넌트 생성 시점에 1회만 실행되어
+    // 옛 글의 page / posts / total 이 그대로 유지되던 회귀 (#12302). props 변경 시 동기화.
+    $effect(() => {
+        posts = initialPosts;
+        currentPage = initialPage;
+        totalPages = initialTotalPages;
+        totalItems = initialTotal;
+    });
     const useSummaryListResponse = $derived(boardId === 'free' || boardId === 'hello');
 
     // 목록 컨테이너 참조
