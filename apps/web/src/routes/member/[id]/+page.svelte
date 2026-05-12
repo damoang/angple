@@ -544,7 +544,7 @@
                                     self: '본인 탈퇴',
                                     admin: '관리자 처리',
                                     terms_violation: '약관 위반',
-                                    contract_withdrawal: '가입 철회',
+                                    contract_withdrawal: '약관에 의한 계약 철회',
                                     account_abuse: '계정 도용/악용',
                                     other: '기타'
                                 }}
