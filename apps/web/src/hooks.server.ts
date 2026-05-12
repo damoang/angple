@@ -4,8 +4,12 @@ import '$lib/server/telemetry.js';
 import { redirect, type Handle, type HandleServerError } from '@sveltejs/kit';
 import { dev } from '$app/environment';
 import { env } from '$env/dynamic/private';
-import { getMemberById, updateLoginTimestamp } from '$lib/server/auth/oauth/member.js';
-import { getSession, SESSION_COOKIE_NAME } from '$lib/server/auth/session-store.js';
+import {
+    getMemberById,
+    updateLoginTimestamp,
+    isMemberActive
+} from '$lib/server/auth/oauth/member.js';
+import { getSession, destroySession, SESSION_COOKIE_NAME } from '$lib/server/auth/session-store.js';
 import { grantLoginXP } from '$lib/server/auth/xp-grant.js';
 import { grantLoginPoint } from '$lib/server/auth/point-grant.js';
 import { checkAndPromoteMember } from '$lib/server/auth/auto-promotion.js';
@@ -388,6 +392,16 @@ async function authenticateSSR(event: Parameters<Handle>[0]['event']): Promise<v
 
                 const member = await withTimeout(getMemberById(session.mbId), AUTH_TIMEOUT_MS);
                 if (member) {
+                    // 탈퇴/이용제한 회원 세션 차단
+                    if (!isMemberActive(member)) {
+                        await destroySession(sessionId).catch(() => {});
+                        event.cookies.delete(SESSION_COOKIE_NAME, {
+                            path: '/',
+                            ...(COOKIE_DOMAIN ? { domain: COOKIE_DOMAIN } : {})
+                        });
+                        return;
+                    }
+
                     event.locals.user = {
                         id: member.mb_id,
                         nickname: member.mb_nick || member.mb_name,
