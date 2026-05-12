@@ -4,11 +4,7 @@ import '$lib/server/telemetry.js';
 import { redirect, type Handle, type HandleServerError } from '@sveltejs/kit';
 import { dev } from '$app/environment';
 import { env } from '$env/dynamic/private';
-import {
-    getMemberById,
-    updateLoginTimestamp,
-    isMemberActive
-} from '$lib/server/auth/oauth/member.js';
+import { getMemberById, updateLoginTimestamp } from '$lib/server/auth/oauth/member.js';
 import { getSession, destroySession, SESSION_COOKIE_NAME } from '$lib/server/auth/session-store.js';
 import { grantLoginXP } from '$lib/server/auth/xp-grant.js';
 import { grantLoginPoint } from '$lib/server/auth/point-grant.js';
@@ -392,8 +388,8 @@ async function authenticateSSR(event: Parameters<Handle>[0]['event']): Promise<v
 
                 const member = await withTimeout(getMemberById(session.mbId), AUTH_TIMEOUT_MS);
                 if (member) {
-                    // 탈퇴/이용제한 회원 세션 차단
-                    if (!isMemberActive(member)) {
+                    // 탈퇴 회원 세션 차단 (이용제한 회원은 글 열람 허용을 위해 세션 유지)
+                    if (member.mb_leave_date) {
                         await destroySession(sessionId).catch(() => {});
                         event.cookies.delete(SESSION_COOKIE_NAME, {
                             path: '/',
