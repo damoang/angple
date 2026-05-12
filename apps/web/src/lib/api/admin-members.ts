@@ -15,6 +15,7 @@ export interface AdminMember {
     mb_today_login?: string;
     mb_image?: string;
     mb_leave_date?: string;
+    mb_leave_reason?: string;
     mb_intercept_date?: string;
     post_count?: number;
     comment_count?: number;
@@ -146,6 +147,7 @@ export async function updateMember(
         mb_signature?: string;
         mb_memo?: string;
         mb_leave?: boolean;
+        mb_leave_reason?: string;
     }
 ): Promise<void> {
     try {
