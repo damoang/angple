@@ -5,6 +5,10 @@
      */
     import { onMount, onDestroy } from 'svelte';
     import { browser } from '$app/environment';
+    import { page } from '$app/stores';
+
+    /** 성인 키워드 글 상세 페이지에서는 AdSense Multiplex 광고를 숨김 */
+    const suppressAds = $derived(!!($page as any).data?.post?.is_adult);
 
     interface Props {
         class?: string;
@@ -58,7 +62,7 @@
 </script>
 
 <div class="adsense-multiplex {className}">
-    {#if ready}
+    {#if ready && !suppressAds}
         <ins
             bind:this={insEl}
             class="adsbygoogle"

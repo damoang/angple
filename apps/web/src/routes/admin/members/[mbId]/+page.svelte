@@ -37,6 +37,23 @@
     let activityLoading = $state(true);
     let activeTab = $state<'posts' | 'comments'>('posts');
 
+    // 탈퇴 사유 다이얼로그
+    let showLeaveDialog = $state(false);
+    let leaveReason = $state('self');
+
+    const LEAVE_REASONS: { value: string; label: string }[] = [
+        { value: 'self', label: '본인 탈퇴' },
+        { value: 'admin', label: '관리자 처리' },
+        { value: 'terms_violation', label: '약관 위반' },
+        { value: 'contract_withdrawal', label: '계약 철회 (개인정보보호법)' },
+        { value: 'account_abuse', label: '계정 도용/악용' },
+        { value: 'other', label: '기타' }
+    ];
+
+    function getLeaveReasonLabel(reason?: string): string {
+        return LEAVE_REASONS.find((r) => r.value === reason)?.label ?? '본인 탈퇴';
+    }
+
     let showEditDialog = $state(false);
     let editRealName = $state('');
     let editName = $state('');
@@ -131,13 +148,31 @@
     async function handleLeave() {
         if (!member) return;
         const isLeft = !!member.mb_leave_date;
-        const action = isLeft ? '탈퇴 취소' : '탈퇴 처리';
-        if (!confirm(`"${member.mb_name}" (${member.mb_id})님을 ${action}하시겠습니까?`)) return;
+        if (isLeft) {
+            // 탈퇴 취소는 바로 처리
+            if (!confirm(`"${member.mb_name}" (${member.mb_id})님의 탈퇴를 취소하시겠습니까?`))
+                return;
+            try {
+                await updateMember(member.mb_id, { mb_leave: false });
+                await fetchMember();
+            } catch (err) {
+                alert(err instanceof Error ? err.message : '탈퇴 취소에 실패했습니다.');
+            }
+        } else {
+            // 탈퇴 처리는 사유 선택 다이얼로그 표시
+            leaveReason = 'self';
+            showLeaveDialog = true;
+        }
+    }
+
+    async function confirmLeave() {
+        if (!member) return;
+        showLeaveDialog = false;
         try {
-            await updateMember(member.mb_id, { mb_leave: !isLeft });
+            await updateMember(member.mb_id, { mb_leave: true, mb_leave_reason: leaveReason });
             await fetchMember();
         } catch (err) {
-            alert(err instanceof Error ? err.message : `${action}에 실패했습니다.`);
+            alert(err instanceof Error ? err.message : '탈퇴 처리에 실패했습니다.');
         }
     }
 
@@ -253,6 +288,16 @@
                                 <div class="sm:col-span-2">
                                     <span class="font-medium">관리자 메모:</span>
                                     {member.mb_memo}
+                                </div>
+                            {/if}
+                            {#if member.mb_leave_date}
+                                <div class="sm:col-span-2">
+                                    <span class="font-medium">탈퇴 정보:</span>
+                                    <span class="text-muted-foreground ml-1 text-sm">
+                                        {formatDate(member.mb_leave_date)} · {getLeaveReasonLabel(
+                                            member.mb_leave_reason
+                                        )}
+                                    </span>
                                 </div>
                             {/if}
                         </div>
@@ -456,5 +501,38 @@
                 </Button>
             </Dialog.Footer>
         </form>
+    </Dialog.Content>
+</Dialog.Root>
+
+<!-- 탈퇴 사유 선택 다이얼로그 -->
+<Dialog.Root bind:open={showLeaveDialog}>
+    <Dialog.Content class="sm:max-w-md">
+        <Dialog.Header>
+            <Dialog.Title>탈퇴 처리</Dialog.Title>
+            <Dialog.Description>
+                "{member?.mb_name}" ({member?.mb_id}) 회원의 탈퇴 사유를 선택하세요.
+            </Dialog.Description>
+        </Dialog.Header>
+        <div class="space-y-3 py-2">
+            {#each LEAVE_REASONS as reason (reason.value)}
+                <label class="flex cursor-pointer items-center gap-3">
+                    <input
+                        type="radio"
+                        name="leaveReason"
+                        value={reason.value}
+                        bind:group={leaveReason}
+                        class="h-4 w-4"
+                    />
+                    <span class="text-sm">{reason.label}</span>
+                </label>
+            {/each}
+        </div>
+        <Dialog.Footer>
+            <Button variant="outline" onclick={() => (showLeaveDialog = false)}>취소</Button>
+            <Button variant="destructive" onclick={confirmLeave}>
+                <UserX class="mr-1 h-4 w-4" />
+                탈퇴 처리
+            </Button>
+        </Dialog.Footer>
     </Dialog.Content>
 </Dialog.Root>

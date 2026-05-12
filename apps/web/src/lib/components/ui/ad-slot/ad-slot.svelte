@@ -40,10 +40,11 @@
      */
     const AD_WATCHDOG_MS = 12_000;
 
-    /** 삭제된 글/비밀글 상세 페이지에서는 모든 광고를 숨김 (애드센스 정책) */
+    /** 삭제된 글/비밀글/성인 키워드 글 상세 페이지에서는 모든 광고를 숨김 (애드센스 정책) */
     const isDeletedPost = $derived(!!($page as any).data?.post?.deleted_at);
     const isSecretPost = $derived(!!($page as any).data?.post?.is_secret);
-    const suppressAds = $derived(isDeletedPost || isSecretPost);
+    const isAdultPost = $derived(!!($page as any).data?.post?.is_adult);
+    const suppressAds = $derived(isDeletedPost || isSecretPost || isAdultPost);
 
     interface Props {
         position: string;
