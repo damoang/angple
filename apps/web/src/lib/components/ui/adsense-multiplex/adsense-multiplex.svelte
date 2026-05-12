@@ -7,8 +7,10 @@
     import { browser } from '$app/environment';
     import { page } from '$app/stores';
 
-    /** 성인 키워드 글 상세 페이지에서는 AdSense Multiplex 광고를 숨김 */
-    const suppressAds = $derived(!!($page as any).data?.post?.is_adult);
+    /** 성인 키워드 글/차단 작가 글 상세 페이지에서는 AdSense Multiplex 광고를 숨김 */
+    const suppressAds = $derived(
+        !!($page as any).data?.post?.is_adult || !!($page as any).data?.post?.suppress_ads
+    );
 
     interface Props {
         class?: string;
