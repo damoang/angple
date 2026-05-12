@@ -66,6 +66,7 @@ export interface MemberRow {
     mb_today_login: string;
     mb_login_ip: string;
     mb_leave_date: string;
+    mb_leave_reason: string;
     mb_intercept_date: string;
     mb_certify: string;
     mb_image_url: string;
