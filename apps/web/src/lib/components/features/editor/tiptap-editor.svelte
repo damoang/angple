@@ -466,6 +466,23 @@
             }
         }
 
+        // HTML paste 에서 이미지 과다 방지 (#12300)
+        // 메모장 등에서 이미지 50개 이상 포함 글 붙여넣기 시 동시 업로드 → 504 발생.
+        // img 태그가 10개 초과이면 이미지를 제거하고 텍스트/구조만 삽입 후 안내.
+        const htmlData = e.clipboardData?.getData('text/html');
+        if (htmlData) {
+            const imgCount = (htmlData.match(/<img/gi) || []).length;
+            if (imgCount > 10) {
+                e.preventDefault();
+                const stripped = htmlData.replace(/<img[^>]*\/?>/gi, '');
+                editor?.commands.insertContent(stripped);
+                alert(
+                    `이미지가 ${imgCount}개 포함되어 있어 이미지를 제외하고 텍스트만 붙여넣었습니다.\n이미지는 한 번에 최대 10개까지 붙여넣기 가능합니다.`
+                );
+                return;
+            }
+        }
+
         // 단독 YouTube URL 붙여넣기 → 명시적으로 임베드 삽입 (#12065)
         const text = e.clipboardData?.getData('text/plain')?.trim();
         if (text && YOUTUBE_PASTE_PATTERN.test(text)) {
