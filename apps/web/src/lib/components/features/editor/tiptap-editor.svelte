@@ -439,6 +439,10 @@
     // 자체 paste handler 에서 YouTube URL 감지 시 명시적으로 setYoutubeVideo 호출.
     const YOUTUBE_PASTE_PATTERN =
         /^https?:\/\/(?:www\.|m\.)?(?:youtube(?:-nocookie)?\.com\/(?:watch\?v=|embed\/|shorts\/|live\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})(?:[?&][^\s]*)?$/;
+    // #12262: gif 등 이미지 확장자 단독 URL 붙여넣기 시 이미지 임베드.
+    // 모바일 일부 브라우저(스타곤 등) 에서 LinkedImage 의 자동 paste 변환이
+    // 트리거되지 않아 URL 이 plain text 로 들어가던 회귀 대응.
+    const IMAGE_URL_PASTE_PATTERN = /^https?:\/\/[^\s]+\.(gif|jpe?g|png|webp|avif)(\?[^\s]*)?$/i;
 
     function handlePaste(e: ClipboardEvent): void {
         if (disabled) return;
@@ -469,6 +473,13 @@
             const timeMatch = text.match(/[?&]t=(\d+)/);
             const start = timeMatch ? parseInt(timeMatch[1], 10) : 0;
             editor?.chain().focus().setYoutubeVideo({ src: text, start }).run();
+            return;
+        }
+
+        // 단독 이미지 URL (gif/png/jpg/webp/avif) 붙여넣기 → 이미지 임베드 (#12262)
+        if (text && IMAGE_URL_PASTE_PATTERN.test(text)) {
+            e.preventDefault();
+            editor?.chain().focus().setImage({ src: text }).run();
             return;
         }
     }
