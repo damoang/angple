@@ -45,7 +45,9 @@
     const isSecretPost = $derived(!!($page as any).data?.post?.is_secret);
     const isAdultPost = $derived(!!($page as any).data?.post?.is_adult);
     const isSuppressedAuthor = $derived(!!($page as any).data?.post?.suppress_ads);
-    const suppressAds = $derived(isDeletedPost || isSecretPost || isAdultPost || isSuppressedAuthor);
+    const suppressAds = $derived(
+        isDeletedPost || isSecretPost || isAdultPost || isSuppressedAuthor
+    );
 
     interface Props {
         position: string;
