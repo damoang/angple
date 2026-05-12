@@ -114,8 +114,8 @@ export const GET: RequestHandler = async ({ params }) => {
                     mb_image_url, mb_image_updated_at, mb_certify, mb_leave_date, mb_leave_reason,
                     as_level, as_exp
              FROM g5_member
-             WHERE mb_id = ?`,
-            [memberId]
+             WHERE mb_id = ? OR mb_nick = ?`,
+            [memberId, memberId]
         );
 
         if (rows.length === 0) {

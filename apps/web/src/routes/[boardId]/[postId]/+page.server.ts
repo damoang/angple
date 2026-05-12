@@ -585,12 +585,14 @@ export const load: PageServerLoad = async ({
 
         // 하단 게시글 목록은 클라이언트에서 로드한다.
         // 개수(20개)는 유지하되 상세 __data.json을 줄이기 위해 SSR 프리로드는 하지 않는다.
-        const listPage = Number(url.searchParams.get('page')) || 1;
+        // SSR 단계에서는 항상 page=1 로 고정 — URL 의 ?page 파라미터는 목록 페이지 컨텍스트이며
+        // 글 상세 하단 RecentPosts 에 그대로 전달하면 특정 날짜의 글들이 고정 노출되는 버그 발생 (#12315).
+        // 실제 page 탐색은 클라이언트 컴포넌트가 담당한다.
         let recentPosts: { items: FreePost[]; total: number; totalPages: number; page: number } = {
             items: [],
             total: 0,
             totalPages: 1,
-            page: listPage
+            page: 1
         };
 
         // Phase 1C: 플러그인 enrich filter (member-memo author_memo 등).
