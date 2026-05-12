@@ -540,9 +540,22 @@
                                 </span>
                             </div>
                             {#if p.is_left && p.mb_leave_date}
+                                {@const LEAVE_REASON_LABELS: Record<string, string> = {
+                                    self: '본인 탈퇴',
+                                    admin: '관리자 처리',
+                                    terms_violation: '약관 위반',
+                                    contract_withdrawal: '약관에 의한 계약 철회',
+                                    account_abuse: '계정 도용/악용',
+                                    other: '기타'
+                                }}
                                 <div class="flex items-center gap-2">
                                     <Calendar class="h-4 w-4 shrink-0" />
-                                    <span>{formatDate(p.mb_leave_date)} 탈퇴</span>
+                                    <span>
+                                        {formatDate(p.mb_leave_date)} 탈퇴{p.mb_leave_reason &&
+                                        p.mb_leave_reason !== 'self'
+                                            ? ` · ${LEAVE_REASON_LABELS[p.mb_leave_reason] ?? p.mb_leave_reason}`
+                                            : ''}
+                                    </span>
                                 </div>
                             {/if}
                             {#if p.mb_nick_date}

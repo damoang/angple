@@ -25,6 +25,7 @@ interface MemberRow extends RowDataPacket {
     mb_image_updated_at: string;
     mb_certify: string;
     mb_leave_date: string;
+    mb_leave_reason: string;
     as_level: number;
     as_exp: number;
 }
@@ -110,7 +111,7 @@ export const GET: RequestHandler = async ({ params }) => {
             `SELECT mb_id, mb_name, mb_nick, mb_level, mb_point,
                     mb_signature, mb_homepage, mb_profile,
                     mb_datetime, mb_today_login, mb_nick_date,
-                    mb_image_url, mb_image_updated_at, mb_certify, mb_leave_date,
+                    mb_image_url, mb_image_updated_at, mb_certify, mb_leave_date, mb_leave_reason,
                     as_level, as_exp
              FROM g5_member
              WHERE mb_id = ?`,
@@ -239,6 +240,7 @@ export const GET: RequestHandler = async ({ params }) => {
                 mb_certify: !!member.mb_certify,
                 is_left: isLeft,
                 mb_leave_date: member.mb_leave_date || '',
+                mb_leave_reason: member.mb_leave_reason || '',
                 reg_days: regDays,
                 // 경험치 (levelThresholds 기반 계산)
                 as_level: calculateLevelInfo(member.as_exp || 0).currentLevel,

@@ -45,7 +45,7 @@
         { value: 'self', label: '본인 탈퇴' },
         { value: 'admin', label: '관리자 처리' },
         { value: 'terms_violation', label: '약관 위반' },
-        { value: 'contract_withdrawal', label: '계약 철회 (개인정보보호법)' },
+        { value: 'contract_withdrawal', label: '약관에 의한 계약 철회' },
         { value: 'account_abuse', label: '계정 도용/악용' },
         { value: 'other', label: '기타' }
     ];
