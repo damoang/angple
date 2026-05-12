@@ -301,7 +301,7 @@ async function handleCallback(
         // 소셜 프로필 업데이트
         await upsertSocialProfile(mbId, providerName, profile);
 
-        await runSocialLoginPostProcess(mbId, clientIp);
+        await runSocialLoginPostProcess(mbId, clientIp, member.mb_leave_reason);
 
         // 서버사이드 세션 생성
         const session = await createSession(member.mb_id, {

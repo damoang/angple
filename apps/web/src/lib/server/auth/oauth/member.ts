@@ -26,7 +26,7 @@ export async function getMemberById(mbId: string): Promise<MemberRow | null> {
 
     const [rows] = await pool.query<RowDataPacket[]>(
         `SELECT mb_id, mb_name, mb_nick, mb_email, mb_level, mb_point,
-		        mb_today_login, mb_login_ip, mb_leave_date, mb_intercept_date, mb_certify,
+		        mb_today_login, mb_login_ip, mb_leave_date, mb_leave_reason, mb_intercept_date, mb_certify,
 		        COALESCE(mb_image_url, '') AS mb_image_url,
 		        mb_image_updated_at,
 		        COALESCE(as_level, 0) AS as_level
@@ -80,7 +80,7 @@ export async function findMemberByEmail(email: string): Promise<MemberRow | null
     if (!email) return null;
     const [rows] = await pool.query<RowDataPacket[]>(
         `SELECT mb_id, mb_name, mb_nick, mb_email, mb_level, mb_point,
-		        mb_today_login, mb_login_ip, mb_leave_date, mb_intercept_date, mb_certify,
+		        mb_today_login, mb_login_ip, mb_leave_date, mb_leave_reason, mb_intercept_date, mb_certify,
 		        COALESCE(mb_image_url, '') AS mb_image_url,
 		        mb_image_updated_at,
 		        COALESCE(as_level, 0) AS as_level
@@ -93,12 +93,38 @@ export async function findMemberByEmail(email: string): Promise<MemberRow | null
     return (rows[0] as MemberRow) || null;
 }
 
-/** 로그인 시각/IP 업데이트 — 재로그인 시 mb_leave_date 도 클리어(복귀 처리) */
-export async function updateLoginTimestamp(mbId: string, ip: string): Promise<void> {
-    await pool.query(
-        "UPDATE g5_member SET mb_today_login = NOW(), mb_login_ip = ?, mb_leave_date = '' WHERE mb_id = ?",
-        [ip, mbId]
-    );
+/**
+ * 로그인 시각/IP 업데이트.
+ * - 본인 탈퇴(reason = 'self' 또는 빈 값) 후 재로그인 → mb_leave_date 클리어(자동 복귀).
+ * - 관리자가 처리한 탈퇴(admin/terms_violation/contract_withdrawal/account_abuse) →
+ *   mb_leave_date 보존, 재로그인으로 탈퇴 취소되지 않도록 보호.
+ */
+export async function updateLoginTimestamp(
+    mbId: string,
+    ip: string,
+    leaveReason?: string
+): Promise<void> {
+    const PROTECTED_REASONS = new Set([
+        'admin',
+        'terms_violation',
+        'contract_withdrawal',
+        'account_abuse'
+    ]);
+    const isAdminDeactivated = leaveReason && PROTECTED_REASONS.has(leaveReason);
+
+    if (isAdminDeactivated) {
+        // 관리자 처리 탈퇴: mb_leave_date 보존, 로그인 시각만 업데이트
+        await pool.query(
+            'UPDATE g5_member SET mb_today_login = NOW(), mb_login_ip = ? WHERE mb_id = ?',
+            [ip, mbId]
+        );
+    } else {
+        // 본인 탈퇴(또는 reason 없음): mb_leave_date 클리어 → 자동 복귀
+        await pool.query(
+            "UPDATE g5_member SET mb_today_login = NOW(), mb_login_ip = ?, mb_leave_date = '' WHERE mb_id = ?",
+            [ip, mbId]
+        );
+    }
     await invalidateMemberCache(mbId);
 }
 

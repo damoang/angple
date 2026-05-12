@@ -441,7 +441,11 @@ async function authenticateSSR(event: Parameters<Handle>[0]['event']): Promise<v
                             // fire-and-forget: 응답 지연 방지
                             void (async () => {
                                 try {
-                                    await updateLoginTimestamp(member.mb_id, clientIp);
+                                    await updateLoginTimestamp(
+                                        member.mb_id,
+                                        clientIp,
+                                        member.mb_leave_reason
+                                    );
                                     await Promise.allSettled([
                                         grantLoginXP(member.mb_id),
                                         grantLoginPoint(member.mb_id)
