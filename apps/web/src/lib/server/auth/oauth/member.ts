@@ -128,7 +128,9 @@ export async function updateLoginTimestamp(
     await invalidateMemberCache(mbId);
 }
 
-/** 회원이 활성 상태인지 확인 (탈퇴 여부만 체크) */
+/** 회원이 활성 상태인지 확인 (탈퇴 + 이용제한 모두 체크)
+ *  이용제한(mb_intercept_date)은 자동 복귀 없음. OAuth 콜백 단계에서 함께 차단.
+ */
 export function isMemberActive(member: MemberRow): boolean {
-    return !member.mb_leave_date;
+    return !member.mb_leave_date && !member.mb_intercept_date;
 }
