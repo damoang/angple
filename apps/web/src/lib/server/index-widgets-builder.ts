@@ -6,6 +6,7 @@
  */
 
 import { readFile } from 'fs/promises';
+import { env } from '$env/dynamic/private';
 import type {
     IndexWidgetsData,
     NewsPost,
@@ -41,7 +42,9 @@ interface BackendBoardResponse {
     };
 }
 
-const JSON_PATH = '/home/damoang/www/data/cache/recommended/index-widgets.json';
+const JSON_PATH =
+    env.INDEX_WIDGETS_CACHE_PATH ||
+    '/home/damoang/legacy-data/data/cache/recommended/index-widgets.json';
 const CACHE_TTL_MS = 60_000; // 60초 (파일은 5분마다 갱신)
 
 const EMPTY_RESULT: IndexWidgetsData = {

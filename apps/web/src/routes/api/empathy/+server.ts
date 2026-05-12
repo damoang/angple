@@ -31,7 +31,9 @@ export const GET: RequestHandler = async ({ url }) => {
 
     return json(dataWithoutComments, {
         headers: {
-            'Cache-Control': 'public, max-age=60'
+            // CDN s-maxage=300 (5분) — cron 갱신 주기(1h)의 1/12.
+            // stale-while-revalidate=86400 으로 갱신 중에도 옛 데이터 노출 허용.
+            'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=86400, max-age=60'
         }
     });
 };

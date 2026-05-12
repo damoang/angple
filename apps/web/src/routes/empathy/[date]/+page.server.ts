@@ -6,7 +6,11 @@ import {
     isValidDate
 } from '$lib/server/daily-recommended-loader';
 
-export const load: PageServerLoad = async ({ params }) => {
+export const load: PageServerLoad = async ({ params, setHeaders }) => {
+    // 과거 날짜 공감글은 불변 → 1시간 CDN 캐시, stale 7일 허용.
+    setHeaders({
+        'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=604800, max-age=0'
+    });
     const { date } = params;
 
     if (!isValidDate(date)) {

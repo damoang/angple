@@ -5,7 +5,9 @@ import {
     getTodayKST
 } from '$lib/server/daily-recommended-loader';
 
-export const load: PageServerLoad = async () => {
+export const load: PageServerLoad = async ({ setHeaders }) => {
+    // 오늘 공감글: 비로그인 60초 CDN 캐시. cron 갱신(1h) 주기 대비 짧게 설정.
+    setHeaders({ 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=3600, max-age=0' });
     const today = getTodayKST();
 
     const [calendar, dailyData] = await Promise.all([
