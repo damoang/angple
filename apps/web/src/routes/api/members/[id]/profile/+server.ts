@@ -102,7 +102,15 @@ function calculateLevelInfo(totalExp: number) {
 export const GET: RequestHandler = async ({ params }) => {
     const memberId = params.id;
 
-    if (!memberId || !/^[a-zA-Z0-9_-]+$/.test(memberId)) {
+    // mb_id (영문/숫자/_-) 또는 mb_nick (한글 포함) 둘 다 허용 (#12371).
+    // 멘션 링크 (@닉네임) 가 한글 닉네임으로 /member/{닉네임} 형태로 들어오므로 차단하지 않음.
+    // 경로 traversal/주입 방지 위해 길이 제한 + 위험 문자만 차단.
+    const isValidMemberId =
+        !!memberId &&
+        memberId.length > 0 &&
+        memberId.length <= 50 &&
+        !/[\\\/?#<>%\s\0]/.test(memberId);
+    if (!isValidMemberId) {
         return json({ success: false, error: '유효하지 않은 회원 ID입니다.' }, { status: 400 });
     }
 
