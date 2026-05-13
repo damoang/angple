@@ -490,32 +490,8 @@
                 </CardContent>
             </Card>
 
-            <Card>
-                <CardHeader>
-                    <CardTitle class="flex items-center gap-2">
-                        <Type class="h-5 w-5" />
-                        공감글 글씨 크기
-                    </CardTitle>
-                    <CardDescription
-                        >메인화면 공감 컴포넌트의 글씨 크기를 조정합니다.</CardDescription
-                    >
-                </CardHeader>
-                <CardContent>
-                    <div class="flex flex-wrap gap-2">
-                        {#each listFontSizeOptions as opt (opt.value)}
-                            <button
-                                class="rounded-lg border px-4 py-2 text-sm transition-colors {uiSettingsStore.recommendFontSize ===
-                                opt.value
-                                    ? 'border-primary bg-primary/10 text-foreground'
-                                    : 'border-border text-muted-foreground hover:border-foreground/20 hover:text-foreground'}"
-                                onclick={() => uiSettingsStore.setRecommendFontSize(opt.value)}
-                            >
-                                {opt.label}
-                            </button>
-                        {/each}
-                    </div>
-                </CardContent>
-            </Card>
+            <!-- #12365: '공감글 글씨 크기' 슬라이더 제거 — '목록 글자 크기' 하나로 통합.
+                 공감글/추천글 컴포넌트는 이제 listFontSize 를 따라간다. -->
 
             <Card>
                 <CardHeader>

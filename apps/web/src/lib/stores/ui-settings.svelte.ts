@@ -155,10 +155,10 @@ function createUiSettingsStore() {
         html.style.setProperty('--content-line-height', LINE_HEIGHT_VALUES[settings.lineHeight]);
 
         html.style.setProperty('--list-font-size', LIST_FONT_SIZES[settings.listFontSize]);
-        html.style.setProperty(
-            '--recommend-font-size',
-            LIST_FONT_SIZES[settings.recommendFontSize]
-        );
+        // #12365: 공감글/추천글 컴포넌트도 동일한 listFontSize 적용 — 사용자가
+        // "리스트 글자 크기" 하나만 조정하면 모든 리스트류가 일관되게 변경됨.
+        // recommendFontSize 설정 store key 는 backward-compat 위해 유지하되 미사용.
+        html.style.setProperty('--recommend-font-size', LIST_FONT_SIZES[settings.listFontSize]);
 
         // 본문·에디터에 contentFontSize 연동
         html.style.setProperty('--content-font-size', CONTENT_FONT_SIZES[settings.contentFontSize]);
