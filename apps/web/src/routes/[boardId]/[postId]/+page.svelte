@@ -2036,8 +2036,8 @@
                 {boardTitle}
                 currentPostId={data.post.id}
                 limit={20}
-                initialPage={data.recentPosts?.page ||
-                    Number($page.url.searchParams.get('page')) ||
+                initialPage={Number($page.url.searchParams.get('page')) ||
+                    data.recentPosts?.page ||
                     1}
                 {promotionPosts}
                 displaySettings={data.board?.display_settings}
