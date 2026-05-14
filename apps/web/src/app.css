@@ -415,3 +415,24 @@ html {
         animation: none;
     }
 }
+
+/* #12268: 모바일 터치 피드백 — 어떤 글을 눌렀는지 시각적 확인이 가능하도록 한다.
+ * iOS Safari / Chrome Mobile 등 webkit 계열에서 link/button tap 시 색조 표시.
+ * 기본 transparent 로 설정된 경우 사용자가 어디를 눌렀는지 모름 → 사이트가 느린 듯 체감. */
+html {
+    -webkit-tap-highlight-color: rgba(0, 0, 0, 0.12);
+}
+
+:root.dark,
+:root.amoled {
+    -webkit-tap-highlight-color: rgba(255, 255, 255, 0.14);
+}
+
+/* 터치 디바이스에서 게시판 목록 / 공감글 / 모아보기 등 list-item 링크의 :active 강조.
+ * hover:bg-accent 클래스를 가진 모든 링크에 동일한 visual feedback 을 적용 → 13개 list
+ * layout / 모아보기 / 공감글 카드 / RecentPosts 등 일관 적용. */
+@media (hover: none) and (pointer: coarse) {
+    a[class*='hover:bg-accent']:active {
+        background-color: var(--accent);
+    }
+}
