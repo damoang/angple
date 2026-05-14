@@ -95,6 +95,8 @@
         initialDislikedCommentIds?: number[]; // SSR에서 전달된 비추천한 댓글 ID 목록
         truthroomCommentMap?: Record<number, number>; // 잠긴 댓글 → 진실의방 글 ID 매핑
         isRestricted?: boolean; // 제한된 유저 (영구정지 등)
+        // 댓글 수정 정책 (단일 진실 근원: 백엔드 env). 미전달 시 default 사용 (코드 하드코딩 금지 — 부모가 API 메타에서 받아 전달).
+        editPolicy?: { cost: number; grace_seconds: number };
     }
 
     let {
@@ -114,7 +116,8 @@
         initialLikedCommentIds = [],
         initialDislikedCommentIds = [],
         truthroomCommentMap = {},
-        isRestricted = false
+        isRestricted = false,
+        editPolicy = { cost: 50000, grace_seconds: 300 }
     }: Props = $props();
 
     function findCommentById(commentId: string): FreeComment | null {
@@ -439,9 +442,26 @@
         return editEditorLoadPromise;
     }
 
-    // 수정 모드 시작
+    // 수정 모드 시작 — 비-관리자, grace 윈도우 밖, 비용 > 0 일 때 포인트 차감 안내 confirm
     function startEdit(comment: FreeComment): void {
         const target = commentTree.find((c) => c.id === comment.id) ?? comment;
+
+        if (!isAdmin() && editPolicy.cost > 0) {
+            const createdAtMs = new Date(target.created_at).getTime();
+            const elapsedSec = (Date.now() - createdAtMs) / 1000;
+            const inGrace = elapsedSec <= editPolicy.grace_seconds;
+            if (!inGrace) {
+                const graceMin = Math.floor(editPolicy.grace_seconds / 60);
+                const costFmt = editPolicy.cost.toLocaleString('ko-KR');
+                const msg =
+                    `이 댓글을 수정하면 ${costFmt} 포인트가 차감되며,\n` +
+                    `수정 시각과 수정 횟수가 모든 사용자에게 표시됩니다.\n\n` +
+                    `(작성 후 ${graceMin}분 이내 수정은 무료입니다.)\n\n` +
+                    `계속 진행하시겠습니까?`;
+                if (!window.confirm(msg)) return;
+            }
+        }
+
         editingCommentId = String(target.id);
         editContent = target.content;
         replyingToCommentId = null;
