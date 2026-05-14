@@ -373,8 +373,10 @@ class ApiClient {
             params.set('summary', '1');
         }
 
+        // 브라우저 HTTP 캐시 우회 (PR #1404 캐시 정책 변경 후 RecentPosts 5/7 고정 회귀 — #12389/#12383)
         const response = await this.request<BackendResponse>(`/boards/${boardId}/posts?${params}`, {
-            signal: options?.signal
+            signal: options?.signal,
+            cache: 'no-store'
         });
 
         const backendData = response as unknown as BackendResponse;
