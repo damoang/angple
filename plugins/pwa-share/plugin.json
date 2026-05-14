@@ -1,0 +1,22 @@
+{
+    "id": "pwa-share",
+    "name": "PWA 공유 버튼",
+    "version": "1.0.0",
+    "category": "plugin",
+    "description": "PWA standalone 모드(주소창 숨김 상태)에서 헤더에 현재 페이지를 공유/복사할 수 있는 버튼을 노출합니다.",
+    "author": {
+        "name": "Damoang Team",
+        "url": "https://damoang.net"
+    },
+    "components": [
+        {
+            "id": "pwa-share-button",
+            "name": "PWA 공유 버튼",
+            "slot": "header-actions-right",
+            "path": "components/pwa-share-button.svelte",
+            "priority": 10
+        }
+    ],
+    "tags": ["공유", "PWA", "웹앱"],
+    "marketplaceCategory": "utility"
+}
