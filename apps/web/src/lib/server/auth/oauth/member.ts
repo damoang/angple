@@ -128,15 +128,17 @@ export async function updateLoginTimestamp(
     await invalidateMemberCache(mbId);
 }
 
-/** 회원이 활성 상태인지 확인 (탈퇴 + 이용제한 모두 체크).
- *  - mb_leave_date 가 set 이면 탈퇴 → inactive.
- *  - mb_intercept_date 는 빈 문자열 '' / null / '0000-00-00' 등 레거시 sentinel 을
- *    모두 활성으로 간주 (#12386, #12383). 실제 이용제한은 YYYYMMDD 또는
- *    YYYY-MM-DD 형식의 진짜 날짜만 차단 사유.
+/** 로그인 차단 사유는 "탈퇴" 한 가지만. 이용제한(mb_intercept_date) 은 로그인 차단 사유가 아님.
+ *
+ *  운영 정책 (2026-05-15):
+ *  - **탈퇴자(mb_leave_date set)만 OAuth 로그인 차단**.
+ *  - 이용제한(mb_intercept_date 가 진짜 날짜) 회원도 로그인은 허용 — 본인이 소명할 수
+ *    있어야 하기 때문. 글/댓글 작성 같은 활동 제한은 별도 ban-check 미들웨어가 담당.
+ *  - 자발적 탈퇴(reason='self' 또는 빈 값) 의 자동 복귀는 updateLoginTimestamp 가 처리.
+ *  - 관리자 처리 탈퇴(admin / terms_violation / contract_withdrawal / account_abuse) 는
+ *    PROTECTED_REASONS 가 mb_leave_date 를 보존 → 이 함수에서 false 반환 → 로그인 차단.
  */
 export function isMemberActive(member: MemberRow): boolean {
     if (member.mb_leave_date) return false;
-    const intercept = (member.mb_intercept_date ?? '').trim();
-    if (!intercept || intercept === '0000-00-00' || intercept === '00000000') return true;
-    return false;
+    return true;
 }
