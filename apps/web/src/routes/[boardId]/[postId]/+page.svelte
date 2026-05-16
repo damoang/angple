@@ -2028,9 +2028,13 @@
      posts state 가 남아있다가 잘못된 URL 로 이동하는 문제 방지 -->
 <!-- #12048: 본문 wrapper 외부의 RecentPosts 가 일부 모바일 환경(Samsung Internet/다뷰)
      에서 가로 스크롤 유발. 동일한 overflow-x cascade 폴백 + clip 적용. -->
+<!-- #12409 + #12413: 같은 게시판 내 다른 글로 SPA navigation 시 key 가 변하지 않아
+     RecentPosts 가 재마운트되지 않고 onMount 가 재실행되지 않음 → 이전 글 진입 시점의
+     initialPage(보통 1) 가 stale 상태로 남아 항상 1페이지가 표시되는 회귀.
+     post.id 를 key 에 포함시켜 글 이동마다 RecentPosts 를 재마운트, URL ?page=N 반영. -->
 {#if canRead}
     <div style="overflow-x: hidden; overflow-x: clip;">
-        {#key boardId}
+        {#key `${boardId}:${data.post.id}`}
             <RecentPosts
                 {boardId}
                 {boardTitle}
