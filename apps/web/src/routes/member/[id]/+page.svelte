@@ -341,17 +341,17 @@
                                     profileIconFailed = true;
                                 }}
                             />
+                        {:else if isOwnProfile}
+                            <button
+                                type="button"
+                                class="bg-muted text-muted-foreground flex size-16 cursor-pointer items-center justify-center rounded-full text-xl font-bold"
+                                onclick={handleImageClick}
+                            >
+                                {p.mb_name.charAt(0).toUpperCase()}
+                            </button>
                         {:else}
                             <div
                                 class="bg-muted text-muted-foreground flex size-16 items-center justify-center rounded-full text-xl font-bold"
-                                class:cursor-pointer={isOwnProfile}
-                                onclick={handleImageClick}
-                                role={isOwnProfile ? 'button' : undefined}
-                                tabindex={isOwnProfile ? 0 : undefined}
-                                onkeydown={(e) => {
-                                    if (isOwnProfile && (e.key === 'Enter' || e.key === ' '))
-                                        handleImageClick();
-                                }}
                             >
                                 {p.mb_name.charAt(0).toUpperCase()}
                             </div>
