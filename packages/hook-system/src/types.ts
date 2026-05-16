@@ -59,4 +59,7 @@ export interface FilterPoints {
     // API 응답
     api_response: [response: any, endpoint: string];
     api_error: [error: any, endpoint: string];
+
+    // 광고 렌더 결정 — 플러그인이 false 반환 시 AdSlot 미렌더 (ad-free 멤버십 등)
+    should_render_ad: [ctx: { slotName: string; user: any }];
 }

@@ -1,0 +1,91 @@
+{
+    "id": "ad-free",
+    "name": "광고 제거 멤버십",
+    "version": "0.1.0",
+    "author": {
+        "name": "Angple",
+        "url": "https://angple.com"
+    },
+    "license": "MIT",
+    "category": "plugin",
+    "pluginType": "MEMBERSHIP",
+    "main": "index.ts",
+    "description": "회원 구독으로 사이트 광고를 제거하는 멤버십 플러그인. payment 플러그인과 연동하여 네이버페이/PayPal/토스 결제를 통한 정기구독을 제공합니다.",
+    "tags": ["membership", "ad-free", "subscription", "광고제거", "멤버십"],
+    "dependencies": [{ "id": "payment", "version": "^0.1" }],
+    "migrations": [
+        {
+            "version": "001",
+            "description": "ad_free_membership: 사용자 광고 제거 멤버십 상태",
+            "up": "migrations/001_ad_free_membership.up.sql",
+            "down": "migrations/001_ad_free_membership.down.sql"
+        }
+    ],
+    "hooks": [
+        {
+            "name": "should_render_ad",
+            "type": "filter",
+            "callback": "hooks/suppress.server.ts",
+            "priority": 10,
+            "comment": ".server.ts suffix → plugin-server-loader 의 import.meta.glob 패턴 매칭, 자동 활성화"
+        }
+    ],
+    "api": {
+        "rest": {
+            "prefix": "/api/plugins/ad-free",
+            "routes": [
+                {
+                    "method": "GET",
+                    "path": "/me",
+                    "handler": "server/membership-api.ts",
+                    "authenticated": true
+                }
+            ]
+        }
+    },
+    "settings": {
+        "enabled": {
+            "label": "활성화",
+            "type": "boolean",
+            "default": true
+        },
+        "monthly_price": {
+            "label": "월간 가격",
+            "type": "number",
+            "default": 4700,
+            "description": "월 구독 가격. 통화의 최소 단위 (KRW=원, USD=센트 ÷ 100)."
+        },
+        "yearly_price": {
+            "label": "연간 가격",
+            "type": "number",
+            "default": 47000,
+            "description": "연 구독 가격. 월 ×10 권장 (2개월 무료)."
+        },
+        "currency": {
+            "label": "통화",
+            "type": "select",
+            "default": "KRW",
+            "options": [
+                { "label": "원 (KRW)", "value": "KRW" },
+                { "label": "달러 (USD)", "value": "USD" }
+            ]
+        },
+        "trial_days": {
+            "label": "무료 체험 일수",
+            "type": "number",
+            "default": 7
+        },
+        "support_email": {
+            "label": "고객 지원 이메일",
+            "type": "string",
+            "default": "help@example.com",
+            "description": "환불/문의 안내에 표시"
+        },
+        "product_name": {
+            "label": "상품 표시명",
+            "type": "string",
+            "default": "광고 제거 멤버십",
+            "description": "랜딩/체크아웃 페이지 상품명 (사이트별 브랜딩 가능)"
+        }
+    }
+}
