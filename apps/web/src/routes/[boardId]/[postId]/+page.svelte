@@ -16,6 +16,7 @@
 
 <script lang="ts">
     import { browser } from '$app/environment';
+    import { env as publicEnv } from '$env/dynamic/public';
     import { afterNavigate, goto } from '$app/navigation';
     import { Card, CardHeader, CardContent } from '$lib/components/ui/card/index.js';
     import { Button } from '$lib/components/ui/button/index.js';
@@ -1433,10 +1434,14 @@
             ? `${siteUrl}/member/${data.post.author_id}`
             : undefined;
         // OG 이미지: 캐시버스팅으로 소셜 미디어 stale preview 방지
+        // 본문에 이미지가 없으면 PUBLIC_OG_FALLBACK_IMAGE (운영에서 사이트 로고 URL 설정) 로
+        // 대체. fallback 미설정 시 og:image 가 누락되어 크롤러가 페이지 안의 임의 이미지
+        // (작성자 프로필, 댓글자 아바타 등) 를 썸네일로 잡아가는 문제 (#12417) 발생.
         const rawOgImage = data.post.thumbnail || data.post.images?.[0];
+        const fallbackOgImage = publicEnv.PUBLIC_OG_FALLBACK_IMAGE || undefined;
         const ogImageUrl = rawOgImage
             ? `${rawOgImage}${rawOgImage.includes('?') ? '&' : '?'}v=${new Date(data.post.updated_at || data.post.created_at).getTime()}`
-            : undefined;
+            : fallbackOgImage;
 
         return {
             meta: {
