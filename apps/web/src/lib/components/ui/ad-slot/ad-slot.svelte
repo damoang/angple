@@ -31,6 +31,7 @@
     import { ensureGAMPreload } from './ad-slot-registry.js';
     import { trackAdEvent, isAdSdkBlocked } from '$lib/services/ad-telemetry.js';
     import { page } from '$app/stores';
+    import { hooks } from '@angple/hook-system';
 
     /**
      * Watchdog: `attachSlot` 후 N ms 내 `slotRenderEnded` 가 도착하지 않으면
@@ -39,15 +40,6 @@
      * 12s 는 audit 권장값. lazyLoad fetchMargin=400% 이라 일반 광고는 충분히 먼저 응답.
      */
     const AD_WATCHDOG_MS = 12_000;
-
-    /** 삭제된 글/비밀글/성인 키워드 글/차단 작가 글 상세 페이지에서는 모든 광고를 숨김 (애드센스 정책) */
-    const isDeletedPost = $derived(!!($page as any).data?.post?.deleted_at);
-    const isSecretPost = $derived(!!($page as any).data?.post?.is_secret);
-    const isAdultPost = $derived(!!($page as any).data?.post?.is_adult);
-    const isSuppressedAuthor = $derived(!!($page as any).data?.post?.suppress_ads);
-    const suppressAds = $derived(
-        isDeletedPost || isSecretPost || isAdultPost || isSuppressedAuthor
-    );
 
     interface Props {
         position: string;
@@ -58,6 +50,22 @@
     }
 
     let { position, height = '90px', class: className = '', sizes, slotKey }: Props = $props();
+
+    /** 삭제된 글/비밀글/성인 키워드 글/차단 작가 글 상세 페이지에서는 모든 광고를 숨김 (애드센스 정책) */
+    const isDeletedPost = $derived(!!($page as any).data?.post?.deleted_at);
+    const isSecretPost = $derived(!!($page as any).data?.post?.is_secret);
+    const isAdultPost = $derived(!!($page as any).data?.post?.is_adult);
+    const isSuppressedAuthor = $derived(!!($page as any).data?.post?.suppress_ads);
+    // WP 모델: 플러그인이 should_render_ad filter 에 등록 → false 반환 시 광고 OFF (ad-free 멤버십 등)
+    const pluginSuppress = $derived(
+        hooks.applyFilters('should_render_ad', true, {
+            slotName: position,
+            user: ($page as any).data?.user ?? null
+        }) === false
+    );
+    const suppressAds = $derived(
+        isDeletedPost || isSecretPost || isAdultPost || isSuppressedAuthor || pluginSuppress
+    );
 
     const BTF_POSITIONS = new Set([
         'board-list-bottom',

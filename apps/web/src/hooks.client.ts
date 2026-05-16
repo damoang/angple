@@ -1,5 +1,10 @@
 import type { HandleClientError } from '@sveltejs/kit';
 import { replaceState } from '$app/navigation';
+import { loadAllPluginClientHooks } from '$lib/client/plugin-client-loader';
+
+// Phase 11 (open-core plugin loader) — client hooks 자동 활성화.
+// Fire-and-forget: 실패해도 앱 부팅에 영향 없음. 모듈 load 시점 1회 실행.
+void loadAllPluginClientHooks();
 
 const DANTRY_URL = 'https://aplog.damoang.net/api/v1/dantry';
 
