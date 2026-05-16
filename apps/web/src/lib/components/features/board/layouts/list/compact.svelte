@@ -1,5 +1,6 @@
 <script lang="ts">
     import { Badge } from '$lib/components/ui/badge/index.js';
+    import ScheduledDeleteBadge from './_shared/scheduled-delete-badge.svelte';
     import AuthorLink from '$lib/components/ui/author-link/author-link.svelte';
     import type { FreePost, BoardDisplaySettings } from '$lib/api/types.js';
     import Lock from '@lucide/svelte/icons/lock';
@@ -87,6 +88,7 @@
                             >19</Badge
                         >
                     {/if}
+                    <ScheduledDeleteBadge scheduledDeleteAt={post.scheduled_delete_at} />
                     {#if post.is_secret}
                         <Lock class="text-muted-foreground h-4 w-4 shrink-0" />
                     {/if}
