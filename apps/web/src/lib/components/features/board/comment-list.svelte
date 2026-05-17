@@ -31,6 +31,7 @@
     import { pluginStore } from '$lib/stores/plugin.svelte';
     import { loadPluginComponent, loadPluginLib } from '$lib/utils/plugin-optional-loader';
     import RevisionHistory from '$lib/components/post/revision-history.svelte';
+    import PluginSlot from '$lib/components/plugin/plugin-slot.svelte';
     import type { PostRevision } from '$lib/api/types.js';
     import History from '@lucide/svelte/icons/history';
     import Heart from '@lucide/svelte/icons/heart';
@@ -928,6 +929,9 @@
     });
 </script>
 
+<!-- 플러그인 슬롯: 댓글 리스트 직전 — Slot Catalog Sprint 2c -->
+<PluginSlot name="comments-list-before" {boardId} {postId} />
+
 <ul
     bind:this={commentListEl}
     class={commentLayout === 'chat'
@@ -1785,6 +1789,9 @@
         </li>
     {/each}
 </ul>
+
+<!-- 플러그인 슬롯: 댓글 리스트 직후 — Slot Catalog Sprint 2c -->
+<PluginSlot name="comments-list-after" {boardId} {postId} />
 
 <!-- 댓글 신고 다이얼로그 -->
 {#if reportingCommentId !== null}
