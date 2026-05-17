@@ -60,7 +60,10 @@
     const pluginSuppress = $derived(
         hooks.applyFilters('should_render_ad', true, {
             slotName: position,
-            user: ($page as any).data?.user ?? null
+            user: ($page as any).data?.user ?? null,
+            // PC viewport (≥970px) 일 때만 ad-free 같은 plugin 이 광고 OFF 가능.
+            // 모바일/태블릿은 default true 유지 → 다모앙 자체 광고앙 배너 + AdSense 정상 노출.
+            isDesktop: typeof window !== 'undefined' && window.innerWidth >= 970
         }) === false
     );
     const suppressAds = $derived(
