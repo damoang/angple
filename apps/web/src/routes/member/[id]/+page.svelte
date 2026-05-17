@@ -1,5 +1,6 @@
 <script lang="ts">
     import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card/index.js';
+    import PluginSlot from '$lib/components/plugin/plugin-slot.svelte';
     import { Button } from '$lib/components/ui/button/index.js';
     import { Badge } from '$lib/components/ui/badge/index.js';
     import { Progress } from '$lib/components/ui/progress/index.js';
@@ -418,6 +419,10 @@
                         <div class="mt-1 flex items-center gap-1.5">
                             <LevelBadge level={p.as_level} />
                             <span class="text-sm">{getGradeName(p.mb_level)}</span>
+                        </div>
+                        <!-- 플러그인 슬롯: 회원 프로필 통계 (예: archive plugin 의 "보존됨 N") -->
+                        <div class="mt-2">
+                            <PluginSlot name="member-profile-stats" mbId={p.mb_id} />
                         </div>
                     </div>
                 </div>

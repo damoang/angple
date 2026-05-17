@@ -45,7 +45,8 @@ export type SlotName =
     | 'board-view-banner' // 게시글 상세 상단 배너
     | 'board-view-rolling' // 게시글 상세 롤링 메시지
     | 'sidebar-banner' // 사이드바 배너
-    | 'board-list-promotion'; // 게시판 목록 인라인 홍보글
+    | 'board-list-promotion' // 게시판 목록 인라인 홍보글
+    | 'member-profile-stats'; // 회원 프로필 통계 영역 (plugin 통계 배지 등)
 
 /**
  * Component 슬롯 레지스트리
