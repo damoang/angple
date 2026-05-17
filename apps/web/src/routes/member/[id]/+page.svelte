@@ -35,6 +35,7 @@
     import { uiSettingsStore } from '$lib/stores/ui-settings.svelte.js';
     import { formatDate } from '$lib/utils/format-date.js';
     import FollowListDialog from '$lib/components/features/member/follow-list-dialog.svelte';
+    import PluginSlot from '$lib/components/plugin/plugin-slot.svelte';
 
     // 동적 플러그인 임포트: member-memo
     let memoPluginActive = $derived(pluginStore.isPluginActive('member-memo'));
@@ -422,6 +423,9 @@
                     </div>
                 </div>
 
+                <!-- 플러그인 슬롯: 회원 프로필 헤더 (이름/등급 영역 직후) — Slot Catalog Sprint 2c -->
+                <PluginSlot name="member-profile-header" mbId={p.mb_id} />
+
                 <!-- 경험치 바 -->
                 {#if p.as_level > 0}
                     <div class="mt-4">
@@ -444,6 +448,9 @@
                         </p>
                     </div>
                 {/if}
+
+                <!-- 플러그인 슬롯: 회원 통계 (경험치 직후, 팔로워 위) — Slot Catalog Sprint 2c -->
+                <PluginSlot name="member-profile-stats" mbId={p.mb_id} />
 
                 <!-- 팔로워/팔로잉 + 액션 버튼 -->
                 <div class="mt-4 flex items-center gap-3">
@@ -504,11 +511,16 @@
                         </div>
                     {/if}
                 </div>
+
+                <!-- 플러그인 슬롯: 회원 액션 (팔로워/액션 버튼 직후) — Slot Catalog Sprint 2c -->
+                <PluginSlot name="member-profile-actions" mbId={p.mb_id} />
             </CardContent>
         </Card>
 
         <!-- 탭 영역 -->
         <Card class="bg-background">
+            <!-- 플러그인 슬롯: 탭 직전 (탭 위 배너/공지 등) — Slot Catalog Sprint 2c -->
+            <PluginSlot name="member-profile-tabs-before" mbId={p.mb_id} />
             <Tabs.Root value="info" onValueChange={handleTabChange}>
                 <Tabs.List class="border-border w-full justify-start border-b">
                     <Tabs.Trigger value="info">정보</Tabs.Trigger>
@@ -930,6 +942,8 @@
                     {/if}
                 </Tabs.Content>
             </Tabs.Root>
+            <!-- 플러그인 슬롯: 탭 직후 (탭 아래 추가 카드 등) — Slot Catalog Sprint 2c -->
+            <PluginSlot name="member-profile-tabs-after" mbId={p.mb_id} />
         </Card>
 
         <!-- 상호작용 분석 (플러그인) — 본인만 -->
