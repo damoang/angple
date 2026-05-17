@@ -16,6 +16,7 @@
     import FileText from '@lucide/svelte/icons/file-text';
     import ChevronDown from '@lucide/svelte/icons/chevron-down';
     import { Button } from '$lib/components/ui/button/index.js';
+    import PluginSlot from '$lib/components/plugin/plugin-slot.svelte';
 
     let { data }: { data: PageData } = $props();
 
@@ -233,6 +234,9 @@
 
         <h1 class="text-foreground mb-4 text-xl font-bold">{boardTitle} — 새 글 작성</h1>
 
+        <!-- 플러그인 슬롯: 글쓰기 폼 직전 — Slot Catalog Sprint 2c -->
+        <PluginSlot name="write-form-before" {boardId} />
+
         {#if isPromotion}
             <div class="mb-4">
                 <Button
@@ -316,5 +320,8 @@
                 />
             {/key}
         {/if}
+
+        <!-- 플러그인 슬롯: 글쓰기 폼 직후 — Slot Catalog Sprint 2c -->
+        <PluginSlot name="write-form-after" {boardId} />
     {/if}
 </div>
