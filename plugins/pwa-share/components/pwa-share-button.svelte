@@ -3,7 +3,7 @@
     import { page } from '$app/stores';
     import Share2 from '@lucide/svelte/icons/share-2';
     import Link from '@lucide/svelte/icons/link';
-    import { toast } from 'svelte-sonner';
+    // svelte-sonner 는 plugin 경로에서 Rollup 이 resolve 못 함 → 단순 alert 로 대체.
     import { trackEvent } from '$lib/services/ga4.js';
     import {
         shareToFacebook,
@@ -54,9 +54,9 @@
         const success = await copyUrl(getShareUrl());
         if (success) {
             trackEvent('share', { method: 'copy_url', source: 'pwa-header' });
-            toast.success('주소가 복사되었습니다.');
+            alert('주소가 복사되었습니다.');
         } else {
-            toast.error('주소 복사에 실패했습니다.');
+            alert('주소 복사에 실패했습니다.');
         }
         open = false;
     }
@@ -65,7 +65,7 @@
         trackEvent('share', { method: 'kakao', source: 'pwa-header' });
         const success = await shareToKakao(getShareTitle(), getShareUrl());
         if (!success) {
-            toast.error('카카오톡 공유를 불러올 수 없습니다.');
+            alert('카카오톡 공유를 불러올 수 없습니다.');
         }
         open = false;
     }
