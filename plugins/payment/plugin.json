@@ -7,7 +7,6 @@
         "url": "https://angple.com"
     },
     "category": "plugin",
-    "pluginType": "PAYMENT",
     "license": "MIT",
     "main": "index.ts",
     "description": "다중 PG (토스/네이버페이/페이팔) 통합 결제 플러그인. 멀티사이트 키 분리.",
