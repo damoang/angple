@@ -2,6 +2,7 @@
     import '../app.css';
     import favicon from '$lib/assets/favicon.png';
     import { onMount, untrack } from 'svelte';
+    import PluginSlot from '$lib/components/plugin/plugin-slot.svelte';
     import type { Component } from 'svelte';
     import { browser } from '$app/environment';
     import { afterNavigate, onNavigate } from '$app/navigation';
@@ -650,6 +651,9 @@
     {/if}
 </svelte:head>
 
+<!-- 플러그인 슬롯: <body> 시작 (analytics, 모달 마운트 등) — Slot Catalog Sprint 2 -->
+<PluginSlot name="body-start" />
+
 <!-- /admin, /install 경로는 테마 레이아웃 없이 렌더링 -->
 {#if isAdminRoute || isInstallRoute}
     {@render children()}
@@ -681,3 +685,6 @@
 {#if !isAdminRoute && !isInstallRoute && LazyShortcutButtons}
     <LazyShortcutButtons />
 {/if}
+
+<!-- 플러그인 슬롯: </body> 직전 (지연 로딩 컴포넌트, fallback 등) — Slot Catalog Sprint 2 -->
+<PluginSlot name="body-end" />
