@@ -109,9 +109,11 @@
     ] as const;
 </script>
 
-{#if isStandalone}
-    <svelte:window onclick={handleClickOutside} />
+<!-- Svelte 5: <svelte:window> 는 top-level 만 허용 (block 안 금지). isStandalone 가
+     false 일 때는 dropdown 자체가 미렌더라 handleClickOutside 호출돼도 open=false 라 noop. -->
+<svelte:window onclick={handleClickOutside} />
 
+{#if isStandalone}
     <div class="pwa-share-dropdown relative">
         <button
             type="button"
@@ -140,8 +142,7 @@
                         {#if platform.id === 'copy'}
                             <Link class="h-4 w-4 shrink-0" />
                         {:else}
-                            <span
-                                class="inline-block h-4 w-4 shrink-0 rounded-sm {platform.color}"
+                            <span class="inline-block h-4 w-4 shrink-0 rounded-sm {platform.color}"
                             ></span>
                         {/if}
                         <span>{platform.label}</span>
