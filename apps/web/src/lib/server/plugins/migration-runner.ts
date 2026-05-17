@@ -21,25 +21,22 @@ async function ensureBootstrap(): Promise<void> {
     await pool.query(TRACKING_TABLE_DDL);
 
     // Schema drift repair — `CREATE TABLE IF NOT EXISTS` 가 옛 schema 테이블을 SKIP 하여
-    // 누락 column 이 추가되지 않은 운영 환경 대비 (예: 'version' / 'applied_at' 컬럼 누락).
-    // 검증: SHOW COLUMNS 로 존재 여부 확인 후 누락 시에만 ALTER. idempotent.
-    const [versionCol] = await pool.query<RowDataPacket[]>(
-        "SHOW COLUMNS FROM plugin_migrations LIKE 'version'"
-    );
-    if (versionCol.length === 0) {
-        console.warn(`${LOG_PREFIX} schema drift — adding 'version' column`);
-        await pool.query(
-            "ALTER TABLE plugin_migrations ADD COLUMN version VARCHAR(100) NOT NULL DEFAULT ''"
+    // 누락 column 이 추가되지 않은 운영 환경 대비. 검증: SHOW COLUMNS → 누락 시 ALTER (idempotent).
+    // 운영 발견 (5/17): 옛 schema 가 plugin_id/version/applied_at 모두 부재 가능성.
+    const requiredCols: Array<{ name: string; ddl: string }> = [
+        { name: 'plugin_id', ddl: "ADD COLUMN plugin_id VARCHAR(50) NOT NULL DEFAULT ''" },
+        { name: 'version', ddl: "ADD COLUMN version VARCHAR(100) NOT NULL DEFAULT ''" },
+        { name: 'applied_at', ddl: 'ADD COLUMN applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP' }
+    ];
+    for (const { name, ddl } of requiredCols) {
+        const [cols] = await pool.query<RowDataPacket[]>(
+            `SHOW COLUMNS FROM plugin_migrations LIKE ?`,
+            [name]
         );
-    }
-    const [appliedAtCol] = await pool.query<RowDataPacket[]>(
-        "SHOW COLUMNS FROM plugin_migrations LIKE 'applied_at'"
-    );
-    if (appliedAtCol.length === 0) {
-        console.warn(`${LOG_PREFIX} schema drift — adding 'applied_at' column`);
-        await pool.query(
-            'ALTER TABLE plugin_migrations ADD COLUMN applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP'
-        );
+        if (cols.length === 0) {
+            console.warn(`${LOG_PREFIX} schema drift — adding '${name}' column`);
+            await pool.query(`ALTER TABLE plugin_migrations ${ddl}`);
+        }
     }
 
     bootstrapped = true;
