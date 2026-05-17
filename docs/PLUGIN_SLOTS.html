@@ -1,0 +1,636 @@
+<!doctype html>
+<html lang="ko">
+    <head>
+        <meta charset="UTF-8" />
+        <title>Angple Plugin Slot Catalog</title>
+        <style>
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+                max-width: 980px;
+                margin: 2rem auto;
+                padding: 0 1rem;
+                line-height: 1.6;
+                color: #1f2937;
+            }
+            h1 {
+                border-bottom: 2px solid #e5e7eb;
+                padding-bottom: 0.4rem;
+            }
+            h2 {
+                margin-top: 2.4rem;
+                color: #0f766e;
+            }
+            h3 {
+                color: #1e40af;
+                margin-top: 1.4rem;
+            }
+            code {
+                background: #f3f4f6;
+                padding: 0.1em 0.4em;
+                border-radius: 3px;
+                font-size: 0.92em;
+                color: #be123c;
+            }
+            pre {
+                background: #1e293b;
+                color: #e2e8f0;
+                padding: 1rem;
+                border-radius: 6px;
+                overflow-x: auto;
+                font-size: 0.85em;
+            }
+            pre code {
+                background: transparent;
+                color: inherit;
+                padding: 0;
+            }
+            table {
+                border-collapse: collapse;
+                width: 100%;
+                margin: 1rem 0;
+            }
+            th,
+            td {
+                border: 1px solid #d1d5db;
+                padding: 0.55rem 0.8rem;
+                text-align: left;
+                vertical-align: top;
+            }
+            th {
+                background: #f9fafb;
+                font-weight: 600;
+            }
+            tbody tr:nth-child(even) {
+                background: #fafafa;
+            }
+            .badge-area {
+                display: inline-block;
+                padding: 0.1em 0.55em;
+                border-radius: 12px;
+                font-size: 0.78em;
+                font-weight: 600;
+                background: #dbeafe;
+                color: #1e40af;
+            }
+            .badge-new {
+                background: #dcfce7;
+                color: #166534;
+            }
+            .badge-existing {
+                background: #fef3c7;
+                color: #92400e;
+            }
+            details {
+                background: #f8fafc;
+                border-left: 3px solid #0ea5e9;
+                padding: 0.8rem 1rem;
+                margin: 1rem 0;
+                border-radius: 0 4px 4px 0;
+            }
+            summary {
+                cursor: pointer;
+                font-weight: 600;
+            }
+            .note {
+                background: #fef3c7;
+                border-left: 4px solid #f59e0b;
+                padding: 0.7rem 1rem;
+                margin: 1rem 0;
+                border-radius: 0 4px 4px 0;
+            }
+            a {
+                color: #0369a1;
+            }
+        </style>
+    </head>
+    <body>
+        <h1>Angple Plugin Slot Catalog</h1>
+        <p>
+            <strong>버전:</strong> 1.0 (Sprint 1 — 2026-05-17) ·
+            <strong>총 52 표준 slot + custom-*</strong>
+        </p>
+        <p>
+            WordPress <code>do_action</code> / Shopify Theme App Extension / Discourse Plugin
+            Outlets 모범 사례 따라 사전 풍부한 확장 포인트 제공. plugin 은
+            <code>plugin.json</code> 의 <code>components[]</code>
+            에 slot 이름만 명시하면 core 변경 없이 등록된다.
+        </p>
+
+        <h2>명명 규약</h2>
+        <p>
+            <code>&lt;area&gt;-&lt;object&gt;-&lt;position&gt;</code>
+        </p>
+        <table>
+            <thead>
+                <tr>
+                    <th>position</th>
+                    <th>의미</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><code>before</code> / <code>after</code></td>
+                    <td>대상 영역 직전 / 직후</td>
+                </tr>
+                <tr>
+                    <td><code>prepend</code> / <code>append</code></td>
+                    <td>리스트 아이템 등에서 앞 / 뒤 추가</td>
+                </tr>
+                <tr>
+                    <td>
+                        <code>top</code> / <code>middle</code> /
+                        <code>bottom</code>
+                    </td>
+                    <td>수직 위치 (sidebar 등)</td>
+                </tr>
+                <tr>
+                    <td>
+                        <code>left</code> / <code>center</code> /
+                        <code>right</code>
+                    </td>
+                    <td>수평 위치 (header actions 등)</td>
+                </tr>
+                <tr>
+                    <td>
+                        <code>actions</code> / <code>meta</code> / <code>toolbar</code> /
+                        <code>header</code>
+                    </td>
+                    <td>특정 UI 영역 명시</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h2>전체 Slot 카탈로그 (52 + custom-*)</h2>
+        <p>
+            <span class="badge-area badge-existing">기존</span>: Sprint 0 이전부터 존재 ·
+            <span class="badge-area badge-new">신규</span>: Sprint 1 추가
+        </p>
+
+        <h3>글로벌 Layout (10)</h3>
+        <table>
+            <tbody>
+                <tr>
+                    <td><code>header-before</code></td>
+                    <td>헤더 직전</td>
+                    <td><span class="badge-area badge-existing">기존</span></td>
+                </tr>
+                <tr>
+                    <td><code>header-after</code></td>
+                    <td>헤더 직후</td>
+                    <td><span class="badge-area badge-existing">기존</span></td>
+                </tr>
+                <tr>
+                    <td><code>header-actions-left</code></td>
+                    <td>헤더 좌측 액션 영역</td>
+                    <td><span class="badge-area badge-new">신규</span></td>
+                </tr>
+                <tr>
+                    <td><code>header-actions-center</code></td>
+                    <td>헤더 중앙 액션 영역</td>
+                    <td><span class="badge-area badge-new">신규</span></td>
+                </tr>
+                <tr>
+                    <td><code>header-actions-right</code></td>
+                    <td>헤더 우측 액션 영역 (pwa-share 등 사용 중)</td>
+                    <td><span class="badge-area badge-new">신규</span></td>
+                </tr>
+                <tr>
+                    <td><code>footer-before</code></td>
+                    <td>푸터 직전</td>
+                    <td><span class="badge-area badge-existing">기존</span></td>
+                </tr>
+                <tr>
+                    <td><code>footer-after</code></td>
+                    <td>푸터 직후</td>
+                    <td><span class="badge-area badge-existing">기존</span></td>
+                </tr>
+                <tr>
+                    <td><code>body-start</code></td>
+                    <td>&lt;body&gt; 직후 (analytics, modal 마운트 등)</td>
+                    <td><span class="badge-area badge-new">신규</span></td>
+                </tr>
+                <tr>
+                    <td><code>body-end</code></td>
+                    <td>&lt;/body&gt; 직전</td>
+                    <td><span class="badge-area badge-new">신규</span></td>
+                </tr>
+                <tr>
+                    <td><code>sidebar-banner</code></td>
+                    <td>사이드바 배너</td>
+                    <td><span class="badge-area badge-existing">기존</span></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>사이드바 (6)</h3>
+        <table>
+            <tbody>
+                <tr>
+                    <td><code>sidebar-left-top</code></td>
+                    <td>왼쪽 사이드바 상단</td>
+                    <td><span class="badge-area badge-existing">기존</span></td>
+                </tr>
+                <tr>
+                    <td><code>sidebar-left-middle</code></td>
+                    <td>왼쪽 사이드바 중앙</td>
+                    <td><span class="badge-area badge-new">신규</span></td>
+                </tr>
+                <tr>
+                    <td><code>sidebar-left-bottom</code></td>
+                    <td>왼쪽 사이드바 하단</td>
+                    <td><span class="badge-area badge-existing">기존</span></td>
+                </tr>
+                <tr>
+                    <td><code>sidebar-right-top</code></td>
+                    <td>오른쪽 사이드바 상단</td>
+                    <td><span class="badge-area badge-existing">기존</span></td>
+                </tr>
+                <tr>
+                    <td><code>sidebar-right-middle</code></td>
+                    <td>오른쪽 사이드바 중앙</td>
+                    <td><span class="badge-area badge-new">신규</span></td>
+                </tr>
+                <tr>
+                    <td><code>sidebar-right-bottom</code></td>
+                    <td>오른쪽 사이드바 하단</td>
+                    <td><span class="badge-area badge-existing">기존</span></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>콘텐츠 영역 (3)</h3>
+        <table>
+            <tbody>
+                <tr>
+                    <td><code>content-before</code></td>
+                    <td>메인 콘텐츠 상단</td>
+                    <td><span class="badge-area badge-existing">기존</span></td>
+                </tr>
+                <tr>
+                    <td><code>content-after</code></td>
+                    <td>메인 콘텐츠 하단</td>
+                    <td><span class="badge-area badge-existing">기존</span></td>
+                </tr>
+                <tr>
+                    <td><code>background</code></td>
+                    <td>배경 (테마용)</td>
+                    <td><span class="badge-area badge-existing">기존</span></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>게시판 목록 (8)</h3>
+        <table>
+            <tbody>
+                <tr>
+                    <td><code>board-list-banner</code></td>
+                    <td>목록 상단 배너</td>
+                    <td><span class="badge-area badge-existing">기존</span></td>
+                </tr>
+                <tr>
+                    <td><code>board-list-rolling</code></td>
+                    <td>롤링 메시지</td>
+                    <td><span class="badge-area badge-existing">기존</span></td>
+                </tr>
+                <tr>
+                    <td><code>board-list-promotion</code></td>
+                    <td>인라인 홍보글</td>
+                    <td><span class="badge-area badge-existing">기존</span></td>
+                </tr>
+                <tr>
+                    <td><code>board-list-filter-before</code></td>
+                    <td>필터 영역 직전</td>
+                    <td><span class="badge-area badge-new">신규</span></td>
+                </tr>
+                <tr>
+                    <td><code>board-list-filter-after</code></td>
+                    <td>필터 영역 직후</td>
+                    <td><span class="badge-area badge-new">신규</span></td>
+                </tr>
+                <tr>
+                    <td><code>board-list-item-prepend</code></td>
+                    <td>각 글 카드 좌측/위</td>
+                    <td><span class="badge-area badge-new">신규</span></td>
+                </tr>
+                <tr>
+                    <td><code>board-list-item-append</code></td>
+                    <td>각 글 카드 우측/아래</td>
+                    <td><span class="badge-area badge-new">신규</span></td>
+                </tr>
+                <tr>
+                    <td><code>board-list-empty</code></td>
+                    <td>빈 목록 상태</td>
+                    <td><span class="badge-area badge-new">신규</span></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>글 상세 (14)</h3>
+        <table>
+            <tbody>
+                <tr>
+                    <td><code>board-view-banner</code></td>
+                    <td>글 상세 상단 배너</td>
+                    <td><span class="badge-area badge-existing">기존</span></td>
+                </tr>
+                <tr>
+                    <td><code>board-view-rolling</code></td>
+                    <td>글 상세 롤링</td>
+                    <td><span class="badge-area badge-existing">기존</span></td>
+                </tr>
+                <tr>
+                    <td><code>post-detail-before</code></td>
+                    <td>글 상세 전체 직전</td>
+                    <td><span class="badge-area badge-new">신규</span></td>
+                </tr>
+                <tr>
+                    <td><code>post-detail-header-after</code></td>
+                    <td>제목/메타 직후</td>
+                    <td><span class="badge-area badge-new">신규</span></td>
+                </tr>
+                <tr>
+                    <td><code>post-detail-content-before</code></td>
+                    <td>본문 직전</td>
+                    <td><span class="badge-area badge-new">신규</span></td>
+                </tr>
+                <tr>
+                    <td><code>post-detail-content-after</code></td>
+                    <td>본문 직후</td>
+                    <td><span class="badge-area badge-new">신규</span></td>
+                </tr>
+                <tr>
+                    <td><code>post-detail-extra</code></td>
+                    <td>본문 아래 추가 영역 (archive/giving 등 사용 중)</td>
+                    <td><span class="badge-area badge-existing">기존</span></td>
+                </tr>
+                <tr>
+                    <td><code>post-detail-actions</code></td>
+                    <td>공유/신고/보존 등 액션 묶음</td>
+                    <td><span class="badge-area badge-new">신규</span></td>
+                </tr>
+                <tr>
+                    <td><code>post-detail-tags</code></td>
+                    <td>태그 영역</td>
+                    <td><span class="badge-area badge-new">신규</span></td>
+                </tr>
+                <tr>
+                    <td><code>post-detail-reactions-after</code></td>
+                    <td>리액션 직후</td>
+                    <td><span class="badge-area badge-new">신규</span></td>
+                </tr>
+                <tr>
+                    <td><code>post-detail-related</code></td>
+                    <td>관련 글</td>
+                    <td><span class="badge-area badge-new">신규</span></td>
+                </tr>
+                <tr>
+                    <td><code>post-detail-comments-before</code></td>
+                    <td>댓글 영역 직전</td>
+                    <td><span class="badge-area badge-new">신규</span></td>
+                </tr>
+                <tr>
+                    <td><code>post-detail-comments-after</code></td>
+                    <td>댓글 영역 직후</td>
+                    <td><span class="badge-area badge-new">신규</span></td>
+                </tr>
+                <tr>
+                    <td><code>post-detail-after</code></td>
+                    <td>글 상세 전체 직후</td>
+                    <td><span class="badge-area badge-new">신규</span></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>댓글 (9)</h3>
+        <table>
+            <tbody>
+                <tr>
+                    <td><code>comments-header</code></td>
+                    <td>댓글 헤더</td>
+                    <td><span class="badge-area badge-new">신규</span></td>
+                </tr>
+                <tr>
+                    <td><code>comments-form-before</code></td>
+                    <td>작성 폼 직전</td>
+                    <td><span class="badge-area badge-new">신규</span></td>
+                </tr>
+                <tr>
+                    <td><code>comments-form-toolbar</code></td>
+                    <td>작성 폼 툴바 (마크다운 도구 등)</td>
+                    <td><span class="badge-area badge-new">신규</span></td>
+                </tr>
+                <tr>
+                    <td><code>comments-form-after</code></td>
+                    <td>작성 폼 직후</td>
+                    <td><span class="badge-area badge-new">신규</span></td>
+                </tr>
+                <tr>
+                    <td><code>comments-list-before</code></td>
+                    <td>댓글 목록 직전</td>
+                    <td><span class="badge-area badge-new">신규</span></td>
+                </tr>
+                <tr>
+                    <td><code>comments-list-after</code></td>
+                    <td>댓글 목록 직후</td>
+                    <td><span class="badge-area badge-new">신규</span></td>
+                </tr>
+                <tr>
+                    <td><code>comments-item-prepend</code></td>
+                    <td>각 댓글 좌측/위</td>
+                    <td><span class="badge-area badge-new">신규</span></td>
+                </tr>
+                <tr>
+                    <td><code>comments-item-append</code></td>
+                    <td>각 댓글 우측/아래</td>
+                    <td><span class="badge-area badge-new">신규</span></td>
+                </tr>
+                <tr>
+                    <td><code>comments-item-actions</code></td>
+                    <td>각 댓글 액션 영역</td>
+                    <td><span class="badge-area badge-new">신규</span></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>회원 프로필 (5)</h3>
+        <table>
+            <tbody>
+                <tr>
+                    <td><code>member-profile-header</code></td>
+                    <td>프로필 헤더 영역</td>
+                    <td><span class="badge-area badge-new">신규</span></td>
+                </tr>
+                <tr>
+                    <td><code>member-profile-stats</code></td>
+                    <td>통계 영역 (archive plugin 등)</td>
+                    <td><span class="badge-area badge-new">신규</span></td>
+                </tr>
+                <tr>
+                    <td><code>member-profile-tabs-before</code></td>
+                    <td>탭 직전</td>
+                    <td><span class="badge-area badge-new">신규</span></td>
+                </tr>
+                <tr>
+                    <td><code>member-profile-tabs-after</code></td>
+                    <td>탭 직후</td>
+                    <td><span class="badge-area badge-new">신규</span></td>
+                </tr>
+                <tr>
+                    <td><code>member-profile-actions</code></td>
+                    <td>액션 (팔로우/차단 등) 옆</td>
+                    <td><span class="badge-area badge-new">신규</span></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>글쓰기 (5) / 메인 (4) / 인증·검색 (3) / 어드민 (3)</h3>
+        <details>
+            <summary>나머지 영역 펼치기</summary>
+            <p><strong>글쓰기 폼</strong></p>
+            <ul>
+                <li>
+                    <code>write-form-before</code>, <code>write-form-title-after</code>,
+                    <code>write-form-toolbar</code>, <code>write-form-editor-after</code>,
+                    <code>write-form-after</code>
+                </li>
+            </ul>
+            <p><strong>메인/랜딩</strong></p>
+            <ul>
+                <li>
+                    <code>landing-hero</code>, <code>landing-content</code>,
+                    <code>home-content-before</code>,
+                    <code>home-content-after</code>
+                </li>
+            </ul>
+            <p><strong>인증/검색</strong></p>
+            <ul>
+                <li>
+                    <code>auth-login-after</code>, <code>auth-signup-after</code>,
+                    <code>search-results-before</code>
+                </li>
+            </ul>
+            <p><strong>어드민</strong></p>
+            <ul>
+                <li>
+                    <code>admin-sidebar-after</code>, <code>admin-dashboard-widgets</code>,
+                    <code>admin-settings-tabs</code>
+                </li>
+            </ul>
+        </details>
+
+        <h2>custom-* 컨벤션</h2>
+        <p>
+            표준 카탈로그에 없는 영역은
+            <code>custom-${'{string}'}</code> template literal type 으로 자유 등록 가능. plugin 끼리
+            협업/실험용.
+        </p>
+        <div class="note">
+            <strong>권장 명명:</strong>
+            <code>custom-&lt;pluginId&gt;-&lt;slot&gt;</code> — 예:
+            <code>custom-archive-profile-tooltip</code>. 표준 slot 과 plugin 끼리 이름 충돌을
+            회피한다.
+        </div>
+
+        <h2>사용 예시</h2>
+        <h3>plugin.json</h3>
+        <pre><code>{
+  "id": "archive",
+  "components": [
+    {
+      "id": "archive-button",
+      "name": "보존 버튼",
+      "slot": "post-detail-extra",
+      "path": "views/ArchiveButton.svelte",
+      "priority": 50
+    },
+    {
+      "id": "archive-profile-stat",
+      "slot": "member-profile-stats",
+      "path": "views/ArchiveProfileStat.svelte",
+      "priority": 10
+    }
+  ]
+}</code></pre>
+
+        <h3>core 측 마운트 (Sprint 2 에서 페이지 사전 배치)</h3>
+        <pre><code>&lt;!-- routes/member/[id]/+page.svelte --&gt;
+&lt;PluginSlot name="member-profile-stats" mbId={p.mb_id} /&gt;</code></pre>
+
+        <h3>plugin component 가 받는 props</h3>
+        <pre><code>&lt;script lang="ts"&gt;
+    let { mbId }: { mbId: string } = $props();
+    // ...
+&lt;/script&gt;</code></pre>
+
+        <h2>SSR / Performance 주의</h2>
+        <ul>
+            <li>
+                <code>&lt;PluginSlot&gt;</code> 은 client-only (registry 가 client singleton,
+                onMount 후 갱신). hydration 후 plugin component 가 fade-in 된다.
+            </li>
+            <li>
+                Critical content 영역 (above-the-fold) 에 plugin component 마운트 부담 — 가급적 보조
+                영역에만 슬롯 배치.
+            </li>
+            <li>
+                slot 미사용 시 (<code>components.length === 0</code>) DOM 자체 미렌더 → 레이아웃
+                영향 0.
+            </li>
+        </ul>
+
+        <h2>Sprint 진행</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Sprint</th>
+                    <th>내용</th>
+                    <th>PR</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Sprint 0</td>
+                    <td>archive 의 <code>member-profile-stats</code> 단발 추가</td>
+                    <td>#1436</td>
+                </tr>
+                <tr>
+                    <td>Sprint 1</td>
+                    <td>Catalog 정의 (33 신규 + custom-*)</td>
+                    <td>#1438 (머지)</td>
+                </tr>
+                <tr>
+                    <td>Sprint 2</td>
+                    <td>페이지/컴포넌트에 <code>&lt;PluginSlot&gt;</code> 사전 배치</td>
+                    <td>영역별 1~3 PR (진행 예정)</td>
+                </tr>
+                <tr>
+                    <td>Sprint 3</td>
+                    <td>이 문서 + 샘플 plugin</td>
+                    <td>본 PR 포함</td>
+                </tr>
+                <tr>
+                    <td>Sprint 4</td>
+                    <td>마켓플레이스 정책 (충돌/deprecated/admin UI)</td>
+                    <td>별도 트랙</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h2>참고</h2>
+        <ul>
+            <li>
+                slot-manager 정의:
+                <code>apps/web/src/lib/components/slot-manager.ts</code>
+            </li>
+            <li>
+                PluginSlot 컴포넌트:
+                <code>apps/web/src/lib/components/plugin/plugin-slot.svelte</code>
+            </li>
+            <li>
+                Plugin 인프라 모범 사례 분석:
+                <code>/home/damoang/docs/2026-05-17-plugin-slot-architecture-research.html</code>
+                (또는 .md 구버전)
+            </li>
+        </ul>
+    </body>
+</html>
