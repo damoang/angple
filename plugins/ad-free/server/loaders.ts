@@ -135,29 +135,37 @@ export async function loadLanding(_opts: LoadOptions = {}): Promise<LandingData>
         ],
         benefits: [
             {
-                icon: '🚫',
-                title: 'AdSense 광고 제거',
-                desc: '모든 페이지에서 광고가 사라집니다'
+                icon: '🖥️',
+                title: 'PC AdSense 광고 제거',
+                desc: 'PC 에서 보는 구글 AdSense 광고가 사라집니다'
             },
             {
-                icon: '✨',
-                title: '깔끔한 읽기 경험',
-                desc: '콘텐츠에 온전히 집중할 수 있습니다'
+                icon: '📱',
+                title: '모바일 광고는 유지',
+                desc: '모바일 AdSense 는 정상 노출 — 모바일 사용자 경험은 그대로'
+            },
+            {
+                icon: '🎯',
+                title: '다모앙 자체 배너 유지',
+                desc: '다모앙 자체 광고앙(이미지·텍스트) 배너는 멤버십과 무관하게 노출'
             },
             {
                 icon: '🎁',
-                title: '7일 무료 체험',
-                desc: '결제 전 7일간 무료로 사용해보세요'
-            },
-            {
-                icon: '🔓',
-                title: '언제든 해지',
-                desc: '구속 없이 언제든 해지할 수 있습니다'
+                title: '7일 무료 체험 · 언제든 해지',
+                desc: '결제 전 체험 + 약정 없이 자유 해지'
             }
         ],
         trialDays: 7,
         supportEmail: 'help@example.com',
         faqs: [
+            {
+                q: '모바일에서도 광고가 사라지나요?',
+                a: '아니요. ad-free 멤버십은 PC 의 구글 AdSense 광고만 제거합니다. 모바일 AdSense + 다모앙 자체 광고앙(이미지·텍스트) 배너는 멤버십과 무관하게 정상 노출됩니다. 모바일 사용자 경험 + 다모앙 운영 광고는 그대로 유지됩니다.'
+            },
+            {
+                q: '다모앙 자체 광고도 사라지나요?',
+                a: '아니요. 다모앙의 자체 광고앙(사이드바/메인 배너 등) 은 멤버십 활성 여부와 무관하게 항상 노출됩니다. 멤버십이 제거하는 것은 외부 광고 네트워크(Google AdSense) 의 PC 광고 슬롯에 한정됩니다.'
+            },
             {
                 q: '결제 수단은 어떤 것을 지원하나요?',
                 a: '네이버페이 정기결제와 PayPal Subscription 을 지원합니다.'
