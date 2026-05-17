@@ -6,6 +6,7 @@
     import { untrack } from 'svelte';
     import { SeoHead, createWebSiteJsonLd, getSiteUrl } from '$lib/seo/index.js';
     import type { SeoConfig } from '$lib/seo/types.js';
+    import PluginSlot from '$lib/components/plugin/plugin-slot.svelte';
 
     let { data } = $props();
 
@@ -61,6 +62,9 @@
     </div>
 {/if}
 
+<!-- 플러그인 슬롯: 홈 콘텐츠 직전 (위젯 영역 위) — Slot Catalog Sprint 2c -->
+<PluginSlot name="home-content-before" />
+
 <!-- 통합 위젯 렌더러로 메인 영역 렌더링 (추천글 SSR 프리페치 포함) -->
 <WidgetRenderer
     zone="main"
@@ -82,3 +86,6 @@
         celebration: { data: data.celebrationRecent ?? data.celebration ?? [] }
     }}
 />
+
+<!-- 플러그인 슬롯: 홈 콘텐츠 직후 (위젯 영역 아래) — Slot Catalog Sprint 2c -->
+<PluginSlot name="home-content-after" />
