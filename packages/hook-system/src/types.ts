@@ -61,5 +61,6 @@ export interface FilterPoints {
     api_error: [error: any, endpoint: string];
 
     // 광고 렌더 결정 — 플러그인이 false 반환 시 AdSlot 미렌더 (ad-free 멤버십 등)
-    should_render_ad: [ctx: { slotName: string; user: any }];
+    // isDesktop: PC 뷰포트 (≥970px) 여부. 플러그인이 모바일/SSR 광고는 유지하고 PC 만 OFF 가능.
+    should_render_ad: [ctx: { slotName: string; user: any; isDesktop?: boolean }];
 }

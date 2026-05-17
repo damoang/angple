@@ -1,8 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import { suppressAdsForAdFreeMember, type AdFreeFilterCtx } from '../suppress';
 
-function ctx(user: AdFreeFilterCtx['user']): AdFreeFilterCtx {
-    return { slotName: 'board-list-bottom', user };
+function ctx(
+    user: AdFreeFilterCtx['user'],
+    overrides: Partial<AdFreeFilterCtx> = {}
+): AdFreeFilterCtx {
+    return { slotName: 'board-list-bottom', user, isDesktop: true, ...overrides };
 }
 
 describe('suppressAdsForAdFreeMember', () => {
@@ -41,5 +44,23 @@ describe('suppressAdsForAdFreeMember', () => {
 
     it('ad_free_until null 은 입력값 그대로', () => {
         expect(suppressAdsForAdFreeMember(true, ctx({ ad_free_until: null }))).toBe(true);
+    });
+
+    // PC/모바일 분기 — ad-free 멤버십은 PC AdSense 만 OFF.
+    it('mobile (isDesktop=false) 는 멤버십 활성이어도 광고 유지', () => {
+        const future = new Date(Date.now() + 86_400_000).toISOString();
+        expect(
+            suppressAdsForAdFreeMember(true, ctx({ ad_free_until: future }, { isDesktop: false }))
+        ).toBe(true);
+    });
+
+    it('SSR (isDesktop=undefined) 도 광고 유지 (hydration 후 client 가 결정)', () => {
+        const future = new Date(Date.now() + 86_400_000).toISOString();
+        expect(
+            suppressAdsForAdFreeMember(
+                true,
+                ctx({ ad_free_until: future }, { isDesktop: undefined })
+            )
+        ).toBe(true);
     });
 });
