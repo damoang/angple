@@ -13,6 +13,7 @@
     import AlignJustify from '@lucide/svelte/icons/align-justify';
     import Mail from '@lucide/svelte/icons/mail';
     import Sidebar from './sidebar.svelte';
+    import PluginSlot from '$lib/components/plugin/plugin-slot.svelte';
     import {
         NotificationDropdown,
         LevelupCelebration,
@@ -473,6 +474,9 @@
                 <AlignJustify class="text-muted-foreground h-5 w-5" />
             </button>
             -->
+
+            <!-- 플러그인 슬롯: 헤더 우측 아이콘 그룹 끝 (pwa-share 등) -->
+            <PluginSlot name="header-actions-right" />
         </div>
     </div>
 </header>
