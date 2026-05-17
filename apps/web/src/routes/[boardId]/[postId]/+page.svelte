@@ -1528,6 +1528,9 @@
      - clip 미지원 브라우저: hidden 적용 (이 wrapper 내부에는 position:sticky 가 없어 안전)
      - clip 지원 브라우저: clip 이 hidden 을 덮어 기존 동작 유지 -->
 <div class="mx-auto pt-2" style="overflow-x: hidden; overflow-x: clip;">
+    <!-- 플러그인 슬롯: 글 상세 페이지 시작 — Slot Catalog Sprint 2c -->
+    <PluginSlot name="post-detail-before" {boardId} postId={data.post.id} />
+
     <!-- 최상단 자체 배너 (없으면 GAM 폴백) -->
     {#if widgetLayoutStore.hasEnabledAds && !data.post.deleted_at}
         <div class="mb-3">
@@ -1911,6 +1914,12 @@
                     {#if !commentsLoaded}
                         <p class="text-muted-foreground text-sm">댓글을 불러오는 중입니다.</p>
                     {/if}
+                    <!-- 플러그인 슬롯: 댓글 영역 직전 — Slot Catalog Sprint 2c -->
+                    <PluginSlot
+                        name="post-detail-comments-before"
+                        {boardId}
+                        postId={data.post.id}
+                    />
                     {#if !data.post.is_comments_disabled}
                         <CommentList
                             {comments}
@@ -1932,6 +1941,8 @@
                             isRestricted={data.isRestricted}
                         />
                     {/if}
+                    <!-- 플러그인 슬롯: 댓글 영역 직후 — Slot Catalog Sprint 2c -->
+                    <PluginSlot name="post-detail-comments-after" {boardId} postId={data.post.id} />
 
                     <div class="border-border border-t pt-6">
                         <div class="mb-3 flex justify-end">
@@ -2024,6 +2035,9 @@
 
         <!-- GA4 Scroll Depth 센티넬 (100%) -->
         <div data-scroll-depth="100" aria-hidden="true"></div>
+
+        <!-- 플러그인 슬롯: 글 상세 페이지 끝 — Slot Catalog Sprint 2c -->
+        <PluginSlot name="post-detail-after" {boardId} postId={data.post.id} />
     {/if}
     <!-- /canRead -->
 </div>
