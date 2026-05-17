@@ -8,11 +8,10 @@
     },
     "license": "MIT",
     "category": "plugin",
-    "pluginType": "MEMBERSHIP",
     "main": "index.ts",
     "description": "회원 구독으로 사이트 광고를 제거하는 멤버십 플러그인. payment 플러그인과 연동하여 네이버페이/PayPal/토스 결제를 통한 정기구독을 제공합니다.",
     "tags": ["membership", "ad-free", "subscription", "광고제거", "멤버십"],
-    "dependencies": [{ "id": "payment", "version": "^0.1" }],
+    "dependencies": { "payment": "^0.1" },
     "migrations": [
         {
             "version": "001",
