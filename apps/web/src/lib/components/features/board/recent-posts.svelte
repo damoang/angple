@@ -211,7 +211,30 @@
         if (posts.length > 0) return;
 
         try {
-            const startPage = Math.max(1, initialPage);
+            let startPage = Math.max(1, initialPage);
+
+            // #12430: URL 에 ?page 가 없고 글 상세 페이지인 경우 — 외부 진입 (검색/알림/직접 URL)
+            // 자기 글이 어느 페이지인지 자동 감지해서 그 페이지로 fetch. SSR 가 항상 1 로
+            // 고정한 부분을 클라이언트가 보강. PR #1431 의 SPA 재마운트 fix 와 함께 동작.
+            if (
+                isOnPostDetail &&
+                currentPostId > 0 &&
+                !$pageStore.url.searchParams.has('page') &&
+                startPage === 1
+            ) {
+                try {
+                    const r = await fetch(
+                        `/api/boards/${boardId}/posts/${currentPostId}/page-index`
+                    );
+                    if (r.ok) {
+                        const body = (await r.json()) as { page?: number };
+                        if (body.page && body.page > 1) startPage = body.page;
+                    }
+                } catch {
+                    // page-index 실패 시 1 유지 (사용자 흐름 방해 X)
+                }
+            }
+
             const response = await apiClient.getBoardPosts(boardId, startPage, limit, {
                 summary: useSummaryListResponse
             });
