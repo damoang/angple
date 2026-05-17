@@ -385,6 +385,16 @@
             </div>
             <!-- 드로워: 축하메시지 -->
             <CelebrationRolling />
+            <!-- 축하메시지 바로 아래: 벽돌한장 · 광고 제거 inline -->
+            <div class="text-muted-foreground flex items-center justify-center gap-3 px-2 text-xs">
+                <a href="/brickang" class="hover:text-primary underline-offset-2 hover:underline">
+                    벽돌한장
+                </a>
+                <span class="opacity-50">·</span>
+                <a href="/ad-free" class="hover:text-primary underline-offset-2 hover:underline">
+                    광고 제거
+                </a>
+            </div>
         {:else}
             <!-- Slot: sidebar-left-bottom -->
             {#each getComponentsForSlot('sidebar-left-bottom') as slotComp (slotComp.id)}
