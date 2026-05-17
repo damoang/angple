@@ -914,6 +914,9 @@
                 </div>
             {/if}
 
+            <!-- 플러그인 슬롯: 필터 영역 직전 — Slot Catalog Sprint 2c -->
+            <PluginSlot name="board-list-filter-before" {boardId} />
+
             <!-- 검색 폼 (토글 or 검색 중 or 핀 고정) -->
             {#if showSearch || isSearching || uiSettingsStore.pinSearch}
                 <div class="mb-3" transition:slide={{ duration: 200 }}>
@@ -1085,6 +1088,9 @@
                 </div>
             {/if}
 
+            <!-- 플러그인 슬롯: 필터 영역 직후 (목록 시작 전) — Slot Catalog Sprint 2c -->
+            <PluginSlot name="board-list-filter-after" {boardId} />
+
             <!-- 게시글 목록 -->
             <div class={wrapperClass}>
                 {#if listLayoutId === 'classic' && uiSettingsStore.listView !== 'modern'}
@@ -1248,6 +1254,8 @@
                             {:else}
                                 <p class="text-secondary-foreground">게시글이 없습니다.</p>
                             {/if}
+                            <!-- 플러그인 슬롯: 빈 목록 (대체 CTA/추천 표시) — Slot Catalog Sprint 2c -->
+                            <PluginSlot name="board-list-empty" {boardId} />
                         </CardContent>
                     </Card>
                 {:else if LayoutComponent}
