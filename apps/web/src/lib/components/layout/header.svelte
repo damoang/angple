@@ -304,6 +304,8 @@
                     }}
                 />
             </a>
+            <!-- 플러그인 슬롯: 헤더 좌측 액션 (로고 옆) — Slot Catalog Sprint 2b -->
+            <PluginSlot name="header-actions-left" />
         </div>
 
         <!-- 데스크톱 네비게이션 (show_in_header 메뉴 동적 렌더링) -->
@@ -348,6 +350,9 @@
                 </a>
             {/if}
         </nav>
+
+        <!-- 플러그인 슬롯: 헤더 중앙 액션 (nav 와 우측 아이콘 사이) — Slot Catalog Sprint 2b -->
+        <PluginSlot name="header-actions-center" />
 
         <!-- 우측 아이콘 버튼들 -->
         <div class="flex shrink-0 items-center gap-1">
