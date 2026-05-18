@@ -27,32 +27,30 @@
 
 <div class="ad-free-landing mx-auto max-w-5xl px-4 py-12 sm:py-20">
     <section class="text-center">
-        <span
-            class="bg-primary/10 text-primary inline-block rounded-full px-3 py-1 text-xs font-medium"
-        >
-            PC 전용 광고 제거 멤버십
-        </span>
-        <h1 class="mt-4 text-4xl font-bold sm:text-5xl">
-            PC <span class="text-primary">광고 없이</span>, 더 편하게
+        <h1 class="text-4xl font-bold sm:text-5xl">
+            <span class="text-primary">PC 광고 제거</span>
         </h1>
-        <p class="text-muted-foreground mt-3 text-xl sm:text-2xl">{data.productName}</p>
-        <p class="text-muted-foreground mx-auto mt-6 max-w-2xl text-base leading-relaxed">
-            PC AdSense 광고만 제거합니다. <strong class="text-foreground">모바일 광고</strong>와
-            <strong class="text-foreground">다모앙 자체 배너</strong>는 멤버십과 무관하게 그대로
-            노출됩니다.
+        <p class="text-muted-foreground mt-6 text-base">
+            PC 에서 보이는 구글 AdSense 광고만 제거합니다.
+        </p>
+        <p class="mt-3 text-base">
+            <strong class="text-amber-700 dark:text-amber-300"
+                >모바일에서는 광고가 정상 노출됩니다.</strong
+            >
+            다모앙 자체 광고앙 배너도 그대로 노출됩니다.
         </p>
         <div class="mt-8 flex justify-center gap-3">
-            <Button size="lg" href="/ad-free/checkout">{data.trialDays}일 무료 체험 시작</Button>
+            <Button size="lg" href="/ad-free/checkout">{data.trialDays}일 무료 체험</Button>
         </div>
-        <p class="text-muted-foreground mt-4 text-xs">언제든 해지 가능 · 약정 없음</p>
+        <p class="text-muted-foreground mt-4 text-xs">언제든 해지 · 약정 없음</p>
     </section>
 
-    <!-- 정책 요약 박스 — 멤버십 적용 범위 명확화 -->
+    <!-- 정책 요약 박스 — 광고 제거 범위 명확화 -->
     <section
         class="border-primary/20 bg-primary/5 mt-12 rounded-2xl border p-6 sm:p-8"
-        aria-label="멤버십 적용 범위"
+        aria-label="광고 제거 범위"
     >
-        <h2 class="text-center text-lg font-semibold sm:text-xl">멤버십 적용 범위</h2>
+        <h2 class="text-center text-lg font-semibold sm:text-xl">광고 제거 범위</h2>
         <div class="mt-5 grid gap-4 sm:grid-cols-3">
             <div class="text-center">
                 <div class="mb-2 text-3xl">🖥️</div>
@@ -69,7 +67,7 @@
                 <div
                     class="mt-1 inline-block rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"
                 >
-                    유지
+                    광고 노출
                 </div>
             </div>
             <div class="text-center">
@@ -78,7 +76,7 @@
                 <div
                     class="mt-1 inline-block rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"
                 >
-                    유지
+                    광고 노출
                 </div>
             </div>
         </div>
