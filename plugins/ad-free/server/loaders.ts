@@ -115,7 +115,7 @@ export async function loadCheckout(opts: {
 
 export async function loadLanding(_opts: LoadOptions = {}): Promise<LandingData> {
     return {
-        productName: '광고 제거 멤버십',
+        productName: 'PC 광고 제거',
         currency: 'KRW',
         plans: [
             {
@@ -136,51 +136,51 @@ export async function loadLanding(_opts: LoadOptions = {}): Promise<LandingData>
         benefits: [
             {
                 icon: '🖥️',
-                title: 'PC AdSense 광고 제거',
-                desc: 'PC 에서 보는 구글 AdSense 광고가 사라집니다'
+                title: 'PC AdSense 제거',
+                desc: 'PC 에서 구글 AdSense 광고만 제거'
             },
             {
                 icon: '📱',
-                title: '모바일 광고는 유지',
-                desc: '모바일 AdSense 는 정상 노출 — 모바일 사용자 경험은 그대로'
+                title: '모바일 광고 유지',
+                desc: '모바일 AdSense 는 그대로 노출'
             },
             {
                 icon: '🎯',
-                title: '다모앙 자체 배너 유지',
-                desc: '다모앙 자체 광고앙(이미지·텍스트) 배너는 멤버십과 무관하게 노출'
+                title: '다모앙 배너 유지',
+                desc: '다모앙 자체 광고앙 배너는 그대로 노출'
             },
             {
                 icon: '🎁',
-                title: '7일 무료 체험 · 언제든 해지',
-                desc: '결제 전 체험 + 약정 없이 자유 해지'
+                title: '7일 체험 · 언제든 해지',
+                desc: '약정 없음'
             }
         ],
         trialDays: 7,
         supportEmail: 'help@example.com',
         faqs: [
             {
-                q: '모바일에서도 광고가 사라지나요?',
-                a: '아니요. ad-free 멤버십은 PC 의 구글 AdSense 광고만 제거합니다. 모바일 AdSense + 다모앙 자체 광고앙(이미지·텍스트) 배너는 멤버십과 무관하게 정상 노출됩니다. 모바일 사용자 경험 + 다모앙 운영 광고는 그대로 유지됩니다.'
+                q: '모바일에서도 광고가 제거되나요?',
+                a: '아니요. PC 의 구글 AdSense 광고만 제거됩니다. 모바일 AdSense 와 다모앙 자체 광고앙 배너는 그대로 노출됩니다.'
             },
             {
-                q: '다모앙 자체 광고도 사라지나요?',
-                a: '아니요. 다모앙의 자체 광고앙(사이드바/메인 배너 등) 은 멤버십 활성 여부와 무관하게 항상 노출됩니다. 멤버십이 제거하는 것은 외부 광고 네트워크(Google AdSense) 의 PC 광고 슬롯에 한정됩니다.'
+                q: '다모앙 자체 광고도 제거되나요?',
+                a: '아니요. 다모앙의 자체 광고앙 배너는 제거 대상이 아닙니다. 외부 광고 네트워크(Google AdSense) 의 PC 슬롯만 제거됩니다.'
             },
             {
                 q: '결제 수단은 어떤 것을 지원하나요?',
                 a: '네이버페이 정기결제와 PayPal Subscription 을 지원합니다.'
             },
             {
-                q: '7일 무료 체험 후 자동으로 결제되나요?',
-                a: '체험 기간 종료 전 해지하시면 결제되지 않습니다. 체험 종료 시 선택하신 요금제로 자동 결제됩니다.'
+                q: '체험 후 자동 결제되나요?',
+                a: '체험 종료 전 해지하면 결제되지 않습니다. 종료 시 선택한 요금제로 자동 결제됩니다.'
             },
             {
-                q: '환불은 어떻게 받을 수 있나요?',
-                a: '환불 정책 페이지에 자세한 절차가 안내되어 있습니다. 영업일 기준 3~5일 이내 처리됩니다.'
+                q: '환불은 어떻게 받나요?',
+                a: '환불 정책 페이지의 절차 참고. 영업일 기준 3~5일 처리.'
             },
             {
-                q: '구독 후 광고가 즉시 사라지나요?',
-                a: '결제 완료 직후 로그인 상태에서 광고가 사라집니다. 다른 기기는 재로그인 시 반영됩니다.'
+                q: '결제 후 즉시 적용되나요?',
+                a: '결제 완료 직후 로그인 상태에서 적용. 다른 기기는 재로그인 시 반영.'
             },
             {
                 q: '6개월 요금제는 어떤 점이 다른가요?',
