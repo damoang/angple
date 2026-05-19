@@ -1,6 +1,6 @@
 {
     "id": "ad-free",
-    "name": "광고 제거 멤버십",
+    "name": "PC 광고 제거",
     "version": "0.1.0",
     "author": {
         "name": "Angple",
@@ -9,13 +9,13 @@
     "license": "MIT",
     "category": "plugin",
     "main": "index.ts",
-    "description": "회원 구독으로 사이트 광고를 제거하는 멤버십 플러그인. payment 플러그인과 연동하여 네이버페이/PayPal/토스 결제를 통한 정기구독을 제공합니다.",
-    "tags": ["membership", "ad-free", "subscription", "광고제거", "멤버십"],
+    "description": "PC AdSense 광고만 제거하는 상품. 모바일 광고와 자체 배너는 유지. payment 플러그인 연동 (네이버페이/PayPal/토스).",
+    "tags": ["ad-free", "pc-ad-removal", "subscription", "광고제거"],
     "dependencies": { "payment": "^0.1" },
     "migrations": [
         {
             "version": "001",
-            "description": "ad_free_membership: 사용자 광고 제거 멤버십 상태",
+            "description": "ad_free_membership: PC 광고 제거 구독 상태 (DB schema 이름은 유지)",
             "up": "migrations/001_ad_free_membership.up.sql",
             "down": "migrations/001_ad_free_membership.down.sql"
         }
@@ -83,7 +83,7 @@
         "product_name": {
             "label": "상품 표시명",
             "type": "string",
-            "default": "광고 제거 멤버십",
+            "default": "PC 광고 제거",
             "description": "랜딩/체크아웃 페이지 상품명 (사이트별 브랜딩 가능)"
         }
     }
