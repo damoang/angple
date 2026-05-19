@@ -18,10 +18,10 @@
 </script>
 
 <svelte:head>
-    <title>{data.productName} | 광고 없이 깔끔한 경험</title>
+    <title>{data.productName}</title>
     <meta
         name="description"
-        content="{data.productName} — AdSense 광고 없이 콘텐츠에 집중하세요. {data.trialDays}일 무료 체험."
+        content="{data.productName} — PC 의 구글 AdSense 광고만 제거하는 상품. 모바일 광고와 다모앙 자체 배너는 그대로 노출됩니다. {data.trialDays}일 무료 체험."
     />
 </svelte:head>
 
