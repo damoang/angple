@@ -96,6 +96,9 @@
 
     <section class="mt-20">
         <h2 class="text-center text-2xl font-bold">합리적인 가격</h2>
+        <p class="text-muted-foreground mt-2 text-center text-sm">
+            월 ₩4,700 · <span class="text-foreground font-medium">아메리카노 한 잔 가격</span>
+        </p>
         <div class="mt-8 grid gap-6 sm:grid-cols-2">
             {#each data.plans as plan (plan.id)}
                 <Card class={plan.recommended ? 'border-primary ring-primary/20 ring-2' : ''}>
