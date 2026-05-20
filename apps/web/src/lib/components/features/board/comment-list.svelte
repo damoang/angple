@@ -1870,6 +1870,24 @@
         margin-right: auto;
     }
 
+    /* #12432: 댓글 내 native <video> 첨부는 자체 비율 사용 (16:9 강제 해제).
+       .embed-container 의 ::before 가 padding-bottom 56.25% 로 16:9 영역을 잡아두면
+       4:3 / 1:1 / 세로 영상은 하단에 큰 빈 공간이 생긴다. <video> 가 직접 자식이면
+       aspect-ratio 강제를 끄고 영상 자체 높이를 따라가도록 한다. */
+    :global(.embed-container:has(> video))::before {
+        display: none !important;
+        padding-bottom: 0 !important;
+    }
+    :global(.embed-container:has(> video)) {
+        height: auto !important;
+        overflow: visible !important;
+    }
+    :global(.embed-container > video) {
+        position: static !important;
+        height: auto !important;
+        max-height: 70vh;
+    }
+
     /* Twitter 가변 높이 */
     :global(.embed-container[data-platform='twitter']) {
         height: var(--twitter-embed-height, auto);
