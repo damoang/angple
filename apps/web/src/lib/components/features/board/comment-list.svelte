@@ -407,11 +407,11 @@
         return (authStore.user?.mb_level ?? 0) >= 10;
     }
 
-    // 댓글 수정/삭제 권한 (작성자 또는 관리자, 대댓글이 달린 댓글은 작성자도 수정 불가)
+    // 댓글 수정/삭제 권한 (작성자 또는 관리자)
+    // 대댓글이 달린 댓글도 작성자가 수정 가능. 단 startEdit 에서 별도 안내 confirm 을 띄운다 (#12437, #12451).
     function canEditComment(comment: FreeComment): boolean {
         if (!authStore.user) return false;
         if (isAdmin()) return true;
-        if (hasReplies(comment)) return false;
         return isCommentAuthor(comment);
     }
 
@@ -443,9 +443,11 @@
         return editEditorLoadPromise;
     }
 
-    // 수정 모드 시작 — 비-관리자, grace 윈도우 밖, 비용 > 0 일 때 포인트 차감 안내 confirm
+    // 수정 모드 시작 — 비-관리자, grace 윈도우 밖, 비용 > 0 일 때 포인트 차감 안내 confirm.
+    // 대댓글이 달린 댓글은 별도 안내 (#12437, #12451: 대화 맥락이 바뀔 수 있으니 신중 수정).
     function startEdit(comment: FreeComment): void {
         const target = commentTree.find((c) => c.id === comment.id) ?? comment;
+        const replyExists = !isAdmin() && hasReplies(target);
 
         if (!isAdmin() && editPolicy.cost > 0) {
             const createdAtMs = new Date(target.created_at).getTime();
@@ -454,13 +456,33 @@
             if (!inGrace) {
                 const graceMin = Math.floor(editPolicy.grace_seconds / 60);
                 const costFmt = editPolicy.cost.toLocaleString('ko-KR');
+                const replyNote = replyExists
+                    ? `⚠️ 이 댓글에는 대댓글이 달려 있습니다.\n대화 맥락이 바뀔 수 있으니 신중히 수정해주세요.\n\n`
+                    : '';
                 const msg =
+                    replyNote +
                     `이 댓글을 수정하면 ${costFmt} 포인트가 차감되며,\n` +
                     `수정 시각과 수정 횟수가 모든 사용자에게 표시됩니다.\n\n` +
                     `(작성 후 ${graceMin}분 이내 수정은 무료입니다.)\n\n` +
                     `계속 진행하시겠습니까?`;
                 if (!window.confirm(msg)) return;
+            } else if (replyExists) {
+                // grace 윈도우 내(무료)라도 대댓글이 있으면 별도 안내
+                if (
+                    !window.confirm(
+                        `⚠️ 이 댓글에는 대댓글이 달려 있습니다.\n대화 맥락이 바뀔 수 있으니 신중히 수정해주세요.\n\n계속 진행하시겠습니까?`
+                    )
+                )
+                    return;
             }
+        } else if (replyExists) {
+            // 비용 정책이 0 인 경우에도 대댓글이 있으면 안내
+            if (
+                !window.confirm(
+                    `⚠️ 이 댓글에는 대댓글이 달려 있습니다.\n대화 맥락이 바뀔 수 있으니 신중히 수정해주세요.\n\n계속 진행하시겠습니까?`
+                )
+            )
+                return;
         }
 
         editingCommentId = String(target.id);
