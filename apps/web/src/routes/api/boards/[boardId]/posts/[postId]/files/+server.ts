@@ -49,6 +49,20 @@ export const GET: RequestHandler = async ({ params }) => {
     }
 
     try {
+        // #12446: 삭제된 게시글의 첨부파일이 노출되는 보안 이슈 차단.
+        // 글이 soft-delete 된 경우 첨부 목록을 빈 배열로 반환한다.
+        const [postRows] = await pool.query<RowDataPacket[]>(
+            `SELECT wr_id, wr_deleted_at FROM \`g5_write_${safeBoardId}\` WHERE wr_id = ? LIMIT 1`,
+            [safePostId]
+        );
+        const post = postRows[0] as { wr_id: number; wr_deleted_at: string | null } | undefined;
+        if (!post) {
+            return json({ images: [], videos: [], files: [], downloads: [] });
+        }
+        if (post.wr_deleted_at && post.wr_deleted_at !== '0000-00-00 00:00:00') {
+            return json({ images: [], videos: [], files: [], downloads: [] });
+        }
+
         const [rows] = await pool.query<FileRow[]>(
             `SELECT bf_no, bf_file, bf_fileurl, bf_source, bf_type, bf_width, bf_height, bf_filesize
 			 FROM g5_board_file
