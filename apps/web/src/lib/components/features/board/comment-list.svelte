@@ -118,9 +118,11 @@
         initialDislikedCommentIds = [],
         truthroomCommentMap = {},
         isRestricted = false,
-        // #12457: 실수 엔터키로 댓글 전송 후 즉시 수정하는 케이스가 잦아 grace 를
-        // 5분 → 6분(360s) 으로 확장. 호출자가 명시적으로 전달하면 그 값을 우선 사용.
-        editPolicy = { cost: 50000, grace_seconds: 360 }
+        // 댓글 수정 정책 (사용자 확정 2026-05-22):
+        // - 대댓글 없는 댓글: 항상 무료 수정 (grace 무관)
+        // - 대댓글 달린 댓글: cost 포인트 차감 + 수정 이력 카운트 표시
+        // grace_seconds 는 호환을 위해 남겨두지만 신규 정책에서 사용하지 않는다.
+        editPolicy = { cost: 5000, grace_seconds: 360 }
     }: Props = $props();
 
     function findCommentById(commentId: string): FreeComment | null {
@@ -445,46 +447,22 @@
         return editEditorLoadPromise;
     }
 
-    // 수정 모드 시작 — 비-관리자, grace 윈도우 밖, 비용 > 0 일 때 포인트 차감 안내 confirm.
-    // 대댓글이 달린 댓글은 별도 안내 (#12437, #12451: 대화 맥락이 바뀔 수 있으니 신중 수정).
+    // 수정 모드 시작 — 신규 정책 (2026-05-22 확정):
+    // - 관리자(mb_level>=10): 항상 무료, confirm 없음.
+    // - 작성자 + 대댓글 없음: 항상 무료, confirm 없음.
+    // - 작성자 + 대댓글 있음: cost 포인트 차감 + 수정 이력 표시 안내 confirm.
     function startEdit(comment: FreeComment): void {
         const target = commentTree.find((c) => c.id === comment.id) ?? comment;
         const replyExists = !isAdmin() && hasReplies(target);
 
-        if (!isAdmin() && editPolicy.cost > 0) {
-            const createdAtMs = new Date(target.created_at).getTime();
-            const elapsedSec = (Date.now() - createdAtMs) / 1000;
-            const inGrace = elapsedSec <= editPolicy.grace_seconds;
-            if (!inGrace) {
-                const graceMin = Math.floor(editPolicy.grace_seconds / 60);
-                const costFmt = editPolicy.cost.toLocaleString('ko-KR');
-                const replyNote = replyExists
-                    ? `⚠️ 이 댓글에는 대댓글이 달려 있습니다.\n대화 맥락이 바뀔 수 있으니 신중히 수정해주세요.\n\n`
-                    : '';
-                const msg =
-                    replyNote +
-                    `이 댓글을 수정하면 ${costFmt} 포인트가 차감되며,\n` +
-                    `수정 시각과 수정 횟수가 모든 사용자에게 표시됩니다.\n\n` +
-                    `(작성 후 ${graceMin}분 이내 수정은 무료입니다.)\n\n` +
-                    `계속 진행하시겠습니까?`;
-                if (!window.confirm(msg)) return;
-            } else if (replyExists) {
-                // grace 윈도우 내(무료)라도 대댓글이 있으면 별도 안내
-                if (
-                    !window.confirm(
-                        `⚠️ 이 댓글에는 대댓글이 달려 있습니다.\n대화 맥락이 바뀔 수 있으니 신중히 수정해주세요.\n\n계속 진행하시겠습니까?`
-                    )
-                )
-                    return;
-            }
-        } else if (replyExists) {
-            // 비용 정책이 0 인 경우에도 대댓글이 있으면 안내
-            if (
-                !window.confirm(
-                    `⚠️ 이 댓글에는 대댓글이 달려 있습니다.\n대화 맥락이 바뀔 수 있으니 신중히 수정해주세요.\n\n계속 진행하시겠습니까?`
-                )
-            )
-                return;
+        if (replyExists && editPolicy.cost > 0) {
+            const costFmt = editPolicy.cost.toLocaleString('ko-KR');
+            const msg =
+                `⚠️ 이 댓글에는 대댓글이 달려 있습니다.\n` +
+                `대화 맥락이 바뀔 수 있어 수정 시 ${costFmt} 포인트가 차감되며,\n` +
+                `수정 시각과 수정 횟수가 모든 사용자에게 표시됩니다.\n\n` +
+                `계속 진행하시겠습니까?`;
+            if (!window.confirm(msg)) return;
         }
 
         editingCommentId = String(target.id);
