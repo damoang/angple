@@ -68,7 +68,15 @@
                     }
                 }),
                 Image.configure({ inline: true, allowBase64: false }),
-                Link.configure({ openOnClick: false }),
+                // #12439: 댓글 자동 링크에 시각 표시 강제 — 사용자가 selected text 에
+                // URL 을 paste 했을 때 링크화된 텍스트가 외형 변화 없이 들어가는 케이스를 차단.
+                Link.configure({
+                    openOnClick: false,
+                    HTMLAttributes: {
+                        class: 'text-primary underline decoration-primary/60 underline-offset-2',
+                        'data-comment-autolink': 'true'
+                    }
+                }),
                 Placeholder.configure({ placeholder }),
                 Mention.configure({
                     HTMLAttributes: { class: 'mention' },
