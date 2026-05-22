@@ -118,7 +118,9 @@
         initialDislikedCommentIds = [],
         truthroomCommentMap = {},
         isRestricted = false,
-        editPolicy = { cost: 50000, grace_seconds: 300 }
+        // #12457: 실수 엔터키로 댓글 전송 후 즉시 수정하는 케이스가 잦아 grace 를
+        // 5분 → 6분(360s) 으로 확장. 호출자가 명시적으로 전달하면 그 값을 우선 사용.
+        editPolicy = { cost: 50000, grace_seconds: 360 }
     }: Props = $props();
 
     function findCommentById(commentId: string): FreeComment | null {
