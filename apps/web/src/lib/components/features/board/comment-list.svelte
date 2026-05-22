@@ -2009,6 +2009,15 @@
     :global(.comment-body a) {
         overflow-wrap: anywhere;
         word-break: break-all;
+        /* #12439: 자동 링크/사용자 링크 모두 시각 표시 강제 — 텍스트만 보이고 링크가
+           숨어 있는 케이스를 차단 (paste 시 selected text 가 anchor 로 wrap 되는 케이스). */
+        color: var(--primary);
+        text-decoration: underline;
+        text-decoration-color: color-mix(in oklch, var(--primary) 60%, transparent);
+        text-underline-offset: 2px;
+    }
+    :global(.comment-body a:hover) {
+        text-decoration-color: var(--primary);
     }
 
     /* 댓글 본문 문단 간격 */
