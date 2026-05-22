@@ -30,7 +30,7 @@
         { name: '앙리포트', href: '/report' },
         { name: '소명게시판', href: '/claim' },
         { name: '회원 신고', href: '/truthroom' },
-        { name: '바이럴 신고', href: '/nope' },
+        { name: '광고/바이럴 신고', href: '/nope' },
         { name: '이용제한 기록', href: '/disciplinelog' }
     ];
 
