@@ -132,8 +132,14 @@
                 if (open) checkFollowStatus();
             }}
         >
+            <!--
+              #12444: 짧은 닉네임(예: "M.M.", "ㅇㅇ", "•") 의 클릭 영역이 텍스트 너비만큼
+              만 잡혀 글자 사이 빈 공간이나 점 주변을 누르면 트리거가 활성화 안 되는 문제.
+              inline-block + min-width(2ch) + 좌우 padding 으로 클릭 영역을 보장한다.
+              negative margin 으로 시각적 layout 영향은 0.
+            -->
             <DropdownMenu.Trigger
-                class="cursor-pointer text-left hover:underline focus:outline-none {className} {isWithdrawn
+                class="-mx-0.5 inline-block min-w-[2ch] cursor-pointer px-0.5 text-left hover:underline focus:outline-none {className} {isWithdrawn
                     ? 'line-through opacity-60'
                     : ''}"
             >
