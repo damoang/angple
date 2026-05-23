@@ -200,9 +200,7 @@
 </script>
 
 <div
-    class="image-text-banner {className} {position === 'side-image-text-banner'
-        ? 'min-h-[164px]'
-        : ''}"
+    class="dm-grid-card {className} {position === 'side-image-text-banner' ? 'min-h-[164px]' : ''}"
     data-position={position}
 >
     {#if loading}

@@ -187,7 +187,7 @@
     }
 </script>
 
-<div class="damoang-banner {className}" data-position={position} style:min-height={height}>
+<div class="dm-card {className}" data-position={position} style:min-height={height}>
     {#if loading}
         <div
             aria-hidden="true"

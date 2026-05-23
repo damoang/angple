@@ -42,7 +42,7 @@
     <!-- Classic variant: legacy step-pai amber bg + left accent -->
     <a
         {href}
-        class="promo-classic-row block px-4 no-underline transition-colors hover:bg-amber-100/10 dark:hover:bg-amber-950/15"
+        class="dm-list-row block px-4 no-underline transition-colors hover:bg-amber-100/10 dark:hover:bg-amber-950/15"
         style="background: rgba(255, 179, 39, 0.06); border-left: 3px solid rgba(255, 179, 39, 0.4); border-bottom: 1px solid color-mix(in oklch, var(--foreground) 8%, transparent);"
     >
         <div
@@ -116,13 +116,13 @@
 
 <style>
     /* 홍보 classic 행: regular post-row와 동일한 density-aware 패딩 */
-    .promo-classic-row {
+    .dm-list-row {
         padding-top: calc(10px + var(--row-pad-extra, 3px));
         padding-bottom: calc(10px + var(--row-pad-extra, 3px));
     }
 
     @media (min-width: 768px) {
-        .promo-classic-row {
+        .dm-list-row {
             padding-top: calc(6px + var(--row-pad-extra, 3px));
             padding-bottom: calc(6px + var(--row-pad-extra, 3px));
         }
