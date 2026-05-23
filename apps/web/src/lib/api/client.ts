@@ -95,6 +95,8 @@ class ApiClient {
     private _accessToken: string | null = null;
     private _fetchFn: typeof fetch | null = null;
     private _idempotencyKeys = new Map<string, { key: string; expiresAt: number }>();
+    // 진행 중인 refresh 호출 캐싱 (동시 401 race 방지) — #12463
+    private _refreshInFlight: Promise<boolean> | null = null;
 
     private stableSerialize(value: unknown): string {
         if (value === null) return 'null';
@@ -191,10 +193,48 @@ class ApiClient {
     // 호출 측 컴포넌트 unmount 등 cleanup 시 in-flight 요청이 즉시 정리된다.
     // (P0 leak fix 2026-05-02: Promise.race(timeout, apiClient.x) 패턴이
     //  timeout reject 후에도 fetch closure 를 leak 하던 문제 제거)
+    /**
+     * 401 응답 시 1회 자동 refresh 시도 (동시 호출은 같은 Promise 공유 — race 방지).
+     * 성공 시 access token 갱신 + true. 실패 시 false (재시도 안 함).
+     * #12463: access token 15분 만료 후 자동 refresh 없어 사용자가 "로그인 자주 해제" 보고.
+     */
+    private async tryAutoRefresh(): Promise<boolean> {
+        if (!browser) return false;
+        if (!this._refreshInFlight) {
+            this._refreshInFlight = (async () => {
+                try {
+                    const fetchFn = this._fetchFn || fetch;
+                    const r = await fetchFn(`${API_BASE_URL}/auth/refresh`, {
+                        method: 'POST',
+                        credentials: 'include',
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+                    if (!r.ok) return false;
+                    const body = await r.json();
+                    const newToken = body?.data?.access_token ?? body?.access_token ?? null;
+                    if (typeof newToken === 'string' && newToken.length > 0) {
+                        this._accessToken = newToken;
+                        return true;
+                    }
+                    return false;
+                } catch {
+                    return false;
+                } finally {
+                    // 다음 호출은 새 시도. (성공/실패 무관)
+                    queueMicrotask(() => {
+                        this._refreshInFlight = null;
+                    });
+                }
+            })();
+        }
+        return this._refreshInFlight;
+    }
+
     private async request<T>(
         endpoint: string,
         options: RequestInit = {},
-        retryConfig?: Partial<RetryConfig>
+        retryConfig?: Partial<RetryConfig>,
+        _skipAutoRefresh: boolean = false
     ): Promise<ApiResponse<T>> {
         const url = `${API_BASE_URL}${endpoint}`;
 
@@ -258,6 +298,17 @@ class ApiClient {
             }
 
             if (!response.ok) {
+                // #12463: 401 시 1회 자동 refresh 후 재시도 (auth/* endpoint 는 제외 — 무한 루프 방지)
+                if (
+                    response.status === 401 &&
+                    !_skipAutoRefresh &&
+                    !endpoint.startsWith('/auth/')
+                ) {
+                    const refreshed = await this.tryAutoRefresh();
+                    if (refreshed) {
+                        return this.request<T>(endpoint, options, retryConfig, true);
+                    }
+                }
                 let errorMessage = '요청 실패';
                 let errorCode: string | undefined;
                 if (data?.error) {
