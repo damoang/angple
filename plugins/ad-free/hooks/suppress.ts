@@ -17,18 +17,31 @@ export interface AdFreeFilterCtx {
 }
 
 /**
+ * ad-free 가입자도 광고가 노출되는 슬롯 화이트리스트.
+ * 운영 정책: **본문 하단 + 목록 사이 (in-feed)** 광고는 다모앙 운영 수익 보호를 위해 유지.
+ * 그 외 PC 사이드바/wing/index/explore 등 부수 슬롯만 ad-free 시 OFF.
+ */
+const AD_FREE_EXEMPT_SLOTS = new Set([
+    'board-after-comments', // 본문 댓글 후 (본문 하단)
+    'board-list-infeed', // 게시판 목록 사이
+    'comment-infeed' // 댓글 목록 사이
+]);
+
+/**
  * - 다른 플러그인이 이미 false → 그대로 false (체이닝 보존)
- * - isDesktop=false/undefined (SSR/mobile) → 입력값 그대로 (광고 유지, 다모앙 광고앙 배너 정책)
- * - user.ad_free_until > now (PC + 활성 멤버십) → false (AdSense PC 광고 OFF)
+ * - isDesktop=false/undefined (SSR/mobile) → 입력값 그대로 (광고 유지)
+ * - slotName ∈ AD_FREE_EXEMPT_SLOTS → 입력값 그대로 (운영 수익 슬롯 유지)
+ * - user.ad_free_until > now (PC + 활성 + 비-exempt 슬롯) → false (광고 OFF)
  * - 그 외 → 입력값 그대로 (default true)
  *
- * 정책 메모: ad-free 멤버십은 **PC AdSense 광고만 제거**. 모바일 AdSense + 다모앙 자체 광고앙
- * (premium/plugins/ad-widget 의 배너 — AdSlot 안 거치는 별도 컴포넌트) 는 항상 유지.
+ * 정책: ad-free 는 **PC AdSense 광고 일부 제거**. 본문 하단·목록 사이·모바일·다모앙 자체 배너는 유지.
  */
 export function suppressAdsForAdFreeMember(value: boolean, ctx: AdFreeFilterCtx): boolean {
     if (value === false) return false;
     // 모바일/SSR 은 광고 유지
     if (!ctx?.isDesktop) return value;
+    // 본문 하단 + 목록 사이 슬롯은 운영 정책상 유지
+    if (AD_FREE_EXEMPT_SLOTS.has(ctx?.slotName)) return value;
     const until = ctx?.user?.ad_free_until;
     if (!until) return value;
     const expires = until instanceof Date ? until : new Date(until);

@@ -63,4 +63,28 @@ describe('suppressAdsForAdFreeMember', () => {
             )
         ).toBe(true);
     });
+
+    // 운영 정책: 본문 하단 + 목록 사이 in-feed 슬롯은 ad-free 가입자도 광고 노출 유지
+    it.each(['board-after-comments', 'board-list-infeed', 'comment-infeed'])(
+        '%s 슬롯은 PC ad-free 가입자도 광고 유지 (운영 수익 보호)',
+        (slotName) => {
+            const future = new Date(Date.now() + 86_400_000).toISOString();
+            expect(
+                suppressAdsForAdFreeMember(
+                    true,
+                    ctx({ ad_free_until: future }, { slotName, isDesktop: true })
+                )
+            ).toBe(true);
+        }
+    );
+
+    it('exempt 가 아닌 슬롯 (sidebar) 은 PC ad-free 가입자에게 OFF 유지', () => {
+        const future = new Date(Date.now() + 86_400_000).toISOString();
+        expect(
+            suppressAdsForAdFreeMember(
+                true,
+                ctx({ ad_free_until: future }, { slotName: 'sidebar', isDesktop: true })
+            )
+        ).toBe(false);
+    });
 });

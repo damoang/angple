@@ -51,6 +51,10 @@
         aria-label="광고 제거 범위"
     >
         <h2 class="text-center text-lg font-semibold sm:text-xl">광고 제거 범위</h2>
+        <p class="text-muted-foreground mt-2 text-center text-xs">
+            <strong class="text-foreground">본문 하단 · 목록 사이 광고는 그대로 노출됩니다.</strong>
+            (운영 수익 보호 정책)
+        </p>
         <div class="mt-5 grid gap-4 sm:grid-cols-3">
             <div class="text-center">
                 <div class="mb-2 text-3xl">🖥️</div>
