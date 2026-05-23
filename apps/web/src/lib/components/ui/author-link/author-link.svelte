@@ -116,7 +116,13 @@
     }
 </script>
 
-{#if !authorId}
+{#if !authorId || !authStore.isAuthenticated}
+    <!--
+      #12480: 비회원에게는 작성자 dropdown 비활성 (단순 텍스트).
+      모바일 list 에서 제목 영역과 인접한 작성자 영역이 자주 잘못 터치되어 dropdown 모달이
+      뜨는 문제를 해소. 비회원에겐 프로필/팔로우/쪽지 같은 dropdown 메뉴가 무의미하므로
+      클릭 영역 자체를 없애 부모 anchor (글 링크) 로 자연스럽게 propagate.
+    -->
     <span class="{className} {isWithdrawn ? 'line-through opacity-60' : ''}">
         {#if children}
             {@render children()}
@@ -137,9 +143,13 @@
               만 잡혀 글자 사이 빈 공간이나 점 주변을 누르면 트리거가 활성화 안 되는 문제.
               inline-block + min-width(2ch) + 좌우 padding 으로 클릭 영역을 보장한다.
               negative margin 으로 시각적 layout 영향은 0.
+
+              #12480: 모바일 list 에서 위 클릭 영역 보장이 인접 제목/메타 영역까지 침범하여
+              제목 터치 시 dropdown 이 뜨는 문제 발생. PC(md:) 에만 적용하도록 제한.
+              모바일은 기본 텍스트 너비만큼만 클릭 영역 — 제목 의도 터치 보호.
             -->
             <DropdownMenu.Trigger
-                class="-mx-0.5 inline-block min-w-[2ch] cursor-pointer px-0.5 text-left hover:underline focus:outline-none {className} {isWithdrawn
+                class="inline-block cursor-pointer text-left hover:underline focus:outline-none md:-mx-0.5 md:min-w-[2ch] md:px-0.5 {className} {isWithdrawn
                     ? 'line-through opacity-60'
                     : ''}"
             >
