@@ -455,7 +455,7 @@
             <div><span class="font-medium">상호명:</span> 주식회사 에스디케이</div>
             <div><span class="font-medium">대표:</span> SDK</div>
             <div><span class="font-medium">사업자등록번호:</span> 871-81-03242</div>
-            <div><span class="font-medium">통신판매업:</span> 2024-고양일산서-1820</div>
+            <div><span class="font-medium">통신판매업:</span> 2026-삼도1동-0015</div>
             <div><span class="font-medium">주소:</span> 제주특별자치도 제주시 남성로 127, 4층</div>
             <div><span class="font-medium">이메일:</span> contact@damoang.net</div>
             <div><span class="font-medium">고객센터:</span> contact@damoang.net</div>

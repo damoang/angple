@@ -173,10 +173,44 @@
                 </li>
             </ul>
 
+            <div
+                class="text-muted-foreground mt-3 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-xs"
+            >
+                <span class="font-medium">패밀리 사이트</span>
+                <span class="text-border">·</span>
+                <a
+                    href="https://angple.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="hover:text-primary transition-colors">angple.com</a
+                >
+                <span class="text-border">·</span>
+                <a
+                    href="https://muzia.net"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="hover:text-primary transition-colors">muzia.net</a
+                >
+                <span class="text-border">·</span>
+                <a
+                    href="https://ipyang.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="hover:text-primary transition-colors">ipyang.com</a
+                >
+                <span class="text-border">·</span>
+                <a
+                    href="https://dokdo.page"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="hover:text-primary transition-colors">dokdo.page</a
+                >
+            </div>
+
             <div class="text-muted-foreground mt-3 text-xs leading-relaxed">
                 <p>
                     주식회사 에스디케이(SDK) | 대표: 김선도 | 사업자등록번호: 871-81-03242 |
-                    통신판매업신고: 2024-고양일산서-1820
+                    통신판매업신고: 2026-삼도1동-0015
                 </p>
                 <p>
                     제주특별자치도 제주시 남성로 127, 4층 | contact@damoang.net | 제보:
