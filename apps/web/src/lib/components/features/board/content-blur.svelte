@@ -11,9 +11,14 @@
         shouldBlur: boolean;
         /** 자식 요소 */
         children: import('svelte').Snippet;
+        /**
+         * 블러 사유 라벨. 지정 시 기본 "클릭하여 내용 확인" 대신 이 문구가 노출됨.
+         * 예: "신고 누적으로 가려졌습니다 — 보기는 본인 책임" (#12420)
+         */
+        blurReason?: string;
     }
 
-    let { shouldBlur, children }: Props = $props();
+    let { shouldBlur, children, blurReason }: Props = $props();
 
     let revealed = $state(false);
 
@@ -56,7 +61,9 @@
                     (e.currentTarget as HTMLImageElement).style.display = 'none';
                 }}
             />
-            <p class="text-muted-foreground text-sm font-medium">클릭하여 내용 확인</p>
+            <p class="text-muted-foreground text-sm font-medium">
+                {blurReason ?? '클릭하여 내용 확인'}
+            </p>
         </button>
     </div>
 {:else if shouldBlur && revealed}
