@@ -38,6 +38,7 @@
         trackPageView
     } from '$lib/services/ga4';
     import { detectAdblockOnce } from '$lib/services/ad-telemetry';
+    import { AdblockNotice } from '$lib/components/features/adblock-notice';
     import type { MenuItem } from '$lib/api/types';
     import { readUserBasicFromCookie } from '$lib/utils/user-basic-client';
     import { env } from '$env/dynamic/public';
@@ -684,6 +685,11 @@
 <!-- 단축 버튼 (지연 로딩, admin/install 제외) -->
 {#if !isAdminRoute && !isInstallRoute && LazyShortcutButtons}
     <LazyShortcutButtons />
+{/if}
+
+<!-- AdBlock 감지 시 안내 토스트 (admin/install 제외) -->
+{#if !isAdminRoute && !isInstallRoute}
+    <AdblockNotice />
 {/if}
 
 <!-- 플러그인 슬롯: </body> 직전 (지연 로딩 컴포넌트, fallback 등) — Slot Catalog Sprint 2 -->

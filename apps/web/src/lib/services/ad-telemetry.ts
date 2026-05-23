@@ -161,7 +161,7 @@ export function detectAdblockOnce(
 
     schedule(() => {
         let blocked = false;
-        let reason = 'none';
+        let reason: 'sdk_missing' | 'bait_hidden' | 'none' = 'none';
         try {
             if (isAdSdkBlocked()) {
                 blocked = true;
@@ -173,6 +173,16 @@ export function detectAdblockOnce(
         } catch {
             // 감지 실패는 무시 — 모니터링 신호일 뿐
             return;
+        }
+
+        // 안내 UI 노출용 store 갱신 — adblock-notice 컴포넌트가 구독.
+        // 동적 import 로 SSR/번들 영향 0 (browser 진입 후에만 실행됨).
+        if (blocked) {
+            void import('$lib/stores/adblock-notice.svelte')
+                .then((m) => m.adblockNotice.set(true, reason))
+                .catch(() => {
+                    // store 로드 실패 무시 — telemetry 는 그대로 진행
+                });
         }
 
         // GA4 (gtag) — initGA4 호출 후라야 동작. ga4.ts trackEvent 임포트 시 순환 위험 없음.
