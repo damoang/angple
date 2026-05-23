@@ -372,8 +372,14 @@
 
     $effect(() => {
         const promise = data.streamed?.auxiliaryData;
+        // SPA 네비게이션 시 비동기 result 가 새 글에 잘못 적용되지 않도록 effect 시작 시점의 postId 캡처
+        const effectPostId = data.post.id;
 
-        // 글 변경 시 이전 스트리밍 데이터 즉시 리셋
+        // 글 변경 시 이전 스트리밍 데이터 즉시 리셋 + 본문 stale 차단 (#12484)
+        // renderedPostContent 가 이전 정상 글의 transformed content 를 그대로 유지하면
+        // 새 글(특히 삭제글) 진입 시 메타/일부 컴포넌트에 stale 본문이 노출될 수 있음.
+        renderedPostContent = data.post.content;
+        renderedPostContentPostId = data.post.id;
         postReactions = undefined;
         reactionsMap = undefined;
         lastFetchedReactionsKey = '';
@@ -400,6 +406,8 @@
 
         promise
             .then((result) => {
+                // SPA 네비게이션으로 다른 글로 이동했다면 적용하지 않음 (#12484 race condition)
+                if (data.post.id !== effectPostId) return;
                 if (cancelled) return;
                 promotionPosts = Array.isArray(result.promotionPosts)
                     ? (result.promotionPosts as PromotionPost[])
@@ -1425,7 +1433,9 @@
     }
 
     // SEO 설정
-    const postDescription = $derived(renderedPostContent.replace(/<[^>]+>/g, '').slice(0, 160));
+    const postDescription = $derived(
+        data.post.deleted_at ? '' : renderedPostContent.replace(/<[^>]+>/g, '').slice(0, 160)
+    );
 
     const seoConfig: SeoConfig = $derived.by(() => {
         const siteUrl = getSiteUrl();
