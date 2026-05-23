@@ -201,7 +201,7 @@
             <!-- 모바일: max-height 100px로 제한 / 데스크톱: 카드 높이에 맞춤 -->
             <div
                 bind:this={clipWrapper}
-                class="ad-clip-wrapper overflow-hidden rounded-xl"
+                class="dm-clip-wrapper overflow-hidden rounded-xl"
                 style="position: relative;"
             >
                 <!-- AdSense가 이 div의 height를 !important로 바꿔도 외부 래퍼가 잘라냄 -->
@@ -394,7 +394,7 @@
 
 <style>
     /* 모바일은 낮게, 데스크톱은 카드형 비율로 보이도록 높이를 제한합니다. */
-    .ad-clip-wrapper {
+    .dm-clip-wrapper {
         min-height: 110px;
         height: 110px;
         max-height: 110px;
@@ -402,7 +402,7 @@
         isolation: isolate;
     }
     @media (min-width: 640px) {
-        .ad-clip-wrapper {
+        .dm-clip-wrapper {
             min-height: 214px;
             height: 214px;
             max-height: 214px;

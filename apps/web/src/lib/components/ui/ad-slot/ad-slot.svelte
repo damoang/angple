@@ -342,18 +342,18 @@
 {#if !suppressAds}
     <div
         bind:this={containerEl}
-        class="ad-slot-container relative overflow-hidden rounded-lg {className}"
+        class="dm-display-frame relative overflow-hidden rounded-lg {className}"
         class:ad-slot-loaded={isLoaded && hasAd}
         class:ad-slot-empty={isEmpty}
         class:ad-slot-empty-collapsed={isEmpty}
         class:ad-slot-btf={isBTF}
-        class:ad-slot-wing={isWing}
-        class:ad-slot-sidebar={isSidebar}
-        class:ad-slot-floating={isFloating}
+        class:dm-display-wing={isWing}
+        class:dm-display-sidebar={isSidebar}
+        class:dm-display-floating={isFloating}
         style:--ad-slot-min-height={reservedHeights.base}
         style:--ad-slot-min-height-tablet={reservedHeights.tablet}
         style:--ad-slot-min-height-desktop={reservedHeights.desktop}
-        style:--ad-slot-floating-reserved={reservedHeights.desktop}
+        style:--dm-display-floating-reserved={reservedHeights.desktop}
         style:--ad-slot-intrinsic-size={reservedHeights.desktop}
         style:transition="min-height 0ms"
     >
@@ -363,7 +363,7 @@
         {#if slotId}
             <div
                 id={slotId}
-                class="gam-ad-slot w-full"
+                class="dm-display-slot w-full"
                 style:display={showAdfit ? 'none' : undefined}
             ></div>
         {/if}
@@ -371,13 +371,13 @@
 {/if}
 
 <style>
-    .ad-slot-container {
+    .dm-display-frame {
         contain: layout style;
         /* 기본 (모바일/in-flow): inline 으로 주입된 --ad-slot-min-height 사용 */
         min-height: var(--ad-slot-min-height);
         /* transition은 inline style로 통일 (0ms) — CLS 방지 위해 즉시 적용 */
     }
-    .gam-ad-slot {
+    .dm-display-slot {
         min-height: var(--ad-slot-min-height);
     }
 
@@ -413,7 +413,7 @@
         border-radius: 0.5rem;
     }
 
-    .gam-ad-slot {
+    .dm-display-slot {
         display: flex;
         justify-content: center;
         align-items: center;
@@ -422,15 +422,15 @@
     }
 
     @media (min-width: 728px) {
-        .ad-slot-container,
-        .gam-ad-slot {
+        .dm-display-frame,
+        .dm-display-slot {
             min-height: var(--ad-slot-min-height-tablet);
         }
     }
 
     @media (min-width: 970px) {
-        .ad-slot-container,
-        .gam-ad-slot {
+        .dm-display-frame,
+        .dm-display-slot {
             min-height: var(--ad-slot-min-height-desktop);
         }
     }
@@ -446,29 +446,29 @@
      * 위 728/970 미디어쿼리(in-flow tablet/desktop)는 in-flow 슬롯 전용이고
      * floating 슬롯은 아래 규칙으로 덮어쓴다.
      */
-    .ad-slot-floating,
-    .ad-slot-floating .gam-ad-slot {
+    .dm-display-floating,
+    .dm-display-floating .dm-display-slot {
         min-height: 0;
     }
     @media (min-width: 1024px) {
-        .ad-slot-sidebar,
-        .ad-slot-sidebar .gam-ad-slot {
-            min-height: var(--ad-slot-floating-reserved);
+        .dm-display-sidebar,
+        .dm-display-sidebar .dm-display-slot {
+            min-height: var(--dm-display-floating-reserved);
         }
     }
     @media (min-width: 1600px) {
-        .ad-slot-wing,
-        .ad-slot-wing .gam-ad-slot {
-            min-height: var(--ad-slot-floating-reserved);
+        .dm-display-wing,
+        .dm-display-wing .dm-display-slot {
+            min-height: var(--dm-display-floating-reserved);
         }
     }
 
-    .gam-ad-slot :global(iframe) {
+    .dm-display-slot :global(iframe) {
         max-width: 100% !important;
     }
 
-    :global(.dark) .gam-ad-slot :global(iframe),
-    :global(.amoled) .gam-ad-slot :global(iframe) {
+    :global(.dark) .dm-display-slot :global(iframe),
+    :global(.amoled) .dm-display-slot :global(iframe) {
         filter: brightness(0.9);
     }
 </style>
