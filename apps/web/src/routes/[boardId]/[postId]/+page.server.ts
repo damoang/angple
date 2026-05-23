@@ -583,16 +583,35 @@ export const load: PageServerLoad = async ({
             }
         }
 
-        // 하단 게시글 목록은 클라이언트에서 로드한다.
-        // 개수(20개)는 유지하되 상세 __data.json을 줄이기 위해 SSR 프리로드는 하지 않는다.
-        // SSR 단계에서는 항상 page=1 로 고정 — URL 의 ?page 파라미터는 목록 페이지 컨텍스트이며
-        // 글 상세 하단 RecentPosts 에 그대로 전달하면 특정 날짜의 글들이 고정 노출되는 버그 발생 (#12315).
-        // 실제 page 탐색은 클라이언트 컴포넌트가 담당한다.
+        // 하단 게시글 목록은 클라이언트에서 로드한다 (items 는 비워두어 __data.json 최소화).
+        // #12430 fix: URL `?page=N` 있으면 그 값, 없으면 SSR 단계에서 page-index 호출하여
+        // 자기 글이 속한 페이지를 자동 결정. 이전에 SSR=1 로 고정 후 클라이언트 onMount 에서
+        // 보강하던 방식이 race / hydration 문제로 1페이지에 고정되는 회귀가 반복됨 (#12430).
+        // items 는 SSR 에서 비워두므로 #12315 의 "특정 날짜 글 고정 노출" 회귀와는 무관.
+        const urlPage = Number(url.searchParams.get('page')) || 0;
+        let recentPostsPage = urlPage > 0 ? urlPage : 1;
+
+        if (urlPage === 0 && !post.deleted_at) {
+            try {
+                const piRes = await svelteKitFetch(
+                    `/api/boards/${boardId}/posts/${postId}/page-index`
+                );
+                if (piRes.ok) {
+                    const body = (await piRes.json()) as { page?: number };
+                    if (body.page && body.page > 1) {
+                        recentPostsPage = body.page;
+                    }
+                }
+            } catch {
+                // page-index 실패 시 1 유지 (사용자 흐름 방해 X)
+            }
+        }
+
         let recentPosts: { items: FreePost[]; total: number; totalPages: number; page: number } = {
             items: [],
             total: 0,
             totalPages: 1,
-            page: 1
+            page: recentPostsPage
         };
 
         // Phase 1C: 플러그인 enrich filter (member-memo author_memo 등).
