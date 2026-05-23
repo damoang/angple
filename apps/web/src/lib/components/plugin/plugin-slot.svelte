@@ -48,10 +48,10 @@
 </script>
 
 {#if components.length > 0}
-    <div class="plugin-slot" data-slot={name}>
+    <div class="dm-mount" data-dm-slot={name}>
         {#each components as slot (slot.id)}
             {#if !errors.has(slot.id)}
-                <div class="plugin-slot-item" data-plugin-source={slot.source || 'unknown'}>
+                <div class="dm-mount-item" data-dm-source={slot.source || 'unknown'}>
                     {#key slot.id}
                         <slot.component {...slot.props ?? {}} {...extraProps} />
                     {/key}
@@ -60,7 +60,7 @@
                 <!-- 에러 발생한 컴포넌트는 숨김 처리 (프로덕션) -->
                 {#if import.meta.env.DEV}
                     <div
-                        class="plugin-slot-error rounded border border-red-200 bg-red-50 p-2 text-xs text-red-600"
+                        class="dm-mount-error rounded border border-red-200 bg-red-50 p-2 text-xs text-red-600"
                     >
                         [Plugin Error: {slot.source || slot.id}] {errors.get(slot.id)}
                     </div>
