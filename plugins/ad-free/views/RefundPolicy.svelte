@@ -6,16 +6,16 @@
 </script>
 
 <svelte:head>
-    <title>환불 정책 | 광고 제거 멤버십</title>
-    <meta name="description" content="광고 제거 멤버십의 환불 정책 안내." />
+    <title>환불 정책 | PC 광고 제거</title>
+    <meta name="description" content="PC 광고 제거의 환불 정책 안내." />
 </svelte:head>
 
 <div class="ad-free-refund mx-auto max-w-3xl px-4 py-12 sm:py-16">
     <header class="border-b pb-6">
-        <p class="text-muted-foreground text-sm">광고 제거 멤버십</p>
+        <p class="text-muted-foreground text-sm">PC 광고 제거</p>
         <h1 class="mt-2 text-3xl font-bold sm:text-4xl">환불 정책</h1>
         <p class="text-muted-foreground mt-3 text-sm">
-            아래 안내는 본 멤버십(정기구독)에 적용되며, 결제대행사 약관 및 관련 법령 (전자상거래법
+            아래 안내는 본 상품(정기구독)에 적용되며, 결제대행사 약관 및 관련 법령 (전자상거래법
             제17조 등) 을 따릅니다.
         </p>
     </header>
@@ -24,8 +24,8 @@
         <article>
             <h2 class="text-xl font-semibold">1. 7일 이내 해지 환불</h2>
             <p class="text-muted-foreground mt-2">
-                결제일로부터 7일 이내, 그리고 멤버십 혜택을 사용한 이력이 없는 경우 전액 환불을 받을
-                수 있습니다. 광고 제거 기능이 실제로 적용된 시점이 사용 이력으로 간주됩니다.
+                결제일로부터 7일 이내, 그리고 광고 제거 혜택을 사용한 이력이 없는 경우 전액 환불을
+                받을 수 있습니다. 광고 제거 기능이 실제로 적용된 시점이 사용 이력으로 간주됩니다.
             </p>
         </article>
 
@@ -69,7 +69,7 @@
         <article>
             <h2 class="text-xl font-semibold">6. 환불 불가 사유</h2>
             <ul class="text-muted-foreground marker:text-foreground mt-2 list-disc space-y-1 pl-5">
-                <li>약관 위반으로 멤버십이 정지/해지된 경우</li>
+                <li>약관 위반으로 상품이 정지/해지된 경우</li>
                 <li>혜택을 상당 기간 사용한 후 단순 변심으로 환불을 요구하는 경우</li>
                 <li>결제 후 7일이 경과한 회차분 (정기결제 해지로 다음 회차 진행 중지는 가능)</li>
             </ul>
@@ -82,7 +82,7 @@
             영업일 기준 1~2일 안에 답변드립니다.
         </p>
         <p class="mt-2">
-            <a href="/ad-free" class="text-primary underline">← 광고 제거 멤버십 안내로 돌아가기</a>
+            <a href="/ad-free" class="text-primary underline">← PC 광고 제거 안내로 돌아가기</a>
         </p>
     </footer>
 </div>
