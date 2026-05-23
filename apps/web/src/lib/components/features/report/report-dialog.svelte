@@ -71,6 +71,50 @@
     let showConfirm = $state(false);
     let error = $state<string | null>(null);
 
+    // 직전 신고 사유 기억 (#12486) — 도배/연쇄 신고 시 매번 동일 사유 다시 선택하는 불편 해소
+    // 의견 (detail) 은 글마다 다를 수 있어 사유만 복원. TTL 30분.
+    const LAST_REASONS_KEY = 'damoang_report_lastReasons';
+    const LAST_REASONS_TTL_MS = 30 * 60 * 1000;
+
+    function loadLastReasons(): Set<ReportReason> {
+        if (typeof localStorage === 'undefined') return new Set();
+        try {
+            const raw = localStorage.getItem(LAST_REASONS_KEY);
+            if (!raw) return new Set();
+            const parsed = JSON.parse(raw) as { reasons?: number[]; ts?: number };
+            if (
+                !Array.isArray(parsed.reasons) ||
+                typeof parsed.ts !== 'number' ||
+                Date.now() - parsed.ts > LAST_REASONS_TTL_MS
+            ) {
+                return new Set();
+            }
+            return new Set(parsed.reasons as ReportReason[]);
+        } catch {
+            return new Set();
+        }
+    }
+
+    function saveLastReasons(reasons: Set<ReportReason>): void {
+        if (typeof localStorage === 'undefined' || reasons.size === 0) return;
+        try {
+            localStorage.setItem(
+                LAST_REASONS_KEY,
+                JSON.stringify({ reasons: [...reasons], ts: Date.now() })
+            );
+        } catch {
+            // 저장 실패 무시 (private 모드 / quota 등)
+        }
+    }
+
+    // 다이얼로그 open 시 직전 사유 자동 복원 (사용자가 수정 가능)
+    $effect(() => {
+        if (open && selectedReasons.size === 0 && !isSubmitting && !isSuccess) {
+            const restored = loadLastReasons();
+            if (restored.size > 0) selectedReasons = restored;
+        }
+    });
+
     // 제출 가능 여부
     const canSubmit = $derived(selectedReasons.size > 0);
 
@@ -106,6 +150,8 @@
             }
 
             isSuccess = true;
+            // 다음 신고 시 자동 복원 위해 직전 사유 저장 (#12486)
+            saveLastReasons(selectedReasons);
             onSuccess?.();
 
             // 2초 후 다이얼로그 닫기
