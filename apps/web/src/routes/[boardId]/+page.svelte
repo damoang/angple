@@ -960,6 +960,20 @@
                             <X class="h-3.5 w-3.5" />
                         </Button>
                     {/if}
+                    <!-- #12455: 빠른 글쓰기 (내가 쓴 글/댓글 필터 줄 우측) -->
+                    {#if canWrite}
+                        <Button
+                            onclick={goToWrite}
+                            size="sm"
+                            class="ml-auto h-8"
+                            title={!canUseCertifiedAction(authStore.user, boardId)
+                                ? getCertificationBlockedMessage(boardId)
+                                : '글쓰기'}
+                        >
+                            <Pencil class="mr-1.5 h-3.5 w-3.5" />
+                            {#if !canUseCertifiedAction(authStore.user, boardId)}실명인증{:else}글쓰기{/if}
+                        </Button>
+                    {/if}
                 </div>
             {/if}
 
