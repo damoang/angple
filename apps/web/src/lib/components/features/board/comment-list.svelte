@@ -379,6 +379,22 @@
         }
     }
 
+    // #12420: 신고 누적으로 잠긴 댓글 펼침 상태 (블라인드 + 일시 해제)
+    // blockedUsersStore (영구 정책) 와 의미 분리 — lock 은 임시 운영 결정
+    let expandedLockedComments = new SvelteSet<string>();
+
+    function isLockedComment(comment: FreeComment): boolean {
+        return comment.report_count === 'lock';
+    }
+
+    function toggleLockedComment(commentId: string): void {
+        if (expandedLockedComments.has(commentId)) {
+            expandedLockedComments.delete(commentId);
+        } else {
+            expandedLockedComments.add(commentId);
+        }
+    }
+
     // 작성자 확인
     function isCommentAuthor(comment: FreeComment): boolean {
         return (
@@ -413,9 +429,11 @@
 
     // 댓글 수정/삭제 권한 (작성자 또는 관리자)
     // 대댓글이 달린 댓글도 작성자가 수정 가능. 단 startEdit 에서 별도 안내 confirm 을 띄운다 (#12437, #12451).
+    // #12420: 신고 누적으로 잠긴 댓글은 작성자 수정 차단. admin 만 운영 도구로 수정 가능.
     function canEditComment(comment: FreeComment): boolean {
         if (!authStore.user) return false;
         if (isAdmin()) return true;
+        if (isLockedComment(comment)) return false;
         return isCommentAuthor(comment);
     }
 
@@ -955,6 +973,7 @@
     {#each commentTree as comment, commentIndex (comment.id)}
         {@const isDeleted = !!comment.deleted_at}
         {@const isBlocked = isBlockedComment(comment)}
+        {@const isLocked = isLockedComment(comment)}
         {@const isAuthor = isCommentAuthor(comment)}
         {@const canEdit = !isDeleted && canEditComment(comment)}
         {@const isEditing = editingCommentId === String(comment.id)}
@@ -981,7 +1000,7 @@
               )}
 
         <!-- 차단된 사용자 댓글 (접힌 상태) -->
-        {#if isBlocked && !expandedBlockedComments.has(String(comment.id))}
+        {#if (isBlocked && !expandedBlockedComments.has(String(comment.id))) || (!isBlocked && isLocked && !expandedLockedComments.has(String(comment.id)))}
             <li
                 id="c_{comment.id}"
                 style="margin-left: {Math.min(depth, 2) * 1}rem"
@@ -997,11 +1016,14 @@
                     : ''}"
             >
                 <button
-                    onclick={() => toggleBlockedComment(String(comment.id))}
+                    onclick={() =>
+                        isBlocked
+                            ? toggleBlockedComment(String(comment.id))
+                            : toggleLockedComment(String(comment.id))}
                     class="text-muted-foreground hover:text-foreground flex items-center gap-1.5 text-xs transition-colors"
                 >
                     <EyeOff class="h-3.5 w-3.5" />
-                    차단된 사용자의 댓글입니다
+                    {isBlocked ? '차단된 사용자의 댓글입니다' : '신고 누적으로 가려진 댓글입니다'}
                 </button>
             </li>
         {:else}
@@ -1063,6 +1085,15 @@
                     >
                         <EyeOff class="h-3.5 w-3.5" />
                         차단된 사용자의 댓글 — 접기
+                    </button>
+                {:else if isLocked}
+                    <!-- #12420: 신고 누적으로 잠긴 댓글 (펼쳐진 상태) — 접기 -->
+                    <button
+                        onclick={() => toggleLockedComment(String(comment.id))}
+                        class="text-muted-foreground hover:text-foreground mb-1 flex items-center gap-1.5 text-xs transition-colors"
+                    >
+                        <EyeOff class="h-3.5 w-3.5" />
+                        신고 누적으로 가려진 댓글 — 접기
                     </button>
                 {/if}
 
@@ -1410,8 +1441,8 @@
                                                     <Trash2 class="h-4 w-4" />
                                                 </Button>
                                             {/if}
-                                            {#if !isAuthor && authStore.isAuthenticated}
-                                                <!-- 신고 버튼 (본인이 아닌 경우에만) -->
+                                            {#if !isAuthor && authStore.isAuthenticated && !isLocked}
+                                                <!-- 신고 버튼 (본인이 아닌 경우에만, #12420: 잠긴 댓글은 추가 신고 불가) -->
                                                 <Button
                                                     variant="ghost"
                                                     size="sm"
@@ -1753,8 +1784,8 @@
                                 </Button>
                             {/if}
 
-                            <!-- 신고 버튼 (본인이 아닌 경우) -->
-                            {#if !isAuthor && authStore.isAuthenticated}
+                            <!-- 신고 버튼 (본인이 아닌 경우, #12420: 잠긴 댓글은 추가 신고 불가) -->
+                            {#if !isAuthor && authStore.isAuthenticated && !isLocked}
                                 <Button
                                     variant="ghost"
                                     size="sm"

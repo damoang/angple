@@ -384,7 +384,12 @@
         <!-- 게시글 본문 -->
         {#if canViewSecret}
             <AdultBlur isAdult={post.is_adult ?? false}>
-                <ContentBlur shouldBlur={uiSettingsStore.shouldBlurContent(post.title)}>
+                <ContentBlur
+                    shouldBlur={uiSettingsStore.shouldBlurContent(post.title) || isLockedPost}
+                    blurReason={isLockedPost
+                        ? '신고 누적으로 가려진 글입니다 — 클릭하면 본인 책임 하에 표시'
+                        : undefined}
+                >
                     <div id="economy-post-content" style="font-size: {FONT_SIZES[currentFontSize]}">
                         <Markdown content={postContent} />
                     </div>
@@ -627,7 +632,8 @@
                     {#if board?.use_sns}
                         <ShareButton {boardId} postId={post.id} title={post.title || ''} />
                     {/if}
-                    {#if !isAuthor}
+                    {#if !isAuthor && !isLockedPost}
+                        <!-- #12420: 이미 신고 누적으로 잠긴 글은 추가 신고 불가 -->
                         <Button
                             variant="ghost"
                             size="sm"

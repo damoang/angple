@@ -929,8 +929,10 @@
     );
 
     // 수정/삭제 권한 (작성자 또는 관리자)
+    // #12420: 신고 누적으로 잠긴 글은 작성자 수정 차단. admin 만 운영 도구로 수정 가능.
     const isAdmin = $derived((authStore.user?.mb_level ?? 0) >= 10);
-    const canModify = $derived(isAuthor || isAdmin);
+    const isLockedPost = $derived(data.post.extra_7 === 'lock' || postReportCount === 'lock');
+    const canModify = $derived((isAuthor && !isLockedPost) || isAdmin);
 
     // 직접홍보 게시판 만료 여부
     const promotionExpired = $derived(data.promotionExpired === true && !isAuthor);
