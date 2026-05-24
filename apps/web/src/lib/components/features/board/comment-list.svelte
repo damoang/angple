@@ -1458,6 +1458,15 @@
                                                     <span class="ml-1 text-xs">신고</span>
                                                 </Button>
                                             {/if}
+
+                                            <!-- 플러그인 슬롯: 댓글 액션 (보존 버튼 등) -->
+                                            <PluginSlot
+                                                name="comments-item-actions"
+                                                {boardId}
+                                                {postId}
+                                                commentId={comment.id}
+                                                commentAuthorId={comment.author_id}
+                                            />
                                         </div>
                                     {/if}
                                 </div>
