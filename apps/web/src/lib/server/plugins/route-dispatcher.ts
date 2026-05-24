@@ -134,7 +134,16 @@ export async function dispatchPluginRoute(input: DispatchInput): Promise<Respons
         return await fn(input.event);
     } catch (err) {
         console.error(`${LOG_PREFIX} handler error in ${input.pluginId}${input.rest}:`, err);
-        return new Response(`Plugin handler error`, { status: 500 });
+        // plugin handler 가 status 를 가진 에러(ApiError 등)를 throw 하면 그 코드로 응답한다.
+        // plugin 은 별도 모듈 그래프에서 동적 import 되므로 instanceof 로 식별할 수 없어
+        // duck-typing 으로 .status 를 확인한다.
+        const status =
+            err && typeof (err as { status?: unknown }).status === 'number'
+                ? (err as { status: number }).status
+                : 500;
+        const message =
+            status !== 500 && err instanceof Error ? err.message : 'Plugin handler error';
+        return new Response(message, { status });
     }
 }
 
