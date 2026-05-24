@@ -99,7 +99,12 @@ function calculateLevelInfo(totalExp: number) {
     return { currentLevel, nextLevelExp, expToNext, progress };
 }
 
-export const GET: RequestHandler = async ({ params }) => {
+export const GET: RequestHandler = async ({ params, locals }) => {
+    // #12501: 비로그인 사용자의 타 회원 프로필 열람 차단 (개인정보 보호)
+    if (!locals.user) {
+        return json({ success: false, error: '로그인이 필요합니다.' }, { status: 401 });
+    }
+
     const memberId = params.id;
 
     // mb_id (영문/숫자/_-) 또는 mb_nick (한글 포함) 둘 다 허용 (#12371).
