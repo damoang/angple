@@ -2049,7 +2049,12 @@
         <div data-scroll-depth="100" aria-hidden="true"></div>
 
         <!-- 플러그인 슬롯: 글 상세 페이지 끝 — Slot Catalog Sprint 2c -->
-        <PluginSlot name="post-detail-after" {boardId} postId={data.post.id} />
+        <PluginSlot
+            name="post-detail-after"
+            {boardId}
+            postId={data.post.id}
+            postAuthorId={data.post.author_id}
+        />
     {/if}
     <!-- /canRead -->
 </div>

@@ -1458,6 +1458,17 @@
                                                     <span class="ml-1 text-xs">신고</span>
                                                 </Button>
                                             {/if}
+
+                                            <!-- 플러그인 슬롯: 댓글 액션 (보존 버튼 등) — chat 레이아웃은 별도 컴팩트 액션 영역에서 렌더 -->
+                                            {#if commentLayout !== 'chat'}
+                                                <PluginSlot
+                                                    name="comments-item-actions"
+                                                    {boardId}
+                                                    {postId}
+                                                    commentId={comment.id}
+                                                    commentAuthorId={comment.author_id}
+                                                />
+                                            {/if}
                                         </div>
                                     {/if}
                                 </div>
@@ -1796,6 +1807,15 @@
                                     <Flag class="h-3.5 w-3.5" />
                                 </Button>
                             {/if}
+
+                            <!-- 플러그인 슬롯: 댓글 액션 (보존 버튼 등) -->
+                            <PluginSlot
+                                name="comments-item-actions"
+                                {boardId}
+                                {postId}
+                                commentId={comment.id}
+                                commentAuthorId={comment.author_id}
+                            />
                         </div>
                     {/if}
 
