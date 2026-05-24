@@ -1,7 +1,13 @@
+import { redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types.js';
 
-export const load: PageServerLoad = async ({ params, fetch }) => {
+export const load: PageServerLoad = async ({ params, fetch, locals, url }) => {
     const memberId = params.id;
+
+    // #12501: 비로그인 사용자는 타 회원 프로필 열람 불가 → 로그인 페이지로 유도 (개인정보 보호)
+    if (!locals.user) {
+        redirect(302, `/login?redirect=${encodeURIComponent(url.pathname)}`);
+    }
 
     try {
         const res = await fetch(`/api/members/${memberId}/profile`);
