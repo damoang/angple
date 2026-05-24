@@ -23,7 +23,11 @@ export default defineConfig(({ mode }) => {
         },
         build: {
             assetsInlineLimit: 8192,
-            chunkSizeWarningLimit: 1120
+            chunkSizeWarningLimit: 1120,
+            // server-side stack trace 가 minified chunk 대신 원본 source line 노출.
+            // 'hidden' = browser DevTools 에는 안 노출 (사용자 정보 보호), server runtime 만 사용.
+            // Phase 14 Tier 1 T1.1 — multi-tenant 빈 사이트 throw 위치 디버깅 가능화.
+            sourcemap: 'hidden'
         },
         ssr: {
             // AWS SDK를 서버 번들에 포함 (프로덕션 배포 시 node_modules 불필요)

@@ -69,6 +69,28 @@ async function buildHomePageData(): Promise<HomePageData> {
     };
 }
 
+/**
+ * Phase 14 Tier 1 T1.3 — multi-tenant graceful fallback.
+ *
+ * 빈 사이트 (ipyang/nuna/tektok 등 신규 도메인) 의 transitive 의존성
+ * (g5_write_message / celebration_banners / legacy-data cache file 등) 누락 시
+ * buildHomePageData 가 unexpected throw 해도 SSR 가 정상 응답하도록 보강.
+ *
+ * 모든 fail = empty defaults 로 fallback. damoang regression 0
+ * (정상 데이터는 그대로 반환).
+ */
+function emptyHomePageData(): HomePageData {
+    return {
+        indexWidgets: null,
+        widgetLayout: DEFAULT_WIDGETS,
+        sidebarWidgetLayout: DEFAULT_SIDEBAR_WIDGETS,
+        recommendedData: null,
+        recommendedPeriod: getDefaultPeriod(),
+        exploreData: null,
+        celebrationRecent: null
+    };
+}
+
 export const load: PageServerLoad = async () => {
     const now = Date.now();
     if (cachedHomePageData && now - cachedHomePageDataAt < HOME_PAGE_CACHE_TTL_MS) {
@@ -81,6 +103,14 @@ export const load: PageServerLoad = async () => {
                 cachedHomePageData = data;
                 cachedHomePageDataAt = Date.now();
                 return data;
+            })
+            .catch((err) => {
+                // Phase 14 — 빈 사이트 graceful fallback
+                console.error('[SSR Home] buildHomePageData failed, returning empty defaults:', err);
+                const fallback = emptyHomePageData();
+                cachedHomePageData = fallback;
+                cachedHomePageDataAt = Date.now();
+                return fallback;
             })
             .finally(() => {
                 pendingHomePageLoad = null;
