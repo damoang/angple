@@ -309,7 +309,9 @@
         </div>
 
         <!-- 데스크톱 네비게이션 (show_in_header 메뉴 동적 렌더링) -->
-        <nav class="hidden items-center space-x-8 md:flex">
+        <!-- #12499: md(아이패드 세로) 구간에서 항목 폭 부족 시 한글 라벨이 글자 단위로
+             세로 줄바꿈되던 문제 — 간격 축소(md) + 라벨 whitespace-nowrap 으로 해결 -->
+        <nav class="hidden items-center space-x-4 md:flex lg:space-x-8">
             {#if menuStore.headerMenus.length > 0}
                 {#each menuStore.headerMenus as headerMenu (headerMenu.id)}
                     {@const IconComp = getIcon(headerMenu.icon)}
@@ -319,7 +321,7 @@
                         href={headerMenu.url}
                         target={headerMenu.target === '_blank' ? '_blank' : undefined}
                         rel={headerMenu.target === '_blank' || isExternal ? 'noopener' : undefined}
-                        class="text-foreground hover:text-primary flex items-center transition-all duration-200 ease-out"
+                        class="text-foreground hover:text-primary flex items-center whitespace-nowrap transition-all duration-200 ease-out"
                         onclick={isHome
                             ? (e: MouseEvent) => {
                                   if (window.location.pathname === '/') {
@@ -337,7 +339,7 @@
                 <!-- headerMenus가 비어있으면 홈 링크만 기본 표시 -->
                 <a
                     href="/"
-                    class="text-foreground hover:text-primary flex items-center transition-all duration-200 ease-out"
+                    class="text-foreground hover:text-primary flex items-center whitespace-nowrap transition-all duration-200 ease-out"
                     onclick={(e: MouseEvent) => {
                         if (window.location.pathname === '/') {
                             e.preventDefault();
