@@ -1,23 +1,20 @@
 <script lang="ts">
     /**
-     * 수정안: wikiang.org /wiki/[...path] 본문 렌더러
-     *
-     * [기존 문제]
-     *  - 손수 짠 renderContent() 가 content_type==='markdown' 만 marked 처리,
-     *    나머지(html·wikitext·null)는 원문을 그대로 {@html} → 위키텍스트/마크다운이 글자로 노출.
-     *  - content 가 비어있으면 content_raw(주로 MediaWiki 위키텍스트)를 같은 content_type 으로
-     *    렌더 → marked 가 위키텍스트를 못 살려 깨짐.
-     *  - prose 스타일이 h1 만 있어 h2/표/목록이 무스타일. sanitize 없음(XSS).
-     *
-     * [수정]
-     *  - 검증된 코어 <Markdown> 컴포넌트 재사용 (marked + DOMPurify + prose 스타일 + 임베드).
-     *    markdown/html content_type 이고 content 가 있으면 이걸로 렌더.
-     *  - content 가 없고 content_raw 만 있는(미변환 위키텍스트 등) 경우: 깨진 marked 출력 대신
-     *    안내 + 원문을 escape 된 <pre> 로 표시 (Svelte 텍스트 보간 = 자동 escape, {@html} 아님).
-     *    → 정상 표시는 데이터 백필(위키텍스트→markdown)로 해결 (별도 작업).
+     * 위키 문서 뷰 (모던 위키 chrome).
+     *  - 브레드크럼 + 페이지 헤더(제목·메타·액션) + 본문 + 우측 TOC 레일
+     *  - 본문 렌더: 코어 <Markdown>(marked+DOMPurify+prose). content_type markdown/html.
+     *  - content 없고 content_raw 만(미변환 위키텍스트) → 안내 + escape 원문.
+     *  - 헤딩(h2~h4)에 id 주입 → 우측 TOC 앵커 스크롤.
      */
     import type { PageData } from './$types';
     import { Markdown } from '$lib/components/ui/markdown/index.js';
+    import Toc from '$lib/components/wiki/toc.svelte';
+    import Breadcrumbs from '$lib/components/wiki/breadcrumbs.svelte';
+    import { slugify } from '$lib/components/wiki/heading-slug';
+    import PencilIcon from '@lucide/svelte/icons/pencil';
+    import HistoryIcon from '@lucide/svelte/icons/history';
+    import MessageSquareIcon from '@lucide/svelte/icons/message-square';
+    import { tick } from 'svelte';
 
     const { data }: { data: PageData } = $props();
 
@@ -26,7 +23,6 @@
         | { mode: 'raw'; content: string; type: string }
         | null;
 
-    /** 페이지의 렌더 방식 결정 (순수 함수 — 테스트 용이) */
     function pickRenderable(
         page: {
             content: string | null;
@@ -36,15 +32,12 @@
     ): Renderable {
         if (!page) return null;
         const ct = page.content_type;
-        // 정규화된 본문(content)이 있고 markdown/html 이면 코어 렌더러로
         if (page.content && (ct === 'markdown' || ct === 'html')) {
             return { mode: 'rich', content: page.content };
         }
-        // content 없음 → 원문(content_raw)만 존재 (미변환 위키텍스트 등): 깨진 변환 대신 원문 노출
         if (page.content_raw) {
             return { mode: 'raw', content: page.content_raw, type: ct || 'unknown' };
         }
-        // content 는 있으나 content_type 이 wikitext 인 비정상 케이스도 raw 취급
         if (page.content) {
             return { mode: 'raw', content: page.content, type: ct || 'unknown' };
         }
@@ -52,6 +45,32 @@
     }
 
     const renderable = $derived(pickRenderable(data.wikiPage));
+    const tocContent = $derived(renderable?.mode === 'rich' ? renderable.content : '');
+
+    // 문서 path → 인코딩된 URL (편집/역사 링크)
+    const pageUrl = $derived.by(() => {
+        const p = (data.wikiPage?.path || '').replace(/^\/+/, '').replace(/\/+$/, '');
+        if (!p) return '';
+        return '/' + p.split('/').map(encodeURIComponent).join('/');
+    });
+
+    // 본문 렌더 후 헤딩(h2~h4)에 TOC 와 동일한 slug id 주입
+    let contentEl: HTMLDivElement | undefined = $state();
+    $effect(() => {
+        // renderable 변경 시 재실행
+        void renderable;
+        if (!contentEl) return;
+        tick().then(() => {
+            const seen = new Map<string, number>();
+            contentEl?.querySelectorAll<HTMLElement>('h2, h3, h4').forEach((h) => {
+                let slug = slugify(h.textContent || '');
+                const n = seen.get(slug) ?? 0;
+                seen.set(slug, n + 1);
+                if (n > 0) slug = `${slug}-${n + 1}`;
+                h.id = slug;
+            });
+        });
+    });
 </script>
 
 <svelte:head>
@@ -74,61 +93,129 @@
         {:else if data.specialType === 'Random'}
             <h1>임의 문서</h1>
             <p class="text-gray-600">임의의 문서로 이동합니다.</p>
-            <p class="mt-4 text-sm text-gray-500">이 기능은 준비 중입니다.</p>
         {:else if data.specialType === 'AllPages'}
             <h1>모든 문서</h1>
             <p class="text-gray-600">위키앙의 모든 문서 목록입니다.</p>
-            <p class="mt-4 text-sm text-gray-500">이 기능은 준비 중입니다.</p>
         {:else}
             <h1>특수:{data.specialType}</h1>
             <p class="text-gray-600">이 특수 페이지는 아직 구현되지 않았습니다.</p>
         {/if}
     </div>
 {:else if data.wikiPage}
-    <article class="wiki-article">
-        <h1>{data.wikiPage.title}</h1>
+    <div class="wiki-shell">
+        <article class="wiki-main">
+            <Breadcrumbs path={data.wikiPage.path} />
 
-        {#if renderable?.mode === 'rich'}
-            <div class="wiki-content">
-                <Markdown content={renderable.content} />
+            <header class="wiki-header">
+                <h1 class="wiki-title">{data.wikiPage.title}</h1>
+                <div class="wiki-actions">
+                    <a class="wiki-action" href={`${pageUrl}/edit`}>
+                        <PencilIcon class="h-3.5 w-3.5" /> 편집
+                    </a>
+                    <a class="wiki-action" href={`${pageUrl}/history`}>
+                        <HistoryIcon class="h-3.5 w-3.5" /> 역사
+                    </a>
+                    <a class="wiki-action" href={`/토론:${data.wikiPage.title}`}>
+                        <MessageSquareIcon class="h-3.5 w-3.5" /> 토론
+                    </a>
+                </div>
+            </header>
+
+            <div class="wiki-content" bind:this={contentEl}>
+                {#if renderable?.mode === 'rich'}
+                    <Markdown content={renderable.content} />
+                {:else if renderable?.mode === 'raw'}
+                    <p class="wiki-raw-notice">
+                        ⚠️ 이 문서는 아직 정규화된 본문이 없어 원본({renderable.type})을 그대로
+                        표시합니다.
+                    </p>
+                    <pre class="wiki-raw">{renderable.content}</pre>
+                {:else}
+                    <p class="text-gray-500">이 문서는 아직 내용이 없습니다.</p>
+                {/if}
             </div>
-        {:else if renderable?.mode === 'raw'}
-            <div class="wiki-content">
-                <p class="wiki-raw-notice">
-                    ⚠️ 이 문서는 아직 정규화된 본문이 없어 원본({renderable.type})을 그대로
-                    표시합니다.
-                </p>
-                <pre class="wiki-raw">{renderable.content}</pre>
-            </div>
-        {:else}
-            <p class="text-gray-500">이 문서는 아직 내용이 없습니다.</p>
+
+            <footer class="wiki-footer">
+                마지막 수정: {new Date(data.wikiPage.updated_at).toLocaleString('ko-KR')}
+            </footer>
+        </article>
+
+        {#if tocContent}
+            <aside class="wiki-toc-rail">
+                <Toc content={tocContent} />
+            </aside>
         {/if}
-
-        <footer class="mt-8 border-t border-gray-200 pt-4 text-sm text-gray-500">
-            <p>마지막 수정: {new Date(data.wikiPage.updated_at).toLocaleString('ko-KR')}</p>
-        </footer>
-    </article>
+    </div>
 {/if}
 
 <style>
-    .wiki-article h1 {
-        font-size: 1.875rem;
-        font-weight: 700;
-        margin-bottom: 1.5rem;
-        border-bottom: 1px solid #e5e7eb;
+    .wiki-shell {
+        display: flex;
+        gap: 2rem;
+        align-items: flex-start;
+        max-width: 1100px;
+        margin: 0 auto;
+    }
+    .wiki-main {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+    .wiki-toc-rail {
+        flex: 0 0 13.5rem;
+        width: 13.5rem;
+    }
+    @media (max-width: 1024px) {
+        .wiki-toc-rail {
+            display: none;
+        }
+    }
+
+    .wiki-header {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        border-bottom: 2px solid var(--border, #e5e7eb);
         padding-bottom: 0.5rem;
+        margin-bottom: 1.25rem;
     }
-
-    .wiki-special-page h1 {
-        font-size: 1.875rem;
+    .wiki-title {
+        font-size: 1.9rem;
         font-weight: 700;
-        margin-bottom: 1rem;
+        line-height: 1.2;
+        margin: 0;
     }
-
+    .wiki-actions {
+        display: flex;
+        gap: 0.25rem;
+    }
+    .wiki-action {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.25rem 0.6rem;
+        font-size: 0.8rem;
+        color: var(--muted-foreground, #6b7280);
+        border: 1px solid var(--border, #e5e7eb);
+        border-radius: 0.375rem;
+        text-decoration: none;
+        white-space: nowrap;
+    }
+    .wiki-action:hover {
+        color: var(--primary, #3366cc);
+        border-color: var(--primary, #3366cc);
+    }
     .wiki-content {
         line-height: 1.75;
     }
-
+    .wiki-footer {
+        margin-top: 2rem;
+        border-top: 1px solid var(--border, #e5e7eb);
+        padding-top: 1rem;
+        font-size: 0.8rem;
+        color: var(--muted-foreground, #6b7280);
+    }
     .wiki-raw-notice {
         margin-bottom: 0.75rem;
         border-radius: 0.375rem;
@@ -137,15 +224,19 @@
         font-size: 0.85rem;
         color: #92400e;
     }
-
     .wiki-raw {
         white-space: pre-wrap;
         word-break: break-word;
-        background: #f8f9fa;
-        border: 1px solid #e5e7eb;
+        background: var(--muted, #f8f9fa);
+        border: 1px solid var(--border, #e5e7eb);
         border-radius: 0.375rem;
         padding: 0.75rem;
         font-size: 0.85rem;
         overflow-x: auto;
+    }
+    .wiki-special-page h1 {
+        font-size: 1.875rem;
+        font-weight: 700;
+        margin-bottom: 1rem;
     }
 </style>
