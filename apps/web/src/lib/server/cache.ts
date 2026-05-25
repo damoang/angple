@@ -184,6 +184,15 @@ export class TieredCache<T> {
         this.pendingMaxSize = pendingMaxSize;
     }
 
+    /**
+     * Redis(L2) 키 생성. CACHE_NAMESPACE 환경변수가 있으면 `{ns}:{prefix}:{key}` 로 격리,
+     * 없으면 기존 `{prefix}:{key}`. canary/prod 가 공유 Redis 를 써도 환경 간 캐시 오염 방지.
+     */
+    private redisKey(key: string): string {
+        const ns = process.env.CACHE_NAMESPACE;
+        return ns ? `${ns}:${this.prefix}:${key}` : `${this.prefix}:${key}`;
+    }
+
     /** L1 → L2 조회 */
     async get(key: string): Promise<T | null> {
         const l1Entry = this.l1.get(key);
@@ -193,7 +202,7 @@ export class TieredCache<T> {
 
         try {
             const redis = getRedis();
-            const val = await redis.get(`${this.prefix}:${key}`);
+            const val = await redis.get(this.redisKey(key));
             if (val) {
                 const data = JSON.parse(val) as T;
                 this.setL1(key, data);
@@ -213,7 +222,7 @@ export class TieredCache<T> {
 
         try {
             const redis = getRedis();
-            await redis.setex(`${this.prefix}:${key}`, this.l2TtlSec, JSON.stringify(data));
+            await redis.setex(this.redisKey(key), this.l2TtlSec, JSON.stringify(data));
         } catch {
             // Redis 장애 무시 (L1에는 있음)
         }
@@ -225,7 +234,7 @@ export class TieredCache<T> {
 
         try {
             const redis = getRedis();
-            await redis.del(`${this.prefix}:${key}`);
+            await redis.del(this.redisKey(key));
         } catch {
             // Redis 장애 무시
         }
