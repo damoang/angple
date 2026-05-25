@@ -2,6 +2,7 @@
     import { goto } from '$app/navigation';
     import { browser } from '$app/environment';
     import PostForm from '$lib/components/features/board/post-form.svelte';
+    import { contentFormatRegistry } from '$lib/components/features/board/content-format-registry.js';
     import { authStore } from '$lib/stores/auth.svelte.js';
     import { apiClient } from '$lib/api/index.js';
     import type { PageData } from './$types.js';
@@ -17,6 +18,8 @@
     const postId = $derived(data.postId);
     const boardTitle = $derived(data.board?.subject || data.board?.name || boardId);
     const scheduledDelete = $derived(data.scheduledDelete);
+    // 본문 콘텐츠 형식 (위키 등 markdown 게시판이면 마크다운 소스 모드로 편집)
+    const contentFormat = $derived(contentFormatRegistry.resolve(data.board?.board_type));
 
     let isSubmitting = $state(false);
     let error = $state<string | null>(null);
@@ -100,6 +103,7 @@
             mode="edit"
             post={data.post}
             categories={data.categories}
+            {contentFormat}
             onSubmit={handleSubmit}
             onCancel={handleCancel}
             isLoading={isSubmitting}
