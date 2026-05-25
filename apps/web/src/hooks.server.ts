@@ -774,7 +774,10 @@ export const handle: Handle = async ({ event, resolve }) => {
     // Vary 헤더: 같은 URL 이라도 User-Agent (PC vs 모바일) / Accept-Encoding / 인증 쿠키별로
     // CDN 이 다른 응답을 캐시하도록 명시. 이전엔 Cookie 만 vary 해서 PC 사용자가 모바일 캐시를
     // 받거나 그 반대인 신고 (gouryella 2026-05-07) 가 발생했다.
-    const publicVaryHeader = 'Cookie, User-Agent, Accept-Encoding';
+    // Phase 14 — multi-tenant: Host 를 Vary 에 포함해야 CDN/proxy 가 host 별 cache entry 생성.
+    // 없으면 같은 path(/) 가 모든 subdomain (minimal/modern/official.angple.com) 에서
+    // 첫 host 응답을 공유 → 모든 사이트가 같은 theme 로 보이는 오염 발생.
+    const publicVaryHeader = 'Host, Cookie, User-Agent, Accept-Encoding';
 
     // OPTIONS 요청 (CORS preflight) 처리
     if (event.request.method === 'OPTIONS') {
@@ -814,7 +817,11 @@ export const handle: Handle = async ({ event, resolve }) => {
         // 캐시 키에 query string 포함 — pathname만 쓰면 ?page=N 요청이
         // ?page=1 캐시에 섞여 "뒤로 간 것처럼" 보이는 교차 오염 발생.
         // 2026-04-29: isHomePage 도 search 포함 (이전 '/' 만 사용 시 query 누락 버그).
-        const cacheKey = pathname + event.url.search;
+        // Phase 14 (2026-05-25): host 포함 — multi-tenant 에서 같은 path(/)가 모든
+        // subdomain (minimal/modern/official.angple.com) 에 첫 host 응답을 공유하던
+        // 교차 오염 fix. host 없으면 site-resolver/theme 가 정확해도 SSR 응답 cache 가
+        // 첫 host 결과를 다른 host 에 반환.
+        const cacheKey = event.url.host + '|' + pathname + event.url.search;
         const cacheTtl = isHomePage
             ? SSR_CACHE_TTL_HOME
             : isPostDetail
