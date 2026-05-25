@@ -75,7 +75,14 @@
         content?: string;
         placeholder?: string;
         disabled?: boolean;
-        onUpdate?: (html: string) => void;
+        /**
+         * 본문 콘텐츠 형식.
+         * - 'html'(기본): 기존 WYSIWYG 동작. onUpdate/저장값은 HTML.
+         * - 'markdown': 마크다운 소스 모드로 시작하고, onUpdate/저장값으로 마크다운 원문을 전달.
+         *   (위키 등 마크다운 네이티브 게시판용)
+         */
+        contentFormat?: 'html' | 'markdown';
+        onUpdate?: (value: string) => void;
         onImageUpload?: (file: File) => Promise<string | null>;
         class?: string;
     }
@@ -84,6 +91,7 @@
         content = '',
         placeholder = '/ 를 눌러 이미지와 앙티콘을 추가하세요',
         disabled = false,
+        contentFormat = 'html',
         onUpdate,
         onImageUpload,
         class: className = ''
@@ -93,7 +101,8 @@
 
     // 에디터 모드 (WYSIWYG, Markdown, HTML)
     type EditorMode = 'wysiwyg' | 'markdown' | 'html';
-    let editorMode = $state<EditorMode>('wysiwyg');
+    // contentFormat='markdown' 이면 마크다운 소스 모드로 시작 (위키 등)
+    let editorMode = $state<EditorMode>(contentFormat === 'markdown' ? 'markdown' : 'wysiwyg');
     let rawContent = $state(''); // 마크다운/HTML 직접 편집용
 
     let editorElement: HTMLDivElement;
@@ -262,7 +271,9 @@
                     }
                 })
             ],
-            content,
+            // markdown 포맷이면 ProseMirror(WYSIWYG)는 비워두고 마크다운 원문은 rawContent(textarea)로 다룬다.
+            // (마크다운 텍스트를 HTML로 오해해 ProseMirror에 주입하는 것을 방지)
+            content: contentFormat === 'markdown' ? '' : content,
             editable: !disabled,
             // #9223: 편집 모드에서 링크(<a>) 클릭 시 외부 이동 방지.
             // Link extension 의 openOnClick:false 는 mark 만 처리하므로,
@@ -319,8 +330,22 @@
     let isSettingContent = false;
 
     $effect(() => {
-        if (!editor) return;
         const c = content ?? '';
+
+        // markdown 포맷: 본문 원문을 textarea(rawContent)에 시드 (ProseMirror 불필요)
+        if (contentFormat === 'markdown') {
+            if (!c || c === lastLoadedContent) return;
+            // 사용자가 이미 입력 중이면 덮어쓰지 않음
+            if (rawContent !== '' && lastLoadedContent !== '' && rawContent !== lastLoadedContent) {
+                lastLoadedContent = c;
+                return;
+            }
+            rawContent = c;
+            lastLoadedContent = c;
+            return;
+        }
+
+        if (!editor) return;
         if (!c || c === lastLoadedContent) return;
 
         // 에디터에 이미 사용자 입력이 있으면 덮어쓰지 않음
@@ -926,7 +951,12 @@
     // raw 콘텐츠 변경 시 부모에게 알림
     async function handleRawContentChange(): Promise<void> {
         if (editorMode === 'markdown') {
-            // 마크다운을 HTML로 변환하여 부모에게 전달
+            // 마크다운 네이티브 게시판(위키 등): 마크다운 원문을 그대로 저장
+            if (contentFormat === 'markdown') {
+                onUpdate?.(rawContent);
+                return;
+            }
+            // 일반 게시판의 임시 마크다운 모드: HTML로 변환해 전달 (기존 동작)
             const html = await marked.parse(rawContent);
             onUpdate?.(html);
         } else if (editorMode === 'html') {
@@ -1289,47 +1319,50 @@
             {/if}
         </div>
 
-        <div class="bg-border mx-1 h-6 w-px" role="separator"></div>
+        <!-- 마크다운 네이티브 게시판(위키 등)은 모드 전환을 숨겨 마크다운 소스 모드로 고정 -->
+        {#if contentFormat !== 'markdown'}
+            <div class="bg-border mx-1 h-6 w-px" role="separator"></div>
 
-        <!-- 에디터 모드 전환 -->
-        <div class="flex items-center gap-0.5">
-            <Button
-                type="button"
-                variant={editorMode === 'wysiwyg' ? 'secondary' : 'ghost'}
-                size="sm"
-                onclick={() => switchMode('wysiwyg')}
-                {disabled}
-                class="h-8 px-2 text-xs"
-                title="WYSIWYG 모드"
-            >
-                <PilcrowIcon class="mr-1 h-3 w-3" />
-                편집
-            </Button>
-            <Button
-                type="button"
-                variant={editorMode === 'markdown' ? 'secondary' : 'ghost'}
-                size="sm"
-                onclick={() => switchMode('markdown')}
-                {disabled}
-                class="h-8 px-2 text-xs"
-                title="마크다운 모드"
-            >
-                <HashIcon class="mr-1 h-3 w-3" />
-                MD
-            </Button>
-            <Button
-                type="button"
-                variant={editorMode === 'html' ? 'secondary' : 'ghost'}
-                size="sm"
-                onclick={() => switchMode('html')}
-                {disabled}
-                class="h-8 px-2 text-xs"
-                title="HTML 모드"
-            >
-                <FileCodeIcon class="mr-1 h-3 w-3" />
-                HTML
-            </Button>
-        </div>
+            <!-- 에디터 모드 전환 -->
+            <div class="flex items-center gap-0.5">
+                <Button
+                    type="button"
+                    variant={editorMode === 'wysiwyg' ? 'secondary' : 'ghost'}
+                    size="sm"
+                    onclick={() => switchMode('wysiwyg')}
+                    {disabled}
+                    class="h-8 px-2 text-xs"
+                    title="WYSIWYG 모드"
+                >
+                    <PilcrowIcon class="mr-1 h-3 w-3" />
+                    편집
+                </Button>
+                <Button
+                    type="button"
+                    variant={editorMode === 'markdown' ? 'secondary' : 'ghost'}
+                    size="sm"
+                    onclick={() => switchMode('markdown')}
+                    {disabled}
+                    class="h-8 px-2 text-xs"
+                    title="마크다운 모드"
+                >
+                    <HashIcon class="mr-1 h-3 w-3" />
+                    MD
+                </Button>
+                <Button
+                    type="button"
+                    variant={editorMode === 'html' ? 'secondary' : 'ghost'}
+                    size="sm"
+                    onclick={() => switchMode('html')}
+                    {disabled}
+                    class="h-8 px-2 text-xs"
+                    title="HTML 모드"
+                >
+                    <FileCodeIcon class="mr-1 h-3 w-3" />
+                    HTML
+                </Button>
+            </div>
+        {/if}
     </div>
 
     <!-- 에디터 영역 -->
