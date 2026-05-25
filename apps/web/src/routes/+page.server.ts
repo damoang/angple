@@ -19,9 +19,10 @@ interface HomePageData {
     celebrationRecent: Awaited<ReturnType<typeof getCachedCelebrations>> | null;
 }
 
-let cachedHomePageData: HomePageData | null = null;
-let cachedHomePageDataAt = 0;
-let pendingHomePageLoad: Promise<HomePageData> | null = null;
+// Phase 14 — multi-tenant: cache 를 host 별로 격리 (module singleton 이 SSR 요청 간
+// 공유되어 첫 host 의 home data 가 후속 host 를 오염하는 문제 해결).
+const homeCacheByHost = new Map<string, { data: HomePageData; at: number }>();
+const pendingByHost = new Map<string, Promise<HomePageData>>();
 
 async function buildHomePageData(): Promise<HomePageData> {
     const recommendedPeriod = getDefaultPeriod();
@@ -91,31 +92,38 @@ function emptyHomePageData(): HomePageData {
     };
 }
 
-export const load: PageServerLoad = async () => {
+export const load: PageServerLoad = async ({ url }) => {
+    // Phase 14 — host 별 cache key (multi-tenant: 사이트마다 다른 home data)
+    const host = url.host;
     const now = Date.now();
-    if (cachedHomePageData && now - cachedHomePageDataAt < HOME_PAGE_CACHE_TTL_MS) {
-        return cachedHomePageData;
+
+    const cached = homeCacheByHost.get(host);
+    if (cached && now - cached.at < HOME_PAGE_CACHE_TTL_MS) {
+        return cached.data;
     }
 
-    if (!pendingHomePageLoad) {
-        pendingHomePageLoad = buildHomePageData()
+    let pending = pendingByHost.get(host);
+    if (!pending) {
+        pending = buildHomePageData()
             .then((data) => {
-                cachedHomePageData = data;
-                cachedHomePageDataAt = Date.now();
+                homeCacheByHost.set(host, { data, at: Date.now() });
                 return data;
             })
             .catch((err) => {
                 // Phase 14 — 빈 사이트 graceful fallback
-                console.error('[SSR Home] buildHomePageData failed, returning empty defaults:', err);
+                console.error(
+                    '[SSR Home] buildHomePageData failed, returning empty defaults:',
+                    err
+                );
                 const fallback = emptyHomePageData();
-                cachedHomePageData = fallback;
-                cachedHomePageDataAt = Date.now();
+                homeCacheByHost.set(host, { data: fallback, at: Date.now() });
                 return fallback;
             })
             .finally(() => {
-                pendingHomePageLoad = null;
+                pendingByHost.delete(host);
             });
+        pendingByHost.set(host, pending);
     }
 
-    return pendingHomePageLoad;
+    return pending;
 };
