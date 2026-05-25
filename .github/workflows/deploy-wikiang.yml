@@ -1,0 +1,108 @@
+name: Build Wikiang Web
+
+# wikiang.org 전용 이미지 빌드 (ARM 러너 — 호스트 OOM 없음)
+# 빌드 후 ghcr.io/damoang/wikiang-web 로 push. k3s 롤아웃은 호스트에서 수행.
+# main 을 건드리지 않도록 push(feat/wiki-theme) 트리거 사용.
+
+on:
+  push:
+    branches: [feat/wiki-theme]
+  workflow_dispatch:
+
+concurrency:
+  group: wikiang-web-build
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  NODE_VERSION: '22'
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ghcr.io/damoang/wikiang-web
+
+jobs:
+  build:
+    name: Build & Push wikiang-web
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup directories
+        run: mkdir -p custom-themes custom-widgets extensions plugins widgets themes
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build packages
+        run: pnpm --filter "./packages/*" build
+
+      - name: Build web
+        run: |
+          rm -rf apps/web/.svelte-kit apps/web/build apps/web/node_modules/.vite
+          pnpm --filter web build
+          test -f apps/web/build/index.js || { echo "FATAL: build/index.js 없음 — adapter-node 빌드 실패"; exit 1; }
+
+      - name: Login to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Prepare deployment package
+        run: |
+          pnpm --filter web deploy --prod --legacy apps/web/deploy
+          cp -r apps/web/build apps/web/deploy/
+
+          # 깨끗한 상태에서 자산 복사
+          rm -rf apps/web/deploy/plugins apps/web/deploy/widgets apps/web/deploy/themes
+          rm -rf apps/web/deploy/custom-themes apps/web/deploy/custom-widgets apps/web/deploy/extensions
+          cp -r plugins apps/web/deploy/ 2>/dev/null || mkdir -p apps/web/deploy/plugins
+          cp -r widgets apps/web/deploy/ 2>/dev/null || mkdir -p apps/web/deploy/widgets
+          cp -r themes apps/web/deploy/ 2>/dev/null || mkdir -p apps/web/deploy/themes
+          cp -r custom-themes apps/web/deploy/ 2>/dev/null || mkdir -p apps/web/deploy/custom-themes
+          cp -r custom-widgets apps/web/deploy/ 2>/dev/null || mkdir -p apps/web/deploy/custom-widgets
+          cp -r extensions apps/web/deploy/ 2>/dev/null || mkdir -p apps/web/deploy/extensions
+
+          echo "=== deploy package plugins ==="
+          ls -la apps/web/deploy/plugins/ || true
+
+      - name: Build and push Docker image
+        run: |
+          FULL_IMAGE="${IMAGE_NAME}:sha-${{ github.sha }}"
+          LATEST_IMAGE="${IMAGE_NAME}:latest"
+
+          cat > apps/web/deploy/Dockerfile << 'EOF'
+          FROM node:22-alpine
+          WORKDIR /app
+          COPY . .
+          ENV NODE_ENV=production
+          ENV PORT=3000
+          EXPOSE 3000
+          CMD ["node", "build/index.js"]
+          EOF
+
+          cd apps/web/deploy
+          docker buildx build \
+            --platform linux/arm64 \
+            --no-cache \
+            -t "${FULL_IMAGE}" \
+            -t "${LATEST_IMAGE}" \
+            --push \
+            .
+
+          echo "Pushed: ${FULL_IMAGE} and ${LATEST_IMAGE}"
