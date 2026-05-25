@@ -1915,12 +1915,15 @@
         border-radius: 0.375rem;
     }
 
-    /* 세로 영상 */
+    /* 세로 영상 — 9:16 이라 폭 제한 필수. max-width 가 없으면 full-width(100%)
+       × padding-bottom 177.78% 로 거대한 세로 박스가 되어 영상 주변에 큰 빈 공간이
+       생긴다 (free/6329552 댓글 youtube shorts 사례). */
     :global(.embed-container[data-platform='youtube-shorts']),
     :global(.embed-container[data-platform='instagram-reel']),
     :global(.embed-container[data-platform='tiktok']) {
         margin-left: auto;
         margin-right: auto;
+        max-width: 350px;
     }
 
     /* #12432: 댓글 내 native <video> 첨부는 자체 비율 사용 (16:9 강제 해제).
