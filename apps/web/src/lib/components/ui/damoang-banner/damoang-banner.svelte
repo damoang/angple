@@ -198,14 +198,14 @@
         <!-- 축하메시지 배너 -->
         <a
             href={getCelebrationHref(celebrationBanner)}
-            class="border-border media-banner block overflow-hidden rounded-xl border transition-opacity hover:opacity-90"
+            class="border-border dm-media-card block overflow-hidden rounded-xl border transition-opacity hover:opacity-90"
             style:min-height={height}
             style:height
         >
             <img
                 src={celebrationBanner.image_url}
                 alt={celebrationBanner.alt_text || '축하메시지'}
-                class="media-banner__image w-full object-contain"
+                class="dm-media-card__image w-full object-contain"
                 loading="lazy"
             />
         </a>
@@ -226,14 +226,14 @@
                 slotKey: `damoang-banner:${position}`,
                 adUserId: adsBanner.advertiserId ?? undefined
             }}
-            class="border-border media-banner block overflow-hidden rounded-xl border transition-opacity hover:opacity-90"
+            class="border-border dm-media-card block overflow-hidden rounded-xl border transition-opacity hover:opacity-90"
             style:min-height={height}
             style:height
         >
             <img
                 src={adsBanner.imageUrl}
                 alt={adsBanner.altText || '광고'}
-                class="media-banner__image w-full object-contain"
+                class="dm-media-card__image w-full object-contain"
                 loading="lazy"
             />
         </a>
@@ -258,14 +258,14 @@
 </div>
 
 <style>
-    .media-banner {
+    .dm-media-card {
         display: flex;
         align-items: center;
         justify-content: center;
         width: 100%;
     }
 
-    .media-banner__image {
+    .dm-media-card__image {
         display: block;
         width: 100%;
         height: 100%;
