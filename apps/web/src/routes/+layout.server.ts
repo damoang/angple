@@ -100,7 +100,8 @@ export const load: LayoutServerLoad = async ({
                   name: p.manifest.name,
                   version: p.manifest.version,
                   hooks: [],
-                  components: [],
+                  // components는 클라이언트 slot 등록(loadAllPluginComponents)에 필요하므로 SSR에 포함한다
+                  components: p.manifest.components ?? [],
                   settings: isAdminPath ? p.currentSettings || null : null
               }))
             : [];
