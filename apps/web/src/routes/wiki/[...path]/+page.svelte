@@ -27,11 +27,13 @@
         | null;
 
     /** 페이지의 렌더 방식 결정 (순수 함수 — 테스트 용이) */
-    function pickRenderable(page: {
-        content: string | null;
-        content_raw: string | null;
-        content_type: string | null;
-    } | null): Renderable {
+    function pickRenderable(
+        page: {
+            content: string | null;
+            content_raw: string | null;
+            content_type: string | null;
+        } | null
+    ): Renderable {
         if (!page) return null;
         const ct = page.content_type;
         // 정규화된 본문(content)이 있고 markdown/html 이면 코어 렌더러로
@@ -93,7 +95,8 @@
         {:else if renderable?.mode === 'raw'}
             <div class="wiki-content">
                 <p class="wiki-raw-notice">
-                    ⚠️ 이 문서는 아직 정규화된 본문이 없어 원본({renderable.type})을 그대로 표시합니다.
+                    ⚠️ 이 문서는 아직 정규화된 본문이 없어 원본({renderable.type})을 그대로
+                    표시합니다.
                 </p>
                 <pre class="wiki-raw">{renderable.content}</pre>
             </div>
