@@ -383,9 +383,9 @@
                 </div>
                 <ImageTextBanner position="side-image-text-banner" />
             </div>
-            <!-- 드로워: 축하메시지 -->
+            <!-- 드로워: 마음메시지 -->
             <CelebrationRolling />
-            <!-- 축하메시지 바로 아래: 벽돌한장 · 광고 제거 inline -->
+            <!-- 마음메시지 바로 아래: 벽돌한장 · 광고 제거 inline -->
             <div class="text-muted-foreground flex items-center justify-center gap-3 px-2 text-xs">
                 <a href="/brickang" class="hover:text-primary underline-offset-2 hover:underline">
                     벽돌한장

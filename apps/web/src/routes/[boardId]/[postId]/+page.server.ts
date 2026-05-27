@@ -214,7 +214,7 @@ export const load: PageServerLoad = async ({
             }
         }
 
-        // 축하메시지(message) 게시판: 익명 글 프로필 정보 숨김
+        // 마음메시지(message) 게시판: 익명 글 프로필 정보 숨김
         if (boardId === 'message' && !post.author) {
             post.author_image = undefined;
             post.author_image_updated_at = undefined;

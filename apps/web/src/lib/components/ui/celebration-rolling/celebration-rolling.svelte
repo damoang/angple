@@ -80,7 +80,7 @@
         <a
             href="/message"
             class="text-muted-foreground hover:text-foreground text-sm transition-colors"
-            >축하메시지가 없습니다</a
+            >마음메시지가 없습니다</a
         >
     </div>
 {:else}

@@ -1,5 +1,5 @@
 /**
- * 축하메시지 배너 API
+ * 마음메시지 배너 API
  * 1차: celebration_banners 테이블 (신규 단일 소스)
  * 2차: g5_write_message 테이블 (레거시 fallback — 마이그레이션 전까지)
  */

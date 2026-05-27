@@ -1671,7 +1671,7 @@
         <PluginSlot name="board-view-rolling" />
     </div>
 
-    <!-- 축하메시지 아래 구글 광고 -->
+    <!-- 마음메시지 아래 구글 광고 -->
     {#if widgetLayoutStore.hasEnabledAds && !data.post.deleted_at}
         <div class="mb-3">
             <AdSlot position="board-content" height="90px" slotKey="board-view-head-ad" />

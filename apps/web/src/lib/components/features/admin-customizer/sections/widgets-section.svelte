@@ -79,7 +79,7 @@
             'post-list': '게시글 목록',
             'ad-slot': '광고',
             recommended: '공감글',
-            celebration: '축하메시지',
+            celebration: '마음메시지',
             'latest-posts': '최신글',
             'popular-posts': '인기글',
             search: '검색',

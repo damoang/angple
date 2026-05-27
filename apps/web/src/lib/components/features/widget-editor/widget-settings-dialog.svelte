@@ -31,7 +31,7 @@
         { key: 'lecture', text: '강좌팁', url: '/lecture', show: true },
         { key: 'group', text: '소모임', url: '/groups', show: true },
         { key: 'tutorial', text: '사용기', url: '/tutorial', show: true },
-        { key: 'message', text: '축하메시지', url: '/message', show: true }
+        { key: 'message', text: '마음메시지', url: '/message', show: true }
     ];
 
     // 로컬 설정 상태 (게시판 필터용)

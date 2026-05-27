@@ -26,7 +26,7 @@
         { key: 'promotion', text: '직접홍보', url: '/promotion', show: true },
         { key: 'lecture', text: '강좌팁', url: '/lecture', show: true },
         { key: 'tutorial', text: '사용기', url: '/tutorial', show: true },
-        { key: 'message', text: '축하메시지', url: '/message', show: true }
+        { key: 'message', text: '마음메시지', url: '/message', show: true }
     ];
 
     let { menus: menusProp, class: className = '' }: Props = $props();

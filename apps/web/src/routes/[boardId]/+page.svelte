@@ -907,7 +907,7 @@
                 </div>
             {/if}
 
-            <!-- 축하메시지 아래 구글 광고 -->
+            <!-- 마음메시지 아래 구글 광고 -->
             {#if widgetLayoutStore.hasEnabledAds}
                 <div class="mb-3">
                     <AdSlot position="board-list-head" height="90px" slotKey="board-list-head" />
@@ -977,7 +977,7 @@
                 </div>
             {/if}
 
-            <!-- 축하메시지 기간 탭 -->
+            <!-- 마음메시지 기간 탭 -->
             {#if isMessageBoard && !isSearching}
                 <div class="mb-6 flex flex-wrap gap-2">
                     <Button
@@ -987,7 +987,7 @@
                         class="h-8 rounded-full px-4"
                         aria-current={selectedMessagePeriod === 'today' ? 'page' : undefined}
                     >
-                        오늘 축하메시지
+                        오늘 마음메시지
                     </Button>
                     <Button
                         href={buildMessagePeriodHref('month')}
@@ -996,7 +996,7 @@
                         class="h-8 rounded-full px-4"
                         aria-current={selectedMessagePeriod === 'month' ? 'page' : undefined}
                     >
-                        이번달 축하메시지
+                        이번달 마음메시지
                     </Button>
                     <Button
                         href={buildMessagePeriodHref('upcoming')}
@@ -1005,7 +1005,7 @@
                         class="h-8 rounded-full px-4"
                         aria-current={selectedMessagePeriod === 'upcoming' ? 'page' : undefined}
                     >
-                        다가올 축하메시지
+                        다가올 마음메시지
                     </Button>
                     <Button
                         href={buildMessagePeriodHref('past')}
@@ -1014,7 +1014,7 @@
                         class="h-8 rounded-full px-4"
                         aria-current={selectedMessagePeriod === 'past' ? 'page' : undefined}
                     >
-                        추억의 축하메시지
+                        추억의 마음메시지
                     </Button>
                     <Button
                         href="/message/144"
@@ -1022,7 +1022,7 @@
                         size="sm"
                         class="h-8 rounded-full px-4"
                     >
-                        축하메시지 신청
+                        마음메시지 신청
                     </Button>
                 </div>
             {/if}
@@ -1255,15 +1255,15 @@
                                 <p class="text-secondary-foreground">검색 결과가 없습니다.</p>
                             {:else if isMessageBoard && messagePeriod === 'today'}
                                 <p class="text-secondary-foreground">
-                                    오늘 등록된 축하메시지가 없습니다.
+                                    오늘 등록된 마음메시지가 없습니다.
                                 </p>
                             {:else if isMessageBoard && messagePeriod === 'month'}
                                 <p class="text-secondary-foreground">
-                                    이번달 축하메시지가 없습니다.
+                                    이번달 마음메시지가 없습니다.
                                 </p>
                             {:else if isMessageBoard && messagePeriod === 'upcoming'}
                                 <p class="text-secondary-foreground">
-                                    다가올 축하메시지가 없습니다.
+                                    다가올 마음메시지가 없습니다.
                                 </p>
                             {:else}
                                 <p class="text-secondary-foreground">게시글이 없습니다.</p>
