@@ -617,7 +617,12 @@ export const load: PageServerLoad = async ({
 
         // Phase 1C: 플러그인 enrich filter (member-memo author_memo 등).
         // 미설치 시 pass-through. (premium PR #43 기준 stub)
-        const enrichedPostList = (await applyFilter('post.list.enrich', [post])) as FreePost[];
+        // Step A′: 서버 hook 표준 컨텍스트(site/user) 전달.
+        const enrichedPostList = (await applyFilter(
+            'post.list.enrich',
+            [post],
+            buildHookContext(locals)
+        )) as FreePost[];
         const enrichedPost = enrichedPostList[0] ?? post;
 
         return {

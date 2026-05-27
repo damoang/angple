@@ -39,6 +39,7 @@
     interface AdsBanner {
         id: string;
         imageUrl: string;
+        mobileImageUrl?: string;
         landingUrl: string;
         altText?: string;
         target?: string;
@@ -230,12 +231,24 @@
             style:min-height={height}
             style:height
         >
-            <img
-                src={adsBanner.imageUrl}
-                alt={adsBanner.altText || '광고'}
-                class="dm-media-card__image w-full object-contain"
-                loading="lazy"
-            />
+            {#if adsBanner.mobileImageUrl}
+                <picture>
+                    <source media="(max-width: 768px)" srcset={adsBanner.mobileImageUrl} />
+                    <img
+                        src={adsBanner.imageUrl}
+                        alt={adsBanner.altText || '광고'}
+                        class="dm-media-card__image w-full object-contain"
+                        loading="lazy"
+                    />
+                </picture>
+            {:else}
+                <img
+                    src={adsBanner.imageUrl}
+                    alt={adsBanner.altText || '광고'}
+                    class="dm-media-card__image w-full object-contain"
+                    loading="lazy"
+                />
+            {/if}
         </a>
     {:else if useFallback}
         {#if position === 'sidebar'}
