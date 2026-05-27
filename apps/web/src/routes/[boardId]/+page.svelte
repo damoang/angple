@@ -225,22 +225,35 @@
 
     // #12455: 빠른필터 행 검색 (필드 선택 + 검색어). SearchForm 과 동일한 sfl/stx 쿼리 사용.
     // '내가 쓴 글/댓글' 필터(sfl=author/comment_author) 가 아닐 때만 현재 검색어를 채운다.
-    const QUICK_SEARCH_FIELDS = [
+    // 기본 5개 (모바일/PC 공통) + 고급 5개 (닉네임/아이디 분리, 댓글 내용) — SearchForm 과 동일 필드.
+    const QUICK_SEARCH_BASIC = [
         { value: 'title_content', label: '제목+내용' },
         { value: 'title', label: '제목' },
         { value: 'content', label: '내용' },
-        { value: 'author', label: '작성자' }
+        { value: 'author', label: '작성자' },
+        { value: 'comment_author', label: '댓글 작성자' }
     ] as const;
-    const QUICK_FIELD_VALUES = QUICK_SEARCH_FIELDS.map((f) => f.value) as readonly string[];
+    const QUICK_SEARCH_ADVANCED = [
+        { value: 'author_nick', label: '작성자(닉네임)' },
+        { value: 'author_id', label: '작성자(아이디)' },
+        { value: 'comment_nick', label: '댓글(닉네임)' },
+        { value: 'comment_id', label: '댓글(아이디)' },
+        { value: 'comment', label: '댓글 내용' }
+    ] as const;
+    const QUICK_FIELD_VALUES = [...QUICK_SEARCH_BASIC, ...QUICK_SEARCH_ADVANCED].map(
+        (f) => f.value
+    ) as readonly string[];
     let quickSearch = $state(
         currentSfl === 'author' || currentSfl === 'comment_author' ? '' : currentStx
     );
-    // 현재 sfl 이 빠른검색 필드면 반영, 아니면 기본 '제목+내용'. (내가쓴글/댓글 author 는 stx=mb_id 라 제외)
+    // 현재 sfl 이 빠른검색 필드면 반영, 아니면 기본 '제목+내용'.
+    // 단 내가쓴글/댓글 필터(author/comment_author + stx=내 mb_id) 는 검색이 아니므로 제외.
+    const myFilterActive = $derived(
+        (currentSfl === 'author' || currentSfl === 'comment_author') &&
+            currentStx === (authStore.user?.mb_id ?? '')
+    );
     let quickSearchField = $state(
-        QUICK_FIELD_VALUES.includes(currentSfl) &&
-            !(currentSfl === 'author' && currentStx === (authStore.user?.mb_id ?? ''))
-            ? currentSfl
-            : 'title_content'
+        QUICK_FIELD_VALUES.includes(currentSfl) && !myFilterActive ? currentSfl : 'title_content'
     );
     function runQuickSearch(): void {
         const q = quickSearch.trim();
@@ -997,9 +1010,16 @@
                         aria-label="검색 범위"
                         class="border-input bg-background focus:ring-primary h-8 shrink-0 rounded-md border px-2 text-sm focus:outline-none focus:ring-1"
                     >
-                        {#each QUICK_SEARCH_FIELDS as f (f.value)}
-                            <option value={f.value}>{f.label}</option>
-                        {/each}
+                        <optgroup label="기본">
+                            {#each QUICK_SEARCH_BASIC as f (f.value)}
+                                <option value={f.value}>{f.label}</option>
+                            {/each}
+                        </optgroup>
+                        <optgroup label="고급">
+                            {#each QUICK_SEARCH_ADVANCED as f (f.value)}
+                                <option value={f.value}>{f.label}</option>
+                            {/each}
+                        </optgroup>
                     </select>
                     <div class="relative min-w-[120px] flex-1">
                         <Search
