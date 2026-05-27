@@ -271,4 +271,15 @@
         height: 100%;
         max-height: inherit;
     }
+
+    /* 사이드바: 200x200 이미지 원본 크기 유지 */
+    :global(.dm-card[data-position='sidebar']) .dm-media-card {
+        max-width: 200px;
+        margin: 0 auto;
+    }
+
+    :global(.dm-card[data-position='sidebar']) .dm-media-card__image {
+        width: auto;
+        max-width: 200px;
+    }
 </style>
