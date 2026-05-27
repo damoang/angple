@@ -876,7 +876,12 @@
                             </DropdownMenuContent>
                         </DropdownMenu>
                     {/if}
-                    <div class="relative flex shrink-0">
+                    <!-- #12455: 로그인 사용자는 PC(md+)에서 빠른필터 행 검색과 중복 → 상단 검색 토글 숨김 -->
+                    <div
+                        class="relative flex shrink-0 {authStore.isAuthenticated
+                            ? 'md:hidden'
+                            : ''}"
+                    >
                         {#if authStore.isAuthenticated}
                             <Button
                                 variant="outline"
@@ -962,8 +967,12 @@
             <PluginSlot name="board-list-filter-before" {boardId} />
 
             <!-- 검색 폼 (토글 or 검색 중 or 핀 고정) -->
+            <!-- #12455: 로그인 사용자는 PC(md+)에서 빠른필터 행 검색이 대체 → 상단 SearchForm 숨김 (비로그인/모바일은 유지) -->
             {#if showSearch || isSearching || uiSettingsStore.pinSearch}
-                <div class="mb-3" transition:slide={{ duration: 200 }}>
+                <div
+                    class="mb-3 {authStore.isAuthenticated ? 'md:hidden' : ''}"
+                    transition:slide={{ duration: 200 }}
+                >
                     <SearchForm boardPath={`/${boardId}`} />
                 </div>
             {/if}
