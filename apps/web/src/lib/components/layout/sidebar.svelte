@@ -376,6 +376,10 @@
             {/if}
         </div>
         {#if compact}
+            <!-- 드로워: 네모배너 (320x100) -->
+            <div class:hidden={!widgetLayoutStore.hasEnabledAds}>
+                <AdSlot position="sidebar-drawer" height="100px" slotKey="sidebar-drawer-main" />
+            </div>
             <!-- 드로워: 이미지텍스트 배너 -->
             <div>
                 <div class="mb-1 flex items-center justify-between">
