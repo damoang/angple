@@ -282,4 +282,17 @@
         width: auto;
         max-width: 200px;
     }
+
+    /* 드로워 내 사이드바 배너: 320x100 크롭 (200px 제약 해제) */
+    :global(.drawer-sidebar-banner) .dm-media-card {
+        max-width: 100%;
+    }
+
+    :global(.drawer-sidebar-banner) .dm-media-card__image {
+        width: 100%;
+        max-width: 100%;
+        height: 100px;
+        object-fit: cover;
+        object-position: center;
+    }
 </style>
