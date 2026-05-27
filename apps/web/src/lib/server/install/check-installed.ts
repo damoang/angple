@@ -1,5 +1,6 @@
 import { readFileSync, existsSync, writeFileSync } from 'fs';
 import { join } from 'path';
+import { DEFAULT_THEME } from '$lib/themes/constants';
 
 /**
  * 설치 상태 체크
@@ -76,7 +77,7 @@ export function updateSettings(updates: Partial<Settings>): boolean {
     try {
         const current = getSettings() || {
             installed: false,
-            activeTheme: 'damoang-default',
+            activeTheme: DEFAULT_THEME,
             themes: {},
             version: '1.0.0'
         };
