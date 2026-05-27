@@ -223,6 +223,23 @@
         goto(url.pathname + url.search);
     }
 
+    // #12455: 빠른필터 행 컴팩트 검색 (SearchForm 과 동일 sfl=title_content)
+    // '내가 쓴 글/댓글' 필터(sfl=author/comment_author) 가 아닐 때만 현재 검색어를 채운다.
+    let quickSearch = $state(
+        currentSfl === 'author' || currentSfl === 'comment_author' ? '' : currentStx
+    );
+    function runQuickSearch(): void {
+        const q = quickSearch.trim();
+        if (!q) return;
+        const url = new URL(window.location.href);
+        url.searchParams.set('sfl', 'title_content');
+        url.searchParams.set('stx', q);
+        url.searchParams.set('page', '1');
+        url.searchParams.delete('category');
+        url.searchParams.delete('tag');
+        goto(url.pathname + url.search);
+    }
+
     // 읽은 글 표시 지연 — SSR에서는 모든 글이 "안읽음"으로 렌더링되므로,
     // 하이드레이션 직후 즉시 변경하면 깜빡임 발생. 2프레임 대기 후 부드럽게 전환.
     let showSearch = $state(uiSettingsStore.pinSearch);
@@ -960,6 +977,26 @@
                             <X class="h-3.5 w-3.5" />
                         </Button>
                     {/if}
+                    <!-- #12455: 컴팩트 검색 (내가 쓴 댓글 ~ 글쓰기 사이, 상시 노출) -->
+                    <div class="relative">
+                        <Search
+                            class="text-muted-foreground pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2"
+                        />
+                        <input
+                            type="search"
+                            bind:value={quickSearch}
+                            onkeydown={(e) => {
+                                if (e.key === 'Enter') {
+                                    e.preventDefault();
+                                    runQuickSearch();
+                                }
+                            }}
+                            placeholder="검색"
+                            aria-label="게시판 내 검색 (제목+내용)"
+                            enterkeyhint="search"
+                            class="border-input bg-background focus:ring-primary h-8 w-28 rounded-md border pl-7 pr-2 text-sm focus:outline-none focus:ring-1 sm:w-40"
+                        />
+                    </div>
                     <!-- #12455: 빠른 글쓰기 (내가 쓴 글/댓글 필터 줄 우측) -->
                     {#if canWrite}
                         <Button
