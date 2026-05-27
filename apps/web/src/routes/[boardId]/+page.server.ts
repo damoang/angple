@@ -18,6 +18,7 @@ import { searchByBoard } from '$lib/server/sphinx-search.js';
 import { readPool } from '$lib/server/db.js';
 import type { RowDataPacket } from 'mysql2';
 import { applyFilter } from '$lib/hooks/registry.js';
+import { buildHookContext } from '$lib/hooks/context.js';
 
 // --- 인메모리 캐시: 비로그인 게시글 목록 (15초 TTL) ---
 interface PostsCacheData {
@@ -393,13 +394,16 @@ export const load: PageServerLoad = async ({
             const trimmed = maybeTrimBoardListPayload(boardId, board, posts, notices);
             // Phase 1C: 플러그인 enrich filter 호출 (member-memo author_memo 등).
             // 미설치 시 pass-through. (premium PR #43 기준 stub)
+            // Step A′: 서버 hook 표준 컨텍스트(site/user) 전달 — 단일테넌트 무시, 멀티테넌트 게이팅 대비.
             const enrichedPosts = (await applyFilter(
                 'post.list.enrich',
-                trimmed.posts
+                trimmed.posts,
+                buildHookContext(locals)
             )) as FreePost[];
             const enrichedNotices = (await applyFilter(
                 'post.list.enrich',
-                trimmed.notices
+                trimmed.notices,
+                buildHookContext(locals)
             )) as FreePost[];
             const result = {
                 posts: enrichedPosts,
@@ -604,10 +608,16 @@ export const load: PageServerLoad = async ({
         const trimmed = maybeTrimBoardListPayload(boardId, board, posts, notices);
         // Phase 1C: 플러그인 enrich filter 호출 (member-memo author_memo 등).
         // 미설치 시 pass-through. (premium PR #43 기준 stub)
-        const enrichedPosts = (await applyFilter('post.list.enrich', trimmed.posts)) as FreePost[];
+        // Step A′: 서버 hook 표준 컨텍스트(site/user) 전달 — 단일테넌트 무시, 멀티테넌트 게이팅 대비.
+        const enrichedPosts = (await applyFilter(
+            'post.list.enrich',
+            trimmed.posts,
+            buildHookContext(locals)
+        )) as FreePost[];
         const enrichedNotices = (await applyFilter(
             'post.list.enrich',
-            trimmed.notices
+            trimmed.notices,
+            buildHookContext(locals)
         )) as FreePost[];
         const result = {
             posts: enrichedPosts,
