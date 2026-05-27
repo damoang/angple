@@ -184,8 +184,11 @@
         return origin;
     });
 
+    // multi-tenant: host 로 resolve 된 site.title 우선 (VITE_SITE_NAME 은 빌드타임 상수).
+    // NOTE: siteDefaults 는 meta-helper 의 module-level 전역 — SSR 동시요청 간 이론상 race
+    // 가능. 단일 render 는 동기라 실무상 안전. 향후 per-request context 로 이전 권장.
     configureSeo({
-        siteName: import.meta.env.VITE_SITE_NAME || '다모앙 - 종합 커뮤니티',
+        siteName: data.site?.title || import.meta.env.VITE_SITE_NAME || 'Angple',
         siteUrl
     });
 
