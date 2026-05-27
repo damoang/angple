@@ -79,7 +79,7 @@ export type StandardSlotName =
     | 'post-detail-content-before'
     | 'post-detail-content-after'
     | 'post-detail-extra' // 본문 아래 추가 영역 (기존, archive/giving 등 사용 중)
-    | 'post-detail-actions' // 공유/신고/보존 등 액션 묶음
+    | 'post-detail-actions' // 게시글 액션바(스크랩/공유/신고 옆)
     | 'post-detail-tags'
     | 'post-detail-reactions-after'
     | 'post-detail-related'

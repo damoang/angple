@@ -41,6 +41,7 @@
     import Info from '@lucide/svelte/icons/info';
     import Pin from '@lucide/svelte/icons/pin';
     import ShareButton from '$lib/components/post/share-button.svelte';
+    import PluginSlot from '$lib/components/plugin/plugin-slot.svelte';
     import type { ViewLayoutProps } from '../types.js';
 
     const FONT_SIZES: Record<ContentFontSize, string> = {
@@ -650,6 +651,12 @@
                             <span>신고</span>
                         </Button>
                     {/if}
+                    <PluginSlot
+                        name="post-detail-actions"
+                        {boardId}
+                        postId={post.id}
+                        postAuthorId={post.author_id}
+                    />
                 </div>
             </div>
 
