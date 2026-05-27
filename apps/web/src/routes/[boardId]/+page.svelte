@@ -223,16 +223,30 @@
         goto(url.pathname + url.search);
     }
 
-    // #12455: 빠른필터 행 컴팩트 검색 (SearchForm 과 동일 sfl=title_content)
+    // #12455: 빠른필터 행 검색 (필드 선택 + 검색어). SearchForm 과 동일한 sfl/stx 쿼리 사용.
     // '내가 쓴 글/댓글' 필터(sfl=author/comment_author) 가 아닐 때만 현재 검색어를 채운다.
+    const QUICK_SEARCH_FIELDS = [
+        { value: 'title_content', label: '제목+내용' },
+        { value: 'title', label: '제목' },
+        { value: 'content', label: '내용' },
+        { value: 'author', label: '작성자' }
+    ] as const;
+    const QUICK_FIELD_VALUES = QUICK_SEARCH_FIELDS.map((f) => f.value) as readonly string[];
     let quickSearch = $state(
         currentSfl === 'author' || currentSfl === 'comment_author' ? '' : currentStx
+    );
+    // 현재 sfl 이 빠른검색 필드면 반영, 아니면 기본 '제목+내용'. (내가쓴글/댓글 author 는 stx=mb_id 라 제외)
+    let quickSearchField = $state(
+        QUICK_FIELD_VALUES.includes(currentSfl) &&
+            !(currentSfl === 'author' && currentStx === (authStore.user?.mb_id ?? ''))
+            ? currentSfl
+            : 'title_content'
     );
     function runQuickSearch(): void {
         const q = quickSearch.trim();
         if (!q) return;
         const url = new URL(window.location.href);
-        url.searchParams.set('sfl', 'title_content');
+        url.searchParams.set('sfl', quickSearchField);
         url.searchParams.set('stx', q);
         url.searchParams.set('page', '1');
         url.searchParams.delete('category');
@@ -977,8 +991,17 @@
                             <X class="h-3.5 w-3.5" />
                         </Button>
                     {/if}
-                    <!-- #12455: 컴팩트 검색 (내가 쓴 댓글 ~ 글쓰기 사이, 상시 노출) -->
-                    <div class="relative">
+                    <!-- #12455: 검색 (필드 선택 + 입력) — 빠른필터 행 남는 공간을 flex-1 로 활용 -->
+                    <select
+                        bind:value={quickSearchField}
+                        aria-label="검색 범위"
+                        class="border-input bg-background focus:ring-primary h-8 shrink-0 rounded-md border px-2 text-sm focus:outline-none focus:ring-1"
+                    >
+                        {#each QUICK_SEARCH_FIELDS as f (f.value)}
+                            <option value={f.value}>{f.label}</option>
+                        {/each}
+                    </select>
+                    <div class="relative min-w-[120px] flex-1">
                         <Search
                             class="text-muted-foreground pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2"
                         />
@@ -991,10 +1014,10 @@
                                     runQuickSearch();
                                 }
                             }}
-                            placeholder="검색"
-                            aria-label="게시판 내 검색 (제목+내용)"
+                            placeholder="검색어 입력 후 Enter"
+                            aria-label="게시판 내 검색"
                             enterkeyhint="search"
-                            class="border-input bg-background focus:ring-primary h-8 w-28 rounded-md border pl-7 pr-2 text-sm focus:outline-none focus:ring-1 sm:w-40"
+                            class="border-input bg-background focus:ring-primary h-8 w-full rounded-md border pl-7 pr-2 text-sm focus:outline-none focus:ring-1"
                         />
                     </div>
                     <!-- #12455: 빠른 글쓰기 (내가 쓴 글/댓글 필터 줄 우측) -->
