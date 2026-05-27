@@ -39,6 +39,7 @@
     interface AdsBanner {
         id: string;
         imageUrl: string;
+        mobileImageUrl?: string;
         landingUrl: string;
         altText?: string;
         target?: string;
@@ -230,12 +231,24 @@
             style:min-height={height}
             style:height
         >
-            <img
-                src={adsBanner.imageUrl}
-                alt={adsBanner.altText || '광고'}
-                class="dm-media-card__image w-full object-contain"
-                loading="lazy"
-            />
+            {#if adsBanner.mobileImageUrl}
+                <picture>
+                    <source media="(max-width: 768px)" srcset={adsBanner.mobileImageUrl} />
+                    <img
+                        src={adsBanner.imageUrl}
+                        alt={adsBanner.altText || '광고'}
+                        class="dm-media-card__image w-full object-contain"
+                        loading="lazy"
+                    />
+                </picture>
+            {:else}
+                <img
+                    src={adsBanner.imageUrl}
+                    alt={adsBanner.altText || '광고'}
+                    class="dm-media-card__image w-full object-contain"
+                    loading="lazy"
+                />
+            {/if}
         </a>
     {:else if useFallback}
         {#if position === 'sidebar'}
@@ -283,12 +296,12 @@
         max-width: 200px;
     }
 
-    /* 드로워 내 사이드바 배너: 320x100 크롭 (200px 제약 해제) */
-    :global(.drawer-sidebar-banner) .dm-media-card {
+    /* 드로워 내 사이드바 배너: 320x100 (200px 제약 해제, 특이도 높임) */
+    :global(.dm-card.drawer-sidebar-banner[data-position='sidebar']) .dm-media-card {
         max-width: 100%;
     }
 
-    :global(.drawer-sidebar-banner) .dm-media-card__image {
+    :global(.dm-card.drawer-sidebar-banner[data-position='sidebar']) .dm-media-card__image {
         width: 100%;
         max-width: 100%;
         height: 100px;
