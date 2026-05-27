@@ -1571,6 +1571,29 @@
         <Button variant="ghost" size="sm" onclick={() => history.back()} class="shrink-0">←</Button>
         <Button variant="outline" size="sm" onclick={goBack} class="shrink-0">목록으로</Button>
 
+        <!-- 상단에도 글쓰기 버튼 (하단 네비와 동일 권한/실명인증 로직) -->
+        {#if authStore.isAuthenticated && checkPermission(data.board, 'can_write', authStore.user ?? null)}
+            <Button
+                variant="default"
+                size="sm"
+                href={canUseCertifiedAction(authStore.user, boardId)
+                    ? `/${boardId}/write`
+                    : undefined}
+                onclick={(e) => {
+                    if (!canUseCertifiedAction(authStore.user, boardId)) {
+                        e.preventDefault();
+                        goToCertification();
+                    }
+                }}
+                title={!canUseCertifiedAction(authStore.user, boardId)
+                    ? getCertificationBlockedMessage(boardId)
+                    : undefined}
+                class="shrink-0"
+            >
+                {#if !canUseCertifiedAction(authStore.user, boardId)}실명인증{:else}글쓰기{/if}
+            </Button>
+        {/if}
+
         <div class="flex-1"></div>
 
         <div class="flex shrink-0 gap-2">
