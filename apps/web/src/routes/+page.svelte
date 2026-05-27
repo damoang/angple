@@ -25,11 +25,16 @@
         });
     });
 
-    // SEO 설정 (홈페이지)
-    const siteName = import.meta.env.VITE_SITE_NAME || '다모앙';
-    const siteTagline = '종합 포털 커뮤니티';
-    const homeTitle = `${siteName} | ${siteTagline}`;
-    const homeDescription = `${siteName} ${siteTagline} - 자유로운 소통의 공간 | Damoang Community Portal`;
+    // SEO 설정 (홈페이지) — multi-tenant: host 로 resolve 된 site 의 title/description 우선.
+    // VITE_SITE_NAME 은 빌드타임 상수라 공유 이미지에선 모든 사이트가 같은 값이 됨 → 런타임 우선.
+    // site.title 이 있으면 완성형 제목으로 그대로 사용(태그라인 중복 append 방지),
+    // 없으면 기존 damoang 기본 포맷 유지(회귀 0).
+    const fallbackName = import.meta.env.VITE_SITE_NAME || '다모앙';
+    const siteName = $derived(page.data.site?.title || fallbackName);
+    const homeTitle = $derived(page.data.site?.title || `${fallbackName} | 종합 포털 커뮤니티`);
+    const homeDescription = $derived(
+        page.data.site?.description || `${siteName} - 자유로운 소통의 공간`
+    );
 
     const seoConfig: SeoConfig = $derived({
         meta: {
