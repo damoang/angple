@@ -96,6 +96,9 @@
     // /admin, /install 경로 여부 확인 (테마 레이아웃 적용 안함)
     const isAdminRoute = $derived($page.url.pathname.startsWith('/admin'));
     const isInstallRoute = $derived($page.url.pathname.startsWith('/install'));
+    // 위키 라우트는 자체 위키 레이아웃(routes/wiki/[...path]/+layout.svelte)을 쓰므로
+    // 보드용 DefaultLayout/테마 레이아웃을 우회한다. (reroute 로 URL=/문서, route.id=/wiki/[...path])
+    const isWikiRoute = $derived($page.route.id?.startsWith('/wiki') ?? false);
 
     // 동적 import: member-memo 플러그인 모달
     let MemoModal = $state<Component | null>(null);
@@ -416,8 +419,8 @@
     <link rel="icon" href={favicon} />
 </svelte:head>
 
-<!-- /admin, /install 경로는 테마 레이아웃 없이 렌더링 -->
-{#if isAdminRoute || isInstallRoute}
+<!-- /admin, /install, /wiki(위키 전용 레이아웃) 경로는 보드 레이아웃 없이 렌더링 -->
+{#if isAdminRoute || isInstallRoute || isWikiRoute}
     {@render children()}
 {:else if ThemeLayout}
     <!-- SSR 시점에 즉시 테마 레이아웃 렌더링 (동적 로딩 없음) -->
@@ -443,7 +446,7 @@
     <LazyToaster />
 {/if}
 
-<!-- 단축 버튼 (지연 로딩, admin/install 제외) -->
-{#if !isAdminRoute && !isInstallRoute && LazyShortcutButtons}
+<!-- 단축 버튼 (지연 로딩, admin/install/wiki 제외) -->
+{#if !isAdminRoute && !isInstallRoute && !isWikiRoute && LazyShortcutButtons}
     <LazyShortcutButtons />
 {/if}

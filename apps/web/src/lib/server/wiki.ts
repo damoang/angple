@@ -117,6 +117,46 @@ export async function getRecentPages(limit: number = 10): Promise<WikiPageSummar
 }
 
 // ============================================
+// 페이지 트리 (좌측 사이드바 네비)
+// ============================================
+
+export interface WikiTreeNode {
+    id: number;
+    page_id: number | null;
+    path: string;
+    title: string;
+    depth: number;
+    parent_id: number | null;
+    is_folder: boolean;
+    sort_order: number;
+}
+
+const treeCache = createCache<WikiTreeNode[]>({ ttl: 300_000, maxSize: 2 });
+
+/** 위키 페이지 트리(사이드바 네비)용 — wikiang_page_tree 전체를 정렬 반환(클라이언트에서 트리 구성) */
+export async function getPageTree(): Promise<WikiTreeNode[]> {
+    return treeCache.getOrSet('tree:ko', async () => {
+        const [rows] = await readPool.query<RowDataPacket[]>(
+            `SELECT id, page_id, path, title, depth, parent_id, is_folder, sort_order
+             FROM wikiang_page_tree
+             WHERE locale = 'ko'
+             ORDER BY sort_order, title
+             LIMIT 2000`
+        );
+        return rows.map((r) => ({
+            id: r.id,
+            page_id: r.page_id ?? null,
+            path: r.path,
+            title: r.title,
+            depth: r.depth ?? 0,
+            parent_id: r.parent_id ?? null,
+            is_folder: !!r.is_folder,
+            sort_order: r.sort_order ?? 0
+        })) as WikiTreeNode[];
+    });
+}
+
+// ============================================
 // 리비전 조회
 // ============================================
 
