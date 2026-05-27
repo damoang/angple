@@ -18,6 +18,7 @@
     import AdSlot from '$lib/components/ui/ad-slot/ad-slot.svelte';
     import AdfitSlot from '$lib/components/ui/adfit-slot/adfit-slot.svelte';
     import ImageTextBanner from '$lib/components/ui/image-text-banner/image-text-banner.svelte';
+    import DamoangBanner from '$lib/components/ui/damoang-banner/damoang-banner.svelte';
     import { CelebrationRolling } from '$lib/components/ui/celebration-rolling';
     import { widgetLayoutStore } from '$lib/stores/widget-layout.svelte';
     import { boardFavoritesStore, slotLabel } from '$lib/stores/board-favorites.svelte';
@@ -376,9 +377,15 @@
             {/if}
         </div>
         {#if compact}
-            <!-- 드로워: 네모배너 (320x100) -->
+            <!-- 드로워: 네모배너 (다모앙 광고 → GAM 폴백) -->
             <div class:hidden={!widgetLayoutStore.hasEnabledAds}>
-                <AdSlot position="sidebar-drawer" height="100px" slotKey="sidebar-drawer-main" />
+                <DamoangBanner
+                    position="sidebar"
+                    height="100px"
+                    showCelebration={false}
+                    gamPosition="sidebar-drawer"
+                    class="drawer-sidebar-banner"
+                />
             </div>
             <!-- 드로워: 이미지텍스트 배너 -->
             <div>
