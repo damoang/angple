@@ -1,5 +1,5 @@
 /**
- * 축하메시지 조회 공유 모듈
+ * 마음메시지 조회 공유 모듈
  *
  * +layout.server.ts (SSR), /api/init, /api/ads/celebration/today 에서 공유.
  * 서버 사이드 60초 인메모리 캐시 포함.
@@ -45,7 +45,7 @@ function extractFirstImage(content: string): string | null {
 const celebrationCache = createCache<CelebrationBanner[]>({ ttl: 60_000, maxSize: 10 });
 
 /**
- * 축하메시지 조회
+ * 마음메시지 조회
  * @param isRecent true면 날짜 무관 최근 8건, false면 오늘만
  */
 export async function fetchCelebrations(isRecent: boolean = false): Promise<CelebrationBanner[]> {
@@ -150,7 +150,7 @@ export async function fetchCelebrations(isRecent: boolean = false): Promise<Cele
     return banners;
 }
 
-/** 캐시된 축하메시지 조회 (60초 TTL, singleflight) */
+/** 캐시된 마음메시지 조회 (60초 TTL, singleflight) */
 export async function getCachedCelebrations(
     isRecent: boolean = false
 ): Promise<CelebrationBanner[]> {

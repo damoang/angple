@@ -588,7 +588,7 @@ export const load: PageServerLoad = async ({
             }
         }
 
-        // 축하메시지(message) 게시판: 익명 글 프로필 정보 숨김
+        // 마음메시지(message) 게시판: 익명 글 프로필 정보 숨김
         // PublishToGnuboard()에서 익명 시 wr_name=""으로 설정 → author가 빈 문자열
         if (boardId === 'message') {
             for (const p of allPosts) {

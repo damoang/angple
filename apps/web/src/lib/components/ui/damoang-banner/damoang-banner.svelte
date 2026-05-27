@@ -16,7 +16,7 @@
 
     interface Props {
         position: 'index' | 'board-list' | 'board-view' | 'sidebar';
-        showCelebration?: boolean; // 축하메시지 표시 여부 (메인만 true)
+        showCelebration?: boolean; // 마음메시지 표시 여부 (메인만 true)
         height?: string;
         gamPosition?: string; // GAM 폴백 시 사용할 슬롯 이름 (위젯에서 전달)
         gamFallback?: boolean; // 자체 배너 없을 때 GAM 폴백 여부 (기본 true)
@@ -46,11 +46,11 @@
         advertiserId?: string;
     }
 
-    // 공유 스토어에서 축하메시지 가져오기
+    // 공유 스토어에서 마음메시지 가져오기
     let storeCelebrations = $derived(getCelebrations());
     let storeIndex = $derived(getCurrentIndex());
     let celebrationReady = $derived(isCelebrationReady());
-    // 최종 선택된 배너 (축하메시지 or 프리미엄 광고)
+    // 최종 선택된 배너 (마음메시지 or 프리미엄 광고)
     let adsBanner = $state<AdsBanner | null>(null);
     let loading = $state(true);
     let useFallback = $state(false);
@@ -93,7 +93,7 @@
     });
 
     onMount(() => {
-        // 축하메시지: 공유 스토어에서 관리 (CelebrationRolling과 싱크)
+        // 마음메시지: 공유 스토어에서 관리 (CelebrationRolling과 싱크)
         let cleanupCelebration: (() => void) | undefined;
         if (showCelebration) {
             cleanupCelebration = celebrationMount();
@@ -110,7 +110,7 @@
         if (!browser) return;
 
         if (showCelebration) {
-            // 축하메시지는 공유 스토어에서 관리 → 광고만 fetch
+            // 마음메시지는 공유 스토어에서 관리 → 광고만 fetch
             const ads = await fetchAdsBanners();
             if (ads.length > 0) {
                 adsBanner = ads[Math.floor(Math.random() * ads.length)];
@@ -119,7 +119,7 @@
             loading = !adsBanner && !celebrationReady;
             useFallback = !adsBanner && celebrationReady && storeCelebrations.length === 0;
         } else {
-            // 게시판 페이지: 프리미엄 + 일반 배너만 (축하메시지 없음)
+            // 게시판 페이지: 프리미엄 + 일반 배너만 (마음메시지 없음)
             const ads = await fetchAdsBanners();
             if (ads.length > 0) {
                 adsBanner = ads[Math.floor(Math.random() * ads.length)];
@@ -181,7 +181,7 @@
         return raw;
     }
 
-    // 축하메시지 배너 링크: 공유 스토어의 getLink 사용
+    // 마음메시지 배너 링크: 공유 스토어의 getLink 사용
     function getCelebrationHref(banner: CelebrationBanner): string {
         return getCelebrationLink(banner);
     }
@@ -195,7 +195,7 @@
             style:min-height={height}
         ></div>
     {:else if celebrationBanner}
-        <!-- 축하메시지 배너 -->
+        <!-- 마음메시지 배너 -->
         <a
             href={getCelebrationHref(celebrationBanner)}
             class="border-border dm-media-card block overflow-hidden rounded-xl border transition-opacity hover:opacity-90"
@@ -204,7 +204,7 @@
         >
             <img
                 src={celebrationBanner.image_url}
-                alt={celebrationBanner.alt_text || '축하메시지'}
+                alt={celebrationBanner.alt_text || '마음메시지'}
                 class="dm-media-card__image w-full object-contain"
                 loading="lazy"
             />
@@ -239,7 +239,7 @@
         </a>
     {:else if useFallback}
         {#if position === 'sidebar'}
-            <!-- 사이드바: 축하메시지/광고 없으면 빈 플레이스홀더 -->
+            <!-- 사이드바: 마음메시지/광고 없으면 빈 플레이스홀더 -->
             <div
                 class="flex items-center justify-center rounded-lg border border-dashed border-slate-200 bg-slate-50/50 dark:border-slate-700 dark:bg-slate-800/30"
                 style:min-height="40px"
@@ -247,7 +247,7 @@
                 <a
                     href="/message"
                     class="text-[10px] text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300"
-                    >축하메시지가 없습니다</a
+                    >마음메시지가 없습니다</a
                 >
             </div>
         {:else if gamFallback}
