@@ -42,6 +42,17 @@ function extractFirstImage(content: string): string | null {
     return null;
 }
 
+/**
+ * KST(Asia/Seoul) 기준 오늘 YYYY-MM-DD.
+ *
+ * RDS time_zone=SYSTEM (UTC) 이라 MySQL CURDATE()/NOW() 가 KST 새벽 0~9시 동안
+ * 어제 날짜를 반환 → 마음메시지가 KST 자정~오전에 미표시되는 #12516 의 원인.
+ * 모든 today 비교는 이 함수 결과를 파라미터로 넘긴다.
+ */
+function getTodayKST(): string {
+    return new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Seoul' });
+}
+
 const celebrationCache = createCache<CelebrationBanner[]>({ ttl: 60_000, maxSize: 10 });
 
 /**
@@ -53,7 +64,10 @@ export async function fetchCelebrations(isRecent: boolean = false): Promise<Cele
 
     // 1차: celebration_banners 테이블 (신규)
     try {
-        const dateFilter = isRecent ? '' : 'AND cb.display_date = CURDATE()';
+        // #12516: CURDATE() (RDS UTC) → KST today 파라미터화.
+        const todayKST = getTodayKST();
+        const dateFilter = isRecent ? '' : 'AND cb.display_date = ?';
+        const dateParams = isRecent ? [] : [todayKST];
         const [rows] = await pool.execute<RowDataPacket[]>(
             `SELECT cb.id, cb.title, cb.content, cb.image_url, cb.link_url,
 					cb.external_url, cb.display_date, cb.target_member_id,
@@ -70,7 +84,8 @@ export async function fetchCelebrations(isRecent: boolean = false): Promise<Cele
 			   ON cb.source_wr_id = wm.wr_id AND wm.wr_is_comment = 0
 			 WHERE cb.is_active = 1 ${dateFilter}
 			 ORDER BY cb.display_date DESC, cb.sort_order ASC, cb.id DESC
-			 LIMIT 8`
+			 LIMIT 8`,
+            dateParams
         );
 
         for (const row of rows as RowDataPacket[]) {
@@ -107,9 +122,19 @@ export async function fetchCelebrations(isRecent: boolean = false): Promise<Cele
     // 2차: g5_write_message fallback (마이그레이션 전까지)
     if (banners.length === 0) {
         try {
-            const legacyDateFilter = isRecent
-                ? ''
-                : "AND (wm.wr_subject = DATE_FORMAT(NOW(),'%Y.%m.%d') OR wm.wr_subject = DATE_FORMAT(NOW(),'%Y-%m-%d') OR wm.wr_subject = DATE_FORMAT(NOW(),'%Y.%c.%e') OR wm.wr_subject = DATE_FORMAT(NOW(),'%Y-%c-%e'))";
+            // #12516: NOW() (RDS UTC) 대신 KST today 의 다양한 표기를 파라미터로.
+            const todayKST = getTodayKST(); // 'YYYY-MM-DD'
+            const [yStr, mStr, dStr] = todayKST.split('-');
+            const mNum = String(Number(mStr));
+            const dNum = String(Number(dStr));
+            const legacyFormats = [
+                `${yStr}.${mStr}.${dStr}`, // 2026.05.29
+                todayKST, // 2026-05-29
+                `${yStr}.${mNum}.${dNum}`, // 2026.5.29
+                `${yStr}-${mNum}-${dNum}` // 2026-5-29
+            ];
+            const legacyDateFilter = isRecent ? '' : 'AND wm.wr_subject IN (?, ?, ?, ?)';
+            const legacyParams = isRecent ? [] : legacyFormats;
             const [rows] = await pool.query<RowDataPacket[]>(
                 `SELECT wm.wr_id, wm.wr_subject, wm.wr_content, wm.wr_link2, wm.mb_id, wm.wr_name,
                         m.mb_nick, m.mb_image_url
@@ -117,7 +142,8 @@ export async function fetchCelebrations(isRecent: boolean = false): Promise<Cele
                  LEFT JOIN g5_member m ON wm.mb_id = m.mb_id
                  WHERE wm.wr_is_comment = 0 ${legacyDateFilter}
                  ORDER BY wm.wr_id DESC
-                 LIMIT 8`
+                 LIMIT 8`,
+                legacyParams
             );
 
             for (const row of rows as RowDataPacket[]) {
@@ -154,6 +180,7 @@ export async function fetchCelebrations(isRecent: boolean = false): Promise<Cele
 export async function getCachedCelebrations(
     isRecent: boolean = false
 ): Promise<CelebrationBanner[]> {
-    const cacheKey = isRecent ? 'recent' : 'today';
+    // #12516: 캐시키에 KST today 포함 — 자정 직후 60초 동안 어제 결과 노출 방지.
+    const cacheKey = isRecent ? 'recent' : `today:${getTodayKST()}`;
     return celebrationCache.getOrSet(cacheKey, () => fetchCelebrations(isRecent));
 }
