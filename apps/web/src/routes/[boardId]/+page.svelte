@@ -1049,20 +1049,19 @@
                             class="border-input bg-background focus:ring-primary h-8 w-full rounded-md border pl-7 pr-2 text-sm focus:outline-none focus:ring-1"
                         />
                     </div>
-                    <!-- #12455: 빠른 글쓰기 (내가 쓴 글/댓글 필터 줄 우측) -->
-                    {#if canWrite}
-                        <Button
-                            onclick={goToWrite}
-                            size="sm"
-                            class="ml-auto h-8"
-                            title={!canUseCertifiedAction(authStore.user, boardId)
-                                ? getCertificationBlockedMessage(boardId)
-                                : '글쓰기'}
-                        >
-                            <Pencil class="mr-1.5 h-3.5 w-3.5" />
-                            {#if !canUseCertifiedAction(authStore.user, boardId)}실명인증{:else}글쓰기{/if}
-                        </Button>
-                    {/if}
+                    <!-- #12520: 빠른필터 글쓰기 제거 → 검색 버튼으로 교체.
+                         상단 헤더에 이미 글쓰기 버튼이 있어 중복(#12520 신고)이라
+                         사용자 제안대로 검색 input 옆에는 검색 버튼만 둠. -->
+                    <Button
+                        onclick={runQuickSearch}
+                        size="sm"
+                        class="ml-auto h-8"
+                        aria-label="검색"
+                        title="검색"
+                    >
+                        <Search class="mr-1.5 h-3.5 w-3.5" />
+                        검색
+                    </Button>
                 </div>
             {/if}
 
