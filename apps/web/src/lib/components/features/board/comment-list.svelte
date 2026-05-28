@@ -1495,6 +1495,9 @@
                                             editContent = html;
                                         }}
                                         onImagePaste={(file: File) => editHandleFiles([file])}
+                                        onSubmitShortcut={() => {
+                                            if (!isUpdating && editContent.trim()) saveEdit();
+                                        }}
                                         placeholder="댓글을 입력하세요..."
                                         disabled={isUpdating}
                                     />
