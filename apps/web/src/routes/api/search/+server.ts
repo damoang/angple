@@ -184,7 +184,10 @@ export const GET: RequestHandler = async ({ url, locals }) => {
                             views: row.wr_hit,
                             likes: row.wr_good,
                             comments_count: row.wr_comment,
-                            created_at: new Date(row.wr_datetime * 1000).toISOString(),
+                            // #12522: Sphinx wr_datetime epoch 는 KST naive datetime 을
+                            // UTC 로 잘못 해석한 값(RDS time_zone=UTC SYSTEM). 9시간 보정 →
+                            // KST 15시 이후 글이 다음 날로 표시되던 버그 수정.
+                            created_at: new Date((row.wr_datetime - 9 * 3600) * 1000).toISOString(),
                             has_file: fileSet.has(`${boardId}:${row.wr_id}`),
                             parent_id: isCommentSearch ? row.wr_parent || 0 : undefined
                         };
