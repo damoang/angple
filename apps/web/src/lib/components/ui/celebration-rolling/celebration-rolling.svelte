@@ -23,13 +23,17 @@
     });
 
     function getNick(banner: { target_member_nick?: string }): string {
-        return banner.target_member_nick || '축하합니다';
+        // 익명 마음메시지 fallback — '축하합니다'(구) → '앙님'(다모앙 커뮤니티 호칭).
+        return banner.target_member_nick || '앙님';
     }
 
     function getMessage(banner: { content?: string }): string {
         const raw = banner.content || '';
         return raw.replace(/<[^>]*>/g, '').trim();
     }
+
+    // 현 banner 가 사진 있는지 — 익명이면 이미지 영역 자체를 hide.
+    let showAvatar = $derived(!!celebrations[currentIndex]?.target_member_photo);
 </script>
 
 {#if celebrations.length > 0}
@@ -37,22 +41,24 @@
         href={getLink(celebrations[currentIndex])}
         class="border-border bg-background hover:bg-accent flex h-9 items-center gap-2 overflow-hidden rounded-lg border px-3 transition-colors {className}"
     >
-        <div class="relative h-6 w-6 shrink-0 overflow-hidden rounded-full">
-            {#each celebrations as banner, i (banner.id)}
-                {#if banner.target_member_photo}
-                    <img
-                        src={banner.target_member_photo}
-                        alt=""
-                        class="absolute inset-0 h-6 w-6 rounded-full object-cover transition-all duration-500 ease-in-out
-                            {i === currentIndex
-                            ? 'translate-y-0 opacity-100'
-                            : i < currentIndex
-                              ? '-translate-y-full opacity-0'
-                              : 'translate-y-full opacity-0'}"
-                    />
-                {/if}
-            {/each}
-        </div>
+        {#if showAvatar}
+            <div class="relative h-6 w-6 shrink-0 overflow-hidden rounded-full">
+                {#each celebrations as banner, i (banner.id)}
+                    {#if banner.target_member_photo}
+                        <img
+                            src={banner.target_member_photo}
+                            alt=""
+                            class="absolute inset-0 h-6 w-6 rounded-full object-cover transition-all duration-500 ease-in-out
+                                {i === currentIndex
+                                ? 'translate-y-0 opacity-100'
+                                : i < currentIndex
+                                  ? '-translate-y-full opacity-0'
+                                  : 'translate-y-full opacity-0'}"
+                        />
+                    {/if}
+                {/each}
+            </div>
+        {/if}
 
         <div class="relative h-7 min-w-0 flex-1 overflow-hidden">
             {#each celebrations as banner, i (banner.id)}
