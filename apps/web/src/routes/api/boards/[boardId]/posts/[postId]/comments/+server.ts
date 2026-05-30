@@ -297,6 +297,14 @@ export const GET: RequestHandler = async ({ params, url, locals, request }) => {
                 page: effectivePage,
                 limit,
                 total_pages: totalPages
+            },
+            // 댓글 수정 정책 (단일 출처: env). 프론트 confirm 다이얼로그/차감 안내에서 사용.
+            // 기본값은 backend 의 getCommentEditPolicy() 와 일치 (50000P / 300s).
+            meta: {
+                comment_edit_policy: {
+                    cost: Number(process.env.COMMENT_EDIT_COST ?? 50000),
+                    grace_seconds: Number(process.env.COMMENT_EDIT_GRACE_SECONDS ?? 300)
+                }
             }
         });
     } catch (error) {

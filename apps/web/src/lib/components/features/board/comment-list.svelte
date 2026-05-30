@@ -122,7 +122,7 @@
         // - 대댓글 없는 댓글: 항상 무료 수정 (grace 무관)
         // - 대댓글 달린 댓글: cost 포인트 차감 + 수정 이력 카운트 표시
         // grace_seconds 는 호환을 위해 남겨두지만 신규 정책에서 사용하지 않는다.
-        editPolicy = { cost: 5000, grace_seconds: 360 }
+        editPolicy = { cost: 50000, grace_seconds: 300 }
     }: Props = $props();
 
     function findCommentById(commentId: string): FreeComment | null {

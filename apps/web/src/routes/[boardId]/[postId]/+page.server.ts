@@ -339,7 +339,10 @@ export const load: PageServerLoad = async ({
                     total: data.total || 0,
                     page: data.page || 1,
                     limit: data.limit || initialCommentsLimit,
-                    total_pages: data.total_pages || 1
+                    total_pages: data.total_pages || 1,
+                    edit_policy: json.meta?.comment_edit_policy as
+                        | { cost: number; grace_seconds: number }
+                        | undefined
                 };
             });
 

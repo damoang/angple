@@ -219,9 +219,9 @@
                                                 </Label>
                                                 <Switch
                                                     id={`${category}-${key}`}
-                                                    bind:checked={
-                                                        settings[category][key] as boolean
-                                                    }
+                                                    bind:checked={settings[category][
+                                                        key
+                                                    ] as boolean}
                                                 />
                                             </div>
                                         {/if}
