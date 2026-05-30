@@ -331,6 +331,10 @@
     // 댓글/프로모션/리비전 — Streaming SSR (2단계 데이터)
     let comments = $state<FreeComment[]>(data.commentsData?.comments.items || []);
     let commentsTotal = $state<number>(data.commentsData?.comments.total || comments.length);
+    // 댓글 수정 정책 — backend 단일 출처. proxy 응답의 meta.comment_edit_policy 에서 전달.
+    let commentEditPolicy = $state<{ cost: number; grace_seconds: number } | undefined>(
+        data.commentsData?.comments.edit_policy
+    );
     let truthroomCommentMap = $state<Record<number, number>>({});
     let promotionPosts = $state<PromotionPost[]>([]);
     let revisions = $state<PostRevision[]>([]);
@@ -1974,6 +1978,7 @@
                             {initialDislikedCommentIds}
                             {truthroomCommentMap}
                             isRestricted={data.isRestricted}
+                            editPolicy={commentEditPolicy}
                         />
                     {/if}
                     <!-- 플러그인 슬롯: 댓글 영역 직후 — Slot Catalog Sprint 2c -->
