@@ -1234,9 +1234,20 @@
         // 브라우저 HTTP 캐시 / SvelteKit data 캐시가 옛 응답을 반환하면 optimistic
         // update 로 추가된 새 댓글이 덮어써져 "댓글이 바로 안 보인다" (#12294) 가
         // 재현되므로 no-store 로 캐시를 우회한다.
+        //
+        // 추가 보강 (#12548): 카카오톡 등 모바일 in-app webview 는 cache 헤더를
+        // 무시하는 사례가 있어 URL cache buster (`_t=${Date.now()}`) 로 강제 우회.
+        // SW (service worker) 가 가로채는 케이스도 동일하게 URL 변화로 회피.
+        const cacheBuster = Date.now();
         const res = await fetch(
-            `/api/boards/${boardId}/posts/${data.post.id}/comments?page=1&limit=200`,
-            { cache: 'no-store', headers: { 'Cache-Control': 'no-cache' } }
+            `/api/boards/${boardId}/posts/${data.post.id}/comments?page=1&limit=200&_t=${cacheBuster}`,
+            {
+                cache: 'no-store',
+                headers: {
+                    'Cache-Control': 'no-cache, no-store, must-revalidate',
+                    Pragma: 'no-cache'
+                }
+            }
         );
         const json = await res.json();
         if (json.success) {
