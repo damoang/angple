@@ -153,10 +153,20 @@
         disconnecting = mpNo;
         error = null;
 
+        // CSRF: hooks.server.ts 가 모든 state-changing POST 에서 검증 (#12298/#12545).
+        // angple_csrf cookie 값을 X-CSRF-Token 헤더로 전송해야 403 안 남.
+        const csrfToken = document.cookie
+            .split('; ')
+            .find((c) => c.startsWith('angple_csrf='))
+            ?.split('=')[1];
+
         try {
             const response = await fetch('/member/settings/social', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(csrfToken ? { 'X-CSRF-Token': csrfToken } : {})
+                },
                 body: JSON.stringify({ mp_no: mpNo })
             });
 
