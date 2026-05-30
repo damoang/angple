@@ -1,5 +1,13 @@
 <script lang="ts">
     import { Button } from '$lib/components/ui/button/index.js';
+    import {
+        Dialog,
+        DialogContent,
+        DialogDescription,
+        DialogFooter,
+        DialogHeader,
+        DialogTitle
+    } from '$lib/components/ui/dialog/index.js';
     import type { FreeComment } from '$lib/api/types.js';
     import { authStore } from '$lib/stores/auth.svelte.js';
     import AuthorLink from '$lib/components/ui/author-link/author-link.svelte';
@@ -167,6 +175,9 @@
     // 수정 상태 관리
     let editingCommentId = $state<string | null>(null);
     let editContent = $state('');
+    // 수정 확인 dialog — 대댓글 있는 댓글 수정 시 차감 안내 (모바일 window.confirm 호환성 #12511)
+    let editConfirmOpen = $state(false);
+    let pendingEditTarget = $state<FreeComment | null>(null);
     let isUpdating = $state(false);
     let LazyCommentEditor = $state<Component | null>(null);
     let isDeleting = $state<string | null>(null);
@@ -474,19 +485,31 @@
         const replyExists = !isAdmin() && hasReplies(target);
 
         if (replyExists && editPolicy.cost > 0) {
-            const costFmt = editPolicy.cost.toLocaleString('ko-KR');
-            const msg =
-                `⚠️ 이 댓글에는 대댓글이 달려 있습니다.\n` +
-                `대화 맥락이 바뀔 수 있어 수정 시 ${costFmt} 포인트가 차감되며,\n` +
-                `수정 시각과 수정 횟수가 모든 사용자에게 표시됩니다.\n\n` +
-                `계속 진행하시겠습니까?`;
-            if (!window.confirm(msg)) return;
+            // 모바일 호환성을 위해 shadcn Dialog 사용 (window.confirm 대체, #12511).
+            pendingEditTarget = target;
+            editConfirmOpen = true;
+            return;
         }
 
+        enterEdit(target);
+    }
+
+    function enterEdit(target: FreeComment): void {
         editingCommentId = String(target.id);
         editContent = target.content;
         replyingToCommentId = null;
         ensureEditEditorLoaded();
+    }
+
+    function handleEditConfirm(): void {
+        if (pendingEditTarget) enterEdit(pendingEditTarget);
+        pendingEditTarget = null;
+        editConfirmOpen = false;
+    }
+
+    function handleEditCancel(): void {
+        pendingEditTarget = null;
+        editConfirmOpen = false;
     }
 
     // 수정 취소
@@ -1871,6 +1894,31 @@
         onClose={closeLikersDialog}
     />
 {/if}
+
+<!-- 대댓글 있는 댓글 수정 확인 dialog (모바일 호환성, window.confirm 대체 — #12511) -->
+<Dialog
+    bind:open={editConfirmOpen}
+    onOpenChange={(o) => {
+        if (!o) handleEditCancel();
+    }}
+>
+    <DialogContent>
+        <DialogHeader>
+            <DialogTitle>댓글 수정 안내</DialogTitle>
+            <DialogDescription>
+                이 댓글에는 대댓글이 달려 있습니다. 대화 맥락이 바뀔 수 있어 수정 시 <strong
+                    >{editPolicy.cost.toLocaleString('ko-KR')} 포인트</strong
+                >가 차감되며, 수정 시각과 수정 횟수가 모든 사용자에게 표시됩니다.
+            </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+            <Button variant="outline" onclick={handleEditCancel}>취소</Button>
+            <Button variant="destructive" onclick={handleEditConfirm}>
+                {editPolicy.cost.toLocaleString('ko-KR')} P 차감하고 수정
+            </Button>
+        </DialogFooter>
+    </DialogContent>
+</Dialog>
 
 <style>
     /* 댓글 내 iframe/video 폭 제한 (인라인 width/height 속성 오버라이드) */
