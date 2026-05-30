@@ -58,7 +58,9 @@
                 <li>
                     <a
                         href="/"
-                        class="flex items-center gap-2 rounded-lg px-3 py-2 text-sm {isActive('/') ? 'bg-primary/10 text-primary font-medium' : 'text-foreground hover:bg-muted'}"
+                        class="flex items-center gap-2 rounded-lg px-3 py-2 text-sm {isActive('/')
+                            ? 'bg-primary/10 text-primary font-medium'
+                            : 'text-foreground hover:bg-muted'}"
                     >
                         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path
@@ -74,7 +76,11 @@
                 <li>
                     <a
                         href="/wiki/Special:RecentChanges"
-                        class="flex items-center gap-2 rounded-lg px-3 py-2 text-sm {isActive('/wiki/Special:RecentChanges') ? 'bg-primary/10 text-primary font-medium' : 'text-foreground hover:bg-muted'}"
+                        class="flex items-center gap-2 rounded-lg px-3 py-2 text-sm {isActive(
+                            '/wiki/Special:RecentChanges'
+                        )
+                            ? 'bg-primary/10 text-primary font-medium'
+                            : 'text-foreground hover:bg-muted'}"
                     >
                         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path
@@ -90,7 +96,11 @@
                 <li>
                     <a
                         href="/wiki/Special:Random"
-                        class="flex items-center gap-2 rounded-lg px-3 py-2 text-sm {isActive('/wiki/Special:Random') ? 'bg-primary/10 text-primary font-medium' : 'text-foreground hover:bg-muted'}"
+                        class="flex items-center gap-2 rounded-lg px-3 py-2 text-sm {isActive(
+                            '/wiki/Special:Random'
+                        )
+                            ? 'bg-primary/10 text-primary font-medium'
+                            : 'text-foreground hover:bg-muted'}"
                     >
                         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path
@@ -121,10 +131,20 @@
                         <li>
                             <a
                                 href="/wiki{recentPage.path}"
-                                class="group flex flex-col rounded-lg px-3 py-1.5 text-sm {isActive(`/wiki${recentPage.path}`) ? 'bg-primary/10' : 'hover:bg-muted'}"
+                                class="group flex flex-col rounded-lg px-3 py-1.5 text-sm {isActive(
+                                    `/wiki${recentPage.path}`
+                                )
+                                    ? 'bg-primary/10'
+                                    : 'hover:bg-muted'}"
                             >
-                                <span class="{isActive(`/wiki${recentPage.path}`) ? 'text-primary font-medium' : 'text-foreground'} truncate">{recentPage.title}</span>
-                                <span class="text-muted-foreground text-xs">{formatRelativeTime(recentPage.updated_at)}</span>
+                                <span
+                                    class="{isActive(`/wiki${recentPage.path}`)
+                                        ? 'text-primary font-medium'
+                                        : 'text-foreground'} truncate">{recentPage.title}</span
+                                >
+                                <span class="text-muted-foreground text-xs"
+                                    >{formatRelativeTime(recentPage.updated_at)}</span
+                                >
                             </a>
                         </li>
                     {/each}
@@ -145,7 +165,11 @@
                 <li>
                     <a
                         href="/wiki/Special:AllPages"
-                        class="flex items-center gap-2 rounded-lg px-3 py-2 text-sm {isActive('/wiki/Special:AllPages') ? 'bg-primary/10 text-primary font-medium' : 'text-foreground hover:bg-muted'}"
+                        class="flex items-center gap-2 rounded-lg px-3 py-2 text-sm {isActive(
+                            '/wiki/Special:AllPages'
+                        )
+                            ? 'bg-primary/10 text-primary font-medium'
+                            : 'text-foreground hover:bg-muted'}"
                     >
                         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path
@@ -161,7 +185,11 @@
                 <li>
                     <a
                         href="/wiki/Help:Contents"
-                        class="flex items-center gap-2 rounded-lg px-3 py-2 text-sm {isActive('/wiki/Help:Contents') ? 'bg-primary/10 text-primary font-medium' : 'text-foreground hover:bg-muted'}"
+                        class="flex items-center gap-2 rounded-lg px-3 py-2 text-sm {isActive(
+                            '/wiki/Help:Contents'
+                        )
+                            ? 'bg-primary/10 text-primary font-medium'
+                            : 'text-foreground hover:bg-muted'}"
                     >
                         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path
@@ -188,7 +216,11 @@
                 <li>
                     <a
                         href="/wiki/Wikiang:Portal"
-                        class="flex items-center gap-2 rounded-lg px-3 py-2 text-sm {isActive('/wiki/Wikiang:Portal') ? 'bg-primary/10 text-primary font-medium' : 'text-foreground hover:bg-muted'}"
+                        class="flex items-center gap-2 rounded-lg px-3 py-2 text-sm {isActive(
+                            '/wiki/Wikiang:Portal'
+                        )
+                            ? 'bg-primary/10 text-primary font-medium'
+                            : 'text-foreground hover:bg-muted'}"
                     >
                         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path
