@@ -3,7 +3,6 @@
     import { WidgetRenderer } from '$lib/components/widget-renderer';
     import PluginSlot from '$lib/components/plugin/plugin-slot.svelte';
     import AdSlot from '$lib/components/ui/ad-slot/ad-slot.svelte';
-    import { CelebrationRolling } from '$lib/components/ui/celebration-rolling';
     import { widgetLayoutStore } from '$lib/stores/widget-layout.svelte';
 </script>
 
@@ -17,14 +16,14 @@
     <!-- 공지사항 위젯 (가장 위) -->
     <WidgetRenderer zone="sidebar" onlyIds={['notice']} />
 
-    <!-- 마음메시지 작은 롤링 배너 (공지 아래, 사이드바 배너 위) -->
-    <CelebrationRolling />
+    <!-- 마음메시지 카드 위젯 (공지 아래, 사이드바 배너 위) -->
+    <WidgetRenderer zone="sidebar" onlyIds={['celebration']} />
 
     <!-- 사이드바 배너 (슬롯 기반) -->
     <PluginSlot name="sidebar-banner" />
 
     <!-- 나머지 사이드바 위젯 -->
-    <WidgetRenderer zone="sidebar" excludeIds={['notice']} />
+    <WidgetRenderer zone="sidebar" excludeIds={['notice', 'celebration']} />
 
     <!-- Slot: sidebar-right-bottom -->
     {#each getComponentsForSlot('sidebar-right-bottom') as slotComp (slotComp.id)}
