@@ -29,7 +29,7 @@
 
 {#if celebrations.length > 0}
     <Card class="w-full gap-0 overflow-hidden">
-        <CardHeader class="flex flex-row items-center justify-between space-y-0 px-3 py-2">
+        <CardHeader class="flex flex-row items-center justify-between space-y-0 px-3 pb-2 pt-0">
             <div class="flex items-center gap-1.5">
                 <PartyPopper class="text-primary h-4 w-4" />
                 <h3 class="text-sm font-semibold">마음메시지</h3>
@@ -45,7 +45,7 @@
 
         <CardContent class="p-0">
             <a href={current ? getLink(current) : '/message'} class="block">
-                <div class="bg-muted relative aspect-[4/1] w-full overflow-hidden">
+                <div class="bg-muted relative aspect-[5/1] w-full overflow-hidden">
                     {#each celebrations as banner, i (banner.id)}
                         {#if banner.image_url}
                             <img
