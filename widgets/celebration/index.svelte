@@ -32,7 +32,7 @@
         if (!loaded && browser) {
             // timedFetch: 12s timeout + 1회 retry. hasBanners=false 면 위젯 자체가 미표시되므로
             // silent fail 정책 유지. (audit 2026-05-01 §3-1)
-            timedFetch('/api/ads/celebration/today?mode=recent')
+            timedFetch('/api/celebration/today?mode=recent')
                 .then((r) => r.json())
                 .then((res) => {
                     if (res.success && res.data) {
