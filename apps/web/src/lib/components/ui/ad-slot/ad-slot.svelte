@@ -377,6 +377,15 @@
         min-height: var(--ad-slot-min-height);
         /* transition은 inline style로 통일 (0ms) — CLS 방지 위해 즉시 적용 */
     }
+    /* #12411: 모바일 좁은 viewport 에서 광고 크리에이티브가 컨테이너 폭을 초과해
+       overflow-hidden 으로 좌/우 잘리는 문제 fix. 광고 iframe/img/ins 자식 요소를
+       컨테이너 폭에 맞추도록 max-width 강제 (AdSense/GAM/Adfit 공통). */
+    .dm-display-frame :global(iframe),
+    .dm-display-frame :global(img),
+    .dm-display-frame :global(ins.adsbygoogle) {
+        max-width: 100% !important;
+        height: auto;
+    }
     .dm-display-slot {
         min-height: var(--ad-slot-min-height);
     }
