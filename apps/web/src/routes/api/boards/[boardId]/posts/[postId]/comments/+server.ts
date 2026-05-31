@@ -73,6 +73,11 @@ interface CommentResponseItem {
     link1_affiliate?: boolean;
     link2_affiliate?: boolean;
     report_count?: string | number;
+    is_discipline_related?: boolean;
+}
+
+interface DisciplineRow extends RowDataPacket {
+    sg_id: number;
 }
 
 function maskIp(ip: string): string {
@@ -178,6 +183,23 @@ export const GET: RequestHandler = async ({ params, url, locals, request }) => {
             }
         }
 
+        // 이용제한 처분 근거 댓글 식별 (g5_na_singo.discipline_log_id IS NOT NULL)
+        // INDEX hit: (sg_table, sg_id) — idx_singo_table_id / idx_table_id_time.
+        // 실패 무시 (defensive, slow query 차단).
+        const disciplineSet = new Set<number>();
+        if (commentIds.length > 0) {
+            try {
+                const [dRows] = await pool.query<DisciplineRow[]>(
+                    `SELECT DISTINCT sg_id FROM g5_na_singo
+                     WHERE sg_table = ? AND sg_id IN (?) AND discipline_log_id IS NOT NULL`,
+                    [safeBoardId, commentIds]
+                );
+                for (const d of dRows) disciplineSet.add(d.sg_id);
+            } catch (e) {
+                console.warn('[discipline] enrich(comments) failed:', e);
+            }
+        }
+
         const comments: CommentResponseItem[] = rows.map((row) => ({
             id: row.wr_id,
             content: row.wr_deleted_at ? (isAdmin ? row.wr_content : '') : row.wr_content,
@@ -215,6 +237,7 @@ export const GET: RequestHandler = async ({ params, url, locals, request }) => {
             deleted_at: row.wr_deleted_at || null,
             deleted_by: row.wr_deleted_by || null,
             edit_count: editCountMap.get(row.wr_id) || 0,
+            ...(disciplineSet.has(row.wr_id) ? { is_discipline_related: true } : {}),
             ...(isAdmin && row.wr_7
                 ? {
                       report_count:
