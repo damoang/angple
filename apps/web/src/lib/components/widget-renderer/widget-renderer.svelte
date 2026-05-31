@@ -127,7 +127,10 @@
     });
 
     function getComponent(type: string): WidgetComponent | null {
-        return loadedComponents.get(type) ?? null;
+        // STATIC 매핑 즉시 반환 — $effect 는 client-only 라 SSR 단계에서
+        // componentCache 가 비어 있어 SSR HTML 에 widget 미렌더되는 회귀 차단.
+        // dynamic load 위젯은 client mount 후 loadedComponents 에서 받음.
+        return STATIC_WIDGET_COMPONENTS[type] ?? loadedComponents.get(type) ?? null;
     }
 
     // 훅: 위젯 목록 필터 (플러그인이 위젯 추가/제거/순서 변경 가능)
