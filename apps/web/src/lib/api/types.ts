@@ -35,6 +35,8 @@ export interface FreePost {
     author_id: string;
     author_image?: string; // 프로필 이미지 URL (mb_image_url)
     author_image_updated_at?: number; // 프로필 이미지 갱신 시각 unix epoch (캐시 버스팅용)
+    /** 이용제한 처분 근거 글 (g5_na_singo.discipline_log_id IS NOT NULL). PR #484. */
+    is_discipline_related?: boolean;
     board_id?: string;
     author_ip?: string; // 작성자 IP (마스킹된 형태, 예: 123.456.*.*)
     views: number;
@@ -101,8 +103,10 @@ export interface FreePost {
 export interface FreeComment {
     id: number | string; // v2 API는 number, v1은 string
     content: string;
-    /** 이용제한된 댓글 (wr_7='lock'). damoang-backend PR #482 응답 필드. */
+    /** 신고잠김 댓글 (wr_7='lock'). damoang-backend PR #482 응답 필드. */
     is_restricted?: boolean;
+    /** 이용제한 처분 근거 댓글 (g5_na_singo.discipline_log_id IS NOT NULL). PR #484. */
+    is_discipline_related?: boolean;
     link1?: string;
     link2?: string;
     link1_display?: string;

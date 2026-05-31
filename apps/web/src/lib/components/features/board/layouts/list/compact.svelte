@@ -4,6 +4,7 @@
         RestrictedBadge,
         isRestrictedTitle
     } from '$lib/components/ui/restricted-badge/index.js';
+    import { DisciplinedBadge } from '$lib/components/ui/discipline-related/index.js';
     import ScheduledDeleteBadge from './_shared/scheduled-delete-badge.svelte';
     import AuthorLink from '$lib/components/ui/author-link/author-link.svelte';
     import type { FreePost, BoardDisplaySettings } from '$lib/api/types.js';
@@ -107,6 +108,9 @@
                     {/if}
                     {#if isRestrictedTitle(post.title)}
                         <RestrictedBadge class="ml-1" />
+                    {/if}
+                    {#if post.is_discipline_related}
+                        <DisciplinedBadge class="ml-1" />
                     {/if}
                 </h3>
                 <div class="text-muted-foreground flex flex-wrap items-center gap-2 text-sm">
