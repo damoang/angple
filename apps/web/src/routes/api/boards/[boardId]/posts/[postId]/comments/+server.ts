@@ -183,7 +183,7 @@ export const GET: RequestHandler = async ({ params, url, locals, request }) => {
             }
         }
 
-        // 이용제한 처분 근거 댓글 식별 (g5_na_singo.discipline_log_id IS NOT NULL)
+        // 이용제한 근거 댓글 식별 (g5_na_singo.discipline_log_id IS NOT NULL)
         // INDEX hit: (sg_table, sg_id) — idx_singo_table_id / idx_table_id_time.
         // 실패 무시 (defensive, slow query 차단).
         const disciplineSet = new Set<number>();
