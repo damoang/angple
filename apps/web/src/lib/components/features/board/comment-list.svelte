@@ -8,6 +8,7 @@
         DialogHeader,
         DialogTitle
     } from '$lib/components/ui/dialog/index.js';
+    import { RestrictedBadge } from '$lib/components/ui/restricted-badge/index.js';
     import type { FreeComment } from '$lib/api/types.js';
     import { authStore } from '$lib/stores/auth.svelte.js';
     import AuthorLink from '$lib/components/ui/author-link/author-link.svelte';
@@ -1607,6 +1608,9 @@
                                 {@html processedComments.get(comment.id) ??
                                     ssrCommentHtml.get(comment.id) ??
                                     ''}
+                                {#if comment.is_restricted}
+                                    <RestrictedBadge class="ml-1" />
+                                {/if}
                             </div>
                             {#if comment.link1 || comment.link2}
                                 <div class="mt-3 space-y-1.5">

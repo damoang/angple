@@ -101,6 +101,8 @@ export interface FreePost {
 export interface FreeComment {
     id: number | string; // v2 API는 number, v1은 string
     content: string;
+    /** 이용제한된 댓글 (wr_7='lock'). damoang-backend PR #482 응답 필드. */
+    is_restricted?: boolean;
     link1?: string;
     link2?: string;
     link1_display?: string;
