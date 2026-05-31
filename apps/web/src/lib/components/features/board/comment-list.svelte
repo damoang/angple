@@ -2122,6 +2122,18 @@
         min-height: 1em;
     }
 
+    /* #12526: .embed-container 안의 youtube iframe specificity 보강.
+       이전엔 `.comment-body iframe[src*='youtube']` (specificity 0,0,2,1) 의
+       `height: auto !important` 가 `.embed-container iframe` (0,0,1,1) 의
+       `height: 100% !important` 를 이겨, iframe 이 intrinsic 작은 height 로
+       떨어지면서 16:9 padding-bottom placeholder 박스 안에 큰 빈 공간 발생.
+       embed-container 안에서는 placeholder 가 비율을 잡으므로 iframe 은 fill,
+       aspect-ratio 강제는 해제. */
+    :global(.comment-body .embed-container iframe) {
+        height: 100% !important;
+        aspect-ratio: unset !important;
+    }
+
     /* 댓글 코드 블록 스타일 (게시글 본문 .prose와 동일) */
     :global(.comment-body pre) {
         background-color: var(--muted);
