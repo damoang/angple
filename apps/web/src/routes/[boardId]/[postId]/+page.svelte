@@ -2114,7 +2114,7 @@
                 {boardId}
                 {boardTitle}
                 currentPostId={data.post.id}
-                limit={20}
+                limit={24}
                 initialPage={Number($page.url.searchParams.get('page')) ||
                     data.recentPosts?.page ||
                     1}
