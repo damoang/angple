@@ -4,6 +4,7 @@
         RestrictedBadge,
         isRestrictedTitle
     } from '$lib/components/ui/restricted-badge/index.js';
+    import { DisciplinedBadge } from '$lib/components/ui/discipline-related/index.js';
     import type { FreePost, BoardDisplaySettings } from '$lib/api/types.js';
     import Lock from '@lucide/svelte/icons/lock';
     import ImageIcon from '@lucide/svelte/icons/image';
@@ -229,6 +230,9 @@
                         </span>
                         {#if isRestrictedTitle(post.title)}
                             <RestrictedBadge class="ml-1 shrink-0" />
+                        {/if}
+                        {#if post.is_discipline_related}
+                            <DisciplinedBadge class="ml-1 shrink-0" />
                         {/if}
                         {#if isNew}
                             <span class="text-liked shrink-0 text-[10px] font-bold">N</span>
