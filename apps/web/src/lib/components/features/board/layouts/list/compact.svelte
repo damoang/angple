@@ -1,5 +1,9 @@
 <script lang="ts">
     import { Badge } from '$lib/components/ui/badge/index.js';
+    import {
+        RestrictedBadge,
+        isRestrictedTitle
+    } from '$lib/components/ui/restricted-badge/index.js';
     import ScheduledDeleteBadge from './_shared/scheduled-delete-badge.svelte';
     import AuthorLink from '$lib/components/ui/author-link/author-link.svelte';
     import type { FreePost, BoardDisplaySettings } from '$lib/api/types.js';
@@ -100,6 +104,9 @@
                         {@html highlightQuery(post.title, searchQuery)}
                     {:else}
                         {post.title}
+                    {/if}
+                    {#if isRestrictedTitle(post.title)}
+                        <RestrictedBadge class="ml-1" />
                     {/if}
                 </h3>
                 <div class="text-muted-foreground flex flex-wrap items-center gap-2 text-sm">
