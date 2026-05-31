@@ -29,7 +29,7 @@
                 class="inline-flex items-center gap-1 text-xs font-medium text-amber-700 dark:text-amber-400"
             >
                 <Scale class="h-3.5 w-3.5" />
-                이용제한 처분 근거 {isComment ? '댓글' : '글'}
+                이용제한 근거 {isComment ? '댓글' : '글'}
             </div>
             <button
                 type="button"
