@@ -160,8 +160,13 @@
         tablet: string;
         desktop: string;
     } {
+        // AdSense 정책 — 광고가 컨테이너보다 커서 잘리면 안 됨 (Ad Clipping 금지).
+        // explicit prop 가 sizes 최댓값보다 작아도 sizes 보장 = Math.max.
+        // 이전 코드 `explicitHeight ?? maxHeight(sizes)` 는 truthy fallback 으로
+        // sizes 최댓값 무시 → 윙(160×600) 광고가 90px 컨테이너에 잘리는 버그.
         const explicitHeight = parseHeightPx(height);
-        const fallback = explicitHeight ?? (config.sizes.length > 0 ? maxHeight(config.sizes) : 0);
+        const sizesMax = config.sizes.length > 0 ? maxHeight(config.sizes) : 0;
+        const fallback = Math.max(explicitHeight ?? 0, sizesMax);
         let mobileHeight = fallback;
         let tabletHeight: number | null = null;
         let desktopHeight: number | null = null;
@@ -427,7 +432,9 @@
         justify-content: center;
         align-items: center;
         max-width: 100%;
-        overflow: hidden;
+        /* AdSense 정책: 광고 세로 잘림 금지 (Ad Clipping). 가로만 clip — 모바일 viewport 보호용. */
+        overflow-x: hidden;
+        overflow-y: visible;
     }
 
     @media (min-width: 728px) {
