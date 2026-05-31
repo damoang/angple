@@ -9,6 +9,7 @@
         DialogTitle
     } from '$lib/components/ui/dialog/index.js';
     import { RestrictedBadge } from '$lib/components/ui/restricted-badge/index.js';
+    import { DisciplinedContent } from '$lib/components/ui/discipline-related/index.js';
     import type { FreeComment } from '$lib/api/types.js';
     import { authStore } from '$lib/stores/auth.svelte.js';
     import AuthorLink from '$lib/components/ui/author-link/author-link.svelte';
@@ -1595,6 +1596,25 @@
                                 <Lock class="h-4 w-4" />
                                 비밀댓글입니다.
                             </div>
+                        {:else if comment.is_discipline_related}
+                            <DisciplinedContent isComment>
+                                <div
+                                    class="comment-body text-foreground overflow-hidden whitespace-pre-wrap break-words {isFeed
+                                        ? 'leading-snug'
+                                        : commentLayout === 'bordered'
+                                          ? 'leading-snug'
+                                          : 'leading-normal'}"
+                                    style="font-size: var(--comment-font-size, 1rem);"
+                                >
+                                    <!-- eslint-disable-next-line svelte/no-at-html-tags -->
+                                    {@html processedComments.get(comment.id) ??
+                                        ssrCommentHtml.get(comment.id) ??
+                                        ''}
+                                    {#if comment.is_restricted}
+                                        <RestrictedBadge class="ml-1" />
+                                    {/if}
+                                </div>
+                            </DisciplinedContent>
                         {:else}
                             <div
                                 class="comment-body text-foreground overflow-hidden whitespace-pre-wrap break-words {isFeed
