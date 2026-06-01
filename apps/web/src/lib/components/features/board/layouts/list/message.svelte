@@ -85,11 +85,11 @@
         <!-- 이미지 영역 -->
         <a {href} class="block px-3 py-1">
             {#if hasImage}
-                <div class="overflow-hidden rounded">
+                <div class="bg-muted overflow-hidden rounded">
                     <img
                         src={thumbnailUrl}
                         alt={post.title}
-                        class="aspect-[6/1] w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+                        class="aspect-[6/1] w-full object-contain transition-transform duration-300 group-hover:scale-[1.02]"
                         loading="lazy"
                         onerror={(e) => {
                             const target = e.target as HTMLImageElement;
