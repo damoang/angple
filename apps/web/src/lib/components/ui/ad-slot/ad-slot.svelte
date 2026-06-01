@@ -347,7 +347,7 @@
 {#if !suppressAds}
     <div
         bind:this={containerEl}
-        class="dm-display-frame relative overflow-hidden rounded-lg {className}"
+        class="dm-display-frame relative overflow-x-hidden overflow-y-visible rounded-lg {className}"
         class:ad-slot-loaded={isLoaded && hasAd}
         class:ad-slot-empty={isEmpty}
         class:ad-slot-empty-collapsed={isEmpty}
