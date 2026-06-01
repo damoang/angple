@@ -45,7 +45,7 @@
 
         <CardContent class="p-0">
             <a href={current ? getLink(current) : '/message'} class="block">
-                <div class="bg-muted relative aspect-[8/1] w-full overflow-hidden">
+                <div class="bg-muted relative aspect-[77/9] w-full overflow-hidden">
                     {#each celebrations as banner, i (banner.id)}
                         {#if banner.image_url}
                             <img
