@@ -51,7 +51,7 @@
                             <img
                                 src={banner.image_url}
                                 alt={banner.target_member_nick || '마음메시지'}
-                                class="absolute inset-0 h-full w-full object-cover transition-all duration-500 ease-in-out
+                                class="absolute inset-0 h-full w-full object-contain transition-all duration-500 ease-in-out
                                     {i === currentIndex
                                     ? 'translate-y-0 opacity-100'
                                     : i < currentIndex
