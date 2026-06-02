@@ -1597,7 +1597,7 @@
                                 비밀댓글입니다.
                             </div>
                         {:else if comment.is_discipline_related}
-                            <DisciplinedContent isComment>
+                            <DisciplinedContent isComment isLoggedIn={authStore.isAuthenticated}>
                                 <div
                                     class="comment-body text-foreground overflow-hidden whitespace-pre-wrap break-words {isFeed
                                         ? 'leading-snug'
