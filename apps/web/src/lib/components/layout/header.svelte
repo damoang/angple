@@ -67,7 +67,7 @@
     });
     const logoAlt = $derived(headerLogoFailed ? 'Logo' : activeLogoAlt);
 
-    // 임시: 6/3 제21대 대선일 안내 배지 (KST 기준 6/3 00:00 ~ 6/4 00:00 자동 해제)
+    // 임시: 2026-06-03 제9회 전국동시지방선거 안내 배지 (KST 기준 6/3 00:00 ~ 6/4 00:00 자동 해제)
     const showElectionBadge = $derived.by(() => {
         const now = logoNow; // 이미 1초마다 갱신되는 reactive 시계
         const startUtc = new Date('2026-06-02T15:00:00Z'); // 6/3 00:00 KST
@@ -312,17 +312,17 @@
                     }}
                 />
             </a>
-            <!-- 임시: 2026-06-03 제21대 대선일 안내 배지 (자동 해제, 외부 출처 = 선관위) -->
+            <!-- 임시: 2026-06-03 제9회 전국동시지방선거 안내 배지 (자동 해제, 외부 출처 = 선관위) -->
             {#if showElectionBadge}
                 <a
                     href="https://info.nec.go.kr"
                     target="_blank"
                     rel="noopener noreferrer"
                     class="bg-primary/10 text-primary hover:bg-primary/15 ml-2 hidden items-center gap-1 whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-semibold transition-colors md:inline-flex"
-                    title="제21대 대통령선거 - 선관위 실시간 투표율 안내"
-                    aria-label="제21대 대통령선거 안내 (선관위)"
+                    title="제9회 전국동시지방선거 - 선관위 실시간 투표율 안내"
+                    aria-label="제9회 전국동시지방선거 안내 (선관위)"
                 >
-                    🗳️ 6/3 대선
+                    🗳️ 6/3 지방선거
                 </a>
             {/if}
             <!-- 플러그인 슬롯: 헤더 좌측 액션 (로고 옆) — Slot Catalog Sprint 2b -->
