@@ -67,6 +67,14 @@
     });
     const logoAlt = $derived(headerLogoFailed ? 'Logo' : activeLogoAlt);
 
+    // 임시: 6/3 제21대 대선일 안내 배지 (KST 기준 6/3 00:00 ~ 6/4 00:00 자동 해제)
+    const showElectionBadge = $derived.by(() => {
+        const now = logoNow; // 이미 1초마다 갱신되는 reactive 시계
+        const startUtc = new Date('2026-06-02T15:00:00Z'); // 6/3 00:00 KST
+        const endUtc = new Date('2026-06-03T15:00:00Z'); // 6/4 00:00 KST
+        return now >= startUtc && now < endUtc;
+    });
+
     // SSR 안전한 인증 상태:
     // - 서버(SSR): $page.data.user 사용 (요청별 안전, 모듈 레벨 상태 오염 없음)
     // - 클라이언트(hydration 전): $page.data.user 사용 (authStore.isLoading = true)
@@ -304,6 +312,19 @@
                     }}
                 />
             </a>
+            <!-- 임시: 2026-06-03 제21대 대선일 안내 배지 (자동 해제, 외부 출처 = 선관위) -->
+            {#if showElectionBadge}
+                <a
+                    href="https://info.nec.go.kr"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="bg-primary/10 text-primary hover:bg-primary/15 ml-2 hidden items-center gap-1 whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-semibold transition-colors md:inline-flex"
+                    title="제21대 대통령선거 - 선관위 실시간 투표율 안내"
+                    aria-label="제21대 대통령선거 안내 (선관위)"
+                >
+                    🗳️ 6/3 대선
+                </a>
+            {/if}
             <!-- 플러그인 슬롯: 헤더 좌측 액션 (로고 옆) — Slot Catalog Sprint 2b -->
             <PluginSlot name="header-actions-left" />
         </div>
