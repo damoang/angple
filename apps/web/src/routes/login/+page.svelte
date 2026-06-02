@@ -22,8 +22,26 @@
     let error = $state<string | null>(null);
     let isRedirecting = $state(false);
 
-    const redirectUrl = $derived($page.url.searchParams.get('redirect') || '/');
+    // redirect query sanitize — /login 자체로 redirect 시도 시 무한 루프 차단.
+    // 또 외부 도메인 등 의도하지 않은 redirect 방어 (invite 흐름 제외).
+    function sanitizeRedirect(raw: string | null): string {
+        if (!raw) return '/';
+        // 절대 URL: invite 흐름만 허용, 그 외 외부 도메인 차단
+        if (/^https?:\/\//.test(raw)) {
+            return raw.includes('ads.damoang.net/invite/') ? raw : '/';
+        }
+        // /login 시작 = 자기 자신 → 루프 차단
+        if (raw.startsWith('/login')) return '/';
+        // 상대 경로만 허용
+        return raw.startsWith('/') ? raw : '/';
+    }
+
+    const redirectUrl = $derived(sanitizeRedirect($page.url.searchParams.get('redirect')));
     const isInviteFlow = $derived(redirectUrl.includes('ads.damoang.net/invite/'));
+
+    // 인증 polling 최대 시간 — 이 시간 안에 authStore.isLoading 이 false 로 전환 안 되면
+    // 일반 로그인 form 노출 (iOS Safari pull-to-refresh 후 cookie 손실 시 무한 spinner 차단).
+    const AUTH_POLL_TIMEOUT_MS = 5000;
 
     onMount(() => {
         const oauthError = $page.url.searchParams.get('error');
@@ -31,6 +49,7 @@
             error = oauthErrorMessages[oauthError] || `로그인 오류: ${oauthError}`;
         }
 
+        const pollStart = performance.now();
         function checkAndRedirect() {
             if (isRedirecting) return;
             if (!authStore.isLoading && authStore.isAuthenticated) {
@@ -38,7 +57,8 @@
                 window.location.href = redirectUrl;
                 return;
             }
-            if (authStore.isLoading) {
+            // timeout: polling 5초 내 결판 안 나면 form 노출 (loop 차단)
+            if (authStore.isLoading && performance.now() - pollStart < AUTH_POLL_TIMEOUT_MS) {
                 setTimeout(checkAndRedirect, 100);
             }
         }
