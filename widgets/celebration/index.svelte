@@ -63,7 +63,7 @@
                     {/each}
                     {#if current?.target_member_nick}
                         <div
-                            class="absolute inset-x-0 bottom-0 truncate px-1.5 py-0.5 text-center text-xs font-bold text-white [text-shadow:_-1px_-1px_0_rgba(0,0,0,0.6),_1px_-1px_0_rgba(0,0,0,0.6),_-1px_1px_0_rgba(0,0,0,0.6),_1px_1px_0_rgba(0,0,0,0.6)]"
+                            class="absolute bottom-0 right-0 max-w-[90%] truncate px-1.5 py-0.5 text-right text-xs font-bold text-white [text-shadow:_-1px_-1px_0_rgba(0,0,0,0.6),_1px_-1px_0_rgba(0,0,0,0.6),_-1px_1px_0_rgba(0,0,0,0.6),_1px_1px_0_rgba(0,0,0,0.6)]"
                         >
                             {current.target_member_nick}
                         </div>
