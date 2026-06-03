@@ -958,8 +958,9 @@
             {/if}
 
             <!-- #12012: 내가 쓴 글/댓글 빠른 필터 (로그인 시) -->
+            <!-- #12592: 모바일에서는 상단 SearchForm 과 검색 input 중복 → PC(md+) 전용 -->
             {#if authStore.isAuthenticated}
-                <div class="mb-3 flex flex-wrap items-center gap-2">
+                <div class="mb-3 hidden flex-wrap items-center gap-2 md:flex">
                     <Button
                         variant={isMyPostsActive ? 'default' : 'outline'}
                         size="sm"
