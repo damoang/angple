@@ -7,3 +7,6 @@ bun.lockb
 
 # Miscellaneous
 /static/
+
+# Svelte 5 <svelte:boundary> 미지원 (prettier-plugin-svelte 3.2.8 — upgrade 시 제거)
+src/lib/components/widget-renderer/widget-wrapper.svelte
