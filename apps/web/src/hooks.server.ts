@@ -255,6 +255,15 @@ function rewriteImmutableAssetUrls(html: string, cacheBust = ''): string {
     return appendImmutableAssetCacheBust(nextHtml, cacheBust);
 }
 
+// SSR HTML 응답에서 cdn.damoang.net (CloudFront) → r2.damoang.net (Cloudflare R2) 치환.
+// dual-write 대상 prefix 만 (raw/tmp 제외, R2 에 없는 prefix 요청 시 404 방지).
+const CDN_TO_R2_HOSTS_REGEX =
+    /https?:\/\/cdn\.damoang\.net\/(data\/(?:content|editor|file|member_image|home|qa|member|nariya)\/[^\s"'<>)\\]+)/g;
+
+export function rewriteCdnToR2(html: string): string {
+    return html.replace(CDN_TO_R2_HOSTS_REGEX, 'https://r2.damoang.net/$1');
+}
+
 /**
  * 스벨트내부 데이터 요청인지 구분
  * @param event
@@ -875,7 +884,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 
         const renderPromise = (async () => {
             const response = await resolve(event, {
-                transformPageChunk: ({ html }) => rewriteImmutableAssetUrls(html),
+                transformPageChunk: ({ html }) => rewriteCdnToR2(rewriteImmutableAssetUrls(html)),
                 filterSerializedResponseHeaders: (name) => name.toLowerCase() === 'content-type'
             });
 
@@ -963,9 +972,11 @@ export const handle: Handle = async ({ event, resolve }) => {
         transformPageChunk: ({ html }) => {
             const cls = htmlClass ? ` class="${htmlClass}"` : '';
             const sty = ` style="--row-pad-extra:${dPad};--comment-pad-extra:${dPad}"`;
-            return rewriteImmutableAssetUrls(
-                html.replace('<html lang="ko">', `<html lang="ko"${cls}${sty}>`),
-                assetRecoveryBust
+            return rewriteCdnToR2(
+                rewriteImmutableAssetUrls(
+                    html.replace('<html lang="ko">', `<html lang="ko"${cls}${sty}>`),
+                    assetRecoveryBust
+                )
             );
         },
         filterSerializedResponseHeaders: (name) => name.toLowerCase() === 'content-type'
