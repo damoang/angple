@@ -48,19 +48,17 @@
                 <div class="bg-muted relative aspect-[77/9] w-full overflow-hidden">
                     {#each celebrations as banner, i (banner.id)}
                         {#if banner.image_url}
-                            <!-- 벽지 패턴: 규격 (770×90) 미만 이미지는 자동 반복으로 빈 공간 채움.
-                                 큰 이미지는 가운데 정렬 + 컨테이너 넘는 부분만 잘림. -->
-                            <div
-                                role="img"
-                                aria-label={banner.target_member_nick || '마음메시지'}
-                                style:background-image="url({banner.image_url})"
-                                class="absolute inset-0 h-full w-full bg-center bg-repeat transition-all duration-500 ease-in-out
+                            <img
+                                src={banner.image_url}
+                                alt={banner.target_member_nick || '마음메시지'}
+                                class="absolute inset-0 h-full w-full object-contain transition-all duration-500 ease-in-out
                                     {i === currentIndex
                                     ? 'translate-y-0 opacity-100'
                                     : i < currentIndex
                                       ? '-translate-y-full opacity-0'
                                       : 'translate-y-full opacity-0'}"
-                            ></div>
+                                loading="lazy"
+                            />
                         {/if}
                     {/each}
                     {#if current?.target_member_nick}
