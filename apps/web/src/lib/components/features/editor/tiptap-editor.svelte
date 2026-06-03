@@ -1084,7 +1084,9 @@
                 size="sm"
                 onclick={() => editor?.chain().focus().setTextAlign('left').run()}
                 {disabled}
-                class="h-8 w-8 p-0 {getButtonClass(editor?.isActive({ textAlign: 'left' }))}"
+                class="h-8 w-8 p-0 {getButtonClass(
+                    editor?.isActive({ textAlign: 'left' }) ?? false
+                )}"
                 title="왼쪽 정렬"
             >
                 <AlignLeftIcon class="h-4 w-4" />
@@ -1095,7 +1097,9 @@
                 size="sm"
                 onclick={() => editor?.chain().focus().setTextAlign('center').run()}
                 {disabled}
-                class="h-8 w-8 p-0 {getButtonClass(editor?.isActive({ textAlign: 'center' }))}"
+                class="h-8 w-8 p-0 {getButtonClass(
+                    editor?.isActive({ textAlign: 'center' }) ?? false
+                )}"
                 title="가운데 정렬"
             >
                 <AlignCenterIcon class="h-4 w-4" />
@@ -1106,7 +1110,9 @@
                 size="sm"
                 onclick={() => editor?.chain().focus().setTextAlign('right').run()}
                 {disabled}
-                class="h-8 w-8 p-0 {getButtonClass(editor?.isActive({ textAlign: 'right' }))}"
+                class="h-8 w-8 p-0 {getButtonClass(
+                    editor?.isActive({ textAlign: 'right' }) ?? false
+                )}"
                 title="오른쪽 정렬"
             >
                 <AlignRightIcon class="h-4 w-4" />
@@ -1117,7 +1123,9 @@
                 size="sm"
                 onclick={() => editor?.chain().focus().setTextAlign('justify').run()}
                 {disabled}
-                class="h-8 w-8 p-0 {getButtonClass(editor?.isActive({ textAlign: 'justify' }))}"
+                class="h-8 w-8 p-0 {getButtonClass(
+                    editor?.isActive({ textAlign: 'justify' }) ?? false
+                )}"
                 title="양쪽 정렬"
             >
                 <AlignJustifyIcon class="h-4 w-4" />
