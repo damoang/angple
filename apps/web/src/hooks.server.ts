@@ -215,6 +215,23 @@ function isBoardListPath(pathname: string, searchParams: URLSearchParams): boole
 
 /** 글 상세 페이지 패턴: /boardId/postId (숫자) */
 const POST_DETAIL_REGEX = /^\/[a-z][a-z0-9_-]{1,20}\/\d+$/;
+/**
+ * 404 를 CDN cache 해도 안전한 known-static 경로.
+ * bot/legacy URL 이 반복 요청해서 origin 부담을 일으키는 패턴에 한정.
+ * CloudFront 통계: /theme/* = 0% hit / 48 GB/7d uncached (2026-06-03 측정).
+ */
+function isCacheableNotFoundPath(pathname: string): boolean {
+    return (
+        pathname.startsWith('/theme/') ||
+        pathname.startsWith('/themes/') ||
+        pathname.startsWith('/wp-') ||
+        pathname.startsWith('/wordpress/') ||
+        pathname.endsWith('.php') ||
+        pathname.endsWith('.asp') ||
+        pathname.endsWith('.aspx')
+    );
+}
+
 function isPostDetailPath(pathname: string): boolean {
     return POST_DETAIL_REGEX.test(pathname);
 }
@@ -1036,6 +1053,12 @@ export const handle: Handle = async ({ event, resolve }) => {
     } else if (!event.locals.user && isPostDetailPath(pathname)) {
         // 비로그인 사용자의 글 상세
         response.headers.set('Cache-Control', publicHtmlCacheControl);
+        response.headers.set('Vary', publicVaryHeader);
+    } else if (response.status === 404 && isCacheableNotFoundPath(pathname)) {
+        // bot/legacy URL 의 known-static 경로 404 = origin 부담 ↓
+        // CloudFront 통계상 /theme/* = 0% hit / 48 GB/7d uncached origin fetch.
+        // CDN 1h + browser 10min cache 로 동일 invalid path 반복 요청 흡수.
+        response.headers.set('Cache-Control', 'public, s-maxage=3600, max-age=600');
         response.headers.set('Vary', publicVaryHeader);
     } else {
         response.headers.set('Cache-Control', 'private, max-age=2, must-revalidate');
