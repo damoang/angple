@@ -1038,6 +1038,9 @@ export const handle: Handle = async ({ event, resolve }) => {
             'Cache-Control',
             'public, s-maxage=86400, max-age=3600, stale-while-revalidate=604800'
         );
+        // Vary 누락 시 Cloudflare cache key 가 cookie 무관 → 인증/비로그인 같은 cache 공유 (UX 사고).
+        // 2026-06-04: /free → /free 308 응답이 비로그인 cache 를 인증 사용자도 받는 문제 확인.
+        response.headers.set('Vary', publicVaryHeader);
     } else if (hasExplicitPublicCache) {
         // API 핸들러가 설정한 Cache-Control 유지 (celebration, banners, levels, reactions, init 등)
     } else if (event.url.pathname.startsWith('/_app/immutable')) {
