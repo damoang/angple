@@ -24,3 +24,7 @@ apps/admin/static/
 
 # Svelte 5 <svelte:boundary> 미지원 (prettier-plugin-svelte 3.2.8 — upgrade 시 제거)
 apps/web/src/lib/components/widget-renderer/widget-wrapper.svelte
+
+# prettier-plugin-tailwindcss CI vs local format 불일치 회피
+# (gitignore syntax: [id] 는 character class 라 wildcard 로 표기)
+apps/web/src/routes/admin/themes/*-settings/+page.svelte
