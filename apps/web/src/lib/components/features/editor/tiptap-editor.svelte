@@ -8,6 +8,7 @@
     import { LinkedImage } from './linked-image.js';
     import Placeholder from '@tiptap/extension-placeholder';
     import Underline from '@tiptap/extension-underline';
+    import TextAlign from '@tiptap/extension-text-align';
     import Mention from '@tiptap/extension-mention';
     import { Table } from '@tiptap/extension-table';
     import { TableRow } from '@tiptap/extension-table-row';
@@ -46,6 +47,10 @@
     import Bold from '@lucide/svelte/icons/bold';
     import Italic from '@lucide/svelte/icons/italic';
     import UnderlineIcon from '@lucide/svelte/icons/underline';
+    import AlignLeftIcon from '@lucide/svelte/icons/align-left';
+    import AlignCenterIcon from '@lucide/svelte/icons/align-center';
+    import AlignRightIcon from '@lucide/svelte/icons/align-right';
+    import AlignJustifyIcon from '@lucide/svelte/icons/align-justify';
     import Strikethrough from '@lucide/svelte/icons/strikethrough';
     import List from '@lucide/svelte/icons/list';
     import ListOrdered from '@lucide/svelte/icons/list-ordered';
@@ -212,6 +217,11 @@
                     placeholder
                 }),
                 Underline,
+                TextAlign.configure({
+                    types: ['heading', 'paragraph'],
+                    alignments: ['left', 'center', 'right', 'justify'],
+                    defaultAlignment: 'left'
+                }),
                 Mention.configure({
                     HTMLAttributes: {
                         class: 'mention-node text-primary font-medium'
@@ -1066,6 +1076,51 @@
                 title="밑줄 (Ctrl+U)"
             >
                 <UnderlineIcon class="h-4 w-4" />
+            </Button>
+            <!-- 문단 정렬 (TextAlign extension) -->
+            <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onclick={() => editor?.chain().focus().setTextAlign('left').run()}
+                {disabled}
+                class="h-8 w-8 p-0 {getButtonClass(editor?.isActive({ textAlign: 'left' }))}"
+                title="왼쪽 정렬"
+            >
+                <AlignLeftIcon class="h-4 w-4" />
+            </Button>
+            <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onclick={() => editor?.chain().focus().setTextAlign('center').run()}
+                {disabled}
+                class="h-8 w-8 p-0 {getButtonClass(editor?.isActive({ textAlign: 'center' }))}"
+                title="가운데 정렬"
+            >
+                <AlignCenterIcon class="h-4 w-4" />
+            </Button>
+            <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onclick={() => editor?.chain().focus().setTextAlign('right').run()}
+                {disabled}
+                class="h-8 w-8 p-0 {getButtonClass(editor?.isActive({ textAlign: 'right' }))}"
+                title="오른쪽 정렬"
+            >
+                <AlignRightIcon class="h-4 w-4" />
+            </Button>
+            <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onclick={() => editor?.chain().focus().setTextAlign('justify').run()}
+                {disabled}
+                class="h-8 w-8 p-0 {getButtonClass(editor?.isActive({ textAlign: 'justify' }))}"
+                title="양쪽 정렬"
+            >
+                <AlignJustifyIcon class="h-4 w-4" />
             </Button>
             <Button
                 type="button"
