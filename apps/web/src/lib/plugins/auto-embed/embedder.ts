@@ -99,9 +99,15 @@ export function processContent(html: string): string {
         return match;
     });
 
-    // 2단계: plain URL 처리 (기존 로직)
-    const urlPattern = /(<p>|<br\s*\/?>|\n|^)\s*(https?:\/\/[^\s<>"]+)\s*(<\/p>|<br\s*\/?>|\n|$)/gi;
+    // 2단계: plain URL 처리 (#12526 — <p>URL</p> 전체 단락을 embed 로 교체하여
+    // orphaned </p> 가 남지 않게 함. 단락이 아닌 다른 컨텍스트 (br, 줄바꿈) 는 기존대로)
+    const pUrlPattern = /<p>\s*(https?:\/\/[^\s<>"]+)\s*<\/p>/gi;
+    result = result.replace(pUrlPattern, (match, url) => {
+        const embedded = embedUrl(url.trim());
+        return embedded ?? match;
+    });
 
+    const urlPattern = /(<br\s*\/?>|\n|^)\s*(https?:\/\/[^\s<>"]+)\s*(<br\s*\/?>|\n|$)/gi;
     result = result.replace(urlPattern, (match, prefix, url, suffix) => {
         const embedded = embedUrl(url.trim());
         if (embedded) {
