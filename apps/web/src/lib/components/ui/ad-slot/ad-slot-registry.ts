@@ -140,6 +140,26 @@ function ensureSlotListener() {
         state.loaded = true;
         state.empty = event.isEmpty;
         state.viewable = false;
+
+        // #12595: SafeFrame OFF (PR #1568) 후에도 일부 광고에서 iframe 내부 scrollbar
+        // 발생. 특히 in-flow 컨테이너 (728×90 reserved) 에 더 큰 creative (예: 250×250)
+        // 가 들어오면 iframe 안에 scroll 가 생겨 사용자 페이지 스크롤 포커스를 가로챔.
+        // GPT 가 만든 iframe element 의 scrolling 속성 + overflow style 강제로 차단.
+        if (!event.isEmpty) {
+            try {
+                const container = document.getElementById(slotId);
+                const iframe = container?.querySelector(
+                    'iframe[id^="google_ads_iframe"]'
+                ) as HTMLIFrameElement | null;
+                if (iframe) {
+                    iframe.setAttribute('scrolling', 'no');
+                    iframe.style.overflow = 'hidden';
+                }
+            } catch {
+                // best-effort: GPT iframe 없거나 권한 부족 시 silent skip
+            }
+        }
+
         const pageContext = getCurrentPageContext();
         trackEvent('ad_impression', {
             slot_id: slotId,
