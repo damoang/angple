@@ -821,16 +821,19 @@
         }
     });
 
+    // afterNavigate는 컴포넌트 초기화 시점에 등록해야 destroy 시 자동 정리됨.
+    // onMount 안에서 등록하면 재마운트마다 콜백이 누적돼 추가 history 조작(replaceState)을
+    // 유발할 수 있음 (issue #989).
+    afterNavigate(() => {
+        scheduleAnchorScroll();
+    });
+
     onMount(() => {
         const onHashChange = () => {
             if (commentsLoaded) {
                 scheduleAnchorScroll();
             }
         };
-
-        afterNavigate(() => {
-            scheduleAnchorScroll();
-        });
 
         window.addEventListener('hashchange', onHashChange);
 
