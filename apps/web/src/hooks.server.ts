@@ -861,6 +861,7 @@ export const handle: Handle = async ({ event, resolve }) => {
                 headers: {
                     'Content-Type': 'text/html; charset=utf-8',
                     'Cache-Control': publicHtmlCacheControl,
+                    Vary: publicVaryHeader,
                     'X-Content-Type-Options': 'nosniff',
                     'X-Frame-Options': 'SAMEORIGIN',
                     'Referrer-Policy': 'strict-origin-when-cross-origin',
@@ -885,6 +886,7 @@ export const handle: Handle = async ({ event, resolve }) => {
                         headers: {
                             'Content-Type': 'text/html; charset=utf-8',
                             'Cache-Control': publicHtmlCacheControl,
+                            Vary: publicVaryHeader,
                             'X-Content-Type-Options': 'nosniff',
                             'X-Frame-Options': 'SAMEORIGIN',
                             'Referrer-Policy': 'strict-origin-when-cross-origin',
@@ -941,6 +943,7 @@ export const handle: Handle = async ({ event, resolve }) => {
                     headers: {
                         'Content-Type': 'text/html; charset=utf-8',
                         'Cache-Control': publicHtmlCacheControl,
+                        Vary: publicVaryHeader,
                         'X-Content-Type-Options': 'nosniff',
                         'X-Frame-Options': 'SAMEORIGIN',
                         'Referrer-Policy': 'strict-origin-when-cross-origin',
