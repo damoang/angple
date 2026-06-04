@@ -805,6 +805,19 @@ export const handle: Handle = async ({ event, resolve }) => {
     // 첫 host 응답을 공유 → 모든 사이트가 같은 theme 로 보이는 오염 발생.
     const publicVaryHeader = 'Host, Cookie, User-Agent, Accept-Encoding';
 
+    /**
+     * Vary 헤더 통합 set — 기존 vary (CORS Origin, framework Accept 등) 와 합쳐서 단일 헤더.
+     * 발견 2026-06-04: response.headers.set('Vary', ...) 후 framework/CORS handler 가 추가
+     * Vary 헤더 append → 결과 2줄 Vary → Cloudflare cache key 가 첫 줄만 사용 → 인증 응답 누설.
+     */
+    const mergeVarySet = (response: Response, additional: string): void => {
+        const existing = response.headers.get('Vary') || '';
+        const items = new Set(
+            [...existing.split(','), ...additional.split(',')].map((s) => s.trim()).filter(Boolean)
+        );
+        response.headers.set('Vary', Array.from(items).join(', '));
+    };
+
     // OPTIONS 요청 (CORS preflight) 처리
     if (event.request.method === 'OPTIONS') {
         const origin = event.request.headers.get('origin');
@@ -1043,7 +1056,7 @@ export const handle: Handle = async ({ event, resolve }) => {
         );
         // Vary 누락 시 Cloudflare cache key 가 cookie 무관 → 인증/비로그인 같은 cache 공유 (UX 사고).
         // 2026-06-04: /free → /free 308 응답이 비로그인 cache 를 인증 사용자도 받는 문제 확인.
-        response.headers.set('Vary', publicVaryHeader);
+        mergeVarySet(response, publicVaryHeader);
     } else if (hasExplicitPublicCache) {
         // API 핸들러가 설정한 Cache-Control 유지 (celebration, banners, levels, reactions, init 등)
     } else if (event.url.pathname.startsWith('/_app/immutable')) {
@@ -1051,24 +1064,24 @@ export const handle: Handle = async ({ event, resolve }) => {
     } else if (!event.locals.user && isPublicCacheablePath(pathname)) {
         // 비로그인 사용자의 공개 페이지
         response.headers.set('Cache-Control', publicHtmlCacheControl);
-        response.headers.set('Vary', publicVaryHeader);
+        mergeVarySet(response, publicVaryHeader);
     } else if (!event.locals.user && isBoardListPath(pathname, event.url.searchParams)) {
         // 비로그인 사용자의 게시판 목록
         response.headers.set('Cache-Control', publicHtmlCacheControl);
-        response.headers.set('Vary', publicVaryHeader);
+        mergeVarySet(response, publicVaryHeader);
     } else if (!event.locals.user && isPostDetailPath(pathname)) {
         // 비로그인 사용자의 글 상세
         response.headers.set('Cache-Control', publicHtmlCacheControl);
-        response.headers.set('Vary', publicVaryHeader);
+        mergeVarySet(response, publicVaryHeader);
     } else if (response.status === 404 && isCacheableNotFoundPath(pathname)) {
         // bot/legacy URL 의 known-static 경로 404 = origin 부담 ↓
         // CloudFront 통계상 /theme/* = 0% hit / 48 GB/7d uncached origin fetch.
         // CDN 1h + browser 10min cache 로 동일 invalid path 반복 요청 흡수.
         response.headers.set('Cache-Control', 'public, s-maxage=3600, max-age=600');
-        response.headers.set('Vary', publicVaryHeader);
+        mergeVarySet(response, publicVaryHeader);
     } else {
         response.headers.set('Cache-Control', 'private, max-age=2, must-revalidate');
-        response.headers.set('Vary', publicVaryHeader);
+        mergeVarySet(response, publicVaryHeader);
     }
 
     // SvelteKit modulepreload Link 헤더 제거 (8KB+ → 응답 헤더 축소)
