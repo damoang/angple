@@ -178,6 +178,11 @@ function ensureServices() {
         }
     });
     googletag.pubads().setCentering(true);
+    // #12595: SafeFrame 비활성화 — 게시판 목록 in-flow 광고 (board-list-infeed) 의
+    // creative height 가 reserved (90px) 보다 큰 경우 SafeFrame iframe 내부에 scrollbar 가
+    // 생성되어 사용자의 페이지 스크롤 포커스를 가로채는 문제 해결. SafeFrame off 시
+    // GAM 이 standard iframe (scrolling="no") 으로 렌더하여 내부 scroll 미발생.
+    googletag.pubads().setForceSafeFrame(false);
     googletag.pubads().setTargeting('site', GAM_SITE_NAME);
     const theme = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
     googletag.pubads().setTargeting('theme', theme);
