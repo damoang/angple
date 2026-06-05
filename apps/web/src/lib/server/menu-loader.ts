@@ -9,12 +9,10 @@
  */
 
 import type { MenuItem } from '$lib/api/types';
-import { env } from '$env/dynamic/private';
 import { TieredCache } from '$lib/server/cache';
 
-const BACKEND_URL = env.BACKEND_URL || 'http://localhost:8090';
-
-// 메뉴는 거의 안 바뀜 → L1 24시간, L2(Redis) 7일. 변경 시 invalidateMenuCache() 호출
+// 메뉴는 거의 안 바뀜 → L1 24시간, L2(Redis) 7일. 변경 시 invalidateMenuCache() 호출.
+// (위키앙 빌드는 현재 정적 WIKIANG_MENUS 사용 — cache invalidate 호환 위해 유지)
 const menuCache = new TieredCache<MenuItem[]>('menus:sidebar', 86_400_000, 604_800);
 
 /**
@@ -28,58 +26,50 @@ const menuDefaults = {
     show_in_header: false,
     show_in_sidebar: true
 } as const;
-const FALLBACK_MENUS: MenuItem[] = [
+
+// 위키앙 전용 사이드바 메뉴 (wikiang.org).
+// 이 빌드는 damoang backend (/api/v1/menus/sidebar) 를 공유하므로 그대로 fetch 하면
+// 다모앙 커뮤니티 메뉴(/free, /damoang 등)가 위키앙 사이드바에 노출됨.
+// multi-site menu 분리 (Phase 8) 전까지, 위키앙 빌드는 백엔드 fetch 대신 이 정적 메뉴 사용.
+const WIKIANG_MENUS: MenuItem[] = [
     {
         ...menuDefaults,
-        id: 9001,
-        title: '커뮤니티',
-        url: '',
-        icon: 'MessageSquare',
-        children: [
-            {
-                ...menuDefaults,
-                depth: 1,
-                id: 9010,
-                title: '자유게시판',
-                url: '/free',
-                icon: 'MessageSquare',
-                children: []
-            },
-            {
-                ...menuDefaults,
-                depth: 1,
-                id: 9011,
-                title: '질문답변',
-                url: '/qa',
-                icon: 'CircleHelp',
-                children: []
-            },
-            {
-                ...menuDefaults,
-                depth: 1,
-                id: 9012,
-                title: '알뜰구매',
-                url: '/economy',
-                icon: 'ShoppingCart',
-                children: []
-            },
-            {
-                ...menuDefaults,
-                depth: 1,
-                id: 9013,
-                title: '정보공유',
-                url: '/tips',
-                icon: 'Lightbulb',
-                children: []
-            }
-        ]
+        id: 8001,
+        title: '대문',
+        url: '/대문',
+        icon: 'House',
+        children: []
     },
     {
         ...menuDefaults,
-        id: 9002,
-        title: '갤러리',
-        url: '/gallery',
-        icon: 'Images',
+        id: 8002,
+        title: '최근 바뀜',
+        url: '/특수:최근바뀜',
+        icon: 'Clock',
+        children: []
+    },
+    {
+        ...menuDefaults,
+        id: 8003,
+        title: '분류',
+        url: '/특수:분류',
+        icon: 'FolderTree',
+        children: []
+    },
+    {
+        ...menuDefaults,
+        id: 8004,
+        title: '무작위 문서',
+        url: '/특수:무작위',
+        icon: 'Shuffle',
+        children: []
+    },
+    {
+        ...menuDefaults,
+        id: 8005,
+        title: '도움말',
+        url: '/도움말',
+        icon: 'CircleHelp',
         children: []
     }
 ];
@@ -91,32 +81,10 @@ let lastKnownMenus: MenuItem[] | null = null;
  * 메뉴 데이터를 서버에서 로드 (L1 60초 + L2 300초 TieredCache)
  */
 export async function loadMenus(): Promise<MenuItem[]> {
-    try {
-        return await menuCache.getOrFetch('all', async () => {
-            const response = await fetch(`${BACKEND_URL}/api/v1/menus/sidebar`, {
-                headers: {
-                    Accept: 'application/json',
-                    'User-Agent': 'Angple-Web-SSR/1.0'
-                },
-                signal: AbortSignal.timeout(3_000)
-            });
-
-            if (!response.ok) {
-                console.error('[menu-loader] API error:', response.status);
-                throw new Error(`API error: ${response.status}`);
-            }
-
-            const result = await response.json();
-            const menus: MenuItem[] = result.data ?? [];
-            lastKnownMenus = menus;
-            return menus;
-        });
-    } catch (err) {
-        console.error('[menu-loader] fetch failed:', err);
-        // 캐시가 있으면 만료되었더라도 반환 (graceful degradation)
-        // 캐시도 없으면 fallback 메뉴 반환 (App Shell 패턴 — 네비게이션은 항상 표시)
-        return lastKnownMenus ?? FALLBACK_MENUS;
-    }
+    // 위키앙 빌드: damoang backend 메뉴를 fetch 하면 다모앙 커뮤니티 메뉴가 노출되므로
+    // 위키앙 전용 정적 메뉴 반환 (Phase 8 multi-site menu 분리 전까지의 단기 조치).
+    // 백엔드 fetch / 캐시 불필요 (정적).
+    return WIKIANG_MENUS;
 }
 
 /**

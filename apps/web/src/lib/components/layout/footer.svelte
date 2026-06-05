@@ -3,58 +3,33 @@
 
     type FooterLink = { name: string; href: string; external?: boolean };
 
-    // 앙포털 메뉴
-    const angportalLinks: FooterLink[] = [
-        { name: '다모앙 지도 - 앙지도', href: '/angmap' },
-        { name: '다모앙 평점 - 앙티티', href: '/angtt' },
-        { name: '다모앙 음악 - 앙뮤직', href: '/music' },
-        {
-            name: '다모앙 스마트스토어',
-            href: 'https://smartstore.naver.com/damoang-net/',
-            external: true
-        },
-        { name: '다모앙 마플샵', href: 'https://marpple.shop/kr/dma', external: true },
-        {
-            name: '다모앙 영상 - 앙팡팡',
-            href: 'https://www.youtube.com/@AngPangPang',
-            external: true
-        },
-        { name: '미니게임', href: '/games' },
-        { name: 'X (구 트위터)', href: 'https://x.com/@damoang_net', external: true }
+    // 위키앙 메뉴 (wikiang.org 전용 — damoang 커뮤니티 메뉴 노출 방지)
+    const wikiLinks: FooterLink[] = [
+        { name: '대문', href: '/대문' },
+        { name: '최근 바뀜', href: '/특수:최근바뀜' },
+        { name: '분류', href: '/특수:분류' },
+        { name: '무작위 문서', href: '/특수:무작위' },
+        { name: '도움말', href: '/도움말' }
     ];
 
-    // 함께만들어가요 메뉴
-    const togetherLinks: FooterLink[] = [
-        { name: '공지사항', href: '/notice' },
-        { name: '유지관리(버그제보)', href: '/bug' },
-        { name: '다모앙 만들기', href: '/makeang' },
-        { name: '이벤트 제안', href: '/event' },
-        { name: '다모앙 개발지원 신청', href: '/discord' },
-        { name: '광고상품', href: '/content/advertisement' }
+    // 다모앙 생태계 (외부 링크)
+    const ecosystemLinks: FooterLink[] = [
+        { name: '다모앙 커뮤니티', href: 'https://damoang.net', external: true },
+        { name: '다모앙 만들기', href: 'https://damoang.net/makeang', external: true }
     ];
 
-    // 시스템 메뉴
-    const systemLinks: FooterLink[] = [
-        { name: '포인트 안내', href: '/point' },
-        { name: '뱃지/레벨 안내', href: '/level' },
-        { name: '새글모음', href: '/feed' }
-    ];
-
-    // 🚨삐앙삐앙🚨 메뉴
-    const emergencyLinks: FooterLink[] = [
-        { name: '앙리포트', href: '/report' },
-        { name: '소명게시판', href: '/claim' },
-        { name: '회원 신고 (누적 진실의 방)', href: '/truthroom' },
-        { name: '바이럴 신고 기록 (광고 앙대앙)', href: '/nope' },
-        { name: '회원 이용제한 기록', href: '/disciplinelog' }
+    // 안내 메뉴
+    const helpLinks: FooterLink[] = [
+        { name: '위키앙 소개', href: '/content/company' },
+        { name: '이용약관', href: '/content/provision' },
+        { name: '개인정보처리방침', href: '/content/privacy' }
     ];
 
     // 메뉴 섹션 데이터
     const sections = [
-        { title: '앙포털', links: angportalLinks, titleClass: 'text-foreground' },
-        { title: '함께만들어가요', links: togetherLinks, titleClass: 'text-foreground' },
-        { title: '시스템', links: systemLinks, titleClass: 'text-foreground' },
-        { title: '🚨삐앙삐앙🚨', links: emergencyLinks, titleClass: 'text-destructive' }
+        { title: '위키앙', links: wikiLinks, titleClass: 'text-foreground' },
+        { title: '다모앙 생태계', links: ecosystemLinks, titleClass: 'text-foreground' },
+        { title: '안내', links: helpLinks, titleClass: 'text-foreground' }
     ];
 
     // 모바일 접기 상태 관리
