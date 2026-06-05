@@ -23,7 +23,6 @@
     import * as Dialog from '$lib/components/ui/dialog/index.js';
     import type { PageData } from './$types.js';
     import Pencil from '@lucide/svelte/icons/pencil';
-    import ListIcon from '@lucide/svelte/icons/list';
     import Lock from '@lucide/svelte/icons/lock';
     import Clock from '@lucide/svelte/icons/clock';
 
@@ -896,20 +895,6 @@
         return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
     }
 
-    const backToListHref = $derived.by(() => {
-        const pageParam = $page.url.searchParams.get('page');
-        return pageParam ? `/${boardId}?page=${pageParam}` : `/${boardId}`;
-    });
-
-    // 목록으로 돌아가기
-    function goBack(): void {
-        if (browser) {
-            window.location.assign(backToListHref);
-            return;
-        }
-        goto(backToListHref);
-    }
-
     // 수정 페이지로 이동
     function goToEdit(): void {
         goto(`/${boardId}/${data.post.id}/edit`);
@@ -1595,9 +1580,6 @@
     <div
         class="-mx-2 mb-2 flex items-center gap-3 px-2 py-2 md:mx-0 md:px-0 [&_a]:min-h-11 md:[&_a]:min-h-0 [&_button]:min-h-11 md:[&_button]:min-h-0"
     >
-        <Button variant="ghost" size="sm" onclick={() => history.back()} class="shrink-0">←</Button>
-        <Button variant="outline" size="sm" onclick={goBack} class="shrink-0">목록으로</Button>
-
         <!-- 상단에도 글쓰기 버튼 (하단 네비와 동일 권한/실명인증 로직) -->
         {#if authStore.isAuthenticated && checkPermission(data.board, 'can_write', authStore.user ?? null)}
             <Button
@@ -2068,10 +2050,6 @@
         <div
             class="-mx-2 mt-4 flex items-center gap-3 px-2 py-2 md:mx-0 md:px-0 [&_a]:min-h-11 md:[&_a]:min-h-0 [&_button]:min-h-11 md:[&_button]:min-h-0"
         >
-            <Button variant="ghost" size="sm" onclick={() => history.back()} class="shrink-0"
-                >←</Button
-            >
-            <Button variant="outline" size="sm" onclick={goBack} class="shrink-0">목록으로</Button>
             <div class="flex-1"></div>
             {#if authStore.isAuthenticated && checkPermission(data.board, 'can_write', authStore.user ?? null)}
                 <Button
@@ -2287,15 +2265,8 @@
     onClose={() => (showReportDialog = false)}
 />
 
-<!-- 모바일 FAB 그룹 (목록 + 글쓰기) -->
+<!-- 모바일 FAB 그룹 (글쓰기) -->
 <div class="fixed bottom-4 right-4 z-50 flex flex-col gap-2 md:hidden">
-    <a
-        href="/{boardId}"
-        class="bg-muted text-muted-foreground flex h-10 w-10 items-center justify-center rounded-full shadow-lg transition-transform active:scale-95"
-        aria-label="목록으로"
-    >
-        <ListIcon class="h-4 w-4" />
-    </a>
     {#if authStore.isAuthenticated && checkPermission(data.board, 'can_write', authStore.user ?? null)}
         <a
             href="/{boardId}/write"
