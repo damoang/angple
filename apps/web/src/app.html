@@ -257,13 +257,15 @@
     </head>
     <body>
         <div style="display: contents">%sveltekit.body%</div>
-        <!-- Safari(WebKit) bfcache 복원 시 stale 상태 방지 -->
+        <!-- WebKit(iOS 전 브라우저 + macOS/iPadOS Safari) 전용 MPA Fallback:
+             (1) 내부 링크를 full-document 내비(MPA)로 강제 — SPA 라우팅이 WebKit
+                 bfcache/history 를 오염시키는 #989/#796 류 회피
+             (2) bfcache 복원 시 reload — 복원 페이지의 죽은 beforeNavigate 재무장(goto 내비
+                 MPA 유지) + 로그인 세션 stale 방지(#7697/#7627)
+             비WebKit(데스크탑/안드로이드 Chrome·FF)은 SPA 유지 — 영향 없음. -->
+
         <script>
             (function () {
-                // stale 회귀(#7697/#7627)는 WebKit 엔진 고유 + 로그인 세션에서만 문제.
-                // 따라서 reload는 'WebKit 엔진 && 로그인'일 때로 한정한다:
-                //  - 비WebKit(데스크탑/안드로이드 Chrome·FF)은 bfcache가 정상 → 보존(불필요한 reload 제거)
-                //  - 익명 사용자는 갱신할 세션 상태가 없어 stale 영향 미미 → 보존
                 function isWebKitEngine() {
                     var ua = navigator.userAgent;
                     // iOS는 모든 브라우저가 WebKit 강제(Chrome=CriOS, FF=FxiOS 포함).
@@ -280,14 +282,23 @@
                         );
                     return iOS || macSafari;
                 }
-                function isLoggedIn() {
-                    // httpOnly:false 인 ssr_auth=1(로그인) 쿠키로 판별 (hooks.server.ts)
-                    return /(?:^|;\s*)ssr_auth=1(?:;|$)/.test(document.cookie);
+                // (1) WebKit MPA Fallback: body 에 data-sveltekit-reload 설정 → SvelteKit
+                //     클라이언트 라우터가 내부 <a> 클릭을 가로채지 않고 full-document 내비.
+                //     클릭 시점에 DOM 에서 속성을 읽으므로 인라인(파싱 중 동기 실행)으로 충분.
+                //     서버 주입이 아니라 SSR 캐시(X-SSR-Cache)/Vary 오염이 없다.
+                //     back 은 네이티브(bfcache) 유지 → 아래 (2) pageshow 가드가 처리.
+                if (isWebKitEngine()) {
+                    document.body.setAttribute('data-sveltekit-reload', '');
                 }
                 window.addEventListener('pageshow', function (e) {
                     if (!e.persisted) return; // bfcache 복원이 아니면 무시
-                    if (isWebKitEngine() && isLoggedIn()) {
-                        // bfcache stale 복원 — SvelteKit 라우터/세션 상태 갱신 위해 리로드
+                    // (2) WebKit bfcache 복원 → 항상 reload.
+                    //     이유 ①: 복원 페이지는 라우터가 "이탈" 상태로 얼어붙어 beforeNavigate 가
+                    //     죽어 있어, goto 기반 내비(페이지네이션 등)가 MPA 가드를 우회해 SPA 로
+                    //     샌다(#post→back→pagination). reload 로 신선 하이드레이션 → beforeNavigate
+                    //     재무장 → 모든 내비 MPA 일관. 이유 ②: 로그인 세션 stale 방지(#7697/#7627).
+                    //     iOS 는 어차피 MPA 라 bfcache 속도 이점을 노리지 않으므로 익명 포함 전체 reload.
+                    if (isWebKitEngine()) {
                         location.reload();
                     }
                 });

@@ -5,7 +5,8 @@
     import PluginSlot from '$lib/components/plugin/plugin-slot.svelte';
     import type { Component } from 'svelte';
     import { browser } from '$app/environment';
-    import { afterNavigate, onNavigate } from '$app/navigation';
+    import { afterNavigate, beforeNavigate, onNavigate } from '$app/navigation';
+    import { isWebKitEngine } from '$lib/utils/is-webkit';
     import { navigating } from '$app/state';
     import { page } from '$app/stores';
     import { configureSeo } from '$lib/seo';
@@ -258,6 +259,23 @@
         untrack(() => {
             bfStore.setLoggedIn(isAuth);
         });
+    });
+
+    // WebKit MPA Fallback: goto() 등 프로그래매틱 내비(페이지네이션·필터·검색 등)도
+    // full-document 로 강제한다. <a> 클릭은 app.html 의 data-sveltekit-reload 가 네이티브
+    // 풀내비로 처리하므로(그 경우 SPA 내비가 시작되지 않아 beforeNavigate 가 안 뜸), 여기서는
+    // 주로 'goto' 류를 잡는다. back/popstate 는 네이티브 유지 → bfcache + app.html pageshow 가드(A2).
+    // 같은 경로+쿼리에서 해시만 변경(#comments 등)은 네이티브 스크롤로 두어 불필요한 풀로드 방지.
+    beforeNavigate((navigation) => {
+        if (!browser) return;
+        if (navigation.type !== 'goto' && navigation.type !== 'link') return;
+        if (navigation.willUnload || !navigation.to?.url) return;
+        if (!isWebKitEngine()) return;
+        const from = navigation.from?.url;
+        const to = navigation.to.url;
+        if (from && from.pathname === to.pathname && from.search === to.search) return;
+        navigation.cancel();
+        window.location.href = to.href;
     });
 
     const NAVIGATION_STALL_TIMEOUT_MS = 4000;
