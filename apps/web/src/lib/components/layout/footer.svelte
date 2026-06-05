@@ -12,10 +12,11 @@
         { name: '도움말', href: '/도움말' }
     ];
 
-    // 다모앙 생태계 (외부 링크)
-    const ecosystemLinks: FooterLink[] = [
-        { name: '다모앙 커뮤니티', href: 'https://damoang.net', external: true },
-        { name: '다모앙 만들기', href: 'https://damoang.net/makeang', external: true }
+    // 위키 도구
+    const toolLinks: FooterLink[] = [
+        { name: '문서 작성하기', href: '/특수:새문서' },
+        { name: '특수 문서 목록', href: '/특수:목록' },
+        { name: '업로드 파일', href: '/특수:파일목록' }
     ];
 
     // 안내 메뉴
@@ -28,7 +29,7 @@
     // 메뉴 섹션 데이터
     const sections = [
         { title: '위키앙', links: wikiLinks, titleClass: 'text-foreground' },
-        { title: '다모앙 생태계', links: ecosystemLinks, titleClass: 'text-foreground' },
+        { title: '위키 도구', links: toolLinks, titleClass: 'text-foreground' },
         { title: '안내', links: helpLinks, titleClass: 'text-foreground' }
     ];
 
@@ -157,31 +158,14 @@
     <!-- 저작권 및 연락처 섹션 -->
     <div class="bg-canvas">
         <div class="mx-auto max-w-[1200px] px-4 py-6 text-center">
-            <!-- 사업자 정보 -->
+            <!-- 사업자 정보 (위키앙 운영 법인) -->
             <div class="text-muted-foreground mb-4 text-xs leading-relaxed">
-                <p>
-                    주식회사 에스디케이(SDK) | 대표: SDK | 사업자등록번호: 871-81-03242 |
-                    통신판매업신고: 2024-고양일산서-1820
-                </p>
-                <p>
-                    주소: 제주특별자치도 제주시 남성로 127, 4층 | 이메일: contact@damoang.net |
-                    호스팅 제공자: Amazon Web Services
-                </p>
+                <p>WIKIANG LLC | EIN: 30-1443167 | Dallas, TX, USA</p>
+                <p>호스팅 제공자: Amazon Web Services / Cloudflare</p>
             </div>
 
             <div class="text-muted-foreground space-y-2 text-sm">
-                <p>
-                    <a
-                        href="https://sdkcorp.com"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        class="hover:text-primary transition-colors"
-                        >© SDK Co., Ltd. All rights reserved.</a
-                    >
-                </p>
-                <p>
-                    제보/신고 : jebo@damoang.net, 문의(광고 그리고 모든 문의) : contact@damoang.net
-                </p>
+                <p>© WIKIANG LLC. All rights reserved.</p>
             </div>
 
             <p class="text-muted-foreground mt-3 text-xs">
