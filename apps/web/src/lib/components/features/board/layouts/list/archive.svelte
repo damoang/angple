@@ -131,8 +131,7 @@
                                     e.preventDefault();
                                     goto(`${href}#comments`);
                                 }
-                            }}
-                            >{formatCommentCountBadge(post.comments_count)}</span
+                            }}>{formatCommentCountBadge(post.comments_count)}</span
                         >
                     {/if}
                 </div>
