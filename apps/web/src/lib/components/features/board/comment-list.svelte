@@ -935,6 +935,8 @@
     // 50개 초과 시 한 번에 보내면 뒤쪽 댓글이 조용히 잘려 나가 "특정번째 이후 댓글 공감자 미노출" 제보(#11996) 재현됨
     const COMMENT_LIKERS_BATCH_CHUNK = 50;
     async function loadCommentLikerAvatarsBatch(commentIds: string[]): Promise<void> {
+        // 공감자 신원(닉네임/ID)은 로그인 사용자에게만 노출 — 게시글 공감자(loadLikerAvatars)와 동일 정책.
+        if (!authStore.isAuthenticated) return;
         if (!boardId || !postId || commentIds.length === 0) return;
         try {
             const chunks: string[][] = [];
@@ -1384,7 +1386,7 @@
                                 </div>
 
                                 <!-- 댓글 추천자 아바타 스택 -->
-                                {#if getCommentLikes(comment) > 0 && commentLikersList.has(String(comment.id))}
+                                {#if authStore.isAuthenticated && getCommentLikes(comment) > 0 && commentLikersList.has(String(comment.id))}
                                     <AvatarStack
                                         items={commentLikersList.get(String(comment.id)) ?? []}
                                         total={commentLikersTotal.get(String(comment.id)) ?? 0}
@@ -1776,7 +1778,7 @@
                             {/if}
 
                             <!-- 댓글 추천자 아바타 스택 -->
-                            {#if getCommentLikes(comment) > 0 && commentLikersList.has(String(comment.id))}
+                            {#if authStore.isAuthenticated && getCommentLikes(comment) > 0 && commentLikersList.has(String(comment.id))}
                                 <AvatarStack
                                     items={commentLikersList.get(String(comment.id)) ?? []}
                                     total={commentLikersTotal.get(String(comment.id)) ?? 0}
