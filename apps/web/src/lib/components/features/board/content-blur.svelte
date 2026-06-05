@@ -23,7 +23,7 @@
     let revealed = $state(false);
 
     const BOOKKUANG_IMAGE =
-        'https://s3.damoang.net/data/editor/b7767-664966b303898-9eea4d0b7513e8395986b5aa7c42d1854c10bc21.webp';
+        'https://r2.damoang.net/data/editor/b7767-664966b303898-9eea4d0b7513e8395986b5aa7c42d1854c10bc21.webp';
 
     const isBlurred = $derived(shouldBlur && !revealed);
 
