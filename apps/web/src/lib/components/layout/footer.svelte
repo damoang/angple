@@ -161,7 +161,7 @@
             <!-- 사업자 정보 (위키앙 운영 법인 — Delaware LLC) -->
             <div class="text-muted-foreground mb-4 text-xs leading-relaxed">
                 <p>WIKIANG LLC | A Delaware Limited Liability Company (USA) | EIN: 30-1443167</p>
-                <p>문의: sdk@sdk.kr | 호스팅 제공자: Amazon Web Services / Cloudflare</p>
+                <p>문의: help@wikiang.org | 호스팅 제공자: Amazon Web Services / Cloudflare</p>
             </div>
 
             <div class="text-muted-foreground space-y-2 text-sm">
