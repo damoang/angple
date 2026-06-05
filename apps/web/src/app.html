@@ -2,32 +2,6 @@
 <html lang="ko">
     <head>
         <meta charset="utf-8" />
-        <!--
-          #989 fix: iOS Safari는 짧은 시간 내 연속 history 쓰기(replaceState→pushState)를
-          한 틱으로 병합해, list→detail pushState가 새 엔트리 대신 현재 엔트리를 덮어쓴다
-          (빠른 탭→뒤로가기 시 목록을 건너뛰고 about:blank로 이탈).
-          쓰기 직후 history.length를 동기 read하면 WebKit이 엔트리를 즉시 commit하여 병합을 막는다.
-          SvelteKit은 history.pushState/replaceState를 호출 시점에 live로 참조하므로(클라이언트
-          번들보다 먼저 실행되는) 이 래퍼가 내부 내비게이션에도 적용된다.
-        -->
-        <script>
-            (function () {
-                if (typeof history === 'undefined') return;
-                var op = history.pushState;
-                var or = history.replaceState;
-                if (typeof op !== 'function' || typeof or !== 'function') return;
-                history.pushState = function () {
-                    var r = op.apply(this, arguments);
-                    void history.length; // force WebKit to flush/commit the new entry
-                    return r;
-                };
-                history.replaceState = function () {
-                    var r = or.apply(this, arguments);
-                    void history.length;
-                    return r;
-                };
-            })();
-        </script>
         <script>
             // 테마 모드 즉시 적용 (FOUC 방지 — CSS 파싱보다 먼저 실행)
             // 1순위: 쿠키 (SSR과 동일한 소스)
