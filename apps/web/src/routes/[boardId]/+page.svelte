@@ -130,18 +130,18 @@
     let promotionPosts = $state<unknown[]>(data.promotionData || []);
 
     // 목록 → 상세 → 뒤로가기 복귀 시, SvelteKit 클라이언트 캐시가 stale 목록을 보여줄 수 있다.
-    // 떠나 있던 시간이 임계값(15s)을 넘은 popstate 복귀에 한해 invalidateAll 로 목록만 재요청한다.
-    // (full reload 아님 — 하이드레이션된 SPA 위에서 load 함수 재실행). lastLeftAt 은 컴포넌트
-    // 언마운트/리마운트를 가로질러 유지되도록 모듈 스코프(아래 module script)에 보관한다.
+    // popstate 복귀에 한해 invalidateAll 로 목록만 재요청한다(full reload 아님 — 하이드레이션된
+    // SPA 위에서 load 재실행). 임계값은 서버 목록 캐시 구조에 맞춘다:
+    //   - 비로그인: 서버가 15s TTL 캐시(usePostsCache=!locals.user)를 쓰므로, 그 안의 refetch 는
+    //     동일 데이터만 돌려받아 헛수고 → REVALIDATE_AFTER_MS(15s) 게이트로 캐시 만료 후에만 갱신.
+    //   - 로그인: 서버 캐시를 우회(항상 백엔드 fresh)하므로 즉시(0s) 갱신해 최신 목록을 받는다.
+    // lastLeftAt 은 컴포넌트 언마운트/리마운트를 가로질러 유지되도록 모듈 스코프에 보관한다.
     beforeNavigate(() => {
         lastLeftAt = Date.now();
     });
     afterNavigate((nav) => {
-        if (
-            nav.type === 'popstate' &&
-            lastLeftAt &&
-            Date.now() - lastLeftAt > REVALIDATE_AFTER_MS
-        ) {
+        if (nav.type !== 'popstate' || !lastLeftAt) return;
+        if (authStore.isAuthenticated || Date.now() - lastLeftAt > REVALIDATE_AFTER_MS) {
             invalidateAll();
         }
     });
