@@ -760,6 +760,15 @@
         likersPage = 1;
         editingMemoFor = null;
         scheduledDelete = null;
+
+        // 공감자 아바타 eager 미리보기 로드.
+        // 댓글은 getCommentLikersBatch로 초기 로드 시 아바타가 뜨지만, 게시글은 기존에
+        // loadLikerAvatars가 공감 토글에서만 호출돼 "공감/공감자 목록 보기"를 누르기 전엔
+        // 아바타가 안 떴음. 좋아요가 있는 글에서만 1회 요청(상위 5명).
+        // 비로그인은 loadLikerAvatars 내부에서 early-return하므로 요청 발생 안 함.
+        if (data.post.likes > 0) {
+            loadLikerAvatars();
+        }
     });
 
     // 앵커 스크롤 + 하이라이트 헬퍼
