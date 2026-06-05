@@ -283,19 +283,11 @@
                     }
                 }}
             >
-                <img
-                    src={logoSrc}
-                    alt={logoAlt}
-                    class="pointer-events-none block h-10 w-auto max-w-full select-none md:h-12"
-                    width="98"
-                    height="48"
-                    decoding="async"
-                    fetchpriority="high"
-                    style="max-height:48px; contain:layout style paint;"
-                    onerror={() => {
-                        headerLogoFailed = true;
-                    }}
-                />
+                <!-- 위키앙 텍스트 로고 (전용 이미지 로고 없음 — damoang logo.svg fallback 방지) -->
+                <span
+                    class="text-foreground pointer-events-none block select-none text-2xl font-bold tracking-tight md:text-3xl"
+                    >wikiang</span
+                >
             </a>
         </div>
 
