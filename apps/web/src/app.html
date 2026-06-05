@@ -257,14 +257,41 @@
     </head>
     <body>
         <div style="display: contents">%sveltekit.body%</div>
-        <!-- Safari bfcache 복원 시 stale 상태 방지 -->
+        <!-- Safari(WebKit) bfcache 복원 시 stale 상태 방지 -->
         <script>
-            window.addEventListener('pageshow', function (e) {
-                if (e.persisted) {
-                    // bfcache에서 복원됨 — SvelteKit 라우터 상태 갱신 위해 리로드
-                    location.reload();
+            (function () {
+                // stale 회귀(#7697/#7627)는 WebKit 엔진 고유 + 로그인 세션에서만 문제.
+                // 따라서 reload는 'WebKit 엔진 && 로그인'일 때로 한정한다:
+                //  - 비WebKit(데스크탑/안드로이드 Chrome·FF)은 bfcache가 정상 → 보존(불필요한 reload 제거)
+                //  - 익명 사용자는 갱신할 세션 상태가 없어 stale 영향 미미 → 보존
+                function isWebKitEngine() {
+                    var ua = navigator.userAgent;
+                    // iOS는 모든 브라우저가 WebKit 강제(Chrome=CriOS, FF=FxiOS 포함).
+                    // iPadOS 데스크탑 모드는 'Macintosh'로 위장하므로 터치포인트로 보정.
+                    var iOS =
+                        /iP(ad|hone|od)/.test(ua) ||
+                        (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+                    // macOS Safari: AppleWebKit+Safari 이면서 Chromium/Gecko/Android 계열이 아님.
+                    var macSafari =
+                        /AppleWebKit/.test(ua) &&
+                        /Safari/.test(ua) &&
+                        !/(Chrome|Chromium|CriOS|FxiOS|EdgiOS|Edg|OPR|OPiOS|SamsungBrowser|Android)/.test(
+                            ua
+                        );
+                    return iOS || macSafari;
                 }
-            });
+                function isLoggedIn() {
+                    // httpOnly:false 인 ssr_auth=1(로그인) 쿠키로 판별 (hooks.server.ts)
+                    return /(?:^|;\s*)ssr_auth=1(?:;|$)/.test(document.cookie);
+                }
+                window.addEventListener('pageshow', function (e) {
+                    if (!e.persisted) return; // bfcache 복원이 아니면 무시
+                    if (isWebKitEngine() && isLoggedIn()) {
+                        // bfcache stale 복원 — SvelteKit 라우터/세션 상태 갱신 위해 리로드
+                        location.reload();
+                    }
+                });
+            })();
         </script>
         <!-- Raw JSON 감지: JS 로드 실패 시 __data.json이 화면에 표시되는 것 방지 -->
         <script>
