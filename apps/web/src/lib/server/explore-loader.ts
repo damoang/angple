@@ -6,6 +6,7 @@
  */
 
 import { readFile } from 'node:fs/promises';
+import { rewriteImageHosts } from '$lib/server/cdn-rewrite';
 import { existsSync } from 'node:fs';
 import type { ExploreData, ExploreModeData } from '$lib/api/types';
 import { env } from '$env/dynamic/private';
@@ -48,7 +49,7 @@ export async function loadExploreData(): Promise<ExploreData | null> {
 
     try {
         const content = await readFile(filePath, 'utf-8');
-        const data: ExploreData = JSON.parse(content);
+        const data: ExploreData = JSON.parse(rewriteImageHosts(content));
         cache = { data, timestamp: Date.now() };
         return data;
     } catch (err) {
