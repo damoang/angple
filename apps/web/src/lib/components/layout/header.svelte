@@ -11,7 +11,7 @@
     import Smartphone from '@lucide/svelte/icons/smartphone';
     import DefaultLogo from '$lib/assets/logo.svg';
     import AlignJustify from '@lucide/svelte/icons/align-justify';
-    import Mail from '@lucide/svelte/icons/mail';
+    import MessageIcon from './message-icon.svelte';
     import Sidebar from './sidebar.svelte';
     import PluginSlot from '$lib/components/plugin/plugin-slot.svelte';
     import {
@@ -467,15 +467,8 @@
             {/if}
 
             {#if isEffectivelyLoggedIn}
-                <!-- 쪽지 아이콘 -->
-                <button
-                    onclick={() => goto('/messages')}
-                    class="hover:bg-accent relative rounded-lg p-2 transition-all duration-200 ease-out"
-                    aria-label="쪽지"
-                >
-                    <span class="pointer-events-none absolute -inset-1"></span>
-                    <Mail class="text-muted-foreground h-5 w-5" />
-                </button>
+                <!-- 쪽지 아이콘 + 미읽음 배지 -->
+                <MessageIcon />
 
                 <!-- 알림 드롭다운 -->
                 <NotificationDropdown />
