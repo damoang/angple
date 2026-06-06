@@ -77,11 +77,20 @@ function fireAndForgetCommentLikeSideEffects(options: {
                 if (!options.authorMbId || options.authorMbId === options.actorMbId) return;
 
                 const [prefRows] = await pool.query<RowDataPacket[]>(
-                    `SELECT noti_like FROM g5_noti_preference WHERE mb_id = ?`,
+                    `SELECT noti_like, like_threshold FROM g5_noti_preference WHERE mb_id = ?`,
                     [options.authorMbId]
                 );
                 const notiLikeEnabled = prefRows[0]?.noti_like ?? 1;
-                if (!notiLikeEnabled) return;
+                const likeThreshold = prefRows[0]?.like_threshold ?? 1;
+
+                // 공감 알림 임계값 게이트 — 글 추천 라우트(post like)와 동일한 규칙.
+                // 댓글 라우트만 이 체크가 누락되어 임계값 설정이 무시되던 버그 수정 (#12612).
+                if (
+                    !notiLikeEnabled ||
+                    (likeThreshold > 1 && options.nextLikes % likeThreshold !== 0)
+                ) {
+                    return;
+                }
 
                 await pool.query(
                     `DELETE FROM g5_na_noti WHERE bo_table = ? AND wr_id = ? AND rel_mb_id = ? AND ph_from_case = 'good'`,
