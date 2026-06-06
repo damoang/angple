@@ -11,6 +11,7 @@
     import { authStore } from '$lib/stores/auth.svelte.js';
     import type { Message, MessageListResponse, MessageKind } from '$lib/api/types.js';
     import { onMount } from 'svelte';
+    import { toast } from 'svelte-sonner';
     import Mail from '@lucide/svelte/icons/mail';
     import Send from '@lucide/svelte/icons/send';
     import Inbox from '@lucide/svelte/icons/inbox';
@@ -100,6 +101,9 @@
             viewingMessage = await apiClient.getMessage(message.id);
         } catch (err) {
             console.error('Failed to load message:', err);
+            // 상세 조회는 읽음 처리(MarkAsRead)도 트리거하므로, 실패를 조용히 묻으면
+            // 사용자가 못 읽은 채로 읽음 추적도 안 됨 → 최소한 토스트로 노출한다.
+            toast.error('쪽지를 불러오지 못했어요. 잠시 후 다시 시도해주세요.');
             viewingMessage = message;
         } finally {
             isLoadingMessage = false;
