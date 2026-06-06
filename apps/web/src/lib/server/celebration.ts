@@ -99,7 +99,8 @@ export async function fetchCelebrations(isRecent: boolean = false): Promise<Cele
                 id: row.source_wr_id || row.id,
                 title: row.title,
                 content: row.content || '',
-                image_url: row.image_url || '',
+                // DB 에 s3 host 로 저장된 배너 이미지도 CDN_URL(r2) 로 정규화 (홈 SSR s3 잔존 fix)
+                image_url: normalizeMediaUrl(row.image_url, CDN_BASE) ?? '',
                 link_url: linkUrl,
                 display_date: row.display_date,
                 is_active: true,

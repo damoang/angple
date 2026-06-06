@@ -8,6 +8,7 @@ import type { RequestHandler } from './$types';
 import type { RowDataPacket } from 'mysql2';
 import pool from '$lib/server/db';
 import { env } from '$env/dynamic/private';
+import { normalizeMediaUrl } from '$lib/utils/media-url';
 
 interface Banner {
     id: number;
@@ -57,11 +58,8 @@ function extractFirstImage(content: string): string | null {
     if (!content) return null;
     const imgMatch = content.match(/<img[^>]+src=["']([^"']+)["']/i);
     if (imgMatch && imgMatch[1]) {
-        let imgUrl = imgMatch[1];
-        if (imgUrl.startsWith('/data/')) {
-            imgUrl = CDN_BASE + imgUrl;
-        }
-        return imgUrl;
+        // /data/ 상대경로 + s3/cdn 절대 URL 모두 CDN_BASE(r2) 로 정규화
+        return normalizeMediaUrl(imgMatch[1], CDN_BASE);
     }
     return null;
 }
@@ -105,7 +103,8 @@ export const GET: RequestHandler = async () => {
                 const anonymous = !!row.is_anonymous || (!!row.source_wr_id && sourceWrName === '');
 
                 // source_wr_id가 있으면 원본 게시글에서 최신 이미지 추출 (동기화)
-                let imageUrl = row.image_url || '';
+                // DB 에 s3 host 로 저장된 배너 이미지도 CDN_URL(r2) 로 정규화
+                let imageUrl = normalizeMediaUrl(row.image_url, CDN_BASE) ?? '';
                 if (row.source_content) {
                     const freshImage = extractFirstImage(row.source_content);
                     if (freshImage) imageUrl = freshImage;
