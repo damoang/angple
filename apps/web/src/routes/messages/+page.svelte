@@ -45,6 +45,32 @@
     let viewingMessage = $state<Message | null>(null);
     let isLoadingMessage = $state(false);
 
+    // 모두 읽음 처리
+    let isMarkingAllRead = $state(false);
+
+    /** 받은 쪽지 전체 읽음 처리 — 목록/탭 배지/헤더 배지 즉시 반영 */
+    async function markAllRead(): Promise<void> {
+        if (isMarkingAllRead) return;
+        isMarkingAllRead = true;
+        try {
+            const { updated } = await apiClient.markAllMessagesRead();
+            if (messageData) {
+                messageData.items = messageData.items.map((m) => ({ ...m, is_read: true }));
+                messageData.unread_count = 0;
+            }
+            // 헤더 쪽지 배지 즉시 갱신 (message-icon.svelte 가 수신)
+            window.dispatchEvent(new CustomEvent('angple:messages-read'));
+            toast.success(
+                updated > 0 ? `쪽지 ${updated}개를 읽음 처리했어요.` : '읽지 않은 쪽지가 없어요.'
+            );
+        } catch (err) {
+            console.error('Failed to mark all messages read:', err);
+            toast.error('모두 읽음 처리에 실패했어요. 잠시 후 다시 시도해주세요.');
+        } finally {
+            isMarkingAllRead = false;
+        }
+    }
+
     // 탭 정의
     const tabs: { id: MessageKind; label: string; icon: typeof Inbox }[] = [
         { id: 'recv', label: '받은 쪽지', icon: Inbox },
@@ -231,7 +257,7 @@
     </div>
 
     <!-- 탭 네비게이션 -->
-    <div class="border-border mb-6 flex gap-2 border-b pb-2">
+    <div class="border-border mb-6 flex items-center gap-2 border-b pb-2">
         {#each tabs as tab (tab.id)}
             <Button
                 variant={data.kind === tab.id ? 'default' : 'ghost'}
@@ -249,6 +275,22 @@
                 {/if}
             </Button>
         {/each}
+
+        <!-- 모두 읽음: 받은쪽지 탭 + 미읽음 있을 때만 노출 -->
+        {#if data.kind === 'recv' && messageData?.unread_count}
+            <Button
+                variant="outline"
+                size="sm"
+                class="ml-auto"
+                disabled={isMarkingAllRead}
+                onclick={markAllRead}
+            >
+                {#if isMarkingAllRead}
+                    <Loader2 class="mr-1.5 h-4 w-4 animate-spin" />
+                {/if}
+                모두 읽음
+            </Button>
+        {/if}
     </div>
 
     {#if isLoading}

@@ -2015,6 +2015,16 @@ class ApiClient {
         return response.data;
     }
 
+    /**
+     * 받은 쪽지 전체 읽음 처리 ('모두 읽음' 버튼)
+     */
+    async markAllMessagesRead(): Promise<{ updated: number }> {
+        const response = await this.request<{ updated: number }>('/messages/read-all', {
+            method: 'POST'
+        });
+        return response.data;
+    }
+
     // ==================== 경험치 API ====================
 
     /**
