@@ -47,6 +47,20 @@ const JSON_PATH =
     '/home/damoang/legacy-data/data/cache/recommended/index-widgets.json';
 const CACHE_TTL_MS = 60_000; // 60초 (파일은 5분마다 갱신)
 
+/**
+ * 이미지 read CDN base (CDN_URL). Go 생성기가 index-widgets.json 의 thumbnail/content 를
+ * s3/cdn.damoang.net 으로 박아 보내는데, 이 위젯 경로는 normalizeMediaUrl 을 거치지 않아
+ * 홈에서만 s3 URL 이 노출됨 (게시판 목록은 정규화됨). 여기서 raw 단계에 host 를 치환한다.
+ * multi-tenant: 테넌트별 CDN_URL env 사용. 미설정(기본 s3) 시 no-op.
+ */
+const CDN_BASE = (env.CDN_URL || 'https://s3.damoang.net').replace(/\/$/, '');
+
+/** index-widgets.json 의 /data/ 이미지 host 를 CDN_BASE 로 치환 (R2 read cutover). */
+function rewriteImageHosts(rawJson: string): string {
+    if (CDN_BASE === 'https://s3.damoang.net') return rawJson; // 기본값 = 치환 불필요
+    return rawJson.replace(/https:\/\/(?:s3|cdn)\.damoang\.net\/data\//g, `${CDN_BASE}/data/`);
+}
+
 const EMPTY_RESULT: IndexWidgetsData = {
     news_tabs: [],
     economy_tabs: [],
@@ -70,7 +84,7 @@ export async function buildIndexWidgets(_backendUrl: string): Promise<IndexWidge
 
     try {
         const raw = await readFile(JSON_PATH, 'utf-8');
-        const json = JSON.parse(raw);
+        const json = JSON.parse(rewriteImageHosts(raw));
 
         const result: IndexWidgetsData = {
             news_tabs: (json.news_tabs ?? []) as NewsPost[],
