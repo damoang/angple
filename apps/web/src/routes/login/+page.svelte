@@ -43,6 +43,68 @@
     // 일반 로그인 form 노출 (iOS Safari pull-to-refresh 후 cookie 손실 시 무한 spinner 차단).
     const AUTH_POLL_TIMEOUT_MS = 5000;
 
+    // #12621: 보호 페이지(SSR 세션 판정) ↔ /login(클라이언트 판정) 무한 왕복 차단.
+    // SSR 인증이 일시 장애(Redis 지연 등)로 비로그인 판정하면 보호 페이지가 /login 으로
+    // 보내고, 여기서 클라이언트 상태만 믿고 즉시 되돌리면 무한 새로고침 루프가 된다.
+    // 가드 2중:
+    //  (1) 되돌리기 전 /api/auth/me(no-store) 로 서버 세션을 직접 확인 — 서버가
+    //      비로그인이라면 되돌리지 않고 로그인 form 노출.
+    //  (2) 같은 목적지로 60초 내 2회 이상 자동 이동 시 루프로 간주하고 form 노출.
+    const BOUNCE_STORAGE_KEY = 'angple_login_bounce_v1';
+    const BOUNCE_WINDOW_MS = 60_000;
+    const BOUNCE_MAX = 2;
+
+    function readBounce(): { target: string; count: number; ts: number } | null {
+        try {
+            const raw = sessionStorage.getItem(BOUNCE_STORAGE_KEY);
+            return raw ? JSON.parse(raw) : null;
+        } catch {
+            return null;
+        }
+    }
+
+    function recordBounce(target: string): void {
+        try {
+            const prev = readBounce();
+            const fresh = prev && prev.target === target && Date.now() - prev.ts < BOUNCE_WINDOW_MS;
+            sessionStorage.setItem(
+                BOUNCE_STORAGE_KEY,
+                JSON.stringify({
+                    target,
+                    count: fresh ? prev.count + 1 : 1,
+                    ts: Date.now()
+                })
+            );
+        } catch {
+            // sessionStorage 불가 환경은 (1) 서버 확인 가드만으로 동작
+        }
+    }
+
+    function isBounceLooping(target: string): boolean {
+        const prev = readBounce();
+        return (
+            !!prev &&
+            prev.target === target &&
+            prev.count >= BOUNCE_MAX &&
+            Date.now() - prev.ts < BOUNCE_WINDOW_MS
+        );
+    }
+
+    /** 서버 세션 확정 확인 — 캐시 우회. 실패/비로그인 모두 false. */
+    async function confirmServerSession(): Promise<boolean> {
+        try {
+            const res = await fetch('/api/auth/me', {
+                cache: 'no-store',
+                credentials: 'same-origin'
+            });
+            if (!res.ok) return false;
+            const data = await res.json();
+            return !!data?.user;
+        } catch {
+            return false;
+        }
+    }
+
     onMount(() => {
         const oauthError = $page.url.searchParams.get('error');
         if (oauthError) {
@@ -54,7 +116,22 @@
             if (isRedirecting) return;
             if (!authStore.isLoading && authStore.isAuthenticated) {
                 isRedirecting = true;
-                window.location.href = redirectUrl;
+                void (async () => {
+                    if (isBounceLooping(redirectUrl)) {
+                        // 가드 (2): 짧은 시간 내 같은 목적지로 반복 왕복 → 루프 차단
+                        isRedirecting = false;
+                        error = '자동 이동이 반복되어 중단했습니다. 다시 로그인해 주세요.';
+                        return;
+                    }
+                    if (!(await confirmServerSession())) {
+                        // 가드 (1): 클라이언트는 로그인 상태지만 서버 세션이 없음/불안정
+                        isRedirecting = false;
+                        error = '세션이 만료되었습니다. 다시 로그인해 주세요.';
+                        return;
+                    }
+                    recordBounce(redirectUrl);
+                    window.location.href = redirectUrl;
+                })();
                 return;
             }
             // timeout: polling 5초 내 결판 안 나면 form 노출 (loop 차단)

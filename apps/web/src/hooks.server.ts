@@ -345,22 +345,41 @@ function getGlobalApiRateLimitKey(
     return clientIp ? `ip:${clientIp}` : null;
 }
 
-/** 타임아웃 래퍼: 지정 시간 내 미완료 시 null 반환
- *
- * 2026-04-26: setTimeout clearTimeout 누락 수정.
- * Promise.race 가 promise winner 일 때 timer 가 살아있어 매 SSR 요청 누적
- * (12h × 수만 요청 = pod 메모리 +수백 MB). Serena Round A #2 발견.
- */
 const AUTH_TIMEOUT_MS = 3000;
-function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | null> {
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    const timeoutPromise = new Promise<null>((resolve) => {
-        timer = setTimeout(() => resolve(null), ms);
-        timer.unref?.();
-    });
-    return Promise.race([promise, timeoutPromise]).finally(() => {
-        if (timer) clearTimeout(timer);
-    });
+
+/**
+ * withTimeout 은 타임아웃 시 null 을 반환해 "조회 결과 없음(로그아웃)"과
+ * "일시 장애(Redis/DB 지연)"가 구분되지 않는다. 이 때문에 세션이 유효한데도
+ * 지연 한 번에 비로그인 처리되어, 보호 페이지 → /login → 복귀 → 또 지연 →
+ * 무한 왕복(#12621 쪽지함 무한 새로고침)이 생긴다.
+ * sentinel 로 타임아웃을 구분하고, 타임아웃/예외 시 1회 재시도한다.
+ */
+const AUTH_LOOKUP_TIMEOUT: unique symbol = Symbol('auth-lookup-timeout');
+async function withTimeoutRetry<T>(
+    fn: () => Promise<T>,
+    ms: number,
+    label: string
+): Promise<T | null> {
+    for (let attempt = 1; attempt <= 2; attempt++) {
+        let timer: ReturnType<typeof setTimeout> | undefined;
+        const timeoutPromise = new Promise<typeof AUTH_LOOKUP_TIMEOUT>((resolve) => {
+            timer = setTimeout(() => resolve(AUTH_LOOKUP_TIMEOUT), ms);
+            timer.unref?.();
+        });
+        try {
+            const result = await Promise.race([fn(), timeoutPromise]).finally(() => {
+                if (timer) clearTimeout(timer);
+            });
+            if (result !== AUTH_LOOKUP_TIMEOUT) return result;
+            console.error(`[Auth] ${label} 타임아웃 (시도 ${attempt}/2)`);
+        } catch (err) {
+            console.error(
+                `[Auth] ${label} 실패 (시도 ${attempt}/2):`,
+                err instanceof Error ? err.message : err
+            );
+        }
+    }
+    return null;
 }
 
 /** SSR 인증: 서버사이드 세션 only (JWT 미사용) */
@@ -375,7 +394,11 @@ async function authenticateSSR(event: Parameters<Handle>[0]['event']): Promise<v
 
     if (sessionId) {
         try {
-            const session = await withTimeout(getSession(sessionId), AUTH_TIMEOUT_MS);
+            const session = await withTimeoutRetry(
+                () => getSession(sessionId),
+                AUTH_TIMEOUT_MS,
+                'getSession'
+            );
             if (session) {
                 // FAST PATH: user_basic 쿠키 + JWT cache hit → DB 조회 0 (Phase B wire-up)
                 // feature flag USER_BASIC_FAST_PATH=true 시 활성화. default off.
@@ -412,7 +435,11 @@ async function authenticateSSR(event: Parameters<Handle>[0]['event']): Promise<v
                     }
                 }
 
-                const member = await withTimeout(getMemberById(session.mbId), AUTH_TIMEOUT_MS);
+                const member = await withTimeoutRetry(
+                    () => getMemberById(session.mbId),
+                    AUTH_TIMEOUT_MS,
+                    'getMemberById'
+                );
                 if (member) {
                     // 탈퇴 회원 세션 차단 (이용제한 회원은 글 열람 허용을 위해 세션 유지)
                     if (member.mb_leave_date) {
