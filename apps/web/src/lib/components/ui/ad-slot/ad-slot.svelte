@@ -345,9 +345,13 @@
 </script>
 
 {#if !suppressAds}
+    <!-- overflow-x 는 hidden 이 아닌 clip 이어야 한다: CSS 스펙상 한 축이 hidden 이면
+         다른 축의 visible 이 auto 로 강제되어 스크롤 컨테이너가 생긴다 (#12595/#12616
+         광고 세로 스크롤바의 근본 원인). clip 은 스크롤 컨테이너를 만들지 않아
+         가로 clipping + 세로 visible(윙 잘림 방지, #1542)이 모두 유지된다. -->
     <div
         bind:this={containerEl}
-        class="dm-display-frame relative overflow-x-hidden overflow-y-visible rounded-lg {className}"
+        class="dm-display-frame relative overflow-x-clip overflow-y-visible rounded-lg {className}"
         class:ad-slot-loaded={isLoaded && hasAd}
         class:ad-slot-empty={isEmpty}
         class:ad-slot-empty-collapsed={isEmpty}
@@ -432,8 +436,10 @@
         justify-content: center;
         align-items: center;
         max-width: 100%;
-        /* AdSense 정책: 광고 세로 잘림 금지 (Ad Clipping). 가로만 clip — 모바일 viewport 보호용. */
-        overflow-x: hidden;
+        /* AdSense 정책: 광고 세로 잘림 금지 (Ad Clipping). 가로만 clip — 모바일 viewport 보호용.
+           주의: hidden 을 쓰면 CSS 스펙상 overflow-y: visible 이 auto 로 강제되어
+           세로 스크롤바가 생긴다 (#12595/#12616). 반드시 clip 사용. */
+        overflow-x: clip;
         overflow-y: visible;
     }
 
