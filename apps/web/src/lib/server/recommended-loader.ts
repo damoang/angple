@@ -6,6 +6,7 @@
  */
 
 import { readFile } from 'node:fs/promises';
+import { rewriteImageHosts } from '$lib/server/cdn-rewrite';
 import { existsSync, statSync } from 'node:fs';
 import type { RecommendedDataWithAI, RecommendedPeriod } from '$lib/api/types';
 import { env } from '$env/dynamic/private';
@@ -75,7 +76,7 @@ export async function loadRecommendedData(
 
     try {
         const content = await readFile(filePath, 'utf-8');
-        const data: RecommendedDataWithAI = JSON.parse(content);
+        const data: RecommendedDataWithAI = JSON.parse(rewriteImageHosts(content));
 
         cache.set(period, { data, timestamp: Date.now() });
         return data;
