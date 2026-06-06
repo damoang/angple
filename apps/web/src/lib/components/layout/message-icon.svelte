@@ -63,12 +63,19 @@
             }
         }
 
+        // 쪽지함 다이얼로그에서 읽기 성공 시 즉시 갱신 (messages/+page.svelte 가 발행)
+        function handleMessagesRead() {
+            void loadUnreadCount();
+        }
+
         if (document.visibilityState === 'visible') startPolling();
         document.addEventListener('visibilitychange', handleVisibilityChange);
+        window.addEventListener('angple:messages-read', handleMessagesRead);
 
         return () => {
             stopPolling();
             document.removeEventListener('visibilitychange', handleVisibilityChange);
+            window.removeEventListener('angple:messages-read', handleMessagesRead);
         };
     });
 

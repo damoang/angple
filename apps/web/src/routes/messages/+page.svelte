@@ -99,6 +99,10 @@
 
         try {
             viewingMessage = await apiClient.getMessage(message.id);
+            // 상세 조회 성공 = 서버 읽음 처리 완료. 다이얼로그에서 읽으면 네비게이션이
+            // 없어 헤더 배지가 폴링(3분)까지 안 줄어드므로, 즉시 갱신 신호를 보낸다.
+            message.is_read = true;
+            window.dispatchEvent(new CustomEvent('angple:messages-read'));
         } catch (err) {
             console.error('Failed to load message:', err);
             // 상세 조회는 읽음 처리(MarkAsRead)도 트리거하므로, 실패를 조용히 묻으면
