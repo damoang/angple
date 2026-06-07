@@ -11,6 +11,7 @@ import type { RowDataPacket } from 'mysql2';
 import pool from '$lib/server/db';
 import { canRestrictedUserReactToBoard, getAuthUser, isRestrictedUser } from '$lib/server/auth';
 import { checkCertification } from '$lib/server/certification';
+import { protectClientIp } from '$lib/server/ip-protection';
 import { getRedis } from '$lib/server/redis';
 import {
     getCommentReactionVersion,
@@ -358,7 +359,8 @@ export const POST: RequestHandler = async ({ params, request, cookies, getClient
             }
         } else {
             // 추가
-            const clientIp = getClientAddress();
+            // IP 보호: super admin/지정 멤버는 실제 IP 대신 치환 IP 기록 (Go 미들웨어와 동일 규칙)
+            const clientIp = protectClientIp(user, getClientAddress());
             await conn.query(
                 `INSERT INTO g5_board_good (bo_table, wr_id, mb_id, bg_flag, bg_datetime, bg_ip) VALUES (?, ?, ?, ?, CONVERT_TZ(UTC_TIMESTAMP(), '+00:00', '+09:00'), ?)`,
                 [safeBoardId, safeCommentId, user.mb_id, action, clientIp]
