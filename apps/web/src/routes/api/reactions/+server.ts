@@ -11,6 +11,7 @@ import type { RowDataPacket } from 'mysql2';
 import pool from '$lib/server/db';
 import { canRestrictedUserReactToBoard, getAuthUser, isRestrictedUser } from '$lib/server/auth';
 import { checkCertification } from '$lib/server/certification';
+import { protectClientIp } from '$lib/server/ip-protection';
 import { fetchReactionsByParentId } from '$lib/server/reactions';
 import { loadPluginServerLib } from '$lib/server/plugin-server-loader.js';
 
@@ -276,9 +277,10 @@ export const POST: RequestHandler = async ({ request, cookies, getClientAddress 
         );
 
         // 클라이언트 IP (PHP chosen_ip 호환)
+        // IP 보호: super admin/지정 멤버는 실제 IP 대신 치환 IP 기록 (Go 미들웨어와 동일 규칙)
         let clientIp = '';
         try {
-            clientIp = getClientAddress();
+            clientIp = protectClientIp(user, getClientAddress());
         } catch {
             // IP 가져오기 실패 시 빈 문자열
         }
