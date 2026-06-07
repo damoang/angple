@@ -155,6 +155,27 @@ function ensureSlotListener() {
                     iframe.setAttribute('scrolling', 'no');
                     iframe.style.overflow = 'hidden';
                 }
+
+                // #12628: overflow-y visible 전환(#1578) 후, 예약 높이(min-height)보다 큰
+                // creative(비디오 등)가 아래 콘텐츠 위로 흘러내려 제목을 가리는 문제.
+                // overflow 로 자르는 대신(잘림=AdSense 정책 위반, auto=스크롤바 #12595)
+                // 컨테이너 min-height 를 creative 렌더 높이만큼 올려 sizing 으로 해결한다.
+                // - 늘리기만 하고 줄이지 않음 (refresh 로 작은 creative 가 와도 layout shift 최소화)
+                // - fluid/1x1 creative 는 event.size 가 무의미 → iframe 실측 높이 fallback
+                let creativeHeight = Array.isArray(event.size) ? Number(event.size[1]) || 0 : 0;
+                if (creativeHeight <= 1 && iframe) {
+                    creativeHeight = iframe.offsetHeight || 0;
+                }
+                if (container && creativeHeight > 1) {
+                    const frame = container.closest('.dm-display-frame') as HTMLElement | null;
+                    for (const el of [container, frame]) {
+                        if (!el) continue;
+                        const current = parseFloat(getComputedStyle(el).minHeight) || 0;
+                        if (creativeHeight > current) {
+                            el.style.minHeight = `${creativeHeight}px`;
+                        }
+                    }
+                }
             } catch {
                 // best-effort: GPT iframe 없거나 권한 부족 시 silent skip
             }
