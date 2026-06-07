@@ -1992,6 +1992,7 @@
                             onLike={handleLikeComment}
                             onDislike={handleDislikeComment}
                             postAuthorId={data.post.author_id}
+                            postDeleted={!!data.post.deleted_at}
                             {boardId}
                             postId={data.post.id}
                             useNogood={!!data.board?.use_nogood}

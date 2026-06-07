@@ -97,6 +97,7 @@
         onDislike?: (commentId: string) => Promise<{ dislikes: number; user_disliked: boolean }>;
         onRestore?: (commentId: string) => Promise<void>;
         postAuthorId?: string; // 게시글 작성자 ID (비밀댓글 열람 권한 체크용)
+        postDeleted?: boolean; // 글이 삭제된 경우 '작성자' 배지 숨김 — 삭제글 작성자 식별 방지
         boardId?: string; // 신고 기능용
         postId?: number; // 신고 기능용
         useNogood?: boolean; // 비추천 기능 사용 여부 (게시판 설정)
@@ -119,6 +120,7 @@
         onDislike,
         onRestore,
         postAuthorId,
+        postDeleted = false,
         boardId = 'free',
         postId = 0,
         useNogood = false,
@@ -1153,7 +1155,7 @@
                         >
                             <AuthorLink authorId={comment.author_id} authorName={comment.author} />
                             <LevelBadge level={memberLevelStore.getLevel(comment.author_id)} />
-                            {#if postAuthorId && comment.author_id === postAuthorId}
+                            {#if !postDeleted && postAuthorId && comment.author_id === postAuthorId}
                                 <span
                                     class="rounded bg-blue-100 px-1.5 py-0.5 text-[10px] font-semibold text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
                                     >작성자</span
@@ -1253,7 +1255,7 @@
                                                 >→ {replyToAuthor}</span
                                             >
                                         {/if}
-                                        {#if postAuthorId && comment.author_id === postAuthorId}
+                                        {#if !postDeleted && postAuthorId && comment.author_id === postAuthorId}
                                             <span
                                                 class="rounded bg-blue-100 px-1.5 py-0.5 text-[10px] font-semibold text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
                                                 >작성자</span
