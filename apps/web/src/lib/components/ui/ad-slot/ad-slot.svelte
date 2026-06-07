@@ -388,10 +388,19 @@
     }
     /* #12411: 모바일 좁은 viewport 에서 광고 크리에이티브가 컨테이너 폭을 초과해
        overflow-hidden 으로 좌/우 잘리는 문제 fix. 광고 iframe/img/ins 자식 요소를
-       컨테이너 폭에 맞추도록 max-width 강제 (AdSense/GAM/Adfit 공통). */
+       컨테이너 폭에 맞추도록 max-width 강제 (AdSense/GAM/Adfit 공통).
+
+       주의: height: auto 는 img 에만 적용해야 한다. iframe 은 GPT 가 width/height
+       를 HTML 속성으로 지정하는데, CSS height:auto 가 속성 힌트를 무시하면
+       iframe(내용 기반 크기 없는 replaced element)이 150px 기본값으로 붕괴한다
+       — 2026-05-30 #1527 이 iframe 에도 height:auto 를 걸어 광고 사이즈 전반
+       이상(#12595/#12616 등)의 근본 원인이 됐던 회귀. Playwright 실측:
+       300×250 iframe + height:auto → offsetHeight 150. */
     .dm-display-frame :global(iframe),
-    .dm-display-frame :global(img),
     .dm-display-frame :global(ins.adsbygoogle) {
+        max-width: 100% !important;
+    }
+    .dm-display-frame :global(img) {
         max-width: 100% !important;
         height: auto;
     }
