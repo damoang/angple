@@ -8,5 +8,28 @@
     "slots": ["main"],
     "icon": "Tag",
     "allowMultiple": false,
-    "main": "index.svelte"
+    "main": "index.svelte",
+    "settings": {
+        "menus": {
+            "label": "메뉴 항목",
+            "type": "menu-list",
+            "description": "상단 빠른 이동 바에 표시할 메뉴 (라벨 / 주소 / 표시여부 / 순서)",
+            "default": [
+                { "key": "explore", "text": "모아보기", "url": "/explore", "show": true },
+                { "key": "empathy", "text": "공감글", "url": "/empathy", "show": true },
+                { "key": "group", "text": "소모임", "url": "/groups", "show": true },
+                { "key": "free", "text": "자유게시판", "url": "/free", "show": true },
+                { "key": "qa", "text": "질문답변", "url": "/qa", "show": true },
+                { "key": "new", "text": "새소식", "url": "/new", "show": true },
+                { "key": "economy", "text": "알뜰구매", "url": "/economy", "show": true },
+                { "key": "promotion", "text": "직접홍보", "url": "/promotion", "show": true },
+                { "key": "lecture", "text": "강좌팁", "url": "/lecture", "show": true },
+                { "key": "tutorial", "text": "사용기", "url": "/tutorial", "show": true },
+                { "key": "message", "text": "마음메시지", "url": "/message", "show": true },
+                { "key": "giving", "text": "나눔", "url": "/giving", "show": true },
+                { "key": "angmap", "text": "앙지도", "url": "/angmap", "show": true },
+                { "key": "angtt", "text": "앙티티", "url": "/angtt", "show": true }
+            ]
+        }
+    }
 }
