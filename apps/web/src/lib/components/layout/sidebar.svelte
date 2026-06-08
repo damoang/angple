@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { untrack } from 'svelte';
     import { page } from '$app/stores';
     import {
         Accordion,
@@ -80,24 +81,29 @@
         };
 
         traverse(menuData, 0);
-        if (newAccordionValue && newAccordionValue !== accordionValue) {
-            accordionValue = newAccordionValue;
-        }
-        // #12645: autoExpand 로 덮어쓰면 사용자가 수동으로 펼친/접은 상태가 게시판을
-        // 선택할 때마다 리셋되고, 매 내비게이션마다 새 Set 할당으로 목록 전체가
-        // 접혔다 펼쳐지는 재렌더가 발생한다. 합집합으로 병합하고 실제 변화가 있을
-        // 때만 할당한다.
-        if (autoExpand.size > 0) {
-            const merged = new Set(expandedGroups);
-            let changed = false;
-            for (const id of autoExpand) {
-                if (!merged.has(id)) {
-                    merged.add(id);
-                    changed = true;
-                }
+        // accordionValue / expandedGroups 의 읽기·쓰기는 untrack 으로 격리한다.
+        // 이 effect 의 의존성은 menuData + currentPath(isActive) 뿐이어야 한다.
+        // 비교를 위해 accordionValue 를 그냥 읽으면 그것이 의존성이 되어, 사용자가
+        // 1depth 아코디언을 직접 열 때 effect 가 재실행되며 활성 항목으로 되돌려
+        // "펼치자마자 닫힘"이 발생한다 (#1589 회귀). expandedGroups 도 동일.
+        untrack(() => {
+            if (newAccordionValue && newAccordionValue !== accordionValue) {
+                accordionValue = newAccordionValue;
             }
-            if (changed) expandedGroups = merged;
-        }
+            // #12645: autoExpand 로 덮어쓰면 사용자가 수동으로 펼친/접은 상태가
+            // 게시판 선택 시마다 리셋된다. 합집합 병합 + 변화 시에만 할당.
+            if (autoExpand.size > 0) {
+                const merged = new Set(expandedGroups);
+                let changed = false;
+                for (const id of autoExpand) {
+                    if (!merged.has(id)) {
+                        merged.add(id);
+                        changed = true;
+                    }
+                }
+                if (changed) expandedGroups = merged;
+            }
+        });
     });
 
     // 메뉴 필터링과 로딩은 menuStore에서 SSR로 처리됨
