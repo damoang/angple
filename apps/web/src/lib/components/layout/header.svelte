@@ -92,6 +92,9 @@
     );
     const effectiveUser = $derived(browser && !authStore.isLoading ? authStore.user : ssrUser);
     const isEffectivelyLoggedIn = $derived(effectiveUser !== null && effectiveUser !== undefined);
+    // #12642: SSR_STRIP_USER 환경에서 SSR user 가 없고 클라이언트 인증도 미해결인 동안.
+    // SSR/hydration 양쪽에서 동일하게 스켈레톤을 렌더해 비로그인 UI 깜빡임을 막는다.
+    const authResolving = $derived(authStore.isLoading && !ssrUser);
 
     let headerAvatarUrl = $derived(
         effectiveUser
@@ -415,7 +418,20 @@
             </button>
 
             <!-- 사용자 아이콘 (로그인/프로필) -->
-            {#if isEffectivelyLoggedIn && effectiveUser}
+            <!-- #12642: SSR_STRIP_USER 환경에서는 SSR 시점에 로그인 여부를 알 수 없어,
+                 비로그인 UI 를 먼저 그리면 새로고침마다 "로그아웃됐다 로그인되는" 깜빡임으로
+                 보인다. 인증이 확정될 때까지 중립 스켈레톤을 표시한다. -->
+            {#if authResolving}
+                <div class="flex items-center gap-1.5 px-2 py-1.5" aria-hidden="true">
+                    <div class="bg-muted h-6 w-6 shrink-0 animate-pulse rounded-full"></div>
+                </div>
+                <div class="p-2" aria-hidden="true">
+                    <div class="bg-muted h-5 w-5 animate-pulse rounded-full"></div>
+                </div>
+                <div class="p-2" aria-hidden="true">
+                    <div class="bg-muted h-5 w-5 animate-pulse rounded-full"></div>
+                </div>
+            {:else if isEffectivelyLoggedIn && effectiveUser}
                 <a
                     href="/my"
                     class="hover:bg-accent flex items-center gap-1.5 rounded-lg px-2 py-1.5 transition-all duration-200 ease-out"
@@ -466,7 +482,7 @@
                 </button>
             {/if}
 
-            {#if isEffectivelyLoggedIn}
+            {#if !authResolving && isEffectivelyLoggedIn}
                 <!-- 쪽지 아이콘 + 미읽음 배지 -->
                 <MessageIcon />
 
@@ -474,7 +490,7 @@
                 <NotificationDropdown />
                 <LevelupCelebration />
                 <XpLevelupToast />
-            {:else}
+            {:else if !authResolving}
                 <!-- 알림 아이콘 (비로그인 시 단순 버튼) -->
                 <button
                     class="hover:bg-accent relative rounded-lg p-2 transition-all duration-200 ease-out"
