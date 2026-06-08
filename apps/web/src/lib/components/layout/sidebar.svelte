@@ -80,8 +80,24 @@
         };
 
         traverse(menuData, 0);
-        if (newAccordionValue) accordionValue = newAccordionValue;
-        if (autoExpand.size > 0) expandedGroups = autoExpand;
+        if (newAccordionValue && newAccordionValue !== accordionValue) {
+            accordionValue = newAccordionValue;
+        }
+        // #12645: autoExpand 로 덮어쓰면 사용자가 수동으로 펼친/접은 상태가 게시판을
+        // 선택할 때마다 리셋되고, 매 내비게이션마다 새 Set 할당으로 목록 전체가
+        // 접혔다 펼쳐지는 재렌더가 발생한다. 합집합으로 병합하고 실제 변화가 있을
+        // 때만 할당한다.
+        if (autoExpand.size > 0) {
+            const merged = new Set(expandedGroups);
+            let changed = false;
+            for (const id of autoExpand) {
+                if (!merged.has(id)) {
+                    merged.add(id);
+                    changed = true;
+                }
+            }
+            if (changed) expandedGroups = merged;
+        }
     });
 
     // 메뉴 필터링과 로딩은 menuStore에서 SSR로 처리됨
