@@ -26,7 +26,10 @@
         { key: 'promotion', text: '직접홍보', url: '/promotion', show: true },
         { key: 'lecture', text: '강좌팁', url: '/lecture', show: true },
         { key: 'tutorial', text: '사용기', url: '/tutorial', show: true },
-        { key: 'message', text: '마음메시지', url: '/message', show: true }
+        { key: 'message', text: '마음메시지', url: '/message', show: true },
+        { key: 'giving', text: '나눔', url: '/giving', show: true },
+        { key: 'angmap', text: '앙지도', url: '/angmap', show: true },
+        { key: 'angtt', text: '앙티티', url: '/angtt', show: true }
     ];
 
     let { menus: menusProp, class: className = '' }: Props = $props();
