@@ -183,6 +183,8 @@
     let memoPluginActive = $derived(pluginStore.isPluginActive('member-memo'));
     let reactionPluginActive = $derived(pluginStore.isPluginActive('da-reaction'));
 
+    import TagNav from '$lib/components/ui/tag-nav/tag-nav.svelte';
+
     // 동적 import: member-memo 플러그인 컴포넌트
     import type { Component } from 'svelte';
     let MemoBadge = $state<Component | null>(null);
@@ -1590,6 +1592,11 @@
             >{data.post.title}</span
         >
     </nav>
+
+    <!-- 빠른 이동(tag-nav) — 목록 페이지와 동일. 메뉴는 admin 설정/DEFAULT_MENUS 공유 -->
+    <div class="mb-3">
+        <TagNav />
+    </div>
 
     <!-- 상단 네비게이션 — 모바일 터치 타겟 44px(#12016) -->
     <div
