@@ -168,11 +168,36 @@ function ensureSlotListener() {
                 }
                 if (container && creativeHeight > 1) {
                     const frame = container.closest('.dm-display-frame') as HTMLElement | null;
+                    // #12632: 확장은 layout shift 를 만든다. Chrome/FF 는 scroll anchoring 으로
+                    // 시야를 자동 보정하지만 Safari 는 미지원이라, 확장 순간 누르려던 글 행이
+                    // 아래로 밀리며 클릭 좌표가 광고를 때리는 오클릭이 발생(무효 클릭 = AdSense
+                    // 정책 리스크). 2중 가드:
+                    //  (a) 슬롯이 viewport 에 보이는 상태에서 실제로 늘어났으면 잠시(400ms)
+                    //      광고 프레임의 pointer-events 를 차단 — 반사 클릭이 광고로 가지 않음
+                    //  (b) 슬롯이 viewport 보다 위에 있으면 늘어난 만큼 scrollBy 보정
+                    //      (Safari 수동 anchoring — 읽던 위치 유지)
+                    const rectBefore = (frame ?? container).getBoundingClientRect();
+                    let grewBy = 0;
                     for (const el of [container, frame]) {
                         if (!el) continue;
                         const current = parseFloat(getComputedStyle(el).minHeight) || 0;
                         if (creativeHeight > current) {
                             el.style.minHeight = `${creativeHeight}px`;
+                            grewBy = Math.max(grewBy, creativeHeight - current);
+                        }
+                    }
+                    if (grewBy > 0 && frame) {
+                        const inViewport =
+                            rectBefore.bottom > 0 && rectBefore.top < window.innerHeight;
+                        if (rectBefore.bottom <= 0) {
+                            // (b) viewport 위에서 확장 → 보이는 콘텐츠가 밀리지 않게 보정
+                            window.scrollBy(0, grewBy);
+                        } else if (inViewport) {
+                            // (a) 확장 직후 반사 클릭 차단
+                            frame.style.pointerEvents = 'none';
+                            window.setTimeout(() => {
+                                frame.style.pointerEvents = '';
+                            }, 400);
                         }
                     }
                 }
