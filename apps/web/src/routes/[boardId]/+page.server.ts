@@ -1,6 +1,7 @@
 import { error as svelteError, redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types.js';
 import type { FreePost, Board, SearchField } from '$lib/api/types.js';
+import { BOARD_LIST_PAGE_SIZE } from '$lib/constants/board.js';
 import {
     fetchPromotionPosts,
     fetchPromotionBoardPosts,
@@ -170,7 +171,7 @@ export const load: PageServerLoad = async ({
 
     const boardId = canonicalBoardId;
     const page = Number(url.searchParams.get('page')) || 1;
-    const limit = Number(url.searchParams.get('limit')) || 24;
+    const limit = Number(url.searchParams.get('limit')) || BOARD_LIST_PAGE_SIZE;
 
     // 검색 파라미터
     const searchField = (url.searchParams.get('sfl') as SearchField) || null;
