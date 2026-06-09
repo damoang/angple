@@ -345,7 +345,11 @@ function getGlobalApiRateLimitKey(
     return clientIp ? `ip:${clientIp}` : null;
 }
 
-const AUTH_TIMEOUT_MS = 3000;
+// #12661: per-attempt 타임아웃. withTimeoutRetry 가 1회 재시도하므로 worst-case 는
+// 이 값의 2배다. 3000 이면 getSession 만으로도 6s 까지 늘어나 "로그인 지연" 으로
+// 체감됨(특히 SSR_STRIP_USER 환경에서 /api/auth/me 가 이 경로를 탐). 1500 으로 줄여
+// worst-case 6s→3s. 재시도가 있어 일시 지연은 여전히 흡수된다.
+const AUTH_TIMEOUT_MS = 1500;
 
 /**
  * withTimeout 은 타임아웃 시 null 을 반환해 "조회 결과 없음(로그아웃)"과
