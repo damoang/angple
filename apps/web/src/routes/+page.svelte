@@ -7,8 +7,13 @@
     import { SeoHead, createWebSiteJsonLd, getSiteUrl } from '$lib/seo/index.js';
     import type { SeoConfig } from '$lib/seo/types.js';
     import PluginSlot from '$lib/components/plugin/plugin-slot.svelte';
+    import { getThemePageTemplate } from '$lib/themes/page-registry';
 
     let { data } = $props();
+
+    // #1548: 테마가 'home' 페이지 템플릿을 제공하면 코어 위젯 대신 그 템플릿으로 홈을 렌더.
+    // 미제공(대부분 테마) 시 null → 기존 WidgetRenderer 경로 유지 (회귀 0).
+    const ThemeHome = $derived(getThemePageTemplate(page.data.site?.theme_id ?? null, 'home'));
 
     // SSR 데이터 즉시 스토어 초기화 (hydration 전에 실행)
     indexWidgetsStore.initFromServer(data.indexWidgets);
@@ -70,27 +75,26 @@
 <!-- 플러그인 슬롯: 홈 콘텐츠 직전 (위젯 영역 위) — Slot Catalog Sprint 2c -->
 <PluginSlot name="home-content-before" />
 
-<!-- 통합 위젯 렌더러로 메인 영역 렌더링 (추천글 SSR 프리페치 포함) -->
-<WidgetRenderer
-    zone="main"
-    prefetchDataMap={{
-        recommended: data.recommendedData
-            ? { data: data.recommendedData, period: data.recommendedPeriod }
-            : undefined,
-        explore: data.exploreData ? { data: data.exploreData } : undefined,
-        'empathy-explore-row': {
+{#if ThemeHome}
+    <!-- #1548: 테마가 home 템플릿을 제공하면 그것으로 렌더 (사이트별 커스텀 홈) -->
+    <ThemeHome {data} />
+{:else}
+    <!-- 통합 위젯 렌더러로 메인 영역 렌더링 (추천글 SSR 프리페치 포함) — 코어 기본 -->
+    <WidgetRenderer
+        zone="main"
+        prefetchDataMap={{
             recommended: data.recommendedData
                 ? { data: data.recommendedData, period: data.recommendedPeriod }
                 : undefined,
-            explore: data.exploreData ? { data: data.exploreData } : undefined
-        },
-        // 홈 공감글 터치 오인식(#11998) — SSR 데이터가 빈 배열일 때 undefined 를 넘기면
-        // 클라이언트 $effect 가 재요청을 보내 마음메시지 Card 가 hydration 직후 삽입되며
-        // 그 아래 위젯이 밀리는 레이아웃 shift 를 유발. 빈 배열이라도 항상 prefetchData 로
-        // 넘겨서 클라이언트 재요청을 차단함.
-        celebration: { data: data.celebrationRecent ?? data.celebration ?? [] }
-    }}
-/>
+            explore: data.exploreData ? { data: data.exploreData } : undefined,
+            // 홈 공감글 터치 오인식(#11998) — SSR 데이터가 빈 배열일 때 undefined 를 넘기면
+            // 클라이언트 $effect 가 재요청을 보내 마음메시지 Card 가 hydration 직후 삽입되며
+            // 그 아래 위젯이 밀리는 레이아웃 shift 를 유발. 빈 배열이라도 항상 prefetchData 로
+            // 넘겨서 클라이언트 재요청을 차단함.
+            celebration: { data: data.celebrationRecent ?? data.celebration ?? [] }
+        }}
+    />
+{/if}
 
 <!-- 플러그인 슬롯: 홈 콘텐츠 직후 (위젯 영역 아래) — Slot Catalog Sprint 2c -->
 <PluginSlot name="home-content-after" />
