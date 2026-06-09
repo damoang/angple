@@ -11,7 +11,26 @@ export interface SiteContext {
     keywords?: string[];
     logo_url?: string;
     favicon_url?: string;
+    /**
+     * 사이트별 footer/사업자 정보 (#1599). 미설정 시 undefined →
+     * footer 의 사업자 블록을 렌더하지 않음 (신규/미등록 사이트가 타 회사 정보 노출 방지).
+     */
+    business?: SiteBusiness;
     source: 'config' | 'manifest' | 'db' | 'env';
+}
+
+export interface SiteBusiness {
+    company?: string;
+    ceo?: string;
+    business_no?: string;
+    ecommerce_no?: string;
+    address?: string;
+    email?: string;
+    report_email?: string;
+    copyright?: string;
+    copyright_url?: string;
+    /** angple.com "Powered by" 표기 여부 (기본 true). */
+    powered_by?: boolean;
 }
 
 export interface SiteResolver {
