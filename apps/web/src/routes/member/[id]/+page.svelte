@@ -10,6 +10,7 @@
     import { apiClient } from '$lib/api/index.js';
     import { blockedUsersStore } from '$lib/stores/blocked-users.svelte';
     import { goto } from '$app/navigation';
+    import { page } from '$app/stores';
     import { onMount } from 'svelte';
     import User from '@lucide/svelte/icons/user';
     import Calendar from '@lucide/svelte/icons/calendar';
@@ -167,6 +168,15 @@
     let loadingComments = $state(false);
     let loadingLiked = $state(false);
     let postsLoaded = $state(false);
+
+    // #12657: ?tab= 딥링크. 작성자 dropdown "전체 게시물"이 깨진 풀텍스트 검색 대신
+    // 프로필의 정확한(mb_id 기준) 글 목록으로 들어오도록 posts 탭을 직접 열 수 있게 한다.
+    const VALID_TABS = ['info', 'posts', 'comments', 'liked'];
+    let activeTab = $state(
+        VALID_TABS.includes($page.url.searchParams.get('tab') ?? '')
+            ? ($page.url.searchParams.get('tab') as string)
+            : 'info'
+    );
     let commentsLoaded = $state(false);
     let likedLoaded = $state(false);
 
@@ -182,6 +192,9 @@
 
     onMount(async () => {
         if (!p?.mb_id) return;
+
+        // 딥링크로 info 외 탭 진입 시 해당 탭 데이터 즉시 로드
+        if (activeTab !== 'info') handleTabChange(activeTab);
 
         // 팔로우 상태 조회
         if (authStore.isAuthenticated && !isOwnProfile) {
@@ -521,7 +534,7 @@
         <Card class="bg-background">
             <!-- 플러그인 슬롯: 탭 직전 (탭 위 배너/공지 등) — Slot Catalog Sprint 2c -->
             <PluginSlot name="member-profile-tabs-before" mbId={p.mb_id} />
-            <Tabs.Root value="info" onValueChange={handleTabChange}>
+            <Tabs.Root bind:value={activeTab} onValueChange={handleTabChange}>
                 <Tabs.List class="border-border w-full justify-start border-b">
                     <Tabs.Trigger value="info">정보</Tabs.Trigger>
                     <Tabs.Trigger value="posts">최근 글</Tabs.Trigger>
