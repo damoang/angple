@@ -20,6 +20,12 @@
         authorName: string;
         isWithdrawn?: boolean;
         class?: string;
+        /**
+         * 모바일에서도 클릭 영역을 확장할지 (#12652).
+         * 목록뷰는 제목과 인접해 모바일 확장 시 제목 오터치가 발생(#12480)하므로 false(기본).
+         * 댓글/상세처럼 인접 제목이 없는 곳은 true 로 짧은 닉네임 클릭을 보장.
+         */
+        expandTouchArea?: boolean;
         children?: Snippet;
     }
 
@@ -28,10 +34,16 @@
         authorName,
         isWithdrawn = false,
         class: className = '',
+        expandTouchArea = false,
         children
     }: Props = $props();
 
     const isOwnProfile = $derived(authStore.user?.mb_id === authorId);
+
+    // 클릭 영역 확장 클래스: 댓글/상세(expandTouchArea)는 전 viewport, 목록은 PC(md:)만.
+    const touchAreaClass = $derived(
+        expandTouchArea ? '-mx-0.5 min-w-[2ch] px-0.5' : 'md:-mx-0.5 md:min-w-[2ch] md:px-0.5'
+    );
 
     // 팔로우 상태 (드롭다운 열릴 때 조회)
     let isFollowing = $state(false);
@@ -149,7 +161,7 @@
               모바일은 기본 텍스트 너비만큼만 클릭 영역 — 제목 의도 터치 보호.
             -->
             <DropdownMenu.Trigger
-                class="inline-block cursor-pointer text-left hover:underline focus:outline-none md:-mx-0.5 md:min-w-[2ch] md:px-0.5 {className} {isWithdrawn
+                class="inline-block cursor-pointer text-left hover:underline focus:outline-none {touchAreaClass} {className} {isWithdrawn
                     ? 'line-through opacity-60'
                     : ''}"
             >

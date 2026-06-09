@@ -1153,7 +1153,11 @@
                         <p
                             class="text-foreground mb-1 ml-1 flex items-center gap-1 text-xs font-semibold"
                         >
-                            <AuthorLink authorId={comment.author_id} authorName={comment.author} />
+                            <AuthorLink
+                                authorId={comment.author_id}
+                                authorName={comment.author}
+                                expandTouchArea
+                            />
                             <LevelBadge level={memberLevelStore.getLevel(comment.author_id)} />
                             {#if !postDeleted && postAuthorId && comment.author_id === postAuthorId}
                                 <span
@@ -1246,6 +1250,7 @@
                                         <AuthorLink
                                             authorId={comment.author_id}
                                             authorName={comment.author}
+                                            expandTouchArea
                                         />
                                         <LevelBadge
                                             level={memberLevelStore.getLevel(comment.author_id)}
