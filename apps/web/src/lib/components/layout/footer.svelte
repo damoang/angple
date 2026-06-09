@@ -1,6 +1,26 @@
 <script lang="ts">
     import ChevronDown from '@lucide/svelte/icons/chevron-down';
     import ExternalLink from '@lucide/svelte/icons/external-link';
+    import { page } from '$app/state';
+
+    // #1599: 사업자/저작권 정보는 사이트별 설정(angple_sites.business)에서.
+    // 미설정 사이트는 사업자 블록 미렌더 (신규/미등록 사이트가 타 회사 정보 노출 방지).
+    // damoang 등 기본 사이트는 site.business 미설정 시 아래 DEFAULT_BUSINESS 폴백.
+    const DEFAULT_BUSINESS = {
+        company: '주식회사 에스디케이(SDK)',
+        ceo: '김선도',
+        business_no: '871-81-03242',
+        ecommerce_no: '2026-삼도1동-0015',
+        address: '제주특별자치도 제주시 남성로 127, 4층',
+        email: 'contact@damoang.net',
+        report_email: 'jebo@damoang.net',
+        copyright: 'SDK Co., Ltd.',
+        copyright_url: 'https://sdkcorp.com',
+        powered_by: true
+    };
+    // site.business 가 명시적으로 설정된 사이트는 그 값만 사용(폴백 X).
+    // site 자체가 없거나(기본 다모앙) business 키가 없으면 DEFAULT 사용.
+    const biz = $derived(page.data.site?.business ?? (page.data.site ? null : DEFAULT_BUSINESS));
 
     type FooterLink = { name: string; href: string; external?: boolean };
 
@@ -173,31 +193,45 @@
                 </li>
             </ul>
 
-            <div class="text-muted-foreground mt-3 text-xs leading-relaxed">
-                <p>
-                    주식회사 에스디케이(SDK) | 대표: 김선도 | 사업자등록번호: 871-81-03242 |
-                    통신판매업신고: 2026-삼도1동-0015
-                </p>
-                <p>
-                    제주특별자치도 제주시 남성로 127, 4층 | contact@damoang.net | 제보:
-                    jebo@damoang.net
-                </p>
-            </div>
+            {#if biz}
+                <div class="text-muted-foreground mt-3 text-xs leading-relaxed">
+                    <p>
+                        {#if biz.company}{biz.company}{/if}{#if biz.ceo}
+                            | 대표: {biz.ceo}{/if}{#if biz.business_no}
+                            | 사업자등록번호: {biz.business_no}{/if}{#if biz.ecommerce_no}
+                            | 통신판매업신고: {biz.ecommerce_no}{/if}
+                    </p>
+                    {#if biz.address || biz.email || biz.report_email}
+                        <p>
+                            {#if biz.address}{biz.address}{/if}{#if biz.email}
+                                | {biz.email}{/if}{#if biz.report_email}
+                                | 제보: {biz.report_email}{/if}
+                        </p>
+                    {/if}
+                </div>
+            {/if}
 
             <p class="text-muted-foreground mt-2 text-xs">
-                © <a
-                    href="https://sdkcorp.com"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    class="hover:text-primary transition-colors">SDK Co., Ltd.</a
-                >
-                · Powered by
-                <a
-                    href="https://angple.com"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    class="hover:text-primary transition-colors">angple.com</a
-                >
+                {#if biz?.copyright}
+                    © {#if biz.copyright_url}<a
+                            href={biz.copyright_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="hover:text-primary transition-colors">{biz.copyright}</a
+                        >{:else}{biz.copyright}{/if}
+                {:else}
+                    © {new Date().getFullYear()}
+                    {page.data.site?.title?.split(' - ')[0] ?? 'Angple'}
+                {/if}
+                {#if biz?.powered_by !== false}
+                    · Powered by
+                    <a
+                        href="https://angple.com"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="hover:text-primary transition-colors">angple.com</a
+                    >
+                {/if}
             </p>
         </div>
     </div>
