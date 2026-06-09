@@ -413,6 +413,7 @@ async function authenticateSSR(event: Parameters<Handle>[0]['event']): Promise<v
                     if (
                         basic &&
                         basic.id === session.mbId &&
+                        basic.mb_no != null &&
                         cachedJwt &&
                         nowFp < cachedJwt.expiry
                     ) {
@@ -423,6 +424,7 @@ async function authenticateSSR(event: Parameters<Handle>[0]['event']): Promise<v
                             : undefined;
                         event.locals.user = {
                             id: basic.id,
+                            mb_no: basic.mb_no,
                             nickname: basic.nickname,
                             level: basic.mb_level,
                             as_level: basic.as_level,
@@ -457,6 +459,7 @@ async function authenticateSSR(event: Parameters<Handle>[0]['event']): Promise<v
 
                     event.locals.user = {
                         id: member.mb_id,
+                        mb_no: member.mb_no,
                         nickname: member.mb_nick || member.mb_name,
                         level: member.mb_level ?? 0,
                         as_level: member.as_level ?? 0,

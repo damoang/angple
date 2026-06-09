@@ -58,6 +58,7 @@ export interface SocialProfileRow {
 /** g5_member 테이블 주요 필드 */
 export interface MemberRow {
     mb_id: string;
+    mb_no: number;
     mb_name: string;
     mb_nick: string;
     mb_email: string;

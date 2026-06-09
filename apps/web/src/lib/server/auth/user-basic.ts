@@ -16,6 +16,8 @@ import type { Cookies } from '@sveltejs/kit';
 
 export interface UserBasic {
     id: string;
+    /** g5_member 숫자 PK (mb_no). 구쿠키 호환을 위해 optional. */
+    mb_no?: number;
     nickname: string;
     mb_level: number;
     as_level: number;
@@ -43,6 +45,7 @@ export function parseUserBasicCookie(encoded: string | null | undefined): UserBa
 
         return {
             id: d.id,
+            mb_no: typeof d.mb_no === 'number' ? d.mb_no : undefined,
             nickname: d.nickname,
             mb_level: d.mb_level,
             as_level: d.as_level,
@@ -69,6 +72,7 @@ const USER_BASIC_COOKIE_MAX_AGE = 60 * 60 * 24 * 30; // 30d
 export function issueUserBasicCookie(cookies: Cookies, basic: UserBasic): void {
     const payload = {
         id: basic.id,
+        mb_no: basic.mb_no,
         nickname: basic.nickname,
         mb_level: basic.mb_level,
         as_level: basic.as_level,

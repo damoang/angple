@@ -121,6 +121,7 @@ export const POST: RequestHandler = async ({ request, cookies, getClientAddress 
             if (member) {
                 const userBasic = {
                     id: member.mb_id,
+                    mb_no: member.mb_no,
                     nickname: member.mb_nick || member.mb_name,
                     mb_level: member.mb_level ?? 0,
                     as_level: member.as_level ?? 0,

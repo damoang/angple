@@ -48,4 +48,21 @@ describe('parseUserBasicCookie', () => {
         expect(result?.mb_image).toBeNull();
         expect(result?.mb_image_updated_at).toBeNull();
     });
+
+    it('mb_no 포함 쿠키 → 숫자로 파싱 (결제 user_id 용)', () => {
+        const result = parseUserBasicCookie(encode({ ...validUser, mb_no: 12345 }));
+        expect(result?.mb_no).toBe(12345);
+    });
+
+    it('mb_no 없는 구쿠키 → mb_no undefined (하위호환, 파싱은 성공)', () => {
+        const result = parseUserBasicCookie(encode(validUser));
+        expect(result).not.toBeNull();
+        expect(result?.mb_no).toBeUndefined();
+    });
+
+    it('mb_no 숫자 아님 → undefined (거부하지 않음)', () => {
+        const result = parseUserBasicCookie(encode({ ...validUser, mb_no: '12345' }));
+        expect(result).not.toBeNull();
+        expect(result?.mb_no).toBeUndefined();
+    });
 });
