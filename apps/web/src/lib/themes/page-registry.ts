@@ -10,6 +10,26 @@ import type { Component } from 'svelte';
  * 예) custom-themes/ipyang/templates/home.svelte → getThemePageTemplate('ipyang', 'home')
  *
  * layout-registry 와 동일하게 SSR 시점 동적 import 없이 즉시 결정 (LCP/FCP·hydration 안전).
+ *
+ * ─────────────────────────────────────────────────────────────────────────────
+ * 테마 작성 가이드 — 다크모드(중요)
+ *   angple 은 `.dark`/`.amoled` class + CSS 변수 시맨틱 토큰으로 다크모드를 구현한다.
+ *   테마의 layout/page/component 는 **고정 색을 쓰지 말고 시맨틱 토큰**을 써야
+ *   라이트/다크/AMOLED 가 자동 대응된다 (코어 컴포넌트와 동일 규칙).
+ *
+ *     ❌ bg-white, text-gray-900, text-gray-500, border-gray-200, hover:bg-gray-50
+ *     ✅ bg-background / bg-card / bg-muted                 (배경)
+ *     ✅ text-foreground / text-muted-foreground            (글씨)
+ *     ✅ text-primary / bg-primary text-primary-foreground  (강조·버튼)
+ *     ✅ hover:bg-accent / hover:text-foreground            (호버)
+ *     ✅ border-border                                       (경계)
+ *
+ *   브랜드 고유색은 테마 CSS 변수로 정의하되 다크모드 값을 함께 둘 것:
+ *     :global(.my-theme)            { --brand: #ef6c4d; }
+ *     :global(.dark .my-theme),
+ *     :global(.amoled .my-theme)    { --brand: #fd8b6c; }
+ *   (themes/sample-theme/templates/home.svelte 의 예시 참고)
+ * ─────────────────────────────────────────────────────────────────────────────
  */
 
 const themePageModules = import.meta.glob(
