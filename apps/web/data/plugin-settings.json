@@ -7,7 +7,9 @@
         "interaction-analysis",
         "da-reaction",
         "affiliate-link-private",
-        "archive"
+        "archive",
+        "payment",
+        "brickang"
     ],
     "plugins": {
         "ad-widget": {
@@ -53,6 +55,14 @@
         "archive": {
             "settings": {},
             "activatedAt": "2026-05-24T00:00:00.000Z"
+        },
+        "payment": {
+            "settings": {},
+            "activatedAt": "2026-06-09T00:00:00.000Z"
+        },
+        "brickang": {
+            "settings": {},
+            "activatedAt": "2026-06-09T00:00:00.000Z"
         }
     },
     "version": "1.0.0"
