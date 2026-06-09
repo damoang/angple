@@ -1,5 +1,15 @@
 <script lang="ts">
     import { Button } from '$lib/components/ui/button/index.js';
+    import {
+        Dialog,
+        DialogContent,
+        DialogDescription,
+        DialogFooter,
+        DialogHeader,
+        DialogTitle
+    } from '$lib/components/ui/dialog/index.js';
+    import { RestrictedBadge } from '$lib/components/ui/restricted-badge/index.js';
+    import { DisciplinedContent } from '$lib/components/ui/discipline-related/index.js';
     import type { FreeComment } from '$lib/api/types.js';
     import { authStore } from '$lib/stores/auth.svelte.js';
     import AuthorLink from '$lib/components/ui/author-link/author-link.svelte';
@@ -87,6 +97,7 @@
         onDislike?: (commentId: string) => Promise<{ dislikes: number; user_disliked: boolean }>;
         onRestore?: (commentId: string) => Promise<void>;
         postAuthorId?: string; // 게시글 작성자 ID (비밀댓글 열람 권한 체크용)
+        postDeleted?: boolean; // 글이 삭제된 경우 '작성자' 배지 숨김 — 삭제글 작성자 식별 방지
         boardId?: string; // 신고 기능용
         postId?: number; // 신고 기능용
         useNogood?: boolean; // 비추천 기능 사용 여부 (게시판 설정)
@@ -109,6 +120,7 @@
         onDislike,
         onRestore,
         postAuthorId,
+        postDeleted = false,
         boardId = 'free',
         postId = 0,
         useNogood = false,
@@ -122,7 +134,7 @@
         // - 대댓글 없는 댓글: 항상 무료 수정 (grace 무관)
         // - 대댓글 달린 댓글: cost 포인트 차감 + 수정 이력 카운트 표시
         // grace_seconds 는 호환을 위해 남겨두지만 신규 정책에서 사용하지 않는다.
-        editPolicy = { cost: 5000, grace_seconds: 360 }
+        editPolicy = { cost: 50000, grace_seconds: 300 }
     }: Props = $props();
 
     function findCommentById(commentId: string): FreeComment | null {
@@ -167,6 +179,9 @@
     // 수정 상태 관리
     let editingCommentId = $state<string | null>(null);
     let editContent = $state('');
+    // 수정 확인 dialog — 대댓글 있는 댓글 수정 시 차감 안내 (모바일 window.confirm 호환성 #12511)
+    let editConfirmOpen = $state(false);
+    let pendingEditTarget = $state<FreeComment | null>(null);
     let isUpdating = $state(false);
     let LazyCommentEditor = $state<Component | null>(null);
     let isDeleting = $state<string | null>(null);
@@ -474,19 +489,31 @@
         const replyExists = !isAdmin() && hasReplies(target);
 
         if (replyExists && editPolicy.cost > 0) {
-            const costFmt = editPolicy.cost.toLocaleString('ko-KR');
-            const msg =
-                `⚠️ 이 댓글에는 대댓글이 달려 있습니다.\n` +
-                `대화 맥락이 바뀔 수 있어 수정 시 ${costFmt} 포인트가 차감되며,\n` +
-                `수정 시각과 수정 횟수가 모든 사용자에게 표시됩니다.\n\n` +
-                `계속 진행하시겠습니까?`;
-            if (!window.confirm(msg)) return;
+            // 모바일 호환성을 위해 shadcn Dialog 사용 (window.confirm 대체, #12511).
+            pendingEditTarget = target;
+            editConfirmOpen = true;
+            return;
         }
 
+        enterEdit(target);
+    }
+
+    function enterEdit(target: FreeComment): void {
         editingCommentId = String(target.id);
         editContent = target.content;
         replyingToCommentId = null;
         ensureEditEditorLoaded();
+    }
+
+    function handleEditConfirm(): void {
+        if (pendingEditTarget) enterEdit(pendingEditTarget);
+        pendingEditTarget = null;
+        editConfirmOpen = false;
+    }
+
+    function handleEditCancel(): void {
+        pendingEditTarget = null;
+        editConfirmOpen = false;
     }
 
     // 수정 취소
@@ -910,6 +937,8 @@
     // 50개 초과 시 한 번에 보내면 뒤쪽 댓글이 조용히 잘려 나가 "특정번째 이후 댓글 공감자 미노출" 제보(#11996) 재현됨
     const COMMENT_LIKERS_BATCH_CHUNK = 50;
     async function loadCommentLikerAvatarsBatch(commentIds: string[]): Promise<void> {
+        // 공감자 신원(닉네임/ID)은 로그인 사용자에게만 노출 — 게시글 공감자(loadLikerAvatars)와 동일 정책.
+        if (!authStore.isAuthenticated) return;
         if (!boardId || !postId || commentIds.length === 0) return;
         try {
             const chunks: string[][] = [];
@@ -1124,9 +1153,13 @@
                         <p
                             class="text-foreground mb-1 ml-1 flex items-center gap-1 text-xs font-semibold"
                         >
-                            <AuthorLink authorId={comment.author_id} authorName={comment.author} />
+                            <AuthorLink
+                                authorId={comment.author_id}
+                                authorName={comment.author}
+                                expandTouchArea
+                            />
                             <LevelBadge level={memberLevelStore.getLevel(comment.author_id)} />
-                            {#if postAuthorId && comment.author_id === postAuthorId}
+                            {#if !postDeleted && postAuthorId && comment.author_id === postAuthorId}
                                 <span
                                     class="rounded bg-blue-100 px-1.5 py-0.5 text-[10px] font-semibold text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
                                     >작성자</span
@@ -1217,6 +1250,7 @@
                                         <AuthorLink
                                             authorId={comment.author_id}
                                             authorName={comment.author}
+                                            expandTouchArea
                                         />
                                         <LevelBadge
                                             level={memberLevelStore.getLevel(comment.author_id)}
@@ -1226,7 +1260,7 @@
                                                 >→ {replyToAuthor}</span
                                             >
                                         {/if}
-                                        {#if postAuthorId && comment.author_id === postAuthorId}
+                                        {#if !postDeleted && postAuthorId && comment.author_id === postAuthorId}
                                             <span
                                                 class="rounded bg-blue-100 px-1.5 py-0.5 text-[10px] font-semibold text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
                                                 >작성자</span
@@ -1359,7 +1393,7 @@
                                 </div>
 
                                 <!-- 댓글 추천자 아바타 스택 -->
-                                {#if getCommentLikes(comment) > 0 && commentLikersList.has(String(comment.id))}
+                                {#if authStore.isAuthenticated && getCommentLikes(comment) > 0 && commentLikersList.has(String(comment.id))}
                                     <AvatarStack
                                         items={commentLikersList.get(String(comment.id)) ?? []}
                                         total={commentLikersTotal.get(String(comment.id)) ?? 0}
@@ -1571,6 +1605,25 @@
                                 <Lock class="h-4 w-4" />
                                 비밀댓글입니다.
                             </div>
+                        {:else if comment.is_discipline_related}
+                            <DisciplinedContent isComment isLoggedIn={authStore.isAuthenticated}>
+                                <div
+                                    class="comment-body text-foreground overflow-hidden whitespace-pre-wrap break-words {isFeed
+                                        ? 'leading-snug'
+                                        : commentLayout === 'bordered'
+                                          ? 'leading-snug'
+                                          : 'leading-normal'}"
+                                    style="font-size: var(--comment-font-size, 1rem);"
+                                >
+                                    <!-- eslint-disable-next-line svelte/no-at-html-tags -->
+                                    {@html processedComments.get(comment.id) ??
+                                        ssrCommentHtml.get(comment.id) ??
+                                        ''}
+                                    {#if comment.is_restricted}
+                                        <RestrictedBadge class="ml-1" />
+                                    {/if}
+                                </div>
+                            </DisciplinedContent>
                         {:else}
                             <div
                                 class="comment-body text-foreground overflow-hidden whitespace-pre-wrap break-words {isFeed
@@ -1584,6 +1637,9 @@
                                 {@html processedComments.get(comment.id) ??
                                     ssrCommentHtml.get(comment.id) ??
                                     ''}
+                                {#if comment.is_restricted}
+                                    <RestrictedBadge class="ml-1" />
+                                {/if}
                             </div>
                             {#if comment.link1 || comment.link2}
                                 <div class="mt-3 space-y-1.5">
@@ -1729,7 +1785,7 @@
                             {/if}
 
                             <!-- 댓글 추천자 아바타 스택 -->
-                            {#if getCommentLikes(comment) > 0 && commentLikersList.has(String(comment.id))}
+                            {#if authStore.isAuthenticated && getCommentLikes(comment) > 0 && commentLikersList.has(String(comment.id))}
                                 <AvatarStack
                                     items={commentLikersList.get(String(comment.id)) ?? []}
                                     total={commentLikersTotal.get(String(comment.id)) ?? 0}
@@ -1871,6 +1927,31 @@
         onClose={closeLikersDialog}
     />
 {/if}
+
+<!-- 대댓글 있는 댓글 수정 확인 dialog (모바일 호환성, window.confirm 대체 — #12511) -->
+<Dialog
+    bind:open={editConfirmOpen}
+    onOpenChange={(o) => {
+        if (!o) handleEditCancel();
+    }}
+>
+    <DialogContent>
+        <DialogHeader>
+            <DialogTitle>댓글 수정 안내</DialogTitle>
+            <DialogDescription>
+                이 댓글에는 대댓글이 달려 있습니다. 대화 맥락이 바뀔 수 있어 수정 시 <strong
+                    >{editPolicy.cost.toLocaleString('ko-KR')} 포인트</strong
+                >가 차감되며, 수정 시각과 수정 횟수가 모든 사용자에게 표시됩니다.
+            </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+            <Button variant="outline" onclick={handleEditCancel}>취소</Button>
+            <Button variant="destructive" onclick={handleEditConfirm}>
+                {editPolicy.cost.toLocaleString('ko-KR')} P 차감하고 수정
+            </Button>
+        </DialogFooter>
+    </DialogContent>
+</Dialog>
 
 <style>
     /* 댓글 내 iframe/video 폭 제한 (인라인 width/height 속성 오버라이드) */
@@ -2072,6 +2153,18 @@
     :global(.comment-body p:empty),
     :global(.comment-body p:has(> br:only-child)) {
         min-height: 1em;
+    }
+
+    /* #12526: .embed-container 안의 youtube iframe specificity 보강.
+       이전엔 `.comment-body iframe[src*='youtube']` (specificity 0,0,2,1) 의
+       `height: auto !important` 가 `.embed-container iframe` (0,0,1,1) 의
+       `height: 100% !important` 를 이겨, iframe 이 intrinsic 작은 height 로
+       떨어지면서 16:9 padding-bottom placeholder 박스 안에 큰 빈 공간 발생.
+       embed-container 안에서는 placeholder 가 비율을 잡으므로 iframe 은 fill,
+       aspect-ratio 강제는 해제. */
+    :global(.comment-body .embed-container iframe) {
+        height: 100% !important;
+        aspect-ratio: unset !important;
     }
 
     /* 댓글 코드 블록 스타일 (게시글 본문 .prose와 동일) */

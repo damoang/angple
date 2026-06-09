@@ -140,7 +140,7 @@
 
         try {
             const response = await fetch(
-                `/api/ads/banners?position=${encodeURIComponent(adsPosition)}&limit=10`
+                `/api/sidebar/items?position=${encodeURIComponent(adsPosition)}&limit=10`
             );
 
             if (!response.ok) return [];

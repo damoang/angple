@@ -27,7 +27,8 @@
             name: '교보문고',
             href: 'https://click.linkprice.com/click.php?m=kbbook&a=A100694456&l=9999&l_cd2=0&tu=https%3A%2F%2Fwww.kyobobook.co.kr%2F'
         },
-        { name: '쿠팡', href: 'https://link.coupang.com/a/cSFTV0' }
+        { name: '쿠팡', href: 'https://link.coupang.com/a/cSFTV0' },
+        { name: 'KKday', href: 'https://www.kkday.com/ko?cid=20907' }
     ];
 </script>
 

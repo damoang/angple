@@ -918,27 +918,7 @@
                             {/if}
                         {/if}
                     </div>
-                    {#if canWrite}
-                        <Button
-                            onclick={goToWrite}
-                            class="shrink-0"
-                            title={!canUseCertifiedAction(authStore.user, boardId)
-                                ? getCertificationBlockedMessage(boardId)
-                                : undefined}
-                        >
-                            <Pencil class="mr-2 h-4 w-4" />
-                            {#if !canUseCertifiedAction(authStore.user, boardId)}실명인증{:else}글쓰기{/if}
-                        </Button>
-                    {:else if authStore.isAuthenticated}
-                        <Button
-                            disabled
-                            class="shrink-0 cursor-not-allowed opacity-60"
-                            title={writePermissionMessage}
-                        >
-                            <Lock class="mr-2 h-4 w-4" />
-                            글쓰기
-                        </Button>
-                    {/if}
+                    <!-- #12520 후속: 상단 title 우측 글쓰기 버튼 제거 → 빠른필터 행의 검색 버튼 오른쪽으로 이동(아래). -->
                 </div>
             </div>
 
@@ -978,8 +958,9 @@
             {/if}
 
             <!-- #12012: 내가 쓴 글/댓글 빠른 필터 (로그인 시) -->
+            <!-- #12592: 모바일에서는 상단 SearchForm 과 검색 input 중복 → PC(md+) 전용 -->
             {#if authStore.isAuthenticated}
-                <div class="mb-3 flex flex-wrap items-center gap-2">
+                <div class="mb-3 hidden flex-wrap items-center gap-2 md:flex">
                     <Button
                         variant={isMyPostsActive ? 'default' : 'outline'}
                         size="sm"
@@ -1049,9 +1030,7 @@
                             class="border-input bg-background focus:ring-primary h-8 w-full rounded-md border pl-7 pr-2 text-sm focus:outline-none focus:ring-1"
                         />
                     </div>
-                    <!-- #12520: 빠른필터 글쓰기 제거 → 검색 버튼으로 교체.
-                         상단 헤더에 이미 글쓰기 버튼이 있어 중복(#12520 신고)이라
-                         사용자 제안대로 검색 input 옆에는 검색 버튼만 둠. -->
+                    <!-- 검색 버튼: 검색 input 옆 정렬 -->
                     <Button
                         onclick={runQuickSearch}
                         size="sm"
@@ -1062,6 +1041,30 @@
                         <Search class="mr-1.5 h-3.5 w-3.5" />
                         검색
                     </Button>
+                    <!-- #12520 후속: 상단에서 옮긴 글쓰기 버튼 — 검색 버튼 오른쪽 -->
+                    {#if canWrite}
+                        <Button
+                            onclick={goToWrite}
+                            size="sm"
+                            class="h-8"
+                            title={!canUseCertifiedAction(authStore.user, boardId)
+                                ? getCertificationBlockedMessage(boardId)
+                                : undefined}
+                        >
+                            <Pencil class="mr-1.5 h-3.5 w-3.5" />
+                            {#if !canUseCertifiedAction(authStore.user, boardId)}실명인증{:else}글쓰기{/if}
+                        </Button>
+                    {:else if authStore.isAuthenticated}
+                        <Button
+                            disabled
+                            size="sm"
+                            class="h-8 cursor-not-allowed opacity-60"
+                            title={writePermissionMessage}
+                        >
+                            <Lock class="mr-1.5 h-3.5 w-3.5" />
+                            글쓰기
+                        </Button>
+                    {/if}
                 </div>
             {/if}
 

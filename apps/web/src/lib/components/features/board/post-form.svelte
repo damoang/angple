@@ -39,6 +39,8 @@
         initialLink1?: string; // 초기 link1 값 (disciplinelog_id 등)
         initialLink2?: string; // 초기 link2 값 (다시 쓰기 등)
         initialContent?: string; // 초기 본문 (소명 등)
+        /** 본문 콘텐츠 형식 ('markdown'이면 마크다운 원문 저장/이미지=마크다운 문법). 기본 'html' */
+        contentFormat?: 'html' | 'markdown';
         onSubmit: (data: CreatePostRequest | UpdatePostRequest) => Promise<void>;
         onCancel: () => void;
         isLoading?: boolean;
@@ -55,6 +57,7 @@
         initialLink1 = '',
         initialLink2 = '',
         initialContent = '',
+        contentFormat = 'html',
         onSubmit,
         onCancel,
         isLoading = false
@@ -350,6 +353,13 @@
                 new RegExp(`<img[^>]*src=["']${escaped}["'][^>]*>`, 'g'),
                 ''
             );
+            if (contentFormat === 'markdown') {
+                // 마크다운 이미지 문법도 제거: ![alt](url)
+                finalContent = finalContent.replace(
+                    new RegExp(`!\\[[^\\]]*\\]\\(${escaped}\\)`, 'g'),
+                    ''
+                );
+            }
         }
 
         const imageFiles = uploadedFiles.filter(
@@ -357,9 +367,10 @@
         );
         if (imageFiles.length > 0) {
             const imgTags = imageFiles
-                .map(
-                    (f) =>
-                        `<img src="${f.url}" alt="${f.original_filename}" loading="lazy" class="max-w-full">`
+                .map((f) =>
+                    contentFormat === 'markdown'
+                        ? `![${f.original_filename}](${f.url})`
+                        : `<img src="${f.url}" alt="${f.original_filename}" loading="lazy" class="max-w-full">`
                 )
                 .join('\n');
             finalContent = finalContent ? `${finalContent}\n${imgTags}` : imgTags;
@@ -601,9 +612,10 @@
                 <Label for="content">내용 <span class="text-destructive">*</span></Label>
                 <TiptapEditor
                     {content}
+                    {contentFormat}
                     placeholder={`/ 를 눌러 이미지와 앙티콘을 추가하세요\n\n경어체 사용은 필수이며, 초성 비속어도 이용제한 대상입니다.${board?.insert_content ? `\n\n${board.insert_content}` : ''}`}
                     disabled={isLoading}
-                    onUpdate={(html) => (content = html)}
+                    onUpdate={(value) => (content = value)}
                     onImageUpload={handleEditorImageUpload}
                     class={errors.content ? 'border-destructive' : ''}
                 />

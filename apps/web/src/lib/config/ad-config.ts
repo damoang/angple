@@ -181,12 +181,13 @@ export const AD_CONFIGS: Record<string, AdConfig> = {
     'banner-square': {
         unit: AD_UNIT_PATHS.sub,
         sizes: [[300, 250]],
-        responsive: null
+        // 모든 viewport 에서 300×250 명시. getReservedHeights 가 viewport-별 reserved 채워 클리핑 방지.
+        responsive: [[0, [[300, 250]]]]
     },
     'banner-square-small': {
         unit: AD_UNIT_PATHS.sub,
         sizes: [[320, 100]],
-        responsive: null
+        responsive: [[0, [[320, 100]]]]
     },
     'banner-halfpage': {
         unit: AD_UNIT_PATHS.sub,
@@ -299,7 +300,8 @@ export const AD_CONFIGS: Record<string, AdConfig> = {
     'banner-vertical': {
         unit: AD_UNIT_PATHS.wing,
         sizes: [[160, 600]],
-        responsive: null
+        // wing: 160×600 단일 사이즈. responsive 명시로 viewport-별 reserved 보장.
+        responsive: [[0, [[160, 600]]]]
     }
 };
 

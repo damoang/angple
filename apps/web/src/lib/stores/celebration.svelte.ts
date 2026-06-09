@@ -70,7 +70,7 @@ async function doFetch(): Promise<void> {
     if (!browser) return;
 
     try {
-        const response = await fetch('/api/ads/celebration/today', {
+        const response = await fetch('/api/celebration/today', {
             method: 'GET',
             headers: { Accept: 'application/json' }
         });

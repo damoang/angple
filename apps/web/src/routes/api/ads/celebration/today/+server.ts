@@ -8,6 +8,7 @@ import type { RequestHandler } from './$types';
 import type { RowDataPacket } from 'mysql2';
 import pool from '$lib/server/db';
 import { env } from '$env/dynamic/private';
+import { normalizeMediaUrl } from '$lib/utils/media-url';
 
 interface Banner {
     id: number;
@@ -29,6 +30,17 @@ interface Banner {
 const CDN_BASE = (env.CDN_URL || env.VITE_S3_URL || 'https://s3.damoang.net').replace(/\/$/, '');
 
 /**
+ * KST(Asia/Seoul) 기준 오늘 YYYY-MM-DD.
+ *
+ * RDS time_zone=SYSTEM(UTC) 라 MySQL CURDATE()/NOW() 가 KST 새벽 0~9시 동안 어제
+ * 날짜를 반환 → 마음메시지가 KST 자정~오전에 미표시되는 #12516 동일 원인.
+ * `$lib/server/celebration.ts` 와 일치하는 KST 파라미터화 (#12516 fix).
+ */
+function getTodayKST(): string {
+    return new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Seoul' });
+}
+
+/**
  * 회원 프로필 이미지 URL 생성
  */
 function getMemberPhotoUrl(mbImageUrl: string | null | undefined): string | undefined {
@@ -46,11 +58,8 @@ function extractFirstImage(content: string): string | null {
     if (!content) return null;
     const imgMatch = content.match(/<img[^>]+src=["']([^"']+)["']/i);
     if (imgMatch && imgMatch[1]) {
-        let imgUrl = imgMatch[1];
-        if (imgUrl.startsWith('/data/')) {
-            imgUrl = CDN_BASE + imgUrl;
-        }
-        return imgUrl;
+        // /data/ 상대경로 + s3/cdn 절대 URL 모두 CDN_BASE(r2) 로 정규화
+        return normalizeMediaUrl(imgMatch[1], CDN_BASE);
     }
     return null;
 }
@@ -60,7 +69,8 @@ export const GET: RequestHandler = async () => {
         const banners: Banner[] = [];
 
         // 1차: celebration_banners 테이블 (신규) — g5_member JOIN으로 닉네임/사진 가져옴
-        // KST 기준 날짜 비교: MySQL CONVERT_TZ 사용 (서버 UTC → KST 변환)
+        // #12516: CURDATE() (RDS UTC) → KST today 파라미터화. yearly_repeat 도 KST 기준 MONTH/DAY 비교.
+        const todayKST = getTodayKST(); // 'YYYY-MM-DD'
         try {
             const [rows] = await pool.execute<RowDataPacket[]>(
                 `SELECT cb.id, cb.title, cb.content, cb.image_url, cb.link_url,
@@ -77,11 +87,12 @@ export const GET: RequestHandler = async () => {
                  LEFT JOIN g5_write_message wm
                    ON cb.source_wr_id = wm.wr_id AND wm.wr_is_comment = 0
                  WHERE cb.is_active = 1
-                   AND (cb.display_date = CURDATE()
+                   AND (cb.display_date = ?
                         OR (cb.yearly_repeat = 1
-                            AND MONTH(cb.display_date) = MONTH(CURDATE())
-                            AND DAY(cb.display_date) = DAY(CURDATE())))
-                 ORDER BY cb.sort_order ASC, cb.id DESC`
+                            AND MONTH(cb.display_date) = MONTH(?)
+                            AND DAY(cb.display_date) = DAY(?)))
+                 ORDER BY cb.sort_order ASC, cb.id DESC`,
+                [todayKST, todayKST, todayKST]
             );
 
             for (const row of rows as RowDataPacket[]) {
@@ -92,7 +103,8 @@ export const GET: RequestHandler = async () => {
                 const anonymous = !!row.is_anonymous || (!!row.source_wr_id && sourceWrName === '');
 
                 // source_wr_id가 있으면 원본 게시글에서 최신 이미지 추출 (동기화)
-                let imageUrl = row.image_url || '';
+                // DB 에 s3 host 로 저장된 배너 이미지도 CDN_URL(r2) 로 정규화
+                let imageUrl = normalizeMediaUrl(row.image_url, CDN_BASE) ?? '';
                 if (row.source_content) {
                     const freshImage = extractFirstImage(row.source_content);
                     if (freshImage) imageUrl = freshImage;
@@ -127,18 +139,26 @@ export const GET: RequestHandler = async () => {
         }
 
         // 2차: g5_write_message fallback (마이그레이션 전까지) — g5_member JOIN
+        // #12516: NOW() (RDS UTC) 대신 KST today 4종 포맷을 파라미터로.
         if (banners.length === 0) {
+            const [yStr, mStr, dStr] = todayKST.split('-');
+            const mNum = String(Number(mStr));
+            const dNum = String(Number(dStr));
+            const legacyFormats = [
+                `${yStr}.${mStr}.${dStr}`,
+                todayKST,
+                `${yStr}.${mNum}.${dNum}`,
+                `${yStr}-${mNum}-${dNum}`
+            ];
             const [rows] = await pool.execute<RowDataPacket[]>(
                 `SELECT wm.wr_id, wm.wr_subject, wm.wr_content, wm.wr_link2, wm.mb_id,
                         wm.wr_name, m.mb_nick, m.mb_image_url
                  FROM g5_write_message wm
                  LEFT JOIN g5_member m ON wm.mb_id = m.mb_id
                  WHERE wm.wr_is_comment = 0
-                   AND (wm.wr_subject = DATE_FORMAT(NOW(), '%Y.%m.%d')
-                        OR wm.wr_subject = DATE_FORMAT(NOW(), '%Y-%m-%d')
-                       OR wm.wr_subject = DATE_FORMAT(NOW(), '%Y.%c.%e')
-                       OR wm.wr_subject = DATE_FORMAT(NOW(), '%Y-%c-%e'))
-                 ORDER BY wm.wr_id DESC`
+                   AND wm.wr_subject IN (?, ?, ?, ?)
+                 ORDER BY wm.wr_id DESC`,
+                legacyFormats
             );
 
             for (const row of rows as RowDataPacket[]) {
