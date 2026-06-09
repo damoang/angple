@@ -1,103 +1,108 @@
 <script lang="ts">
-    import { browser } from '$app/environment';
+    import { onMount } from 'svelte';
     import { Card, CardHeader, CardContent } from '$lib/components/ui/card';
     import { PartyPopper, ChevronRight } from '../lucide.js';
     import type { WidgetConfig } from '$lib/stores/widget-layout.svelte';
-    import { timedFetch } from '$lib/utils/timed-fetch';
-
-    interface Banner {
-        id: number;
-        title: string;
-        content: string;
-        image_url: string;
-        link_url: string;
-        target_member_nick?: string;
-        target_member_photo?: string;
-        display_type: 'image' | 'text';
-    }
+    import {
+        mount,
+        getCelebrations,
+        getCurrentIndex,
+        getLink
+    } from '$lib/stores/celebration.svelte';
 
     interface Props {
         config: WidgetConfig;
         slot?: string;
         isEditMode?: boolean;
-        prefetchData?: { data: Banner[] } | null;
     }
 
-    const { prefetchData = null }: Props = $props();
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const _props: Props = $props();
 
-    let banners = $state<Banner[]>(prefetchData?.data ?? []);
-    let loaded = $state(!!prefetchData);
+    // 공유 store 마운트 — CelebrationRolling/DamoangBanner 와 동일 currentIndex 로 sync.
+    onMount(() => mount());
 
-    $effect(() => {
-        if (!loaded && browser) {
-            // timedFetch: 12s timeout + 1회 retry. hasBanners=false 면 위젯 자체가 미표시되므로
-            // silent fail 정책 유지. (audit 2026-05-01 §3-1)
-            timedFetch('/api/ads/celebration/today?mode=recent')
-                .then((r) => r.json())
-                .then((res) => {
-                    if (res.success && res.data) {
-                        banners = res.data;
-                    }
-                })
-                .catch(() => {})
-                .finally(() => {
-                    loaded = true;
-                });
+    let celebrations = $derived(getCelebrations());
+    let currentIndex = $derived(getCurrentIndex());
+    let current = $derived(celebrations[currentIndex]);
+
+    // 이미지별 small 여부 (naturalWidth 기준).
+    // 기본값 = undefined → img 모드 (큰 이미지 가정, 가이드 770×90).
+    // onload 후 < 770 이면 small → 벽지(div, background-repeat) 모드.
+    let smallById = $state<Record<number, boolean>>({});
+
+    function checkSize(id: number, e: Event) {
+        const img = e.currentTarget as HTMLImageElement;
+        const isSmall = img.naturalWidth > 0 && img.naturalWidth < 770;
+        if (smallById[id] !== isSmall) {
+            smallById = { ...smallById, [id]: isSmall };
         }
-    });
+    }
 
-    // 최대 6개 표시 (3x2 그리드)
-    const displayBanners = $derived(banners.slice(0, 6));
-    const hasBanners = $derived(displayBanners.length > 0);
+    function slideClass(i: number, idx: number): string {
+        if (i === idx) return 'translate-y-0 opacity-100';
+        if (i < idx) return '-translate-y-full opacity-0';
+        return 'translate-y-full opacity-0';
+    }
 </script>
 
-{#if hasBanners}
-    <Card class="gap-0">
-        <CardHeader class="flex flex-row items-center justify-between space-y-0 px-4 py-3">
-            <div class="flex items-center gap-2">
-                <PartyPopper class="text-primary h-5 w-5" />
-                <h3 class="text-base font-semibold">축하메시지</h3>
+{#if celebrations.length > 0}
+    <Card class="w-full gap-0 overflow-hidden">
+        <CardHeader class="flex flex-row items-center justify-between space-y-0 px-3 pb-2 pt-0">
+            <div class="flex items-center gap-1.5">
+                <PartyPopper class="text-primary h-4 w-4" />
+                <h3 class="text-sm font-semibold">마음메시지</h3>
             </div>
             <a
                 href="/message"
-                class="text-muted-foreground hover:text-foreground flex items-center gap-1 text-[15px] transition-all duration-200 ease-out"
+                class="text-muted-foreground hover:text-foreground flex items-center gap-1 text-xs transition-colors"
             >
                 더보기
-                <ChevronRight class="h-4 w-4" />
+                <ChevronRight class="h-3.5 w-3.5" />
             </a>
         </CardHeader>
 
-        <CardContent class="px-4 pb-4">
-            <div class="grid grid-cols-3 gap-2">
-                {#each displayBanners as banner (banner.id)}
-                    <a
-                        href={banner.link_url || `/message/${banner.id}`}
-                        class="group relative overflow-hidden rounded-lg border transition-all duration-200 hover:scale-[1.03] hover:shadow-md"
-                    >
-                        <div class="bg-muted relative aspect-[4/1] overflow-hidden">
-                            {#if banner.image_url}
-                                <img
-                                    src={banner.image_url}
-                                    alt={banner.target_member_nick || '축하메시지'}
-                                    class="h-full w-full object-cover"
-                                    loading="lazy"
-                                />
-                            {:else}
-                                <div class="flex h-full w-full items-center justify-center">
-                                    <PartyPopper class="text-muted-foreground h-6 w-6" />
-                                </div>
-                            {/if}
-                            {#if banner.target_member_nick}
+        <CardContent class="p-0">
+            <a href={current ? getLink(current) : '/message'} class="block">
+                <div class="bg-muted relative aspect-[77/9] w-full overflow-hidden">
+                    {#each celebrations as banner, i (banner.id)}
+                        {#if banner.image_url}
+                            {@const isSmall = smallById[banner.id] === true}
+                            {@const slide = slideClass(i, currentIndex)}
+                            <!--
+                                동시 렌더 (깜박임 0):
+                                - img: 큰 이미지일 때 노출 (object-contain). onload 시 dimension 검사.
+                                - div: 작은 이미지일 때 노출 (background-repeat 벽지 패턴).
+                                두 element 의 opacity 만 swap → reflow 없음.
+                            -->
+                            <img
+                                src={banner.image_url}
+                                alt={banner.target_member_nick || '마음메시지'}
+                                onload={(e) => checkSize(banner.id, e)}
+                                class="absolute inset-0 h-full w-full object-contain transition-all duration-500 ease-in-out {slide} {isSmall
+                                    ? 'opacity-0'
+                                    : ''}"
+                                loading="lazy"
+                            />
+                            {#if isSmall}
                                 <div
-                                    class="absolute inset-x-0 bottom-0 truncate px-1 py-0.5 text-center text-xs font-bold text-white [text-shadow:_-1px_-1px_0_rgba(0,0,0,0.6),_1px_-1px_0_rgba(0,0,0,0.6),_-1px_1px_0_rgba(0,0,0,0.6),_1px_1px_0_rgba(0,0,0,0.6)]"
-                                >
-                                    {banner.target_member_nick}
-                                </div>
+                                    role="img"
+                                    aria-label={banner.target_member_nick || '마음메시지'}
+                                    style:background-image="url({banner.image_url})"
+                                    class="absolute inset-0 h-full w-full bg-center bg-repeat transition-all duration-500 ease-in-out {slide}"
+                                ></div>
                             {/if}
+                        {/if}
+                    {/each}
+                    {#if current?.target_member_nick}
+                        <div
+                            class="absolute bottom-0 right-0 max-w-[90%] truncate px-1.5 py-0.5 text-right text-xs font-bold text-white [text-shadow:_-1px_-1px_0_rgba(0,0,0,0.6),_1px_-1px_0_rgba(0,0,0,0.6),_-1px_1px_0_rgba(0,0,0,0.6),_1px_1px_0_rgba(0,0,0,0.6)]"
+                        >
+                            {current.target_member_nick}
                         </div>
-                    </a>
-                {/each}
-            </div>
+                    {/if}
+                </div>
+            </a>
         </CardContent>
     </Card>
 {/if}

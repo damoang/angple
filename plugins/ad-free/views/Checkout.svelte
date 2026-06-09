@@ -311,15 +311,21 @@
                 </p>
             {/if}
 
+            <!-- #12600 임시: 가맹점 심사 (네이버페이 PG 승인) 진행 중에는 결제 버튼 disable. 승인 후 자동 활성화. -->
             <Button
                 class="mt-5 w-full"
                 size="lg"
-                disabled={submitting || !guestFormValid}
+                disabled={submitting || !guestFormValid || !data.isMerchantApproved}
                 onclick={handleSubmit}
+                title={!data.isMerchantApproved ? '네이버페이 PG 승인 대기 중' : undefined}
             >
-                {submitting
-                    ? '진행 중…'
-                    : `${formatPrice(currentPlan.price, data.currency)} 결제하기`}
+                {#if !data.isMerchantApproved}
+                    🚧 네이버페이 승인 대기 중 (곧 오픈)
+                {:else if submitting}
+                    진행 중…
+                {:else}
+                    {formatPrice(currentPlan.price, data.currency)} 결제하기
+                {/if}
             </Button>
 
             {#if stubMessage}

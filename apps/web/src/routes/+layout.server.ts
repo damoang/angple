@@ -3,6 +3,8 @@ import { getActiveTheme } from '$lib/server/themes';
 import { loadMenus } from '$lib/server/menu-loader';
 import { getCachedLogoData } from '$lib/server/logo';
 import { resolveLogoRequestLocale } from '$lib/utils/logo-schedule';
+import { getWidgetLayout, getSidebarWidgetLayout } from '$lib/server/settings/index';
+import { DEFAULT_WIDGETS, DEFAULT_SIDEBAR_WIDGETS } from '$lib/constants/default-widgets';
 
 import { hooks } from '@angple/hook-system';
 import { env } from '$env/dynamic/private';
@@ -61,7 +63,9 @@ export const load: LayoutServerLoad = async ({
                 requestLocale,
                 requestTimeZone: 'UTC'
             },
-            ga4MeasurementId: ''
+            ga4MeasurementId: '',
+            widgetLayout: DEFAULT_WIDGETS,
+            sidebarWidgetLayout: DEFAULT_SIDEBAR_WIDGETS
         };
 
         return hooks.applyFilters('layout_server_data', installLayoutData);
@@ -70,15 +74,32 @@ export const load: LayoutServerLoad = async ({
     // 병렬로 SSR 필수 데이터만 로드 (allSettled: 개별 실패 허용)
     // celebration, banners, ga4는 /api/layout/init에서 클라이언트 로드 (비용 절감)
     const { getActivePlugins } = await import('$lib/server/plugins/index.js');
-    const [themeResult, menusResult, logoResult, pluginsResult] = await Promise.allSettled([
+    const [
+        themeResult,
+        menusResult,
+        logoResult,
+        pluginsResult,
+        widgetLayoutResult,
+        sidebarWidgetLayoutResult
+    ] = await Promise.allSettled([
         getActiveTheme(),
         isDataRequest ? Promise.resolve([]) : loadMenus(),
         getCachedLogoData(requestLocale),
-        getActivePlugins()
+        getActivePlugins(),
+        getWidgetLayout(),
+        getSidebarWidgetLayout()
     ]);
 
     const activeTheme = themeResult.status === 'fulfilled' ? themeResult.value : null;
     const menus = menusResult.status === 'fulfilled' ? menusResult.value : [];
+    const widgetLayout =
+        widgetLayoutResult.status === 'fulfilled' && widgetLayoutResult.value
+            ? widgetLayoutResult.value
+            : DEFAULT_WIDGETS;
+    const sidebarWidgetLayout =
+        sidebarWidgetLayoutResult.status === 'fulfilled' && sidebarWidgetLayoutResult.value
+            ? sidebarWidgetLayoutResult.value
+            : DEFAULT_SIDEBAR_WIDGETS;
     const logoData =
         logoResult.status === 'fulfilled'
             ? logoResult.value
@@ -110,7 +131,9 @@ export const load: LayoutServerLoad = async ({
         ['Theme', themeResult],
         ['Menus', menusResult],
         ['Logo', logoResult],
-        ['Plugins', pluginsResult]
+        ['Plugins', pluginsResult],
+        ['WidgetLayout', widgetLayoutResult],
+        ['SidebarWidgetLayout', sidebarWidgetLayoutResult]
     ] as const) {
         if (r.status === 'rejected') {
             console.error(`[Layout] ${name} load failed:`, r.reason);
@@ -147,7 +170,11 @@ export const load: LayoutServerLoad = async ({
             requestTimeZone: logoData.requestTimeZone
         },
         // Phase 1 (Path D′): site-resolver 결과. miss 시 null. svelte:head 가 og:*/favicon 변수화에 사용.
-        site: locals.site ?? null
+        site: locals.site ?? null,
+        // 모든 페이지에서 widgetLayoutStore 초기화 (Redis 캐시 사용, SSR 비용 미미)
+        // 이전엔 +page.server.ts(홈)에서만 로드 → 글 상세/게시판 목록 등에서 사이드바 사용자 layout 미적용.
+        widgetLayout,
+        sidebarWidgetLayout
     };
 
     // 훅: 레이아웃 데이터 필터 (플러그인이 SSR 데이터를 수정/확장 가능)

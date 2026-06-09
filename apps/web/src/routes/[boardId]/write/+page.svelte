@@ -4,6 +4,7 @@
     import { page } from '$app/stores';
     import PostForm from '$lib/components/features/board/post-form.svelte';
     import { writeFormRegistry } from '$lib/components/features/board/write-form-registry.js';
+    import { contentFormatRegistry } from '$lib/components/features/board/content-format-registry.js';
     import { authStore } from '$lib/stores/auth.svelte.js';
     import { apiClient } from '$lib/api/index.js';
     import type { PageData } from './$types.js';
@@ -39,6 +40,9 @@
 
     // 커스텀 글쓰기 폼 resolve (없으면 기본 PostForm 사용)
     const customWriteForm = $derived(writeFormRegistry.resolve(boardType));
+
+    // 본문 콘텐츠 형식 ('markdown'이면 에디터가 마크다운 소스 모드, 마크다운 원문 저장)
+    const contentFormat = $derived(contentFormatRegistry.resolve(boardType));
 
     let isSubmitting = $state(false);
     let error = $state<string | null>(null);
@@ -292,7 +296,9 @@
             {@const CustomWriteForm = customWriteForm}
             <CustomWriteForm
                 {boardId}
+                board={data.board ?? undefined}
                 categories={data.categories}
+                {contentFormat}
                 onSubmit={handleSubmit}
                 onCancel={handleCancel}
                 isLoading={isSubmitting}
@@ -310,6 +316,7 @@
                     mode="create"
                     board={data.board ?? undefined}
                     categories={data.categories}
+                    {contentFormat}
                     initialTitle={repostTitle || claimInitialTitle}
                     initialLink1={repostLink1 || claimInitialLink1}
                     initialLink2={repostLink2}

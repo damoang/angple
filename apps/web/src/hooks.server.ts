@@ -215,6 +215,23 @@ function isBoardListPath(pathname: string, searchParams: URLSearchParams): boole
 
 /** 글 상세 페이지 패턴: /boardId/postId (숫자) */
 const POST_DETAIL_REGEX = /^\/[a-z][a-z0-9_-]{1,20}\/\d+$/;
+/**
+ * 404 를 CDN cache 해도 안전한 known-static 경로.
+ * bot/legacy URL 이 반복 요청해서 origin 부담을 일으키는 패턴에 한정.
+ * CloudFront 통계: /theme/* = 0% hit / 48 GB/7d uncached (2026-06-03 측정).
+ */
+function isCacheableNotFoundPath(pathname: string): boolean {
+    return (
+        pathname.startsWith('/theme/') ||
+        pathname.startsWith('/themes/') ||
+        pathname.startsWith('/wp-') ||
+        pathname.startsWith('/wordpress/') ||
+        pathname.endsWith('.php') ||
+        pathname.endsWith('.asp') ||
+        pathname.endsWith('.aspx')
+    );
+}
+
 function isPostDetailPath(pathname: string): boolean {
     return POST_DETAIL_REGEX.test(pathname);
 }
@@ -253,6 +270,15 @@ function rewriteImmutableAssetUrls(html: string, cacheBust = ''): string {
         );
     }
     return appendImmutableAssetCacheBust(nextHtml, cacheBust);
+}
+
+// SSR HTML 응답에서 cdn.damoang.net (CloudFront) → r2.damoang.net (Cloudflare R2) 치환.
+// dual-write 대상 prefix 만 (raw/tmp 제외, R2 에 없는 prefix 요청 시 404 방지).
+const CDN_TO_R2_HOSTS_REGEX =
+    /https?:\/\/cdn\.damoang\.net\/(data\/(?:content|editor|file|member_image|home|qa|member|nariya)\/[^\s"'<>)\\]+)/g;
+
+export function rewriteCdnToR2(html: string): string {
+    return html.replace(CDN_TO_R2_HOSTS_REGEX, 'https://r2.damoang.net/$1');
 }
 
 /**
@@ -319,22 +345,41 @@ function getGlobalApiRateLimitKey(
     return clientIp ? `ip:${clientIp}` : null;
 }
 
-/** 타임아웃 래퍼: 지정 시간 내 미완료 시 null 반환
- *
- * 2026-04-26: setTimeout clearTimeout 누락 수정.
- * Promise.race 가 promise winner 일 때 timer 가 살아있어 매 SSR 요청 누적
- * (12h × 수만 요청 = pod 메모리 +수백 MB). Serena Round A #2 발견.
- */
 const AUTH_TIMEOUT_MS = 3000;
-function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | null> {
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    const timeoutPromise = new Promise<null>((resolve) => {
-        timer = setTimeout(() => resolve(null), ms);
-        timer.unref?.();
-    });
-    return Promise.race([promise, timeoutPromise]).finally(() => {
-        if (timer) clearTimeout(timer);
-    });
+
+/**
+ * withTimeout 은 타임아웃 시 null 을 반환해 "조회 결과 없음(로그아웃)"과
+ * "일시 장애(Redis/DB 지연)"가 구분되지 않는다. 이 때문에 세션이 유효한데도
+ * 지연 한 번에 비로그인 처리되어, 보호 페이지 → /login → 복귀 → 또 지연 →
+ * 무한 왕복(#12621 쪽지함 무한 새로고침)이 생긴다.
+ * sentinel 로 타임아웃을 구분하고, 타임아웃/예외 시 1회 재시도한다.
+ */
+const AUTH_LOOKUP_TIMEOUT: unique symbol = Symbol('auth-lookup-timeout');
+async function withTimeoutRetry<T>(
+    fn: () => Promise<T>,
+    ms: number,
+    label: string
+): Promise<T | null> {
+    for (let attempt = 1; attempt <= 2; attempt++) {
+        let timer: ReturnType<typeof setTimeout> | undefined;
+        const timeoutPromise = new Promise<typeof AUTH_LOOKUP_TIMEOUT>((resolve) => {
+            timer = setTimeout(() => resolve(AUTH_LOOKUP_TIMEOUT), ms);
+            timer.unref?.();
+        });
+        try {
+            const result = await Promise.race([fn(), timeoutPromise]).finally(() => {
+                if (timer) clearTimeout(timer);
+            });
+            if (result !== AUTH_LOOKUP_TIMEOUT) return result;
+            console.error(`[Auth] ${label} 타임아웃 (시도 ${attempt}/2)`);
+        } catch (err) {
+            console.error(
+                `[Auth] ${label} 실패 (시도 ${attempt}/2):`,
+                err instanceof Error ? err.message : err
+            );
+        }
+    }
+    return null;
 }
 
 /** SSR 인증: 서버사이드 세션 only (JWT 미사용) */
@@ -349,7 +394,11 @@ async function authenticateSSR(event: Parameters<Handle>[0]['event']): Promise<v
 
     if (sessionId) {
         try {
-            const session = await withTimeout(getSession(sessionId), AUTH_TIMEOUT_MS);
+            const session = await withTimeoutRetry(
+                () => getSession(sessionId),
+                AUTH_TIMEOUT_MS,
+                'getSession'
+            );
             if (session) {
                 // FAST PATH: user_basic 쿠키 + JWT cache hit → DB 조회 0 (Phase B wire-up)
                 // feature flag USER_BASIC_FAST_PATH=true 시 활성화. default off.
@@ -386,7 +435,11 @@ async function authenticateSSR(event: Parameters<Handle>[0]['event']): Promise<v
                     }
                 }
 
-                const member = await withTimeout(getMemberById(session.mbId), AUTH_TIMEOUT_MS);
+                const member = await withTimeoutRetry(
+                    () => getMemberById(session.mbId),
+                    AUTH_TIMEOUT_MS,
+                    'getMemberById'
+                );
                 if (member) {
                     // 탈퇴 회원 세션 차단 (이용제한 회원은 글 열람 허용을 위해 세션 유지)
                     if (member.mb_leave_date) {
@@ -779,6 +832,19 @@ export const handle: Handle = async ({ event, resolve }) => {
     // 첫 host 응답을 공유 → 모든 사이트가 같은 theme 로 보이는 오염 발생.
     const publicVaryHeader = 'Host, Cookie, User-Agent, Accept-Encoding';
 
+    /**
+     * Vary 헤더 통합 set — 기존 vary (CORS Origin, framework Accept 등) 와 합쳐서 단일 헤더.
+     * 발견 2026-06-04: response.headers.set('Vary', ...) 후 framework/CORS handler 가 추가
+     * Vary 헤더 append → 결과 2줄 Vary → Cloudflare cache key 가 첫 줄만 사용 → 인증 응답 누설.
+     */
+    const mergeVarySet = (response: Response, additional: string): void => {
+        const existing = response.headers.get('Vary') || '';
+        const items = new Set(
+            [...existing.split(','), ...additional.split(',')].map((s) => s.trim()).filter(Boolean)
+        );
+        response.headers.set('Vary', Array.from(items).join(', '));
+    };
+
     // OPTIONS 요청 (CORS preflight) 처리
     if (event.request.method === 'OPTIONS') {
         const origin = event.request.headers.get('origin');
@@ -835,6 +901,7 @@ export const handle: Handle = async ({ event, resolve }) => {
                 headers: {
                     'Content-Type': 'text/html; charset=utf-8',
                     'Cache-Control': publicHtmlCacheControl,
+                    Vary: publicVaryHeader,
                     'X-Content-Type-Options': 'nosniff',
                     'X-Frame-Options': 'SAMEORIGIN',
                     'Referrer-Policy': 'strict-origin-when-cross-origin',
@@ -859,6 +926,7 @@ export const handle: Handle = async ({ event, resolve }) => {
                         headers: {
                             'Content-Type': 'text/html; charset=utf-8',
                             'Cache-Control': publicHtmlCacheControl,
+                            Vary: publicVaryHeader,
                             'X-Content-Type-Options': 'nosniff',
                             'X-Frame-Options': 'SAMEORIGIN',
                             'Referrer-Policy': 'strict-origin-when-cross-origin',
@@ -875,7 +943,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 
         const renderPromise = (async () => {
             const response = await resolve(event, {
-                transformPageChunk: ({ html }) => rewriteImmutableAssetUrls(html),
+                transformPageChunk: ({ html }) => rewriteCdnToR2(rewriteImmutableAssetUrls(html)),
                 filterSerializedResponseHeaders: (name) => name.toLowerCase() === 'content-type'
             });
 
@@ -915,6 +983,7 @@ export const handle: Handle = async ({ event, resolve }) => {
                     headers: {
                         'Content-Type': 'text/html; charset=utf-8',
                         'Cache-Control': publicHtmlCacheControl,
+                        Vary: publicVaryHeader,
                         'X-Content-Type-Options': 'nosniff',
                         'X-Frame-Options': 'SAMEORIGIN',
                         'Referrer-Policy': 'strict-origin-when-cross-origin',
@@ -963,9 +1032,11 @@ export const handle: Handle = async ({ event, resolve }) => {
         transformPageChunk: ({ html }) => {
             const cls = htmlClass ? ` class="${htmlClass}"` : '';
             const sty = ` style="--row-pad-extra:${dPad};--comment-pad-extra:${dPad}"`;
-            return rewriteImmutableAssetUrls(
-                html.replace('<html lang="ko">', `<html lang="ko"${cls}${sty}>`),
-                assetRecoveryBust
+            return rewriteCdnToR2(
+                rewriteImmutableAssetUrls(
+                    html.replace('<html lang="ko">', `<html lang="ko"${cls}${sty}>`),
+                    assetRecoveryBust
+                )
             );
         },
         filterSerializedResponseHeaders: (name) => name.toLowerCase() === 'content-type'
@@ -1010,6 +1081,9 @@ export const handle: Handle = async ({ event, resolve }) => {
             'Cache-Control',
             'public, s-maxage=86400, max-age=3600, stale-while-revalidate=604800'
         );
+        // Vary 누락 시 Cloudflare cache key 가 cookie 무관 → 인증/비로그인 같은 cache 공유 (UX 사고).
+        // 2026-06-04: /free → /free 308 응답이 비로그인 cache 를 인증 사용자도 받는 문제 확인.
+        mergeVarySet(response, publicVaryHeader);
     } else if (hasExplicitPublicCache) {
         // API 핸들러가 설정한 Cache-Control 유지 (celebration, banners, levels, reactions, init 등)
     } else if (event.url.pathname.startsWith('/_app/immutable')) {
@@ -1017,18 +1091,24 @@ export const handle: Handle = async ({ event, resolve }) => {
     } else if (!event.locals.user && isPublicCacheablePath(pathname)) {
         // 비로그인 사용자의 공개 페이지
         response.headers.set('Cache-Control', publicHtmlCacheControl);
-        response.headers.set('Vary', publicVaryHeader);
+        mergeVarySet(response, publicVaryHeader);
     } else if (!event.locals.user && isBoardListPath(pathname, event.url.searchParams)) {
         // 비로그인 사용자의 게시판 목록
         response.headers.set('Cache-Control', publicHtmlCacheControl);
-        response.headers.set('Vary', publicVaryHeader);
+        mergeVarySet(response, publicVaryHeader);
     } else if (!event.locals.user && isPostDetailPath(pathname)) {
         // 비로그인 사용자의 글 상세
         response.headers.set('Cache-Control', publicHtmlCacheControl);
-        response.headers.set('Vary', publicVaryHeader);
+        mergeVarySet(response, publicVaryHeader);
+    } else if (response.status === 404 && isCacheableNotFoundPath(pathname)) {
+        // bot/legacy URL 의 known-static 경로 404 = origin 부담 ↓
+        // CloudFront 통계상 /theme/* = 0% hit / 48 GB/7d uncached origin fetch.
+        // CDN 1h + browser 10min cache 로 동일 invalid path 반복 요청 흡수.
+        response.headers.set('Cache-Control', 'public, s-maxage=3600, max-age=600');
+        mergeVarySet(response, publicVaryHeader);
     } else {
         response.headers.set('Cache-Control', 'private, max-age=2, must-revalidate');
-        response.headers.set('Vary', publicVaryHeader);
+        mergeVarySet(response, publicVaryHeader);
     }
 
     // SvelteKit modulepreload Link 헤더 제거 (8KB+ → 응답 헤더 축소)

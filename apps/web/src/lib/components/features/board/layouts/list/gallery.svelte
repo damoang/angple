@@ -1,5 +1,10 @@
 <script lang="ts">
     import { Badge } from '$lib/components/ui/badge/index.js';
+    import {
+        RestrictedBadge,
+        isRestrictedTitle
+    } from '$lib/components/ui/restricted-badge/index.js';
+    import { DisciplinedBadge } from '$lib/components/ui/discipline-related/index.js';
     import type { FreePost, BoardDisplaySettings } from '$lib/api/types.js';
     import ImageIcon from '@lucide/svelte/icons/image';
     import AuthorLink from '$lib/components/ui/author-link/author-link.svelte';
@@ -101,6 +106,12 @@
                 style="font-size: var(--list-font-size);"
             >
                 {post.title}
+                {#if isRestrictedTitle(post.title)}
+                    <RestrictedBadge class="ml-1" />
+                {/if}
+                {#if post.is_discipline_related}
+                    <DisciplinedBadge class="ml-1" />
+                {/if}
             </h3>
             <div class="text-muted-foreground flex items-center gap-1.5 text-xs">
                 <span>👍 {post.likes}</span>

@@ -30,7 +30,7 @@
         "husky": "^8.0.3",
         "lint-staged": "^15.0.0",
         "prettier": "3.3.3",
-        "prettier-plugin-svelte": "3.2.8",
+        "prettier-plugin-svelte": "3.5.2",
         "prettier-plugin-tailwindcss": "^0.5.6",
         "three": "^0.171.0",
         "typescript": "^5.0.0"

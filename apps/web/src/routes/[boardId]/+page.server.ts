@@ -1,6 +1,7 @@
 import { error as svelteError, redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types.js';
 import type { FreePost, Board, SearchField } from '$lib/api/types.js';
+import { BOARD_LIST_PAGE_SIZE } from '$lib/constants/board.js';
 import {
     fetchPromotionPosts,
     fetchPromotionBoardPosts,
@@ -18,6 +19,7 @@ import { searchByBoard } from '$lib/server/sphinx-search.js';
 import { readPool } from '$lib/server/db.js';
 import type { RowDataPacket } from 'mysql2';
 import { applyFilter } from '$lib/hooks/registry.js';
+import { buildHookContext } from '$lib/hooks/context.js';
 
 // --- 인메모리 캐시: 비로그인 게시글 목록 (15초 TTL) ---
 interface PostsCacheData {
@@ -169,7 +171,7 @@ export const load: PageServerLoad = async ({
 
     const boardId = canonicalBoardId;
     const page = Number(url.searchParams.get('page')) || 1;
-    const limit = Number(url.searchParams.get('limit')) || 24;
+    const limit = Number(url.searchParams.get('limit')) || BOARD_LIST_PAGE_SIZE;
 
     // 검색 파라미터
     const searchField = (url.searchParams.get('sfl') as SearchField) || null;
@@ -393,13 +395,16 @@ export const load: PageServerLoad = async ({
             const trimmed = maybeTrimBoardListPayload(boardId, board, posts, notices);
             // Phase 1C: 플러그인 enrich filter 호출 (member-memo author_memo 등).
             // 미설치 시 pass-through. (premium PR #43 기준 stub)
+            // Step A′: 서버 hook 표준 컨텍스트(site/user) 전달 — 단일테넌트 무시, 멀티테넌트 게이팅 대비.
             const enrichedPosts = (await applyFilter(
                 'post.list.enrich',
-                trimmed.posts
+                trimmed.posts,
+                buildHookContext(locals)
             )) as FreePost[];
             const enrichedNotices = (await applyFilter(
                 'post.list.enrich',
-                trimmed.notices
+                trimmed.notices,
+                buildHookContext(locals)
             )) as FreePost[];
             const result = {
                 posts: enrichedPosts,
@@ -588,7 +593,7 @@ export const load: PageServerLoad = async ({
             }
         }
 
-        // 축하메시지(message) 게시판: 익명 글 프로필 정보 숨김
+        // 마음메시지(message) 게시판: 익명 글 프로필 정보 숨김
         // PublishToGnuboard()에서 익명 시 wr_name=""으로 설정 → author가 빈 문자열
         if (boardId === 'message') {
             for (const p of allPosts) {
@@ -604,10 +609,16 @@ export const load: PageServerLoad = async ({
         const trimmed = maybeTrimBoardListPayload(boardId, board, posts, notices);
         // Phase 1C: 플러그인 enrich filter 호출 (member-memo author_memo 등).
         // 미설치 시 pass-through. (premium PR #43 기준 stub)
-        const enrichedPosts = (await applyFilter('post.list.enrich', trimmed.posts)) as FreePost[];
+        // Step A′: 서버 hook 표준 컨텍스트(site/user) 전달 — 단일테넌트 무시, 멀티테넌트 게이팅 대비.
+        const enrichedPosts = (await applyFilter(
+            'post.list.enrich',
+            trimmed.posts,
+            buildHookContext(locals)
+        )) as FreePost[];
         const enrichedNotices = (await applyFilter(
             'post.list.enrich',
-            trimmed.notices
+            trimmed.notices,
+            buildHookContext(locals)
         )) as FreePost[];
         const result = {
             posts: enrichedPosts,

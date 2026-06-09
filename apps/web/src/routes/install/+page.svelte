@@ -1,5 +1,6 @@
 <script lang="ts">
     import { enhance } from '$app/forms';
+    import { DEFAULT_THEME } from '$lib/themes/constants';
     import { Button } from '$lib/components/ui/button';
     import { Input } from '$lib/components/ui/input';
     import { Label } from '$lib/components/ui/label';
@@ -38,7 +39,7 @@
 
     let { data, form } = $props();
     let isSubmitting = $state(false);
-    let selectedTheme = $state('damoang-default');
+    let selectedTheme = $state(DEFAULT_THEME);
 
     // 테마 목록 (서버에서 전달)
     const themes: Theme[] = data.themes ?? [];

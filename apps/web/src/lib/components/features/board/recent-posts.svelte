@@ -66,8 +66,14 @@
         displaySettings
     }: Props = $props();
 
-    // 게시판 레이아웃 설정에 따라 레이아웃 컴포넌트 resolve
-    const listLayoutId = $derived(displaySettings?.list_layout || 'compact');
+    // 게시판 레이아웃 설정에 따라 레이아웃 컴포넌트 resolve.
+    // board list 페이지(`[boardId]/+page.svelte:614`) 와 동일한 fallback 사용:
+    //   list_layout → list_style (legacy) → 'classic'.
+    // 이전엔 fallback 'compact' + list_style 무시여서 같은 게시판에서 본문 하단
+    // 목록과 게시판 목록이 다른 layout 으로 표시되었음.
+    const listLayoutId = $derived(
+        displaySettings?.list_layout || displaySettings?.list_style || 'classic'
+    );
     const layoutEntry = $derived(layoutRegistry.resolveList(listLayoutId));
     const LayoutComponent = $derived(layoutEntry?.component || CompactLayout);
     const wrapperClass = $derived(layoutEntry?.manifest.wrapperClass || 'space-y-1');

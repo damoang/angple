@@ -42,6 +42,7 @@
     import CommentList from '$lib/components/features/board/comment-list.svelte';
     import AuthorActivityPanel from '$lib/components/features/board/author-activity-panel.svelte';
     import RecentPosts from '$lib/components/features/board/recent-posts.svelte';
+    import { BOARD_LIST_PAGE_SIZE } from '$lib/constants/board';
     import { ReportDialog } from '$lib/components/features/report/index.js';
     import type { FreeComment, FreePost, LikerInfo, PostRevision } from '$lib/api/types.js';
     import DeletedPostBanner from '$lib/components/post/deleted-post-banner.svelte';
@@ -182,6 +183,8 @@
     // 플러그인 활성화 여부
     let memoPluginActive = $derived(pluginStore.isPluginActive('member-memo'));
     let reactionPluginActive = $derived(pluginStore.isPluginActive('da-reaction'));
+
+    import TagNav from '$lib/components/ui/tag-nav/tag-nav.svelte';
 
     // 동적 import: member-memo 플러그인 컴포넌트
     import type { Component } from 'svelte';
@@ -331,6 +334,10 @@
     // 댓글/프로모션/리비전 — Streaming SSR (2단계 데이터)
     let comments = $state<FreeComment[]>(data.commentsData?.comments.items || []);
     let commentsTotal = $state<number>(data.commentsData?.comments.total || comments.length);
+    // 댓글 수정 정책 — backend 단일 출처. proxy 응답의 meta.comment_edit_policy 에서 전달.
+    let commentEditPolicy = $state<{ cost: number; grace_seconds: number } | undefined>(
+        data.commentsData?.comments.edit_policy
+    );
     let truthroomCommentMap = $state<Record<number, number>>({});
     let promotionPosts = $state<PromotionPost[]>([]);
     let revisions = $state<PostRevision[]>([]);
@@ -756,6 +763,15 @@
         likersPage = 1;
         editingMemoFor = null;
         scheduledDelete = null;
+
+        // 공감자 아바타 eager 미리보기 로드.
+        // 댓글은 getCommentLikersBatch로 초기 로드 시 아바타가 뜨지만, 게시글은 기존에
+        // loadLikerAvatars가 공감 토글에서만 호출돼 "공감/공감자 목록 보기"를 누르기 전엔
+        // 아바타가 안 떴음. 좋아요가 있는 글에서만 1회 요청(상위 5명).
+        // 비로그인은 loadLikerAvatars 내부에서 early-return하므로 요청 발생 안 함.
+        if (data.post.likes > 0) {
+            loadLikerAvatars();
+        }
     });
 
     // 앵커 스크롤 + 하이라이트 헬퍼
@@ -817,16 +833,19 @@
         }
     });
 
+    // afterNavigate는 컴포넌트 초기화 시점에 등록해야 destroy 시 자동 정리됨.
+    // onMount 안에서 등록하면 재마운트마다 콜백이 누적돼 추가 history 조작(replaceState)을
+    // 유발할 수 있음 (issue #989).
+    afterNavigate(() => {
+        scheduleAnchorScroll();
+    });
+
     onMount(() => {
         const onHashChange = () => {
             if (commentsLoaded) {
                 scheduleAnchorScroll();
             }
         };
-
-        afterNavigate(() => {
-            scheduleAnchorScroll();
-        });
 
         window.addEventListener('hashchange', onHashChange);
 
@@ -1230,9 +1249,20 @@
         // 브라우저 HTTP 캐시 / SvelteKit data 캐시가 옛 응답을 반환하면 optimistic
         // update 로 추가된 새 댓글이 덮어써져 "댓글이 바로 안 보인다" (#12294) 가
         // 재현되므로 no-store 로 캐시를 우회한다.
+        //
+        // 추가 보강 (#12548): 카카오톡 등 모바일 in-app webview 는 cache 헤더를
+        // 무시하는 사례가 있어 URL cache buster (`_t=${Date.now()}`) 로 강제 우회.
+        // SW (service worker) 가 가로채는 케이스도 동일하게 URL 변화로 회피.
+        const cacheBuster = Date.now();
         const res = await fetch(
-            `/api/boards/${boardId}/posts/${data.post.id}/comments?page=1&limit=200`,
-            { cache: 'no-store', headers: { 'Cache-Control': 'no-cache' } }
+            `/api/boards/${boardId}/posts/${data.post.id}/comments?page=1&limit=200&_t=${cacheBuster}`,
+            {
+                cache: 'no-store',
+                headers: {
+                    'Cache-Control': 'no-cache, no-store, must-revalidate',
+                    Pragma: 'no-cache'
+                }
+            }
         );
         const json = await res.json();
         if (json.success) {
@@ -1564,12 +1594,40 @@
         >
     </nav>
 
+    <!-- 빠른 이동(tag-nav) — 목록 페이지와 동일. 메뉴는 admin 설정/DEFAULT_MENUS 공유 -->
+    <div class="mb-3">
+        <TagNav />
+    </div>
+
     <!-- 상단 네비게이션 — 모바일 터치 타겟 44px(#12016) -->
     <div
         class="-mx-2 mb-2 flex items-center gap-3 px-2 py-2 md:mx-0 md:px-0 [&_a]:min-h-11 md:[&_a]:min-h-0 [&_button]:min-h-11 md:[&_button]:min-h-0"
     >
         <Button variant="ghost" size="sm" onclick={() => history.back()} class="shrink-0">←</Button>
         <Button variant="outline" size="sm" onclick={goBack} class="shrink-0">목록으로</Button>
+
+        <!-- 상단에도 글쓰기 버튼 (하단 네비와 동일 권한/실명인증 로직) -->
+        {#if authStore.isAuthenticated && checkPermission(data.board, 'can_write', authStore.user ?? null)}
+            <Button
+                variant="default"
+                size="sm"
+                href={canUseCertifiedAction(authStore.user, boardId)
+                    ? `/${boardId}/write`
+                    : undefined}
+                onclick={(e) => {
+                    if (!canUseCertifiedAction(authStore.user, boardId)) {
+                        e.preventDefault();
+                        goToCertification();
+                    }
+                }}
+                title={!canUseCertifiedAction(authStore.user, boardId)
+                    ? getCertificationBlockedMessage(boardId)
+                    : undefined}
+                class="shrink-0"
+            >
+                {#if !canUseCertifiedAction(authStore.user, boardId)}실명인증{:else}글쓰기{/if}
+            </Button>
+        {/if}
 
         <div class="flex-1"></div>
 
@@ -1671,7 +1729,7 @@
         <PluginSlot name="board-view-rolling" />
     </div>
 
-    <!-- 축하메시지 아래 구글 광고 -->
+    <!-- 마음메시지 아래 구글 광고 -->
     {#if widgetLayoutStore.hasEnabledAds && !data.post.deleted_at}
         <div class="mb-3">
             <AdSlot position="board-content" height="90px" slotKey="board-view-head-ad" />
@@ -1942,6 +2000,7 @@
                             onLike={handleLikeComment}
                             onDislike={handleDislikeComment}
                             postAuthorId={data.post.author_id}
+                            postDeleted={!!data.post.deleted_at}
                             {boardId}
                             postId={data.post.id}
                             useNogood={!!data.board?.use_nogood}
@@ -1951,6 +2010,7 @@
                             {initialDislikedCommentIds}
                             {truthroomCommentMap}
                             isRestricted={data.isRestricted}
+                            editPolicy={commentEditPolicy}
                         />
                     {/if}
                     <!-- 플러그인 슬롯: 댓글 영역 직후 — Slot Catalog Sprint 2c -->
@@ -2075,7 +2135,7 @@
                 {boardId}
                 {boardTitle}
                 currentPostId={data.post.id}
-                limit={20}
+                limit={BOARD_LIST_PAGE_SIZE}
                 initialPage={Number($page.url.searchParams.get('page')) ||
                     data.recentPosts?.page ||
                     1}

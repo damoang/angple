@@ -140,6 +140,72 @@ function ensureSlotListener() {
         state.loaded = true;
         state.empty = event.isEmpty;
         state.viewable = false;
+
+        // #12595: SafeFrame OFF (PR #1568) 후에도 일부 광고에서 iframe 내부 scrollbar
+        // 발생. 특히 in-flow 컨테이너 (728×90 reserved) 에 더 큰 creative (예: 250×250)
+        // 가 들어오면 iframe 안에 scroll 가 생겨 사용자 페이지 스크롤 포커스를 가로챔.
+        // GPT 가 만든 iframe element 의 scrolling 속성 + overflow style 강제로 차단.
+        if (!event.isEmpty) {
+            try {
+                const container = document.getElementById(slotId);
+                const iframe = container?.querySelector(
+                    'iframe[id^="google_ads_iframe"]'
+                ) as HTMLIFrameElement | null;
+                if (iframe) {
+                    iframe.setAttribute('scrolling', 'no');
+                    iframe.style.overflow = 'hidden';
+                }
+
+                // #12628: overflow-y visible 전환(#1578) 후, 예약 높이(min-height)보다 큰
+                // creative(비디오 등)가 아래 콘텐츠 위로 흘러내려 제목을 가리는 문제.
+                // overflow 로 자르는 대신(잘림=AdSense 정책 위반, auto=스크롤바 #12595)
+                // 컨테이너 min-height 를 creative 렌더 높이만큼 올려 sizing 으로 해결한다.
+                // - 늘리기만 하고 줄이지 않음 (refresh 로 작은 creative 가 와도 layout shift 최소화)
+                // - fluid/1x1 creative 는 event.size 가 무의미 → iframe 실측 높이 fallback
+                let creativeHeight = Array.isArray(event.size) ? Number(event.size[1]) || 0 : 0;
+                if (creativeHeight <= 1 && iframe) {
+                    creativeHeight = iframe.offsetHeight || 0;
+                }
+                if (container && creativeHeight > 1) {
+                    const frame = container.closest('.dm-display-frame') as HTMLElement | null;
+                    // #12632: 확장은 layout shift 를 만든다. Chrome/FF 는 scroll anchoring 으로
+                    // 시야를 자동 보정하지만 Safari 는 미지원이라, 확장 순간 누르려던 글 행이
+                    // 아래로 밀리며 클릭 좌표가 광고를 때리는 오클릭이 발생(무효 클릭 = AdSense
+                    // 정책 리스크). 2중 가드:
+                    //  (a) 슬롯이 viewport 에 보이는 상태에서 실제로 늘어났으면 잠시(400ms)
+                    //      광고 프레임의 pointer-events 를 차단 — 반사 클릭이 광고로 가지 않음
+                    //  (b) 슬롯이 viewport 보다 위에 있으면 늘어난 만큼 scrollBy 보정
+                    //      (Safari 수동 anchoring — 읽던 위치 유지)
+                    const rectBefore = (frame ?? container).getBoundingClientRect();
+                    let grewBy = 0;
+                    for (const el of [container, frame]) {
+                        if (!el) continue;
+                        const current = parseFloat(getComputedStyle(el).minHeight) || 0;
+                        if (creativeHeight > current) {
+                            el.style.minHeight = `${creativeHeight}px`;
+                            grewBy = Math.max(grewBy, creativeHeight - current);
+                        }
+                    }
+                    if (grewBy > 0 && frame) {
+                        const inViewport =
+                            rectBefore.bottom > 0 && rectBefore.top < window.innerHeight;
+                        if (rectBefore.bottom <= 0) {
+                            // (b) viewport 위에서 확장 → 보이는 콘텐츠가 밀리지 않게 보정
+                            window.scrollBy(0, grewBy);
+                        } else if (inViewport) {
+                            // (a) 확장 직후 반사 클릭 차단
+                            frame.style.pointerEvents = 'none';
+                            window.setTimeout(() => {
+                                frame.style.pointerEvents = '';
+                            }, 400);
+                        }
+                    }
+                }
+            } catch {
+                // best-effort: GPT iframe 없거나 권한 부족 시 silent skip
+            }
+        }
+
         const pageContext = getCurrentPageContext();
         trackEvent('ad_impression', {
             slot_id: slotId,
@@ -178,6 +244,11 @@ function ensureServices() {
         }
     });
     googletag.pubads().setCentering(true);
+    // #12595: SafeFrame 비활성화 — 게시판 목록 in-flow 광고 (board-list-infeed) 의
+    // creative height 가 reserved (90px) 보다 큰 경우 SafeFrame iframe 내부에 scrollbar 가
+    // 생성되어 사용자의 페이지 스크롤 포커스를 가로채는 문제 해결. SafeFrame off 시
+    // GAM 이 standard iframe (scrolling="no") 으로 렌더하여 내부 scroll 미발생.
+    googletag.pubads().setForceSafeFrame(false);
     googletag.pubads().setTargeting('site', GAM_SITE_NAME);
     const theme = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
     googletag.pubads().setTargeting('theme', theme);

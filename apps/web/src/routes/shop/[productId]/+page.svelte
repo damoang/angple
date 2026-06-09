@@ -235,20 +235,16 @@
             </div>
 
             <!-- 구매 버튼 -->
+            <!-- #12598 임시: 네이버페이 PG 승인 전까지 결제 비활성화. 승인 완료 후 disabled 제거. -->
             <div class="mt-6 space-y-2">
                 <Button
                     class="w-full"
                     size="lg"
                     onclick={handleBuy}
-                    disabled={isOrdering || product.stock_status === 'out_of_stock'}
+                    disabled={true}
+                    title="네이버페이 PG 승인 대기 중"
                 >
-                    {#if product.stock_status === 'out_of_stock'}
-                        품절
-                    {:else if isOrdering}
-                        주문 생성 중...
-                    {:else}
-                        바로 구매하기
-                    {/if}
+                    🚧 네이버페이 승인 대기 중 (곧 오픈)
                 </Button>
                 {#if product.stock_status !== 'out_of_stock'}
                     <Button

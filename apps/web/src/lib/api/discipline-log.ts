@@ -55,6 +55,7 @@ export interface ReportedItem {
     table: string; // board_id (legacy: "table" field from PHP)
     id: number; // post_id
     parent?: number; // comment parent (legacy: "parent" field)
+    sg_types?: number[]; // 개별 신고 사유 코드 (g5_na_singo.sg_type 21~40, omitempty)
 }
 
 export interface ViolationType {

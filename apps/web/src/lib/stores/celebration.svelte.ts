@@ -1,5 +1,5 @@
 /**
- * 축하메시지 공유 스토어
+ * 마음메시지 공유 스토어
  *
  * CelebrationRolling(텍스트)과 DamoangBanner(이미지)가
  * 동일한 데이터와 인덱스를 공유하여 싱크 롤링
@@ -70,7 +70,7 @@ async function doFetch(): Promise<void> {
     if (!browser) return;
 
     try {
-        const response = await fetch('/api/ads/celebration/today', {
+        const response = await fetch('/api/celebration/today', {
             method: 'GET',
             headers: { Accept: 'application/json' }
         });
@@ -85,7 +85,7 @@ async function doFetch(): Promise<void> {
             reshuffleOrder();
         }
     } catch (error) {
-        console.warn('CelebrationStore: 축하메시지 로드 실패', error);
+        console.warn('CelebrationStore: 마음메시지 로드 실패', error);
     }
 }
 
