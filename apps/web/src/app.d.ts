@@ -19,6 +19,8 @@ declare global {
         interface Locals {
             user: {
                 id?: string;
+                /** g5_member 숫자 PK (mb_no). 결제/포인트 등 숫자 user_id 가 필요한 곳에서 사용. */
+                mb_no?: number;
                 nickname?: string;
                 level: number;
                 as_level?: number;

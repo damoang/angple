@@ -58,11 +58,11 @@ importers:
         specifier: 3.3.3
         version: 3.3.3
       prettier-plugin-svelte:
-        specifier: 3.2.8
-        version: 3.2.8(prettier@3.3.3)(svelte@5.53.6)
+        specifier: 3.5.2
+        version: 3.5.2(prettier@3.3.3)(svelte@5.53.6)
       prettier-plugin-tailwindcss:
         specifier: ^0.5.6
-        version: 0.5.14(prettier-plugin-svelte@3.2.8(prettier@3.3.3)(svelte@5.53.6))(prettier@3.3.3)
+        version: 0.5.14(prettier-plugin-svelte@3.5.2(prettier@3.3.3)(svelte@5.53.6))(prettier@3.3.3)
       three:
         specifier: ^0.171.0
         version: 0.171.0
@@ -150,6 +150,9 @@ importers:
       '@tiptap/extension-table-row':
         specifier: ^3.19.0
         version: 3.19.0(@tiptap/extension-table@3.20.0(@tiptap/core@3.20.0(@tiptap/pm@3.20.0))(@tiptap/pm@3.20.0))
+      '@tiptap/extension-text-align':
+        specifier: ^3.25.0
+        version: 3.25.0(@tiptap/core@3.20.0(@tiptap/pm@3.20.0))
       '@tiptap/extension-underline':
         specifier: ^3.17.0
         version: 3.17.1(@tiptap/core@3.20.0(@tiptap/pm@3.20.0))
@@ -2573,6 +2576,11 @@ packages:
       '@tiptap/core': ^3.20.0
       '@tiptap/pm': ^3.20.0
 
+  '@tiptap/extension-text-align@3.25.0':
+    resolution: {integrity: sha512-/VcaNtcljC4O7hOVTwwekgwef+hiAIwnx/xErYme9oHTeLjlGsN9ZKLRQxcW7kjT9A1SSD/hPGNvQSkQJ2jh3w==}
+    peerDependencies:
+      '@tiptap/core': 3.25.0
+
   '@tiptap/extension-text@3.20.0':
     resolution: {integrity: sha512-tf8bE8tSaOEWabCzPm71xwiUhyMFKqY9jkP5af3Kr1/F45jzZFIQAYZooHI/+zCHRrgJ99MQHKHe1ZNvODrKHQ==}
     peerDependencies:
@@ -2855,6 +2863,7 @@ packages:
 
   '@ungap/structured-clone@1.3.0':
     resolution: {integrity: sha512-WmoN8qaIAo7WTYWbAZuG8PYEhn5fkz7dZrqTBZ7dtt//lL2Gwms1IcnQ5yHqjDfX8Ft5j4YzDM23f87zBfDe9g==}
+    deprecated: Potential CWE-502 - Update to 1.3.1 or higher
 
   '@vitest/browser@3.2.4':
     resolution: {integrity: sha512-tJxiPrWmzH8a+w9nLKlQMzAKX/7VjFs50MWgcAj7p9XQ7AQ9/35fByFYptgPELyLw+0aixTnC4pUWV+APcZ/kw==}
@@ -4629,8 +4638,8 @@ packages:
     resolution: {integrity: sha512-vkcDPrRZo1QZLbn5RLGPpg/WmIQ65qoWWhcGKf/b5eplkkarX0m9z8ppCat4mlOqUsWpyNuYgO3VRyrYHSzX5g==}
     engines: {node: '>= 0.8.0'}
 
-  prettier-plugin-svelte@3.2.8:
-    resolution: {integrity: sha512-PAHmmU5cGZdnhW4mWhmvxuG2PVbbHIxUuPOdUKvfE+d4Qt2d29iU5VWrPdsaW5YqVEE0nqhlvN4eoKmVMpIF3Q==}
+  prettier-plugin-svelte@3.5.2:
+    resolution: {integrity: sha512-ItFouLvzSFE3ulNl4DKoWM3BGcbDCNVpIyy/Y3F2gC3aNiGLxtFUdffVqO5Z5hhYG+DFT5KULWaxmeFFpdbvaQ==}
     peerDependencies:
       prettier: ^3.0.0
       svelte: '>=5.53.5'
@@ -8424,6 +8433,10 @@ snapshots:
       '@tiptap/core': 3.20.0(@tiptap/pm@3.20.0)
       '@tiptap/pm': 3.20.0
 
+  '@tiptap/extension-text-align@3.25.0(@tiptap/core@3.20.0(@tiptap/pm@3.20.0))':
+    dependencies:
+      '@tiptap/core': 3.20.0(@tiptap/pm@3.20.0)
+
   '@tiptap/extension-text@3.20.0(@tiptap/core@3.20.0(@tiptap/pm@3.20.0))':
     dependencies:
       '@tiptap/core': 3.20.0(@tiptap/pm@3.20.0)
@@ -10565,16 +10578,16 @@ snapshots:
 
   prelude-ls@1.2.1: {}
 
-  prettier-plugin-svelte@3.2.8(prettier@3.3.3)(svelte@5.53.6):
+  prettier-plugin-svelte@3.5.2(prettier@3.3.3)(svelte@5.53.6):
     dependencies:
       prettier: 3.3.3
       svelte: 5.53.6
 
-  prettier-plugin-tailwindcss@0.5.14(prettier-plugin-svelte@3.2.8(prettier@3.3.3)(svelte@5.53.6))(prettier@3.3.3):
+  prettier-plugin-tailwindcss@0.5.14(prettier-plugin-svelte@3.5.2(prettier@3.3.3)(svelte@5.53.6))(prettier@3.3.3):
     dependencies:
       prettier: 3.3.3
     optionalDependencies:
-      prettier-plugin-svelte: 3.2.8(prettier@3.3.3)(svelte@5.53.6)
+      prettier-plugin-svelte: 3.5.2(prettier@3.3.3)(svelte@5.53.6)
 
   prettier@2.8.8: {}
 

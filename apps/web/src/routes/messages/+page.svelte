@@ -11,6 +11,7 @@
     import { authStore } from '$lib/stores/auth.svelte.js';
     import type { Message, MessageListResponse, MessageKind } from '$lib/api/types.js';
     import { onMount } from 'svelte';
+    import { toast } from 'svelte-sonner';
     import Mail from '@lucide/svelte/icons/mail';
     import Send from '@lucide/svelte/icons/send';
     import Inbox from '@lucide/svelte/icons/inbox';
@@ -43,6 +44,32 @@
     let showViewDialog = $state(false);
     let viewingMessage = $state<Message | null>(null);
     let isLoadingMessage = $state(false);
+
+    // 모두 읽음 처리
+    let isMarkingAllRead = $state(false);
+
+    /** 받은 쪽지 전체 읽음 처리 — 목록/탭 배지/헤더 배지 즉시 반영 */
+    async function markAllRead(): Promise<void> {
+        if (isMarkingAllRead) return;
+        isMarkingAllRead = true;
+        try {
+            const { updated } = await apiClient.markAllMessagesRead();
+            if (messageData) {
+                messageData.items = messageData.items.map((m) => ({ ...m, is_read: true }));
+                messageData.unread_count = 0;
+            }
+            // 헤더 쪽지 배지 즉시 갱신 (message-icon.svelte 가 수신)
+            window.dispatchEvent(new CustomEvent('angple:messages-read'));
+            toast.success(
+                updated > 0 ? `쪽지 ${updated}개를 읽음 처리했어요.` : '읽지 않은 쪽지가 없어요.'
+            );
+        } catch (err) {
+            console.error('Failed to mark all messages read:', err);
+            toast.error('모두 읽음 처리에 실패했어요. 잠시 후 다시 시도해주세요.');
+        } finally {
+            isMarkingAllRead = false;
+        }
+    }
 
     // 탭 정의
     const tabs: { id: MessageKind; label: string; icon: typeof Inbox }[] = [
@@ -98,8 +125,15 @@
 
         try {
             viewingMessage = await apiClient.getMessage(message.id);
+            // 상세 조회 성공 = 서버 읽음 처리 완료. 다이얼로그에서 읽으면 네비게이션이
+            // 없어 헤더 배지가 폴링(3분)까지 안 줄어드므로, 즉시 갱신 신호를 보낸다.
+            message.is_read = true;
+            window.dispatchEvent(new CustomEvent('angple:messages-read'));
         } catch (err) {
             console.error('Failed to load message:', err);
+            // 상세 조회는 읽음 처리(MarkAsRead)도 트리거하므로, 실패를 조용히 묻으면
+            // 사용자가 못 읽은 채로 읽음 추적도 안 됨 → 최소한 토스트로 노출한다.
+            toast.error('쪽지를 불러오지 못했어요. 잠시 후 다시 시도해주세요.');
             viewingMessage = message;
         } finally {
             isLoadingMessage = false;
@@ -223,7 +257,7 @@
     </div>
 
     <!-- 탭 네비게이션 -->
-    <div class="border-border mb-6 flex gap-2 border-b pb-2">
+    <div class="border-border mb-6 flex items-center gap-2 border-b pb-2">
         {#each tabs as tab (tab.id)}
             <Button
                 variant={data.kind === tab.id ? 'default' : 'ghost'}
@@ -241,6 +275,22 @@
                 {/if}
             </Button>
         {/each}
+
+        <!-- 모두 읽음: 받은쪽지 탭 + 미읽음 있을 때만 노출 -->
+        {#if data.kind === 'recv' && messageData?.unread_count}
+            <Button
+                variant="outline"
+                size="sm"
+                class="ml-auto"
+                disabled={isMarkingAllRead}
+                onclick={markAllRead}
+            >
+                {#if isMarkingAllRead}
+                    <Loader2 class="mr-1.5 h-4 w-4 animate-spin" />
+                {/if}
+                모두 읽음
+            </Button>
+        {/if}
     </div>
 
     {#if isLoading}

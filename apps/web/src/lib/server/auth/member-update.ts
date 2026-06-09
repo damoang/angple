@@ -354,8 +354,14 @@ export async function updateProfile(
     const values: (string | number)[] = [];
 
     if (fields.mb_image_url !== undefined) {
-        // 빈 문자열(삭제) 또는 S3/CDN URL만 허용
-        const ALLOWED_CDN_PREFIXES = ['https://s3.damoang.net/', 'https://cdn.damoang.net/'];
+        // 빈 문자열(삭제) 또는 S3/CDN/R2 URL만 허용
+        // r2.damoang.net: R2 read 전환(2026-06)으로 업로드가 R2 URL 을 반환 — 누락 시
+        // 프로필 사진 변경이 전부 거절됨 (#12626)
+        const ALLOWED_CDN_PREFIXES = [
+            'https://s3.damoang.net/',
+            'https://cdn.damoang.net/',
+            'https://r2.damoang.net/'
+        ];
         if (
             fields.mb_image_url &&
             !ALLOWED_CDN_PREFIXES.some((p) => fields.mb_image_url!.startsWith(p))

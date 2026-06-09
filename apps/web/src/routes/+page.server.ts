@@ -40,7 +40,7 @@ async function buildHomePageData(): Promise<HomePageData> {
                     sidebarWidgetLayout: sidebarWidgetLayout ?? DEFAULT_SIDEBAR_WIDGETS
                 };
             })(),
-            // 인덱스 전용: 최근 축하메시지 (오늘뿐 아니라 최근 8건)
+            // 인덱스 전용: 최근 마음메시지 (오늘뿐 아니라 최근 8건)
             getCachedCelebrations(true),
             // 공감글 SSR 프리페치 (스켈레톤 제거)
             loadRecommendedData(recommendedPeriod)

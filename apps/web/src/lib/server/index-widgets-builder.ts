@@ -6,6 +6,7 @@
  */
 
 import { readFile } from 'fs/promises';
+import { rewriteImageHosts } from '$lib/server/cdn-rewrite';
 import { env } from '$env/dynamic/private';
 import type {
     IndexWidgetsData,
@@ -70,7 +71,7 @@ export async function buildIndexWidgets(_backendUrl: string): Promise<IndexWidge
 
     try {
         const raw = await readFile(JSON_PATH, 'utf-8');
-        const json = JSON.parse(raw);
+        const json = JSON.parse(rewriteImageHosts(raw));
 
         const result: IndexWidgetsData = {
             news_tabs: (json.news_tabs ?? []) as NewsPost[],

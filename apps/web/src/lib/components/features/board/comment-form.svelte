@@ -289,8 +289,11 @@
                         }}
                         onImagePaste={(file: File) => handleFiles([file])}
                         onSubmitShortcut={() => {
-                            if (canSubmit && !isLoading && !isUploading)
+                            if (canSubmit && !isLoading && !isUploading) {
                                 handleSubmit(new Event('submit'));
+                                // #12518: 단축키 제출 후 에디터 focus 복귀 → 연속 입력 가능
+                                editorRef?.focus();
+                            }
                         }}
                         class={error ? 'border-destructive' : ''}
                     />

@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { untrack } from 'svelte';
     import { page } from '$app/stores';
     import {
         Accordion,
@@ -18,6 +19,7 @@
     import AdSlot from '$lib/components/ui/ad-slot/ad-slot.svelte';
     import AdfitSlot from '$lib/components/ui/adfit-slot/adfit-slot.svelte';
     import ImageTextBanner from '$lib/components/ui/image-text-banner/image-text-banner.svelte';
+    import DamoangBanner from '$lib/components/ui/damoang-banner/damoang-banner.svelte';
     import { CelebrationRolling } from '$lib/components/ui/celebration-rolling';
     import { widgetLayoutStore } from '$lib/stores/widget-layout.svelte';
     import { boardFavoritesStore, slotLabel } from '$lib/stores/board-favorites.svelte';
@@ -79,8 +81,29 @@
         };
 
         traverse(menuData, 0);
-        if (newAccordionValue) accordionValue = newAccordionValue;
-        if (autoExpand.size > 0) expandedGroups = autoExpand;
+        // accordionValue / expandedGroups 의 읽기·쓰기는 untrack 으로 격리한다.
+        // 이 effect 의 의존성은 menuData + currentPath(isActive) 뿐이어야 한다.
+        // 비교를 위해 accordionValue 를 그냥 읽으면 그것이 의존성이 되어, 사용자가
+        // 1depth 아코디언을 직접 열 때 effect 가 재실행되며 활성 항목으로 되돌려
+        // "펼치자마자 닫힘"이 발생한다 (#1589 회귀). expandedGroups 도 동일.
+        untrack(() => {
+            if (newAccordionValue && newAccordionValue !== accordionValue) {
+                accordionValue = newAccordionValue;
+            }
+            // #12645: autoExpand 로 덮어쓰면 사용자가 수동으로 펼친/접은 상태가
+            // 게시판 선택 시마다 리셋된다. 합집합 병합 + 변화 시에만 할당.
+            if (autoExpand.size > 0) {
+                const merged = new Set(expandedGroups);
+                let changed = false;
+                for (const id of autoExpand) {
+                    if (!merged.has(id)) {
+                        merged.add(id);
+                        changed = true;
+                    }
+                }
+                if (changed) expandedGroups = merged;
+            }
+        });
     });
 
     // 메뉴 필터링과 로딩은 menuStore에서 SSR로 처리됨
@@ -376,6 +399,16 @@
             {/if}
         </div>
         {#if compact}
+            <!-- 드로워: 네모배너 (다모앙 광고 → GAM 폴백) -->
+            <div class:hidden={!widgetLayoutStore.hasEnabledAds}>
+                <DamoangBanner
+                    position="sidebar"
+                    height="100px"
+                    showCelebration={false}
+                    gamPosition="sidebar-drawer"
+                    class="drawer-sidebar-banner"
+                />
+            </div>
             <!-- 드로워: 이미지텍스트 배너 -->
             <div>
                 <div class="mb-1 flex items-center justify-between">
@@ -383,9 +416,9 @@
                 </div>
                 <ImageTextBanner position="side-image-text-banner" />
             </div>
-            <!-- 드로워: 축하메시지 -->
+            <!-- 드로워: 마음메시지 -->
             <CelebrationRolling />
-            <!-- 축하메시지 바로 아래: 벽돌한장 · 광고 제거 inline -->
+            <!-- 마음메시지 바로 아래: 벽돌한장 · 광고 제거 inline -->
             <div class="text-muted-foreground flex items-center justify-center gap-3 px-2 text-xs">
                 <a href="/brickang" class="hover:text-primary underline-offset-2 hover:underline">
                     벽돌한장

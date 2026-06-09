@@ -7,6 +7,7 @@
  * - 등급3 → 등급4: 14일 이상 + 6,000 XP
  */
 import pool, { readPool } from '$lib/server/db.js';
+import { DEFAULT_THEME } from '$lib/themes/constants';
 import type { ResultSetHeader, RowDataPacket } from 'mysql2';
 import type { QueryError } from 'mysql2';
 import {
@@ -97,8 +98,8 @@ export async function savePromotionRules(rules: PromotionRule[]): Promise<void> 
 
     if (rows.length === 0) {
         await pool.query(
-            `INSERT INTO site_settings (site_id, settings_json, active_theme) VALUES ('default', ?, 'damoang-official')`,
-            [jsonStr]
+            `INSERT INTO site_settings (site_id, settings_json, active_theme) VALUES ('default', ?, ?)`,
+            [jsonStr, DEFAULT_THEME]
         );
     } else {
         await pool.query(`UPDATE site_settings SET settings_json = ? WHERE site_id = 'default'`, [
