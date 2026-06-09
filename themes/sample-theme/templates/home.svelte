@@ -18,7 +18,7 @@
     <h1 class="text-3xl font-bold">{title}</h1>
     <p class="mt-3 text-gray-500">{description}</p>
     <p class="mt-6 text-sm text-gray-400">
-        이 화면은 <code>themes/sample-theme/templates/home.svelte</code> 가 렌더했습니다.
-        템플릿을 삭제하면 코어 기본 홈(위젯)으로 폴백됩니다.
+        이 화면은 <code>themes/sample-theme/templates/home.svelte</code> 가 렌더했습니다. 템플릿을 삭제하면
+        코어 기본 홈(위젯)으로 폴백됩니다.
     </p>
 </section>

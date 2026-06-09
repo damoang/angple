@@ -13,10 +13,7 @@ import type { Component } from 'svelte';
  */
 
 const themePageModules = import.meta.glob(
-    [
-        '../../../../../../themes/*/templates/*.svelte',
-        '../../../../../themes/*/templates/*.svelte'
-    ],
+    ['../../../../../../themes/*/templates/*.svelte', '../../../../../themes/*/templates/*.svelte'],
     { eager: true }
 ) as Record<string, { default: Component }>;
 
@@ -31,10 +28,7 @@ const customThemePageModules = import.meta.glob(
 // (themeId, templateName) → Component
 const pageRegistry = new Map<string, Map<string, Component>>();
 
-function register(
-    modules: Record<string, { default: Component }>,
-    pattern: RegExp
-): void {
+function register(modules: Record<string, { default: Component }>, pattern: RegExp): void {
     for (const [path, module] of Object.entries(modules)) {
         const match = path.match(pattern);
         if (!match) continue;
