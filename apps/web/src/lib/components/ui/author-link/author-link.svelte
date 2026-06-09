@@ -181,7 +181,7 @@
                 </DropdownMenu.Item>
                 <DropdownMenu.Item
                     class="cursor-pointer gap-2"
-                    onclick={() => goto(`/search?sfl=author&q=${encodeURIComponent(authorId)}`)}
+                    onclick={() => goto(`/member/${encodeURIComponent(authorId)}?tab=posts`)}
                 >
                     <FileText class="h-3.5 w-3.5" />
                     전체 게시물
