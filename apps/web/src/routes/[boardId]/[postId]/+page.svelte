@@ -42,6 +42,7 @@
     import CommentList from '$lib/components/features/board/comment-list.svelte';
     import AuthorActivityPanel from '$lib/components/features/board/author-activity-panel.svelte';
     import RecentPosts from '$lib/components/features/board/recent-posts.svelte';
+    import { BOARD_LIST_PAGE_SIZE } from '$lib/constants/board';
     import { ReportDialog } from '$lib/components/features/report/index.js';
     import type { FreeComment, FreePost, LikerInfo, PostRevision } from '$lib/api/types.js';
     import DeletedPostBanner from '$lib/components/post/deleted-post-banner.svelte';
@@ -2134,7 +2135,7 @@
                 {boardId}
                 {boardTitle}
                 currentPostId={data.post.id}
-                limit={24}
+                limit={BOARD_LIST_PAGE_SIZE}
                 initialPage={Number($page.url.searchParams.get('page')) ||
                     data.recentPosts?.page ||
                     1}
