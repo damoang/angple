@@ -87,6 +87,15 @@
                 ? { data: data.recommendedData, period: data.recommendedPeriod }
                 : undefined,
             explore: data.exploreData ? { data: data.exploreData } : undefined,
+            // 결합 위젯(공감글+모아보기 2단)이 실제 홈 레이아웃에 쓰이므로 이 키로도 SSR 데이터를
+            // 매핑해야 함. 누락 시 empathy-explore-row 의 prefetchData 가 undefined → RecommendedPosts
+            // 가 SSR 에서 스켈레톤(loading=true)으로 렌더되어 CDN 캐시 → 전 방문자가 스켈레톤+재fetch.
+            'empathy-explore-row': {
+                recommended: data.recommendedData
+                    ? { data: data.recommendedData, period: data.recommendedPeriod }
+                    : undefined,
+                explore: data.exploreData ? { data: data.exploreData } : undefined
+            },
             // 홈 공감글 터치 오인식(#11998) — SSR 데이터가 빈 배열일 때 undefined 를 넘기면
             // 클라이언트 $effect 가 재요청을 보내 마음메시지 Card 가 hydration 직후 삽입되며
             // 그 아래 위젯이 밀리는 레이아웃 shift 를 유발. 빈 배열이라도 항상 prefetchData 로
