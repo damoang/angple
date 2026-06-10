@@ -407,15 +407,17 @@
                 {/if}
             </button>
 
-            <!-- 검색 아이콘 -->
-            <button
-                onclick={() => goto('/search')}
-                class="hover:bg-accent relative rounded-lg p-2 transition-all duration-200 ease-out"
-                aria-label="검색"
-            >
-                <span class="pointer-events-none absolute inset-0 md:-inset-1"></span>
-                <Search class="text-muted-foreground h-5 w-5" />
-            </button>
+            <!-- 검색 아이콘 — 전체 검색은 로그인 필수(/api/search 401)라 로그인 시에만 노출 (#12666) -->
+            {#if isEffectivelyLoggedIn}
+                <button
+                    onclick={() => goto('/search')}
+                    class="hover:bg-accent relative rounded-lg p-2 transition-all duration-200 ease-out"
+                    aria-label="검색"
+                >
+                    <span class="pointer-events-none absolute inset-0 md:-inset-1"></span>
+                    <Search class="text-muted-foreground h-5 w-5" />
+                </button>
+            {/if}
 
             <!-- 사용자 아이콘 (로그인/프로필) -->
             <!-- #12642: SSR_STRIP_USER 환경에서는 SSR 시점에 로그인 여부를 알 수 없어,
