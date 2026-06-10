@@ -107,6 +107,9 @@
         initialDislikedCommentIds?: number[]; // SSR에서 전달된 비추천한 댓글 ID 목록
         truthroomCommentMap?: Record<number, number>; // 잠긴 댓글 → 진실의방 글 ID 매핑
         isRestricted?: boolean; // 제한된 유저 (영구정지 등)
+        // 기대 댓글 수 (SSR 메타의 comments_count). comments 가 아직 비어도 이 값이 0보다 크면
+        // "댓글 없음" 대신 "불러오는 중"을 표시 — SPA 네비/하이드레이션 갭의 거짓 empty 방지 (#12663·#12668)
+        expectedTotal?: number;
         // 댓글 수정 정책 (단일 진실 근원: 백엔드 env). 미전달 시 default 사용 (코드 하드코딩 금지 — 부모가 API 메타에서 받아 전달).
         editPolicy?: { cost: number; grace_seconds: number };
     }
@@ -130,6 +133,7 @@
         initialDislikedCommentIds = [],
         truthroomCommentMap = {},
         isRestricted = false,
+        expectedTotal = 0,
         // 댓글 수정 정책 (사용자 확정 2026-05-22):
         // - 대댓글 없는 댓글: 항상 무료 수정 (grace 무관)
         // - 대댓글 달린 댓글: cost 포인트 차감 + 수정 이력 카운트 표시
@@ -1896,9 +1900,16 @@
             </li>
         {/if}
     {:else}
-        <li class="text-muted-foreground py-8 text-center">
-            아직 댓글이 없습니다. 첫 댓글을 작성해보세요!
-        </li>
+        {#if expectedTotal > 0}
+            <!-- 댓글 수는 있는데 목록이 아직 비어있음 (SPA 네비/하이드레이션 갭) — 거짓 "댓글 없음" 대신 로딩 표시 (#12663·#12668) -->
+            <li class="text-muted-foreground py-8 text-center text-sm">
+                댓글을 불러오는 중입니다…
+            </li>
+        {:else}
+            <li class="text-muted-foreground py-8 text-center">
+                아직 댓글이 없습니다. 첫 댓글을 작성해보세요!
+            </li>
+        {/if}
     {/each}
 </ul>
 

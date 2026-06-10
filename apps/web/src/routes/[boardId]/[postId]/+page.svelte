@@ -2010,6 +2010,7 @@
                             {initialDislikedCommentIds}
                             {truthroomCommentMap}
                             isRestricted={data.isRestricted}
+                            expectedTotal={commentsTotal}
                             editPolicy={commentEditPolicy}
                         />
                     {/if}
