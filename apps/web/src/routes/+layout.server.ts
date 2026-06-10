@@ -37,7 +37,11 @@ export const load: LayoutServerLoad = async ({
     const needsCsrf =
         url.pathname.startsWith('/member/') ||
         url.pathname.startsWith('/admin/') ||
-        url.pathname.startsWith('/my/');
+        url.pathname.startsWith('/my/') ||
+        // 쪽지함: 로그인 전용·비공개 페이지라 SSR 캐시 대상이 아니다. user strip 시
+        // 새로고침마다 로그아웃→로그인 깜빡임(세션 끊김처럼 보임) 발생 (#12642).
+        url.pathname === '/messages' ||
+        url.pathname.startsWith('/messages/');
     const stripUser = env.SSR_STRIP_USER === 'true' && !needsCsrf;
 
     // Install wizard must not depend on runtime infra such as Redis, menus, banners, or MySQL.
