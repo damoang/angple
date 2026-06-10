@@ -1,5 +1,5 @@
-import { json, error } from '@sveltejs/kit';
 import type { RequestEvent } from '@sveltejs/kit';
+import { json, error } from '../../server/http.js';
 import { resolveSiteId } from '../../hooks/site-context.js';
 import { getProviderConfig } from '../../server/config-store.js';
 import { getOrderByUid, updateOrderStatus, recordEvent } from '../../server/orders-store.js';
