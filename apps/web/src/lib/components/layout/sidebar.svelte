@@ -41,7 +41,10 @@
     const currentPath = $derived($page.url.pathname);
 
     function isActive(url: string): boolean {
-        if (!url) return false;
+        // url='/' 는 그룹/부모 메뉴(더보기·안내 등)의 placeholder 라 실제 목적지가 아니다.
+        // 홈(currentPath='/')에서 url='/' 메뉴가 전부 active 로 잡혀 "더보기"가 활성으로
+        // 보이던 문제 방지 — 홈에서는 어떤 메뉴도 활성으로 표시하지 않는다.
+        if (!url || url === '/') return false;
         return currentPath === url || currentPath.startsWith(url + '/');
     }
 
