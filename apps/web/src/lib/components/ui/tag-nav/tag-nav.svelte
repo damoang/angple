@@ -29,10 +29,11 @@
             <a
                 href={menu.url}
                 onclick={(e) => {
-                    // 현재 페이지와 동일한 메뉴 클릭 시 SvelteKit 이 navigation 을 생략해
-                    // "클릭해도 아무 반응 없음" 처럼 보이는 문제(#12027) 방지.
-                    // 좌측 카테고리 링크와 동일하게 invalidateAll() 로 새로고침.
-                    if (isActive(menu.url)) {
+                    // 정확히 같은 목록 페이지일 때만 navigation 을 생략하고 invalidateAll()
+                    // 로 새로고침(#12027). 하위 경로(글 상세 /free/123 등)에서는 isActive 가
+                    // true(탭 하이라이트용)여도 정상적으로 목록으로 이동해야 한다 — 안 그러면
+                    // 글 상세에서 해당 탭 클릭 시 목록이 안 뜨고 무반응처럼 보임.
+                    if (currentPath === menu.url) {
                         e.preventDefault();
                         invalidateAll();
                         window.scrollTo(0, 0);
