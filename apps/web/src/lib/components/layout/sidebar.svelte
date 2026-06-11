@@ -34,6 +34,17 @@
 
     // 메뉴 데이터는 SSR에서 초기화된 스토어에서 가져옴
     const menuData = $derived(menuStore.menus.filter((m) => m.show_in_sidebar !== false));
+
+    // 빠른 바로가기: DB 메뉴 그룹(센티넬 URL)의 자식을 즐겨찾기 아래 2열 그리드로 렌더한다.
+    // 라벨/URL/아이콘은 전부 DB(menus 테이블)에서 오며(하드코딩 없음), 관리자가 그룹의
+    // 자식 메뉴를 추가/수정/정렬해 구성한다. 그룹이 없으면 아무것도 렌더하지 않는다.
+    const SIDEBAR_QUICKLINKS_URL = '#sidebar-quicklinks';
+    const quickLinksGroup = $derived(menuData.find((m) => m.url === SIDEBAR_QUICKLINKS_URL));
+    const quickLinks = $derived(
+        (quickLinksGroup?.children ?? []).filter((c) => c.show_in_sidebar !== false)
+    );
+    // 그룹 자체는 일반 nav 에서 제외(자식만 2열로 별도 렌더)
+    const mainMenus = $derived(menuData.filter((m) => m.url !== SIDEBAR_QUICKLINKS_URL));
     const loading = $derived(menuStore.loading);
     const error = $derived(menuStore.error);
 
@@ -201,6 +212,31 @@
         </div>
     {/if}
 
+    <!-- 빠른 바로가기 (DB 메뉴 그룹): 즐겨찾기 아래 2열 그리드 -->
+    {#if quickLinks.length > 0}
+        <div class={compact ? 'px-1' : 'px-2'}>
+            <div class="grid grid-cols-2 gap-0.5">
+                {#each quickLinks as link (link.id)}
+                    {@const LinkIcon = getIcon(link.icon)}
+                    {@const active = isActive(link.url)}
+                    <a
+                        href={link.url}
+                        target={link.target || undefined}
+                        class={cn(
+                            'flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs transition-colors',
+                            active
+                                ? 'bg-primary text-primary-foreground'
+                                : 'hover:bg-accent text-muted-foreground'
+                        )}
+                    >
+                        <LinkIcon class="h-3.5 w-3.5 shrink-0" />
+                        <span class="truncate">{link.title}</span>
+                    </a>
+                {/each}
+            </div>
+        </div>
+    {/if}
+
     <nav
         class={cn(
             'grid group-[[data-collapsed=true]]:justify-center group-[[data-collapsed=true]]:px-2',
@@ -213,7 +249,7 @@
             <div class="text-destructive text-center text-sm">{error}</div>
         {:else}
             <Accordion type="single" class="w-full" bind:value={accordionValue}>
-                {#each menuData as menu (menu.id)}
+                {#each mainMenus as menu (menu.id)}
                     {@const IconComponent = getIcon(menu.icon)}
                     {#if menu.children && menu.children.length > 0}
                         <!-- 하위 메뉴가 있는 경우 -->
