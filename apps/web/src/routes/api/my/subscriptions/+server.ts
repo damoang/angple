@@ -12,6 +12,7 @@ import { internalOnlyErrorResponse, isInternalAppRequest } from '$lib/server/int
 interface SubBoardRow extends RowDataPacket {
     board_id: string;
     board_name: string;
+    level: number;
 }
 
 export const GET: RequestHandler = async ({ cookies, request }) => {
@@ -26,7 +27,7 @@ export const GET: RequestHandler = async ({ cookies, request }) => {
 
     try {
         const [rows] = await readPool.query<SubBoardRow[]>(
-            `SELECT s.bo_table AS board_id, b.bo_subject AS board_name
+            `SELECT s.bo_table AS board_id, b.bo_subject AS board_name, s.level AS level
 			 FROM g5_board_subscribe s
 			 JOIN g5_board b
 			   ON s.bo_table COLLATE utf8mb4_unicode_ci = b.bo_table COLLATE utf8mb4_unicode_ci
@@ -39,7 +40,8 @@ export const GET: RequestHandler = async ({ cookies, request }) => {
             success: true,
             data: rows.map((r) => ({
                 board_id: r.board_id,
-                board_name: r.board_name
+                board_name: r.board_name,
+                level: Number(r.level) === 2 ? 2 : 1
             }))
         });
     } catch (error) {
