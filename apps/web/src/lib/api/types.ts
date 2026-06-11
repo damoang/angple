@@ -1005,6 +1005,7 @@ export interface NotificationPreferences {
     noti_mention: boolean;
     noti_like: boolean;
     noti_follow: boolean;
+    noti_board_subscribe: boolean;
     like_threshold: number;
 }
 

@@ -1,12 +1,16 @@
 <script lang="ts">
     /**
      * 게시판 구독 버튼
-     * 게시판 헤더에 벨 아이콘으로 표시
-     * 구독 시 새 글 알림을 받을 수 있음
+     * 게시판 헤더에 벨 아이콘으로 표시. 클릭 시 구독 단계를 선택한다.
+     *  - 전체 알림(level=1): 새 글마다 알림
+     *  - 인기글만(level=2): 추천을 많이 받은 인기글만 알림 (글 많은 게시판 권장)
+     *  - 구독 안 함: 구독 해제
      */
     import { Button } from '$lib/components/ui/button/index.js';
+    import * as DropdownMenu from '$lib/components/ui/dropdown-menu/index.js';
     import Bell from '@lucide/svelte/icons/bell';
     import BellOff from '@lucide/svelte/icons/bell-off';
+    import Check from '@lucide/svelte/icons/check';
     import { authStore } from '$lib/stores/auth.svelte.js';
     import { toast } from 'svelte-sonner';
 
@@ -18,6 +22,7 @@
     let { boardId, boardTitle }: Props = $props();
 
     let isSubscribed = $state(false);
+    let level = $state<1 | 2 | null>(null);
     let subscriberCount = $state(0);
     let loading = $state(false);
     let stateLoaded = $state(false);
@@ -32,6 +37,7 @@
                 const data = await res.json();
                 if (data.success) {
                     isSubscribed = data.data.is_subscribed;
+                    level = data.data.level ?? null;
                     subscriberCount = data.data.subscriber_count;
                 }
             }
@@ -50,30 +56,59 @@
         void loadSubscribeState();
     }
 
-    async function toggle(): Promise<void> {
-        if (!authStore.isAuthenticated) {
-            authStore.redirectToLogin();
-            return;
+    function onOpenChange(open: boolean): void {
+        if (open) {
+            if (!authStore.isAuthenticated) {
+                authStore.redirectToLogin();
+                return;
+            }
+            void loadSubscribeState();
         }
+    }
 
-        if (!stateLoaded) {
-            await loadSubscribeState();
-        }
-
+    /** 구독 단계 설정 (level=1 전체 / level=2 인기글만) */
+    async function setLevel(next: 1 | 2): Promise<void> {
+        if (loading) return;
         loading = true;
         try {
-            const method = isSubscribed ? 'DELETE' : 'POST';
-            const res = await fetch(`/api/boards/${boardId}/subscribe`, { method });
+            const res = await fetch(`/api/boards/${boardId}/subscribe`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ level: next })
+            });
             if (res.ok) {
                 const data = await res.json();
                 if (data.success) {
                     isSubscribed = data.data.is_subscribed;
+                    level = data.data.level ?? next;
                     subscriberCount = data.data.subscriber_count;
                     toast.success(
-                        isSubscribed
-                            ? `'${boardTitle}' 구독 완료 — 새 글 알림을 받습니다`
-                            : `'${boardTitle}' 구독 해제`
+                        next === 2
+                            ? `'${boardTitle}' 인기글 알림을 받습니다`
+                            : `'${boardTitle}' 새 글 알림을 받습니다`
                     );
+                }
+            }
+        } catch {
+            toast.error('구독 처리에 실패했습니다.');
+        } finally {
+            loading = false;
+        }
+    }
+
+    /** 구독 해제 */
+    async function unsubscribe(): Promise<void> {
+        if (loading || !isSubscribed) return;
+        loading = true;
+        try {
+            const res = await fetch(`/api/boards/${boardId}/subscribe`, { method: 'DELETE' });
+            if (res.ok) {
+                const data = await res.json();
+                if (data.success) {
+                    isSubscribed = data.data.is_subscribed;
+                    level = null;
+                    subscriberCount = data.data.subscriber_count;
+                    toast.success(`'${boardTitle}' 구독 해제`);
                 }
             }
         } catch {
@@ -84,26 +119,62 @@
     }
 </script>
 
-<Button
-    variant="ghost"
-    size="icon"
-    onclick={toggle}
-    onmouseenter={primeSubscribeState}
-    onfocus={primeSubscribeState}
-    disabled={loading}
-    aria-label={isSubscribed ? '구독 해제' : '새 글 알림 구독'}
-    aria-pressed={isSubscribed}
-    title={isSubscribed
-        ? `'${boardTitle}' 구독 중 (${subscriberCount}명) — 클릭하여 해제`
-        : `'${boardTitle}' 구독하기 — 새 글 알림 받기${subscriberCount > 0 ? ` (${subscriberCount}명 구독 중)` : ''}`}
-    class="relative h-8 w-8 {isSubscribed
-        ? 'text-primary hover:text-primary/80'
-        : 'text-muted-foreground hover:text-primary'}"
->
-    <span class="absolute -inset-2"></span>
-    {#if isSubscribed}
-        <Bell class="h-4 w-4" fill="currentColor" />
-    {:else}
-        <BellOff class="h-4 w-4" />
-    {/if}
-</Button>
+<DropdownMenu.Root {onOpenChange}>
+    <DropdownMenu.Trigger>
+        {#snippet child({ props })}
+            <Button
+                {...props}
+                variant="ghost"
+                size="icon"
+                onmouseenter={primeSubscribeState}
+                onfocus={primeSubscribeState}
+                disabled={loading}
+                aria-label={isSubscribed ? '구독 설정' : '새 글 알림 구독'}
+                title={isSubscribed
+                    ? `'${boardTitle}' 구독 중 (${subscriberCount}명) — 클릭하여 설정`
+                    : `'${boardTitle}' 구독하기 — 새 글 알림 받기${subscriberCount > 0 ? ` (${subscriberCount}명 구독 중)` : ''}`}
+                class="relative h-8 w-8 {isSubscribed
+                    ? 'text-primary hover:text-primary/80'
+                    : 'text-muted-foreground hover:text-primary'}"
+            >
+                <span class="absolute -inset-2"></span>
+                {#if isSubscribed}
+                    <Bell class="h-4 w-4" fill="currentColor" />
+                {:else}
+                    <BellOff class="h-4 w-4" />
+                {/if}
+            </Button>
+        {/snippet}
+    </DropdownMenu.Trigger>
+    <DropdownMenu.Content align="end" class="w-56">
+        <DropdownMenu.Label>{boardTitle} 알림</DropdownMenu.Label>
+        <DropdownMenu.Separator />
+        <DropdownMenu.Item onclick={() => setLevel(1)}>
+            <div class="flex flex-1 flex-col">
+                <span>전체 알림</span>
+                <span class="text-muted-foreground text-xs">새 글이 올라올 때마다 알림</span>
+            </div>
+            {#if isSubscribed && level === 1}
+                <Check class="text-primary h-4 w-4" />
+            {/if}
+        </DropdownMenu.Item>
+        <DropdownMenu.Item onclick={() => setLevel(2)}>
+            <div class="flex flex-1 flex-col">
+                <span>인기글만</span>
+                <span class="text-muted-foreground text-xs">추천을 많이 받은 글만 알림</span>
+            </div>
+            {#if isSubscribed && level === 2}
+                <Check class="text-primary h-4 w-4" />
+            {/if}
+        </DropdownMenu.Item>
+        {#if isSubscribed}
+            <DropdownMenu.Separator />
+            <DropdownMenu.Item
+                onclick={unsubscribe}
+                class="text-destructive focus:text-destructive"
+            >
+                구독 안 함
+            </DropdownMenu.Item>
+        {/if}
+    </DropdownMenu.Content>
+</DropdownMenu.Root>
