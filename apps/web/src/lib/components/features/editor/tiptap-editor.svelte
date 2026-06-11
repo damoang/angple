@@ -339,6 +339,16 @@
     let lastLoadedContent = '';
     let isSettingContent = false;
 
+    // #12686: src 가 누락된 깨진 youtube 임베드(<div data-youtube-video><iframe ...no src...></div>)는
+    // 수정 진입 시 setContent 파싱을 깨 본문이 통째로 비워지는 원인이 된다. 에디터에 주입하기 전
+    // 그 깨진 래퍼만 제거해 나머지 본문은 보존한다. (백엔드 sanitize 도 저장 시 동일 처리)
+    function stripBrokenYoutube(html: string): string {
+        return html.replace(
+            /<div[^>]*\bdata-youtube-video\b[^>]*>\s*<iframe(?![^>]*\ssrc\s*=\s*["'][^"']+["'])[^>]*>\s*<\/iframe>\s*<\/div>/gi,
+            ''
+        );
+    }
+
     $effect(() => {
         const c = content ?? '';
 
@@ -367,9 +377,9 @@
             return;
         }
 
-        // 비동기 로드된 content를 에디터에 반영
+        // 비동기 로드된 content를 에디터에 반영 (깨진 youtube 임베드는 사전 제거)
         isSettingContent = true;
-        editor.commands.setContent(c);
+        editor.commands.setContent(stripBrokenYoutube(c));
         isSettingContent = false;
         lastLoadedContent = c;
     });
