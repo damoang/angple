@@ -188,25 +188,38 @@
     }
 </script>
 
-<div class="dm-card {className}" data-position={position} style:min-height={height}>
+<div
+    class="dm-card {className}"
+    data-position={position}
+    style:min-height={position === 'sidebar' ? height : undefined}
+>
     {#if loading}
         <div
             aria-hidden="true"
-            class="pointer-events-none invisible"
-            style:min-height={height}
+            class="pointer-events-none invisible {position === 'sidebar'
+                ? ''
+                : 'aspect-[77/9] w-full'}"
+            style:min-height={position === 'sidebar' ? height : undefined}
         ></div>
     {:else if celebrationBanner}
         <!-- 마음메시지 배너 -->
+        <!-- index(가로형): 테두리 없이 비율(770×90=77/9)로 슬롯을 꽉 채워 레터박스 제거.
+             sidebar: 기존 테두리 + 고정 높이 유지. -->
         <a
             href={getCelebrationHref(celebrationBanner)}
-            class="border-border dm-media-card block overflow-hidden rounded-xl border transition-opacity hover:opacity-90"
-            style:min-height={height}
-            style:height
+            class="dm-media-card block overflow-hidden rounded-xl transition-opacity hover:opacity-90 {position ===
+            'sidebar'
+                ? 'border-border border'
+                : 'aspect-[77/9]'}"
+            style:min-height={position === 'sidebar' ? height : undefined}
+            style:height={position === 'sidebar' ? height : undefined}
         >
             <img
                 src={celebrationBanner.image_url}
                 alt={celebrationBanner.alt_text || '마음메시지'}
-                class="dm-media-card__image w-full object-contain"
+                class="dm-media-card__image w-full {position === 'sidebar'
+                    ? 'object-contain'
+                    : 'h-full object-cover'}"
                 loading="lazy"
             />
         </a>
@@ -227,9 +240,12 @@
                 slotKey: `damoang-banner:${position}`,
                 adUserId: adsBanner.advertiserId ?? undefined
             }}
-            class="border-border dm-media-card block overflow-hidden rounded-xl border transition-opacity hover:opacity-90"
-            style:min-height={height}
-            style:height
+            class="dm-media-card block overflow-hidden rounded-xl transition-opacity hover:opacity-90 {position ===
+            'sidebar'
+                ? 'border-border border'
+                : 'aspect-[77/9]'}"
+            style:min-height={position === 'sidebar' ? height : undefined}
+            style:height={position === 'sidebar' ? height : undefined}
         >
             {#if adsBanner.mobileImageUrl}
                 <picture>
@@ -237,7 +253,9 @@
                     <img
                         src={adsBanner.imageUrl}
                         alt={adsBanner.altText || '광고'}
-                        class="dm-media-card__image w-full object-contain"
+                        class="dm-media-card__image w-full {position === 'sidebar'
+                            ? 'object-contain'
+                            : 'h-full object-cover'}"
                         loading="lazy"
                     />
                 </picture>
@@ -245,7 +263,9 @@
                 <img
                     src={adsBanner.imageUrl}
                     alt={adsBanner.altText || '광고'}
-                    class="dm-media-card__image w-full object-contain"
+                    class="dm-media-card__image w-full {position === 'sidebar'
+                        ? 'object-contain'
+                        : 'h-full object-cover'}"
                     loading="lazy"
                 />
             {/if}
