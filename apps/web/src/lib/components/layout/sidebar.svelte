@@ -12,6 +12,8 @@
     import { menuStore } from '$lib/stores/menu.svelte';
 
     import ChevronRight from '@lucide/svelte/icons/chevron-right';
+    import Heart from '@lucide/svelte/icons/heart';
+    import Megaphone from '@lucide/svelte/icons/megaphone';
     import { getIcon } from '$lib/utils/icon-map';
 
     import UserWidget from './user-widget.svelte';
@@ -200,6 +202,36 @@
             {/if}
         </div>
     {/if}
+
+    <!-- 고정 바로가기: 마음메시지 · 상생홍보 (즐겨찾기 아래 1행 2열) -->
+    <div class={compact ? 'px-1' : 'px-2'}>
+        <div class="grid grid-cols-2 gap-0.5">
+            <a
+                href="/message"
+                class={cn(
+                    'flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs transition-colors',
+                    isActive('/message')
+                        ? 'bg-primary text-primary-foreground'
+                        : 'hover:bg-accent text-muted-foreground'
+                )}
+            >
+                <Heart class="h-3.5 w-3.5 shrink-0" />
+                <span class="truncate">마음메시지</span>
+            </a>
+            <a
+                href="/promotion"
+                class={cn(
+                    'flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs transition-colors',
+                    isActive('/promotion')
+                        ? 'bg-primary text-primary-foreground'
+                        : 'hover:bg-accent text-muted-foreground'
+                )}
+            >
+                <Megaphone class="h-3.5 w-3.5 shrink-0" />
+                <span class="truncate">상생홍보</span>
+            </a>
+        </div>
+    </div>
 
     <nav
         class={cn(
