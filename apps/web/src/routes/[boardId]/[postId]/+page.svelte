@@ -1280,6 +1280,28 @@
         }
     }
 
+    // 댓글 수>0 인데 목록이 0개일 때, 단발 fetch 가 전송 실패(네트워크 순단/모바일 webview)하면
+    // 재시도가 없어 "불러오는 중"에 고착되는 사례(#12668: 간헐 발생, 새로고침하면 보임)가 있어
+    // 짧은 백오프로 몇 번 재시도한다. 실제 0개이거나 채워지면 종료.
+    let backfillInProgress = false;
+    async function backfillWithRetry(): Promise<void> {
+        if (backfillInProgress) return;
+        backfillInProgress = true;
+        try {
+            for (let attempt = 0; attempt < 3; attempt++) {
+                try {
+                    await refetchComments();
+                } catch {
+                    // 전송 실패 — 재시도
+                }
+                if (comments.length > 0 || commentsTotal === 0) return;
+                await new Promise((resolve) => setTimeout(resolve, 800 * (attempt + 1)));
+            }
+        } finally {
+            backfillInProgress = false;
+        }
+    }
+
     // 댓글 backfill: SSR에서 일부만 로드된 경우 전체 댓글 가져오기
     // onMount 대신 $effect로 SPA 네비게이션에서도 동작하도록
     $effect(() => {
@@ -1289,7 +1311,7 @@
         if (total <= loaded) return;
 
         if (loaded === 0) {
-            void refetchComments();
+            void backfillWithRetry();
             return;
         }
 
