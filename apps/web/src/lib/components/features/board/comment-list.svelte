@@ -30,6 +30,7 @@
     import AdSlot from '$lib/components/ui/ad-slot/ad-slot.svelte';
     import { widgetLayoutStore } from '$lib/stores/widget-layout.svelte';
     import { dompurify as DOMPurify } from '$lib/utils/dompurify.js';
+    import { normalizeHtmlMediaUrls } from '$lib/utils/media-url';
     import { applyFilter } from '$lib/hooks/registry';
     import { getHookVersion } from '$lib/hooks/hook-state.svelte';
     import { onMount, tick } from 'svelte';
@@ -759,37 +760,39 @@
             const withBr = comment.content.replace(/\n/g, '<br>');
             map.set(
                 comment.id,
-                DOMPurify.sanitize(withBr, {
-                    ALLOWED_TAGS: [
-                        'p',
-                        'img',
-                        'br',
-                        'div',
-                        'blockquote',
-                        'a',
-                        'span',
-                        'pre',
-                        'code',
-                        'strong',
-                        'em',
-                        'del',
-                        'details',
-                        'summary'
-                    ],
-                    ALLOWED_ATTR: [
-                        'src',
-                        'width',
-                        'alt',
-                        'loading',
-                        'class',
-                        'height',
-                        'href',
-                        'target',
-                        'rel',
-                        'data-affiliate',
-                        'data-original'
-                    ]
-                })
+                normalizeHtmlMediaUrls(
+                    DOMPurify.sanitize(withBr, {
+                        ALLOWED_TAGS: [
+                            'p',
+                            'img',
+                            'br',
+                            'div',
+                            'blockquote',
+                            'a',
+                            'span',
+                            'pre',
+                            'code',
+                            'strong',
+                            'em',
+                            'del',
+                            'details',
+                            'summary'
+                        ],
+                        ALLOWED_ATTR: [
+                            'src',
+                            'width',
+                            'alt',
+                            'loading',
+                            'class',
+                            'height',
+                            'href',
+                            'target',
+                            'rel',
+                            'data-affiliate',
+                            'data-original'
+                        ]
+                    })
+                )
             );
         }
         return map;
@@ -815,56 +818,58 @@
                 const withLinks = autoLinkUrls(withMentions);
                 processedComments.set(
                     comment.id,
-                    DOMPurify.sanitize(withLinks, {
-                        ALLOWED_TAGS: [
-                            'p',
-                            'img',
-                            'br',
-                            'div',
-                            'iframe',
-                            'video',
-                            'audio',
-                            'source',
-                            'blockquote',
-                            'a',
-                            'span',
-                            'pre',
-                            'code',
-                            'strong',
-                            'em',
-                            'del',
-                            'details',
-                            'summary'
-                        ],
-                        ALLOWED_ATTR: [
-                            'src',
-                            'width',
-                            'alt',
-                            'loading',
-                            'class',
-                            'height',
-                            'style',
-                            'data-platform',
-                            'data-bluesky-uri',
-                            'data-bluesky-cid',
-                            'data-embed-height',
-                            'frameborder',
-                            'allow',
-                            'allowfullscreen',
-                            'allowtransparency',
-                            'scrolling',
-                            'referrerpolicy',
-                            'type',
-                            'controls',
-                            'title',
-                            'href',
-                            'target',
-                            'rel',
-                            'data-mention',
-                            'data-affiliate',
-                            'data-original'
-                        ]
-                    })
+                    normalizeHtmlMediaUrls(
+                        DOMPurify.sanitize(withLinks, {
+                            ALLOWED_TAGS: [
+                                'p',
+                                'img',
+                                'br',
+                                'div',
+                                'iframe',
+                                'video',
+                                'audio',
+                                'source',
+                                'blockquote',
+                                'a',
+                                'span',
+                                'pre',
+                                'code',
+                                'strong',
+                                'em',
+                                'del',
+                                'details',
+                                'summary'
+                            ],
+                            ALLOWED_ATTR: [
+                                'src',
+                                'width',
+                                'alt',
+                                'loading',
+                                'class',
+                                'height',
+                                'style',
+                                'data-platform',
+                                'data-bluesky-uri',
+                                'data-bluesky-cid',
+                                'data-embed-height',
+                                'frameborder',
+                                'allow',
+                                'allowfullscreen',
+                                'allowtransparency',
+                                'scrolling',
+                                'referrerpolicy',
+                                'type',
+                                'controls',
+                                'title',
+                                'href',
+                                'target',
+                                'rel',
+                                'data-mention',
+                                'data-affiliate',
+                                'data-original'
+                            ]
+                        })
+                    )
                 );
             })();
         }

@@ -7,6 +7,7 @@
     import { browser } from '$app/environment';
     import { highlightAllCodeBlocks } from '$lib/utils/code-highlight';
     import { transformEscapedMedia } from '$lib/utils/content-transform';
+    import { normalizeHtmlMediaUrls } from '$lib/utils/media-url';
     import { processContent as processEmbeds } from '$lib/plugins/auto-embed/embedder.js';
     import { attachLightbox } from '$lib/components/ui/image-lightbox/index.js';
     import {
@@ -238,7 +239,8 @@
         let rawHtml = marked.parse(content) as string;
         rawHtml = transformEscapedMedia(rawHtml);
         // processEmbeds는 클라이언트 $effect에서만 실행 (SSR 부하 방지)
-        return DOMPurify.sanitize(rawHtml, PURIFY_CONFIG);
+        // 본문 이미지 src 더블슬래시 collapse + CDN 호스트 정규화 (#12697)
+        return normalizeHtmlMediaUrls(DOMPurify.sanitize(rawHtml, PURIFY_CONFIG));
     }
 
     // 초기 렌더링 (SSR + 클라이언트 초기값)
@@ -265,6 +267,7 @@
 
             applyFilter<string>('post_content', rawHtml).then((filtered) => {
                 let sanitized = DOMPurify.sanitize(filtered, PURIFY_CONFIG);
+                sanitized = normalizeHtmlMediaUrls(sanitized);
                 sanitized = addLinkMismatchWarnings(sanitized);
                 renderedHtml = sanitized;
             });
