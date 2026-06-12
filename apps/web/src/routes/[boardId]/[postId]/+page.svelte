@@ -812,13 +812,16 @@
         const targetId = getAnchorTargetId(hash);
         if (!targetId) return;
 
-        let attempts = 0;
+        // 댓글이 비동기로 로드/렌더되므로(특히 모바일·긴 스레드, 초기 limit 초과 댓글은
+        // backfill 후 렌더) 짧은 재시도(20프레임 ≈0.3s)로는 대상 댓글이 아직 DOM 에 없어
+        // 글 상단에만 머무는 사례(#12688: '내 댓글 클릭 시 글로만 이동')가 있었다.
+        // 대상이 나타날 때까지 최대 ~5초간 rAF 재시도(발견 즉시 중단, 비용 저렴).
+        const deadline = Date.now() + 5000;
         const tryScroll = () => {
             const el = document.getElementById(targetId);
             if (el) {
                 scrollToAndHighlight(el);
-            } else if (attempts < 20) {
-                attempts++;
+            } else if (Date.now() < deadline) {
                 requestAnimationFrame(tryScroll);
             }
         };
