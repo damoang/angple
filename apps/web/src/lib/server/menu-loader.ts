@@ -14,9 +14,12 @@ import { TieredCache } from '$lib/server/cache';
 
 const BACKEND_URL = env.BACKEND_URL || 'http://localhost:8090';
 
-// 메뉴는 거의 안 바뀜 → L1 24시간, L2(Redis) 7일. 변경 시 invalidateMenuCache() 호출
+// 메뉴 캐시: L1 60초 / L2(Redis) 5분. 짧게 둬서 메뉴 변경(관리자 편집/외부 INSERT)이
+// invalidateMenuCache() 수동 호출 없이도 수 분 내 자동 반영되게 한다. menu 쿼리는 가벼워
+// 5분마다 재조회해도 부하 무시 가능(L1 60초가 대부분 흡수). 이전엔 24h/7일이라 stale 메뉴가
+// 오래 남아 "관리자에서 바꿔도 안 보임"이 반복됐다.
 // 2026-04-26: maxL1=100 명시 (이전엔 무제한). 사이트별 1키만 사용해 충분.
-const menuCache = new TieredCache<MenuItem[]>('menus:sidebar', 86_400_000, 604_800, 100);
+const menuCache = new TieredCache<MenuItem[]>('menus:sidebar', 60_000, 300, 100);
 
 /**
  * 백엔드 연결 불가 시 최소한의 기본 메뉴
