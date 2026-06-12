@@ -82,7 +82,12 @@
         getPageSeoConfig
     } from '$lib/seo/index.js';
     import type { SeoConfig } from '$lib/seo/types.js';
-    import { checkPermission, getPermissionMessage } from '$lib/utils/board-permissions.js';
+    import {
+        checkPermission,
+        getPermissionMessage,
+        getRequirementHint
+    } from '$lib/utils/board-permissions.js';
+    import * as Tooltip from '$lib/components/ui/tooltip/index.js';
     import { readPostsStore } from '$lib/stores/read-posts.svelte.js';
     import { densityStore } from '$lib/stores/density.svelte.js';
     import { readPostStyleStore, type ReadPostStyle } from '$lib/stores/read-post-style.svelte.js';
@@ -176,6 +181,9 @@
     });
 
     // 권한 부족 시 표시할 메시지
+    // 글쓰기 비활성 호버 안내용 조건(등급명 포함)
+    const writeHint = $derived(getRequirementHint(data.board, 'can_write', authStore.user ?? null));
+
     const writePermissionMessage = $derived.by(() => {
         if (!authStore.isAuthenticated) return '로그인이 필요합니다';
         return getPermissionMessage(data.board, 'can_write', authStore.user ?? null);
@@ -1055,15 +1063,42 @@
                             {#if !canUseCertifiedAction(authStore.user, boardId)}실명인증{:else}글쓰기{/if}
                         </Button>
                     {:else if authStore.isAuthenticated}
-                        <Button
-                            disabled
-                            size="sm"
-                            class="h-8 cursor-not-allowed opacity-60"
-                            title={writePermissionMessage}
-                        >
-                            <Lock class="mr-1.5 h-3.5 w-3.5" />
-                            글쓰기
-                        </Button>
+                        <!-- 권한 부족: 비활성 대신 호버/탭 시 작성 조건 안내 (disabled 버튼은 호버가 안 먹어 trigger 로 처리) -->
+                        <Tooltip.Provider>
+                            <Tooltip.Root>
+                                <Tooltip.Trigger>
+                                    {#snippet child({ props })}
+                                        <Button
+                                            {...props}
+                                            size="sm"
+                                            variant="secondary"
+                                            class="h-8 cursor-help opacity-70"
+                                            aria-label="글쓰기 조건 안내"
+                                        >
+                                            <Lock class="mr-1.5 h-3.5 w-3.5" />
+                                            글쓰기
+                                        </Button>
+                                    {/snippet}
+                                </Tooltip.Trigger>
+                                <Tooltip.Content>
+                                    <p class="mb-1 flex items-center gap-1 font-semibold">
+                                        <Lock class="h-3 w-3" />
+                                        {writeHint.actionName} 조건
+                                    </p>
+                                    <p>
+                                        이 게시판은 <span class="font-semibold"
+                                            >{writeHint.requiredGrade} (Lv.{writeHint.requiredLevel})</span
+                                        > 이상 작성할 수 있어요.
+                                    </p>
+                                    {#if writeHint.currentGrade}
+                                        <p class="text-muted-foreground mt-0.5">
+                                            현재: {writeHint.currentGrade} (Lv.{writeHint.currentLevel})
+                                            · 활동하면 등급이 올라가요.
+                                        </p>
+                                    {/if}
+                                </Tooltip.Content>
+                            </Tooltip.Root>
+                        </Tooltip.Provider>
                     {/if}
                 </div>
             {/if}

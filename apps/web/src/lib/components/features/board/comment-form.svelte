@@ -10,6 +10,7 @@
         goToCertification
     } from '$lib/utils/certification-gate.js';
     import { getAvatarUrl } from '$lib/utils/member-icon.js';
+    import { getGradeName } from '$lib/utils/grade.js';
     import type { BoardPermissions } from '$lib/api/types.js';
     import { apiClient } from '$lib/api/index.js';
     import { stripAdminMentions } from '$lib/utils/sanitize-mentions.js';
@@ -72,11 +73,12 @@
         return userLevel >= requiredCommentLevel;
     });
 
-    const permissionMessage = $derived(
-        isRestricted
-            ? '이용제한 중에는 댓글을 작성할 수 없습니다.'
-            : `레벨 ${requiredCommentLevel} 이상 작성 가능`
-    );
+    const permissionMessage = $derived.by(() => {
+        if (isRestricted) return '이용제한 중에는 댓글을 작성할 수 없습니다.';
+        const need = `${getGradeName(requiredCommentLevel)}(Lv.${requiredCommentLevel}) 이상 작성 가능`;
+        const lv = authStore.user?.mb_level;
+        return lv != null ? `${need} · 현재 ${getGradeName(lv)}(Lv.${lv})` : need;
+    });
 
     let commentAvatarUrl = $derived(
         getAvatarUrl(authStore.user?.mb_image, authStore.user?.mb_image_updated_at) || null
