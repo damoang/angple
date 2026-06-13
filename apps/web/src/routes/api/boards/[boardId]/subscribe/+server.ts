@@ -16,9 +16,10 @@ interface SubRow extends RowDataPacket {
     level: number;
 }
 
-/** 구독 단계: 1=전체(모든 글), 2=인기글만 */
-function normalizeLevel(v: unknown): 1 | 2 {
-    return Number(v) === 2 ? 2 : 1;
+/** 구독 단계: 1=전체(모든 글), 2=인기글만, 3=요약(주기적 묶음) */
+function normalizeLevel(v: unknown): 1 | 2 | 3 {
+    const n = Number(v);
+    return n === 3 ? 3 : n === 2 ? 2 : 1;
 }
 
 interface CountRow extends RowDataPacket {
@@ -64,7 +65,7 @@ export const GET: RequestHandler = async ({ params, cookies, request }) => {
         const isInternalRequest = isInternalAppRequest(request);
         const user = isInternalRequest ? await getAuthUser(cookies) : null;
         let isSubscribed = false;
-        let level: 1 | 2 | null = null;
+        let level: 1 | 2 | 3 | null = null;
 
         if (user) {
             const [rows] = await pool.query<SubRow[]>(
@@ -108,7 +109,7 @@ export const POST: RequestHandler = async ({ params, cookies, request }) => {
         return json({ success: false, message: 'boardId가 필요합니다.' }, { status: 400 });
     }
 
-    let level: 1 | 2 | null = null;
+    let level: 1 | 2 | 3 | null = null;
     try {
         const body = await request.json();
         if (body?.level !== undefined) level = normalizeLevel(body.level);
