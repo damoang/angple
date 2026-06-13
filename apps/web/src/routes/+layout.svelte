@@ -655,15 +655,14 @@
     {:else}
         <link rel="icon" href={favicon} />
     {/if}
-    {#if data.site?.title}
-        <meta property="og:title" content={data.site.title} />
-    {/if}
+    <!--
+        og:title / og:description / og:image 는 페이지별 <SeoHead> (lib/seo) 가 단독 emit 한다.
+        과거 여기서 data.site 기본 OG 를 함께 내보내 글 페이지에 og:title·og:description 가
+        2개씩 렌더 → 카톡/페북 크롤러(first-wins)가 글 제목 대신 사이트명을 가져가던 회귀(#12699).
+        site 기본 description 은 SeoHead 미사용 유틸 페이지용으로만 남긴다.
+    -->
     {#if data.site?.description}
         <meta name="description" content={data.site.description} />
-        <meta property="og:description" content={data.site.description} />
-    {/if}
-    {#if data.site?.logo_url}
-        <meta property="og:image" content={data.site.logo_url} />
     {/if}
     {#if data.site?.keywords?.length}
         <meta name="keywords" content={data.site.keywords.join(', ')} />
