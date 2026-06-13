@@ -359,11 +359,17 @@ const AUTH_TIMEOUT_MS = 1500;
  * sentinel 로 타임아웃을 구분하고, 타임아웃/예외 시 1회 재시도한다.
  */
 const AUTH_LOOKUP_TIMEOUT: unique symbol = Symbol('auth-lookup-timeout');
+/**
+ * 반환값으로 "조회 결과(value, null 포함)"와 "일시 장애로 판정 불가(degraded)"를 구분한다.
+ * - degraded=false: fn 이 정상 resolve (value 가 null 이면 진짜 "세션/회원 없음" = 로그아웃).
+ * - degraded=true : 2회 모두 타임아웃/예외로 결과를 못 얻음 (Redis/DB 일시 지연 등).
+ *   보호 페이지가 이 경우를 로그아웃으로 오인해 /login 으로 보내면 무한 왕복(#12621/#12642)이 된다.
+ */
 async function withTimeoutRetry<T>(
     fn: () => Promise<T>,
     ms: number,
     label: string
-): Promise<T | null> {
+): Promise<{ degraded: boolean; value: T | null }> {
     for (let attempt = 1; attempt <= 2; attempt++) {
         let timer: ReturnType<typeof setTimeout> | undefined;
         const timeoutPromise = new Promise<typeof AUTH_LOOKUP_TIMEOUT>((resolve) => {
@@ -374,7 +380,7 @@ async function withTimeoutRetry<T>(
             const result = await Promise.race([fn(), timeoutPromise]).finally(() => {
                 if (timer) clearTimeout(timer);
             });
-            if (result !== AUTH_LOOKUP_TIMEOUT) return result;
+            if (result !== AUTH_LOOKUP_TIMEOUT) return { degraded: false, value: result };
             console.error(`[Auth] ${label} 타임아웃 (시도 ${attempt}/2)`);
         } catch (err) {
             console.error(
@@ -383,7 +389,7 @@ async function withTimeoutRetry<T>(
             );
         }
     }
-    return null;
+    return { degraded: true, value: null };
 }
 
 /** SSR 인증: 서버사이드 세션 only (JWT 미사용) */
@@ -392,17 +398,21 @@ async function authenticateSSR(event: Parameters<Handle>[0]['event']): Promise<v
     event.locals.accessToken = null;
     event.locals.sessionId = null;
     event.locals.csrfToken = null;
+    event.locals.authDegraded = false;
 
     // 세션 쿠키로 인증
     const sessionId = event.cookies.get(SESSION_COOKIE_NAME);
 
     if (sessionId) {
         try {
-            const session = await withTimeoutRetry(
+            const sessionRes = await withTimeoutRetry(
                 () => getSession(sessionId),
                 AUTH_TIMEOUT_MS,
                 'getSession'
             );
+            // 세션 쿠키는 있는데 조회가 일시 장애로 실패 → degraded 표시(로그아웃과 구분).
+            if (sessionRes.degraded) event.locals.authDegraded = true;
+            const session = sessionRes.value;
             if (session) {
                 // FAST PATH: user_basic 쿠키 + JWT cache hit → DB 조회 0 (Phase B wire-up)
                 // feature flag USER_BASIC_FAST_PATH=true 시 활성화. default off.
@@ -441,11 +451,13 @@ async function authenticateSSR(event: Parameters<Handle>[0]['event']): Promise<v
                     }
                 }
 
-                const member = await withTimeoutRetry(
+                const memberRes = await withTimeoutRetry(
                     () => getMemberById(session.mbId),
                     AUTH_TIMEOUT_MS,
                     'getMemberById'
                 );
+                if (memberRes.degraded) event.locals.authDegraded = true;
+                const member = memberRes.value;
                 if (member) {
                     // 탈퇴 회원 세션 차단 (이용제한 회원은 글 열람 허용을 위해 세션 유지)
                     if (member.mb_leave_date) {
