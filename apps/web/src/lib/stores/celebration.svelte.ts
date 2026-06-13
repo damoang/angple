@@ -38,8 +38,21 @@ let ready = false;
 let fetchPromise: Promise<void> | null = null;
 let refCount = 0;
 let intervalId: ReturnType<typeof setInterval> | null = null;
+// 마지막으로 데이터를 로드한 KST 날짜(YYYY-MM-DD). 자정 롤오버 감지용.
+let loadedDateKST = '';
+// visibilitychange 리스너 중복 등록 방지 (스토어는 앱 수명 동안 단일 인스턴스).
+let visibilityBound = false;
 // 롤링 주기. 사용자 요청으로 3s → 2s 로 추가 단축 (메시지 6개 기준 한 바퀴 12s).
 const CELEBRATION_ROTATION_INTERVAL_MS = 2_000;
+
+/**
+ * KST(Asia/Seoul) 기준 오늘 YYYY-MM-DD.
+ * 서버 `$lib/server/celebration.ts` 의 getTodayKST 와 동일 기준 — 마음메시지는
+ * display_date(KST 날짜) 단위로 00:00~00:00 노출되므로 클라이언트도 KST 로 날짜 경계를 판단한다.
+ */
+function getTodayKST(): string {
+    return new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Seoul' });
+}
 
 /** Fisher-Yates 셔플 (in-place). length<=1 이면 변경 없이 반환 */
 function fisherYatesShuffle<T>(arr: T[]): T[] {
@@ -66,7 +79,12 @@ function reshuffleOrder(): void {
     currentIndex = order[0] ?? 0;
 }
 
-async function doFetch(): Promise<void> {
+/**
+ * @param allowEmpty true 면 빈 응답(오늘 메시지 0건)일 때 기존 배너를 비운다.
+ *   최초 로드는 false(빈 응답 시 깜박임 방지로 유지), 자정 롤오버 재요청은 true
+ *   (새 날에 메시지가 없으면 어제 메시지를 계속 보여주면 안 되므로 비움).
+ */
+async function doFetch(allowEmpty = false): Promise<void> {
     if (!browser) return;
 
     try {
@@ -78,20 +96,47 @@ async function doFetch(): Promise<void> {
         if (!response.ok) return;
 
         const result = await response.json();
+        const list = Array.isArray(result.data) ? result.data : [];
 
-        if (result.data?.length > 0) {
+        if (list.length > 0) {
             // 원본 배열은 안정적으로 유지하고 표시 순서는 shuffledOrder 로 제어한다.
-            celebrations = [...result.data];
+            celebrations = [...list];
+            reshuffleOrder();
+        } else if (allowEmpty) {
+            celebrations = [];
             reshuffleOrder();
         }
+        // 응답을 정상 수신한 KST 날짜를 기록 (이후 자정 롤오버 비교 기준).
+        loadedDateKST = getTodayKST();
     } catch (error) {
         console.warn('CelebrationStore: 마음메시지 로드 실패', error);
     }
 }
 
+/**
+ * 자정(KST) 롤오버 감지 → 오늘 메시지로 강제 재요청.
+ * 페이지를 켜둔 채 자정을 넘기면 mount() 의 fetched 가드 때문에 어제 메시지가 계속 노출되는
+ * 문제를 막는다. 롤링 인터벌(2s)과 탭 포커스 복귀 시 호출된다.
+ */
+function maybeRefetchForDateRollover(): void {
+    if (!browser) return;
+    if (!loadedDateKST) return; // 최초 로드 전
+    if (fetchPromise) return; // 진행 중 요청 있으면 스킵
+    if (getTodayKST() === loadedDateKST) return; // 같은 날 — 변화 없음
+
+    fetchPromise = doFetch(true).then(() => {
+        fetched = true;
+        ready = true;
+        fetchPromise = null;
+    });
+}
+
 function startRotation(): void {
     if (intervalId) return;
     intervalId = setInterval(() => {
+        // 자정(KST) 롤오버 시 오늘 메시지로 자동 교체 (메시지 수와 무관하게 매 tick 검사).
+        maybeRefetchForDateRollover();
+
         const len = celebrations.length;
         if (len <= 1) return;
         // 다음 위치로 이동. shuffledOrder 의 끝에 도달하면 재셔플(풀 로테이션 후 새 셔플).
@@ -151,6 +196,8 @@ export function initFromData(data: CelebrationBanner[]): void {
         celebrations = [...data];
         reshuffleOrder();
     }
+    // 자정 롤오버 비교 기준 날짜 설정 (SSR 시드도 KST today 기준 데이터).
+    loadedDateKST = getTodayKST();
     // 빈 배열로 초기화되더라도 ready=true 여야 fallback 문구를 렌더할 수 있다.
     fetched = true;
     ready = true;
@@ -165,6 +212,14 @@ export function mount(): () => void {
             fetched = true;
             ready = true;
             fetchPromise = null;
+        });
+    }
+
+    // 백그라운드 탭은 setInterval 이 throttle 되므로, 포커스 복귀 시에도 자정 롤오버를 즉시 확인.
+    if (browser && !visibilityBound) {
+        visibilityBound = true;
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') maybeRefetchForDateRollover();
         });
     }
 
