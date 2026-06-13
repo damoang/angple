@@ -24,6 +24,8 @@
     let isSubscribed = $state(false);
     let level = $state<1 | 2 | null>(null);
     let subscriberCount = $state(0);
+    // 글 많은 게시판 — '인기글만' 추천 + '전체' 대량 경고 (#12607 폭주 방지)
+    let busy = $state(false);
     let loading = $state(false);
     let stateLoaded = $state(false);
     let stateLoading = $state(false);
@@ -39,6 +41,7 @@
                     isSubscribed = data.data.is_subscribed;
                     level = data.data.level ?? null;
                     subscriberCount = data.data.subscriber_count;
+                    busy = data.data.busy ?? false;
                 }
             }
         } catch {
@@ -152,7 +155,9 @@
         <DropdownMenu.Item onclick={() => setLevel(1)}>
             <div class="flex flex-1 flex-col">
                 <span>전체 알림</span>
-                <span class="text-muted-foreground text-xs">새 글이 올라올 때마다 알림</span>
+                <span class="text-muted-foreground text-xs">
+                    {busy ? '글이 매우 많아 알림이 쏟아질 수 있어요' : '새 글이 올라올 때마다 알림'}
+                </span>
             </div>
             {#if isSubscribed && level === 1}
                 <Check class="text-primary h-4 w-4" />
@@ -160,7 +165,15 @@
         </DropdownMenu.Item>
         <DropdownMenu.Item onclick={() => setLevel(2)}>
             <div class="flex flex-1 flex-col">
-                <span>인기글만</span>
+                <span class="flex items-center gap-1">
+                    인기글만
+                    {#if busy}
+                        <span
+                            class="bg-primary/10 text-primary rounded px-1 text-[10px] font-medium"
+                            >추천</span
+                        >
+                    {/if}
+                </span>
                 <span class="text-muted-foreground text-xs">추천을 많이 받은 글만 알림</span>
             </div>
             {#if isSubscribed && level === 2}
