@@ -35,6 +35,12 @@ declare global {
             sessionId: string | null;
             /** CSRF 토큰 (세션에 연결, double-submit cookie 검증용) */
             csrfToken: string | null;
+            /**
+             * 세션 쿠키는 있으나 SSR 세션/회원 조회가 일시 장애(타임아웃)로 실패한 상태.
+             * 보호 페이지는 이 경우 /login 하드 리다이렉트 대신 셸을 렌더하고 클라이언트가
+             * 최종 판정하도록 위임한다 (#12621/#12642 무한 새로고침 방지).
+             */
+            authDegraded: boolean;
             /** Phase 1: site-resolver 가 host 기반으로 주입한 site 컨텍스트. miss 시 null (기본 테마 사용). */
             site: SiteContext | null;
         }
