@@ -6,6 +6,7 @@
  */
 
 import { readFile } from 'node:fs/promises';
+import { rewriteImageHosts } from '$lib/server/cdn-rewrite';
 import { existsSync } from 'node:fs';
 import type { DailyCalendar, DailyRecommendedData } from '$lib/api/types';
 import { env } from '$env/dynamic/private';
@@ -56,7 +57,7 @@ export async function loadDailyCalendar(): Promise<DailyCalendar | null> {
 
     try {
         const content = await readFile(filePath, 'utf-8');
-        const data: DailyCalendar = JSON.parse(content);
+        const data: DailyCalendar = JSON.parse(rewriteImageHosts(content));
         setCacheBounded(cacheKey, data, Date.now());
         return data;
     } catch (err) {
@@ -84,7 +85,7 @@ export async function loadDailyRecommended(date: string): Promise<DailyRecommend
 
     try {
         const content = await readFile(filePath, 'utf-8');
-        const data: DailyRecommendedData = JSON.parse(content);
+        const data: DailyRecommendedData = JSON.parse(rewriteImageHosts(content));
         cache.set(date, { data, timestamp: Date.now() });
         return data;
     } catch (err) {

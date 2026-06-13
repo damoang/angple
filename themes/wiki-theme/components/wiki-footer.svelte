@@ -11,8 +11,7 @@
                 <h4 class="text-foreground mb-3 text-sm font-semibold">둘러보기</h4>
                 <ul class="space-y-2">
                     <li>
-                        <a href="/" class="text-muted-foreground hover:text-primary text-sm"
-                            >대문</a
+                        <a href="/" class="text-muted-foreground hover:text-primary text-sm">대문</a
                         >
                     </li>
                     <li>

@@ -41,7 +41,7 @@
 
     const plans: PricingPlan[] = [
         {
-            title: '축하메시지',
+            title: '마음메시지',
             spec: '770 x 90px',
             price: '5',
             unit: '만원/24시간',
@@ -216,7 +216,7 @@
 
         <div class="bg-primary/10 text-primary mt-6 rounded-lg p-3 text-center text-sm font-medium">
             <Info class="mr-1 inline h-4 w-4" />
-            축하메시지를 제외한 나머지 상품은 부가세 별도입니다.
+            마음메시지를 제외한 나머지 상품은 부가세 별도입니다.
         </div>
     </section>
 
@@ -241,7 +241,7 @@
                 >
                     <Gift class="text-primary h-7 w-7" />
                 </div>
-                <h3 class="text-foreground text-lg font-semibold">축하메시지</h3>
+                <h3 class="text-foreground text-lg font-semibold">마음메시지</h3>
                 <p class="text-muted-foreground mt-1 text-sm">특별한 날을 함께 축하해요</p>
                 <span
                     class="bg-primary text-primary-foreground mt-4 inline-block rounded-full px-5 py-2 text-sm font-semibold"

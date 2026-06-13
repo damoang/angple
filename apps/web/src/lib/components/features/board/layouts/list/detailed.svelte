@@ -1,5 +1,10 @@
 <script lang="ts">
     import { Badge } from '$lib/components/ui/badge/index.js';
+    import {
+        RestrictedBadge,
+        isRestrictedTitle
+    } from '$lib/components/ui/restricted-badge/index.js';
+    import { DisciplinedBadge } from '$lib/components/ui/discipline-related/index.js';
     import ScheduledDeleteBadge from './_shared/scheduled-delete-badge.svelte';
     import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card/index.js';
     import type { FreePost, BoardDisplaySettings } from '$lib/api/types.js';
@@ -72,6 +77,12 @@
                                 {@html highlightQuery(post.title, searchQuery)}
                             {:else}
                                 {post.title}
+                            {/if}
+                            {#if isRestrictedTitle(post.title)}
+                                <RestrictedBadge class="ml-1" />
+                            {/if}
+                            {#if post.is_discipline_related}
+                                <DisciplinedBadge class="ml-1" />
                             {/if}
                         </CardTitle>
                         <div

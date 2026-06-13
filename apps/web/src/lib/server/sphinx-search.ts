@@ -36,7 +36,9 @@ export function containsCJK(s: string): boolean {
 
 /**
  * 검색 필드별 Sphinx MATCH 표현식 생성
- * CJK 토큰은 구문 검색("*token*")으로 인접 ngram 매칭 강제
+ * CJK 2자+ 토큰은 strict phrase("token")로 인접 ngram 매칭 강제. 와일드카드("*token*")는
+ * Manticore 가 1글자 ngram("산","불") 단독 매칭으로 분해해 "산불"이 "생산 불가"에 오매칭되는
+ * #12543/#11791 패턴을 유발하므로 사용하지 않는다 (백엔드 pkg/sphinx/sphinx.go 와 동일 정책).
  */
 export function buildMatchExpr(query: string, field: string): string {
     const escaped = escapeSphinxMatch(query);
@@ -44,7 +46,7 @@ export function buildMatchExpr(query: string, field: string): string {
     const wildcarded = tokens
         .map((t) => {
             if (containsCJK(t) && [...t].length >= 2) {
-                return `"*${t}*"`;
+                return `"${t}"`;
             }
             return `*${t}*`;
         })

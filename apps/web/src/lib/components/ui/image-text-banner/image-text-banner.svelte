@@ -131,7 +131,7 @@
             // timedFetch: 각 시도마다 12s timeout 보장 → fetch hang 시 retry 무한 누적 방지.
             // (audit 2026-05-01 §3-2). retries=0 으로 두고 외부 MAX_SIDE_RETRIES 로 상위 제어.
             const response = await timedFetch(
-                `/api/ads/banners?position=${position}&limit=4`,
+                `/api/sidebar/items?position=${position}&limit=4`,
                 {},
                 { retries: 0 }
             );

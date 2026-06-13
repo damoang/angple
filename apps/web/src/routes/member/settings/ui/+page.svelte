@@ -211,6 +211,7 @@
     interface SubBoard {
         board_id: string;
         board_name: string;
+        level?: 1 | 2;
     }
     interface FollowMember {
         mb_id: string;
@@ -258,6 +259,24 @@
         }
     }
 
+    // 구독 단계 변경 (1=전체, 2=인기글만)
+    async function setSubLevel(boardId: string, next: 1 | 2) {
+        try {
+            const res = await fetch(`/api/boards/${boardId}/subscribe`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ level: next })
+            });
+            if (res.ok) {
+                subscriptions = subscriptions.map((s) =>
+                    s.board_id === boardId ? { ...s, level: next } : s
+                );
+            }
+        } catch {
+            // ignore
+        }
+    }
+
     async function unfollow(mbId: string) {
         try {
             await fetch(`/api/members/${mbId}/follow`, { method: 'DELETE' });
@@ -274,6 +293,7 @@
         noti_mention: true,
         noti_like: true,
         noti_follow: true,
+        noti_board_subscribe: true,
         like_threshold: 1
     });
     let notiLoading = $state(false);
@@ -1185,14 +1205,27 @@
                         <Separator />
                         <div class="flex items-center justify-between">
                             <div>
-                                <Label>팔로우/구독 알림</Label>
+                                <Label>팔로우 알림</Label>
                                 <p class="text-muted-foreground text-xs">
-                                    팔로우 회원이나 구독 게시판에 새 글이 올라오면 알림을 받습니다
+                                    팔로우한 회원이 새 글을 올리면 알림을 받습니다
                                 </p>
                             </div>
                             <Switch
                                 checked={notiPrefs.noti_follow}
                                 onCheckedChange={(v) => saveNotiPrefs({ noti_follow: v })}
+                            />
+                        </div>
+                        <Separator />
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <Label>게시판 구독 알림</Label>
+                                <p class="text-muted-foreground text-xs">
+                                    구독한 게시판에 새 글(또는 인기글)이 올라오면 알림을 받습니다
+                                </p>
+                            </div>
+                            <Switch
+                                checked={notiPrefs.noti_board_subscribe}
+                                onCheckedChange={(v) => saveNotiPrefs({ noti_board_subscribe: v })}
                             />
                         </div>
                         {#if notiSaving}
@@ -1221,19 +1254,42 @@
                         <div class="space-y-1">
                             {#each subscriptions as sub (sub.board_id)}
                                 <div
-                                    class="border-border flex items-center justify-between rounded-md border px-3 py-2"
+                                    class="border-border flex items-center justify-between gap-2 rounded-md border px-3 py-2"
                                 >
                                     <a
                                         href="/{sub.board_id}"
-                                        class="text-foreground text-sm hover:underline"
+                                        class="text-foreground min-w-0 flex-1 truncate text-sm hover:underline"
                                         >{sub.board_name}</a
                                     >
-                                    <button
-                                        onclick={() => unsubscribe(sub.board_id)}
-                                        class="text-muted-foreground hover:text-destructive p-1 transition-colors"
-                                    >
-                                        <XIcon class="h-3.5 w-3.5" />
-                                    </button>
+                                    <div class="flex shrink-0 items-center gap-1">
+                                        <div class="bg-muted flex rounded-md p-0.5 text-xs">
+                                            <button
+                                                onclick={() => setSubLevel(sub.board_id, 1)}
+                                                class="rounded px-2 py-0.5 transition-colors {(sub.level ??
+                                                    1) === 1
+                                                    ? 'bg-background text-foreground shadow-sm'
+                                                    : 'text-muted-foreground'}"
+                                            >
+                                                전체
+                                            </button>
+                                            <button
+                                                onclick={() => setSubLevel(sub.board_id, 2)}
+                                                class="rounded px-2 py-0.5 transition-colors {sub.level ===
+                                                2
+                                                    ? 'bg-background text-foreground shadow-sm'
+                                                    : 'text-muted-foreground'}"
+                                            >
+                                                인기글만
+                                            </button>
+                                        </div>
+                                        <button
+                                            onclick={() => unsubscribe(sub.board_id)}
+                                            class="text-muted-foreground hover:text-destructive p-1 transition-colors"
+                                            aria-label="구독 해제"
+                                        >
+                                            <XIcon class="h-3.5 w-3.5" />
+                                        </button>
+                                    </div>
                                 </div>
                             {/each}
                         </div>

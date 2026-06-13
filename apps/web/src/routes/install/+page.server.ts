@@ -2,6 +2,7 @@ import { redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { isInstalled, updateSettings } from '$lib/server/install/check-installed';
 import { scanThemes, getThemePath } from '$lib/server/themes/scanner';
+import { DEFAULT_THEME } from '$lib/themes/constants';
 import { existsSync } from 'fs';
 import { join, resolve } from 'path';
 
@@ -44,10 +45,10 @@ export const load: PageServerLoad = async () => {
         });
     }
 
-    // damoang-default를 첫 번째로 정렬
+    // 기본 테마를 첫 번째로 정렬
     themes.sort((a, b) => {
-        if (a.id === 'damoang-default') return -1;
-        if (b.id === 'damoang-default') return 1;
+        if (a.id === DEFAULT_THEME) return -1;
+        if (b.id === DEFAULT_THEME) return 1;
         return a.name.localeCompare(b.name);
     });
 
@@ -77,7 +78,7 @@ export const actions: Actions = {
             siteDescription: siteDescription?.trim() || '',
             siteUrl: siteUrl?.trim() || '',
             language: language || 'ko',
-            activeTheme: activeTheme || 'damoang-default'
+            activeTheme: activeTheme || DEFAULT_THEME
         });
 
         if (!updated) {

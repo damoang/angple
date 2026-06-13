@@ -16,7 +16,7 @@
 
     interface Props {
         position: 'index' | 'board-list' | 'board-view' | 'sidebar';
-        showCelebration?: boolean; // 축하메시지 표시 여부 (메인만 true)
+        showCelebration?: boolean; // 마음메시지 표시 여부 (메인만 true)
         height?: string;
         gamPosition?: string; // GAM 폴백 시 사용할 슬롯 이름 (위젯에서 전달)
         gamFallback?: boolean; // 자체 배너 없을 때 GAM 폴백 여부 (기본 true)
@@ -39,6 +39,7 @@
     interface AdsBanner {
         id: string;
         imageUrl: string;
+        mobileImageUrl?: string;
         landingUrl: string;
         altText?: string;
         target?: string;
@@ -46,11 +47,11 @@
         advertiserId?: string;
     }
 
-    // 공유 스토어에서 축하메시지 가져오기
+    // 공유 스토어에서 마음메시지 가져오기
     let storeCelebrations = $derived(getCelebrations());
     let storeIndex = $derived(getCurrentIndex());
     let celebrationReady = $derived(isCelebrationReady());
-    // 최종 선택된 배너 (축하메시지 or 프리미엄 광고)
+    // 최종 선택된 배너 (마음메시지 or 프리미엄 광고)
     let adsBanner = $state<AdsBanner | null>(null);
     let loading = $state(true);
     let useFallback = $state(false);
@@ -93,7 +94,7 @@
     });
 
     onMount(() => {
-        // 축하메시지: 공유 스토어에서 관리 (CelebrationRolling과 싱크)
+        // 마음메시지: 공유 스토어에서 관리 (CelebrationRolling과 싱크)
         let cleanupCelebration: (() => void) | undefined;
         if (showCelebration) {
             cleanupCelebration = celebrationMount();
@@ -110,7 +111,7 @@
         if (!browser) return;
 
         if (showCelebration) {
-            // 축하메시지는 공유 스토어에서 관리 → 광고만 fetch
+            // 마음메시지는 공유 스토어에서 관리 → 광고만 fetch
             const ads = await fetchAdsBanners();
             if (ads.length > 0) {
                 adsBanner = ads[Math.floor(Math.random() * ads.length)];
@@ -119,7 +120,7 @@
             loading = !adsBanner && !celebrationReady;
             useFallback = !adsBanner && celebrationReady && storeCelebrations.length === 0;
         } else {
-            // 게시판 페이지: 프리미엄 + 일반 배너만 (축하메시지 없음)
+            // 게시판 페이지: 프리미엄 + 일반 배너만 (마음메시지 없음)
             const ads = await fetchAdsBanners();
             if (ads.length > 0) {
                 adsBanner = ads[Math.floor(Math.random() * ads.length)];
@@ -139,7 +140,7 @@
 
         try {
             const response = await fetch(
-                `/api/ads/banners?position=${encodeURIComponent(adsPosition)}&limit=10`
+                `/api/sidebar/items?position=${encodeURIComponent(adsPosition)}&limit=10`
             );
 
             if (!response.ok) return [];
@@ -181,31 +182,44 @@
         return raw;
     }
 
-    // 축하메시지 배너 링크: 공유 스토어의 getLink 사용
+    // 마음메시지 배너 링크: 공유 스토어의 getLink 사용
     function getCelebrationHref(banner: CelebrationBanner): string {
         return getCelebrationLink(banner);
     }
 </script>
 
-<div class="dm-card {className}" data-position={position} style:min-height={height}>
+<div
+    class="dm-card {className}"
+    data-position={position}
+    style:min-height={position === 'sidebar' ? height : undefined}
+>
     {#if loading}
         <div
             aria-hidden="true"
-            class="pointer-events-none invisible"
-            style:min-height={height}
+            class="pointer-events-none invisible {position === 'sidebar'
+                ? ''
+                : 'aspect-[77/9] w-full'}"
+            style:min-height={position === 'sidebar' ? height : undefined}
         ></div>
     {:else if celebrationBanner}
-        <!-- 축하메시지 배너 -->
+        <!-- 마음메시지 배너 -->
+        <!-- index(가로형): 테두리 없이 비율(770×90=77/9)로 슬롯을 꽉 채워 레터박스 제거.
+             sidebar: 기존 테두리 + 고정 높이 유지. -->
         <a
             href={getCelebrationHref(celebrationBanner)}
-            class="border-border dm-media-card block overflow-hidden rounded-xl border transition-opacity hover:opacity-90"
-            style:min-height={height}
-            style:height
+            class="dm-media-card block overflow-hidden rounded-xl transition-opacity hover:opacity-90 {position ===
+            'sidebar'
+                ? 'border-border border'
+                : 'aspect-[77/9]'}"
+            style:min-height={position === 'sidebar' ? height : undefined}
+            style:height={position === 'sidebar' ? height : undefined}
         >
             <img
                 src={celebrationBanner.image_url}
-                alt={celebrationBanner.alt_text || '축하메시지'}
-                class="dm-media-card__image w-full object-contain"
+                alt={celebrationBanner.alt_text || '마음메시지'}
+                class="dm-media-card__image w-full {position === 'sidebar'
+                    ? 'object-contain'
+                    : 'h-full object-cover'}"
                 loading="lazy"
             />
         </a>
@@ -226,20 +240,39 @@
                 slotKey: `damoang-banner:${position}`,
                 adUserId: adsBanner.advertiserId ?? undefined
             }}
-            class="border-border dm-media-card block overflow-hidden rounded-xl border transition-opacity hover:opacity-90"
-            style:min-height={height}
-            style:height
+            class="dm-media-card block overflow-hidden rounded-xl transition-opacity hover:opacity-90 {position ===
+            'sidebar'
+                ? 'border-border border'
+                : 'aspect-[77/9]'}"
+            style:min-height={position === 'sidebar' ? height : undefined}
+            style:height={position === 'sidebar' ? height : undefined}
         >
-            <img
-                src={adsBanner.imageUrl}
-                alt={adsBanner.altText || '광고'}
-                class="dm-media-card__image w-full object-contain"
-                loading="lazy"
-            />
+            {#if adsBanner.mobileImageUrl}
+                <picture>
+                    <source media="(max-width: 768px)" srcset={adsBanner.mobileImageUrl} />
+                    <img
+                        src={adsBanner.imageUrl}
+                        alt={adsBanner.altText || '광고'}
+                        class="dm-media-card__image w-full {position === 'sidebar'
+                            ? 'object-contain'
+                            : 'h-full object-cover'}"
+                        loading="lazy"
+                    />
+                </picture>
+            {:else}
+                <img
+                    src={adsBanner.imageUrl}
+                    alt={adsBanner.altText || '광고'}
+                    class="dm-media-card__image w-full {position === 'sidebar'
+                        ? 'object-contain'
+                        : 'h-full object-cover'}"
+                    loading="lazy"
+                />
+            {/if}
         </a>
     {:else if useFallback}
         {#if position === 'sidebar'}
-            <!-- 사이드바: 축하메시지/광고 없으면 빈 플레이스홀더 -->
+            <!-- 사이드바: 마음메시지/광고 없으면 빈 플레이스홀더 -->
             <div
                 class="flex items-center justify-center rounded-lg border border-dashed border-slate-200 bg-slate-50/50 dark:border-slate-700 dark:bg-slate-800/30"
                 style:min-height="40px"
@@ -247,7 +280,7 @@
                 <a
                     href="/message"
                     class="text-[10px] text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300"
-                    >축하메시지가 없습니다</a
+                    >마음메시지가 없습니다</a
                 >
             </div>
         {:else if gamFallback}
@@ -270,5 +303,29 @@
         width: 100%;
         height: 100%;
         max-height: inherit;
+    }
+
+    /* 사이드바: 200x200 이미지 원본 크기 유지 */
+    :global(.dm-card[data-position='sidebar']) .dm-media-card {
+        max-width: 200px;
+        margin: 0 auto;
+    }
+
+    :global(.dm-card[data-position='sidebar']) .dm-media-card__image {
+        width: auto;
+        max-width: 200px;
+    }
+
+    /* 드로워 내 사이드바 배너: 320x100 (200px 제약 해제, 특이도 높임) */
+    :global(.dm-card.drawer-sidebar-banner[data-position='sidebar']) .dm-media-card {
+        max-width: 100%;
+    }
+
+    :global(.dm-card.drawer-sidebar-banner[data-position='sidebar']) .dm-media-card__image {
+        width: 100%;
+        max-width: 100%;
+        height: 100px;
+        object-fit: cover;
+        object-position: center;
     }
 </style>

@@ -23,11 +23,7 @@
     const platformName = $derived(platformNames[platform] || platform);
 </script>
 
-<span
-    class="affiliate-badge"
-    title="{platformName} 제휴 링크"
-    data-platform={platform}
->
+<span class="affiliate-badge" title="{platformName} 제휴 링크" data-platform={platform}>
     {#if showIcon}
         <span class="affiliate-badge-icon">💰</span>
     {/if}

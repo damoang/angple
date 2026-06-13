@@ -14,6 +14,7 @@ interface SiteRow extends RowDataPacket {
     favicon_url: string | null;
     keywords: string | null;
     settings: string | null;
+    business: string | null;
     active: number;
 }
 
@@ -48,6 +49,17 @@ function rowToContext(row: SiteRow): SiteContext {
             // ignore malformed JSON
         }
     }
+    let business: SiteContext['business'];
+    if (row.business) {
+        try {
+            const parsed = JSON.parse(row.business) as unknown;
+            if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+                business = parsed as SiteContext['business'];
+            }
+        } catch {
+            // ignore malformed JSON
+        }
+    }
     return {
         id: `db:${row.id}`,
         numericId: row.id,
@@ -57,6 +69,7 @@ function rowToContext(row: SiteRow): SiteContext {
         keywords,
         logo_url: row.logo_url ?? undefined,
         favicon_url: row.favicon_url ?? undefined,
+        business,
         source: 'db'
     };
 }

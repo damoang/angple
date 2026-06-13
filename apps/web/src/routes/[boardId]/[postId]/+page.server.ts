@@ -26,6 +26,7 @@ import { fetchPostLikeStatus } from '$lib/server/post-like-status.js';
 import { fetchTruthroomPostId, fetchTruthroomCommentMap } from '$lib/server/truthroom.js';
 import { BackendUnavailableError } from '$lib/server/backend-fetch.js';
 import { applyFilter } from '$lib/hooks/registry.js';
+import { buildHookContext } from '$lib/hooks/context.js';
 import { prefetchBlueskyDIDs } from '$lib/server/bluesky/transform.js';
 
 /**
@@ -214,7 +215,7 @@ export const load: PageServerLoad = async ({
             }
         }
 
-        // 축하메시지(message) 게시판: 익명 글 프로필 정보 숨김
+        // 마음메시지(message) 게시판: 익명 글 프로필 정보 숨김
         if (boardId === 'message' && !post.author) {
             post.author_image = undefined;
             post.author_image_updated_at = undefined;
@@ -338,7 +339,10 @@ export const load: PageServerLoad = async ({
                     total: data.total || 0,
                     page: data.page || 1,
                     limit: data.limit || initialCommentsLimit,
-                    total_pages: data.total_pages || 1
+                    total_pages: data.total_pages || 1,
+                    edit_policy: json.meta?.comment_edit_policy as
+                        | { cost: number; grace_seconds: number }
+                        | undefined
                 };
             });
 
@@ -616,7 +620,12 @@ export const load: PageServerLoad = async ({
 
         // Phase 1C: 플러그인 enrich filter (member-memo author_memo 등).
         // 미설치 시 pass-through. (premium PR #43 기준 stub)
-        const enrichedPostList = (await applyFilter('post.list.enrich', [post])) as FreePost[];
+        // Step A′: 서버 hook 표준 컨텍스트(site/user) 전달.
+        const enrichedPostList = (await applyFilter(
+            'post.list.enrich',
+            [post],
+            buildHookContext(locals)
+        )) as FreePost[];
         const enrichedPost = enrichedPostList[0] ?? post;
 
         return {

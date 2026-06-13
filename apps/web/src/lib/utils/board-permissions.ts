@@ -1,4 +1,5 @@
 import type { Board, BoardPermissions, DamoangUser } from '$lib/api/types.js';
+import { getGradeName } from './grade.js';
 
 export type PermissionAction =
     | 'can_list'
@@ -93,6 +94,37 @@ export function getRequiredLevel(
 ): number {
     const levelKey = ACTION_LEVEL_MAP[action];
     return (board?.[levelKey] as number) ?? 1;
+}
+
+/** 권한 안내 툴팁용 구조화 데이터 (등급명 포함) */
+export interface RequirementHint {
+    actionName: string;
+    loggedIn: boolean;
+    requiredLevel: number;
+    requiredGrade: string;
+    currentLevel: number | null;
+    currentGrade: string | null;
+}
+
+/**
+ * 글쓰기/댓글 비활성 시 호버 안내에 쓸 조건 데이터를 만든다.
+ * 필요 등급명·현재 등급명을 함께 담아 친절한 안내가 가능하게 한다.
+ */
+export function getRequirementHint(
+    board: BoardPermissionTarget | undefined | null,
+    action: PermissionAction,
+    user: DamoangUser | null
+): RequirementHint {
+    const requiredLevel = getRequiredLevel(board, action);
+    const currentLevel = user?.mb_level ?? null;
+    return {
+        actionName: ACTION_NAMES[action],
+        loggedIn: !!user,
+        requiredLevel,
+        requiredGrade: getGradeName(requiredLevel),
+        currentLevel,
+        currentGrade: currentLevel != null ? getGradeName(currentLevel) : null
+    };
 }
 
 /**

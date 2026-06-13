@@ -22,6 +22,7 @@
         type DisciplineLogListItem
     } from '$lib/api/discipline-log.js';
     import { authStore } from '$lib/stores/auth.svelte.js';
+    import { getReportReasonLabel } from '$lib/utils/report-reasons.js';
 
     let log = $state<DisciplineLogDetail | null>(null);
     let loading = $state(true);
@@ -83,8 +84,15 @@
         }
     }
 
+    // 신고 항목이 댓글인지 판별. 글에도 parent>0 으로 들어오는 비정상 데이터 방어:
+    // parent == id 또는 parent == 0 또는 falsy → 글로 처리.
+    // 정상: parent = 게시글 wr_id, id = 댓글 wr_id (서로 다름)
+    function isComment(item: { id: number; parent?: number }): boolean {
+        return typeof item.parent === 'number' && item.parent > 0 && item.parent !== item.id;
+    }
+
     function getReportedItemUrl(item: { table: string; id: number; parent?: number }): string {
-        if (item.parent && item.parent > 0) {
+        if (isComment(item)) {
             // parent = 게시글 ID (wr_parent), id = 댓글 ID (wr_id)
             return `/${item.table}/${item.parent}#c_${item.id}`;
         }
@@ -92,7 +100,7 @@
     }
 
     function getReportedItemLabel(item: { table: string; id: number; parent?: number }): string {
-        if (item.parent && item.parent > 0) {
+        if (isComment(item)) {
             return `/${item.table}/${item.parent} (댓글 #${item.id})`;
         }
         return `/${item.table}/${item.id}`;
@@ -230,15 +238,28 @@
                 <Card.Content>
                     <div class="space-y-2">
                         {#each log.reported_items as item}
-                            <a
-                                href={getReportedItemUrl(item)}
-                                class="hover:bg-muted/50 flex items-center gap-2 rounded p-2 text-sm transition-all duration-200 ease-out"
+                            <div
+                                class="hover:bg-muted/50 rounded p-2 transition-all duration-200 ease-out"
                             >
-                                <ExternalLink class="text-muted-foreground h-4 w-4" />
-                                <span class="text-primary hover:underline">
-                                    {getReportedItemLabel(item)}
-                                </span>
-                            </a>
+                                <a
+                                    href={getReportedItemUrl(item)}
+                                    class="flex items-center gap-2 text-sm"
+                                >
+                                    <ExternalLink class="text-muted-foreground h-4 w-4" />
+                                    <span class="text-primary hover:underline">
+                                        {getReportedItemLabel(item)}
+                                    </span>
+                                </a>
+                                {#if item.sg_types && item.sg_types.length > 0}
+                                    <div class="ml-6 mt-1.5 flex flex-wrap gap-1">
+                                        {#each item.sg_types as code (code)}
+                                            <Badge variant="secondary" class="text-xs">
+                                                {getReportReasonLabel(code)}
+                                            </Badge>
+                                        {/each}
+                                    </div>
+                                {/if}
+                            </div>
                         {/each}
                     </div>
                 </Card.Content>

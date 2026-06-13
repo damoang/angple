@@ -33,25 +33,19 @@ test('iOS Safari can load stale-sensitive post flows', async ({ page }) => {
         (response) => isImmutableAsset(response.url()) && response.status() === 200,
         { timeout: 20_000 }
     );
-    const commentsResponse = page.waitForResponse(
-        (response) =>
-            /\/api\/boards\/[^/]+\/posts\/\d+\/comments/.test(response.url()) &&
-            response.request().method() === 'GET' &&
-            response.status() === 200,
-        { timeout: 20_000 }
-    );
-    const likeResponse = page.waitForResponse(
-        (response) =>
-            /\/api\/boards\/[^/]+\/posts\/\d+\/like/.test(response.url()) &&
-            response.request().method() === 'GET' &&
-            response.status() === 200,
-        { timeout: 20_000 }
-    );
+    // 주의: 댓글/추천은 SSR 직접 로딩으로 전환되어 첫 로드에서 클라이언트 GET 이
+    // 발생하지 않을 수 있다 (waitForResponse 로 대기하면 false negative — 2026-06-06
+    // run 27058741045 실패 원인). 모니터는 구현 디테일(네트워크 호출 발생) 대신
+    // 사용자 가시 결과(댓글 영역 렌더)를 검증하고, 호출이 발생하는 경로(fallback 등)의
+    // 4xx/5xx 는 위 failedResponses 리스너가 계속 잡는다.
 
     await page.goto(POST_PATH, { waitUntil: 'domcontentloaded' });
     await expect(page.locator('body')).toContainText(/댓글|공감|목록/, { timeout: 15_000 });
 
-    await Promise.all([immutableResponse, commentsResponse, likeResponse]);
+    // 댓글 영역이 실제로 렌더되었는지 (SSR/CSR 무관한 사용자 가시 결과)
+    await expect(page.locator('#comments')).toBeVisible({ timeout: 15_000 });
+
+    await immutableResponse;
     await page.waitForLoadState('networkidle', { timeout: 10_000 }).catch(() => {});
 
     expect(

@@ -2,37 +2,17 @@
     import { page } from '$app/stores';
     import { invalidateAll } from '$app/navigation';
     import { widgetLayoutStore } from '$lib/stores/widget-layout.svelte';
-
-    export interface TagNavMenu {
-        key: string;
-        text: string;
-        url: string;
-        show: boolean;
-    }
+    import { DEFAULT_TAG_NAV_MENUS, type TagNavMenu } from './default-menus';
 
     interface Props {
         menus?: TagNavMenu[];
         class?: string;
     }
 
-    const DEFAULT_MENUS: TagNavMenu[] = [
-        { key: 'explore', text: '모아보기', url: '/explore', show: true },
-        { key: 'empathy', text: '공감글', url: '/empathy', show: true },
-        { key: 'group', text: '소모임', url: '/groups', show: true },
-        { key: 'free', text: '자유게시판', url: '/free', show: true },
-        { key: 'qa', text: '질문답변', url: '/qa', show: true },
-        { key: 'new', text: '새소식', url: '/new', show: true },
-        { key: 'economy', text: '알뜰구매', url: '/economy', show: true },
-        { key: 'promotion', text: '직접홍보', url: '/promotion', show: true },
-        { key: 'lecture', text: '강좌팁', url: '/lecture', show: true },
-        { key: 'tutorial', text: '사용기', url: '/tutorial', show: true },
-        { key: 'message', text: '축하메시지', url: '/message', show: true }
-    ];
-
     let { menus: menusProp, class: className = '' }: Props = $props();
 
-    // 우선순위: props > 위젯 레이아웃 스토어(DB) > DEFAULT_MENUS
-    const menus = $derived(menusProp ?? widgetLayoutStore.tagNavMenus ?? DEFAULT_MENUS);
+    // 우선순위: props > 위젯 레이아웃 스토어(DB) > 기본값
+    const menus = $derived(menusProp ?? widgetLayoutStore.tagNavMenus ?? DEFAULT_TAG_NAV_MENUS);
 
     const visibleMenus = $derived(menus.filter((m) => m.show));
     const currentPath = $derived($page.url.pathname);
@@ -49,10 +29,11 @@
             <a
                 href={menu.url}
                 onclick={(e) => {
-                    // 현재 페이지와 동일한 메뉴 클릭 시 SvelteKit 이 navigation 을 생략해
-                    // "클릭해도 아무 반응 없음" 처럼 보이는 문제(#12027) 방지.
-                    // 좌측 카테고리 링크와 동일하게 invalidateAll() 로 새로고침.
-                    if (isActive(menu.url)) {
+                    // 정확히 같은 목록 페이지일 때만 navigation 을 생략하고 invalidateAll()
+                    // 로 새로고침(#12027). 하위 경로(글 상세 /free/123 등)에서는 isActive 가
+                    // true(탭 하이라이트용)여도 정상적으로 목록으로 이동해야 한다 — 안 그러면
+                    // 글 상세에서 해당 탭 클릭 시 목록이 안 뜨고 무반응처럼 보임.
+                    if (currentPath === menu.url) {
                         e.preventDefault();
                         invalidateAll();
                         window.scrollTo(0, 0);

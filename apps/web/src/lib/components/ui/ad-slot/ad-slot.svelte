@@ -160,8 +160,13 @@
         tablet: string;
         desktop: string;
     } {
+        // AdSense 정책 — 광고가 컨테이너보다 커서 잘리면 안 됨 (Ad Clipping 금지).
+        // explicit prop 가 sizes 최댓값보다 작아도 sizes 보장 = Math.max.
+        // 이전 코드 `explicitHeight ?? maxHeight(sizes)` 는 truthy fallback 으로
+        // sizes 최댓값 무시 → 윙(160×600) 광고가 90px 컨테이너에 잘리는 버그.
         const explicitHeight = parseHeightPx(height);
-        const fallback = explicitHeight ?? (config.sizes.length > 0 ? maxHeight(config.sizes) : 0);
+        const sizesMax = config.sizes.length > 0 ? maxHeight(config.sizes) : 0;
+        const fallback = Math.max(explicitHeight ?? 0, sizesMax);
         let mobileHeight = fallback;
         let tabletHeight: number | null = null;
         let desktopHeight: number | null = null;
@@ -340,9 +345,13 @@
 </script>
 
 {#if !suppressAds}
+    <!-- overflow-x 는 hidden 이 아닌 clip 이어야 한다: CSS 스펙상 한 축이 hidden 이면
+         다른 축의 visible 이 auto 로 강제되어 스크롤 컨테이너가 생긴다 (#12595/#12616
+         광고 세로 스크롤바의 근본 원인). clip 은 스크롤 컨테이너를 만들지 않아
+         가로 clipping + 세로 visible(윙 잘림 방지, #1542)이 모두 유지된다. -->
     <div
         bind:this={containerEl}
-        class="dm-display-frame relative overflow-hidden rounded-lg {className}"
+        class="dm-display-frame relative overflow-x-clip overflow-y-visible rounded-lg {className}"
         class:ad-slot-loaded={isLoaded && hasAd}
         class:ad-slot-empty={isEmpty}
         class:ad-slot-empty-collapsed={isEmpty}
@@ -376,6 +385,24 @@
         /* 기본 (모바일/in-flow): inline 으로 주입된 --ad-slot-min-height 사용 */
         min-height: var(--ad-slot-min-height);
         /* transition은 inline style로 통일 (0ms) — CLS 방지 위해 즉시 적용 */
+    }
+    /* #12411: 모바일 좁은 viewport 에서 광고 크리에이티브가 컨테이너 폭을 초과해
+       overflow-hidden 으로 좌/우 잘리는 문제 fix. 광고 iframe/img/ins 자식 요소를
+       컨테이너 폭에 맞추도록 max-width 강제 (AdSense/GAM/Adfit 공통).
+
+       주의: height: auto 는 img 에만 적용해야 한다. iframe 은 GPT 가 width/height
+       를 HTML 속성으로 지정하는데, CSS height:auto 가 속성 힌트를 무시하면
+       iframe(내용 기반 크기 없는 replaced element)이 150px 기본값으로 붕괴한다
+       — 2026-05-30 #1527 이 iframe 에도 height:auto 를 걸어 광고 사이즈 전반
+       이상(#12595/#12616 등)의 근본 원인이 됐던 회귀. Playwright 실측:
+       300×250 iframe + height:auto → offsetHeight 150. */
+    .dm-display-frame :global(iframe),
+    .dm-display-frame :global(ins.adsbygoogle) {
+        max-width: 100% !important;
+    }
+    .dm-display-frame :global(img) {
+        max-width: 100% !important;
+        height: auto;
     }
     .dm-display-slot {
         min-height: var(--ad-slot-min-height);
@@ -418,7 +445,11 @@
         justify-content: center;
         align-items: center;
         max-width: 100%;
-        overflow: hidden;
+        /* AdSense 정책: 광고 세로 잘림 금지 (Ad Clipping). 가로만 clip — 모바일 viewport 보호용.
+           주의: hidden 을 쓰면 CSS 스펙상 overflow-y: visible 이 auto 로 강제되어
+           세로 스크롤바가 생긴다 (#12595/#12616). 반드시 clip 사용. */
+        overflow-x: clip;
+        overflow-y: visible;
     }
 
     @media (min-width: 728px) {

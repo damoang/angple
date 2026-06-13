@@ -12,6 +12,7 @@
     import { authActions, authStore } from '$lib/stores/auth.svelte';
     import { themeStore } from '$lib/stores/theme.svelte';
     import { pluginStore } from '$lib/stores/plugin.svelte';
+    import { widgetLayoutStore } from '$lib/stores/widget-layout.svelte';
     import type { ActivePlugin } from '$lib/stores/plugin.svelte';
     import { menuStore } from '$lib/stores/menu.svelte';
     import { loadThemeHooks } from '$lib/hooks/theme-loader';
@@ -197,12 +198,23 @@
         pluginStore.initFromServer(data.activePlugins);
     }
 
+    // SSR에서 받은 widget layout 으로 즉시 초기화 (사이드바 widget SSR 렌더 보장)
+    // 이전엔 +page.svelte(홈)에서만 호출 → 글 상세/게시판 목록에서 default 사용 → 사용자 layout 누락.
+    if (data.widgetLayout || data.sidebarWidgetLayout) {
+        widgetLayoutStore.initFromServer(
+            data.widgetLayout ?? null,
+            data.sidebarWidgetLayout ?? null
+        );
+    }
+
     // SSR에서 받은 테마/메뉴로 스토어 초기화 (깜박임 방지!)
     // plugins는 /api/layout/init에서 클라이언트 로드 (비용 절감)
     $effect(() => {
         const theme = data.activeTheme;
         const menus = data.menus || [];
         const plugins = data.activePlugins || [];
+        const widgetLayout = data.widgetLayout;
+        const sidebarWidgetLayout = data.sidebarWidgetLayout;
         untrack(() => {
             themeStore.initFromServer(theme);
             if (menus.length > 0) {
@@ -211,6 +223,9 @@
             }
             if (plugins.length > 0) {
                 pluginStore.initFromServer(plugins);
+            }
+            if (widgetLayout || sidebarWidgetLayout) {
+                widgetLayoutStore.initFromServer(widgetLayout ?? null, sidebarWidgetLayout ?? null);
             }
         });
     });
@@ -640,15 +655,14 @@
     {:else}
         <link rel="icon" href={favicon} />
     {/if}
-    {#if data.site?.title}
-        <meta property="og:title" content={data.site.title} />
-    {/if}
+    <!--
+        og:title / og:description / og:image 는 페이지별 <SeoHead> (lib/seo) 가 단독 emit 한다.
+        과거 여기서 data.site 기본 OG 를 함께 내보내 글 페이지에 og:title·og:description 가
+        2개씩 렌더 → 카톡/페북 크롤러(first-wins)가 글 제목 대신 사이트명을 가져가던 회귀(#12699).
+        site 기본 description 은 SeoHead 미사용 유틸 페이지용으로만 남긴다.
+    -->
     {#if data.site?.description}
         <meta name="description" content={data.site.description} />
-        <meta property="og:description" content={data.site.description} />
-    {/if}
-    {#if data.site?.logo_url}
-        <meta property="og:image" content={data.site.logo_url} />
     {/if}
     {#if data.site?.keywords?.length}
         <meta name="keywords" content={data.site.keywords.join(', ')} />

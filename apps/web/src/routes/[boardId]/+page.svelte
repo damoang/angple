@@ -82,7 +82,12 @@
         getPageSeoConfig
     } from '$lib/seo/index.js';
     import type { SeoConfig } from '$lib/seo/types.js';
-    import { checkPermission, getPermissionMessage } from '$lib/utils/board-permissions.js';
+    import {
+        checkPermission,
+        getPermissionMessage,
+        getRequirementHint
+    } from '$lib/utils/board-permissions.js';
+    import * as Tooltip from '$lib/components/ui/tooltip/index.js';
     import { readPostsStore } from '$lib/stores/read-posts.svelte.js';
     import { densityStore } from '$lib/stores/density.svelte.js';
     import { readPostStyleStore, type ReadPostStyle } from '$lib/stores/read-post-style.svelte.js';
@@ -176,6 +181,9 @@
     });
 
     // 권한 부족 시 표시할 메시지
+    // 글쓰기 비활성 호버 안내용 조건(등급명 포함)
+    const writeHint = $derived(getRequirementHint(data.board, 'can_write', authStore.user ?? null));
+
     const writePermissionMessage = $derived.by(() => {
         if (!authStore.isAuthenticated) return '로그인이 필요합니다';
         return getPermissionMessage(data.board, 'can_write', authStore.user ?? null);
@@ -220,6 +228,50 @@
         url.searchParams.delete('stx');
         url.searchParams.delete('sop');
         url.searchParams.set('page', '1');
+        goto(url.pathname + url.search);
+    }
+
+    // #12455: 빠른필터 행 검색 (필드 선택 + 검색어). SearchForm 과 동일한 sfl/stx 쿼리 사용.
+    // '내가 쓴 글/댓글' 필터(sfl=author/comment_author) 가 아닐 때만 현재 검색어를 채운다.
+    // 기본 5개 (모바일/PC 공통) + 고급 5개 (닉네임/아이디 분리, 댓글 내용) — SearchForm 과 동일 필드.
+    const QUICK_SEARCH_BASIC = [
+        { value: 'title_content', label: '제목+내용' },
+        { value: 'title', label: '제목' },
+        { value: 'content', label: '내용' },
+        { value: 'author', label: '작성자' },
+        { value: 'comment_author', label: '댓글 작성자' }
+    ] as const;
+    const QUICK_SEARCH_ADVANCED = [
+        { value: 'author_nick', label: '작성자(닉네임)' },
+        { value: 'author_id', label: '작성자(아이디)' },
+        { value: 'comment_nick', label: '댓글(닉네임)' },
+        { value: 'comment_id', label: '댓글(아이디)' },
+        { value: 'comment', label: '댓글 내용' }
+    ] as const;
+    const QUICK_FIELD_VALUES = [...QUICK_SEARCH_BASIC, ...QUICK_SEARCH_ADVANCED].map(
+        (f) => f.value
+    ) as readonly string[];
+    let quickSearch = $state(
+        currentSfl === 'author' || currentSfl === 'comment_author' ? '' : currentStx
+    );
+    // 현재 sfl 이 빠른검색 필드면 반영, 아니면 기본 '제목+내용'.
+    // 단 내가쓴글/댓글 필터(author/comment_author + stx=내 mb_id) 는 검색이 아니므로 제외.
+    const myFilterActive = $derived(
+        (currentSfl === 'author' || currentSfl === 'comment_author') &&
+            currentStx === (authStore.user?.mb_id ?? '')
+    );
+    let quickSearchField = $state(
+        QUICK_FIELD_VALUES.includes(currentSfl) && !myFilterActive ? currentSfl : 'title_content'
+    );
+    function runQuickSearch(): void {
+        const q = quickSearch.trim();
+        if (!q) return;
+        const url = new URL(window.location.href);
+        url.searchParams.set('sfl', quickSearchField);
+        url.searchParams.set('stx', q);
+        url.searchParams.set('page', '1');
+        url.searchParams.delete('category');
+        url.searchParams.delete('tag');
         goto(url.pathname + url.search);
     }
 
@@ -832,7 +884,12 @@
                             </DropdownMenuContent>
                         </DropdownMenu>
                     {/if}
-                    <div class="relative flex shrink-0">
+                    <!-- #12455: 로그인 사용자는 PC(md+)에서 빠른필터 행 검색과 중복 → 상단 검색 토글 숨김 -->
+                    <div
+                        class="relative flex shrink-0 {authStore.isAuthenticated
+                            ? 'md:hidden'
+                            : ''}"
+                    >
                         {#if authStore.isAuthenticated}
                             <Button
                                 variant="outline"
@@ -869,27 +926,7 @@
                             {/if}
                         {/if}
                     </div>
-                    {#if canWrite}
-                        <Button
-                            onclick={goToWrite}
-                            class="shrink-0"
-                            title={!canUseCertifiedAction(authStore.user, boardId)
-                                ? getCertificationBlockedMessage(boardId)
-                                : undefined}
-                        >
-                            <Pencil class="mr-2 h-4 w-4" />
-                            {#if !canUseCertifiedAction(authStore.user, boardId)}실명인증{:else}글쓰기{/if}
-                        </Button>
-                    {:else if authStore.isAuthenticated}
-                        <Button
-                            disabled
-                            class="shrink-0 cursor-not-allowed opacity-60"
-                            title={writePermissionMessage}
-                        >
-                            <Lock class="mr-2 h-4 w-4" />
-                            글쓰기
-                        </Button>
-                    {/if}
+                    <!-- #12520 후속: 상단 title 우측 글쓰기 버튼 제거 → 빠른필터 행의 검색 버튼 오른쪽으로 이동(아래). -->
                 </div>
             </div>
 
@@ -907,7 +944,7 @@
                 </div>
             {/if}
 
-            <!-- 축하메시지 아래 구글 광고 -->
+            <!-- 마음메시지 아래 구글 광고 -->
             {#if widgetLayoutStore.hasEnabledAds}
                 <div class="mb-3">
                     <AdSlot position="board-list-head" height="90px" slotKey="board-list-head" />
@@ -918,15 +955,20 @@
             <PluginSlot name="board-list-filter-before" {boardId} />
 
             <!-- 검색 폼 (토글 or 검색 중 or 핀 고정) -->
+            <!-- #12455: 로그인 사용자는 PC(md+)에서 빠른필터 행 검색이 대체 → 상단 SearchForm 숨김 (비로그인/모바일은 유지) -->
             {#if showSearch || isSearching || uiSettingsStore.pinSearch}
-                <div class="mb-3" transition:slide={{ duration: 200 }}>
+                <div
+                    class="mb-3 {authStore.isAuthenticated ? 'md:hidden' : ''}"
+                    transition:slide={{ duration: 200 }}
+                >
                     <SearchForm boardPath={`/${boardId}`} />
                 </div>
             {/if}
 
             <!-- #12012: 내가 쓴 글/댓글 빠른 필터 (로그인 시) -->
+            <!-- #12592: 모바일에서는 상단 SearchForm 과 검색 input 중복 → PC(md+) 전용 -->
             {#if authStore.isAuthenticated}
-                <div class="mb-3 flex flex-wrap items-center gap-2">
+                <div class="mb-3 hidden flex-wrap items-center gap-2 md:flex">
                     <Button
                         variant={isMyPostsActive ? 'default' : 'outline'}
                         size="sm"
@@ -960,24 +1002,108 @@
                             <X class="h-3.5 w-3.5" />
                         </Button>
                     {/if}
-                    <!-- #12455: 빠른 글쓰기 (내가 쓴 글/댓글 필터 줄 우측) -->
+                    <!-- #12455: 검색 (필드 선택 + 입력) — 빠른필터 행 남는 공간을 flex-1 로 활용 -->
+                    <select
+                        bind:value={quickSearchField}
+                        aria-label="검색 범위"
+                        class="border-input bg-background focus:ring-primary h-8 shrink-0 rounded-md border px-2 text-sm focus:outline-none focus:ring-1"
+                    >
+                        <optgroup label="기본">
+                            {#each QUICK_SEARCH_BASIC as f (f.value)}
+                                <option value={f.value}>{f.label}</option>
+                            {/each}
+                        </optgroup>
+                        <optgroup label="고급">
+                            {#each QUICK_SEARCH_ADVANCED as f (f.value)}
+                                <option value={f.value}>{f.label}</option>
+                            {/each}
+                        </optgroup>
+                    </select>
+                    <div class="relative min-w-[120px] flex-1">
+                        <Search
+                            class="text-muted-foreground pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2"
+                        />
+                        <input
+                            type="search"
+                            bind:value={quickSearch}
+                            onkeydown={(e) => {
+                                if (e.key === 'Enter') {
+                                    e.preventDefault();
+                                    runQuickSearch();
+                                }
+                            }}
+                            placeholder="검색어 입력 후 Enter"
+                            aria-label="게시판 내 검색"
+                            enterkeyhint="search"
+                            class="border-input bg-background focus:ring-primary h-8 w-full rounded-md border pl-7 pr-2 text-sm focus:outline-none focus:ring-1"
+                        />
+                    </div>
+                    <!-- 검색 버튼: 검색 input 옆 정렬 -->
+                    <Button
+                        onclick={runQuickSearch}
+                        size="sm"
+                        class="ml-auto h-8"
+                        aria-label="검색"
+                        title="검색"
+                    >
+                        <Search class="mr-1.5 h-3.5 w-3.5" />
+                        검색
+                    </Button>
+                    <!-- #12520 후속: 상단에서 옮긴 글쓰기 버튼 — 검색 버튼 오른쪽 -->
                     {#if canWrite}
                         <Button
                             onclick={goToWrite}
                             size="sm"
-                            class="ml-auto h-8"
+                            class="h-8"
                             title={!canUseCertifiedAction(authStore.user, boardId)
                                 ? getCertificationBlockedMessage(boardId)
-                                : '글쓰기'}
+                                : undefined}
                         >
                             <Pencil class="mr-1.5 h-3.5 w-3.5" />
                             {#if !canUseCertifiedAction(authStore.user, boardId)}실명인증{:else}글쓰기{/if}
                         </Button>
+                    {:else if authStore.isAuthenticated}
+                        <!-- 권한 부족: 비활성 대신 호버/탭 시 작성 조건 안내 (disabled 버튼은 호버가 안 먹어 trigger 로 처리) -->
+                        <Tooltip.Provider>
+                            <Tooltip.Root>
+                                <Tooltip.Trigger>
+                                    {#snippet child({ props })}
+                                        <Button
+                                            {...props}
+                                            size="sm"
+                                            variant="secondary"
+                                            class="h-8 cursor-help opacity-70"
+                                            aria-label="글쓰기 조건 안내"
+                                        >
+                                            <Lock class="mr-1.5 h-3.5 w-3.5" />
+                                            글쓰기
+                                        </Button>
+                                    {/snippet}
+                                </Tooltip.Trigger>
+                                <Tooltip.Content>
+                                    <p class="mb-1 flex items-center gap-1 font-semibold">
+                                        <Lock class="h-3 w-3" />
+                                        {writeHint.actionName} 조건
+                                    </p>
+                                    <p>
+                                        이 게시판은 <span class="font-semibold"
+                                            >{writeHint.requiredGrade} (Lv.{writeHint.requiredLevel})</span
+                                        > 이상 작성할 수 있어요.
+                                    </p>
+                                    {#if writeHint.currentGrade}
+                                        <p class="text-muted-foreground mt-0.5">
+                                            현재: {writeHint.currentGrade} (Lv.{writeHint.currentLevel})
+                                            · 활동하면 등급이 올라가요.
+                                        </p>
+                                    {/if}
+                                </Tooltip.Content>
+                            </Tooltip.Root>
+                        </Tooltip.Provider>
                     {/if}
                 </div>
             {/if}
 
-            <!-- 축하메시지 기간 탭 -->
+            <!-- 마음메시지 기간 탭 -->
             {#if isMessageBoard && !isSearching}
                 <div class="mb-6 flex flex-wrap gap-2">
                     <Button
@@ -987,7 +1113,7 @@
                         class="h-8 rounded-full px-4"
                         aria-current={selectedMessagePeriod === 'today' ? 'page' : undefined}
                     >
-                        오늘 축하메시지
+                        오늘 마음메시지
                     </Button>
                     <Button
                         href={buildMessagePeriodHref('month')}
@@ -996,7 +1122,7 @@
                         class="h-8 rounded-full px-4"
                         aria-current={selectedMessagePeriod === 'month' ? 'page' : undefined}
                     >
-                        이번달 축하메시지
+                        이번달 마음메시지
                     </Button>
                     <Button
                         href={buildMessagePeriodHref('upcoming')}
@@ -1005,7 +1131,7 @@
                         class="h-8 rounded-full px-4"
                         aria-current={selectedMessagePeriod === 'upcoming' ? 'page' : undefined}
                     >
-                        다가올 축하메시지
+                        다가올 마음메시지
                     </Button>
                     <Button
                         href={buildMessagePeriodHref('past')}
@@ -1014,7 +1140,7 @@
                         class="h-8 rounded-full px-4"
                         aria-current={selectedMessagePeriod === 'past' ? 'page' : undefined}
                     >
-                        추억의 축하메시지
+                        추억의 마음메시지
                     </Button>
                     <Button
                         href="/message/144"
@@ -1022,7 +1148,7 @@
                         size="sm"
                         class="h-8 rounded-full px-4"
                     >
-                        축하메시지 신청
+                        마음메시지 신청
                     </Button>
                 </div>
             {/if}
@@ -1255,15 +1381,15 @@
                                 <p class="text-secondary-foreground">검색 결과가 없습니다.</p>
                             {:else if isMessageBoard && messagePeriod === 'today'}
                                 <p class="text-secondary-foreground">
-                                    오늘 등록된 축하메시지가 없습니다.
+                                    오늘 등록된 마음메시지가 없습니다.
                                 </p>
                             {:else if isMessageBoard && messagePeriod === 'month'}
                                 <p class="text-secondary-foreground">
-                                    이번달 축하메시지가 없습니다.
+                                    이번달 마음메시지가 없습니다.
                                 </p>
                             {:else if isMessageBoard && messagePeriod === 'upcoming'}
                                 <p class="text-secondary-foreground">
-                                    다가올 축하메시지가 없습니다.
+                                    다가올 마음메시지가 없습니다.
                                 </p>
                             {:else}
                                 <p class="text-secondary-foreground">게시글이 없습니다.</p>

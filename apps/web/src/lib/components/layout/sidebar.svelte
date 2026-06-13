@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { untrack } from 'svelte';
     import { page } from '$app/stores';
     import {
         Accordion,
@@ -18,6 +19,7 @@
     import AdSlot from '$lib/components/ui/ad-slot/ad-slot.svelte';
     import AdfitSlot from '$lib/components/ui/adfit-slot/adfit-slot.svelte';
     import ImageTextBanner from '$lib/components/ui/image-text-banner/image-text-banner.svelte';
+    import DamoangBanner from '$lib/components/ui/damoang-banner/damoang-banner.svelte';
     import { CelebrationRolling } from '$lib/components/ui/celebration-rolling';
     import { widgetLayoutStore } from '$lib/stores/widget-layout.svelte';
     import { boardFavoritesStore, slotLabel } from '$lib/stores/board-favorites.svelte';
@@ -32,6 +34,17 @@
 
     // 메뉴 데이터는 SSR에서 초기화된 스토어에서 가져옴
     const menuData = $derived(menuStore.menus.filter((m) => m.show_in_sidebar !== false));
+
+    // 빠른 바로가기: DB 메뉴 그룹(센티넬 URL)의 자식을 즐겨찾기 아래 2열 그리드로 렌더한다.
+    // 라벨/URL/아이콘은 전부 DB(menus 테이블)에서 오며(하드코딩 없음), 관리자가 그룹의
+    // 자식 메뉴를 추가/수정/정렬해 구성한다. 그룹이 없으면 아무것도 렌더하지 않는다.
+    const SIDEBAR_QUICKLINKS_URL = '#sidebar-quicklinks';
+    const quickLinksGroup = $derived(menuData.find((m) => m.url === SIDEBAR_QUICKLINKS_URL));
+    const quickLinks = $derived(
+        (quickLinksGroup?.children ?? []).filter((c) => c.show_in_sidebar !== false)
+    );
+    // 그룹 자체는 일반 nav 에서 제외(자식만 2열로 별도 렌더)
+    const mainMenus = $derived(menuData.filter((m) => m.url !== SIDEBAR_QUICKLINKS_URL));
     const loading = $derived(menuStore.loading);
     const error = $derived(menuStore.error);
 
@@ -39,7 +52,10 @@
     const currentPath = $derived($page.url.pathname);
 
     function isActive(url: string): boolean {
-        if (!url) return false;
+        // url='/' 는 그룹/부모 메뉴(더보기·안내 등)의 placeholder 라 실제 목적지가 아니다.
+        // 홈(currentPath='/')에서 url='/' 메뉴가 전부 active 로 잡혀 "더보기"가 활성으로
+        // 보이던 문제 방지 — 홈에서는 어떤 메뉴도 활성으로 표시하지 않는다.
+        if (!url || url === '/') return false;
         return currentPath === url || currentPath.startsWith(url + '/');
     }
 
@@ -79,8 +95,29 @@
         };
 
         traverse(menuData, 0);
-        if (newAccordionValue) accordionValue = newAccordionValue;
-        if (autoExpand.size > 0) expandedGroups = autoExpand;
+        // accordionValue / expandedGroups 의 읽기·쓰기는 untrack 으로 격리한다.
+        // 이 effect 의 의존성은 menuData + currentPath(isActive) 뿐이어야 한다.
+        // 비교를 위해 accordionValue 를 그냥 읽으면 그것이 의존성이 되어, 사용자가
+        // 1depth 아코디언을 직접 열 때 effect 가 재실행되며 활성 항목으로 되돌려
+        // "펼치자마자 닫힘"이 발생한다 (#1589 회귀). expandedGroups 도 동일.
+        untrack(() => {
+            if (newAccordionValue && newAccordionValue !== accordionValue) {
+                accordionValue = newAccordionValue;
+            }
+            // #12645: autoExpand 로 덮어쓰면 사용자가 수동으로 펼친/접은 상태가
+            // 게시판 선택 시마다 리셋된다. 합집합 병합 + 변화 시에만 할당.
+            if (autoExpand.size > 0) {
+                const merged = new Set(expandedGroups);
+                let changed = false;
+                for (const id of autoExpand) {
+                    if (!merged.has(id)) {
+                        merged.add(id);
+                        changed = true;
+                    }
+                }
+                if (changed) expandedGroups = merged;
+            }
+        });
     });
 
     // 메뉴 필터링과 로딩은 menuStore에서 SSR로 처리됨
@@ -175,6 +212,31 @@
         </div>
     {/if}
 
+    <!-- 빠른 바로가기 (DB 메뉴 그룹): 즐겨찾기 아래 2열 그리드 -->
+    {#if quickLinks.length > 0}
+        <div class={compact ? 'px-1' : 'px-2'}>
+            <div class="grid grid-cols-2 gap-0.5">
+                {#each quickLinks as link (link.id)}
+                    {@const LinkIcon = getIcon(link.icon)}
+                    {@const active = isActive(link.url)}
+                    <a
+                        href={link.url}
+                        target={link.target || undefined}
+                        class={cn(
+                            'flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs transition-colors',
+                            active
+                                ? 'bg-primary text-primary-foreground'
+                                : 'hover:bg-accent text-muted-foreground'
+                        )}
+                    >
+                        <LinkIcon class="h-3.5 w-3.5 shrink-0" />
+                        <span class="truncate">{link.title}</span>
+                    </a>
+                {/each}
+            </div>
+        </div>
+    {/if}
+
     <nav
         class={cn(
             'grid group-[[data-collapsed=true]]:justify-center group-[[data-collapsed=true]]:px-2',
@@ -187,7 +249,7 @@
             <div class="text-destructive text-center text-sm">{error}</div>
         {:else}
             <Accordion type="single" class="w-full" bind:value={accordionValue}>
-                {#each menuData as menu (menu.id)}
+                {#each mainMenus as menu (menu.id)}
                     {@const IconComponent = getIcon(menu.icon)}
                     {#if menu.children && menu.children.length > 0}
                         <!-- 하위 메뉴가 있는 경우 -->
@@ -376,6 +438,16 @@
             {/if}
         </div>
         {#if compact}
+            <!-- 드로워: 네모배너 (다모앙 광고 → GAM 폴백) -->
+            <div class:hidden={!widgetLayoutStore.hasEnabledAds}>
+                <DamoangBanner
+                    position="sidebar"
+                    height="100px"
+                    showCelebration={false}
+                    gamPosition="sidebar-drawer"
+                    class="drawer-sidebar-banner"
+                />
+            </div>
             <!-- 드로워: 이미지텍스트 배너 -->
             <div>
                 <div class="mb-1 flex items-center justify-between">
@@ -383,9 +455,9 @@
                 </div>
                 <ImageTextBanner position="side-image-text-banner" />
             </div>
-            <!-- 드로워: 축하메시지 -->
+            <!-- 드로워: 마음메시지 -->
             <CelebrationRolling />
-            <!-- 축하메시지 바로 아래: 벽돌한장 · 광고 제거 inline -->
+            <!-- 마음메시지 바로 아래: 벽돌한장 · 광고 제거 inline -->
             <div class="text-muted-foreground flex items-center justify-center gap-3 px-2 text-xs">
                 <a href="/brickang" class="hover:text-primary underline-offset-2 hover:underline">
                     벽돌한장

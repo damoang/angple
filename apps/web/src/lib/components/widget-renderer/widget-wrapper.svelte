@@ -104,10 +104,14 @@
               각 widget 의 render throw 가 다른 widget / 페이지 영향 0.
               multi-tenant 빈 사이트 (ipyang/nuna/tektok) 의 widget data null → undefined access 방어.
             -->
-            <svelte:boundary onerror={(err) => console.error('[Widget Boundary]', widget.type, err)}>
+            <svelte:boundary
+                onerror={(err) => console.error('[Widget Boundary]', widget.type, err)}
+            >
                 {@render children()}
                 {#snippet failed(error, reset)}
-                    <div class="rounded border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+                    <div
+                        class="rounded border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800"
+                    >
                         <p class="font-medium">위젯을 일시적으로 불러올 수 없습니다.</p>
                         <p class="mt-1 text-xs opacity-70">
                             {widget.type}

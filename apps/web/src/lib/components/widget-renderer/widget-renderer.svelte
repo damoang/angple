@@ -23,6 +23,7 @@
     import ImageTextBannerWidget from '../../../../../../widgets/image-text-banner/index.svelte';
     import RecommendedWidget from '../../../../../../widgets/recommended/index.svelte';
     import ExploreWidget from '../../../../../../widgets/explore/index.svelte';
+    import GivingWidget from '../../../../../../widgets/giving/index.svelte';
 
     interface Props {
         /** 렌더링할 위젯 존 */
@@ -48,7 +49,8 @@
         notice: NoticeWidget,
         'image-text-banner': ImageTextBannerWidget,
         recommended: RecommendedWidget,
-        explore: ExploreWidget
+        explore: ExploreWidget,
+        giving: GivingWidget
     };
 
     // 존별 위젯 목록
@@ -97,35 +99,39 @@
     const componentCache = new SvelteMap<string, WidgetComponent | null>();
     let loadedComponents = new SvelteMap<string, WidgetComponent | null>();
 
-    // 위젯 타입이 변경될 때마다 컴포넌트 로드
+    // 위젯 타입이 변경될 때마다 컴포넌트 로드 (dynamic-first).
+    // dynamic loader 는 widgets/ + custom-widgets/ 둘 다 스캔하며 같은 id 가
+    // 있을 경우 custom-widgets/ 가 덮어쓴다 (premium overlay 패턴).
+    // STATIC 매핑은 SSR 단계의 fallback 으로만 사용 — client mount 후
+    // dynamic load 결과로 자연스럽게 swap 된다.
     $effect(() => {
         const types = new Set(widgets.map((w) => w.type));
         for (const type of types) {
-            const staticComponent = STATIC_WIDGET_COMPONENTS[type];
-            if (staticComponent) {
-                if (!componentCache.has(type)) {
-                    componentCache.set(type, staticComponent);
-                    loadedComponents.set(type, staticComponent);
-                }
-                continue;
-            }
-            if (!componentCache.has(type)) {
-                loadWidgetComponent(type)
-                    .then((component) => {
-                        componentCache.set(type, component);
-                        // SvelteMap is reactive, just copy entries to trigger updates
-                        loadedComponents.set(type, component);
-                    })
-                    .catch(() => {
+            if (componentCache.has(type)) continue;
+            loadWidgetComponent(type)
+                .then((component) => {
+                    if (!component) throw new Error('no widget');
+                    componentCache.set(type, component);
+                    loadedComponents.set(type, component);
+                })
+                .catch(() => {
+                    const staticComponent = STATIC_WIDGET_COMPONENTS[type];
+                    if (staticComponent) {
+                        componentCache.set(type, staticComponent);
+                        loadedComponents.set(type, staticComponent);
+                    } else {
                         componentCache.set(type, null);
                         loadedComponents.set(type, null);
-                    });
-            }
+                    }
+                });
         }
     });
 
     function getComponent(type: string): WidgetComponent | null {
-        return loadedComponents.get(type) ?? null;
+        // 우선순위: dynamic load 결과 (custom-widgets 우선) → STATIC fallback (SSR).
+        // SSR 단계에서는 client-only $effect 가 미실행 → loadedComponents 빈 →
+        // STATIC 으로 fallback 하여 SSR HTML 에 widget 미렌더 회귀 차단.
+        return loadedComponents.get(type) ?? STATIC_WIDGET_COMPONENTS[type] ?? null;
     }
 
     // 훅: 위젯 목록 필터 (플러그인이 위젯 추가/제거/순서 변경 가능)
@@ -146,7 +152,8 @@
         'post-list': 'min-h-[360px]',
         celebration: 'min-h-[120px]',
         notice: 'min-h-[240px]',
-        'image-text-banner': 'min-h-[164px]'
+        'image-text-banner': 'min-h-[164px]',
+        giving: 'min-h-[180px]'
     };
 
     function getPlaceholderClass(widget: WidgetConfig): string {
