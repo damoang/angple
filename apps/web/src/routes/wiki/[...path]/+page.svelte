@@ -116,6 +116,32 @@
             });
         });
     });
+
+    // 본문 안 깨진 이미지(외부 hotlink 차단 / 파일 삭제)를 우아하게 대체.
+    // - Markdown 컴포넌트의 data-original 폴백이 실패한 후에도 처리
+    // - 깨진 img → span.wiki-img-broken (이름/alt 표시 + 원본 링크)
+    $effect(() => {
+        void renderable;
+        if (!contentEl) return;
+        tick().then(() => {
+            const imgs = contentEl?.querySelectorAll<HTMLImageElement>('img');
+            imgs?.forEach((img) => {
+                const fallback = () => {
+                    if (img.dataset.brokenHandled) return;
+                    img.dataset.brokenHandled = '1';
+                    const span = document.createElement('span');
+                    span.className = 'wiki-img-broken';
+                    const label = img.alt?.trim() || img.title?.trim() || '이미지';
+                    span.textContent = `🖼 ${label}`;
+                    span.title = `원본 (불러올 수 없음): ${img.currentSrc || img.src}`;
+                    img.replaceWith(span);
+                };
+                img.addEventListener('error', fallback);
+                // SSR 이미지가 hydration 전 이미 실패한 경우
+                if (img.complete && img.naturalWidth === 0) fallback();
+            });
+        });
+    });
 </script>
 
 <svelte:head>
@@ -469,5 +495,18 @@
     .not-found-desc {
         color: var(--muted-foreground, #6b7280);
         font-size: 0.8rem;
+    }
+
+    /* 깨진 외부 이미지 우아한 대체 */
+    .wiki-content :global(.wiki-img-broken) {
+        display: inline-block;
+        padding: 0.25rem 0.6rem;
+        margin: 0.25rem 0;
+        background: #fef3c7;
+        color: #92400e;
+        border: 1px dashed #fbbf24;
+        border-radius: 0.375rem;
+        font-size: 0.82rem;
+        cursor: help;
     }
 </style>
