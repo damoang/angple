@@ -316,7 +316,6 @@
                                                                     )}
                                                                     <a
                                                                         href={grandchild.url}
-                                                                        rel="external"
                                                                         class={cn(
                                                                             'bg-background flex items-center justify-center px-1 py-2 text-center text-[11px] leading-tight transition-all duration-200 ease-out active:scale-[0.98]',
                                                                             gcActive
@@ -354,7 +353,6 @@
                                                                                 : 'hover:bg-accent'
                                                                         )}
                                                                         href={grandchild.url}
-                                                                        rel="external"
                                                                     >
                                                                         <GcIcon class="size-3.5" />
                                                                         {grandchild.title}
@@ -381,7 +379,6 @@
                                                             : 'hover:bg-accent'
                                                     )}
                                                     href={child.url}
-                                                    rel="external"
                                                 >
                                                     <ChildIcon class="size-4" />
                                                     {child.title}
@@ -405,7 +402,7 @@
                         <a
                             href={menu.url}
                             target={external ? '_blank' : undefined}
-                            rel={external ? 'noopener noreferrer' : 'external'}
+                            rel={external ? 'noopener noreferrer' : undefined}
                             class={cn(
                                 'flex w-full items-center gap-2 rounded-md py-4 text-sm font-semibold transition-colors',
                                 active
