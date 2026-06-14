@@ -11,6 +11,9 @@ import {
     getTags,
     getPagesByTag,
     searchPages,
+    parseWikilinks,
+    getExistingPagePaths,
+    getBacklinks,
     type WikiPage,
     type WikiPageSummary,
     type WikiCategory,
@@ -60,11 +63,20 @@ export const load: PageServerLoad = async ({ params, url }) => {
         });
     }
 
+    // 본문에서 [[..]] 추출 → 존재 여부 set + 백링크 동시 조회
+    const wikilinks = parseWikilinks(wikiPage.content_raw || wikiPage.content || '');
+    const [existingSet, backlinks] = await Promise.all([
+        getExistingPagePaths(wikilinks.map((l) => l.to_path)),
+        getBacklinks(wikiPage.id, wikiPage.path, 50)
+    ]);
+
     return {
         isSpecialPage: false,
         specialType: null,
         specialData: null,
-        wikiPage
+        wikiPage,
+        existingWikilinkPaths: [...existingSet],
+        backlinks
     };
 };
 

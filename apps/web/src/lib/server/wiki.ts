@@ -5,6 +5,7 @@
  * - 페이지 조회, 리비전 조회/비교, 카테고리/태그, 검색
  */
 import type { RowDataPacket, ResultSetHeader } from 'mysql2';
+import type { PoolConnection } from 'mysql2/promise';
 import { readPool, pool } from '$lib/server/db';
 import { createCache } from '$lib/server/cache';
 
@@ -566,6 +567,9 @@ export async function createWikiPage(
             ]
         );
 
+        // 3. 위키링크 동기화 (백링크용)
+        await syncWikiPageLinks(connection, pageId, input.content_raw || input.content || '');
+
         await connection.commit();
 
         // 캐시 무효화
@@ -649,6 +653,9 @@ export async function updateWikiPage(
             ]
         );
 
+        // 5. 위키링크 동기화 (백링크용)
+        await syncWikiPageLinks(connection, pageId, input.content_raw || input.content || '');
+
         await connection.commit();
 
         // 캐시 무효화
@@ -682,4 +689,107 @@ export async function getWikiPageForEdit(path: string): Promise<WikiPage | null>
 
     if (rows.length === 0) return null;
     return rows[0] as WikiPage;
+}
+
+// ============================================
+// Phase 1 Batch 3 — [[위키링크]] · 빨간링크 · 백링크
+// ============================================
+
+/**
+ * 본문에서 `[[path]]` 또는 `[[path|label]]` 위키링크 추출.
+ * 코드 펜스(```) 안의 [[..]] 는 제외.
+ */
+export function parseWikilinks(content: string): { to_path: string; link_text: string | null }[] {
+    if (!content) return [];
+    // 코드 펜스 제거
+    const stripped = content.replace(/```[\s\S]*?```/g, ' ').replace(/`[^`\n]+`/g, ' ');
+    const out: { to_path: string; link_text: string | null }[] = [];
+    const re = /\[\[([^\]\n|]+?)(?:\|([^\]\n]+))?\]\]/g;
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(stripped)) !== null) {
+        const raw = m[1].trim();
+        if (!raw) continue;
+        const to_path = raw.startsWith('/') ? raw : `/${raw}`;
+        out.push({ to_path, link_text: m[2]?.trim() || null });
+    }
+    return out;
+}
+
+/**
+ * 주어진 path 목록 중 published 페이지가 있는 것들의 set 반환.
+ * `[[있는문서]]` 파란링크 / `[[없는문서]]` 빨간링크 판별용.
+ */
+export async function getExistingPagePaths(paths: string[]): Promise<Set<string>> {
+    const unique = [...new Set(paths)].filter(Boolean);
+    if (unique.length === 0) return new Set();
+    const placeholders = unique.map(() => '?').join(',');
+    const [rows] = await readPool.query<RowDataPacket[]>(
+        `SELECT path FROM wikiang_pages
+         WHERE is_published = 1 AND path IN (${placeholders})`,
+        unique
+    );
+    return new Set(rows.map((r) => r.path as string));
+}
+
+/**
+ * 백링크 조회 — pageId 또는 path 를 가리키는 모든 페이지.
+ */
+export async function getBacklinks(
+    pageId: number,
+    path: string,
+    limit = 50
+): Promise<WikiPageSummary[]> {
+    const [rows] = await readPool.query<RowDataPacket[]>(
+        `SELECT DISTINCT p.id, p.path, p.title, p.description, p.updated_at
+         FROM wikiang_page_links l
+         JOIN wikiang_pages p ON p.id = l.from_page_id
+         WHERE (l.to_page_id = ? OR l.to_path = ?)
+           AND p.is_published = 1 AND p.id != ?
+         ORDER BY p.title
+         LIMIT ?`,
+        [pageId, path, pageId, limit]
+    );
+    return rows as WikiPageSummary[];
+}
+
+/**
+ * 페이지 저장 시 wikiang_page_links 동기화.
+ * createWikiPage / updateWikiPage 의 transaction 안에서 호출.
+ * - 기존 from_page_id 의 row 삭제
+ * - 본문에서 [[..]] 추출 → 일괄 INSERT
+ * - to_page_id 는 path 매칭으로 best-effort 채움 (없으면 NULL = 빨간링크)
+ */
+export async function syncWikiPageLinks(
+    connection: PoolConnection,
+    pageId: number,
+    content: string
+): Promise<void> {
+    await connection.execute(`DELETE FROM wikiang_page_links WHERE from_page_id = ?`, [pageId]);
+    const links = parseWikilinks(content);
+    if (links.length === 0) return;
+    const paths = [...new Set(links.map((l) => l.to_path))];
+    const placeholders = paths.map(() => '?').join(',');
+    const [rows] = await connection.query<RowDataPacket[]>(
+        `SELECT id, path FROM wikiang_pages WHERE path IN (${placeholders})`,
+        paths
+    );
+    const idByPath = new Map<string, number>();
+    for (const r of rows) idByPath.set(r.path, r.id);
+
+    // 같은 to_path 중복 dedupe (한 페이지 → 같은 대상 여러번이라도 1행만)
+    const seen = new Set<string>();
+    const values: unknown[] = [];
+    const tuples: string[] = [];
+    for (const l of links) {
+        if (seen.has(l.to_path)) continue;
+        seen.add(l.to_path);
+        tuples.push('(?, ?, ?, ?)');
+        values.push(pageId, idByPath.get(l.to_path) ?? null, l.to_path, l.link_text);
+    }
+    if (tuples.length === 0) return;
+    await connection.query(
+        `INSERT INTO wikiang_page_links (from_page_id, to_page_id, to_path, link_text)
+         VALUES ${tuples.join(', ')}`,
+        values
+    );
 }

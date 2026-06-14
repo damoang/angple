@@ -10,6 +10,7 @@
     import { Markdown } from '$lib/components/ui/markdown/index.js';
     import Toc from '$lib/components/wiki/toc.svelte';
     import Breadcrumbs from '$lib/components/wiki/breadcrumbs.svelte';
+    import BacklinksPanel from '$lib/components/wiki/backlinks-panel.svelte';
     import { slugify } from '$lib/components/wiki/heading-slug';
     import PencilIcon from '@lucide/svelte/icons/pencil';
     import HistoryIcon from '@lucide/svelte/icons/history';
@@ -17,6 +18,46 @@
     import { tick } from 'svelte';
 
     const { data }: { data: PageData } = $props();
+
+    // 존재하는 위키링크 path set (data 에서 받음)
+    const existingPaths = $derived(new Set<string>(data.existingWikilinkPaths || []));
+
+    function encodePath(p: string): string {
+        const trimmed = p.replace(/^\/+/, '');
+        return '/' + trimmed.split('/').map(encodeURIComponent).join('/');
+    }
+
+    /**
+     * `[[path]]` 또는 `[[path|label]]` 위키링크를 <a> 태그로 변환.
+     * - 존재하는 path: `wiki-link` 클래스 (파란)
+     * - 없는 path: `wiki-link red-link` 클래스 (빨강) — 클릭 시 새 문서 생성 흐름
+     * - 코드 펜스 / inline code 안의 [[..]] 는 보존
+     */
+    function transformWikilinks(content: string, existing: Set<string>): string {
+        if (!content) return content;
+        const placeholders: string[] = [];
+        let stripped = content.replace(/```[\s\S]*?```|`[^`\n]+`/g, (m) => {
+            placeholders.push(m);
+            return `\x00CODE${placeholders.length - 1}\x00`;
+        });
+        stripped = stripped.replace(
+            /\[\[([^\]\n|]+?)(?:\|([^\]\n]+))?\]\]/g,
+            (full, raw: string, label?: string) => {
+                const trimmed = raw.trim();
+                if (!trimmed) return full;
+                const path = trimmed.startsWith('/') ? trimmed : '/' + trimmed;
+                const display = (label?.trim() || trimmed.replace(/^\//, '').replace(/_/g, ' '))
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;');
+                const exists = existing.has(path);
+                const href = encodePath(path);
+                const cls = exists ? 'wiki-link' : 'wiki-link red-link';
+                const title = exists ? path : `${path} (없는 문서)`;
+                return `<a class="${cls}" href="${href}" title="${title}">${display}</a>`;
+            }
+        );
+        return stripped.replace(/\x00CODE(\d+)\x00/g, (_, i) => placeholders[parseInt(i, 10)]);
+    }
 
     type Renderable =
         | { mode: 'rich'; content: string }
@@ -28,12 +69,14 @@
             content: string | null;
             content_raw: string | null;
             content_type: string | null;
-        } | null
+        } | null,
+        existing: Set<string>
     ): Renderable {
         if (!page) return null;
         const ct = page.content_type;
         if (page.content && (ct === 'markdown' || ct === 'html')) {
-            return { mode: 'rich', content: page.content };
+            // markdown/html 둘 다 [[..]] 변환 적용 (html 본문도 위키링크 허용)
+            return { mode: 'rich', content: transformWikilinks(page.content, existing) };
         }
         if (page.content_raw) {
             return { mode: 'raw', content: page.content_raw, type: ct || 'unknown' };
@@ -44,7 +87,7 @@
         return null;
     }
 
-    const renderable = $derived(pickRenderable(data.wikiPage));
+    const renderable = $derived(pickRenderable(data.wikiPage, existingPaths));
     const tocContent = $derived(renderable?.mode === 'rich' ? renderable.content : '');
 
     // 문서 path → 인코딩된 URL (편집/역사 링크)
@@ -135,6 +178,8 @@
                 {/if}
             </div>
 
+            <BacklinksPanel backlinks={data.backlinks || []} />
+
             <footer class="wiki-footer">
                 마지막 수정: {new Date(data.wikiPage.updated_at).toLocaleString('ko-KR')}
             </footer>
@@ -208,6 +253,21 @@
     }
     .wiki-content {
         line-height: 1.75;
+    }
+    /* 위키링크 — Markdown 컴포넌트가 렌더한 a.wiki-link 스타일 */
+    .wiki-content :global(a.wiki-link) {
+        color: var(--primary, #3366cc);
+        text-decoration: none;
+    }
+    .wiki-content :global(a.wiki-link:hover) {
+        text-decoration: underline;
+    }
+    .wiki-content :global(a.wiki-link.red-link) {
+        color: #b91c1c;
+    }
+    .wiki-content :global(a.wiki-link.red-link:hover) {
+        color: #7f1d1d;
+        text-decoration: underline dashed;
     }
     .wiki-footer {
         margin-top: 2rem;
