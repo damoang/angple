@@ -15,6 +15,8 @@
     import PencilIcon from '@lucide/svelte/icons/pencil';
     import HistoryIcon from '@lucide/svelte/icons/history';
     import MessageSquareIcon from '@lucide/svelte/icons/message-square';
+    import FilePlusIcon from '@lucide/svelte/icons/file-plus';
+    import SearchIcon from '@lucide/svelte/icons/search';
     import { tick } from 'svelte';
 
     const { data }: { data: PageData } = $props();
@@ -143,6 +145,87 @@
             <h1>특수:{data.specialType}</h1>
             <p class="text-gray-600">이 특수 페이지는 아직 구현되지 않았습니다.</p>
         {/if}
+    </div>
+{:else if data.notFound}
+    <div class="wiki-shell">
+        <article class="wiki-main wiki-not-found">
+            <Breadcrumbs path={data.requestedPath} />
+
+            <header class="wiki-header">
+                <h1 class="wiki-title">
+                    {data.requestedTitle}
+                </h1>
+            </header>
+
+            <div class="not-found-hero">
+                <p class="not-found-msg">
+                    이 문서는 아직 위키앙에 없습니다.
+                    <strong>지금 만들어 첫 기여자가 되어보세요.</strong>
+                </p>
+                <div class="not-found-actions">
+                    <a
+                        class="not-found-cta"
+                        href={`${(data.requestedPath || '')
+                            .replace(/^\/+/, '')
+                            .split('/')
+                            .map(encodeURIComponent)
+                            .map((s) => '/' + s)
+                            .join('')}/edit`}
+                    >
+                        <FilePlusIcon class="h-4 w-4" /> 이 제목으로 새 문서 만들기
+                    </a>
+                    <a
+                        class="not-found-secondary"
+                        href={`/Special:Search?q=${encodeURIComponent(data.requestedTitle)}`}
+                    >
+                        <SearchIcon class="h-4 w-4" /> 비슷한 문서 검색
+                    </a>
+                </div>
+            </div>
+
+            {#if data.incomingLinks && data.incomingLinks.length > 0}
+                <section class="not-found-section">
+                    <h2>이 문서를 가리키는 다른 문서 ({data.incomingLinks.length})</h2>
+                    <ul class="not-found-list">
+                        {#each data.incomingLinks as bl (bl.id)}
+                            <li>
+                                <a
+                                    href={'/' +
+                                        bl.path
+                                            .replace(/^\/+/, '')
+                                            .split('/')
+                                            .map(encodeURIComponent)
+                                            .join('/')}>{bl.title}</a
+                                >
+                            </li>
+                        {/each}
+                    </ul>
+                </section>
+            {/if}
+
+            {#if data.suggestions && data.suggestions.length > 0}
+                <section class="not-found-section">
+                    <h2>비슷한 제목의 문서</h2>
+                    <ul class="not-found-list">
+                        {#each data.suggestions as s (s.id)}
+                            <li>
+                                <a
+                                    href={'/' +
+                                        s.path
+                                            .replace(/^\/+/, '')
+                                            .split('/')
+                                            .map(encodeURIComponent)
+                                            .join('/')}>{s.title}</a
+                                >
+                                {#if s.description}<span class="not-found-desc">
+                                        — {s.description}</span
+                                    >{/if}
+                            </li>
+                        {/each}
+                    </ul>
+                </section>
+            {/if}
+        </article>
     </div>
 {:else if data.wikiPage}
     <div class="wiki-shell">
@@ -298,5 +381,93 @@
         font-size: 1.875rem;
         font-weight: 700;
         margin-bottom: 1rem;
+    }
+
+    /* 404 / not-found wiki-aware 페이지 */
+    .wiki-not-found .wiki-title {
+        color: var(--muted-foreground, #6b7280);
+    }
+    .not-found-hero {
+        margin: 1.5rem 0 2rem;
+        padding: 1.5rem;
+        background: var(--muted, #f8fafc);
+        border: 1px dashed var(--border, #cbd5e1);
+        border-radius: 0.5rem;
+    }
+    .not-found-msg {
+        margin: 0 0 1rem;
+        font-size: 0.95rem;
+        color: var(--foreground, #0f172a);
+    }
+    .not-found-msg strong {
+        color: var(--primary, #3366cc);
+    }
+    .not-found-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+    .not-found-cta {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.5rem 1rem;
+        background: var(--primary, #3366cc);
+        color: white;
+        border-radius: 0.375rem;
+        text-decoration: none;
+        font-size: 0.9rem;
+        font-weight: 500;
+    }
+    .not-found-cta:hover {
+        opacity: 0.92;
+    }
+    .not-found-secondary {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.5rem 1rem;
+        background: white;
+        color: var(--foreground, #0f172a);
+        border: 1px solid var(--border, #e5e7eb);
+        border-radius: 0.375rem;
+        text-decoration: none;
+        font-size: 0.9rem;
+    }
+    .not-found-secondary:hover {
+        border-color: var(--primary, #3366cc);
+        color: var(--primary, #3366cc);
+    }
+    .not-found-section {
+        margin-top: 2rem;
+    }
+    .not-found-section h2 {
+        font-size: 1rem;
+        font-weight: 600;
+        margin: 0 0 0.6rem;
+        color: var(--muted-foreground, #6b7280);
+    }
+    .not-found-list {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+        gap: 0.4rem 1rem;
+    }
+    .not-found-list li {
+        font-size: 0.88rem;
+        line-height: 1.4;
+    }
+    .not-found-list a {
+        color: var(--primary, #3366cc);
+        text-decoration: none;
+    }
+    .not-found-list a:hover {
+        text-decoration: underline;
+    }
+    .not-found-desc {
+        color: var(--muted-foreground, #6b7280);
+        font-size: 0.8rem;
     }
 </style>

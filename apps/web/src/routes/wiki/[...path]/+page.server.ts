@@ -1,6 +1,5 @@
 import type { PageServerLoad } from './$types';
 import { redirect } from '@sveltejs/kit';
-import { error } from '@sveltejs/kit';
 import {
     getWikiPage,
     getRecentPages,
@@ -14,6 +13,7 @@ import {
     parseWikilinks,
     getExistingPagePaths,
     getBacklinks,
+    getIncomingLinks,
     type WikiPage,
     type WikiPageSummary,
     type WikiCategory,
@@ -55,12 +55,31 @@ export const load: PageServerLoad = async ({ params, url }) => {
     }
 
     // 일반 위키 페이지 조회
-    const wikiPage = await getWikiPage(`/${path}`);
+    const requestedPath = `/${path}`;
+    const wikiPage = await getWikiPage(requestedPath);
 
     if (!wikiPage) {
-        error(404, {
-            message: `문서 "${decodeURIComponent(path)}"을(를) 찾을 수 없습니다.`
-        });
+        // 404 대신 wiki-aware not-found 페이지로 — 새 문서 생성 흐름 + incoming-link + 유사 검색
+        const decodedPath = decodeURIComponent(requestedPath);
+        const title = decodedPath.split('/').filter(Boolean).pop() || decodedPath;
+        const searchKey = title.replace(/_/g, ' ').replace(/[<>"'%]/g, '');
+        const [incomingLinks, searchResult] = await Promise.all([
+            getIncomingLinks(decodedPath, 50),
+            searchKey.length >= 2 ? searchPages(searchKey, 0, 8) : Promise.resolve(null)
+        ]);
+        return {
+            isSpecialPage: false,
+            specialType: null,
+            specialData: null,
+            wikiPage: null,
+            notFound: true,
+            requestedPath: decodedPath,
+            requestedTitle: title.replace(/_/g, ' '),
+            incomingLinks,
+            suggestions: searchResult?.items || [],
+            existingWikilinkPaths: [],
+            backlinks: []
+        };
     }
 
     // 본문에서 [[..]] 추출 → 존재 여부 set + 백링크 동시 조회
@@ -75,6 +94,7 @@ export const load: PageServerLoad = async ({ params, url }) => {
         specialType: null,
         specialData: null,
         wikiPage,
+        notFound: false,
         existingWikilinkPaths: [...existingSet],
         backlinks
     };

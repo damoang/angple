@@ -753,6 +753,23 @@ export async function getBacklinks(
 }
 
 /**
+ * path 만으로 incoming-links 조회 (페이지가 아직 없는 빨간링크 대상에 사용).
+ * 404 페이지 "여기서 가리키는 문서" 표시용.
+ */
+export async function getIncomingLinks(path: string, limit = 50): Promise<WikiPageSummary[]> {
+    const [rows] = await readPool.query<RowDataPacket[]>(
+        `SELECT DISTINCT p.id, p.path, p.title, p.description, p.updated_at
+         FROM wikiang_page_links l
+         JOIN wikiang_pages p ON p.id = l.from_page_id
+         WHERE l.to_path = ? AND p.is_published = 1
+         ORDER BY p.title
+         LIMIT ?`,
+        [path, limit]
+    );
+    return rows as WikiPageSummary[];
+}
+
+/**
  * 페이지 저장 시 wikiang_page_links 동기화.
  * createWikiPage / updateWikiPage 의 transaction 안에서 호출.
  * - 기존 from_page_id 의 row 삭제
