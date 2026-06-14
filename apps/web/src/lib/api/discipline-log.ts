@@ -56,6 +56,7 @@ export interface ReportedItem {
     id: number; // post_id
     parent?: number; // comment parent (legacy: "parent" field)
     sg_types?: number[]; // 개별 신고 사유 코드 (g5_na_singo.sg_type 21~40, omitempty)
+    penalty_days?: number; // 항목별 적용 일수 (-1=영구, 0=주의, >0=일수, omitempty)
 }
 
 export interface ViolationType {

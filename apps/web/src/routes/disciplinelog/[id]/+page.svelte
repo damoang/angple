@@ -250,13 +250,20 @@
                                         {getReportedItemLabel(item)}
                                     </span>
                                 </a>
-                                {#if item.sg_types && item.sg_types.length > 0}
-                                    <div class="ml-6 mt-1.5 flex flex-wrap gap-1">
-                                        {#each item.sg_types as code (code)}
-                                            <Badge variant="secondary" class="text-xs">
-                                                {getReportReasonLabel(code)}
+                                {#if (item.sg_types && item.sg_types.length > 0) || item.penalty_days != null}
+                                    <div class="ml-6 mt-1.5 flex flex-wrap items-center gap-1">
+                                        {#if item.sg_types}
+                                            {#each item.sg_types as code (code)}
+                                                <Badge variant="secondary" class="text-xs">
+                                                    {getReportReasonLabel(code)}
+                                                </Badge>
+                                            {/each}
+                                        {/if}
+                                        {#if item.penalty_days != null}
+                                            <Badge variant="outline" class="text-xs">
+                                                {getPenaltyDisplay(item.penalty_days).text}
                                             </Badge>
-                                        {/each}
+                                        {/if}
                                     </div>
                                 {/if}
                             </div>
