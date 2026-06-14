@@ -3,10 +3,14 @@ import type { PageServerLoad } from './$types.js';
 import type { Board } from '$lib/api/types.js';
 import { backendFetch, createAuthHeaders } from '$lib/server/backend-fetch.js';
 import { resolveCanonicalBoardId } from '$lib/server/board-cache.js';
+import { getSingoRole } from '$lib/server/singo-role.js';
 
 /**
  * 게시글 수정 페이지 서버 로드
  * 인증 체크 (로그인 필수) + write_level 권한 체크 + 작성자 본인 확인
+ *
+ * 관리자 우회: locals.user.level >= 10 이거나 getSingoRole === 'super_admin'.
+ * 세션 캐시된 level 이 stale 일 수 있어 fresh DB role(super_admin)도 함께 확인.
  */
 export const load: PageServerLoad = async ({ locals, params }) => {
     const postId = params.postId;
@@ -24,6 +28,10 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 
     const headers = createAuthHeaders(locals.accessToken);
     const userLevel = locals.user.level ?? 0;
+    // level 캐시가 stale 일 가능성 대비 — super_admin role 도 확인 (fresh DB read).
+    const isSuperAdmin =
+        userLevel >= 10 ||
+        (!!locals.user.id && (await getSingoRole(locals.user.id)) === 'super_admin');
 
     // 게시판 정보 조회 → write_level 권한 체크
     try {
@@ -32,7 +40,6 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 
         if (board) {
             const requiredLevel = board.write_level ?? 1;
-            const isSuperAdmin = userLevel >= 10;
             if (!isSuperAdmin && userLevel < requiredLevel) {
                 error(403, '이 게시판에 글을 작성할 권한이 없습니다.');
             }
@@ -44,8 +51,8 @@ export const load: PageServerLoad = async ({ locals, params }) => {
         }
     }
 
-    // 게시글 조회 → 작성자 본인 확인 (관리자 레벨 10 이상은 통과)
-    if (userLevel < 10) {
+    // 게시글 조회 → 작성자 본인 확인 (관리자/super_admin 은 통과)
+    if (!isSuperAdmin) {
         try {
             const postRes = await backendFetch(`/api/v1/boards/${boardId}/posts/${postId}`, {
                 headers
