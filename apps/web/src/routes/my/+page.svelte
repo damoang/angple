@@ -129,6 +129,11 @@
                 <div>
                     <h1 class="text-foreground text-2xl font-bold">{authStore.user.mb_name}</h1>
                     <p class="text-secondary-foreground">{getGradeName(authStore.user.mb_level)}</p>
+                    {#if authStore.user.mb_id}
+                        <p class="text-muted-foreground mt-0.5 text-sm">
+                            아이디 {authStore.user.mb_id}
+                        </p>
+                    {/if}
                     {#if authStore.user.mb_level === 5}
                         <div class="mt-1 text-sm">
                             <span class="text-muted-foreground">광고 종료일</span>
