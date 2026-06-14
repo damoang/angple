@@ -598,6 +598,10 @@
 
     async function fetchBatchReactions(): Promise<void> {
         if (!reactionPluginActive) return;
+        // SPA 내비게이션 레이스 가드: 상세→목록 전환 중 이 effect 가 재실행되면
+        // data.post 가 일시적으로 undefined 라 data.post.id 접근 시 throw → unhandledrejection
+        // (/free·/ 위치로 보고되던 "Cannot read properties of undefined (reading 'id')")
+        if (!data.post?.id) return;
         const parentId = generateParentId(boardId, data.post.id);
         // 동일 parentId 중복 호출 방지 (SPA 네비게이션 시 이중 fetch 제거)
         if (lastFetchedReactionsKey === parentId && reactionsMap) return;
