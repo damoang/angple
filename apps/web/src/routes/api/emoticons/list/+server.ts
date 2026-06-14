@@ -58,7 +58,8 @@ const PACK_ORDER: string[] = [
 ];
 
 const ALLOWED_EXTENSIONS = new Set(['gif', 'png', 'jpg', 'jpeg', 'webp']);
-const SKIP_FILES = new Set(['onion-license.txt']);
+// 비활성화된 이모티콘(피커에서 제외). 파일도 제거하지만 재추가/잔존 대비 blocklist 유지.
+const SKIP_FILES = new Set(['onion-license.txt', 'damoang-emo-001.gif']);
 const HIDDEN_PACKS = new Set(['southsky']);
 
 interface EmoticonItem {
