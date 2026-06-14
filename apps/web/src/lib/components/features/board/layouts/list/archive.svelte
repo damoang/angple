@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { goto } from '$app/navigation';
     import { Badge } from '$lib/components/ui/badge/index.js';
     import type { FreePost, BoardDisplaySettings } from '$lib/api/types.js';
     import AuthorLink from '$lib/components/ui/author-link/author-link.svelte';
@@ -113,11 +114,24 @@
                     </span>
 
                     {#if post.comments_count > 0 && !post.is_comments_disabled}
-                        <a
-                            href="{href}#comments"
+                        <!-- 행 전체가 앵커이므로 댓글수는 중첩 앵커 대신 span+goto 로 #comments SPA 점프 유지 -->
+                        <!-- svelte-ignore a11y_no_static_element_interactions -->
+                        <span
                             class="comment-count shrink-0"
-                            onclick={(e) => e.stopPropagation()}
-                            >{formatCommentCountBadge(post.comments_count)}</a
+                            role="link"
+                            tabindex="0"
+                            onclick={(e) => {
+                                e.stopPropagation();
+                                e.preventDefault();
+                                goto(`${href}#comments`);
+                            }}
+                            onkeydown={(e) => {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                    e.stopPropagation();
+                                    e.preventDefault();
+                                    goto(`${href}#comments`);
+                                }
+                            }}>{formatCommentCountBadge(post.comments_count)}</span
                         >
                     {/if}
                 </div>

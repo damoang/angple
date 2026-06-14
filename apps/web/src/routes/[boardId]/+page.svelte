@@ -1,6 +1,12 @@
 <script lang="ts" module>
     import type { Snapshot } from './$types.js';
 
+    // 뒤로가기 복귀 시 목록 자동 갱신 임계값. 빠른 왕복(15s 미만)은 캐시 유지로 즉시 복원,
+    // 그 이상 떠나 있다 돌아오면 invalidateAll 로 최신 목록을 가져온다.
+    const REVALIDATE_AFTER_MS = 15_000;
+    // 목록을 떠난 시각 — 컴포넌트 인스턴스 간(언마운트/리마운트) 유지 위해 모듈 스코프.
+    let lastLeftAt = 0;
+
     // 뒤로가기 시 스크롤 위치 복원. 이미지/광고 로드로 문서 높이가 뒤늦게 확장되는 케이스
     // (특히 iOS Safari) 까지 커버하기 위해 ResizeObserver 로 목표 위치에 도달할 때까지
     // 반복 재시도 (#9401 — 상세에서 뒤로가기 시 목록 최하단으로 떨어지는 현상).
@@ -45,7 +51,7 @@
 </script>
 
 <script lang="ts">
-    import { goto, invalidateAll } from '$app/navigation';
+    import { afterNavigate, beforeNavigate, goto, invalidateAll } from '$app/navigation';
     import { page } from '$app/stores';
     import { onMount } from 'svelte';
     import { Card, CardContent } from '$lib/components/ui/card/index.js';
@@ -127,6 +133,23 @@
 
     let { data }: { data: PageData } = $props();
     let promotionPosts = $state<unknown[]>(data.promotionData || []);
+
+    // 목록 → 상세 → 뒤로가기 복귀 시, SvelteKit 클라이언트 캐시가 stale 목록을 보여줄 수 있다.
+    // popstate 복귀에 한해 invalidateAll 로 목록만 재요청한다(full reload 아님 — 하이드레이션된
+    // SPA 위에서 load 재실행). 임계값은 서버 목록 캐시 구조에 맞춘다:
+    //   - 비로그인: 서버가 15s TTL 캐시(usePostsCache=!locals.user)를 쓰므로, 그 안의 refetch 는
+    //     동일 데이터만 돌려받아 헛수고 → REVALIDATE_AFTER_MS(15s) 게이트로 캐시 만료 후에만 갱신.
+    //   - 로그인: 서버 캐시를 우회(항상 백엔드 fresh)하므로 즉시(0s) 갱신해 최신 목록을 받는다.
+    // lastLeftAt 은 컴포넌트 언마운트/리마운트를 가로질러 유지되도록 모듈 스코프에 보관한다.
+    beforeNavigate(() => {
+        lastLeftAt = Date.now();
+    });
+    afterNavigate((nav) => {
+        if (nav.type !== 'popstate' || !lastLeftAt) return;
+        if (authStore.isAuthenticated || Date.now() - lastLeftAt > REVALIDATE_AFTER_MS) {
+            invalidateAll();
+        }
+    });
 
     // 게시판 정보
     const boardId = $derived(data.boardId);
