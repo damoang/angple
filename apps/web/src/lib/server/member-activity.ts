@@ -36,8 +36,10 @@ export async function fetchMemberActivity(authorId: string, limit = 5): Promise<
     }
 
     try {
+        // 스트리밍(auxiliaryData) 블로킹 방지를 위한 타임아웃 — 느린 활동 조회가 본문 렌더를 막지 않게.
         const res = await backendFetch(
-            `/api/v1/members/${encodeURIComponent(authorId)}/activity?limit=${limit}`
+            `/api/v1/members/${encodeURIComponent(authorId)}/activity?limit=${limit}`,
+            { timeout: 2000 }
         );
         const data = (await res.json()) as Partial<MemberActivity>;
         const result: MemberActivity = {

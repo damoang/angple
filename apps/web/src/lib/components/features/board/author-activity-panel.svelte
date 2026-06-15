@@ -51,8 +51,9 @@
     // SSR(initialActivity)로 이미 채워졌는지 — 클릭 시 클라 API 재fetch 방지 + 펼침 표시
     let ssrLoaded = $state(false);
 
-    // SSR 스트리밍으로 작성자 활동이 도착하면 클릭 없이 즉시 반영 + 패널 펼침.
-    // (SPA 네비게이션 등으로 initialActivity 가 없으면 기존 클릭-fetch 폴백 유지)
+    // SSR 스트리밍으로 작성자 활동이 도착하면 클릭 없이 즉시 반영.
+    // 데스크톱은 자동 펼침. 모바일은 공간 절약 위해 접어둠 — 데이터는 preload 라
+    // 탭하면 추가 fetch 없이 즉시 표시(ssrLoaded 가드). (SSR 데이터 없으면 클릭-fetch 폴백)
     $effect(() => {
         if (
             initialActivity &&
@@ -63,7 +64,6 @@
             loading = false;
             ssrLoaded = true;
             desktopExpanded = true;
-            mobileExpanded = true;
         }
     });
     const MOBILE_AD_MAX_HEIGHT = 88;
