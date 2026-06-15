@@ -10,6 +10,7 @@
     import { page } from '$app/stores';
     import { configureSeo } from '$lib/seo';
     import { authActions, authStore } from '$lib/stores/auth.svelte';
+    import { collectAndReportFingerprint } from '$lib/fingerprint/device-fingerprint';
     import { themeStore } from '$lib/stores/theme.svelte';
     import { pluginStore } from '$lib/stores/plugin.svelte';
     import { widgetLayoutStore } from '$lib/stores/widget-layout.svelte';
@@ -457,6 +458,10 @@
     }
 
     onMount(() => {
+        // 디바이스 핑거프린트 수집 (로그인 사용자 한정, 1일 1회 throttle).
+        // 기본 비활성 — PUBLIC_FINGERPRINT_ENABLED=true + 처리방침 공시·법률검토 후에만 동작.
+        if (browser && authStore.isAuthenticated) void collectAndReportFingerprint();
+
         const cachedMenus = readCachedMenus();
         if (cachedMenus) {
             menuStore.initFromServer(cachedMenus);
