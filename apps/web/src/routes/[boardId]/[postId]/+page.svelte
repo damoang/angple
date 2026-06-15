@@ -111,8 +111,12 @@
         id: 'core:author-activity-panel',
         component: AuthorActivityPanel,
         priority: 20,
-        propsMapper: (pageData: { post: FreePost }) => ({
-            post: pageData.post
+        propsMapper: (pageData: {
+            post: FreePost;
+            memberActivity?: { recentPosts: unknown[]; recentComments: unknown[] } | null;
+        }) => ({
+            post: pageData.post,
+            initialActivity: pageData.memberActivity ?? null
         })
     });
 
@@ -340,6 +344,8 @@
     );
     let truthroomCommentMap = $state<Record<number, number>>({});
     let promotionPosts = $state<PromotionPost[]>([]);
+    // 작성자 최근 활동 (auxiliaryData 스트리밍으로 SSR 직접 로딩 — 작성자활동 패널에 주입)
+    let memberActivity = $state<{ recentPosts: unknown[]; recentComments: unknown[] } | null>(null);
     let revisions = $state<PostRevision[]>([]);
     let initialLikedCommentIds = $state<number[]>([]);
     let initialDislikedCommentIds = $state<number[]>([]);
@@ -409,6 +415,7 @@
         initialDislikedCommentIds = [];
         truthroomCommentMap = {};
         scheduledDelete = null;
+        memberActivity = null;
         auxiliaryLoaded = false;
 
         promise
@@ -419,6 +426,12 @@
                 promotionPosts = Array.isArray(result.promotionPosts)
                     ? (result.promotionPosts as PromotionPost[])
                     : [];
+
+                memberActivity =
+                    (result.memberActivity as {
+                        recentPosts: unknown[];
+                        recentComments: unknown[];
+                    }) ?? null;
 
                 if (result.reactions && Object.keys(result.reactions).length > 0) {
                     reactionsMap = result.reactions as Record<string, ReactionItem[]>;
@@ -1910,7 +1923,9 @@
         {#each beforeCommentsSlots as slot (slot.component)}
             {@const SlotComponent = slot.component}
             <SlotComponent
-                {...slot.propsMapper ? slot.propsMapper({ post: data.post, boardId }) : {}}
+                {...slot.propsMapper
+                    ? slot.propsMapper({ post: data.post, boardId, memberActivity })
+                    : {}}
             />
         {/each}
         <!-- 본문 직후, 댓글 직전 광고 (삭제된 글에서는 비표시) -->
