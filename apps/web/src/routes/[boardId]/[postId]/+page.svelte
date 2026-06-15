@@ -1643,7 +1643,7 @@
 
     <!-- 상단 네비게이션 — 모바일 터치 타겟 44px(#12016) -->
     <div
-        class="-mx-2 mb-2 flex items-center gap-3 px-2 py-2 md:mx-0 md:px-0 [&_a]:min-h-11 md:[&_a]:min-h-0 [&_button]:min-h-11 md:[&_button]:min-h-0"
+        class="-mx-2 mb-2 flex flex-wrap items-center gap-2 px-2 py-2 md:mx-0 md:flex-nowrap md:gap-3 md:px-0 [&_a]:min-h-11 md:[&_a]:min-h-0 [&_button]:min-h-11 md:[&_button]:min-h-0"
     >
         <Button variant="ghost" size="sm" onclick={() => history.back()} class="shrink-0">←</Button>
         <Button variant="outline" size="sm" onclick={goBack} class="shrink-0">목록으로</Button>
@@ -1671,7 +1671,8 @@
             </Button>
         {/if}
 
-        <div class="flex-1"></div>
+        <!-- 데스크톱: 우측 그룹을 오른쪽으로 미는 스페이서. 모바일은 줄바꿈되므로 숨김(좌측 정렬) -->
+        <div class="hidden flex-1 md:block"></div>
 
         <div class="flex shrink-0 gap-2">
             {#if authStore.isAuthenticated}
@@ -2120,13 +2121,14 @@
 
         <!-- 댓글 아래 네비게이션 — 모바일 터치 타겟 44px(#12016) -->
         <div
-            class="-mx-2 mt-4 flex items-center gap-3 px-2 py-2 md:mx-0 md:px-0 [&_a]:min-h-11 md:[&_a]:min-h-0 [&_button]:min-h-11 md:[&_button]:min-h-0"
+            class="-mx-2 mt-4 flex flex-wrap items-center gap-2 px-2 py-2 md:mx-0 md:flex-nowrap md:gap-3 md:px-0 [&_a]:min-h-11 md:[&_a]:min-h-0 [&_button]:min-h-11 md:[&_button]:min-h-0"
         >
             <Button variant="ghost" size="sm" onclick={() => history.back()} class="shrink-0"
                 >←</Button
             >
             <Button variant="outline" size="sm" onclick={goBack} class="shrink-0">목록으로</Button>
-            <div class="flex-1"></div>
+            <!-- 데스크톱: 우측 그룹을 오른쪽으로 미는 스페이서. 모바일은 줄바꿈되므로 숨김(좌측 정렬) -->
+            <div class="hidden flex-1 md:block"></div>
             {#if authStore.isAuthenticated && checkPermission(data.board, 'can_write', authStore.user ?? null)}
                 <Button
                     variant="default"
