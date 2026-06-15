@@ -33,9 +33,11 @@
 
     interface Props {
         post: FreePost;
+        /** SSR 스트리밍으로 미리 받은 작성자 활동 (있으면 클릭 없이 즉시 표시, 클라 API fetch 생략) */
+        initialActivity?: { recentPosts: RecentPost[]; recentComments: RecentComment[] } | null;
     }
 
-    let { post }: Props = $props();
+    let { post, initialActivity = null }: Props = $props();
 
     let loading = $state(true);
     let recentPosts = $state<RecentPost[]>([]);
@@ -46,6 +48,24 @@
     let mobileExpanded = $state(false);
     let shouldLoad = $state(false);
     let desktopExpanded = $state(false);
+    // SSR(initialActivity)로 이미 채워졌는지 — 클릭 시 클라 API 재fetch 방지 + 펼침 표시
+    let ssrLoaded = $state(false);
+
+    // SSR 스트리밍으로 작성자 활동이 도착하면 클릭 없이 즉시 반영 + 패널 펼침.
+    // (SPA 네비게이션 등으로 initialActivity 가 없으면 기존 클릭-fetch 폴백 유지)
+    $effect(() => {
+        if (
+            initialActivity &&
+            (initialActivity.recentPosts.length > 0 || initialActivity.recentComments.length > 0)
+        ) {
+            recentPosts = initialActivity.recentPosts;
+            recentComments = initialActivity.recentComments;
+            loading = false;
+            ssrLoaded = true;
+            desktopExpanded = true;
+            mobileExpanded = true;
+        }
+    });
     const MOBILE_AD_MAX_HEIGHT = 88;
     const DESKTOP_AD_MAX_HEIGHT = 190;
     const ADSENSE_ACTIVITY_CLIENT =
@@ -110,6 +130,11 @@
     $effect(() => {
         const authorId = post.author_id;
         if (!browser || !authorId) {
+            loading = false;
+            return;
+        }
+        // SSR(initialActivity)로 이미 채워졌으면 클라 API 재호출 불필요
+        if (ssrLoaded) {
             loading = false;
             return;
         }

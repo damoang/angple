@@ -23,6 +23,7 @@ import { fetchMemberImagesWithTimestamp } from '$lib/server/member-images.js';
 import { fetchCommentLikeStatuses } from '$lib/server/comment-likes.js';
 
 import { fetchPostLikeStatus } from '$lib/server/post-like-status.js';
+import { fetchMemberActivity } from '$lib/server/member-activity.js';
 import { fetchTruthroomPostId, fetchTruthroomCommentMap } from '$lib/server/truthroom.js';
 import { BackendUnavailableError } from '$lib/server/backend-fetch.js';
 import { applyFilter } from '$lib/hooks/registry.js';
@@ -422,7 +423,8 @@ export const load: PageServerLoad = async ({
                 postLikeStatusResult,
                 scheduledDeleteResult,
                 commentLikeStatusesResult,
-                truthroomCommentMapResult
+                truthroomCommentMapResult,
+                memberActivityResult
             ] = await Promise.allSettled([
                 // 직접홍보 사잇광고 (ads 서버 직접 호출 + 캐시)
                 fetchPromotionPosts(),
@@ -492,7 +494,14 @@ export const load: PageServerLoad = async ({
                     return fetchTruthroomCommentMap(boardId, postId, lockedCommentIds).catch(
                         () => ({})
                     );
-                })()
+                })(),
+                // 작성자 최근 활동 (SSR 직접 조회 — 클릭 없이 표시, 클라이언트 API 요청 제거)
+                post.author_id
+                    ? fetchMemberActivity(post.author_id, 5).catch(() => ({
+                          recentPosts: [],
+                          recentComments: []
+                      }))
+                    : Promise.resolve({ recentPosts: [], recentComments: [] })
             ]);
 
             // 프로모션 사잇광고: board_exception에 포함된 게시판은 제외
@@ -538,6 +547,11 @@ export const load: PageServerLoad = async ({
                     ? truthroomCommentMapResult.value
                     : {};
 
+            const memberActivity =
+                memberActivityResult.status === 'fulfilled'
+                    ? memberActivityResult.value
+                    : { recentPosts: [], recentComments: [] };
+
             return {
                 promotionPosts,
                 reactions,
@@ -548,7 +562,8 @@ export const load: PageServerLoad = async ({
                 scheduledDelete,
                 commentLikeStatuses,
                 truthroomCommentMap,
-                linkAffiliate
+                linkAffiliate,
+                memberActivity
             };
         })();
 
