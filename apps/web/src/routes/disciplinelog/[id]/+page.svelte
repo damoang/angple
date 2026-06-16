@@ -235,7 +235,7 @@
                     </Card.Title>
                 </Card.Header>
                 <Card.Content>
-                    <p class="text-sm whitespace-pre-line">{log.member_reason}</p>
+                    <p class="whitespace-pre-line text-sm">{log.member_reason}</p>
                 </Card.Content>
             </Card.Root>
         {/if}
