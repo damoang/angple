@@ -126,6 +126,30 @@
         e.preventDefault();
         e.stopPropagation();
     }
+
+    // 모바일 스크롤 오터치 차단 (#6477893): bits-ui 메뉴 트리거는 터치에서 'pointerup' 에 열린다
+    // (pointerdown 은 무시). 따라서 닉네임 위에서 시작한 스크롤도 pointerup 에서 메뉴를 열어버린다.
+    // pointerdown~up 사이 이동이 임계(10px)를 넘으면 스크롤로 보고, capture 단계에서 pointerup 의
+    // 전파를 끊어 bits-ui 의 open 을 차단한다. 의도된 탭(이동 없음)은 그대로 열림 → #12652 유지.
+    const SCROLL_TAP_THRESHOLD = 10;
+    let touchStartY = 0;
+    let touchMoved = false;
+    function onTriggerPointerDown(e: PointerEvent): void {
+        if (e.pointerType !== 'touch') return;
+        touchStartY = e.clientY;
+        touchMoved = false;
+    }
+    function onTriggerPointerMove(e: PointerEvent): void {
+        if (e.pointerType !== 'touch') return;
+        if (Math.abs(e.clientY - touchStartY) > SCROLL_TAP_THRESHOLD) touchMoved = true;
+    }
+    function onTriggerPointerUp(e: PointerEvent): void {
+        if (e.pointerType === 'touch' && touchMoved) {
+            // 스크롤로 판정 → bits-ui 트리거의 pointerup-open 미도달
+            e.stopPropagation();
+            e.preventDefault();
+        }
+    }
 </script>
 
 {#if !authorId || !authStore.isAuthenticated}
@@ -144,7 +168,15 @@
     </span>
 {:else}
     <!-- svelte-ignore a11y_no_static_element_interactions -->
-    <span onclick={stopPropagation} onkeydown={stopPropagation} class="inline-flex items-center">
+    <!-- capture 단계 포인터 핸들러: 스크롤(이동) 중 pointerup 을 가로채 bits-ui 트리거의 open 차단 (#6477893) -->
+    <span
+        onclick={stopPropagation}
+        onkeydown={stopPropagation}
+        onpointerdowncapture={onTriggerPointerDown}
+        onpointermovecapture={onTriggerPointerMove}
+        onpointerupcapture={onTriggerPointerUp}
+        class="inline-flex items-center"
+    >
         <DropdownMenu.Root
             onOpenChange={(open) => {
                 if (open) checkFollowStatus();
