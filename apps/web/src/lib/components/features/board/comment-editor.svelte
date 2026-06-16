@@ -116,8 +116,15 @@
                 onUpdate?.(e.getHTML());
             },
             onTransaction: ({ editor: e }) => {
-                isBold = e.isActive('bold');
-                isItalic = e.isActive('italic');
+                // ProseMirror 트랜잭션은 Svelte 렌더/effect 중 동기 호출될 수 있어, 여기서
+                // $state 를 직접 변이하면 state_unsafe_mutation 발생(/free·홈 다수). microtask 로
+                // 반응 컨텍스트 밖에서 갱신한다(툴바 표시는 사실상 즉시).
+                const b = e.isActive('bold');
+                const i = e.isActive('italic');
+                queueMicrotask(() => {
+                    isBold = b;
+                    isItalic = i;
+                });
             }
         });
     });

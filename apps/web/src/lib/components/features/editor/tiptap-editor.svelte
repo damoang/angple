@@ -166,24 +166,33 @@
 
     function updateActiveState(): void {
         if (!editor) return;
+        const e = editor;
 
-        isActive = {
-            bold: editor.isActive('bold'),
-            italic: editor.isActive('italic'),
-            underline: editor.isActive('underline'),
-            strike: editor.isActive('strike'),
-            h1: editor.isActive('heading', { level: 1 }),
-            h2: editor.isActive('heading', { level: 2 }),
-            h3: editor.isActive('heading', { level: 3 }),
-            bulletList: editor.isActive('bulletList'),
-            orderedList: editor.isActive('orderedList'),
-            blockquote: editor.isActive('blockquote'),
-            codeBlock: editor.isActive('codeBlock'),
-            link: editor.isActive('link')
+        // ProseMirror 트랜잭션 콜백은 Svelte 렌더/effect 중 동기 호출될 수 있어, 여기서
+        // $state 를 직접 변이하면 state_unsafe_mutation 발생. 값은 지금 계산하고
+        // microtask 로 반응 컨텍스트 밖에서 할당한다(툴바 표시는 사실상 즉시).
+        const next = {
+            bold: e.isActive('bold'),
+            italic: e.isActive('italic'),
+            underline: e.isActive('underline'),
+            strike: e.isActive('strike'),
+            h1: e.isActive('heading', { level: 1 }),
+            h2: e.isActive('heading', { level: 2 }),
+            h3: e.isActive('heading', { level: 3 }),
+            bulletList: e.isActive('bulletList'),
+            orderedList: e.isActive('orderedList'),
+            blockquote: e.isActive('blockquote'),
+            codeBlock: e.isActive('codeBlock'),
+            link: e.isActive('link')
         };
+        const undo = e.can().undo();
+        const redo = e.can().redo();
 
-        canUndo = editor.can().undo();
-        canRedo = editor.can().redo();
+        queueMicrotask(() => {
+            isActive = next;
+            canUndo = undo;
+            canRedo = redo;
+        });
     }
 
     onMount(() => {
