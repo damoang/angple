@@ -12,6 +12,7 @@
     import Calendar from '@lucide/svelte/icons/calendar';
     import User from '@lucide/svelte/icons/user';
     import FileText from '@lucide/svelte/icons/file-text';
+    import Info from '@lucide/svelte/icons/info';
     import ExternalLink from '@lucide/svelte/icons/external-link';
     import History from '@lucide/svelte/icons/history';
     import {
@@ -223,6 +224,21 @@
                 </div>
             </Card.Content>
         </Card.Root>
+
+        <!-- 기타 사유: 회원 공개용 (운영자가 입력한 경우에만 표시) -->
+        {#if log.member_reason && log.member_reason.trim()}
+            <Card.Root class="mb-4">
+                <Card.Header>
+                    <Card.Title class="flex items-center gap-2">
+                        <Info class="text-muted-foreground h-5 w-5" />
+                        기타 사유
+                    </Card.Title>
+                </Card.Header>
+                <Card.Content>
+                    <p class="whitespace-pre-line text-sm">{log.member_reason}</p>
+                </Card.Content>
+            </Card.Root>
+        {/if}
 
         <!-- Memo: 비공개 (관리자 내부용) -->
 
