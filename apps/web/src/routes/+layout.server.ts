@@ -57,6 +57,9 @@ export const load: LayoutServerLoad = async ({
             user: stripUser ? null : (locals.user ?? null),
             accessToken: stripUser ? null : (locals.accessToken ?? null),
             csrfToken: stripUser ? null : (locals.csrfToken ?? null),
+            // #12719/#12723: SSR 세션 조회 일시 장애 여부. 클라이언트가 "로그아웃 확정"과
+            // 구분해 재조회하도록 전달(로그아웃 깜빡임 방지).
+            authDegraded: locals.authDegraded ?? false,
 
             celebration: [],
             banners: {},
@@ -166,6 +169,9 @@ export const load: LayoutServerLoad = async ({
         user: stripUser ? null : (locals.user ?? null),
         accessToken: stripUser ? null : (locals.accessToken ?? null),
         csrfToken: stripUser ? null : (locals.csrfToken ?? null),
+        // #12719/#12723: SSR 세션 조회 일시 장애 여부. 클라이언트가 "로그아웃 확정"과
+        // 구분해 재조회하도록 전달(로그아웃 깜빡임 방지).
+        authDegraded: locals.authDegraded ?? false,
         // logoData: previews 제거 (SSR 불필요), schedules는 header 로고에서 사용
         logoData: {
             active: logoData.active,
