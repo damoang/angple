@@ -149,6 +149,12 @@
             if (d.user.id && d.user.as_level !== undefined) {
                 memberLevelStore.updateLevel(d.user.id, d.user.as_level);
             }
+        } else if (d.authDegraded) {
+            // #12719/#12723: SSR 세션 조회가 일시 장애(타임아웃)로 비었을 뿐 로그아웃 확정이 아님.
+            // initAuth()로 "비로그인 확정" 처리하면 다음 네비게이션까지 로그아웃으로 깜빡인다.
+            // 이 경우에만 클라이언트에서 현재 사용자를 재조회(isLoading 유지 → 헤더는 로딩 표시,
+            // 로그아웃 표시 아님). 정상 경로는 변경 없음 = SSR 권위 + heap-safe 설계 유지.
+            authActions.fetchCurrentUser();
         } else {
             authActions.initAuth();
         }
