@@ -292,7 +292,10 @@
             ],
             // markdown 포맷이면 ProseMirror(WYSIWYG)는 비워두고 마크다운 원문은 rawContent(textarea)로 다룬다.
             // (마크다운 텍스트를 HTML로 오해해 ProseMirror에 주입하는 것을 방지)
-            content: contentFormat === 'markdown' ? '' : content,
+            // #12727: 초기 content 도 stripBrokenYoutube 적용 — src 없는 깨진 youtube 임베드가
+            // 에디터 생성 시점 파싱을 깨 본문이 통째로 비워지는 것을 막는다($effect 만으로는
+            // 생성 시 초기 주입 경로가 빠져 수정 진입 시 그대로 비워졌음).
+            content: contentFormat === 'markdown' ? '' : stripBrokenYoutube(content),
             editable: !disabled,
             // #9223: 편집 모드에서 링크(<a>) 클릭 시 외부 이동 방지.
             // Link extension 의 openOnClick:false 는 mark 만 처리하므로,
@@ -816,13 +819,22 @@
     }
 
     function insertYoutube(): void {
-        if (!youtubeUrl) {
+        const url = youtubeUrl?.trim() ?? '';
+        if (!url) {
             showYoutubeDialog = false;
             return;
         }
-        const timeMatch = youtubeUrl.match(/[?&]t=(\d+)/);
+        // #12727: 유효한 YouTube 주소만 삽입 — 잘못된 입력이 src 없는 빈 임베드로 저장되어
+        // 이후 수정 진입 시 본문이 비워지는 문제를 원천 차단(붙여넣기 핸들러와 동일 패턴 검증).
+        if (!YOUTUBE_PASTE_PATTERN.test(url)) {
+            alert(
+                '유효한 YouTube 주소를 입력해 주세요.\n예: https://www.youtube.com/watch?v=영상ID'
+            );
+            return;
+        }
+        const timeMatch = url.match(/[?&]t=(\d+)/);
         const start = timeMatch ? parseInt(timeMatch[1], 10) : 0;
-        editor?.chain().focus().setYoutubeVideo({ src: youtubeUrl, start }).run();
+        editor?.chain().focus().setYoutubeVideo({ src: url, start }).run();
         showYoutubeDialog = false;
         youtubeUrl = '';
     }
