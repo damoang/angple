@@ -310,7 +310,7 @@
                                     <li class="py-3 first:pt-0 last:pb-0">
                                         <a
                                             href="/{comment.board_id || 'free'}/{comment.post_id ||
-                                                comment.parent_id}"
+                                                comment.parent_id}#c_{comment.id}"
                                             class="hover:bg-accent -m-2 block rounded-md p-2 no-underline transition-colors"
                                         >
                                             {#if comment.post_title}
