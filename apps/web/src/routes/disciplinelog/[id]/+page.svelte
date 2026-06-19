@@ -257,15 +257,26 @@
                             <div
                                 class="hover:bg-muted/50 rounded p-2 transition-all duration-200 ease-out"
                             >
-                                <a
-                                    href={getReportedItemUrl(item)}
-                                    class="flex items-center gap-2 text-sm"
-                                >
-                                    <ExternalLink class="text-muted-foreground h-4 w-4" />
-                                    <span class="text-primary hover:underline">
-                                        {getReportedItemLabel(item)}
-                                    </span>
-                                </a>
+                                {#if item.deleted}
+                                    <!-- 신고 접수 후 삭제된 글: 링크 비활성 + 삭제됨 배지 -->
+                                    <div class="text-muted-foreground flex items-center gap-2 text-sm">
+                                        <ExternalLink class="h-4 w-4" />
+                                        <span class="line-through">
+                                            {getReportedItemLabel(item)}
+                                        </span>
+                                        <Badge variant="secondary" class="text-xs">삭제됨</Badge>
+                                    </div>
+                                {:else}
+                                    <a
+                                        href={getReportedItemUrl(item)}
+                                        class="flex items-center gap-2 text-sm"
+                                    >
+                                        <ExternalLink class="text-muted-foreground h-4 w-4" />
+                                        <span class="text-primary hover:underline">
+                                            {getReportedItemLabel(item)}
+                                        </span>
+                                    </a>
+                                {/if}
                                 {#if (item.sg_types && item.sg_types.length > 0) || item.penalty_days != null}
                                     <div class="ml-6 mt-1.5 flex flex-wrap items-center gap-1">
                                         {#if item.sg_types}
