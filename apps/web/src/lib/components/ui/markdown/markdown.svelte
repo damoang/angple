@@ -304,6 +304,31 @@
             });
         });
     });
+
+    // 세로(portrait) 본문 이미지를 본문 너비에 맞춰 채움.
+    // max-w-full(=max-width:100%)은 상한만 지정하므로 자연 너비가 좁은 세로 이미지가
+    // 작게 표시되어 가독성이 떨어진다. 로드 후 naturalHeight>naturalWidth면 width:100%를 적용한다.
+    // (가로/정사각 이미지는 영향 없음. 자연 너비가 본문보다 큰 세로 이미지는 어차피 100%라 동일.)
+    $effect(() => {
+        void renderedHtml;
+        if (!browser || !proseEl) return;
+        tick().then(() => {
+            const imgs = proseEl.querySelectorAll<HTMLImageElement>(
+                'img:not(.emoticon-inline):not([src*="/emoticons/"])'
+            );
+            imgs.forEach((img) => {
+                const applyOrientation = () => {
+                    if (img.naturalWidth === 0) return;
+                    img.classList.toggle('dm-portrait-fill', img.naturalHeight > img.naturalWidth);
+                };
+                if (img.complete && img.naturalWidth > 0) {
+                    applyOrientation();
+                } else {
+                    img.addEventListener('load', applyOrientation, { once: true });
+                }
+            });
+        });
+    });
 </script>
 
 <div
@@ -316,6 +341,12 @@
 </div>
 
 <style>
+    /* 세로 이미지: 본문 너비 100%로 채움 (좁은 세로 스크린샷이 작게 보이는 문제 해결) */
+    .prose :global(img.dm-portrait-fill) {
+        width: 100%;
+        height: auto;
+    }
+
     /* Tailwind Typography 플러그인이 없을 경우를 위한 기본 스타일 */
     .prose :global(h1) {
         font-size: 1.75em;
