@@ -18,8 +18,8 @@
 
     let { class: className = '' }: Props = $props();
 
-    const ADSENSE_CLIENT = 'ca-pub-5124617752473025';
-    const ADSENSE_SLOT = '3075504524';
+    const ADSENSE_CLIENT = 'ca-pub-6922133409882969';
+    const ADSENSE_SLOT = '3037103743';
 
     let ready = $state(false);
     let insEl: HTMLElement | null = null;
