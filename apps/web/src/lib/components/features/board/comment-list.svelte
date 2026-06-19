@@ -381,6 +381,15 @@
             flatTree.push(...buildTree(root, 0));
         });
 
+        // #12735 방어: 부모(상위 댓글)가 로드되지 않아 어느 트리에도 포함되지 못한
+        // 고아 댓글을 루트로 승격해 항상 렌더한다(조용히 누락 방지).
+        const includedIds = new SvelteSet<string>(flatTree.map((c) => String(c.id)));
+        comments.forEach((comment) => {
+            if (!includedIds.has(String(comment.id))) {
+                flatTree.push({ ...comment, depth: 0 });
+            }
+        });
+
         return flatTree;
     });
 

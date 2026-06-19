@@ -1274,20 +1274,44 @@
         // 무시하는 사례가 있어 URL cache buster (`_t=${Date.now()}`) 로 강제 우회.
         // SW (service worker) 가 가로채는 케이스도 동일하게 URL 변화로 회피.
         const cacheBuster = Date.now();
-        const res = await fetch(
-            `/api/boards/${boardId}/posts/${data.post.id}/comments?page=1&limit=200&_t=${cacheBuster}`,
-            {
-                cache: 'no-store',
-                headers: {
-                    'Cache-Control': 'no-cache, no-store, must-revalidate',
-                    Pragma: 'no-cache'
+        // #12735: 댓글 API 는 페이지당 최대 200개라, 댓글이 200개를 넘는 글은
+        // page=1 한 번만 받으면 나머지가 누락된다("대댓글 많은데 안 보임").
+        // total_pages 만큼 순차로 모두 받아 합친다. (안전 상한 MAX_PAGES)
+        const PAGE_SIZE = 200;
+        const MAX_PAGES = 15;
+        const fetchCommentPage = (p: number) =>
+            fetch(
+                `/api/boards/${boardId}/posts/${data.post.id}/comments?page=${p}&limit=${PAGE_SIZE}&_t=${cacheBuster}`,
+                {
+                    cache: 'no-store',
+                    headers: {
+                        'Cache-Control': 'no-cache, no-store, must-revalidate',
+                        Pragma: 'no-cache'
+                    }
+                }
+            ).then((r) => r.json());
+
+        const json = await fetchCommentPage(1);
+        if (json.success) {
+            let all = json.data.comments ?? [];
+            const total = json.data.total || all.length;
+            const reportedPages = json.data.total_pages ?? 1;
+            const pagesToLoad = Math.min(reportedPages, MAX_PAGES);
+            for (let p = 2; p <= pagesToLoad; p++) {
+                const next = await fetchCommentPage(p);
+                if (next.success && next.data.comments?.length) {
+                    all = all.concat(next.data.comments);
+                } else {
+                    break;
                 }
             }
-        );
-        const json = await res.json();
-        if (json.success) {
-            comments = json.data.comments;
-            commentsTotal = json.data.total || json.data.comments?.length || comments.length;
+            if (reportedPages > MAX_PAGES) {
+                console.warn(
+                    `[comments] total_pages ${reportedPages} exceeds cap ${MAX_PAGES} — 일부 댓글 미로드`
+                );
+            }
+            comments = all;
+            commentsTotal = total || all.length;
             // backfill 완료 후 앵커 스크롤 재시도 (#c_댓글ID로 접근 시)
             requestAnimationFrame(() => scheduleAnchorScroll());
         }
