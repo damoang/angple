@@ -233,6 +233,32 @@
         breaks: true
     });
 
+    // #12741: 유튜브 embed iframe은 src에 `start=초`가 있어야 시작시간이 적용된다.
+    // tiptap은 시작시간을 src의 `t=초`(및 start 속성)로 저장하지만 /embed/ 는 `t=` 를
+    // 무시하므로 항상 0초부터 재생됐다. DOMPurify가 start 속성을 제거하므로 src의 `t=`
+    // (sanitize 후에도 src 쿼리는 보존)에서 초를 구해 src에 `start=` 를 주입한다.
+    // (댓글 경로 youtube.ts 는 이미 start= 로 생성 → 동작 통일.)
+    function injectYoutubeStart(html: string): string {
+        if (!html || html.indexOf('youtube') === -1) return html;
+        return html.replace(/<iframe\b[^>]*>/gi, (tag) => {
+            const srcMatch = tag.match(/\bsrc=(["'])([^"']*)\1/i);
+            if (!srcMatch) return tag;
+            const src = srcMatch[2];
+            if (!/youtube(?:-nocookie)?\.com\/embed\//i.test(src)) return tag;
+            if (/[?&](?:amp;)?start=\d+/i.test(src)) return tag; // 이미 적용됨
+            const startAttr = tag.match(/\bstart=(["'])(\d+)\1/i);
+            let seconds = startAttr ? parseInt(startAttr[2], 10) : 0;
+            if (!seconds) {
+                const tMatch = src.match(/(?:[?&]|&amp;)t=(\d+)/i);
+                if (tMatch) seconds = parseInt(tMatch[1], 10);
+            }
+            if (!seconds) return tag;
+            const sep = src.includes('?') ? (src.includes('&amp;') ? '&amp;' : '&') : '?';
+            const newSrc = `${src}${sep}start=${seconds}`;
+            return tag.replace(/\bsrc=(["'])[^"']*\1/i, `src=$1${newSrc}$1`);
+        });
+    }
+
     // SSR용 기본 HTML (이스케이프된 미디어 태그 복원 + URL 자동 임베딩)
     function getInitialHtml(content: string): string {
         if (!content) return '';
@@ -240,7 +266,9 @@
         rawHtml = transformEscapedMedia(rawHtml);
         // processEmbeds는 클라이언트 $effect에서만 실행 (SSR 부하 방지)
         // 본문 이미지 src 더블슬래시 collapse + CDN 호스트 정규화 (#12697)
-        return normalizeHtmlMediaUrls(DOMPurify.sanitize(rawHtml, PURIFY_CONFIG));
+        return injectYoutubeStart(
+            normalizeHtmlMediaUrls(DOMPurify.sanitize(rawHtml, PURIFY_CONFIG))
+        );
     }
 
     // 초기 렌더링 (SSR + 클라이언트 초기값)
@@ -268,6 +296,7 @@
             applyFilter<string>('post_content', rawHtml).then((filtered) => {
                 let sanitized = DOMPurify.sanitize(filtered, PURIFY_CONFIG);
                 sanitized = normalizeHtmlMediaUrls(sanitized);
+                sanitized = injectYoutubeStart(sanitized);
                 sanitized = addLinkMismatchWarnings(sanitized);
                 renderedHtml = sanitized;
             });
