@@ -259,7 +259,9 @@
                             >
                                 {#if item.deleted}
                                     <!-- 신고 접수 후 삭제된 글: 링크 비활성 + 삭제됨 배지 -->
-                                    <div class="text-muted-foreground flex items-center gap-2 text-sm">
+                                    <div
+                                        class="text-muted-foreground flex items-center gap-2 text-sm"
+                                    >
                                         <ExternalLink class="h-4 w-4" />
                                         <span class="line-through">
                                             {getReportedItemLabel(item)}
