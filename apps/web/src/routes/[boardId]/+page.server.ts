@@ -448,10 +448,13 @@ export const load: PageServerLoad = async ({
                 );
                 // 댓글 검색(comment / comment_author)이면 parentIds로 부모 글 fetch
                 // 한 글에 댓글 여러 개 매칭 시 dedupe 필요 (Set), 첫 등장 순서 유지
-                const refetchIds =
+                // 댓글 검색 여부: parentIds가 있으면 댓글 매칭 → 부모 글로 재조회.
+                const isCommentSearch = !!(
                     sphinxResult.parentIds && sphinxResult.parentIds.length > 0
-                        ? Array.from(new Set(sphinxResult.parentIds))
-                        : sphinxResult.ids;
+                );
+                const refetchIds = isCommentSearch
+                    ? Array.from(new Set(sphinxResult.parentIds ?? []))
+                    : sphinxResult.ids;
 
                 if (refetchIds.length === 0) {
                     return { data: [], meta: { page, limit, total: sphinxResult.total } };
@@ -467,11 +470,16 @@ export const load: PageServerLoad = async ({
                                 wr_good AS likes, wr_nogood AS dislikes, wr_comment AS comments_count,
                                 wr_datetime AS created_at, wr_last AS updated_at, ca_name AS category,
                                 wr_option,
+                                (wr_deleted_at IS NOT NULL AND wr_deleted_at <> '0000-00-00 00:00:00') AS is_deleted_parent,
                                 wr_1 AS extra_1, wr_2 AS extra_2, wr_3 AS extra_3,
                                 wr_4 AS extra_4, wr_5 AS extra_5, wr_6 AS extra_6, wr_7 AS extra_7
                          FROM ${tableName}
                          WHERE wr_id IN (${ph}) AND wr_is_comment = 0
-                           AND (wr_deleted_at IS NULL OR wr_deleted_at = '0000-00-00 00:00:00')`,
+                           ${
+                               isCommentSearch
+                                   ? ''
+                                   : "AND (wr_deleted_at IS NULL OR wr_deleted_at = '0000-00-00 00:00:00')"
+                           }`,
                         refetchIds
                     ),
                     readPool.execute<RowDataPacket[]>(
@@ -488,8 +496,21 @@ export const load: PageServerLoad = async ({
                         .filter((n) => Number.isFinite(n) && n > 0)
                 );
                 // Sphinx 결과 순서 유지 (refetchIds: parentIds dedupe or ids) + is_notice 주입
+                // 댓글 검색 시 삭제된 부모 글은 제목을 가리고 본문은 비운다(#12577).
+                // 일반 검색은 위 쿼리에서 삭제글이 이미 제외되므로 영향 없음.
                 const rowMap = new Map(
-                    rows.map((r) => [r.id, { ...r, is_notice: noticeIds.has(Number(r.id)) }])
+                    rows.map((r) => {
+                        const deleted = Number(r.is_deleted_parent) === 1;
+                        return [
+                            r.id,
+                            {
+                                ...r,
+                                title: deleted ? '[삭제된 글입니다]' : r.title,
+                                content: deleted ? '' : r.content,
+                                is_notice: noticeIds.has(Number(r.id))
+                            }
+                        ];
+                    })
                 );
                 const ordered = refetchIds
                     .map((id) => rowMap.get(id))
