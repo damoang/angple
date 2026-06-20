@@ -120,6 +120,9 @@ export const GET: RequestHandler = async ({ params, locals }) => {
     }
 
     try {
+        // mb_id / mb_nick 둘 다 허용하되, 슬러그가 한 계정의 mb_id이자 다른 계정의 닉네임일 때
+        // (소셜로그인 닉 충돌 등) mb_id 정확 일치를 우선시킨다. 우선순위가 없으면 rows[0]이
+        // 비결정적으로 닉 매칭 계정을 반환해 엉뚱한 프로필이 노출됨.
         const [rows] = await pool.query<MemberRow[]>(
             `SELECT mb_id, mb_name, mb_nick, mb_level, mb_point,
                     mb_signature, mb_homepage, mb_profile,
@@ -127,8 +130,10 @@ export const GET: RequestHandler = async ({ params, locals }) => {
                     mb_image_url, mb_image_updated_at, mb_certify, mb_leave_date, mb_leave_reason,
                     as_level, as_exp
              FROM g5_member
-             WHERE mb_id = ? OR mb_nick = ?`,
-            [memberId, memberId]
+             WHERE mb_id = ? OR mb_nick = ?
+             ORDER BY (mb_id = ?) DESC
+             LIMIT 1`,
+            [memberId, memberId, memberId]
         );
 
         if (rows.length === 0) {
