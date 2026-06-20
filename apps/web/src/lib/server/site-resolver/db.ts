@@ -37,28 +37,32 @@ function isMissingTableError(err: unknown): boolean {
     return dbErr?.code === 'ER_NO_SUCH_TABLE' || dbErr?.errno === 1146;
 }
 
-function rowToContext(row: SiteRow): SiteContext {
-    let keywords: string[] | undefined;
-    if (row.keywords) {
+// JSON 컬럼(keywords/business)은 드라이버/설정에 따라 직렬화된 문자열로 오거나
+// 이미 파싱된 객체/배열로 올 수 있다(mysql2 는 JSON 타입을 자동 파싱). 문자열이면
+// JSON.parse, 이미 객체면 그대로 반환해 두 경우 모두 안전하게 처리한다.
+function parseJsonColumn(val: unknown): unknown {
+    if (val == null) return undefined;
+    if (typeof val === 'string') {
         try {
-            const parsed = JSON.parse(row.keywords) as unknown;
-            if (Array.isArray(parsed) && parsed.every((k) => typeof k === 'string')) {
-                keywords = parsed;
-            }
+            return JSON.parse(val) as unknown;
         } catch {
-            // ignore malformed JSON
+            return undefined;
         }
     }
+    if (typeof val === 'object') return val;
+    return undefined;
+}
+
+function rowToContext(row: SiteRow): SiteContext {
+    let keywords: string[] | undefined;
+    const parsedKeywords = parseJsonColumn(row.keywords);
+    if (Array.isArray(parsedKeywords) && parsedKeywords.every((k) => typeof k === 'string')) {
+        keywords = parsedKeywords;
+    }
     let business: SiteContext['business'];
-    if (row.business) {
-        try {
-            const parsed = JSON.parse(row.business) as unknown;
-            if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-                business = parsed as SiteContext['business'];
-            }
-        } catch {
-            // ignore malformed JSON
-        }
+    const parsedBusiness = parseJsonColumn(row.business);
+    if (parsedBusiness && typeof parsedBusiness === 'object' && !Array.isArray(parsedBusiness)) {
+        business = parsedBusiness as SiteContext['business'];
     }
     return {
         id: `db:${row.id}`,
