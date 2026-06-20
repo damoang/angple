@@ -1946,6 +1946,7 @@ class ApiClient {
                 noti_mention: true,
                 noti_like: true,
                 noti_follow: true,
+                noti_board_subscribe: true,
                 like_threshold: 1
             }
         );
