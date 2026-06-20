@@ -108,12 +108,17 @@ export function getReactionDisplay(reaction: string): {
                 url: `/api/emoticons/nariya/damoang-${reactionId}.gif`,
                 label: `앙티콘 ${reactionId}`
             };
-        case 'noto-animoji':
+        case 'noto-animoji': {
+            // Noto 애니메이션 CDN 경로는 복합 코드포인트를 '_' 로 잇는다(예: 2764_fe0f).
+            // 저장 형식은 '-' 를 쓰므로(2764-fe0f) '_' 로 변환해야 한다. 단일 코드포인트
+            // (1f44d 등)는 하이픈이 없어 영향 없음. 미변환 시 하트가 404(액박)로 표시됨.
+            const notoPath = reactionId.replace(/-/g, '_');
             return {
                 renderType: 'image',
-                url: `https://fonts.gstatic.com/s/e/notoemoji/latest/${reactionId}/512.webp`,
+                url: `https://fonts.gstatic.com/s/e/notoemoji/latest/${notoPath}/512.webp`,
                 label: `Noto ${reactionId}`
             };
+        }
         case 'import-image':
             return {
                 renderType: 'image',
