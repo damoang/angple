@@ -87,7 +87,7 @@
             ]
         },
         {
-            title: '스탠다드 긴배너',
+            title: '긴배너',
             spec: '770 x 90px',
             price: '100',
             unit: '만원/월',
@@ -454,13 +454,13 @@
                 </div>
             </div>
 
-            <!-- 3. 스탠다드 긴배너 (100만원/월) -->
+            <!-- 3. 긴배너 (100만원/월) -->
             <div class="bg-card border-border rounded-xl border p-5 shadow-sm">
                 <div class="mb-4 flex items-center justify-between">
                     <h3
                         class="text-foreground border-primary inline-block border-b-2 pb-1 font-semibold"
                     >
-                        3. 스탠다드 긴배너
+                        3. 긴배너
                     </h3>
                     <span
                         class="text-primary bg-primary/10 rounded-full px-3 py-1 text-sm font-bold"
@@ -478,12 +478,12 @@
                         onclick={() =>
                             openLightbox(
                                 `${CDN_BASE}/data/editor/2604/e97e696.png`,
-                                '스탠다드 긴배너 PC 노출 예시'
+                                '긴배너 PC 노출 예시'
                             )}
                     >
                         <img
                             src="{CDN_BASE}/data/editor/2604/e97e696.png"
-                            alt="스탠다드 긴배너 PC 노출 예시"
+                            alt="긴배너 PC 노출 예시"
                             class="w-full rounded-lg border transition-shadow hover:shadow-lg"
                             loading="lazy"
                         />
@@ -495,12 +495,12 @@
                         onclick={() =>
                             openLightbox(
                                 `${CDN_BASE}/data/editor/2604/682ad6f.png`,
-                                '스탠다드 긴배너 모바일 노출 예시'
+                                '긴배너 모바일 노출 예시'
                             )}
                     >
                         <img
                             src="{CDN_BASE}/data/editor/2604/682ad6f.png"
-                            alt="스탠다드 긴배너 모바일 노출 예시"
+                            alt="긴배너 모바일 노출 예시"
                             class="max-h-[360px] rounded-lg border transition-shadow hover:shadow-lg"
                             loading="lazy"
                         />
