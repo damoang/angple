@@ -137,6 +137,8 @@
                     <ExternalLink class="h-3 w-3" />
                 </a>
             {/each}
+            <!-- 배내센트: 링크 오픈 전까지 텍스트만 노출 -->
+            <span class="text-muted-foreground flex items-center text-xs"> 배내센트 </span>
         </div>
     </div>
 
