@@ -314,7 +314,10 @@ export const load: PageServerLoad = async ({
                         loadState: ((post.comments_count ?? 0) > 0 ? 'partial' : 'complete') as
                             | 'complete'
                             | 'partial'
-                            | 'failed'
+                            | 'failed',
+                        edit_policy: undefined as
+                            | { cost: number; grace_seconds: number }
+                            | undefined
                     }
                 };
             }
@@ -346,7 +349,8 @@ export const load: PageServerLoad = async ({
                 limit: initialCommentsLimit,
                 total_pages:
                     expectedTotal > 0 ? Math.ceil(expectedTotal / initialCommentsLimit) : 0,
-                loadState: 'failed' as 'complete' | 'partial' | 'failed'
+                loadState: 'failed' as 'complete' | 'partial' | 'failed',
+                edit_policy: undefined as { cost: number; grace_seconds: number } | undefined
             });
             // svelteKitFetch 는 표준 platform fetch(timeout 옵션 미지원) → AbortSignal.timeout 으로
             // 2.5s 상한. 초과/네트워크 오류는 .catch → failedMeta 로 일관 처리(무제한 대기 차단).
