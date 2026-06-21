@@ -326,15 +326,6 @@ export const load: PageServerLoad = async ({
             //   total<=loaded 산술(0/0 함정) 대신 이 신호에 기반.
             // - 실패는 무성으로 삼키지 않고 구조적 로그로 노출(재발 조기탐지).
             const expectedTotal = post.comments_count ?? 0;
-            const failedMeta = {
-                items: [],
-                total: expectedTotal,
-                page: 1,
-                limit: initialCommentsLimit,
-                total_pages:
-                    expectedTotal > 0 ? Math.ceil(expectedTotal / initialCommentsLimit) : 0,
-                loadState: 'failed' as 'complete' | 'partial' | 'failed'
-            };
             const ssrStart = Date.now();
             const warnFail = (reason: string, status?: number) =>
                 console.warn('[comments-ssr] fetch failed', {
@@ -345,50 +336,56 @@ export const load: PageServerLoad = async ({
                     expectedTotal,
                     durationMs: Date.now() - ssrStart
                 });
-
-            let commentsResult: typeof failedMeta & {
-                edit_policy?: { cost: number; grace_seconds: number };
-            };
-            try {
-                // svelteKitFetch 는 표준 platform fetch(timeout 옵션 미지원)이므로 AbortSignal.timeout
-                // 으로 2.5s 상한을 건다 — 무제한 대기로 SSR 본문이 블로킹되는 것 방지(초과 시
-                // AbortError → 아래 catch → failedMeta 로 일관 처리).
-                const res = await svelteKitFetch(
-                    `${url.origin}/api/boards/${boardId}/posts/${postId}/comments?page=1&limit=${initialCommentsLimit}`,
-                    { signal: AbortSignal.timeout(2_500) }
-                );
-                if (!res.ok) {
-                    warnFail('http_error', res.status);
-                    commentsResult = failedMeta;
-                } else {
+            // 실패/타임아웃 시에도 total 은 권위값(expectedTotal=post.comments_count) 보존 +
+            // loadState='failed'. total:0 으로 덮으면 클라 backfill 게이트가 0/0 으로 막혀
+            // 자가복구 불가(#12663·#12668). items 는 union 추론으로 any 소비 유지(다운스트림 호환).
+            const failedMeta = () => ({
+                items: [] as never[],
+                total: expectedTotal,
+                page: 1,
+                limit: initialCommentsLimit,
+                total_pages:
+                    expectedTotal > 0 ? Math.ceil(expectedTotal / initialCommentsLimit) : 0,
+                loadState: 'failed' as 'complete' | 'partial' | 'failed'
+            });
+            // svelteKitFetch 는 표준 platform fetch(timeout 옵션 미지원) → AbortSignal.timeout 으로
+            // 2.5s 상한. 초과/네트워크 오류는 .catch → failedMeta 로 일관 처리(무제한 대기 차단).
+            const commentsResult = await svelteKitFetch(
+                `${url.origin}/api/boards/${boardId}/posts/${postId}/comments?page=1&limit=${initialCommentsLimit}`,
+                { signal: AbortSignal.timeout(2_500) }
+            )
+                .then(async (res) => {
+                    if (!res.ok) {
+                        warnFail('http_error', res.status);
+                        return failedMeta();
+                    }
                     const json = await res.json();
                     if (!json.success) {
                         warnFail('not_success');
-                        commentsResult = failedMeta;
-                    } else {
-                        const data = json.data;
-                        const items = data.comments || [];
-                        const total = data.total || items.length;
-                        commentsResult = {
-                            items,
-                            total,
-                            page: data.page || 1,
-                            limit: data.limit || initialCommentsLimit,
-                            total_pages: data.total_pages || 1,
-                            loadState: (items.length >= total ? 'complete' : 'partial') as
-                                | 'complete'
-                                | 'partial'
-                                | 'failed',
-                            edit_policy: json.meta?.comment_edit_policy as
-                                | { cost: number; grace_seconds: number }
-                                | undefined
-                        };
+                        return failedMeta();
                     }
-                }
-            } catch {
-                warnFail('timeout_or_network');
-                commentsResult = failedMeta;
-            }
+                    const data = json.data;
+                    const items = data.comments || [];
+                    const total = data.total || items.length;
+                    return {
+                        items,
+                        total,
+                        page: data.page || 1,
+                        limit: data.limit || initialCommentsLimit,
+                        total_pages: data.total_pages || 1,
+                        loadState: (items.length >= total ? 'complete' : 'partial') as
+                            | 'complete'
+                            | 'partial'
+                            | 'failed',
+                        edit_policy: json.meta?.comment_edit_policy as
+                            | { cost: number; grace_seconds: number }
+                            | undefined
+                    };
+                })
+                .catch(() => {
+                    warnFail('timeout_or_network');
+                    return failedMeta();
+                });
 
             const comments = commentsResult;
 
