@@ -1309,12 +1309,16 @@
             const total = json.data.total || all.length;
             const reportedPages = json.data.total_pages ?? 1;
             const pagesToLoad = Math.min(reportedPages, MAX_PAGES);
-            for (let p = 2; p <= pagesToLoad; p++) {
-                const next = await fetchCommentPage(p);
-                if (next.success && next.data.comments?.length) {
-                    all = all.concat(next.data.comments);
-                } else {
-                    break;
+            // 나머지 페이지(2..N)를 병렬 로드 — 순차 await 제거로 긴 스레드/신고댓글 도달 지연 완화.
+            // Promise.all 은 입력 순서를 보존하므로 page 순서대로 concat 된다.
+            if (pagesToLoad > 1) {
+                const rest = await Promise.all(
+                    Array.from({ length: pagesToLoad - 1 }, (_, i) => fetchCommentPage(i + 2))
+                );
+                for (const next of rest) {
+                    if (next.success && next.data.comments?.length) {
+                        all = all.concat(next.data.comments);
+                    }
                 }
             }
             if (reportedPages > MAX_PAGES) {
@@ -1379,6 +1383,17 @@
         if (commentsLoadState === 'failed' || loaded === 0) {
             void backfillWithRetry();
             return;
+        }
+
+        // 앵커(#c_<댓글ID>)로 진입했는데 대상 댓글이 아직 로드 전이면(신고/딥링크) 1500ms 디바운스를
+        // 건너뛰고 즉시 나머지 댓글을 불러온다 — 모더레이터가 신고댓글을 한참 기다리던 문제 완화.
+        const hash = window.location.hash;
+        if (hash.startsWith('#c_')) {
+            const anchorId = hash.slice(3);
+            if (anchorId && !comments.some((c) => String(c.id) === anchorId)) {
+                void refetchComments();
+                return;
+            }
         }
 
         const timer = window.setTimeout(() => {
