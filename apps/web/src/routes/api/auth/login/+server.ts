@@ -71,8 +71,16 @@ export const POST: RequestHandler = async ({ request, cookies, getClientAddress 
 
         const result = await backendRes.json();
         const userData = result?.data;
+        // v2 backend 는 V2User.json:"id" 로 응답. legacy v1 은 user_id. 둘 다 호환.
+        // mb_id (string) 우선 — OAuth 5단계 fix 이후 user_id=numeric mb_no 라
+        // getMemberById(uid) 가 string mb_id 매칭 fail → SSO 쿠키 발급 skip 회귀.
+        const uid =
+            userData?.user?.username ??
+            userData?.user?.mb_id ??
+            userData?.user?.user_id ??
+            userData?.user?.id;
 
-        if (!userData?.user?.user_id) {
+        if (!uid) {
             return json(
                 { success: false, message: '사용자 정보를 가져올 수 없습니다.' },
                 { status: 500 }
@@ -82,7 +90,7 @@ export const POST: RequestHandler = async ({ request, cookies, getClientAddress 
         // 로그인 성공 → Rate limit 초기화
         resetAttempts(clientIp, 'login');
 
-        const mbId = userData.user.user_id;
+        const mbId = String(uid);
 
         // 서버사이드 세션 생성
         const session = await createSession(mbId, {
@@ -175,6 +183,7 @@ export const POST: RequestHandler = async ({ request, cookies, getClientAddress 
         // 서브도메인 SSO: damoang_jwt 쿠키 발급 (ads.damoang.net 등 Go 서비스 인증용)
         try {
             const member = await getMemberById(mbId);
+            console.log(`[Login] SSO cookie 발급 시도 mbId=${mbId} member=${!!member}`);
             if (member) {
                 await setDamoangSSOCookie(cookies, {
                     mb_id: member.mb_id,

@@ -97,18 +97,21 @@ function initFromSSR(
  * 앱 시작 시 호출 — 세션 기반: SSR이 인증 권위, 클라이언트 추가 인증 없음
  */
 async function initAuth(): Promise<void> {
-    // 레거시 localStorage 토큰 정리
-    if (typeof localStorage !== 'undefined') {
+    // localStorage.access_token 은 muzia 컴포넌트가 Authorization 헤더에 사용 — 무조건 제거 금지.
+    // OAuth callback / ID/PW 서버 프록시가 localStorage 에 저장한 정상 토큰을 모든 페이지 mount 마다
+    // 지워버리는 회귀가 있었음 (출석/체크인/내 정보 API 가 401 → 사용자가 "로그아웃" 인지).
+    //
+    // 비로그인이 SSR 권위로 확정된 경우에만 잔여 토큰 정리.
+    if (typeof localStorage !== 'undefined' && !user) {
         localStorage.removeItem('access_token');
     }
 
-    // 레거시 쿠키 정리
-    if (typeof document !== 'undefined') {
+    // 레거시 access_token 쿠키 정리 (현재는 angple_sid + damoang_jwt 사용 — access_token 쿠키는 옛 패턴)
+    if (typeof document !== 'undefined' && !user) {
         document.cookie = 'access_token=; path=/; max-age=0';
     }
 
     // 세션 기반: SSR에서 세션 없음 = 비로그인 확정
-    // 클라이언트에서 Go 백엔드에 추가 인증 시도하지 않음
     isLoading = false;
 }
 

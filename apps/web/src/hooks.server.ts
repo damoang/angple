@@ -402,6 +402,14 @@ async function authenticateSSR(event: Parameters<Handle>[0]['event']): Promise<v
 
     // 세션 쿠키로 인증
     const sessionId = event.cookies.get(SESSION_COOKIE_NAME);
+    const debugPathSess = event.url.pathname;
+    if (debugPathSess !== '/api/health' && debugPathSess !== '/favicon.ico' && debugPathSess.startsWith('/attendance')) {
+        const allCookies = event.request.headers.get('cookie') || '';
+        const hasJwt = allCookies.includes('damoang_jwt=');
+        const hasSid = allCookies.includes('angple_sid=');
+        const hasUserBasic = allCookies.includes('user_basic=');
+        console.log(`[SessionDebug] path=${debugPathSess} hasSession=${!!sessionId} hasJwt=${hasJwt} hasSid=${hasSid} hasUserBasic=${hasUserBasic} cookieLen=${allCookies.length}`);
+    }
 
     if (sessionId) {
         try {
@@ -580,6 +588,56 @@ async function authenticateSSR(event: Parameters<Handle>[0]['event']): Promise<v
             }
         } catch (err) {
             console.error('[Auth] 세션 인증 실패:', err instanceof Error ? err.message : err);
+        }
+    }
+
+    // OAuth (소셜) 로그인 fallback — damoang_jwt 쿠키 로 user 인증
+    // OAuth callback 은 angple_sid 세션 안 만들고 localStorage + damoang_jwt 만 set.
+    // SSR 시 angple_sid 없으면 여기서 damoang_jwt JWT 파싱 → g5_member lookup.
+    if (!event.locals.user) {
+        const jwtCookie = event.cookies.get('damoang_jwt');
+        const debugHost = event.request.headers.get('host') || '';
+        const debugPath = event.url.pathname;
+        if (debugPath !== '/api/health' && debugPath !== '/favicon.ico') {
+            console.log(`[OAuthDebug] host=${debugHost} path=${debugPath} hasJwt=${!!jwtCookie} jwtLen=${jwtCookie?.length || 0}`);
+        }
+        if (jwtCookie) {
+            try {
+                const payload = parseJWTPayload(jwtCookie);
+                // backend Go JWT 의 payload field 명: username (= mb_id 값) 또는 mb_id
+                // (backend oauth_service.go 가 v2u.Username = g5_member.mb_id 를 username 으로 채움)
+                const mbId = payload?.mb_id || (payload as any)?.username;
+                console.log(`[OAuthDebug] payload keys=${Object.keys(payload || {}).join(',')} mbId=${mbId}`);
+                if (mbId) {
+                    const memberRes = await withTimeoutRetry(
+                        () => getMemberById(mbId),
+                        AUTH_TIMEOUT_MS,
+                        'getMemberById'
+                    );
+                    if (memberRes.degraded) event.locals.authDegraded = true;
+                    const member = memberRes.value;
+                    console.log(`[OAuthDebug] getMemberById ${mbId} → member=${!!member} leave=${member?.mb_leave_date || ''}`);
+                    if (member && !member.mb_leave_date) {
+                        event.locals.user = {
+                            id: member.mb_id,
+                            mb_no: member.mb_no,
+                            nickname: member.mb_nick || member.mb_name,
+                            level: member.mb_level ?? 0,
+                            as_level: member.as_level ?? 0,
+                            mb_certify: member.mb_certify || '',
+                            mb_image: member.mb_image_url || undefined,
+                            mb_image_updated_at: member.mb_image_updated_at || undefined,
+                            advertiser_end_date: member.advertiser_end_date || undefined,
+                            advertiser_status: member.advertiser_status || undefined
+                        };
+                        event.locals.accessToken = jwtCookie;
+                        console.log(`[OAuthDebug] ✅ fallback 인증 성공 user=${member.mb_id}`);
+                        return; // 정리 단계 skip — 정상 인증
+                    }
+                }
+            } catch (err) {
+                console.error('[Auth] damoang_jwt fallback 실패:', err instanceof Error ? err.message : err);
+            }
         }
     }
 
@@ -842,7 +900,11 @@ export const handle: Handle = async ({ event, resolve }) => {
     // CDN 캐시 정책: 게시판 목록·홈처럼 새 글이 즉시 반영돼야 하는 페이지에서
     // 30s + stale 60s 였을 때 사용자가 새 글을 최대 90s 동안 못 보거나, 글 상세에 들어갔다 돌아왔을 때
     // 1~2분 전 list 가 그대로 노출되는 신고가 누적됨. s-maxage 와 stale 시간을 모두 단축한다.
-    const publicHtmlCacheControl = 'public, s-maxage=10, stale-while-revalidate=5, max-age=0';
+    //
+    // 2026-06-21: CF Free plan 이 `Vary: Cookie` 를 무시 → anonymous response 가 logged-in 사용자에게
+    // cache hit → 사용자가 "로그아웃" 인지하는 회귀 (cookie 갖고 server 까지 도달 못함). 이를 회피하기 위해
+    // anonymous response 도 private 으로 전환 (CDN cache 0, server 부담 증가) — 인증 안정성이 우선.
+    const publicHtmlCacheControl = 'private, max-age=0, must-revalidate';
     // Vary 헤더: 같은 URL 이라도 User-Agent (PC vs 모바일) / Accept-Encoding / 인증 쿠키별로
     // CDN 이 다른 응답을 캐시하도록 명시. 이전엔 Cookie 만 vary 해서 PC 사용자가 모바일 캐시를
     // 받거나 그 반대인 신고 (gouryella 2026-05-07) 가 발생했다.
