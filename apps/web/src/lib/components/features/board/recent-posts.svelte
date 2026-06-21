@@ -367,7 +367,10 @@
                 />
             </div>
             {#if widgetLayoutStore.hasEnabledAds && i + 1 === 12}
-                <div class="py-2" style="min-height: 90px; contain: layout;">
+                <!-- #12632: infeed 90px 배너가 overflow-y-visible 로 아래 게시물 위까지 수직 침범해
+                     클릭을 가로채던 문제(사파리) — 이 슬롯(윙 불필요)만 overflow 클립으로 격리.
+                     min-height 유지로 AdSlot 의 반응형 예약 높이를 따라가며, 그 박스를 넘는 spill 만 잘라낸다. -->
+                <div class="py-2" style="min-height: 90px; overflow: hidden; contain: layout;">
                     <AdSlot
                         position="board-list-infeed"
                         height="90px"
