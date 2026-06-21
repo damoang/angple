@@ -337,7 +337,16 @@
 
     // 댓글/프로모션/리비전 — Streaming SSR (2단계 데이터)
     let comments = $state<FreeComment[]>(data.commentsData?.comments.items || []);
-    let commentsTotal = $state<number>(data.commentsData?.comments.total || comments.length);
+    // total 은 SSR 가 권위값(post.comments_count)을 보존하므로 그대로 신뢰. 구버전/누락 방어로 post.comments_count 폴백.
+    let commentsTotal = $state<number>(
+        data.commentsData?.comments.total ?? data.post.comments_count ?? comments.length
+    );
+    // SSR 댓글 로드 상태: complete(전량/정상 0개) | partial(일부) | failed(SSR fetch 실패).
+    // backfill 게이트가 total<=loaded 산술(0/0 함정) 대신 이 신호에 기반 (#12663·#12668).
+    let commentsLoadState = $state<'complete' | 'partial' | 'failed'>(
+        data.commentsData?.comments.loadState ??
+            (commentsTotal > comments.length ? 'partial' : 'complete')
+    );
     // 댓글 수정 정책 — backend 단일 출처. proxy 응답의 meta.comment_edit_policy 에서 전달.
     let commentEditPolicy = $state<{ cost: number; grace_seconds: number } | undefined>(
         data.commentsData?.comments.edit_policy
@@ -371,7 +380,10 @@
         syncedCommentsPostId = postId;
 
         comments = result?.comments.items || [];
-        commentsTotal = result?.comments.total || comments.length;
+        commentsTotal = result?.comments.total ?? data.post.comments_count ?? comments.length;
+        commentsLoadState =
+            result?.comments.loadState ??
+            (commentsTotal > comments.length ? 'partial' : 'complete');
         initialLikedCommentIds = [];
         initialDislikedCommentIds = [];
         truthroomCommentMap = {};
@@ -1312,6 +1324,9 @@
             }
             comments = all;
             commentsTotal = total || all.length;
+            // 클라가 전량 로드 완료 — backfill 게이트가 재발화하지 않도록 complete 로 확정.
+            commentsLoadState = 'complete';
+            commentsError = false;
             // backfill 완료 후 앵커 스크롤 재시도 (#c_댓글ID로 접근 시)
             requestAnimationFrame(() => scheduleAnchorScroll());
         }
@@ -1341,6 +1356,10 @@
                 if (comments.length > 0 || commentsTotal === 0) return;
                 await new Promise((resolve) => setTimeout(resolve, 800 * (attempt + 1)));
             }
+            // 3회 모두 실패 + 여전히 빈 목록 → 에러/복구 UI 노출(무한 "불러오는 중" 고착 방지).
+            if (comments.length === 0 && commentsTotal > 0) {
+                commentsError = true;
+            }
         } finally {
             backfillInProgress = false;
         }
@@ -1350,11 +1369,14 @@
     // onMount 대신 $effect로 SPA 네비게이션에서도 동작하도록
     $effect(() => {
         if (!browser || !canViewSecret) return;
-        const total = commentsTotal;
+        // loadState 신호 기반(총<=로드 산술의 0/0 함정 제거, #12663·#12668):
+        // - complete: SSR 전량 로드(정상 0개 포함) → backfill 불필요.
+        // - failed 또는 목록 0개: 즉시 재시도(backfillWithRetry, 백오프 3회).
+        // - partial: 1500ms 후 나머지 페이지 채움(refetchComments 다중페이지).
+        if (commentsLoadState === 'complete') return;
         const loaded = comments.length;
-        if (total <= loaded) return;
 
-        if (loaded === 0) {
+        if (commentsLoadState === 'failed' || loaded === 0) {
             void backfillWithRetry();
             return;
         }
