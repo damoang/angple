@@ -350,10 +350,12 @@ export const load: PageServerLoad = async ({
                 edit_policy?: { cost: number; grace_seconds: number };
             };
             try {
-                // post fetch 와 동일하게 timeout 부여 — 무제한 대기로 SSR 본문이 블로킹되는 것 방지.
+                // svelteKitFetch 는 표준 platform fetch(timeout 옵션 미지원)이므로 AbortSignal.timeout
+                // 으로 2.5s 상한을 건다 — 무제한 대기로 SSR 본문이 블로킹되는 것 방지(초과 시
+                // AbortError → 아래 catch → failedMeta 로 일관 처리).
                 const res = await svelteKitFetch(
                     `${url.origin}/api/boards/${boardId}/posts/${postId}/comments?page=1&limit=${initialCommentsLimit}`,
-                    { timeout: 2_500 }
+                    { signal: AbortSignal.timeout(2_500) }
                 );
                 if (!res.ok) {
                     warnFail('http_error', res.status);
