@@ -11,6 +11,7 @@
         DialogFooter
     } from '$lib/components/ui/dialog/index.js';
     import { apiClient } from '$lib/api/index.js';
+    import { ApiRequestError } from '$lib/api/errors.js';
     import { authStore } from '$lib/stores/auth.svelte.js';
     import type { ReportTargetType, ReportReason, ReportReasonInfo } from '$lib/api/types.js';
     import AlertTriangle from '@lucide/svelte/icons/alert-triangle';
@@ -71,6 +72,8 @@
     let isSuccess = $state(false);
     let showConfirm = $state(false);
     let error = $state<string | null>(null);
+    // 이미 제재 처리된 게시물(409) — 재시도 불가이므로 제출 버튼 비활성
+    let alreadyHandled = $state(false);
 
     // #12605: 직전 신고 사유 자동복원(#12486) 제거. 신고는 이용제한 근거가 되므로
     // 새 신고는 항상 빈 사유로 시작한다 — 이전 사유가 미리 선택돼 의도치 않은
@@ -118,7 +121,13 @@
                 handleClose();
             }, 2000);
         } catch (err) {
-            error = err instanceof Error ? err.message : '신고 접수에 실패했습니다.';
+            if (err instanceof ApiRequestError && err.status === 409) {
+                // 이미 제재 처리된 게시물 — 중복 신고 불가. 명확히 안내하고 재시도 차단.
+                error = err.message || '이미 제재 처리된 게시물입니다. 중복 신고할 수 없습니다.';
+                alreadyHandled = true;
+            } else {
+                error = err instanceof Error ? err.message : '신고 접수에 실패했습니다.';
+            }
         } finally {
             isSubmitting = false;
         }
@@ -133,6 +142,7 @@
         isSuccess = false;
         showConfirm = false;
         error = null;
+        alreadyHandled = false;
         onClose?.();
     }
 
@@ -232,7 +242,7 @@
                         type="button"
                         variant="destructive"
                         onclick={handleSubmit}
-                        disabled={isSubmitting}
+                        disabled={isSubmitting || alreadyHandled}
                     >
                         {#if isSubmitting}
                             <Loader2 class="mr-2 h-4 w-4 animate-spin" />
