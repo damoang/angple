@@ -300,6 +300,7 @@ export const load: PageServerLoad = async ({
         // --- 2단계: 핵심/보조 데이터를 분리해 스트리밍 ---
         const commentsData = await (async () => {
             if (isDataRequest) {
+                // SPA 네비(__data.json): 댓글은 클라가 backfill 로 로드. total 은 권위값 보존.
                 return {
                     comments: {
                         items: [],
@@ -309,43 +310,83 @@ export const load: PageServerLoad = async ({
                         total_pages:
                             (post.comments_count ?? 0) > 0
                                 ? Math.ceil((post.comments_count ?? 0) / initialCommentsLimit)
-                                : 0
+                                : 0,
+                        loadState: ((post.comments_count ?? 0) > 0 ? 'partial' : 'complete') as
+                            | 'complete'
+                            | 'partial'
+                            | 'failed'
                     }
                 };
             }
 
-            const commentsResult = await svelteKitFetch(
-                `${url.origin}/api/boards/${boardId}/posts/${postId}/comments?page=1&limit=${initialCommentsLimit}`
-            ).then(async (res) => {
-                if (!res.ok)
-                    return {
-                        items: [],
-                        total: 0,
-                        page: 1,
-                        limit: initialCommentsLimit,
-                        total_pages: 0
-                    };
-                const json = await res.json();
-                if (!json.success)
-                    return {
-                        items: [],
-                        total: 0,
-                        page: 1,
-                        limit: initialCommentsLimit,
-                        total_pages: 0
-                    };
-                const data = json.data;
-                return {
-                    items: data.comments || [],
-                    total: data.total || 0,
-                    page: data.page || 1,
-                    limit: data.limit || initialCommentsLimit,
-                    total_pages: data.total_pages || 1,
-                    edit_policy: json.meta?.comment_edit_policy as
-                        | { cost: number; grace_seconds: number }
-                        | undefined
-                };
-            });
+            // 댓글 SSR 로드. 핵심 계약(#12663·#12668):
+            // - total 은 항상 "글의 권위 있는 댓글 수"(post.comments_count). SSR fetch 가
+            //   실패/타임아웃해도 0 으로 덮지 않는다 → 클라 backfill 이 확실히 발화.
+            // - loadState 로 complete/partial/failed 를 명시 → 클라 backfill 게이트가
+            //   total<=loaded 산술(0/0 함정) 대신 이 신호에 기반.
+            // - 실패는 무성으로 삼키지 않고 구조적 로그로 노출(재발 조기탐지).
+            const expectedTotal = post.comments_count ?? 0;
+            const failedMeta = {
+                items: [],
+                total: expectedTotal,
+                page: 1,
+                limit: initialCommentsLimit,
+                total_pages:
+                    expectedTotal > 0 ? Math.ceil(expectedTotal / initialCommentsLimit) : 0,
+                loadState: 'failed' as 'complete' | 'partial' | 'failed'
+            };
+            const ssrStart = Date.now();
+            const warnFail = (reason: string, status?: number) =>
+                console.warn('[comments-ssr] fetch failed', {
+                    boardId,
+                    postId,
+                    reason,
+                    status,
+                    expectedTotal,
+                    durationMs: Date.now() - ssrStart
+                });
+
+            let commentsResult: typeof failedMeta & {
+                edit_policy?: { cost: number; grace_seconds: number };
+            };
+            try {
+                // post fetch 와 동일하게 timeout 부여 — 무제한 대기로 SSR 본문이 블로킹되는 것 방지.
+                const res = await svelteKitFetch(
+                    `${url.origin}/api/boards/${boardId}/posts/${postId}/comments?page=1&limit=${initialCommentsLimit}`,
+                    { timeout: 2_500 }
+                );
+                if (!res.ok) {
+                    warnFail('http_error', res.status);
+                    commentsResult = failedMeta;
+                } else {
+                    const json = await res.json();
+                    if (!json.success) {
+                        warnFail('not_success');
+                        commentsResult = failedMeta;
+                    } else {
+                        const data = json.data;
+                        const items = data.comments || [];
+                        const total = data.total || items.length;
+                        commentsResult = {
+                            items,
+                            total,
+                            page: data.page || 1,
+                            limit: data.limit || initialCommentsLimit,
+                            total_pages: data.total_pages || 1,
+                            loadState: (items.length >= total ? 'complete' : 'partial') as
+                                | 'complete'
+                                | 'partial'
+                                | 'failed',
+                            edit_policy: json.meta?.comment_edit_policy as
+                                | { cost: number; grace_seconds: number }
+                                | undefined
+                        };
+                    }
+                }
+            } catch {
+                warnFail('timeout_or_network');
+                commentsResult = failedMeta;
+            }
 
             const comments = commentsResult;
 
