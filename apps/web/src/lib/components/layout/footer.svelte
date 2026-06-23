@@ -65,7 +65,8 @@
         { name: '스마트스토어', href: 'https://smartstore.naver.com/damoang-net/' },
         { name: '마플샵', href: 'https://marpple.shop/kr/dma' },
         { name: '유튜브', href: 'https://www.youtube.com/@damoangnet' },
-        { name: 'X', href: 'https://x.com/@damoang_net' }
+        { name: 'X', href: 'https://x.com/@damoang_net' },
+        { name: '후원', href: 'https://damoang.benecent.org' }
     ];
 
     let openSections = $state<Set<number>>(new Set());
@@ -137,8 +138,6 @@
                     <ExternalLink class="h-3 w-3" />
                 </a>
             {/each}
-            <!-- 배내센트: 링크 오픈 전까지 텍스트만 노출 -->
-            <span class="text-muted-foreground flex items-center text-xs"> 배내센트 </span>
         </div>
     </div>
 
