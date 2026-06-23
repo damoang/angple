@@ -9,6 +9,7 @@
     } from '$lib/components/ui/accordion';
     import { Button } from '$lib/components/ui/button';
     import { cn } from '$lib/utils';
+    import { handleBoardLinkClick } from '$lib/utils/board-nav.js';
     import { menuStore } from '$lib/stores/menu.svelte';
 
     import ChevronRight from '@lucide/svelte/icons/chevron-right';
@@ -150,6 +151,7 @@
                     {@const active = isActive(`/${entry.boardId}`)}
                     <a
                         href="/{entry.boardId}"
+                        onclick={(e) => handleBoardLinkClick(e, entry.boardId, $page.url.pathname)}
                         class={cn(
                             'flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs transition-colors',
                             active
@@ -188,6 +190,8 @@
                             {@const active = isActive(`/${entry.boardId}`)}
                             <a
                                 href="/{entry.boardId}"
+                                onclick={(e) =>
+                                    handleBoardLinkClick(e, entry.boardId, $page.url.pathname)}
                                 class={cn(
                                     'flex items-center gap-1.5 rounded-md px-2 py-1.5 text-sm transition-colors',
                                     active

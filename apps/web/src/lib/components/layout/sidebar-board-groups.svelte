@@ -4,6 +4,8 @@
      * 게시판을 그룹별로 묶어 표시
      */
     import type { BoardGroup } from '$lib/api/types.js';
+    import { page } from '$app/stores';
+    import { handleBoardLinkClick } from '$lib/utils/board-nav.js';
     import { SvelteSet } from 'svelte/reactivity';
     import ChevronDown from '@lucide/svelte/icons/chevron-down';
     import ChevronRight from '@lucide/svelte/icons/chevron-right';
@@ -54,6 +56,8 @@
                         {@const isActive = currentBoardId === board.board_id}
                         <a
                             href="/{board.board_id}"
+                            onclick={(e) =>
+                                handleBoardLinkClick(e, board.board_id, $page.url.pathname)}
                             class="block rounded-md px-3 py-1.5 text-base transition-colors"
                             class:bg-primary={isActive}
                             class:text-primary-foreground={isActive}
