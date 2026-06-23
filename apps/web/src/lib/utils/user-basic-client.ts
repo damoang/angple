@@ -43,7 +43,11 @@ function validateUserBasic(data: unknown): UserBasic | null {
 export function parseUserBasicBase64(encoded: string | null | undefined): UserBasic | null {
     if (!encoded) return null;
     try {
-        const json = atob(encoded);
+        // atob 는 Latin-1 바이트 문자열을 돌려줘, 서버가 UTF-8 로 인코딩한 한글 닉네임을
+        // 그대로 JSON.parse 하면 깨진다(#12789 닉네임 깨짐). 바이트로 되돌려 UTF-8 로 디코딩.
+        const binary = atob(encoded);
+        const bytes = Uint8Array.from(binary, (ch) => ch.charCodeAt(0));
+        const json = new TextDecoder('utf-8').decode(bytes);
         const data = JSON.parse(json) as unknown;
         return validateUserBasic(data);
     } catch {
