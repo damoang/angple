@@ -5,7 +5,13 @@ import { redirect, type Handle, type HandleServerError } from '@sveltejs/kit';
 import { dev } from '$app/environment';
 import { env } from '$env/dynamic/private';
 import { getMemberById, updateLoginTimestamp } from '$lib/server/auth/oauth/member.js';
-import { getSession, destroySession, SESSION_COOKIE_NAME } from '$lib/server/auth/session-store.js';
+import {
+    getSession,
+    destroySession,
+    SESSION_COOKIE_NAME,
+    CSRF_COOKIE_NAME,
+    SESSION_COOKIE_MAX_AGE
+} from '$lib/server/auth/session-store.js';
 import { grantLoginXP } from '$lib/server/auth/xp-grant.js';
 import { grantLoginPoint } from '$lib/server/auth/point-grant.js';
 import { checkAndPromoteMember } from '$lib/server/auth/auto-promotion.js';
@@ -840,6 +846,30 @@ export const handle: Handle = async ({ event, resolve }) => {
 
     // CDN cache key normalization — ssr_auth=1 / 없음 2-state로 쿠키 다양성 축소
     syncSsrAuthCookie(event);
+
+    // angple_csrf 쿠키 sliding 재동기화 (#12298/#12545).
+    // 이 쿠키(double-submit 용)는 로그인/OAuth 콜백 때만 발행되고 hooks 에서 갱신되지
+    // 않아, SSO 세션 갱신·쿠키 만료/삭제 후에는 현재 session.csrfToken 과 어긋난 채로
+    // 남는다. 그러면 아래 검증에서 클라가 보낸 X-CSRF-Token(옛 쿠키 값)이 현재 세션
+    // 토큰과 달라 403("CSRF 토큰이 유효하지 않습니다")이 나고, 소셜 계정 해제 등
+    // 상태변경 요청이 재로그인 전까지 영구 실패한다(특히 쿠키를 비우는 환경).
+    // 현재 세션 csrfToken 으로 쿠키를 재동기화해 다음 요청부터 검증을 통과시킨다.
+    // (이번 요청의 검증은 들어온 헤더 기준이라 self-heal 은 다음 요청부터 — GET 페이지
+    //  로드가 먼저 쿠키를 갱신하므로 이어지는 POST 는 정상 통과한다.)
+    if (
+        event.locals.sessionId &&
+        event.locals.csrfToken &&
+        event.cookies.get(CSRF_COOKIE_NAME) !== event.locals.csrfToken
+    ) {
+        event.cookies.set(CSRF_COOKIE_NAME, event.locals.csrfToken, {
+            path: '/',
+            httpOnly: false,
+            sameSite: 'lax',
+            secure: !dev,
+            maxAge: SESSION_COOKIE_MAX_AGE,
+            ...(COOKIE_DOMAIN ? { domain: COOKIE_DOMAIN } : {})
+        });
+    }
 
     // CSRF 검증: 세션 기반 double-submit cookie
     if (
