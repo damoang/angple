@@ -14,6 +14,8 @@ export interface UserBasic {
     as_level: number;
     mb_image: string | null;
     mb_image_updated_at: number | null;
+    /** 실명인증 여부. 레거시 쿠키엔 없음(undefined) → 호출측이 /api/auth/me 폴백 판단. */
+    certified?: boolean;
 }
 
 function validateUserBasic(data: unknown): UserBasic | null {
@@ -30,7 +32,8 @@ function validateUserBasic(data: unknown): UserBasic | null {
         as_level: d.as_level,
         mb_image: typeof d.mb_image === 'string' ? d.mb_image : null,
         mb_image_updated_at:
-            typeof d.mb_image_updated_at === 'number' ? d.mb_image_updated_at : null
+            typeof d.mb_image_updated_at === 'number' ? d.mb_image_updated_at : null,
+        certified: typeof d.certified === 'boolean' ? d.certified : undefined
     };
 }
 

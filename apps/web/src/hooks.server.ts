@@ -497,11 +497,16 @@ async function authenticateSSR(event: Parameters<Handle>[0]['event']): Promise<v
                     const memberImageTs: number | null = member.mb_image_updated_at
                         ? Math.floor(new Date(member.mb_image_updated_at).getTime() / 1000) || null
                         : null;
+                    // 실명인증 여부 — fast-path 가 공감/글쓰기 게이트를 정확히 판단하려면
+                    // 쿠키에 반드시 담아야 한다(#12789 incident: certified 누락 → 미인증 오판 →
+                    // 전원 실명인증 유도). PII 없이 boolean 만.
+                    const memberCertified = !!member.mb_certify;
                     const existingBasic = parseUserBasicCookie(event.cookies.get('user_basic'));
                     if (
                         !existingBasic ||
                         existingBasic.id !== member.mb_id ||
-                        existingBasic.mb_image_updated_at !== memberImageTs
+                        existingBasic.mb_image_updated_at !== memberImageTs ||
+                        existingBasic.certified !== memberCertified
                     ) {
                         issueUserBasicCookie(event.cookies, {
                             id: member.mb_id,
@@ -510,7 +515,8 @@ async function authenticateSSR(event: Parameters<Handle>[0]['event']): Promise<v
                             mb_level: member.mb_level ?? 0,
                             as_level: member.as_level ?? 0,
                             mb_image: member.mb_image_url || null,
-                            mb_image_updated_at: memberImageTs
+                            mb_image_updated_at: memberImageTs,
+                            certified: memberCertified
                         });
                     }
 
