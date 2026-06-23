@@ -11,7 +11,7 @@ import { grantLoginPoint } from '$lib/server/auth/point-grant.js';
 import { checkAndPromoteMember } from '$lib/server/auth/auto-promotion.js';
 import { generateAccessToken } from '$lib/server/auth/jwt.js';
 import { setDamoangSSOCookie } from '$lib/server/auth/sso-cookie.js';
-import { parseUserBasicCookie } from '$lib/server/auth/user-basic.js';
+import { parseUserBasicCookie, issueUserBasicCookie } from '$lib/server/auth/user-basic.js';
 import { loadAllPluginServerHooks } from '$lib/server/plugin-server-loader.js';
 import { CompositeSiteResolver } from '$lib/server/site-resolver/composite.js';
 import { ConfigSiteResolver } from '$lib/server/site-resolver/config.js';
@@ -483,6 +483,36 @@ async function authenticateSSR(event: Parameters<Handle>[0]['event']): Promise<v
                     };
                     event.locals.sessionId = sessionId;
                     event.locals.csrfToken = session.csrfToken;
+
+                    // user_basic fast-path 쿠키 sliding 재발행 (free/6538010, #12513).
+                    // 이 쿠키는 그동안 "로그인 시점"에만 발행돼, 캐시/쿠키 삭제·30일 만료·
+                    // SSO 로 세션만 갱신된 경우에는 사라진 채로 남는다. 그러면 SSR_STRIP_USER=true
+                    // 환경에서 클라이언트가 매 로드마다 느린 /api/auth/me(Redis+DB) 폴백을 타
+                    // "인증정보가 10초+ 늦게 뜨는" 증상이 재로그인 전까지 영구화된다.
+                    // 인증 사용자를 해석한 김에, 쿠키가 없거나 현재 사용자/아바타와 어긋나면
+                    // 재발행해 다음 로드부터 클라이언트 fast-path(백엔드 호출 0) 즉시 렌더로 복귀시킨다.
+                    // (USER_BASIC_FAST_PATH 와 무관 — DB 조회를 건너뛰지 않는 단순 Set-Cookie)
+                    // member.mb_image_updated_at 는 ISO 문자열이고 user_basic 쿠키/클라
+                    // fast-path 는 Unix 초(number)를 기대하므로 변환한다(파싱 불가 시 null).
+                    const memberImageTs: number | null = member.mb_image_updated_at
+                        ? Math.floor(new Date(member.mb_image_updated_at).getTime() / 1000) || null
+                        : null;
+                    const existingBasic = parseUserBasicCookie(event.cookies.get('user_basic'));
+                    if (
+                        !existingBasic ||
+                        existingBasic.id !== member.mb_id ||
+                        existingBasic.mb_image_updated_at !== memberImageTs
+                    ) {
+                        issueUserBasicCookie(event.cookies, {
+                            id: member.mb_id,
+                            mb_no: member.mb_no,
+                            nickname: member.mb_nick || member.mb_name,
+                            mb_level: member.mb_level ?? 0,
+                            as_level: member.as_level ?? 0,
+                            mb_image: member.mb_image_url || null,
+                            mb_image_updated_at: memberImageTs
+                        });
+                    }
 
                     // Go 백엔드 통신용 내부 JWT (캐시 사용, 5분 TTL)
                     const now = Date.now();
