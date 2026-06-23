@@ -23,6 +23,13 @@ export interface UserBasic {
     as_level: number;
     mb_image: string | null;
     mb_image_updated_at: number | null;
+    /**
+     * 실명인증 여부(불리언). 클라 fast-path 가 실명인증 게이트(공감·글쓰기)를 정확히
+     * 판단하려면 필요(#12789 incident). PII(실명/인증값)는 싣지 않고 여부만 담는다.
+     * 구쿠키 호환을 위해 optional — undefined(레거시)면 클라는 fast-path 대신
+     * /api/auth/me 로 폴백해 진실을 조회한다(미인증 단정 금지).
+     */
+    certified?: boolean;
 }
 
 /**
@@ -51,7 +58,9 @@ export function parseUserBasicCookie(encoded: string | null | undefined): UserBa
             as_level: d.as_level,
             mb_image: typeof d.mb_image === 'string' ? d.mb_image : null,
             mb_image_updated_at:
-                typeof d.mb_image_updated_at === 'number' ? d.mb_image_updated_at : null
+                typeof d.mb_image_updated_at === 'number' ? d.mb_image_updated_at : null,
+            // 레거시 쿠키는 certified 가 없다 → undefined 유지(클라가 폴백 판단에 사용).
+            certified: typeof d.certified === 'boolean' ? d.certified : undefined
         };
     } catch {
         return null;
@@ -77,7 +86,9 @@ export function issueUserBasicCookie(cookies: Cookies, basic: UserBasic): void {
         mb_level: basic.mb_level,
         as_level: basic.as_level,
         mb_image: basic.mb_image,
-        mb_image_updated_at: basic.mb_image_updated_at
+        mb_image_updated_at: basic.mb_image_updated_at,
+        // 실명인증 여부(boolean). undefined(미지정)면 키를 생략해 레거시와 동일 취급.
+        ...(typeof basic.certified === 'boolean' ? { certified: basic.certified } : {})
     };
     const encoded = Buffer.from(JSON.stringify(payload), 'utf-8').toString('base64');
     const domainOpt = env.COOKIE_DOMAIN ? { domain: env.COOKIE_DOMAIN } : {};

@@ -545,7 +545,11 @@
             if (env.PUBLIC_USER_BASIC_CLIENT_READ === 'true') {
                 try {
                     const basic = readUserBasicFromCookie(document.cookie);
-                    if (basic) {
+                    // #12789 incident: 쿠키에 실명인증 여부(certified)가 없으면 fast-path 가
+                    // mb_certify='' 로 렌더해 인증 유저를 미인증으로 오판 → 공감·글쓰기가
+                    // 실명인증으로 잘못 유도된다. certified 를 담은 쿠키만 fast-path 로 신뢰하고,
+                    // 레거시 쿠키(certified=undefined)는 /api/auth/me 로 폴백해 진실을 조회한다.
+                    if (basic && basic.certified !== undefined) {
                         syncAuth({
                             ...data,
                             user: {
@@ -553,7 +557,7 @@
                                 nickname: basic.nickname,
                                 level: basic.mb_level,
                                 as_level: basic.as_level,
-                                mb_certify: '',
+                                mb_certify: basic.certified ? 'Y' : '',
                                 mb_image: basic.mb_image ?? undefined,
                                 mb_image_updated_at: basic.mb_image_updated_at ?? undefined,
                                 advertiser_end_date: undefined,
