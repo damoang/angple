@@ -1427,21 +1427,31 @@
             });
 
             // Optimistic update: 서버 응답 즉시 목록에 추가 (#11946)
+            let optimisticComment: FreeComment | null = null;
             if (newComment && newComment.id) {
-                const optimistic = {
+                optimisticComment = {
                     ...newComment,
                     author_id: authStore.user.mb_id || '',
                     author_image_url: authStore.user.mb_image || '',
                     author_level: authStore.user.mb_level ?? 0
                 } as unknown as FreeComment;
-                if (!comments.some((c) => c.id === optimistic.id)) {
-                    comments = [...comments, optimistic];
+                if (!comments.some((c) => c.id === optimisticComment!.id)) {
+                    comments = [...comments, optimisticComment];
                     commentsTotal = commentsTotal + 1;
                 }
             }
 
             // 서버에서 정렬된 댓글 목록 다시 가져오기 (중복 제거 포함)
             await refetchComments();
+
+            // #12548: 쓰기 직후 refetch 가 백엔드 쓰기→읽기 가시성 지연으로 새 댓글을 아직
+            // 돌려주지 않으면, refetchComments 의 `comments = all` 이 위 optimistic 댓글을
+            // 덮어써 "댓글 작성 후 새로고침해야 보임" 이 재현된다. refetch 후에도 새 댓글이
+            // 목록에 없으면 다시 끼워넣어 항상 즉시 보이게 한다(다음 자연스러운 refetch 가 정렬·정정).
+            if (optimisticComment && !comments.some((c) => c.id === optimisticComment!.id)) {
+                comments = [...comments, optimisticComment];
+                commentsTotal = commentsTotal + 1;
+            }
 
             // @멘션 알림 전송 (fire-and-forget)
             sendMentionNotifications({
