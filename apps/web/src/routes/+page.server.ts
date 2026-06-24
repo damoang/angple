@@ -4,6 +4,7 @@ import { DEFAULT_WIDGETS, DEFAULT_SIDEBAR_WIDGETS } from '$lib/constants/default
 import { buildIndexWidgets } from '$lib/server/index-widgets-builder';
 import { getDefaultPeriod, loadRecommendedData } from '$lib/server/recommended-loader';
 import { getCachedCelebrations } from '$lib/server/celebration';
+import { loadExploreData, buildExplorePreviewData } from '$lib/server/explore-loader';
 import { env } from '$env/dynamic/private';
 
 const BACKEND_URL = env.BACKEND_URL || 'http://localhost:8090';
@@ -15,7 +16,7 @@ interface HomePageData {
     sidebarWidgetLayout: typeof DEFAULT_SIDEBAR_WIDGETS;
     recommendedData: Awaited<ReturnType<typeof loadRecommendedData>> | null;
     recommendedPeriod: ReturnType<typeof getDefaultPeriod>;
-    exploreData: null;
+    exploreData: ReturnType<typeof buildExplorePreviewData> | null;
     celebrationRecent: Awaited<ReturnType<typeof getCachedCelebrations>> | null;
 }
 
@@ -26,8 +27,7 @@ const pendingByHost = new Map<string, Promise<HomePageData>>();
 
 async function buildHomePageData(): Promise<HomePageData> {
     const recommendedPeriod = getDefaultPeriod();
-    // 메인 SSR 페이로드를 줄이기 위해 explore는 클라이언트 fallback에 맡긴다.
-    const [indexWidgetsResult, layoutResult, celebrationResult, recommendedResult] =
+    const [indexWidgetsResult, layoutResult, celebrationResult, recommendedResult, exploreResult] =
         await Promise.allSettled([
             buildIndexWidgets(BACKEND_URL),
             (async () => {
@@ -43,7 +43,9 @@ async function buildHomePageData(): Promise<HomePageData> {
             // 인덱스 전용: 최근 마음메시지 (오늘뿐 아니라 최근 8건)
             getCachedCelebrations(true),
             // 공감글 SSR 프리페치 (스켈레톤 제거)
-            loadRecommendedData(recommendedPeriod)
+            loadRecommendedData(recommendedPeriod),
+            // 모아보기 SSR 프리페치 (스켈레톤 제거). 파일 캐시(60초 인메모리)라 SSR 부담 적음.
+            loadExploreData()
         ]);
 
     const indexWidgets =
@@ -54,6 +56,8 @@ async function buildHomePageData(): Promise<HomePageData> {
             : { widgetLayout: DEFAULT_WIDGETS, sidebarWidgetLayout: DEFAULT_SIDEBAR_WIDGETS };
     const celebrationRecent =
         celebrationResult.status === 'fulfilled' ? celebrationResult.value : null;
+    const exploreRaw = exploreResult.status === 'fulfilled' ? exploreResult.value : null;
+    const exploreData = exploreRaw ? buildExplorePreviewData(exploreRaw) : null;
 
     if (indexWidgetsResult.status === 'rejected') {
         console.error('[SSR] Failed to load index widgets:', indexWidgetsResult.reason);
@@ -65,7 +69,7 @@ async function buildHomePageData(): Promise<HomePageData> {
         sidebarWidgetLayout: layoutData.sidebarWidgetLayout,
         recommendedData: recommendedResult.status === 'fulfilled' ? recommendedResult.value : null,
         recommendedPeriod,
-        exploreData: null,
+        exploreData,
         celebrationRecent
     };
 }
