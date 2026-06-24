@@ -426,6 +426,18 @@
 
     <!-- 사이드바 메뉴 아래 광고 -->
     <div class={compact ? 'space-y-2 px-1' : 'space-y-2 px-2'}>
+        {#if !compact}
+            <!-- 데스크톱: 메뉴 ↔ (카카오)광고 사이 후원하기 1줄 카드 (benecent). 광고 on/off 무관 항상 노출. -->
+            <a
+                href="https://damoang.benecent.org"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="border-primary/30 bg-primary/5 text-primary hover:bg-primary/10 flex items-center justify-between rounded-lg border px-3 py-2 text-sm font-medium transition-colors"
+            >
+                <span>💛 다모앙 후원하기</span>
+                <span aria-hidden="true" class="leading-none">→</span>
+            </a>
+        {/if}
         <div class:hidden={!widgetLayoutStore.hasEnabledAds}>
             {#if compact}{:else}
                 <AdSlot position="sidebar" height="250px" slotKey="sidebar-main" />
@@ -479,16 +491,6 @@
                 </a>
             </div>
         {:else}
-            <!-- 데스크톱 사이드바: 후원하기 1줄 카드 (benecent). 드로워(compact)와 동일 — 데스크톱에도 노출(#1672 후속). -->
-            <a
-                href="https://damoang.benecent.org"
-                target="_blank"
-                rel="noopener noreferrer"
-                class="border-primary/30 bg-primary/5 text-primary hover:bg-primary/10 flex items-center justify-between rounded-lg border px-3 py-2 text-sm font-medium transition-colors"
-            >
-                <span>💛 다모앙 후원하기</span>
-                <span aria-hidden="true" class="leading-none">→</span>
-            </a>
             <!-- Slot: sidebar-left-bottom -->
             {#each getComponentsForSlot('sidebar-left-bottom') as slotComp (slotComp.id)}
                 {@const Component = slotComp.component}
