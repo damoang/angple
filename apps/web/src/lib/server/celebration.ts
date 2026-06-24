@@ -91,7 +91,8 @@ export async function fetchCelebrations(isRecent: boolean = false): Promise<Cele
         for (const row of rows as RowDataPacket[]) {
             const linkUrl =
                 row.external_url ||
-                (row.source_wr_id ? `/message/${row.source_wr_id}` : row.link_url || '');
+                row.link_url ||
+                (row.source_wr_id ? `/message/${row.source_wr_id}` : '');
             const sourceWrName = (row.source_wr_name ?? '').toString().trim();
             const anonymous = !!row.is_anonymous || (!!row.source_wr_id && sourceWrName === '');
 
