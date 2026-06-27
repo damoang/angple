@@ -6,6 +6,7 @@
     import type { PageData } from './$types.js';
     import { authStore } from '$lib/stores/auth.svelte.js';
     import { getGradeName } from '$lib/utils/grade.js';
+    import { LevelBadge } from '$lib/components/ui/level-badge/index.js';
     import { getAvatarUrl } from '$lib/utils/member-icon.js';
     import MySkeleton from '$lib/components/features/my/my-skeleton.svelte';
     import FileText from '@lucide/svelte/icons/file-text';
@@ -128,7 +129,14 @@
                 </div>
                 <div>
                     <h1 class="text-foreground text-2xl font-bold">{authStore.user.mb_name}</h1>
-                    <p class="text-secondary-foreground">{getGradeName(authStore.user.mb_level)}</p>
+                    <div class="flex items-center gap-1.5">
+                        {#if authStore.user.as_level}
+                            <LevelBadge level={authStore.user.as_level} />
+                        {/if}
+                        <p class="text-secondary-foreground">
+                            {getGradeName(authStore.user.mb_level)}
+                        </p>
+                    </div>
                     {#if authStore.user.mb_id}
                         <p class="text-muted-foreground mt-0.5 text-sm">
                             아이디 {authStore.user.mb_id}
