@@ -50,8 +50,12 @@ const config = {
             trustedOrigins: ['*']
         },
         output: {
-            // 청크 수를 줄이기 위해 단일 번들 전략 사용
-            bundleStrategy: 'single',
+            // 코드 분할 사용(SvelteKit 기본). 앱이 커지며 단일 번들의 단점이 큼:
+            //  - 매 배포마다 전체 번들 해시 변경 → 재방문자가 전체 재다운로드(캐시 재사용 0)
+            //  - Three.js 등 무거운 동적 import 가 모든 페이지에 인라인
+            // 분할 시 벤더/라우트 청크가 배포 간 캐시 유지되어 대역폭·로드 모두 개선.
+            // (Cloudflare h2/h3 멀티플렉싱이라 청크 다수의 요청 오버헤드는 미미)
+            bundleStrategy: 'split',
             // modulepreload: 브라우저 기본 동작에 위임하여 불필요한 prefetch 감소
             preloadStrategy: 'modulepreload'
         },
