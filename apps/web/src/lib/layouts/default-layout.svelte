@@ -20,9 +20,15 @@
     const { children } = $props(); // Svelte 5
     let snbPosition = $state<'left' | 'right'>('left'); // 기본값
 
-    // 풀폭 페이지(예: /brickang)는 라우트 load 가 { fullWidth: true } 반환 → 사이드바 숨김.
-    // 플래그 없으면 항상 false 라 다른 페이지 영향 0.
-    const fullWidth = $derived($page.data?.fullWidth === true);
+    // 풀폭 페이지 = 사이드바 숨김. 라우트 load 의 { fullWidth: true } 플래그(재사용 가능)
+    // 또는 경로 prefix(/brickang)로 감지. 플래그/경로 미해당이면 항상 false → 다른 페이지 영향 0.
+    const fullWidthPaths = ['/brickang'];
+    const fullWidth = $derived(
+        $page.data?.fullWidth === true ||
+            fullWidthPaths.some(
+                (p) => $page.url.pathname === p || $page.url.pathname.startsWith(p + '/')
+            )
+    );
 
     onMount(() => {
         // 인증 상태 초기화
