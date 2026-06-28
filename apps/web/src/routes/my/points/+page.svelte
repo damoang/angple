@@ -239,13 +239,27 @@
                                             class="text-muted-foreground mt-1 flex items-center gap-2 text-xs"
                                         >
                                             <span>{formatDate(item.po_datetime)}</span>
-                                            {#if item.po_expired}
+                                            {#if item.po_point > 0 && item.po_expired_raw === 1}
+                                                <!-- 적립 포인트가 유효기간 경과로 소멸된 경우만 '기간만료' -->
                                                 <Badge
                                                     variant="secondary"
                                                     class="text-muted-foreground text-[10px]"
-                                                    >만료됨</Badge
+                                                    >기간만료</Badge
                                                 >
-                                            {:else if isExpiringSoon(item.po_expire_date)}
+                                            {:else if item.po_point > 0 && item.po_expired_raw === 100}
+                                                <Badge
+                                                    variant="secondary"
+                                                    class="text-muted-foreground text-[10px]"
+                                                    >전부 사용</Badge
+                                                >
+                                            {:else if item.po_point < 0}
+                                                <!-- 음수=사용(쪽지/응모/댓글수정 등). 내용(po_content)이 곧 사유 -->
+                                                <Badge
+                                                    variant="outline"
+                                                    class="text-muted-foreground text-[10px]"
+                                                    >사용</Badge
+                                                >
+                                            {:else if !item.po_expired && isExpiringSoon(item.po_expire_date)}
                                                 <Badge
                                                     variant="outline"
                                                     class="border-orange-300 text-[10px] text-orange-600"
@@ -253,7 +267,7 @@
                                                     <Clock class="mr-0.5 h-2.5 w-2.5" />
                                                     만료 임박
                                                 </Badge>
-                                            {:else if item.po_expire_date && item.po_expire_date !== '9999-12-31'}
+                                            {:else if !item.po_expired && item.po_expire_date && item.po_expire_date !== '9999-12-31'}
                                                 <span class="text-muted-foreground"
                                                     >만료: {item.po_expire_date}</span
                                                 >
