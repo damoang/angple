@@ -70,6 +70,35 @@
         return point.toLocaleString();
     }
 
+    // 차감(사용) 항목의 친화적 사유 — po_rel_action 우선, 없으면 po_content 키워드로 추정.
+    // gnuboard 의 po_rel_action 은 일관되지 않아(액션어/숫자/날짜 혼재) 폴백을 둔다.
+    function usageReason(item: { po_rel_action?: string; po_content?: string }): string {
+        const a = (item.po_rel_action || '').trim();
+        const c = item.po_content || '';
+        switch (a) {
+            case 'comment_edit':
+                return '댓글 수정';
+            case '댓글':
+            case '@comment':
+                return '댓글 작성';
+            case '읽기':
+                return '글 읽기';
+            case 'bid':
+                return '나눔 응모';
+            case '투표':
+                return '투표 참여';
+            case '쓰기':
+            case '@write':
+                return '글 작성';
+            case '다운로드':
+                return '파일 다운로드';
+        }
+        if (c.includes('쪽지')) return '쪽지 발송';
+        if (c.includes('소멸') || a.startsWith('expire')) return '포인트 소멸';
+        if (c.includes('출석')) return '출석';
+        return '사용';
+    }
+
     // 필터 변경
     function setFilter(filter: string): void {
         goto(`/my/points?page=1&filter=${filter}`);
@@ -253,11 +282,11 @@
                                                     >전부 사용</Badge
                                                 >
                                             {:else if item.po_point < 0}
-                                                <!-- 음수=사용(쪽지/응모/댓글수정 등). 내용(po_content)이 곧 사유 -->
+                                                <!-- 음수=사용. po_rel_action 기반 친화적 사유 명시 (내부 식별자 노출 방지) -->
                                                 <Badge
                                                     variant="outline"
-                                                    class="text-muted-foreground text-[10px]"
-                                                    >사용</Badge
+                                                    class="border-blue-300 text-[10px] text-blue-600"
+                                                    >{usageReason(item)}</Badge
                                                 >
                                             {:else if !item.po_expired && isExpiringSoon(item.po_expire_date)}
                                                 <Badge
