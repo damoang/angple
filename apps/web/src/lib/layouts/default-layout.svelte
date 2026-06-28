@@ -48,7 +48,7 @@
         <Header />
 
         <div class="mx-auto flex w-full flex-1">
-            {#if snbPosition === 'right' && !fullWidth}
+            {#if snbPosition === 'right'}
                 <aside
                     class="bg-subtle border-border my-5 hidden w-[320px] flex-shrink-0 rounded-md border lg:flex lg:flex-col"
                 >
@@ -56,7 +56,7 @@
                     <Panel />
                 </aside>
             {/if}
-            {#if snbPosition === 'left' && !fullWidth}
+            {#if snbPosition === 'left'}
                 <aside class="bg-background hidden 2xl:block 2xl:!w-[230px]">
                     <Sidebar />
                 </aside>
