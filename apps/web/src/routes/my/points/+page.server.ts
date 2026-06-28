@@ -91,6 +91,8 @@ export const load: PageServerLoad = async ({ url, locals }) => {
                     : String(row.po_datetime || ''),
             // po_expired: 0=활성, 1=만료, 100=전부 사용됨
             po_expired: row.po_expired === 1 || row.po_expired === 100,
+            // raw 값 — 음수(사용) 행에도 1이 찍히므로 라벨 구분(기간만료 vs 사용)에 필요
+            po_expired_raw: row.po_expired,
             po_expire_date:
                 row.po_expire_date instanceof Date
                     ? row.po_expire_date.toISOString().split('T')[0]
