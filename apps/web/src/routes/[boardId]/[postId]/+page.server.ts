@@ -299,8 +299,11 @@ export const load: PageServerLoad = async ({
 
         // --- 2단계: 핵심/보조 데이터를 분리해 스트리밍 ---
         const commentsData = await (async () => {
-            if (isDataRequest) {
-                // SPA 네비(__data.json): 댓글은 클라가 backfill 로 로드. total 은 권위값 보존.
+            if (isDataRequest && !locals.user?.id) {
+                // 비로그인 SPA 네비(__data.json): 댓글은 클라가 backfill 로 로드. total 은 권위값 보존.
+                // 비로그인 __data.json 은 nginx/SSR 캐시 대상이라 댓글을 비워 stale 캐시를 방지.
+                // 로그인 유저는 응답이 private(캐시 우회)이므로 아래에서 댓글을 SSR 에 포함 →
+                // SPA 이동 시 클라 재요청(스켈레톤) 없이 즉시 노출 (캐시 정합성 영향 없음).
                 return {
                     comments: {
                         items: [],
