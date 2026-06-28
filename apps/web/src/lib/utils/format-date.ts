@@ -60,6 +60,29 @@ export function formatDateCompact(dateString: DateInput): string {
         return `${dateStr.slice(2, 4)}.${dateStr.slice(5, 7)}.${dateStr.slice(8, 10)}`;
     }
 }
+
+/**
+ * 전체 날짜+시각 포맷 (YYYY.MM.DD HH:MM, 서울 시간).
+ * formatDate 는 상대형(오늘만 시각, 그 외 날짜만)이라 목록 공간을 아끼지만,
+ * 공감/추천 목록처럼 "언제 눌렀는지" 정확한 시각이 의미 있는 곳에서는 항상 시각까지 표시한다.
+ */
+export function formatDateTime(dateString: DateInput): string {
+    const normalized = normalizeDateInput(dateString);
+    if (!normalized) return '';
+    const date = new Date(normalized);
+    if (isNaN(date.getTime())) return '';
+    const datePart = date
+        .toLocaleDateString('sv-SE', { timeZone: 'Asia/Seoul' }) // "2026-06-28"
+        .replace(/-/g, '.');
+    const timePart = date.toLocaleTimeString('ko-KR', {
+        timeZone: 'Asia/Seoul',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+    });
+    return `${datePart} ${timePart}`; // "2026.06.28 19:48"
+}
+
 /**
  * 주어진 날짜가 오늘(서울 시간 기준)인지 확인
  */

@@ -6,7 +6,7 @@
     import type { Component } from 'svelte';
     import { pluginStore } from '$lib/stores/plugin.svelte';
     import { loadPluginComponent } from '$lib/utils/plugin-optional-loader';
-    import { formatDate } from '$lib/utils/format-date.js';
+    import { formatDateTime } from '$lib/utils/format-date.js';
     import { uiSettingsStore } from '$lib/stores/ui-settings.svelte.js';
 
     // 동적 플러그인 임포트: member-memo
@@ -146,7 +146,7 @@
                                             <span>({liker.bg_ip})</span>
                                             <span class="mx-1">&middot;</span>
                                         {/if}
-                                        <span>{formatDate(liker.liked_at)}</span>
+                                        <span>{formatDateTime(liker.liked_at)}</span>
                                     </div>
                                 </div>
 
