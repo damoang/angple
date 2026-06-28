@@ -20,6 +20,10 @@
     const { children } = $props(); // Svelte 5
     let snbPosition = $state<'left' | 'right'>('left'); // 기본값
 
+    // 풀폭 페이지(예: /brickang)는 라우트 load 가 { fullWidth: true } 반환 → 사이드바 숨김.
+    // 플래그 없으면 항상 false 라 다른 페이지 영향 0.
+    const fullWidth = $derived($page.data?.fullWidth === true);
+
     onMount(() => {
         // 인증 상태 초기화
         authActions.initAuth();
@@ -38,7 +42,7 @@
         <Header />
 
         <div class="mx-auto flex w-full flex-1">
-            {#if snbPosition === 'right'}
+            {#if snbPosition === 'right' && !fullWidth}
                 <aside
                     class="bg-subtle border-border my-5 hidden w-[320px] flex-shrink-0 rounded-md border lg:flex lg:flex-col"
                 >
@@ -46,7 +50,7 @@
                     <Panel />
                 </aside>
             {/if}
-            {#if snbPosition === 'left'}
+            {#if snbPosition === 'left' && !fullWidth}
                 <aside class="bg-background hidden 2xl:block 2xl:!w-[230px]">
                     <Sidebar />
                 </aside>
@@ -64,13 +68,13 @@
                     {@render children()}
                 </main>
             </div>
-            {#if snbPosition === 'right'}
+            {#if snbPosition === 'right' && !fullWidth}
                 <aside class="bg-background hidden 2xl:block 2xl:!w-[230px]">
                     <Sidebar />
                 </aside>
             {/if}
 
-            {#if snbPosition === 'left'}
+            {#if snbPosition === 'left' && !fullWidth}
                 <aside
                     class="bg-subtle border-border my-5 hidden w-[320px] flex-shrink-0 rounded-md border lg:flex lg:flex-col"
                 >
