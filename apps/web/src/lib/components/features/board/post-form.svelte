@@ -337,6 +337,13 @@
         if (isSubmitting || isLoading) return;
         if (!validate()) return;
 
+        // bug/12839: 본문에 로컬 미리보기(blob:) 이미지가 남아있으면 변환본 교체 완료까지 제출 차단.
+        // blob: 은 세션 한정 URL이라 그대로 저장하면 이미지가 깨진다. 보통 수초 내 자동 교체됨.
+        if (content.includes('blob:')) {
+            alert('이미지를 처리하는 중입니다. 잠시 후(몇 초) 다시 시도해 주세요.');
+            return;
+        }
+
         isSubmitting = true;
 
         // 첨부 이미지를 content 끝에 <img> 태그로 삽입 (Go 백엔드 호환)
