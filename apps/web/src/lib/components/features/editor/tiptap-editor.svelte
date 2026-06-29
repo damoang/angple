@@ -396,49 +396,125 @@
         lastLoadedContent = c;
     });
 
+    // === 이미지 업로드 race 해소 (bug/12839): 로컬 blob 즉시표시 → 변환본 준비 시 src 스왑 ===
+    // 변환(raw→data) Lambda 가 평균 4.5초·최대 15초라, 업로드 응답 URL 을 곧바로 박으면
+    // 아직 안 만들어진 data/ 이미지를 가리켜 깨짐/부분표시가 비결정적으로 발생한다.
+    // → 올리는 즉시 blob 미리보기(0초, 안 깨짐) 삽입 후, data URL 이 실제 로드 가능해질 때까지
+    //   백그라운드 preload(재시도) → 준비되면 해당 노드 src 만 교체. 제출 가드(post-form)가 blob 잔존 차단.
+    const IMAGE_SWAP_MAX_MS = 20000;
+
+    // data URL 이 실제 200 으로 로드될 때까지 preload 재시도(지수백오프). 성공 시 true.
+    // CDN 이 변환 전 404 를 max-age=300 으로 캐시할 수 있어 프로브엔 캐시버스터를 붙인다.
+    function preloadImage(url: string, maxMs = IMAGE_SWAP_MAX_MS): Promise<boolean> {
+        return new Promise((resolve) => {
+            const start = Date.now();
+            let delay = 400;
+            const tryLoad = () => {
+                const img = new Image();
+                img.onload = () => resolve(true);
+                img.onerror = () => {
+                    if (Date.now() - start >= maxMs) {
+                        resolve(false);
+                        return;
+                    }
+                    window.setTimeout(tryLoad, delay);
+                    delay = Math.min(Math.round(delay * 1.8), 3000);
+                };
+                img.src = url + (url.includes('?') ? '&' : '?') + '_p=' + Date.now();
+            };
+            tryLoad();
+        });
+    }
+
+    // 문서에서 src 가 oldSrc 인 image 노드를 찾아 newSrc 로 교체 (위치는 교체 시점 기준 재탐색).
+    function swapImageSrc(oldSrc: string, newSrc: string): boolean {
+        if (!editor) return false;
+        const { state, view } = editor;
+        let done = false;
+        // 노드를 찾으면 콜백 내부에서 바로 교체 (외부 변수 캡처 시 TS 가 never 로 좁히는 문제 회피)
+        state.doc.descendants((node, pos) => {
+            if (done) return false;
+            if (node.type.name === 'image' && node.attrs.src === oldSrc) {
+                view.dispatch(
+                    state.tr.setNodeMarkup(pos, undefined, { ...node.attrs, src: newSrc })
+                );
+                done = true;
+                return false;
+            }
+            return undefined;
+        });
+        return done;
+    }
+
+    // 업로드 실패 시 임시 blob 이미지 노드 제거 (깨진 채 남기지 않음).
+    function removeImageBySrc(src: string): void {
+        if (!editor) return;
+        const { state, view } = editor;
+        let done = false;
+        state.doc.descendants((node, pos) => {
+            if (done) return false;
+            if (node.type.name === 'image' && node.attrs.src === src) {
+                view.dispatch(state.tr.delete(pos, pos + node.nodeSize));
+                done = true;
+                return false;
+            }
+            return undefined;
+        });
+    }
+
+    // blob 즉시삽입 + 백그라운드 업로드/스왑. insertBlob 으로 삽입 위치를 주입한다.
+    function uploadAndSwap(file: File, insertBlob: (blobUrl: string) => void): void {
+        if (!onImageUpload || !editor) return;
+        const blobUrl = URL.createObjectURL(file);
+        insertBlob(blobUrl);
+        void (async () => {
+            try {
+                const dataUrl = await onImageUpload!(file);
+                if (!dataUrl) {
+                    removeImageBySrc(blobUrl);
+                    URL.revokeObjectURL(blobUrl);
+                    return;
+                }
+                const ready = await preloadImage(dataUrl);
+                if (ready && swapImageSrc(blobUrl, dataUrl)) {
+                    URL.revokeObjectURL(blobUrl);
+                } else {
+                    // 변환 지연(>20s, 드묾): 로컬 미리보기 유지. 제출 가드가 blob 차단 → 데이터 유실 방지.
+                    console.warn('[image] 변환본 준비 지연 — 로컬 미리보기 유지:', dataUrl);
+                }
+            } catch (err) {
+                console.error('Image upload failed:', err);
+                removeImageBySrc(blobUrl);
+                URL.revokeObjectURL(blobUrl);
+            }
+        })();
+    }
+
     // 이미지 파일 업로드 처리 (커서 위치에 삽입)
     async function handleImageFile(file: File): Promise<void> {
         if (!onImageUpload || !editor) return;
         if (!isImageFile(file)) return;
-
-        isUploading = true;
-        try {
-            const imageUrl = await onImageUpload(file);
-            if (imageUrl) {
-                // #9328: 이미지 삽입 후 빈 paragraph 추가 — 사용자가 이미지 다음 줄에 바로 입력 가능하도록
-                editor.chain().focus().setImage({ src: imageUrl }).createParagraphNear().run();
-            }
-        } catch (err) {
-            console.error('Image upload failed:', err);
-        } finally {
-            isUploading = false;
-        }
+        uploadAndSwap(file, (blobUrl) => {
+            // #9328: 이미지 삽입 후 빈 paragraph 추가 — 사용자가 이미지 다음 줄에 바로 입력 가능하도록
+            editor!.chain().focus().setImage({ src: blobUrl }).createParagraphNear().run();
+        });
     }
 
     // 특정 위치에 이미지 삽입 (드래그 앤 드롭용)
     async function handleImageFileAtPosition(file: File, pos: number): Promise<void> {
         if (!onImageUpload || !editor) return;
         if (!isImageFile(file)) return;
-
-        isUploading = true;
-        try {
-            const imageUrl = await onImageUpload(file);
-            if (imageUrl) {
-                // 특정 위치에 이미지 삽입 (기존 내용 유지)
-                // #9328: 이미지 다음에 빈 paragraph 함께 삽입 — 사용자가 이미지 아래 줄에 바로 입력 가능하도록
-                editor
-                    .chain()
-                    .insertContentAt(pos, [
-                        { type: 'image', attrs: { src: imageUrl } },
-                        { type: 'paragraph' }
-                    ])
-                    .run();
-            }
-        } catch (err) {
-            console.error('Image upload failed:', err);
-        } finally {
-            isUploading = false;
-        }
+        uploadAndSwap(file, (blobUrl) => {
+            // 특정 위치에 이미지 삽입 (기존 내용 유지)
+            // #9328: 이미지 다음에 빈 paragraph 함께 삽입 — 사용자가 이미지 아래 줄에 바로 입력 가능하도록
+            editor!
+                .chain()
+                .insertContentAt(pos, [
+                    { type: 'image', attrs: { src: blobUrl } },
+                    { type: 'paragraph' }
+                ])
+                .run();
+        });
     }
 
     // 드래그 앤 드롭 핸들러 (드롭 위치에 이미지/동영상 삽입)
