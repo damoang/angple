@@ -194,6 +194,37 @@ jobs:
             --cache-control "public, max-age=31536000, immutable" \
             --no-progress
 
+      # three(+OrbitControls)는 bundleStrategy:'single' 에서 앱 번들에 인라인되지 않도록
+      # 자체호스팅 vendor 번들(static.damoang.net/vendor/three/...)로 분리해 brickang 만 로드.
+      # 버전 파일명 고정(immutable) → 이미 있으면 스킵(idempotent). 실패해도 배포는 비차단.
+      - name: Build & upload three vendor bundle to R2 (idempotent)
+        continue-on-error: true
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.CLOUDFLARE_R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.CLOUDFLARE_R2_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: auto
+          R2_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_R2_ACCOUNT_ID }}
+          R2_BUCKET: ${{ secrets.CLOUDFLARE_R2_BUCKET }}
+        run: |
+          set -uo pipefail
+          cd apps/web
+          THREE_VER=$(node -p "require('three/package.json').version")
+          KEY="vendor/three/three-vendor.${THREE_VER}.js"
+          ENDPOINT="https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
+          if aws s3 ls "s3://${R2_BUCKET}/${KEY}" --endpoint-url "$ENDPOINT" >/dev/null 2>&1; then
+            echo "three vendor already present: ${KEY} — skip"
+            exit 0
+          fi
+          echo "building three vendor (three@${THREE_VER})..."
+          node scripts/build-three-vendor.mjs
+          aws s3 cp "build-vendor/three-vendor.${THREE_VER}.js" \
+            "s3://${R2_BUCKET}/${KEY}" \
+            --endpoint-url "$ENDPOINT" \
+            --content-type application/javascript \
+            --cache-control "public, max-age=31536000, immutable" \
+            --no-progress
+          echo "uploaded ${KEY}"
+
       - name: Prepare deploy package
         run: |
           pnpm --filter web deploy --prod --legacy apps/web/deploy
