@@ -13,14 +13,16 @@
  * premium plugins/brickang/lib/three-scene.ts 의 THREE_VENDOR_URL 도 함께 갱신해야 한다.
  */
 import { build } from 'vite';
-import { createRequire } from 'node:module';
-import { writeFileSync, rmSync, mkdirSync } from 'node:fs';
+import { writeFileSync, rmSync, mkdirSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 
-const require = createRequire(import.meta.url);
 const webRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..'); // apps/web
-const version = require('three/package.json').version;
+// three 의 package.json 은 exports 맵에 없어 require('three/package.json') 가
+// ERR_PACKAGE_PATH_NOT_EXPORTED 로 실패한다(Node 22). 파일을 직접 읽어 버전 추출.
+const version = JSON.parse(
+    readFileSync(resolve(webRoot, 'node_modules/three/package.json'), 'utf8')
+).version;
 const outDir = resolve(webRoot, 'build-vendor');
 // 진입 파일은 apps/web 내부에 둬야 'three' 가 정상 해석된다.
 const entry = resolve(webRoot, '.three-vendor-entry.tmp.js');

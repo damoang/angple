@@ -34,3 +34,7 @@ vite.config.ts.timestamp-*
 
 # Multisite Site-Resolver (premium install.sh 가 site-overrides.json 배치)
 /.angple/
+
+# three vendor 빌드 산출물 (CI 에서 생성·업로드, 커밋 안 함)
+build-vendor/
+.three-vendor-entry.tmp.js

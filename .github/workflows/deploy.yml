@@ -208,7 +208,7 @@ jobs:
         run: |
           set -uo pipefail
           cd apps/web
-          THREE_VER=$(node -p "require('three/package.json').version")
+          THREE_VER=$(node -e "console.log(JSON.parse(require('fs').readFileSync('node_modules/three/package.json','utf8')).version)")
           KEY="vendor/three/three-vendor.${THREE_VER}.js"
           ENDPOINT="https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
           if aws s3 ls "s3://${R2_BUCKET}/${KEY}" --endpoint-url "$ENDPOINT" >/dev/null 2>&1; then
