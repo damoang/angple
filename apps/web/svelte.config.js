@@ -50,12 +50,13 @@ const config = {
             trustedOrigins: ['*']
         },
         output: {
-            // 코드 분할 사용(SvelteKit 기본). 앱이 커지며 단일 번들의 단점이 큼:
-            //  - 매 배포마다 전체 번들 해시 변경 → 재방문자가 전체 재다운로드(캐시 재사용 0)
-            //  - Three.js 등 무거운 동적 import 가 모든 페이지에 인라인
-            // 분할 시 벤더/라우트 청크가 배포 간 캐시 유지되어 대역폭·로드 모두 개선.
-            // (Cloudflare h2/h3 멀티플렉싱이라 청크 다수의 요청 오버헤드는 미미)
-            bundleStrategy: 'split',
+            // 단일 번들 전략 유지. split(코드 분할) 전환 시 게시글 진입·목록에서
+            // 청크 비동기 로딩이 컴포넌트 undefined($set 오류) 및 하이드레이션 실패
+            // (HierarchyRequestError)를 유발해 "글이 안 열리고 화면이 깨지는" 회귀가
+            // 광범위하게 발생했음(Chrome 데스크탑/모바일). 단일 번들은 청크 분할이
+            // 없어 해당 캐스케이드를 원천 차단하므로 안정화를 위해 single 로 되돌림.
+            // split 재도입은 별도 트랙에서 manualChunks/hydration 검증을 거친 뒤 진행.
+            bundleStrategy: 'single',
             // modulepreload: 브라우저 기본 동작에 위임하여 불필요한 prefetch 감소
             preloadStrategy: 'modulepreload'
         },
