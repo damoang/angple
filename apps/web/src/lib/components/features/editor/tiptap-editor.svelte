@@ -430,34 +430,36 @@
     function swapImageSrc(oldSrc: string, newSrc: string): boolean {
         if (!editor) return false;
         const { state, view } = editor;
-        let found: { pos: number; attrs: Record<string, unknown> } | null = null;
+        let done = false;
+        // 노드를 찾으면 콜백 내부에서 바로 교체 (외부 변수 캡처 시 TS 가 never 로 좁히는 문제 회피)
         state.doc.descendants((node, pos) => {
-            if (!found && node.type.name === 'image' && node.attrs.src === oldSrc) {
-                found = { pos, attrs: node.attrs };
+            if (done) return false;
+            if (node.type.name === 'image' && node.attrs.src === oldSrc) {
+                view.dispatch(
+                    state.tr.setNodeMarkup(pos, undefined, { ...node.attrs, src: newSrc })
+                );
+                done = true;
                 return false;
             }
             return undefined;
         });
-        if (!found) return false;
-        view.dispatch(
-            state.tr.setNodeMarkup(found.pos, undefined, { ...found.attrs, src: newSrc })
-        );
-        return true;
+        return done;
     }
 
     // 업로드 실패 시 임시 blob 이미지 노드 제거 (깨진 채 남기지 않음).
     function removeImageBySrc(src: string): void {
         if (!editor) return;
         const { state, view } = editor;
-        let target: { pos: number; size: number } | null = null;
+        let done = false;
         state.doc.descendants((node, pos) => {
-            if (!target && node.type.name === 'image' && node.attrs.src === src) {
-                target = { pos, size: node.nodeSize };
+            if (done) return false;
+            if (node.type.name === 'image' && node.attrs.src === src) {
+                view.dispatch(state.tr.delete(pos, pos + node.nodeSize));
+                done = true;
                 return false;
             }
             return undefined;
         });
-        if (target) view.dispatch(state.tr.delete(target.pos, target.pos + target.size));
     }
 
     // blob 즉시삽입 + 백그라운드 업로드/스왑. insertBlob 으로 삽입 위치를 주입한다.
