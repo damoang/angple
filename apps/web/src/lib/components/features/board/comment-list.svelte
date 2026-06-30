@@ -958,6 +958,7 @@
         // 공감자 신원(닉네임/ID)은 로그인 사용자에게만 노출 — 게시글 공감자(loadLikerAvatars)와 동일 정책.
         if (!authStore.isAuthenticated) return;
         if (!boardId || !postId || commentIds.length === 0) return;
+        for (const id of commentIds) likerAvatarsInflight.add(id);
         try {
             const chunks: string[][] = [];
             for (let i = 0; i < commentIds.length; i += COMMENT_LIKERS_BATCH_CHUNK) {
@@ -974,24 +975,47 @@
                     commentLikersTotal.set(commentId, data.total);
                 }
             }
+            // #12856: 성공했을 때만 '로드됨' 표시. (이전엔 호출 직전에 표시 → 간헐 실패 시
+            // 재시도 없이 영구히 아바타 다발 미노출 → 추천인 목록 진입 불가가 무작위 발생)
+            for (const id of commentIds) {
+                likerAvatarsLoadedIds.add(id);
+                likerAvatarsInflight.delete(id);
+            }
         } catch (err) {
             console.error('Failed to load comment liker avatars:', err);
+            // #12856: 간헐 실패(타임아웃/5xx) 시 '로드됨' 표시하지 않고 시도횟수만 누적 →
+            // 백오프 후 inflight 해제하면 effect 가 재시도(상한까지). 즉시 해제 시 폭주 방지.
+            for (const id of commentIds) {
+                likerAvatarsAttempts.set(id, (likerAvatarsAttempts.get(id) ?? 0) + 1);
+            }
+            const retryIds = [...commentIds];
+            setTimeout(() => {
+                for (const id of retryIds) likerAvatarsInflight.delete(id);
+            }, 2500);
         }
     }
 
     // 좋아요 > 0인 댓글의 아바타 배치 로드 (댓글 추가 시 미로드 분만 재요청)
+    // #12856: 로드 성공 시에만 loadedIds 에 표시. 진행중(inflight)·시도상한으로 중복/폭주 방지.
     let likerAvatarsLoadedIds = new SvelteSet<string>();
+    let likerAvatarsInflight = new SvelteSet<string>();
+    const likerAvatarsAttempts = new Map<string, number>();
+    const LIKER_AVATARS_MAX_ATTEMPTS = 4;
     $effect(() => {
-        if (commentTree.length === 0 || !boardId || !postId) return;
+        if (commentTree.length === 0 || !boardId || !postId || !authStore.isAuthenticated) return;
 
-        const commentsWithLikes = commentTree.filter(
-            (c) => (c.likes ?? 0) > 0 && !likerAvatarsLoadedIds.has(String(c.id))
-        );
+        const ids = commentTree
+            .filter(
+                (c) =>
+                    (c.likes ?? 0) > 0 &&
+                    !likerAvatarsLoadedIds.has(String(c.id)) &&
+                    !likerAvatarsInflight.has(String(c.id)) &&
+                    (likerAvatarsAttempts.get(String(c.id)) ?? 0) < LIKER_AVATARS_MAX_ATTEMPTS
+            )
+            .map((c) => String(c.id));
 
-        if (commentsWithLikes.length > 0) {
-            const ids = commentsWithLikes.map((c) => String(c.id));
-            for (const id of ids) likerAvatarsLoadedIds.add(id);
-            loadCommentLikerAvatarsBatch(ids);
+        if (ids.length > 0) {
+            void loadCommentLikerAvatarsBatch(ids);
         }
     });
 </script>
