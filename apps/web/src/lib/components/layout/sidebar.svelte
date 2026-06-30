@@ -13,6 +13,7 @@
     import { menuStore } from '$lib/stores/menu.svelte';
 
     import ChevronRight from '@lucide/svelte/icons/chevron-right';
+    import House from '@lucide/svelte/icons/house';
     import { getIcon } from '$lib/utils/icon-map';
 
     import UserWidget from './user-widget.svelte';
@@ -432,7 +433,9 @@
                 href="/brickang"
                 class="border-primary/30 bg-primary/5 text-primary hover:bg-primary/10 flex items-center justify-between rounded-lg border px-3 py-2 text-sm font-medium transition-colors"
             >
-                <span>🏡 다모앙 마을 만들기</span>
+                <span class="flex items-center gap-1.5"
+                    ><House class="size-4" /> 다모앙 마을 만들기</span
+                >
                 <span aria-hidden="true" class="leading-none">→</span>
             </a>
             <!-- 데스크톱: 메뉴 ↔ (카카오)광고 사이 후원하기 1줄 카드 (benecent). 광고 on/off 무관 항상 노출. -->
@@ -483,7 +486,9 @@
                 href="/brickang"
                 class="border-primary/30 bg-primary/5 text-primary hover:bg-primary/10 flex items-center justify-between rounded-lg border px-3 py-2 text-sm font-medium transition-colors"
             >
-                <span>🏡 다모앙 마을 만들기</span>
+                <span class="flex items-center gap-1.5"
+                    ><House class="size-4" /> 다모앙 마을 만들기</span
+                >
                 <span aria-hidden="true" class="leading-none">→</span>
             </a>
             <!-- 마음메시지 아래: 후원하기 1줄 카드 (benecent). 강조색으로 눈에 띄게, 1줄로 작게. -->
