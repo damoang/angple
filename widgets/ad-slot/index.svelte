@@ -19,10 +19,9 @@
 
     const isSidebar = $derived(slot === 'sidebar');
     const isHomeTopBanner = $derived(position === 'index-head' || position === 'index-top');
-    // 마음메시지(celebration)는 전용 celebration 위젯이 카드 형태로 단독 표시한다.
-    // index-head 배너에서도 표시하면 좁은 폭(모바일·사이드바 접힘)에서 같은 마음메시지가
-    // 위젯 카드 + 이 배너로 두 번 노출되는 중복이 발생 → 배너에서는 표시하지 않는다.
-    const showCelebration = false;
+    // 홈 최상단 배너에는 마음메시지(celebration)를 노출한다(최상단 1개).
+    // 하단은 마음메시지 카드가 아니라 작은 게시물 카드 그리드로 구성하므로 중복되지 않는다.
+    const showCelebration = $derived(isHomeTopBanner);
 </script>
 
 {#if isSidebar}
