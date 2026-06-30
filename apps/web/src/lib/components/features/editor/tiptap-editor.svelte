@@ -89,6 +89,8 @@
         contentFormat?: 'html' | 'markdown';
         onUpdate?: (value: string) => void;
         onImageUpload?: (file: File) => Promise<string | null>;
+        /** 백그라운드 이미지 변환(blob→변환본 스왑) 진행 개수 변화 알림. 0 이면 모두 완료. */
+        onUploadingChange?: (count: number) => void;
         class?: string;
     }
 
@@ -99,8 +101,15 @@
         contentFormat = 'html',
         onUpdate,
         onImageUpload,
+        onUploadingChange,
         class: className = ''
     }: Props = $props();
+
+    // 진행 중인 백그라운드 이미지 변환 개수. 제출 측(post-form)이 0 이 될 때까지 자동 대기한다.
+    let pendingUploads = $state(0);
+    $effect(() => {
+        onUploadingChange?.(pendingUploads);
+    });
 
     let isUploading = $state(false);
 
@@ -467,6 +476,7 @@
         if (!onImageUpload || !editor) return;
         const blobUrl = URL.createObjectURL(file);
         insertBlob(blobUrl);
+        pendingUploads++;
         void (async () => {
             try {
                 const dataUrl = await onImageUpload!(file);
@@ -486,6 +496,8 @@
                 console.error('Image upload failed:', err);
                 removeImageBySrc(blobUrl);
                 URL.revokeObjectURL(blobUrl);
+            } finally {
+                pendingUploads--;
             }
         })();
     }
