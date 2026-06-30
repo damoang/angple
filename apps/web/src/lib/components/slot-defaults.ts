@@ -53,11 +53,15 @@ export function registerDefaultSlots(): void {
     registerComponent('board-view-rolling', CelebrationRolling, 10, {}, 'core-damoang');
 
     // 사이드바 배너
+    // 마음메시지(celebration)는 사이드바의 전용 celebration 위젯 카드가 단독 표시한다.
+    // 이 배너까지 showCelebration 기본값(true)으로 두면 같은 마음메시지가 사이드바에
+    // 위젯 카드 + 이 배너로 두 번 노출되므로(board-list/board-view 배너와 동일하게)
+    // showCelebration: false 로 두어 광고 배너 용도로만 사용한다.
     registerComponent(
         'sidebar-banner',
         DamoangBanner,
         10,
-        { position: 'sidebar', height: 'auto' },
+        { position: 'sidebar', height: 'auto', showCelebration: false },
         'core-damoang'
     );
 
