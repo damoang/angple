@@ -442,7 +442,7 @@
                 rel="noopener noreferrer"
                 class="border-primary/30 bg-primary/5 text-primary hover:bg-primary/10 flex items-center justify-between rounded-lg border px-3 py-2 text-sm font-medium transition-colors"
             >
-                <span>☆ 다모앙 후원하기</span>
+                <span>♡ 다모앙 후원하기</span>
                 <span aria-hidden="true" class="leading-none">→</span>
             </a>
         {/if}
@@ -493,20 +493,11 @@
                 rel="noopener noreferrer"
                 class="border-primary/30 bg-primary/5 text-primary hover:bg-primary/10 flex items-center justify-between rounded-lg border px-3 py-2 text-sm font-medium transition-colors"
             >
-                <span>☆ 다모앙 후원하기</span>
+                <span>♡ 다모앙 후원하기</span>
                 <span aria-hidden="true" class="leading-none">→</span>
             </a>
-            <!-- 마음메시지 바로 아래: 후원하기 · 벽돌한장 · 광고 제거 inline -->
+            <!-- 마음메시지 바로 아래: 벽돌한장 · 광고 제거 inline -->
             <div class="text-muted-foreground flex items-center justify-center gap-3 px-2 text-xs">
-                <a
-                    href="https://damoang.benecent.org/"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    class="hover:text-primary underline-offset-2 hover:underline"
-                >
-                    ♡ 후원하기
-                </a>
-                <span class="opacity-50">·</span>
                 <a href="/brickang" class="hover:text-primary underline-offset-2 hover:underline">
                     벽돌한장
                 </a>
