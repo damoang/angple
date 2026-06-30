@@ -35,7 +35,7 @@ export const DEFAULT_WIDGETS: WidgetConfig[] = [
         enabled: true,
         settings: {
             boardId: 'gallery',
-            layout: 'gallery',
+            layout: 'card',
             sortBy: 'date',
             count: 12,
             showTitle: true
@@ -53,7 +53,7 @@ export const DEFAULT_WIDGETS: WidgetConfig[] = [
         type: 'post-list',
         position: 7,
         enabled: true,
-        settings: { boardId: 'group', layout: 'grid', sortBy: 'date', count: 10, showTitle: true }
+        settings: { boardId: 'group', layout: 'card', sortBy: 'date', count: 10, showTitle: true }
     },
     {
         id: 'celebration',
