@@ -345,7 +345,8 @@
         </div>
 
         <div class="max-h-80 overflow-y-auto">
-            {#if isLoading}
+            {#if isLoading && notifications.length === 0}
+                <!-- 캐시된 알림이 있으면 스피너로 가리지 않고 즉시 노출 → 재오픈 시 백그라운드 갱신(체감 지연 제거) -->
                 <div class="flex items-center justify-center py-8">
                     <Loader2 class="text-muted-foreground h-6 w-6 animate-spin" />
                 </div>
