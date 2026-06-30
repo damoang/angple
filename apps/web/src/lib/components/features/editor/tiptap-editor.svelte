@@ -235,10 +235,10 @@
                 }),
                 LinkedImage.configure({
                     inline: false,
-                    allowBase64: true,
-                    HTMLAttributes: {
-                        class: 'max-w-full rounded-lg'
-                    }
+                    allowBase64: true
+                    // #12858: 본문 HTML 에 max-w-full rounded-lg 유틸 클래스를 baked-in 하지 않는다.
+                    // 반응형 크기는 에디터 CSS(.tiptap-content .tiptap img)와 뷰 prose 가 보장하므로
+                    // 콘텐츠에는 스타일 클래스를 남기지 않는다(댓글 에디터와 동일한 CSS 기반 방식).
                 }),
                 Placeholder.configure({
                     placeholder
