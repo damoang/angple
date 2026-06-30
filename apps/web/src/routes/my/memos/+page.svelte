@@ -34,6 +34,8 @@
     let { data }: { data: PageData } = $props();
 
     let deletingId = $state<string | null>(null);
+    // 인라인 2단계 삭제 확인 (iOS Safari 의 window.confirm 미동작 케이스 회피 — #12862)
+    let confirmingId = $state<string | null>(null);
 
     // 검색 상태
     let searchColor = $state(data.search?.color ?? '');
@@ -126,7 +128,12 @@
     }
 
     async function handleDelete(targetMemberId: string) {
-        if (!confirm('이 회원의 메모를 삭제하시겠습니까?')) return;
+        // 1차 클릭: 해당 행을 확인 단계로(네이티브 confirm 미사용 — iOS 호환)
+        if (confirmingId !== targetMemberId) {
+            confirmingId = targetMemberId;
+            return;
+        }
+        confirmingId = null;
 
         deletingId = targetMemberId;
         try {
@@ -422,6 +429,7 @@
                 <ul class="divide-border divide-y">
                     {#each data.memos as memo (memo.id)}
                         {@const isDeleting = deletingId === memo.target_member_id}
+                        {@const isConfirming = confirmingId === memo.target_member_id}
                         {@const colorStyle = getColorStyle(memo.color)}
                         <li
                             class="py-3 transition-opacity first:pt-0 last:pb-0"
@@ -501,12 +509,17 @@
                                         <Pencil class="h-4 w-4" />
                                     </Button>
                                     <Button
-                                        variant="ghost"
+                                        variant={isConfirming ? 'destructive' : 'ghost'}
                                         size="icon"
-                                        class="text-muted-foreground hover:text-destructive h-8 w-8"
+                                        class="text-muted-foreground hover:text-destructive h-8 w-8 {isConfirming
+                                            ? 'text-destructive-foreground'
+                                            : ''}"
                                         onclick={() => handleDelete(memo.target_member_id)}
                                         disabled={isDeleting}
-                                        aria-label="메모 삭제"
+                                        aria-label={isConfirming
+                                            ? '한 번 더 눌러 삭제'
+                                            : '메모 삭제'}
+                                        title={isConfirming ? '한 번 더 눌러 삭제' : '메모 삭제'}
                                     >
                                         <Trash2 class="h-4 w-4" />
                                     </Button>
