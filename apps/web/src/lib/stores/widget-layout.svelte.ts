@@ -33,6 +33,18 @@ function deepCopy<T>(obj: T): T {
     return JSON.parse(JSON.stringify(obj));
 }
 
+/**
+ * 한 영역(zone)에 1개만 존재해야 하는 싱글톤 위젯 타입.
+ * ad-slot·post-list 처럼 여러 개 배치할 수 있는 위젯은 제외한다.
+ */
+const SINGLETON_WIDGET_TYPES = new Set<string>([
+    'tag-nav',
+    'empathy-explore-row',
+    'news-economy-row',
+    'celebration',
+    'notice'
+]);
+
 class WidgetLayoutStore {
     // 메인 영역 위젯
     private _widgets = $state<WidgetConfig[]>(deepCopy(DEFAULT_WIDGETS));
@@ -156,7 +168,14 @@ class WidgetLayoutStore {
     /** DEFAULT_WIDGETS에 있지만 저장된 레이아웃에 없는 위젯을 추가하고, 기본 순서에 맞게 재정렬 */
     private _mergeNewDefaults(saved: WidgetConfig[], defaults: WidgetConfig[]): WidgetConfig[] {
         const savedIds = new Set(saved.map((w) => w.id));
-        const missing = defaults.filter((dw) => !savedIds.has(dw.id));
+        const savedTypes = new Set(saved.map((w) => w.type));
+        // 싱글톤 위젯(마음메시지 등)은 저장값의 id 가 기본값과 달라도 이미 존재하면
+        // 기본 위젯을 재추가하지 않는다(id 기준만 쓰면 같은 type 이 2개로 중복됨).
+        const missing = defaults.filter(
+            (dw) =>
+                !savedIds.has(dw.id) &&
+                !(SINGLETON_WIDGET_TYPES.has(dw.type) && savedTypes.has(dw.type))
+        );
 
         // 삭제 대상 위젯 제거 (기본 목록에서 제거된 광고 위젯)
         const removedIds = new Set([
@@ -167,6 +186,15 @@ class WidgetLayoutStore {
         ]);
         let merged = saved.filter((w) => !removedIds.has(w.id));
         if (missing.length > 0) merged = [...merged, ...missing.map((w) => deepCopy(w))];
+
+        // 싱글톤 위젯이 저장값 자체에 2개 이상 있는 경우도 첫 항목만 남긴다(중복 방어).
+        const seenSingleton = new Set<string>();
+        merged = merged.filter((w) => {
+            if (!SINGLETON_WIDGET_TYPES.has(w.type)) return true;
+            if (seenSingleton.has(w.type)) return false;
+            seenSingleton.add(w.type);
+            return true;
+        });
 
         // 기본 위젯 순서 맵 (id → position)으로 재정렬
         const defaultOrder = new Map(defaults.map((w) => [w.id, w.position]));
