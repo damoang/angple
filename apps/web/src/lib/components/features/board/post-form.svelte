@@ -330,6 +330,26 @@
     // 중복 제출 방지
     let isSubmitting = $state(false);
 
+    // bug/12839 후속: 에디터의 백그라운드 이미지 변환 진행 개수.
+    // 제출 시 0 이 될 때까지 자동 대기 → "이미지가 떴는데 완료가 막힌다"는 마찰 제거.
+    let uploadingCount = $state(0);
+
+    // 진행 중인 이미지 변환이 모두 끝날 때까지(또는 타임아웃) 대기한다.
+    function waitForUploads(timeoutMs = 21000): Promise<void> {
+        if (uploadingCount === 0) return Promise.resolve();
+        return new Promise((resolve) => {
+            const start = Date.now();
+            const tick = () => {
+                if (uploadingCount === 0 || Date.now() - start >= timeoutMs) {
+                    resolve();
+                    return;
+                }
+                setTimeout(tick, 150);
+            };
+            tick();
+        });
+    }
+
     // 폼 제출
     async function handleSubmit(e: Event): Promise<void> {
         e.preventDefault();
@@ -337,11 +357,19 @@
         if (isSubmitting || isLoading) return;
         if (!validate()) return;
 
-        // bug/12839: 본문에 로컬 미리보기(blob:) 이미지가 남아있으면 변환본 교체 완료까지 제출 차단.
-        // blob: 은 세션 한정 URL이라 그대로 저장하면 이미지가 깨진다. 보통 수초 내 자동 교체됨.
+        // bug/12839: 본문에 로컬 미리보기(blob:) 이미지가 남아있으면 변환본 교체 완료까지 대기.
+        // blob: 은 세션 한정 URL이라 그대로 저장하면 이미지가 깨진다.
+        // 이전엔 alert 후 사용자가 직접 다시 제출해야 했으나(불만 #12839 후속),
+        // 이제 제출 버튼을 누르면 변환 완료까지 자동 대기 후 그대로 전송한다.
         if (content.includes('blob:')) {
-            alert('이미지를 처리하는 중입니다. 잠시 후(몇 초) 다시 시도해 주세요.');
-            return;
+            isSubmitting = true;
+            await waitForUploads();
+            isSubmitting = false;
+            // 대기 후에도 blob 이 남으면(변환 지연/실패) 저장 시 깨지므로 안내하고 중단.
+            if (content.includes('blob:')) {
+                alert('이미지 변환이 지연되고 있습니다. 잠시 후 다시 시도해 주세요.');
+                return;
+            }
         }
 
         isSubmitting = true;
@@ -624,6 +652,7 @@
                     disabled={isLoading}
                     onUpdate={(value) => (content = value)}
                     onImageUpload={handleEditorImageUpload}
+                    onUploadingChange={(n) => (uploadingCount = n)}
                     class={errors.content ? 'border-destructive' : ''}
                 />
                 {#if errors.content}
@@ -716,6 +745,9 @@
                 <Button type="submit" disabled={isLoading || isSubmitting}>
                     {#if isLoading || isSubmitting}
                         <span class="mr-2">처리 중...</span>
+                    {:else if uploadingCount > 0}
+                        <!-- 이미지 변환 진행 중에도 클릭 가능 — 누르면 완료까지 자동 대기 후 전송 -->
+                        <span class="mr-2">이미지 처리 중...</span>
                     {:else}
                         {submitText}
                     {/if}
