@@ -19,9 +19,9 @@
 
     const isSidebar = $derived(slot === 'sidebar');
     const isHomeTopBanner = $derived(position === 'index-head' || position === 'index-top');
-    // 홈 최상단 배너에는 마음메시지(celebration)를 노출한다(최상단 1개).
-    // 하단은 마음메시지 카드가 아니라 작은 게시물 카드 그리드로 구성하므로 중복되지 않는다.
-    const showCelebration = $derived(isHomeTopBanner);
+    // 마음메시지(celebration)는 홈 '최상단' 배너(index-head)에서만 노출한다.
+    // index-top(공감글·모아보기 아래)은 구글 애드센스 자리이므로 마음메시지를 띄우지 않는다.
+    const showCelebration = $derived(position === 'index-head');
 </script>
 
 {#if isSidebar}
