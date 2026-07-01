@@ -123,6 +123,7 @@
     import { loadPluginComponent } from '$lib/utils/plugin-optional-loader';
     import { checkPermission, getPermissionMessage } from '$lib/utils/board-permissions.js';
     import { readPostsStore } from '$lib/stores/read-posts.svelte.js';
+    import { postLikeStore } from '$lib/stores/post-like-store.svelte.js';
     import { createScrollDepthObserver, trackEvent, trackPostView } from '$lib/services/ga4.js';
     import { uiSettingsStore } from '$lib/stores/ui-settings.svelte.js';
     import { commentTracker } from '$lib/stores/comment-tracker.svelte.js';
@@ -473,6 +474,14 @@
                     isDisliked = result.postLikeStatus.userDisliked;
                 }
 
+                // 낙관적 오버레이: 이 세션에서 직접 누른 공감/비공감이 있으면
+                // (SPA 재진입 시) 아직 반영 안 된 SSR 값보다 우선.
+                const myLike = postLikeStore.get(boardId, data.post.id);
+                if (myLike) {
+                    isLiked = myLike.liked;
+                    isDisliked = myLike.disliked;
+                }
+
                 if (result.commentLikeStatuses) {
                     initialLikedCommentIds = result.commentLikeStatuses.likedIds || [];
                     initialDislikedCommentIds = result.commentLikeStatuses.dislikedIds || [];
@@ -769,6 +778,13 @@
                     isDisliked = status.user_disliked ?? false;
                     likeCount = status.likes;
                     dislikeCount = status.dislikes ?? 0;
+
+                    // 낙관적 오버레이 (fallback 경로에서도 내 방금 액션 우선)
+                    const myLike = postLikeStore.get(boardId, data.post.id);
+                    if (myLike) {
+                        isLiked = myLike.liked;
+                        isDisliked = myLike.disliked;
+                    }
                 } catch (err) {
                     console.error('Failed to load like status:', err);
                 }
@@ -1105,6 +1121,7 @@
             isDisliked = response.user_disliked ?? false;
             likeCount = response.likes;
             dislikeCount = response.dislikes ?? 0;
+            postLikeStore.set(boardId, data.post.id, { liked: isLiked, disliked: isDisliked });
 
             // 추천 성공 시 애니메이션 (취소가 아닌 경우만)
             if (!wasLiked && isLiked) {
@@ -1139,6 +1156,10 @@
                     isDisliked = status.user_disliked ?? false;
                     likeCount = status.likes;
                     dislikeCount = status.dislikes ?? 0;
+                    postLikeStore.set(boardId, data.post.id, {
+                        liked: isLiked,
+                        disliked: isDisliked
+                    });
                     if (!prevLiked && isLiked) {
                         trackEvent('like', { board_id: boardId, post_id: data.post.id });
                     }
@@ -1181,6 +1202,7 @@
             isDisliked = response.user_disliked ?? false;
             likeCount = response.likes;
             dislikeCount = response.dislikes ?? 0;
+            postLikeStore.set(boardId, data.post.id, { liked: isLiked, disliked: isDisliked });
 
             trackEvent('dislike', { board_id: boardId, post_id: data.post.id });
 
@@ -1201,6 +1223,10 @@
                     isDisliked = status.user_disliked ?? false;
                     likeCount = status.likes;
                     dislikeCount = status.dislikes ?? 0;
+                    postLikeStore.set(boardId, data.post.id, {
+                        liked: isLiked,
+                        disliked: isDisliked
+                    });
                     return;
                 }
             } catch {
