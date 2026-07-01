@@ -1159,6 +1159,10 @@ export const handle: Handle = async ({ event, resolve }) => {
     const existingCacheControl = response.headers.get('Cache-Control');
     const hasExplicitPublicCache =
         existingCacheControl?.includes('public') && pathname.startsWith('/api/');
+    // API 핸들러가 명시적으로 no-store 를 설정한 경우 유지 (per-user 개인 데이터 —
+    // 예: /api/read-posts). 그렇지 않으면 아래 else 기본값(private, max-age=2)이 덮어씀.
+    const hasExplicitNoStore =
+        existingCacheControl?.includes('no-store') && pathname.startsWith('/api/');
 
     if (response.status === 301 || response.status === 308) {
         // 영구 redirect: CDN 24h + browser 1h, swr 7d
@@ -1171,6 +1175,8 @@ export const handle: Handle = async ({ event, resolve }) => {
         mergeVarySet(response, publicVaryHeader);
     } else if (hasExplicitPublicCache) {
         // API 핸들러가 설정한 Cache-Control 유지 (celebration, banners, levels, reactions, init 등)
+    } else if (hasExplicitNoStore) {
+        // API 핸들러가 설정한 no-store 유지 (per-user 개인 데이터)
     } else if (event.url.pathname.startsWith('/_app/immutable')) {
         // SvelteKit이 이미 설정 → 그대로 유지
     } else if (!event.locals.user && isPublicCacheablePath(pathname)) {
