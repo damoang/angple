@@ -41,6 +41,11 @@ import {
     createMember,
     findExistingTempAccount
 } from '$lib/server/auth/register.js';
+import {
+    WITHDRAWAL_GRACE_COOKIE,
+    computeWithdrawalGrace,
+    signWithdrawalGraceToken
+} from '$lib/server/auth/withdrawal.js';
 
 // 미설정 시 .damoang.net 으로 폴백 — host-only 쿠키가 되면 새 탭/PWA 에서 세션이 격리됨 (#12260, #12179).
 const COOKIE_DOMAIN = env.COOKIE_DOMAIN || (dev ? undefined : '.damoang.net');
@@ -294,6 +299,21 @@ async function handleCallback(
                     redirect(302, '/login?error=account_inactive');
                 }
             } else {
+                // 탈퇴 숙려기간(30일) 중 & 취소 가능 → 탈퇴 취소 화면으로 인계.
+                // 완전한 로그인 세션 대신 단기 서명 쿠키만 발급한다.
+                const grace = member ? computeWithdrawalGrace(member) : null;
+                if (member && grace?.inGrace) {
+                    const graceToken = await signWithdrawalGraceToken(member.mb_id);
+                    cookies.set(WITHDRAWAL_GRACE_COOKIE, graceToken, {
+                        path: '/',
+                        httpOnly: true,
+                        sameSite: 'lax',
+                        secure: !dev,
+                        maxAge: 60 * 15,
+                        ...(COOKIE_DOMAIN ? { domain: COOKIE_DOMAIN } : {})
+                    });
+                    redirect(302, '/member/leave/cancel');
+                }
                 redirect(302, '/login?error=account_inactive');
             }
         }
