@@ -10,6 +10,7 @@
     import { page } from '$app/stores';
     import { configureSeo } from '$lib/seo';
     import { authActions, authStore } from '$lib/stores/auth.svelte';
+    import { readPostsStore } from '$lib/stores/read-posts.svelte.js';
     import { collectAndReportFingerprint } from '$lib/fingerprint/device-fingerprint';
     import { themeStore } from '$lib/stores/theme.svelte';
     import { pluginStore } from '$lib/stores/plugin.svelte';
@@ -467,6 +468,21 @@
         // 디바이스 핑거프린트 수집 (로그인 사용자 한정, 1일 1회 throttle).
         // 기본 비활성 — PUBLIC_FINGERPRINT_ENABLED=true + 처리방침 공시·법률검토 후에만 동작.
         if (browser && authStore.isAuthenticated) void collectAndReportFingerprint();
+
+        // 로그인 회원 서버 read-set(L2, Redis) 병합 — 크로스기기 읽음 표시.
+        // localStorage(L1)에 없는 항목만 추가(기존 로컬 timestamp 보존).
+        if (browser && authStore.isAuthenticated) {
+            fetch('/api/read-posts', { headers: { accept: 'application/json' } })
+                .then((res) => (res.ok ? res.json() : null))
+                .then((payload: { posts?: string[] } | null) => {
+                    if (payload?.posts?.length) {
+                        readPostsStore.mergeServerReadPosts(payload.posts);
+                    }
+                })
+                .catch(() => {
+                    // 병합 실패해도 로컬(L1) 읽음 표시는 유지
+                });
+        }
 
         const cachedMenus = readCachedMenus();
         if (cachedMenus) {
