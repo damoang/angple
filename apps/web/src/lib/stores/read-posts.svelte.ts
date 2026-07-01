@@ -1,14 +1,19 @@
 /**
  * 읽은 글 표시 기능 스토어
  *
- * localStorage 기반으로 읽은 글 ID를 저장하고 관리합니다.
+ * localStorage(L1) 기반으로 읽은 글 ID를 저장하고 관리합니다.
  * 최대 1000개까지 유지하며, 오래된 것은 자동 삭제됩니다.
+ *
+ * 로그인 회원은 서버 read-set(L2, Redis)을 병합해 기기·브라우저 간 읽음이
+ * 일관되게 표시됩니다(메일 인앱브라우저·타기기 크로스기기). L1은 즉시 반응·
+ * 오프라인·비로그인 용도로 유지하고, L2는 mergeServerReadPosts()로 합칩니다.
  */
 
 import { browser } from '$app/environment';
 
 const STORAGE_KEY = 'angple_read_posts';
-const MAX_ENTRIES = 1000;
+// 서버 read-set(L2) 상한(2000)과 맞춰, 병합 시 로컬 읽음이 굶기지 않도록 함.
+const MAX_ENTRIES = 2000;
 
 interface ReadPostsData {
     // postId를 key로, timestamp를 value로 저장 (FIFO 삭제용)
@@ -93,6 +98,39 @@ function createReadPostsStore() {
             }
 
             return result;
+        },
+
+        /**
+         * 서버 read-set(L2)을 로컬(L1)에 병합
+         *
+         * 로그인 시 /api/read-posts 응답(`boardId:postId` 키 배열)을 받아
+         * 로컬에 없는 항목만 추가합니다. 기존 로컬 항목의 timestamp는 보존해
+         * "방금 읽음"이 서버 병합으로 밀려나지 않도록 합니다.
+         * @param keys `boardId:postId` 형식 키 배열 (서버 최신순)
+         */
+        mergeServerReadPosts(keys: string[]): void {
+            if (!Array.isArray(keys) || keys.length === 0) return;
+            const next = { ...data.posts };
+            // 병합 항목은 로컬 최소 timestamp보다 아래로 부여 → cleanup 시 로컬(실제
+            // 최근 읽음)을 우선 보존하고 서버 병합분이 먼저 밀려나게 한다.
+            // 서버는 최신순이므로 index 0이 가장 높고(=base) 이후 감소해 순서 보존.
+            let localMin = Number.POSITIVE_INFINITY;
+            for (const ts of Object.values(next)) {
+                if (ts < localMin) localMin = ts;
+            }
+            const base = (Number.isFinite(localMin) ? localMin : Date.now()) - 1;
+            let added = 0;
+            for (let i = 0; i < keys.length; i++) {
+                const key = keys[i];
+                if (typeof key !== 'string' || !key.includes(':')) continue;
+                if (key in next) continue; // 로컬에 있으면 로컬 timestamp 유지
+                next[key] = base - i;
+                added++;
+            }
+            if (added === 0) return;
+            data.posts = next;
+            cleanup();
+            save();
         },
 
         /**

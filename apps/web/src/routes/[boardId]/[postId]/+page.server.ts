@@ -18,6 +18,7 @@ import {
     hasRecentlyViewed,
     markViewed
 } from '$lib/server/viewcount.js';
+import { addReadPost } from '$lib/server/read-posts.js';
 import { fetchReactionsByParentId } from '$lib/server/reactions.js';
 import { fetchMemberImagesWithTimestamp } from '$lib/server/member-images.js';
 import { fetchCommentLikeStatuses } from '$lib/server/comment-likes.js';
@@ -294,6 +295,13 @@ export const load: PageServerLoad = async ({
                         maxAge: 60 * 60 * 24
                     });
                 }
+            }
+
+            // 로그인 회원 read-set(L2, Redis) 기록 — 크로스기기 읽음 표시용.
+            // fire-and-forget: 응답에 쓰이지 않으므로 로드 지연을 피하려 await 하지 않음.
+            // best-effort(내부 try/catch), ZADD 멱등이라 재진입 시 재기록해도 무해.
+            if (locals.user?.id) {
+                void addReadPost(locals.user.id, boardId, Number(postId));
             }
         }
 
