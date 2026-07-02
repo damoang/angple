@@ -213,11 +213,15 @@
                 if (!savedMode && legacyDark === 'true') savedMode = 'dark';
             } catch {}
         }
-        if (!savedMode && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-            savedMode = 'dark';
-        }
+        // 저장값(쿠키/localStorage)이 없으면 '시스템 모드'로 본다. prefers-color-scheme 로
+        // savedMode 를 'dark' 로 덮어쓰면 시스템 사용자가 dark 로 오인되어 OS 변경 추종이
+        // 끊긴다(#12886). 다크 OS 의 실제 dark 클래스는 app.html 인라인 스크립트가 이미 적용.
         if (savedMode === 'dark' || savedMode === 'amoled') {
             themeMode = savedMode;
+        } else if (savedMode === 'light') {
+            themeMode = 'light';
+        } else {
+            themeMode = 'system';
         }
 
         // cross-tab 테마 동기화 (다른 탭에서 테마 변경 시)
@@ -246,10 +250,9 @@
             el.classList.remove('dark', 'amoled');
             if (e.matches) {
                 el.classList.add('dark');
-                themeMode = 'dark';
-            } else {
-                themeMode = 'light';
             }
+            // 시스템 모드 유지 — OS 변경을 계속 추종하고 라벨도 '시스템'으로 일관.
+            themeMode = 'system';
         }
         darkMq.addEventListener('change', handleSystemThemeChange);
         function handleReducedMotionChange(e: MediaQueryListEvent) {
