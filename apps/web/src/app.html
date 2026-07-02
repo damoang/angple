@@ -36,10 +36,19 @@
             (function () {
                 var c = document.cookie.match(/angple_theme_mode=(\w+)/);
                 var m = c ? c[1] : null;
+                // fromStore: m 이 '명시적으로 저장된 선택'(쿠키/localStorage)에서 왔는지 여부.
+                // prefers-color-scheme 로 파생된 dark 는 fromStore=false → 쿠키에 박제하지 않는다.
+                var fromStore = !!m;
                 if (!m) {
                     try {
-                        m = localStorage.getItem('themeMode');
-                        if (!m && localStorage.getItem('darkMode') === 'true') m = 'dark';
+                        var lm = localStorage.getItem('themeMode');
+                        if (lm) {
+                            m = lm;
+                            fromStore = true;
+                        } else if (localStorage.getItem('darkMode') === 'true') {
+                            m = 'dark';
+                            fromStore = true;
+                        }
                     } catch (e) {}
                 }
                 if (!m && window.matchMedia('(prefers-color-scheme: dark)').matches) {
@@ -47,8 +56,9 @@
                 }
                 if (m === 'dark') document.documentElement.classList.add('dark');
                 else if (m === 'amoled') document.documentElement.classList.add('amoled');
-                // 쿠키에 기록 (SSR 동기화용, 1년 만료)
-                if (m === 'dark' || m === 'amoled') {
+                // SSR 동기화용 쿠키는 '명시적으로 저장된' dark/amoled 만 기록한다(1년 만료).
+                // prefers 파생 dark 를 기록하면 시스템 모드가 dark 로 영구 고정된다(#12886).
+                if (fromStore && (m === 'dark' || m === 'amoled')) {
                     document.cookie =
                         'angple_theme_mode=' + m + ';path=/;max-age=31536000;SameSite=Lax';
                 }
