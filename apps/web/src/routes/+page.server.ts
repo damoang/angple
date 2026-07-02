@@ -18,6 +18,8 @@ interface HomePageData {
     recommendedPeriod: ReturnType<typeof getDefaultPeriod>;
     exploreData: ReturnType<typeof buildExplorePreviewData> | null;
     celebrationRecent: Awaited<ReturnType<typeof getCachedCelebrations>> | null;
+    // 인덱스 최상단 배너용 오늘자 마음메시지 (하이드레이션 즉시 스토어 시드 → 빈 공간 제거).
+    celebrationToday: Awaited<ReturnType<typeof getCachedCelebrations>> | null;
 }
 
 // Phase 14 — multi-tenant: cache 를 host 별로 격리 (module singleton 이 SSR 요청 간
@@ -27,26 +29,34 @@ const pendingByHost = new Map<string, Promise<HomePageData>>();
 
 async function buildHomePageData(): Promise<HomePageData> {
     const recommendedPeriod = getDefaultPeriod();
-    const [indexWidgetsResult, layoutResult, celebrationResult, recommendedResult, exploreResult] =
-        await Promise.allSettled([
-            buildIndexWidgets(BACKEND_URL),
-            (async () => {
-                const [widgetLayout, sidebarWidgetLayout] = await Promise.all([
-                    getWidgetLayout(),
-                    getSidebarWidgetLayout()
-                ]);
-                return {
-                    widgetLayout: widgetLayout ?? DEFAULT_WIDGETS,
-                    sidebarWidgetLayout: sidebarWidgetLayout ?? DEFAULT_SIDEBAR_WIDGETS
-                };
-            })(),
-            // 인덱스 전용: 최근 마음메시지 (오늘뿐 아니라 최근 8건)
-            getCachedCelebrations(true),
-            // 공감글 SSR 프리페치 (스켈레톤 제거)
-            loadRecommendedData(recommendedPeriod),
-            // 모아보기 SSR 프리페치 (스켈레톤 제거). 파일 캐시(60초 인메모리)라 SSR 부담 적음.
-            loadExploreData()
-        ]);
+    const [
+        indexWidgetsResult,
+        layoutResult,
+        celebrationResult,
+        recommendedResult,
+        exploreResult,
+        celebrationTodayResult
+    ] = await Promise.allSettled([
+        buildIndexWidgets(BACKEND_URL),
+        (async () => {
+            const [widgetLayout, sidebarWidgetLayout] = await Promise.all([
+                getWidgetLayout(),
+                getSidebarWidgetLayout()
+            ]);
+            return {
+                widgetLayout: widgetLayout ?? DEFAULT_WIDGETS,
+                sidebarWidgetLayout: sidebarWidgetLayout ?? DEFAULT_SIDEBAR_WIDGETS
+            };
+        })(),
+        // 인덱스 전용: 최근 마음메시지 (오늘뿐 아니라 최근 8건)
+        getCachedCelebrations(true),
+        // 공감글 SSR 프리페치 (스켈레톤 제거)
+        loadRecommendedData(recommendedPeriod),
+        // 모아보기 SSR 프리페치 (스켈레톤 제거). 파일 캐시(60초 인메모리)라 SSR 부담 적음.
+        loadExploreData(),
+        // 최상단 배너용 오늘자 마음메시지. today:${KST} 캐시(60초)를 /api/layout/init 과 공유 → 추가 부하 거의 없음.
+        getCachedCelebrations(false)
+    ]);
 
     const indexWidgets =
         indexWidgetsResult.status === 'fulfilled' ? indexWidgetsResult.value : null;
@@ -56,6 +66,8 @@ async function buildHomePageData(): Promise<HomePageData> {
             : { widgetLayout: DEFAULT_WIDGETS, sidebarWidgetLayout: DEFAULT_SIDEBAR_WIDGETS };
     const celebrationRecent =
         celebrationResult.status === 'fulfilled' ? celebrationResult.value : null;
+    const celebrationToday =
+        celebrationTodayResult.status === 'fulfilled' ? celebrationTodayResult.value : null;
     const exploreRaw = exploreResult.status === 'fulfilled' ? exploreResult.value : null;
     const exploreData = exploreRaw ? buildExplorePreviewData(exploreRaw) : null;
 
@@ -70,7 +82,8 @@ async function buildHomePageData(): Promise<HomePageData> {
         recommendedData: recommendedResult.status === 'fulfilled' ? recommendedResult.value : null,
         recommendedPeriod,
         exploreData,
-        celebrationRecent
+        celebrationRecent,
+        celebrationToday
     };
 }
 
@@ -92,7 +105,8 @@ function emptyHomePageData(): HomePageData {
         recommendedData: null,
         recommendedPeriod: getDefaultPeriod(),
         exploreData: null,
-        celebrationRecent: null
+        celebrationRecent: null,
+        celebrationToday: null
     };
 }
 

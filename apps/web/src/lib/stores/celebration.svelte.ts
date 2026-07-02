@@ -190,16 +190,19 @@ export function getLink(banner: CelebrationBanner): string {
 
 /** 외부 데이터로 초기화 (app-init 스토어에서 주입 시 fetch 스킵) */
 export function initFromData(data: CelebrationBanner[]): void {
+    // 실 fetch(mount의 doFetch)가 완료된 뒤에는 시드가 데이터를 덮어쓰지 않는다.
     if (fetched) return;
 
     if (data.length > 0) {
+        // 오늘자 SSR 시드로 첫 페인트를 즉시 채운다.
         celebrations = [...data];
         reshuffleOrder();
+        loadedDateKST = getTodayKST();
+        // fetched 는 설정하지 않는다 — mount()가 /api/celebration/today 로 1회 재검증해
+        // (yearly_repeat·최신 이미지·cache-bust 보정) 정확성을 맞춘다. 무감지 스왑.
     }
-    // 자정 롤오버 비교 기준 날짜 설정 (SSR 시드도 KST today 기준 데이터).
-    loadedDateKST = getTodayKST();
-    // 빈 배열로 초기화되더라도 ready=true 여야 fallback 문구를 렌더할 수 있다.
-    fetched = true;
+    // 빈 시드여도 fallback 문구 렌더용으로 ready 만 올린다. celebrations·fetched·loadedDateKST 는
+    // 건드리지 않아, 이미 시드된 데이터나 이후 실 fetch 를 막지 않는다(+layout 의 매 호출 무해화).
     ready = true;
 }
 

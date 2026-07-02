@@ -8,6 +8,8 @@
     import type { SeoConfig } from '$lib/seo/types.js';
     import PluginSlot from '$lib/components/plugin/plugin-slot.svelte';
     import { getThemePageTemplate } from '$lib/themes/page-registry';
+    import { browser } from '$app/environment';
+    import { initFromData as initCelebrationFromData } from '$lib/stores/celebration.svelte';
 
     let { data } = $props();
 
@@ -18,6 +20,13 @@
     // SSR 데이터 즉시 스토어 초기화 (hydration 전에 실행)
     indexWidgetsStore.initFromServer(data.indexWidgets);
     widgetLayoutStore.initFromServer(data.widgetLayout, data.sidebarWidgetLayout);
+
+    // 오늘자 마음메시지를 하이드레이션 즉시(무네트워크) 스토어에 시드 → 최상단 배너 빈 공간 제거.
+    // ⚠️ celebration 스토어는 모듈 싱글턴이고 전 페이지 SSR에서 읽히므로, SSR 중 쓰면 멀티테넌트
+    // 누수 발생 → 반드시 browser(하이드레이션) 전용. 자식 DamoangBanner onMount 보다 먼저 실행됨.
+    if (browser) {
+        initCelebrationFromData(data.celebrationToday ?? []);
+    }
 
     // SSR 데이터 변경 시 스토어 동기화 (SPA 내비게이션 대응)
     $effect(() => {
