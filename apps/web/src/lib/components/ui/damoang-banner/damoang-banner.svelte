@@ -87,8 +87,23 @@
     const gamPosition = $derived(gamPositionProp || GAM_POSITION_MAP[position] || 'board-head');
 
     $effect(() => {
-        if (!showCelebration || !adsResolved) return;
+        if (!showCelebration) return;
 
+        // 마음메시지가 이미 있으면(하이드레이션 시 SSR 시드) 자체광고 왕복을 기다리지 않고 즉시 표시.
+        // 자체광고 우선순위는 celebrationBanner derived(adsBanner 있으면 null) + 템플릿 폴백 순서가
+        // 유지 → 자체광고가 늦게 resolve 되면 자연 전환.
+        const hasCelebration = celebrationReady && storeCelebrations.length > 0;
+        if (hasCelebration) {
+            loading = false;
+            useFallback = false;
+            return;
+        }
+
+        // 마음메시지가 없을 땐 자체광고 유무를 알아야 폴백(GAM/문구)을 정할 수 있으므로 adsResolved 대기.
+        if (!adsResolved) {
+            loading = true;
+            return;
+        }
         loading = !adsBanner && !celebrationReady;
         useFallback = !adsBanner && celebrationReady && storeCelebrations.length === 0;
     });
@@ -111,14 +126,13 @@
         if (!browser) return;
 
         if (showCelebration) {
-            // 마음메시지는 공유 스토어에서 관리 → 광고만 fetch
+            // 마음메시지는 공유 스토어에서 관리 → 광고만 fetch.
+            // loading/useFallback 은 위 $effect 가 단일 소스로 계산(adsResolved 변화가 트리거).
             const ads = await fetchAdsBanners();
             if (ads.length > 0) {
                 adsBanner = ads[Math.floor(Math.random() * ads.length)];
             }
             adsResolved = true;
-            loading = !adsBanner && !celebrationReady;
-            useFallback = !adsBanner && celebrationReady && storeCelebrations.length === 0;
         } else {
             // 게시판 페이지: 프리미엄 + 일반 배너만 (마음메시지 없음)
             const ads = await fetchAdsBanners();
