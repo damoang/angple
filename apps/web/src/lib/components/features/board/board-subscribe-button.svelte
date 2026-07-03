@@ -35,7 +35,7 @@
     // 상태가 새 게시판에 그대로 표시된다. boardId 변경 시 상태를 초기화해, 다음 hover/open 에서
     // 새 게시판을 다시 로드하도록 한다.
     $effect(() => {
-        boardId; // 의존성 추적
+        void boardId; // 의존성 추적
         stateLoaded = false;
         stateLoading = false;
         isSubscribed = false;
@@ -46,11 +46,16 @@
 
     async function loadSubscribeState(): Promise<void> {
         if (stateLoaded || stateLoading) return;
+        // 요청 시작 시점의 boardId 를 캡처. 응답 도착 전에 게시판이 바뀌면(SPA 이동) 이 응답은
+        // 이전 게시판 것이므로 폐기한다 — stale 응답이 새 게시판에 커밋되어 고착되는 레이스 방지(#12875).
+        const reqBoard = boardId;
         stateLoading = true;
         try {
-            const res = await fetch(`/api/boards/${boardId}/subscribe`);
+            const res = await fetch(`/api/boards/${reqBoard}/subscribe`);
+            if (reqBoard !== boardId) return; // 그 사이 게시판 전환됨 → 폐기
             if (res.ok) {
                 const data = await res.json();
+                if (reqBoard !== boardId) return;
                 if (data.success) {
                     isSubscribed = data.data.is_subscribed;
                     level = data.data.level ?? null;
@@ -61,8 +66,11 @@
         } catch {
             // 조회 실패 시 무시
         } finally {
-            stateLoaded = true;
-            stateLoading = false;
+            // stale 응답이면 현재 게시판 상태(로드 가드)를 건드리지 않는다.
+            if (reqBoard === boardId) {
+                stateLoaded = true;
+                stateLoading = false;
+            }
         }
     }
 
