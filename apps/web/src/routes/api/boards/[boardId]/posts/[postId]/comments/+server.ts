@@ -128,6 +128,32 @@ export const GET: RequestHandler = async ({ params, url, locals, request }) => {
     const tableName = `g5_write_${safeBoardId}`;
 
     try {
+        // 부모 글 삭제 여부 확인 — 삭제된 글은 본문이 "[삭제된 게시물]"로 가려지므로
+        // 그 아래 댓글도 노출하지 않는다(#12711: 삭제글 자리에 이전 댓글이 남아 보이는 문제).
+        // 관리자는 조정 목적상 계속 열람 가능.
+        if (!isAdmin) {
+            const [parentRows] = await pool.query<RowDataPacket[]>(
+                `SELECT wr_deleted_at FROM ?? WHERE wr_id = ? AND wr_is_comment = 0 LIMIT 1`,
+                [tableName, safePostId]
+            );
+            const parent = parentRows[0];
+            if (!parent || parent.wr_deleted_at) {
+                return json(
+                    {
+                        success: true,
+                        data: {
+                            comments: [],
+                            total: 0,
+                            page: effectivePage,
+                            limit,
+                            total_pages: 0
+                        }
+                    },
+                    { headers: { 'Cache-Control': 'private, no-cache, no-store, must-revalidate' } }
+                );
+            }
+        }
+
         // 전체 댓글 수
         const [countRows] = await pool.query<CountRow[]>(
             `SELECT COUNT(*) AS total FROM ?? WHERE wr_parent = ? AND wr_is_comment = 1`,
