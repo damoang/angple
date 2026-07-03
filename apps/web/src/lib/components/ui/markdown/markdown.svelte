@@ -493,10 +493,12 @@
         margin: 1rem 0;
     }
 
-    /* 백엔드 썸네일 변환된 이미지: 컨테이너 전폭 */
+    /* 백엔드 썸네일 변환된 이미지: 블록 레이아웃만 지정.
+       가로 폭 강제(width:100%)는 제거 — 작은/가로 이미지가 컨테이너 폭까지 확대되던 문제(#12895).
+       세로 이미지 채움은 로드 후 orientation 판정으로 .dm-portrait-fill 이 담당(#1645).
+       가로 상한은 상위 .prose img 규칙의 max-width:100% 로 유지. */
     .prose :global(img[data-original]) {
         display: block;
-        width: 100%;
     }
 
     .prose :global(table) {
