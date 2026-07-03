@@ -427,6 +427,11 @@
     .ad-slot-empty {
         border: 0;
         background: transparent;
+        /* #12877: 빈(미채움) 광고 예약영역은 투명하지만 opacity:0 만으로는 클릭이 살아 있어,
+           이미지 없는 "보이지 않는 클릭 가능 광고"가 된다(AdSense 무효클릭 리스크).
+           빈 상태에서는 포인터 이벤트를 차단한다. 광고가 채워지면(isEmpty=false) 이 클래스가
+           제거되어 pointer-events 가 기본값(auto)으로 복원되므로 정상 광고 클릭에 영향 없음. */
+        pointer-events: none;
     }
 
     .ad-slot-empty-collapsed {
