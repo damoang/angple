@@ -156,6 +156,9 @@ export const load: PageServerLoad = async ({
             post.videos = [];
             post.downloads = [];
             post.files = [];
+            // 삭제글은 댓글도 노출하지 않는다(#12711). 댓글 API(부모 삭제 시 빈 배열 반환)와
+            // 정합을 맞추기 위해 권위 카운트도 0으로 — 헤더 카운트 라벨/SSR total/클라 backfill 게이트 일치.
+            post.comments_count = 0;
             setHeaders({ 'X-Robots-Tag': 'noindex, noarchive' });
         }
 
