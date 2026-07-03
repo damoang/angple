@@ -16,7 +16,7 @@ export type ListViewMode = 'classic' | 'modern';
 export type ContentFontSize = 'small' | 'base' | 'large' | 'xlarge' | '2xlarge' | '3xlarge';
 export type ListFontSize = 'xsmall' | 'small' | 'base' | 'large' | 'xlarge';
 
-interface UiSettings {
+export interface UiSettings {
     // 레이아웃
     titleBold: boolean;
     listView: ListViewMode;
@@ -136,8 +136,42 @@ function loadSettings(): UiSettings {
     return { ...DEFAULTS };
 }
 
+/** 서버 write-through 디바운스 지연(ms) — 잦은 설정 변경을 1회 PUT으로 병합 */
+const SERVER_SYNC_DEBOUNCE_MS = 1500;
+
 function createUiSettingsStore() {
     let settings = $state<UiSettings>(loadSettings());
+
+    // 서버 저장(L2) 디바운스 타이머. 로그인 여부는 엔드포인트가 판단하며,
+    // 비로그인은 401 을 받아 조용히 무시된다(여기서 authStore 를 import 하지 않음 — 순환 회피).
+    let syncTimer: ReturnType<typeof setTimeout> | null = null;
+
+    /** 현재 설정을 서버에 즉시 PUT(fire-and-forget). 비로그인 401 은 무시. */
+    function syncToServer() {
+        if (!browser) return;
+        try {
+            fetch('/api/my/ui-settings', {
+                method: 'PUT',
+                credentials: 'include',
+                headers: { 'content-type': 'application/json' },
+                body: JSON.stringify({ settings })
+            }).catch(() => {
+                // 네트워크/비로그인 실패는 무시 — L1(localStorage)이 원본 유지
+            });
+        } catch {
+            // ignore
+        }
+    }
+
+    /** save() 마다 호출되는 디바운스 서버 동기화(1.5s 병합). */
+    function scheduleServerSync() {
+        if (!browser) return;
+        if (syncTimer) clearTimeout(syncTimer);
+        syncTimer = setTimeout(() => {
+            syncTimer = null;
+            syncToServer();
+        }, SERVER_SYNC_DEBOUNCE_MS);
+    }
 
     function save() {
         if (!browser) return;
@@ -146,6 +180,8 @@ function createUiSettingsStore() {
         } catch {
             // ignore
         }
+        // 로그인 회원은 서버(L2)로 디바운스 write-through — save() 를 블록하지 않음
+        scheduleServerSync();
     }
 
     function applyCSS() {
@@ -416,6 +452,22 @@ function createUiSettingsStore() {
             settings.blurMemo = v;
             save();
         },
+
+        /**
+         * 서버(L2) 설정을 로컬에 병합. 로그인 회원은 서버가 진실 원본이므로
+         * 서버 값이 우선한다(server wins). 병합 후 localStorage 에도 반영.
+         * null/비객체면 no-op(서버에 저장값 없음 = 첫 도입).
+         */
+        mergeServerSettings(server: Partial<UiSettings> | null): void {
+            if (!browser) return;
+            if (!server || typeof server !== 'object') return;
+            settings = { ...settings, ...server };
+            save();
+            applyCSS();
+        },
+
+        /** 현재 로컬 설정을 서버에 즉시 올림(첫 로그인 마이그레이션용). */
+        syncToServer,
 
         /** 제목이 뮤트 키워드에 매칭되는지 확인 */
         isMuted(title: string): boolean {
