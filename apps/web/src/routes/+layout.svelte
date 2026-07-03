@@ -484,6 +484,29 @@
                 });
         }
 
+        // 로그인 회원 UI 설정(L2, MySQL+Redis) 병합 — 크로스기기·ITP 대비(#12891).
+        // 서버 값 있음 → 서버가 진실 원본으로 로컬에 반영. 서버 비어있음(첫 도입)
+        // → 현재 로컬 설정을 서버로 올려 마이그레이션(기존 사용자 설정 무손실).
+        if (browser && authStore.isAuthenticated) {
+            fetch('/api/my/ui-settings', { headers: { accept: 'application/json' } })
+                .then((res) => (res.ok ? res.json() : null))
+                .then((payload: { settings?: Record<string, unknown> | null } | null) => {
+                    if (payload?.settings) {
+                        uiSettingsStore.mergeServerSettings(
+                            payload.settings as Partial<
+                                import('$lib/stores/ui-settings.svelte').UiSettings
+                            >
+                        );
+                    } else {
+                        // 서버에 저장값 없음 → 로컬 설정을 서버로 마이그레이션
+                        uiSettingsStore.syncToServer();
+                    }
+                })
+                .catch(() => {
+                    // 실패해도 로컬(L1) 설정은 그대로 유지
+                });
+        }
+
         const cachedMenus = readCachedMenus();
         if (cachedMenus) {
             menuStore.initFromServer(cachedMenus);
