@@ -107,6 +107,8 @@ export interface FreeComment {
     is_restricted?: boolean;
     /** 이용제한 근거 댓글 (g5_na_singo.discipline_log_id IS NOT NULL). PR #484. */
     is_discipline_related?: boolean;
+    /** 요청자가 이 댓글 작성자를 차단했는지(서버 판정). 클라 스토어 로드 전 깜박임 방지(#12825). */
+    is_blocked?: boolean;
     link1?: string;
     link2?: string;
     link1_display?: string;

@@ -74,6 +74,8 @@ interface CommentResponseItem {
     link2_affiliate?: boolean;
     report_count?: string | number;
     is_discipline_related?: boolean;
+    /** 요청자가 이 댓글 작성자를 차단했는지(서버 판정). 클라 스토어 로드 전 깜박임 방지용(#12825). */
+    is_blocked?: boolean;
 }
 
 interface DisciplineRow extends RowDataPacket {
@@ -226,6 +228,25 @@ export const GET: RequestHandler = async ({ params, url, locals, request }) => {
             }
         }
 
+        // 요청자가 차단한 작성자 집합 (#12825). 서버에서 is_blocked 를 판정해 내려주면
+        // 클라이언트 차단 스토어가 비동기 로드되기 전에도 첫 렌더부터 접힘 상태로 표시되어
+        // "보였다 숨었다" 깜박임이 사라진다. 실패는 무시(클라 스토어가 fallback).
+        const blockedSet = new Set<string>();
+        const viewerId = locals.user?.id;
+        if (viewerId) {
+            try {
+                const [bRows] = await pool.query<RowDataPacket[]>(
+                    `SELECT blocked_mb_id FROM g5_member_block WHERE mb_id = ?`,
+                    [viewerId]
+                );
+                for (const b of bRows) {
+                    if (b.blocked_mb_id) blockedSet.add(String(b.blocked_mb_id));
+                }
+            } catch (e) {
+                console.warn('[block] enrich(comments) failed:', e);
+            }
+        }
+
         const comments: CommentResponseItem[] = rows.map((row) => ({
             id: row.wr_id,
             content: row.wr_deleted_at ? (isAdmin ? row.wr_content : '') : row.wr_content,
@@ -263,6 +284,7 @@ export const GET: RequestHandler = async ({ params, url, locals, request }) => {
             deleted_at: row.wr_deleted_at || null,
             deleted_by: row.wr_deleted_by || null,
             edit_count: editCountMap.get(row.wr_id) || 0,
+            ...(row.mb_id && blockedSet.has(String(row.mb_id)) ? { is_blocked: true } : {}),
             ...(disciplineSet.has(row.wr_id) ? { is_discipline_related: true } : {}),
             ...(isAdmin && row.wr_7
                 ? {
