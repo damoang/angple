@@ -397,7 +397,10 @@
     let expandedBlockedComments = new SvelteSet<string>();
 
     function isBlockedComment(comment: FreeComment): boolean {
-        return blockedUsersStore.isBlocked(comment.author_id);
+        // 서버 판정(is_blocked) 우선 — 클라 차단 스토어가 로드되기 전에도 첫 렌더부터
+        // 접힘 상태로 표시되어 "보였다 숨었다" 깜박임을 방지(#12825).
+        // 스토어는 차단 직후 즉시 반영(fallback)용으로 OR 결합.
+        return comment.is_blocked === true || blockedUsersStore.isBlocked(comment.author_id);
     }
 
     function toggleBlockedComment(commentId: string): void {
