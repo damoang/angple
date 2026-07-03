@@ -1,5 +1,6 @@
 <script lang="ts">
     import { goto } from '$app/navigation';
+    import { browser } from '$app/environment';
     import { onMount } from 'svelte';
     import type {
         DailyCalendarEntry,
@@ -208,7 +209,29 @@
     // 오늘 데이터 폴링 (5분 간격)
     let pollingTimer: ReturnType<typeof setInterval> | undefined;
 
+    // 사용자가 설정한 추천수 필터/정렬을 세션 간 유지 (#12897).
+    // 하이드레이션 후(onMount) 복원 — SSR/클라 초기 마크업 일치를 유지해 미스매치 방지.
+    const LS_THRESHOLD = 'angple_daily_recommend_threshold';
+    const LS_SORT = 'angple_daily_recommend_sort';
+    // 복원 완료 전에는 지속 $effect가 기본값을 저장해 덮어쓰지 않도록 게이트.
+    let settingsRestored = $state(false);
+
     onMount(() => {
+        try {
+            const t = localStorage.getItem(LS_THRESHOLD);
+            if (t !== null) {
+                const n = parseInt(t, 10);
+                if (!Number.isNaN(n) && n >= 0) threshold = n;
+            }
+            const s = localStorage.getItem(LS_SORT);
+            if (s === 'recommend' || s === 'views' || s === 'comments' || s === 'latest') {
+                sortBy = s;
+            }
+        } catch {
+            // localStorage 접근 실패 무시
+        }
+        settingsRestored = true;
+
         if (isToday) {
             pollingTimer = setInterval(
                 async () => {
@@ -227,6 +250,17 @@
         return () => {
             if (pollingTimer) clearInterval(pollingTimer);
         };
+    });
+
+    // 설정 변경 시 즉시 저장 → 글 읽고 돌아와도 유지(#12897). 클라 전용, 복원 완료 후에만.
+    $effect(() => {
+        if (!browser || !settingsRestored) return;
+        try {
+            localStorage.setItem(LS_THRESHOLD, String(threshold));
+            localStorage.setItem(LS_SORT, sortBy);
+        } catch {
+            // 저장 실패 무시
+        }
     });
 
     function handleDateChange(newDate: string) {
