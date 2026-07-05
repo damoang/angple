@@ -22,13 +22,22 @@
 
     interface Props {
         dailyStats?: Record<string, DailyStatEntry>;
+        // 직전 4주 요일별 평균(일별 트렌드에 신고 평균선 겹치기용). key=요일명.
+        dailyAvg4w?: Record<string, { reports: number; posts: number; comments: number }>;
         weeklyStats?: Record<string, WeeklyStatEntry>;
         reportTypes?: Record<string, number>;
         boardStats?: BoardStatEntry[];
         periodDays?: number;
     }
 
-    let { dailyStats, weeklyStats, reportTypes, boardStats, periodDays = 1 }: Props = $props();
+    let {
+        dailyStats,
+        dailyAvg4w,
+        weeklyStats,
+        reportTypes,
+        boardStats,
+        periodDays = 1
+    }: Props = $props();
 
     let dailyCanvas: HTMLCanvasElement | undefined = $state();
     let weeklyCanvas: HTMLCanvasElement | undefined = $state();
@@ -48,6 +57,10 @@
                 const reports: number[] = [];
                 const posts: number[] = [];
                 const comments: number[] = [];
+                // 직전 4주 요일별 평균(신고). 요일명 배열은 getDay() 0=일..6=토 순.
+                const dowNames = ['일', '월', '화', '수', '목', '금', '토'];
+                const hasAvg = !!dailyAvg4w && Object.keys(dailyAvg4w).length > 0;
+                const avgReports: number[] = [];
 
                 for (const [date, data] of Object.entries(dailyStats)) {
                     const d = new Date(date + 'T00:00:00');
@@ -55,6 +68,10 @@
                     reports.push(data.reports || 0);
                     posts.push(data.posts || 0);
                     comments.push(data.comments || 0);
+                    if (hasAvg) {
+                        const av = dailyAvg4w?.[dowNames[d.getDay()]];
+                        avgReports.push(av ? Math.round(av.reports) : 0);
+                    }
                 }
 
                 charts.push(
@@ -83,7 +100,21 @@
                                     borderColor: '#10b981',
                                     backgroundColor: '#10b981',
                                     pointRadius: 4
-                                }
+                                },
+                                // 신고 4주 평균(점선) — 이번 주 신고가 평소보다 많/적은지 비교용.
+                                ...(hasAvg
+                                    ? [
+                                          {
+                                              label: '신고 4주 평균',
+                                              data: avgReports,
+                                              borderColor: '#ef4444',
+                                              backgroundColor: 'transparent',
+                                              borderDash: [5, 5],
+                                              borderWidth: 1.5,
+                                              pointRadius: 0
+                                          }
+                                      ]
+                                    : [])
                             ]
                         },
                         options: {
