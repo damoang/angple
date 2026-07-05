@@ -50,7 +50,7 @@
     import { insertReplyAfterParent, type CommentLike } from '$lib/utils/comment-insert.js';
     import type { ReactionItem } from '$lib/types/reaction.js';
     import { generateParentId, generateDocumentTargetId } from '$lib/types/reaction.js';
-    import { onMount } from 'svelte';
+    import { onMount, untrack } from 'svelte';
     import { doAction } from '$lib/hooks/registry';
     import { page } from '$app/stores';
     import { getAvatarUrl } from '$lib/utils/member-icon.js';
@@ -727,13 +727,20 @@
         };
     });
 
-    // 읽음 표시 + GA4 이벤트 — SPA 네비게이션(하단 리스트 클릭)에서도 반응
+    // 읽음 표시 + GA4 이벤트 — SPA 네비게이션(하단 리스트 클릭)에서도 반응.
+    // markAsRead 는 내부에서 read-store 의 posts 를 읽고(스프레드) 다시 쓴다. 그 읽기가
+    // 이 $effect 의 반응 의존성으로 잡히면 자기참조가 되어(쓰기→재실행) Svelte 가 effect 를
+    // 반복 실행하다 effect_update_depth_exceeded 로 상태를 롤백 → 방금 읽은 글이 유실된다.
+    // 부수효과(읽음 저장/GA4)는 반응 의존성을 만들 필요가 없으므로 untrack 으로 격리한다.
+    // effect 는 boardId/postId(untrack 밖)에만 의존해 네비게이션마다 1회만 실행된다.
     $effect(() => {
         const postViewKey = `${boardId}:${data.post.id}`;
         if (trackedPostViewKey === postViewKey) return;
         trackedPostViewKey = postViewKey;
-        readPostsStore.markAsRead(boardId, data.post.id);
-        trackPostView(boardId, data.post.id);
+        untrack(() => {
+            readPostsStore.markAsRead(boardId, data.post.id);
+            trackPostView(boardId, data.post.id);
+        });
     });
 
     // 조회수: SSR에서 처리 (CDN 요청 제거)
