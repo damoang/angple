@@ -348,7 +348,20 @@
             imgs.forEach((img) => {
                 const applyOrientation = () => {
                     if (img.naturalWidth === 0) return;
-                    img.classList.toggle('dm-portrait-fill', img.naturalHeight > img.naturalWidth);
+                    const isPortrait = img.naturalHeight > img.naturalWidth;
+                    img.classList.toggle('dm-portrait-fill', isPortrait);
+                    // 가로 이미지가 본문 폭에 근접(자연폭 ≥ 컨테이너 60%)하면 본문 폭에 맞춰 채운다.
+                    // "거의 꽉 찼는데 안 채워지는" 애매한 이미지를 잡되, 명확히 작은 이미지
+                    // (이모지·로고·썸네일, 대개 50% 미만)는 그대로 자연 크기 유지(#12895).
+                    // 컨테이너보다 크거나 같은 이미지는 상위 max-width:100% 가 처리하므로 제외.
+                    const parentW = img.parentElement?.offsetWidth ?? 0;
+                    img.classList.toggle(
+                        'dm-landscape-fill',
+                        !isPortrait &&
+                            parentW > 0 &&
+                            img.naturalWidth >= parentW * 0.6 &&
+                            img.naturalWidth < parentW
+                    );
                 };
                 if (img.complete && img.naturalWidth > 0) {
                     applyOrientation();
@@ -372,6 +385,12 @@
 <style>
     /* 세로 이미지: 본문 너비 100%로 채움 (좁은 세로 스크린샷이 작게 보이는 문제 해결) */
     .prose :global(img.dm-portrait-fill) {
+        width: 100%;
+        height: auto;
+    }
+
+    /* 가로 이미지 중 본문 폭에 근접한 것(자연폭 ≥ 컨테이너 60%)만 채움. 로드 후 JS 판정. */
+    .prose :global(img.dm-landscape-fill) {
         width: 100%;
         height: auto;
     }
