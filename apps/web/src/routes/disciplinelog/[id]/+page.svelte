@@ -2,12 +2,10 @@
     /**
      * 이용제한 기록 상세 페이지
      */
-    import { page } from '$app/state';
     import * as Card from '$lib/components/ui/card/index.js';
     import { Button } from '$lib/components/ui/button/index.js';
     import { Badge } from '$lib/components/ui/badge/index.js';
     import ArrowLeft from '@lucide/svelte/icons/arrow-left';
-    import Loader2 from '@lucide/svelte/icons/loader-2';
     import AlertTriangle from '@lucide/svelte/icons/alert-triangle';
     import Calendar from '@lucide/svelte/icons/calendar';
     import User from '@lucide/svelte/icons/user';
@@ -16,54 +14,21 @@
     import ExternalLink from '@lucide/svelte/icons/external-link';
     import History from '@lucide/svelte/icons/history';
     import {
-        getDisciplineLog,
-        getDisciplineLogs,
         getPenaltyDisplay,
         type DisciplineLogDetail,
         type DisciplineLogListItem
     } from '$lib/api/discipline-log.js';
     import { authStore } from '$lib/stores/auth.svelte.js';
     import { getReportReasonLabel } from '$lib/utils/report-reasons.js';
+    import type { PageData } from './$types';
 
-    let log = $state<DisciplineLogDetail | null>(null);
-    let loading = $state(true);
-    let error = $state<string | null>(null);
-    let memberHistory = $state<DisciplineLogListItem[]>([]);
+    let { data }: { data: PageData } = $props();
 
-    const id = $derived(Number(page.params.id));
-
-    async function fetchMemberHistory(memberId: string, currentId: number) {
-        try {
-            const result = await getDisciplineLogs(1, 100, memberId);
-            // race-condition 방지: 이미 다른 id 로 이동했으면 폐기
-            if (currentId !== id) return;
-            memberHistory = result.data;
-        } catch {
-            if (currentId !== id) return;
-            memberHistory = [];
-        }
-    }
-
-    async function fetchLog(targetId: number) {
-        loading = true;
-        error = null;
-        memberHistory = [];
-        try {
-            const result = await getDisciplineLog(targetId);
-            // 비동기 응답 도착 시점에 id 가 바뀌었으면 폐기 (race-condition 방지)
-            if (targetId !== id) return;
-            log = result.data;
-            if (log.member_id) {
-                fetchMemberHistory(log.member_id, targetId);
-            }
-        } catch {
-            if (targetId !== id) return;
-            error = '이용제한 기록을 불러오는데 실패했습니다.';
-            log = null;
-        } finally {
-            if (targetId === id) loading = false;
-        }
-    }
+    // SSR 로드(+page.server.ts)에서 상세·회원이력을 미리 받아 즉시 렌더(스피너·클라 왕복 제거).
+    // 라우트 파라미터 변경 시 load 가 재실행되므로 목록/이력에서 다른 row 클릭에도 반영된다.
+    const log = $derived<DisciplineLogDetail | null>(data.log);
+    const memberHistory = $derived<DisciplineLogListItem[]>(data.memberHistory ?? []);
+    const error = $derived(data.loadError ? '이용제한 기록을 불러오는데 실패했습니다.' : null);
 
     function getPenaltyBadgeVariant(
         period: number,
@@ -126,13 +91,6 @@
     function isOwnPenalty(log: DisciplineLogDetail): boolean {
         return !!authStore.user && log.member_id === authStore.user.mb_id;
     }
-
-    // id 가 바뀔 때마다 재조회 (목록/회원 이력에서 다른 row 클릭 시에도 반영)
-    $effect(() => {
-        if (Number.isFinite(id) && id > 0) {
-            fetchLog(id);
-        }
-    });
 </script>
 
 <svelte:head>
@@ -148,20 +106,14 @@
         </Button>
     </div>
 
-    {#if loading}
-        <div class="flex items-center justify-center py-12">
-            <Loader2 class="text-muted-foreground h-8 w-8 animate-spin" />
-        </div>
-    {:else if error || !log}
+    {#if error || !log}
         <Card.Root>
             <Card.Content
                 class="text-muted-foreground flex flex-col items-center justify-center py-12"
             >
                 <AlertTriangle class="mb-4 h-12 w-12" />
                 <p>{error || '이용제한 기록을 찾을 수 없습니다.'}</p>
-                <Button variant="outline" class="mt-4" onclick={() => fetchLog(id)}
-                    >다시 시도</Button
-                >
+                <Button variant="outline" class="mt-4" href="/disciplinelog">목록으로</Button>
             </Card.Content>
         </Card.Root>
     {:else}
@@ -350,7 +302,7 @@
                             <a
                                 href="/disciplinelog/{item.id}"
                                 class="hover:bg-muted/50 flex items-center justify-between rounded p-2 text-sm transition-all duration-200 ease-out {item.id ===
-                                id
+                                log.id
                                     ? 'bg-primary/10 border-primary/30 border font-semibold'
                                     : ''}"
                             >
