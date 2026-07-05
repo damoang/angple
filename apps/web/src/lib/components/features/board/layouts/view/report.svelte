@@ -149,6 +149,17 @@
         daily_stats?: Record<string, DailyStatEntry>;
         weekly_stats?: Record<string, WeeklyStatEntry>;
         board_stats?: BoardStatEntry[];
+        // 전주 대비 변화율용(직전 주 동일 지표). 구 보고서엔 없을 수 있음.
+        prev_week?: {
+            total_reports?: number;
+            report_count?: number;
+            report_month?: number;
+            completed_reports?: number;
+            claim_reports?: number;
+            reporter_count?: number;
+        };
+        // 직전 4주 요일별 평균(일별 트렌드 겹치기용). key=요일명.
+        daily_avg_4w?: Record<string, { reports: number; posts: number; comments: number }>;
     }
 
     const stats = $derived.by((): ReportStats => {
@@ -193,11 +204,18 @@
         }
     ]);
 
-    // 보조 지표 카드 정의
+    // 전주 대비 변화율(%). 직전 주 값이 없거나 0이면 null(뱃지 미표시).
+    function deltaPct(cur: number, prev: number | undefined): number | null {
+        if (prev == null || prev === 0) return null;
+        return Math.round(((cur - prev) / prev) * 100);
+    }
+
+    // 보조 지표 카드 정의 (value=이번 주, prev=직전 주)
     const secondaryMetrics = $derived([
         {
             label: '총 신고 처리',
             value: stats.total_reports ?? 0,
+            prev: stats.prev_week?.total_reports,
             icon: Shield,
             color: 'text-purple-600 dark:text-purple-400',
             bg: 'bg-purple-50 dark:bg-purple-950/30'
@@ -205,6 +223,7 @@
         {
             label: '이용제한',
             value: stats.completed_reports ?? 0,
+            prev: stats.prev_week?.completed_reports,
             icon: Gavel,
             color: 'text-red-600 dark:text-red-400',
             bg: 'bg-red-50 dark:bg-red-950/30'
@@ -212,6 +231,7 @@
         {
             label: '신고된 게시글',
             value: stats.report_count ?? 0,
+            prev: stats.prev_week?.report_count,
             icon: AlertTriangle,
             color: 'text-orange-600 dark:text-orange-400',
             bg: 'bg-orange-50 dark:bg-orange-950/30'
@@ -219,6 +239,7 @@
         {
             label: '소명건수',
             value: stats.claim_reports ?? 0,
+            prev: stats.prev_week?.claim_reports,
             icon: Scale,
             color: 'text-teal-600 dark:text-teal-400',
             bg: 'bg-teal-50 dark:bg-teal-950/30'
@@ -226,6 +247,7 @@
         {
             label: '신고된 댓글',
             value: stats.report_month ?? 0,
+            prev: stats.prev_week?.report_month,
             icon: MessageCircle,
             color: 'text-amber-600 dark:text-amber-400',
             bg: 'bg-amber-50 dark:bg-amber-950/30'
@@ -233,6 +255,7 @@
         {
             label: '신고자 수',
             value: stats.reporter_count ?? 0,
+            prev: stats.prev_week?.reporter_count,
             icon: Users,
             color: 'text-indigo-600 dark:text-indigo-400',
             bg: 'bg-indigo-50 dark:bg-indigo-950/30'
@@ -398,12 +421,25 @@
             <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
                 {#each secondaryMetrics as metric (metric.label)}
                     {@const Icon = metric.icon}
+                    {@const d = deltaPct(metric.value, metric.prev)}
                     <div class="rounded-lg border p-3 text-center {metric.bg}">
                         <Icon class="mx-auto mb-1.5 h-5 w-5 {metric.color}" />
                         <p class="text-foreground text-lg font-bold">
                             {metric.value.toLocaleString()}
                         </p>
                         <p class="text-muted-foreground text-xs">{metric.label}</p>
+                        {#if d != null}
+                            <p
+                                class="mt-0.5 text-[11px] font-medium {d > 0
+                                    ? 'text-red-500'
+                                    : d < 0
+                                      ? 'text-blue-500'
+                                      : 'text-muted-foreground'}"
+                                title="직전 주 대비"
+                            >
+                                {d > 0 ? '▲' : d < 0 ? '▼' : '—'}{Math.abs(d)}%
+                            </p>
+                        {/if}
                     </div>
                 {/each}
             </div>
@@ -412,6 +448,7 @@
             {#if hasChartData}
                 <ReportCharts
                     dailyStats={stats.daily_stats}
+                    dailyAvg4w={stats.daily_avg_4w}
                     weeklyStats={stats.weekly_stats}
                     reportTypes={stats.report_types}
                     boardStats={stats.board_stats}
