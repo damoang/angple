@@ -240,13 +240,18 @@
 
     // 회원 메모 뱃지 지연 로딩 제거: member-memo 는 뱃지 컴포넌트(memo-badge)와 memo-store 가
     // 코드 스플릿된 별도 청크라, 목록/상세의 per-page $effect 가 하이드레이션 후에야 동적
-    // import() 를 시작해 뱃지가 뒤늦게 떴다. 로그인 + 플러그인 활성 시 앱 마운트에서 해당
-    // 청크를 미리 로드해 import() 캐시를 데워두면, 각 페이지는 이미 로드된 청크를 즉시 사용한다.
-    // (activePlugins 는 위에서 SSR 로 동기 초기화되므로 onMount 시 활성 여부를 신뢰할 수 있다.)
+    // import() 를 시작해 뱃지가 뒤늦게 떴다. 로그인 + 플러그인 활성 시 해당 청크를 미리 로드해
+    // import() 캐시를 데워두면, 각 페이지는 이미 로드된 청크를 즉시 사용한다.
+    // ⚠️ auth 는 별도 onMount 의 syncAuth/fast-path 로 하이드레이션 후 늦게 확립되므로
+    // onMount 로는 프리로드 시점에 isAuthenticated 가 아직 false → 스킵된다. $effect 로
+    // authStore.isAuthenticated 변화를 추적해, 로그인 확정 즉시 1회 발화한다.
     // fire-and-forget — 실패해도 기존 per-page 지연 로딩으로 폴백되어 회귀 없음.
-    onMount(() => {
+    let memoChunksPrefetched = false;
+    $effect(() => {
+        if (memoChunksPrefetched) return;
         if (!authStore.isAuthenticated) return;
         if (!pluginStore.isPluginActive('member-memo')) return;
+        memoChunksPrefetched = true;
         loadPluginComponent('member-memo', 'memo-badge').catch(() => {});
         loadPluginComponent('member-memo', 'memo-inline-editor').catch(() => {});
         loadPluginLib('member-memo', 'memo-store').catch(() => {});
