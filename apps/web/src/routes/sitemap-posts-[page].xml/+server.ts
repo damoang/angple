@@ -1,16 +1,15 @@
 import type { RequestHandler } from './$types';
 import pool from '$lib/server/db.js';
 import type { RowDataPacket } from 'mysql2';
+import { getSitemapPageSegments } from '$lib/server/sitemap.js';
 
 /**
  * 게시글 Sitemap (분할)
  *
  * /sitemap-posts-1.xml, /sitemap-posts-2.xml, ...
- * 각 파일당 최대 40,000개 URL
+ * 각 파일당 최대 40,000개 URL. 페이지 경계는 $lib/server/sitemap 매니페스트가 결정하며
+ * index(sitemap.xml)와 공유해 항상 일치한다. 게시판당 캡 없이 전 글을 커버한다.
  */
-
-const POSTS_PER_PAGE = 40000;
-const POSTS_PER_BOARD = 2000; // 각 게시판당 최대 게시글 수
 
 export const GET: RequestHandler = async ({ params, url }) => {
     const siteUrl = url.origin.replace('http://', 'https://');
@@ -20,43 +19,22 @@ export const GET: RequestHandler = async ({ params, url }) => {
         return new Response('Invalid page number', { status: 400 });
     }
 
-    const globalOffset = (pageNum - 1) * POSTS_PER_PAGE;
     const postUrls: string[] = [];
 
     try {
-        // 주요 게시판 목록 조회
-        const [boards] = await pool.query<RowDataPacket[]>(
-            'SELECT bo_table FROM g5_board WHERE bo_use_search = 1 ORDER BY bo_order'
-        );
+        const segments = await getSitemapPageSegments(pageNum);
 
-        let totalCollected = 0;
-        let skipped = 0;
-
-        for (const board of boards as Array<{ bo_table: string }>) {
-            if (totalCollected >= POSTS_PER_PAGE) break;
-
-            const boTable = board.bo_table;
-            // SQL injection 방지
-            if (!/^[a-zA-Z0-9_]+$/.test(boTable)) continue;
-
+        for (const seg of segments) {
+            // 세그먼트 board 는 매니페스트에서 왔지만 방어적으로 재검증.
+            if (!/^[a-zA-Z0-9_]+$/.test(seg.board)) continue;
             try {
-                // 이 게시판에서 가져올 게시글 수 계산
-                const toSkipInThisBoard = Math.max(0, globalOffset - skipped);
-                const toCollect = Math.min(POSTS_PER_BOARD, POSTS_PER_PAGE - totalCollected);
-
-                // 아직 건너뛸 게시글이 남아있으면 이 게시판 카운트만 확인
-                if (toSkipInThisBoard >= POSTS_PER_BOARD) {
-                    skipped += POSTS_PER_BOARD;
-                    continue;
-                }
-
                 const [posts] = await pool.query<RowDataPacket[]>(
                     `SELECT wr_id, wr_datetime, wr_last, LEFT(wr_content, 1000) AS content_head
-                     FROM g5_write_${boTable}
+                     FROM g5_write_${seg.board}
 					 WHERE wr_is_comment = 0
 					 ORDER BY wr_id DESC
 					 LIMIT ? OFFSET ?`,
-                    [toCollect, toSkipInThisBoard]
+                    [seg.limit, seg.offset]
                 );
 
                 for (const post of posts as Array<{
@@ -73,18 +51,15 @@ export const GET: RequestHandler = async ({ params, url }) => {
                         : '';
 
                     postUrls.push(`  <url>
-    <loc>${siteUrl}/${boTable}/${post.wr_id}</loc>
+    <loc>${siteUrl}/${seg.board}/${post.wr_id}</loc>
     <lastmod>${lastmodDate}</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.5</priority>${imageTag}
   </url>`);
-                    totalCollected++;
                 }
-
-                skipped += POSTS_PER_BOARD;
             } catch (err) {
                 // 테이블이 없거나 쿼리 에러 - 로그만 남기고 계속
-                console.error('[Sitemap Posts]', boTable, '조회 실패:', err);
+                console.error('[Sitemap Posts]', seg.board, '조회 실패:', err);
             }
         }
     } catch (err) {
