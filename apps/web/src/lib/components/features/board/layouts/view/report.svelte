@@ -43,6 +43,7 @@
     import Scale from '@lucide/svelte/icons/scale';
     import CalendarDays from '@lucide/svelte/icons/calendar-days';
     import { authStore } from '$lib/stores/auth.svelte.js';
+    import { DisciplinedContent } from '$lib/components/ui/discipline-related';
     import { AdultBlur } from '$lib/components/features/adult/index.js';
     import ContentBlur from '$lib/components/features/board/content-blur.svelte';
     import { uiSettingsStore, type ContentFontSize } from '$lib/stores/ui-settings.svelte.js';
@@ -106,6 +107,9 @@
     }: ViewLayoutProps = $props();
 
     let hasAffiliateLinks = $derived(postContent?.includes('data-affiliate') ?? false);
+
+    // 이용제한 근거 글: 제목·본문이 공유하는 보기 토글 상태 (basic.svelte 와 동일 패턴).
+    let discReveal = $state(false);
     function getAttachmentPreview(url: string): string {
         return isTransformableMediaImage(url) ? toThumbnailUrl(url, '835x626') : url;
     }
@@ -287,7 +291,17 @@
             <CardTitle
                 class="text-foreground flex items-center gap-2 text-xl font-bold sm:text-2xl"
             >
-                {post.title}
+                {#if post.is_discipline_related}
+                    <DisciplinedContent
+                        inline
+                        isLoggedIn={authStore.isAuthenticated}
+                        bind:revealed={discReveal}
+                    >
+                        {post.title}
+                    </DisciplinedContent>
+                {:else}
+                    {post.title}
+                {/if}
             </CardTitle>
 
             <!-- 리포트 기간 배지 -->
@@ -494,7 +508,16 @@
             <AdultBlur isAdult={post.is_adult ?? false}>
                 <ContentBlur shouldBlur={uiSettingsStore.shouldBlurContent(post.title)}>
                     <div id="economy-post-content" style="font-size: {FONT_SIZES[currentFontSize]}">
-                        <Markdown content={postContent} />
+                        {#if post.is_discipline_related}
+                            <DisciplinedContent
+                                isLoggedIn={authStore.isAuthenticated}
+                                bind:revealed={discReveal}
+                            >
+                                <Markdown content={postContent} />
+                            </DisciplinedContent>
+                        {:else}
+                            <Markdown content={postContent} />
+                        {/if}
                     </div>
 
                     {#if hasAffiliateLinks}

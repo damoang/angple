@@ -29,6 +29,7 @@
     import Flag from '@lucide/svelte/icons/flag';
     import ScrapButton from '$lib/components/post/scrap-button.svelte';
     import { authStore } from '$lib/stores/auth.svelte.js';
+    import { DisciplinedContent } from '$lib/components/ui/discipline-related';
     import { AdultBlur } from '$lib/components/features/adult/index.js';
     import ContentBlur from '$lib/components/features/board/content-blur.svelte';
     import { uiSettingsStore, type ContentFontSize } from '$lib/stores/ui-settings.svelte.js';
@@ -108,6 +109,10 @@
     }: ViewLayoutProps = $props();
 
     let hasAffiliateLinks = $derived(postContent?.includes('data-affiliate') ?? false);
+
+    // 이용제한 근거 글: 제목·본문 인스턴스가 이 상태를 공유해 어느 "보기"를 눌러도 함께 공개.
+    // 비로그인은 백엔드가 이미 원문을 strip 했고 컴포넌트가 placeholder 만 렌더(소스 유출 0).
+    let discReveal = $state(false);
 
     const isLockedPost = $derived(postReportCount === 'lock' || post.extra_7 === 'lock');
 
@@ -192,7 +197,17 @@
                 {#if post.is_secret}
                     <Lock class="text-muted-foreground h-6 w-6 shrink-0" />
                 {/if}
-                {post.title}
+                {#if post.is_discipline_related}
+                    <DisciplinedContent
+                        inline
+                        isLoggedIn={authStore.isAuthenticated}
+                        bind:revealed={discReveal}
+                    >
+                        {post.title}
+                    </DisciplinedContent>
+                {:else}
+                    {post.title}
+                {/if}
                 {#if isLockedPost}
                     <span
                         class="bg-destructive/10 text-destructive inline-flex shrink-0 items-center gap-1 rounded px-1.5 py-0.5 text-xs font-medium"
@@ -392,7 +407,16 @@
                         : undefined}
                 >
                     <div id="economy-post-content" style="font-size: {FONT_SIZES[currentFontSize]}">
-                        <Markdown content={postContent} />
+                        {#if post.is_discipline_related}
+                            <DisciplinedContent
+                                isLoggedIn={authStore.isAuthenticated}
+                                bind:revealed={discReveal}
+                            >
+                                <Markdown content={postContent} />
+                            </DisciplinedContent>
+                        {:else}
+                            <Markdown content={postContent} />
+                        {/if}
                     </div>
 
                     {#if hasAffiliateLinks}
