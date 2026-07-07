@@ -323,7 +323,8 @@
         '/ad-free', // 광고 제거 결제
         '/password-reset', // 비밀번호 재설정
         '/register', // 회원가입(개인정보 입력)
-        '/cert' // 본인인증
+        '/cert', // 본인인증
+        '/login' // 로그인(비밀번호 입력)
     ];
 
     function applyClarityPrivacyGuard(pathname: string) {

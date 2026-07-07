@@ -285,6 +285,31 @@
                 y = l.getElementsByTagName(r)[0];
                 y.parentNode.insertBefore(t, y);
             })(window, document, 'clarity', 'script', 'xilbeyfaor');
+            // PIPA: 민감 경로 직접 진입 시 첫 프레임도 녹화되지 않도록 즉시 중단.
+            // stub 큐에 push 되어 실제 태그 로드 시점에 recording 시작 전 반영된다.
+            // (SPA 라우팅 재평가는 +layout.svelte afterNavigate 가 담당 — 목록 동기 유지)
+            (function () {
+                var p = location.pathname;
+                var ex = [
+                    '/messages',
+                    '/my',
+                    '/notifications',
+                    '/checkout',
+                    '/cart',
+                    '/point',
+                    '/ad-free',
+                    '/password-reset',
+                    '/register',
+                    '/cert',
+                    '/login'
+                ];
+                for (var k = 0; k < ex.length; k++) {
+                    if (p === ex[k] || p.indexOf(ex[k] + '/') === 0) {
+                        window.clarity('stop');
+                        break;
+                    }
+                }
+            })();
         </script>
     </head>
     <body>
