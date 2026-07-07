@@ -24,7 +24,7 @@
     import { doAction } from '$lib/hooks/registry';
     import { initBuiltinHooks } from '$lib/hooks';
     import { registerDefaultSlots } from '$lib/components/slot-defaults';
-    import { loadPluginComponent } from '$lib/utils/plugin-optional-loader';
+    import { loadPluginComponent, loadPluginLib } from '$lib/utils/plugin-optional-loader';
     import DefaultLayout from '$lib/layouts/default-layout.svelte';
     import { getThemeLayout } from '$lib/themes/layout-registry';
     import { initFromSSR as initAppData } from '$lib/stores/app-init.svelte';
@@ -236,6 +236,20 @@
                 widgetLayoutStore.initFromServer(widgetLayout ?? null, sidebarWidgetLayout ?? null);
             }
         });
+    });
+
+    // 회원 메모 뱃지 지연 로딩 제거: member-memo 는 뱃지 컴포넌트(memo-badge)와 memo-store 가
+    // 코드 스플릿된 별도 청크라, 목록/상세의 per-page $effect 가 하이드레이션 후에야 동적
+    // import() 를 시작해 뱃지가 뒤늦게 떴다. 로그인 + 플러그인 활성 시 앱 마운트에서 해당
+    // 청크를 미리 로드해 import() 캐시를 데워두면, 각 페이지는 이미 로드된 청크를 즉시 사용한다.
+    // (activePlugins 는 위에서 SSR 로 동기 초기화되므로 onMount 시 활성 여부를 신뢰할 수 있다.)
+    // fire-and-forget — 실패해도 기존 per-page 지연 로딩으로 폴백되어 회귀 없음.
+    onMount(() => {
+        if (!authStore.isAuthenticated) return;
+        if (!pluginStore.isPluginActive('member-memo')) return;
+        loadPluginComponent('member-memo', 'memo-badge').catch(() => {});
+        loadPluginComponent('member-memo', 'memo-inline-editor').catch(() => {});
+        loadPluginLib('member-memo', 'memo-store').catch(() => {});
     });
 
     // 메뉴 데이터 변경 시 키보드 단축키 빌드 (모듈 로드 후 활성화)
