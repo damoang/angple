@@ -130,15 +130,26 @@ export const GET: RequestHandler = async ({ params, url, locals, request }) => {
     const tableName = `g5_write_${safeBoardId}`;
 
     try {
+        // 부모 글 조회 — 삭제 여부(#12711) + 마음메시지 익명 판정에 사용.
+        // 익명 마음메시지는 PublishToGnuboard() 에서 wr_name="" 로 저장된다.
+        const [parentRows] = await pool.query<RowDataPacket[]>(
+            `SELECT wr_deleted_at, mb_id, wr_name FROM ?? WHERE wr_id = ? AND wr_is_comment = 0 LIMIT 1`,
+            [tableName, safePostId]
+        );
+        const parent = parentRows[0];
+
+        // 마음메시지(message) 익명 글: 신청자(원글 작성자)의 신원이 댓글에서 노출되지
+        // 않도록, 원글 작성자 본인이 단 댓글은 아바타/프로필/닉을 '익명'으로 가린다.
+        // (표시 마스킹만 수행 — 댓글 알림은 write 시점 백엔드에서 실제 mb_id 로 발송되므로 영향 없음)
+        const postIsAnonymousMessage =
+            safeBoardId === 'message' &&
+            !!parent &&
+            (parent.wr_name ?? '').toString().trim() === '';
+        const anonymousAuthorId = postIsAnonymousMessage ? String(parent.mb_id ?? '') : '';
+
         // 부모 글 삭제 여부 확인 — 삭제된 글은 본문이 "[삭제된 게시물]"로 가려지므로
-        // 그 아래 댓글도 노출하지 않는다(#12711: 삭제글 자리에 이전 댓글이 남아 보이는 문제).
-        // 관리자는 조정 목적상 계속 열람 가능.
+        // 그 아래 댓글도 노출하지 않는다. 관리자는 조정 목적상 계속 열람 가능.
         if (!isAdmin) {
-            const [parentRows] = await pool.query<RowDataPacket[]>(
-                `SELECT wr_deleted_at FROM ?? WHERE wr_id = ? AND wr_is_comment = 0 LIMIT 1`,
-                [tableName, safePostId]
-            );
-            const parent = parentRows[0];
             if (!parent || parent.wr_deleted_at) {
                 return json(
                     {
@@ -293,6 +304,19 @@ export const GET: RequestHandler = async ({ params, url, locals, request }) => {
                   }
                 : {})
         }));
+
+        // 마음메시지 익명: 원글 작성자(신청자) 본인의 댓글은 신원을 가린다.
+        // author/author_id/author_image 를 비워 프로필·팔로우·쪽지 링크로 신원이 드러나지 않게 한다.
+        if (postIsAnonymousMessage && anonymousAuthorId) {
+            for (const c of comments) {
+                if (c.author_id === anonymousAuthorId) {
+                    c.author = '익명';
+                    c.author_id = '';
+                    c.author_image = '';
+                    c.author_image_updated_at = undefined;
+                }
+            }
+        }
 
         // Bluesky handle → DID prefetch (#12050).
         // 댓글 본문 내 `bsky.app/profile/<handle>/post/<id>` URL 의 handle 을 DID 로

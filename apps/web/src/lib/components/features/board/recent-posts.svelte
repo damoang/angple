@@ -128,6 +128,21 @@
     });
     let posts = $state<FreePost[]>(initialPosts);
 
+    // 마음메시지(message) 익명 글: 클라 fetch 경로(apiClient→Go 백엔드)는 SSR 마스킹을
+    // 우회하므로, SSR(`[boardId]/+page.server.ts`)과 동일하게 신청자 프로필(아바타/mb_id)을
+    // 가린다. 익명 글은 wr_name='' → author 가 빈 문자열로 내려온다.
+    function maskAnonymousMessagePosts() {
+        if (boardId !== 'message') return;
+        for (const p of posts) {
+            if (!p.author) {
+                p.author_image = undefined;
+                p.author_image_updated_at = undefined;
+                p.author_id = '';
+                p.author = '익명';
+            }
+        }
+    }
+
     // 차단 키워드 적용: 차단된 글은 목록에서 완전 제외 (#12215)
     // 게시판 목록(`[boardId]/+page.svelte`)과 동일한 필터 (#11935)
     const filteredPosts = $derived(posts.filter((p) => !uiSettingsStore.isMuted(p.title)));
@@ -197,6 +212,7 @@
                 summary: useSummaryListResponse
             });
             posts = response.items;
+            maskAnonymousMessagePosts();
             currentPage = response.page;
             totalPages = response.total_pages;
             totalItems = response.total;
@@ -245,6 +261,7 @@
                 summary: useSummaryListResponse
             });
             posts = response.items;
+            maskAnonymousMessagePosts();
             currentPage = response.page;
             totalPages = response.total_pages;
             totalItems = response.total;
