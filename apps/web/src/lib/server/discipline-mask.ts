@@ -37,28 +37,3 @@ export async function findDisciplinedIds(boardId: string, wrIds: number[]): Prom
     }
     return set;
 }
-
-/**
- * 여러 게시판에 걸친 (board, wr_id) 쌍을 board별로 묶어 한 번에 조회.
- * 반환: `${board}:${wr_id}` 키 Set (검색의 deletedSet 패턴과 동일).
- */
-export async function findDisciplinedKeys(
-    pairs: Array<{ board: string; wrId: number }>
-): Promise<Set<string>> {
-    const keys = new Set<string>();
-    if (pairs.length === 0) return keys;
-    const byBoard = new Map<string, number[]>();
-    for (const { board, wrId } of pairs) {
-        if (!board || !wrId) continue;
-        const arr = byBoard.get(board);
-        if (arr) arr.push(wrId);
-        else byBoard.set(board, [wrId]);
-    }
-    await Promise.all(
-        [...byBoard.entries()].map(async ([board, ids]) => {
-            const set = await findDisciplinedIds(board, ids);
-            for (const id of set) keys.add(`${board}:${id}`);
-        })
-    );
-    return keys;
-}
