@@ -11,6 +11,7 @@
 import { readPool, pool } from '$lib/server/db.js';
 import { TieredCache } from '$lib/server/cache.js';
 import type { RowDataPacket, ResultSetHeader } from 'mysql2';
+import { findDisciplinedIds, DISCIPLINED_TITLE } from '$lib/server/discipline-mask.js';
 
 interface ScrapRow extends RowDataPacket {
     ms_id: number;
@@ -82,6 +83,8 @@ async function enrichScraps(rows: ScrapRow[]): Promise<ScrapItem[]> {
     }
 
     const titleMap = new Map<string, WriteRow>();
+    // 이용제한 근거 글: 스크랩 목록 제목 치환(#12908). key: "bo_table:wr_id"
+    const disciplinedSet = new Set<string>();
     await Promise.all(
         Array.from(groups.entries()).map(([boTable, wrIds]) =>
             readPool
@@ -89,10 +92,15 @@ async function enrichScraps(rows: ScrapRow[]): Promise<ScrapItem[]> {
                     `SELECT wr_id, wr_subject, wr_name FROM g5_write_${boTable} WHERE wr_id IN (?)`,
                     [wrIds]
                 )
-                .then(([writeRows]) => {
+                .then(async ([writeRows]) => {
                     for (const wr of writeRows) {
                         titleMap.set(`${boTable}:${wr.wr_id}`, wr);
                     }
+                    const disciplined = await findDisciplinedIds(
+                        boTable,
+                        wrIds.map((id) => Number(id))
+                    );
+                    for (const id of disciplined) disciplinedSet.add(`${boTable}:${id}`);
                 })
                 .catch(() => {})
         )
@@ -100,13 +108,14 @@ async function enrichScraps(rows: ScrapRow[]): Promise<ScrapItem[]> {
 
     return rows.map((row) => {
         const wr = titleMap.get(`${row.bo_table}:${row.wr_id}`);
+        const isDisciplined = disciplinedSet.has(`${row.bo_table}:${row.wr_id}`);
         return {
             ms_id: row.ms_id,
             mb_id: row.mb_id,
             bo_table: row.bo_table,
             wr_id: row.wr_id,
             ms_datetime: row.ms_datetime,
-            wr_subject: wr?.wr_subject,
+            wr_subject: isDisciplined ? DISCIPLINED_TITLE : wr?.wr_subject,
             wr_name: wr?.wr_name
         };
     });

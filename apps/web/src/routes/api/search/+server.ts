@@ -16,6 +16,7 @@ import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types.js';
 import { readPool } from '$lib/server/db.js';
 import { searchAllBoards, buildMatchExpr } from '$lib/server/sphinx-search.js';
+import { findDisciplinedIds, DISCIPLINED_TITLE } from '$lib/server/discipline-mask.js';
 import type { RowDataPacket } from 'mysql2';
 
 interface BoardRow extends RowDataPacket {
@@ -98,6 +99,8 @@ export const GET: RequestHandler = async ({ url, locals }) => {
         // Sphinx 인덱스가 소프트 삭제된 글을 즉시 반영하지 못해 검색 결과에 노출되는 문제(#12173)
         // 방지를 위해 MySQL 에서 wr_deleted_at 가 설정되었거나 행이 사라진 글을 추적해 제외한다.
         const deletedSet = new Set<string>();
+        // 이용제한 근거 글: 검색 결과에서도 제목·본문을 원문 노출 없이 치환(#12908).
+        const disciplinedSet = new Set<string>();
 
         const perBoardPromises = boardIds.map(async (boardId) => {
             const rows = boardMap.get(boardId)!;
@@ -105,6 +108,10 @@ export const GET: RequestHandler = async ({ url, locals }) => {
             if (!wrIds.length) return;
 
             const ph = wrIds.map(() => '?').join(',');
+
+            // 이용제한 근거 글 집합 조회
+            const disciplined = await findDisciplinedIds(boardId, wrIds);
+            for (const id of disciplined) disciplinedSet.add(`${boardId}:${id}`);
 
             // 작성자 정보 + 삭제 상태 조회
             try {
@@ -174,10 +181,15 @@ export const GET: RequestHandler = async ({ url, locals }) => {
                     is_comment: isCommentSearch,
                     posts: liveRows.map((row) => {
                         const author = authorMap.get(`${boardId}:${row.wr_id}`);
+                        const isDisciplined = disciplinedSet.has(`${boardId}:${row.wr_id}`);
                         return {
                             id: row.wr_id,
-                            title: isCommentSearch ? '' : row.wr_subject,
-                            content: stripHtml(row.wr_content).slice(0, 200),
+                            title: isCommentSearch
+                                ? ''
+                                : isDisciplined
+                                  ? DISCIPLINED_TITLE
+                                  : row.wr_subject,
+                            content: isDisciplined ? '' : stripHtml(row.wr_content).slice(0, 200),
                             author: author?.wr_name || '',
                             author_id: author?.mb_id || '',
                             board_id: boardId,

@@ -1,6 +1,7 @@
 import type { RequestHandler } from './$types';
 import pool from '$lib/server/db.js';
 import type { RowDataPacket } from 'mysql2';
+import { findDisciplinedIds, DISCIPLINED_TITLE } from '$lib/server/discipline-mask.js';
 
 /**
  * 전체 RSS 피드 (최근 게시글)
@@ -40,21 +41,30 @@ export const GET: RequestHandler = async ({ url }) => {
 					 ORDER BY wr_datetime DESC LIMIT 5`
                 );
 
-                for (const post of posts as Array<{
+                const typedPosts = posts as Array<{
                     wr_id: number;
                     wr_subject: string;
                     wr_content: string;
                     wr_name: string;
                     wr_datetime: string;
-                }>) {
+                }>;
+                // 이용제한 근거 글: 전면 공개 피드라 제목·본문을 원문 노출 없이 치환.
+                const disciplined = await findDisciplinedIds(
+                    board.bo_table,
+                    typedPosts.map((p) => p.wr_id)
+                );
+                for (const post of typedPosts) {
+                    const masked = disciplined.has(post.wr_id);
                     allPosts.push({
-                        title: escapeXml(post.wr_subject),
+                        title: escapeXml(masked ? DISCIPLINED_TITLE : post.wr_subject),
                         link: `${siteUrl}/${board.bo_table}/${post.wr_id}`,
-                        description: escapeXml(stripHtmlTags(post.wr_content).slice(0, 200)),
+                        description: masked
+                            ? ''
+                            : escapeXml(stripHtmlTags(post.wr_content).slice(0, 200)),
                         author: escapeXml(post.wr_name),
                         pubDate: new Date(post.wr_datetime).toUTCString(),
                         boardSubject: escapeXml(board.bo_subject),
-                        imageUrl: extractFirstImage(post.wr_content) || ''
+                        imageUrl: masked ? '' : extractFirstImage(post.wr_content) || ''
                     });
                 }
             } catch {

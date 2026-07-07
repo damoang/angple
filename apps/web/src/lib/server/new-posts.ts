@@ -5,6 +5,7 @@
 import { readPool } from '$lib/server/db.js';
 import type { RowDataPacket } from 'mysql2';
 import { TieredCache } from '$lib/server/cache.js';
+import { findDisciplinedIds, DISCIPLINED_TITLE } from '$lib/server/discipline-mask.js';
 
 export interface NewPostItem {
     bn_id: number;
@@ -189,6 +190,8 @@ export async function getNewPosts(
 
     // 테이블별 병렬 배치 쿼리 실행
     const writeDataMap = new Map<string, RowDataPacket>(); // key: "bo_table:wr_id"
+    // 이용제한 근거 글: 피드에서도 제목·본문 치환(#12908).
+    const disciplinedSet = new Set<string>(); // key: "bo_table:wr_id"
 
     const batchPromises = Array.from(grouped.entries()).map(async ([boTable, tableRows]) => {
         const wrIds = tableRows.map((r) => r.wr_id);
@@ -205,6 +208,8 @@ export async function getNewPosts(
         } catch {
             // 삭제된 게시판 등 오류 무시
         }
+        const disciplined = await findDisciplinedIds(boTable, wrIds);
+        for (const id of disciplined) disciplinedSet.add(`${boTable}:${id}`);
     });
 
     await Promise.all(batchPromises);
@@ -214,6 +219,7 @@ export async function getNewPosts(
     for (const row of rows) {
         const writeData = writeDataMap.get(`${row.bo_table}:${row.wr_id}`);
         if (writeData) {
+            const isDisciplined = disciplinedSet.has(`${row.bo_table}:${row.wr_id}`);
             items.push({
                 bn_id: row.bn_id,
                 bo_table: row.bo_table,
@@ -221,8 +227,8 @@ export async function getNewPosts(
                 wr_parent: row.wr_parent,
                 bn_datetime: row.bn_datetime,
                 bo_subject: row.bo_subject,
-                wr_subject: writeData.wr_subject,
-                wr_content: extractContentPreview(writeData.wr_content || ''),
+                wr_subject: isDisciplined ? DISCIPLINED_TITLE : writeData.wr_subject,
+                wr_content: isDisciplined ? '' : extractContentPreview(writeData.wr_content || ''),
                 mb_id: row.mb_id,
                 wr_name: writeData.wr_name,
                 wr_comment: writeData.wr_comment,
