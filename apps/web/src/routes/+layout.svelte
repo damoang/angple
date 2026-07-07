@@ -310,10 +310,40 @@
         });
     });
 
+    // PIPA: Microsoft Clarity 세션 리플레이 제외 경로.
+    // 쪽지·설정(내 정보)·결제·본인인증·가입 등 개인정보가 노출되는 화면은 녹화하지 않는다.
+    // (Clarity 기본 텍스트/입력 마스킹은 대시보드에서 유지. 여기서는 아예 recording 을 멈춘다.)
+    const CLARITY_EXCLUDED_PREFIXES = [
+        '/messages', // 쪽지
+        '/my', // 내 설정·활동
+        '/notifications', // 알림(쪽지 미리보기 포함)
+        '/checkout', // 결제
+        '/cart', // 장바구니
+        '/point', // 포인트/결제
+        '/ad-free', // 광고 제거 결제
+        '/password-reset', // 비밀번호 재설정
+        '/register', // 회원가입(개인정보 입력)
+        '/cert' // 본인인증
+    ];
+
+    function applyClarityPrivacyGuard(pathname: string) {
+        if (!browser) return;
+        const clarity = (window as unknown as { clarity?: (...args: unknown[]) => void }).clarity;
+        if (typeof clarity !== 'function') return;
+        const excluded = CLARITY_EXCLUDED_PREFIXES.some(
+            (p) => pathname === p || pathname.startsWith(p + '/')
+        );
+        // 스니펫 stub 이 큐잉하므로 실제 스크립트 로드 전 호출도 순서대로 반영된다.
+        clarity(excluded ? 'stop' : 'start');
+    }
+
     // afterNavigate 통합: GA4 페이지뷰 + 광고 observer 재설정
     afterNavigate(({ to }) => {
         // GA4 페이지뷰 추적
         if (to?.url) {
+            // PIPA: 민감 페이지는 Clarity 리플레이 제외 (SPA 라우팅마다 재평가)
+            applyClarityPrivacyGuard(to.url.pathname);
+
             trackPageView(to.url.pathname + to.url.search);
             consumePendingAuthEvent();
             updatePageTargeting(to.url.pathname);
