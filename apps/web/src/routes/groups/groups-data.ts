@@ -5,6 +5,7 @@
 import { readPool } from '$lib/server/db.js';
 import type { RowDataPacket } from 'mysql2';
 import { TieredCache } from '$lib/server/cache.js';
+import { findDisciplinedIds, DISCIPLINED_TITLE } from '$lib/server/discipline-mask.js';
 
 export interface GroupLatestPost {
     bo_table: string;
@@ -81,11 +82,13 @@ export async function fetchPostDetails(
                      WHERE wr_id IN (?) AND wr_is_comment = 0`,
                     [wrIds]
                 )
-                .then(([rows]) => {
+                .then(async ([rows]) => {
                     const postMap = new Map<number, RowDataPacket>();
                     for (const row of rows) {
                         postMap.set(row.wr_id as number, row);
                     }
+                    // 이용제한 근거 글: 소모임 최근글 제목 치환(#12908).
+                    const disciplined = await findDisciplinedIds(safeTable, wrIds);
 
                     for (const item of items) {
                         const post = postMap.get(item.wr_id);
@@ -94,7 +97,9 @@ export async function fetchPostDetails(
                                 bo_table: item.bo_table,
                                 bo_subject: item.bo_subject,
                                 wr_id: item.wr_id,
-                                wr_subject: post.wr_subject as string,
+                                wr_subject: disciplined.has(item.wr_id)
+                                    ? DISCIPLINED_TITLE
+                                    : (post.wr_subject as string),
                                 mb_id: item.mb_id,
                                 mb_nick: item.mb_id,
                                 wr_datetime: item.bn_datetime,
