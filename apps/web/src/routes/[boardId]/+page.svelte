@@ -1110,7 +1110,9 @@
                         href={buildMessagePeriodHref('today')}
                         variant={selectedMessagePeriod === 'today' ? 'default' : 'outline'}
                         size="sm"
-                        class="h-8 rounded-full px-4"
+                        class="h-8 rounded-full px-4 {selectedMessagePeriod === 'today'
+                            ? 'pointer-events-none'
+                            : ''}"
                         aria-current={selectedMessagePeriod === 'today' ? 'page' : undefined}
                     >
                         오늘 마음메시지
@@ -1119,7 +1121,9 @@
                         href={buildMessagePeriodHref('month')}
                         variant={selectedMessagePeriod === 'month' ? 'default' : 'outline'}
                         size="sm"
-                        class="h-8 rounded-full px-4"
+                        class="h-8 rounded-full px-4 {selectedMessagePeriod === 'month'
+                            ? 'pointer-events-none'
+                            : ''}"
                         aria-current={selectedMessagePeriod === 'month' ? 'page' : undefined}
                     >
                         이번달 마음메시지
@@ -1128,7 +1132,9 @@
                         href={buildMessagePeriodHref('upcoming')}
                         variant={selectedMessagePeriod === 'upcoming' ? 'default' : 'outline'}
                         size="sm"
-                        class="h-8 rounded-full px-4"
+                        class="h-8 rounded-full px-4 {selectedMessagePeriod === 'upcoming'
+                            ? 'pointer-events-none'
+                            : ''}"
                         aria-current={selectedMessagePeriod === 'upcoming' ? 'page' : undefined}
                     >
                         다가올 마음메시지
@@ -1137,7 +1143,9 @@
                         href={buildMessagePeriodHref('past')}
                         variant={selectedMessagePeriod === 'past' ? 'default' : 'outline'}
                         size="sm"
-                        class="h-8 rounded-full px-4"
+                        class="h-8 rounded-full px-4 {selectedMessagePeriod === 'past'
+                            ? 'pointer-events-none'
+                            : ''}"
                         aria-current={selectedMessagePeriod === 'past' ? 'page' : undefined}
                     >
                         추억의 마음메시지
@@ -1476,9 +1484,13 @@
                         onclick={() => goToPage(pagination.page - 1)}>이전</Button
                     >
                     {#each visiblePageNumbers as pageNum (pageNum)}
+                        <!-- Clarity UX-001: 현재 페이지 재클릭은 같은 URL goto() = 화면 무변화 dead click.
+                             pointer-events-none 으로 클릭 자체를 차단(시각 변화 없음), 스크린리더엔 aria-current. -->
                         <Button
                             variant={pageNum === pagination.page ? 'default' : 'outline'}
                             size="sm"
+                            aria-current={pageNum === pagination.page ? 'page' : undefined}
+                            class={pageNum === pagination.page ? 'pointer-events-none' : undefined}
                             onclick={() => goToPage(pageNum)}>{pageNum}</Button
                         >
                     {/each}
