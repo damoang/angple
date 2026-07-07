@@ -245,6 +245,18 @@
                 summary: useSummaryListResponse
             });
             posts = response.items;
+            // 마음메시지(message) 익명 글: 클라 fetch 경로는 SSR 마스킹을 우회하므로
+            // 여기서 동일하게 신청자 프로필(아바타/mb_id)을 가린다. 익명 글은 author 가 빈 문자열.
+            if (boardId === 'message') {
+                for (const p of posts) {
+                    if (!p.author) {
+                        p.author_image = undefined;
+                        p.author_image_updated_at = undefined;
+                        p.author_id = '';
+                        p.author = '익명';
+                    }
+                }
+            }
             currentPage = response.page;
             totalPages = response.total_pages;
             totalItems = response.total;
