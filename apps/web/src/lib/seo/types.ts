@@ -147,6 +147,7 @@ export interface SeoConfig {
     meta: SeoMeta;
     og?: OgMeta;
     twitter?: TwitterMeta;
-    jsonLd?: JsonLdData[];
+    /** null/undefined 항목 허용 — 생성 헬퍼가 유효하지 않은 데이터에 null 을 반환 (buildJsonLd 가 필터) */
+    jsonLd?: Array<JsonLdData | null | undefined>;
     pagination?: PaginationSeo;
 }
