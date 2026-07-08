@@ -163,7 +163,11 @@ export async function getDisciplineLogs(
     if (memberId) {
         url += `&member_id=${encodeURIComponent(memberId)}`;
     }
-    const response = await fetch(url, { credentials: 'include' });
+    // 무한 스피너 방지: 15초 내 응답 없으면 중단하고 상위에서 에러 처리
+    const response = await fetch(url, {
+        credentials: 'include',
+        signal: AbortSignal.timeout(15000)
+    });
 
     if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
@@ -177,7 +181,11 @@ export async function getDisciplineLogs(
  */
 export async function getDisciplineLog(id: number): Promise<DisciplineLogDetailResponse> {
     const url = `${API_BASE}/discipline-logs/${id}`;
-    const response = await fetch(url, { credentials: 'include' });
+    // 무한 스피너 방지: 15초 내 응답 없으면 중단하고 상위에서 에러 처리
+    const response = await fetch(url, {
+        credentials: 'include',
+        signal: AbortSignal.timeout(15000)
+    });
 
     if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);

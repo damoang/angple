@@ -2163,11 +2163,13 @@ class ApiClient {
      * 🔒 인증 필요
      */
     async saveFavorites(
-        favorites: Record<string, { boardId: string; title: string }>
+        favorites: Record<string, { boardId: string; title: string }>,
+        keepalive = false
     ): Promise<void> {
         await this.request<void>('/my/favorites', {
             method: 'PUT',
-            body: JSON.stringify(favorites)
+            body: JSON.stringify(favorites),
+            keepalive
         });
     }
 
