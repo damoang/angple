@@ -1151,7 +1151,9 @@
                         추억의 마음메시지
                     </Button>
                     <Button
-                        href="/message/144"
+                        href="https://forms.gle/Yj3D28THBxVNMWn2A"
+                        target="_blank"
+                        rel="noopener noreferrer"
                         variant="outline"
                         size="sm"
                         class="h-8 rounded-full px-4"
