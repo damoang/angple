@@ -82,10 +82,26 @@ class BoardFavoritesStore {
     private debouncedSync = debounce(() => {
         this.syncToServer();
     }, 500);
+    /** debounce 발화 대기 중인 변경이 있는지 (#12912 flush 판단용) */
+    private pendingSync = false;
 
     constructor() {
         if (browser) {
             this.loadFromStorage();
+            // #12912: 삭제 등 변경은 persist()에서 500ms debounce로 서버에 저장되는데,
+            // debounce 발화 전 탭 전환/종료/새로고침이 일어나면 서버에 삭제가 전달되지 않는다.
+            // 이후 재로그인 시 syncFromServer()가 (타임스탬프 비교 없이) 서버 데이터를 로컬에
+            // 무조건 덮어써 삭제한 항목이 부활한다. 페이지가 숨겨지거나 이탈할 때 대기 중인
+            // 동기화를 즉시 flush 하여(keepalive 로 unload 중에도 전송 보장) 유실을 막는다.
+            const flush = () => {
+                if (this.loggedIn && this.pendingSync) {
+                    void this.syncToServer(true);
+                }
+            };
+            document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState === 'hidden') flush();
+            });
+            window.addEventListener('pagehide', flush);
         }
     }
 
@@ -151,11 +167,12 @@ class BoardFavoritesStore {
         }
     }
 
-    /** 현재 상태를 서버에 저장 */
-    private async syncToServer(): Promise<void> {
+    /** 현재 상태를 서버에 저장 (keepalive: 페이지 이탈 중에도 전송 보장) */
+    private async syncToServer(keepalive = false): Promise<void> {
         if (!browser || !this.loggedIn) return;
+        this.pendingSync = false;
         try {
-            await apiClient.saveFavorites(toRecord(this.favorites));
+            await apiClient.saveFavorites(toRecord(this.favorites), keepalive);
         } catch {
             // 서버 저장 실패 시 무시 (localStorage에는 이미 저장됨)
         }
@@ -165,6 +182,7 @@ class BoardFavoritesStore {
     private persist(): void {
         this.saveToStorage();
         if (this.loggedIn) {
+            this.pendingSync = true;
             this.debouncedSync();
         }
     }
