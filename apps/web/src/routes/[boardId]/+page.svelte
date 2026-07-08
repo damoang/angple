@@ -1156,7 +1156,7 @@
                         size="sm"
                         class="h-8 rounded-full px-4"
                     >
-                        마음메시지 신청
+                        ♡ 마음메시지 신청하기 →
                     </Button>
                 </div>
             {/if}

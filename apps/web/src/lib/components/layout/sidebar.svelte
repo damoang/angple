@@ -448,6 +448,14 @@
                 <span>♡ 다모앙 후원하기</span>
                 <span aria-hidden="true" class="leading-none">→</span>
             </a>
+            <!-- 후원하기 바로 아래: 마음메시지 신청하기 1줄 카드 (동일 스타일). 내부 페이지라 같은 탭 이동. -->
+            <a
+                href="/message/144"
+                class="border-primary/30 bg-primary/5 text-primary hover:bg-primary/10 mt-2 flex items-center justify-between rounded-lg border px-3 py-2 text-sm font-medium transition-colors"
+            >
+                <span>♡ 마음메시지 신청하기</span>
+                <span aria-hidden="true" class="leading-none">→</span>
+            </a>
         {/if}
         <div class:hidden={!widgetLayoutStore.hasEnabledAds}>
             {#if compact}{:else}
