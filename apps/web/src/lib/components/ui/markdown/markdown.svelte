@@ -373,10 +373,16 @@
     });
 </script>
 
+<!--
+    #12910: contain 에 `layout` 을 넣으면 크롬에서 본문 <video> 로드 완료 후에도
+    몇 초간 클릭·우클릭이 씹힌다(레이아웃 컨테인먼트가 비디오 합성 레이어의 히트테스트
+    타이밍과 충돌). 로고 이미지에서도 같은 이유로 contain 을 제거한 선례가 있다.
+    perf 격리 효과는 style 컨테인먼트만으로도 충분하므로 layout 을 제거한다.
+-->
 <div
     bind:this={proseEl}
     class="prose prose-neutral dark:prose-invert max-w-none {className}"
-    style="font-size: var(--content-font-size, 16px); overflow-wrap: break-word; word-wrap: break-word; overflow-x: hidden; contain: layout style;"
+    style="font-size: var(--content-font-size, 16px); overflow-wrap: break-word; word-wrap: break-word; overflow-x: hidden; contain: style;"
 >
     <!-- eslint-disable-next-line svelte/no-at-html-tags -->
     {@html renderedHtml}
