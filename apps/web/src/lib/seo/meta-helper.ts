@@ -90,12 +90,17 @@ export function buildTwitterTags(meta: SeoMeta, twitter?: TwitterMeta): Record<s
     return tags;
 }
 
-/** JSON-LD 스크립트 문자열 생성 */
-export function buildJsonLd(data: JsonLdData[]): string {
-    const wrapped = data.map((item) => ({
-        '@context': 'https://schema.org',
-        ...item
-    }));
+/** JSON-LD 스크립트 문자열 생성
+ * null/undefined 항목은 제외한다 (생성 헬퍼가 유효하지 않은 데이터에 null 을 반환하는 경우).
+ * 유효 항목이 없으면 빈 문자열 → SeoHead 의 {#if jsonLdScript} 가 스크립트 자체를 생략. */
+export function buildJsonLd(data: Array<JsonLdData | null | undefined>): string {
+    const wrapped = data
+        .filter((item): item is JsonLdData => item != null)
+        .map((item) => ({
+            '@context': 'https://schema.org',
+            ...item
+        }));
+    if (wrapped.length === 0) return '';
 
     const json = wrapped.length === 1 ? JSON.stringify(wrapped[0]) : JSON.stringify(wrapped);
     // </script> 주입 방지
@@ -140,16 +145,22 @@ export function createArticleJsonLd(options: {
     return data;
 }
 
-/** Breadcrumb JSON-LD 생성 헬퍼 */
+/** Breadcrumb JSON-LD 생성 헬퍼
+ * GSC "'name' 또는 'item.name' 지정 필요" 에러 방지:
+ * - name 이 빈 항목(빈 제목 글 등)은 제외하고 position 을 재부여한다.
+ * - 유효 항목이 없으면 null 을 반환해 BreadcrumbList 블록 자체를 생략한다.
+ *   (breadcrumb 이 없는 것은 정상, 빈/name 누락 breadcrumb 은 리치 결과 오류) */
 export function createBreadcrumbJsonLd(
-    items: Array<{ name: string; url?: string }>
-): JsonLdBreadcrumb {
+    items: Array<{ name: string | null | undefined; url?: string }>
+): JsonLdBreadcrumb | null {
+    const valid = items.filter((item) => item.name != null && String(item.name).trim() !== '');
+    if (valid.length === 0) return null;
     return {
         '@type': 'BreadcrumbList',
-        itemListElement: items.map((item, i) => ({
+        itemListElement: valid.map((item, i) => ({
             '@type': 'ListItem' as const,
             position: i + 1,
-            name: item.name,
+            name: String(item.name).trim(),
             ...(item.url ? { item: item.url } : {})
         }))
     };
