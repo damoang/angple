@@ -12,6 +12,7 @@
     import { goto } from '$app/navigation';
     import { page } from '$app/stores';
     import { onMount } from 'svelte';
+    import DamoangLogo from '$lib/assets/logo.svg';
     import User from '@lucide/svelte/icons/user';
     import Calendar from '@lucide/svelte/icons/calendar';
     import Clock from '@lucide/svelte/icons/clock';
@@ -342,6 +343,11 @@
         <!-- 탈퇴 회원: 프로필·통계·활동·공감·이용제한 전부 비노출 (개인정보 분쟁조정 대응) -->
         <Card class="bg-background">
             <CardContent class="py-16 text-center">
+                <img
+                    src={DamoangLogo}
+                    alt="다모앙"
+                    class="mx-auto mb-4 h-10 opacity-40 grayscale"
+                />
                 <p class="text-foreground mb-2 text-lg font-medium">탈퇴한 회원입니다.</p>
                 <p class="text-muted-foreground text-sm">이 회원의 정보는 조회할 수 없습니다.</p>
             </CardContent>
