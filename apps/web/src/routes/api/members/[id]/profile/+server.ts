@@ -143,6 +143,19 @@ export const GET: RequestHandler = async ({ params, locals }) => {
         const member = rows[0];
         const isLeft = !!member.mb_leave_date;
 
+        // 탈퇴 회원: 신원·활동·통계·이용제한·공감·팔로워 전부 비노출.
+        // 조회불가 최소응답만 반환(로그인 회원에게도 미노출). 개인정보 분쟁조정 대응.
+        if (isLeft) {
+            return json({
+                success: true,
+                data: {
+                    mb_id: member.mb_id, // URL에 이미 있는 값 — 추가 노출 아님
+                    is_left: true,
+                    withdrawn: true
+                }
+            });
+        }
+
         // 가입 후 경과일
         const [daysRows] = await pool.query<CountRow[]>(`SELECT DATEDIFF(NOW(), ?) + 1 AS days`, [
             member.mb_datetime

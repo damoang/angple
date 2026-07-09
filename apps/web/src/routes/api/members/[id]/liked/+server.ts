@@ -10,6 +10,7 @@ import type { RowDataPacket } from 'mysql2';
 import pool from '$lib/server/db';
 import { getRedis } from '$lib/server/redis';
 import { getMemberLikedVersion } from '$lib/server/member-activity-cache';
+import { isWithdrawnMember } from '../_withdrawn';
 
 interface GoodRow extends RowDataPacket {
     bg_id: number;
@@ -45,6 +46,11 @@ export const GET: RequestHandler = async ({ params, url }) => {
     const page = Math.max(1, parseInt(url.searchParams.get('page') || '1'));
     const limit = Math.min(Math.max(1, parseInt(url.searchParams.get('limit') || '10')), 30);
     const offset = (page - 1) * limit;
+
+    // 탈퇴 회원 공감내역 비노출 (개인정보 분쟁조정 대응)
+    if (await isWithdrawnMember(memberId)) {
+        return json({ success: true, data: [], total: 0, page, total_pages: 0 });
+    }
 
     try {
         const version = await getMemberLikedVersion(memberId);

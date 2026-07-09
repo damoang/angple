@@ -12,6 +12,7 @@
     import { goto } from '$app/navigation';
     import { page } from '$app/stores';
     import { onMount } from 'svelte';
+    import DamoangLogo from '$lib/assets/logo.svg';
     import User from '@lucide/svelte/icons/user';
     import Calendar from '@lucide/svelte/icons/calendar';
     import Clock from '@lucide/svelte/icons/clock';
@@ -192,6 +193,7 @@
 
     onMount(async () => {
         if (!p?.mb_id) return;
+        if (p?.is_left || p?.withdrawn) return; // 탈퇴 회원: 활동/팔로우 조회 안 함
 
         // 딥링크로 info 외 탭 진입 시 해당 탭 데이터 즉시 로드
         if (activeTab !== 'info') handleTabChange(activeTab);
@@ -210,7 +212,7 @@
 
     // 탭별 lazy load
     async function loadRecentPosts(): Promise<void> {
-        if (postsLoaded || !p?.mb_id) return;
+        if (postsLoaded || !p?.mb_id || p?.is_left || p?.withdrawn) return;
         loadingPosts = true;
         try {
             const res = await fetch(`/api/members/${p.mb_id}/activity?limit=50`);
@@ -224,7 +226,7 @@
     }
 
     async function loadRecentComments(): Promise<void> {
-        if (commentsLoaded || !p?.mb_id) return;
+        if (commentsLoaded || !p?.mb_id || p?.is_left || p?.withdrawn) return;
         loadingComments = true;
         try {
             const res = await fetch(`/api/members/${p.mb_id}/activity?limit=50`);
@@ -238,7 +240,7 @@
     }
 
     async function loadLikedPosts(): Promise<void> {
-        if (likedLoaded || !p?.mb_id) return;
+        if (likedLoaded || !p?.mb_id || p?.is_left || p?.withdrawn) return;
         loadingLiked = true;
         try {
             const res = await fetch(`/api/members/${p.mb_id}/liked?limit=50`);
@@ -335,6 +337,19 @@
         <Card class="border-destructive">
             <CardContent class="pt-6">
                 <p class="text-destructive text-center">{data.error}</p>
+            </CardContent>
+        </Card>
+    {:else if p?.is_left || p?.withdrawn}
+        <!-- 탈퇴 회원: 프로필·통계·활동·공감·이용제한 전부 비노출 (개인정보 분쟁조정 대응) -->
+        <Card class="bg-background">
+            <CardContent class="py-16 text-center">
+                <img
+                    src={DamoangLogo}
+                    alt="다모앙"
+                    class="mx-auto mb-4 h-10 opacity-40 grayscale"
+                />
+                <p class="text-foreground mb-2 text-lg font-medium">탈퇴한 회원입니다.</p>
+                <p class="text-muted-foreground text-sm">이 회원의 정보는 조회할 수 없습니다.</p>
             </CardContent>
         </Card>
     {:else if p}
@@ -564,25 +579,6 @@
                                     {/if}
                                 </span>
                             </div>
-                            {#if p.is_left && p.mb_leave_date}
-                                {@const LEAVE_REASON_LABELS: Record<string, string> = {
-                                    self: '본인 탈퇴',
-                                    admin: '관리자 처리',
-                                    terms_violation: '약관 위반',
-                                    contract_withdrawal: '약관에 의한 계약 철회',
-                                    account_abuse: '계정 도용/악용',
-                                    other: '기타'
-                                }}
-                                <div class="flex items-center gap-2">
-                                    <Calendar class="h-4 w-4 shrink-0" />
-                                    <span>
-                                        {formatDate(p.mb_leave_date)} 탈퇴{p.mb_leave_reason &&
-                                        p.mb_leave_reason !== 'self'
-                                            ? ` · ${LEAVE_REASON_LABELS[p.mb_leave_reason] ?? p.mb_leave_reason}`
-                                            : ''}
-                                    </span>
-                                </div>
-                            {/if}
                             {#if p.mb_nick_date}
                                 <div class="flex items-center gap-2">
                                     <User class="h-4 w-4 shrink-0" />
