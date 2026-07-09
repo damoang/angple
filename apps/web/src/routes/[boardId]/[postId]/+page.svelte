@@ -128,6 +128,7 @@
     import { createScrollDepthObserver, trackEvent, trackPostView } from '$lib/services/ga4.js';
     import { uiSettingsStore } from '$lib/stores/ui-settings.svelte.js';
     import { commentTracker } from '$lib/stores/comment-tracker.svelte.js';
+    import { disciplineRevealStore } from '$lib/stores/discipline-reveal.svelte.js';
     import { onDestroy } from 'svelte';
     import { TouchGestureService } from '$lib/services/touch-gestures.svelte.js';
 
@@ -275,6 +276,15 @@
     // 게시판 정보
     const boardId = $derived(data.boardId);
     const boardTitle = $derived(data.board?.subject || data.board?.name || boardId);
+
+    // #12920: 이용제한 근거 콘텐츠 공개 워터마크용 열람자 정보를 스토어에 동기화.
+    // 스토어가 모듈 싱글톤이라 teardown 에서 반드시 정리해 페이지 이탈 후 잔존을 방지.
+    $effect(() => {
+        disciplineRevealStore.setViewer(data.disciplineViewer ?? null);
+        return () => {
+            disciplineRevealStore.clearViewer();
+        };
+    });
 
     // 특수 게시판 타입 감지
     const boardType = $derived(
@@ -1736,6 +1746,18 @@
         userId={data.watermark.userId}
         clientIp={data.watermark.clientIp}
         pageTitle={boardTitle}
+    />
+{/if}
+
+<!-- #12920: 이용제한 근거 글·댓글 [보기] 공개 시 전체화면 워터마크.
+     truthroom 워터마크와의 이중 렌더 방지를 위해 !data.watermark 가드. -->
+{#if !data.watermark && disciplineRevealStore.revealCount > 0 && data.disciplineViewer}
+    <Watermark
+        nickname={data.disciplineViewer.nickname}
+        userId={data.disciplineViewer.userId}
+        clientIp={data.disciplineViewer.clientIp}
+        pageTitle={boardTitle}
+        redirectUrl={`/${boardId}`}
     />
 {/if}
 
