@@ -67,7 +67,8 @@
         createArticleJsonLd,
         createBreadcrumbJsonLd,
         createDiscussionForumPostingJsonLd,
-        getSiteUrl
+        getSiteUrl,
+        truncateText
     } from '$lib/seo/index.js';
     import type { SeoConfig } from '$lib/seo/types.js';
     import { LevelBadge } from '$lib/components/ui/level-badge/index.js';
@@ -1611,8 +1612,9 @@
     }
 
     // SEO 설정
+    // truncateText: .slice() 는 이모지(서로게이트 쌍)를 반쪽 내 GSC "잘린 유니코드"(파싱 불가) 오류가 됨
     const postDescription = $derived(
-        data.post.deleted_at ? '' : renderedPostContent.replace(/<[^>]+>/g, '').slice(0, 160)
+        data.post.deleted_at ? '' : truncateText(renderedPostContent.replace(/<[^>]+>/g, ''), 160)
     );
 
     const seoConfig: SeoConfig = $derived.by(() => {
@@ -1627,8 +1629,20 @@
         // (작성자 프로필, 댓글자 아바타 등) 를 썸네일로 잡아가는 문제 (#12417) 발생.
         const rawOgImage = data.post.thumbnail || data.post.images?.[0];
         const fallbackOgImage = publicEnv.PUBLIC_OG_FALLBACK_IMAGE || undefined;
-        const ogImageUrl = rawOgImage
-            ? `${rawOgImage}${rawOgImage.includes('?') ? '&' : '?'}v=${new Date(data.post.updated_at || data.post.created_at).getTime()}`
+        // GSC "image URL 잘못됨" 방지: 상대경로는 siteUrl 기준 절대화, http(s) 외 스킴은 fallback 으로
+        let safeOgImage: string | undefined;
+        if (rawOgImage) {
+            try {
+                const parsed = new URL(rawOgImage, siteUrl);
+                if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
+                    safeOgImage = parsed.href;
+                }
+            } catch {
+                safeOgImage = undefined;
+            }
+        }
+        const ogImageUrl = safeOgImage
+            ? `${safeOgImage}${safeOgImage.includes('?') ? '&' : '?'}v=${new Date(data.post.updated_at || data.post.created_at).getTime()}`
             : fallbackOgImage;
 
         return {
@@ -1646,7 +1660,7 @@
                 image: ogImageUrl
             },
             twitter: {
-                card: rawOgImage ? 'summary_large_image' : 'summary',
+                card: safeOgImage ? 'summary_large_image' : 'summary',
                 title: data.post.title,
                 description: postDescription,
                 image: ogImageUrl
@@ -1654,7 +1668,8 @@
             jsonLd: [
                 // DiscussionForumPosting - 커뮤니티 게시글에 최적화된 구조화 데이터
                 createDiscussionForumPostingJsonLd({
-                    headline: data.post.title,
+                    // 빈 제목 글에서 headline 누락(GSC) 방지 — 게시판명 폴백
+                    headline: data.post.title?.trim() || boardTitle,
                     text: postDescription,
                     author: data.post.deleted_at ? '' : data.post.author,
                     authorUrl: data.post.deleted_at ? undefined : authorUrl,
@@ -1663,11 +1678,28 @@
                     url: postUrl,
                     commentCount: comments.length,
                     upvoteCount: data.post.likes || 0,
-                    image: ogImageUrl
+                    image: ogImageUrl,
+                    // 상위 원댓글 3개 (비밀·삭제·잠금·제재·차단 댓글 제외 — 마스킹 정책 준수)
+                    comments: comments
+                        .filter(
+                            (c) =>
+                                (c.depth ?? 0) === 0 &&
+                                !c.is_secret &&
+                                !c.deleted_at &&
+                                !c.is_restricted &&
+                                !c.is_discipline_related &&
+                                !c.is_blocked
+                        )
+                        .slice(0, 3)
+                        .map((c) => ({
+                            text: truncateText(c.content.replace(/<[^>]+>/g, '').trim(), 200),
+                            author: c.author,
+                            datePublished: c.created_at
+                        }))
                 }),
                 // Article - 일반 검색 결과용 (폴백)
                 createArticleJsonLd({
-                    headline: data.post.title,
+                    headline: data.post.title?.trim() || boardTitle,
                     author: data.post.deleted_at ? '' : data.post.author,
                     datePublished: data.post.created_at,
                     dateModified: data.post.updated_at || data.post.created_at,

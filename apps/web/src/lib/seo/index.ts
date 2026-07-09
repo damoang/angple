@@ -6,6 +6,7 @@ export {
     buildOgTags,
     buildTwitterTags,
     buildJsonLd,
+    truncateText,
     createWebSiteJsonLd,
     createArticleJsonLd,
     createBreadcrumbJsonLd
