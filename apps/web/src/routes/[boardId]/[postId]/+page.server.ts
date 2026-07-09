@@ -641,6 +641,23 @@ export const load: PageServerLoad = async ({
             };
         }
 
+        // #12920: 이용제한 근거 글·댓글 [보기] 공개 시 전체화면 워터마크용 열람자 정보.
+        // 로그인 사용자에게만 발급 — 익명 SSR/데이터 캐시 응답에 IP 가 잔존하지 않게 한다.
+        let disciplineViewer: { nickname: string; userId: string; clientIp: string } | null = null;
+        if (locals.user) {
+            let clientIp = '';
+            try {
+                clientIp = getClientAddress();
+            } catch {
+                clientIp = '';
+            }
+            disciplineViewer = {
+                nickname: locals.user.nickname || '',
+                userId: locals.user.id || '',
+                clientIp
+            };
+        }
+
         // 잠긴 게시글 → 진실의방 글 ID 조회
         let truthroomPostId: number | null = null;
         if (post.extra_7 === 'lock') {
@@ -710,6 +727,7 @@ export const load: PageServerLoad = async ({
             isRestricted: isRestrictedUser(locals.user as AuthUser | null),
             promotionExpired,
             watermark,
+            disciplineViewer,
             truthroomPostId,
             originalPostLink,
             recentPosts,

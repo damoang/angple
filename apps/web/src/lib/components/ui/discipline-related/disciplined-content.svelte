@@ -1,7 +1,10 @@
 <script lang="ts">
+    import { onDestroy } from 'svelte';
     import Scale from '@lucide/svelte/icons/scale';
     import Eye from '@lucide/svelte/icons/eye';
     import Lock from '@lucide/svelte/icons/lock';
+    import { disciplineRevealStore } from '$lib/stores/discipline-reveal.svelte.js';
+    import { authStore } from '$lib/stores/auth.svelte.js';
 
     interface Props {
         children: import('svelte').Snippet;
@@ -26,6 +29,32 @@
     }: Props = $props();
 
     const label = $derived(`이용제한 근거 ${isComment ? '댓글' : '글'}`);
+
+    // #12920: 공개 인스턴스 등록 → 페이지가 revealCount > 0 이면 전체화면 워터마크 렌더.
+    // 클릭 핸들러가 아닌 상태 관찰 기반: 제목·본문이 bind:revealed 로 상태를 공유해도
+    // 인스턴스별 Symbol + 멱등 add/remove 라 이중 증감이 없다.
+    const instanceId = Symbol();
+    $effect(() => {
+        if (revealed) {
+            disciplineRevealStore.add(instanceId);
+        } else {
+            disciplineRevealStore.remove(instanceId);
+        }
+    });
+    onDestroy(() => {
+        disciplineRevealStore.remove(instanceId);
+    });
+
+    // #12920: 좁은 영역(한 줄 댓글 등) 캡처 시 전체화면 워터마크가 프레임 밖일 수 있어,
+    // 공개된 블록 자체에 고밀도 보강 워터마크를 겹친다. viewer(SSR) 우선, authStore 폴백.
+    const overlayText = $derived.by(() => {
+        const v = disciplineRevealStore.viewer;
+        const nickname = v?.nickname || authStore.user?.mb_name || '';
+        const userId = v?.userId || authStore.user?.mb_id || '';
+        const clientIp = v?.clientIp || '';
+        if (!nickname && !userId) return '';
+        return `@${nickname}(${userId}) ${clientIp} `.repeat(120);
+    });
 </script>
 
 {#if inline}
@@ -70,6 +99,17 @@
             >
                 {@render children()}
             </div>
+            {#if revealed && overlayText}
+                <!-- #12920: 좁은 영역 보강 워터마크. leading-4(1rem)가 댓글 한 줄
+                     line-height 보다 작아 어떤 한 줄 캡처에도 식별 텍스트가 교차한다.
+                     무회전(모서리 공백 방지), inline(제목) 변형에는 미적용. -->
+                <div
+                    class="pointer-events-none absolute inset-0 select-none overflow-hidden break-all text-[10px] leading-4 text-red-500/10"
+                    aria-hidden="true"
+                >
+                    {overlayText}
+                </div>
+            {/if}
             {#if !revealed}
                 <div
                     class="absolute inset-0 flex flex-col items-center justify-center gap-2 rounded-md bg-amber-500/5 p-4 backdrop-blur-sm"
