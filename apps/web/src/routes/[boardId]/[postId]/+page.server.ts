@@ -522,16 +522,13 @@ export const load: PageServerLoad = async ({
                         : null
                 ),
                 (() => {
-                    if (!locals.user?.id || !commentsData.comments.items?.length) {
+                    if (!locals.user?.id) {
                         return Promise.resolve({ likedIds: [], dislikedIds: [] });
                     }
-                    const commentIds = commentsData.comments.items
-                        .map((c: { id: number | string }) => Number(c.id))
-                        .filter((id: number) => !isNaN(id));
-                    if (commentIds.length === 0) {
-                        return Promise.resolve({ likedIds: [], dislikedIds: [] });
-                    }
-                    return fetchCommentLikeStatuses(boardId, commentIds, locals.user.id).catch(
+                    // 글 단위 조회 — SSR 1페이지(10개) 밖 backfill 댓글의 하트 토글 상태
+                    // 누락 방지 (economy/77128 제보: 정렬 동률로 1페이지에서 밀린 댓글의
+                    // 좋아요가 새로고침 후 미표시되던 문제)
+                    return fetchCommentLikeStatuses(boardId, Number(postId), locals.user.id).catch(
                         () => ({
                             likedIds: [],
                             dislikedIds: []

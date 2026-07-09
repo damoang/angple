@@ -183,7 +183,7 @@ export const GET: RequestHandler = async ({ params, url, locals, request }) => {
 			        wr_deleted_at, wr_deleted_by, wr_7
 			 FROM ??
 			 WHERE wr_parent = ? AND wr_is_comment = 1
-			 ORDER BY wr_comment, wr_comment_reply
+			 ORDER BY wr_comment, wr_comment_reply, wr_id
 			 LIMIT ? OFFSET ?`,
             [tableName, safePostId, limit, (effectivePage - 1) * limit]
         );
