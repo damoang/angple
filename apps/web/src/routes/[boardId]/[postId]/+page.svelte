@@ -1012,8 +1012,12 @@
     // 직접홍보 게시판 만료 여부
     const promotionExpired = $derived(data.promotionExpired === true && !isAuthor);
 
-    // 비밀글 접근 권한 (작성자만 열람 가능, 홍보 만료 글도 차단)
-    const canViewSecret = $derived((!data.post.is_secret || isAuthor) && !promotionExpired);
+    // 비밀글 접근 권한 (작성자 또는 관리자 열람 가능, 홍보 만료 글도 차단)
+    // 백엔드 비밀글 strip 은 작성자+관리자에게 내용을 내려주는데 프론트 판정에
+    // isAdmin 이 빠져 관리자가 "비밀글입니다"만 보던 불일치 수정.
+    const canViewSecret = $derived(
+        (!data.post.is_secret || isAuthor || isAdmin) && !promotionExpired
+    );
 
     // 댓글 레이아웃 (관리자 변경 시 즉시 반영용)
     // eslint-disable-next-line svelte/prefer-writable-derived -- layout must refresh from route data while remaining locally writable
