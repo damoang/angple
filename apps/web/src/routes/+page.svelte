@@ -7,6 +7,7 @@
     import { SeoHead, createWebSiteJsonLd, getSiteUrl } from '$lib/seo/index.js';
     import type { SeoConfig } from '$lib/seo/types.js';
     import PluginSlot from '$lib/components/plugin/plugin-slot.svelte';
+    import WelcomeOnboarding from '$lib/components/features/onboarding/welcome-onboarding.svelte';
     import { getThemePageTemplate } from '$lib/themes/page-registry';
     import { browser } from '$app/environment';
     import { initFromData as initCelebrationFromData } from '$lib/stores/celebration.svelte';
@@ -80,6 +81,9 @@
         </div>
     </div>
 {/if}
+
+<!-- 신규 회원 웰컴 온보딩 (가입 14일 이내 + 미기여 회원에게만, 성장 실험 A) -->
+<WelcomeOnboarding />
 
 <!-- 플러그인 슬롯: 홈 콘텐츠 직전 (위젯 영역 위) — Slot Catalog Sprint 2c -->
 <PluginSlot name="home-content-before" />
