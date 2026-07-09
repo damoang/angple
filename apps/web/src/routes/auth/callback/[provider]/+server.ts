@@ -27,7 +27,7 @@ import {
     CSRF_COOKIE_NAME,
     SESSION_COOKIE_MAX_AGE
 } from '$lib/server/auth/session-store.js';
-import { generateRefreshToken } from '$lib/server/auth/jwt.js';
+import { generateRefreshToken, generateAppLoginCode } from '$lib/server/auth/jwt.js';
 import { setDamoangSSOCookie } from '$lib/server/auth/sso-cookie.js';
 import { AppleProvider } from '$lib/server/auth/oauth/providers/apple.js';
 import { TwitterProvider } from '$lib/server/auth/oauth/providers/twitter.js';
@@ -205,11 +205,16 @@ async function handleCallback(
             if (profile.email) {
                 const existingByEmail = await findMemberByEmail(profile.email);
                 if (existingByEmail) {
+                    if (stateData.appMode) {
+                        redirect(302, 'damoang://oauth-callback?error=email_exists');
+                    }
                     redirect(302, '/login?error=email_exists');
                 }
             }
 
-            if (isInviteFlow(stateData.redirect)) {
+            if (isInviteFlow(stateData.redirect) || stateData.appMode) {
+                // 초대 플로우·네이티브 앱 로그인: /register 로 보내지 않고 임시 계정 즉시 생성
+                // (앱 모드에서 /register 로 이동하면 앱 스킴 복귀가 끊겨 로그인이 중단됨)
                 const baseMbId = generateSocialMbId(providerName, profile.identifier);
                 const existingTemp = await findExistingTempAccount(baseMbId);
 
@@ -314,6 +319,10 @@ async function handleCallback(
                     });
                     redirect(302, '/member/leave/cancel');
                 }
+                if (stateData.appMode) {
+                    // 앱 모드: 비활성/이용제한 계정은 앱으로 에러 복귀 (임시계정 우회 생성 금지)
+                    redirect(302, 'damoang://oauth-callback?error=account_inactive');
+                }
                 redirect(302, '/login?error=account_inactive');
             }
         }
@@ -396,6 +405,7 @@ async function handleCallback(
         const skipCertification =
             isInviteFlow(stateData.redirect) ||
             isPromotionRedirectFlow(stateData.redirect) ||
+            stateData.appMode === true ||
             Number(member.mb_level ?? 0) >= 5;
 
         // 직접홍보/광고주 로그인은 실명인증 없이 진행
@@ -408,6 +418,17 @@ async function handleCallback(
             } catch (certErr) {
                 if (certErr && typeof certErr === 'object' && 'status' in certErr) throw certErr;
             }
+        }
+
+        // 네이티브 앱 모드: 단명 app-login 코드를 발급해 앱 스킴으로 복귀
+        if (stateData.appMode) {
+            const appLoginCode = await generateAppLoginCode({
+                mb_id: member.mb_id,
+                mb_nick: member.mb_nick,
+                mb_level: Number(member.mb_level ?? 1),
+                mb_email: member.mb_email || ''
+            });
+            redirect(302, `damoang://oauth-callback?code=${encodeURIComponent(appLoginCode)}`);
         }
 
         // 원래 페이지로 리다이렉트

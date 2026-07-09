@@ -89,4 +89,10 @@ export interface OAuthStateData {
      * 콜백에서 `locals.user.id === linkTo` 를 재검증한다.
      */
     linkTo?: string;
+    /**
+     * 네이티브 앱 로그인 모드 (/auth/start?app=1).
+     * 콜백 성공 시 웹 리다이렉트 대신 단명 app-login 코드를 발급해
+     * damoang://oauth-callback 앱 스킴으로 복귀한다.
+     */
+    appMode?: boolean;
 }

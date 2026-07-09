@@ -22,6 +22,8 @@ export const GET: RequestHandler = async ({ url, cookies, request, locals }) => 
     // 추가 연결(link) 모드 — 쿼리 파라미터는 단순 플래그이며,
     // 실제 연결 대상 mb_id 는 서버 세션에서만 결정한다 (#12037).
     const isLinkMode = url.searchParams.get('link') === '1';
+    // 네이티브 앱 로그인 모드 — 콜백 성공 시 앱 스킴으로 단명 코드 전달
+    const isAppMode = url.searchParams.get('app') === '1';
 
     if (!providerParam || !isValidProvider(providerParam)) {
         return new Response('지원하지 않는 로그인 방식입니다', { status: 400 });
@@ -42,7 +44,7 @@ export const GET: RequestHandler = async ({ url, cookies, request, locals }) => 
     try {
         const origin = resolveOrigin(request);
         const provider = await getProvider(providerName, origin);
-        const state = createOAuthState(cookies, providerName, redirectUrl, linkTo);
+        const state = createOAuthState(cookies, providerName, redirectUrl, linkTo, isAppMode);
 
         // Twitter는 PKCE 사용
         if (provider instanceof TwitterProvider) {

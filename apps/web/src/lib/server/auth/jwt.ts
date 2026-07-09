@@ -54,6 +54,32 @@ export async function generateAccessToken(user: {
         .sign(secret);
 }
 
+/**
+ * 네이티브 앱 로그인 코드 생성 (60초 단명)
+ * 소셜 OAuth 콜백 성공 후 앱 스킴(damoang://oauth-callback)으로 전달되며,
+ * 앱이 Go 백엔드 POST /api/v2/auth/app-exchange 로 v2 토큰쌍과 교환한다.
+ * aud=app-login 으로 일반 access/refresh 토큰과 용도를 분리한다.
+ */
+export async function generateAppLoginCode(user: {
+    mb_id: string;
+    mb_nick: string;
+    mb_level: number;
+    mb_email: string;
+}): Promise<string> {
+    return new SignJWT({
+        nickname: user.mb_nick,
+        level: user.mb_level,
+        email: user.mb_email
+    })
+        .setSubject(user.mb_id)
+        .setAudience('app-login')
+        .setProtectedHeader({ alg: 'HS256' })
+        .setIssuedAt()
+        .setExpirationTime('60s')
+        .setIssuer('angple')
+        .sign(secret);
+}
+
 /** Refresh Token 생성 (7일) + DB 저장 */
 export async function generateRefreshToken(
     mbId: string,
