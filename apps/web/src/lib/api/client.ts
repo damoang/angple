@@ -25,6 +25,7 @@ import type {
     MyActivity,
     MyComment,
     BlockedMember,
+    BlockScope,
     UploadedFile,
     PresignedUrlResponse,
     PostAttachment,
@@ -1515,8 +1516,11 @@ class ApiClient {
      * 회원 차단
      * 🔒 인증 필요
      */
-    async blockMember(memberId: string): Promise<void> {
-        await this.request<void>(`/members/${memberId}/block`, { method: 'POST' });
+    async blockMember(memberId: string, scope: BlockScope = 'all'): Promise<void> {
+        await this.request<void>(`/members/${memberId}/block`, {
+            method: 'POST',
+            body: JSON.stringify({ scope })
+        });
     }
 
     /**

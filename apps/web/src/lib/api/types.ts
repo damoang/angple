@@ -567,10 +567,14 @@ export interface BoardStat {
 }
 
 // 차단 회원 정보
+// 차단 범위 (#12916): all=글+댓글+쪽지, message=쪽지만, content=글/댓글만
+export type BlockScope = 'all' | 'message' | 'content';
+
 export interface BlockedMember {
     mb_id: string;
     mb_name: string;
     blocked_at: string;
+    scope?: BlockScope;
 }
 
 // 게시글 작성 요청
