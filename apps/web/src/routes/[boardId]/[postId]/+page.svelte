@@ -67,6 +67,8 @@
         createArticleJsonLd,
         createBreadcrumbJsonLd,
         createDiscussionForumPostingJsonLd,
+        createVideoObjectJsonLd,
+        extractVideosFromContent,
         getSiteUrl,
         truncateText
     } from '$lib/seo/index.js';
@@ -1659,6 +1661,49 @@
             ? `${safeOgImage}${safeOgImage.includes('?') ? '&' : '?'}v=${new Date(data.post.updated_at || data.post.created_at).getTime()}`
             : fallbackOgImage;
 
+        // VideoObject — GSC "제공된 썸네일 URL 없음"(동영상 색인 제외) 해소.
+        // 유튜브 임베드는 i.ytimg.com 썸네일이 항상 존재. 업로드 mp4 는 자체 포스터가
+        // 없으므로 글 대표이미지가 있을 때만 출력 (thumbnailUrl 없는 VideoObject 는
+        // 그 자체가 오류라 생략이 정답 — 헬퍼가 null 반환, buildJsonLd 가 필터)
+        const videoJsonLds =
+            data.post.is_secret || data.post.deleted_at
+                ? []
+                : [
+                      ...extractVideosFromContent(renderedPostContent),
+                      ...(data.post.videos ?? []).map((v) => ({
+                          type: 'file' as const,
+                          url: v.url
+                      }))
+                  ]
+                      .slice(0, 3)
+                      .map((v) => {
+                          const name = data.post.title?.trim() || boardTitle;
+                          if (v.type === 'youtube') {
+                              return createVideoObjectJsonLd({
+                                  name,
+                                  description: postDescription || undefined,
+                                  thumbnailUrl: `https://i.ytimg.com/vi/${v.id}/hqdefault.jpg`,
+                                  uploadDate: data.post.created_at,
+                                  embedUrl: `https://www.youtube.com/embed/${v.id}`
+                              });
+                          }
+                          let contentUrl: string | undefined;
+                          try {
+                              const parsed = new URL(v.url, siteUrl);
+                              if (parsed.protocol === 'http:' || parsed.protocol === 'https:')
+                                  contentUrl = parsed.href;
+                          } catch {
+                              contentUrl = undefined;
+                          }
+                          return createVideoObjectJsonLd({
+                              name,
+                              description: postDescription || undefined,
+                              thumbnailUrl: safeOgImage,
+                              uploadDate: data.post.created_at,
+                              contentUrl
+                          });
+                      });
+
         return {
             meta: {
                 title: `${data.post.title} - ${boardTitle}`,
@@ -1725,7 +1770,9 @@
                     { name: '홈', url: siteUrl },
                     { name: boardTitle, url: `${siteUrl}/${boardId}` },
                     { name: data.post.title }
-                ])
+                ]),
+                // VideoObject — 본문 유튜브 임베드·업로드 동영상 (최대 3개, null 은 필터됨)
+                ...videoJsonLds
             ]
         };
     });

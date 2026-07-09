@@ -223,3 +223,46 @@ describe('SEO meta-helper', () => {
         });
     });
 });
+
+describe('VideoObject (GSC 동영상 색인 — 썸네일 필수)', () => {
+    it('유튜브 임베드 iframe 에서 videoId 추출 (embed·nocookie·중복 제거)', async () => {
+        const { extractVideosFromContent } = await import('./json-ld');
+        const html = `
+            <div data-youtube-video><iframe src="https://www.youtube.com/embed/dQw4w9WgXcQ?rel=0"></iframe></div>
+            <iframe src="https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ"></iframe>
+            <iframe src="https://www.youtube.com/embed/abc123XYZ_-"></iframe>`;
+        expect(extractVideosFromContent(html)).toEqual([
+            { type: 'youtube', id: 'dQw4w9WgXcQ' },
+            { type: 'youtube', id: 'abc123XYZ_-' }
+        ]);
+    });
+
+    it('업로드 동영상: <video src> 와 <video><source src> 모두 추출, 단순 링크는 제외', async () => {
+        const { extractVideosFromContent } = await import('./json-ld');
+        const html = `
+            <video src="https://r2.damoang.net/data/editor/a.mp4" controls></video>
+            <video controls><source src="https://r2.damoang.net/data/file/b.mp4" /></video>
+            <a href="https://youtu.be/dQw4w9WgXcQ">링크만</a>`;
+        expect(extractVideosFromContent(html)).toEqual([
+            { type: 'file', url: 'https://r2.damoang.net/data/editor/a.mp4' },
+            { type: 'file', url: 'https://r2.damoang.net/data/file/b.mp4' }
+        ]);
+    });
+
+    it('createVideoObjectJsonLd: 필수값(name·thumbnailUrl·uploadDate·재생URL) 미충족 시 null', async () => {
+        const { createVideoObjectJsonLd } = await import('./json-ld');
+        const base = {
+            name: '제목',
+            thumbnailUrl: 'https://i.ytimg.com/vi/x/hqdefault.jpg',
+            uploadDate: '2026-07-10T00:00:00+09:00',
+            embedUrl: 'https://www.youtube.com/embed/x'
+        };
+        expect(createVideoObjectJsonLd(base)).toMatchObject({
+            '@type': 'VideoObject',
+            name: '제목'
+        });
+        expect(createVideoObjectJsonLd({ ...base, thumbnailUrl: undefined })).toBeNull();
+        expect(createVideoObjectJsonLd({ ...base, name: '  ' })).toBeNull();
+        expect(createVideoObjectJsonLd({ ...base, embedUrl: undefined })).toBeNull();
+    });
+});
