@@ -44,6 +44,25 @@
         }
     }
 
+    // 차단 범위 변경 (#12916): 전체 ↔ 쪽지만. blockMember 는 이미 차단된 경우 범위만 갱신.
+    let scopeChangingId = $state<string | null>(null);
+    async function handleScopeChange(member: BlockedMember): Promise<void> {
+        const current = member.scope ?? 'all';
+        const next = current === 'message' ? 'all' : 'message';
+        scopeChangingId = member.mb_id;
+        try {
+            await apiClient.blockMember(member.mb_id, next);
+            blockedMembers = blockedMembers.map((m) =>
+                m.mb_id === member.mb_id ? { ...m, scope: next } : m
+            );
+        } catch (err) {
+            console.error('차단 범위 변경 실패:', err);
+            alert('차단 범위 변경에 실패했습니다.');
+        } finally {
+            scopeChangingId = null;
+        }
+    }
+
     // 회원 프로필로 이동
     function goToProfile(memberId: string): void {
         goto(`/member/${memberId}`);
@@ -61,7 +80,10 @@
             <Ban class="h-6 w-6" />
             차단 목록
         </h1>
-        <p class="text-secondary-foreground mt-1">차단한 회원의 글과 댓글이 숨겨집니다.</p>
+        <p class="text-secondary-foreground mt-1">
+            전체 차단은 글·댓글이 숨겨지고 쪽지도 차단됩니다. 쪽지만 차단은 글·댓글은 그대로 보이고
+            쪽지만 차단됩니다.
+        </p>
     </div>
 
     <!-- 에러 메시지 -->
@@ -102,18 +124,42 @@
                                             {member.mb_name}
                                         </button>
                                         <p class="text-muted-foreground text-xs">
-                                            {formatDate(member.blocked_at)} 차단
+                                            {formatDate(member.blocked_at)} 차단 ·
+                                            <span class="font-medium">
+                                                {(member.scope ?? 'all') === 'message'
+                                                    ? '쪽지만 차단'
+                                                    : '전체 차단'}
+                                            </span>
                                         </p>
                                     </div>
                                 </div>
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onclick={() => handleUnblock(member.mb_id)}
-                                    disabled={unblockingId === member.mb_id}
-                                >
-                                    {unblockingId === member.mb_id ? '해제 중...' : '차단 해제'}
-                                </Button>
+                                <div class="flex items-center gap-2">
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onclick={() => handleScopeChange(member)}
+                                        disabled={scopeChangingId === member.mb_id}
+                                        title={(member.scope ?? 'all') === 'message'
+                                            ? '전체 차단으로 변경'
+                                            : '쪽지만 차단으로 변경'}
+                                    >
+                                        {#if scopeChangingId === member.mb_id}
+                                            변경 중...
+                                        {:else if (member.scope ?? 'all') === 'message'}
+                                            전체 차단으로
+                                        {:else}
+                                            쪽지만 차단으로
+                                        {/if}
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onclick={() => handleUnblock(member.mb_id)}
+                                        disabled={unblockingId === member.mb_id}
+                                    >
+                                        {unblockingId === member.mb_id ? '해제 중...' : '차단 해제'}
+                                    </Button>
+                                </div>
                             </li>
                         {/each}
                     </ul>

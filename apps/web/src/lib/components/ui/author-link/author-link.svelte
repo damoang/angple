@@ -90,18 +90,26 @@
 
     let blockLoading = $state(false);
 
-    async function handleBlock(): Promise<void> {
+    async function handleBlock(scope: 'all' | 'message' = 'all'): Promise<void> {
         if (!authStore.isAuthenticated) {
             authStore.redirectToLogin();
             return;
         }
         if (blockLoading) return;
-        if (!confirm(`${authorName}님을 차단하시겠습니까?`)) return;
+        const confirmMsg =
+            scope === 'message'
+                ? `${authorName}님의 쪽지만 차단하시겠습니까? (게시글·댓글은 그대로 표시됩니다)`
+                : `${authorName}님을 차단하시겠습니까?`;
+        if (!confirm(confirmMsg)) return;
         blockLoading = true;
         try {
-            await apiClient.blockMember(authorId);
-            blockedUsersStore.add(authorId);
-            alert(`${authorName}님을 차단했습니다.`);
+            await apiClient.blockMember(authorId, scope);
+            blockedUsersStore.add(authorId, scope);
+            alert(
+                scope === 'message'
+                    ? `${authorName}님의 쪽지를 차단했습니다.`
+                    : `${authorName}님을 차단했습니다.`
+            );
         } catch (err) {
             console.error('[Block] Failed:', authorId, err);
             alert('차단 처리에 실패했습니다. 잠시 후 다시 시도해 주세요.');
@@ -257,8 +265,16 @@
                         쪽지 보내기
                     </DropdownMenu.Item>
                     <DropdownMenu.Item
+                        class="cursor-pointer gap-2"
+                        onclick={() => handleBlock('message')}
+                        disabled={blockLoading}
+                    >
+                        <Ban class="h-3.5 w-3.5" />
+                        {blockLoading ? '처리 중...' : '쪽지만 차단'}
+                    </DropdownMenu.Item>
+                    <DropdownMenu.Item
                         class="text-destructive cursor-pointer gap-2"
-                        onclick={handleBlock}
+                        onclick={() => handleBlock('all')}
                         disabled={blockLoading}
                     >
                         <Ban class="h-3.5 w-3.5" />
