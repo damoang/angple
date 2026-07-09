@@ -82,16 +82,24 @@
                 <div class="min-w-0 flex-1">
                     <p class="text-foreground text-base font-bold">앙님, 어서오세요! 💛</p>
                     <p class="text-muted-foreground mt-0.5 text-sm leading-relaxed">
-                        가입인사를 남기면 앙님들이 우르르 반겨줘요. 일부 게시판 글쓰기는 조금 활동한
-                        뒤에 열리니, 첫걸음은 인사가 딱이에요!
+                        가입인사를 남기면 앙님들이 우르르 반겨줘요. 게시판 글쓰기는 닉네임 옆에
+                        <span class="font-semibold text-amber-600 dark:text-amber-400">앙님💛</span
+                        >이 생기면 열리니, 첫걸음은 인사가 딱이에요!
                     </p>
                 </div>
-                <div class="flex shrink-0 items-center gap-2">
+                <div class="flex shrink-0 flex-wrap items-center gap-2">
                     <a
                         href="/hello"
                         class="inline-flex items-center gap-1.5 rounded-full bg-amber-500 px-4 py-2 text-sm font-bold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:bg-amber-600 hover:shadow-md"
                     >
                         💌 가입인사 남기기
+                    </a>
+                    <!-- 운영 안내글: 환영 안내(20754) — 새내기 필독 -->
+                    <a
+                        href="/hello/20754"
+                        class="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 rounded-full border border-amber-200 px-3 py-2 text-xs font-semibold transition-colors hover:border-amber-400 dark:border-amber-800/50"
+                    >
+                        📖 새내기 안내
                     </a>
                 </div>
             </div>
