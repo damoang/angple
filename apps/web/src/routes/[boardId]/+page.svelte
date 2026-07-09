@@ -690,10 +690,11 @@
                     : currentPage > 1
                       ? `${boardTitle} - ${currentPage}페이지`
                       : boardTitle,
-                // 게시판별 고유 description — multi-tenant: site.title(런타임 resolve) 우선.
-                // layout 의 기본 description 과 함께 2개 렌더되어 전 게시판이 사이트 슬로건으로
-                // 중복 집계되던 문제의 페이지측 짝 (+layout.svelte routeHasSeoHead 참조)
-                description: `${data.site?.title || import.meta.env.VITE_SITE_NAME || 'Angple'} ${boardTitle} 게시판 — 최신 글과 인기 글, 회원들의 실시간 이야기를 만나보세요.`,
+                // 게시판별 고유 description — layout 기본 description 과 2개 렌더되어 전 게시판이
+                // 사이트 슬로건으로 중복 집계되던 문제의 페이지측 짝 (+layout.svelte routeHasSeoHead 참조).
+                // 사이트명은 title 태그가 담당하므로 중복 표기하지 않고, '자유게시판 게시판' 같은
+                // 접미 중복은 boardTitle 로 흡수한다.
+                description: `${boardTitle.endsWith('게시판') ? boardTitle : `${boardTitle} 게시판`} — 최신 글과 인기 글, 회원들의 실시간 이야기를 만나보세요.`,
                 canonicalUrl: pageSeo.canonical,
                 noIndex: pageSeo.noIndex,
                 noFollow: pageSeo.noFollow
