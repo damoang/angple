@@ -9,6 +9,7 @@ import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import type { RowDataPacket } from 'mysql2';
 import pool from '$lib/server/db';
+import { isWithdrawnMember } from '../_withdrawn';
 
 interface MemoRow extends RowDataPacket {
     id: number;
@@ -29,6 +30,11 @@ export const GET: RequestHandler = async ({ params, locals }) => {
     const memberId = params.id;
     if (!memberId || !/^[a-zA-Z0-9_-]+$/.test(memberId)) {
         return json({ success: false, error: '유효하지 않은 회원 ID입니다.' }, { status: 400 });
+    }
+
+    // 탈퇴 회원 메모 비노출 (개인정보 분쟁조정 대응)
+    if (await isWithdrawnMember(memberId)) {
+        return json({ success: true, data: [] });
     }
 
     try {

@@ -6,6 +6,7 @@ import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import type { RowDataPacket } from 'mysql2';
 import { readPool } from '$lib/server/db.js';
+import { isWithdrawnMember } from '../_withdrawn';
 
 interface FollowerRow extends RowDataPacket {
     mb_id: string;
@@ -25,6 +26,11 @@ export const GET: RequestHandler = async ({ params }) => {
 
     if (!targetId || !/^[a-zA-Z0-9_-]+$/.test(targetId)) {
         return json({ success: false, error: '유효하지 않은 회원 ID입니다.' }, { status: 400 });
+    }
+
+    // 탈퇴 회원 팔로워 목록 비노출 (개인정보 분쟁조정 대응)
+    if (await isWithdrawnMember(targetId)) {
+        return json({ success: true, data: { total: 0, followers: [] } });
     }
 
     try {

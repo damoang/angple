@@ -5,6 +5,7 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { backendFetch } from '$lib/server/backend-fetch';
+import { isWithdrawnMember } from '../_withdrawn';
 
 const EMPTY_RESPONSE = { recentPosts: [], recentComments: [] };
 
@@ -16,6 +17,11 @@ export const GET: RequestHandler = async ({ params, url }) => {
     }
 
     const limit = url.searchParams.get('limit') || '5';
+
+    // 탈퇴 회원 활동 비노출 — Go GetMemberActivity 에는 탈퇴 가드가 없어 프록시 전 차단
+    if (await isWithdrawnMember(memberId)) {
+        return json(EMPTY_RESPONSE);
+    }
 
     try {
         const res = await backendFetch(

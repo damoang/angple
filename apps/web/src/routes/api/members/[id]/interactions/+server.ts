@@ -20,6 +20,7 @@ import pool from '$lib/server/db';
 import { getAuthUser } from '$lib/server/auth';
 import { getRedis } from '$lib/server/redis';
 import { getMemberInteractionsVersion } from '$lib/server/member-activity-cache';
+import { isWithdrawnMember } from '../_withdrawn';
 
 const MEMBER_INTERACTIONS_CACHE_TTL_SEC = 60;
 
@@ -70,6 +71,23 @@ export const GET: RequestHandler = async ({ params, url, cookies }) => {
     const isSelf = user.mb_id === targetId;
     if (!isAdmin && !isSelf) {
         return json({ success: false, error: '권한이 없습니다.' }, { status: 403 });
+    }
+
+    // 탈퇴 회원 상호작용 분석 비노출 (개인정보 분쟁조정 대응)
+    if (await isWithdrawnMember(targetId)) {
+        return json({
+            success: true,
+            data: {
+                target_mb_id: targetId,
+                direction: url.searchParams.get('direction') || 'received',
+                period: url.searchParams.get('period') || 'month',
+                period_label: '',
+                interaction_type: url.searchParams.get('type') || 'all',
+                entries: [],
+                total_interactions: 0,
+                analyzed_at: new Date().toISOString()
+            }
+        });
     }
 
     const period = (url.searchParams.get('period') || 'month') as string;
