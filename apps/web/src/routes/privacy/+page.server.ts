@@ -1,7 +1,15 @@
 import type { PageServerLoad } from './$types';
-import { getContent, getSiteTitle, replaceContentVariables } from '$lib/server/content.js';
+import {
+    getContent,
+    getSiteTitle,
+    replaceContentVariables,
+    promoteDuePolicyVersions
+} from '$lib/server/content.js';
 
 export const load: PageServerLoad = async () => {
+    // 시행일이 도래한 예약 버전을 자동 승격(지연 승격). 실패해도 읽기 흐름은 유지됨.
+    await promoteDuePolicyVersions('privacy');
+
     const [content, siteTitle] = await Promise.all([getContent('privacy'), getSiteTitle()]);
 
     return {
