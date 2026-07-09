@@ -626,14 +626,24 @@ export const load: PageServerLoad = async ({
         })();
 
         // 워터마크 대상 게시판: 열람자 정보 전달
-        // 로그인 사용자에게만 발급 — 익명 SSR/데이터 캐시 응답에 최초 방문자 IP 가
-        // 잔존하는 것을 방지 (#12920 부수 수정. 기존에도 워터마크 식별 대상은 로그인 사용자).
         let watermark: { nickname: string; userId: string; clientIp: string } | null = null;
+        if (boardId === 'truthroom') {
+            let clientIp = '';
+            try {
+                clientIp = getClientAddress();
+            } catch {
+                clientIp = '';
+            }
+            watermark = {
+                nickname: locals.user?.nickname || '',
+                userId: locals.user?.id || '',
+                clientIp
+            };
+        }
 
         // #12920: 이용제한 근거 글·댓글 [보기] 공개 시 전체화면 워터마크용 열람자 정보.
-        // 동일하게 로그인 사용자에게만 발급, 비로그인은 null.
+        // 로그인 사용자에게만 발급 — 익명 SSR/데이터 캐시 응답에 IP 가 잔존하지 않게 한다.
         let disciplineViewer: { nickname: string; userId: string; clientIp: string } | null = null;
-
         if (locals.user) {
             let clientIp = '';
             try {
@@ -641,15 +651,11 @@ export const load: PageServerLoad = async ({
             } catch {
                 clientIp = '';
             }
-            const viewerInfo = {
+            disciplineViewer = {
                 nickname: locals.user.nickname || '',
                 userId: locals.user.id || '',
                 clientIp
             };
-            disciplineViewer = viewerInfo;
-            if (boardId === 'truthroom') {
-                watermark = viewerInfo;
-            }
         }
 
         // 잠긴 게시글 → 진실의방 글 ID 조회
