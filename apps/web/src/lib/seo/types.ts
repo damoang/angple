@@ -107,6 +107,12 @@ export interface JsonLdDiscussionForumPosting {
         interactionType: string;
         userInteractionCount: number;
     }>;
+    comment?: Array<{
+        '@type': 'Comment';
+        text: string;
+        author: { '@type': 'Person'; name: string };
+        datePublished?: string;
+    }>;
 }
 
 /** JSON-LD 구조화 데이터 - FAQPage */

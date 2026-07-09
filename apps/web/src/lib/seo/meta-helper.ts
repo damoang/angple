@@ -90,6 +90,16 @@ export function buildTwitterTags(meta: SeoMeta, twitter?: TwitterMeta): Record<s
     return tags;
 }
 
+/** 유니코드 안전 문자열 자르기 (SEO description/text 용)
+ * String.prototype.slice 는 UTF-16 코드유닛 단위라 이모지(서로게이트 쌍)가 경계에 걸리면
+ * 반쪽(lone surrogate)만 남아 GSC "잘린 유니코드 문자"(파싱 불가, 심각) 오류가 된다.
+ * 코드포인트 단위로 잘라 서로게이트가 절대 깨지지 않게 한다. */
+export function truncateText(text: string, maxLength: number): string {
+    const points = [...text];
+    if (points.length <= maxLength) return text;
+    return points.slice(0, maxLength).join('');
+}
+
 /** JSON-LD 스크립트 문자열 생성
  * null/undefined 항목은 제외한다 (생성 헬퍼가 유효하지 않은 데이터에 null 을 반환하는 경우).
  * 유효 항목이 없으면 빈 문자열 → SeoHead 의 {#if jsonLdScript} 가 스크립트 자체를 생략. */

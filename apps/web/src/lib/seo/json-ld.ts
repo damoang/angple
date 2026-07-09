@@ -64,13 +64,16 @@ export function createDiscussionForumPostingJsonLd(options: {
     commentCount?: number;
     upvoteCount?: number;
     image?: string;
+    /** 상위 댓글 (Google 포럼 리치 결과의 comment 노드, 최대 3개 출력) */
+    comments?: Array<{ text: string; author: string; datePublished?: string }>;
 }): JsonLdDiscussionForumPosting {
     const data: JsonLdDiscussionForumPosting = {
         '@type': 'DiscussionForumPosting',
         headline: options.headline,
         author: {
             '@type': 'Person',
-            name: options.author
+            // 삭제글 등에서 author 가 빈 값이면 name 누락 오류가 되므로 폴백
+            name: options.author?.trim() || '익명'
         },
         datePublished: options.datePublished,
         url: options.url
@@ -80,6 +83,20 @@ export function createDiscussionForumPostingJsonLd(options: {
     if (options.authorUrl) data.author.url = options.authorUrl;
     if (options.dateModified) data.dateModified = options.dateModified;
     if (options.image) data.image = options.image;
+
+    // GSC "comment 입력란 누락" 개선 — 유효한(내용·작성자 있는) 댓글만 최대 3개
+    if (options.comments?.length) {
+        const validComments = options.comments
+            .filter((c) => c.text?.trim() && c.author?.trim())
+            .slice(0, 3)
+            .map((c) => ({
+                '@type': 'Comment' as const,
+                text: c.text.trim(),
+                author: { '@type': 'Person' as const, name: c.author.trim() },
+                ...(c.datePublished ? { datePublished: c.datePublished } : {})
+            }));
+        if (validComments.length) data.comment = validComments;
+    }
 
     // 상호작용 통계 (댓글 수, 추천 수)
     if (options.commentCount !== undefined || options.upvoteCount !== undefined) {

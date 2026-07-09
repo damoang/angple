@@ -6,10 +6,12 @@ import {
     buildOgTags,
     buildTwitterTags,
     buildJsonLd,
+    truncateText,
     createArticleJsonLd,
     createBreadcrumbJsonLd,
     createWebSiteJsonLd
 } from './meta-helper';
+import { createDiscussionForumPostingJsonLd } from './json-ld';
 
 describe('SEO meta-helper', () => {
     beforeEach(() => {
@@ -149,6 +151,75 @@ describe('SEO meta-helper', () => {
 
         it('전부 null 이면 빈 문자열 (script 태그 생략)', () => {
             expect(buildJsonLd([null, undefined])).toBe('');
+        });
+    });
+
+    // GSC "잘린 유니코드 문자"(파싱 불가) 방지
+    describe('truncateText', () => {
+        it('이모지(서로게이트 쌍)가 경계에 걸려도 깨지지 않음', () => {
+            const text = 'a'.repeat(159) + '😀불닭';
+            const cut = truncateText(text, 160);
+            // .slice(0,160) 이었다면 😀 의 상위 서로게이트 반쪽이 남아 lone surrogate 발생
+            expect(/[\uD800-\uDBFF]$/.test(cut)).toBe(false);
+            expect(cut.endsWith('😀')).toBe(true);
+            expect([...cut]).toHaveLength(160);
+        });
+
+        it('길이 이내면 그대로', () => {
+            expect(truncateText('짧은 글 😀', 160)).toBe('짧은 글 😀');
+        });
+
+        it('잘린 결과의 JSON 직렬화에 lone surrogate 없음', () => {
+            const cut = truncateText('가'.repeat(158) + '🎉🎉🎉', 160);
+            const json = JSON.stringify({ text: cut });
+            expect(
+                /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?:^|[^\uD800-\uDBFF])[\uDC00-\uDFFF]/.test(
+                    json
+                )
+            ).toBe(false);
+        });
+    });
+
+    // GSC "comment/headline 누락" 개선
+    describe('createDiscussionForumPostingJsonLd', () => {
+        const base = {
+            headline: '제목',
+            author: '앙님',
+            datePublished: '2026-07-08T00:00:00+09:00',
+            url: 'https://test.com/free/1'
+        };
+
+        it('comments 상위 3개만 Comment 노드로 출력', () => {
+            const ld = createDiscussionForumPostingJsonLd({
+                ...base,
+                comments: [1, 2, 3, 4, 5].map((i) => ({
+                    text: `댓글${i}`,
+                    author: `유저${i}`,
+                    datePublished: '2026-07-08T00:00:00+09:00'
+                }))
+            });
+            expect(ld.comment).toHaveLength(3);
+            expect(ld.comment![0]).toMatchObject({
+                '@type': 'Comment',
+                text: '댓글1',
+                author: { '@type': 'Person', name: '유저1' }
+            });
+        });
+
+        it('내용/작성자 빈 댓글은 제외, 전부 무효면 comment 필드 생략', () => {
+            const ld = createDiscussionForumPostingJsonLd({
+                ...base,
+                comments: [
+                    { text: '', author: '유저' },
+                    { text: '내용', author: '  ' }
+                ]
+            });
+            expect(ld.comment).toBeUndefined();
+        });
+
+        it('author 빈 값이면 익명 폴백 (name 누락 방지)', () => {
+            const ld = createDiscussionForumPostingJsonLd({ ...base, author: '' });
+            expect(ld.author.name).toBe('익명');
         });
     });
 });
