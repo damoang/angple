@@ -242,12 +242,13 @@ export const GET: RequestHandler = async ({ params, url, locals, request }) => {
         // 요청자가 차단한 작성자 집합 (#12825). 서버에서 is_blocked 를 판정해 내려주면
         // 클라이언트 차단 스토어가 비동기 로드되기 전에도 첫 렌더부터 접힘 상태로 표시되어
         // "보였다 숨었다" 깜박임이 사라진다. 실패는 무시(클라 스토어가 fallback).
+        // "쪽지만 차단"(block_scope='message')은 콘텐츠 숨김 대상이 아니다 (#12916, #12934).
         const blockedSet = new Set<string>();
         const viewerId = locals.user?.id;
         if (viewerId) {
             try {
                 const [bRows] = await pool.query<RowDataPacket[]>(
-                    `SELECT blocked_mb_id FROM g5_member_block WHERE mb_id = ?`,
+                    `SELECT blocked_mb_id FROM g5_member_block WHERE mb_id = ? AND block_scope <> 'message'`,
                     [viewerId]
                 );
                 for (const b of bRows) {
