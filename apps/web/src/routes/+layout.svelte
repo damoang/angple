@@ -173,6 +173,16 @@
     const isAdminRoute = $derived($page.url.pathname.startsWith('/admin'));
     const isInstallRoute = $derived($page.url.pathname.startsWith('/install'));
 
+    // <SeoHead> 로 자체 meta description 을 렌더하는 라우트 목록.
+    // 이 라우트들에서 layout 이 기본 description 을 함께 내보내면 태그가 2개가 되어
+    // 검색엔진(first-wins)이 사이트 슬로건을 채택 → 전 페이지 동일 description 중복.
+    // SeoHead 를 새 라우트에 추가하면 여기에도 route id 를 추가할 것.
+    const SEO_HEAD_ROUTES = ['/', '/[boardId]', '/[boardId]/[postId]', '/groups', '/explore'];
+    const routeHasSeoHead = $derived(
+        SEO_HEAD_ROUTES.includes($page.route.id ?? '') ||
+            ($page.route.id ?? '').startsWith('/games')
+    );
+
     // 동적 import: member-memo 플러그인 모달
     let MemoModal = $state<Component | null>(null);
 
@@ -764,8 +774,11 @@
         과거 여기서 data.site 기본 OG 를 함께 내보내 글 페이지에 og:title·og:description 가
         2개씩 렌더 → 카톡/페북 크롤러(first-wins)가 글 제목 대신 사이트명을 가져가던 회귀(#12699).
         site 기본 description 은 SeoHead 미사용 유틸 페이지용으로만 남긴다.
+        일반 description 도 같은 first-wins 문제: SeoHead 라우트에서 함께 내보내면 태그가
+        2개가 되어 Google 이 이 기본값(사이트 슬로건)을 채택 → 전 게시판/글이 동일 description
+        으로 집계(중복 메타, CTR 손실). SeoHead 를 렌더하는 라우트에서는 여기서 내보내지 않는다.
     -->
-    {#if data.site?.description}
+    {#if data.site?.description && !routeHasSeoHead}
         <meta name="description" content={data.site.description} />
     {/if}
     {#if data.site?.keywords?.length}

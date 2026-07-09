@@ -690,7 +690,10 @@
                     : currentPage > 1
                       ? `${boardTitle} - ${currentPage}페이지`
                       : boardTitle,
-                description: `${boardTitle} 게시판 - ${import.meta.env.VITE_SITE_NAME || 'Angple'}`,
+                // 게시판별 고유 description — multi-tenant: site.title(런타임 resolve) 우선.
+                // layout 의 기본 description 과 함께 2개 렌더되어 전 게시판이 사이트 슬로건으로
+                // 중복 집계되던 문제의 페이지측 짝 (+layout.svelte routeHasSeoHead 참조)
+                description: `${data.site?.title || import.meta.env.VITE_SITE_NAME || 'Angple'} ${boardTitle} 게시판 — 최신 글과 인기 글, 회원들의 실시간 이야기를 만나보세요.`,
                 canonicalUrl: pageSeo.canonical,
                 noIndex: pageSeo.noIndex,
                 noFollow: pageSeo.noFollow
