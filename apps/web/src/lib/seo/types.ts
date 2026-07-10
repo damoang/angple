@@ -134,6 +134,26 @@ export interface JsonLdFAQItem {
     answer: string;
 }
 
+/** JSON-LD 구조화 데이터 - QAPage (질문/답변 게시판 리치 결과) */
+export interface JsonLdQAPage {
+    '@type': 'QAPage';
+    mainEntity: {
+        '@type': 'Question';
+        name: string;
+        text?: string;
+        answerCount: number;
+        dateCreated?: string;
+        author?: { '@type': 'Person'; name: string };
+        suggestedAnswer?: Array<{
+            '@type': 'Answer';
+            text: string;
+            dateCreated?: string;
+            upvoteCount?: number;
+            author?: { '@type': 'Person'; name: string };
+        }>;
+    };
+}
+
 /** JSON-LD 구조화 데이터 - VideoObject (Google 동영상 색인은 thumbnailUrl 필수) */
 export interface JsonLdVideoObject {
     '@type': 'VideoObject';
@@ -152,6 +172,7 @@ export type JsonLdData =
     | JsonLdOrganization
     | JsonLdDiscussionForumPosting
     | JsonLdFAQPage
+    | JsonLdQAPage
     | JsonLdVideoObject;
 
 /** 페이지네이션 SEO 정보 */
