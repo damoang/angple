@@ -25,7 +25,6 @@ import { fetchCommentLikeStatuses } from '$lib/server/comment-likes.js';
 
 import { fetchPostLikeStatus } from '$lib/server/post-like-status.js';
 import { fetchMemberActivity, type MemberActivity } from '$lib/server/member-activity.js';
-import { selectAuthorRecentPosts, type AuthorRecentPost } from '$lib/server/author-recent-posts.js';
 import { fetchWithdrawnMemberIds } from '$lib/server/withdrawn-members.js';
 import { fetchTruthroomPostId, fetchTruthroomCommentMap } from '$lib/server/truthroom.js';
 import { BackendUnavailableError } from '$lib/server/backend-fetch.js';
@@ -720,17 +719,6 @@ export const load: PageServerLoad = async ({
             page: recentPostsPage
         };
 
-        // SEO 내부링크: 작성자 최근 글 3개 (#83) — SSR HTML 에 앵커로 포함되어야
-        // 하므로 streamed 가 아닌 await 로 확정한다. memberActivityPromise 는
-        // 1단계 직후 시작되어 댓글 SSR fetch(최대 2.5s)와 병렬로 진행됐고 자체
-        // 타임아웃(2s)+내부 catch 가 있어 페이지 로드를 추가로 블록하지 않는다.
-        // 익명 글(author_id 없음)·삭제글·탈퇴 회원은 위 가드에서 이미 빈 배열로 수렴.
-        let authorRecentPosts: AuthorRecentPost[] = [];
-        if (!post.deleted_at) {
-            const activity = await memberActivityPromise;
-            authorRecentPosts = selectAuthorRecentPosts(activity, boardId, postId, 3);
-        }
-
         // Phase 1C: 플러그인 enrich filter (member-memo author_memo 등).
         // 미설치 시 pass-through. (premium PR #43 기준 stub)
         // Step A′: 서버 hook 표준 컨텍스트(site/user) 전달.
@@ -754,8 +742,6 @@ export const load: PageServerLoad = async ({
             truthroomPostId,
             originalPostLink,
             recentPosts,
-            /** SEO 내부링크: 작성자 최근 글 (SSR 앵커, #83) */
-            authorRecentPosts,
             /** 스트리밍: Promise로 반환 → 클라이언트에서 $effect로 수신 */
             streamed: {
                 auxiliaryData: auxiliaryDataPromise
