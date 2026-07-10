@@ -39,21 +39,29 @@
 
     let { post, initialActivity = null }: Props = $props();
 
-    let loading = $state(true);
-    let recentPosts = $state<RecentPost[]>([]);
-    let recentComments = $state<RecentComment[]>([]);
+    // SEO 내부링크(#83): 서버 로드가 initialActivity 를 넘겨주면 SSR HTML 에
+    // 최근 글/댓글 앵커가 포함되어야 한다. $effect 는 SSR 에서 실행되지 않으므로
+    // 초기 state 를 props 에서 직접 계산한다 (클라 스트리밍 갱신은 아래 $effect).
+    const hasInitial = !!(
+        initialActivity &&
+        (initialActivity.recentPosts.length > 0 || initialActivity.recentComments.length > 0)
+    );
+
+    let loading = $state(!hasInitial);
+    let recentPosts = $state<RecentPost[]>(hasInitial ? initialActivity!.recentPosts : []);
+    let recentComments = $state<RecentComment[]>(hasInitial ? initialActivity!.recentComments : []);
     let adContainer = $state<HTMLElement | null>(null);
     let clipWrapper = $state<HTMLElement | null>(null);
     let panelEl = $state<HTMLElement | null>(null);
     let mobileExpanded = $state(false);
     let shouldLoad = $state(false);
-    let desktopExpanded = $state(false);
+    let desktopExpanded = $state(hasInitial);
     // SSR(initialActivity)로 이미 채워졌는지 — 클릭 시 클라 API 재fetch 방지 + 펼침 표시
-    let ssrLoaded = $state(false);
+    let ssrLoaded = $state(hasInitial);
 
-    // SSR 스트리밍으로 작성자 활동이 도착하면 클릭 없이 즉시 반영.
-    // 데스크톱은 자동 펼침. 모바일은 공간 절약 위해 접어둠 — 데이터는 preload 라
-    // 탭하면 추가 fetch 없이 즉시 표시(ssrLoaded 가드). (SSR 데이터 없으면 클릭-fetch 폴백)
+    // SSR 스트리밍으로 작성자 활동이 늦게 도착한 경우(서버 확정 데이터가 없던 페이지)
+    // 클릭 없이 즉시 반영. 데스크톱은 자동 펼침. 모바일은 공간 절약 위해 접어둠 —
+    // 데이터는 preload 라 탭하면 추가 fetch 없이 즉시 표시(ssrLoaded 가드).
     $effect(() => {
         if (
             initialActivity &&
