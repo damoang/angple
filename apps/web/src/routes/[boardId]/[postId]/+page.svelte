@@ -68,12 +68,14 @@
         createArticleJsonLd,
         createBreadcrumbJsonLd,
         createDiscussionForumPostingJsonLd,
+        createQAPageJsonLd,
         createVideoObjectJsonLd,
         extractVideosFromContent,
         getSiteUrl,
         truncateText
     } from '$lib/seo/index.js';
     import type { SeoConfig } from '$lib/seo/types.js';
+    import { deriveVideoPoster } from '$lib/utils/video-poster.js';
     import { LevelBadge } from '$lib/components/ui/level-badge/index.js';
     import { memberLevelStore } from '$lib/stores/member-levels.svelte.js';
     import { postSlotRegistry } from '$lib/components/features/board/post-slot-registry.js';
@@ -1726,12 +1728,48 @@
                           return createVideoObjectJsonLd({
                               name,
                               description: postDescription || undefined,
-                              // 업로드 시 캡처된 포스터(본문 poster 속성) 우선, 없으면 글 대표이미지
-                              thumbnailUrl: toHttpUrl(v.poster) ?? safeOgImage,
+                              // 썸네일 우선순위: ①본문 poster 속성(업로드 시 캡처)
+                              // ②관례 키 도출 — backfill 로 기존 동영상 2,339건 포스터 생성
+                              //   완료(2026-07-10)라 도출 URL 이 실존 ③글 대표이미지
+                              thumbnailUrl:
+                                  toHttpUrl(v.poster) ??
+                                  toHttpUrl(deriveVideoPoster(v.url)) ??
+                                  safeOgImage,
                               uploadDate: data.post.created_at,
                               contentUrl: toHttpUrl(v.url)
                           });
                       });
+
+        // 구조화 데이터에 노출 가능한 상위 원댓글 (비밀·삭제·잠금·제재·차단 제외 — 마스킹 정책)
+        const safeTopComments = comments
+            .filter(
+                (c) =>
+                    (c.depth ?? 0) === 0 &&
+                    !c.is_secret &&
+                    !c.deleted_at &&
+                    !c.is_restricted &&
+                    !c.is_discipline_related &&
+                    !c.is_blocked
+            )
+            .slice(0, 3);
+
+        // qa 게시판 QAPage — 유효 답변 1개 이상일 때만 (헬퍼가 null 반환 시 폴백)
+        const qaPageJsonLd =
+            boardId === 'qa' && !data.post.deleted_at && !data.post.is_secret
+                ? createQAPageJsonLd({
+                      name: data.post.title?.trim() || boardTitle,
+                      text: postDescription || undefined,
+                      author: data.post.author,
+                      dateCreated: data.post.created_at,
+                      answerCount: comments.length,
+                      answers: safeTopComments.map((c) => ({
+                          text: truncateText(c.content.replace(/<[^>]+>/g, '').trim(), 300),
+                          author: c.author,
+                          dateCreated: c.created_at,
+                          upvoteCount: c.likes ?? 0
+                      }))
+                  })
+                : null;
 
         return {
             meta: {
@@ -1754,37 +1792,31 @@
                 image: ogImageUrl
             },
             jsonLd: [
-                // DiscussionForumPosting - 커뮤니티 게시글에 최적화된 구조화 데이터
-                createDiscussionForumPostingJsonLd({
-                    // 빈 제목 글에서 headline 누락(GSC) 방지 — 게시판명 폴백
-                    headline: data.post.title?.trim() || boardTitle,
-                    text: postDescription,
-                    author: data.post.deleted_at ? '' : data.post.author,
-                    authorUrl: data.post.deleted_at ? undefined : authorUrl,
-                    datePublished: data.post.created_at,
-                    dateModified: data.post.updated_at || undefined,
-                    url: postUrl,
-                    commentCount: comments.length,
-                    upvoteCount: data.post.likes || 0,
-                    image: ogImageUrl,
-                    // 상위 원댓글 3개 (비밀·삭제·잠금·제재·차단 댓글 제외 — 마스킹 정책 준수)
-                    comments: comments
-                        .filter(
-                            (c) =>
-                                (c.depth ?? 0) === 0 &&
-                                !c.is_secret &&
-                                !c.deleted_at &&
-                                !c.is_restricted &&
-                                !c.is_discipline_related &&
-                                !c.is_blocked
-                        )
-                        .slice(0, 3)
-                        .map((c) => ({
-                            text: truncateText(c.content.replace(/<[^>]+>/g, '').trim(), 200),
-                            author: c.author,
-                            datePublished: c.created_at
-                        }))
-                }),
+                // qa 게시판은 QAPage 가 올바른 타입(사용자 질문+답변) — 유효 답변이 있으면
+                // DiscussionForumPosting 대신 사용 (한 페이지 한 주 타입 원칙).
+                // 답변 없거나 일반 게시판이면 기존 DiscussionForumPosting 유지
+                boardId === 'qa' && qaPageJsonLd
+                    ? qaPageJsonLd
+                    : // DiscussionForumPosting - 커뮤니티 게시글에 최적화된 구조화 데이터
+                      createDiscussionForumPostingJsonLd({
+                          // 빈 제목 글에서 headline 누락(GSC) 방지 — 게시판명 폴백
+                          headline: data.post.title?.trim() || boardTitle,
+                          text: postDescription,
+                          author: data.post.deleted_at ? '' : data.post.author,
+                          authorUrl: data.post.deleted_at ? undefined : authorUrl,
+                          datePublished: data.post.created_at,
+                          dateModified: data.post.updated_at || undefined,
+                          url: postUrl,
+                          commentCount: comments.length,
+                          upvoteCount: data.post.likes || 0,
+                          image: ogImageUrl,
+                          // 상위 원댓글 3개 (비밀·삭제·잠금·제재·차단 댓글 제외 — 마스킹 정책 준수)
+                          comments: safeTopComments.map((c) => ({
+                              text: truncateText(c.content.replace(/<[^>]+>/g, '').trim(), 200),
+                              author: c.author,
+                              datePublished: c.created_at
+                          }))
+                      }),
                 // Article - 일반 검색 결과용 (폴백)
                 createArticleJsonLd({
                     headline: data.post.title?.trim() || boardTitle,
