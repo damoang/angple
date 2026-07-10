@@ -21,6 +21,7 @@
     import PostListWidget from '../../../../../../widgets/post-list/index.svelte';
     import NoticeWidget from '../../../../../../widgets/notice/index.svelte';
     import ImageTextBannerWidget from '../../../../../../widgets/image-text-banner/index.svelte';
+    import HiddenGemsWidget from '../../../../../../widgets/hidden-gems/index.svelte';
     import RecommendedWidget from '../../../../../../widgets/recommended/index.svelte';
     import ExploreWidget from '../../../../../../widgets/explore/index.svelte';
     import GivingWidget from '../../../../../../widgets/giving/index.svelte';
@@ -48,6 +49,7 @@
         'post-list': PostListWidget,
         notice: NoticeWidget,
         'image-text-banner': ImageTextBannerWidget,
+        'hidden-gems': HiddenGemsWidget,
         recommended: RecommendedWidget,
         explore: ExploreWidget,
         giving: GivingWidget
