@@ -110,7 +110,7 @@ export interface JsonLdDiscussionForumPosting {
     comment?: Array<{
         '@type': 'Comment';
         text: string;
-        author: { '@type': 'Person'; name: string };
+        author: { '@type': 'Person'; name: string; url?: string };
         datePublished?: string;
     }>;
 }
@@ -149,7 +149,7 @@ export interface JsonLdQAPage {
             text: string;
             dateCreated?: string;
             upvoteCount?: number;
-            author?: { '@type': 'Person'; name: string };
+            author?: { '@type': 'Person'; name: string; url?: string };
         }>;
     };
 }

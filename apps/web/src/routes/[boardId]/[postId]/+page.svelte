@@ -1765,6 +1765,8 @@
                       answers: safeTopComments.map((c) => ({
                           text: truncateText(c.content.replace(/<[^>]+>/g, '').trim(), 300),
                           author: c.author,
+                          // GSC "comment.author 의 url 누락" 개선 — 프로필 URL
+                          authorUrl: c.author_id ? `${siteUrl}/member/${c.author_id}` : undefined,
                           dateCreated: c.created_at,
                           upvoteCount: c.likes ?? 0
                       }))
@@ -1814,6 +1816,10 @@
                           comments: safeTopComments.map((c) => ({
                               text: truncateText(c.content.replace(/<[^>]+>/g, '').trim(), 200),
                               author: c.author,
+                              // GSC "comment.author 의 url 누락" 개선 — 프로필 URL
+                              authorUrl: c.author_id
+                                  ? `${siteUrl}/member/${c.author_id}`
+                                  : undefined,
                               datePublished: c.created_at
                           }))
                       }),
