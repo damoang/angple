@@ -104,6 +104,24 @@ function extractMerchantDomain(url: string): string {
     }
 }
 
+/**
+ * 실패/거부 사유를 upstream 메시지까지 포함해 기록한다.
+ * "[-3] a_id 형식오류" 같은 설정 오류가 'denied' 한 단어로 뭉개져
+ * 장기간 은폐됐던 사고(2026-07-10)의 재발 방지.
+ */
+function buildLastError(status: AffiliateStatus, decision: AffiliateDecision): string | null {
+    const upstream =
+        typeof decision.metadata?.upstreamError === 'string' ? decision.metadata.upstreamError : '';
+    if (status === 'failed') {
+        const base = decision.reasonCode || 'conversion_failed';
+        return upstream && upstream !== base ? `${base}: ${upstream}` : base;
+    }
+    if (decision.status === 'denied') {
+        return upstream ? `denied: ${upstream}` : 'denied';
+    }
+    return null;
+}
+
 function mapDecisionToRow(
     entityType: AffiliateEntityType,
     linkIndex: number,
@@ -122,12 +140,7 @@ function mapDecisionToRow(
         status,
         reasonCode: decision.reasonCode || '',
         attemptCount: 1,
-        lastError:
-            status === 'failed'
-                ? decision.reasonCode || 'conversion_failed'
-                : decision.status === 'denied'
-                  ? 'denied'
-                  : null
+        lastError: buildLastError(status, decision)
     };
 }
 
