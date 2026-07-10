@@ -101,6 +101,7 @@
                 : undefined,
             explore: data.exploreData ? { data: data.exploreData } : undefined,
             'hidden-gems': { posts: data.hiddenGems ?? [] },
+            'emoji-awards': { entries: data.indexWidgets?.emoji_awards ?? [] },
             // 결합 위젯(공감글+모아보기 2단)이 실제 홈 레이아웃에 쓰이므로 이 키로도 SSR 데이터를
             // 매핑해야 함. 누락 시 empathy-explore-row 의 prefetchData 가 undefined → RecommendedPosts
             // 가 SSR 에서 스켈레톤(loading=true)으로 렌더되어 CDN 캐시 → 전 방문자가 스켈레톤+재fetch.

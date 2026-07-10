@@ -74,12 +74,13 @@ export const DEFAULT_WIDGETS: WidgetConfig[] = [
 /** 기본 사이드바 위젯 레이아웃 */
 export const DEFAULT_SIDEBAR_WIDGETS: WidgetConfig[] = [
     { id: 'notice', type: 'notice', position: 0, enabled: true },
-    { id: 'hidden-gems', type: 'hidden-gems', position: 1, enabled: true },
-    { id: 'celebration', type: 'celebration', position: 2, enabled: true },
+    { id: 'emoji-awards', type: 'emoji-awards', position: 1, enabled: true },
+    { id: 'hidden-gems', type: 'hidden-gems', position: 2, enabled: true },
+    { id: 'celebration', type: 'celebration', position: 3, enabled: true },
     {
         id: 'sidebar-ad-2',
         type: 'ad-slot',
-        position: 3,
+        position: 4,
         enabled: true,
         settings: { position: 'sidebar-2', type: 'image-text', format: 'grid' }
     }

@@ -52,7 +52,8 @@ const EMPTY_RESULT: IndexWidgetsData = {
     news_tabs: [],
     economy_tabs: [],
     gallery: [],
-    group_tabs: { all: [], '24h': [], week: [], month: [] }
+    group_tabs: { all: [], '24h': [], week: [], month: [] },
+    emoji_awards: []
 };
 
 /** 인메모리 캐시 */
@@ -77,7 +78,8 @@ export async function buildIndexWidgets(_backendUrl: string): Promise<IndexWidge
             news_tabs: (json.news_tabs ?? []) as NewsPost[],
             economy_tabs: (json.economy_tabs ?? []) as EconomyPost[],
             gallery: (json.gallery ?? []) as GalleryPost[],
-            group_tabs: (json.group_tabs ?? EMPTY_RESULT.group_tabs) as GroupTabsData
+            group_tabs: (json.group_tabs ?? EMPTY_RESULT.group_tabs) as GroupTabsData,
+            emoji_awards: (json.emoji_awards ?? []) as IndexWidgetsData['emoji_awards']
         };
 
         // 데이터가 있을 때만 캐시

@@ -22,6 +22,7 @@
     import NoticeWidget from '../../../../../../widgets/notice/index.svelte';
     import ImageTextBannerWidget from '../../../../../../widgets/image-text-banner/index.svelte';
     import HiddenGemsWidget from '../../../../../../widgets/hidden-gems/index.svelte';
+    import EmojiAwardsWidget from '../../../../../../widgets/emoji-awards/index.svelte';
     import RecommendedWidget from '../../../../../../widgets/recommended/index.svelte';
     import ExploreWidget from '../../../../../../widgets/explore/index.svelte';
     import GivingWidget from '../../../../../../widgets/giving/index.svelte';
@@ -50,6 +51,7 @@
         notice: NoticeWidget,
         'image-text-banner': ImageTextBannerWidget,
         'hidden-gems': HiddenGemsWidget,
+        'emoji-awards': EmojiAwardsWidget,
         recommended: RecommendedWidget,
         explore: ExploreWidget,
         giving: GivingWidget
