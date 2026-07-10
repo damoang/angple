@@ -1617,7 +1617,12 @@ class ApiClient {
      * 파일 업로드 (SvelteKit /api/media/images → S3, IAM Role 인증)
      * 🔒 인증 필요
      */
-    async uploadFile(boardId: string, file: File, postId?: number): Promise<UploadedFile> {
+    async uploadFile(
+        boardId: string,
+        file: File,
+        postId?: number,
+        poster?: File
+    ): Promise<UploadedFile> {
         const { convertHeicIfNeeded } = await import('$lib/utils/image-convert.js');
         file = await convertHeicIfNeeded(file);
 
@@ -1625,6 +1630,10 @@ class ApiClient {
         formData.append('file', file);
         if (postId) {
             formData.append('post_id', String(postId));
+        }
+        // 동영상 포스터(브라우저 캡처 첫 프레임) — 서버가 관례 키(…_poster.jpg)에 저장
+        if (poster) {
+            formData.append('poster', poster);
         }
 
         const headers: Record<string, string> = {};
@@ -1673,6 +1682,8 @@ class ApiClient {
             filename: data.filename,
             original_filename: data.filename,
             url: data.cdn_url || data.url,
+            // 동영상 포스터 — 서버가 Lambda 처리 확인 후에만 내려줌 (404 URL 박제 방지)
+            thumbnail_url: data.poster_url || undefined,
             size: data.size,
             mime_type: data.content_type,
             created_at: new Date().toISOString()

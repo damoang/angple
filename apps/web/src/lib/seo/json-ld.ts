@@ -13,7 +13,9 @@ import type {
 } from './types';
 
 /** 본문에서 추출된 동영상 (유튜브 임베드 또는 업로드 파일) */
-export type ExtractedVideo = { type: 'youtube'; id: string } | { type: 'file'; url: string };
+export type ExtractedVideo =
+    | { type: 'youtube'; id: string }
+    | { type: 'file'; url: string; poster?: string };
 
 // 유튜브 임베드 iframe 의 videoId — tiptap Youtube 확장이 embed/ 형태로 저장하지만,
 // 과거 글의 nocookie·shorts 변형도 수용
@@ -40,12 +42,18 @@ export function extractVideosFromContent(html: string): ExtractedVideo[] {
         }
     }
 
-    // <video src> 와 <video> 내부 <source src> — 에디터가 두 형태 모두 생성
-    for (const m of html.matchAll(/<(?:video|source)[^>]*\ssrc\s*=\s*["']([^"']+)["']/gi)) {
-        const url = m[1];
+    // <video src> 와 <video> 내부 <source src> — 에디터가 두 형태 모두 생성.
+    // poster 속성(브라우저 캡처 첫 프레임)이 있으면 VideoObject 썸네일로 쓰도록 함께 추출
+    for (const vm of html.matchAll(/<video\b[^>]*>[\s\S]*?(?:<\/video>|$)|<video\b[^>]*\/?>/gi)) {
+        const block = vm[0];
+        const openTag = block.match(/^<video\b[^>]*>/i)?.[0] ?? block;
+        const poster = openTag.match(/\sposter\s*=\s*["']([^"']+)["']/i)?.[1];
+        const url =
+            openTag.match(/\ssrc\s*=\s*["']([^"']+)["']/i)?.[1] ??
+            block.match(/<source\b[^>]*\ssrc\s*=\s*["']([^"']+)["']/i)?.[1];
         if (url && !seen.has(`file:${url}`)) {
             seen.add(`file:${url}`);
-            videos.push({ type: 'file', url });
+            videos.push(poster ? { type: 'file', url, poster } : { type: 'file', url });
         }
     }
 
