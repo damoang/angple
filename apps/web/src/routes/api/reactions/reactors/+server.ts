@@ -13,7 +13,7 @@ import pool from '$lib/server/db';
 import { getAuthUser } from '$lib/server/auth';
 
 /** 공개 시행 시점 — g5_da_reaction_choose.created_at 은 KST 로 저장되므로 그대로 비교. */
-export const REACTOR_REVEAL_SINCE = '2026-07-12 00:00:00';
+const REACTOR_REVEAL_SINCE = '2026-07-12 00:00:00';
 
 const MAX_LIMIT = 100;
 const TARGET_ID_RE = /^(document|comment):[a-z0-9_]+:\d+$/;
