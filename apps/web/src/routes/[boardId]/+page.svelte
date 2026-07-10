@@ -449,6 +449,12 @@
 
     // 목록 데이터 반영 시 메모 배치 로드 + 훅 발행
     $effect(() => {
+        // 회원 메모 간헐 미표시 fix: 지연 스케줄된 메모 로더가 인증 확립 전에
+        // 발화하면 목록을 비운 채 종료하는데, 이 effect 가 인증 상태를 추적하지
+        // 않아 재시도가 없었다(보였다 안 보였다). 인증 상태를 반응형으로 읽어
+        // 늦은 인증 확립 시 로드를 재스케줄한다.
+        const authed = authStore.isAuthenticated;
+        void authed;
         const result = data.postsData;
         if (!result) return;
 
