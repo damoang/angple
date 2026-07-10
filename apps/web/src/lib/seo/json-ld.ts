@@ -8,8 +8,78 @@ import type {
     JsonLdOrganization,
     JsonLdDiscussionForumPosting,
     JsonLdFAQPage,
-    JsonLdFAQItem
+    JsonLdFAQItem,
+    JsonLdVideoObject
 } from './types';
+
+/** 본문에서 추출된 동영상 (유튜브 임베드 또는 업로드 파일) */
+export type ExtractedVideo = { type: 'youtube'; id: string } | { type: 'file'; url: string };
+
+// 유튜브 임베드 iframe 의 videoId — tiptap Youtube 확장이 embed/ 형태로 저장하지만,
+// 과거 글의 nocookie·shorts 변형도 수용
+const YOUTUBE_EMBED_ID_RE =
+    /(?:youtube(?:-nocookie)?\.com\/(?:embed|shorts)\/|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
+
+/**
+ * 본문 HTML 에서 동영상을 추출 (VideoObject 구조화 데이터용)
+ *
+ * 단순 링크(<a href>)는 플레이어가 아니므로 제외하고, 실제 재생 요소만 본다:
+ * - <iframe src="...youtube.com/embed/ID...">  (tiptap Youtube 임베드)
+ * - <video src="..."> 또는 <video><source src="..."></video>  (업로드 동영상)
+ */
+export function extractVideosFromContent(html: string): ExtractedVideo[] {
+    if (!html) return [];
+    const videos: ExtractedVideo[] = [];
+    const seen = new Set<string>();
+
+    for (const m of html.matchAll(/<iframe[^>]*\ssrc\s*=\s*["']([^"']+)["']/gi)) {
+        const id = m[1].match(YOUTUBE_EMBED_ID_RE)?.[1];
+        if (id && !seen.has(`yt:${id}`)) {
+            seen.add(`yt:${id}`);
+            videos.push({ type: 'youtube', id });
+        }
+    }
+
+    // <video src> 와 <video> 내부 <source src> — 에디터가 두 형태 모두 생성
+    for (const m of html.matchAll(/<(?:video|source)[^>]*\ssrc\s*=\s*["']([^"']+)["']/gi)) {
+        const url = m[1];
+        if (url && !seen.has(`file:${url}`)) {
+            seen.add(`file:${url}`);
+            videos.push({ type: 'file', url });
+        }
+    }
+
+    return videos;
+}
+
+/**
+ * VideoObject JSON-LD 생성
+ *
+ * Google 동영상 색인은 name·thumbnailUrl·uploadDate 가 필수 — 하나라도 없으면
+ * "제공된 썸네일 URL 없음" 류의 색인 제외가 되므로, 미충족 시 블록 자체를 생략(null)
+ */
+export function createVideoObjectJsonLd(options: {
+    name: string;
+    description?: string;
+    thumbnailUrl?: string;
+    uploadDate: string;
+    embedUrl?: string;
+    contentUrl?: string;
+}): JsonLdVideoObject | null {
+    if (!options.name?.trim() || !options.thumbnailUrl || !options.uploadDate) return null;
+    if (!options.embedUrl && !options.contentUrl) return null;
+
+    const data: JsonLdVideoObject = {
+        '@type': 'VideoObject',
+        name: options.name.trim(),
+        thumbnailUrl: options.thumbnailUrl,
+        uploadDate: options.uploadDate
+    };
+    if (options.description) data.description = options.description;
+    if (options.embedUrl) data.embedUrl = options.embedUrl;
+    if (options.contentUrl) data.contentUrl = options.contentUrl;
+    return data;
+}
 
 /**
  * Organization JSON-LD 생성

@@ -134,13 +134,25 @@ export interface JsonLdFAQItem {
     answer: string;
 }
 
+/** JSON-LD 구조화 데이터 - VideoObject (Google 동영상 색인은 thumbnailUrl 필수) */
+export interface JsonLdVideoObject {
+    '@type': 'VideoObject';
+    name: string;
+    description?: string;
+    thumbnailUrl: string;
+    uploadDate: string;
+    embedUrl?: string;
+    contentUrl?: string;
+}
+
 export type JsonLdData =
     | JsonLdWebSite
     | JsonLdArticle
     | JsonLdBreadcrumb
     | JsonLdOrganization
     | JsonLdDiscussionForumPosting
-    | JsonLdFAQPage;
+    | JsonLdFAQPage
+    | JsonLdVideoObject;
 
 /** 페이지네이션 SEO 정보 */
 export interface PaginationSeo {
