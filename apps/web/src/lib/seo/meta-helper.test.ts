@@ -266,3 +266,30 @@ describe('VideoObject (GSC 동영상 색인 — 썸네일 필수)', () => {
         expect(createVideoObjectJsonLd({ ...base, embedUrl: undefined })).toBeNull();
     });
 });
+
+describe('동영상 포스터 (관례 키 + poster 속성)', () => {
+    it('extractVideosFromContent: video poster 속성 추출', async () => {
+        const { extractVideosFromContent } = await import('./json-ld');
+        const html = `
+            <video src="https://r2.damoang.net/data/editor/2607/a.mp4" poster="https://r2.damoang.net/data/editor/2607/a_poster.jpg" controls></video>
+            <video controls><source src="https://r2.damoang.net/data/file/b.mp4" /></video>`;
+        expect(extractVideosFromContent(html)).toEqual([
+            {
+                type: 'file',
+                url: 'https://r2.damoang.net/data/editor/2607/a.mp4',
+                poster: 'https://r2.damoang.net/data/editor/2607/a_poster.jpg'
+            },
+            { type: 'file', url: 'https://r2.damoang.net/data/file/b.mp4' }
+        ]);
+    });
+
+    it('deriveVideoPoster: 확장자 → _poster.jpg (쿼리스트링 보존)', async () => {
+        const { deriveVideoPoster } = await import('../utils/video-poster');
+        expect(deriveVideoPoster('https://r2.damoang.net/data/editor/2607/a.mp4')).toBe(
+            'https://r2.damoang.net/data/editor/2607/a_poster.jpg'
+        );
+        expect(deriveVideoPoster('https://r2.damoang.net/data/editor/2607/a.webm?v=1')).toBe(
+            'https://r2.damoang.net/data/editor/2607/a_poster.jpg?v=1'
+        );
+    });
+});

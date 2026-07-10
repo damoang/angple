@@ -89,6 +89,11 @@
         contentFormat?: 'html' | 'markdown';
         onUpdate?: (value: string) => void;
         onImageUpload?: (file: File) => Promise<string | null>;
+        /**
+         * 동영상 전용 업로드 — 포스터(첫 프레임) URL 을 함께 반환할 수 있다.
+         * 미제공 시 onImageUpload 폴백 (포스터 없이 현행 동작).
+         */
+        onVideoUpload?: (file: File) => Promise<{ url: string; posterUrl?: string } | null>;
         /** 백그라운드 이미지 변환(blob→변환본 스왑) 진행 개수 변화 알림. 0 이면 모두 완료. */
         onUploadingChange?: (count: number) => void;
         class?: string;
@@ -101,9 +106,24 @@
         contentFormat = 'html',
         onUpdate,
         onImageUpload,
+        onVideoUpload,
         onUploadingChange,
         class: className = ''
     }: Props = $props();
+
+    /** 동영상 업로드 — onVideoUpload 우선, 없으면 onImageUpload 폴백 */
+    async function uploadVideo(file: File): Promise<{ url: string; posterUrl?: string } | null> {
+        if (onVideoUpload) return onVideoUpload(file);
+        if (!onImageUpload) return null;
+        const url = await onImageUpload(file);
+        return url ? { url } : null;
+    }
+
+    /** 본문 삽입용 video 태그 — 포스터가 실제 준비된 경우에만 poster 속성 포함 */
+    function buildVideoTag(video: { url: string; posterUrl?: string }): string {
+        const posterAttr = video.posterUrl ? ` poster="${video.posterUrl}"` : '';
+        return `<video src="${video.url}"${posterAttr} controls playsinline preload="metadata" style="max-width:100%;border-radius:8px;"></video>`;
+    }
 
     // 진행 중인 백그라운드 이미지 변환 개수. 제출 측(post-form)이 0 이 될 때까지 자동 대기한다.
     let pendingUploads = $state(0);
@@ -552,8 +572,8 @@
                 if (file.type.startsWith('video/')) {
                     isUploading = true;
                     try {
-                        const videoUrl = await onImageUpload(file);
-                        if (videoUrl) {
+                        const video = await uploadVideo(file);
+                        if (video) {
                             editor
                                 .chain()
                                 .focus()
@@ -561,9 +581,7 @@
                                     type: 'paragraph',
                                     content: []
                                 })
-                                .insertContent(
-                                    `<video src="${videoUrl}" controls playsinline preload="metadata" style="max-width:100%;border-radius:8px;"></video>`
-                                )
+                                .insertContent(buildVideoTag(video))
                                 .run();
                         }
                     } catch (err) {
@@ -971,19 +989,13 @@
 
     // 동영상 파일 업로드 헬퍼
     async function insertVideoFile(file: File): Promise<void> {
-        if (!onImageUpload || !editor) return;
+        if ((!onVideoUpload && !onImageUpload) || !editor) return;
 
         isUploading = true;
         try {
-            const videoUrl = await onImageUpload(file);
-            if (videoUrl) {
-                editor
-                    .chain()
-                    .focus()
-                    .insertContent(
-                        `<video src="${videoUrl}" controls playsinline preload="metadata" style="max-width:100%;border-radius:8px;"></video>`
-                    )
-                    .run();
+            const video = await uploadVideo(file);
+            if (video) {
+                editor.chain().focus().insertContent(buildVideoTag(video)).run();
             }
         } catch (err) {
             console.error('Video upload failed:', err);

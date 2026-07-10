@@ -1672,7 +1672,8 @@
                       ...extractVideosFromContent(renderedPostContent),
                       ...(data.post.videos ?? []).map((v) => ({
                           type: 'file' as const,
-                          url: v.url
+                          url: v.url,
+                          poster: undefined as string | undefined
                       }))
                   ]
                       .slice(0, 3)
@@ -1687,20 +1688,24 @@
                                   embedUrl: `https://www.youtube.com/embed/${v.id}`
                               });
                           }
-                          let contentUrl: string | undefined;
-                          try {
-                              const parsed = new URL(v.url, siteUrl);
-                              if (parsed.protocol === 'http:' || parsed.protocol === 'https:')
-                                  contentUrl = parsed.href;
-                          } catch {
-                              contentUrl = undefined;
-                          }
+                          const toHttpUrl = (raw?: string): string | undefined => {
+                              if (!raw) return undefined;
+                              try {
+                                  const parsed = new URL(raw, siteUrl);
+                                  return parsed.protocol === 'http:' || parsed.protocol === 'https:'
+                                      ? parsed.href
+                                      : undefined;
+                              } catch {
+                                  return undefined;
+                              }
+                          };
                           return createVideoObjectJsonLd({
                               name,
                               description: postDescription || undefined,
-                              thumbnailUrl: safeOgImage,
+                              // 업로드 시 캡처된 포스터(본문 poster 속성) 우선, 없으면 글 대표이미지
+                              thumbnailUrl: toHttpUrl(v.poster) ?? safeOgImage,
                               uploadDate: data.post.created_at,
-                              contentUrl
+                              contentUrl: toHttpUrl(v.url)
                           });
                       });
 

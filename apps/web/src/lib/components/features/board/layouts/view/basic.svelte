@@ -22,6 +22,7 @@
     import Download from '@lucide/svelte/icons/download';
     import Paperclip from '@lucide/svelte/icons/paperclip';
     import Video from '@lucide/svelte/icons/video';
+    import { deriveVideoPoster } from '$lib/utils/video-poster.js';
     import Heart from '@lucide/svelte/icons/heart';
     import ThumbsDown from '@lucide/svelte/icons/thumbs-down';
     import Users from '@lucide/svelte/icons/users';
@@ -435,7 +436,15 @@
                         <div class="mt-6 space-y-4">
                             {#each post.videos as video, i (i)}
                                 <div class="overflow-hidden rounded-lg border">
-                                    <video controls preload="none" playsinline class="w-full">
+                                    <!-- poster = 관례 키(…_poster.jpg) 도출. 포스터 없는 옛 동영상은
+                                         404 인데 <video poster> 는 로드 실패를 조용히 무시하므로 무해 -->
+                                    <video
+                                        controls
+                                        preload="none"
+                                        playsinline
+                                        poster={deriveVideoPoster(video.url)}
+                                        class="w-full"
+                                    >
                                         <source src={video.url} />
                                         동영상을 재생할 수 없습니다.
                                     </video>
