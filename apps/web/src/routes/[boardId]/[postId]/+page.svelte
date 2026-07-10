@@ -41,7 +41,6 @@
     import CommentForm from '$lib/components/features/board/comment-form.svelte';
     import CommentList from '$lib/components/features/board/comment-list.svelte';
     import AuthorActivityPanel from '$lib/components/features/board/author-activity-panel.svelte';
-    import AuthorRecentPosts from '$lib/components/features/board/author-recent-posts.svelte';
     import RecentPosts from '$lib/components/features/board/recent-posts.svelte';
     import { BOARD_LIST_PAGE_SIZE } from '$lib/constants/board';
     import { ReportDialog } from '$lib/components/features/report/index.js';
@@ -2196,12 +2195,6 @@
                 </div>
             </div>
         {/if}
-
-        <!-- SEO 내부링크: 작성자 최근 글 (SSR 앵커, #83) — 본문 아래·댓글 위 -->
-        <AuthorRecentPosts
-            authorName={data.post.author || ''}
-            posts={data.authorRecentPosts ?? []}
-        />
 
         {#each beforeCommentsSlots as slot (slot.component)}
             {@const SlotComponent = slot.component}
