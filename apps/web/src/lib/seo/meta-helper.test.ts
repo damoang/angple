@@ -323,3 +323,30 @@ describe('SEO P3 — Discover + QAPage', () => {
         expect(createQAPageJsonLd({ ...base, name: ' ' })).toBeNull();
     });
 });
+
+describe('comment.author url (GSC 개선 제안)', () => {
+    it('DiscussionForumPosting comment author 에 프로필 url 포함, 없으면 생략', () => {
+        const ld = createDiscussionForumPostingJsonLd({
+            headline: 't',
+            author: '글쓴이',
+            datePublished: '2026-07-10',
+            url: 'https://test.com/free/1',
+            comments: [
+                { text: '댓글', author: '앙님', authorUrl: 'https://test.com/member/ang' },
+                { text: '익명댓글', author: '누군가' }
+            ]
+        });
+        expect(ld.comment?.[0].author.url).toBe('https://test.com/member/ang');
+        expect(ld.comment?.[1].author.url).toBeUndefined();
+    });
+
+    it('QAPage answer author 에 프로필 url 포함', async () => {
+        const { createQAPageJsonLd } = await import('./json-ld');
+        const ld = createQAPageJsonLd({
+            name: '질문',
+            answerCount: 1,
+            answers: [{ text: '답변', author: '앙님', authorUrl: 'https://test.com/member/ang' }]
+        });
+        expect(ld?.mainEntity.suggestedAnswer?.[0].author?.url).toBe('https://test.com/member/ang');
+    });
+});

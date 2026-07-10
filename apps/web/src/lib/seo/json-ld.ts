@@ -29,7 +29,13 @@ export function createQAPageJsonLd(options: {
     dateCreated?: string;
     /** 전체 답변(댓글) 수 */
     answerCount: number;
-    answers: Array<{ text: string; author?: string; dateCreated?: string; upvoteCount?: number }>;
+    answers: Array<{
+        text: string;
+        author?: string;
+        authorUrl?: string;
+        dateCreated?: string;
+        upvoteCount?: number;
+    }>;
 }): JsonLdQAPage | null {
     if (!options.name?.trim()) return null;
     const answers = options.answers
@@ -41,7 +47,13 @@ export function createQAPageJsonLd(options: {
             ...(a.dateCreated ? { dateCreated: a.dateCreated } : {}),
             ...(a.upvoteCount !== undefined ? { upvoteCount: a.upvoteCount } : {}),
             ...(a.author?.trim()
-                ? { author: { '@type': 'Person' as const, name: a.author.trim() } }
+                ? {
+                      author: {
+                          '@type': 'Person' as const,
+                          name: a.author.trim(),
+                          ...(a.authorUrl ? { url: a.authorUrl } : {})
+                      }
+                  }
                 : {})
         }));
     if (!answers.length) return null;
@@ -193,7 +205,13 @@ export function createDiscussionForumPostingJsonLd(options: {
     upvoteCount?: number;
     image?: string;
     /** 상위 댓글 (Google 포럼 리치 결과의 comment 노드, 최대 3개 출력) */
-    comments?: Array<{ text: string; author: string; datePublished?: string }>;
+    comments?: Array<{
+        text: string;
+        author: string;
+        /** 작성자 프로필 URL — GSC "comment.author 의 url 누락" 개선 제안 대응 */
+        authorUrl?: string;
+        datePublished?: string;
+    }>;
 }): JsonLdDiscussionForumPosting {
     const data: JsonLdDiscussionForumPosting = {
         '@type': 'DiscussionForumPosting',
@@ -220,7 +238,11 @@ export function createDiscussionForumPostingJsonLd(options: {
             .map((c) => ({
                 '@type': 'Comment' as const,
                 text: c.text.trim(),
-                author: { '@type': 'Person' as const, name: c.author.trim() },
+                author: {
+                    '@type': 'Person' as const,
+                    name: c.author.trim(),
+                    ...(c.authorUrl ? { url: c.authorUrl } : {})
+                },
                 ...(c.datePublished ? { datePublished: c.datePublished } : {})
             }));
         if (validComments.length) data.comment = validComments;
