@@ -719,6 +719,12 @@ export const load: PageServerLoad = async ({
             page: recentPostsPage
         };
 
+        // SEO 내부링크(#83): 작성자 최근 활동을 SSR 로 확정 — 활동 패널의 글/댓글
+        // 앵커가 초기 HTML 에 포함되게 한다(별도 섹션 없이 기존 패널 재사용).
+        // memberActivityPromise 는 댓글 fetch 와 병렬 + 2s 타임아웃 + 내부 catch 라
+        // 페이지 로드를 추가로 블록하지 않는다. 익명·탈퇴는 상위 가드에서 null 수렴.
+        const memberActivity = post.deleted_at ? null : await memberActivityPromise;
+
         // Phase 1C: 플러그인 enrich filter (member-memo author_memo 등).
         // 미설치 시 pass-through. (premium PR #43 기준 stub)
         // Step A′: 서버 hook 표준 컨텍스트(site/user) 전달.
@@ -742,6 +748,8 @@ export const load: PageServerLoad = async ({
             truthroomPostId,
             originalPostLink,
             recentPosts,
+            /** SEO 내부링크(#83): 작성자 활동 패널 SSR 확정 데이터 */
+            memberActivity,
             /** 스트리밍: Promise로 반환 → 클라이언트에서 $effect로 수신 */
             streamed: {
                 auxiliaryData: auxiliaryDataPromise

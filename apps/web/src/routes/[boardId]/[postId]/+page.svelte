@@ -369,8 +369,12 @@
     );
     let truthroomCommentMap = $state<Record<number, number>>({});
     let promotionPosts = $state<PromotionPost[]>([]);
-    // 작성자 최근 활동 (auxiliaryData 스트리밍으로 SSR 직접 로딩 — 작성자활동 패널에 주입)
-    let memberActivity = $state<{ recentPosts: unknown[]; recentComments: unknown[] } | null>(null);
+    // 작성자 최근 활동 — 서버 확정(data.memberActivity, SEO 앵커용 #83)으로 초기화하고
+    // 스트리밍(auxiliaryData) 도착 시 갱신. SSR 시점에 값이 있어야 패널 앵커가 HTML 에 포함됨
+    let memberActivity = $state<{ recentPosts: unknown[]; recentComments: unknown[] } | null>(
+        (data.memberActivity as { recentPosts: unknown[]; recentComments: unknown[] } | null) ??
+            null
+    );
     let revisions = $state<PostRevision[]>([]);
     let initialLikedCommentIds = $state<number[]>([]);
     let initialDislikedCommentIds = $state<number[]>([]);
@@ -446,7 +450,10 @@
         initialDislikedCommentIds = [];
         truthroomCommentMap = {};
         scheduledDelete = null;
-        memberActivity = null;
+        // SPA 내비게이션 시 새 글의 서버 확정값으로 리셋 (없으면 null → 스트리밍 대기)
+        memberActivity =
+            (data.memberActivity as { recentPosts: unknown[]; recentComments: unknown[] } | null) ??
+            null;
         auxiliaryLoaded = false;
 
         promise
