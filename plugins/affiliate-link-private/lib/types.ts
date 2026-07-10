@@ -24,17 +24,12 @@ export type AffiliateReasonCode =
     | 'already_affiliate'
     | 'invalid_url'
     | 'env_missing'
+    | 'config_error'
     | 'merchant_denied'
     | 'api_error'
     | 'unknown';
 
-export type AffiliateNetwork =
-    | 'linkprice'
-    | 'aliexpress'
-    | 'coupang'
-    | 'amazon'
-    | 'kkday'
-    | 'none';
+export type AffiliateNetwork = 'linkprice' | 'aliexpress' | 'coupang' | 'amazon' | 'kkday' | 'none';
 
 export type LinkFieldName = 'link1' | 'link2';
 

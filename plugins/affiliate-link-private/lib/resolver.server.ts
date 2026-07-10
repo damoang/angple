@@ -2,7 +2,12 @@ import {
     convertAffiliateLinksDetailed,
     convertAffiliateUrl
 } from '../../affiliate-link/lib/affiliate-api.server';
-import { detectPlatform, extractHost, normalizeUrl, mergeMerchantDomains } from '../../affiliate-link/lib/domain-matcher';
+import {
+    detectPlatform,
+    extractHost,
+    normalizeUrl,
+    mergeMerchantDomains
+} from '../../affiliate-link/lib/domain-matcher';
 import pool from '$lib/server/db.js';
 import { buildAffiliateRedirectRecord, attachRedirectToDecision } from './redirect-store.server';
 import { createErrorDecision, createPassthroughDecision } from './policies';
@@ -31,9 +36,7 @@ async function _syncMerchants(): Promise<void> {
         const [rows] = await pool.query(
             "SELECT domain FROM affiliate_merchants WHERE platform = 'linkprice' AND is_active = 1"
         );
-        mergeMerchantDomains(
-            (rows as Array<{ domain: string }>).map((r) => r.domain)
-        );
+        mergeMerchantDomains((rows as Array<{ domain: string }>).map((r) => r.domain));
     } catch {
         // DB 미연결 시 하드코딩 폴백
     }
@@ -111,7 +114,8 @@ function getRebindFailureReason(input: {
 
     if (
         input.inputKind === 'affiliate_url_rebindable' &&
-        input.upstreamError === 'Conversion failed'
+        (input.upstreamError === 'Conversion failed' ||
+            input.upstreamError?.startsWith('LinkPrice '))
     ) {
         return 'rebind_failed_upstream_blocked';
     }
