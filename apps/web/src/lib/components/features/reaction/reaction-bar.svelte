@@ -15,6 +15,8 @@
     } from '$lib/config/reaction-config.js';
     import { loadPluginLib } from '$lib/utils/plugin-optional-loader';
     import SmilePlus from '@lucide/svelte/icons/smile-plus';
+    import Users from '@lucide/svelte/icons/users';
+    import ReactionReactorsDialog from './reaction-reactors-dialog.svelte';
     import {
         canUseCertifiedAction,
         getCertificationBlockedMessage,
@@ -190,6 +192,9 @@
         reactions = initialReactions ?? [];
     });
 
+    // 리액션 사용자 목록 다이얼로그 (이모지 닉네임 공개, 2026-07-12 시행)
+    let reactorsDialogOpen = $state(false);
+
     onMount(() => {
         void loadReactionPolicy();
         document.addEventListener('click', handleClickOutside);
@@ -222,6 +227,19 @@
             <span class="font-medium">{item.count}</span>
         </button>
     {/each}
+
+    <!-- 리액션 사용자 목록 (닉네임 공개, 2026-07-12 시행) -->
+    {#if reactions.length > 0 && authStore.isAuthenticated}
+        <button
+            type="button"
+            onclick={() => (reactorsDialogOpen = true)}
+            class="border-border bg-muted/50 text-muted-foreground hover:border-primary/30 hover:bg-primary/5 inline-flex items-center rounded-full border px-2 py-1 transition-all"
+            title="리액션한 사람 보기"
+            aria-label="리액션한 사람 보기"
+        >
+            <Users class="h-4 w-4" />
+        </button>
+    {/if}
 
     <!-- 리액션 추가 버튼 -->
     <button
@@ -311,6 +329,14 @@
             </div>
         </div>
     </div>
+{/if}
+
+{#if reactorsDialogOpen}
+    <ReactionReactorsDialog
+        bind:open={reactorsDialogOpen}
+        {targetId}
+        onClose={() => (reactorsDialogOpen = false)}
+    />
 {/if}
 
 <style>
