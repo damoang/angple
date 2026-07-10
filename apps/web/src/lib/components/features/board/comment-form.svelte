@@ -22,6 +22,7 @@
     import Loader2 from '@lucide/svelte/icons/loader-2';
     import type { Component } from 'svelte';
     import CommentToolbar from './comment-toolbar.svelte';
+    import FirstCommentNudge from '$lib/components/features/onboarding/first-comment-nudge.svelte';
     import { trackEvent } from '$lib/services/ga4.js';
 
     interface Props {
@@ -248,6 +249,10 @@
 </script>
 
 {#if canComment}
+    {#if !isReplyMode}
+        <!-- 실험 B: 눈팅 신규회원 첫 댓글 넛지 — 최상위 댓글 입력창에만 (답글 모드 제외) -->
+        <FirstCommentNudge />
+    {/if}
     <form onsubmit={handleSubmit} class="space-y-2">
         {#if isReplyMode}
             <div class="text-muted-foreground flex items-center gap-2 text-sm">
