@@ -39,7 +39,7 @@
             <a
                 href={shop.href}
                 target="_blank"
-                rel="nofollow noreferrer"
+                rel="nofollow noreferrer sponsored"
                 class="border-border text-muted-foreground hover:bg-accent hover:text-accent-foreground inline-flex items-center rounded-md border px-2.5 py-1 text-xs font-medium transition-colors"
             >
                 {shop.name}
