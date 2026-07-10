@@ -13,25 +13,26 @@ import type { WidgetConfig } from '$lib/stores/widget-layout.svelte';
 export const DEFAULT_WIDGETS: WidgetConfig[] = [
     { id: 'tag-nav', type: 'tag-nav', position: 0, enabled: true },
     { id: 'empathy-explore-row', type: 'empathy-explore-row', position: 1, enabled: true },
+    { id: 'hidden-gems', type: 'hidden-gems', position: 2, enabled: true },
     {
         id: 'ad-top',
         type: 'ad-slot',
-        position: 2,
+        position: 3,
         enabled: true,
         settings: { position: 'index-top' }
     },
     {
         id: 'ad-middle-1',
         type: 'ad-slot',
-        position: 3,
+        position: 4,
         enabled: true,
         settings: { position: 'index-middle-1' }
     },
-    { id: 'news-economy-row', type: 'news-economy-row', position: 4, enabled: true },
+    { id: 'news-economy-row', type: 'news-economy-row', position: 5, enabled: true },
     {
         id: 'gallery',
         type: 'post-list',
-        position: 5,
+        position: 6,
         enabled: true,
         settings: {
             boardId: 'gallery',
@@ -44,27 +45,27 @@ export const DEFAULT_WIDGETS: WidgetConfig[] = [
     {
         id: 'ad-middle-2',
         type: 'ad-slot',
-        position: 6,
+        position: 7,
         enabled: true,
         settings: { position: 'index-middle-2' }
     },
     {
         id: 'group',
         type: 'post-list',
-        position: 7,
+        position: 8,
         enabled: true,
         settings: { boardId: 'group', layout: 'card', sortBy: 'date', count: 10, showTitle: true }
     },
     {
         id: 'celebration',
         type: 'celebration',
-        position: 8,
+        position: 9,
         enabled: true
     },
     {
         id: 'ad-bottom',
         type: 'ad-slot',
-        position: 9,
+        position: 10,
         enabled: true,
         settings: { position: 'index-bottom' }
     }
@@ -73,11 +74,13 @@ export const DEFAULT_WIDGETS: WidgetConfig[] = [
 /** 기본 사이드바 위젯 레이아웃 */
 export const DEFAULT_SIDEBAR_WIDGETS: WidgetConfig[] = [
     { id: 'notice', type: 'notice', position: 0, enabled: true },
-    { id: 'celebration', type: 'celebration', position: 1, enabled: true },
+    { id: 'emoji-awards', type: 'emoji-awards', position: 1, enabled: true },
+    { id: 'hidden-gems', type: 'hidden-gems', position: 2, enabled: true },
+    { id: 'celebration', type: 'celebration', position: 3, enabled: true },
     {
         id: 'sidebar-ad-2',
         type: 'ad-slot',
-        position: 2,
+        position: 4,
         enabled: true,
         settings: { position: 'sidebar-2', type: 'image-text', format: 'grid' }
     }

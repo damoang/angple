@@ -487,12 +487,27 @@ export interface GroupTabsData {
     month: GroupPost[];
 }
 
+// 앙모지 리더보드 항목 (24h 리액션 상위 글/댓글)
+export interface EmojiAwardPost {
+    id: number;
+    title: string;
+    board: string;
+    board_name: string;
+    author: string;
+    url: string;
+    is_comment: boolean;
+    reaction_total: number;
+    top_reaction: string;
+    top_reaction_count: number;
+}
+
 // 전체 위젯 데이터
 export interface IndexWidgetsData {
     news_tabs: NewsPost[];
     economy_tabs: EconomyPost[];
     gallery: GalleryPost[];
     group_tabs: GroupTabsData;
+    emoji_awards?: EmojiAwardPost[];
 }
 
 // 사이드바 메뉴 타입

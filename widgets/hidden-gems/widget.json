@@ -1,0 +1,21 @@
+{
+    "id": "hidden-gems",
+    "name": "숨은 보석",
+    "version": "1.0.0",
+    "description": "자유게시판 밖 다른 게시판의 최근 24시간 글을 로테이션으로 소개하는 발견 위젯",
+    "author": { "name": "Angple" },
+    "category": "content",
+    "slots": ["main", "sidebar"],
+    "icon": "Gem",
+    "allowMultiple": false,
+    "main": "index.svelte",
+    "settings": {
+        "item_count": {
+            "type": "number",
+            "label": "표시 개수",
+            "default": 4,
+            "min": 2,
+            "max": 8
+        }
+    }
+}
