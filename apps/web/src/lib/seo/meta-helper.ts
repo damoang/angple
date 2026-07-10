@@ -48,6 +48,8 @@ export function buildRobots(meta: SeoMeta): string | null {
     const directives: string[] = [];
     if (meta.noIndex) directives.push('noindex');
     if (meta.noFollow) directives.push('nofollow');
+    // Google Discover 노출 자격 요건 — 대형 이미지 미리보기 허용 (색인 대상 페이지에만)
+    if (!meta.noIndex) directives.push('max-image-preview:large');
     return directives.length > 0 ? directives.join(', ') : null;
 }
 

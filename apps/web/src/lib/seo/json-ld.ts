@@ -9,8 +9,58 @@ import type {
     JsonLdDiscussionForumPosting,
     JsonLdFAQPage,
     JsonLdFAQItem,
+    JsonLdQAPage,
     JsonLdVideoObject
 } from './types';
+
+/**
+ * QAPage JSON-LD 생성 — 질문/답변 게시판(qa) 리치 결과
+ *
+ * FAQPage 는 사이트 자체 작성 FAQ 전용(구글이 노출을 크게 제한)이라, 사용자
+ * 질문+답변 커뮤니티에는 QAPage 가 올바른 타입이다. 리치 결과에는 답변이
+ * 필요하므로 유효한 답변이 1개 이상일 때만 출력(null = 블록 생략).
+ */
+export function createQAPageJsonLd(options: {
+    /** 질문 제목 (필수) */
+    name: string;
+    /** 질문 본문 요약 */
+    text?: string;
+    author?: string;
+    dateCreated?: string;
+    /** 전체 답변(댓글) 수 */
+    answerCount: number;
+    answers: Array<{ text: string; author?: string; dateCreated?: string; upvoteCount?: number }>;
+}): JsonLdQAPage | null {
+    if (!options.name?.trim()) return null;
+    const answers = options.answers
+        .filter((a) => a.text?.trim())
+        .slice(0, 3)
+        .map((a) => ({
+            '@type': 'Answer' as const,
+            text: a.text.trim(),
+            ...(a.dateCreated ? { dateCreated: a.dateCreated } : {}),
+            ...(a.upvoteCount !== undefined ? { upvoteCount: a.upvoteCount } : {}),
+            ...(a.author?.trim()
+                ? { author: { '@type': 'Person' as const, name: a.author.trim() } }
+                : {})
+        }));
+    if (!answers.length) return null;
+
+    return {
+        '@type': 'QAPage',
+        mainEntity: {
+            '@type': 'Question',
+            name: options.name.trim(),
+            ...(options.text ? { text: options.text } : {}),
+            answerCount: Math.max(options.answerCount, answers.length),
+            ...(options.dateCreated ? { dateCreated: options.dateCreated } : {}),
+            ...(options.author?.trim()
+                ? { author: { '@type': 'Person' as const, name: options.author.trim() } }
+                : {}),
+            suggestedAnswer: answers
+        }
+    };
+}
 
 /** 본문에서 추출된 동영상 (유튜브 임베드 또는 업로드 파일) */
 export type ExtractedVideo =

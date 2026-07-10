@@ -29,8 +29,8 @@ describe('SEO meta-helper', () => {
     });
 
     describe('buildRobots', () => {
-        it('기본값 null', () => {
-            expect(buildRobots({ title: 'test' })).toBeNull();
+        it('기본값 = Discover 대형 미리보기 허용 (max-image-preview:large)', () => {
+            expect(buildRobots({ title: 'test' })).toBe('max-image-preview:large');
         });
 
         it('noindex, nofollow', () => {
@@ -291,5 +291,35 @@ describe('동영상 포스터 (관례 키 + poster 속성)', () => {
         expect(deriveVideoPoster('https://r2.damoang.net/data/editor/2607/a.webm?v=1')).toBe(
             'https://r2.damoang.net/data/editor/2607/a_poster.jpg?v=1'
         );
+    });
+});
+
+describe('SEO P3 — Discover + QAPage', () => {
+    it('buildRobots: 색인 페이지에 max-image-preview:large, noindex 페이지엔 없음', () => {
+        expect(buildRobots({ title: 't' })).toBe('max-image-preview:large');
+        expect(buildRobots({ title: 't', noIndex: true })).toBe('noindex');
+        expect(buildRobots({ title: 't', noFollow: true })).toBe(
+            'nofollow, max-image-preview:large'
+        );
+    });
+
+    it('createQAPageJsonLd: 유효 답변 있으면 Question+suggestedAnswer, 없으면 null', async () => {
+        const { createQAPageJsonLd } = await import('./json-ld');
+        const base = {
+            name: '질문 제목',
+            answerCount: 5,
+            dateCreated: '2026-07-10T00:00:00+09:00',
+            answers: [
+                { text: '답변입니다', author: '앙님', upvoteCount: 3 },
+                { text: '  ', author: '빈답변' }
+            ]
+        };
+        const ld = createQAPageJsonLd(base);
+        expect(ld?.mainEntity.name).toBe('질문 제목');
+        expect(ld?.mainEntity.answerCount).toBe(5);
+        expect(ld?.mainEntity.suggestedAnswer).toHaveLength(1);
+        expect(ld?.mainEntity.suggestedAnswer?.[0].author?.name).toBe('앙님');
+        expect(createQAPageJsonLd({ ...base, answers: [] })).toBeNull();
+        expect(createQAPageJsonLd({ ...base, name: ' ' })).toBeNull();
     });
 });

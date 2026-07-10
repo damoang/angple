@@ -25,6 +25,7 @@ export {
     createOrganizationJsonLd,
     createDiscussionForumPostingJsonLd,
     createFAQPageJsonLd,
+    createQAPageJsonLd,
     createVideoObjectJsonLd,
     extractVideosFromContent
 } from './json-ld';
