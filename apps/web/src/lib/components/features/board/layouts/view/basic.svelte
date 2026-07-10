@@ -29,6 +29,7 @@
     import Lock from '@lucide/svelte/icons/lock';
     import Flag from '@lucide/svelte/icons/flag';
     import ScrapButton from '$lib/components/post/scrap-button.svelte';
+    import DealEndReportButton from '$lib/components/features/board/deal-end-report-button.svelte';
     import { authStore } from '$lib/stores/auth.svelte.js';
     import { DisciplinedContent } from '$lib/components/ui/discipline-related';
     import { AdultBlur } from '$lib/components/features/adult/index.js';
@@ -430,6 +431,10 @@
                                 제공 받을 수 있습니다.</span
                             >
                         </p>
+                    {/if}
+
+                    {#if boardId === 'economy'}
+                        <DealEndReportButton {boardId} postId={post.id} category={post.category} />
                     {/if}
 
                     {#if post.videos && post.videos.length > 0}
