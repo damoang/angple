@@ -16,6 +16,7 @@ import { createCache } from '$lib/server/cache.js';
 import { getCachedBoard, resolveCanonicalBoardId } from '$lib/server/board-cache.js';
 import { resolveGivingMeta } from '$lib/features/giving/model.js';
 import { searchByBoard } from '$lib/server/sphinx-search.js';
+import { findDisciplinedIds, DISCIPLINED_TITLE } from '$lib/server/discipline-mask.js';
 import { readPool } from '$lib/server/db.js';
 import type { RowDataPacket } from 'mysql2';
 import { applyFilter } from '$lib/hooks/registry.js';
@@ -488,6 +489,9 @@ export const load: PageServerLoad = async ({
                     )
                 ]);
                 const rows = postRows[0];
+                // #12943: 게시판 내 검색은 sphinx→DB 직조회라 백엔드 목록 마스킹을
+                // 우회한다 — 이용제한 근거 글 제목·본문을 여기서도 마스킹(P2 공용 헬퍼).
+                const disciplinedIds = await findDisciplinedIds(boardId, refetchIds);
                 const boNotice = String(noticeRows[0]?.[0]?.bo_notice ?? '');
                 const noticeIds = new Set(
                     boNotice
@@ -501,12 +505,17 @@ export const load: PageServerLoad = async ({
                 const rowMap = new Map(
                     rows.map((r) => {
                         const deleted = Number(r.is_deleted_parent) === 1;
+                        const disciplined = disciplinedIds.has(Number(r.id));
                         return [
                             r.id,
                             {
                                 ...r,
-                                title: deleted ? '[삭제된 글입니다]' : r.title,
-                                content: deleted ? '' : r.content,
+                                title: deleted
+                                    ? '[삭제된 글입니다]'
+                                    : disciplined
+                                      ? DISCIPLINED_TITLE
+                                      : r.title,
+                                content: deleted || disciplined ? '' : r.content,
                                 is_notice: noticeIds.has(Number(r.id))
                             }
                         ];
