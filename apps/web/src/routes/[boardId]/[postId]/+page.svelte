@@ -407,6 +407,9 @@
         commentsAutoRecoveryTriggered = false;
         commentsDirectFetchAttempted = false;
         commentsDirectFetchInFlight = false;
+        // #12937: 이전 글의 backfill 진행 가드가 남아 있으면 새 글의 backfill 이
+        // 조용히 스킵되어 "댓글을 불러오는 중" 에 고착된다 — 글 전환 시 반드시 해제.
+        backfillInProgress = false;
     });
 
     $effect(() => {
@@ -1336,6 +1339,9 @@
         // 무시하는 사례가 있어 URL cache buster (`_t=${Date.now()}`) 로 강제 우회.
         // SW (service worker) 가 가로채는 케이스도 동일하게 URL 변화로 회피.
         const cacheBuster = Date.now();
+        // #12937: SPA 로 다른 글로 이동한 뒤 뒤늦게 도착한 응답이 현재 글의 목록을
+        // 덮어쓰지 않도록, 요청 시점의 글 ID 를 고정해 적용 직전에 대조한다.
+        const targetPostId = data.post.id;
         // #12735: 댓글 API 는 페이지당 최대 200개라, 댓글이 200개를 넘는 글은
         // page=1 한 번만 받으면 나머지가 누락된다("대댓글 많은데 안 보임").
         // total_pages 만큼 순차로 모두 받아 합친다. (안전 상한 MAX_PAGES)
@@ -1343,9 +1349,12 @@
         const MAX_PAGES = 15;
         const fetchCommentPage = (p: number) =>
             fetch(
-                `/api/boards/${boardId}/posts/${data.post.id}/comments?page=${p}&limit=${PAGE_SIZE}&_t=${cacheBuster}`,
+                `/api/boards/${boardId}/posts/${targetPostId}/comments?page=${p}&limit=${PAGE_SIZE}&_t=${cacheBuster}`,
                 {
                     cache: 'no-store',
+                    // #12937: 모바일 webview 에서 fetch 가 응답 없이 매달리면
+                    // backfill 가드가 영구 고착된다 — 타임아웃으로 반드시 종결.
+                    signal: AbortSignal.timeout(8000),
                     headers: {
                         'Cache-Control': 'no-cache, no-store, must-revalidate',
                         Pragma: 'no-cache'
@@ -1376,6 +1385,8 @@
                     `[comments] total_pages ${reportedPages} exceeds cap ${MAX_PAGES} — 일부 댓글 미로드`
                 );
             }
+            // #12937: 응답 대기 중 다른 글로 이동했다면 폐기 — 이전 글 댓글로 덮어쓰기 방지.
+            if (data.post.id !== targetPostId) return;
             comments = all;
             commentsTotal = total || all.length;
             // 클라가 전량 로드 완료 — backfill 게이트가 재발화하지 않도록 complete 로 확정.
@@ -1446,9 +1457,21 @@
             }
         }
 
-        const timer = window.setTimeout(() => {
-            void refetchComments();
-        }, 1500);
+        // #12939: 입력 중 backfill 이 comments 를 재대입하면 keyed each 가 댓글 노드를
+        // 이동시켜, 포커스된 답글 에디터가 DOM 재배치되며 삼성 인터넷에서 소프트
+        // 키보드가 내려간다 — 댓글 입력 중에는 backfill 을 입력 종료 후로 미룬다.
+        let timer: number;
+        const scheduleBackfill = (delay: number) => {
+            timer = window.setTimeout(() => {
+                const active = document.activeElement as HTMLElement | null;
+                if (active?.closest('.ProseMirror, [contenteditable="true"], textarea')) {
+                    scheduleBackfill(3000);
+                    return;
+                }
+                void refetchComments();
+            }, delay);
+        };
+        scheduleBackfill(1500);
 
         return () => {
             window.clearTimeout(timer);
