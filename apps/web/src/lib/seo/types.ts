@@ -143,10 +143,11 @@ export interface JsonLdQAPage {
         text?: string;
         answerCount: number;
         dateCreated?: string;
-        author?: { '@type': 'Person'; name: string };
+        author?: { '@type': 'Person'; name: string; url?: string };
         suggestedAnswer?: Array<{
             '@type': 'Answer';
             text: string;
+            url?: string;
             dateCreated?: string;
             upvoteCount?: number;
             author?: { '@type': 'Person'; name: string; url?: string };

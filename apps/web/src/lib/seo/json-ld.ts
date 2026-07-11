@@ -26,11 +26,15 @@ export function createQAPageJsonLd(options: {
     /** 질문 본문 요약 */
     text?: string;
     author?: string;
+    /** 질문 작성자 프로필 URL — GSC "mainEntity.author 의 url 누락" 대응 */
+    authorUrl?: string;
     dateCreated?: string;
     /** 전체 답변(댓글) 수 */
     answerCount: number;
     answers: Array<{
         text: string;
+        /** 답변(댓글) 앵커 URL — GSC "suggestedAnswer 의 url 누락" 대응 */
+        url?: string;
         author?: string;
         authorUrl?: string;
         dateCreated?: string;
@@ -44,6 +48,7 @@ export function createQAPageJsonLd(options: {
         .map((a) => ({
             '@type': 'Answer' as const,
             text: a.text.trim(),
+            ...(a.url ? { url: a.url } : {}),
             ...(a.dateCreated ? { dateCreated: a.dateCreated } : {}),
             ...(a.upvoteCount !== undefined ? { upvoteCount: a.upvoteCount } : {}),
             ...(a.author?.trim()
@@ -67,7 +72,13 @@ export function createQAPageJsonLd(options: {
             answerCount: Math.max(options.answerCount, answers.length),
             ...(options.dateCreated ? { dateCreated: options.dateCreated } : {}),
             ...(options.author?.trim()
-                ? { author: { '@type': 'Person' as const, name: options.author.trim() } }
+                ? {
+                      author: {
+                          '@type': 'Person' as const,
+                          name: options.author.trim(),
+                          ...(options.authorUrl ? { url: options.authorUrl } : {})
+                      }
+                  }
                 : {}),
             suggestedAnswer: answers
         }
