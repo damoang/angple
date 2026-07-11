@@ -11,6 +11,7 @@
     } from '$lib/utils/certification-gate.js';
     import { getAvatarUrl } from '$lib/utils/member-icon.js';
     import { getGradeName } from '$lib/utils/grade.js';
+    import { getPromotionHint } from '$lib/utils/board-permissions.js';
     import type { BoardPermissions } from '$lib/api/types.js';
     import { apiClient } from '$lib/api/index.js';
     import { stripAdminMentions } from '$lib/utils/sanitize-mentions.js';
@@ -77,7 +78,10 @@
         if (isRestricted) return '이용제한 중에는 댓글을 작성할 수 없습니다.';
         const need = `${getGradeName(requiredCommentLevel)}(Lv.${requiredCommentLevel}) 이상 작성 가능`;
         const lv = authStore.user?.mb_level;
-        return lv != null ? `${need} · 현재 ${getGradeName(lv)}(Lv.${lv})` : need;
+        if (lv == null) return need;
+        // 승급 경로 안내 (hello/27814: 배지≠등급 착시) — mb_level 기준, as_level 아님
+        const promo = getPromotionHint(requiredCommentLevel, lv);
+        return `${need} · 현재 ${getGradeName(lv)}(Lv.${lv})${promo ? ` · ${promo}` : ''}`;
     });
 
     let commentAvatarUrl = $derived(
