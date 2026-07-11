@@ -82,9 +82,12 @@
                 <div class="min-w-0 flex-1">
                     <p class="text-foreground text-base font-bold">앙님, 어서오세요! 💛</p>
                     <p class="text-muted-foreground mt-0.5 text-sm leading-relaxed">
-                        가입인사를 남기면 앙님들이 우르르 반겨줘요. 게시판 글쓰기는 닉네임 옆에
+                        가입인사를 남기면 앙님들이 우르르 반겨줘요. <b class="font-semibold"
+                            >매일 출석 7일</b
+                        >이면 자동으로
                         <span class="font-semibold text-amber-600 dark:text-amber-400">앙님💛</span
-                        >이 생기면 열리니, 첫걸음은 인사가 딱이에요!
+                        >으로 승급해 글쓰기·댓글·공감이 모두 열려요 — 오늘부터 도장 꾹, 첫걸음은
+                        인사가 딱이에요!
                     </p>
                 </div>
                 <div class="flex shrink-0 flex-wrap items-center gap-2">
