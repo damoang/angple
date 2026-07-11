@@ -32,6 +32,7 @@
     let notifications = $state<GroupedNotification[]>([]);
     let unreadCount = $state(0);
     let isLoading = $state(false);
+    let loadError = $state(false);
     let isOpen = $state(false);
     let unreadPrimed = $state(false);
 
@@ -185,6 +186,7 @@
         if (!authStore.isAuthenticated) return;
 
         isLoading = true;
+        loadError = false;
         try {
             const response = await apiClient.getGroupedNotifications(1, 10);
             notifications = response.items;
@@ -192,6 +194,8 @@
             writeUnreadCache(response.unread_count);
         } catch (err) {
             console.error('Failed to load notifications:', err);
+            // 실패를 '알림이 없습니다' 로 오표시하지 않도록 에러 상태 노출(#12954).
+            if (notifications.length === 0) loadError = true;
         } finally {
             isLoading = false;
         }
@@ -349,6 +353,18 @@
                 <!-- 캐시된 알림이 있으면 스피너로 가리지 않고 즉시 노출 → 재오픈 시 백그라운드 갱신(체감 지연 제거) -->
                 <div class="flex items-center justify-center py-8">
                     <Loader2 class="text-muted-foreground h-6 w-6 animate-spin" />
+                </div>
+            {:else if loadError}
+                <div class="text-muted-foreground flex flex-col items-center gap-2 py-8 text-sm">
+                    <span>알림을 불러오지 못했습니다.</span>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        class="h-7 text-xs"
+                        onclick={loadNotifications}
+                    >
+                        다시 시도
+                    </Button>
                 </div>
             {:else if notifications.length === 0}
                 <div class="text-muted-foreground py-8 text-center text-sm">알림이 없습니다</div>

@@ -79,6 +79,14 @@ const WRITE_REQUEST_CONFIG: Partial<RetryConfig> = {
     timeout: 30000
 };
 
+// 알림 조회는 백엔드가 무거울 수 있어(대량 누적 회원) 재시도 시 동일 쿼리를 중복
+// 발사하면 백엔드/DB 커넥션 풀을 굶긴다(#12954: 알림 무한 스피너 + 댓글 10개 고착).
+// 프록시 타임아웃(4s)에 맞춰 빠르게 실패시키고 재시도하지 않는다.
+const NOTIFICATION_READ_CONFIG: Partial<RetryConfig> = {
+    maxRetries: 0,
+    timeout: 4500
+};
+
 // v2 API URL은 세션 기반 인증에서는 SvelteKit 프록시가 내부 JWT를 주입하므로
 // 클라이언트에서 직접 사용할 일이 줄어듦 (exchangeToken 등 레거시 호환용으로 유지)
 
@@ -1865,7 +1873,11 @@ class ApiClient {
      * 읽지 않은 알림 수 조회
      */
     async getUnreadNotificationCount(): Promise<NotificationSummary> {
-        const response = await this.request<NotificationSummary>('/notifications/unread-count');
+        const response = await this.request<NotificationSummary>(
+            '/notifications/unread-count',
+            {},
+            NOTIFICATION_READ_CONFIG
+        );
         return response.data ?? { total_unread: 0 };
     }
 
@@ -1877,7 +1889,9 @@ class ApiClient {
         limit: number = 20
     ): Promise<NotificationListResponse> {
         const response = await this.request<NotificationListResponse>(
-            `/notifications?page=${page}&limit=${limit}`
+            `/notifications?page=${page}&limit=${limit}`,
+            {},
+            NOTIFICATION_READ_CONFIG
         );
         return response.data;
     }
@@ -1920,7 +1934,9 @@ class ApiClient {
         const params = new URLSearchParams({ page: String(page), limit: String(limit) });
         if (filterType) params.set('type', filterType);
         const response = await this.request<GroupedNotificationListResponse>(
-            `/notifications/grouped?${params}`
+            `/notifications/grouped?${params}`,
+            {},
+            NOTIFICATION_READ_CONFIG
         );
         return response.data;
     }
