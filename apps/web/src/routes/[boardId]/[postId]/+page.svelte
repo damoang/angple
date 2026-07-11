@@ -1714,7 +1714,9 @@
                           if (v.type === 'youtube') {
                               return createVideoObjectJsonLd({
                                   name,
-                                  description: postDescription || undefined,
+                                  // 본문 텍스트 없는 동영상 글 — GSC "description 누락" 방지 (제목 폴백)
+                                  description:
+                                      postDescription || data.post.title?.trim() || boardTitle,
                                   thumbnailUrl: `https://i.ytimg.com/vi/${v.id}/hqdefault.jpg`,
                                   uploadDate: data.post.created_at,
                                   embedUrl: `https://www.youtube.com/embed/${v.id}`
@@ -1733,7 +1735,8 @@
                           };
                           return createVideoObjectJsonLd({
                               name,
-                              description: postDescription || undefined,
+                              // 본문 텍스트 없는 동영상 글 — GSC "description 누락" 방지 (제목 폴백)
+                              description: postDescription || data.post.title?.trim() || boardTitle,
                               // 썸네일 우선순위: ①본문 poster 속성(업로드 시 캡처)
                               // ②관례 키 도출 — backfill 로 기존 동영상 2,339건 포스터 생성
                               //   완료(2026-07-10)라 도출 URL 이 실존 ③글 대표이미지
@@ -1764,12 +1767,17 @@
             boardId === 'qa' && !data.post.deleted_at && !data.post.is_secret
                 ? createQAPageJsonLd({
                       name: data.post.title?.trim() || boardTitle,
-                      text: postDescription || undefined,
+                      // 본문이 이미지뿐인 글은 제목이 곧 질문 — GSC "text 누락" 방지
+                      text: postDescription || data.post.title?.trim() || boardTitle,
                       author: data.post.author,
+                      // GSC "mainEntity.author 의 url 누락" — 질문 작성자 프로필
+                      authorUrl,
                       dateCreated: data.post.created_at,
                       answerCount: comments.length,
                       answers: safeTopComments.map((c) => ({
                           text: truncateText(c.content.replace(/<[^>]+>/g, '').trim(), 300),
+                          // GSC "suggestedAnswer 의 url 누락" — 실제 댓글 DOM 앵커(c_{id})
+                          url: c.id ? `${postUrl}#c_${c.id}` : undefined,
                           author: c.author,
                           // GSC "comment.author 의 url 누락" 개선 — 프로필 URL
                           authorUrl: c.author_id ? `${siteUrl}/member/${c.author_id}` : undefined,

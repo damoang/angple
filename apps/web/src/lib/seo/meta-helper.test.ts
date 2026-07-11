@@ -350,3 +350,29 @@ describe('comment.author url (GSC 개선 제안)', () => {
         expect(ld?.mainEntity.suggestedAnswer?.[0].author?.url).toBe('https://test.com/member/ang');
     });
 });
+
+describe('QAPage url 보강 (GSC Q&A 4건)', () => {
+    it('question author url + answer url 출력, 미제공 시 생략', async () => {
+        const { createQAPageJsonLd } = await import('./json-ld');
+        const ld = createQAPageJsonLd({
+            name: '질문',
+            text: '본문',
+            author: '질문자',
+            authorUrl: 'https://test.com/member/asker',
+            answerCount: 2,
+            answers: [
+                {
+                    text: '답변1',
+                    url: 'https://test.com/qa/1#c_10',
+                    author: '앙님',
+                    authorUrl: 'https://test.com/member/ang'
+                },
+                { text: '답변2' }
+            ]
+        });
+        expect(ld?.mainEntity.author?.url).toBe('https://test.com/member/asker');
+        expect(ld?.mainEntity.text).toBe('본문');
+        expect(ld?.mainEntity.suggestedAnswer?.[0].url).toBe('https://test.com/qa/1#c_10');
+        expect(ld?.mainEntity.suggestedAnswer?.[1].url).toBeUndefined();
+    });
+});
