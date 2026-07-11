@@ -67,6 +67,44 @@ export function checkPermission(
 }
 
 /**
+ * 자동 승급(매일 출석 7일)으로 도달하는 등급 — 앙님💛 (mb_level 3)
+ */
+const AUTO_PROMOTE_LEVEL = 3;
+
+/**
+ * 배지≠등급 착시 해소 문구 (hello/27814)
+ * 닉네임 옆 숫자 배지(as_level, 활동 레벨)를 등급(mb_level)으로 오해하는 사례가 많다.
+ */
+export const BADGE_GRADE_NOTE = '닉네임 옆 숫자 배지는 활동 레벨이라 등급과는 달라요';
+
+/**
+ * 승급 경로 안내 문구. 자동 승급(출석 7일)으로 필요 등급에 도달 가능할 때만 반환.
+ * mb_level(등급) 기준 — as_level(활동 레벨)을 넣지 말 것.
+ */
+export function getPromotionHint(requiredLevel: number, currentLevel: number): string | null {
+    if (currentLevel >= requiredLevel) return null;
+    if (requiredLevel > AUTO_PROMOTE_LEVEL || currentLevel >= AUTO_PROMOTE_LEVEL) return null;
+    return '매일 출석 7일이면 자동으로 앙님💛 승급돼요!';
+}
+
+/**
+ * 등급(mb_level) 부족 거부 안내 문구 생성.
+ * 승급 경로(출석 7일 → 앙님💛)와 배지≠등급 구분을 함께 안내한다. (hello/27814)
+ */
+export function buildGradeDeniedMessage(
+    actionName: string,
+    requiredLevel: number,
+    currentLevel: number
+): string {
+    const requiredGrade = getGradeName(requiredLevel);
+    const promo = getPromotionHint(requiredLevel, currentLevel);
+    if (promo) {
+        return `${actionName}은(는) ${requiredGrade} 등급부터 가능해요. ${promo} (${BADGE_GRADE_NOTE})`;
+    }
+    return `${actionName}은(는) ${requiredGrade} 등급부터 가능해요. (현재 등급: ${getGradeName(currentLevel)} · ${BADGE_GRADE_NOTE})`;
+}
+
+/**
  * 권한 부족 시 안내 메시지 생성
  */
 export function getPermissionMessage(
@@ -82,7 +120,8 @@ export function getPermissionMessage(
         return `${actionName}을(를) 하려면 로그인이 필요합니다.`;
     }
 
-    return `${actionName} 권한이 없습니다. 레벨 ${requiredLevel} 이상이 필요합니다. (현재 레벨: ${user.mb_level ?? 1})`;
+    // 레벨(등급) 부족 사유 — 승급 경로와 배지≠등급 구분을 함께 안내
+    return buildGradeDeniedMessage(actionName, requiredLevel, user.mb_level ?? 1);
 }
 
 /**

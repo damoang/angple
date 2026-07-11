@@ -87,7 +87,8 @@
                         >이면 자동으로
                         <span class="font-semibold text-amber-600 dark:text-amber-400">앙님💛</span
                         >으로 승급해 글쓰기·댓글·공감이 모두 열려요 — 오늘부터 도장 꾹, 첫걸음은
-                        인사가 딱이에요!
+                        인사가 딱이에요! (참, 닉네임 옆 숫자 배지는 활동 레벨이라 등급과는 달라요
+                        🙂)
                     </p>
                 </div>
                 <div class="flex shrink-0 flex-wrap items-center gap-2">
