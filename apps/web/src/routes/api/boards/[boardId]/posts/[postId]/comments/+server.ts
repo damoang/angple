@@ -18,6 +18,7 @@ import {
 } from '$lib/server/affiliate-links';
 import { isLinkProcessingPluginEnabled } from '$lib/server/link-processing/runtime';
 import { isInternalAppRequest } from '$lib/server/internal-api.js';
+import { fetchWithdrawnMemberIds } from '$lib/server/withdrawn-members.js';
 import { prefetchBlueskyDIDs } from '$lib/server/bluesky/transform.js';
 
 interface CommentRow extends RowDataPacket {
@@ -76,6 +77,8 @@ interface CommentResponseItem {
     is_discipline_related?: boolean;
     /** 요청자가 이 댓글 작성자를 차단했는지(서버 판정). 클라 스토어 로드 전 깜박임 방지용(#12825). */
     is_blocked?: boolean;
+    /** 작성자가 탈퇴 회원인지 — 닉네임 취소선 표시용. */
+    is_left?: boolean;
 }
 
 interface DisciplineRow extends RowDataPacket {
@@ -259,6 +262,12 @@ export const GET: RequestHandler = async ({ params, url, locals, request }) => {
             }
         }
 
+        // 탈퇴 회원 작성자 집합 — 닉네임 취소선 표시용(배치 조회, 5분 캐시).
+        const authorIds = Array.from(new Set(rows.map((r) => String(r.mb_id)).filter(Boolean)));
+        const withdrawnSet = await fetchWithdrawnMemberIds(authorIds).catch(
+            () => new Set<string>()
+        );
+
         const comments: CommentResponseItem[] = rows.map((row) => ({
             id: row.wr_id,
             content: row.wr_deleted_at ? (isAdmin ? row.wr_content : '') : row.wr_content,
@@ -297,6 +306,7 @@ export const GET: RequestHandler = async ({ params, url, locals, request }) => {
             deleted_by: row.wr_deleted_by || null,
             edit_count: editCountMap.get(row.wr_id) || 0,
             ...(row.mb_id && blockedSet.has(String(row.mb_id)) ? { is_blocked: true } : {}),
+            ...(row.mb_id && withdrawnSet.has(String(row.mb_id)) ? { is_left: true } : {}),
             ...(disciplineSet.has(row.wr_id) ? { is_discipline_related: true } : {}),
             ...(isAdmin && row.wr_7
                 ? {

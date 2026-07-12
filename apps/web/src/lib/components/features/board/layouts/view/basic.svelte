@@ -275,7 +275,11 @@
                     <div>
                         <p class="text-foreground flex items-center gap-1.5 font-medium">
                             <LevelBadge level={memberLevelStore.getLevel(post.author_id)} />
-                            <AuthorLink authorId={post.author_id} authorName={post.author} />
+                            <AuthorLink
+                                authorId={post.author_id}
+                                authorName={post.author}
+                                isWithdrawn={!!post.is_left}
+                            />
                             {#if authStore.isAuthenticated && memoPluginActive && MemoBadge && !uiSettingsStore.hideMemo}
                                 <MemoBadge
                                     memberId={post.author_id}
