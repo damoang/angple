@@ -144,7 +144,11 @@ export async function saveCertResult(
         [dupinfo, adult, mbId]
     );
 
-    // 인증 이력 저장
+    // 인증 이력 저장.
+    // ⚠️ ch_ci 컬럼에는 원본 CI가 아니라 dupinfo(단방향 해시)를 저장한다 — 의도된 설계.
+    //    checkDupinfo()도 이 값으로 중복을 조회하며, 이 이력은 탈퇴 시에도 삭제되지
+    //    않아 사실상 DI 영구백업 역할을 한다(원본 CI는 어디에도 저장하지 않음).
+    //    실제 CI로 바꾸지 말 것 — 중복차단(dedup)이 깨지고 DI 복구 경로가 사라진다.
     await pool.query(
         `INSERT INTO g5_member_cert_history (mb_id, ch_type, ch_ci, ch_datetime) VALUES (?, 'simple', ?, NOW())`,
         [mbId, dupinfo]
