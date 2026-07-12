@@ -1201,6 +1201,7 @@
                             <AuthorLink
                                 authorId={comment.author_id}
                                 authorName={comment.author}
+                                isWithdrawn={!!comment.is_left}
                                 expandTouchArea
                             />
                             <LevelBadge level={memberLevelStore.getLevel(comment.author_id)} />
@@ -1295,6 +1296,7 @@
                                         <AuthorLink
                                             authorId={comment.author_id}
                                             authorName={comment.author}
+                                            isWithdrawn={!!comment.is_left}
                                             expandTouchArea
                                         />
                                         <LevelBadge

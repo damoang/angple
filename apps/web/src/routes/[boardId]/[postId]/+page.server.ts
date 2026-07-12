@@ -247,6 +247,16 @@ export const load: PageServerLoad = async ({
         })();
 
         // 게시글 작성자 프로필 이미지 즉시 조회 (1단계 — 본문 렌더에 필요)
+        // 작성자 탈퇴 여부 — 닉네임 취소선 표시용(5분 캐시라 활동 게이트 조회와 중복돼도 저렴).
+        if (post.author_id) {
+            try {
+                const w = await fetchWithdrawnMemberIds([post.author_id]);
+                post.is_left = w.has(post.author_id);
+            } catch {
+                // 실패 시 취소선만 생략
+            }
+        }
+
         if (post.author_id && !post.author_image) {
             try {
                 const imgMap = await fetchMemberImagesWithTimestamp([post.author_id]);
