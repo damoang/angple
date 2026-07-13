@@ -729,6 +729,52 @@
         url.searchParams.set('page', String(pageNum));
         goto(url.pathname + url.search);
     }
+
+    // #12975 날짜 기반 아카이브 이동 — 페이지 번호 대신 날짜로 점프, 이후 커서로 과거로 이어감.
+    const dateMode = $derived(pagination.dateMode ?? false);
+    const archiveNextCursor = $derived(pagination.nextCursor ?? null);
+    const archiveDateNavEnabled = $derived(
+        !isSearching && (boardId === 'free' || boardId === 'hello')
+    );
+    // 연/월 옵션(개설연도 근사 2024 ~ 올해).
+    const archiveMonthOptions = $derived.by(() => {
+        const now = new Date();
+        const opts: { value: string; label: string }[] = [];
+        for (let y = now.getFullYear(); y >= 2024; y--) {
+            const mMax = y === now.getFullYear() ? now.getMonth() + 1 : 12;
+            for (let m = mMax; m >= 1; m--) {
+                opts.push({ value: `${y}-${String(m).padStart(2, '0')}`, label: `${y}년 ${m}월` });
+            }
+        }
+        return opts;
+    });
+
+    function jumpToArchiveMonth(ym: string): void {
+        if (!ym) return;
+        const url = new URL(window.location.href);
+        url.searchParams.delete('page');
+        url.searchParams.delete('cursor_wr_num');
+        url.searchParams.delete('cursor_wr_reply');
+        url.searchParams.set('before_date', ym);
+        goto(url.pathname + url.search);
+    }
+
+    function goToArchiveNext(): void {
+        if (!archiveNextCursor) return;
+        const url = new URL(window.location.href);
+        url.searchParams.delete('page');
+        url.searchParams.set('cursor_wr_num', String(archiveNextCursor.wrNum));
+        url.searchParams.set('cursor_wr_reply', archiveNextCursor.wrReply);
+        goto(url.pathname + url.search);
+    }
+
+    function exitArchive(): void {
+        const url = new URL(window.location.href);
+        for (const k of ['before_date', 'cursor_wr_num', 'cursor_wr_reply', 'page']) {
+            url.searchParams.delete(k);
+        }
+        goto(url.pathname + url.search);
+    }
 </script>
 
 <!-- 특수 게시판: 플러그인 레지스트리 기반 동적 로딩 -->
@@ -1478,7 +1524,7 @@
             </div>
 
             <!-- 페이지네이션 -->
-            {#if shouldShowPagination}
+            {#if shouldShowPagination && !dateMode}
                 <div class="mt-8 flex items-center justify-center gap-1 sm:gap-2">
                     <!-- #11941: 첫페이지 단축 — 항상 노출 (1페이지일 때만 비활성) -->
                     <Button
@@ -1533,6 +1579,39 @@
                         />
                     </div>
                 {/if}
+            {/if}
+            {#if dateMode}
+                <!-- #12975 날짜 아카이브: 커서 기반 과거 이동 (페이지 번호 무관·고속) -->
+                <div class="mt-8 flex flex-wrap items-center justify-center gap-2">
+                    <Button variant="outline" size="sm" onclick={exitArchive}
+                        >&laquo; 최신 목록</Button
+                    >
+                    <span class="text-muted-foreground text-sm">과거 글 보기 · 아카이브</span>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={!archiveNextCursor}
+                        onclick={goToArchiveNext}>이전 글 더보기 &raquo;</Button
+                    >
+                </div>
+            {/if}
+            {#if archiveDateNavEnabled}
+                <!-- 날짜로 이동(연/월) — 과거 글 탐색 -->
+                <div class="mt-3 flex items-center justify-center gap-2">
+                    <label for="archive-date-jump" class="text-muted-foreground text-xs"
+                        >📅 날짜로 이동</label
+                    >
+                    <select
+                        id="archive-date-jump"
+                        class="border-input bg-background rounded-md border px-2 py-1 text-sm"
+                        onchange={(e) => jumpToArchiveMonth(e.currentTarget.value)}
+                    >
+                        <option value="">이동할 월 선택</option>
+                        {#each archiveMonthOptions as o (o.value)}
+                            <option value={o.value}>{o.label}</option>
+                        {/each}
+                    </select>
+                </div>
             {/if}
         </div>
     {/if}
