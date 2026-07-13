@@ -32,6 +32,9 @@ interface PostsCacheData {
         total?: number;
         totalPages?: number;
         hasNext?: boolean;
+        // #12975 날짜 이동: 커서 기반 '다음' + 날짜 모드 여부.
+        nextCursor?: { wrNum: number; wrReply: string } | null;
+        dateMode?: boolean;
     };
     error: string | null;
 }
@@ -163,7 +166,8 @@ export const load: PageServerLoad = async ({
     params,
     locals,
     getClientAddress,
-    isDataRequest
+    isDataRequest,
+    setHeaders
 }) => {
     const canonicalBoardId = await resolveCanonicalBoardId(params.boardId);
     if (canonicalBoardId !== params.boardId) {
@@ -180,6 +184,16 @@ export const load: PageServerLoad = async ({
     const searchSort = url.searchParams.get('sort') || null;
     const tag = url.searchParams.get('tag') || null;
     const category = url.searchParams.get('category') || null;
+    // #12975: 날짜 기반 아카이브 이동. before_date 로 시점 점프, 이후 '다음'은 커서로 이어감.
+    const beforeDate = url.searchParams.get('before_date') || null;
+    const cursorWrNumRaw = url.searchParams.get('cursor_wr_num');
+    const cursorWrNum = cursorWrNumRaw !== null && cursorWrNumRaw !== '' ? cursorWrNumRaw : null;
+    const cursorWrReply = url.searchParams.get('cursor_wr_reply') ?? '';
+    const isDateMode = !!beforeDate || cursorWrNum !== null;
+    // 날짜/커서 아카이브 뷰는 검색엔진 색인 대상이 아니다(무한 커서 크롤 방지). 목록 1페이지·상세는 영향 없음.
+    if (isDateMode) {
+        setHeaders({ 'X-Robots-Tag': 'noindex, follow' });
+    }
     const rawMessagePeriod = boardId === 'message' ? url.searchParams.get('period') : null;
     const messagePeriod =
         boardId === 'message' &&
@@ -293,6 +307,13 @@ export const load: PageServerLoad = async ({
         }
         if (useSummaryListResponse) {
             queryParams.set('summary', '1');
+        }
+        // 날짜 이동: 첫 진입은 before_date, '다음'은 커서(cursor_wr_num/reply)로 이어감.
+        if (cursorWrNum !== null) {
+            queryParams.set('cursor_wr_num', cursorWrNum);
+            queryParams.set('cursor_wr_reply', cursorWrReply);
+        } else if (beforeDate) {
+            queryParams.set('before_date', beforeDate);
         }
         return `/api/v1/boards/${boardId}/posts?${queryParams.toString()}`;
     };
@@ -579,7 +600,16 @@ export const load: PageServerLoad = async ({
                     typeof meta.total === 'number' && meta.limit
                         ? Math.ceil(meta.total / meta.limit)
                         : undefined,
-                hasNext: meta.has_next === true
+                hasNext: meta.has_next === true,
+                // 날짜 이동 커서: '다음' 페이지를 위한 next_cursor(#12975).
+                nextCursor:
+                    meta.next_cursor_wr_num !== undefined && meta.next_cursor_wr_num !== null
+                        ? {
+                              wrNum: Number(meta.next_cursor_wr_num),
+                              wrReply: String(meta.next_cursor_wr_reply ?? '')
+                          }
+                        : null,
+                dateMode: isDateMode
             };
         } else {
             console.error('게시판 로딩 에러:', boardId, postsResult.reason);
