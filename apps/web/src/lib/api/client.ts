@@ -317,6 +317,12 @@ class ApiClient {
                     if (refreshed) {
                         return this.request<T>(endpoint, options, retryConfig, true);
                     }
+                    // #12971: refresh 실패 = access+refresh 양 토큰 만료(세션 종료).
+                    // UI가 로그인 상태로 남아(닉네임 표시) 실제 작성은 실패하는 stale 상태를
+                    // 막기 위해 세션 만료를 전파한다. 스토어 리스너가 auth 정리 + 재로그인 안내.
+                    if (browser) {
+                        window.dispatchEvent(new CustomEvent('auth:session-expired'));
+                    }
                 }
                 let errorMessage = '요청 실패';
                 let errorCode: string | undefined;
