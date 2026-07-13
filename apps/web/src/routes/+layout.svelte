@@ -10,6 +10,7 @@
     import { page } from '$app/stores';
     import { configureSeo } from '$lib/seo';
     import { authActions, authStore } from '$lib/stores/auth.svelte';
+    import { toast } from 'svelte-sonner';
     import { readPostsStore } from '$lib/stores/read-posts.svelte.js';
     import { collectAndReportFingerprint } from '$lib/fingerprint/device-fingerprint';
     import { themeStore } from '$lib/stores/theme.svelte';
@@ -523,6 +524,21 @@
             consumePendingAuthEvent();
         }
     }
+
+    // #12971: 세션 만료(access+refresh 양 토큰 만료) 시 UI가 로그인 상태로 남아
+    // 닉네임은 보이는데 작성은 실패하는 stale 상태를 방지한다. client.ts 가 refresh
+    // 실패 시 'auth:session-expired' 를 전파하면, auth 상태를 정리(닉네임 제거)하고
+    // 재로그인을 안내한다. (이미 로그아웃 상태면 중복 안내하지 않음)
+    $effect(() => {
+        if (!browser) return;
+        const handleSessionExpired = () => {
+            if (!authStore.isAuthenticated) return;
+            authActions.resetAuth();
+            toast.error('세션이 만료되어 로그아웃되었습니다. 다시 로그인해 주세요.');
+        };
+        window.addEventListener('auth:session-expired', handleSessionExpired);
+        return () => window.removeEventListener('auth:session-expired', handleSessionExpired);
+    });
 
     onMount(() => {
         // 디바이스 핑거프린트 수집 (로그인 사용자 한정, 1일 1회 throttle).
