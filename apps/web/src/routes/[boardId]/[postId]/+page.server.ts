@@ -157,9 +157,15 @@ export const load: PageServerLoad = async ({
             post.videos = [];
             post.downloads = [];
             post.files = [];
-            // 삭제글은 댓글도 노출하지 않는다(#12711). 댓글 API(부모 삭제 시 빈 배열 반환)와
-            // 정합을 맞추기 위해 권위 카운트도 0으로 — 헤더 카운트 라벨/SSR total/클라 backfill 게이트 일치.
-            post.comments_count = 0;
+            // 자진삭제(작성자 본인 삭제, deleted_by == 작성자)면 본문만 가리고 그 아래
+            // 댓글 스레드는 유지한다(#12965 — 댓글은 각 댓글 작성자의 소유·책임).
+            // 타인 삭제(관리자/징계 등) 또는 삭제자 미상이면 댓글도 가린다(#12711).
+            // 삭제 사유(자진/징계)는 문구로 구분하지 않는다. 댓글 API 게이트와 정합.
+            const selfDeleted = !!post.deleted_by && post.deleted_by === post.author_id;
+            if (!selfDeleted) {
+                // 헤더 카운트 라벨/SSR total/클라 backfill 게이트 일치를 위해 권위 카운트 0.
+                post.comments_count = 0;
+            }
             setHeaders({ 'X-Robots-Tag': 'noindex, noarchive' });
         }
 

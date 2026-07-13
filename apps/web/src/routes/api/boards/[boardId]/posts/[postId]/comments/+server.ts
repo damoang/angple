@@ -136,7 +136,7 @@ export const GET: RequestHandler = async ({ params, url, locals, request }) => {
         // 부모 글 조회 — 삭제 여부(#12711) + 마음메시지 익명 판정에 사용.
         // 익명 마음메시지는 PublishToGnuboard() 에서 wr_name="" 로 저장된다.
         const [parentRows] = await pool.query<RowDataPacket[]>(
-            `SELECT wr_deleted_at, mb_id, wr_name FROM ?? WHERE wr_id = ? AND wr_is_comment = 0 LIMIT 1`,
+            `SELECT wr_deleted_at, wr_deleted_by, mb_id, wr_name FROM ?? WHERE wr_id = ? AND wr_is_comment = 0 LIMIT 1`,
             [tableName, safePostId]
         );
         const parent = parentRows[0];
@@ -150,10 +150,18 @@ export const GET: RequestHandler = async ({ params, url, locals, request }) => {
             (parent.wr_name ?? '').toString().trim() === '';
         const anonymousAuthorId = postIsAnonymousMessage ? String(parent.mb_id ?? '') : '';
 
-        // 부모 글 삭제 여부 확인 — 삭제된 글은 본문이 "[삭제된 게시물]"로 가려지므로
-        // 그 아래 댓글도 노출하지 않는다. 관리자는 조정 목적상 계속 열람 가능.
+        // 부모 글 삭제 여부 확인.
+        // - 자진삭제(작성자 본인이 삭제, wr_deleted_by == 원글 mb_id): 댓글은 각 댓글
+        //   작성자의 것이므로 그 아래 댓글 스레드를 계속 노출한다(#12965).
+        // - 타인 삭제(관리자/징계 등, wr_deleted_by != 원글 mb_id) 또는 삭제자 미상:
+        //   콘텐츠 정책상 댓글도 가린다. 삭제 사유(징계 여부)는 노출하지 않는다.
+        // 관리자는 조정 목적상 항상 열람 가능.
+        const parentSelfDeleted =
+            !!parent?.wr_deleted_at &&
+            !!parent?.wr_deleted_by &&
+            String(parent.wr_deleted_by) === String(parent.mb_id);
         if (!isAdmin) {
-            if (!parent || parent.wr_deleted_at) {
+            if (!parent || (parent.wr_deleted_at && !parentSelfDeleted)) {
                 return json(
                     {
                         success: true,
