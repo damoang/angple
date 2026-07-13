@@ -73,17 +73,41 @@ export const GET: RequestHandler = async ({ url, cookies }) => {
         ]);
 
         const anonymousCount = Number(anonRows[0]?.cnt ?? 0);
-        return json({
-            success: true,
-            data: {
-                reactors: rows.map((r) => ({
+
+        // 회원별로 묶어 한 줄에 이모지 여러 개로 표시.
+        // rows 는 created_at DESC → 회원 첫 등장이 그 회원의 최신 시각.
+        // (member,target,reaction) 은 u_reaction UNIQUE 라 회원별 reaction 중복 없음.
+        const byMember = new Map<
+            string,
+            {
+                mb_id: string;
+                mb_nick: string;
+                mb_image: string;
+                mb_image_updated_at: string | undefined;
+                reactions: string[];
+                reacted_at: string;
+            }
+        >();
+        for (const r of rows) {
+            const existing = byMember.get(r.member_id);
+            if (existing) {
+                existing.reactions.push(r.reaction);
+            } else {
+                byMember.set(r.member_id, {
                     mb_id: r.member_id,
                     mb_nick: r.mb_nick || r.mb_name || r.member_id,
                     mb_image: r.mb_image_url || '',
                     mb_image_updated_at: r.mb_image_updated_at || undefined,
-                    reaction: r.reaction,
+                    reactions: [r.reaction],
                     reacted_at: toSafeIso(r.created_at)
-                })),
+                });
+            }
+        }
+
+        return json({
+            success: true,
+            data: {
+                reactors: [...byMember.values()],
                 anonymousCount,
                 total: rows.length + anonymousCount,
                 revealSince: REACTOR_REVEAL_SINCE
