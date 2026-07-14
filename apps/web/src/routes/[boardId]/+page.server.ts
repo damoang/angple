@@ -373,8 +373,12 @@ export const load: PageServerLoad = async ({
                     return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
                 });
             } else {
-                console.error('프로모션 게시판 로딩 에러:', promoBoardResult);
-                error = '게시글을 불러오는데 실패했습니다.';
+                // fetchPromotionBoardPosts 는 stale-while-revalidate 로 항상 success:true(stale/빈 목록)를
+                // 반환하므로 여기 도달은 예외적(promise reject 등). 하드 에러 대신 빈 목록으로 우아하게 저하 —
+                // 백그라운드 갱신이 곧 캐시를 채운다.
+                console.error('프로모션 게시판 로딩 저하(빈 목록 서빙):', promoBoardResult);
+                posts = [];
+                error = null;
             }
 
             const notices = noticesResult.status === 'fulfilled' ? noticesResult.value : [];
