@@ -17,11 +17,6 @@ export const GET: RequestHandler = () => {
             categories: ['social', 'news'],
             icons: [
                 {
-                    src: '/icons/icon.svg',
-                    sizes: 'any',
-                    type: 'image/svg+xml'
-                },
-                {
                     src: '/icons/icon-192.png',
                     sizes: '192x192',
                     type: 'image/png'
