@@ -249,6 +249,28 @@ describe('VideoObject (GSC 동영상 색인 — 썸네일 필수)', () => {
         ]);
     });
 
+    it('단독 문단 유튜브 앵커에서 videoId 수집 (나리야 자동임베드 복원 연동)', async () => {
+        const { extractVideosFromContent } = await import('./json-ld');
+        const html = `
+            <p><a target="_blank" href="https://www.youtube.com/watch?v=QSWsno8FsC4" rel="nofollow noreferrer noopener">https://www.youtube.com/watch?v=QSWsno8FsC4</a></p>`;
+        expect(extractVideosFromContent(html)).toEqual([{ type: 'youtube', id: 'QSWsno8FsC4' }]);
+    });
+
+    it('문장 속 인라인 유튜브 앵커는 수집하지 않음 (단독 문단만)', async () => {
+        const { extractVideosFromContent } = await import('./json-ld');
+        const html = `
+            <p>문장 속 <a href="https://youtu.be/dQw4w9WgXcQ">인라인 링크</a>는 제외됩니다</p>`;
+        expect(extractVideosFromContent(html)).toEqual([]);
+    });
+
+    it('단독 문단 앵커와 iframe 이 같은 영상이면 중복 제거', async () => {
+        const { extractVideosFromContent } = await import('./json-ld');
+        const html = `
+            <iframe src="https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ"></iframe>
+            <p><a href="https://www.youtube.com/watch?v=dQw4w9WgXcQ">https://www.youtube.com/watch?v=dQw4w9WgXcQ</a></p>`;
+        expect(extractVideosFromContent(html)).toEqual([{ type: 'youtube', id: 'dQw4w9WgXcQ' }]);
+    });
+
     it('createVideoObjectJsonLd: 필수값(name·thumbnailUrl·uploadDate·재생URL) 미충족 시 null', async () => {
         const { createVideoObjectJsonLd } = await import('./json-ld');
         const base = {

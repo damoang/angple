@@ -12,6 +12,10 @@ import type {
     JsonLdQAPage,
     JsonLdVideoObject
 } from './types';
+import {
+    STANDALONE_ANCHOR_PARAGRAPH_SOURCE,
+    YOUTUBE_URL_ID_PATTERN
+} from '$lib/utils/content-transform';
 
 /**
  * QAPage JSON-LD 생성 — 질문/답변 게시판(qa) 리치 결과
@@ -98,9 +102,11 @@ const YOUTUBE_EMBED_ID_RE =
 /**
  * 본문 HTML 에서 동영상을 추출 (VideoObject 구조화 데이터용)
  *
- * 단순 링크(<a href>)는 플레이어가 아니므로 제외하고, 실제 재생 요소만 본다:
+ * 실제 페이지에서 플레이어로 렌더되는 요소만 본다:
  * - <iframe src="...youtube.com/embed/ID...">  (tiptap Youtube 임베드)
  * - <video src="..."> 또는 <video><source src="..."></video>  (업로드 동영상)
+ * - 단독 문단 유튜브 앵커 (<p><a href="유튜브"> 하나만) — transformStandaloneYoutubeLinks
+ *   가 렌더 시 플레이어로 바꾸므로 포함. 문장 속 인라인 링크는 여전히 제외
  */
 export function extractVideosFromContent(html: string): ExtractedVideo[] {
     if (!html) return [];
@@ -109,6 +115,17 @@ export function extractVideosFromContent(html: string): ExtractedVideo[] {
 
     for (const m of html.matchAll(/<iframe[^>]*\ssrc\s*=\s*["']([^"']+)["']/gi)) {
         const id = m[1].match(YOUTUBE_EMBED_ID_RE)?.[1];
+        if (id && !seen.has(`yt:${id}`)) {
+            seen.add(`yt:${id}`);
+            videos.push({ type: 'youtube', id });
+        }
+    }
+
+    // 단독 문단 유튜브 앵커 — 구 그누보드(나리야) 글의 맨 유튜브 링크.
+    // GSC "동영상이 보기 페이지에 없음" 대응. 판정 regex 는 본문 변환기와 공유해 항상 일치
+    for (const m of html.matchAll(new RegExp(STANDALONE_ANCHOR_PARAGRAPH_SOURCE, 'gi'))) {
+        const href = m[1].replace(/&amp;/g, '&');
+        const id = href.match(YOUTUBE_URL_ID_PATTERN)?.[1];
         if (id && !seen.has(`yt:${id}`)) {
             seen.add(`yt:${id}`);
             videos.push({ type: 'youtube', id });
