@@ -10,6 +10,7 @@ import {
     transformInlineMarkdown,
     transformEmoticons,
     transformVideos,
+    transformStandaloneYoutubeLinks,
     transformBracketImages
 } from './content-transform';
 
@@ -242,6 +243,85 @@ describe('transformVideos - 태그 제거 보안', () => {
     it('패턴이 아닌 텍스트는 그대로 반환', () => {
         const input = '일반 텍스트입니다';
         expect(transformVideos(input)).toBe(input);
+    });
+});
+
+describe('transformStandaloneYoutubeLinks - 단독 문단 유튜브 링크 자동 임베드 (나리야 복원)', () => {
+    it('단독 문단 앵커를 임베드로 변환 (/free/4616449 실례)', () => {
+        const input =
+            '<p><a target="_blank" href="https://www.youtube.com/watch?v=QSWsno8FsC4" rel="nofollow noreferrer noopener">https://www.youtube.com/watch?v=QSWsno8FsC4</a></p>';
+        const result = transformStandaloneYoutubeLinks(input);
+        expect(result).toContain('class="embed-container"');
+        expect(result).toContain('data-platform="youtube"');
+        expect(result).toContain('youtube-nocookie.com/embed/QSWsno8FsC4');
+        expect(result).not.toContain('<a ');
+        expect(result).not.toContain('</p>');
+    });
+
+    it('문장 속 인라인 유튜브 링크는 변환하지 않음', () => {
+        const input =
+            '<p>이 영상 <a href="https://www.youtube.com/watch?v=dQw4w9WgXcQ">여기</a> 좋아요</p>';
+        expect(transformStandaloneYoutubeLinks(input)).toBe(input);
+    });
+
+    it('t= 파라미터를 start=로, list=는 유지', () => {
+        const input =
+            '<p><a href="https://www.youtube.com/watch?v=dQw4w9WgXcQ&amp;t=90s&amp;list=PLxyz_-123">https://www.youtube.com/watch?v=dQw4w9WgXcQ&amp;t=90s&amp;list=PLxyz_-123</a></p>';
+        const result = transformStandaloneYoutubeLinks(input);
+        expect(result).toContain('youtube-nocookie.com/embed/dQw4w9WgXcQ?start=90&list=PLxyz_-123');
+    });
+
+    it('shorts는 세로 비율(177.78%)로 변환', () => {
+        const input =
+            '<p><a href="https://www.youtube.com/shorts/dQw4w9WgXcQ">https://www.youtube.com/shorts/dQw4w9WgXcQ</a></p>';
+        const result = transformStandaloneYoutubeLinks(input);
+        expect(result).toContain('data-platform="youtube-shorts"');
+        expect(result).toContain('--aspect-ratio: 177.78%');
+        expect(result).toContain('--max-width: 400px');
+    });
+
+    it('유튜브가 아닌 단독 문단 앵커는 변환하지 않음', () => {
+        const input =
+            '<p>youtube 얘기</p><p><a href="https://vimeo.com/123456789">https://vimeo.com/123456789</a></p>';
+        expect(transformStandaloneYoutubeLinks(input)).toBe(input);
+    });
+
+    it('&nbsp;/<br>가 낀 단독 문단도 변환 (앵커 텍스트가 제목이어도)', () => {
+        const input =
+            '<p>&nbsp;<br><a href="https://youtu.be/dQw4w9WgXcQ">영상 제목입니다</a><br /> </p>';
+        const result = transformStandaloneYoutubeLinks(input);
+        expect(result).toContain('youtube-nocookie.com/embed/dQw4w9WgXcQ');
+        expect(result).not.toContain('<a ');
+    });
+
+    it('여러 문단 중 단독 유튜브 문단만 변환, 주변 콘텐츠 보존', () => {
+        const input =
+            '<p>앞 문단</p><p><a href="https://youtu.be/dQw4w9WgXcQ">https://youtu.be/dQw4w9WgXcQ</a></p><p>뒤에 <a href="https://youtu.be/abc123XYZ_-">인라인</a> 링크</p>';
+        const result = transformStandaloneYoutubeLinks(input);
+        expect(result).toContain('<p>앞 문단</p>');
+        expect(result).toContain('youtube-nocookie.com/embed/dQw4w9WgXcQ');
+        expect(result).toContain(
+            '<p>뒤에 <a href="https://youtu.be/abc123XYZ_-">인라인</a> 링크</p>'
+        );
+        expect(result).not.toContain('embed/abc123XYZ_-');
+    });
+
+    it('live 경로도 변환', () => {
+        const input =
+            '<p><a href="https://www.youtube.com/live/dQw4w9WgXcQ">https://www.youtube.com/live/dQw4w9WgXcQ</a></p>';
+        expect(transformStandaloneYoutubeLinks(input)).toContain(
+            'youtube-nocookie.com/embed/dQw4w9WgXcQ'
+        );
+    });
+
+    it('유튜브 URL이 없으면 원본 반환 (빠른 종료 가드)', () => {
+        const input = '<p><a href="https://example.com">https://example.com</a></p>';
+        expect(transformStandaloneYoutubeLinks(input)).toBe(input);
+    });
+
+    it('빈/null 입력', () => {
+        expect(transformStandaloneYoutubeLinks('')).toBe('');
+        expect(transformStandaloneYoutubeLinks(null as unknown as string)).toBe(null);
     });
 });
 
