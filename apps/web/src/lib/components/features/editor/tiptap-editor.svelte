@@ -155,7 +155,9 @@
         orderedList: false,
         blockquote: false,
         codeBlock: false,
-        link: false
+        link: false,
+        image: false,
+        imageFitWidth: false
     });
 
     let canUndo = $state(false);
@@ -212,7 +214,9 @@
             orderedList: e.isActive('orderedList'),
             blockquote: e.isActive('blockquote'),
             codeBlock: e.isActive('codeBlock'),
-            link: e.isActive('link')
+            link: e.isActive('link'),
+            image: e.isActive('image'),
+            imageFitWidth: e.getAttributes('image').fitWidth === true
         };
         const undo = e.can().undo();
         const redo = e.can().redo();
@@ -795,6 +799,21 @@
         editor?.chain().focus().updateAttributes('image', { href: null, linkTarget: null }).run();
         showImageLinkDialog = false;
         imageLinkUrl = '';
+    }
+
+    // 이미지 크기: '본문 폭 맞춤'(dm-fit-width) 토글 / '원본 크기'(width·fitWidth 해제)
+    function toggleImageFitWidth(): void {
+        if (!editor) return;
+        const current = editor.getAttributes('image').fitWidth === true;
+        editor.chain().focus().updateAttributes('image', { fitWidth: !current }).run();
+    }
+
+    function resetImageSize(): void {
+        editor
+            ?.chain()
+            .focus()
+            .updateAttributes('image', { fitWidth: false, width: null, height: null })
+            .run();
     }
 
     // 이미지 삽입
@@ -1397,6 +1416,33 @@
             >
                 <ImageIcon class="h-4 w-4" />
             </Button>
+            {#if isActive.image}
+                <!-- 이미지 선택 시에만: 크기 컨트롤 (저장된 의도만 존중, 렌더 추측 없음) -->
+                <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onclick={toggleImageFitWidth}
+                    {disabled}
+                    class="h-8 whitespace-nowrap px-2 text-xs {getButtonClass(
+                        isActive.imageFitWidth
+                    )}"
+                    title="이미지를 본문 폭에 맞춰 채웁니다"
+                >
+                    ↔ 본문 폭
+                </Button>
+                <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onclick={resetImageSize}
+                    {disabled}
+                    class="h-8 whitespace-nowrap px-2 text-xs"
+                    title="이미지를 원본 크기로 되돌립니다"
+                >
+                    원본
+                </Button>
+            {/if}
             <Button
                 type="button"
                 variant="ghost"
@@ -1904,11 +1950,16 @@
         margin: 1.5rem 0;
     }
 
-    /* 이미지 스타일 */
+    /* 이미지 스타일 — 기본은 원본 크기 + 컨테이너 상한(업스케일 없음, 뷰 prose 와 동일) */
     :global(.tiptap-content .tiptap img) {
         max-width: 100%;
         height: auto;
         margin: 0.75rem 0;
+    }
+
+    /* 작성자가 '본문 폭 맞춤'을 선택한 이미지만 전폭 (뷰의 .prose img.dm-fit-width 와 일치) */
+    :global(.tiptap-content .tiptap img.dm-fit-width) {
+        width: 100%;
     }
 
     /* 이미지 링크 표시 (에디터 내 링크 있는 이미지) */
