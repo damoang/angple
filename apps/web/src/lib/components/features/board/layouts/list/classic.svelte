@@ -256,15 +256,14 @@
                             <!-- svelte-ignore a11y_no_static_element_interactions -->
                             <span
                                 class="memo-badge memo-color--{memo.color || 'yellow'} shrink-0"
+                                class:memo-badge--expand={uiSettingsStore.expandMemoInList}
                                 title={memo.content}
                                 onclick={(e: MouseEvent) => {
                                     e.stopPropagation();
                                     e.preventDefault();
                                 }}
                             >
-                                {memo.content.length > 6
-                                    ? memo.content.slice(0, 6) + '\u2026'
-                                    : memo.content}
+                                {memo.content}
                             </span>
                         {/if}
                     {/if}
@@ -490,6 +489,15 @@
         font-size: 0.6875rem;
         line-height: 1.25rem;
         white-space: nowrap;
+        /* 컨테이너 공간껏 동적 표시 + 넘치면 … (호버 시 title 전체) */
+        overflow: hidden;
+        text-overflow: ellipsis;
+        vertical-align: bottom;
+        max-width: 4.5rem;
+    }
+    /* 넓게 표시(기본) — 화면 폭에 반응형: 모바일 좁게 ~ 데스크톱 넓게 */
+    .memo-badge--expand {
+        max-width: clamp(6rem, 22vw, 14rem);
     }
 
     :global(.memo-color--yellow) {

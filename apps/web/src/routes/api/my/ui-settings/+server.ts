@@ -44,7 +44,8 @@ const ALLOWED_KEYS = new Set<string>([
     'pinMemoSearch',
     'hideMemo',
     'hideMemoInList',
-    'blurMemo'
+    'blurMemo',
+    'expandMemoInList'
 ]);
 
 /** 남용 방어 상한 */

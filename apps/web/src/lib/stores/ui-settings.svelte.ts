@@ -54,6 +54,8 @@ export interface UiSettings {
     hideMemo: boolean;
     hideMemoInList: boolean;
     blurMemo: boolean;
+    /** 목록에서 메모 배지를 넓게(반응형) 표시 (기본 true) */
+    expandMemoInList: boolean;
 }
 
 const DEFAULTS: UiSettings = {
@@ -82,7 +84,8 @@ const DEFAULTS: UiSettings = {
     doubleTapInterval: 300,
     hideMemo: false,
     hideMemoInList: false,
-    blurMemo: false
+    blurMemo: false,
+    expandMemoInList: true
 };
 
 const LINE_HEIGHT_VALUES: Record<LineHeight, string> = {
@@ -450,6 +453,10 @@ function createUiSettingsStore() {
         },
         setBlurMemo(v: boolean) {
             settings.blurMemo = v;
+            save();
+        },
+        setExpandMemoInList(v: boolean) {
+            settings.expandMemoInList = v;
             save();
         },
 

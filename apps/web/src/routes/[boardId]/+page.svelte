@@ -431,12 +431,14 @@
             void loadBoardListMemos(uniqueAuthorIds);
         };
 
+        // 초기 렌더 비블로킹은 유지하되, 지연 상한을 짧게(300ms) 잡아
+        // 바쁜 페이지에서 idle 이 늦게 와 메모가 뒤늦게 뜨는 현상 방지.
         if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
-            memoScheduleToken = window.requestIdleCallback(loadTask, { timeout: 1500 });
+            memoScheduleToken = window.requestIdleCallback(loadTask, { timeout: 300 });
             return;
         }
 
-        memoScheduleToken = globalThis.setTimeout(loadTask, 250);
+        memoScheduleToken = globalThis.setTimeout(loadTask, 100);
     }
 
     onMount(() => {
