@@ -12,7 +12,7 @@
     import Ban from '@lucide/svelte/icons/ban';
     import UserPlus from '@lucide/svelte/icons/user-plus';
     import UserMinus from '@lucide/svelte/icons/user-minus';
-    import { canUseCertifiedAction, goToCertification } from '$lib/utils/certification-gate.js';
+    import { canSendMessage, goToCertification } from '$lib/utils/certification-gate.js';
     import type { Snippet } from 'svelte';
 
     interface Props {
@@ -123,7 +123,7 @@
             authStore.redirectToLogin();
             return;
         }
-        if (!canUseCertifiedAction(authStore.user, null)) {
+        if (!canSendMessage(authStore.user)) {
             goToCertification();
             return;
         }
@@ -257,9 +257,7 @@
                     <DropdownMenu.Item
                         class="cursor-pointer gap-2"
                         onclick={handleMessage}
-                        title={!canUseCertifiedAction(authStore.user, null)
-                            ? '실명인증'
-                            : undefined}
+                        title={!canSendMessage(authStore.user) ? '실명인증' : undefined}
                     >
                         <Mail class="h-3.5 w-3.5" />
                         쪽지 보내기
