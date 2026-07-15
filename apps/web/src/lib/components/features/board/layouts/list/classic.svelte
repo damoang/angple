@@ -257,6 +257,7 @@
                             <span
                                 class="memo-badge memo-color--{memo.color || 'yellow'} shrink-0"
                                 class:memo-badge--expand={uiSettingsStore.expandMemoInList}
+                                class:memo-badge--blur={uiSettingsStore.blurMemo}
                                 title={memo.content}
                                 onclick={(e: MouseEvent) => {
                                     e.stopPropagation();
@@ -498,6 +499,14 @@
     /* 넓게 표시(기본) — 화면 폭에 반응형: 모바일 좁게 ~ 데스크톱 넓게 */
     .memo-badge--expand {
         max-width: clamp(6rem, 22vw, 14rem);
+    }
+    /* 메모 내용 흐리게(호버 시 원래대로) — UI설정 blurMemo (#13010) */
+    .memo-badge--blur {
+        filter: blur(4px);
+        transition: filter 0.15s;
+    }
+    .memo-badge--blur:hover {
+        filter: none;
     }
 
     :global(.memo-color--yellow) {
