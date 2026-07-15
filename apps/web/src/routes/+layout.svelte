@@ -268,6 +268,17 @@
         loadPluginLib('member-memo', 'memo-store').catch(() => {});
     });
 
+    // 디바이스 핑거프린트 수집(로그인 1회, 수집기 내부 1일 throttle). 위와 동일 사유로
+    // onMount 시점엔 auth 미하이드레이션(isAuthenticated=false)이라 스킵되므로, $effect 로
+    // 로그인 확정 시점에 1회 발화한다. (기존 onMount 호출은 사실상 미발화 = fp 0건 원인)
+    let fpReported = false;
+    $effect(() => {
+        if (fpReported) return;
+        if (!browser || !authStore.isAuthenticated) return;
+        fpReported = true;
+        void collectAndReportFingerprint();
+    });
+
     // 메뉴 데이터 변경 시 키보드 단축키 빌드 (모듈 로드 후 활성화)
     $effect(() => {
         if (!keyboardShortcutsMod) return;
@@ -541,9 +552,8 @@
     });
 
     onMount(() => {
-        // 디바이스 핑거프린트 수집 (로그인 사용자 한정, 1일 1회 throttle).
-        // 기본 비활성 — PUBLIC_FINGERPRINT_ENABLED=true + 처리방침 공시·법률검토 후에만 동작.
-        if (browser && authStore.isAuthenticated) void collectAndReportFingerprint();
+        // 디바이스 핑거프린트 수집은 상단 $effect(로그인 확정 후 발화)로 이관.
+        // (onMount 는 auth 하이드레이션 전이라 isAuthenticated=false → 스킵되던 문제)
 
         // 로그인 회원 서버 read-set(L2, Redis) 병합 — 크로스기기 읽음 표시.
         // localStorage(L1)에 없는 항목만 추가(기존 로컬 timestamp 보존).
