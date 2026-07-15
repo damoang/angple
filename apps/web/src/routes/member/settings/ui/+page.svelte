@@ -1382,6 +1382,19 @@
                             onCheckedChange={(v) => uiSettingsStore.setBlurMemo(v)}
                         />
                     </div>
+                    <Separator />
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <Label>목록 메모 배지 넓게 표시</Label>
+                            <p class="text-muted-foreground text-xs">
+                                게시판 목록에서 메모를 화면 폭에 맞춰 넓게 보여줍니다 (끄면 좁게)
+                            </p>
+                        </div>
+                        <Switch
+                            checked={uiSettingsStore.expandMemoInList}
+                            onCheckedChange={(v) => uiSettingsStore.setExpandMemoInList(v)}
+                        />
+                    </div>
                 </CardContent>
             </Card>
         {/if}
