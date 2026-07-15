@@ -401,6 +401,9 @@ function createUiSettingsStore() {
         get blurMemo() {
             return settings.blurMemo;
         },
+        get expandMemoInList() {
+            return settings.expandMemoInList;
+        },
 
         setTitleBold(v: boolean) {
             settings.titleBold = v;
