@@ -56,6 +56,8 @@ export interface UiSettings {
     blurMemo: boolean;
     /** 목록에서 메모 배지를 넓게(반응형) 표시 (기본 true) */
     expandMemoInList: boolean;
+    /** 메모 색상별 사용자 지정 이름표 (color→label). 빈 값은 기본 이름 사용 (#13013) */
+    memoColorLabels: Record<string, string>;
 }
 
 const DEFAULTS: UiSettings = {
@@ -85,7 +87,8 @@ const DEFAULTS: UiSettings = {
     hideMemo: false,
     hideMemoInList: false,
     blurMemo: false,
-    expandMemoInList: true
+    expandMemoInList: true,
+    memoColorLabels: {}
 };
 
 const LINE_HEIGHT_VALUES: Record<LineHeight, string> = {
@@ -404,6 +407,9 @@ function createUiSettingsStore() {
         get expandMemoInList() {
             return settings.expandMemoInList;
         },
+        get memoColorLabels() {
+            return settings.memoColorLabels;
+        },
 
         setTitleBold(v: boolean) {
             settings.titleBold = v;
@@ -460,6 +466,15 @@ function createUiSettingsStore() {
         },
         setExpandMemoInList(v: boolean) {
             settings.expandMemoInList = v;
+            save();
+        },
+        /** 색상 이름표 설정. 빈 문자열이면 해당 색상 라벨 제거(기본 이름 사용). */
+        setMemoColorLabel(color: string, label: string) {
+            const trimmed = label.trim().slice(0, 10);
+            const next = { ...settings.memoColorLabels };
+            if (trimmed) next[color] = trimmed;
+            else delete next[color];
+            settings.memoColorLabels = next;
             save();
         },
 
