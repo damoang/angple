@@ -12,7 +12,7 @@
 
             let tries = 0;
             let done = false;
-            const maxTries = 60; // ~2s 에 걸쳐 33ms 간격
+            const maxTries = 60; // requestAnimationFrame 60프레임 (~1s). 이후는 ResizeObserver 가 커버
 
             // 문서가 목표 높이에 못 미치는 동안에는 scrollTo 를 호출하지 않는다.
             // 짧은 문서(이미지/광고 로드 전)에 scrollTo(target) 하면 맨 밑으로 clamp 되고,
