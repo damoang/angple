@@ -45,6 +45,8 @@ export interface FreePost {
     comments_count: number;
     created_at: string;
     updated_at?: string;
+    edit_count?: number; // 실제 수정 횟수 (change_type='update' 리비전, 백엔드 주입)
+    last_edited_at?: string; // 최종 수정 시각 (리비전 기반, 백엔드 주입)
     has_file?: boolean;
     has_video?: boolean;
     has_image?: boolean;
