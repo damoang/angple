@@ -12,18 +12,21 @@
 
             let tries = 0;
             let done = false;
-            const maxTries = 60; // ~2s 에 걸쳐 33ms 간격
+            const maxTries = 60; // requestAnimationFrame 60프레임 (~1s). 이후는 ResizeObserver 가 커버
 
+            // 문서가 목표 높이에 못 미치는 동안에는 scrollTo 를 호출하지 않는다.
+            // 짧은 문서(이미지/광고 로드 전)에 scrollTo(target) 하면 맨 밑으로 clamp 되고,
+            // 높이가 끝내 안 따라오면 그 상태로 고착돼 "목록이 맨 밑으로" 현상이 된다(#13022).
+            const tryScroll = () => {
+                const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+                if (maxScroll >= target - 2) {
+                    window.scrollTo(0, target);
+                    if (Math.abs(window.scrollY - target) <= 2) done = true;
+                }
+            };
             const attempt = () => {
                 if (done) return;
-                window.scrollTo(0, target);
-                // 목표 위치 ± 2px 도달 + 문서 높이가 충분하면 완료
-                if (
-                    Math.abs(window.scrollY - target) <= 2 &&
-                    document.documentElement.scrollHeight >= target + window.innerHeight - 1
-                ) {
-                    done = true;
-                }
+                tryScroll();
                 tries++;
                 if (!done && tries < maxTries) requestAnimationFrame(attempt);
             };
@@ -32,7 +35,12 @@
             // 이미지/광고가 로드돼 문서 높이가 변경될 때마다 재시도
             if (typeof ResizeObserver !== 'undefined') {
                 const ro = new ResizeObserver(() => {
-                    if (!done) window.scrollTo(0, target);
+                    if (done) {
+                        ro.disconnect();
+                        return;
+                    }
+                    tryScroll();
+                    if (done) ro.disconnect();
                 });
                 ro.observe(document.documentElement);
                 setTimeout(() => {
