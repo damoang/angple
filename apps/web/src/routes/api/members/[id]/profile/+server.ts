@@ -55,6 +55,11 @@ interface CountRow extends RowDataPacket {
     days: number;
 }
 
+interface NickHistoryRow extends RowDataPacket {
+    old_nick: string;
+    changed_at: string;
+}
+
 // Level thresholds (cumulative exp required for each level) — synced with backend
 const levelThresholds = [
     0, 1000, 3000, 6000, 10000, 15000, 21000, 28000, 36000, 45000, 55000, 66000, 78000, 91000,
@@ -250,6 +255,19 @@ export const GET: RequestHandler = async ({ params, locals }) => {
             // 테이블 없으면 무시
         }
 
+        // 닉네임 변경 이력 (공개, 최근순 — #13026). g5_member_nick_history 에 적재됨.
+        // member.mb_id(정본) 기준 — 슬러그가 닉일 수 있어 memberId(슬러그) 대신 사용.
+        let nickHistory: NickHistoryRow[] = [];
+        try {
+            [nickHistory] = await pool.query<NickHistoryRow[]>(
+                `SELECT old_nick, changed_at FROM g5_member_nick_history
+                 WHERE mb_id = ? ORDER BY changed_at DESC LIMIT 30`,
+                [member.mb_id]
+            );
+        } catch {
+            // 테이블 없으면 무시
+        }
+
         // 이미지 URL: 원본 값 그대로 전달 (프론트에서 getAvatarUrl로 CDN URL 변환)
         const imageUrl = member.mb_image_url || '';
 
@@ -295,7 +313,12 @@ export const GET: RequestHandler = async ({ params, locals }) => {
                 discipline_history: disciplineHistory,
                 // 팔로우
                 follower_count: followerRows[0]?.count ?? 0,
-                following_count: followingRows[0]?.count ?? 0
+                following_count: followingRows[0]?.count ?? 0,
+                // 닉네임 변경 이력 (과거 별명, 최근순) — #13026
+                nick_history: nickHistory.map((h) => ({
+                    old_nick: h.old_nick,
+                    changed_at: h.changed_at
+                }))
             }
         });
     } catch (error) {
