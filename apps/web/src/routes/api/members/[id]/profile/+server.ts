@@ -57,6 +57,7 @@ interface CountRow extends RowDataPacket {
 
 interface NickHistoryRow extends RowDataPacket {
     old_nick: string;
+    new_nick: string;
     changed_at: string;
 }
 
@@ -260,13 +261,16 @@ export const GET: RequestHandler = async ({ params, locals }) => {
         let nickHistory: NickHistoryRow[] = [];
         try {
             [nickHistory] = await pool.query<NickHistoryRow[]>(
-                `SELECT old_nick, changed_at FROM g5_member_nick_history
+                `SELECT old_nick, new_nick, changed_at FROM g5_member_nick_history
                  WHERE mb_id = ? ORDER BY changed_at DESC LIMIT 30`,
                 [member.mb_id]
             );
         } catch {
             // 테이블 없으면 무시
         }
+
+        // 뷰어가 관리자(level>=10)인지 — 닉 이력 전체 타임라인(new_nick) 노출 게이트.
+        const viewerIsAdmin = (locals.user?.level ?? 0) >= 10;
 
         // 이미지 URL: 원본 값 그대로 전달 (프론트에서 getAvatarUrl로 CDN URL 변환)
         const imageUrl = member.mb_image_url || '';
@@ -314,10 +318,12 @@ export const GET: RequestHandler = async ({ params, locals }) => {
                 // 팔로우
                 follower_count: followerRows[0]?.count ?? 0,
                 following_count: followingRows[0]?.count ?? 0,
-                // 닉네임 변경 이력 (과거 별명, 최근순) — #13026
+                // 닉네임 변경 이력 (과거 별명, 최근순) — #13026.
+                // 회원 공개는 old_nick+시각만. 관리자 뷰어(level>=10)에겐 new_nick 까지(전체 타임라인).
                 nick_history: nickHistory.map((h) => ({
                     old_nick: h.old_nick,
-                    changed_at: h.changed_at
+                    changed_at: h.changed_at,
+                    ...(viewerIsAdmin ? { new_nick: h.new_nick } : {})
                 }))
             }
         });
