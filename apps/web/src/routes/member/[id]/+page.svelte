@@ -585,6 +585,19 @@
                                     <span>{formatDate(p.mb_nick_date)} 닉네임 수정</span>
                                 </div>
                             {/if}
+                            {#if p.nick_history && p.nick_history.length > 0}
+                                <!-- 과거 별명(닉네임) 이력 — 공개(#13026). old_nick = 그 시점 변경 전 별명. -->
+                                <div class="flex items-start gap-2">
+                                    <User class="mt-0.5 h-4 w-4 shrink-0" />
+                                    <span>
+                                        이전 별명:
+                                        {#each p.nick_history as h, i (i)}<span
+                                                title={`${formatDate(h.changed_at)} 변경`}
+                                                >{h.old_nick}</span
+                                            >{i < p.nick_history.length - 1 ? ', ' : ''}{/each}
+                                    </span>
+                                </div>
+                            {/if}
                             {#if p.mb_level < 10}
                                 <div class="flex items-center gap-2">
                                     <Clock class="h-4 w-4 shrink-0" />
