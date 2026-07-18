@@ -70,6 +70,7 @@
         createDiscussionForumPostingJsonLd,
         createQAPageJsonLd,
         createVideoObjectJsonLd,
+        createRatedItemJsonLd,
         extractVideosFromContent,
         getSiteUrl,
         truncateText
@@ -1788,6 +1789,28 @@
                   })
                 : null;
 
+        // 앙티티(리뷰) 게시판 별점 집계 → 작품(Movie/Book 등) + AggregateRating.
+        // features.rating 보드에서만 백엔드가 post.rating 을 동봉하고, 참여 0(count<1)이면
+        // 헬퍼가 null 반환(블록 생략) → 구글 검색결과에 ★ 리치결과 노출용. 제목의 따옴표 안
+        // 작품명을 우선 사용(없으면 제목 전체).
+        const ratedItemJsonLd =
+            data.post.rating && !data.post.deleted_at && !data.post.is_secret
+                ? createRatedItemJsonLd({
+                      name: (
+                          data.post.title?.match(
+                              /["'“”‘’「」『』]([^"'“”‘’「」『』]+)["'“”‘’「」『』]/
+                          )?.[1] ||
+                          data.post.title ||
+                          ''
+                      ).trim(),
+                      category: data.post.category,
+                      ratingValue: data.post.rating.avg,
+                      ratingCount: data.post.rating.count,
+                      url: postUrl,
+                      image: ogImageUrl
+                  })
+                : null;
+
         return {
             meta: {
                 title: `${data.post.title} - ${boardTitle}`,
@@ -1854,7 +1877,9 @@
                     { name: data.post.title }
                 ]),
                 // VideoObject — 본문 유튜브 임베드·업로드 동영상 (최대 3개, null 은 필터됨)
-                ...videoJsonLds
+                ...videoJsonLds,
+                // 앙티티(리뷰) 별점 → AggregateRating (참여 0·비rating 보드면 null → 필터)
+                ratedItemJsonLd
             ]
         };
     });
