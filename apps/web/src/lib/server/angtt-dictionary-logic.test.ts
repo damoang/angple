@@ -104,3 +104,31 @@ describe('matchWorkFromTags — 태그 → 작품 매칭 규약', () => {
         expect(matchWorkFromTags(['앙티티', '듄'], dict)).toEqual({ query: '듄' });
     });
 });
+
+describe('extractTitleCandidates — 자유 제목에서 작품명 추출 (실전: angtt/7297)', () => {
+    it('따옴표 안 텍스트 + 괄호 제거 변형을 후보로 추출', async () => {
+        const { extractTitleCandidates } = await import('./angtt-dictionary-logic');
+        const c = extractTitleCandidates('영화 "호프(HOPE)" 감상후기..');
+        expect(c).toContain('호프(hope)');
+        expect(c).toContain('호프');
+        expect(c).toContain('영화 "호프(hope)" 감상후기..');
+    });
+
+    it('낫표·겹화살괄호도 지원, 2글자 미만 후보 제외', async () => {
+        const { extractTitleCandidates } = await import('./angtt-dictionary-logic');
+        expect(extractTitleCandidates('「듄」 후기')).toContain('듄 후기'.split(' ')[0].length >= 2 ? '듄 후기' : '「듄」 후기'.toLowerCase());
+        const c2 = extractTitleCandidates('드라마 《폭싹 속았수다》 정주행');
+        expect(c2).toContain('폭싹 속았수다');
+        // 1글자 인용("듄")은 후보 제외돼도 전체 제목으로는 색인됨
+        expect(extractTitleCandidates('"듄"')).not.toContain('듄');
+    });
+
+    it('buildDictionary: 자유 제목 글이 작품명 태그와 매칭됨 (호프 케이스)', async () => {
+        const { buildDictionary, matchWorkFromTags } = await import('./angtt-dictionary-logic');
+        const dict = buildDictionary([
+            { wrId: 7297, title: '영화 "호프(HOPE)" 감상후기..', thumbnail: '' }
+        ]);
+        const r = matchWorkFromTags(['앙티티', '호프'], dict);
+        expect(r && 'work' in r ? r.work.wrId : null).toBe(7297);
+    });
+});

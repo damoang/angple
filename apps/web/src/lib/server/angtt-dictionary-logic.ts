@@ -39,19 +39,54 @@ export function hasAngttTag(tags: readonly string[]): boolean {
 }
 
 /**
+ * 제목에서 작품명 후보 키들을 추출한다.
+ *
+ * 앙티티 글 제목이 순수 작품명이 아닌 경우가 많아(실례: 영화 "호프(HOPE)" 감상후기..)
+ * 전체 제목 외에 따옴표류(" " ' ' 「」 『』 < > 《》) 안 텍스트와 그 괄호 제거
+ * 변형을 후보로 추가한다. 매칭(태그 쪽)은 여전히 정확 일치라 오탐 위험은 낮다.
+ * 2글자 미만 후보는 흔한 단어 오탐 방지를 위해 제외.
+ */
+export function extractTitleCandidates(title: string): string[] {
+    const candidates = new Set<string>();
+    const add = (raw: string) => {
+        const key = normalizeWorkTitle(raw);
+        if (key.length >= 2) candidates.add(key);
+    };
+
+    add(title);
+
+    for (const m of title.matchAll(
+        /["“”'‘’「」『』《》<>]([^"“”'‘’「」『』《》<>]{1,60})["“”'‘’「」『』《》<>]/g
+    )) {
+        const inner = m[1];
+        add(inner);
+        // 괄호 병기 제거 변형: 호프(HOPE) → 호프
+        const noParen = inner.replace(/[(（][^)）]*[)）]/g, '');
+        if (noParen !== inner) add(noParen);
+    }
+
+    return [...candidates];
+}
+
+/**
  * angtt 글 목록 → 정규화 사전 생성.
- * 동명 작품(정규화 제목 중복)은 최신 글(wr_id 큰 쪽) 우선.
+ * 각 글은 전체 제목 + 따옴표 추출 후보들로 색인된다.
+ * 키 중복(동명 작품·후보 충돌)은 최신 글(wr_id 큰 쪽) 우선.
  */
 export function buildDictionary(
     posts: readonly { wrId: number; title: string; thumbnail: string }[]
 ): AngttDictionary {
     const dict: AngttDictionary = new Map();
     for (const post of posts) {
-        const key = normalizeWorkTitle(post.title);
-        if (!key) continue;
-        const existing = dict.get(key);
-        if (existing && existing.wrId >= post.wrId) continue;
-        dict.set(key, { wrId: post.wrId, title: post.title.trim(), thumbnail: post.thumbnail });
+        for (const key of extractTitleCandidates(post.title)) {
+            const existing = dict.get(key);
+            if (existing && existing.wrId >= post.wrId) continue;
+            dict.set(key, {
+                wrId: post.wrId,
+                title: post.title.trim(),
+                thumbnail: post.thumbnail
+            });
+        }
     }
     return dict;
 }
