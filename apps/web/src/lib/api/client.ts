@@ -49,6 +49,7 @@ import type {
     RegisterRequest,
     RegisterResponse,
     PostRevision,
+    PostRating,
     Scrap,
     BoardGroup,
     CommentReportInfo,
@@ -1233,6 +1234,61 @@ class ApiClient {
         const json = await res.json();
         if (!json.success) return { likes: 0, user_liked: false };
         return json.data;
+    }
+
+    // ========================================
+    // 게시글 별점 (features.rating 보드 — 앙티티 Phase 0)
+    // ========================================
+
+    /**
+     * 별점 응답 정규화 — 계약은 bare {avg, count, my} 이지만
+     * 표준 {success, data: {...}} 래핑으로 내려와도 수용한다.
+     */
+    private normalizeRating(response: ApiResponse<PostRating>): PostRating {
+        const body = (
+            response &&
+            typeof response === 'object' &&
+            response.data &&
+            typeof response.data === 'object'
+                ? response.data
+                : response
+        ) as Partial<PostRating> | null | undefined;
+        return {
+            avg: typeof body?.avg === 'number' ? body.avg : 0,
+            count: typeof body?.count === 'number' ? body.count : 0,
+            my: typeof body?.my === 'number' ? body.my : 0
+        };
+    }
+
+    /**
+     * 게시글 별점 집계 조회 (avg/count/my). 비로그인 my=0.
+     * features.rating 미설정 보드는 403.
+     */
+    async getPostRating(boardId: string, postId: number | string): Promise<PostRating> {
+        const response = await this.request<PostRating>(
+            `/boards/${boardId}/posts/${postId}/rating`
+        );
+        return this.normalizeRating(response);
+    }
+
+    /**
+     * 게시글 별점 등록/수정 (1~5, 재투표 허용)
+     * 🔒 인증 필요 (앙님💛 이상) — 401 / 403(레벨·비활성 보드) / 400(범위 밖) 가능
+     */
+    async putPostRating(
+        boardId: string,
+        postId: number | string,
+        rating: number
+    ): Promise<PostRating> {
+        const response = await this.request<PostRating>(
+            `/boards/${boardId}/posts/${postId}/rating`,
+            {
+                method: 'PUT',
+                body: JSON.stringify({ rating })
+            },
+            WRITE_REQUEST_CONFIG
+        );
+        return this.normalizeRating(response);
     }
 
     /**

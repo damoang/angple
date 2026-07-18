@@ -45,6 +45,7 @@
     import Pin from '@lucide/svelte/icons/pin';
     import ShareButton from '$lib/components/post/share-button.svelte';
     import PluginSlot from '$lib/components/plugin/plugin-slot.svelte';
+    import PostRatingWidget from '../../post-rating.svelte';
     import type { ViewLayoutProps } from '../types.js';
 
     const FONT_SIZES: Record<ContentFontSize, string> = {
@@ -334,6 +335,12 @@
                 >
             </div>
         </div>
+
+        <!-- 별점 위젯 (앙티티 Phase 0): features.rating 보드에서만 백엔드가
+             post.rating 을 동봉 → 없으면 렌더 0 (전 게시판 회귀 0) -->
+        {#if post.rating}
+            <PostRatingWidget {boardId} postId={post.id} initial={post.rating} />
+        {/if}
     </CardHeader>
     <CardContent class="space-y-6">
         <!-- 진실의방: 원본 게시글/댓글 링크 -->
