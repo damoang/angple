@@ -414,8 +414,15 @@ export const GET: RequestHandler = async ({ params, url, locals, request }) => {
                 }
             },
             {
-                // 댓글 작성 후 refetch 시 stale 응답 차단 (#12548)
-                headers: { 'Cache-Control': 'private, no-cache, no-store, must-revalidate' }
+                // 로그인 사용자: 작성 후 refetch stale 차단(#12548) + 뷰어별 is_blocked 개인화 → private.
+                // 비로그인: 개인화 없음(공개) + 댓글을 쓰지 않음 → 짧은 SWR 캐시로 SPA backfill
+                //   스켈레톤을 near-instant 로 (신규 댓글은 최대 10초 지연). 리액션 GET 과 동일 패턴 —
+                //   CloudFront 가 쿠키 기준으로 로그인/비로그인 캐시를 분리하므로 개인화 누출 없음.
+                headers: {
+                    'Cache-Control': locals.user?.id
+                        ? 'private, no-cache, no-store, must-revalidate'
+                        : 'public, s-maxage=10, stale-while-revalidate=30'
+                }
             }
         );
     } catch (error) {
