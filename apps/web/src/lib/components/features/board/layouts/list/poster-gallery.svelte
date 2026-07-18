@@ -101,15 +101,26 @@
                 </div>
             </div>
 
-            <!-- 카테고리 뱃지 (좌상단) -->
-            {#if post.category}
-                <div class="absolute left-2 top-2">
-                    <Badge
-                        variant="secondary"
-                        class="bg-black/50 text-xs text-white backdrop-blur-sm"
-                    >
-                        {post.category}
-                    </Badge>
+            <!-- 카테고리 · 별점 뱃지 (좌상단) -->
+            {#if post.category || (post.rating && post.rating.count > 0)}
+                <div class="absolute left-2 top-2 flex flex-col items-start gap-1">
+                    {#if post.category}
+                        <Badge
+                            variant="secondary"
+                            class="bg-black/50 text-xs text-white backdrop-blur-sm"
+                        >
+                            {post.category}
+                        </Badge>
+                    {/if}
+                    <!-- 별점 오버레이 (앙티티 Phase 0): 목록 응답에 rating 동봉 시에만 -->
+                    {#if post.rating && post.rating.count > 0}
+                        <Badge
+                            variant="secondary"
+                            class="bg-black/50 text-xs text-amber-300 backdrop-blur-sm"
+                        >
+                            ★ {post.rating.avg.toFixed(1)}
+                        </Badge>
+                    {/if}
                 </div>
             {/if}
 
