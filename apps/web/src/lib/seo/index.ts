@@ -27,6 +27,8 @@ export {
     createFAQPageJsonLd,
     createQAPageJsonLd,
     createVideoObjectJsonLd,
+    createRatedItemJsonLd,
+    ratingSchemaTypeForCategory,
     extractVideosFromContent
 } from './json-ld';
 export type { ExtractedVideo } from './json-ld';

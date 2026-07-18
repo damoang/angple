@@ -166,6 +166,24 @@ export interface JsonLdVideoObject {
     contentUrl?: string;
 }
 
+/** JSON-LD - AggregateRating (별점 리치결과: 구글 검색결과에 ★ 노출) */
+export interface JsonLdAggregateRating {
+    '@type': 'AggregateRating';
+    ratingValue: number;
+    ratingCount: number;
+    bestRating: number;
+    worstRating: number;
+}
+
+/** JSON-LD - 평점 대상 아이템 (작품/장소 등 + aggregateRating). 앙티티(리뷰) 게시판용. */
+export interface JsonLdRatedItem {
+    '@type': 'Movie' | 'TVSeries' | 'Book' | 'VideoGame' | 'Event' | 'CreativeWork';
+    name: string;
+    url?: string;
+    image?: string;
+    aggregateRating: JsonLdAggregateRating;
+}
+
 export type JsonLdData =
     | JsonLdWebSite
     | JsonLdArticle
@@ -174,7 +192,8 @@ export type JsonLdData =
     | JsonLdDiscussionForumPosting
     | JsonLdFAQPage
     | JsonLdQAPage
-    | JsonLdVideoObject;
+    | JsonLdVideoObject
+    | JsonLdRatedItem;
 
 /** 페이지네이션 SEO 정보 */
 export interface PaginationSeo {
