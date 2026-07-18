@@ -42,6 +42,7 @@
     import CommentList from '$lib/components/features/board/comment-list.svelte';
     import AuthorActivityPanel from '$lib/components/features/board/author-activity-panel.svelte';
     import RecentPosts from '$lib/components/features/board/recent-posts.svelte';
+    import AngttConnectCard from '$lib/components/features/board/angtt-connect-card.svelte';
     import { BOARD_LIST_PAGE_SIZE } from '$lib/constants/board';
     import { ReportDialog } from '$lib/components/features/report/index.js';
     import type { FreeComment, FreePost, LikerInfo, PostRevision } from '$lib/api/types.js';
@@ -2209,6 +2210,11 @@
                     {/each}
                 </div>
             </div>
+        {/if}
+
+        <!-- 앙티티 커넥트 카드 (Phase 1): 태그 「앙티티」+작품명 규약 — 서버 매칭, SSR 렌더 -->
+        {#if data.angttMatch}
+            <AngttConnectCard match={data.angttMatch} {boardId} postId={data.post.id} />
         {/if}
 
         {#each beforeCommentsSlots as slot (slot.component)}
