@@ -30,7 +30,8 @@
             content: string,
             parentId?: string | number,
             isSecret?: boolean,
-            images?: string[]
+            images?: string[],
+            rating?: number
         ) => Promise<void>;
         onCancel?: () => void;
         placeholder?: string;
@@ -45,6 +46,8 @@
         boardId?: string;
         onRefresh?: () => void;
         isRefreshing?: boolean;
+        /** 별점(리뷰) 게시판에서 원댓글에 별점 입력 노출 (angtt 등). 리뷰=댓글+별점 */
+        showRating?: boolean;
     }
 
     let {
@@ -61,8 +64,13 @@
         isRestricted = false,
         boardId = 'free',
         onRefresh,
-        isRefreshing = false
+        isRefreshing = false,
+        showRating = false
     }: Props = $props();
+
+    // 별점(리뷰=댓글+별점): 원댓글에서만, 작성자 본인의 리뷰 점수 (1~5, 0=무평점)
+    let rating = $state(0);
+    let hoverRating = $state(0);
 
     const canComment = $derived.by(() => {
         if (!authStore.isAuthenticated) return false;
@@ -172,9 +180,12 @@
 
         try {
             const submitContent = await stripAdminMentions(convertEmoticonImages(content.trim()));
-            await onSubmit(submitContent, parentId, false);
+            // 별점은 원댓글(리뷰)에만 — 대댓글/비rating 보드는 undefined
+            const reviewRating = showRating && !isReplyMode && rating > 0 ? rating : undefined;
+            await onSubmit(submitContent, parentId, false, undefined, reviewRating);
             trackEvent('comment_write', { board_id: boardId, is_reply: isReplyMode });
             content = '';
+            rating = 0;
             editorRef?.clear();
         } catch (err) {
             error = err instanceof Error ? err.message : '댓글 작성에 실패했습니다.';
@@ -253,6 +264,38 @@
 
 {#if canComment}
     <form onsubmit={handleSubmit} class="space-y-2">
+        {#if showRating && !isReplyMode}
+            <!-- 리뷰 별점 (리뷰=댓글+별점): 원댓글에만, 선택(무평점 가능) -->
+            <div class="flex items-center gap-2">
+                <span class="text-muted-foreground text-sm">별점</span>
+                <div
+                    class="inline-flex items-center"
+                    role="radiogroup"
+                    aria-label="리뷰 별점 선택 (1~5점, 선택)"
+                    onmouseleave={() => (hoverRating = 0)}
+                >
+                    {#each [1, 2, 3, 4, 5] as star (star)}
+                        <button
+                            type="button"
+                            role="radio"
+                            aria-checked={rating === star}
+                            aria-label={`별점 ${star}점`}
+                            class="p-0.5 text-xl leading-none transition-colors {(hoverRating ||
+                                rating) >= star
+                                ? 'text-amber-400'
+                                : 'text-muted-foreground/40'}"
+                            onmouseenter={() => (hoverRating = star)}
+                            onclick={() => (rating = rating === star ? 0 : star)}
+                        >
+                            ★
+                        </button>
+                    {/each}
+                </div>
+                {#if rating > 0}
+                    <span class="text-muted-foreground text-xs">{rating}.0</span>
+                {/if}
+            </div>
+        {/if}
         {#if isReplyMode}
             <div class="text-muted-foreground flex items-center gap-2 text-sm">
                 <CornerDownRight class="h-4 w-4" />

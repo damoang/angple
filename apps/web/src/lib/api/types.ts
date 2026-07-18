@@ -115,6 +115,8 @@ export interface FreeComment {
     is_blocked?: boolean;
     /** 작성자 탈퇴 여부 — 닉네임 취소선 표시용. */
     is_left?: boolean;
+    /** 리뷰 별점(리뷰=댓글+별점): 작성자가 이 댓글에 남긴 리뷰 점수(1~5). 별점 게시판만. */
+    review_rating?: number;
     link1?: string;
     link2?: string;
     link1_display?: string;

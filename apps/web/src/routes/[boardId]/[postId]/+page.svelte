@@ -1493,7 +1493,8 @@
         content: string,
         parentId?: string | number,
         isSecret?: boolean,
-        images?: string[]
+        images?: string[],
+        rating?: number
     ): Promise<void> {
         if (!authStore.user) {
             throw new Error('로그인이 필요합니다.');
@@ -1508,6 +1509,16 @@
                 is_secret: isSecret,
                 images
             });
+
+            // 리뷰 별점(리뷰=댓글+별점): 댓글 저장 후 그 댓글 wr_id 에 작성자 본인 별점 기록.
+            // be#562 별점 API 재사용(댓글 wr_id 수용 확인). 실패해도 댓글 작성은 성공 유지.
+            if (rating && rating > 0 && newComment?.id) {
+                try {
+                    await apiClient.putPostRating(boardId, String(newComment.id), rating);
+                } catch (ratingErr) {
+                    console.error('리뷰 별점 저장 실패(댓글은 작성됨):', ratingErr);
+                }
+            }
 
             // Optimistic update: 서버 응답 즉시 목록에 추가 (#11946)
             let optimisticComment: FreeComment | null = null;
@@ -2393,6 +2404,7 @@
                                     {boardId}
                                     onRefresh={refreshComments}
                                     isRefreshing={isRefreshingComments}
+                                    showRating={data.post.rating !== undefined}
                                 />
                             {/key}
                         {/if}
