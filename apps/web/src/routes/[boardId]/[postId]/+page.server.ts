@@ -31,6 +31,7 @@ import { BackendUnavailableError } from '$lib/server/backend-fetch.js';
 import { applyFilter } from '$lib/hooks/registry.js';
 import { buildHookContext } from '$lib/hooks/context.js';
 import { prefetchBlueskyDIDs } from '$lib/server/bluesky/transform.js';
+import { resolveAngttMatch, type AngttMatch } from '$lib/server/angtt-dictionary.js';
 
 /**
  * 게시글 상세 페이지 — Streaming SSR
@@ -251,6 +252,15 @@ export const load: PageServerLoad = async ({
                 return emptyActivity;
             }
         })();
+
+        // 앙티티 커넥트(Phase 1): 태그 「앙티티」 옵트인 글에만 작품 사전 매칭 + 별점 조회.
+        // 사전=인메모리 5분 캐시(+실패 시 stale/빈 Map), fetch 는 2s 타임아웃 + 내부 catch —
+        // 실패는 undefined 수렴이라 페이지 로드를 절대 블록하지 않는다.
+        // 앙티티 게시판 자기 글에는 미표시. return 직전 await → SSR 렌더 (내부링크 SEO).
+        const angttMatchPromise: Promise<AngttMatch | undefined> =
+            boardId === 'angtt' || post.deleted_at
+                ? Promise.resolve(undefined)
+                : resolveAngttMatch(post.tags).catch(() => undefined);
 
         // 게시글 작성자 프로필 이미지 즉시 조회 (1단계 — 본문 렌더에 필요)
         // 작성자 탈퇴 여부 — 닉네임 취소선 표시용(5분 캐시라 활동 게이트 조회와 중복돼도 저렴).
@@ -741,6 +751,9 @@ export const load: PageServerLoad = async ({
         // 페이지 로드를 추가로 블록하지 않는다. 익명·탈퇴는 상위 가드에서 null 수렴.
         const memberActivity = post.deleted_at ? null : await memberActivityPromise;
 
+        // 앙티티 커넥트 카드 데이터 — 위에서 병렬 시작한 promise 를 여기서 확정 (reject 없음).
+        const angttMatch = await angttMatchPromise;
+
         // Phase 1C: 플러그인 enrich filter (member-memo author_memo 등).
         // 미설치 시 pass-through. (premium PR #43 기준 stub)
         // Step A′: 서버 hook 표준 컨텍스트(site/user) 전달.
@@ -766,6 +779,8 @@ export const load: PageServerLoad = async ({
             recentPosts,
             /** SEO 내부링크(#83): 작성자 활동 패널 SSR 확정 데이터 */
             memberActivity,
+            /** 앙티티 커넥트(Phase 1): 태그 「앙티티」+작품명 → 작품 카드 (없으면 undefined) */
+            angttMatch,
             /** 스트리밍: Promise로 반환 → 클라이언트에서 $effect로 수신 */
             streamed: {
                 auxiliaryData: auxiliaryDataPromise
