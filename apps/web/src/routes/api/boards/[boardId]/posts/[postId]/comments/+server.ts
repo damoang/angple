@@ -77,6 +77,8 @@ interface CommentResponseItem {
     is_blocked?: boolean;
     /** 작성자가 탈퇴 회원인지 — 닉네임 취소선 표시용. */
     is_left?: boolean;
+    /** 리뷰 별점(리뷰=댓글+별점): 작성자가 이 댓글에 남긴 리뷰 점수(1~5). 별점 게시판만. */
+    review_rating?: number;
 }
 
 interface DisciplineRow extends RowDataPacket {
@@ -240,6 +242,24 @@ export const GET: RequestHandler = async ({ params, url, locals, request }) => {
             }
         }
 
+        // 리뷰 별점(리뷰=댓글+별점): angple_post_ratings 에서 댓글 wr_id 별 평균(작성자 리뷰 점수).
+        // 초경량 테이블 + PK(bo_table,wr_id) 인덱스 seek. 비rating 보드는 결과 0(무해). 실패 무시.
+        const reviewRatingMap = new Map<number, number>();
+        if (commentIds.length > 0) {
+            try {
+                const [rrRows] = await pool.query<RowDataPacket[]>(
+                    `SELECT wr_id, ROUND(AVG(rating), 1) AS avg_rating
+                     FROM angple_post_ratings
+                     WHERE bo_table = ? AND wr_id IN (?)
+                     GROUP BY wr_id`,
+                    [safeBoardId, commentIds]
+                );
+                for (const r of rrRows) reviewRatingMap.set(Number(r.wr_id), Number(r.avg_rating));
+            } catch (e) {
+                console.warn('[review-rating] enrich(comments) failed:', e);
+            }
+        }
+
         // 요청자가 차단한 작성자 집합 (#12825). 서버에서 is_blocked 를 판정해 내려주면
         // 클라이언트 차단 스토어가 비동기 로드되기 전에도 첫 렌더부터 접힘 상태로 표시되어
         // "보였다 숨었다" 깜박임이 사라진다. 실패는 무시(클라 스토어가 fallback).
@@ -307,6 +327,9 @@ export const GET: RequestHandler = async ({ params, url, locals, request }) => {
             ...(row.mb_id && blockedSet.has(String(row.mb_id)) ? { is_blocked: true } : {}),
             ...(row.mb_id && withdrawnSet.has(String(row.mb_id)) ? { is_left: true } : {}),
             ...(disciplineSet.has(row.wr_id) ? { is_discipline_related: true } : {}),
+            ...(reviewRatingMap.has(row.wr_id)
+                ? { review_rating: reviewRatingMap.get(row.wr_id) }
+                : {}),
             ...(isAdmin && row.wr_7
                 ? {
                       report_count:
