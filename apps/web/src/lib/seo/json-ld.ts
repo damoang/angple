@@ -187,13 +187,14 @@ export function createVideoObjectJsonLd(options: {
  */
 export function ratingSchemaTypeForCategory(category?: string): JsonLdRatedItem['@type'] {
     switch ((category || '').trim()) {
+        // 드라마도 Movie 로 — Google 리뷰 스니펫 지원 타입은 Movie 이고 TVSeries 는 미지원이라,
+        // ★ 리치결과를 실제로 띄우려면 Movie 로 매핑한다(스키마상 무해).
         case '영화':
+        case '드라마':
         case 'NETFLIX':
         case 'APPLE_TV':
         case '다큐':
             return 'Movie';
-        case '드라마':
-            return 'TVSeries';
         case '웹툰':
         case '만화':
         case '소설':

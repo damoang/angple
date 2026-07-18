@@ -2,13 +2,10 @@ import { describe, it, expect } from 'vitest';
 import { createRatedItemJsonLd, ratingSchemaTypeForCategory } from './json-ld';
 
 describe('ratingSchemaTypeForCategory — 앙티티 카테고리 → schema.org 타입', () => {
-    it('영화 계열 → Movie', () => {
-        for (const c of ['영화', 'NETFLIX', 'APPLE_TV', '다큐']) {
+    it('영화·드라마 계열 → Movie (드라마도 Google 리치결과 위해 Movie)', () => {
+        for (const c of ['영화', '드라마', 'NETFLIX', 'APPLE_TV', '다큐']) {
             expect(ratingSchemaTypeForCategory(c)).toBe('Movie');
         }
-    });
-    it('드라마 → TVSeries', () => {
-        expect(ratingSchemaTypeForCategory('드라마')).toBe('TVSeries');
     });
     it('책/만화 계열 → Book', () => {
         for (const c of ['웹툰', '만화', '소설', '책']) {
