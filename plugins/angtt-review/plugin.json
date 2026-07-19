@@ -1,0 +1,30 @@
+{
+    "id": "angtt-review",
+    "name": "앙티티 리뷰",
+    "version": "0.1.0",
+    "description": "작품(앙티티) 전용 페이지 — 커뮤니티 별점과 앙님 후기를 모아 보여줍니다.",
+    "author": {
+        "name": "Damoang Team",
+        "url": "https://damoang.net"
+    },
+    "license": "UNLICENSED",
+    "category": "plugin",
+    "main": "index.ts",
+    "hooks": [],
+    "api": {
+        "rest": {
+            "prefix": "/api/plugins/angtt-review",
+            "routes": [
+                {
+                    "method": "GET",
+                    "path": "/entities/:slug",
+                    "handler": "server/entity-api.ts",
+                    "authenticated": false
+                }
+            ]
+        }
+    },
+    "settings": {},
+    "tags": ["앙티티", "리뷰", "작품", "별점"],
+    "downloads": 0
+}
