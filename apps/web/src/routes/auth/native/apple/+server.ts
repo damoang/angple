@@ -13,10 +13,7 @@ import { json, type RequestHandler } from '@sveltejs/kit';
 import { createRemoteJWKSet, jwtVerify } from 'jose';
 import { env } from '$env/dynamic/private';
 import { getOAuthKeys } from '$lib/server/auth/oauth/config.js';
-import {
-    findSocialProfile,
-    upsertSocialProfile
-} from '$lib/server/auth/oauth/social-profile.js';
+import { findSocialProfile, upsertSocialProfile } from '$lib/server/auth/oauth/social-profile.js';
 import { getMemberById, findMemberByEmail, isMemberActive } from '$lib/server/auth/oauth/member.js';
 import {
     generateSocialMbId,
