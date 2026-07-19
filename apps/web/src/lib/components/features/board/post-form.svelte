@@ -458,8 +458,10 @@
                       content: finalContent,
                       category: category || undefined,
                       tags: tags.length > 0 ? tags : undefined,
-                      link1: link1.trim() || undefined,
-                      link2: link2.trim() || undefined,
+                      // 수정 시엔 빈 문자열('')을 보내야 백엔드가 링크를 삭제한다.
+                      // undefined(생략)면 백엔드가 '변경 없음'(nil)으로 처리해 기존 링크가 남는다. (#13043)
+                      link1: link1.trim(),
+                      link2: link2.trim(),
                       files: fileAttachments
                   };
 
