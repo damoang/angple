@@ -14,9 +14,20 @@ export function getSeedIV(): string {
     return raw ? Buffer.from(raw).toString('base64') : '';
 }
 
-/** dupinfo 생성용 키 (런타임에 env 읽기) */
+/**
+ * dupinfo 생성용 키 (런타임에 env 읽기) — fail-closed.
+ * ⛔ 빈 문자열 폴백 금지: 키가 없으면 buildDupinfo가 SHA256(ci+'')로 **다른 DI**를 만들어
+ * 재가입 중복차단(checkDupinfo)이 통째로 무력화된다(같은 사람=다른 DI). 조용한 오염 대신 즉시 throw.
+ * ⛔ 이 키는 절대 rotate 금지 — 바뀌면 기존 회원 전원의 DI가 달라진다. 주입=k8s secret `angple-secrets`.
+ */
 function getCertTokenKey(): string {
-    return env.CERT_TOKEN_ENCRYPTION_KEY || '';
+    const key = env.CERT_TOKEN_ENCRYPTION_KEY;
+    if (!key) {
+        throw new Error(
+            'CERT_TOKEN_ENCRYPTION_KEY 미설정 — 실명인증(DI 생성) 차단(fail-closed). 빈 키로 DI를 만들면 재가입 중복차단이 무력화됩니다.'
+        );
+    }
+    return key;
 }
 
 interface CertConfigRow extends RowDataPacket {
