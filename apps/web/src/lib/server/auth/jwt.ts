@@ -73,6 +73,7 @@ export async function generateAppLoginCode(user: {
     })
         .setSubject(user.mb_id)
         .setAudience('app-login')
+        .setJti(crypto.randomUUID()) // 1회용: 백엔드 app-exchange 가 jti 로 replay 차단
         .setProtectedHeader({ alg: 'HS256' })
         .setIssuedAt()
         .setExpirationTime('60s')
