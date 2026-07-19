@@ -260,27 +260,29 @@ async function syncCelebrationBanner(path: string): Promise<void> {
 }
 
 /**
- * 댓글 작성 시 실명인증(본인확인) enforcement (DI 강화 구멍①).
+ * 글·댓글 작성 시 실명인증(본인확인) enforcement (DI 강화 구멍①).
  *
- * 댓글 생성은 브라우저 apiClient.createComment → `/api/v1/boards/{boardId}/posts/{postId}/comments`
- * POST 로 이 프록시를 거쳐 Go 백엔드로 전달된다. 좋아요·리액션 핸들러가
- * checkCertification 으로 미인증 회원을 차단하는 것과 동일하게, 댓글 작성도
- * bo_use_cert='cert' 게시판에서는 미인증(mb_certify='') 회원을 백엔드 도달 전에 차단한다.
+ * 게시글 작성(apiClient.createPost → `/api/v1/boards/{boardId}/posts`)과
+ * 댓글 작성(apiClient.createComment → `/api/v1/boards/{boardId}/posts/{postId}/comments`)
+ * 둘 다 이 프록시(POST)를 거쳐 Go 백엔드로 전달된다(게시글도 Go 별도경로가 아니라 이 프록시).
+ * 좋아요·리액션과 동일하게 bo_use_cert='cert' 게시판에서 미인증(mb_certify='') 회원을
+ * 백엔드 도달 전에 차단한다. hello(가입인사)도 게시글이라 hello가 cert면 자동 포함.
  *
  * - admin(mb_level≥10) 바이패스·EXEMPT_BOARDS 면제는 checkCertification 내부가 처리(위임).
  * - 통과(null) 또는 인증 불필요 게시판은 기존 흐름 그대로(회귀 없음).
- * - 게시글 작성(boards/{boardId}/posts)은 이 함수 대상 아님(Go 경로, 이번 범위 밖).
+ * - 매칭 대상은 **작성(생성)만**: 글 수정/삭제(posts/{id})·댓글 수정(comments/{id})·파일 등은 제외.
  *
  * @returns 미인증 차단 시 403 Response, 그 외 null(정상 진행)
  */
-async function checkCommentCreateCertification(
+async function checkWriteCertification(
     path: string,
     method: string,
     locals: App.Locals
 ): Promise<Response | null> {
     if (method !== 'POST') return null;
 
-    const match = path.match(/^boards\/([a-zA-Z0-9_-]+)\/posts\/\d+\/comments$/);
+    // boards/{id}/posts (게시글 작성) 또는 boards/{id}/posts/{n}/comments (댓글 작성) — 생성만
+    const match = path.match(/^boards\/([a-zA-Z0-9_-]+)\/posts(?:\/\d+\/comments)?$/);
     if (!match) return null;
 
     const boardId = match[1].replace(/[^a-zA-Z0-9_-]/g, '');
@@ -386,8 +388,8 @@ async function proxyRequest(
         }
     }
 
-    // 댓글 작성 시 실명인증 enforcement (DI 강화 구멍①). 백엔드 도달 전 차단.
-    const certCheckResult = await checkCommentCreateCertification(path, method, locals);
+    // 글/댓글 작성 시 실명인증 enforcement (DI 강화 구멍①). 백엔드 도달 전 차단.
+    const certCheckResult = await checkWriteCertification(path, method, locals);
     if (certCheckResult) {
         return certCheckResult; // 403 Response
     }
