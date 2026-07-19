@@ -140,7 +140,8 @@ function toEntity(row: EntityRow): AngttEntity {
 }
 
 const ENTITY_COLUMNS = `id, type, canonical_title, slug, aliases, poster_url, external_ids,
-    meta, release_date, status, rating_count, rating_avg, review_post_count`;
+    meta, DATE_FORMAT(release_date, '%Y-%m-%d') AS release_date, status,
+    rating_count, rating_avg, review_post_count`;
 
 async function getEntityById(entityId: number): Promise<AngttEntity | null> {
     const [rows] = await pool.query(
@@ -242,7 +243,8 @@ export async function getEntityConnectedPosts(
         const tableName = `g5_write_${board}`;
         try {
             const [rowResult] = await pool.query(
-                `SELECT wr_id, wr_subject, wr_name, mb_id, wr_good, wr_datetime
+                `SELECT wr_id, wr_subject, wr_name, mb_id, wr_good,
+                        DATE_FORMAT(wr_datetime, '%Y-%m-%d %H:%i:%s') AS wr_datetime
                  FROM ??
                  WHERE wr_id IN (?) AND wr_is_comment = 0 AND wr_deleted_at IS NULL`,
                 [tableName, wrIds]
@@ -268,7 +270,8 @@ export async function getEntityConnectedPosts(
 
     collected.sort((a, b) => {
         if (opts.sort === 'best' && b.good !== a.good) return b.good - a.good;
-        return b.datetime.localeCompare(a.datetime);
+        // datetime은 DATE_FORMAT 문자열이지만, 방어적으로 String 강제(과거 Date 객체 500 재발 방지)
+        return String(b.datetime).localeCompare(String(a.datetime));
     });
 
     return collected.slice(0, limit);

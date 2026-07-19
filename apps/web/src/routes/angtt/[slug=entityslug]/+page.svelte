@@ -75,7 +75,7 @@
         exhibition: '전시'
     };
     const typeLabel = $derived(TYPE_LABEL[entity.type] ?? entity.type);
-    const releaseYear = $derived(entity.releaseDate ? entity.releaseDate.slice(0, 4) : '');
+    const releaseYear = $derived(entity.releaseDate ? String(entity.releaseDate).slice(0, 4) : '');
 
     /** 외부 점수 칩 (external_ids 가 있을 때만 "참고용"으로 하단 표시) */
     const externalChips = $derived.by(() => {
