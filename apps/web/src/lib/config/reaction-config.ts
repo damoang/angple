@@ -59,7 +59,7 @@ const EMOJIS: EmoticonDef[] = [
 // 앙티콘 세트 (다모앙 커스텀 GIF)
 const ANGTICON_IDS = [
     'emo-000',
-    // 'emo-001' (똥 모양) 비활성화 — 신규 선택 차단. 기존 반응은 reaction.ts url 빌더로 계속 렌더.
+    'emo-001', // 똥 모양 재활성화 — 이모지 닉네임 공개(2026-07-12) 이후 악용 억지가 생겨 복원.
     'emo-002',
     'emo-003',
     'emo-004',

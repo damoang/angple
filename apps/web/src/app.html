@@ -102,7 +102,7 @@
         <link rel="icon" type="image/png" href="/favicon-32x32.png" sizes="32x32" />
         <link rel="icon" type="image/png" href="/favicon-16x16.png" sizes="16x16" />
         <link rel="shortcut icon" href="/favicon.ico" />
-        <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+        <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png" />
         <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
         <link rel="preconnect" href="https://s3.damoang.net" crossorigin />
         <link rel="dns-prefetch" href="https://s3.damoang.net" />
@@ -314,14 +314,77 @@
     </head>
     <body>
         <div style="display: contents">%sveltekit.body%</div>
-        <!-- Safari bfcache 복원 시 stale 상태 방지 -->
+        <!-- Safari bfcache 복원 시 stale 상태 방지 (#303) + 스크롤 위치 보존 (#13022) -->
         <script>
-            window.addEventListener('pageshow', function (e) {
-                if (e.persisted) {
-                    // bfcache에서 복원됨 — SvelteKit 라우터 상태 갱신 위해 리로드
-                    location.reload();
-                }
-            });
+            (function () {
+                var KEY = 'dm_bfcache_scroll';
+                // bfcache 복원 시: stale 방지를 위해 리로드하되, 복원된 스크롤 위치를 저장한다.
+                // 리로드는 SvelteKit 클라이언트 내비게이션이 아니라 페이지 snapshot 복원이 실행되지
+                // 않으므로(#9401 우회), 여기서 직접 저장→로드 후 복원한다. 긴 글 열람 후 iOS Safari
+                // 가 탭을 bfcache 폐기 후 복원할 때 목록이 맨 밑으로 떨어지던 현상 방지.
+                window.addEventListener('pageshow', function (e) {
+                    if (e.persisted) {
+                        try {
+                            sessionStorage.setItem(
+                                KEY,
+                                JSON.stringify({
+                                    y: window.scrollY,
+                                    u: location.href,
+                                    t: Date.now()
+                                })
+                            );
+                        } catch (err) {}
+                        location.reload();
+                    }
+                });
+                // 리로드 직후 저장된 스크롤 위치 복원. 이미지/광고로 문서 높이가 뒤늦게 확장되는
+                // 경우까지 커버(rAF + ResizeObserver). 문서가 목표 높이에 못 미치는 동안에는
+                // scrollTo 를 호출하지 않는다 — 짧은 문서에 scrollTo 하면 맨 밑으로 clamp 되기 때문.
+                try {
+                    var raw = sessionStorage.getItem(KEY);
+                    if (raw) {
+                        sessionStorage.removeItem(KEY);
+                        var d = JSON.parse(raw);
+                        if (d && d.u === location.href && Date.now() - (d.t || 0) < 10000) {
+                            var target = d.y || 0;
+                            if (target > 0) {
+                                var done = false;
+                                var tries = 0;
+                                var maxTries = 180; // ~3s
+                                var tryScroll = function () {
+                                    var maxScroll =
+                                        document.documentElement.scrollHeight - window.innerHeight;
+                                    if (maxScroll >= target - 2) {
+                                        window.scrollTo(0, target);
+                                        if (Math.abs(window.scrollY - target) <= 2) done = true;
+                                    }
+                                };
+                                var attempt = function () {
+                                    if (done) return;
+                                    tryScroll();
+                                    if (!done && tries++ < maxTries) requestAnimationFrame(attempt);
+                                };
+                                requestAnimationFrame(attempt);
+                                if (typeof ResizeObserver !== 'undefined') {
+                                    var ro = new ResizeObserver(function () {
+                                        if (done) {
+                                            ro.disconnect();
+                                            return;
+                                        }
+                                        tryScroll();
+                                        if (done) ro.disconnect();
+                                    });
+                                    ro.observe(document.documentElement);
+                                    setTimeout(function () {
+                                        done = true;
+                                        ro.disconnect();
+                                    }, 5000);
+                                }
+                            }
+                        }
+                    }
+                } catch (err) {}
+            })();
         </script>
         <!-- Raw JSON 감지: JS 로드 실패 시 __data.json이 화면에 표시되는 것 방지 -->
         <script>

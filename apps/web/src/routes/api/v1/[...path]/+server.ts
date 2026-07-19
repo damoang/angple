@@ -15,8 +15,16 @@ import { internalOnlyErrorResponse, isInternalAppRequest } from '$lib/server/int
  */
 
 const BACKEND_URL = env.BACKEND_URL || 'http://localhost:8090';
+// 디바이스 지문(fp) 수집/조회 엔드포인트는 ops 백엔드(damoang-backend)에만 존재.
+// 그 외 /api/v1/* 은 angple-backend(BACKEND_URL). 미설정 시 BACKEND_URL 로 폴백(무해).
+const DAMOANG_BACKEND_URL = env.DAMOANG_BACKEND_URL || BACKEND_URL;
 const PROXY_TIMEOUT_MS = 4_000;
 const INTERNAL_ONLY_V1_PREFIXES = ['my/', 'admin/'];
+
+/** fp 수집(/api/v1/fingerprint) · fp 조회(/api/v1/admin/fingerprint/*)는 damoang-backend 로 라우팅 */
+function isFingerprintPath(path: string): boolean {
+    return path === 'fingerprint' || path.startsWith('admin/fingerprint');
+}
 
 function buildOptionalFallback(path: string): Response | null {
     if (path === 'my/favorites') {
@@ -301,7 +309,8 @@ async function proxyRequest(
 ): Promise<Response> {
     const path = params.path || '';
     const url = new URL(request.url);
-    const targetUrl = `${BACKEND_URL}/api/v1/${path}${url.search}`;
+    const backendBase = isFingerprintPath(path) ? DAMOANG_BACKEND_URL : BACKEND_URL;
+    const targetUrl = `${backendBase}/api/v1/${path}${url.search}`;
     const isInternalRequest = isInternalAppRequest(request);
 
     if (

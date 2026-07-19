@@ -152,10 +152,16 @@
             uploadingFiles = [...uploadingFiles, uploadingFile];
 
             try {
+                // 동영상은 첫 프레임을 캡처해 포스터로 함께 업로드 (캡처 실패 시 포스터 없이 진행)
+                let poster: File | undefined;
+                if (file.type.startsWith('video/')) {
+                    const { captureVideoPoster } = await import('$lib/utils/video-poster.js');
+                    poster = (await captureVideoPoster(file)) ?? undefined;
+                }
                 // 이미지 파일이면 uploadImage, 아니면 uploadFile 사용
                 const uploaded = isImageFile(file)
                     ? await apiClient.uploadImage(boardId, file, postId)
-                    : await apiClient.uploadFile(boardId, file, postId);
+                    : await apiClient.uploadFile(boardId, file, postId, poster);
                 uploadingFiles = uploadingFiles.filter((f) => f.id !== uploadingFile.id);
                 uploadedFiles = [...uploadedFiles, uploaded];
                 onUpload?.(uploaded);

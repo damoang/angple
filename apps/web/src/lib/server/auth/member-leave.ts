@@ -21,8 +21,12 @@ function prependLeaveMemo(existingMemo: string, leaveDate: string): string {
  * 회원 탈퇴 처리 (소프트 삭제)
  * 1. mb_leave_date = YYYYMMDD
  * 2. mb_memo 앞에 "YYYYMMDD 탈퇴함" 기록
- * 3. 본인인증/중복가입 관련 값 초기화
+ * 3. 본인인증 표식 초기화(mb_certify·mb_adult)
  * 4. 소셜 프로필 삭제
+ *
+ * ⚠️ mb_dupinfo(DI)는 삭제하지 않는다 — 부정 이용 방지(재가입 중복차단)를
+ *    위한 단방향 식별값으로 영구 보존한다. (backend withdrawal_grace.go 의
+ *    'DI 등 식별자 미삭제' 정책과 일치)
  */
 export async function processMemberLeave(
     mbId: string
@@ -41,14 +45,14 @@ export async function processMemberLeave(
     const leaveDate = formatLeaveDate();
     const nextMemo = prependLeaveMemo(member.mb_memo ?? '', leaveDate);
 
-    // 소프트 삭제: PHP member_leave.php 호환 필드 반영
+    // 소프트 삭제: 본인인증 표식만 초기화.
+    // DI(mb_dupinfo)는 재가입 중복차단을 위해 의도적으로 보존한다(삭제 금지).
     await pool.query<ResultSetHeader>(
         `UPDATE g5_member
             SET mb_leave_date = ?,
                 mb_memo = ?,
                 mb_certify = '',
-                mb_adult = 0,
-                mb_dupinfo = ''
+                mb_adult = 0
           WHERE mb_id = ?`,
         [leaveDate, nextMemo, mbId]
     );

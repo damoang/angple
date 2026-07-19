@@ -29,8 +29,8 @@ describe('SEO meta-helper', () => {
     });
 
     describe('buildRobots', () => {
-        it('기본값 null', () => {
-            expect(buildRobots({ title: 'test' })).toBeNull();
+        it('기본값 = Discover 대형 미리보기 허용 (max-image-preview:large)', () => {
+            expect(buildRobots({ title: 'test' })).toBe('max-image-preview:large');
         });
 
         it('noindex, nofollow', () => {
@@ -221,5 +221,180 @@ describe('SEO meta-helper', () => {
             const ld = createDiscussionForumPostingJsonLd({ ...base, author: '' });
             expect(ld.author.name).toBe('익명');
         });
+    });
+});
+
+describe('VideoObject (GSC 동영상 색인 — 썸네일 필수)', () => {
+    it('유튜브 임베드 iframe 에서 videoId 추출 (embed·nocookie·중복 제거)', async () => {
+        const { extractVideosFromContent } = await import('./json-ld');
+        const html = `
+            <div data-youtube-video><iframe src="https://www.youtube.com/embed/dQw4w9WgXcQ?rel=0"></iframe></div>
+            <iframe src="https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ"></iframe>
+            <iframe src="https://www.youtube.com/embed/abc123XYZ_-"></iframe>`;
+        expect(extractVideosFromContent(html)).toEqual([
+            { type: 'youtube', id: 'dQw4w9WgXcQ' },
+            { type: 'youtube', id: 'abc123XYZ_-' }
+        ]);
+    });
+
+    it('업로드 동영상: <video src> 와 <video><source src> 모두 추출, 단순 링크는 제외', async () => {
+        const { extractVideosFromContent } = await import('./json-ld');
+        const html = `
+            <video src="https://r2.damoang.net/data/editor/a.mp4" controls></video>
+            <video controls><source src="https://r2.damoang.net/data/file/b.mp4" /></video>
+            <a href="https://youtu.be/dQw4w9WgXcQ">링크만</a>`;
+        expect(extractVideosFromContent(html)).toEqual([
+            { type: 'file', url: 'https://r2.damoang.net/data/editor/a.mp4' },
+            { type: 'file', url: 'https://r2.damoang.net/data/file/b.mp4' }
+        ]);
+    });
+
+    it('단독 문단 유튜브 앵커에서 videoId 수집 (나리야 자동임베드 복원 연동)', async () => {
+        const { extractVideosFromContent } = await import('./json-ld');
+        const html = `
+            <p><a target="_blank" href="https://www.youtube.com/watch?v=QSWsno8FsC4" rel="nofollow noreferrer noopener">https://www.youtube.com/watch?v=QSWsno8FsC4</a></p>`;
+        expect(extractVideosFromContent(html)).toEqual([{ type: 'youtube', id: 'QSWsno8FsC4' }]);
+    });
+
+    it('문장 속 인라인 유튜브 앵커는 수집하지 않음 (단독 문단만)', async () => {
+        const { extractVideosFromContent } = await import('./json-ld');
+        const html = `
+            <p>문장 속 <a href="https://youtu.be/dQw4w9WgXcQ">인라인 링크</a>는 제외됩니다</p>`;
+        expect(extractVideosFromContent(html)).toEqual([]);
+    });
+
+    it('단독 문단 앵커와 iframe 이 같은 영상이면 중복 제거', async () => {
+        const { extractVideosFromContent } = await import('./json-ld');
+        const html = `
+            <iframe src="https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ"></iframe>
+            <p><a href="https://www.youtube.com/watch?v=dQw4w9WgXcQ">https://www.youtube.com/watch?v=dQw4w9WgXcQ</a></p>`;
+        expect(extractVideosFromContent(html)).toEqual([{ type: 'youtube', id: 'dQw4w9WgXcQ' }]);
+    });
+
+    it('createVideoObjectJsonLd: 필수값(name·thumbnailUrl·uploadDate·재생URL) 미충족 시 null', async () => {
+        const { createVideoObjectJsonLd } = await import('./json-ld');
+        const base = {
+            name: '제목',
+            thumbnailUrl: 'https://i.ytimg.com/vi/x/hqdefault.jpg',
+            uploadDate: '2026-07-10T00:00:00+09:00',
+            embedUrl: 'https://www.youtube.com/embed/x'
+        };
+        expect(createVideoObjectJsonLd(base)).toMatchObject({
+            '@type': 'VideoObject',
+            name: '제목'
+        });
+        expect(createVideoObjectJsonLd({ ...base, thumbnailUrl: undefined })).toBeNull();
+        expect(createVideoObjectJsonLd({ ...base, name: '  ' })).toBeNull();
+        expect(createVideoObjectJsonLd({ ...base, embedUrl: undefined })).toBeNull();
+    });
+});
+
+describe('동영상 포스터 (관례 키 + poster 속성)', () => {
+    it('extractVideosFromContent: video poster 속성 추출', async () => {
+        const { extractVideosFromContent } = await import('./json-ld');
+        const html = `
+            <video src="https://r2.damoang.net/data/editor/2607/a.mp4" poster="https://r2.damoang.net/data/editor/2607/a_poster.jpg" controls></video>
+            <video controls><source src="https://r2.damoang.net/data/file/b.mp4" /></video>`;
+        expect(extractVideosFromContent(html)).toEqual([
+            {
+                type: 'file',
+                url: 'https://r2.damoang.net/data/editor/2607/a.mp4',
+                poster: 'https://r2.damoang.net/data/editor/2607/a_poster.jpg'
+            },
+            { type: 'file', url: 'https://r2.damoang.net/data/file/b.mp4' }
+        ]);
+    });
+
+    it('deriveVideoPoster: 확장자 → _poster.jpg (쿼리스트링 보존)', async () => {
+        const { deriveVideoPoster } = await import('../utils/video-poster');
+        expect(deriveVideoPoster('https://r2.damoang.net/data/editor/2607/a.mp4')).toBe(
+            'https://r2.damoang.net/data/editor/2607/a_poster.jpg'
+        );
+        expect(deriveVideoPoster('https://r2.damoang.net/data/editor/2607/a.webm?v=1')).toBe(
+            'https://r2.damoang.net/data/editor/2607/a_poster.jpg?v=1'
+        );
+    });
+});
+
+describe('SEO P3 — Discover + QAPage', () => {
+    it('buildRobots: 색인 페이지에 max-image-preview:large, noindex 페이지엔 없음', () => {
+        expect(buildRobots({ title: 't' })).toBe('max-image-preview:large');
+        expect(buildRobots({ title: 't', noIndex: true })).toBe('noindex');
+        expect(buildRobots({ title: 't', noFollow: true })).toBe(
+            'nofollow, max-image-preview:large'
+        );
+    });
+
+    it('createQAPageJsonLd: 유효 답변 있으면 Question+suggestedAnswer, 없으면 null', async () => {
+        const { createQAPageJsonLd } = await import('./json-ld');
+        const base = {
+            name: '질문 제목',
+            answerCount: 5,
+            dateCreated: '2026-07-10T00:00:00+09:00',
+            answers: [
+                { text: '답변입니다', author: '앙님', upvoteCount: 3 },
+                { text: '  ', author: '빈답변' }
+            ]
+        };
+        const ld = createQAPageJsonLd(base);
+        expect(ld?.mainEntity.name).toBe('질문 제목');
+        expect(ld?.mainEntity.answerCount).toBe(5);
+        expect(ld?.mainEntity.suggestedAnswer).toHaveLength(1);
+        expect(ld?.mainEntity.suggestedAnswer?.[0].author?.name).toBe('앙님');
+        expect(createQAPageJsonLd({ ...base, answers: [] })).toBeNull();
+        expect(createQAPageJsonLd({ ...base, name: ' ' })).toBeNull();
+    });
+});
+
+describe('comment.author url (GSC 개선 제안)', () => {
+    it('DiscussionForumPosting comment author 에 프로필 url 포함, 없으면 생략', () => {
+        const ld = createDiscussionForumPostingJsonLd({
+            headline: 't',
+            author: '글쓴이',
+            datePublished: '2026-07-10',
+            url: 'https://test.com/free/1',
+            comments: [
+                { text: '댓글', author: '앙님', authorUrl: 'https://test.com/member/ang' },
+                { text: '익명댓글', author: '누군가' }
+            ]
+        });
+        expect(ld.comment?.[0].author.url).toBe('https://test.com/member/ang');
+        expect(ld.comment?.[1].author.url).toBeUndefined();
+    });
+
+    it('QAPage answer author 에 프로필 url 포함', async () => {
+        const { createQAPageJsonLd } = await import('./json-ld');
+        const ld = createQAPageJsonLd({
+            name: '질문',
+            answerCount: 1,
+            answers: [{ text: '답변', author: '앙님', authorUrl: 'https://test.com/member/ang' }]
+        });
+        expect(ld?.mainEntity.suggestedAnswer?.[0].author?.url).toBe('https://test.com/member/ang');
+    });
+});
+
+describe('QAPage url 보강 (GSC Q&A 4건)', () => {
+    it('question author url + answer url 출력, 미제공 시 생략', async () => {
+        const { createQAPageJsonLd } = await import('./json-ld');
+        const ld = createQAPageJsonLd({
+            name: '질문',
+            text: '본문',
+            author: '질문자',
+            authorUrl: 'https://test.com/member/asker',
+            answerCount: 2,
+            answers: [
+                {
+                    text: '답변1',
+                    url: 'https://test.com/qa/1#c_10',
+                    author: '앙님',
+                    authorUrl: 'https://test.com/member/ang'
+                },
+                { text: '답변2' }
+            ]
+        });
+        expect(ld?.mainEntity.author?.url).toBe('https://test.com/member/asker');
+        expect(ld?.mainEntity.text).toBe('본문');
+        expect(ld?.mainEntity.suggestedAnswer?.[0].url).toBe('https://test.com/qa/1#c_10');
+        expect(ld?.mainEntity.suggestedAnswer?.[1].url).toBeUndefined();
     });
 });

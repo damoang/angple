@@ -12,18 +12,6 @@
     "main": "index.ts",
     "hooks": [
         {
-            "name": "post_content",
-            "type": "filter",
-            "callback": "hooks/post-content-filter.ts",
-            "priority": 15
-        },
-        {
-            "name": "comment_content",
-            "type": "filter",
-            "callback": "hooks/comment-content-filter.ts",
-            "priority": 15
-        },
-        {
             "name": "post_link_field",
             "type": "filter",
             "callback": "hooks/post-link-field-filter.ts",

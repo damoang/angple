@@ -16,6 +16,7 @@ import { createCache } from '$lib/server/cache.js';
 import { getCachedBoard, resolveCanonicalBoardId } from '$lib/server/board-cache.js';
 import { resolveGivingMeta } from '$lib/features/giving/model.js';
 import { searchByBoard } from '$lib/server/sphinx-search.js';
+import { findDisciplinedIds, DISCIPLINED_TITLE } from '$lib/server/discipline-mask.js';
 import { readPool } from '$lib/server/db.js';
 import type { RowDataPacket } from 'mysql2';
 import { applyFilter } from '$lib/hooks/registry.js';
@@ -31,6 +32,9 @@ interface PostsCacheData {
         total?: number;
         totalPages?: number;
         hasNext?: boolean;
+        // #12975 날짜 이동: 커서 기반 '다음' + 날짜 모드 여부.
+        nextCursor?: { wrNum: number; wrReply: string } | null;
+        dateMode?: boolean;
     };
     error: string | null;
 }
@@ -162,7 +166,8 @@ export const load: PageServerLoad = async ({
     params,
     locals,
     getClientAddress,
-    isDataRequest
+    isDataRequest,
+    setHeaders
 }) => {
     const canonicalBoardId = await resolveCanonicalBoardId(params.boardId);
     if (canonicalBoardId !== params.boardId) {
@@ -179,6 +184,16 @@ export const load: PageServerLoad = async ({
     const searchSort = url.searchParams.get('sort') || null;
     const tag = url.searchParams.get('tag') || null;
     const category = url.searchParams.get('category') || null;
+    // #12975: 날짜 기반 아카이브 이동. before_date 로 시점 점프, 이후 '다음'은 커서로 이어감.
+    const beforeDate = url.searchParams.get('before_date') || null;
+    const cursorWrNumRaw = url.searchParams.get('cursor_wr_num');
+    const cursorWrNum = cursorWrNumRaw !== null && cursorWrNumRaw !== '' ? cursorWrNumRaw : null;
+    const cursorWrReply = url.searchParams.get('cursor_wr_reply') ?? '';
+    const isDateMode = !!beforeDate || cursorWrNum !== null;
+    // 날짜/커서 아카이브 뷰는 검색엔진 색인 대상이 아니다(무한 커서 크롤 방지). 목록 1페이지·상세는 영향 없음.
+    if (isDateMode) {
+        setHeaders({ 'X-Robots-Tag': 'noindex, follow' });
+    }
     const rawMessagePeriod = boardId === 'message' ? url.searchParams.get('period') : null;
     const messagePeriod =
         boardId === 'message' &&
@@ -293,6 +308,13 @@ export const load: PageServerLoad = async ({
         if (useSummaryListResponse) {
             queryParams.set('summary', '1');
         }
+        // 날짜 이동: 첫 진입은 before_date, '다음'은 커서(cursor_wr_num/reply)로 이어감.
+        if (cursorWrNum !== null) {
+            queryParams.set('cursor_wr_num', cursorWrNum);
+            queryParams.set('cursor_wr_reply', cursorWrReply);
+        } else if (beforeDate) {
+            queryParams.set('before_date', beforeDate);
+        }
         return `/api/v1/boards/${boardId}/posts?${queryParams.toString()}`;
     };
 
@@ -351,8 +373,12 @@ export const load: PageServerLoad = async ({
                     return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
                 });
             } else {
-                console.error('프로모션 게시판 로딩 에러:', promoBoardResult);
-                error = '게시글을 불러오는데 실패했습니다.';
+                // fetchPromotionBoardPosts 는 stale-while-revalidate 로 항상 success:true(stale/빈 목록)를
+                // 반환하므로 여기 도달은 예외적(promise reject 등). 하드 에러 대신 빈 목록으로 우아하게 저하 —
+                // 백그라운드 갱신이 곧 캐시를 채운다.
+                console.error('프로모션 게시판 로딩 저하(빈 목록 서빙):', promoBoardResult);
+                posts = [];
+                error = null;
             }
 
             const notices = noticesResult.status === 'fulfilled' ? noticesResult.value : [];
@@ -488,6 +514,9 @@ export const load: PageServerLoad = async ({
                     )
                 ]);
                 const rows = postRows[0];
+                // #12943: 게시판 내 검색은 sphinx→DB 직조회라 백엔드 목록 마스킹을
+                // 우회한다 — 이용제한 근거 글 제목·본문을 여기서도 마스킹(P2 공용 헬퍼).
+                const disciplinedIds = await findDisciplinedIds(boardId, refetchIds);
                 const boNotice = String(noticeRows[0]?.[0]?.bo_notice ?? '');
                 const noticeIds = new Set(
                     boNotice
@@ -501,12 +530,17 @@ export const load: PageServerLoad = async ({
                 const rowMap = new Map(
                     rows.map((r) => {
                         const deleted = Number(r.is_deleted_parent) === 1;
+                        const disciplined = disciplinedIds.has(Number(r.id));
                         return [
                             r.id,
                             {
                                 ...r,
-                                title: deleted ? '[삭제된 글입니다]' : r.title,
-                                content: deleted ? '' : r.content,
+                                title: deleted
+                                    ? '[삭제된 글입니다]'
+                                    : disciplined
+                                      ? DISCIPLINED_TITLE
+                                      : r.title,
+                                content: deleted || disciplined ? '' : r.content,
                                 is_notice: noticeIds.has(Number(r.id))
                             }
                         ];
@@ -570,7 +604,16 @@ export const load: PageServerLoad = async ({
                     typeof meta.total === 'number' && meta.limit
                         ? Math.ceil(meta.total / meta.limit)
                         : undefined,
-                hasNext: meta.has_next === true
+                hasNext: meta.has_next === true,
+                // 날짜 이동 커서: '다음' 페이지를 위한 next_cursor(#12975).
+                nextCursor:
+                    meta.next_cursor_wr_num !== undefined && meta.next_cursor_wr_num !== null
+                        ? {
+                              wrNum: Number(meta.next_cursor_wr_num),
+                              wrReply: String(meta.next_cursor_wr_reply ?? '')
+                          }
+                        : null,
+                dateMode: isDateMode
             };
         } else {
             console.error('게시판 로딩 에러:', boardId, postsResult.reason);

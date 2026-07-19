@@ -9,6 +9,7 @@ import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import type { RowDataPacket, ResultSetHeader } from 'mysql2';
 import pool from '$lib/server/db';
+import { buildGradeDeniedMessage } from '$lib/utils/board-permissions';
 import { canRestrictedUserReactToBoard, getAuthUser, isRestrictedUser } from '$lib/server/auth';
 import { checkCertification } from '$lib/server/certification';
 import { protectClientIp } from '$lib/server/ip-protection';
@@ -230,7 +231,10 @@ export const POST: RequestHandler = async ({ params, request, cookies, getClient
     // 레벨 체크 (레벨 3 미만은 추천/비추천 불가)
     if ((user.mb_level ?? 0) < 3) {
         return json(
-            { success: false, message: '레벨 3 이상부터 추천/비추천이 가능합니다.' },
+            {
+                success: false,
+                message: buildGradeDeniedMessage('추천/비추천', 3, user.mb_level ?? 0)
+            },
             { status: 403 }
         );
     }

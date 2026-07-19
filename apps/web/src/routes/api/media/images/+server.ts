@@ -146,6 +146,8 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
     // multipart form data 파싱
     const formData = await request.formData();
     const file = formData.get('file');
+    // 동영상 업로드 시 브라우저가 캡처한 포스터(첫 프레임 jpg) — 옵션, 없으면 현행과 동일
+    const poster = formData.get('poster');
 
     if (!file || !(file instanceof File)) {
         error(400, '파일이 필요합니다.');
@@ -174,6 +176,18 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
     const finalKey = rawKeyToFinalKey(rawKey);
     const contentType = file.type || 'application/octet-stream';
 
+    // 포스터는 동영상에 한해, jpeg·2MB 이하만 수용 (남용 방지). 관례 키 = 동영상과
+    // 같은 해시의 형제 키(…/{hash}_poster.jpg). raw/ 로 올려 기존 Lambda 파이프라인
+    // (data/ 변환 + R2 dual-write)을 그대로 태운다 — data/ 직행 시 R2 에 실리지 않음.
+    const hasPoster =
+        poster instanceof File &&
+        isVideoExt(ext) &&
+        poster.type === 'image/jpeg' &&
+        poster.size > 0 &&
+        poster.size <= 2 * 1024 * 1024;
+    const posterRawKey = hasPoster ? rawKey.replace(/\.[a-z0-9]+$/i, '_poster.jpg') : null;
+    const posterFinalKey = posterRawKey ? rawKeyToFinalKey(posterRawKey) : null;
+
     try {
         const buffer = Buffer.from(await file.arrayBuffer());
 
@@ -187,8 +201,24 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
             })
         );
 
-        // Lambda 변환 완료 대기 (최대 3초) — race condition 방지
-        const isReady = await waitForProcessed(finalKey);
+        if (hasPoster && posterRawKey) {
+            const posterBuffer = Buffer.from(await (poster as File).arrayBuffer());
+            await s3.send(
+                new PutObjectCommand({
+                    Bucket: S3_BUCKET,
+                    Key: posterRawKey,
+                    Body: posterBuffer,
+                    ContentType: 'image/jpeg',
+                    CacheControl: 'public, max-age=31536000, immutable'
+                })
+            );
+        }
+
+        // Lambda 변환 완료 대기 — race condition 방지 (포스터는 소형이라 본 파일보다 먼저 끝남)
+        const [isReady, posterReady] = await Promise.all([
+            waitForProcessed(finalKey),
+            posterFinalKey ? waitForProcessed(posterFinalKey) : Promise.resolve(false)
+        ]);
         if (!isReady) {
             console.warn(
                 `[media/images] Lambda processing not confirmed within timeout: ${finalKey}`
@@ -208,7 +238,11 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
                 origin_url: originUrl,
                 filename: file.name,
                 content_type: contentType,
-                size: file.size
+                size: file.size,
+                // 포스터가 실제 준비됐을 때만 내려보냄 — 404 포스터 URL 을 본문에 박제하지 않기 위함
+                ...(posterReady && posterFinalKey
+                    ? { poster_url: `${CDN_BASE}/${posterFinalKey}` }
+                    : {})
             }
         });
     } catch (err) {

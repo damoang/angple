@@ -9,7 +9,12 @@
 
 import type { WidgetConfig } from '$lib/stores/widget-layout.svelte';
 
-/** 기본 메인 위젯 레이아웃 */
+/** 기본 메인 위젯 레이아웃
+ *
+ * 주의: _mergeNewDefaults 가 이 배열의 position 을 최종 순서 권위로 재정렬하므로
+ * 홈 순서 변경은 여기서 한다 (DB 저장 레이아웃의 position 은 기본 위젯엔 무시됨).
+ * 2026-07-13: hidden-gems 메인 제거(사이드바 유지) + 소모임(group)을 ad-top 아래로.
+ */
 export const DEFAULT_WIDGETS: WidgetConfig[] = [
     { id: 'tag-nav', type: 'tag-nav', position: 0, enabled: true },
     { id: 'empathy-explore-row', type: 'empathy-explore-row', position: 1, enabled: true },
@@ -21,17 +26,24 @@ export const DEFAULT_WIDGETS: WidgetConfig[] = [
         settings: { position: 'index-top' }
     },
     {
+        id: 'group',
+        type: 'post-list',
+        position: 3,
+        enabled: true,
+        settings: { boardId: 'group', layout: 'card', sortBy: 'date', count: 10, showTitle: true }
+    },
+    {
         id: 'ad-middle-1',
         type: 'ad-slot',
-        position: 3,
+        position: 4,
         enabled: true,
         settings: { position: 'index-middle-1' }
     },
-    { id: 'news-economy-row', type: 'news-economy-row', position: 4, enabled: true },
+    { id: 'news-economy-row', type: 'news-economy-row', position: 5, enabled: true },
     {
         id: 'gallery',
         type: 'post-list',
-        position: 5,
+        position: 6,
         enabled: true,
         settings: {
             boardId: 'gallery',
@@ -44,16 +56,9 @@ export const DEFAULT_WIDGETS: WidgetConfig[] = [
     {
         id: 'ad-middle-2',
         type: 'ad-slot',
-        position: 6,
-        enabled: true,
-        settings: { position: 'index-middle-2' }
-    },
-    {
-        id: 'group',
-        type: 'post-list',
         position: 7,
         enabled: true,
-        settings: { boardId: 'group', layout: 'card', sortBy: 'date', count: 10, showTitle: true }
+        settings: { position: 'index-middle-2' }
     },
     {
         id: 'celebration',
@@ -73,11 +78,13 @@ export const DEFAULT_WIDGETS: WidgetConfig[] = [
 /** 기본 사이드바 위젯 레이아웃 */
 export const DEFAULT_SIDEBAR_WIDGETS: WidgetConfig[] = [
     { id: 'notice', type: 'notice', position: 0, enabled: true },
-    { id: 'celebration', type: 'celebration', position: 1, enabled: true },
+    { id: 'emoji-awards', type: 'emoji-awards', position: 1, enabled: true },
+    { id: 'hidden-gems', type: 'hidden-gems', position: 2, enabled: true },
+    { id: 'celebration', type: 'celebration', position: 3, enabled: true },
     {
         id: 'sidebar-ad-2',
         type: 'ad-slot',
-        position: 2,
+        position: 4,
         enabled: true,
         settings: { position: 'sidebar-2', type: 'image-text', format: 'grid' }
     }

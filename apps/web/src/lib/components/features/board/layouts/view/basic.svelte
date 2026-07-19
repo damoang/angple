@@ -22,12 +22,14 @@
     import Download from '@lucide/svelte/icons/download';
     import Paperclip from '@lucide/svelte/icons/paperclip';
     import Video from '@lucide/svelte/icons/video';
+    import { deriveVideoPoster } from '$lib/utils/video-poster.js';
     import Heart from '@lucide/svelte/icons/heart';
     import ThumbsDown from '@lucide/svelte/icons/thumbs-down';
     import Users from '@lucide/svelte/icons/users';
     import Lock from '@lucide/svelte/icons/lock';
     import Flag from '@lucide/svelte/icons/flag';
     import ScrapButton from '$lib/components/post/scrap-button.svelte';
+    import DealEndReportButton from '$lib/components/features/board/deal-end-report-button.svelte';
     import { authStore } from '$lib/stores/auth.svelte.js';
     import { DisciplinedContent } from '$lib/components/ui/discipline-related';
     import { AdultBlur } from '$lib/components/features/adult/index.js';
@@ -43,6 +45,7 @@
     import Pin from '@lucide/svelte/icons/pin';
     import ShareButton from '$lib/components/post/share-button.svelte';
     import PluginSlot from '$lib/components/plugin/plugin-slot.svelte';
+    import PostRatingWidget from '../../post-rating.svelte';
     import type { ViewLayoutProps } from '../types.js';
 
     const FONT_SIZES: Record<ContentFontSize, string> = {
@@ -273,7 +276,11 @@
                     <div>
                         <p class="text-foreground flex items-center gap-1.5 font-medium">
                             <LevelBadge level={memberLevelStore.getLevel(post.author_id)} />
-                            <AuthorLink authorId={post.author_id} authorName={post.author} />
+                            <AuthorLink
+                                authorId={post.author_id}
+                                authorName={post.author}
+                                isWithdrawn={!!post.is_left}
+                            />
                             {#if authStore.isAuthenticated && memoPluginActive && MemoBadge && !uiSettingsStore.hideMemo}
                                 <MemoBadge
                                     memberId={post.author_id}
@@ -289,22 +296,16 @@
                         </p>
                         <p class="text-secondary-foreground" style="font-size: 0.9em;">
                             {formatDate(post.created_at)}
-                            {#if post.updated_at && post.updated_at !== post.created_at && formatTimeShort && new Date(post.updated_at).getTime() - new Date(post.created_at).getTime() > 5 * 60 * 1000}
-                                {#if editCount > 0}
-                                    <span class="text-muted-foreground/70"
-                                        >· 수정 {editCount}회({formatTimeShort(
-                                            post.updated_at,
-                                            post.created_at
-                                        )})</span
-                                    >
-                                {:else}
-                                    <span class="text-muted-foreground/70"
-                                        >· 수정됨({formatTimeShort(
-                                            post.updated_at,
-                                            post.created_at
-                                        )})</span
-                                    >
-                                {/if}
+                            <!-- 수정 배지: 리비전 기반 edit_count/last_edited_at (백엔드 주입) 사용.
+                                 게시글 수정 시 wr_last 미갱신이라 post.updated_at 대신 이 값을 쓴다.
+                                 5분 grace: 작성 직후(<5분) 수정은 숨김(댓글과 일관). -->
+                            {#if post.edit_count && post.edit_count > 0 && post.last_edited_at && formatTimeShort && new Date(post.last_edited_at).getTime() - new Date(post.created_at).getTime() > 5 * 60 * 1000}
+                                <span class="text-muted-foreground/70"
+                                    >· 수정 {post.edit_count}회({formatTimeShort(
+                                        post.last_edited_at,
+                                        post.created_at
+                                    )})</span
+                                >
                             {/if}
                             {#if post.deleted_at && formatTimeShort}
                                 <span class="text-red-500/70"
@@ -334,6 +335,12 @@
                 >
             </div>
         </div>
+
+        <!-- 별점 위젯 (앙티티 Phase 0): features.rating 보드에서만 백엔드가
+             post.rating 을 동봉 → 없으면 렌더 0 (전 게시판 회귀 0) -->
+        {#if post.rating}
+            <PostRatingWidget {boardId} postId={post.id} initial={post.rating} />
+        {/if}
     </CardHeader>
     <CardContent class="space-y-6">
         <!-- 진실의방: 원본 게시글/댓글 링크 -->
@@ -431,11 +438,23 @@
                         </p>
                     {/if}
 
+                    {#if boardId === 'economy'}
+                        <DealEndReportButton {boardId} postId={post.id} category={post.category} />
+                    {/if}
+
                     {#if post.videos && post.videos.length > 0}
                         <div class="mt-6 space-y-4">
                             {#each post.videos as video, i (i)}
                                 <div class="overflow-hidden rounded-lg border">
-                                    <video controls preload="none" playsinline class="w-full">
+                                    <!-- poster = 관례 키(…_poster.jpg) 도출. 포스터 없는 옛 동영상은
+                                         404 인데 <video poster> 는 로드 실패를 조용히 무시하므로 무해 -->
+                                    <video
+                                        controls
+                                        preload="none"
+                                        playsinline
+                                        poster={deriveVideoPoster(video.url)}
+                                        class="w-full"
+                                    >
                                         <source src={video.url} />
                                         동영상을 재생할 수 없습니다.
                                     </video>

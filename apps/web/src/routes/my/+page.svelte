@@ -137,6 +137,13 @@
                             {getGradeName(authStore.user.mb_level)}
                         </p>
                     </div>
+                    <!-- 등급 승급 경로 안내 (hello/27814: 배지≠등급 착시) — mb_level 기준 -->
+                    {#if authStore.user.mb_level >= 1 && authStore.user.mb_level < 3}
+                        <p class="text-muted-foreground mt-0.5 text-xs">
+                            현재 등급: {getGradeName(authStore.user.mb_level)} · 매일 출석 7일이면 자동으로
+                            앙님💛 (숫자 배지는 활동 레벨이에요)
+                        </p>
+                    {/if}
                     {#if authStore.user.mb_id}
                         <p class="text-muted-foreground mt-0.5 text-sm">
                             아이디 {authStore.user.mb_id}

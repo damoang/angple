@@ -8,8 +8,241 @@ import type {
     JsonLdOrganization,
     JsonLdDiscussionForumPosting,
     JsonLdFAQPage,
-    JsonLdFAQItem
+    JsonLdFAQItem,
+    JsonLdQAPage,
+    JsonLdVideoObject,
+    JsonLdRatedItem
 } from './types';
+import {
+    STANDALONE_ANCHOR_PARAGRAPH_SOURCE,
+    YOUTUBE_URL_ID_PATTERN
+} from '$lib/utils/content-transform';
+
+/**
+ * QAPage JSON-LD 생성 — 질문/답변 게시판(qa) 리치 결과
+ *
+ * FAQPage 는 사이트 자체 작성 FAQ 전용(구글이 노출을 크게 제한)이라, 사용자
+ * 질문+답변 커뮤니티에는 QAPage 가 올바른 타입이다. 리치 결과에는 답변이
+ * 필요하므로 유효한 답변이 1개 이상일 때만 출력(null = 블록 생략).
+ */
+export function createQAPageJsonLd(options: {
+    /** 질문 제목 (필수) */
+    name: string;
+    /** 질문 본문 요약 */
+    text?: string;
+    author?: string;
+    /** 질문 작성자 프로필 URL — GSC "mainEntity.author 의 url 누락" 대응 */
+    authorUrl?: string;
+    dateCreated?: string;
+    /** 전체 답변(댓글) 수 */
+    answerCount: number;
+    answers: Array<{
+        text: string;
+        /** 답변(댓글) 앵커 URL — GSC "suggestedAnswer 의 url 누락" 대응 */
+        url?: string;
+        author?: string;
+        authorUrl?: string;
+        dateCreated?: string;
+        upvoteCount?: number;
+    }>;
+}): JsonLdQAPage | null {
+    if (!options.name?.trim()) return null;
+    const answers = options.answers
+        .filter((a) => a.text?.trim())
+        .slice(0, 3)
+        .map((a) => ({
+            '@type': 'Answer' as const,
+            text: a.text.trim(),
+            ...(a.url ? { url: a.url } : {}),
+            ...(a.dateCreated ? { dateCreated: a.dateCreated } : {}),
+            ...(a.upvoteCount !== undefined ? { upvoteCount: a.upvoteCount } : {}),
+            ...(a.author?.trim()
+                ? {
+                      author: {
+                          '@type': 'Person' as const,
+                          name: a.author.trim(),
+                          ...(a.authorUrl ? { url: a.authorUrl } : {})
+                      }
+                  }
+                : {})
+        }));
+    if (!answers.length) return null;
+
+    return {
+        '@type': 'QAPage',
+        mainEntity: {
+            '@type': 'Question',
+            name: options.name.trim(),
+            ...(options.text ? { text: options.text } : {}),
+            answerCount: Math.max(options.answerCount, answers.length),
+            ...(options.dateCreated ? { dateCreated: options.dateCreated } : {}),
+            ...(options.author?.trim()
+                ? {
+                      author: {
+                          '@type': 'Person' as const,
+                          name: options.author.trim(),
+                          ...(options.authorUrl ? { url: options.authorUrl } : {})
+                      }
+                  }
+                : {}),
+            suggestedAnswer: answers
+        }
+    };
+}
+
+/** 본문에서 추출된 동영상 (유튜브 임베드 또는 업로드 파일) */
+export type ExtractedVideo =
+    | { type: 'youtube'; id: string }
+    | { type: 'file'; url: string; poster?: string };
+
+// 유튜브 임베드 iframe 의 videoId — tiptap Youtube 확장이 embed/ 형태로 저장하지만,
+// 과거 글의 nocookie·shorts 변형도 수용
+const YOUTUBE_EMBED_ID_RE =
+    /(?:youtube(?:-nocookie)?\.com\/(?:embed|shorts)\/|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
+
+/**
+ * 본문 HTML 에서 동영상을 추출 (VideoObject 구조화 데이터용)
+ *
+ * 실제 페이지에서 플레이어로 렌더되는 요소만 본다:
+ * - <iframe src="...youtube.com/embed/ID...">  (tiptap Youtube 임베드)
+ * - <video src="..."> 또는 <video><source src="..."></video>  (업로드 동영상)
+ * - 단독 문단 유튜브 앵커 (<p><a href="유튜브"> 하나만) — transformStandaloneYoutubeLinks
+ *   가 렌더 시 플레이어로 바꾸므로 포함. 문장 속 인라인 링크는 여전히 제외
+ */
+export function extractVideosFromContent(html: string): ExtractedVideo[] {
+    if (!html) return [];
+    const videos: ExtractedVideo[] = [];
+    const seen = new Set<string>();
+
+    for (const m of html.matchAll(/<iframe[^>]*\ssrc\s*=\s*["']([^"']+)["']/gi)) {
+        const id = m[1].match(YOUTUBE_EMBED_ID_RE)?.[1];
+        if (id && !seen.has(`yt:${id}`)) {
+            seen.add(`yt:${id}`);
+            videos.push({ type: 'youtube', id });
+        }
+    }
+
+    // 단독 문단 유튜브 앵커 — 구 그누보드(나리야) 글의 맨 유튜브 링크.
+    // GSC "동영상이 보기 페이지에 없음" 대응. 판정 regex 는 본문 변환기와 공유해 항상 일치
+    for (const m of html.matchAll(new RegExp(STANDALONE_ANCHOR_PARAGRAPH_SOURCE, 'gi'))) {
+        const href = m[1].replace(/&amp;/g, '&');
+        const id = href.match(YOUTUBE_URL_ID_PATTERN)?.[1];
+        if (id && !seen.has(`yt:${id}`)) {
+            seen.add(`yt:${id}`);
+            videos.push({ type: 'youtube', id });
+        }
+    }
+
+    // <video src> 와 <video> 내부 <source src> — 에디터가 두 형태 모두 생성.
+    // poster 속성(브라우저 캡처 첫 프레임)이 있으면 VideoObject 썸네일로 쓰도록 함께 추출
+    for (const vm of html.matchAll(/<video\b[^>]*>[\s\S]*?(?:<\/video>|$)|<video\b[^>]*\/?>/gi)) {
+        const block = vm[0];
+        const openTag = block.match(/^<video\b[^>]*>/i)?.[0] ?? block;
+        const poster = openTag.match(/\sposter\s*=\s*["']([^"']+)["']/i)?.[1];
+        const url =
+            openTag.match(/\ssrc\s*=\s*["']([^"']+)["']/i)?.[1] ??
+            block.match(/<source\b[^>]*\ssrc\s*=\s*["']([^"']+)["']/i)?.[1];
+        if (url && !seen.has(`file:${url}`)) {
+            seen.add(`file:${url}`);
+            videos.push(poster ? { type: 'file', url, poster } : { type: 'file', url });
+        }
+    }
+
+    return videos;
+}
+
+/**
+ * VideoObject JSON-LD 생성
+ *
+ * Google 동영상 색인은 name·thumbnailUrl·uploadDate 가 필수 — 하나라도 없으면
+ * "제공된 썸네일 URL 없음" 류의 색인 제외가 되므로, 미충족 시 블록 자체를 생략(null)
+ */
+export function createVideoObjectJsonLd(options: {
+    name: string;
+    description?: string;
+    thumbnailUrl?: string;
+    uploadDate: string;
+    embedUrl?: string;
+    contentUrl?: string;
+}): JsonLdVideoObject | null {
+    if (!options.name?.trim() || !options.thumbnailUrl || !options.uploadDate) return null;
+    if (!options.embedUrl && !options.contentUrl) return null;
+
+    const data: JsonLdVideoObject = {
+        '@type': 'VideoObject',
+        name: options.name.trim(),
+        thumbnailUrl: options.thumbnailUrl,
+        uploadDate: options.uploadDate
+    };
+    if (options.description) data.description = options.description;
+    if (options.embedUrl) data.embedUrl = options.embedUrl;
+    if (options.contentUrl) data.contentUrl = options.contentUrl;
+    return data;
+}
+
+/**
+ * 앙티티 카테고리(ca_name) → schema.org 타입.
+ * 구글 리뷰 리치결과(별점 노출) 지원 타입을 우선 매핑. 미지원 카테고리는 CreativeWork
+ * (스키마는 유효하나 리치결과는 미보장). 다중 카테고리(병원=LocalBusiness 등)는 후속.
+ */
+export function ratingSchemaTypeForCategory(category?: string): JsonLdRatedItem['@type'] {
+    switch ((category || '').trim()) {
+        // 드라마도 Movie 로 — Google 리뷰 스니펫 지원 타입은 Movie 이고 TVSeries 는 미지원이라,
+        // ★ 리치결과를 실제로 띄우려면 Movie 로 매핑한다(스키마상 무해).
+        case '영화':
+        case '드라마':
+        case 'NETFLIX':
+        case 'APPLE_TV':
+        case '다큐':
+            return 'Movie';
+        case '웹툰':
+        case '만화':
+        case '소설':
+        case '책':
+            return 'Book';
+        case '게임':
+            return 'VideoGame';
+        case '공연':
+        case '전시':
+            return 'Event';
+        default:
+            return 'CreativeWork';
+    }
+}
+
+/**
+ * 평점 대상(작품) + AggregateRating JSON-LD 생성.
+ * 앙티티(리뷰) 게시판 글에 별점 집계가 있을 때 구글 검색결과에 ★ 노출.
+ * 참여 0(count<1)·평점 0·이름 없으면 null → buildJsonLd 가 블록 생략.
+ */
+export function createRatedItemJsonLd(options: {
+    name: string;
+    category?: string;
+    ratingValue: number;
+    ratingCount: number;
+    url?: string;
+    image?: string;
+}): JsonLdRatedItem | null {
+    const name = options.name?.trim();
+    if (!name) return null;
+    if (!options.ratingCount || options.ratingCount < 1) return null;
+    if (!(options.ratingValue > 0)) return null;
+
+    const item: JsonLdRatedItem = {
+        '@type': ratingSchemaTypeForCategory(options.category),
+        name,
+        aggregateRating: {
+            '@type': 'AggregateRating',
+            ratingValue: Math.round(options.ratingValue * 10) / 10,
+            ratingCount: options.ratingCount,
+            bestRating: 5,
+            worstRating: 1
+        }
+    };
+    if (options.url) item.url = options.url;
+    if (options.image) item.image = options.image;
+    return item;
+}
 
 /**
  * Organization JSON-LD 생성
@@ -65,7 +298,13 @@ export function createDiscussionForumPostingJsonLd(options: {
     upvoteCount?: number;
     image?: string;
     /** 상위 댓글 (Google 포럼 리치 결과의 comment 노드, 최대 3개 출력) */
-    comments?: Array<{ text: string; author: string; datePublished?: string }>;
+    comments?: Array<{
+        text: string;
+        author: string;
+        /** 작성자 프로필 URL — GSC "comment.author 의 url 누락" 개선 제안 대응 */
+        authorUrl?: string;
+        datePublished?: string;
+    }>;
 }): JsonLdDiscussionForumPosting {
     const data: JsonLdDiscussionForumPosting = {
         '@type': 'DiscussionForumPosting',
@@ -92,7 +331,11 @@ export function createDiscussionForumPostingJsonLd(options: {
             .map((c) => ({
                 '@type': 'Comment' as const,
                 text: c.text.trim(),
-                author: { '@type': 'Person' as const, name: c.author.trim() },
+                author: {
+                    '@type': 'Person' as const,
+                    name: c.author.trim(),
+                    ...(c.authorUrl ? { url: c.authorUrl } : {})
+                },
                 ...(c.datePublished ? { datePublished: c.datePublished } : {})
             }));
         if (validComments.length) data.comment = validComments;

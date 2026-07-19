@@ -5,6 +5,7 @@ import { buildIndexWidgets } from '$lib/server/index-widgets-builder';
 import { getDefaultPeriod, loadRecommendedData } from '$lib/server/recommended-loader';
 import { getCachedCelebrations } from '$lib/server/celebration';
 import { loadExploreData, buildExplorePreviewData } from '$lib/server/explore-loader';
+import type { ExplorePost } from '$lib/api/types';
 import { env } from '$env/dynamic/private';
 
 const BACKEND_URL = env.BACKEND_URL || 'http://localhost:8090';
@@ -17,6 +18,8 @@ interface HomePageData {
     recommendedData: Awaited<ReturnType<typeof loadRecommendedData>> | null;
     recommendedPeriod: ReturnType<typeof getDefaultPeriod>;
     exploreData: ReturnType<typeof buildExplorePreviewData> | null;
+    // 숨은 보석 위젯용 — explore new 풀(24h 크로스보드)에서 대형 게시판 제외 풀
+    hiddenGems: ExplorePost[];
     celebrationRecent: Awaited<ReturnType<typeof getCachedCelebrations>> | null;
     // 인덱스 최상단 배너용 오늘자 마음메시지 (하이드레이션 즉시 스토어 시드 → 빈 공간 제거).
     celebrationToday: Awaited<ReturnType<typeof getCachedCelebrations>> | null;
@@ -70,6 +73,11 @@ async function buildHomePageData(): Promise<HomePageData> {
         celebrationTodayResult.status === 'fulfilled' ? celebrationTodayResult.value : null;
     const exploreRaw = exploreResult.status === 'fulfilled' ? exploreResult.value : null;
     const exploreData = exploreRaw ? buildExplorePreviewData(exploreRaw) : null;
+    // 숨은 보석: 트래픽이 몰리는 대형 게시판을 제외한 24h 신규 글 풀(위젯이 클라에서 랜덤 샘플)
+    const HIDDEN_GEM_EXCLUDED = new Set(['free', 'humor', 'photo', 'economy', 'qa', 'new']);
+    const hiddenGems = ((exploreRaw?.modes.new.posts ?? []) as ExplorePost[])
+        .filter((p) => p.board && !HIDDEN_GEM_EXCLUDED.has(p.board))
+        .slice(0, 20);
 
     if (indexWidgetsResult.status === 'rejected') {
         console.error('[SSR] Failed to load index widgets:', indexWidgetsResult.reason);
@@ -82,6 +90,7 @@ async function buildHomePageData(): Promise<HomePageData> {
         recommendedData: recommendedResult.status === 'fulfilled' ? recommendedResult.value : null,
         recommendedPeriod,
         exploreData,
+        hiddenGems,
         celebrationRecent,
         celebrationToday
     };
@@ -105,6 +114,7 @@ function emptyHomePageData(): HomePageData {
         recommendedData: null,
         recommendedPeriod: getDefaultPeriod(),
         exploreData: null,
+        hiddenGems: [],
         celebrationRecent: null,
         celebrationToday: null
     };

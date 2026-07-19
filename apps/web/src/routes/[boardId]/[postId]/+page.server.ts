@@ -24,12 +24,14 @@ import { fetchMemberImagesWithTimestamp } from '$lib/server/member-images.js';
 import { fetchCommentLikeStatuses } from '$lib/server/comment-likes.js';
 
 import { fetchPostLikeStatus } from '$lib/server/post-like-status.js';
-import { fetchMemberActivity } from '$lib/server/member-activity.js';
+import { fetchMemberActivity, type MemberActivity } from '$lib/server/member-activity.js';
+import { fetchWithdrawnMemberIds } from '$lib/server/withdrawn-members.js';
 import { fetchTruthroomPostId, fetchTruthroomCommentMap } from '$lib/server/truthroom.js';
 import { BackendUnavailableError } from '$lib/server/backend-fetch.js';
 import { applyFilter } from '$lib/hooks/registry.js';
 import { buildHookContext } from '$lib/hooks/context.js';
 import { prefetchBlueskyDIDs } from '$lib/server/bluesky/transform.js';
+import { resolveAngttMatch, type AngttMatch } from '$lib/server/angtt-dictionary.js';
 
 /**
  * 게시글 상세 페이지 — Streaming SSR
@@ -156,9 +158,15 @@ export const load: PageServerLoad = async ({
             post.videos = [];
             post.downloads = [];
             post.files = [];
-            // 삭제글은 댓글도 노출하지 않는다(#12711). 댓글 API(부모 삭제 시 빈 배열 반환)와
-            // 정합을 맞추기 위해 권위 카운트도 0으로 — 헤더 카운트 라벨/SSR total/클라 backfill 게이트 일치.
-            post.comments_count = 0;
+            // 자진삭제(작성자 본인 삭제, deleted_by == 작성자)면 본문만 가리고 그 아래
+            // 댓글 스레드는 유지한다(#12965 — 댓글은 각 댓글 작성자의 소유·책임).
+            // 타인 삭제(관리자/징계 등) 또는 삭제자 미상이면 댓글도 가린다(#12711).
+            // 삭제 사유(자진/징계)는 문구로 구분하지 않는다. 댓글 API 게이트와 정합.
+            const selfDeleted = !!post.deleted_by && post.deleted_by === post.author_id;
+            if (!selfDeleted) {
+                // 헤더 카운트 라벨/SSR total/클라 backfill 게이트 일치를 위해 권위 카운트 0.
+                post.comments_count = 0;
+            }
             setHeaders({ 'X-Robots-Tag': 'noindex, noarchive' });
         }
 
@@ -228,7 +236,43 @@ export const load: PageServerLoad = async ({
             post.author = '익명';
         }
 
+        // 작성자 최근 활동 — 단일 fetch 를 여기서 시작해 두 소비처에서 재사용:
+        // (1) SEO 내부링크 섹션(#83): return 직전 await → SSR HTML 앵커로 포함
+        // (2) 작성자 활동 패널: streamed auxiliaryData 로 전달 (기존 동작 유지)
+        // 탈퇴 회원은 활동 비노출 — 프록시(/api/members/[id]/activity)와 동일 가드.
+        // fetchMemberActivity 는 내부 catch + 2s 타임아웃이라 절대 reject 하지 않는다.
+        const emptyActivity: MemberActivity = { recentPosts: [], recentComments: [] };
+        const memberActivityPromise: Promise<MemberActivity> = (async () => {
+            if (!post.author_id) return emptyActivity;
+            try {
+                const withdrawn = await fetchWithdrawnMemberIds([post.author_id]);
+                if (withdrawn.has(post.author_id)) return emptyActivity;
+                return await fetchMemberActivity(post.author_id, 5);
+            } catch {
+                return emptyActivity;
+            }
+        })();
+
+        // 앙티티 커넥트(Phase 1): 태그 「앙티티」 옵트인 글에만 작품 사전 매칭 + 별점 조회.
+        // 사전=인메모리 5분 캐시(+실패 시 stale/빈 Map), fetch 는 2s 타임아웃 + 내부 catch —
+        // 실패는 undefined 수렴이라 페이지 로드를 절대 블록하지 않는다.
+        // 앙티티 게시판 자기 글에는 미표시. return 직전 await → SSR 렌더 (내부링크 SEO).
+        const angttMatchPromise: Promise<AngttMatch | undefined> =
+            boardId === 'angtt' || post.deleted_at
+                ? Promise.resolve(undefined)
+                : resolveAngttMatch(post.tags).catch(() => undefined);
+
         // 게시글 작성자 프로필 이미지 즉시 조회 (1단계 — 본문 렌더에 필요)
+        // 작성자 탈퇴 여부 — 닉네임 취소선 표시용(5분 캐시라 활동 게이트 조회와 중복돼도 저렴).
+        if (post.author_id) {
+            try {
+                const w = await fetchWithdrawnMemberIds([post.author_id]);
+                post.is_left = w.has(post.author_id);
+            } catch {
+                // 실패 시 취소선만 생략
+            }
+        }
+
         if (post.author_id && !post.author_image) {
             try {
                 const imgMap = await fetchMemberImagesWithTimestamp([post.author_id]);
@@ -551,12 +595,8 @@ export const load: PageServerLoad = async ({
                     );
                 })(),
                 // 작성자 최근 활동 (SSR 직접 조회 — 클릭 없이 표시, 클라이언트 API 요청 제거)
-                post.author_id
-                    ? fetchMemberActivity(post.author_id, 5).catch(() => ({
-                          recentPosts: [],
-                          recentComments: []
-                      }))
-                    : Promise.resolve({ recentPosts: [], recentComments: [] })
+                // 1단계에서 시작한 단일 fetch 재사용 (SEO 섹션 #83 과 공유, 중복 호출 방지)
+                memberActivityPromise
             ]);
 
             // 프로모션 사잇광고: board_exception에 포함된 게시판은 제외
@@ -705,6 +745,15 @@ export const load: PageServerLoad = async ({
             page: recentPostsPage
         };
 
+        // SEO 내부링크(#83): 작성자 최근 활동을 SSR 로 확정 — 활동 패널의 글/댓글
+        // 앵커가 초기 HTML 에 포함되게 한다(별도 섹션 없이 기존 패널 재사용).
+        // memberActivityPromise 는 댓글 fetch 와 병렬 + 2s 타임아웃 + 내부 catch 라
+        // 페이지 로드를 추가로 블록하지 않는다. 익명·탈퇴는 상위 가드에서 null 수렴.
+        const memberActivity = post.deleted_at ? null : await memberActivityPromise;
+
+        // 앙티티 커넥트 카드 데이터 — 위에서 병렬 시작한 promise 를 여기서 확정 (reject 없음).
+        const angttMatch = await angttMatchPromise;
+
         // Phase 1C: 플러그인 enrich filter (member-memo author_memo 등).
         // 미설치 시 pass-through. (premium PR #43 기준 stub)
         // Step A′: 서버 hook 표준 컨텍스트(site/user) 전달.
@@ -728,6 +777,10 @@ export const load: PageServerLoad = async ({
             truthroomPostId,
             originalPostLink,
             recentPosts,
+            /** SEO 내부링크(#83): 작성자 활동 패널 SSR 확정 데이터 */
+            memberActivity,
+            /** 앙티티 커넥트(Phase 1): 태그 「앙티티」+작품명 → 작품 카드 (없으면 undefined) */
+            angttMatch,
             /** 스트리밍: Promise로 반환 → 클라이언트에서 $effect로 수신 */
             streamed: {
                 auxiliaryData: auxiliaryDataPromise

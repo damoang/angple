@@ -42,6 +42,7 @@
     import CommentList from '$lib/components/features/board/comment-list.svelte';
     import AuthorActivityPanel from '$lib/components/features/board/author-activity-panel.svelte';
     import RecentPosts from '$lib/components/features/board/recent-posts.svelte';
+    import AngttConnectCard from '$lib/components/features/board/angtt-connect-card.svelte';
     import { BOARD_LIST_PAGE_SIZE } from '$lib/constants/board';
     import { ReportDialog } from '$lib/components/features/report/index.js';
     import type { FreeComment, FreePost, LikerInfo, PostRevision } from '$lib/api/types.js';
@@ -67,10 +68,15 @@
         createArticleJsonLd,
         createBreadcrumbJsonLd,
         createDiscussionForumPostingJsonLd,
+        createQAPageJsonLd,
+        createVideoObjectJsonLd,
+        createRatedItemJsonLd,
+        extractVideosFromContent,
         getSiteUrl,
         truncateText
     } from '$lib/seo/index.js';
     import type { SeoConfig } from '$lib/seo/types.js';
+    import { deriveVideoPoster } from '$lib/utils/video-poster.js';
     import { LevelBadge } from '$lib/components/ui/level-badge/index.js';
     import { memberLevelStore } from '$lib/stores/member-levels.svelte.js';
     import { postSlotRegistry } from '$lib/components/features/board/post-slot-registry.js';
@@ -365,8 +371,12 @@
     );
     let truthroomCommentMap = $state<Record<number, number>>({});
     let promotionPosts = $state<PromotionPost[]>([]);
-    // 작성자 최근 활동 (auxiliaryData 스트리밍으로 SSR 직접 로딩 — 작성자활동 패널에 주입)
-    let memberActivity = $state<{ recentPosts: unknown[]; recentComments: unknown[] } | null>(null);
+    // 작성자 최근 활동 — 서버 확정(data.memberActivity, SEO 앵커용 #83)으로 초기화하고
+    // 스트리밍(auxiliaryData) 도착 시 갱신. SSR 시점에 값이 있어야 패널 앵커가 HTML 에 포함됨
+    let memberActivity = $state<{ recentPosts: unknown[]; recentComments: unknown[] } | null>(
+        (data.memberActivity as { recentPosts: unknown[]; recentComments: unknown[] } | null) ??
+            null
+    );
     let revisions = $state<PostRevision[]>([]);
     let initialLikedCommentIds = $state<number[]>([]);
     let initialDislikedCommentIds = $state<number[]>([]);
@@ -405,6 +415,9 @@
         commentsAutoRecoveryTriggered = false;
         commentsDirectFetchAttempted = false;
         commentsDirectFetchInFlight = false;
+        // #12937: 이전 글의 backfill 진행 가드가 남아 있으면 새 글의 backfill 이
+        // 조용히 스킵되어 "댓글을 불러오는 중" 에 고착된다 — 글 전환 시 반드시 해제.
+        backfillInProgress = false;
     });
 
     $effect(() => {
@@ -439,7 +452,10 @@
         initialDislikedCommentIds = [];
         truthroomCommentMap = {};
         scheduledDelete = null;
-        memberActivity = null;
+        // SPA 내비게이션 시 새 글의 서버 확정값으로 리셋 (없으면 null → 스트리밍 대기)
+        memberActivity =
+            (data.memberActivity as { recentPosts: unknown[]; recentComments: unknown[] } | null) ??
+            null;
         auxiliaryLoaded = false;
 
         promise
@@ -1334,6 +1350,9 @@
         // 무시하는 사례가 있어 URL cache buster (`_t=${Date.now()}`) 로 강제 우회.
         // SW (service worker) 가 가로채는 케이스도 동일하게 URL 변화로 회피.
         const cacheBuster = Date.now();
+        // #12937: SPA 로 다른 글로 이동한 뒤 뒤늦게 도착한 응답이 현재 글의 목록을
+        // 덮어쓰지 않도록, 요청 시점의 글 ID 를 고정해 적용 직전에 대조한다.
+        const targetPostId = data.post.id;
         // #12735: 댓글 API 는 페이지당 최대 200개라, 댓글이 200개를 넘는 글은
         // page=1 한 번만 받으면 나머지가 누락된다("대댓글 많은데 안 보임").
         // total_pages 만큼 순차로 모두 받아 합친다. (안전 상한 MAX_PAGES)
@@ -1341,9 +1360,12 @@
         const MAX_PAGES = 15;
         const fetchCommentPage = (p: number) =>
             fetch(
-                `/api/boards/${boardId}/posts/${data.post.id}/comments?page=${p}&limit=${PAGE_SIZE}&_t=${cacheBuster}`,
+                `/api/boards/${boardId}/posts/${targetPostId}/comments?page=${p}&limit=${PAGE_SIZE}&_t=${cacheBuster}`,
                 {
                     cache: 'no-store',
+                    // #12937: 모바일 webview 에서 fetch 가 응답 없이 매달리면
+                    // backfill 가드가 영구 고착된다 — 타임아웃으로 반드시 종결.
+                    signal: AbortSignal.timeout(8000),
                     headers: {
                         'Cache-Control': 'no-cache, no-store, must-revalidate',
                         Pragma: 'no-cache'
@@ -1374,6 +1396,8 @@
                     `[comments] total_pages ${reportedPages} exceeds cap ${MAX_PAGES} — 일부 댓글 미로드`
                 );
             }
+            // #12937: 응답 대기 중 다른 글로 이동했다면 폐기 — 이전 글 댓글로 덮어쓰기 방지.
+            if (data.post.id !== targetPostId) return;
             comments = all;
             commentsTotal = total || all.length;
             // 클라가 전량 로드 완료 — backfill 게이트가 재발화하지 않도록 complete 로 확정.
@@ -1444,9 +1468,21 @@
             }
         }
 
-        const timer = window.setTimeout(() => {
-            void refetchComments();
-        }, 1500);
+        // #12939: 입력 중 backfill 이 comments 를 재대입하면 keyed each 가 댓글 노드를
+        // 이동시켜, 포커스된 답글 에디터가 DOM 재배치되며 삼성 인터넷에서 소프트
+        // 키보드가 내려간다 — 댓글 입력 중에는 backfill 을 입력 종료 후로 미룬다.
+        let timer: number;
+        const scheduleBackfill = (delay: number) => {
+            timer = window.setTimeout(() => {
+                const active = document.activeElement as HTMLElement | null;
+                if (active?.closest('.ProseMirror, [contenteditable="true"], textarea')) {
+                    scheduleBackfill(3000);
+                    return;
+                }
+                void refetchComments();
+            }, delay);
+        };
+        scheduleBackfill(1500);
 
         return () => {
             window.clearTimeout(timer);
@@ -1458,7 +1494,8 @@
         content: string,
         parentId?: string | number,
         isSecret?: boolean,
-        images?: string[]
+        images?: string[],
+        rating?: number
     ): Promise<void> {
         if (!authStore.user) {
             throw new Error('로그인이 필요합니다.');
@@ -1473,6 +1510,16 @@
                 is_secret: isSecret,
                 images
             });
+
+            // 리뷰 별점(리뷰=댓글+별점): 댓글 저장 후 그 댓글 wr_id 에 작성자 본인 별점 기록.
+            // be#562 별점 API 재사용(댓글 wr_id 수용 확인). 실패해도 댓글 작성은 성공 유지.
+            if (rating && rating > 0 && newComment?.id) {
+                try {
+                    await apiClient.putPostRating(boardId, String(newComment.id), rating);
+                } catch (ratingErr) {
+                    console.error('리뷰 별점 저장 실패(댓글은 작성됨):', ratingErr);
+                }
+            }
 
             // Optimistic update: 서버 응답 즉시 목록에 추가 (#11946)
             let optimisticComment: FreeComment | null = null;
@@ -1659,6 +1706,122 @@
             ? `${safeOgImage}${safeOgImage.includes('?') ? '&' : '?'}v=${new Date(data.post.updated_at || data.post.created_at).getTime()}`
             : fallbackOgImage;
 
+        // VideoObject — GSC "제공된 썸네일 URL 없음"(동영상 색인 제외) 해소.
+        // 유튜브 임베드는 i.ytimg.com 썸네일이 항상 존재. 업로드 mp4 는 자체 포스터가
+        // 없으므로 글 대표이미지가 있을 때만 출력 (thumbnailUrl 없는 VideoObject 는
+        // 그 자체가 오류라 생략이 정답 — 헬퍼가 null 반환, buildJsonLd 가 필터)
+        const videoJsonLds =
+            data.post.is_secret || data.post.deleted_at
+                ? []
+                : [
+                      ...extractVideosFromContent(renderedPostContent),
+                      ...(data.post.videos ?? []).map((v) => ({
+                          type: 'file' as const,
+                          url: v.url,
+                          poster: undefined as string | undefined
+                      }))
+                  ]
+                      .slice(0, 3)
+                      .map((v) => {
+                          const name = data.post.title?.trim() || boardTitle;
+                          if (v.type === 'youtube') {
+                              return createVideoObjectJsonLd({
+                                  name,
+                                  // 본문 텍스트 없는 동영상 글 — GSC "description 누락" 방지 (제목 폴백)
+                                  description:
+                                      postDescription || data.post.title?.trim() || boardTitle,
+                                  thumbnailUrl: `https://i.ytimg.com/vi/${v.id}/hqdefault.jpg`,
+                                  uploadDate: data.post.created_at,
+                                  embedUrl: `https://www.youtube.com/embed/${v.id}`
+                              });
+                          }
+                          const toHttpUrl = (raw?: string): string | undefined => {
+                              if (!raw) return undefined;
+                              try {
+                                  const parsed = new URL(raw, siteUrl);
+                                  return parsed.protocol === 'http:' || parsed.protocol === 'https:'
+                                      ? parsed.href
+                                      : undefined;
+                              } catch {
+                                  return undefined;
+                              }
+                          };
+                          return createVideoObjectJsonLd({
+                              name,
+                              // 본문 텍스트 없는 동영상 글 — GSC "description 누락" 방지 (제목 폴백)
+                              description: postDescription || data.post.title?.trim() || boardTitle,
+                              // 썸네일 우선순위: ①본문 poster 속성(업로드 시 캡처)
+                              // ②관례 키 도출 — backfill 로 기존 동영상 2,339건 포스터 생성
+                              //   완료(2026-07-10)라 도출 URL 이 실존 ③글 대표이미지
+                              thumbnailUrl:
+                                  toHttpUrl(v.poster) ??
+                                  toHttpUrl(deriveVideoPoster(v.url)) ??
+                                  safeOgImage,
+                              uploadDate: data.post.created_at,
+                              contentUrl: toHttpUrl(v.url)
+                          });
+                      });
+
+        // 구조화 데이터에 노출 가능한 상위 원댓글 (비밀·삭제·잠금·제재·차단 제외 — 마스킹 정책)
+        const safeTopComments = comments
+            .filter(
+                (c) =>
+                    (c.depth ?? 0) === 0 &&
+                    !c.is_secret &&
+                    !c.deleted_at &&
+                    !c.is_restricted &&
+                    !c.is_discipline_related &&
+                    !c.is_blocked
+            )
+            .slice(0, 3);
+
+        // qa 게시판 QAPage — 유효 답변 1개 이상일 때만 (헬퍼가 null 반환 시 폴백)
+        const qaPageJsonLd =
+            boardId === 'qa' && !data.post.deleted_at && !data.post.is_secret
+                ? createQAPageJsonLd({
+                      name: data.post.title?.trim() || boardTitle,
+                      // 본문이 이미지뿐인 글은 제목이 곧 질문 — GSC "text 누락" 방지
+                      text: postDescription || data.post.title?.trim() || boardTitle,
+                      author: data.post.author,
+                      // GSC "mainEntity.author 의 url 누락" — 질문 작성자 프로필
+                      authorUrl,
+                      dateCreated: data.post.created_at,
+                      answerCount: comments.length,
+                      answers: safeTopComments.map((c) => ({
+                          text: truncateText(c.content.replace(/<[^>]+>/g, '').trim(), 300),
+                          // GSC "suggestedAnswer 의 url 누락" — 실제 댓글 DOM 앵커(c_{id})
+                          url: c.id ? `${postUrl}#c_${c.id}` : undefined,
+                          author: c.author,
+                          // GSC "comment.author 의 url 누락" 개선 — 프로필 URL
+                          authorUrl: c.author_id ? `${siteUrl}/member/${c.author_id}` : undefined,
+                          dateCreated: c.created_at,
+                          upvoteCount: c.likes ?? 0
+                      }))
+                  })
+                : null;
+
+        // 앙티티(리뷰) 게시판 별점 집계 → 작품(Movie/Book 등) + AggregateRating.
+        // features.rating 보드에서만 백엔드가 post.rating 을 동봉하고, 참여 0(count<1)이면
+        // 헬퍼가 null 반환(블록 생략) → 구글 검색결과에 ★ 리치결과 노출용. 제목의 따옴표 안
+        // 작품명을 우선 사용(없으면 제목 전체).
+        const ratedItemJsonLd =
+            data.post.rating && !data.post.deleted_at && !data.post.is_secret
+                ? createRatedItemJsonLd({
+                      name: (
+                          data.post.title?.match(
+                              /["'“”‘’「」『』]([^"'“”‘’「」『』]+)["'“”‘’「」『』]/
+                          )?.[1] ||
+                          data.post.title ||
+                          ''
+                      ).trim(),
+                      category: data.post.category,
+                      ratingValue: data.post.rating.avg,
+                      ratingCount: data.post.rating.count,
+                      url: postUrl,
+                      image: ogImageUrl
+                  })
+                : null;
+
         return {
             meta: {
                 title: `${data.post.title} - ${boardTitle}`,
@@ -1680,37 +1843,35 @@
                 image: ogImageUrl
             },
             jsonLd: [
-                // DiscussionForumPosting - 커뮤니티 게시글에 최적화된 구조화 데이터
-                createDiscussionForumPostingJsonLd({
-                    // 빈 제목 글에서 headline 누락(GSC) 방지 — 게시판명 폴백
-                    headline: data.post.title?.trim() || boardTitle,
-                    text: postDescription,
-                    author: data.post.deleted_at ? '' : data.post.author,
-                    authorUrl: data.post.deleted_at ? undefined : authorUrl,
-                    datePublished: data.post.created_at,
-                    dateModified: data.post.updated_at || undefined,
-                    url: postUrl,
-                    commentCount: comments.length,
-                    upvoteCount: data.post.likes || 0,
-                    image: ogImageUrl,
-                    // 상위 원댓글 3개 (비밀·삭제·잠금·제재·차단 댓글 제외 — 마스킹 정책 준수)
-                    comments: comments
-                        .filter(
-                            (c) =>
-                                (c.depth ?? 0) === 0 &&
-                                !c.is_secret &&
-                                !c.deleted_at &&
-                                !c.is_restricted &&
-                                !c.is_discipline_related &&
-                                !c.is_blocked
-                        )
-                        .slice(0, 3)
-                        .map((c) => ({
-                            text: truncateText(c.content.replace(/<[^>]+>/g, '').trim(), 200),
-                            author: c.author,
-                            datePublished: c.created_at
-                        }))
-                }),
+                // qa 게시판은 QAPage 가 올바른 타입(사용자 질문+답변) — 유효 답변이 있으면
+                // DiscussionForumPosting 대신 사용 (한 페이지 한 주 타입 원칙).
+                // 답변 없거나 일반 게시판이면 기존 DiscussionForumPosting 유지
+                boardId === 'qa' && qaPageJsonLd
+                    ? qaPageJsonLd
+                    : // DiscussionForumPosting - 커뮤니티 게시글에 최적화된 구조화 데이터
+                      createDiscussionForumPostingJsonLd({
+                          // 빈 제목 글에서 headline 누락(GSC) 방지 — 게시판명 폴백
+                          headline: data.post.title?.trim() || boardTitle,
+                          text: postDescription,
+                          author: data.post.deleted_at ? '' : data.post.author,
+                          authorUrl: data.post.deleted_at ? undefined : authorUrl,
+                          datePublished: data.post.created_at,
+                          dateModified: data.post.updated_at || undefined,
+                          url: postUrl,
+                          commentCount: comments.length,
+                          upvoteCount: data.post.likes || 0,
+                          image: ogImageUrl,
+                          // 상위 원댓글 3개 (비밀·삭제·잠금·제재·차단 댓글 제외 — 마스킹 정책 준수)
+                          comments: safeTopComments.map((c) => ({
+                              text: truncateText(c.content.replace(/<[^>]+>/g, '').trim(), 200),
+                              author: c.author,
+                              // GSC "comment.author 의 url 누락" 개선 — 프로필 URL
+                              authorUrl: c.author_id
+                                  ? `${siteUrl}/member/${c.author_id}`
+                                  : undefined,
+                              datePublished: c.created_at
+                          }))
+                      }),
                 // Article - 일반 검색 결과용 (폴백)
                 createArticleJsonLd({
                     headline: data.post.title?.trim() || boardTitle,
@@ -1725,7 +1886,11 @@
                     { name: '홈', url: siteUrl },
                     { name: boardTitle, url: `${siteUrl}/${boardId}` },
                     { name: data.post.title }
-                ])
+                ]),
+                // VideoObject — 본문 유튜브 임베드·업로드 동영상 (최대 3개, null 은 필터됨)
+                ...videoJsonLds,
+                // 앙티티(리뷰) 별점 → AggregateRating (참여 0·비rating 보드면 null → 필터)
+                ratedItemJsonLd
             ]
         };
     });
@@ -2083,6 +2248,11 @@
             </div>
         {/if}
 
+        <!-- 앙티티 커넥트 카드 (Phase 1): 태그 「앙티티」+작품명 규약 — 서버 매칭, SSR 렌더 -->
+        {#if data.angttMatch}
+            <AngttConnectCard match={data.angttMatch} {boardId} postId={data.post.id} />
+        {/if}
+
         {#each beforeCommentsSlots as slot (slot.component)}
             {@const SlotComponent = slot.component}
             <SlotComponent
@@ -2259,6 +2429,7 @@
                                     {boardId}
                                     onRefresh={refreshComments}
                                     isRefreshing={isRefreshingComments}
+                                    showRating={data.post.rating !== undefined}
                                 />
                             {/key}
                         {/if}

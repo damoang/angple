@@ -62,6 +62,14 @@
 
     type Tab = 'layout' | 'board' | 'shortcut' | 'notification' | 'etc';
     const validTabs: Tab[] = ['layout', 'board', 'shortcut', 'notification', 'etc'];
+    // 메모 색상 이름표(#13013) — 색상은 고정, 이름만 사용자 지정. premium 미의존(로컬 정의).
+    const MEMO_COLORS: { key: string; name: string; bg: string }[] = [
+        { key: 'yellow', name: '노랑', bg: '#ffe69c' },
+        { key: 'green', name: '초록', bg: '#d1e7dd' },
+        { key: 'purple', name: '보라', bg: '#e2d9f3' },
+        { key: 'red', name: '빨강', bg: '#f8d7da' },
+        { key: 'blue', name: '파랑', bg: '#cfe2ff' }
+    ];
     const urlTab = $derived($page.url.searchParams.get('tab'));
     let activeTab = $state<Tab>('layout');
 
@@ -1381,6 +1389,48 @@
                             checked={uiSettingsStore.blurMemo}
                             onCheckedChange={(v) => uiSettingsStore.setBlurMemo(v)}
                         />
+                    </div>
+                    <Separator />
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <Label>목록 메모 배지 넓게 표시</Label>
+                            <p class="text-muted-foreground text-xs">
+                                게시판 목록에서 메모를 화면 폭에 맞춰 넓게 보여줍니다 (끄면 좁게)
+                            </p>
+                        </div>
+                        <Switch
+                            checked={uiSettingsStore.expandMemoInList}
+                            onCheckedChange={(v) => uiSettingsStore.setExpandMemoInList(v)}
+                        />
+                    </div>
+                    <Separator />
+                    <div>
+                        <Label>메모 색상 이름표</Label>
+                        <p class="text-muted-foreground text-xs">
+                            색상마다 나만의 이름을 붙여 메모 작성 시 헷갈리지 않게 합니다 (비우면
+                            기본 이름)
+                        </p>
+                        <div class="mt-3 space-y-2">
+                            {#each MEMO_COLORS as c (c.key)}
+                                <div class="flex items-center gap-2">
+                                    <span
+                                        class="inline-block h-5 w-5 shrink-0 rounded-full border"
+                                        style="background-color: {c.bg}"
+                                    ></span>
+                                    <Input
+                                        value={uiSettingsStore.memoColorLabels[c.key] ?? ''}
+                                        placeholder={c.name}
+                                        maxlength={10}
+                                        class="h-8"
+                                        onchange={(e) =>
+                                            uiSettingsStore.setMemoColorLabel(
+                                                c.key,
+                                                e.currentTarget.value
+                                            )}
+                                    />
+                                </div>
+                            {/each}
+                        </div>
                     </div>
                 </CardContent>
             </Card>

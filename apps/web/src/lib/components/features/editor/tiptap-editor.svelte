@@ -89,6 +89,11 @@
         contentFormat?: 'html' | 'markdown';
         onUpdate?: (value: string) => void;
         onImageUpload?: (file: File) => Promise<string | null>;
+        /**
+         * 동영상 전용 업로드 — 포스터(첫 프레임) URL 을 함께 반환할 수 있다.
+         * 미제공 시 onImageUpload 폴백 (포스터 없이 현행 동작).
+         */
+        onVideoUpload?: (file: File) => Promise<{ url: string; posterUrl?: string } | null>;
         /** 백그라운드 이미지 변환(blob→변환본 스왑) 진행 개수 변화 알림. 0 이면 모두 완료. */
         onUploadingChange?: (count: number) => void;
         class?: string;
@@ -101,9 +106,24 @@
         contentFormat = 'html',
         onUpdate,
         onImageUpload,
+        onVideoUpload,
         onUploadingChange,
         class: className = ''
     }: Props = $props();
+
+    /** 동영상 업로드 — onVideoUpload 우선, 없으면 onImageUpload 폴백 */
+    async function uploadVideo(file: File): Promise<{ url: string; posterUrl?: string } | null> {
+        if (onVideoUpload) return onVideoUpload(file);
+        if (!onImageUpload) return null;
+        const url = await onImageUpload(file);
+        return url ? { url } : null;
+    }
+
+    /** 본문 삽입용 video 태그 — 포스터가 실제 준비된 경우에만 poster 속성 포함 */
+    function buildVideoTag(video: { url: string; posterUrl?: string }): string {
+        const posterAttr = video.posterUrl ? ` poster="${video.posterUrl}"` : '';
+        return `<video src="${video.url}"${posterAttr} controls playsinline preload="metadata" style="max-width:100%;border-radius:8px;"></video>`;
+    }
 
     // 진행 중인 백그라운드 이미지 변환 개수. 제출 측(post-form)이 0 이 될 때까지 자동 대기한다.
     let pendingUploads = $state(0);
@@ -135,7 +155,9 @@
         orderedList: false,
         blockquote: false,
         codeBlock: false,
-        link: false
+        link: false,
+        image: false,
+        imageFitWidth: false
     });
 
     let canUndo = $state(false);
@@ -192,7 +214,9 @@
             orderedList: e.isActive('orderedList'),
             blockquote: e.isActive('blockquote'),
             codeBlock: e.isActive('codeBlock'),
-            link: e.isActive('link')
+            link: e.isActive('link'),
+            image: e.isActive('image'),
+            imageFitWidth: e.getAttributes('image').fitWidth === true
         };
         const undo = e.can().undo();
         const redo = e.can().redo();
@@ -552,8 +576,8 @@
                 if (file.type.startsWith('video/')) {
                     isUploading = true;
                     try {
-                        const videoUrl = await onImageUpload(file);
-                        if (videoUrl) {
+                        const video = await uploadVideo(file);
+                        if (video) {
                             editor
                                 .chain()
                                 .focus()
@@ -561,9 +585,7 @@
                                     type: 'paragraph',
                                     content: []
                                 })
-                                .insertContent(
-                                    `<video src="${videoUrl}" controls playsinline preload="metadata" style="max-width:100%;border-radius:8px;"></video>`
-                                )
+                                .insertContent(buildVideoTag(video))
                                 .run();
                         }
                     } catch (err) {
@@ -779,6 +801,21 @@
         imageLinkUrl = '';
     }
 
+    // 이미지 크기: '본문 폭 맞춤'(dm-fit-width) 토글 / '원본 크기'(width·fitWidth 해제)
+    function toggleImageFitWidth(): void {
+        if (!editor) return;
+        const current = editor.getAttributes('image').fitWidth === true;
+        editor.chain().focus().updateAttributes('image', { fitWidth: !current }).run();
+    }
+
+    function resetImageSize(): void {
+        editor
+            ?.chain()
+            .focus()
+            .updateAttributes('image', { fitWidth: false, width: null, height: null })
+            .run();
+    }
+
     // 이미지 삽입
     let savedImageInsertPos: number | null = null;
 
@@ -971,19 +1008,13 @@
 
     // 동영상 파일 업로드 헬퍼
     async function insertVideoFile(file: File): Promise<void> {
-        if (!onImageUpload || !editor) return;
+        if ((!onVideoUpload && !onImageUpload) || !editor) return;
 
         isUploading = true;
         try {
-            const videoUrl = await onImageUpload(file);
-            if (videoUrl) {
-                editor
-                    .chain()
-                    .focus()
-                    .insertContent(
-                        `<video src="${videoUrl}" controls playsinline preload="metadata" style="max-width:100%;border-radius:8px;"></video>`
-                    )
-                    .run();
+            const video = await uploadVideo(file);
+            if (video) {
+                editor.chain().focus().insertContent(buildVideoTag(video)).run();
             }
         } catch (err) {
             console.error('Video upload failed:', err);
@@ -1120,7 +1151,7 @@
 <div class="tiptap-editor border-input relative rounded-md border {className}">
     <!-- 툴바 -->
     <div
-        class="border-border bg-muted/50 sticky top-[64px] z-30 flex flex-wrap items-center gap-1 rounded-t-md border-b p-2"
+        class="border-border bg-muted/50 sticky top-[64px] z-30 flex flex-nowrap items-center gap-1 overflow-x-auto overscroll-x-contain rounded-t-md border-b p-2 sm:flex-wrap sm:overflow-x-visible [&>*]:shrink-0"
         role="toolbar"
         aria-label="텍스트 편집 도구"
     >
@@ -1385,6 +1416,33 @@
             >
                 <ImageIcon class="h-4 w-4" />
             </Button>
+            {#if isActive.image}
+                <!-- 이미지 선택 시에만: 크기 컨트롤 (저장된 의도만 존중, 렌더 추측 없음) -->
+                <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onclick={toggleImageFitWidth}
+                    {disabled}
+                    class="h-8 whitespace-nowrap px-2 text-xs {getButtonClass(
+                        isActive.imageFitWidth
+                    )}"
+                    title="이미지를 본문 폭에 맞춰 채웁니다"
+                >
+                    ↔ 본문 폭
+                </Button>
+                <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onclick={resetImageSize}
+                    {disabled}
+                    class="h-8 whitespace-nowrap px-2 text-xs"
+                    title="이미지를 원본 크기로 되돌립니다"
+                >
+                    원본
+                </Button>
+            {/if}
             <Button
                 type="button"
                 variant="ghost"
@@ -1444,7 +1502,7 @@
             </Button>
             {#if showTableMenu}
                 <div
-                    class="bg-popover border-border absolute left-0 top-full z-50 mt-1 rounded-md border p-2 shadow-md"
+                    class="bg-popover border-border fixed inset-x-2 bottom-2 z-50 rounded-md border p-2 shadow-md sm:absolute sm:inset-x-auto sm:bottom-auto sm:left-0 sm:top-full sm:mt-1"
                 >
                     <div class="flex flex-col gap-1">
                         <button
@@ -1892,11 +1950,16 @@
         margin: 1.5rem 0;
     }
 
-    /* 이미지 스타일 */
+    /* 이미지 스타일 — 기본은 원본 크기 + 컨테이너 상한(업스케일 없음, 뷰 prose 와 동일) */
     :global(.tiptap-content .tiptap img) {
         max-width: 100%;
         height: auto;
         margin: 0.75rem 0;
+    }
+
+    /* 작성자가 '본문 폭 맞춤'을 선택한 이미지만 전폭 (뷰의 .prose img.dm-fit-width 와 일치) */
+    :global(.tiptap-content .tiptap img.dm-fit-width) {
+        width: 100%;
     }
 
     /* 이미지 링크 표시 (에디터 내 링크 있는 이미지) */

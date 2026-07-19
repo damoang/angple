@@ -18,6 +18,7 @@ import {
 } from '$lib/server/affiliate-links';
 import { isLinkProcessingPluginEnabled } from '$lib/server/link-processing/runtime';
 import { isInternalAppRequest } from '$lib/server/internal-api.js';
+import { fetchWithdrawnMemberIds } from '$lib/server/withdrawn-members.js';
 import { prefetchBlueskyDIDs } from '$lib/server/bluesky/transform.js';
 
 interface CommentRow extends RowDataPacket {
@@ -35,6 +36,8 @@ interface CommentRow extends RowDataPacket {
     wr_name: string;
     wr_ip: string;
     wr_datetime: string;
+    wr_edit_count: number;
+    wr_last_edited_at: string | null;
     wr_deleted_at: string | null;
     wr_deleted_by: string | null;
     wr_7: string | null;
@@ -42,11 +45,6 @@ interface CommentRow extends RowDataPacket {
 
 interface CountRow extends RowDataPacket {
     total: number;
-}
-
-interface EditCountRow extends RowDataPacket {
-    wr_id: number;
-    cnt: number;
 }
 
 interface CommentResponseItem {
@@ -64,6 +62,7 @@ interface CommentResponseItem {
     depth: number;
     parent_id: number;
     created_at: string;
+    updated_at?: string;
     is_secret: boolean;
     deleted_at: string | null;
     deleted_by: string | null;
@@ -76,6 +75,10 @@ interface CommentResponseItem {
     is_discipline_related?: boolean;
     /** 요청자가 이 댓글 작성자를 차단했는지(서버 판정). 클라 스토어 로드 전 깜박임 방지용(#12825). */
     is_blocked?: boolean;
+    /** 작성자가 탈퇴 회원인지 — 닉네임 취소선 표시용. */
+    is_left?: boolean;
+    /** 리뷰 별점(리뷰=댓글+별점): 작성자가 이 댓글에 남긴 리뷰 점수(1~5). 별점 게시판만. */
+    review_rating?: number;
 }
 
 interface DisciplineRow extends RowDataPacket {
@@ -133,7 +136,7 @@ export const GET: RequestHandler = async ({ params, url, locals, request }) => {
         // 부모 글 조회 — 삭제 여부(#12711) + 마음메시지 익명 판정에 사용.
         // 익명 마음메시지는 PublishToGnuboard() 에서 wr_name="" 로 저장된다.
         const [parentRows] = await pool.query<RowDataPacket[]>(
-            `SELECT wr_deleted_at, mb_id, wr_name FROM ?? WHERE wr_id = ? AND wr_is_comment = 0 LIMIT 1`,
+            `SELECT wr_deleted_at, wr_deleted_by, mb_id, wr_name FROM ?? WHERE wr_id = ? AND wr_is_comment = 0 LIMIT 1`,
             [tableName, safePostId]
         );
         const parent = parentRows[0];
@@ -147,10 +150,18 @@ export const GET: RequestHandler = async ({ params, url, locals, request }) => {
             (parent.wr_name ?? '').toString().trim() === '';
         const anonymousAuthorId = postIsAnonymousMessage ? String(parent.mb_id ?? '') : '';
 
-        // 부모 글 삭제 여부 확인 — 삭제된 글은 본문이 "[삭제된 게시물]"로 가려지므로
-        // 그 아래 댓글도 노출하지 않는다. 관리자는 조정 목적상 계속 열람 가능.
+        // 부모 글 삭제 여부 확인.
+        // - 자진삭제(작성자 본인이 삭제, wr_deleted_by == 원글 mb_id): 댓글은 각 댓글
+        //   작성자의 것이므로 그 아래 댓글 스레드를 계속 노출한다(#12965).
+        // - 타인 삭제(관리자/징계 등, wr_deleted_by != 원글 mb_id) 또는 삭제자 미상:
+        //   콘텐츠 정책상 댓글도 가린다. 삭제 사유(징계 여부)는 노출하지 않는다.
+        // 관리자는 조정 목적상 항상 열람 가능.
+        const parentSelfDeleted =
+            !!parent?.wr_deleted_at &&
+            !!parent?.wr_deleted_by &&
+            String(parent.wr_deleted_by) === String(parent.mb_id);
         if (!isAdmin) {
-            if (!parent || parent.wr_deleted_at) {
+            if (!parent || (parent.wr_deleted_at && !parentSelfDeleted)) {
                 return json(
                     {
                         success: true,
@@ -180,6 +191,7 @@ export const GET: RequestHandler = async ({ params, url, locals, request }) => {
         const [rows] = await pool.query<CommentRow[]>(
             `SELECT wr_id, wr_parent, wr_comment, wr_comment_reply, wr_content, wr_link1, wr_link2, wr_option,
 			        wr_good, wr_nogood, mb_id, wr_name, wr_ip, wr_datetime,
+			        wr_edit_count, wr_last_edited_at,
 			        wr_deleted_at, wr_deleted_by, wr_7
 			 FROM ??
 			 WHERE wr_parent = ? AND wr_is_comment = 1
@@ -209,18 +221,9 @@ export const GET: RequestHandler = async ({ params, url, locals, request }) => {
             }
         }
 
-        // 댓글별 수정 횟수 배치 조회 (g5_write_revisions)
+        // 댓글 수정 횟수/최근 수정 시각은 비정규화 컬럼(wr_edit_count·wr_last_edited_at)에서
+        // 직접 읽는다 — 매 조회 g5_write_revisions COUNT 제거(읽기 쿼리 0). 게시글 상세와 동일 정책.
         const commentIds = rows.map((r) => r.wr_id);
-        const editCountMap = new Map<number, number>();
-        if (commentIds.length > 0) {
-            const [editCounts] = await pool.query<EditCountRow[]>(
-                `SELECT wr_id, COUNT(*) AS cnt FROM g5_write_revisions WHERE board_id = ? AND wr_id IN (?) GROUP BY wr_id`,
-                [safeBoardId, commentIds]
-            );
-            for (const ec of editCounts) {
-                editCountMap.set(ec.wr_id, ec.cnt);
-            }
-        }
 
         // 이용제한 근거 댓글 식별 (g5_na_singo.discipline_log_id IS NOT NULL)
         // INDEX hit: (sg_table, sg_id) — idx_singo_table_id / idx_table_id_time.
@@ -239,15 +242,34 @@ export const GET: RequestHandler = async ({ params, url, locals, request }) => {
             }
         }
 
+        // 리뷰 별점(리뷰=댓글+별점): angple_post_ratings 에서 댓글 wr_id 별 평균(작성자 리뷰 점수).
+        // 초경량 테이블 + PK(bo_table,wr_id) 인덱스 seek. 비rating 보드는 결과 0(무해). 실패 무시.
+        const reviewRatingMap = new Map<number, number>();
+        if (commentIds.length > 0) {
+            try {
+                const [rrRows] = await pool.query<RowDataPacket[]>(
+                    `SELECT wr_id, ROUND(AVG(rating), 1) AS avg_rating
+                     FROM angple_post_ratings
+                     WHERE bo_table = ? AND wr_id IN (?)
+                     GROUP BY wr_id`,
+                    [safeBoardId, commentIds]
+                );
+                for (const r of rrRows) reviewRatingMap.set(Number(r.wr_id), Number(r.avg_rating));
+            } catch (e) {
+                console.warn('[review-rating] enrich(comments) failed:', e);
+            }
+        }
+
         // 요청자가 차단한 작성자 집합 (#12825). 서버에서 is_blocked 를 판정해 내려주면
         // 클라이언트 차단 스토어가 비동기 로드되기 전에도 첫 렌더부터 접힘 상태로 표시되어
         // "보였다 숨었다" 깜박임이 사라진다. 실패는 무시(클라 스토어가 fallback).
+        // "쪽지만 차단"(block_scope='message')은 콘텐츠 숨김 대상이 아니다 (#12916, #12934).
         const blockedSet = new Set<string>();
         const viewerId = locals.user?.id;
         if (viewerId) {
             try {
                 const [bRows] = await pool.query<RowDataPacket[]>(
-                    `SELECT blocked_mb_id FROM g5_member_block WHERE mb_id = ?`,
+                    `SELECT blocked_mb_id FROM g5_member_block WHERE mb_id = ? AND block_scope <> 'message'`,
                     [viewerId]
                 );
                 for (const b of bRows) {
@@ -257,6 +279,12 @@ export const GET: RequestHandler = async ({ params, url, locals, request }) => {
                 console.warn('[block] enrich(comments) failed:', e);
             }
         }
+
+        // 탈퇴 회원 작성자 집합 — 닉네임 취소선 표시용(배치 조회, 5분 캐시).
+        const authorIds = Array.from(new Set(rows.map((r) => String(r.mb_id)).filter(Boolean)));
+        const withdrawnSet = await fetchWithdrawnMemberIds(authorIds).catch(
+            () => new Set<string>()
+        );
 
         const comments: CommentResponseItem[] = rows.map((row) => ({
             id: row.wr_id,
@@ -291,12 +319,17 @@ export const GET: RequestHandler = async ({ params, url, locals, request }) => {
             depth: row.wr_comment_reply.length,
             parent_id: row.wr_parent,
             created_at: row.wr_datetime,
+            updated_at: row.wr_last_edited_at || undefined,
             is_secret: row.wr_option?.includes('secret') || false,
             deleted_at: row.wr_deleted_at || null,
             deleted_by: row.wr_deleted_by || null,
-            edit_count: editCountMap.get(row.wr_id) || 0,
+            edit_count: row.wr_edit_count || 0,
             ...(row.mb_id && blockedSet.has(String(row.mb_id)) ? { is_blocked: true } : {}),
+            ...(row.mb_id && withdrawnSet.has(String(row.mb_id)) ? { is_left: true } : {}),
             ...(disciplineSet.has(row.wr_id) ? { is_discipline_related: true } : {}),
+            ...(reviewRatingMap.has(row.wr_id)
+                ? { review_rating: reviewRatingMap.get(row.wr_id) }
+                : {}),
             ...(isAdmin && row.wr_7
                 ? {
                       report_count:

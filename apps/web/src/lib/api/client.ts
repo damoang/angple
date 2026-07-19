@@ -49,6 +49,7 @@ import type {
     RegisterRequest,
     RegisterResponse,
     PostRevision,
+    PostRating,
     Scrap,
     BoardGroup,
     CommentReportInfo,
@@ -77,6 +78,17 @@ const API_V2_URL = browser ? '/api/v2' : 'http://localhost:8090/api/v2';
 const WRITE_REQUEST_CONFIG: Partial<RetryConfig> = {
     maxRetries: 0,
     timeout: 30000
+};
+
+// 알림 조회는 재시도 금지(maxRetries 0): 동일 쿼리 중복 발사가 백엔드/DB 커넥션
+// 풀을 굶긴다(#12954: 알림 무한 스피너 + 댓글 10개 고착).
+// 타임아웃은 브라우저→CF→SSR 전 구간 예산이다. 4.5s 는 느린 모바일 회선에서
+// 정상 응답도 끊어 간헐 "알림을 불러오지 못했습니다"를 만든다(#13033).
+// 백엔드는 g5_na_noti 정리 후 수십 ms(SSR→백엔드 프록시 타임아웃 4s 별도)라
+// 네트워크 여유분만 늘린다.
+const NOTIFICATION_READ_CONFIG: Partial<RetryConfig> = {
+    maxRetries: 0,
+    timeout: 10000
 };
 
 // v2 API URL은 세션 기반 인증에서는 SvelteKit 프록시가 내부 JWT를 주입하므로
@@ -308,6 +320,12 @@ class ApiClient {
                     const refreshed = await this.tryAutoRefresh();
                     if (refreshed) {
                         return this.request<T>(endpoint, options, retryConfig, true);
+                    }
+                    // #12971: refresh 실패 = access+refresh 양 토큰 만료(세션 종료).
+                    // UI가 로그인 상태로 남아(닉네임 표시) 실제 작성은 실패하는 stale 상태를
+                    // 막기 위해 세션 만료를 전파한다. 스토어 리스너가 auth 정리 + 재로그인 안내.
+                    if (browser) {
+                        window.dispatchEvent(new CustomEvent('auth:session-expired'));
                     }
                 }
                 let errorMessage = '요청 실패';
@@ -1221,6 +1239,61 @@ class ApiClient {
         return json.data;
     }
 
+    // ========================================
+    // 게시글 별점 (features.rating 보드 — 앙티티 Phase 0)
+    // ========================================
+
+    /**
+     * 별점 응답 정규화 — 계약은 bare {avg, count, my} 이지만
+     * 표준 {success, data: {...}} 래핑으로 내려와도 수용한다.
+     */
+    private normalizeRating(response: ApiResponse<PostRating>): PostRating {
+        const body = (
+            response &&
+            typeof response === 'object' &&
+            response.data &&
+            typeof response.data === 'object'
+                ? response.data
+                : response
+        ) as Partial<PostRating> | null | undefined;
+        return {
+            avg: typeof body?.avg === 'number' ? body.avg : 0,
+            count: typeof body?.count === 'number' ? body.count : 0,
+            my: typeof body?.my === 'number' ? body.my : 0
+        };
+    }
+
+    /**
+     * 게시글 별점 집계 조회 (avg/count/my). 비로그인 my=0.
+     * features.rating 미설정 보드는 403.
+     */
+    async getPostRating(boardId: string, postId: number | string): Promise<PostRating> {
+        const response = await this.request<PostRating>(
+            `/boards/${boardId}/posts/${postId}/rating`
+        );
+        return this.normalizeRating(response);
+    }
+
+    /**
+     * 게시글 별점 등록/수정 (1~5, 재투표 허용)
+     * 🔒 인증 필요 (앙님💛 이상) — 401 / 403(레벨·비활성 보드) / 400(범위 밖) 가능
+     */
+    async putPostRating(
+        boardId: string,
+        postId: number | string,
+        rating: number
+    ): Promise<PostRating> {
+        const response = await this.request<PostRating>(
+            `/boards/${boardId}/posts/${postId}/rating`,
+            {
+                method: 'PUT',
+                body: JSON.stringify({ rating })
+            },
+            WRITE_REQUEST_CONFIG
+        );
+        return this.normalizeRating(response);
+    }
+
     /**
      * 게시글 추천자 목록 조회
      */
@@ -1617,7 +1690,12 @@ class ApiClient {
      * 파일 업로드 (SvelteKit /api/media/images → S3, IAM Role 인증)
      * 🔒 인증 필요
      */
-    async uploadFile(boardId: string, file: File, postId?: number): Promise<UploadedFile> {
+    async uploadFile(
+        boardId: string,
+        file: File,
+        postId?: number,
+        poster?: File
+    ): Promise<UploadedFile> {
         const { convertHeicIfNeeded } = await import('$lib/utils/image-convert.js');
         file = await convertHeicIfNeeded(file);
 
@@ -1625,6 +1703,10 @@ class ApiClient {
         formData.append('file', file);
         if (postId) {
             formData.append('post_id', String(postId));
+        }
+        // 동영상 포스터(브라우저 캡처 첫 프레임) — 서버가 관례 키(…_poster.jpg)에 저장
+        if (poster) {
+            formData.append('poster', poster);
         }
 
         const headers: Record<string, string> = {};
@@ -1673,6 +1755,8 @@ class ApiClient {
             filename: data.filename,
             original_filename: data.filename,
             url: data.cdn_url || data.url,
+            // 동영상 포스터 — 서버가 Lambda 처리 확인 후에만 내려줌 (404 URL 박제 방지)
+            thumbnail_url: data.poster_url || undefined,
             size: data.size,
             mime_type: data.content_type,
             created_at: new Date().toISOString()
@@ -1854,7 +1938,11 @@ class ApiClient {
      * 읽지 않은 알림 수 조회
      */
     async getUnreadNotificationCount(): Promise<NotificationSummary> {
-        const response = await this.request<NotificationSummary>('/notifications/unread-count');
+        const response = await this.request<NotificationSummary>(
+            '/notifications/unread-count',
+            {},
+            NOTIFICATION_READ_CONFIG
+        );
         return response.data ?? { total_unread: 0 };
     }
 
@@ -1866,7 +1954,9 @@ class ApiClient {
         limit: number = 20
     ): Promise<NotificationListResponse> {
         const response = await this.request<NotificationListResponse>(
-            `/notifications?page=${page}&limit=${limit}`
+            `/notifications?page=${page}&limit=${limit}`,
+            {},
+            NOTIFICATION_READ_CONFIG
         );
         return response.data;
     }
@@ -1909,7 +1999,9 @@ class ApiClient {
         const params = new URLSearchParams({ page: String(page), limit: String(limit) });
         if (filterType) params.set('type', filterType);
         const response = await this.request<GroupedNotificationListResponse>(
-            `/notifications/grouped?${params}`
+            `/notifications/grouped?${params}`,
+            {},
+            NOTIFICATION_READ_CONFIG
         );
         return response.data;
     }

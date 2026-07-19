@@ -131,6 +131,24 @@
         }
     }
 
+    // 에디터 동영상 업로드 — 첫 프레임을 브라우저에서 캡처해 포스터로 함께 올린다.
+    // 캡처 실패(미지원 코덱 등) 시 포스터 없이 진행 (best effort)
+    async function handleEditorVideoUpload(
+        file: File
+    ): Promise<{ url: string; posterUrl?: string } | null> {
+        if (!boardId) return null;
+        try {
+            const postIdNum = post?.id ? Number(post.id) : undefined;
+            const { captureVideoPoster } = await import('$lib/utils/video-poster.js');
+            const poster = (await captureVideoPoster(file)) ?? undefined;
+            const result = await apiClient.uploadFile(boardId, file, postIdNum, poster);
+            return { url: result.url, posterUrl: result.thumbnail_url };
+        } catch (err) {
+            console.error('Video upload failed:', err);
+            return null;
+        }
+    }
+
     // 자동저장 상태
     let lastSavedAt = $state<Date | null>(null);
     let isSaving = $state(false);
@@ -652,6 +670,7 @@
                     disabled={isLoading}
                     onUpdate={(value) => (content = value)}
                     onImageUpload={handleEditorImageUpload}
+                    onVideoUpload={handleEditorVideoUpload}
                     onUploadingChange={(n) => (uploadingCount = n)}
                     class={errors.content ? 'border-destructive' : ''}
                 />

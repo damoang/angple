@@ -24,8 +24,14 @@ export {
 export {
     createOrganizationJsonLd,
     createDiscussionForumPostingJsonLd,
-    createFAQPageJsonLd
+    createFAQPageJsonLd,
+    createQAPageJsonLd,
+    createVideoObjectJsonLd,
+    createRatedItemJsonLd,
+    ratingSchemaTypeForCategory,
+    extractVideosFromContent
 } from './json-ld';
+export type { ExtractedVideo } from './json-ld';
 
 export type {
     SeoConfig,
@@ -37,6 +43,7 @@ export type {
     JsonLdDiscussionForumPosting,
     JsonLdFAQPage,
     JsonLdFAQItem,
+    JsonLdVideoObject,
     PaginationSeo
 } from './types';
 

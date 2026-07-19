@@ -110,7 +110,7 @@ export interface JsonLdDiscussionForumPosting {
     comment?: Array<{
         '@type': 'Comment';
         text: string;
-        author: { '@type': 'Person'; name: string };
+        author: { '@type': 'Person'; name: string; url?: string };
         datePublished?: string;
     }>;
 }
@@ -134,13 +134,67 @@ export interface JsonLdFAQItem {
     answer: string;
 }
 
+/** JSON-LD 구조화 데이터 - QAPage (질문/답변 게시판 리치 결과) */
+export interface JsonLdQAPage {
+    '@type': 'QAPage';
+    mainEntity: {
+        '@type': 'Question';
+        name: string;
+        text?: string;
+        answerCount: number;
+        dateCreated?: string;
+        author?: { '@type': 'Person'; name: string; url?: string };
+        suggestedAnswer?: Array<{
+            '@type': 'Answer';
+            text: string;
+            url?: string;
+            dateCreated?: string;
+            upvoteCount?: number;
+            author?: { '@type': 'Person'; name: string; url?: string };
+        }>;
+    };
+}
+
+/** JSON-LD 구조화 데이터 - VideoObject (Google 동영상 색인은 thumbnailUrl 필수) */
+export interface JsonLdVideoObject {
+    '@type': 'VideoObject';
+    name: string;
+    description?: string;
+    thumbnailUrl: string;
+    uploadDate: string;
+    embedUrl?: string;
+    contentUrl?: string;
+}
+
+/** JSON-LD - AggregateRating (별점 리치결과: 구글 검색결과에 ★ 노출) */
+export interface JsonLdAggregateRating {
+    '@type': 'AggregateRating';
+    ratingValue: number;
+    ratingCount: number;
+    bestRating: number;
+    worstRating: number;
+}
+
+/** JSON-LD - 평점 대상 아이템 (작품/장소 등 + aggregateRating). 앙티티(리뷰) 게시판용. */
+export interface JsonLdRatedItem {
+    // Movie/Book/VideoGame/Event = Google 리뷰 스니펫(★) 지원. CreativeWork = 폴백(스키마 유효, 리치결과 미보장).
+    '@type': 'Movie' | 'Book' | 'VideoGame' | 'Event' | 'CreativeWork';
+    name: string;
+    url?: string;
+    image?: string;
+    aggregateRating: JsonLdAggregateRating;
+}
+
 export type JsonLdData =
     | JsonLdWebSite
     | JsonLdArticle
     | JsonLdBreadcrumb
     | JsonLdOrganization
     | JsonLdDiscussionForumPosting
-    | JsonLdFAQPage;
+    | JsonLdFAQPage
+    | JsonLdQAPage
+    | JsonLdVideoObject
+    | JsonLdRatedItem;
 
 /** 페이지네이션 SEO 정보 */
 export interface PaginationSeo {

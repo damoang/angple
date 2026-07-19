@@ -178,18 +178,18 @@ const NON_BOARD_PATHS = new Set([
 ]);
 
 const ROOT_ALIAS_REDIRECTS: Record<string, string> = {
-    '/apple-touch-icon.png': '/icons/icon-192.png',
-    '/apple-touch-iconpng': '/icons/icon-192.png',
-    '/apple-touch-icon-precomposed.png': '/icons/icon-192.png',
-    '/apple-touch-icon-precomposedpng': '/icons/icon-192.png',
-    '/apple-touch-icon-120x120.png': '/icons/icon-192.png',
-    '/apple-touch-icon-120x120png': '/icons/icon-192.png',
-    '/apple-touch-icon-120x120-precomposed.png': '/icons/icon-192.png',
-    '/apple-touch-icon-120x120-precomposedpng': '/icons/icon-192.png',
-    '/apple-touch-icon-152x152.png': '/icons/icon-192.png',
-    '/apple-touch-icon-152x152png': '/icons/icon-192.png',
-    '/apple-touch-icon-152x152-precomposed.png': '/icons/icon-192.png',
-    '/apple-touch-icon-152x152-precomposedpng': '/icons/icon-192.png',
+    '/apple-touch-icon.png': '/icons/apple-touch-icon.png',
+    '/apple-touch-iconpng': '/icons/apple-touch-icon.png',
+    '/apple-touch-icon-precomposed.png': '/icons/apple-touch-icon.png',
+    '/apple-touch-icon-precomposedpng': '/icons/apple-touch-icon.png',
+    '/apple-touch-icon-120x120.png': '/icons/apple-touch-icon.png',
+    '/apple-touch-icon-120x120png': '/icons/apple-touch-icon.png',
+    '/apple-touch-icon-120x120-precomposed.png': '/icons/apple-touch-icon.png',
+    '/apple-touch-icon-120x120-precomposedpng': '/icons/apple-touch-icon.png',
+    '/apple-touch-icon-152x152.png': '/icons/apple-touch-icon.png',
+    '/apple-touch-icon-152x152png': '/icons/apple-touch-icon.png',
+    '/apple-touch-icon-152x152-precomposed.png': '/icons/apple-touch-icon.png',
+    '/apple-touch-icon-152x152-precomposedpng': '/icons/apple-touch-icon.png',
     '/site.webmanifest': '/manifest.json',
     '/sitewebmanifest': '/manifest.json',
     '/indexphp': '/'
@@ -933,13 +933,18 @@ export const handle: Handle = async ({ event, resolve }) => {
     // OPTIONS 요청 (CORS preflight) 처리
     if (event.request.method === 'OPTIONS') {
         const origin = event.request.headers.get('origin');
+        // 실응답 CORS 와 동일 기준: 허용 origin(damoang.net 계열)만 preflight 통과.
+        // 임의 origin echo + credentials 는 타 사이트발 non-simple 요청의 서버 도달을
+        // 열어주므로(응답은 못 읽어도 부수효과 위험) 허용 목록으로 일원화한다.
         const headers: Record<string, string> = {
             'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
             'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-CSRF-Token',
             'Access-Control-Max-Age': '86400'
         };
-        // credentials: include 지원을 위해 구체적인 origin 사용
         if (origin) {
+            if (!isAllowedOrigin(origin)) {
+                return new Response(null, { status: 403 });
+            }
             headers['Access-Control-Allow-Origin'] = origin;
             headers['Access-Control-Allow-Credentials'] = 'true';
         } else {

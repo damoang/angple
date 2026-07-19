@@ -11,6 +11,7 @@
     import User from '@lucide/svelte/icons/user';
     import FileText from '@lucide/svelte/icons/file-text';
     import Info from '@lucide/svelte/icons/info';
+    import Megaphone from '@lucide/svelte/icons/megaphone';
     import ExternalLink from '@lucide/svelte/icons/external-link';
     import History from '@lucide/svelte/icons/history';
     import {
@@ -72,19 +73,23 @@
         return `/${item.table}/${item.id}`;
     }
 
-    // 소명 가능 여부: 1일 이상 이용제한만 가능
+    // 소명 가능 여부: 주의(0)만 제외 — 정지(>=1)와 영구(-1) 모두 소명 대상.
+    // (기존 `>= 1` 은 영구제재 -1 을 배제해, 영구 이용제한 회원이 소명 진입점 자체를
+    //  볼 수 없던 문제(#12973)를 바로잡는다.)
     function isAppealablePenalty(log: DisciplineLogDetail): boolean {
-        return log.penalty_period >= 1;
+        return log.penalty_period === -1 || log.penalty_period >= 1;
     }
 
-    // 소명 기간 내 여부: 제재 시작 후 1일 경과 ~ 15일 이내
+    // 소명 기간 내 여부: 제재 당일(0일)부터 15일 이내.
+    // (기존 `>= 1` 은 제재 당일 소명을 막아, 징계 직후 바로 소명하려는 회원이
+    //  소명 버튼을 볼 수 없던 문제(#12973)를 바로잡는다. 미래 일자 제재는 음수라 제외.)
     function isWithinAppealPeriod(log: DisciplineLogDetail): boolean {
         const penaltyDate = new Date(log.penalty_date_from);
         const now = new Date();
         const diffDays = Math.floor(
             (now.getTime() - penaltyDate.getTime()) / (1000 * 60 * 60 * 24)
         );
-        return diffDays >= 1 && diffDays <= 15;
+        return diffDays >= 0 && diffDays <= 15;
     }
 
     // 본인 확인
@@ -188,6 +193,21 @@
                 </Card.Header>
                 <Card.Content>
                     <p class="whitespace-pre-line text-sm">{log.member_reason}</p>
+                </Card.Content>
+            </Card.Root>
+        {/if}
+
+        <!-- 안내: 회원 공개용 외부 안내문 (운영자가 입력한 경우에만 표시) -->
+        {#if log.public_description && log.public_description.trim()}
+            <Card.Root class="mb-4">
+                <Card.Header>
+                    <Card.Title class="flex items-center gap-2">
+                        <Megaphone class="text-muted-foreground h-5 w-5" />
+                        안내
+                    </Card.Title>
+                </Card.Header>
+                <Card.Content>
+                    <p class="whitespace-pre-line text-sm">{log.public_description}</p>
                 </Card.Content>
             </Card.Root>
         {/if}

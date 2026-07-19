@@ -1,0 +1,21 @@
+{
+    "id": "emoji-awards",
+    "name": "오늘의 앙모지",
+    "version": "1.0.0",
+    "description": "최근 24시간 리액션(이모지)을 가장 많이 받은 글·댓글 리더보드",
+    "author": { "name": "Angple" },
+    "category": "content",
+    "slots": ["main", "sidebar"],
+    "icon": "Trophy",
+    "allowMultiple": false,
+    "main": "index.svelte",
+    "settings": {
+        "item_count": {
+            "type": "number",
+            "label": "표시 개수",
+            "default": 5,
+            "min": 3,
+            "max": 10
+        }
+    }
+}

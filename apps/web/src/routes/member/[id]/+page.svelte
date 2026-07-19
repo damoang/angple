@@ -585,6 +585,46 @@
                                     <span>{formatDate(p.mb_nick_date)} 닉네임 수정</span>
                                 </div>
                             {/if}
+                            {#if p.nick_history && p.nick_history.length > 0}
+                                <!-- 과거 별명(닉네임) 이력 — 공개(#13026). old_nick = 그 시점 변경 전 별명. -->
+                                <div class="flex items-start gap-2">
+                                    <User class="mt-0.5 h-4 w-4 shrink-0" />
+                                    <span>
+                                        이전 별명:
+                                        {#each p.nick_history as h, i (i)}<span
+                                                title={`${formatDate(h.changed_at)} 변경`}
+                                                >{h.old_nick}</span
+                                            >{i < p.nick_history.length - 1 ? ', ' : ''}{/each}
+                                    </span>
+                                </div>
+                            {/if}
+                            {#if (authStore.user?.mb_level ?? 0) >= 10 && p.nick_history && p.nick_history.length > 0}
+                                <!-- 관리자 전용 전체 타임라인 (날짜·old→new) — 모더레이션(평판 세탁·다중이·사칭). -->
+                                <div
+                                    class="border-border/60 mt-1 rounded-md border border-dashed p-2"
+                                >
+                                    <div
+                                        class="text-muted-foreground mb-1 flex items-center gap-1.5 text-xs font-medium"
+                                    >
+                                        <User class="h-3.5 w-3.5 shrink-0" />
+                                        닉네임 변경 이력 (관리자)
+                                    </div>
+                                    <ul class="space-y-0.5 text-xs">
+                                        {#each p.nick_history as h, i (i)}
+                                            <li class="flex flex-wrap items-center gap-1">
+                                                <span class="text-muted-foreground tabular-nums"
+                                                    >{formatDate(h.changed_at)}</span
+                                                >
+                                                <span>{h.old_nick}</span>
+                                                <span class="text-muted-foreground">→</span>
+                                                <span class="font-medium"
+                                                    >{h.new_nick ?? p.mb_nick}</span
+                                                >
+                                            </li>
+                                        {/each}
+                                    </ul>
+                                </div>
+                            {/if}
                             {#if p.mb_level < 10}
                                 <div class="flex items-center gap-2">
                                     <Clock class="h-4 w-4 shrink-0" />
