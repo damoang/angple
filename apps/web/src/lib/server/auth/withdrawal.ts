@@ -16,7 +16,9 @@ import type { MemberRow } from './oauth/types.js';
 
 const BACKEND_URL = env.BACKEND_URL || 'http://localhost:8090';
 const JWT_SECRET = env.JWT_SECRET || '';
+const JWT_SECRET_NEXT = env.JWT_SECRET_NEXT || ''; // 무중단 키 롤오버 보조 검증키(선택)
 const secret = new TextEncoder().encode(JWT_SECRET);
+const secretNext = JWT_SECRET_NEXT ? new TextEncoder().encode(JWT_SECRET_NEXT) : null;
 
 /** 숙려기간(일) — 백엔드와 동일하게 30일 */
 export const WITHDRAWAL_GRACE_DAYS = 30;
@@ -182,7 +184,13 @@ export async function signWithdrawalGraceToken(mbId: string): Promise<string> {
 /** 취소 화면 인계 토큰 검증 → mb_id 반환 (실패 시 null) */
 export async function verifyWithdrawalGraceToken(token: string): Promise<string | null> {
     try {
-        const { payload } = await jwtVerify(token, secret, { issuer: GRACE_TOKEN_ISSUER });
+        const { payload } = await jwtVerify(token, secret, { issuer: GRACE_TOKEN_ISSUER }).catch(
+            (e) => {
+                // 무중단 키 롤오버: 주키 실패 시 보조키(설정 시)로 재시도.
+                if (secretNext) return jwtVerify(token, secretNext, { issuer: GRACE_TOKEN_ISSUER });
+                throw e;
+            }
+        );
         if (payload.purpose !== GRACE_TOKEN_PURPOSE) return null;
         return (payload.sub as string) || null;
     } catch {
