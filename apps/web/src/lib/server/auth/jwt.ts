@@ -7,7 +7,7 @@
  * - 갱신 시 기존 토큰 폐기 + 새 토큰 발급
  * - 재사용 탐지 시 패밀리 전체 폐기
  */
-import { SignJWT, jwtVerify } from 'jose';
+import { SignJWT, jwtVerify, type JWTVerifyOptions } from 'jose';
 import { env } from '$env/dynamic/private';
 import {
     hashToken,
@@ -19,9 +19,36 @@ import {
 
 const JWT_SECRET = env.JWT_SECRET || '';
 const DAMOANG_JWT_SECRET = env.DAMOANG_JWT_SECRET || '';
+// 무중단 키 롤오버용 보조 검증키(선택). 서명엔 미사용 — 검증에서만 주키 실패 시 추가 시도.
+const JWT_SECRET_NEXT = env.JWT_SECRET_NEXT || '';
+const DAMOANG_JWT_SECRET_NEXT = env.DAMOANG_JWT_SECRET_NEXT || '';
 
 const secret = new TextEncoder().encode(JWT_SECRET);
 const damoangSecret = new TextEncoder().encode(DAMOANG_JWT_SECRET);
+const secretNext = JWT_SECRET_NEXT ? new TextEncoder().encode(JWT_SECRET_NEXT) : null;
+const damoangSecretNext = DAMOANG_JWT_SECRET_NEXT
+    ? new TextEncoder().encode(DAMOANG_JWT_SECRET_NEXT)
+    : null;
+
+/**
+ * 주키로 먼저 jwtVerify, 서명 불일치 등으로 실패하면 보조키(설정 시)로 재시도 — 무중단 키 롤오버.
+ * 보조키 미설정이면 기존과 동일(주키 1회).
+ */
+async function verifyWithRollover(
+    token: string,
+    primary: Uint8Array,
+    next: Uint8Array | null,
+    options?: JWTVerifyOptions
+) {
+    try {
+        return await jwtVerify(token, primary, options);
+    } catch (e) {
+        if (next) {
+            return await jwtVerify(token, next, options);
+        }
+        throw e;
+    }
+}
 
 /** Refresh token 만료 시간 (7일, 밀리초) */
 const REFRESH_TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000;
@@ -160,7 +187,9 @@ export async function generateDamoangJWT(user: {
 /** JWT 검증 */
 export async function verifyToken(token: string): Promise<JwtPayload | null> {
     try {
-        const { payload } = await jwtVerify(token, secret, { issuer: 'angple' });
+        const { payload } = await verifyWithRollover(token, secret, secretNext, {
+            issuer: 'angple'
+        });
         return {
             sub: payload.sub as string,
             nickname: (payload.nickname as string) || '',
@@ -178,7 +207,7 @@ export async function verifyToken(token: string): Promise<JwtPayload | null> {
  */
 export async function verifyTokenLax(token: string): Promise<JwtPayload | null> {
     try {
-        const { payload } = await jwtVerify(token, damoangSecret);
+        const { payload } = await verifyWithRollover(token, damoangSecret, damoangSecretNext);
         const sub =
             (payload.mb_id as string) ||
             (payload.sub as string) ||
