@@ -86,25 +86,28 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
     if (!identifier) {
         return json({ success: false, error: 'invalid_token' }, { status: 401 });
     }
-    // 이메일은 최초 로그인 토큰에만 포함될 수 있음. 토큰 → 앱 전달값 순으로 사용.
-    const email = payload.email || body.email || '';
+    // ⛔ 계정 매칭·저장에는 Apple이 검증한 이메일(payload.email + email_verified)만 사용한다.
+    //    body.email(앱/클라 제공, 미검증)을 신뢰하면 공격자가 자기 Apple 토큰 + 피해자 이메일을
+    //    보내 findMemberByEmail 로 피해자 계정에 매칭돼 로그인 코드를 탈취할 수 있다(계정 탈취).
+    const emailVerified = payload.email_verified === true || payload.email_verified === 'true';
+    const verifiedEmail = emailVerified && payload.email ? payload.email : '';
 
     const profile: OAuthUserProfile = {
         provider: 'apple',
         identifier,
         displayName: '',
-        email,
+        email: verifiedEmail,
         photoUrl: '',
         profileUrl: ''
     };
 
     try {
-        // 2. 회원 해석 (웹 콜백 app 모드와 동일 규칙)
+        // 2. 회원 해석: 먼저 Apple sub(가장 신뢰), 없으면 Apple 검증 이메일로만 매칭.
         const existingProfile = await findSocialProfile('apple', identifier);
         let mbId: string | null = existingProfile?.mb_id ?? null;
 
-        if (!mbId && email) {
-            const byEmail = await findMemberByEmail(email);
+        if (!mbId && verifiedEmail) {
+            const byEmail = await findMemberByEmail(verifiedEmail);
             if (byEmail) {
                 mbId = byEmail.mb_id;
             }
@@ -125,7 +128,7 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
                 await createMember({
                     mb_id: mbId,
                     mb_nick: nickname,
-                    mb_email: email,
+                    mb_email: verifiedEmail,
                     mb_name: nickname,
                     mb_ip: getClientAddress(),
                     skipNickLock: true
