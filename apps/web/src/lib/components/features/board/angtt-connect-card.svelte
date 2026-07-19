@@ -22,6 +22,8 @@
               title: string;
               thumbnail: string;
               rating: { avg: number; count: number } | null;
+              /** 작품 페이지 슬러그 — 있으면 /angtt/{slug}, 없으면 /angtt/{wrId} 폴백 */
+              entitySlug?: string;
           }
         | { notFound: true; query: string };
 
@@ -37,6 +39,14 @@
 
     const matched = $derived(!('notFound' in match));
     const posterUrl = $derived('notFound' in match ? '' : toThumbnailUrl(match.thumbnail));
+    // 매칭 카드 CTA 링크: 작품 엔티티가 있으면 작품 페이지, 없으면 기존 angtt 글로 폴백.
+    const rateHref = $derived(
+        'notFound' in match
+            ? ''
+            : match.entitySlug
+              ? `/angtt/${encodeURIComponent(match.entitySlug)}`
+              : `/angtt/${match.wrId}`
+    );
 
     onMount(() => {
         trackEvent('angtt_card_impression', {
@@ -106,7 +116,7 @@
             </p>
         </div>
         <a
-            href="/angtt/{match.wrId}"
+            href={rateHref}
             class="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium"
             onclick={() => onCtaClick('rate')}
         >
