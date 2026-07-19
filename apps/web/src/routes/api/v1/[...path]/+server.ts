@@ -5,6 +5,7 @@ import pool from '$lib/server/db';
 import type { RowDataPacket } from 'mysql2';
 import { invalidateBoardCache } from '$lib/server/ssr-cache.js';
 import { internalOnlyErrorResponse, isInternalAppRequest } from '$lib/server/internal-api.js';
+import { checkCertification } from '$lib/server/certification';
 
 /**
  * API v1 프록시 핸들러
@@ -259,6 +260,45 @@ async function syncCelebrationBanner(path: string): Promise<void> {
 }
 
 /**
+ * 글·댓글 작성 시 실명인증(본인확인) enforcement (DI 강화 구멍①).
+ *
+ * 게시글 작성(apiClient.createPost → `/api/v1/boards/{boardId}/posts`)과
+ * 댓글 작성(apiClient.createComment → `/api/v1/boards/{boardId}/posts/{postId}/comments`)
+ * 둘 다 이 프록시(POST)를 거쳐 Go 백엔드로 전달된다(게시글도 Go 별도경로가 아니라 이 프록시).
+ * 좋아요·리액션과 동일하게 bo_use_cert='cert' 게시판에서 미인증(mb_certify='') 회원을
+ * 백엔드 도달 전에 차단한다. hello(가입인사)도 게시글이라 hello가 cert면 자동 포함.
+ *
+ * - admin(mb_level≥10) 바이패스·EXEMPT_BOARDS 면제는 checkCertification 내부가 처리(위임).
+ * - 통과(null) 또는 인증 불필요 게시판은 기존 흐름 그대로(회귀 없음).
+ * - 매칭 대상은 **작성(생성)만**: 글 수정/삭제(posts/{id})·댓글 수정(comments/{id})·파일 등은 제외.
+ *
+ * @returns 미인증 차단 시 403 Response, 그 외 null(정상 진행)
+ */
+async function checkWriteCertification(
+    path: string,
+    method: string,
+    locals: App.Locals
+): Promise<Response | null> {
+    if (method !== 'POST') return null;
+
+    // boards/{id}/posts (게시글 작성) 또는 boards/{id}/posts/{n}/comments (댓글 작성) — 생성만
+    const match = path.match(/^boards\/([a-zA-Z0-9_-]+)\/posts(?:\/\d+\/comments)?$/);
+    if (!match) return null;
+
+    const boardId = match[1].replace(/[^a-zA-Z0-9_-]/g, '');
+    // locals.user?.id 는 g5_member.mb_id 문자열. 비로그인이면 undefined →
+    // checkCertification 이 인증필요 게시판에서 로그인 안내 메시지 반환.
+    const certError = await checkCertification(boardId, locals.user?.id);
+    if (certError) {
+        return new Response(JSON.stringify({ error: certError }), {
+            status: 403,
+            headers: { 'Content-Type': 'application/json' }
+        });
+    }
+    return null;
+}
+
+/**
  * 글/댓글 작성 성공 시 g5_board_new에 INSERT
  * angple-backend의 Create()에 이 로직이 빠져있어 SvelteKit에서 보완
  */
@@ -346,6 +386,12 @@ async function proxyRequest(
                 return authorCheckResult; // 403 Response
             }
         }
+    }
+
+    // 글/댓글 작성 시 실명인증 enforcement (DI 강화 구멍①). 백엔드 도달 전 차단.
+    const certCheckResult = await checkWriteCertification(path, method, locals);
+    if (certCheckResult) {
+        return certCheckResult; // 403 Response
     }
 
     try {
