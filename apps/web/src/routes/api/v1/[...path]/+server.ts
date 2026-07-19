@@ -5,6 +5,7 @@ import pool from '$lib/server/db';
 import type { RowDataPacket } from 'mysql2';
 import { invalidateBoardCache } from '$lib/server/ssr-cache.js';
 import { internalOnlyErrorResponse, isInternalAppRequest } from '$lib/server/internal-api.js';
+import { checkCertification } from '$lib/server/certification';
 
 /**
  * API v1 프록시 핸들러
@@ -259,6 +260,43 @@ async function syncCelebrationBanner(path: string): Promise<void> {
 }
 
 /**
+ * 댓글 작성 시 실명인증(본인확인) enforcement (DI 강화 구멍①).
+ *
+ * 댓글 생성은 브라우저 apiClient.createComment → `/api/v1/boards/{boardId}/posts/{postId}/comments`
+ * POST 로 이 프록시를 거쳐 Go 백엔드로 전달된다. 좋아요·리액션 핸들러가
+ * checkCertification 으로 미인증 회원을 차단하는 것과 동일하게, 댓글 작성도
+ * bo_use_cert='cert' 게시판에서는 미인증(mb_certify='') 회원을 백엔드 도달 전에 차단한다.
+ *
+ * - admin(mb_level≥10) 바이패스·EXEMPT_BOARDS 면제는 checkCertification 내부가 처리(위임).
+ * - 통과(null) 또는 인증 불필요 게시판은 기존 흐름 그대로(회귀 없음).
+ * - 게시글 작성(boards/{boardId}/posts)은 이 함수 대상 아님(Go 경로, 이번 범위 밖).
+ *
+ * @returns 미인증 차단 시 403 Response, 그 외 null(정상 진행)
+ */
+async function checkCommentCreateCertification(
+    path: string,
+    method: string,
+    locals: App.Locals
+): Promise<Response | null> {
+    if (method !== 'POST') return null;
+
+    const match = path.match(/^boards\/([a-zA-Z0-9_-]+)\/posts\/\d+\/comments$/);
+    if (!match) return null;
+
+    const boardId = match[1].replace(/[^a-zA-Z0-9_-]/g, '');
+    // locals.user?.id 는 g5_member.mb_id 문자열. 비로그인이면 undefined →
+    // checkCertification 이 인증필요 게시판에서 로그인 안내 메시지 반환.
+    const certError = await checkCertification(boardId, locals.user?.id);
+    if (certError) {
+        return new Response(JSON.stringify({ error: certError }), {
+            status: 403,
+            headers: { 'Content-Type': 'application/json' }
+        });
+    }
+    return null;
+}
+
+/**
  * 글/댓글 작성 성공 시 g5_board_new에 INSERT
  * angple-backend의 Create()에 이 로직이 빠져있어 SvelteKit에서 보완
  */
@@ -346,6 +384,12 @@ async function proxyRequest(
                 return authorCheckResult; // 403 Response
             }
         }
+    }
+
+    // 댓글 작성 시 실명인증 enforcement (DI 강화 구멍①). 백엔드 도달 전 차단.
+    const certCheckResult = await checkCommentCreateCertification(path, method, locals);
+    if (certCheckResult) {
+        return certCheckResult; // 403 Response
     }
 
     try {

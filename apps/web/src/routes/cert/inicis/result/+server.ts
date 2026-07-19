@@ -9,6 +9,7 @@ import {
     isValidInicisUrl,
     saveCertResult,
     checkDupinfo,
+    flagDupinfoCollision,
     getCertPendingMbId
 } from '$lib/server/auth/cert-inicis.js';
 
@@ -135,6 +136,12 @@ export const POST: RequestHandler = async ({ request, locals, cookies }) => {
         existingId
     });
     if (existingId) {
+        // DI 충돌 하드닝(구멍②): 충돌 계정이 제재/탈퇴면 재인증 시도를 durable 운영 플래그로
+        // 기록(다중이/징계회피 감사용). 차단 자체는 위 checkDupinfo 로 이미 성립하므로,
+        // 플래그 기록 실패가 응답 흐름을 막지 않도록 방어적으로 처리한다.
+        await flagDupinfoCollision(mbId, mbDupinfo).catch((e) => {
+            console.error('[Cert] DI 충돌 플래그 기록 실패:', e);
+        });
         return certResultPage(false, '입력하신 본인확인 정보로 이미 가입된 내역이 존재합니다.');
     }
 
