@@ -173,29 +173,56 @@ function findMatchedKey(
  * 미존재/DB 실패는 undefined 로 수렴 — 카드는 기존 /angtt/{wrId} 폴백을 그대로 쓴다.
  */
 /**
- * 별칭 → 활성 작품(슬러그 + 작품 별점).
+ * 별칭 → 활성 작품(슬러그 + 작품명 + 포스터 + 작품 별점).
  *
- * 별점을 여기서 함께 읽는 이유: 카드가 보여줘야 하는 것은 **작품 별점**(여러 글에 흩어진
- * 회원 표를 회원당 1표로 통합한 값)이지 특정 angtt 글 하나의 별점이 아니다.
- * rating_count/rating_avg 는 putEntityRating 이 통합 규칙으로 재계산해 두는 비정규화 컬럼이라
- * 여기서는 인덱스 조회 1회로 끝난다(기존 백엔드 HTTP 왕복 제거).
+ * ⛔ **작품명·포스터·별점은 반드시 엔티티에서 읽는다.** angtt 글에서 읽으면 안 된다.
+ *
+ * 사전(buildDictionary)은 태그를 angtt **글 하나**에 매핑하고 키 충돌 시 최신 글(wr_id 큰 쪽)이
+ * 이긴다. 그래서 엔티티가 있는데도 글 제목을 쓰면, 누군가 같은 작품 후기를 새로 올리는 순간
+ * 사이트 전역의 카드 라벨이 그 사람 글 제목으로 바뀐다
+ * (실제로 「호프」 카드가 작품명 대신 `영화 "호프(HOPE)" 감상후기..` 를 표시하고 있었다).
+ * 한 회원의 글 제목이 작품 이름 노릇을 하게 되는 구조적 오류다.
+ *
+ * 별점도 같은 이유로 엔티티 값을 쓴다 — 여러 글에 흩어진 회원 표를 회원당 1표로 통합한 값이지
+ * 특정 angtt 글 하나의 별점이 아니다. rating_* 는 putEntityRating 이 통합 규칙으로 재계산해 두는
+ * 비정규화 컬럼이라 여기서는 인덱스 조회 1회로 끝난다(기존 백엔드 HTTP 왕복 제거).
  */
-async function resolveEntity(
-    matchedKey: string
-): Promise<{ slug: string; avg: number; count: number } | undefined> {
+async function resolveEntity(matchedKey: string): Promise<
+    | {
+          slug: string;
+          title: string;
+          poster: string;
+          avg: number;
+          count: number;
+      }
+    | undefined
+> {
     try {
         const [rows] = await pool.query(
-            `SELECT e.slug AS slug, e.rating_avg AS avg, e.rating_count AS cnt
+            `SELECT e.slug AS slug, e.canonical_title AS title, e.poster_url AS poster,
+                    e.rating_avg AS avg, e.rating_count AS cnt
              FROM angple_entity_aliases a
              JOIN angple_entities e ON e.id = a.entity_id
              WHERE a.alias_norm = ? AND e.status = 'active'
              LIMIT 1`,
             [matchedKey]
         );
-        const list = rows as { slug?: string; avg?: unknown; cnt?: unknown }[];
+        const list = rows as {
+            slug?: string;
+            title?: string;
+            poster?: string | null;
+            avg?: unknown;
+            cnt?: unknown;
+        }[];
         const slug = list[0]?.slug;
         if (typeof slug !== 'string' || !slug) return undefined;
-        return { slug, avg: Number(list[0]?.avg ?? 0), count: Number(list[0]?.cnt ?? 0) };
+        return {
+            slug,
+            title: list[0]?.title || slug,
+            poster: list[0]?.poster || '',
+            avg: Number(list[0]?.avg ?? 0),
+            count: Number(list[0]?.cnt ?? 0)
+        };
     } catch {
         return undefined;
     }
@@ -253,8 +280,10 @@ export async function resolveAngttMatch(
 
             return {
                 wrId: match.work.wrId,
-                title: match.work.title,
-                thumbnail: match.work.thumbnail,
+                // 엔티티가 있으면 **작품명·포스터도 엔티티 값**을 쓴다(위 resolveEntity 주석 참고).
+                // 엔티티가 없을 때만 angtt 글의 제목·썸네일로 폴백한다.
+                title: entity ? entity.title : match.work.title,
+                thumbnail: entity && entity.poster ? entity.poster : match.work.thumbnail,
                 rating,
                 ...(entity ? { entitySlug: entity.slug } : {}),
                 ...(autoLinked ? { autoLinked: true } : {})
