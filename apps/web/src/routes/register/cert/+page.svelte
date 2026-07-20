@@ -124,8 +124,14 @@
                     승급됩니다.
                 </p>
                 <p class="text-muted-foreground">
-                    글쓰기와 댓글 작성은 <span class="text-foreground font-medium">앙님💛</span>부터
-                    이용하실 수 있습니다.
+                    자유게시판을 비롯한 대부분의 게시판은 <span class="text-foreground font-medium"
+                        >앙님💛</span
+                    >부터 글쓰기와 댓글 작성을 이용하실 수 있습니다.
+                </p>
+                <p class="text-foreground mt-2 font-medium">
+                    다만 <a href="/hello" class="underline underline-offset-4">가입인사</a>는
+                    <span class="font-semibold">앙님❤️</span>도 바로 쓰실 수 있습니다. 본인확인만
+                    마치시면 됩니다.
                 </p>
                 <p class="text-muted-foreground mt-2">
                     현재 시스템 안정화로 인해 자동 승급은 일시 중단되었으며, 매주 일요일 수동으로
