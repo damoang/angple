@@ -9,6 +9,7 @@
     import Placeholder from '@tiptap/extension-placeholder';
     import Mention from '@tiptap/extension-mention';
     import { mentionSuggestion } from '$lib/components/features/editor/mention-suggestion';
+    import { watchCommentInput, stopWatch } from '$lib/services/comment-input-telemetry';
     import Bold from '@lucide/svelte/icons/bold';
     import Italic from '@lucide/svelte/icons/italic';
 
@@ -115,6 +116,11 @@
             onUpdate: ({ editor: e }) => {
                 onUpdate?.(e.getHTML());
             },
+            onFocus: () => {
+                // #12939/#13045 — 작성 중 키보드가 내려가는 현상 진단.
+                // 포커스 중에만 관측하고, 이상 이탈일 때만 1회 전송한다(평상시 비용 0).
+                if (editorElement) watchCommentInput(editorElement);
+            },
             onTransaction: ({ editor: e }) => {
                 // ProseMirror 트랜잭션은 Svelte 렌더/effect 중 동기 호출될 수 있어, 여기서
                 // $state 를 직접 변이하면 state_unsafe_mutation 발생(/free·홈 다수). microtask 로
@@ -134,6 +140,7 @@
     });
 
     onDestroy(() => {
+        stopWatch();
         editor?.destroy();
     });
 
