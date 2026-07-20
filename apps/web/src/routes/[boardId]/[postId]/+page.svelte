@@ -198,6 +198,7 @@
     let reactionPluginActive = $derived(pluginStore.isPluginActive('da-reaction'));
 
     import TagNav from '$lib/components/ui/tag-nav/tag-nav.svelte';
+    import { launchCelebrationConfetti } from '$lib/utils/confetti.js';
 
     // 동적 import: member-memo 플러그인 컴포넌트
     import type { Component } from 'svelte';
@@ -934,6 +935,34 @@
         return () => {
             window.removeEventListener('hashchange', onHashChange);
         };
+    });
+
+    // 가입인사 환영 폭죽 — 신입이 자기 인사글을 처음 열 때 한 번만.
+    //
+    // 왜 "작성자 + 최초 1회" 인가:
+    //   모든 조회마다 터뜨리면 방해가 된다(가입인사가 하루 36건까지 올라온다).
+    //   환영받아야 할 사람은 글쓴 신입 본인이고, 그 순간은 글을 막 올린 직후다.
+    //   localStorage 로 글당 1회 제한을 걸어 재방문 시에는 조용히 지나간다.
+    //
+    // 접근성: prefers-reduced-motion 사용자에게는 띄우지 않는다.
+    // 구현: 기존 launchCelebrationConfetti(2주년·승급 축하에서 쓰던 것) 재사용.
+    onMount(() => {
+        if (boardId !== 'hello' || !isAuthor) return;
+        if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+
+        const key = `dm_hello_welcome_${data.post.id}`;
+        try {
+            if (localStorage.getItem(key)) return;
+            localStorage.setItem(key, '1');
+        } catch {
+            // localStorage 불가(시크릿 모드 등)면 중복 방지를 포기하고 그냥 띄운다
+        }
+
+        // 페이지가 자리를 잡은 뒤 터뜨린다
+        const t = setTimeout(() => {
+            void launchCelebrationConfetti();
+        }, 600);
+        return () => clearTimeout(t);
     });
 
     // 날짜 포맷 헬퍼
