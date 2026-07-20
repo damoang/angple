@@ -14,9 +14,11 @@ import type { ParamMatcher } from '@sveltejs/kit';
  * (2026-07-20 실장애: 앙TT 게시판 글쓰기 버튼 → "페이지를 찾을 수 없습니다")
  *
  * 👉 apps/web/src/routes/[boardId]/ 아래에 정적 디렉터리를 새로 만들면
- *    그 이름을 RESERVED 에 반드시 추가할 것.
+ *    그 이름을 RESERVED 에 반드시 추가해야 한다.
+ *    이 일치 여부는 entityslug.test.ts 가 실제 디렉터리를 읽어 검사하므로,
+ *    빠뜨리면 사람이 기억하지 못해도 **CI 가 먼저 실패한다**.
  */
-const RESERVED = new Set(['write']);
+export const RESERVED = new Set(['write']);
 
 export const match: ParamMatcher = (param) => {
     if (param.length === 0) return false;
