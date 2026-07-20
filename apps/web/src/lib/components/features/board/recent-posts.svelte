@@ -355,9 +355,20 @@
 {:else}
     <div class={wrapperClass}>
         <!-- Classic 레이아웃 헤더 (게시판 목록과 동일) -->
-        {#if listLayoutId === 'classic' && uiSettingsStore.listView !== 'modern'}
+        <!--
+            ⛔ listView 를 {#if} 조건에 넣지 말 것 — 하이드레이션이 깨진다.
+            listView 는 localStorage 기반이라 SSR('classic' 기본값)과 클라이언트
+            (저장값 'modern')가 갈리고, 그러면 SSR 이 그린 DOM 과 구조가 달라져
+            'Failed to hydrate: HierarchyRequestError' 로 목록 전체가 죽는다.
+            구조는 항상 렌더하고 표시 여부만 클래스로 제어한다(속성 차이는 무해).
+            listLayoutId 는 서버 데이터라 조건에 써도 안전하다.
+        -->
+        {#if listLayoutId === 'classic'}
             <div
-                class="border-border bg-muted/30 text-muted-foreground hidden border-b px-4 py-1.5 text-sm font-medium md:block"
+                class="border-border bg-muted/30 text-muted-foreground hidden border-b px-4 py-1.5 text-sm font-medium {uiSettingsStore.listView ===
+                'modern'
+                    ? ''
+                    : 'md:block'}"
             >
                 <div class="grid grid-cols-[60px_1fr_auto_auto_auto] items-center gap-0">
                     <div class="text-center">공감</div>
