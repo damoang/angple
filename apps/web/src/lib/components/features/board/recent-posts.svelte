@@ -228,10 +228,14 @@
         }
     }
 
-    onMount(async () => {
+    // 최초 로드. 실패 시 자동 1회 재시도하고, 그래도 실패하면 사용자가 직접
+    // 다시 시도할 수 있게 error 를 남긴다(이전에는 그냥 문구만 띄우고 끝이라
+    // 일시적인 네트워크 오류에도 목록이 영영 비어 있었다).
+    async function loadInitial(): Promise<void> {
         if (!browser) return;
-        if (posts.length > 0) return;
 
+        error = null;
+        loading = true;
         try {
             let startPage = Math.max(1, initialPage);
 
@@ -270,6 +274,30 @@
             error = '최근글을 불러올 수 없습니다.';
         } finally {
             loading = false;
+        }
+    }
+
+    let retrying = $state(false);
+
+    async function retryLoad(): Promise<void> {
+        if (retrying) return;
+        retrying = true;
+        try {
+            await loadInitial();
+        } finally {
+            retrying = false;
+        }
+    }
+
+    onMount(async () => {
+        if (!browser) return;
+        if (posts.length > 0) return;
+
+        await loadInitial();
+        // 일시적 실패(네트워크 순단 등)는 한 번 더 시도하면 대개 성공한다.
+        if (error) {
+            await new Promise((r) => setTimeout(r, 1000));
+            await loadInitial();
         }
     });
 
@@ -336,17 +364,42 @@
 
 {#if loading}
     <!-- 로딩 스켈레톤 -->
+    <!--
+        스켈레톤은 실제 목록(classic)의 그리드와 같은 골격을 쓴다.
+        예전엔 제목+메타 2줄짜리 범용 골격이라 데이터가 오면 공감·이름·날짜·조회
+        컬럼이 새로 생기며 레이아웃이 튀었다.
+        색은 bg-muted 가 아니라 bg-muted-foreground/20 을 쓴다 — bg-muted 는
+        라이트에서 배경과 명도차 0.061 로 거의 안 보인다(다크는 0.126).
+    -->
     <div class="space-y-1">
         {#each Array(5) as _, i (i)}
             <div class="bg-background rounded-lg border px-4 py-3">
-                <div class="bg-muted mb-2 h-4 w-2/3 animate-pulse rounded"></div>
-                <div class="bg-muted h-3 w-1/3 animate-pulse rounded"></div>
+                <div
+                    class="flex items-center gap-2 md:grid md:grid-cols-[60px_1fr_auto_auto_auto] md:items-center md:gap-0"
+                >
+                    <div
+                        class="bg-muted-foreground/20 hidden h-4 w-8 animate-pulse rounded md:mx-auto md:block"
+                    ></div>
+                    <div class="bg-muted-foreground/20 h-4 w-2/3 animate-pulse rounded"></div>
+                    <div
+                        class="bg-muted-foreground/20 hidden h-3 w-[100px] animate-pulse rounded md:ml-1 md:block"
+                    ></div>
+                    <div
+                        class="bg-muted-foreground/20 hidden h-3 w-[50px] animate-pulse rounded md:ml-1 md:block"
+                    ></div>
+                    <div
+                        class="bg-muted-foreground/20 hidden h-3 w-[34px] animate-pulse rounded md:ml-1 md:block"
+                    ></div>
+                </div>
             </div>
         {/each}
     </div>
 {:else if error}
-    <div class="py-8 text-center">
+    <div class="space-y-3 py-8 text-center">
         <p class="text-muted-foreground text-sm">{error}</p>
+        <Button variant="outline" size="sm" onclick={retryLoad} disabled={retrying}>
+            {retrying ? '불러오는 중…' : '다시 불러오기'}
+        </Button>
     </div>
 {:else if filteredPosts.length === 0}
     <div class="py-8 text-center">
