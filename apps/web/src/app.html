@@ -322,8 +322,20 @@
                 // 리로드는 SvelteKit 클라이언트 내비게이션이 아니라 페이지 snapshot 복원이 실행되지
                 // 않으므로(#9401 우회), 여기서 직접 저장→로드 후 복원한다. 긴 글 열람 후 iOS Safari
                 // 가 탭을 bfcache 폐기 후 복원할 때 목록이 맨 밑으로 떨어지던 현상 방지.
+                // ⛔ Apple(WebKit) 한정. #303·#13022 모두 Safari/iOS 고유 문제인데
+                // 그동안 플랫폼 게이트 없이 **모든 브라우저**에서 돌아, 안드로이드에서도
+                // 뒤로가기·bfcache 복원마다 전체 리로드가 일어나고 있었다(데이터·성능 낭비 +
+                // 작성 중이던 입력 파괴 위험). Chromium 계열 UA 는 "Safari" 문자열을 포함하므로
+                // 삼성 인터넷/크롬을 제외하는 방식으로 판별한다.
+                var isAppleWebKit = (function () {
+                    var ua = navigator.userAgent;
+                    if (/iPad|iPhone|iPod/.test(ua)) return true;
+                    var isChromiumLike =
+                        /Chrome|Chromium|Android|SamsungBrowser|Edg\/|OPR\/|CriOS|FxiOS/.test(ua);
+                    return /Safari/.test(ua) && !isChromiumLike;
+                })();
                 window.addEventListener('pageshow', function (e) {
-                    if (e.persisted) {
+                    if (e.persisted && isAppleWebKit) {
                         try {
                             sessionStorage.setItem(
                                 KEY,
