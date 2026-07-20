@@ -95,6 +95,24 @@
             </CardDescription>
         </CardHeader>
         <CardContent class="space-y-6">
+            {#if data.fromWrite && !data.isCertified}
+                <div
+                    class="rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm leading-6 dark:border-blue-800 dark:bg-blue-950"
+                >
+                    <p class="font-semibold text-blue-900 dark:text-blue-100">
+                        {#if data.blockedBoardName}
+                            「{data.blockedBoardName}」에 글을 쓰시려면 본인확인이 필요합니다
+                        {:else}
+                            글을 쓰시려면 본인확인이 필요합니다
+                        {/if}
+                    </p>
+                    <p class="mt-1 text-blue-800 dark:text-blue-200">
+                        등급이나 가입 기간 때문이 아닙니다. 아래에서 본인확인을 마치시면 바로
+                        작성하실 수 있습니다.
+                    </p>
+                </div>
+            {/if}
+
             <div class="border-border bg-muted/40 rounded-lg border p-4 text-sm leading-6">
                 <p class="font-semibold">등급 안내</p>
                 <p class="text-muted-foreground mt-2">
