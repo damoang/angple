@@ -1309,9 +1309,18 @@
 
             <!-- 게시글 목록 -->
             <div class={wrapperClass}>
-                {#if listLayoutId === 'classic' && uiSettingsStore.listView !== 'modern'}
+                <!--
+                    ⛔ listView 를 {#if} 조건에 넣지 말 것 — 하이드레이션이 깨진다.
+                    localStorage 기반이라 SSR('classic')과 클라이언트('modern')가 갈리고,
+                    구조가 달라지면 'Failed to hydrate: HierarchyRequestError' 로 목록이 죽는다.
+                    구조는 항상 렌더하고 표시만 클래스로 제어한다.
+                -->
+                {#if listLayoutId === 'classic'}
                     <div
-                        class="border-border bg-muted/30 text-muted-foreground hidden border-b px-4 py-1.5 text-sm font-medium md:block"
+                        class="border-border bg-muted/30 text-muted-foreground hidden border-b px-4 py-1.5 text-sm font-medium {uiSettingsStore.listView ===
+                        'modern'
+                            ? ''
+                            : 'md:block'}"
                     >
                         <div class="grid grid-cols-[60px_1fr_auto_auto_auto] items-center gap-0">
                             <div class="text-center">공감</div>
