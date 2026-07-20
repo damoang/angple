@@ -29,7 +29,9 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 
     const certError = await checkCertification(boardId, locals.user.id);
     if (certError) {
-        redirect(302, '/register/cert');
+        // 사유를 함께 넘긴다. 그냥 튕기면 신규 회원은 왜 막혔는지 알 수 없어
+        // "신규회원은 글을 못 쓰는구나"로 오해한다(#가입인사 제보).
+        redirect(302, `/register/cert?from=write&board=${encodeURIComponent(boardId)}`);
     }
 
     // 게시판 정보 조회 → write_level 권한 체크

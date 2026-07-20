@@ -12,7 +12,11 @@ interface MemberCertRow extends RowDataPacket {
     mb_certify: string;
 }
 
-export const load: PageServerLoad = async ({ locals }) => {
+interface BoardSubjectRow extends RowDataPacket {
+    bo_subject: string;
+}
+
+export const load: PageServerLoad = async ({ locals, url }) => {
     // 로그인 필수
     if (!locals.user) {
         redirect(303, '/login');
@@ -34,8 +38,23 @@ export const load: PageServerLoad = async ({ locals }) => {
     const mbCertify = rows[0]?.mb_certify || '';
     const isCertified = !!mbCertify;
 
+    // 글쓰기에서 막혀 넘어온 경우 게시판 이름을 함께 보여준다.
+    // board 값은 URL 파라미터라 신뢰하지 않고 DB 에 실재하는 게시판일 때만 사용한다.
+    let blockedBoardName: string | null = null;
+    const fromWrite = url.searchParams.get('from') === 'write';
+    const boardParam = (url.searchParams.get('board') || '').replace(/[^a-zA-Z0-9_-]/g, '');
+    if (fromWrite && boardParam) {
+        const [boardRows] = await readPool.query<BoardSubjectRow[]>(
+            'SELECT bo_subject FROM g5_board WHERE bo_table = ?',
+            [boardParam]
+        );
+        blockedBoardName = boardRows[0]?.bo_subject || null;
+    }
+
     return {
         isCertified,
-        certRequired: certConfig.certReq === 1
+        certRequired: certConfig.certReq === 1,
+        fromWrite,
+        blockedBoardName
     };
 };
