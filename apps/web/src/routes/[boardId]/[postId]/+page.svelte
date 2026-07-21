@@ -2416,6 +2416,8 @@
                             {initialDislikedCommentIds}
                             {truthroomCommentMap}
                             isRestricted={data.isRestricted}
+                            permissions={data.board?.permissions}
+                            requiredReplyLevel={data.board?.reply_level ?? 3}
                             expectedTotal={commentsTotal}
                             editPolicy={commentEditPolicy}
                         />
