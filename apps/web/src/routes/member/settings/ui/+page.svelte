@@ -335,7 +335,13 @@
         }, 300);
     }
 
+    // ⛔ localStorage 기반 설정을 {#if} 구조 조건에 그대로 쓰면 하이드레이션이 깨진다.
+    // SSR 은 DEFAULTS, 클라이언트는 저장값이라 구조가 갈린다(#1829 listView 동종).
+    // 마운트 이후에 반영한다.
+    let hydrated = $state(false);
+
     onMount(() => {
+        hydrated = true;
         loadSubscriptions();
         loadFollowing();
         loadNotiPrefs();
@@ -768,7 +774,7 @@
                             추가
                         </Button>
                     </div>
-                    {#if uiSettingsStore.muteKeywords.length > 0}
+                    {#if hydrated && uiSettingsStore.muteKeywords.length > 0}
                         <div class="flex flex-wrap gap-1.5">
                             {#each uiSettingsStore.muteKeywords as keyword (keyword)}
                                 <Badge variant="secondary" class="gap-1 pr-1">
@@ -1027,7 +1033,7 @@
                             onCheckedChange={(v) => uiSettingsStore.setShowShortcutButtons(v)}
                         />
                     </div>
-                    {#if uiSettingsStore.showShortcutButtons}
+                    {#if hydrated && uiSettingsStore.showShortcutButtons}
                         <Separator />
                         <div>
                             <Label class="mb-2 block">버튼 크기</Label>
@@ -1074,7 +1080,7 @@
                             onCheckedChange={(v) => uiSettingsStore.setEnableTouchGestures(v)}
                         />
                     </div>
-                    {#if uiSettingsStore.enableTouchGestures}
+                    {#if hydrated && uiSettingsStore.enableTouchGestures}
                         <Separator />
                         <div class="grid grid-cols-2 gap-4">
                             <div>

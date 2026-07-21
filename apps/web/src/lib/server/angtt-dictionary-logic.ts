@@ -91,6 +91,154 @@ export function buildDictionary(
     return dict;
 }
 
+/* ------------------------------------------------------------------ *
+ * 제목 스캔 (티어 B) — 제목 안에 작품 별칭이 "단어로" 등장하는지 찾는다.
+ *
+ * extractTitleCandidates() 는 제목 *전체*(와 따옴표 안쪽)만 후보로 삼기 때문에
+ * "영화 호프 감상기" 같은 평범한 제목에서는 「호프」를 찾지 못한다.
+ * 여기서는 반대로 별칭을 제목 안에서 부분 검색하되, 아래 규칙으로 오탐을 막는다.
+ *
+ * ⚠️ 이 스캔 결과는 그 자체로 자동 저장 근거가 되지 않는다.
+ *    canAutoLink 가 true 인 경우에만 자동 연결을 허용하고, 나머지는 "제안"으로만 쓴다.
+ * ------------------------------------------------------------------ */
+
+/** 별칭 앞뒤에 붙어 있으면 다른 단어의 일부로 보는 문자 */
+const WORD_CHAR = /[0-9a-z가-힣]/;
+
+/**
+ * 별칭 바로 뒤에 붙을 수 있는 한국어 조사.
+ * 한국어는 교착어라 "호프를"처럼 조사가 바로 붙는다. 조사면 같은 단어로 인정하고,
+ * 조사가 아니면(예: "동궁전", "호프집") 다른 단어로 보아 거부한다.
+ */
+const KOREAN_PARTICLES: ReadonlySet<string> = new Set([
+    '을',
+    '를',
+    '이',
+    '가',
+    '은',
+    '는',
+    '에',
+    '의',
+    '도',
+    '만',
+    '과',
+    '와',
+    '로',
+    '으로',
+    '에서',
+    '에선',
+    '부터',
+    '까지',
+    '에게',
+    '한테',
+    '라',
+    '이라',
+    '랑',
+    '이랑',
+    '보다',
+    '처럼',
+    '같이',
+    '밖에',
+    '조차',
+    '마저',
+    '뿐',
+    '씩',
+    '께',
+    '께서',
+    '이나',
+    '나',
+    '든'
+]);
+
+/** 작품 별칭 1건 */
+export interface EntityAlias {
+    /** normalizeWorkTitle() 로 정규화된 별칭 */
+    aliasNorm: string;
+    /** 작품 식별자 */
+    entitySlug: string;
+    /**
+     * 자동 연결(사람 확인 없이 저장) 허용 여부.
+     * 일반어와 겹치는 이름(예: 「참교육」)은 반드시 false 로 둔다.
+     */
+    autoLink: boolean;
+    /**
+     * autoLink 시 제목에 함께 나와야 하는 문맥어. 비어 있으면 문맥 조건 없음.
+     * 예: 「호프」는 생맥주집을 뜻하기도 하므로 영화 문맥어를 요구한다.
+     */
+    contextTerms?: readonly string[];
+}
+
+/** 제목 스캔 결과 */
+export interface TitleScanHit {
+    entitySlug: string;
+    /** 제목에서 실제로 매칭된 별칭(정규화형) */
+    alias: string;
+    /** 사람 확인 없이 자동 저장해도 되는 신뢰도인지 */
+    canAutoLink: boolean;
+}
+
+/**
+ * 별칭이 pos 위치에서 "독립된 단어"로 등장했는지 검사한다.
+ * 앞: 단어 문자면 거부 ("네오동궁" 같은 결합 거부)
+ * 뒤: 단어 문자가 아니면 통과. 한글이 이어지면 그 한글 덩어리가 조사일 때만 통과.
+ */
+function isWordBoundaryMatch(haystack: string, pos: number, len: number): boolean {
+    const before = pos > 0 ? haystack[pos - 1] : '';
+    if (before && WORD_CHAR.test(before)) return false;
+
+    let j = pos + len;
+    if (j >= haystack.length) return true;
+    if (!WORD_CHAR.test(haystack[j])) return true;
+
+    // 뒤에 한글이 이어짐 → 조사인지 확인
+    let trailing = '';
+    while (j < haystack.length && /[가-힣]/.test(haystack[j])) {
+        trailing += haystack[j];
+        j++;
+    }
+    if (!trailing) return false; // 숫자/영문이 이어붙음 → 다른 단어
+    return KOREAN_PARTICLES.has(trailing);
+}
+
+/**
+ * 제목에서 작품 별칭을 찾는다. 여러 별칭이 걸리면 **가장 긴 것** 하나만 반환한다.
+ * 어떤 별칭도 단어 경계 조건을 만족하지 못하면 null.
+ */
+export function scanAliasesInTitle(
+    title: string,
+    aliases: readonly EntityAlias[]
+): TitleScanHit | null {
+    const norm = normalizeWorkTitle(title);
+    if (!norm) return null;
+
+    // 최장일치 우선 — "동궁" 과 "동궁 시즌2" 가 함께 있으면 긴 쪽을 택한다
+    const sorted = [...aliases].sort((a, b) => b.aliasNorm.length - a.aliasNorm.length);
+
+    for (const alias of sorted) {
+        const key = alias.aliasNorm;
+        if (key.length < 2) continue; // 1글자 별칭은 오탐 위험이 커서 스캔 대상 제외
+
+        let from = 0;
+        for (;;) {
+            const pos = norm.indexOf(key, from);
+            if (pos === -1) break;
+            if (isWordBoundaryMatch(norm, pos, key.length)) {
+                const terms = alias.contextTerms ?? [];
+                const contextOk =
+                    terms.length === 0 || terms.some((t) => norm.includes(normalizeWorkTitle(t)));
+                return {
+                    entitySlug: alias.entitySlug,
+                    alias: key,
+                    canAutoLink: alias.autoLink && contextOk
+                };
+            }
+            from = pos + 1;
+        }
+    }
+
+    return null;
+}
+
 /** 태그 매칭 결과: 일치 작품 / 미등록(유도 카드용 질의) / 후보 태그 없음(null) */
 export type TagMatchResult = { work: AngttWork } | { query: string } | null;
 

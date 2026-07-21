@@ -278,15 +278,52 @@ export async function getEntityConnectedPosts(
 }
 
 /**
- * 작품 단위 별점 집계. bo_table='@entity' 규약(작품당 회원 1표)만 읽는다.
- * 이번 슬라이스는 읽기 전용 — 데이터 0건이 정상이며 그때 {avg:0,count:0,my:null}.
+ * 작품 별점 통합 집계 — 두 경로의 표를 **회원당 1표**로 정규화한 행 집합.
+ *
+ *  - 작품 별점 (bo_table='@entity') : 작품 페이지에서 직접 남긴 표 → 우선순위 0
+ *  - 글 별점  (연결된 글의 표)      : 원글/리뷰 글에서 남긴 표      → 우선순위 1
+ *
+ * 회원이 작품 페이지와 글 양쪽에 남겼으면 **더 명시적인 작품 별점**을 채택하고,
+ * 같은 우선순위 안에서는 최신 표를 채택한다.
+ * 한 회원이 같은 작품의 글 5개에 별점을 줘도 작품 점수에는 1표만 반영된다.
+ *
+ * ⚠️ 이 통합이 없으면 회원이 원글에 남긴 별점이 작품 페이지에서 영원히 보이지 않는다
+ *    (실제로 「호프」가 3명 3.33점을 받고도 0.00 으로 표시되던 원인).
+ *
+ * 파라미터 순서: entityId, ENTITY_RATING_BO_TABLE, entityId, ENTITY_RATING_BO_TABLE
+ */
+const UNIFIED_RATING_ROWS = `
+    SELECT mb_id, rating,
+           ROW_NUMBER() OVER (PARTITION BY mb_id ORDER BY pref, updated_at DESC) AS rn
+      FROM (
+        SELECT mb_id, rating, 0 AS pref, updated_at
+          FROM angple_post_ratings
+         WHERE entity_id = ? AND bo_table = ?
+        UNION ALL
+        SELECT pr.mb_id, pr.rating, 1 AS pref, pr.updated_at
+          FROM angple_post_ratings pr
+          JOIN angple_entity_posts ep
+            ON ep.bo_table = pr.bo_table AND ep.wr_id = pr.wr_id
+         WHERE ep.entity_id = ? AND pr.bo_table <> ?
+      ) u`;
+
+/** UNIFIED_RATING_ROWS 파라미터 묶음 */
+const unifiedParams = (entityId: number) => [
+    entityId,
+    ENTITY_RATING_BO_TABLE,
+    entityId,
+    ENTITY_RATING_BO_TABLE
+];
+
+/**
+ * 작품 단위 별점 집계(작품당 회원 1표).
+ * 작품 페이지 별점 + 연결된 글의 별점을 회원당 1표로 통합해 읽는다.
  */
 export async function getEntityRating(entityId: number, mbId?: string): Promise<AngttEntityRating> {
     const [aggResult] = await pool.query(
         `SELECT COUNT(*) AS cnt, AVG(rating) AS avg
-         FROM angple_post_ratings
-         WHERE entity_id = ? AND bo_table = ?`,
-        [entityId, ENTITY_RATING_BO_TABLE]
+         FROM (${UNIFIED_RATING_ROWS}) x WHERE rn = 1`,
+        unifiedParams(entityId)
     );
     const aggRows = aggResult as RatingAggRow[];
     const count = Number(aggRows[0]?.cnt ?? 0);
@@ -295,9 +332,9 @@ export async function getEntityRating(entityId: number, mbId?: string): Promise<
     let my: number | null = null;
     if (mbId) {
         const [myResult] = await pool.query(
-            `SELECT rating FROM angple_post_ratings
-             WHERE entity_id = ? AND bo_table = ? AND mb_id = ? LIMIT 1`,
-            [entityId, ENTITY_RATING_BO_TABLE, mbId]
+            `SELECT rating FROM (${UNIFIED_RATING_ROWS}) x
+             WHERE rn = 1 AND mb_id = ? LIMIT 1`,
+            [...unifiedParams(entityId), mbId]
         );
         const myRows = myResult as MyRatingRow[];
         if (myRows[0]) my = Number(myRows[0].rating);
@@ -336,18 +373,17 @@ export async function putEntityRating(
     );
 
     // 비정규화 집계 재계산(작품 페이지/카드 헤드라인 별점 소스)
+    // 읽기(getEntityRating)와 **동일한 통합 규칙**을 써야 카드와 상세가 어긋나지 않는다.
     await pool.query(
         `UPDATE angple_entities
          SET rating_count = (
-                SELECT COUNT(*) FROM angple_post_ratings
-                WHERE entity_id = ? AND bo_table = ?
+                SELECT COUNT(*) FROM (${UNIFIED_RATING_ROWS}) a WHERE rn = 1
              ),
              rating_avg = (
-                SELECT COALESCE(AVG(rating), 0) FROM angple_post_ratings
-                WHERE entity_id = ? AND bo_table = ?
+                SELECT COALESCE(AVG(rating), 0) FROM (${UNIFIED_RATING_ROWS}) b WHERE rn = 1
              )
          WHERE id = ?`,
-        [entityId, ENTITY_RATING_BO_TABLE, entityId, ENTITY_RATING_BO_TABLE, entityId]
+        [...unifiedParams(entityId), ...unifiedParams(entityId), entityId]
     );
 
     return getEntityRating(entityId, mbId);

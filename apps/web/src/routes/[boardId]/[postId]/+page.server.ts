@@ -260,7 +260,7 @@ export const load: PageServerLoad = async ({
         const angttMatchPromise: Promise<AngttMatch | undefined> =
             boardId === 'angtt' || post.deleted_at
                 ? Promise.resolve(undefined)
-                : resolveAngttMatch(post.tags).catch(() => undefined);
+                : resolveAngttMatch(post.tags, { boardId, wrId: post.id }).catch(() => undefined);
 
         // 게시글 작성자 프로필 이미지 즉시 조회 (1단계 — 본문 렌더에 필요)
         // 작성자 탈퇴 여부 — 닉네임 취소선 표시용(5분 캐시라 활동 게이트 조회와 중복돼도 저렴).

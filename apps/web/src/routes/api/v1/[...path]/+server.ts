@@ -6,6 +6,7 @@ import type { RowDataPacket } from 'mysql2';
 import { invalidateBoardCache } from '$lib/server/ssr-cache.js';
 import { internalOnlyErrorResponse, isInternalAppRequest } from '$lib/server/internal-api.js';
 import { checkCertification } from '$lib/server/certification';
+import { autoLinkAngttEntity } from '$lib/server/angtt-auto-link';
 
 /**
  * API v1 프록시 핸들러
@@ -339,6 +340,28 @@ async function insertBoardNew(path: string, response: Response, locals: App.Loca
     }
 }
 
+/**
+ * 앙티티 자동 연결 — 원글 작성 성공 직후 제목을 보고 작품에 연결한다.
+ * insertBoardNew 와 동일한 후처리 패턴(응답에서 wr_id 추출 → fire-and-forget).
+ * 댓글은 대상이 아니다(작품 연결은 글 단위).
+ */
+async function autoLinkAngtt(path: string, response: Response): Promise<void> {
+    const postMatch = path.match(/^boards\/([a-zA-Z0-9_-]+)\/posts$/);
+    if (!postMatch) return;
+
+    let data: { data?: { id?: number; wr_id?: number } };
+    try {
+        data = await response.json();
+    } catch {
+        return;
+    }
+
+    const wrId = data?.data?.id || data?.data?.wr_id;
+    if (!wrId) return;
+
+    await autoLinkAngttEntity(postMatch[1], wrId);
+}
+
 // 공통 프록시 로직
 async function proxyRequest(
     method: string,
@@ -504,6 +527,12 @@ async function proxyRequest(
         if (method === 'POST' && response.status >= 200 && response.status < 300) {
             insertBoardNew(path, response.clone(), locals).catch((err) => {
                 console.error('[API Proxy] g5_board_new insert error:', err);
+            });
+
+            // 앙티티 자동 연결 — 제목에 작품명이 있으면 태그 부착 + 작품 링크 생성.
+            // ⛔ 쓰기 시점 1회만. 실패해도 글 작성에는 영향 없음(fire-and-forget).
+            autoLinkAngtt(path, response.clone()).catch((err) => {
+                console.error('[API Proxy] angtt auto-link error:', err);
             });
         }
 
