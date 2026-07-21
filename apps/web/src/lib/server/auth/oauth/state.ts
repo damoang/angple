@@ -23,7 +23,8 @@ export function createOAuthState(
     redirectUrl: string,
     linkTo?: string,
     appMode?: boolean,
-    allowSignup?: boolean
+    allowSignup?: boolean,
+    noAccountCapable?: boolean
 ): string {
     const state = generateRandomState();
 
@@ -34,7 +35,8 @@ export function createOAuthState(
         timestamp: Date.now(),
         ...(linkTo ? { linkTo } : {}),
         ...(appMode ? { appMode: true } : {}),
-        ...(allowSignup ? { allowSignup: true } : {})
+        ...(allowSignup ? { allowSignup: true } : {}),
+        ...(noAccountCapable ? { noAccountCapable: true } : {})
     };
 
     cookies.set(STATE_COOKIE_NAME, JSON.stringify(data), {

@@ -51,7 +51,12 @@ async function generateUniqueTempNickname(): Promise<string> {
 }
 
 export const POST: RequestHandler = async ({ request, getClientAddress }) => {
-    let body: { identityToken?: string; email?: string; allowSignup?: boolean };
+    let body: {
+        identityToken?: string;
+        email?: string;
+        allowSignup?: boolean;
+        noAccountCapable?: boolean;
+    };
     try {
         body = await request.json();
     } catch {
@@ -113,10 +118,11 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
             }
         }
 
-        // 3. 신규가입 가드(#no-account-guard): 사용자가 명시적으로 "새로 시작"(allowSignup)을
-        //    누르지 않았다면, 조용히 계정을 만들지 않고 앱에 no_account 를 반환한다.
-        //    앱은 "연결된 계정 없음"을 안내하고, 재시도 시 allowSignup=true 로만 계정을 만든다.
-        if (!mbId && !body.allowSignup) {
+        // 3. 신규가입 가드(#no-account-guard): no_account 를 이해하는 신규 앱(noAccountCapable)이고
+        //    사용자가 명시적으로 "새로 시작"(allowSignup)을 누르지 않았다면, 조용히 계정을 만들지 않고
+        //    앱에 no_account 를 반환한다. 앱은 "연결된 계정 없음"을 안내하고 재시도 시에만 생성한다.
+        //    구버전 앱(noAccountCapable 미전송)은 기존 동작(자동 임시계정 생성) 유지 — 하위호환.
+        if (!mbId && body.noAccountCapable && !body.allowSignup) {
             return json({ success: false, error: 'no_account' }, { status: 200 });
         }
 

@@ -101,4 +101,10 @@ export interface OAuthStateData {
      * 사용자가 앱에서 "새로 시작"을 눌러 재시도할 때만 true 로 들어와 계정 생성을 허용한다.
      */
     allowSignup?: boolean;
+    /**
+     * 클라이언트가 error=no_account 응답을 이해하는지 여부 (/auth/start?...&nac=1).
+     * 하위호환: 이 플래그를 보내지 않는 구버전 앱은 no_account 가드를 적용하지 않고
+     * 기존(자동 임시계정 생성) 동작을 유지한다. 신규 앱만 no_account 안내를 받는다.
+     */
+    noAccountCapable?: boolean;
 }

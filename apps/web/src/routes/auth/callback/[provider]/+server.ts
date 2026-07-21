@@ -223,10 +223,16 @@ async function handleCallback(
                 }
             }
 
-            // 앱 모드 신규가입 가드(#no-account-guard): 초대 플로우가 아니고, 사용자가 명시적으로
-            // "새로 시작"(signup=1)을 누르지 않았다면, 조용히 임시 계정을 만들지 않고 앱에 no_account 로
-            // 복귀시킨다. 앱이 "연결된 계정 없음"을 안내하고, 사용자가 재시도(signup=1)할 때만 생성된다.
-            if (stateData.appMode && !stateData.allowSignup && !isInviteFlow(stateData.redirect)) {
+            // 앱 모드 신규가입 가드(#no-account-guard): 초대 플로우가 아니고, no_account 를 이해하는
+            // 신규 앱(nac=1)이며, 사용자가 명시적으로 "새로 시작"(signup=1)을 누르지 않았다면,
+            // 조용히 임시 계정을 만들지 않고 앱에 no_account 로 복귀시킨다. 앱이 "연결된 계정 없음"을
+            // 안내하고 재시도(signup=1)할 때만 생성된다. 구버전 앱(nac 미전송)은 기존 동작(자동생성) 유지.
+            if (
+                stateData.appMode &&
+                stateData.noAccountCapable &&
+                !stateData.allowSignup &&
+                !isInviteFlow(stateData.redirect)
+            ) {
                 redirect(
                     302,
                     `damoang://oauth-callback?error=no_account&provider=${encodeURIComponent(providerName)}`

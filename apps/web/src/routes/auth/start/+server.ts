@@ -26,6 +26,8 @@ export const GET: RequestHandler = async ({ url, cookies, request, locals }) => 
     const isAppMode = url.searchParams.get('app') === '1';
     // 앱 모드 신규가입 명시 허용 — 미설정 시 매칭 실패해도 조용히 계정 생성하지 않음(#no-account-guard)
     const allowSignup = url.searchParams.get('signup') === '1';
+    // 클라이언트가 no_account 응답을 이해하는지(신규 앱). 구버전 앱은 미전송 → 가드 미적용(하위호환)
+    const noAccountCapable = url.searchParams.get('nac') === '1';
 
     if (!providerParam || !isValidProvider(providerParam)) {
         return new Response('지원하지 않는 로그인 방식입니다', { status: 400 });
@@ -52,7 +54,8 @@ export const GET: RequestHandler = async ({ url, cookies, request, locals }) => 
             redirectUrl,
             linkTo,
             isAppMode,
-            allowSignup
+            allowSignup,
+            noAccountCapable
         );
 
         // Twitter는 PKCE 사용
