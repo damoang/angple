@@ -1151,7 +1151,7 @@
 <div class="tiptap-editor border-input relative rounded-md border {className}">
     <!-- 툴바 -->
     <div
-        class="border-border bg-muted/50 sticky top-[64px] z-30 flex flex-wrap items-center gap-1 rounded-t-md border-b p-2"
+        class="border-border bg-muted/50 sticky top-[64px] z-30 flex flex-nowrap items-center gap-1 overflow-x-auto overscroll-x-contain rounded-t-md border-b p-2 sm:flex-wrap sm:overflow-x-visible [&>*]:shrink-0"
         role="toolbar"
         aria-label="텍스트 편집 도구"
     >
@@ -1502,7 +1502,7 @@
             </Button>
             {#if showTableMenu}
                 <div
-                    class="bg-popover border-border absolute left-0 top-full z-50 mt-1 rounded-md border p-2 shadow-md"
+                    class="bg-popover border-border fixed inset-x-2 bottom-2 z-50 rounded-md border p-2 shadow-md sm:absolute sm:inset-x-auto sm:bottom-auto sm:left-0 sm:top-full sm:mt-1"
                 >
                     <div class="flex flex-col gap-1">
                         <button

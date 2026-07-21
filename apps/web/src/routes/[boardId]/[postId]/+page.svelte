@@ -42,6 +42,7 @@
     import CommentList from '$lib/components/features/board/comment-list.svelte';
     import AuthorActivityPanel from '$lib/components/features/board/author-activity-panel.svelte';
     import RecentPosts from '$lib/components/features/board/recent-posts.svelte';
+    import AngttConnectCard from '$lib/components/features/board/angtt-connect-card.svelte';
     import { BOARD_LIST_PAGE_SIZE } from '$lib/constants/board';
     import { ReportDialog } from '$lib/components/features/report/index.js';
     import type { FreeComment, FreePost, LikerInfo, PostRevision } from '$lib/api/types.js';
@@ -69,6 +70,7 @@
         createDiscussionForumPostingJsonLd,
         createQAPageJsonLd,
         createVideoObjectJsonLd,
+        createRatedItemJsonLd,
         extractVideosFromContent,
         getSiteUrl,
         truncateText
@@ -196,6 +198,7 @@
     let reactionPluginActive = $derived(pluginStore.isPluginActive('da-reaction'));
 
     import TagNav from '$lib/components/ui/tag-nav/tag-nav.svelte';
+    import { launchCelebrationConfetti } from '$lib/utils/confetti.js';
 
     // 동적 import: member-memo 플러그인 컴포넌트
     import type { Component } from 'svelte';
@@ -934,6 +937,34 @@
         };
     });
 
+    // 가입인사 환영 폭죽 — 신입이 자기 인사글을 처음 열 때 한 번만.
+    //
+    // 왜 "작성자 + 최초 1회" 인가:
+    //   모든 조회마다 터뜨리면 방해가 된다(가입인사가 하루 36건까지 올라온다).
+    //   환영받아야 할 사람은 글쓴 신입 본인이고, 그 순간은 글을 막 올린 직후다.
+    //   localStorage 로 글당 1회 제한을 걸어 재방문 시에는 조용히 지나간다.
+    //
+    // 접근성: prefers-reduced-motion 사용자에게는 띄우지 않는다.
+    // 구현: 기존 launchCelebrationConfetti(2주년·승급 축하에서 쓰던 것) 재사용.
+    onMount(() => {
+        if (boardId !== 'hello' || !isAuthor) return;
+        if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+
+        const key = `dm_hello_welcome_${data.post.id}`;
+        try {
+            if (localStorage.getItem(key)) return;
+            localStorage.setItem(key, '1');
+        } catch {
+            // localStorage 불가(시크릿 모드 등)면 중복 방지를 포기하고 그냥 띄운다
+        }
+
+        // 페이지가 자리를 잡은 뒤 터뜨린다
+        const t = setTimeout(() => {
+            void launchCelebrationConfetti();
+        }, 600);
+        return () => clearTimeout(t);
+    });
+
     // 날짜 포맷 헬퍼
     function formatDate(dateString: string): string {
         const date = new Date(dateString);
@@ -1492,7 +1523,8 @@
         content: string,
         parentId?: string | number,
         isSecret?: boolean,
-        images?: string[]
+        images?: string[],
+        rating?: number
     ): Promise<void> {
         if (!authStore.user) {
             throw new Error('로그인이 필요합니다.');
@@ -1507,6 +1539,16 @@
                 is_secret: isSecret,
                 images
             });
+
+            // 리뷰 별점(리뷰=댓글+별점): 댓글 저장 후 그 댓글 wr_id 에 작성자 본인 별점 기록.
+            // be#562 별점 API 재사용(댓글 wr_id 수용 확인). 실패해도 댓글 작성은 성공 유지.
+            if (rating && rating > 0 && newComment?.id) {
+                try {
+                    await apiClient.putPostRating(boardId, String(newComment.id), rating);
+                } catch (ratingErr) {
+                    console.error('리뷰 별점 저장 실패(댓글은 작성됨):', ratingErr);
+                }
+            }
 
             // Optimistic update: 서버 응답 즉시 목록에 추가 (#11946)
             let optimisticComment: FreeComment | null = null;
@@ -1787,6 +1829,28 @@
                   })
                 : null;
 
+        // 앙티티(리뷰) 게시판 별점 집계 → 작품(Movie/Book 등) + AggregateRating.
+        // features.rating 보드에서만 백엔드가 post.rating 을 동봉하고, 참여 0(count<1)이면
+        // 헬퍼가 null 반환(블록 생략) → 구글 검색결과에 ★ 리치결과 노출용. 제목의 따옴표 안
+        // 작품명을 우선 사용(없으면 제목 전체).
+        const ratedItemJsonLd =
+            data.post.rating && !data.post.deleted_at && !data.post.is_secret
+                ? createRatedItemJsonLd({
+                      name: (
+                          data.post.title?.match(
+                              /["'“”‘’「」『』]([^"'“”‘’「」『』]+)["'“”‘’「」『』]/
+                          )?.[1] ||
+                          data.post.title ||
+                          ''
+                      ).trim(),
+                      category: data.post.category,
+                      ratingValue: data.post.rating.avg,
+                      ratingCount: data.post.rating.count,
+                      url: postUrl,
+                      image: ogImageUrl
+                  })
+                : null;
+
         return {
             meta: {
                 title: `${data.post.title} - ${boardTitle}`,
@@ -1853,7 +1917,9 @@
                     { name: data.post.title }
                 ]),
                 // VideoObject — 본문 유튜브 임베드·업로드 동영상 (최대 3개, null 은 필터됨)
-                ...videoJsonLds
+                ...videoJsonLds,
+                // 앙티티(리뷰) 별점 → AggregateRating (참여 0·비rating 보드면 null → 필터)
+                ratedItemJsonLd
             ]
         };
     });
@@ -2211,6 +2277,11 @@
             </div>
         {/if}
 
+        <!-- 앙티티 커넥트 카드 (Phase 1): 태그 「앙티티」+작품명 규약 — 서버 매칭, SSR 렌더 -->
+        {#if data.angttMatch}
+            <AngttConnectCard match={data.angttMatch} {boardId} postId={data.post.id} {isAuthor} />
+        {/if}
+
         {#each beforeCommentsSlots as slot (slot.component)}
             {@const SlotComponent = slot.component}
             <SlotComponent
@@ -2345,6 +2416,8 @@
                             {initialDislikedCommentIds}
                             {truthroomCommentMap}
                             isRestricted={data.isRestricted}
+                            permissions={data.board?.permissions}
+                            requiredReplyLevel={data.board?.reply_level ?? 3}
                             expectedTotal={commentsTotal}
                             editPolicy={commentEditPolicy}
                         />
@@ -2387,6 +2460,7 @@
                                     {boardId}
                                     onRefresh={refreshComments}
                                     isRefreshing={isRefreshingComments}
+                                    showRating={data.post.rating !== undefined}
                                 />
                             {/key}
                         {/if}
