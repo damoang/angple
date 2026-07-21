@@ -115,6 +115,7 @@ plugins/*
 !plugins/payment/
 !plugins/ad-free/
 !plugins/pwa-share/
+!plugins/angtt-review/
 !apps/web/src/routes/api/plugins/
 !apps/web/src/routes/admin/plugins/
 !apps/web/src/lib/plugins/

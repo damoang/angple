@@ -9,7 +9,7 @@ import { env } from '$env/dynamic/private';
 import { normalizeProviderName, getProvider } from '$lib/server/auth/oauth/provider-registry.js';
 import { resolveOrigin } from '$lib/server/auth/oauth/config.js';
 import { safeRedirectUrl } from '$lib/server/safe-redirect.js';
-import { validateOAuthState } from '$lib/server/auth/oauth/state.js';
+import { validateOAuthState, peekAppMode } from '$lib/server/auth/oauth/state.js';
 import {
     findSocialProfile,
     linkSocialProfile,
@@ -97,6 +97,17 @@ async function generateInviteTempNickname(provider: string): Promise<string> {
     throw new Error('초대 임시 닉네임 생성에 실패했습니다.');
 }
 
+/**
+ * 에러 리다이렉트. 네이티브 앱 모드(appMode)면 앱 스킴(damoang://oauth-callback?error=)으로 복귀시켜
+ * 인앱 브라우저가 웹 /login 에 갇히는 것을 방지한다. 아니면 기존대로 웹 로그인으로.
+ */
+function redirectError(errorCode: string, appMode: boolean): never {
+    if (appMode) {
+        redirect(302, `damoang://oauth-callback?error=${encodeURIComponent(errorCode)}`);
+    }
+    redirect(302, `/login?error=${encodeURIComponent(errorCode)}`);
+}
+
 /** 공통 콜백 처리 로직 */
 async function handleCallback(
     providerSlug: string,
@@ -110,17 +121,17 @@ async function handleCallback(
     // 1. URL 경로 파라미터에서 프로바이더 추출
     const providerName = normalizeProviderName(providerSlug);
     if (!providerName) {
-        redirect(302, '/login?error=invalid_provider');
+        redirectError('invalid_provider', peekAppMode(cookies, stateParam));
     }
 
     // 2. state 검증 (CSRF)
     const stateData = validateOAuthState(cookies, stateParam);
     if (!stateData) {
-        redirect(302, '/login?error=invalid_state');
+        redirectError('invalid_state', peekAppMode(cookies, stateParam));
     }
 
     if (stateData.provider !== providerName) {
-        redirect(302, '/login?error=provider_mismatch');
+        redirectError('provider_mismatch', stateData.appMode === true);
     }
 
     try {
@@ -210,6 +221,22 @@ async function handleCallback(
                     }
                     redirect(302, '/login?error=email_exists');
                 }
+            }
+
+            // 앱 모드 신규가입 가드(#no-account-guard): 초대 플로우가 아니고, no_account 를 이해하는
+            // 신규 앱(nac=1)이며, 사용자가 명시적으로 "새로 시작"(signup=1)을 누르지 않았다면,
+            // 조용히 임시 계정을 만들지 않고 앱에 no_account 로 복귀시킨다. 앱이 "연결된 계정 없음"을
+            // 안내하고 재시도(signup=1)할 때만 생성된다. 구버전 앱(nac 미전송)은 기존 동작(자동생성) 유지.
+            if (
+                stateData.appMode &&
+                stateData.noAccountCapable &&
+                !stateData.allowSignup &&
+                !isInviteFlow(stateData.redirect)
+            ) {
+                redirect(
+                    302,
+                    `damoang://oauth-callback?error=no_account&provider=${encodeURIComponent(providerName)}`
+                );
             }
 
             if (isInviteFlow(stateData.redirect) || stateData.appMode) {
@@ -443,7 +470,7 @@ async function handleCallback(
             providerName,
             err instanceof Error ? err.message : 'Unknown error'
         );
-        redirect(302, '/login?error=oauth_error');
+        redirectError('oauth_error', stateData.appMode === true);
     }
 }
 
@@ -461,11 +488,11 @@ export const GET: RequestHandler = async ({
     const errorParam = url.searchParams.get('error');
 
     if (errorParam) {
-        redirect(302, `/login?error=provider_${errorParam}`);
+        redirectError(`provider_${errorParam}`, peekAppMode(cookies, stateParam));
     }
 
     if (!code || !stateParam) {
-        redirect(302, '/login?error=missing_params');
+        redirectError('missing_params', peekAppMode(cookies, stateParam));
     }
 
     const clientIp = getClientAddress();
@@ -487,11 +514,11 @@ export const POST: RequestHandler = async ({
     const errorParam = formData.get('error') as string;
 
     if (errorParam) {
-        redirect(302, `/login?error=provider_${errorParam}`);
+        redirectError(`provider_${errorParam}`, peekAppMode(cookies, stateParam));
     }
 
     if (!code || !stateParam) {
-        redirect(302, '/login?error=missing_params');
+        redirectError('missing_params', peekAppMode(cookies, stateParam));
     }
 
     const clientIp = getClientAddress();
