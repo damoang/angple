@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { onMount } from 'svelte';
     import { goto, invalidate } from '$app/navigation';
     import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card/index.js';
     import { Button } from '$lib/components/ui/button/index.js';
@@ -47,7 +48,15 @@
     const isSearching = $derived(
         !!(data.search?.color || data.search?.memo || data.search?.detail || data.search?.target)
     );
-    let showSearch = $state(uiSettingsStore.pinMemoSearch);
+    // ⛔ pinMemoSearch(localStorage) 를 SSR 초기값으로 쓰면 하이드레이션이 깨진다.
+    // SSR 은 기본값 false, 클라이언트는 저장값이라 구조가 갈린다(#1829 listView 동종).
+    // 마운트 이후에 반영한다.
+    let hydrated = $state(false);
+    onMount(() => {
+        hydrated = true;
+    });
+    let showSearch = $state(false);
+    const pinMemoSearchReady = $derived(hydrated && uiSettingsStore.pinMemoSearch);
 
     function handleSearch() {
         // eslint-disable-next-line svelte/prefer-svelte-reactivity
@@ -230,7 +239,7 @@
                 <Search class="h-3.5 w-3.5" />
                 검색
             </Button>
-            {#if showSearch || isSearching || uiSettingsStore.pinMemoSearch}
+            {#if showSearch || isSearching || pinMemoSearchReady}
                 <Button
                     variant="outline"
                     size="sm"
@@ -306,7 +315,7 @@
         </div>
     {/if}
 
-    {#if showSearch || isSearching || uiSettingsStore.pinMemoSearch}
+    {#if showSearch || isSearching || pinMemoSearchReady}
         <div class="mb-6" transition:slide={{ duration: 200 }}>
             <Card class="bg-background">
                 <CardContent class="pt-6">

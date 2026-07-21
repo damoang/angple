@@ -10,7 +10,17 @@ import type { RowDataPacket } from 'mysql2';
 
 interface MemberCertRow extends RowDataPacket {
     mb_certify: string;
+    mb_level: number;
+    login_days: number;
 }
+
+/**
+ * 앙님💛(등급 3) 승급에 필요한 로그인 일수.
+ * `auto-promotion.ts` 의 DEFAULT_PROMOTION_RULES 와 같은 값이어야 한다.
+ * (XP 조건도 있으나 실측상 아무도 XP 에서 막히지 않아 안내하지 않는다 —
+ *  등급 2 정체 회원 673명 중 'XP만 미달' 0명.)
+ */
+const PROMOTE_LOGIN_DAYS = 7;
 
 interface BoardSubjectRow extends RowDataPacket {
     bo_subject: string;
@@ -29,14 +39,21 @@ export const load: PageServerLoad = async ({ locals, url }) => {
         redirect(302, '/');
     }
 
-    // 이미 인증 완료 여부 확인
+    // 이미 인증 완료 여부 + 승급 진행 상황
     const [rows] = await readPool.query<MemberCertRow[]>(
-        'SELECT mb_certify FROM g5_member WHERE mb_id = ?',
+        `SELECT mb_certify, COALESCE(mb_level, 0) AS mb_level,
+                COALESCE(mb_login_days, 0) AS login_days
+           FROM g5_member WHERE mb_id = ?`,
         [locals.user.id]
     );
 
     const mbCertify = rows[0]?.mb_certify || '';
     const isCertified = !!mbCertify;
+
+    // 승급까지 남은 로그인 일수. 이미 등급 3 이상이면 안내하지 않는다.
+    const mbLevel = rows[0]?.mb_level ?? 0;
+    const loginDays = rows[0]?.login_days ?? 0;
+    const promoteDaysLeft = mbLevel >= 3 ? null : Math.max(0, PROMOTE_LOGIN_DAYS - loginDays);
 
     // 글쓰기에서 막혀 넘어온 경우 게시판 이름을 함께 보여준다.
     // board 값은 URL 파라미터라 신뢰하지 않고 DB 에 실재하는 게시판일 때만 사용한다.
@@ -55,6 +72,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
         isCertified,
         certRequired: certConfig.certReq === 1,
         fromWrite,
-        blockedBoardName
+        blockedBoardName,
+        promoteDaysLeft
     };
 };

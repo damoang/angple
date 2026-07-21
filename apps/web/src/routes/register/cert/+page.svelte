@@ -128,14 +128,43 @@
                         >앙님💛</span
                     >부터 글쓰기와 댓글 작성을 이용하실 수 있습니다.
                 </p>
-                <p class="text-foreground mt-2 font-medium">
-                    다만 <a href="/hello" class="underline underline-offset-4">가입인사</a>는
-                    <span class="font-semibold">앙님❤️</span>도 바로 쓰실 수 있습니다. 본인확인만
-                    마치시면 됩니다.
-                </p>
                 <p class="text-muted-foreground mt-2">
-                    현재 시스템 안정화로 인해 자동 승급은 일시 중단되었으며, 매주 일요일 수동으로
-                    등급을 상향 조정해드리고 있습니다.
+                    승급 조건은 <span class="text-foreground font-medium">본인확인</span>과
+                    <span class="text-foreground font-medium">로그인 7일</span>이며, 조건을 채우면
+                    자동으로 올라갑니다. 따로 신청하지 않으셔도 됩니다.
+                </p>
+
+                {#if data.promoteDaysLeft !== null}
+                    <div class="border-border/60 mt-3 rounded-md border border-dashed px-3 py-2">
+                        {#if data.promoteDaysLeft > 0}
+                            <p class="text-foreground font-medium">
+                                앙님💛까지 <span class="text-primary"
+                                    >로그인 {data.promoteDaysLeft}일</span
+                                > 남았습니다.
+                            </p>
+                            <p class="text-muted-foreground mt-0.5 text-xs">
+                                하루에 한 번만 들러 주시면 됩니다.
+                            </p>
+                        {:else}
+                            <p class="text-foreground font-medium">
+                                로그인 일수는 이미 채우셨습니다.
+                            </p>
+                            <p class="text-muted-foreground mt-0.5 text-xs">
+                                {#if data.isCertified}
+                                    곧 자동으로 승급됩니다.
+                                {:else}
+                                    본인확인만 마치시면 곧 승급됩니다.
+                                {/if}
+                            </p>
+                        {/if}
+                    </div>
+                {/if}
+
+                <p class="text-foreground mt-3 font-medium">
+                    기다리시는 동안 <a href="/hello" class="underline underline-offset-4"
+                        >가입인사</a
+                    >를 남겨보세요. <span class="font-semibold">앙님❤️</span>도 바로 쓰실 수 있는
+                    게시판입니다.
                 </p>
             </div>
 
