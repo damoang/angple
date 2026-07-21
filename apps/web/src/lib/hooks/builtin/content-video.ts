@@ -5,6 +5,7 @@
 import { registerHook } from '../registry';
 import {
     transformVideos,
+    transformStandaloneYoutubeLinks,
     transformCodeBlocks,
     transformOembed,
     transformEscapedMedia,
@@ -40,6 +41,17 @@ export function initContentVideo(): void {
         'post_content',
         (html: unknown) => transformVideos(html as string),
         5, // auto-embed(10)보다 먼저 실행
+        'core',
+        'filter'
+    );
+
+    // 본문 단독 유튜브 링크 자동 임베드 복원 (구 나리야 자동임베드 동작 복원)
+    // GSC "동영상이 보기 페이지에 없음" 1,000건+ 대응 — 옛 글의 <p><a href="유튜브"> 단독
+    // 문단을 플레이어로 변환. {video:}(5) 이후, auto-embed(10) 이전에 실행
+    registerHook(
+        'post_content',
+        (html: unknown) => transformStandaloneYoutubeLinks(html as string),
+        6,
         'core',
         'filter'
     );

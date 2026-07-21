@@ -334,43 +334,9 @@
         });
     });
 
-    // 세로(portrait) 본문 이미지를 본문 너비에 맞춰 채움.
-    // max-w-full(=max-width:100%)은 상한만 지정하므로 자연 너비가 좁은 세로 이미지가
-    // 작게 표시되어 가독성이 떨어진다. 로드 후 naturalHeight>naturalWidth면 width:100%를 적용한다.
-    // (가로/정사각 이미지는 영향 없음. 자연 너비가 본문보다 큰 세로 이미지는 어차피 100%라 동일.)
-    $effect(() => {
-        void renderedHtml;
-        if (!browser || !proseEl) return;
-        tick().then(() => {
-            const imgs = proseEl.querySelectorAll<HTMLImageElement>(
-                'img:not(.emoticon-inline):not([src*="/emoticons/"])'
-            );
-            imgs.forEach((img) => {
-                const applyOrientation = () => {
-                    if (img.naturalWidth === 0) return;
-                    const isPortrait = img.naturalHeight > img.naturalWidth;
-                    img.classList.toggle('dm-portrait-fill', isPortrait);
-                    // 가로 이미지가 본문 폭에 근접(자연폭 ≥ 컨테이너 60%)하면 본문 폭에 맞춰 채운다.
-                    // "거의 꽉 찼는데 안 채워지는" 애매한 이미지를 잡되, 명확히 작은 이미지
-                    // (이모지·로고·썸네일, 대개 50% 미만)는 그대로 자연 크기 유지(#12895).
-                    // 컨테이너보다 크거나 같은 이미지는 상위 max-width:100% 가 처리하므로 제외.
-                    const parentW = img.parentElement?.offsetWidth ?? 0;
-                    img.classList.toggle(
-                        'dm-landscape-fill',
-                        !isPortrait &&
-                            parentW > 0 &&
-                            img.naturalWidth >= parentW * 0.6 &&
-                            img.naturalWidth < parentW
-                    );
-                };
-                if (img.complete && img.naturalWidth > 0) {
-                    applyOrientation();
-                } else {
-                    img.addEventListener('load', applyOrientation, { once: true });
-                }
-            });
-        });
-    });
+    // 본문 이미지 표시 크기는 저장된 HTML(작성 시점 리사이즈로 지정된 width)만 존중한다.
+    // 렌더 시점에 이미지 치수로 의도를 추측(세로→전폭 등)하지 않으며, 원본보다 크게 늘리지 않는다.
+    // 크기 미지정 = 자연 크기 + 상위 .prose img 의 max-width:100% 상한. (근본 설계: content-image-sizing-architecture)
 </script>
 
 <!--
@@ -389,14 +355,8 @@
 </div>
 
 <style>
-    /* 세로 이미지: 본문 너비 100%로 채움 (좁은 세로 스크린샷이 작게 보이는 문제 해결) */
-    .prose :global(img.dm-portrait-fill) {
-        width: 100%;
-        height: auto;
-    }
-
-    /* 가로 이미지 중 본문 폭에 근접한 것(자연폭 ≥ 컨테이너 60%)만 채움. 로드 후 JS 판정. */
-    .prose :global(img.dm-landscape-fill) {
+    /* 작성자가 명시적으로 '본문 폭 맞춤'을 지정한 이미지만 전폭. (렌더 시점 추측 없음) */
+    .prose :global(img.dm-fit-width) {
         width: 100%;
         height: auto;
     }
@@ -519,9 +479,8 @@
     }
 
     /* 백엔드 썸네일 변환된 이미지: 블록 레이아웃만 지정.
-       가로 폭 강제(width:100%)는 제거 — 작은/가로 이미지가 컨테이너 폭까지 확대되던 문제(#12895).
-       세로 이미지 채움은 로드 후 orientation 판정으로 .dm-portrait-fill 이 담당(#1645).
-       가로 상한은 상위 .prose img 규칙의 max-width:100% 로 유지. */
+       가로 폭 강제(width:100%)는 제거 — 작은/세로 이미지가 컨테이너 폭까지 확대(업스케일)되던 문제(#12895·#13007).
+       표시 크기는 저장된 width(작성 시 리사이즈)만 존중, 상한은 상위 .prose img 의 max-width:100% 로 유지. */
     .prose :global(img[data-original]) {
         display: block;
     }

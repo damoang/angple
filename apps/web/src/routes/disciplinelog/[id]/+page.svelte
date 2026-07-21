@@ -11,6 +11,7 @@
     import User from '@lucide/svelte/icons/user';
     import FileText from '@lucide/svelte/icons/file-text';
     import Info from '@lucide/svelte/icons/info';
+    import Megaphone from '@lucide/svelte/icons/megaphone';
     import ExternalLink from '@lucide/svelte/icons/external-link';
     import History from '@lucide/svelte/icons/history';
     import {
@@ -192,6 +193,21 @@
                 </Card.Header>
                 <Card.Content>
                     <p class="whitespace-pre-line text-sm">{log.member_reason}</p>
+                </Card.Content>
+            </Card.Root>
+        {/if}
+
+        <!-- 안내: 회원 공개용 외부 안내문 (운영자가 입력한 경우에만 표시) -->
+        {#if log.public_description && log.public_description.trim()}
+            <Card.Root class="mb-4">
+                <Card.Header>
+                    <Card.Title class="flex items-center gap-2">
+                        <Megaphone class="text-muted-foreground h-5 w-5" />
+                        안내
+                    </Card.Title>
+                </Card.Header>
+                <Card.Content>
+                    <p class="whitespace-pre-line text-sm">{log.public_description}</p>
                 </Card.Content>
             </Card.Root>
         {/if}

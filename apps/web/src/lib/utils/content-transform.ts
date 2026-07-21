@@ -77,6 +77,69 @@ export function transformBracketImages(text: string): string {
     );
 }
 
+/**
+ * 유튜브 URL 판정 공통 규칙 — watch / embed / shorts / live / youtu.be, 11자 videoId
+ * transformVideos · transformStandaloneYoutubeLinks · extractVideosFromContent(json-ld)가 공유
+ */
+export const YOUTUBE_URL_ID_PATTERN =
+    /(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/|live\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
+
+/**
+ * "단독 문단 앵커" 공통 패턴 — <p> 안에 공백/&nbsp;/<br> 외에 앵커 하나만 있는 경우.
+ * 문장 속 인라인 링크는 매치되지 않는다. 캡처 그룹 1 = href.
+ * transformStandaloneYoutubeLinks 와 extractVideosFromContent(json-ld)가 동일 규칙을 사용한다.
+ */
+export const STANDALONE_ANCHOR_PARAGRAPH_SOURCE = String.raw`<p(?:\s[^>]*)?>(?:\s|&nbsp;|<br\s*/?>)*<a\s[^>]*\bhref\s*=\s*["']([^"']+)["'][^>]*>[^<]*</a>(?:\s|&nbsp;|<br\s*/?>)*</p>`;
+
+/**
+ * 유튜브 URL → 임베드 플레이어 HTML 공통 헬퍼
+ * - youtube-nocookie embed, t= → start=, list= 유지, shorts 세로 비율(177.78%)
+ * - 유튜브 URL이 아니면 null (출력에는 검증된 videoId·숫자 start·[\w-] list만 삽입되므로 XSS 안전)
+ */
+export function youtubeUrlToEmbedHtml(url: string): string | null {
+    const ytMatch = url.match(YOUTUBE_URL_ID_PATTERN);
+    if (!ytMatch) return null;
+    const isShorts = url.includes('/shorts/');
+    let embedSrc = `https://www.youtube-nocookie.com/embed/${ytMatch[1]}`;
+    const embedParams: string[] = [];
+    const timeMatch = url.match(/[?&]t=(\d+)/);
+    if (timeMatch) embedParams.push(`start=${timeMatch[1]}`);
+    const listMatch = url.match(/[?&]list=([a-zA-Z0-9_-]+)/);
+    if (listMatch) embedParams.push(`list=${listMatch[1]}`);
+    if (embedParams.length > 0) embedSrc += '?' + embedParams.join('&');
+    const platform = isShorts ? 'youtube-shorts' : 'youtube';
+    const aspectRatio = isShorts ? '177.78%' : '56.25%';
+    const maxWidth = isShorts ? '400px' : '560px';
+    return `<div class="embed-container" data-platform="${platform}" style="--aspect-ratio: ${aspectRatio}; --max-width: ${maxWidth};"><iframe src="${embedSrc}" frameborder="0" allowfullscreen allow="autoplay; clipboard-write; encrypted-media; picture-in-picture" style="position:absolute;top:0;left:0;width:100%;height:100%;"></iframe></div>`;
+}
+
+/**
+ * 본문 단독 유튜브 링크 자동 임베드 복원
+ *
+ * 배경: 구 그누보드(나리야)는 본문에 맨 유튜브 링크만 쓰면 자동으로 플레이어로
+ * 바꿔줬는데, 신규 변환기는 {video} 마커·oembed 만 처리해 옛 글 수천 개의
+ * 동영상이 링크로만 남았다 → GSC "동영상이 보기 페이지에 없음" 1,000건+.
+ *
+ * 보수적 규칙 (전 글에 적용되는 경로라 오탐 제로가 목표):
+ * - "단독 문단"만 변환: <p> 안에 공백/&nbsp;/<br> 외에 유튜브 앵커 하나만 있는 경우
+ * - 문장 속 인라인 링크는 절대 건드리지 않음
+ * - 앵커 텍스트가 URL이 아닌 제목 텍스트여도 단독 문단이면 임베드
+ * - href가 유튜브가 아니면 무변
+ */
+export function transformStandaloneYoutubeLinks(html: string): string {
+    if (!html || !html.includes('youtu')) return html;
+
+    return html.replace(
+        new RegExp(STANDALONE_ANCHOR_PARAGRAPH_SOURCE, 'gi'),
+        (match, href: string) => {
+            // 에디터가 URL 내 & 를 &amp; 로 인코딩하므로 t=/list= 판정 전에 복원
+            const url = href.replace(/&amp;/g, '&').trim();
+            const embedded = youtubeUrlToEmbedHtml(url);
+            return embedded ?? match;
+        }
+    );
+}
+
 export function transformVideos(html: string): string {
     if (!html || (!html.includes('{video') && !html.includes('{동영상'))) return html;
 
@@ -99,24 +162,9 @@ export function transformVideos(html: string): string {
 
         if (!url) return '';
 
-        // YouTube
-        const ytMatch = url.match(
-            /(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/|live\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/
-        );
-        if (ytMatch) {
-            const isShorts = url.includes('/shorts/');
-            let embedSrc = `https://www.youtube-nocookie.com/embed/${ytMatch[1]}`;
-            const embedParams: string[] = [];
-            const timeMatch = url.match(/[?&]t=(\d+)/);
-            if (timeMatch) embedParams.push(`start=${timeMatch[1]}`);
-            const listMatch = url.match(/[?&]list=([a-zA-Z0-9_-]+)/);
-            if (listMatch) embedParams.push(`list=${listMatch[1]}`);
-            if (embedParams.length > 0) embedSrc += '?' + embedParams.join('&');
-            const platform = isShorts ? 'youtube-shorts' : 'youtube';
-            const aspectRatio = isShorts ? '177.78%' : '56.25%';
-            const maxWidth = isShorts ? '400px' : '560px';
-            return `<div class="embed-container" data-platform="${platform}" style="--aspect-ratio: ${aspectRatio}; --max-width: ${maxWidth};"><iframe src="${embedSrc}" frameborder="0" allowfullscreen allow="autoplay; clipboard-write; encrypted-media; picture-in-picture" style="position:absolute;top:0;left:0;width:100%;height:100%;"></iframe></div>`;
-        }
+        // YouTube (공통 헬퍼 재사용)
+        const ytEmbed = youtubeUrlToEmbedHtml(url);
+        if (ytEmbed) return ytEmbed;
 
         // Vimeo
         const vimeoMatch = url.match(/vimeo\.com\/(\d+)/);

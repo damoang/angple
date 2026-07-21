@@ -49,6 +49,7 @@ import type {
     RegisterRequest,
     RegisterResponse,
     PostRevision,
+    PostRating,
     Scrap,
     BoardGroup,
     CommentReportInfo,
@@ -79,12 +80,15 @@ const WRITE_REQUEST_CONFIG: Partial<RetryConfig> = {
     timeout: 30000
 };
 
-// 알림 조회는 백엔드가 무거울 수 있어(대량 누적 회원) 재시도 시 동일 쿼리를 중복
-// 발사하면 백엔드/DB 커넥션 풀을 굶긴다(#12954: 알림 무한 스피너 + 댓글 10개 고착).
-// 프록시 타임아웃(4s)에 맞춰 빠르게 실패시키고 재시도하지 않는다.
+// 알림 조회는 재시도 금지(maxRetries 0): 동일 쿼리 중복 발사가 백엔드/DB 커넥션
+// 풀을 굶긴다(#12954: 알림 무한 스피너 + 댓글 10개 고착).
+// 타임아웃은 브라우저→CF→SSR 전 구간 예산이다. 4.5s 는 느린 모바일 회선에서
+// 정상 응답도 끊어 간헐 "알림을 불러오지 못했습니다"를 만든다(#13033).
+// 백엔드는 g5_na_noti 정리 후 수십 ms(SSR→백엔드 프록시 타임아웃 4s 별도)라
+// 네트워크 여유분만 늘린다.
 const NOTIFICATION_READ_CONFIG: Partial<RetryConfig> = {
     maxRetries: 0,
-    timeout: 4500
+    timeout: 10000
 };
 
 // v2 API URL은 세션 기반 인증에서는 SvelteKit 프록시가 내부 JWT를 주입하므로
@@ -1233,6 +1237,61 @@ class ApiClient {
         const json = await res.json();
         if (!json.success) return { likes: 0, user_liked: false };
         return json.data;
+    }
+
+    // ========================================
+    // 게시글 별점 (features.rating 보드 — 앙티티 Phase 0)
+    // ========================================
+
+    /**
+     * 별점 응답 정규화 — 계약은 bare {avg, count, my} 이지만
+     * 표준 {success, data: {...}} 래핑으로 내려와도 수용한다.
+     */
+    private normalizeRating(response: ApiResponse<PostRating>): PostRating {
+        const body = (
+            response &&
+            typeof response === 'object' &&
+            response.data &&
+            typeof response.data === 'object'
+                ? response.data
+                : response
+        ) as Partial<PostRating> | null | undefined;
+        return {
+            avg: typeof body?.avg === 'number' ? body.avg : 0,
+            count: typeof body?.count === 'number' ? body.count : 0,
+            my: typeof body?.my === 'number' ? body.my : 0
+        };
+    }
+
+    /**
+     * 게시글 별점 집계 조회 (avg/count/my). 비로그인 my=0.
+     * features.rating 미설정 보드는 403.
+     */
+    async getPostRating(boardId: string, postId: number | string): Promise<PostRating> {
+        const response = await this.request<PostRating>(
+            `/boards/${boardId}/posts/${postId}/rating`
+        );
+        return this.normalizeRating(response);
+    }
+
+    /**
+     * 게시글 별점 등록/수정 (1~5, 재투표 허용)
+     * 🔒 인증 필요 (앙님💛 이상) — 401 / 403(레벨·비활성 보드) / 400(범위 밖) 가능
+     */
+    async putPostRating(
+        boardId: string,
+        postId: number | string,
+        rating: number
+    ): Promise<PostRating> {
+        const response = await this.request<PostRating>(
+            `/boards/${boardId}/posts/${postId}/rating`,
+            {
+                method: 'PUT',
+                body: JSON.stringify({ rating })
+            },
+            WRITE_REQUEST_CONFIG
+        );
+        return this.normalizeRating(response);
     }
 
     /**

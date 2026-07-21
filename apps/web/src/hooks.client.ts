@@ -410,4 +410,48 @@ if (typeof window !== 'undefined') {
         }
         guardedSend(payload);
     });
+
+    // 하이드레이션 실패 수집
+    //
+    // Svelte 는 하이드레이션 실패를 **console.error 로만** 출력하고 예외를 던지지 않는다.
+    // 그래서 위의 'error' / 'unhandledrejection' 리스너에 잡히지 않고, Dantry 에도
+    // 3일치 0건으로 기록된다 — "안 난다"가 아니라 **관측이 안 된다**는 뜻이다.
+    //
+    // 하이드레이션이 실패하면 그 페이지의 인터랙티브가 통째로 죽는다. 실제로
+    // 2026-07-20 밤 "알림이 계속 로딩 중" 제보의 원인이 이것이었다
+    // (isLoading 이 초기값에 머물러 스피너가 멈추지 않음).
+    //
+    //   Failed to hydrate: HierarchyRequestError:
+    //   Failed to execute 'appendChild' on 'Node': This node type does not support this method.
+    //
+    // SSR HTML 의 중첩 오류는 아니었다(7종 검사 전부 0건). 스택상 GPT(Google Ad Manager)
+    // 초기화와 인접해 **광고 스크립트가 하이드레이션 전에 DOM 을 건드리는 경합**이 유력하나
+    // 확증하지 못했다. 빈도·페이지·광고 상관을 알아야 고칠 수 있어 먼저 관측을 붙인다.
+    //
+    // console.error 를 감싸되 원본 동작은 그대로 유지한다. 하이드레이션 관련 메시지만
+    // 골라 보내고, 기존 guardedSend 의 중복 스로틀·레이트리밋을 그대로 탄다.
+    const originalConsoleError = console.error;
+    console.error = function (...args: unknown[]) {
+        try {
+            const first = String(args[0] ?? '');
+            if (first.includes('hydrat')) {
+                const detail = args
+                    .slice(1)
+                    .map((a) => (a instanceof Error ? `${a.name}: ${a.message}` : String(a)))
+                    .join(' ')
+                    .slice(0, 300);
+                const err = args.find((a): a is Error => a instanceof Error);
+                guardedSend({
+                    type: 'hydration_error',
+                    message: `${first} ${detail}`.trim().slice(0, 400),
+                    stack: err?.stack?.slice(0, 1500) || '(no stack)',
+                    url: window.location.href,
+                    userAgent: navigator.userAgent
+                });
+            }
+        } catch {
+            // 수집 실패가 원래 로그를 막으면 안 된다
+        }
+        originalConsoleError.apply(console, args as []);
+    };
 }

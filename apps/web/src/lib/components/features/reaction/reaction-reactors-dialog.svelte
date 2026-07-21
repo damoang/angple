@@ -14,7 +14,7 @@
         mb_nick: string;
         mb_image?: string;
         mb_image_updated_at?: string;
-        reaction: string;
+        reactions: string[];
         reacted_at: string;
     }
 
@@ -79,8 +79,7 @@
                     목록을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.
                 </p>
             {:else}
-                {#each reactors as reactor (reactor.mb_id + reactor.reaction + reactor.reacted_at)}
-                    {@const display = getReactionDisplay(reactor.reaction)}
+                {#each reactors as reactor (reactor.mb_id)}
                     {@const avatar = getAvatarUrl(reactor.mb_image, reactor.mb_image_updated_at)}
                     <div class="hover:bg-muted/50 flex items-center gap-3 rounded-md px-2 py-1.5">
                         {#if avatar}
@@ -110,15 +109,24 @@
                                 </p>
                             {/if}
                         </div>
-                        {#if display.renderType === 'image' && display.url}
-                            <img
-                                src={display.url}
-                                alt={display.label}
-                                class="h-6 w-6 object-scale-down"
-                            />
-                        {:else}
-                            <span class="text-lg leading-none">{display.emoji}</span>
-                        {/if}
+                        <!-- 한 회원이 누른 이모지 여러 개를 한 줄에 나열 -->
+                        <div class="flex flex-shrink-0 flex-wrap items-center justify-end gap-1">
+                            {#each reactor.reactions as reaction (reaction)}
+                                {@const display = getReactionDisplay(reaction)}
+                                {#if display.renderType === 'image' && display.url}
+                                    <img
+                                        src={display.url}
+                                        alt={display.label}
+                                        title={display.label}
+                                        class="h-6 w-6 object-scale-down"
+                                    />
+                                {:else}
+                                    <span class="text-lg leading-none" title={display.label}
+                                        >{display.emoji}</span
+                                    >
+                                {/if}
+                            {/each}
+                        </div>
                     </div>
                 {:else}
                     {#if anonymousCount === 0}

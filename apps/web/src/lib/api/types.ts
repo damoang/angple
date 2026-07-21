@@ -45,6 +45,8 @@ export interface FreePost {
     comments_count: number;
     created_at: string;
     updated_at?: string;
+    edit_count?: number; // 실제 수정 횟수 (change_type='update' 리비전, 백엔드 주입)
+    last_edited_at?: string; // 최종 수정 시각 (리비전 기반, 백엔드 주입)
     has_file?: boolean;
     has_video?: boolean;
     has_image?: boolean;
@@ -80,6 +82,8 @@ export interface FreePost {
     } | null;
     is_left?: boolean; // 작성자 탈퇴 여부 (SSR enrichment)
     report_count?: number | string; // wr_7 값: 숫자(신고수) 또는 "lock"(잠김)
+    // 별점 집계 (features.rating 보드에서만 백엔드가 동봉 — 없으면 위젯 미표시)
+    rating?: PostRating;
     // 확장 필드 (PHP wr_1~wr_10 매핑)
     extra_1?: string; // wr_1 - 회원전용 등
     extra_2?: string; // wr_2 - 나눔: 포인트/숫자
@@ -111,6 +115,8 @@ export interface FreeComment {
     is_blocked?: boolean;
     /** 작성자 탈퇴 여부 — 닉네임 취소선 표시용. */
     is_left?: boolean;
+    /** 리뷰 별점(리뷰=댓글+별점): 작성자가 이 댓글에 남긴 리뷰 점수(1~5). 별점 게시판만. */
+    review_rating?: number;
     link1?: string;
     link2?: string;
     link1_display?: string;
@@ -652,6 +658,14 @@ export interface CreateCommentRequest {
 // 댓글 수정 요청
 export interface UpdateCommentRequest {
     content: string; // 필수, 1자 이상
+}
+
+// 게시글 별점 집계 (features.rating 보드 — 앙티티 Phase 0)
+// 계약: GET/PUT /api/v1/boards/:slug/posts/:id/rating → {avg, count, my}
+export interface PostRating {
+    avg: number; // 평균 별점 (0~5)
+    count: number; // 참여 인원
+    my: number; // 내 별점 (1~5, 비로그인/미투표 0)
 }
 
 // 추천/비추천 응답

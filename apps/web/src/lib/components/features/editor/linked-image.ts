@@ -15,7 +15,15 @@ export const LinkedImage = Image.extend({
             // 이미지를 감싸는 <a> 태그의 href
             href: { default: null },
             // <a> 태그의 target 속성
-            linkTarget: { default: null }
+            linkTarget: { default: null },
+            // 작성자가 '본문 폭 맞춤'을 명시적으로 선택했는지. class="dm-fit-width" 로 저장·복원.
+            // (렌더 시점 추측 없이, 저장된 의도만 존중 — content-image-sizing-architecture)
+            fitWidth: {
+                default: false,
+                parseHTML: (el: HTMLElement) => el.classList?.contains('dm-fit-width') ?? false,
+                renderHTML: (attrs: { fitWidth?: boolean }) =>
+                    attrs.fitWidth ? { class: 'dm-fit-width' } : {}
+            }
         };
     },
 

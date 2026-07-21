@@ -9,17 +9,28 @@
 
 import type { WidgetConfig } from '$lib/stores/widget-layout.svelte';
 
-/** 기본 메인 위젯 레이아웃 */
+/** 기본 메인 위젯 레이아웃
+ *
+ * 주의: _mergeNewDefaults 가 이 배열의 position 을 최종 순서 권위로 재정렬하므로
+ * 홈 순서 변경은 여기서 한다 (DB 저장 레이아웃의 position 은 기본 위젯엔 무시됨).
+ * 2026-07-13: hidden-gems 메인 제거(사이드바 유지) + 소모임(group)을 ad-top 아래로.
+ */
 export const DEFAULT_WIDGETS: WidgetConfig[] = [
     { id: 'tag-nav', type: 'tag-nav', position: 0, enabled: true },
     { id: 'empathy-explore-row', type: 'empathy-explore-row', position: 1, enabled: true },
-    { id: 'hidden-gems', type: 'hidden-gems', position: 2, enabled: true },
     {
         id: 'ad-top',
         type: 'ad-slot',
-        position: 3,
+        position: 2,
         enabled: true,
         settings: { position: 'index-top' }
+    },
+    {
+        id: 'group',
+        type: 'post-list',
+        position: 3,
+        enabled: true,
+        settings: { boardId: 'group', layout: 'card', sortBy: 'date', count: 10, showTitle: true }
     },
     {
         id: 'ad-middle-1',
@@ -50,22 +61,15 @@ export const DEFAULT_WIDGETS: WidgetConfig[] = [
         settings: { position: 'index-middle-2' }
     },
     {
-        id: 'group',
-        type: 'post-list',
-        position: 8,
-        enabled: true,
-        settings: { boardId: 'group', layout: 'card', sortBy: 'date', count: 10, showTitle: true }
-    },
-    {
         id: 'celebration',
         type: 'celebration',
-        position: 9,
+        position: 8,
         enabled: true
     },
     {
         id: 'ad-bottom',
         type: 'ad-slot',
-        position: 10,
+        position: 9,
         enabled: true,
         settings: { position: 'index-bottom' }
     }

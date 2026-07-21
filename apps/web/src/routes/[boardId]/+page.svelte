@@ -12,18 +12,21 @@
 
             let tries = 0;
             let done = false;
-            const maxTries = 60; // ~2s 에 걸쳐 33ms 간격
+            const maxTries = 60; // requestAnimationFrame 60프레임 (~1s). 이후는 ResizeObserver 가 커버
 
+            // 문서가 목표 높이에 못 미치는 동안에는 scrollTo 를 호출하지 않는다.
+            // 짧은 문서(이미지/광고 로드 전)에 scrollTo(target) 하면 맨 밑으로 clamp 되고,
+            // 높이가 끝내 안 따라오면 그 상태로 고착돼 "목록이 맨 밑으로" 현상이 된다(#13022).
+            const tryScroll = () => {
+                const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+                if (maxScroll >= target - 2) {
+                    window.scrollTo(0, target);
+                    if (Math.abs(window.scrollY - target) <= 2) done = true;
+                }
+            };
             const attempt = () => {
                 if (done) return;
-                window.scrollTo(0, target);
-                // 목표 위치 ± 2px 도달 + 문서 높이가 충분하면 완료
-                if (
-                    Math.abs(window.scrollY - target) <= 2 &&
-                    document.documentElement.scrollHeight >= target + window.innerHeight - 1
-                ) {
-                    done = true;
-                }
+                tryScroll();
                 tries++;
                 if (!done && tries < maxTries) requestAnimationFrame(attempt);
             };
@@ -32,7 +35,12 @@
             // 이미지/광고가 로드돼 문서 높이가 변경될 때마다 재시도
             if (typeof ResizeObserver !== 'undefined') {
                 const ro = new ResizeObserver(() => {
-                    if (!done) window.scrollTo(0, target);
+                    if (done) {
+                        ro.disconnect();
+                        return;
+                    }
+                    tryScroll();
+                    if (done) ro.disconnect();
                 });
                 ro.observe(document.documentElement);
                 setTimeout(() => {
@@ -277,7 +285,15 @@
 
     // 읽은 글 표시 지연 — SSR에서는 모든 글이 "안읽음"으로 렌더링되므로,
     // 하이드레이션 직후 즉시 변경하면 깜빡임 발생. 2프레임 대기 후 부드럽게 전환.
-    let showSearch = $state(uiSettingsStore.pinSearch);
+    // ⛔ pinSearch(localStorage) 를 SSR 초기값으로 쓰면 하이드레이션이 깨진다.
+    // SSR 은 기본값 false 로 검색폼을 안 그리는데 클라이언트는 저장값 true 로 그려서
+    // 구조가 갈리고, 앵커가 어긋나면 'Failed to hydrate: HierarchyRequestError' 로
+    // 목록이 죽는다(#1829 의 listView 와 같은 유형). 마운트 이후에 반영한다.
+    let hydrated = $state(false);
+    onMount(() => {
+        hydrated = true;
+    });
+    let showSearch = $state(false);
     let showReadState = $state(false);
     let memoByAuthorId = $state<Record<string, { content: string; color: string } | null>>({});
     let lastMemoRequestKey = $state('');
@@ -431,12 +447,14 @@
             void loadBoardListMemos(uniqueAuthorIds);
         };
 
+        // 초기 렌더 비블로킹은 유지하되, 지연 상한을 짧게(300ms) 잡아
+        // 바쁜 페이지에서 idle 이 늦게 와 메모가 뒤늦게 뜨는 현상 방지.
         if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
-            memoScheduleToken = window.requestIdleCallback(loadTask, { timeout: 1500 });
+            memoScheduleToken = window.requestIdleCallback(loadTask, { timeout: 300 });
             return;
         }
 
-        memoScheduleToken = globalThis.setTimeout(loadTask, 250);
+        memoScheduleToken = globalThis.setTimeout(loadTask, 100);
     }
 
     onMount(() => {
@@ -1012,7 +1030,8 @@
 
             <!-- 검색 폼 (토글 or 검색 중 or 핀 고정) -->
             <!-- #12455: 로그인 사용자는 PC(md+)에서 빠른필터 행 검색이 대체 → 상단 SearchForm 숨김 (비로그인/모바일은 유지) -->
-            {#if showSearch || isSearching || uiSettingsStore.pinSearch}
+            <!-- hydrated 게이트: pinSearch 는 localStorage 라 SSR 과 값이 갈린다. 위 주석 참고. -->
+            {#if showSearch || isSearching || (hydrated && uiSettingsStore.pinSearch)}
                 <div
                     class="mb-3 {authStore.isAuthenticated ? 'md:hidden' : ''}"
                     transition:slide={{ duration: 200 }}
@@ -1299,9 +1318,18 @@
 
             <!-- 게시글 목록 -->
             <div class={wrapperClass}>
-                {#if listLayoutId === 'classic' && uiSettingsStore.listView !== 'modern'}
+                <!--
+                    ⛔ listView 를 {#if} 조건에 넣지 말 것 — 하이드레이션이 깨진다.
+                    localStorage 기반이라 SSR('classic')과 클라이언트('modern')가 갈리고,
+                    구조가 달라지면 'Failed to hydrate: HierarchyRequestError' 로 목록이 죽는다.
+                    구조는 항상 렌더하고 표시만 클래스로 제어한다.
+                -->
+                {#if listLayoutId === 'classic'}
                     <div
-                        class="border-border bg-muted/30 text-muted-foreground hidden border-b px-4 py-1.5 text-sm font-medium md:block"
+                        class="border-border bg-muted/30 text-muted-foreground hidden border-b px-4 py-1.5 text-sm font-medium {uiSettingsStore.listView ===
+                        'modern'
+                            ? ''
+                            : 'md:block'}"
                     >
                         <div class="grid grid-cols-[60px_1fr_auto_auto_auto] items-center gap-0">
                             <div class="text-center">공감</div>

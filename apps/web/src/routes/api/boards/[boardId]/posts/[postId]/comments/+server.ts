@@ -36,6 +36,8 @@ interface CommentRow extends RowDataPacket {
     wr_name: string;
     wr_ip: string;
     wr_datetime: string;
+    wr_edit_count: number;
+    wr_last_edited_at: string | null;
     wr_deleted_at: string | null;
     wr_deleted_by: string | null;
     wr_7: string | null;
@@ -43,11 +45,6 @@ interface CommentRow extends RowDataPacket {
 
 interface CountRow extends RowDataPacket {
     total: number;
-}
-
-interface EditCountRow extends RowDataPacket {
-    wr_id: number;
-    cnt: number;
 }
 
 interface CommentResponseItem {
@@ -65,6 +62,7 @@ interface CommentResponseItem {
     depth: number;
     parent_id: number;
     created_at: string;
+    updated_at?: string;
     is_secret: boolean;
     deleted_at: string | null;
     deleted_by: string | null;
@@ -79,6 +77,8 @@ interface CommentResponseItem {
     is_blocked?: boolean;
     /** 작성자가 탈퇴 회원인지 — 닉네임 취소선 표시용. */
     is_left?: boolean;
+    /** 리뷰 별점(리뷰=댓글+별점): 작성자가 이 댓글에 남긴 리뷰 점수(1~5). 별점 게시판만. */
+    review_rating?: number;
 }
 
 interface DisciplineRow extends RowDataPacket {
@@ -191,6 +191,7 @@ export const GET: RequestHandler = async ({ params, url, locals, request }) => {
         const [rows] = await pool.query<CommentRow[]>(
             `SELECT wr_id, wr_parent, wr_comment, wr_comment_reply, wr_content, wr_link1, wr_link2, wr_option,
 			        wr_good, wr_nogood, mb_id, wr_name, wr_ip, wr_datetime,
+			        wr_edit_count, wr_last_edited_at,
 			        wr_deleted_at, wr_deleted_by, wr_7
 			 FROM ??
 			 WHERE wr_parent = ? AND wr_is_comment = 1
@@ -220,18 +221,9 @@ export const GET: RequestHandler = async ({ params, url, locals, request }) => {
             }
         }
 
-        // 댓글별 수정 횟수 배치 조회 (g5_write_revisions)
+        // 댓글 수정 횟수/최근 수정 시각은 비정규화 컬럼(wr_edit_count·wr_last_edited_at)에서
+        // 직접 읽는다 — 매 조회 g5_write_revisions COUNT 제거(읽기 쿼리 0). 게시글 상세와 동일 정책.
         const commentIds = rows.map((r) => r.wr_id);
-        const editCountMap = new Map<number, number>();
-        if (commentIds.length > 0) {
-            const [editCounts] = await pool.query<EditCountRow[]>(
-                `SELECT wr_id, COUNT(*) AS cnt FROM g5_write_revisions WHERE board_id = ? AND wr_id IN (?) GROUP BY wr_id`,
-                [safeBoardId, commentIds]
-            );
-            for (const ec of editCounts) {
-                editCountMap.set(ec.wr_id, ec.cnt);
-            }
-        }
 
         // 이용제한 근거 댓글 식별 (g5_na_singo.discipline_log_id IS NOT NULL)
         // INDEX hit: (sg_table, sg_id) — idx_singo_table_id / idx_table_id_time.
@@ -247,6 +239,24 @@ export const GET: RequestHandler = async ({ params, url, locals, request }) => {
                 for (const d of dRows) disciplineSet.add(d.sg_id);
             } catch (e) {
                 console.warn('[discipline] enrich(comments) failed:', e);
+            }
+        }
+
+        // 리뷰 별점(리뷰=댓글+별점): angple_post_ratings 에서 댓글 wr_id 별 평균(작성자 리뷰 점수).
+        // 초경량 테이블 + PK(bo_table,wr_id) 인덱스 seek. 비rating 보드는 결과 0(무해). 실패 무시.
+        const reviewRatingMap = new Map<number, number>();
+        if (commentIds.length > 0) {
+            try {
+                const [rrRows] = await pool.query<RowDataPacket[]>(
+                    `SELECT wr_id, ROUND(AVG(rating), 1) AS avg_rating
+                     FROM angple_post_ratings
+                     WHERE bo_table = ? AND wr_id IN (?)
+                     GROUP BY wr_id`,
+                    [safeBoardId, commentIds]
+                );
+                for (const r of rrRows) reviewRatingMap.set(Number(r.wr_id), Number(r.avg_rating));
+            } catch (e) {
+                console.warn('[review-rating] enrich(comments) failed:', e);
             }
         }
 
@@ -309,13 +319,17 @@ export const GET: RequestHandler = async ({ params, url, locals, request }) => {
             depth: row.wr_comment_reply.length,
             parent_id: row.wr_parent,
             created_at: row.wr_datetime,
+            updated_at: row.wr_last_edited_at || undefined,
             is_secret: row.wr_option?.includes('secret') || false,
             deleted_at: row.wr_deleted_at || null,
             deleted_by: row.wr_deleted_by || null,
-            edit_count: editCountMap.get(row.wr_id) || 0,
+            edit_count: row.wr_edit_count || 0,
             ...(row.mb_id && blockedSet.has(String(row.mb_id)) ? { is_blocked: true } : {}),
             ...(row.mb_id && withdrawnSet.has(String(row.mb_id)) ? { is_left: true } : {}),
             ...(disciplineSet.has(row.wr_id) ? { is_discipline_related: true } : {}),
+            ...(reviewRatingMap.has(row.wr_id)
+                ? { review_rating: reviewRatingMap.get(row.wr_id) }
+                : {}),
             ...(isAdmin && row.wr_7
                 ? {
                       report_count:

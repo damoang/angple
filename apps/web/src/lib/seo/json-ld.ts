@@ -10,8 +10,13 @@ import type {
     JsonLdFAQPage,
     JsonLdFAQItem,
     JsonLdQAPage,
-    JsonLdVideoObject
+    JsonLdVideoObject,
+    JsonLdRatedItem
 } from './types';
+import {
+    STANDALONE_ANCHOR_PARAGRAPH_SOURCE,
+    YOUTUBE_URL_ID_PATTERN
+} from '$lib/utils/content-transform';
 
 /**
  * QAPage JSON-LD 생성 — 질문/답변 게시판(qa) 리치 결과
@@ -98,9 +103,11 @@ const YOUTUBE_EMBED_ID_RE =
 /**
  * 본문 HTML 에서 동영상을 추출 (VideoObject 구조화 데이터용)
  *
- * 단순 링크(<a href>)는 플레이어가 아니므로 제외하고, 실제 재생 요소만 본다:
+ * 실제 페이지에서 플레이어로 렌더되는 요소만 본다:
  * - <iframe src="...youtube.com/embed/ID...">  (tiptap Youtube 임베드)
  * - <video src="..."> 또는 <video><source src="..."></video>  (업로드 동영상)
+ * - 단독 문단 유튜브 앵커 (<p><a href="유튜브"> 하나만) — transformStandaloneYoutubeLinks
+ *   가 렌더 시 플레이어로 바꾸므로 포함. 문장 속 인라인 링크는 여전히 제외
  */
 export function extractVideosFromContent(html: string): ExtractedVideo[] {
     if (!html) return [];
@@ -109,6 +116,17 @@ export function extractVideosFromContent(html: string): ExtractedVideo[] {
 
     for (const m of html.matchAll(/<iframe[^>]*\ssrc\s*=\s*["']([^"']+)["']/gi)) {
         const id = m[1].match(YOUTUBE_EMBED_ID_RE)?.[1];
+        if (id && !seen.has(`yt:${id}`)) {
+            seen.add(`yt:${id}`);
+            videos.push({ type: 'youtube', id });
+        }
+    }
+
+    // 단독 문단 유튜브 앵커 — 구 그누보드(나리야) 글의 맨 유튜브 링크.
+    // GSC "동영상이 보기 페이지에 없음" 대응. 판정 regex 는 본문 변환기와 공유해 항상 일치
+    for (const m of html.matchAll(new RegExp(STANDALONE_ANCHOR_PARAGRAPH_SOURCE, 'gi'))) {
+        const href = m[1].replace(/&amp;/g, '&');
+        const id = href.match(YOUTUBE_URL_ID_PATTERN)?.[1];
         if (id && !seen.has(`yt:${id}`)) {
             seen.add(`yt:${id}`);
             videos.push({ type: 'youtube', id });
@@ -160,6 +178,70 @@ export function createVideoObjectJsonLd(options: {
     if (options.embedUrl) data.embedUrl = options.embedUrl;
     if (options.contentUrl) data.contentUrl = options.contentUrl;
     return data;
+}
+
+/**
+ * 앙티티 카테고리(ca_name) → schema.org 타입.
+ * 구글 리뷰 리치결과(별점 노출) 지원 타입을 우선 매핑. 미지원 카테고리는 CreativeWork
+ * (스키마는 유효하나 리치결과는 미보장). 다중 카테고리(병원=LocalBusiness 등)는 후속.
+ */
+export function ratingSchemaTypeForCategory(category?: string): JsonLdRatedItem['@type'] {
+    switch ((category || '').trim()) {
+        // 드라마도 Movie 로 — Google 리뷰 스니펫 지원 타입은 Movie 이고 TVSeries 는 미지원이라,
+        // ★ 리치결과를 실제로 띄우려면 Movie 로 매핑한다(스키마상 무해).
+        case '영화':
+        case '드라마':
+        case 'NETFLIX':
+        case 'APPLE_TV':
+        case '다큐':
+            return 'Movie';
+        case '웹툰':
+        case '만화':
+        case '소설':
+        case '책':
+            return 'Book';
+        case '게임':
+            return 'VideoGame';
+        case '공연':
+        case '전시':
+            return 'Event';
+        default:
+            return 'CreativeWork';
+    }
+}
+
+/**
+ * 평점 대상(작품) + AggregateRating JSON-LD 생성.
+ * 앙티티(리뷰) 게시판 글에 별점 집계가 있을 때 구글 검색결과에 ★ 노출.
+ * 참여 0(count<1)·평점 0·이름 없으면 null → buildJsonLd 가 블록 생략.
+ */
+export function createRatedItemJsonLd(options: {
+    name: string;
+    category?: string;
+    ratingValue: number;
+    ratingCount: number;
+    url?: string;
+    image?: string;
+}): JsonLdRatedItem | null {
+    const name = options.name?.trim();
+    if (!name) return null;
+    if (!options.ratingCount || options.ratingCount < 1) return null;
+    if (!(options.ratingValue > 0)) return null;
+
+    const item: JsonLdRatedItem = {
+        '@type': ratingSchemaTypeForCategory(options.category),
+        name,
+        aggregateRating: {
+            '@type': 'AggregateRating',
+            ratingValue: Math.round(options.ratingValue * 10) / 10,
+            ratingCount: options.ratingCount,
+            bestRating: 5,
+            worstRating: 1
+        }
+    };
+    if (options.url) item.url = options.url;
+    if (options.image) item.image = options.image;
+    return item;
 }
 
 /**

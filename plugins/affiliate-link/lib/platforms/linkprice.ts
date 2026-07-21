@@ -60,9 +60,7 @@ async function callLinkPriceApi(
     originalUrl: string,
     context?: ConvertContext
 ): Promise<string | null> {
-    const affiliateId = sanitizeLinkPriceAffiliateId(
-        env.AFFI_LINKPRICE_AFF_ID || env.AFFI_AFFILIATE_ID
-    );
+    const affiliateId = sanitizeLinkPriceAffiliateId(env.AFFI_AFFILIATE_ID);
 
     if (!affiliateId) {
         console.warn('[LinkPrice] Affiliate ID가 설정되지 않음');

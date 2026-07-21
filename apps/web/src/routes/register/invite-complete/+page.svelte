@@ -46,8 +46,9 @@
                     이용하실 수 있습니다.
                 </p>
                 <p class="text-muted-foreground mt-2">
-                    현재 시스템 안정화로 인해 자동 승급은 일시 중단되었으며, 매주 일요일 수동으로
-                    등급을 상향 조정해드리고 있습니다.
+                    승급 조건은 <span class="text-foreground font-medium">본인확인</span>과
+                    <span class="text-foreground font-medium">로그인 7일</span>이며, 조건을 채우면
+                    자동으로 올라갑니다. 따로 신청하지 않으셔도 됩니다.
                 </p>
             </div>
 

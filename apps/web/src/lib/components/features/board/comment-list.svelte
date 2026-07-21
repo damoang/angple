@@ -1226,6 +1226,23 @@
                         </p>
                     {/if}
 
+                    <!-- 리뷰 별점(리뷰=댓글+별점): 작성자가 이 댓글에 남긴 점수 -->
+                    {#if comment.review_rating && comment.review_rating > 0}
+                        <div
+                            class="mb-1 inline-flex items-center gap-1 text-sm"
+                            aria-label={`리뷰 별점 ${comment.review_rating}점`}
+                        >
+                            <span class="text-amber-400" aria-hidden="true"
+                                >{'★'.repeat(Math.round(comment.review_rating))}{'☆'.repeat(
+                                    Math.max(0, 5 - Math.round(comment.review_rating))
+                                )}</span
+                            >
+                            <span class="text-muted-foreground text-xs"
+                                >{comment.review_rating.toFixed(1)}</span
+                            >
+                        </div>
+                    {/if}
+
                     <!-- Chat: 버블 래퍼 (비채팅은 투명) -->
                     <div
                         class={commentLayout === 'chat'

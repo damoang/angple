@@ -22,7 +22,9 @@ export function createOAuthState(
     provider: SocialProvider,
     redirectUrl: string,
     linkTo?: string,
-    appMode?: boolean
+    appMode?: boolean,
+    allowSignup?: boolean,
+    noAccountCapable?: boolean
 ): string {
     const state = generateRandomState();
 
@@ -32,7 +34,9 @@ export function createOAuthState(
         redirect: redirectUrl,
         timestamp: Date.now(),
         ...(linkTo ? { linkTo } : {}),
-        ...(appMode ? { appMode: true } : {})
+        ...(appMode ? { appMode: true } : {}),
+        ...(allowSignup ? { allowSignup: true } : {}),
+        ...(noAccountCapable ? { noAccountCapable: true } : {})
     };
 
     cookies.set(STATE_COOKIE_NAME, JSON.stringify(data), {
@@ -45,6 +49,22 @@ export function createOAuthState(
     });
 
     return state;
+}
+
+/**
+ * appMode 만 비파괴적으로 확인한다(쿠키 삭제 안 함). 에러 경로에서 앱 복귀 여부 판단용.
+ * state 문자열이 일치하는 경우에만 신뢰한다(만료 여부는 무시 — 에러 리다이렉트 타깃 결정에만 사용).
+ */
+export function peekAppMode(cookies: Cookies, state: string | null): boolean {
+    if (!state) return false;
+    const raw = cookies.get(STATE_COOKIE_NAME);
+    if (!raw) return false;
+    try {
+        const data: OAuthStateData = JSON.parse(raw);
+        return data.state === state && data.appMode === true;
+    } catch {
+        return false;
+    }
 }
 
 export function validateOAuthState(cookies: Cookies, state: string): OAuthStateData | null {
