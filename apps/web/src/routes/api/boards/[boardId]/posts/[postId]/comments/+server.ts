@@ -150,6 +150,23 @@ export const GET: RequestHandler = async ({ params, url, locals, request }) => {
             (parent.wr_name ?? '').toString().trim() === '';
         const anonymousAuthorId = postIsAnonymousMessage ? String(parent.mb_id ?? '') : '';
 
+        // 비밀댓글 열람 권한 (서버 판정).
+        // ⛔ 이전에는 wr_content 를 그대로 내려보내고 화면에서만 가렸다. 즉 비로그인이
+        //    API 를 직접 호출하면 비밀댓글 본문이 평문으로 읽혔다(2026-07-21 실측 확인,
+        //    free 177건·economy 2건). 쓴 사람은 비밀이라고 믿고 쓴 내용이다.
+        //    클라이언트 마스킹은 표시 편의일 뿐 접근 통제가 될 수 없으므로 서버에서 가린다.
+        // 열람 가능: 댓글 작성자 · 원글 작성자 · 관리자(레벨 10+)
+        //   — comment-list.svelte 의 canViewSecretComment 와 같은 기준.
+        const secretViewerId = locals.user?.id ? String(locals.user.id) : '';
+        const postAuthorId = String(parent?.mb_id ?? '');
+        const viewerIsPostAuthor = !!secretViewerId && secretViewerId === postAuthorId;
+        const canViewSecret = (commentAuthorId: string): boolean => {
+            if (isAdmin) return true;
+            if (!secretViewerId) return false;
+            if (secretViewerId === commentAuthorId) return true;
+            return viewerIsPostAuthor;
+        };
+
         // 부모 글 삭제 여부 확인.
         // - 자진삭제(작성자 본인이 삭제, wr_deleted_by == 원글 mb_id): 댓글은 각 댓글
         //   작성자의 것이므로 그 아래 댓글 스레드를 계속 노출한다(#12965).
@@ -286,57 +303,82 @@ export const GET: RequestHandler = async ({ params, url, locals, request }) => {
             () => new Set<string>()
         );
 
-        const comments: CommentResponseItem[] = rows.map((row) => ({
-            id: row.wr_id,
-            content: row.wr_deleted_at ? (isAdmin ? row.wr_content : '') : row.wr_content,
-            link1: row.wr_deleted_at ? (isAdmin ? row.wr_link1 || '' : '') : row.wr_link1 || '',
-            link2: row.wr_deleted_at ? (isAdmin ? row.wr_link2 || '' : '') : row.wr_link2 || '',
-            author: row.wr_deleted_at
-                ? isAdmin
-                    ? nickMap.get(row.mb_id) || row.wr_name || row.mb_id
-                    : ''
-                : nickMap.get(row.mb_id) || row.wr_name || row.mb_id,
-            author_id: row.wr_deleted_at ? (isAdmin ? row.mb_id : '') : row.mb_id,
-            author_image: row.wr_deleted_at
-                ? isAdmin
-                    ? imageMap.get(row.mb_id) || ''
-                    : ''
-                : imageMap.get(row.mb_id) || '',
-            author_image_updated_at: row.wr_deleted_at
-                ? isAdmin
-                    ? imageUpdatedMap.get(row.mb_id)
-                    : undefined
-                : imageUpdatedMap.get(row.mb_id),
-            author_ip: row.wr_deleted_at
-                ? isAdmin
-                    ? row.wr_ip
-                    : ''
-                : isAdmin
-                  ? row.wr_ip
-                  : maskIp(row.wr_ip),
-            likes: row.wr_good,
-            dislikes: row.wr_nogood,
-            depth: row.wr_comment_reply.length,
-            parent_id: row.wr_parent,
-            created_at: row.wr_datetime,
-            updated_at: row.wr_last_edited_at || undefined,
-            is_secret: row.wr_option?.includes('secret') || false,
-            deleted_at: row.wr_deleted_at || null,
-            deleted_by: row.wr_deleted_by || null,
-            edit_count: row.wr_edit_count || 0,
-            ...(row.mb_id && blockedSet.has(String(row.mb_id)) ? { is_blocked: true } : {}),
-            ...(row.mb_id && withdrawnSet.has(String(row.mb_id)) ? { is_left: true } : {}),
-            ...(disciplineSet.has(row.wr_id) ? { is_discipline_related: true } : {}),
-            ...(reviewRatingMap.has(row.wr_id)
-                ? { review_rating: reviewRatingMap.get(row.wr_id) }
-                : {}),
-            ...(isAdmin && row.wr_7
-                ? {
-                      report_count:
-                          row.wr_7 === 'lock' ? 'lock' : parseInt(row.wr_7, 10) || undefined
-                  }
-                : {})
-        }));
+        const comments: CommentResponseItem[] = rows.map((row) => {
+            // 비밀댓글은 열람 권한이 없으면 본문·링크를 서버에서 비운다.
+            // is_secret 플래그는 그대로 내려 화면이 "비밀댓글입니다" 안내를 유지한다.
+            const rowIsSecret = row.wr_option?.includes('secret') || false;
+            const secretHidden = rowIsSecret && !canViewSecret(String(row.mb_id ?? ''));
+
+            return {
+                id: row.wr_id,
+                content: secretHidden
+                    ? ''
+                    : row.wr_deleted_at
+                      ? isAdmin
+                          ? row.wr_content
+                          : ''
+                      : row.wr_content,
+                link1: secretHidden
+                    ? ''
+                    : row.wr_deleted_at
+                      ? isAdmin
+                          ? row.wr_link1 || ''
+                          : ''
+                      : row.wr_link1 || '',
+                link2: secretHidden
+                    ? ''
+                    : row.wr_deleted_at
+                      ? isAdmin
+                          ? row.wr_link2 || ''
+                          : ''
+                      : row.wr_link2 || '',
+                author: row.wr_deleted_at
+                    ? isAdmin
+                        ? nickMap.get(row.mb_id) || row.wr_name || row.mb_id
+                        : ''
+                    : nickMap.get(row.mb_id) || row.wr_name || row.mb_id,
+                author_id: row.wr_deleted_at ? (isAdmin ? row.mb_id : '') : row.mb_id,
+                author_image: row.wr_deleted_at
+                    ? isAdmin
+                        ? imageMap.get(row.mb_id) || ''
+                        : ''
+                    : imageMap.get(row.mb_id) || '',
+                author_image_updated_at: row.wr_deleted_at
+                    ? isAdmin
+                        ? imageUpdatedMap.get(row.mb_id)
+                        : undefined
+                    : imageUpdatedMap.get(row.mb_id),
+                author_ip: row.wr_deleted_at
+                    ? isAdmin
+                        ? row.wr_ip
+                        : ''
+                    : isAdmin
+                      ? row.wr_ip
+                      : maskIp(row.wr_ip),
+                likes: row.wr_good,
+                dislikes: row.wr_nogood,
+                depth: row.wr_comment_reply.length,
+                parent_id: row.wr_parent,
+                created_at: row.wr_datetime,
+                updated_at: row.wr_last_edited_at || undefined,
+                is_secret: row.wr_option?.includes('secret') || false,
+                deleted_at: row.wr_deleted_at || null,
+                deleted_by: row.wr_deleted_by || null,
+                edit_count: row.wr_edit_count || 0,
+                ...(row.mb_id && blockedSet.has(String(row.mb_id)) ? { is_blocked: true } : {}),
+                ...(row.mb_id && withdrawnSet.has(String(row.mb_id)) ? { is_left: true } : {}),
+                ...(disciplineSet.has(row.wr_id) ? { is_discipline_related: true } : {}),
+                ...(reviewRatingMap.has(row.wr_id)
+                    ? { review_rating: reviewRatingMap.get(row.wr_id) }
+                    : {}),
+                ...(isAdmin && row.wr_7
+                    ? {
+                          report_count:
+                              row.wr_7 === 'lock' ? 'lock' : parseInt(row.wr_7, 10) || undefined
+                      }
+                    : {})
+            };
+        });
 
         // 마음메시지 익명: 원글 작성자(신청자) 본인의 댓글은 신원을 가린다.
         // author/author_id/author_image 를 비워 프로필·팔로우·쪽지 링크로 신원이 드러나지 않게 한다.
