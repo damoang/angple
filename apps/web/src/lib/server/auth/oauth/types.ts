@@ -95,4 +95,16 @@ export interface OAuthStateData {
      * damoang://oauth-callback 앱 스킴으로 복귀한다.
      */
     appMode?: boolean;
+    /**
+     * 앱 모드에서 "신규가입 명시적 허용" (/auth/start?app=1&signup=1).
+     * 미설정(기본) + 매칭 실패 시 조용히 계정을 만들지 않고 앱에 error=no_account 로 복귀시킨다.
+     * 사용자가 앱에서 "새로 시작"을 눌러 재시도할 때만 true 로 들어와 계정 생성을 허용한다.
+     */
+    allowSignup?: boolean;
+    /**
+     * 클라이언트가 error=no_account 응답을 이해하는지 여부 (/auth/start?...&nac=1).
+     * 하위호환: 이 플래그를 보내지 않는 구버전 앱은 no_account 가드를 적용하지 않고
+     * 기존(자동 임시계정 생성) 동작을 유지한다. 신규 앱만 no_account 안내를 받는다.
+     */
+    noAccountCapable?: boolean;
 }
