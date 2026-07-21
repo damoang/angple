@@ -104,6 +104,47 @@
     }
 
     // 리액션 추가/토글
+    // 낙관적 업데이트 계산: 누르는 즉시 카운트/선택 상태를 반영한다.
+    // 서버 응답(data.result)으로 권위값 재조정하고, 실패 시 스냅샷으로 롤백한다.
+    function computeOptimistic(
+        list: ReactionItem[],
+        reaction: string,
+        mode: string
+    ): ReactionItem[] {
+        const idx = list.findIndex((r) => r.reaction === reaction);
+        if (idx >= 0) {
+            const item = list[idx];
+            if (item.choose && mode !== 'add') {
+                // 이미 선택됨 + 토글 → 해제(카운트-1, 0이면 제거)
+                const nextCount = item.count - 1;
+                if (nextCount <= 0) return list.filter((_, i) => i !== idx);
+                return list.map((r, i) =>
+                    i === idx ? { ...r, count: nextCount, choose: false } : r
+                );
+            }
+            if (!item.choose) {
+                // 미선택 → 선택(카운트+1)
+                return list.map((r, i) =>
+                    i === idx ? { ...r, count: r.count + 1, choose: true } : r
+                );
+            }
+            // 이미 선택됨 + add 모드 → 변화 없음
+            return list;
+        }
+        // 신규 리액션 추가
+        const ci = reaction.indexOf(':');
+        return [
+            ...list,
+            {
+                reaction,
+                category: ci >= 0 ? reaction.substring(0, ci) : reaction,
+                reactionId: ci >= 0 ? reaction.substring(ci + 1) : reaction,
+                count: 1,
+                choose: true
+            }
+        ];
+    }
+
     async function react(reaction: string, mode: string = 'add'): Promise<void> {
         if (!authStore.isAuthenticated) {
             authStore.redirectToLogin();
@@ -125,6 +166,10 @@
             return;
         }
 
+        // 낙관적 반영: 서버 왕복(정책·인증·다중쿼리)을 기다리지 않고 즉시 UI 갱신.
+        const snapshot = reactions;
+        reactions = computeOptimistic(reactions, finalReaction, mode);
+
         try {
             const res = await fetch('/api/reactions', {
                 method: 'POST',
@@ -138,11 +183,16 @@
             });
             const data = await res.json();
             if (data.status === 'success' && data.result[targetId]) {
+                // 서버 권위값으로 재조정(동시 리액션 등으로 낙관값과 다를 수 있음).
                 reactions = data.result[targetId];
                 trackEvent('reaction', { board_id: boardId, reaction: finalReaction, target });
+            } else {
+                // 서버 거부(정책·한도 초과 등) → 롤백.
+                reactions = snapshot;
             }
         } catch (err) {
             console.error('Failed to react:', err);
+            reactions = snapshot; // 네트워크 실패 → 롤백
         } finally {
             isReacting = false;
         }
