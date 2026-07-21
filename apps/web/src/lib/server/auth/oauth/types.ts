@@ -95,4 +95,10 @@ export interface OAuthStateData {
      * damoang://oauth-callback 앱 스킴으로 복귀한다.
      */
     appMode?: boolean;
+    /**
+     * 앱 모드에서 "신규가입 명시적 허용" (/auth/start?app=1&signup=1).
+     * 미설정(기본) + 매칭 실패 시 조용히 계정을 만들지 않고 앱에 error=no_account 로 복귀시킨다.
+     * 사용자가 앱에서 "새로 시작"을 눌러 재시도할 때만 true 로 들어와 계정 생성을 허용한다.
+     */
+    allowSignup?: boolean;
 }
