@@ -195,6 +195,17 @@ export async function checkAndPromoteMember(
             return null;
         }
 
+        // 등급은 v2_users.level 에도 이중 저장된다 — v2 인증(앱 로그인)의 JWT 가
+        // RefreshToken 때 이 값을 읽는다. 여기서 같이 갱신하지 않으면 승급할 때마다
+        // 한 단계씩 뒤처져, 앱 사용자는 승급 후에도 옛 등급으로 게시판이 잠긴다
+        // (2026-07-21 실측: 불일치 47명 중 40명이 v2 쪽이 낮았고 38명이 g5=3/v2=2).
+        // v2_users 에 행이 없는 회원(2,846명 존재)은 영향 0 행 — 정상이며 실패가 아니다.
+        // 같은 트랜잭션이므로 g5_member 갱신과 함께 커밋/롤백된다.
+        await conn.query<ResultSetHeader>(`UPDATE v2_users SET level = ? WHERE username = ?`, [
+            applicableRule.toLevel,
+            mbId
+        ]);
+
         try {
             await insertMemberLevelHistory(conn, {
                 mbId: member.mb_id,
