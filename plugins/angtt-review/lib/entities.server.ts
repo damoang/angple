@@ -254,7 +254,9 @@ export async function getEntityConnectedPosts(
                 collected.push({
                     boTable: board,
                     wrId: r.wr_id,
-                    role: roleMap.get(`${board}:${r.wr_id}`) ?? 'mention',
+                    // ⛔ ?? 는 빈 문자열('')을 못 잡는다 — role='' 행(2026-07-21 실측 2건)이
+                    //    리뷰도 멘션도 아닌 유령이 되어 UI 에서 사라졌다. || 로 폴백.
+                    role: roleMap.get(`${board}:${r.wr_id}`) || 'mention',
                     subject: r.wr_subject ?? '',
                     name: r.wr_name ?? '',
                     mbId: r.mb_id ?? '',
@@ -269,6 +271,12 @@ export async function getEntityConnectedPosts(
     }
 
     collected.sort((a, b) => {
+        // 회원 리뷰(role='review', 별점 달린 앙TT 리뷰 글) 항상 최상단 — 멘션 86개에
+        // 밀려 slice(limit) 에서 잘리는 문제 방지(2026-07-21: 새 리뷰 7330 이 추천 0이라
+        // best 정렬에서 컷당해 작품 페이지에 안 보였음). 사용자 확정: 회원 리뷰 우선.
+        const ap = a.role === 'review' ? 0 : 1;
+        const bp = b.role === 'review' ? 0 : 1;
+        if (ap !== bp) return ap - bp;
         if (opts.sort === 'best' && b.good !== a.good) return b.good - a.good;
         // datetime은 DATE_FORMAT 문자열이지만, 방어적으로 String 강제(과거 Date 객체 500 재발 방지)
         return String(b.datetime).localeCompare(String(a.datetime));
