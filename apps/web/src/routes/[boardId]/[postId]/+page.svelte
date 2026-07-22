@@ -94,6 +94,19 @@
     } from '$lib/components/features/board/layouts/index.js';
     import ScrapButton from '$lib/components/post/scrap-button.svelte';
     import { Watermark } from '$lib/components/ui/watermark/index.js';
+    import GivingParticipation from '$lib/features/giving/giving-participation.svelte';
+
+    // 나눔 게시판 슬롯 등록 (참가/개표/결과 패널 — 본문 직후, 댓글 직전)
+    postSlotRegistry.register('post.before_comments', {
+        id: 'core:giving-participation',
+        component: GivingParticipation,
+        condition: (boardType: string) => boardType === 'giving',
+        priority: 5,
+        propsMapper: (pageData: { post: FreePost; boardId: string }) => ({
+            post: pageData.post,
+            boardId: pageData.boardId
+        })
+    });
 
     // Q&A 게시판 슬롯 등록
     postSlotRegistry.register('post.before_content', {
@@ -307,11 +320,6 @@
                       ? 'economy'
                       : 'standard')
     );
-    $effect(() => {
-        if (boardType !== 'giving') return;
-        const p = '../../../../../../plugins/giving/hooks/register-layouts.js';
-        import(p).then((m: { default: () => void }) => m.default()).catch(() => {});
-    });
     const isUsedMarket = $derived(boardType === 'used-market');
 
     // 플러그인 슬롯

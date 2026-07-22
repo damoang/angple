@@ -157,12 +157,6 @@
                       ? 'economy'
                       : 'standard')
     );
-    $effect(() => {
-        if (boardType !== 'giving') return;
-        const p = '../../../../../plugins/giving/hooks/register-layouts.js';
-        // @ts-ignore
-        import(p).then((m: { default: () => void }) => m.default()).catch(() => {});
-    });
     const isAngmapBoard = $derived(boardType === 'angmap');
     const isEconomyBoard = $derived(boardType === 'economy');
     const isMessageBoard = $derived(boardId === 'message');
