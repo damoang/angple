@@ -17,9 +17,12 @@
 
     interface Props {
         prefetchData?: { data: ExploreData } | unknown;
+        // 공감글(RecommendedPosts)에 이미 뜬 글 id — 모아보기에서 제외해 홈 중복 노출 방지.
+        // 공감글 우선 규칙: 같은 글이 양쪽에 걸리면 공감글에만 남기고 여기선 뺀다.
+        excludeIds?: Set<number>;
     }
 
-    const { prefetchData }: Props = $props();
+    const { prefetchData, excludeIds }: Props = $props();
 
     const ssrData = prefetchData as { data: ExploreData } | undefined;
     let exploreData = $state<ExploreData | null>(ssrData?.data ?? null);
@@ -53,7 +56,12 @@
         } else {
             posts = modeData.posts ?? [];
         }
-        return posts.filter((p) => !blockedUsersStore.isBlocked(p.author)).slice(0, PREVIEW_COUNT);
+        // 차단 사용자 제외 + 공감글 중복 제외 후 PREVIEW_COUNT 로 채운다
+        // (제외를 slice 앞에 둬야 빠진 만큼 다른 글로 채워져 목록이 빈약해지지 않음).
+        return posts
+            .filter((p) => !blockedUsersStore.isBlocked(p.author))
+            .filter((p) => !excludeIds || !excludeIds.has(p.id))
+            .slice(0, PREVIEW_COUNT);
     });
 
     async function loadExploreData(): Promise<void> {
